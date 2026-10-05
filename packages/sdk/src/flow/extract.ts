@@ -13,8 +13,10 @@ import type { VerbatraConfig } from "../config/schema.js";
 import { errorMessage, SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
+import type { ScanProgressListener } from "../progress/types.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { requireExtractionConfig, runScan } from "./source-scan.js";
+import { callSiteKeysOf } from "./unused-key-forms.js";
 
 /** One key the run added to the source catalog, and the call site it was found at. */
 export interface AddedKey {
@@ -63,6 +65,11 @@ export interface ExtractInput {
   readonly cwd?: string;
   /** Report what would be added without writing anything. */
   readonly dryRun?: boolean;
+  /**
+   * Called once after each application source file the scan reads, with the running count and the
+   * total, for progress reporting.
+   */
+  readonly onProgress?: ScanProgressListener;
 }
 
 /** Injectable dependencies for {@link extract}. Every field has a working default. */
@@ -98,8 +105,21 @@ async function readExistingResource(
     throw new SdkError(
       "SOURCE_INVALID",
       `The source locale file at ${sourcePath} could not be read: ${errorMessage(error)}`,
+      { cause: error },
     );
   }
+}
+
+function presentCallSiteKeys(
+  resource: LocaleResource,
+  framework: SourceFramework,
+): ReadonlySet<string> {
+  const rules = { framework, format: resource.format };
+  return new Set(
+    [...resource.entries].flatMap(([catalogKey, entry]) =>
+      callSiteKeysOf(rules, catalogKey, entry.isPlural),
+    ),
+  );
 }
 
 function toEntry(
@@ -134,11 +154,12 @@ async function writeResource(
   adapter: FormatAdapter,
 ): Promise<void> {
   try {
-    await adapter.write(resource, sourcePath);
+    await adapter.write(resource, sourcePath, { sourcePath });
   } catch (error) {
     throw new SdkError(
       "SOURCE_UNWRITABLE",
       `The source locale file at ${sourcePath} could not be written: ${errorMessage(error)}`,
+      { cause: error },
     );
   }
 }
@@ -157,8 +178,10 @@ function toAddedKey(key: ExtractedKey): AddedKey {
  *
  * Only the source locale file is ever written, and only keys that are genuinely new are added: a
  * key already in the catalog keeps its value exactly as it stands, so an editorial fix is never
- * reverted by a stale default left at a call site. A key in the catalog that no call site mentions
- * is left alone. A run that finds nothing new writes nothing at all, so it leaves the file
+ * reverted by a stale default left at a call site. A key the catalog holds only as its plural
+ * forms (`cart.items_one` and `cart.items_other` for `t("cart.items", { count })`, a gettext
+ * `msgid_plural` entry, an Android `<plurals>` resource) counts as present, so no empty base key is
+ * written next to them. A key in the catalog that no call site mentions is left alone. A run that finds nothing new writes nothing at all, so it leaves the file
  * byte-identical and its modification time untouched.
  *
  * Everything the scan cannot resolve is reported as data rather than thrown. A call site whose key
@@ -176,6 +199,9 @@ function toAddedKey(key: ExtractedKey): AddedKey {
  * @throws {@link SdkError} `EXTRACT_FS_UNSUPPORTED`: the supplied `deps.fs` implements no
  * `readDirectory`, so no source file can be discovered.
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
+ * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
+ * cannot be combined, or a configured locale has no valid path spelling under that style.
+ * @throws {@link SdkError} `LOCALE_PATH_COLLISION`: two configured locales resolve to the same path.
  * @throws {@link SdkError} `SOURCE_INVALID`: a source catalog exists but could not be parsed.
  * @throws {@link SdkError} `SOURCE_UNWRITABLE`: the source catalog could not be written. The
  * `xliff` and `apple-xcstrings` formats reach this when no catalog exists yet: neither is created
@@ -197,9 +223,10 @@ export async function extract(input: ExtractInput, deps: ExtractDeps = {}): Prom
   const adapter = selectAdapter(input.config.format, deps.adapterRegistry, fs);
   const resolver = createLocalePathResolver(cwd, input.config);
   const sourcePath = resolver.pathFor(input.config.sourceLocale);
-  const scan = await runScan(extraction, cwd, fs, deps.createExtractor);
+  const scan = await runScan(extraction, cwd, fs, deps.createExtractor, input.onProgress);
   const resource = await readExistingResource(sourcePath, input.config, fs, adapter);
-  const added = scan.keys.filter((key) => !resource.entries.has(key.key));
+  const present = presentCallSiteKeys(resource, extraction.framework);
+  const added = scan.keys.filter((key) => !present.has(key.key));
   const dryRun = input.dryRun === true;
   const written = added.length > 0 && !dryRun;
   if (written) {

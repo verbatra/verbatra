@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import type { VerbatraConfig } from "../config/schema.js";
 import {
   baseConfig,
+  localeGlossaryOf,
   makeFakeFs,
   makeStubProvider,
   makeTempDir,
@@ -125,8 +126,7 @@ describe("translate: integrity withholding", () => {
     );
     expect(run1.locales[0]?.integrityMismatches).toEqual(["a"]);
     expect(run1.locales[0]?.translated).toEqual([]);
-    const de1 = (await readJsonFile(targetPath(dir, "de"))) as Record<string, string>;
-    expect(de1.a).toBeUndefined();
+    await expect(access(targetPath(dir, "de"))).rejects.toMatchObject({ code: "ENOENT" });
     const lock1 = (await readJsonFile(join(dir, "verbatra.lock.json"))) as {
       locales: Record<string, Record<string, string>>;
     };
@@ -282,9 +282,13 @@ describe("translate: error shapes and orphaned keys", () => {
     await mkdir(join(dir, "locales"));
     await writeFile(join(dir, "locales", "en.json"), "{ not valid json", "utf8");
     const stub = makeStubProvider();
-    await expect(
-      translate({ config: cfg(), cwd: dir }, { createProvider: () => stub.provider }),
-    ).rejects.toMatchObject({ code: "SOURCE_INVALID" });
+    const failure = await translate(
+      { config: cfg(), cwd: dir },
+      { createProvider: () => stub.provider },
+    ).catch((error: unknown) => error);
+
+    expect(failure).toMatchObject({ code: "SOURCE_INVALID" });
+    expect((failure as Error).cause).toMatchObject({ name: "AdapterError" });
   });
 
   it("withholds the keys of a throwing sub-batch as a failed locale with a notice, not a throw", async () => {
@@ -356,7 +360,7 @@ describe("translate: glossary routing and notices", () => {
       { config: cfg({ glossary: { hello: "hallo" } }), cwd: dir },
       { createProvider: () => stub.provider },
     );
-    expect(stub.calls[0]?.request.glossary).toEqual({ hello: "hallo" });
+    expect(stub.calls[0]?.request.glossary).toEqual(localeGlossaryOf({ hello: "hallo" }));
   });
 
   it("surfaces provider notices (e.g. DeepL GLOSSARY_IGNORED) to the caller", async () => {
@@ -369,7 +373,7 @@ describe("translate: glossary routing and notices", () => {
       { config: cfg({ glossary: { hello: "hallo" } }), cwd: dir },
       { createProvider: () => stub.provider },
     );
-    expect(stub.calls[0]?.request.glossary).toEqual({ hello: "hallo" });
+    expect(stub.calls[0]?.request.glossary).toEqual(localeGlossaryOf({ hello: "hallo" }));
     expect(summary.locales[0]?.notices.map((n) => n.code)).toContain("GLOSSARY_IGNORED");
   });
 });

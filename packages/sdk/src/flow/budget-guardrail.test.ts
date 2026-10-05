@@ -205,7 +205,7 @@ describe("translate: budget crossed, stop behavior", () => {
         config: cfg({
           targetLocales: ["de", "fr"],
           maxBatchSize: 2,
-          maxTokens: 500,
+          maxTokens: 820,
           budgetBehavior: "stop",
         }),
         cwd: dir,
@@ -231,7 +231,7 @@ describe("translate: budget crossed, stop behavior", () => {
     expect(summary.failed).toEqual(["fr"]);
 
     expect(summary.budget).toEqual({
-      maxTokens: 500,
+      maxTokens: 820,
       behavior: "stop",
       supported: true,
       tokensUsed: 200,
@@ -252,7 +252,7 @@ describe("translate: budget crossed, stop behavior", () => {
         config: cfg({
           targetLocales: ["de", "fr"],
           maxBatchSize: 2,
-          maxTokens: 500,
+          maxTokens: 820,
           budgetBehavior: "stop",
         }),
         cwd: dir,
@@ -260,7 +260,7 @@ describe("translate: budget crossed, stop behavior", () => {
       { createProvider: () => stub.provider },
     );
 
-    expect(summary.budget?.tokensUsed).toBeLessThanOrEqual(500);
+    expect(summary.budget?.tokensUsed).toBeLessThanOrEqual(820);
     expect(stub.calls).toHaveLength(2);
   });
 
@@ -289,7 +289,7 @@ describe("translate: budget crossed, stop behavior", () => {
       ?.notices.find((n) => n.code === "BUDGET_TOKENS_EXCEEDED");
 
     expect(deNotice?.message).toContain("projected at");
-    expect(frNotice?.message).toContain("had already reached");
+    expect(frNotice?.message).toContain("had already stopped short of");
     expect(frNotice?.message).not.toContain("projected at");
   });
 
@@ -299,7 +299,7 @@ describe("translate: budget crossed, stop behavior", () => {
 
     const summary = await translate(
       {
-        config: cfg({ maxBatchSize: 2, maxTokens: 500, budgetBehavior: "stop" }),
+        config: cfg({ maxBatchSize: 2, maxTokens: 800, budgetBehavior: "stop" }),
         cwd: dir,
       },
       { createProvider: () => stub.provider },
@@ -392,7 +392,7 @@ describe("translate: budget crossed by a failed request", () => {
       .find((l) => l.locale === "fr")
       ?.notices.find((n) => n.code === "BUDGET_TOKENS_EXCEEDED");
     expect(deNotice?.message).toContain(`reached the configured budget of ${projected} tokens`);
-    expect(frNotice?.message).toContain("had already reached");
+    expect(frNotice?.message).toContain("had already reached the configured budget");
     expect(
       [...(summary.locales.find((l) => l.locale === "fr")?.budgetWithheld ?? [])].sort(),
     ).toEqual(["k0", "k1"]);
@@ -490,16 +490,16 @@ describe("translate: token-less provider with a configured budget", () => {
     const stub = makeStubProvider({ kind: "machine-translation" });
 
     const summary = await translate(
-      { config: cfg({ maxBatchSize: 2, maxTokens: 1000, budgetBehavior: "stop" }), cwd: dir },
+      { config: cfg({ maxBatchSize: 2, maxTokens: 1450, budgetBehavior: "stop" }), cwd: dir },
       { createProvider: () => stub.provider },
     );
 
     expect(stub.calls).toHaveLength(2);
     expect(summary.budget).toEqual({
-      maxTokens: 1000,
+      maxTokens: 1450,
       behavior: "stop",
       supported: false,
-      tokensUsed: 788,
+      tokensUsed: 1424,
       exceeded: true,
     });
     expect(summary.usage).toBeUndefined();
@@ -539,7 +539,7 @@ describe("translate: token-less provider with a configured budget", () => {
     expect(summary.budget).toEqual({
       maxTokens: 1,
       behavior: "warn",
-      supported: false,
+      supported: true,
       tokensUsed: 0,
       exceeded: false,
     });

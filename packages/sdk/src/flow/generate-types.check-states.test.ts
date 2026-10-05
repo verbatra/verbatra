@@ -41,6 +41,7 @@ describe("check mode over every state the committed file can be in", () => {
     const result = await generateTypes({ config: baseConfig(), cwd: dir, check: true });
 
     expect(result.stale).toBe(true);
+    expect(result.missing).toBe(true);
     expect(result.written).toBe(false);
     await expect(readFile(join(dir, DEFAULT_TYPES_PATH), "utf8")).rejects.toThrow();
   });
@@ -50,6 +51,18 @@ describe("check mode over every state the committed file can be in", () => {
     await generated(dir);
 
     expect(await staleWith(dir, "")).toBe(true);
+  });
+
+  it("is not missing when a file is present, current or not", async () => {
+    const dir = await seed();
+    const current = await generated(dir);
+
+    const result = await generateTypes({ config: baseConfig(), cwd: dir, check: true });
+    await writeFile(join(dir, DEFAULT_TYPES_PATH), `${current}// edited\n`, "utf8");
+    const edited = await generateTypes({ config: baseConfig(), cwd: dir, check: true });
+
+    expect(result.missing).toBe(false);
+    expect(edited).toMatchObject({ stale: true, missing: false });
   });
 
   it("is stale when the file is present but not valid TypeScript", async () => {

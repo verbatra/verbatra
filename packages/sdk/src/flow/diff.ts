@@ -3,16 +3,22 @@ import type { SourceExtractor, SourceFramework } from "@verbatra/extract";
 import type { AdapterRegistry } from "@verbatra/format-adapters";
 import type { VerbatraConfig } from "../config/schema.js";
 import type { SdkFs } from "../fs.js";
+import { type KeyOrigin, originsOf } from "../lock/key-provenance.js";
+import type { ScanProgressListener } from "../progress/types.js";
 import { diffLocalesWithSource } from "./diff-locales.js";
+import { reportedProtectedKeys } from "./protection.js";
 import { findUnusedKeys, type UnusedKeysReport } from "./unused-keys.js";
 
 /** One locale's pending work in a {@link DiffSummary}, as key names rather than counts. */
 export interface LocaleDiff {
   /** The target locale this entry describes. */
   readonly locale: string;
-  /** Keys present in the source but absent from this locale. */
+  /** Keys with a non-blank source value that are absent from this locale. */
   readonly missing: readonly string[];
-  /** Keys whose source text changed since this locale was last translated. */
+  /**
+   * Keys with a non-blank source value whose source text changed since this locale was last
+   * translated.
+   */
   readonly changed: readonly string[];
   /**
    * Keys present in this locale but no longer in the source. They are reported, never removed,
@@ -24,6 +30,29 @@ export interface LocaleDiff {
    * because they need no translation work.
    */
   readonly hasPendingChanges: boolean;
+  /**
+   * Source keys whose value is empty or whitespace only, such as a key `extract` added without a
+   * default, whatever the target or the lock-file holds. They are never in `missing` or `changed`
+   * and are not pending: a {@link translate} run sends nothing for them and reports them with a
+   * `SOURCE_VALUE_EMPTY` notice. {@link diff} always sets it; it is optional only so a value built
+   * by hand, such as a test double, can leave it out.
+   */
+  readonly emptySource?: readonly string[];
+  /**
+   * The interpreted origin of each `changed` key's current value, read from the provenance file,
+   * so a caller can see before a run whose work a retranslation would replace. See
+   * {@link KeyOrigin}. Absent when that file is corrupt or was written by a newer verbatra, since a
+   * report never fails over it.
+   */
+  readonly changedOrigins?: Readonly<Record<string, KeyOrigin>>;
+  /**
+   * The missing and changed keys a {@link translate} run would leave alone under the config's
+   * `humanEdits` and `pinnedKeys`, sorted: stale keys whose value a person wrote, imported, or
+   * changed outside verbatra, and pinned keys. They still count as pending, since they stay stale
+   * until a person resolves them. When the provenance file is corrupt or was written by a newer
+   * verbatra, no origin can be read and only the pinned keys are listed.
+   */
+  readonly protected?: readonly string[];
 }
 
 /** The result of {@link diff}: per-locale key lists plus one project-wide verdict. */
@@ -55,6 +84,11 @@ export interface DiffInput {
    * source-catalog keys nothing references, as {@link DiffSummary.unused}. Off by default.
    */
   readonly unused?: boolean;
+  /**
+   * Called once after each application source file the `unused` scan reads, with the running count and the
+   * total, for progress reporting.
+   */
+  readonly onProgress?: ScanProgressListener;
 }
 
 /** Injectable dependencies for {@link diff}. Every field has a working default. */
@@ -81,6 +115,7 @@ function toLocaleDiff(locale: string, diff: DiffResult): LocaleDiff {
     missing: diff.missing,
     changed: diff.changed,
     orphaned: diff.orphaned,
+    emptySource: diff.emptySource,
     hasPendingChanges: diff.missing.length > 0 || diff.changed.length > 0,
   };
 }
@@ -93,6 +128,10 @@ function toLocaleDiff(locale: string, diff: DiffResult): LocaleDiff {
  * The comparison runs against the lock-file baseline, so `changed` means the source text moved
  * since the key was last translated rather than merely that the two strings differ. Orphaned keys
  * are reported but never removed here; pruning happens only in {@link translate}.
+ *
+ * State the lock-file and provenance file still record under an underscore spelling of a configured
+ * locale (`pt_BR` for `pt-BR`) is read as that locale's, the same way {@link translate} carries it
+ * over, so a respelled locale reports the keys a run would retranslate. Nothing is moved or written.
  *
  * With `unused` set, it also scans the application source named by the config's `extract` block
  * and reports, in {@link DiffSummary.unused}, the source-catalog keys no static reference names.
@@ -127,16 +166,31 @@ function toLocaleDiff(locale: string, diff: DiffResult): LocaleDiff {
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
  * unsupported version.
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: a requested locale is not a configured target locale.
+ * @throws `AdapterError`: a target locale file is malformed. Its own code is preserved.
  */
 export async function diff(input: DiffInput, deps: DiffDeps = {}): Promise<DiffSummary> {
   const { source, results } = await diffLocalesWithSource(input, deps);
-  const locales = results.map(({ locale, diff: result }) => toLocaleDiff(locale, result));
+  const locales = results.map((entry) => {
+    const { locale, diff: result, target, provenance } = entry;
+    return {
+      ...toLocaleDiff(locale, result),
+      ...(provenance !== undefined
+        ? { changedOrigins: originsOf(provenance, target, result.changed) }
+        : {}),
+      protected: reportedProtectedKeys(input.config, entry),
+    };
+  });
   const summary = { hasPendingChanges: locales.some((entry) => entry.hasPendingChanges), locales };
   if (input.unused !== true) {
     return summary;
   }
   const unused = await findUnusedKeys(
-    { config: input.config, cwd: input.cwd ?? process.cwd(), sourceCatalog: source },
+    {
+      config: input.config,
+      cwd: input.cwd ?? process.cwd(),
+      sourceCatalog: source,
+      ...(input.onProgress !== undefined ? { onProgress: input.onProgress } : {}),
+    },
     deps,
   );
   return { ...summary, unused };

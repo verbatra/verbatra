@@ -2,8 +2,10 @@ import type { AdapterRegistry } from "@verbatra/format-adapters";
 import type { VerbatraConfig } from "../config/schema.js";
 import { SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
+import { type KeyProvenance, keyProvenance } from "../lock/key-provenance.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { readTarget } from "./diff-locales.js";
+import { readCarriedOverProvenance } from "./locale-carry-over.js";
 import { selectLocales } from "./select-locales.js";
 import { readSource } from "./source.js";
 
@@ -31,8 +33,19 @@ export interface KeyValueDeps {
 export interface KeyValueResult {
   /** The key's text in the source locale. Always present, since a missing key is an error. */
   readonly source: string;
+  /**
+   * The context the source locale file gives for the key, for translators: an ARB
+   * `@key.description`, an XLIFF note, a gettext comment, an Apple `.strings` comment, or a .NET
+   * `.resx` comment. Absent when the format or the file carries none.
+   */
+  readonly description?: string;
   /** The key's text in the requested target locale, or absent when it has not been translated yet. */
   readonly target?: string;
+  /**
+   * The provenance of the current translation, read from the provenance file. Absent when
+   * `target` is, and when that file is corrupt or was written by a newer verbatra.
+   */
+  readonly provenance?: KeyProvenance;
 }
 
 /**
@@ -51,7 +64,8 @@ export interface KeyValueResult {
  *
  * @param input - The config, locale, and key to read.
  * @param deps - Optional adapter registry and file-system overrides.
- * @returns The key's source text and, when present, its current translation.
+ * @returns The key's source text, its description when the source locale file gives one, and,
+ * when present, its current translation with that translation's provenance.
  *
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: the requested locale is not a configured target locale.
@@ -86,11 +100,21 @@ export async function keyValue(
     );
   }
 
+  const context = {
+    source: sourceEntry.value,
+    ...(sourceEntry.description !== undefined ? { description: sourceEntry.description } : {}),
+  };
   const target = await readTarget(cwd, config, adapter, fs, locale);
   const targetEntry = target.entries.get(input.key);
-
+  if (targetEntry === undefined) {
+    return context;
+  }
+  const records = (await readCarriedOverProvenance(cwd, fs, [locale]))?.(locale);
   return {
-    source: sourceEntry.value,
-    ...(targetEntry !== undefined ? { target: targetEntry.value } : {}),
+    ...context,
+    target: targetEntry.value,
+    ...(records !== undefined
+      ? { provenance: keyProvenance(records.get(input.key), targetEntry.value) }
+      : {}),
   };
 }

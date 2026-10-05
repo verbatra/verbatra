@@ -24,6 +24,10 @@ const REFUSAL_SCENARIOS: Readonly<Record<TypesOutputRefusal, RefusalScenario>> =
   "not-typescript": { input: { out: "types.txt" }, why: "is not a TypeScript file" },
   "locale-file": { input: { out: "locales/en.json" }, why: 'is the locale file for "en".' },
   "lock-file": { input: { out: "verbatra.lock.json" }, why: "is the lock file" },
+  "provenance-file": {
+    input: { out: "verbatra.provenance.json" },
+    why: "is the provenance file",
+  },
   "translation-memory-cache": {
     input: { out: "verbatra.cache.json" },
     why: "is the translation-memory cache.",
@@ -35,6 +39,10 @@ const REFUSAL_SCENARIOS: Readonly<Record<TypesOutputRefusal, RefusalScenario>> =
   "loaded-config": {
     input: { out: "config/custom.ts", configPath: "config/custom.ts" },
     why: "is the configuration file this run loaded.",
+  },
+  "glossary-file": {
+    input: { out: "glossary.ts", glossaryPath: "glossary.ts" },
+    why: "is the glossary file the config names.",
   },
   "unverified-existing-file": {
     input: { out: "src/app.ts" },
@@ -61,6 +69,17 @@ describe("every refusal the output guard declares", () => {
     ).rejects.toMatchObject({
       code: "TYPES_OUTPUT_CONFLICT",
       message: expect.stringContaining(scenario.why),
+    });
+  });
+});
+
+describe("an output path ending in a path separator", () => {
+  it.each(["types.d.ts/", "generated/"])("names no file: %j", async (out) => {
+    const dir = await seed();
+
+    await expect(generateTypes({ config: baseConfig(), cwd: dir, out })).rejects.toMatchObject({
+      code: "TYPES_OUTPUT_CONFLICT",
+      message: expect.stringContaining("names no file."),
     });
   });
 });
