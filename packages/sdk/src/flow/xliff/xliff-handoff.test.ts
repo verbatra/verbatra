@@ -270,6 +270,36 @@ describe.each(FORMATS)("XLIFF handoff (%s)", (format, version) => {
     expect((await localeJson(dir, "de")).greeting).toBe("Hallo");
   });
 
+  it("reports a broken unit and an unknown key as malformed rows in file order", async () => {
+    const dir = await project({ alpha: "Alpha", beta: "Beta", gamma: "Gamma" });
+    await exportTo(dir, { locales: ["de"] });
+    let edited = "";
+    await edit(dir, "de", (xml) => {
+      const units = [...xml.matchAll(/\s*<(trans-)?unit [\s\S]*?<\/(trans-)?unit>/g)].map(
+        (match) => match[0],
+      );
+      const alpha = units[0] ?? "";
+      const beta = units[1] ?? "";
+      const invented = alpha.replaceAll("alpha", "invented");
+      const broken = beta.replace(/<source>[\s\S]*?<\/source>/, "");
+      edited = xml.replace(alpha, `${invented}${alpha}`).replace(beta, broken);
+      return edited;
+    });
+    const lineOfUnit = (key: string): number => {
+      const at = edited.search(new RegExp(`<(trans-)?unit [^>]*"${key}"`));
+      return edited.slice(0, at).split("\n").length;
+    };
+
+    const summary = await importFrom(dir);
+
+    const de = summary.locales.find((locale) => locale.locale === "de");
+    expect(de?.malformedRows).toEqual([
+      { row: 1, line: lineOfUnit("invented"), column: "id" },
+      { row: 3, line: lineOfUnit("beta"), column: "source" },
+    ]);
+    expect(de?.translated).toEqual([]);
+  });
+
   it("reports approvals on a dry run without writing anything", async () => {
     const dir = await project({ greeting: "Hello" });
     await exportTo(dir, { locales: ["de"] });
