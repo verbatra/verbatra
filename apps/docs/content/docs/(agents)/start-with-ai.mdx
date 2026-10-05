@@ -11,11 +11,11 @@ This page is for a project that already has committed locale files. Paste the pr
 
 ## The steps the agent follows
 
-The prompt sends the agent to the Markdown version of this page. Agent: follow these steps in order, and never skip the stop in step 7.
+Agent: follow these steps in order, and never skip the stop in step 6.
 
 ### 1. Inspect the existing setup
 
-Before you change anything, find the i18n library in `package.json` (for example `i18next`, `vue-i18n`, `next-intl`, or `@ngx-translate/core`) and the locale files themselves. Note the source locale, every target locale already present, and the path pattern with a `{locale}` token, such as `locales/{locale}.json`. [Pick your stack](/docs/pick-your-stack) maps each stack to its format id and layout; [Formats](/docs/formats) says which files must already exist, such as an XLIFF file or an Xcode String Catalog. Plain JSON with no i18n library: `{{name}}` placeholders mean `i18next-json`, single-brace `{name}` means `vue-i18n-json`. An Android project uses `res/{locale}/strings.xml` with `files.localeStyle: "android"`, so the token expands to `values` and `values-de`.
+Before you change anything, find the i18n library in `package.json` (such as `i18next`, `vue-i18n`, or `next-intl`) and the locale files. Note the source locale, every target locale already present, and the path pattern with a `{locale}` token, such as `locales/{locale}.json`. [Pick your stack](/docs/pick-your-stack) maps each stack to its format id and layout, including the Android `res/{locale}/strings.xml` with `files.localeStyle: "android"`; [Formats](/docs/formats) says which files must already exist. Plain JSON with no i18n library: `{{name}}` placeholders mean `i18next-json`, single-brace `{name}` means `vue-i18n-json`.
 
 ### 2. Install the CLI
 
@@ -23,76 +23,64 @@ Before you change anything, find the i18n library in `package.json` (for example
 npm install --save-dev @verbatra/cli
 ```
 
-pnpm, yarn, and bun work too. If pnpm exits with `ERR_PNPM_IGNORED_BUILDS`, run `pnpm approve-builds` once and approve neither entry. If npm warns about install scripts that `allowScripts` does not cover, leave them unapproved: verbatra needs none of them.
+pnpm, yarn, and bun work too. Approve no install scripts, neither in `pnpm approve-builds` nor in npm's `allowScripts`: verbatra needs none.
 
-### 3. Scaffold the config without prompts
+### 3. Scaffold the config and the agent files
 
 ```bash
-npx verbatra init --provider <provider> --yes --json
+npx verbatra init --provider <provider> --yes --json --agent
 ```
 
-Ask the human which provider to use unless the project already makes it obvious. [Providers](/docs/providers) lists the ids; `none` turns machine translation off. Never pick a provider that spends against a service the human did not agree to, and never pass a key value to `init`. `init` detects the format, the path pattern, and the locales, prints one JSON envelope, and never prompts:
+Ask the human which provider to use unless the project makes it obvious. Never pick one that spends against a service the human did not agree to, and never pass a key value to `init`. [Providers](/docs/providers) lists the ids; `none` turns machine translation off. `init` detects the format, path pattern, and locales, prints one JSON envelope, and never prompts. `--agent` also writes a verbatra section to `AGENTS.md` (or to `CLAUDE.md` when that is the only instruction file) and the verbatra MCP server, spending off, to `.mcp.json`:
 
-- Exit `0`: compare `result.config` with what you found in step 1, starting with every `result.sources` entry that says `default`; `result.config.files.localeStyle` appears only when the files do not spell locales as written, and `result.detection.layout` shows the pattern and locales the scan found. If something is wrong, run it again with the right `--format`, `--path`, `--source`, or `--targets`, plus `--force`.
+- Exit `0`: compare `result.config` with step 1, starting with every `result.sources` entry that says `default`; `result.config.files.localeStyle` appears only when the files do not spell locales as written. If something is wrong, run it again with the right `--format`, `--path`, `--source`, or `--targets`, plus `--force`.
 - Exit `2` with `FORMAT_AMBIGUOUS` or `LAYOUT_AMBIGUOUS`: pick from `candidates` and run it again with `--format` or `--path`. When the candidates are namespace files side by side, stop and ask the human, since one config covers one file pattern.
 - Exit `2` with `MISSING_OPTIONS`: the message names every flag still needed.
-- Exit `2` with `CONFIG_EXISTS`: ask the human before you pass `--force`.
+- Exit `2` with `CONFIG_EXISTS`: tell the human which provider the existing config uses and wait for their confirmation. Then run `npx verbatra init --agent --json`, which keeps the config and adds only the agent files. Ask before you pass `--force`.
 
-[init](/docs/cli/init#providers) documents every flag, including `--base-url` and `--model` for an OpenAI-compatible or LibreTranslate server.
+[init](/docs/cli/init#providers) documents every flag.
 
 ### 4. Leave the API key to the human
 
-Skip this step for provider `none`.
+Skip this step for provider `none`. The key variable is `result.apiKeyEnvVar`; after `CONFIG_EXISTS` it is `null`, so take the name from the failing `api-key` check of `npx verbatra doctor --json`. Copy `.env.example` to `.env`, or create `.env` if `init` wrote no example, name the variable there with a blank value, and tell the human to fill it in. Never write, invent, or ask for a key value. Carry on without waiting.
 
-```bash
-cp .env.example .env
-```
-
-Check that `.env` names the variable from `result.apiKeyEnvVar`, leave its value blank, and tell the human which variable to fill in. Never write, invent, or ask for a key value. Carry on without waiting for it.
-
-### 5. Run doctor
+### 5. Check the setup without spending
 
 ```bash
 npx verbatra doctor --json
-```
-
-`doctor` reads the key variable's name, from the environment or from `.env.local` and `.env`, never its value. Fix every failing check you can by editing `verbatra.config.ts`, then run it again. The `api-key` check passes only once the human has set the key, so do not loop on it.
-
-### 6. Preview without spending
-
-```bash
 npx verbatra check --json
 npx verbatra diff --json
 npx verbatra translate --dry-run --json
 ```
 
-None of these calls a provider, needs a key, or writes a file. Exit `1` from `check` or `diff` means a locale is out of sync, which is expected before a first run; only exit `2` is a setup problem. With provider `none`, `translate --dry-run` exits `3` when keys are left for a human translator, which is expected too. verbatra never overwrites an existing value, even on the first run: only keys missing from a target get translated. An empty string counts as an existing value, so ask the human before you delete placeholder `""` keys.
+None of these calls a provider, needs a key, or writes a file. Fix every failing `doctor` check you can in `verbatra.config.ts`; the `api-key` check passes only once the human has set the key, so do not loop on it. From `check` or `diff`, exit `1` (out of sync) is expected before a first run; only exit `2` is a setup problem. With provider `none`, `translate --dry-run` exits `3` when keys are left for a human translator. Only keys missing from a target get translated, and an empty string counts as present, so ask before you delete placeholder `""` keys.
 
-### 7. Stop and ask
+### 6. Stop and ask
 
-Summarize how many keys are pending per locale and what `translate --dry-run` reported, then stop. A real run spends at once and has no confirmation prompt of its own, so wait for the human's explicit go-ahead. Never use `--prune` unless the human asked for orphaned keys to be removed.
+Summarize how many keys are pending per locale and what `translate --dry-run` reported, then stop. A real run spends at once and has no confirmation prompt of its own, so wait for the human's explicit go-ahead. Never use `--prune` unless the human asked for it.
 
-### 8. Translate after the go-ahead
+### 7. Translate after the go-ahead
 
 ```bash
 npx verbatra translate --json
 ```
 
-Report the `succeeded`, `partial`, and `failed` lists from the summary. A `partial` or `failed` locale was still written with everything that succeeded.
+Report the summary's `succeeded`, `partial`, and `failed` lists. A `partial` or `failed` locale still keeps everything that succeeded.
 
-### 9. Commit the right files
+### 8. Commit and connect
 
-Commit `verbatra.config.ts`, `.env.example`, `verbatra.lock.json`, `verbatra.provenance.json` once a run has written it, and the translated locale files. Never commit `.env`, `.env.local`, `.verbatra-local/`, or `verbatra.cache.json`; `init` added them to `.gitignore`, so confirm they are ignored.
+Commit `verbatra.config.ts`, `.env.example` if it exists, the instruction file and `.mcp.json` from step 3, `verbatra.lock.json`, `verbatra.provenance.json` once a run has written it, and the translated locale files. Never commit `.env`, `.env.local`, `.verbatra-local/`, or `verbatra.cache.json`; confirm that `.gitignore` covers them.
+
+Then tell the human to restart Claude Code and approve the project's `verbatra` server, without also installing the verbatra plugin, which registers it twice; `claude mcp list` shows the connection. Another client takes its one entry from [Connect an MCP client](/docs/connect-an-mcp-client).
 
 ## Why this shape
 
-`translate` has no spend gate of its own, so the gate lives in the agent's instructions: every step before 8 is free and read-only.
+`translate` has no spend gate of its own, so the gate lives in the agent's instructions: no step before 7 spends.
 
 ## Next
 
 <Cards>
-  <Card title="Connect an MCP client" href="/docs/connect-an-mcp-client" description="Once verbatra is set up, connect Claude Code, Cursor, VS Code, or another MCP client to its stdio server so the agent can check status and fix translations through tools." />
-  <Card title="Connect an MCP client" href="/docs/connect-an-mcp-client#the-verbatra-plugin" description="In Claude Code, the verbatra plugin brings the skills, the MCP server with spending off, and a hook that checks every locale file the agent edits." />
+  <Card title="Connect an MCP client" href="/docs/connect-an-mcp-client" description="The one entry each client other than Claude Code needs, and how to let the agent spend." />
   <Card title="Recipes for agents and scripts" href="/docs/agent-recipes" description="The --json envelope and exit codes this prompt's own commands rely on, for building your own agent loops on top." />
   <Card title="Drive Studio with a browser agent" href="/docs/agent-tools-in-studio" description="A different surface, for driving an already-set-up project from a browser tab instead of a shell." />
   <Card title="Quickstart" href="/docs/quickstart" description="The same setup walkthrough, written for a person instead of an agent." />

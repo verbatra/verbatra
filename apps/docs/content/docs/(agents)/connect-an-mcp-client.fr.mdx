@@ -4,7 +4,7 @@ description: Branche le serveur MCP stdio de verbatra sur Claude Code, Codex, Ge
 type: how-to
 status: new
 ---
-Sers-t'en pour qu'un agent de code lise l'état des traductions et corrige des valeurs via le serveur MCP de verbatra. Le client démarre le serveur sur stdio, donc aucun port à gérer. Il te faut un projet avec une config verbatra ([`npx verbatra init`](/docs/cli/init)) et Node.js 22.14 ou plus récent.
+Sers-t'en pour qu'un agent de code lise l'état des traductions et corrige des valeurs via le serveur MCP stdio de verbatra. Enregistre-le une fois par client : une deuxième entrée démarre un deuxième serveur. Il te faut un projet avec une config verbatra ([`npx verbatra init`](/docs/cli/init)) et Node.js 22.14 ou plus récent.
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
 
@@ -15,7 +15,7 @@ Sers-t'en pour qu'un agent de code lise l'état des traductions et corrige des v
 | `npx -y @verbatra/mcp` | rien d'installé | non |
 | `npx verbatra mcp` | `@verbatra/cli` et `@verbatra/mcp` en dépendances de développement | oui : `.env.local`, puis `.env` |
 
-Les exemples utilisent `npx -y @verbatra/mcp`, qui fonctionne dans n'importe quel projet. Évite `npx -y @verbatra/cli mcp`, qui sort avec `2` parce que la CLI n'installe jamais `@verbatra/mcp`. Pointe le serveur vers le répertoire qui contient la config ; chaque section explique comment, et la règle est dans [Répertoire du projet](/docs/cli/mcp#répertoire-du-projet).
+Les exemples utilisent `npx -y @verbatra/mcp`. Évite `npx -y @verbatra/cli mcp`, qui sort avec `2` parce que la CLI n'installe jamais `@verbatra/mcp`. Chaque section explique comment pointer le serveur vers le répertoire de la config ; la règle est dans [Répertoire du projet](/docs/cli/mcp#répertoire-du-projet).
 
 ### Registre MCP
 
@@ -44,13 +44,21 @@ Le serveur demande quand même à l'agent de lancer `translation.estimate` et d'
 
 ## Claude Code
 
-Depuis la racine du projet :
+<Callout type="warn">
+Ne combine jamais le plugin verbatra avec une entrée `verbatra` dans `.mcp.json` : le plugin apporte un second serveur.
+</Callout>
+
+### Laisser init l'écrire
+
+<AvailableFrom version="0.12.0" />
+
+La voie recommandée, depuis la racine du projet :
 
 ```bash
-claude mcp add --transport stdio --scope project verbatra -- npx -y @verbatra/mcp
+npx verbatra init --agent
 ```
 
-Les options de Claude Code vont avant `--`, les arguments du serveur après. `--scope project` stocke l'entrée dans le `.mcp.json` versionné ; `local` (par défaut) et `user` la gardent pour toi seul dans `~/.claude.json`. L'entrée, que tu peux aussi écrire à la main :
+[`init --agent`](/docs/cli/init#préparer-les-agents-de-code) écrit le fichier d'instructions pour agents et cette entrée dans le `.mcp.json` versionné, dépenses désactivées :
 
 ```json
 {
@@ -64,47 +72,55 @@ Les options de Claude Code vont avant `--`, les arguments du serveur après. `--
 }
 ```
 
-Claude Code définit `CLAUDE_PROJECT_DIR` sur la racine du projet, donc pas besoin de `--cwd`, et transmet l'environnement de ton shell. Pour dépenser le temps d'une session, exporte la clé et lance :
+Redémarre Claude Code et approuve le serveur `verbatra`. Claude Code transmet `CLAUDE_PROJECT_DIR` et l'environnement de ton shell, donc pas besoin de `--cwd`. Pour dépenser le temps d'une session, exporte la clé et lance :
 
 ```bash
 VERBATRA_MCP_ALLOW_SPEND=1 claude
 ```
 
-Ne combine pas `--env KEY=value` avec `--scope project` : la valeur finirait dans `.mcp.json`. `claude mcp list` vérifie la connexion. Voir la [documentation MCP de Claude Code](https://code.claude.com/docs/en/mcp).
+`claude mcp list` vérifie la connexion. Voir la [documentation MCP de Claude Code](https://code.claude.com/docs/en/mcp).
 
-### Laisser init l'écrire
+### Autres voies
 
-<AvailableFrom version="0.12.0" />
+#### Sans la CLI
 
-[`verbatra init --agent`](/docs/cli/init#préparer-les-agents-de-code) écrit la même entrée.
+```bash
+claude mcp add --transport stdio --scope project verbatra -- npx -y @verbatra/mcp
+```
 
-### Le plugin verbatra
+Cette commande écrit la même entrée dans `.mcp.json`. N'ajoute jamais `--env KEY=value` à une entrée de projet : la valeur finirait dans `.mcp.json`.
+
+#### Le plugin verbatra
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Le plugin regroupe les [skills verbatra](/docs/agent-recipes#le-pack-de-skills), ce serveur et un hook qui vérifie un fichier de locale après que Claude l'a modifié :
+À la place de `.mcp.json`, le plugin regroupe les [skills verbatra](/docs/agent-recipes#le-pack-de-skills), ce serveur et un hook qui vérifie un fichier de locale après que Claude l'a modifié :
 
 ```bash
 claude plugin marketplace add verbatra/skills
 claude plugin install verbatra@verbatra --scope project
 ```
 
-- **Serveur** : un `@verbatra/mcp` de version figée, avec `--cwd` sur le projet ouvert. Il démarre aussi sans config.
+- **Serveur** : un `@verbatra/mcp` de version figée, avec `--cwd` sur le projet ouvert.
 - **Dépenses** : désactivées tant que tu n'actives pas l'option `allowSpend` du plugin (`--config allowSpend=true`, ou `/config`). Un fichier versionné ne peut pas l'activer.
 - **Clé** : lue dans l'environnement avec lequel tu as lancé `claude`.
-- **Hook** : lance le `verbatra check --file <path>` du projet (CLI 0.12.0 ou plus récente) et signale à Claude la syntaxe, les placeholders, le balisage ou l'ICU cassés. Il n'appelle aucun fournisseur.
+- **Hook** : lance le `verbatra check --file <path>` du projet (CLI 0.12.0 ou plus récente) et signale à Claude la syntaxe, les placeholders, le balisage ou l'ICU cassés, sans appeler aucun fournisseur.
 
 Voir la [référence des plugins de Claude Code](https://code.claude.com/docs/en/plugins-reference).
 
 ## Codex
 
-Codex lit `~/.codex/config.toml`, ou le `.codex/config.toml` d'un projet de confiance :
+Codex lit `~/.codex/config.toml`, ou le `.codex/config.toml` d'un projet de confiance. La voie recommandée :
 
 ```bash
 codex mcp add verbatra -- npx -y @verbatra/mcp --cwd /path/to/your/project
 ```
 
-La même entrée, dépenses autorisées. `env_vars` nomme des variables que Codex transmet, donc le fichier ne contient jamais la valeur :
+N'ajoute jamais `--env` : il stocke la valeur de la clé. Voir la [documentation MCP de Codex](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
+
+### Entrée Codex à la main
+
+Celle-ci autorise les dépenses ; `env_vars` nomme des variables que Codex transmet, donc le fichier ne contient jamais la valeur :
 
 ```toml title=".codex/config.toml"
 [mcp_servers.verbatra]
@@ -114,7 +130,7 @@ cwd = "/path/to/your/project"
 env_vars = ["ANTHROPIC_API_KEY"]
 ```
 
-Pour une entrée sans dépense, retire `--allow-spend` et `env_vars`. Une table `[mcp_servers.verbatra.env]` ou `codex mcp add --env` stockent la valeur elle-même. Voir la [documentation MCP de Codex](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
+Pour une entrée sans dépense, retire `--allow-spend` et `env_vars`. Une table `[mcp_servers.verbatra.env]` stocke la valeur elle-même.
 
 ## Gemini CLI
 
@@ -182,7 +198,7 @@ VS Code (le mode agent de GitHub Copilot) lit `.vscode/mcp.json`, dont la clé d
 }
 ```
 
-Pour une entrée sans dépense, retire `inputs`, `--allow-spend` et `env`. [Installer verbatra dans VS Code](vscode:mcp/install?%7B%22name%22%3A%22verbatra%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22%40verbatra%2Fmcp%22%5D%7D) ajoute l'entrée sans dépense en une étape, tout comme :
+Pour une entrée sans dépense, retire `inputs`, `--allow-spend` et `env`. À la place du fichier, [Installer verbatra dans VS Code](vscode:mcp/install?%7B%22name%22%3A%22verbatra%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22%40verbatra%2Fmcp%22%5D%7D) ou cette commande ajoute l'entrée sans dépense à ton profil utilisateur ; utilise une des trois voies, jamais deux :
 
 ```bash
 code --add-mcp '{"name":"verbatra","command":"npx","args":["-y","@verbatra/mcp"]}'

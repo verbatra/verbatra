@@ -4,7 +4,7 @@ import { StudioScreenshot } from "@/components/studio-screenshot";
 import { type Locale, localizedPath } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { CommandBox } from "./command-box";
-import { SKILLS_REPO_URL } from "./links";
+import { SKILLS_PACK_ANCHORS, SKILLS_PACK_PAGE } from "./links";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
 
@@ -24,7 +24,7 @@ const CHECK_JSON_EXCERPT = [
   "  ] } }",
 ];
 
-const SKILL_INSTALL = `npx skills@latest add verbatra/skills --skill verbatra-cli -y`;
+const SKILL_INSTALL = `npx skills@latest add verbatra/skills --skill verbatra-cli -a claude-code -y`;
 
 function Frame({ children, className }: { children: ReactNode; className?: string }): ReactNode {
   return (
@@ -179,9 +179,7 @@ export async function Loop(): Promise<ReactNode> {
                 {t("links.mcpDocs")}
               </a>
               <a
-                href={SKILLS_REPO_URL}
-                target="_blank"
-                rel="noreferrer noopener"
+                href={`${docs(SKILLS_PACK_PAGE)}#${SKILLS_PACK_ANCHORS[locale]}`}
                 className={LINK_CLASS}
               >
                 verbatra/skills

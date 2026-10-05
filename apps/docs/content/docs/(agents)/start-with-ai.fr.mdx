@@ -11,11 +11,11 @@ Cette page s'adresse à un projet qui a déjà des fichiers de locale commités.
 
 ## Les étapes que suit l'agent
 
-Le prompt envoie l'agent vers la version Markdown de cette page. Agent : suis ces étapes dans l'ordre et ne saute jamais l'arrêt de l'étape 7.
+Agent : suis ces étapes dans l'ordre et ne saute jamais l'arrêt de l'étape 6.
 
 ### 1. Examiner la configuration existante
 
-Avant de modifier quoi que ce soit, trouve la bibliothèque i18n dans `package.json` (par exemple `i18next`, `vue-i18n`, `next-intl` ou `@ngx-translate/core`) et les fichiers de locale eux-mêmes. Note la locale source, chaque locale cible déjà présente et le motif de chemin avec un jeton `{locale}`, comme `locales/{locale}.json`. [Choisis ta stack](/docs/pick-your-stack) associe à chaque stack son id de format et sa structure ; [Formats](/docs/formats) indique quels fichiers doivent déjà exister, comme un fichier XLIFF ou un Xcode String Catalog. Du JSON sans bibliothèque i18n : des marqueurs `{{name}}` signifient `i18next-json`, une accolade simple `{name}` signifie `vue-i18n-json`. Un projet Android utilise `res/{locale}/strings.xml` avec `files.localeStyle: "android"`, si bien que le jeton devient `values` et `values-de`.
+Avant de modifier quoi que ce soit, trouve la bibliothèque i18n dans `package.json` (comme `i18next`, `vue-i18n` ou `next-intl`) et les fichiers de locale. Note la locale source, chaque locale cible déjà présente et le motif de chemin avec un jeton `{locale}`, comme `locales/{locale}.json`. [Choisis ta stack](/docs/pick-your-stack) associe à chaque stack son id de format et sa structure, y compris le `res/{locale}/strings.xml` d'Android avec `files.localeStyle: "android"` ; [Formats](/docs/formats) indique quels fichiers doivent déjà exister. Du JSON sans bibliothèque i18n : des marqueurs `{{name}}` signifient `i18next-json`, une accolade simple `{name}` signifie `vue-i18n-json`.
 
 ### 2. Installer la CLI
 
@@ -23,76 +23,64 @@ Avant de modifier quoi que ce soit, trouve la bibliothèque i18n dans `package.j
 npm install --save-dev @verbatra/cli
 ```
 
-pnpm, yarn et bun fonctionnent aussi. Si pnpm se termine avec `ERR_PNPM_IGNORED_BUILDS`, lance `pnpm approve-builds` une fois sans approuver aucune des deux entrées. Si npm signale des scripts d'installation que `allowScripts` ne couvre pas, laisse-les non approuvés : verbatra n'en a besoin d'aucun.
+pnpm, yarn et bun fonctionnent aussi. N'approuve aucun script d'installation, ni dans `pnpm approve-builds` ni dans `allowScripts` de npm : verbatra n'en a besoin d'aucun.
 
-### 3. Créer la config sans questions
+### 3. Créer la config et les fichiers de l'agent
 
 ```bash
-npx verbatra init --provider <provider> --yes --json
+npx verbatra init --provider <provider> --yes --json --agent
 ```
 
-Demande à l'humain quel fournisseur utiliser, sauf si le projet le rend déjà évident. [Fournisseurs](/docs/providers) liste les ids ; `none` désactive la traduction automatique. Ne choisis jamais un fournisseur qui dépense sur un service que l'humain n'a pas accepté, et ne passe jamais une valeur de clé à `init`. `init` détecte le format, le motif de chemin et les locales, affiche une enveloppe JSON et ne pose jamais de question :
+Demande à l'humain quel fournisseur utiliser, sauf si le projet le rend évident. Ne choisis jamais un fournisseur qui dépense sur un service que l'humain n'a pas accepté, et ne passe jamais une valeur de clé à `init`. [Fournisseurs](/docs/providers) liste les ids ; `none` désactive la traduction automatique. `init` détecte le format, le motif de chemin et les locales, affiche une enveloppe JSON et ne pose jamais de question. `--agent` écrit en plus une section verbatra dans `AGENTS.md` (ou dans `CLAUDE.md` quand c'est le seul fichier d'instructions) et le serveur MCP verbatra, dépenses désactivées, dans `.mcp.json` :
 
-- Sortie `0` : compare `result.config` avec ce que tu as trouvé à l'étape 1, en commençant par chaque entrée de `result.sources` qui indique `default` ; `result.config.files.localeStyle` n'apparaît que si les fichiers n'écrivent pas les locales telles quelles, et `result.detection.layout` montre le motif et les locales trouvés par l'analyse. Si quelque chose ne va pas, relance-la avec le bon `--format`, `--path`, `--source` ou `--targets`, plus `--force`.
+- Sortie `0` : compare `result.config` avec l'étape 1, en commençant par chaque entrée de `result.sources` qui indique `default` ; `result.config.files.localeStyle` n'apparaît que si les fichiers n'écrivent pas les locales telles quelles. Si quelque chose ne va pas, relance-la avec le bon `--format`, `--path`, `--source` ou `--targets`, plus `--force`.
 - Sortie `2` avec `FORMAT_AMBIGUOUS` ou `LAYOUT_AMBIGUOUS` : choisis parmi les `candidates` et relance-la avec `--format` ou `--path`. Si les candidats sont des fichiers de namespace côte à côte, arrête-toi et demande à l'humain, car une config couvre un seul motif de fichier.
 - Sortie `2` avec `MISSING_OPTIONS` : le message nomme chaque flag encore nécessaire.
-- Sortie `2` avec `CONFIG_EXISTS` : demande à l'humain avant de passer `--force`.
+- Sortie `2` avec `CONFIG_EXISTS` : dis à l'humain quel fournisseur la config existante utilise et attends sa confirmation. Lance ensuite `npx verbatra init --agent --json`, qui garde la config et n'ajoute que les fichiers de l'agent. Demande avant de passer `--force`.
 
-[init](/docs/cli/init#fournisseurs) documente chaque flag, y compris `--base-url` et `--model` pour un serveur compatible OpenAI ou LibreTranslate.
+[init](/docs/cli/init#fournisseurs) documente chaque flag.
 
 ### 4. Laisser la clé d'API à l'humain
 
-Saute cette étape avec le fournisseur `none`.
+Saute cette étape avec le fournisseur `none`. La variable de clé est dans `result.apiKeyEnvVar` ; après `CONFIG_EXISTS` elle vaut `null`, alors prends le nom dans la vérification `api-key` en échec de `npx verbatra doctor --json`. Copie `.env.example` vers `.env`, ou crée `.env` si `init` n'a écrit aucun exemple, nommes-y la variable avec une valeur vide et dis à l'humain de la remplir. N'écris, n'invente ni ne demande jamais une valeur de clé. Continue sans attendre.
 
-```bash
-cp .env.example .env
-```
-
-Vérifie que `.env` nomme la variable de `result.apiKeyEnvVar`, laisse sa valeur vide et dis à l'humain quelle variable remplir. N'écris, n'invente ni ne demande jamais une valeur de clé. Continue sans l'attendre.
-
-### 5. Lancer doctor
+### 5. Vérifier la configuration sans dépenser
 
 ```bash
 npx verbatra doctor --json
-```
-
-`doctor` lit le nom de la variable de clé dans l'environnement ou dans `.env.local` et `.env`, jamais sa valeur. Corrige chaque vérification en échec que tu peux corriger en modifiant `verbatra.config.ts`, puis relance-la. La vérification `api-key` ne passe qu'une fois que l'humain a défini la clé, alors ne boucle pas dessus.
-
-### 6. Prévisualiser sans dépenser
-
-```bash
 npx verbatra check --json
 npx verbatra diff --json
 npx verbatra translate --dry-run --json
 ```
 
-Aucune de ces commandes n'appelle de fournisseur, ne demande de clé ni n'écrit de fichier. La sortie `1` de `check` ou `diff` signifie qu'une locale n'est pas synchronisée, ce qui est attendu avant une première exécution ; seule la sortie `2` signale un problème de configuration. Avec le fournisseur `none`, `translate --dry-run` sort avec `3` quand des clés restent pour un traducteur humain, ce qui est aussi attendu. verbatra n'écrase jamais une valeur existante, même à la première exécution : seules les clés absentes de la cible sont traduites. Une chaîne vide compte comme une valeur existante, alors demande à l'humain avant de supprimer des clés de remplissage `""`.
+Aucune de ces commandes n'appelle de fournisseur, ne demande de clé ni n'écrit de fichier. Corrige chaque vérification de `doctor` en échec que tu peux corriger dans `verbatra.config.ts` ; la vérification `api-key` ne passe qu'une fois que l'humain a défini la clé, alors ne boucle pas dessus. Pour `check` ou `diff`, la sortie `1` (non synchronisé) est attendue avant une première exécution ; seule la sortie `2` signale un problème de configuration. Avec le fournisseur `none`, `translate --dry-run` sort avec `3` quand des clés restent pour un traducteur humain. Seules les clés absentes de la cible sont traduites, et une chaîne vide compte comme présente, alors demande avant de supprimer des clés de remplissage `""`.
 
-### 7. S'arrêter et demander
+### 6. S'arrêter et demander
 
-Résume combien de clés sont en attente par locale et ce que `translate --dry-run` a indiqué, puis arrête-toi. Une vraie exécution dépense tout de suite et n'a pas de confirmation propre, alors attends le feu vert explicite de l'humain. N'utilise jamais `--prune` sauf si l'humain a demandé de supprimer les clés orphelines.
+Résume combien de clés sont en attente par locale et ce que `translate --dry-run` a indiqué, puis arrête-toi. Une vraie exécution dépense tout de suite et n'a pas de confirmation propre, alors attends le feu vert explicite de l'humain. N'utilise jamais `--prune` sauf si l'humain l'a demandé.
 
-### 8. Traduire après le feu vert
+### 7. Traduire après le feu vert
 
 ```bash
 npx verbatra translate --json
 ```
 
-Rapporte les listes `succeeded`, `partial` et `failed` du résumé. Une locale `partial` ou `failed` a quand même été écrite avec tout ce qui a réussi.
+Rapporte les listes `succeeded`, `partial` et `failed` du résumé. Une locale `partial` ou `failed` garde quand même tout ce qui a réussi.
 
-### 9. Committer les bons fichiers
+### 8. Committer et connecter
 
-Committe `verbatra.config.ts`, `.env.example`, `verbatra.lock.json`, `verbatra.provenance.json` une fois qu'une exécution l'a écrit, et les fichiers de locale traduits. Ne committe jamais `.env`, `.env.local`, `.verbatra-local/` ni `verbatra.cache.json` ; `init` les a ajoutés au `.gitignore`, alors vérifie qu'ils sont bien ignorés.
+Committe `verbatra.config.ts`, `.env.example` s'il existe, le fichier d'instructions et `.mcp.json` de l'étape 3, `verbatra.lock.json`, `verbatra.provenance.json` une fois qu'une exécution l'a écrit, et les fichiers de locale traduits. Ne committe jamais `.env`, `.env.local`, `.verbatra-local/` ni `verbatra.cache.json` ; vérifie que le `.gitignore` les couvre.
+
+Dis ensuite à l'humain de redémarrer Claude Code et d'approuver le serveur `verbatra` du projet, sans installer en plus le plugin verbatra, qui l'enregistre une deuxième fois ; `claude mcp list` montre la connexion. Un autre client prend son unique entrée dans [Connecter un client MCP](/docs/connect-an-mcp-client).
 
 ## Pourquoi cette forme
 
-`translate` n'a pas de garde-fou de dépense qui lui soit propre, donc ce garde-fou vit dans les instructions de l'agent : chaque étape avant la 8 est gratuite et en lecture seule.
+`translate` n'a pas de garde-fou de dépense qui lui soit propre, donc ce garde-fou vit dans les instructions de l'agent : aucune étape avant la 7 ne dépense.
 
 ## Ensuite
 
 <Cards>
-  <Card title="Connecter un client MCP" href="/docs/connect-an-mcp-client" description="Une fois verbatra configuré, connecte Claude Code, Cursor, VS Code ou un autre client MCP à son serveur stdio pour que l'agent puisse vérifier le statut et corriger les traductions via des outils." />
-  <Card title="Connecter un client MCP" href="/docs/connect-an-mcp-client#le-plugin-verbatra" description="Dans Claude Code, le plugin verbatra apporte les skills, le serveur MCP avec la dépense désactivée et un hook qui vérifie chaque fichier de locale que l'agent modifie." />
+  <Card title="Connecter un client MCP" href="/docs/connect-an-mcp-client" description="L'unique entrée dont a besoin chaque client autre que Claude Code, et comment laisser l'agent dépenser." />
   <Card title="Recettes pour agents et scripts" href="/docs/agent-recipes" description="L'enveloppe --json et les codes de sortie sur lesquels s'appuient les commandes de ce prompt, pour construire tes propres boucles d'agent par-dessus." />
   <Card title="Piloter Studio avec un agent de navigateur" href="/docs/agent-tools-in-studio" description="Une surface différente, pour piloter un projet déjà configuré depuis un onglet de navigateur plutôt que depuis un shell." />
   <Card title="Démarrage rapide" href="/docs/quickstart" description="Le même parcours de configuration, écrit pour une personne plutôt que pour un agent." />
