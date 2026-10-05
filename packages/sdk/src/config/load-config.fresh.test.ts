@@ -60,6 +60,23 @@ describe("loadConfigWithMeta: fresh", () => {
     },
   );
 
+  it("with fresh, a verbatra.config.cjs requiring an edited locale.cjs keeps its first value", async () => {
+    const dir = await makeTempDir();
+    const helperFile = join(dir, "locale.cjs");
+    const config = JSON.stringify(baseConfig({ targetLocales: [] })).replace(
+      '"targetLocales":[]',
+      '"targetLocales":[require("./locale.cjs").locale]',
+    );
+    await writeFile(helperFile, 'module.exports = { locale: "de" };', "utf8");
+    await writeFile(join(dir, "verbatra.config.cjs"), `module.exports = ${config};`, "utf8");
+
+    await loadConfigWithMeta({ cwd: dir, fresh: true });
+    await writeFile(helperFile, 'module.exports = { locale: "fr" };', "utf8");
+    const second = await loadConfigWithMeta({ cwd: dir, fresh: true });
+
+    expect(second.config.targetLocales).toEqual(["de"]);
+  });
+
   it("keeps the first evaluation of an edited TypeScript config without fresh", async () => {
     const dir = await makeTempDir();
     const file = join(dir, "verbatra.config.ts");
