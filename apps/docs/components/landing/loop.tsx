@@ -24,7 +24,7 @@ const CHECK_JSON_EXCERPT = [
   "  ] } }",
 ];
 
-const SKILL_INSTALL = `npx skills@latest add verbatra/skills --skill verbatra-cli -y`;
+const SKILL_INSTALL = `npx skills@latest add verbatra/skills --skill verbatra-cli -a claude-code -y`;
 
 function Frame({ children, className }: { children: ReactNode; className?: string }): ReactNode {
   return (
