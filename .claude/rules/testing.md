@@ -68,9 +68,10 @@ Split into two tiers by determinism, which doubles as the trust boundary for sec
   nightly and on push to `main` against `gemini` only (a missing key skips with a notice), and on
   manual dispatch via `.github/workflows/e2e-live.yml` against a chosen provider, never on a pull
   request. A dispatch of `deepl` or `google-translate` runs only the placeholder-masking case
-  (`npm run test:masking`) and its billing observation (`e2e/src/wire-billing.ts`), and sets
-  `E2E_REQUIRE_LIVE=1`, so a missing key or a throttled run fails instead of skipping. The tier is
-  advisory: it never gates a publish, since its outcome depends on a third party's rate limiter.
+  (`npm run test:masking`) and its billing observation (`e2e/src/wire-billing.ts`). Every
+  dispatch, `gemini` included, sets `E2E_REQUIRE_LIVE=1`, so a missing key or a throttled
+  `translate` or `watch` run fails instead of skipping. The tier is advisory: it never gates a
+  publish, since its outcome depends on a third party's rate limiter.
 
 **CLI e2e is not a gap.** It exists, is deterministic-gated in CI, and is documented in
 `e2e/README.md`, which is the primary source if extending it.

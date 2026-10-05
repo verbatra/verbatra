@@ -110,9 +110,9 @@ deterministic test joins the required gate automatically.
   scoped to the `live-e2e` GitHub Environment. The nightly and push runs drive `gemini` alone and
   skip with a notice when its key is absent. A manual dispatch picks `gemini`, `deepl`,
   `google-translate`, or `all` through its `provider` input; the `deepl` and `google-translate`
-  jobs run only the placeholder-masking case (`npm run test:masking`). A dispatch sets
-  `E2E_REQUIRE_LIVE=1`, so a missing key, or a provider that rate-limits or does not answer during
-  the masking run, fails the job instead of skipping.
+  jobs run only the placeholder-masking case (`npm run test:masking`). Every dispatch, `gemini`
+  included, sets `E2E_REQUIRE_LIVE=1`, so a missing key, or a provider that rate-limits or does not
+  answer during a `translate` or `watch` run, fails the job instead of skipping.
 
   **This tier is advisory and never gates a publish**, because its result depends on a third
   party's availability. That is not licence to ignore it: both live tests read each run's `--json`
@@ -223,6 +223,7 @@ the job summary: characters sent, the same count without markup tags, and the bi
 `E2E_PROVIDER` is one of `gemini`, `anthropic`, `openai`, `deepl`, `google-translate`.
 Gemini is the default, and the only provider the nightly and push runs drive, because it has a
 free API tier, which keeps the recurring smoke translation at no cost. DeepL and Google Cloud
-Translation bill per character, so the workflow runs them only on a manual dispatch. The matching key (`GEMINI_API_KEY`, `ANTHROPIC_API_KEY`,
-`OPENAI_API_KEY`, `DEEPL_API_KEY`, `GOOGLE_TRANSLATE_API_KEY`) must be in the
-environment, otherwise the live tier skips.
+Translation bill per character, so the workflow runs them only on a manual dispatch. The matching
+key (`GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `DEEPL_API_KEY`,
+`GOOGLE_TRANSLATE_API_KEY`) must be in the environment, otherwise the live tier skips, or fails
+when `E2E_REQUIRE_LIVE=1` is set.

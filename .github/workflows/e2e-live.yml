@@ -25,7 +25,7 @@ on:
           - unmasked
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.provider || 'all' }}
+  group: ${{ github.workflow }}-${{ github.event_name == 'workflow_dispatch' && format('dispatch-{0}-{1}', inputs.provider, github.run_id) || format('auto-{0}', github.ref) }}
   cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 
 permissions:
@@ -137,9 +137,21 @@ jobs:
             echo "This tier is advisory and never gates a publish. The required release gate is the"
             echo "deterministic no-key tier, reported as \"Build and test gate\" on the CI workflow."
             echo
-            echo "A provider rate limit, outage, or timeout is reported as a skipped test, not a failure,"
-            echo "so a failure here means the CLI is genuinely broken against a real provider."
+            if [ "$E2E_REQUIRE_LIVE" = "1" ]; then
+              echo "This is a manual dispatch, so a missing key, rate limit, outage, or timeout fails the"
+              echo "run instead of skipping: a failure here may be the provider, not the CLI."
+            else
+              echo "A provider rate limit, outage, or timeout is reported as a skipped test, not a failure,"
+              echo "so a failure here means the CLI is genuinely broken against a real provider."
+            fi
+            if [ "$E2E_PROVIDER" = "google-translate" ]; then
+              echo
+              echo "> **Warning:** the Cloud console reports Google characters per day, so this run's"
+              echo "> figure is comparable only if it is the only Google Cloud Translation run that day."
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
-          if [ "$SUITE_OUTCOME" = "failure" ]; then
+          if [ "$SUITE_OUTCOME" = "failure" ] && [ "$E2E_REQUIRE_LIVE" != "1" ]; then
             echo "::warning title=Live E2E failed::The CLI failed against a real provider for a reason other than a rate limit, outage, or timeout. Investigate before the next release."
+          elif [ "$SUITE_OUTCOME" = "failure" ]; then
+            echo "::warning title=Live E2E failed::The dispatched run failed against ${E2E_PROVIDER}. Check the log for a provider rate limit, outage, or timeout before suspecting the CLI."
           fi
