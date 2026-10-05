@@ -1,44 +1,43 @@
 ---
 title: Introduction
 description: What verbatra is, the problem it solves, and how the CLI, SDK, Studio, and MCP server fit together. Translate only the keys that changed, with integrity checks on every result.
+type: overview
 ---
 
-<DocsHomeHero
-  headline="How to translate only what changed."
-  lead="verbatra diffs your source locale against a committed lock file, sends only the new and changed keys to the provider you configure, checks every result, and writes the files back in place. These pages cover the CLI, the SDK, Studio, and the MCP server."
-  primary={{ label: "Your first translation", href: "/docs/your-first-translation" }}
-  secondary={{ label: "CLI reference", href: "/docs/cli" }}
+<DocsHomeHeader
+  headline="Set up verbatra and keep every locale in sync."
+  lead="Guides and reference for the CLI, the SDK, Studio, and the MCP server. Install the CLI, or hand the prompt to your coding agent."
 />
 
 <DocsHomeBody>
 
-<DocsHomeSection title="Where to go next" lead="Four starting points, depending on where you are.">
+<DocsHomeSection title="Start from your goal" lead="Pick what you want to do; each card opens the page that does it.">
 
 <DocsHomePaths
   cards={[
     {
-      tag: "New here",
-      label: "Your first translation",
-      body: "Install the CLI, scaffold a config, preview the run with no key, then translate.",
-      href: "/docs/your-first-translation",
+      goal: "Translate a project",
+      page: "Quickstart",
+      body: "Install the CLI, preview the run without a key, then translate your first file.",
+      href: "/docs/quickstart",
       primary: true,
     },
     {
-      tag: "Already set up",
-      label: "Add a language",
-      body: "Drop a locale into your config and let one run fill it in.",
-      href: "/docs/add-a-language",
-    },
-    {
-      tag: "Production",
-      label: "CI and exit codes",
-      body: "Fail the pull request when a locale drifts, with JSON output for scripts.",
+      goal: "Gate pull requests",
+      page: "CI and exit codes",
+      body: "Fail a pull request when a locale drifts, with JSON output for scripts.",
       href: "/docs/ci-and-exit-codes",
     },
     {
-      tag: "With an AI agent",
-      label: "Set up with AI",
-      body: "Point Claude Code, Cursor, or any coding agent at a copy-pasteable prompt.",
+      goal: "Hand off to translators",
+      page: "Human translation",
+      body: "Export a workbook for a person to translate, then import it back.",
+      href: "/docs/manual-translation",
+    },
+    {
+      goal: "Use with an AI agent",
+      page: "Set up with AI",
+      body: "Give Claude Code, Cursor, or any coding agent a copy-pasteable prompt.",
       href: "/docs/start-with-ai",
     },
   ]}
@@ -46,13 +45,37 @@ description: What verbatra is, the problem it solves, and how the CLI, SDK, Stud
 
 </DocsHomeSection>
 
-<DocsHomeSection title="Every run is a diff, not a rewrite." lead="What happens when you run verbatra translate.">
+<DocsHomeSection id="pick-your-stack" title="Pick your stack" lead="Each card opens the init command and file layout for that stack.">
+
+<StackCards
+  labelledBy="pick-your-stack"
+  cards={[
+    { label: "React", icon: "react", formats: ["i18next-json"], href: "/docs/pick-your-stack#react-with-i18next" },
+    { label: "Next.js", icon: "next", formats: ["next-intl-json"], href: "/docs/pick-your-stack#nextjs-with-next-intl" },
+    { label: "Vue and Nuxt", icon: "vue", formats: ["vue-i18n-json"], href: "/docs/pick-your-stack#vue-and-nuxt-with-vue-i18n" },
+    { label: "Angular", icon: "angular", formats: ["ngx-translate-json"], href: "/docs/pick-your-stack#angular-with-ngx-translate" },
+    { label: "Flutter", icon: "flutter", formats: ["arb"], href: "/docs/pick-your-stack#flutter" },
+    { label: "Android", icon: "android", formats: ["android-xml"], href: "/docs/pick-your-stack#android" },
+    { label: "iOS and macOS", icon: "apple", formats: ["apple-strings", "apple-xcstrings"], href: "/docs/pick-your-stack#ios-and-macos" },
+    { label: "gettext", icon: "gnu", formats: ["gettext-po"], href: "/docs/pick-your-stack#gettext" },
+    { label: "Java and Spring", icon: "spring", formats: ["properties"], href: "/docs/pick-your-stack#java-and-spring" },
+    { label: ".NET", icon: "dotnet", formats: ["resx"], href: "/docs/pick-your-stack#net" },
+    { label: "YAML", icon: "yaml", formats: ["yaml"], href: "/docs/pick-your-stack#yaml" },
+    { label: "XLIFF", icon: "xliff", formats: ["xliff"], href: "/docs/pick-your-stack#xliff" },
+    { label: "INI", icon: "ini", formats: ["ini"], href: "/docs/pick-your-stack#ini" },
+    { label: "Something else", icon: "custom", formats: [], href: "/docs/pick-your-stack#something-else" },
+  ]}
+/>
+
+</DocsHomeSection>
+
+<DocsHomeSection title="Every run is a diff, not a rewrite." lead="What happens when you run `verbatra translate`.">
 
 Hand-maintaining one source locale means every other locale file drifts: new keys go missing from the targets, edited strings leave stale translations behind, and deleted keys linger as orphans. verbatra closes that gap by diffing every target against a committed lock file, `verbatra.lock.json`, and sending only what changed to the provider you configure; a second run with nothing new to translate makes no provider call at all. Every result is checked before it is written, so a broken placeholder is withheld and retried, never shipped. See [How it works](/docs/how-it-works) for the full pipeline.
 
 <DocsHomeSteps />
 
-verbatra reads and writes fourteen formats and translates through six providers behind one interface, and a format it does not ship can be added as a [custom adapter](/docs/custom-format-adapters). See [Formats](/docs/formats) and [Providers](/docs/providers).
+verbatra reads and writes the common locale file formats, from JSON and YAML to XLIFF, gettext, and Android and Apple catalogs, and translates through any supported LLM or machine-translation provider behind one interface (or none, for a [human-only workflow](/docs/human-only-workflow)), and a format it does not ship can be added as a [custom adapter](/docs/custom-format-adapters). The full lists are on [Formats](/docs/formats) and [Providers](/docs/providers).
 
 </DocsHomeSection>
 
@@ -63,7 +86,7 @@ verbatra reads and writes fourteen formats and translates through six providers 
     {
       title: "@verbatra/cli",
       pkg: "cli",
-      body: "The verbatra binary: fourteen commands, from init and extract to translate, check, export, and studio, as a thin wrapper over the SDK. Start here.",
+      body: "The verbatra binary: every command, from init and extract to translate, check, export, and studio, as a thin wrapper over the SDK. Start here.",
       href: "/docs/cli",
     },
     {

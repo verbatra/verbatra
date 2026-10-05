@@ -1,0 +1,93 @@
+---
+title: Extract keys from source code
+description: Collect the translation keys your code already calls into the source locale file, fill in their text, and hand them to translate.
+type: how-to
+---
+<AvailableFrom version="0.11.0" />
+
+Use this when your code is ahead of your catalog: you write `t("cart.empty", "Your cart is empty")` in a component and want the key in the source locale file without copying it by hand. It also gets a project that has never been internationalized started from its code rather than from an empty JSON file.
+
+`verbatra extract` reads your source and writes only the source locale file. It calls no provider, needs no API key and makes no network request.
+
+You need:
+
+- a verbatra config (run [`verbatra init`](/docs/cli/init) if you have none);
+- code that calls i18next's `t(...)`, `$t(...)` or `i18n.t(...)`, which is the one framework `extract` reads today;
+- one namespace per catalog file. A namespace-qualified key such as `t("common:nav.home")` is reported and never written, because one config addresses one file.
+
+## Point verbatra at your source
+
+Add an `extract` block with the directories to scan:
+
+```ts title="verbatra.config.ts"
+export default defineConfig({
+  // ...
+  extract: {
+    framework: "i18next",
+    roots: ["src"], // [!code highlight]
+  },
+});
+```
+
+Nothing outside `roots` is read, and build output such as `node_modules` and `dist` is always skipped. If generated code lives under a root, add its directory name to `exclude`. See [`extract`](/docs/config-file#extract) for every field.
+
+## Preview what would be added
+
+```bash
+verbatra extract --dry-run
+```
+
+The summary lists the new keys with the file and line that named them, and writes nothing. Read three parts of it before you go on:
+
+- **new keys**: what a real run would add to the source file.
+- **dynamic keys**: call sites whose key is not one complete string, such as `t("user." + id)` or `` t(`nav.${page}`) ``. They are never written. Add those keys to the catalog by hand, or rewrite the call with a literal key.
+- **conflicts**: one key with two different defaults at two call sites. Neither value is written, so pick one text and make the call sites agree.
+
+## Add the keys
+
+```bash
+verbatra extract
+```
+
+```text output
+verbatra extract
+  42 files scanned, 18 keys already present
+  added 3 keys to locales/en.json
+  new keys (3):
+    nav.home  src/components/Nav.tsx:14
+    nav.away  src/components/Nav.tsx:15
+    cart.empty  src/routes/cart.tsx:31
+next: verbatra translate (translate the new keys)
+```
+
+A default from the call site becomes the key's source text. A key already in the catalog keeps its value, so re-running `extract` never overwrites your edits, and a run that finds nothing new leaves the file byte-identical.
+
+A key whose call site had no default is added with an empty value and listed as `withoutDefault` in the `--json` result. Write its source text into the source locale file before you translate.
+
+If your format is `xliff` or `apple-xcstrings`, create the source catalog first (the `.xcstrings` one in Xcode): `extract` appends to it but never creates it.
+
+## Translate the new keys
+
+```bash
+verbatra translate
+```
+
+The new keys are missing from every target locale, so the run translates them and nothing else. Preview the spend first with [`--estimate`](/docs/estimating-cost) if the batch is large.
+
+If you use TypeScript, regenerate your key declarations with [`verbatra types`](/docs/cli/types) so a typo in a new key fails the compile.
+
+## Keep code and catalog in step
+
+`extract` only adds. Two read-only checks cover the other directions:
+
+- `verbatra diff --unused` lists source keys no call site names any more. It reuses the `extract` roots and deletes nothing; removing a key is your call. See [Unused source keys](/docs/cli/diff#unused-source-keys) for when the list is complete enough to trust.
+- `verbatra doctor --literals` lists user-facing strings that never went through `t(...)`, such as JSX text or an `aria-label`. See [Untranslated literals](/docs/cli/doctor#untranslated-literals) for what counts and how to hold one back.
+
+Run `verbatra extract` again whenever you add call sites. It is safe to repeat, and it exits `0` whatever it finds, so a CI step that must fail on new keys reads the `added` list from `--json` instead of the exit code.
+
+## Related
+
+- [`verbatra extract`](/docs/cli/extract): the call shapes it reads, the full report and the JSON result.
+- [The config file](/docs/config-file#extract): the `extract` block.
+- [`verbatra translate`](/docs/cli/translate): fills the target locales.
+- [Error codes](/docs/error-codes#extract_not_configured): `EXTRACT_NOT_CONFIGURED` when the block is missing.

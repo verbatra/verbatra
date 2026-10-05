@@ -1,172 +1,106 @@
 ---
 title: FAQ
 description: Short answers to the questions that come up most when running verbatra.
+type: reference
 ---
-Quick answers, each grounded in how verbatra actually behaves. For symptom-first help with error
-messages, see [Troubleshooting](/docs/troubleshooting).
+Short answers with a link to the page that has the details. For error messages, see
+[Troubleshooting](/docs/troubleshooting) and [Error codes](/docs/error-codes).
 
 ## How do I control cost?
 
-Four levers, all free of a provider call until you decide otherwise:
-
-- Runs are incremental by default: only keys that are missing or whose source changed since the
-  lock baseline are sent to the provider. An unchanged project costs nothing to re-run.
-- `--dry-run` (or `translate({ config, dryRun: true })`) previews exactly what would be sent,
-  with no provider call and no writes.
-- `maxTokens` in the config sets a whole-run token ceiling, with `budgetBehavior` deciding what
-  happens when it is reached: `"warn"` (default) flags it and continues, `"stop"` withholds every
-  key not yet attempted; withheld keys are retried automatically next run.
-- Gemini has a real free API tier, and the `openai-compatible` provider runs against a local
-  model at zero API cost.
+Runs are incremental, so only missing or changed keys reach the provider, and an unchanged project
+costs nothing to re-run. `verbatra translate --estimate` sizes a run without calling a provider, and
+`--max-tokens` or `maxTokens` in the config caps it. See [Estimating cost](/docs/estimating-cost).
 
 ## What does a run actually cost?
 
-A worked example, to put an order of magnitude on it. A project with 400 keys to translate into
-3 locales, at the default `maxBatchSize` of 50, sends 8 requests per locale, so 24 in total. At
-roughly 4 characters per token, with 40-character source values and 20-character key names, that
-is about 33,300 input tokens and 30,700 output tokens, so about 64,000 tokens for the whole run.
-On `gemini-2.5-flash`, at an illustrative rate of $0.10 per million input tokens and $0.40 per
-million output tokens, that works out to about 1.6 cents.
-
-The assumptions behind that number, so you can rescale it to your own project: 400 keys per
-locale and 3 locales; 40-character values and 20-character key names; no `description`, `meaning`,
-glossary, or tone; `maxBatchSize` at its default; 4 characters per token; the 50 percent expansion allowance
-verbatra applies to every output estimate. The rate is a placeholder that makes the arithmetic concrete, not a quoted
-price: look up the real one on your provider's own pricing page, because verbatra does not track
-provider rates and they change.
-
-Two things dominate the real bill more than the key count. Every request carries a constant
-overhead of about 350 tokens (the fixed system rules and output schema), so a larger
-`maxBatchSize` spreads that constant over more keys and a smaller one costs proportionally more.
-And that figure is the first-run cost only: runs are incremental, so day to day you pay for the
-handful of strings you changed, not the whole file. DeepL does not fit this formula at all, since
-it bills source characters rather than tokens.
-
-See [Estimating cost](/docs/estimating-cost) for the method, the machine-translation case, and how to calibrate
-against a real measured run.
+Little: 400 keys into 3 locales on `gemini-2.5-flash` come to about 72,000 tokens, roughly 1.6 cents
+at an illustrative rate, and later runs pay only for the strings you changed. The worked example,
+its assumptions, and how to calibrate against your own project are in
+[Estimating cost](/docs/estimating-cost).
 
 ## Which provider should I start with?
 
-Gemini: it has a free API tier, so you can translate a whole project at no cost, and switching
-later means editing one `id` in the config. Anthropic and OpenAI are the paid-LLM quality picks,
-DeepL and Google Cloud Translation are the dedicated machine-translation options, and
-`openai-compatible` keeps everything on your own hardware. See [Providers](/docs/providers) for
-the full comparison.
+Gemini, because its free API tier lets you translate a whole project at no cost, and switching later
+means editing one `id`. Keep confidential strings off the free tier: see
+[Data handling and privacy](/docs/data-handling#vendor-retention-and-data-processing-terms). Every
+provider is compared on [Providers](/docs/providers).
 
 ## Can I run a local model?
 
-Yes. The `openai-compatible` provider points verbatra at any server that speaks the OpenAI chat
-API, such as LM Studio, Ollama, or vLLM, via its `baseUrl` option. Most local servers need no API
-key: when neither an `apiKeyEnvVar`-named variable nor `OPENAI_COMPATIBLE_API_KEY` is set,
-verbatra sends the fixed placeholder `"local"`. If your server does need a key, name its
-environment variable with `apiKeyEnvVar`.
+Yes: the `openai-compatible` provider points verbatra at any server that speaks the OpenAI chat API,
+such as LM Studio, Ollama or vLLM, usually with no key. Without a language model at all,
+`libretranslate` uses a self-hosted LibreTranslate server. See [Providers](/docs/providers#libretranslate).
+
+## Which languages does verbatra support?
+
+Any language your provider supports, written as a valid BCP 47 code such as `pt-BR` or `zh-Hant`.
+DeepL and Google Cloud Translation have fixed lists; the LLM providers have none. See
+[Language support](/docs/language-support).
 
 ## How do keys keep their order?
 
-The JSON-family, YAML, and ARB adapters round-trip files in exact document order: existing keys
-keep their positions (including integer-like keys), and new keys are appended in source order. A
-translated file diffs cleanly against its previous version. See [Formats](/docs/formats).
+Existing keys keep their positions and new keys are appended in source order, so a translated file
+diffs cleanly. See [Formats](/docs/formats).
 
 ## Why did a translation get flagged for review?
 
-Accepted translations pass through review heuristics that flag suspicious results without
-withholding them: a length far out of proportion to the source (`LENGTH_RATIO_OUTLIER`), a value
-longer than the budget configured for its key (`MAX_LENGTH_EXCEEDED`), a
-translation identical to the source (`EQUALS_SOURCE`), a missed glossary term
-(`GLOSSARY_TERM_MISSED`), reordered placeholders (`INTEGRITY_REORDERED`), a degraded provider path
-(`PROVIDER_DEGRADED`), or a value reused from the cache for a source string that has since been
-edited (`FUZZY_CACHE_REUSE`). The flags land on the run summary's `needsReview` list and in Studio's
-Review queue. See [Translation safety](/docs/translation-safety).
+A review heuristic found something worth a second look, such as a translation equal to its source,
+and flagged it without withholding it. Every reason code is listed under
+[Review reasons](/docs/error-codes#review-reason-codes).
 
 ## Does verbatra work in a monorepo?
 
-Yes. The config search starts in the current working directory and walks upward, so running from a
-package directory finds that package's config. The search stops at the nearest ancestor `.git`
-directory, so it finds a config at your monorepo root without crossing into an unrelated project
-above it. From anywhere else, pass `--cwd <dir>` (every
-command supports it) or point at a specific file with `--config <path>`. In the SDK, the same
-knobs are `cwd` and `configPath` on `loadConfig`. The `files.pattern` and the lock file resolve
-against the working directory.
+Yes. The config search walks up from the working directory and stops at the nearest `.git`, so a
+package finds its own config and the root finds the root config; `--cwd` and `--config` point
+anywhere else. See [The config file](/docs/config-file).
 
 ## What should I commit?
 
-Commit your locale files and `verbatra.lock.json`: the lock records, per key, the source content
-hash each translation came from, and committing it is what makes runs incremental and drift
-detection work everywhere, including CI. Do not commit `.env`, `.env.local`,
-`.verbatra-local/`, or `verbatra.cache.json`; `verbatra init` adds all four to `.gitignore`, and
-`translate`, `watch`, `import`, `tmx import`, and `pseudo` top up an existing `.gitignore` that is
-missing any of them. See
-[The lock file](/docs/the-lock-file).
+Commit your locale files, `verbatra.lock.json` and `verbatra.provenance.json`; never `.env`,
+`.env.local`, `.verbatra-local/` or `verbatra.cache.json`, which `verbatra init` adds to
+`.gitignore`. See [The lock file](/docs/the-lock-file).
 
 ## How do I re-translate everything?
 
-Deleting the lock file does not do it: without a baseline, keys that exist in both source and
-target count as up to date, so a run after deleting the lock translates nothing. To rebuild a
-locale from scratch, delete that locale's file and run `verbatra translate`: every key is then
-missing and gets translated fresh. For one key, use Studio's retranslate action or the SDK's
-`retranslateEntry`. To re-translate keys whose source text changed, just run `translate`: that is
-the normal incremental path.
+Delete the locale file and run `verbatra translate`: every key is then missing and translated
+fresh. Deleting the lock file does not do it, because without a baseline existing translations count
+as current. For one key, use Studio's retranslate action or `retranslateEntry`.
 
 ## Does using the CLI mean installing the SDK?
 
-`@verbatra/cli` depends on `@verbatra/sdk`, so installing the CLI brings the SDK along
-automatically; there is nothing extra to install. The reverse also holds: the SDK works standalone
-in your own scripts with no CLI. Only `@verbatra/studio` is a separate, optional install, loaded
-dynamically by the `studio` command.
+No extra step: `@verbatra/cli` depends on `@verbatra/sdk`, so it comes along. Only
+`@verbatra/studio` and `@verbatra/mcp` are separate, optional installs.
 
 ## Where do API keys live?
 
-Only in environment variables: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`,
-`DEEPL_API_KEY`, or `GOOGLE_TRANSLATE_API_KEY`, plus whatever variable you name for
-`openai-compatible`. `translate`, `watch`,
-`doctor`, `studio`, and `mcp` load `.env` and `.env.local` from the working directory (real
-environment variables win). The config schema rejects unknown keys precisely so a secret cannot end up in a committed
-file, and error messages name the variable but never a value. See [Providers](/docs/providers).
+Only in environment variables, which the CLI also reads from
+[`.env.local` and `.env`](/docs/cli#environment-files). The config rejects unknown keys so a secret
+cannot end up in a committed file. See [Providers](/docs/providers).
+
+## Does verbatra send my strings anywhere?
+
+Only to the provider you configure, and only when a command translates; there is no telemetry.
+With `provider: { id: "none" }` nothing leaves the machine. See
+[Data handling and privacy](/docs/data-handling).
 
 ## What does verbatra doctor actually check?
 
 <AvailableFrom version="0.9.0" />
 
-Five things, all without a provider call, a network request, or reading an API key value:
-
-- Configuration: a config file was found and passes validation.
-- Format adapter: the configured `format` resolves to a file adapter.
-- Provider: the configured `provider.id` resolves to a provider factory.
-- API key environment variable: the variable that provider reads its key from is set (checked by
-  name only, never by value).
-- Source locale file: the source locale file exists at its resolved path, is a regular file, and
-  parses under the configured format.
-
-Every check runs even after an earlier one fails, so one run reports every independent problem at
-once; the exception is the config itself, where a failure to load skips the four checks that need
-it.
-
-```bash
-verbatra doctor
-```
-
-Reach for it on a fresh checkout, right after `verbatra init`, or whenever another command failed
-and you want the whole list instead of just the first error. See [`verbatra doctor`](/docs/cli/doctor)
-for the full check table and exit codes.
+The setup, in one pass, without a provider call or reading a key value: the config, the format,
+the provider, the API key variable, the network policy, the source file and locale support, plus
+informational reports on plurals, locale codes and leftover locale state. [`verbatra doctor`](/docs/cli/doctor) has the
+full check table.
 
 ## Can an AI agent set up or operate verbatra for me?
 
-Four different surfaces for four different jobs. [Set up verbatra with an AI agent](/docs/start-with-ai)
-is a copy-pasteable prompt for Claude Code, Cursor, or any coding agent that can read your project
-and run shell commands: it inspects an existing i18n setup, installs the CLI, scaffolds a config,
-runs `doctor`, `check`, `diff`, and `translate --dry-run` to preview the work, then stops and asks
-a human to confirm before it ever calls a provider for real. [Recipes for agents and scripts](/docs/agent-recipes)
-is the reference for building your own agent loop on top of the same `--json` envelope and exit
-codes those commands use. [Operate Studio with a browser agent](/docs/agent-tools-in-studio) is a
-different surface again: an opt-in `--expose-agent-tools` flag on `verbatra studio` that registers
-WebMCP tools so a browser AI agent can drive an already-set-up project from an open, authenticated
-dashboard tab; it is explicitly not for initial project setup. [`verbatra mcp`](/docs/cli/mcp) is
-the fourth: a stdio MCP server for a terminal-hosted or headless MCP client (Claude Desktop, Claude
-Code, Cursor) that wants the same status, glossary, and editing tools without a browser at all.
-
-None of the four gives an agent a way to spend without a human in the loop. `translate` itself has
-no spend gate of its own, so every agent-facing surface puts a confirmation step, or an
-`--allow-spend` flag, between the agent and a real provider call.
+Yes, through four surfaces: a setup prompt for coding agents
+([Set up with an AI agent](/docs/start-with-ai)), the `--json` output for your own loops
+([Recipes for agents and scripts](/docs/agent-recipes)), WebMCP tools in an open Studio tab
+([Drive Studio with a browser agent](/docs/agent-tools-in-studio)), and a stdio MCP server
+([`verbatra mcp`](/docs/cli/mcp)). None of them spends on a provider without a human confirmation
+or an `--allow-spend` flag.
 
 ## Does this site publish anything for AI agents and crawlers?
 
@@ -185,17 +119,24 @@ All three are linked from the footer's "For AI agents" column.
 
 ## Is this site's content translated by AI?
 
-Yes, both halves, through two different mechanisms. The UI chrome (navigation labels, buttons,
-the footer, the landing page copy, the landing FAQ) lives in `messages/en.json` and its `de`,
-`es`, and `fr` siblings; those are machine-translated with verbatra itself, against the
-`next-intl-json` format, through the Gemini provider, run by `pnpm i18n` automatically whenever
-the English source changes. It is this project dogfooding its own tool. The documentation prose
-you are reading right now, every guide and reference page including this one, is locale-suffixed
-MDX (`page.mdx`, `page.de.mdx`, `page.es.mdx`, `page.fr.mdx`) that is also AI-translated, but
-outside that automated pipeline: `pnpm i18n` only translates JSON, XLIFF, YAML, ARB, and
-properties files, never Markdown, so it never touches these pages. Translating a doc page is a
-separate, manual step whenever the English source changes.
+Mostly, through two different mechanisms. The UI chrome (navigation labels, buttons, the footer, the
+landing page copy, the landing FAQ) lives in `messages/en.json` and its `de`, `es`, and `fr`
+siblings; those are machine-translated with verbatra itself, against the `next-intl-json` format,
+through the Gemini provider, by running `pnpm i18n` after the English source changes. It is this
+project dogfooding its own tool, and the `docs-i18n-check` workflow fails a pull request whose
+locale files have drifted from the English source. The documentation prose you are reading right
+now, every guide and reference page including this one, is locale-suffixed MDX (`page.mdx`,
+`page.de.mdx`, `page.es.mdx`, `page.fr.mdx`) that is also AI-translated, but outside that automated
+pipeline: `pnpm i18n` only translates the structured [locale file formats](/docs/formats), never Markdown,
+so it never touches these pages. Instead, an AI agent translates a doc page in the same change that
+edits its English source, so all four languages land together; that is why every non-English page
+carries the machine-translated notice.
 
-If something in German, Spanish, or French reads oddly, open an issue either way: for UI copy it
-gets corrected at the English source and machine-retranslated by `pnpm i18n`; for doc prose, edit
-the MDX file directly and send a pull request.
+Not everything comes out of those two steps unchanged: some texts, including parts of the legal
+pages, were written or corrected directly in the locale files instead. Translations are checked on a
+best-effort basis, and not every translated text is reviewed by a person before it is published, so
+a translation may contain errors. The [privacy policy](/privacy) describes the same process.
+
+If something in German, Spanish, or French reads oddly, open an issue either way: for UI copy the
+fix goes into the English source and is retranslated, or straight into the affected locale file; for
+doc prose, edit the MDX file directly and send a pull request.

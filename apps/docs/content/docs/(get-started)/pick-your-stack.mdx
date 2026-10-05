@@ -1,0 +1,208 @@
+---
+title: Pick your stack
+description: The format id, the usual file layout, and the init command for each framework verbatra supports.
+type: reference
+---
+Find your framework below and use its `init` command in place of the one in the [Quickstart](/docs/quickstart). Each file layout is the pattern `init` writes when it finds no locale files; when your files already exist, `init` detects where they are, and `--path` sets the pattern yourself. Every format's full behavior is on [Formats](/docs/formats).
+
+<StackCards
+  labelledBy="page-title"
+  cards={[
+    { label: "React", icon: "react", formats: ["i18next-json"], href: "#react-with-i18next" },
+    { label: "Next.js", icon: "next", formats: ["next-intl-json"], href: "#nextjs-with-next-intl" },
+    { label: "Vue and Nuxt", icon: "vue", formats: ["vue-i18n-json"], href: "#vue-and-nuxt-with-vue-i18n" },
+    { label: "Angular", icon: "angular", formats: ["ngx-translate-json"], href: "#angular-with-ngx-translate" },
+    { label: "Flutter", icon: "flutter", formats: ["arb"], href: "#flutter" },
+    { label: "Android", icon: "android", formats: ["android-xml"], href: "#android" },
+    { label: "iOS and macOS", icon: "apple", formats: ["apple-strings", "apple-xcstrings"], href: "#ios-and-macos" },
+    { label: "gettext", icon: "gnu", formats: ["gettext-po"], href: "#gettext" },
+    { label: "Java and Spring", icon: "spring", formats: ["properties"], href: "#java-and-spring" },
+    { label: ".NET", icon: "dotnet", formats: ["resx"], href: "#net" },
+    { label: "YAML", icon: "yaml", formats: ["yaml"], href: "#yaml" },
+    { label: "XLIFF", icon: "xliff", formats: ["xliff"], href: "#xliff" },
+    { label: "INI", icon: "ini", formats: ["ini"], href: "#ini" },
+    { label: "Something else", icon: "custom", formats: [], href: "#something-else" },
+  ]}
+/>
+
+## React with i18next
+
+For i18next, react-i18next, and next-i18next projects.
+
+- Format: `i18next-json`
+- Files: `locales/{locale}.json`
+
+```bash
+npx verbatra init --format i18next-json
+```
+
+Details: [The four JSON formats](/docs/formats#the-four-json-formats).
+
+## Next.js with next-intl
+
+For next-intl message files, whose values are ICU messages.
+
+- Format: `next-intl-json`
+- Files: `messages/{locale}.json`
+
+```bash
+npx verbatra init --format next-intl-json
+```
+
+Details: [The four JSON formats](/docs/formats#the-four-json-formats).
+
+## Vue and Nuxt with vue-i18n
+
+For vue-i18n, including Nuxt I18n, with single-brace placeholders and pipe plurals.
+
+- Format: `vue-i18n-json`
+- Files: `src/locales/{locale}.json`
+
+```bash
+npx verbatra init --format vue-i18n-json
+```
+
+Details: [The four JSON formats](/docs/formats#the-four-json-formats).
+
+## Angular with ngx-translate
+
+For ngx-translate JSON, flat or nested.
+
+- Format: `ngx-translate-json`
+- Files: `src/assets/i18n/{locale}.json`
+
+```bash
+npx verbatra init --format ngx-translate-json
+```
+
+Details: [The four JSON formats](/docs/formats#the-four-json-formats).
+
+## Flutter
+
+For Flutter's Application Resource Bundles. `init` also sets `localeStyle: "posix"`, so `pt-BR` is written as `app_pt_BR.arb`, the name `flutter gen-l10n` reads.
+
+- Format: `arb`
+- Files: `lib/l10n/app_{locale}.arb`
+
+```bash
+npx verbatra init --format arb
+```
+
+Details: [ARB](/docs/formats#arb).
+
+## Android
+
+For `strings.xml` resources. `init` also sets `localeStyle: "android"`, so the token expands to `values` for the source and `values-de` for German.
+
+- Format: `android-xml`
+- Files: `app/src/main/res/{locale}/strings.xml`
+
+```bash
+npx verbatra init --format android-xml
+```
+
+Details: [Android strings.xml](/docs/formats#android-stringsxml).
+
+## iOS and macOS
+
+Two formats, depending on how your project stores its strings. For `.strings` files with their `.stringsdict` plurals:
+
+- Format: `apple-strings`
+- Files: `{locale}.lproj/Localizable.strings`
+
+```bash
+npx verbatra init --format apple-strings
+```
+
+For an Xcode String Catalog, one file that holds every locale. Create the catalog in Xcode first: verbatra writes into it but never creates it.
+
+- Format: `apple-xcstrings`
+- Files: `{locale}Localizable.xcstrings`
+
+```bash
+npx verbatra init --format apple-xcstrings
+```
+
+Details: [Apple .strings](/docs/formats#apple-strings) and [Xcode String Catalogs](/docs/formats#xcode-string-catalogs-xcstrings).
+
+## gettext
+
+For `.po` catalogs and their `.pot` templates, as used by Python, PHP, and C projects. `init` also sets `localeStyle: "posix"`, so `pt-BR` is written as `pt_BR`.
+
+- Format: `gettext-po`
+- Files: `locales/{locale}/LC_MESSAGES/messages.po`
+
+```bash
+npx verbatra init --format gettext-po
+```
+
+Details: [gettext .po/.pot](/docs/formats#gettext-popot).
+
+## Java and Spring
+
+For `.properties` message bundles. `init` also sets `localeStyle: "posix"`, so `pt-BR` is written as `messages_pt_BR.properties`.
+
+- Format: `properties`
+- Files: `src/main/resources/messages_{locale}.properties`
+
+```bash
+npx verbatra init --format properties
+```
+
+Details: [Properties](/docs/formats#properties).
+
+## .NET
+
+For `.resx` resource files. Images, icons, and designer entries are left untouched.
+
+- Format: `resx`
+- Files: `Resources/Strings.{locale}.resx`
+
+```bash
+npx verbatra init --format resx
+```
+
+Details: [.NET .resx](/docs/formats#net-resx).
+
+## YAML
+
+For nested YAML locale files with i18next-style `{{double-brace}}` placeholders.
+
+- Format: `yaml`
+- Files: `locales/{locale}.yml`
+
+```bash
+npx verbatra init --format yaml
+```
+
+Details: [YAML](/docs/formats#yaml).
+
+## XLIFF
+
+For XLIFF 1.2 and 2.0 documents from Angular's `ng extract-i18n`, a CAT tool, or an agency.
+
+- Format: `xliff`
+- Files: `locales/{locale}.xlf`
+
+```bash
+npx verbatra init --format xliff
+```
+
+Details: [XLIFF](/docs/formats#xliff).
+
+## INI
+
+For classic INI files, with one level of `[section]` headers.
+
+- Format: `ini`
+- Files: `locales/{locale}.ini`
+
+```bash
+npx verbatra init --format ini
+```
+
+Details: [INI](/docs/formats#ini).
+
+## Something else
+
+A format verbatra does not ship can still be translated through an adapter you write yourself. See [Write a custom format adapter](/docs/custom-format-adapters).

@@ -1,0 +1,1275 @@
+---
+title: Error codes
+description: "Every error, result and notice code verbatra reports: what it means, which commands raise it, the exit code, and the next step."
+type: reference
+tocDepth: 2
+codeHeadings: true
+---
+Every failure verbatra reports carries a stable code: in the `verbatra: error [CODE] message` line on stderr, as the `code` or `causeCode` of a `--json` envelope, as the `error.code` of a failed locale, or as a notice on the run summary. Branch on the code, never on the message. Each code has its own anchor, `/docs/error-codes#` followed by the code in lower case, such as [`#config_not_found`](#config_not_found).
+
+The **Next step** of an error code is the hint verbatra prints after the error line as `next: ...` and puts in the envelope's `hint` field. It is quoted here exactly as verbatra prints it, in English, and the SDK returns the same text from [`errorHint`](/docs/sdk/errors#errorhint). The exit codes themselves and the envelope shape are on [Exit codes and JSON output](/docs/cli/output); symptom-first help is on [Troubleshooting](/docs/troubleshooting).
+
+Two codes belong to two families: `CONFIG_INVALID` (the SDK, and `init` in the CLI) and `NETWORK_POLICY_VIOLATION` (the SDK and the providers). The lower-case anchor leads to the SDK entry; the other entry carries a prefixed anchor.
+
+## CLI error codes [#cli-error-codes]
+
+The CLI raises these codes itself. The same list ships as `CLI_ERROR_CODES` (with the type `CliErrorCode`) from `@verbatra/cli`. Every one of them exits `2`.
+
+### AGENT_FILE_INVALID
+
+`init --agent` found a `.mcp.json` that is not a JSON object with an `mcpServers` object, or an unpaired or repeated verbatra marker in `AGENTS.md` or `CLAUDE.md`; nothing was written.
+
+- **Raised by**: `init --agent`
+- **Exit code**: `2`
+- **Next step**: Repair the .mcp.json or the verbatra markers in the file the message names, then run `verbatra init --agent` again.
+
+### CLI_ERROR
+
+A failure carried no code of its own (the fallback).
+
+- **Raised by**: any command
+- **Exit code**: `2`
+
+### CONFIG_EXISTS
+
+`init` would overwrite a different `verbatra.config.ts` without `--force`, or another verbatra config file in the directory would be read first; reported ahead of any missing or ambiguous answer, and at a terminal before the first prompt.
+
+- **Raised by**: `init`
+- **Exit code**: `2`
+- **Next step**: Edit the existing config, or pass --force to replace verbatra.config.ts; remove any other config file the message names first.
+
+### CONFIG_INVALID [#cli-config_invalid]
+
+`init` could not scaffold a valid config from the answers it was given (the SDK raises the same code for a config that fails to load).
+
+- **Raised by**: `init`
+- **Exit code**: `2`
+- **Next step**: Correct the init answers the message names, then run `verbatra init` again.
+
+### FORMAT_AMBIGUOUS
+
+`init` found several formats that read the locale files; `candidates` lists them.
+
+- **Raised by**: `init`
+- **Exit code**: `2`
+- **Next step**: Pass --format with one of the candidates.
+
+### INIT_UNWRITABLE
+
+`init` could not write a file into its directory, for example because it is read-only; the message names the file, the file-system code, and the files already written.
+
+- **Raised by**: `init`
+- **Exit code**: `2`
+- **Next step**: Make the directory writable, then run `verbatra init` again.
+
+### INVALID_CONCURRENCY
+
+`--concurrency` is not a whole number from 1 to 100.
+
+- **Raised by**: `translate`, `watch`
+- **Exit code**: `2`
+- **Next step**: Pass --concurrency as a whole number from 1 to 100.
+
+### INVALID_DEBOUNCE
+
+`watch --debounce` is not a whole number of milliseconds from 1 to 60000.
+
+- **Raised by**: `watch`
+- **Exit code**: `2`
+- **Next step**: Pass --debounce as a whole number of milliseconds from 1 to 60000.
+
+### INVALID_DIRECTION
+
+`tmx` got a direction other than `import` or `export`, or `tmx export` got an import-only flag (`--dry-run`, `--overwrite`).
+
+- **Raised by**: `tmx`
+- **Exit code**: `2`
+- **Next step**: Run `verbatra tmx import` or `verbatra tmx export`, with only the flags that direction takes.
+
+### INVALID_FORMAT
+
+`--format` on `export` or `import` names no supported handoff format, or `--format` on `init` names no supported locale file format.
+
+- **Raised by**: `export`, `import`, `init`
+- **Exit code**: `2`
+- **Next step**: Pass a supported --format value; the command's --help lists them.
+
+### INVALID_LOCALE
+
+`pseudo --locale` is not a language tag made of letters, digits, and hyphens, or a locale answered at an interactive `init` prompt is not a BCP 47 code (the `--source` and `--targets` flags fail with `CONFIG_INVALID` instead).
+
+- **Raised by**: `pseudo`, `init`
+- **Exit code**: `2`
+- **Next step**: Give the locale as a language tag of letters, digits and hyphens, such as pt-BR or en-XA.
+
+### INVALID_LOCALES
+
+`--locales` was given but lists no locale, or the target locales answered at an interactive `init` prompt include the source locale.
+
+- **Raised by**: `translate`, `watch`, `check`, `diff`, `export`, `tmx`, `report`, `init`
+- **Exit code**: `2`
+- **Next step**: Pass --locales as a comma-separated list of configured target locales, or omit it.
+
+### INVALID_LOCK_TIMEOUT
+
+`--lock-timeout` is not a whole number of seconds from 1 to 3600.
+
+- **Raised by**: `translate`, `watch`, `import`
+- **Exit code**: `2`
+- **Next step**: Pass --lock-timeout as a whole number of seconds from 1 to 3600.
+
+### INVALID_MAX_TOKENS
+
+`translate --max-tokens` is not a whole number of at least 1.
+
+- **Raised by**: `translate`
+- **Exit code**: `2`
+- **Next step**: Pass --max-tokens as a whole number of at least 1.
+
+### INVALID_OPTION
+
+An `init` flag does not fit the provider (`--base-url` without `openai-compatible` or `libretranslate`, `--model` for DeepL), `--api-key-env-var` is not a variable name, `--base-url` carries credentials, a query string, or a fragment, `--cwd` names no existing directory (any command, before it runs), or `doctor` got `--locales` or `--live` together with `--literals`, or `check --file` names no file or comes with `--locales`, `--consistency`, `--require-reviewed` or `--sensitive`.
+
+- **Raised by**: every command that takes `--cwd`, plus `init`, `doctor`, `check`
+- **Exit code**: `2`
+- **Next step**: Correct or remove the flag the message names.
+
+### INVALID_OUT
+
+`--out` on `types` or `pseudo` was given but names no path.
+
+- **Raised by**: `types`, `pseudo`
+- **Exit code**: `2`
+- **Next step**: Pass --out with a file path, or omit it.
+
+### INVALID_PORT
+
+`studio --port` is not an integer from 1 to 65535.
+
+- **Raised by**: `studio`
+- **Exit code**: `2`
+- **Next step**: Pass --port as a whole number from 1 to 65535.
+
+### INVALID_PROVIDER
+
+`init --provider` names no known provider.
+
+- **Raised by**: `init`
+- **Exit code**: `2`
+- **Next step**: Pass --provider with a supported provider id; `verbatra init --help` lists them.
+
+### INVALID_QA_OPTION
+
+`check` got `--severity` or `--strict` without `--qa` or `--file`, or `--strict` together with `--severity error`.
+
+- **Raised by**: `check`
+- **Exit code**: `2`
+- **Next step**: Add --qa or --file, and do not combine --strict with --severity error.
+
+### INVALID_SEVERITY
+
+`check --severity` is neither `error` nor `warning`.
+
+- **Raised by**: `check`
+- **Exit code**: `2`
+- **Next step**: Pass --severity error or --severity warning.
+
+### LAYOUT_AMBIGUOUS
+
+`init` found several file patterns that fit equally well; `candidates` lists them.
+
+- **Raised by**: `init`
+- **Exit code**: `2`
+- **Next step**: Pass --path with one of the candidates.
+
+### MISSING_OPTIONS
+
+`init` could not prompt (no terminal, or `--json`) and a value was neither passed, detected, nor defaulted by `--yes`; the message names every missing flag.
+
+- **Raised by**: `init`
+- **Exit code**: `2`
+- **Next step**: Pass the flags the message names, or --yes where the message offers it.
+
+### REDACTION_UNSUPPORTED
+
+`mcp --redact-values` loaded an older `@verbatra/mcp` that does not confirm it redacts values; the server was stopped before serving anything.
+
+- **Raised by**: `mcp`
+- **Exit code**: `2`
+- **Next step**: Upgrade @verbatra/mcp to the version that ships with this CLI, then start `verbatra mcp --redact-values` again.
+
+### USAGE_ERROR
+
+The argument parser rejected the command line (an unknown option, a missing argument), or `mcp` received options it cannot accept; its `hint` names the command's `--help`.
+
+- **Raised by**: any command
+- **Exit code**: `2`
+- **Next step**: Run the command with --help to see the options and arguments it accepts.
+
+## SDK error codes [#sdk-error-codes]
+
+Whole-run failures throw an `SdkError` with one of these codes; [Errors](/docs/sdk/errors) describes the class and which codes carry a `cause`. In the CLI a thrown code ends the run with `2`, while a code recorded on one failed locale exits `1`. Codes marked with no CLI command reach you through the SDK, Studio or the MCP server.
+
+### CONFIG_NOT_FOUND
+
+No config was found by search, or an explicit `configPath` does not exist (thrown by `loadConfig`).
+
+- **Raised by**: every command that loads the config
+- **Exit code**: `2`; `1` in `doctor`, which reports it as a failed check
+- **Next step**: Run `verbatra init` to create a config, or pass the path of an existing config file.
+
+### CONFIG_INVALID
+
+A config was found but is unparseable or fails validation, or its glossary file could not be resolved; `translate` (a dry run too, unless the provider is `none`) and `retranslateEntry` also throw it when `VERBATRA_NETWORK_POLICY` or `VERBATRA_NETWORK_ALLOWED_HOSTS` holds an invalid value, before any provider is built.
+
+- **Raised by**: every command that loads the config
+- **Exit code**: `2`; `1` in `doctor`, which reports it as a failed check
+- **Next step**: Fix the config field the message names, then run `verbatra doctor` to confirm the setup.
+
+### UNKNOWN_FORMAT
+
+No adapter is registered for the configured format; thrown before any file is read.
+
+- **Raised by**: every command that reads locale files; Studio and the MCP server
+- **Exit code**: `2`; `1` in `doctor`, which reports it as a failed check
+- **Next step**: Set `format` in the config to a supported format, or register an adapter for this one.
+
+### UNKNOWN_LOCALE
+
+A requested locale is not among the configured target locales.
+
+- **Raised by**: `translate`, `watch`, `check`, `diff`, `export`, `tmx`, `report`; Studio and the MCP server
+- **Exit code**: `2`
+- **Next step**: Use a locale from the config's `targetLocales`, or add it there first.
+
+### UNKNOWN_KEY
+
+A requested key is not in the source resource (`keyValue`, `editEntry`, `retranslateEntry`, `approveEntry`, `rejectEntry`).
+
+- **Raised by**: Studio and the MCP server
+- **Exit code**: none: no CLI command raises it
+- **Next step**: Use a key that exists in the source locale file, or add it there first.
+
+### KEY_PROTECTED
+
+`retranslateEntry` refused to replace a value a person wrote, imported, or changed outside verbatra, because neither `includeHuman` nor `humanEdits: "overwrite"` allowed it.
+
+- **Raised by**: Studio and the MCP server
+- **Exit code**: none: no CLI command raises it
+- **Next step**: Keep the human-written value, or opt in to replacing it: include human edits for this call, or set `humanEdits: "overwrite"` in the config.
+
+### KEY_PINNED
+
+The key matches the config's `pinnedKeys`, so a machine write was refused (`retranslateEntry`, and `editEntry` with `actor: "agent"`).
+
+- **Raised by**: Studio and the MCP server
+- **Exit code**: none: no CLI command raises it
+- **Next step**: Edit the value by hand, or remove the key from `pinnedKeys` in the config to let verbatra write it.
+
+### PROVIDER_CONSTRUCTION_FAILED
+
+The provider could not be built; wraps the provider's own error, including a missing API key. For a missing key the hint names the variable instead of the next step below, such as `Set GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project directory.` The SDK reads no `.env` file.
+
+- **Raised by**: `translate`, `watch`; Studio and the MCP server
+- **Exit code**: `2`
+- **Next step**: Check the config's `provider` block and its API key environment variable, then run `verbatra doctor`.
+
+### MACHINE_TRANSLATION_DISABLED
+
+The config sets `provider: { id: "none" }`, so a provider-spending action was refused before any provider was built (`retranslateEntry`, `assertMachineTranslationEnabled`); `translate` and `watch` never throw it.
+
+- **Raised by**: Studio and the MCP server
+- **Exit code**: none: no CLI command raises it
+- **Next step**: Translate the key by hand, or configure a machine provider in place of `provider: { id: "none" }`.
+
+### NETWORK_POLICY_VIOLATION
+
+The effective [network policy](/docs/network-policy) does not permit the provider's endpoint or its proxy; thrown by a non-dry-run `translate`, by `watch` at startup, and by `retranslateEntry`, before the provider is built or any API key read.
+
+- **Raised by**: `translate`, `watch`; Studio and the MCP server
+- **Exit code**: `2`
+- **Next step**: Point the provider at a host the network policy permits, or add its host to `network.allowedHosts` or VERBATRA_NETWORK_ALLOWED_HOSTS.
+
+### SOURCE_UNREADABLE
+
+The source locale file does not exist, or, for `import` and `tmx import`, the file or directory to import does not.
+
+- **Raised by**: every command that reads locale files; Studio and the MCP server
+- **Exit code**: `2`; `1` in `doctor`, which reports it as a failed check
+- **Next step**: Create the source locale file, or fix `files.pattern` and `sourceLocale` in the config so they point at it.
+- **Next step for `import`**: Pass the path of the filled handoff file, or of the directory it was exported into, relative to the working directory or `--cwd`.
+- **Next step for `tmx import`**: Pass the path of an existing TMX file, relative to the working directory or `--cwd`.
+
+### SOURCE_INVALID
+
+The source locale file could not be read or parsed; wraps the adapter's read error. For `import` and `tmx import`, the file to import is too large or not a readable handoff or TMX document.
+
+- **Raised by**: every command that reads locale files; Studio and the MCP server
+- **Exit code**: `2`; `1` in `doctor`, which reports it as a failed check
+- **Next step**: Fix the file the message names so it parses under the configured format.
+- **Next step for `import`**: Fix the handoff file the message names, or pass its format with `--format` when its extension names none.
+- **Next step for `tmx import`**: Fix the TMX file the message names, or export it again from the tool that wrote it.
+
+### LOCK_FILE_INVALID
+
+The lock file is present but corrupt, oversized, or at an unsupported version.
+
+- **Raised by**: `translate`, `import`, `check`, `diff`, `export`, `report`; Studio and the MCP server
+- **Exit code**: `2`
+- **Next step**: Restore verbatra.lock.json from version control, then try again.
+
+### PROVENANCE_FILE_INVALID
+
+The provenance file is present but corrupt, oversized, or structurally wrong; thrown by a write (`translate`, `watch`, `importWorkbook`, `editEntry`, `retranslateEntry`, `approveEntry`, `rejectEntry`) before it changes anything, and by `loadProvenance`, never by a report; one from a newer verbatra is left untouched instead, and `translate`, `watch`, and `importWorkbook` report the notice `PROVENANCE_VERSION_UNRECOGNIZED`.
+
+- **Raised by**: `translate`, `watch`, `import`; Studio and the MCP server
+- **Exit code**: `2`
+- **Next step**: Restore verbatra.provenance.json from version control, then try again.
+
+### PROVENANCE_FILE_UNWRITABLE
+
+A review decision could not be saved because the provenance file is from a newer verbatra or would grow past the size verbatra reads back (`approveEntry`, `rejectEntry`); nothing is written.
+
+- **Raised by**: Studio and the MCP server
+- **Exit code**: none: no CLI command raises it
+- **Next step**: Upgrade verbatra if a newer version wrote verbatra.provenance.json, then record the decision again.
+
+### REVIEW_VALUE_CHANGED
+
+The key has no value, or its value is not the `expectedValue` the reviewer saw, or `expectedValue` is not a string (`approveEntry`, `rejectEntry`).
+
+- **Raised by**: Studio and the MCP server
+- **Exit code**: none: no CLI command raises it
+- **Next step**: Reload the current value, review it again, and resend the decision.
+
+### REVIEW_SOURCE_CHANGED
+
+The source changed since the value was written, so it cannot be approved as it stands (`approveEntry`).
+
+- **Raised by**: Studio and the MCP server
+- **Exit code**: none: no CLI command raises it
+- **Next step**: Edit or retranslate the key first, then review its new value.
+
+### REVIEW_REJECT_UNSUPPORTED
+
+The format keeps a key's value when the file is written without it, as XLIFF does, or the locale file is too large to keep a copy to restore, so `rejectEntry` left the file as it was.
+
+- **Raised by**: Studio and the MCP server
+- **Exit code**: none: no CLI command raises it
+- **Next step**: Edit the value instead of rejecting it.
+
+### REVIEW_RESTORE_FAILED
+
+`rejectEntry` failed after it rewrote the locale file, and restoring the locale file or the provenance file failed too; the message names the original failure (also the `cause`) and the files to restore from version control.
+
+- **Raised by**: Studio and the MCP server
+- **Exit code**: none: no CLI command raises it
+- **Next step**: Restore the files the message names from version control.
+
+### REVIEWER_INVALID
+
+The `reviewer` is empty, longer than 64 characters, or contains a control character (`approveEntry`, `rejectEntry`, `importWorkbook`).
+
+- **Raised by**: `import --reviewer`; Studio and the MCP server
+- **Exit code**: `2`
+- **Next step**: Pass a reviewer name of 1 to 64 characters with no control characters.
+
+### LOCK_CONTENDED
+
+A locale's write lock, or the glossary lock `updateGlossaryTerm` takes, could not be acquired before its timeout, or another process took it over before a write it protects, in which case nothing was written; the message names the lock file's path.
+
+- **Raised by**: `translate`, `watch`, `import`; Studio and the MCP server
+- **Exit code**: `1` when it fails one locale of `translate` or `import`
+- **Next step**: Wait for the other verbatra process to finish and try again, or remove the lock file the message names if no process holds it.
+
+### GLOSSARY_NOT_FILE_BACKED
+
+The config's glossary is inline or absent, so there is no glossary file to read or rewrite (`readGlossaryFile`, `updateGlossaryTerm`). With no glossary at all, the hint says instead: Create a glossary file, such as glossary.json holding `{}`, and set the config's `glossary` to its path, such as `"glossary.json"`.
+
+- **Raised by**: Studio and the MCP server
+- **Exit code**: none: no CLI command raises it
+- **Next step**: Move the glossary into its own file and set the config's `glossary` to that file's path.
+
+### GLOSSARY_UNWRITABLE
+
+The glossary file could not be written, or the glossary write lock could not be created, for instance in a read-only project, or released after a saved edit (`updateGlossaryTerm`); the file-system error is the `cause`.
+
+- **Raised by**: Studio and the MCP server
+- **Exit code**: none: no CLI command raises it
+- **Next step**: Make the glossary file and its directory writable, then try again.
+
+### LOCALE_LAYOUT_INVALID
+
+`files.pattern` and `files.localeStyle` cannot be combined, or the style has no valid path spelling for a configured locale.
+
+- **Raised by**: every command that reads locale files; Studio and the MCP server
+- **Exit code**: `2`
+- **Next step**: Fix `files.pattern` and `files.localeStyle` in the config so every locale maps to a valid path.
+
+### LOCALE_PATH_COLLISION
+
+Two configured locales resolve to the same absolute file path.
+
+- **Raised by**: every command that reads locale files; Studio and the MCP server
+- **Exit code**: `2`
+- **Next step**: Change `files.pattern` or `files.localeStyle` in the config so each locale resolves to its own file.
+
+### CONCURRENCY_INVALID
+
+`concurrency` was set but is not an integer of at least 1; raised before any locale runs.
+
+- **Raised by**: the SDK only
+- **Exit code**: none: no CLI command raises it
+- **Next step**: Pass a concurrency that is a whole number of at least 1.
+
+### CONCURRENCY_BUDGET_CONFLICT
+
+A live run set `concurrency` above 1 while a token budget applies, configured or per-run; raised before any provider call (a dry run is exempt).
+
+- **Raised by**: `translate`, `watch`
+- **Exit code**: `2`
+- **Next step**: Run with a concurrency of 1 while a token budget applies, or remove the budget.
+
+### MAX_TOKENS_INVALID
+
+`translate`'s per-run `maxTokens` was set but is not a whole number of at least 1; raised before anything is read or spent.
+
+- **Raised by**: the SDK only
+- **Exit code**: none: no CLI command raises it
+- **Next step**: Pass a token budget that is a whole number of at least 1.
+
+### LOCK_TIMEOUT_INVALID
+
+`lockAcquireTimeoutMs` was set but is not a whole number of milliseconds of at least 0 (`translate`, `watch` at startup, `importWorkbook`, `retranslateEntry`, `retranslateEntries`, `approveEntry`, `rejectEntry`, `approveEntries`, `rejectEntries`); raised before anything is read or locked.
+
+- **Raised by**: the SDK only
+- **Exit code**: none: no CLI command raises it
+- **Next step**: Pass a lock timeout that is a whole number of at least 0.
+
+### PAGE_CURSOR_INVALID
+
+The `cursor` passed to `localeValuesPage` or `provenanceReportPage` is malformed, longer than `PAGE_CURSOR_MAX_LENGTH` (512), was made under other filters, or points at a key that moved or is gone because the files changed between pages.
+
+- **Raised by**: the SDK; Studio's `verbatra_locale_values` agent tool (the MCP server's `locale.values` and `report.provenance` report it as invalid input for `cursor`)
+- **Exit code**: none: no CLI command raises it
+- **Next step**: Call again without a cursor to start from the first page.
+
+### PAGE_LIMIT_INVALID
+
+The `limit` passed to `localeValuesPage` or `provenanceReportPage` is not a whole number from 1 to `PAGE_LIMIT_CAP` (1000).
+
+- **Raised by**: the SDK only
+- **Exit code**: none: no CLI command raises it
+- **Next step**: Pass a page limit that is a whole number from 1 to 1000.
+
+### TARGET_UNWRITABLE
+
+A target locale file could not be written (its directory is not writable, does not exist, is read-only, or is out of space); the message names the target file and the file-system code, never the internal temporary file the atomic write uses.
+
+- **Raised by**: `translate`, `import`, `pseudo`; Studio and the MCP server
+- **Exit code**: `1` when it fails one locale of `translate` or `import`; `2` in `pseudo`
+- **Next step**: Make the target locale file and its directory writable, then try again.
+
+### PSEUDO_OUTPUT_CONFLICT
+
+`pseudolocalize` was asked for a pseudolocale that names a configured locale, or for an output path that would write onto a configured locale file or outside `cwd`, also after symbolic links are resolved; refused before anything is read or written.
+
+- **Raised by**: `pseudo`
+- **Exit code**: `2`
+- **Next step**: Choose a pseudolocale and an output path inside the project that name no configured locale.
+
+### SOURCE_UNWRITABLE
+
+The source locale file could not be written (`extract` only); `xliff` and `apple-xcstrings` reach it when no catalog exists yet, because neither is created from nothing.
+
+- **Raised by**: `extract`
+- **Exit code**: `2`
+- **Next step**: Make the source locale file writable; for xliff and apple-xcstrings, create the catalog first.
+
+### EXTRACT_NOT_CONFIGURED
+
+`extract` was called with a config that carries no `extract` block.
+
+- **Raised by**: `extract`
+- **Exit code**: `2`
+- **Next step**: Add an `extract` block to the config naming the framework and source roots.
+
+### EXTRACT_FS_UNSUPPORTED
+
+`extract` was given a `deps.fs` that implements no `readDirectory`, so no source file can be discovered.
+
+- **Raised by**: the SDK only
+- **Exit code**: none: no CLI command raises it
+- **Next step**: Pass a file system that implements `readDirectory`, or use the default one.
+
+### TYPES_OUTPUT_CONFLICT
+
+`generateTypes` refused its output path: one that names no file (or ends in a path separator), is absolute, climbs out of `cwd` or names `cwd` itself, or does not end in `.ts`, `.mts` or `.cts`, and one naming a configured locale file, the lock file, the provenance file, the translation-memory cache, a file verbatra searches for its configuration, the config file the run loaded, or the glossary file the config names, also after symbolic links are resolved; a generating run also refuses to replace an existing file that does not begin with verbatra's header line.
+
+- **Raised by**: `types`
+- **Exit code**: `2`
+- **Next step**: Choose a relative `.ts`, `.mts` or `.cts` output path inside the project that names no file verbatra manages.
+
+### TYPES_UNWRITABLE
+
+The declaration file `generateTypes` produces could not be written (its directory is not writable, does not exist, or the disk is out of space); the message names the file and the file-system code.
+
+- **Raised by**: `types`
+- **Exit code**: `2`
+- **Next step**: Make the output file and its directory writable, then try again.
+
+### TMX_OUTPUT_CONFLICT
+
+`exportTmx` refused its output path: one that names no file (or ends in a path separator) or resolves outside `cwd` or to `cwd` itself, and one naming a file verbatra manages, as listed under [`TYPES_OUTPUT_CONFLICT`](#types_output_conflict), also after symbolic links are resolved; refused before the memory is read.
+
+- **Raised by**: `tmx export`
+- **Exit code**: `2`
+- **Next step**: Choose an output path inside the project that names no locale file or other file verbatra manages.
+
+### TMX_UNWRITABLE
+
+The TMX file `exportTmx` produces could not be written (its directory is not writable, a directory already sits at that path, or the disk is out of space); the message names the file and the file-system code.
+
+- **Raised by**: `tmx export`
+- **Exit code**: `2`
+- **Next step**: Make the output file and its directory writable, then try again.
+
+### EXPORT_OUTPUT_CONFLICT
+
+`exportWorkbook` refused its output path: one that resolves outside `cwd`, and one that, or a file the export would write into it, names a file verbatra manages, as listed under [`TYPES_OUTPUT_CONFLICT`](#types_output_conflict), also after symbolic links are resolved; an `xlsx` path that names no file or names `cwd` itself is refused too; refused before anything is read.
+
+- **Raised by**: `export`
+- **Exit code**: `2`
+- **Next step**: Choose an output path inside the project that names no locale file or other file verbatra manages.
+
+### EXPORT_UNWRITABLE
+
+The handoff `exportWorkbook` produces could not be written (its directory is not writable, a directory or file is in the way, or the disk is out of space); the message names the file and the file-system code, and the file-system error is the `cause`.
+
+- **Raised by**: `export`
+- **Exit code**: `2`
+- **Next step**: Make the output file and its directory writable, then try again.
+
+### LOCALE_STATE_NOT_CARRIED_OVER
+
+Thrown by `editEntry`, `retranslateEntry`, `approveEntry`, and `rejectEntry`, which write nothing then, and otherwise recorded on the `error` of a locale `translate`, `watch`, or `importWorkbook` did not run because its state under a respelled code such as `pt_BR` could not be moved to it in the lock file or the provenance file; the next run tries again ([A respelled locale code](/docs/the-lock-file#a-respelled-locale-code)).
+
+- **Raised by**: `translate`, `watch`, `import`; Studio and the MCP server
+- **Exit code**: `1` when it fails one locale of `translate` or `import`
+- **Next step**: Wait for other verbatra processes to finish, make verbatra.lock.json and verbatra.provenance.json writable, then try again.
+
+### LOCALE_UNSUPPORTED_BY_PROVIDER
+
+The configured DeepL or Google Cloud Translation provider does not list the source locale or a selected target locale in the language table verbatra ships; thrown by `translate` (a dry run and an estimate too), `watch` at startup, and `retranslateEntry`, before any provider is built, any key read, or any locale started; a locale mapped explicitly in `localeMap` is trusted instead ([Language support](/docs/language-support#checking-support-before-a-run)).
+
+- **Raised by**: `translate`, `watch`; Studio and the MCP server
+- **Exit code**: `2`
+- **Next step**: Remove the unsupported locale from `targetLocales`, map it to a supported code in `provider.options.localeMap`, or choose a provider that supports it.
+
+### NOT_A_LOCALE_FILE
+
+`checkFile` was given a path that is not the file of any configured locale, or no file exists there.
+
+- **Raised by**: `check --file`
+- **Exit code**: `2`
+- **Next step**: Pass the path of an existing locale file that `files.pattern` maps to a configured locale.
+
+### SENSITIVE_CONTENT_WITHHELD
+
+`retranslateEntry` did not send the key, or dropped its answer, because `sensitiveData.mode` is `block` or `redact` and the key holds content a detector or pattern matched that could not be sent or did not come back intact ([Sensitive content guard](/docs/data-handling#sensitive-content-guard)). `translate` and `watch` list such keys in `sensitiveWithheld` instead.
+
+- **Raised by**: Studio and the MCP server
+- **Exit code**: none: no CLI command raises it
+- **Next step**: Remove the content from the key, list it in `sensitiveData.allow`, or turn the detector off in `sensitiveData.detectors`.
+
+### RUN_CANCELLED
+
+The `signal` passed to `translate` or `retranslateEntry` aborted. `retranslateEntry` throws it when the abort comes before the provider answers, having written nothing. `translate` records it on each locale the cancellation kept from starting and marks the summary [`cancelled`](/docs/sdk/run-summary).
+
+- **Raised by**: the SDK only
+- **Exit code**: none: no CLI command raises it
+- **Next step**: Run the operation again to finish the work the cancellation left pending.
+
+### LOCALE_FAILED
+
+Never thrown: the fallback `code` recorded on a failed locale's `error`.
+
+- **Raised by**: `translate`, `watch`, `import`
+- **Exit code**: `1` when it fails one locale of `translate` or `import`
+- **Next step**: Fix the cause the locale's message names, then try again.
+
+## Provider error codes [#provider-error-codes]
+
+A provider failure raises a `ProviderError` with one of these codes ([Structured errors](/docs/providers#structured-errors)). Inside `translate` and `watch` only its own request fails: its keys are withheld, the locale gets a `SUB_BATCH_FAILED` notice naming the code, and the keys are picked up again on the next run. A single-key retranslation from Studio or the MCP server re-throws the `ProviderError`.
+
+### MISSING_API_KEY
+
+The required environment variable is unset or empty. The message names the variable, never a value. For LibreTranslate, whose key is optional, it means the server demanded a key and `LIBRETRANSLATE_API_KEY` is not set.
+
+- **Raised by**: `translate`, `watch`; Studio and the MCP server when they retranslate
+- **Exit code**: `2`, as the `causeCode` of `PROVIDER_CONSTRUCTION_FAILED`
+- **Next step**: Set the API key environment variable your provider reads, then run `verbatra doctor`.
+
+### INVALID_REQUEST
+
+The request failed validation before any network call: a malformed field, a code DeepL does not accept (a `localeMap` entry giving a regional source code, or a target that resolves to a bare `en` or `pt`), or a code that is not well-formed BCP-47 for Google Cloud Translation. For LibreTranslate it also covers a language your server has no model for and a request over its `--char-limit` or `--batch-limit`. Retrying will not help.
+
+- **Raised by**: `translate`, `watch`; Studio and the MCP server when they retranslate
+- **Exit code**: `1`: the failed request's keys are withheld, and the locale ends `partial` or `failed`
+- **Next step**: Check the provider options in the config, such as the model name.
+
+### INVALID_RESPONSE
+
+The output was malformed, incomplete, or failed reconciliation against the request.
+
+- **Raised by**: `translate`, `watch`; Studio and the MCP server when they retranslate
+- **Exit code**: `1`: the failed request's keys are withheld, and the locale ends `partial` or `failed`
+- **Next step**: Try again; if it keeps failing, configure a different model.
+
+### OUTPUT_TRUNCATED
+
+The model hit its output-token limit; see [Output-token limits](/docs/providers#output-token-limits).
+
+- **Raised by**: `translate`, `watch`; Studio and the MCP server when they retranslate
+- **Exit code**: `1`: the failed request's keys are withheld, and the locale ends `partial` or `failed`
+- **Next step**: Translate fewer keys at a time, or configure a model with a larger output limit.
+
+### PROVIDER_REFUSED
+
+The model declined to answer.
+
+- **Raised by**: `translate`, `watch`; Studio and the MCP server when they retranslate
+- **Exit code**: `1`: the failed request's keys are withheld, and the locale ends `partial` or `failed`
+- **Next step**: Review the source text the provider refused, or translate it by hand.
+
+### PROVIDER_BLOCKED
+
+The request or response was safety-blocked or filtered.
+
+- **Raised by**: `translate`, `watch`; Studio and the MCP server when they retranslate
+- **Exit code**: `1`: the failed request's keys are withheld, and the locale ends `partial` or `failed`
+- **Next step**: Review the source text the provider blocked, or translate it by hand.
+
+### RATE_LIMITED
+
+HTTP 429 or an SDK rate-limit error. For Google Cloud Translation, this also covers an HTTP 403 whose body names a quota reason (a daily or per-minute limit). Google reuses 403 for both quota and credential failures, so raise your project's Cloud Translation quota.
+
+- **Raised by**: `translate`, `watch`; Studio and the MCP server when they retranslate
+- **Exit code**: `1`: the failed request's keys are withheld, and the locale ends `partial` or `failed`
+- **Next step**: Wait a moment and try again, or lower the concurrency.
+
+### TIMEOUT
+
+A network or request timeout; [`requestTimeoutMs`](/docs/providers#request-timeout) raises the bound.
+
+- **Raised by**: `translate`, `watch`; Studio and the MCP server when they retranslate
+- **Exit code**: `1`: the failed request's keys are withheld, and the locale ends `partial` or `failed`
+- **Next step**: Try again, or raise the provider's `requestTimeoutMs` in the config.
+
+### AUTH_FAILED
+
+HTTP 401 or 403: the key is invalid, revoked, or lacks permission. For Google Cloud Translation, check that `GOOGLE_TRANSLATE_API_KEY` is a valid, unrestricted key for a project with the Cloud Translation API enabled. Retrying will not help.
+
+- **Raised by**: `translate`, `watch`; Studio and the MCP server when they retranslate
+- **Exit code**: `1`: the failed request's keys are withheld, and the locale ends `partial` or `failed`
+- **Next step**: Check that the provider's API key is valid and allowed to use the configured model.
+
+### PROVIDER_UNAVAILABLE
+
+HTTP 5xx: the provider failed on its own side, and the request itself was never at fault. The [retry layers](/docs/providers#retries) already absorb a transient 5xx, so one that reaches this code is a sustained outage.
+
+- **Raised by**: `translate`, `watch`; Studio and the MCP server when they retranslate
+- **Exit code**: `1`: the failed request's keys are withheld, and the locale ends `partial` or `failed`
+- **Next step**: Try again later, or check the configured endpoint.
+
+### NETWORK_POLICY_VIOLATION [#provider-network_policy_violation]
+
+The [network policy](/docs/network-policy) refused the request right before it was sent: the host name resolved to an address the policy does not permit, or a response redirected to a refused host. The message names only the host. Retrying will not help.
+
+- **Raised by**: `translate`, `watch`; Studio and the MCP server when they retranslate
+- **Exit code**: `1`: the failed request's keys are withheld, and the locale ends `partial` or `failed`
+- **Next step**: Point the provider at a host the network policy permits, or add its host to `network.allowedHosts` or VERBATRA_NETWORK_ALLOWED_HOSTS.
+
+### PROVIDER_ERROR
+
+Anything unclassifiable. When the failure is a recognizable transport problem, the message names it (connection refused, host name not resolved, connection closed, host unreachable, TLS certificate not verified) and says what to check; otherwise it falls back to a static, secret-free message. When a provider package could not be loaded, the message names the package and says to reinstall `@verbatra/sdk`.
+
+- **Raised by**: `translate`, `watch`; Studio and the MCP server when they retranslate
+- **Exit code**: `1`: the failed request's keys are withheld, and the locale ends `partial` or `failed`
+- **Next step**: Try again; if it keeps failing, check the provider configuration.
+
+## Format adapter error codes [#adapter-error-codes]
+
+A format adapter that cannot handle a file raises an `AdapterError` with one of these codes. On the source locale file it arrives wrapped in `SOURCE_INVALID`, with the adapter's code as the `causeCode`; on a target file it becomes the `error.code` of that locale. `check --file` reports a file that does not parse as a `syntax` finding instead. The set is closed: a [custom adapter](/docs/custom-format-adapters) raises one of these codes rather than its own.
+
+### INVALID_JSON
+
+A JSON-based locale file is not valid JSON. The message ends with the line and column when the parser reports them.
+
+- **Raised by**: every command that reads locale files; Studio and the MCP server
+- **Exit code**: `1` when a target file fails its locale in `translate` or `import`; `2` when the source file is at fault, as the `causeCode` of `SOURCE_INVALID`
+- **Next step**: Fix the syntax error the message names in that file.
+
+### INVALID_YAML
+
+A YAML locale file is not valid YAML. The message ends with the line and column when the parser reports them.
+
+- **Raised by**: every command that reads locale files; Studio and the MCP server
+- **Exit code**: `1` when a target file fails its locale in `translate` or `import`; `2` when the source file is at fault, as the `causeCode` of `SOURCE_INVALID`
+- **Next step**: Fix the syntax error the message names in that file.
+
+### INVALID_XML
+
+An XML-based locale file, such as XLIFF or Android `strings.xml`, is not well-formed XML.
+
+- **Raised by**: every command that reads locale files; Studio and the MCP server
+- **Exit code**: `1` when a target file fails its locale in `translate` or `import`; `2` when the source file is at fault, as the `causeCode` of `SOURCE_INVALID`
+- **Next step**: Fix the syntax error the message names in that file.
+
+### INVALID_STRUCTURE
+
+The file parses but does not have the shape the configured format expects, for example a dotted key and a nested key path that resolve to the same key, or a YAML mapping key that is a map or a sequence.
+
+- **Raised by**: every command that reads locale files; Studio and the MCP server
+- **Exit code**: `1` when a target file fails its locale in `translate` or `import`; `2` when the source file is at fault, as the `causeCode` of `SOURCE_INVALID`
+- **Next step**: Reshape the file the message names to match the configured format.
+
+### MAX_DEPTH_EXCEEDED
+
+The file nests deeper than verbatra reads.
+
+- **Raised by**: every command that reads locale files; Studio and the MCP server
+- **Exit code**: `1` when a target file fails its locale in `translate` or `import`; `2` when the source file is at fault, as the `causeCode` of `SOURCE_INVALID`
+- **Next step**: Reduce the nesting depth of the file the message names.
+
+### INPUT_TOO_LARGE
+
+The file is larger than verbatra reads.
+
+- **Raised by**: every command that reads locale files; Studio and the MCP server
+- **Exit code**: `1` when a target file fails its locale in `translate` or `import`; `2` when the source file is at fault, as the `causeCode` of `SOURCE_INVALID`
+- **Next step**: Split the file the message names into smaller files.
+
+### MIXED_STRUCTURE
+
+The file mixes flat and nested keys where the format forbids it.
+
+- **Raised by**: every command that reads locale files; Studio and the MCP server
+- **Exit code**: `1` when a target file fails its locale in `translate` or `import`; `2` when the source file is at fault, as the `causeCode` of `SOURCE_INVALID`
+- **Next step**: Use either flat or nested keys throughout the file the message names.
+
+### ADAPTER_FAILED
+
+A `custom:` adapter threw an unexpected error. The error names the adapter's format, and the adapter's own error is its `cause`.
+
+- **Raised by**: the SDK, with a `custom:` adapter (the CLI loads no plugin)
+- **Exit code**: none: no CLI command raises it
+- **Next step**: Report the failure to the maintainer of the custom adapter the message names.
+
+### DUPLICATE_FORMAT
+
+A second adapter was registered for a format identifier the registry already holds.
+
+- **Raised by**: `AdapterRegistry.register` in the SDK
+- **Exit code**: none: no CLI command raises it
+- **Next step**: Register only one adapter for each format identifier.
+
+### INVALID_FORMAT_ID
+
+An adapter was registered under a malformed `custom:` identifier.
+
+- **Raised by**: `AdapterRegistry.register` in the SDK
+- **Exit code**: none: no CLI command raises it
+- **Next step**: Name the custom adapter `custom:` followed by a valid name.
+
+## Review gate codes [#check-result-codes]
+
+`check --require-reviewed` reports why it failed as `result.review.code` ([Require reviewed translations](/docs/cli/check#require-reviewed-translations)).
+
+### REVIEW_REQUIRED
+
+At least one machine-written translation (origin `machine`, `memory`, `fuzzy` or `agent`) is not approved in the committed `verbatra.provenance.json`. The envelope stays `ok: true`, and `result.locales[].review.unreviewed` names the keys.
+
+- **Raised by**: `check --require-reviewed`
+- **Exit code**: `1`
+- **Next step**: Approve or correct the listed keys in [Studio's Review queue](/docs/review-in-studio) or with the MCP tools `review.approve` and `review.reject`, then commit `verbatra.provenance.json`.
+
+### REVIEW_STATE_UNREADABLE
+
+`verbatra.provenance.json` is corrupt or from a newer verbatra, so no review state can be read and the gate fails closed.
+
+- **Raised by**: `check --require-reviewed`
+- **Exit code**: `1`
+- **Next step**: Restore `verbatra.provenance.json` from version control, or upgrade verbatra if a newer version wrote it.
+
+## Integrity refusal reasons [#integrity-refusal-reasons]
+
+The [integrity gate](/docs/translation-safety#the-integrity-gate) refuses a candidate value with exactly one of these reasons, the first that applies in the order that page gives. The reason appears in a locale's `integrityRefusals` after `translate`, `watch` and `import` (`integrity-withheld` in the human output), in the result of `editEntry`, and as an error of `check --qa`, often with `details` naming what differs. The set ships as the `INTEGRITY_GATE_REASONS` tuple.
+
+### placeholder
+
+The candidate's placeholders differ from its source's, compared as a multiset: counts matter, order does not. What counts as a placeholder is defined per [format](/docs/formats). For i18next, ngx-translate and YAML, a `{name}`-shaped token the candidate adds and the source never had is refused too, although single braces are literal text there. The details name each dropped placeholder with `-` and each added one with `+`, such as `-{{name}}` or `+{{nom}}`.
+
+- **Raised by**: `translate`, `watch`, `import`, `editEntry`; `check --qa` (as an error)
+- **Exit code**: `1` from `translate` and `import` when the locale ends partial or failed; `1` from `check --qa`
+- **Next step**: Put the source's placeholders back into the translation, or let the next run translate it again.
+
+### markup
+
+The candidate's inline HTML or XML markup differs from its source's, or is not well formed. The details name each tag behind the refusal, prefixed with `-` for one the source had and the candidate dropped or `+` for one the candidate invented.
+
+- **Raised by**: `translate`, `watch`, `import`, `editEntry`; `check --qa` (as an error)
+- **Exit code**: `1` from `translate` and `import` when the locale ends partial or failed; `1` from `check --qa`
+- **Next step**: Keep the source's tags, attribute names and protected attribute values in the translation.
+
+#### How markup is compared
+
+Tags are compared as a multiset of tag names plus attribute names:
+
+- Refused: a dropped tag, an invented tag, a renamed tag, a changed set of attribute names (adding a
+  `dir` attribute for a right-to-left target included), markup that comes back unbalanced or
+  mis-nested, such as `<b>a<i>b</b></i>`, and a tag that comes back nested inside another of the
+  same name when the source had them as siblings, which is how two links silently become one.
+- Accepted: the same tags in a different order, a changed attribute value such as a translated
+  `title` or a localized `href` (within the limits on attribute values described below), and either
+  spelling of a void element, so `<br>` and `<br/>` are one tag.
+- Counted, not just noticed: two adjacent pairs merged into one (`<b>a</b> <b>b</b>` becoming
+  `<b>a b</b>`) is refused.
+- Compared exactly, so a case change is a finding. The HTML void elements (`<br>`, `<img>`, `<hr>`
+  and the rest) need no closing tag in any letter case, so `<BR>` is recognised as one just like
+  `<br>`.
+
+A source with no markup at all is still protected against markup invented into it. The candidate is
+refused for any tag pair, void element or self-closing tag it adds, for a closing tag with no
+opening tag (`Hallo</div>`), and for an unclosed opening tag that carries anything beyond its name,
+such as `<Enter onfocus=...>` or `<x-key onmouseover=...>`.
+
+An unclosed `<Word>` with nothing but its name, where the name is only letters, digits, hyphens and
+underscores, is a bracketed word, such as `<Enter>` in `Druecke <Enter>`. Bracketed words are set
+aside on both sides before the source is judged, so a source that carries one is still compared: a
+candidate that drops a `<b>` pair beside `<Enter>`, or invents a `<script>` pair beside it, is
+refused. Once the source carries tags, bracketed words are counted like tags. Where it carries none,
+a bracketed word the candidate adds is read as prose and accepted, unless its name, in any letter
+case, is a standard HTML element (`Hallo <script>`), is `image`, which a parser turns into an
+`<img>`, or contains a hyphen, which makes it a custom element (`Hallo <my-widget>`).
+
+That name test is deliberately cautious, so an ordinary word that happens to be an element name,
+such as `<Del>`, `<Option>`, `<Select>`, `<Input>` or `<Menu>`, is refused when a translation adds
+it to a source that does not have it. The workaround is to keep the bracketed word in your source
+string too: a translation that carries the same bracketed words as its source is accepted.
+
+Comments, CDATA sections, declarations and processing instructions are not tags, and they are read
+the way an HTML parser reads them. `<!-->` and `<!--->` are complete empty comments, a comment ends
+at the first `-->` or `--!>`, and a comment with no end hides the rest of the value. `<![CDATA[`,
+`<!DOCTYPE html>`, any other `<!...`, `<?...` and a `</` followed by anything but a letter, such as
+`</1 x>`, all end at the first `>`, while an empty `</>` is dropped, as a parser drops it, and a
+numeric closing tag such as `</0>` is compared as a tag. Each such construct is compared as a
+multiset of its text with runs of whitespace collapsed, so one the candidate adds, drops or rewrites
+is refused, including a comment whose text was translated. Tags after a construct's end are compared
+as usual, so `Hallo <![CDATA[><img src=x onerror=...>]]>` is refused for both the construct and the
+`<img>`.
+
+The content of a raw text element is text too. After an opening `script`, `style`, `title`,
+`textarea`, `xmp`, `iframe`, `noscript`, `noembed` or `noframes` tag, everything up to its closing
+tag, in any letter case and followed by whitespace, `/` or `>`, is text, and everything after
+`<plaintext>` is text to the end of the value. A tag written inside such an element is not compared,
+and a quoted attribute value cannot reach across the closing tag to hide what follows:
+`Füge ein <script><b x="</script><img src=x onerror=...>` is refused for the `<img>`. Where a parser
+can read that content two ways, the candidate is refused unless it is the source unchanged, with a
+detail such as `+<noscript>...</noscript>`: a `script` whose content opens `<!--`, a `noscript`
+whose content holds a `<`, since whether scripting is enabled decides how it is read, and any raw
+text element whose content holds a `<` after an `svg`, `math` or `select` tag, where it may not be
+raw text at all. For the same reason, a CDATA section or an `image` tag in a value where the source
+or the candidate opens `svg`, `math` or `select` is refused unless the candidate is the source
+unchanged.
+
+The content of a `script`, `style`, `iframe`, `noembed`, `noframes`, `noscript`, `xmp` or
+`plaintext` element runs or styles the page instead of being shown, so it is never translated: each
+such element in the candidate must carry exactly the content of the element in the same position
+among those of its name in the source, or the candidate is refused with a detail such as
+`+<script> content`. `title` and `textarea` content is shown as text and may be translated. This
+makes prose that literally contains one of those tags untranslatable, because in
+`Add a <script> tag` everything after `<script>` is its content: `Füge ein <script> Tag` is refused.
+Escape the tag in the source instead, as `Add a &lt;script&gt; tag`.
+
+The check is deliberately quiet, but it reads tags the way an HTML parser does. A tag starts at `<`
+or `</` followed by a letter or, for a numeric rich-text tag such as `<0>`, by digits. Its name runs
+to whitespace, `/` or `>`, and a quoted attribute value may contain `>`. So `5 < 10`, `x <= y` and
+an escaped `&lt;b&gt;` stay ordinary text, while `<support@example.com>` and `<abbr title="a > b">`
+are tags, and a `<` that never reaches its `>` renders nothing and is not a tag. A candidate that
+leaves a tag unfinished that way is still refused when its source finishes every tag, with a detail
+naming the unfinished start, such as `+<a`. A source whose own tags are malformed is compared all
+the same. After setting aside the tags the format reports as placeholders and any bracketed words, a
+source counts as malformed when it has an opening tag that is never closed (void elements excepted),
+a closing tag with no opening tag, or tags closed in the wrong order. Prose can trip this by
+accident: in `a<b and c>d`, the run `<b and c>` is an opening `b` tag with the attributes `and` and
+`c` that is never closed, so the source counts as malformed. For such a source only the nesting
+check is skipped: its tags are compared as a multiset like any other, so a translation that keeps
+`a<b and c>d` exactly is accepted, one that adds an `<img>` beside it is refused, and so is one that
+translates the words inside the run (`a<b und c>d`), because a parser reads `und` as a new
+attribute. No source is too large to compare either. A candidate is refused only once it carries
+more than twice as many tags and constructs as its source, or more than 256 for a smaller source,
+with the detail `+more than N inline tags` naming that limit.
+
+Attribute values are free with these exceptions. The value of a URL attribute (`href`, `src`,
+`action`, `formaction`, `xlink:href`, `poster`, `data`, `background`, `ping`, `cite`, `longdesc`,
+`srcset`, `manifest`, `codebase`, `archive`, and the SVG animation attributes `to`, `from`, `values`
+and `by`) is read after decoding numeric character references and `&colon;`, `&Tab;`, `&NewLine;`,
+`&sol;` and `&bsol;` and ignoring tabs, line breaks and surrounding control characters. A
+`javascript:`, `vbscript:` or `data:` scheme in it is refused unless the source carries that exact
+value on the same tag and attribute, with a detail such as `+<a href="javascript:...">`. Beyond
+that, every URL in the value, including each URL of a `srcset`, `ping`, `archive` or `values` list,
+must keep a scheme and authority (host and port, or the host of a scheme-relative `//host` URL) that
+a source value of the same tag and attribute has, and a relative URL must stay relative. So `/docs`
+may become `/de/docs` and `https://verbatra.dev/en` may become `https://verbatra.dev/de`, but
+`/docs` may not become `https://evil.example/docs` or `//evil.example/docs`, and a localized
+absolute link has to keep the same host; the detail names the new origin, such as
+`+<a href="https://evil.example...">`, or `+<a href="./...">` for an absolute link made relative.
+The path, query and fragment may change freely. A changed URL without an explicit `http`, `https`,
+`ws`, `wss`, `ftp` or `file` scheme is also refused when a backslash (`\` or `%5C`) sits in its
+leading slashes or its host, because a page on another scheme reads `//verbatra.dev\@evil.example/`
+as a link to evil.example.
+
+Some attribute values must come back exactly as the source has them, compared after decoding
+character references, with a detail such as `+<meta content="...">`: `http-equiv` and `content` on
+`meta`; `type`, `nomodule`, `integrity` and `crossorigin` on `script`; `rel`, `as`, `integrity`,
+`crossorigin` and `type` on `link`; `target` on `base`; `attributeName` and `attributeType` on
+`set`, `animate`, `animateTransform` and `animateMotion`; `sandbox`, `allow` and `allowfullscreen`
+on `iframe`; `method`, `enctype` and `target` on `form`; and `style`, `srcdoc` and every event
+handler such as `onclick` on any element. A translatable attribute such as `title` or `alt` stays
+free.
+
+Two format-shaped limits follow from comparing whole values. For a format that packs several plural
+arms into one value separated by a pipe (Vue I18n), a translation that adds the arms its language
+needs repeats the source's markup and is refused. The same happens for an ICU-style plural
+(`{count, plural, one {...} other {...}}`) in a format that stores it as plain text rather than
+parsing it as ICU (i18next, ngx-translate and YAML): a translation with a different number of arms
+than the source repeats or drops the markup inside them and is refused. In both cases the previous
+translation stays.
+
+The check also stands down per tag. A tag the format already reports as a placeholder (an XLIFF
+inline element, a next-intl or ARB ICU rich-text tag) is left to the placeholder check, together
+with as many closing tags as it has openings, and is never reported twice. An opening tag of that
+kind that the candidate leaves unclosed is still refused, named by the closing tag it is missing,
+such as `-</g>`. So is one whose nesting with the other tags no longer matches the source, such as a
+`<b>` that comes back crossing the `<g>` it sat inside, and one the source carries only as text,
+inside a comment or a raw text element, because moving it out would create the element. Every other
+tag in the same value is still compared, including a surplus closing tag such as a second `</g>`.
+
+### icu
+
+For next-intl and ARB, the candidate no longer parses as an ICU message (a `plural` without its `other` arm included), or its `plural` or `selectordinal` arms do not fit the target language's CLDR categories, or its `select` arms differ from the source's. The details name each wrong arm. [Plural arms per target language](/docs/translation-safety#plural-arms-per-target-language) explains the rule.
+
+- **Raised by**: `translate`, `watch`, `import`, `editEntry`; `check --qa` (as an error)
+- **Exit code**: `1` from `translate` and `import` when the locale ends partial or failed; `1` from `check --qa`
+- **Next step**: Fix the message so it parses and carries exactly the arms the target language needs.
+
+### degenerate
+
+The candidate is structurally degenerate: a repetition loop, or a length that ran away from its source, which is how a model that collapsed into repeating a fragment looks even when every placeholder survived.
+
+- **Raised by**: `translate`, `watch`, `import`, `editEntry`; `check --qa` (as an error)
+- **Exit code**: `1` from `translate` and `import` when the locale ends partial or failed; `1` from `check --qa`
+- **Next step**: Let the next run translate the key again, or write the translation by hand.
+
+### empty
+
+The candidate is empty or only whitespace although its source is not. Clearing a translation is a deliberate act: the workbook's `[[CLEAR]]` sentinel does it.
+
+- **Raised by**: `translate`, `watch`, `import`, `editEntry`; `check --qa` (as an error)
+- **Exit code**: `1` from `translate` and `import` when the locale ends partial or failed; `1` from `check --qa`
+- **Next step**: Write a translation, or clear the value on purpose with `[[CLEAR]]` in a workbook import.
+
+## Review reasons [#review-reason-codes]
+
+A review flag marks an accepted translation as worth a second look; it never withholds a key, and a `check --qa` warning fails the job only under `--strict`. The set ships as the `REVIEW_REASON_CODES` tuple; [Translation safety](/docs/translation-safety#review-flags) explains the review layer.
+
+### LENGTH_RATIO_OUTLIER
+
+The translation is far shorter or longer than its source.
+
+It fires below 0.35 times or above 3.0 times the trimmed source length; very short sources are skipped. Length is counted in grapheme clusters, and each character is weighted by its script: a Chinese character counts 3.5, a Japanese kana 1.5 and a Korean syllable 2.
+
+- **Raised by**: `translate`, `watch` (on `needsReview`); `retranslateEntry` (in `reviewReasons`); `export` (in the review column); `check --qa` (as a warning)
+- **Exit code**: none from `translate`; `1` from `check --qa --strict`
+- **Next step**: Read the translation against its source, then keep or correct it.
+
+### MAX_LENGTH_EXCEEDED
+
+The translation is longer than the `maxLength` budget configured for its key.
+
+Length is counted in grapheme clusters on the value exactly as written. The budget is inclusive, so a value of exactly the budget is not flagged, and a key without a budget is never measured.
+
+- **Raised by**: `translate`, `watch` (on `needsReview`); `retranslateEntry` (in `reviewReasons`); `export` (in the review column); `check --qa` (as a warning)
+- **Exit code**: none from `translate`; `1` from `check --qa --strict`
+- **Next step**: Shorten the translation, or raise the key's `maxLength` budget.
+
+### EQUALS_SOURCE
+
+The translation equals its source verbatim although the target locale differs.
+
+It fires only when the source has translatable text: a source made only of `doNotTranslate` terms, or of terms whose translation is the term itself, is not flagged.
+
+- **Raised by**: `translate`, `watch` (on `needsReview`); `retranslateEntry` (in `reviewReasons`); `export` (in the review column); `check --qa` (as a warning)
+- **Exit code**: none from `translate`; `1` from `check --qa --strict`
+- **Next step**: Translate the value, or keep it if the text really stays the same in that language.
+
+### GLOSSARY_TERM_MISSED
+
+A glossary term in the source is missing its translation for the target locale, or a `doNotTranslate` term is missing or altered.
+
+Each locale is checked against its own translation of the term from a per-locale glossary. Matching ignores case unless the term is `caseSensitive`, and folds case by each locale's rules (Turkish `İ` included). The source side needs a whole word, so `AI` is not found inside `Airport`; the target side only needs the term somewhere in the value, because a translated term fuses with the text around it. A term in a script without word separators (Han, kana, Thai and similar) is matched by containment.
+
+- **Raised by**: `translate`, `watch` (on `needsReview`); `retranslateEntry` (in `reviewReasons`); `export` (in the review column); `check --qa` (as a warning)
+- **Exit code**: none from `translate`; `1` from `check --qa --strict`
+- **Next step**: Use the glossary's translation of the term, or keep the term unchanged.
+
+### GLOSSARY_FORBIDDEN_TERM
+
+The translation uses a rendering the glossary's `forbidden` list rules out for the target locale.
+
+It is matched as a whole word, and by containment for scripts without word separators, so an inflected or compounded form is caught only when you list it too. A rendering the source itself contains is not flagged, since the translation may quote it.
+
+- **Raised by**: `translate`, `watch` (on `needsReview`); `retranslateEntry` (in `reviewReasons`); `export` (in the review column); `check --qa` (as a warning)
+- **Exit code**: none from `translate`; `1` from `check --qa --strict`
+- **Next step**: Replace the forbidden rendering with the approved one.
+
+### INTEGRITY_REORDERED
+
+The placeholders matched exactly but appear in a different order than in the source.
+
+- **Raised by**: `translate`, `watch` (on `needsReview`); `retranslateEntry` (in `reviewReasons`); `export` (in the review column); `check --qa` (as a warning)
+- **Exit code**: none from `translate`; `1` from `check --qa --strict`
+- **Next step**: Check that the new order reads correctly in the target language.
+
+### PROVIDER_DEGRADED
+
+The provider degraded the batch this key came from, such as a formality downgrade or an ignored glossary.
+
+It fires when the batch carried a `FORMALITY_DOWNGRADED` or `GLOSSARY_IGNORED` notice, which DeepL, Google Cloud Translation and LibreTranslate report. `PLACEHOLDER_UNSUPPORTED` does not raise it, because those entries are withheld rather than degraded.
+
+- **Raised by**: `translate`, `watch` (on `needsReview`)
+- **Exit code**: none
+- **Next step**: Check the tone and the glossary terms of the value.
+
+### FUZZY_CACHE_REUSE
+
+The value was reused from the cache for an earlier, near-identical source that has since been edited. It only occurs with `fuzzyCache` enabled.
+
+- **Raised by**: `translate`, `watch` (on `needsReview`)
+- **Exit code**: none
+- **Next step**: Check that the reused value still matches the edited source.
+
+### FOREIGN_PLACEHOLDER_CHANGED
+
+The translation dropped or changed a token shaped like a placeholder that the project's format does not interpolate, such as `{name}` in an i18next value or `%{count}` in a YAML value.
+
+It fires when such a token occurs in the source more often than, verbatim, in the translation. The format's own placeholders are left to the integrity gate, a token the translation only adds is not flagged, and an ICU argument counts once, by its head such as `{n, plural,`, so translated arms never raise it. Tokens inside ICU arms, a printf token glued to a letter or digit, percent-encoded bytes such as `%2F` and anything inside a URL are never checked, and neither are formats from third-party adapters. Which syntaxes each format protects is listed under [Formats](/docs/formats).
+
+- **Raised by**: `translate`, `watch` (on `needsReview`); `retranslateEntry` (in `reviewReasons`); `export` (in the review column); `check --qa` (as a warning, naming each missing token in `details`, such as `-{name}`)
+- **Exit code**: none from `translate`; `1` from `check --qa --strict`
+- **Next step**: Restore the token in the translation if your library interpolates it.
+
+### BIDI_CONTROLS_CHANGED
+
+The translation holds invisible direction controls that can reorder the text around it: an embedding, override or isolate it never closes, or an override the source does not have.
+
+It fires when the translation's embeddings (U+202A, U+202B), overrides (U+202D, U+202E) and isolates (U+2066 to U+2068) do not pair up with their closers (U+202C, U+2069) within each paragraph while the source's do, or when it holds more left-to-right or right-to-left overrides than the source. An unclosed control leaks its direction into the text your app puts after the value. Directional marks such as U+200F never raise it, and neither does a translation that drops balanced controls the source has.
+
+- **Raised by**: `translate`, `watch` (on `needsReview`); `retranslateEntry` (in `reviewReasons`); `export` (in the review column); `check --qa` (as a warning)
+- **Exit code**: none from `translate`; `1` from `check --qa --strict`
+- **Next step**: Close or remove the direction controls in the translation.
+
+## Run notices [#sdk-notice-codes]
+
+A notice is data on a locale's `notices`, never thrown. It reports a condition the run handled, and it changes the exit code only where the entry says so. [RunSummary](/docs/sdk/run-summary) shows where notices sit on the summary.
+
+### PLURAL_CATEGORIES_INCOMPLETE
+
+A plural in a target locale lacks a CLDR plural category its language uses, such as a Polish plural with only `one` and `other`, and verbatra could not generate the rest.
+
+- **Raised by**: `translate`, `watch`; `check` lists it with the plurals, and `doctor` under Plural completeness
+- **Exit code**: none on its own; `1` from `check --qa --strict`
+- **Next step**: Add the missing plural forms by hand.
+
+### SUB_BATCH_FAILED
+
+A provider request failed. The notice names the provider's error code, or `PROVIDER_CALL_FAILED` when the failure was not a structured provider error, and the request's keys are listed under `providerFailures`.
+
+- **Raised by**: `translate`, `watch`
+- **Exit code**: `1`: the locale ends `partial` or `failed`
+- **Next step**: Look up the code it names under [Provider error codes](#provider-error-codes). The keys are translated again on the next run.
+
+### BLANK_ROW_BASELINE_RETAINED
+
+An imported row was left blank for a key whose source changed since the row's baseline was recorded, so the prior baseline was kept and the drift is still reported.
+
+- **Raised by**: `import`
+- **Exit code**: none on its own
+- **Next step**: Translate the key in a fresh export, or run `verbatra translate`.
+
+### HANDOFF_REVIEWS_RECORDED
+
+An XLIFF handoff marked keys reviewed or final, and they were recorded as approved in `verbatra.provenance.json`.
+
+- **Raised by**: `import`
+- **Exit code**: none
+- **Next step**: Nothing to fix; commit `verbatra.provenance.json`.
+
+### BUDGET_TOKENS_EXCEEDED
+
+The run reached its token budget: `maxTokens` in the config, or `--max-tokens` for one run. Under `"warn"` the run continues; under `"stop"` the keys not yet attempted are withheld and listed under `budgetWithheld`.
+
+- **Raised by**: `translate`, `watch`
+- **Exit code**: none under `budgetBehavior: "warn"`; `1` under `"stop"` once keys are withheld
+- **Next step**: Raise the budget, or run again: withheld keys are translated on the next run.
+
+### CACHE_VERSION_UNRECOGNIZED
+
+`verbatra.cache.json` was written by a newer verbatra, so it was left untouched and the run used no cache.
+
+- **Raised by**: `translate`, `watch`
+- **Exit code**: none
+- **Next step**: Upgrade verbatra, or delete the file to rebuild it.
+
+### PROVENANCE_VERSION_UNRECOGNIZED
+
+`verbatra.provenance.json` was written by a newer verbatra, so it was left untouched and the run recorded no provenance for the values it wrote.
+
+- **Raised by**: `translate`, `watch`, `import`
+- **Exit code**: none
+- **Next step**: Upgrade verbatra to keep the record current.
+
+### PROVENANCE_FILE_TOO_LARGE
+
+Recording this locale would have grown `verbatra.provenance.json` past the size verbatra reads back, so the file was kept as it was and the values the locale wrote have no record.
+
+- **Raised by**: `translate`, `watch`, `import`
+- **Exit code**: none
+- **Next step**: The values stay written; only their record is missing. Check why the file grew so large before the next run.
+
+### LOCALE_STATE_CARRIED_OVER
+
+State recorded under an underscore spelling such as `pt_BR` was moved to the configured `pt-BR`. See [A respelled locale code](/docs/the-lock-file#a-respelled-locale-code).
+
+- **Raised by**: `translate`, `watch`, `import`
+- **Exit code**: none
+- **Next step**: Nothing to fix; commit the lock and provenance files.
+
+### LOCALE_STATE_CARRY_OVER_SKIPPED
+
+That move was left for the next run, because the lock-file guard stayed contended or could not be read or created, or a file could not be written. Unless only the translation memory stayed behind, the locale did not run and failed with `LOCALE_STATE_NOT_CARRIED_OVER`.
+
+- **Raised by**: `translate`, `watch`, `import`
+- **Exit code**: `1` when the locale failed with `LOCALE_STATE_NOT_CARRIED_OVER`
+- **Next step**: Wait for other verbatra processes to finish, then run again.
+
+### LOCALE_UNVERIFIED_BY_PROVIDER
+
+The code sent is not on the provider's language table: only its base language is, or it comes from `localeMap`.
+
+- **Raised by**: `translate` (a dry run too), `watch`; `doctor --locales` reports it
+- **Exit code**: none
+- **Next step**: Run `verbatra doctor --locales` to see the code sent, and map the locale in `provider.options.localeMap` if it is wrong.
+
+### LOCALE_NOT_WELL_TESTED
+
+An LLM provider translates into a language outside the list of well-tested languages.
+
+- **Raised by**: `translate` (a dry run too), `watch`; `doctor --locales` reports it
+- **Exit code**: none
+- **Next step**: Have a person review the translations for this locale.
+
+### GLOSSARY_UNSUPPORTED_BY_PROVIDER
+
+The provider cannot apply a glossary for this locale.
+
+- **Raised by**: `translate` (a dry run too), `watch`; `doctor --locales` reports it
+- **Exit code**: none
+- **Next step**: Check the glossary terms in review, or choose a provider that applies a glossary for the locale.
+
+### FORMALITY_UNSUPPORTED_BY_PROVIDER
+
+The provider cannot apply the configured tone for this locale.
+
+- **Raised by**: `translate` (a dry run too), `watch`; `doctor --locales` reports it
+- **Exit code**: none
+- **Next step**: Check the tone in review, or choose a provider that applies formality for the locale.
+
+### SOURCE_FOREIGN_PLACEHOLDERS
+
+Source values this locale is about to translate hold a token shaped like a placeholder that the project's format does not interpolate. The message gives the number of such values and names the first keys.
+
+DeepL, Google Cloud Translation and LibreTranslate get such a token masked like a placeholder, and withhold a value they cannot mask or restore ([`PLACEHOLDER_UNSUPPORTED`](#placeholder_unsupported)). An LLM provider or a person must keep it unchanged; a translation that drops or changes it is flagged [`FOREIGN_PLACEHOLDER_CHANGED`](#foreign_placeholder_changed). The notice is raised per locale, only when that locale has such a key to translate, and never for formats from third-party adapters.
+
+- **Raised by**: `translate` (a dry run too), `watch`
+- **Exit code**: none
+- **Next step**: Review the translations of the named keys, or switch the syntax if your library does not interpolate these tokens.
+
+### SOURCE_VALUE_EMPTY
+
+Source keys whose value is empty or whitespace only, such as a key [`extract`](/docs/cli/extract) added without a default, are never missing, stale or up to date, whatever the target or the lock file holds; in a `gettext-po` source catalog that is an empty `msgstr`. Nothing is sent, written or counted for them, and the target keeps whatever value it holds. The message gives the number of keys and names the first ones.
+
+- **Raised by**: `translate` (a dry run too), `watch`
+- **Exit code**: none
+- **Next step**: Write the source text of the named keys, then run `verbatra translate` again.
+
+### SENSITIVE_CONTENT_SENT
+
+Under `sensitiveData.mode: "warn"`, keys or glossary terms this locale sent hold content a detector or pattern matched. They were sent unchanged. The message names the detectors and the first keys, never the matched text unless it is part of a key name.
+
+- **Raised by**: `translate` (a dry run too), `watch`
+- **Exit code**: none
+- **Next step**: Remove the content, allow it in `sensitiveData.allow`, or switch to `redact` or `block`.
+
+### SENSITIVE_CONTENT_REDACTED
+
+Under `"redact"`, the matches in these keys' values were replaced by tokens before sending and restored in the translation. The message names the first keys in full, so a match inside a key name appears in it.
+
+- **Raised by**: `translate` (a dry run too), `watch`
+- **Exit code**: none
+- **Next step**: None needed.
+
+### SENSITIVE_CONTENT_WITHHELD [#notice-sensitive_content_withheld]
+
+Under `"block"` or `"redact"`, keys were not sent because of a match and are listed in `sensitiveWithheld`, or glossary terms with a match were left out of the request. Under `"redact"` a key is withheld when the match is in its key name or overlaps a placeholder, or a token did not come back exactly once. The message names the first keys in full, so a match inside a key name appears in it.
+
+- **Raised by**: `translate` (a dry run too), `watch`
+- **Exit code**: `1`, since a withheld key leaves the locale `partial` or `failed`
+- **Next step**: Remove the content, or allow it in `sensitiveData.allow`; the keys are retried on the next run.
+
+### RUN_CANCELLED [#notice-run_cancelled]
+
+The run's `signal` aborted while this locale was running. Keys not yet translated were not sent, or their request was abandoned: they stay pending for the next run, and the locale is `partial`, or `failed` when other keys were withheld and none landed. Translations that arrived before the abort were written and recorded. The message gives the number of pending keys.
+
+- **Raised by**: the SDK only
+- **Exit code**: none: no CLI command raises it
+- **Next step**: Run `translate` again to send the pending keys.
+
+## Provider notices [#provider-notice-codes]
+
+A provider notice reports a graceful degradation on a successful request, as data on the locale's `notices`. Every key of a degraded batch also carries the `PROVIDER_DEGRADED` review reason.
+
+### FORMALITY_DOWNGRADED
+
+A requested `formal` or `informal` tone was not applied, as on DeepL's free tier or with Google Cloud Translation Basic.
+
+- **Raised by**: `translate`, `watch`
+- **Exit code**: none
+- **Next step**: Check the tone in review, or use a provider or plan that supports formality.
+
+### GLOSSARY_IGNORED
+
+A glossary with required translations or terms to keep was not applied: DeepL applies only a native glossary id, and Google Cloud Translation Basic supports no glossary.
+
+- **Raised by**: `translate`, `watch`
+- **Exit code**: none
+- **Next step**: Check the glossary terms in review, or use an LLM provider for glossary-bound text.
+
+### PLACEHOLDER_UNSUPPORTED
+
+At least one value was left untranslated by DeepL, Google Cloud Translation or LibreTranslate. A value is withheld when a placeholder is not literal in it, or when its text outside the placeholders holds `<`, `>`, `{` or `}`: ICU arguments such as plural, select or number, markup beside a placeholder, or a comparison sign (LibreTranslate keeps markup, so only braces count there). Google also withholds a value with a line break, tab or double space. A result is dropped when a marker comes back lost, duplicated, rewritten or bare, or with an unknown entity or a stray tag. A value with markup and no placeholders is sent unmasked. A token of another placeholder syntax than the format's counts as a placeholder here.
+
+- **Raised by**: `translate`, `watch`
+- **Exit code**: `1`: the keys are listed under `providerFailures`, and the locale ends `partial` or `failed`
+- **Next step**: Translate those values by hand, or use an LLM provider for them.

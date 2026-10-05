@@ -1,0 +1,288 @@
+---
+title: "Run translations"
+description: "translate, watch and the entry points around a run, plus pseudolocales and typed catalogs."
+type: reference
+---
+## Translate and watch [#run-translations]
+
+### translate
+
+The one-shot flow: read the source, diff each target locale against the lock baseline, send the
+missing and changed keys to the provider, run the integrity checks, write the
+locale files, and update the lock. Use it for scripts, build steps, and CI jobs.
+
+```ts title="Signature"
+function translate(
+  input: TranslateInput,
+  deps?: TranslateDeps,
+): Promise<RunSummary>;
+```
+
+<SdkTypeTable name="TranslateInput" />
+
+**Returns:** [`RunSummary`](/docs/sdk/run-summary)
+
+**Throws:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`CONCURRENCY_INVALID`](/docs/error-codes#concurrency_invalid), [`CONCURRENCY_BUDGET_CONFLICT`](/docs/error-codes#concurrency_budget_conflict), [`MAX_TOKENS_INVALID`](/docs/error-codes#max_tokens_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed), [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid)
+
+**Example:** [Translate and read the summary](/docs/sdk-quickstart#translate-and-read-the-summary)
+
+What the table does not cover:
+
+- `concurrency`: a whole-run error raised once locales are already running stops any further
+  locale from being started, and the locales in flight finish and release their write locks before
+  `translate` rejects, so the rejection arrives after the slowest one rather than instantly.
+- `cache` reuses the local [translation-memory cache](/docs/the-cache) (`verbatra.cache.json`, also
+  exported as `CACHE_FILE_NAME`); `false` is the CLI's `--no-cache`.
+- `humanEdits` (from 0.12.0): by default, stale keys a person wrote, imported, or changed outside
+  verbatra are kept and listed in `LocaleSummary.protected`. See
+  [Protecting human translations](/docs/protecting-human-translations). A dry run reads
+  `verbatra.provenance.json` too, unless `humanEdits` resolves to `"overwrite"`.
+- `onProgress` and `onLockWait` are notification callbacks; the SDK writes no output itself.
+  `onProgress` receives the [progress events](#progress-events) below. `onLockWait` fires first once
+  a wait has lasted a second.
+- `maxBatchSize` and `budgetBehavior` are config-only; there is no per-run override.
+
+A whole-run problem throws an `SdkError`; a single locale failing never throws and lands as
+`status: "failed"` on that locale's entry while the run continues. See
+[the anatomy of `RunSummary`](/docs/sdk/run-summary#the-runsummary-anatomy).
+
+### Progress events
+
+<AvailableFrom version="0.12.0" />
+
+`onProgress` receives a `ProgressEvent`, a union discriminated on `type`. A minor version may add types, so ignore one you do not recognize.
+
+| `type` | When | Fields |
+| --- | --- | --- |
+| `locale-started` | a locale's work begins | `locale`, `localeIndex`, `totalLocales` |
+| `locale-planned` | after the translation memory is consulted, before the first batch is sent; only when a provider is called | `locale`, `keys`, `batches`, `cacheHits` |
+| `sub-batch` | just before each translation batch is attempted | `locale`, `batchIndex`, `totalBatches` |
+| `provider-retry` | a built-in provider retries a request that failed with a retryable status | `attempt`, `delayMs?`, `status?` |
+| `repair` | an LLM provider re-requests the keys its first response left out | `locale`, `keys` |
+| `split-retry` | a batch whose output was cut off is retried in two halves | `locale`, `keys` |
+| `batch-finished` | a batch has finished, whether it succeeded or not | `locale`, `batchIndex`, `totalBatches`, `durationMs`, `usage?` |
+| `writing` | just before a locale's file is written | `locale` |
+| `locale-finished` | a locale's work ends | `locale`, `status`, `translated`, `localeIndex`, `totalLocales` |
+| `run-finished` | every locale has finished | `localesCompleted`, `localesFailed` |
+| `change-detected` | `watch` only: a change to the source file has settled | `paths` |
+| `idle` | `watch` only: a run finished and none is queued | none |
+
+`provider-retry` names no locale, because one provider serves the whole run. Gemini reports the delay and the status, Anthropic, OpenAI and openai-compatible report the attempt as their client starts it, and DeepL, Google Cloud Translation and LibreTranslate report none. A dry run and an estimate emit only `locale-started`, `locale-finished` and `run-finished`. The CLI's `--json` progress records keep to the four original types: `locale-started`, `sub-batch`, `locale-finished` and `run-finished`.
+
+`extract`, `diff` with `unused`, and `doctor` with `literals` take an `onProgress` of their own. It receives a `ScanProgressEvent`, `{ type: "files-scanned", scanned, total }`, once after each application source file the scan reads.
+
+A custom `CreateProvider` receives a third argument, `CreateProviderHooks`, whenever a run reports progress. Call its `onRetry` with `{ attempt, delayMs?, status? }` and your provider's retries show up as `provider-retry` events.
+
+### resolveDryRun
+
+<AvailableFrom version="0.11.0" />
+
+Answers whether a set of run options resolves to a dry run. It takes the `dryRun` and `estimate`
+you are about to hand `translate` and returns whether that run will construct a provider, write a
+file, or spend anything. This is the one place the rule that `estimate` implies `dryRun` is
+decided, so reach for it whenever something around a run has to know in advance rather than
+restating the implication and drifting from it.
+
+```ts title="Signature"
+function resolveDryRun(input: {
+  readonly dryRun?: boolean | undefined;
+  readonly estimate?: boolean | undefined;
+}): boolean;
+```
+
+**Returns:** `boolean`
+
+```ts title="Example"
+import { resolveDryRun, translate, type VerbatraConfig } from "@verbatra/sdk";
+
+declare const config: VerbatraConfig;
+
+const options = { dryRun: false, estimate: true };
+resolveDryRun(options); // true
+
+const summary = await translate({ config, ...options });
+```
+
+### watch
+
+Watches the source locale file and re-runs `translate` on every debounced change. It fires one
+initial run immediately at startup, then one run per settled change. Runs are serialized: changes
+during a run collapse into a single follow-up.
+
+```ts title="Signature"
+function watch(
+  input: WatchInput,
+  deps?: WatchDeps,
+): Promise<WatchController>;
+```
+
+<SdkTypeTable name="WatchInput" />
+
+**Returns:** `WatchController`
+
+**Throws:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider), [`CONCURRENCY_INVALID`](/docs/error-codes#concurrency_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`CONCURRENCY_BUDGET_CONFLICT`](/docs/error-codes#concurrency_budget_conflict), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation), [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
+
+**Example:** [Watch in a long-running process](/docs/programmatic-api#watch-in-a-long-running-process)
+
+`debounceMs` defaults to 300. `onRun` is called once per run with a `WatchRunResult`:
+`{ status: "succeeded", summary }` or `{ status: "failed", error: { code, message, causeCode?, hint? } }`,
+where `causeCode` names the coded error the failure wraps and `hint` is the next step `errorHint`
+gives. `onReady` is called once, after the startup checks pass and right before the initial run, so
+you can announce the session ahead of that run's output. The SDK does no logging; `onRun` is the
+only output. `concurrency`, `cache`, `onProgress`, `onLockWait`, and
+`lockAcquireTimeoutMs` are passed through to every run and behave exactly as on `translate`.
+`locales` narrows every run of the session to that subset and is validated once at startup, not per
+cycle.
+
+Returns a `WatchController` with one method, `stop()`, which closes the watcher and awaits the
+in-flight run. Every code on the **Throws** line is refused at startup, before the watcher exists,
+so `watch` itself rejects rather than returning a controller. Two of them weigh more on a session
+than on one run: a `concurrency` above 1 against a config that sets `maxTokens` always throws
+`CONCURRENCY_BUDGET_CONFLICT`, because there is no dry-run watch, and, from 0.12.0, a provider that
+cannot be constructed, such as one whose API key variable is unset, throws
+`PROVIDER_CONSTRUCTION_FAILED` once instead of failing every run. Every failure after startup is
+surfaced through `onRun` and watching continues.
+
+### releaseHeldLocks
+
+<AvailableFrom version="0.12.0" />
+
+Deletes every write lock the current process holds, for a process about to exit without letting
+its in-flight runs finish: the CLI calls it when an interrupt stops `translate` or `import`, and
+when a second interrupt force-stops `watch`. The runs that took those locks lose their protection,
+so call it only immediately before the process exits. It takes no arguments and never rejects.
+A lock that a still-running operation is taking, or tries to take, while it runs is refused with
+`RUN_CANCELLED` and leaves no file behind; it waits at most three seconds for such an acquisition.
+
+```ts title="Signature"
+function releaseHeldLocks(): Promise<void>;
+```
+
+**Returns:** `void`
+
+A lock left behind anyway, by a process killed outright, does not need it: a waiting run on the
+same machine sees that the recorded process is gone and reclaims the lock itself. See
+[the write lock](/docs/the-lock-file#the-write-lock).
+
+## Pseudolocalization
+
+### pseudolocalize
+
+<AvailableFrom version="0.11.0" />
+
+Builds a fake locale from the source strings alone, so layout truncation and strings that were
+never extracted for translation show up before any API key exists. Every value is accented,
+expanded by roughly a third of its translatable length, and wrapped in `[` and `]` boundary
+markers, while placeholders stay untouched in every syntax the adapters recognise, including ICU
+plural and select arms, markup tags, and escape sequences. It constructs no provider, reads no API
+key, and makes no network request.
+
+```ts title="Signature"
+function pseudolocalize(
+  input: PseudolocalizeInput,
+  deps?: PseudolocalizeDeps,
+): Promise<PseudolocalizeResult>;
+```
+
+<SdkTypeTable name="PseudolocalizeInput" />
+
+**Returns:** `PseudolocalizeResult`
+
+**Throws:** [`PSEUDO_OUTPUT_CONFLICT`](/docs/error-codes#pseudo_output_conflict), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`TARGET_UNWRITABLE`](/docs/error-codes#target_unwritable)
+
+**Example:** [Build a pseudolocale](/docs/programmatic-api#build-a-pseudolocale)
+
+Every generated value is held to the same integrity gate a provider translation must pass. One
+that would not pass it is copied from the source verbatim and named in `copied` rather than written
+in a broken form, so the entry is still present and still renders.
+
+`locale` defaults to `en-XA` and `out` to
+`.verbatra-local/pseudo`, which `verbatra init` already adds to `.gitignore`; the configured
+`files.pattern` is expanded inside it, so the file keeps the layout the application expects. A
+pseudolocale that names a configured locale, or that would land on a configured locale file, is
+refused with `PSEUDO_OUTPUT_CONFLICT` before anything is read or written, so it can neither
+overwrite a real translation nor stand in for one; so is an `out` that is absolute, climbs out of
+`cwd`, or names `cwd` itself, such as `.`, and, when `deps.fs` implements `realpath` as the
+default does, one that does any of this, lands in the directory of a configured locale file, or
+lands on another file the project depends on, once symbolic links are resolved. Because the file lives outside `files.pattern`,
+`translate` never spends on it and `check` and `diff` never report it as drifted.
+
+Returns a `PseudolocalizeResult`: the `locale`, the absolute `path`, how many `entries` were
+processed, how many were `transformed`, the keys that were `copied`, and whether anything was
+`written`. The transform is deterministic, so a second run over unchanged source rewrites nothing
+and reports `written` as false. For `xliff` and `apple-xcstrings`, whose writers only patch a
+document that already exists, the output is re-copied from the source on every write, so a key
+added to the source after the first run still reaches the pseudolocale, and a copied XLIFF has its
+`target-language` rewritten to the pseudolocale.
+
+## Typed catalogs
+
+### generateTypes
+
+<AvailableFrom version="0.11.0" />
+
+Declares a project's source catalog as TypeScript: a union of every key it holds and, per key, the
+arguments its message interpolates. Type a translation function against the result and a misspelled
+key or a missing interpolation argument becomes a compile error instead of a runtime lookup failure.
+It spends nothing: no provider is constructed, no API key environment variable is read, and no
+network request is made.
+
+```ts title="Signature"
+function generateTypes(
+  input: GenerateTypesInput,
+  deps?: GenerateTypesDeps,
+): Promise<GenerateTypesResult>;
+```
+
+<SdkTypeTable name="GenerateTypesInput" />
+
+**Returns:** `GenerateTypesResult`
+
+**Throws:** [`TYPES_OUTPUT_CONFLICT`](/docs/error-codes#types_output_conflict), [`TYPES_UNWRITABLE`](/docs/error-codes#types_unwritable), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid)
+
+**Example:** [Generate a typed catalog](/docs/programmatic-api#generate-a-typed-catalog)
+
+It reads one file (the source locale catalog) and writes one file (the declaration); a target locale
+file is never touched. The keys are exactly what the format adapter already produced, in document
+order, so two runs over an unchanged catalog write byte-identical bytes. Arguments come from the
+placeholder tokens the adapter extracted, except in the ICU message formats (`next-intl-json` and
+`arb`), where each message is read with the same ICU parser the adapter uses. Every key is emitted
+as a quoted string literal, so one carrying a dot, a reserved word, a leading digit, a quote, or
+nothing at all is declared verbatim rather than dropped or re-split, and a key the adapter reported
+in `excludedLeafPaths` is never declared at all.
+
+What it declines to claim matters as much as what it declares. A message with no placeholders gets a
+shape that makes passing any argument a type error; one whose placeholders name their arguments gets
+an object shape; one whose placeholders are numbered or anonymous gets a readonly tuple. An ICU
+argument only some `select` or `plural` branches use is declared as an optional member. Argument
+types come only from what the catalog records: `number` for an ICU `number`, `plural` or
+`selectordinal` argument and for a numeric formatter or conversion, `Date | number` for an ICU
+`date` or `time` argument and an i18next `datetime` formatter, `string` for an ICU `select` argument
+and a printf string conversion, and a `string | number` alias everywhere else, never a permissive
+`any`. An i18next unescaped interpolation (`{{- name}}`) is declared by the name behind its prefix.
+A message the adapter reported as invalid, one that appears to both name and number its arguments,
+and one whose placeholder index is out of range are declared with their arguments reported in
+`unresolved` rather than silently declared as taking none. Plural siblings are never collapsed: each
+is declared on its own, and the ones the adapter marked plural are listed.
+
+`out` defaults to
+`DEFAULT_TYPES_PATH` (`verbatra-types.d.ts`). Before anything is read or written,
+`TYPES_OUTPUT_CONFLICT` refuses an `out` that names no file (including one ending in a path
+separator), is absolute, climbs out of `cwd` with `..`, names `cwd` itself (`.`), or does not end
+in `.ts`, `.mts` or `.cts`,
+and one naming a configured locale file, the lock file, the provenance file, the translation-memory cache, a file
+verbatra searches for its configuration, `configPath`, the configuration file `config` was loaded
+from, or `glossaryPath`, the glossary file it names; names are compared case-insensitively, and when
+`deps.fs` implements `realpath`, as the default does, the same checks run again on where the path
+lands once symbolic links are resolved. A generating run also refuses, with the same code, to
+replace an existing file that does not begin with the header line verbatra writes, and leaves that
+file untouched. The full list is on the [`verbatra types`](/docs/cli/types) page. With `check` set
+nothing is written at all, nothing is refused for its content, and the run only reports whether the
+committed file still matches, which is the shape a CI gate wants.
+
+Returns a `GenerateTypesResult`: the absolute `path`, the `sourcePath` it was built from, how many
+`keys` were declared and how many of those take at least one argument verbatra could determine
+(`withArguments`, which never counts an `unresolved` key), the `unresolved` keys and the `excluded`
+and `plural` ones, whether anything was `written`, whether the file on disk was `stale` when the run
+started, whether it was `missing` altogether (a missing file is also `stale`), and whether this was a
+`check` run.

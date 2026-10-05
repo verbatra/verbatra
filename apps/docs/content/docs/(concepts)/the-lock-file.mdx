@@ -1,115 +1,189 @@
 ---
-title: The lock file
-description: What verbatra.lock.json records, how drift is detected, how concurrent runs are serialized, and why you commit it.
+title: The lock file and provenance
+description: What verbatra.lock.json and verbatra.provenance.json record, how drift is detected, how concurrent runs are serialized, and why you commit both.
+type: concept
 ---
-The lock file, `verbatra.lock.json`, exists so a run can tell what already got translated and skip
-it: it is the baseline every run diffs against, and it is what makes verbatra incremental. This
-page covers what it stores, how it changes, and what happens when it is contended, missing, or
-corrupt.
+`verbatra.lock.json` is the baseline every run diffs against, so a run can skip what is current and
+retranslate what drifted. Next to it, [`verbatra.provenance.json`](#provenance-who-wrote-each-value)
+records who or what wrote each value.
 
 ## What it records
 
-For every target locale, the lock file stores one content hash per translated key, computed from
-the source value that produced the existing translation. It contains no translations and no
-secrets: just a `version` field and hashes. The hash normalizes Unicode to NFC and line endings to
-LF, so re-saving a source file with different normalization or CRLF endings does not mark anything
-as changed.
+For every target locale, one content hash per translated key, taken from the source value that
+produced the current translation. It holds no translations and no secrets: a `version` field and
+hashes. The hash normalizes Unicode to NFC and line endings to LF, so re-saving a source file with
+CRLF endings or another normalization changes nothing.
 
 ## How drift is detected
 
-When a run diffs a target locale, a source key absent from the target is missing. For a key the
-target does have, the current source hash is compared against the hash the lock recorded: a
-difference means the source drifted since the key was last translated, so it is changed and gets
-retranslated; a match means it is unchanged and never sent to the provider. That is why a second
-run with no source edits calls the provider for nothing, and why stale translations cannot hide
-behind a key that merely exists. The full pipeline is on [How it works](/docs/how-it-works).
+A source key the target lacks is missing. For a key the target has, the current source hash is
+compared with the recorded one: a difference means the source changed, so the key is retranslated; a
+match means it is never sent, so a second run with no source edits costs nothing. The whole pipeline
+is on [How a run works](/docs/how-it-works).
+
+### Protected keys
+
+<AvailableFrom version="0.12.0" />
+
+The exception is a changed key whose value a person wrote or imported: by default it is
+[protected](/docs/protecting-human-translations) and stays stale instead of being retranslated.
 
 ## Adopting an existing project
 
-Pointing verbatra at a repository whose locale files already hold reviewed translations does not
-retranslate them. On the first run there is no lock file, so no key can be detected as stale: a
-source key the target file already has is unchanged, is never sent to the provider, and keeps its
-existing value. Only keys the target file does not have are missing, and only those are translated.
-When nothing was accepted, pruned, or generated for a locale, its existing target file is not
-rewritten at all.
+Pointing verbatra at locale files that already hold reviewed translations does not retranslate
+them. On the first run there is no lock file, so nothing can be stale: a key the target has keeps
+its value, only keys it lacks are translated, and the run records the current source hash for
+every key, setting the baseline at no provider cost.
 
-The run still records the current source hash for every key the target holds, so the first run is
-the adoption step: it establishes the baseline at zero provider cost, and from the second run on,
-source edits show up as drift the normal way.
+Adoption goes by key presence, never by value, which has two consequences:
 
-Adoption is decided by key presence, never by value, which has two consequences worth knowing
-before that first run:
+- **An empty or untranslated value counts as translated.** A key whose target value is empty, or
+  still the source text, exists, so it is never filled in. Delete the key (emptying it is not
+  enough) and the next run translates it.
+- **An outdated translation is recorded as current.** Fix or delete such keys before the first run.
 
-- An empty or untranslated value counts as translated. A target value that is an empty string, or
-  that is still the untranslated source text, is a key that exists, so it is unchanged and never
-  filled in. Scaffolding tools that pre-create locale files with empty string values run straight
-  into this. The fix is to delete the key from the target file: emptying its value does not help,
-  because an empty string is still an entry. Once the key is gone, the next run sees it as missing
-  and translates it.
-- A translation that was already out of date is recorded as current. The lock takes the source hash
-  as it is now, so a translation that had already drifted from the source before you adopted the
-  project is taken as up to date and will not be revisited. Fix or delete those keys before the
-  first run.
-
-Plural generation follows the same adoption rule. A plural form the target file already holds and
-that verbatra did not generate itself is kept as it is, never regenerated and never sent to the
-provider (a form the lock already tracks is still regenerated when its source changes), so
-`generatePlurals` is safe to leave on while adopting a project that carries hand-written plural
-forms; only forms genuinely absent from the target are synthesized.
-
-You can see all of this before spending anything: `verbatra diff` lists the exact missing and
-changed keys per locale, `verbatra check` reports the same as counts, and
-`verbatra translate --dry-run` gives you the full run summary. None of the three calls a provider,
-writes a locale file, or writes the lock.
+The same rule keeps hand-written plural forms, so `generatePlurals` is safe while adopting. To
+preview all of this, run [`verbatra diff`](/docs/cli/diff) or `verbatra translate --dry-run`.
 
 ## How it is updated
 
-The lock is updated per locale, and how depends on what ran:
+- A full run (`translate`, `watch`, or an import) replaces a locale's entries with the run's result.
+- A single-key action, such as a retranslate from Studio, merges only that key's entry.
 
-- A full run (translate, watch, or a workbook import) replaces that locale's entries wholesale with
-  the run's authoritative result.
-- A single-key action (such as a retranslate from Studio) merges only that key's entry, leaving
-  every other recorded key untouched.
-
-In both cases one exception applies: a key withheld this run (a failed integrity check, a failed
-provider call, or an invalid-ICU source) keeps its prior hash, so the next run still sees it as
-needing work and retries it instead of recording it as done. Orphaned keys get no entry. The file
-is serialized with sorted keys, so its diffs stay stable and reviewable.
+Either way, a key withheld this run (a failed integrity check, a failed provider call, an
+invalid-ICU source) keeps its previous hash, so the next run retries it. Orphaned keys get no
+entry. The file is written with sorted keys, so its diffs stay small and reviewable.
 
 ## The write lock
 
-Two runs touching the same locale at the same time (a second terminal, a CI job, a Studio action)
-could otherwise both diff a stale baseline and both pay for the same provider call. To prevent
-that, every write to a locale and its lock entries happens under a cross-process write lock scoped
-to that one locale; a second writer for the same locale waits, then re-reads the lock file fresh
-and diffs against a baseline that already includes the first writer's result. Different locales do
-not block each other.
+Two runs touching the same locale at once could both diff a stale baseline and pay twice. So every
+write to a locale holds a cross-process lock for that locale, kept under `.verbatra-local/`. A
+second writer waits, then re-reads the lock file and diffs against a baseline that already includes
+the first writer's result. Different locales never block each other.
 
-When a run translates several locales at once and hits a whole-run error (in practice a corrupt
-lock file), it stops claiming new locales and waits for the ones already running to finish, so
-every lock the run took is released before the command exits. No locale is started after the run
-has already failed, and no lock is orphaned by the failure itself.
+What the lock guarantees:
 
-If a lock cannot be acquired, the run fails with `LOCK_CONTENDED` and names the lock file's path
-(under the gitignored `.verbatra-local/` directory). If no verbatra process is running, that file
-was left behind by a killed one: delete it and retry.
+- **A timeout costs nothing.** `--lock-timeout` bounds only the wait before any provider call, so a
+  locale that gives up has spent and written nothing; recording a written file always waits the
+  full ten-minute default.
+- **Abandoned locks do not block you.** A lock whose process is gone from this machine is reclaimed
+  at once, and a holder refreshes its lock every 10 seconds, so a lock not refreshed for 30 seconds
+  is treated as abandoned even if its process still runs.
+- **An interrupt releases the locks.** Ctrl-C or SIGTERM during `translate` or `import`, and the
+  second interrupt that force-stops `watch`, release every lock before the process exits.
+- **A lost lock stops the write.** Each lock carries a random token, checked before every write it
+  protects; when another run took the lock over, the write stops with
+  [`LOCK_CONTENDED`](/docs/error-codes#lock_contended) and nothing is written.
+
+What it does not cover:
+
+- **A lock from another machine** (a shared network drive) or from a verbatra older than 0.12.0 is
+  never reclaimed automatically; [Troubleshooting](/docs/troubleshooting) has the steps to clear it.
+- **A long pause between check and write.** A run paused right after the token check (a sleeping
+  machine, a stopped process) can still write once when it resumes.
+- **Hosts that share a name.** Outside Linux, the host name is the only machine identity recorded,
+  so two containers with the same host name sharing one `.verbatra-local/` can mistake each other's
+  live lock for an abandoned one. Give each its own host name or working copy.
+
+## A respelled locale code
+
+<AvailableFrom version="0.12.0" />
+
+The lock file, the cache and the provenance file key their state by the locale code in your config.
+When you respell a code, for example `pt_BR` to `pt-BR` with `files.localeStyle: "posix"`, the next
+`translate` or `watch` run carries the old state over once, and reports
+[`LOCALE_STATE_CARRIED_OVER`](/docs/error-codes#locale_state_carried_over). A source change made
+before the rename is still retranslated, and cached translations are still reused.
+
+The move happens only when it is unambiguous: `pt-BR` has no state of its own, and the file holds
+state under exactly one underscore spelling of it (or its gettext spelling, such as `sr@latin` for
+`sr-Latn`), compared without case. State `pt-BR` already has is never overwritten. If the move
+cannot be written, that locale does not run and fails with
+[`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), so the next run
+tries again; the other locales run as usual.
+
+Until a run moves it, every read treats the old state as `pt-BR`'s without writing anything, so a
+stale key is reported as stale. A single-key write (an edit, a retranslate, a review decision) and
+`verbatra import` move the state first, the same way. The `locale-state` check of
+[`verbatra doctor`](/docs/cli/doctor) names any state left behind.
 
 ## Missing or corrupt
 
-A missing lock file is not an error: it is a first run, and with no baseline nothing can be
-detected as stale. Source keys the target file does not have are missing and get translated; keys
-it does have are unchanged and are left untouched, as described under adoption above.
-A lock file that is present but unparseable, structurally wrong, oversized, or at an unsupported
-version fails the run with `LOCK_FILE_INVALID` instead of being silently overwritten, so you can
-inspect or restore it rather than losing the baseline.
+A missing lock file is a [first run](#adopting-an-existing-project), not an error. A lock
+file that is unparseable, structurally wrong, oversized or at an unsupported version fails the run
+with [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid) instead of being overwritten, so you
+can restore it rather than lose the baseline.
+
+## Provenance: who wrote each value
+
+<AvailableFrom version="0.12.0" />
+
+Where the lock records which source text a translation came from, `verbatra.provenance.json`
+records which write path produced the value in the locale file now, and whether anyone reviewed it.
+As a separate file, it is ignored by an older verbatra, such as one pinned in CI.
+
+| Origin | Written by |
+| --- | --- |
+| `machine` | a provider answer in `translate`, `watch` or a single-key retranslate, with the provider's `id` and, when known, the model |
+| `memory` | an exact cache hit, including every value a human-only run (provider `none`) fills |
+| `fuzzy` | a [fuzzy cache](/docs/the-cache#fuzzy-reuse) hit |
+| `human` | a person's edit through the SDK's `editEntry`, as Studio's edit dialog makes |
+| `agent` | an AI agent's edit through `editEntry` with `actor: "agent"` |
+| `import` | an accepted row from `verbatra import` |
+| `unknown` | a review decision on a value that had no record, or an origin this release does not know |
+
+Two more origins are derived when the files are read. `unrecorded` is a value with no record, where
+every key starts after upgrading. `external` is a value that no longer matches the hash its record
+carries, because something outside verbatra changed it: a translator's pull request, an older
+verbatra, or a merge. The fields each read returns are in the
+[SDK reference](/docs/sdk/inspect#loadprovenance).
+
+What the file guarantees:
+
+- **Stable diffs.** No translated text and no timestamps, one sorted record per line, so a run that
+  changes nothing leaves the file byte for byte as it was. In a merge conflict, take the side matching the
+  locale file you keep: a mismatched record reads as `external`, which names no wrong author but
+  protects the value from retranslation.
+- **Fresh records for new values.** A write that changes a value replaces its record with a new,
+  unreviewed one; a write that leaves value and source unchanged keeps it.
+- **No silent overwrite.** A corrupt file stops every write with
+  [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid) before any locale file
+  changes; reports leave their provenance fields out instead. A file from a newer verbatra is left
+  untouched, and one that would grow too large to read back is not written
+  ([`PROVENANCE_FILE_TOO_LARGE`](/docs/error-codes#provenance_file_too_large)).
+
+What it is not: tamper-proof. Anyone who can edit the locale files can edit it. To turn it into a
+report, see [Record machine-translation evidence](/docs/provenance-evidence).
+
+### Review decisions
+
+<AvailableFrom version="0.12.0" />
+
+A record can carry a review decision, `approved` or `rejected`, with an optional `reviewer` name.
+Studio's Review page, the [SDK's review functions](/docs/sdk/review) and the
+[MCP review tools](/docs/cli/mcp) write them; the MCP tools relay a person's decision and require
+their name. A decision applies to the exact value the reviewer saw and is
+refused if that value changed since.
+
+- **An approval** changes only the provenance file. It stores the source hash it was given against,
+  so it reads as unreviewed again once the source text changes.
+- **A rejection** removes the value from the locale file and its lock entry, so the key reads as
+  missing until the next `translate` run or a person writes a new value. The record keeps a hash of
+  the removed text, and the matching cache entry is dropped, so a run does not put the same text
+  back. XLIFF cannot drop one translation, so a rejection there is refused with
+  [`REVIEW_REJECT_UNSUPPORTED`](/docs/error-codes#review_reject_unsupported).
+
+Decisions live in this committed file, so the review queue and
+[`verbatra check --require-reviewed`](/docs/cli/check#require-reviewed-translations) see the same
+state on every machine, and the `reviewer` name is public; verbatra never fills it in.
 
 ## Commit it
 
-Commit `verbatra.lock.json` alongside your locale files. It is the shared baseline your teammates
-and your CI diff against; keeping it in version control is what makes incremental runs reproducible
-across machines. Never hand-edit it.
+Commit `verbatra.lock.json` and `verbatra.provenance.json` with your locale files, and never
+hand-edit them: they are the shared baseline your teammates and CI diff against, and what a
+[rollback](/docs/recovery-and-rollback) restores.
 
-Committing both is also what makes a rollback possible. Because the lock records source hashes and
-nothing about the translated values, reverting your locale files without this file leaves it
-claiming the reverted translations are current, and nothing will retranslate them. See
-[Recovery and rollback](/docs/recovery-and-rollback).
+## Related
+
+- [The translation cache](/docs/the-cache): content-keyed reuse next to the lock.
+- [Review in Studio](/docs/review-in-studio): record approvals and rejections.

@@ -1,0 +1,132 @@
+---
+title: "RunSummary"
+description: "What translate, importWorkbook and watch resolve to, field by field."
+type: reference
+---
+## The RunSummary anatomy
+
+`translate`, `importWorkbook`, and each successful `watch` run resolve to a `RunSummary`:
+
+```ts
+interface RunSummary {
+  dryRun: boolean;          // true when nothing was written and no provider was called
+  locales: LocaleSummary[]; // one entry per target locale, in config order
+  succeeded: string[];      // locales whose run succeeded
+  partial: string[];        // locales written with keys still missing; the CLI exits 1 on these
+  failed: string[];         // locales whose run failed
+  usage?: UsageSummary;     // summed input/output tokens; absent when no call reported usage
+  budget?: RunBudget;       // present only when maxTokens is configured
+  estimate?: RunEstimate;   // present only when the run was asked for a pre-run estimate
+  cancelled?: true;         // present only when the run's signal aborted it
+}
+
+interface LocaleSummary {
+  locale: string;
+  status: "succeeded" | "partial" | "failed";
+  translated: string[];          // keys translated this run (in dry-run, keys that would be)
+  cacheHits: string[];           // keys served from the translation-memory cache this run
+  fuzzyHits: FuzzyCacheHit[];    // reuses for a source string that changed, with their scores
+  unchanged: string[];           // keys already up to date
+  orphaned: string[];            // target keys with no matching source key (always reported)
+  pruned: string[];              // orphaned keys removed this run; empty unless pruning is on
+  invalidIcuSource: string[];    // source keys skipped for invalid ICU
+  emptySource?: string[];        // source keys with an empty value; nothing is sent or written for them
+  integrityMismatches: string[]; // translations the integrity gate withheld
+  integrityRefusals?: { key: string; reason: string; details?: string[] }[]; // why each was withheld; translate, watch, and importWorkbook
+  providerFailures: string[];    // keys withheld because nothing was translated for them
+  budgetWithheld: string[];      // keys never sent because a "stop" budget already tripped
+  sensitiveWithheld: string[];   // keys sensitiveData kept from the provider (block or redact)
+  generated: string[];           // CLDR plural forms synthesized this run
+  unfilled: string[];            // blank import rows, or keys a human-only translate left for a human
+  protected: { key: string; reason: string; suggestion?: string; suggestionStatus?: string }[]; // keys left for a person
+  malformedRows: { row: number; line?: number; column: string }[]; // import only: rows the reader could not parse
+  duplicateKeys: { key: string; row: number; line?: number }[];    // import only: later rows for a duplicated key
+  notices: LocaleNotice[];       // provider notices and SDK notices for this locale
+  needsReview: { key: string; reasons: string[] }[]; // accepted keys flagged for a second look
+  usage?: UsageSummary;          // this locale's summed tokens; absent if nothing reported usage
+  error?: { code: string; message: string }; // only on a "failed" locale, and not on every one
+}
+```
+
+The parts worth knowing:
+
+- **needsReview** lists accepted, written keys the review heuristics flagged, each with its reason
+  codes, listed and explained under [Review flags](/docs/translation-safety#review-flags). The set
+  ships as the `REVIEW_REASON_CODES` tuple, so build any runtime schema or exhaustive lookup from that
+  rather than retyping the members. A review flag is advisory and never withholds a key, so a key
+  never appears in both `needsReview` and `integrityMismatches`. See
+  [Review in Studio](/docs/review-in-studio) for working the queue.
+- **notices** live per locale, never at the top level. They cover provider notices (say, a DeepL
+  degradation), listed under [Provider notices](/docs/error-codes#provider-notice-codes), and SDK
+  notices, whose codes form the `SdkNoticeCode` union and are explained under
+  [Run notices](/docs/error-codes#sdk-notice-codes). A run-wide notice, such as the cache notice
+  (one file, shared by every locale), is attached to each locale in the run.
+- **usage** is `undefined`, never a fabricated zero, whenever nothing in that scope reported usage:
+  a dry run never calls a provider, and DeepL never reports tokens. `RunSummary.usage` is the sum
+  over the locales.
+- **budget** appears only when `maxTokens` is configured: `{ maxTokens, behavior, supported,
+  tokensUsed, exceeded }`. `supported` says whether `tokensUsed` is entirely the provider's own
+  reported usage; it is `false` as soon as one request came back without a usable figure, and the
+  total is then partly verbatra's projection, which is counted and enforced just the same. A dry run,
+  or any run that sent no request, reports `supported: true` with `tokensUsed: 0`: nothing was sent,
+  so nothing was projected. Under `behavior: "stop"` the ceiling is
+  checked before every request the run sends, each half of a re-split request included, so
+  `tokensUsed` lands at or below `maxTokens` apart from one residual: the last request admitted is
+  reconciled to what the provider reported, which can push the total past the ceiling after the
+  fact. Nothing further is sent once it does. Two things sit outside what a reservation can bound,
+  because they happen inside a request it already admitted: the provider layer sends one repair call
+  of its own when keys come back missing, so one admitted batch can cost up to about twice its
+  projection, and the count is only as good as what the provider reports. Both land at
+  reconciliation, and nothing further is admitted once they do. The budget bounds one `translate`
+  call: `watch` starts a fresh one per run, and `retranslateEntry` is not covered by it at all.
+- **error.code** on a failed locale is a preserved string (the underlying provider or adapter code,
+  with `LOCALE_FAILED` only as a fallback), so do not treat it as a closed set. A `failed` locale
+  does not always carry `error`: one whose every key was withheld, and so listed in
+  `integrityMismatches`, `providerFailures`, or `budgetWithheld`, fails with nothing thrown. Its
+  reason is in those lists and in its `notices`, such as `SUB_BATCH_FAILED` for a failed provider
+  batch or `BUDGET_TOKENS_EXCEEDED` for the token budget. Test `status`, never the presence of
+  `error`.
+- **cancelled** appears only when the run's `signal` aborted it. [`RUN_CANCELLED`](/docs/error-codes#run_cancelled) says what that leaves behind.
+- **estimate** appears only when the run was asked for a pre-run estimate. Its `caveats` list is
+  never empty and names what the figure leaves out, as `EstimateCaveatCode` members:
+  - `CACHE_NOT_CONSULTED`: the translation memory is not read, so keys a live run would serve from
+    the cache are still counted. Applies to every estimate.
+  - `SOURCE_DUPLICATES_NOT_DEDUPLICATED`: a live run sends one representative per identical source
+    string; the estimate counts every key. Applies to every estimate.
+  - `TRANSPORT_RETRIES_NOT_COUNTED`: one billable call is counted per planned request, although the
+    provider SDKs may retry a failed call underneath it and a retried attempt can still be billed.
+    Applies to every estimate.
+  - `TRANSLATION_LENGTH_IS_ESTIMATED`: the response is sized from the source plus a fixed expansion
+    allowance, so a target language that runs longer reports more completion tokens. Token-billed
+    providers only.
+  - `TOKEN_COUNT_IS_HEURISTIC`: tokens are derived from character counts, not the provider's own
+    tokenizer. Token-billed providers only.
+  - `REPAIR_REQUESTS_NOT_COUNTED`: the repair round for keys that came back missing, and the retry
+    in halves for a cut-off response, are not counted. Token-billed providers only.
+- **cacheHits** lists keys served from the [translation-memory cache](/docs/the-cache) rather than
+  the provider. **fuzzyHits** lists the keys that reused a translation for a source string
+  that had changed, each carrying `key`, `similarity`, and the `previousSource` it matched; it is
+  empty unless `fuzzyCache` is enabled, and those keys are never counted in **cacheHits**. **unfilled**, **malformedRows**, and **duplicateKeys** are populated only by
+  `importWorkbook` (a `translate` run leaves them empty): a blank row whose key still needs a
+  translation at import time (whether it was exported as `new` or as `changed`), a workbook row the
+  reader could not parse, and a duplicated key whose first occurrence won. The optional `line` on
+  the last two is the file line the record starts on, present only for a delimited (`csv` or `tsv`)
+  import. The one exception is a [human-only](/docs/human-only-workflow) project: there `translate` and `watch` list in **unfilled** every key the translation memory had no exact entry for, and **fuzzyHits** stays empty because fuzzy reuse is never applied there.
+- **protected** lists the keys a `translate` run left alone, each with its `reason` (`human`, `import`, `external`, or `pinned`) and, under `humanEdits: "suggest"`, a `suggestion` (the provider's answer or an exact translation-memory entry, never a fuzzy match), which was not written, and a `suggestionStatus`: `planned` on a dry run, `suggested`, or why not (`integrity-mismatch`, `provider-failure`, `budget-withheld`, `sensitive-withheld`). A failed suggestion never changes the locale's status. They are not in **translated**, never change a locale's status, and stay stale for `check`. `importWorkbook` leaves it empty. See [Protecting human translations](/docs/protecting-human-translations).
+
+### budgetStanding
+
+<AvailableFrom version="0.11.0" />
+
+Classifies a `RunBudget` into one of three `BudgetStanding` values, the same classification the CLI
+budget line, Studio, and the `usage.summary` agent tool report: `"within"` when the run never
+reached its ceiling, `"stopped-before-ceiling"` when a `"stop"` budget withheld a request while
+`tokensUsed` was still below `maxTokens`, and `"reached"` when `tokensUsed` reached or passed
+`maxTokens`. Use it rather than reading `exceeded` alone, which is `true` in both of the last two
+cases.
+
+```ts title="Signature"
+function budgetStanding(budget: RunBudget): BudgetStanding;
+```
+
+**Returns:** `BudgetStanding`

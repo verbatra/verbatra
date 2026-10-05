@@ -1,8 +1,9 @@
 ---
 title: verbatra studio
 description: Start Verbatra Studio, the local translation dashboard.
+type: reference
 ---
-Start Verbatra Studio, a local web dashboard over your verbatra project: translation status, the needs-review queue, run activity, and your resolved settings, all live over the files on disk. Editing your own locale files works out of the box, as does editing a file-backed glossary from the Settings page; only provider spend is opt-in, behind `--allow-spend`. Before it starts, `studio` loads `.env.local` and then `.env` from the working directory and resolves your config once; a config error exits `2` before any server starts.
+Start Verbatra Studio, a local web dashboard over your project: translation status, the needs-review queue, run activity and your resolved settings, live over the files on disk. Editing locale files and a file-backed glossary works out of the box; only provider spend is opt-in, behind `--allow-spend`.
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
@@ -16,39 +17,57 @@ verbatra studio [flags]
 
 | Flag | Argument | Default | Effect |
 | --- | --- | --- | --- |
-| `--cwd` | `<path>` | current directory | resolve config and locale files from this directory |
-| `--config` | `<path>` | search for one | load this config file instead of searching for one |
 | `--port` | `<n>` | `5849` | listen on this port; must be an integer from 1 to 65535 |
-| `--allow-spend` | none | off | allow Studio to call a translation provider (retranslate a key, translate pending changes) |
-| `--expose-agent-tools` | none | off | register Studio's review actions as WebMCP tools so a browser AI agent can operate them |
+| `--allow-spend` | none | off, or `VERBATRA_STUDIO_ALLOW_SPEND` | allow Studio to call a translation provider (retranslate a key, translate pending changes) |
+| `--expose-agent-tools` | none | off, or `VERBATRA_STUDIO_AGENT_TOOLS` | register Studio's review actions as WebMCP tools so a browser AI agent can operate them |
+| `--verbose` | none | off | also print one stderr line per request, with the session token masked |
 
-When the `--allow-spend` flag is absent, Studio reads the `VERBATRA_STUDIO_ALLOW_SPEND` environment variable instead: `1`, `true`, `yes`, or `on` (case-insensitive) counts as on. The CLI flag always wins over the environment variable. Without either, Studio never contacts a provider; local editing needs no flag.
+Also takes the [global flags](/docs/cli#global-flags) `--cwd` and `--config`.
 
-`--expose-agent-tools` resolves the same way from `VERBATRA_STUDIO_AGENT_TOOLS`, with the same truthy set and the same flag-wins-over-variable rule. It is off by default. Spend from an agent requires both this flag and `--allow-spend`; neither implies the other. See [Operate Studio with a browser agent](/docs/agent-tools-in-studio) for the tool catalog and the security model.
+## Behavior
 
-## The printed URL
+### The printed URL
 
-Studio binds to `127.0.0.1` only. Once it is listening, it prints one line to stdout:
+Before it starts, `studio` loads the [environment files](/docs/cli#environment-files) and resolves your config once; a config error exits `2` before any server starts. Studio binds to `127.0.0.1` only and, once it is listening, prints one line to stdout:
 
 ```
 Verbatra Studio running at http://127.0.0.1:5849/?token=<token>
 ```
 
-Open that exact URL. The token is accepted only as `?token=` on that first page load: the server checks it, sets an HttpOnly session cookie, and redirects to `/`. Every later request is checked against the cookie, and one without a valid cookie is rejected. The token is not single-use: visiting the printed URL again, in another tab or another browser, sets the cookie again, so treat the URL as a secret for as long as Studio runs. Nothing is printed before the port is successfully bound, so a failed startup never leaks a URL or a token.
+Open that exact URL. The token is accepted only as `?token=` on the first page load: the server checks it, sets an HttpOnly session cookie and redirects to `/`. Every later request needs that cookie. The token is not single-use, so treat the URL as a secret while Studio runs. Nothing is printed before the port is bound, so a failed startup never leaks a token.
 
-A failed bind is reported on stderr as `verbatra: error [<code>] <message>` with one of two codes: `PORT_IN_USE` when another process already holds the port (pick another with `--port`), or `BIND_FAILED` when the socket came up on an address other than `127.0.0.1`, which Studio refuses to serve on.
+A failed bind is reported on stderr as `verbatra: error [<code>] <message>`: `PORT_IN_USE` when another process holds the port (pass `--port <n>` or stop that process), or `BIND_FAILED` when the socket came up on an address other than `127.0.0.1`.
 
-## Installation
+### What it prints on stderr
 
-`@verbatra/studio` is its own package, reached through a dynamic import so the rest of the CLI works without it. If it is not installed, `verbatra studio` exits `2` with:
+<AvailableFrom version="0.12.0" />
+
+The URL line is the only stdout output. After it, stderr says which capabilities are on and how to turn on the ones that are off:
+
+```text output
+verbatra: spend tools off (pass --allow-spend to retranslate from Studio)
+verbatra: agent tools off (pass --expose-agent-tools to register them)
+```
+
+With `--allow-spend` under provider `none`, the first line reads `verbatra: spend tools off (provider none)`. On an interactive terminal it adds `verbatra: press Ctrl-C to stop`, and it prints `verbatra: Studio stopped` after shutdown. `--verbose` forwards one line per request (such as `GET / 200`, or `POST /rpc status.check 200` naming the RPC method, never its parameters); Studio's own startup line is always dropped. `--quiet` keeps only the URL line. A `verbatra: studio error: ...` line, printed when a dashboard batch action stops on an unexpected server error, always appears, even under `--quiet`. See [Terminal output](/docs/cli/output#terminal-output).
+
+### Spend and agent tools
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+Without `--allow-spend`, Studio reads `VERBATRA_STUDIO_ALLOW_SPEND`; `--expose-agent-tools` falls back to `VERBATRA_STUDIO_AGENT_TOOLS` the same way. For both, `1`, `true`, `yes` or `on` (any case, surrounding spaces ignored) counts as on, and the flag always wins over the variable. Without either, Studio never contacts a provider.
+
+Spend from an agent needs both flags; neither implies the other. A config with `provider: { id: "none" }` disables machine translation by policy, so Studio withholds spend even with `--allow-spend`, and the Settings page says so. See [Drive Studio with a browser agent](/docs/agent-tools-in-studio) for the tool catalog and the security model.
+
+### Installation
+
+`@verbatra/studio` is its own package, reached through a dynamic import so the rest of the CLI works without it. Install it next to the CLI with `npm install --save-dev @verbatra/cli @verbatra/studio`. Without it, `verbatra studio` exits `2` with:
 
 ```
-Verbatra Studio requires @verbatra/studio. Install it with: pnpm add -D @verbatra/studio
+Verbatra Studio requires @verbatra/studio. Install it alongside the CLI with: npm install --save-dev @verbatra/studio, or run both without installing with: npx -y -p @verbatra/cli -p @verbatra/studio verbatra studio
 ```
 
-That pnpm command installs correctly but exits `1` with `ERR_PNPM_IGNORED_BUILDS`, and leaves an unanswered `pnpm-workspace.yaml` behind that makes later pnpm commands fail the same way; see [Troubleshooting](/docs/troubleshooting) for the one-time fix. npm and yarn install the package without that problem.
-
-Studio runs through the CLI, so install it alongside `@verbatra/cli`: `npm install --save-dev @verbatra/cli @verbatra/studio`, then `npx verbatra studio`. See [Install and invoke](/docs/cli).
+With pnpm, that install succeeds but exits `1` with `ERR_PNPM_IGNORED_BUILDS` and leaves an unanswered `pnpm-workspace.yaml` behind; see [Troubleshooting](/docs/troubleshooting) for the one-time fix. npm and yarn do not have that problem.
 
 ## Examples
 
@@ -58,19 +77,24 @@ verbatra studio
 
 # enable the provider-calling actions, on a specific port
 verbatra studio --allow-spend --port 6000
+
+# let a browser agent operate the review actions
+verbatra studio --expose-agent-tools
 ```
 
 ## Exit codes
 
 | Code | Meaning |
 | --- | --- |
-| `0` | stopped cleanly by a single interrupt (Ctrl-C, or SIGTERM) |
+| `0` | stopped cleanly by a single interrupt (Ctrl-C or SIGTERM) |
 | `1` | stopping failed: closing the server threw during shutdown |
-| `2` | could not start: a config error, `@verbatra/studio` not installed, the port in use, or a usage error (an out-of-range or non-integer `--port`) |
+| `2` | could not start: a config error, `@verbatra/studio` not installed, the port in use, or an invalid `--port` (`INVALID_PORT`) |
 | `130` | force-stopped by a second interrupt while shutdown was in flight |
+
+See [Exit codes](/docs/cli/output#exit-codes) for the contract every command follows.
 
 ## Related
 
-- [Review in Studio](/docs/review-in-studio) walks through the Translations page, the review queue, and retranslating with `--allow-spend`.
-- [Operate Studio with a browser agent](/docs/agent-tools-in-studio) covers `--expose-agent-tools` and the WebMCP tool surface.
+- [Review in Studio](/docs/review-in-studio) walks through the Translations page, the review queue and retranslating with `--allow-spend`.
+- [Drive Studio with a browser agent](/docs/agent-tools-in-studio) covers `--expose-agent-tools` and the WebMCP tool surface.
 - [`verbatra check`](/docs/cli/check) and [`verbatra diff`](/docs/cli/diff) are the same computations Studio shows live.
