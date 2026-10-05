@@ -55,6 +55,24 @@ describe("the scaffolded verbatra.config.ts", () => {
   );
 
   it.each(SCAFFOLDABLE_PROVIDERS)(
+    "turns on the sensitive-content warning for %s",
+    async (provider) => {
+      const code = await runInit(
+        { cwd: dir, yes: true, provider },
+        captureStreams().streams,
+        nonInteractive,
+      );
+      expect(code).toBe(0);
+
+      const rendered = evaluateRenderedConfig(
+        readFileSync(join(dir, "verbatra.config.ts"), "utf8"),
+      ) as { sensitiveData?: unknown };
+
+      expect(rendered.sensitiveData).toEqual({ mode: "warn" });
+    },
+  );
+
+  it.each(SCAFFOLDABLE_PROVIDERS)(
     "renders exactly the provider options that were validated for %s",
     async (provider) => {
       const cap = captureStreams();
@@ -69,6 +87,39 @@ describe("the scaffolded verbatra.config.ts", () => {
       expect(Object.keys(parsed.provider.options)).toEqual(
         Object.keys((rendered as { provider: { options: object } }).provider.options),
       );
+    },
+  );
+
+  it("parses back into a human-only config for provider none", async () => {
+    const cap = captureStreams();
+    const code = await runInit(
+      { cwd: dir, yes: true, provider: "none" },
+      cap.streams,
+      nonInteractive,
+    );
+    expect(code).toBe(0);
+
+    const rendered = evaluateRenderedConfig(readFileSync(join(dir, "verbatra.config.ts"), "utf8"));
+
+    expect(verbatraConfigSchema.parse(rendered).provider).toEqual({ id: "none", options: {} });
+    expect(verbatraConfigSchema.parse(rendered).sensitiveData).toBe(undefined);
+  });
+
+  it.each(["gemini", "deepl", "none"])(
+    "reports in --json exactly the config it wrote for %s",
+    async (provider) => {
+      const cap = captureStreams();
+      const code = await runInit(
+        { cwd: dir, yes: true, json: true, provider },
+        cap.streams,
+        nonInteractive,
+      );
+      expect(code).toBe(0);
+
+      const envelope = JSON.parse(cap.out()) as { result: { config: unknown } };
+      const written = evaluateRenderedConfig(readFileSync(join(dir, "verbatra.config.ts"), "utf8"));
+
+      expect(envelope.result.config).toEqual(written);
     },
   );
 

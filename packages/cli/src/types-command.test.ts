@@ -104,6 +104,27 @@ describe("run types: SDK delegation and flags", () => {
     expect(calls.generateTypes[0]).toMatchObject({ configPath: "/proj/verbatra.config.ts" });
   });
 
+  it("hands the SDK a file-backed glossary's path, so the output guard refuses it", async () => {
+    const { deps, calls } = recordingDeps({
+      loadConfigWithMeta: async () =>
+        makeLoadedConfig({ glossary: { source: "file", path: "/proj/glossary.json" } }),
+    });
+    const cap = captureStreams();
+
+    await run(["types"], deps, cap.streams);
+
+    expect(calls.generateTypes[0]).toMatchObject({ glossaryPath: "/proj/glossary.json" });
+  });
+
+  it("names no glossary file when the glossary is not file-backed", async () => {
+    const { deps, calls } = recordingDeps();
+    const cap = captureStreams();
+
+    await run(["types"], deps, cap.streams);
+
+    expect(calls.generateTypes[0]).not.toHaveProperty("glossaryPath");
+  });
+
   it("names no config file when the config came from no file", async () => {
     const { deps, calls } = recordingDeps({
       loadConfigWithMeta: async () => makeLoadedConfig({ source: { kind: "override" } }),
@@ -245,6 +266,20 @@ describe("run types --check: exit codes", () => {
 
     expect(code).toBe(1);
     expect(cap.out()).toContain("is out of date");
+  });
+
+  it("says the declaration is missing, not out of date, when no file exists yet", async () => {
+    const { deps } = recordingDeps({
+      generateTypes: async () =>
+        makeTypesResult({ check: true, stale: true, missing: true, written: false }),
+    });
+    const cap = captureStreams();
+
+    const code = await run(["types", "--check"], deps, cap.streams);
+
+    expect(code).toBe(1);
+    expect(cap.out()).toContain("verbatra-types.d.ts is missing, run verbatra types to create it");
+    expect(cap.out()).not.toContain("out of date");
   });
 
   it("exits 0 for a generating run over a stale file, since it just fixed it", async () => {

@@ -52,6 +52,23 @@ describe("appendMissingGitignoreEntries", () => {
     expect(content).toContain("verbatra.cache.json");
   });
 
+  it("returns the entries it added, and none once the file is complete", () => {
+    const dir = project(".env\n.env.local\n");
+
+    expect(appendMissingGitignoreEntries(dir)).toEqual([".verbatra-local/", "verbatra.cache.json"]);
+    expect(appendMissingGitignoreEntries(dir)).toEqual([]);
+  });
+
+  it("returns no entries on a dry run, when no file exists, or when the write fails", () => {
+    expect(appendMissingGitignoreEntries(project(".env\n"), true)).toEqual([]);
+    expect(appendMissingGitignoreEntries(project())).toEqual([]);
+    const dir = project(".env\n");
+    const path = join(dir, ".gitignore");
+    chmodSync(path, 0o444);
+    restore.push(() => chmodSync(path, 0o644));
+    expect(appendMissingGitignoreEntries(dir)).toEqual([]);
+  });
+
   it("preserves the user's own entries", () => {
     const dir = project("node_modules\ndist\n.env\n");
 

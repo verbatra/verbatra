@@ -1,4 +1,5 @@
 import {
+  ProviderError,
   SdkError,
   type WatchController,
   type WatchInput,
@@ -22,6 +23,7 @@ function watchHarness() {
   let stopCalls = 0;
   const watch = (input: WatchInput): Promise<WatchController> => {
     onRun = input.onRun;
+    input.onReady?.();
     return Promise.resolve({
       stop: () => {
         stopCalls += 1;
@@ -104,9 +106,18 @@ describe("run watch: wiring and rendering", () => {
 
     h.fire({ status: "succeeded", summary: makeSummary({ succeeded: ["de"] }) });
     h.fire({ status: "failed", error: { code: "SOURCE_INVALID", message: "x" } });
+    h.fire({
+      status: "failed",
+      error: {
+        code: "PROVIDER_CONSTRUCTION_FAILED",
+        message: "y",
+        causeCode: "MISSING_API_KEY",
+        hint: "set it",
+      },
+    });
 
     const lines = cap.out().trim().split("\n");
-    expect(lines).toHaveLength(2);
+    expect(lines).toHaveLength(3);
     expect(parseEnvelope(lines[0] ?? "")).toMatchObject({
       ok: true,
       version: JSON_ENVELOPE_VERSION,
@@ -119,13 +130,22 @@ describe("run watch: wiring and rendering", () => {
       code: "SOURCE_INVALID",
       message: "x",
     });
+    expect(parseEnvelope(lines[2] ?? "")).toEqual({
+      ok: false,
+      version: JSON_ENVELOPE_VERSION,
+      command: "watch",
+      code: "PROVIDER_CONSTRUCTION_FAILED",
+      message: "y",
+      causeCode: "MISSING_API_KEY",
+      hint: "set it",
+    });
 
     session.requestStop();
     h.finishStop();
     await done;
   });
 
-  it("a failing run is rendered and watching continues (no exit; a later run still renders)", async () => {
+  it("a failing run is rendered on stderr and watching continues (no exit; a later run still renders)", async () => {
     const h = watchHarness();
     const { deps } = recordingDeps({ watch: h.watch });
     const cap = captureStreams();
@@ -137,7 +157,8 @@ describe("run watch: wiring and rendering", () => {
       settled = true;
     });
     await flush();
-    expect(cap.out()).toContain("[SOURCE_INVALID] bad");
+    expect(cap.err()).toContain("verbatra: error [SOURCE_INVALID] bad");
+    expect(cap.out()).not.toContain("SOURCE_INVALID");
     expect(settled).toBe(false);
 
     h.fire({ status: "succeeded", summary: makeSummary({ succeeded: ["de"] }) });
@@ -313,6 +334,41 @@ describe("run watch: shutdown and exit codes", () => {
     expect(await done).toBe(2);
     expect(cap.err()).toContain("[SOURCE_UNREADABLE] missing source");
     expect(() => session.requestStop()).not.toThrow();
+  });
+
+  it("a provider that cannot be constructed exits 2 at startup with the key hint, never waiting", async () => {
+    const { deps } = recordingDeps({
+      watch: () =>
+        Promise.reject(
+          new SdkError("PROVIDER_CONSTRUCTION_FAILED", "no key", {
+            cause: new ProviderError("MISSING_API_KEY", "GEMINI_API_KEY is not set.", {
+              envVar: "GEMINI_API_KEY",
+            }),
+          }),
+        ),
+    });
+    const cap = captureStreams();
+    const { done } = await startWatch(["watch"], deps, cap.streams);
+
+    expect(await done).toBe(2);
+    expect(cap.err()).toContain("[PROVIDER_CONSTRUCTION_FAILED] no key (cause: MISSING_API_KEY)");
+    expect(cap.err()).toContain("next: Set GEMINI_API_KEY in the environment");
+    expect(cap.err()).not.toContain("waiting for changes");
+  });
+
+  it("refuses a budget conflict without first announcing an initial translation", async () => {
+    const { deps } = recordingDeps({
+      watch: () =>
+        Promise.reject(
+          new SdkError("CONCURRENCY_BUDGET_CONFLICT", "Set concurrency to 1 or remove maxTokens."),
+        ),
+    });
+    const cap = captureStreams();
+    const { done } = await startWatch(["watch", "--concurrency", "2"], deps, cap.streams);
+
+    expect(await done).toBe(2);
+    expect(cap.err()).toContain("[CONCURRENCY_BUDGET_CONFLICT]");
+    expect(cap.err()).not.toContain("running initial translation");
   });
 
   it("a loadConfig failure before watching exits 2 with the structured error", async () => {

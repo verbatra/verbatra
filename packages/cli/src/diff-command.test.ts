@@ -103,6 +103,31 @@ describe("run diff: SDK delegation, rendering, and exit codes", () => {
     });
   });
 
+  it("--json carries the origin of each changed key through unchanged", async () => {
+    const summary = makeDiffSummary({
+      hasPendingChanges: true,
+      locales: [
+        {
+          locale: "de",
+          missing: [],
+          changed: ["a", "b"],
+          orphaned: [],
+          hasPendingChanges: true,
+          changedOrigins: { a: "human", b: "machine" },
+        },
+      ],
+    });
+    const { deps } = recordingDeps({ diff: async () => summary });
+    const cap = captureStreams();
+
+    await run(["diff", "--json"], deps, cap.streams);
+
+    const envelope = parseEnvelope(cap.out()) as {
+      result: { locales: { changedOrigins: unknown }[] };
+    };
+    expect(envelope.result.locales[0]?.changedOrigins).toEqual({ a: "human", b: "machine" });
+  });
+
   it("forwards --config to loadConfig", async () => {
     const { deps, calls } = recordingDeps();
     const cap = captureStreams();

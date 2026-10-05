@@ -1,14 +1,17 @@
-import type {
-  EstimateCaveatCode,
-  LockWaitEvent,
-  PricedRunEstimate,
-  ProgressEvent,
-  RunEstimate,
-  UnpricedRunEstimate,
-  WatchRunResult,
+import { join, resolve } from "node:path";
+import process from "node:process";
+import {
+  type EstimateCaveatCode,
+  errorHint,
+  type LockWaitEvent,
+  type PricedRunEstimate,
+  type ProgressEvent,
+  type RunEstimate,
+  type UnpricedRunEstimate,
 } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import {
+  displayPath,
   renderCheckHuman,
   renderDiffHuman,
   renderError,
@@ -17,13 +20,87 @@ import {
   renderLockWait,
   renderLockWaitHuman,
   renderLockWaitJson,
-  renderProgress,
   renderProgressHuman,
   renderProgressJson,
-  renderRunResultHuman,
+  renderPseudoHuman,
+  renderTmxExportHuman,
+  renderTmxImportHuman,
+  renderTypesHuman,
   toRenderableError,
 } from "./render.js";
-import { makeLocale, makeSummary } from "./test-support.js";
+import {
+  makeExportTmxResult,
+  makeImportTmxResult,
+  makeLocale,
+  makeSummary,
+} from "./test-support.js";
+
+describe("displayPath: paths relative to the working directory", () => {
+  const base = resolve("/work/app");
+
+  it.each([
+    ["a file inside the base", join(base, "out", "wb.xlsx"), join("out", "wb.xlsx")],
+    ["a file directly in the base", join(base, "wb.xlsx"), "wb.xlsx"],
+    ["the base itself", base, base],
+    ["a sibling directory", resolve("/work/other/wb.xlsx"), resolve("/work/other/wb.xlsx")],
+    ["the parent directory", resolve("/work"), resolve("/work")],
+    ["a relative path", "out/wb.xlsx", "out/wb.xlsx"],
+  ])("renders %s as expected", (_label, path, expected) => {
+    expect(displayPath(path, base)).toBe(expected);
+  });
+
+  it("keeps a name that merely starts with two dots inside the base", () => {
+    expect(displayPath(join(base, "..cache"), base)).toBe("..cache");
+  });
+
+  it("returns the path unchanged when no base is given", () => {
+    expect(displayPath(join(base, "wb.xlsx"), undefined)).toBe(join(base, "wb.xlsx"));
+  });
+
+  it("shortens every path-bearing human renderer when a base is given", () => {
+    const inBase = (name: string): string => join(base, name);
+    expect(renderExportHuman({ path: inBase("wb.xlsx"), locales: [] }, base)).toContain(
+      "verbatra export -> wb.xlsx",
+    );
+    expect(renderTmxExportHuman(makeExportTmxResult({ path: inBase("m.tmx") }), base)).toContain(
+      "verbatra tmx export -> m.tmx",
+    );
+    expect(renderTmxImportHuman(makeImportTmxResult({ file: inBase("in.tmx") }), base)).toContain(
+      "verbatra tmx import <- in.tmx",
+    );
+    expect(
+      renderPseudoHuman(
+        {
+          locale: "en-XA",
+          entries: 1,
+          transformed: 1,
+          copied: [],
+          written: true,
+          path: inBase("p.json"),
+        },
+        base,
+      ),
+    ).toContain("  wrote p.json");
+    expect(
+      renderTypesHuman(
+        {
+          path: inBase("t.d.ts"),
+          sourcePath: "locales/en.json",
+          keys: 1,
+          withArguments: 0,
+          unresolved: [],
+          excluded: [],
+          plural: [],
+          check: true,
+          stale: true,
+          missing: false,
+          written: false,
+        },
+        base,
+      ),
+    ).toContain("  t.d.ts is out of date");
+  });
+});
 
 describe("render: export result", () => {
   it("renders the path, one line per locale, and a total", () => {
@@ -327,6 +404,15 @@ describe("render: human run summary", () => {
     expect(text).not.toContain("dry run");
   });
 
+  it("words a dry run's counts as what would happen, not what happened", () => {
+    const locales = [makeLocale({ translated: ["a", "b"], pruned: ["old"], unchanged: ["c"] })];
+    const translate = renderHuman(makeSummary({ dryRun: true, locales }));
+    expect(translate).toContain("de: 2 would translate, 1 unchanged, 1 would prune");
+    expect(translate).not.toContain("translated");
+    const imported = renderHuman(makeSummary({ dryRun: true, locales }), "import");
+    expect(imported).toContain("de: 2 would import, 1 unchanged, 1 would prune");
+  });
+
   it("marks a dry run and shows nothing-written in the aggregate", () => {
     const text = renderHuman(makeSummary({ dryRun: true }));
     expect(text).toContain("(dry run)");
@@ -510,7 +596,7 @@ describe("render: human run summary", () => {
       makeSummary({ locales: [makeLocale({ malformedRows: [{ row: 7, column: "Status" }] })] }),
       "import",
     );
-    expect(text).toContain("1 malformed-rows");
+    expect(text).toContain("1 malformed-row");
     expect(text).toContain("malformed:");
     expect(text).toContain("row 7 (Status)");
   });
@@ -530,7 +616,7 @@ describe("render: human run summary", () => {
       makeSummary({ locales: [makeLocale({ duplicateKeys: [{ key: "greeting", row: 9 }] })] }),
       "import",
     );
-    expect(text).toContain("1 duplicate-keys");
+    expect(text).toContain("1 duplicate-key");
     expect(text).toContain("duplicates:");
     expect(text).toContain("greeting (row 9)");
   });
@@ -576,6 +662,98 @@ describe("render: human run summary", () => {
     expect(text).not.toContain("[");
   });
 
+  it("shows the withheld count and each refused key with its reason and ICU arms", () => {
+    const text = renderHuman(
+      makeSummary({
+        locales: [
+          makeLocale({
+            locale: "ru",
+            status: "failed",
+            integrityMismatches: ["files", "greeting"],
+            integrityRefusals: [
+              {
+                key: "files",
+                reason: "icu",
+                details: ['{n} plural: missing arm "few" required by the target language'],
+              },
+              { key: "greeting", reason: "empty" },
+            ],
+          }),
+        ],
+        failed: ["ru"],
+      }),
+    );
+
+    expect(text).toContain("ru: failed, 0 translated, 0 unchanged, 2 integrity-withheld");
+    expect(text).toContain("    integrity-withheld:");
+    expect(text).toContain(
+      '      files: icu ({n} plural: missing arm "few" required by the target language)',
+    );
+    expect(text).toContain("      greeting: empty");
+  });
+
+  it("lists a withheld key the refusals do not cover beside the refused ones, in key order", () => {
+    const text = renderHuman(
+      makeSummary({
+        locales: [
+          makeLocale({
+            locale: "ru",
+            status: "partial",
+            translated: ["a"],
+            integrityMismatches: ["drifted", "files", "title"],
+            integrityRefusals: [
+              {
+                key: "files",
+                reason: "icu",
+                details: ['{n} plural: missing arm "few" required by the target language'],
+              },
+              { key: "title", reason: "empty" },
+            ],
+          }),
+        ],
+        partial: ["ru"],
+      }),
+      "import",
+    );
+
+    expect(text).toContain(
+      [
+        "    integrity-withheld:",
+        "      drifted: source changed since export",
+        '      files: icu ({n} plural: missing arm "few" required by the target language)',
+        "      title: empty",
+      ].join("\n"),
+    );
+  });
+
+  it("lists withheld keys without reasons when the summary carries none", () => {
+    const text = renderHuman(
+      makeSummary({
+        locales: [makeLocale({ status: "partial", translated: ["a"], integrityMismatches: ["b"] })],
+        partial: ["de"],
+      }),
+    );
+
+    expect(text).toMatch(/integrity-withheld:\s+b/);
+  });
+
+  it("neutralizes control characters in a refused key and its details", () => {
+    const text = renderHuman(
+      makeSummary({
+        locales: [
+          makeLocale({
+            status: "failed",
+            integrityMismatches: ["a\u001b"],
+            integrityRefusals: [{ key: "a\u001b", reason: "placeholder", details: ["+{x}\u0007"] }],
+          }),
+        ],
+        failed: ["de"],
+      }),
+    );
+
+    expect(text).toContain("      a : placeholder (+{x} )");
+  });
+
   it("names the cause of a locale that failed with withheld keys and no error object", () => {
     const text = renderHuman(
       makeSummary({
@@ -588,7 +766,7 @@ describe("render: human run summary", () => {
               {
                 code: "SUB_BATCH_FAILED",
                 message:
-                  "A sub-batch of 1 entries failed (RATE_LIMITED: rate-limited) and was withheld; it will be retried next run.",
+                  "A sub-batch of 1 entry failed (RATE_LIMITED: rate-limited) and was withheld; it will be retried next run.",
               },
             ],
           }),
@@ -602,6 +780,29 @@ describe("render: human run summary", () => {
     expect(text).toContain("welcome");
     expect(text).toContain("[SUB_BATCH_FAILED]");
     expect(text).toContain("RATE_LIMITED");
+  });
+
+  it("renders each notice on its own line under the notices heading", () => {
+    const text = renderHuman(
+      makeSummary({
+        locales: [
+          makeLocale({
+            notices: [
+              { code: "SOURCE_FOREIGN_PLACEHOLDERS", message: "First notice, with a comma." },
+              { code: "SENSITIVE_CONTENT_SENT", message: "Second notice." },
+            ],
+          }),
+        ],
+      }),
+    );
+
+    const lines = text.split("\n");
+    const heading = lines.indexOf("    notices:");
+    expect(heading).toBeGreaterThan(-1);
+    expect(lines.slice(heading + 1, heading + 3)).toEqual([
+      "      [SOURCE_FOREIGN_PLACEHOLDERS] First notice, with a comma.",
+      "      [SENSITIVE_CONTENT_SENT] Second notice.",
+    ]);
   });
 
   it("counts provider-failed keys on a partial locale and lists them under it", () => {
@@ -639,6 +840,21 @@ describe("render: human run summary", () => {
 
     const none = renderHuman(makeSummary({ locales: [makeLocale()] }));
     expect(none).not.toContain("budget-withheld");
+  });
+
+  it("shows the sensitive-withheld count and lists the keys only when non-zero", () => {
+    const withheld = renderHuman(
+      makeSummary({
+        locales: [makeLocale({ status: "partial", sensitiveWithheld: ["contact", "copy"] })],
+        partial: ["de"],
+      }),
+    );
+    expect(withheld).toContain("2 sensitive-withheld");
+    expect(withheld).toContain("sensitive-withheld: contact, copy");
+
+    expect(renderHuman(makeSummary({ locales: [makeLocale()] }))).not.toContain(
+      "sensitive-withheld",
+    );
   });
 
   it("shows per-locale token counts when usage is present, and omits them when absent", () => {
@@ -807,11 +1023,52 @@ describe("render: errors", () => {
     );
   });
 
+  it("toRenderableError names a file under the working directory by its relative path", () => {
+    const inside = join(process.cwd(), "locales", "de.json");
+    const error = Object.assign(
+      new Error(`The file at ${inside} is bad; ${"/elsewhere/x.json"} too.`),
+      {
+        code: "SOURCE_INVALID",
+      },
+    );
+
+    expect(toRenderableError(error).message).toBe(
+      `The file at ${join("locales", "de.json")} is bad; /elsewhere/x.json too.`,
+    );
+  });
+
   it("toRenderableError reads a coded Error, falls back for non-coded and non-Error", () => {
     const coded = Object.assign(new Error("m"), { code: "SOURCE_UNREADABLE" });
-    expect(toRenderableError(coded)).toEqual({ code: "SOURCE_UNREADABLE", message: "m" });
+    expect(toRenderableError(coded)).toEqual({
+      code: "SOURCE_UNREADABLE",
+      message: "m",
+      hint: errorHint(coded),
+    });
     expect(toRenderableError(new Error("plain"))).toEqual({ code: "CLI_ERROR", message: "plain" });
     expect(toRenderableError("weird")).toEqual({ code: "CLI_ERROR", message: "weird" });
+  });
+
+  it("carries the code of a wrapped cause and names it on the stderr line", () => {
+    const cause = Object.assign(new Error("GEMINI_API_KEY is not set"), {
+      code: "MISSING_API_KEY",
+    });
+    const wrapped = Object.assign(new Error("Failed to construct provider", { cause }), {
+      code: "PROVIDER_CONSTRUCTION_FAILED",
+    });
+    const renderable = toRenderableError(wrapped);
+    expect(renderable).toEqual({
+      code: "PROVIDER_CONSTRUCTION_FAILED",
+      message: "Failed to construct provider",
+      causeCode: "MISSING_API_KEY",
+      hint: errorHint(cause),
+    });
+    expect(renderError(renderable)).toBe(
+      "verbatra: error [PROVIDER_CONSTRUCTION_FAILED] Failed to construct provider (cause: MISSING_API_KEY)",
+    );
+    expect(toRenderableError(new Error("m", { cause: new Error("uncoded") }))).toEqual({
+      code: "CLI_ERROR",
+      message: "m",
+    });
   });
 });
 
@@ -871,43 +1128,103 @@ describe("render: progress", () => {
     [{ type: "locale-started", locale: "de", localeIndex: 0, totalLocales: 3 }, "translating de"],
     [{ type: "sub-batch", locale: "de", batchIndex: 2, totalBatches: 4 }, "de batch 2/4"],
     [
-      { type: "locale-finished", locale: "de", translated: 5, localeIndex: 0, totalLocales: 3 },
+      {
+        type: "locale-finished",
+        locale: "de",
+        status: "succeeded",
+        translated: 5,
+        localeIndex: 0,
+        totalLocales: 3,
+      },
       "de done, 5 translated",
     ],
-    [{ type: "run-finished", localesCompleted: 3 }, "run finished, 3 locales processed"],
+    [
+      { type: "run-finished", localesCompleted: 3, localesFailed: 0 },
+      "run finished, 3 locales processed",
+    ],
+    [
+      { type: "run-finished", localesCompleted: 1, localesFailed: 0 },
+      "run finished, 1 locale processed",
+    ],
   ];
 
   it("renders every event type human-readably, prefixed with verbatra:", () => {
     for (const [event, fragment] of cases) {
-      const line = renderProgressHuman(event);
+      const line = renderProgressHuman(event) ?? "";
       expect(line.startsWith("verbatra:")).toBe(true);
       expect(line).toContain(fragment);
     }
   });
 
+  it("says a failed locale failed instead of done, and names no translated count for it", () => {
+    const line = renderProgressHuman({
+      type: "locale-finished",
+      locale: "de",
+      status: "failed",
+      translated: 0,
+      localeIndex: 0,
+      totalLocales: 2,
+    });
+    expect(line).toBe("verbatra: de failed");
+  });
+
+  it("says a partial locale is partly done, with its translated count", () => {
+    const line = renderProgressHuman(
+      {
+        type: "locale-finished",
+        locale: "fr",
+        status: "partial",
+        translated: 2,
+        localeIndex: 1,
+        totalLocales: 2,
+      },
+      true,
+    );
+    expect(line).toBe("verbatra: fr partly done, 2 would translate");
+  });
+
+  it("names no count for a partial locale that translated nothing", () => {
+    const line = renderProgressHuman({
+      type: "locale-finished",
+      locale: "fr",
+      status: "partial",
+      translated: 0,
+      localeIndex: 1,
+      totalLocales: 2,
+    });
+    expect(line).toBe("verbatra: fr partly done");
+  });
+
+  it("states the failed count on the run-finished line when a locale failed", () => {
+    expect(
+      renderProgressHuman({ type: "run-finished", localesCompleted: 2, localesFailed: 1 }),
+    ).toBe("verbatra: run finished, 2 locales processed, 1 failed");
+  });
+
   it("renders every event type as its verbatim JSON record", () => {
     for (const [event] of cases) {
-      expect(JSON.parse(renderProgressJson(event))).toEqual(event);
+      expect(JSON.parse(renderProgressJson(event) ?? "")).toEqual(event);
     }
   });
 
-  it("renderProgress dispatches to JSON under json mode and to the human line otherwise", () => {
-    const event: ProgressEvent = { type: "run-finished", localesCompleted: 1 };
-    expect(JSON.parse(renderProgress(event, true))).toEqual(event);
-    expect(renderProgress(event, false)).toContain("run finished");
-  });
-});
+  const laterEvents: readonly ProgressEvent[] = [
+    { type: "locale-planned", locale: "de", keys: 3, batches: 1, cacheHits: 0 },
+    { type: "batch-finished", locale: "de", batchIndex: 1, totalBatches: 1, durationMs: 5 },
+    { type: "provider-retry", attempt: 2, delayMs: 250, status: 429 },
+    { type: "repair", locale: "de", keys: 1 },
+    { type: "split-retry", locale: "de", keys: 4 },
+    { type: "writing", locale: "de" },
+    { type: "change-detected", paths: ["/p/locales/en.json"] },
+    { type: "idle" },
+  ];
 
-describe("render: watch run result", () => {
-  it("renders the summary on success and the one-line error on failure", () => {
-    const ok: WatchRunResult = { status: "succeeded", summary: makeSummary({ succeeded: ["de"] }) };
-    const bad: WatchRunResult = {
-      status: "failed",
-      error: { code: "SOURCE_INVALID", message: "x" },
-    };
-    expect(renderRunResultHuman(ok)).toContain("1 succeeded");
-    expect(renderRunResultHuman(bad)).toBe("verbatra: error [SOURCE_INVALID] x");
-  });
+  it.each(laterEvents)(
+    "renders no plain line and no JSON record for the finer-grained $type event",
+    (event) => {
+      expect(renderProgressHuman(event)).toBeUndefined();
+      expect(renderProgressJson(event)).toBeUndefined();
+    },
+  );
 });
 
 describe("renderHuman: pre-run estimate", () => {
@@ -962,6 +1279,15 @@ describe("renderHuman: pre-run estimate", () => {
     expect(line).toContain("rates as of 2026-01-15");
   });
 
+  it("heads an estimate run as an estimate, not as a plain dry run", () => {
+    const [header] = render(tokenEstimate).split("\n");
+
+    expect(header).toBe("verbatra translate (estimate)");
+    expect(renderHuman(makeSummary({ dryRun: true })).split("\n")[0]).toBe(
+      "verbatra translate (dry run)",
+    );
+  });
+
   it("calls the figure an estimate rather than a price", () => {
     expect(render(tokenEstimate)).toContain("estimate");
     expect(render(tokenEstimate)).not.toContain("total cost:");
@@ -1000,6 +1326,19 @@ describe("renderHuman: pre-run estimate", () => {
     const line = render(unpriced("rate-unit-mismatch"));
 
     expect(line).toContain("is not priced in tokens");
+  });
+
+  it("counts one key and one request in the singular", () => {
+    expect(render({ ...tokenEstimate, keys: 1, requests: 1 })).toContain(
+      "estimate: 1 key in 1 request,",
+    );
+  });
+
+  it("reports a human-only project as spending nothing, not as a self-hosted endpoint", () => {
+    const line = render({ ...unpriced("not-billed"), provider: "none", rateKey: "none" });
+
+    expect(line).toContain("estimated spend: none, machine translation is disabled by policy");
+    expect(line).not.toContain("self-hosted");
   });
 
   it("reports a self-hosted endpoint as carrying no API cost", () => {

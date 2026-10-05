@@ -1,9 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { CliUsageError } from "./cli-usage-error.js";
-import { parsePositiveIntegerOption } from "./positive-integer-option.js";
+import {
+  type PositiveIntegerOptionSpec,
+  parsePositiveIntegerOption,
+} from "./positive-integer-option.js";
 
 describe("parsePositiveIntegerOption", () => {
-  const spec = { code: "INVALID_TEST_OPTION", describe: "test option must be valid", min: 1 };
+  const spec: PositiveIntegerOptionSpec = {
+    code: "INVALID_CONCURRENCY",
+    describe: "test option must be valid",
+    min: 1,
+  };
 
   it("returns undefined when the value is undefined", () => {
     expect(parsePositiveIntegerOption(undefined, spec)).toBeUndefined();
@@ -30,7 +37,7 @@ describe("parsePositiveIntegerOption", () => {
     }
 
     expect(error).toBeInstanceOf(CliUsageError);
-    expect((error as CliUsageError).code).toBe("INVALID_TEST_OPTION");
+    expect((error as CliUsageError).code).toBe("INVALID_CONCURRENCY");
     expect((error as CliUsageError).message).toContain("test option must be valid");
     expect((error as CliUsageError).message).toContain('"11"');
   });
