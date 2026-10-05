@@ -26,3 +26,9 @@ export function deriveRetranslateOutcome(
   }
   return { kind: "success" };
 }
+
+export function isProtectedRefusal(
+  response: RpcCallResult<"translation.retranslateEntry">,
+): boolean {
+  return !response.ok && response.error.code === "KEY_PROTECTED";
+}

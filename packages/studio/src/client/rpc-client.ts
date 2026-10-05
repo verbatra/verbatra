@@ -16,7 +16,14 @@ export type FetchLike = (url: string, init: RequestInitLike) => Promise<FetchRes
 
 export type RpcCallResult<M extends RpcMethodName> =
   | { readonly ok: true; readonly result: RpcResultFor<M> }
-  | { readonly ok: false; readonly error: { readonly code: string; readonly message: string } };
+  | {
+      readonly ok: false;
+      readonly error: {
+        readonly code: string;
+        readonly message: string;
+        readonly retryAfterSeconds?: number;
+      };
+    };
 
 export interface RpcClientOptions {
   readonly fetchImpl: FetchLike;
