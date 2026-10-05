@@ -60,6 +60,35 @@ lugar de un error lanzado. `ok` es true exactamente cuando ninguna comprobación
 Solo una comprobación fallida lleva `fix`, un siguiente paso en imperativo; igual que `detail`,
 nombra variables y rutas, nunca el valor de una clave.
 
+### dataFlow
+
+<AvailableFrom version="0.12.0" />
+
+Describe adónde van los datos de un proyecto, para la config cargada, como un `DataFlowManifest` versionado: el proveedor, cada host de destino con el veredicto de la [política de red](/docs/network-policy), los tipos de datos enviados con recuentos del proyecto, el código enviado por locale de destino, los archivos locales, otras peticiones y las superficies de agentes. No lee ninguna clave de API ni hace peticiones de red, así que DeepL aparece con sus dos hosts. Una variable de red no válida o un archivo de origen ilegible se indican en el manifiesto en lugar de lanzarse. [`verbatra doctor --data-flow`](/docs/cli/doctor#flujo-de-datos) lo imprime, y `doctor({ dataFlow: true })` lo devuelve como `DoctorResult.dataFlow`.
+
+```ts title="Firma"
+function dataFlow(
+  input?: DataFlowInput,
+  deps?: DataFlowDeps,
+): Promise<DataFlowManifest>;
+```
+
+<SdkTypeTable name="DataFlowInput" />
+
+**Devuelve:** `DataFlowManifest`
+
+**Lanza:** [`CONFIG_NOT_FOUND`](/docs/error-codes#config_not_found), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
+
+### dataFlowManifestSchema
+
+<AvailableFrom version="0.12.0" />
+
+El esquema zod de un `DataFlowManifest`, exportado para que un paso de CI o la herramienta de un revisor pueda validar un manifiesto. Cada objeto es estricto, así que un campo que la versión 1 no define no pasa la validación. `DATA_FLOW_MANIFEST_VERSION` es la `version` que escribe este build.
+
+```ts title="Firma"
+const dataFlowManifestSchema: z.ZodType<DataFlowManifest>;
+```
+
 ### extract
 
 <AvailableFrom version="0.11.0" />

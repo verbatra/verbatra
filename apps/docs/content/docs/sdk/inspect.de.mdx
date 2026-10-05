@@ -61,6 +61,35 @@ existiert.
 Nur eine fehlgeschlagene Prüfung trägt `fix`, einen nächsten Schritt im Imperativ; wie `detail`
 nennt es Variablen und Pfade, nie den Wert eines Keys.
 
+### dataFlow
+
+<AvailableFrom version="0.12.0" />
+
+Beschreibt für die geladene Config, wohin die Daten eines Projekts gehen, als versioniertes `DataFlowManifest`: den Provider, jeden Ziel-Host mit dem Urteil der [Network Policy](/docs/network-policy), die Arten gesendeter Daten mit Zählungen für das Projekt, den je Ziel-Locale gesendeten Code, die lokalen Dateien, weitere Requests und die Agent-Schnittstellen. Es liest keinen API-Key und macht keinen Netzwerk-Request, deshalb steht DeepL mit beiden Hosts drin. Eine ungültige Netzwerk-Variable oder eine nicht lesbare Quelldatei steht im Manifest, statt geworfen zu werden. [`verbatra doctor --data-flow`](/docs/cli/doctor#datenfluss) gibt es aus, und `doctor({ dataFlow: true })` liefert es als `DoctorResult.dataFlow`.
+
+```ts title="Signatur"
+function dataFlow(
+  input?: DataFlowInput,
+  deps?: DataFlowDeps,
+): Promise<DataFlowManifest>;
+```
+
+<SdkTypeTable name="DataFlowInput" />
+
+**Rückgabe:** `DataFlowManifest`
+
+**Wirft:** [`CONFIG_NOT_FOUND`](/docs/error-codes#config_not_found), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
+
+### dataFlowManifestSchema
+
+<AvailableFrom version="0.12.0" />
+
+Das zod-Schema für ein `DataFlowManifest`, exportiert, damit ein CI-Schritt oder das Werkzeug eines Reviewers ein Manifest validieren kann. Jedes Objekt ist strikt, also scheitert ein Feld, das Version 1 nicht definiert, an der Validierung. `DATA_FLOW_MANIFEST_VERSION` ist die `version`, die dieser Build schreibt.
+
+```ts title="Signatur"
+const dataFlowManifestSchema: z.ZodType<DataFlowManifest>;
+```
+
 ### extract
 
 <AvailableFrom version="0.11.0" />

@@ -151,3 +151,5 @@ provider and model behind every machine-translated value.
 5. Decide which AI agents may use Studio or the MCP server, and whether they need
    `--redact-values`.
 6. Commit `verbatra.provenance.json`, and archive `verbatra report provenance --json` per release.
+7. Run `verbatra doctor --data-flow --json` and attach the manifest: it names, for this
+   project, each host and the data it receives ([details](/docs/cli/doctor#data-flow)).

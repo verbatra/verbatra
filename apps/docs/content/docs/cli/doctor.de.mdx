@@ -20,8 +20,9 @@ verbatra doctor [flags]
 | `--literals` | keins | aus | statt der Einrichtung die Quell-Roots des [`extract`-Blocks](/docs/config-file#extract) nach hartcodierten, für Nutzer sichtbaren Strings durchsuchen (siehe [Nicht übersetzte Literale](#nicht-übersetzte-literale)) |
 | `--locales` | keins | aus | nach den Prüfungen je Ziel-Locale den gesendeten Code, die Unterstützung durch den Provider, Glossar und Formality auflisten (siehe [Locale-Unterstützung](#locale-unterstützung)) |
 | `--live` | keins | aus | zuerst die aktuelle Sprachliste des Providers abrufen, ohne Übersetzungskontingent zu verbrauchen; schließt `--locales` ein |
+| `--data-flow` | keins | aus | statt der Einrichtung beschreiben, was an welchen Host geht und was lokal geschrieben wird (siehe [Datenfluss](#datenfluss)) |
 
-Nimmt außerdem die [globalen Flags](/docs/cli#globale-flags) `--cwd`, `--config` und `--json`. `--locales` und `--live` lassen sich nicht mit `--literals` kombinieren (`INVALID_OPTION`, Exit `2`).
+Nimmt außerdem die [globalen Flags](/docs/cli#globale-flags) `--cwd`, `--config` und `--json`. `--locales` und `--live` lassen sich nicht mit `--literals` kombinieren (`INVALID_OPTION`, Exit `2`), `--data-flow` mit keinem der drei.
 
 ## Verhalten
 
@@ -121,6 +122,31 @@ Um ein Literal zurückzuhalten, setz `// verbatra-ignore-next-line` darüber (in
 
 Die Prüfung scheitert an einem Fund und an einer Datei, die sie nicht öffnen, nicht bis zum Ende lesen oder als zu groß einstuft (der Scan läuft weiter). Ein Projekt ohne `extract`-Block lässt sie scheitern.
 
+### Datenfluss
+
+<AvailableFrom version="0.12.0" />
+
+`--data-flow` beschreibt statt der Einrichtung, wohin die Daten dieses Projekts gehen, als Nachweis für ein AVV- oder NDA-Review; [Datenverarbeitung](/docs/data-handling) erklärt jede Kategorie. Es liest keinen API-Key und macht keinen Netzwerk-Request. Nur zwei Prüfungen laufen: Configuration und Data flow. Data flow schlägt nie fehl: Es zeigt `[warn]`, wenn die [Network Policy](/docs/network-policy) einen Host ablehnt oder einen ungültigen Wert hat, oder wenn die Quelldatei für die Zählungen nicht lesbar ist.
+
+```text output
+  [ok  ] Data flow: Provider "deepl" sends source-text, placeholder-markers, language-codes, formality, glossary-id to api.deepl.com (permitted), api-free.deepl.com (permitted).
+  data flow (manifest version 1)
+    provider     deepl (machine-translation)
+    network      any host (no policy set)
+    destination  api.deepl.com  default  paid-key  before-construction  permitted
+    destination  api-free.deepl.com  default  free-key  before-construction  permitted
+    sent         source-text, placeholder-markers, language-codes, formality, glossary-id
+    counts       3 source keys, 0 with a description or meaning, 1 withheld
+    locale       de  sent as DE  glossary terms: 0
+    local        cache  /app/verbatra.cache.json  (source text and translations, gitignored by init)
+    request      language-list  verbatra doctor --live  sends the API key
+    ...
+```
+
+Das Manifest nennt den Provider; jeden Ziel-Host, woher er kommt (eingebaut, `provider.options.baseUrl` oder eine `*_BASE_URL`-Variable) und das Urteil der Policy (`permitted`, `deferred`, `refused` oder `invalid-policy`); die Arten gesendeter Daten, mit der Zahl der Quell-Keys, der Keys mit Beschreibung oder Bedeutung und der Keys, die zurückgehalten werden, weil sich ihre Platzhalter nicht maskieren lassen; Code und Zahl der Glossarbegriffe je Ziel-Locale; die lokalen Dateien mit ihren Pfaden; und die übrigen Requests und Agent-Schnittstellen. DeepL steht mit beiden Hosts drin, weil der Key, der einen davon wählt, nie gelesen wird. Mit `provider: { id: "none" }` sagt es, dass nichts gesendet wird. Es nennt Hosts, Datenkategorien und Bedingungen, nie einen Key-Wert oder Dateiinhalte.
+
+Mit `--json` steht das Manifest unter `result.dataFlow`. Sein Feld `version` ändert sich nur, wenn ein Feld umbenannt oder entfernt wird, und [`dataFlowManifestSchema`](/docs/sdk/inspect#dataflowmanifestschema) aus dem SDK validiert es.
+
 ### JSON-Ausgabe
 
 Mit `--json` trägt der [Envelope](/docs/cli/output#json-ausgabe) den Bericht unter `result`. `ok` ist genau dann wahr, wenn der Befehl mit `0` endet:
@@ -130,6 +156,7 @@ interface DoctorResult {
   ok: boolean;                 // true exactly when the command exits 0
   checks: DoctorCheck[];       // one per check, always in the same order
   literals?: LiteralScan;      // only with --literals: findings, suppressed, diagnostics
+  dataFlow?: DataFlowManifest; // only with --data-flow: what goes where, version 1
   locales?: LocaleCapabilityReport; // per-locale provider support, with or without --locales
 }
 
@@ -146,7 +173,8 @@ interface DoctorCheck {
     | "locale-codes"
     | "locale-state"
     | "locales"
-    | "untranslated-literals";
+    | "untranslated-literals"
+    | "data-flow";
   title: string;               // stable, human-readable name
   status: "pass" | "warn" | "fail" | "skipped";  // only "fail" makes ok false
   detail: string;              // why it reached that verdict; never an API key value
@@ -206,6 +234,9 @@ verbatra doctor --locales
 
 # the same, against the provider's current language list
 verbatra doctor --live
+
+# a data-flow manifest to attach to a DPA or NDA review
+verbatra doctor --data-flow --json
 ```
 
 ## Exit-Codes
