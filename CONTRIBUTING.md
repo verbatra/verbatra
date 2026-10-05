@@ -565,8 +565,8 @@ endpoint requires of an app
 The token is revoked when the job ends, and the job grants the workflow token no
 permissions at all.
 
-The job deliberately does not send a `repository_dispatch` event, although
-`parity.yml` listens for one too. That endpoint requires `contents: write`
+The job deliberately does not send a `repository_dispatch` event, and
+`parity.yml` does not listen for one. That endpoint requires `contents: write`
 ([permissions required for GitHub Apps](https://docs.github.com/en/rest/authentication/permissions-required-for-github-apps#repository-permissions-for-contents)),
 which would also let a leaked token push commits, create branches and publish
 releases in the skills repository. `actions: write` reaches workflow runs,

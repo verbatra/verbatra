@@ -997,7 +997,7 @@ El candidato está vacío o solo tiene espacios aunque su fuente no lo esté. Va
 
 ## Motivos de revisión [#review-reason-codes]
 
-Una señal de revisión marca una traducción aceptada como digna de una segunda mirada; nunca retiene una clave. `translate` y `watch` listan las claves marcadas en `needsReview`, y `check --qa` informa como avisos de los motivos calculados a partir del valor, su origen y la configuración, que solo hacen fallar el trabajo con `--strict`. El conjunto se publica como la tupla `REVIEW_REASON_CODES`. Cada entrada dice cómo se mide su motivo; [Seguridad de la traducción](/docs/translation-safety#señales-de-revisión) explica la capa de revisión en conjunto.
+Una señal de revisión marca una traducción aceptada como digna de una segunda mirada; nunca retiene una clave, y un aviso de `check --qa` solo hace fallar el trabajo con `--strict`. El conjunto se publica como la tupla `REVIEW_REASON_CODES`; [Seguridad de la traducción](/docs/translation-safety#señales-de-revisión) explica la capa de revisión.
 
 ### LENGTH_RATIO_OUTLIER
 
@@ -1005,7 +1005,7 @@ La traducción es mucho más corta o más larga que su fuente.
 
 Salta por debajo de 0.35 veces o por encima de 3.0 veces la longitud recortada de la fuente; las fuentes muy cortas se omiten. La longitud se cuenta en clústeres de grafemas, y cada carácter se pondera según su escritura: un carácter chino cuenta 3.5, un kana japonés 1.5 y una sílaba coreana 2.
 
-- **Lo lanza**: `translate`, `watch` (en `needsReview`); `check --qa` (como aviso)
+- **Lo lanza**: `translate`, `watch` (en `needsReview`); `retranslateEntry` (en `reviewReasons`); `export` (en la columna de revisión); `check --qa` (como aviso)
 - **Código de salida**: ninguno desde `translate`; `1` desde `check --qa --strict`
 - **Siguiente paso**: Lee la traducción frente a su fuente y luego consérvala o corrígela.
 
@@ -1013,9 +1013,9 @@ Salta por debajo de 0.35 veces o por encima de 3.0 veces la longitud recortada d
 
 La traducción es más larga que el presupuesto `maxLength` configurado para su clave.
 
-La longitud se cuenta en clústeres de grafemas sobre el valor tal como está escrito. El límite es inclusivo, así que un valor de exactamente el presupuesto no se marca, y una clave sin presupuesto nunca se mide. El valor se escribe y se bloquea igualmente.
+La longitud se cuenta en clústeres de grafemas sobre el valor tal como está escrito. El límite es inclusivo, así que un valor de exactamente el presupuesto no se marca, y una clave sin presupuesto nunca se mide.
 
-- **Lo lanza**: `translate`, `watch` (en `needsReview`); `check --qa` (como aviso)
+- **Lo lanza**: `translate`, `watch` (en `needsReview`); `retranslateEntry` (en `reviewReasons`); `export` (en la columna de revisión); `check --qa` (como aviso)
 - **Código de salida**: ninguno desde `translate`; `1` desde `check --qa --strict`
 - **Siguiente paso**: Acorta la traducción, o sube el presupuesto `maxLength` de la clave.
 
@@ -1023,9 +1023,9 @@ La longitud se cuenta en clústeres de grafemas sobre el valor tal como está es
 
 La traducción es idéntica a su fuente aunque el locale de destino sea otro.
 
-Solo salta cuando el locale de destino difiere del de origen y la fuente tiene texto traducible: una fuente hecha solo de términos `doNotTranslate`, o de términos cuya traducción es el propio término, no se marca.
+Solo salta cuando la fuente tiene texto traducible: una fuente hecha solo de términos `doNotTranslate`, o de términos cuya traducción es el propio término, no se marca.
 
-- **Lo lanza**: `translate`, `watch` (en `needsReview`); `check --qa` (como aviso)
+- **Lo lanza**: `translate`, `watch` (en `needsReview`); `retranslateEntry` (en `reviewReasons`); `export` (en la columna de revisión); `check --qa` (como aviso)
 - **Código de salida**: ninguno desde `translate`; `1` desde `check --qa --strict`
 - **Siguiente paso**: Traduce el valor, o consérvalo si el texto de verdad queda igual en ese idioma.
 
@@ -1033,9 +1033,9 @@ Solo salta cuando el locale de destino difiere del de origen y la fuente tiene t
 
 A un término del glosario de la fuente le falta su traducción para el locale de destino, o falta o se alteró un término `doNotTranslate`.
 
-Cada locale se comprueba contra su propia traducción del término de un glosario por locale. La comparación ignora mayúsculas salvo que el término sea `caseSensitive`, y las pliega según las reglas de cada locale (incluida la `İ` turca). El lado de la fuente exige una palabra completa, así que `AI` no se encuentra dentro de `Airport`; el lado del destino solo exige que el término aparezca en algún lugar del valor, porque un término traducido se funde con el texto que lo rodea (compuestos alemanes, partículas coreanas). Un término en una escritura sin separadores de palabras (han, kana, tailandés y similares) se compara por inclusión.
+Cada locale se comprueba contra su propia traducción del término de un glosario por locale. La comparación ignora mayúsculas salvo que el término sea `caseSensitive`, y las pliega según las reglas de cada locale (incluida la `İ` turca). El lado de la fuente exige una palabra completa, así que `AI` no se encuentra dentro de `Airport`; el lado del destino solo exige que el término aparezca en algún lugar del valor, porque un término traducido se funde con el texto que lo rodea. Un término en una escritura sin separadores de palabras (han, kana, tailandés y similares) se compara por inclusión.
 
-- **Lo lanza**: `translate`, `watch` (en `needsReview`); `check --qa` (como aviso)
+- **Lo lanza**: `translate`, `watch` (en `needsReview`); `retranslateEntry` (en `reviewReasons`); `export` (en la columna de revisión); `check --qa` (como aviso)
 - **Código de salida**: ninguno desde `translate`; `1` desde `check --qa --strict`
 - **Siguiente paso**: Usa la traducción del término que da el glosario, o deja el término sin cambios.
 
@@ -1045,7 +1045,7 @@ La traducción usa una versión que la lista `forbidden` del glosario excluye pa
 
 Se compara como palabra completa, y por inclusión en escrituras sin separadores de palabras, así que una forma flexionada o compuesta solo se detecta si también la listas. Una forma que la propia fuente contiene no se marca, porque la traducción puede citarla.
 
-- **Lo lanza**: `translate`, `watch` (en `needsReview`); `check --qa` (como aviso)
+- **Lo lanza**: `translate`, `watch` (en `needsReview`); `retranslateEntry` (en `reviewReasons`); `export` (en la columna de revisión); `check --qa` (como aviso)
 - **Código de salida**: ninguno desde `translate`; `1` desde `check --qa --strict`
 - **Siguiente paso**: Sustituye la versión prohibida por la aprobada.
 
@@ -1053,7 +1053,7 @@ Se compara como palabra completa, y por inclusión en escrituras sin separadores
 
 Los marcadores coinciden exactamente, pero aparecen en otro orden que en la fuente.
 
-- **Lo lanza**: `translate`, `watch` (en `needsReview`); `check --qa` (como aviso)
+- **Lo lanza**: `translate`, `watch` (en `needsReview`); `retranslateEntry` (en `reviewReasons`); `export` (en la columna de revisión); `check --qa` (como aviso)
 - **Código de salida**: ninguno desde `translate`; `1` desde `check --qa --strict`
 - **Siguiente paso**: Comprueba que el nuevo orden se lee bien en el idioma de destino.
 
@@ -1089,7 +1089,7 @@ Se activa cuando ese token aparece en la fuente más veces que, literalmente, en
 
 La traducción contiene caracteres invisibles de control de dirección que pueden reordenar el texto a su alrededor: una incrustación, anulación o aislamiento que nunca cierra, o una anulación que la fuente no tiene.
 
-Se activa cuando las incrustaciones (U+202A, U+202B), anulaciones (U+202D, U+202E) y aislamientos (U+2066 a U+2068) de la traducción no se emparejan con sus cierres (U+202C, U+2069) dentro de cada párrafo mientras que los de la fuente sí, o cuando contiene más anulaciones de izquierda a derecha o de derecha a izquierda que la fuente. Un control sin cerrar extiende su dirección al texto que tu app pone después del valor, y una anulación invierte el texto a la vista. Las marcas de dirección como U+200F nunca lo activan, ni tampoco una traducción que quita controles equilibrados de la fuente.
+Se activa cuando las incrustaciones (U+202A, U+202B), anulaciones (U+202D, U+202E) y aislamientos (U+2066 a U+2068) de la traducción no se emparejan con sus cierres (U+202C, U+2069) dentro de cada párrafo mientras que los de la fuente sí, o cuando contiene más anulaciones de izquierda a derecha o de derecha a izquierda que la fuente. Un control sin cerrar extiende su dirección al texto que tu app pone después del valor. Las marcas de dirección como U+200F nunca lo activan, ni tampoco una traducción que quita controles equilibrados de la fuente.
 
 - **Lo lanza**: `translate`, `watch` (en `needsReview`); `retranslateEntry` (en `reviewReasons`); `export` (en la columna de revisión); `check --qa` (como aviso)
 - **Código de salida**: ninguno desde `translate`; `1` desde `check --qa --strict`

@@ -3,6 +3,8 @@ title: Sprachen und Locales
 description: Welche Sprachen verbatra übersetzen kann, wie Locale-Codes bei jedem Provider ankommen und wie Plurale, Schriften, regionale Varianten und Rechts-nach-links-Text behandelt werden.
 type: concept
 ---
+<AvailableFrom version="0.12.0" />
+
 verbatra hat keine eigene Sprachliste. Es akzeptiert jeden gültigen BCP-47-Locale-Code und überlässt
 die Übersetzung deinem Provider. Du kannst also die Sprachen nutzen, die dein Provider unterstützt,
 und in einem reinen Handarbeits-Projekt alle. Der Teil von verbatra ist, jeden Code so zu schreiben,
@@ -10,8 +12,6 @@ wie der Provider ihn erwartet, jede Übersetzung an den Pluralregeln ihrer Sprac
 vor einem Lauf zu warnen, wenn ein Provider eine Locale nicht bedienen kann.
 
 ## Locale-Codes
-
-<AvailableFrom version="0.12.0" />
 
 Jede Locale in deiner Konfiguration muss ein gültiger BCP-47-Tag sein, etwa `fr`, `pt-BR`,
 `sr-Latn`, `zh-Hant-TW` oder `es-419`; ein ungültiger Code lässt das Laden der Konfiguration
@@ -59,8 +59,6 @@ Was das in der Praxis heißt:
 
 ### Wie jeder Provider den Code bekommt
 
-<AvailableFrom version="0.12.0" />
-
 DeepL und Google Cloud Translation bekommen manche Codes in ihrer eigenen Schreibweise, und DeepL
 lehnt ein reines `en`- oder `pt`-Ziel vor jedem Request ab. LLM-Provider bekommen den Code wie
 geschrieben plus den englischen Namen von Sprache, Schrift und Region; siehe
@@ -70,8 +68,6 @@ Zuordnung steht unter
 [An den Provider gesendete Locale-Codes](/docs/providers#an-den-provider-gesendete-locale-codes).
 
 ## Unterstützung vor einem Lauf prüfen
-
-<AvailableFrom version="0.12.0" />
 
 Bevor etwas ausgegeben wird, beurteilt verbatra jede konfigurierte Locale anhand dessen, was es über
 den Provider weiß, und [`verbatra doctor --locales`](/docs/cli/doctor#locale-unterstützung) gibt die
@@ -122,8 +118,6 @@ Wörtern wird als bloßes Enthaltensein abgeglichen.
 
 ## Plurale
 
-<AvailableFrom version="0.12.0" />
-
 verbatra liest, welche Pluralkategorien eine Sprache braucht, aus den CLDR-Regeln in den in Node.js
 eingebauten ICU-Daten, Ordinalzahlen eingeschlossen, damit ist jede Sprache abgedeckt, die CLDR
 kennt: Englisch hat zwei Kardinalkategorien, Russisch und Polnisch vier, Arabisch und Walisisch
@@ -147,12 +141,11 @@ Wie ein Plural korrekt bleibt, hängt vom Format ab:
 
 ### Plural-Warnungen
 
-<AvailableFrom version="0.12.0" />
-
 [`verbatra check`](/docs/cli/check#pluralkategorien) und `verbatra doctor` warnen vor jedem Plural,
-dem eine Kategorie fehlt, die seine Sprache verwendet, in jedem pluralfähigen Format außer gettext,
-dessen Formen seinem eigenen Header folgen. DeepL, Google Cloud Translation und LibreTranslate
-übersetzen die vorhandenen Formen, erzeugen aber nie neue.
+dem eine Kategorie fehlt, die seine Sprache verwendet, in jedem oben genannten Format außer gettext,
+dessen Formen seinem eigenen Header folgen; Plurale in anderen Formaten werden nicht geprüft. DeepL,
+Google Cloud Translation und LibreTranslate übersetzen die vorhandenen Formen, erzeugen aber nie
+neue.
 
 ## Sprachen, die von rechts nach links laufen
 

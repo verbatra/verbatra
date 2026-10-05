@@ -1,3 +1,5 @@
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 const PAGES = [
@@ -45,6 +47,19 @@ vi.mock("@/lib/source", () => ({
   },
 }));
 
+const CONTENT_ROOT = join(import.meta.dirname, "../../content/docs");
+
+function contentPagesFor(slug: string): string[] {
+  return readdirSync(CONTENT_ROOT, { recursive: true, encoding: "utf8" }).filter(
+    (file) =>
+      file
+        .replace(/\.mdx$/, "")
+        .split(/[\\/]/)
+        .filter((segment) => !/^\(.+\)$/.test(segment))
+        .join("/") === slug,
+  );
+}
+
 const { GET } = await import("./route");
 const body = await GET().text();
 
@@ -76,6 +91,14 @@ describe("llms.txt", () => {
     expect(agents).toBeLessThan(body.indexOf("## Introduction"));
     expect(body).toContain("npx -y @verbatra/mcp");
     expect(body).toContain("Accept: text/markdown");
+  });
+
+  it("points an agent at the MCP client setup page from the agent section", () => {
+    const agents = body.slice(body.indexOf("## For AI agents"), body.indexOf("## Introduction"));
+    expect(agents).toContain(
+      "Client setup: https://verbatra.kreitz-webdev.de/docs/connect-an-mcp-client.md",
+    );
+    expect(contentPagesFor("connect-an-mcp-client")).toHaveLength(1);
   });
 
   it("tells an agent every page type a Markdown response can declare", () => {

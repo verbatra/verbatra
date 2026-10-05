@@ -307,7 +307,7 @@ Files, the lock and the memory always use your config's codes. Only the request 
 | DeepL | The language alone: `en-US` as `EN`, `zh-Hant-TW` as `ZH`. | `zh-Hant`, `zh-TW`, `zh-HK`, `zh-MO` as `ZH-HANT`; `zh-Hans`, `zh-CN`, `zh-SG` as `ZH-HANS`. DeepL variants stay (`EN-GB`, `EN-US`, `PT-BR`, `PT-PT`, `ES-419`, `FR-CA`, `FR-FR`, `DE-CH`, `DE-DE`). Spanish with a Latin American or Caribbean region (`MX`, `AR`, `CO`, `CL`, `PE`, `VE`, `EC`, `GT`, `CU`, `BO`, `DO`, `HN`, `PY`, `SV`, `NI`, `CR`, `PA`, `UY`, `PR`, `US`, `419`) as `ES-419`. Other regions and scripts are dropped: `de-AT` as `DE`. |
 | Google Cloud Translation | `zh-Hant` (`zh-HK`, `zh-MO`) as `zh-TW`, `zh-Hans` (`zh-SG`) as `zh-CN`, `nb` as `no`; everything else as written. | Same as the source. |
 | LibreTranslate | The language alone (`de-AT` as `de`), except `pt-BR` stays and Chinese goes as `zh-Hans` or `zh-Hant` (`zh-TW` as `zh-Hant`). | Same as the source. |
-| Anthropic, OpenAI, Gemini, openai-compatible | As written, with its English language name. | As written, with its English language, script and region names. |
+| Anthropic, OpenAI, Gemini, openai-compatible | As written, with its English language, script and region names. | Same as the source. |
 
 An LLM receives, for example, `sr-Latn` with `{ "name": "Serbian (Latin)", "script": "Latin" }`, and a fixed rule asks it to write that script and variant; a code Node.js cannot name is sent without one. DeepL has no generic English or Portuguese target, so a target ending up as bare `en` or `pt` (such as `en-AU`) is refused before the run: map it to `EN-GB`, `EN-US`, `PT-BR` or `PT-PT`.
 
