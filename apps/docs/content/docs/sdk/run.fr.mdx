@@ -123,7 +123,7 @@ function watch(
 
 **Exemple :** [Surveiller dans un processus de longue durée](/docs/programmatic-api#surveiller-dans-un-processus-de-longue-durée)
 
-`debounceMs` vaut 300 par défaut. `onRun` est appelé une fois par exécution avec un `WatchRunResult` : `{ status: "succeeded", summary }` ou `{ status: "failed", error: { code, message, causeCode?, hint? } }`, où `causeCode` nomme l'erreur codée que l'échec enveloppe et `hint` est l'étape suivante que donne `errorHint`. `onReady` est appelé une fois, quand les vérifications de démarrage passent et juste avant l'exécution initiale, pour que tu puisses annoncer la session avant la sortie de cette exécution. Le SDK n'écrit aucun log ; `onRun` est la seule sortie. `concurrency`, `cache`, `onProgress`, `onLockWait` et `lockAcquireTimeoutMs` sont transmis à chaque exécution et se comportent exactement comme sur `translate`. `locales` restreint chaque exécution de la session à ce sous-ensemble et est validé une seule fois au démarrage, pas à chaque cycle.
+`debounceMs` vaut 300 par défaut. `onRun` est appelé une fois par exécution avec un `WatchRunResult` : `{ status: "succeeded", summary }` ou `{ status: "failed", error: { code, message, causeCode?, hint? } }`, où `causeCode` nomme l'erreur codée que l'échec enveloppe et `hint` est l'étape suivante que donne `errorHint`. `onReady` est appelé une fois, quand les vérifications de démarrage passent et juste avant l'exécution initiale, pour que tu puisses annoncer la session avant la sortie de cette exécution. Si `onReady` lève une erreur, la surveillance est fermée et `watch` rejette avec cette erreur avant le début de toute exécution. Le SDK n'écrit aucun log ; `onRun` est la seule sortie. `concurrency`, `cache`, `onProgress`, `onLockWait` et `lockAcquireTimeoutMs` sont transmis à chaque exécution et se comportent exactement comme sur `translate`. `locales` restreint chaque exécution de la session à ce sous-ensemble et est validé une seule fois au démarrage, pas à chaque cycle.
 
 Renvoie un `WatchController` avec une seule méthode, `stop()`, qui ferme la surveillance et attend l'exécution en cours. Chaque code de la ligne **Lève** est refusé au démarrage, avant que la surveillance n'existe, donc `watch` lui-même rejette au lieu de renvoyer un contrôleur. Deux d'entre eux pèsent plus sur une session que sur une seule exécution : un `concurrency` supérieur à 1 face à une config qui fixe `maxTokens` lève toujours `CONCURRENCY_BUDGET_CONFLICT`, car il n'existe pas de watch en dry run, et, depuis 0.12.0, un fournisseur impossible à construire, par exemple parce que sa variable de clé d'API manque, lève `PROVIDER_CONSTRUCTION_FAILED` une seule fois au lieu de faire échouer chaque exécution. Tout échec après le démarrage remonte via `onRun` et la surveillance continue.
 
@@ -135,9 +135,11 @@ Supprime tous les verrous d'écriture que détient le processus courant, pour un
 point de se terminer sans laisser finir ses exécutions en cours : la CLI l'appelle quand une
 interruption arrête `translate` ou `import`, et quand une seconde interruption force l'arrêt de
 `watch`. Les exécutions qui ont pris ces verrous perdent leur protection, appelle-le donc seulement
-juste avant la fin du processus. Il ne prend aucun argument et ne rejette jamais. Un verrou qu'une
-opération encore en cours prend, ou tente de prendre, pendant son exécution est refusé avec
-`RUN_CANCELLED` et ne laisse aucun fichier ; il attend au plus trois secondes une telle acquisition.
+juste avant la fin du processus. Il ne prend aucun argument et ne rejette, avec une `AggregateError`
+qui nomme les chemins des verrous, que si un verrou détenu n'a pas pu être supprimé, après avoir
+tenté chaque verrou. Un verrou qu'une opération encore en cours prend, ou tente de prendre, pendant
+son exécution est refusé avec `RUN_CANCELLED` et ne laisse aucun fichier ; il attend au plus trois
+secondes une telle acquisition.
 
 ```ts title="Signature"
 function releaseHeldLocks(): Promise<void>;
