@@ -1,7 +1,7 @@
 import type { FormatAdapter } from "../adapter.js";
 import { createFlatFileAdapter } from "../flat/flat-file-adapter.js";
 import { type AdapterFs, nodeAdapterFs } from "../fs-port.js";
-import { extractXliffPlaceholders } from "./placeholders.js";
+import { compareXliffPlaceholders, extractXliffPlaceholders } from "./placeholders.js";
 import { parseXliffEntries, serializeXliffEntries } from "./xml.js";
 
 function sniffXliff(sample: string): boolean {
@@ -17,6 +17,7 @@ export function createXliffAdapter(fs: AdapterFs = nodeAdapterFs): FormatAdapter
     sniff: sniffXliff,
     parseEntries: parseXliffEntries,
     serializeEntries: serializeXliffEntries,
-    extractPlaceholders: extractXliffPlaceholders,
+    extractPlaceholders: (value) => extractXliffPlaceholders(value),
+    comparePlaceholders: compareXliffPlaceholders,
   });
 }

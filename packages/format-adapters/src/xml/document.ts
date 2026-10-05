@@ -1,10 +1,22 @@
-import { DOMImplementation, DOMParser, type Document, type Element } from "@xmldom/xmldom";
+import {
+  DOMImplementation,
+  DOMParser,
+  type Document,
+  type Element,
+  type Node,
+  XMLSerializer,
+} from "@xmldom/xmldom";
 import { AdapterError } from "../errors.js";
 import type { AdapterFs } from "../fs-port.js";
 import { outcomeToContent, readBoundedFile } from "../json/bounded-read.js";
-import { isEnoent, type LineTerminator } from "../shell.js";
+import {
+  detectLineTerminator,
+  isEnoent,
+  type LineTerminator,
+  trailingLineBreaks,
+} from "../shell.js";
 
-export const ELEMENT_NODE = 1;
+const ELEMENT_NODE = 1;
 export const TEXT_NODE = 3;
 
 export const XML_PROLOG = '<?xml version="1.0" encoding="utf-8"?>\n';
@@ -15,7 +27,7 @@ export interface XmlDocumentLabels {
   readonly notRoot: string;
 }
 
-function onFatal(level: "warning" | "error" | "fatalError", message: string): void {
+export function onFatal(level: "warning" | "error" | "fatalError", message: string): void {
   if (level === "fatalError") {
     throw new Error(message);
   }
@@ -115,4 +127,63 @@ const ANY_LINE_TERMINATOR = /\r\n?/g;
 export function applyLineTerminator(output: string, terminator: LineTerminator): string {
   const normalized = output.replace(ANY_LINE_TERMINATOR, "\n");
   return terminator === "\n" ? normalized : normalized.replaceAll("\n", terminator);
+}
+
+export function serializeXmlInto(original: string, doc: Document): string {
+  const terminator = detectLineTerminator(original);
+  const body = applyLineTerminator(new XMLSerializer().serializeToString(doc), terminator);
+  return `${body}${applyLineTerminator(trailingLineBreaks(original), terminator)}`;
+}
+
+export function isWhitespaceText(node: Node | null): boolean {
+  return node !== null && node.nodeType === TEXT_NODE && (node.nodeValue ?? "").trim() === "";
+}
+
+export function childIndent(container: Element, fallback: string): string {
+  const indent = elementChildren(container).at(-1)?.previousSibling ?? null;
+  return isWhitespaceText(indent) ? (indent?.nodeValue ?? fallback) : fallback;
+}
+
+export function appendIndented(
+  doc: Document,
+  container: Element,
+  node: Element,
+  empty?: { readonly indent: string; readonly closing: string },
+): void {
+  const trailing = isWhitespaceText(container.lastChild) ? container.lastChild : null;
+  const lastElement = elementChildren(container).at(-1);
+  const indent = lastElement?.previousSibling ?? null;
+  if (isWhitespaceText(indent)) {
+    container.insertBefore(doc.createTextNode(indent?.nodeValue ?? ""), trailing);
+  } else if (lastElement === undefined && empty !== undefined) {
+    container.insertBefore(doc.createTextNode(empty.indent), trailing);
+    container.insertBefore(node, trailing);
+    if (trailing === null) {
+      container.appendChild(doc.createTextNode(empty.closing));
+    }
+    return;
+  }
+  container.insertBefore(node, trailing);
+}
+
+export function insertIndentedAfter(
+  doc: Document,
+  parent: Element,
+  anchor: Element,
+  node: Element,
+): void {
+  const indent = anchor.previousSibling;
+  const next = anchor.nextSibling;
+  if (isWhitespaceText(indent)) {
+    parent.insertBefore(doc.createTextNode(indent?.nodeValue ?? ""), next);
+  }
+  parent.insertBefore(node, next);
+}
+
+export function removeIndented(parent: Element, element: Element): void {
+  const indent = element.previousSibling;
+  if (indent !== null && isWhitespaceText(indent)) {
+    parent.removeChild(indent);
+  }
+  parent.removeChild(element);
 }

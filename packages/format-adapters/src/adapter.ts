@@ -1,4 +1,5 @@
 import type { FormatId, LocaleResource, PlaceholderIntegrityResult } from "@verbatra/core";
+import type { PluralCategoryLookup } from "./shell.js";
 
 /**
  * The result of reading a file into core's intermediate representation. The two diagnostic lists are
@@ -29,6 +30,19 @@ export interface ReadResult {
    * preserves it verbatim.
    */
   readonly excludedLeafPaths: readonly string[];
+}
+
+/**
+ * What a caller knows about one write beyond the resource and its destination. Every member is
+ * optional, so an adapter that needs none of it ignores the whole object.
+ */
+export interface WriteContext {
+  /**
+   * The path of the project's source-locale file. A writer that patches an existing document (the
+   * XLIFF one) copies the structure of a unit the destination lacks from this document, and writes
+   * source text rather than translations when it equals the destination path.
+   */
+  readonly sourcePath?: string;
 }
 
 /**
@@ -78,10 +92,11 @@ export interface FormatAdapter {
    *
    * @param resource - The resource to serialize.
    * @param filePath - The destination file.
+   * @param context - Optional facts about the write, such as the source-locale file's path.
    * @throws `AdapterError` if the resource cannot be represented in the format; rejects with the
    *   underlying filesystem error on a write failure.
    */
-  write(resource: LocaleResource, filePath: string): Promise<void>;
+  write(resource: LocaleResource, filePath: string, context?: WriteContext): Promise<void>;
 
   /**
    * Extract the format's placeholder tokens from a single value, resolving nothing.
@@ -104,9 +119,9 @@ export interface FormatAdapter {
 
   /**
    * Optional whole-value placeholder comparison, used by callers instead of independently extracting
-   * each side's placeholders with {@link extractPlaceholders} and diffing the flat lists. Both
-   * adapter factories accept one, under the `comparePlaceholders` option. Among the shipped
-   * adapters two families define one, for different reasons:
+   * each side's placeholders with {@link FormatAdapter.extractPlaceholders} and diffing the flat
+   * lists. Both adapter factories accept one, under the `comparePlaceholders` option. Among the
+   * shipped adapters three families define one, for different reasons:
    *
    * - The ICU formats (next-intl and ARB) compare branch by branch, because flattening a
    *   plural/select value loses which branch a placeholder came from.
@@ -115,6 +130,9 @@ export interface FormatAdapter {
    *   in the translated value but absent from the source is reported as `extra`. Single-brace text
    *   is ordinary literal content under these formats' default delimiters, so it is never required
    *   to survive a translation, but inventing one is never a legitimate translation either.
+   * - XLIFF extracts both sides with the same version-independent scan, since a single value does
+   *   not say whether its document is XLIFF 1.2 or 2.0, while a read entry's `placeholders` hold
+   *   only the inline elements its own document's version defines.
    *
    * Absent for the remaining adapters, which are compared via `extractPlaceholders` plus a flat
    * multiset check.
@@ -124,4 +142,26 @@ export interface FormatAdapter {
    * @returns The merged placeholder-integrity result. Does not throw.
    */
   comparePlaceholders?(sourceValue: string, targetValue: string): PlaceholderIntegrityResult;
+
+  /**
+   * Optional check of a translation's branch arms against its source, for a format whose messages
+   * carry plural and select branches. Both adapter factories accept one, under the
+   * `compareBranchArms` option. Among the shipped adapters the ICU formats (next-intl and ARB)
+   * define it: every `plural` must carry exactly the target language's CLDR cardinal categories and
+   * every `selectordinal` exactly its ordinal categories (only `other` is required when the runtime
+   * has no plural rules for the language), each keeps the source's `=N` exact-value arms and its
+   * `offset`, may add further exact-value arms, and every `select` keeps the source's arm set
+   * unchanged. Absent for every other adapter, whose values are not checked this way.
+   *
+   * @param sourceValue - The source value.
+   * @param targetValue - The translated value to check against it.
+   * @param pluralCategories - Answers which plural categories the target language uses.
+   * @returns One readable problem per wrong arm; empty when the arms are acceptable or either value
+   *   cannot be parsed. Does not throw.
+   */
+  compareBranchArms?(
+    sourceValue: string,
+    targetValue: string,
+    pluralCategories: PluralCategoryLookup,
+  ): readonly string[];
 }
