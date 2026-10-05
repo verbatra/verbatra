@@ -11,6 +11,8 @@ Side-by-side editor, state filters, provenance badges, per-locale glossary, RTL 
 - A spend method called while spending is off answers `SPEND_DISABLED` (HTTP 403), naming
   `--allow-spend` or `provider: none` as the reason, instead of `METHOD_UNKNOWN` (HTTP 400).
 - A logged RPC request names its method, such as `POST /rpc status.check 200`.
+- `key.integrity` (and `verbatra_key_integrity`) fails with `UNKNOWN_KEY` for a key the source
+  does not have, instead of returning empty rows.
 - `verbatra_locale_values` returns one page of at most 200 entries by default, grouped per
   locale under `entries`, with a `nextCursor` for the next page; 0.5 returned every value at once.
   Pass `limit` (up to 1000) and `cursor`, and narrow with `locales`, `keys` or `query`, as the MCP
@@ -43,7 +45,7 @@ Side-by-side editor, state filters, provenance badges, per-locale glossary, RTL 
   the withheld keys, and a retranslation it refuses explains why.
 - The session-expired screen says to reopen the printed URL, and an unexpected server error is
   printed in the terminal running Studio. Error messages use project-relative paths.
-- The dashboard no longer trips its own Content-Security-Policy, and React loads as its own file.
+- The dashboard no longer trips its own Content-Security-Policy.
 - `./package.json` is exported, and an `apiKeyEnvVar` value is redacted from every response.
 
 **Agent tools**
