@@ -6,6 +6,7 @@ import {
   GATE_MISSING_PLACEHOLDER,
   GATE_REASON,
   GATE_REFUSAL,
+  GATE_RUN_LINES,
   GATE_TARGET_LINES,
   GATE_WITHHELD_LABEL,
 } from "@/lib/gate-demo";
@@ -49,5 +50,18 @@ describe("the gate demo quotes the sdk", () => {
     const kept = GATE_TARGET_LINES.find((line) => line.annotation === "kept");
     expect(kept?.text).toContain(GATE_MISSING_PLACEHOLDER);
     expect(GATE_TARGET_LINES.some((line) => line.annotation === "new")).toBe(true);
+  });
+
+  it("prints the refusal detail the way the cli renders a withheld key", () => {
+    const render = repoFile(CLI_RENDER);
+    expect(render).toContain('["    integrity-withheld:"');
+    expect(render).toMatch(
+      /`\s{6}\$\{neutralizeControlCharacters\(refusal\.key\)\}: \$\{refusal\.reason\}/,
+    );
+    expect(GATE_RUN_LINES[0]).toBe(`  ${GATE_CLI_LINE}, 149 tokens (131 in, 18 out)`);
+    expect(GATE_RUN_LINES[2]).toBe(
+      `      ${GATE_REFUSAL.key}: ${GATE_REASON} (-${GATE_MISSING_PLACEHOLDER})`,
+    );
+    expect(GATE_RUN_LINES.at(-1)).toBe("0 succeeded, 1 partial, 0 failed");
   });
 });

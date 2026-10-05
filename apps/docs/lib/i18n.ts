@@ -23,6 +23,17 @@ export function localizedPath(locale: Locale, path: string): string {
   return locale === i18n.defaultLanguage ? path : `/${locale}${path}`;
 }
 
+export type LocalizedAnchors = Readonly<Record<Locale, string>>;
+
+export function localizedAnchorPath(
+  locale: Locale,
+  page: string,
+  anchors: LocalizedAnchors | undefined,
+): string {
+  const anchor = anchors?.[locale];
+  return localizedPath(locale, anchor === undefined ? page : `${page}#${anchor}`);
+}
+
 export function localizeHref(locale: Locale, href: string | undefined): string | undefined {
   if (href === undefined || !href.startsWith("/") || href.startsWith("//")) {
     return href;
