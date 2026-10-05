@@ -558,6 +558,9 @@ async function acquireLock(path: string, fs: SdkFs, settings: AcquireSettings): 
   const state: AcquireState = { sighting: undefined, refusal: undefined };
   for (;;) {
     refuseWhileReleasing(path);
+    if (isCancelled(settings.signal)) {
+      throw lockWaitCancelledError(path);
+    }
     const content = lockPayload(fs, settings);
     if (await fs.createExclusive(path, content)) {
       await fs.touch?.(path).catch(() => undefined);

@@ -831,6 +831,24 @@ describe("withLocaleWriteLock: releasing only its own lock", () => {
     expect(deletes).toBe(1);
   });
 
+  it("never takes a free lock for a caller already cancelled", async () => {
+    const memory = memoryLockFs();
+    const ran = vi.fn();
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(
+      withLocaleWriteLock("/proj", "de", memory.fs, async () => ran(), {
+        ...FAIL_FAST,
+        signal: controller.signal,
+      }),
+    ).rejects.toMatchObject({ code: "RUN_CANCELLED" });
+
+    expect(ran).not.toHaveBeenCalled();
+    expect(memory.files.has(LOCK)).toBe(false);
+    expect(memory.deleted).toEqual([]);
+  });
+
   it("compares before deleting on a file system without rename", async () => {
     const memory = memoryLockFs();
     const { rename: _rename, ...withoutRename } = memory.fs;
