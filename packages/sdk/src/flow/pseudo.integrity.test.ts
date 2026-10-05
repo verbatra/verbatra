@@ -1,4 +1,5 @@
 import {
+  pseudolocalizeBidiValue,
   pseudolocalizeValue,
   SUPPORTED_FORMATS,
   type SupportedFormat,
@@ -143,6 +144,21 @@ describe("a pseudolocalized value clears the integrity gate for every registered
   });
 });
 
+describe("a bidi pseudolocalized value clears the integrity gate for every registered format", () => {
+  it.each(Object.keys(TOKENS) as SupportedFormat[])("%s", (format) => {
+    const bareTokens = new Set(TOKENS[format].map((token) => `left unchanged: ${token}`));
+    const problems = problemsFor(format, pseudolocalizeBidiValue).filter(
+      (problem) => !bareTokens.has(problem),
+    );
+
+    expect(problems).toEqual([]);
+  });
+
+  it("leaves a value that is only a placeholder byte-identical, since it has no text to override", () => {
+    expect(pseudolocalizeBidiValue("{{name}}")).toBe("{{name}}");
+  });
+});
+
 describe("pseudolocalization survives the markup gate for every format", () => {
   const MARKUP_VALUES = [
     "One<br/>two",
@@ -151,12 +167,15 @@ describe("pseudolocalization survives the markup gate for every format", () => {
     '<a href="/docs">the docs</a>',
   ] as const;
 
-  function markupRefusals(format: SupportedFormat): readonly string[] {
+  function markupRefusals(
+    format: SupportedFormat,
+    transform: Transform = pseudolocalizeValue,
+  ): readonly string[] {
     const adapter = adapterFor(format);
     return MARKUP_VALUES.filter((value) => {
       const result = gateCandidateValue(
         sourceEntry(value, adapter),
-        pseudolocalizeValue(value),
+        transform(value),
         adapter,
         undefined,
       );
@@ -166,6 +185,10 @@ describe("pseudolocalization survives the markup gate for every format", () => {
 
   it.each(SUPPORTED_FORMATS)("%s never refuses a pseudolocalized value for markup", (format) => {
     expect(markupRefusals(format)).toEqual([]);
+  });
+
+  it.each(SUPPORTED_FORMATS)("%s never refuses a bidi value for markup", (format) => {
+    expect(markupRefusals(format, pseudolocalizeBidiValue)).toEqual([]);
   });
 
   it("would report a format whose pseudolocalization rewrote a tag", () => {

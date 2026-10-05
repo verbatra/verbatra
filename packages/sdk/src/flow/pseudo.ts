@@ -2,6 +2,7 @@ import { dirname, isAbsolute, relative, resolve } from "node:path";
 import {
   type FormatId,
   type LocaleResource,
+  pseudolocalizeBidiValue,
   pseudolocalizeValue,
   type TranslationEntry,
 } from "@verbatra/core";
@@ -26,7 +27,28 @@ import {
   writeTargetResource,
 } from "./write-target.js";
 
-const DEFAULT_PSEUDO_LOCALE = "en-XA";
+/**
+ * The pseudolocale transforms {@link pseudolocalize} can apply, the default first. `accented`
+ * accents, expands and brackets every value to expose truncation and hardcoded strings; `bidi`
+ * forces every word to render right to left to expose layout that assumes left-to-right text.
+ * This tuple is the single source of truth for the set.
+ */
+export const PSEUDO_MODES = ["accented", "bidi"] as const;
+
+/** One of {@link PSEUDO_MODES}. */
+export type PseudoMode = (typeof PSEUDO_MODES)[number];
+
+const DEFAULT_PSEUDO_LOCALES: Readonly<Record<PseudoMode, string>> = {
+  accented: "en-XA",
+  bidi: "ar-XB",
+};
+
+type PseudoTransform = (value: string) => string;
+
+const PSEUDO_TRANSFORMS: Readonly<Record<PseudoMode, PseudoTransform>> = {
+  accented: pseudolocalizeValue,
+  bidi: pseudolocalizeBidiValue,
+};
 
 const DEFAULT_PSEUDO_DIRECTORY = ".verbatra-local/pseudo";
 
@@ -51,7 +73,17 @@ export interface PseudolocalizeInput {
   /** Directory the `files.pattern` is resolved against. Defaults to the process working directory. */
   readonly cwd?: string;
   /**
-   * The pseudolocale's BCP-47 code. Defaults to `en-XA`. It must not be the source locale or any
+   * The transform to apply. Defaults to `accented`. `bidi` wraps every word of translatable text
+   * in a right-to-left mark and override (`U+200F U+202E` before, `U+202C U+200F` after), so it
+   * renders right to left while the stored letters keep their order; placeholders, ICU syntax,
+   * markup, digits and punctuation stay outside the override, and nothing is accented or padded.
+   */
+  readonly mode?: PseudoMode;
+  /**
+   * The pseudolocale's BCP-47 code. Defaults to `en-XA` in `accented` mode and to `ar-XB` in
+   * `bidi` mode, a code that resolves to right-to-left text direction, so an application that
+   * derives its layout direction from the locale flips without further setup. `ar-XB` follows
+   * Arabic plural rules, while the pseudolocale keeps the source's plural forms. It must not be the source locale or any
    * configured target locale, compared case-insensitively, so a pseudolocale can never stand in for
    * a real translation.
    */
@@ -83,6 +115,8 @@ export interface PseudolocalizeDeps {
 export interface PseudolocalizeResult {
   /** The pseudolocale that was generated. */
   readonly locale: string;
+  /** The transform that was applied. */
+  readonly mode: PseudoMode;
   /** Absolute path of the file that was written, or would have been written on a changed run. */
   readonly path: string;
   /** How many source entries were processed. */
@@ -218,27 +252,34 @@ function splitPluralForms(value: string): readonly string[] {
   return forms;
 }
 
-function pseudolocalizeSegment(segment: string): string {
+function pseudolocalizeSegment(segment: string, transform: PseudoTransform): string {
   const [, lead = "", body = "", trail = ""] = SEGMENT_PADDING.exec(segment) ?? [];
-  return body === "" ? segment : `${lead}${pseudolocalizeValue(body)}${trail}`;
+  return body === "" ? segment : `${lead}${transform(body)}${trail}`;
 }
 
-function pseudolocalizeEntryValue(entry: TranslationEntry, format: FormatId): string {
+function pseudolocalizeEntryValue(
+  entry: TranslationEntry,
+  format: FormatId,
+  transform: PseudoTransform,
+): string {
   if (!entry.isPlural || !PIPE_SEGMENTED_FORMATS.has(format)) {
-    return pseudolocalizeValue(entry.value);
+    return transform(entry.value);
   }
-  return splitPluralForms(entry.value).map(pseudolocalizeSegment).join("|");
+  return splitPluralForms(entry.value)
+    .map((segment) => pseudolocalizeSegment(segment, transform))
+    .join("|");
 }
 
 function pseudolocalizeEntries(
   source: ReadonlyMap<string, TranslationEntry>,
   adapter: FormatAdapter,
   format: FormatId,
+  transform: PseudoTransform,
 ): PseudoEntries {
   const entries = new Map<string, TranslationEntry>();
   const copied: string[] = [];
   for (const [key, entry] of source) {
-    const candidate = pseudolocalizeEntryValue(entry, format);
+    const candidate = pseudolocalizeEntryValue(entry, format, transform);
     const accepted = gateCandidateValue(entry, candidate, adapter, undefined).accepted;
     if (!accepted) {
       copied.push(key);
@@ -322,10 +363,12 @@ function sameValues(
 }
 
 /**
- * Generates a pseudolocale from the source strings alone: every value is accented, expanded by
- * roughly a third of its translatable length, and wrapped in `[` and `]` boundary markers, so a
- * truncated or concatenated string is obvious on screen and an untranslated hardcoded string stands
- * out for having escaped the transform.
+ * Generates a pseudolocale from the source strings alone. In the default `accented` mode every
+ * value is accented, expanded by roughly a third of its translatable length, and wrapped in `[` and
+ * `]` boundary markers, so a truncated or concatenated string is obvious on screen and an
+ * untranslated hardcoded string stands out for having escaped the transform. In `bidi` mode every
+ * word is forced to render right to left instead, written to `ar-XB` by default, so layout that
+ * assumes left-to-right text shows up before any right-to-left translation exists.
  *
  * It constructs no provider, reads no API key and makes no network request, so it runs on a fresh
  * checkout before any key exists or any budget is approved.
@@ -349,7 +392,7 @@ function sameValues(
  * pseudolocale; a copied XLIFF has its target-language attribute rewritten to the pseudolocale, so
  * the file never misdescribes what it holds.
  *
- * @param input - The config, the pseudolocale code, and the output directory.
+ * @param input - The config, the transform, the pseudolocale code, and the output directory.
  * @param deps - Optional adapter registry and file-system overrides.
  * @returns Where the pseudolocale landed, how many entries it carries, and whether it changed.
  *
@@ -383,7 +426,8 @@ export async function pseudolocalize(
 ): Promise<PseudolocalizeResult> {
   const { config } = input;
   const cwd = input.cwd ?? process.cwd();
-  const locale = input.locale ?? DEFAULT_PSEUDO_LOCALE;
+  const mode = input.mode ?? "accented";
+  const locale = input.locale ?? DEFAULT_PSEUDO_LOCALES[mode];
   const fs = deps.fs ?? defaultFs;
   assertPseudoLocaleIsNotConfigured(config, locale);
 
@@ -410,9 +454,11 @@ export async function pseudolocalize(
     source.resource.entries,
     adapter,
     config.format,
+    PSEUDO_TRANSFORMS[mode],
   );
   const summary = {
     locale,
+    mode,
     path: outputPath,
     entries: entries.size,
     transformed: entries.size - copied.length,

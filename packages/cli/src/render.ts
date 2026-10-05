@@ -985,7 +985,7 @@ export function renderError(error: RenderableError): string {
 export function renderPseudoHuman(result: PseudolocalizeResult, base?: string): string {
   const lines = [
     "verbatra pseudo",
-    `  ${result.locale}: ${result.transformed} of ${plural(result.entries, "entry", "entries")} pseudolocalized`,
+    `  ${result.locale} (${result.mode}): ${result.transformed} of ${plural(result.entries, "entry", "entries")} pseudolocalized`,
   ];
   if (result.copied.length > 0) {
     lines.push(`    copied verbatim: ${result.copied.join(", ")}`);
