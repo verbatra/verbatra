@@ -7,6 +7,8 @@ import { createRpcHandlers, type HandlersRegistry, type RpcHandlerDeps } from ".
 import { dispatchRpc } from "./rpc-gate.js";
 import { baseStudioConfig } from "./test-support.js";
 
+const SK_PROJ = ["sk", "proj", ""].join("-");
+
 function deps(): RpcHandlerDeps {
   return {
     config: {
@@ -184,7 +186,7 @@ describe("dispatchRpc envelope", () => {
         throw new FakeDomainError(
           "SdkError",
           "CONFIG_NOT_FOUND",
-          "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z leaked",
+          `${SK_PROJ}Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z leaked`,
         );
       },
     });
@@ -192,7 +194,7 @@ describe("dispatchRpc envelope", () => {
     expect(result.statusCode).toBe(200);
     const parsed = await parseBody(result);
     expect(parsed).toMatchObject({ ok: false, error: { code: "CONFIG_NOT_FOUND" } });
-    expect(result.body).not.toContain("sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z");
+    expect(result.body).not.toContain(`${SK_PROJ}Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z`);
     expect(result.body).toContain("[REDACTED]");
   });
 

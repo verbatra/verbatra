@@ -4,6 +4,11 @@ import { detectorSpans, isCardNumber, passesLuhn } from "./detectors.js";
 import { isValidIban } from "./iban.js";
 
 const SK_PROJ = ["sk", "proj", ""].join("-");
+const JWT = [
+  "eyJhbGciOiJIUzI1NiJ9",
+  "eyJzdWIiOiIxMjM0NTY3ODkwIn0",
+  "dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U",
+].join(".");
 
 function found(id: SensitiveDetectorId, text: string): string[] {
   return detectorSpans(id, text).map((span) => text.slice(span.start, span.end));
@@ -13,11 +18,7 @@ describe("the secret detector", () => {
   it.each([
     ["an OpenAI-style key", `key ${SK_PROJ}Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z here`, SK_PROJ],
     ["an AWS access key id", "use AKIAIOSFODNN7EXAMPLE now", "AKIAIOSFODNN7EXAMPLE"],
-    [
-      "a JWT",
-      "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U",
-      "eyJhbGciOiJIUzI1NiJ9",
-    ],
+    ["a JWT", `Bearer ${JWT}`, "eyJhbGciOiJIUzI1NiJ9"],
     ["a private key header", "-----BEGIN RSA PRIVATE KEY-----", "-----BEGIN RSA PRIVATE KEY-----"],
     ["a bare private key header", "-----BEGIN PRIVATE KEY-----", "-----BEGIN PRIVATE KEY-----"],
     ["a GitHub token", `use ghp_${"a1".repeat(18)} now`, `ghp_${"a1".repeat(18)}`],

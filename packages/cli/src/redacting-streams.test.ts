@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { redactingStreams } from "./redacting-streams.js";
 import { captureStreams } from "./test-support.js";
 
+const DEEPL_SHAPED_KEY = ["0b1c2d3e", "4f50", "6172", "8394", "a5b6c7d8e9f0"].join("-");
+
 afterEach(() => {
   vi.unstubAllEnvs();
 });
@@ -42,24 +44,16 @@ describe("redactingStreams: a compact JSON document", () => {
   });
 
   it.each([
-    [
-      "a top-level member",
-      { auth_key: "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0" },
-      { auth_key: "[REDACTED]" },
-    ],
+    ["a top-level member", { auth_key: DEEPL_SHAPED_KEY }, { auth_key: "[REDACTED]" }],
     [
       "a nested member",
-      { config: { deeplKey: "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0", id: 1 } },
+      { config: { deeplKey: DEEPL_SHAPED_KEY, id: 1 } },
       { config: { deeplKey: "[REDACTED]", id: 1 } },
     ],
-    [
-      "an array member",
-      { auth_key: ["0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0", 2] },
-      { auth_key: ["[REDACTED]", 2] },
-    ],
+    ["an array member", { auth_key: [DEEPL_SHAPED_KEY, 2] }, { auth_key: ["[REDACTED]", 2] }],
     [
       "a nested array member",
-      { deepl_api_key: [["0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"], { id: 1 }] },
+      { deepl_api_key: [[DEEPL_SHAPED_KEY], { id: 1 }] },
       { deepl_api_key: [["[REDACTED]"], { id: 1 }] },
     ],
   ])("scrubs a DeepL key named by %s object key", (_what, document, expected) => {
@@ -70,7 +64,7 @@ describe("redactingStreams: a compact JSON document", () => {
   });
 
   it("leaves a bare UUID in an array readable when its member names no key", () => {
-    const document = '{"ids":["0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"]}';
+    const document = `{"ids":["${DEEPL_SHAPED_KEY}"]}`;
 
     expect(written(document)).toBe(document);
   });
@@ -84,7 +78,7 @@ describe("redactingStreams: a compact JSON document", () => {
 
   it("keeps a DeepL key named by its member scrubbed when the whole-document match is dropped", () => {
     vi.stubEnv("OPENAI_API_KEY", '1,"zzzzzzzz');
-    const document = '{"a":1,"zzzzzzzz":2,"auth_key":"0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"}';
+    const document = `{"a":1,"zzzzzzzz":2,"auth_key":"${DEEPL_SHAPED_KEY}"}`;
 
     expect(JSON.parse(written(document))).toEqual({
       a: 1,

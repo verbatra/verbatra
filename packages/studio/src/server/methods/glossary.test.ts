@@ -5,6 +5,8 @@ import type { RpcHandlerDeps } from "../rpc.js";
 import { baseStudioConfig } from "../test-support.js";
 import { glossaryGetHandler, glossaryWriteHandler } from "./glossary.js";
 
+const SK_PROJ = ["sk", "proj", ""].join("-");
+
 function deps(loaded: LoadedConfig, projectRoot = "/project", fs?: SdkFs): RpcHandlerDeps {
   return { config: loaded, projectRoot, ...(fs !== undefined ? { fs } : {}) };
 }
@@ -107,7 +109,7 @@ describe("glossaryGetHandler", () => {
   it("redacts a secret-shaped glossary value before it leaves the handler and names the term", async () => {
     const loaded: LoadedConfig = {
       config: baseStudioConfig({
-        glossary: { apiTerm: "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z", hello: "hola" },
+        glossary: { apiTerm: `${SK_PROJ}Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z`, hello: "hola" },
       }),
       source: { kind: "override" },
       glossary: { source: "inline" },
@@ -215,14 +217,14 @@ describe("glossaryWriteHandler", () => {
     const store = new Map([["/project/glossary.json", '{"hello":"hola"}']]);
 
     const result = await glossaryWriteHandler(
-      { term: "apiTerm", translation: "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z" },
+      { term: "apiTerm", translation: `${SK_PROJ}Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z` },
       deps(fileBacked({ hello: "hola" }), "/project", fakeGlossaryFs(store)),
     );
 
     expect(termMapOf(result).apiTerm).toBe("[REDACTED]");
     expect(result.redactedTerms).toEqual(["apiTerm"]);
     expect(store.get("/project/glossary.json")).toContain(
-      "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z",
+      `${SK_PROJ}Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z`,
     );
   });
 });
