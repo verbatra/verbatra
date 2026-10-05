@@ -19,19 +19,21 @@ describe("the static LibreTranslate language table", () => {
 });
 
 describe("parseLibreTranslateLanguages", () => {
-  it("lists every language as a source and a language as a target when any source offers it", () => {
+  it("lists a language as a source when it offers a target and as a target when any source offers it", () => {
     const table = parseLibreTranslateLanguages(SERVER_LIST);
     expect(table.origin).toBe("live");
     expect(table.partial).toBeUndefined();
     expect(table.languages).toEqual([
       { code: "en", source: true, target: true, glossary: false, formality: false },
       { code: "de", source: true, target: true, glossary: false, formality: false },
-      { code: "ga", source: true, target: false, glossary: false, formality: false },
+      { code: "ga", source: false, target: false, glossary: false, formality: false },
     ]);
   });
 
-  it("accepts an entry without targets", () => {
-    expect(parseLibreTranslateLanguages([{ code: "en" }]).languages[0]?.target).toBe(false);
+  it("accepts an entry without targets and keeps it a source, since the server did not say", () => {
+    const entry = parseLibreTranslateLanguages([{ code: "en" }]).languages[0];
+    expect(entry?.target).toBe(false);
+    expect(entry?.source).toBe(true);
   });
 
   it("fails INVALID_RESPONSE for a body that is not a language list", () => {
