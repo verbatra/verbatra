@@ -236,12 +236,16 @@ export function useReviewDecisions(
     origins: readonly MachineClassOrigin[] | undefined,
     onSettled: () => void,
   ): Promise<void> {
-    const response = await orNetworkFailure(
-      rpcClient.call("review.approveLocale", {
-        locale,
-        ...(origins !== undefined ? { origins: [...origins] } : {}),
-      }),
+    const params = { locale, ...(origins !== undefined ? { origins: [...origins] } : {}) };
+    const refusal = budgetRefusal(
+      rateBudget.check("review.approveLocale", params, options.limits, Date.now()),
     );
+    if (refusal !== undefined) {
+      onSettled();
+      settle({ kind: "locale-failed", locale, message: refusal });
+      return;
+    }
+    const response = await orNetworkFailure(rpcClient.call("review.approveLocale", params));
     onSettled();
     if (!response.ok) {
       settle({ kind: "locale-failed", locale, message: response.error.message });

@@ -2091,3 +2091,39 @@ describe("ReviewPanel: a network failure", () => {
     );
   });
 });
+
+describe("ReviewPanel: approving a whole locale within the budget", () => {
+  it("refuses a second locale approval its own recent call used the budget for, without sending it", async () => {
+    stubReview(MIXED_QUEUE, {
+      ...SNAPSHOT,
+      capabilities: {
+        spend: false,
+        writeToDisk: true,
+        limits: {
+          retranslate: { windowMs: 60_000, max: 20 },
+          reviewDecision: { windowMs: 60_000, max: 1 },
+        },
+      },
+    });
+    stubRpc({
+      "review.approveLocale": {
+        ok: true,
+        result: { locale: "de", approved: ["checkout.title"], sourceChanged: [] },
+      },
+    });
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    selectOption(localeFilter(view), "de");
+
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      await clickAsync(approveAllButton(view) as HTMLButtonElement);
+      await clickAsync(view.getByText("button", "Approve 2 entries"));
+      await flush();
+    }
+
+    expect(rpcCalls.filter((call) => call.method === "review.approveLocale")).toHaveLength(1);
+    expect(view.query('[role="dialog"]')).toBeNull();
+    expect(view.get('[data-decision-status] [role="alert"]').textContent).toMatch(
+      /Could not approve the entries in de: Studio is limiting how often this action can run\. Try again in (59|60) seconds\./,
+    );
+  });
+});
