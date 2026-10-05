@@ -43,7 +43,7 @@ Side-by-side editor, state filters, provenance badges, per-locale glossary, RTL 
   the withheld keys, and a retranslation it refuses explains why.
 - The session-expired screen says to reopen the printed URL, and an unexpected server error is
   printed in the terminal running Studio. Error messages use project-relative paths.
-- The dashboard no longer trips its own Content-Security-Policy, and React loads as its own file.
+- The dashboard no longer trips its own Content-Security-Policy.
 - `./package.json` is exported, and an `apiKeyEnvVar` value is redacted from every response.
 
 **Agent tools**
