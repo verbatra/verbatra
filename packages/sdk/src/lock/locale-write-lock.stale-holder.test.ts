@@ -528,7 +528,7 @@ describe("releaseHeldLocks", () => {
     expect(await readFile(path, "utf8")).toBe(successor);
   });
 
-  it("never rejects when a lock file cannot be deleted", async () => {
+  it("rejects naming the lock once its file cannot be deleted", async () => {
     const entered = deferred();
     const finish = deferred();
     const fs = makeFakeFs({
@@ -543,7 +543,9 @@ describe("releaseHeldLocks", () => {
     });
     await entered.promise;
 
-    await expect(releaseHeldLocks()).resolves.toBeUndefined();
+    await expect(releaseHeldLocks()).rejects.toThrow(
+      /^Could not release 1 write lock: .*de\.lock\. /,
+    );
     finish.resolve();
     await operation;
   });
