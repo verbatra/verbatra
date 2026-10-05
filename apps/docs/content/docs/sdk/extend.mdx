@@ -49,11 +49,12 @@ sample, can aid.
 
 ```ts title="Signature"
 class AdapterRegistry {
-  constructor();
   register(adapter: FormatAdapter): this;
   resolve(filePath: string, options?: ResolveOptions): AdapterResolution;
 }
 ```
+
+`resolve` takes these options:
 
 <SdkTypeTable name="ResolveOptions" />
 
