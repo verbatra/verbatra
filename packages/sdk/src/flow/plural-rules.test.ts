@@ -151,10 +151,9 @@ describe("describePluralRules", () => {
     expect(status).toBe("warn");
     expect(detail).toContain('"tlh", "x-pseudo"');
     expect(detail).not.toContain('"de"');
-    expect(detail).toContain("plural checks there require only other");
   });
 
-  it("names exactly the arm the integrity gate requires for a locale ICU has no rules for", () => {
+  it("describes the gate and the translate notice for a locale ICU has no rules for", () => {
     const source = "{n, plural, one {# file} other {# files}}";
     const adapter = createNextIntlJsonAdapter();
     const { detail } = describePluralRules(["tlh"], runtime);
@@ -163,8 +162,12 @@ describe("describePluralRules", () => {
       [],
     );
     expect(branchArmProblems(source, "{n, plural, other {# x}}", adapter, "cs")).not.toEqual([]);
-    expect(detail).toContain("require only other");
-    expect(detail).not.toMatch(/checks there assume one and other/);
+    expect(detail).toContain("plural checks there require only other");
+    expect(detail).toContain(
+      "the i18next translate notice assumes one and other for cardinals and other for ordinals",
+    );
+    expect(pluralCategoriesFor("tlh")).toEqual(["one", "other"]);
+    expect(pluralCategoriesFor("tlh", "ordinal")).toEqual(["other"]);
   });
 
   it("omits the CLDR version when the runtime does not report one", () => {
