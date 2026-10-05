@@ -400,6 +400,7 @@ export {
   type RunStatusUnavailableReason,
   runStatus,
 } from "./flow/run-status.js";
+export { assertTargetLocale } from "./flow/select-locales.js";
 export type {
   BudgetBehavior,
   CharacterRunQuantity,

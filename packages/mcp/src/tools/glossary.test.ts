@@ -12,6 +12,8 @@ import {
 } from "../test-support.js";
 import { glossaryGetTool, glossaryWriteTool } from "./glossary.js";
 
+const SK_PROJ = ["sk", "proj", ""].join("-");
+
 const V2: GlossaryDefinition = {
   version: 2,
   terms: [
@@ -203,7 +205,7 @@ describe("glossary.get", () => {
   );
 
   it("redacts every secret-shaped value and names the terms that had one", async () => {
-    const secret = "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z";
+    const secret = `${SK_PROJ}Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z`;
     const outcome = await glossaryGetTool.execute(
       { locale: "de" },
       inline({

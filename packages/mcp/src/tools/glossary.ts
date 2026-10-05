@@ -1,10 +1,10 @@
 import {
+  assertTargetLocale,
   editConfiguredGlossaryTerm,
   type Glossary,
   glossaryForLocale,
   readCurrentGlossary,
   redactGlossary,
-  SdkError,
   type ValueMarker,
 } from "@verbatra/sdk";
 import { z } from "zod";
@@ -174,23 +174,12 @@ function buildResult(
   };
 }
 
-function assertTargetLocale(context: McpToolContext, locale: string): void {
-  const configured = context.config.config.targetLocales;
-  if (!configured.includes(locale)) {
-    throw new SdkError(
-      "UNKNOWN_LOCALE",
-      `Requested locale not in the configured target locales: ${locale}. ` +
-        `Configured targets: ${configured.join(", ")}.`,
-    );
-  }
-}
-
 async function glossaryGet(
   params: z.infer<typeof glossaryGetParamsSchema>,
   context: McpToolContext,
 ): Promise<GlossaryResult> {
   if (params.locale !== undefined) {
-    assertTargetLocale(context, params.locale);
+    assertTargetLocale(context.config.config, params.locale);
   }
   const glossary = await readCurrentGlossary({ loaded: context.config }, fsDeps(context));
   return buildResult(context, glossary, params.locale);
