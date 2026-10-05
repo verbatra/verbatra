@@ -59,12 +59,13 @@ function KeepForm({
   const [term, setTerm] = useState("");
   const [caseSensitive, setCaseSensitive] = useState(true);
   const busy = writer.pending !== undefined;
-  const ready = term.trim().length > 0 && term.length <= MAX_GLOSSARY_TERM_LENGTH;
+  const trimmed = term.trim();
+  const ready = trimmed.length > 0 && trimmed.length <= MAX_GLOSSARY_TERM_LENGTH;
 
   async function keep(): Promise<void> {
     const edit = caseSensitive
-      ? { term: term.trim(), doNotTranslate: true }
-      : { term: term.trim(), doNotTranslate: true, caseSensitive: false };
+      ? { term: trimmed, doNotTranslate: true }
+      : { term: trimmed, doNotTranslate: true, caseSensitive: false };
     if (await writer.write(edit)) {
       setTerm("");
       setCaseSensitive(true);

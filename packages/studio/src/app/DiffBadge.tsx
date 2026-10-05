@@ -20,6 +20,10 @@ const DIFF_TONE_CLASSES: Readonly<Record<DiffTone, string>> = {
   protected: "bg-warning-soft text-warning",
 };
 
+export function isDiffTone(value: string): value is DiffTone {
+  return Object.hasOwn(DIFF_LABEL, value);
+}
+
 export function DiffBadge({ tone }: { readonly tone: DiffTone }): ReactNode {
   return (
     <span className={cn(pillClassName, DIFF_TONE_CLASSES[tone])}>

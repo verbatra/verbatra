@@ -5,6 +5,7 @@ import {
   isStaleValueOutcome,
   type ReviewDecisionOutcome,
 } from "../client/review-decision-outcome.js";
+import { orNetworkFailure } from "../client/rpc-client.js";
 import { rpcClient } from "./api.js";
 import { Button } from "./Button.js";
 import { actionStatusTextClassName } from "./lib/action-status-classes.js";
@@ -128,11 +129,9 @@ export function RejectEntryDialog({
 
   async function handleReject(): Promise<void> {
     setState({ kind: "submitting" });
-    const response = await rpcClient.call("review.reject", {
-      locale,
-      key: keyName,
-      expectedValue: value,
-    });
+    const response = await orNetworkFailure(
+      rpcClient.call("review.reject", { locale, key: keyName, expectedValue: value }),
+    );
     const outcome = deriveReviewDecisionOutcome(response);
     if (outcome.kind === "success") {
       rejected.current = true;
