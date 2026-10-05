@@ -13,6 +13,7 @@ import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver, type LocalePathResolver } from "../locale-path/resolver.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { gateCandidateValue } from "./integrity-gate.js";
+import { planPluralGeneration, syntheticEntry } from "./plural-categories.js";
 import {
   createOutputPathGuard,
   type OutputPathGuard,
@@ -82,10 +83,12 @@ export interface PseudolocalizeInput {
   /**
    * The pseudolocale's BCP-47 code. Defaults to `en-XA` in `accented` mode and to `ar-XB` in
    * `bidi` mode, a code that resolves to right-to-left text direction, so an application that
-   * derives its layout direction from the locale flips without further setup. `ar-XB` follows
-   * Arabic plural rules, while the pseudolocale keeps the source's plural forms. It must not be the source locale or any
-   * configured target locale, compared case-insensitively, so a pseudolocale can never stand in for
-   * a real translation.
+   * derives its layout direction from the locale flips without further setup. In `bidi` mode an
+   * `i18next-json` plural keyed by suffix also gets every CLDR category the pseudolocale's
+   * language needs and the source lacks (for `ar-XB`, `_zero`, `_two`, `_few` and `_many`), filled
+   * from the source's `other` form, so no count falls back to another language. It must not be the
+   * source locale or any configured target locale, compared case-insensitively, so a pseudolocale
+   * can never stand in for a real translation.
    */
   readonly locale?: string;
   /**
@@ -119,9 +122,16 @@ export interface PseudolocalizeResult {
   readonly mode: PseudoMode;
   /** Absolute path of the file that was written, or would have been written on a changed run. */
   readonly path: string;
-  /** How many source entries were processed. */
+  /**
+   * How many entries the pseudolocale carries: one per source entry, plus, in `bidi` mode, each
+   * plural form added for a CLDR category the source lacks.
+   */
   readonly entries: number;
-  /** How many entries carry a pseudolocalized value. */
+  /**
+   * How many entries were written with a value that differs from their source value. A value with
+   * nothing to transform, such as a bare placeholder or an empty string in `bidi` mode, is not
+   * counted, and neither is a value in {@link PseudolocalizeResult.copied}.
+   */
   readonly transformed: number;
   /**
    * Keys whose source value was copied verbatim because a pseudolocalized value would not have
@@ -231,6 +241,7 @@ function assertOutputIsAwayFromTheLocaleFiles(
 interface PseudoEntries {
   readonly entries: Map<string, TranslationEntry>;
   readonly copied: readonly string[];
+  readonly transformed: number;
 }
 
 function splitPluralForms(value: string): readonly string[] {
@@ -270,6 +281,21 @@ function pseudolocalizeEntryValue(
     .join("|");
 }
 
+function sourceEntriesFor(
+  source: LocaleResource,
+  locale: string,
+  mode: PseudoMode,
+): ReadonlyMap<string, TranslationEntry> {
+  if (mode !== "bidi") {
+    return source.entries;
+  }
+  const entries = new Map(source.entries);
+  for (const item of planPluralGeneration(source, locale, source.format).items) {
+    entries.set(item.targetKey, syntheticEntry(item));
+  }
+  return entries;
+}
+
 function pseudolocalizeEntries(
   source: ReadonlyMap<string, TranslationEntry>,
   adapter: FormatAdapter,
@@ -278,15 +304,18 @@ function pseudolocalizeEntries(
 ): PseudoEntries {
   const entries = new Map<string, TranslationEntry>();
   const copied: string[] = [];
+  let transformed = 0;
   for (const [key, entry] of source) {
     const candidate = pseudolocalizeEntryValue(entry, format, transform);
     const accepted = gateCandidateValue(entry, candidate, adapter, undefined).accepted;
     if (!accepted) {
       copied.push(key);
+    } else if (candidate !== entry.value) {
+      transformed += 1;
     }
     entries.set(key, { ...entry, value: accepted ? candidate : entry.value });
   }
-  return { entries, copied };
+  return { entries, copied, transformed };
 }
 
 function retargetSeed(content: string, format: FormatId, locale: string): string {
@@ -368,7 +397,8 @@ function sameValues(
  * `]` boundary markers, so a truncated or concatenated string is obvious on screen and an
  * untranslated hardcoded string stands out for having escaped the transform. In `bidi` mode every
  * word is forced to render right to left instead, written to `ar-XB` by default, so layout that
- * assumes left-to-right text shows up before any right-to-left translation exists.
+ * assumes left-to-right text shows up before any right-to-left translation exists; an
+ * `i18next-json` plural also gets the CLDR categories that language needs and the source lacks.
  *
  * It constructs no provider, reads no API key and makes no network request, so it runs on a fresh
  * checkout before any key exists or any budget is approved.
@@ -450,8 +480,8 @@ export async function pseudolocalize(
   });
 
   const source = await readSourceResource(config, resolver, fs, adapter);
-  const { entries, copied } = pseudolocalizeEntries(
-    source.resource.entries,
+  const { entries, copied, transformed } = pseudolocalizeEntries(
+    sourceEntriesFor(source.resource, locale, mode),
     adapter,
     config.format,
     PSEUDO_TRANSFORMS[mode],
@@ -461,7 +491,7 @@ export async function pseudolocalize(
     mode,
     path: outputPath,
     entries: entries.size,
-    transformed: entries.size - copied.length,
+    transformed,
     copied,
   };
 

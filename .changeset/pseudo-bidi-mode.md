@@ -11,10 +11,15 @@
 - Placeholders, ICU syntax, markup, digits and punctuation stay outside the override, and every
   value still passes the integrity gate. Nothing is accented or padded in this mode.
 - `ar-XB` resolves to right-to-left direction, so an app that derives `dir` from the locale flips
-  without further setup. It follows Arabic plural rules while the file keeps the source's plural
-  forms; pass `--locale en-XB` to keep English plural rules.
+  without further setup. For `i18next-json`, the file also gets every Arabic plural category the
+  source lacks (`_zero`, `_two`, `_few`, `_many`), filled from the source's `other` form, so no
+  count falls back to another language. Pass `--locale en-XB` to keep English plural rules.
 
 **SDK and output**
 - `pseudolocalize` takes `mode` (`PSEUDO_MODES`: `accented`, the default, or `bidi`), and its
-  result, the `--json` envelope and the terminal summary name the mode.
+  result and the `--json` envelope carry `mode`.
+- The terminal summary names the mode: `en-XA (accented): 118 of 120 entries pseudolocalized`
+  instead of `en-XA: 118 of 120 entries pseudolocalized`.
+- `transformed` counts only values written differently from the source, so a value that is only a
+  placeholder no longer counts in bidi mode.
 - An unknown `--mode` value exits 2 with `INVALID_OPTION`.
