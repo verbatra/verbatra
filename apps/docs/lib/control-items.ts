@@ -30,7 +30,7 @@ export const CONTROL_GROUPS: ReadonlyArray<ControlGroup> = [
           en: "review-decisions",
           de: "review-entscheidungen",
           es: "decisiones-de-revisión",
-          fr: "décisions-de-revue",
+          fr: "décisions-de-relecture",
         },
       },
     ],
