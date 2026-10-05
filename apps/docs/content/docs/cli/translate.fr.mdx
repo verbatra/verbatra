@@ -1,8 +1,9 @@
 ---
 title: verbatra translate
 description: Traduit chaque locale cible une fois, puis termine.
+type: reference
 ---
-Lance une passe de traduction sur chaque locale cible, puis termine. `translate` lit la locale source, la compare au [fichier de verrouillage](/docs/the-lock-file), n'envoie au fournisseur que les chaînes nouvelles ou modifiées, exécute les [vérifications d'intégrité](/docs/translation-safety), écrit les fichiers de locale et met à jour le verrou. Tout ce qui est encore à jour n'est jamais renvoyé, donc tu ne paies jamais deux fois pour une chaîne inchangée.
+Lance une passe de traduction sur chaque locale cible, puis termine. `translate` compare la source au [fichier de verrouillage](/docs/the-lock-file), n'envoie au fournisseur que les chaînes nouvelles ou modifiées, exécute les [contrôles d'intégrité](/docs/translation-safety), écrit les fichiers de locale et met à jour le verrou. Une chaîne inchangée n'est jamais envoyée deux fois.
 
 ## Synopsis
 
@@ -14,63 +15,142 @@ verbatra translate [flags]
 
 | Option | Argument | Défaut | Effet |
 | --- | --- | --- | --- |
-| `--cwd` | `<path>` | répertoire courant | résout la config et les fichiers de locale depuis ce répertoire |
-| `--config` | `<path>` | recherche automatique | charge ce fichier de config au lieu d'en chercher un |
-| `--locales` | `<list>` | toutes les cibles configurées | ne traduit que ce sous-ensemble séparé par des virgules ; une locale non configurée fait échouer l'exécution avec `UNKNOWN_LOCALE` avant que quoi que ce soit ne soit lu ou dépensé, et une liste vide est une erreur d'utilisation, sortie `2` |
-| `--dry-run` | aucun | désactivé | prévisualise les changements sans appeler de fournisseur ni écrire de fichiers (aucune clé d'API requise) |
-| `--prune` | aucun | l'option `prune` de la config, sinon désactivé | supprime les clés orphelines (présentes dans un fichier cible mais absentes de la source) du fichier écrit et du verrou |
-| `--lock-timeout` | `<seconds>` | `600` | combien de temps attendre un verrou d'écriture de locale déjà détenu avant d'échouer ; doit être un entier positif en secondes, sans unité (une valeur comme `60s`, `0` ou `-1` est une erreur d'utilisation, sortie `2`) |
-| `--concurrency` | `<n>` | `1` | traduit jusqu'à `n` locales cibles à la fois ; doit être un entier positif |
-| `--no-cache` | aucun | désactivé (cache activé) | contourne le [cache de mémoire de traduction](/docs/the-cache) local (`verbatra.cache.json`) pour cette exécution |
-| `--json` | aucun | désactivé | affiche une [enveloppe JSON](/docs/ci-and-exit-codes#sortie-json) sur stdout portant le résumé d'exécution sous `result` (la [forme `RunSummary`](/docs/sdk)), ou le code d'erreur si l'exécution échoue ; la ligne d'erreur lisible par un humain va toujours sur stderr |
-| `--estimate` | aucun | désactivé | estime ce que l'exécution enverrait et ce qu'elle coûterait, puis se termine sans appeler de fournisseur ; implique `--dry-run`, aucune clé d'API n'est donc requise |
+| `--locales` | `<list>` | chaque locale cible configurée | ne traduit que ce sous-ensemble séparé par des virgules ; une locale non configurée échoue avec `UNKNOWN_LOCALE`, une liste vide sort avec `2` |
+| `--dry-run` | aucun | désactivé | indique ce qu'une exécution changerait sans appeler de fournisseur ni écrire de fichier ; aucune clé d'API nécessaire |
+| `--prune` | aucun | l'option `prune` de la configuration, sinon désactivé | retire les clés orphelines (dans un fichier cible, absentes de la source) du fichier écrit et du verrou |
+| `--lock-timeout` | `<seconds>` | `600` | attend ce délai un verrou d'écriture occupé d'une locale ; un entier de `1` à `3600` |
+| `--concurrency` | `<n>` | `1` | traduit jusqu'à `n` locales cibles à la fois ; un entier de `1` à `100`, refusé avec un budget de tokens |
+| `--max-tokens` | `<n>` | le `maxTokens` de la configuration | plafond strict de tokens pour cette exécution ; la plus basse valeur entre celle-ci et `maxTokens` s'applique |
+| `--no-cache` | aucun | désactivé (cache actif) | contourne le [cache de mémoire de traduction](/docs/the-cache) (`verbatra.cache.json`) pour cette exécution |
+| `--include-human` | aucun | désactivé | retraduit aussi, pour cette exécution seulement, les clés obsolètes écrites ou importées par une personne ; les [clés épinglées](/docs/protecting-human-translations#épingler-des-clés) restent intactes |
+| `--estimate` | aucun | désactivé | estime ce que l'exécution enverrait et coûterait, puis termine ; implique `--dry-run` |
 
-Par défaut, une exécution ne supprime rien : les clés orphelines sont signalées et laissées en place. `--prune` supprime exactement ces clés et rien d'autre, et remplace l'option `prune` de la config pour cette exécution. Avant de s'exécuter, `translate` charge `.env.local` puis `.env` depuis le répertoire de travail ; une variable déjà définie dans l'environnement réel l'emporte.
+Accepte aussi les [options globales](/docs/cli#options-globales) `--cwd`, `--config` et `--json`. Avant de s'exécuter, `translate` charge les [fichiers d'environnement](/docs/cli#fichiers-denvironnement).
 
-`--dry-run` ne construit aucun fournisseur, il ne demande donc aucune clé d'API et ne peut rien dépenser : il lit les fichiers source et cible, les compare au fichier de verrouillage et signale exactement ce qu'une vraie exécution changerait. Il n'écrit rien (ni fichier de locale, ni mise à jour du verrouillage, ni instantané d'état d'exécution), il ne lit ni n'écrit le cache, et il ne prend aucun verrou d'écriture par locale, donc il n'attend jamais une exécution déjà en cours. Le chargement de `.env` ci-dessus a toujours lieu lors d'un dry run ; il n'y a simplement aucune clé à lire. Cela en fait un moyen complet d'essayer verbatra sur un vrai projet avant de créer un compte chez un fournisseur.
+## Comportement
 
-`--estimate` ajoute à ce dry run une estimation de coût avant exécution : combien de clés seraient envoyées, en combien de requêtes au fournisseur elles seraient réparties, et quelle quantité le fournisseur configuré facture réellement (tokens de prompt et de réponse estimés pour un LLM, caractères source estimés pour DeepL ou Google Cloud Translation, et aucun coût du tout pour un endpoint `openai-compatible` auto-hébergé). Il implique `--dry-run`, il ne dépense donc rien et n'écrit rien. Un chiffre en devise n'apparaît que si la config porte un bloc `rates` couvrant le fournisseur et le modèle configurés ; sans ce bloc, la quantité est tout de même rapportée et la clé de tarif manquante est nommée, plutôt que d'inventer un coût de `0.00`. Chaque chiffre est affiché à côté de la date à laquelle ces tarifs ont été lus, et à côté d'une ligne nommant ce que l'estimation laisse de côté. Voir [Estimer le coût](/docs/estimating-cost).
+### Exécution à blanc
+
+`--dry-run` ne construit aucun fournisseur : il n'a besoin d'aucune clé d'API et ne peut rien dépenser. Il lit les fichiers source et cibles, les compare au fichier de verrouillage et indique exactement ce qu'une vraie exécution changerait. Il n'écrit rien (ni fichier de locale, ni mise à jour du verrou, ni instantané d'état d'exécution), ne lit ni n'écrit le cache et ne prend aucun verrou d'écriture, donc n'attend jamais une exécution en cours.
+
+Par défaut, une exécution ne supprime rien : les clés orphelines sont signalées et restent en place. `--prune` retire exactement ces clés, et `--prune --dry-run` te les montre avant.
+
+### Estimation du coût
+
+<AvailableFrom version="0.12.0" />
+
+`--estimate` ajoute à l'exécution à blanc une estimation préalable : combien de clés seraient envoyées, combien de requêtes au fournisseur cela ferait et la quantité que le fournisseur facture (des tokens pour un LLM, des caractères source pour DeepL ou Google Cloud Translation, rien pour un point d'accès `openai-compatible` auto-hébergé ou un projet entièrement humain). Un montant n'apparaît que si la configuration contient un bloc `rates` couvrant le fournisseur et le modèle ; sinon, la clé de tarif manquante est nommée au lieu d'inventer `0.00`. Voir [Estimer le coût](/docs/estimating-cost).
+
+### Un sous-ensemble de locales
 
 <AvailableFrom version="0.11.0" />
 
-`--locales de,fr` restreint l'exécution à un sous-ensemble des cibles configurées. Les locales laissées de côté restent intactes : leurs fichiers, leurs entrées de verrouillage et leurs entrées de cache restent tels quels. C'est l'option qu'il faut sur une offre gratuite à débit limité, où traduire une locale à la fois est le seul moyen d'y arriver, et c'est aussi la façon la plus rapide de relancer une seule locale ressortie partielle. L'instantané d'état d'exécution ne décrit jamais que l'exécution la plus récente, donc une exécution sur un sous-ensemble le réduit à ce sous-ensemble.
+`--locales de,fr` limite l'exécution à une partie des cibles configurées. Les autres locales gardent leurs fichiers, leurs entrées de verrou et leurs entrées de cache. Utilise-le sur une offre gratuite limitée en débit pour traduire une locale à la fois, ou pour relancer une seule locale restée partielle. L'instantané d'état d'exécution ne décrit alors que ce sous-ensemble.
 
-`--lock-timeout` règle combien de temps une locale attend un [verrou d'écriture](/docs/the-lock-file) disputé avant que l'exécution n'échoue avec `LOCK_CONTENDED` : augmente-le quand une autre exécution détient légitimement le verrou un moment, baisse-le pour échouer vite en CI.
+### Verrous d'écriture et interruptions
 
-`--concurrency` traduit plusieurs locales cibles en parallèle pour terminer plus vite un gros projet. Il est refusé avec le code `2` quand la config fixe un budget `maxTokens`, car le plafond tiendrait toujours, mais quelle locale perd son travail restant dépendrait de l'ordre dans lequel les locales s'entrelacent, donc le même projet ne produirait pas deux fois la même exécution (un dry run est exempté). Si une erreur globale (en pratique un fichier de verrouillage corrompu) surgit alors que des locales tournent déjà, aucune autre locale n'est démarrée, et celles en cours terminent et libèrent leurs verrous d'écriture avant que la commande ne sorte avec le code `2`, donc l'exécution ne laisse derrière elle aucun verrou que la suivante devrait attendre. À mesure qu'une exécution avance, la progression est affichée sur stderr (une ligne par démarrage de locale, sous-lot du fournisseur et fin de locale), donc le stdout d'une exécution `--json` reste un unique résumé propre. `--no-cache` saute le [cache de mémoire de traduction](/docs/the-cache) pour l'exécution, en faisant exactement les appels au fournisseur qu'il ferait si aucun cache n'était présent.
+Une locale attend jusqu'à `--lock-timeout` un [verrou d'écriture](/docs/the-lock-file#le-verrou-décriture) occupé, puis échoue avec `LOCK_CONTENDED` pendant que les autres locales continuent. Un verrou laissé par un processus verbatra qui ne tourne plus sur cette machine est récupéré aussitôt. Le délai ne borne que cette attente, avant tout appel au fournisseur : l'inscription d'un fichier écrit dans le fichier de verrouillage attend toujours jusqu'au défaut de dix minutes, pour qu'aucun fichier écrit ne reste non enregistré. Ctrl-C ou SIGTERM libère les verrous de l'exécution avant que la commande ne se termine.
+
+### Plafond de tokens
+
+<AvailableFrom version="0.12.0" />
+
+`--max-tokens` est toujours un arrêt strict : une requête qui dépasserait le plafond est retenue, quoi que dise `budgetBehavior`, et ses clés figurent sous `budgetWithheld`. Il se compte comme un [budget `maxTokens`](/docs/config-file#maxtokens-et-budgetbehavior) configuré et peut resserrer ce budget, jamais l'assouplir. Une exécution coupée par le plafond sort avec `1`. Lance d'abord `--estimate` pour choisir une valeur.
+
+### Locales en parallèle
+
+`--concurrency` est refusé avec la sortie `2` quand un budget de tokens s'applique (via `maxTokens` ou `--max-tokens`), car l'ordre dans lequel les locales s'entrelacent déciderait laquelle perd son travail restant ; une exécution à blanc en est exemptée. Si une erreur de toute l'exécution, comme un fichier de verrouillage corrompu, survient pendant que des locales tournent, aucune autre ne démarre, et celles en cours se terminent et libèrent leurs verrous avant que la commande ne sorte avec `2`.
+
+### Clés écrites par une personne
+
+<AvailableFrom version="0.12.0" />
+
+Une clé obsolète dont la valeur a été écrite, importée ou modifiée par une personne hors de verbatra est conservée par défaut : elle figure sous `protected`, n'est pas envoyée au fournisseur et reste obsolète pour `verbatra check`. Une ligne sur stderr indique combien ont été conservées et renvoie à `--include-human`, qui les retraduit pour une exécution (`humanEdits: "overwrite"`). Les clés protégées ne changent pas le code de sortie, sauf dans un projet entièrement humain. Voir [Protéger les traductions humaines](/docs/protecting-human-translations).
+
+### Projets entièrement humains
+
+<AvailableFrom version="0.12.0" />
+
+Dans un projet [entièrement humain](/docs/human-only-workflow) (`provider: { id: "none" }`), aucun fournisseur n'est appelé. Les clés couvertes par la mémoire de traduction sont écrites, et toute autre clé manquante ou modifiée figure sous `unfilled` et donne la sortie `3` ; une locale en échec ou partielle l'emporte toujours avec `1`. Ici, une exécution à blanc lit la mémoire, donc son plan montre les mêmes clés `cacheHits` et `unfilled`, et `--estimate` n'indique rien de facturé ; les deux sortent avec `3` de la même façon. Transmets les clés `unfilled` avec [`verbatra export`](/docs/cli/export).
+
+### Locales en échec et partielles
+
+<AvailableFrom version="0.9.0" />
+
+L'échec d'une locale n'est pas fatal : l'exécution se termine et sort avec `1`. Une locale **partielle** sort aussi avec `1` : son fichier a été écrit mais des clés manquent encore, en général parce qu'un sous-lot du fournisseur a échoué ou que le contrôle d'intégrité a refusé une traduction. La sortie lisible liste chaque clé refusée sous `integrity-withheld` avec sa raison (`placeholder`, `markup`, `icu`, `degenerate` ou `empty`) ; avec `--json`, chaque locale les porte dans `integrityRefusals`.
+
+### Locales non prises en charge
+
+<AvailableFrom version="0.12.0" />
+
+Une locale que le fournisseur DeepL ou Google Cloud Translation configuré ne prend pas en charge refuse toute l'exécution avec `LOCALE_UNSUPPORTED_BY_PROVIDER` et la sortie `2`, aussi à blanc et avec `--estimate`, avant toute dépense. Laisse-la de côté avec `--locales`, ou consulte [Prise en charge des langues](/docs/language-support#vérifier-la-prise-en-charge-avant-une-exécution). Un glossaire ou un ton que le fournisseur ne sait pas appliquer ne fait qu'ajouter un avis (`GLOSSARY_UNSUPPORTED_BY_PROVIDER`, `FORMALITY_UNSUPPORTED_BY_PROVIDER`), tout comme `LOCALE_UNVERIFIED_BY_PROVIDER` et, pour un LLM, `LOCALE_NOT_WELL_TESTED`.
+
+### Sortie JSON
+
+Avec `--json`, stdout porte une [enveloppe](/docs/cli/output#sortie-json) dont le `result` est un `RunSummary` ; [RunSummary](/docs/sdk/run-summary) liste chaque champ, de l'exécution et de chaque locale.
+
+### Retour dans le terminal
+
+<AvailableFrom version="0.12.0" />
+
+`translate` nomme les locales et le fournisseur avant l'exécution, puis affiche la durée, les tokens utilisés et la commande suivante. Dans un terminal interactif, la progression tient sur une ligne avec spinner ; quand stderr est redirigé, chaque étape est une ligne à part :
+
+```text output
+verbatra: translating 2 locales with gemini/gemini-2.5-flash
+verbatra: translating de
+verbatra: de batch 1/1
+verbatra: de: writing
+verbatra: de done, 12 translated
+verbatra: translating fr
+verbatra: fr batch 1/1
+verbatra: fr: writing
+verbatra: fr done, 12 translated
+verbatra: run finished, 2 locales processed
+[ok] done in 4.2s, 1830 tokens
+next: verbatra check (confirm every locale is in sync)
+```
+
+Une exécution à blanc ou une estimation termine chaque locale par `would translate`. Une locale qui n'a gardé qu'une partie des clés se termine par `partly done`, une locale en échec par `failed`, et la ligne finale indique combien ont échoué. Ces lignes vont sur stderr, et `--quiet` les supprime. Voir [Sortie dans le terminal](/docs/cli/output#sortie-dans-le-terminal).
 
 ## Exemples
 
 ```bash
-# translate once using the config it finds
+# traduire une fois avec la configuration trouvée
 verbatra translate
 
-# preview the keys that would be pruned, spending nothing
+# voir les clés qui seraient retirées, sans rien dépenser
 verbatra translate --prune --dry-run
 
-# one locale at a time, which is what a rate-limited free tier needs
+# une locale à la fois, ce qu'exige une offre gratuite limitée en débit
 verbatra translate --locales de
 
-# size and price the run without spending anything
+# dimensionner et chiffrer l'exécution sans rien dépenser
 verbatra translate --estimate
+
+# s'arrêter avant que l'exécution ne dépasse 50000 tokens
+verbatra translate --max-tokens 50000
+
+# retraduire aussi les clés obsolètes écrites par une personne
+verbatra translate --include-human
 ```
 
 ## Codes de sortie
 
 | Code | Signification |
 | --- | --- |
-| `0` | chaque locale cible est ressortie complète |
-| `1` | l'exécution est allée au bout mais une ou plusieurs locales ont échoué ou sont ressorties partielles |
-| `2` | impossible de s'exécuter : une erreur globale (config, source, format, fournisseur ou verrou) ou une erreur d'utilisation |
+| `0` | chaque locale cible est complète |
+| `1` | l'exécution s'est terminée, mais une locale a échoué ou est partielle |
+| `2` | impossible de s'exécuter : une erreur de configuration, de source, de format, de fournisseur, de locale non prise en charge ou de fichier de verrouillage, ou une erreur d'utilisation |
+| `3` | projet entièrement humain : l'exécution (exécution à blanc et `--estimate` compris) s'est terminée proprement, mais des clés attendent une traduction humaine |
+| `130` | interrompu avec Ctrl-C (SIGINT) après libération des verrous d'écriture |
+| `143` | arrêté avec SIGTERM après libération des verrous d'écriture |
 
-<AvailableFrom version="0.9.0" />
-
-Une locale qui échoue n'est pas fatale : l'exécution se termine, sort avec `1`, et le détail par locale se trouve dans le résumé. Une locale **partielle** sort avec `1` elle aussi. C'est une locale dont le fichier a été écrit mais où des clés manquent encore, typiquement parce qu'un sous-lot du fournisseur a échoué ou que la barrière d'intégrité a refusé une traduction, et la livrer comme un succès laisserait passer inaperçu un fichier à moitié traduit dans ton dépôt.
+Après une interruption, stderr se termine par `verbatra: interrupted (SIGINT), released locks`, ou avec `--json` par l'enregistrement `{"type":"interrupted","signal":"SIGINT","locksReleased":true}`. Voir [le contrat des codes de sortie](/docs/cli/output#codes-de-sortie).
 
 ## Voir aussi
 
-- [Comment ça marche](/docs/how-it-works) explique le pipeline lire, comparer, traduire, écrire.
-- [Le cache](/docs/the-cache) explique ce que `--no-cache` contourne et comment la réutilisation est délimitée.
-- [Sûreté de la traduction](/docs/translation-safety) couvre les vérifications d'intégrité et la file de révision.
-- [`verbatra diff`](/docs/cli/diff) prévisualise les mêmes clés en attente, en lecture seule.
-- [CI et codes de sortie](/docs/ci-and-exit-codes) montre comment te brancher sur ces codes.
+- [Comment ça marche](/docs/how-it-works) explique la chaîne lecture, comparaison, traduction, écriture.
+- [Le cache](/docs/the-cache) explique ce que `--no-cache` contourne.
+- [Sécurité des traductions](/docs/translation-safety) couvre les contrôles d'intégrité et la file de relecture.
+- [`verbatra diff`](/docs/cli/diff) montre les mêmes clés en attente, en lecture seule.
+- [CI et codes de sortie](/docs/ci-and-exit-codes) montre comment réagir à ces codes dans un pipeline.

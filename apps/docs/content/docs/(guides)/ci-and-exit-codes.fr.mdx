@@ -1,186 +1,23 @@
 ---
-title: CI et codes de sortie
-description: Conditionne un pipeline à l'état des traductions avec check ou diff, lis le contrat des codes de sortie et consomme la sortie JSON.
+title: Exécuter verbatra en CI
+description: Fais échouer une pull request en cas de dérive des traductions, de valeurs cassées ou de sortie machine non relue, et traduis à chaque push, avec la CLI dans n'importe quel système de CI.
+type: how-to
 ---
-Ce guide montre comment faire échouer la CI quand les traductions se désynchronisent, et comment lire ce que verbatra rapporte quand ça arrive. Les outils : le contrat des codes de sortie que chaque commande suit et la sortie `--json` que tes scripts peuvent parser.
+Utilise ce guide quand une pipeline doit repérer les fichiers de locale qui ont dérivé de la source, ou les traduire pour toi lors d'un push. Chaque étape exécute la même CLI qu'en local, donc cela fonctionne dans n'importe quel système de CI ; les exemples utilisent GitHub Actions.
 
-verbatra est une dépendance de développement, donc les commandes que tu lances en local tournent pareil en CI. Le découpage habituel :
+Avant de commencer, il te faut :
 
-- **Contrôle une pull request** avec [`verbatra check`](/docs/cli/check) ou [`verbatra diff`](/docs/cli/diff), soit directement (cette page), soit via la [GitHub Action](/docs/github-action) avec `command: check` ou `command: diff`. Les deux sont en lecture seule : aucun appel au fournisseur, aucune clé d'API requise, sortie `1` en cas de dérive.
-- **Traduis lors d'un push** avec [`verbatra translate`](/docs/cli/translate), soit directement (cette page), soit via la [GitHub Action](/docs/github-action).
-- **Fais précéder l'un ou l'autre d'une vérification préalable** avec [`verbatra doctor`](/docs/cli/doctor). C'est l'étape la moins chère de toutes : il valide la config, le format, le fournisseur, la variable de clé et le fichier source, n'appelle jamais de fournisseur et ne lit jamais une valeur de clé. Il rend aussi un rapport sur un projet dont les fichiers de locale ne sont pas encore en place, là où les autres commandes ne peuvent qu'échouer globalement.
+- `@verbatra/cli` en dépendance de développement, avec ton lockfile commité. La CLI demande Node `>=22.14.0`.
+- Une configuration, des fichiers de locale et un [`verbatra.lock.json`](/docs/the-lock-file) commités.
+- Pour traduire uniquement : la clé d'API de ton fournisseur dans le coffre à secrets de la CI.
 
-## Les codes de sortie
+Si tu utilises GitHub Actions et veux des annotations et un résumé de job sans écrire le job toi-même, prends plutôt la [GitHub Action](/docs/github-action).
 
-Le code de sortie est le contrat sur lequel ton étape CI se branche :
+## Ajouter un contrôle de dérive
 
-| Code | Signification |
-| --- | --- |
-| `0` | succès : `translate` ou `import` a terminé avec toutes les locales complètes, `check` a trouvé toutes les locales synchronisées, `diff` n'a trouvé aucun changement en attente, `doctor` n'a trouvé aucun problème de configuration du projet, `extract` a terminé son analyse, `types` a généré sa déclaration, `export` a écrit son classeur, `tmx` a importé ou exporté sa mémoire de traduction, `init` a généré la structure du projet, `watch`, `studio` ou `mcp` s'est arrêté proprement, ou `--help` ou `--version` a été affiché |
-| `1` | l'exécution est allée au bout, mais le résultat n'est pas propre : `translate` ou `import` a terminé avec au moins une locale en échec ou partielle, `check` a trouvé une locale désynchronisée, `diff` a trouvé une clé absente ou modifiée (ou, avec `--unused`, une analyse complète a trouvé une clé source inutilisée), `doctor` a trouvé au moins une vérification en échec, `types --check` a trouvé la déclaration commitée obsolète, ou `studio` ou `mcp` a échoué en arrêtant son serveur |
-| `2` | impossible de s'exécuter : une erreur globale (config invalide, source illisible, fichier de verrouillage corrompu), une erreur d'utilisation (une valeur `--locales` vide ou inconnue, un `--debounce` ou `--port` invalide), `init` sans fournisseur résoluble ou incapable de générer une config valide, un démarrage ou un arrêt de `watch` en échec, `studio` incapable de charger la config, d'importer `@verbatra/studio` ou de démarrer son serveur, ou `mcp` incapable de charger la config, d'importer `@verbatra/mcp` ou de démarrer son serveur |
-| `130` | `watch`, `studio` ou `mcp` a été arrêté de force par une seconde interruption |
+[`verbatra check`](/docs/cli/check) compare la source, les fichiers cibles et le fichier de verrouillage, et sort avec `1` quand une locale a des clés manquantes ou obsolètes. Il n'appelle aucun fournisseur, donc le job n'a besoin d'aucune clé et tourne aussi sur les pull requests venant de forks :
 
-Quelques cas limites à connaître :
-
-<AvailableFrom version="0.9.0" />
-
-- Une locale **partielle** compte comme un échec. Cela veut dire que le fichier a été écrit mais qu'il manque encore des clés, en général parce qu'un sous-lot du fournisseur a échoué ou que la barrière d'intégrité a refusé une traduction. Elle sort avec `1` exactement comme une locale échouée, parce qu'une locale à moitié traduite sur le disque n'est pas un état qu'un pipeline devrait laisser passer. Lis `partial` sur le résumé pour distinguer les deux. Un sous-lot échoué laisse sur la locale un avis `SUB_BATCH_FAILED` qui nomme le code d'erreur du fournisseur, ou `PROVIDER_CALL_FAILED` quand l'échec n'était pas une erreur structurée du fournisseur.
-- Un **fichier de verrouillage corrompu** est une erreur globale pour `translate` comme pour `import`, jamais une seule locale en échec. C'est un fichier unique et partagé : s'il se corrompt en cours d'exécution, celle-ci s'arrête avec `2` au lieu de poursuivre avec les locales restantes. Ce qui a été écrit avant l'interruption reste sur le disque : répare le fichier de verrouillage puis relance la commande.
-- Une interruption unique est un arrêt propre, et les trois commandes de longue durée (`watch`, `studio` et `mcp`) sortent avec `0` dans ce cas. Au-delà, ne suppose pas qu'elles se comportent pareil : si l'arrêt lui-même échoue, `watch` sort avec `2` tandis que `studio` et `mcp` sortent avec `1`.
-- Une exécution échouée pendant `watch` apparaît comme un enregistrement sur le flux de sortie, jamais comme un code de sortie non nul.
-- `export` n'a pas de mode d'échec par locale : il sort avec `0` ou `2`, jamais `1`.
-- `doctor` lit une config cassée différemment de toutes les autres commandes : une config que la recherche ne trouve pas, ou une config qui ne passe pas la validation, est une vérification en échec et un code de sortie `1`, parce que signaler exactement cela est le travail de la commande. Il sort avec `2` seulement quand il ne peut pas s'exécuter du tout, par exemple avec un chemin `--config` explicite qui n'existe pas.
-- Un mode d'échec sort du contrat : une erreur d'analyse qui n'est pas une erreur d'utilisation est relancée, et le binaire ne l'attrape pas, donc le comportement par défaut de Node face à un rejet non géré s'applique au lieu de l'un des quatre codes.
-
-## check ou diff : choisir le contrôle
-
-`check` et `diff` exécutent le même calcul en lecture seule sur ta source, tes fichiers cibles et [le fichier de verrouillage](/docs/the-lock-file). La différence est ce qu'ils rapportent :
-
-```bash
-# counts per locale: exit 1 if any locale is missing or stale
-verbatra check
-
-# key lists per locale: exit 1 if any locale has keys to add or re-translate
-verbatra diff
-```
-
-Utilise `check` quand le code de sortie te suffit. Utilise `diff` quand tu veux les clés exactes derrière la dérive, par exemple pour les poster dans un commentaire de pull request. Les clés orphelines (dans un fichier cible mais disparues de la source) apparaissent dans la sortie de `diff` mais ne déclenchent jamais le code de sortie `1` à elles seules.
-
-Les deux acceptent `--locales de,fr` pour contrôler un sous-ensemble. Passer `--locales` sans aucune locale valide est une erreur d'utilisation et sort avec `2`, donc une coquille ne peut jamais mettre le contrôle au vert. `translate`, `watch`, `export` et `tmx` acceptent la même option, et c'est ainsi que tu traduis une locale à la fois face à un fournisseur soumis à des limites de débit.
-
-## Sortie JSON
-
-Onze commandes acceptent `--json` pour une sortie lisible par machine sur stdout : `translate`, `watch`, `check`, `diff`, `export`, `import`, `tmx`, `doctor`, `pseudo`, `types` et `extract`. Chaque enregistrement tient sur une ligne, et chaque enregistrement est entouré de la même enveloppe : tu te branches sur un seul champ et tu n'as jamais à deviner de quelle commande viennent les données que tu tiens :
-
-```ts
-type Envelope<TResult> =
-  | { ok: true; version: 1; command: string; result: TResult }
-  | { ok: false; version: 1; command: string | null; code: string; message: string };
-```
-
-`version` est la version de cette forme d'enveloppe, pas la version du paquet. C'est un entier, tu le compares donc avec `===` plutôt que d'analyser une plage, et il ne change que lorsqu'un champ existant change de sens ou disparaît. De nouveaux champs peuvent apparaître sans changement de version, ignore donc ceux que tu ne reconnais pas.
-
-Une exécution qui échoue dans son ensemble écrit exactement un enregistrement `ok: false` sur stdout et sort avec `2`. Son `code` est le même code d'erreur stable que porte la ligne stderr, c'est donc sur lui que tu te branches :
-
-```json
-{ "ok": false, "version": 1, "command": "translate", "code": "CONFIG_INVALID", "message": "..." }
-```
-
-`command` vaut `null` uniquement quand l'échec s'est produit avant qu'une sous-commande soit résolue.
-
-Une erreur d'utilisation porte l'un de ces codes :
-
-| Code | Levé quand |
-| --- | --- |
-| `USAGE_ERROR` | l'analyseur d'arguments a rejeté la ligne de commande (une option inconnue, un argument manquant), ou `mcp` a reçu des options qu'il ne peut pas accepter |
-| `INVALID_LOCALES` | `--locales` a été donné mais ne liste aucune locale |
-| `INVALID_LOCALE` | `pseudo --locale` n'est pas une étiquette de langue composée de lettres, de chiffres et de tirets |
-| `INVALID_FORMAT` | `--format` sur `export` ou `import` ne nomme aucun format de remise pris en charge |
-| `INVALID_DIRECTION` | `tmx` a reçu une direction autre que `import` ou `export`, ou `tmx export` a reçu une option réservée à l'import (`--dry-run`, `--overwrite`) |
-| `INVALID_OUT` | `--out` sur `types` ou `pseudo` a été donné mais ne nomme aucun chemin |
-| `INVALID_DEBOUNCE` | `watch --debounce` n'est pas un nombre entier de millisecondes de 1 à 60000 |
-| `INVALID_LOCK_TIMEOUT` | `--lock-timeout` n'est pas un nombre entier de secondes de 1 à 3600 |
-| `INVALID_CONCURRENCY` | `--concurrency` n'est pas un nombre entier de 1 à 100 |
-| `INVALID_PORT` | `studio --port` n'est pas un entier de 1 à 65535 |
-
-`CLI_ERROR` est le code de repli pour un échec qui ne portait aucun code propre.
-
-Les erreurs d'une commande déjà résolue vont sur stderr sous forme d'une ligne structurée (`verbatra: error [CODE] message`) dans les deux modes, inchangée, donc un script qui lit le code de sortie et stderr n'a rien à changer. Deux classes d'échec ne suivent pas cette grammaire, car elles surviennent avant qu'une exécution existe pour porter un code : une erreur d'analyse des arguments affiche le `error: unknown option '--nope'` propre à commander, sans préfixe et sans code, et `init` refuse un fournisseur absent avec `verbatra: --provider is required (...)`, préfixé mais sans code. Les deux sortent avec `2`. Teste d'abord le code de sortie et traite le code d'erreur comme optionnel, sinon un analyseur écrit uniquement pour la grammaire structurée n'en reconnaîtra silencieusement aucune. Sans `--json`, une exécution échouée n'écrit toujours strictement rien sur stdout. Les enregistrements de progression et d'attente de verrouillage vont toujours sur stderr, donc stdout ne porte que des enveloppes.
-
-Le reste de cette section décrit le `result` que chaque commande place dans une enveloppe de succès.
-
-`verbatra translate --json` et `verbatra import --json` portent un `RunSummary` :
-
-```ts
-interface RunSummary {
-  dryRun: boolean;          // whether this was a dry run (no provider calls, no writes)
-  locales: LocaleSummary[]; // one entry per target locale, in config order
-  succeeded: string[];      // locales whose run succeeded
-  partial: string[];        // locales written with keys still missing; these exit 1 too
-  failed: string[];         // locales whose run failed
-  usage?: UsageSummary;     // summed input/output tokens; absent when no call reported usage
-  budget?: RunBudget;       // the token-budget outcome; present only when maxTokens is configured
-  estimate?: RunEstimate;   // the pre-run cost estimate; present only when --estimate was passed
-}
-```
-
-L'objet `estimate` porte `keys`, `requests`, la quantité facturée par le fournisseur et un code `pricing` qui dit si un montant en devise a pu être calculé. Il n'est présent que sur une exécution `--estimate`, qui est toujours un dry run ; voir [Estimer le coût](/docs/estimating-cost) pour la signification de chaque champ.
-
-Chaque `LocaleSummary` porte les listes de clés par locale (traduites, inchangées, orphelines, retenues, signalées pour révision, et d'autres encore) ; voir [la référence SDK](/docs/sdk) pour l'anatomie complète.
-
-`verbatra watch --json` affiche une enveloppe par exécution en NDJSON (un objet JSON par ligne), avec `command: "watch"`. Une exécution réussie est un enregistrement `ok: true` portant le `RunSummary` de cette exécution ; une exécution échouée est un enregistrement `ok: false` portant son code et son message : le code propre de l'échec quand il en avait un, et `WATCH_RUN_FAILED` sinon. Une exécution échouée n'est qu'un enregistrement sur le flux : elle n'arrête pas la surveillance et ne change pas le code de sortie.
-
-`verbatra check --json` porte un document d'état. Le `inSync` de premier niveau est vrai exactement quand la commande sort avec `0` :
-
-```ts
-interface CheckSummary {
-  inSync: boolean;             // true exactly when the command exits 0
-  locales: LocaleCheckSummary[];
-}
-
-interface LocaleCheckSummary {
-  locale: string;
-  missing: number;             // in source, absent from target
-  stale: number;               // source changed since last translated
-  upToDate: number;            // target matches the recorded baseline
-  inSync: boolean;             // missing === 0 && stale === 0
-}
-```
-
-`verbatra diff --json` porte des listes de clés au lieu de décomptes. Le `hasPendingChanges` de premier niveau est vrai exactement quand la commande sort avec `1` :
-
-```ts
-interface DiffSummary {
-  hasPendingChanges: boolean;  // true exactly when the command exits 1
-  locales: LocaleDiff[];
-}
-
-interface LocaleDiff {
-  locale: string;
-  missing: string[];           // in source, absent from target: would be added
-  changed: string[];           // source changed since last translated: would be re-translated
-  orphaned: string[];          // in target, absent from source: reported only
-  hasPendingChanges: boolean;  // missing.length > 0 || changed.length > 0
-}
-```
-
-`verbatra export --json` porte le chemin où le classeur a été écrit et le nombre de lignes par locale :
-
-```ts
-{
-  path: string;                // absolute path: the workbook for xlsx, the output directory for csv and tsv
-  locales: { locale: string; rows: number }[];
-}
-```
-
-`verbatra doctor --json` porte le rapport sur la configuration du projet. Le `ok` de premier niveau est vrai exactement quand la commande sort avec `0` :
-
-```ts
-interface DoctorResult {
-  ok: boolean;                 // true exactly when the command exits 0
-  checks: DoctorCheck[];       // one per check, always in the same order
-}
-
-interface DoctorCheck {
-  id:
-    | "config"
-    | "format-adapter"
-    | "provider"
-    | "api-key"
-    | "source-file"
-    | "untranslated-literals";
-  title: string;               // short human-readable name, stable across runs
-  status: "pass" | "fail" | "skipped";  // only "fail" makes ok false
-  detail: string;              // why it reached that verdict; never an API key value
-}
-```
-
-## Un job GitHub Actions avec la CLI
-
-Un contrôle de dérive sur les pull requests, en lançant la CLI directement. `check` n'appelle jamais de fournisseur, donc ce job n'a besoin d'aucune clé d'API :
-
-```yaml
+```yaml title=".github/workflows/i18n.yml"
 name: i18n
 on: pull_request
 
@@ -200,17 +37,40 @@ jobs:
       - run: pnpm exec verbatra check
 ```
 
-La [GitHub Action](/docs/github-action) exécute le même contrôle sans aucune étape d'installation : garde le checkout et remplace le reste par l'action, avec `command: check` (ou `command: diff`) :
+Remplace `check` par [`verbatra diff`](/docs/cli/diff) quand tu veux les noms des clés derrière la dérive, par exemple pour les publier dans un commentaire de pull request. Il sort avec `1` dans la même condition ; les clés orphelines apparaissent dans sa sortie, mais ne le font jamais échouer à elles seules.
 
-```yaml
-      - uses: actions/checkout@<commit-sha>
-      - uses: verbatra/action@<commit-sha> # a commit on the v1 line
-        with:
-          version: 0.9.3
-          command: check
+Pour ne contrôler que certaines locales, passe `--locales de,fr`. Une valeur de `--locales` sans aucune locale valide sort avec `2`, donc une faute de frappe ne rend jamais le contrôle vert.
+
+### Bloquer sur la qualité des traductions
+
+<AvailableFrom version="0.12.0" />
+
+La dérive n'est pas la seule erreur à attraper. Ajoute `--qa` pour passer aussi le contrôle d'intégrité et les signalements de relecture sur chaque traduction commitée, afin qu'une valeur modifiée à la main avec un placeholder cassé, un balisage cassé ou des branches de pluriel ICU inadaptées fasse échouer le job :
+
+```bash
+verbatra check --qa
 ```
 
-Pour traduire en CI à la place, remplace la dernière étape par `translate` et passe la clé du fournisseur depuis ton coffre de secrets sous la variable d'environnement que ton fournisseur attend (voir [Fournisseurs](/docs/providers)) :
+- Ajoute `--strict` pour échouer aussi sur les avertissements de relecture et les catégories de pluriel manquantes.
+- Dans un hook d'édition, `verbatra check --file <path>` contrôle un seul fichier de locale.
+
+Vois [le contrôle qualité](/docs/cli/check#contrôle-qualité) et [Un seul fichier](/docs/cli/check#un-seul-fichier). La [GitHub Action](/docs/github-action#vérifier-la-qualité-des-traductions) exécute le même contrôle avec `qa: "true"`.
+
+### Bloquer sur les décisions de relecture
+
+<AvailableFrom version="0.12.0" />
+
+Ajoute `--require-reviewed` pour échouer tant qu'une traduction écrite par une machine n'est pas approuvée dans le `verbatra.provenance.json` commité, le fichier où écrivent [la file de relecture de Studio](/docs/review-in-studio) et les outils de relecture MCP :
+
+```bash
+verbatra check --require-reviewed
+```
+
+Il n'a pas besoin de clé non plus. Les codes qu'il signale sont dans [Exiger des traductions relues](/docs/cli/check#exiger-des-traductions-relues).
+
+## Traduire lors d'un push
+
+Lance [`verbatra translate`](/docs/cli/translate) et fais passer la clé du fournisseur depuis ton coffre à secrets dans l'environnement de l'étape. La CLI ne prend aucune clé en argument et n'en lit aucune dans la configuration ; [Fournisseurs](/docs/providers#les-clés-viennent-de-lenvironnement) liste la variable que lit chaque fournisseur.
 
 ```yaml
       - run: pnpm exec verbatra translate --json
@@ -218,12 +78,31 @@ Pour traduire en CI à la place, remplace la dernière étape par `translate` et
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
-Si tu préfères ne pas écrire ces jobs toi-même, la [GitHub Action](/docs/github-action) enveloppe `translate`, `check` et `diff` de la même façon, et ajoute des annotations et un résumé de job.
+- L'étape écrit les fichiers de locale dans le checkout et s'arrête là. Ajoute ta propre étape qui les commite ou ouvre une pull request, et n'accorde `contents: write` ou `pull-requests: write` qu'à ce job.
+- Pour prévisualiser d'abord, lance `verbatra translate --dry-run` ou `--estimate` : aucun des deux n'appelle un fournisseur ni ne demande de clé. Vois [Estimer le coût](/docs/estimating-cost).
+- Face à un fournisseur limité en débit, traduis une locale par étape avec `--locales`.
 
-## Installations gelées et clés
+## Vérifier d'abord avec doctor
 
-- **Installe depuis le lockfile.** `pnpm install --frozen-lockfile` (ou `npm ci`) épingle la version exacte de `@verbatra/cli` enregistrée dans ton lockfile, donc une exécution CI est reproductible et ne peut pas tirer une version plus récente en silence. La CLI exige Node `>=22.14.0`.
-- **Les clés sont des variables d'environnement, jamais des options.** La CLI ne prend aucun argument de clé et ne lit aucune clé depuis la config ; les fournisseurs lisent uniquement leur variable d'environnement (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPL_API_KEY`, `GOOGLE_TRANSLATE_API_KEY`). Stocke la clé dans le coffre de secrets de ta CI et mappe-la dans `env`. Les messages d'erreur nomment la variable mais ne contiennent jamais de valeur de clé.
-- **Les contrôles en lecture seule n'ont pas besoin de clé.** `check`, `diff`, `export`, `import`, `extract` et `tmx` n'appellent jamais de fournisseur, donc garde les secrets entièrement hors de ces jobs. `pseudo` n'en appelle aucun non plus et n'écrit que sa propre locale générée. `types` n'en appelle aucun non plus et n'écrit que sa déclaration générée. `doctor` n'appelle pas de fournisseur non plus et ne lit jamais de valeur de clé, mais il signale une variable de clé non définie comme une vérification en échec : mappe donc la clé dans tout job où tu veux que cette vérification passe. `doctor --literals` n'exécute aucune de ces deux vérifications et n'a donc besoin d'aucune clé.
+Place [`verbatra doctor`](/docs/cli/doctor) avant l'un ou l'autre job pour échouer tôt sur une installation cassée. Il vérifie la configuration, le format, le fournisseur, la variable de clé, la politique réseau, le fichier source et la prise en charge des locales, sans jamais appeler de fournisseur ni lire la valeur d'une clé. Il signale toutefois une variable de clé non définie comme un contrôle en échec, donc fais passer la clé dans tout job où ce contrôle doit réussir.
 
-`translate`, `watch`, `studio`, `doctor` et `mcp` chargent aussi `.env.local` puis `.env` depuis le répertoire de travail avant de s'exécuter (`doctor --literals` n'en charge aucun), les vraies variables d'environnement l'emportant toujours ; `check`, `diff`, `export`, `import`, `extract`, `pseudo`, `types` et `tmx` ne chargent aucun fichier `.env`, donc en CI, tu t'appuieras normalement sur `env:` seul.
+## Codes de sortie
+
+Branche-toi sur le code de sortie, jamais sur le texte. Ce que signifie chaque code, avec ses cas limites, est dans [Codes de sortie et sortie JSON](/docs/cli/output#codes-de-sortie) ; un code d'erreur dans la sortie est expliqué dans [Codes d'erreur](/docs/error-codes).
+
+## Sortie JSON
+
+Passe `--json` pour obtenir une enveloppe par enregistrement sur stdout. Ses champs sont dans [Codes de sortie et sortie JSON](/docs/cli/output#sortie-json), et le `result` de chaque commande sur sa page. [Scripter verbatra avec JSON](/docs/agent-recipes) propose des recettes qui la lisent.
+
+## Clés et installations
+
+- Installe avec `pnpm install --frozen-lockfile` ou `npm ci`, pour que le job exécute exactement la version de `@verbatra/cli` que ton lockfile enregistre.
+- Garde les secrets hors des jobs qui n'appellent jamais de fournisseur : `check`, `diff`, `report`, `export`, `import`, `extract`, `pseudo`, `types` et `tmx`.
+- En CI, repose-toi sur `env:`. Les commandes qui chargent aussi `.env.local` et `.env` sont listées dans [Fichiers d'environnement](/docs/cli#fichiers-denvironnement).
+
+## Voir aussi
+
+- [Utiliser la GitHub Action](/docs/github-action) : les mêmes contrôles avec des annotations et un résumé de job.
+- [`verbatra check`](/docs/cli/check) et [`verbatra diff`](/docs/cli/diff) : toutes les options des deux contrôles.
+- [Codes de sortie et sortie JSON](/docs/cli/output) : le contrat que lit une étape de CI.
+- [Codes d'erreur](/docs/error-codes) : ce que signifie chaque code et l'étape suivante.

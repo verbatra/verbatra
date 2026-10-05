@@ -1,110 +1,116 @@
 ---
-title: Comment ça marche
+title: Comment se déroule une exécution
 description: Le pipeline de traduction de bout en bout, de la lecture de la locale source à la mise à jour du fichier de verrouillage.
+type: concept
 ---
 Une exécution est un pipeline : lire la locale source, comparer chaque cible avec le fichier de
-verrouillage, n'envoyer au fournisseur que ce qui demande du travail, vérifier ce qui revient,
-écrire, et enregistrer le résultat. Cette page parcourt ce pipeline pour que tu saches exactement
-ce qui se passe quand tu lances `verbatra translate`.
+verrouillage, n'envoyer au fournisseur que ce qui a besoin de travail, vérifier ce qui revient,
+écrire, et enregistrer le résultat. Le pipeline est le même, que l'exécution vienne de la CLI, du
+SDK ou de `watch`.
 
 <DiffPanel />
 
-Une exécution part de ta configuration validée ; voir [Fichier de configuration](/docs/config-file)
-pour savoir où elle est trouvée et ce qu'elle contient. Tout ce qui suit est identique que
-l'exécution vienne de la CLI, du SDK ou de `watch`.
-
 ## Lire la locale source
 
-L'adaptateur de format lit le fichier de la locale source en un ensemble neutre d'entrées à clés,
-pour que le reste du pipeline fonctionne pareil pour chaque format. Un fichier source absent fait
-échouer l'exécution avec `SOURCE_UNREADABLE` ; un fichier que l'adaptateur ne peut pas analyser
-échoue avec `SOURCE_INVALID`. Pendant la lecture, l'adaptateur signale aussi les clés source dont
-les valeurs sont invalides pour la syntaxe de message du format (ICU invalide) : ces clés suivent
-le mouvement mais sont mises de côté au lieu d'être envoyées au fournisseur dans un état cassé.
+L'adaptateur de format lit le fichier source dans un ensemble neutre d'entrées à clés, si bien que
+chaque étape suivante fonctionne de la même façon pour tous les formats. Une clé source dont la
+valeur est invalide pour la syntaxe de message du format (ICU invalide) est mise de côté et
+signalée au lieu d'être envoyée cassée au fournisseur. Un fichier source absent ou impossible à
+analyser fait échouer l'exécution ; voir
+[`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable) et
+[`SOURCE_INVALID`](/docs/error-codes#source_invalid).
 
 ## Comparer avec la référence du fichier de verrouillage
 
-Cette comparaison existe pour qu'une exécution soit incrémentale : le fournisseur n'est appelé que
-pour les chaînes qui demandent vraiment du travail. verbatra lit le fichier de la locale cible
-existant (un fichier absent compte comme vide) et compare la source avec lui, en utilisant
-[le fichier de verrouillage](/docs/the-lock-file) comme référence de ce qui a déjà été traduit.
-Chaque clé source atterrit dans l'une des quatre catégories :
+La comparaison est ce qui rend une exécution incrémentale. verbatra lit le fichier cible existant
+(un fichier absent compte comme vide) et compare chaque clé source avec
+[le fichier de verrouillage](/docs/the-lock-file), la trace de ce qui a été traduit auparavant :
 
-- manquante : la cible n'a pas encore la clé.
-- modifiée : la valeur source ne correspond plus au hash enregistré dans le fichier de verrouillage.
-- inchangée : la valeur source correspond toujours au hash enregistré.
-- orpheline : la clé est dans la cible mais plus dans la source.
+| Catégorie | Signification | Ce que fait l'exécution |
+| --- | --- | --- |
+| manquante | la cible n'a pas encore la clé | la traduit |
+| modifiée | la source ne correspond plus au hash enregistré | la traduit |
+| inchangée | la source correspond toujours au hash enregistré | n'y touche pas |
+| orpheline | la clé est dans la cible mais plus dans la source | la signale ; ne la supprime qu'avec `--prune` ou `prune: true` |
 
-Seules les clés manquantes et modifiées deviennent des candidates à la traduction. Les clés
-inchangées sont laissées telles quelles. Les clés orphelines sont signalées et, par défaut,
-laissées en place ; avec `--prune` (ou `prune: true` dans la configuration), ce sont exactement
-ces clés qui sont supprimées du fichier cible et du fichier de verrouillage, et rien d'autre.
+### Clés retenues
+
+<AvailableFrom version="0.12.0" />
+
+Deux sortes de candidates sont retenues. Une clé modifiée dont une personne a écrit ou importé la
+valeur actuelle est protégée par défaut (`humanEdits`), et une clé qui correspond à `pinnedKeys`
+n'est jamais traduite automatiquement. Les deux restent obsolètes jusqu'à ce qu'une personne les
+règle ; voir [Garder les traductions humaines](/docs/protecting-human-translations).
 
 ## Envoyer par lots au fournisseur
 
-Avant tout envoi, chaque candidate est recherchée dans le cache local de mémoire de traduction
-(`verbatra.cache.json`). Une traduction stockée pour le même texte source, sous la même empreinte
-de fournisseur, modèle, ton et glossaire, est réutilisée telle quelle et n'atteint jamais le
-fournisseur ; seules celles qui n'y figurent pas poursuivent leur chemin. Voir
-[Le cache](/docs/the-cache) pour savoir comment les entrées sont indexées et quand elles cessent
-de correspondre.
+Chaque candidate est d'abord cherchée dans le [cache de traduction](/docs/the-cache). Un succès est
+réutilisé et n'atteint jamais le fournisseur. Parmi les échecs, les clés au contenu source
+identique sont regroupées, pour que ce texte coûte une requête par locale plutôt qu'une par clé.
 
-Parmi les candidates qui atteignent le fournisseur, celles qui partagent le même contenu source
-sont d'abord regroupées, pour que ce texte coûte une requête par locale plutôt qu'une par clé ; la
-valeur renvoyée est copiée sur les autres clés de son groupe et revérifiée face à la source propre
-à chacune, à l'étape d'intégrité ci-dessous. Les groupes partent vers ton
-fournisseur configuré en sous-lots séquentiels d'au plus `maxBatchSize` entrées (50 par défaut),
-pour qu'une requête trop grosse ne puisse pas emporter toute une locale. Chaque sous-lot transporte
-les entrées plus tes `glossary` et `tone` optionnels. Si l'appel d'un sous-lot échoue (une limite
-de débit, un délai dépassé, une clé révoquée), ses clés sont retenues pour cette exécution et
-reprises à la suivante, pendant que les autres sous-lots continuent d'avancer. Voir
-[Fournisseurs](/docs/providers) pour la façon dont chaque fournisseur applique ces paramètres.
+Les groupes partent vers ton fournisseur en sous-lots séquentiels d'au plus `maxBatchSize` (50 par
+défaut), chacun avec les entrées, les termes du glossaire de cette locale et ton `tone`. Si un
+sous-lot échoue (une limite de débit, un délai dépassé, une clé révoquée), ses clés sont retenues
+pour cette exécution pendant que les autres sous-lots continuent.
+[Fournisseurs](/docs/providers) décrit comment chaque fournisseur applique ces entrées.
 
 ## Valider la réponse
 
-La sortie du fournisseur n'est jamais traitée comme du texte libre. Pour les fournisseurs LLM
-(Anthropic, OpenAI, Gemini et openai-compatible), la réponse doit respecter un schéma fixe,
-vérifié avant toute autre chose :
+La sortie du fournisseur est une donnée, jamais du texte libre. Pour les fournisseurs LLM, la
+réponse doit correspondre à un schéma fixe :
 
-- Une réponse malformée, ou qui contient une clé jamais demandée, fait échouer le sous-lot entier.
-- Une clé demandée qui revient manquante ou dupliquée est redemandée une fois.
-- Si elle reste non résolue après cela, la clé compte comme non traduite pour cette exécution et
-  est retentée à la suivante.
+- Une réponse malformée, ou qui contient une clé jamais demandée, fait échouer tout le sous-lot.
+- Une clé demandée qui revient manquante ou en double est redemandée une fois.
+- Une clé toujours non résolue après cela n'est pas traduite pendant cette exécution.
 
-DeepL et Google Cloud Translation sont des API de traduction automatique sans cette couche de
-réponse, mais leurs résultats passent par les mêmes contrôles d'intégrité ci-dessous.
+Les fournisseurs de traduction automatique n'ont pas de schéma de réponse, mais leurs résultats
+passent par la même barrière d'intégrité.
 
 ## Exécuter la barrière d'intégrité
 
-Une traduction qui a passé la validation de schéma peut quand même être cassée, donc verbatra
-recalcule sa propre décision d'acceptation ou de rejet à partir de la valeur candidate elle-même :
-il ne fait jamais confiance au rapport du fournisseur. Chaque candidate acceptée doit passer
-chacune des vérifications de la barrière ; voir
-[Sûreté de la traduction](/docs/translation-safety) pour savoir lesquelles. Une candidate qui
-échoue à l'une d'elles est retenue au lieu d'être écrite, apparaît dans le résumé d'exécution et
-est retentée à l'exécution suivante. Voir
-[Sûreté de la traduction](/docs/translation-safety) pour le modèle de sûreté complet.
+Une traduction valide selon le schéma peut quand même être cassée, donc verbatra décide à partir de
+la valeur candidate elle-même s'il l'accepte, sans jamais se fier au rapport du fournisseur. Une
+candidate qui perd un placeholder, casse un message ICU ou son balisage, revient vide ou dégénère
+est retenue au lieu d'être écrite. Les vérifications sont sur
+[Sûreté de la traduction](/docs/translation-safety#la-barrière-dintégrité).
 
 ## Écrire via l'adaptateur
 
 Les traductions acceptées sont fusionnées dans la cible et écrites par l'adaptateur de format, de
-façon atomique, dans l'ordre des clés du document : une clé déjà dans la cible garde sa position,
-et une nouvelle clé s'ajoute là où la source la place. Une écriture interrompue ne laisse jamais un
-fichier de locale à moitié fini, et un formateur ou un relecteur de code voit des diffs stables et
-minimaux.
+façon atomique et dans un ordre de clés stable : une clé déjà présente dans la cible garde sa
+position, et les nouvelles clés sont ajoutées après les clés existantes, dans l'ordre de la source. Une écriture interrompue ne laisse
+jamais de fichier à moitié écrit, et les relecteurs voient des diffs petits et stables.
 
 ## Mettre à jour le fichier de verrouillage
 
 Après l'écriture d'une locale, ses entrées de verrouillage sont rafraîchies avec les hashs source
-actuels, avec une exception délibérée : une clé retenue pendant cette exécution garde son hash
-précédent, pour que l'exécution suivante la voie toujours comme demandant du travail. L'écriture de
-chaque locale se fait sous un verrou d'écriture inter-processus, pour que deux exécutions qui se
-chevauchent ne comparent jamais avec une référence périmée ni ne paient deux fois le même appel
-fournisseur. Les détails sont dans [Le fichier de verrouillage](/docs/the-lock-file).
+actuels. Une clé retenue pendant cette exécution garde son hash précédent, donc l'exécution suivante
+la voit toujours comme à traiter. Chaque locale est écrite sous un
+[verrou d'écriture](/docs/the-lock-file#le-verrou-décriture) inter-processus, donc deux exécutions
+qui se chevauchent ne comparent jamais avec une référence périmée et ne paient jamais deux fois le
+même appel.
 
 ## Une locale à la fois, les échecs comme des données
 
-Chaque locale cible s'exécute indépendamment : une locale qui échoue n'arrête pas les autres.
-L'exécution renvoie un résumé par locale (traduites, inchangées, orphelines, retenues, signalées
-pour révision, avis), et un dry run (`--dry-run`) produit la même forme de résumé après l'étape de
-comparaison, sans construire de fournisseur ni rien écrire.
+Chaque locale cible tourne de son côté, et l'échec d'une locale n'arrête pas les autres.
+L'exécution renvoie un résumé par locale : traduites, inchangées, orphelines, retenues, signalées
+pour révision, et avis. Ce que contient chaque champ est sur [RunSummary](/docs/sdk/run-summary).
+
+Ce que cette conception garantit :
+
+- Une seconde exécution sans modification de la source n'appelle le fournisseur pour rien.
+- Rien de ce qu'une vérification a refusé n'est jamais écrit, et rien de retenu n'est enregistré
+  comme fait.
+- Une exécution à blanc (`--dry-run`) s'arrête après la comparaison et renvoie un résumé de même
+  forme, sans construire de fournisseur ni écrire de fichier.
+
+Ce qu'elle ne fait pas : juger si une traduction est bonne. C'est le rôle des
+[signalements de révision](/docs/translation-safety#signalements-de-révision) et d'une personne.
+
+## Voir aussi
+
+- [`verbatra translate`](/docs/cli/translate) : options, sortie et codes de sortie d'une exécution.
+- [Le fichier de verrouillage et la provenance](/docs/the-lock-file) : ce que la référence enregistre.
+- [Le cache de traduction](/docs/the-cache) : comment la réutilisation est indexée.
+- [Sûreté de la traduction](/docs/translation-safety) : la barrière d'intégrité et les signalements de révision.
+- [Codes d'erreur](/docs/error-codes) : chaque code qu'une exécution peut signaler.

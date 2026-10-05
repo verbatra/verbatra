@@ -1,155 +1,124 @@
 ---
 title: Piloter Studio avec un agent de navigateur
-description: Expose les actions de révision de Verbatra Studio comme outils WebMCP pour qu'un agent IA de navigateur puisse mener ces mêmes opérations depuis ton onglet de tableau de bord ouvert et authentifié.
+description: Enregistre les actions de relecture de Verbatra Studio comme outils WebMCP pour qu'un agent IA de navigateur puisse travailler dans ton onglet de tableau de bord ouvert et authentifié.
+type: how-to
 ---
-Verbatra Studio est d'ordinaire une surface humaine : tu ouvres le tableau de bord en loopback et tu parcours au clic l'état du projet, la dérive, la file de révision et les modifications. Avec l'option facultative `--expose-agent-tools`, Studio enregistre en plus ces mêmes actions de révision comme outils WebMCP, si bien qu'un agent IA de navigateur (par exemple Gemini ou Claude tournant dans Chrome), posé sur ce même onglet ouvert et authentifié, peut les piloter de façon structurée au lieu de deviner à partir du DOM.
+Sers-t'en pour qu'un agent IA de navigateur, comme Gemini ou Claude dans Chrome, vérifie la dérive, traite la file de relecture et corrige des entrées dans l'onglet Studio que tu as ouvert. L'agent appelle des outils nommés au lieu de deviner la page. Ce n'est pas fait pour configurer un projet ni pour l'accès à distance.
 
-C'est fait pour piloter un projet verbatra existant par la conversation : inspecter l'état et la dérive, traiter la file de révision, modifier des entrées, et (seulement si tu autorises aussi la dépense) retraduire et traduire les clés en attente. Ce n'est pas fait pour la mise en place d'un projet, ni pour un accès distant.
+Il te faut :
 
-<Callout title="Expérimental et conditionné à une option du navigateur">
-WebMCP est une capacité de navigateur récente, encore en évolution. Aujourd'hui, elle exige une version précise de Chrome avec une option expérimentale, et la surface peut changer à mesure que le standard mûrit. Considère-la comme une fonctionnalité en avant-première.
+- Studio lancé sur ton projet ([Réviser dans Studio](/docs/review-in-studio#démarrer-studio)) ;
+- Chrome 149 ou plus récent avec `chrome://flags/#enable-webmcp-testing` activé, ou un navigateur qui prend WebMCP en charge nativement, dans une fenêtre normale et non headless.
+
+<Callout title="Expérimental">
+WebMCP est une nouvelle capacité du navigateur derrière un flag, et sa surface peut encore changer.
 </Callout>
 
-## Ce qu'est WebMCP
-
-WebMCP permet à une page d'enregistrer sur `document.modelContext` des outils qu'un agent IA résidant dans le navigateur peut ensuite appeler. Studio s'en sert pour annoncer ses actions de révision comme des outils nommés. Chaque appel d'outil passe toujours par exactement le même RPC authentifié que le tableau de bord, sur la même origine loopback, avec la même validation d'entrée et les mêmes contrôles de capacité. Enregistrer les outils n'accorde à un agent rien que l'onglet ouvert et authentifié ne possédait déjà : un agent pilotant le DOM pouvait déjà atteindre chacune de ces actions. La surface se confond avec cet unique onglet ouvert et n'ajoute aucune exposition réseau nouvelle.
-
-### Prérequis du navigateur
-
-- Un navigateur compatible WebMCP. Aujourd'hui cela veut dire Chrome 149 ou plus récent avec `chrome://flags/#enable-webmcp-testing` activé, ou un navigateur ultérieur avec une prise en charge native.
-- `document.modelContext` doit être présent. Quand il est absent, Studio n'enregistre rien et le tableau de bord reste inchangé.
-- Un vrai contexte de navigation. Cela ne marche pas en headless ; l'agent pilote l'onglet ouvert et actif.
-- Aucun changement de configuration ni de CSP du côté de Studio. La Permissions-Policy `tools` de WebMCP vaut `self` par défaut, ce qui correspond exactement au cas de même origine de Studio, donc il n'y a rien à accorder.
-
-## L'activer
-
-Les outils pour agents sont désactivés par défaut. Active-les avec l'option sur la commande `studio` :
+## Activer les outils
 
 ```bash
 verbatra studio --expose-agent-tools
 ```
 
-Ou définis la variable d'environnement de repli :
+`VERBATRA_STUDIO_AGENT_TOOLS=1` fait la même chose ; [Dépenses et outils d'agent](/docs/cli/studio#dépenses-et-outils-dagent) explique comment le flag et la variable sont résolus. Ouvre l'URL affichée dans le navigateur WebMCP, et l'agent de cet onglet trouve les outils. Dans un navigateur sans WebMCP, Studio n'enregistre rien et le tableau de bord ne change pas.
 
-```bash
-VERBATRA_STUDIO_AGENT_TOOLS=1 verbatra studio
-```
+Pour que l'agent puisse appeler ton fournisseur, lance aussi Studio avec `--allow-spend` ([Dépenses et outils d'agent](/docs/cli/studio#dépenses-et-outils-dagent)).
 
-L'option et la variable d'environnement se résolvent exactement comme `--allow-spend` : `1`, `true`, `yes` ou `on` (sans distinction de casse) compte pour activé, et l'option de la CLI l'emporte sur la variable. Si aucune des deux n'est donnée, aucun outil n'est enregistré. Voir [`verbatra studio`](/docs/cli/studio) pour toutes les options.
+L'agent lit chaque valeur sans masquage, comme la page l'affiche : Studio ne masque rien, car un agent dans l'onglet peut de toute façon lire la page. Pour cacher les valeurs à un agent, utilise plutôt le serveur MCP avec [`--redact-values`](/docs/cli/mcp#redacted-values) ; pour un projet sous NDA, voir [Studio et MCP](/docs/data-handling#studio-et-mcp).
 
-Ouvre ensuite l'URL loopback affichée dans ton navigateur compatible WebMCP. L'agent présent sur cet onglet découvre les outils enregistrés et peut les appeler.
+## Savoir ce que l'agent peut appeler
 
-## Le catalogue d'outils
+Chaque outil est une action Studio avec le préfixe `verbatra_`. Les outils de lecture sont marqués en lecture seule, les outils d'écriture ne modifient que tes fichiers locaux, et les outils payants ne s'enregistrent qu'avec `--allow-spend`.
 
-Avec l'option activée, Studio enregistre quinze outils, un par action du tableau de bord. Sans `--allow-spend`, il en enregistre treize : les deux outils de dépense sont entièrement omis. Les noms d'outils sont préfixés et utilisent des tirets bas (par exemple `verbatra_project_snapshot`).
+### Outils de lecture
 
-### Outils de lecture (onze)
-
-Ils inspectent l'état du projet sans rien changer. Ils sont marqués en lecture seule.
-
-| Outil | Ce qu'il renvoie |
+| Outil | Ce qu'il fait |
 | --- | --- |
-| `verbatra_project_snapshot` | l'état et les capacités résolus du projet |
-| `verbatra_status_check` | le récapitulatif de couverture par locale |
-| `verbatra_status_diff` | la dérive par locale (clés manquantes, modifiées, orphelines) |
-| `verbatra_glossary_get` | le glossaire résolu |
-| `verbatra_lock_state` | l'état du fichier de verrouillage |
-| `verbatra_history_list` | l'historique récent des commits des fichiers de locale |
-| `verbatra_key_integrity` | l'intégrité des placeholders, du balisage en ligne et de l'ICU pour une clé |
-| `verbatra_review_queue` | la file de révision |
+| `verbatra_project_snapshot` | la config chargée, les capacités et les limites de débit sous `capabilities.limits` |
+| `verbatra_status_check` | la couverture par locale |
+| `verbatra_status_diff` | les clés manquantes, modifiées et orphelines par locale |
+| `verbatra_glossary_get` | le glossaire résolu, secrets masqués |
+| `verbatra_lock_state` | l'état du fichier de verrouillage par locale |
+| `verbatra_history_list` | les commits récents sur les fichiers de locale, avec le nom de l'auteur ([jamais l'e-mail](/docs/data-handling#studio-et-mcp)) |
+| `verbatra_key_integrity` | les contrôles de placeholders, de balisage et d'ICU d'une clé, dans les locales où sa source a changé |
+| `verbatra_review_queue` | chaque valeur écrite par une machine que personne n'a approuvée, d'après les fichiers versionnés <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+| `verbatra_key_value` | la source et la cible d'une clé, avec qui a écrit la cible |
+| `verbatra_key_context` | la description, les termes du glossaire et le `maxLength` d'une clé, et le contrôle d'un `draft` optionnel <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+| `verbatra_locale_values` | les valeurs des clés par locale cible, 200 par page par défaut, restreintes par `locales`, `keys` ou `query` |
+| `verbatra_locale_integrity` | chaque traduction qui échoue aux contrôles d'intégrité <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+| `verbatra_translation_estimate` | ce qu'un appel translate-pending enverrait et coûterait, sans appeler de fournisseur |
 | `verbatra_usage_summary` | la consommation de tokens et le budget de la dernière exécution |
-| `verbatra_key_value` | les valeurs source et cible pour une clé et une locale |
-| `verbatra_locale_values` | les valeurs source et cible de chaque clé dans chaque locale cible |
 
-### Outils d'écriture (deux)
+### Outils d'écriture
 
-`verbatra_translation_editEntry` modifie sur place la valeur d'une locale. Il passe par la même barrière d'intégrité que toute autre écriture verbatra : une valeur qui échoue à l'une de ses vérifications est rejetée et rien n'est écrit. Une modification acceptée écrit le fichier de locale et fait avancer l'entrée de verrou de la clé, exactement comme une modification depuis le tableau de bord. Modifier n'exige aucune option de dépense ; cela ne touche que tes fichiers locaux et n'appelle jamais de fournisseur, mais ce n'est pas sans garde-fou : l'outil est limité à 20 modifications par minute glissante, et un second appel pour la même locale et la même clé pendant qu'un autre est encore en cours est rejeté avec `ALREADY_IN_PROGRESS` (HTTP 409) plutôt que mis en file, pour que deux appelants ne se disputent pas une entrée.
+| Outil | Ce qu'il fait |
+| --- | --- |
+| `verbatra_glossary_write` | modifie un terme d'un glossaire stocké dans un fichier <AvailableFrom version="0.4.0" pkg="@verbatra/studio" /> |
+| `verbatra_review_approve` | enregistre l'approbation d'une valeur par une personne nommée <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+| `verbatra_review_reject` | enregistre le rejet d'une personne nommée et retire la valeur |
+| `verbatra_translation_editEntry` | écrit une valeur via le contrôle d'intégrité |
 
-<AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
+### Outils payants
 
-`verbatra_glossary_write` ajoute, remplace ou supprime un terme du glossaire et renvoie le glossaire tel qu'il est désormais. Il ne fonctionne que sur un glossaire stocké dans un fichier : un glossaire écrit inline dans la config, ou l'absence de glossaire, est refusé plutôt que converti, et aucun paramètre ne nomme de fichier, la cible venant uniquement de la config chargée. Comme la modification, il ne dépense rien et est enregistré sans `--allow-spend`. Il est limité à 20 écritures par minute glissante.
+| Outil | Ce qu'il fait |
+| --- | --- |
+| `verbatra_translation_retranslateEntry` | retraduit une clé dans une locale |
+| `verbatra_translation_translatePending` | traduit tout ce qui est en attente, éventuellement pour certaines `locales` et sous un plafond `maxTokens` <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 
-### Outils de dépense (deux)
+`verbatra_key_integrity` ne renvoie que les locales où la source de la clé a changé, donc une liste vide signifie qu'il n'y avait rien à vérifier. Ses lignes sont plus plates que celles de [`key.integrity`](/docs/cli/mcp#entrées-et-résultats) dans le serveur MCP. Seul le serveur MCP a `project.doctor` et `report.provenance`. `verbatra_locale_values` pagine comme son `locale.values`, avec les mêmes `limit` et `cursor` ([Autres entrées et résultats](/docs/cli/mcp#autres-entrées-et-résultats)).
 
-Ceux-ci appellent un fournisseur de traduction et ne sont enregistrés que si Studio tourne aussi avec `--allow-spend` :
+## Connaître les règles des outils
 
-- `verbatra_translation_retranslateEntry` : retraduit une clé et une locale.
-- `verbatra_translation_translatePending` : traduit tout ce qui est en attente à cet instant.
+Chaque appel passe par le RPC loopback authentifié du tableau de bord, avec la même validation des entrées et le même [contrôle d'intégrité](/docs/translation-safety) : une valeur qui échoue à un contrôle est rejetée et rien n'est écrit.
 
-Tous deux font passer leurs résultats par la barrière d'intégrité avant que quoi que ce soit n'atteigne le disque, et tous deux sont soumis aux limites de débit déjà en place dans Studio (retraduction à 20 par minute glissante, traduction de l'attente à 5 par minute glissante, plus un garde contre les appels concurrents). `verbatra_translation_retranslateEntry` porte en plus le même garde par entrée que la modification : un second appel concurrent pour la même locale et la même clé est rejeté avec `ALREADY_IN_PROGRESS` (HTTP 409). Sans `--allow-spend`, ils sont absents du jeu d'outils et le serveur n'enregistre même pas les points de terminaison sous-jacents, donc une dépense que tu n'as pas accordée au démarrage reste hors de portée d'un agent.
+### Règles par appel
 
-### Quand un appel échoue
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Chaque outil renvoie en JSON l'enveloppe RPC propre au tableau de bord, donc un appel échoué se lit `{ "ok": false, "error": { "code": ..., "message": ... } }`. En plus des codes métier que rapporte le SDK (un rejet d'intégrité, une locale ou une clé inconnue), de `METHOD_RATE_LIMITED` pour un appel qui dépasse sa limite de débit et du refus `ALREADY_IN_PROGRESS` ci-dessus, les codes viennent de la couche RPC elle-même :
+- **Provenance** : une modification de l'agent est enregistrée avec l'origine `agent` et reste dans la file de relecture ; une modification depuis le tableau de bord est `human`. Les outils de lecture indiquent qui a écrit chaque valeur ([Le fichier de verrouillage](/docs/the-lock-file#la-provenance-de-chaque-valeur)).
+- **Travail humain** : retraduire refuse la valeur d'une personne avec `KEY_PROTECTED` et une clé épinglée avec `KEY_PINNED`, et modifier refuse une clé épinglée ([Garder les traductions humaines](/docs/protecting-human-translations)).
+- **Décisions de relecture** : approuver et rejeter servent seulement à transmettre ta décision. Les deux exigent `reviewer`, le nom de la personne, et `expectedValue`, le texte relu ; une valeur modifiée est refusée avec `REVIEW_VALUE_CHANGED`.
+- **Pas d'outils groupés** : **Approve selected**, **Reject selected**, **Retranslate selected** et **Approve all in** restent entre les mains d'une personne.
+- **Estimer d'abord** : une locale inconnue est refusée avec `UNKNOWN_LOCALE` avant toute dépense, et c'est le plus bas des `maxTokens` de l'appel et de la config qui s'applique ([Estimer le coût avant une exécution](/docs/estimating-cost)).
+- **Limites de débit** : par minute glissante, 20 retraductions, 20 modifications, 20 écritures de glossaire, 60 décisions de relecture et 5 appels translate-pending, un à la fois. Un second appel pour une entrée encore en cours est refusé avec `ALREADY_IN_PROGRESS`.
 
-- `REQUEST_INVALID` : le corps de la requête n'était pas un objet JSON nommant une méthode, ou la réponse du serveur n'était pas une enveloppe que l'onglet pouvait lire.
-- `METHOD_UNKNOWN` : la méthode n'est pas une méthode que Studio connaît, ou elle n'est pas enregistrée dans cette session, comme c'est le cas d'une méthode de dépense sans `--allow-spend`.
-- `PARAMS_INVALID` : les paramètres ont échoué à la validation ; l'erreur porte une liste `issues` qui nomme chaque champ fautif.
-- `SESSION_EXPIRED` : le serveur n'accepte plus le cookie de session de l'onglet, en général parce que Studio a été redémarré avec un nouveau token. L'onglet cesse d'appeler le serveur et affiche l'écran Session expired ; ouvre l'URL affichée par le Studio en cours d'exécution pour démarrer une nouvelle session.
+## Lire un appel échoué
 
-## L'avis de mode dégradé
+Chaque outil renvoie l'enveloppe du tableau de bord, donc un échec se lit `{ "ok": false, "error": { "code": ..., "message": ... } }`. En plus des codes du SDK, comme un rejet d'intégrité ou `UNKNOWN_KEY`, la couche RPC ajoute :
 
-L'enregistrement a trois issues possibles, et une seule est un problème.
+| Code | Signification |
+| --- | --- |
+| `REQUEST_INVALID` | la requête ou la réponse n'était pas une enveloppe lisible |
+| `METHOD_UNKNOWN` | la méthode n'existe pas dans cette version de Studio |
+| `SPEND_DISABLED` | une méthode payante alors que la dépense est coupée : Studio tourne sans `--allow-spend`, ou le fournisseur est `none` ; le message dit lequel |
+| `PARAMS_INVALID` | un paramètre a échoué à la validation ; `issues` nomme chaque champ |
+| `METHOD_RATE_LIMITED` | limite de débit dépassée ; `retryAfterSeconds` dit quand l'appel passera |
+| `SESSION_EXPIRED` | Studio a redémarré avec un nouveau token ; ouvre l'URL qu'il a affichée |
 
-**Rien de tenté, rien de signalé.** Quand `document.modelContext` est absent (un navigateur sans WebMCP, ou Chrome sans le flag) ou quand tu n'as pas activé l'exposition, Studio ne tente aucun enregistrement. Le tableau de bord reste inchangé et la console reste muette. C'est le no-op prévu, pas un échec.
+## Réparer les outils dégradés
 
-**Treize outils et aucun avis.** Sans `--allow-spend`, Studio tente treize enregistrements plutôt que quinze : les deux outils de dépense sont écartés avant même d'être tentés. Treize outils, c'est le compte sain d'une session sans dépense : leur absence est donc l'état attendu et ne déclenche jamais d'avis.
-
-**L'avis.** Si Studio a tenté un enregistrement et que le navigateur l'a rejeté, le tableau de bord affiche un avertissement en haut de la zone de contenu, sur toutes les vues :
+Si le navigateur rejette un enregistrement, chaque vue affiche un avertissement comme :
 
 > Agent tools degraded: 2 of the agent tool registrations failed with SecurityError. The dashboard itself is unaffected. The browser console lists every failing tool.
 
-Le décompte et le nom d'erreur sont les vrais, ceux de cette passe. L'avis n'a pas de commande de fermeture et reste affiché pendant toute la vie de la page. Recharger l'onglet lance une nouvelle passe d'enregistrement, puisque l'état n'est gardé qu'en mémoire.
+Les outils qui se sont enregistrés restent appelables, et le tableau de bord fonctionne normalement. La console contient une ligne qui nomme chaque échec :
 
-### Ce qui fonctionne encore en mode dégradé
-
-Un outil qui échoue n'annule jamais ceux qui suivent, donc tout outil bien enregistré reste appelable et la surface est le plus souvent partiellement utilisable plutôt que hors service. Le tableau de bord n'est pas touché : l'interface humaine, les RPC et chaque contrôle de capacité se comportent exactement comme si l'exposition était coupée, et aucun fichier de locale n'est affecté.
-
-### Lire la console
-
-Studio écrit une seule ligne agrégée au niveau erreur, et non une ligne par outil, parce qu'une cause commune fait échouer tous les outils de façon identique :
-
-```text
-Verbatra agent tools: 2 of 15 tool registrations failed. verbatra_status_diff (SecurityError: ...); verbatra_key_value (SecurityError: ...)
+```text output
+Verbatra agent tools: 2 of 20 tool registrations failed. verbatra_status_diff (SecurityError: ...); verbatra_key_value (SecurityError: ...)
 ```
 
-La première phrase indique combien des enregistrements tentés ont échoué, et sur combien de tentatives : quinze ici, parce que cette session a été lancée avec `--allow-spend`, et treize dans une session sans cette option. Chaque outil en échec suit ensuite sous la forme `name (ErrorName: message)`, séparés par des points-virgules. Le nom d'erreur identifie la cause : c'est le `name` de la valeur avec laquelle le navigateur a rejeté l'enregistrement, en général une `DOMException` comme `SecurityError` ou `InvalidStateError`.
+Lis d'abord le nom de l'erreur, puis recharge l'onglet, ce qui relance l'enregistrement. Un flag manquant ou un navigateur sans WebMCP n'affiche jamais cet avis ; rien n'est enregistré, en silence. Une session sans `--allow-spend` tente deux enregistrements de moins, et ce n'est pas un échec.
 
-Une passe qui n'a jamais atteint la boucle par outil signale une ligne différente et ne déclenche pas l'avis :
+## Mesurer le risque de dépense
 
-```text
-Verbatra agent tools: registration did not start (TypeError: Failed to fetch).
-```
+Les outils n'ajoutent aucune exposition réseau : Studio n'écoute toujours que sur `127.0.0.1`, chaque requête porte le token de session, et les outils qui renvoient du texte du projet le marquent comme non fiable, pour que l'agent le traite comme des données.
 
-Cela veut dire que l'appel d'instantané du projet qui décide si l'exposition est activée a échoué au chargement, donc aucun outil n'a été tenté.
+<Callout type="warn">
+Avec `--allow-spend` et `--expose-agent-tools` ensemble, un agent peut dépenser chez ton fournisseur sans confirmation par appel, jusqu'aux limites de débit. Studio ne distingue pas l'appel d'un agent de ton clic, il n'ajoute donc aucune boîte de validation. Pour lire et modifier seulement, laisse `--allow-spend` désactivé.
+</Callout>
 
-### Ce que tu peux faire
+## Voir aussi
 
-Aucun réglage de Studio ne corrige un enregistrement rejeté, car le rejet vient du navigateur. En pratique :
-
-- Lis d'abord le nom d'erreur dans la console. Il nomme la cause plus précisément que l'avis.
-- Recharge l'onglet. L'enregistrement s'exécute une fois par chargement de page, donc un rejet passager disparaît.
-- Revérifie les prérequis du navigateur ci-dessus. Un flag manquant ou un navigateur sans WebMCP produit le no-op silencieux, jamais cet avis ; si tu vois l'avis, c'est que la surface a bien démarré.
-- Continue d'utiliser les outils qui se sont enregistrés, ou travaille dans le tableau de bord, qui n'est de toute façon pas affecté.
-
-## Modèle de sécurité
-
-Garde ces points en tête avant d'activer les outils pour agents.
-
-- **Désactivés par défaut.** Tu choisis explicitement de les activer avec `--expose-agent-tools` (ou `VERBATRA_STUDIO_AGENT_TOOLS`).
-- **La dépense exige les deux options.** Les deux outils de dépense n'apparaissent que si tu passes à la fois `--expose-agent-tools` et `--allow-spend`. Aucune des deux options n'implique l'autre. Les outils de lecture et d'écriture ne dépensent rien.
-- **Aucune exposition réseau nouvelle.** Chaque appel d'outil emprunte le même RPC loopback authentifié que le tableau de bord. Studio n'écoute toujours que sur `127.0.0.1`, et le token de session du navigateur authentifie toujours chaque requête.
-- **Les chaînes traduisibles ne sont pas de confiance.** Les outils qui peuvent renvoyer du texte issu du projet (chaînes de locale, noms de clés, termes de glossaire, sujets de commits, jetons de placeholders) marquent leur contenu comme non fiable, pour qu'un agent consommateur traite ces valeurs comme des données et non comme des instructions.
-
-### Le risque de dépense accepté
-
-Disons-le franchement : avec `--allow-spend` et `--expose-agent-tools` activés tous les deux, un agent autonome peut déclencher une dépense fournisseur sans confirmation humaine à chaque clic. Studio n'ajoute pas de boîte de dialogue d'approbation par appel : le serveur ne peut pas distinguer un appel venu d'un agent d'un clic humain dans la même session, une telle boîte donnerait donc une assurance trompeuse et viderait la fonctionnalité de son sens. Les limites de débit ci-dessus bornent toujours le coût, mais un agent peut boucler tout seul jusqu'à ce plafond.
-
-Active la dépense pilotée par un agent en connaissance de cause. Si tu veux seulement qu'un agent inspecte l'état et corrige des entrées à la main, lance Studio sans `--allow-spend` : les outils pour agents fonctionnent pleinement dans ce mode lecture et modification, et aucun outil ne peut atteindre un fournisseur.
-
-## Ensuite
-
-- [Réviser les traductions dans Studio](/docs/review-in-studio) : le même flux de travail, mené par une personne.
-- [`verbatra studio`](/docs/cli/studio) : toutes les options et le contrat de démarrage.
-- [Sûreté de la traduction](/docs/translation-safety) : la barrière d'intégrité par laquelle passent chaque modification et chaque retraduction.
-- [Configure verbatra avec un agent IA](/docs/start-with-ai) : pour un projet qui n'a pas encore exécuté verbatra, un prompt qui l'amène jusqu'ici en premier lieu.
+- [Réviser dans Studio](/docs/review-in-studio) : le même déroulé, à la main.
+- [`verbatra studio`](/docs/cli/studio) : chaque flag et le contrat de démarrage.
+- [Connecter un client MCP](/docs/connect-an-mcp-client#le-plugin-verbatra) : le plugin apporte la skill `verbatra-studio-agent-tools`, mais c'est toi qui lances Studio.
