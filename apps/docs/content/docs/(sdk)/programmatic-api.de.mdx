@@ -169,12 +169,15 @@ const summary = await translate({ config: await loadConfig(), signal: controller
 
 if (summary.cancelled === true) {
   const { succeeded, partial, failed } = summary;
-  console.error(`cancelled: ${succeeded.length} done, ${partial.length} partial, ${failed.length} failed or not started`);
+  console.error(
+    `cancelled: ${succeeded.length} done, ${partial.length} partial,`,
+    `${failed.length} failed or not started`,
+  );
   process.exitCode = 130;
 }
 ```
 
-[`RUN_CANCELLED`](/docs/error-codes#run_cancelled) sagt, was jede gestoppte Locale meldet.
+Eine Locale, deren Start der Abbruch verhindert hat, trägt den [Fehlercode `RUN_CANCELLED`](/docs/error-codes#run_cancelled), eine, die er mitten im Lauf gestoppt hat, die [Notice `RUN_CANCELLED`](/docs/error-codes#notice-run_cancelled). Ein Abbruch, der erst ankommt, wenn jede Locale fertig ist, lässt `cancelled` weg, und ein Fehler des ganzen Laufs beim Start schlägt weiterhin fehl.
 
 ## Keys aus deinem Quellcode extrahieren
 

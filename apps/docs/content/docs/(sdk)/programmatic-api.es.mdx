@@ -170,12 +170,15 @@ const summary = await translate({ config: await loadConfig(), signal: controller
 
 if (summary.cancelled === true) {
   const { succeeded, partial, failed } = summary;
-  console.error(`cancelled: ${succeeded.length} done, ${partial.length} partial, ${failed.length} failed or not started`);
+  console.error(
+    `cancelled: ${succeeded.length} done, ${partial.length} partial,`,
+    `${failed.length} failed or not started`,
+  );
   process.exitCode = 130;
 }
 ```
 
-[`RUN_CANCELLED`](/docs/error-codes#run_cancelled) explica qué informa cada locale detenido.
+Un locale que la cancelación impidió empezar lleva el [código de error `RUN_CANCELLED`](/docs/error-codes#run_cancelled), y uno que detuvo a media ejecución, el [aviso `RUN_CANCELLED`](/docs/error-codes#notice-run_cancelled). Una cancelación que llega cuando ya terminó cada locale deja `cancelled` ausente, y un error de toda la ejecución al arrancar sigue rechazando.
 
 ## Extrae claves de tu código fuente
 

@@ -169,12 +169,15 @@ const summary = await translate({ config: await loadConfig(), signal: controller
 
 if (summary.cancelled === true) {
   const { succeeded, partial, failed } = summary;
-  console.error(`cancelled: ${succeeded.length} done, ${partial.length} partial, ${failed.length} failed or not started`);
+  console.error(
+    `cancelled: ${succeeded.length} done, ${partial.length} partial,`,
+    `${failed.length} failed or not started`,
+  );
   process.exitCode = 130;
 }
 ```
 
-[`RUN_CANCELLED`](/docs/error-codes#run_cancelled) says what each stopped locale reports.
+A locale the abort kept from starting carries the [`RUN_CANCELLED` error code](/docs/error-codes#run_cancelled), and one it stopped mid-run the [`RUN_CANCELLED` notice](/docs/error-codes#notice-run_cancelled). An abort that arrives after every locale finished leaves `cancelled` absent, and a whole-run error at startup still rejects.
 
 ## Extract keys from your source code
 

@@ -156,12 +156,15 @@ const summary = await translate({ config: await loadConfig(), signal: controller
 
 if (summary.cancelled === true) {
   const { succeeded, partial, failed } = summary;
-  console.error(`cancelled: ${succeeded.length} done, ${partial.length} partial, ${failed.length} failed or not started`);
+  console.error(
+    `cancelled: ${succeeded.length} done, ${partial.length} partial,`,
+    `${failed.length} failed or not started`,
+  );
   process.exitCode = 130;
 }
 ```
 
-[`RUN_CANCELLED`](/docs/error-codes#run_cancelled) dit ce que signale chaque locale arrêtée.
+Une locale que l'annulation a empêchée de démarrer porte le [code d'erreur `RUN_CANCELLED`](/docs/error-codes#run_cancelled), et une qu'elle a arrêtée en cours d'exécution, l'[avis `RUN_CANCELLED`](/docs/error-codes#notice-run_cancelled). Une annulation qui arrive après la fin de chaque locale laisse `cancelled` absent, et une erreur de toute l'exécution au démarrage rejette toujours.
 
 ## Extraire les clés de ton code source
 
