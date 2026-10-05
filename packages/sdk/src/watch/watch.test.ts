@@ -258,6 +258,28 @@ describe("watch: startup and wiring", () => {
     expect(onReady).not.toHaveBeenCalled();
   });
 
+  it("closes the watcher and starts no run when onReady throws, rethrowing its error", async () => {
+    const w = watcherHarness();
+    const r = runHarness();
+    const boom = new Error("announce failed");
+    await expect(
+      watch(
+        {
+          config: baseConfig(),
+          cwd: CWD,
+          onRun: () => {},
+          onReady: () => {
+            throw boom;
+          },
+        },
+        { fs: okFs, createWatcher: w.createWatcher, runTranslate: r.run },
+      ),
+    ).rejects.toBe(boom);
+    await settle();
+    expect(w.closed).toBe(true);
+    expect(r.calls).toBe(0);
+  });
+
   it("lets a watcher-factory failure escape unwrapped at startup, with no run started", async () => {
     const r = runHarness();
     const failing: CreateWatcher = () => {
