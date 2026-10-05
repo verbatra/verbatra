@@ -11,8 +11,9 @@ None of these call a provider, write a file, or mutate the lock.
 
 <AvailableFrom version="0.9.0" />
 
-Validates the project setup and spends nothing: it constructs no provider, never reads an API key
-value, and makes no network request unless `live` asks for one. Each check returns its own verdict, and every check runs even when an earlier one failed, so one call
+Validates the project setup and spends nothing: it constructs no provider and makes no network request
+unless `live` asks for one. It reads the API key value only for `live`, which sends it in one
+language-list request; LibreTranslate gets no key. Each check returns its own verdict, and every check runs even when an earlier one failed, so one call
 reports every independent problem. [`verbatra doctor`](/docs/cli/doctor#what-it-checks) lists the
 checks. The API key is checked by name only; the source file is parsed, not just found.
 

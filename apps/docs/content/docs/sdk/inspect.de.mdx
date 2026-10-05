@@ -11,8 +11,9 @@ Keine dieser Funktionen ruft einen Provider auf, schreibt eine Datei oder verän
 
 <AvailableFrom version="0.9.0" />
 
-Prüft die Projekteinrichtung und kostet nichts: Es konstruiert keinen Provider, liest nie einen
-API-Key-Wert und stellt keine Netzwerkanfrage, außer `live` fordert eine an. Jede Prüfung liefert ihr eigenes Urteil, und jede läuft auch dann, wenn eine frühere
+Prüft die Projekteinrichtung und kostet nichts: Es konstruiert keinen Provider und stellt keine
+Netzwerkanfrage, außer `live` fordert eine an. Den Wert des API-Keys liest es nur für `live`, das
+ihn in einer Anfrage nach der Sprachliste mitschickt; LibreTranslate bekommt keinen Key. Jede Prüfung liefert ihr eigenes Urteil, und jede läuft auch dann, wenn eine frühere
 fehlgeschlagen ist; ein Aufruf meldet also jedes unabhängige Problem.
 [`verbatra doctor`](/docs/cli/doctor#was-geprüft-wird) listet die Prüfungen auf. Der API-Key wird nur
 über den Namen geprüft; die Quelldatei wird geparst, nicht nur gefunden.

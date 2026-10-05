@@ -11,7 +11,7 @@ Aucune de ces fonctions n'appelle de fournisseur, n'écrit de fichier ni ne modi
 
 <AvailableFrom version="0.9.0" />
 
-Valide la mise en place du projet et ne dépense rien : il ne construit aucun fournisseur, ne lit jamais la valeur d'une clé d'API et ne fait aucune requête réseau sauf si `live` en demande une. Chaque vérification rend son propre verdict, et toutes s'exécutent même si une précédente a échoué : un seul appel signale donc tous les problèmes indépendants. [`verbatra doctor`](/docs/cli/doctor#ce-quil-vérifie) liste les vérifications. La clé d'API est vérifiée par son nom uniquement ; le fichier source est analysé, pas seulement trouvé.
+Valide la mise en place du projet et ne dépense rien : il ne construit aucun fournisseur et ne fait aucune requête réseau sauf si `live` en demande une. Il ne lit la valeur de la clé d'API que pour `live`, qui l'envoie dans une requête de liste des langues ; LibreTranslate ne reçoit aucune clé. Chaque vérification rend son propre verdict, et toutes s'exécutent même si une précédente a échoué : un seul appel signale donc tous les problèmes indépendants. [`verbatra doctor`](/docs/cli/doctor#ce-quil-vérifie) liste les vérifications. La clé d'API est vérifiée par son nom uniquement ; le fichier source est analysé, pas seulement trouvé.
 
 ```ts title="Signature"
 function doctor(

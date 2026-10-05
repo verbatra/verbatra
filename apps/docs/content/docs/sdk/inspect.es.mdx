@@ -11,8 +11,9 @@ Ninguna de estas llama a un proveedor, escribe un archivo ni muta el bloqueo.
 
 <AvailableFrom version="0.9.0" />
 
-Valida la configuración del proyecto y no gasta nada: no construye ningún proveedor, nunca lee el
-valor de una clave de API y no hace ninguna petición de red salvo que `live` pida una. Cada comprobación devuelve su propio veredicto, y todas se ejecutan aunque una
+Valida la configuración del proyecto y no gasta nada: no construye ningún proveedor y no hace ninguna
+petición de red salvo que `live` pida una. Solo lee el valor de la clave de API para `live`, que la
+envía en una petición de la lista de idiomas; LibreTranslate no recibe ninguna clave. Cada comprobación devuelve su propio veredicto, y todas se ejecutan aunque una
 anterior haya fallado, así que una sola llamada informa de cada problema independiente.
 [`verbatra doctor`](/docs/cli/doctor#qué-comprueba) enumera las comprobaciones. La clave de API se
 comprueba solo por nombre; el archivo de origen se analiza, no solo se localiza.
