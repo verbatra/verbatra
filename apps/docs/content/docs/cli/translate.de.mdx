@@ -145,7 +145,7 @@ verbatra translate --include-human
 | `130` | mit Strg-C (SIGINT) unterbrochen, nachdem die Schreibsperren freigegeben wurden |
 | `143` | mit SIGTERM gestoppt, nachdem die Schreibsperren freigegeben wurden |
 
-Bei einer Unterbrechung endet stderr mit `verbatra: interrupted (SIGINT), released locks`, oder unter `--json` mit dem Datensatz `{"type":"interrupted","signal":"SIGINT","locksReleased":true}`. Siehe [den Exit-Code-Vertrag](/docs/cli/output#exit-codes).
+Bei einer Unterbrechung endet stderr mit `verbatra: interrupted (SIGINT), released locks`, oder unter `--json` mit dem Datensatz `{"type":"interrupted","signal":"SIGINT","locksReleased":true}`. Scheitert das Freigeben der Sperren oder ist es nach 5 Sekunden nicht fertig, sagt die Zeile das stattdessen (`could not release locks: <reason>` oder `lock release did not finish within 5s`), und der JSON-Datensatz trägt `"locksReleased":false` mit `"reason":"failed"` (plus `message`) oder `"reason":"timed-out"` (plus `deadlineMs`). Siehe [den Exit-Code-Vertrag](/docs/cli/output#exit-codes).
 
 ## Siehe auch
 

@@ -145,7 +145,7 @@ verbatra translate --include-human
 | `130` | interrupted with Ctrl-C (SIGINT) after releasing the write locks |
 | `143` | stopped with SIGTERM after releasing the write locks |
 
-On an interrupt, stderr ends with `verbatra: interrupted (SIGINT), released locks`, or under `--json` with the record `{"type":"interrupted","signal":"SIGINT","locksReleased":true}`. See [the exit-code contract](/docs/cli/output#exit-codes).
+On an interrupt, stderr ends with `verbatra: interrupted (SIGINT), released locks`, or under `--json` with the record `{"type":"interrupted","signal":"SIGINT","locksReleased":true}`. If releasing the locks fails or does not finish within 5 seconds, the line says so instead (`could not release locks: <reason>` or `lock release did not finish within 5s`), and the JSON record carries `"locksReleased":false` with `"reason":"failed"` (plus `message`) or `"reason":"timed-out"` (plus `deadlineMs`). See [the exit-code contract](/docs/cli/output#exit-codes).
 
 ## Related
 

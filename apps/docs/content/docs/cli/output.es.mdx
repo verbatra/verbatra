@@ -34,7 +34,7 @@ El código `0` significa, por comando:
 - `watch`, `studio` o `mcp`: se detuvo limpiamente
 - `--help` o `--version`: imprimió la ayuda o la versión
 
-Con `130` y `143`, stderr termina con `verbatra: interrupted (SIGINT), released locks` (o `SIGTERM`), o, con `--json`, con el registro `{"type":"interrupted","signal":"SIGINT","locksReleased":true}`.
+Con `130` y `143`, stderr termina con `verbatra: interrupted (SIGINT), released locks` (o `SIGTERM`), o, con `--json`, con el registro `{"type":"interrupted","signal":"SIGINT","locksReleased":true}`. Si liberar los bloqueos falla o no termina en 5 segundos, la línea lo dice en su lugar (`could not release locks: <reason>` o `lock release did not finish within 5s`), y el registro JSON lleva `"locksReleased":false` con `"reason":"failed"` (más `message`) o `"reason":"timed-out"` (más `deadlineMs`).
 
 Algunos casos límite que conviene conocer:
 
