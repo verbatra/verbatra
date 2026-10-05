@@ -151,7 +151,8 @@ footer's oversized watermark only; do not clip it onto a heading.
   `packages/cli/src/render.ts`, so a change to the CLI's output fails until the demo is
   recaptured.
 - **Docs-facing:** `<AiSetupPrompt />` in `start-with-ai*.mdx` renders the same prompt as a
-  void panel in `text-sm` `--text-body`, capped at the prose measure like a callout, so `AI_SETUP_PROMPT` (`lib/ai-setup-prompt.ts`) is its one source;
+  void panel in `text-sm` `--text-body`, capped at the prose measure like a callout, so
+  `AI_SETUP_PROMPT` (`lib/ai-setup-prompt.ts`) is its one source;
   `remarkAiSetupPromptMarkdown` gives the page's `.md` output the prompt as a `text` fence.
   `components/available-from.tsx` renders the version badge. Its rules
   live in `.claude/rules/docs.md`. `components/docs-home.tsx` holds the docs landing
@@ -172,13 +173,14 @@ footer's oversized watermark only; do not clip it onto a heading.
   from a 50rem container, with the last card spanning the rest of its row so no slot stays
   empty; under a 30rem container a card stacks its chip above the name), each a single-colour
   logo in a round `--surface-card` chip, the stack name in the display face, and its `--format`
-  ids in mono `--text-faint`, each id `whitespace-nowrap` (a list breaks at its comma; only
-  under a 21rem container does an id wrap, and then only after a hyphen, since no
-  `overflow-wrap` is set; a `<wbr>` would not do, as Chrome breaks at it even inside
-  `nowrap`), with no group labels and no arrow. The logos come from `@icons-pack/react-simple-icons` through `components/stack-icons.tsx`
-  (shared with the marquee), always `currentColor`, never a brand colour, since several brand
-  colours are black on this dark-only site; a format with no brand mark gets an outline glyph
-  there. The grid is a `nav` named by `labelledBy`, the id of the heading above it (the docs home
+  ids in mono `--text-faint`, each id `whitespace-nowrap` (`FORMAT_ID_CLASS`): a list breaks at
+  its comma, and only under a 23.5rem container (the longest rendered id plus 15 percent,
+  pinned by its test) does an id wrap, then only after a hyphen, since no `overflow-wrap` is
+  set; a `<wbr>` would not do, as Chrome breaks at it even inside `nowrap`. There are no group
+  labels and no arrow. The logos come from `@icons-pack/react-simple-icons` through
+  `components/stack-icons.tsx` (shared with the marquee), always `currentColor`, never a brand
+  colour, since several brand colours are black on this dark-only site; a format with no brand
+  mark gets an outline glyph there. The grid is a `nav` named by `labelledBy`, the id of the heading above it (the docs home
   section's `id`, or `page-title` on the docs `<h1>`), and that id also prefixes its sprite's symbol
   ids, so two grids on one page never collide. A card's name reads "React: i18next-json".
   `scripts/verify-docs-registry-parity.test.mjs` pins every card's `formats` and anchor to
