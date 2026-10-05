@@ -33,6 +33,33 @@ describe("loadConfigWithMeta: fresh", () => {
     },
   );
 
+  it.each([
+    ["ts", "locale.ts", ["fr"]],
+    ["js", "locale.mjs", ["de"]],
+  ] as const)(
+    "with fresh, a verbatra.config.%s importing an edited %s yields %j",
+    async (extension, helper, expected) => {
+      const dir = await makeTempDir();
+      const helperFile = join(dir, helper);
+      const config = JSON.stringify(baseConfig({ targetLocales: [] })).replace(
+        '"targetLocales":[]',
+        '"targetLocales":[locale]',
+      );
+      await writeFile(helperFile, 'export const locale = "de";', "utf8");
+      await writeFile(
+        join(dir, `verbatra.config.${extension}`),
+        `import { locale } from "./${helper}";\nexport default ${config};`,
+        "utf8",
+      );
+
+      await loadConfigWithMeta({ cwd: dir, fresh: true });
+      await writeFile(helperFile, 'export const locale = "fr";', "utf8");
+      const second = await loadConfigWithMeta({ cwd: dir, fresh: true });
+
+      expect(second.config.targetLocales).toEqual(expected);
+    },
+  );
+
   it("keeps the first evaluation of an edited TypeScript config without fresh", async () => {
     const dir = await makeTempDir();
     const file = join(dir, "verbatra.config.ts");
