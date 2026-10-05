@@ -11,6 +11,8 @@ proveedor y los hallazgos de integridad se comunican como datos en el `RunSummar
 
 Cada código, qué significa, qué comandos de la CLI llegan a él y cuál es el siguiente paso están en [Códigos de error del SDK](/docs/error-codes#sdk-error-codes).
 
+`code` está tipado como la unión `SdkErrorCode`. [`errorHint`](/docs/sdk/exchange#errorhint) devuelve el siguiente paso que resuelve un error, y [`projectRelativeMessage`](/docs/sdk/exchange#projectrelativemessage) acorta las rutas del proyecto en su mensaje antes de que se lo muestres a una persona.
+
 Algunos códigos llevan además el error que envuelven como `cause` estándar: `SOURCE_INVALID` cuando
 falló un analizador o un adaptador (no cuando un archivo se rechaza por su tamaño),
 `PROVIDER_CONSTRUCTION_FAILED` (el propio error de la factoría del proveedor, cuyo mensaje también
@@ -41,9 +43,65 @@ Para cómo estos códigos se corresponden con los códigos de salida de la CLI, 
 [Códigos de error del SDK](/docs/error-codes#sdk-error-codes); para ayuda a partir del síntoma, consulta
 [Solución de problemas](/docs/troubleshooting).
 
+## Clases de error
+
+### SdkError
+
+La clase con la que se lanza cada fallo de toda la ejecución. Su `name` es `"SdkError"`, su `code`
+es un miembro de la unión `SdkErrorCode`, que [Códigos de error del SDK](/docs/error-codes#sdk-error-codes)
+enumera completa, y su `cause` solo está presente en los códigos que nombra
+[El modelo de errores](#el-modelo-de-errores). Compruébalo con `error instanceof SdkError` y usa un
+`switch` sobre `error.code`, y TypeScript reduce cada caso a un solo código.
+
+```ts title="Firma"
+class SdkError extends Error {
+  readonly code: SdkErrorCode;
+  constructor(code: SdkErrorCode, message: string, options?: { readonly cause?: unknown });
+}
+```
+
+<SdkTypeTable name="SdkError" />
+
+### ProviderError
+
 <AvailableFrom version="0.12.0" />
 
-`ProviderError` y su tipo `ProviderErrorCode` se exportan desde `@verbatra/sdk`, así que comprueba
-un fallo de `retranslateEntry` con `error instanceof ProviderError` y ramifica según `error.code`; la
-[códigos de error del proveedor](/docs/error-codes#provider-error-codes) listan todos los códigos. En una versión anterior, que no
-exporta la clase, comprueba `error.name === "ProviderError"` y lee `code`.
+El error estructurado con el que falla un proveedor de traducción, en lugar de un error crudo del
+SDK o de HTTP. Su `name` es `"ProviderError"`, su `code` es un `ProviderErrorCode` y su mensaje es
+fijo y está redactado. En un fallo `MISSING_API_KEY`, `envVar` nombra la variable de la que el
+proveedor lee su clave, nunca su valor. `retranslateEntry` lo vuelve a lanzar, y un proveedor propio
+lo lanza desde `translateBatch`; [Códigos de error del proveedor](/docs/error-codes#provider-error-codes)
+enumera cada código. Compruébalo con `error instanceof ProviderError`. En una versión anterior, que
+no exporta la clase, comprueba `error.name === "ProviderError"` y lee `code`.
+
+```ts title="Firma"
+class ProviderError extends Error {
+  readonly code: ProviderErrorCode;
+  readonly envVar?: string;
+  constructor(code: ProviderErrorCode, message: string, details?: { readonly envVar?: string });
+}
+```
+
+<SdkTypeTable name="ProviderError" />
+
+### AdapterError
+
+<AvailableFrom version="0.11.0" />
+
+El error estructurado con el que falla un adaptador de formato o el registro de adaptadores. Su
+`name` es `"AdapterError"` y su `code` es un `AdapterErrorCode`, enumerado en
+[Códigos de error de los adaptadores de formato](/docs/error-codes#adapter-error-codes). `position`
+ubica la sintaxis mal formada como `{ line, column }` contados desde 1, con la columna en unidades de
+código UTF-16: un adaptador integrado la fija en un error `INVALID_JSON` o `INVALID_YAML` cuyo parser
+indicó un lugar, y la deja en `undefined` en los demás casos. Lo que lanza un adaptador `custom:`
+llega como un error `ADAPTER_FAILED` que lo lleva como `cause`.
+
+```ts title="Firma"
+class AdapterError extends Error {
+  readonly code: AdapterErrorCode;
+  readonly position: SyntaxPosition | undefined;
+  constructor(code: AdapterErrorCode, message: string, options?: { readonly cause?: unknown; readonly position?: SyntaxPosition });
+}
+```
+
+<SdkTypeTable name="AdapterError" />

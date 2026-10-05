@@ -11,6 +11,8 @@ are surfaced as data on the `RunSummary`, never thrown.
 
 Every code, what it means, which CLI commands reach it, and its next step are listed under [SDK error codes](/docs/error-codes#sdk-error-codes).
 
+`code` is typed as the `SdkErrorCode` union. [`errorHint`](/docs/sdk/exchange#errorhint) returns the next step that resolves an error, and [`projectRelativeMessage`](/docs/sdk/exchange#projectrelativemessage) shortens the project paths in its message before you show it to a user.
+
 A few codes also carry the error they wrap as the standard `cause`: `SOURCE_INVALID` when a
 parser or adapter failed (not when a file is refused for its size), `PROVIDER_CONSTRUCTION_FAILED`
 (the provider factory's own error, whose message is also redacted into the `SdkError` message),
@@ -39,9 +41,65 @@ The exceptions to the one-error-class rule:
 For how these codes map to CLI exit codes, see [SDK error codes](/docs/error-codes#sdk-error-codes);
 for symptom-first help, see [Troubleshooting](/docs/troubleshooting).
 
+## Error classes
+
+### SdkError
+
+The class every whole-run failure is thrown as. Its `name` is `"SdkError"`, its `code` is one
+member of the `SdkErrorCode` union that [SDK error codes](/docs/error-codes#sdk-error-codes) lists
+in full, and its `cause` is set only for the codes [The error model](#the-error-model) names. Test
+it with `error instanceof SdkError` and switch on `error.code`, and TypeScript narrows each case to
+one code.
+
+```ts title="Signature"
+class SdkError extends Error {
+  readonly code: SdkErrorCode;
+  constructor(code: SdkErrorCode, message: string, options?: { readonly cause?: unknown });
+}
+```
+
+<SdkTypeTable name="SdkError" />
+
+### ProviderError
+
 <AvailableFrom version="0.12.0" />
 
-`ProviderError` and its `ProviderErrorCode` type are exported from `@verbatra/sdk`, so test a
-`retranslateEntry` failure with `error instanceof ProviderError` and branch on `error.code`; the
-[provider error codes](/docs/error-codes#provider-error-codes) list every code. On an older version, which does not export the
+The structured error a translation provider fails with, in place of a raw SDK or HTTP error. Its
+`name` is `"ProviderError"`, its `code` is a `ProviderErrorCode`, and its message is fixed and
+redacted. On a `MISSING_API_KEY` failure, `envVar` names the variable the provider reads its key
+from, never its value. `retranslateEntry` re-throws it, and a custom provider throws it from
+`translateBatch`; [provider error codes](/docs/error-codes#provider-error-codes) list every code.
+Test it with `error instanceof ProviderError`. On an older version, which does not export the
 class, check `error.name === "ProviderError"` and read `code`.
+
+```ts title="Signature"
+class ProviderError extends Error {
+  readonly code: ProviderErrorCode;
+  readonly envVar?: string;
+  constructor(code: ProviderErrorCode, message: string, details?: { readonly envVar?: string });
+}
+```
+
+<SdkTypeTable name="ProviderError" />
+
+### AdapterError
+
+<AvailableFrom version="0.11.0" />
+
+The structured error a format adapter or the adapter registry fails with. Its `name` is
+`"AdapterError"` and its `code` is an `AdapterErrorCode`, listed under
+[format adapter error codes](/docs/error-codes#adapter-error-codes). `position` locates malformed
+syntax as a 1-based `{ line, column }`, the column counted in UTF-16 code units: a built-in adapter
+sets it on an `INVALID_JSON` or `INVALID_YAML` error whose parser reported a place, and leaves it
+`undefined` otherwise. A `custom:` adapter's own throw arrives as an `ADAPTER_FAILED` error that
+carries it as `cause`.
+
+```ts title="Signature"
+class AdapterError extends Error {
+  readonly code: AdapterErrorCode;
+  readonly position: SyntaxPosition | undefined;
+  constructor(code: AdapterErrorCode, message: string, options?: { readonly cause?: unknown; readonly position?: SyntaxPosition });
+}
+```
+
+<SdkTypeTable name="AdapterError" />

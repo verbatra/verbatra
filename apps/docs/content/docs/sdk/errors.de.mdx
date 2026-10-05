@@ -12,6 +12,8 @@ geworfen.
 
 Jeder Code, was er bedeutet, welche CLI-Befehle ihn erreichen und was der nächste Schritt ist, steht unter [SDK-Fehlercodes](/docs/error-codes#sdk-error-codes).
 
+`code` ist als Union `SdkErrorCode` typisiert. [`errorHint`](/docs/sdk/exchange#errorhint) liefert den nächsten Schritt, der einen Fehler behebt, und [`projectRelativeMessage`](/docs/sdk/exchange#projectrelativemessage) kürzt die Projektpfade in seiner Meldung, bevor du sie einem Menschen zeigst.
+
 Einige Codes tragen außerdem den Fehler, den sie umhüllen, als standardmäßigen `cause`:
 `SOURCE_INVALID`, wenn ein Parser oder Adapter gescheitert ist (nicht, wenn eine Datei wegen ihrer
 Größe abgelehnt wird), `PROVIDER_CONSTRUCTION_FAILED` (der eigene Fehler der Provider-Factory, dessen
@@ -46,9 +48,67 @@ Wie diese Codes auf CLI-Exit-Codes abbilden, steht in
 [SDK-Fehlercodes](/docs/error-codes#sdk-error-codes); Hilfe ausgehend vom Symptom findest du unter
 [Fehlerbehebung](/docs/troubleshooting).
 
+## Fehlerklassen
+
+### SdkError
+
+Die Klasse, als die jeder Fehlschlag des gesamten Laufs geworfen wird. Ihr `name` ist
+`"SdkError"`, ihr `code` ist ein Mitglied der Union `SdkErrorCode`, die
+[SDK-Fehlercodes](/docs/error-codes#sdk-error-codes) vollständig auflistet, und ihr `cause` ist nur
+bei den Codes gesetzt, die [Das Fehlermodell](#das-fehlermodell) nennt. Prüfe ihn mit
+`error instanceof SdkError` und verzweige per `switch` auf `error.code`, dann engt TypeScript jeden
+Fall auf einen Code ein.
+
+```ts title="Signatur"
+class SdkError extends Error {
+  readonly code: SdkErrorCode;
+  constructor(code: SdkErrorCode, message: string, options?: { readonly cause?: unknown });
+}
+```
+
+<SdkTypeTable name="SdkError" />
+
+### ProviderError
+
 <AvailableFrom version="0.12.0" />
 
-`ProviderError` und sein Typ `ProviderErrorCode` werden aus `@verbatra/sdk` exportiert: Prüf einen
-Fehlschlag von `retranslateEntry` also mit `error instanceof ProviderError` und verzweige nach
-`error.code`; die [Provider-Fehlercodes](/docs/error-codes#provider-error-codes) listen jeden Code. Auf einer älteren Version,
-die die Klasse nicht exportiert, prüf `error.name === "ProviderError"` und lies `code`.
+Der strukturierte Fehler, mit dem ein Übersetzungs-Provider scheitert, statt eines rohen SDK- oder
+HTTP-Fehlers. Sein `name` ist `"ProviderError"`, sein `code` ein `ProviderErrorCode`, und seine
+Meldung ist fest formuliert und geschwärzt. Bei einem `MISSING_API_KEY`-Fehlschlag nennt `envVar`
+die Variable, aus der der Provider seinen Key liest, nie ihren Wert. `retranslateEntry` wirft ihn
+weiter, und ein eigener Provider wirft ihn aus `translateBatch`;
+[Provider-Fehlercodes](/docs/error-codes#provider-error-codes) listet jeden Code. Prüfe ihn mit
+`error instanceof ProviderError`. Auf einer älteren Version, die die Klasse nicht exportiert, prüfe
+`error.name === "ProviderError"` und lies `code`.
+
+```ts title="Signatur"
+class ProviderError extends Error {
+  readonly code: ProviderErrorCode;
+  readonly envVar?: string;
+  constructor(code: ProviderErrorCode, message: string, details?: { readonly envVar?: string });
+}
+```
+
+<SdkTypeTable name="ProviderError" />
+
+### AdapterError
+
+<AvailableFrom version="0.11.0" />
+
+Der strukturierte Fehler, mit dem ein Format-Adapter oder die Adapter-Registry scheitert. Sein
+`name` ist `"AdapterError"` und sein `code` ein `AdapterErrorCode`, aufgelistet unter
+[Fehlercodes der Format-Adapter](/docs/error-codes#adapter-error-codes). `position` verortet
+fehlerhafte Syntax als `{ line, column }` ab 1, die Spalte in UTF-16-Codeeinheiten gezählt: Ein
+eingebauter Adapter setzt es bei einem `INVALID_JSON`- oder `INVALID_YAML`-Fehler, dessen Parser
+eine Stelle gemeldet hat, und lässt es sonst `undefined`. Was ein `custom:`-Adapter selbst wirft,
+kommt als `ADAPTER_FAILED`-Fehler an, der es als `cause` trägt.
+
+```ts title="Signatur"
+class AdapterError extends Error {
+  readonly code: AdapterErrorCode;
+  readonly position: SyntaxPosition | undefined;
+  constructor(code: AdapterErrorCode, message: string, options?: { readonly cause?: unknown; readonly position?: SyntaxPosition });
+}
+```
+
+<SdkTypeTable name="AdapterError" />
