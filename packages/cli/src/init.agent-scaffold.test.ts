@@ -2,10 +2,13 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { AGENT_CLIENT_CONFIGS } from "./agent-clients.js";
 import { AGENT_INSTRUCTIONS } from "./agent-instructions.js";
-import { MARKER_END, MARKER_START, MCP_SERVER_ENTRY } from "./agent-scaffold.js";
+import { MARKER_END, MARKER_START } from "./agent-scaffold.js";
 import { type InitDeps, runInit } from "./init.js";
 import { captureStreams, parseEnvelope } from "./test-support.js";
+
+const MCP_SERVER_ENTRY = AGENT_CLIENT_CONFIGS.claude.server;
 
 const nonInteractive: InitDeps = { isTty: () => false };
 
@@ -75,7 +78,9 @@ describe("runInit --agent", () => {
     expect(read("AGENTS.md")).toBe(`${MARKER_START}\n${AGENT_INSTRUCTIONS}\n${MARKER_END}\n`);
     expect(JSON.parse(read(".mcp.json"))).toEqual({ mcpServers: { verbatra: MCP_SERVER_ENTRY } });
     expect(cap.out()).toContain("created AGENTS.md (verbatra section for coding agents)");
-    expect(cap.out()).toContain("created .mcp.json (verbatra MCP server added, spending off)");
+    expect(cap.out()).toContain(
+      "created .mcp.json (Claude Code: verbatra MCP server added, spending off)",
+    );
   });
 
   it("reports both files in the JSON result, after the config files", async () => {
@@ -87,7 +92,7 @@ describe("runInit --agent", () => {
       { path: "AGENTS.md", action: "created" },
       { path: ".mcp.json", action: "created" },
     ]);
-    expect(result.agent).toEqual({
+    expect(result.agent).toMatchObject({
       instructionsFile: "AGENTS.md",
       mcpServer: "added",
       configKept: false,
@@ -107,7 +112,7 @@ describe("runInit --agent", () => {
     const again = await initJson();
     expect(names.map(read)).toEqual(first);
     expect(again.files.every((file) => file.action === "unchanged")).toBe(true);
-    expect(again.agent).toEqual({
+    expect(again.agent).toMatchObject({
       instructionsFile: "CLAUDE.md",
       mcpServer: "present",
       configKept: false,
@@ -143,7 +148,7 @@ describe("runInit --agent", () => {
 
     const { cap } = await init();
     expect(cap.out()).toContain(
-      "unchanged .mcp.json (its verbatra server differs from the scaffold and was left as it is)",
+      "unchanged .mcp.json (Claude Code: its verbatra server differs from the scaffold and was left as it is)",
     );
   });
 
@@ -231,7 +236,7 @@ describe("runInit --agent on an already configured project", () => {
     expect(result.configPath).toBe(join(dir, "verbatra.config.ts"));
     expect(result.config).toBeNull();
     expect(result.detection).toBeNull();
-    expect(result.agent).toEqual({
+    expect(result.agent).toMatchObject({
       instructionsFile: "AGENTS.md",
       mcpServer: "added",
       configKept: true,

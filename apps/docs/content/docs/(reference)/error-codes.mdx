@@ -17,11 +17,11 @@ The CLI raises these codes itself. The same list ships as `CLI_ERROR_CODES` (wit
 
 ### AGENT_FILE_INVALID
 
-`init --agent` found a `.mcp.json` that is not a JSON object with an `mcpServers` object, or an unpaired or repeated verbatra marker in `AGENTS.md` or `CLAUDE.md`; nothing was written.
+`init --agent` found a client config (`.mcp.json`, `.cursor/mcp.json` or `.vscode/mcp.json`) that is not plain JSON, not an object, or holds a servers value that is not an object, a symbolic link on a path it would write, or an unpaired or repeated verbatra marker in `AGENTS.md` or `CLAUDE.md`; nothing was written.
 
 - **Raised by**: `init --agent`
 - **Exit code**: `2`
-- **Next step**: Repair the .mcp.json or the verbatra markers in the file the message names, then run `verbatra init --agent` again.
+- **Next step**: Repair the MCP config or the verbatra markers in the file the message names, or replace the symbolic link it names with a plain file, then run `verbatra init --agent` again.
 
 ### CLI_ERROR
 
@@ -56,11 +56,11 @@ A failure carried no code of its own (the fallback).
 
 ### INIT_UNWRITABLE
 
-`init` could not write a file into its directory, for example because it is read-only; the message names the file, the file-system code, and the files already written.
+`init` could not write a file into its directory, for example because it is read-only, or a file it writes is a symbolic link that does not resolve inside the project; the message names the file, the cause, and the files already written.
 
 - **Raised by**: `init`
 - **Exit code**: `2`
-- **Next step**: Make the directory writable, then run `verbatra init` again.
+- **Next step**: Make the directory writable, or replace the symbolic link the message names with a plain file, then run `verbatra init` again.
 
 ### INVALID_CONCURRENCY
 

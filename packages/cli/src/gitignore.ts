@@ -1,6 +1,5 @@
-import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import type { Streams } from "./types.js";
 
 const GITIGNORE_ENTRIES = [".env", ".env.local", ".verbatra-local/", "verbatra.cache.json"];
 
@@ -9,32 +8,46 @@ function missingEntries(content: string): string[] {
   return GITIGNORE_ENTRIES.filter((entry) => !present.has(entry));
 }
 
-function appendEntries(path: string, content: string, entries: readonly string[]): void {
+function appendedEntries(content: string, entries: readonly string[]): string {
   const prefix = content.length === 0 || content.endsWith("\n") ? "" : "\n";
-  appendFileSync(path, `${prefix}${entries.join("\n")}\n`);
+  return `${prefix}${entries.join("\n")}\n`;
+}
+
+function appendEntries(path: string, content: string, entries: readonly string[]): void {
+  appendFileSync(path, appendedEntries(content, entries));
 }
 
 export type GitignoreAction = "created" | "updated" | "unchanged";
 
-export function ensureGitignore(cwd: string, streams: Streams): GitignoreAction {
+export interface GitignorePlan {
+  readonly action: GitignoreAction;
+  readonly content: string;
+  readonly note: string;
+}
+
+export function planGitignore(cwd: string): GitignorePlan {
   const gitignorePath = resolve(cwd, ".gitignore");
   if (!existsSync(gitignorePath)) {
-    writeFileSync(
-      gitignorePath,
-      `# Local environment files (never commit real keys)\n${GITIGNORE_ENTRIES.join("\n")}\n`,
-    );
-    streams.out(`created .gitignore (${GITIGNORE_ENTRIES.join(", ")})\n`);
-    return "created";
+    return {
+      action: "created",
+      content: `# Local environment files (never commit real keys)\n${GITIGNORE_ENTRIES.join("\n")}\n`,
+      note: GITIGNORE_ENTRIES.join(", "),
+    };
   }
   const content = readFileSync(gitignorePath, "utf8");
   const missing = missingEntries(content);
   if (missing.length === 0) {
-    streams.out(`.gitignore already ignores ${GITIGNORE_ENTRIES.join(", ")}\n`);
-    return "unchanged";
+    return {
+      action: "unchanged",
+      content,
+      note: `already ignores ${GITIGNORE_ENTRIES.join(", ")}`,
+    };
   }
-  appendEntries(gitignorePath, content, missing);
-  streams.out(`updated .gitignore (added ${missing.join(", ")})\n`);
-  return "updated";
+  return {
+    action: "updated",
+    content: `${content}${appendedEntries(content, missing)}`,
+    note: `added ${missing.join(", ")}`,
+  };
 }
 
 export function appendMissingGitignoreEntries(cwd: string, dryRun = false): readonly string[] {
