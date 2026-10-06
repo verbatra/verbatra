@@ -171,6 +171,8 @@ Fehlende und veraltete Keys gehören nicht zur Dateiprüfung.
 
 ### JSON-Ausgabe
 
+Schema: [`check-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/check-envelope.json) validiert den ganzen Envelope; [Schemas](/docs/cli/output#schemas) listet die übrigen auf.
+
 `--json` gibt einen [Umschlag](/docs/cli/output#json-ausgabe) aus, dessen `result` das Statusdokument ist. Ohne `--qa`, `--require-reviewed` und `--sensitive` ist `inSync` genau dann wahr, wenn der Befehl mit `0` endet:
 
 ```ts

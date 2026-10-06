@@ -41,6 +41,8 @@ Il n'y a pas de `--out` : le rapport va sur stdout, comme pour `check` et `diff`
 
 ### Sortie JSON
 
+Schéma : [`report-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/report-envelope.json) valide l'enveloppe entière ; [Schémas](/docs/cli/output#schémas) liste les autres.
+
 `--json` affiche une [enveloppe](/docs/cli/output#sortie-json) dont le `result` liste l'origine, l'état de relecture, le fournisseur, le modèle et le relecteur de chaque clé, pour un fichier d'audit. Si le fichier de provenance est illisible, le résultat est `{ "available": false, "reason": "provenance-unreadable" }`.
 
 ### Provenance illisible

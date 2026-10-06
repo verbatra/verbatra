@@ -97,6 +97,17 @@ describe("translation.translatePending", () => {
     expect(locales.locales?.items.properties).toHaveProperty("integrityRefusals");
   });
 
+  it("declares the estimate a run summary can carry, so its output schema matches the SDK's", () => {
+    const properties = translatePendingTool.outputSchema.properties as Record<
+      string,
+      { readonly anyOf?: readonly { readonly properties: Record<string, unknown> }[] }
+    >;
+
+    expect(properties.estimate?.anyOf).toHaveLength(4);
+    expect(properties.estimate?.anyOf?.[0]?.properties).toHaveProperty("cost");
+    expect(properties.estimate?.anyOf?.[2]?.properties).not.toHaveProperty("cost");
+  });
+
   it("returns an error outcome when the provider fails for every key", async () => {
     const dir = await makeProject({ greeting: "Hello" }, { de: {} });
     const context = makeContext({

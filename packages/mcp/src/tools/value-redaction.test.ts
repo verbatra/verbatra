@@ -1,6 +1,6 @@
 import { createValueMarker } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
-import { redactRunSummary } from "./run-schema.js";
+import { redactRunSummary } from "./run-summary-redaction.js";
 import {
   markFields,
   markRecord,

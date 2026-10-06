@@ -41,6 +41,8 @@ Die erste Unterbrechung (Strg-C oder SIGTERM) lässt den aktuellen Lauf fertig w
 
 ### JSON-Ausgabe
 
+Schema: [`watch-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/watch-envelope.json) validiert den ganzen Envelope; [Schemas](/docs/cli/output#schemas) listet die übrigen auf.
+
 Mit `--json` ist stdout NDJSON: ein [Envelope](/docs/cli/output#json-ausgabe) pro Lauf, mit `command: "watch"`. Ein erfolgreicher Lauf ist ein `ok: true`-Datensatz mit der [`RunSummary`](/docs/cli/translate#json-ausgabe) dieses Laufs; ein fehlgeschlagener Lauf ist ein `ok: false`-Datensatz mit dem eigenen Code des Fehlers, oder `WATCH_RUN_FAILED`, wenn er keinen hatte, plus seinem `hint`, falls vorhanden. Ein fehlgeschlagener Lauf ist nur ein Datensatz: Er stoppt den Watcher nicht und ändert den Exit-Code nicht. Startzeile, Stopp-Hinweis und Fortschritt gehen auf stderr. Ohne `--json` geht die Zusammenfassung eines Laufs auf stdout und die Zeile `verbatra: error [CODE] message` eines fehlgeschlagenen Laufs auf stderr.
 
 ### Rückmeldung im Terminal

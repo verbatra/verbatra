@@ -86,6 +86,24 @@ Une exécution qui échoue dans son ensemble écrit exactement un enregistrement
 
 Le `result` d'une enveloppe réussie diffère selon la commande et il est décrit sur sa page, sous Sortie JSON : [`extract`](/docs/cli/extract), [`translate`](/docs/cli/translate), [`watch`](/docs/cli/watch), [`check`](/docs/cli/check), [`diff`](/docs/cli/diff), [`report`](/docs/cli/report), [`doctor`](/docs/cli/doctor), [`pseudo`](/docs/cli/pseudo), [`types`](/docs/cli/types), [`export`](/docs/cli/export), [`import`](/docs/cli/import), [`tmx`](/docs/cli/tmx), [`init`](/docs/cli/init).
 
+## Schémas
+
+<AvailableFrom version="0.12.0" />
+
+Chaque enregistrement que `--json` affiche a un JSON Schema (draft 2020-12). Les schémas sont livrés dans les paquets npm et servis à des URL stables, pour qu'un script, un agent ou un éditeur puisse valider la sortie au lieu de lire de la prose. Chaque schéma de sortie accepte les propriétés qu'il ne liste pas, comme le promet le contrat de l'enveloppe ci-dessus ; garde-le ainsi si tu en copies un. Le schéma de configuration est l'exception voulue : il décrit ce que tu écris, donc il refuse une clé inconnue pour repérer une faute de frappe.
+
+| Document | URL | Fichier dans le paquet |
+| --- | --- | --- |
+| N'importe quelle enveloppe, de succès ou d'erreur | [`envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/envelope.json) | `@verbatra/cli/schemas/envelope.json` |
+| L'enveloppe d'une commande, avec son `result` | `https://verbatra.kreitz-webdev.de/schema/v1/<command>-envelope.json` | `@verbatra/cli/schemas/<command>-envelope.json` |
+| L'enveloppe d'erreur | [`error-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/error-envelope.json) | `@verbatra/cli/schemas/error-envelope.json` |
+| Une ligne JSON sur stderr : progression, attente d'un verrou, interruption | [`stderr-record.json`](https://verbatra.kreitz-webdev.de/schema/v1/stderr-record.json) | `@verbatra/cli/schemas/stderr-record.json` |
+| Le fichier de configuration | [`config.json`](https://verbatra.kreitz-webdev.de/schema/v1/config.json) | `@verbatra/sdk/schemas/config.json` |
+
+Chaque page de commande lie son enveloppe sous Sortie JSON, et [https://verbatra.kreitz-webdev.de/schema/v1](https://verbatra.kreitz-webdev.de/schema/v1) liste chaque document avec son titre. L'enveloppe d'une commande pointe vers le schéma de son `result` par URL dans `$ref` : un validateur le charge donc par le réseau, ou depuis `node_modules/@verbatra/sdk/dist/schemas` si tu enregistres ces fichiers d'abord.
+
+`v1` suit la `version: 1` de l'enveloppe et sert toujours la dernière version publiée. Un champ ajouté reste dans `v1` ; un changement qui casse une charge utile augmente la `version` de l'enveloppe et ajoute `/schema/v2/`. Le schéma de configuration utilise le même schéma d'URL, mais suit les changements de la configuration elle-même. L'URL sert toujours la dernière version publiée, alors qu'une copie venant de npm reste à sa version : une copie plus ancienne peut donc refuser un enregistrement d'une CLI plus récente là où un schéma liste des valeurs fermées, comme le `type` d'un enregistrement stderr ou la `command` d'une enveloppe.
+
 ## Codes d'erreur de la CLI
 
 <AvailableFrom version="0.12.0" />

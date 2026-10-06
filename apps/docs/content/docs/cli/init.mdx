@@ -68,6 +68,8 @@ npx verbatra init --provider gemini --yes --json
 
 ### JSON output
 
+Schema: [`init-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/init-envelope.json) validates the whole envelope; [Schemas](/docs/cli/output#schemas) lists the others.
+
 With `--json`, stdout carries exactly one [envelope](/docs/cli/output#json-output). Its `result`:
 
 ```ts
@@ -122,7 +124,7 @@ interface InitResult {
 }
 ```
 
-`confidence` is `high` when the files alone decided everything, `medium` when a convention or a dependency filled a gap (such as taking `en` as the source) or a gap stayed open (such as the source locale of Android's unqualified `values` directory), `low` when no locale file backed the format, and `none` when nothing was detected. A `default` in `sources` is the value to double-check. `nextSteps` ends with the exact commands to run next, such as `npx verbatra doctor`.
+`confidence` is `high` when the files alone decided everything, `medium` when a convention or a dependency filled a gap (such as taking `en` as the source) or a gap stayed open, `low` when no locale file backed the format, and `none` when nothing was detected. A `default` in `sources` is the value to double-check. `nextSteps` ends with the exact commands to run next.
 
 An error envelope for `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `INVALID_PROVIDER` or `INVALID_FORMAT` also carries `candidates`, the values to choose from. Every usage error that leaves flags unanswered carries `missing`, naming them, such as `"--source <locale>"`.
 

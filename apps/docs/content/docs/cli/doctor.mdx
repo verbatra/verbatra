@@ -157,6 +157,8 @@ With `--json` the manifest is under `result.dataFlow`. Its `version` field chang
 
 ### JSON output
 
+Schema: [`doctor-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/doctor-envelope.json) validates the whole envelope; [Schemas](/docs/cli/output#schemas) lists the others.
+
 With `--json`, the [envelope](/docs/cli/output#json-output) carries the report under `result`. `ok` is true exactly when the command exits `0`:
 
 ```ts

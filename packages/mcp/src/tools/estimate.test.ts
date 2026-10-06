@@ -148,7 +148,13 @@ describe("translation.estimate: static network boundary", () => {
     expect(source).not.toMatch(/createProvider|fetch\(|node:http|node:https|node:net/);
     expect(source).toMatch(/estimate: true/);
     expect(imports.sort()).toEqual(
-      ["../types.js", "./define-tool.js", "./run-schema.js", "@verbatra/sdk", "zod"].sort(),
+      [
+        "../types.js",
+        "./define-tool.js",
+        "./run-summary-redaction.js",
+        "@verbatra/sdk",
+        "zod",
+      ].sort(),
     );
   });
 });

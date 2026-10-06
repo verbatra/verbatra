@@ -167,7 +167,7 @@ export {
   detectProject,
   type ProjectDetection,
 } from "./detection/detect-project.js";
-export { errorHint } from "./error-hints.js";
+export { errorHint, KNOWN_ERROR_CODES } from "./error-hints.js";
 export { SdkError, type SdkErrorCode } from "./errors.js";
 export {
   type ApproveLocaleDeps,
@@ -197,6 +197,8 @@ export {
   type LocaleFileCheck,
   type QaSyntaxFinding,
 } from "./flow/check-file.js";
+export { checkFileSummarySchema } from "./flow/check-file-schema.js";
+export { checkSummarySchema } from "./flow/check-schema.js";
 export {
   type DataFlowDeps,
   type DataFlowInput,
@@ -225,6 +227,7 @@ export {
   diff,
   type LocaleDiff,
 } from "./flow/diff.js";
+export { diffSummarySchema } from "./flow/diff-schema.js";
 export {
   type DoctorCheck,
   type DoctorCheckId,
@@ -234,6 +237,7 @@ export {
   type DoctorResult,
   doctor,
 } from "./flow/doctor.js";
+export { doctorResultSchema } from "./flow/doctor-schema.js";
 export {
   type EditEntryActor,
   type EditEntryDeps,
@@ -264,6 +268,7 @@ export {
   type ExtractResult,
   extract,
 } from "./flow/extract.js";
+export { extractResultSchema } from "./flow/extract-schema.js";
 export {
   DEFAULT_TYPES_PATH,
   type GenerateTypesDeps,
@@ -272,6 +277,7 @@ export {
   generateTypes,
   type UnresolvedMessage,
 } from "./flow/generate-types.js";
+export { generateTypesResultSchema } from "./flow/generate-types-schema.js";
 export {
   type GitExecFile,
   type GitExecFileResult,
@@ -378,6 +384,7 @@ export {
   type ProvenanceReportPageResult,
   provenanceReportPage,
 } from "./flow/provenance-report-page.js";
+export { provenanceReportResultSchema } from "./flow/provenance-report-schema.js";
 export {
   PSEUDO_MODES,
   type PseudolocalizeDeps,
@@ -386,6 +393,7 @@ export {
   type PseudoMode,
   pseudolocalize,
 } from "./flow/pseudo.js";
+export { pseudolocalizeResultSchema } from "./flow/pseudo-schema.js";
 export {
   type CheckQaSummary,
   type LocaleQaReport,
@@ -456,6 +464,7 @@ export type {
   UnpricedRunEstimate,
   UsageSummary,
 } from "./flow/summary.js";
+export { localeSummarySchema, runSummarySchema } from "./flow/summary-schema.js";
 export {
   DEFAULT_TMX_PATH,
   type ExportTmxDeps,
@@ -464,6 +473,7 @@ export {
   type ExportTmxResult,
   exportTmx,
 } from "./flow/tmx/export-tmx.js";
+export { exportTmxResultSchema } from "./flow/tmx/export-tmx-schema.js";
 export {
   type ImportTmxDeps,
   type ImportTmxInput,
@@ -477,6 +487,7 @@ export {
   type TmxUnitRefusal,
   tmxErrorLocation,
 } from "./flow/tmx/import-tmx.js";
+export { importTmxResultSchema } from "./flow/tmx/import-tmx-schema.js";
 export type { TmxOrigin, TmxReview } from "./flow/tmx/tmx-origin.js";
 export {
   resolveDryRun,
@@ -511,12 +522,22 @@ export {
   type ExportWorkbookResult,
   exportWorkbook,
 } from "./flow/workbook/export-workbook.js";
+export { exportWorkbookResultSchema } from "./flow/workbook/export-workbook-schema.js";
 export {
   type ImportWorkbookDeps,
   type ImportWorkbookInput,
   importWorkbook,
 } from "./flow/workbook/import-workbook.js";
 export type { BoundedBytesRead, BoundedFileRead, DirectoryEntry, SdkFs } from "./fs.js";
+export {
+  JSON_SCHEMA_BASE_URL,
+  type JsonSchemaDocument,
+  type JsonSchemaObject,
+  jsonSchemaUrl,
+  renderJsonSchemas,
+  renderOutputJsonSchema,
+  SDK_JSON_SCHEMAS,
+} from "./json-schema/documents.js";
 export {
   createLocalePathResolver,
   type LocalePathResolver,
@@ -532,6 +553,11 @@ export {
   type ProvenanceMarkers,
   type ProvenanceSummary,
 } from "./lock/key-provenance.js";
+export {
+  keyOriginSchema,
+  keyProvenanceSchema,
+  provenanceSummarySchema,
+} from "./lock/key-provenance-schema.js";
 export {
   type LoadLockFileDeps,
   type LoadLockFileInput,
@@ -549,6 +575,7 @@ export {
   releaseHeldLocks,
 } from "./lock/locale-write-lock.js";
 export { LOCK_FILE_NAME } from "./lock/lock-file.js";
+export { lockWaitEventSchema } from "./lock/lock-wait-schema.js";
 export {
   PROVENANCE_FILE_NAME,
   type ProvenanceFile,
@@ -562,6 +589,7 @@ export {
   PAGE_LIMIT_CAP,
   PAGE_LIMIT_DEFAULT,
 } from "./paging/page-across-locales.js";
+export { progressEventSchema } from "./progress/progress-schema.js";
 export type {
   BatchFinishedEvent,
   ChangeDetectedEvent,

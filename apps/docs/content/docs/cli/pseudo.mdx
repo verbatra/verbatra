@@ -78,6 +78,8 @@ Because the file sits outside `files.pattern`, [`translate`](/docs/cli/translate
 
 ### JSON output
 
+Schema: [`pseudo-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/pseudo-envelope.json) validates the whole envelope; [Schemas](/docs/cli/output#schemas) lists the others.
+
 With `--json`, the [envelope](/docs/cli/output#json-output) carries `locale`, `mode` (`accented` or `bidi`), `path`, `entries` (entries written, including plural forms added in bidi mode), `transformed` (values that differ from the source), `copied` (keys copied verbatim) and `written` (`false` when the file was already current).
 
 ### Terminal feedback

@@ -41,6 +41,8 @@ Es gibt kein `--out`: Der Bericht geht wie bei `check` und `diff` auf stdout, al
 
 ### JSON-Ausgabe
 
+Schema: [`report-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/report-envelope.json) validiert den ganzen Envelope; [Schemas](/docs/cli/output#schemas) listet die übrigen auf.
+
 `--json` gibt einen [Envelope](/docs/cli/output#json-ausgabe) aus, dessen `result` für jeden Key Herkunft, Review-Status, Provider, Modell und Reviewer auflistet, für eine Audit-Datei. Lässt sich die Provenienz-Datei nicht lesen, ist das Ergebnis `{ "available": false, "reason": "provenance-unreadable" }`.
 
 ### Unlesbare Provenienz-Datei

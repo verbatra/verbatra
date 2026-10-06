@@ -41,6 +41,8 @@ No hay `--out`: el informe va a stdout, como en `check` y `diff`, así que redir
 
 ### Salida JSON
 
+Esquema: [`report-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/report-envelope.json) valida el envoltorio completo; [Esquemas](/docs/cli/output#esquemas) enumera los demás.
+
 `--json` imprime un [envoltorio](/docs/cli/output#salida-json) cuyo `result` lista el origen, el estado de revisión, el proveedor, el modelo y el revisor de cada clave, para un archivo de auditoría. Si el archivo de procedencia no se puede leer, el resultado es `{ "available": false, "reason": "provenance-unreadable" }`.
 
 ### Procedencia ilegible

@@ -14,4 +14,12 @@ export default [
     format: ["esm", "cjs"],
     clean: false,
   }),
+  createTsupConfig({
+    entry: { "json-envelope-schema": "src/json-envelope-schema.ts" },
+    format: ["esm"],
+    dts: false,
+    sourcemap: false,
+    clean: true,
+    outDir: "node_modules/.cache/verbatra-cli-schemas",
+  }),
 ];

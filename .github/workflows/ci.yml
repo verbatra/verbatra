@@ -53,6 +53,9 @@ jobs:
       - name: Guard the emitted config JSON Schema
         run: pnpm check:config-schema
 
+      - name: Guard the emitted --json result JSON Schemas
+        run: pnpm check:schemas
+
       - name: Guard lazy provider SDK imports in the sdk bundle
         run: pnpm check:lazy-provider-sdks
 
