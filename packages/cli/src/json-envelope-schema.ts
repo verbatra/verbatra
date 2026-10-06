@@ -9,6 +9,7 @@ import {
   generateTypesResultSchema,
   importTmxResultSchema,
   type JsonSchemaDocument,
+  KNOWN_ERROR_CODES,
   lockWaitEventSchema,
   progressEventSchema,
   provenanceReportResultSchema,
@@ -16,19 +17,30 @@ import {
   runSummarySchema,
 } from "@verbatra/sdk";
 import { z } from "zod";
+import { CLI_ERROR_CODES } from "./cli-error-codes.js";
 import { initResultSchema } from "./init-schema.js";
 import { JSON_ENVELOPE_VERSION } from "./json-envelope.js";
 
 const version = z.literal(JSON_ENVELOPE_VERSION);
 const stringList = z.array(z.string()).readonly();
 
+const knownCodes = [...new Set([...KNOWN_ERROR_CODES, ...CLI_ERROR_CODES])].sort() as [
+  string,
+  ...string[],
+];
+
+const errorCodeSchema = z.union([z.enum(knownCodes), z.string()]).meta({
+  description:
+    "A stable error code. The listed codes are the ones this release knows; a newer verbatra can add codes, so any string is valid. Each code is explained at https://verbatra.kreitz-webdev.de/docs/error-codes.",
+});
+
 export const errorEnvelopeSchema = z.object({
   ok: z.literal(false),
   version,
   command: z.string().nullable(),
-  code: z.string(),
+  code: errorCodeSchema,
   message: z.string(),
-  causeCode: z.string().exactOptional(),
+  causeCode: errorCodeSchema.exactOptional(),
   candidates: stringList.exactOptional(),
   missing: stringList.exactOptional(),
   hint: z.string().exactOptional(),
