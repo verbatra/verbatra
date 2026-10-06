@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { readIncludedSource } from "../apps/docs/lib/docs-pages.ts";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const CONTENT_DIR = resolve(REPO_ROOT, "apps/docs/content/docs");
@@ -41,7 +42,7 @@ const PRINTED_INTERFACE = /^interface (?:RunSummary|LocaleSummary) \{$/m;
 function pagesPrintingRunSummary() {
   return readdirSync(CONTENT_DIR, { recursive: true, encoding: "utf8" })
     .filter((file) => file.endsWith(".mdx"))
-    .filter((file) => PRINTED_INTERFACE.test(readFileSync(resolve(CONTENT_DIR, file), "utf8")))
+    .filter((file) => PRINTED_INTERFACE.test(readIncludedSource(resolve(CONTENT_DIR, file))))
     .map((file) => file.replace(/\.(de|es|fr)\.mdx$/, "").replace(/\.mdx$/, ""))
     .filter((page, index, pages) => pages.indexOf(page) === index)
     .sort();

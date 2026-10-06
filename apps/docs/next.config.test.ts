@@ -18,7 +18,7 @@ const CONTENT_DIR = join(import.meta.dirname, "content/docs");
 
 function docsPageFiles(slug: string): string[] {
   return readdirSync(CONTENT_DIR, { recursive: true, encoding: "utf8" }).filter((file) =>
-    new RegExp(`(^|/)${slug}(\\.(de|es|fr))?\\.mdx$`).test(file),
+    new RegExp(`(^|/)${slug}(/index)?(\\.(de|es|fr))?\\.mdx$`).test(file),
   );
 }
 

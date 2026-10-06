@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { readIncludedSource } from "../apps/docs/lib/docs-pages.ts";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const CONTENT_DIR = resolve(REPO_ROOT, "apps/docs/content/docs");
@@ -86,7 +87,7 @@ describe("docs prose never spells out a registry size", () => {
   });
 
   it.each(PAGES)("%s names no count of formats, providers or commands", (file) => {
-    const source = readFileSync(join(CONTENT_DIR, file), "utf8");
+    const source = readIncludedSource(join(CONTENT_DIR, file));
 
     expect(spelledCounts(source, localeOf(file))).toEqual([]);
   });

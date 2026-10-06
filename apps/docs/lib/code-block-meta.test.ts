@@ -1,8 +1,9 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { rehypeCodeDefaultOptions } from "fumadocs-core/mdx-plugins";
 import { describe, expect, it } from "vitest";
 import { OUTPUT_ATTRIBUTE, parseCodeBlockMeta, rehypeCodeOptions } from "./code-block-meta";
+import { readIncludedSource } from "./docs-pages";
 
 const CONTENT_DIR = join(import.meta.dirname, "../content/docs");
 type MetaArguments = Parameters<typeof parseCodeBlockMeta>;
@@ -47,7 +48,7 @@ describe("docs content", () => {
     const titled = readdirSync(CONTENT_DIR, { recursive: true, encoding: "utf8" })
       .filter((file) => file.endsWith(".mdx"))
       .filter((file) =>
-        /^```\w*[^\n]*title="Output"/m.test(readFileSync(join(CONTENT_DIR, file), "utf8")),
+        /^```\w*[^\n]*title="Output"/m.test(readIncludedSource(join(CONTENT_DIR, file))),
       );
 
     expect(titled).toEqual([]);
