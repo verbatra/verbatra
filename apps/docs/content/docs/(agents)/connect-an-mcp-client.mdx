@@ -15,7 +15,7 @@ Let a coding agent read translation status and fix values through verbatra's std
 | `npx -y @verbatra/mcp` | nothing installed | no |
 | `npx verbatra mcp` | `@verbatra/cli` and `@verbatra/mcp` as dev dependencies | yes: `.env.local`, then `.env` |
 
-The examples use `npx -y @verbatra/mcp`. Avoid `npx -y @verbatra/cli mcp`, which exits `2` because the CLI never installs `@verbatra/mcp`. Each section says how to point the server at the config's directory; [Project directory](/docs/cli/mcp#project-directory) has the rule.
+Avoid `npx -y @verbatra/cli mcp`, which exits `2` because the CLI never installs `@verbatra/mcp`. Each section says how to point the server at the config's directory; [Project directory](/docs/cli/mcp#project-directory) has the rule.
 
 ### MCP Registry
 
@@ -54,7 +54,7 @@ Recommended, from the project root:
 npx verbatra init --agent
 ```
 
-[`init --agent`](/docs/cli/init#set-up-coding-agents) writes the agent instruction file and this entry to the committed `.mcp.json`, spending off:
+[`init --agent`](/docs/cli/init#set-up-coding-agents) writes the agent instruction file and this entry to the committed `.mcp.json`, spending off, plus [Cursor](#cursor) and [VS Code](#vs-code) when detected:
 
 ```json
 {
@@ -74,11 +74,9 @@ Restart Claude Code and approve the `verbatra` server. Claude Code passes `CLAUD
 VERBATRA_MCP_ALLOW_SPEND=1 claude
 ```
 
-Run `claude mcp list` to check the connection. See the [Claude Code MCP documentation](https://code.claude.com/docs/en/mcp).
+`claude mcp list` checks the connection. See the [Claude Code MCP documentation](https://code.claude.com/docs/en/mcp).
 
 ### Other routes
-
-Two alternatives to `init --agent`:
 
 #### Without the CLI
 
@@ -95,7 +93,7 @@ This writes the same `.mcp.json` entry. Never add `--env KEY=value` to a project
 Instead of `.mcp.json`, the plugin bundles the [verbatra skills](/docs/agent-recipes#the-skills-pack), this server, and a hook that checks a locale file after Claude edits it.
 
 <Callout type="warn">
-Never combine the verbatra plugin with a `verbatra` entry in `.mcp.json`: the plugin brings a second server.
+Never combine the verbatra plugin with a `verbatra` entry in `.mcp.json`, which `init --agent` then skips: the plugin brings a second server.
 </Callout>
 
 ```bash
@@ -157,7 +155,7 @@ Gemini CLI hides sensitive variables from servers, so the key arrives only throu
 
 ## Cursor
 
-Cursor reads `.cursor/mcp.json` and `~/.cursor/mcp.json`:
+Cursor reads `.cursor/mcp.json`, which `init --agent` writes, and `~/.cursor/mcp.json`:
 
 ```json title=".cursor/mcp.json"
 {
@@ -175,7 +173,21 @@ To spend, append `"--allow-spend"` to `args` and add `"env": { "ANTHROPIC_API_KE
 
 ## VS Code
 
-VS Code (GitHub Copilot's agent mode) reads `.vscode/mcp.json`, whose top-level key is `servers`. It starts servers in the workspace folder, so no `--cwd` is needed. To spend, declare the key as an input, which VS Code stores outside the file:
+VS Code (GitHub Copilot's agent mode) reads `.vscode/mcp.json`, whose top-level key is `servers`; `init --agent --client vscode` writes this entry. It starts servers in the workspace folder, so needs no `--cwd`:
+
+```json title=".vscode/mcp.json"
+{
+  "servers": {
+    "verbatra": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp"]
+    }
+  }
+}
+```
+
+To spend, declare the key as an input, which VS Code stores outside the file:
 
 ```json title=".vscode/mcp.json"
 {
@@ -200,7 +212,7 @@ VS Code (GitHub Copilot's agent mode) reads `.vscode/mcp.json`, whose top-level 
 }
 ```
 
-Drop `inputs`, `--allow-spend` and `env` for a no-spend entry. Instead of the file, [Install verbatra in VS Code](vscode:mcp/install?%7B%22name%22%3A%22verbatra%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22%40verbatra%2Fmcp%22%5D%7D) or this command adds it to your user profile; use one route, never two:
+Instead of the file, [Install verbatra in VS Code](vscode:mcp/install?%7B%22name%22%3A%22verbatra%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22%40verbatra%2Fmcp%22%5D%7D) or this command adds it to your user profile; use one route, never two:
 
 ```bash
 code --add-mcp '{"name":"verbatra","command":"npx","args":["-y","@verbatra/mcp"]}'
