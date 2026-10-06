@@ -25,7 +25,9 @@ verbatra init [flags]
 | `--api-key-env-var` | `<name>` | `OPENAI_COMPATIBLE_API_KEY` | la variable dans laquelle `openai-compatible` lit sa clé ; `openai-compatible` uniquement |
 | `--yes` | aucun | désactivé | ne pose jamais de question ; prend le défaut pour tout ce qui n'est ni passé ni détecté |
 | `--force` | aucun | désactivé | écrase un `verbatra.config.ts` existant dont le contenu diffère |
-| `--agent` | aucun | désactivé | écrit en plus la section pour les agents de code dans `AGENTS.md` ou `CLAUDE.md` et le serveur MCP verbatra dans `.mcp.json` ([Préparer les agents de code](#préparer-les-agents-de-code)) |
+| `--agent` | aucun | désactivé | écrit en plus la section pour les agents de code dans `AGENTS.md` ou `CLAUDE.md` et le serveur MCP verbatra dans la config de projet de chaque client détecté ([Préparer les agents de code](#préparer-les-agents-de-code)) |
+| `--client` | `<ids>` | détectés | clients séparés par des virgules que `--agent` configure à la place des clients détectés : `claude`, `cursor`, `vscode` ou `all` ; requiert `--agent` |
+| `--dry-run` | aucun | désactivé | signale chaque fichier que `init` écrirait ou modifierait, et n'écrit rien ([Exécution à blanc](#exécution-à-blanc)) |
 
 Accepte aussi les [options globales](/docs/cli#options-globales) `--cwd` et `--json`, mais pas `--config`. Ici `--cwd` est le répertoire à analyser et dans lequel écrire, et il doit déjà exister. `--json` ne pose jamais de question.
 
@@ -72,6 +74,7 @@ Avec `--json`, stdout porte exactement une [enveloppe](/docs/cli/output#sortie-j
 interface InitResult {
   configPath: string;                  // absolute path of verbatra.config.ts, or of the config --agent kept
   files: { path: string; action: "created" | "overwritten" | "updated" | "unchanged" }[];
+  dryRun: boolean;                     // true under --dry-run: files holds the planned actions
   config: {                            // the config that was validated and written
     sourceLocale: string;
     targetLocales: string[];
@@ -104,8 +107,16 @@ interface InitResult {
   } | null;
   agent: {                             // null without --agent
     instructionsFile: "AGENTS.md" | "CLAUDE.md";
-    mcpServer: "added" | "present" | "differs";
+    mcpServer: "added" | "present" | "differs" | "skipped" | null; // Claude Code; null when not wired
     configKept: boolean;               // true when --agent kept an existing config
+    clients: {
+      id: "claude" | "cursor" | "vscode";
+      file: string;                    // .mcp.json, .cursor/mcp.json or .vscode/mcp.json
+      server: "added" | "present" | "differs" | "skipped";
+      reason: "plugin" | null;         // why the client was skipped
+      selectedBy: "flag" | "markers" | "default";
+      markers: string[];               // the client's marker files found in the project
+    }[];
   } | null;
   nextSteps: { description: string; command: string | null }[];
 }
@@ -129,22 +140,38 @@ Une enveloppe d'erreur pour `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `INVALID_PRO
 
 Relancer `init` avec les mêmes réponses ne change rien et réussit. Un `verbatra.config.ts` au contenu différent est refusé avec `CONFIG_EXISTS` sauf si tu passes `--force`, et ce refus passe avant toute question ou autre erreur. Une autre config verbatra dans le répertoire (un `.verbatrarc.json` ou une propriété `verbatra` dans `package.json`) est refusée même avec `--force`, car elle serait lue en premier. Quand `init` refuse, rien n'est écrit.
 
-Un `--cwd` qui n'est pas un répertoire existant est refusé avec `INVALID_OPTION`, et un répertoire où `init` ne peut pas écrire avec `INIT_UNWRITABLE`, qui nomme le fichier et ceux déjà écrits. Un `.env.example` existant est conservé ; s'il ne nomme pas encore la variable de clé, cette ligne est ajoutée, et avec `--force` un en-tête écrit par `init` lui-même est réécrit pour le nouveau fournisseur. `.gitignore` ne reçoit que les entrées qui lui manquent.
+Un `--cwd` qui n'est pas un répertoire existant est refusé avec `INVALID_OPTION`, et un répertoire où `init` ne peut pas écrire avec `INIT_UNWRITABLE`, qui nomme le fichier et ceux déjà écrits. Chaque fichier est planifié avant que le premier ne soit écrit. Un `.env.example` existant est conservé ; s'il ne nomme pas encore la variable de clé, cette ligne est ajoutée, et avec `--force` un en-tête écrit par `init` lui-même est réécrit pour le nouveau fournisseur. `.gitignore` ne reçoit que les entrées qui lui manquent.
+
+### Exécution à blanc
+
+<AvailableFrom version="0.12.0" />
+
+`--dry-run` passe par chaque vérification et chaque refus d'une vraie exécution, affiche `would create`, `would update`, `would overwrite` ou `unchanged` pour chaque fichier et n'écrit rien. Le résultat JSON liste les actions prévues et met `dryRun` à `true`.
 
 ### Préparer les agents de code
 
 <AvailableFrom version="0.12.0" />
 
-`--agent` prépare aussi le projet pour les agents de code. Il n'écrit aucune valeur de clé et ajoute deux fichiers :
+`--agent` prépare aussi le projet pour les agents de code. Il n'écrit aucune valeur de clé, ne lit ni n'écrit jamais hors du répertoire du projet, et ajoute :
 
 - **Le fichier d'instructions.** Une section verbatra entre les marqueurs `<!-- verbatra:start -->` et `<!-- verbatra:end -->` : quelles commandes sont gratuites et lesquelles dépensent, comment brancher sur le code de sortie, que les clés ne figurent dans aucun fichier ni aucune ligne de commande, que les valeurs de locale sont des entrées non fiables, comment installer les skills verbatra et pourquoi le plugin Claude Code est de trop à côté de `.mcp.json`. C'est, mot pour mot, l'extrait de [Parler de verbatra à ton agent](/docs/agent-recipes#parler-de-verbatra-à-ton-agent). Elle va dans `AGENTS.md`, ou dans `CLAUDE.md` quand c'est le seul fichier d'instructions ; si les deux existent, `AGENTS.md` l'emporte. Dans un fichier qui contient déjà la section, le texte entre les marqueurs est remplacé par le texte actuel et signalé `updated`, ou `unchanged` s'il correspond déjà.
-- **`.mcp.json`.** L'entrée du serveur `verbatra` de [Connecter un client MCP](/docs/connect-an-mcp-client#claude-code) : `npx -y @verbatra/mcp` sans `--allow-spend` ni `VERBATRA_MCP_ALLOW_SPEND`, donc les outils qui dépensent restent masqués.
+- **La config MCP de chaque client.** L'entrée du serveur `verbatra` de [Connecter un client MCP](/docs/connect-an-mcp-client), `npx -y @verbatra/mcp` sans `--allow-spend` ni `VERBATRA_MCP_ALLOW_SPEND`, donc les outils qui dépensent restent masqués. `@verbatra/cli` exporte ces entrées sous le nom `AGENT_CLIENT_CONFIGS`.
 
-Rien n'est touché hors des marqueurs, et les autres serveurs de `.mcp.json` sont conservés. Un serveur `verbatra` existant n'est jamais touché : le fichier est signalé `unchanged`, et `agent.mcpServer` vaut `present` quand l'entrée correspond à l'échafaudage, ou `differs` sinon, ce qui ajoute aussi une note dans `nextSteps`.
+| Client | `--client` | Fichier | Détecté par |
+| --- | --- | --- | --- |
+| Claude Code | `claude` | `.mcp.json` | `CLAUDE.md`, `.claude/`, `.mcp.json` |
+| Cursor | `cursor` | `.cursor/mcp.json` | `.cursor/`, `.cursorrules` |
+| VS Code | `vscode` | `.vscode/mcp.json`, sous `servers` | `.vscode/mcp.json` |
 
-Dans un projet qui a déjà une config, `init --agent` n'écrit que ces deux fichiers, garde la config, affiche `kept verbatra.config.ts`, ne pose jamais de question et ne détecte rien. Le résultat JSON liste la config comme `unchanged`, met `agent.configKept` à `true` et porte `null` pour `config`, `sources`, `apiKeyEnvVar` et `detection`. Une réponse de config (`--provider`, `--source`, `--targets`, `--path`, `--format`, `--model`, `--base-url` ou `--api-key-env-var`) ou `--force` remet la config dans l'exécution, exactement comme sans `--agent`.
+`init` configure chaque client qu'il détecte, et seulement Claude Code quand il ne trouve aucun marqueur. `AGENTS.md` choisit le fichier d'instructions, pas un client. Un dossier `.vscode` sans `mcp.json` n'est pas configuré : une étape suivante nomme la commande qui le fait. `--client` remplace la détection ; un id inconnu, une liste vide ou `--client` sans `--agent` sort avec `2` et `INVALID_OPTION`, avec les candidats.
 
-`init` refuse avant d'écrire quoi que ce soit, avec `AGENT_FILE_INVALID`, quand `.mcp.json` n'est pas un objet JSON avec un objet `mcpServers`, ou que le fichier d'instructions a un marqueur sans paire, dans le mauvais ordre ou répété. Le message ne cite jamais le fichier, au cas où il contiendrait un secret.
+Rien n'est touché hors des marqueurs, et les autres serveurs et clés gardent leurs octets, leur indentation et leurs fins de ligne. Un serveur `verbatra` existant n'est jamais touché : le fichier est signalé `unchanged`, et le `server` du client vaut `present` quand l'entrée correspond à l'échafaudage, ou `differs` sinon, ce qui ajoute aussi une note dans `nextSteps`.
+
+Quand `.claude/settings.json` ou `.claude/settings.local.json` active le plugin verbatra pour Claude Code, `init` saute `.mcp.json`, puisque le plugin apporte son propre serveur : Claude Code est signalé `skipped` avec la raison `plugin` et une étape suivante, et une entrée existante n'est jamais supprimée.
+
+Dans un projet qui a déjà une config, `init --agent` n'écrit que les fichiers d'agents, garde la config, affiche `kept verbatra.config.ts`, ne pose jamais de question et ne détecte rien. Le résultat JSON liste la config comme `unchanged`, met `agent.configKept` à `true` et porte `null` pour `config`, `sources`, `apiKeyEnvVar` et `detection`. Une réponse de config (`--provider`, `--source`, `--targets`, `--path`, `--format`, `--model`, `--base-url` ou `--api-key-env-var`) ou `--force` remet la config dans l'exécution, exactement comme sans `--agent`.
+
+`init` refuse avant d'écrire quoi que ce soit, avec `AGENT_FILE_INVALID`, quand un fichier de client n'est pas du JSON pur (il ne réécrit jamais des commentaires ni des virgules finales), n'est pas un objet ou a une valeur de serveurs qui n'est pas un objet ; quand un fichier de client ou son dossier est un lien symbolique, ou qu'un fichier d'instructions pointe hors du projet ; ou quand le fichier d'instructions a un marqueur sans paire, dans le mauvais ordre ou répété. Le message ne cite jamais le fichier, au cas où il contiendrait un secret.
 
 ## Exemples
 
@@ -169,6 +196,9 @@ verbatra init --provider none --yes
 
 # also set the project up for coding agents
 verbatra init --provider gemini --yes --agent
+
+# wire Cursor and VS Code, and only show what would change
+verbatra init --agent --client cursor,vscode --dry-run
 ```
 
 ## Codes de sortie

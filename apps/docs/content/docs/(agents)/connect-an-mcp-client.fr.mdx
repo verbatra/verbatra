@@ -15,7 +15,7 @@ Laisse un agent de code lire l'état des traductions et corriger des valeurs via
 | `npx -y @verbatra/mcp` | rien d'installé | non |
 | `npx verbatra mcp` | `@verbatra/cli` et `@verbatra/mcp` en dépendances de développement | oui : `.env.local`, puis `.env` |
 
-Les exemples utilisent `npx -y @verbatra/mcp`. Évite `npx -y @verbatra/cli mcp`, qui sort avec `2` parce que la CLI n'installe jamais `@verbatra/mcp`. Chaque section explique comment pointer le serveur vers le répertoire de la config ; la règle est dans [Répertoire du projet](/docs/cli/mcp#répertoire-du-projet).
+Évite `npx -y @verbatra/cli mcp`, qui sort avec `2` parce que la CLI n'installe jamais `@verbatra/mcp`. Chaque section explique comment pointer le serveur vers le répertoire de la config ; la règle est dans [Répertoire du projet](/docs/cli/mcp#répertoire-du-projet).
 
 ### Registre MCP
 
@@ -54,7 +54,7 @@ La voie recommandée, depuis la racine du projet :
 npx verbatra init --agent
 ```
 
-[`init --agent`](/docs/cli/init#préparer-les-agents-de-code) écrit le fichier d'instructions pour agents et cette entrée dans le `.mcp.json` versionné, dépenses désactivées :
+[`init --agent`](/docs/cli/init#préparer-les-agents-de-code) écrit le fichier d'instructions pour agents et cette entrée dans le `.mcp.json` versionné, dépenses désactivées, plus [Cursor](#cursor) et [VS Code](#vs-code) s'il les détecte :
 
 ```json
 {
@@ -78,8 +78,6 @@ VERBATRA_MCP_ALLOW_SPEND=1 claude
 
 ### Autres voies
 
-Deux alternatives à `init --agent` :
-
 #### Sans la CLI
 
 ```bash
@@ -95,7 +93,7 @@ Cette commande écrit la même entrée dans `.mcp.json`. N'ajoute jamais `--env 
 À la place de `.mcp.json`, le plugin regroupe les [skills verbatra](/docs/agent-recipes#le-pack-de-skills), ce serveur et un hook qui vérifie un fichier de locale après que Claude l'a modifié.
 
 <Callout type="warn">
-Ne combine jamais le plugin verbatra avec une entrée `verbatra` dans `.mcp.json` : le plugin apporte un second serveur.
+Ne combine jamais le plugin verbatra avec une entrée `verbatra` dans `.mcp.json`, que `init --agent` saute alors : le plugin apporte un second serveur.
 </Callout>
 
 ```bash
@@ -157,7 +155,7 @@ Gemini CLI cache les variables sensibles aux serveurs, donc la clé n'arrive que
 
 ## Cursor
 
-Cursor lit `.cursor/mcp.json` et `~/.cursor/mcp.json` :
+Cursor lit `.cursor/mcp.json`, qu'écrit `init --agent`, et `~/.cursor/mcp.json` :
 
 ```json title=".cursor/mcp.json"
 {
@@ -175,7 +173,21 @@ Pour dépenser, ajoute `"--allow-spend"` à la fin de `args` et `"env": { "ANTHR
 
 ## VS Code
 
-VS Code (le mode agent de GitHub Copilot) lit `.vscode/mcp.json`, dont la clé de premier niveau est `servers`. Il démarre les serveurs dans le dossier du workspace, donc pas besoin de `--cwd`. Pour dépenser, déclare la clé comme input, que VS Code stocke hors du fichier :
+VS Code (le mode agent de GitHub Copilot) lit `.vscode/mcp.json`, dont la clé de premier niveau est `servers` ; `init --agent --client vscode` écrit cette entrée. Il démarre les serveurs dans le dossier du workspace, donc pas besoin de `--cwd` :
+
+```json title=".vscode/mcp.json"
+{
+  "servers": {
+    "verbatra": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp"]
+    }
+  }
+}
+```
+
+Pour dépenser, déclare la clé comme input, que VS Code stocke hors du fichier :
 
 ```json title=".vscode/mcp.json"
 {
@@ -200,7 +212,7 @@ VS Code (le mode agent de GitHub Copilot) lit `.vscode/mcp.json`, dont la clé d
 }
 ```
 
-Pour une entrée sans dépense, retire `inputs`, `--allow-spend` et `env`. À la place du fichier, [Installer verbatra dans VS Code](vscode:mcp/install?%7B%22name%22%3A%22verbatra%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22%40verbatra%2Fmcp%22%5D%7D) ou cette commande ajoute l'entrée sans dépense à ton profil utilisateur ; utilise une des trois voies, jamais deux :
+À la place du fichier, [Installer verbatra dans VS Code](vscode:mcp/install?%7B%22name%22%3A%22verbatra%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22%40verbatra%2Fmcp%22%5D%7D) ou cette commande ajoute l'entrée sans dépense à ton profil utilisateur ; utilise une des trois voies, jamais deux :
 
 ```bash
 code --add-mcp '{"name":"verbatra","command":"npx","args":["-y","@verbatra/mcp"]}'
@@ -239,7 +251,7 @@ Une personne administratrice du dépôt ajoute le serveur sous **Settings**, **C
 }
 ```
 
-Ajoute `translation.editEntry` et `glossary.write` seulement si l'agent doit écrire dans sa pull request, et laisse `review.approve` et `review.reject` dehors : une décision de relecture demande une personne. Laisse les dépenses désactivées. Pour vérifier, ouvre **View session** de l'agent et déplie **Start MCP Servers**. Voir [Extending the cloud agent with MCP](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/configure-mcp-servers).
+Ajoute `translation.editEntry` et `glossary.write` seulement si l'agent doit écrire dans sa pull request, et laisse `review.approve` et `review.reject` dehors : une décision de relecture demande une personne. Pour vérifier, ouvre **View session** de l'agent et déplie **Start MCP Servers**. Voir [Extending the cloud agent with MCP](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/configure-mcp-servers).
 
 ### Copilot CLI
 
