@@ -1,4 +1,4 @@
-import { assertMachineTranslationEnabled, translate } from "@verbatra/sdk";
+import { assertMachineTranslationEnabled, runSummarySchema, translate } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolCallContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
@@ -8,7 +8,7 @@ import {
   lockTimeoutMsSchema,
   MAX_LOCK_TIMEOUT_MS,
 } from "./lock-timeout.js";
-import { redactRunSummary, runSummarySchema } from "./run-schema.js";
+import { redactRunSummary } from "./run-summary-redaction.js";
 
 const paramsSchema = z.strictObject({
   locales: z.array(z.string().min(1)).min(1).optional(),
@@ -16,7 +16,7 @@ const paramsSchema = z.strictObject({
   lockTimeoutMs: lockTimeoutMsSchema,
 });
 
-type TranslatePendingResult = z.infer<typeof runSummarySchema>;
+export type TranslatePendingResult = z.infer<typeof runSummarySchema>;
 
 async function translatePending(
   params: z.infer<typeof paramsSchema>,

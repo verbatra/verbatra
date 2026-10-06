@@ -13,7 +13,7 @@ import { readSdkManifest } from "../package-manifest.js";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
 import { asInvalidCursor, pageCursorSchema, pageLimitSchema } from "./page-cursor.js";
-import { keyProvenanceSchema } from "./provenance-schema.js";
+import { keyProvenanceSchema } from "./sdk-result-schemas.js";
 import { withoutReviewer } from "./value-redaction.js";
 
 const bucketSchema = z.enum(PROVENANCE_BUCKETS);

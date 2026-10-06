@@ -2,7 +2,7 @@ import { check, type PluralCategory, type PluralRuleType } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
-import { provenanceSummarySchema } from "./provenance-schema.js";
+import { provenanceSummarySchema } from "./sdk-result-schemas.js";
 
 const paramsSchema = z.strictObject({
   locales: z.array(z.string().min(1)).min(1).optional(),

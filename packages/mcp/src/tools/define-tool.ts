@@ -75,10 +75,14 @@ function formatValidationError(schema: z.ZodType, error: z.ZodError): string {
 }
 
 function allowUnknownProperties(context: {
-  readonly jsonSchema: { additionalProperties?: unknown };
+  readonly zodSchema: z.core.$ZodType;
+  readonly jsonSchema: { additionalProperties?: unknown; not?: unknown };
 }): void {
   if (context.jsonSchema.additionalProperties === false) {
     delete context.jsonSchema.additionalProperties;
+  }
+  if (context.zodSchema instanceof z.ZodUndefined) {
+    context.jsonSchema.not = {};
   }
 }
 
@@ -229,6 +233,7 @@ export function defineTool<Params, Result extends Readonly<Record<string, unknow
 ): RegisteredMcpTool {
   const inputSchema = z.toJSONSchema(config.paramsSchema) as Readonly<Record<string, unknown>>;
   const outputSchema = z.toJSONSchema(config.outputSchema, {
+    unrepresentable: "any",
     override: allowUnknownProperties,
   }) as Readonly<Record<string, unknown>>;
 

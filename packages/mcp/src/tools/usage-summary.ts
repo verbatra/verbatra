@@ -1,19 +1,18 @@
-import { budgetStanding, runStatus } from "@verbatra/sdk";
+import { budgetStanding, runStatus, runSummarySchema } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
-import { runBudgetSchema, usageSchema } from "./run-schema.js";
 
 const paramsSchema = z.strictObject({});
 
-const budgetSchema = runBudgetSchema.extend({
+const budgetSchema = runSummarySchema.shape.budget.unwrap().extend({
   standing: z.enum(["within", "stopped-before-ceiling", "reached"]),
 });
 
 const usageSummaryResultSchema = z.object({
   available: z.boolean(),
   generatedAt: z.string().optional(),
-  usage: usageSchema.optional(),
+  usage: runSummarySchema.shape.usage.unwrap().optional(),
   budget: budgetSchema.optional(),
 });
 

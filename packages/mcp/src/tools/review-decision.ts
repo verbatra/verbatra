@@ -7,7 +7,7 @@ import {
   lockAcquireTimeoutMs,
   lockTimeoutMsSchema,
 } from "./lock-timeout.js";
-import { keyProvenanceSchema } from "./provenance-schema.js";
+import { keyProvenanceSchema } from "./sdk-result-schemas.js";
 import { withoutReviewer } from "./value-redaction.js";
 
 const paramsSchema = z

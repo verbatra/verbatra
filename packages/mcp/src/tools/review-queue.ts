@@ -2,15 +2,20 @@ import { reviewQueue } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
-import { fuzzyCacheHitSchema, redactFuzzyHit, reviewQueueEntrySchema } from "./run-schema.js";
+import { redactFuzzyHit } from "./run-summary-redaction.js";
+import { keyProvenanceSchema, localeSummarySchema } from "./sdk-result-schemas.js";
 import { withProvenanceRedacted } from "./value-redaction.js";
+
+const reviewQueueEntrySchema = localeSummarySchema.shape.needsReview
+  .unwrap()
+  .element.extend({ provenance: keyProvenanceSchema });
 
 const paramsSchema = z.strictObject({});
 
 const reviewQueueLocaleSchema = z.object({
   locale: z.string(),
   needsReview: z.array(reviewQueueEntrySchema).readonly(),
-  fuzzyHits: z.array(fuzzyCacheHitSchema).readonly().optional(),
+  fuzzyHits: localeSummarySchema.shape.fuzzyHits.optional(),
 });
 
 const reviewQueueResultSchema = z.object({
