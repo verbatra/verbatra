@@ -39,7 +39,11 @@ export const CONFIG_SEARCH_PLACES = [
 
 /** Options for {@link loadConfig} and {@link loadConfigWithMeta}. */
 export interface LoadConfigOptions {
-  /** Directory to search from, and the base for relative paths. Defaults to the process working directory. */
+  /**
+   * Directory the search starts from, and the base a relative `configPath` resolves against.
+   * Defaults to the process working directory. The flows take their own `cwd`:
+   * {@link resolveProjectRoot} returns the one that matches the loaded config.
+   */
   readonly cwd?: string;
   /**
    * A config object to validate directly instead of reading any file. Takes precedence over
@@ -100,6 +104,32 @@ export interface LoadedConfig {
   readonly source: ConfigSource;
   /** Where the glossary came from, if the config declared one. */
   readonly glossary: GlossaryProvenance;
+}
+
+/**
+ * Returns the project root for a loaded config: the directory every flow resolves its relative
+ * paths against, which is the `cwd` to pass to {@link translate}, {@link check} and the other flows.
+ * Locale files, `verbatra.lock.json`, `verbatra.cache.json`, `verbatra.provenance.json` and
+ * `.verbatra-local/` all live under it. A config found by the upward search roots the project at the
+ * config file's own directory, so a run started in a subdirectory works on the same files as a run
+ * started next to the config. A config named through `configPath`, or given as `configOverride`,
+ * keeps `cwd` as the root.
+ *
+ * @param source - Where the config came from, as {@link LoadedConfig.source} reports it.
+ * @param cwd - The directory the config was loaded from: the `cwd` passed to {@link loadConfigWithMeta}.
+ * @returns The directory to pass as `cwd` to the flows.
+ *
+ * @example
+ * ```ts
+ * import { check, loadConfigWithMeta, resolveProjectRoot } from "@verbatra/sdk";
+ *
+ * const loaded = await loadConfigWithMeta();
+ * const cwd = resolveProjectRoot(loaded.source, process.cwd());
+ * const summary = await check({ config: loaded.config, cwd });
+ * ```
+ */
+export function resolveProjectRoot(source: ConfigSource, cwd: string): string {
+  return source.kind === "search" ? dirname(source.filepath) : cwd;
 }
 
 function isAncestorOrSelf(ancestor: string, startDir: string): boolean {
@@ -373,7 +403,10 @@ export async function loadConfigWithMeta(options: LoadConfigOptions = {}): Promi
  * itself. A glossary declared as a file path is read and validated here, so the returned
  * {@link VerbatraConfig} always carries a resolved term map.
  *
- * Reach for {@link loadConfigWithMeta} when you also need to know which file was loaded.
+ * Reach for {@link loadConfigWithMeta} when you also need to know which file was loaded, or when
+ * the process may run in a subdirectory of the project: a config found by the search roots the
+ * project at the config file's directory, and {@link resolveProjectRoot} turns the returned source
+ * into the `cwd` the flows need.
  *
  * @param options - Where and how to look for the config.
  * @returns The validated, fully resolved config.

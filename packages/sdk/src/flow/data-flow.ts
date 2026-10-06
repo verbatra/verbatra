@@ -20,6 +20,7 @@ import {
   type LoadConfigOptions,
   type LoadedConfig,
   loadConfigWithMeta,
+  resolveProjectRoot,
 } from "../config/load-config.js";
 import { endpointTargetOf } from "../config/network-policy.js";
 import { modelOf } from "../config/provider-billing.js";
@@ -59,7 +60,11 @@ import { readSourceResource } from "./source.js";
 
 /** Input for {@link dataFlow}. */
 export interface DataFlowInput {
-  /** Directory to search the config from, and the base for every path. Defaults to the process working directory. */
+  /**
+   * Directory to search the config from. Defaults to the process working directory. Every path
+   * resolves against the project root {@link resolveProjectRoot} returns: the directory of a config
+   * found by the search, otherwise this directory.
+   */
   readonly cwd?: string;
   /** An explicit config file to describe, bypassing the search. */
   readonly configPath?: string;
@@ -446,9 +451,9 @@ export async function dataFlow(
   deps: DataFlowDeps = {},
 ): Promise<DataFlowManifest> {
   const load = deps.loadConfig ?? loadConfigWithMeta;
-  const { config } = await load(loadOptionsFor(input, deps));
+  const { config, source } = await load(loadOptionsFor(input, deps));
   return buildDataFlowManifest(config, {
-    cwd: input.cwd ?? process.cwd(),
+    cwd: resolveProjectRoot(source, input.cwd ?? process.cwd()),
     fs: deps.fs ?? defaultFs,
     adapterRegistry: deps.adapterRegistry,
     env: processEnvironment(),

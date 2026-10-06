@@ -80,6 +80,25 @@ function configCandidatePaths(
 
 **Returns:** `readonly string[]`
 
+### resolveProjectRoot
+
+<AvailableFrom version="0.12.0" />
+
+Returns the directory the flows resolve their relative paths against: the `cwd` to pass to
+`translate`, `check` and the other flows. A config the search found roots the project at the config
+file's directory, so a process started in a subdirectory works on the project's own locale files,
+lock file and `.verbatra-local/`. A config loaded from `configPath` or `configOverride` keeps `cwd`.
+Pass the `source` that `loadConfigWithMeta` returned and the `cwd` it searched from.
+
+```ts title="Signature"
+function resolveProjectRoot(
+  source: ConfigSource,
+  cwd: string,
+): string;
+```
+
+**Returns:** `string`
+
 ## Glossary
 
 ### readGlossaryFile
