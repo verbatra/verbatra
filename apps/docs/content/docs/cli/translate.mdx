@@ -87,6 +87,8 @@ A locale the configured DeepL or Google Cloud Translation provider does not supp
 
 ### JSON output
 
+Schema: [`translate-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/translate-envelope.json) validates the whole envelope; [Schemas](/docs/cli/output#schemas) lists the others.
+
 With `--json`, stdout carries one [envelope](/docs/cli/output#json-output) whose `result` is a `RunSummary`; [RunSummary](/docs/sdk/run-summary) lists every field, for the run and for each locale.
 
 ### Terminal feedback

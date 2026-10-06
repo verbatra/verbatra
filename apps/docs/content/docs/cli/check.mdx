@@ -171,6 +171,8 @@ Missing and stale keys are not part of a file check.
 
 ### JSON output
 
+Schema: [`check-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/check-envelope.json) validates the whole envelope; [Schemas](/docs/cli/output#schemas) lists the others.
+
 `--json` prints one [envelope](/docs/cli/output#json-output) whose `result` is the status document. Without `--qa`, `--require-reviewed` or `--sensitive`, `inSync` is true exactly when the command exits `0`:
 
 ```ts

@@ -78,6 +78,8 @@ Los escritores de `xliff` y `apple-xcstrings` parchean unidades que ya están en
 
 ### Salida JSON
 
+Esquema: [`pseudo-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/pseudo-envelope.json) valida el envoltorio completo; [Esquemas](/docs/cli/output#esquemas) enumera los demás.
+
 Con `--json`, el [envoltorio JSON](/docs/cli/output#salida-json) lleva `locale`, `mode` (`accented` o `bidi`), `path`, `entries` (entradas escritas, incluidas las formas de plural añadidas en modo bidi), `transformed` (valores que difieren del origen), `copied` (claves copiadas tal cual) y `written` (`false` cuando el archivo ya estaba al día).
 
 ### Información en el terminal

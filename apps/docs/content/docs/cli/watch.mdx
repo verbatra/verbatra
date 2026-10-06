@@ -41,6 +41,8 @@ The first interrupt (Ctrl-C or SIGTERM) lets the current run finish, stops the w
 
 ### JSON output
 
+Schema: [`watch-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/watch-envelope.json) validates the whole envelope; [Schemas](/docs/cli/output#schemas) lists the others.
+
 With `--json`, stdout is NDJSON: one [envelope](/docs/cli/output#json-output) per run, with `command: "watch"`. A succeeded run is an `ok: true` record carrying that run's [`RunSummary`](/docs/cli/translate#json-output); a failed run is an `ok: false` record with the failure's own code, or `WATCH_RUN_FAILED` when it had none, plus its `hint` when it has one. A failed run is only a record: it neither stops the watcher nor changes the exit code. The startup line, the stopping notice and progress go to stderr. Without `--json`, a run's summary goes to stdout and a failed run's `verbatra: error [CODE] message` line to stderr.
 
 ### Terminal feedback
