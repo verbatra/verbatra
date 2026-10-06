@@ -19,7 +19,7 @@ function mdxPages(): string[] {
 
 describe("the install command", () => {
   it("is the npm command the quickstart installs with", () => {
-    expect(docsFile("content/docs/(get-started)/quickstart.mdx")).toContain(
+    expect(docsFile("content/docs/(get-started)/quickstart/index.mdx")).toContain(
       `\`\`\`bash\n${NPM_INSTALL_COMMAND}\n\`\`\``,
     );
   });
