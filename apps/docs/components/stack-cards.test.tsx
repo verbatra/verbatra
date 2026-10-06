@@ -129,6 +129,38 @@ describe("StackCards", () => {
     expect(nav?.querySelectorAll("li a")).toHaveLength(CARDS.length);
   });
 
+  it("puts a card's badge on its own line after the format ids, so every card in a row matches", () => {
+    const doc = render(
+      renderToStaticMarkup(
+        <StackCards
+          labelledBy="stacks"
+          locale="en"
+          cards={[
+            {
+              label: "React",
+              icon: "react",
+              formats: ["i18next-json"],
+              href: "/docs/quickstart/react",
+              badge: "Quickstart",
+            },
+            ...CARDS.slice(1),
+          ]}
+        />,
+      ),
+    );
+    const links = [...doc.querySelectorAll("a")];
+    const pill = links[0]?.querySelector(".vk-pill");
+    expect(pill?.textContent).toBe(", Quickstart");
+    expect(pill?.classList.contains("vk-stack-card-badge")).toBe(true);
+    expect(pill?.previousElementSibling?.textContent).toBe(": i18next-json");
+    expect(pill?.parentElement?.classList.contains("grid")).toBe(true);
+    expect(accessibleText(links[0] as Element)).toBe("React: i18next-json, Quickstart");
+    const badgeRule = /\.vk-pill\.vk-stack-card-badge \{([^}]*)\}/.exec(GLOBAL_CSS)?.[1] ?? "";
+    expect(badgeRule).toContain("max-width: 100%;");
+    expect(badgeRule).toContain("white-space: normal;");
+    expect(links.slice(1).some((link) => link.querySelector(".vk-pill") !== null)).toBe(false);
+  });
+
   it("names each card by its stack, a separator, then its format ids, never by its logo", () => {
     const links = [...renderCards("en").querySelectorAll("a")];
     expect(links.map(accessibleText)).toEqual([

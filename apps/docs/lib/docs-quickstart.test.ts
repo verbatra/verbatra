@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { proseWords } from "./page-type";
 
 const GET_STARTED = join(import.meta.dirname, "../content/docs/(get-started)");
-const QUICKSTART = join(GET_STARTED, "quickstart.mdx");
+const QUICKSTART = join(GET_STARTED, "quickstart/index.mdx");
 const LOCALE_SUFFIXES = ["", ".de", ".es", ".fr"];
 const WORD_CEILING = 800;
 
@@ -27,9 +27,12 @@ describe("the quickstart", () => {
     expect(commands).toEqual(["init", "translate", "translate", "check"]);
   });
 
-  it.each(LOCALE_SUFFIXES)("nests the steps under their own H2 in quickstart%s.mdx", (suffix) => {
-    const page = readFileSync(join(GET_STARTED, `quickstart${suffix}.mdx`), "utf8");
-    const beforeSteps = page.slice(0, page.indexOf("<Steps>")).trimEnd().split("\n");
-    expect(beforeSteps.at(-1)).toMatch(/^## \S/);
-  });
+  it.each(LOCALE_SUFFIXES)(
+    "nests the steps under their own H2 in quickstart/index%s.mdx",
+    (suffix) => {
+      const page = readFileSync(join(GET_STARTED, `quickstart/index${suffix}.mdx`), "utf8");
+      const beforeSteps = page.slice(0, page.indexOf("<Steps>")).trimEnd().split("\n");
+      expect(beforeSteps.at(-1)).toMatch(/^## \S/);
+    },
+  );
 });

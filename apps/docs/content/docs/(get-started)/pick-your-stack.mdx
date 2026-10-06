@@ -3,7 +3,7 @@ title: Pick your stack
 description: The format id, the usual file layout, and the init command for each framework verbatra supports.
 type: reference
 ---
-Find your framework below and use its `init` command in place of the one in the [Quickstart](/docs/quickstart). Each file layout is the pattern `init` writes when it finds no locale files; when your files already exist, `init` detects where they are, and `--path` sets the pattern yourself. Every format's full behavior is on [Formats](/docs/formats).
+Find your framework below and use its `init` command in place of the one in the [Quickstart](/docs/quickstart). Each file layout is the pattern `init` writes when it finds no locale files; when your files already exist, `init` detects where they are, and `--path` sets the pattern yourself. Every format's full behavior is on [Formats](/docs/formats). Some stacks also have a step-by-step quickstart, linked at the end of their section.
 
 <StackCards
   labelledBy="page-title"
@@ -38,6 +38,8 @@ npx verbatra init --format i18next-json
 
 Details: [The four JSON formats](/docs/formats#the-four-json-formats).
 
+Step by step: [React quickstart](/docs/quickstart/react).
+
 ## Next.js with next-intl
 
 For next-intl message files, whose values are ICU messages.
@@ -50,6 +52,8 @@ npx verbatra init --format next-intl-json
 ```
 
 Details: [The four JSON formats](/docs/formats#the-four-json-formats).
+
+Step by step: [Next.js quickstart](/docs/quickstart/nextjs).
 
 ## Vue and Nuxt with vue-i18n
 
@@ -64,6 +68,8 @@ npx verbatra init --format vue-i18n-json
 
 Details: [The four JSON formats](/docs/formats#the-four-json-formats).
 
+Step by step: [Vue quickstart](/docs/quickstart/vue).
+
 ## Angular with ngx-translate
 
 For ngx-translate JSON, flat or nested.
@@ -77,6 +83,8 @@ npx verbatra init --format ngx-translate-json
 
 Details: [The four JSON formats](/docs/formats#the-four-json-formats).
 
+Step by step: [Angular quickstart](/docs/quickstart/angular).
+
 ## Flutter
 
 For Flutter's Application Resource Bundles. `init` also sets `localeStyle: "posix"`, so `pt-BR` is written as `app_pt_BR.arb`, the name `flutter gen-l10n` reads.
@@ -89,6 +97,8 @@ npx verbatra init --format arb
 ```
 
 Details: [ARB](/docs/formats#arb).
+
+Step by step: [Flutter quickstart](/docs/quickstart/flutter).
 
 ## Android
 

@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { readIncludedSource } from "@/lib/docs-pages";
 import { NPM_INSTALL_COMMAND } from "@/lib/install-commands";
 
 const DOCS_DIR = fileURLToPath(new URL("../", import.meta.url));
@@ -19,7 +20,7 @@ function mdxPages(): string[] {
 
 describe("the install command", () => {
   it("is the npm command the quickstart installs with", () => {
-    expect(docsFile("content/docs/(get-started)/quickstart.mdx")).toContain(
+    expect(docsFile("content/docs/(get-started)/quickstart/index.mdx")).toContain(
       `\`\`\`bash\n${NPM_INSTALL_COMMAND}\n\`\`\``,
     );
   });
@@ -27,7 +28,7 @@ describe("the install command", () => {
   it("renders as one command, with no package-manager tabs on any page", () => {
     expect(docsFile("source.config.ts")).toContain("remarkNpmOptions: false");
     const tabbed = mdxPages().filter((file) =>
-      /^```npm\s*$/m.test(readFileSync(join(CONTENT_DIR, file), "utf8")),
+      /^```npm\s*$/m.test(readIncludedSource(join(CONTENT_DIR, file))),
     );
     expect(tabbed).toEqual([]);
   });

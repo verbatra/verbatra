@@ -8,12 +8,15 @@ const PAGES = [
   { path: "/docs", html: true, analytics: true, search: true },
   { path: "/docs/quickstart", html: true, analytics: true },
   { path: "/fr/docs/quickstart", html: true, analytics: true },
+  { path: "/docs/quickstart/react", html: true, analytics: true },
+  { path: "/de/docs/quickstart/flutter", html: true, analytics: true },
   { path: "/docs/sdk/run", html: true, analytics: true },
   { path: "/contact", html: true, analytics: true },
   { path: "/de/imprint", html: true, analytics: true },
   { path: "/privacy", html: true, analytics: true },
   { path: "/docs/does-not-exist", html: true, analytics: false },
   { path: "/docs/quickstart.md", html: false, analytics: false },
+  { path: "/es/docs/quickstart/nextjs.md", html: false, analytics: false },
   { path: "/llms.txt", html: false, analytics: false },
 ];
 

@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { readIncludedSource } from "../apps/docs/lib/docs-pages.ts";
 import { sdkReferencePages } from "./sdk-reference-pages.mjs";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -638,7 +639,7 @@ function docPagesCarryingEveryCode(codes, suffix) {
         file.endsWith(`${suffix}.mdx`) && (suffix !== "" || !/\.(de|es|fr)\.mdx$/.test(file)),
     )
     .filter((file) => {
-      const page = readFileSync(resolve(contentDir, file), "utf8");
+      const page = readIncludedSource(resolve(contentDir, file));
       return codes.every((code) => new RegExp(`\\b${code}\\b`).test(page));
     })
     .sort();

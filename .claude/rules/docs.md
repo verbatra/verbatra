@@ -113,6 +113,50 @@ parity tests (`pnpm test:scripts`):
   or commands ("fourteen formats", "sieben Provider"). Link to the list instead, or name the
   items.
 
+## Stack quickstarts: one template per locale, one stub per stack
+
+`/docs/quickstart/<stack>` pages are not written page by page. Each is a stub,
+`content/docs/(get-started)/quickstart/<stack>{,.de,.es,.fr}.mdx`, holding only frontmatter
+(`title`, `description`, `type: tutorial`, `stack: <id>`) and one
+`<include>../../../templates/stack-quickstart<suffix>.mdx</include>` line. The steps live in the
+four templates `content/templates/stack-quickstart{,.de,.es,.fr}.mdx`, outside the page
+collection, and everything stack-specific comes from `STACKS` in `apps/docs/lib/stacks.ts`
+through `<StackBlock name>` (commands, file samples, loader code) and `<StackText field>` (name,
+library, format, pattern, file names). Translated prose never goes into the table, and a stack
+element never sits in a heading. The generic quickstart is `quickstart/index*.mdx`, so its URL
+stays `/docs/quickstart`.
+
+- **Adding a stack**: add it to `STACK_IDS` and `STACKS` (its `pattern` must equal the
+  format's `DEFAULT_LAYOUTS` entry in `packages/cli/src/init-config.ts`), write the four stubs
+  (with `sidebarTitle` set to the stack name), list it in `quickstart/meta*.json`, give its card
+  on `index*.mdx` the `/docs/quickstart/<id>` href and the localized `badge` ("Quickstart",
+  "Schnellstart", "Inicio rápido", "Démarrage rapide"), and end its `pick-your-stack*.mdx`
+  section with a link to the page. Cards on `pick-your-stack` itself always jump to a section.
+- **Changing the steps**: edit all four templates in the same change; the stubs never change.
+- **Templates hold no page-level badge**: the include nests the template, so a badge before its
+  first `##` would not reach `introducedIn` and the sidebar NEW status. Date a step under its
+  heading instead.
+- **Which checks see the templates**: these read every page through `readIncludedSource` or
+  `englishDocsPages` (`lib/docs-pages.ts`) and so measure the template text:
+  `lib/docs-locale-parity.test.ts`, `lib/docs-page-type.test.ts` (and `docs:budget`),
+  `lib/docs-anchor-links.test.ts`, `lib/docs-badge-placement.test.ts`,
+  `lib/available-from-version-bound.test.ts`, `lib/code-block-meta.test.ts`,
+  `lib/install-commands.test.ts`, `scripts/verify-docs-registry-counts.test.mjs`,
+  `scripts/verify-docs-cli-environment.test.mjs`, `scripts/verify-docs-run-summary-fields.test.mjs`
+  and the error-code page scan in `scripts/verify-docs-reference-parity.test.mjs`. They see
+  `<StackBlock>` and `<StackText>` unexpanded. Every other content test reads named pages, not
+  stubs. `sync-translation-freshness.mjs` dates a page by its newest include, nested includes
+  followed, so an edited English template marks every translated stack page outdated. Only a
+  whole-file `<include>path.mdx</include>` on its own line is supported; a `#section`, a `cwd`
+  attribute or an inline include is refused.
+- **What pins the stack pages**: `lib/stack-quickstarts.test.ts` checks that the templates exist
+  in all four locales with the same stack elements and no page-level badge, that every stack has
+  a stub per locale and between four and eight steps, stays under the tutorial ceiling with its
+  stack text filled in, and is linked from the docs home, `pick-your-stack` and the generic
+  quickstart. `scripts/verify-docs-registry-parity.test.mjs` pins `STACKS` to
+  `SUPPORTED_FORMATS` and `DEFAULT_LAYOUTS` and requires the badge on exactly the quickstart
+  cards.
+
 ## SDK reference entries
 
 Every entry point in `apps/docs/content/docs/sdk/*.mdx` follows one template: the heading (with an
