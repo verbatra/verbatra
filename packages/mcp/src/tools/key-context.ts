@@ -1,4 +1,4 @@
-import { keyContext, type ValueMarker } from "@verbatra/sdk";
+import { keyContext, keyProvenanceSchema, type ValueMarker } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
@@ -8,7 +8,6 @@ import {
   redactDoNotTranslate,
   redactLocaleTerm,
 } from "./glossary.js";
-import { keyProvenanceSchema } from "./sdk-result-schemas.js";
 import { markFields, withProvenanceRedacted } from "./value-redaction.js";
 
 const paramsSchema = z.strictObject({

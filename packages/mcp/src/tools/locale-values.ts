@@ -1,4 +1,5 @@
 import {
+  keyProvenanceSchema,
   LOCALE_VALUES_QUERY_MAX_LENGTH,
   localeValuesPage,
   PAGE_LIMIT_CAP,
@@ -8,7 +9,6 @@ import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
 import { asInvalidCursor, pageCursorSchema, pageLimitSchema } from "./page-cursor.js";
-import { keyProvenanceSchema } from "./sdk-result-schemas.js";
 import { markFields, withProvenanceRedacted } from "./value-redaction.js";
 
 const paramsSchema = z

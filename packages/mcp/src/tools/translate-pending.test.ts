@@ -104,7 +104,8 @@ describe("translation.translatePending", () => {
     >;
 
     expect(properties.estimate?.anyOf).toHaveLength(4);
-    expect(properties.estimate?.anyOf?.[2]?.properties.cost).toEqual({ not: {} });
+    expect(properties.estimate?.anyOf?.[0]?.properties).toHaveProperty("cost");
+    expect(properties.estimate?.anyOf?.[2]?.properties).not.toHaveProperty("cost");
   });
 
   it("returns an error outcome when the provider fails for every key", async () => {

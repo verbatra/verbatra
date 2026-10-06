@@ -1,9 +1,8 @@
-import { reviewQueue } from "@verbatra/sdk";
+import { keyProvenanceSchema, localeSummarySchema, reviewQueue } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
 import { redactFuzzyHit } from "./run-summary-redaction.js";
-import { keyProvenanceSchema, localeSummarySchema } from "./sdk-result-schemas.js";
 import { withProvenanceRedacted } from "./value-redaction.js";
 
 const reviewQueueEntrySchema = localeSummarySchema.shape.needsReview

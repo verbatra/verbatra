@@ -1,4 +1,9 @@
-import { approveEntry, type ReviewDecisionInput, rejectEntry } from "@verbatra/sdk";
+import {
+  approveEntry,
+  keyProvenanceSchema,
+  type ReviewDecisionInput,
+  rejectEntry,
+} from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { defineTool, type ValueRedaction } from "./define-tool.js";
@@ -7,7 +12,6 @@ import {
   lockAcquireTimeoutMs,
   lockTimeoutMsSchema,
 } from "./lock-timeout.js";
-import { keyProvenanceSchema } from "./sdk-result-schemas.js";
 import { withoutReviewer } from "./value-redaction.js";
 
 const paramsSchema = z

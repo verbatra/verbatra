@@ -1,8 +1,7 @@
-import { lockState } from "@verbatra/sdk";
+import { lockState, provenanceSummarySchema } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
-import { provenanceSummarySchema } from "./sdk-result-schemas.js";
 
 const paramsSchema = z.strictObject({});
 
