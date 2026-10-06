@@ -6,7 +6,7 @@ import { AGENT_INIT_COMMAND } from "./install-commands";
 import {
   isMcpInstallClient,
   MCP_INSTALL_COMPONENT,
-  type McpInstallClient,
+  type McpInstallConfigs,
   mcpInstallClientName,
   mcpInstallMarkdown,
 } from "./mcp-install-links";
@@ -34,8 +34,8 @@ export function startHereMarkdown(locale: MarkdownLocale): string {
   return MESSAGES[locale].docs.startHere.markdown.replace("{command}", AGENT_INIT_COMMAND);
 }
 
-export function mcpInstallLabel(locale: MarkdownLocale, client: McpInstallClient): string {
-  return MESSAGES[locale].docs.mcpInstall.label.replace("{client}", mcpInstallClientName(client));
+export function mcpInstallLabel(locale: MarkdownLocale, clientName: string): string {
+  return MESSAGES[locale].docs.mcpInstall.label.replace("{client}", clientName);
 }
 
 function isSilentPage(path: string | undefined): boolean {
@@ -58,7 +58,7 @@ function attributeValue(node: MdxNode, name: string): unknown {
   return node.attributes?.find((attribute) => attribute.name === name)?.value;
 }
 
-function markdownFor(node: MdxNode, file: MdxFile): string | undefined {
+function markdownFor(node: MdxNode, file: MdxFile, configs: McpInstallConfigs): string | undefined {
   if (node.type !== "mdxJsxFlowElement") return undefined;
   const locale = markdownLocale(file.path);
   if (node.name === START_HERE_COMPONENT) {
@@ -67,16 +67,26 @@ function markdownFor(node: MdxNode, file: MdxFile): string | undefined {
   if (node.name !== MCP_INSTALL_COMPONENT) return undefined;
   const client = attributeValue(node, "client");
   return isMcpInstallClient(client)
-    ? mcpInstallMarkdown(client, mcpInstallLabel(locale, client))
+    ? mcpInstallMarkdown(
+        configs,
+        client,
+        mcpInstallLabel(locale, mcpInstallClientName(configs, client)),
+      )
     : undefined;
 }
 
-function stringifyAgentEntries(node: MdxNode, file: MdxFile): void {
-  const text = markdownFor(node, file);
+function stringifyAgentEntries(node: MdxNode, file: MdxFile, configs: McpInstallConfigs): void {
+  const text = markdownFor(node, file, configs);
   if (text !== undefined) node.data = { ...node.data, _stringify: { text } };
-  for (const child of node.children ?? []) stringifyAgentEntries(child, file);
+  for (const child of node.children ?? []) stringifyAgentEntries(child, file, configs);
+}
+
+async function loadMcpInstallConfigs(): Promise<McpInstallConfigs> {
+  const { AGENT_CLIENT_CONFIGS } = await import("@verbatra/cli");
+  return AGENT_CLIENT_CONFIGS;
 }
 
 export function remarkAgentEntryMarkdown() {
-  return (root: MdxNode, file: MdxFile = {}) => stringifyAgentEntries(root, file);
+  return async (root: MdxNode, file: MdxFile = {}): Promise<void> =>
+    stringifyAgentEntries(root, file, await loadMcpInstallConfigs());
 }
