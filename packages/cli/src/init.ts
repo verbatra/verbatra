@@ -464,6 +464,8 @@ const CLIENT_DOCS_ANCHOR: Record<AgentClientId, string> = {
   claude: "claude-code",
   cursor: "cursor",
   vscode: "vs-code",
+  codex: "codex",
+  gemini: "gemini-cli",
 };
 
 function differsStep(client: PlannedClient): NextStep {
@@ -483,6 +485,13 @@ function pluginStep(client: PlannedClient, setting: string | undefined): NextSte
 function symlinkStep(client: PlannedClient): NextStep {
   return {
     description: `init did not wire ${clientName(client)}: ${client.link} is a symbolic link, and init never writes through one. Add the entry from ${MCP_SETUP_DOCS}#${CLIENT_DOCS_ANCHOR[client.id]} to ${client.file} by hand, or replace the link with a plain directory or file and run init again.`,
+    command: null,
+  };
+}
+
+function geminiContextStep(instructions: string): NextStep {
+  return {
+    description: `Gemini CLI loads GEMINI.md, not ${instructions}, so it does not see the verbatra section. Set "context": { "fileName": ["${instructions}", "GEMINI.md"] } in .gemini/settings.json, or add the line @${instructions} to GEMINI.md.`,
     command: null,
   };
 }
@@ -508,6 +517,9 @@ function agentSteps(agent: AgentScaffoldPlan | undefined, suffix: string): reado
         "This project has a .vscode folder but no .vscode/mcp.json, so init did not wire VS Code. Run this to add it.",
       command: `npx verbatra init --agent --client vscode${suffix}`,
     });
+  }
+  if (agent.geminiContextHint) {
+    steps.push(geminiContextStep(agent.instructions.path));
   }
   return steps;
 }

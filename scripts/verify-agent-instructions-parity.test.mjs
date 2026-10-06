@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { AGENT_CLIENT_CONFIGS, AGENT_CLIENT_IDS } from "../packages/cli/src/agent-clients.ts";
 import { AGENT_INSTRUCTIONS } from "../packages/cli/src/agent-instructions.ts";
+import { tomlServerBlock } from "../packages/cli/src/agent-scaffold.ts";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -16,7 +17,7 @@ function readAgentsPage(name, suffix) {
   );
 }
 
-function firstJsonBlockIn(suffix, heading) {
+function firstBlockIn(suffix, heading, language) {
   const page = readAgentsPage("connect-an-mcp-client", suffix);
   const start = page.indexOf(`\n## ${heading}\n`);
   if (start === -1) {
@@ -24,13 +25,24 @@ function firstJsonBlockIn(suffix, heading) {
   }
   const end = page.indexOf("\n## ", start + 1);
   const section = page.slice(start, end === -1 ? undefined : end);
-  const block = /^```json[^\n]*\n([\s\S]*?)\n```$/m.exec(section);
+  const block = new RegExp(`^\`\`\`${language}[^\\n]*\\n([\\s\\S]*?)\\n\`\`\`$`, "m").exec(section);
   if (block?.[1] === undefined) {
     throw new Error(
-      `no JSON block in the ${heading} section of connect-an-mcp-client${suffix}.mdx`,
+      `no ${language} block in the ${heading} section of connect-an-mcp-client${suffix}.mdx`,
     );
   }
-  return JSON.parse(block[1]);
+  return block[1];
+}
+
+function documentedEntry(client, suffix) {
+  const block = firstBlockIn(suffix, client.name, client.format);
+  return client.format === "toml" ? `${block}\n` : JSON.parse(block);
+}
+
+function scaffoldedEntry(client) {
+  return client.format === "toml"
+    ? tomlServerBlock(client)
+    : { [client.serversKey]: { [client.serverName]: client.server } };
 }
 
 function instructionBlocks(suffix) {
@@ -54,10 +66,14 @@ describe("the agent instruction snippet has one source", () => {
 describe("each scaffolded MCP client entry is the documented one", () => {
   const cases = LOCALE_SUFFIXES.flatMap((suffix) => AGENT_CLIENT_IDS.map((id) => [id, suffix]));
 
-  it.each(cases)("matches the first %s JSON block in connect-an-mcp-client%s.mdx", (id, suffix) => {
+  it("covers every client, TOML and JSON alike", () => {
+    expect(new Set(AGENT_CLIENT_IDS.map((id) => AGENT_CLIENT_CONFIGS[id].format))).toEqual(
+      new Set(["json", "toml"]),
+    );
+  });
+
+  it.each(cases)("matches the first %s block in connect-an-mcp-client%s.mdx", (id, suffix) => {
     const client = AGENT_CLIENT_CONFIGS[id];
-    expect(firstJsonBlockIn(suffix, client.name)).toEqual({
-      [client.serversKey]: { [client.serverName]: client.server },
-    });
+    expect(documentedEntry(client, suffix)).toEqual(scaffoldedEntry(client));
   });
 });

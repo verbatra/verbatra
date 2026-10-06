@@ -6,8 +6,10 @@ import {
   type AgentClientConfig,
   type AgentClientId,
   type ClientSelectedBy,
+  type JsonAgentClientConfig,
   type SelectedClient,
   selectClients,
+  type TomlAgentClientConfig,
   verbatraPluginSetting,
 } from "./agent-clients.js";
 import { AGENT_INSTRUCTIONS } from "./agent-instructions.js";
@@ -25,9 +27,11 @@ import {
   isDirectoryEntry,
   isRegularFile,
   LINK_OUTSIDE_PROJECT,
+  readPlainProjectFile,
   resolvesToFile,
   symlinkOnPath,
 } from "./project-paths.js";
+import { renderTomlTable, scanToml, type TomlStatement } from "./toml-text.js";
 
 export const MARKER_START = "<!-- verbatra:start -->";
 export const MARKER_END = "<!-- verbatra:end -->";
@@ -68,6 +72,7 @@ export interface AgentScaffoldPlan {
   readonly clients: readonly PlannedClient[];
   readonly pluginSetting: string | undefined;
   readonly vscodeHint: boolean;
+  readonly geminiContextHint: boolean;
 }
 
 interface Merged {
@@ -141,7 +146,7 @@ function invalidMcpConfig(file: string, reason: string): CliUsageError {
   );
 }
 
-function parseMcpConfig(client: AgentClientConfig, existing: string): JsonObject {
+function parseMcpConfig(client: JsonAgentClientConfig, existing: string): JsonObject {
   let parsed: unknown;
   try {
     parsed = JSON.parse(existing);
@@ -165,7 +170,7 @@ function parseMcpConfig(client: AgentClientConfig, existing: string): JsonObject
   return parsed;
 }
 
-function assertNoRepeatedKeys(client: AgentClientConfig, existing: string): void {
+function assertNoRepeatedKeys(client: JsonAgentClientConfig, existing: string): void {
   const rootMembers = objectMembers(existing, rootObjectSpan(existing));
   if (repeatedKey(rootMembers) !== undefined) {
     throw invalidMcpConfig(client.file, "repeats a key at its top level");
@@ -182,12 +187,12 @@ function indentUnit(existing: string): string {
   return /^([ \t]+)\S/m.exec(existing)?.[1] ?? DEFAULT_INDENT_UNIT;
 }
 
-function freshConfig(client: AgentClientConfig): string {
+function freshConfig(client: JsonAgentClientConfig): string {
   const config = { [client.serversKey]: { [client.serverName]: client.server } };
   return `${JSON.stringify(config, null, DEFAULT_INDENT_UNIT)}\n`;
 }
 
-function reserialized(config: JsonObject, client: AgentClientConfig, existing: string): string {
+function reserialized(config: JsonObject, client: JsonAgentClientConfig, existing: string): string {
   const servers = config[client.serversKey];
   const merged = {
     ...config,
@@ -203,7 +208,7 @@ function reserialized(config: JsonObject, client: AgentClientConfig, existing: s
 
 function withServerInserted(
   config: JsonObject,
-  client: AgentClientConfig,
+  client: JsonAgentClientConfig,
   existing: string,
 ): string {
   if (!existing.includes("\n")) {
@@ -228,7 +233,10 @@ interface McpMerged extends Merged {
   readonly server: McpServerState;
 }
 
-export function mergeMcpConfig(client: AgentClientConfig, existing: string | undefined): McpMerged {
+export function mergeMcpConfig(
+  client: JsonAgentClientConfig,
+  existing: string | undefined,
+): McpMerged {
   if (existing === undefined) {
     return { content: freshConfig(client), action: "created", server: "added" };
   }
@@ -246,6 +254,122 @@ export function mergeMcpConfig(client: AgentClientConfig, existing: string | und
     action: "updated",
     server: "added",
   };
+}
+
+function startsWithPath(path: readonly string[], prefix: readonly string[]): boolean {
+  return prefix.every((part, index) => path[index] === part);
+}
+
+function samePath(a: readonly string[], b: readonly string[]): boolean {
+  return a.length === b.length && startsWithPath(a, b);
+}
+
+function tomlRefusal(
+  client: TomlAgentClientConfig,
+  statement: TomlStatement,
+  table: readonly string[],
+): string | undefined {
+  if (statement.kind !== "value") {
+    return statement.kind === "array-table" && startsWithPath(table, statement.path)
+      ? `declares ${statement.path.join(".")} as an array of tables`
+      : undefined;
+  }
+  if (statement.table.length === 0 && statement.path[0] === client.serversKey) {
+    return `sets ${client.serversKey} with an inline table or dotted keys instead of [${table.join(".")}] tables`;
+  }
+  return startsWithPath(statement.path, table) && !startsWithPath(statement.table, table)
+    ? `defines the ${client.serverName} server with an inline table or dotted keys instead of a [${table.join(".")}] table`
+    : undefined;
+}
+
+function repeatedTomlEntry(
+  statements: readonly TomlStatement[],
+  table: readonly string[],
+): string | undefined {
+  const headers = statements.filter(
+    (statement) => statement.kind === "table" && samePath(statement.path, table),
+  );
+  if (headers.length > 1) {
+    return `repeats the [${table.join(".")}] table`;
+  }
+  const keys = statements.flatMap((statement) =>
+    statement.kind === "value" && samePath(statement.table, table)
+      ? [statement.path.join(".")]
+      : [],
+  );
+  return new Set(keys).size === keys.length ? undefined : `repeats a key in [${table.join(".")}]`;
+}
+
+function tomlEntryState(
+  client: TomlAgentClientConfig,
+  statements: readonly TomlStatement[],
+): McpServerState | undefined {
+  const table = [client.serversKey, client.serverName];
+  const reason =
+    statements.map((statement) => tomlRefusal(client, statement, table)).find(Boolean) ??
+    repeatedTomlEntry(statements, table);
+  if (reason !== undefined) {
+    throw invalidMcpConfig(client.file, reason);
+  }
+  const entry = statements.filter((statement) => startsWithPath(statement.path, table));
+  if (entry.length === 0) {
+    return undefined;
+  }
+  const fields = entry.flatMap((statement) =>
+    statement.kind === "value" && samePath(statement.table, table)
+      ? [[statement.path.slice(table.length).join("."), statement.value] as const]
+      : [],
+  );
+  const nested = entry.some((statement) => statement.path.length > table.length + 1);
+  const same = !nested && isDeepStrictEqual(Object.fromEntries(fields), { ...client.server });
+  return same ? "present" : "differs";
+}
+
+function tomlServerTable(client: TomlAgentClientConfig, eol: string): string {
+  return renderTomlTable([client.serversKey, client.serverName], client.server, eol);
+}
+
+export function tomlServerBlock(client: TomlAgentClientConfig): string {
+  return tomlServerTable(client, "\n");
+}
+
+export function mergeTomlConfig(
+  client: TomlAgentClientConfig,
+  existing: string | undefined,
+): McpMerged {
+  if (existing === undefined) {
+    return { content: tomlServerBlock(client), action: "created", server: "added" };
+  }
+  const eol = lineEnding(existing);
+  if (existing.trim() === "") {
+    return { content: tomlServerTable(client, eol), action: "updated", server: "added" };
+  }
+  const statements = scanToml(existing);
+  if (statements === undefined) {
+    throw invalidMcpConfig(
+      client.file,
+      "is not TOML init can read safely, such as a file with an unterminated string, array or table header",
+    );
+  }
+  const state = tomlEntryState(client, statements);
+  if (state !== undefined) {
+    return { content: existing, action: "unchanged", server: state };
+  }
+  const block = tomlServerTable(client, eol);
+  return {
+    content: `${existing}${appendSeparator(existing, eol)}${block}`,
+    action: "updated",
+    server: "added",
+  };
+}
+
+export function mergeClientConfig(
+  client: AgentClientConfig,
+  existing: string | undefined,
+): McpMerged {
+  return client.format === "toml"
+    ? mergeTomlConfig(client, existing)
+    : mergeMcpConfig(client, existing);
 }
 
 function unsafeClientPath(file: string, reason: string): CliUsageError {
@@ -315,7 +439,7 @@ function planClient(
   if (link !== undefined) {
     return { ...base, server: "skipped", reason: "symlink", link, write: undefined };
   }
-  const merged = mergeMcpConfig(client, readClientFile(cwd, client.file));
+  const merged = mergeClientConfig(client, readClientFile(cwd, client.file));
   return {
     ...base,
     server: merged.server,
@@ -339,10 +463,39 @@ export function planAgentScaffold(
   const selection = selectClients(cwd, flagged);
   const wiresClaude = selection.clients.some((client) => client.id === "claude");
   const pluginSetting = wiresClaude ? verbatraPluginSetting(cwd) : undefined;
+  const clients = selection.clients.map((client) => planClient(cwd, client, pluginSetting));
   return {
     instructions: { path: target.path, ...instructions },
-    clients: selection.clients.map((client) => planClient(cwd, client, pluginSetting)),
+    clients,
     pluginSetting,
     vscodeHint: selection.vscodeHint,
+    geminiContextHint: geminiMissesInstructions(cwd, clients, target.path),
   };
+}
+
+const GEMINI_CONTEXT_FILE = "GEMINI.md";
+
+function namesContextFile(settings: string, file: string): boolean {
+  const parsed: unknown = JSON.parse(settings);
+  const context = isJsonObject(parsed) ? parsed.context : undefined;
+  const fileName = isJsonObject(context) ? context.fileName : undefined;
+  return Array.isArray(fileName) ? fileName.includes(file) : fileName === file;
+}
+
+function importsInstructions(cwd: string, file: string): boolean {
+  const content = readPlainProjectFile(cwd, GEMINI_CONTEXT_FILE) ?? "";
+  return new RegExp(`^\\s*@(\\./)?${file.replace(".", "\\.")}\\s*$`, "m").test(content);
+}
+
+function geminiMissesInstructions(
+  cwd: string,
+  clients: readonly PlannedClient[],
+  instructionsPath: string,
+): boolean {
+  const settings = clients.find((client) => client.id === "gemini")?.write?.content;
+  return (
+    settings !== undefined &&
+    !namesContextFile(settings, instructionsPath) &&
+    !importsInstructions(cwd, instructionsPath)
+  );
 }

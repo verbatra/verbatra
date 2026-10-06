@@ -8,47 +8,77 @@ import {
 
 /**
  * The coding-agent clients `verbatra init --agent` can wire, in the order it reports them:
- * `claude` (Claude Code), `cursor` (Cursor) and `vscode` (VS Code). Each one is also a value of
- * `init --client`, next to `all`.
+ * `claude` (Claude Code), `cursor` (Cursor), `vscode` (VS Code), `codex` (Codex) and `gemini`
+ * (Gemini CLI). Each one is also a value of `init --client`, next to `all`.
  */
-export const AGENT_CLIENT_IDS = ["claude", "cursor", "vscode"] as const;
+export const AGENT_CLIENT_IDS = ["claude", "cursor", "vscode", "codex", "gemini"] as const;
 
 /** One of the {@link AGENT_CLIENT_IDS}. */
 export type AgentClientId = (typeof AGENT_CLIENT_IDS)[number];
 
 /** The verbatra MCP server entry `verbatra init --agent` writes into a client's config file. */
 export interface AgentClientServer {
-  /** The transport: always a local process speaking MCP over stdio. */
-  readonly type: "stdio";
+  /** The transport, a local process speaking MCP over stdio, for the clients whose entry names it. */
+  readonly type?: "stdio";
   /** The program the client starts. */
   readonly command: "npx";
   /** The program's arguments. Never `--allow-spend`, so the spend tools stay hidden. */
   readonly args: readonly string[];
 }
 
-/** The project-scoped MCP configuration `verbatra init --agent` writes for one client. */
-export interface AgentClientConfig {
+/** The verbatra server table `verbatra init --agent` writes into a TOML config file. */
+export interface TomlAgentClientServer {
+  /** The program the client starts. */
+  readonly command: "npx";
+  /** The program's arguments. Never `--allow-spend`, so the spend tools stay hidden. */
+  readonly args: readonly string[];
+  /** How many seconds the client waits for the server to start, covering a first `npx` download. */
+  readonly startup_timeout_sec: number;
+}
+
+/** What every client's project-scoped MCP configuration has in common. */
+export interface AgentClientConfigBase {
   /** The client's display name. */
   readonly name: string;
   /** The config file, relative to the project root, with `/` separators. */
   readonly file: string;
+  /** The name of the server entry under the servers key. */
+  readonly serverName: "verbatra";
+}
+
+/** A client whose project config is a JSON file. */
+export interface JsonAgentClientConfig extends AgentClientConfigBase {
+  /** The file's format. */
+  readonly format: "json";
   /** The top-level key of that file that holds the server entries. */
   readonly serversKey: "mcpServers" | "servers";
-  /** The name of the server entry under {@link AgentClientConfig.serversKey}. */
-  readonly serverName: "verbatra";
   /** The server entry: spending off, with no `env` and no `inputs`. */
   readonly server: AgentClientServer;
 }
 
+/** A client whose project config is a TOML file holding one `[mcp_servers.verbatra]` table. */
+export interface TomlAgentClientConfig extends AgentClientConfigBase {
+  /** The file's format. */
+  readonly format: "toml";
+  /** The table that holds the server tables. */
+  readonly serversKey: "mcp_servers";
+  /** The server table: spending off, with no `env`, `env_vars` or `cwd`. */
+  readonly server: TomlAgentClientServer;
+}
+
+/** The project-scoped MCP configuration `verbatra init --agent` writes for one client. */
+export type AgentClientConfig = JsonAgentClientConfig | TomlAgentClientConfig;
+
 /**
  * The exact MCP entry `verbatra init --agent` writes for each client, keyed by
  * {@link AgentClientId}. `file` is project-relative, the entry turns no spend tool on and names no
- * environment variable, and an existing `verbatra` entry is never changed.
+ * environment variable or working directory, and an existing `verbatra` entry is never changed.
  */
 export const AGENT_CLIENT_CONFIGS = {
   claude: {
     name: "Claude Code",
     file: ".mcp.json",
+    format: "json",
     serversKey: "mcpServers",
     serverName: "verbatra",
     server: { type: "stdio", command: "npx", args: ["-y", "@verbatra/mcp"] },
@@ -56,6 +86,7 @@ export const AGENT_CLIENT_CONFIGS = {
   cursor: {
     name: "Cursor",
     file: ".cursor/mcp.json",
+    format: "json",
     serversKey: "mcpServers",
     serverName: "verbatra",
     server: {
@@ -68,9 +99,26 @@ export const AGENT_CLIENT_CONFIGS = {
   vscode: {
     name: "VS Code",
     file: ".vscode/mcp.json",
+    format: "json",
     serversKey: "servers",
     serverName: "verbatra",
     server: { type: "stdio", command: "npx", args: ["-y", "@verbatra/mcp"] },
+  },
+  codex: {
+    name: "Codex",
+    file: ".codex/config.toml",
+    format: "toml",
+    serversKey: "mcp_servers",
+    serverName: "verbatra",
+    server: { command: "npx", args: ["-y", "@verbatra/mcp"], startup_timeout_sec: 60 },
+  },
+  gemini: {
+    name: "Gemini CLI",
+    file: ".gemini/settings.json",
+    format: "json",
+    serversKey: "mcpServers",
+    serverName: "verbatra",
+    server: { command: "npx", args: ["-y", "@verbatra/mcp"] },
   },
 } as const satisfies { readonly [id in AgentClientId]: AgentClientConfig };
 
@@ -80,6 +128,8 @@ const CLIENT_MARKERS: { readonly [id in AgentClientId]: readonly string[] } = {
   claude: ["CLAUDE.md", ".claude/", ".mcp.json"],
   cursor: [".cursor/", ".cursorrules"],
   vscode: [".vscode/mcp.json"],
+  codex: [".codex/"],
+  gemini: [".gemini/", "GEMINI.md"],
 };
 
 const CLAUDE_SETTINGS_FILES = [".claude/settings.json", ".claude/settings.local.json"] as const;
