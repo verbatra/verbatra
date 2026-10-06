@@ -9,6 +9,7 @@ import {
   toReportedPath,
 } from "@verbatra/extract";
 import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
+import { projectCwd } from "../config/project-root.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { errorMessage, SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
@@ -61,7 +62,7 @@ export interface ExtractResult {
 export interface ExtractInput {
   /** A resolved config whose `extract` block names the framework and the source roots. */
   readonly config: VerbatraConfig;
-  /** Directory the roots and locale paths are resolved against. Defaults to the process working directory. */
+  /** Directory the roots and locale paths are resolved against. Defaults to the project root of a config that {@link loadConfig} returned, else the process working directory. */
   readonly cwd?: string;
   /** Report what would be added without writing anything. */
   readonly dryRun?: boolean;
@@ -218,7 +219,7 @@ function toAddedKey(key: ExtractedKey): AddedKey {
  */
 export async function extract(input: ExtractInput, deps: ExtractDeps = {}): Promise<ExtractResult> {
   const extraction = requireExtractionConfig(input.config);
-  const cwd = input.cwd ?? process.cwd();
+  const cwd = projectCwd(input);
   const fs = deps.fs ?? defaultFs;
   const adapter = selectAdapter(input.config.format, deps.adapterRegistry, fs);
   const resolver = createLocalePathResolver(cwd, input.config);

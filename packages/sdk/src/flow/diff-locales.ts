@@ -1,5 +1,6 @@
 import { type DiffResult, diffResources, type LocaleResource } from "@verbatra/core";
 import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
+import { projectCwd } from "../config/project-root.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
@@ -59,7 +60,7 @@ export async function diffLocalesWithSource(
   deps: DiffLocalesDeps = {},
 ): Promise<LocaleDiffsWithSource> {
   const config = input.config;
-  const cwd = input.cwd ?? process.cwd();
+  const cwd = projectCwd(input);
   const fs = deps.fs ?? defaultFs;
   const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
   const resolver = createLocalePathResolver(cwd, config);

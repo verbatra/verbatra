@@ -8,6 +8,7 @@ import {
 } from "@verbatra/exchange";
 import { type FingerprintFor, fingerprintsFor } from "../../cache/fingerprint.js";
 import type { TranslationMemory } from "../../cache/types.js";
+import { projectCwd } from "../../config/project-root.js";
 import type { VerbatraConfig } from "../../config/schema.js";
 import { SdkError } from "../../errors.js";
 import { defaultFs, type SdkFs } from "../../fs.js";
@@ -96,7 +97,7 @@ export interface ExportTmxInput {
    * file-backed {@link LoadedConfig.glossary}. It is refused as the output path.
    */
   readonly glossaryPath?: string;
-  /** Directory the output path and the memory are resolved against. Defaults to the process working directory. */
+  /** Directory the output path and the memory are resolved against. Defaults to the project root of a config that {@link loadConfig} returned, else the process working directory. */
   readonly cwd?: string;
   /** Subset of configured target locales to export. Defaults to all of them. */
   readonly locales?: readonly string[];
@@ -257,7 +258,7 @@ export async function exportTmx(
   input: ExportTmxInput,
   deps: ExportTmxDeps = {},
 ): Promise<ExportTmxResult> {
-  const cwd = input.cwd ?? process.cwd();
+  const cwd = projectCwd(input);
   const fs = deps.fs ?? defaultFs;
   assertDistinctLocales(input.config.sourceLocale, input.config.targetLocales);
   const locales = selectLocales(input.config, input.locales);

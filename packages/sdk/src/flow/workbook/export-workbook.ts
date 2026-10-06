@@ -13,6 +13,7 @@ import {
 import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
 import { glossaryForLocale } from "../../config/glossary.js";
 import { toMaxLengthMap } from "../../config/max-length.js";
+import { projectCwd } from "../../config/project-root.js";
 import type { VerbatraConfig } from "../../config/schema.js";
 import { SdkError } from "../../errors.js";
 import { defaultFs, type SdkFs } from "../../fs.js";
@@ -63,7 +64,7 @@ export const DEFAULT_DELIMITED_PATH = "verbatra-translations";
 export interface ExportWorkbookInput {
   /** The resolved project config, normally from {@link loadConfig}. */
   readonly config: VerbatraConfig;
-  /** Directory the `files.pattern` and `out` are resolved against. Defaults to the process working directory. */
+  /** Directory the `files.pattern` and `out` are resolved against. Defaults to the project root of a config that {@link loadConfig} returned, else the process working directory. */
   readonly cwd?: string;
   /**
    * Where to write the handoff. Defaults to {@link DEFAULT_WORKBOOK_PATH} for `xlsx` and to
@@ -474,7 +475,7 @@ export async function exportWorkbook(
   deps: ExportWorkbookDeps = {},
 ): Promise<ExportWorkbookResult> {
   const config = input.config;
-  const cwd = input.cwd ?? process.cwd();
+  const cwd = projectCwd(input);
   const fs = deps.fs ?? defaultFs;
   const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
   const resolver = createLocalePathResolver(cwd, config);

@@ -1,5 +1,6 @@
 import type { LocaleResource } from "@verbatra/core";
 import type { AdapterRegistry } from "@verbatra/format-adapters";
+import { projectCwd } from "../config/project-root.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
@@ -46,7 +47,7 @@ export interface LocaleValues {
 export interface LocaleValuesInput {
   /** The resolved project config, normally from {@link loadConfig}. */
   readonly config: VerbatraConfig;
-  /** Directory the `files.pattern` is resolved against. Defaults to the process working directory. */
+  /** Directory the `files.pattern` is resolved against. Defaults to the project root of a config that {@link loadConfig} returned, else the process working directory. */
   readonly cwd?: string;
   /** Restrict the report to these target locales. Defaults to every configured target locale. */
   readonly locales?: readonly string[];
@@ -142,7 +143,7 @@ export async function localeValues(
   deps: LocaleValuesDeps = {},
 ): Promise<readonly LocaleValues[]> {
   const config = input.config;
-  const cwd = input.cwd ?? process.cwd();
+  const cwd = projectCwd(input);
   const fs = deps.fs ?? defaultFs;
   const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
   const resolver = createLocalePathResolver(cwd, config);

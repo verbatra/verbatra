@@ -11,7 +11,7 @@ import { type KeyValueResult, keyValue } from "./key-value.js";
 export interface KeyContextInput {
   /** The loaded config, as {@link loadConfigWithMeta} returns it, so a file-backed glossary is read. */
   readonly loaded: GlossaryConfig;
-  /** Directory the `files.pattern` is resolved against. Defaults to the process working directory. */
+  /** Directory the `files.pattern` is resolved against. Defaults to the project root of a config that {@link loadConfig} returned, else the process working directory. */
   readonly cwd?: string;
   /** The target locale the key is about to be written in. Must be a configured target locale. */
   readonly locale: string;

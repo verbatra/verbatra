@@ -161,7 +161,7 @@ export interface CheckSummary {
 export interface CheckInput {
   /** The resolved project config, normally from {@link loadConfig}. */
   readonly config: VerbatraConfig;
-  /** Directory the `files.pattern` is resolved against. Defaults to the process working directory. */
+  /** Directory the `files.pattern` is resolved against. Defaults to the project root of a config that {@link loadConfig} returned, else the process working directory. */
   readonly cwd?: string;
   /** Restrict the report to these target locales. Defaults to every configured target locale. */
   readonly locales?: readonly string[];
