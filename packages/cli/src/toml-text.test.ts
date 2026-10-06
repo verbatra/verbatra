@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { renderTomlTable, scanToml, type TomlStatement } from "./toml-text.js";
+import { MAX_TOML_NESTING, renderTomlTable, scanToml, type TomlStatement } from "./toml-text.js";
 
 function values(text: string): Record<string, unknown> {
   const statements = scanToml(text);
@@ -93,6 +93,24 @@ describe("scanToml", () => {
     ["text after a header", "[a] b\n"],
     ["an unclosed array table header", "[[a]\n"],
   ])("refuses %s", (_label, text) => {
+    expect(scanToml(text)).toBeUndefined();
+  });
+
+  it("reads arrays and inline tables nested up to the limit", () => {
+    const deepest = `k = ${"[".repeat(MAX_TOML_NESTING)}${"]".repeat(MAX_TOML_NESTING)}\n`;
+    expect(scanToml(deepest)).toHaveLength(1);
+    const tables = `k = ${"{ a = ".repeat(MAX_TOML_NESTING - 1)}{}${" }".repeat(MAX_TOML_NESTING - 1)}\n`;
+    expect(scanToml(tables)).toHaveLength(1);
+  });
+
+  it.each([
+    ["arrays", `k = ${"[".repeat(MAX_TOML_NESTING + 1)}${"]".repeat(MAX_TOML_NESTING + 1)}\n`],
+    [
+      "inline tables",
+      `k = ${"{ a = ".repeat(MAX_TOML_NESTING)}{}${" }".repeat(MAX_TOML_NESTING)}\n`,
+    ],
+    ["20,000 open arrays", `k = ${"[".repeat(20000)}\n`],
+  ])("refuses %s nested past the limit instead of overflowing the stack", (_label, text) => {
     expect(scanToml(text)).toBeUndefined();
   });
 

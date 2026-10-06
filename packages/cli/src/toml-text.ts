@@ -21,7 +21,10 @@ export type TomlStatement = TomlHeader | TomlKeyValue;
 interface Scan {
   readonly text: string;
   pos: number;
+  depth: number;
 }
+
+export const MAX_TOML_NESTING = 64;
 
 class TomlScanError extends Error {}
 
@@ -212,6 +215,16 @@ function readScalar(scan: Scan): TomlValue {
   return raw === "" ? fail() : scalar(raw);
 }
 
+function nested<T>(scan: Scan, read: (scan: Scan) => T): T {
+  if (scan.depth >= MAX_TOML_NESTING) {
+    fail();
+  }
+  scan.depth += 1;
+  const value = read(scan);
+  scan.depth -= 1;
+  return value;
+}
+
 function readArray(scan: Scan): readonly TomlValue[] {
   scan.pos += 1;
   const items: TomlValue[] = [];
@@ -260,9 +273,9 @@ function readValue(scan: Scan): TomlValue {
     case "'":
       return readLiteralString(scan);
     case "[":
-      return readArray(scan);
+      return nested(scan, readArray);
     case "{":
-      return readInlineTable(scan);
+      return nested(scan, readInlineTable);
     default:
       return readScalar(scan);
   }
@@ -313,7 +326,7 @@ function readStatements(scan: Scan): readonly TomlStatement[] {
 
 export function scanToml(text: string): readonly TomlStatement[] | undefined {
   try {
-    return readStatements({ text, pos: 0 });
+    return readStatements({ text, pos: 0, depth: 0 });
   } catch (error) {
     if (error instanceof TomlScanError) {
       return undefined;

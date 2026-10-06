@@ -402,6 +402,11 @@ describe("init --agent for Codex: the TOML fixture matrix", () => {
     ["an unterminated array", 'args = [\n  "x",\n', "is not TOML init can read"],
     ["an unterminated table header", "[mcp_servers.verbatra\n", "is not TOML init can read"],
     ["an unterminated string", 'model = "o4\n', "is not TOML init can read"],
+    [
+      "arrays nested 20,000 deep",
+      `x = ${"[".repeat(20000)}${"]".repeat(20000)}\n`,
+      "is not TOML init can read",
+    ],
   ])("refuses %s with zero writes in the whole run", async (_label, content, fragment) => {
     rmSync(join(dir, "verbatra.config.ts"));
     put(FILE, content);
