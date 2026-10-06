@@ -524,6 +524,10 @@ samp {
   color: var(--text-strong);
 }
 
+.vk-stack-card-badge {
+  margin-top: 0.25rem;
+}
+
 #nd-toc h3 {
   font-family: var(--font-mono);
   font-size: var(--text-xs);

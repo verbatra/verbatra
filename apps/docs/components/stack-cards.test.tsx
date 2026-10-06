@@ -129,7 +129,7 @@ describe("StackCards", () => {
     expect(nav?.querySelectorAll("li a")).toHaveLength(CARDS.length);
   });
 
-  it("marks a card with a badge as an outline pill that is part of its name", () => {
+  it("puts a card's badge on its own line after the format ids, so every card in a row matches", () => {
     const doc = render(
       renderToStaticMarkup(
         <StackCards
@@ -149,8 +149,12 @@ describe("StackCards", () => {
       ),
     );
     const links = [...doc.querySelectorAll("a")];
-    expect(links[0]?.querySelector(".vk-pill")?.textContent).toBe(", Quickstart");
-    expect(accessibleText(links[0] as Element)).toBe("React, Quickstart: i18next-json");
+    const pill = links[0]?.querySelector(".vk-pill");
+    expect(pill?.textContent).toBe(", Quickstart");
+    expect(pill?.classList.contains("vk-stack-card-badge")).toBe(true);
+    expect(pill?.previousElementSibling?.textContent).toBe(": i18next-json");
+    expect(pill?.parentElement?.classList.contains("grid")).toBe(true);
+    expect(accessibleText(links[0] as Element)).toBe("React: i18next-json, Quickstart");
     expect(links.slice(1).some((link) => link.querySelector(".vk-pill") !== null)).toBe(false);
   });
 
