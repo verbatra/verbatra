@@ -115,6 +115,22 @@ export const STACKS: Readonly<Record<StackId, Stack>> = {
           "}",
         ),
       },
+      {
+        lang: "tsx",
+        title: "src/main.tsx",
+        code: lines(
+          'import { StrictMode } from "react";',
+          'import { createRoot } from "react-dom/client";',
+          'import { Greeting } from "./Greeting";',
+          'import "./i18n";',
+          "",
+          'createRoot(document.getElementById("root")!).render(',
+          "  <StrictMode>",
+          "    <Greeting />",
+          "  </StrictMode>,",
+          ");",
+        ),
+      },
     ],
   },
   nextjs: {
@@ -158,6 +174,7 @@ export const STACKS: Readonly<Record<StackId, Stack>> = {
         lang: "ts",
         title: "i18n/request.ts",
         code: lines(
+          "// with a src/ folder: src/i18n/request.ts, importing ../../messages",
           'import { getRequestConfig } from "next-intl/server";',
           "",
           "export default getRequestConfig(async () => {",
@@ -272,6 +289,7 @@ export const STACKS: Readonly<Record<StackId, Stack>> = {
           "",
           "export const appConfig: ApplicationConfig = {",
           "  providers: [",
+          "    // keep the providers the Angular CLI generated, and add:",
           "    provideHttpClient(),",
           "    provideTranslateService({",
           '      lang: "de",',
@@ -298,9 +316,10 @@ export const STACKS: Readonly<Record<StackId, Stack>> = {
         ),
       },
       {
-        lang: "json",
+        lang: "jsonc",
         title: "angular.json",
         code: lines(
+          "// projects.<name>.architect.build.options",
           '"assets": [',
           '  { "glob": "**/*", "input": "public" },',
           '  { "glob": "**/*", "input": "src/assets", "output": "assets" }',

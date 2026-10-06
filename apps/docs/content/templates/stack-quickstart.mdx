@@ -1,5 +1,9 @@
 By the end of this page your <StackText field="name" /> app shows a German string that verbatra translated from <StackText field="sourceFile" />, and a lock file makes every later run translate only what changed. You need Node.js `>=22.14.0`, a <StackText field="name" /> project, and about ten minutes. The first five steps need no account and no API key.
 
+<Callout title="Using an AI coding agent?">
+Hand it the prompt on [Set up with an AI agent](/docs/start-with-ai) instead. It runs these same steps for you.
+</Callout>
+
 ## Steps
 
 <Steps>
@@ -11,7 +15,7 @@ By the end of this page your <StackText field="name" /> app shows a German strin
 npm install --save-dev @verbatra/cli
 ```
 
-verbatra is a development tool and never ships in your app. In a project without a `package.json`, npm creates one. The commands below use `npx`; with pnpm, yarn, or bun, run `pnpm verbatra`, `yarn verbatra`, or `bun run verbatra` instead.
+verbatra is a development tool and never ships in your app. In a project without a `package.json`, such as a Flutter app, npm creates one; add `node_modules/` to its `.gitignore`. The commands below use `npx`; with pnpm, yarn, or bun, run `pnpm verbatra`, `yarn verbatra`, or `bun run verbatra` instead.
 
 </Step>
 <Step>
@@ -53,7 +57,17 @@ Skip this step if you do not work with a coding agent. With the config in place,
 npx verbatra translate --dry-run
 ```
 
-The summary reads `de: 2 would translate`. A dry run builds no provider, so it needs no key, spends nothing, and writes nothing.
+```text output
+verbatra: dry run over 1 locale, no provider call
+verbatra: de done, 2 would translate
+verbatra translate (dry run)
+  de: 2 would translate, 0 unchanged
+1 succeeded, 0 partial, 0 failed (dry run: nothing written)
+[ok] dry run done in 0.0s, nothing written
+next: verbatra translate (run it for real)
+```
+
+A dry run builds no provider, so it needs no key, spends nothing, and writes nothing.
 
 </Step>
 <Step>

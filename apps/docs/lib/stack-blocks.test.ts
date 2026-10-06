@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { expandStackBlocks, remarkStackBlocks, type StackMdxNode } from "./stack-blocks";
-import { STACK_BLOCK_NAMES, STACK_IDS, STACKS, stackInitCommand } from "./stacks";
+import { expandStackBlocks, remarkStackBlocks, type StackMdxNode, titleMeta } from "./stack-blocks";
+import { STACK_BLOCK_NAMES, STACK_IDS, STACKS, stackBlock, stackInitCommand } from "./stacks";
 
 function element(
   type: "mdxJsxFlowElement" | "mdxJsxTextElement",
@@ -71,6 +71,19 @@ describe("expandStackBlocks", () => {
       lang: "json",
       meta: 'title="lib/l10n/app_en.arb"',
     });
+  });
+
+  it("refuses a title that would break out of its quoted meta attribute", () => {
+    expect(titleMeta(undefined)).toBeNull();
+    expect(titleMeta("src/main.tsx")).toBe('title="src/main.tsx"');
+    expect(() => titleMeta('a" onclick="x')).toThrow(/double quote/);
+    for (const id of STACK_IDS) {
+      for (const name of STACK_BLOCK_NAMES) {
+        for (const { title } of stackBlock(STACKS[id], name)) {
+          expect(() => titleMeta(title), `${id} ${name}`).not.toThrow();
+        }
+      }
+    }
   });
 
   it.each(STACK_IDS)("never emits a heading for %s, so the TOC stays the template's", (id) => {

@@ -1,5 +1,9 @@
 Al final de esta página, tu app de <StackText field="name" /> muestra un texto en alemán que verbatra tradujo desde <StackText field="sourceFile" />, y un archivo de bloqueo hace que cada ejecución posterior traduzca solo lo que cambió. Necesitas Node.js `>=22.14.0`, un proyecto de <StackText field="name" /> y unos diez minutos. Los primeros cinco pasos no necesitan cuenta ni clave de API.
 
+<Callout title="¿Usas un agente de programación con IA?">
+Dale el prompt de [Configura verbatra con un agente de IA](/docs/start-with-ai). Ejecuta estos mismos pasos por ti.
+</Callout>
+
 ## Pasos
 
 <Steps>
@@ -11,7 +15,7 @@ Al final de esta página, tu app de <StackText field="name" /> muestra un texto 
 npm install --save-dev @verbatra/cli
 ```
 
-verbatra es una herramienta de desarrollo y nunca llega a tu app. En un proyecto sin `package.json`, npm crea uno. Los comandos de abajo usan `npx`; con pnpm, yarn o bun, ejecuta `pnpm verbatra`, `yarn verbatra` o `bun run verbatra`.
+verbatra es una herramienta de desarrollo y nunca llega a tu app. En un proyecto sin `package.json`, como una app de Flutter, npm crea uno; añade `node_modules/` a su `.gitignore`. Los comandos de abajo usan `npx`; con pnpm, yarn o bun, ejecuta `pnpm verbatra`, `yarn verbatra` o `bun run verbatra`.
 
 </Step>
 <Step>
@@ -53,7 +57,17 @@ Sáltate este paso si no trabajas con un agente de programación. Con la configu
 npx verbatra translate --dry-run
 ```
 
-El resumen dice `de: 2 would translate`. Una ejecución de prueba no construye ningún proveedor, así que no necesita clave, no gasta nada y no escribe nada.
+```text output
+verbatra: dry run over 1 locale, no provider call
+verbatra: de done, 2 would translate
+verbatra translate (dry run)
+  de: 2 would translate, 0 unchanged
+1 succeeded, 0 partial, 0 failed (dry run: nothing written)
+[ok] dry run done in 0.0s, nothing written
+next: verbatra translate (run it for real)
+```
+
+Una ejecución de prueba no construye ningún proveedor, así que no necesita clave, no gasta nada y no escribe nada.
 
 </Step>
 <Step>

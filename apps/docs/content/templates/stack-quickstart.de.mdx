@@ -1,5 +1,9 @@
 Am Ende dieser Seite zeigt deine <StackText field="name" />-App einen deutschen Text, den verbatra aus <StackText field="sourceFile" /> übersetzt hat, und eine Lock-Datei sorgt dafür, dass jeder spätere Lauf nur noch übersetzt, was sich geändert hat. Du brauchst Node.js `>=22.14.0`, ein <StackText field="name" />-Projekt und etwa zehn Minuten. Die ersten fünf Schritte brauchen weder ein Konto noch einen API-Schlüssel.
 
+<Callout title="Arbeitest du mit einem KI-Coding-Agenten?">
+Gib ihm stattdessen den Prompt von [verbatra mit einem KI-Agenten einrichten](/docs/start-with-ai). Er führt dieselben Schritte für dich aus.
+</Callout>
+
 ## Schritte
 
 <Steps>
@@ -11,7 +15,7 @@ Am Ende dieser Seite zeigt deine <StackText field="name" />-App einen deutschen 
 npm install --save-dev @verbatra/cli
 ```
 
-verbatra ist ein Entwicklungswerkzeug und landet nie in deiner App. In einem Projekt ohne `package.json` legt npm eine an. Die Befehle unten nutzen `npx`; mit pnpm, yarn oder bun nimmst du stattdessen `pnpm verbatra`, `yarn verbatra` oder `bun run verbatra`.
+verbatra ist ein Entwicklungswerkzeug und landet nie in deiner App. In einem Projekt ohne `package.json`, etwa einer Flutter-App, legt npm eine an; trag dann `node_modules/` in die `.gitignore` ein. Die Befehle unten nutzen `npx`; mit pnpm, yarn oder bun nimmst du stattdessen `pnpm verbatra`, `yarn verbatra` oder `bun run verbatra`.
 
 </Step>
 <Step>
@@ -53,7 +57,17 @@ Arbeitest du ohne Coding-Agenten, überspringst du diesen Schritt. Mit vorhanden
 npx verbatra translate --dry-run
 ```
 
-Die Zusammenfassung lautet `de: 2 would translate`. Ein Probelauf baut keinen Provider, braucht also keinen Schlüssel, kostet nichts und schreibt nichts.
+```text output
+verbatra: dry run over 1 locale, no provider call
+verbatra: de done, 2 would translate
+verbatra translate (dry run)
+  de: 2 would translate, 0 unchanged
+1 succeeded, 0 partial, 0 failed (dry run: nothing written)
+[ok] dry run done in 0.0s, nothing written
+next: verbatra translate (run it for real)
+```
+
+Ein Probelauf baut keinen Provider, braucht also keinen Schlüssel, kostet nichts und schreibt nichts.
 
 </Step>
 <Step>

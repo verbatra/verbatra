@@ -1,5 +1,9 @@
 À la fin de cette page, ton app <StackText field="name" /> affiche un texte allemand que verbatra a traduit depuis <StackText field="sourceFile" />, et un fichier de verrouillage fait que chaque exécution suivante ne traduit que ce qui a changé. Il te faut Node.js `>=22.14.0`, un projet <StackText field="name" /> et une dizaine de minutes. Les cinq premières étapes ne demandent ni compte ni clé d'API.
 
+<Callout title="Tu utilises un agent de code IA ?">
+Donne-lui plutôt le prompt de [Configure verbatra avec un agent IA](/docs/start-with-ai). Il exécute ces mêmes étapes pour toi.
+</Callout>
+
 ## Étapes
 
 <Steps>
@@ -11,7 +15,7 @@
 npm install --save-dev @verbatra/cli
 ```
 
-verbatra est un outil de développement et n'est jamais livré dans ton app. Dans un projet sans `package.json`, npm en crée un. Les commandes ci-dessous utilisent `npx` ; avec pnpm, yarn ou bun, lance plutôt `pnpm verbatra`, `yarn verbatra` ou `bun run verbatra`.
+verbatra est un outil de développement et n'est jamais livré dans ton app. Dans un projet sans `package.json`, comme une app Flutter, npm en crée un ; ajoute `node_modules/` à son `.gitignore`. Les commandes ci-dessous utilisent `npx` ; avec pnpm, yarn ou bun, lance plutôt `pnpm verbatra`, `yarn verbatra` ou `bun run verbatra`.
 
 </Step>
 <Step>
@@ -53,7 +57,17 @@ Passe cette étape si tu ne travailles pas avec un agent de code. Avec la config
 npx verbatra translate --dry-run
 ```
 
-Le résumé indique `de: 2 would translate`. Une exécution à blanc ne construit aucun fournisseur : elle n'a pas besoin de clé, ne dépense rien et n'écrit rien.
+```text output
+verbatra: dry run over 1 locale, no provider call
+verbatra: de done, 2 would translate
+verbatra translate (dry run)
+  de: 2 would translate, 0 unchanged
+1 succeeded, 0 partial, 0 failed (dry run: nothing written)
+[ok] dry run done in 0.0s, nothing written
+next: verbatra translate (run it for real)
+```
+
+Une exécution à blanc ne construit aucun fournisseur : elle n'a pas besoin de clé, ne dépense rien et n'écrit rien.
 
 </Step>
 <Step>

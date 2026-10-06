@@ -57,9 +57,16 @@ function blockNodes(stack: Stack, node: StackMdxNode): StackMdxNode[] {
   return stackBlock(stack, name).map(({ lang, title, code }) => ({
     type: "code",
     lang,
-    meta: title === undefined ? null : `title="${title}"`,
+    meta: titleMeta(title),
     value: code,
   }));
+}
+
+export function titleMeta(title: string | undefined): string | null {
+  if (title === undefined) return null;
+  if (title.includes('"'))
+    throw new Error(`A code block title cannot hold a double quote: ${title}`);
+  return `title="${title}"`;
 }
 
 function textNode(stack: Stack, node: StackMdxNode): StackMdxNode {
