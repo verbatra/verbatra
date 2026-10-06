@@ -155,6 +155,9 @@ describe("StackCards", () => {
     expect(pill?.previousElementSibling?.textContent).toBe(": i18next-json");
     expect(pill?.parentElement?.classList.contains("grid")).toBe(true);
     expect(accessibleText(links[0] as Element)).toBe("React: i18next-json, Quickstart");
+    const badgeRule = /\.vk-pill\.vk-stack-card-badge \{([^}]*)\}/.exec(GLOBAL_CSS)?.[1] ?? "";
+    expect(badgeRule).toContain("max-width: 100%;");
+    expect(badgeRule).toContain("white-space: normal;");
     expect(links.slice(1).some((link) => link.querySelector(".vk-pill") !== null)).toBe(false);
   });
 
