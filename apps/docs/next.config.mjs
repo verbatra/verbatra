@@ -46,7 +46,7 @@ const config = {
     return [
       {
         source: "/:path*",
-        headers: securityHeaders({ isDev: process.env.NODE_ENV === "development" }),
+        headers: securityHeaders(),
       },
     ];
   },

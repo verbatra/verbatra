@@ -14,7 +14,7 @@ const config: KnipConfig = {
     "apps/docs": {
       entry: ["verbatra.config.ts"],
       ignoreDependencies: ["@verbatra/studio"],
-      ignoreFiles: ["lib/security-headers.d.mts"],
+      ignoreFiles: ["lib/inline-script-hashes.d.mts", "lib/security-headers.d.mts"],
     },
 
     "packages/sdk": {
