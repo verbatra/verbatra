@@ -19,7 +19,8 @@ Non-interactive `init` for agents, and errors with a `hint` and a `causeCode`.
   picks them instead, and `agent.clients` in `--json` reports each one. Other servers keep their
   bytes, indentation and line endings when the file has one entry per line; otherwise it is
   rewritten with the same content. The Codex table is appended to the end of the file, which is
-  otherwise left as it is. `@verbatra/cli` exports the entries as `AGENT_CLIENT_CONFIGS`.
+  otherwise left as it is. Gemini CLI reads `GEMINI.md`, so a next step says how to make it load
+  the instruction file. `@verbatra/cli` exports the entries as `AGENT_CLIENT_CONFIGS`.
 - A detected client whose config path runs through a symbolic link is skipped with a next step;
   init never writes through one.
 - `init --agent` leaves `.mcp.json` alone while the verbatra Claude Code plugin is enabled in
