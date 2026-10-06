@@ -38,7 +38,7 @@ import { usageErrorHint } from "./cli-error-hints.js";
 import { CliUsageError } from "./cli-usage-error.js";
 import { hasConfigFile } from "./config-presence.js";
 import { assertCwdDirectory } from "./cwd-option.js";
-import { loadEnvFiles, loadRootEnvFiles } from "./env.js";
+import { loadProjectEnvFiles } from "./env.js";
 import { appendMissingGitignoreEntries } from "./gitignore.js";
 import { runInit } from "./init.js";
 import { renderErrorEnvelope, renderSuccessEnvelope } from "./json-envelope.js";
@@ -919,7 +919,6 @@ export async function runTranslate(
         context,
         loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
         async (config, root) => {
-          loadRootEnvFiles(cwd, root);
           topUpGitignore(root, context, resolveDryRun(opts));
           const startedAt = Date.now();
           const announceStart = announceOnce(() =>
@@ -945,7 +944,7 @@ export async function runTranslate(
           );
           return exitCode;
         },
-        () => loadEnvFiles(cwd),
+        () => loadProjectEnvFiles(cwd, opts.config),
       );
     },
   );
@@ -985,13 +984,12 @@ async function runWatchCommand(
       const cwd = opts.cwd ?? process.cwd();
       let project: LoadedProject;
       try {
-        loadEnvFiles(cwd);
+        loadProjectEnvFiles(cwd, opts.config);
         project = await loadProject(
           deps,
           loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
           context.ui,
         );
-        loadRootEnvFiles(cwd, project.root);
       } catch (error) {
         return renderFailureExit2(error, context);
       }
@@ -1727,22 +1725,6 @@ function doctorTaskLabel(opts: DoctorOpts): string {
     : "checking the setup";
 }
 
-async function loadDoctorRootEnvFiles(
-  deps: CliDeps,
-  opts: DoctorOpts,
-  cwd: string,
-  ui: Ui,
-): Promise<void> {
-  const project = await loadProject(
-    deps,
-    loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
-    ui,
-  ).catch(() => undefined);
-  if (project !== undefined) {
-    loadRootEnvFiles(cwd, project.root);
-  }
-}
-
 async function runDoctor(
   rawOpts: unknown,
   deps: CliDeps,
@@ -1758,8 +1740,7 @@ async function runDoctor(
       const literals = opts.literals === true;
       try {
         if (!literals) {
-          loadEnvFiles(cwd);
-          await loadDoctorRootEnvFiles(deps, opts, cwd, context.ui);
+          loadProjectEnvFiles(cwd, opts.config);
         }
         const result = await withTask(context, doctorTaskLabel(opts), (task) =>
           deps.doctor({

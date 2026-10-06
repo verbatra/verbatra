@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { isMachineTranslationEnabled, resolveProjectRoot } from "@verbatra/sdk";
 import { z } from "zod";
 import { CliUsageError } from "./cli-usage-error.js";
-import { loadEnvFiles, loadRootEnvFiles } from "./env.js";
+import { loadProjectEnvFiles } from "./env.js";
 import { renderError, toRenderableError } from "./render.js";
 import { PRESS_CTRL_C, studioAgentToolsLine, studioSpendLine } from "./session-banners.js";
 import {
@@ -108,7 +108,7 @@ export async function runStudio(
 
   const cwd = opts.cwd ?? process.cwd();
   try {
-    loadEnvFiles(cwd);
+    loadProjectEnvFiles(cwd, opts.config);
   } catch (error) {
     streams.err(`${renderError(toRenderableError(error))}\n`);
     return failedSession(2);
@@ -129,12 +129,6 @@ export async function runStudio(
     return failedSession(2);
   }
   const root = resolveProjectRoot(config.source, cwd);
-  try {
-    loadRootEnvFiles(cwd, root);
-  } catch (error) {
-    streams.err(`${renderError(toRenderableError(error))}\n`);
-    return failedSession(2);
-  }
 
   const studioModule = await step(
     () => deps.importStudio(),

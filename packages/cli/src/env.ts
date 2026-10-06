@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parseEnv } from "node:util";
+import { searchedConfigDir } from "./config-presence.js";
 
 function applyIfUnset(values: Record<string, string>): void {
   for (const [key, value] of Object.entries(values)) {
@@ -28,8 +29,13 @@ export function loadEnvFiles(cwd: string): void {
   applyIfUnset(parseEnvFile(resolve(cwd, ".env")));
 }
 
-export function loadRootEnvFiles(cwd: string, root: string): void {
-  if (resolve(root) !== resolve(cwd)) {
+export function loadProjectEnvFiles(cwd: string, configPath: string | undefined): void {
+  loadEnvFiles(cwd);
+  if (configPath !== undefined) {
+    return;
+  }
+  const root = searchedConfigDir(cwd);
+  if (root !== undefined && root !== resolve(cwd)) {
     loadEnvFiles(root);
   }
 }

@@ -54,6 +54,10 @@ export function hasConfigFile(cwd: string, home?: string): boolean {
   return configSearchChain(cwd, home).some(dirHasConfig);
 }
 
+export function searchedConfigDir(cwd: string, home?: string): string | undefined {
+  return configSearchChain(cwd, home).find(dirHasConfig);
+}
+
 export function parentConfigDir(cwd: string, home?: string): string | undefined {
   return configSearchChain(cwd, home).slice(1).find(dirHasConfig);
 }
