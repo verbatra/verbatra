@@ -3,13 +3,23 @@ import { relative, resolve } from "node:path";
 import process from "node:process";
 import {
   createLocalePathResolver,
+  type DetectedFormat,
+  type DetectedLocaleLayout,
+  type DetectionAmbiguity,
   detectProject,
   type ProjectDetection,
   scaffoldingMetadata,
 } from "@verbatra/sdk";
-import { AGENT_CLIENT_CONFIGS, type AgentClientId, parseClientFlag } from "./agent-clients.js";
+import {
+  AGENT_CLIENT_CONFIGS,
+  type AgentClientId,
+  type ClientSelectedBy,
+  parseClientFlag,
+} from "./agent-clients.js";
 import {
   type AgentScaffoldPlan,
+  type ClientServerState,
+  type ClientSkipReason,
   type McpServerState,
   type PlannedClient,
   planAgentScaffold,
@@ -23,6 +33,7 @@ import {
   type DetectFn,
   type InitOptions,
   type InitPlan,
+  type InitSources,
   initOptsSchema,
   type Prompter,
   planInit,
@@ -59,6 +70,48 @@ export interface InitDeps {
 }
 
 export type FileAction = "created" | "overwritten" | "updated" | "unchanged";
+
+export interface InitDetectedLayout
+  extends Omit<DetectedLocaleLayout, "sourceLocale" | "unqualifiedSourceFile"> {
+  readonly sourceLocale: string | null;
+  readonly unqualifiedSourceFile: string | null;
+}
+
+export interface InitDetection {
+  readonly format: DetectedFormat | null;
+  readonly layout: InitDetectedLayout | null;
+  readonly ambiguities: readonly DetectionAmbiguity[];
+  readonly confidence: ProjectDetection["confidence"];
+  readonly reasons: readonly string[];
+}
+
+export interface InitAgentClient {
+  readonly id: AgentClientId;
+  readonly file: string;
+  readonly server: ClientServerState;
+  readonly reason: ClientSkipReason | null;
+  readonly selectedBy: ClientSelectedBy;
+  readonly markers: readonly string[];
+}
+
+export interface InitAgentFiles {
+  readonly instructionsFile: string;
+  readonly mcpServer: ClientServerState | null;
+  readonly configKept: boolean;
+  readonly clients: readonly InitAgentClient[];
+}
+
+export interface InitResult {
+  readonly configPath: string;
+  readonly files: readonly WrittenFile[];
+  readonly dryRun: boolean;
+  readonly config: Readonly<Record<string, unknown>> | null;
+  readonly sources: InitSources | null;
+  readonly apiKeyEnvVar: string | null;
+  readonly detection: InitDetection | null;
+  readonly agent: InitAgentFiles | null;
+  readonly nextSteps: readonly NextStep[];
+}
 
 const CONFIG_FILE = "verbatra.config.ts";
 const ENV_EXAMPLE_FILE = ".env.example";
@@ -525,7 +578,7 @@ function nextSteps(
   return steps;
 }
 
-function detectionForJson(detection: ProjectDetection): unknown {
+function detectionForJson(detection: ProjectDetection): InitDetection {
   const layout = detection.layout;
   return {
     format: detection.format ?? null,
@@ -543,7 +596,7 @@ function detectionForJson(detection: ProjectDetection): unknown {
   };
 }
 
-function clientForJson(client: PlannedClient): unknown {
+function clientForJson(client: PlannedClient): InitAgentClient {
   return {
     id: client.id,
     file: client.file,
@@ -554,7 +607,10 @@ function clientForJson(client: PlannedClient): unknown {
   };
 }
 
-function agentForJson(agent: AgentScaffoldPlan | undefined, configKept: boolean): unknown {
+function agentForJson(
+  agent: AgentScaffoldPlan | undefined,
+  configKept: boolean,
+): InitAgentFiles | null {
   if (agent === undefined) {
     return null;
   }
@@ -660,7 +716,7 @@ function runAgentOnly(configFile: string, run: AgentRun, streams: Streams): numb
   const steps = [...leadingSteps(agent, suffix, run.dryRun), doctorStep(suffix)];
   if (run.json) {
     streams.out(
-      `${renderSuccessEnvelope("init", {
+      `${renderSuccessEnvelope<InitResult>("init", {
         configPath: resolve(run.cwd, configFile),
         files,
         dryRun: run.dryRun,
@@ -764,7 +820,7 @@ export async function runInit(
     if (json) {
       const keyEnvVar = keyEnvVarFor(plan.draft.provider);
       streams.out(
-        `${renderSuccessEnvelope("init", {
+        `${renderSuccessEnvelope<InitResult>("init", {
           configPath: resolve(cwd, CONFIG_FILE),
           files,
           dryRun,

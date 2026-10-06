@@ -434,7 +434,7 @@ function checkConfigSchema() {
   if (typeof document.$schema !== "string") {
     throw new Error(
       `${relativePath} has no $schema meta key; an editor cannot validate against it. Check ` +
-        "packages/sdk/scripts/emit-config-schema.mjs.",
+        "packages/sdk/scripts/emit-schemas.mjs.",
     );
   }
   const pattern = getConfigSchemaFilesPattern(document);
@@ -449,7 +449,7 @@ function checkConfigSchema() {
   if (noneRequired === undefined || noneRequired.includes("options")) {
     throw new Error(
       `${relativePath} requires provider options for provider none, which loadConfig does not. ` +
-        "Check that packages/sdk/scripts/emit-config-schema.mjs emits the input schema " +
+        "Check that packages/sdk/scripts/emit-schemas.mjs emits the input schema " +
         '({ io: "input" }), so a defaulted key stays optional.',
     );
   }
@@ -459,10 +459,126 @@ function checkConfigSchema() {
   );
 }
 
+const SCHEMA_BASE_URL = "https://verbatra.kreitz-webdev.de/schema/v1/";
+
+const SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema";
+
+const CLOSED_SCHEMAS = new Set(["config"]);
+
+const COMMAND_ENVELOPES = [
+  "translate",
+  "watch",
+  "import",
+  "export",
+  "tmx",
+  "check",
+  "diff",
+  "report",
+  "pseudo",
+  "types",
+  "doctor",
+  "extract",
+  "init",
+].map((command) => `${command}-envelope`);
+
+const EXPECTED_SCHEMAS = {
+  "packages/sdk/dist/schemas": [
+    "config",
+    "run-summary",
+    "check-summary",
+    "check-file-summary",
+    "diff-summary",
+    "doctor-result",
+    "data-flow-manifest",
+    "provenance-report",
+    "pseudolocalize-result",
+    "generate-types-result",
+    "extract-result",
+    "export-workbook-result",
+    "import-tmx-result",
+    "export-tmx-result",
+    "progress-event",
+    "lock-wait-event",
+  ],
+  "packages/cli/dist/schemas": [
+    "envelope",
+    "error-envelope",
+    "init-result",
+    "stderr-record",
+    ...COMMAND_ENVELOPES,
+  ],
+};
+
+function hasClosedObject(node) {
+  if (Array.isArray(node)) {
+    return node.some(hasClosedObject);
+  }
+  if (node === null || typeof node !== "object") {
+    return false;
+  }
+  return node.additionalProperties === false || Object.values(node).some(hasClosedObject);
+}
+
+function findSchemaDocumentProblems(name, document) {
+  const problems = [];
+  if (document.$schema !== SCHEMA_DIALECT) {
+    problems.push(`${name}.json does not declare $schema ${SCHEMA_DIALECT}`);
+  }
+  if (document.$id !== `${SCHEMA_BASE_URL}${name}.json`) {
+    problems.push(`${name}.json has $id ${document.$id}, not ${SCHEMA_BASE_URL}${name}.json`);
+  }
+  if (typeof document.title !== "string" || document.title.length === 0) {
+    problems.push(`${name}.json has no title`);
+  }
+  if (!CLOSED_SCHEMAS.has(name) && hasClosedObject(document)) {
+    problems.push(
+      `${name}.json sets additionalProperties: false, which breaks the additive --json contract`,
+    );
+  }
+  return problems;
+}
+
+function findSchemaSetProblems(present, expected) {
+  return [
+    ...expected.filter((name) => !present.includes(name)).map((name) => `${name}.json is missing`),
+    ...present
+      .filter((name) => !expected.includes(name))
+      .map((name) => `${name}.json is not in the expected list in scripts/check-build-output.mjs`),
+  ];
+}
+
+function checkSchemas() {
+  const problems = [];
+  let count = 0;
+  for (const [dir, expected] of Object.entries(EXPECTED_SCHEMAS)) {
+    const absolute = resolve(REPO_ROOT, dir);
+    if (!existsSync(absolute)) {
+      throw new Error(`expected build output ${dir} is missing. Run the build first.`);
+    }
+    const present = readdirSync(absolute)
+      .filter((file) => file.endsWith(".json"))
+      .map((file) => file.slice(0, -".json".length));
+    problems.push(...findSchemaSetProblems(present, expected).map((p) => `${dir}: ${p}`));
+    for (const name of present.filter((entry) => expected.includes(entry))) {
+      const document = JSON.parse(readBuildOutput(`${dir}/${name}.json`));
+      problems.push(...findSchemaDocumentProblems(name, document).map((p) => `${dir}: ${p}`));
+      count += 1;
+    }
+  }
+  if (problems.length > 0) {
+    throw new Error(`the emitted JSON Schemas are not publishable:\n  ${problems.join("\n  ")}`);
+  }
+  return (
+    `all ${count} JSON Schemas exist, declare draft 2020-12 with their public $id and a title, ` +
+    "and every result schema allows unknown properties."
+  );
+}
+
 const TARGETS = {
   dts: checkDts,
   "studio-bundle": checkStudioBundle,
   "config-schema": checkConfigSchema,
+  schemas: checkSchemas,
   "lazy-provider-sdks": checkLazyProviderSdks,
 };
 
@@ -496,6 +612,8 @@ export {
   findExportTypeMismatches,
   findForbiddenSpecifiersInText,
   findRenamedDeclarations,
+  findSchemaDocumentProblems,
+  findSchemaSetProblems,
   findUndocumentedExports,
   findUnexportedLinks,
   getConfigSchemaFilesPattern,

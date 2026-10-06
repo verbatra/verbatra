@@ -293,17 +293,19 @@ verbatra busca hacia arriba desde el directorio de trabajo y usa la primera fuen
 
 <AvailableFrom version="0.9.0" />
 
-`@verbatra/sdk` publica un JSON Schema generado a partir del esquema zod con el que valida el SDK:
+`@verbatra/sdk` publica un JSON Schema generado a partir del esquema zod con el que valida el SDK, y el sitio de la documentación sirve el mismo documento en una URL estable que funciona con una instalación global, con `npx`, en un monorepo con hoisting y para un agente remoto:
 
 ```text
-node_modules/@verbatra/sdk/dist/config-schema.json
+https://verbatra.kreitz-webdev.de/schema/v1/config.json
 ```
+
+Sin conexión, o para fijar el esquema a la versión instalada, apunta en su lugar a la copia del paquete: `./node_modules/@verbatra/sdk/dist/config-schema.json`. Los [JSON Schemas](/docs/cli/output#esquemas) de la salida `--json` están a su lado.
 
 `.verbatrarc.json` y `.verbatrarc` aceptan una clave `$schema`, que VS Code lee:
 
 ```json title=".verbatrarc.json"
 {
-  "$schema": "./node_modules/@verbatra/sdk/dist/config-schema.json",
+  "$schema": "https://verbatra.kreitz-webdev.de/schema/v1/config.json",
   "sourceLocale": "en",
   "targetLocales": ["de", "fr"],
   "format": "i18next-json",
@@ -319,7 +321,7 @@ El `.verbatrarc` sin extensión necesita además una correspondencia de archivos
   "json.schemas": [
     {
       "fileMatch": [".verbatrarc", ".verbatrarc.json"],
-      "url": "./node_modules/@verbatra/sdk/dist/config-schema.json"
+      "url": "https://verbatra.kreitz-webdev.de/schema/v1/config.json"
     }
   ]
 }
@@ -328,7 +330,7 @@ El `.verbatrarc` sin extensión necesita además una correspondencia de archivos
 Una configuración YAML lleva un comentario para el YAML Language Server:
 
 ```yaml title=".verbatrarc.yaml"
-# yaml-language-server: $schema=./node_modules/@verbatra/sdk/dist/config-schema.json
+# yaml-language-server: $schema=https://verbatra.kreitz-webdev.de/schema/v1/config.json
 sourceLocale: en
 targetLocales: [de, fr]
 format: i18next-json

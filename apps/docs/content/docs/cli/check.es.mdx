@@ -171,6 +171,8 @@ Las claves que faltan y las obsoletas no forman parte de la comprobación de un 
 
 ### Salida JSON
 
+Esquema: [`check-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/check-envelope.json) valida el envoltorio completo; [Esquemas](/docs/cli/output#esquemas) enumera los demás.
+
 `--json` imprime un [envoltorio](/docs/cli/output#salida-json) cuyo `result` es el documento de estado. Sin `--qa`, `--require-reviewed` ni `--sensitive`, `inSync` es verdadero exactamente cuando el comando sale con `0`:
 
 ```ts

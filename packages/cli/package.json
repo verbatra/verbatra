@@ -59,6 +59,7 @@
         "default": "./dist/lib.cjs"
       }
     },
+    "./schemas/*": "./dist/schemas/*",
     "./package.json": "./package.json"
   },
   "files": [
@@ -72,7 +73,7 @@
     "provenance": true
   },
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && node scripts/emit-schemas.mjs",
     "lint": "biome check .",
     "test": "vitest run --coverage",
     "test:watch": "vitest",
@@ -89,6 +90,7 @@
     "@verbatra/mcp": "workspace:*",
     "@verbatra/studio": "workspace:*",
     "@vitest/coverage-v8": "catalog:",
+    "ajv": "catalog:",
     "tsup": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

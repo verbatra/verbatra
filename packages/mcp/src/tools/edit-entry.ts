@@ -1,8 +1,7 @@
-import { editEntry } from "@verbatra/sdk";
+import { editEntry, INTEGRITY_GATE_REASONS } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
-import { integrityGateReasonSchema } from "./integrity-gate-reason.js";
 import {
   LOCK_TIMEOUT_DESCRIPTION,
   lockAcquireTimeoutMs,
@@ -20,7 +19,7 @@ const paramsSchema = z.strictObject({
 const editEntryResultSchema = z.object({
   accepted: z.boolean(),
   value: z.string(),
-  reason: integrityGateReasonSchema.optional(),
+  reason: z.enum(INTEGRITY_GATE_REASONS).optional(),
   details: z.array(z.string()).readonly().optional(),
 });
 

@@ -41,6 +41,8 @@ La première interruption (Ctrl-C ou SIGTERM) laisse l'exécution en cours se te
 
 ### Sortie JSON
 
+Schéma : [`watch-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/watch-envelope.json) valide l'enveloppe entière ; [Schémas](/docs/cli/output#schémas) liste les autres.
+
 Avec `--json`, stdout est du NDJSON : une [enveloppe](/docs/cli/output#sortie-json) par exécution, avec `command: "watch"`. Une exécution réussie est un enregistrement `ok: true` portant le [`RunSummary`](/docs/cli/translate#sortie-json) de cette exécution ; une exécution en échec est un enregistrement `ok: false` avec le code propre de l'échec, ou `WATCH_RUN_FAILED` s'il n'en avait pas, plus son `hint` s'il y en a un. Une exécution en échec n'est qu'un enregistrement : elle n'arrête pas la surveillance et ne change pas le code de sortie. La ligne de démarrage, l'avis d'arrêt et la progression vont sur stderr. Sans `--json`, le résumé d'une exécution va sur stdout et la ligne `verbatra: error [CODE] message` d'une exécution en échec sur stderr.
 
 ### Retour dans le terminal

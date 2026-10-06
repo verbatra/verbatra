@@ -1,14 +1,12 @@
-import { retranslateEntry } from "@verbatra/sdk";
+import { INTEGRITY_GATE_REASONS, REVIEW_REASON_CODES, retranslateEntry } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolCallContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
-import { integrityGateReasonSchema } from "./integrity-gate-reason.js";
 import {
   LOCK_TIMEOUT_DESCRIPTION,
   lockAcquireTimeoutMs,
   lockTimeoutMsSchema,
 } from "./lock-timeout.js";
-import { reviewReasonCodeSchema } from "./run-schema.js";
 import { redactWriteResult } from "./value-redaction.js";
 
 const paramsSchema = z.strictObject({
@@ -20,8 +18,8 @@ const paramsSchema = z.strictObject({
 const retranslateEntryResultSchema = z.object({
   accepted: z.boolean(),
   value: z.string(),
-  reviewReasons: z.array(reviewReasonCodeSchema).readonly().optional(),
-  reason: integrityGateReasonSchema.optional(),
+  reviewReasons: z.array(z.enum(REVIEW_REASON_CODES)).readonly().optional(),
+  reason: z.enum(INTEGRITY_GATE_REASONS).optional(),
   details: z.array(z.string()).readonly().optional(),
 });
 

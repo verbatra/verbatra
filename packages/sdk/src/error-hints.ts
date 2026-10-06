@@ -158,6 +158,15 @@ const HINTS_BY_CODE: Readonly<Record<string, string>> = {
   ...SDK_ERROR_HINTS,
 };
 
+/**
+ * Every error code the SDK, a provider or a format adapter raises, sorted: the codes
+ * {@link errorHint} has a next step for. A newer release can add codes, so treat a code outside
+ * this list as valid and unknown rather than as an error.
+ */
+export const KNOWN_ERROR_CODES: readonly string[] = Object.freeze(
+  Object.keys(HINTS_BY_CODE).sort(),
+);
+
 export function sdkErrorHint(code: SdkErrorCode): string {
   return SDK_ERROR_HINTS[code];
 }
