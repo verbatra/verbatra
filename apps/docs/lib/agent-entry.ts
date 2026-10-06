@@ -5,8 +5,6 @@ import fr from "../messages/fr.json";
 import { AGENT_INIT_COMMAND } from "./install-commands";
 import {
   isMcpInstallClient,
-  MCP_INSTALL_ALL_COMPONENT,
-  MCP_INSTALL_CLIENTS,
   MCP_INSTALL_COMPONENT,
   type McpInstallClient,
   mcpInstallClientName,
@@ -60,22 +58,17 @@ function attributeValue(node: MdxNode, name: string): unknown {
   return node.attributes?.find((attribute) => attribute.name === name)?.value;
 }
 
-function installMarkdown(locale: MarkdownLocale, clients: readonly McpInstallClient[]): string {
-  return clients
-    .map((client) => mcpInstallMarkdown(client, mcpInstallLabel(locale, client)))
-    .join(" ");
-}
-
 function markdownFor(node: MdxNode, file: MdxFile): string | undefined {
   if (node.type !== "mdxJsxFlowElement") return undefined;
   const locale = markdownLocale(file.path);
   if (node.name === START_HERE_COMPONENT) {
     return isSilentPage(file.path) ? "" : startHereMarkdown(locale);
   }
-  if (node.name === MCP_INSTALL_ALL_COMPONENT) return installMarkdown(locale, MCP_INSTALL_CLIENTS);
   if (node.name !== MCP_INSTALL_COMPONENT) return undefined;
   const client = attributeValue(node, "client");
-  return isMcpInstallClient(client) ? installMarkdown(locale, [client]) : undefined;
+  return isMcpInstallClient(client)
+    ? mcpInstallMarkdown(client, mcpInstallLabel(locale, client))
+    : undefined;
 }
 
 function stringifyAgentEntries(node: MdxNode, file: MdxFile): void {

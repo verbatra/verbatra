@@ -50,7 +50,7 @@ Le serveur demande quand même à l'agent de lancer `translation.estimate` et d'
 
 <AvailableFrom version="0.12.0" />
 
-Depuis la racine du projet :
+La voie recommandée, depuis la racine du projet :
 
 ```bash
 npx verbatra init --agent
@@ -172,12 +172,6 @@ Gemini CLI cache les variables sensibles aux serveurs, donc la clé n'arrive que
 ```
 
 Pour dépenser, ajoute `"--allow-spend"` à la fin de `args` et `"env": { "ANTHROPIC_API_KEY": "${env:ANTHROPIC_API_KEY}" }`, qui ne contient que le nom de la variable. Voir la [documentation MCP de Cursor](https://cursor.com/docs/mcp).
-
-Ou, sans la CLI :
-
-<McpInstallLink client="cursor" />
-
-Cela ajoute une entrée pour tout l'utilisateur dans `~/.cursor/mcp.json`, où `${workspaceFolder}` désigne ton dossier personnel, pas le projet ; préfère le fichier du projet et utilise une seule voie, jamais deux.
 
 ## VS Code
 

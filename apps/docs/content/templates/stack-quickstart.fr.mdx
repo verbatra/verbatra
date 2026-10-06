@@ -48,9 +48,9 @@ npx verbatra init --agent
 
 Passe cette étape si tu ne travailles pas avec un agent de code. Avec la configuration en place, `init --agent` la garde et ajoute seulement les fichiers pour l'agent : les règles verbatra dans `AGENTS.md` (ou `CLAUDE.md`, quand c'est ton seul fichier d'instructions) et le serveur MCP verbatra, sans les outils qui dépensent, dans la configuration de projet de chaque agent qu'il détecte : `.mcp.json` pour Claude Code, `.cursor/mcp.json` pour Cursor, `.vscode/mcp.json` pour VS Code. Avec `--client`, tu choisis toi-même les agents, et `--dry-run` montre les fichiers sans les écrire. Voir [Préparer les agents de code](/docs/cli/init#préparer-les-agents-de-code) et [Connecter un client MCP](/docs/connect-an-mcp-client).
 
-Ou, sans la CLI, ajoute seulement le serveur MCP au profil utilisateur de ton éditeur (voir la [note sur Cursor](/docs/connect-an-mcp-client#cursor)) ; utilise une voie, jamais les deux :
+Ou, sans la CLI, ajoute seulement le serveur MCP à ton profil utilisateur VS Code ; utilise une voie, jamais les deux :
 
-<McpInstallLinks />
+<McpInstallLink client="vscode" />
 
 </Step>
 <Step>

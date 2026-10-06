@@ -1,25 +1,12 @@
 import { AGENT_CLIENT_CONFIGS } from "@verbatra/cli";
 
-export const MCP_INSTALL_CLIENTS = ["cursor", "vscode"] as const;
+export const MCP_INSTALL_CLIENTS = ["vscode"] as const;
 
 export type McpInstallClient = (typeof MCP_INSTALL_CLIENTS)[number];
 
 export const MCP_INSTALL_COMPONENT = "McpInstallLink";
 
-export const MCP_INSTALL_ALL_COMPONENT = "McpInstallLinks";
-
-export const CURSOR_INSTALL_PREFIX = "cursor://anysphere.cursor-deeplink/mcp/install?";
-
 export const VSCODE_INSTALL_PREFIX = "vscode:mcp/install?";
-
-export function encodeCursorConfig(config: unknown): string {
-  return btoa(JSON.stringify(config)).replaceAll("+", "%2B").replaceAll("/", "%2F");
-}
-
-function cursorInstallLink(): string {
-  const { serverName, server } = AGENT_CLIENT_CONFIGS.cursor;
-  return `${CURSOR_INSTALL_PREFIX}name=${encodeURIComponent(serverName)}&config=${encodeCursorConfig(server)}`;
-}
 
 function vscodeInstallLink(): string {
   const { serverName, server } = AGENT_CLIENT_CONFIGS.vscode;
@@ -27,7 +14,6 @@ function vscodeInstallLink(): string {
 }
 
 export const MCP_INSTALL_LINKS: Readonly<Record<McpInstallClient, string>> = {
-  cursor: cursorInstallLink(),
   vscode: vscodeInstallLink(),
 };
 

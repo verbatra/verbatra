@@ -13,11 +13,7 @@ import {
   startHereMarkdown,
 } from "./agent-entry";
 import { AGENT_INIT_COMMAND, NPM_INSTALL_COMMAND } from "./install-commands";
-import {
-  MCP_INSTALL_ALL_COMPONENT,
-  MCP_INSTALL_COMPONENT,
-  mcpInstallMarkdown,
-} from "./mcp-install-links";
+import { MCP_INSTALL_COMPONENT, mcpInstallMarkdown } from "./mcp-install-links";
 
 const DOCS_DIR = fileURLToPath(new URL("../", import.meta.url));
 const CONTENT_DIR = join(DOCS_DIR, "content/docs");
@@ -28,6 +24,7 @@ const FRONTMATTER = /^---\n[\s\S]*?\n---\n/;
 const FENCE = /```[a-z]*\n([\s\S]*?)```/g;
 const CONNECT_PAGE = "content/docs/(agents)/connect-an-mcp-client";
 const STACK_TEMPLATE = "content/templates/stack-quickstart";
+const VSCODE_BUTTON = `<${MCP_INSTALL_COMPONENT} client="vscode" />`;
 
 function docsFile(relative: string): string {
   return readFileSync(join(DOCS_DIR, relative), "utf8");
@@ -167,61 +164,51 @@ describe("the agent setup command", () => {
   );
 });
 
-describe("the install buttons", () => {
+describe("the install button", () => {
   it.each(LOCALE_SUFFIXES)(
-    "sit in the Cursor and VS Code sections of connect-an-mcp-client%s.mdx",
+    "sits in the VS Code section of connect-an-mcp-client%s.mdx, with no Cursor button anywhere on it",
     (suffix) => {
       const mdx = docsFile(`${CONNECT_PAGE}${suffix}.mdx`);
-      const cursor = mdx.indexOf("## Cursor");
       const vscode = mdx.indexOf("## VS Code");
       const copilot = mdx.indexOf("## GitHub Copilot");
-      const cursorButton = mdx.indexOf(`<${MCP_INSTALL_COMPONENT} client="cursor" />`);
-      const vscodeButton = mdx.indexOf(`<${MCP_INSTALL_COMPONENT} client="vscode" />`);
-      expect(cursor).toBeLessThan(cursorButton);
-      expect(cursorButton).toBeLessThan(vscode);
+      const vscodeButton = mdx.indexOf(VSCODE_BUTTON);
       expect(vscode).toBeLessThan(vscodeButton);
       expect(vscodeButton).toBeLessThan(copilot);
+      expect(mdx.split(VSCODE_BUTTON)).toHaveLength(2);
+      expect(mdx).not.toContain('client="cursor"');
     },
   );
 
   it.each(LOCALE_SUFFIXES)(
-    "follow the init --agent explanation as the alternative route in stack-quickstart%s.mdx",
+    "follows the init --agent explanation as the alternative route in stack-quickstart%s.mdx",
     (suffix) => {
       const template = docsFile(`${STACK_TEMPLATE}${suffix}.mdx`);
       const command = template.indexOf(`\`\`\`bash\n${AGENT_INIT_COMMAND}\n\`\`\``);
-      const buttons = template.indexOf(`<${MCP_INSTALL_ALL_COMPONENT} />`);
+      const button = template.indexOf(VSCODE_BUTTON);
       const explanation = template.indexOf("/docs/cli/init#", command);
       expect(command).toBeGreaterThan(-1);
       expect(explanation).toBeGreaterThan(command);
-      expect(buttons).toBeGreaterThan(explanation);
-      expect(template.split(`<${MCP_INSTALL_ALL_COMPONENT} />`)).toHaveLength(2);
+      expect(button).toBeGreaterThan(explanation);
+      expect(template.split(VSCODE_BUTTON)).toHaveLength(2);
+      expect(template).not.toMatch(/McpInstallLinks|client="cursor"/);
     },
   );
 });
 
 describe("remarkAgentEntryMarkdown", () => {
-  it.each(["cursor", "vscode"] as const)(
-    "writes the %s install link as a localized Markdown link",
-    (client) => {
-      const node = element(MCP_INSTALL_COMPONENT, [
-        { type: "mdxJsxAttribute", name: "client", value: client },
-      ]);
-      expect(stringified(node, "/x/page.es.mdx")).toEqual({
-        text: mcpInstallMarkdown(client, mcpInstallLabel("es", client)),
-      });
-      expect(mcpInstallLabel("es", client)).not.toContain("{client}");
-    },
-  );
-
-  it("writes both install links for the button pair", () => {
-    expect(stringified(element(MCP_INSTALL_ALL_COMPONENT))).toEqual({
-      text: `${mcpInstallMarkdown("cursor", mcpInstallLabel("en", "cursor"))} ${mcpInstallMarkdown("vscode", mcpInstallLabel("en", "vscode"))}`,
+  it("writes the VS Code install link as a localized Markdown link", () => {
+    const node = element(MCP_INSTALL_COMPONENT, [
+      { type: "mdxJsxAttribute", name: "client", value: "vscode" },
+    ]);
+    expect(stringified(node, "/x/page.es.mdx")).toEqual({
+      text: mcpInstallMarkdown("vscode", mcpInstallLabel("es", "vscode")),
     });
+    expect(mcpInstallLabel("es", "vscode")).not.toContain("{client}");
   });
 
   it("leaves an install link for an unknown client and every other component alone", () => {
     const unknown = element(MCP_INSTALL_COMPONENT, [
-      { type: "mdxJsxAttribute", name: "client", value: "zed" },
+      { type: "mdxJsxAttribute", name: "client", value: "cursor" },
     ]);
     expect(stringified(unknown)).toBeUndefined();
     expect(stringified(element("Callout"))).toBeUndefined();

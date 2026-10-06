@@ -157,14 +157,15 @@ footer's oversized watermark only; do not clip it onto a heading.
   `aside` at the prose measure with no start bar (so it never doubles the locale notice's
   callout bar), a `.vk-label` title and one lead, then the same agent `CommandRow` and
   `AiSetupPrompt` rows as the install box, so `AGENT_INIT_COMMAND` and `AI_SETUP_PROMPT`
-  (`lib/ai-setup-prompt.ts`) each have one source. `<McpInstallLink client="cursor|vscode" />`
-  and the pair `<McpInstallLinks />` (`components/mcp-install-link.tsx`) are plain anchors in the
+  (`lib/ai-setup-prompt.ts`) each have one source. `<McpInstallLink client="vscode" />`
+  (`components/mcp-install-link.tsx`; VS Code only, since a Cursor link installs user-wide where
+  `${workspaceFolder}` is the home folder) is a plain anchor in the
   secondary button style (`buttonClasses` from `components/ui/button.tsx`, not `Button`, whose
   `href` goes through `next/link`), built from `AGENT_CLIENT_CONFIGS` in `@verbatra/cli` by
   `lib/mcp-install-links.ts` and counted by a `data-umami-event` attribute, never a script.
   `remarkAgentEntryMarkdown` gives the page's `.md` output no runnable fence for the banner:
   one localized, conditional sentence (`docs.startHere.markdown`), and nothing at all on
-  `start-with-ai`, whose own steps install the CLI first; each install button becomes a
+  `start-with-ai`, whose own steps install the CLI first; the install button becomes a
   Markdown link with its localized label.
   `components/available-from.tsx` renders the version badge. Its rules
   live in `.claude/rules/docs.md`. `components/docs-home.tsx` holds the docs landing
