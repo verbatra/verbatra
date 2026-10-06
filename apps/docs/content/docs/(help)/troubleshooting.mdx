@@ -91,8 +91,8 @@ A filter selects from the configured list; it never adds to it.
 <path> could not be read: ...`
 
 **Cause**: `files.pattern` with the source locale filled in points at no file, or the file does
-not parse. The path is resolved against the working directory, so a wrong `--cwd` is a common
-cause, and so is a wildcard: `files.pattern` is a literal path, not a glob (see
+not parse. The path is resolved against the project root, the directory of the config the search found
+(or the working directory with `--config`), so a wrong `--cwd` or `--config` is a common cause, and so is a wildcard: `files.pattern` is a literal path, not a glob (see
 [Namespace layouts](/docs/formats#namespace-layouts)).
 
 **Fix**: check the printed path. For a parse failure, the `causeCode` names the

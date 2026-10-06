@@ -1,5 +1,6 @@
 import { contentHash } from "@verbatra/core";
 import type { AdapterRegistry } from "@verbatra/format-adapters";
+import { projectCwd } from "../config/project-root.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { selectAdapter } from "../selection/select-adapter.js";
@@ -26,7 +27,7 @@ export interface ReadLocaleFileSnapshotInput {
    * configured target locales, so the source locale can be snapshotted too.
    */
   readonly locale: string;
-  /** Directory the `files.pattern` is resolved against. Defaults to the process working directory. */
+  /** Directory the `files.pattern` is resolved against. Defaults to the project root of the config object {@link loadConfig} returned, else the process working directory; a copied or rebuilt config loses that root, so pass `cwd` from {@link resolveProjectRoot}. */
   readonly cwd?: string;
 }
 
@@ -64,7 +65,7 @@ export async function readLocaleFileSnapshot(
   input: ReadLocaleFileSnapshotInput,
   deps: ReadLocaleFileSnapshotDeps = {},
 ): Promise<LocaleFileSnapshot> {
-  const cwd = input.cwd ?? process.cwd();
+  const cwd = projectCwd(input);
   const fs = deps.fs ?? defaultFs;
   const adapter = selectAdapter(input.config.format, deps.adapterRegistry, deps.fs);
   const resource = await readTarget(cwd, input.config, adapter, fs, input.locale);

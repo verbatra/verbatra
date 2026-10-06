@@ -1,3 +1,4 @@
+import { dirname, isAbsolute, relative, resolve } from "node:path";
 import {
   type CheckFileInput,
   type CheckFileSummary,
@@ -26,6 +27,7 @@ import {
   type QaSeverity,
   type RunSummary,
   resolveDryRun,
+  resolveProjectRoot,
   type TranslateInput,
   type VerbatraConfig,
 } from "@verbatra/sdk";
@@ -44,6 +46,7 @@ import { runMcp } from "./mcp-command.js";
 import { readPackageManifest } from "./package-manifest.js";
 import { parsePositiveIntegerOption } from "./positive-integer-option.js";
 import { createProgressPresenter, scanProgressReporter } from "./progress-presenter.js";
+import { escapesProject, LINK_OUTSIDE_PROJECT } from "./project-paths.js";
 import { redactingStreams } from "./redacting-streams.js";
 import {
   displayPath,
@@ -432,6 +435,10 @@ function commandContext(
 }
 
 function topUpGitignore(cwd: string, context: CommandContext, dryRun?: boolean): void {
+  if (escapesProject(cwd, ".gitignore")) {
+    context.ui.warn(`left .gitignore unchanged: it ${LINK_OUTSIDE_PROJECT}`);
+    return;
+  }
   const added = appendMissingGitignoreEntries(cwd, dryRun);
   if (added.length > 0 && !context.json) {
     context.ui.info(`updated .gitignore (added ${added.join(", ")})`);
@@ -596,6 +603,39 @@ function loadOptions(opts: SharedOpts, cwd: string): { cwd: string; configPath?:
   };
 }
 
+interface LoadedProject {
+  readonly loaded: LoadedConfig;
+  readonly root: string;
+}
+
+async function loadProject(
+  deps: CliDeps,
+  loadOpts: { cwd: string; configPath?: string },
+  ui: Ui,
+): Promise<LoadedProject> {
+  const loaded = await deps.loadConfigWithMeta(loadOpts);
+  const root = resolveProjectRoot(loaded.source, loadOpts.cwd);
+  noteConfigOutsideRoot(loaded, root, ui);
+  return { loaded, root };
+}
+
+function noteConfigOutsideRoot(loaded: LoadedConfig, root: string, ui: Ui): void {
+  if (loaded.source.kind !== "explicit") {
+    return;
+  }
+  const configDir = dirname(loaded.source.filepath);
+  if (configDir === resolve(root)) {
+    return;
+  }
+  ui.info(
+    `--config names a file in ${displayPath(configDir, process.cwd()) || "."}: locale, lock and cache paths resolve against ${displayPath(resolve(root), process.cwd()) || "."}, the glossary against the config's directory`,
+  );
+}
+
+function invocationPath(path: string, cwd: string, root: string): string {
+  return root === cwd || isAbsolute(path) ? path : relative(root, resolve(cwd, path)) || ".";
+}
+
 async function withLoadedRunErrors<Loaded>(
   context: CommandContext,
   load: () => Promise<Loaded>,
@@ -615,10 +655,15 @@ async function withWholeRunErrors(
   deps: CliDeps,
   context: CommandContext,
   loadOpts: { cwd: string; configPath?: string },
-  body: (config: Awaited<ReturnType<CliDeps["loadConfig"]>>) => Promise<number>,
+  body: (config: VerbatraConfig, root: string) => Promise<number>,
   beforeLoad?: () => void,
 ): Promise<number> {
-  return withLoadedRunErrors(context, () => deps.loadConfig(loadOpts), body, beforeLoad);
+  return withLoadedRunErrors(
+    context,
+    () => loadProject(deps, loadOpts, context.ui),
+    ({ loaded, root }) => body(loaded.config, root),
+    beforeLoad,
+  );
 }
 
 const MAX_DEBOUNCE_MS = 60_000;
@@ -869,18 +914,18 @@ export async function runTranslate(
     context,
     async (opts) => {
       const cwd = opts.cwd ?? process.cwd();
-      topUpGitignore(cwd, context, resolveDryRun(opts));
       return withWholeRunErrors(
         deps,
         context,
         loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
-        async (config) => {
+        async (config, root) => {
+          topUpGitignore(root, context, resolveDryRun(opts));
           const startedAt = Date.now();
           const announceStart = announceOnce(() =>
             context.ui.info(translateStartLine(opts, config)),
           );
           const summary = await deps.translate(
-            buildTranslateInput(opts, config, cwd, context, announceStart),
+            buildTranslateInput(opts, config, root, context, announceStart),
           );
           announceStart();
           context.streams.out(
@@ -899,7 +944,7 @@ export async function runTranslate(
           );
           return exitCode;
         },
-        () => loadEnvFiles(cwd),
+        () => loadEnvFiles(cwd, opts.config),
       );
     },
   );
@@ -937,21 +982,23 @@ async function runWatchCommand(
     context,
     async (opts) => {
       const cwd = opts.cwd ?? process.cwd();
-      topUpGitignore(cwd, context);
-      let config: Awaited<ReturnType<CliDeps["loadConfig"]>>;
+      let project: LoadedProject;
       try {
-        loadEnvFiles(cwd);
-        config = await deps.loadConfig(
+        loadEnvFiles(cwd, opts.config);
+        project = await loadProject(
+          deps,
           loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
+          context.ui,
         );
       } catch (error) {
         return renderFailureExit2(error, context);
       }
+      topUpGitignore(project.root, context);
       const session = runWatch(
         {
-          config,
+          config: project.loaded.config,
           json: context.json,
-          cwd,
+          cwd: project.root,
           ...(opts.locales !== undefined ? { locales: opts.locales } : {}),
           ...(opts.debounceMs !== undefined ? { debounceMs: opts.debounceMs } : {}),
           ...(opts.lockAcquireTimeoutMs !== undefined
@@ -1047,14 +1094,17 @@ async function runExport(
       return withLoadedRunErrors(
         context,
         () =>
-          deps.loadConfigWithMeta(
+          loadProject(
+            deps,
             loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
+            context.ui,
           ),
-        async (loaded) => {
+        async ({ loaded, root }) => {
+          const out = opts.out === undefined ? undefined : invocationPath(opts.out, cwd, root);
           const result = await withTask(
             context,
             `exporting to ${opts.format ?? DEFAULT_EXCHANGE_FORMAT}`,
-            () => deps.exportWorkbook(exportInput(loaded, cwd, opts)),
+            () => deps.exportWorkbook(exportInput(loaded, root, { ...opts, out })),
           );
           context.streams.out(
             context.json
@@ -1077,7 +1127,7 @@ interface ImportRunOpts extends LocationOpts {
 }
 
 function importInput(
-  config: Awaited<ReturnType<CliDeps["loadConfig"]>>,
+  config: VerbatraConfig,
   workbook: string,
   cwd: string,
   opts: ImportRunOpts,
@@ -1156,14 +1206,15 @@ export async function runImport(
     context,
     async (opts) => {
       const cwd = opts.cwd ?? process.cwd();
-      topUpGitignore(cwd, context, opts.dryRun);
       return withWholeRunErrors(
         deps,
         context,
         loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
-        async (config) => {
+        async (config, root) => {
+          topUpGitignore(root, context, opts.dryRun);
+          const input = invocationPath(workbook, cwd, root);
           const summary = await withTask(context, `importing ${workbook}`, () =>
-            deps.importWorkbook(importInput(config, workbook, cwd, opts, context)),
+            deps.importWorkbook(importInput(config, input, root, opts, context)),
           );
           context.streams.out(
             context.json
@@ -1190,13 +1241,14 @@ async function runTmxImport(
     deps,
     context,
     loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
-    async (config) => {
+    async (config, root) => {
+      topUpGitignore(root, context, opts.dryRun);
       const source = file ?? DEFAULT_TMX_PATH;
       const result = await withTask(context, `importing ${source} into the memory`, () =>
         deps.importTmx({
           config,
-          cwd,
-          file: source,
+          cwd: root,
+          file: file === undefined ? source : invocationPath(file, cwd, root),
           ...(opts.dryRun === true ? { dryRun: true } : {}),
           ...(opts.overwrite === true ? { overwrite: true } : {}),
           ...(opts.locales !== undefined ? { locales: opts.locales } : {}),
@@ -1233,17 +1285,19 @@ async function runTmxExport(
   return withLoadedRunErrors(
     context,
     () =>
-      deps.loadConfigWithMeta(
+      loadProject(
+        deps,
         loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
+        context.ui,
       ),
-    async (loaded) => {
+    async ({ loaded, root }) => {
       const result = await withTask(context, "exporting the memory as TMX", () =>
         deps.exportTmx({
           config: loaded.config,
-          cwd,
+          cwd: root,
           ...configFilePaths(loaded),
           toolVersion: CLI_VERSION,
-          ...(file !== undefined ? { out: file } : {}),
+          ...(file !== undefined ? { out: invocationPath(file, cwd, root) } : {}),
           ...(opts.locales !== undefined ? { locales: opts.locales } : {}),
         }),
       );
@@ -1281,7 +1335,6 @@ export async function runTmx(
       if (direction === "export") {
         return runTmxExport(file, opts, cwd, deps, context);
       }
-      topUpGitignore(cwd, context, opts.dryRun);
       return runTmxImport(file, opts, cwd, deps, context);
     },
   );
@@ -1323,10 +1376,14 @@ async function runCheckFile(
   deps: CliDeps,
   config: VerbatraConfig,
   cwd: string,
-  opts: CheckOpts & { readonly file: string; readonly qaSeverity?: QaSeverity },
+  opts: CheckOpts & {
+    readonly file: string;
+    readonly path: string;
+    readonly qaSeverity?: QaSeverity;
+  },
 ): Promise<number> {
   const summary = await withTask(context, `checking ${opts.file}`, () =>
-    deps.checkFile(checkFileInput(config, cwd, opts.file, opts)),
+    deps.checkFile(checkFileInput(config, cwd, opts.path, opts)),
   );
   context.streams.out(
     context.json
@@ -1352,12 +1409,16 @@ async function runCheck(
         deps,
         context,
         loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
-        async (config) => {
+        async (config, root) => {
           if (opts.file !== undefined) {
-            return runCheckFile(context, deps, config, cwd, { ...opts, file: opts.file });
+            return runCheckFile(context, deps, config, root, {
+              ...opts,
+              file: opts.file,
+              path: invocationPath(opts.file, cwd, root),
+            });
           }
           const summary = await withTask(context, "checking the locales", () =>
-            deps.check(checkInput(config, cwd, opts)),
+            deps.check(checkInput(config, root, opts)),
           );
           context.streams.out(
             context.json
@@ -1416,13 +1477,13 @@ async function runDiff(
       deps,
       context,
       loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
-      async (config) => {
+      async (config, root) => {
         const label =
           opts.unused === true ? "diffing and scanning the source" : "diffing the locales";
         const summary = await withTask(context, label, (task) =>
           deps.diff({
             config,
-            cwd,
+            cwd: root,
             ...(opts.locales !== undefined ? { locales: opts.locales } : {}),
             ...(opts.unused === true ? { unused: true } : {}),
             onProgress: scanProgressReporter(task),
@@ -1472,11 +1533,11 @@ async function runReport(
       deps,
       context,
       loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
-      async (config) => {
+      async (config, root) => {
         const report = await withTask(context, "reading the provenance record", () =>
           deps.provenanceReport({
             config,
-            cwd,
+            cwd: root,
             toolVersion: CLI_VERSION,
             ...(opts.locales !== undefined ? { locales: opts.locales } : {}),
           }),
@@ -1508,19 +1569,19 @@ async function runPseudo(
     context,
     async (opts) => {
       const cwd = opts.cwd ?? process.cwd();
-      topUpGitignore(cwd, context);
       return withWholeRunErrors(
         deps,
         context,
         loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
-        async (config) => {
+        async (config, root) => {
+          topUpGitignore(root, context);
           const result = await withTask(context, "pseudolocalizing the source", () =>
             deps.pseudolocalize({
               config,
-              cwd,
+              cwd: root,
               ...(opts.mode !== undefined ? { mode: opts.mode } : {}),
               ...(opts.locale !== undefined ? { locale: opts.locale } : {}),
-              ...(opts.out !== undefined ? { out: opts.out } : {}),
+              ...(opts.out !== undefined ? { out: invocationPath(opts.out, cwd, root) } : {}),
             }),
           );
           context.streams.out(
@@ -1549,15 +1610,15 @@ function configFilePaths(loaded: LoadedConfig): {
 }
 
 function typesInput(
-  loaded: LoadedConfig,
+  { loaded, root }: LoadedProject,
   cwd: string,
   opts: z.infer<typeof typesOptsSchema>,
 ): GenerateTypesInput {
   return {
     config: loaded.config,
-    cwd,
+    cwd: root,
     ...configFilePaths(loaded),
-    ...(opts.out !== undefined ? { out: opts.out } : {}),
+    ...(opts.out !== undefined ? { out: invocationPath(opts.out, cwd, root) } : {}),
     ...(opts.check === true ? { check: true } : {}),
   };
 }
@@ -1577,14 +1638,16 @@ async function runTypes(
       return withLoadedRunErrors(
         context,
         () =>
-          deps.loadConfigWithMeta(
+          loadProject(
+            deps,
             loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
+            context.ui,
           ),
-        async (loaded) => {
+        async (project) => {
           const label =
             opts.check === true ? "checking the declarations" : "generating the declarations";
           const result = await withTask(context, label, () =>
-            deps.generateTypes(typesInput(loaded, cwd, opts)),
+            deps.generateTypes(typesInput(project, cwd, opts)),
           );
           context.streams.out(
             context.json
@@ -1677,7 +1740,7 @@ async function runDoctor(
       const literals = opts.literals === true;
       try {
         if (!literals) {
-          loadEnvFiles(cwd);
+          loadEnvFiles(cwd, opts.config);
         }
         const result = await withTask(context, doctorTaskLabel(opts), (task) =>
           deps.doctor({
@@ -1718,7 +1781,7 @@ function registerTranslateCommand(program: Command, ctx: ProgramContext): void {
   program
     .command("translate")
     .description("Translate every target locale once, then exit")
-    .option("--cwd <path>", "resolve config and locale files from this directory")
+    .option("--cwd <path>", "search for the config from this directory")
     .option("--config <path>", "load this config file instead of searching for one")
     .option("--locales <list>", "comma-separated subset of target locales (default all configured)")
     .option("--dry-run", "preview changes without calling a provider or writing files")
@@ -1784,7 +1847,7 @@ function registerWatchCommand(program: Command, ctx: ProgramContext): void {
   program
     .command("watch")
     .description("Re-translate on every source change until interrupted")
-    .option("--cwd <path>", "resolve config and locale files from this directory")
+    .option("--cwd <path>", "search for the config from this directory")
     .option("--config <path>", "load this config file instead of searching for one")
     .option("--locales <list>", "comma-separated subset of target locales (default all configured)")
     .option(
@@ -1828,7 +1891,7 @@ function registerExportCommand(program: Command, ctx: ProgramContext): void {
     .description(
       "Export untranslated strings into a translator handoff (Excel workbook, CSV, TSV, or XLIFF)",
     )
-    .option("--cwd <path>", "resolve config and locale files from this directory")
+    .option("--cwd <path>", "search for the config from this directory")
     .option("--config <path>", "load this config file instead of searching for one")
     .option(
       "--out <path>",
@@ -1865,7 +1928,7 @@ function registerImportCommand(program: Command, ctx: ProgramContext): void {
     .description(
       "Import a filled handoff back into the locale files, running the same safety checks",
     )
-    .option("--cwd <path>", "resolve config and locale files from this directory")
+    .option("--cwd <path>", "search for the config from this directory")
     .option("--config <path>", "load this config file instead of searching for one")
     .option("--dry-run", "validate and report without writing locale files or updating the lock")
     .option("--format <format>", IMPORT_FORMAT_OPTION_DESCRIPTION)
@@ -1906,7 +1969,7 @@ function registerTmxCommand(program: Command, ctx: ProgramContext): void {
     .description(
       "Import a TMX translation memory from another tool, or export this project's memory as TMX",
     )
-    .option("--cwd <path>", "resolve config and the memory from this directory")
+    .option("--cwd <path>", "search for the config from this directory")
     .option("--config <path>", "load this config file instead of searching for one")
     .option("--locales <list>", "comma-separated subset of target locales (default all configured)")
     .option("--dry-run", "on import, validate and report without changing the memory")
@@ -1936,7 +1999,7 @@ function registerCheckCommand(program: Command, ctx: ProgramContext): void {
   program
     .command("check")
     .description("Report which keys are missing or stale per locale without writing files")
-    .option("--cwd <path>", "resolve config and locale files from this directory")
+    .option("--cwd <path>", "search for the config from this directory")
     .option("--config <path>", "load this config file instead of searching for one")
     .option("--locales <list>", "comma-separated subset of target locales (default all configured)")
     .option(
@@ -1992,7 +2055,7 @@ function registerDiffCommand(program: Command, ctx: ProgramContext): void {
     .description(
       "Show the keys that would be added, re-translated, or orphaned per locale without writing files",
     )
-    .option("--cwd <path>", "resolve config and locale files from this directory")
+    .option("--cwd <path>", "search for the config from this directory")
     .option("--config <path>", "load this config file instead of searching for one")
     .option("--locales <list>", "comma-separated subset of target locales (default all configured)")
     .option(
@@ -2023,7 +2086,7 @@ function registerReportCommand(program: Command, ctx: ProgramContext): void {
     .description(
       "Print a read-only project report: provenance lists where each translation came from and whether a person reviewed it",
     )
-    .option("--cwd <path>", "resolve config and locale files from this directory")
+    .option("--cwd <path>", "search for the config from this directory")
     .option("--config <path>", "load this config file instead of searching for one")
     .option("--locales <list>", "comma-separated subset of target locales (default all configured)")
     .option("--json", "print the report as JSON, with every key's origin and review state")
@@ -2046,7 +2109,7 @@ function registerPseudoCommand(program: Command, ctx: ProgramContext): void {
   program
     .command("pseudo")
     .description("Generate a pseudolocale from the source strings without calling a provider")
-    .option("--cwd <path>", "resolve config and locale files from this directory")
+    .option("--cwd <path>", "search for the config from this directory")
     .option("--config <path>", "load this config file instead of searching for one")
     .option(
       "--mode <mode>",
@@ -2084,7 +2147,7 @@ function registerTypesCommand(program: Command, ctx: ProgramContext): void {
   program
     .command("types")
     .description("Generate TypeScript declarations for your catalog keys and message arguments")
-    .option("--cwd <path>", "resolve config and locale files from this directory")
+    .option("--cwd <path>", "search for the config from this directory")
     .option("--config <path>", "load this config file instead of searching for one")
     .option(
       "--out <path>",
@@ -2115,7 +2178,7 @@ function registerDoctorCommand(program: Command, ctx: ProgramContext): void {
   program
     .command("doctor")
     .description("Validate the project setup without calling a provider or reading an API key")
-    .option("--cwd <path>", "resolve config and locale files from this directory")
+    .option("--cwd <path>", "search for the config from this directory")
     .option("--config <path>", "load this config file instead of searching for one")
     .option(
       "--literals",
@@ -2160,7 +2223,7 @@ function registerStudioCommand(program: Command, ctx: ProgramContext): void {
   program
     .command("studio")
     .description("Start Verbatra Studio, the local translation dashboard")
-    .option("--cwd <path>", "resolve config and locale files from this directory")
+    .option("--cwd <path>", "search for the config from this directory")
     .option("--config <path>", "load this config file instead of searching for one")
     .option("--port <n>", "override the default Studio port (must be 1-65535)")
     .option(
@@ -2195,7 +2258,7 @@ function registerMcpCommand(program: Command, ctx: ProgramContext): void {
   program
     .command("mcp")
     .description("Start a stdio MCP server exposing verbatra's tools to an MCP client")
-    .option("--cwd <path>", "resolve config and locale files from this directory")
+    .option("--cwd <path>", "search for the config from this directory")
     .option("--config <path>", "load this config file instead of searching for one")
     .option(
       "--allow-spend",
@@ -2314,11 +2377,11 @@ async function runExtract(
         deps,
         context,
         loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
-        async (config) => {
+        async (config, root) => {
           const result = await withTask(context, "scanning the source", (task) =>
             deps.extract({
               config,
-              cwd,
+              cwd: root,
               ...(opts.dryRun === true ? { dryRun: true } : {}),
               onProgress: scanProgressReporter(task),
             }),
@@ -2351,7 +2414,7 @@ function registerExtractCommand(program: Command, ctx: ProgramContext): void {
     .description(
       "Scan your source for translation call sites and add new keys to the source locale",
     )
-    .option("--cwd <path>", "resolve config and locale files from this directory")
+    .option("--cwd <path>", "search for the config from this directory")
     .option("--config <path>", "load this config file instead of searching for one")
     .option("--dry-run", "report what would be added without writing the source locale file")
     .option("--json", "print the extraction result as JSON")
@@ -2446,7 +2509,7 @@ export async function run(
 function suggestInitWithoutConfig(streams: Streams): void {
   if (!hasConfigFile(process.cwd())) {
     streams.err(
-      "\nverbatra: no config found in this directory. Run verbatra init to set up this project.\n",
+      "\nverbatra: no config found in this directory or any parent directory the search covers. Run verbatra init to set up this project.\n",
     );
   }
 }

@@ -2,7 +2,7 @@ import { resolve } from "node:path";
 import type { McpServerHandle, McpStopCause } from "@verbatra/mcp";
 import { z } from "zod";
 import { CliUsageError } from "./cli-usage-error.js";
-import { loadEnvFiles } from "./env.js";
+import { loadEnvFiles, loadEnvFilesIn } from "./env.js";
 import { renderError, toRenderableError } from "./render.js";
 import {
   failedSession,
@@ -47,14 +47,14 @@ const MCP_STOP_CAUSES = {
   requested: "signal",
 } as const satisfies Record<StopCause, McpStopCause>;
 
-function announceReady(ui: Ui, mcpModule: McpModule, cwd: string, server: McpServerHandle): void {
+function announceReady(ui: Ui, mcpModule: McpModule, root: string, server: McpServerHandle): void {
   const { projectLabel, mcpReadyLine, mcpTerminalHint, mcpUnconfiguredHint } = mcpModule;
   if (projectLabel === undefined || mcpReadyLine === undefined) {
     ui.line(FALLBACK_READY_LINE);
     return;
   }
   ui.line(
-    mcpReadyLine(projectLabel(cwd, process.cwd()), server.spend, server.valuesRedacted === true),
+    mcpReadyLine(projectLabel(root, process.cwd()), server.spend, server.valuesRedacted === true),
   );
   if (server.configured === false && mcpUnconfiguredHint !== undefined) {
     for (const line of mcpUnconfiguredHint()) {
@@ -124,7 +124,7 @@ export async function runMcp(
 
   const cwd = mcpModule.resolveServerCwd?.(opts.cwd) ?? resolve(opts.cwd ?? process.cwd());
   try {
-    loadEnvFiles(cwd);
+    loadEnvFiles(cwd, opts.config);
   } catch (error) {
     streams.err(`${renderError(toRenderableError(error))}\n`);
     return failedSession(2);
@@ -143,6 +143,10 @@ export async function runMcp(
         allowSpend,
         redactValues,
         onLog: (line) => streams.err(`${line}\n`),
+        onProjectRootChange: (root) => {
+          loadEnvFilesIn(root);
+          ui.info(`project root is now ${root}`);
+        },
         ...(opts.config !== undefined ? { configPath: opts.config } : {}),
       }),
     streams,
@@ -158,8 +162,9 @@ export async function runMcp(
     return failedSession(2);
   }
 
+  const root = server.projectRoot ?? cwd;
   const session = watchForStop(server, streams, stoppedReporter(ui, mcpModule));
   onSession?.(session);
-  announceReady(ui, mcpModule, cwd, server);
+  announceReady(ui, mcpModule, root, server);
   return session;
 }

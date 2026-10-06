@@ -45,7 +45,7 @@ These flags mean the same on every command that takes them, so the command pages
 
 | Flag | Argument | Default | Effect | Not accepted by |
 | --- | --- | --- | --- | --- |
-| `--cwd` | `<path>` | current directory | resolve the config and locale files from this directory; `init` writes its files there | none |
+| `--cwd` | `<path>` | current directory | start the config search here and resolve the paths you pass against it; locale files resolve against the directory of the config the search found; `init` writes its files there | none |
 | `--config` | `<path>` | search for one | load this config file instead of searching; see the [search order](/docs/config-file) | `init` |
 | `--json` | none | off | print a machine-readable [envelope](/docs/cli/output#json-output) on stdout, one line per record; errors still go to stderr | `mcp`, `studio` |
 | `-q`, `--quiet` | none | off | print only results, warnings and errors: no progress, hints or informational lines; works before or after the command name | none |
@@ -57,7 +57,7 @@ An unknown command or flag exits `2`, and so does a bare `verbatra` with no comm
 
 ## Environment files
 
-`translate`, `watch`, `doctor`, `studio`, and `mcp` load `.env.local` and then `.env` from the working directory before they run. `doctor --literals` is the exception: it reads no API key, so it loads neither file. A variable already set in your real environment always wins, and a value in `.env.local` wins over the same variable in `.env`. API keys are read only from the environment, never from the config file or a flag: see [Providers](/docs/providers). The read-only commands (`check`, `diff`, `report`), the handoff commands (`export`, `import`), `extract`, `init`, `pseudo`, `types`, and `tmx` never call a provider and load no `.env` files.
+`translate`, `watch`, `doctor`, `studio`, and `mcp` load `.env.local` and then `.env` from the working directory before they run. When the config the search found sits in a parent directory, they then load the same two files from that directory too; with `--config` they read only the working directory. `doctor --literals` is the exception: it reads no API key, so it loads neither file. A variable already set in your real environment always wins, then the working directory's files, then the config directory's, and a value in `.env.local` wins over the same variable in `.env`. API keys are read only from the environment, never from the config file or a flag: see [Providers](/docs/providers). The read-only commands (`check`, `diff`, `report`), the handoff commands (`export`, `import`), `extract`, `init`, `pseudo`, `types`, and `tmx` never call a provider and load no `.env` files.
 
 ## Terminal output
 

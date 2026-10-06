@@ -98,8 +98,8 @@ SDK mit einer Registry, die seinen Adapter enthält: siehe
 <path> could not be read: ...`
 
 **Ursache**: `files.pattern` mit eingesetztem Quell-Locale zeigt auf keine Datei, oder die Datei
-lässt sich nicht parsen. Der Pfad wird gegen das Arbeitsverzeichnis aufgelöst, also ist ein
-falsches `--cwd` eine häufige Ursache, ebenso ein Platzhalter: `files.pattern` ist ein wörtlicher
+lässt sich nicht parsen. Der Pfad wird gegen die Projektwurzel aufgelöst, das Verzeichnis der gefundenen Konfiguration
+(oder mit `--config` das Arbeitsverzeichnis), also ist ein falsches `--cwd` oder `--config` eine häufige Ursache, ebenso ein Platzhalter: `files.pattern` ist ein wörtlicher
 Pfad, kein Glob (siehe [Namespace-Layouts](/docs/formats#namespace-layouts)).
 
 **Lösung**: Prüf den ausgegebenen Pfad. Bei einem Parse-Fehler nennt der `causeCode` den

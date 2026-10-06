@@ -23,6 +23,8 @@ CommonJS entry and types, `./package.json` export, and new SDK exports.
   `TranslationEntry`, `LocaleResource` and the other core types once, under their exported names.
 - `loadConfig({ fresh })` evaluates an edited JavaScript or TypeScript config again, and
   `configCandidatePaths` lists the files a config could come from.
+- `resolveProjectRoot` returns the directory a loaded config's paths resolve against, the `cwd`
+  to pass to the other functions.
 - `keyContext` reads what is needed to write one key: its values, the glossary terms that apply,
   `maxLength` and a check of a draft. `localeHistory` lists the git commits that touched the locale
   files, with the author name and never the email, or a `reason` when it cannot read them.

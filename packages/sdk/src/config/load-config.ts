@@ -16,6 +16,7 @@ import {
 } from "./glossary.js";
 import { configLoadFailure } from "./load-failure.js";
 import { resolveSelfPackageAliases } from "./module-aliases.js";
+import { rememberProjectRoot } from "./project-root.js";
 import { declareProviderKeyEnvVar } from "./provider-key-env.js";
 import { findDroppedLocaleMapKeys } from "./provider-locale-map.js";
 import { type GlossaryProvenance, resolveGlossary } from "./resolve-glossary.js";
@@ -39,7 +40,11 @@ export const CONFIG_SEARCH_PLACES = [
 
 /** Options for {@link loadConfig} and {@link loadConfigWithMeta}. */
 export interface LoadConfigOptions {
-  /** Directory to search from, and the base for relative paths. Defaults to the process working directory. */
+  /**
+   * Directory the search starts from, and the base a relative `configPath` resolves against.
+   * Defaults to the process working directory. A flow given the loaded config without a `cwd`
+   * resolves its paths against the project root {@link resolveProjectRoot} describes.
+   */
   readonly cwd?: string;
   /**
    * A config object to validate directly instead of reading any file. Takes precedence over
@@ -100,6 +105,33 @@ export interface LoadedConfig {
   readonly source: ConfigSource;
   /** Where the glossary came from, if the config declared one. */
   readonly glossary: GlossaryProvenance;
+}
+
+/**
+ * Returns the project root for a loaded config: the directory every flow resolves its relative
+ * paths against. A flow given a config that {@link loadConfig} or {@link loadConfigWithMeta} returned
+ * already defaults its `cwd` to it; pass it explicitly when the config was copied or rebuilt.
+ * Locale files, `verbatra.lock.json`, `verbatra.cache.json`, `verbatra.provenance.json` and
+ * `.verbatra-local/` all live under it. A config found by the upward search roots the project at the
+ * config file's own directory, so a run started in a subdirectory works on the same files as a run
+ * started next to the config. A config named through `configPath`, or given as `configOverride`,
+ * keeps `cwd` as the root.
+ *
+ * @param source - Where the config came from, as {@link LoadedConfig.source} reports it.
+ * @param cwd - The directory the config was loaded from: the `cwd` passed to {@link loadConfigWithMeta}.
+ * @returns The directory to pass as `cwd` to the flows.
+ *
+ * @example
+ * ```ts
+ * import { check, loadConfigWithMeta, resolveProjectRoot } from "@verbatra/sdk";
+ *
+ * const loaded = await loadConfigWithMeta();
+ * const cwd = resolveProjectRoot(loaded.source, process.cwd());
+ * const summary = await check({ config: loaded.config, cwd });
+ * ```
+ */
+export function resolveProjectRoot(source: ConfigSource, cwd: string): string {
+  return source.kind === "search" ? dirname(source.filepath) : cwd;
 }
 
 function isAncestorOrSelf(ancestor: string, startDir: string): boolean {
@@ -276,6 +308,7 @@ async function loadExplicitWithMeta(
 
   const parsed = parseConfig(result?.config);
   const { config, glossary } = await finalizeConfig(parsed, dirname(resolved), fs);
+  rememberProjectRoot(config, cwd ?? process.cwd());
   return { config, source: { kind: "explicit", filepath: resolved }, glossary };
 }
 
@@ -360,6 +393,7 @@ export async function loadConfigWithMeta(options: LoadConfigOptions = {}): Promi
 
   const parsed = parseConfig(result.config);
   const { config, glossary } = await finalizeConfig(parsed, dirname(result.filepath), fs);
+  rememberProjectRoot(config, dirname(result.filepath));
   return { config, source: { kind: "search", filepath: result.filepath }, glossary };
 }
 
@@ -373,7 +407,11 @@ export async function loadConfigWithMeta(options: LoadConfigOptions = {}): Promi
  * itself. A glossary declared as a file path is read and validated here, so the returned
  * {@link VerbatraConfig} always carries a resolved term map.
  *
- * Reach for {@link loadConfigWithMeta} when you also need to know which file was loaded.
+ * A config found by the search roots the project at the config file's directory, and a config
+ * loaded from `configPath` at `cwd`: a flow given the returned config without a `cwd` of its own
+ * resolves its paths against that root, so a process started in a subdirectory of the project works
+ * on the project's own files. Reach for {@link loadConfigWithMeta} when you also need to know which
+ * file was loaded.
  *
  * @param options - Where and how to look for the config.
  * @returns The validated, fully resolved config.

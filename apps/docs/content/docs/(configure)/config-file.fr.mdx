@@ -72,7 +72,7 @@ Les clés inconnues sont rejetées à chaque niveau sauf `$schema`, et c'est aus
 
 ### Locales et fichiers
 
-- **`files.pattern`** doit contenir `{locale}`, le seul jeton qu'il comprend : `locales/{locale}.json` se résout en `locales/de.json`, par rapport au répertoire de travail. C'est un chemin littéral, jamais un glob, donc une configuration adresse un fichier par locale ; pour plusieurs fichiers d'espace de noms, voir [Dispositions avec espaces de noms](/docs/formats#dispositions-avec-espaces-de-noms). `apple-xcstrings` a quand même besoin du jeton, mais chaque locale se résout vers le même catalogue ([Xcode String Catalogs](/docs/formats#xcode-string-catalogs-xcstrings)).
+- **`files.pattern`** doit contenir `{locale}`, le seul jeton qu'il comprend : `locales/{locale}.json` se résout en `locales/de.json`, par rapport à la racine du projet. C'est un chemin littéral, jamais un glob, donc une configuration adresse un fichier par locale ; pour plusieurs fichiers d'espace de noms, voir [Dispositions avec espaces de noms](/docs/formats#dispositions-avec-espaces-de-noms). `apple-xcstrings` a quand même besoin du jeton, mais chaque locale se résout vers le même catalogue ([Xcode String Catalogs](/docs/formats#xcode-string-catalogs-xcstrings)).
 - **`files.localeStyle`** décide en quoi le jeton se développe :
   - `literal` écrit l'étiquette telle qu'elle est configurée, ce dont ont besoin les dispositions JSON, YAML, XLIFF, ARB, properties et `.lproj` d'Apple.
   - `posix` remplace `-` par `_`, pour gettext et la disposition Java `messages_{locale}.properties` : `pt-BR` devient `pt_BR`, `zh-Hant-TW` devient `zh_Hant_TW`. Une variante comme `de-1996` n'a pas d'écriture posix. `gettext-po` écrit les écritures à la manière de gettext (section suivante).
@@ -266,7 +266,7 @@ extract: {
 ```
 
 - **`framework`** est un ensemble fermé ([formes d'appel](/docs/cli/extract#ce-quelle-trouve)) ; un framework sans extracteur est refusé.
-- **`roots`** se résolvent par rapport au répertoire de travail ; rien en dehors d'eux n'est lu.
+- **`roots`** se résolvent par rapport à la racine du projet ; rien en dehors d'eux n'est lu.
 - **`exclude`** ajoute des noms de répertoire (pas des chemins), reconnus n'importe où sous une racine, à l'[ensemble toujours ignoré](/docs/cli/extract#limites-de-lanalyse).
 - **`literals.ignore`** correspond au texte complet d'un littéral une fois les espaces regroupés et les références de caractères décodées (`Tom & Jerry`) ; un littéral retenu est signalé comme masqué.
 - **`unused.ignore`** prend des clés exactes ou des motifs `*` pour les clés utilisées uniquement hors du code analysé, comparés à la clé décodée qu'affiche le rapport (`Welcome. Enjoy`) ; une correspondance est signalée comme ignorée.
@@ -351,7 +351,7 @@ Ces règles n'ont aucune expression en JSON Schema, donc seul le chargement de l
 
 ## Le répertoire de travail et .env
 
-Le répertoire de travail (là où tu lances verbatra, ou `--cwd`) ancre la recherche de configuration et les chemins de locale ; les commandes qui y chargent `.env.local` et `.env` sont sous [Fichiers d'environnement](/docs/cli#fichiers-denvironnement).
+Le répertoire de travail (là où tu lances verbatra, ou `--cwd`) est le point de départ de la recherche de configuration ; les commandes qui y chargent `.env.local` et `.env` sont sous [Fichiers d'environnement](/docs/cli#fichiers-denvironnement). La racine du projet est le répertoire du fichier de configuration trouvé par la recherche : les chemins de locale, `verbatra.lock.json`, le cache, le fichier de provenance et `.verbatra-local/` sont résolus par rapport à elle, donc une exécution lancée dans un sous-répertoire travaille sur les mêmes fichiers qu'une exécution à côté de la configuration. Avec `--config`, le répertoire de travail est la racine, et un fichier de config situé ailleurs reçoit une note sur stderr, car le chemin de son glossaire reste résolu par rapport à son propre répertoire. Un chemin relatif que tu passes toi-même, comme `--out` ou `check --file`, est résolu par rapport au répertoire de travail.
 
 ## Quand le chargement échoue
 

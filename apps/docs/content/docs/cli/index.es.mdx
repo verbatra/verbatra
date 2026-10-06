@@ -45,7 +45,7 @@ Estos flags significan lo mismo en cada comando que los acepta, así que las pá
 
 | Flag | Argumento | Por defecto | Efecto | No lo aceptan |
 | --- | --- | --- | --- | --- |
-| `--cwd` | `<path>` | directorio actual | resuelve la config y los archivos de locale desde este directorio; `init` escribe ahí sus archivos | ninguno |
+| `--cwd` | `<path>` | directorio actual | empieza aquí la búsqueda de la config y resuelve contra él las rutas que pasas; los archivos de locale se resuelven contra el directorio de la config encontrada; `init` escribe ahí sus archivos | ninguno |
 | `--config` | `<path>` | buscar uno | carga este archivo de config en lugar de buscar uno; consulta el [orden de búsqueda](/docs/config-file) | `init` |
 | `--json` | ninguno | desactivado | imprime un [envoltorio](/docs/cli/output#salida-json) legible por máquina en stdout, una línea por registro; los errores siguen yendo a stderr | `mcp`, `studio` |
 | `-q`, `--quiet` | ninguno | desactivado | imprime solo resultados, avisos y errores: sin progreso, sugerencias ni líneas informativas; funciona antes o después del nombre del comando | ninguno |
@@ -57,7 +57,7 @@ Un comando o flag desconocido sale con `2`, igual que un `verbatra` sin comando:
 
 ## Archivos de entorno
 
-`translate`, `watch`, `doctor`, `studio` y `mcp` cargan `.env.local` y luego `.env` desde el directorio de trabajo antes de ejecutarse. `doctor --literals` es la excepción: no lee ninguna clave de API, así que no carga ninguno de los dos archivos. Una variable ya definida en tu entorno real siempre gana, y un valor en `.env.local` gana a la misma variable en `.env`. Las claves de API se leen solo del entorno, nunca del archivo de configuración ni de un flag: consulta [Proveedores](/docs/providers). Los comandos de solo lectura (`check`, `diff`, `report`), los comandos de entrega (`export`, `import`), `extract`, `init`, `pseudo`, `types` y `tmx` nunca llaman a un proveedor y no cargan archivos `.env`.
+`translate`, `watch`, `doctor`, `studio` y `mcp` cargan `.env.local` y luego `.env` desde el directorio de trabajo antes de ejecutarse. Cuando la configuración que encontró la búsqueda está en un directorio superior, cargan después los mismos dos archivos también desde ese directorio; con `--config` solo leen el directorio de trabajo. `doctor --literals` es la excepción: no lee ninguna clave de API, así que no carga ninguno de los dos archivos. Una variable ya definida en tu entorno real siempre gana, después los archivos del directorio de trabajo, luego los del directorio de la configuración, y un valor en `.env.local` gana a la misma variable en `.env`. Las claves de API se leen solo del entorno, nunca del archivo de configuración ni de un flag: consulta [Proveedores](/docs/providers). Los comandos de solo lectura (`check`, `diff`, `report`), los comandos de entrega (`export`, `import`), `extract`, `init`, `pseudo`, `types` y `tmx` nunca llaman a un proveedor y no cargan archivos `.env`.
 
 ## Salida en el terminal
 

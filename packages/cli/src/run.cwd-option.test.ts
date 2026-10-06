@@ -106,6 +106,6 @@ describe("run: a --cwd that names no directory", () => {
     const cap = captureStreams();
 
     expect(await run(["check", "--cwd", root], deps, cap.streams)).toBe(0);
-    expect(calls.loadConfig).toHaveLength(1);
+    expect(calls.loadConfigWithMeta).toHaveLength(1);
   });
 });

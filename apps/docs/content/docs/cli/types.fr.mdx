@@ -18,7 +18,7 @@ verbatra types [flags]
 
 | Option | Argument | Défaut | Effet |
 | --- | --- | --- | --- |
-| `--out` | `<path>` | `verbatra-types.d.ts` | où écrire la déclaration, relativement au répertoire de travail et à l'intérieur de celui-ci ; les répertoires manquants sont créés |
+| `--out` | `<path>` | `verbatra-types.d.ts` | où écrire la déclaration, relativement au répertoire de travail et à l'intérieur de la racine du projet ; les répertoires manquants sont créés |
 | `--check` | aucun | désactivé | compare octet par octet la déclaration commitée à une génération fraîche, sans rien écrire ; sortie `1` si elle est périmée ou manquante |
 
 Accepte aussi les [options globales](/docs/cli#options-globales) `--cwd`, `--config` et `--json`.
@@ -175,7 +175,7 @@ Avec `--json`, l'[enveloppe](/docs/cli/output#sortie-json) porte un résultat :
 ```ts
 interface GenerateTypesResult {
   path: string;               // absolute path of the declaration file
-  sourcePath: string;         // the source catalog, relative to the working directory
+  sourcePath: string;         // the source catalog, relative to the project root
   keys: number;               // how many keys are declared
   withArguments: number;      // keys taking at least one determined argument
   unresolved: { key: string; reason: "invalid-message-syntax" | "mixed-argument-styles" | "argument-index-out-of-range" }[];

@@ -5,6 +5,8 @@
 Side-by-side editor, state filters, provenance badges, per-locale glossary, RTL display.
 
 **Upgrading from 0.5**
+- `startStudioServer({ cwd })` with a config the search found roots the server at the config file's
+  directory; 0.5 used `cwd`. Pass a `loader` that uses `configPath` to keep `cwd` as the root.
 - Retranslating a protected key is refused and offers **Replace anyway**.
 - Spend is withheld under `provider: none`, even with `--allow-spend`, and the Settings page says
   why.

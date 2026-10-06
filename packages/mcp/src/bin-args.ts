@@ -39,7 +39,7 @@ export const HELP_TEXT = [
   "Start a stdio MCP server exposing verbatra's tools to an MCP client",
   "",
   "Options:",
-  "  --cwd <path>     resolve config and locale files from this directory",
+  "  --cwd <path>     search for the config from this directory",
   "  --config <path>  load this config file instead of searching for one",
   `  --allow-spend    advertise the tools that call a translation provider (also: ${ALLOW_SPEND_ENV_VAR})`,
   `  --redact-values  replace translation values in every tool result with a marker (also: ${REDACT_VALUES_ENV_VAR})`,

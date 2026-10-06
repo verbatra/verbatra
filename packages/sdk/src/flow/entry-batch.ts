@@ -1,5 +1,6 @@
 import { ProviderError } from "@verbatra/ai-providers";
 import { AdapterError } from "@verbatra/format-adapters";
+import { projectCwd } from "../config/project-root.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { errorMessage, SdkError } from "../errors.js";
 import {
@@ -80,7 +81,7 @@ export type ReviewBatchOutcome =
 export interface ReviewEntriesInput {
   /** The resolved project config, normally from {@link loadConfig}. */
   readonly config: VerbatraConfig;
-  /** Directory the `files.pattern` is resolved against. Defaults to the process working directory. */
+  /** Directory the `files.pattern` is resolved against. Defaults to the project root of the config object {@link loadConfig} returned, else the process working directory; a copied or rebuilt config loses that root, so pass `cwd` from {@link resolveProjectRoot}. */
   readonly cwd?: string;
   /** The entries to decide on, in the order they are carried out. */
   readonly entries: readonly ReviewBatchEntry[];
@@ -123,7 +124,7 @@ export type RetranslateBatchOutcome =
 export interface RetranslateEntriesInput {
   /** The resolved project config, normally from {@link loadConfig}. */
   readonly config: VerbatraConfig;
-  /** Directory the `files.pattern` is resolved against. Defaults to the process working directory. */
+  /** Directory the `files.pattern` is resolved against. Defaults to the project root of the config object {@link loadConfig} returned, else the process working directory; a copied or rebuilt config loses that root, so pass `cwd` from {@link resolveProjectRoot}. */
   readonly cwd?: string;
   /** The entries to retranslate, in the order they are carried out. */
   readonly entries: readonly BatchEntry[];
@@ -341,7 +342,7 @@ async function decideEntries(
       );
       return { ok: true as const, ...result };
     },
-    lockTimeoutSkips(entryLockPath(input.config, input.cwd ?? process.cwd())),
+    lockTimeoutSkips(entryLockPath(input.config, projectCwd(input))),
   );
   return { results };
 }
@@ -441,7 +442,7 @@ export async function retranslateEntries(
   deps: RetranslateEntryDeps = {},
 ): Promise<RetranslateEntriesResult> {
   assertLockAcquireTimeout(input.lockAcquireTimeoutMs);
-  const cwd = input.cwd ?? process.cwd();
+  const cwd = projectCwd(input);
   const results = await runEntries(
     input.entries,
     async (entry) => {

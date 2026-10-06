@@ -4,7 +4,10 @@ import type { LockFile } from "./types.js";
 
 /** Input for {@link loadLockFile}. */
 export interface LoadLockFileInput {
-  /** Directory holding the lock-file. Defaults to the process working directory. */
+  /**
+   * Directory holding the lock-file. Defaults to the process working directory, even when the
+   * config was found in a parent directory: pass the root {@link resolveProjectRoot} returns.
+   */
   readonly cwd?: string;
 }
 

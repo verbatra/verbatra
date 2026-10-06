@@ -18,7 +18,7 @@ verbatra types [flags]
 
 | Flag | Argument | Default | Effect |
 | --- | --- | --- | --- |
-| `--out` | `<path>` | `verbatra-types.d.ts` | where to write the declaration, relative to the working directory and inside it; missing directories are created |
+| `--out` | `<path>` | `verbatra-types.d.ts` | where to write the declaration, relative to the working directory and inside the project root; missing directories are created |
 | `--check` | none | off | compare the committed declaration with a fresh generation byte for byte, writing nothing; exit `1` when it is out of date or missing |
 
 Also takes the [global flags](/docs/cli#global-flags) `--cwd`, `--config` and `--json`.
@@ -175,7 +175,7 @@ With `--json`, the [envelope](/docs/cli/output#json-output) carries one result:
 ```ts
 interface GenerateTypesResult {
   path: string;               // absolute path of the declaration file
-  sourcePath: string;         // the source catalog, relative to the working directory
+  sourcePath: string;         // the source catalog, relative to the project root
   keys: number;               // how many keys are declared
   withArguments: number;      // keys taking at least one determined argument
   unresolved: { key: string; reason: "invalid-message-syntax" | "mixed-argument-styles" | "argument-index-out-of-range" }[];

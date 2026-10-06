@@ -1,6 +1,7 @@
 import type { DiffResult } from "@verbatra/core";
 import type { SourceExtractor, SourceFramework } from "@verbatra/extract";
 import type { AdapterRegistry } from "@verbatra/format-adapters";
+import { projectCwd } from "../config/project-root.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import type { SdkFs } from "../fs.js";
 import { type KeyOrigin, originsOf } from "../lock/key-provenance.js";
@@ -74,7 +75,7 @@ export interface DiffInput {
   /** The resolved project config, normally from {@link loadConfig}. */
   readonly config: VerbatraConfig;
   /**
-   * Directory the `files.pattern` is resolved against. Defaults to the process working directory.
+   * Directory the `files.pattern` is resolved against. Defaults to the project root of the config object {@link loadConfig} returned, else the process working directory; a copied or rebuilt config loses that root, so pass `cwd` from {@link resolveProjectRoot}.
    */
   readonly cwd?: string;
   /** Restrict the report to these target locales. Defaults to every configured target locale. */
@@ -187,7 +188,7 @@ export async function diff(input: DiffInput, deps: DiffDeps = {}): Promise<DiffS
   const unused = await findUnusedKeys(
     {
       config: input.config,
-      cwd: input.cwd ?? process.cwd(),
+      cwd: projectCwd(input),
       sourceCatalog: source,
       ...(input.onProgress !== undefined ? { onProgress: input.onProgress } : {}),
     },

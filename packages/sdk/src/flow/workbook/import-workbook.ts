@@ -13,6 +13,7 @@ import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
 import { fingerprintsFor } from "../../cache/fingerprint.js";
 import { feedTranslationMemory } from "../../cache/translation-memory.js";
 import type { CacheAddition } from "../../cache/types.js";
+import { projectCwd } from "../../config/project-root.js";
 import type { VerbatraConfig } from "../../config/schema.js";
 import { errorMessage, InputFileError, SdkError } from "../../errors.js";
 import { defaultFs, type SdkFs } from "../../fs.js";
@@ -103,7 +104,7 @@ export interface ImportWorkbookInput {
    * target locale found inside is read.
    */
   readonly workbook: string;
-  /** Directory the `files.pattern` and `workbook` are resolved against. Defaults to the process working directory. */
+  /** Directory the `files.pattern` and `workbook` are resolved against. Defaults to the project root of the config object {@link loadConfig} returned, else the process working directory; a copied or rebuilt config loses that root, so pass `cwd` from {@link resolveProjectRoot}. */
   readonly cwd?: string;
   /**
    * Read and validate the handoff but write nothing. The returned {@link RunSummary} reports what
@@ -596,7 +597,7 @@ export async function importWorkbook(
   deps: ImportWorkbookDeps = {},
 ): Promise<RunSummary> {
   const config = input.config;
-  const cwd = input.cwd ?? process.cwd();
+  const cwd = projectCwd(input);
   const dryRun = input.dryRun ?? false;
   assertLockAcquireTimeout(input.lockAcquireTimeoutMs);
   assertReviewer(input.reviewer);

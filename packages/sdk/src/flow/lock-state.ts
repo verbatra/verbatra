@@ -1,5 +1,6 @@
 import { type DiffResult, diffResources } from "@verbatra/core";
 import type { AdapterRegistry } from "@verbatra/format-adapters";
+import { projectCwd } from "../config/project-root.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { type ProvenanceSummary, summarizeProvenance } from "../lock/key-provenance.js";
@@ -66,7 +67,7 @@ export type LockStateResult =
 export interface LockStateInput {
   /** The resolved project config, normally from {@link loadConfig}. */
   readonly config: VerbatraConfig;
-  /** Directory the `files.pattern` is resolved against. Defaults to the process working directory. */
+  /** Directory the `files.pattern` is resolved against. Defaults to the project root of the config object {@link loadConfig} returned, else the process working directory; a copied or rebuilt config loses that root, so pass `cwd` from {@link resolveProjectRoot}. */
   readonly cwd?: string;
   /** Restrict the report to these target locales. Defaults to every configured target locale. */
   readonly locales?: readonly string[];
@@ -131,7 +132,7 @@ export async function lockState(
   deps: LockStateDeps = {},
 ): Promise<LockStateResult> {
   const config = input.config;
-  const cwd = input.cwd ?? process.cwd();
+  const cwd = projectCwd(input);
   const fs = deps.fs ?? defaultFs;
   const locales = selectLocales(config, input.locales);
 

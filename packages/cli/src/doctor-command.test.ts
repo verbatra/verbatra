@@ -87,12 +87,11 @@ describe("run doctor: SDK delegation, rendering, and exit codes", () => {
     expect(cap.out()).toMatch(/no problems found\n$/);
   });
 
-  it("loads the config inside the SDK flow, never through the CLI loadConfig dependency", async () => {
+  it("loads the config inside the SDK flow, never through the CLI config dependency", async () => {
     const { deps, calls } = recordingDeps();
 
     await run(["doctor", "--cwd", "/proj"], deps, captureStreams().streams);
 
-    expect(calls.loadConfig).toEqual([]);
     expect(calls.loadConfigWithMeta).toEqual([]);
   });
 
