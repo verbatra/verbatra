@@ -105,7 +105,7 @@ claude plugin install verbatra@verbatra --scope project
 
 - **Serveur** : un `@verbatra/mcp` de version figée, avec `--cwd` sur le projet ouvert.
 - **Dépenses** : désactivées tant que tu n'actives pas l'option `allowSpend` du plugin (`--config allowSpend=true`, ou `/config`). Un fichier versionné ne peut pas l'activer.
-- **Clé** : lue dans l'environnement avec lequel tu as lancé `claude`.
+- **Clé** : issue de l'environnement avec lequel tu as lancé `claude`.
 - **Hook** : lance le `verbatra check --file <path>` du projet (CLI 0.12.0 ou plus récente) et signale à Claude la syntaxe, les placeholders, le balisage ou l'ICU cassés, sans appeler aucun fournisseur.
 
 Voir la [référence des plugins de Claude Code](https://code.claude.com/docs/en/plugins-reference).
@@ -269,11 +269,11 @@ Ajoute `translation.editEntry` et `glossary.write` seulement si l'agent doit éc
 copilot mcp add verbatra -- npx -y @verbatra/mcp --cwd /path/to/your/project
 ```
 
-Cela écrit `~/.copilot/mcp-config.json`. Copilot CLI ne transmet à un serveur que `PATH`, donc une clé va dans le `env` de cette entrée sur ta machine, jamais dans un fichier du projet. Voir [Adding MCP servers to Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-mcp-servers).
+Cela écrit `~/.copilot/mcp-config.json`. Copilot CLI ne transmet à un serveur que `PATH`, donc une clé va dans le `env` de cette entrée, jamais dans un fichier du projet. Voir [Adding MCP servers to Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-mcp-servers).
 
 ## Windsurf
 
-Windsurf lit un seul `mcp_config.json` pour tous les projets, donc donne un `--cwd` absolu :
+Windsurf lit un seul `mcp_config.json` pour tous les projets, donc `--cwd` est absolu :
 
 ```json title="mcp_config.json"
 {
@@ -342,7 +342,7 @@ Pour dépenser, ajoute `"--allow-spend"` à la fin et `"env": { "ANTHROPIC_API_K
 
 ## Tout autre client stdio
 
-Donne au client la commande `npx -y @verbatra/mcp`, plus `--cwd /path/to/your/project` sauf s'il démarre les serveurs à la racine du projet, et `--config <path>` si la config est ailleurs. N'ajoute `--allow-spend` et la clé que via le mécanisme de secrets du client.
+Donne au client la commande `npx -y @verbatra/mcp`, plus `--cwd /path/to/your/project` sauf s'il démarre les serveurs à la racine du projet ou dans l'un de ses sous-dossiers, et `--config <path>` si la config est ailleurs. N'ajoute `--allow-spend` et la clé que via le mécanisme de secrets du client.
 
 ## Vérifier la connexion
 

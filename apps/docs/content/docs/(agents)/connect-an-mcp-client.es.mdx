@@ -105,7 +105,7 @@ claude plugin install verbatra@verbatra --scope project
 
 - **Servidor**: un `@verbatra/mcp` de versión fija con `--cwd` en el proyecto abierto.
 - **Gasto**: desactivado hasta que actives la opción `allowSpend` del plugin (`--config allowSpend=true`, o `/config`). Un archivo del repositorio no puede activarla.
-- **Clave**: se lee del entorno con el que arrancaste `claude`.
+- **Clave**: del entorno con el que arrancaste `claude`.
 - **Hook**: ejecuta el `verbatra check --file <path>` del propio proyecto (CLI 0.12.0 o posterior) y le comunica a Claude la sintaxis, los placeholders, el markup o el ICU rotos, sin llamar a ningún proveedor.
 
 Consulta la [referencia de plugins de Claude Code](https://code.claude.com/docs/en/plugins-reference).
@@ -269,11 +269,11 @@ Añade `translation.editEntry` y `glossary.write` solo si el agente debe escribi
 copilot mcp add verbatra -- npx -y @verbatra/mcp --cwd /path/to/your/project
 ```
 
-Esto escribe `~/.copilot/mcp-config.json`. Copilot CLI solo le pasa `PATH` a un servidor, así que una clave va en el `env` de esa entrada en tu máquina, nunca en un archivo del proyecto. Consulta [Adding MCP servers to Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-mcp-servers).
+Esto escribe `~/.copilot/mcp-config.json`. Copilot CLI solo le pasa `PATH` a un servidor, así que una clave va en el `env` de esa entrada, nunca en un archivo del proyecto. Consulta [Adding MCP servers to Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-mcp-servers).
 
 ## Windsurf
 
-Windsurf lee un único `mcp_config.json` para todos los proyectos, así que da un `--cwd` absoluto:
+Windsurf lee un único `mcp_config.json` para todos los proyectos, así que `--cwd` es absoluto:
 
 ```json title="mcp_config.json"
 {
@@ -342,7 +342,7 @@ Para gastar, añade `"--allow-spend"` al final y agrega `"env": { "ANTHROPIC_API
 
 ## Cualquier otro cliente stdio
 
-Dale al cliente el comando `npx -y @verbatra/mcp`, más `--cwd /path/to/your/project` salvo que arranque los servidores en la raíz del proyecto, y `--config <path>` si la configuración está en otro sitio. Añade `--allow-spend` y la clave solo mediante el mecanismo de secretos del propio cliente.
+Dale al cliente el comando `npx -y @verbatra/mcp`, más `--cwd /path/to/your/project` salvo que arranque los servidores en la raíz del proyecto o en uno de sus subdirectorios, y `--config <path>` si la configuración está en otro sitio. Añade `--allow-spend` y la clave solo mediante el mecanismo de secretos del propio cliente.
 
 ## Comprueba la conexión
 

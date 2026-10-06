@@ -269,11 +269,11 @@ Nimm `translation.editEntry` und `glossary.write` nur auf, wenn der Agent in sei
 copilot mcp add verbatra -- npx -y @verbatra/mcp --cwd /path/to/your/project
 ```
 
-Das schreibt `~/.copilot/mcp-config.json`. Copilot CLI reicht einem Server nur `PATH` weiter, also gehört ein Key in das `env` dieses Eintrags auf deinem Rechner, nie in eine Projektdatei. Siehe [Adding MCP servers to Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-mcp-servers).
+Das schreibt `~/.copilot/mcp-config.json`. Copilot CLI reicht einem Server nur `PATH` weiter, also gehört ein Key in das `env` dieses Eintrags, nie in eine Projektdatei. Siehe [Adding MCP servers to Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-mcp-servers).
 
 ## Windsurf
 
-Windsurf liest eine einzige `mcp_config.json` für alle Projekte, also gibst du ein absolutes `--cwd` an:
+Windsurf liest eine einzige `mcp_config.json` für alle Projekte, also ist `--cwd` absolut:
 
 ```json title="mcp_config.json"
 {
@@ -342,7 +342,7 @@ Für Ausgaben hängst du `"--allow-spend"` an und ergänzt `"env": { "ANTHROPIC_
 
 ## Jeder andere stdio-Client
 
-Gib dem Client den Befehl `npx -y @verbatra/mcp`, dazu `--cwd /path/to/your/project`, außer er startet Server im Projektstamm, und `--config <path>`, wenn die Konfiguration woanders liegt. `--allow-spend` und den Key ergänzt du nur über den eigenen Secret-Mechanismus des Clients.
+Gib dem Client den Befehl `npx -y @verbatra/mcp`, dazu `--cwd /path/to/your/project`, außer er startet Server im Projektstamm oder einem seiner Unterverzeichnisse, und `--config <path>`, wenn die Konfiguration woanders liegt. `--allow-spend` und den Key ergänzt du nur über den eigenen Secret-Mechanismus des Clients.
 
 ## Die Verbindung prüfen
 
