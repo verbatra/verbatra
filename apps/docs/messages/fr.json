@@ -515,7 +515,8 @@
     },
     "startHere": {
       "title": "Commence ici",
-      "lead": "Avec `@verbatra/cli` installé, une commande relie Claude Code, Cursor ou VS Code à verbatra, sans dépense. Pour tout autre agent : colle le prompt."
+      "lead": "Avec `@verbatra/cli` installé, une commande relie Claude Code, Cursor ou VS Code à verbatra, sans dépense. Pour tout autre agent : colle le prompt.",
+      "markdown": "Commence ici : une fois `@verbatra/cli` installé dans le projet, `{command}` relie ton agent de code, sans dépense."
     },
     "mcpInstall": {
       "label": "Ajouter à {client}"

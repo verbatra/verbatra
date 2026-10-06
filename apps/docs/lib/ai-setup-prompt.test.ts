@@ -1,9 +1,8 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { remarkLLMs } from "fumadocs-core/mdx-plugins/remark-llms";
 import { describe, expect, it } from "vitest";
-import { remarkAgentEntryMarkdown, START_HERE_COMPONENT } from "./agent-entry";
-import { AI_SETUP_PROMPT, AI_SETUP_PROMPT_MARKDOWN } from "./ai-setup-prompt";
+import { START_HERE_COMPONENT } from "./agent-entry";
+import { AI_SETUP_PROMPT } from "./ai-setup-prompt";
 import { markdownUrl } from "./markdown-route";
 import { SITE_URL } from "./site";
 
@@ -15,26 +14,6 @@ function page(suffix: string): string {
     fileURLToPath(new URL(`../content/docs/(agents)/start-with-ai${suffix}.mdx`, import.meta.url)),
     "utf-8",
   );
-}
-
-type Node = {
-  type: string;
-  name?: string;
-  depth?: number;
-  value?: string;
-  attributes?: Array<{ type: string; name: string; value: unknown }>;
-  children?: Node[];
-  data?: Record<string, unknown>;
-};
-
-function processedMarkdown(root: Node): string {
-  remarkAgentEntryMarkdown()(root);
-  const file: { data: { markdown?: string } } = { data: {} };
-  const remarkLLMsWithoutProcessor = remarkLLMs as unknown as (options: {
-    _data: boolean;
-  }) => (tree: Node, file: unknown) => void;
-  remarkLLMsWithoutProcessor({ _data: true })(root, file);
-  return file.data.markdown ?? "";
 }
 
 describe("AI_SETUP_PROMPT", () => {
@@ -68,22 +47,5 @@ describe("AI_SETUP_PROMPT", () => {
 
   it(`stays short enough to read at a glance (at most ${PROMPT_CHARACTER_LIMIT} characters)`, () => {
     expect(AI_SETUP_PROMPT.length).toBeLessThanOrEqual(PROMPT_CHARACTER_LIMIT);
-  });
-
-  it("reaches the page's Markdown output as a text fence where the banner sits", () => {
-    const markdown = processedMarkdown({
-      type: "root",
-      children: [
-        {
-          type: "mdxJsxFlowElement",
-          name: START_HERE_COMPONENT,
-          attributes: [],
-          children: [],
-        },
-        { type: "paragraph", children: [{ type: "text", value: "Then the steps." }] },
-      ],
-    });
-    expect(markdown).toContain(`${AI_SETUP_PROMPT_MARKDOWN}\n\nThen the steps.\n`);
-    expect(AI_SETUP_PROMPT_MARKDOWN).toBe(`\`\`\`text\n${AI_SETUP_PROMPT}\n\`\`\``);
   });
 });

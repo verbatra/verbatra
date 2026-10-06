@@ -3,7 +3,8 @@
   "locales": {
     "de": {
       "docs.mcpInstall.label": {"origin":"import","valueHash":"eb94e259f0defd19"},
-      "docs.startHere.lead": {"origin":"import","valueHash":"7424e71a35ad5f64"},
+      "docs.startHere.lead": {"origin":"import","valueHash":"eafd82dc8c334549"},
+      "docs.startHere.markdown": {"origin":"import","valueHash":"bd94979a16cd6fde"},
       "docs.startHere.title": {"origin":"import","valueHash":"c40c92fe1c7ca16e"},
       "landing.faq.items.providers.answer": {"origin":"import","valueHash":"b2c21ab82301ab5d"},
       "landing.install.aiLabel": {"origin":"import","valueHash":"816233e691dc84ee"},
@@ -15,6 +16,7 @@
     "es": {
       "docs.mcpInstall.label": {"origin":"import","valueHash":"40c81c03b3985ccb"},
       "docs.startHere.lead": {"origin":"import","valueHash":"faf900d11c9a9ff3"},
+      "docs.startHere.markdown": {"origin":"import","valueHash":"a3d6d313629ee4b4"},
       "docs.startHere.title": {"origin":"import","valueHash":"7ecad953eb152516"},
       "landing.faq.items.providers.answer": {"origin":"import","valueHash":"96b7814113034607"},
       "landing.install.aiLabel": {"origin":"import","valueHash":"19850e9b9e91da18"},
@@ -26,6 +28,7 @@
     "fr": {
       "docs.mcpInstall.label": {"origin":"import","valueHash":"0e0da3b2061b77f6"},
       "docs.startHere.lead": {"origin":"import","valueHash":"420f8b7e4c14f0ba"},
+      "docs.startHere.markdown": {"origin":"import","valueHash":"c49a1562df85fe72"},
       "docs.startHere.title": {"origin":"import","valueHash":"9419d910d65183fd"},
       "landing.control.groups.people.items.review.body": {"origin":"import","valueHash":"9f244402604c0b24"},
       "landing.faq.items.providers.answer": {"origin":"import","valueHash":"0a7564f36bbe504b"},
