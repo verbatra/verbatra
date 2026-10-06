@@ -15,13 +15,13 @@ import {
   makePseudoResult,
   makeSummary,
   makeTypesResult,
+  type RecordingImpl,
   recordingDeps,
 } from "./test-support.js";
-import type { CliDeps } from "./types.js";
 
 const DONE = /done \(\d+\.\ds\)\n/;
 
-async function stderrOf(argv: readonly string[], impl: Partial<CliDeps> = {}) {
+async function stderrOf(argv: readonly string[], impl: RecordingImpl = {}) {
   const cap = captureStreams();
   const code = await run([...argv], recordingDeps(impl).deps, cap.streams);
   return { code, err: cap.err(), out: cap.out() };

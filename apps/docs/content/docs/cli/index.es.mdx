@@ -45,7 +45,7 @@ Estos flags significan lo mismo en cada comando que los acepta, así que las pá
 
 | Flag | Argumento | Por defecto | Efecto | No lo aceptan |
 | --- | --- | --- | --- | --- |
-| `--cwd` | `<path>` | directorio actual | resuelve la config y los archivos de locale desde este directorio; `init` escribe ahí sus archivos | ninguno |
+| `--cwd` | `<path>` | directorio actual | empieza aquí la búsqueda de la config y resuelve contra él las rutas que pasas; los archivos de locale se resuelven contra el directorio de la config encontrada; `init` escribe ahí sus archivos | ninguno |
 | `--config` | `<path>` | buscar uno | carga este archivo de config en lugar de buscar uno; consulta el [orden de búsqueda](/docs/config-file) | `init` |
 | `--json` | ninguno | desactivado | imprime un [envoltorio](/docs/cli/output#salida-json) legible por máquina en stdout, una línea por registro; los errores siguen yendo a stderr | `mcp`, `studio` |
 | `-q`, `--quiet` | ninguno | desactivado | imprime solo resultados, avisos y errores: sin progreso, sugerencias ni líneas informativas; funciona antes o después del nombre del comando | ninguno |

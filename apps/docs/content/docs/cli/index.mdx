@@ -45,7 +45,7 @@ These flags mean the same on every command that takes them, so the command pages
 
 | Flag | Argument | Default | Effect | Not accepted by |
 | --- | --- | --- | --- | --- |
-| `--cwd` | `<path>` | current directory | resolve the config and locale files from this directory; `init` writes its files there | none |
+| `--cwd` | `<path>` | current directory | start the config search here and resolve the paths you pass against it; locale files resolve against the directory of the config the search found; `init` writes its files there | none |
 | `--config` | `<path>` | search for one | load this config file instead of searching; see the [search order](/docs/config-file) | `init` |
 | `--json` | none | off | print a machine-readable [envelope](/docs/cli/output#json-output) on stdout, one line per record; errors still go to stderr | `mcp`, `studio` |
 | `-q`, `--quiet` | none | off | print only results, warnings and errors: no progress, hints or informational lines; works before or after the command name | none |

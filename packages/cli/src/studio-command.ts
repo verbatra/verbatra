@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { isMachineTranslationEnabled } from "@verbatra/sdk";
+import { isMachineTranslationEnabled, resolveProjectRoot } from "@verbatra/sdk";
 import { z } from "zod";
 import { CliUsageError } from "./cli-usage-error.js";
 import { loadEnvFiles } from "./env.js";
@@ -144,7 +144,7 @@ export async function runStudio(
       studioModule.startStudioServer({
         loader: () => Promise.resolve(config),
         token,
-        cwd,
+        cwd: resolveProjectRoot(config.source, cwd),
         output: serverOutputForwarder(ui, token, opts.verbose === true),
         spend,
         exposeAgentTools,

@@ -134,7 +134,7 @@ describe("run diff: SDK delegation, rendering, and exit codes", () => {
 
     await run(["diff", "--config", "verbatra.config.ts"], deps, cap.streams);
 
-    expect(calls.loadConfig[0]).toMatchObject({ configPath: "verbatra.config.ts" });
+    expect(calls.loadConfigWithMeta[0]).toMatchObject({ configPath: "verbatra.config.ts" });
   });
 
   it("a whole-run error renders to stderr and exits 2 with clean stdout", async () => {

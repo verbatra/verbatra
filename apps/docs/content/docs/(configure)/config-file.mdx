@@ -349,7 +349,7 @@ These rules have no JSON Schema expression, so only loading the config checks th
 
 ## The working directory and .env
 
-The working directory (where you run verbatra, or `--cwd`) anchors the config search and locale paths; which commands load `.env.local` and `.env` from it is under [Environment files](/docs/cli#environment-files).
+The working directory (where you run verbatra, or `--cwd`) is where the config search starts; which commands load `.env.local` and `.env` from it is under [Environment files](/docs/cli#environment-files). The project root is the directory of the config file the search found: locale paths, `verbatra.lock.json`, the cache, the provenance file and `.verbatra-local/` resolve against it, so a run started in a subdirectory works on the same files as a run next to the config. With `--config`, the working directory is the root. A relative path you pass yourself, such as `--out` or `check --file`, resolves against the working directory.
 
 ## When loading fails
 

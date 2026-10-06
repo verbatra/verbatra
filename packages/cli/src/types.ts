@@ -34,7 +34,6 @@ import type {
   PseudolocalizeResult,
   RunSummary,
   TranslateInput,
-  VerbatraConfig,
   WatchController,
   WatchInput,
 } from "@verbatra/sdk";
@@ -47,7 +46,6 @@ export interface Streams {
 }
 
 export interface CliDeps {
-  loadConfig(options: LoadConfigOptions): Promise<VerbatraConfig>;
   translate(input: TranslateInput): Promise<RunSummary>;
   watch(input: WatchInput): Promise<WatchController>;
   exportWorkbook(input: ExportWorkbookInput): Promise<ExportWorkbookResult>;

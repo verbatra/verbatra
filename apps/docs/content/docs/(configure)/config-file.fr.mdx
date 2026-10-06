@@ -349,7 +349,7 @@ Ces règles n'ont aucune expression en JSON Schema, donc seul le chargement de l
 
 ## Le répertoire de travail et .env
 
-Le répertoire de travail (là où tu lances verbatra, ou `--cwd`) ancre la recherche de configuration et les chemins de locale ; les commandes qui y chargent `.env.local` et `.env` sont sous [Fichiers d'environnement](/docs/cli#fichiers-denvironnement).
+Le répertoire de travail (là où tu lances verbatra, ou `--cwd`) est le point de départ de la recherche de configuration ; les commandes qui y chargent `.env.local` et `.env` sont sous [Fichiers d'environnement](/docs/cli#fichiers-denvironnement). La racine du projet est le répertoire du fichier de configuration trouvé par la recherche : les chemins de locale, `verbatra.lock.json`, le cache, le fichier de provenance et `.verbatra-local/` sont résolus par rapport à elle, donc une exécution lancée dans un sous-répertoire travaille sur les mêmes fichiers qu'une exécution à côté de la configuration. Avec `--config`, le répertoire de travail est la racine. Un chemin relatif que tu passes toi-même, comme `--out` ou `check --file`, est résolu par rapport au répertoire de travail.
 
 ## Quand le chargement échoue
 

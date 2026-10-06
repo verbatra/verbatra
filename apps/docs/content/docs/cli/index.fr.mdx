@@ -45,7 +45,7 @@ Ces options ont le même sens sur chaque commande qui les accepte, donc les page
 
 | Option | Argument | Par défaut | Effet | Refusée par |
 | --- | --- | --- | --- | --- |
-| `--cwd` | `<path>` | répertoire courant | résout la config et les fichiers de locale depuis ce répertoire ; `init` y écrit ses fichiers | aucune |
+| `--cwd` | `<path>` | répertoire courant | lance ici la recherche de la config et y résout les chemins que tu passes ; les fichiers de locale sont résolus par rapport au répertoire de la config trouvée ; `init` y écrit ses fichiers | aucune |
 | `--config` | `<path>` | en chercher une | charge ce fichier de config au lieu d'en chercher un ; voir l'[ordre de recherche](/docs/config-file) | `init` |
 | `--json` | aucun | désactivé | affiche une [enveloppe](/docs/cli/output#sortie-json) lisible par machine sur stdout, une ligne par enregistrement ; les erreurs vont toujours sur stderr | `mcp`, `studio` |
 | `-q`, `--quiet` | aucun | désactivé | n'affiche que les résultats, avertissements et erreurs : ni progression, ni suggestions, ni lignes d'information ; fonctionne avant ou après le nom de la commande | aucune |

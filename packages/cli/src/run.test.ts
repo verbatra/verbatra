@@ -54,7 +54,7 @@ describe("run translate: SDK delegation and rendering", () => {
 
     await run(["translate", "--config", "ci.json", "--cwd", "/proj"], deps, cap.streams);
 
-    expect(calls.loadConfig[0]).toEqual({ cwd: "/proj", configPath: "ci.json" });
+    expect(calls.loadConfigWithMeta[0]).toEqual({ cwd: "/proj", configPath: "ci.json" });
     expect(calls.translate[0]?.cwd).toBe("/proj");
   });
 
@@ -64,8 +64,8 @@ describe("run translate: SDK delegation and rendering", () => {
 
     await run(["translate"], deps, cap.streams);
 
-    expect(calls.loadConfig[0]).toEqual({ cwd: process.cwd() });
-    expect(calls.loadConfig[0]).not.toHaveProperty("configPath");
+    expect(calls.loadConfigWithMeta[0]).toEqual({ cwd: process.cwd() });
+    expect(calls.loadConfigWithMeta[0]).not.toHaveProperty("configPath");
   });
 
   it("--dry-run passes dryRun:true and does a single translate call", async () => {
@@ -985,7 +985,7 @@ describe("run: .env loading is wired before the SDK flow", () => {
     expect(code).toBe(2);
     expect(cap.out()).toBe("");
     expect(cap.err()).not.toBe("");
-    expect(calls.loadConfig).toHaveLength(0);
+    expect(calls.loadConfigWithMeta).toHaveLength(0);
   });
 
   it("watch: a non-ENOENT .env read error (EISDIR) exits 2 with a structured error, no unhandled throw", async () => {
@@ -1000,7 +1000,7 @@ describe("run: .env loading is wired before the SDK flow", () => {
     expect(code).toBe(2);
     expect(cap.out()).toBe("");
     expect(cap.err()).not.toBe("");
-    expect(calls.loadConfig).toHaveLength(0);
+    expect(calls.loadConfigWithMeta).toHaveLength(0);
   });
 });
 
@@ -1014,7 +1014,7 @@ describe("run translate: rawOpts is zod-validated inside the error scaffold", ()
     expect(code).toBe(2);
     expect(cap.out()).toBe("");
     expect(cap.err()).not.toBe("");
-    expect(calls.loadConfig).toHaveLength(0);
+    expect(calls.loadConfigWithMeta).toHaveLength(0);
   });
 });
 

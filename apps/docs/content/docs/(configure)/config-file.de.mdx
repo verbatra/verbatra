@@ -349,7 +349,7 @@ Diese Regeln lassen sich in JSON Schema nicht ausdrücken, deshalb prüft sie nu
 
 ## Das Arbeitsverzeichnis und .env
 
-Das Arbeitsverzeichnis (wo du verbatra ausführst, oder `--cwd`) ist der Anker für die Konfigurationssuche und die Locale-Pfade; welche Befehle `.env.local` und `.env` von dort laden, steht unter [Umgebungsdateien](/docs/cli#umgebungsdateien).
+Das Arbeitsverzeichnis (wo du verbatra ausführst, oder `--cwd`) ist der Startpunkt der Konfigurationssuche; welche Befehle `.env.local` und `.env` von dort laden, steht unter [Umgebungsdateien](/docs/cli#umgebungsdateien). Die Projektwurzel ist das Verzeichnis der Konfigurationsdatei, die die Suche gefunden hat: Locale-Pfade, `verbatra.lock.json`, der Cache, die Provenienzdatei und `.verbatra-local/` werden gegen sie aufgelöst, sodass ein Lauf aus einem Unterverzeichnis mit denselben Dateien arbeitet wie ein Lauf neben der Konfiguration. Mit `--config` ist das Arbeitsverzeichnis die Wurzel. Ein relativer Pfad, den du selbst übergibst, etwa bei `--out` oder `check --file`, wird gegen das Arbeitsverzeichnis aufgelöst.
 
 ## Wenn das Laden fehlschlägt
 

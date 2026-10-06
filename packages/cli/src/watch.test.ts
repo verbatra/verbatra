@@ -11,6 +11,7 @@ import { run } from "./run.js";
 import {
   captureStreams,
   flush,
+  makeLoadedConfig,
   makeSummary,
   parseEnvelope,
   recordingDeps,
@@ -82,6 +83,24 @@ describe("run watch: wiring and rendering", () => {
     session.requestStop();
     h.finishStop();
     expect(await done).toBe(0);
+  });
+
+  it("watches the directory of a config the search found above --cwd", async () => {
+    const h = watchHarness();
+    const { deps, calls } = recordingDeps({
+      watch: h.watch,
+      loadConfigWithMeta: async () => makeLoadedConfig(),
+    });
+    const cap = captureStreams();
+
+    const { done, session } = await startWatch(["watch", "--cwd", "/proj/src"], deps, cap.streams);
+    await flush();
+
+    expect(calls.watch[0]?.cwd).toBe("/proj");
+
+    session.requestStop();
+    h.finishStop();
+    await done;
   });
 
   it("renders each run human-readably on stdout", async () => {
@@ -210,7 +229,7 @@ describe("run watch: --debounce validation", () => {
       expect(code).toBe(2);
       expect(cap.err()).toContain("[INVALID_DEBOUNCE]");
       expect(cap.out()).toBe("");
-      expect(calls.loadConfig).toHaveLength(0);
+      expect(calls.loadConfigWithMeta).toHaveLength(0);
       expect(calls.watch).toHaveLength(0);
     },
   );
@@ -269,7 +288,7 @@ describe("run watch: --concurrency", () => {
       expect(code).toBe(2);
       expect(cap.err()).toContain("[INVALID_CONCURRENCY]");
       expect(cap.out()).toBe("");
-      expect(calls.loadConfig).toHaveLength(0);
+      expect(calls.loadConfigWithMeta).toHaveLength(0);
       expect(calls.watch).toHaveLength(0);
     },
   );

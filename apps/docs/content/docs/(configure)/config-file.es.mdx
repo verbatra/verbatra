@@ -349,7 +349,7 @@ Estas reglas no tienen expresión en JSON Schema, así que solo las comprueba la
 
 ## El directorio de trabajo y .env
 
-El directorio de trabajo (donde ejecutas verbatra, o `--cwd`) ancla la búsqueda de configuración y las rutas de locale; qué comandos cargan `.env.local` y `.env` desde él está en [Archivos de entorno](/docs/cli#archivos-de-entorno).
+El directorio de trabajo (donde ejecutas verbatra, o `--cwd`) es donde empieza la búsqueda de configuración; qué comandos cargan `.env.local` y `.env` desde él está en [Archivos de entorno](/docs/cli#archivos-de-entorno). La raíz del proyecto es el directorio del archivo de configuración que encontró la búsqueda: las rutas de locale, `verbatra.lock.json`, la caché, el archivo de procedencia y `.verbatra-local/` se resuelven contra ella, así que una ejecución iniciada en un subdirectorio trabaja con los mismos archivos que una junto a la configuración. Con `--config`, el directorio de trabajo es la raíz. Una ruta relativa que pasas tú, como `--out` o `check --file`, se resuelve contra el directorio de trabajo.
 
 ## Cuando la carga falla
 

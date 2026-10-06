@@ -124,6 +124,12 @@ Upgrading from 0.11: rejected config, rewritten files, new exit codes and SDK ty
   rejects the same way. Set the key before starting it.
 - A `--cwd` that names no existing directory exits 2 with `INVALID_OPTION` on every command,
   before anything is read, instead of a later `CONFIG_NOT_FOUND` or `SOURCE_UNREADABLE`.
+- Run from a subdirectory, or with a `--cwd` naming one, a command resolves locale files, the lock,
+  cache and provenance files and `.verbatra-local/` against the directory of the config the search
+  found. 0.11 used the working directory, so it failed with `SOURCE_UNREADABLE` or used the
+  subdirectory's files. One shared config run from each package for per-package locale files now
+  needs a config per package, or `--config` with `--cwd`. Paths you pass, such as `--out`, still
+  resolve against the working directory.
 - Every command writes progress and `next:` lines to stderr (trim them with `--quiet` and
   `--no-color`). stdout keeps its text, `doctor` colors its status labels when stdout is a color
   terminal, and `--json` is unchanged.
@@ -172,5 +178,8 @@ Upgrading from 0.11: rejected config, rewritten files, new exit codes and SDK ty
   `custom:` parser is `ADAPTER_FAILED` with the original error as `cause`, and a malformed
   `parseEntries` result fails the read.
 - `SOURCE_INVALID` and `PROVIDER_CONSTRUCTION_FAILED` carry the wrapped error as `cause`.
+- `doctor` and `dataFlow` resolve paths against the directory of a config the search found, not
+  `cwd`. The other functions still use the `cwd` you pass: give them
+  `resolveProjectRoot(loaded.source, cwd)` to run from a subdirectory.
 - `keyIntegrity` refuses a requested key the source does not have with `UNKNOWN_KEY`; 0.11 left it
   out and returned empty entries. Pass only source keys in `keys`.
