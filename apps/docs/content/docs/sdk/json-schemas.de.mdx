@@ -5,7 +5,7 @@ type: reference
 ---
 <AvailableFrom version="0.12.0" />
 
-Jedes `result`, das die CLI unter `--json` ausgibt, hat ein zod-Schema im SDK, das zur Compile-Zeit an den TypeScript-Typ gebunden ist, den es beschreibt. Die beiden können also nicht auseinanderlaufen. Jedes Schema parst auch einen Wert aus einem neueren verbatra: Es akzeptiert Felder, die es nicht aufführt, und lässt sie weg. Dieselben Schemas werden als JSON-Schema-Dokumente veröffentlicht; ihre URLs und die Versionsregel stehen unter [Exit-Codes und JSON-Ausgabe](/docs/cli/output#schemas).
+Jedes `result`, das die CLI unter `--json` ausgibt, hat ein zod-4-Schema im SDK, das zur Compile-Zeit an den TypeScript-Typ gebunden ist, den es beschreibt: dieselben Felder, dieselben optionalen Felder und dieselben Werttypen. Eine Änderung an einem ohne das andere lässt den Build scheitern. Sein `parse` akzeptiert auch einen Wert aus einem neueren verbatra: Es erlaubt Felder, die es nicht aufführt, und entfernt sie aus dem Ergebnis. Dieselben Schemas werden als JSON-Schema-Dokumente veröffentlicht; ihre URLs und die Versionsregel stehen unter [Exit-Codes und JSON-Ausgabe](/docs/cli/output#schemas).
 
 ## Ergebnis-Schemas
 
@@ -105,6 +105,40 @@ Beschreibt ein `ExportTmxResult`, das `result` von [`exportTmx`](/docs/sdk/excha
 const exportTmxResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
 ```
 
+## Gemeinsame Schemas
+
+### localeSummarySchema
+
+Beschreibt eine `LocaleSummary`, einen Eintrag in `locales` einer Run-Summary.
+
+```ts title="Signatur"
+const localeSummarySchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### keyProvenanceSchema
+
+Beschreibt eine `KeyProvenance`, die aufgezeichnete Herkunft und den Review-Status eines Keys.
+
+```ts title="Signatur"
+const keyProvenanceSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### provenanceSummarySchema
+
+Beschreibt eine `ProvenanceSummary`, die Key-Zahlen pro Herkunft und pro Review-Status, die eine Locale von `check` trägt.
+
+```ts title="Signatur"
+const provenanceSummarySchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### keyOriginSchema
+
+Beschreibt einen `KeyOrigin`: wer oder was den aktuellen Wert eines Keys geschrieben hat.
+
+```ts title="Signatur"
+const keyOriginSchema: z.ZodEnum<{ ... }>;
+```
+
 ## Datensätze im Stream
 
 ### progressEventSchema
@@ -125,11 +159,11 @@ const lockWaitEventSchema: z.ZodObject<{ ... }, z.core.$strip>;
 
 ## Veröffentlichen
 
-`SDK_JSON_SCHEMAS` listet jedes Dokument auf, das das SDK unter `@verbatra/sdk/schemas/` veröffentlicht, jeweils mit `name`, `title`, `io` und dem zod-`schema`. `JSON_SCHEMA_BASE_URL` ist `https://verbatra.kreitz-webdev.de/schema/v1/`.
+`SDK_JSON_SCHEMAS` listet jedes Dokument auf, das das SDK unter `@verbatra/sdk/schemas/` veröffentlicht, jeweils mit `name`, `title`, `io` und dem zod-`schema`. `JSON_SCHEMA_BASE_URL` ist `https://verbatra.kreitz-webdev.de/schema/v1/`. `KNOWN_ERROR_CODES` listet jeden Fehlercode des SDK, der Provider und der Adapter; das Schema des Fehler-Envelopes bietet sie als Hinweis an und akzeptiert trotzdem jeden Code.
 
 ### renderJsonSchemas
 
-Erzeugt JSON-Schema-Dokumente (Draft 2020-12) aus einer Liste von `JsonSchemaDocument`s, nach Namen geordnet. Ein Ausgabedokument erlaubt jede Eigenschaft, die es nicht aufführt; ein Eingabedokument wie die Konfiguration behält seine geschlossenen Objekte. Ein Schema, das ein Dokument aus einer der beiden Listen einbettet, verweist per URL darauf.
+Erzeugt verbatras eigene JSON-Schema-Dokumente (Draft 2020-12) aus einer Liste von `JsonSchemaDocument`s, nach Namen geordnet. Jedes erhält die `$id`, die `jsonSchemaUrl` für seinen Namen liefert, eine URL dieser Seite. Nutze es also nur für verbatras Dokumente und `renderOutputJsonSchema` für ein eigenes Schema. Ein Ausgabedokument erlaubt jede Eigenschaft, die es nicht aufführt; ein Eingabedokument wie die Konfiguration behält seine geschlossenen Objekte. Ein Schema, das ein Dokument aus einer der beiden Listen einbettet, verweist per URL darauf.
 
 ```ts title="Signatur"
 function renderJsonSchemas(
@@ -139,6 +173,16 @@ function renderJsonSchemas(
 ```
 
 **Rückgabe:** ein Dokument pro Eintrag in `documents`, jeweils mit `$schema`, `$id` und `title`.
+
+### renderOutputJsonSchema
+
+Erzeugt das JSON Schema eines einzelnen zod-Schemas so, wie die Ausgabedokumente erzeugt werden, ohne `$id`, etwa für das `outputSchema` eines MCP-Tools.
+
+```ts title="Signatur"
+function renderOutputJsonSchema(schema: z.ZodType): JsonSchemaObject;
+```
+
+**Rückgabe:** `JsonSchemaObject`
 
 ### jsonSchemaUrl
 

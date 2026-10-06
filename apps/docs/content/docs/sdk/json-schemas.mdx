@@ -5,7 +5,7 @@ type: reference
 ---
 <AvailableFrom version="0.12.0" />
 
-Every `result` the CLI prints under `--json` has a zod schema in the SDK, pinned at compile time to the TypeScript type it describes, so the two cannot drift apart. Each one parses a value from a newer verbatra too: it accepts fields it does not list and drops them. The same schemas are published as JSON Schema documents; their URLs and the versioning rule are on [Exit codes and JSON output](/docs/cli/output#schemas).
+Every `result` the CLI prints under `--json` has a zod 4 schema in the SDK, pinned at compile time to the TypeScript type it describes: the same fields, the same optional fields and the same value types, so a change to one without the other fails the build. Its `parse` also accepts a value from a newer verbatra: it allows fields it does not list and strips them from the result. The same schemas are published as JSON Schema documents; their URLs and the versioning rule are on [Exit codes and JSON output](/docs/cli/output#schemas).
 
 ## Result schemas
 
@@ -105,6 +105,40 @@ Describes an `ExportTmxResult`, the `result` of [`exportTmx`](/docs/sdk/exchange
 const exportTmxResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
 ```
 
+## Shared schemas
+
+### localeSummarySchema
+
+Describes a `LocaleSummary`, one entry of a run summary's `locales`.
+
+```ts title="Signature"
+const localeSummarySchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### keyProvenanceSchema
+
+Describes a `KeyProvenance`, the recorded origin and review state of one key.
+
+```ts title="Signature"
+const keyProvenanceSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### provenanceSummarySchema
+
+Describes a `ProvenanceSummary`, the key counts per origin and per review state a locale of `check` carries.
+
+```ts title="Signature"
+const provenanceSummarySchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### keyOriginSchema
+
+Describes a `KeyOrigin`: who or what wrote a key's current value.
+
+```ts title="Signature"
+const keyOriginSchema: z.ZodEnum<{ ... }>;
+```
+
 ## Stream records
 
 ### progressEventSchema
@@ -125,11 +159,11 @@ const lockWaitEventSchema: z.ZodObject<{ ... }, z.core.$strip>;
 
 ## Publishing
 
-`SDK_JSON_SCHEMAS` lists every document the SDK publishes under `@verbatra/sdk/schemas/`, each with its `name`, `title`, `io` and zod `schema`. `JSON_SCHEMA_BASE_URL` is `https://verbatra.kreitz-webdev.de/schema/v1/`.
+`SDK_JSON_SCHEMAS` lists every document the SDK publishes under `@verbatra/sdk/schemas/`, each with its `name`, `title`, `io` and zod `schema`. `JSON_SCHEMA_BASE_URL` is `https://verbatra.kreitz-webdev.de/schema/v1/`. `KNOWN_ERROR_CODES` lists every SDK, provider and adapter error code; the error envelope schema offers them as a hint while accepting any code.
 
 ### renderJsonSchemas
 
-Generates JSON Schema documents (draft 2020-12) from a list of `JsonSchemaDocument`s, keyed by name. An output document allows every property it does not list; an input document, such as the config, keeps its closed objects. A schema that embeds a document from either list refers to it by URL.
+Generates verbatra's own JSON Schema documents (draft 2020-12) from a list of `JsonSchemaDocument`s, keyed by name. Each one gets the `$id` that `jsonSchemaUrl` gives its name, a URL on this site, so use it for verbatra's documents only and `renderOutputJsonSchema` for a schema of your own. An output document allows every property it does not list; an input document, such as the config, keeps its closed objects. A schema that embeds a document from either list refers to it by URL.
 
 ```ts title="Signature"
 function renderJsonSchemas(
@@ -139,6 +173,16 @@ function renderJsonSchemas(
 ```
 
 **Returns:** one document per entry of `documents`, each with `$schema`, `$id` and `title`.
+
+### renderOutputJsonSchema
+
+Generates the JSON Schema of one zod schema the way the output documents are generated, without an `$id`, such as for an MCP tool's `outputSchema`.
+
+```ts title="Signature"
+function renderOutputJsonSchema(schema: z.ZodType): JsonSchemaObject;
+```
+
+**Returns:** `JsonSchemaObject`
 
 ### jsonSchemaUrl
 
