@@ -46,6 +46,7 @@ import { runMcp } from "./mcp-command.js";
 import { readPackageManifest } from "./package-manifest.js";
 import { parsePositiveIntegerOption } from "./positive-integer-option.js";
 import { createProgressPresenter, scanProgressReporter } from "./progress-presenter.js";
+import { escapesProject, LINK_OUTSIDE_PROJECT } from "./project-paths.js";
 import { redactingStreams } from "./redacting-streams.js";
 import {
   displayPath,
@@ -434,6 +435,10 @@ function commandContext(
 }
 
 function topUpGitignore(cwd: string, context: CommandContext, dryRun?: boolean): void {
+  if (escapesProject(cwd, ".gitignore")) {
+    context.ui.warn(`left .gitignore unchanged: it ${LINK_OUTSIDE_PROJECT}`);
+    return;
+  }
   const added = appendMissingGitignoreEntries(cwd, dryRun);
   if (added.length > 0 && !context.json) {
     context.ui.info(`updated .gitignore (added ${added.join(", ")})`);

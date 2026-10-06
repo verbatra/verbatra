@@ -5,6 +5,7 @@ import {
   readFileSync,
   realpathSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -150,6 +151,22 @@ describe("a command run from a subdirectory of the project", () => {
     const result = await verbatra("check", "--file", "../../locales/de.json", "--json");
 
     expect(parseEnvelope(result.out).ok).toBe(true);
+  });
+
+  it("leaves a .gitignore symlink that leads outside the project unchanged and says so", async () => {
+    const outside = realpathSync(mkdtempSync(join(tmpdir(), "verbatra-subdir-outside-")));
+    try {
+      writeFileSync(join(outside, "shared.gitignore"), "node_modules\n");
+      rmSync(join(root, ".gitignore"));
+      symlinkSync(join(outside, "shared.gitignore"), join(root, ".gitignore"));
+
+      const result = await verbatra("translate");
+
+      expect(result.err).toContain("left .gitignore unchanged");
+      expect(readFileSync(join(outside, "shared.gitignore"), "utf8")).toBe("node_modules\n");
+    } finally {
+      rmSync(outside, { recursive: true, force: true });
+    }
   });
 
   it("roots a package's own config at that package when a repository config sits above it", async () => {
