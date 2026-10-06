@@ -6,7 +6,6 @@ import { TypeTable } from "fumadocs-ui/components/type-table";
 import defaultMdxComponents from "fumadocs-ui/mdx";
 import type { MDXComponents } from "mdx/types";
 import type { ComponentProps } from "react";
-import { AiSetupPrompt } from "@/components/ai-setup-prompt";
 import { AvailableFrom, type AvailableFromProps } from "@/components/available-from";
 import { DiffPanel } from "@/components/diff-panel";
 import {
@@ -18,8 +17,10 @@ import {
   DocsHomeSteps,
 } from "@/components/docs-home";
 import { VMark } from "@/components/landing";
+import { McpInstallLink } from "@/components/mcp-install-link";
 import { OutputCodeBlock } from "@/components/output-code-block";
 import { StackCards } from "@/components/stack-cards";
+import { StartHere } from "@/components/start-here";
 import { StudioScreenshot } from "@/components/studio-screenshot";
 import Badge from "@/components/ui/badge";
 import CommandLine from "@/components/ui/command-line";
@@ -81,7 +82,8 @@ export function getMDXComponents(
       );
     },
     AvailableFrom: (props: AvailableFromProps) => <AvailableFrom {...props} locale={locale} />,
-    AiSetupPrompt: () => <AiSetupPrompt variant="panel" />,
+    StartHere,
+    McpInstallLink,
     DiffPanel,
     Step,
     Steps,

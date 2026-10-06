@@ -4,6 +4,8 @@ description: Conecta el servidor MCP stdio de verbatra a Claude Code, Codex, Gem
 type: how-to
 status: new
 ---
+<StartHere />
+
 Deja que un agente de programación lea el estado de las traducciones y corrija valores a través del servidor MCP stdio de verbatra. Regístralo una vez por cliente: una segunda entrada arranca un segundo servidor. Necesitas un proyecto con configuración de verbatra ([`npx verbatra init`](/docs/cli/init)) y Node.js 22.14 o posterior.
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
@@ -68,7 +70,7 @@ npx verbatra init --agent
 }
 ```
 
-Reinicia Claude Code y aprueba el servidor `verbatra`. Claude Code transmite `CLAUDE_PROJECT_DIR` y el entorno de tu shell, así que no hace falta `--cwd`. Para gastar en una sesión, exporta la clave y ejecuta:
+Reinicia Claude Code y aprueba el servidor `verbatra`; Claude Code le transmite `CLAUDE_PROJECT_DIR` y el entorno de tu shell, así que no hace falta `--cwd`. Para gastar en una sesión, exporta la clave y ejecuta:
 
 ```bash
 VERBATRA_MCP_ALLOW_SPEND=1 claude
@@ -103,7 +105,7 @@ claude plugin install verbatra@verbatra --scope project
 
 - **Servidor**: un `@verbatra/mcp` de versión fija con `--cwd` en el proyecto abierto.
 - **Gasto**: desactivado hasta que actives la opción `allowSpend` del plugin (`--config allowSpend=true`, o `/config`). Un archivo del repositorio no puede activarla.
-- **Clave**: se lee del entorno con el que arrancaste `claude`.
+- **Clave**: del entorno con el que arrancaste `claude`.
 - **Hook**: ejecuta el `verbatra check --file <path>` del propio proyecto (CLI 0.12.0 o posterior) y le comunica a Claude la sintaxis, los placeholders, el markup o el ICU rotos, sin llamar a ningún proveedor.
 
 Consulta la [referencia de plugins de Claude Code](https://code.claude.com/docs/en/plugins-reference).
@@ -155,7 +157,7 @@ Gemini CLI oculta a los servidores las variables sensibles, así que la clave so
 
 ## Cursor
 
-Cursor lee `.cursor/mcp.json`, que escribe `init --agent`, y `~/.cursor/mcp.json`:
+`init --agent` escribe el `.cursor/mcp.json` de Cursor:
 
 ```json title=".cursor/mcp.json"
 {
@@ -212,7 +214,9 @@ Para gastar, declara la clave como input, que VS Code guarda fuera del archivo:
 }
 ```
 
-En lugar del archivo, [Instalar verbatra en VS Code](vscode:mcp/install?%7B%22name%22%3A%22verbatra%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22%40verbatra%2Fmcp%22%5D%7D) o este comando añade la entrada sin gasto a tu perfil de usuario; usa una de las tres vías, nunca dos:
+<McpInstallLink client="vscode" />
+
+En lugar del archivo, el botón o este comando añade la entrada sin gasto a tu perfil de usuario; usa una de las tres vías, nunca dos:
 
 ```bash
 code --add-mcp '{"name":"verbatra","command":"npx","args":["-y","@verbatra/mcp"]}'
@@ -251,7 +255,7 @@ Una persona administradora del repositorio añade el servidor en **Settings**, *
 }
 ```
 
-Añade `translation.editEntry` y `glossary.write` solo si el agente debe escribir en su pull request, y deja fuera `review.approve` y `review.reject`: una decisión de revisión necesita a una persona. Deja el gasto desactivado. Para comprobarlo, abre **View session** del agente y despliega **Start MCP Servers**. Consulta [Extending the cloud agent with MCP](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/configure-mcp-servers).
+Añade `translation.editEntry` y `glossary.write` solo si el agente debe escribir en su pull request, y deja fuera `review.approve` y `review.reject`: una decisión de revisión necesita a una persona. Para comprobarlo, abre **View session** y despliega **Start MCP Servers**. Consulta [Extending the cloud agent with MCP](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/configure-mcp-servers).
 
 ### Copilot CLI
 
@@ -259,11 +263,11 @@ Añade `translation.editEntry` y `glossary.write` solo si el agente debe escribi
 copilot mcp add verbatra -- npx -y @verbatra/mcp --cwd /path/to/your/project
 ```
 
-Esto escribe `~/.copilot/mcp-config.json`. Copilot CLI solo le pasa `PATH` a un servidor, así que una clave va en el `env` de esa entrada en tu máquina, nunca en un archivo del proyecto. Consulta [Adding MCP servers to Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-mcp-servers).
+Esto escribe `~/.copilot/mcp-config.json`. Copilot CLI solo le pasa `PATH` a un servidor, así que una clave va en el `env` de esa entrada, nunca en un archivo del proyecto. Consulta [Adding MCP servers to Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-mcp-servers).
 
 ## Windsurf
 
-Windsurf lee un único `mcp_config.json` para todos los proyectos, así que da un `--cwd` absoluto:
+Windsurf lee un único `mcp_config.json` para todos los proyectos, así que `--cwd` es absoluto:
 
 ```json title="mcp_config.json"
 {
@@ -311,7 +315,7 @@ Abre **Settings**, **Tools**, **AI Assistant**, **Model Context Protocol (MCP)**
 }
 ```
 
-Pon **Working directory** en la raíz del proyecto y limita esta entrada a lectura y edición local, sin gasto. Consulta la [documentación de MCP de AI Assistant](https://www.jetbrains.com/help/ai-assistant/mcp.html).
+Pon **Working directory** en la raíz del proyecto y deja esta entrada sin gasto. Consulta la [documentación de MCP de AI Assistant](https://www.jetbrains.com/help/ai-assistant/mcp.html).
 
 ## Claude Desktop
 
@@ -328,11 +332,11 @@ Pon **Working directory** en la raíz del proyecto y limita esta entrada a lectu
 }
 ```
 
-Para gastar, añade `"--allow-spend"` al final y agrega `"env": { "ANTHROPIC_API_KEY": "..." }`; el archivo está fuera de cualquier repositorio. Reinicia Claude Desktop después de cada cambio. Consulta [Connect to local MCP servers](https://modelcontextprotocol.io/docs/develop/connect-local-servers).
+Para gastar, añade `"--allow-spend"` al final y agrega `"env": { "ANTHROPIC_API_KEY": "..." }`; el archivo está fuera de cualquier repositorio. Después, reinicia Claude Desktop. Consulta [Connect to local MCP servers](https://modelcontextprotocol.io/docs/develop/connect-local-servers).
 
 ## Cualquier otro cliente stdio
 
-Dale al cliente el comando `npx -y @verbatra/mcp`, más `--cwd /path/to/your/project` salvo que arranque los servidores en la raíz del proyecto, y `--config <path>` si la configuración está en otro sitio. Añade `--allow-spend` y la clave solo mediante el mecanismo de secretos del propio cliente.
+Dale al cliente el comando `npx -y @verbatra/mcp`, más `--cwd /path/to/your/project` salvo que arranque los servidores en la raíz del proyecto o en uno de sus subdirectorios, y `--config <path>` si la configuración está en otro sitio. Añade `--allow-spend` y la clave solo mediante el mecanismo de secretos del propio cliente.
 
 ## Comprueba la conexión
 
@@ -348,4 +352,3 @@ Pídele al agente que llame a `project.snapshot`, que devuelve los locales, el f
 
 - [`verbatra mcp`](/docs/cli/mcp): flags y cada herramienta.
 - [Programa verbatra con JSON](/docs/agent-recipes#el-paquete-de-skills): la skill `verbatra-mcp-tools`.
-- [Configura verbatra con un agente de IA](/docs/start-with-ai).

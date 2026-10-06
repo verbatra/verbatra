@@ -10,6 +10,8 @@ const PAGES = [
   { path: "/fr/docs/quickstart", html: true, analytics: true },
   { path: "/docs/quickstart/react", html: true, analytics: true },
   { path: "/de/docs/quickstart/flutter", html: true, analytics: true },
+  { path: "/docs/connect-an-mcp-client", html: true, analytics: true },
+  { path: "/de/docs/start-with-ai", html: true, analytics: true },
   { path: "/docs/sdk/run", html: true, analytics: true },
   { path: "/contact", html: true, analytics: true },
   { path: "/de/imprint", html: true, analytics: true },
