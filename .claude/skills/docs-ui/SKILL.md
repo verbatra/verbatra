@@ -183,8 +183,10 @@ footer's oversized watermark only; do not clip it onto a heading.
   mark gets an outline glyph there. The grid is a `nav` named by `labelledBy`, the id of the heading above it (the docs home
   section's `id`, or `page-title` on the docs `<h1>`), and that id also prefixes its sprite's symbol
   ids, so two grids on one page never collide. A card's name reads "React: i18next-json".
-  A stack with its own quickstart (`STACKS` in `lib/stacks.ts`) links its card to
-  `/docs/quickstart/<id>`; every other card links to its `pick-your-stack` section.
+  On the docs home, a stack with its own quickstart (`STACKS` in `lib/stacks.ts`) links its card
+  to `/docs/quickstart/<id>` and carries a `badge`, rendered as a `.vk-pill` after the name and
+  read as part of the card's name ("React, Quickstart: i18next-json"); every other card, and every
+  card on `pick-your-stack` itself, jumps to a `pick-your-stack` section.
   `scripts/verify-docs-registry-parity.test.mjs` pins every card's `formats` to
   `SUPPORTED_FORMATS`, a section card's anchor to the page's sections and a quickstart card's
   format to its stack, in all four locales. Fumadocs' `Steps` and `Step` are registered there
