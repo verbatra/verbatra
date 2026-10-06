@@ -4,7 +4,7 @@ import type { CheckSummary } from "../flow/check.js";
 import type { CheckFileSummary } from "../flow/check-file.js";
 import type { checkFileSummarySchema } from "../flow/check-file-schema.js";
 import type { checkSummarySchema } from "../flow/check-schema.js";
-import type { DataFlowManifest, dataFlowManifestObjectSchema } from "../flow/data-flow-manifest.js";
+import type { DataFlowManifest, DataFlowManifestSchemaOutput } from "../flow/data-flow-manifest.js";
 import type { DiffSummary } from "../flow/diff.js";
 import type { diffSummarySchema } from "../flow/diff-schema.js";
 import type { DoctorResult } from "../flow/doctor.js";
@@ -168,10 +168,10 @@ describe("every result schema lists exactly the fields, and the optional fields,
     expectTypeOf<KeyShape<z.output<typeof doctorResultSchema>>>().toEqualTypeOf<
       KeyShape<DoctorResult>
     >();
-    expectTypeOf<KeyShape<z.output<typeof dataFlowManifestObjectSchema>>>().toEqualTypeOf<
+    expectTypeOf<KeyShape<DataFlowManifestSchemaOutput>>().toEqualTypeOf<
       KeyShape<DataFlowManifest>
     >();
-    expectTypeOf<z.output<typeof dataFlowManifestObjectSchema>>().toExtend<DataFlowManifest>();
+    expectTypeOf<DataFlowManifestSchemaOutput>().toExtend<DataFlowManifest>();
   });
 
   it("matches the provenance shapes", () => {
