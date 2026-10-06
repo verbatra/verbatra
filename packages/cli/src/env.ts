@@ -27,3 +27,9 @@ export function loadEnvFiles(cwd: string): void {
   applyIfUnset(parseEnvFile(resolve(cwd, ".env.local")));
   applyIfUnset(parseEnvFile(resolve(cwd, ".env")));
 }
+
+export function loadRootEnvFiles(cwd: string, root: string): void {
+  if (resolve(root) !== resolve(cwd)) {
+    loadEnvFiles(root);
+  }
+}

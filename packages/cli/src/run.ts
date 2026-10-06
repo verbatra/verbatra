@@ -1,4 +1,4 @@
-import { isAbsolute, relative, resolve } from "node:path";
+import { dirname, isAbsolute, relative, resolve } from "node:path";
 import {
   type CheckFileInput,
   type CheckFileSummary,
@@ -38,7 +38,7 @@ import { usageErrorHint } from "./cli-error-hints.js";
 import { CliUsageError } from "./cli-usage-error.js";
 import { hasConfigFile } from "./config-presence.js";
 import { assertCwdDirectory } from "./cwd-option.js";
-import { loadEnvFiles } from "./env.js";
+import { loadEnvFiles, loadRootEnvFiles } from "./env.js";
 import { appendMissingGitignoreEntries } from "./gitignore.js";
 import { runInit } from "./init.js";
 import { renderErrorEnvelope, renderSuccessEnvelope } from "./json-envelope.js";
@@ -606,9 +606,25 @@ interface LoadedProject {
 async function loadProject(
   deps: CliDeps,
   loadOpts: { cwd: string; configPath?: string },
+  ui: Ui,
 ): Promise<LoadedProject> {
   const loaded = await deps.loadConfigWithMeta(loadOpts);
-  return { loaded, root: resolveProjectRoot(loaded.source, loadOpts.cwd) };
+  const root = resolveProjectRoot(loaded.source, loadOpts.cwd);
+  noteConfigOutsideRoot(loaded, root, ui);
+  return { loaded, root };
+}
+
+function noteConfigOutsideRoot(loaded: LoadedConfig, root: string, ui: Ui): void {
+  if (loaded.source.kind !== "explicit") {
+    return;
+  }
+  const configDir = dirname(loaded.source.filepath);
+  if (configDir === resolve(root)) {
+    return;
+  }
+  ui.info(
+    `--config names a file in ${displayPath(configDir, process.cwd()) || "."}: locale, lock and cache paths resolve against ${displayPath(resolve(root), process.cwd()) || "."}, the glossary against the config's directory`,
+  );
 }
 
 function invocationPath(path: string, cwd: string, root: string): string {
@@ -639,7 +655,7 @@ async function withWholeRunErrors(
 ): Promise<number> {
   return withLoadedRunErrors(
     context,
-    () => loadProject(deps, loadOpts),
+    () => loadProject(deps, loadOpts, context.ui),
     ({ loaded, root }) => body(loaded.config, root),
     beforeLoad,
   );
@@ -898,6 +914,7 @@ export async function runTranslate(
         context,
         loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
         async (config, root) => {
+          loadRootEnvFiles(cwd, root);
           topUpGitignore(root, context, resolveDryRun(opts));
           const startedAt = Date.now();
           const announceStart = announceOnce(() =>
@@ -967,7 +984,9 @@ async function runWatchCommand(
         project = await loadProject(
           deps,
           loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
+          context.ui,
         );
+        loadRootEnvFiles(cwd, project.root);
       } catch (error) {
         return renderFailureExit2(error, context);
       }
@@ -1075,6 +1094,7 @@ async function runExport(
           loadProject(
             deps,
             loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
+            context.ui,
           ),
         async ({ loaded, root }) => {
           const out = opts.out === undefined ? undefined : invocationPath(opts.out, cwd, root);
@@ -1262,7 +1282,11 @@ async function runTmxExport(
   return withLoadedRunErrors(
     context,
     () =>
-      loadProject(deps, loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd)),
+      loadProject(
+        deps,
+        loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
+        context.ui,
+      ),
     async ({ loaded, root }) => {
       const result = await withTask(context, "exporting the memory as TMX", () =>
         deps.exportTmx({
@@ -1614,6 +1638,7 @@ async function runTypes(
           loadProject(
             deps,
             loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
+            context.ui,
           ),
         async (project) => {
           const label =
@@ -1697,6 +1722,22 @@ function doctorTaskLabel(opts: DoctorOpts): string {
     : "checking the setup";
 }
 
+async function loadDoctorRootEnvFiles(
+  deps: CliDeps,
+  opts: DoctorOpts,
+  cwd: string,
+  ui: Ui,
+): Promise<void> {
+  const project = await loadProject(
+    deps,
+    loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
+    ui,
+  ).catch(() => undefined);
+  if (project !== undefined) {
+    loadRootEnvFiles(cwd, project.root);
+  }
+}
+
 async function runDoctor(
   rawOpts: unknown,
   deps: CliDeps,
@@ -1713,6 +1754,7 @@ async function runDoctor(
       try {
         if (!literals) {
           loadEnvFiles(cwd);
+          await loadDoctorRootEnvFiles(deps, opts, cwd, context.ui);
         }
         const result = await withTask(context, doctorTaskLabel(opts), (task) =>
           deps.doctor({
@@ -2474,7 +2516,7 @@ export async function run(
 function suggestInitWithoutConfig(streams: Streams): void {
   if (!hasConfigFile(process.cwd())) {
     streams.err(
-      "\nverbatra: no config found in this directory. Run verbatra init to set up this project.\n",
+      "\nverbatra: no config found in this directory or any parent directory the search covers. Run verbatra init to set up this project.\n",
     );
   }
 }

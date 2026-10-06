@@ -87,13 +87,18 @@ describe("run doctor: SDK delegation, rendering, and exit codes", () => {
     expect(cap.out()).toMatch(/no problems found\n$/);
   });
 
-  it("loads the config inside the SDK flow, never through the CLI loadConfig dependency", async () => {
-    const { deps, calls } = recordingDeps();
+  it("loads the config once only to find the project's .env files, and reports a failed load through the SDK flow", async () => {
+    const { deps, calls } = recordingDeps({
+      loadConfigWithMeta: async () => {
+        throw new Error("unreadable");
+      },
+    });
 
-    await run(["doctor", "--cwd", "/proj"], deps, captureStreams().streams);
+    const code = await run(["doctor", "--cwd", "/proj"], deps, captureStreams().streams);
 
-    expect(calls.loadConfigWithMeta).toEqual([]);
-    expect(calls.loadConfigWithMeta).toEqual([]);
+    expect(code).toBe(0);
+    expect(calls.loadConfigWithMeta).toEqual([{ cwd: "/proj" }]);
+    expect(calls.doctor).toEqual([{ cwd: "/proj" }]);
   });
 
   it("exits 1 and still prints every failing check when the project has problems", async () => {

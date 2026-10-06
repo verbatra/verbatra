@@ -59,6 +59,8 @@ function writeProject(root: string): void {
   writeFileSync(join(root, "locales", "de.json"), JSON.stringify({ hello: "Hallo" }));
 }
 
+const DECOY = JSON.stringify({ decoy: "Decoy" });
+
 async function verbatra(...argv: string[]) {
   const cap = captureStreams();
   const code = await run(argv, recordingDeps(realDeps).deps, cap.streams);
@@ -75,7 +77,9 @@ describe("a command run from a subdirectory of the project", () => {
     root = realpathSync(mkdtempSync(join(tmpdir(), "verbatra-subdir-")));
     writeProject(root);
     nested = join(root, "src", "components");
-    mkdirSync(nested, { recursive: true });
+    mkdirSync(join(nested, "locales"), { recursive: true });
+    writeFileSync(join(nested, "locales", "en.json"), DECOY);
+    writeFileSync(join(nested, "locales", "de.json"), DECOY);
     process.chdir(nested);
   });
 
@@ -108,7 +112,7 @@ describe("a command run from a subdirectory of the project", () => {
     expect(result.code).toBe(3);
     expect(existsSync(join(root, "verbatra.lock.json"))).toBe(true);
     expect(existsSync(join(nested, "verbatra.lock.json"))).toBe(false);
-    expect(existsSync(join(nested, "locales"))).toBe(false);
+    expect(readFileSync(join(nested, "locales", "de.json"), "utf8")).toBe(DECOY);
     expect(readFileSync(join(root, ".gitignore"), "utf8")).toContain(".verbatra-local");
   });
 
@@ -146,5 +150,105 @@ describe("a command run from a subdirectory of the project", () => {
     const result = await verbatra("check", "--file", "../../locales/de.json", "--json");
 
     expect(parseEnvelope(result.out).ok).toBe(true);
+  });
+
+  it("roots a package's own config at that package when a repository config sits above it", async () => {
+    const pkg = join(root, "packages", "a");
+    mkdirSync(join(pkg, "locales"), { recursive: true });
+    mkdirSync(join(pkg, "src"), { recursive: true });
+    writeFileSync(
+      join(pkg, ".verbatrarc.json"),
+      JSON.stringify({
+        sourceLocale: "en",
+        targetLocales: ["fr"],
+        format: "i18next-json",
+        files: { pattern: "locales/{locale}.json" },
+        provider: { id: "none" },
+      }),
+    );
+    writeFileSync(join(pkg, "locales", "en.json"), JSON.stringify({ title: "Title" }));
+    writeFileSync(join(pkg, "locales", "fr.json"), JSON.stringify({ title: "Titre" }));
+    process.chdir(join(pkg, "src"));
+
+    const result = await verbatra("check", "--json");
+
+    expect(result.code).toBe(0);
+    expect(parseEnvelope(result.out).result).toMatchObject({
+      locales: [{ locale: "fr", missing: 0, upToDate: 1 }],
+    });
+  });
+
+  it("notes that paths resolve against the working directory for a --config file elsewhere", async () => {
+    const result = await verbatra("check", "--config", "../../.verbatrarc.json");
+
+    expect(result.err).toContain(`--config names a file in ${root}`);
+    expect(result.err).toContain("the glossary against the config's directory");
+  });
+});
+
+describe("the .env files of a project run from a subdirectory", () => {
+  let original: string;
+  let savedKey: string | undefined;
+  let root: string;
+
+  beforeEach(() => {
+    original = process.cwd();
+    savedKey = process.env.ANTHROPIC_API_KEY;
+    delete process.env.ANTHROPIC_API_KEY;
+    root = realpathSync(mkdtempSync(join(tmpdir(), "verbatra-subdir-env-")));
+    mkdirSync(join(root, ".git"), { recursive: true });
+    mkdirSync(join(root, "locales"), { recursive: true });
+    mkdirSync(join(root, "src"), { recursive: true });
+    writeFileSync(
+      join(root, ".verbatrarc.json"),
+      JSON.stringify({
+        sourceLocale: "en",
+        targetLocales: ["de"],
+        format: "i18next-json",
+        files: { pattern: "locales/{locale}.json" },
+        provider: { id: "anthropic", options: { model: "m", maxTokens: 256 } },
+      }),
+    );
+    writeFileSync(join(root, "locales", "en.json"), JSON.stringify({ hello: "Hello" }));
+    writeFileSync(join(root, "locales", "de.json"), JSON.stringify({ hello: "Hallo" }));
+    writeFileSync(join(root, ".env"), "ANTHROPIC_API_KEY=from-the-project-root\n");
+  });
+
+  afterEach(() => {
+    process.chdir(original);
+    if (savedKey === undefined) {
+      delete process.env.ANTHROPIC_API_KEY;
+    } else {
+      process.env.ANTHROPIC_API_KEY = savedKey;
+    }
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("loads the key from the config directory's .env when the working directory has none", async () => {
+    process.chdir(join(root, "src"));
+
+    const result = await verbatra("doctor", "--json");
+    const envelope = parseEnvelope(result.out) as {
+      result: { checks: { id: string; status: string }[] };
+    };
+
+    expect(envelope.result.checks.find((check) => check.id === "api-key")?.status).toBe("pass");
+  });
+
+  it("lets the working directory's .env win over the config directory's", async () => {
+    writeFileSync(join(root, "src", ".env"), "ANTHROPIC_API_KEY=from-the-working-directory\n");
+    process.chdir(join(root, "src"));
+
+    await verbatra("doctor", "--json");
+
+    expect(process.env.ANTHROPIC_API_KEY).toBe("from-the-working-directory");
+  });
+
+  it("never reads the config directory's .env for an explicit --config", async () => {
+    process.chdir(join(root, "src"));
+
+    await verbatra("doctor", "--config", "../.verbatrarc.json", "--json");
+
+    expect(process.env.ANTHROPIC_API_KEY).toBeUndefined();
   });
 });

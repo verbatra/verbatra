@@ -81,7 +81,13 @@ describe("verbatra mcp: ready, hint and stopped lines on stderr", () => {
     const { deps } = recordingDeps({
       importMcp: async () =>
         makeMcpModule({
-          startMcpServer: async () => makeMcpHandle({ close, closed: closed.promise, spend }),
+          startMcpServer: async (options) =>
+            makeMcpHandle({
+              close,
+              closed: closed.promise,
+              spend,
+              projectRoot: options.cwd ?? process.cwd(),
+            }),
         }),
     });
     const cap = captureStreams();

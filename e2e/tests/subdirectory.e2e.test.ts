@@ -1,4 +1,4 @@
-import { access, mkdir } from "node:fs/promises";
+import { access, mkdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
@@ -38,7 +38,8 @@ async function projectWithSubdirectory(name: string): Promise<{ root: string; ne
   await writeJsonIn(root, "locales/en.json", { greeting: "Hello", farewell: "Bye" });
   await writeJsonIn(root, "locales/de.json", { greeting: "Hallo" });
   const nested = join(root, "src", "components");
-  await mkdir(nested, { recursive: true });
+  await writeJsonIn(nested, "locales/en.json", { decoy: "Decoy" });
+  await writeJsonIn(nested, "locales/de.json", { decoy: "Attrappe" });
   return { root, nested };
 }
 
@@ -70,6 +71,6 @@ describe("a command run from a subdirectory of the project", () => {
     expect(result.exitCode).toBe(3);
     expect(await exists(join(root, "verbatra.lock.json"))).toBe(true);
     expect(await exists(join(nested, "verbatra.lock.json"))).toBe(false);
-    expect(await exists(join(nested, "locales"))).toBe(false);
+    expect(await readFile(join(nested, "locales", "de.json"), "utf8")).toContain("Attrappe");
   });
 });
