@@ -20,6 +20,8 @@ import {
   type LockWaitEvent,
   type ProgressEvent,
   type ProvenanceReport,
+  PSEUDO_MODES,
+  type PseudoMode,
   QA_SEVERITIES,
   type QaSeverity,
   type RunSummary,
@@ -301,12 +303,30 @@ function parseTypesCommandOpts(rawOpts: unknown): z.infer<typeof typesOptsSchema
 const PSEUDO_LOCALE_TAG = /^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/;
 
 const pseudoOptsSchema = sharedCommandOptsSchema.extend({
+  mode: z.string().optional(),
   locale: z.string().optional(),
   out: z.string().optional(),
 });
 
-function parsePseudoCommandOpts(rawOpts: unknown): z.infer<typeof pseudoOptsSchema> {
-  const opts = pseudoOptsSchema.parse(rawOpts);
+function parsePseudoMode(mode: string | undefined): PseudoMode | undefined {
+  if (mode === undefined) {
+    return undefined;
+  }
+  const known = PSEUDO_MODES.find((candidate) => candidate === mode);
+  if (known === undefined) {
+    throw new CliUsageError(
+      "INVALID_OPTION",
+      `The --mode option takes ${PSEUDO_MODES.map((candidate) => `"${candidate}"`).join(" or ")}, got "${mode}".`,
+    );
+  }
+  return known;
+}
+
+function parsePseudoCommandOpts(
+  rawOpts: unknown,
+): Omit<z.infer<typeof pseudoOptsSchema>, "mode"> & { readonly mode?: PseudoMode } {
+  const { mode: rawMode, ...opts } = pseudoOptsSchema.parse(rawOpts);
+  const mode = parsePseudoMode(rawMode);
   if (opts.locale !== undefined && !PSEUDO_LOCALE_TAG.test(opts.locale)) {
     throw new CliUsageError(
       "INVALID_LOCALE",
@@ -319,7 +339,7 @@ function parsePseudoCommandOpts(rawOpts: unknown): z.infer<typeof pseudoOptsSche
       "The --out option was provided but names no directory. Pass a path relative to the working directory, or omit it to use .verbatra-local/pseudo.",
     );
   }
-  return opts;
+  return mode !== undefined ? { ...opts, mode } : opts;
 }
 
 function runExitCode(summary: {
@@ -1498,6 +1518,7 @@ async function runPseudo(
             deps.pseudolocalize({
               config,
               cwd,
+              ...(opts.mode !== undefined ? { mode: opts.mode } : {}),
               ...(opts.locale !== undefined ? { locale: opts.locale } : {}),
               ...(opts.out !== undefined ? { out: opts.out } : {}),
             }),
@@ -2003,7 +2024,14 @@ function registerPseudoCommand(program: Command, ctx: ProgramContext): void {
     .description("Generate a pseudolocale from the source strings without calling a provider")
     .option("--cwd <path>", "resolve config and locale files from this directory")
     .option("--config <path>", "load this config file instead of searching for one")
-    .option("--locale <code>", "pseudolocale code to generate (default en-XA)")
+    .option(
+      "--mode <mode>",
+      `transform to apply: ${PSEUDO_MODES.join(" or ")} (default accented); bidi renders right to left`,
+    )
+    .option(
+      "--locale <code>",
+      "pseudolocale code to generate (default en-XA, or ar-XB with --mode bidi)",
+    )
     .option(
       "--out <path>",
       "directory to write the pseudolocale under, relative to the working directory and inside it (default .verbatra-local/pseudo)",
@@ -2018,7 +2046,7 @@ function registerPseudoCommand(program: Command, ctx: ProgramContext): void {
         "",
         "Examples:",
         "  $ verbatra pseudo                     generate en-XA under .verbatra-local/pseudo",
-        "  $ verbatra pseudo --locale en-XB      generate a second pseudolocale instead",
+        "  $ verbatra pseudo --mode bidi         generate ar-XB, rendered right to left",
         "  $ verbatra pseudo --out build/pseudo  write it somewhere your dev server serves",
         "  $ verbatra pseudo --json              machine-readable result on stdout",
         "",

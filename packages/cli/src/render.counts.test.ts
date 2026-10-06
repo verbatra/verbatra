@@ -70,8 +70,8 @@ describe("render: count wording agrees with the count", () => {
     [
       "pseudo entries",
       (n: number) => renderPseudoHuman(makePseudoResult({ entries: n, transformed: n })),
-      "en-XA: 1 of 1 entry pseudolocalized",
-      "en-XA: 2 of 2 entries pseudolocalized",
+      "en-XA (accented): 1 of 1 entry pseudolocalized",
+      "en-XA (accented): 2 of 2 entries pseudolocalized",
     ],
     [
       "extract scanned files and present keys",

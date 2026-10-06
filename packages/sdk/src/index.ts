@@ -357,9 +357,11 @@ export {
   provenanceReportPage,
 } from "./flow/provenance-report-page.js";
 export {
+  PSEUDO_MODES,
   type PseudolocalizeDeps,
   type PseudolocalizeInput,
   type PseudolocalizeResult,
+  type PseudoMode,
   pseudolocalize,
 } from "./flow/pseudo.js";
 export {

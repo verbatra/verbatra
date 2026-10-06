@@ -227,3 +227,90 @@ describe("pseudolocalize writes a readable pseudolocale for every supported form
     expect(result.path.startsWith(join(dir, ".verbatra-local", "pseudo"))).toBe(true);
   });
 });
+
+const RLM = "\u200f";
+const RLO = "\u202e";
+const PDF = "\u202c";
+const BIDI_CONTROL = /[\u200f\u202c\u202e]/g;
+
+function overridden(word: string): string {
+  return `${RLM}${RLO}${word}${PDF}${RLM}`;
+}
+
+async function bidiRun(format: SupportedFormat) {
+  const fixture = FIXTURES[format];
+  const config = configFor(fixture, format);
+  const dir = await seedSource(fixture, config);
+  const source = await readFile(
+    createLocalePathResolver(dir, config).pathFor(config.sourceLocale),
+    "utf8",
+  );
+  const result = await pseudolocalize({ config, cwd: dir, mode: "bidi" });
+  const written = await selectAdapter(format).read(result.path, result.locale);
+  return { dir, config, source, result, written };
+}
+
+describe("pseudolocalize in bidi mode writes a right-to-left pseudolocale for every supported format", () => {
+  it.each(Object.keys(FIXTURES) as SupportedFormat[])("%s", async (format) => {
+    const fixture = FIXTURES[format];
+    const { result, written } = await bidiRun(format);
+    const value = written.resource.entries.get(fixture.key)?.value ?? "";
+
+    expect(result).toMatchObject({ locale: "ar-XB", mode: "bidi", written: true, copied: [] });
+    expect(result.transformed).toBe(result.entries);
+    expect(value).toContain(`${overridden("Hello")} ${fixture.token} ${overridden("and")}`);
+    expect(value).toContain(overridden("welcome"));
+    expect(value.replace(BIDI_CONTROL, "")).toBe(`Hello ${fixture.token} and welcome`);
+    if (fixture.pluralKey !== undefined) {
+      const forms = (written.resource.entries.get(fixture.pluralKey)?.value ?? "").split("|");
+      expect(forms.map((form) => form.trim())).toEqual([overridden("car"), overridden("cars")]);
+    }
+  });
+
+  it.each(Object.keys(FIXTURES) as SupportedFormat[])(
+    "%s: a second bidi run over unchanged source rewrites nothing",
+    async (format) => {
+      const { config, dir, result } = await bidiRun(format);
+      const afterFirst = await readFile(result.path, "utf8");
+      const second = await pseudolocalize({ config, cwd: dir, mode: "bidi" });
+
+      expect(second.written).toBe(false);
+      expect(await readFile(second.path, "utf8")).toBe(afterFirst);
+    },
+  );
+
+  it("i18next JSON: stores the controls as characters and leaves the placeholder outside them", async () => {
+    const { result } = await bidiRun("i18next-json");
+
+    expect(JSON.parse(await readFile(result.path, "utf8"))).toEqual({
+      greeting: `${overridden("Hello")} {{name}} ${overridden("and")} ${overridden("welcome")}`,
+    });
+  });
+
+  it("Android XML: writes values-ar-rXB with the printf placeholder outside the override", async () => {
+    const { dir, result } = await bidiRun("android-xml");
+
+    expect(result.path).toBe(
+      join(dir, ".verbatra-local", "pseudo", "res", "values-ar-rXB", "strings.xml"),
+    );
+    expect(await readFile(result.path, "utf8")).toContain(
+      `${overridden("Hello")} %1$s ${overridden("and")} ${overridden("welcome")}`,
+    );
+  });
+
+  it("gettext: writes the msgstr with the printf placeholder outside the override", async () => {
+    const { result } = await bidiRun("gettext-po");
+
+    expect(await readFile(result.path, "utf8")).toContain(
+      `msgstr "${overridden("Hello")} %s ${overridden("and")} ${overridden("welcome")}"`,
+    );
+  });
+
+  it("next-intl: overrides the text of each ICU plural arm and keeps the syntax", async () => {
+    const { written } = await bidiRun("next-intl-json");
+
+    expect(written.resource.entries.get("items")?.value).toBe(
+      `{count, plural, one {# ${overridden("item")} ${overridden("left")}} other {# ${overridden("items")} ${overridden("left")}}}`,
+    );
+  });
+});

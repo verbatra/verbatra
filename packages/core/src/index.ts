@@ -63,7 +63,7 @@ export {
 export { checkPlaceholders } from "./placeholder/integrity.js";
 export { type ProtectedRun, protectedRuns } from "./placeholder/protected-runs.js";
 export type { PlaceholderIntegrityResult } from "./placeholder/types.js";
-export { pseudolocalizeValue } from "./pseudo/pseudo-transform.js";
+export { pseudolocalizeBidiValue, pseudolocalizeValue } from "./pseudo/pseudo-transform.js";
 export {
   assessBidiControls,
   type BidiControlsAssessment,

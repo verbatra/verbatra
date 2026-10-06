@@ -199,6 +199,15 @@ Every generated value is held to the same integrity gate a provider translation 
 that would not pass it is copied from the source verbatim and named in `copied` rather than written
 in a broken form, so the entry is still present and still renders.
 
+<AvailableFrom version="0.12.0" />
+
+`mode` picks the transform from `PSEUDO_MODES`: `accented`, the default, or `bidi`, which instead
+wraps every word of translatable text in a right-to-left mark and override and leaves
+placeholders, ICU syntax, markup, digits and punctuation outside it, accenting nothing. In `bidi`
+mode `locale` defaults to `ar-XB`, a code that resolves to right-to-left direction; see
+[`verbatra pseudo`](/docs/cli/pseudo) for how its Arabic plural rules meet your source's plural
+forms.
+
 `locale` defaults to `en-XA` and `out` to
 `.verbatra-local/pseudo`, which `verbatra init` already adds to `.gitignore`; the configured
 `files.pattern` is expanded inside it, so the file keeps the layout the application expects. A
@@ -210,7 +219,7 @@ default does, one that does any of this, lands in the directory of a configured 
 lands on another file the project depends on, once symbolic links are resolved. Because the file lives outside `files.pattern`,
 `translate` never spends on it and `check` and `diff` never report it as drifted.
 
-Returns a `PseudolocalizeResult`: the `locale`, the absolute `path`, how many `entries` were
+Returns a `PseudolocalizeResult`: the `locale`, the `mode`, the absolute `path`, how many `entries` were
 processed, how many were `transformed`, the keys that were `copied`, and whether anything was
 `written`. The transform is deterministic, so a second run over unchanged source rewrites nothing
 and reports `written` as false. For `xliff` and `apple-xcstrings`, whose writers only patch a

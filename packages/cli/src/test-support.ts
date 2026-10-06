@@ -138,6 +138,7 @@ export function makePseudoResult(
 ): PseudolocalizeResult {
   return {
     locale: "en-XA",
+    mode: "accented",
     path: "/proj/.verbatra-local/pseudo/locales/en-XA.json",
     entries: 1,
     transformed: 1,

@@ -6,7 +6,7 @@ type: reference
 ---
 <AvailableFrom version="0.11.0" />
 
-Ejecuta tu app en un idioma que no existe. `pseudo` construye un locale falso a partir de tus cadenas de origen: cada valor se acentúa, se alarga y se envuelve en marcadores visibles, así que los botones recortados, las frases pegadas a trozos y las etiquetas nunca extraídas saltan a la vista. No construye ningún proveedor, no lee ninguna clave de API ni hace peticiones de red, así que funciona antes de que exista una clave.
+Ejecuta tu app en un idioma que no existe. `pseudo` construye un locale falso a partir de tus cadenas de origen: cada valor se acentúa, se alarga y se envuelve en marcadores visibles, así que los botones recortados, las frases pegadas a trozos y las etiquetas nunca extraídas saltan a la vista. Con `--mode bidi` muestra en cambio cada cadena de derecha a izquierda. No construye ningún proveedor, no lee ninguna clave de API ni hace peticiones de red, así que funciona antes de que exista una clave.
 
 ## Sinopsis
 
@@ -18,7 +18,8 @@ verbatra pseudo [flags]
 
 | Flag | Argumento | Por defecto | Efecto |
 | --- | --- | --- | --- |
-| `--locale` | `<code>` | `en-XA` | el pseudolocale que se genera; solo letras, dígitos y guiones (si no, `INVALID_LOCALE`) |
+| `--mode` | `<mode>` | `accented` | <AvailableFrom version="0.12.0" /> la transformación: `accented` o `bidi`, que muestra cada palabra de derecha a izquierda (si no, `INVALID_OPTION`) |
+| `--locale` | `<code>` | `en-XA` (`ar-XB` con `--mode bidi`) | el pseudolocale que se genera; solo letras, dígitos y guiones (si no, `INVALID_LOCALE`) |
 | `--out` | `<path>` | `.verbatra-local/pseudo` | directorio donde se escribe el pseudolocale, relativo al directorio de trabajo y dentro de él |
 
 También acepta los [flags globales](/docs/cli#flags-globales) `--cwd`, `--config` y `--json`.
@@ -37,6 +38,23 @@ También acepta los [flags globales](/docs/cli#flags-globales) `--cwd`, `--confi
 `[Ĥéĺĺó {{name}}, ýóú ĥáṽé {{count}} úńŕéáḋ ṁéśśáġéś············]`.
 
 Solo cambia el texto traducible. Los placeholders sobreviven en cualquier sintaxis que reconozcan los [adaptadores de formato](/docs/formats), y dentro de un mensaje ICU los nombres de argumento, las palabras clave `plural` y `select` y los selectores de rama se quedan como están. Las formas plurales de vue-i18n separadas por barras se transforman una a una: `car | cars` pasa a `[ćáŕ··] | [ćáŕś··]`. La transformación es determinista, así que el archivo produce diffs limpios.
+
+### Modo de derecha a izquierda
+
+<AvailableFrom version="0.12.0" />
+
+`--mode bidi` cambia los acentos por una anulación de derecha a izquierda, el mismo enfoque que Android y Chromium usan para su pseudolocale `ar-XB`, así que un diseño que da por hecho texto de izquierda a derecha se nota antes de que exista ninguna traducción de derecha a izquierda.
+
+| Paso | Lo que ves |
+| --- | --- |
+| Anular | cada palabra va entre una marca y una anulación de derecha a izquierda (`U+200F U+202E` delante, `U+202C U+200F` detrás), así que `Save` se muestra como `evaS` |
+| Conservar | los placeholders, la sintaxis ICU, el marcado, los dígitos y la puntuación quedan fuera de la anulación y se leen de izquierda a derecha, como en un texto real de derecha a izquierda |
+
+Nada se acentúa, se alarga ni va entre corchetes: la anchura es lo que prueba el modo por defecto. El archivo guarda las letras en su orden original, y cada valor pasa la misma puerta de integridad, así que los placeholders y las ramas de plural quedan idénticos byte a byte.
+
+El pseudolocale por defecto es `ar-XB`, que `Intl.Locale` y la mayoría de las bibliotecas de i18n resuelven de derecha a izquierda, así que una app que deduce `dir` del locale se invierte sola. `ar-XB` sigue las reglas de plural del árabe (`zero`, `one`, `two`, `few`, `many`, `other`). Los mensajes ICU, los `<plurals>` de Android, gettext, los catálogos de Apple y las barras de vue-i18n resuelven una cantidad con las formas que el archivo ya tiene. `i18next-json` guarda cada forma en su propia clave `_one` u `_other`, así que el archivo recibe además cada categoría que le falta al origen (`_zero`, `_two`, `_few`, `_many`, y las formas ordinales igual), rellenada con la forma `other` del origen, y ninguna cantidad recurre a tu idioma de respaldo. Pasa `--locale en-XB` para conservar las reglas de plural del inglés, y pon tú `dir="rtl"`.
+
+Un sanitizador que elimina los caracteres de formato Unicode quita la anulación, y la cadena vuelve a mostrarse de izquierda a derecha. Los editores y escáneres de código que avisan de caracteres bidireccionales ocultos marcan el archivo, un motivo más para que se quede en `.verbatra-local`.
 
 ### Nunca llega nada roto al archivo
 
@@ -60,7 +78,7 @@ Los escritores de `xliff` y `apple-xcstrings` parchean unidades que ya están en
 
 ### Salida JSON
 
-Con `--json`, el [envoltorio JSON](/docs/cli/output#salida-json) lleva `locale`, `path`, `entries` (entradas de origen), `transformed` (pseudolocalizadas), `copied` (claves copiadas tal cual) y `written` (`false` cuando el archivo ya estaba al día).
+Con `--json`, el [envoltorio JSON](/docs/cli/output#salida-json) lleva `locale`, `mode` (`accented` o `bidi`), `path`, `entries` (entradas escritas, incluidas las formas de plural añadidas en modo bidi), `transformed` (valores que difieren del origen), `copied` (claves copiadas tal cual) y `written` (`false` cuando el archivo ya estaba al día).
 
 ### Información en el terminal
 
@@ -71,7 +89,7 @@ El resultado va a stdout; la línea de progreso y el siguiente paso van a stderr
 ```text output
 verbatra: pseudolocalizing the source... done (0.1s)
 verbatra pseudo
-  en-XA: 118 of 120 entries pseudolocalized
+  en-XA (accented): 118 of 120 entries pseudolocalized
     copied verbatim: legal.disclaimer, brand.name
   wrote .verbatra-local/pseudo/locales/en-XA.json
 next: load .verbatra-local/pseudo/locales/en-XA.json as the en-XA locale in your dev server
@@ -85,10 +103,10 @@ Una segunda ejecución sobre un origen sin cambios informa `unchanged` en lugar 
 # generar en-XA en .verbatra-local/pseudo
 verbatra pseudo
 
-# generar un segundo pseudolocale al lado
-verbatra pseudo --locale en-XB
+# mostrar cada cadena de derecha a izquierda en ar-XB
+verbatra pseudo --mode bidi
 
-# escribirlo donde el servidor de desarrollo ya sirve archivos estáticos
+# escribirlo donde el servidor de desarrollo ya sirve archivos estáticos (no hagas commit de un archivo bidi: GitHub marca su Unicode oculto)
 verbatra pseudo --out public/locales-pseudo
 
 # resultado legible por máquina para un script
