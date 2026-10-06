@@ -3,10 +3,8 @@
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { AiSetupPrompt } from "@/components/ai-setup-prompt";
-import { HighlightedCommand } from "@/components/ui/command-line";
-import { CopyButton } from "@/components/ui/copy-button";
-import { CLI_PACKAGE, NPM_INSTALL_COMMAND } from "@/lib/install-commands";
-import { trackUmamiEvent } from "@/lib/umami";
+import { CommandRow } from "@/components/command-row";
+import { AGENT_INIT_COMMAND, CLI_PACKAGE, NPM_INSTALL_COMMAND } from "@/lib/install-commands";
 import { NPM_CLI } from "./links";
 
 export function PackageInstall(): ReactNode {
@@ -21,25 +19,20 @@ export function PackageInstall(): ReactNode {
           borderColor: "var(--border-default)",
         }}
       >
-        <div className="flex items-start gap-3 px-3.5 py-3 font-mono text-sm leading-6">
-          <span aria-hidden="true" className="pt-1" style={{ color: "var(--v-glow)" }}>
-            $
-          </span>
-          <code className="vk-terminal-scroll min-w-0 flex-1 whitespace-nowrap pt-1 text-[color:var(--text-strong)] @max-[30rem]:whitespace-normal">
-            <HighlightedCommand
-              command={NPM_INSTALL_COMMAND}
-              link={{ token: CLI_PACKAGE, href: NPM_CLI }}
-            />
-          </code>
-          <CopyButton
-            text={NPM_INSTALL_COMMAND}
-            label={t("copyAria")}
-            onCopied={() =>
-              trackUmamiEvent("copy-install-command", { command: NPM_INSTALL_COMMAND })
-            }
-          />
-        </div>
-        <AiSetupPrompt variant="row" />
+        <CommandRow
+          command={NPM_INSTALL_COMMAND}
+          link={{ token: CLI_PACKAGE, href: NPM_CLI }}
+          label={t("copyAria")}
+          event="copy-install-command"
+          wrapsWhenNarrow
+        />
+        <CommandRow
+          command={AGENT_INIT_COMMAND}
+          label={t("copyAgentAria")}
+          event="copy-agent-command"
+          divided
+        />
+        <AiSetupPrompt />
       </div>
     </div>
   );

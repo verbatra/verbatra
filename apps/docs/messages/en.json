@@ -39,6 +39,14 @@
     },
     "statusBadges": {
       "new": "new"
+    },
+    "startHere": {
+      "title": "Start here",
+      "lead": "With `@verbatra/cli` installed, one command wires Claude Code, Cursor or VS Code to verbatra, spending off. Any other agent: paste the prompt.",
+      "markdown": "Start here: once `@verbatra/cli` is installed in the project, `{command}` wires your coding agent, spending off."
+    },
+    "mcpInstall": {
+      "label": "Add to {client}"
     }
   },
   "landing": {
@@ -78,6 +86,7 @@
       "copy": "Copy",
       "copied": "Copied",
       "copyAria": "Copy install command",
+      "copyAgentAria": "Copy the agent setup command",
       "aiLabel": "Prompt for AI agents",
       "copyPromptAria": "Copy the AI agent setup prompt",
       "copyCommand": "Copy {command}"

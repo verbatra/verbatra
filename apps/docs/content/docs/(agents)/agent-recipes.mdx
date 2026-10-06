@@ -3,6 +3,8 @@ title: Script verbatra with JSON
 description: "Drive verbatra from a shell script or an agent loop: keep stdout clean, read the payloads, branch on the exit code, and follow a watch stream."
 type: how-to
 ---
+<StartHere />
+
 Use this page when a script or a coding agent runs verbatra and has to decide what to do next. Every one-shot command takes `--json` and prints one envelope on stdout, and the exit code says whether the run was clean. The recipes below run, parse, decide and act on real captured output.
 
 The contract itself is on [Exit codes and JSON output](/docs/cli/output): the envelope fields, the exit-code table and which commands take `--json`. Each command's `result` is on its command page. To drive the dashboard in a browser instead of a shell, see [Drive Studio with a browser agent](/docs/agent-tools-in-studio).

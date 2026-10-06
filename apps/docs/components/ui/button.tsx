@@ -25,6 +25,14 @@ const SIZE: Record<NonNullable<ButtonProps["size"]>, string> = {
   lg: "py-[13px] px-[22px] text-base",
 };
 
+export function buttonClasses(
+  variant: NonNullable<ButtonProps["variant"]> = "primary",
+  size: NonNullable<ButtonProps["size"]> = "md",
+  className?: string,
+): string {
+  return `${BASE} ${VARIANT[variant]} ${SIZE[size]}${className ? ` ${className}` : ""}`;
+}
+
 export default function Button({
   variant = "primary",
   size = "md",
@@ -35,7 +43,7 @@ export default function Button({
   className,
   ...rest
 }: ButtonProps): ReactNode {
-  const classes = `${BASE} ${VARIANT[variant]} ${SIZE[size]}${className ? ` ${className}` : ""}`;
+  const classes = buttonClasses(variant, size, className);
   const style: CSSProperties | undefined =
     variant === "primary" ? { background: "var(--accent-fill)" } : undefined;
 
