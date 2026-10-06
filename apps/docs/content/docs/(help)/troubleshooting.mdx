@@ -225,6 +225,10 @@ both. What is compared, and the refusals that are by design, are in
 [pnpm blocks a dependency's install scripts](#pnpm-blocks-a-dependencys-install-scripts-err_pnpm_ignored_builds)
 first.
 
+`npx @verbatra/cli` runs the CLI installed in the package of the current folder, so run it from
+the project root (or use `pnpm exec verbatra` in a workspace subpackage); anywhere else npx fetches
+the latest CLI, which may not match your local `@verbatra/studio` or `@verbatra/mcp`.
+
 ## Studio: retranslate and translate actions are missing
 
 **Symptom**: editing works, but the retranslate and translate-pending actions do not appear.

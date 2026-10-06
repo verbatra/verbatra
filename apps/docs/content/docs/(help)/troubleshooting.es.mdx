@@ -232,6 +232,11 @@ misma puerta juzga ambos. Qué se compara y qué rechazos son intencionados est�
 `npx -y -p @verbatra/cli -p @verbatra/studio verbatra studio`. Con pnpm, lee antes
 [pnpm bloquea los scripts de instalación de una dependencia](#pnpm-bloquea-los-scripts-de-instalación-de-una-dependencia-err_pnpm_ignored_builds).
 
+`npx @verbatra/cli` ejecuta la CLI instalada en el paquete de la carpeta actual, así que lánzalo
+desde la raíz del proyecto (o usa `pnpm exec verbatra` en un subpaquete del workspace); en otro
+lugar npx descarga la CLI más reciente, que puede no coincidir con tu `@verbatra/studio` o
+`@verbatra/mcp` local.
+
 ## Studio: faltan las acciones de retraducir y traducir
 
 **Síntoma**: editar funciona, pero las acciones de retraducir y de traducir claves pendientes no

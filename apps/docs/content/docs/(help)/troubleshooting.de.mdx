@@ -237,6 +237,11 @@ sind, steht unter [Inline-Markup-Parität](/docs/translation-safety#inline-marku
 `npx -y -p @verbatra/cli -p @verbatra/studio verbatra studio`. Mit pnpm lies vorher
 [pnpm blockiert die Installationsskripte einer Abhängigkeit](#pnpm-blockiert-die-installationsskripte-einer-abhängigkeit-err_pnpm_ignored_builds).
 
+`npx @verbatra/cli` startet die CLI, die im Paket des aktuellen Ordners installiert ist, also
+führe es im Projektstamm aus (oder nutze `pnpm exec verbatra` in einem Workspace-Unterpaket);
+anderswo lädt npx die neueste CLI, die vielleicht nicht zu deinem lokalen `@verbatra/studio` oder
+`@verbatra/mcp` passt.
+
 ## Studio: Retranslate- und Translate-Aktionen fehlen
 
 **Symptom**: Bearbeiten funktioniert, aber die Aktionen zum Neuübersetzen und zum Übersetzen

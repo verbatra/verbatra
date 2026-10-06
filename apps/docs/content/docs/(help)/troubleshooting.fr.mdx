@@ -233,6 +233,11 @@ même barrière juge les deux. Ce qui est comparé et quels refus sont voulus es
 `npx -y -p @verbatra/cli -p @verbatra/studio verbatra studio`. Avec pnpm, lis d'abord
 [pnpm bloque les scripts d'installation d'une dépendance](#pnpm-bloque-les-scripts-dinstallation-dune-dépendance-err_pnpm_ignored_builds).
 
+`npx @verbatra/cli` lance la CLI installée dans le paquet du dossier courant, donc lance-le depuis
+la racine du projet (ou utilise `pnpm exec verbatra` dans un sous-paquet du workspace) ; ailleurs,
+npx télécharge la dernière CLI, qui peut ne pas correspondre à ton `@verbatra/studio` ou
+`@verbatra/mcp` local.
+
 ## Studio : les actions de retraduction et de traduction manquent
 
 **Symptôme** : l'édition fonctionne, mais les actions de retraduction et de traduction des clés en
