@@ -94,7 +94,14 @@ export function judgeProviderEndpoint(
   target: EndpointTarget,
   env: EnvironmentSource,
 ): EndpointJudgement {
-  const endpoint = resolveProviderEndpoint(target, env);
+  return judgeEndpoint(policy, resolveProviderEndpoint(target, env), env);
+}
+
+export function judgeEndpoint(
+  policy: NetworkPolicy,
+  endpoint: ProviderEndpoint,
+  env: EnvironmentSource,
+): EndpointJudgement {
   const parsedHost = hostOf(endpoint.url);
   const host = parsedHost ?? UNPARSEABLE_HOST;
   if (!isRestrictive(policy)) {

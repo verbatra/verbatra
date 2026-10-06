@@ -40,6 +40,35 @@ Avec `literals` activé, `doctor` n'exécute que les vérifications `config` et 
 
 Seule une vérification en échec porte `fix`, une prochaine étape à l'impératif ; comme `detail`, il nomme des variables et des chemins, jamais la valeur d'une clé.
 
+### dataFlow
+
+<AvailableFrom version="0.12.0" />
+
+Décrit où vont les données d'un projet, pour la config chargée, sous forme d'un `DataFlowManifest` versionné : le fournisseur, chaque hôte de destination avec le verdict de la [politique réseau](/docs/network-policy), les types de données envoyées avec les décomptes du projet, le code envoyé par locale cible, les fichiers locaux, les autres requêtes et les surfaces d'agents. Il ne lit aucune clé d'API et ne fait aucune requête réseau, donc DeepL figure avec ses deux hôtes. Une variable réseau invalide ou un fichier source illisible est signalé dans le manifeste au lieu d'être levé. [`verbatra doctor --data-flow`](/docs/cli/doctor#flux-de-données) l'affiche, et `doctor({ dataFlow: true })` le renvoie comme `DoctorResult.dataFlow`.
+
+```ts title="Signature"
+function dataFlow(
+  input?: DataFlowInput,
+  deps?: DataFlowDeps,
+): Promise<DataFlowManifest>;
+```
+
+<SdkTypeTable name="DataFlowInput" />
+
+**Renvoie :** `DataFlowManifest`
+
+**Lève :** [`CONFIG_NOT_FOUND`](/docs/error-codes#config_not_found), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
+
+### dataFlowManifestSchema
+
+<AvailableFrom version="0.12.0" />
+
+Le schéma zod d'un `DataFlowManifest`, exporté pour qu'une étape de CI ou l'outil d'un relecteur puisse valider un manifeste. Les champs inconnus sont acceptés et conservés, car un verbatra plus récent peut ajouter des champs dans la version 1 ; ignore ceux que tu ne connais pas. `DATA_FLOW_MANIFEST_VERSION` est la `version` qu'écrit ce build.
+
+```ts title="Signature"
+const dataFlowManifestSchema: z.ZodType<DataFlowManifest>;
+```
+
 ### extract
 
 <AvailableFrom version="0.11.0" />

@@ -78,7 +78,9 @@ deterministic test joins the required gate automatically.
   arms (`tests/icu-plural-arms.e2e.test.ts`), plurals missing CLDR categories in `check` and
   `doctor` (`tests/plural-completeness.e2e.test.ts`), inline markup parity on import
   (`tests/markup-parity.e2e.test.ts`), the network policy and `VERBATRA_NETWORK_POLICY` under a live
-  network guard (`tests/network-policy.e2e.test.ts`), the provenance file
+  network guard (`tests/network-policy.e2e.test.ts`), `doctor --data-flow --json` validated
+  against the published `dataFlowManifestSchema` under the same guard (`tests/data-flow.e2e.test.ts`),
+  the provenance file
   (`tests/provenance.e2e.test.ts`), `report provenance` with `--json`, its human table, and a
   corrupt provenance file failing it closed (`tests/report-provenance.e2e.test.ts`), `pseudo` (`tests/pseudo.e2e.test.ts`), the Studio server served
   from the installed package, its `INVALID_PORT` error, and its missing-package hint

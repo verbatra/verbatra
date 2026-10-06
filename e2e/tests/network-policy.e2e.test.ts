@@ -1,6 +1,5 @@
 import { access, mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { pathToFileURL } from "node:url";
 import { execa } from "execa";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
@@ -8,29 +7,14 @@ import {
   parseEnvelope,
   readSharedConsumer,
   runVerbatra,
-  writeFileIn,
   writeJsonIn,
 } from "../src/harness.js";
+import { noNetworkNodeOptions } from "../src/no-network.js";
 
 interface DoctorJson {
   ok: boolean;
   checks: { id: string; status: string; detail: string }[];
 }
-
-const NO_NETWORK_PRELOAD = [
-  'import dns from "node:dns";',
-  'import { syncBuiltinESMExports } from "node:module";',
-  'import net from "node:net";',
-  "const refuse = () => {",
-  '  throw new Error("network-policy e2e: a network call was attempted");',
-  "};",
-  "globalThis.fetch = refuse;",
-  "net.Socket.prototype.connect = refuse;",
-  "dns.lookup = refuse;",
-  "dns.promises.lookup = refuse;",
-  "syncBuiltinESMExports();",
-  "",
-].join("\n");
 
 const NO_KEYS: Record<string, string> = {
   ANTHROPIC_API_KEY: "",
@@ -51,10 +35,10 @@ let offlineEnv: Record<string, string>;
 
 beforeAll(async () => {
   consumer = await readSharedConsumer();
-  const preloadDir = join(consumer.dir, "network-policy-preload");
-  await writeFileIn(preloadDir, "no-network.mjs", NO_NETWORK_PRELOAD);
-  const preloadUrl = pathToFileURL(join(preloadDir, "no-network.mjs")).href;
-  offlineEnv = { ...NO_KEYS, NODE_OPTIONS: `--import ${preloadUrl}` };
+  offlineEnv = {
+    ...NO_KEYS,
+    NODE_OPTIONS: await noNetworkNodeOptions(consumer.dir, "network-policy"),
+  };
 }, 180_000);
 
 async function scaffold(name: string, network?: Record<string, unknown>): Promise<string> {
