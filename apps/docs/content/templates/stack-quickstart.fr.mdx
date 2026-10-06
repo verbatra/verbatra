@@ -46,6 +46,8 @@ Si <StackText field="sourceFile" /> existe déjà, passe cette étape. Sinon, cr
 npx verbatra init --agent
 ```
 
+<McpInstallLinks />
+
 Passe cette étape si tu ne travailles pas avec un agent de code. Avec la configuration en place, `init --agent` la garde et ajoute seulement les fichiers pour l'agent : les règles verbatra dans `AGENTS.md` (ou `CLAUDE.md`, quand c'est ton seul fichier d'instructions) et le serveur MCP verbatra, sans les outils qui dépensent, dans la configuration de projet de chaque agent qu'il détecte : `.mcp.json` pour Claude Code, `.cursor/mcp.json` pour Cursor, `.vscode/mcp.json` pour VS Code. Avec `--client`, tu choisis toi-même les agents, et `--dry-run` montre les fichiers sans les écrire. Voir [Préparer les agents de code](/docs/cli/init#préparer-les-agents-de-code) et [Connecter un client MCP](/docs/connect-an-mcp-client).
 
 </Step>

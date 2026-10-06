@@ -17,7 +17,7 @@ import {
   DocsHomeSteps,
 } from "@/components/docs-home";
 import { VMark } from "@/components/landing";
-import { McpInstallLink } from "@/components/mcp-install-link";
+import { McpInstallLink, McpInstallLinks } from "@/components/mcp-install-link";
 import { OutputCodeBlock } from "@/components/output-code-block";
 import { StackCards } from "@/components/stack-cards";
 import { StartHere } from "@/components/start-here";
@@ -84,6 +84,7 @@ export function getMDXComponents(
     AvailableFrom: (props: AvailableFromProps) => <AvailableFrom {...props} locale={locale} />,
     StartHere,
     McpInstallLink,
+    McpInstallLinks,
     DiffPanel,
     Step,
     Steps,

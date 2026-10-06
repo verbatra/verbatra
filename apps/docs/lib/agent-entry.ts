@@ -1,6 +1,12 @@
 import { AI_SETUP_PROMPT_MARKDOWN } from "./ai-setup-prompt";
 import { AGENT_INIT_COMMAND } from "./install-commands";
-import { isMcpInstallClient, MCP_INSTALL_COMPONENT, mcpInstallMarkdown } from "./mcp-install-links";
+import {
+  isMcpInstallClient,
+  MCP_INSTALL_ALL_COMPONENT,
+  MCP_INSTALL_COMPONENT,
+  mcpInstallAllMarkdown,
+  mcpInstallMarkdown,
+} from "./mcp-install-links";
 
 export const START_HERE_COMPONENT = "StartHere";
 
@@ -31,6 +37,7 @@ function attributeValue(node: MdxNode, name: string): unknown {
 function markdownFor(node: MdxNode): string | undefined {
   if (node.type !== "mdxJsxFlowElement") return undefined;
   if (node.name === START_HERE_COMPONENT) return START_HERE_MARKDOWN;
+  if (node.name === MCP_INSTALL_ALL_COMPONENT) return mcpInstallAllMarkdown();
   if (node.name !== MCP_INSTALL_COMPONENT) return undefined;
   const client = attributeValue(node, "client");
   return isMcpInstallClient(client) ? mcpInstallMarkdown(client) : undefined;

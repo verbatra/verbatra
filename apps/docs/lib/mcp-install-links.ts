@@ -6,6 +6,8 @@ export type McpInstallClient = (typeof MCP_INSTALL_CLIENTS)[number];
 
 export const MCP_INSTALL_COMPONENT = "McpInstallLink";
 
+export const MCP_INSTALL_ALL_COMPONENT = "McpInstallLinks";
+
 export const CURSOR_INSTALL_PREFIX = "cursor://anysphere.cursor-deeplink/mcp/install?";
 
 export const VSCODE_INSTALL_PREFIX = "vscode:mcp/install?";
@@ -36,4 +38,8 @@ export function isMcpInstallClient(value: unknown): value is McpInstallClient {
 
 export function mcpInstallMarkdown(client: McpInstallClient): string {
   return `[Add verbatra to ${mcpInstallClientName(client)}](${MCP_INSTALL_LINKS[client]})`;
+}
+
+export function mcpInstallAllMarkdown(): string {
+  return MCP_INSTALL_CLIENTS.map(mcpInstallMarkdown).join(" ");
 }

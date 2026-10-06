@@ -9,7 +9,7 @@ vi.mock("next-intl", () => ({
     `${key}:${values?.client ?? ""}`,
 }));
 
-const { McpInstallLink } = await import("./mcp-install-link");
+const { McpInstallLink, McpInstallLinks } = await import("./mcp-install-link");
 
 function link(client: (typeof MCP_INSTALL_CLIENTS)[number]): HTMLAnchorElement | null {
   const markup = renderToStaticMarkup(<McpInstallLink client={client} />);
@@ -35,5 +35,13 @@ describe("McpInstallLink", () => {
     expect(anchor?.classList.contains("min-h-11")).toBe(true);
     expect(anchor?.dataset.umamiEvent).toBe("mcp-install");
     expect(anchor?.dataset.umamiEventClient).toBe("vscode");
+  });
+
+  it("renders the pair as one row of both links, Cursor first", () => {
+    const markup = renderToStaticMarkup(<McpInstallLinks />);
+    const doc = new DOMParser().parseFromString(markup, "text/html");
+    const hrefs = [...doc.querySelectorAll("p > a")].map((anchor) => anchor.getAttribute("href"));
+    expect(hrefs).toEqual([MCP_INSTALL_LINKS.cursor, MCP_INSTALL_LINKS.vscode]);
+    expect(doc.querySelector("p")?.classList.contains("flex-wrap")).toBe(true);
   });
 });

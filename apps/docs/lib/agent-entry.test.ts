@@ -10,10 +10,19 @@ import {
 } from "./agent-entry";
 import { AI_SETUP_PROMPT_MARKDOWN } from "./ai-setup-prompt";
 import { AGENT_INIT_COMMAND } from "./install-commands";
-import { MCP_INSTALL_COMPONENT, mcpInstallMarkdown } from "./mcp-install-links";
+import {
+  MCP_INSTALL_ALL_COMPONENT,
+  MCP_INSTALL_COMPONENT,
+  mcpInstallAllMarkdown,
+  mcpInstallMarkdown,
+} from "./mcp-install-links";
 
 const DOCS_DIR = fileURLToPath(new URL("../", import.meta.url));
 const CONTENT_DIR = join(DOCS_DIR, "content/docs");
+const AGENT_STEP_SOURCES = [
+  "content/templates/stack-quickstart",
+  "content/docs/(agents)/connect-an-mcp-client",
+] as const;
 const LOCALE_SUFFIXES = ["", ".de", ".es", ".fr"] as const;
 const START_HERE_ELEMENT = `<${START_HERE_COMPONENT} />`;
 const FRONTMATTER = /^---\n[\s\S]*?\n---\n/;
@@ -110,6 +119,15 @@ describe("remarkAgentEntryMarkdown", () => {
       expect(stringified(node)).toEqual({ text: mcpInstallMarkdown(client) });
     },
   );
+
+  it("writes both install links for the button pair", () => {
+    expect(stringified(element(MCP_INSTALL_ALL_COMPONENT))).toEqual({
+      text: mcpInstallAllMarkdown(),
+    });
+    expect(mcpInstallAllMarkdown()).toBe(
+      `${mcpInstallMarkdown("cursor")} ${mcpInstallMarkdown("vscode")}`,
+    );
+  });
 
   it("leaves an install link for an unknown client and every other component alone", () => {
     const unknown = element(MCP_INSTALL_COMPONENT, [
