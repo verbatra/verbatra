@@ -86,6 +86,24 @@ Una ejecución que falla por completo escribe exactamente un registro `ok: false
 
 El `result` de un envoltorio correcto es distinto en cada comando y se describe en su página, bajo Salida JSON: [`extract`](/docs/cli/extract), [`translate`](/docs/cli/translate), [`watch`](/docs/cli/watch), [`check`](/docs/cli/check), [`diff`](/docs/cli/diff), [`report`](/docs/cli/report), [`doctor`](/docs/cli/doctor), [`pseudo`](/docs/cli/pseudo), [`types`](/docs/cli/types), [`export`](/docs/cli/export), [`import`](/docs/cli/import), [`tmx`](/docs/cli/tmx), [`init`](/docs/cli/init).
 
+## Esquemas
+
+<AvailableFrom version="0.12.0" />
+
+Cada registro que imprime `--json` tiene un JSON Schema (draft 2020-12). Los esquemas vienen dentro de los paquetes de npm y se sirven en URL estables, para que un script, un agente o un editor pueda validar la salida en lugar de leer prosa. Cada esquema admite propiedades que no enumera, como promete el contrato del envoltorio de arriba; mantenlo así si copias uno.
+
+| Documento | URL | Archivo en el paquete |
+| --- | --- | --- |
+| Cualquier envoltorio, de éxito o de error | [`envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/envelope.json) | `@verbatra/cli/schemas/envelope.json` |
+| El envoltorio de un comando, con su `result` | `https://verbatra.kreitz-webdev.de/schema/v1/<command>-envelope.json` | `@verbatra/cli/schemas/<command>-envelope.json` |
+| El envoltorio de error | [`error-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/error-envelope.json) | `@verbatra/cli/schemas/error-envelope.json` |
+| Una línea JSON en stderr: progreso, espera de un bloqueo, interrupción | [`stderr-record.json`](https://verbatra.kreitz-webdev.de/schema/v1/stderr-record.json) | `@verbatra/cli/schemas/stderr-record.json` |
+| El archivo de configuración | [`config.json`](https://verbatra.kreitz-webdev.de/schema/v1/config.json) | `@verbatra/sdk/schemas/config.json` |
+
+Cada página de comando enlaza su envoltorio en Salida JSON, y [https://verbatra.kreitz-webdev.de/schema/v1](https://verbatra.kreitz-webdev.de/schema/v1) enumera cada documento con su título. El envoltorio de un comando apunta al esquema de su `result` por URL en `$ref`, así que un validador lo carga por la red, o desde `node_modules/@verbatra/sdk/dist/schemas` si registras antes esos archivos.
+
+`v1` sigue la `version: 1` del envoltorio y siempre sirve la última versión publicada. Un campo nuevo se queda en `v1`; un cambio que rompe una carga útil sube la `version` del envoltorio y añade `/schema/v2/`. El esquema de la configuración usa el mismo esquema de URL, pero sigue los cambios de la propia configuración.
+
 ## Códigos de error de la CLI
 
 <AvailableFrom version="0.12.0" />

@@ -82,7 +82,7 @@ describe.each(i18n.languages)("the %s SDK reference folder", (locale) => {
   const onIndex = anchorsOf(index);
 
   it("reads the whole folder, so the checks cannot pass vacuously", () => {
-    expect(pages).toHaveLength(8);
+    expect(pages).toHaveLength(9);
     expect(Object.keys(targets).length).toBeGreaterThanOrEqual(80);
   });
 

@@ -1,0 +1,151 @@
+---
+title: "JSON Schemas"
+description: "Die zod-Schemas hinter jedem --json-Ergebnis und die Funktionen, die daraus die veröffentlichten JSON-Schema-Dokumente machen."
+type: reference
+---
+<AvailableFrom version="0.12.0" />
+
+Jedes `result`, das die CLI unter `--json` ausgibt, hat ein zod-Schema im SDK, das zur Compile-Zeit an den TypeScript-Typ gebunden ist, den es beschreibt. Die beiden können also nicht auseinanderlaufen. Jedes Schema parst auch einen Wert aus einem neueren verbatra: Es akzeptiert Felder, die es nicht aufführt, und lässt sie weg. Dieselben Schemas werden als JSON-Schema-Dokumente veröffentlicht; ihre URLs und die Versionsregel stehen unter [Exit-Codes und JSON-Ausgabe](/docs/cli/output#schemas).
+
+## Ergebnis-Schemas
+
+### runSummarySchema
+
+Beschreibt eine [`RunSummary`](/docs/sdk/run-summary), das `result` von `translate`, `watch` und `import`. Veröffentlicht als `run-summary.json`.
+
+```ts title="Signatur"
+const runSummarySchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### checkSummarySchema
+
+Beschreibt eine `CheckSummary`, das `result` von [`check`](/docs/sdk/inspect#check). Veröffentlicht als `check-summary.json`.
+
+```ts title="Signatur"
+const checkSummarySchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### checkFileSummarySchema
+
+Beschreibt eine `CheckFileSummary`, das `result` von [`checkFile`](/docs/sdk/inspect#checkfile). Veröffentlicht als `check-file-summary.json`.
+
+```ts title="Signatur"
+const checkFileSummarySchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### diffSummarySchema
+
+Beschreibt eine `DiffSummary`, das `result` von [`diff`](/docs/sdk/inspect#diff). Veröffentlicht als `diff-summary.json`.
+
+```ts title="Signatur"
+const diffSummarySchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### doctorResultSchema
+
+Beschreibt ein `DoctorResult`, das `result` von [`doctor`](/docs/sdk/inspect#doctor). Sein Feld `dataFlow` ist [`dataFlowManifestSchema`](/docs/sdk/inspect#dataflowmanifestschema), deshalb verweist `doctor-result.json` auf `data-flow-manifest.json`, statt es zu wiederholen.
+
+```ts title="Signatur"
+const doctorResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### provenanceReportResultSchema
+
+Beschreibt ein `ProvenanceReportResult`, das `result` von [`provenanceReport`](/docs/sdk/inspect#provenancereport), einschließlich der Variante `available: false`. Veröffentlicht als `provenance-report.json`.
+
+```ts title="Signatur"
+const provenanceReportResultSchema: z.ZodUnion<readonly [...]>;
+```
+
+### pseudolocalizeResultSchema
+
+Beschreibt ein `PseudolocalizeResult`, das `result` von [`pseudolocalize`](/docs/sdk/run#pseudolocalize). Veröffentlicht als `pseudolocalize-result.json`.
+
+```ts title="Signatur"
+const pseudolocalizeResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### generateTypesResultSchema
+
+Beschreibt ein `GenerateTypesResult`, das `result` von [`generateTypes`](/docs/sdk/run#generatetypes). Veröffentlicht als `generate-types-result.json`.
+
+```ts title="Signatur"
+const generateTypesResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### extractResultSchema
+
+Beschreibt ein `ExtractResult`, das `result` von [`extract`](/docs/sdk/inspect#extract). Veröffentlicht als `extract-result.json`.
+
+```ts title="Signatur"
+const extractResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### exportWorkbookResultSchema
+
+Beschreibt ein `ExportWorkbookResult`, das `result` von [`exportWorkbook`](/docs/sdk/exchange#exportworkbook). Veröffentlicht als `export-workbook-result.json`.
+
+```ts title="Signatur"
+const exportWorkbookResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### importTmxResultSchema
+
+Beschreibt ein `ImportTmxResult`, das `result` von [`importTmx`](/docs/sdk/exchange#importtmx). Veröffentlicht als `import-tmx-result.json`.
+
+```ts title="Signatur"
+const importTmxResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### exportTmxResultSchema
+
+Beschreibt ein `ExportTmxResult`, das `result` von [`exportTmx`](/docs/sdk/exchange#exporttmx). Veröffentlicht als `export-tmx-result.json`.
+
+```ts title="Signatur"
+const exportTmxResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+## Datensätze im Stream
+
+### progressEventSchema
+
+Beschreibt ein `ProgressEvent`, das, was `onProgress` erhält. Die CLI gibt einige dieser Ereignisse unter `--json` auf stderr aus. Veröffentlicht als `progress-event.json`.
+
+```ts title="Signatur"
+const progressEventSchema: z.ZodUnion<readonly [...]>;
+```
+
+### lockWaitEventSchema
+
+Beschreibt ein `LockWaitEvent`, das, was `onLockWait` erhält, während ein Lauf auf die Schreibsperre einer Locale wartet. Die CLI gibt es mit zusätzlichem `type: "lock-wait"` auf stderr aus. Veröffentlicht als `lock-wait-event.json`.
+
+```ts title="Signatur"
+const lockWaitEventSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+## Veröffentlichen
+
+`SDK_JSON_SCHEMAS` listet jedes Dokument auf, das das SDK unter `@verbatra/sdk/schemas/` veröffentlicht, jeweils mit `name`, `title`, `io` und dem zod-`schema`. `JSON_SCHEMA_BASE_URL` ist `https://verbatra.kreitz-webdev.de/schema/v1/`.
+
+### renderJsonSchemas
+
+Erzeugt JSON-Schema-Dokumente (Draft 2020-12) aus einer Liste von `JsonSchemaDocument`s, nach Namen geordnet. Ein Ausgabedokument erlaubt jede Eigenschaft, die es nicht aufführt; ein Eingabedokument wie die Konfiguration behält seine geschlossenen Objekte. Ein Schema, das ein Dokument aus einer der beiden Listen einbettet, verweist per URL darauf.
+
+```ts title="Signatur"
+function renderJsonSchemas(
+  documents: readonly JsonSchemaDocument[],
+  references?: readonly JsonSchemaDocument[],
+): Readonly<Record<string, JsonSchemaObject>>;
+```
+
+**Rückgabe:** ein Dokument pro Eintrag in `documents`, jeweils mit `$schema`, `$id` und `title`.
+
+### jsonSchemaUrl
+
+Gibt die öffentliche URL eines veröffentlichten Dokuments zurück, die zugleich seine `$id` ist: `jsonSchemaUrl("run-summary")` ergibt `https://verbatra.kreitz-webdev.de/schema/v1/run-summary.json`.
+
+```ts title="Signatur"
+function jsonSchemaUrl(name: string): string;
+```
+
+**Rückgabe:** `string`

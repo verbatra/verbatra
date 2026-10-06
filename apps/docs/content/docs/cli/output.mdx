@@ -86,6 +86,24 @@ A run that fails as a whole writes exactly one `ok: false` record to stdout and 
 
 The `result` of a successful envelope is different for each command and is described under JSON output on its page: [`extract`](/docs/cli/extract), [`translate`](/docs/cli/translate), [`watch`](/docs/cli/watch), [`check`](/docs/cli/check), [`diff`](/docs/cli/diff), [`report`](/docs/cli/report), [`doctor`](/docs/cli/doctor), [`pseudo`](/docs/cli/pseudo), [`types`](/docs/cli/types), [`export`](/docs/cli/export), [`import`](/docs/cli/import), [`tmx`](/docs/cli/tmx), [`init`](/docs/cli/init).
 
+## Schemas
+
+<AvailableFrom version="0.12.0" />
+
+Every record `--json` prints has a JSON Schema (draft 2020-12). The schemas ship inside the npm packages and are served at stable URLs, so a script, an agent or an editor can validate output instead of reading prose. Every schema allows properties it does not list, as the envelope contract above promises; keep it that way if you copy one.
+
+| Document | URL | File in the package |
+| --- | --- | --- |
+| Any envelope, success or error | [`envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/envelope.json) | `@verbatra/cli/schemas/envelope.json` |
+| One command's envelope, with its `result` | `https://verbatra.kreitz-webdev.de/schema/v1/<command>-envelope.json` | `@verbatra/cli/schemas/<command>-envelope.json` |
+| The error envelope | [`error-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/error-envelope.json) | `@verbatra/cli/schemas/error-envelope.json` |
+| A JSON line on stderr: progress, lock wait, interrupt | [`stderr-record.json`](https://verbatra.kreitz-webdev.de/schema/v1/stderr-record.json) | `@verbatra/cli/schemas/stderr-record.json` |
+| The config file | [`config.json`](https://verbatra.kreitz-webdev.de/schema/v1/config.json) | `@verbatra/sdk/schemas/config.json` |
+
+Each command page links its envelope under JSON output, and [https://verbatra.kreitz-webdev.de/schema/v1](https://verbatra.kreitz-webdev.de/schema/v1) lists every document with its title. A command envelope points at its `result` schema by URL in `$ref`, so a validator loads it over the network, or from `node_modules/@verbatra/sdk/dist/schemas` when you register those files first.
+
+`v1` tracks envelope `version: 1` and always serves the latest release. An added field stays in `v1`; a change that breaks a payload raises the envelope `version` and adds `/schema/v2/`. The config schema uses the same URL scheme but follows the config's own changes.
+
 ## CLI error codes
 
 <AvailableFrom version="0.12.0" />
