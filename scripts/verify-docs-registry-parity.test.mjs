@@ -7,6 +7,7 @@ import {
   COMMAND_PAGE_CEILING,
   proseWords,
 } from "../apps/docs/lib/page-type.ts";
+import { STACK_IDS, STACKS } from "../apps/docs/lib/stacks.ts";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -217,6 +218,7 @@ function stackCards(page) {
     const formats = /\bformats: \[([^\]]*)\]/.exec(card)?.[1] ?? "";
     return {
       label: cardField(card, "label"),
+      badge: cardField(card, "badge"),
       formats: [...formats.matchAll(/"([a-z0-9-]+)"/g)].map((format) => format[1]),
       path: href.split("#")[0],
       anchor: href.split("#")[1],
@@ -237,10 +239,27 @@ function sectionAnchors(page) {
     .map((section) => headingSlug(section.split("\n", 1)[0]));
 }
 
+const STACK_PAGE = /^\/docs\/quickstart\/([a-z]+)$/;
+
+function stackPageOf(card) {
+  return STACK_PAGE.exec(card.path)?.[1];
+}
+
+function expectStackPageCard(card, stackId) {
+  expect(STACK_IDS, card.label).toContain(stackId);
+  expect(card.anchor, card.label).toBeUndefined();
+  expect(card.formats, card.label).toEqual([STACKS[stackId].format]);
+}
+
 function expectCardsCoverEveryFormat(cards, stackPage, formats) {
-  expect(cards.flatMap((card) => card.formats).sort()).toEqual([...formats].sort());
+  expect([...new Set(cards.flatMap((card) => card.formats))].sort()).toEqual([...formats].sort());
   const anchors = sectionAnchors(stackPage);
   for (const card of cards) {
+    const stackId = stackPageOf(card);
+    if (stackId !== undefined) {
+      expectStackPageCard(card, stackId);
+      continue;
+    }
     expect(anchors, card.label).toContain(card.anchor);
     for (const format of card.formats) {
       expect(card.anchor, format).toBe(stackSectionAnchor(stackPage, format));
@@ -252,6 +271,22 @@ function stackSectionAnchor(page, format) {
   const [section] = stackSectionsFor(page, format);
   return section === undefined ? undefined : headingSlug(section.split("\n", 1)[0]);
 }
+
+describe("the stack quickstart table", () => {
+  const patterns = initDefaultPatterns();
+
+  it.each(STACK_IDS)("gives %s a built-in format and the layout init writes for it", (id) => {
+    const stack = STACKS[id];
+    expect(stack.id).toBe(id);
+    expect(supportedFormats()).toContain(stack.format);
+    expect(stack.pattern).toBe(patterns.get(stack.format));
+  });
+
+  it("names each format once, so no two stack pages describe the same files", () => {
+    const formats = STACK_IDS.map((id) => STACKS[id].format);
+    expect(new Set(formats).size).toBe(formats.length);
+  });
+});
 
 describe("the pick-your-stack page covers every built-in format", () => {
   const formats = supportedFormats();
@@ -272,7 +307,9 @@ describe("the pick-your-stack page covers every built-in format", () => {
         expect(sections[0], format).toMatch(/\]\(\/docs\/formats#[^)]+\)/);
       }
       const cards = stackCards(page);
-      expect(cards.every((card) => card.path === "")).toBe(true);
+      expect(cards.every((card) => card.path === "" && card.badge === undefined)).toBe(true);
+      const ids = cards.flatMap((card) => card.formats);
+      expect(new Set(ids).size, "one card per format on pick-your-stack").toBe(ids.length);
       expectEveryCardParsed(page);
       expect(page).toContain('<StackCards\n  labelledBy="page-title"');
       expectCardsCoverEveryFormat(cards, page, formats);
@@ -290,7 +327,14 @@ describe("the pick-your-stack page covers every built-in format", () => {
       expect(home).toMatch(
         /<DocsHomeSection id="pick-your-stack" [^>]*>\n\n<StackCards\n {2}labelledBy="pick-your-stack"/,
       );
-      expect(cards.every((card) => card.path === "/docs/pick-your-stack")).toBe(true);
+      for (const card of cards) {
+        const stackPage = stackPageOf(card) !== undefined;
+        expect(stackPage || card.path === "/docs/pick-your-stack", card.label).toBe(true);
+        expect(card.badge !== undefined, card.label).toBe(stackPage);
+      }
+      expect(cards.flatMap((card) => stackPageOf(card) ?? []).sort()).toEqual(
+        [...STACK_IDS].sort(),
+      );
       expectCardsCoverEveryFormat(
         cards,
         readDocPage("(get-started)/pick-your-stack", suffix),
@@ -310,6 +354,20 @@ describe("the pick-your-stack page covers every built-in format", () => {
     expect(covers(page.replace('formats: ["ini"]', "formats: []"))).toThrow();
     expect(covers(page.replace('formats: ["ini"]', 'formats: ["ini", "yaml"]'))).toThrow();
     expect(covers(page.replace('href: "#ini"', 'href: "#nowhere"'))).toThrow();
+    const home = readDocPage("index", "");
+    const homeCovers = (variant) => () =>
+      expectCardsCoverEveryFormat(stackCards(variant), page, supportedFormats());
+    expect(homeCovers(home)).not.toThrow();
+    expect(homeCovers(home.replace(/(label: "Nuxt"[^}]*href: "[^"#]*#)[^"]+/, "$1yaml"))).toThrow();
+    expect(homeCovers(home.replace("/docs/quickstart/vue", "/docs/quickstart/svelte"))).toThrow();
+    expect(
+      homeCovers(
+        home.replace(
+          'formats: ["arb"], href: "/docs/quickstart/flutter"',
+          'formats: ["arb"], href: "/docs/quickstart/react"',
+        ),
+      ),
+    ).toThrow();
     const reordered = page.replace(
       '{ label: "INI", icon: "ini", formats: ["ini"], href: "#ini" }',
       '{ href: "#ini", formats: ["ini"], icon: "ini", label: "INI" }',

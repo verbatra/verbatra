@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { readIncludedSource } from "../apps/docs/lib/docs-pages.ts";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -301,7 +302,7 @@ function docPages() {
   const contentDir = resolve(REPO_ROOT, "apps/docs/content/docs");
   return readdirSync(contentDir, { recursive: true, encoding: "utf8" })
     .filter((file) => file.endsWith(".mdx"))
-    .map((file) => readFileSync(resolve(contentDir, file), "utf8"));
+    .map((file) => readIncludedSource(resolve(contentDir, file)));
 }
 
 function sessionVariablesIn(pages) {

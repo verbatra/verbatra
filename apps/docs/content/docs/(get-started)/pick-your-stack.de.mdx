@@ -3,7 +3,7 @@ title: Wähle deinen Stack
 description: Die Format-ID, das übliche Dateilayout und der init-Befehl für jedes Framework, das verbatra unterstützt.
 type: reference
 ---
-Such dir unten dein Framework heraus und nimm seinen `init`-Befehl statt des Befehls aus dem [Schnellstart](/docs/quickstart). Jedes Dateilayout ist das Muster, das `init` schreibt, wenn es keine Locale-Dateien findet; gibt es deine Dateien schon, erkennt `init`, wo sie liegen, und mit `--path` legst du das Muster selbst fest. Das vollständige Verhalten jedes Formats steht unter [Formate](/docs/formats).
+Such dir unten dein Framework heraus und nimm seinen `init`-Befehl statt des Befehls aus dem [Schnellstart](/docs/quickstart). Jedes Dateilayout ist das Muster, das `init` schreibt, wenn es keine Locale-Dateien findet; gibt es deine Dateien schon, erkennt `init`, wo sie liegen, und mit `--path` legst du das Muster selbst fest. Das vollständige Verhalten jedes Formats steht unter [Formate](/docs/formats). Für manche Stacks gibt es außerdem einen Schnellstart Schritt für Schritt, verlinkt am Ende ihres Abschnitts.
 
 <StackCards
   labelledBy="page-title"
@@ -38,6 +38,8 @@ npx verbatra init --format i18next-json
 
 Details: [Die vier JSON-Formate](/docs/formats#die-vier-json-formate).
 
+Schritt für Schritt: [Schnellstart mit React](/docs/quickstart/react).
+
 ## Next.js mit next-intl
 
 Für Nachrichtendateien von next-intl, deren Werte ICU-Nachrichten sind.
@@ -50,6 +52,8 @@ npx verbatra init --format next-intl-json
 ```
 
 Details: [Die vier JSON-Formate](/docs/formats#die-vier-json-formate).
+
+Schritt für Schritt: [Schnellstart mit Next.js](/docs/quickstart/nextjs).
 
 ## Vue und Nuxt mit vue-i18n
 
@@ -64,6 +68,8 @@ npx verbatra init --format vue-i18n-json
 
 Details: [Die vier JSON-Formate](/docs/formats#die-vier-json-formate).
 
+Schritt für Schritt: [Schnellstart mit Vue](/docs/quickstart/vue).
+
 ## Angular mit ngx-translate
 
 Für ngx-translate-JSON, flach oder verschachtelt.
@@ -77,6 +83,8 @@ npx verbatra init --format ngx-translate-json
 
 Details: [Die vier JSON-Formate](/docs/formats#die-vier-json-formate).
 
+Schritt für Schritt: [Schnellstart mit Angular](/docs/quickstart/angular).
+
 ## Flutter
 
 Für die Application Resource Bundles von Flutter. `init` setzt außerdem `localeStyle: "posix"`, damit `pt-BR` als `app_pt_BR.arb` geschrieben wird, der Name, den `flutter gen-l10n` liest.
@@ -89,6 +97,8 @@ npx verbatra init --format arb
 ```
 
 Details: [ARB](/docs/formats#arb).
+
+Schritt für Schritt: [Schnellstart mit Flutter](/docs/quickstart/flutter).
 
 ## Android
 
