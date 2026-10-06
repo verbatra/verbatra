@@ -265,12 +265,7 @@ export const NETWORK_RULE_SOURCES = [
 
 const count = z.number().int().nonnegative();
 
-/**
- * The zod schema for a {@link DataFlowManifest}, as `verbatra doctor --data-flow --json` prints it
- * under `result.dataFlow` and {@link dataFlow} returns it. Unknown fields are allowed and kept, so
- * a manifest from a newer verbatra that adds a field still parses; ignore the ones you do not know.
- */
-export const dataFlowManifestSchema: z.ZodType<DataFlowManifest> = z.looseObject({
+export const dataFlowManifestObjectSchema = z.looseObject({
   version: z.literal(DATA_FLOW_MANIFEST_VERSION),
   provider: z.looseObject({
     id: z.enum(MANIFEST_PROVIDER_IDS),
@@ -351,3 +346,10 @@ export const dataFlowManifestSchema: z.ZodType<DataFlowManifest> = z.looseObject
     }),
   ),
 });
+
+/**
+ * The zod schema for a {@link DataFlowManifest}, as `verbatra doctor --data-flow --json` prints it
+ * under `result.dataFlow` and {@link dataFlow} returns it. Unknown fields are allowed and kept, so
+ * a manifest from a newer verbatra that adds a field still parses; ignore the ones you do not know.
+ */
+export const dataFlowManifestSchema: z.ZodType<DataFlowManifest> = dataFlowManifestObjectSchema;

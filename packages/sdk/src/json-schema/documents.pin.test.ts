@@ -4,6 +4,7 @@ import type { CheckSummary } from "../flow/check.js";
 import type { CheckFileSummary } from "../flow/check-file.js";
 import type { checkFileSummarySchema } from "../flow/check-file-schema.js";
 import type { checkSummarySchema } from "../flow/check-schema.js";
+import type { DataFlowManifest, dataFlowManifestObjectSchema } from "../flow/data-flow-manifest.js";
 import type { DiffSummary } from "../flow/diff.js";
 import type { diffSummarySchema } from "../flow/diff-schema.js";
 import type { DoctorResult } from "../flow/doctor.js";
@@ -120,5 +121,98 @@ describe("every result schema is pinned both ways to the interface it describes"
     expectTypeOf<ProgressEvent>().toExtend<z.output<typeof progressEventSchema>>();
     expectTypeOf<z.output<typeof lockWaitEventSchema>>().toExtend<LockWaitEvent>();
     expectTypeOf<LockWaitEvent>().toExtend<z.output<typeof lockWaitEventSchema>>();
+  });
+});
+
+type KnownKeys<T> = keyof {
+  [K in keyof T as string extends K ? never : number extends K ? never : K]: T[K];
+};
+
+type OptionalKeys<T> = {
+  [K in KnownKeys<T> & keyof T]-?: Partial<Pick<T, K>> extends Pick<T, K> ? K : never;
+}[KnownKeys<T> & keyof T];
+
+type KeyShape<T> = T extends readonly (infer Element)[]
+  ? KeyShape<Element>
+  : T extends object
+    ? {
+        readonly keys: KnownKeys<T>;
+        readonly optional: OptionalKeys<T>;
+        readonly fields: { [K in KnownKeys<T> & keyof T]: KeyShape<Exclude<T[K], undefined>> };
+      }
+    : "leaf";
+
+describe("every result schema lists exactly the fields, and the optional fields, of its type", () => {
+  it("matches the run summary down to each locale, estimate and notice", () => {
+    expectTypeOf<KeyShape<z.output<typeof runSummarySchema>>>().toEqualTypeOf<
+      KeyShape<RunSummary>
+    >();
+    expectTypeOf<KeyShape<z.output<typeof localeSummarySchema>>>().toEqualTypeOf<
+      KeyShape<LocaleSummary>
+    >();
+    expectTypeOf<KeyShape<z.output<typeof runEstimateSchema>>>().toEqualTypeOf<
+      KeyShape<RunEstimate>
+    >();
+  });
+
+  it("matches the check, diff and doctor results, the data-flow manifest included", () => {
+    expectTypeOf<KeyShape<z.output<typeof checkSummarySchema>>>().toEqualTypeOf<
+      KeyShape<CheckSummary>
+    >();
+    expectTypeOf<KeyShape<z.output<typeof checkFileSummarySchema>>>().toEqualTypeOf<
+      KeyShape<CheckFileSummary>
+    >();
+    expectTypeOf<KeyShape<z.output<typeof diffSummarySchema>>>().toEqualTypeOf<
+      KeyShape<DiffSummary>
+    >();
+    expectTypeOf<KeyShape<z.output<typeof doctorResultSchema>>>().toEqualTypeOf<
+      KeyShape<DoctorResult>
+    >();
+    expectTypeOf<KeyShape<z.output<typeof dataFlowManifestObjectSchema>>>().toEqualTypeOf<
+      KeyShape<DataFlowManifest>
+    >();
+    expectTypeOf<z.output<typeof dataFlowManifestObjectSchema>>().toExtend<DataFlowManifest>();
+  });
+
+  it("matches the provenance shapes", () => {
+    expectTypeOf<KeyShape<z.output<typeof keyProvenanceSchema>>>().toEqualTypeOf<
+      KeyShape<KeyProvenance>
+    >();
+    expectTypeOf<KeyShape<z.output<typeof provenanceSummarySchema>>>().toEqualTypeOf<
+      KeyShape<ProvenanceSummary>
+    >();
+    expectTypeOf<KeyShape<z.output<typeof provenanceReportResultSchema>>>().toEqualTypeOf<
+      KeyShape<ProvenanceReportResult>
+    >();
+  });
+
+  it("matches the file-producing command results", () => {
+    expectTypeOf<KeyShape<z.output<typeof pseudolocalizeResultSchema>>>().toEqualTypeOf<
+      KeyShape<PseudolocalizeResult>
+    >();
+    expectTypeOf<KeyShape<z.output<typeof generateTypesResultSchema>>>().toEqualTypeOf<
+      KeyShape<GenerateTypesResult>
+    >();
+    expectTypeOf<KeyShape<z.output<typeof extractResultSchema>>>().toEqualTypeOf<
+      KeyShape<ExtractResult>
+    >();
+    expectTypeOf<KeyShape<z.output<typeof exportWorkbookResultSchema>>>().toEqualTypeOf<
+      KeyShape<ExportWorkbookResult>
+    >();
+    expectTypeOf<KeyShape<z.output<typeof importTmxResultSchema>>>().toEqualTypeOf<
+      KeyShape<ImportTmxResult>
+    >();
+    expectTypeOf<KeyShape<z.output<typeof exportTmxResultSchema>>>().toEqualTypeOf<
+      KeyShape<ExportTmxResult>
+    >();
+  });
+
+  it("matches the stderr records", () => {
+    expectTypeOf<KeyShape<z.output<typeof progressEventSchema>>>().toEqualTypeOf<
+      KeyShape<ProgressEvent>
+    >();
+    expectTypeOf<KeyShape<z.output<typeof lockWaitEventSchema>>>().toEqualTypeOf<
+      KeyShape<LockWaitEvent>
+    >();
   });
 });
