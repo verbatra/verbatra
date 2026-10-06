@@ -148,6 +148,19 @@ overrides:
   # The tree already resolves 3.3.18 for the other postcss copies, so this only dedupes onto it. The
   # <4 ceiling keeps it on the v3 API postcss declares, since v4 dropped the CommonJS entry point.
   nanoid@<3.3.17: ">=3.3.17 <4"
+  # GHSA-jqcg-44mw-7w3h (critical): proxy-addr IP spoofing via an IPv4-mapped IPv6 trust subnet.
+  # Vulnerable >=1.1.0 <2.0.8; lifts the 2.0.7 copy express pulls through
+  # @google/genai > @modelcontextprotocol/sdk on the published sdk path. The <3 ceiling matches the
+  # ^2.0.7 range express declares.
+  proxy-addr@<2.0.8: ">=2.0.8 <3"
+  # GHSA-68fv-2mgg-jv7q (high): source-map-js event-loop DoS through indexed source-map section
+  # offsets. Vulnerable >=1.0.0 <1.2.2; lifts the 1.2.1 copy postcss, tailwind and css-tree pull
+  # (dev-only, and next in apps/docs), bounded to the v1 line they declare.
+  "source-map-js@>=1.0.0 <1.2.2": ">=1.2.2 <2"
+  # GHSA-r4xh-jqrq-34v2 (moderate): smol-toml quadratic-time parse() from parseKey rescanning to the
+  # end of the document on each key line. Vulnerable <=1.8.0, and 1.9.0 is the first release after it;
+  # lifts the 1.8.0 copy knip pulls (dev-only), bounded to the v1 line knip declares.
+  smol-toml@<1.9.0: ">=1.9.0 <2"
 
 allowBuilds:
   '@google/genai': false
