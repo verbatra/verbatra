@@ -157,7 +157,7 @@ Gemini CLI verbirgt sensible Variablen vor Servern, also kommt der Key nur über
 
 ## Cursor
 
-Cursor liest `.cursor/mcp.json`, die `init --agent` schreibt, und `~/.cursor/mcp.json`:
+`init --agent` schreibt Cursors `.cursor/mcp.json`:
 
 ```json title=".cursor/mcp.json"
 {
@@ -171,11 +171,13 @@ Cursor liest `.cursor/mcp.json`, die `init --agent` schreibt, und `~/.cursor/mcp
 }
 ```
 
+Für Ausgaben hängst du `"--allow-spend"` an `args` an und ergänzt `"env": { "ANTHROPIC_API_KEY": "${env:ANTHROPIC_API_KEY}" }`, das nur den Namen der Variable enthält. Siehe die [MCP-Dokumentation von Cursor](https://cursor.com/docs/mcp).
+
+Oder ohne die CLI:
+
 <McpInstallLink client="cursor" />
 
-Der Button legt ihn in `~/.cursor/mcp.json` an; meldet `project.snapshot` `configured: false`, nimm die Projektdatei.
-
-Für Ausgaben hängst du `"--allow-spend"` an `args` an und ergänzt `"env": { "ANTHROPIC_API_KEY": "${env:ANTHROPIC_API_KEY}" }`, das nur den Namen der Variable enthält. Siehe die [MCP-Dokumentation von Cursor](https://cursor.com/docs/mcp).
+Das legt einen benutzerweiten Eintrag in `~/.cursor/mcp.json` an, wo `${workspaceFolder}` deinen Home-Ordner meint, nicht das Projekt; nimm lieber die Projektdatei und nutze einen Weg, nie zwei.
 
 ## VS Code
 
@@ -220,7 +222,7 @@ Für Ausgaben deklarierst du den Key als Input, den VS Code außerhalb der Datei
 
 <McpInstallLink client="vscode" />
 
-Statt der Datei legt der Button oder dieser Befehl den Eintrag ohne Kosten in deinem Benutzerprofil an; nutze einen der drei Wege, nie zwei:
+Statt der Datei legt der Button oder dieser Befehl den Eintrag mit ausgeschalteten Ausgaben in deinem Benutzerprofil an; nutze einen der drei Wege, nie zwei:
 
 ```bash
 code --add-mcp '{"name":"verbatra","command":"npx","args":["-y","@verbatra/mcp"]}'
@@ -259,7 +261,7 @@ Eine Person mit Admin-Rechten fügt den Server unter **Settings**, **Copilot**, 
 }
 ```
 
-Nimm `translation.editEntry` und `glossary.write` nur auf, wenn der Agent in seinem Pull Request schreiben soll, und lass `review.approve` und `review.reject` draußen: Eine Review-Entscheidung braucht einen Menschen. Lass Ausgaben aus. Zum Prüfen öffnest du **View session** des Agenten und klappst **Start MCP Servers** auf. Siehe [Extending the cloud agent with MCP](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/configure-mcp-servers).
+Nimm `translation.editEntry` und `glossary.write` nur auf, wenn der Agent in seinem Pull Request schreiben soll, und lass `review.approve` und `review.reject` draußen: Eine Review-Entscheidung braucht einen Menschen. Zum Prüfen öffnest du **View session** und klappst **Start MCP Servers** auf. Siehe [Extending the cloud agent with MCP](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/configure-mcp-servers).
 
 ### Copilot CLI
 
@@ -319,7 +321,7 @@ Ein Key in `env` ist ein wörtlicher Wert, also ergänzt du ihn und `--allow-spe
 }
 ```
 
-Setz **Working directory** auf den Projektstamm und beschränk diesen Eintrag auf Lesen und lokales Bearbeiten, ohne Kosten. Siehe die [MCP-Dokumentation von AI Assistant](https://www.jetbrains.com/help/ai-assistant/mcp.html).
+Setz **Working directory** auf den Projektstamm und lass diesen Eintrag ohne Ausgaben. Siehe die [MCP-Dokumentation von AI Assistant](https://www.jetbrains.com/help/ai-assistant/mcp.html).
 
 ## Claude Desktop
 
@@ -336,7 +338,7 @@ Setz **Working directory** auf den Projektstamm und beschränk diesen Eintrag au
 }
 ```
 
-Für Ausgaben hängst du `"--allow-spend"` an und ergänzt `"env": { "ANTHROPIC_API_KEY": "..." }`; die Datei liegt außerhalb jedes Repositorys. Starte Claude Desktop nach jeder Änderung neu. Siehe [Connect to local MCP servers](https://modelcontextprotocol.io/docs/develop/connect-local-servers).
+Für Ausgaben hängst du `"--allow-spend"` an und ergänzt `"env": { "ANTHROPIC_API_KEY": "..." }`; die Datei liegt außerhalb jedes Repositorys. Starte danach Claude Desktop neu. Siehe [Connect to local MCP servers](https://modelcontextprotocol.io/docs/develop/connect-local-servers).
 
 ## Jeder andere stdio-Client
 

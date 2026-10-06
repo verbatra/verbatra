@@ -12,10 +12,13 @@ export const CURSOR_INSTALL_PREFIX = "cursor://anysphere.cursor-deeplink/mcp/ins
 
 export const VSCODE_INSTALL_PREFIX = "vscode:mcp/install?";
 
+export function encodeCursorConfig(config: unknown): string {
+  return btoa(JSON.stringify(config)).replaceAll("+", "%2B").replaceAll("/", "%2F");
+}
+
 function cursorInstallLink(): string {
   const { serverName, server } = AGENT_CLIENT_CONFIGS.cursor;
-  const config = btoa(JSON.stringify(server)).replaceAll("+", "%2B").replaceAll("/", "%2F");
-  return `${CURSOR_INSTALL_PREFIX}name=${encodeURIComponent(serverName)}&config=${config}`;
+  return `${CURSOR_INSTALL_PREFIX}name=${encodeURIComponent(serverName)}&config=${encodeCursorConfig(server)}`;
 }
 
 function vscodeInstallLink(): string {
@@ -36,10 +39,6 @@ export function isMcpInstallClient(value: unknown): value is McpInstallClient {
   return (MCP_INSTALL_CLIENTS as readonly unknown[]).includes(value);
 }
 
-export function mcpInstallMarkdown(client: McpInstallClient): string {
-  return `[Add verbatra to ${mcpInstallClientName(client)}](${MCP_INSTALL_LINKS[client]})`;
-}
-
-export function mcpInstallAllMarkdown(): string {
-  return MCP_INSTALL_CLIENTS.map(mcpInstallMarkdown).join(" ");
+export function mcpInstallMarkdown(client: McpInstallClient, label: string): string {
+  return `[${label}](${MCP_INSTALL_LINKS[client]})`;
 }

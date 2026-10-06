@@ -70,7 +70,7 @@ npx verbatra init --agent
 }
 ```
 
-Reinicia Claude Code y aprueba el servidor `verbatra`; transmite `CLAUDE_PROJECT_DIR` y el entorno de tu shell, así que no hace falta `--cwd`. Para gastar en una sesión, exporta la clave y ejecuta:
+Reinicia Claude Code y aprueba el servidor `verbatra`; Claude Code le transmite `CLAUDE_PROJECT_DIR` y el entorno de tu shell, así que no hace falta `--cwd`. Para gastar en una sesión, exporta la clave y ejecuta:
 
 ```bash
 VERBATRA_MCP_ALLOW_SPEND=1 claude
@@ -157,7 +157,7 @@ Gemini CLI oculta a los servidores las variables sensibles, así que la clave so
 
 ## Cursor
 
-Cursor lee `.cursor/mcp.json`, que escribe `init --agent`, y `~/.cursor/mcp.json`:
+`init --agent` escribe el `.cursor/mcp.json` de Cursor:
 
 ```json title=".cursor/mcp.json"
 {
@@ -171,11 +171,13 @@ Cursor lee `.cursor/mcp.json`, que escribe `init --agent`, y `~/.cursor/mcp.json
 }
 ```
 
+Para gastar, añade `"--allow-spend"` al final de `args` y agrega `"env": { "ANTHROPIC_API_KEY": "${env:ANTHROPIC_API_KEY}" }`, que solo contiene el nombre de la variable. Consulta la [documentación de MCP de Cursor](https://cursor.com/docs/mcp).
+
+O, sin la CLI:
+
 <McpInstallLink client="cursor" />
 
-El botón la añade a `~/.cursor/mcp.json`; si `project.snapshot` informa `configured: false`, usa el archivo del proyecto.
-
-Para gastar, añade `"--allow-spend"` al final de `args` y agrega `"env": { "ANTHROPIC_API_KEY": "${env:ANTHROPIC_API_KEY}" }`, que solo contiene el nombre de la variable. Consulta la [documentación de MCP de Cursor](https://cursor.com/docs/mcp).
+Esto añade una entrada para todo el usuario en `~/.cursor/mcp.json`, donde `${workspaceFolder}` es tu carpeta personal, no el proyecto; prefiere el archivo del proyecto y usa una sola vía, nunca dos.
 
 ## VS Code
 
@@ -259,7 +261,7 @@ Una persona administradora del repositorio añade el servidor en **Settings**, *
 }
 ```
 
-Añade `translation.editEntry` y `glossary.write` solo si el agente debe escribir en su pull request, y deja fuera `review.approve` y `review.reject`: una decisión de revisión necesita a una persona. Deja el gasto desactivado. Para comprobarlo, abre **View session** del agente y despliega **Start MCP Servers**. Consulta [Extending the cloud agent with MCP](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/configure-mcp-servers).
+Añade `translation.editEntry` y `glossary.write` solo si el agente debe escribir en su pull request, y deja fuera `review.approve` y `review.reject`: una decisión de revisión necesita a una persona. Para comprobarlo, abre **View session** y despliega **Start MCP Servers**. Consulta [Extending the cloud agent with MCP](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/configure-mcp-servers).
 
 ### Copilot CLI
 
@@ -319,7 +321,7 @@ Abre **Settings**, **Tools**, **AI Assistant**, **Model Context Protocol (MCP)**
 }
 ```
 
-Pon **Working directory** en la raíz del proyecto y limita esta entrada a lectura y edición local, sin gasto. Consulta la [documentación de MCP de AI Assistant](https://www.jetbrains.com/help/ai-assistant/mcp.html).
+Pon **Working directory** en la raíz del proyecto y deja esta entrada sin gasto. Consulta la [documentación de MCP de AI Assistant](https://www.jetbrains.com/help/ai-assistant/mcp.html).
 
 ## Claude Desktop
 
@@ -336,7 +338,7 @@ Pon **Working directory** en la raíz del proyecto y limita esta entrada a lectu
 }
 ```
 
-Para gastar, añade `"--allow-spend"` al final y agrega `"env": { "ANTHROPIC_API_KEY": "..." }`; el archivo está fuera de cualquier repositorio. Reinicia Claude Desktop después de cada cambio. Consulta [Connect to local MCP servers](https://modelcontextprotocol.io/docs/develop/connect-local-servers).
+Para gastar, añade `"--allow-spend"` al final y agrega `"env": { "ANTHROPIC_API_KEY": "..." }`; el archivo está fuera de cualquier repositorio. Después, reinicia Claude Desktop. Consulta [Connect to local MCP servers](https://modelcontextprotocol.io/docs/develop/connect-local-servers).
 
 ## Cualquier otro cliente stdio
 

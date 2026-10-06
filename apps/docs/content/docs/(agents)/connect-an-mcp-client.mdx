@@ -70,7 +70,7 @@ npx verbatra init --agent
 }
 ```
 
-Restart Claude Code and approve the `verbatra` server; it passes `CLAUDE_PROJECT_DIR` and your shell's environment, so needs no `--cwd`. To spend for one session, export the key and run:
+Restart Claude Code and approve the `verbatra` server; Claude Code passes `CLAUDE_PROJECT_DIR` and your shell's environment, so it needs no `--cwd`. To spend for one session, export the key and run:
 
 ```bash
 VERBATRA_MCP_ALLOW_SPEND=1 claude
@@ -157,7 +157,7 @@ Gemini CLI hides sensitive variables from servers, so the key arrives only throu
 
 ## Cursor
 
-Cursor reads `.cursor/mcp.json`, which `init --agent` writes, and `~/.cursor/mcp.json`:
+`init --agent` writes Cursor's `.cursor/mcp.json`:
 
 ```json title=".cursor/mcp.json"
 {
@@ -171,11 +171,13 @@ Cursor reads `.cursor/mcp.json`, which `init --agent` writes, and `~/.cursor/mcp
 }
 ```
 
+To spend, append `"--allow-spend"` to `args` and add `"env": { "ANTHROPIC_API_KEY": "${env:ANTHROPIC_API_KEY}" }`, which holds only the variable's name. See the [Cursor MCP documentation](https://cursor.com/docs/mcp).
+
+Or, without the CLI:
+
 <McpInstallLink client="cursor" />
 
-The button adds it to `~/.cursor/mcp.json`; if `project.snapshot` reports `configured: false`, use the project file.
-
-To spend, append `"--allow-spend"` to `args` and add `"env": { "ANTHROPIC_API_KEY": "${env:ANTHROPIC_API_KEY}" }`, which holds only the variable's name. See the [Cursor MCP documentation](https://cursor.com/docs/mcp).
+This adds a user-wide entry to `~/.cursor/mcp.json`, where `${workspaceFolder}` names your home folder, not the project; prefer the project file and use one route, never two.
 
 ## VS Code
 
@@ -220,7 +222,7 @@ To spend, declare the key as an input, which VS Code stores outside the file:
 
 <McpInstallLink client="vscode" />
 
-Instead of the file, the button or this command adds it to your user profile; use one route, never two:
+Instead of the file, the button or this command adds it to your user profile, spending off; use one route, never two:
 
 ```bash
 code --add-mcp '{"name":"verbatra","command":"npx","args":["-y","@verbatra/mcp"]}'
@@ -259,7 +261,7 @@ A repository admin adds the server under **Settings**, **Copilot**, **MCP server
 }
 ```
 
-Add `translation.editEntry` and `glossary.write` only if the agent should write in its pull request, and keep `review.approve` and `review.reject` out: a review decision needs a person. Leave spending off. To check the setup, open the agent's **View session** and expand **Start MCP Servers**. See [Extending the cloud agent with MCP](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/configure-mcp-servers).
+Add `translation.editEntry` and `glossary.write` only if the agent should write in its pull request, and keep `review.approve` and `review.reject` out: a review decision needs a person. To check, open **View session** and expand **Start MCP Servers**. See [Extending the cloud agent with MCP](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/configure-mcp-servers).
 
 ### Copilot CLI
 
@@ -319,7 +321,7 @@ Open **Settings**, **Tools**, **AI Assistant**, **Model Context Protocol (MCP)**
 }
 ```
 
-Set **Working directory** to the project root, and keep this entry to read and local edit, no spend. See the [AI Assistant MCP documentation](https://www.jetbrains.com/help/ai-assistant/mcp.html).
+Set **Working directory** to the project root and keep this entry no-spend. See the [AI Assistant MCP documentation](https://www.jetbrains.com/help/ai-assistant/mcp.html).
 
 ## Claude Desktop
 
@@ -336,7 +338,7 @@ Set **Working directory** to the project root, and keep this entry to read and l
 }
 ```
 
-To spend, append `"--allow-spend"` and add `"env": { "ANTHROPIC_API_KEY": "..." }`; the file lives outside every repository. Restart Claude Desktop after each change. See [Connect to local MCP servers](https://modelcontextprotocol.io/docs/develop/connect-local-servers).
+To spend, append `"--allow-spend"` and add `"env": { "ANTHROPIC_API_KEY": "..." }`; the file lives outside every repository. Then restart Claude Desktop. See [Connect to local MCP servers](https://modelcontextprotocol.io/docs/develop/connect-local-servers).
 
 ## Any other stdio client
 

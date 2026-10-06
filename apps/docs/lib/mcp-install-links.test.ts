@@ -2,6 +2,7 @@ import { AGENT_CLIENT_CONFIGS } from "@verbatra/cli";
 import { describe, expect, it } from "vitest";
 import {
   CURSOR_INSTALL_PREFIX,
+  encodeCursorConfig,
   isMcpInstallClient,
   MCP_INSTALL_CLIENTS,
   MCP_INSTALL_LINKS,
@@ -48,7 +49,18 @@ describe("MCP install links", () => {
     expect(config.replaceAll("%2B", "").replaceAll("%2F", "")).not.toContain("%");
   });
 
-  it("keeps the workspace-folder --cwd in the Cursor link, since without it the server starts wherever Cursor was launched", () => {
+  it("escapes a + and a / in the base64 config so a query parser reads them back unchanged", () => {
+    const value = "?>~?>~??";
+    const raw = btoa(JSON.stringify(value));
+    expect(raw).toContain("+");
+    expect(raw).toContain("/");
+    const encoded = encodeCursorConfig(value);
+    expect(encoded).toBe(raw.replaceAll("+", "%2B").replaceAll("/", "%2F"));
+    const decoded = new URL(`${CURSOR_INSTALL_PREFIX}config=${encoded}`).searchParams.get("config");
+    expect(JSON.parse(atob(decoded ?? ""))).toBe(value);
+  });
+
+  it("keeps the exact project entry in the Cursor link: Cursor's docs (cursor.com/docs/mcp, Config interpolation) define the workspace-folder variable only as the folder holding the mcp.json, and no Cursor source says a user-wide server starts in the open workspace, so the page states the home-folder caveat instead of guessing", () => {
     const { config } = decodeCursorLink(MCP_INSTALL_LINKS.cursor);
     expect(config).toMatchObject({
       // biome-ignore lint/suspicious/noTemplateCurlyInString: Cursor expands this variable itself.
@@ -82,11 +94,11 @@ describe("MCP install links", () => {
   );
 
   it("writes each link into the page's Markdown output as a plain link", () => {
-    expect(mcpInstallMarkdown("cursor")).toBe(
-      `[Add verbatra to Cursor](${MCP_INSTALL_LINKS.cursor})`,
+    expect(mcpInstallMarkdown("cursor", "Add to Cursor")).toBe(
+      `[Add to Cursor](${MCP_INSTALL_LINKS.cursor})`,
     );
-    expect(mcpInstallMarkdown("vscode")).toBe(
-      `[Add verbatra to VS Code](${MCP_INSTALL_LINKS.vscode})`,
+    expect(mcpInstallMarkdown("vscode", "Add to VS Code")).toBe(
+      `[Add to VS Code](${MCP_INSTALL_LINKS.vscode})`,
     );
   });
 

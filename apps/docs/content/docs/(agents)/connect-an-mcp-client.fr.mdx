@@ -70,7 +70,7 @@ npx verbatra init --agent
 }
 ```
 
-Redémarre Claude Code et approuve le serveur `verbatra` ; il transmet `CLAUDE_PROJECT_DIR` et l'environnement de ton shell, donc pas besoin de `--cwd`. Pour dépenser le temps d'une session, exporte la clé et lance :
+Redémarre Claude Code et approuve le serveur `verbatra` ; Claude Code lui transmet `CLAUDE_PROJECT_DIR` et l'environnement de ton shell, donc pas besoin de `--cwd`. Pour dépenser le temps d'une session, exporte la clé et lance :
 
 ```bash
 VERBATRA_MCP_ALLOW_SPEND=1 claude
@@ -157,7 +157,7 @@ Gemini CLI cache les variables sensibles aux serveurs, donc la clé n'arrive que
 
 ## Cursor
 
-Cursor lit `.cursor/mcp.json`, qu'écrit `init --agent`, et `~/.cursor/mcp.json` :
+`init --agent` écrit le `.cursor/mcp.json` de Cursor :
 
 ```json title=".cursor/mcp.json"
 {
@@ -171,11 +171,13 @@ Cursor lit `.cursor/mcp.json`, qu'écrit `init --agent`, et `~/.cursor/mcp.json`
 }
 ```
 
+Pour dépenser, ajoute `"--allow-spend"` à la fin de `args` et `"env": { "ANTHROPIC_API_KEY": "${env:ANTHROPIC_API_KEY}" }`, qui ne contient que le nom de la variable. Voir la [documentation MCP de Cursor](https://cursor.com/docs/mcp).
+
+Ou, sans la CLI :
+
 <McpInstallLink client="cursor" />
 
-Le bouton l'ajoute à `~/.cursor/mcp.json` ; si `project.snapshot` renvoie `configured: false`, utilise le fichier du projet.
-
-Pour dépenser, ajoute `"--allow-spend"` à la fin de `args` et `"env": { "ANTHROPIC_API_KEY": "${env:ANTHROPIC_API_KEY}" }`, qui ne contient que le nom de la variable. Voir la [documentation MCP de Cursor](https://cursor.com/docs/mcp).
+Cela ajoute une entrée pour tout l'utilisateur dans `~/.cursor/mcp.json`, où `${workspaceFolder}` désigne ton dossier personnel, pas le projet ; préfère le fichier du projet et utilise une seule voie, jamais deux.
 
 ## VS Code
 
@@ -259,7 +261,7 @@ Une personne administratrice du dépôt ajoute le serveur sous **Settings**, **C
 }
 ```
 
-Ajoute `translation.editEntry` et `glossary.write` seulement si l'agent doit écrire dans sa pull request, et laisse `review.approve` et `review.reject` dehors : une décision de relecture demande une personne. Laisse les dépenses désactivées. Pour vérifier, ouvre **View session** de l'agent et déplie **Start MCP Servers**. Voir [Extending the cloud agent with MCP](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/configure-mcp-servers).
+Ajoute `translation.editEntry` et `glossary.write` seulement si l'agent doit écrire dans sa pull request, et laisse `review.approve` et `review.reject` dehors : une décision de relecture demande une personne. Pour vérifier, ouvre **View session** et déplie **Start MCP Servers**. Voir [Extending the cloud agent with MCP](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/configure-mcp-servers).
 
 ### Copilot CLI
 
@@ -319,7 +321,7 @@ Ouvre **Settings**, **Tools**, **AI Assistant**, **Model Context Protocol (MCP)*
 }
 ```
 
-Règle **Working directory** sur la racine du projet et limite cette entrée à la lecture et à l'édition locale, sans dépense. Voir la [documentation MCP d'AI Assistant](https://www.jetbrains.com/help/ai-assistant/mcp.html).
+Règle **Working directory** sur la racine du projet et garde cette entrée sans dépense. Voir la [documentation MCP d'AI Assistant](https://www.jetbrains.com/help/ai-assistant/mcp.html).
 
 ## Claude Desktop
 
@@ -336,7 +338,7 @@ Règle **Working directory** sur la racine du projet et limite cette entrée à 
 }
 ```
 
-Pour dépenser, ajoute `"--allow-spend"` à la fin et `"env": { "ANTHROPIC_API_KEY": "..." }` ; le fichier vit hors de tout dépôt. Redémarre Claude Desktop après chaque modification. Voir [Connect to local MCP servers](https://modelcontextprotocol.io/docs/develop/connect-local-servers).
+Pour dépenser, ajoute `"--allow-spend"` à la fin et `"env": { "ANTHROPIC_API_KEY": "..." }` ; le fichier vit hors de tout dépôt. Redémarre ensuite Claude Desktop. Voir [Connect to local MCP servers](https://modelcontextprotocol.io/docs/develop/connect-local-servers).
 
 ## Tout autre client stdio
 
