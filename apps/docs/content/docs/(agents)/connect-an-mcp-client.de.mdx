@@ -15,7 +15,7 @@ Lass einen Coding-Agenten über den stdio-MCP-Server von verbatra den Übersetzu
 | `npx -y @verbatra/mcp` | keine Installation | nein |
 | `npx verbatra mcp` | `@verbatra/cli` und `@verbatra/mcp` als Dev-Abhängigkeiten | ja: `.env.local`, dann `.env` |
 
-Die Beispiele nutzen `npx -y @verbatra/mcp`. Meide `npx -y @verbatra/cli mcp`: Es endet mit `2`, weil die CLI `@verbatra/mcp` nie installiert. Jeder Abschnitt sagt, wie du den Server auf das Verzeichnis der Konfiguration richtest; die Regel steht unter [Projektverzeichnis](/docs/cli/mcp#projektverzeichnis).
+Meide `npx -y @verbatra/cli mcp`: Es endet mit `2`, weil die CLI `@verbatra/mcp` nie installiert. Jeder Abschnitt sagt, wie du den Server auf das Verzeichnis der Konfiguration richtest; die Regel steht unter [Projektverzeichnis](/docs/cli/mcp#projektverzeichnis).
 
 ### MCP Registry
 
@@ -54,7 +54,7 @@ Empfohlen, im Projektstamm:
 npx verbatra init --agent
 ```
 
-[`init --agent`](/docs/cli/init#coding-agenten-einrichten) schreibt die Anweisungsdatei für Agenten und diesen Eintrag in die committete `.mcp.json`, Ausgaben aus:
+[`init --agent`](/docs/cli/init#coding-agenten-einrichten) schreibt die Anweisungsdatei für Agenten und diesen Eintrag in die committete `.mcp.json`, Ausgaben aus, dazu [Cursor](#cursor) und [VS Code](#vs-code), wenn erkannt:
 
 ```json
 {
@@ -78,8 +78,6 @@ VERBATRA_MCP_ALLOW_SPEND=1 claude
 
 ### Andere Wege
 
-Zwei Alternativen zu `init --agent`:
-
 #### Ohne die CLI
 
 ```bash
@@ -95,7 +93,7 @@ Das schreibt denselben Eintrag in `.mcp.json`. Ergänze bei einem Projekteintrag
 Statt `.mcp.json` bündelt das Plugin die [verbatra-Skills](/docs/agent-recipes#das-skills-paket), diesen Server und einen Hook, der eine Locale-Datei prüft, nachdem Claude sie bearbeitet hat.
 
 <Callout type="warn">
-Kombinier das verbatra-Plugin nie mit einem `verbatra`-Eintrag in `.mcp.json`: Das Plugin bringt einen zweiten Server mit.
+Kombinier das verbatra-Plugin nie mit einem `verbatra`-Eintrag in `.mcp.json`, den `init --agent` dann überspringt: Das Plugin bringt einen zweiten Server mit.
 </Callout>
 
 ```bash
@@ -157,7 +155,7 @@ Gemini CLI verbirgt sensible Variablen vor Servern, also kommt der Key nur über
 
 ## Cursor
 
-Cursor liest `.cursor/mcp.json` und `~/.cursor/mcp.json`:
+Cursor liest `.cursor/mcp.json`, die `init --agent` schreibt, und `~/.cursor/mcp.json`:
 
 ```json title=".cursor/mcp.json"
 {
@@ -175,7 +173,21 @@ Für Ausgaben hängst du `"--allow-spend"` an `args` an und ergänzt `"env": { "
 
 ## VS Code
 
-VS Code (der Agent-Modus von GitHub Copilot) liest `.vscode/mcp.json` mit dem obersten Schlüssel `servers`. Server starten im Workspace-Ordner, also ist kein `--cwd` nötig. Für Ausgaben deklarierst du den Key als Input, den VS Code außerhalb der Datei speichert:
+VS Code (der Agent-Modus von GitHub Copilot) liest `.vscode/mcp.json` mit dem obersten Schlüssel `servers`; `init --agent --client vscode` schreibt diesen Eintrag. Server starten im Workspace-Ordner, also ist kein `--cwd` nötig:
+
+```json title=".vscode/mcp.json"
+{
+  "servers": {
+    "verbatra": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp"]
+    }
+  }
+}
+```
+
+Für Ausgaben deklarierst du den Key als Input, den VS Code außerhalb der Datei speichert:
 
 ```json title=".vscode/mcp.json"
 {
@@ -200,7 +212,7 @@ VS Code (der Agent-Modus von GitHub Copilot) liest `.vscode/mcp.json` mit dem ob
 }
 ```
 
-Für einen Eintrag ohne Kosten lässt du `inputs`, `--allow-spend` und `env` weg. Statt der Datei legt [verbatra in VS Code installieren](vscode:mcp/install?%7B%22name%22%3A%22verbatra%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22%40verbatra%2Fmcp%22%5D%7D) oder dieser Befehl den Eintrag ohne Kosten in deinem Benutzerprofil an; nutze einen der drei Wege, nie zwei:
+Statt der Datei legt [verbatra in VS Code installieren](vscode:mcp/install?%7B%22name%22%3A%22verbatra%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22%40verbatra%2Fmcp%22%5D%7D) oder dieser Befehl den Eintrag ohne Kosten in deinem Benutzerprofil an; nutze einen der drei Wege, nie zwei:
 
 ```bash
 code --add-mcp '{"name":"verbatra","command":"npx","args":["-y","@verbatra/mcp"]}'

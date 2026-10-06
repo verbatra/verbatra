@@ -2,16 +2,19 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { AGENT_CLIENT_CONFIGS } from "./agent-clients.js";
 import { AGENT_INSTRUCTIONS } from "./agent-instructions.js";
 import {
   MARKER_END,
   MARKER_START,
-  MCP_SERVER_ENTRY,
   mergeInstructions,
   mergeMcpConfig,
   planAgentScaffold,
 } from "./agent-scaffold.js";
 import { CliUsageError } from "./cli-usage-error.js";
+
+const CLAUDE = AGENT_CLIENT_CONFIGS.claude;
+const MCP_SERVER_ENTRY = CLAUDE.server;
 
 const SECTION = `${MARKER_START}\n${AGENT_INSTRUCTIONS}\n${MARKER_END}`;
 
@@ -91,7 +94,7 @@ describe("mergeInstructions", () => {
 
 describe("mergeMcpConfig", () => {
   it("creates a 2-space .mcp.json with only the verbatra server", () => {
-    const merged = mergeMcpConfig(undefined);
+    const merged = mergeMcpConfig(CLAUDE, undefined);
     expect(merged.action).toBe("created");
     expect(merged.server).toBe("added");
     expect(merged.content).toBe(
@@ -105,7 +108,7 @@ describe("mergeMcpConfig", () => {
       command: "npx",
       args: ["-y", "@verbatra/mcp"],
     });
-    const content = mergeMcpConfig(undefined).content;
+    const content = mergeMcpConfig(CLAUDE, undefined).content;
     expect(content).not.toContain("--allow-spend");
     expect(content).not.toContain("VERBATRA_MCP_ALLOW_SPEND");
     expect(content).not.toContain("env");
@@ -117,7 +120,7 @@ describe("mergeMcpConfig", () => {
       null,
       2,
     )}\n`;
-    const merged = mergeMcpConfig(existing);
+    const merged = mergeMcpConfig(CLAUDE, existing);
     expect(merged.action).toBe("updated");
     expect(merged.server).toBe("added");
     expect(JSON.parse(merged.content)).toEqual({
@@ -131,13 +134,13 @@ describe("mergeMcpConfig", () => {
   });
 
   it("adds mcpServers to an object that has none", () => {
-    const merged = mergeMcpConfig("{}\n");
+    const merged = mergeMcpConfig(CLAUDE, "{}\n");
     expect(JSON.parse(merged.content)).toEqual({ mcpServers: { verbatra: MCP_SERVER_ENTRY } });
   });
 
   it("keeps the indentation, line endings, and missing final newline it found", () => {
     const tabbed = '{\r\n\t"mcpServers": {}\r\n}';
-    const merged = mergeMcpConfig(tabbed);
+    const merged = mergeMcpConfig(CLAUDE, tabbed);
     expect(merged.content).toContain('\r\n\t"mcpServers": {\r\n\t\t"verbatra"');
     expect(merged.content.endsWith("}")).toBe(true);
     expect(merged.content).not.toMatch(/[^\r]\n/);
@@ -147,7 +150,7 @@ describe("mergeMcpConfig", () => {
     const existing = JSON.stringify({
       mcpServers: { verbatra: { args: ["-y", "@verbatra/mcp"], command: "npx", type: "stdio" } },
     });
-    expect(mergeMcpConfig(existing)).toEqual({
+    expect(mergeMcpConfig(CLAUDE, existing)).toEqual({
       content: existing,
       action: "unchanged",
       server: "present",
@@ -164,7 +167,7 @@ describe("mergeMcpConfig", () => {
       null,
       2,
     )}\n`;
-    expect(mergeMcpConfig(existing)).toEqual({
+    expect(mergeMcpConfig(CLAUDE, existing)).toEqual({
       content: existing,
       action: "unchanged",
       server: "differs",
@@ -172,18 +175,17 @@ describe("mergeMcpConfig", () => {
   });
 
   it.each([
-    ["is not valid JSON", '{"mcpServers": {'],
-    ["is not valid JSON", ""],
+    ["is not plain JSON", '{"mcpServers": {'],
     ["does not hold a JSON object", "[]"],
     ["does not hold a JSON object", "null"],
-    ["has an mcpServers value that is not an object", '{"mcpServers": []}'],
+    ["has a value under mcpServers that is not an object", '{"mcpServers": []}'],
   ])("refuses a file that %s", (reason, existing) => {
-    expectAgentFileInvalid(() => mergeMcpConfig(existing), reason);
+    expectAgentFileInvalid(() => mergeMcpConfig(CLAUDE, existing), reason);
   });
 
   it("never echoes the malformed content, which may hold a secret", () => {
     try {
-      mergeMcpConfig('{"env": {"KEY": "sk-secret-value"');
+      mergeMcpConfig(CLAUDE, '{"env": {"KEY": "sk-secret-value"');
     } catch (error) {
       expect((error as Error).message).not.toContain("sk-secret-value");
       return;
