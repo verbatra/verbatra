@@ -17,7 +17,7 @@ Let a coding agent read translation status and fix values through verbatra's std
 | `npx -y @verbatra/mcp` | nothing installed | no |
 | `npx verbatra mcp` | `@verbatra/cli` and `@verbatra/mcp` as dev dependencies | yes: `.env.local`, then `.env` |
 
-Avoid `npx -y @verbatra/cli mcp`, which exits `2` because the CLI never installs `@verbatra/mcp`. Each section says how to point the server at the config's directory; [Project directory](/docs/cli/mcp#project-directory) has the rule.
+Avoid `npx -y @verbatra/cli mcp`, which exits `2` because the CLI never installs `@verbatra/mcp`. [Project directory](/docs/cli/mcp#project-directory) says where the server looks for the config.
 
 ### MCP Registry
 
@@ -56,7 +56,7 @@ Recommended, from the project root:
 npx verbatra init --agent
 ```
 
-[`init --agent`](/docs/cli/init#set-up-coding-agents) writes the agent instruction file and this entry to the committed `.mcp.json`, spending off, plus [Cursor](#cursor) and [VS Code](#vs-code) when detected:
+[`init --agent`](/docs/cli/init#set-up-coding-agents) writes the agent instruction file and this entry to the committed `.mcp.json`, spending off, plus each other client it detects:
 
 ```json
 {
@@ -70,7 +70,7 @@ npx verbatra init --agent
 }
 ```
 
-Restart Claude Code and approve the `verbatra` server; Claude Code passes `CLAUDE_PROJECT_DIR` and your shell's environment, so it needs no `--cwd`. To spend for one session, export the key and run:
+Restart Claude Code and approve the `verbatra` server; it passes `CLAUDE_PROJECT_DIR` and your shell's environment. To spend for one session, export the key and run:
 
 ```bash
 VERBATRA_MCP_ALLOW_SPEND=1 claude
@@ -106,25 +106,28 @@ claude plugin install verbatra@verbatra --scope project
 - **Server**: a pinned `@verbatra/mcp` with `--cwd` set to the open project.
 - **Spending**: off until you turn on the plugin's `allowSpend` option (`--config allowSpend=true`, or `/config`). A committed file cannot turn it on.
 - **Key**: from the environment you started `claude` with.
-- **Hook**: runs the project's own `verbatra check --file <path>` (CLI 0.12.0 or later) and reports broken syntax, placeholders, markup or ICU to Claude, calling no provider.
+- **Hook**: runs the project's `verbatra check --file <path>` (CLI 0.12.0 or later) and reports broken placeholders, markup or ICU, calling no provider.
 
 See the [Claude Code plugins reference](https://code.claude.com/docs/en/plugins-reference).
 
 ## Codex
 
-Codex reads `~/.codex/config.toml`, or a trusted project's `.codex/config.toml`. Recommended:
-
-```bash
-codex mcp add verbatra -- npx -y @verbatra/mcp --cwd /path/to/your/project
-```
-
-Never add `--env`: it stores the key value. See the [Codex MCP documentation](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
-
-### Codex entry by hand
-
-This one allows spending. `env_vars` names variables Codex passes through, never their values:
+Recommended: `npx verbatra init --agent --client codex` appends this table to `.codex/config.toml`, spending off:
 
 ```toml title=".codex/config.toml"
+[mcp_servers.verbatra]
+command = "npx"
+args = ["-y", "@verbatra/mcp"]
+startup_timeout_sec = 60
+```
+
+Codex loads it only once you answer **Trust this folder?**, which covers the repository root. From a subfolder, the server roots at the config it finds. See the [Codex MCP documentation](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
+
+### Codex user config
+
+To spend, use `~/.codex/config.toml` instead. `env_vars` passes variables by name; an `env` table or `codex mcp add --env` stores the value:
+
+```toml title="~/.codex/config.toml"
 [mcp_servers.verbatra]
 command = "npx"
 args = ["-y", "@verbatra/mcp", "--allow-spend"]
@@ -132,11 +135,26 @@ cwd = "/path/to/your/project"
 env_vars = ["ANTHROPIC_API_KEY"]
 ```
 
-Drop `--allow-spend` and `env_vars` for a no-spend entry. An `[mcp_servers.verbatra.env]` table stores the value itself.
-
 ## Gemini CLI
 
-Gemini CLI reads `mcpServers` from `.gemini/settings.json` or `~/.gemini/settings.json`. Keep an entry with an absolute `cwd` in your user settings:
+Recommended: `npx verbatra init --agent --client gemini` adds this entry to `.gemini/settings.json`, spending off:
+
+```json title=".gemini/settings.json"
+{
+  "mcpServers": {
+    "verbatra": {
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp"]
+    }
+  }
+}
+```
+
+Gemini CLI reads it only from the folder it starts in: start `gemini` in the project root and trust it in the dialog or with `/permissions trust`. Leave `trust` unset; `/mcp` lists the tools. See the [Gemini CLI MCP documentation](https://geminicli.com/docs/tools/mcp-server/).
+
+### Gemini CLI user settings
+
+To spend, use your user settings with an absolute `cwd`:
 
 ```json title="~/.gemini/settings.json"
 {
@@ -153,7 +171,7 @@ Gemini CLI reads `mcpServers` from `.gemini/settings.json` or `~/.gemini/setting
 }
 ```
 
-Gemini CLI hides sensitive variables from servers, so the key arrives only through `env`, expanded from its environment. Drop `--allow-spend` and `env` for a no-spend entry, and leave `trust` unset. Run `/mcp` to see the tools. See the [Gemini CLI MCP documentation](https://geminicli.com/docs/tools/mcp-server/).
+Gemini CLI hides key variables from servers, so pass the key through `env`.
 
 ## Cursor
 
@@ -171,11 +189,11 @@ Gemini CLI hides sensitive variables from servers, so the key arrives only throu
 }
 ```
 
-To spend, append `"--allow-spend"` to `args` and add `"env": { "ANTHROPIC_API_KEY": "${env:ANTHROPIC_API_KEY}" }`, which holds only the variable's name. See the [Cursor MCP documentation](https://cursor.com/docs/mcp).
+To spend, append `"--allow-spend"` to `args` and add `"env": { "ANTHROPIC_API_KEY": "${env:ANTHROPIC_API_KEY}" }`. See the [Cursor MCP documentation](https://cursor.com/docs/mcp).
 
 ## VS Code
 
-VS Code (GitHub Copilot's agent mode) reads `.vscode/mcp.json`, whose top-level key is `servers`; `init --agent --client vscode` writes this entry. It starts servers in the workspace folder, so needs no `--cwd`:
+VS Code (GitHub Copilot's agent mode) reads `.vscode/mcp.json`, keyed `servers`, which `init --agent --client vscode` writes. It needs no `--cwd`:
 
 ```json title=".vscode/mcp.json"
 {

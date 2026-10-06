@@ -17,7 +17,7 @@ La CLI lève ces codes elle-même. La même liste est publiée sous le nom `CLI_
 
 ### AGENT_FILE_INVALID
 
-`init --agent` a trouvé une configuration de client (`.mcp.json`, `.cursor/mcp.json` ou `.vscode/mcp.json`) qui n'est pas du JSON pur, n'est pas un objet ou contient une valeur de serveurs qui n'est pas un objet, un lien symbolique sur un chemin qu'il écrirait, ou un marqueur verbatra sans paire ou répété dans `AGENTS.md` ou `CLAUDE.md` ; rien n'a été écrit.
+`init --agent` a trouvé une configuration de client (`.mcp.json`, `.cursor/mcp.json`, `.vscode/mcp.json` ou `.gemini/settings.json`) qui n'est pas du JSON pur, n'est pas un objet ou contient une valeur de serveurs qui n'est pas un objet, un `.codex/config.toml` qu'il ne peut pas lire sans risque ou qui définit le serveur verbatra en ligne, avec des clés pointées, comme tableau de tables ou deux fois, un lien symbolique sur un chemin qu'il écrirait, ou un marqueur verbatra sans paire ou répété dans `AGENTS.md` ou `CLAUDE.md` ; rien n'a été écrit.
 
 - **Levé par** : `init --agent`
 - **Code de sortie** : `2`

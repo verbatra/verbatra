@@ -17,7 +17,7 @@ Deja que un agente de programación lea el estado de las traducciones y corrija 
 | `npx -y @verbatra/mcp` | nada instalado | no |
 | `npx verbatra mcp` | `@verbatra/cli` y `@verbatra/mcp` como dependencias de desarrollo | sí: `.env.local` y luego `.env` |
 
-Evita `npx -y @verbatra/cli mcp`, que termina con `2` porque la CLI nunca instala `@verbatra/mcp`. Cada sección explica cómo apuntar el servidor al directorio de la configuración; la regla está en [Directorio del proyecto](/docs/cli/mcp#directorio-del-proyecto).
+Evita `npx -y @verbatra/cli mcp`, que termina con `2` porque la CLI nunca instala `@verbatra/mcp`. [Directorio del proyecto](/docs/cli/mcp#directorio-del-proyecto) explica dónde busca el servidor la configuración.
 
 ### Registro de MCP
 
@@ -56,7 +56,7 @@ Recomendado, desde la raíz del proyecto:
 npx verbatra init --agent
 ```
 
-[`init --agent`](/docs/cli/init#preparar-los-agentes-de-programación) escribe el archivo de instrucciones para agentes y esta entrada en el `.mcp.json` del repositorio, con el gasto desactivado, además de [Cursor](#cursor) y [VS Code](#vs-code) si los detecta:
+[`init --agent`](/docs/cli/init#preparar-los-agentes-de-programación) escribe el archivo de instrucciones para agentes y esta entrada en el `.mcp.json` del repositorio, con el gasto desactivado, además de cada otro cliente que detecte:
 
 ```json
 {
@@ -70,7 +70,7 @@ npx verbatra init --agent
 }
 ```
 
-Reinicia Claude Code y aprueba el servidor `verbatra`; Claude Code le transmite `CLAUDE_PROJECT_DIR` y el entorno de tu shell, así que no hace falta `--cwd`. Para gastar en una sesión, exporta la clave y ejecuta:
+Reinicia Claude Code y aprueba el servidor `verbatra`; Claude Code le transmite `CLAUDE_PROJECT_DIR` y el entorno de tu shell. Para gastar en una sesión, exporta la clave y ejecuta:
 
 ```bash
 VERBATRA_MCP_ALLOW_SPEND=1 claude
@@ -106,25 +106,28 @@ claude plugin install verbatra@verbatra --scope project
 - **Servidor**: un `@verbatra/mcp` de versión fija con `--cwd` en el proyecto abierto.
 - **Gasto**: desactivado hasta que actives la opción `allowSpend` del plugin (`--config allowSpend=true`, o `/config`). Un archivo del repositorio no puede activarla.
 - **Clave**: del entorno con el que arrancaste `claude`.
-- **Hook**: ejecuta el `verbatra check --file <path>` del propio proyecto (CLI 0.12.0 o posterior) y le comunica a Claude la sintaxis, los placeholders, el markup o el ICU rotos, sin llamar a ningún proveedor.
+- **Hook**: ejecuta el `verbatra check --file <path>` del proyecto (CLI 0.12.0 o posterior) e informa de placeholders, markup o ICU rotos, sin llamar a ningún proveedor.
 
 Consulta la [referencia de plugins de Claude Code](https://code.claude.com/docs/en/plugins-reference).
 
 ## Codex
 
-Codex lee `~/.codex/config.toml`, o el `.codex/config.toml` de un proyecto de confianza. Lo recomendado:
-
-```bash
-codex mcp add verbatra -- npx -y @verbatra/mcp --cwd /path/to/your/project
-```
-
-Nunca añadas `--env`: guarda el valor de la clave. Consulta la [documentación de MCP de Codex](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
-
-### Entrada de Codex a mano
-
-Esta permite gastar; `env_vars` nombra variables que Codex transmite, así que el archivo nunca contiene el valor:
+Lo recomendado: `npx verbatra init --agent --client codex` añade esta tabla al final de `.codex/config.toml`, con el gasto desactivado:
 
 ```toml title=".codex/config.toml"
+[mcp_servers.verbatra]
+command = "npx"
+args = ["-y", "@verbatra/mcp"]
+startup_timeout_sec = 60
+```
+
+Codex solo la carga cuando respondes a **Trust this folder?**, que cubre la raíz del repositorio. Si arrancas desde una subcarpeta, el servidor se sitúa en la configuración que encuentra. Consulta la [documentación de MCP de Codex](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
+
+### Configuración de usuario de Codex
+
+Para gastar, usa `~/.codex/config.toml` en su lugar. `env_vars` transmite variables por su nombre; una tabla `env` o `codex mcp add --env` guarda el valor:
+
+```toml title="~/.codex/config.toml"
 [mcp_servers.verbatra]
 command = "npx"
 args = ["-y", "@verbatra/mcp", "--allow-spend"]
@@ -132,11 +135,26 @@ cwd = "/path/to/your/project"
 env_vars = ["ANTHROPIC_API_KEY"]
 ```
 
-Para una entrada sin gasto, quita `--allow-spend` y `env_vars`. Una tabla `[mcp_servers.verbatra.env]` guarda el valor en sí.
-
 ## Gemini CLI
 
-Gemini CLI lee `mcpServers` de `.gemini/settings.json` o de `~/.gemini/settings.json`. Guarda una entrada con un `cwd` absoluto en tus ajustes de usuario:
+Lo recomendado: `npx verbatra init --agent --client gemini` añade esta entrada a `.gemini/settings.json`, con el gasto desactivado:
+
+```json title=".gemini/settings.json"
+{
+  "mcpServers": {
+    "verbatra": {
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp"]
+    }
+  }
+}
+```
+
+Gemini CLI solo la lee de la carpeta en la que arranca: inicia `gemini` en la raíz del proyecto y dale confianza en el diálogo o con `/permissions trust`. Deja `trust` sin definir; `/mcp` muestra las herramientas. Consulta la [documentación de MCP de Gemini CLI](https://geminicli.com/docs/tools/mcp-server/).
+
+### Ajustes de usuario de Gemini CLI
+
+Para gastar, usa tus ajustes de usuario con un `cwd` absoluto:
 
 ```json title="~/.gemini/settings.json"
 {
@@ -153,7 +171,7 @@ Gemini CLI lee `mcpServers` de `.gemini/settings.json` o de `~/.gemini/settings.
 }
 ```
 
-Gemini CLI oculta a los servidores las variables sensibles, así que la clave solo llega por `env`, expandida desde su entorno. Para una entrada sin gasto, quita `--allow-spend` y `env`, y deja `trust` sin definir. `/mcp` muestra las herramientas. Consulta la [documentación de MCP de Gemini CLI](https://geminicli.com/docs/tools/mcp-server/).
+Gemini CLI oculta a los servidores las variables de claves, así que pasa la clave por `env`.
 
 ## Cursor
 
@@ -171,11 +189,11 @@ Gemini CLI oculta a los servidores las variables sensibles, así que la clave so
 }
 ```
 
-Para gastar, añade `"--allow-spend"` al final de `args` y agrega `"env": { "ANTHROPIC_API_KEY": "${env:ANTHROPIC_API_KEY}" }`, que solo contiene el nombre de la variable. Consulta la [documentación de MCP de Cursor](https://cursor.com/docs/mcp).
+Para gastar, añade `"--allow-spend"` al final de `args` y agrega `"env": { "ANTHROPIC_API_KEY": "${env:ANTHROPIC_API_KEY}" }`. Consulta la [documentación de MCP de Cursor](https://cursor.com/docs/mcp).
 
 ## VS Code
 
-VS Code (el modo agente de GitHub Copilot) lee `.vscode/mcp.json`, cuya clave principal es `servers`; `init --agent --client vscode` escribe esta entrada. Arranca los servidores en la carpeta del workspace, así que no hace falta `--cwd`:
+VS Code (el modo agente de GitHub Copilot) lee `.vscode/mcp.json`, con la clave `servers`, que escribe `init --agent --client vscode`. No hace falta `--cwd`:
 
 ```json title=".vscode/mcp.json"
 {

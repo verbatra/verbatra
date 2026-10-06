@@ -17,7 +17,7 @@ The CLI raises these codes itself. The same list ships as `CLI_ERROR_CODES` (wit
 
 ### AGENT_FILE_INVALID
 
-`init --agent` found a client config (`.mcp.json`, `.cursor/mcp.json` or `.vscode/mcp.json`) that is not plain JSON, not an object, or holds a servers value that is not an object, a symbolic link on a path it would write, or an unpaired or repeated verbatra marker in `AGENTS.md` or `CLAUDE.md`; nothing was written.
+`init --agent` found a client config (`.mcp.json`, `.cursor/mcp.json`, `.vscode/mcp.json` or `.gemini/settings.json`) that is not plain JSON, not an object, or holds a servers value that is not an object, a `.codex/config.toml` it cannot scan safely or that sets the verbatra server inline, with dotted keys, as an array of tables or twice, a symbolic link on a path it would write, or an unpaired or repeated verbatra marker in `AGENTS.md` or `CLAUDE.md`; nothing was written.
 
 - **Raised by**: `init --agent`
 - **Exit code**: `2`
