@@ -6,10 +6,6 @@ export function rememberProjectRoot(config: VerbatraConfig, root: string): void 
   loadedRoots.set(config, root);
 }
 
-export function rememberedProjectRoot(config: VerbatraConfig): string | undefined {
-  return loadedRoots.get(config);
-}
-
 export function projectCwd(input: {
   readonly cwd?: string | undefined;
   readonly config: VerbatraConfig;
