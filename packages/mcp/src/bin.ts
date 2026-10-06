@@ -1,7 +1,7 @@
 import process from "node:process";
 import { redact, releaseHeldLocks, SdkError } from "@verbatra/sdk";
 import { BIN_NAME, type BinOptions, BinUsageError, HELP_TEXT, parseArgs } from "./bin-args.js";
-import { resolveServerCwd, startMcpServer } from "./index.js";
+import { startMcpServer } from "./index.js";
 import { readPackageManifest } from "./package-manifest.js";
 import {
   mcpReadyLine,
@@ -40,7 +40,7 @@ async function serve(options: BinOptions): Promise<void> {
     onLog: logToStderr,
   });
 
-  const project = projectLabel(resolveServerCwd(options.cwd), process.cwd());
+  const project = projectLabel(handle.projectRoot, process.cwd());
   logToStderr(mcpReadyLine(project, handle.spend, handle.valuesRedacted));
   if (!handle.configured) {
     for (const line of mcpUnconfiguredHint()) {

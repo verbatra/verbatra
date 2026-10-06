@@ -5,6 +5,7 @@ import {
   createValueMarker,
   isMachineTranslationEnabled,
   redact,
+  resolveProjectRoot,
 } from "@verbatra/sdk";
 import { type McpProjectState, openProjectSession } from "./project-session.js";
 import { serveMcpStdio } from "./server.js";
@@ -101,6 +102,12 @@ export interface McpServerHandle {
    * the first call after it becomes valid, without a restart.
    */
   readonly configured: boolean;
+  /**
+   * The directory the tools resolved project paths from at startup: the directory of a config the
+   * search found, else the project directory (see {@link StartMcpServerOptions.cwd}). Always
+   * absolute.
+   */
+  readonly projectRoot: string;
 }
 
 /**
@@ -173,6 +180,8 @@ export async function startMcpServer(
     spend: spendState(options.allowSpend ?? false, initial),
     valuesRedacted: options.redactValues ?? false,
     configured: initial.kind === "configured",
+    projectRoot:
+      initial.kind === "configured" ? resolveProjectRoot(initial.loaded.source, cwd) : cwd,
   };
 }
 
