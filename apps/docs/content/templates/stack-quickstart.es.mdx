@@ -1,0 +1,109 @@
+Al final de esta página, tu app de <StackText field="name" /> muestra un texto en alemán que verbatra tradujo desde <StackText field="sourceFile" />, y un archivo de bloqueo hace que cada ejecución posterior traduzca solo lo que cambió. Necesitas Node.js `>=22.14.0`, un proyecto de <StackText field="name" /> y unos diez minutos. Los primeros cinco pasos no necesitan cuenta ni clave de API.
+
+## Pasos
+
+<Steps>
+<Step>
+
+### Instala la CLI
+
+```bash
+npm install --save-dev @verbatra/cli
+```
+
+verbatra es una herramienta de desarrollo y nunca llega a tu app. En un proyecto sin `package.json`, npm crea uno. Los comandos de abajo usan `npx`; con pnpm, yarn o bun, ejecuta `pnpm verbatra`, `yarn verbatra` o `bun run verbatra`.
+
+</Step>
+<Step>
+
+### Añade un archivo de locale de origen
+
+Si <StackText field="sourceFile" /> ya existe, sáltate este paso. Si no, créalo con dos textos, uno de ellos con un marcador de posición:
+
+<StackBlock name="source-file" />
+
+</Step>
+<Step>
+
+### Genera una configuración
+
+<StackBlock name="init" />
+
+`--format` <StackText field="format" /> es el formato de archivo de <StackText field="library" />. `init` encuentra tus archivos de locale, o escribe el patrón <StackText field="pattern" /> cuando aún no hay ninguno. `--yes` acepta lo que `init` detectó en lugar de preguntar. El nuevo `verbatra.config.ts` traduce de `en` a `de`; añade códigos a `targetLocales` para más idiomas.
+
+</Step>
+<Step>
+
+### Conecta tu agente
+
+<AvailableFrom version="0.12.0" />
+
+```bash
+npx verbatra init --agent
+```
+
+Sáltate este paso si no trabajas con un agente de programación. Con la configuración ya creada, `init --agent` la conserva y añade solo los archivos del agente: las reglas de verbatra en `AGENTS.md` (o `CLAUDE.md`, cuando es tu único archivo de instrucciones) y el servidor MCP de verbatra en `.mcp.json`, sin las herramientas que gastan. Consulta [`verbatra init`](/docs/cli/init) y [Conectar un cliente MCP](/docs/connect-an-mcp-client).
+
+</Step>
+<Step>
+
+### Previsualiza la ejecución sin clave
+
+```bash
+npx verbatra translate --dry-run
+```
+
+El resumen dice `de: 2 would translate`. Una ejecución de prueba no construye ningún proveedor, así que no necesita clave, no gasta nada y no escribe nada.
+
+</Step>
+<Step>
+
+### Traduce
+
+```bash
+cp .env.example .env
+```
+
+Abre `.env` y pega tu clave después de `GEMINI_API_KEY=`. ¿Aún no tienes clave? Gemini tiene un nivel gratuito: crea una en [Google AI Studio](https://aistudio.google.com/apikey). Los demás proveedores y sus variables están en [Proveedores](/docs/providers).
+
+```bash
+npx verbatra translate
+```
+
+verbatra envía los dos textos a Gemini, comprueba que cada marcador de posición sobrevive y escribe <StackText field="targetFile" />. El texto depende del modelo, por ejemplo:
+
+<StackBlock name="translated-file" />
+
+</Step>
+<Step>
+
+### Carga los locales en tu app
+
+Añade <StackText field="library" />:
+
+<StackBlock name="runtime-install" />
+
+Después carga ambos archivos y muestra el saludo:
+
+<StackBlock name="load" />
+
+Arranca tu app: el saludo dice `Hallo, Ada!`.
+
+</Step>
+</Steps>
+
+## Qué acaba de pasar
+
+- `verbatra.lock.json` guarda un hash de cada texto de origen, para que la siguiente ejecución envíe solo textos nuevos y modificados. Consulta [El archivo de bloqueo](/docs/the-lock-file).
+- Un resultado que pierde un marcador de posición se retiene y nunca se escribe. Consulta [Seguridad de la traducción](/docs/translation-safety).
+- `npx verbatra check` termina con `1` en cuanto un locale deja de estar sincronizado, así que puede proteger un pull request.
+
+Haz commit de los archivos de locale, `verbatra.lock.json` y `verbatra.provenance.json` juntos.
+
+## Siguiente
+
+<Cards>
+  <Card title="Añadir un idioma" href="/docs/add-a-language" description="Añade un locale de destino y deja que una ejecución lo complete." />
+  <Card title="Ejecutar verbatra en CI" href="/docs/ci-and-exit-codes" description="Haz fallar un pull request cuando un locale se desvía." />
+  <Card title="Elige tu stack" href="/docs/pick-your-stack" description="El id de formato y la estructura de archivos de cualquier otro framework." />
+</Cards>

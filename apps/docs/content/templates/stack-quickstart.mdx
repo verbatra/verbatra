@@ -1,0 +1,109 @@
+By the end of this page your <StackText field="name" /> app shows a German string that verbatra translated from <StackText field="sourceFile" />, and a lock file makes every later run translate only what changed. You need Node.js `>=22.14.0`, a <StackText field="name" /> project, and about ten minutes. The first five steps need no account and no API key.
+
+## Steps
+
+<Steps>
+<Step>
+
+### Install the CLI
+
+```bash
+npm install --save-dev @verbatra/cli
+```
+
+verbatra is a development tool and never ships in your app. In a project without a `package.json`, npm creates one. The commands below use `npx`; with pnpm, yarn, or bun, run `pnpm verbatra`, `yarn verbatra`, or `bun run verbatra` instead.
+
+</Step>
+<Step>
+
+### Add a source locale file
+
+Skip this step if <StackText field="sourceFile" /> already exists. Otherwise create it with two strings, one of them with a placeholder:
+
+<StackBlock name="source-file" />
+
+</Step>
+<Step>
+
+### Scaffold a config
+
+<StackBlock name="init" />
+
+`--format` <StackText field="format" /> is the file format of <StackText field="library" />. `init` finds your locale files, or writes the pattern <StackText field="pattern" /> when there are none yet. `--yes` takes what `init` detected instead of prompting. The new `verbatra.config.ts` translates from `en` into `de`; add codes to `targetLocales` for more languages.
+
+</Step>
+<Step>
+
+### Connect your agent
+
+<AvailableFrom version="0.12.0" />
+
+```bash
+npx verbatra init --agent
+```
+
+Skip this step if you do not work with a coding agent. With the config in place, `init --agent` keeps it and adds only the agent files: the verbatra rules in `AGENTS.md` (or `CLAUDE.md`, when that is your only instruction file) and the verbatra MCP server in `.mcp.json`, with spending off. See [`verbatra init`](/docs/cli/init) and [Connect an MCP client](/docs/connect-an-mcp-client).
+
+</Step>
+<Step>
+
+### Preview the run without a key
+
+```bash
+npx verbatra translate --dry-run
+```
+
+The summary reads `de: 2 would translate`. A dry run builds no provider, so it needs no key, spends nothing, and writes nothing.
+
+</Step>
+<Step>
+
+### Translate
+
+```bash
+cp .env.example .env
+```
+
+Open `.env` and paste your key after `GEMINI_API_KEY=`. No key yet? Gemini has a free tier: create one in [Google AI Studio](https://aistudio.google.com/apikey). Every other provider and its variable is on [Providers](/docs/providers).
+
+```bash
+npx verbatra translate
+```
+
+verbatra sends the two strings to Gemini, checks that every placeholder survived, and writes <StackText field="targetFile" />. The wording depends on the model, for example:
+
+<StackBlock name="translated-file" />
+
+</Step>
+<Step>
+
+### Load the locales in your app
+
+Add <StackText field="library" />:
+
+<StackBlock name="runtime-install" />
+
+Then load both files and render the greeting:
+
+<StackBlock name="load" />
+
+Start your app: the greeting reads `Hallo, Ada!`.
+
+</Step>
+</Steps>
+
+## What just happened
+
+- `verbatra.lock.json` records a hash of each source string, so the next run sends only new and changed strings. See [The lock file](/docs/the-lock-file).
+- A result that drops a placeholder is withheld, never written. See [Translation safety](/docs/translation-safety).
+- `npx verbatra check` exits `1` once a locale falls out of sync, so it can gate a pull request.
+
+Commit the locale files, `verbatra.lock.json`, and `verbatra.provenance.json` together.
+
+## Next
+
+<Cards>
+  <Card title="Add a language" href="/docs/add-a-language" description="Add a target locale and let one run fill it in." />
+  <Card title="Run verbatra in CI" href="/docs/ci-and-exit-codes" description="Fail a pull request when a locale drifts." />
+  <Card title="Pick your stack" href="/docs/pick-your-stack" description="The format id and file layout for every other framework." />
+</Cards>

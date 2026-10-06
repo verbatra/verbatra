@@ -1,0 +1,109 @@
+À la fin de cette page, ton app <StackText field="name" /> affiche un texte allemand que verbatra a traduit depuis <StackText field="sourceFile" />, et un fichier de verrouillage fait que chaque exécution suivante ne traduit que ce qui a changé. Il te faut Node.js `>=22.14.0`, un projet <StackText field="name" /> et une dizaine de minutes. Les cinq premières étapes ne demandent ni compte ni clé d'API.
+
+## Étapes
+
+<Steps>
+<Step>
+
+### Installe la CLI
+
+```bash
+npm install --save-dev @verbatra/cli
+```
+
+verbatra est un outil de développement et n'est jamais livré dans ton app. Dans un projet sans `package.json`, npm en crée un. Les commandes ci-dessous utilisent `npx` ; avec pnpm, yarn ou bun, lance plutôt `pnpm verbatra`, `yarn verbatra` ou `bun run verbatra`.
+
+</Step>
+<Step>
+
+### Ajoute un fichier de locale source
+
+Si <StackText field="sourceFile" /> existe déjà, passe cette étape. Sinon, crée-le avec deux textes, dont un avec un placeholder :
+
+<StackBlock name="source-file" />
+
+</Step>
+<Step>
+
+### Génère une configuration
+
+<StackBlock name="init" />
+
+`--format` <StackText field="format" /> est le format de fichier de <StackText field="library" />. `init` trouve tes fichiers de locale, ou écrit le motif <StackText field="pattern" /> quand il n'y en a pas encore. `--yes` reprend ce que `init` a détecté au lieu de poser des questions. Le nouveau `verbatra.config.ts` traduit de `en` vers `de` ; ajoute des codes à `targetLocales` pour d'autres langues.
+
+</Step>
+<Step>
+
+### Connecte ton agent
+
+<AvailableFrom version="0.12.0" />
+
+```bash
+npx verbatra init --agent
+```
+
+Passe cette étape si tu ne travailles pas avec un agent de code. Avec la configuration en place, `init --agent` la garde et ajoute seulement les fichiers pour l'agent : les règles verbatra dans `AGENTS.md` (ou `CLAUDE.md`, quand c'est ton seul fichier d'instructions) et le serveur MCP verbatra dans `.mcp.json`, sans les outils qui dépensent. Voir [`verbatra init`](/docs/cli/init) et [Connecter un client MCP](/docs/connect-an-mcp-client).
+
+</Step>
+<Step>
+
+### Prévisualise l'exécution sans clé
+
+```bash
+npx verbatra translate --dry-run
+```
+
+Le résumé indique `de: 2 would translate`. Une exécution à blanc ne construit aucun fournisseur : elle n'a pas besoin de clé, ne dépense rien et n'écrit rien.
+
+</Step>
+<Step>
+
+### Traduis
+
+```bash
+cp .env.example .env
+```
+
+Ouvre `.env` et colle ta clé après `GEMINI_API_KEY=`. Pas encore de clé ? Gemini a une offre gratuite : crées-en une dans [Google AI Studio](https://aistudio.google.com/apikey). Les autres fournisseurs et leurs variables sont sur [Fournisseurs](/docs/providers).
+
+```bash
+npx verbatra translate
+```
+
+verbatra envoie les deux textes à Gemini, vérifie que chaque placeholder a survécu et écrit <StackText field="targetFile" />. La formulation dépend du modèle, par exemple :
+
+<StackBlock name="translated-file" />
+
+</Step>
+<Step>
+
+### Charge les locales dans ton app
+
+Ajoute <StackText field="library" /> :
+
+<StackBlock name="runtime-install" />
+
+Puis charge les deux fichiers et affiche la salutation :
+
+<StackBlock name="load" />
+
+Lance ton app : la salutation affiche `Hallo, Ada!`.
+
+</Step>
+</Steps>
+
+## Ce qui vient de se passer
+
+- `verbatra.lock.json` enregistre un hash de chaque texte source, pour que l'exécution suivante n'envoie que les textes nouveaux ou modifiés. Voir [Le fichier de verrouillage](/docs/the-lock-file).
+- Un résultat qui perd un placeholder est retenu, jamais écrit. Voir [Sûreté de la traduction](/docs/translation-safety).
+- `npx verbatra check` se termine avec `1` dès qu'une locale n'est plus synchronisée : il peut donc protéger une pull request.
+
+Commite ensemble les fichiers de locale, `verbatra.lock.json` et `verbatra.provenance.json`.
+
+## Ensuite
+
+<Cards>
+  <Card title="Ajouter une langue" href="/docs/add-a-language" description="Ajoute une locale cible et laisse une exécution la remplir." />
+  <Card title="Exécuter verbatra en CI" href="/docs/ci-and-exit-codes" description="Fais échouer une pull request quand une locale dérive." />
+  <Card title="Choisis ta stack" href="/docs/pick-your-stack" description="L'id de format et l'organisation de fichiers de tout autre framework." />
+</Cards>
