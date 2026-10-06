@@ -144,6 +144,8 @@ Upgrading from 0.11: rejected config, rewritten files, new exit codes and SDK ty
   refused with a stderr line only, so stdout stays clean for the client.
 - `verbatra init` exits 2 with `MISSING_OPTIONS` when stdin ends at a prompt (it exited 13).
   Answer each prompt, or pass the options as flags.
+- `verbatra pseudo` names the mode in its summary line (`en-XA (accented): 118 of 120 entries`
+  instead of `en-XA: 118 of 120 entries`). A script that parses it should read `--json` instead.
 
 **SDK callers (TypeScript and JavaScript)**
 - `readGlossaryFile` and `updateGlossaryTerm` return a `Glossary`, and `translation: null` removes
