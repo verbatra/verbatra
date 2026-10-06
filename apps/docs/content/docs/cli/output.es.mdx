@@ -98,7 +98,7 @@ Cada registro que imprime `--json` tiene un JSON Schema (draft 2020-12). Los esq
 | El envoltorio de un comando, con su `result` | `https://verbatra.kreitz-webdev.de/schema/v1/<command>-envelope.json` | `@verbatra/cli/schemas/<command>-envelope.json` |
 | El envoltorio de error | [`error-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/error-envelope.json) | `@verbatra/cli/schemas/error-envelope.json` |
 | Una línea JSON en stderr: progreso, espera de un bloqueo, interrupción | [`stderr-record.json`](https://verbatra.kreitz-webdev.de/schema/v1/stderr-record.json) | `@verbatra/cli/schemas/stderr-record.json` |
-| El archivo de configuración | [`config.json`](https://verbatra.kreitz-webdev.de/schema/v1/config.json) | `@verbatra/sdk/schemas/config.json` |
+| El archivo de configuración | [`config.json`](https://verbatra.kreitz-webdev.de/schema/v1/config.json) | `@verbatra/sdk/schemas/config.json` o `@verbatra/sdk/config-schema.json`: el mismo esquema sin `$id` ni `title` |
 
 Cada página de comando enlaza su envoltorio en Salida JSON, y [https://verbatra.kreitz-webdev.de/schema/v1](https://verbatra.kreitz-webdev.de/schema/v1) enumera cada documento con su título. El envoltorio de un comando apunta al esquema de su `result` por URL en `$ref`, así que un validador lo carga por la red, o desde `node_modules/@verbatra/sdk/dist/schemas` si registras antes esos archivos.
 

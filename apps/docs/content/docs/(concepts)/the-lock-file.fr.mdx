@@ -10,18 +10,16 @@ valeur.
 
 ## Ce qu'il enregistre
 
-Pour chaque locale cible, un hash de contenu par clé traduite, tiré de la valeur source qui a
-produit la traduction actuelle. Il ne contient aucune traduction et aucun secret : un champ
-`version` et des hashs. Le hash normalise l'Unicode en NFC et les fins de ligne en LF, donc
-réenregistrer un fichier source avec des fins de ligne CRLF ou une autre normalisation ne change
-rien.
+Pour chaque locale cible, un hash par clé traduite de la valeur source derrière la traduction
+actuelle, plus un champ `version` : aucune traduction, aucun secret. Le hash normalise l'Unicode en
+NFC et les fins de ligne en LF, donc réenregistrer un fichier source en CRLF ne change rien.
 
 ## Comment la dérive est détectée
 
-Une clé source que la cible n'a pas est manquante. Pour une clé que la cible possède, le hash source
-actuel est comparé à celui enregistré : une différence signifie que la source a changé, donc la clé
-est retraduite ; une correspondance signifie qu'elle n'est jamais envoyée, donc une seconde
-exécution sans modification de la source ne coûte rien. Le pipeline complet est sur
+Une clé source que la cible n'a pas est manquante. Pour une clé présente, le hash source actuel est
+comparé à celui enregistré : une différence signifie que la source a changé et la clé est
+retraduite ; une correspondance signifie qu'elle n'est jamais envoyée, donc une seconde exécution
+sans modification de la source ne coûte rien. Le pipeline complet est sur
 [Comment se déroule une exécution](/docs/how-it-works).
 
 ### Clés protégées
@@ -33,19 +31,17 @@ est [protégée](/docs/protecting-human-translations) et reste obsolète au lieu
 
 ## Adopter un projet existant
 
-Pointer verbatra vers des fichiers de locale qui contiennent déjà des traductions relues ne les
-retraduit pas. À la première exécution il n'y a pas de fichier de verrouillage, donc rien ne peut
-être périmé : une clé que la cible possède garde sa valeur, seules les clés manquantes sont
-traduites, et l'exécution enregistre le hash source actuel de chaque clé, établissant la référence
-sans coût fournisseur.
+Des fichiers de locale qui contiennent déjà des traductions relues ne sont pas retraduits. À la
+première exécution il n'y a pas de fichier de verrouillage, donc rien ne peut être périmé : une clé
+que la cible possède garde sa valeur, seules les clés manquantes sont traduites, et l'exécution
+enregistre chaque hash source comme référence, sans coût fournisseur.
 
 L'adoption se décide par la présence d'une clé, jamais par sa valeur, ce qui a deux conséquences :
 
-- **Une valeur vide ou non traduite compte comme traduite.** Une clé dont la valeur cible est vide,
-  ou encore le texte source, existe, donc elle n'est jamais remplie. Supprime la clé (la vider ne
-  suffit pas) et l'exécution suivante la traduit.
-- **Une traduction déjà périmée est enregistrée comme à jour.** Corrige ou supprime ces clés avant
-  la première exécution.
+- **Une valeur vide ou non traduite compte comme traduite.** Supprime la clé (la vider ne suffit
+  pas) et l'exécution suivante la traduit.
+- **Une traduction déjà périmée est enregistrée comme à jour.** Corrige-la ou supprime-la avant la
+  première exécution.
 
 La même règle garde les formes plurielles écrites à la main, donc `generatePlurals` est sans risque
 pendant l'adoption. Pour voir tout cela à l'avance, lance [`verbatra diff`](/docs/cli/diff) ou
@@ -58,33 +54,30 @@ pendant l'adoption. Pour voir tout cela à l'avance, lance [`verbatra diff`](/do
 - Une action sur une seule clé, comme une retraduction depuis Studio, ne fusionne que l'entrée de
   cette clé.
 
-Dans les deux cas, une clé retenue pendant cette exécution (une vérification d'intégrité échouée, un
-appel fournisseur échoué, une source ICU invalide) garde son hash précédent, donc l'exécution
-suivante la retente. Les clés orphelines n'ont pas d'entrée. Le fichier est écrit avec des clés
-triées, donc ses diffs restent petits et faciles à relire.
+Dans les deux cas, une clé retenue pendant cette exécution (une vérification d'intégrité ou un appel
+fournisseur échoué, une source ICU invalide) garde son hash précédent, donc l'exécution suivante la
+retente. Les clés orphelines n'ont pas d'entrée, et des clés triées gardent les diffs petits.
 
 ## Le verrou d'écriture
 
 Deux exécutions qui touchent la même locale en même temps pourraient toutes deux comparer avec une
-référence périmée et payer deux fois. Chaque écriture dans une locale prend donc un verrou
-inter-processus propre à cette locale, gardé sous `.verbatra-local/`. Un second écrivain attend,
-puis relit le fichier de verrouillage et compare avec une référence qui contient déjà le résultat du
-premier. Des locales différentes ne se bloquent jamais.
+référence périmée et payer deux fois, donc chaque écriture prend un verrou inter-processus propre à
+cette locale sous `.verbatra-local/`. Un second écrivain attend, puis compare avec une référence qui
+contient le résultat du premier. Des locales différentes ne se bloquent jamais.
 
 Ce que le verrou garantit :
 
 - **Un délai dépassé ne coûte rien.** `--lock-timeout` ne borne que l'attente avant tout appel
   fournisseur, donc une locale qui abandonne n'a rien dépensé ni rien écrit ; enregistrer un fichier
-  déjà écrit attend toujours les dix minutes par défaut.
+  déjà écrit attend les dix minutes par défaut.
 - **Les verrous abandonnés ne te bloquent pas.** Un verrou dont le processus a disparu de cette
-  machine est récupéré tout de suite, et un détenteur rafraîchit son verrou toutes les 10 secondes,
-  donc un verrou non rafraîchi depuis 30 secondes est traité comme abandonné même si son processus
-  tourne encore.
+  machine est récupéré tout de suite, et un verrou non rafraîchi depuis 30 secondes (les détenteurs
+  rafraîchissent toutes les 10) compte comme abandonné.
 - **Une interruption libère les verrous.** Ctrl-C ou SIGTERM pendant `translate` ou `import`, et la
   seconde interruption qui force l'arrêt de `watch`, libèrent tous les verrous avant la fin du
   processus.
 - **Un verrou perdu arrête l'écriture.** Chaque verrou porte un jeton aléatoire, vérifié avant
-  chaque écriture qu'il protège ; quand une autre exécution a repris le verrou, l'écriture s'arrête
+  chaque écriture ; quand une autre exécution a repris le verrou, l'écriture s'arrête
   avec [`LOCK_CONTENDED`](/docs/error-codes#lock_contended) et rien n'est écrit.
 
 Ce qu'il ne couvre pas :
@@ -95,9 +88,9 @@ Ce qu'il ne couvre pas :
 - **Une longue pause entre vérification et écriture.** Une exécution mise en pause juste après la
   vérification du jeton (une machine en veille, un processus arrêté) peut encore écrire une fois à
   sa reprise.
-- **Des hôtes qui partagent un nom.** Hors Linux, le nom d'hôte est la seule identité de machine
-  enregistrée, donc deux conteneurs au même nom d'hôte qui partagent un `.verbatra-local/` peuvent
-  prendre le verrou vivant de l'autre pour un verrou abandonné. Donne à chacun son propre nom d'hôte
+- **Des hôtes qui partagent un nom.** Hors Linux, le nom d'hôte est la seule identité de machine,
+  donc deux conteneurs au même nom d'hôte qui partagent `.verbatra-local/` peuvent prendre le verrou
+  vivant de l'autre pour un verrou abandonné. Donne à chacun son propre nom d'hôte
   ou sa propre copie de travail.
 
 ## Un code de locale réécrit
@@ -105,22 +98,20 @@ Ce qu'il ne couvre pas :
 <AvailableFrom version="0.12.0" />
 
 Le fichier de verrouillage, le cache et le fichier de provenance rangent leur état sous le code de
-locale de ta configuration. Quand tu réécris un code, par exemple `pt_BR` en `pt-BR` avec
-`files.localeStyle: "posix"`, la prochaine exécution de `translate` ou `watch` reporte l'ancien état
-une fois, et signale
+locale de ta configuration. Quand tu en réécris un, par exemple `pt_BR` en `pt-BR`, la prochaine
+exécution de `translate` ou `watch` reporte l'ancien état une fois et signale
 [`LOCALE_STATE_CARRIED_OVER`](/docs/error-codes#locale_state_carried_over). Une modification de la
 source faite avant le renommage est toujours retraduite, et les traductions en cache sont toujours
 réutilisées.
 
-Le report n'a lieu que s'il est sans ambiguïté : `pt-BR` n'a pas d'état à lui, et le fichier
+Le report n'a lieu que sans ambiguïté : `pt-BR` n'a pas d'état à lui, et le fichier
 contient un état sous exactement une graphie avec tiret bas (ou sa graphie gettext, comme
 `sr@latin` pour `sr-Latn`), comparée sans tenir compte de la casse. Un état que `pt-BR` a déjà n'est
 jamais écrasé. Si le report ne peut pas être écrit, cette locale ne tourne pas et échoue avec
 [`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), pour que
 l'exécution suivante réessaie ; les autres locales tournent normalement.
 
-Tant qu'une exécution ne l'a pas déplacé, chaque lecture traite l'ancien état comme celui de `pt-BR`
-sans rien écrire, donc une clé périmée est signalée comme périmée. Une écriture sur une seule clé
+D'ici là, chaque lecture traite l'ancien état comme celui de `pt-BR` sans écrire, donc une clé périmée est signalée comme périmée. Une écriture sur une seule clé
 (une modification, une retraduction, une décision de relecture) et `verbatra import` déplacent
 d'abord l'état, de la même façon. Le contrôle `locale-state` de
 [`verbatra doctor`](/docs/cli/doctor) nomme tout état resté en arrière.
@@ -128,7 +119,7 @@ d'abord l'état, de la même façon. Le contrôle `locale-state` de
 ## Absent ou corrompu
 
 Un fichier de verrouillage absent est une [première exécution](#adopter-un-projet-existant), pas une
-erreur. Un fichier de verrouillage illisible, mal structuré, trop gros ou dans une version non prise
+erreur. Un fichier illisible, mal structuré, trop gros ou dans une version non prise
 en charge fait échouer l'exécution avec [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid)
 au lieu d'être écrasé, pour que tu puisses le restaurer plutôt que perdre la référence.
 
@@ -136,10 +127,9 @@ au lieu d'être écrasé, pour que tu puisses le restaurer plutôt que perdre la
 
 <AvailableFrom version="0.12.0" />
 
-Là où le fichier de verrouillage enregistre de quel texte source vient une traduction,
-`verbatra.provenance.json` enregistre quel chemin d'écriture a produit la valeur présente dans le
-fichier de locale, et si quelqu'un l'a relue. Fichier séparé, il est ignoré par un verbatra plus
-ancien, par exemple épinglé dans la CI.
+`verbatra.provenance.json` enregistre quel chemin d'écriture a produit chaque valeur présente dans
+le fichier de locale, et si quelqu'un l'a relue. Un verbatra plus ancien, par exemple épinglé dans
+la CI, l'ignore.
 
 | Origine | Écrite par |
 | --- | --- |
@@ -151,20 +141,19 @@ ancien, par exemple épinglé dans la CI.
 | `import` | une ligne acceptée par `verbatra import` |
 | `unknown` | une décision de relecture sur une valeur sans enregistrement, ou une origine que cette version ne connaît pas |
 
-Deux autres origines sont déduites à la lecture des fichiers. `unrecorded` est une valeur sans
-enregistrement, l'état de départ de chaque clé après une mise à jour. `external` est une valeur qui
-ne correspond plus au hash que porte son enregistrement, parce que quelque chose hors de verbatra
-l'a changée : la pull request d'un traducteur, un verbatra plus ancien, ou une fusion. Les champs
+Deux autres sont déduites à la lecture : `unrecorded` est une valeur sans enregistrement, comme
+chaque clé après une mise à jour ; `external` ne correspond plus au hash de son enregistrement parce
+que quelque chose hors de verbatra l'a changée, comme la pull request d'un traducteur, un verbatra plus ancien ou une fusion.
+Les champs
 que renvoie chaque lecture sont dans la
 [référence du SDK](/docs/sdk/inspect#loadprovenance).
 
 Ce que le fichier garantit :
 
-- **Des diffs stables.** Aucun texte traduit et aucun horodatage, un enregistrement trié par ligne,
-  donc une exécution qui ne change rien laisse le fichier identique octet pour octet. En cas de
-  conflit de fusion, prends le côté qui correspond au fichier de locale que tu gardes : un
-  enregistrement qui ne correspond pas se lit comme `external`, qui ne nomme aucun mauvais auteur
-  mais protège la valeur d'une nouvelle traduction.
+- **Des diffs stables.** Aucun texte traduit ni horodatage, un enregistrement trié par ligne, donc
+  une exécution qui ne change rien laisse le fichier inchangé. En cas de conflit de fusion, prends le
+  côté qui correspond au fichier de locale que tu gardes : un enregistrement qui ne correspond pas se
+  lit comme `external`, ce qui protège la valeur d'une nouvelle traduction.
 - **Des enregistrements neufs pour les nouvelles valeurs.** Une écriture qui change une valeur
   remplace son enregistrement par un nouveau, non relu ; une écriture qui laisse valeur et source
   inchangées le garde.
@@ -174,8 +163,7 @@ Ce que le fichier garantit :
   un verbatra plus récent est laissé intact, et un fichier trop gros pour être relu n'est pas écrit
   ([`PROVENANCE_FILE_TOO_LARGE`](/docs/error-codes#provenance_file_too_large)).
 
-Ce qu'il n'est pas : infalsifiable. Quiconque peut modifier les fichiers de locale peut le modifier
-aussi. Pour en faire un rapport, voir
+Il n'est pas infalsifiable ; pour en faire un rapport, voir
 [Consigner les preuves de traduction automatique](/docs/provenance-evidence).
 
 ### Décisions de relecture
@@ -183,31 +171,24 @@ aussi. Pour en faire un rapport, voir
 <AvailableFrom version="0.12.0" />
 
 Un enregistrement peut porter une décision de relecture, `approved` ou `rejected`, avec un nom de
-relecteur `reviewer` facultatif. La page Review de Studio, les
+relecteur `reviewer` facultatif. La [page Review de Studio](/docs/review-in-studio), les
 [fonctions de revue du SDK](/docs/sdk/review) et les [outils MCP de relecture](/docs/cli/mcp) les
 écrivent ; les outils MCP relaient la décision d'une personne et exigent son nom. Une décision
-s'applique à la valeur exacte que le relecteur a vue et est refusée si cette valeur a changé depuis.
+s'applique à la valeur exacte que le relecteur a vue et est refusée si elle a changé.
 
-- **Une approbation** ne change que le fichier de provenance. Elle stocke le hash source par rapport
-  auquel elle a été donnée, donc elle se relit comme non relue dès que le texte source change.
-- **Un rejet** retire la valeur du fichier de locale et son entrée du fichier de verrouillage, donc
-  la clé se lit comme manquante jusqu'à la prochaine exécution de `translate` ou jusqu'à ce qu'une
-  personne écrive une nouvelle valeur. L'enregistrement garde un hash du texte retiré, et l'entrée
-  correspondante du cache est supprimée, pour qu'une exécution ne remette pas le même texte. XLIFF ne
+- **Une approbation** ne change que le fichier de provenance, et se relit comme non relue dès que le
+  texte source change.
+- **Un rejet** retire la valeur et son entrée de verrouillage, donc la clé se lit comme manquante
+  jusqu'à la prochaine exécution de `translate` ou jusqu'à ce qu'une personne écrive une nouvelle
+  valeur. L'enregistrement garde un hash du texte retiré et l'entrée du cache est supprimée, pour qu'une exécution ne remette pas le même texte. XLIFF ne
   peut pas retirer une seule traduction, donc un rejet y est refusé avec
   [`REVIEW_REJECT_UNSUPPORTED`](/docs/error-codes#review_reject_unsupported).
 
 Les décisions vivent dans ce fichier commité, donc la file de relecture et
 [`verbatra check --require-reviewed`](/docs/cli/check#exiger-des-traductions-relues) voient le même
-état sur chaque machine, et le nom `reviewer` est public ; verbatra ne le remplit jamais.
+état partout, et le nom `reviewer` est public ; verbatra ne le remplit jamais.
 
 ## Commite-le
 
 Commite `verbatra.lock.json` et `verbatra.provenance.json` avec tes fichiers de locale, et ne les
-modifie jamais à la main : ils sont la référence partagée avec laquelle tes coéquipiers et ta CI
-comparent, et ce que restaure un [retour arrière](/docs/recovery-and-rollback).
-
-## Voir aussi
-
-- [Le cache de traduction](/docs/the-cache) : la réutilisation par contenu à côté du verrouillage.
-- [Réviser dans Studio](/docs/review-in-studio) : enregistrer approbations et rejets.
+modifie jamais à la main : ils sont la référence avec laquelle ton équipe et ta CI comparent, et ce que restaure un [retour arrière](/docs/recovery-and-rollback).

@@ -3,9 +3,7 @@ title: Translation safety
 description: "The safety model: untrusted strings, the integrity gate, review flags, the token budget, and errors that never leak."
 type: concept
 ---
-verbatra trusts neither the strings it translates nor what a provider sends back. Every value
-passes an integrity gate before it can be written, whatever the gate rejects surfaces as data
-instead of failing the run, and secrets stay out of every error path.
+verbatra trusts neither the strings it translates nor what a provider sends back.
 
 | Layer | Guards against | On failure |
 | --- | --- | --- |
@@ -29,22 +27,11 @@ never requested fails its whole sub-batch.
 <AvailableFrom version="0.12.0" />
 
 A locale code alone is not always enough: `sr-Latn` often comes back in Cyrillic, and `pt-BR` and
-`pt-PT` blur together. So an LLM provider also receives the English name of each language, with its
-script and region when the code names them, looked up with `Intl.DisplayNames` from the data built
-into Node.js:
-
-| Locale | Names sent |
-| --- | --- |
-| `sr-Latn` | `{ "name": "Serbian (Latin)", "script": "Latin" }` |
-| `zh-Hant-TW` | `{ "name": "Chinese (Traditional, Taiwan)", "script": "Traditional", "region": "Taiwan" }` |
-| `es-419` | `{ "name": "Spanish (Latin America)", "region": "Latin America" }` |
-| `qaa` (private use) | none: the code is sent alone |
-
-The names come from the locale in your config, even when a `localeMap` entry sends a different
-code, and travel as data like the rest; one fixed system rule asks the model to write in the named
-script and variant. They are not part of the [cache](/docs/the-cache) fingerprint. The
-machine-translation providers receive codes only; see
-[Languages and locales](/docs/language-support).
+`pt-PT` blur together. So an LLM provider also receives each language's English name, script and
+region, taken from Node.js for the locale in your config even when `localeMap` sends another code.
+They travel as data, one fixed system rule asks the model to write in the named script and variant,
+and they are not part of the [cache](/docs/the-cache) fingerprint. A code Node.js cannot name, such as
+the private-use `qaa`, is sent without a name.
 
 ## The integrity gate
 
@@ -79,9 +66,9 @@ What it does not guarantee: that the translation is correct. It proves structure
 
 <AvailableFrom version="0.12.0" />
 
-An ICU plural has one arm per CLDR plural category of its language: English has `one` and `other`,
-Russian and Polish four, Arabic and Welsh six, Japanese only `other`. For next-intl and ARB,
-verbatra reads the target language's categories from the CLDR data built into Node.js:
+An ICU plural has one arm per CLDR plural category of its language
+([examples](/docs/language-support#plurals)). For next-intl and ARB, verbatra reads the target
+language's categories from the CLDR data built into Node.js:
 
 - An LLM provider is asked for exactly those arms (cardinal for `plural`, ordinal for
   `selectordinal`). The categories travel as data, so the injection boundary is unchanged.
@@ -92,16 +79,15 @@ verbatra reads the target language's categories from the CLDR data built into No
 - For a locale Node.js has no plural rules for, only `other` is required.
 
 A value written before this check, such as a French plural without `many`, stays until its source
-changes; [`verbatra check --qa`](/docs/cli/check#quality-check) finds it now. How plurals work in the
-other formats is on [Languages and locales](/docs/language-support#plurals).
+changes; [`verbatra check --qa`](/docs/cli/check#quality-check) finds it now.
 
 ### Inline markup parity
 
 <AvailableFrom version="0.11.0" />
 
-Rich text reaches a string as inline markup: a `<b>` in an i18next `Trans` block, an escaped
-`&lt;b&gt;` in an Android `<string>`, an `<a href>` in a gettext catalog. A dropped or broken tag
-breaks rendering, so the gate compares tag names and attribute names as a multiset:
+A dropped or broken inline tag (a `<b>` in an i18next `Trans` block, an escaped `&lt;b&gt;` in an
+Android `<string>`, an `<a href>` in gettext) breaks rendering, so the gate compares tag and
+attribute names as a multiset:
 
 - **Refused**: a dropped, invented or renamed tag; a changed set of attribute names (adding `dir`
   included); unbalanced or mis-nested markup; two tags merged into one.
@@ -139,30 +125,26 @@ value is written, locked, and put on the needs-review queue.
 DeepL, Google and LibreTranslate get such a token masked, and withhold a value they cannot mask
 or restore ([`PLACEHOLDER_UNSUPPORTED`](/docs/error-codes#placeholder_unsupported)); the flag covers LLMs and people.
 
-Cache hits and values shared between keys go through the same heuristics as fresh translations.
-Flagged keys appear per locale as `needsReview` on the run summary, in the workbook's review
-columns, and on [Studio's Review page](/docs/review-in-studio). A key leaves the queue once a person
-approves, rejects or rewrites its value; see
-[Review decisions](/docs/the-lock-file#review-decisions).
+Cache hits and shared values are flagged like fresh translations. Flagged keys appear as
+`needsReview` on the run summary, in the workbook's review columns, and on
+[Studio's Review page](/docs/review-in-studio), until a person approves, rejects or rewrites the
+value ([Review decisions](/docs/the-lock-file#review-decisions)).
 
 ## The token budget
 
-With `maxTokens` configured, verbatra counts a run's tokens across every call and locale.
-`budgetBehavior: "warn"` (the default) only flags an overrun; `"stop"` withholds the request that
-would pass the ceiling and every candidate after it, to be retried next run.
+`maxTokens` counts a run's tokens across every call and locale; `budgetBehavior: "stop"` withholds
+the rest of the run once the ceiling would pass, to be retried next run
+([rules](/docs/config-file#maxtokens-and-budgetbehavior)).
 
 What the budget guarantees: work done before the ceiling stays written and locked, and nothing is
 left half-written. What it does not: a request in flight can cost more than projected, the ceiling
-bounds one run (not a `watch` session), and Studio or agent retranslations are not covered. The
-exact rules are under
-[`maxTokens` and `budgetBehavior`](/docs/config-file#maxtokens-and-budgetbehavior).
+bounds one run (not a `watch` session), and Studio or agent retranslations are not covered.
 
 ## Errors never leak
 
 When a provider call fails, the raw SDK error (which can carry request headers or credentials) is
-discarded, never bound, logged or re-thrown. In its place verbatra raises a structured error with a
-stable code and a fixed, secret-free message; the codes are under
-[Provider error codes](/docs/error-codes#provider-error-codes). Where keys come from and how they are redacted is on
+discarded, never logged or re-thrown. verbatra raises instead a structured error with a stable
+[code](/docs/error-codes#provider-error-codes) and a fixed, secret-free message. Key redaction is on
 [Data handling](/docs/data-handling#api-keys).
 
 ## Where you see it

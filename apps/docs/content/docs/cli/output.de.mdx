@@ -98,7 +98,7 @@ Jeder Datensatz, den `--json` ausgibt, hat ein JSON Schema (Draft 2020-12). Die 
 | Der Envelope eines Befehls, mit seinem `result` | `https://verbatra.kreitz-webdev.de/schema/v1/<command>-envelope.json` | `@verbatra/cli/schemas/<command>-envelope.json` |
 | Der Fehler-Envelope | [`error-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/error-envelope.json) | `@verbatra/cli/schemas/error-envelope.json` |
 | Eine JSON-Zeile auf stderr: Fortschritt, Warten auf eine Sperre, Abbruch | [`stderr-record.json`](https://verbatra.kreitz-webdev.de/schema/v1/stderr-record.json) | `@verbatra/cli/schemas/stderr-record.json` |
-| Die Konfigurationsdatei | [`config.json`](https://verbatra.kreitz-webdev.de/schema/v1/config.json) | `@verbatra/sdk/schemas/config.json` |
+| Die Konfigurationsdatei | [`config.json`](https://verbatra.kreitz-webdev.de/schema/v1/config.json) | `@verbatra/sdk/schemas/config.json` oder `@verbatra/sdk/config-schema.json`: dasselbe Schema ohne `$id` und `title` |
 
 Jede Befehlsseite verlinkt ihren Envelope unter JSON-Ausgabe, und [https://verbatra.kreitz-webdev.de/schema/v1](https://verbatra.kreitz-webdev.de/schema/v1) listet jedes Dokument mit seinem Titel auf. Ein Befehls-Envelope verweist per URL in `$ref` auf das Schema seines `result`. Ein Validator lädt es also über das Netz, oder aus `node_modules/@verbatra/sdk/dist/schemas`, wenn du diese Dateien vorher registrierst.
 

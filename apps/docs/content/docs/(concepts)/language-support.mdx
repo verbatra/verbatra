@@ -5,20 +5,16 @@ type: concept
 ---
 <AvailableFrom version="0.12.0" />
 
-verbatra has no language list of its own. It accepts any valid BCP 47 locale code and leaves the
-translation to your provider, so the languages you can use are the ones your provider supports, and
-for a human-only project, all of them. verbatra's part is to spell each code the way the provider
-expects, hold every translation to its language's plural rules, and warn you before a run when a
-provider cannot serve a locale.
+verbatra has no language list of its own: it accepts any valid BCP 47 locale code, so you can use
+the languages your provider supports, and for a human-only project, all of them. verbatra spells
+each code the way the provider expects, holds every translation to its language's plural rules, and
+warns you before a run when a provider cannot serve a locale.
 
 ## Locale codes
 
-Every locale in your config must be a valid BCP 47 tag, such as `fr`, `pt-BR`, `sr-Latn`,
-`zh-Hant-TW` or `es-419`; an invalid code fails the config load. Underscores are not BCP 47: for
-files named `pt_BR.json`, write `pt-BR` and set `files.localeStyle` to `posix`. A valid code that is
-not canonical, such as `zh-hant-tw` or the deprecated `iw`, keeps working, and
-[`verbatra doctor`](/docs/cli/doctor) suggests the canonical form. The spelling rules and the
-Android and gettext styles are under [Locale codes](/docs/config-file#locale-codes).
+Every locale in your config must be a valid BCP 47 tag, such as `fr`, `pt-BR`, `sr-Latn` or
+`es-419`; for files named `pt_BR.json`, write `pt-BR` and set `files.localeStyle` to `posix`. The
+full rules are under [Locale codes](/docs/config-file#locale-codes).
 
 The code from your config is the one verbatra stores everywhere: file paths,
 [the lock file](/docs/the-lock-file) and [the cache](/docs/the-cache). A provider-specific spelling
@@ -27,8 +23,7 @@ keeps its history; see [A respelled locale code](/docs/the-lock-file#a-respelled
 
 ## Coverage by provider
 
-Which languages translate, and how well, is the provider's decision. Each row links to the vendor's
-own list.
+How well a language translates is the provider's matter; each row links to the vendor's own list.
 
 | Provider | Languages | Code sent | Glossary | Tone |
 | --- | --- | --- | --- | --- |
@@ -46,27 +41,23 @@ What that means in practice:
 - **LLM providers** have no closed list. They attempt any language you name, and quality falls off
   where training data is thin, so a lower-resource target deserves a human review.
   [Review flags](/docs/translation-safety#review-flags) point at the most suspicious results.
-- **DeepL and Google Cloud Translation** have a closed list, checked before a run. Like
-  LibreTranslate, they [mask placeholders](/docs/providers#deepl) and withhold a value they cannot
-  protect.
+- **DeepL and Google Cloud Translation** have a closed list, checked before a run.
 - **LibreTranslate** serves whatever models your server installed.
-- A `tone` or glossary a provider cannot honor is reported as a notice, never dropped silently. See
+- A `tone` or glossary a provider cannot honor is reported as a notice; see
   [Tone and glossary across providers](/docs/providers#tone-and-glossary-across-providers).
 
 ### How each provider receives the code
 
 DeepL and Google Cloud Translation get their own spelling of some codes, and DeepL refuses a bare
-`en` or `pt` target before any request. LLM providers get the code as written plus the English name
-of the language, script and region; see
-[Language, script and region names](/docs/translation-safety#language-script-and-region-names).
-`localeMap` in the provider's `options` overrides the code per locale. The full mapping is under
-[Locale codes sent to the provider](/docs/providers#locale-codes-sent-to-the-provider).
+`en` or `pt` target before any request. LLM providers get the code plus the
+[English names](/docs/translation-safety#language-script-and-region-names) of the language, script
+and region. `localeMap` in the provider's `options` overrides the code per locale; the full mapping
+is under [Locale codes sent to the provider](/docs/providers#locale-codes-sent-to-the-provider).
 
 ## Checking support before a run
 
-Before anything is spent, verbatra judges every configured locale against what it knows about the
-provider, and [`verbatra doctor --locales`](/docs/cli/doctor#locale-support) prints the verdicts.
-Each locale gets one of three:
+Before anything is spent, verbatra judges every configured locale against the provider, and
+[`verbatra doctor --locales`](/docs/cli/doctor#locale-support) prints the verdicts:
 
 - **supported**: the code verbatra sends is on the provider's table, or the provider is an LLM.
 - **unverified**: only its base language is listed, the code comes from an explicit `localeMap`
@@ -76,14 +67,14 @@ Each locale gets one of three:
   single-key retranslation refuse the whole run with
   [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider).
 
-Leave the locale out with `--locales`, or, if the provider added the language
-after the table's date, map it in `localeMap`: an explicit entry is trusted. The shipped tables are
-dated copies of the vendors' lists (DeepL with 125 codes and Google with 198, both of 2026-09-28);
-`verbatra doctor --live` checks against the current list instead.
+Leave the locale out with `--locales`, or, if the provider added the language later, map it in
+`localeMap`: an explicit entry is trusted. The shipped tables are copies of the vendors' lists
+(DeepL with 125 codes and Google with 198, both of 2026-09-28); `verbatra doctor --live` checks the
+current list.
 
-LLM providers accept any language, so nothing is refused for them. A target outside the languages
-LLMs are known to translate well gets the warning `LOCALE_NOT_WELL_TESTED`, as a nudge to review
-its output. The list matches the base language, so `pt-BR` counts as Portuguese: Arabic (`ar`),
+Nothing is refused for an LLM provider. A target outside the languages LLMs are known to translate
+well gets the warning `LOCALE_NOT_WELL_TESTED`, a nudge to review its output. The list matches the
+base language, so `pt-BR` counts as Portuguese: Arabic (`ar`),
 Chinese (`zh`), Dutch (`nl`), English (`en`), French (`fr`), German (`de`), Hindi (`hi`),
 Indonesian (`id`), Italian (`it`), Japanese (`ja`), Korean (`ko`), Polish (`pl`), Portuguese (`pt`),
 Russian (`ru`), Spanish (`es`), Swedish (`sv`), Turkish (`tr`), Ukrainian (`uk`) and Vietnamese
@@ -101,21 +92,18 @@ A script or region subtag changes what the provider is asked for, not how verbat
 | `sr-Latn` / `sr-Cyrl` | `SR` for both | `sr-Latn` / `sr-Cyrl` | `sr` for both | Serbian (Latin) / Serbian (Cyrillic) |
 
 DeepL and LibreTranslate keep a script only for Chinese, so `sr-Latn` and `sr-Cyrl` get whatever
-script the engine writes for Serbian. For a language written in more than one script, an LLM
-provider, which is told the script by name, is the dependable choice.
-
-Two checks account for scripts as well: the `LENGTH_RATIO_OUTLIER` flag weights characters by
-script, so compact Chinese, Japanese or Korean text is not flagged for being short, and a glossary
-term in a script without spaces between words is matched by containment.
+script the engine writes for Serbian; an LLM provider, told the script by name, is the dependable
+choice. The `LENGTH_RATIO_OUTLIER` flag weights characters by script, so compact Chinese, Japanese
+or Korean text is not flagged as short, and a glossary term in a script without spaces between
+words is matched by containment.
 
 ## Plurals
 
-verbatra reads which plural categories a language needs from the CLDR rules in the ICU data built
-into Node.js, ordinals included, so every language CLDR covers is handled: English has two cardinal
-categories, Russian and Polish four, Arabic and Welsh six, Japanese only `other`. For a locale
-Node.js has no rules for, the run notice assumes cardinals need `one` and `other`; the integrity
-gate, `check` and `doctor` require only `other`. The `plural-rules` check
-of [`verbatra doctor`](/docs/cli/doctor) names such a locale.
+verbatra reads the plural categories a language needs, ordinals included, from the CLDR rules in
+Node.js's ICU data: English has two cardinal categories, Russian and Polish four, Arabic and Welsh
+six, Japanese only `other`. For a locale Node.js has no rules for, the run notice assumes `one` and
+`other`, while the integrity gate, `check` and `doctor` require only `other`; the `plural-rules`
+check of [`verbatra doctor`](/docs/cli/doctor) names such a locale.
 
 How a plural is kept correct depends on the format:
 
@@ -138,9 +126,9 @@ LibreTranslate translate existing forms but never generate new ones.
 
 ## Right-to-left languages
 
-Arabic, Hebrew, Persian, Urdu and other right-to-left languages need no special handling to
-translate: a value is text, read, sent, checked and written back as it is. verbatra adds no
-direction marks, removes none and reorders nothing. What that means for you:
+Arabic, Hebrew, Persian, Urdu and other right-to-left languages need no special handling: a value
+is read, sent, checked and written back as it is, with no direction marks added, removed or
+reordered. What that means for you:
 
 - **Set direction in your app, not in the strings**, with the `dir` attribute, CSS or your
   platform's layout direction. The [inline markup check](/docs/translation-safety#inline-markup-parity)
@@ -150,22 +138,21 @@ direction marks, removes none and reorders nothing. What that means for you:
   overrides raise [`BIDI_CONTROLS_CHANGED`](/docs/error-codes#bidi_controls_changed).
 - **A changed placeholder order** only raises `INTEGRITY_REORDERED`, because another order is often
   correct in another language.
-- **Studio shows values right to left** for every locale whose script runs that way, asking the
-  browser for the direction and otherwise going by the locale's likely script (`ku-Arab` right to
-  left, `ku` left to right). Only the display changes.
+- **Studio shows values right to left** for every locale whose script runs that way, by the
+  browser's direction or the locale's likely script (`ku-Arab` right to left, `ku` left to right). Only the display changes.
 - **[`verbatra pseudo --mode bidi`](/docs/cli/pseudo) renders your source right to left** in an
-  `ar-XB` pseudolocale, so layout that assumes left-to-right text shows up before any translation
-  exists. Placeholders stay left to right; mirrored images and icons are yours to check.
+  `ar-XB` pseudolocale, exposing left-to-right layout assumptions before any translation exists.
+  Mirrored images and icons are yours to check.
 
 ## Low-resource languages and local models
 
-For a language your hosted provider covers poorly, there are three routes:
+For a language your hosted provider covers poorly:
 
 - **Run a local model through `openai-compatible`.** It has to be an instruction-tuned chat model
   that returns one JSON object; see [Choosing a local model](/docs/providers#choosing-a-local-model).
 - **Use a dedicated translation model outside verbatra** and bring the result back through the
-  [workbook round-trip](/docs/manual-translation), which runs the same integrity checks. These are
-  translation models, not chat models, so none plugs into `openai-compatible` directly:
+  [workbook round-trip](/docs/manual-translation), which runs the same integrity checks. None of
+  these plugs into `openai-compatible`, since they are not chat models:
   [MADLAD-400](https://huggingface.co/google/madlad400-3b-mt) (Apache-2.0, over 400 languages),
   [TranslateGemma](https://huggingface.co/google/translategemma-4b-it) (55 languages, Gemma terms of
   use), and [NLLB-200](https://huggingface.co/facebook/nllb-200-distilled-600M) (about 200
@@ -173,10 +160,3 @@ For a language your hosted provider covers poorly, there are three routes:
   yourself.
 - **Have a person translate.** The [human-only workflow](/docs/human-only-workflow) works for any
   language.
-
-## Related
-
-- [Add a language](/docs/add-a-language): the config change and the first run.
-- [Providers](/docs/providers): the full locale code mapping.
-- [`verbatra doctor`](/docs/cli/doctor): the locale support and plural checks.
-- [Translation safety](/docs/translation-safety): the checks every translation passes.

@@ -245,7 +245,9 @@ so the headroom is visible in review rather than discovered on a failing test.
 
 Until 0.12.0 is released, do not lower a ceiling. After the 0.12.0 release, lower concept to
 1,600 and reference to 2,500, splitting `sdk/inspect`, `providers` or `config-file` if one cannot
-fit.
+fit. Every page already fits those lowered values: `POST_RELEASE_WORD_CEILING` in `page-type.ts`
+holds them, and `docs-page-type.test.ts` checks every page against it through `wordCeiling`, so
+the lowering is editing the two numbers in `WORD_CEILING`.
 
 ### One owner per fact
 

@@ -10,6 +10,14 @@ export const WORD_CEILING: Readonly<Record<PageType, number>> = {
   reference: 3000,
 };
 
+export const POST_RELEASE_WORD_CEILING: Readonly<Record<PageType, number>> = {
+  overview: 600,
+  tutorial: 900,
+  "how-to": 1200,
+  concept: 1600,
+  reference: 2500,
+};
+
 export const LOOKUP_REFERENCE_PAGES: ReadonlySet<string> = new Set(["(reference)/error-codes.mdx"]);
 
 export const LOOKUP_REFERENCE_CEILING = 12000;
@@ -51,10 +59,14 @@ export function isCommandPage(file: string): boolean {
   return name !== undefined && !CLI_REFERENCE_PAGES.includes(name);
 }
 
-export function wordCeiling(file: string, type: PageType): number {
+export function wordCeiling(
+  file: string,
+  type: PageType,
+  ceilings: Readonly<Record<PageType, number>> = WORD_CEILING,
+): number {
   if (LOOKUP_REFERENCE_PAGES.has(file)) return LOOKUP_REFERENCE_CEILING;
-  if (isCommandPage(file)) return Math.min(WORD_CEILING[type], COMMAND_PAGE_CEILING);
-  return WORD_CEILING[type];
+  if (isCommandPage(file)) return Math.min(ceilings[type], COMMAND_PAGE_CEILING);
+  return ceilings[type];
 }
 
 export function pageBudget(file: string, source: string): PageBudget | undefined {

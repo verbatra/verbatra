@@ -31,23 +31,20 @@ function keyValue(
 
 **Example:** [Edit and retranslate a single key](/docs/programmatic-api#edit-and-retranslate-a-single-key)
 
-Returns `{ source, target? }`; `target` is absent exactly
-when the key does not yet exist in that locale.
-
-When `target` is present the result also carries `provenance`, the key's interpreted
-`KeyProvenance`: `{ origin, provider?, model?, reviewState, reviewer? }`.
+Returns `{ source, target? }`; `target` is absent exactly when the key does not yet exist in that
+locale, and when present comes with `provenance`, the key's interpreted `KeyProvenance`:
+`{ origin, provider?, model?, reviewState, reviewer? }`.
 
 <AvailableFrom version="0.12.0" />
 
-The result also carries `description` when the source locale file gives one for the key: an ARB
-`@key.description`, an XLIFF note, a gettext comment, an Apple `.strings` comment, or a .NET
-`.resx` comment.
+The result also carries `description` when the source file gives the key one: an ARB
+`@key.description`, an XLIFF note, or a gettext, Apple `.strings` or .NET `.resx` comment.
 
 ### keyContext
 
 <AvailableFrom version="0.12.0" />
 
-Reads what a translator needs to write one key in one target locale: everything `keyValue` returns, plus the glossary terms that apply to the source text and the key's `maxLength`. Pass a `draft` to check it against those terms. Read-only. Like the other entry points that re-read a file-backed glossary from disk, it takes `loaded` from `loadConfigWithMeta` rather than a bare config.
+Reads what a translator needs to write one key in one target locale: everything `keyValue` returns, plus the glossary terms that apply to the source text and the key's `maxLength`. Pass a `draft` to check it against those terms. Read-only. To re-read a file-backed glossary from disk, it takes `loaded` from `loadConfigWithMeta`, not a bare config.
 
 ```ts title="Signature"
 function keyContext(
@@ -83,7 +80,7 @@ function localeHistory(
 
 **Throws:** [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision)
 
-Each commit carries `hash`, `author`, `authorDate`, `subject` and `touchedPaths`. `author` is the name after `.mailmap`, never the email. `limit` defaults to `LOCALE_HISTORY_LIMIT_DEFAULT` (`50`) and is capped at `LOCALE_HISTORY_LIMIT_CAP` (`200`), rounded down and at least 1. Control and bidirectional formatting characters are removed from `author` and `subject`, and a commit whose metadata does not parse is left out. When git is missing, the project is not a repository, or `git log` runs past `LOCALE_HISTORY_TIMEOUT_MS` or writes more than `LOCALE_HISTORY_MAX_OUTPUT_BYTES`, the result is `{ available: false, reason }`, with a reason from `LOCALE_HISTORY_UNAVAILABLE_REASONS`. See [Studio and MCP](/docs/data-handling#studio-and-mcp).
+Each commit carries `hash`, `author` (the name after `.mailmap`, never the email), `authorDate`, `subject` and `touchedPaths`. `limit` defaults to `LOCALE_HISTORY_LIMIT_DEFAULT` (`50`), capped at `LOCALE_HISTORY_LIMIT_CAP` (`200`), rounded down and at least 1. Control and bidirectional formatting characters are stripped from `author` and `subject`; a commit whose metadata does not parse is left out. Without git or a repository, or when `git log` exceeds `LOCALE_HISTORY_TIMEOUT_MS` or `LOCALE_HISTORY_MAX_OUTPUT_BYTES`, the result is `{ available: false, reason }`, a reason from `LOCALE_HISTORY_UNAVAILABLE_REASONS`. See [Studio and MCP](/docs/data-handling#studio-and-mcp).
 
 ### editEntry
 
@@ -109,22 +106,19 @@ function editEntry(
 
 **Example:** [Edit and retranslate a single key](/docs/programmatic-api#edit-and-retranslate-a-single-key)
 
-Returns a two-armed result:
-`{ accepted: true, value }`, or
+Returns `{ accepted: true, value }`, or
 `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }` with
-nothing written. `"empty"` covers an empty or whitespace-only value for a source that has text: an
-edit cannot express clearing a key, so use the workbook's `[[CLEAR]]` sentinel for that. The reason
-set is published as the `INTEGRITY_GATE_REASONS` tuple, so build any runtime schema or exhaustive
-lookup from it rather than retyping the members. A `placeholder` or `markup` refusal also carries
-`details`: the placeholders or tags behind it, each prefixed with `-` for one the source had and
-the candidate dropped or `+` for one the candidate invented.
+nothing written ([the integrity gate](/docs/translation-safety#the-integrity-gate)). Build any
+schema over the reasons from the exported `INTEGRITY_GATE_REASONS` tuple. `"empty"` refuses a blank
+value for a source that has text; clear a key with the workbook's `[[CLEAR]]` sentinel instead. A
+`placeholder` or `markup` refusal also carries `details`: each placeholder or tag behind it,
+prefixed `-` when the candidate dropped it or `+` when it invented it.
 
-The written value is recorded in `verbatra.provenance.json` with the origin `human`. Pass
-`actor: "agent"` when an AI agent wrote the value, so the record says so; the calling surface
-asserts it and nothing verifies it. The provenance file is checked before the value is gated: a
-corrupt one throws `PROVENANCE_FILE_INVALID` and nothing is written, and one from a newer verbatra,
-or one the record would grow past the size verbatra reads back, is left untouched while the value
-is written without a record.
+The value is recorded in `verbatra.provenance.json` with the origin `human`; pass
+`actor: "agent"` when an AI agent wrote it, so the record says so (the caller asserts it, nothing
+verifies it). A corrupt provenance file throws `PROVENANCE_FILE_INVALID` before the value is gated
+and nothing is written; one from a newer verbatra, or one the record would grow past the size
+verbatra reads back, is left untouched and the value is written without a record.
 
 <AvailableFrom version="0.12.0" />
 
@@ -138,9 +132,8 @@ With `actor: "agent"`, a key matching the config's `pinnedKeys` throws `KEY_PINN
 
 <AvailableFrom version="0.5.0" />
 
-Re-runs the provider for exactly one key and locale: a single-entry call through the same provider
-path `translate` uses, gated through the same integrity checks. On acceptance it writes the
-locale file and lock entry for that key only.
+Re-runs the provider for exactly one key and locale through the provider path and integrity gate
+`translate` uses, and on acceptance writes the locale file and lock entry for that key only.
 
 ```ts title="Signature"
 function retranslateEntry(
@@ -157,10 +150,8 @@ function retranslateEntry(
 
 **Example:** [Edit and retranslate a single key](/docs/programmatic-api#edit-and-retranslate-a-single-key)
 
-Returns `{ accepted: true, value, reviewReasons }` (the
-review reason codes, if any, that apply to the new value) or
-`{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`.
-Unlike `translate`, a provider failure here throws: a `ProviderError`, exported from `@verbatra/sdk`,
+Returns `{ accepted: true, value, reviewReasons }` (the review reason codes of the new value) or
+the refusal `editEntry` returns. Unlike `translate`, a provider failure here throws: a `ProviderError`, exported from `@verbatra/sdk`,
 with a stable `code` such as `RATE_LIMITED` or `AUTH_FAILED`. Under `provider: { id: "none" }` it throws `MACHINE_TRANSLATION_DISABLED` first, before reading or locking anything.
 
 The new value is recorded in `verbatra.provenance.json` as `machine`, with the `id` of the provider
@@ -169,7 +160,7 @@ under its own `id`, and without the model when that `id` differs from the config
 
 <AvailableFrom version="0.12.0" />
 
-A key whose current value a person wrote, imported, or changed outside verbatra throws `KEY_PROTECTED` inside the write lock, before the provider is called, unless `includeHuman: true` is passed or the config sets `humanEdits: "overwrite"`. When the provenance file is from a newer verbatra, any existing value counts as protected. A key matching `pinnedKeys` throws `KEY_PINNED` before the provider is constructed, even with `includeHuman`.
+A key whose value a person wrote, imported, or changed outside verbatra throws `KEY_PROTECTED` inside the write lock, before the provider is called, unless `includeHuman: true` is passed or the config sets `humanEdits: "overwrite"`; under a provenance file from a newer verbatra, any existing value counts as protected. A key matching `pinnedKeys` throws `KEY_PINNED` before the provider is constructed, even with `includeHuman`.
 
 ### approveEntry
 
@@ -208,13 +199,11 @@ recorded with the origin `unknown`.
 <AvailableFrom version="0.12.0" />
 
 Records that a person reviewed one key's current value in one locale and refuses it, and removes
-that value so it gets replaced. The key is dropped from the locale file and its lock entry is
-removed, so `check` and `diff` report it as missing and the next `translate` fills it again (under
-`provider: { id: "none" }` it stays missing until someone writes a value). The provenance record is
-kept as `rejected` with a hash of the removed text, and the matching translation-memory entry on
-this machine is dropped. A later `translate` skips any exact or fuzzy memory hit for the key whose
-text matches that hash, so another machine's memory cannot bring the text back either. Calls no
-provider.
+it from the locale file and the lock file, so `check` and `diff` report it missing and the next
+`translate` fills it again (under `provider: { id: "none" }` it stays missing until someone writes
+one). The provenance record stays as `rejected` with a hash of the removed text, and this machine's
+matching memory entry is dropped; a later `translate` skips any exact or fuzzy memory hit for the
+key matching that hash, so no machine's memory brings the text back. Calls no provider.
 
 ```ts title="Signature"
 function rejectEntry(
@@ -236,15 +225,14 @@ except that a stale source does not block a rejection. Returns `{ locale, key, p
 format that keeps a key it was not given, XLIFF, throws `REVIEW_REJECT_UNSUPPORTED` after
 restoring the file.
 
-Both calls take the locale's write lock. `lockAcquireTimeoutMs` bounds the wait for it (ten
-minutes by default) and fails with `LOCK_CONTENDED` once it runs out, and `onLockWait` reports that
-wait; a value that is not a whole number of milliseconds of at least 0 throws `LOCK_TIMEOUT_INVALID`
-before anything is read. The timeout does not bound the lock-file guard taken to record the
-decision, which always allows the ten-minute default.
+Both calls take the locale's write lock with `lockAcquireTimeoutMs` and `onLockWait` as in
+`editEntry`; `LOCK_TIMEOUT_INVALID` means the bound is not a whole number of milliseconds of at least
+0. The timeout does not bound the lock-file guard taken to record the decision, which always allows
+the ten-minute default.
 
-Both calls check the provenance file before anything is written and never report a decision they
-could not save: a file from a newer verbatra, or one the decision would grow past the size verbatra
-reads back, throws `PROVENANCE_FILE_UNWRITABLE`.
+Neither reports a decision it could not save: a provenance file from a newer verbatra, or one the
+decision would grow past the size verbatra reads back, throws `PROVENANCE_FILE_UNWRITABLE` before
+anything is written.
 
 ### createValueMarker
 
@@ -268,9 +256,9 @@ function createValueMarker(salt?: Uint8Array): ValueMarker;
 
 ### localeValues
 
-Reads every key's current source and target text, across every requested target locale, in one
-pass over the files already on disk, for instance to search values rather than key names: the bulk
-counterpart to `keyValue`, which answers for one key at a time. Read-only.
+Reads every key's current source and target text across the requested target locales in one pass
+over the files on disk, for instance to search values rather than key names: the bulk counterpart
+to `keyValue`. Read-only.
 
 ```ts title="Signature"
 function localeValues(
@@ -288,11 +276,11 @@ function localeValues(
 **Example:** [Read every value in bulk](/docs/programmatic-api#read-every-value-in-bulk)
 
 An omitted `locales` covers every configured target locale.
-Returns an array of `{ locale, keys, values }`, one entry per locale: `keys` lists every key in
-source order, then the target-only ones, and `values` maps each key to `{ source?, target? }`. An absent `target` means the key has not been translated in that locale
-yet; an absent `source` means the key is orphaned, present in the target locale but no longer in
-the source. `values` has no prototype, so every key, including one named `__proto__` or
-`constructor`, is an own property, and a key absent from the catalog reads as `undefined`.
+Returns one `{ locale, keys, values }` per locale: `keys` lists every key in source order, then the
+target-only ones, and `values` maps each key to `{ source?, target? }`. No `target` means not yet
+translated there; no `source` means orphaned (gone from the source). `values` has no prototype, so
+every key, even `__proto__` or `constructor`, is an own property and an absent key reads as
+`undefined`.
 
 Each pair with a `target` also carries `provenance`, the same `KeyProvenance` `keyValue` reports.
 
@@ -323,13 +311,11 @@ A `cursor` is at most `PAGE_CURSOR_MAX_LENGTH` (512) characters. The MCP server 
 
 <AvailableFrom version="0.12.0" />
 
-Each of these runs the matching single-key call once per entry, in the order given, and returns
-`{ results }` with one outcome per entry in that order. An entry that fails does not stop the
-batch: its outcome is `{ locale, key, ok: false, code, message }`, carrying the code of the
-`SdkError`, adapter error, or `ProviderError` that stopped it and a redacted message, and the next
-entry runs. Any other error stops the batch with a `BatchInterruptedError` that carries the
-outcomes of the entries already carried out, whose writes are on disk. An empty `entries` list
-returns an empty `results`.
+Each of these runs the matching single-key call once per entry, in order, and returns `{ results }`
+with one outcome per entry. A failed entry does not stop the batch: its outcome is
+`{ locale, key, ok: false, code, message }`, with the code of the `SdkError`, adapter error, or
+`ProviderError` and a redacted message. Any other error stops the batch with a
+`BatchInterruptedError`. An empty `entries` list returns an empty `results`.
 
 ### approveEntries
 
@@ -338,8 +324,7 @@ outcome is `{ ok: true, locale, key, provenance }`. `lockAcquireTimeoutMs` bound
 wait for its locale's write lock, and `onLockWait` reports that wait. An entry whose lock stays
 taken past the timeout fails with `LOCK_CONTENDED`, and every later entry that needs the same lock
 gets `{ locale, key, ok: false, skipped: true, code: "LOCK_CONTENDED", message }` instead of
-waiting again; entries of other locales are still decided. The single-entry `approveEntry` and
-`rejectEntry` take the same two options.
+waiting again; entries of other locales are still decided.
 
 ```ts title="Signature"
 function approveEntries(
@@ -377,14 +362,12 @@ function rejectEntries(
 
 <AvailableFrom version="0.12.0" />
 
-Approves
-a locale's whole review queue, or only its values with one of `origins`, in one write of
-`verbatra.provenance.json`, under the locale's write lock. Each approval is recorded as
-`approveEntry` records one, with the source hash it was given against. It takes no expected value:
-it approves what the queue holds when it runs, so show the reviewer the queue first. Returns
-`{ locale, approved, sourceChanged }`: the keys approved, and the queued keys left unreviewed because
-their source changed since they were written. It writes only the provenance file, calls no provider,
-and fails with `PROVENANCE_FILE_UNWRITABLE` rather than report approvals it could not save.
+Approves a locale's whole review queue, or only its values with one of `origins`, in one write of
+`verbatra.provenance.json` under the locale's write lock, each recorded as `approveEntry` records
+one. It takes no expected value and approves what the queue holds when it runs, so show the
+reviewer the queue first. Returns `{ locale, approved, sourceChanged }`: the keys approved, and the
+queued keys left unreviewed because their source changed since they were written. Calls no
+provider, and fails with `PROVENANCE_FILE_UNWRITABLE` rather than report approvals it could not save.
 
 ```ts title="Signature"
 function approveLocale(
@@ -405,9 +388,8 @@ Runs `retranslateEntry` per entry, so it makes up to one provider call per entry
 `translate` run: `maxTokens` and `budgetBehavior` do not apply, and the number of entries is the
 only bound on what it spends. A completed outcome is `{ ok: true, locale, key, result }`, where
 `result` is what `retranslateEntry` returned, including a value the integrity gate refused. A value
-a person wrote fails with `KEY_PROTECTED` unless `includeHuman: true` is passed.
-`lockAcquireTimeoutMs` bounds each entry's wait for its locale's write lock, before the provider
-is called, and `onLockWait` reports that wait.
+a person wrote fails with `KEY_PROTECTED` unless `includeHuman: true` is passed. The lock options
+work as in `approveEntries`, and the wait ends before the provider is called.
 
 ```ts title="Signature"
 function retranslateEntries(
@@ -430,10 +412,8 @@ An error that would fail every entry alike stops the provider calls: `MISSING_AP
 hit it fails as usual, and every entry after it gets `{ locale, key, ok: false, skipped: true,
 code, message }` naming that code, without another provider call.
 
-An entry whose locale's write lock stays taken past `lockAcquireTimeoutMs` fails with
-`LOCK_CONTENDED`, and every later entry that needs the same lock is skipped the same way with that
-code instead of waiting again: the entries of that locale, or of every locale for a format that
-keeps all locales in one file. Entries of other locales still run.
+A lock timeout skips the later entries needing that lock with `LOCK_CONTENDED`, as in
+`approveEntries`; for a format that keeps all locales in one file, that is every later entry.
 
 ### BatchInterruptedError
 
@@ -441,8 +421,9 @@ keeps all locales in one file. Entries of other locales still run.
 
 Thrown by `approveEntries`, `rejectEntries`, and `retranslateEntries` when an error that is not the
 outcome of one entry, such as an unexpected file-system failure, stops a batch part way. `results`
-holds the outcomes of the entries completed before it, in order, `entry` names the `{ locale, key }`
-that was running, and `cause` is the original error. Entries after `entry` did not run.
+holds the outcomes of the entries completed before it, in order, whose writes stay on disk; `entry`
+names the `{ locale, key }` that was running, and `cause` is the original error. Entries after
+`entry` did not run.
 
 ```ts title="Signature"
 class BatchInterruptedError<R = ReviewBatchOutcome | RetranslateBatchOutcome> extends Error

@@ -3,9 +3,7 @@ title: Seguridad de la traducción
 description: "El modelo de seguridad: cadenas no confiables, la puerta de integridad, las señales de revisión, el presupuesto de tokens y errores que nunca filtran nada."
 type: concept
 ---
-verbatra no se fía ni de las cadenas que traduce ni de lo que devuelve un proveedor. Cada valor pasa
-por una puerta de integridad antes de poder escribirse, lo que la puerta rechaza aparece como datos
-en lugar de hacer fallar la ejecución, y los secretos quedan fuera de toda ruta de error.
+verbatra no se fía ni de las cadenas que traduce ni de lo que devuelve un proveedor.
 
 | Capa | Protege contra | Si falla |
 | --- | --- | --- |
@@ -29,22 +27,11 @@ un esquema fijo; una respuesta con una clave que nunca se pidió hace fallar su 
 <AvailableFrom version="0.12.0" />
 
 Un código de locale solo no siempre basta: `sr-Latn` a menudo vuelve en cirílico, y `pt-BR` y
-`pt-PT` se confunden. Por eso un proveedor LLM también recibe el nombre en inglés de cada idioma, con
-su escritura y su región cuando el código las nombra, obtenidos con `Intl.DisplayNames` de los datos
-integrados en Node.js:
-
-| Locale | Nombres enviados |
-| --- | --- |
-| `sr-Latn` | `{ "name": "Serbian (Latin)", "script": "Latin" }` |
-| `zh-Hant-TW` | `{ "name": "Chinese (Traditional, Taiwan)", "script": "Traditional", "region": "Taiwan" }` |
-| `es-419` | `{ "name": "Spanish (Latin America)", "region": "Latin America" }` |
-| `qaa` (uso privado) | ninguno: el código se envía solo |
-
-Los nombres vienen del locale de tu configuración, aunque una entrada de `localeMap` envíe otro
-código, y viajan como datos igual que el resto; una regla de sistema fija pide al modelo que escriba
-en la escritura y la variante nombradas. No forman parte de la huella de la [caché](/docs/the-cache).
-Los proveedores de traducción automática solo reciben códigos; consulta
-[Idiomas y locales](/docs/language-support).
+`pt-PT` se confunden. Por eso un proveedor LLM también recibe el nombre en inglés, la escritura y la
+región de cada idioma, tomados de Node.js para el locale de tu configuración aunque `localeMap` envíe
+otro código. Viajan como datos, una regla de sistema fija pide al modelo que escriba en la escritura
+y la variante nombradas, y no forman parte de la huella de la [caché](/docs/the-cache). Un código que
+Node.js no sabe nombrar, como el de uso privado `qaa`, se envía sin nombre.
 
 ## La puerta de integridad
 
@@ -81,10 +68,9 @@ Lo que no garantiza: que la traducción sea correcta. Demuestra la estructura, n
 
 <AvailableFrom version="0.12.0" />
 
-Un plural ICU tiene una rama por categoría de plural CLDR de su idioma: el inglés tiene `one` y
-`other`, el ruso y el polaco cuatro, el árabe y el galés seis, el japonés solo `other`. Para
-next-intl y ARB, verbatra lee las categorías del idioma de destino de los datos CLDR integrados en
-Node.js:
+Un plural ICU tiene una rama por categoría de plural CLDR de su idioma
+([ejemplos](/docs/language-support#plurales)). Para next-intl y ARB, verbatra lee las categorías del
+idioma de destino de los datos CLDR integrados en Node.js:
 
 - A un proveedor LLM se le piden exactamente esas ramas (cardinales para `plural`, ordinales para
   `selectordinal`). Las categorías viajan como datos, así que la frontera contra la inyección no
@@ -97,18 +83,15 @@ Node.js:
 - Para un locale del que Node.js no tiene reglas de plural, solo se exige `other`.
 
 Un valor escrito antes de esta comprobación, como un plural francés sin `many`, se queda hasta que
-cambie su origen; [`verbatra check --qa`](/docs/cli/check#control-de-calidad) lo encuentra ya. Cómo
-funcionan los plurales en los demás formatos está en
-[Idiomas y locales](/docs/language-support#plurales).
+cambie su origen; [`verbatra check --qa`](/docs/cli/check#control-de-calidad) lo encuentra ya.
 
 ### Paridad del marcado en línea
 
 <AvailableFrom version="0.11.0" />
 
-El texto enriquecido llega a una cadena como marcado en línea: un `<b>` en un bloque `Trans` de
-i18next, un `&lt;b&gt;` escapado en un `<string>` de Android, un `<a href>` en un catálogo de
-gettext. Una etiqueta perdida o rota rompe la representación, así que la puerta compara nombres de
-etiqueta y de atributo como un multiconjunto:
+Una etiqueta en línea perdida o rota (un `<b>` en un bloque `Trans` de i18next, un `&lt;b&gt;`
+escapado en un `<string>` de Android, un `<a href>` en gettext) rompe la representación, así que la
+puerta compara nombres de etiqueta y de atributo como un multiconjunto:
 
 - **Se rechaza**: una etiqueta quitada, inventada o renombrada; un conjunto distinto de nombres de
   atributo (incluido añadir `dir`); marcado desequilibrado o mal anidado; dos etiquetas fusionadas
@@ -148,33 +131,30 @@ retiene una clave: el valor se escribe, se bloquea y entra en la cola de revisi�
 DeepL, Google y LibreTranslate reciben ese token enmascarado y retienen un valor que no pueden
 enmascarar ni restaurar ([`PLACEHOLDER_UNSUPPORTED`](/docs/error-codes#placeholder_unsupported)); la marca cubre los LLM y a las personas.
 
-Los aciertos de caché y los valores compartidos entre claves pasan por las mismas heurísticas que
-las traducciones nuevas. Las claves marcadas aparecen por locale como `needsReview` en el resumen de
-la ejecución, en las columnas de revisión del libro de trabajo y en la
-[página Review de Studio](/docs/review-in-studio). Una clave sale de la cola en cuanto una persona
-aprueba, rechaza o reescribe su valor; consulta
-[Decisiones de revisión](/docs/the-lock-file#decisiones-de-revisión).
+Los aciertos de caché y los valores compartidos se marcan como las traducciones nuevas. Las claves
+marcadas aparecen como `needsReview` en el resumen de la ejecución, en las columnas de revisión del
+libro de trabajo y en la [página Review de Studio](/docs/review-in-studio), hasta que una persona
+aprueba, rechaza o reescribe el valor
+([Decisiones de revisión](/docs/the-lock-file#decisiones-de-revisión)).
 
 ## El presupuesto de tokens
 
-Con `maxTokens` configurado, verbatra cuenta los tokens de una ejecución en todas las llamadas y
-todos los locales. `budgetBehavior: "warn"` (el valor por defecto) solo marca el exceso; `"stop"`
-retiene la petición que superaría el techo y todos los candidatos posteriores, para reintentarlos en
-la siguiente ejecución.
+`maxTokens` cuenta los tokens de una ejecución en todas las llamadas y todos los locales;
+`budgetBehavior: "stop"` retiene el resto de la ejecución en cuanto se superaría el techo, para
+reintentarlo en la siguiente ([reglas](/docs/config-file#maxtokens-y-budgetbehavior)).
 
 Lo que garantiza el presupuesto: el trabajo hecho antes del techo queda escrito y bloqueado, y nada
 se queda a medio escribir. Lo que no: una petición en curso puede costar más de lo proyectado, el
 techo acota una ejecución (no una sesión de `watch`), y no cubre las retraducciones desde Studio o
-de agentes. Las reglas exactas están en
-[`maxTokens` y `budgetBehavior`](/docs/config-file#maxtokens-y-budgetbehavior).
+de agentes.
 
 ## Los errores nunca filtran nada
 
 Cuando una llamada al proveedor falla, el error bruto del SDK (que puede llevar cabeceras de la
-petición o credenciales) se descarta: nunca se enlaza, se registra ni se vuelve a lanzar. En su
-lugar, verbatra lanza un error estructurado con un código estable y un mensaje fijo sin secretos;
-los códigos están en [Códigos de error de proveedor](/docs/error-codes#provider-error-codes). De dónde vienen las claves y cómo
-se ocultan en la salida está en [Tratamiento de datos](/docs/data-handling#claves-de-api).
+petición o credenciales) se descarta: nunca se registra ni se vuelve a lanzar. verbatra lanza en su
+lugar un error estructurado con un [código](/docs/error-codes#provider-error-codes) estable y un
+mensaje fijo sin secretos. Cómo se ocultan las claves está en
+[Tratamiento de datos](/docs/data-handling#claves-de-api).
 
 ## Dónde lo ves
 

@@ -27,11 +27,11 @@ export default defineConfig({
 });
 ```
 
-`defineConfig` devuelve su argumento sin cambios y solo le da tipos: `options.model` autocompleta con los IDs de modelo del proveedor seleccionado, mientras que en tiempo de ejecución se acepta cualquier cadena no vacía.
+`defineConfig` solo da tipos a su argumento: `options.model` autocompleta con los IDs de modelo del proveedor, aunque en tiempo de ejecución vale cualquier cadena no vacía.
 
 ## Cada clave
 
-Las claves desconocidas se rechazan en todos los niveles salvo `$schema`, y por eso mismo una clave de API no puede vivir en la configuración.
+Las claves desconocidas se rechazan en todos los niveles salvo `$schema`, así que una clave de API no puede vivir en la configuración.
 
 | Clave | Tipo | Por defecto | Desde | Efecto |
 | --- | --- | --- | --- | --- |
@@ -42,49 +42,49 @@ Las claves desconocidas se rechazan en todos los niveles salvo `$schema`, y por 
 | `files.pattern` | string | obligatoria | 0.1.0 | La ruta de cada archivo de locale, con un token `{locale}`. |
 | `files.localeStyle` | `"literal"`, `"posix"`, `"android"` | `"literal"` | 0.7.0 | Cómo se escribe `{locale}` en la ruta. |
 | `provider.id` | id de proveedor | obligatoria | 0.1.0 | El proveedor de traducción, o `none` para no usar traducción automática. |
-| `provider.options` | objeto | obligatoria, salvo con `none` | 0.1.0 | Las opciones propias del proveedor, listadas por proveedor en [Proveedores](/docs/providers). |
+| `provider.options` | objeto | obligatoria, salvo con `none` | 0.1.0 | Las [opciones propias](/docs/providers) del proveedor. |
 | `glossary` | objeto o ruta de archivo | ninguno | 0.1.0 | Traducciones fijas, traducciones prohibidas y términos que no se traducen. |
 | `tone` | `"formal"`, `"informal"`, `"neutral"` | ninguno | 0.1.0 | El registro en el que traducir, aplicado [por proveedor](/docs/providers#tono-y-glosario-entre-proveedores). |
 | `prune` | boolean | `false` | 0.3.0 | Elimina las claves huérfanas de los archivos de destino y del bloqueo; `translate --prune` tiene prioridad. |
 | `generatePlurals` | boolean | `false` | 0.3.0 | Sintetiza las formas plurales CLDR que necesita un idioma de destino. |
-| `fuzzyCache.enabled` | boolean | obligatoria en el bloque | 0.11.0 | Reutiliza la traducción de una cadena de origen que cambió solo un poco. |
-| `fuzzyCache.threshold` | número, de `0.5` a `1` | `0.9` | 0.11.0 | Cuánto deben parecerse el origen antiguo y el nuevo para reutilizar. |
+| `fuzzyCache.enabled` | boolean | obligatoria en el bloque | 0.11.0 | Reutiliza la traducción de un origen poco cambiado. |
+| `fuzzyCache.threshold` | número, de `0.5` a `1` | `0.9` | 0.11.0 | Cuánto deben parecerse origen antiguo y nuevo. |
 | `humanEdits` | `"protect"`, `"suggest"`, `"overwrite"` | `"protect"` | 0.12.0 | Qué hace una ejecución con una clave obsoleta que escribió una persona. |
-| `pinnedKeys` | array de strings | ninguno | 0.12.0 | Patrones de claves (`*` coincide con cualquier secuencia de caracteres) que ninguna escritura automática toca nunca. |
-| `network.policy` | `"any"`, `"local-only"`, `"allowlist"` | `"any"` | 0.12.0 | A qué hosts puede conectarse un proveedor. Consulta [Restringe el acceso a la red](/docs/network-policy). |
+| `pinnedKeys` | array de strings | ninguno | 0.12.0 | Patrones de claves (`*` como comodín) que ninguna escritura automática toca. |
+| `network.policy` | `"any"`, `"local-only"`, `"allowlist"` | `"any"` | 0.12.0 | A qué hosts puede [conectarse](/docs/network-policy) un proveedor. |
 | `network.allowedHosts` | array de strings | ninguno; obligatoria con `"allowlist"` | 0.12.0 | Hosts permitidos adicionales: nombres, comodines `*.suffix`, IPs o rangos CIDR. |
 | `sensitiveData.mode` | `"off"`, `"warn"`, `"block"`, `"redact"` | `"off"` | 0.12.0 | Qué hace una ejecución con el [contenido sensible](/docs/data-handling#protección-de-contenido-sensible) antes de enviarlo. |
 | `sensitiveData.detectors` | array de IDs de detector | `secret`, `email`, `iban`, `credit-card` | 0.12.0 | Detectores activos; `phone`, `ip`, `private-host` son opcionales. |
 | `sensitiveData.patterns` | array de strings | ninguno | 0.12.0 | Expresiones regulares para tus propios términos, como nombres en clave. |
 | `sensitiveData.allow` | array de strings | ninguno | 0.12.0 | Coincidencias que nunca se informan; `*` es un comodín. |
-| `maxBatchSize` | entero positivo | `50` | 0.3.0 | El máximo de entradas enviadas en una sola petición al proveedor. |
+| `maxBatchSize` | entero positivo | `50` | 0.3.0 | El máximo de entradas por petición al proveedor. |
 | `maxLength` | mapa de clave a entero positivo | ninguno | 0.11.0 | Presupuestos de longitud por clave, en clústeres de grafemas. |
 | `maxTokens` | entero positivo | ninguno | 0.5.0 | Un presupuesto de tokens para toda la ejecución. |
-| `budgetBehavior` | `"warn"`, `"stop"` | `"warn"` | 0.5.0 | Si alcanzar `maxTokens` solo avisa o detiene el envío. |
+| `budgetBehavior` | `"warn"`, `"stop"` | `"warn"` | 0.5.0 | Si alcanzar `maxTokens` avisa o detiene el envío. |
 | `rates.asOf` | fecha `YYYY-MM-DD` | obligatoria en el bloque | 0.11.0 | La fecha en que leíste las tarifas. |
-| `rates.currency` | tres letras mayúsculas | obligatoria en el bloque | 0.11.0 | La moneda de todas las tarifas, como `USD` o `EUR`. |
-| `rates.table` | mapa de clave de tarifa a tarifa | obligatoria en el bloque | 0.11.0 | Tarifas indexadas por `provider/model` o por id de proveedor. |
+| `rates.currency` | tres letras mayúsculas | obligatoria en el bloque | 0.11.0 | La moneda de todas las tarifas, como `USD`. |
+| `rates.table` | mapa de clave de tarifa a tarifa | obligatoria en el bloque | 0.11.0 | Tarifas por [clave de tarifa](#rates). |
 | `extract.framework` | `"i18next"` | obligatoria en el bloque | 0.11.0 | Qué llamadas busca el análisis del código fuente. |
 | `extract.roots` | array de strings | obligatoria en el bloque | 0.11.0 | Los directorios que se analizan, al menos uno. |
-| `extract.exclude` | array de strings | ninguno | 0.11.0 | Nombres de directorio que se omiten además del conjunto integrado. |
+| `extract.exclude` | array de strings | ninguno | 0.11.0 | Nombres de directorio extra que se omiten. |
 | `extract.literals.ignore` | array de strings | ninguno | 0.11.0 | Textos exactos que `doctor --literals` retiene. |
-| `extract.unused.ignore` | array de strings | ninguno | 0.11.0 | Claves o patrones `*` que `diff --unused` nunca señala como sin uso. |
+| `extract.unused.ignore` | array de strings | ninguno | 0.11.0 | Claves o patrones `*` que `diff --unused` nunca señala. |
 
 ### Locales y archivos
 
-- **`files.pattern`** debe contener `{locale}`, el único token que entiende: `locales/{locale}.json` se resuelve a `locales/de.json`, contra la raíz del proyecto. Es una ruta literal, nunca un glob, así que una configuración direcciona un archivo por locale; para varios archivos de namespace consulta [Diseños con namespaces](/docs/formats#diseños-con-namespaces). `apple-xcstrings` sigue necesitando el token, pero todos los locales se resuelven al mismo catálogo ([Xcode String Catalogs](/docs/formats#xcode-string-catalogs-xcstrings)).
+- **`files.pattern`** debe contener `{locale}`, su único token, y se resuelve contra la raíz del proyecto: `locales/{locale}.json` pasa a `locales/de.json`. Es una ruta literal, nunca un glob, así que una configuración direcciona un archivo por locale ([Diseños con namespaces](/docs/formats#diseños-con-namespaces)); `apple-xcstrings` resuelve todos los locales al mismo catálogo ([Xcode String Catalogs](/docs/formats#xcode-string-catalogs-xcstrings)).
 - **`files.localeStyle`** decide en qué se expande el token:
-  - `literal` escribe la etiqueta tal como está configurada, que es lo que necesitan los diseños JSON, YAML, XLIFF, ARB, properties y `.lproj` de Apple.
-  - `posix` reemplaza `-` por `_`, para gettext y el diseño Java `messages_{locale}.properties`: `pt-BR` pasa a `pt_BR`, `zh-Hant-TW` a `zh_Hant_TW`. Una variante como `de-1996` no tiene escritura posix. `gettext-po` escribe los scripts a la manera de gettext (siguiente sección).
-  - `android` se expande a un directorio de recursos completo, escrito como `res/{locale}/strings.xml`: `values` para el origen, y luego `values-de`, `values-pt-rBR`, `values-b+zh+Hans`.
+  - `literal` escribe la etiqueta tal como está configurada, como necesitan la mayoría de diseños.
+  - `posix` reemplaza `-` por `_` para gettext y el diseño Java `messages_{locale}.properties` (`pt-BR` pasa a `pt_BR`); una variante como `de-1996` no tiene escritura posix. `gettext-po` escribe los scripts a la manera de gettext (siguiente sección).
+  - `android` se expande a un directorio de recursos, escrito como `res/{locale}/strings.xml`: `values` para el origen, y luego `values-de`, `values-pt-rBR`, `values-b+zh+Hans`.
 
-  Un estilo rechaza un locale que no puede escribir en lugar de escribir un directorio que la plataforma ignora.
+  Un estilo rechaza un locale que no puede escribir.
 
 ### Nombres de locale de gettext
 
 <AvailableFrom version="0.12.0" />
 
-Con `format: "gettext-po"` y `localeStyle: "posix"`, un archivo se nombra a la manera de gettext, `language_REGION@modifier`, mientras la configuración conserva el código BCP 47:
+Con `format: "gettext-po"` y `localeStyle: "posix"`, los archivos llevan nombres de gettext (`language_REGION@modifier`) mientras la configuración conserva códigos BCP 47:
 
 | Código en la configuración | Nombre de archivo |
 | --- | --- |
@@ -97,21 +97,21 @@ Con `format: "gettext-po"` y `localeStyle: "posix"`, un archivo se nombra a la m
 | `zh-Hant-TW` | `zh_TW` |
 | `sr-Cyrl-RS` | `sr_RS` |
 
-Un script que el idioma y la región ya implican se omite, así que configurar a la vez `zh-TW` y `zh-Hant-TW` falla con `LOCALE_PATH_COLLISION`. Un script sin modificador de gettext, como `zh-Hant` sin región, falla con `LOCALE_LAYOUT_INVALID`. [`verbatra init`](/docs/cli/init) lee estos nombres de vuelta, y un catálogo creado los usa en su cabecera `Language`. Los demás formatos mantienen bajo `posix` la escritura de ICU (`sr_Latn`).
+Un script que el idioma y la región ya implican se omite, así que `zh-TW` y `zh-Hant-TW` juntos fallan con `LOCALE_PATH_COLLISION`; un script sin modificador de gettext, como `zh-Hant` solo, falla con `LOCALE_LAYOUT_INVALID`. [`verbatra init`](/docs/cli/init) lee estos nombres de vuelta. Los demás formatos mantienen la escritura de ICU (`sr_Latn`).
 
 ### Códigos de locale
 
 <AvailableFrom version="0.12.0" />
 
-Cada código de locale debe ser una etiqueta que `Intl.getCanonicalLocales` acepte, con una subetiqueta de idioma de dos o tres letras; si no, la carga falla con `CONFIG_INVALID`, nombrando el campo y el código. `pt_BR` se rechaza (escribe `pt-BR` y pon `localeStyle: "posix"`), y también un nombre de idioma como `german`. Un código válido pero no canónico, como `zh-hant-tw` o el obsoleto `iw`, funciona tal como está escrito, y [`verbatra doctor`](/docs/cli/doctor) sugiere la forma canónica. verbatra nunca renombra un archivo, y un código reescrito conserva su estado ([Un código de locale reescrito](/docs/the-lock-file#un-código-de-locale-reescrito)).
+Cada código de locale debe ser una etiqueta que `Intl.getCanonicalLocales` acepte, con una subetiqueta de idioma de dos o tres letras, o la carga falla con `CONFIG_INVALID`: `pt_BR` (escribe `pt-BR` con `localeStyle: "posix"`) y `german` se rechazan. Un código válido no canónico, como `zh-hant-tw` o el obsoleto `iw`, funciona tal como está escrito, y [`verbatra doctor`](/docs/cli/doctor) sugiere la forma canónica. Un código reescrito conserva su estado y ningún archivo se renombra ([Un código de locale reescrito](/docs/the-lock-file#un-código-de-locale-reescrito)).
 
 ### provider
 
-`provider.id` selecciona uno de los [proveedores](/docs/providers) o `none`. Desde 0.12.0 una clave mal colocada bajo `provider`, como `localeMap`, falla con `CONFIG_INVALID`. Todos los proveedores salvo `none` aceptan `options.localeMap` y `options.requestTimeoutMs` ([Proveedores](/docs/providers#códigos-de-locale-enviados-al-proveedor)). Con `none`, `options` puede omitirse y, si se indica, debe ser `{}` ([Trabajar sin traducción automática](/docs/human-only-workflow)).
+`provider.id` selecciona uno de los [proveedores](/docs/providers) o `none`, cuyo `options` puede omitirse y, si se indica, debe ser `{}` ([Trabajar sin traducción automática](/docs/human-only-workflow)). Los demás proveedores aceptan `options.localeMap` y `options.requestTimeoutMs` ([Proveedores](/docs/providers#códigos-de-locale-enviados-al-proveedor)); desde 0.12.0 una clave mal colocada bajo `provider`, como `localeMap`, falla con `CONFIG_INVALID`.
 
 ### glossary
 
-Términos que se traducen de una forma fija, en línea o como ruta a un archivo JSON con la misma forma; las dos formas nunca se fusionan. La versión 1 asigna a cada término de origen la traducción que usan todos los locales:
+Términos que se traducen de una forma fija, en línea o como ruta a un archivo JSON con la misma forma (nunca fusionadas). La versión 1 asigna a cada término de origen una traducción para todos los locales:
 
 ```ts title="verbatra.config.ts"
 export default defineConfig({
@@ -123,13 +123,13 @@ export default defineConfig({
 });
 ```
 
-Una ruta relativa se resuelve contra el directorio del archivo de configuración. El archivo debe estar en UTF-8, no superar 1 MiB, y se lee una vez al cargar. Un archivo ausente, JSON inválido o una forma inválida fallan con `CONFIG_INVALID`, nombrando la ruta y, en la versión 2, el campo. Pon un término `__proto__` en un archivo: en un literal de `verbatra.config.ts`, JavaScript lo convierte en el prototipo.
+Una ruta relativa se resuelve contra el directorio del archivo de configuración; el archivo debe estar en UTF-8 y no superar 1 MiB, y se lee una vez al cargar. Un archivo ausente, JSON inválido o una forma inválida fallan con `CONFIG_INVALID`, nombrando la ruta y, en la versión 2, el campo. Pon un término `__proto__` en un archivo; un literal de JavaScript lo convierte en el prototipo.
 
 #### Glosario por locale (versión 2)
 
 <AvailableFrom version="0.12.0" />
 
-La versión 2 da a cada término una traducción por locale, traducciones prohibidas y términos que se quedan tal como están escritos:
+La versión 2 añade traducciones por locale, traducciones prohibidas y términos que se quedan tal como están escritos:
 
 ```json title="glossary.json"
 {
@@ -150,36 +150,30 @@ La versión 2 da a cada término una traducción por locale, traducciones prohib
 
 | Campo | Significado |
 | --- | --- |
-| `version` | Siempre `2`; obligatorio, y cualquier otro número falla. |
+| `version` | Siempre `2`; cualquier otro número falla. |
 | `terms[].source` | El término de origen; cada término aparece una vez. |
 | `terms[].target` | La traducción para cada locale que no tenga entrada propia en `targets`. |
 | `terms[].targets` | Traducciones por locale. Un locale usa su propia entrada, luego la de su idioma base (`de` cubre `de-AT`) y luego `target`, comparando códigos canónicos sin distinguir mayúsculas. |
 | `terms[].forbidden` | Traducciones que un locale nunca debe usar; un locale regional también se rige por la lista de su idioma base. |
 | `terms[].caseSensitive` | Comparar el término, las traducciones y las traducciones prohibidas distinguiendo mayúsculas. Por defecto `false`. |
 | `terms[].note`, `terms[].partOfSpeech` | Contexto en texto libre, que un proveedor LLM recibe como datos. |
-| `doNotTranslate` | Términos que se copian sin traducir. Un string simple conserva además sus mayúsculas; `{ "term", "caseSensitive": false }` puede cambiarlas. |
+| `doNotTranslate` | Términos que se copian sin traducir. Un string simple conserva sus mayúsculas; `{ "term", "caseSensitive": false }` puede cambiarlas. |
 
-Cada término necesita un `target`, una entrada en `targets` o una lista `forbidden`, y no puede prohibir su propia traducción, nombrar un locale dos veces ni aparecer también en `doNotTranslate`. La huella de [caché](/docs/the-cache) de cada locale solo cubre sus propios términos. Un archivo de la versión 1 sigue funcionando con la misma huella; [`updateGlossaryTerm`](/docs/sdk/config#updateglossaryterm) del SDK lo reescribe como versión 2 solo para una edición que la versión 1 no puede expresar.
+Cada término necesita un `target`, una entrada en `targets` o una lista `forbidden`; no puede prohibir su propia traducción, nombrar un locale dos veces ni aparecer en `doNotTranslate`. La huella de [caché](/docs/the-cache) de un locale solo cubre sus propios términos. Un archivo de la versión 1 conserva su huella; [`updateGlossaryTerm`](/docs/sdk/config#updateglossaryterm) lo reescribe como versión 2 solo para una edición que la versión 1 no puede expresar.
 
-<AvailableFrom version="0.4.0" pkg="@verbatra/studio" /> Solo la forma de archivo se puede editar desde [Studio](/docs/review-in-studio), término a término; un glosario en línea es de solo lectura allí. Qué proveedores aplican el glosario está en [Proveedores](/docs/providers#tono-y-glosario-entre-proveedores); la salida de cada proveedor se comprueba después y se marca con `GLOSSARY_TERM_MISSED` o `GLOSSARY_FORBIDDEN_TERM` ([motivos de revisión](/docs/error-codes#review-reason-codes)).
+<AvailableFrom version="0.4.0" pkg="@verbatra/studio" /> [Studio](/docs/review-in-studio) solo edita la forma de archivo, término a término. Qué proveedores aplican el glosario está en [Proveedores](/docs/providers#tono-y-glosario-entre-proveedores); cada salida se [comprueba después](/docs/translation-safety).
 
 ### generatePlurals
 
-Cuando es true, verbatra sintetiza las formas plurales CLDR que un destino necesita y el origen no tiene, como `few` y `many` en polaco; las claves ordinales (`<key>_ordinal_<category>`) siguen las reglas ordinales CLDR. Solo lo admite `i18next-json` con un proveedor LLM. Todo lo demás, y un locale sin reglas CLDR, recibe en su lugar el aviso de plurales por locale (suponiendo `one` y `other` para los cardinales y `other` para los ordinales). No hay opción de CLI; `translate()` del SDK acepta un override por ejecución.
+Cuando es true, verbatra sintetiza las formas plurales CLDR que un destino necesita y el origen no tiene, como `few` y `many` en polaco, y las claves ordinales (`<key>_ordinal_<category>`) según las reglas ordinales CLDR. Solo lo admite `i18next-json` con un proveedor LLM; todo lo demás, y un locale sin reglas CLDR, recibe el [aviso de plurales](/docs/language-support#plurales) (los ordinales suponen `other`). No hay opción de CLI; `translate()` del SDK acepta un override por ejecución.
 
 ### fuzzyCache
 
-`fuzzyCache: { enabled: true }` permite que una clave cuyo origen cambió reutilice la traducción de su forma anterior cuando ambas se parecen al menos `threshold`, siempre marcada como `FUZZY_CACHE_REUSE`; las reglas de seguridad están en [Reutilización difusa](/docs/the-cache#reutilización-difusa). `--no-cache` lo omite junto con el resto de la caché.
+`fuzzyCache: { enabled: true }` permite que un origen cambiado reutilice la traducción de su forma anterior cuando ambas se parecen al menos `threshold`, siempre marcada como `FUZZY_CACHE_REUSE` ([Reutilización difusa](/docs/the-cache#reutilización-difusa)); `--no-cache` lo omite.
 
 ### humanEdits y pinnedKeys
 
-`humanEdits` cubre una clave obsoleta cuyo valor escribió una persona (procedencia `human`, `import` o `external`, consulta [procedencia](/docs/the-lock-file#procedencia-quién-escribió-cada-valor)):
-
-- `"protect"` conserva el valor y no envía la clave.
-- `"suggest"` conserva el valor y pide al proveedor una sugerencia que nunca se escribe.
-- `"overwrite"` la retraduce; `translate --include-human` hace esto para una ejecución.
-
-Una clave que coincide con `pinnedKeys` (por ejemplo `["legal.*", "brand.name"]`) nunca se escribe de forma automática, diga lo que diga `humanEdits`. Consulta [Conserva las traducciones humanas](/docs/protecting-human-translations).
+`humanEdits` cubre una clave obsoleta cuyo valor escribió una persona ([procedencia](/docs/the-lock-file#procedencia-quién-escribió-cada-valor) `human`, `import` o `external`); una clave que coincide con `pinnedKeys` (como `["legal.*", "brand.name"]`) nunca se escribe de forma automática, diga lo que diga `humanEdits`. Qué hace cada modo está en [Conserva las traducciones humanas](/docs/protecting-human-translations).
 
 ### network
 
@@ -195,7 +189,7 @@ Las entradas faltantes y modificadas se envían en [sublotes](/docs/providers#lo
 
 ### maxLength
 
-Un mapa de clave de traducción al valor más largo que puede contener, para cadenas sujetas a una restricción de maquetación:
+Límites de longitud por clave, para cadenas sujetas a una restricción de maquetación:
 
 ```ts title="verbatra.config.ts"
 maxLength: {
@@ -204,31 +198,28 @@ maxLength: {
 }
 ```
 
-- **Solo aquí.** Ningún presupuesto se deduce de una descripción ni de los metadatos de un formato. Las claves se comparan literalmente, nunca como globs; una clave ausente del mapa nunca se mide.
-- **Clústeres de grafemas.** La longitud cuenta caracteres percibidos, espacios incluidos: un emoji o una letra acentuada cuentan como uno, y también un carácter CJK aunque se dibuje cerca del doble de ancho. El límite es inclusivo.
-- **Cuándo se comprueba.** En cada valor que `translate` produce para la clave, reutilizaciones de caché incluidas. Una clave al día no se mide, así que un presupuesto nuevo no marca nada hasta que su origen cambie; [`verbatra export --include-unchanged`](/docs/cli/export) mide ahora mismo cada valor actual.
+- **Solo aquí.** Las claves se comparan literalmente, nunca como globs; una clave ausente del mapa nunca se mide. Ningún presupuesto se deriva de una descripción ni de los metadatos de un formato.
+- **Clústeres de grafemas.** La longitud cuenta caracteres percibidos, espacios incluidos: un emoji, una letra acentuada o un carácter CJK cuentan como uno. El límite es inclusivo.
+- **Cuándo.** Cada valor que `translate` produce para la clave, reutilizaciones de caché incluidas; una clave al día solo se mide cuando cambia su origen, o con [`export --include-unchanged`](/docs/cli/export).
 - **Informativo.** Un exceso se sigue escribiendo y bloqueando, y se marca para revisión como [`MAX_LENGTH_EXCEEDED`](/docs/error-codes#max_length_exceeded).
 
 ### maxTokens y budgetBehavior
 
-`maxTokens` es un presupuesto para toda la ejecución: tokens de entrada más de salida, sumados en cada llamada al proveedor (traducción y generación de plurales) y en cada locale de destino. `translate --max-tokens <n>` fija para una ejecución un techo más estricto que siempre detiene; se aplica la cifra menor (desde 0.12.0).
+`maxTokens` es un presupuesto para toda la ejecución: tokens de entrada más de salida en cada llamada al proveedor (traducción y generación de plurales) y en cada locale de destino. [`translate --max-tokens`](/docs/cli/translate#tope-de-tokens) puede endurecerlo para una ejecución, nunca relajarlo.
 
 `budgetBehavior` decide qué pasa entonces:
 
-- `"warn"`, el valor por defecto, cuenta el gasto y señala el exceso; la ejecución continúa como si no hubiera presupuesto.
-- `"stop"` <AvailableFrom version="0.11.0" /> lo convierte en un techo (DeepL, Google Cloud Translation y LibreTranslate incluidos). Antes de cada petición, la ejecución proyecta su coste igual que [la estimación previa](/docs/estimating-cost) y rechaza una que superaría `maxTokens`. Las claves de esa petición se retienen, y también cada clave aún no intentada: el resto del locale actual y cada locale posterior, cuyo diff e informe de huérfanas siguen ejecutándose. Las claves retenidas conservan su hash anterior en el bloqueo y se reintentan en la siguiente ejecución.
+- `"warn"`, el valor por defecto, cuenta el gasto y señala el exceso, pero continúa.
+- `"stop"` <AvailableFrom version="0.11.0" /> lo convierte en un techo para todos los proveedores. Antes de cada petición, la ejecución proyecta su coste como [la estimación previa](/docs/estimating-cost) y rechaza una que superaría `maxTokens`. Las claves de esa petición y cada clave aún no intentada (el resto del locale y cada locale posterior, cuyo diff e informe de huérfanas siguen ejecutándose) se retienen, conservan su hash anterior en el bloqueo y se reintentan en la siguiente ejecución.
 
-Cómo cuenta `"stop"`:
+Con `"stop"`:
 
-- Después de cada petición el total se reconcilia con el uso que informó el proveedor, así que una ejecución puede terminar algo por encima de `maxTokens`; cuánto y por qué está en [el `budget` del resumen de ejecución](/docs/sdk/run-summary#la-anatomía-de-runsummary). Los proveedores de traducción automática no informan de tokens y se presupuestan a partir de la proyección.
-- Una petición fallida o truncada sigue cargada por completo, y el trabajo retenido no recibe entrada de bloqueo.
-- La proyección incluye una asignación fija para el prompt del LLM (reglas de sistema y esquema de respuesta), que se suma también para los proveedores de traducción automática. Una petición se proyecta como un lote entero, así que un `maxTokens` por debajo de la proyección de un lote lo rechaza en cada ejecución; el aviso indica entonces que bajes `maxBatchSize` o subas `maxTokens`.
+- Después de cada petición el total se reconcilia con el uso que informó el proveedor, así que una ejecución puede terminar algo por encima de `maxTokens` ([el `budget` del resumen de ejecución](/docs/sdk/run-summary#la-anatomía-de-runsummary)). Los proveedores de traducción automática no informan de tokens y se presupuestan a partir de la proyección.
+- Una petición fallida o truncada se carga por completo.
+- La proyección suma una asignación fija para el prompt del LLM, también para los proveedores de traducción automática, y abarca un lote entero, así que un `maxTokens` por debajo de la proyección de un lote lo rechaza en cada ejecución; el aviso indica que bajes `maxBatchSize` o subas `maxTokens`.
+- Un locale con claves retenidas es `partial`, o `failed` si no llegó ninguna clave, y ambos salen con `1`. Con `"warn"` el código de salida nunca cambia.
 
-Alcance y códigos de salida:
-
-- El presupuesto acota una ejecución de `translate`, nunca la retraducción de una sola entrada; `watch` arranca uno nuevo por ejecución. Una ejecución real con presupuesto rechaza `--concurrency` por encima de `1` ([`CONCURRENCY_BUDGET_CONFLICT`](/docs/error-codes#concurrency_budget_conflict)).
-- Con `"warn"` el código de salida nunca cambia. Con `"stop"`, un locale con claves retenidas es `partial` si algunas claves llegaron y `failed` si no llegó ninguna; ambos salen con `1`.
-- `budgetBehavior` sin `maxTokens` no tiene efecto.
+El presupuesto acota una ejecución de `translate`, nunca la retraducción de una sola entrada; `watch` arranca uno nuevo por ejecución. Un presupuesto excluye [`--concurrency`](/docs/cli/translate#locales-en-paralelo) por encima de `1`. `budgetBehavior` sin `maxTokens` no tiene efecto.
 
 <Callout title="Dos maxTokens distintos">
 El `maxTokens` de nivel superior es este presupuesto de toda la ejecución; el `provider.options.maxTokens` de Anthropic, sin relación con él, limita una respuesta ([Proveedores](/docs/providers#anthropic)).
@@ -236,7 +227,7 @@ El `maxTokens` de nivel superior es este presupuesto de toda la ejecución; el `
 
 ### rates
 
-Solo lo lee [`verbatra translate --estimate`](/docs/estimating-cost), que explica cómo las tarifas se convierten en dinero; una ejecución real lo ignora.
+Solo lo lee [`translate --estimate`](/docs/estimating-cost), que convierte las tarifas en dinero; una ejecución real lo ignora.
 
 ```ts title="verbatra.config.ts"
 rates: {
@@ -249,11 +240,11 @@ rates: {
 }
 ```
 
-Una clave de `table` es `provider/model` para un proveedor con modelo y el id a secas para uno sin él (`deepl`, `google-translate`). Una entrada se factura por tokens (`inputPerMillionTokens` y `outputPerMillionTokens`) o por caracteres (`perMillionCharacters`), nunca ambas cosas; una tarifa negativa se rechaza. `openai-compatible` y `libretranslate` no emiten factura, así que su cantidad se informa sin tarifa. Una entrada en la unidad equivocada se rechaza.
+Una clave de `table` es `provider/model`, o el id a secas para un proveedor sin modelo (`deepl`, `google-translate`). Una entrada se factura por tokens (`inputPerMillionTokens`, `outputPerMillionTokens`) o por caracteres (`perMillionCharacters`), nunca ambas cosas, y una tarifa negativa o la unidad equivocada se rechaza. `openai-compatible` y `libretranslate` no emiten factura, así que su cantidad se informa sin tarifa.
 
 ### extract
 
-Solo lo leen [`verbatra extract`](/docs/cli/extract), [`verbatra doctor --literals`](/docs/cli/doctor#literales-sin-traducir) y [`verbatra diff --unused`](/docs/cli/diff#claves-de-origen-sin-uso).
+Solo lo leen [`extract`](/docs/cli/extract), [`doctor --literals`](/docs/cli/doctor#literales-sin-traducir) y [`diff --unused`](/docs/cli/diff#claves-de-origen-sin-uso).
 
 ```ts title="verbatra.config.ts"
 extract: {
@@ -265,15 +256,14 @@ extract: {
 }
 ```
 
-- **`framework`** es un conjunto cerrado ([formas de llamada](/docs/cli/extract#qué-encuentra)); un framework sin extractor se rechaza.
-- **`roots`** se resuelven contra la raíz del proyecto; nunca se lee nada fuera de ellas.
-- **`exclude`** añade nombres de directorio (no rutas), que coinciden en cualquier punto bajo una raíz, al [conjunto que siempre se omite](/docs/cli/extract#límites-del-análisis).
-- **`literals.ignore`** coincide con el texto completo de un literal con los espacios reducidos y las referencias de caracteres decodificadas (`Tom & Jerry`); un literal retenido se notifica como suprimido.
-- **`unused.ignore`** acepta claves exactas o patrones `*` para claves usadas solo fuera del código analizado, comparados con la clave decodificada que muestra el informe (`Welcome. Enjoy`); una coincidencia se notifica como ignorada.
+- **`framework`** debe nombrar uno con extractor ([formas de llamada](/docs/cli/extract#qué-encuentra)); cualquier otro se rechaza.
+- **`roots`** se resuelven contra la raíz del proyecto; **`exclude`** añade nombres de directorio (no rutas), que coinciden en cualquier punto bajo una raíz, al [conjunto que siempre se omite](/docs/cli/extract#límites-del-análisis).
+- **`literals.ignore`** coincide con el texto completo de un literal, con espacios reducidos y referencias decodificadas ([Literales sin traducir](/docs/cli/doctor#literales-sin-traducir)).
+- **`unused.ignore`** acepta claves exactas o patrones `*` para claves usadas solo fuera del código analizado, comparados con la clave decodificada ([`diff --unused`](/docs/cli/diff#claves-de-origen-sin-uso)).
 
 ## Orden de descubrimiento
 
-verbatra busca hacia arriba desde el directorio de trabajo y usa la primera fuente que encuentra, deteniéndose en el directorio más cercano que contenga `.git`, si no en tu directorio personal, o en el propio directorio de trabajo cuando tu directorio personal no está por encima, así que nunca recoge una configuración por encima de tu repositorio:
+verbatra busca hacia arriba desde el directorio de trabajo y toma la primera coincidencia, deteniéndose en el directorio más cercano que contenga `.git`, si no en tu directorio personal (o en el de trabajo cuando el personal no está por encima), así que nunca recoge una configuración por encima de tu repositorio:
 
 1. `package.json` (una propiedad `"verbatra"`)
 2. `.verbatrarc`
@@ -287,21 +277,21 @@ verbatra busca hacia arriba desde el directorio de trabajo y usa la primera fuen
 10. `verbatra.config.cjs`
 11. `verbatra.config.ts`
 
-`--config <path>` carga un solo archivo en su lugar, relativo al directorio de trabajo. En el SDK, un `configOverride` en memoria tiene prioridad sobre `configPath`, que a su vez tiene prioridad sobre la búsqueda ([Recetas del SDK](/docs/programmatic-api)).
+`--config <path>` carga un solo archivo en su lugar, relativo al directorio de trabajo; la prioridad en el SDK está en [`loadConfig`](/docs/sdk/config#loadconfig).
 
 ## Validación en el editor
 
 <AvailableFrom version="0.9.0" />
 
-`@verbatra/sdk` publica un JSON Schema generado a partir del esquema zod con el que valida el SDK, y el sitio de la documentación sirve el mismo documento en una URL estable que funciona con una instalación global, con `npx`, en un monorepo con hoisting y para un agente remoto:
+`@verbatra/sdk` publica un JSON Schema generado a partir de su esquema zod, servido también en una URL estable para cualquier instalación, `npx`, un monorepo con hoisting o un agente remoto:
 
 ```text
 https://verbatra.kreitz-webdev.de/schema/v1/config.json
 ```
 
-Sin conexión, o para fijar el esquema a la versión instalada, apunta en su lugar a la copia del paquete: `./node_modules/@verbatra/sdk/dist/config-schema.json`. Los [JSON Schemas](/docs/cli/output#esquemas) de la salida `--json` están a su lado.
+Sin conexión, o para fijar la versión instalada, usa la copia del paquete, `./node_modules/@verbatra/sdk/dist/config-schema.json` ([todos los esquemas](/docs/cli/output#esquemas)).
 
-`.verbatrarc.json` y `.verbatrarc` aceptan una clave `$schema`, que VS Code lee:
+`.verbatrarc.json` y `.verbatrarc` llevan una clave `$schema` para VS Code:
 
 ```json title=".verbatrarc.json"
 {
@@ -314,7 +304,7 @@ Sin conexión, o para fijar el esquema a la versión instalada, apunta en su lug
 }
 ```
 
-El `.verbatrarc` sin extensión necesita además una correspondencia de archivos, que da una asociación en el espacio de trabajo:
+El `.verbatrarc` sin extensión necesita además una asociación de archivos del espacio de trabajo:
 
 ```json title=".vscode/settings.json"
 {
@@ -327,7 +317,7 @@ El `.verbatrarc` sin extensión necesita además una correspondencia de archivos
 }
 ```
 
-Una configuración YAML lleva un comentario para el YAML Language Server:
+Una configuración YAML lleva un comentario del YAML Language Server:
 
 ```yaml title=".verbatrarc.yaml"
 # yaml-language-server: $schema=https://verbatra.kreitz-webdev.de/schema/v1/config.json
@@ -343,19 +333,19 @@ provider:
     maxOutputTokens: 4096
 ```
 
-La propiedad de `package.json` no puede recibir un esquema; las formas ejecutables las tipa `defineConfig` en su lugar.
+`package.json` no admite esquema; las formas ejecutables las tipa `defineConfig`.
 
 ### Lo que el documento no puede comprobar
 
-Estas reglas no tienen expresión en JSON Schema, así que solo las comprueba la carga de la configuración: las reglas de `targetLocales` y de los [códigos de locale](#códigos-de-locale), las claves de [`localeMap`](/docs/providers#códigos-de-locale-enviados-al-proveedor) y [`apiKeyEnvVar`](/docs/providers#openai-compatible), direcciones y rangos válidos en [`network.allowedHosts`](/docs/network-policy), `sensitiveData.patterns` dentro de las [reglas de seguridad de patrones](/docs/data-handling#protección-de-contenido-sensible) y las reglas de términos de un glosario en línea de la [versión 2](#glosario-por-locale-versión-2).
+Solo la carga de la configuración comprueba estas reglas: las reglas de `targetLocales` y de los [códigos de locale](#códigos-de-locale), las claves de [`localeMap`](/docs/providers#códigos-de-locale-enviados-al-proveedor) y [`apiKeyEnvVar`](/docs/providers#openai-compatible), direcciones y rangos válidos en [`network.allowedHosts`](/docs/network-policy), `sensitiveData.patterns` dentro de las [reglas de seguridad de patrones](/docs/data-handling#protección-de-contenido-sensible) y las reglas de términos de un glosario en línea de la [versión 2](#glosario-por-locale-versión-2).
 
 ## El directorio de trabajo y .env
 
-El directorio de trabajo (donde ejecutas verbatra, o `--cwd`) es donde empieza la búsqueda de configuración; qué comandos cargan `.env.local` y `.env` desde él está en [Archivos de entorno](/docs/cli#archivos-de-entorno). La raíz del proyecto es el directorio del archivo de configuración que encontró la búsqueda: las rutas de locale, `verbatra.lock.json`, la caché, el archivo de procedencia y `.verbatra-local/` se resuelven contra ella, así que una ejecución iniciada en un subdirectorio trabaja con los mismos archivos que una junto a la configuración. Con `--config`, el directorio de trabajo es la raíz, y un archivo de configuración en otro lugar recibe un aviso en stderr, porque la ruta de su glosario se sigue resolviendo contra su propio directorio. Una ruta relativa que pasas tú, como `--out` o `check --file`, se resuelve contra el directorio de trabajo.
+El directorio de trabajo (donde ejecutas verbatra, o `--cwd`) inicia la búsqueda de configuración y contiene los [archivos de entorno](/docs/cli#archivos-de-entorno). Las rutas de locale, `verbatra.lock.json`, la caché, el archivo de procedencia y `.verbatra-local/` se resuelven contra la raíz del proyecto, el directorio de la configuración encontrada, así que una ejecución desde un subdirectorio usa los mismos archivos. Con `--config`, el directorio de trabajo es la raíz, y una configuración en otro lugar recibe un aviso en stderr, porque la ruta de su glosario se resuelve contra su propio directorio. Una ruta que pasas tú, como `--out` o `check --file`, se resuelve contra el directorio de trabajo.
 
 ## Cuando la carga falla
 
 - [`CONFIG_NOT_FOUND`](/docs/error-codes#config_not_found): no hay configuración en ningún sitio buscado, o la ruta de `--config` no existe.
-- [`CONFIG_INVALID`](/docs/error-codes#config_invalid): se encontró una configuración pero no se puede usar. El mensaje lista cada problema con la ruta de su clave, y una clave desconocida en cualquier nivel añade la pista de que las claves de API vienen del entorno. Un fallo de parseo nombra el archivo (con línea y columna en YAML) pero nunca cita su contenido, y cada mensaje pasa por la redacción de claves.
+- [`CONFIG_INVALID`](/docs/error-codes#config_invalid): se encontró una configuración pero no se puede usar. El mensaje lista cada problema con la ruta de su clave; una clave desconocida añade la pista de que las claves de API vienen del entorno. Un fallo de parseo nombra el archivo (con línea y columna en YAML) pero nunca cita su contenido, y cada mensaje pasa por la redacción de claves.
 
 La CLI sale con `2` en ambos casos.

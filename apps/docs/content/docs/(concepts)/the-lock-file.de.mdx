@@ -10,17 +10,17 @@ Wert geschrieben hat.
 
 ## Was sie festhält
 
-Für jede Ziel-Locale einen Inhalts-Hash pro übersetztem Key, gebildet aus dem Quellwert, der die
-aktuelle Übersetzung erzeugt hat. Sie enthält keine Übersetzungen und keine Secrets: ein Feld
-`version` und Hashes. Der Hash normalisiert Unicode auf NFC und Zeilenenden auf LF, ein erneutes
-Speichern einer Quelldatei mit CRLF-Zeilenenden oder anderer Normalisierung ändert also nichts.
+Für jede Ziel-Locale einen Hash pro übersetztem Key, gebildet aus dem Quellwert hinter der
+aktuellen Übersetzung, plus ein Feld `version`: keine Übersetzungen, keine Secrets. Der Hash
+normalisiert Unicode auf NFC und Zeilenenden auf LF, ein erneutes Speichern einer Quelldatei mit
+CRLF-Zeilenenden ändert also nichts.
 
 ## Wie Drift erkannt wird
 
-Ein Quell-Key, der im Ziel fehlt, ist missing. Bei einem Key, den das Ziel hat, wird der aktuelle
-Quell-Hash mit dem festgehaltenen verglichen: Ein Unterschied heißt, dass sich die Quelle geändert
-hat, also wird der Key neu übersetzt; eine Übereinstimmung heißt, dass er nie gesendet wird, also
-kostet ein zweiter Lauf ohne Änderungen an der Quelle nichts. Die ganze Pipeline steht unter
+Ein Quell-Key, der im Ziel fehlt, ist missing. Bei einem vorhandenen Key wird der aktuelle
+Quell-Hash mit dem festgehaltenen verglichen: Ein Unterschied heißt, die Quelle hat sich geändert
+und der Key wird neu übersetzt; eine Übereinstimmung heißt, er wird nie gesendet, ein zweiter Lauf
+ohne Änderungen an der Quelle kostet also nichts. Die ganze Pipeline steht unter
 [Wie ein Lauf funktioniert](/docs/how-it-works).
 
 ### Geschützte Keys
@@ -33,19 +33,18 @@ standardmäßig [geschützt](/docs/protecting-human-translations) und bleibt ver
 
 ## Ein bestehendes Projekt übernehmen
 
-Richtest du verbatra auf Locale-Dateien, die schon reviewte Übersetzungen enthalten, werden sie
-nicht neu übersetzt. Beim ersten Lauf gibt es keine Lock-Datei, also kann nichts veraltet sein: Ein
-Key, den das Ziel hat, behält seinen Wert, nur fehlende Keys werden übersetzt, und der Lauf hält für
-jeden Key den aktuellen Quell-Hash fest und setzt so die Baseline ohne Provider-Kosten.
+Locale-Dateien, die schon reviewte Übersetzungen enthalten, werden nicht neu übersetzt. Beim ersten
+Lauf gibt es keine Lock-Datei, also kann nichts veraltet sein: Ein Key, den das Ziel hat, behält
+seinen Wert, nur fehlende Keys werden übersetzt, und der Lauf hält jeden Quell-Hash als Baseline
+fest, ohne Provider-Kosten.
 
 Die Übernahme richtet sich nach dem Vorhandensein eines Keys, nie nach seinem Wert, und das hat zwei
 Folgen:
 
-- **Ein leerer oder unübersetzter Wert zählt als übersetzt.** Ein Key, dessen Zielwert leer oder
-  noch der Quelltext ist, existiert, wird also nie gefüllt. Lösch den Key (ihn zu leeren reicht
+- **Ein leerer oder unübersetzter Wert zählt als übersetzt.** Lösch den Key (ihn zu leeren reicht
   nicht), und der nächste Lauf übersetzt ihn.
-- **Eine veraltete Übersetzung wird als aktuell festgehalten.** Korrigiere oder lösch solche Keys vor
-  dem ersten Lauf.
+- **Eine veraltete Übersetzung wird als aktuell festgehalten.** Korrigiere oder lösch sie vor dem
+  ersten Lauf.
 
 Dieselbe Regel behält handgeschriebene Pluralformen bei, `generatePlurals` ist bei der Übernahme also
 sicher. Um all das vorab zu sehen, führ [`verbatra diff`](/docs/cli/diff) oder `verbatra translate --dry-run` aus.
@@ -58,33 +57,31 @@ sicher. Um all das vorab zu sehen, führ [`verbatra diff`](/docs/cli/diff) oder 
   Keys.
 
 In beiden Fällen behält ein Key, der in diesem Lauf zurückgehalten wurde (eine gescheiterte
-Integritätsprüfung, ein gescheiterter Provider-Aufruf, eine Quelle mit ungültigem ICU), seinen
+Integritätsprüfung oder ein gescheiterter Provider-Aufruf, eine Quelle mit ungültigem ICU), seinen
 bisherigen Hash, sodass der nächste Lauf ihn erneut versucht. Verwaiste Keys bekommen keinen
-Eintrag. Die Datei wird mit sortierten Keys geschrieben, ihre Diffs bleiben also klein und
-reviewbar.
+Eintrag, und sortierte Keys halten die Diffs klein.
 
 ## Die Schreibsperre
 
 Zwei Läufe, die gleichzeitig dieselbe Locale anfassen, könnten beide gegen eine veraltete Baseline
-vergleichen und doppelt bezahlen. Deshalb hält jeder Schreibvorgang in eine Locale eine
-prozessübergreifende Sperre für diese Locale, abgelegt unter `.verbatra-local/`. Ein zweiter Schreiber wartet, liest die Lock-Datei
-dann neu und vergleicht gegen eine Baseline, die das Ergebnis des ersten schon enthält.
-Verschiedene Locales blockieren sich nie gegenseitig.
+vergleichen und doppelt bezahlen, deshalb hält jeder Schreibvorgang eine prozessübergreifende
+Sperre für diese Locale unter `.verbatra-local/`. Ein zweiter Schreiber wartet und vergleicht dann
+gegen eine Baseline, die das Ergebnis des ersten enthält. Verschiedene Locales blockieren sich nie
+gegenseitig.
 
 Was die Sperre garantiert:
 
 - **Ein Timeout kostet nichts.** `--lock-timeout` begrenzt nur das Warten vor jedem
   Provider-Aufruf, eine Locale, die aufgibt, hat also nichts ausgegeben und nichts geschrieben; das
-  Festhalten einer geschriebenen Datei wartet immer die vollen zehn Minuten des Standards.
+  Festhalten einer geschriebenen Datei wartet die vollen zehn Minuten des Standards.
 - **Verwaiste Sperren blockieren dich nicht.** Eine Sperre, deren Prozess auf diesem Rechner nicht
-  mehr existiert, wird sofort übernommen, und ein Halter frischt seine Sperre alle 10 Sekunden auf,
-  sodass eine Sperre, die 30 Sekunden lang nicht aufgefrischt wurde, als verwaist gilt, selbst wenn
-  ihr Prozess noch läuft.
+  mehr existiert, wird sofort übernommen, und eine, die 30 Sekunden lang nicht aufgefrischt wurde
+  (Halter frischen alle 10 auf), gilt als verwaist.
 - **Ein Abbruch gibt die Sperren frei.** Ctrl-C oder SIGTERM während `translate` oder `import` und
   der zweite Abbruch, der `watch` zwangsweise beendet, geben jede Sperre frei, bevor der Prozess
   endet.
 - **Eine verlorene Sperre stoppt den Schreibvorgang.** Jede Sperre trägt ein zufälliges Token, das
-  vor jedem geschützten Schreibvorgang geprüft wird; hat ein anderer Lauf die Sperre übernommen,
+  vor jedem Schreibvorgang geprüft wird; hat ein anderer Lauf die Sperre übernommen,
   stoppt der Schreibvorgang mit [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), und nichts
   wird geschrieben.
 
@@ -96,24 +93,23 @@ Was sie nicht abdeckt:
 - **Eine lange Pause zwischen Prüfung und Schreiben.** Ein Lauf, der direkt nach der Token-Prüfung
   pausiert (ein schlafender Rechner, ein angehaltener Prozess), kann nach dem Fortsetzen noch einmal
   schreiben.
-- **Hosts mit gleichem Namen.** Außerhalb von Linux ist der Hostname die einzige festgehaltene
-  Rechneridentität, zwei Container mit demselben Hostnamen, die sich ein `.verbatra-local/` teilen,
-  können also die lebende Sperre des anderen für verwaist halten. Gib jedem seinen eigenen Hostnamen
+- **Hosts mit gleichem Namen.** Außerhalb von Linux ist der Hostname die einzige Rechneridentität,
+  zwei Container mit einem Hostnamen, die sich `.verbatra-local/` teilen, können also die lebende
+  Sperre des anderen für verwaist halten. Gib jedem seinen eigenen Hostnamen
   oder seine eigene Arbeitskopie.
 
 ## Ein umgeschriebener Locale-Code
 
 <AvailableFrom version="0.12.0" />
 
-Die Lock-Datei, der Cache und die Herkunftsdatei ordnen ihren Zustand nach dem Locale-Code in deiner
-Konfiguration. Schreibst du einen Code um, zum Beispiel `pt_BR` zu `pt-BR` mit
-`files.localeStyle: "posix"`, überträgt der nächste Lauf von `translate` oder `watch` den alten
-Zustand einmalig und meldet
+Die Lock-Datei, der Cache und die Herkunftsdatei ordnen ihren Zustand nach dem Locale-Code deiner
+Konfiguration. Schreibst du einen um, etwa `pt_BR` zu `pt-BR`, überträgt der nächste Lauf von
+`translate` oder `watch` den alten Zustand einmalig und meldet
 [`LOCALE_STATE_CARRIED_OVER`](/docs/error-codes#locale_state_carried_over). Eine Quelländerung vor
 der Umbenennung wird trotzdem neu übersetzt, und gecachte Übersetzungen werden weiter
 wiederverwendet.
 
-Die Übertragung passiert nur, wenn sie eindeutig ist: `pt-BR` hat keinen eigenen Zustand, und die
+Die Übertragung passiert nur, wenn eindeutig: `pt-BR` hat keinen eigenen Zustand, und die
 Datei hält Zustand unter genau einer Unterstrich-Schreibweise davon (oder seiner gettext-Schreibweise,
 etwa `sr@latin` für `sr-Latn`), ohne Beachtung der Groß- und Kleinschreibung. Zustand, den `pt-BR`
 schon hat, wird nie überschrieben. Lässt sich die Übertragung nicht schreiben, läuft diese Locale
@@ -121,15 +117,16 @@ nicht und scheitert mit
 [`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), sodass der
 nächste Lauf es erneut versucht; die anderen Locales laufen wie gewohnt.
 
-Bis ein Lauf ihn überträgt, behandelt jedes Lesen den alten Zustand als den von `pt-BR`, ohne etwas zu schreiben, ein veralteter Key wird
-also als veraltet gemeldet. Ein Schreibvorgang für einen einzelnen Key (eine Bearbeitung, ein
+Bis dahin behandelt jedes Lesen den alten Zustand als den von `pt-BR`, ohne zu schreiben, ein
+veralteter Key wird also als veraltet gemeldet. Ein Schreibvorgang für einen einzelnen Key (eine Bearbeitung, ein
 Retranslate, eine Review-Entscheidung) und `verbatra import` übertragen den Zustand vorher auf
 dieselbe Weise. Die Prüfung `locale-state` von [`verbatra doctor`](/docs/cli/doctor) nennt
 zurückgebliebenen Zustand.
 
 ## Fehlend oder beschädigt
 
-Eine fehlende Lock-Datei ist ein [erster Lauf](#ein-bestehendes-projekt-übernehmen), kein Fehler. Eine Lock-Datei, die sich nicht parsen lässt, strukturell falsch, zu groß
+Eine fehlende Lock-Datei ist ein [erster Lauf](#ein-bestehendes-projekt-übernehmen), kein Fehler.
+Eine, die sich nicht parsen lässt, strukturell falsch, zu groß
 oder in einer nicht unterstützten Version ist, lässt den Lauf mit
 [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid) scheitern, statt überschrieben zu werden,
 sodass du sie wiederherstellen kannst, statt die Baseline zu verlieren.
@@ -138,9 +135,9 @@ sodass du sie wiederherstellen kannst, statt die Baseline zu verlieren.
 
 <AvailableFrom version="0.12.0" />
 
-Wo die Lock-Datei festhält, aus welchem Quelltext eine Übersetzung kam, hält
-`verbatra.provenance.json` fest, welcher Schreibpfad den Wert erzeugt hat, der jetzt in der
-Locale-Datei steht, und ob ihn jemand reviewt hat. Als eigene Datei wird sie von einer älteren verbatra-Version ignoriert, etwa einer in CI gepinnten.
+`verbatra.provenance.json` hält fest, welcher Schreibpfad jeden Wert erzeugt hat, der jetzt in der
+Locale-Datei steht, und ob ihn jemand reviewt hat. Eine ältere verbatra-Version, etwa eine in CI
+gepinnte, ignoriert sie.
 
 | Herkunft | Geschrieben von |
 | --- | --- |
@@ -152,18 +149,17 @@ Locale-Datei steht, und ob ihn jemand reviewt hat. Als eigene Datei wird sie von
 | `import` | einer angenommenen Zeile aus `verbatra import` |
 | `unknown` | einer Review-Entscheidung zu einem Wert ohne Eintrag, oder einer Herkunft, die dieses Release nicht kennt |
 
-Zwei weitere Herkünfte werden beim Lesen der Dateien abgeleitet. `unrecorded` ist ein Wert ohne
-Eintrag, womit nach einem Upgrade jeder Key beginnt. `external` ist ein Wert, der nicht mehr zu dem
-Hash in seinem Eintrag passt, weil ihn etwas außerhalb von verbatra geändert hat: der Pull Request
-eines Übersetzers, eine ältere verbatra-Version oder ein Merge. Die Felder, die jedes Lesen liefert,
+Zwei weitere werden beim Lesen abgeleitet: `unrecorded` ist ein Wert ohne Eintrag, wie jeder Key
+nach einem Upgrade; `external` passt nicht mehr zum Hash seines Eintrags, weil ihn etwas außerhalb
+von verbatra geändert hat, etwa der Pull Request eines Übersetzers, ein älteres verbatra oder ein Merge. Die Felder, die jedes Lesen liefert,
 stehen in der [SDK-Referenz](/docs/sdk/inspect#loadprovenance).
 
 Was die Datei garantiert:
 
 - **Stabile Diffs.** Kein übersetzter Text und keine Zeitstempel, ein sortierter Eintrag pro Zeile,
-  ein Lauf, der nichts ändert, lässt die Datei also Byte für Byte, wie sie war. Bei einem
-  Merge-Konflikt nimm die Seite, die zur behaltenen Locale-Datei passt: Ein abweichender Eintrag
-  liest sich als `external`, nennt keinen falschen Autor, schützt den Wert aber vor Neuübersetzung.
+  ein Lauf, der nichts ändert, lässt die Datei also unverändert. Bei einem Merge-Konflikt nimm die
+  Seite, die zur behaltenen Locale-Datei passt: Ein abweichender Eintrag liest sich als `external`,
+  was den Wert vor Neuübersetzung schützt.
 - **Frische Einträge für neue Werte.** Ein Schreibvorgang, der einen Wert ändert, ersetzt seinen
   Eintrag durch einen neuen, nicht reviewten; einer, der Wert und Quelle unverändert lässt, behält
   ihn.
@@ -174,8 +170,7 @@ Was die Datei garantiert:
   geschrieben
   ([`PROVENANCE_FILE_TOO_LARGE`](/docs/error-codes#provenance_file_too_large)).
 
-Was sie nicht ist: fälschungssicher. Wer die Locale-Dateien bearbeiten kann, kann auch sie
-bearbeiten. Um daraus einen Bericht zu machen, siehe
+Sie ist nicht fälschungssicher; um daraus einen Bericht zu machen, siehe
 [Nachweis maschineller Übersetzungen festhalten](/docs/provenance-evidence).
 
 ### Review-Entscheidungen
@@ -183,18 +178,16 @@ bearbeiten. Um daraus einen Bericht zu machen, siehe
 <AvailableFrom version="0.12.0" />
 
 Ein Eintrag kann eine Review-Entscheidung tragen, `approved` oder `rejected`, mit einem optionalen
-Namen unter `reviewer`. Studios Review-Seite, die [Review-Funktionen des SDK](/docs/sdk/review) und die
+Namen unter `reviewer`. [Studios Review-Seite](/docs/review-in-studio), die [Review-Funktionen des SDK](/docs/sdk/review) und die
 [MCP-Review-Tools](/docs/cli/mcp) schreiben sie; die MCP-Tools geben die Entscheidung eines Menschen
 weiter und verlangen dessen Namen. Eine Entscheidung gilt für genau
-den Wert, den der Reviewer gesehen hat, und wird abgelehnt, wenn sich dieser Wert seitdem geändert
-hat.
+den Wert, den der Reviewer gesehen hat, und wird abgelehnt, wenn er sich geändert hat.
 
-- **Eine Freigabe** ändert nur die Herkunftsdatei. Sie speichert den Quell-Hash, gegen den sie
-  gegeben wurde, und liest sich deshalb wieder als nicht reviewt, sobald sich der Quelltext ändert.
-- **Eine Ablehnung** entfernt den Wert aus der Locale-Datei und seinen Eintrag aus der Lock-Datei,
-  sodass der Key als missing gilt, bis der nächste Lauf von `translate` oder ein Mensch einen neuen
-  Wert schreibt. Der Eintrag behält einen Hash des entfernten Texts, und der passende Cache-Eintrag
-  wird verworfen, damit ein Lauf nicht denselben Text zurückbringt. XLIFF kann keine einzelne
+- **Eine Freigabe** ändert nur die Herkunftsdatei und liest sich wieder als nicht reviewt, sobald
+  sich der Quelltext ändert.
+- **Eine Ablehnung** entfernt den Wert und seinen Lock-Eintrag, sodass der Key als missing gilt, bis
+  der nächste Lauf von `translate` oder ein Mensch einen neuen Wert schreibt. Der Eintrag behält
+  einen Hash des entfernten Texts und der Cache-Eintrag wird verworfen, damit ein Lauf nicht denselben Text zurückbringt. XLIFF kann keine einzelne
   Übersetzung weglassen, eine Ablehnung wird dort also mit
   [`REVIEW_REJECT_UNSUPPORTED`](/docs/error-codes#review_reject_unsupported) abgelehnt.
 
@@ -206,10 +199,4 @@ nie ein.
 ## Committe sie
 
 Committe `verbatra.lock.json` und `verbatra.provenance.json` mit deinen Locale-Dateien und
-bearbeite sie nie von Hand: sie sind die gemeinsame Baseline, gegen die dein Team und deine CI
-vergleichen, und das, was ein [Rollback](/docs/recovery-and-rollback) wiederherstellt.
-
-## Siehe auch
-
-- [Der Übersetzungs-Cache](/docs/the-cache): Wiederverwendung nach Inhalt neben der Lock-Datei.
-- [In Studio prüfen](/docs/review-in-studio): Freigaben und Ablehnungen festhalten.
+bearbeite sie nie von Hand: sie sind die Baseline, gegen die dein Team und deine CI vergleichen, und das, was ein [Rollback](/docs/recovery-and-rollback) wiederherstellt.
