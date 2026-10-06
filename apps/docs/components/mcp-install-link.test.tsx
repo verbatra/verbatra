@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 
+import { AGENT_CLIENT_CONFIGS } from "@verbatra/cli";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { MCP_INSTALL_LINKS } from "@/lib/mcp-install-links";
+import { mcpInstallLink } from "@/lib/mcp-install-links";
 
 vi.mock("next-intl", () => ({
   useTranslations: () => (key: string, values?: Record<string, string>) =>
@@ -19,7 +20,7 @@ function link(): HTMLAnchorElement | null {
 describe("McpInstallLink", () => {
   it("is a plain anchor to the VS Code install link", () => {
     const anchor = link();
-    expect(anchor?.getAttribute("href")).toBe(MCP_INSTALL_LINKS.vscode);
+    expect(anchor?.getAttribute("href")).toBe(mcpInstallLink(AGENT_CLIENT_CONFIGS, "vscode"));
     expect(anchor?.getAttribute("onclick")).toBeNull();
     expect(anchor?.getAttribute("target")).toBeNull();
   });
