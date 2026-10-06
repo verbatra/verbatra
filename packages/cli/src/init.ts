@@ -515,7 +515,7 @@ function agentSteps(agent: AgentScaffoldPlan | undefined, suffix: string): reado
     steps.push({
       description:
         "This project has a .vscode folder but no .vscode/mcp.json, so init did not wire VS Code. Run this to add it.",
-      command: `npx verbatra init --agent --client vscode${suffix}`,
+      command: `npx @verbatra/cli init --agent --client vscode${suffix}`,
     });
   }
   if (agent.geminiContextHint) {
@@ -544,7 +544,7 @@ function cwdSuffix(cwdFlag: string | undefined): string {
 function doctorStep(suffix: string): NextStep {
   return {
     description: "Check the setup. It calls no provider and reads no key value.",
-    command: `npx verbatra doctor${suffix}`,
+    command: `npx @verbatra/cli doctor${suffix}`,
   };
 }
 
@@ -580,11 +580,11 @@ function nextSteps(
     plan.draft.provider.id === HUMAN_ONLY_PROVIDER
       ? {
           description: "Hand the untranslated keys to a person as a workbook.",
-          command: `npx verbatra export${suffix}`,
+          command: `npx @verbatra/cli export${suffix}`,
         }
       : {
           description: "Preview what a run would translate, without calling the provider.",
-          command: `npx verbatra translate --dry-run --json${suffix}`,
+          command: `npx @verbatra/cli translate --dry-run --json${suffix}`,
         },
   );
   return steps;

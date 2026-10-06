@@ -26,7 +26,7 @@ pnpm, yarn, and bun work too. Approve no install scripts, neither in `pnpm appro
 ### 3. Scaffold the config and the agent files
 
 ```bash
-npx verbatra init --provider <provider> --yes --json --agent
+npx @verbatra/cli init --provider <provider> --yes --json --agent
 ```
 
 Ask the human which provider to use unless the project makes it obvious. Never pick one that spends against a service the human did not agree to, and never pass a key value to `init`. [Providers](/docs/providers) lists the ids; `none` turns machine translation off. `init` detects the format, path pattern, and locales, prints one JSON envelope, and never prompts. `--agent` also writes a verbatra section to `AGENTS.md` (or to `CLAUDE.md` when that is the only instruction file) and the verbatra MCP server, spending off, to `.mcp.json`:
@@ -34,21 +34,21 @@ Ask the human which provider to use unless the project makes it obvious. Never p
 - Exit `0`: compare `result.config` with step 1, starting with every `result.sources` entry that says `default`; `result.config.files.localeStyle` appears only when the files do not spell locales as written. If something is wrong, run it again with the right `--format`, `--path`, `--source`, or `--targets`, plus `--force`.
 - Exit `2` with `FORMAT_AMBIGUOUS` or `LAYOUT_AMBIGUOUS`: pick from `candidates` and run it again with `--format` or `--path`. When the candidates are namespace files side by side, stop and ask the human, since one config covers one file pattern.
 - Exit `2` with `MISSING_OPTIONS`: the message names every flag still needed.
-- Exit `2` with `CONFIG_EXISTS`: tell the human which provider the existing config uses and wait for their confirmation. Then run `npx verbatra init --agent --json`, which keeps the config and adds only the agent files. Ask before you pass `--force`.
+- Exit `2` with `CONFIG_EXISTS`: tell the human which provider the existing config uses and wait for their confirmation. Then run `npx @verbatra/cli init --agent --json`, which keeps the config and adds only the agent files. Ask before you pass `--force`.
 
 [init](/docs/cli/init#providers) documents every flag.
 
 ### 4. Leave the API key to the human
 
-Skip this step for provider `none`. The key variable is `result.apiKeyEnvVar`; after `CONFIG_EXISTS` it is `null`, so take the name from the failing `api-key` check of `npx verbatra doctor --json`. Copy `.env.example` to `.env`, or create `.env` if `init` wrote no example, name the variable there with a blank value, and tell the human to fill it in. Never write, invent, or ask for a key value. Carry on without waiting.
+Skip this step for provider `none`. The key variable is `result.apiKeyEnvVar`; after `CONFIG_EXISTS` it is `null`, so take the name from the failing `api-key` check of `npx @verbatra/cli doctor --json`. Copy `.env.example` to `.env`, or create `.env` if `init` wrote no example, name the variable there with a blank value, and tell the human to fill it in. Never write, invent, or ask for a key value. Carry on without waiting.
 
 ### 5. Check the setup without spending
 
 ```bash
-npx verbatra doctor --json
-npx verbatra check --json
-npx verbatra diff --json
-npx verbatra translate --dry-run --json
+npx @verbatra/cli doctor --json
+npx @verbatra/cli check --json
+npx @verbatra/cli diff --json
+npx @verbatra/cli translate --dry-run --json
 ```
 
 None of these calls a provider, needs a key, or writes a file. Fix every failing `doctor` check you can in `verbatra.config.ts`; the `api-key` check passes only once the human has set the key, so do not loop on it. From `check` or `diff`, exit `1` (out of sync) is expected before a first run; only exit `2` is a setup problem. With provider `none`, `translate --dry-run` exits `3` when keys are left for a human translator. Only keys missing from a target get translated, and an empty string counts as present, so ask before you delete placeholder `""` keys.
@@ -60,7 +60,7 @@ Summarize how many keys are pending per locale and what `translate --dry-run` re
 ### 7. Translate after the go-ahead
 
 ```bash
-npx verbatra translate --json
+npx @verbatra/cli translate --json
 ```
 
 Report the summary's `succeeded`, `partial`, and `failed` lists. A `partial` or `failed` locale still keeps everything that succeeded.

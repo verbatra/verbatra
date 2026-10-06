@@ -117,8 +117,8 @@ describe("runInit for agents", () => {
     expect(result.apiKeyEnvVar).toBe("GEMINI_API_KEY");
     expect(result.nextSteps.map((step) => step.command)).toEqual([
       null,
-      `npx verbatra doctor --cwd ${dir}`,
-      `npx verbatra translate --dry-run --json --cwd ${dir}`,
+      `npx @verbatra/cli doctor --cwd ${dir}`,
+      `npx @verbatra/cli translate --dry-run --json --cwd ${dir}`,
     ]);
     expect(verbatraConfigSchema.safeParse(evaluateRenderedConfig(readConfig())).success).toBe(true);
   });
@@ -447,7 +447,7 @@ describe("runInit for agents", () => {
     const result = successResult(out);
 
     expect(result.apiKeyEnvVar).toBeNull();
-    expect(result.nextSteps.at(-1)?.command).toContain("npx verbatra export");
+    expect(result.nextSteps.at(-1)?.command).toContain("npx @verbatra/cli export");
     expect(result.nextSteps[0]?.description).toContain("Set format");
   });
 
@@ -742,7 +742,7 @@ describe("runInit for agents", () => {
 
     const result = successResult(cap.out());
     expect(result.nextSteps.find((step) => step.command !== null)?.command).toBe(
-      `npx verbatra doctor --cwd '${spaced}'`,
+      `npx @verbatra/cli doctor --cwd '${spaced}'`,
     );
   });
 
@@ -758,7 +758,7 @@ describe("runInit for agents", () => {
     );
     expect(cap.out()).toContain("next steps:");
     expect(cap.out()).toContain("  - Copy .env.example to .env and set DEEPL_API_KEY there.");
-    expect(cap.out()).toContain("npx verbatra doctor --cwd");
+    expect(cap.out()).toContain("npx @verbatra/cli doctor --cwd");
   });
 
   it("uses an injected detector and prints a detection without locales", async () => {

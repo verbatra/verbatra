@@ -115,7 +115,7 @@ describe("verbatra mcp: ready, hint and stopped lines on stderr", () => {
     expect(cap.err()).toBe(
       [
         mcpReadyLine(".", "on"),
-        ...mcpTerminalHint(["verbatra", "mcp"]),
+        ...mcpTerminalHint(["@verbatra/cli", "mcp"]),
         mcpStoppedLine("signal"),
         "",
       ].join("\n"),
@@ -171,8 +171,8 @@ describe("verbatra mcp: ready, hint and stopped lines on stderr", () => {
     captured.session().requestStop();
     await done;
 
-    expect(cap.err()).toContain('command "npx", args ["verbatra", "mcp"]');
-    expect(cap.err()).toContain("npx @modelcontextprotocol/inspector npx verbatra mcp");
+    expect(cap.err()).toContain('command "npx", args ["@verbatra/cli", "mcp"]');
+    expect(cap.err()).toContain("npx @modelcontextprotocol/inspector npx @verbatra/cli mcp");
   });
 
   it("falls back to a plain ready line when an older @verbatra/mcp has no banner builders", async () => {

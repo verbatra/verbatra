@@ -63,7 +63,7 @@ Un catalogue `apple-xcstrings` est un seul fichier partagé par toutes les local
 Sans terminal, ou avec `--json`, `init` ne pose jamais de question. Une valeur ni passée, ni détectée, ni remplie par `--yes` est une erreur : `init` termine avec `2` et `MISSING_OPTIONS` et nomme d'un coup toutes les options manquantes. Une ambiguïté ou une option invalide liste aussi les options encore manquantes, donc une seule exécution dit à un agent tout ce qu'il doit passer. `--provider` n'a pas de défaut, pas plus que `--base-url` et `--model` pour `openai-compatible` ou `--base-url` pour `libretranslate`. Voici la commande qu'un agent exécute :
 
 ```bash
-npx verbatra init --provider gemini --yes --json
+npx @verbatra/cli init --provider gemini --yes --json
 ```
 
 ### Sortie JSON

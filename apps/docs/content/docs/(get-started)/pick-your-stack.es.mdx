@@ -33,7 +33,7 @@ Para proyectos con i18next, react-i18next y next-i18next.
 - Archivos: `locales/{locale}.json`
 
 ```bash
-npx verbatra init --format i18next-json
+npx @verbatra/cli init --format i18next-json
 ```
 
 Detalles: [Los cuatro formatos JSON](/docs/formats#los-cuatro-formatos-json).
@@ -48,7 +48,7 @@ Para archivos de mensajes de next-intl, cuyos valores son mensajes ICU.
 - Archivos: `messages/{locale}.json`
 
 ```bash
-npx verbatra init --format next-intl-json
+npx @verbatra/cli init --format next-intl-json
 ```
 
 Detalles: [Los cuatro formatos JSON](/docs/formats#los-cuatro-formatos-json).
@@ -63,7 +63,7 @@ Para vue-i18n, también en Nuxt I18n, con marcadores de posición entre llaves s
 - Archivos: `src/locales/{locale}.json`
 
 ```bash
-npx verbatra init --format vue-i18n-json
+npx @verbatra/cli init --format vue-i18n-json
 ```
 
 Detalles: [Los cuatro formatos JSON](/docs/formats#los-cuatro-formatos-json).
@@ -78,7 +78,7 @@ Para JSON de ngx-translate, plano o anidado.
 - Archivos: `src/assets/i18n/{locale}.json`
 
 ```bash
-npx verbatra init --format ngx-translate-json
+npx @verbatra/cli init --format ngx-translate-json
 ```
 
 Detalles: [Los cuatro formatos JSON](/docs/formats#los-cuatro-formatos-json).
@@ -93,7 +93,7 @@ Para los Application Resource Bundles de Flutter. `init` también fija `localeSt
 - Archivos: `lib/l10n/app_{locale}.arb`
 
 ```bash
-npx verbatra init --format arb
+npx @verbatra/cli init --format arb
 ```
 
 Detalles: [ARB](/docs/formats#arb).
@@ -108,7 +108,7 @@ Para recursos `strings.xml`. `init` también fija `localeStyle: "android"`, así
 - Archivos: `app/src/main/res/{locale}/strings.xml`
 
 ```bash
-npx verbatra init --format android-xml
+npx @verbatra/cli init --format android-xml
 ```
 
 Detalles: [Android strings.xml](/docs/formats#android-stringsxml).
@@ -121,7 +121,7 @@ Dos formatos, según cómo guarde tu proyecto sus textos. Para archivos `.string
 - Archivos: `{locale}.lproj/Localizable.strings`
 
 ```bash
-npx verbatra init --format apple-strings
+npx @verbatra/cli init --format apple-strings
 ```
 
 Para un Xcode String Catalog, un único archivo con todos los locales. Crea primero el catálogo en Xcode: verbatra escribe en él, pero nunca lo crea.
@@ -130,7 +130,7 @@ Para un Xcode String Catalog, un único archivo con todos los locales. Crea prim
 - Archivos: `{locale}Localizable.xcstrings`
 
 ```bash
-npx verbatra init --format apple-xcstrings
+npx @verbatra/cli init --format apple-xcstrings
 ```
 
 Detalles: [Apple .strings](/docs/formats#apple-strings) y [Xcode String Catalogs](/docs/formats#xcode-string-catalogs-xcstrings).
@@ -143,7 +143,7 @@ Para catálogos `.po` y sus plantillas `.pot`, como los que usan los proyectos e
 - Archivos: `locales/{locale}/LC_MESSAGES/messages.po`
 
 ```bash
-npx verbatra init --format gettext-po
+npx @verbatra/cli init --format gettext-po
 ```
 
 Detalles: [gettext .po/.pot](/docs/formats#gettext-popot).
@@ -156,7 +156,7 @@ Para bundles de mensajes `.properties`. `init` también fija `localeStyle: "posi
 - Archivos: `src/main/resources/messages_{locale}.properties`
 
 ```bash
-npx verbatra init --format properties
+npx @verbatra/cli init --format properties
 ```
 
 Detalles: [Properties](/docs/formats#properties).
@@ -169,7 +169,7 @@ Para archivos de recursos `.resx`. Las imágenes, los iconos y las entradas del 
 - Archivos: `Resources/Strings.{locale}.resx`
 
 ```bash
-npx verbatra init --format resx
+npx @verbatra/cli init --format resx
 ```
 
 Detalles: [.NET .resx](/docs/formats#net-resx).
@@ -182,7 +182,7 @@ Para archivos de locale YAML anidados con marcadores de posición al estilo de i
 - Archivos: `locales/{locale}.yml`
 
 ```bash
-npx verbatra init --format yaml
+npx @verbatra/cli init --format yaml
 ```
 
 Detalles: [YAML](/docs/formats#yaml).
@@ -195,7 +195,7 @@ Para documentos XLIFF 1.2 y 2.0 generados por `ng extract-i18n` de Angular, por 
 - Archivos: `locales/{locale}.xlf`
 
 ```bash
-npx verbatra init --format xliff
+npx @verbatra/cli init --format xliff
 ```
 
 Detalles: [XLIFF](/docs/formats#xliff).
@@ -208,7 +208,7 @@ Para archivos INI clásicos, con un nivel de encabezados `[section]`.
 - Archivos: `locales/{locale}.ini`
 
 ```bash
-npx verbatra init --format ini
+npx @verbatra/cli init --format ini
 ```
 
 Detalles: [INI](/docs/formats#ini).

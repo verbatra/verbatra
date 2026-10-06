@@ -589,7 +589,7 @@ describe("init --agent: which clients it wires", () => {
     expect(result.agent.clients.map((client) => client.id)).toEqual(["claude"]);
     expect(result.nextSteps).toContainEqual({
       description: expect.stringContaining("no .vscode/mcp.json"),
-      command: `npx verbatra init --agent --client vscode --cwd ${dir}`,
+      command: `npx @verbatra/cli init --agent --client vscode --cwd ${dir}`,
     });
   });
 

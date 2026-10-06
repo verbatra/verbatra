@@ -1,6 +1,8 @@
 export const AGENT_INSTRUCTIONS = [
   "## verbatra (i18n)",
   "",
+  "- Run each `verbatra <command>` below as `npx @verbatra/cli <command>`. The",
+  "  unscoped npm package `verbatra` is not this tool.",
   "- Free, no provider call and no API key: `verbatra check`, `verbatra diff`,",
   "  `verbatra doctor`, `verbatra translate --dry-run`, `verbatra translate --estimate`.",
   "- Spends provider tokens: `verbatra translate` and `verbatra watch`. Ask before",

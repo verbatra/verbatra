@@ -6,7 +6,7 @@ status: new
 ---
 <StartHere />
 
-Lass einen Coding-Agenten über den stdio-MCP-Server von verbatra den Übersetzungsstand lesen und Werte korrigieren. Registriere ihn einmal pro Client: Ein zweiter Eintrag startet einen zweiten Server. Du brauchst ein Projekt mit verbatra-Konfiguration ([`npx verbatra init`](/docs/cli/init)) und Node.js 22.14 oder neuer.
+Lass einen Coding-Agenten über den stdio-MCP-Server von verbatra den Übersetzungsstand lesen und Werte korrigieren. Registriere ihn einmal pro Client: Ein zweiter Eintrag startet einen zweiten Server. Du brauchst ein Projekt mit verbatra-Konfiguration ([`npx @verbatra/cli init`](/docs/cli/init)) und Node.js 22.14 oder neuer.
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
 
@@ -15,7 +15,7 @@ Lass einen Coding-Agenten über den stdio-MCP-Server von verbatra den Übersetzu
 | Befehl | Braucht | Liest `.env`-Dateien |
 | --- | --- | --- |
 | `npx -y @verbatra/mcp` | keine Installation | nein |
-| `npx verbatra mcp` | `@verbatra/cli` und `@verbatra/mcp` als Dev-Abhängigkeiten | ja: `.env.local`, dann `.env` |
+| `npx @verbatra/cli mcp` | `@verbatra/cli` und `@verbatra/mcp` als Dev-Abhängigkeiten | ja: `.env.local`, dann `.env` |
 
 Meide `npx -y @verbatra/cli mcp`: Es endet mit `2`, weil die CLI `@verbatra/mcp` nie installiert. [Projektverzeichnis](/docs/cli/mcp#projektverzeichnis) sagt, wo der Server die Konfiguration sucht.
 
@@ -53,7 +53,7 @@ Der Server weist den Agenten trotzdem an, erst `translation.estimate` auszuführ
 Empfohlen, im Projektstamm:
 
 ```bash
-npx verbatra init --agent
+npx @verbatra/cli init --agent
 ```
 
 [`init --agent`](/docs/cli/init#coding-agenten-einrichten) schreibt die Anweisungsdatei für Agenten und diesen Eintrag in die committete `.mcp.json`, Ausgaben aus, dazu jeden weiteren erkannten Client:
@@ -112,7 +112,7 @@ Siehe die [Plugin-Referenz von Claude Code](https://code.claude.com/docs/en/plug
 
 ## Codex
 
-Empfohlen: `npx verbatra init --agent --client codex` hängt diese Tabelle an `.codex/config.toml` an, Ausgaben aus:
+Empfohlen: `npx @verbatra/cli init --agent --client codex` hängt diese Tabelle an `.codex/config.toml` an, Ausgaben aus:
 
 ```toml title=".codex/config.toml"
 [mcp_servers.verbatra]
@@ -137,7 +137,7 @@ env_vars = ["ANTHROPIC_API_KEY"]
 
 ## Gemini CLI
 
-Empfohlen: `npx verbatra init --agent --client gemini` ergänzt diesen Eintrag in `.gemini/settings.json`, Ausgaben aus:
+Empfohlen: `npx @verbatra/cli init --agent --client gemini` ergänzt diesen Eintrag in `.gemini/settings.json`, Ausgaben aus:
 
 ```json title=".gemini/settings.json"
 {
@@ -362,7 +362,7 @@ Gib dem Client den Befehl `npx -y @verbatra/mcp`, dazu `--cwd /path/to/your/proj
 
 Bitte den Agenten, `project.snapshot` aufzurufen. Es liefert Locales, Format und Provider, ohne den Provider aufzurufen.
 
-- **`configured: false`**: Es wurde keine nutzbare Konfiguration gefunden. Lass `project.doctor` aufrufen und führ dann `npx verbatra init` aus oder korrigier `--cwd`. Siehe [Ohne Konfiguration](/docs/cli/mcp#ohne-konfiguration).
+- **`configured: false`**: Es wurde keine nutzbare Konfiguration gefunden. Lass `project.doctor` aufrufen und führ dann `npx @verbatra/cli init` aus oder korrigier `--cwd`. Siehe [Ohne Konfiguration](/docs/cli/mcp#ohne-konfiguration).
 - **Kostenpflichtige Tools fehlen**: Prüf den Ausgaben-Schalter und ob der Provider `none` ist.
 - **Konfiguration geändert**: Kein Neustart nötig; siehe [Nach einer Konfigurationsänderung](/docs/cli/mcp#nach-einer-konfigurationsänderung).
 

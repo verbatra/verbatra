@@ -135,7 +135,7 @@ describe("runInit --agent", () => {
 
   it("keeps a differing verbatra server, says so, and names it in the next steps", async () => {
     const custom = `${JSON.stringify(
-      { mcpServers: { verbatra: { command: "npx", args: ["verbatra", "mcp"] } } },
+      { mcpServers: { verbatra: { command: "npx", args: ["@verbatra/cli", "mcp"] } } },
       null,
       2,
     )}\n`;
@@ -217,7 +217,7 @@ describe("runInit --agent on an already configured project", () => {
       "kept verbatra.config.ts (already configured; --agent adds only the agent files)",
     );
     expect(cap.out()).toContain("created AGENTS.md");
-    expect(cap.out()).toContain(`npx verbatra doctor --cwd ${dir}`);
+    expect(cap.out()).toContain(`npx @verbatra/cli doctor --cwd ${dir}`);
   });
 
   it("reports the kept config in the JSON result, twice, with byte-identical files", async () => {

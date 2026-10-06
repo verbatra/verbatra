@@ -512,7 +512,7 @@ describe("mcp (no key)", () => {
       "verbatra MCP server running on stdio (project mcp-unconfigured, spend tools off)\n",
     );
     expect(result.stderr).toContain("Running without a usable project config: CONFIG_NOT_FOUND");
-    expect(result.stderr).toContain("npx verbatra init");
+    expect(result.stderr).toContain("npx @verbatra/cli init");
 
     expect(toolResponse(configured.stdout, 2).result?.structuredContent).toMatchObject({
       configured: true,
@@ -543,7 +543,7 @@ describe("mcp (no key)", () => {
     expect(toolResponse(stdout, 2).result?.structuredContent).toMatchObject({ configured: false });
     expect(toolResponse(stdout, 3).result?.structuredContent).toMatchObject({ ok: false });
     expect(result.exitCode).toBe(0);
-    expect(result.stderr).toContain("npx verbatra init");
+    expect(result.stderr).toContain("npx @verbatra/cli init");
   }, 120_000);
 
   describe("verbatra-mcp argument parsing", () => {

@@ -38,7 +38,7 @@ const ALLOW_SPEND_ENV_VAR = "VERBATRA_MCP_ALLOW_SPEND";
 
 const REDACT_VALUES_ENV_VAR = "VERBATRA_MCP_REDACT_VALUES";
 
-const CLI_LAUNCH_ARGS = ["verbatra", "mcp"] as const;
+const CLI_LAUNCH_ARGS = ["@verbatra/cli", "mcp"] as const;
 
 const FALLBACK_READY_LINE = "verbatra MCP server running on stdio";
 

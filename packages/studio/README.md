@@ -39,7 +39,7 @@ bun add --dev @verbatra/cli @verbatra/studio
 ## Quick start
 
 ```bash
-npx verbatra studio
+npx @verbatra/cli studio
 # Verbatra Studio running at http://127.0.0.1:5849/?token=...
 ```
 

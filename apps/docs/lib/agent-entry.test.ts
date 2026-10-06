@@ -134,7 +134,7 @@ describe("the Start here banner", () => {
 
 describe("the agent setup command", () => {
   it("is the one command the docs recommend for wiring a coding agent", () => {
-    expect(AGENT_INIT_COMMAND).toBe("npx verbatra init --agent");
+    expect(AGENT_INIT_COMMAND).toBe("npx @verbatra/cli init --agent");
   });
 
   it("is written out only in lib/install-commands.ts among the app code, messages and scripts", () => {

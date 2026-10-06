@@ -63,7 +63,7 @@ An `apple-xcstrings` catalogue is one file shared by every locale, and verbatra 
 Without a terminal, or with `--json`, `init` never prompts. A value that is neither passed, detected, nor defaulted by `--yes` is an error: `init` exits `2` with `MISSING_OPTIONS` and names every missing flag at once. An ambiguity or an invalid flag also lists the flags still missing, so one run tells an agent everything it has to pass. `--provider` has no default, and neither do `--base-url` and `--model` for `openai-compatible` or `--base-url` for `libretranslate`. This is the command an agent runs:
 
 ```bash
-npx verbatra init --provider gemini --yes --json
+npx @verbatra/cli init --provider gemini --yes --json
 ```
 
 ### JSON output

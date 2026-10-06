@@ -43,7 +43,7 @@ Si <StackText field="sourceFile" /> ya existe, sáltate este paso. Si no, créal
 <AvailableFrom version="0.12.0" />
 
 ```bash
-npx verbatra init --agent
+npx @verbatra/cli init --agent
 ```
 
 Sáltate este paso si no trabajas con un agente de programación. Con la configuración ya creada, `init --agent` la conserva y añade solo los archivos del agente: las reglas de verbatra en `AGENTS.md` (o `CLAUDE.md`, cuando es tu único archivo de instrucciones) y el servidor MCP de verbatra, sin las herramientas que gastan, en la configuración de proyecto de cada agente que detecta: `.mcp.json` para Claude Code, `.cursor/mcp.json` para Cursor, `.vscode/mcp.json` para VS Code. Con `--client` eliges tú los agentes, y `--dry-run` muestra los archivos sin escribirlos. Consulta [Preparar los agentes de programación](/docs/cli/init#preparar-los-agentes-de-programación) y [Conectar un cliente MCP](/docs/connect-an-mcp-client).
@@ -58,7 +58,7 @@ O, sin la CLI, añade solo el servidor MCP a tu perfil de usuario de VS Code; us
 ### Previsualiza la ejecución sin clave
 
 ```bash
-npx verbatra translate --dry-run
+npx @verbatra/cli translate --dry-run
 ```
 
 ```text output
@@ -85,7 +85,7 @@ cp .env.example .env
 Abre `.env` y pega tu clave después de `GEMINI_API_KEY=`. ¿Aún no tienes clave? Gemini tiene un nivel gratuito: crea una en [Google AI Studio](https://aistudio.google.com/apikey). Los demás proveedores y sus variables están en [Proveedores](/docs/providers).
 
 ```bash
-npx verbatra translate
+npx @verbatra/cli translate
 ```
 
 verbatra envía los dos textos a Gemini, comprueba que cada marcador de posición sobrevive y escribe <StackText field="targetFile" />. El texto depende del modelo, por ejemplo:
@@ -114,7 +114,7 @@ Arranca tu app: el saludo dice `Hallo, Ada!`.
 
 - `verbatra.lock.json` guarda un hash de cada texto de origen, para que la siguiente ejecución envíe solo textos nuevos y modificados. Consulta [El archivo de bloqueo](/docs/the-lock-file).
 - Un resultado que pierde un marcador de posición se retiene y nunca se escribe. Consulta [Seguridad de la traducción](/docs/translation-safety).
-- `npx verbatra check` termina con `1` en cuanto un locale deja de estar sincronizado, así que puede proteger un pull request.
+- `npx @verbatra/cli check` termina con `1` en cuanto un locale deja de estar sincronizado, así que puede proteger un pull request.
 
 Haz commit de los archivos de locale, `verbatra.lock.json` y `verbatra.provenance.json` juntos.
 

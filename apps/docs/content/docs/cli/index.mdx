@@ -30,14 +30,14 @@ Install `@verbatra/cli` as a dev dependency, then run the binary through your pa
 
 | Package manager | Install | Run |
 | --- | --- | --- |
-| npm | `npm install --save-dev @verbatra/cli` | `npx verbatra <command>` |
+| npm | `npm install --save-dev @verbatra/cli` | `npx @verbatra/cli <command>` |
 | pnpm | `pnpm add --save-dev @verbatra/cli` | `pnpm verbatra <command>` (or `pnpm exec verbatra <command>`) |
 | yarn | `yarn add --dev @verbatra/cli` | `yarn verbatra <command>` |
 | bun | `bun add --dev @verbatra/cli` | `bun run verbatra <command>` |
 
 You need Node.js `>=22.14.0`.
 
-Trying a command before installing? `npx @verbatra/cli <command>` (npm) or `pnpm dlx @verbatra/cli <command>` (pnpm) both work without a prior local install.
+Trying a command before installing? `npx @verbatra/cli <command>` (npm) or `pnpm dlx @verbatra/cli <command>` (pnpm) both work without a prior local install. Always use the scoped name: the unscoped name `verbatra` on npm does not belong to this project.
 
 ## Global flags
 

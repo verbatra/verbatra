@@ -63,7 +63,7 @@ Ein `apple-xcstrings`-Katalog ist eine einzige Datei für alle Locales, und verb
 Ohne Terminal oder mit `--json` fragt `init` nie nach. Ein Wert, der weder übergeben noch erkannt noch durch `--yes` gefüllt wird, ist ein Fehler: `init` endet mit `2` und `MISSING_OPTIONS` und nennt alle fehlenden Flags auf einmal. Eine Mehrdeutigkeit oder ein ungültiges Flag listet zusätzlich die noch fehlenden Flags auf, sodass ein einziger Lauf einem Agenten alles sagt, was er übergeben muss. `--provider` hat keinen Standardwert, ebenso wenig `--base-url` und `--model` für `openai-compatible` oder `--base-url` für `libretranslate`. Diesen Befehl führt ein Agent aus:
 
 ```bash
-npx verbatra init --provider gemini --yes --json
+npx @verbatra/cli init --provider gemini --yes --json
 ```
 
 ### JSON-Ausgabe

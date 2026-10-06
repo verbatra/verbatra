@@ -26,7 +26,7 @@ pnpm, yarn et bun fonctionnent aussi. N'approuve aucun script d'installation, ni
 ### 3. Créer la config et les fichiers de l'agent
 
 ```bash
-npx verbatra init --provider <provider> --yes --json --agent
+npx @verbatra/cli init --provider <provider> --yes --json --agent
 ```
 
 Demande à l'humain quel fournisseur utiliser, sauf si le projet le rend évident. Ne choisis jamais un fournisseur qui dépense sur un service que l'humain n'a pas accepté, et ne passe jamais une valeur de clé à `init`. [Fournisseurs](/docs/providers) liste les ids ; `none` désactive la traduction automatique. `init` détecte le format, le motif de chemin et les locales, affiche une enveloppe JSON et ne pose jamais de question. `--agent` écrit en plus une section verbatra dans `AGENTS.md` (ou dans `CLAUDE.md` quand c'est le seul fichier d'instructions) et le serveur MCP verbatra, dépenses désactivées, dans `.mcp.json` :
@@ -34,21 +34,21 @@ Demande à l'humain quel fournisseur utiliser, sauf si le projet le rend éviden
 - Sortie `0` : compare `result.config` avec l'étape 1, en commençant par chaque entrée de `result.sources` qui indique `default` ; `result.config.files.localeStyle` n'apparaît que si les fichiers n'écrivent pas les locales telles quelles. Si quelque chose ne va pas, relance-la avec le bon `--format`, `--path`, `--source` ou `--targets`, plus `--force`.
 - Sortie `2` avec `FORMAT_AMBIGUOUS` ou `LAYOUT_AMBIGUOUS` : choisis parmi les `candidates` et relance-la avec `--format` ou `--path`. Si les candidats sont des fichiers de namespace côte à côte, arrête-toi et demande à l'humain, car une config couvre un seul motif de fichier.
 - Sortie `2` avec `MISSING_OPTIONS` : le message nomme chaque flag encore nécessaire.
-- Sortie `2` avec `CONFIG_EXISTS` : dis à l'humain quel fournisseur la config existante utilise et attends sa confirmation. Lance ensuite `npx verbatra init --agent --json`, qui garde la config et n'ajoute que les fichiers de l'agent. Demande avant de passer `--force`.
+- Sortie `2` avec `CONFIG_EXISTS` : dis à l'humain quel fournisseur la config existante utilise et attends sa confirmation. Lance ensuite `npx @verbatra/cli init --agent --json`, qui garde la config et n'ajoute que les fichiers de l'agent. Demande avant de passer `--force`.
 
 [init](/docs/cli/init#fournisseurs) documente chaque flag.
 
 ### 4. Laisser la clé d'API à l'humain
 
-Saute cette étape avec le fournisseur `none`. La variable de clé est dans `result.apiKeyEnvVar` ; après `CONFIG_EXISTS` elle vaut `null`, alors prends le nom dans la vérification `api-key` en échec de `npx verbatra doctor --json`. Copie `.env.example` vers `.env`, ou crée `.env` si `init` n'a écrit aucun exemple, nommes-y la variable avec une valeur vide et dis à l'humain de la remplir. N'écris, n'invente ni ne demande jamais une valeur de clé. Continue sans attendre.
+Saute cette étape avec le fournisseur `none`. La variable de clé est dans `result.apiKeyEnvVar` ; après `CONFIG_EXISTS` elle vaut `null`, alors prends le nom dans la vérification `api-key` en échec de `npx @verbatra/cli doctor --json`. Copie `.env.example` vers `.env`, ou crée `.env` si `init` n'a écrit aucun exemple, nommes-y la variable avec une valeur vide et dis à l'humain de la remplir. N'écris, n'invente ni ne demande jamais une valeur de clé. Continue sans attendre.
 
 ### 5. Vérifier la configuration sans dépenser
 
 ```bash
-npx verbatra doctor --json
-npx verbatra check --json
-npx verbatra diff --json
-npx verbatra translate --dry-run --json
+npx @verbatra/cli doctor --json
+npx @verbatra/cli check --json
+npx @verbatra/cli diff --json
+npx @verbatra/cli translate --dry-run --json
 ```
 
 Aucune de ces commandes n'appelle de fournisseur, ne demande de clé ni n'écrit de fichier. Corrige chaque vérification de `doctor` en échec que tu peux corriger dans `verbatra.config.ts` ; la vérification `api-key` ne passe qu'une fois que l'humain a défini la clé, alors ne boucle pas dessus. Pour `check` ou `diff`, la sortie `1` (non synchronisé) est attendue avant une première exécution ; seule la sortie `2` signale un problème de configuration. Avec le fournisseur `none`, `translate --dry-run` sort avec `3` quand des clés restent pour un traducteur humain. Seules les clés absentes de la cible sont traduites, et une chaîne vide compte comme présente, alors demande avant de supprimer des clés de remplissage `""`.
@@ -60,7 +60,7 @@ Résume combien de clés sont en attente par locale et ce que `translate --dry-r
 ### 7. Traduire après le feu vert
 
 ```bash
-npx verbatra translate --json
+npx @verbatra/cli translate --json
 ```
 
 Rapporte les listes `succeeded`, `partial` et `failed` du résumé. Une locale `partial` ou `failed` garde quand même tout ce qui a réussi.

@@ -23,7 +23,7 @@ describe("the quickstart", () => {
   });
 
   it("reaches a first translation through init, translate, and check", () => {
-    const commands = [...source.matchAll(/^npx verbatra (\w+)/gm)].map((match) => match[1]);
+    const commands = [...source.matchAll(/^npx @verbatra\/cli (\w+)/gm)].map((match) => match[1]);
     expect(commands).toEqual(["init", "translate", "translate", "check"]);
   });
 

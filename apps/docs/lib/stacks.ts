@@ -411,7 +411,7 @@ export function stackText(stack: Stack, field: StackTextField): string {
 }
 
 export function stackInitCommand(stack: Stack): string {
-  return `npx verbatra init --format ${stack.format} --provider gemini --yes`;
+  return `npx @verbatra/cli init --format ${stack.format} --provider gemini --yes`;
 }
 
 export function stackBlock(stack: Stack, name: StackBlockName): readonly StackCode[] {

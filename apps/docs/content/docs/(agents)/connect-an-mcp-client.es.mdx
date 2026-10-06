@@ -6,7 +6,7 @@ status: new
 ---
 <StartHere />
 
-Deja que un agente de programación lea el estado de las traducciones y corrija valores a través del servidor MCP stdio de verbatra. Regístralo una vez por cliente: una segunda entrada arranca un segundo servidor. Necesitas un proyecto con configuración de verbatra ([`npx verbatra init`](/docs/cli/init)) y Node.js 22.14 o posterior.
+Deja que un agente de programación lea el estado de las traducciones y corrija valores a través del servidor MCP stdio de verbatra. Regístralo una vez por cliente: una segunda entrada arranca un segundo servidor. Necesitas un proyecto con configuración de verbatra ([`npx @verbatra/cli init`](/docs/cli/init)) y Node.js 22.14 o posterior.
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
 
@@ -15,7 +15,7 @@ Deja que un agente de programación lea el estado de las traducciones y corrija 
 | Comando | Necesita | Lee archivos `.env` |
 | --- | --- | --- |
 | `npx -y @verbatra/mcp` | nada instalado | no |
-| `npx verbatra mcp` | `@verbatra/cli` y `@verbatra/mcp` como dependencias de desarrollo | sí: `.env.local` y luego `.env` |
+| `npx @verbatra/cli mcp` | `@verbatra/cli` y `@verbatra/mcp` como dependencias de desarrollo | sí: `.env.local` y luego `.env` |
 
 Evita `npx -y @verbatra/cli mcp`, que termina con `2` porque la CLI nunca instala `@verbatra/mcp`. [Directorio del proyecto](/docs/cli/mcp#directorio-del-proyecto) explica dónde busca el servidor la configuración.
 
@@ -53,7 +53,7 @@ Aun así, el servidor le indica al agente que ejecute `translation.estimate` y e
 Recomendado, desde la raíz del proyecto:
 
 ```bash
-npx verbatra init --agent
+npx @verbatra/cli init --agent
 ```
 
 [`init --agent`](/docs/cli/init#preparar-los-agentes-de-programación) escribe el archivo de instrucciones para agentes y esta entrada en el `.mcp.json` del repositorio, con el gasto desactivado, además de cada otro cliente que detecte:
@@ -112,7 +112,7 @@ Consulta la [referencia de plugins de Claude Code](https://code.claude.com/docs/
 
 ## Codex
 
-Lo recomendado: `npx verbatra init --agent --client codex` añade esta tabla al final de `.codex/config.toml`, con el gasto desactivado:
+Lo recomendado: `npx @verbatra/cli init --agent --client codex` añade esta tabla al final de `.codex/config.toml`, con el gasto desactivado:
 
 ```toml title=".codex/config.toml"
 [mcp_servers.verbatra]
@@ -137,7 +137,7 @@ env_vars = ["ANTHROPIC_API_KEY"]
 
 ## Gemini CLI
 
-Lo recomendado: `npx verbatra init --agent --client gemini` añade esta entrada a `.gemini/settings.json`, con el gasto desactivado:
+Lo recomendado: `npx @verbatra/cli init --agent --client gemini` añade esta entrada a `.gemini/settings.json`, con el gasto desactivado:
 
 ```json title=".gemini/settings.json"
 {
@@ -362,7 +362,7 @@ Dale al cliente el comando `npx -y @verbatra/mcp`, más `--cwd /path/to/your/pro
 
 Pídele al agente que llame a `project.snapshot`, que devuelve los locales, el formato y el proveedor sin llamarlo.
 
-- **`configured: false`**: no se encontró una configuración utilizable. Pide `project.doctor` y luego ejecuta `npx verbatra init` o corrige `--cwd`. Consulta [Sin configuración](/docs/cli/mcp#sin-configuración).
+- **`configured: false`**: no se encontró una configuración utilizable. Pide `project.doctor` y luego ejecuta `npx @verbatra/cli init` o corrige `--cwd`. Consulta [Sin configuración](/docs/cli/mcp#sin-configuración).
 - **Faltan las herramientas de gasto**: revisa el interruptor de gasto y si el proveedor es `none`.
 - **Configuración editada**: no hace falta reiniciar; consulta [Tras un cambio de configuración](/docs/cli/mcp#tras-un-cambio-de-configuración).
 

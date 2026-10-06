@@ -30,14 +30,14 @@ Instala `@verbatra/cli` como dependencia de desarrollo y luego ejecuta el binari
 
 | Gestor de paquetes | Instalación | Ejecución |
 | --- | --- | --- |
-| npm | `npm install --save-dev @verbatra/cli` | `npx verbatra <command>` |
+| npm | `npm install --save-dev @verbatra/cli` | `npx @verbatra/cli <command>` |
 | pnpm | `pnpm add --save-dev @verbatra/cli` | `pnpm verbatra <command>` (o `pnpm exec verbatra <command>`) |
 | yarn | `yarn add --dev @verbatra/cli` | `yarn verbatra <command>` |
 | bun | `bun add --dev @verbatra/cli` | `bun run verbatra <command>` |
 
 Necesitas Node.js `>=22.14.0`.
 
-¿Quieres probar un comando antes de instalar? `npx @verbatra/cli <command>` (npm) o `pnpm dlx @verbatra/cli <command>` (pnpm) funcionan sin una instalación local previa.
+¿Quieres probar un comando antes de instalar? `npx @verbatra/cli <command>` (npm) o `pnpm dlx @verbatra/cli <command>` (pnpm) funcionan sin una instalación local previa. Usa siempre el nombre con scope: el nombre `verbatra` sin scope en npm no pertenece a este proyecto.
 
 ## Flags globales
 

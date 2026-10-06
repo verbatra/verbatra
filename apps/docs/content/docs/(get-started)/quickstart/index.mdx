@@ -46,7 +46,7 @@ Skip this step if your project already has locale files. Otherwise create one:
 ### Scaffold a config
 
 ```bash
-npx verbatra init --format i18next-json --provider gemini --yes
+npx @verbatra/cli init --format i18next-json --provider gemini --yes
 ```
 
 `--format` names your file format: [Pick your stack](/docs/pick-your-stack) has the id for every framework. `--yes` takes what `init` detected instead of prompting; leave it out to answer the prompts that [`verbatra init`](/docs/cli/init) lists.
@@ -58,8 +58,8 @@ created .gitignore (.env, .env.local, .verbatra-local/, verbatra.cache.json)
 detected format i18next-json, pattern locales/{locale}.json, locales en (confidence: medium)
 next steps:
   - Copy .env.example to .env and set GEMINI_API_KEY there. Never commit .env.
-  - npx verbatra doctor  (Check the setup. It calls no provider and reads no key value.)
-  - npx verbatra translate --dry-run --json  (Preview what a run would translate, without calling the provider.)
+  - npx @verbatra/cli doctor  (Check the setup. It calls no provider and reads no key value.)
+  - npx @verbatra/cli translate --dry-run --json  (Preview what a run would translate, without calling the provider.)
 ```
 
 The new `verbatra.config.ts` translates from `en` into `de`. Add codes to `targetLocales` for more languages.
@@ -70,7 +70,7 @@ The new `verbatra.config.ts` translates from `en` into `de`. Add codes to `targe
 ### Preview the run without a key
 
 ```bash
-npx verbatra translate --dry-run
+npx @verbatra/cli translate --dry-run
 ```
 
 ```text output
@@ -102,7 +102,7 @@ Open `.env` and paste your key after `GEMINI_API_KEY=`. Keys only ever come from
 ### Translate
 
 ```bash
-npx verbatra translate
+npx @verbatra/cli translate
 ```
 
 verbatra sends the two missing keys to Gemini, checks every result, and writes the German file. The summary starts with `de: 2 translated, 0 unchanged` and lists the tokens the run used. The wording depends on the model, for example:
@@ -122,7 +122,7 @@ verbatra sends the two missing keys to Gemini, checks every result, and writes t
 ### Check that every locale is in sync
 
 ```bash
-npx verbatra check
+npx @verbatra/cli check
 ```
 
 ```text output

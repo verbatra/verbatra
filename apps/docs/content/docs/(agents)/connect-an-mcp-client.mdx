@@ -6,7 +6,7 @@ status: new
 ---
 <StartHere />
 
-Let a coding agent read translation status and fix values through verbatra's stdio MCP server. Register it once per client: a second entry starts a second server. You need a project with a verbatra config ([`npx verbatra init`](/docs/cli/init)) and Node.js 22.14 or later.
+Let a coding agent read translation status and fix values through verbatra's stdio MCP server. Register it once per client: a second entry starts a second server. You need a project with a verbatra config ([`npx @verbatra/cli init`](/docs/cli/init)) and Node.js 22.14 or later.
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
 
@@ -15,7 +15,7 @@ Let a coding agent read translation status and fix values through verbatra's std
 | Command | Needs | Reads `.env` files |
 | --- | --- | --- |
 | `npx -y @verbatra/mcp` | nothing installed | no |
-| `npx verbatra mcp` | `@verbatra/cli` and `@verbatra/mcp` as dev dependencies | yes: `.env.local`, then `.env` |
+| `npx @verbatra/cli mcp` | `@verbatra/cli` and `@verbatra/mcp` as dev dependencies | yes: `.env.local`, then `.env` |
 
 Avoid `npx -y @verbatra/cli mcp`, which exits `2` because the CLI never installs `@verbatra/mcp`. [Project directory](/docs/cli/mcp#project-directory) says where the server looks for the config.
 
@@ -53,7 +53,7 @@ The server still tells the agent to run `translation.estimate` and wait for your
 Recommended, from the project root:
 
 ```bash
-npx verbatra init --agent
+npx @verbatra/cli init --agent
 ```
 
 [`init --agent`](/docs/cli/init#set-up-coding-agents) writes the agent instruction file and this entry to the committed `.mcp.json`, spending off, plus each other client it detects:
@@ -112,7 +112,7 @@ See the [Claude Code plugins reference](https://code.claude.com/docs/en/plugins-
 
 ## Codex
 
-Recommended: `npx verbatra init --agent --client codex` appends this table to `.codex/config.toml`, spending off:
+Recommended: `npx @verbatra/cli init --agent --client codex` appends this table to `.codex/config.toml`, spending off:
 
 ```toml title=".codex/config.toml"
 [mcp_servers.verbatra]
@@ -137,7 +137,7 @@ env_vars = ["ANTHROPIC_API_KEY"]
 
 ## Gemini CLI
 
-Recommended: `npx verbatra init --agent --client gemini` adds this entry to `.gemini/settings.json`, spending off:
+Recommended: `npx @verbatra/cli init --agent --client gemini` adds this entry to `.gemini/settings.json`, spending off:
 
 ```json title=".gemini/settings.json"
 {
@@ -362,7 +362,7 @@ Give the client the command `npx -y @verbatra/mcp`, plus `--cwd /path/to/your/pr
 
 Ask the agent to call `project.snapshot`; it returns the locales, format and provider without calling it.
 
-- **`configured: false`**: no usable config was found. Ask for `project.doctor`, then run `npx verbatra init` or fix `--cwd`. See [Without a config](/docs/cli/mcp#without-a-config).
+- **`configured: false`**: no usable config was found. Ask for `project.doctor`, then run `npx @verbatra/cli init` or fix `--cwd`. See [Without a config](/docs/cli/mcp#without-a-config).
 - **Spend tools missing**: check the spend switch and whether the provider is `none`.
 - **Config edited**: no restart needed; see [After a config change](/docs/cli/mcp#after-a-config-change).
 

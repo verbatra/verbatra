@@ -29,13 +29,13 @@ Needs Node.js `>=22.14.0`.
 npm install --save-dev @verbatra/cli
 
 # 2. Scaffold verbatra.config.ts and .env.example (choose your provider)
-npx verbatra init --provider gemini
+npx @verbatra/cli init --provider gemini
 
 # 3. Provide the provider's API key, in .env or exported (Gemini shown)
 export GEMINI_API_KEY=your-key-here
 
 # 4. Translate every target locale once
-npx verbatra translate
+npx @verbatra/cli translate
 ```
 
 A dev-dependency install puts the `verbatra` binary in `node_modules/.bin` rather than on your PATH, so the commands above call it through `npx`, which runs the locally installed binary whichever package manager put it there. Gemini is the cheapest way to try verbatra, because its API has a real free tier: create a key at [Google AI Studio](https://aistudio.google.com/apikey) with no billing setup. Pass `anthropic`, `openai`, `deepl`, `google-translate`, `openai-compatible` (with `--model` and `--base-url`), or `libretranslate` (with `--base-url`) to `--provider` instead if you prefer one of those, or `none` to translate by hand only. pnpm users need one extra step before installing; see [Troubleshooting](https://verbatra.kreitz-webdev.de/docs/troubleshooting).
@@ -103,7 +103,7 @@ The server binds to `127.0.0.1` only and authenticates every request. Local edit
 
 ```bash
 npm install --save-dev @verbatra/cli @verbatra/studio
-npx verbatra studio
+npx @verbatra/cli studio
 ```
 
 ## GitHub Action

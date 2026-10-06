@@ -46,7 +46,7 @@ Si tu proyecto ya tiene archivos de locale, sáltate este paso. Si no, crea uno:
 ### Genera una configuración
 
 ```bash
-npx verbatra init --format i18next-json --provider gemini --yes
+npx @verbatra/cli init --format i18next-json --provider gemini --yes
 ```
 
 `--format` indica el formato de tus archivos: [Elige tu stack](/docs/pick-your-stack) tiene el id de cada framework. `--yes` acepta lo que `init` detectó en lugar de preguntar; sin él, respondes a las preguntas que enumera [`verbatra init`](/docs/cli/init).
@@ -58,8 +58,8 @@ created .gitignore (.env, .env.local, .verbatra-local/, verbatra.cache.json)
 detected format i18next-json, pattern locales/{locale}.json, locales en (confidence: medium)
 next steps:
   - Copy .env.example to .env and set GEMINI_API_KEY there. Never commit .env.
-  - npx verbatra doctor  (Check the setup. It calls no provider and reads no key value.)
-  - npx verbatra translate --dry-run --json  (Preview what a run would translate, without calling the provider.)
+  - npx @verbatra/cli doctor  (Check the setup. It calls no provider and reads no key value.)
+  - npx @verbatra/cli translate --dry-run --json  (Preview what a run would translate, without calling the provider.)
 ```
 
 El nuevo `verbatra.config.ts` traduce de `en` a `de`. Añade códigos a `targetLocales` para más idiomas.
@@ -70,7 +70,7 @@ El nuevo `verbatra.config.ts` traduce de `en` a `de`. Añade códigos a `targetL
 ### Previsualiza la ejecución sin clave
 
 ```bash
-npx verbatra translate --dry-run
+npx @verbatra/cli translate --dry-run
 ```
 
 ```text output
@@ -102,7 +102,7 @@ Abre `.env` y pega tu clave después de `GEMINI_API_KEY=`. Las claves solo viene
 ### Traduce
 
 ```bash
-npx verbatra translate
+npx @verbatra/cli translate
 ```
 
 verbatra envía las dos claves que faltan a Gemini, comprueba cada resultado y escribe el archivo en alemán. El resumen empieza con `de: 2 translated, 0 unchanged` e indica los tokens que usó la ejecución. El texto depende del modelo, por ejemplo:
@@ -122,7 +122,7 @@ verbatra envía las dos claves que faltan a Gemini, comprueba cada resultado y e
 ### Comprueba que cada locale está sincronizado
 
 ```bash
-npx verbatra check
+npx @verbatra/cli check
 ```
 
 ```text output

@@ -11,7 +11,7 @@ export type McpStopCause = "stdin-closed" | "signal";
 
 /**
  * The arguments `npx` is given to launch the server, as an MCP client config lists them: for
- * example `["-y", "@verbatra/mcp"]` for the standalone package or `["verbatra", "mcp"]` for the CLI.
+ * example `["-y", "@verbatra/mcp"]` for the standalone package or `["@verbatra/cli", "mcp"]` for the CLI.
  */
 export type McpLaunchArgs = readonly string[];
 
@@ -101,7 +101,7 @@ export function mcpTerminalHint(launch: McpLaunchArgs): readonly string[] {
 export function mcpUnconfiguredHint(): readonly string[] {
   return [
     "No usable verbatra config: project.snapshot and project.doctor work, every other tool refuses until one loads.",
-    "  set it up:  npx verbatra init in the project, or fix the config project.doctor names",
+    "  set it up:  npx @verbatra/cli init in the project, or fix the config project.doctor names",
     "  no restart needed: the server loads the config on the next call once it is valid",
   ];
 }

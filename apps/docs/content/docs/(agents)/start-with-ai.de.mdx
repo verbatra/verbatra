@@ -26,7 +26,7 @@ pnpm, yarn und bun funktionieren auch. Bestätige keine Install-Skripte, weder i
 ### 3. Konfiguration und Agenten-Dateien anlegen
 
 ```bash
-npx verbatra init --provider <provider> --yes --json --agent
+npx @verbatra/cli init --provider <provider> --yes --json --agent
 ```
 
 Frag den Menschen, welcher Provider genutzt werden soll, außer das Projekt macht es klar. Wähl nie einen, der bei einem Dienst Kosten verursacht, dem der Mensch nicht zugestimmt hat, und übergib `init` nie einen Schlüsselwert. [Provider](/docs/providers) listet die IDs; `none` schaltet die maschinelle Übersetzung ab. `init` erkennt Format, Pfadmuster und Locales, gibt einen JSON-Envelope aus und fragt nie nach. `--agent` schreibt außerdem einen verbatra-Abschnitt in `AGENTS.md` (oder in `CLAUDE.md`, wenn das die einzige Anweisungsdatei ist) und den verbatra-MCP-Server, Ausgaben aus, in `.mcp.json`:
@@ -34,21 +34,21 @@ Frag den Menschen, welcher Provider genutzt werden soll, außer das Projekt mach
 - Exit `0`: Vergleiche `result.config` mit Schritt 1, beginnend mit jedem Eintrag in `result.sources`, der `default` sagt; `result.config.files.localeStyle` erscheint nur, wenn die Dateien Locales nicht wie geschrieben benennen. Stimmt etwas nicht, führ den Befehl erneut mit dem richtigen `--format`, `--path`, `--source` oder `--targets` plus `--force` aus.
 - Exit `2` mit `FORMAT_AMBIGUOUS` oder `LAYOUT_AMBIGUOUS`: Wähl aus `candidates` und führ den Befehl erneut mit `--format` oder `--path` aus. Sind die Kandidaten nebeneinanderliegende Namespace-Dateien, halt an und frag den Menschen, denn eine Konfiguration deckt ein Dateimuster ab.
 - Exit `2` mit `MISSING_OPTIONS`: Die Meldung nennt jedes noch fehlende Flag.
-- Exit `2` mit `CONFIG_EXISTS`: Sag dem Menschen, welchen Provider die vorhandene Konfiguration nutzt, und warte auf seine Bestätigung. Führ dann `npx verbatra init --agent --json` aus, das die Konfiguration behält und nur die Agenten-Dateien ergänzt. Frag, bevor du `--force` übergibst.
+- Exit `2` mit `CONFIG_EXISTS`: Sag dem Menschen, welchen Provider die vorhandene Konfiguration nutzt, und warte auf seine Bestätigung. Führ dann `npx @verbatra/cli init --agent --json` aus, das die Konfiguration behält und nur die Agenten-Dateien ergänzt. Frag, bevor du `--force` übergibst.
 
 [init](/docs/cli/init#provider) beschreibt jedes Flag.
 
 ### 4. Den API-Schlüssel dem Menschen überlassen
 
-Überspring diesen Schritt beim Provider `none`. Die Schlüsselvariable steht in `result.apiKeyEnvVar`; nach `CONFIG_EXISTS` ist sie `null`, dann nimmst du den Namen aus der fehlschlagenden Prüfung `api-key` von `npx verbatra doctor --json`. Kopier `.env.example` nach `.env` oder leg `.env` an, wenn `init` kein Beispiel geschrieben hat, nenn dort die Variable mit leerem Wert und sag dem Menschen, dass er sie ausfüllen soll. Schreib, erfinde oder erfrage nie einen Schlüsselwert. Mach weiter, ohne zu warten.
+Überspring diesen Schritt beim Provider `none`. Die Schlüsselvariable steht in `result.apiKeyEnvVar`; nach `CONFIG_EXISTS` ist sie `null`, dann nimmst du den Namen aus der fehlschlagenden Prüfung `api-key` von `npx @verbatra/cli doctor --json`. Kopier `.env.example` nach `.env` oder leg `.env` an, wenn `init` kein Beispiel geschrieben hat, nenn dort die Variable mit leerem Wert und sag dem Menschen, dass er sie ausfüllen soll. Schreib, erfinde oder erfrage nie einen Schlüsselwert. Mach weiter, ohne zu warten.
 
 ### 5. Das Setup ohne Kosten prüfen
 
 ```bash
-npx verbatra doctor --json
-npx verbatra check --json
-npx verbatra diff --json
-npx verbatra translate --dry-run --json
+npx @verbatra/cli doctor --json
+npx @verbatra/cli check --json
+npx @verbatra/cli diff --json
+npx @verbatra/cli translate --dry-run --json
 ```
 
 Keiner dieser Befehle ruft einen Provider auf, braucht einen Schlüssel oder schreibt eine Datei. Behebe jede fehlschlagende `doctor`-Prüfung, die du in `verbatra.config.ts` beheben kannst; die Prüfung `api-key` besteht erst, wenn der Mensch den Schlüssel gesetzt hat, also dreh dich nicht in einer Schleife darum. Bei `check` oder `diff` ist Exit `1` (nicht synchron) vor einem ersten Lauf zu erwarten; nur Exit `2` ist ein Setup-Problem. Beim Provider `none` endet `translate --dry-run` mit `3`, wenn Schlüssel für einen menschlichen Übersetzer übrig bleiben. Übersetzt werden nur Schlüssel, die im Ziel fehlen, und ein leerer String zählt als vorhanden, also frag, bevor du Platzhalter-Schlüssel mit `""` löschst.
@@ -60,7 +60,7 @@ Fass zusammen, wie viele Schlüssel pro Locale ausstehen und was `translate --dr
 ### 7. Nach der Zustimmung übersetzen
 
 ```bash
-npx verbatra translate --json
+npx @verbatra/cli translate --json
 ```
 
 Melde die Listen `succeeded`, `partial` und `failed` aus der Zusammenfassung. Eine Locale mit `partial` oder `failed` behält trotzdem alles, was gelungen ist.

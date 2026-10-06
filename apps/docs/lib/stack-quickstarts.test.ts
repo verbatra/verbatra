@@ -134,7 +134,9 @@ describe("the stack quickstart pages", () => {
 
     it("installs with one npm command, inits with its format, and connects the agent", () => {
       const page = rendered(id, "");
-      const commands = [...page.matchAll(/^npx verbatra (.+)$/gm)].map(([, command]) => command);
+      const commands = [...page.matchAll(/^npx @verbatra\/cli (.+)$/gm)].map(
+        ([, command]) => command,
+      );
       expect(commands).toEqual([
         `init --format ${STACKS[id].format} --provider gemini --yes`,
         "init --agent",

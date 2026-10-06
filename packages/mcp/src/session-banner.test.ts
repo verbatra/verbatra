@@ -67,7 +67,7 @@ describe("mcpUnconfiguredHint", () => {
     const hint = mcpUnconfiguredHint().join("\n");
 
     expect(hint).toContain("project.snapshot and project.doctor work");
-    expect(hint).toContain("npx verbatra init");
+    expect(hint).toContain("npx @verbatra/cli init");
     expect(hint).toContain("no restart needed");
   });
 });
@@ -84,10 +84,10 @@ describe("mcpTerminalHint", () => {
   });
 
   it("uses the launch arguments it is given, such as the CLI subcommand", () => {
-    const hint = mcpTerminalHint(["verbatra", "mcp"]).join("\n");
+    const hint = mcpTerminalHint(["@verbatra/cli", "mcp"]).join("\n");
 
-    expect(hint).toContain('command "npx", args ["verbatra", "mcp"]');
-    expect(hint).toContain("npx @modelcontextprotocol/inspector npx verbatra mcp");
+    expect(hint).toContain('command "npx", args ["@verbatra/cli", "mcp"]');
+    expect(hint).toContain("npx @modelcontextprotocol/inspector npx @verbatra/cli mcp");
   });
 });
 

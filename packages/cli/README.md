@@ -37,19 +37,19 @@ yarn add --dev @verbatra/cli
 bun add --dev @verbatra/cli
 ```
 
-A dev-dependency install puts the `verbatra` binary in `node_modules/.bin`, not on your PATH, so invoke it with `npx verbatra ...`, which runs the locally installed binary whichever package manager put it there. To try a command before installing, use the scoped name: `npx @verbatra/cli --help`.
+A dev-dependency install puts the `verbatra` binary in `node_modules/.bin`, not on your PATH, so invoke it with `npx @verbatra/cli ...`, which runs the locally installed binary whichever package manager put it there, and fetches the CLI first when it is not installed, so `npx @verbatra/cli --help` also works before installing. Always use the scoped name: the unscoped name `verbatra` on npm does not belong to this project.
 
 ## Quick start
 
 ```bash
 # Scaffold verbatra.config.ts and .env.example
-npx verbatra init --provider gemini
+npx @verbatra/cli init --provider gemini
 
 # Provide the provider's API key
 export GEMINI_API_KEY=your-key-here
 
 # Translate every target locale once
-npx verbatra translate
+npx @verbatra/cli translate
 ```
 
 Gemini is shown because its API has a real free tier, so you can create a key at [Google AI Studio](https://aistudio.google.com/apikey) and try verbatra without setting up billing. `anthropic`, `openai`, `deepl`, and `google-translate` work the same way; only the key variable and the config's `provider` block differ. `openai-compatible` also needs `--model` and `--base-url` for your local or self-hosted server, `libretranslate` needs `--base-url` for your LibreTranslate server, and `none` sets up a human-only project that never calls a provider.
