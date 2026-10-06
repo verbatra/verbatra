@@ -80,6 +80,8 @@ Fehlende und geänderte Keys, die `translate` einer Person überlassen würde (e
 
 ### JSON-Ausgabe
 
+Schema: [`diff-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/diff-envelope.json) validiert den ganzen Envelope; [Schemas](/docs/cli/output#schemas) listet die übrigen auf.
+
 `--json` gibt einen [Envelope](/docs/cli/output#json-ausgabe) aus, dessen `result` eine `DiffSummary` ist. `hasPendingChanges` ist genau dann wahr, wenn der Befehl wegen ausstehender Keys mit `1` endet:
 
 ```ts

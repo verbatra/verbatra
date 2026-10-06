@@ -1,8 +1,7 @@
-import { diff } from "@verbatra/sdk";
+import { diff, keyOriginSchema } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
-import { keyOriginSchema } from "./provenance-schema.js";
 
 const paramsSchema = z.strictObject({
   locales: z.array(z.string().min(1)).min(1).optional(),

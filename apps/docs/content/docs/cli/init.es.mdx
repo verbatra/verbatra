@@ -68,6 +68,8 @@ npx verbatra init --provider gemini --yes --json
 
 ### Salida JSON
 
+Esquema: [`init-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/init-envelope.json) valida el envoltorio completo; [Esquemas](/docs/cli/output#esquemas) enumera los demás.
+
 Con `--json`, stdout lleva exactamente un [envoltorio](/docs/cli/output#salida-json). Su `result`:
 
 ```ts
@@ -122,7 +124,7 @@ interface InitResult {
 }
 ```
 
-`confidence` es `high` cuando los archivos por sí solos lo decidieron todo, `medium` cuando una convención o una dependencia rellenó un hueco (como tomar `en` como origen) o quedó un hueco abierto (como el locale de origen del directorio `values` sin calificar de Android), `low` cuando ningún archivo de locale respaldó el formato y `none` cuando no se detectó nada. Un `default` en `sources` es el valor que conviene revisar. `nextSteps` termina con los comandos exactos que ejecutar después, como `npx verbatra doctor`.
+`confidence` es `high` cuando los archivos por sí solos lo decidieron todo, `medium` cuando una convención o una dependencia rellenó un hueco (como tomar `en` como origen) o quedó un hueco abierto, `low` cuando ningún archivo de locale respaldó el formato y `none` cuando no se detectó nada. Un `default` en `sources` es el valor que conviene revisar. `nextSteps` termina con los comandos exactos que ejecutar después.
 
 Un envoltorio de error para `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `INVALID_PROVIDER` o `INVALID_FORMAT` lleva además `candidates`, los valores entre los que elegir. Todo error de uso que deja flags sin responder lleva `missing` con sus nombres, como `"--source <locale>"`.
 

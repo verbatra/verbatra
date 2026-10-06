@@ -1,5 +1,6 @@
 import type * as PageTree from "fumadocs-core/page-tree";
 import { i18n } from "@/lib/i18n";
+import { readPublishedSchemas, SCHEMA_PATH, schemaUrl } from "@/lib/json-schemas";
 import { markdownUrl } from "@/lib/markdown-route";
 import { PAGE_TYPES } from "@/lib/page-type";
 import { SITE_URL } from "@/lib/site";
@@ -67,6 +68,13 @@ function renderSections(): string {
   return sections.join("\n\n");
 }
 
+function renderSchemas(): string {
+  const lines = readPublishedSchemas().map(
+    (schema) => `- [${String(schema.document.title)}](${schemaUrl(schema.name)})`,
+  );
+  return `## JSON Schemas\n\nDraft 2020-12 schemas for the config and every \`--json\` document, also listed at ${SITE_URL}${SCHEMA_PATH}. \`v1\` tracks envelope \`version: 1\`; unknown fields are allowed, since new ones can appear.\n\n${lines.join("\n")}`;
+}
+
 export function GET(): Response {
   const body = `# verbatra
 
@@ -88,10 +96,12 @@ verbatra is open source and MIT licensed. You maintain one source locale; on eac
 - MCP server: \`npx -y @verbatra/mcp\` (or \`verbatra mcp\`) serves a verbatra project over stdio to ${SUPPORTED_AGENT_CLIENTS.join(", ")}, and any other stdio client. Tools that call a paid provider stay off the tool list until spending is granted with \`--allow-spend\` or \`VERBATRA_MCP_ALLOW_SPEND\`. Client setup: ${SITE_URL}/docs/connect-an-mcp-client.md
 - Skills and Claude Code plugin: https://github.com/verbatra/skills
 - Free and read-only: \`check\`, \`diff\`, \`doctor\`, \`translate --dry-run\`. Spends provider tokens: \`translate\`, \`watch\`. Ask the person before a spending run, and never read or print an API key value.
-- Pass \`--json\` for one envelope on stdout and branch on the exit code: 0 clean, 1 ran but not clean, 2 could not run, 3 a human-only project (provider \`none\`) left keys for a person. Recipes: ${SITE_URL}/docs/agent-recipes.md
+- Pass \`--json\` for one envelope on stdout and branch on the exit code: 0 clean, 1 ran but not clean, 2 could not run, 3 a human-only project (provider \`none\`) left keys for a person. Recipes: ${SITE_URL}/docs/agent-recipes.md. JSON Schemas for every envelope and stderr record: ${SITE_URL}${SCHEMA_PATH}
 - Setting verbatra up for someone: ${SITE_URL}/docs/start-with-ai.md
 
 ${renderSections()}
+
+${renderSchemas()}
 `;
 
   return new Response(body, {

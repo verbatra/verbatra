@@ -32,9 +32,10 @@ import type { ReportProvenanceResult } from "./report-provenance.js";
 import type { RetranslateEntryResult } from "./retranslate-entry.js";
 import type { ReviewDecisionResult } from "./review-decision.js";
 import type { ReviewQueueResult } from "./review-queue.js";
-import type { RunSummary } from "./run-schema.js";
+
 import type { StatusCheckResult } from "./status-check.js";
 import type { StatusDiffResult } from "./status-diff.js";
+import type { TranslatePendingResult } from "./translate-pending.js";
 
 type FieldPaths<T, Prefix extends string = ""> = T extends readonly (infer Element)[]
   ? FieldPaths<Element, Prefix>
@@ -76,7 +77,7 @@ describe("output schemas declare every field the SDK result they pass through ca
 
   it("translation.translatePending and translation.estimate", () => {
     expectTypeOf<
-      Undeclared<SdkResult<typeof translate>, RunSummary, "estimate">
+      Undeclared<SdkResult<typeof translate>, TranslatePendingResult>
     >().toEqualTypeOf<never>();
     expectTypeOf<Undeclared<SdkResult<typeof translate>, EstimateResult>>().toEqualTypeOf<never>();
   });

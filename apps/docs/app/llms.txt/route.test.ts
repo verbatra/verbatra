@@ -78,6 +78,7 @@ describe("llms.txt", () => {
       "## Introduction",
       "## CLI",
       "## Configuration",
+      "## JSON Schemas",
     ]);
     expect(body).toContain(
       "## CLI\n\n- [Overview](https://verbatra.kreitz-webdev.de/docs/cli.md): Every command.\n- [verbatra translate]",
@@ -103,5 +104,18 @@ describe("llms.txt", () => {
 
   it("tells an agent every page type a Markdown response can declare", () => {
     expect(body).toContain("page type (one of overview, tutorial, how-to, concept, reference)");
+  });
+
+  it("lists every published JSON Schema by its stable URL after the page index", () => {
+    const schemas = body.slice(body.indexOf("## JSON Schemas"));
+    expect(schemas).toContain(
+      "- [verbatra config](https://verbatra.kreitz-webdev.de/schema/v1/config.json)",
+    );
+    expect(schemas).toContain(
+      "- [verbatra --json envelope](https://verbatra.kreitz-webdev.de/schema/v1/envelope.json)",
+    );
+    expect(body).toContain(
+      "JSON Schemas for every envelope and stderr record: https://verbatra.kreitz-webdev.de/schema/v1",
+    );
   });
 });

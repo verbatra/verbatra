@@ -1,8 +1,7 @@
-import { keyValue } from "@verbatra/sdk";
+import { keyProvenanceSchema, keyValue } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
-import { keyProvenanceSchema } from "./provenance-schema.js";
 import { markFields, withProvenanceRedacted } from "./value-redaction.js";
 
 const paramsSchema = z.strictObject({

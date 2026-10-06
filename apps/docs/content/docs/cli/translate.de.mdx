@@ -87,6 +87,8 @@ Eine Locale, die der konfigurierte DeepL- oder Google-Cloud-Translation-Provider
 
 ### JSON-Ausgabe
 
+Schema: [`translate-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/translate-envelope.json) validiert den ganzen Envelope; [Schemas](/docs/cli/output#schemas) listet die übrigen auf.
+
 Mit `--json` trägt stdout einen [Envelope](/docs/cli/output#json-ausgabe), dessen `result` eine `RunSummary` ist; [RunSummary](/docs/sdk/run-summary) listet jedes Feld auf, für den Lauf und für jede Locale.
 
 ### Rückmeldung im Terminal

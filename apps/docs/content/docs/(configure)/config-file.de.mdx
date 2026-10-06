@@ -293,17 +293,19 @@ verbatra sucht vom Arbeitsverzeichnis aus aufwärts und verwendet die erste Quel
 
 <AvailableFrom version="0.9.0" />
 
-`@verbatra/sdk` liefert ein JSON Schema aus, erzeugt aus dem zod-Schema, mit dem das SDK validiert:
+`@verbatra/sdk` liefert ein JSON Schema aus, erzeugt aus dem zod-Schema, mit dem das SDK validiert, und die Doku-Seite stellt dasselbe Dokument unter einer festen URL bereit, die bei einer globalen Installation, mit `npx`, in einem Monorepo mit Hoisting und für einen entfernten Agenten funktioniert:
 
 ```text
-node_modules/@verbatra/sdk/dist/config-schema.json
+https://verbatra.kreitz-webdev.de/schema/v1/config.json
 ```
+
+Offline, oder um das Schema an die installierte Version zu binden, verweist du stattdessen auf die Kopie im Paket: `./node_modules/@verbatra/sdk/dist/config-schema.json`. Die [JSON Schemas](/docs/cli/output#schemas) der `--json`-Ausgabe liegen daneben.
 
 `.verbatrarc.json` und `.verbatrarc` akzeptieren einen `$schema`-Key, den VS Code liest:
 
 ```json title=".verbatrarc.json"
 {
-  "$schema": "./node_modules/@verbatra/sdk/dist/config-schema.json",
+  "$schema": "https://verbatra.kreitz-webdev.de/schema/v1/config.json",
   "sourceLocale": "en",
   "targetLocales": ["de", "fr"],
   "format": "i18next-json",
@@ -319,7 +321,7 @@ Das endungslose `.verbatrarc` braucht zusätzlich eine Dateizuordnung, die eine 
   "json.schemas": [
     {
       "fileMatch": [".verbatrarc", ".verbatrarc.json"],
-      "url": "./node_modules/@verbatra/sdk/dist/config-schema.json"
+      "url": "https://verbatra.kreitz-webdev.de/schema/v1/config.json"
     }
   ]
 }
@@ -328,7 +330,7 @@ Das endungslose `.verbatrarc` braucht zusätzlich eine Dateizuordnung, die eine 
 Eine YAML-Konfiguration nimmt einen Kommentar für den YAML Language Server:
 
 ```yaml title=".verbatrarc.yaml"
-# yaml-language-server: $schema=./node_modules/@verbatra/sdk/dist/config-schema.json
+# yaml-language-server: $schema=https://verbatra.kreitz-webdev.de/schema/v1/config.json
 sourceLocale: en
 targetLocales: [de, fr]
 format: i18next-json

@@ -171,6 +171,8 @@ Les clés manquantes et obsolètes ne font pas partie de la vérification d'un f
 
 ### Sortie JSON
 
+Schéma : [`check-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/check-envelope.json) valide l'enveloppe entière ; [Schémas](/docs/cli/output#schémas) liste les autres.
+
 `--json` affiche une [enveloppe](/docs/cli/output#sortie-json) dont le `result` est le document d'état. Sans `--qa`, `--require-reviewed` ni `--sensitive`, `inSync` est vrai exactement quand la commande sort avec `0` :
 
 ```ts

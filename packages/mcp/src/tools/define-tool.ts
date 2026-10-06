@@ -3,6 +3,7 @@ import {
   errorHint,
   ProviderError,
   projectRelativeMessage,
+  renderOutputJsonSchema,
   SdkError,
   type ValueMarker,
 } from "@verbatra/sdk";
@@ -72,14 +73,6 @@ function formatValidationError(schema: z.ZodType, error: z.ZodError): string {
     return "Invalid input.";
   }
   return `Invalid input for field "${describeIssuePath(schema, issue)}": ${issue.message}`;
-}
-
-function allowUnknownProperties(context: {
-  readonly jsonSchema: { additionalProperties?: unknown };
-}): void {
-  if (context.jsonSchema.additionalProperties === false) {
-    delete context.jsonSchema.additionalProperties;
-  }
 }
 
 type OutputCheck<Result> =
@@ -228,9 +221,7 @@ export function defineTool<Params, Result extends Readonly<Record<string, unknow
   config: McpToolConfig<Params, Result>,
 ): RegisteredMcpTool {
   const inputSchema = z.toJSONSchema(config.paramsSchema) as Readonly<Record<string, unknown>>;
-  const outputSchema = z.toJSONSchema(config.outputSchema, {
-    override: allowUnknownProperties,
-  }) as Readonly<Record<string, unknown>>;
+  const outputSchema = renderOutputJsonSchema(config.outputSchema);
 
   return {
     name: config.name,

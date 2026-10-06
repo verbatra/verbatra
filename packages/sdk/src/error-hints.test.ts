@@ -4,7 +4,7 @@ import { PROVIDER_ENV, ProviderError } from "@verbatra/ai-providers";
 import { AdapterError } from "@verbatra/format-adapters";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildProvider, type ProviderConfig } from "./config/provider-config.js";
-import { apiKeyHint, errorHint, sdkErrorHint } from "./error-hints.js";
+import { apiKeyHint, errorHint, KNOWN_ERROR_CODES, sdkErrorHint } from "./error-hints.js";
 import {
   GlossaryNotConfiguredError,
   InputFileError,
@@ -228,5 +228,18 @@ describe("errorHint: a glossary with no file to edit", () => {
     expect(errorHint(new SdkError("GLOSSARY_NOT_FILE_BACKED", "inline"))).toBe(
       sdkErrorHint("GLOSSARY_NOT_FILE_BACKED"),
     );
+  });
+});
+
+describe("KNOWN_ERROR_CODES", () => {
+  it("lists every SDK, provider and adapter code once, sorted, each with a next step", () => {
+    expect(KNOWN_ERROR_CODES).toEqual(
+      expect.arrayContaining(["CONFIG_NOT_FOUND", "MISSING_API_KEY", "INVALID_JSON"]),
+    );
+    expect([...KNOWN_ERROR_CODES].sort()).toEqual(KNOWN_ERROR_CODES);
+    expect(new Set(KNOWN_ERROR_CODES).size).toBe(KNOWN_ERROR_CODES.length);
+    for (const code of KNOWN_ERROR_CODES) {
+      expect(errorHint({ code }), code).toEqual(expect.any(String));
+    }
   });
 });

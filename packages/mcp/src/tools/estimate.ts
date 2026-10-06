@@ -1,14 +1,16 @@
-import { translate } from "@verbatra/sdk";
+import { runSummarySchema, translate } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
-import { redactRunSummary, runEstimateSchema, runSummarySchema } from "./run-schema.js";
+import { redactRunSummary } from "./run-summary-redaction.js";
 
 const paramsSchema = z.strictObject({
   locales: z.array(z.string().min(1)).min(1).optional(),
 });
 
-const estimateResultSchema = runSummarySchema.extend({ estimate: runEstimateSchema });
+const estimateResultSchema = runSummarySchema.extend({
+  estimate: runSummarySchema.shape.estimate.unwrap(),
+});
 
 export type EstimateResult = z.infer<typeof estimateResultSchema>;
 

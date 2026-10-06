@@ -58,6 +58,7 @@
       }
     },
     "./config-schema.json": "./dist/config-schema.json",
+    "./schemas/*": "./dist/schemas/*",
     "./package.json": "./package.json"
   },
   "files": [
@@ -71,7 +72,7 @@
     "provenance": true
   },
   "scripts": {
-    "build": "tsup && node scripts/emit-config-schema.mjs",
+    "build": "tsup && node scripts/emit-schemas.mjs",
     "lint": "biome check .",
     "test": "vitest run --coverage",
     "test:watch": "vitest",

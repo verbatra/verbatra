@@ -80,6 +80,8 @@ Las claves faltantes y cambiadas que `translate` dejaría para una persona (una 
 
 ### Salida JSON
 
+Esquema: [`diff-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/diff-envelope.json) valida el envoltorio completo; [Esquemas](/docs/cli/output#esquemas) enumera los demás.
+
 `--json` imprime un [envoltorio](/docs/cli/output#salida-json) cuyo `result` es un `DiffSummary`. `hasPendingChanges` es verdadero exactamente cuando el comando sale con `1` por claves pendientes:
 
 ```ts
