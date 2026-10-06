@@ -10,6 +10,17 @@ export const WORD_CEILING: Readonly<Record<PageType, number>> = {
   reference: 3000,
 };
 
+export const POST_RELEASE_WORD_CEILING: Readonly<Record<PageType, number>> = {
+  ...WORD_CEILING,
+  concept: 1600,
+  reference: 2500,
+};
+
+export function postReleaseWordCeiling(file: string, type: PageType): number {
+  if (LOOKUP_REFERENCE_PAGES.has(file)) return LOOKUP_REFERENCE_CEILING;
+  return Math.min(wordCeiling(file, type), POST_RELEASE_WORD_CEILING[type]);
+}
+
 export const LOOKUP_REFERENCE_PAGES: ReadonlySet<string> = new Set(["(reference)/error-codes.mdx"]);
 
 export const LOOKUP_REFERENCE_CEILING = 12000;

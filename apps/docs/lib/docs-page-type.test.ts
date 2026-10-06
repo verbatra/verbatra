@@ -11,9 +11,11 @@ import {
   LOOKUP_REFERENCE_PAGES,
   type PageBudget,
   type PageType,
+  POST_RELEASE_WORD_CEILING,
   pageBudget,
   pagesNearCeiling,
   pageType,
+  postReleaseWordCeiling,
   proseWords,
   WORD_CEILING,
   wordCeiling,
@@ -73,6 +75,25 @@ describe("page type frontmatter", () => {
 
   it.each(typedPages())("keeps %s under the word ceiling of a %s page", (file, type) => {
     expect(proseWords(readPage(file))).toBeLessThanOrEqual(wordCeiling(file, type));
+  });
+
+  it.each(typedPages())(
+    "already keeps %s under the post-0.12.0 ceiling of a %s page",
+    (file, type) => {
+      expect(proseWords(readPage(file))).toBeLessThanOrEqual(postReleaseWordCeiling(file, type));
+    },
+  );
+
+  it("lowers only the concept and reference ceilings after 0.12.0, never raises one", () => {
+    for (const type of Object.keys(WORD_CEILING) as PageType[]) {
+      expect(POST_RELEASE_WORD_CEILING[type], type).toBeLessThanOrEqual(WORD_CEILING[type]);
+    }
+    expect(POST_RELEASE_WORD_CEILING.concept).toBe(1600);
+    expect(POST_RELEASE_WORD_CEILING.reference).toBe(2500);
+    expect(postReleaseWordCeiling("(reference)/error-codes.mdx", "reference")).toBe(
+      LOOKUP_REFERENCE_CEILING,
+    );
+    expect(postReleaseWordCeiling("cli/translate.mdx", "reference")).toBe(COMMAND_PAGE_CEILING);
   });
 
   it.each(typedPages())("gives every translation of %s the same type", (file, type) => {
