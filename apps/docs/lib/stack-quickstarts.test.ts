@@ -55,9 +55,11 @@ function rendered(id: StackId, suffix: string): string {
   );
 }
 
+const STACK_PAGE_LINK = /(?:href: "|\]\()\/docs\/quickstart\/([a-z]+)[")]/g;
+
 function linkedStackPages(file: string): string[] {
   const source = readFileSync(join(CONTENT_DIR, file), "utf8");
-  return [...source.matchAll(/href: "\/docs\/quickstart\/([a-z]+)"/g)].map(([, id = ""]) => id);
+  return [...source.matchAll(STACK_PAGE_LINK)].map(([, id = ""]) => id);
 }
 
 describe("the stack quickstart templates", () => {
@@ -79,6 +81,14 @@ describe("the stack quickstart templates", () => {
       const [kind, value = ""] = element.split(":");
       const known: readonly string[] = kind === "Block" ? STACK_BLOCK_NAMES : STACK_TEXT_FIELDS;
       expect(known, element).toContain(value);
+    }
+  });
+
+  it("carry no page-level badge, which the nested include would hide from the sidebar NEW status", () => {
+    for (const suffix of SUFFIXES) {
+      const template = readFileSync(templatePath(suffix), "utf8");
+      const lead = template.slice(0, template.search(/^## /m));
+      expect(lead, suffix).not.toMatch(/<AvailableFrom\b/);
     }
   });
 
@@ -134,8 +144,8 @@ describe("the stack quickstart pages", () => {
       expect(page.match(/^npm install --save-dev @verbatra\/cli$/gm)).toHaveLength(1);
     });
 
-    it.each(["index", "(get-started)/pick-your-stack"])(
-      "is linked by a stack card on %s",
+    it.each(["index", "(get-started)/pick-your-stack", "(get-started)/quickstart/index"])(
+      "is linked from %s",
       (page) => {
         for (const suffix of SUFFIXES) {
           expect(linkedStackPages(`${page}${suffix}.mdx`), suffix).toContain(id);
@@ -144,8 +154,8 @@ describe("the stack quickstart pages", () => {
     );
   });
 
-  it.each(["index", "(get-started)/pick-your-stack"])(
-    "links no stack card on %s to a missing stack page",
+  it.each(["index", "(get-started)/pick-your-stack", "(get-started)/quickstart/index"])(
+    "links nothing on %s to a missing stack page",
     (page) => {
       for (const suffix of SUFFIXES) {
         for (const id of linkedStackPages(`${page}${suffix}.mdx`)) {

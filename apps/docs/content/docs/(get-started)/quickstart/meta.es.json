@@ -1,1 +1,1 @@
-{ "pages": ["react", "nextjs", "vue", "angular", "flutter"] }
+{ "defaultOpen": true, "pages": ["react", "nextjs", "vue", "angular", "flutter"] }

@@ -45,16 +45,17 @@ type: overview
 
 </DocsHomeSection>
 
-<DocsHomeSection id="pick-your-stack" title="Elige tu stack" lead="Cada tarjeta abre el comando init y la estructura de archivos de ese stack.">
+<DocsHomeSection id="pick-your-stack" title="Elige tu stack" lead="Una tarjeta marcada con Inicio rápido abre una guía paso a paso para ese stack; cualquier otra tarjeta abre su comando init y su estructura de archivos.">
 
 <StackCards
   labelledBy="pick-your-stack"
   cards={[
-    { label: "React", icon: "react", formats: ["i18next-json"], href: "/docs/quickstart/react" },
-    { label: "Next.js", icon: "next", formats: ["next-intl-json"], href: "/docs/quickstart/nextjs" },
-    { label: "Vue y Nuxt", icon: "vue", formats: ["vue-i18n-json"], href: "/docs/quickstart/vue" },
-    { label: "Angular", icon: "angular", formats: ["ngx-translate-json"], href: "/docs/quickstart/angular" },
-    { label: "Flutter", icon: "flutter", formats: ["arb"], href: "/docs/quickstart/flutter" },
+    { label: "React", icon: "react", formats: ["i18next-json"], href: "/docs/quickstart/react", badge: "Inicio rápido" },
+    { label: "Next.js", icon: "next", formats: ["next-intl-json"], href: "/docs/quickstart/nextjs", badge: "Inicio rápido" },
+    { label: "Vue", icon: "vue", formats: ["vue-i18n-json"], href: "/docs/quickstart/vue", badge: "Inicio rápido" },
+    { label: "Nuxt", icon: "nuxt", formats: [], href: "/docs/pick-your-stack#vue-y-nuxt-con-vue-i18n" },
+    { label: "Angular", icon: "angular", formats: ["ngx-translate-json"], href: "/docs/quickstart/angular", badge: "Inicio rápido" },
+    { label: "Flutter", icon: "flutter", formats: ["arb"], href: "/docs/quickstart/flutter", badge: "Inicio rápido" },
     { label: "Android", icon: "android", formats: ["android-xml"], href: "/docs/pick-your-stack#android" },
     { label: "iOS y macOS", icon: "apple", formats: ["apple-strings", "apple-xcstrings"], href: "/docs/pick-your-stack#ios-y-macos" },
     { label: "gettext", icon: "gnu", formats: ["gettext-po"], href: "/docs/pick-your-stack#gettext" },

@@ -13,6 +13,7 @@ export type StackCard = {
   href: string;
   icon: StackIconKey;
   formats: ReadonlyArray<SupportedFormat>;
+  badge?: string;
 };
 
 export function stackIconPrefix(labelledBy: string): string {
@@ -57,7 +58,15 @@ export function StackCards({
                 <StackIcon prefix={prefix} icon={card.icon} size={ICON_SIZE} />
               </span>
               <span className="grid min-w-0 gap-0.5">
-                <span className="vk-stack-card-name">{card.label}</span>
+                <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span className="vk-stack-card-name">{card.label}</span>
+                  {card.badge === undefined ? null : (
+                    <span className="vk-pill">
+                      <span className="sr-only">, </span>
+                      {card.badge}
+                    </span>
+                  )}
+                </span>
                 {card.formats.length > 0 ? <FormatIds formats={card.formats} /> : null}
               </span>
             </Link>

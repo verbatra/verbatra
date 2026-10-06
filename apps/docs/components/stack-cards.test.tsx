@@ -129,6 +129,31 @@ describe("StackCards", () => {
     expect(nav?.querySelectorAll("li a")).toHaveLength(CARDS.length);
   });
 
+  it("marks a card with a badge as an outline pill that is part of its name", () => {
+    const doc = render(
+      renderToStaticMarkup(
+        <StackCards
+          labelledBy="stacks"
+          locale="en"
+          cards={[
+            {
+              label: "React",
+              icon: "react",
+              formats: ["i18next-json"],
+              href: "/docs/quickstart/react",
+              badge: "Quickstart",
+            },
+            ...CARDS.slice(1),
+          ]}
+        />,
+      ),
+    );
+    const links = [...doc.querySelectorAll("a")];
+    expect(links[0]?.querySelector(".vk-pill")?.textContent).toBe(", Quickstart");
+    expect(accessibleText(links[0] as Element)).toBe("React, Quickstart: i18next-json");
+    expect(links.slice(1).some((link) => link.querySelector(".vk-pill") !== null)).toBe(false);
+  });
+
   it("names each card by its stack, a separator, then its format ids, never by its logo", () => {
     const links = [...renderCards("en").querySelectorAll("a")];
     expect(links.map(accessibleText)).toEqual([

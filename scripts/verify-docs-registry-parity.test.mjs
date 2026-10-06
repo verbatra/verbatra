@@ -218,6 +218,7 @@ function stackCards(page) {
     const formats = /\bformats: \[([^\]]*)\]/.exec(card)?.[1] ?? "";
     return {
       label: cardField(card, "label"),
+      badge: cardField(card, "badge"),
       formats: [...formats.matchAll(/"([a-z0-9-]+)"/g)].map((format) => format[1]),
       path: href.split("#")[0],
       anchor: href.split("#")[1],
@@ -306,7 +307,7 @@ describe("the pick-your-stack page covers every built-in format", () => {
         expect(sections[0], format).toMatch(/\]\(\/docs\/formats#[^)]+\)/);
       }
       const cards = stackCards(page);
-      expect(cards.every((card) => card.path === "" || stackPageOf(card) !== undefined)).toBe(true);
+      expect(cards.every((card) => card.path === "" && card.badge === undefined)).toBe(true);
       expectEveryCardParsed(page);
       expect(page).toContain('<StackCards\n  labelledBy="page-title"');
       expectCardsCoverEveryFormat(cards, page, formats);
@@ -324,11 +325,14 @@ describe("the pick-your-stack page covers every built-in format", () => {
       expect(home).toMatch(
         /<DocsHomeSection id="pick-your-stack" [^>]*>\n\n<StackCards\n {2}labelledBy="pick-your-stack"/,
       );
-      expect(
-        cards.every(
-          (card) => card.path === "/docs/pick-your-stack" || stackPageOf(card) !== undefined,
-        ),
-      ).toBe(true);
+      for (const card of cards) {
+        const stackPage = stackPageOf(card) !== undefined;
+        expect(stackPage || card.path === "/docs/pick-your-stack", card.label).toBe(true);
+        expect(card.badge !== undefined, card.label).toBe(stackPage);
+      }
+      expect(cards.flatMap((card) => stackPageOf(card) ?? []).sort()).toEqual(
+        [...STACK_IDS].sort(),
+      );
       expectCardsCoverEveryFormat(
         cards,
         readDocPage("(get-started)/pick-your-stack", suffix),
@@ -348,10 +352,14 @@ describe("the pick-your-stack page covers every built-in format", () => {
     expect(covers(page.replace('formats: ["ini"]', "formats: []"))).toThrow();
     expect(covers(page.replace('formats: ["ini"]', 'formats: ["ini", "yaml"]'))).toThrow();
     expect(covers(page.replace('href: "#ini"', 'href: "#nowhere"'))).toThrow();
-    expect(covers(page.replace("/docs/quickstart/vue", "/docs/quickstart/svelte"))).toThrow();
+    const home = readDocPage("index", "");
+    const homeCovers = (variant) => () =>
+      expectCardsCoverEveryFormat(stackCards(variant), page, supportedFormats());
+    expect(homeCovers(home)).not.toThrow();
+    expect(homeCovers(home.replace("/docs/quickstart/vue", "/docs/quickstart/svelte"))).toThrow();
     expect(
-      covers(
-        page.replace(
+      homeCovers(
+        home.replace(
           'formats: ["arb"], href: "/docs/quickstart/flutter"',
           'formats: ["arb"], href: "/docs/quickstart/react"',
         ),

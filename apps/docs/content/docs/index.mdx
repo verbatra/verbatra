@@ -45,16 +45,17 @@ type: overview
 
 </DocsHomeSection>
 
-<DocsHomeSection id="pick-your-stack" title="Pick your stack" lead="Each card opens the init command and file layout for that stack.">
+<DocsHomeSection id="pick-your-stack" title="Pick your stack" lead="A card marked Quickstart opens a step-by-step guide for that stack; every other card opens its init command and file layout.">
 
 <StackCards
   labelledBy="pick-your-stack"
   cards={[
-    { label: "React", icon: "react", formats: ["i18next-json"], href: "/docs/quickstart/react" },
-    { label: "Next.js", icon: "next", formats: ["next-intl-json"], href: "/docs/quickstart/nextjs" },
-    { label: "Vue and Nuxt", icon: "vue", formats: ["vue-i18n-json"], href: "/docs/quickstart/vue" },
-    { label: "Angular", icon: "angular", formats: ["ngx-translate-json"], href: "/docs/quickstart/angular" },
-    { label: "Flutter", icon: "flutter", formats: ["arb"], href: "/docs/quickstart/flutter" },
+    { label: "React", icon: "react", formats: ["i18next-json"], href: "/docs/quickstart/react", badge: "Quickstart" },
+    { label: "Next.js", icon: "next", formats: ["next-intl-json"], href: "/docs/quickstart/nextjs", badge: "Quickstart" },
+    { label: "Vue", icon: "vue", formats: ["vue-i18n-json"], href: "/docs/quickstart/vue", badge: "Quickstart" },
+    { label: "Nuxt", icon: "nuxt", formats: [], href: "/docs/pick-your-stack#vue-and-nuxt-with-vue-i18n" },
+    { label: "Angular", icon: "angular", formats: ["ngx-translate-json"], href: "/docs/quickstart/angular", badge: "Quickstart" },
+    { label: "Flutter", icon: "flutter", formats: ["arb"], href: "/docs/quickstart/flutter", badge: "Quickstart" },
     { label: "Android", icon: "android", formats: ["android-xml"], href: "/docs/pick-your-stack#android" },
     { label: "iOS and macOS", icon: "apple", formats: ["apple-strings", "apple-xcstrings"], href: "/docs/pick-your-stack#ios-and-macos" },
     { label: "gettext", icon: "gnu", formats: ["gettext-po"], href: "/docs/pick-your-stack#gettext" },
