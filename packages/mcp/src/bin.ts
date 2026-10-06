@@ -38,6 +38,7 @@ async function serve(options: BinOptions): Promise<void> {
     allowSpend: options.allowSpend,
     redactValues: options.redactValues,
     onLog: logToStderr,
+    onProjectRootChange: (root) => logToStderr(`verbatra MCP server: project root is now ${root}`),
   });
 
   const project = projectLabel(handle.projectRoot, process.cwd());
