@@ -106,7 +106,7 @@ September 2026.
 | `verbatra.lock.json` | einen Hash jedes Quell-Strings, aus dem eine Übersetzung entstand | ja |
 | `verbatra.provenance.json` | pro Key Schreibpfad, Provider und Modell hinter dem Wert und eine etwaige Review-Entscheidung samt Namen des Reviewers; kein übersetzter Text, keine Zeitstempel | ja |
 | `verbatra.cache.json` | Quelltext und seine Übersetzungen, pro Provider, Modell, Tonfall, Glossar und `localeMap` | nein, `verbatra init` trägt es in die `.gitignore` ein |
-| `.verbatra-local/` | Status, Review-Flags und Token-Verbrauch des letzten Laufs, erzeugte Pseudolocales und Schreibsperren | nein, ignoriert |
+| `.verbatra-local/` | Status, Review-Flags und Token-Verbrauch des letzten Laufs, erzeugte Pseudolocales und Schreibsperren, die jeweils Hostnamen und Prozess-ID des haltenden Laufs speichern, bis der Lauf sie freigibt | nein, ignoriert |
 | `.env`, `.env.local` | deine API-Keys, falls du sie dort ablegst | nie, `verbatra init` ignoriert beide |
 
 ## API-Keys

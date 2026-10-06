@@ -144,7 +144,7 @@ La vérification échoue sur un résultat et sur un fichier qu'elle n'a pas pu o
     local        lock  verbatra.lock.json  (no source text, translations or personal data)
     local        provenance  verbatra.provenance.json  (reviewer names)
     local        cache  verbatra.cache.json  (source text, translations, gitignored by init)
-    local        local-state  .verbatra-local  (source text, gitignored by init)
+    local        local-state  .verbatra-local  (source text, host name and process ID of a run holding a write lock, gitignored by init)
     request      language-list  verbatra doctor --live  sends the API key
     request      dns-lookup  each connection to a destination host
     agent        mcp  verbatra mcp  redactable

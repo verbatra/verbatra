@@ -106,7 +106,7 @@ La retención la deciden el proveedor y tu contrato. Citas en su inglés origina
 | `verbatra.lock.json` | un hash de cada texto de origen del que salió una traducción | sí |
 | `verbatra.provenance.json` | por clave, la vía de escritura, el proveedor y el modelo del valor, y cualquier decisión de revisión con el nombre del revisor; sin texto traducido ni marcas de tiempo | sí |
 | `verbatra.cache.json` | el texto de origen y sus traducciones, por proveedor, modelo, tono, glosario y `localeMap` | no, `verbatra init` lo añade a `.gitignore` |
-| `.verbatra-local/` | el estado de la última ejecución, las señales de revisión y el uso de tokens, los pseudolocales generados y los bloqueos de escritura | no, está en `.gitignore` |
+| `.verbatra-local/` | el estado de la última ejecución, las señales de revisión y el uso de tokens, los pseudolocales generados y los bloqueos de escritura, cada uno con el nombre de host y el ID de proceso de la ejecución que lo tiene hasta que lo libera | no, está en `.gitignore` |
 | `.env`, `.env.local` | tus claves de API, si las guardas ahí | nunca, `verbatra init` añade ambos a `.gitignore` |
 
 ## Claves de API

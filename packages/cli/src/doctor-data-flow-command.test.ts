@@ -106,6 +106,9 @@ describe("run doctor --data-flow", () => {
     expect(out).toContain(
       "    local        lock  verbatra.lock.json  (no source text, translations or personal data)",
     );
+    expect(out).toContain(
+      "    local        local-state  .verbatra-local  (source text, host name and process ID of a run holding a write lock, gitignored by init)",
+    );
   });
 
   it("renders provider none as nothing sent", async () => {

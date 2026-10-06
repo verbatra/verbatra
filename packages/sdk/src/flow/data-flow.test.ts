@@ -1,10 +1,12 @@
-import { mkdir, rm, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { hostname } from "node:os";
+import { join, relative, sep } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProviderConfig } from "../config/provider-config.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { SdkError } from "../errors.js";
 import { defaultFs } from "../fs.js";
+import { localeLockPath, withLocaleWriteLock } from "../lock/locale-write-lock.js";
 import { baseConfig, makeTempDir } from "../test-support.js";
 import { buildDataFlowManifest, dataFlow } from "./data-flow.js";
 import { type DataFlowManifest, dataFlowManifestSchema } from "./data-flow-manifest.js";
@@ -419,6 +421,21 @@ describe("buildDataFlowManifest: what is sent", () => {
       gitignoredByInit: true,
     });
     expect(manifest.local.find(({ id }) => id === "provenance")?.holdsPersonalData).toBe(true);
+    expect(manifest.local.find(({ id }) => id === "local-state")?.holdsPersonalData).toBe(true);
+  });
+
+  it("marks the local state as personal data because a held write lock records the host name", async () => {
+    const manifest = await manifestFor({});
+    const localState = manifest.local.find(({ id }) => id === "local-state");
+    const lockPath = localeLockPath(projectDir, "de");
+
+    const held = await withLocaleWriteLock(projectDir, "de", defaultFs, async () =>
+      JSON.parse(await readFile(lockPath, "utf8")),
+    );
+
+    expect(relative(projectDir, lockPath).split(sep)[0]).toBe(localState?.path);
+    expect(held).toMatchObject({ hostname: hostname(), pid: process.pid });
+    await expect(readFile(lockPath, "utf8")).rejects.toMatchObject({ code: "ENOENT" });
   });
 
   it("keeps the paths project-relative from a nested project directory", async () => {

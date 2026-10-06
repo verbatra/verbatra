@@ -168,7 +168,11 @@ export interface DataFlowLocalFile {
   readonly holdsSourceText: boolean;
   /** Whether it holds translated text. */
   readonly holdsTranslations: boolean;
-  /** Whether it holds personal data: the provenance file names each reviewer. */
+  /**
+   * Whether it holds personal data: the provenance file names each reviewer, and the local state
+   * directory holds a write lock for each run in progress, recording the host name of the machine
+   * and the process ID until the run releases it.
+   */
   readonly holdsPersonalData: boolean;
   /** Whether `verbatra init` adds it to `.gitignore`. */
   readonly gitignoredByInit: boolean;

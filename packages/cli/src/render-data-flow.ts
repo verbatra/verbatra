@@ -40,11 +40,18 @@ function describeCounts(counts: DataFlowCounts): string {
   return `${counts.sourceKeys} source keys, ${counts.keysWithContext} with a description or meaning${withheld}`;
 }
 
+const PERSONAL_DATA_LABELS: Readonly<Record<DataFlowLocalFile["id"], string>> = {
+  lock: "personal data",
+  provenance: "reviewer names",
+  cache: "personal data",
+  "local-state": "host name and process ID of a run holding a write lock",
+};
+
 function describeLocal(file: DataFlowLocalFile): string {
   const holds = [
     ...(file.holdsSourceText ? ["source text"] : []),
     ...(file.holdsTranslations ? ["translations"] : []),
-    ...(file.holdsPersonalData ? ["reviewer names"] : []),
+    ...(file.holdsPersonalData ? [PERSONAL_DATA_LABELS[file.id]] : []),
   ];
   const contents =
     holds.length === 0 ? "no source text, translations or personal data" : holds.join(", ");

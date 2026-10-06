@@ -324,7 +324,7 @@ function describeLocalFiles(cwd: string): readonly DataFlowLocalFile[] {
       path: dirname(runStatusFilePath(cwd)),
       holdsSourceText: true,
       holdsTranslations: false,
-      holdsPersonalData: false,
+      holdsPersonalData: true,
       gitignoredByInit: true,
     },
   ];
