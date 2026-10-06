@@ -5,6 +5,8 @@ const BACKTRACKING_JWT = /\beyJ[A-Za-z0-9_-]{8,}\.eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0
 const PIECES = ["eyJ", "eyJabcdefgh.", "abcdefg", "a", ".", "-", " "];
 const PIECE_COUNT = 6;
 
+const b64url = (value: unknown): string => Buffer.from(JSON.stringify(value)).toString("base64url");
+
 function* valuesOf(length: number): Generator<string> {
   if (length === 0) {
     yield "";
@@ -26,7 +28,7 @@ function backtrackingSpans(text: string): { start: number; end: number }[] {
 
 describe("jwtSpans", () => {
   it("finds a header, payload and signature", () => {
-    const token = ["eyJhbGciOiJIUzI1NiJ9", "eyJzdWIiOiIxMjM0In0", "dozjgNryP4J3jVmN"].join(".");
+    const token = [b64url({ alg: "HS256" }), b64url({ sub: "1234" }), "test-signature"].join(".");
 
     expect(jwtSpans(`Bearer ${token} end`)).toEqual([{ start: 7, end: 7 + token.length }]);
   });
