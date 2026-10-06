@@ -11,6 +11,7 @@
       "!**/.source",
       "!**/next-env.d.ts",
       "!**/verbatra.provenance.json",
+      "!apps/docs/lib/fixtures",
       "!**/.agents",
       "!.claude/skills"
     ]

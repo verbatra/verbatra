@@ -1,23 +1,34 @@
 import { createHash } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import { join, relative, sep } from "node:path";
+import { parse } from "parse5";
+import { NOT_FOUND_ROUTE } from "./script-hashes-manifest.mjs";
 
-export const SCRIPT_HASHES_FILE = "csp-script-hashes.json";
-
-export const NOT_FOUND_ROUTE = "/_not-found";
-
-const SCRIPT_ELEMENT = /<script\b([^>]*)>([\s\S]*?)<\/script>/gi;
-const SRC_ATTRIBUTE = /(?:^|\s)src\s*=/i;
-const TYPE_ATTRIBUTE = /(?:^|\s)type\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/i;
 const EXECUTABLE_TYPES = new Set(["", "text/javascript", "application/javascript", "module"]);
 const HTML_SUFFIX = ".html";
 
-function isExecutableInline(attributes) {
-  if (SRC_ATTRIBUTE.test(attributes)) return false;
-  const type = TYPE_ATTRIBUTE.exec(attributes);
-  if (type === null) return true;
-  const value = (type[1] ?? type[2] ?? type[3] ?? "").trim().toLowerCase();
-  return EXECUTABLE_TYPES.has(value);
+function attributeValue(element, name) {
+  return element.attrs.find((attribute) => attribute.name === name)?.value;
+}
+
+function isExecutableInline(element) {
+  if (attributeValue(element, "src") !== undefined) return false;
+  const type = attributeValue(element, "type");
+  return type === undefined || EXECUTABLE_TYPES.has(type.trim().toLowerCase());
+}
+
+function scriptText(element) {
+  return element.childNodes
+    .filter((child) => child.nodeName === "#text")
+    .map((child) => child.value)
+    .join("");
+}
+
+function* scriptElements(node) {
+  if (node.nodeName === "script") yield node;
+  for (const child of node.content?.childNodes ?? node.childNodes ?? []) {
+    yield* scriptElements(child);
+  }
 }
 
 export function scriptHash(source) {
@@ -26,8 +37,8 @@ export function scriptHash(source) {
 
 export function inlineScriptHashes(html) {
   const hashes = new Set();
-  for (const [, attributes = "", source = ""] of html.matchAll(SCRIPT_ELEMENT)) {
-    if (isExecutableInline(attributes)) hashes.add(scriptHash(source));
+  for (const element of scriptElements(parse(html))) {
+    if (isExecutableInline(element)) hashes.add(scriptHash(scriptText(element)));
   }
   return [...hashes].sort();
 }

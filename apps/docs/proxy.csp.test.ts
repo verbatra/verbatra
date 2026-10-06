@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import type { NextFetchEvent } from "next/server";
 import { NextRequest } from "next/server";
 import { describe, expect, it, vi } from "vitest";
-import { NOT_FOUND_ROUTE } from "@/lib/inline-script-hashes.mjs";
+import { NOT_FOUND_ROUTE } from "@/lib/script-hashes-manifest.mjs";
 
 const ROUTES = {
   "/en": ["'sha256-home-en'"],

@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -8,9 +8,9 @@ import {
   htmlRoute,
   inlineScriptHashes,
   manifestProblems,
-  NOT_FOUND_ROUTE,
   scriptHash,
 } from "./inline-script-hashes.mjs";
+import { NOT_FOUND_ROUTE } from "./script-hashes-manifest.mjs";
 
 const BOOTSTRAP = "(self.__next_f=self.__next_f||[]).push([0])";
 const FLIGHT = 'self.__next_f.push([1,"0:{\\"P\\":null}\\n"])';
@@ -55,6 +55,64 @@ describe("inlineScriptHashes", () => {
 
   it("does not mistake a data-src attribute for an external script", () => {
     expect(inlineScriptHashes(`<script data-src="x">e()</script>`)).toEqual([sha256("e()")]);
+  });
+  it("ends a script at an end tag followed by whitespace, a slash, or any letter case", () => {
+    const html = [
+      `<script>a()</script >`,
+      `<script>b()</SCRIPT>`,
+      "<script>c()</script\n>",
+      `<script>d()</script/>`,
+      `<script>e()</ScRiPt\t>`,
+    ].join("");
+    expect(inlineScriptHashes(html)).toEqual(
+      ["a()", "b()", "c()", "d()", "e()"].map((source) => sha256(source)).sort(),
+    );
+  });
+
+  it("keeps a script open past text that only resembles an end tag", () => {
+    const source = `var a = "</scripts>"; var b = "</scriptx";`;
+    expect(inlineScriptHashes(`<script>${source}</script>`)).toEqual([sha256(source)]);
+  });
+
+  it("reads attributes whose quoted values contain a greater-than sign", () => {
+    const html = [
+      `<script data-note="a > b">f()</script>`,
+      `<script data-note='x>' type="module">g()</script>`,
+      `<script data-note="y>" src="/external.js"></script>`,
+      `<script data-note="z>" type="application/ld+json">{"@type":"Thing"}</script>`,
+    ].join("");
+    expect(inlineScriptHashes(html)).toEqual(["f()", "g()"].map((source) => sha256(source)).sort());
+  });
+
+  it("hashes several scripts across head and body and skips every data block among them", () => {
+    const html = [
+      `<!doctype html><html><head><script>h()</script>`,
+      `<script type="application/ld+json">{"@context":"https://schema.org"}</script></head>`,
+      `<body><p>text</p><script>i()</script>`,
+      `<script type="APPLICATION/LD+JSON">{"@type":"FAQPage"}</script><script>j()</script></body></html>`,
+    ].join("");
+    expect(inlineScriptHashes(html)).toEqual(
+      ["h()", "i()", "j()"].map((source) => sha256(source)).sort(),
+    );
+  });
+
+  it("hashes the built not-found page exactly as the regular-expression matcher did", async () => {
+    const html = await readFile(
+      new URL("./fixtures/built-not-found.html", import.meta.url),
+      "utf8",
+    );
+    expect(inlineScriptHashes(html)).toEqual([
+      "'sha256-8bLUN0ikzQ7FhO8rvkQoxcfdjiHRij9O823x1sDzxPk='",
+      "'sha256-OBTN3RiyCV4Bq7dFqZ5a2pAXjnCcCYeTJMO2I/LYKeo='",
+    ]);
+  });
+
+  it("hashes a built page with JSON-LD exactly as the regular-expression matcher did", async () => {
+    const html = await readFile(new URL("./fixtures/built-contact.html", import.meta.url), "utf8");
+    expect(inlineScriptHashes(html)).toEqual([
+      "'sha256-OBTN3RiyCV4Bq7dFqZ5a2pAXjnCcCYeTJMO2I/LYKeo='",
+      "'sha256-z44VHNpZ1BeZx91mgMddkC5OOTFml462X85hZMHsnIE='",
+    ]);
   });
 });
 

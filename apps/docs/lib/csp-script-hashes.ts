@@ -4,7 +4,7 @@ import {
   NOT_FOUND_ROUTE,
   SCRIPT_HASHES_FILE,
   type ScriptHashesByRoute,
-} from "@/lib/inline-script-hashes.mjs";
+} from "@/lib/script-hashes-manifest.mjs";
 
 let builtScriptHashes: ScriptHashesByRoute | undefined;
 

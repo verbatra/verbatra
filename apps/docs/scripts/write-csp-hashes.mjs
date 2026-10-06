@@ -2,11 +2,8 @@ import { existsSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  collectScriptHashes,
-  manifestProblems,
-  SCRIPT_HASHES_FILE,
-} from "../lib/inline-script-hashes.mjs";
+import { collectScriptHashes, manifestProblems } from "../lib/inline-script-hashes.mjs";
+import { SCRIPT_HASHES_FILE } from "../lib/script-hashes-manifest.mjs";
 
 const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const distDir = resolve(appRoot, ".next");

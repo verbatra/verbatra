@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readScriptHashes, scriptHashesFor } from "./csp-script-hashes";
-import { NOT_FOUND_ROUTE, SCRIPT_HASHES_FILE } from "./inline-script-hashes.mjs";
+import { NOT_FOUND_ROUTE, SCRIPT_HASHES_FILE } from "./script-hashes-manifest.mjs";
 
 const ROUTES = {
   "/en/docs/quickstart": ["'sha256-page'"],
