@@ -31,8 +31,8 @@ und `pt-PT` verschwimmen. Deshalb bekommt ein LLM-Provider zusätzlich den engli
 Schrift und die Region jeder Sprache, aus Node.js für die Locale in deiner Konfiguration, auch wenn
 `localeMap` einen anderen Code sendet. Sie reisen als Daten, eine feste Systemregel bittet das
 Modell, in der genannten Schrift und Variante zu schreiben, und sie sind nicht Teil des
-Fingerprints im [Cache](/docs/the-cache). Was jeder Provider bekommt, steht unter
-[An den Provider gesendete Locale-Codes](/docs/providers#an-den-provider-gesendete-locale-codes).
+Fingerprints im [Cache](/docs/the-cache). Ein Code, den Node.js nicht benennen kann, etwa das
+für private Nutzung reservierte `qaa`, wird ohne Namen gesendet.
 
 ## Das Integritäts-Gate
 

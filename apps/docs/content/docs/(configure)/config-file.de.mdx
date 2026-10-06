@@ -198,7 +198,7 @@ maxLength: {
 }
 ```
 
-- **Nur hier.** Keys werden wörtlich verglichen, nie als Globs; ein Key, der nicht in der Zuordnung steht, wird nie gemessen.
+- **Nur hier.** Keys werden wörtlich verglichen, nie als Globs; ein Key, der nicht in der Zuordnung steht, wird nie gemessen. Kein Budget wird aus einer Beschreibung oder den Metadaten eines Formats abgeleitet.
 - **Graphemcluster.** Die Länge zählt wahrgenommene Zeichen, Leerraum eingeschlossen: Ein Emoji, ein Buchstabe mit Akzent oder ein CJK-Zeichen zählt als eines. Die Grenze ist inklusiv.
 - **Wann.** Jeder Wert, den `translate` für den Key erzeugt, Cache-Wiederverwendungen eingeschlossen; ein aktueller Key wird erst gemessen, wenn sich seine Quelle ändert, oder durch [`export --include-unchanged`](/docs/cli/export).
 - **Beratend.** Eine Überschreitung wird trotzdem geschrieben und gelockt und als [`MAX_LENGTH_EXCEEDED`](/docs/error-codes#max_length_exceeded) zum Review markiert.

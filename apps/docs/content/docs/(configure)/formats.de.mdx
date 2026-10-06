@@ -117,7 +117,7 @@ Javas und Springs `.properties`: flache Key/Wert-Zeilen, Keys wortgetreu erhalte
 - **Nur UTF-8.** Eine UTF-16-Datei scheitert mit `INVALID_STRUCTURE`; speichere sie neu als UTF-8.
 - **Kommentare.** Ein `/* ... */`-Kommentar vor einem Eintrag ist nur lesbarer Kontext; `//`-Kommentare bleiben erhalten. Die Escapes `\"`, `\\`, `\n`, `\t` und `\U` werden dekodiert; beim Schreiben werden nur Anführungszeichen, Backslash, Zeilenumbruch und Tabulator maskiert.
 - **Schreibvorgänge erhalten** Reihenfolge, Kommentare und Leerzeilen; ein entfernter Key geht samt seinem eigenen Kommentar. Ein fehlendes Ziel wird angelegt, `.lproj`-Verzeichnis und `.stringsdict` eingeschlossen.
-- **Platzhalter sind printf**: `%@`, `%d`, `%1$@`, `%%`, mit Flags, Breite und Länge als Dekoration; ein positionelles Umstellen wird akzeptiert.
+- **Platzhalter sind printf**: `%@`, `%d`, `%1$@`, `%%`, mit Flags, Breite und Länge als Dekoration; ein positionelles Umstellen wird akzeptiert. Ein einzelnes `%` (`"50% off"`) ist keiner.
 - **Plurale.** Jede `.stringsdict`-Kategorie wird zu `<key>_<category>` (`photo_count_one`), und nur die Kategorien, die eine Locale hat, überstehen den Roundtrip. Fehler nennen Datei und Key; Format-Key, Variablenname und Werttyp überstehen einen Neuschrieb.
 - **Layout.** `{locale}.lproj/Localizable.strings` braucht keinen besonderen Locale-Style.
 
@@ -144,7 +144,7 @@ Ein JSON-Katalog, der jede Locale enthält, der Ersatz für `.strings` seit Xcod
 - **Einträge.** `<string name>` ist ein Eintrag; `<plurals>` wird pro `<item>` zu `key[quantity]`, nur für die vorhandenen Quantitäten.
 - **Übersprungen.** Ressourcen mit `translatable="false"`, `<string-array>` und ein `<string>` mit Inline-Elementen (`<b>`, `<xliff:g>`, CDATA) bleiben, wie sie sind; `formatted="false"` wird normal übersetzt.
 - **Escaping.** `\'`, `\"`, `\n`, `\t` und ein führendes `\@` oder `\?` werden dekodiert und beim Schreiben wieder maskiert.
-- **Platzhalter sind printf**: `%s`, `%d`, `%1$s`, `%%`.
+- **Platzhalter sind printf**: `%s`, `%d`, `%1$s`, `%%`; ein einzelnes `%` ist keiner.
 - **Schreibvorgänge** patchen die Datei, löschen entfernte Keys und legen eine fehlende Datei samt Verzeichnis an.
 - **Grenzen.** Ein übersetzter Key, der in der Quelle später zum Durchreichen wird, wird aus dem Ziel entfernt. `--prune` weiß nichts von Plural-Quantitäten und kann deshalb Quantitäten löschen, die nur im Ziel vorkommen.
 - **Fehler** nennen ein Wurzelelement außer `<resources>`, einen ungültigen Namen oder eine ungültige Quantität oder einen doppelten Key; eine DTD oder Entity wird abgelehnt.

@@ -32,8 +32,8 @@ et `pt-PT` se confondent. Un fournisseur LLM reçoit donc aussi le nom anglais, 
 région de chaque langue, tirés de Node.js pour la locale de ta configuration, même quand `localeMap`
 envoie un autre code. Ils voyagent comme des données, une règle système fixe demande au modèle
 d'écrire dans l'écriture et la variante nommées, et ils ne font pas partie de l'empreinte du
-[cache](/docs/the-cache). Ce que reçoit chaque fournisseur est sous
-[Codes de locale envoyés au fournisseur](/docs/providers#codes-de-locale-envoyés-au-fournisseur).
+[cache](/docs/the-cache). Un code que Node.js ne sait pas
+nommer, comme le code à usage privé `qaa`, est envoyé sans nom.
 
 ## La barrière d'intégrité
 

@@ -98,7 +98,7 @@ Chaque enregistrement que `--json` affiche a un JSON Schema (draft 2020-12). Les
 | L'enveloppe d'une commande, avec son `result` | `https://verbatra.kreitz-webdev.de/schema/v1/<command>-envelope.json` | `@verbatra/cli/schemas/<command>-envelope.json` |
 | L'enveloppe d'erreur | [`error-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/error-envelope.json) | `@verbatra/cli/schemas/error-envelope.json` |
 | Une ligne JSON sur stderr : progression, attente d'un verrou, interruption | [`stderr-record.json`](https://verbatra.kreitz-webdev.de/schema/v1/stderr-record.json) | `@verbatra/cli/schemas/stderr-record.json` |
-| Le fichier de configuration | [`config.json`](https://verbatra.kreitz-webdev.de/schema/v1/config.json) | `@verbatra/sdk/schemas/config.json` |
+| Le fichier de configuration | [`config.json`](https://verbatra.kreitz-webdev.de/schema/v1/config.json) | `@verbatra/sdk/schemas/config.json` ou `@verbatra/sdk/config-schema.json` : le même schéma sans `$id` ni `title` |
 
 Chaque page de commande lie son enveloppe sous Sortie JSON, et [https://verbatra.kreitz-webdev.de/schema/v1](https://verbatra.kreitz-webdev.de/schema/v1) liste chaque document avec son titre. L'enveloppe d'une commande pointe vers le schéma de son `result` par URL dans `$ref` : un validateur le charge donc par le réseau, ou depuis `node_modules/@verbatra/sdk/dist/schemas` si tu enregistres ces fichiers d'abord.
 

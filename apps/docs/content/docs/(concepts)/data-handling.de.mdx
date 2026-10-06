@@ -38,8 +38,8 @@ diese Website gilt ihre [Datenschutzerklärung](/privacy).
 
 Nur die Befehle im Diagramm rufen einen Provider auf; die Aktionen von Studio und MCP brauchen
 [`--allow-spend`](/docs/cli/mcp#kostenpflichtige-tools). Alles andere, Probeläufe und Schätzungen
-eingeschlossen, ist lokal, außer [`verbatra doctor --live`](/docs/cli/doctor), das deinen API-Key und
-keine Strings sendet.
+eingeschlossen, ist lokal, außer [`verbatra doctor --live`](/docs/cli/doctor), das deinen API-Key (an LibreTranslate
+keinen) und keine Strings sendet.
 
 Ein Lauf von `translate` sendet nur Keys, die gegenüber [der Lock-Datei](/docs/the-lock-file) fehlen
 oder geändert sind, abzüglich der Treffer im [Cache](/docs/the-cache), und geteilten Text nur
@@ -116,7 +116,7 @@ aussieht, durch `[REDACTED]`.
 
 ## Studio und MCP
 
-**Studio** bindet an `127.0.0.1` mit einem [Sitzungs-Token](/docs/cli/studio), weist anderen `Host`
+**Studio** bindet nur an `127.0.0.1`, mit einem [Sitzungs-Token](/docs/cli/studio), weist anderen `Host`
 oder `Origin` ab, und seine Content-Security-Policy blockiert Abrufe aus dem Internet.
 
 **Der MCP-Server** spricht über stdio und öffnet keinen Port. Seine Lese-Tools geben deine Strings,

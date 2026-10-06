@@ -117,7 +117,7 @@ Des instructions `"key" = "value";`, avec les pluriels dans le `.stringsdict` vo
 - **UTF-8 uniquement.** Un fichier UTF-16 échoue avec `INVALID_STRUCTURE` ; réenregistre-le en UTF-8.
 - **Commentaires.** Un commentaire `/* ... */` placé avant une entrée est du contexte en lecture seule ; les commentaires `//` sont conservés. Les échappements `\"`, `\\`, `\n`, `\t` et `\U` sont décodés ; à l'écriture, seuls le guillemet, la barre oblique inversée, le saut de ligne et la tabulation sont échappés.
 - **Les écritures conservent** l'ordre, les commentaires et les lignes vides ; une clé retirée part avec son propre commentaire. Une cible manquante est créée, répertoire `.lproj` et `.stringsdict` compris.
-- **Les placeholders sont de style printf** : `%@`, `%d`, `%1$@`, `%%`, avec les indicateurs, la largeur et la longueur comme décoration ; une réorganisation positionnelle est acceptée.
+- **Les placeholders sont de style printf** : `%@`, `%d`, `%1$@`, `%%`, avec les indicateurs, la largeur et la longueur comme décoration ; une réorganisation positionnelle est acceptée. Un `%` isolé (`"50% off"`) n'en est pas un.
 - **Pluriels.** Chaque catégorie du `.stringsdict` devient `<key>_<category>` (`photo_count_one`), en faisant l'aller-retour uniquement avec les catégories qu'a une locale. Les erreurs nomment le fichier et la clé ; la clé de format, le nom de variable et le type de valeur survivent à une réécriture.
 - **Disposition.** `{locale}.lproj/Localizable.strings` n'a besoin d'aucun style de locale particulier.
 
@@ -144,7 +144,7 @@ Un seul catalogue JSON contenant toutes les locales, le remplaçant de `.strings
 - **Entrées.** Un `<string name>` est une entrée ; `<plurals>` devient `key[quantity]` par `<item>`, uniquement pour les quantités présentes.
 - **Sautés.** Les ressources `translatable="false"`, `<string-array>` et un `<string>` avec des éléments en ligne (`<b>`, `<xliff:g>`, CDATA) sont conservés tels quels ; `formatted="false"` est traduit normalement.
 - **Échappement.** `\'`, `\"`, `\n`, `\t` et un `\@` ou `\?` en tête sont décodés, puis ré-échappés à l'écriture.
-- **Les placeholders sont de style printf** : `%s`, `%d`, `%1$s`, `%%`.
+- **Les placeholders sont de style printf** : `%s`, `%d`, `%1$s`, `%%` ; un `%` isolé n'en est pas un.
 - **Les écritures** retouchent le fichier, suppriment les clés retirées et créent un fichier manquant avec son répertoire.
 - **Limites.** Une clé traduite qui devient ensuite non traduisible dans la source est retirée de la cible. `--prune` ne tient pas compte des quantités plurielles, donc il peut supprimer des quantités présentes uniquement dans la cible.
 - **Les erreurs** signalent une racine autre que `<resources>`, un nom ou une quantité invalide, ou une clé en double ; une DTD ou une entité est rejetée.

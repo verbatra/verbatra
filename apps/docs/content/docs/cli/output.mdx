@@ -98,7 +98,7 @@ Every record `--json` prints has a JSON Schema (draft 2020-12). The schemas ship
 | One command's envelope, with its `result` | `https://verbatra.kreitz-webdev.de/schema/v1/<command>-envelope.json` | `@verbatra/cli/schemas/<command>-envelope.json` |
 | The error envelope | [`error-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/error-envelope.json) | `@verbatra/cli/schemas/error-envelope.json` |
 | A JSON line on stderr: progress, lock wait, interrupt | [`stderr-record.json`](https://verbatra.kreitz-webdev.de/schema/v1/stderr-record.json) | `@verbatra/cli/schemas/stderr-record.json` |
-| The config file | [`config.json`](https://verbatra.kreitz-webdev.de/schema/v1/config.json) | `@verbatra/sdk/schemas/config.json` |
+| The config file | [`config.json`](https://verbatra.kreitz-webdev.de/schema/v1/config.json) | `@verbatra/sdk/schemas/config.json`, or `@verbatra/sdk/config-schema.json`: the same schema without `$id` and `title` |
 
 Each command page links its envelope under JSON output, and [https://verbatra.kreitz-webdev.de/schema/v1](https://verbatra.kreitz-webdev.de/schema/v1) lists every document with its title. A command envelope points at its `result` schema by URL in `$ref`, so a validator loads it over the network, or from `node_modules/@verbatra/sdk/dist/schemas` when you register those files first.
 

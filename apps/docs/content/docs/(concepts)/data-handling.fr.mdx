@@ -39,8 +39,8 @@ CI. Ce site relève de sa [politique de confidentialité](/privacy).
 
 Seules les commandes du schéma appellent un fournisseur ; les actions de Studio et du MCP exigent
 [`--allow-spend`](/docs/cli/mcp#outils-payants). Tout le reste, exécutions à blanc et estimations
-comprises, est local, sauf [`verbatra doctor --live`](/docs/cli/doctor), qui envoie ta clé d'API et
-aucun texte.
+comprises, est local, sauf [`verbatra doctor --live`](/docs/cli/doctor), qui envoie ta clé d'API (aucune à
+LibreTranslate) et aucun texte.
 
 Une exécution de `translate` n'envoie que les clés manquantes ou modifiées par rapport au
 [fichier de verrouillage](/docs/the-lock-file), moins les succès du [cache](/docs/the-cache), et un
@@ -116,7 +116,7 @@ ressemble à une clé d'API.
 
 ## Studio et MCP
 
-**Studio** s'attache à `127.0.0.1` avec un [jeton de session](/docs/cli/studio), rejette un autre
+**Studio** s'attache à `127.0.0.1` seulement, avec un [jeton de session](/docs/cli/studio), rejette un autre
 `Host` ou `Origin`, et sa Content-Security-Policy bloque les accès à Internet.
 
 **Le serveur MCP** parle via stdio sans ouvrir de port. Ses outils de lecture renvoient textes,

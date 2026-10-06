@@ -30,8 +30,8 @@ A locale code alone is not always enough: `sr-Latn` often comes back in Cyrillic
 `pt-PT` blur together. So an LLM provider also receives each language's English name, script and
 region, taken from Node.js for the locale in your config even when `localeMap` sends another code.
 They travel as data, one fixed system rule asks the model to write in the named script and variant,
-and they are not part of the [cache](/docs/the-cache) fingerprint. What each provider receives is
-under [Locale codes sent to the provider](/docs/providers#locale-codes-sent-to-the-provider).
+and they are not part of the [cache](/docs/the-cache) fingerprint. A code Node.js cannot name, such as
+the private-use `qaa`, is sent without a name.
 
 ## The integrity gate
 

@@ -198,7 +198,7 @@ maxLength: {
 }
 ```
 
-- **Solo aquí.** Las claves se comparan literalmente, nunca como globs; una clave ausente del mapa nunca se mide.
+- **Solo aquí.** Las claves se comparan literalmente, nunca como globs; una clave ausente del mapa nunca se mide. Ningún presupuesto se deriva de una descripción ni de los metadatos de un formato.
 - **Clústeres de grafemas.** La longitud cuenta caracteres percibidos, espacios incluidos: un emoji, una letra acentuada o un carácter CJK cuentan como uno. El límite es inclusivo.
 - **Cuándo.** Cada valor que `translate` produce para la clave, reutilizaciones de caché incluidas; una clave al día solo se mide cuando cambia su origen, o con [`export --include-unchanged`](/docs/cli/export).
 - **Informativo.** Un exceso se sigue escribiendo y bloqueando, y se marca para revisión como [`MAX_LENGTH_EXCEEDED`](/docs/error-codes#max_length_exceeded).

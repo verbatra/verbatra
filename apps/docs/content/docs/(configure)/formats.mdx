@@ -117,7 +117,7 @@ Java and Spring `.properties`: flat key/value lines, keys kept verbatim.
 - **UTF-8 only.** A UTF-16 file fails with `INVALID_STRUCTURE`; re-save it as UTF-8.
 - **Comments.** A `/* ... */` comment before an entry is read-only context; `//` comments are kept. `\"`, `\\`, `\n`, `\t` and `\U` escapes are decoded; on write only quote, backslash, newline and tab are escaped.
 - **Writes keep** order, comments and blank lines; a removed key goes with its own comment. A missing target is created, `.lproj` directory and `.stringsdict` included.
-- **Placeholders are printf**: `%@`, `%d`, `%1$@`, `%%`, with flags, width and length as decoration; a positional reorder is accepted.
+- **Placeholders are printf**: `%@`, `%d`, `%1$@`, `%%`, with flags, width and length as decoration; a positional reorder is accepted. A bare `%` (`"50% off"`) is not one.
 - **Plurals.** Each `.stringsdict` category becomes `<key>_<category>` (`photo_count_one`), round-tripping only the categories a locale has. Errors name the file and key; format key, variable name and value type survive a rewrite.
 - **Layout.** `{locale}.lproj/Localizable.strings` needs no special locale style.
 
@@ -144,7 +144,7 @@ One JSON catalogue holding every locale, Xcode 15's replacement for `.strings`.
 - **Entries.** `<string name>` is one entry; `<plurals>` becomes `key[quantity]` per `<item>`, only for the quantities present.
 - **Skipped.** `translatable="false"` resources, `<string-array>`, and a `<string>` with inline elements (`<b>`, `<xliff:g>`, CDATA) are kept as they are; `formatted="false"` is translated normally.
 - **Escaping.** `\'`, `\"`, `\n`, `\t` and a leading `\@` or `\?` are decoded and re-escaped on write.
-- **Placeholders are printf**: `%s`, `%d`, `%1$s`, `%%`.
+- **Placeholders are printf**: `%s`, `%d`, `%1$s`, `%%`; a bare `%` is not one.
 - **Writes** patch the file, delete removed keys, and create a missing file with its directory.
 - **Limits.** A translated key that later becomes read-through in the source is removed from the target. `--prune` knows nothing of plural quantities, so it can delete target-only quantities.
 - **Errors** name a root other than `<resources>`, an invalid name or quantity, or a duplicate key; a DTD or entity is rejected.

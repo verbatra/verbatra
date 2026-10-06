@@ -198,7 +198,7 @@ maxLength: {
 }
 ```
 
-- **Seulement ici.** Les clés sont comparées littéralement, jamais comme des globs ; une clé absente de la table n'est jamais mesurée.
+- **Seulement ici.** Les clés sont comparées littéralement, jamais comme des globs ; une clé absente de la table n'est jamais mesurée. Aucun budget n'est déduit d'une description ni des métadonnées d'un format.
 - **Groupes de graphèmes.** La longueur compte les caractères perçus, espaces compris : un emoji, une lettre accentuée ou un caractère CJK compte pour un. La limite est inclusive.
 - **Quand.** Chaque valeur que `translate` produit pour la clé, réutilisations du cache comprises ; une clé à jour n'est mesurée que quand sa source change, ou par [`export --include-unchanged`](/docs/cli/export).
 - **Consultatif.** Un dépassement est quand même écrit et verrouillé, et signalé pour relecture comme [`MAX_LENGTH_EXCEEDED`](/docs/error-codes#max_length_exceeded).

@@ -30,9 +30,8 @@ Un código de locale solo no siempre basta: `sr-Latn` a menudo vuelve en ciríli
 `pt-PT` se confunden. Por eso un proveedor LLM también recibe el nombre en inglés, la escritura y la
 región de cada idioma, tomados de Node.js para el locale de tu configuración aunque `localeMap` envíe
 otro código. Viajan como datos, una regla de sistema fija pide al modelo que escriba en la escritura
-y la variante nombradas, y no forman parte de la huella de la [caché](/docs/the-cache). Lo que recibe
-cada proveedor está en
-[Códigos de locale enviados al proveedor](/docs/providers#códigos-de-locale-enviados-al-proveedor).
+y la variante nombradas, y no forman parte de la huella de la [caché](/docs/the-cache). Un código que
+Node.js no sabe nombrar, como el de uso privado `qaa`, se envía sin nombre.
 
 ## La puerta de integridad
 

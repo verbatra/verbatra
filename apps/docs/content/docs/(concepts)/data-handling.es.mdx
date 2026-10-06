@@ -40,7 +40,7 @@ Este sitio web se rige por su [política de privacidad](/privacy).
 Solo los comandos del diagrama llaman a un proveedor; las acciones de Studio y MCP necesitan
 [`--allow-spend`](/docs/cli/mcp#herramientas-de-gasto). Todo lo demás, ejecuciones de prueba y
 estimaciones incluidas, es local, salvo [`verbatra doctor --live`](/docs/cli/doctor), que envía tu
-clave de API y ningún texto.
+clave de API (ninguna a LibreTranslate) y ningún texto.
 
 Una ejecución de `translate` envía solo las claves ausentes o cambiadas respecto a
 [el archivo de bloqueo](/docs/the-lock-file), menos los aciertos de [la caché](/docs/the-cache), y
@@ -116,7 +116,7 @@ forma de clave de API.
 
 ## Studio y MCP
 
-**Studio** escucha en `127.0.0.1` con un [token de sesión](/docs/cli/studio), rechaza otro `Host` u
+**Studio** escucha solo en `127.0.0.1`, con un [token de sesión](/docs/cli/studio), rechaza otro `Host` u
 `Origin`, y su Content-Security-Policy bloquea las cargas desde internet.
 
 **El servidor MCP** habla por stdio sin abrir puertos. Sus herramientas de lectura devuelven textos,

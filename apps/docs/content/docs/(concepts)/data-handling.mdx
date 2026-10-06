@@ -37,7 +37,7 @@ covered by its [privacy policy](/privacy).
 
 Only the commands in the diagram call a provider; the Studio and MCP actions need
 [`--allow-spend`](/docs/cli/mcp#spend-tools). Everything else, dry runs and estimates included, is local,
-except [`verbatra doctor --live`](/docs/cli/doctor), which sends your API key and no strings.
+except [`verbatra doctor --live`](/docs/cli/doctor), which sends your API key (none to LibreTranslate) and no strings.
 
 A `translate` run sends only keys missing or changed against [the lock file](/docs/the-lock-file),
 minus [cache](/docs/the-cache) hits, and shared text once; a
@@ -112,7 +112,7 @@ API key, with `[REDACTED]`.
 
 ## Studio and MCP
 
-**Studio** binds to `127.0.0.1` with a [session token](/docs/cli/studio), rejects another `Host` or
+**Studio** binds to `127.0.0.1` only, with a [session token](/docs/cli/studio), rejects another `Host` or
 `Origin`, and its Content-Security-Policy blocks fetches to the internet.
 
 **The MCP server** talks over stdio and opens no port. Its read tools return your strings, glossary

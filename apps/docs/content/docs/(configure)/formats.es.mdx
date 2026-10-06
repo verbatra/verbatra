@@ -117,7 +117,7 @@ Sentencias `"key" = "value";`, con los plurales en el `.stringsdict` hermano (mi
 - **Solo UTF-8.** Un archivo UTF-16 falla con `INVALID_STRUCTURE`; vuelve a guardarlo como UTF-8.
 - **Comentarios.** Un comentario `/* ... */` antes de una entrada es contexto de solo lectura; los comentarios `//` se conservan. Los escapes `\"`, `\\`, `\n`, `\t` y `\U` se decodifican; al escribir solo se escapan la comilla, la barra invertida, el salto de línea y el tabulador.
 - **Las escrituras conservan** el orden, los comentarios y las líneas en blanco; una clave eliminada se va con su propio comentario. Un destino ausente se crea, directorio `.lproj` y `.stringsdict` incluidos.
-- **Los placeholders son printf**: `%@`, `%d`, `%1$@`, `%%`, con banderas, ancho y longitud como decoración; un reordenamiento posicional se acepta.
+- **Los placeholders son printf**: `%@`, `%d`, `%1$@`, `%%`, con banderas, ancho y longitud como decoración; un reordenamiento posicional se acepta. Un `%` suelto (`"50% off"`) no lo es.
 - **Plurales.** Cada categoría del `.stringsdict` pasa a ser `<key>_<category>` (`photo_count_one`), y solo hacen el ciclo completo las categorías que tiene un locale. Los errores nombran el archivo y la clave; la clave de formato, el nombre de la variable y el tipo de valor sobreviven a una reescritura.
 - **Diseño.** `{locale}.lproj/Localizable.strings` no necesita ningún estilo de locale especial.
 
@@ -144,7 +144,7 @@ Un único catálogo JSON con todos los locales, el sustituto de `.strings` desde
 - **Entradas.** `<string name>` es una entrada; `<plurals>` pasa a ser `key[quantity]` por cada `<item>`, solo para las cantidades presentes.
 - **Se omiten.** Los recursos con `translatable="false"`, `<string-array>` y un `<string>` con elementos en línea (`<b>`, `<xliff:g>`, CDATA) se conservan tal cual; `formatted="false"` se traduce con normalidad.
 - **Escapado.** `\'`, `\"`, `\n`, `\t` y un `\@` o `\?` inicial se decodifican y se vuelven a escapar al escribir.
-- **Los placeholders son printf**: `%s`, `%d`, `%1$s`, `%%`.
+- **Los placeholders son printf**: `%s`, `%d`, `%1$s`, `%%`; un `%` suelto no lo es.
 - **Las escrituras** parchean el archivo, borran las claves eliminadas y crean un archivo ausente con su directorio.
 - **Limitaciones.** Una clave traducida que después pasa a ser de paso directo en el origen se elimina del destino. `--prune` no sabe nada de cantidades plurales, así que puede borrar cantidades que solo existen en el destino.
 - **Los errores** nombran una raíz distinta de `<resources>`, un nombre o una cantidad no válidos, o una clave duplicada; una DTD o una entidad se rechaza.

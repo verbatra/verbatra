@@ -198,7 +198,7 @@ maxLength: {
 }
 ```
 
-- **Only here.** Keys match literally, never as globs; a key not in the map is never measured.
+- **Only here.** Keys match literally, never as globs; a key not in the map is never measured. No budget is derived from a description or a format's metadata.
 - **Grapheme clusters.** Length counts perceived characters, whitespace included: an emoji, an accented letter or a CJK character is one. The limit is inclusive.
 - **When.** Every value `translate` produces for the key, cache reuses included; an up-to-date key is measured only once its source changes, or by [`export --include-unchanged`](/docs/cli/export).
 - **Advisory.** An overrun is still written and locked, and flagged [`MAX_LENGTH_EXCEEDED`](/docs/error-codes#max_length_exceeded) for review.
