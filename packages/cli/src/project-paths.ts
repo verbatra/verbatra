@@ -92,6 +92,18 @@ export function linkRefusal(cwd: string, file: string, policy: LinkPolicy): stri
 
 const NO_FOLLOW = constants.O_NOFOLLOW ?? 0;
 
+export function appendProjectFile(cwd: string, file: string, content: string): void {
+  const descriptor = openSync(
+    resolve(cwd, file),
+    constants.O_WRONLY | constants.O_APPEND | NO_FOLLOW,
+  );
+  try {
+    writeFileSync(descriptor, content);
+  } finally {
+    closeSync(descriptor);
+  }
+}
+
 export function writeProjectFile(
   cwd: string,
   file: string,

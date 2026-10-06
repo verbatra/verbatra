@@ -711,6 +711,21 @@ function renderFailure(
   return 2;
 }
 
+function warnShadowedConfig(
+  shadowed: string | undefined,
+  cwd: string,
+  dryRun: boolean,
+  streams: Streams,
+): void {
+  if (shadowed === undefined) {
+    return;
+  }
+  const verb = dryRun ? "would take" : "takes";
+  streams.err(
+    `verbatra: the config in ${shadowed} also covers this directory; from here on, ${CONFIG_FILE} in ${resolve(cwd)} ${verb} its place. Delete one of them if that is not what you want.\n`,
+  );
+}
+
 export async function runInit(
   rawOpts: unknown,
   streams: Streams,
@@ -744,11 +759,7 @@ export async function runInit(
     const out = json ? SILENT_STREAMS : streams;
     const shadowed = parentConfigDir(cwd);
     const files = commitAll(writes, agent, { cwd, dryRun, streams: out, files: [] });
-    if (shadowed !== undefined) {
-      streams.err(
-        `verbatra: the config in ${shadowed} also covers this directory; from here on, ${CONFIG_FILE} in ${resolve(cwd)} takes its place. Delete one of them if that is not what you want.\n`,
-      );
-    }
+    warnShadowedConfig(shadowed, cwd, dryRun, streams);
     const steps = nextSteps(plan, agent, opts.cwd, dryRun);
     if (json) {
       const keyEnvVar = keyEnvVarFor(plan.draft.provider);

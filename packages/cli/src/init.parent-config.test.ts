@@ -32,6 +32,25 @@ describe("runInit in a subdirectory of a configured project", () => {
     expect(cap.err()).toContain(`the config in ${root} also covers this directory`);
   });
 
+  it("says the new config would take the parent's place under --dry-run", async () => {
+    writeFileSync(join(root, ".verbatrarc.json"), "{}");
+    const cap = captureStreams();
+
+    await runInit(
+      {
+        cwd: join(root, "packages", "a"),
+        provider: "deepl",
+        format: "i18next-json",
+        yes: true,
+        dryRun: true,
+      },
+      cap.streams,
+      { isTty: () => false },
+    );
+
+    expect(cap.err()).toContain("would take its place");
+  });
+
   it("stays quiet when no parent directory holds a config", async () => {
     const cap = captureStreams();
 
