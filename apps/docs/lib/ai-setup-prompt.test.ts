@@ -22,7 +22,7 @@ type Node = {
   name?: string;
   depth?: number;
   value?: string;
-  attributes?: unknown[];
+  attributes?: Array<{ type: string; name: string; value: unknown }>;
   children?: Node[];
   data?: Record<string, unknown>;
 };
