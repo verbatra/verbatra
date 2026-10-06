@@ -16,6 +16,7 @@ import {
 } from "./agent-scaffold.js";
 import type { CliErrorCode } from "./cli-error-codes.js";
 import { CliUsageError } from "./cli-usage-error.js";
+import { parentConfigDir } from "./config-presence.js";
 import { assertCwdDirectory } from "./cwd-option.js";
 import { planGitignore } from "./gitignore.js";
 import {
@@ -741,7 +742,13 @@ export async function runInit(
     const agent = opts.agent === true ? planAgentScaffold(cwd, clients) : undefined;
     const writes = baseWrites(plan, cwd, opts.force === true);
     const out = json ? SILENT_STREAMS : streams;
+    const shadowed = parentConfigDir(cwd);
     const files = commitAll(writes, agent, { cwd, dryRun, streams: out, files: [] });
+    if (shadowed !== undefined) {
+      streams.err(
+        `verbatra: the config in ${shadowed} also covers this directory; from here on, ${CONFIG_FILE} in ${resolve(cwd)} takes its place. Delete one of them if that is not what you want.\n`,
+      );
+    }
     const steps = nextSteps(plan, agent, opts.cwd, dryRun);
     if (json) {
       const keyEnvVar = keyEnvVarFor(plan.draft.provider);
