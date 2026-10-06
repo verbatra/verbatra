@@ -185,6 +185,15 @@ franchir. Une valeur qui ne la franchirait pas est copiée telle quelle depuis l
 dans `copied` plutôt qu'écrite sous une forme cassée, l'entrée reste donc présente et continue de
 s'afficher.
 
+<AvailableFrom version="0.12.0" />
+
+`mode` choisit la transformation dans `PSEUDO_MODES` : `accented`, celle par défaut, ou `bidi`, qui
+entoure plutôt chaque mot de texte traduisible d'une marque et d'un forçage de droite à gauche et
+laisse dehors les placeholders, la syntaxe ICU, le balisage, les chiffres et la ponctuation, sans
+rien accentuer. En mode `bidi`, `locale` vaut `ar-XB` par défaut, un code résolu de droite à
+gauche ; voir [`verbatra pseudo`](/docs/cli/pseudo) pour la rencontre entre ses règles de pluriel
+de l'arabe et les formes de pluriel de ta source.
+
 `locale` vaut `en-XA` par défaut et `out`
 `.verbatra-local/pseudo`, que `verbatra init` ajoute déjà à `.gitignore` ; le `files.pattern`
 configuré y est développé, le fichier garde donc la disposition qu'attend l'application. Une
@@ -194,7 +203,7 @@ configuré, est refusée avec `PSEUDO_OUTPUT_CONFLICT` avant que quoi que ce soi
 `out` absolu, qui sort de `cwd` ou qui nomme `cwd` lui-même, comme `.`, et, quand `deps.fs` implémente `realpath` comme la valeur par défaut, d'un `out` qui y aboutit, dans le dossier d'un fichier de locale configuré ou sur un autre fichier dont le projet dépend, une fois les liens symboliques résolus. Comme le fichier vit en dehors de `files.pattern`, `translate`
 ne dépense jamais pour lui et `check` et `diff` ne le signalent jamais comme désynchronisé.
 
-Renvoie un `PseudolocalizeResult` : la `locale`, le `path` absolu, combien d'`entries` ont été
+Renvoie un `PseudolocalizeResult` : la `locale`, le `mode`, le `path` absolu, combien d'`entries` ont été
 traitées, combien ont été `transformed`, les clés qui ont été `copied`, et si quelque chose a été
 `written`. La transformation est déterministe, une seconde exécution sur une source inchangée ne
 réécrit donc rien et signale `written` à false. Pour `xliff` et `apple-xcstrings`, dont l'écriture

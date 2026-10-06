@@ -165,8 +165,10 @@ nichts um. Was das für dich heißt:
 - **Studio zeigt Werte von rechts nach links** für jede Locale, deren Schrift so läuft, fragt dazu
   den Browser nach der Richtung und geht sonst nach der wahrscheinlichen Schrift der Locale (`ku-Arab`
   von rechts nach links, `ku` von links nach rechts). Nur die Anzeige ändert sich.
-- **`verbatra pseudo` hat keinen Rechts-nach-links-Modus**: Es testet die Layoutbreite, nicht die
-  Spiegelung.
+- **[`verbatra pseudo --mode bidi`](/docs/cli/pseudo) zeigt deine Quelle von rechts nach links**
+  in einer `ar-XB`-Pseudolocale, sodass ein Layout, das Links-nach-rechts-Text voraussetzt, auffällt,
+  bevor es eine Übersetzung gibt. Platzhalter bleiben links nach rechts; gespiegelte Bilder und
+  Icons prüfst du selbst.
 
 ## Ressourcenarme Sprachen und lokale Modelle
 

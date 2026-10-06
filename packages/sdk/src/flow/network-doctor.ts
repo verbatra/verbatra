@@ -60,17 +60,31 @@ function describeOutcome(judgement: EndpointJudgement, restricted: boolean): str
     : "permitted. Every request and redirect is checked against the policy again.";
 }
 
+export type NetworkAssessment =
+  | { readonly kind: "resolved"; readonly policy: NetworkPolicy }
+  | { readonly kind: "invalid"; readonly error: string };
+
+export function assessNetworkPolicy(
+  network: NetworkConfig | undefined,
+  env: EnvironmentSource,
+): NetworkAssessment {
+  try {
+    return { kind: "resolved", policy: resolveNetworkPolicy(network, env) };
+  } catch (error) {
+    return { kind: "invalid", error: errorMessage(error) };
+  }
+}
+
 export function checkNetworkPolicy(
   provider: ProviderConfig,
   network: NetworkConfig | undefined,
   env: EnvironmentSource,
 ): NetworkVerdict {
-  let policy: NetworkPolicy;
-  try {
-    policy = resolveNetworkPolicy(network, env);
-  } catch (error) {
-    return { passed: false, detail: errorMessage(error) };
+  const assessment = assessNetworkPolicy(network, env);
+  if (assessment.kind === "invalid") {
+    return { passed: false, detail: assessment.error };
   }
+  const policy = assessment.policy;
   const summary = describePolicy(policy);
   if (!isMachineProvider(provider)) {
     return { passed: true, detail: `${summary} No provider is called (provider "none").` };

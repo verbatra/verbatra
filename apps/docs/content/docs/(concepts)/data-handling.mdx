@@ -103,7 +103,7 @@ Retention is set by the vendor and your contract. Quotes as of September 2026.
 | `verbatra.lock.json` | a hash of each source string a translation was made from | yes |
 | `verbatra.provenance.json` | per key, the write path, provider and model behind the value, and any review decision with the reviewer's name; no translated text or timestamps | yes |
 | `verbatra.cache.json` | source text and its translations, per provider, model, tone, glossary and `localeMap` | no, `verbatra init` gitignores it |
-| `.verbatra-local/` | the last run's status, review flags and token usage, generated pseudolocales, and write locks | no, gitignored |
+| `.verbatra-local/` | the last run's status, review flags and token usage, generated pseudolocales, and write locks, each recording the host name and process ID of the run holding it until the run releases it | no, gitignored |
 | `.env`, `.env.local` | your API keys, if you keep them there | never, `verbatra init` gitignores both |
 
 ## API keys
@@ -151,3 +151,5 @@ provider and model behind every machine-translated value.
 5. Decide which AI agents may use Studio or the MCP server, and whether they need
    `--redact-values`.
 6. Commit `verbatra.provenance.json`, and archive `verbatra report provenance --json` per release.
+7. Run `verbatra doctor --data-flow --json` and attach the manifest: it names, for this
+   project, each host and the data it receives ([details](/docs/cli/doctor#data-flow)).

@@ -1,6 +1,5 @@
 import { access, mkdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { pathToFileURL } from "node:url";
 import { execa } from "execa";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
@@ -10,9 +9,9 @@ import {
   readJsonIn,
   readSharedConsumer,
   runVerbatra,
-  writeFileIn,
   writeJsonIn,
 } from "../src/harness.js";
+import { noNetworkNodeOptions } from "../src/no-network.js";
 
 interface LocaleSummaryJson {
   locale: string;
@@ -34,16 +33,6 @@ interface DoctorJson {
 
 const NEEDS_HUMAN_EXIT_CODE = 3;
 
-const NO_NETWORK_PRELOAD = [
-  'import net from "node:net";',
-  "const refuse = () => {",
-  '  throw new Error("human-only e2e: a network call was attempted");',
-  "};",
-  "globalThis.fetch = refuse;",
-  "net.Socket.prototype.connect = refuse;",
-  "",
-].join("\n");
-
 const NO_KEYS: Record<string, string> = {
   ANTHROPIC_API_KEY: "",
   OPENAI_API_KEY: "",
@@ -58,10 +47,10 @@ let offlineEnv: Record<string, string>;
 
 beforeAll(async () => {
   consumer = await readSharedConsumer();
-  const preloadDir = join(consumer.dir, "human-only-preload");
-  await writeFileIn(preloadDir, "no-network.mjs", NO_NETWORK_PRELOAD);
-  const preloadUrl = pathToFileURL(join(preloadDir, "no-network.mjs")).href;
-  offlineEnv = { ...NO_KEYS, NODE_OPTIONS: `--import ${preloadUrl}` };
+  offlineEnv = {
+    ...NO_KEYS,
+    NODE_OPTIONS: await noNetworkNodeOptions(consumer.dir, "human-only"),
+  };
 }, 180_000);
 
 function successResult<TResult>(stdout: string, command: string): TResult {

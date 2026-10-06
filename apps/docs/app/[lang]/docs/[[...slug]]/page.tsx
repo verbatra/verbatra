@@ -168,6 +168,8 @@ export default async function Page(props: { params: Promise<{ slug?: string[]; l
   );
 }
 
+export const dynamicParams = false;
+
 export function generateStaticParams() {
   return source.generateParams();
 }

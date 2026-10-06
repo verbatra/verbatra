@@ -6,7 +6,7 @@ type: reference
 ---
 <AvailableFrom version="0.11.0" />
 
-Fais tourner ton app dans une langue qui n'existe pas. `pseudo` construit une fausse locale à partir de tes chaînes source : chaque valeur est accentuée, allongée et entourée de marqueurs visibles, si bien que les boutons tronqués, les phrases recollées en morceaux et les libellés jamais extraits sautent aux yeux. La commande ne construit aucun fournisseur, ne lit aucune clé d'API et ne fait aucune requête réseau, elle fonctionne donc avant qu'une clé existe.
+Fais tourner ton app dans une langue qui n'existe pas. `pseudo` construit une fausse locale à partir de tes chaînes source : chaque valeur est accentuée, allongée et entourée de marqueurs visibles, si bien que les boutons tronqués, les phrases recollées en morceaux et les libellés jamais extraits sautent aux yeux. Avec `--mode bidi`, elle affiche plutôt chaque chaîne de droite à gauche. La commande ne construit aucun fournisseur, ne lit aucune clé d'API et ne fait aucune requête réseau, elle fonctionne donc avant qu'une clé existe.
 
 ## Synopsis
 
@@ -18,7 +18,8 @@ verbatra pseudo [flags]
 
 | Option | Argument | Défaut | Effet |
 | --- | --- | --- | --- |
-| `--locale` | `<code>` | `en-XA` | la pseudo-locale à générer ; lettres, chiffres et tirets uniquement (sinon `INVALID_LOCALE`) |
+| `--mode` | `<mode>` | `accented` | <AvailableFrom version="0.12.0" /> la transformation : `accented` ou `bidi`, qui affiche chaque mot de droite à gauche (sinon `INVALID_OPTION`) |
+| `--locale` | `<code>` | `en-XA` (`ar-XB` avec `--mode bidi`) | la pseudo-locale à générer ; lettres, chiffres et tirets uniquement (sinon `INVALID_LOCALE`) |
 | `--out` | `<path>` | `.verbatra-local/pseudo` | répertoire où écrire la pseudo-locale, relatif au répertoire de travail et à l'intérieur de celui-ci |
 
 La commande accepte aussi les [options globales](/docs/cli#options-globales) `--cwd`, `--config` et `--json`.
@@ -37,6 +38,23 @@ La commande accepte aussi les [options globales](/docs/cli#options-globales) `--
 `[Ĥéĺĺó {{name}}, ýóú ĥáṽé {{count}} úńŕéáḋ ṁéśśáġéś············]`.
 
 Seul le texte traduisible change. Les placeholders survivent dans toutes les syntaxes que reconnaissent les [adaptateurs de format](/docs/formats), et dans un message ICU les noms d'arguments, les mots-clés `plural` et `select` et les sélecteurs de branche restent tels quels. Les formes plurielles vue-i18n séparées par des barres verticales sont transformées une à une : `car | cars` devient `[ćáŕ··] | [ćáŕś··]`. La transformation est déterministe, donc le fichier produit des diffs propres.
+
+### Mode de droite à gauche
+
+<AvailableFrom version="0.12.0" />
+
+`--mode bidi` remplace les accents par un forçage de droite à gauche, l'approche qu'Android et Chromium suivent pour leur pseudo-locale `ar-XB`, si bien qu'une mise en page qui suppose un texte de gauche à droite se voit avant qu'existe la moindre traduction de droite à gauche.
+
+| Étape | Ce que tu vois |
+| --- | --- |
+| Forcer | chaque mot est entouré d'une marque et d'un forçage de droite à gauche (`U+200F U+202E` avant, `U+202C U+200F` après), donc `Save` s'affiche `evaS` |
+| Garder | les placeholders, la syntaxe ICU, le balisage, les chiffres et la ponctuation restent hors du forçage et se lisent de gauche à droite, comme dans un vrai texte de droite à gauche |
+
+Rien n'est accentué, allongé ni mis entre crochets : la largeur, c'est le mode par défaut qui la teste. Le fichier garde les lettres dans leur ordre d'origine, et chaque valeur passe le même contrôle d'intégrité, donc les placeholders et les branches de pluriel restent identiques à l'octet près.
+
+La pseudo-locale par défaut est `ar-XB`, que `Intl.Locale` et la plupart des bibliothèques i18n résolvent de droite à gauche, donc une app qui déduit `dir` de la locale bascule toute seule. `ar-XB` suit les règles de pluriel de l'arabe (`zero`, `one`, `two`, `few`, `many`, `other`). Les messages ICU, les `<plurals>` Android, gettext, les catalogues Apple et les barres verticales vue-i18n résolvent un nombre avec les formes que le fichier a déjà. `i18next-json` range chaque forme sous sa propre clé `_one` ou `_other`, donc le fichier reçoit aussi chaque catégorie qui manque à la source (`_zero`, `_two`, `_few`, `_many`, et les formes ordinales de même), remplie à partir de la forme `other` de la source, et aucun nombre ne se rabat sur ta langue de repli. Passe `--locale en-XB` pour garder les règles de pluriel de l'anglais, et pose `dir="rtl"` toi-même.
+
+Un assainisseur qui retire les caractères de formatage Unicode enlève le forçage, et la chaîne s'affiche de nouveau de gauche à droite. Les éditeurs et scanners de code qui signalent les caractères bidirectionnels cachés marquent le fichier, une raison de plus pour qu'il reste sous `.verbatra-local`.
 
 ### Rien de cassé n'atteint jamais le fichier
 
@@ -60,7 +78,7 @@ Les writers de `xliff` et `apple-xcstrings` retouchent des unités déjà prése
 
 ### Sortie JSON
 
-Avec `--json`, l'[enveloppe JSON](/docs/cli/output#sortie-json) porte `locale`, `path`, `entries` (entrées source), `transformed` (pseudo-localisées), `copied` (clés copiées telles quelles) et `written` (`false` quand le fichier était déjà à jour).
+Avec `--json`, l'[enveloppe JSON](/docs/cli/output#sortie-json) porte `locale`, `mode` (`accented` ou `bidi`), `path`, `entries` (entrées écrites, y compris les formes de pluriel ajoutées en mode bidi), `transformed` (valeurs qui diffèrent de la source), `copied` (clés copiées telles quelles) et `written` (`false` quand le fichier était déjà à jour).
 
 ### Retour dans le terminal
 
@@ -71,7 +89,7 @@ Le résultat va sur stdout ; la ligne de progression et l'étape suivante vont s
 ```text output
 verbatra: pseudolocalizing the source... done (0.1s)
 verbatra pseudo
-  en-XA: 118 of 120 entries pseudolocalized
+  en-XA (accented): 118 of 120 entries pseudolocalized
     copied verbatim: legal.disclaimer, brand.name
   wrote .verbatra-local/pseudo/locales/en-XA.json
 next: load .verbatra-local/pseudo/locales/en-XA.json as the en-XA locale in your dev server
@@ -85,10 +103,10 @@ Une deuxième exécution sur une source inchangée rapporte `unchanged` au lieu 
 # générer en-XA sous .verbatra-local/pseudo
 verbatra pseudo
 
-# générer une seconde pseudo-locale à côté
-verbatra pseudo --locale en-XB
+# afficher chaque chaîne de droite à gauche en ar-XB
+verbatra pseudo --mode bidi
 
-# l'écrire là où le serveur de dev sert déjà des fichiers statiques
+# l'écrire là où le serveur de dev sert déjà des fichiers statiques (ne commite pas un fichier bidi : GitHub signale son Unicode caché)
 verbatra pseudo --out public/locales-pseudo
 
 # résultat lisible par une machine pour un script

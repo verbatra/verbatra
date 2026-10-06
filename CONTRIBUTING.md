@@ -278,6 +278,14 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
    rate can be filed under `provider/model`; the switch is exhaustive and will not
    compile without it. This is what `translate --estimate` reads.
 
+   Next to it, add the entry to `PROVIDER_DATA_FLOW` in
+   `packages/sdk/src/config/provider-data-flow.ts`: the kinds of data a request
+   carries, whether it sends an API key, and what `doctor --live` sends to its
+   language list. It is a mapped type over `MachineProviderId`, so a missing entry
+   is a compile error, and `verbatra doctor --data-flow` reads it. If the provider
+   masks placeholders, add its wire to `MASKED_WIRES`
+   (`packages/ai-providers/src/masked-wire.ts`) so the withheld count matches it.
+
 9. **`packages/sdk/src/scaffolding.ts`** - nothing to edit, but expect a compile
    error here if you skipped step 3 or step 4 for a scaffoldable provider.
    `_envCoversAllProviders` requires an env entry for every
@@ -298,7 +306,10 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
 
 12. **Docs.** Add the provider to `apps/docs/content/docs/(configure)/providers.mdx`
     and to `(configure)/config-file.mdx`, and update the `.de.mdx`, `.es.mdx` and
-    `.fr.mdx` sibling of each in the same change. If `verbatra init` offers the
+    `.fr.mdx` sibling of each in the same change. Add its row to the "What each
+    provider receives" table of `(concepts)/data-handling.mdx` and its siblings;
+    `scripts/verify-docs-data-flow-parity.test.mjs` fails until all four list it.
+    If `verbatra init` offers the
     provider, add it to the `--provider` list in `apps/docs/lib/ai-setup-prompt.ts`
     too; `ai-setup-prompt.test.ts` only checks that constant against the fenced
     block in the four `start-with-ai` pages, so it catches a stale page but never

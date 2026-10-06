@@ -72,6 +72,7 @@ describe("displayPath: paths relative to the working directory", () => {
       renderPseudoHuman(
         {
           locale: "en-XA",
+          mode: "accented",
           entries: 1,
           transformed: 1,
           copied: [],

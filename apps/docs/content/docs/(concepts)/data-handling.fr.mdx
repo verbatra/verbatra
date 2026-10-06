@@ -106,7 +106,7 @@ septembre 2026.
 | `verbatra.lock.json` | un hash de chaque chaîne source à partir de laquelle une traduction a été faite | oui |
 | `verbatra.provenance.json` | par clé, le chemin d'écriture, le fournisseur et le modèle de la valeur, et toute décision de relecture avec le nom du relecteur ; aucun texte traduit ni horodatage | oui |
 | `verbatra.cache.json` | le texte source et ses traductions, par fournisseur, modèle, ton, glossaire et `localeMap` | non, `verbatra init` l'ajoute au `.gitignore` |
-| `.verbatra-local/` | le statut de la dernière exécution, les signalements de relecture et la consommation de tokens, les pseudolocales générées, et les verrous d'écriture | non, ignoré par git |
+| `.verbatra-local/` | le statut de la dernière exécution, les signalements de relecture et la consommation de tokens, les pseudolocales générées, et les verrous d'écriture, chacun avec le nom d'hôte et l'ID de processus de l'exécution qui le détient jusqu'à ce qu'elle le libère | non, ignoré par git |
 | `.env`, `.env.local` | tes clés d'API, si tu les gardes là | jamais, `verbatra init` les ajoute tous deux au `.gitignore` |
 
 ## Clés d'API
@@ -157,3 +157,5 @@ chaque valeur traduite automatiquement.
    `--redact-values`.
 6. Commite `verbatra.provenance.json`, et archive `verbatra report provenance --json` à chaque
    version.
+7. Lance `verbatra doctor --data-flow --json` et joins le manifeste : il nomme, pour ce
+   projet, chaque hôte et les données qu'il reçoit ([détails](/docs/cli/doctor#flux-de-données)).

@@ -54,6 +54,7 @@ export { googleTranslateLanguageSupport } from "./google-translate/language-supp
 export type { GoogleTranslateResult } from "./google-translate/types.js";
 export {
   declareKeyEnvVar,
+  keyEnvVarNames,
   LIBRETRANSLATE_ENV_VAR,
   OPENAI_COMPATIBLE_ENV_VAR,
   PROVIDER_ENV,
@@ -79,6 +80,7 @@ export {
 } from "./libretranslate/libretranslate-provider.js";
 export type { LibreTranslateResult } from "./libretranslate/types.js";
 export {
+  buildDataPayload,
   type DataPayloadInput,
   dataPayloadCharacters,
   resultPayloadCharacters,
@@ -87,8 +89,19 @@ export {
 export { llmLanguageSupport } from "./llm/well-tested-languages.js";
 export type { LocaleMap } from "./locale-map.js";
 export {
+  entriesWithheldByMasking,
+  isMaskingProvider,
+  type MaskingProviderId,
+} from "./masked-wire.js";
+export {
+  type EndpointCandidate,
+  type EndpointKeyCondition,
   type EndpointTarget,
+  type EndpointTransport,
+  endpointCandidates,
   type ProviderEndpoint,
+  type ProxyInEffect,
+  proxiesInEffect,
   resolveProviderEndpoint,
 } from "./network/endpoints.js";
 export {
@@ -111,7 +124,11 @@ export {
   type NetworkRule,
   type NetworkRuleSource,
 } from "./network/policy.js";
-export { type EndpointJudgement, judgeProviderEndpoint } from "./network/preflight.js";
+export {
+  type EndpointJudgement,
+  judgeEndpoint,
+  judgeProviderEndpoint,
+} from "./network/preflight.js";
 export type { ProviderNetwork } from "./network/transport.js";
 export {
   type OpenAiConfig,

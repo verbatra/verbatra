@@ -20,6 +20,8 @@ const sans = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains-mono" });
 const display = Space_Grotesk({ subsets: ["latin"], variable: "--font-space-grotesk" });
 
+export const dynamicParams = false;
+
 export function generateStaticParams(): Array<{ lang: string }> {
   return i18n.languages.map((lang) => ({ lang }));
 }

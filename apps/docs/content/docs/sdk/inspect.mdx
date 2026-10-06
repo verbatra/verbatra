@@ -58,6 +58,35 @@ that does not exist.
 Only a failed check carries `fix`, one imperative next step; like `detail`, it names variables and
 paths, never a key value.
 
+### dataFlow
+
+<AvailableFrom version="0.12.0" />
+
+Describes where a project's data goes, for the loaded config, as a versioned `DataFlowManifest`: the provider, each destination host with the [network policy](/docs/network-policy) verdict, the kinds of data sent with project counts, the code sent per target locale, the local files, other requests, and the agent surfaces. It reads no API key and makes no network request, so DeepL is listed with both of its hosts. An invalid network variable or an unreadable source file is reported in the manifest rather than thrown. [`verbatra doctor --data-flow`](/docs/cli/doctor#data-flow) prints it, and `doctor({ dataFlow: true })` returns it as `DoctorResult.dataFlow`.
+
+```ts title="Signature"
+function dataFlow(
+  input?: DataFlowInput,
+  deps?: DataFlowDeps,
+): Promise<DataFlowManifest>;
+```
+
+<SdkTypeTable name="DataFlowInput" />
+
+**Returns:** `DataFlowManifest`
+
+**Throws:** [`CONFIG_NOT_FOUND`](/docs/error-codes#config_not_found), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
+
+### dataFlowManifestSchema
+
+<AvailableFrom version="0.12.0" />
+
+The zod schema for a `DataFlowManifest`, exported so a CI step or a reviewer's tooling can validate a manifest. Unknown fields are allowed and kept, because a newer verbatra may add fields within version 1; ignore the ones you do not know. `DATA_FLOW_MANIFEST_VERSION` is the `version` this build writes.
+
+```ts title="Signature"
+const dataFlowManifestSchema: z.ZodType<DataFlowManifest>;
+```
+
 ### extract
 
 <AvailableFrom version="0.11.0" />

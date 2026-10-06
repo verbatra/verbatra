@@ -3,6 +3,7 @@ import { appliesTerms } from "../glossary.js";
 import type { ProviderCallContext } from "../guard.js";
 import { resolveProviderLocale } from "../locale-map.js";
 import { translateMaskedBatch } from "../masked-batch.js";
+import { MASKED_WIRES } from "../masked-wire.js";
 import type { ProviderNetwork } from "../network/transport.js";
 import { containsMarkupTag } from "../placeholder-protection.js";
 import { type TranslateRequest, type TranslationProvider, validateRequest } from "../provider.js";
@@ -86,9 +87,7 @@ async function translate(
     genericGlossarySupplied: appliesTerms(data.glossary),
   });
   return translateMaskedBatch<LibreTranslateTextFormat>(data, request, notices, {
-    masking: { keepMarkup: true },
-    encode: (masked) => masked.text,
-    decode: (text) => text,
+    ...MASKED_WIRES.libretranslate,
     groups: ["text", "html"],
     groupOf: (item) => (containsMarkupTag(item.text) ? "html" : "text"),
     send: (texts, format) => sendGroup(call, texts, format),

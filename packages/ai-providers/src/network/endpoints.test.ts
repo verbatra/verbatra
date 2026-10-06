@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { proxiesInEffect, resolveProviderEndpoint } from "./endpoints.js";
+import { endpointCandidates, proxiesInEffect, resolveProviderEndpoint } from "./endpoints.js";
 
 describe("resolveProviderEndpoint", () => {
   it.each([
@@ -65,6 +65,29 @@ describe("resolveProviderEndpoint", () => {
     expect(
       resolveProviderEndpoint({ id: "libretranslate", baseUrl: "http://127.0.0.1:5000" }, {}),
     ).toEqual({ url: "http://127.0.0.1:5000", knownPublic: false, transport: "fetch" });
+  });
+});
+
+describe("endpointCandidates", () => {
+  it("lists both DeepL hosts without reading the key, each with the key it applies to", () => {
+    const candidates = endpointCandidates({ id: "deepl" }, { DEEPL_API_KEY: "abc:fx" });
+    expect(candidates.map(({ endpoint, when }) => [endpoint.url, when])).toEqual([
+      ["https://api.deepl.com", "paid-key"],
+      ["https://api-free.deepl.com", "free-key"],
+    ]);
+  });
+
+  it("lists the one endpoint every other provider resolves to", () => {
+    expect(
+      endpointCandidates({ id: "openai" }, { OPENAI_BASE_URL: "https://proxy.example/v1" }),
+    ).toEqual([
+      {
+        endpoint: resolveProviderEndpoint(
+          { id: "openai" },
+          { OPENAI_BASE_URL: "https://proxy.example/v1" },
+        ),
+      },
+    ]);
   });
 });
 

@@ -1,4 +1,4 @@
-import { protectedMask } from "../placeholder/protected-runs.js";
+import { protectedMask, protectedRuns } from "../placeholder/protected-runs.js";
 
 const ACCENTS: Readonly<Record<string, string>> = {
   a: "á",
@@ -96,4 +96,26 @@ export function pseudolocalizeValue(value: string): string {
   }
   const padding = FILLER.repeat(Math.ceil(translatable * EXPANSION_RATIO));
   return `${OPEN_MARKER}${body}${padding}${CLOSE_MARKER}`;
+}
+
+const RIGHT_TO_LEFT_MARK = "\u200f";
+
+const RIGHT_TO_LEFT_OVERRIDE = "\u202e";
+
+const POP_DIRECTIONAL_FORMATTING = "\u202c";
+
+const WORD = /[\p{L}\p{M}]+/gu;
+
+function overrideWords(text: string): string {
+  return text.replace(
+    WORD,
+    (word) =>
+      `${RIGHT_TO_LEFT_MARK}${RIGHT_TO_LEFT_OVERRIDE}${word}${POP_DIRECTIONAL_FORMATTING}${RIGHT_TO_LEFT_MARK}`,
+  );
+}
+
+export function pseudolocalizeBidiValue(value: string): string {
+  return protectedRuns(value)
+    .map((run) => (run.protected ? run.text : overrideWords(run.text)))
+    .join("");
 }

@@ -48,6 +48,39 @@ describe("pseudolocalize: where the output goes", () => {
     expect((await pseudolocalize({ config: cfg(), cwd: dir })).locale).toBe("en-XA");
   });
 
+  it("defaults to the ar-XB pseudolocale in bidi mode and reports the mode", async () => {
+    const dir = await project({ greeting: "Hello" });
+
+    const result = await pseudolocalize({ config: cfg(), cwd: dir, mode: "bidi" });
+
+    expect(result).toMatchObject({ locale: "ar-XB", mode: "bidi" });
+    expect(result.path).toBe(outputPath(dir, "ar-XB"));
+    expect(await readJsonFile(result.path)).toEqual({ greeting: "\u200f\u202eHello\u202c\u200f" });
+  });
+
+  it("reports the accented mode when none is given", async () => {
+    const dir = await project({ greeting: "Hello" });
+
+    expect((await pseudolocalize({ config: cfg(), cwd: dir })).mode).toBe("accented");
+  });
+
+  it("lets an explicit locale override the bidi default", async () => {
+    const dir = await project({ greeting: "Hello" });
+
+    const result = await pseudolocalize({ config: cfg(), cwd: dir, mode: "bidi", locale: "en-XB" });
+
+    expect(result.locale).toBe("en-XB");
+    expect(await readJsonFile(result.path)).toEqual({ greeting: "\u200f\u202eHello\u202c\u200f" });
+  });
+
+  it("refuses a bidi default locale that the project already configures", async () => {
+    const dir = await project({ greeting: "Hello" });
+
+    await expect(
+      pseudolocalize({ config: cfg({ targetLocales: ["de", "ar-XB"] }), cwd: dir, mode: "bidi" }),
+    ).rejects.toMatchObject({ code: "PSEUDO_OUTPUT_CONFLICT" });
+  });
+
   it("accepts another pseudolocale code", async () => {
     const dir = await project({ greeting: "Hello" });
 

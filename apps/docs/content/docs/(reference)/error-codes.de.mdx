@@ -128,9 +128,9 @@ Ein Fehlschlag keinen eigenen Code mitbrachte (der Ausweich-Code).
 
 ### INVALID_OPTION
 
-Ein `init`-Flag nicht zum Provider passt (`--base-url` ohne `openai-compatible` oder `libretranslate`, `--model` bei DeepL), `--api-key-env-var` kein Variablenname ist `--base-url` Zugangsdaten, einen Query-String oder ein Fragment enthält `--cwd` kein vorhandenes Verzeichnis nennt (bei jedem Befehl, bevor er läuft) oder `doctor` `--locales` oder `--live` zusammen mit `--literals` bekam oder `check --file` keine Datei nennt oder zusammen mit `--locales`, `--consistency`, `--require-reviewed` oder `--sensitive` kommt.
+Ein `init`-Flag nicht zum Provider passt (`--base-url` ohne `openai-compatible` oder `libretranslate`, `--model` bei DeepL), `--api-key-env-var` kein Variablenname ist `--base-url` Zugangsdaten, einen Query-String oder ein Fragment enthält `--cwd` kein vorhandenes Verzeichnis nennt (bei jedem Befehl, bevor er läuft) oder `doctor` `--locales` oder `--live` zusammen mit `--literals` bekam oder `check --file` keine Datei nennt oder zusammen mit `--locales`, `--consistency`, `--require-reviewed` oder `--sensitive` kommt oder `pseudo --mode` einen anderen Modus als `accented` oder `bidi` nennt.
 
-- **Ausgelöst von**: jedem Befehl mit `--cwd`, dazu `init`, `doctor`, `check`
+- **Ausgelöst von**: jedem Befehl mit `--cwd`, dazu `init`, `doctor`, `check`, `pseudo`
 - **Exit-Code**: `2`
 - **Nächster Schritt**: Correct or remove the flag the message names.
 

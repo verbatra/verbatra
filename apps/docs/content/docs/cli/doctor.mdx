@@ -20,8 +20,9 @@ verbatra doctor [flags]
 | `--literals` | none | off | scan the [`extract`](/docs/config-file#extract) source roots for hardcoded user-facing strings instead of checking the setup (see [Untranslated literals](#untranslated-literals)) |
 | `--locales` | none | off | after the checks, list per target locale the code sent, provider support, glossary and formality (see [Locale support](#locale-support)) |
 | `--live` | none | off | fetch the provider's current language list first, using no translation quota; implies `--locales` |
+| `--data-flow` | none | off | describe what is sent to which host and what is written locally instead of checking the setup (see [Data flow](#data-flow)) |
 
-Also takes the [global flags](/docs/cli#global-flags) `--cwd`, `--config` and `--json`. `--locales` and `--live` cannot be combined with `--literals` (`INVALID_OPTION`, exit `2`).
+Also takes the [global flags](/docs/cli#global-flags) `--cwd`, `--config` and `--json`. `--locales` and `--live` cannot be combined with `--literals` (`INVALID_OPTION`, exit `2`), and `--data-flow` with none of the three.
 
 ## Behavior
 
@@ -121,6 +122,39 @@ To hold one literal back, put `// verbatra-ignore-next-line` above it (`{/* verb
 
 The check fails on a finding and on a file it could not open, read to the end, or considered too large (the scan carries on). A project without an `extract` block fails it.
 
+### Data flow
+
+<AvailableFrom version="0.12.0" />
+
+`--data-flow` describes where this project's data goes instead of checking the setup, as evidence for a DPA or NDA review; [Data handling](/docs/data-handling) explains each category. It reads no API key and makes no network request. Only two checks run: Configuration and Data flow. Data flow never fails: it prints `[warn]` when the [network policy](/docs/network-policy) refuses a host or holds an invalid value, or when the source file cannot be read for the counts.
+
+```text output
+  [ok  ] Data flow: Provider "deepl" sends source-text, placeholder-markers, language-codes to api.deepl.com (permitted), api-free.deepl.com (permitted).
+  data flow (manifest version 1)
+    provider     deepl (machine-translation)
+    network      any host (no policy set)
+    destination  api.deepl.com  default  paid-key  before-construction  permitted
+    destination  api-free.deepl.com  default  free-key  before-construction  permitted
+    sent         source-text, placeholder-markers, language-codes
+    api key      required
+    placeholders masked
+    sensitive    off
+    counts       3 source keys, 0 with a description or meaning, 1 with placeholders it cannot mask (withheld)
+    locale       de  sent as DE  glossary terms: 0
+    local        lock  verbatra.lock.json  (no source text, translations or personal data)
+    local        provenance  verbatra.provenance.json  (reviewer names)
+    local        cache  verbatra.cache.json  (source text, translations, gitignored by init)
+    local        local-state  .verbatra-local  (source text, host name and process ID of a run holding a write lock, gitignored by init)
+    request      language-list  verbatra doctor --live  sends the API key
+    request      dns-lookup  each connection to a destination host
+    agent        mcp  verbatra mcp  redactable
+    agent        studio-agent-tools  verbatra studio --expose-agent-tools
+```
+
+The manifest names the provider; each destination host, where it comes from (built in, `provider.options.baseUrl` or a `*_BASE_URL` variable) and the policy verdict (`permitted`, `deferred`, `refused` or `invalid-policy`); the kinds of data sent, with the number of source keys, of keys carrying a description or meaning, and of keys whose placeholders the provider cannot mask (an estimate over the source keys: a run sends only missing or changed keys and may withhold more under `sensitiveData: redact`); the code and glossary term count per target locale; the local files with their project-relative paths, and whether they hold source text, translations or personal data; and the other requests and agent surfaces. DeepL is listed with both hosts, because the key that picks one is never read. A proxy in effect is named by its variable and host, never its credentials, and the fields list only what this config can send. With `provider: { id: "none" }` it states that nothing is sent. It names hosts, data categories and conditions, never a key value or file contents.
+
+With `--json` the manifest is under `result.dataFlow`. Its `version` field changes only when a field is renamed or removed; new fields can appear without a bump, so ignore the ones you do not know. The SDK's [`dataFlowManifestSchema`](/docs/sdk/inspect#dataflowmanifestschema) validates it.
+
 ### JSON output
 
 With `--json`, the [envelope](/docs/cli/output#json-output) carries the report under `result`. `ok` is true exactly when the command exits `0`:
@@ -130,6 +164,7 @@ interface DoctorResult {
   ok: boolean;                 // true exactly when the command exits 0
   checks: DoctorCheck[];       // one per check, always in the same order
   literals?: LiteralScan;      // only with --literals: findings, suppressed, diagnostics
+  dataFlow?: DataFlowManifest; // only with --data-flow: what goes where, version 1
   locales?: LocaleCapabilityReport; // per-locale provider support, with or without --locales
 }
 
@@ -146,7 +181,8 @@ interface DoctorCheck {
     | "locale-codes"
     | "locale-state"
     | "locales"
-    | "untranslated-literals";
+    | "untranslated-literals"
+    | "data-flow";
   title: string;               // stable, human-readable name
   status: "pass" | "warn" | "fail" | "skipped";  // only "fail" makes ok false
   detail: string;              // why it reached that verdict; never an API key value
@@ -206,6 +242,9 @@ verbatra doctor --locales
 
 # the same, against the provider's current language list
 verbatra doctor --live
+
+# a data-flow manifest to attach to a DPA or NDA review
+verbatra doctor --data-flow --json
 ```
 
 ## Exit codes

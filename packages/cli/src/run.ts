@@ -20,6 +20,8 @@ import {
   type LockWaitEvent,
   type ProgressEvent,
   type ProvenanceReport,
+  PSEUDO_MODES,
+  type PseudoMode,
   QA_SEVERITIES,
   type QaSeverity,
   type RunSummary,
@@ -301,12 +303,30 @@ function parseTypesCommandOpts(rawOpts: unknown): z.infer<typeof typesOptsSchema
 const PSEUDO_LOCALE_TAG = /^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/;
 
 const pseudoOptsSchema = sharedCommandOptsSchema.extend({
+  mode: z.string().optional(),
   locale: z.string().optional(),
   out: z.string().optional(),
 });
 
-function parsePseudoCommandOpts(rawOpts: unknown): z.infer<typeof pseudoOptsSchema> {
-  const opts = pseudoOptsSchema.parse(rawOpts);
+function parsePseudoMode(mode: string | undefined): PseudoMode | undefined {
+  if (mode === undefined) {
+    return undefined;
+  }
+  const known = PSEUDO_MODES.find((candidate) => candidate === mode);
+  if (known === undefined) {
+    throw new CliUsageError(
+      "INVALID_OPTION",
+      `The --mode option takes ${PSEUDO_MODES.map((candidate) => `"${candidate}"`).join(" or ")}, got "${mode}".`,
+    );
+  }
+  return known;
+}
+
+function parsePseudoCommandOpts(
+  rawOpts: unknown,
+): Omit<z.infer<typeof pseudoOptsSchema>, "mode"> & { readonly mode?: PseudoMode } {
+  const { mode: rawMode, ...opts } = pseudoOptsSchema.parse(rawOpts);
+  const mode = parsePseudoMode(rawMode);
   if (opts.locale !== undefined && !PSEUDO_LOCALE_TAG.test(opts.locale)) {
     throw new CliUsageError(
       "INVALID_LOCALE",
@@ -319,7 +339,7 @@ function parsePseudoCommandOpts(rawOpts: unknown): z.infer<typeof pseudoOptsSche
       "The --out option was provided but names no directory. Pass a path relative to the working directory, or omit it to use .verbatra-local/pseudo.",
     );
   }
-  return opts;
+  return mode !== undefined ? { ...opts, mode } : opts;
 }
 
 function runExitCode(summary: {
@@ -1498,6 +1518,7 @@ async function runPseudo(
             deps.pseudolocalize({
               config,
               cwd,
+              ...(opts.mode !== undefined ? { mode: opts.mode } : {}),
               ...(opts.locale !== undefined ? { locale: opts.locale } : {}),
               ...(opts.out !== undefined ? { out: opts.out } : {}),
             }),
@@ -1587,12 +1608,32 @@ const doctorOptsSchema = sharedCommandOptsSchema.extend({
   literals: z.boolean().optional(),
   locales: z.boolean().optional(),
   live: z.boolean().optional(),
+  dataFlow: z.boolean().optional(),
 });
 
 type DoctorOpts = z.infer<typeof doctorOptsSchema>;
 
+function conflictingDataFlowFlag(opts: DoctorOpts): string | undefined {
+  if (opts.dataFlow !== true) {
+    return undefined;
+  }
+  const flags: readonly [boolean | undefined, string][] = [
+    [opts.literals, "--literals"],
+    [opts.locales, "--locales"],
+    [opts.live, "--live"],
+  ];
+  return flags.find(([set]) => set === true)?.[1];
+}
+
 function parseDoctorOpts(rawOpts: unknown): DoctorOpts {
   const opts = doctorOptsSchema.parse(rawOpts);
+  const conflict = conflictingDataFlowFlag(opts);
+  if (conflict !== undefined) {
+    throw new CliUsageError(
+      "INVALID_OPTION",
+      `--data-flow replaces the setup checks that ${conflict} reports on. Drop one of the two.`,
+    );
+  }
   if (opts.literals === true && (opts.locales === true || opts.live === true)) {
     throw new CliUsageError(
       "INVALID_OPTION",
@@ -1612,6 +1653,9 @@ const DOCTOR_STATUS_WORDS: Record<DoctorCheckStatus, StatusWord> = {
 function doctorTaskLabel(opts: DoctorOpts): string {
   if (opts.literals === true) {
     return "scanning the source for literals";
+  }
+  if (opts.dataFlow === true) {
+    return "describing the data flow";
   }
   return opts.live === true
     ? "checking the setup and fetching the provider's language list"
@@ -1641,6 +1685,7 @@ async function runDoctor(
             ...(opts.config !== undefined ? { configPath: opts.config } : {}),
             ...(literals ? { literals: true, onProgress: scanProgressReporter(task) } : {}),
             ...(opts.live === true ? { live: true } : {}),
+            ...(opts.dataFlow === true ? { dataFlow: true } : {}),
           }),
         );
         const showLocales = opts.locales === true || opts.live === true;
@@ -2003,7 +2048,14 @@ function registerPseudoCommand(program: Command, ctx: ProgramContext): void {
     .description("Generate a pseudolocale from the source strings without calling a provider")
     .option("--cwd <path>", "resolve config and locale files from this directory")
     .option("--config <path>", "load this config file instead of searching for one")
-    .option("--locale <code>", "pseudolocale code to generate (default en-XA)")
+    .option(
+      "--mode <mode>",
+      `transform to apply: ${PSEUDO_MODES.join(" or ")} (default accented); bidi renders right to left`,
+    )
+    .option(
+      "--locale <code>",
+      "pseudolocale code to generate (default en-XA, or ar-XB with --mode bidi)",
+    )
     .option(
       "--out <path>",
       "directory to write the pseudolocale under, relative to the working directory and inside it (default .verbatra-local/pseudo)",
@@ -2018,7 +2070,7 @@ function registerPseudoCommand(program: Command, ctx: ProgramContext): void {
         "",
         "Examples:",
         "  $ verbatra pseudo                     generate en-XA under .verbatra-local/pseudo",
-        "  $ verbatra pseudo --locale en-XB      generate a second pseudolocale instead",
+        "  $ verbatra pseudo --mode bidi         generate ar-XB, rendered right to left",
         "  $ verbatra pseudo --out build/pseudo  write it somewhere your dev server serves",
         "  $ verbatra pseudo --json              machine-readable result on stdout",
         "",
@@ -2077,6 +2129,10 @@ function registerDoctorCommand(program: Command, ctx: ProgramContext): void {
       "--live",
       "fetch the provider's current language list first (needs its key; uses no translation quota); implies --locales",
     )
+    .option(
+      "--data-flow",
+      "describe what is sent to which host and what is written locally, instead of checking the setup",
+    )
     .option("--json", "print the doctor report as JSON")
     .action(async (opts: unknown) => {
       ctx.setCode(await runDoctor(opts, ctx.deps, ctx.streams, ctx.settings()));
@@ -2091,9 +2147,11 @@ function registerDoctorCommand(program: Command, ctx: ProgramContext): void {
         "  $ verbatra doctor --literals  list untranslated string literals (exit 1 if any)",
         "  $ verbatra doctor --locales   what the provider supports for each target locale",
         "  $ verbatra doctor --live      the same, against the provider's current language list",
+        "  $ verbatra doctor --data-flow --json  a data-flow manifest to attach to a DPA review",
         "",
         "With --literals it reads your source and never writes it, constructs no provider, and " +
           "reads no API key, so it runs before any key exists.",
+        "With --data-flow it reads no API key and makes no network request.",
       ].join("\n"),
     );
 }

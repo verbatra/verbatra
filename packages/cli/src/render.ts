@@ -59,6 +59,7 @@ import type { CliErrorCode } from "./cli-error-codes.js";
 import { CLI_ERROR_HINTS } from "./cli-error-hints.js";
 import { CliUsageError } from "./cli-usage-error.js";
 import type { LockReleaseOutcome } from "./lock-release.js";
+import { renderDataFlowLines } from "./render-data-flow.js";
 
 const FALLBACK_ERROR_CODE: CliErrorCode = "CLI_ERROR";
 
@@ -791,6 +792,7 @@ export function renderDoctorHuman(result: DoctorResult, options: DoctorRenderOpt
     ...lines,
     ...renderLiteralLines(result.literals),
     ...(options.locales === true ? renderLocaleCapabilities(result.locales) : []),
+    ...renderDataFlowLines(result.dataFlow),
     trailer,
   ].join("\n");
 }
@@ -1026,7 +1028,7 @@ export function renderError(error: RenderableError): string {
 export function renderPseudoHuman(result: PseudolocalizeResult, base?: string): string {
   const lines = [
     "verbatra pseudo",
-    `  ${result.locale}: ${result.transformed} of ${plural(result.entries, "entry", "entries")} pseudolocalized`,
+    `  ${result.locale} (${result.mode}): ${result.transformed} of ${plural(result.entries, "entry", "entries")} pseudolocalized`,
   ];
   if (result.copied.length > 0) {
     lines.push(`    copied verbatim: ${result.copied.join(", ")}`);

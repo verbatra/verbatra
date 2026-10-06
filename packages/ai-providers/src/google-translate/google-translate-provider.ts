@@ -1,7 +1,7 @@
 import { appliesTerms } from "../glossary.js";
 import { resolveProviderLocale } from "../locale-map.js";
 import { translateMaskedBatch } from "../masked-batch.js";
-import { decodeMaskedFromHtml, encodeMaskedForHtml } from "../masked-wire-codec.js";
+import { MASKED_WIRES } from "../masked-wire.js";
 import type { ProviderNetwork } from "../network/transport.js";
 import {
   type TranslateRequest,
@@ -84,9 +84,7 @@ async function translate(
     signal: request.signal,
   };
   return translateMaskedBatch<GoogleTranslateTextFormat>(data, request, notices, {
-    masking: { withholdMarkup: true },
-    encode: encodeMaskedForHtml,
-    decode: decodeMaskedFromHtml,
+    ...MASKED_WIRES["google-translate"],
     groups: ["text", "html"],
     groupOf: (item) => (item.masked === undefined ? "text" : "html"),
     send: (texts, format) => sendChunked(call, texts, format),

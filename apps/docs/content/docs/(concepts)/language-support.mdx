@@ -153,7 +153,9 @@ direction marks, removes none and reorders nothing. What that means for you:
 - **Studio shows values right to left** for every locale whose script runs that way, asking the
   browser for the direction and otherwise going by the locale's likely script (`ku-Arab` right to
   left, `ku` left to right). Only the display changes.
-- **`verbatra pseudo` has no right-to-left mode**: it tests layout width, not mirroring.
+- **[`verbatra pseudo --mode bidi`](/docs/cli/pseudo) renders your source right to left** in an
+  `ar-XB` pseudolocale, so layout that assumes left-to-right text shows up before any translation
+  exists. Placeholders stay left to right; mirrored images and icons are yours to check.
 
 ## Low-resource languages and local models
 

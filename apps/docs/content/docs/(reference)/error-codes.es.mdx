@@ -128,9 +128,9 @@ Se dio `--locales` pero no lista ningún locale, o los locales de destino respon
 
 ### INVALID_OPTION
 
-Un flag de `init` no encaja con el proveedor (`--base-url` sin `openai-compatible` ni `libretranslate`, `--model` para DeepL), `--api-key-env-var` no es un nombre de variable, `--base-url` incluye credenciales, una query string o un fragmento, `--cwd` no nombra un directorio existente (en cualquier comando, antes de ejecutarse), o `doctor` recibió `--locales` o `--live` junto con `--literals`, o `check --file` no nombra ningún archivo o llega junto con `--locales`, `--consistency`, `--require-reviewed` o `--sensitive`.
+Un flag de `init` no encaja con el proveedor (`--base-url` sin `openai-compatible` ni `libretranslate`, `--model` para DeepL), `--api-key-env-var` no es un nombre de variable, `--base-url` incluye credenciales, una query string o un fragmento, `--cwd` no nombra un directorio existente (en cualquier comando, antes de ejecutarse), o `doctor` recibió `--locales` o `--live` junto con `--literals`, o `check --file` no nombra ningún archivo o llega junto con `--locales`, `--consistency`, `--require-reviewed` o `--sensitive`, o `pseudo --mode` nombra un modo distinto de `accented` o `bidi`.
 
-- **Lo lanza**: todo comando que acepta `--cwd`, además de `init`, `doctor`, `check`
+- **Lo lanza**: todo comando que acepta `--cwd`, además de `init`, `doctor`, `check`, `pseudo`
 - **Código de salida**: `2`
 - **Siguiente paso**: Correct or remove the flag the message names.
 

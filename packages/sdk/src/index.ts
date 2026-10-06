@@ -142,6 +142,7 @@ export {
 } from "./config/machine-translation.js";
 export type { BillingUnit, ProviderBilling } from "./config/provider-billing.js";
 export type { ProviderConfig, ProviderId } from "./config/provider-config.js";
+export type { DataFlowApiKey, DataFlowField } from "./config/provider-data-flow.js";
 export { declareProviderKeyEnvVar } from "./config/provider-key-env.js";
 export type {
   CharacterRate,
@@ -196,6 +197,27 @@ export {
   type LocaleFileCheck,
   type QaSyntaxFinding,
 } from "./flow/check-file.js";
+export {
+  type DataFlowDeps,
+  type DataFlowInput,
+  dataFlow,
+} from "./flow/data-flow.js";
+export {
+  DATA_FLOW_MANIFEST_VERSION,
+  type DataFlowAgentSurface,
+  type DataFlowCounts,
+  type DataFlowDestination,
+  type DataFlowLocale,
+  type DataFlowLocalFile,
+  type DataFlowManifest,
+  type DataFlowNetwork,
+  type DataFlowOtherRequest,
+  type DataFlowProvider,
+  type DataFlowProviderKind,
+  type DataFlowSent,
+  type DataFlowVerdict,
+  dataFlowManifestSchema,
+} from "./flow/data-flow-manifest.js";
 export {
   type DiffDeps,
   type DiffInput,
@@ -357,9 +379,11 @@ export {
   provenanceReportPage,
 } from "./flow/provenance-report-page.js";
 export {
+  PSEUDO_MODES,
   type PseudolocalizeDeps,
   type PseudolocalizeInput,
   type PseudolocalizeResult,
+  type PseudoMode,
   pseudolocalize,
 } from "./flow/pseudo.js";
 export {
