@@ -13,7 +13,9 @@ import {
   remarkTypeTableMarkdown,
   sdkTypeTableOptions,
 } from "./lib/sdk-type-table";
+import { remarkStackBlocks } from "./lib/stack-blocks";
 import { rehypeStackedTables } from "./lib/stacked-tables";
+import { STACK_IDS } from "./lib/stacks";
 
 const REPO_ROOT = join(process.cwd(), "../..");
 
@@ -26,6 +28,7 @@ export const docs = defineDocs({
       tocDepth: z.number().int().min(2).max(4).optional(),
       codeHeadings: z.boolean().optional(),
       type: z.enum(PAGE_TYPES).optional(),
+      stack: z.enum(STACK_IDS).optional(),
     }),
     postprocess: { includeProcessedMarkdown: true, valueToExport: ["introducedIn"] },
   },
@@ -36,6 +39,7 @@ export default defineConfig({
     remarkNpmOptions: false,
     rehypeCodeOptions,
     remarkPlugins: [
+      remarkStackBlocks,
       remarkIntroducedIn,
       remarkSdkTypeTable,
       [remarkAutoTypeTable, sdkTypeTableOptions(REPO_ROOT)],

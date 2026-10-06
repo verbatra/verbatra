@@ -17,11 +17,11 @@ La CLI lève ces codes elle-même. La même liste est publiée sous le nom `CLI_
 
 ### AGENT_FILE_INVALID
 
-`init --agent` a trouvé un `.mcp.json` qui n'est pas un objet JSON avec un objet `mcpServers`, ou un marqueur verbatra sans paire ou répété dans `AGENTS.md` ou `CLAUDE.md` ; rien n'a été écrit.
+`init --agent` a trouvé une configuration de client (`.mcp.json`, `.cursor/mcp.json` ou `.vscode/mcp.json`) qui n'est pas du JSON pur, n'est pas un objet ou contient une valeur de serveurs qui n'est pas un objet, un lien symbolique sur un chemin qu'il écrirait, ou un marqueur verbatra sans paire ou répété dans `AGENTS.md` ou `CLAUDE.md` ; rien n'a été écrit.
 
 - **Levé par** : `init --agent`
 - **Code de sortie** : `2`
-- **Étape suivante** : Repair the .mcp.json or the verbatra markers in the file the message names, then run `verbatra init --agent` again.
+- **Étape suivante** : Repair the MCP config or the verbatra markers in the file the message names, or replace the symbolic link it names with a plain file, then run `verbatra init --agent` again.
 
 ### CLI_ERROR
 
@@ -56,11 +56,11 @@ Un échec ne portait aucun code propre (le code de repli).
 
 ### INIT_UNWRITABLE
 
-`init` n'a pas pu écrire un fichier dans son répertoire, par exemple parce qu'il est en lecture seule ; le message nomme le fichier, le code du système de fichiers et les fichiers déjà écrits.
+`init` n'a pas pu écrire un fichier dans son répertoire, par exemple parce qu'il est en lecture seule ou qu'un fichier qu'il écrit est un lien symbolique qui ne se résout pas dans le projet ; le message nomme le fichier, la cause et les fichiers déjà écrits.
 
 - **Levé par** : `init`
 - **Code de sortie** : `2`
-- **Étape suivante** : Make the directory writable, then run `verbatra init` again.
+- **Étape suivante** : Make the directory writable, or replace the symbolic link the message names with a plain file, then run `verbatra init` again.
 
 ### INVALID_CONCURRENCY
 

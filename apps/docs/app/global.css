@@ -524,6 +524,12 @@ samp {
   color: var(--text-strong);
 }
 
+.vk-pill.vk-stack-card-badge {
+  max-width: 100%;
+  margin-top: 0.25rem;
+  white-space: normal;
+}
+
 #nd-toc h3 {
   font-family: var(--font-mono);
   font-size: var(--text-xs);

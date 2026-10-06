@@ -1,6 +1,7 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { readIncludedSource } from "./docs-pages";
 import { FRONTMATTER, type PageType, pageType } from "./page-type";
 
 const CONTENT_DIR = join(import.meta.dirname, "../content/docs");
@@ -233,7 +234,7 @@ function page(type: PageType, body: string): string {
 
 describe("AvailableFrom badge placement", () => {
   it.each(allPages())("places every badge by the rules in %s", (file) => {
-    expect(badgeViolations(readFileSync(join(CONTENT_DIR, file), "utf8"))).toEqual([]);
+    expect(badgeViolations(readIncludedSource(join(CONTENT_DIR, file)))).toEqual([]);
   });
 
   it("accepts a badge at page level, under a heading, in a table row and in a header cell", () => {

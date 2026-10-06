@@ -2342,8 +2342,13 @@ function registerInitCommand(program: Command, ctx: ProgramContext): void {
     .option("--json", "print one JSON document describing what was written; never prompts")
     .option(
       "--agent",
-      "also write verbatra rules for coding agents to AGENTS.md (or CLAUDE.md) and the verbatra MCP server, spending off, to .mcp.json",
+      "also write verbatra rules for coding agents to AGENTS.md (or CLAUDE.md) and the verbatra MCP server, spending off, to each detected client's project config (.mcp.json, .cursor/mcp.json, .vscode/mcp.json)",
     )
+    .option(
+      "--client <ids>",
+      "comma-separated clients --agent wires instead of the detected ones: claude, cursor, vscode, or all",
+    )
+    .option("--dry-run", "report every file init would write or change, and write nothing")
     .action(async (opts: InitOpts) => {
       ctx.setCode(await runInit(opts, ctx.streams, {}, ctx.settings()));
     })
@@ -2360,6 +2365,8 @@ function registerInitCommand(program: Command, ctx: ProgramContext): void {
         "  $ verbatra init --provider none --yes       human-only: no provider, no API key",
         "  $ verbatra init --provider gemini --yes --agent   also set up AGENTS.md and .mcp.json for coding agents",
         "  $ verbatra init --agent                     already configured: keep the config, add only the agent files",
+        "  $ verbatra init --agent --client cursor,vscode   wire Cursor and VS Code instead of the detected clients",
+        "  $ verbatra init --agent --client all --dry-run   show what would be written, write nothing",
       ].join("\n"),
     );
 }

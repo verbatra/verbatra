@@ -1,7 +1,8 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync } from "node:fs";
 import { join, relative } from "node:path";
 import { getTableOfContents } from "fumadocs-core/content/toc";
 import { describe, expect, it } from "vitest";
+import { readIncludedSource } from "@/lib/docs-pages";
 import { i18n, type Locale } from "@/lib/i18n";
 
 const CONTENT_DIR = join(import.meta.dirname, "../content/docs");
@@ -28,7 +29,7 @@ function anchorsOf(file: DocFile): ReadonlySet<string> {
   const cached = anchorCache.get(file.path);
   if (cached) return cached;
   const anchors = new Set(
-    getTableOfContents(readFileSync(file.path, "utf8")).map((item) =>
+    getTableOfContents(readIncludedSource(file.path)).map((item) =>
       decodeURIComponent(item.url.slice(1)),
     ),
   );
@@ -38,7 +39,7 @@ function anchorsOf(file: DocFile): ReadonlySet<string> {
 
 function brokenAnchors(file: DocFile): string[] {
   const broken: string[] = [];
-  for (const [, slug, anchor = ""] of readFileSync(file.path, "utf8").matchAll(LINK_PATTERN)) {
+  for (const [, slug, anchor = ""] of readIncludedSource(file.path).matchAll(LINK_PATTERN)) {
     const target = slug
       ? FILES.find((candidate) => candidate.slug === slug && candidate.locale === file.locale)
       : file;

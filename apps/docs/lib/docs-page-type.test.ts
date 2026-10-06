@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { englishDocsPages } from "./docs-pages";
+import { englishDocsPages, readIncludedSource } from "./docs-pages";
 import { i18n } from "./i18n";
 import {
   COMMAND_PAGE_CEILING,
@@ -25,7 +25,7 @@ const TRANSLATIONS = i18n.languages.filter((locale) => locale !== i18n.defaultLa
 const LOCALE_SUFFIX = new RegExp(`\\.(${TRANSLATIONS.join("|")})\\.mdx$`);
 
 function readPage(file: string): string {
-  return readFileSync(join(CONTENT_DIR, file), "utf8");
+  return readIncludedSource(join(CONTENT_DIR, file));
 }
 
 function englishPages(): string[] {

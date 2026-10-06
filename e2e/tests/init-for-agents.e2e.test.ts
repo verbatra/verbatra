@@ -19,7 +19,13 @@ interface InitJson {
     files: { pattern: string; localeStyle?: string };
   };
   detection: { format: { id: string; from: string } | null; confidence: string };
-  agent: { instructionsFile: string; mcpServer: string; configKept: boolean } | null;
+  dryRun: boolean;
+  agent: {
+    instructionsFile: string;
+    mcpServer: string | null;
+    configKept: boolean;
+    clients: { id: string; file: string; server: string; selectedBy: string }[];
+  } | null;
   nextSteps: { description: string; command: string | null }[];
 }
 
@@ -177,7 +183,7 @@ describe("init for agents (no provider call)", () => {
     const first = await runVerbatra(consumer, args, { env: PLACEHOLDER_KEYS });
     expect(first.exitCode).toBe(0);
     const created = successResult<InitJson>(first.stdout, "init");
-    expect(created.agent).toEqual({
+    expect(created.agent).toMatchObject({
       instructionsFile: "CLAUDE.md",
       mcpServer: "added",
       configKept: false,
@@ -202,7 +208,7 @@ describe("init for agents (no provider call)", () => {
     const second = await runVerbatra(consumer, args, { env: PLACEHOLDER_KEYS });
     expect(second.exitCode).toBe(0);
     const again = successResult<InitJson>(second.stdout, "init");
-    expect(again.agent).toEqual({
+    expect(again.agent).toMatchObject({
       instructionsFile: "CLAUDE.md",
       mcpServer: "present",
       configKept: false,
@@ -242,7 +248,7 @@ describe("init for agents (no provider call)", () => {
       { path: "AGENTS.md", action: "created" },
       { path: ".mcp.json", action: "created" },
     ]);
-    expect(kept.agent).toEqual({
+    expect(kept.agent).toMatchObject({
       instructionsFile: "AGENTS.md",
       mcpServer: "added",
       configKept: true,
@@ -259,6 +265,73 @@ describe("init for agents (no provider call)", () => {
     const human = await runVerbatra(consumer, ["init", "--agent", "--cwd", dir]);
     expect(human.exitCode).toBe(0);
     expect(human.stdout).toContain("kept verbatra.config.ts");
+  });
+
+  it("wires every client with --client all, idempotently, and doctor passes afterwards", async () => {
+    const dir = await projectDir("init-agents-all-clients");
+    await writeFileIn(dir, "i18n/en.yml", "greeting: Hello\n");
+    await writeFileIn(dir, ".vscode/mcp.json", '{\n  "inputs": [],\n  "servers": {}\n}\n');
+    const setup = await runVerbatra(
+      consumer,
+      ["init", "--provider", "deepl", "--format", "yaml", "--path", "i18n/{locale}.yml"].concat([
+        "--targets",
+        "de",
+        "--yes",
+        "--json",
+        "--cwd",
+        dir,
+      ]),
+      { env: PLACEHOLDER_KEYS },
+    );
+    expect(setup.exitCode).toBe(0);
+    const args = ["init", "--agent", "--client", "all", "--json", "--cwd", dir];
+    const names = ["AGENTS.md", ".mcp.json", ".cursor/mcp.json", ".vscode/mcp.json"];
+    const read = () => Promise.all(names.map((name) => readFile(join(dir, name), "utf8")));
+
+    const first = await runVerbatra(consumer, args, { env: PLACEHOLDER_KEYS });
+    expect(first.exitCode).toBe(0);
+    const wired = successResult<InitJson>(first.stdout, "init");
+    expect(wired.dryRun).toBe(false);
+    expect(wired.agent?.clients.map((client) => [client.id, client.file, client.server])).toEqual([
+      ["claude", ".mcp.json", "added"],
+      ["cursor", ".cursor/mcp.json", "added"],
+      ["vscode", ".vscode/mcp.json", "added"],
+    ]);
+    const written = await read();
+    expect(JSON.parse(written[2] ?? "")).toEqual({
+      mcpServers: {
+        verbatra: {
+          type: "stdio",
+          command: "npx",
+          args: ["-y", "@verbatra/mcp", "--cwd", "$" + "{workspaceFolder}"],
+        },
+      },
+    });
+    expect(JSON.parse(written[3] ?? "")).toEqual({
+      inputs: [],
+      servers: { verbatra: { type: "stdio", command: "npx", args: ["-y", "@verbatra/mcp"] } },
+    });
+    for (const content of written) {
+      expect(content).not.toContain(PLACEHOLDER_KEYS.DEEPL_API_KEY);
+    }
+
+    const second = await runVerbatra(consumer, args, { env: PLACEHOLDER_KEYS });
+    expect(second.exitCode).toBe(0);
+    const again = successResult<InitJson>(second.stdout, "init");
+    expect(again.files.every((file) => file.action === "unchanged")).toBe(true);
+    expect(again.agent?.clients.map((client) => client.server)).toEqual([
+      "present",
+      "present",
+      "present",
+    ]);
+    expect(await read()).toEqual(written);
+
+    const doctor = await runVerbatra(consumer, ["doctor", "--json", "--cwd", dir], {
+      env: PLACEHOLDER_KEYS,
+    });
+    expect(doctor.exitCode).toBe(0);
+    const report = successResult<DoctorJson>(doctor.stdout, "doctor");
+    expect(report.checks.filter((check) => check.status === "fail")).toEqual([]);
   });
 
   it("exits 2 with AGENT_FILE_INVALID and writes nothing when .mcp.json is malformed", async () => {

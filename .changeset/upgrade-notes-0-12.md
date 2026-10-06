@@ -113,6 +113,9 @@ Upgrading from 0.11: rejected config, rewritten files, new exit codes and SDK ty
   non-interactive run without `--yes` fails with `MISSING_OPTIONS`, and a differing
   `verbatra.config.ts` fails with `CONFIG_EXISTS` instead of being skipped with exit 0. An existing
   `.env.example` is appended to.
+- `init` no longer writes `verbatra.config.ts`, `.env.example` or `.gitignore` through a symbolic
+  link that leads outside the project or nowhere: it exits 2 with `INIT_UNWRITABLE` before writing
+  anything. Replace the link with a plain file, or point it inside the project.
 - `export` and `tmx export` refuse an output path outside the project or onto a project file, and
   `pseudo --out` checks its path again after resolving symbolic links. Failed writes are
   structured. All exit 2: `EXPORT_OUTPUT_CONFLICT`, `EXPORT_UNWRITABLE`, `TMX_OUTPUT_CONFLICT`,

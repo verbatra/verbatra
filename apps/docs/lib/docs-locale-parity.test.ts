@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { readIncludedSource } from "@/lib/docs-pages";
 import { i18n } from "@/lib/i18n";
 
 const CONTENT_DIR = join(import.meta.dirname, "../content/docs");
@@ -73,7 +74,9 @@ function pageShape(source: string): PageShape {
 }
 
 function readContent(file: string): string {
-  return readFileSync(join(CONTENT_DIR, file), "utf8");
+  return file.endsWith(".mdx")
+    ? readIncludedSource(join(CONTENT_DIR, file))
+    : readFileSync(join(CONTENT_DIR, file), "utf8");
 }
 
 function metaPages(file: string): string[] {

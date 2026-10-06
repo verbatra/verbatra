@@ -183,9 +183,21 @@ footer's oversized watermark only; do not clip it onto a heading.
   mark gets an outline glyph there. The grid is a `nav` named by `labelledBy`, the id of the heading above it (the docs home
   section's `id`, or `page-title` on the docs `<h1>`), and that id also prefixes its sprite's symbol
   ids, so two grids on one page never collide. A card's name reads "React: i18next-json".
-  `scripts/verify-docs-registry-parity.test.mjs` pins every card's `formats` and anchor to
-  `SUPPORTED_FORMATS` and to the page's sections in all four locales. Fumadocs' `Steps` and `Step`
-  are registered there too, for numbered tutorial steps such as the quickstart's.
+  On the docs home, a stack with its own quickstart (`STACKS` in `lib/stacks.ts`) links its card
+  to `/docs/quickstart/<id>` and carries a `badge`, rendered as a `.vk-pill` after the name and
+  read as part of the card's name ("React, Quickstart: i18next-json"); every other card, and every
+  card on `pick-your-stack` itself, jumps to a `pick-your-stack` section.
+  `scripts/verify-docs-registry-parity.test.mjs` pins every card's `formats` to
+  `SUPPORTED_FORMATS`, a section card's anchor to the page's sections and a quickstart card's
+  format to its stack, in all four locales. Fumadocs' `Steps` and `Step` are registered there
+  too, for numbered tutorial steps such as the quickstart's.
+- **Stack quickstarts:** `<StackBlock name="..." />` and `<StackText field="..." />` are not
+  React components. The remark plugin `remarkStackBlocks` (`lib/stack-blocks.ts`, first in
+  `source.config.ts`) replaces them at compile time with fenced code (file-labelled through
+  `title="..."`) and inline text from the page's `stack` frontmatter, so they render, search and
+  print to `.md` like hand-written Markdown. The plugin never emits a heading: headings stay in
+  the template, where the TOC and the parity tests see them. Content rules for the templates
+  and stubs are in `.claude/rules/docs.md`.
 
 ## Keep the client payload small
 

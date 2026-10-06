@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { relative, resolve } from "node:path";
 import process from "node:process";
 import {
@@ -7,16 +7,17 @@ import {
   type ProjectDetection,
   scaffoldingMetadata,
 } from "@verbatra/sdk";
+import { AGENT_CLIENT_CONFIGS, type AgentClientId, parseClientFlag } from "./agent-clients.js";
 import {
   type AgentScaffoldPlan,
-  MCP_CONFIG_FILE,
   type McpServerState,
-  type PlannedAgentFile,
+  type PlannedClient,
   planAgentScaffold,
 } from "./agent-scaffold.js";
+import type { CliErrorCode } from "./cli-error-codes.js";
 import { CliUsageError } from "./cli-usage-error.js";
 import { assertCwdDirectory } from "./cwd-option.js";
-import { ensureGitignore, type GitignoreAction } from "./gitignore.js";
+import { planGitignore } from "./gitignore.js";
 import {
   type DetectFn,
   type InitOptions,
@@ -37,6 +38,7 @@ import {
   renderEnvExample,
 } from "./init-config.js";
 import { renderErrorEnvelope, renderSuccessEnvelope } from "./json-envelope.js";
+import { type LinkPolicy, linkRefusal, writeProjectFile } from "./project-paths.js";
 import { askLine, stdinIsTty } from "./prompt.js";
 import { toRenderableError } from "./render.js";
 import {
@@ -126,36 +128,64 @@ function withRefreshedHeader(content: string, header: string): string {
   return `${header}${content.slice(end)}`;
 }
 
-function writeEnvExample(
+function planEnvExample(
   cwd: string,
   choice: ProviderChoice,
   envVar: string,
   force: boolean,
-): FileAction {
+): PlannedWrite {
   const path = resolve(cwd, ENV_EXAMPLE_FILE);
+  const planned = (action: FileAction, content: string): PlannedWrite => ({
+    path: ENV_EXAMPLE_FILE,
+    kind: "base",
+    action,
+    content,
+    note: undefined,
+  });
   if (!existsSync(path)) {
-    writeFileSync(path, renderEnvExample(choice, envVar));
-    return "created";
+    return planned("created", renderEnvExample(choice, envVar));
   }
   const existing = readFileSync(path, "utf8");
   const content = force
     ? withRefreshedHeader(existing, envExampleHeader(choice, envVar))
     : existing;
   if (namesEnvVar(content, envVar)) {
-    if (content === existing) {
-      return "unchanged";
-    }
-    writeFileSync(path, content);
-    return "updated";
+    return planned(content === existing ? "unchanged" : "updated", content);
   }
   const separator = content.length === 0 || content.endsWith("\n") ? "" : "\n";
-  writeFileSync(path, `${content}${separator}${envVar}=\n`);
-  return "updated";
+  return planned("updated", `${content}${separator}${envVar}=\n`);
 }
 
 interface WrittenFile {
   readonly path: string;
   readonly action: FileAction;
+}
+
+type WriteKind = "base" | "instructions" | "client";
+
+interface PlannedWrite extends WrittenFile {
+  readonly kind: WriteKind;
+  readonly content: string;
+  readonly note: string | undefined;
+}
+
+const LINK_POLICY: Record<WriteKind, LinkPolicy> = {
+  base: "stay-inside",
+  instructions: "stay-inside",
+  client: "never-follow",
+};
+
+const LINK_REFUSAL_CODE: Record<WriteKind, CliErrorCode> = {
+  base: "INIT_UNWRITABLE",
+  instructions: "AGENT_FILE_INVALID",
+  client: "AGENT_FILE_INVALID",
+};
+
+interface Commit {
+  readonly cwd: string;
+  readonly dryRun: boolean;
+  readonly streams: Streams;
+  readonly files: WrittenFile[];
 }
 
 const SILENT_STREAMS: Streams = { out: () => {}, err: () => {} };
@@ -175,18 +205,69 @@ function writing<T>(file: string, cwd: string, written: readonly WrittenFile[], 
     if (code === undefined) {
       throw error;
     }
-    const changed = written
-      .filter((entry) => entry.action !== "unchanged")
-      .map((entry) => entry.path);
-    const kept =
-      changed.length === 0
-        ? "Nothing was written."
-        : `${changed.join(" and ")} ${changed.length === 1 ? "was" : "were"} already written.`;
     throw new CliUsageError(
       "INIT_UNWRITABLE",
-      `init could not write ${file} in ${cwd} (${code}). ${kept} Make the directory writable, or pass --cwd <path> naming a writable one, and run init again.`,
+      `init could not write ${file} in ${cwd} (${code}). ${keptSentence(written)} Make the directory writable, or pass --cwd <path> naming a writable one, and run init again.`,
     );
   }
+}
+
+function keptSentence(written: readonly WrittenFile[]): string {
+  const changed = written
+    .filter((entry) => entry.action !== "unchanged")
+    .map((entry) => entry.path);
+  return changed.length === 0
+    ? "Nothing was written."
+    : `${changed.join(" and ")} ${changed.length === 1 ? "was" : "were"} already written.`;
+}
+
+function linkedAway(code: CliErrorCode, file: string, reason: string, kept: string): CliUsageError {
+  return new CliUsageError(
+    code,
+    `${file} ${reason}, so init will not read or write through it. ${kept} Replace it with a plain file inside the project and run init again.`,
+  );
+}
+
+function assertBaseFileInside(cwd: string, file: string): void {
+  const refusal = linkRefusal(cwd, file, "stay-inside");
+  if (refusal !== undefined) {
+    throw linkedAway("INIT_UNWRITABLE", file, refusal, "Nothing was written.");
+  }
+}
+
+const DONE_VERB: Record<FileAction, string> = {
+  created: "created",
+  overwritten: "overwrote",
+  updated: "updated",
+  unchanged: "unchanged",
+};
+
+const PLANNED_VERB: Record<FileAction, string> = {
+  created: "would create",
+  overwritten: "would overwrite",
+  updated: "would update",
+  unchanged: "unchanged",
+};
+
+function reportLine(write: PlannedWrite, dryRun: boolean): string {
+  const verb = (dryRun ? PLANNED_VERB : DONE_VERB)[write.action];
+  return `${verb} ${write.path}${write.note === undefined ? "" : ` (${write.note})`}\n`;
+}
+
+function commitWrite(write: PlannedWrite, commit: Commit): void {
+  if (!commit.dryRun && write.action !== "unchanged") {
+    const policy = LINK_POLICY[write.kind];
+    const refusal = linkRefusal(commit.cwd, write.path, policy);
+    if (refusal !== undefined) {
+      const code = LINK_REFUSAL_CODE[write.kind];
+      throw linkedAway(code, write.path, refusal, keptSentence(commit.files));
+    }
+    writing(write.path, commit.cwd, commit.files, () =>
+      writeProjectFile(commit.cwd, write.path, write.content, policy),
+    );
+  }
+  commit.streams.out(reportLine(write, commit.dryRun));
+  commit.files.push({ path: write.path, action: write.action });
 }
 
 const MCP_SERVER_NOTE: Record<McpServerState, string> = {
@@ -195,61 +276,91 @@ const MCP_SERVER_NOTE: Record<McpServerState, string> = {
   differs: "its verbatra server differs from the scaffold and was left as it is",
 };
 
-function writeAgentFile(
-  file: PlannedAgentFile,
-  note: string,
-  cwd: string,
-  files: WrittenFile[],
-  streams: Streams,
-): void {
-  if (file.action !== "unchanged") {
-    writing(file.path, cwd, files, () => writeFileSync(resolve(cwd, file.path), file.content));
+function clientName(client: PlannedClient): string {
+  return AGENT_CLIENT_CONFIGS[client.id].name;
+}
+
+function clientsLine(agent: AgentScaffoldPlan): string {
+  const names = agent.clients.map(clientName);
+  const how = agent.clients[0]?.selectedBy;
+  if (how === "flag") {
+    return `agent clients: ${names.join(", ")} (from --client)\n`;
   }
-  streams.out(`${file.action} ${file.path} (${note})\n`);
-  files.push({ path: file.path, action: file.action });
+  if (how === "default") {
+    return `agent clients: ${names.join(", ")} (no client marker found)\n`;
+  }
+  const found = agent.clients.map(
+    (client) => `${clientName(client)} (found ${client.markers.join(", ")})`,
+  );
+  return `agent clients: ${found.join(", ")}\n`;
 }
 
-function writeAgentFiles(
-  agent: AgentScaffoldPlan,
-  cwd: string,
-  files: WrittenFile[],
-  streams: Streams,
-): void {
-  writeAgentFile(agent.instructions, "verbatra section for coding agents", cwd, files, streams);
-  writeAgentFile(agent.mcp, MCP_SERVER_NOTE[agent.mcpServer], cwd, files, streams);
+function skipCause(client: PlannedClient, agent: AgentScaffoldPlan): string {
+  return client.reason === "symlink"
+    ? `${client.link} is a symbolic link, and init never writes through one`
+    : `the verbatra plugin enabled in ${agent.pluginSetting} brings its own server`;
 }
 
-function writePlan(
-  plan: InitPlan,
-  agent: AgentScaffoldPlan | undefined,
-  cwd: string,
-  force: boolean,
-  streams: Streams,
-): readonly WrittenFile[] {
+function skippedLine(client: PlannedClient, agent: AgentScaffoldPlan, dryRun: boolean): string {
+  const verb = dryRun ? "would skip" : "skipped";
+  return `${verb} ${client.file} (${clientName(client)}: ${skipCause(client, agent)})\n`;
+}
+
+function commitAgent(agent: AgentScaffoldPlan, commit: Commit): void {
+  commit.streams.out(clientsLine(agent));
+  commitWrite(
+    { ...agent.instructions, kind: "instructions", note: "verbatra section for coding agents" },
+    commit,
+  );
+  for (const client of agent.clients) {
+    if (client.write === undefined) {
+      commit.streams.out(skippedLine(client, agent, commit.dryRun));
+    } else {
+      const { server, ...write } = client.write;
+      const note = `${clientName(client)}: ${MCP_SERVER_NOTE[server]}`;
+      commitWrite({ ...write, kind: "client", note }, commit);
+    }
+  }
+}
+
+function baseWrites(plan: InitPlan, cwd: string, force: boolean): readonly PlannedWrite[] {
+  const envVar = keyEnvVarFor(plan.draft.provider);
+  for (const file of [
+    CONFIG_FILE,
+    ...(envVar === undefined ? [] : [ENV_EXAMPLE_FILE]),
+    ".gitignore",
+  ]) {
+    assertBaseFileInside(cwd, file);
+  }
   const content = renderConfig(plan.draft);
   const action = configAction(cwd, content, force);
-  const files: WrittenFile[] = [];
-  if (action !== "unchanged") {
-    writing(CONFIG_FILE, cwd, files, () => writeFileSync(resolve(cwd, CONFIG_FILE), content));
-  }
-  streams.out(`${action === "overwritten" ? "overwrote" : action} ${CONFIG_FILE}\n`);
-  files.push({ path: CONFIG_FILE, action });
-  const envVar = keyEnvVarFor(plan.draft.provider);
+  const writes: PlannedWrite[] = [
+    { path: CONFIG_FILE, kind: "base", action, content, note: undefined },
+  ];
   if (envVar !== undefined) {
-    const envAction = writing(ENV_EXAMPLE_FILE, cwd, files, () =>
-      writeEnvExample(cwd, plan.draft.provider, envVar, force),
+    writes.push(
+      writing(ENV_EXAMPLE_FILE, cwd, [], () =>
+        planEnvExample(cwd, plan.draft.provider, envVar, force),
+      ),
     );
-    streams.out(`${envAction} ${ENV_EXAMPLE_FILE}\n`);
-    files.push({ path: ENV_EXAMPLE_FILE, action: envAction });
   }
-  const gitignore: GitignoreAction = writing(".gitignore", cwd, files, () =>
-    ensureGitignore(cwd, streams),
-  );
-  files.push({ path: ".gitignore", action: gitignore });
+  const gitignore = writing(".gitignore", cwd, [], () => planGitignore(cwd));
+  writes.push({ path: ".gitignore", kind: "base", ...gitignore });
+  return writes;
+}
+
+function commitAll(
+  writes: readonly PlannedWrite[],
+  agent: AgentScaffoldPlan | undefined,
+  commit: Commit,
+): readonly WrittenFile[] {
+  for (const write of writes) {
+    commitWrite(write, commit);
+  }
   if (agent !== undefined) {
-    writeAgentFiles(agent, cwd, files, streams);
+    commitAgent(agent, commit);
   }
-  return files;
+  return commit.files;
 }
 
 export interface NextStep {
@@ -293,18 +404,71 @@ function sourceFileStep(plan: InitPlan): NextStep | undefined {
   };
 }
 
-const MCP_SETUP_DOCS = "https://verbatra.kreitz-webdev.de/docs/connect-an-mcp-client#claude-code";
+const MCP_SETUP_DOCS = "https://verbatra.kreitz-webdev.de/docs/connect-an-mcp-client";
 
-function agentSteps(agent: AgentScaffoldPlan | undefined): readonly NextStep[] {
-  if (agent?.mcpServer !== "differs") {
+const CLIENT_DOCS_ANCHOR: Record<AgentClientId, string> = {
+  claude: "claude-code",
+  cursor: "cursor",
+  vscode: "vs-code",
+};
+
+function differsStep(client: PlannedClient): NextStep {
+  return {
+    description: `${client.file} already names a verbatra server that differs from the one init scaffolds for ${clientName(client)}, so init left it as it is. Compare it with ${MCP_SETUP_DOCS}#${CLIENT_DOCS_ANCHOR[client.id]}.`,
+    command: null,
+  };
+}
+
+function pluginStep(client: PlannedClient, setting: string | undefined): NextStep {
+  return {
+    description: `The verbatra Claude Code plugin is enabled in ${setting} and brings its own verbatra server, so init left ${client.file} alone. If ${client.file} already names a verbatra server, remove that entry or disable the plugin: the two together start two servers.`,
+    command: null,
+  };
+}
+
+function symlinkStep(client: PlannedClient): NextStep {
+  return {
+    description: `init did not wire ${clientName(client)}: ${client.link} is a symbolic link, and init never writes through one. Add the entry from ${MCP_SETUP_DOCS}#${CLIENT_DOCS_ANCHOR[client.id]} to ${client.file} by hand, or replace the link with a plain directory or file and run init again.`,
+    command: null,
+  };
+}
+
+function clientStep(client: PlannedClient, agent: AgentScaffoldPlan): readonly NextStep[] {
+  if (client.server === "differs") {
+    return [differsStep(client)];
+  }
+  if (client.reason === "symlink") {
+    return [symlinkStep(client)];
+  }
+  return client.reason === "plugin" ? [pluginStep(client, agent.pluginSetting)] : [];
+}
+
+function agentSteps(agent: AgentScaffoldPlan | undefined, suffix: string): readonly NextStep[] {
+  if (agent === undefined) {
     return [];
   }
-  return [
-    {
-      description: `${MCP_CONFIG_FILE} already names a verbatra server that differs from the one init scaffolds, so init left it as it is. Compare it with ${MCP_SETUP_DOCS}.`,
-      command: null,
-    },
-  ];
+  const steps = agent.clients.flatMap((client) => clientStep(client, agent));
+  if (agent.vscodeHint) {
+    steps.push({
+      description:
+        "This project has a .vscode folder but no .vscode/mcp.json, so init did not wire VS Code. Run this to add it.",
+      command: `npx verbatra init --agent --client vscode${suffix}`,
+    });
+  }
+  return steps;
+}
+
+const DRY_RUN_STEP: NextStep = {
+  description: "Nothing was written. Run the same command without --dry-run to write these files.",
+  command: null,
+};
+
+function leadingSteps(
+  agent: AgentScaffoldPlan | undefined,
+  suffix: string,
+  dryRun: boolean,
+): NextStep[] {
+  return [...(dryRun ? [DRY_RUN_STEP] : []), ...agentSteps(agent, suffix)];
 }
 
 function cwdSuffix(cwdFlag: string | undefined): string {
@@ -322,9 +486,10 @@ function nextSteps(
   plan: InitPlan,
   agent: AgentScaffoldPlan | undefined,
   cwdFlag: string | undefined,
+  dryRun: boolean,
 ): readonly NextStep[] {
   const suffix = cwdSuffix(cwdFlag);
-  const steps: NextStep[] = [...agentSteps(agent)];
+  const steps = leadingSteps(agent, suffix, dryRun);
   if (plan.sources.format === "default") {
     steps.push({
       description: `Set format in ${CONFIG_FILE}: init found no locale file to detect it from.`,
@@ -377,10 +542,28 @@ function detectionForJson(detection: ProjectDetection): unknown {
   };
 }
 
+function clientForJson(client: PlannedClient): unknown {
+  return {
+    id: client.id,
+    file: client.file,
+    server: client.server,
+    reason: client.reason,
+    selectedBy: client.selectedBy,
+    markers: client.markers,
+  };
+}
+
 function agentForJson(agent: AgentScaffoldPlan | undefined, configKept: boolean): unknown {
-  return agent === undefined
-    ? null
-    : { instructionsFile: agent.instructions.path, mcpServer: agent.mcpServer, configKept };
+  if (agent === undefined) {
+    return null;
+  }
+  const claude = agent.clients.find((client) => client.id === "claude");
+  return {
+    instructionsFile: agent.instructions.path,
+    mcpServer: claude?.server ?? null,
+    configKept,
+    clients: agent.clients.map(clientForJson),
+  };
 }
 
 function renderDetectionHuman(detection: ProjectDetection): string | undefined {
@@ -454,24 +637,32 @@ function agentOnlyConfigFile(opts: InitOptions, cwd: string): string | undefined
   return existingConfigFile(cwd);
 }
 
-function runAgentOnly(
-  configFile: string,
-  opts: InitOptions,
-  cwd: string,
-  json: boolean,
-  streams: Streams,
-): number {
-  const agent = planAgentScaffold(cwd);
-  const out = json ? SILENT_STREAMS : streams;
+interface AgentRun {
+  readonly opts: InitOptions;
+  readonly cwd: string;
+  readonly json: boolean;
+  readonly dryRun: boolean;
+  readonly clients: readonly AgentClientId[] | undefined;
+}
+
+function runAgentOnly(configFile: string, run: AgentRun, streams: Streams): number {
+  const agent = planAgentScaffold(run.cwd, run.clients);
+  const out = run.json ? SILENT_STREAMS : streams;
   out.out(`kept ${configFile} (already configured; --agent adds only the agent files)\n`);
-  const files: WrittenFile[] = [{ path: configFile, action: "unchanged" }];
-  writeAgentFiles(agent, cwd, files, out);
-  const steps = [...agentSteps(agent), doctorStep(cwdSuffix(opts.cwd))];
-  if (json) {
+  const files = commitAll([], agent, {
+    cwd: run.cwd,
+    dryRun: run.dryRun,
+    streams: out,
+    files: [{ path: configFile, action: "unchanged" }],
+  });
+  const suffix = cwdSuffix(run.opts.cwd);
+  const steps = [...leadingSteps(agent, suffix, run.dryRun), doctorStep(suffix)];
+  if (run.json) {
     streams.out(
       `${renderSuccessEnvelope("init", {
-        configPath: resolve(cwd, configFile),
+        configPath: resolve(run.cwd, configFile),
         files,
+        dryRun: run.dryRun,
         config: null,
         sources: null,
         apiKeyEnvVar: null,
@@ -530,13 +721,15 @@ export async function runInit(
   const agentRequested = parsed.success && parsed.data.agent === true;
   try {
     const opts = initOptsSchema.parse(rawOpts);
+    const clients = parseClientFlag(opts.client, opts.agent === true);
     const cwd = opts.cwd ?? process.cwd();
     if (opts.cwd !== undefined) {
       assertCwdDirectory(cwd);
     }
+    const dryRun = opts.dryRun === true;
     const keptConfig = agentOnlyConfigFile(opts, cwd);
     if (keptConfig !== undefined) {
-      return runAgentOnly(keptConfig, opts, cwd, json, streams);
+      return runAgentOnly(keptConfig, { opts, cwd, json, dryRun, clients }, streams);
     }
     const prompter: Prompter = {
       interactive: interactiveMode(opts, deps.isTty ?? stdinIsTty),
@@ -545,15 +738,18 @@ export async function runInit(
       warn: (message) => streams.err(`${message}\n`),
     };
     const plan = await planOrExisting(opts, cwd, prompter, deps.detect ?? detectProject);
-    const agent = opts.agent === true ? planAgentScaffold(cwd) : undefined;
-    const files = writePlan(plan, agent, cwd, opts.force === true, json ? SILENT_STREAMS : streams);
-    const steps = nextSteps(plan, agent, opts.cwd);
+    const agent = opts.agent === true ? planAgentScaffold(cwd, clients) : undefined;
+    const writes = baseWrites(plan, cwd, opts.force === true);
+    const out = json ? SILENT_STREAMS : streams;
+    const files = commitAll(writes, agent, { cwd, dryRun, streams: out, files: [] });
+    const steps = nextSteps(plan, agent, opts.cwd, dryRun);
     if (json) {
       const keyEnvVar = keyEnvVarFor(plan.draft.provider);
       streams.out(
         `${renderSuccessEnvelope("init", {
           configPath: resolve(cwd, CONFIG_FILE),
           files,
+          dryRun,
           config: plan.candidate,
           sources: plan.sources,
           apiKeyEnvVar: keyEnvVar ?? null,
