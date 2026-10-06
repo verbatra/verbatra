@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { readIncludedSource } from "./docs-pages";
 
 const CONTENT_DIR = join(import.meta.dirname, "../content/docs");
 const PACKAGES_DIR = join(import.meta.dirname, "../../../packages");
@@ -42,7 +43,7 @@ function badges(): { file: string; version: string; pkg: string }[] {
   return readdirSync(CONTENT_DIR, { recursive: true, encoding: "utf8" })
     .filter((file) => file.endsWith(".mdx"))
     .flatMap((file) =>
-      [...readFileSync(join(CONTENT_DIR, file), "utf8").matchAll(AVAILABLE_FROM)].map((match) => ({
+      [...readIncludedSource(join(CONTENT_DIR, file)).matchAll(AVAILABLE_FROM)].map((match) => ({
         file,
         version: match[1] ?? "",
         pkg: match[2] ?? DEFAULT_PACKAGE,

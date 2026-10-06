@@ -32,6 +32,18 @@ describe("includedSource", () => {
   });
 });
 
+describe("unsupported include forms", () => {
+  it.each([
+    "<include>../templates/body.mdx#steps</include>\n",
+    "<include cwd>templates/body.mdx</include>\n",
+    "Text <include>../templates/body.mdx</include> inline.\n",
+    "<include>../templates/snippet.ts</include>\n",
+  ])("refuses %j instead of measuring the page without it", (page) => {
+    expect(() => includedSource("/c/docs/page.mdx", page, read)).toThrow(/only a whole-file/);
+    expect(() => includedFiles("docs/page.mdx", page)).toThrow(/only a whole-file/);
+  });
+});
+
 describe("includedFiles", () => {
   it("resolves each include against the including file", () => {
     expect(
@@ -58,6 +70,17 @@ describe("foldIncludedTimes", () => {
       "q/react.mdx": 30,
       "q/react.de.mdx": 20,
       "plain.mdx": 5,
+    });
+  });
+
+  it("follows a nested include, as the page renders it", () => {
+    const nested: Record<string, string> = {
+      "docs/page.mdx": "<include>../templates/outer.mdx</include>\n",
+      "templates/outer.mdx": "<include>./inner.mdx</include>\n",
+    };
+    const nestedTimes = { "docs/page.mdx": 1, "templates/outer.mdx": 2, "templates/inner.mdx": 9 };
+    expect(foldIncludedTimes(nestedTimes, "docs", (file) => nested[file])).toEqual({
+      "page.mdx": 9,
     });
   });
 
