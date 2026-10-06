@@ -285,7 +285,14 @@ describe("init for agents (no provider call)", () => {
     );
     expect(setup.exitCode).toBe(0);
     const args = ["init", "--agent", "--client", "all", "--json", "--cwd", dir];
-    const names = ["AGENTS.md", ".mcp.json", ".cursor/mcp.json", ".vscode/mcp.json"];
+    const names = [
+      "AGENTS.md",
+      ".mcp.json",
+      ".cursor/mcp.json",
+      ".vscode/mcp.json",
+      ".codex/config.toml",
+      ".gemini/settings.json",
+    ];
     const read = () => Promise.all(names.map((name) => readFile(join(dir, name), "utf8")));
 
     const first = await runVerbatra(consumer, args, { env: PLACEHOLDER_KEYS });
@@ -296,6 +303,8 @@ describe("init for agents (no provider call)", () => {
       ["claude", ".mcp.json", "added"],
       ["cursor", ".cursor/mcp.json", "added"],
       ["vscode", ".vscode/mcp.json", "added"],
+      ["codex", ".codex/config.toml", "added"],
+      ["gemini", ".gemini/settings.json", "added"],
     ]);
     const written = await read();
     expect(JSON.parse(written[2] ?? "")).toEqual({
@@ -311,6 +320,12 @@ describe("init for agents (no provider call)", () => {
       inputs: [],
       servers: { verbatra: { type: "stdio", command: "npx", args: ["-y", "@verbatra/mcp"] } },
     });
+    expect(written[4]).toBe(
+      '[mcp_servers.verbatra]\ncommand = "npx"\nargs = ["-y", "@verbatra/mcp"]\nstartup_timeout_sec = 60\n',
+    );
+    expect(JSON.parse(written[5] ?? "")).toEqual({
+      mcpServers: { verbatra: { command: "npx", args: ["-y", "@verbatra/mcp"] } },
+    });
     for (const content of written) {
       expect(content).not.toContain(PLACEHOLDER_KEYS.DEEPL_API_KEY);
     }
@@ -320,6 +335,8 @@ describe("init for agents (no provider call)", () => {
     const again = successResult<InitJson>(second.stdout, "init");
     expect(again.files.every((file) => file.action === "unchanged")).toBe(true);
     expect(again.agent?.clients.map((client) => client.server)).toEqual([
+      "present",
+      "present",
       "present",
       "present",
       "present",
