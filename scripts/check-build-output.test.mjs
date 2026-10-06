@@ -7,6 +7,8 @@ import {
   findExportTypeMismatches,
   findForbiddenSpecifiersInText,
   findRenamedDeclarations,
+  findSchemaDocumentProblems,
+  findSchemaSetProblems,
   findUndocumentedExports,
   findUnexportedLinks,
   getConfigSchemaFilesPattern,
@@ -627,4 +629,48 @@ describe("the declaration check covers every published package", () => {
       }
     },
   );
+});
+
+describe("findSchemaDocumentProblems", () => {
+  const base = "https://verbatra.kreitz-webdev.de/schema/v1/";
+  const valid = {
+    $schema: "https://json-schema.org/draft/2020-12/schema",
+    $id: `${base}diff-summary.json`,
+    title: "verbatra diff summary",
+    type: "object",
+    properties: { locales: { type: "array", items: { type: "object" } } },
+  };
+
+  it("accepts an open result document with its dialect, URL and title", () => {
+    expect(findSchemaDocumentProblems("diff-summary", valid)).toEqual([]);
+  });
+
+  it("names every missing meta key and a closed nested object", () => {
+    const broken = {
+      type: "object",
+      properties: { locales: { items: { type: "object", additionalProperties: false } } },
+    };
+
+    const problems = findSchemaDocumentProblems("diff-summary", broken).join("\n");
+
+    expect(problems).toMatch(/\$schema/);
+    expect(problems).toMatch(/\$id/);
+    expect(problems).toMatch(/no title/);
+    expect(problems).toMatch(/additionalProperties: false/);
+  });
+
+  it("lets the config stay closed, since a typo in a config should be flagged", () => {
+    const config = { ...valid, $id: `${base}config.json`, additionalProperties: false };
+
+    expect(findSchemaDocumentProblems("config", config)).toEqual([]);
+  });
+});
+
+describe("findSchemaSetProblems", () => {
+  it("names a missing document and one the expected list does not know", () => {
+    expect(findSchemaSetProblems(["a", "c"], ["a", "b"])).toEqual([
+      "b.json is missing",
+      "c.json is not in the expected list in scripts/check-build-output.mjs",
+    ]);
+  });
 });
