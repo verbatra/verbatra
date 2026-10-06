@@ -90,7 +90,7 @@ Das `result` eines erfolgreichen Envelopes ist bei jedem Befehl anders und steht
 
 <AvailableFrom version="0.12.0" />
 
-Jeder Datensatz, den `--json` ausgibt, hat ein JSON Schema (Draft 2020-12). Die Schemas liegen in den npm-Paketen und sind unter festen URLs erreichbar, damit ein Skript, ein Agent oder ein Editor die Ausgabe prüfen kann, statt Prosa zu lesen. Jedes Schema erlaubt Eigenschaften, die es nicht aufführt, so wie es der Envelope-Vertrag oben verspricht; behalte das bei, wenn du eines kopierst.
+Jeder Datensatz, den `--json` ausgibt, hat ein JSON Schema (Draft 2020-12). Die Schemas liegen in den npm-Paketen und sind unter festen URLs erreichbar, damit ein Skript, ein Agent oder ein Editor die Ausgabe prüfen kann, statt Prosa zu lesen. Jedes Ausgabe-Schema erlaubt Eigenschaften, die es nicht aufführt, so wie es der Envelope-Vertrag oben verspricht; behalte das bei, wenn du eines kopierst. Das Konfigurationsschema ist die bewusste Ausnahme: Es beschreibt, was du schreibst, und lehnt deshalb einen unbekannten Key ab, um einen Tippfehler zu erkennen.
 
 | Dokument | URL | Datei im Paket |
 | --- | --- | --- |
@@ -102,7 +102,7 @@ Jeder Datensatz, den `--json` ausgibt, hat ein JSON Schema (Draft 2020-12). Die 
 
 Jede Befehlsseite verlinkt ihren Envelope unter JSON-Ausgabe, und [https://verbatra.kreitz-webdev.de/schema/v1](https://verbatra.kreitz-webdev.de/schema/v1) listet jedes Dokument mit seinem Titel auf. Ein Befehls-Envelope verweist per URL in `$ref` auf das Schema seines `result`. Ein Validator lädt es also über das Netz, oder aus `node_modules/@verbatra/sdk/dist/schemas`, wenn du diese Dateien vorher registrierst.
 
-`v1` folgt Envelope `version: 1` und liefert immer das neueste Release aus. Ein neues Feld bleibt in `v1`; eine Änderung, die eine Nutzlast bricht, erhöht die `version` des Envelopes und fügt `/schema/v2/` hinzu. Das Konfigurationsschema nutzt dasselbe URL-Schema, folgt aber den Änderungen der Konfiguration selbst.
+`v1` folgt Envelope `version: 1` und liefert immer das neueste Release aus. Ein neues Feld bleibt in `v1`; eine Änderung, die eine Nutzlast bricht, erhöht die `version` des Envelopes und fügt `/schema/v2/` hinzu. Das Konfigurationsschema nutzt dasselbe URL-Schema, folgt aber den Änderungen der Konfiguration selbst. Die URL liefert immer das neueste Release aus, eine Kopie aus npm bleibt bei ihrer Version. Eine ältere Kopie kann deshalb einen Datensatz einer neueren CLI ablehnen, wo ein Schema geschlossene Werte aufzählt, etwa den `type` eines stderr-Datensatzes oder den `command` eines Envelopes.
 
 ## CLI-Fehlercodes
 

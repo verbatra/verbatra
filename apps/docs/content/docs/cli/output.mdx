@@ -90,7 +90,7 @@ The `result` of a successful envelope is different for each command and is descr
 
 <AvailableFrom version="0.12.0" />
 
-Every record `--json` prints has a JSON Schema (draft 2020-12). The schemas ship inside the npm packages and are served at stable URLs, so a script, an agent or an editor can validate output instead of reading prose. Every schema allows properties it does not list, as the envelope contract above promises; keep it that way if you copy one.
+Every record `--json` prints has a JSON Schema (draft 2020-12). The schemas ship inside the npm packages and are served at stable URLs, so a script, an agent or an editor can validate output instead of reading prose. Every output schema allows properties it does not list, as the envelope contract above promises; keep it that way if you copy one. The config schema is the deliberate exception: it describes what you write, so it rejects an unknown key to catch a typo.
 
 | Document | URL | File in the package |
 | --- | --- | --- |
@@ -102,7 +102,7 @@ Every record `--json` prints has a JSON Schema (draft 2020-12). The schemas ship
 
 Each command page links its envelope under JSON output, and [https://verbatra.kreitz-webdev.de/schema/v1](https://verbatra.kreitz-webdev.de/schema/v1) lists every document with its title. A command envelope points at its `result` schema by URL in `$ref`, so a validator loads it over the network, or from `node_modules/@verbatra/sdk/dist/schemas` when you register those files first.
 
-`v1` tracks envelope `version: 1` and always serves the latest release. An added field stays in `v1`; a change that breaks a payload raises the envelope `version` and adds `/schema/v2/`. The config schema uses the same URL scheme but follows the config's own changes.
+`v1` tracks envelope `version: 1` and always serves the latest release. An added field stays in `v1`; a change that breaks a payload raises the envelope `version` and adds `/schema/v2/`. The config schema uses the same URL scheme but follows the config's own changes. The URL always serves the latest release while a copy from npm stays at its version, so an older copy can reject a record from a newer CLI where a schema lists closed values, such as a stderr record's `type` or an envelope's `command`.
 
 ## CLI error codes
 
