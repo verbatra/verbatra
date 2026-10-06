@@ -3,6 +3,8 @@ title: Scripter verbatra avec JSON
 description: "Pilote verbatra depuis un script shell ou une boucle d'agent : garde stdout propre, lis les sorties, branche-toi sur le code de sortie et suis un flux watch."
 type: how-to
 ---
+<StartHere />
+
 Utilise cette page quand un script ou un agent de code exécute verbatra et doit décider de la suite. Chaque commande ponctuelle accepte `--json` et imprime une enveloppe sur stdout, et le code de sortie indique si l'exécution était propre. Les recettes ci-dessous exécutent, analysent, décident et agissent sur une vraie sortie capturée.
 
 Le contrat lui-même est dans [Codes de sortie et sortie JSON](/docs/cli/output) : les champs de l'enveloppe, le tableau des codes de sortie et les commandes qui acceptent `--json`. Le `result` de chaque commande est sur sa page. Pour piloter le tableau de bord dans un navigateur plutôt que dans un shell, consulte [Piloter Studio avec un agent de navigateur](/docs/agent-tools-in-studio).

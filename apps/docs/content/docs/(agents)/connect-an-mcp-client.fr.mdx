@@ -4,6 +4,8 @@ description: Branche le serveur MCP stdio de verbatra sur Claude Code, Codex, Ge
 type: how-to
 status: new
 ---
+<StartHere />
+
 Laisse un agent de code lire l'état des traductions et corriger des valeurs via le serveur MCP stdio de verbatra. Enregistre-le une fois par client : une deuxième entrée démarre un deuxième serveur. Il te faut un projet avec une config verbatra ([`npx verbatra init`](/docs/cli/init)) et Node.js 22.14 ou plus récent.
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
@@ -48,7 +50,7 @@ Le serveur demande quand même à l'agent de lancer `translation.estimate` et d'
 
 <AvailableFrom version="0.12.0" />
 
-La voie recommandée, depuis la racine du projet :
+Depuis la racine du projet :
 
 ```bash
 npx verbatra init --agent
@@ -68,7 +70,7 @@ npx verbatra init --agent
 }
 ```
 
-Redémarre Claude Code et approuve le serveur `verbatra`. Claude Code transmet `CLAUDE_PROJECT_DIR` et l'environnement de ton shell, donc pas besoin de `--cwd`. Pour dépenser le temps d'une session, exporte la clé et lance :
+Redémarre Claude Code et approuve le serveur `verbatra` ; il transmet `CLAUDE_PROJECT_DIR` et l'environnement de ton shell, donc pas besoin de `--cwd`. Pour dépenser le temps d'une session, exporte la clé et lance :
 
 ```bash
 VERBATRA_MCP_ALLOW_SPEND=1 claude
@@ -169,6 +171,10 @@ Cursor lit `.cursor/mcp.json`, qu'écrit `init --agent`, et `~/.cursor/mcp.json`
 }
 ```
 
+<McpInstallLink client="cursor" />
+
+Le bouton l'ajoute à `~/.cursor/mcp.json` ; si `project.snapshot` renvoie `configured: false`, utilise le fichier du projet.
+
 Pour dépenser, ajoute `"--allow-spend"` à la fin de `args` et `"env": { "ANTHROPIC_API_KEY": "${env:ANTHROPIC_API_KEY}" }`, qui ne contient que le nom de la variable. Voir la [documentation MCP de Cursor](https://cursor.com/docs/mcp).
 
 ## VS Code
@@ -212,7 +218,9 @@ Pour dépenser, déclare la clé comme input, que VS Code stocke hors du fichier
 }
 ```
 
-À la place du fichier, [Installer verbatra dans VS Code](vscode:mcp/install?%7B%22name%22%3A%22verbatra%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22%40verbatra%2Fmcp%22%5D%7D) ou cette commande ajoute l'entrée sans dépense à ton profil utilisateur ; utilise une des trois voies, jamais deux :
+<McpInstallLink client="vscode" />
+
+À la place du fichier, le bouton ou cette commande ajoute l'entrée sans dépense à ton profil utilisateur ; utilise une des trois voies, jamais deux :
 
 ```bash
 code --add-mcp '{"name":"verbatra","command":"npx","args":["-y","@verbatra/mcp"]}'
@@ -348,4 +356,3 @@ Demande à l'agent d'appeler `project.snapshot`, qui renvoie les locales, le for
 
 - [`verbatra mcp`](/docs/cli/mcp) : les flags et chaque outil.
 - [Scripter verbatra avec JSON](/docs/agent-recipes#le-pack-de-skills) : la skill `verbatra-mcp-tools`.
-- [Configure verbatra avec un agent IA](/docs/start-with-ai).

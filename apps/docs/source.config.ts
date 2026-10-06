@@ -3,7 +3,7 @@ import { pageSchema } from "fumadocs-core/source/schema";
 import { defineConfig, defineDocs } from "fumadocs-mdx/config";
 import { remarkAutoTypeTable } from "fumadocs-typescript";
 import { z } from "zod";
-import { remarkAiSetupPromptMarkdown } from "./lib/ai-setup-prompt";
+import { remarkAgentEntryMarkdown } from "./lib/agent-entry";
 import { rehypeAvailableFromInHeading } from "./lib/available-from-heading";
 import { rehypeCodeOptions } from "./lib/code-block-meta";
 import { remarkIntroducedIn } from "./lib/introduced-in";
@@ -40,7 +40,7 @@ export default defineConfig({
       remarkSdkTypeTable,
       [remarkAutoTypeTable, sdkTypeTableOptions(REPO_ROOT)],
       remarkTypeTableMarkdown,
-      remarkAiSetupPromptMarkdown,
+      remarkAgentEntryMarkdown,
     ],
     rehypePlugins: (plugins) => [...plugins, rehypeAvailableFromInHeading, rehypeStackedTables],
   },

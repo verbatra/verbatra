@@ -5,7 +5,7 @@ import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AI_SETUP_PROMPT } from "@/lib/ai-setup-prompt";
-import { NPM_INSTALL_COMMAND } from "@/lib/install-commands";
+import { AGENT_INIT_COMMAND, NPM_INSTALL_COMMAND } from "@/lib/install-commands";
 
 vi.mock("next-intl", () => ({
   useTranslations: () => (key: string) => key,
@@ -25,10 +25,10 @@ function renderInstall(): Document {
 }
 
 describe("PackageInstall", () => {
-  it("shows one npm command, with no package-manager tabs and no switch", () => {
+  it("shows one npm command, then the agent setup command, with no package-manager tabs and no switch", () => {
     const doc = renderInstall();
     const commands = [...doc.querySelectorAll("code")].map((code) => code.textContent);
-    expect(commands).toEqual([NPM_INSTALL_COMMAND]);
+    expect(commands).toEqual([NPM_INSTALL_COMMAND, AGENT_INIT_COMMAND]);
     expect(doc.querySelector('[role="tablist"], [role="tab"], [role="switch"]')).toBeNull();
   });
 
@@ -48,11 +48,11 @@ describe("PackageInstall", () => {
     expect(captionRow?.querySelector("button")?.getAttribute("aria-label")).toBe("copyPromptAria");
   });
 
-  it("gives the command and the prompt a copy button each, named for what they copy", () => {
+  it("gives each command and the prompt a copy button, named for what they copy", () => {
     const labels = [...renderInstall().querySelectorAll("button")].map((button) =>
       button.getAttribute("aria-label"),
     );
-    expect(labels).toEqual(["copyAria", "copyPromptAria"]);
+    expect(labels).toEqual(["copyAria", "copyAgentAria", "copyPromptAria"]);
   });
 
   it("sends the copied command text for the command and no data for the prompt", () => {
@@ -68,6 +68,7 @@ describe("PackageInstall", () => {
     act(() => root.unmount());
     expect(track.mock.calls).toEqual([
       ["copy-install-command", { command: NPM_INSTALL_COMMAND }],
+      ["copy-agent-command", { command: AGENT_INIT_COMMAND }],
       ["copy-ai-prompt", undefined],
     ]);
   });

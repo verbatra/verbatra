@@ -38,7 +38,8 @@
       "copyAria": "Installationsbefehl kopieren",
       "aiLabel": "Prompt für KI-Agenten",
       "copyPromptAria": "Setup-Prompt für den KI-Agenten kopieren",
-      "copyCommand": "{command} kopieren"
+      "copyCommand": "{command} kopieren",
+      "copyAgentAria": "Befehl zum Einrichten des Agenten kopieren"
     },
     "gate": {
       "rows": {
@@ -511,6 +512,13 @@
     },
     "statusBadges": {
       "new": "neu"
+    },
+    "startHere": {
+      "title": "Starte hier",
+      "lead": "Mit installiertem `@verbatra/cli` verbindet ein Befehl Claude Code, Cursor oder VS Code mit verbatra, ohne Kosten. Jeder andere Agent: Füge den Prompt ein."
+    },
+    "mcpInstall": {
+      "label": "Zu {client} hinzufügen"
     }
   }
 }

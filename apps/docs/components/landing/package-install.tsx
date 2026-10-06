@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
+import { AgentCommandRow } from "@/components/agent-command-row";
 import { AiSetupPrompt } from "@/components/ai-setup-prompt";
 import { HighlightedCommand } from "@/components/ui/command-line";
 import { CopyButton } from "@/components/ui/copy-button";
@@ -39,7 +40,8 @@ export function PackageInstall(): ReactNode {
             }
           />
         </div>
-        <AiSetupPrompt variant="row" />
+        <AgentCommandRow />
+        <AiSetupPrompt />
       </div>
     </div>
   );

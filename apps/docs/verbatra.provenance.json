@@ -2,23 +2,35 @@
   "version": 1,
   "locales": {
     "de": {
+      "docs.mcpInstall.label": {"origin":"import","valueHash":"eb94e259f0defd19"},
+      "docs.startHere.lead": {"origin":"import","valueHash":"7424e71a35ad5f64"},
+      "docs.startHere.title": {"origin":"import","valueHash":"c40c92fe1c7ca16e"},
       "landing.faq.items.providers.answer": {"origin":"import","valueHash":"b2c21ab82301ab5d"},
       "landing.install.aiLabel": {"origin":"import","valueHash":"816233e691dc84ee"},
+      "landing.install.copyAgentAria": {"origin":"import","valueHash":"3a29535cf044933d"},
       "landing.loop.links.skillsDocs": {"origin":"import","valueHash":"d3b4a17a3c4c051e"},
       "landing.loop.rows.agent.body": {"origin":"import","valueHash":"e5c3008b203a56b4"},
       "landing.providers.heading": {"origin":"import","valueHash":"9c7ed865ff1d7fb5"}
     },
     "es": {
+      "docs.mcpInstall.label": {"origin":"import","valueHash":"40c81c03b3985ccb"},
+      "docs.startHere.lead": {"origin":"import","valueHash":"faf900d11c9a9ff3"},
+      "docs.startHere.title": {"origin":"import","valueHash":"7ecad953eb152516"},
       "landing.faq.items.providers.answer": {"origin":"import","valueHash":"96b7814113034607"},
       "landing.install.aiLabel": {"origin":"import","valueHash":"19850e9b9e91da18"},
+      "landing.install.copyAgentAria": {"origin":"import","valueHash":"f34e24a26fd790ae"},
       "landing.loop.links.skillsDocs": {"origin":"import","valueHash":"b1c39d205ceadde7"},
       "landing.loop.rows.agent.body": {"origin":"import","valueHash":"e47768f0d0f5fa64"},
       "landing.providers.heading": {"origin":"import","valueHash":"c8f21bced020d8df"}
     },
     "fr": {
+      "docs.mcpInstall.label": {"origin":"import","valueHash":"0e0da3b2061b77f6"},
+      "docs.startHere.lead": {"origin":"import","valueHash":"420f8b7e4c14f0ba"},
+      "docs.startHere.title": {"origin":"import","valueHash":"9419d910d65183fd"},
       "landing.control.groups.people.items.review.body": {"origin":"import","valueHash":"9f244402604c0b24"},
       "landing.faq.items.providers.answer": {"origin":"import","valueHash":"0a7564f36bbe504b"},
       "landing.install.aiLabel": {"origin":"import","valueHash":"739a7d18479a7e33"},
+      "landing.install.copyAgentAria": {"origin":"import","valueHash":"34ca8355f98a4de8"},
       "landing.loop.links.skillsDocs": {"origin":"import","valueHash":"a6b7b28c36634eaa"},
       "landing.loop.rows.agent.body": {"origin":"import","valueHash":"a8c47fd78226993b"},
       "landing.loop.rows.studio.alt": {"origin":"import","valueHash":"d1657af5720f3b1b"},

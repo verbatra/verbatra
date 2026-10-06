@@ -4,6 +4,8 @@ description: Wire verbatra's stdio MCP server into Claude Code, Codex, Gemini CL
 type: how-to
 status: new
 ---
+<StartHere />
+
 Let a coding agent read translation status and fix values through verbatra's stdio MCP server. Register it once per client: a second entry starts a second server. You need a project with a verbatra config ([`npx verbatra init`](/docs/cli/init)) and Node.js 22.14 or later.
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
@@ -21,7 +23,7 @@ Avoid `npx -y @verbatra/cli mcp`, which exits `2` because the CLI never installs
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-The server is also listed in the [official MCP Registry](https://registry.modelcontextprotocol.io) as `io.github.verbatra/verbatra`.
+It is also in the [official MCP Registry](https://registry.modelcontextprotocol.io) as `io.github.verbatra/verbatra`.
 
 ## Decide whether the agent may spend
 
@@ -48,7 +50,7 @@ The server still tells the agent to run `translation.estimate` and wait for your
 
 <AvailableFrom version="0.12.0" />
 
-Recommended, from the project root:
+From the project root:
 
 ```bash
 npx verbatra init --agent
@@ -68,7 +70,7 @@ npx verbatra init --agent
 }
 ```
 
-Restart Claude Code and approve the `verbatra` server. Claude Code passes `CLAUDE_PROJECT_DIR` and your shell's environment, so no `--cwd` is needed. To spend for one session, export the key and run:
+Restart Claude Code and approve the `verbatra` server; it passes `CLAUDE_PROJECT_DIR` and your shell's environment, so needs no `--cwd`. To spend for one session, export the key and run:
 
 ```bash
 VERBATRA_MCP_ALLOW_SPEND=1 claude
@@ -169,6 +171,10 @@ Cursor reads `.cursor/mcp.json`, which `init --agent` writes, and `~/.cursor/mcp
 }
 ```
 
+<McpInstallLink client="cursor" />
+
+The button adds it to `~/.cursor/mcp.json`; if `project.snapshot` reports `configured: false`, use the project file.
+
 To spend, append `"--allow-spend"` to `args` and add `"env": { "ANTHROPIC_API_KEY": "${env:ANTHROPIC_API_KEY}" }`, which holds only the variable's name. See the [Cursor MCP documentation](https://cursor.com/docs/mcp).
 
 ## VS Code
@@ -212,7 +218,9 @@ To spend, declare the key as an input, which VS Code stores outside the file:
 }
 ```
 
-Instead of the file, [Install verbatra in VS Code](vscode:mcp/install?%7B%22name%22%3A%22verbatra%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22%40verbatra%2Fmcp%22%5D%7D) or this command adds it to your user profile; use one route, never two:
+<McpInstallLink client="vscode" />
+
+Instead of the file, the button or this command adds it to your user profile; use one route, never two:
 
 ```bash
 code --add-mcp '{"name":"verbatra","command":"npx","args":["-y","@verbatra/mcp"]}'
@@ -348,4 +356,3 @@ Ask the agent to call `project.snapshot`; it returns the locales, format and pro
 
 - [`verbatra mcp`](/docs/cli/mcp): flags and every tool.
 - [Script verbatra with JSON](/docs/agent-recipes#the-skills-pack): the `verbatra-mcp-tools` skill.
-- [Set up verbatra with an AI agent](/docs/start-with-ai).
