@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { writeFileIn } from "./harness.js";
 
-export const WIRE_LOG_ENV = "VERBATRA_E2E_WIRE_LOG";
+const WIRE_LOG_ENV = "VERBATRA_E2E_WIRE_LOG";
 
 export const WIRE_RECORDER_PATH = fileURLToPath(new URL("./wire-recorder.mjs", import.meta.url));
 
