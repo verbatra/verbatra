@@ -26,7 +26,7 @@ verbatra check [flags]
 
 Nimmt außerdem die [globalen Flags](/docs/cli#globale-flags) `--cwd`, `--config` und `--json`.
 
-Ein Key fehlt, wenn die Quelle ihn hat und das Ziel nicht, und er ist veraltet, wenn sich sein Quelltext seit der letzten Übersetzung geändert hat. Ein Locale ist synchron, wenn es keins von beidem hat. Die Key-Listen hinter den Zahlen liefert [`verbatra diff`](/docs/cli/diff).
+Ein Key fehlt, wenn die Quelle ihn hat und das Ziel nicht, und er ist veraltet, wenn sich sein Quelltext seit der letzten Übersetzung geändert hat. Eine Locale ist synchron, wenn sie keins von beidem hat. Die Key-Listen hinter den Zahlen liefert [`verbatra diff`](/docs/cli/diff).
 
 ## Verhalten
 
@@ -121,7 +121,7 @@ review: failed [REVIEW_REQUIRED] 2 machine-written translations not approved
   de: 2 unreviewed: checkout.title, checkout.total
 ```
 
-Mit `--json` ist `result.review` gleich `{ reviewed, unreviewed, code? }`, wobei `code` `REVIEW_REQUIRED` ist oder `REVIEW_STATE_UNREADABLE`, wenn die Provenance-Datei beschädigt ist oder von einem neueren verbatra stammt (das Gate schlägt dann fehl). Jedes Locale trägt `review.unreviewed`, die Keys in Quellreihenfolge.
+Mit `--json` ist `result.review` gleich `{ reviewed, unreviewed, code? }`, wobei `code` `REVIEW_REQUIRED` ist oder `REVIEW_STATE_UNREADABLE`, wenn die Provenance-Datei beschädigt ist oder von einem neueren verbatra stammt (das Gate schlägt dann fehl). Jede Locale trägt `review.unreviewed`, die Keys in Quellreihenfolge.
 
 ### Sensible Inhalte
 

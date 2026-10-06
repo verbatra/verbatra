@@ -24,7 +24,7 @@ Nimmt außerdem die [globalen Flags](/docs/cli#globale-flags) `--cwd`, `--config
 
 ### Ausstehende und verwaiste Keys
 
-Jedes Locale listet vier Arten von Keys:
+Jede Locale listet vier Arten von Keys:
 
 | Liste | Bedeutung |
 | --- | --- |
@@ -33,7 +33,7 @@ Jedes Locale listet vier Arten von Keys:
 | `orphaned` | im Ziel, aber aus der Quelle verschwunden: wird nur gemeldet |
 | `emptySource` (angezeigt als `empty source`) | der Quellwert ist leer oder besteht nur aus Leerraum: nichts zu übersetzen, bis du ihn schreibst, nie ausstehend |
 
-Ein Locale hat ausstehende Änderungen, sobald es mindestens einen fehlenden oder geänderten Key hat. Verwaiste Keys zählen nie als ausstehend, weil ein Standardlauf sie stehen lässt; nur [`verbatra translate --prune`](/docs/cli/translate) entfernt sie. [`verbatra check`](/docs/cli/check) liefert die Zähler, `diff` die Key-Listen.
+Eine Locale hat ausstehende Änderungen, sobald sie mindestens einen fehlenden oder geänderten Key hat. Verwaiste Keys zählen nie als ausstehend, weil ein Standardlauf sie stehen lässt; nur [`verbatra translate --prune`](/docs/cli/translate) entfernt sie. [`verbatra check`](/docs/cli/check) liefert die Zähler, `diff` die Key-Listen.
 
 ### Ungenutzte Quell-Keys
 
