@@ -74,7 +74,7 @@ Restart Claude Code and approve the `verbatra` server. Claude Code passes `CLAUD
 VERBATRA_MCP_ALLOW_SPEND=1 claude
 ```
 
-Run `claude mcp list` to check the connection. See the [Claude Code MCP documentation](https://code.claude.com/docs/en/mcp).
+`claude mcp list` checks the connection. See the [Claude Code MCP documentation](https://code.claude.com/docs/en/mcp).
 
 ### Other routes
 
@@ -173,7 +173,7 @@ To spend, append `"--allow-spend"` to `args` and add `"env": { "ANTHROPIC_API_KE
 
 ## VS Code
 
-VS Code (GitHub Copilot's agent mode) reads `.vscode/mcp.json`, whose top-level key is `servers`; `init --agent --client vscode` writes this entry. It starts servers in the workspace folder, so no `--cwd` is needed:
+VS Code (GitHub Copilot's agent mode) reads `.vscode/mcp.json`, whose top-level key is `servers`; `init --agent --client vscode` writes this entry. It starts servers in the workspace folder, so needs no `--cwd`:
 
 ```json title=".vscode/mcp.json"
 {
@@ -251,7 +251,7 @@ A repository admin adds the server under **Settings**, **Copilot**, **MCP server
 }
 ```
 
-Add `translation.editEntry` and `glossary.write` only if the agent should write in its pull request, and keep `review.approve` and `review.reject` out: a review decision needs a person. To check the setup, open the agent's **View session** and expand **Start MCP Servers**. See [Extending the cloud agent with MCP](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/configure-mcp-servers).
+Add `translation.editEntry` and `glossary.write` only if the agent should write in its pull request, and keep `review.approve` and `review.reject` out: a review decision needs a person. Leave spending off. To check the setup, open the agent's **View session** and expand **Start MCP Servers**. See [Extending the cloud agent with MCP](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/configure-mcp-servers).
 
 ### Copilot CLI
 
