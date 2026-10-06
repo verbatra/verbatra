@@ -2,8 +2,8 @@ import { z } from "zod";
 import { PSEUDO_MODES } from "./pseudo.js";
 
 /**
- * The zod schema for a {@link PseudolocalizeResult}, the `result` of `verbatra pseudo --json`. It
- * allows fields it does not list.
+ * The zod schema for a {@link PseudolocalizeResult}, the `result` of `verbatra pseudo --json`.
+ * A zod 4 schema: `parse` accepts fields it does not list and strips them from its result.
  */
 export const pseudolocalizeResultSchema = z.object({
   locale: z.string(),

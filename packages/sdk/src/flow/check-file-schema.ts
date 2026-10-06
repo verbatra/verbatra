@@ -33,7 +33,8 @@ const syntaxFindingSchema = z.object({
 
 /**
  * The zod schema for a {@link CheckFileSummary}, the `result` of `verbatra check --file --json`.
- * It allows fields it does not list.
+ *
+ * A zod 4 schema: `parse` accepts fields it does not list and strips them from its result.
  */
 export const checkFileSummarySchema = z.object({
   file: z.string(),

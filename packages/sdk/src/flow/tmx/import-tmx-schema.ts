@@ -6,8 +6,8 @@ const languageReportSchema = z.object({ language: z.string(), units: z.number() 
 const optionalString = z.union([z.string(), z.undefined()]);
 
 /**
- * The zod schema for an {@link ImportTmxResult}, the `result` of `verbatra tmx import --json`. It
- * allows fields it does not list.
+ * The zod schema for an {@link ImportTmxResult}, the `result` of `verbatra tmx import --json`.
+ * A zod 4 schema: `parse` accepts fields it does not list and strips them from its result.
  */
 export const importTmxResultSchema = z.object({
   dryRun: z.boolean(),

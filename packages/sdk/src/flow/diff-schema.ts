@@ -59,8 +59,8 @@ const unusedKeysReportSchema = z.union([
 ]);
 
 /**
- * The zod schema for a {@link DiffSummary}, the `result` of `verbatra diff --json`. It allows
- * fields it does not list.
+ * The zod schema for a {@link DiffSummary}, the `result` of `verbatra diff --json`.
+ * A zod 4 schema: `parse` accepts fields it does not list and strips them from its result.
  */
 export const diffSummarySchema = z.object({
   hasPendingChanges: z.boolean(),

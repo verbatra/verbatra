@@ -127,7 +127,10 @@ export const SDK_JSON_SCHEMAS: readonly JsonSchemaDocument[] = [
   },
 ];
 
-/** The public URL, and the `$id`, of the document named `name`. */
+/**
+ * The public URL, and the `$id`, of verbatra's published document named `name`, under
+ * {@link JSON_SCHEMA_BASE_URL}. It does not check that such a document exists.
+ */
 export function jsonSchemaUrl(name: string): string {
   return `${JSON_SCHEMA_BASE_URL}${name}.json`;
 }
@@ -175,23 +178,42 @@ function openAndClean(context: { zodSchema: z.core.$ZodType; jsonSchema: JsonNod
   dropRequiredUndefinedKeys(zodSchema, jsonSchema);
 }
 
-function collapseNeverBranches(node: unknown): unknown {
+function stripNeverPresent(node: unknown): unknown {
   if (Array.isArray(node)) {
-    return node.map(collapseNeverBranches);
+    return node.map(stripNeverPresent);
   }
   if (typeof node !== "object" || node === null) {
     return node;
   }
-  const entries = Object.entries(node).map(([key, value]) => [key, collapseNeverBranches(value)]);
-  const collapsed: JsonNode = Object.fromEntries(entries);
-  if (!Array.isArray(collapsed.anyOf)) {
-    return collapsed;
+  const entries = Object.entries(node)
+    .filter(([key, value]) => key === "not" || !isNeverPresent(value))
+    .map(([key, value]) => [key, stripNeverPresent(value)]);
+  const stripped: JsonNode = Object.fromEntries(entries);
+  if (!Array.isArray(stripped.anyOf)) {
+    return stripped;
   }
-  const branches = collapsed.anyOf.filter((branch) => !isNeverPresent(branch));
-  const { anyOf: _anyOf, ...rest } = collapsed;
+  const branches = stripped.anyOf.filter((branch) => !isNeverPresent(branch));
+  const { anyOf: _anyOf, ...rest } = stripped;
   return branches.length === 1
     ? { ...rest, ...(branches[0] as JsonNode) }
     : { ...rest, anyOf: branches };
+}
+
+/**
+ * Generate the JSON Schema (draft 2020-12) of one zod schema the way verbatra publishes its output
+ * documents: every object allows properties it does not list, a field that can be `undefined` is
+ * not required, and a field a variant never carries is left out. It sets no `$id`, so it suits a
+ * schema embedded in another document, such as an MCP tool's `outputSchema`.
+ */
+export function renderOutputJsonSchema(schema: z.ZodType): JsonSchemaObject {
+  return stripNeverPresent(
+    z.toJSONSchema(schema, {
+      target: "draft-2020-12",
+      io: "output",
+      unrepresentable: "any",
+      override: openAndClean,
+    }),
+  ) as JsonSchemaObject;
 }
 
 function renderGroup(
@@ -214,7 +236,7 @@ function renderGroup(
   });
   const rendered: Record<string, JsonSchemaObject> = {};
   for (const document of documents.filter((candidate) => candidate.io === io)) {
-    const generated = collapseNeverBranches(schemas[document.name]) as JsonNode;
+    const generated = stripNeverPresent(schemas[document.name]) as JsonNode;
     const { $schema: _dialect, $id: _id, ...body } = generated;
     rendered[document.name] = {
       $schema: JSON_SCHEMA_DIALECT,
@@ -227,7 +249,10 @@ function renderGroup(
 }
 
 /**
- * Generate the JSON Schema documents for `documents`, keyed by name. Every object of an `output`
+ * Generate verbatra's own JSON Schema documents for `documents`, keyed by name. Each document is
+ * stamped with the `$id` {@link jsonSchemaUrl} gives its name, a URL on verbatra's documentation
+ * site, so it is meant for verbatra's documents ({@link SDK_JSON_SCHEMAS} and the CLI's), not for
+ * schemas of your own; use {@link renderOutputJsonSchema} for those. Every object of an `output`
  * document allows properties it does not list, since verbatra's JSON output only ever grows; an
  * `input` document keeps the closed objects its zod schema declares. A document that embeds
  * another one from `documents` or `references` points at it by its `$id`.

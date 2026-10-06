@@ -8,8 +8,8 @@ const UNRESOLVED_ARGUMENT_REASONS = [
 ] as const satisfies readonly UnresolvedArgumentReason[];
 
 /**
- * The zod schema for a {@link GenerateTypesResult}, the `result` of `verbatra types --json`. It
- * allows fields it does not list.
+ * The zod schema for a {@link GenerateTypesResult}, the `result` of `verbatra types --json`.
+ * A zod 4 schema: `parse` accepts fields it does not list and strips them from its result.
  */
 export const generateTypesResultSchema = z.object({
   path: z.string(),

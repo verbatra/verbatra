@@ -72,8 +72,8 @@ const localeCapabilityReportSchema = z.object({
 
 /**
  * The zod schema for a {@link DoctorResult}, the `result` of `verbatra doctor --json`, including
- * the `--literals`, `--locales`, `--live` and `--data-flow` variants. It allows fields it does not
- * list.
+ * the `--literals`, `--locales`, `--live` and `--data-flow` variants.
+ * A zod 4 schema: `parse` accepts fields it does not list and strips them from its result.
  */
 export const doctorResultSchema = z.object({
   ok: z.boolean(),

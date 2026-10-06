@@ -4,7 +4,8 @@ import { usageSummarySchema } from "../flow/summary-schema.js";
 /**
  * The zod schema for a {@link ProgressEvent}, one record of a run's progress. `verbatra translate`
  * and `watch` print the `locale-started`, `sub-batch`, `locale-finished` and `run-finished` events
- * to stderr as JSON lines under `--json`. It allows fields it does not list.
+ * to stderr as JSON lines under `--json`.
+ * A zod 4 schema: `parse` accepts fields it does not list and strips them from its result.
  */
 export const progressEventSchema = z.union([
   z.object({

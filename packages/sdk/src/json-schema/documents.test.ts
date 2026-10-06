@@ -6,6 +6,7 @@ import {
   type JsonSchemaDocument,
   jsonSchemaUrl,
   renderJsonSchemas,
+  renderOutputJsonSchema,
   SDK_JSON_SCHEMAS,
 } from "./documents.js";
 
@@ -62,7 +63,7 @@ describe("renderJsonSchemas", () => {
     });
   });
 
-  it("forbids a field a branch never carries, such as the cost of an unpriced estimate", () => {
+  it("leaves out a field a branch never carries, such as the cost of an unpriced estimate", () => {
     const branches = property("run-summary", "properties", "estimate", "anyOf") as Record<
       string,
       Record<string, unknown>
@@ -72,7 +73,8 @@ describe("renderJsonSchemas", () => {
     );
 
     expect(branches).toHaveLength(4);
-    expect(unpriced?.properties?.cost).toEqual({ not: {} });
+    expect(unpriced?.properties).not.toHaveProperty("cost");
+    expect(JSON.stringify(rendered)).not.toContain('"not":{}');
   });
 
   it("refers to a document passed as a reference by its URL without rendering it", () => {
@@ -89,6 +91,21 @@ describe("renderJsonSchemas", () => {
     expect(Object.keys(result)).toEqual(["outer"]);
     expect(result.outer?.properties).toEqual({ inner: { $ref: jsonSchemaUrl("inner") } });
     expect(result.outer?.required).toEqual(["inner"]);
+  });
+
+  it("renders one output schema the same way, without stamping verbatra's $id on it", () => {
+    const schema = z.object({
+      kept: z.string(),
+      gone: z.undefined().exactOptional(),
+      maybe: z.union([z.number(), z.undefined()]),
+    });
+
+    const rendered = renderOutputJsonSchema(schema);
+
+    expect(rendered).not.toHaveProperty("$id");
+    expect(rendered).not.toHaveProperty("additionalProperties");
+    expect(rendered.properties).toEqual({ kept: { type: "string" }, maybe: { type: "number" } });
+    expect(rendered.required).toEqual(["kept"]);
   });
 
   it("drops the required list of an object whose every field may be undefined", () => {

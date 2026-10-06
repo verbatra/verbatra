@@ -16,8 +16,8 @@ export const scanDiagnosticSchema = z.object({
 });
 
 /**
- * The zod schema for an {@link ExtractResult}, the `result` of `verbatra extract --json`. It
- * allows fields it does not list.
+ * The zod schema for an {@link ExtractResult}, the `result` of `verbatra extract --json`.
+ * A zod 4 schema: `parse` accepts fields it does not list and strips them from its result.
  */
 export const extractResultSchema = z.object({
   sourcePath: z.string(),

@@ -177,6 +177,10 @@ const localeNoticeSchema = z.union([
   z.object({ code: z.enum(SDK_NOTICE_CODES), message: z.string() }),
 ]);
 
+/**
+ * The zod 4 schema for a {@link LocaleSummary}, one locale of a {@link RunSummary}. `parse`
+ * accepts fields it does not list and strips them from its result.
+ */
 export const localeSummarySchema = z.object({
   locale: z.string(),
   status: z.enum(["succeeded", "partial", "failed"]),
@@ -210,8 +214,8 @@ export const localeSummarySchema = z.object({
 
 /**
  * The zod schema for a {@link RunSummary}, the `result` of `verbatra translate`, `watch` and
- * `import` under `--json`. It allows fields it does not list, so a summary from a newer verbatra
- * still parses.
+ * `import` under `--json`.
+ * A zod 4 schema: `parse` accepts fields it does not list and strips them from its result.
  */
 export const runSummarySchema = z.object({
   dryRun: z.boolean(),

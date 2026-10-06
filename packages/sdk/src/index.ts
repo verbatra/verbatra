@@ -167,7 +167,7 @@ export {
   detectProject,
   type ProjectDetection,
 } from "./detection/detect-project.js";
-export { errorHint } from "./error-hints.js";
+export { errorHint, KNOWN_ERROR_CODES } from "./error-hints.js";
 export { SdkError, type SdkErrorCode } from "./errors.js";
 export {
   type ApproveLocaleDeps,
@@ -464,7 +464,7 @@ export type {
   UnpricedRunEstimate,
   UsageSummary,
 } from "./flow/summary.js";
-export { runSummarySchema } from "./flow/summary-schema.js";
+export { localeSummarySchema, runSummarySchema } from "./flow/summary-schema.js";
 export {
   DEFAULT_TMX_PATH,
   type ExportTmxDeps,
@@ -535,6 +535,7 @@ export {
   type JsonSchemaObject,
   jsonSchemaUrl,
   renderJsonSchemas,
+  renderOutputJsonSchema,
   SDK_JSON_SCHEMAS,
 } from "./json-schema/documents.js";
 export {
@@ -552,6 +553,11 @@ export {
   type ProvenanceMarkers,
   type ProvenanceSummary,
 } from "./lock/key-provenance.js";
+export {
+  keyOriginSchema,
+  keyProvenanceSchema,
+  provenanceSummarySchema,
+} from "./lock/key-provenance-schema.js";
 export {
   type LoadLockFileDeps,
   type LoadLockFileInput,

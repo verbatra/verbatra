@@ -84,7 +84,8 @@ const sensitiveFindingSourceSchema = z.union([
 
 /**
  * The zod schema for a {@link CheckSummary}, the `result` of `verbatra check --json` for a whole
- * project. It allows fields it does not list.
+ * project.
+ * A zod 4 schema: `parse` accepts fields it does not list and strips them from its result.
  */
 export const checkSummarySchema = z.object({
   inSync: z.boolean(),
