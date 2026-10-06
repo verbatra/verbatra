@@ -24,18 +24,18 @@ function parseEnvFile(filePath: string): Record<string, string> {
   return parseEnv(content) as Record<string, string>;
 }
 
-export function loadEnvFiles(cwd: string): void {
+export function loadEnvFilesIn(cwd: string): void {
   applyIfUnset(parseEnvFile(resolve(cwd, ".env.local")));
   applyIfUnset(parseEnvFile(resolve(cwd, ".env")));
 }
 
-export function loadProjectEnvFiles(cwd: string, configPath: string | undefined): void {
-  loadEnvFiles(cwd);
+export function loadEnvFiles(cwd: string, configPath?: string): void {
+  loadEnvFilesIn(cwd);
   if (configPath !== undefined) {
     return;
   }
   const root = searchedConfigDir(cwd);
   if (root !== undefined && root !== resolve(cwd)) {
-    loadEnvFiles(root);
+    loadEnvFilesIn(root);
   }
 }

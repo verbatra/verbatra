@@ -38,7 +38,7 @@ import { usageErrorHint } from "./cli-error-hints.js";
 import { CliUsageError } from "./cli-usage-error.js";
 import { hasConfigFile } from "./config-presence.js";
 import { assertCwdDirectory } from "./cwd-option.js";
-import { loadProjectEnvFiles } from "./env.js";
+import { loadEnvFiles } from "./env.js";
 import { appendMissingGitignoreEntries } from "./gitignore.js";
 import { runInit } from "./init.js";
 import { renderErrorEnvelope, renderSuccessEnvelope } from "./json-envelope.js";
@@ -944,7 +944,7 @@ export async function runTranslate(
           );
           return exitCode;
         },
-        () => loadProjectEnvFiles(cwd, opts.config),
+        () => loadEnvFiles(cwd, opts.config),
       );
     },
   );
@@ -984,7 +984,7 @@ async function runWatchCommand(
       const cwd = opts.cwd ?? process.cwd();
       let project: LoadedProject;
       try {
-        loadProjectEnvFiles(cwd, opts.config);
+        loadEnvFiles(cwd, opts.config);
         project = await loadProject(
           deps,
           loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
@@ -1740,7 +1740,7 @@ async function runDoctor(
       const literals = opts.literals === true;
       try {
         if (!literals) {
-          loadProjectEnvFiles(cwd, opts.config);
+          loadEnvFiles(cwd, opts.config);
         }
         const result = await withTask(context, doctorTaskLabel(opts), (task) =>
           deps.doctor({

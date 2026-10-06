@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { isMachineTranslationEnabled, resolveProjectRoot } from "@verbatra/sdk";
 import { z } from "zod";
 import { CliUsageError } from "./cli-usage-error.js";
-import { loadProjectEnvFiles } from "./env.js";
+import { loadEnvFiles } from "./env.js";
 import { renderError, toRenderableError } from "./render.js";
 import { PRESS_CTRL_C, studioAgentToolsLine, studioSpendLine } from "./session-banners.js";
 import {
@@ -108,7 +108,7 @@ export async function runStudio(
 
   const cwd = opts.cwd ?? process.cwd();
   try {
-    loadProjectEnvFiles(cwd, opts.config);
+    loadEnvFiles(cwd, opts.config);
   } catch (error) {
     streams.err(`${renderError(toRenderableError(error))}\n`);
     return failedSession(2);

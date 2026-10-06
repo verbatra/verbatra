@@ -2,7 +2,7 @@ import { resolve } from "node:path";
 import type { McpServerHandle, McpStopCause } from "@verbatra/mcp";
 import { z } from "zod";
 import { CliUsageError } from "./cli-usage-error.js";
-import { loadEnvFiles, loadProjectEnvFiles } from "./env.js";
+import { loadEnvFiles, loadEnvFilesIn } from "./env.js";
 import { renderError, toRenderableError } from "./render.js";
 import {
   failedSession,
@@ -124,7 +124,7 @@ export async function runMcp(
 
   const cwd = mcpModule.resolveServerCwd?.(opts.cwd) ?? resolve(opts.cwd ?? process.cwd());
   try {
-    loadProjectEnvFiles(cwd, opts.config);
+    loadEnvFiles(cwd, opts.config);
   } catch (error) {
     streams.err(`${renderError(toRenderableError(error))}\n`);
     return failedSession(2);
@@ -144,7 +144,7 @@ export async function runMcp(
         redactValues,
         onLog: (line) => streams.err(`${line}\n`),
         onProjectRootChange: (root) => {
-          loadEnvFiles(root);
+          loadEnvFilesIn(root);
           ui.info(`project root is now ${root}`);
         },
         ...(opts.config !== undefined ? { configPath: opts.config } : {}),
