@@ -115,12 +115,18 @@ async function expectRefusal(opts: Record<string, unknown>, code: string, fragme
   return envelope;
 }
 
-describe("init --agent per client: the fixture matrix", () => {
+const JSON_CLIENT_IDS = AGENT_CLIENT_IDS.filter((id) => AGENT_CLIENT_CONFIGS[id].format === "json");
+
+describe("init --agent per JSON client: the fixture matrix", () => {
   beforeEach(() => {
     put("verbatra.config.ts", CONFIG);
   });
 
-  describe.each(AGENT_CLIENT_IDS)("%s", (id) => {
+  it("covers every JSON client, Gemini CLI included", () => {
+    expect(JSON_CLIENT_IDS).toEqual(["claude", "cursor", "vscode", "gemini"]);
+  });
+
+  describe.each(JSON_CLIENT_IDS)("%s", (id) => {
     const client = AGENT_CLIENT_CONFIGS[id];
     const key = client.serversKey;
     const fresh = `${JSON.stringify({ [key]: { verbatra: client.server } }, null, 2)}\n`;
@@ -258,6 +264,206 @@ describe("init --agent per client: the fixture matrix", () => {
   });
 });
 
+describe("init --agent for Codex: the TOML fixture matrix", () => {
+  const CODEX = AGENT_CLIENT_CONFIGS.codex;
+  const FILE = CODEX.file;
+  const BLOCK = [
+    "[mcp_servers.verbatra]",
+    'command = "npx"',
+    'args = ["-y", "@verbatra/mcp"]',
+    "startup_timeout_sec = 60",
+    "",
+  ].join("\n");
+  const ENTRY_BODY = BLOCK.slice(BLOCK.indexOf("\n") + 1);
+
+  beforeEach(() => {
+    put("verbatra.config.ts", CONFIG);
+  });
+
+  const codexClient = async () => (await initJson({ client: "codex" })).agent.clients[0];
+
+  it("creates an absent file holding exactly the documented table", async () => {
+    const result = await initJson({ client: "codex" });
+    expect(read(FILE)).toBe(BLOCK);
+    expect(result.agent.clients).toEqual([
+      { id: "codex", file: FILE, server: "added", reason: null, selectedBy: "flag", markers: [] },
+    ]);
+    expect(result.files).toContainEqual({ path: FILE, action: "created" });
+    expect(read(FILE)).not.toMatch(/allow-spend|env|cwd|trust/);
+  });
+
+  it("fills an empty file", async () => {
+    put(FILE, "\n");
+    await initJson({ client: "codex" });
+    expect(read(FILE)).toBe(BLOCK);
+  });
+
+  it("appends after other tables and comments, one blank line apart, keeping every byte", async () => {
+    const existing = [
+      "# Codex project settings",
+      'model = "o4"',
+      "",
+      "[mcp_servers.docs] # docs server",
+      'command = "docs-mcp"',
+      "args = [",
+      '  "--port", # the port',
+      '  "8080",',
+      "]",
+      'note = """',
+      "[mcp_servers.verbatra]",
+      '"""',
+      "",
+    ].join("\n");
+    put(FILE, existing);
+    const result = await initJson({ client: "codex" });
+    expect(read(FILE)).toBe(`${existing}\n${BLOCK}`);
+    expect(result.agent.clients[0]?.server).toBe("added");
+  });
+
+  it("terminates a last line that has no newline before appending", async () => {
+    put(FILE, 'model = "o4"');
+    await initJson({ client: "codex" });
+    expect(read(FILE)).toBe(`model = "o4"\n\n${BLOCK}`);
+  });
+
+  it("keeps CRLF line endings and is idempotent on them", async () => {
+    put(FILE, 'model = "o4"\r\n');
+    await initJson({ client: "codex" });
+    expect(read(FILE)).toBe(`model = "o4"\r\n\r\n${BLOCK.replaceAll("\n", "\r\n")}`);
+    const written = read(FILE);
+    expect((await codexClient())?.server).toBe("present");
+    expect(read(FILE)).toBe(written);
+  });
+
+  it.each([
+    ["the scaffolded table", BLOCK],
+    [
+      "the same values in another order, quoting and spacing",
+      "[ mcp_servers . verbatra ] # ours\nargs=[ '-y',\n  '@verbatra/mcp', ]\nstartup_timeout_sec = 60.0\ncommand = 'npx'\n",
+    ],
+    ["a double-quoted header", `[mcp_servers."verbatra"]\n${ENTRY_BODY}`],
+    ["a single-quoted header", `[mcp_servers.'verbatra']\n${ENTRY_BODY}`],
+    ["a quoted servers key", `["mcp_servers".verbatra]\n${ENTRY_BODY}`],
+  ])("reports %s as present and leaves the file byte-identical", async (_label, existing) => {
+    put(FILE, existing);
+    const result = await initJson({ client: "codex" });
+    expect(read(FILE)).toBe(existing);
+    expect(result.agent.clients[0]?.server).toBe("present");
+    expect(result.files).toContainEqual({ path: FILE, action: "unchanged" });
+  });
+
+  it.each([
+    ["changed args", BLOCK.replace('"@verbatra/mcp"]', '"@verbatra/mcp", "--allow-spend"]')],
+    ["a missing timeout", BLOCK.replace("startup_timeout_sec = 60\n", "")],
+    ["an extra key", `${BLOCK}env_vars = ["ANTHROPIC_API_KEY"]\n`],
+    ["a dotted key inside the table", `${BLOCK}env.LANG = "C"\n`],
+    ["a sub-table", `${BLOCK}\n[mcp_servers.verbatra.env]\nLANG = "C"\n`],
+    ["a multi-line string value", BLOCK.replace('"npx"', '"""npx"""')],
+    ["a sub-table alone", '[mcp_servers.verbatra.env]\nLANG = "C"\n'],
+  ])("leaves %s untouched as differs, with a next step", async (_label, existing) => {
+    put(FILE, existing);
+    const result = await initJson({ client: "codex" });
+    expect(read(FILE)).toBe(existing);
+    expect(result.agent.clients[0]?.server).toBe("differs");
+    expect(result.nextSteps[0]?.description).toContain(`${FILE} already names`);
+    expect(result.nextSteps[0]?.description).toContain("connect-an-mcp-client#codex");
+  });
+
+  it.each([
+    [
+      "an inline mcp_servers table",
+      'mcp_servers = { verbatra = { command = "npx" } }\n',
+      "sets mcp_servers with an inline table or dotted keys",
+    ],
+    [
+      "dotted mcp_servers.verbatra keys",
+      'mcp_servers.verbatra.command = "npx"\n',
+      "sets mcp_servers with an inline table or dotted keys",
+    ],
+    [
+      "dotted verbatra keys under [mcp_servers]",
+      '[mcp_servers]\nverbatra.command = "npx"\n',
+      "defines the verbatra server with an inline table or dotted keys",
+    ],
+    [
+      "an inline verbatra table under [mcp_servers]",
+      '[mcp_servers]\nverbatra = { command = "npx" }\n',
+      "defines the verbatra server with an inline table or dotted keys",
+    ],
+    [
+      "an array of server tables",
+      '[[mcp_servers.verbatra]]\ncommand = "npx"\n',
+      "declares mcp_servers.verbatra as an array of tables",
+    ],
+    ["a repeated table", `${BLOCK}${BLOCK}`, "repeats the [mcp_servers.verbatra] table"],
+    ["a repeated key", `${BLOCK}command = "node"\n`, "repeats a key in [mcp_servers.verbatra]"],
+    ["an unterminated multi-line string", 'note = """\nnever closed\n', "is not TOML init can"],
+    ["an unterminated literal multi-line string", "note = '''\nopen\n", "is not TOML init can"],
+    ["an unterminated array", 'args = [\n  "x",\n', "is not TOML init can read"],
+    ["an unterminated table header", "[mcp_servers.verbatra\n", "is not TOML init can read"],
+    ["an unterminated string", 'model = "o4\n', "is not TOML init can read"],
+  ])("refuses %s with zero writes in the whole run", async (_label, content, fragment) => {
+    rmSync(join(dir, "verbatra.config.ts"));
+    put(FILE, content);
+    await expectRefusal(
+      { client: "all", provider: "gemini", yes: true },
+      "AGENT_FILE_INVALID",
+      `${FILE} ${fragment}`,
+    );
+    expect(existsSync(join(dir, "verbatra.config.ts"))).toBe(false);
+  });
+
+  it("never echoes the refused content, which may hold a secret", async () => {
+    put(FILE, 'secret = """sk-secret-value\n');
+    const envelope = await expectRefusal({ client: "codex" }, "AGENT_FILE_INVALID", FILE);
+    expect(JSON.stringify(envelope)).not.toContain("sk-secret-value");
+  });
+
+  it("skips a detected .codex directory that is a symbolic link", async () => {
+    const outside = join(root, "outside");
+    mkdirSync(outside);
+    symlinkSync(outside, join(dir, ".codex"));
+    const result = await initJson();
+    expect(result.agent.clients).toEqual([
+      {
+        id: "codex",
+        file: FILE,
+        server: "skipped",
+        reason: "symlink",
+        selectedBy: "markers",
+        markers: [".codex/"],
+      },
+    ]);
+    expect(readdirSync(outside)).toEqual([]);
+  });
+
+  it("refuses a config file linked elsewhere when --client names Codex", async () => {
+    put("shared.toml", BLOCK);
+    mkdirSync(join(dir, ".codex"));
+    symlinkSync(join(dir, "shared.toml"), join(dir, FILE));
+    await expectRefusal(
+      { client: "codex" },
+      "AGENT_FILE_INVALID",
+      `behind the symbolic link ${FILE}`,
+    );
+  });
+
+  it("says what it would do under --dry-run, and writes nothing", async () => {
+    put(FILE, 'model = "o4"\n');
+    const before = snapshot(root);
+    const { code, cap } = await init({ client: "codex,gemini", dryRun: true });
+    expect(code).toBe(0);
+    expect(snapshot(root)).toEqual(before);
+    expect(cap.out()).toContain("agent clients: Codex, Gemini CLI (from --client)");
+    expect(cap.out()).toContain(
+      "would update .codex/config.toml (Codex: verbatra MCP server added, spending off)",
+    );
+    expect(cap.out()).toContain(
+      "would create .gemini/settings.json (Gemini CLI: verbatra MCP server added, spending off)",
+    );
+  });
+});
+
 describe("init --agent: which clients it wires", () => {
   beforeEach(() => {
     put("verbatra.config.ts", CONFIG);
@@ -290,8 +496,11 @@ describe("init --agent: which clients it wires", () => {
     [".cursor/rules.mdc", "cursor"],
     [".cursorrules", "cursor"],
     [".vscode/mcp.json", "vscode"],
+    [".codex/config.toml", "codex"],
+    [".gemini/settings.json", "gemini"],
+    ["GEMINI.md", "gemini"],
   ])("detects %s as a %s marker", async (marker, id) => {
-    put(marker, marker.endsWith(".json") ? "{}\n" : "x\n");
+    put(marker, marker.endsWith(".json") ? "{}\n" : "# x\n");
     expect(await wired()).toEqual([[id, "markers"]]);
   });
 
@@ -336,6 +545,8 @@ describe("init --agent: which clients it wires", () => {
       ["claude", "flag"],
       ["cursor", "flag"],
       ["vscode", "flag"],
+      ["codex", "flag"],
+      ["gemini", "flag"],
     ]);
     expect(await wired({ client: "vscode,claude,vscode" })).toEqual([
       ["claude", "flag"],
@@ -353,6 +564,8 @@ describe("init --agent: which clients it wires", () => {
       "claude",
       "cursor",
       "vscode",
+      "codex",
+      "gemini",
       "all",
     ]);
   });
@@ -474,6 +687,8 @@ describe("init --agent: a second run and a dry run", () => {
       "present",
       "present",
       "present",
+      "present",
+      "present",
     ]);
   });
 
@@ -492,6 +707,8 @@ describe("init --agent: a second run and a dry run", () => {
       { path: ".mcp.json", action: "created" },
       { path: ".cursor/mcp.json", action: "updated" },
       { path: ".vscode/mcp.json", action: "created" },
+      { path: ".codex/config.toml", action: "created" },
+      { path: ".gemini/settings.json", action: "created" },
     ]);
     expect(result.nextSteps[0]?.description).toContain("Nothing was written");
   });

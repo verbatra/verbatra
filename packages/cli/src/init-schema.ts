@@ -60,7 +60,13 @@ const CLIENT_SERVER_STATES = [
   "skipped",
 ] as const satisfies readonly ClientServerState[];
 
-const AGENT_CLIENT_IDS = ["claude", "cursor", "vscode"] as const satisfies readonly AgentClientId[];
+const AGENT_CLIENT_IDS = [
+  "claude",
+  "cursor",
+  "vscode",
+  "codex",
+  "gemini",
+] as const satisfies readonly AgentClientId[];
 
 const CLIENT_SKIP_REASONS = ["plugin", "symlink"] as const satisfies readonly ClientSkipReason[];
 

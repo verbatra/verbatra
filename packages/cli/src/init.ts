@@ -464,6 +464,8 @@ const CLIENT_DOCS_ANCHOR: Record<AgentClientId, string> = {
   claude: "claude-code",
   cursor: "cursor",
   vscode: "vs-code",
+  codex: "codex",
+  gemini: "gemini-cli",
 };
 
 function differsStep(client: PlannedClient): NextStep {
