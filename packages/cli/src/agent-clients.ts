@@ -27,7 +27,11 @@ export interface AgentClientServer {
 }
 
 /** The verbatra server table `verbatra init --agent` writes into a TOML config file. */
-export interface TomlAgentClientServer extends AgentClientServer {
+export interface TomlAgentClientServer {
+  /** The program the client starts. */
+  readonly command: "npx";
+  /** The program's arguments. Never `--allow-spend`, so the spend tools stay hidden. */
+  readonly args: readonly string[];
   /** How many seconds the client waits for the server to start, covering a first `npx` download. */
   readonly startup_timeout_sec: number;
 }
