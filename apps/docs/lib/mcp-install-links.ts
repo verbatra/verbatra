@@ -1,10 +1,10 @@
-import type { AgentClientConfig } from "@verbatra/cli";
+import type { JsonAgentClientConfig } from "@verbatra/cli";
 
 export const MCP_INSTALL_CLIENTS = ["vscode"] as const;
 
 export type McpInstallClient = (typeof MCP_INSTALL_CLIENTS)[number];
 
-export type McpInstallConfigs = Readonly<Record<McpInstallClient, AgentClientConfig>>;
+export type McpInstallConfigs = Readonly<Record<McpInstallClient, JsonAgentClientConfig>>;
 
 export const MCP_INSTALL_COMPONENT = "McpInstallLink";
 
