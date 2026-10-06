@@ -33,7 +33,7 @@ The server starts with read and local edit tools only: spend tools stay hidden a
 - your provider's key variable, such as `ANTHROPIC_API_KEY` ([Providers](/docs/providers)).
 
 <Callout type="warn">
-Never write a key into a committed file such as `.mcp.json`, `.codex/config.toml`, `.cursor/mcp.json` or `.vscode/mcp.json`.
+Never write a key into a committed file such as `.mcp.json`, `.codex/config.toml`, `.gemini/settings.json`, `.cursor/mcp.json` or `.vscode/mcp.json`.
 </Callout>
 
 To keep values from the agent's model, add `--redact-values`; see [Studio and MCP](/docs/data-handling#studio-and-mcp).
@@ -70,7 +70,7 @@ npx verbatra init --agent
 }
 ```
 
-Restart Claude Code and approve the `verbatra` server; it passes `CLAUDE_PROJECT_DIR` and your shell's environment. To spend for one session, export the key and run:
+Restart Claude Code and approve the `verbatra` server; it passes `CLAUDE_PROJECT_DIR` and your environment. To spend for one session, export the key and run:
 
 ```bash
 VERBATRA_MCP_ALLOW_SPEND=1 claude
@@ -86,7 +86,7 @@ VERBATRA_MCP_ALLOW_SPEND=1 claude
 claude mcp add --transport stdio --scope project verbatra -- npx -y @verbatra/mcp
 ```
 
-This writes the same `.mcp.json` entry. Never add `--env KEY=value` to a project entry: it writes the value into `.mcp.json`.
+This writes the same entry. Never add `--env KEY=value` here: it writes the value into `.mcp.json`.
 
 #### The verbatra plugin
 
@@ -150,7 +150,7 @@ Recommended: `npx verbatra init --agent --client gemini` adds this entry to `.ge
 }
 ```
 
-Gemini CLI reads it only from the folder it starts in: start `gemini` in the project root and trust it in the dialog or with `/permissions trust`. Leave `trust` unset; `/mcp` lists the tools. See the [Gemini CLI MCP documentation](https://geminicli.com/docs/tools/mcp-server/).
+Gemini CLI reads it only from the folder it starts in: start `gemini` in the project root and trust it in the dialog or with `/permissions trust`. Leave `trust` unset; `/mcp` lists the tools. It reads `GEMINI.md`, not `AGENTS.md`: add `"context": { "fileName": ["AGENTS.md", "GEMINI.md"] }` to the settings or `@AGENTS.md` to `GEMINI.md`. See the [Gemini CLI MCP documentation](https://geminicli.com/docs/tools/mcp-server/).
 
 ### Gemini CLI user settings
 
@@ -350,11 +350,11 @@ Set **Working directory** to the project root and keep this entry no-spend. See 
 }
 ```
 
-To spend, append `"--allow-spend"` and add `"env": { "ANTHROPIC_API_KEY": "..." }`; the file lives outside every repository. Then restart Claude Desktop. See [Connect to local MCP servers](https://modelcontextprotocol.io/docs/develop/connect-local-servers).
+To spend, append `"--allow-spend"` and add `"env": { "ANTHROPIC_API_KEY": "..." }`, then restart Claude Desktop. See [Connect to local MCP servers](https://modelcontextprotocol.io/docs/develop/connect-local-servers).
 
 ## Any other stdio client
 
-Give the client the command `npx -y @verbatra/mcp`, plus `--cwd /path/to/your/project` unless it starts servers in the project root or one of its subdirectories, and `--config <path>` if the config sits elsewhere. Pass `--allow-spend` and the key only through the client's secret mechanism.
+Give the client the command `npx -y @verbatra/mcp`, plus `--cwd /path/to/your/project` unless it starts servers inside the project, and `--config <path>` for a config elsewhere. Pass `--allow-spend` and the key only through the client's secret mechanism.
 
 ## Check the connection
 
