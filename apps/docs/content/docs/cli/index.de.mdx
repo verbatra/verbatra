@@ -45,7 +45,7 @@ Diese Flags bedeuten bei jedem Befehl, der sie nimmt, dasselbe. Die Befehlsseite
 
 | Flag | Argument | Standard | Wirkung | Nicht bei |
 | --- | --- | --- | --- | --- |
-| `--cwd` | `<path>` | aktuelles Verzeichnis | liest Konfiguration und Locale-Dateien aus diesem Verzeichnis; `init` schreibt seine Dateien dorthin | keinem |
+| `--cwd` | `<path>` | aktuelles Verzeichnis | startet hier die Konfigurationssuche und löst die Pfade, die du übergibst, dagegen auf; Locale-Dateien werden gegen das Verzeichnis der gefundenen Konfiguration aufgelöst; `init` schreibt seine Dateien dorthin | keinem |
 | `--config` | `<path>` | danach suchen | lädt diese Konfigurationsdatei, statt nach einer zu suchen; siehe die [Suchreihenfolge](/docs/config-file) | `init` |
 | `--json` | keins | aus | gibt einen maschinenlesbaren [Envelope](/docs/cli/output#json-ausgabe) auf stdout aus, eine Zeile pro Datensatz; Fehler gehen weiter nach stderr | `mcp`, `studio` |
 | `-q`, `--quiet` | keins | aus | gibt nur Ergebnisse, Warnungen und Fehler aus: keinen Fortschritt, keine Hinweise, keine Infozeilen; wirkt vor oder nach dem Befehlsnamen | keinem |
@@ -57,7 +57,7 @@ Ein unbekannter Befehl oder ein unbekanntes Flag endet mit `2`, ebenso ein nackt
 
 ## Umgebungsdateien
 
-`translate`, `watch`, `doctor`, `studio` und `mcp` laden `.env.local` und dann `.env` aus dem Arbeitsverzeichnis, bevor sie laufen. `doctor --literals` ist die Ausnahme: Dieser Aufruf liest keinen API-Key und lädt deshalb keine der beiden Dateien. Eine bereits in deiner echten Umgebung gesetzte Variable gewinnt immer, und ein Wert in `.env.local` gewinnt gegen dieselbe Variable in `.env`. API-Keys werden nur aus der Umgebung gelesen, nie aus der Konfigurationsdatei oder einem Flag: siehe [Provider](/docs/providers). Die nur lesenden Befehle (`check`, `diff`, `report`), die Übergabe-Befehle (`export`, `import`), `extract`, `init`, `pseudo`, `types` und `tmx` rufen nie einen Provider auf und laden keine `.env`-Dateien.
+`translate`, `watch`, `doctor`, `studio` und `mcp` laden `.env.local` und dann `.env` aus dem Arbeitsverzeichnis, bevor sie laufen. Liegt die Konfiguration, die die Suche gefunden hat, in einem übergeordneten Verzeichnis, laden sie danach dieselben zwei Dateien auch von dort; mit `--config` lesen sie nur das Arbeitsverzeichnis. `doctor --literals` ist die Ausnahme: Dieser Aufruf liest keinen API-Key und lädt deshalb keine der beiden Dateien. Eine bereits in deiner echten Umgebung gesetzte Variable gewinnt immer, danach die Dateien des Arbeitsverzeichnisses, dann die des Konfigurationsverzeichnisses, und ein Wert in `.env.local` gewinnt gegen dieselbe Variable in `.env`. API-Keys werden nur aus der Umgebung gelesen, nie aus der Konfigurationsdatei oder einem Flag: siehe [Provider](/docs/providers). Die nur lesenden Befehle (`check`, `diff`, `report`), die Übergabe-Befehle (`export`, `import`), `extract`, `init`, `pseudo`, `types` und `tmx` rufen nie einen Provider auf und laden keine `.env`-Dateien.
 
 ## Terminalausgabe
 

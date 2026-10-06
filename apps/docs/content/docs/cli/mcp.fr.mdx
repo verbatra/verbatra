@@ -33,7 +33,9 @@ Prend aussi les [options globales](/docs/cli#options-globales) `--cwd` et `--con
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Si `--cwd` est absent et que `CLAUDE_PROJECT_DIR` désigne un répertoire existant, le serveur l'utilise comme racine du projet. Claude Code définit cette variable pour chaque serveur stdio qu'il lance, donc une session ouverte dans un sous-répertoire trouve quand même la config. Un `--cwd` explicite l'emporte toujours. `verbatra mcp` charge alors les [fichiers d'environnement](/docs/cli#fichiers-denvironnement) depuis ce répertoire ; un `CLAUDE_PROJECT_DIR` défini seulement dans ces fichiers est ignoré, car la racine est résolue avant.
+Si `--cwd` est absent et que `CLAUDE_PROJECT_DIR` désigne un répertoire existant, le serveur l'utilise comme répertoire du projet. Claude Code définit cette variable pour chaque serveur stdio qu'il lance. Un `--cwd` explicite l'emporte toujours. `verbatra mcp` charge alors les [fichiers d'environnement](/docs/cli#fichiers-denvironnement) depuis ce répertoire ; un `CLAUDE_PROJECT_DIR` défini seulement dans ces fichiers est ignoré, car le répertoire du projet est résolu avant.
+
+La recherche de configuration commence là, et le répertoire de la config trouvée est la [racine du projet](/docs/config-file#le-répertoire-de-travail-et-env) par rapport à laquelle chaque chemin d'outil est résolu, donc un serveur lancé dans un sous-répertoire travaille quand même sur les fichiers du projet.
 
 ### Outils payants
 

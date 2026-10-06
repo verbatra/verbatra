@@ -1,5 +1,6 @@
-import { appendFileSync, existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { appendProjectFile } from "./project-paths.js";
 
 const GITIGNORE_ENTRIES = [".env", ".env.local", ".verbatra-local/", "verbatra.cache.json"];
 
@@ -13,8 +14,8 @@ function appendedEntries(content: string, entries: readonly string[]): string {
   return `${prefix}${entries.join("\n")}\n`;
 }
 
-function appendEntries(path: string, content: string, entries: readonly string[]): void {
-  appendFileSync(path, appendedEntries(content, entries));
+function appendEntries(cwd: string, content: string, entries: readonly string[]): void {
+  appendProjectFile(cwd, ".gitignore", appendedEntries(content, entries));
 }
 
 export type GitignoreAction = "created" | "updated" | "unchanged";
@@ -62,7 +63,7 @@ export function appendMissingGitignoreEntries(cwd: string, dryRun = false): read
     const content = readFileSync(gitignorePath, "utf8");
     const missing = missingEntries(content);
     if (missing.length > 0) {
-      appendEntries(gitignorePath, content, missing);
+      appendEntries(cwd, content, missing);
     }
     return missing;
   } catch {

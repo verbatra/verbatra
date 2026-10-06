@@ -72,7 +72,7 @@ Unknown keys are rejected at every level except `$schema`, which is also why an 
 
 ### Locales and files
 
-- **`files.pattern`** must contain `{locale}`, the only token it understands: `locales/{locale}.json` resolves to `locales/de.json`, against the working directory. It is a literal path, never a glob, so one config addresses one file per locale; for several namespace files see [Namespace layouts](/docs/formats#namespace-layouts). `apple-xcstrings` still needs the token, but every locale resolves to the same catalogue ([Xcode String Catalogs](/docs/formats#xcode-string-catalogs-xcstrings)).
+- **`files.pattern`** must contain `{locale}`, the only token it understands: `locales/{locale}.json` resolves to `locales/de.json`, against the project root. It is a literal path, never a glob, so one config addresses one file per locale; for several namespace files see [Namespace layouts](/docs/formats#namespace-layouts). `apple-xcstrings` still needs the token, but every locale resolves to the same catalogue ([Xcode String Catalogs](/docs/formats#xcode-string-catalogs-xcstrings)).
 - **`files.localeStyle`** decides what the token expands to:
   - `literal` writes the tag as configured, which the JSON, YAML, XLIFF, ARB, properties and Apple `.lproj` layouts need.
   - `posix` replaces `-` with `_`, for gettext and Java `messages_{locale}.properties`: `pt-BR` becomes `pt_BR`, `zh-Hant-TW` becomes `zh_Hant_TW`. A variant such as `de-1996` has no posix spelling. `gettext-po` spells scripts the gettext way (next section).
@@ -266,7 +266,7 @@ extract: {
 ```
 
 - **`framework`** is a closed set ([call shapes](/docs/cli/extract#what-it-finds)); a framework without an extractor is rejected.
-- **`roots`** resolve against the working directory; nothing outside them is read.
+- **`roots`** resolve against the project root; nothing outside them is read.
 - **`exclude`** adds directory names (not paths), matched anywhere under a root, to the [always-skipped set](/docs/cli/extract#scan-boundaries).
 - **`literals.ignore`** matches a literal's whole text with whitespace collapsed and character references decoded (`Tom & Jerry`); a held-back literal is reported as suppressed.
 - **`unused.ignore`** takes exact keys or `*` patterns for keys used only outside the scanned source, matched against the decoded key the report shows (`Welcome. Enjoy`); a match is reported as ignored.
@@ -351,7 +351,7 @@ These rules have no JSON Schema expression, so only loading the config checks th
 
 ## The working directory and .env
 
-The working directory (where you run verbatra, or `--cwd`) anchors the config search and locale paths; which commands load `.env.local` and `.env` from it is under [Environment files](/docs/cli#environment-files).
+The working directory (where you run verbatra, or `--cwd`) is where the config search starts; which commands load `.env.local` and `.env` from it is under [Environment files](/docs/cli#environment-files). The project root is the directory of the config file the search found: locale paths, `verbatra.lock.json`, the cache, the provenance file and `.verbatra-local/` resolve against it, so a run started in a subdirectory works on the same files as a run next to the config. With `--config`, the working directory is the root, and a config file elsewhere gets a note on stderr, because its glossary path still resolves against the config's own directory. A relative path you pass yourself, such as `--out` or `check --file`, resolves against the working directory.
 
 ## When loading fails
 

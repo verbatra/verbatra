@@ -26,6 +26,7 @@ import {
 } from "./agent-scaffold.js";
 import type { CliErrorCode } from "./cli-error-codes.js";
 import { CliUsageError } from "./cli-usage-error.js";
+import { parentConfigDir } from "./config-presence.js";
 import { assertCwdDirectory } from "./cwd-option.js";
 import { planGitignore } from "./gitignore.js";
 import {
@@ -766,6 +767,21 @@ function renderFailure(
   return 2;
 }
 
+function warnShadowedConfig(
+  shadowed: string | undefined,
+  cwd: string,
+  dryRun: boolean,
+  streams: Streams,
+): void {
+  if (shadowed === undefined) {
+    return;
+  }
+  const verb = dryRun ? "would take" : "takes";
+  streams.err(
+    `verbatra: the config in ${shadowed} also covers this directory; from here on, ${CONFIG_FILE} in ${resolve(cwd)} ${verb} its place. Delete one of them if that is not what you want.\n`,
+  );
+}
+
 export async function runInit(
   rawOpts: unknown,
   streams: Streams,
@@ -797,7 +813,9 @@ export async function runInit(
     const agent = opts.agent === true ? planAgentScaffold(cwd, clients) : undefined;
     const writes = baseWrites(plan, cwd, opts.force === true);
     const out = json ? SILENT_STREAMS : streams;
+    const shadowed = parentConfigDir(cwd);
     const files = commitAll(writes, agent, { cwd, dryRun, streams: out, files: [] });
+    warnShadowedConfig(shadowed, cwd, dryRun, streams);
     const steps = nextSteps(plan, agent, opts.cwd, dryRun);
     if (json) {
       const keyEnvVar = keyEnvVarFor(plan.draft.provider);

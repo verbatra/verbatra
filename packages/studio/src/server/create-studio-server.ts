@@ -1,7 +1,7 @@
 import { createServer, type Server } from "node:http";
 import type { AddressInfo, Socket } from "node:net";
 import { fileURLToPath } from "node:url";
-import { declareProviderKeyEnvVar, type LoadedConfig } from "@verbatra/sdk";
+import { declareProviderKeyEnvVar, type LoadedConfig, resolveProjectRoot } from "@verbatra/sdk";
 import { EDIT_ENTRY_METHOD } from "../shared/rpc/edit-entry.js";
 import { GLOSSARY_WRITE_METHOD } from "../shared/rpc/glossary.js";
 import { RETRANSLATE_ENTRIES_METHOD } from "../shared/rpc/retranslate-entries.js";
@@ -237,8 +237,7 @@ async function closeServer(server: Server, sseHub: SseHub, watcher: ProjectWatch
  * import { startStudioServer } from "@verbatra/studio";
  *
  * const server = await startStudioServer({
- *   loader: () => loadConfigWithMeta({ cwd: process.cwd() }),
- *   cwd: process.cwd(),
+ *   loader: () => loadConfigWithMeta(),
  *   port: 0,
  * });
  *
@@ -255,7 +254,7 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
   const config = await options.loader();
   declareProviderKeyEnvVar(config.config.provider);
   const capabilities = resolveCapabilities(granted, config.config);
-  const projectRoot = options.cwd ?? process.cwd();
+  const projectRoot = resolveProjectRoot(config.source, options.cwd ?? process.cwd());
 
   const watcher = await createProjectWatcher(
     { config: config.config, projectRoot },

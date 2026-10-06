@@ -10,7 +10,6 @@ import {
   generateTypes,
   importTmx,
   importWorkbook,
-  loadConfig,
   loadConfigWithMeta,
   provenanceReport,
   pseudolocalize,
@@ -40,7 +39,6 @@ function exitAfterReleasingLocks(code: number, signal: InterruptSignal, json: bo
 const code = await run(
   process.argv.slice(2),
   {
-    loadConfig,
     translate,
     watch,
     exportWorkbook,

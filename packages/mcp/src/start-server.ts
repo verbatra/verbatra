@@ -6,6 +6,7 @@ import {
   isMachineTranslationEnabled,
   redact,
 } from "@verbatra/sdk";
+import { trackProjectRoot } from "./project-root-tracker.js";
 import { type McpProjectState, openProjectSession } from "./project-session.js";
 import { serveMcpStdio } from "./server.js";
 import { resolveServerCwd } from "./server-cwd.js";
@@ -15,10 +16,12 @@ import type { McpToolContext } from "./types.js";
 /** Everything {@link startMcpServer} accepts. Every field is optional. */
 export interface StartMcpServerOptions {
   /**
-   * The project root: where the config search starts, the base a relative `configPath` resolves
-   * against, and the root every tool resolves project paths from. Defaults to the
-   * `CLAUDE_PROJECT_DIR` environment variable when it names an existing directory, else
-   * `process.cwd()` (see {@link resolveServerCwd}).
+   * The project directory: where the config search starts and the base a relative `configPath`
+   * resolves against. Defaults to the `CLAUDE_PROJECT_DIR` environment variable when it names an
+   * existing directory, else `process.cwd()` (see {@link resolveServerCwd}). The tools resolve
+   * project paths from the directory of a config the search found, so a server started in a
+   * subdirectory works on the project's own files; with `configPath` they resolve them from this
+   * directory.
    */
   readonly cwd?: string;
   /**
@@ -68,6 +71,12 @@ export interface StartMcpServerOptions {
    * call. Omit it to discard them.
    */
   readonly onLog?: (line: string) => void;
+  /**
+   * Called when a reloaded config moves the project root, such as a config created in a parent
+   * directory after the server started, with the new root as an absolute path. The tools use the
+   * new root from that call on. Omit it to ignore the change.
+   */
+  readonly onProjectRootChange?: (root: string) => void;
 }
 
 /** A running MCP server, returned by {@link startMcpServer}. */
@@ -99,6 +108,12 @@ export interface McpServerHandle {
    * the first call after it becomes valid, without a restart.
    */
   readonly configured: boolean;
+  /**
+   * The directory the tools resolve project paths from: the directory of a config the search found,
+   * else the project directory (see {@link StartMcpServerOptions.cwd}). Always absolute. It follows
+   * a reloaded config that moves the root (see {@link StartMcpServerOptions.onProjectRootChange}).
+   */
+  readonly projectRoot: string;
 }
 
 /**
@@ -136,14 +151,16 @@ export async function startMcpServer(
 ): Promise<McpServerHandle> {
   const cwd = resolveServerCwd(options.cwd);
   const valueMarker = options.redactValues === true ? createValueMarker() : undefined;
-  const project = await openProjectSession({
+  const session = await openProjectSession({
     cwd,
     ...(options.configPath !== undefined ? { configPath: options.configPath } : {}),
     ...(options.fs !== undefined ? { fs: options.fs } : {}),
     ...(options.onLog !== undefined ? { onLog: options.onLog } : {}),
     ...(valueMarker !== undefined ? { valueMarker } : {}),
   });
-  const initial = project.latest();
+  const initial = session.latest();
+  const tracked = trackProjectRoot(session, cwd, options.onProjectRootChange);
+  const project = tracked.project;
 
   const input = process.stdin;
   const transport = new StdioServerTransport(input, process.stdout);
@@ -171,6 +188,9 @@ export async function startMcpServer(
     spend: spendState(options.allowSpend ?? false, initial),
     valuesRedacted: options.redactValues ?? false,
     configured: initial.kind === "configured",
+    get projectRoot() {
+      return tracked.root();
+    },
   };
 }
 

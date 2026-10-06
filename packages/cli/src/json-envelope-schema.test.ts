@@ -24,7 +24,6 @@ import {
   importTmx,
   importWorkbook,
   jsonSchemaUrl,
-  loadConfig,
   loadConfigWithMeta,
   ProviderError,
   provenanceReport,
@@ -241,7 +240,6 @@ const inertWatcher: CreateWatcher = () => ({
 });
 
 const realDeps: Partial<CliDeps> = {
-  loadConfig,
   loadConfigWithMeta,
   translate,
   exportWorkbook,

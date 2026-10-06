@@ -11,6 +11,7 @@ import {
   type LoadConfigOptions,
   type LoadedConfig,
   loadConfigWithMeta,
+  resolveProjectRoot,
 } from "../config/load-config.js";
 import {
   hasProviderFactory,
@@ -187,7 +188,11 @@ export interface DoctorResult {
 
 /** Input for {@link doctor}. */
 export interface DoctorInput {
-  /** Directory to search the config from, and the base for locale paths. Defaults to the process working directory. */
+  /**
+   * Directory to search the config from. Defaults to the process working directory. Locale paths
+   * resolve against the project root {@link resolveProjectRoot} returns: the directory of a config
+   * found by the search, otherwise this directory.
+   */
   readonly cwd?: string;
   /** An explicit config file to validate, bypassing the search. A missing file is an error rather than a failed check. */
   readonly configPath?: string;
@@ -590,7 +595,7 @@ async function literalDoctor(input: DoctorInput, deps: DoctorDeps): Promise<Doct
   const configCheck = verdict("config", true, configDetail(source));
   const lint = await lintLiterals(
     config,
-    input.cwd ?? process.cwd(),
+    resolveProjectRoot(source, input.cwd ?? process.cwd()),
     deps.fs ?? defaultFs,
     input.onProgress,
   );
@@ -636,7 +641,7 @@ async function dataFlowDoctor(input: DoctorInput, deps: DoctorDeps): Promise<Doc
   }
   const { config, source } = outcome.loaded;
   const manifest = await buildDataFlowManifest(config, {
-    cwd: input.cwd ?? process.cwd(),
+    cwd: resolveProjectRoot(source, input.cwd ?? process.cwd()),
     fs: deps.fs ?? defaultFs,
     adapterRegistry: deps.adapterRegistry,
     env: processEnvironment(),
@@ -781,7 +786,7 @@ export async function doctor(
   }
   const { config, source } = outcome.loaded;
   const adapter = resolveAdapter(config, deps);
-  const cwd = input.cwd ?? process.cwd();
+  const cwd = resolveProjectRoot(source, input.cwd ?? process.cwd());
   const fs = deps.fs ?? defaultFs;
   const locales = await checkLocales(config, input.live === true);
   const result = toResult([

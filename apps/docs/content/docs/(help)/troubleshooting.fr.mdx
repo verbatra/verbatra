@@ -95,8 +95,8 @@ avec un registre qui contient son adaptateur : voir
 <path> could not be read: ...`
 
 **Cause** : `files.pattern` avec la locale source insérée ne mène à aucun fichier, ou le fichier ne
-se parse pas. Le chemin est résolu depuis le répertoire de travail, donc un `--cwd` erroné est une
-cause fréquente, tout comme un joker : `files.pattern` est un chemin littéral, pas un glob (voir
+se parse pas. Le chemin est résolu depuis la racine du projet, le répertoire de la config trouvée
+(ou le répertoire de travail avec `--config`), donc un `--cwd` ou un `--config` erroné est une cause fréquente, tout comme un joker : `files.pattern` est un chemin littéral, pas un glob (voir
 [Dispositions avec espaces de noms](/docs/formats#dispositions-avec-espaces-de-noms)).
 
 **Solution** : vérifie le chemin affiché. En cas d'échec d'analyse, le `causeCode` nomme le

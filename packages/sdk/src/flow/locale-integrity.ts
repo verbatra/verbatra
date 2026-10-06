@@ -1,5 +1,6 @@
 import type { LocaleResource } from "@verbatra/core";
 import type { FormatAdapter } from "@verbatra/format-adapters";
+import { projectCwd } from "../config/project-root.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { defaultFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
@@ -19,7 +20,7 @@ import { readSourceResource } from "./source.js";
 export interface LocaleIntegrityInput {
   /** The resolved project config, normally from {@link loadConfig}. */
   readonly config: VerbatraConfig;
-  /** Directory the `files.pattern` is resolved against. Defaults to the process working directory. */
+  /** Directory the `files.pattern` is resolved against. Defaults to the project root of the config object {@link loadConfig} returned, else the process working directory; a copied or rebuilt config loses that root, so pass `cwd` from {@link resolveProjectRoot}. */
   readonly cwd?: string;
   /** Restrict the report to these target locales. Defaults to every configured target locale. */
   readonly locales?: readonly string[];
@@ -86,7 +87,7 @@ export async function localeIntegrity(
   const config = input.config;
   const fs = deps.fs ?? defaultFs;
   const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
-  const resolver = createLocalePathResolver(input.cwd ?? process.cwd(), config);
+  const resolver = createLocalePathResolver(projectCwd(input), config);
   const source = await readSourceResource(config, resolver, fs, adapter);
 
   return Promise.all(

@@ -96,7 +96,7 @@ describe("run types: SDK delegation and flags", () => {
   });
 
   it("hands the SDK the config file a search found", async () => {
-    const { deps, calls } = recordingDeps();
+    const { deps, calls } = recordingDeps({ loadConfigWithMeta: async () => makeLoadedConfig() });
     const cap = captureStreams();
 
     await run(["types"], deps, cap.streams);

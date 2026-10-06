@@ -96,8 +96,8 @@ y un registro que contenga su adaptador: consulta
 <path> could not be read: ...`
 
 **Causa**: `files.pattern` con el locale fuente sustituido no apunta a ningún archivo, o el archivo
-no se puede parsear. La ruta se resuelve contra el directorio de trabajo, así que un `--cwd`
-equivocado es una causa habitual, igual que un comodín: `files.pattern` es una ruta literal, no un
+no se puede parsear. La ruta se resuelve contra la raíz del proyecto, el directorio de la configuración encontrada
+(o el directorio de trabajo con `--config`), así que un `--cwd` o un `--config` equivocado es una causa habitual, igual que un comodín: `files.pattern` es una ruta literal, no un
 glob (consulta [Diseños con namespaces](/docs/formats#diseños-con-namespaces)).
 
 **Solución**: revisa la ruta impresa. Si falla el parseo, el `causeCode` nombra el

@@ -412,7 +412,7 @@ describe("run import: SDK delegation and rendering", () => {
     expect(code).toBe(2);
     expect(cap.out()).toBe("");
     expect(cap.err()).not.toBe("");
-    expect(calls.loadConfig).toHaveLength(0);
+    expect(calls.loadConfigWithMeta).toHaveLength(0);
   });
 });
 

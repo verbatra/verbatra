@@ -135,6 +135,7 @@ export {
   type LoadedConfig,
   loadConfig,
   loadConfigWithMeta,
+  resolveProjectRoot,
 } from "./config/load-config.js";
 export {
   assertMachineTranslationEnabled,

@@ -16,6 +16,7 @@ import { glossaryForLocale } from "../config/glossary.js";
 import type { HumanEditsPolicy } from "../config/human-edits.js";
 import { toMaxLengthMap } from "../config/max-length.js";
 import { assertNetworkPolicyResolves } from "../config/network-policy.js";
+import { projectCwd } from "../config/project-root.js";
 import { isMachineProvider } from "../config/provider-config.js";
 import { kindOf } from "../config/provider-kind.js";
 import {
@@ -100,7 +101,7 @@ export interface TranslateInput {
   readonly config: VerbatraConfig;
   /**
    * Directory the `files.pattern` is resolved against, and where the lock-file, the translation
-   * memory, and the run-status file live. Defaults to the process working directory.
+   * memory, and the run-status file live. Defaults to the project root of the config object {@link loadConfig} returned, else the process working directory; a copied or rebuilt config loses that root, so pass `cwd` from {@link resolveProjectRoot}.
    */
   readonly cwd?: string;
   /**
@@ -799,7 +800,7 @@ export async function translate(
   deps: TranslateDeps = {},
 ): Promise<RunSummary> {
   const config = input.config;
-  const cwd = input.cwd ?? process.cwd();
+  const cwd = projectCwd(input);
   const estimateRequested = input.estimate ?? false;
   const dryRun = resolveDryRun(input);
   assertLockAcquireTimeout(input.lockAcquireTimeoutMs);

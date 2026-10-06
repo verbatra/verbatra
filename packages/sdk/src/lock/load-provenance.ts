@@ -3,7 +3,10 @@ import { type ProvenanceFile, provenanceFilePath, readProvenanceFile } from "./p
 
 /** Input for {@link loadProvenance}. */
 export interface LoadProvenanceInput {
-  /** Directory holding the provenance file. Defaults to the process working directory. */
+  /**
+   * Directory holding the provenance file. Defaults to the process working directory, even when the
+   * config was found in a parent directory: pass the root {@link resolveProjectRoot} returns.
+   */
   readonly cwd?: string;
 }
 

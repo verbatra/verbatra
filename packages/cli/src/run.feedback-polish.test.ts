@@ -10,13 +10,14 @@ import {
   makeLocale,
   makeMcpModule,
   makeSummary,
+  type RecordingImpl,
   recordingDeps,
 } from "./test-support.js";
-import type { CliDeps, RunHooks, Session } from "./types.js";
+import type { RunHooks, Session } from "./types.js";
 
 const humanOnly = makeConfig({ provider: { id: "none", options: {} } });
 
-async function runWith(argv: readonly string[], impl: Partial<CliDeps>, hooks: RunHooks = {}) {
+async function runWith(argv: readonly string[], impl: RecordingImpl, hooks: RunHooks = {}) {
   const cap = captureStreams();
   const code = await run([...argv], recordingDeps(impl).deps, cap.streams, hooks);
   return { code, err: cap.err(), out: cap.out() };

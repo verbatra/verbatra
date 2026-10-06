@@ -3,6 +3,7 @@ import { relative, sep } from "node:path";
 import { contentHash, type LocaleResource, type TranslationEntry } from "@verbatra/core";
 import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
 import { evictMemoryValue } from "../cache/translation-memory.js";
+import { projectCwd } from "../config/project-root.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { errorMessage, SdkError } from "../errors.js";
 import { type BoundedFileRead, defaultFs, type SdkFs } from "../fs.js";
@@ -46,7 +47,7 @@ import { writeTargetResource } from "./write-target.js";
 export interface ReviewDecisionInput {
   /** The resolved project config, normally from {@link loadConfig}. */
   readonly config: VerbatraConfig;
-  /** Directory the `files.pattern` is resolved against. Defaults to the process working directory. */
+  /** Directory the `files.pattern` is resolved against. Defaults to the project root of the config object {@link loadConfig} returned, else the process working directory; a copied or rebuilt config loses that root, so pass `cwd` from {@link resolveProjectRoot}. */
   readonly cwd?: string;
   /** The target locale the reviewed value belongs to. Must be a configured target locale. */
   readonly locale: string;
@@ -193,7 +194,7 @@ async function reviewContext(
   const matchesExpected = expectedValueMatcher(input, deps);
   assertLockAcquireTimeout(input.lockAcquireTimeoutMs);
   const config = input.config;
-  const cwd = input.cwd ?? process.cwd();
+  const cwd = projectCwd(input);
   const fs = deps.fs ?? defaultFs;
   const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
   const [locale] = selectLocales(config, [input.locale]);

@@ -1,3 +1,4 @@
+import { projectCwd } from "../config/project-root.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
 import {
@@ -12,7 +13,7 @@ import {
 export interface LocaleHistoryInput {
   /** The resolved project config, normally from {@link loadConfig}. */
   readonly config: VerbatraConfig;
-  /** Directory the `files.pattern` is resolved against and git runs in. Defaults to the process working directory. */
+  /** Directory the `files.pattern` is resolved against and git runs in. Defaults to the project root of the config object {@link loadConfig} returned, else the process working directory; a copied or rebuilt config loses that root, so pass `cwd` from {@link resolveProjectRoot}. */
   readonly cwd?: string;
   /**
    * The most commits to list. Rounded down and clamped to between 1 and
@@ -66,7 +67,7 @@ export async function localeHistory(
   input: LocaleHistoryInput,
   deps: LocaleHistoryDeps = {},
 ): Promise<LocaleHistoryResult> {
-  const cwd = input.cwd ?? process.cwd();
+  const cwd = projectCwd(input);
   const resolver = createLocalePathResolver(cwd, input.config);
   const candidates = [input.config.sourceLocale, ...input.config.targetLocales].map((locale) =>
     resolver.pathFor(locale),

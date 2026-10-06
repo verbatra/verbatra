@@ -173,8 +173,9 @@ export interface StudioServerOptions extends StudioServerDeps {
    */
   readonly port?: number;
   /**
-   * The project root every RPC handler resolves relative paths against: the locale files, the lock
-   * file, and the git repository behind the history view. Omit to use `process.cwd()`.
+   * The directory the loader searched from, `process.cwd()` when omitted. Every RPC handler resolves
+   * relative paths (the locale files, the lock file, and the git repository behind the history view)
+   * against the project root: the directory of a config the search found, else this directory.
    */
   readonly cwd?: string;
 }

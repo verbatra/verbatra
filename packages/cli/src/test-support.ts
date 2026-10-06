@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import {
   type McpServerHandle,
   mcpReadyLine,
@@ -286,6 +287,7 @@ export function makeMcpHandle(overrides: Partial<McpServerHandle> = {}): McpServ
     spend: "off",
     valuesRedacted: false,
     configured: true,
+    projectRoot: process.cwd(),
     ...overrides,
   };
 }
@@ -293,7 +295,7 @@ export function makeMcpHandle(overrides: Partial<McpServerHandle> = {}): McpServ
 export function makeMcpModule(overrides: Partial<McpModule> = {}): McpModule {
   return {
     MCP_CAPABILITIES: { valuesRedaction: true },
-    startMcpServer: async () => makeMcpHandle(),
+    startMcpServer: async (options) => makeMcpHandle({ projectRoot: options.cwd ?? process.cwd() }),
     projectLabel,
     mcpReadyLine,
     mcpTerminalHint,
@@ -334,7 +336,6 @@ export function parseEnvelope(line: string): ParsedEnvelope {
 }
 
 export interface DepCalls {
-  loadConfig: LoadConfigOptions[];
   translate: TranslateInput[];
   watch: WatchInput[];
   exportWorkbook: ExportWorkbookInput[];
@@ -354,9 +355,19 @@ export interface DepCalls {
   provenanceReport: ProvenanceReportInput[];
 }
 
-export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; calls: DepCalls } {
+export type RecordingImpl = Partial<CliDeps> & {
+  readonly loadConfig?: (options: LoadConfigOptions) => Promise<VerbatraConfig>;
+};
+
+function loadedAt(options: LoadConfigOptions, config: VerbatraConfig): LoadedConfig {
+  return makeLoadedConfig({
+    config,
+    source: { kind: "search", filepath: join(options.cwd ?? process.cwd(), "verbatra.config.ts") },
+  });
+}
+
+export function recordingDeps(impl: RecordingImpl = {}): { deps: CliDeps; calls: DepCalls } {
   const calls: DepCalls = {
-    loadConfig: [],
     translate: [],
     watch: [],
     exportWorkbook: [],
@@ -377,10 +388,6 @@ export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; cal
   };
   const deps: CliDeps = {
     isDirectory: impl.isDirectory ?? (() => true),
-    loadConfig: async (options) => {
-      calls.loadConfig.push(options);
-      return impl.loadConfig ? impl.loadConfig(options) : makeConfig();
-    },
     translate: async (input) => {
       calls.translate.push(input);
       return impl.translate ? impl.translate(input) : makeSummary();
@@ -419,7 +426,10 @@ export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; cal
     },
     loadConfigWithMeta: async (options) => {
       calls.loadConfigWithMeta.push(options);
-      return impl.loadConfigWithMeta ? impl.loadConfigWithMeta(options) : makeLoadedConfig();
+      if (impl.loadConfigWithMeta) {
+        return impl.loadConfigWithMeta(options);
+      }
+      return loadedAt(options, impl.loadConfig ? await impl.loadConfig(options) : makeConfig());
     },
     pseudolocalize: async (input) => {
       calls.pseudolocalize.push(input);

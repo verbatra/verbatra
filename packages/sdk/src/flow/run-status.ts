@@ -13,7 +13,11 @@ export {
 
 /** Input for {@link runStatus}. */
 export interface RunStatusInput {
-  /** Directory holding the `.verbatra-local` status directory. Defaults to the process working directory. */
+  /**
+   * Directory holding the `.verbatra-local` status directory. Defaults to the process working
+   * directory, even when the config was found in a parent directory: pass the root
+   * {@link resolveProjectRoot} returns.
+   */
   readonly cwd?: string;
 }
 

@@ -33,7 +33,9 @@ Nimmt außerdem die [globalen Flags](/docs/cli#globale-flags) `--cwd` und `--con
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Fehlt `--cwd` und nennt `CLAUDE_PROJECT_DIR` ein vorhandenes Verzeichnis, nimmt der Server es als Projektwurzel. Claude Code setzt diese Variable für jeden stdio-Server, den es startet, sodass eine Sitzung aus einem Unterverzeichnis trotzdem die Konfiguration findet. Ein ausdrückliches `--cwd` gewinnt immer. `verbatra mcp` lädt dann die [Umgebungsdateien](/docs/cli#umgebungsdateien) aus diesem Verzeichnis; ein `CLAUDE_PROJECT_DIR`, das nur in diesen Dateien steht, wird ignoriert, weil die Wurzel vorher feststeht.
+Fehlt `--cwd` und nennt `CLAUDE_PROJECT_DIR` ein vorhandenes Verzeichnis, nimmt der Server es als Projektverzeichnis. Claude Code setzt diese Variable für jeden stdio-Server, den es startet. Ein ausdrückliches `--cwd` gewinnt immer. `verbatra mcp` lädt dann die [Umgebungsdateien](/docs/cli#umgebungsdateien) aus diesem Verzeichnis; ein `CLAUDE_PROJECT_DIR`, das nur in diesen Dateien steht, wird ignoriert, weil das Projektverzeichnis vorher feststeht.
+
+Die Konfigurationssuche beginnt dort, und das Verzeichnis der gefundenen Konfiguration ist die [Projektwurzel](/docs/config-file#das-arbeitsverzeichnis-und-env), gegen die jeder Tool-Pfad aufgelöst wird, sodass ein Server aus einem Unterverzeichnis trotzdem mit den Dateien des Projekts arbeitet.
 
 ### Kostenpflichtige Tools
 

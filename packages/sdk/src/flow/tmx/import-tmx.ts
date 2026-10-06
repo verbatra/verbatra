@@ -15,6 +15,7 @@ import {
   writeTranslationMemory,
 } from "../../cache/translation-memory.js";
 import type { CacheAddition, TranslationMemory } from "../../cache/types.js";
+import { projectCwd } from "../../config/project-root.js";
 import type { VerbatraConfig } from "../../config/schema.js";
 import { errorMessage, InputFileError, SdkError } from "../../errors.js";
 import { defaultFs, type SdkFs } from "../../fs.js";
@@ -202,7 +203,7 @@ export interface ImportTmxInput {
   readonly config: VerbatraConfig;
   /** Path to the TMX file, resolved against `cwd`. */
   readonly file: string;
-  /** Directory the file and the memory are resolved against. Defaults to the process working directory. */
+  /** Directory the file and the memory are resolved against. Defaults to the project root of the config object {@link loadConfig} returned, else the process working directory; a copied or rebuilt config loses that root, so pass `cwd` from {@link resolveProjectRoot}. */
   readonly cwd?: string;
   /** Read and validate the file but write nothing. Defaults to false. */
   readonly dryRun?: boolean;
@@ -686,7 +687,7 @@ export async function importTmx(
   input: ImportTmxInput,
   deps: ImportTmxDeps = {},
 ): Promise<ImportTmxResult> {
-  const cwd = input.cwd ?? process.cwd();
+  const cwd = projectCwd(input);
   const fs = deps.fs ?? defaultFs;
   const adapter = selectAdapter(input.config.format, deps.adapterRegistry, deps.fs);
   assertDistinctLocales(input.config.sourceLocale, input.config.targetLocales);

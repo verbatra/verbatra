@@ -119,6 +119,29 @@ describe("run studio: ordering", () => {
     expect(startCalls).toEqual([{ cwd: "/proj" }]);
   });
 
+  it("roots the server at the directory of a config the search found above --cwd", async () => {
+    const startCalls: Array<{ cwd: string | undefined }> = [];
+    const { deps } = recordingDeps({
+      loadConfigWithMeta: async () => makeLoadedConfig(),
+      importStudio: async () =>
+        makeStudioModule({
+          startStudioServer: async (options) => {
+            startCalls.push({ cwd: options.cwd });
+            return { url: "http://127.0.0.1:5849/", port: 5849, close: async () => {} };
+          },
+        }),
+    });
+    const cap = captureStreams();
+    const captured = captureStudioSession();
+
+    const donePromise = run(["studio", "--cwd", "/proj/src"], deps, cap.streams, captured.hooks);
+    await flush(20);
+    captured.session()?.requestStop();
+    await donePromise;
+
+    expect(startCalls).toEqual([{ cwd: "/proj" }]);
+  });
+
   it("a CONFIG_INVALID failure also exits 2 without ever importing @verbatra/studio", async () => {
     const { deps, calls } = recordingDeps({
       loadConfigWithMeta: async () => {

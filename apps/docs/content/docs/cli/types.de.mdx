@@ -18,7 +18,7 @@ verbatra types [flags]
 
 | Flag | Argument | Standard | Wirkung |
 | --- | --- | --- | --- |
-| `--out` | `<path>` | `verbatra-types.d.ts` | wohin die Deklaration geschrieben wird, relativ zum Arbeitsverzeichnis und innerhalb davon; fehlende Verzeichnisse werden angelegt |
+| `--out` | `<path>` | `verbatra-types.d.ts` | wohin die Deklaration geschrieben wird, relativ zum Arbeitsverzeichnis und innerhalb der Projektwurzel; fehlende Verzeichnisse werden angelegt |
 | `--check` | keins | aus | die committete Deklaration Byte für Byte mit einer frischen Generierung vergleichen, ohne etwas zu schreiben; Exit `1`, wenn sie veraltet ist oder fehlt |
 
 Außerdem nimmt der Befehl die [globalen Flags](/docs/cli#globale-flags) `--cwd`, `--config` und `--json`.
@@ -175,7 +175,7 @@ Mit `--json` trägt der [Envelope](/docs/cli/output#json-ausgabe) ein Ergebnis:
 ```ts
 interface GenerateTypesResult {
   path: string;               // absolute path of the declaration file
-  sourcePath: string;         // the source catalog, relative to the working directory
+  sourcePath: string;         // the source catalog, relative to the project root
   keys: number;               // how many keys are declared
   withArguments: number;      // keys taking at least one determined argument
   unresolved: { key: string; reason: "invalid-message-syntax" | "mixed-argument-styles" | "argument-index-out-of-range" }[];

@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { exportWorkbook, importWorkbook, loadConfig, loadConfigWithMeta } from "@verbatra/sdk";
+import { exportWorkbook, importWorkbook, loadConfigWithMeta } from "@verbatra/sdk";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { run } from "./run.js";
 import {
@@ -13,7 +13,6 @@ import {
 import type { CliDeps } from "./types.js";
 
 const realDeps: Partial<CliDeps> = {
-  loadConfig,
   loadConfigWithMeta,
   exportWorkbook,
   importWorkbook,

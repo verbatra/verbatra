@@ -1,5 +1,6 @@
 import { contentHash } from "@verbatra/core";
 import type { AdapterRegistry } from "@verbatra/format-adapters";
+import { projectCwd } from "../config/project-root.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
@@ -25,7 +26,7 @@ import { selectLocales } from "./select-locales.js";
 export interface ApproveLocaleInput {
   /** The resolved project config, normally from {@link loadConfig}. */
   readonly config: VerbatraConfig;
-  /** Directory the `files.pattern` is resolved against. Defaults to the process working directory. */
+  /** Directory the `files.pattern` is resolved against. Defaults to the project root of the config object {@link loadConfig} returned, else the process working directory; a copied or rebuilt config loses that root, so pass `cwd` from {@link resolveProjectRoot}. */
   readonly cwd?: string;
   /** The target locale whose review queue is approved. Must be a configured target locale. */
   readonly locale: string;
@@ -200,7 +201,7 @@ export async function approveLocale(
   assertReviewer(input.reviewer);
   assertLockAcquireTimeout(input.lockAcquireTimeoutMs);
   const config = input.config;
-  const cwd = input.cwd ?? process.cwd();
+  const cwd = projectCwd(input);
   const fs = deps.fs ?? defaultFs;
   const [locale = input.locale] = selectLocales(config, [input.locale]);
   const origins = input.origins === undefined ? undefined : new Set<string>(input.origins);
