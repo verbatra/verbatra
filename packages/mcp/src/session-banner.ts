@@ -11,7 +11,8 @@ export type McpStopCause = "stdin-closed" | "signal";
 
 /**
  * The arguments `npx` is given to launch the server, as an MCP client config lists them: for
- * example `["-y", "@verbatra/mcp"]` for the standalone package or `["@verbatra/cli", "mcp"]` for the CLI.
+ * example `["-y", "@verbatra/mcp"]` for the standalone package or `["@verbatra/cli", "mcp"]` for
+ * the CLI.
  */
 export type McpLaunchArgs = readonly string[];
 
