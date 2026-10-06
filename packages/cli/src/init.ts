@@ -3,6 +3,9 @@ import { relative, resolve } from "node:path";
 import process from "node:process";
 import {
   createLocalePathResolver,
+  type DetectedFormat,
+  type DetectedLocaleLayout,
+  type DetectionAmbiguity,
   detectProject,
   type ProjectDetection,
   scaffoldingMetadata,
@@ -21,6 +24,7 @@ import {
   type DetectFn,
   type InitOptions,
   type InitPlan,
+  type InitSources,
   initOptsSchema,
   type Prompter,
   planInit,
@@ -56,6 +60,37 @@ export interface InitDeps {
 }
 
 export type FileAction = "created" | "overwritten" | "updated" | "unchanged";
+
+export interface InitDetectedLayout
+  extends Omit<DetectedLocaleLayout, "sourceLocale" | "unqualifiedSourceFile"> {
+  readonly sourceLocale: string | null;
+  readonly unqualifiedSourceFile: string | null;
+}
+
+export interface InitDetection {
+  readonly format: DetectedFormat | null;
+  readonly layout: InitDetectedLayout | null;
+  readonly ambiguities: readonly DetectionAmbiguity[];
+  readonly confidence: ProjectDetection["confidence"];
+  readonly reasons: readonly string[];
+}
+
+export interface InitAgentFiles {
+  readonly instructionsFile: string;
+  readonly mcpServer: McpServerState;
+  readonly configKept: boolean;
+}
+
+export interface InitResult {
+  readonly configPath: string;
+  readonly files: readonly WrittenFile[];
+  readonly config: Readonly<Record<string, unknown>> | null;
+  readonly sources: InitSources | null;
+  readonly apiKeyEnvVar: string | null;
+  readonly detection: InitDetection | null;
+  readonly agent: InitAgentFiles | null;
+  readonly nextSteps: readonly NextStep[];
+}
 
 const CONFIG_FILE = "verbatra.config.ts";
 const ENV_EXAMPLE_FILE = ".env.example";
@@ -359,7 +394,7 @@ function nextSteps(
   return steps;
 }
 
-function detectionForJson(detection: ProjectDetection): unknown {
+function detectionForJson(detection: ProjectDetection): InitDetection {
   const layout = detection.layout;
   return {
     format: detection.format ?? null,
@@ -377,7 +412,10 @@ function detectionForJson(detection: ProjectDetection): unknown {
   };
 }
 
-function agentForJson(agent: AgentScaffoldPlan | undefined, configKept: boolean): unknown {
+function agentForJson(
+  agent: AgentScaffoldPlan | undefined,
+  configKept: boolean,
+): InitAgentFiles | null {
   return agent === undefined
     ? null
     : { instructionsFile: agent.instructions.path, mcpServer: agent.mcpServer, configKept };
@@ -469,7 +507,7 @@ function runAgentOnly(
   const steps = [...agentSteps(agent), doctorStep(cwdSuffix(opts.cwd))];
   if (json) {
     streams.out(
-      `${renderSuccessEnvelope("init", {
+      `${renderSuccessEnvelope<InitResult>("init", {
         configPath: resolve(cwd, configFile),
         files,
         config: null,
@@ -551,7 +589,7 @@ export async function runInit(
     if (json) {
       const keyEnvVar = keyEnvVarFor(plan.draft.provider);
       streams.out(
-        `${renderSuccessEnvelope("init", {
+        `${renderSuccessEnvelope<InitResult>("init", {
           configPath: resolve(cwd, CONFIG_FILE),
           files,
           config: plan.candidate,

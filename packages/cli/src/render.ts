@@ -919,27 +919,55 @@ export type InterruptSignal = "SIGINT" | "SIGTERM";
 const LEFTOVER_LOCK_ADVICE =
   "the next run names any lock left behind, and with no verbatra process running it can be deleted";
 
-function interruptedJson(signal: InterruptSignal, outcome: LockReleaseOutcome): string {
+export type InterruptedRecord =
+  | {
+      readonly type: "interrupted";
+      readonly signal: InterruptSignal;
+      readonly locksReleased: true;
+    }
+  | {
+      readonly type: "interrupted";
+      readonly signal: InterruptSignal;
+      readonly locksReleased: false;
+      readonly reason: "failed";
+      readonly message: string;
+    }
+  | {
+      readonly type: "interrupted";
+      readonly signal: InterruptSignal;
+      readonly locksReleased: false;
+      readonly reason: "timed-out";
+      readonly deadlineMs: number;
+    };
+
+function interruptedRecord(
+  signal: InterruptSignal,
+  outcome: LockReleaseOutcome,
+): InterruptedRecord {
   switch (outcome.status) {
     case "released":
-      return JSON.stringify({ type: "interrupted", signal, locksReleased: true });
+      return { type: "interrupted", signal, locksReleased: true };
     case "failed":
-      return JSON.stringify({
+      return {
         type: "interrupted",
         signal,
         locksReleased: false,
         reason: "failed",
         message: outcome.message,
-      });
+      };
     case "timed-out":
-      return JSON.stringify({
+      return {
         type: "interrupted",
         signal,
         locksReleased: false,
         reason: "timed-out",
         deadlineMs: outcome.deadlineMs,
-      });
+      };
   }
+}
+
+function interruptedJson(signal: InterruptSignal, outcome: LockReleaseOutcome): string {
+  return JSON.stringify(interruptedRecord(signal, outcome));
 }
 
 function interruptedHuman(signal: InterruptSignal, outcome: LockReleaseOutcome): string {
