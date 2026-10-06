@@ -113,6 +113,34 @@ parity tests (`pnpm test:scripts`):
   or commands ("fourteen formats", "sieben Provider"). Link to the list instead, or name the
   items.
 
+## Stack quickstarts: one template per locale, one stub per stack
+
+`/docs/quickstart/<stack>` pages are not written page by page. Each is a stub,
+`content/docs/(get-started)/quickstart/<stack>{,.de,.es,.fr}.mdx`, holding only frontmatter
+(`title`, `description`, `type: tutorial`, `stack: <id>`) and one
+`<include>../../../templates/stack-quickstart<suffix>.mdx</include>` line. The steps live in the
+four templates `content/templates/stack-quickstart{,.de,.es,.fr}.mdx`, outside the page
+collection, and everything stack-specific comes from `STACKS` in `apps/docs/lib/stacks.ts`
+through `<StackBlock name>` (commands, file samples, loader code) and `<StackText field>` (name,
+library, format, pattern, file names). Translated prose never goes into the table, and a stack
+element never sits in a heading. The generic quickstart is `quickstart/index*.mdx`, so its URL
+stays `/docs/quickstart`.
+
+- **Adding a stack**: add it to `STACK_IDS` and `STACKS` (its `pattern` must equal the
+  format's `DEFAULT_LAYOUTS` entry in `packages/cli/src/init-config.ts`), write the four stubs,
+  list it in `quickstart/meta*.json`, and point its card on `index*.mdx` and
+  `pick-your-stack*.mdx` at `/docs/quickstart/<id>`.
+- **Changing the steps**: edit all four templates in the same change; the stubs never change.
+- **What measures the templates**: the content tests read a page through `readIncludedSource`
+  (`lib/docs-pages.ts`), so locale parity, the word ceiling and `docs:budget`, anchor links and
+  badge placement all see the template, and `sync-translation-freshness.mjs` dates a page by
+  its newest include, so an edited English template marks every translated stack page outdated.
+  `lib/stack-quickstarts.test.ts` checks that the templates exist in all four locales with the
+  same stack elements, that every stack has a stub per locale and between four and eight steps,
+  stays under the tutorial ceiling with its stack text filled in, and is linked by a card on
+  the docs home and on `pick-your-stack`. `scripts/verify-docs-registry-parity.test.mjs` pins
+  `STACKS` to `SUPPORTED_FORMATS` and `DEFAULT_LAYOUTS`.
+
 ## SDK reference entries
 
 Every entry point in `apps/docs/content/docs/sdk/*.mdx` follows one template: the heading (with an
