@@ -81,7 +81,7 @@ export type ReviewBatchOutcome =
 export interface ReviewEntriesInput {
   /** The resolved project config, normally from {@link loadConfig}. */
   readonly config: VerbatraConfig;
-  /** Directory the `files.pattern` is resolved against. Defaults to the project root of a config that {@link loadConfig} returned, else the process working directory. */
+  /** Directory the `files.pattern` is resolved against. Defaults to the project root of the config object {@link loadConfig} returned, else the process working directory; a copied or rebuilt config loses that root, so pass `cwd` from {@link resolveProjectRoot}. */
   readonly cwd?: string;
   /** The entries to decide on, in the order they are carried out. */
   readonly entries: readonly ReviewBatchEntry[];
@@ -124,7 +124,7 @@ export type RetranslateBatchOutcome =
 export interface RetranslateEntriesInput {
   /** The resolved project config, normally from {@link loadConfig}. */
   readonly config: VerbatraConfig;
-  /** Directory the `files.pattern` is resolved against. Defaults to the project root of a config that {@link loadConfig} returned, else the process working directory. */
+  /** Directory the `files.pattern` is resolved against. Defaults to the project root of the config object {@link loadConfig} returned, else the process working directory; a copied or rebuilt config loses that root, so pass `cwd` from {@link resolveProjectRoot}. */
   readonly cwd?: string;
   /** The entries to retranslate, in the order they are carried out. */
   readonly entries: readonly BatchEntry[];

@@ -203,7 +203,7 @@ export interface ImportTmxInput {
   readonly config: VerbatraConfig;
   /** Path to the TMX file, resolved against `cwd`. */
   readonly file: string;
-  /** Directory the file and the memory are resolved against. Defaults to the project root of a config that {@link loadConfig} returned, else the process working directory. */
+  /** Directory the file and the memory are resolved against. Defaults to the project root of the config object {@link loadConfig} returned, else the process working directory; a copied or rebuilt config loses that root, so pass `cwd` from {@link resolveProjectRoot}. */
   readonly cwd?: string;
   /** Read and validate the file but write nothing. Defaults to false. */
   readonly dryRun?: boolean;

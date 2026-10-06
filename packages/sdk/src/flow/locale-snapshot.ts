@@ -27,7 +27,7 @@ export interface ReadLocaleFileSnapshotInput {
    * configured target locales, so the source locale can be snapshotted too.
    */
   readonly locale: string;
-  /** Directory the `files.pattern` is resolved against. Defaults to the project root of a config that {@link loadConfig} returned, else the process working directory. */
+  /** Directory the `files.pattern` is resolved against. Defaults to the project root of the config object {@link loadConfig} returned, else the process working directory; a copied or rebuilt config loses that root, so pass `cwd` from {@link resolveProjectRoot}. */
   readonly cwd?: string;
 }
 

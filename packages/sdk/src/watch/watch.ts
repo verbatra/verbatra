@@ -85,7 +85,7 @@ export interface WatchInput {
   readonly config: VerbatraConfig;
   /**
    * Directory the `files.pattern` is resolved against, and where each run's lock-file, translation
-   * memory, and run-status file live. Defaults to the project root of a config that {@link loadConfig} returned, else the process working directory.
+   * memory, and run-status file live. Defaults to the project root of the config object {@link loadConfig} returned, else the process working directory; a copied or rebuilt config loses that root, so pass `cwd` from {@link resolveProjectRoot}.
    */
   readonly cwd?: string;
   /**

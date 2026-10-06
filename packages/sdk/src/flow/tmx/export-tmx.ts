@@ -97,7 +97,7 @@ export interface ExportTmxInput {
    * file-backed {@link LoadedConfig.glossary}. It is refused as the output path.
    */
   readonly glossaryPath?: string;
-  /** Directory the output path and the memory are resolved against. Defaults to the project root of a config that {@link loadConfig} returned, else the process working directory. */
+  /** Directory the output path and the memory are resolved against. Defaults to the project root of the config object {@link loadConfig} returned, else the process working directory; a copied or rebuilt config loses that root, so pass `cwd` from {@link resolveProjectRoot}. */
   readonly cwd?: string;
   /** Subset of configured target locales to export. Defaults to all of them. */
   readonly locales?: readonly string[];

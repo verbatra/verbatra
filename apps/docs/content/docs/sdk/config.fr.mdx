@@ -67,12 +67,14 @@ function configCandidatePaths(
 
 <AvailableFrom version="0.12.0" />
 
-Renvoie le répertoire par rapport auquel les flux résolvent leurs chemins relatifs : le `cwd` à passer
-à `translate`, `check` et aux autres flux. Une config trouvée par la recherche ancre le projet dans le
-répertoire du fichier de configuration, donc un processus lancé dans un sous-répertoire travaille sur
-les fichiers de locale, le fichier de verrouillage et `.verbatra-local/` du projet. Une config chargée
-depuis `configPath` ou `configOverride` garde `cwd`. Passe le `source` renvoyé par
-`loadConfigWithMeta` et le `cwd` depuis lequel il a cherché.
+Renvoie la racine du projet : le répertoire par rapport auquel les flux résolvent leurs chemins
+relatifs. Une config trouvée par la recherche ancre le projet dans le répertoire du fichier de
+configuration, donc un processus lancé dans un sous-répertoire travaille sur les fichiers de locale,
+le fichier de verrouillage et `.verbatra-local/` du projet ; une config issue de `configPath` garde
+`cwd`. Un flux qui reçoit l'objet de config renvoyé par `loadConfig` ou `loadConfigWithMeta` prend
+déjà cette racine comme `cwd` par défaut. Passe `resolveProjectRoot(loaded.source, cwd)` comme `cwd`
+quand tu copies ou reconstruis la config, et à `loadLockFile`, `loadProvenance` et `runStatus`, qui
+ne prennent pas de config.
 
 ```ts title="Signature"
 function resolveProjectRoot(

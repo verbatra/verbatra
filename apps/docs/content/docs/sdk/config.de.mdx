@@ -89,12 +89,14 @@ function configCandidatePaths(
 
 <AvailableFrom version="0.12.0" />
 
-Gibt das Verzeichnis zurück, gegen das die Flows ihre relativen Pfade auflösen: das `cwd`, das du an
-`translate`, `check` und die anderen Flows übergibst. Eine Konfiguration, die die Suche gefunden hat,
-verankert das Projekt im Verzeichnis der Konfigurationsdatei, sodass ein Prozess aus einem
-Unterverzeichnis mit den Locale-Dateien, der Lock-Datei und `.verbatra-local/` des Projekts arbeitet.
-Eine Konfiguration aus `configPath` oder `configOverride` behält `cwd`. Übergib die `source`, die
-`loadConfigWithMeta` zurückgegeben hat, und das `cwd`, von dem aus gesucht wurde.
+Gibt die Projektwurzel zurück: das Verzeichnis, gegen das die Flows ihre relativen Pfade auflösen.
+Eine Konfiguration, die die Suche gefunden hat, verankert das Projekt im Verzeichnis der
+Konfigurationsdatei, sodass ein Prozess aus einem Unterverzeichnis mit den Locale-Dateien, der
+Lock-Datei und `.verbatra-local/` des Projekts arbeitet; eine Konfiguration aus `configPath` behält
+`cwd`. Ein Flow, der das Konfigurationsobjekt aus `loadConfig` oder `loadConfigWithMeta` bekommt,
+nimmt diese Wurzel schon als Standard für `cwd`. Übergib `resolveProjectRoot(loaded.source, cwd)`
+als `cwd`, wenn du die Konfiguration kopierst oder neu baust, und an `loadLockFile`,
+`loadProvenance` und `runStatus`, die keine Konfiguration nehmen.
 
 ```ts title="Signatur"
 function resolveProjectRoot(

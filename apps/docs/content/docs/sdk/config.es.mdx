@@ -87,12 +87,14 @@ function configCandidatePaths(
 
 <AvailableFrom version="0.12.0" />
 
-Devuelve el directorio contra el que los flujos resuelven sus rutas relativas: el `cwd` que pasas a
-`translate`, `check` y los demás flujos. Una configuración que encontró la búsqueda ancla el proyecto
-en el directorio del archivo de configuración, así que un proceso iniciado en un subdirectorio trabaja
-con los archivos de locale, el archivo de bloqueo y `.verbatra-local/` del proyecto. Una configuración
-cargada desde `configPath` o `configOverride` conserva `cwd`. Pasa el `source` que devolvió
-`loadConfigWithMeta` y el `cwd` desde el que buscó.
+Devuelve la raíz del proyecto: el directorio contra el que los flujos resuelven sus rutas
+relativas. Una configuración que encontró la búsqueda ancla el proyecto en el directorio del archivo
+de configuración, así que un proceso iniciado en un subdirectorio trabaja con los archivos de locale,
+el archivo de bloqueo y `.verbatra-local/` del proyecto; una configuración de `configPath` conserva
+`cwd`. Un flujo que recibe el objeto de configuración que devolvió `loadConfig` o
+`loadConfigWithMeta` ya usa esa raíz como `cwd` por defecto. Pasa
+`resolveProjectRoot(loaded.source, cwd)` como `cwd` cuando copias o reconstruyes la configuración, y
+a `loadLockFile`, `loadProvenance` y `runStatus`, que no reciben configuración.
 
 ```ts title="Firma"
 function resolveProjectRoot(

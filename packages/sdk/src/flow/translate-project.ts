@@ -101,7 +101,7 @@ export interface TranslateInput {
   readonly config: VerbatraConfig;
   /**
    * Directory the `files.pattern` is resolved against, and where the lock-file, the translation
-   * memory, and the run-status file live. Defaults to the project root of a config that {@link loadConfig} returned, else the process working directory.
+   * memory, and the run-status file live. Defaults to the project root of the config object {@link loadConfig} returned, else the process working directory; a copied or rebuilt config loses that root, so pass `cwd` from {@link resolveProjectRoot}.
    */
   readonly cwd?: string;
   /**

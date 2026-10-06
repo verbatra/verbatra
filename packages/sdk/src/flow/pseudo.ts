@@ -72,7 +72,7 @@ const GROUP_CLOSE = new Set(["}", ")"]);
 export interface PseudolocalizeInput {
   /** The resolved project config, normally from {@link loadConfig}. */
   readonly config: VerbatraConfig;
-  /** Directory the `files.pattern` is resolved against. Defaults to the project root of a config that {@link loadConfig} returned, else the process working directory. */
+  /** Directory the `files.pattern` is resolved against. Defaults to the project root of the config object {@link loadConfig} returned, else the process working directory; a copied or rebuilt config loses that root, so pass `cwd` from {@link resolveProjectRoot}. */
   readonly cwd?: string;
   /**
    * The transform to apply. Defaults to `accented`. `bidi` wraps every word of translatable text

@@ -64,7 +64,7 @@ export const DEFAULT_DELIMITED_PATH = "verbatra-translations";
 export interface ExportWorkbookInput {
   /** The resolved project config, normally from {@link loadConfig}. */
   readonly config: VerbatraConfig;
-  /** Directory the `files.pattern` and `out` are resolved against. Defaults to the project root of a config that {@link loadConfig} returned, else the process working directory. */
+  /** Directory the `files.pattern` and `out` are resolved against. Defaults to the project root of the config object {@link loadConfig} returned, else the process working directory; a copied or rebuilt config loses that root, so pass `cwd` from {@link resolveProjectRoot}. */
   readonly cwd?: string;
   /**
    * Where to write the handoff. Defaults to {@link DEFAULT_WORKBOOK_PATH} for `xlsx` and to

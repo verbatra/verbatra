@@ -62,7 +62,7 @@ export interface ExtractResult {
 export interface ExtractInput {
   /** A resolved config whose `extract` block names the framework and the source roots. */
   readonly config: VerbatraConfig;
-  /** Directory the roots and locale paths are resolved against. Defaults to the project root of a config that {@link loadConfig} returned, else the process working directory. */
+  /** Directory the roots and locale paths are resolved against. Defaults to the project root of the config object {@link loadConfig} returned, else the process working directory; a copied or rebuilt config loses that root, so pass `cwd` from {@link resolveProjectRoot}. */
   readonly cwd?: string;
   /** Report what would be added without writing anything. */
   readonly dryRun?: boolean;
