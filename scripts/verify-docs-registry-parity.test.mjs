@@ -252,7 +252,7 @@ function expectStackPageCard(card, stackId) {
 }
 
 function expectCardsCoverEveryFormat(cards, stackPage, formats) {
-  expect(cards.flatMap((card) => card.formats).sort()).toEqual([...formats].sort());
+  expect([...new Set(cards.flatMap((card) => card.formats))].sort()).toEqual([...formats].sort());
   const anchors = sectionAnchors(stackPage);
   for (const card of cards) {
     const stackId = stackPageOf(card);
@@ -308,6 +308,8 @@ describe("the pick-your-stack page covers every built-in format", () => {
       }
       const cards = stackCards(page);
       expect(cards.every((card) => card.path === "" && card.badge === undefined)).toBe(true);
+      const ids = cards.flatMap((card) => card.formats);
+      expect(new Set(ids).size, "one card per format on pick-your-stack").toBe(ids.length);
       expectEveryCardParsed(page);
       expect(page).toContain('<StackCards\n  labelledBy="page-title"');
       expectCardsCoverEveryFormat(cards, page, formats);
@@ -356,6 +358,7 @@ describe("the pick-your-stack page covers every built-in format", () => {
     const homeCovers = (variant) => () =>
       expectCardsCoverEveryFormat(stackCards(variant), page, supportedFormats());
     expect(homeCovers(home)).not.toThrow();
+    expect(homeCovers(home.replace(/(label: "Nuxt"[^}]*href: "[^"#]*#)[^"]+/, "$1yaml"))).toThrow();
     expect(homeCovers(home.replace("/docs/quickstart/vue", "/docs/quickstart/svelte"))).toThrow();
     expect(
       homeCovers(
