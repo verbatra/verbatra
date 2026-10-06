@@ -10,7 +10,12 @@ import {
   type Transport,
 } from "@modelcontextprotocol/server";
 import { type StdioServerHandle, serveStdio } from "@modelcontextprotocol/server/stdio";
-import { declareProviderKeyEnvVar, isMachineTranslationEnabled, redact } from "@verbatra/sdk";
+import {
+  declareProviderKeyEnvVar,
+  isMachineTranslationEnabled,
+  redact,
+  resolveProjectRoot,
+} from "@verbatra/sdk";
 import { z } from "zod";
 import { readPackageManifest } from "./package-manifest.js";
 import { createProgressReporter, type ProgressReporter } from "./progress-reporter.js";
@@ -87,7 +92,12 @@ function executeFor(
   scope: McpCallScope,
 ): Promise<McpToolOutcome> {
   if (state.kind === "configured") {
-    return tool.execute(params, { ...seams, ...scope, config: state.loaded });
+    return tool.execute(params, {
+      ...seams,
+      ...scope,
+      cwd: resolveProjectRoot(state.loaded.source, seams.cwd),
+      config: state.loaded,
+    });
   }
   if (tool.executeUnconfigured !== undefined) {
     return tool.executeUnconfigured(params, { ...seams, configError: state.error });

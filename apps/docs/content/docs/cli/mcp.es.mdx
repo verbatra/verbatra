@@ -33,7 +33,9 @@ También acepta los [flags globales](/docs/cli#flags-globales) `--cwd` y `--conf
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Si falta `--cwd` y `CLAUDE_PROJECT_DIR` nombra un directorio existente, el servidor lo usa como raíz del proyecto. Claude Code fija esa variable para cada servidor stdio que lanza, así que una sesión iniciada en un subdirectorio sigue encontrando la configuración. Un `--cwd` explícito siempre gana. `verbatra mcp` carga entonces los [archivos de entorno](/docs/cli#archivos-de-entorno) desde ese directorio; un `CLAUDE_PROJECT_DIR` definido solo en esos archivos se ignora, porque la raíz se resuelve antes.
+Si falta `--cwd` y `CLAUDE_PROJECT_DIR` nombra un directorio existente, el servidor lo usa como raíz del proyecto. Claude Code fija esa variable para cada servidor stdio que lanza. Un `--cwd` explícito siempre gana. `verbatra mcp` carga entonces los [archivos de entorno](/docs/cli#archivos-de-entorno) desde ese directorio; un `CLAUDE_PROJECT_DIR` definido solo en esos archivos se ignora, porque la raíz se resuelve antes.
+
+La búsqueda de configuración empieza ahí, y una configuración encontrada en un directorio superior ancla las rutas de las herramientas en su propio directorio, así que un servidor iniciado en un subdirectorio sigue trabajando con los archivos del proyecto.
 
 ### Herramientas de gasto
 

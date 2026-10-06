@@ -15,10 +15,12 @@ import type { McpToolContext } from "./types.js";
 /** Everything {@link startMcpServer} accepts. Every field is optional. */
 export interface StartMcpServerOptions {
   /**
-   * The project root: where the config search starts, the base a relative `configPath` resolves
-   * against, and the root every tool resolves project paths from. Defaults to the
-   * `CLAUDE_PROJECT_DIR` environment variable when it names an existing directory, else
-   * `process.cwd()` (see {@link resolveServerCwd}).
+   * The project directory: where the config search starts and the base a relative `configPath`
+   * resolves against. Defaults to the `CLAUDE_PROJECT_DIR` environment variable when it names an
+   * existing directory, else `process.cwd()` (see {@link resolveServerCwd}). The tools resolve
+   * project paths from the directory of a config the search found, so a server started in a
+   * subdirectory works on the project's own files; with `configPath` they resolve them from this
+   * directory.
    */
   readonly cwd?: string;
   /**

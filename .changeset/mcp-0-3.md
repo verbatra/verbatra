@@ -15,6 +15,8 @@ Config-less start, review, glossary and read tools, values-redacted mode, progre
 - Unknown `verbatra-mcp` flags exit 2 instead of being ignored, and `--help` and `--version` no
   longer start the server.
 - The default project directory is `CLAUDE_PROJECT_DIR` when it is set.
+- Tools resolve locale, lock and glossary paths against the directory of the config the search
+  found, so a server started in a subdirectory, as Codex CLI does, works on the project's files.
 - A failed tool's text leads with its error code, `key.integrity` fails with `UNKNOWN_KEY` for an
   unknown key, and every tool returns `structuredContent`.
 - Write tools wait 30 seconds for a lock by default instead of ten minutes.
