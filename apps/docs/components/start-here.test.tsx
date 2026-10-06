@@ -41,6 +41,24 @@ describe("StartHere", () => {
     expect(installBox).toContain(AGENT_INIT_COMMAND);
   });
 
+  it("carries no start bar, so it never doubles the bar of the locale notice above it", () => {
+    const aside = render(<StartHere />).querySelector("aside");
+    expect(aside?.getAttribute("style")).not.toMatch(/border-inline-start|border-left/);
+  });
+
+  it("keeps the agent command on one line, scrolling sideways instead of wrapping", () => {
+    const code = render(<StartHere />).querySelector("code");
+    expect(code?.classList.contains("whitespace-nowrap")).toBe(true);
+    expect(code?.classList.contains("vk-terminal-scroll")).toBe(true);
+    expect(code?.className).not.toContain("whitespace-normal");
+  });
+
+  it("shares one command row with the install box, which still lets the long npm command wrap", () => {
+    const [npm, agent] = [...render(<PackageInstall />).querySelectorAll("code")];
+    expect(npm?.className).toContain("@max-[30rem]:whitespace-normal");
+    expect(agent?.className).toBe(render(<StartHere />).querySelector("code")?.className);
+  });
+
   it("stays at the prose measure, outside the prose styles, with no script of its own", () => {
     const aside = render(<StartHere />).querySelector("aside");
     expect(aside?.classList.contains("not-prose")).toBe(true);

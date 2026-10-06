@@ -137,8 +137,9 @@ footer's oversized watermark only; do not clip it onto a heading.
   takes the flat-panel glow border on hover and focus through `.vk-evidence-link`), `package-install.tsx` and
   `command-box.tsx` (each an `@container`: a command wraps once the box is under 30rem, only at
   a space since `HighlightedCommand` keeps each word whole, so the package name is never clipped;
-  the install box's second row is `AgentCommandRow` (`components/agent-command-row.tsx`,
-  `AGENT_INIT_COMMAND` from `lib/install-commands.ts`) and its third is `AiSetupPrompt`
+  its two command rows are one `CommandRow` each (`components/command-row.tsx`): the npm
+  install, which wraps under 30rem, then `AGENT_INIT_COMMAND` from `lib/install-commands.ts`,
+  which stays on one line and scrolls; its last row is `AiSetupPrompt`
   (`components/ai-setup-prompt.tsx`): the whole one-line prompt, wrapped, under a `.vk-label` caption that shares its row with the
   prompt's small Copy button; its URL breaks only after a path `/`, never inside the scheme or
   host, through `breakUrlsAtSlashes` in `lib/word-breaks.tsx`), `reveal.tsx` (the scroll
@@ -152,16 +153,19 @@ footer's oversized watermark only; do not clip it onto a heading.
   `packages/cli/src/render.ts`, so a change to the CLI's output fails until the demo is
   recaptured.
 - **Docs-facing:** `<StartHere />` (`components/start-here.tsx`) opens every page in
-  `START_HERE_PAGES` (`lib/agent-entry.ts`): a void `aside` at the prose measure with a 3px
-  `--v-purple` start bar, a `.vk-label` title and one lead, then the same `AgentCommandRow` and
+  `START_HERE_PAGES` (`lib/agent-entry.ts`, the agent guides only, not reference pages): a void
+  `aside` at the prose measure with no start bar (so it never doubles the locale notice's
+  callout bar), a `.vk-label` title and one lead, then the same agent `CommandRow` and
   `AiSetupPrompt` rows as the install box, so `AGENT_INIT_COMMAND` and `AI_SETUP_PROMPT`
   (`lib/ai-setup-prompt.ts`) each have one source. `<McpInstallLink client="cursor|vscode" />`
   and the pair `<McpInstallLinks />` (`components/mcp-install-link.tsx`) are plain anchors in the
   secondary button style (`buttonClasses` from `components/ui/button.tsx`, not `Button`, whose
   `href` goes through `next/link`), built from `AGENT_CLIENT_CONFIGS` in `@verbatra/cli` by
   `lib/mcp-install-links.ts` and counted by a `data-umami-event` attribute, never a script.
-  `remarkAgentEntryMarkdown` gives the page's `.md` output the command and prompt as fences and
-  each install button as a Markdown link.
+  `remarkAgentEntryMarkdown` gives the page's `.md` output no runnable fence for the banner:
+  one localized, conditional sentence (`docs.startHere.markdown`), and nothing at all on
+  `start-with-ai`, whose own steps install the CLI first; each install button becomes a
+  Markdown link with its localized label.
   `components/available-from.tsx` renders the version badge. Its rules
   live in `.claude/rules/docs.md`. `components/docs-home.tsx` holds the docs landing
   (`DocsHomeHeader`, `DocsHomeBody`, `DocsHomeSection`, `DocsHomePaths`, `DocsHomeSteps`,
