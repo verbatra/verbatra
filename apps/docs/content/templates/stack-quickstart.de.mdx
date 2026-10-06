@@ -46,7 +46,7 @@ Gibt es <StackText field="sourceFile" /> schon, überspringst du diesen Schritt.
 npx verbatra init --agent
 ```
 
-Arbeitest du ohne Coding-Agenten, überspringst du diesen Schritt. Mit vorhandener Konfiguration behält `init --agent` sie und ergänzt nur die Agent-Dateien: die verbatra-Regeln in `AGENTS.md` (oder `CLAUDE.md`, wenn das deine einzige Anweisungsdatei ist) und den verbatra-MCP-Server in `.mcp.json`, ohne die Tools, die Geld kosten. Siehe [`verbatra init`](/docs/cli/init) und [MCP-Client verbinden](/docs/connect-an-mcp-client).
+Arbeitest du ohne Coding-Agenten, überspringst du diesen Schritt. Mit vorhandener Konfiguration behält `init --agent` sie und ergänzt nur die Agent-Dateien: die verbatra-Regeln in `AGENTS.md` (oder `CLAUDE.md`, wenn das deine einzige Anweisungsdatei ist) und den verbatra-MCP-Server ohne die Tools, die Geld kosten, in der Projektkonfiguration jedes Agenten, den es erkennt: `.mcp.json` für Claude Code, `.cursor/mcp.json` für Cursor, `.vscode/mcp.json` für VS Code. Mit `--client` nennst du die Agenten selbst, und `--dry-run` zeigt die Dateien, ohne sie zu schreiben. Siehe [Coding-Agenten einrichten](/docs/cli/init#coding-agenten-einrichten) und [MCP-Client verbinden](/docs/connect-an-mcp-client).
 
 </Step>
 <Step>
