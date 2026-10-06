@@ -7,12 +7,10 @@ type: reference
 
 ### loadConfig
 
-Finds, loads, and validates the project config, returning a `VerbatraConfig`. The precedence
-is `configOverride` (validate an in-memory
-object) over `configPath` (load one explicit file) over search. The search starts at `cwd` and
-covers `verbatra.config.ts` (also `.js`/`.cjs`), the `.verbatrarc` family (`.json`, `.yaml`,
-`.yml`, `.js`, `.cjs`, `.ts`), and a `"verbatra"` property in `package.json`. A `glossary` given as
-a file path is read and validated here, so downstream code always sees an in-memory glossary: a
+Finds, loads, and validates the project config, returning a `VerbatraConfig`. `configOverride`
+(validate an in-memory object) beats `configPath` (load one explicit file), which beats a search
+from `cwd` in the [discovery order](/docs/config-file#discovery-order). A `glossary` given as a
+file path is read and validated here, so downstream code always sees an in-memory glossary: a
 version 1 map from source term to translation, or a version 2 definition.
 
 ```ts title="Signature"
@@ -29,8 +27,7 @@ function loadConfig(
 
 **Example:** [A config without a file](/docs/programmatic-api#a-config-without-a-file)
 
-Throws `CONFIG_NOT_FOUND` when nothing is found, `CONFIG_INVALID` when a config is found but
-invalid. See [The config file](/docs/config-file) for the schema. `fs` is the file-system port a
+See [The config file](/docs/config-file) for the schema. `fs` is the file-system port a
 glossary file is read through, as described under [The dependency seam](/docs/sdk#the-dependency-seam).
 
 ### loadConfigWithMeta
@@ -66,9 +63,8 @@ after an edit sets it. JSON, YAML, and `package.json` configs are always read af
 
 Lists every file `loadConfigWithMeta` could read a config from with the same `{ cwd?, configPath? }`:
 the explicit file alone when `configPath` is set, otherwise each search place in each directory of
-the search chain, nearest first, whether or not it exists. Watch these paths, for example by their
-modification times, to notice a config being created, edited, or removed without loading it on
-every request. The glossary file is not included; `loadConfigWithMeta` names it in `glossary`.
+the search chain, nearest first, whether or not it exists. Watch them, for example by modification time, to notice a config being created, edited, or
+removed without loading it on every request. The glossary file is not included; `loadConfigWithMeta` names it in `glossary`.
 
 ```ts title="Signature"
 function configCandidatePaths(
@@ -84,11 +80,10 @@ function configCandidatePaths(
 
 <AvailableFrom version="0.12.0" />
 
-Returns the project root: the directory the flows resolve their relative paths against. A config
-the search found roots the project at the config file's directory, so a process started in a
-subdirectory works on the project's own locale files, lock file and `.verbatra-local/`; a config
-from `configPath` keeps `cwd`. A flow given the config object `loadConfig` or `loadConfigWithMeta`
-returned already defaults its `cwd` to that root. Pass `resolveProjectRoot(loaded.source, cwd)` as
+Returns the project root the flows resolve relative paths against: the found config file's
+directory, so a process started in a subdirectory works on the project's own locale files, lock file
+and `.verbatra-local/`, or `cwd` for a config from `configPath`. A flow given the config
+`loadConfig` or `loadConfigWithMeta` returned already defaults its `cwd` to that root. Pass `resolveProjectRoot(loaded.source, cwd)` as
 `cwd` when you copy or rebuild the config, and to `loadLockFile`, `loadProvenance` and
 `runStatus`, which take no config.
 
@@ -112,8 +107,8 @@ Reads a file-backed glossary fresh from disk and returns it as a normalized `Glo
 [per-locale glossary](/docs/config-file#glossary), and every term carries `source`, an optional
 `target`, `targets`, `forbidden`, `caseSensitive`, and an optional `note` and `partOfSpeech`. Its
 `glossary` input is the `GlossaryProvenance` from `loadConfigWithMeta`, so the file it reads is always
-the one the config names; there is no path argument. Use it in a long-running tool that has to show
-the glossary as it is now rather than as it was when the config was loaded.
+the one the config names; there is no path argument. Use it in a long-running tool that shows the
+glossary as it is now, not as it was at load.
 
 ```ts title="Signature"
 function readGlossaryFile(
@@ -129,8 +124,7 @@ function readGlossaryFile(
 **Throws:** [`GLOSSARY_NOT_FILE_BACKED`](/docs/error-codes#glossary_not_file_backed), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
 
 Throws `GLOSSARY_NOT_FILE_BACKED` when the glossary is inline or absent, and `CONFIG_INVALID` when
-the file is missing, oversized, not UTF-8, not valid JSON, neither a flat string map nor a valid
-version 2 glossary, or declares another version.
+the file breaks the [glossary file rules](/docs/config-file#glossary) or declares another version.
 
 <AvailableFrom version="0.12.0" />
 
@@ -347,14 +341,12 @@ function editConfiguredGlossaryTerm(
 
 ### defineConfig
 
-An identity helper for authoring a typed `verbatra.config.ts`: it returns its argument unchanged,
-and exists purely for type inference and editor autocomplete, including completion of the selected
-provider's known model IDs. The model restriction is authoring-only; at runtime any non-empty
-string passes validation. Every provider except `openai-compatible`, `libretranslate`, and
-`none` also gets an overload taking `AuthoringConfigFor<"<id>">`, such as
-`AuthoringConfigFor<"anthropic">`, which narrows the `provider` block to that provider's options
-(and, for a language model, its known model IDs); those three use the `AuthoringConfig` fallback
-below.
+An identity helper for a typed `verbatra.config.ts`: it returns its argument unchanged, for type
+inference and editor autocomplete, including the selected provider's known model IDs (authoring-only;
+at runtime any non-empty string passes). Every provider except `openai-compatible`,
+`libretranslate`, and `none` also gets an overload taking `AuthoringConfigFor<"<id>">`, such as
+`AuthoringConfigFor<"anthropic">`, narrowing the `provider` block to that provider's options; those
+three use the `AuthoringConfig` fallback below.
 
 ```ts title="Signature"
 function defineConfig(
@@ -370,9 +362,8 @@ function defineConfig(
 
 The zod schema `loadConfig` validates with, exported so your own tooling can validate a config
 object the same way the SDK does. Unknown top-level keys are rejected, so a stray secret cannot
-hide in the config. The one exception is `$schema`, an optional string accepted so a JSON or YAML
-config can point an editor at the JSON Schema document the package ships as
-`@verbatra/sdk/config-schema.json`. It is ignored at runtime.
+hide in the config, except `$schema`: an optional string, ignored at runtime, that lets a JSON or
+YAML config point an editor at the package's `@verbatra/sdk/config-schema.json`.
 
 ```ts title="Signature"
 const verbatraConfigSchema: z.ZodObject<{ ... }, z.core.$strict>;
@@ -386,12 +377,11 @@ Read-only metadata the CLI `init` command derives its prompts from: `providerEnv
 the environment variable its key is read from), `scaffoldModels` (a default scaffold model per LLM
 provider), `providerTokenLimitKeys` (the option key each LLM provider takes its output token limit
 under), and `supportedFormats` (the closed set of format ids). Read the token-limit key from
-`providerTokenLimitKeys` rather than assuming one: Anthropic calls it `maxTokens` and the others
-`maxOutputTokens`, the schema validates each provider's options strictly, and DeepL and Google Cloud
-Translation have no entry because they take no token limit. The `ScaffoldableProviderId` type is
-`Exclude<ProviderId, "openai-compatible" | "libretranslate" | "none">`, so it covers every provider
-that needs nothing but its id; `openai-compatible` and `libretranslate` are excluded because each
-needs a `baseUrl` only you can supply and neither has a required environment variable.
+`providerTokenLimitKeys` rather than assuming one, since the keys differ ([providers](/docs/providers));
+DeepL and Google Cloud Translation have no entry because they take no token limit. The `ScaffoldableProviderId` type is
+`Exclude<ProviderId, "openai-compatible" | "libretranslate" | "none">`: every provider that needs
+nothing but its id, since those two each need a `baseUrl` only you can supply and neither has a
+required environment variable.
 
 ```ts title="Signature"
 const scaffoldingMetadata: {
@@ -442,7 +432,7 @@ const format = detection.format?.id;          // for example "yaml"
 const pattern = detection.layout?.pattern;    // for example "config/locales/{locale}.yml"
 ```
 
-The result carries `format` (with `from`: `input`, `files`, or `dependencies`), `layout` (`pattern`, `localeStyle`, `locales`, `sourceLocale`, `files`, `unqualifiedSourceFile`), `ambiguities` (each with a `subject` of `format` or `layout` and its `candidates`), a `confidence` of `high`, `medium`, `low`, or `none`, and `reasons`, one sentence per decision. Ties are reported as ambiguities, never guessed. The optional `format`, `pattern`, and `sourceLocale` inputs narrow the search, and `deps.fs` and `deps.adapterRegistry` swap the file system and the adapters, so a third-party adapter's files are detected too. It never throws for a missing, unreadable, or malformed file; it reports less instead. `layout.unqualifiedSourceFile` names a file beside the layout that holds strings under no locale name, such as `messages.properties` or a gettext `.pot` template; the source locale is then left open rather than guessed, since the source is read from the file the pattern names for it.
+The result carries `format` (with `from`: `input`, `files`, or `dependencies`), `layout` (`pattern`, `localeStyle`, `locales`, `sourceLocale`, `files`, `unqualifiedSourceFile`), `ambiguities` (each with a `subject` of `format` or `layout` and its `candidates`), a `confidence` of `high`, `medium`, `low`, or `none`, and `reasons`, one sentence per decision. Ties are reported as ambiguities, never guessed. The optional `format`, `pattern`, and `sourceLocale` inputs narrow the search, and `deps.fs` and `deps.adapterRegistry` swap the file system and the adapters, so a third-party adapter's files are detected too. A missing, unreadable, or malformed file never throws; it makes the report thinner. `layout.unqualifiedSourceFile` names a file beside the layout holding strings under no locale name, such as `messages.properties` or a gettext `.pot` template; the source locale is then left open, since the source is read from the file the pattern names for it.
 
 ### isMachineTranslationEnabled
 

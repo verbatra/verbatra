@@ -4,9 +4,6 @@ description: "Das Sicherheitsmodell: nicht vertrauenswürdige Strings, das Integ
 type: concept
 ---
 verbatra vertraut weder den Strings, die es übersetzt, noch dem, was ein Provider zurückschickt.
-Jeder Wert durchläuft ein Integritäts-Gate, bevor er geschrieben werden kann, was das Gate ablehnt,
-taucht als Daten auf, statt den Lauf scheitern zu lassen, und Secrets bleiben aus jedem Fehlerpfad
-heraus.
 
 | Schicht | Schützt vor | Bei einem Fehlschlag |
 | --- | --- | --- |
@@ -30,22 +27,12 @@ eine Antwort mit einem nie angefragten Key lässt ihren ganzen Teil-Batch scheit
 <AvailableFrom version="0.12.0" />
 
 Ein Locale-Code allein reicht nicht immer: `sr-Latn` kommt oft auf Kyrillisch zurück, und `pt-BR`
-und `pt-PT` verschwimmen. Deshalb bekommt ein LLM-Provider zusätzlich den englischen Namen jeder
-Sprache, mit Schrift und Region, wenn der Code sie nennt, nachgeschlagen mit `Intl.DisplayNames` aus
-den in Node.js eingebauten Daten:
-
-| Locale | Gesendete Namen |
-| --- | --- |
-| `sr-Latn` | `{ "name": "Serbian (Latin)", "script": "Latin" }` |
-| `zh-Hant-TW` | `{ "name": "Chinese (Traditional, Taiwan)", "script": "Traditional", "region": "Taiwan" }` |
-| `es-419` | `{ "name": "Spanish (Latin America)", "region": "Latin America" }` |
-| `qaa` (private Nutzung) | keine: Der Code wird allein gesendet |
-
-Die Namen kommen aus der Locale in deiner Konfiguration, auch wenn ein `localeMap`-Eintrag einen
-anderen Code sendet, und reisen wie der Rest als Daten; eine feste Systemregel bittet das Modell, in
-der genannten Schrift und Variante zu schreiben. Sie sind nicht Teil des Fingerprints im
-[Cache](/docs/the-cache). Die Provider für maschinelle Übersetzung bekommen nur Codes; siehe
-[Sprachen und Locales](/docs/language-support).
+und `pt-PT` verschwimmen. Deshalb bekommt ein LLM-Provider zusätzlich den englischen Namen, die
+Schrift und die Region jeder Sprache, aus Node.js für die Locale in deiner Konfiguration, auch wenn
+`localeMap` einen anderen Code sendet. Sie reisen als Daten, eine feste Systemregel bittet das
+Modell, in der genannten Schrift und Variante zu schreiben, und sie sind nicht Teil des
+Fingerprints im [Cache](/docs/the-cache). Was jeder Provider bekommt, steht unter
+[An den Provider gesendete Locale-Codes](/docs/providers#an-den-provider-gesendete-locale-codes).
 
 ## Das Integritäts-Gate
 
@@ -83,10 +70,9 @@ Was es nicht garantiert: dass die Übersetzung richtig ist. Es beweist Struktur,
 
 <AvailableFrom version="0.12.0" />
 
-Ein ICU-Plural hat einen Zweig pro CLDR-Pluralkategorie seiner Sprache: Englisch hat `one` und
-`other`, Russisch und Polnisch vier, Arabisch und Walisisch sechs, Japanisch nur `other`. Bei
-next-intl und ARB liest verbatra die Kategorien der Zielsprache aus den in Node.js eingebauten
-CLDR-Daten:
+Ein ICU-Plural hat einen Zweig pro CLDR-Pluralkategorie seiner Sprache
+([Beispiele](/docs/language-support#plurale)). Bei next-intl und ARB liest verbatra die Kategorien
+der Zielsprache aus den in Node.js eingebauten CLDR-Daten:
 
 - Ein LLM-Provider wird nach genau diesen Zweigen gefragt (Kardinalzahlen für `plural`,
   Ordinalzahlen für `selectordinal`). Die Kategorien reisen als Daten, die Injection-Grenze bleibt
@@ -100,17 +86,15 @@ CLDR-Daten:
 
 Ein Wert, der vor dieser Prüfung geschrieben wurde, etwa ein französischer Plural ohne `many`, bleibt,
 bis sich seine Quelle ändert; [`verbatra check --qa`](/docs/cli/check#qualitätsprüfung) findet ihn
-jetzt schon. Wie Plurale in den anderen Formaten funktionieren, steht unter
-[Sprachen und Locales](/docs/language-support#plurale).
+jetzt schon.
 
 ### Inline-Markup-Parität
 
 <AvailableFrom version="0.11.0" />
 
-Rich Text erreicht einen String als Inline-Markup: ein `<b>` in einem i18next-`Trans`-Block, ein
-maskiertes `&lt;b&gt;` in einem Android-`<string>`, ein `<a href>` in einem gettext-Katalog. Ein
-weggelassenes oder kaputtes Tag zerbricht die Darstellung, deshalb vergleicht das Gate Tag-Namen und
-Attributnamen als Multimenge:
+Ein weggelassenes oder kaputtes Inline-Tag (ein `<b>` in einem i18next-`Trans`-Block, ein
+maskiertes `&lt;b&gt;` in einem Android-`<string>`, ein `<a href>` in gettext) zerbricht die
+Darstellung, deshalb vergleicht das Gate Tag- und Attributnamen als Multimenge:
 
 - **Abgelehnt**: ein weggelassenes, erfundenes oder umbenanntes Tag; eine geänderte Menge von
   Attributnamen (auch ein hinzugefügtes `dir`); unausgeglichenes oder falsch verschachteltes Markup;
@@ -150,32 +134,28 @@ einen Key zurück: Der Wert wird geschrieben, gelockt und in die Review-Wartesch
 DeepL, Google und LibreTranslate bekommen so ein Token maskiert und halten einen Wert zurück, den sie
 nicht maskieren oder wiederherstellen können ([`PLACEHOLDER_UNSUPPORTED`](/docs/error-codes#placeholder_unsupported)); die Markierung deckt LLMs und Menschen ab.
 
-Cache-Treffer und Werte, die sich Keys teilen, durchlaufen dieselben Heuristiken wie frische
-Übersetzungen. Markierte Keys erscheinen pro Locale als `needsReview` in der Lauf-Zusammenfassung,
-in den Review-Spalten der Arbeitsmappe und auf [Studios Review-Seite](/docs/review-in-studio). Ein
-Key verlässt die Warteschlange, sobald ein Mensch seinen Wert freigibt, ablehnt oder neu schreibt;
-siehe [Review-Entscheidungen](/docs/the-lock-file#review-entscheidungen).
+Cache-Treffer und geteilte Werte werden wie frische Übersetzungen markiert. Markierte Keys
+erscheinen als `needsReview` in der Lauf-Zusammenfassung, in den Review-Spalten der Arbeitsmappe
+und auf [Studios Review-Seite](/docs/review-in-studio), bis ein Mensch den Wert freigibt, ablehnt
+oder neu schreibt ([Review-Entscheidungen](/docs/the-lock-file#review-entscheidungen)).
 
 ## Das Token-Budget
 
-Mit konfiguriertem `maxTokens` zählt verbatra die Tokens eines Laufs über jeden Aufruf
-und jede Locale. `budgetBehavior: "warn"` (der Standard) markiert eine Überschreitung nur; `"stop"`
-hält den Request zurück, der die Obergrenze überschreiten würde, samt jedem Kandidaten danach, für
-den nächsten Lauf.
+`maxTokens` zählt die Tokens eines Laufs über jeden Aufruf und jede Locale; `budgetBehavior: "stop"`
+hält den Rest des Laufs zurück, sobald die Obergrenze überschritten würde, für den nächsten Lauf
+([Regeln](/docs/config-file#maxtokens-und-budgetbehavior)).
 
 Was das Budget garantiert: Arbeit, die vor der Obergrenze erledigt wurde, bleibt geschrieben und
 gelockt, und nichts bleibt halb geschrieben zurück. Was es nicht garantiert: Ein Request unterwegs
 kann mehr kosten als geschätzt, die Obergrenze begrenzt einen Lauf (keine `watch`-Sitzung), und
-Retranslates aus Studio oder von Agenten sind nicht abgedeckt. Die genauen Regeln stehen unter
-[`maxTokens` und `budgetBehavior`](/docs/config-file#maxtokens-und-budgetbehavior).
+Retranslates aus Studio oder von Agenten sind nicht abgedeckt.
 
 ## Fehler geben nichts preis
 
 Scheitert ein Provider-Aufruf, wird der rohe SDK-Fehler (der Request-Header oder Zugangsdaten tragen
-kann) verworfen, nie gebunden, geloggt oder erneut geworfen. An seiner Stelle erzeugt verbatra einen
-strukturierten Fehler mit stabilem Code und fester, geheimnisfreier Meldung; die Codes stehen unter
-[Provider-Fehlercodes](/docs/error-codes#provider-error-codes). Woher Keys kommen und wie sie aus der Ausgabe entfernt werden,
-steht unter [Datenverarbeitung](/docs/data-handling#api-keys).
+kann) verworfen, nie geloggt oder erneut geworfen. verbatra erzeugt stattdessen einen strukturierten
+Fehler mit stabilem [Code](/docs/error-codes#provider-error-codes) und fester, geheimnisfreier
+Meldung. Das Schwärzen von Keys steht unter [Datenverarbeitung](/docs/data-handling#api-keys).
 
 ## Wo du das siehst
 

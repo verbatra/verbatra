@@ -10,17 +10,17 @@ cada valor.
 
 ## Qué registra
 
-Para cada locale de destino, un hash de contenido por clave traducida, tomado del valor de origen
-que produjo la traducción actual. No contiene traducciones ni secretos: un campo `version` y
-hashes. El hash normaliza Unicode a NFC y los finales de línea a LF, así que volver a guardar un
-archivo de origen con finales CRLF u otra normalización no cambia nada.
+Para cada locale de destino, un hash por clave traducida del valor de origen detrás de la
+traducción actual, más un campo `version`: ni traducciones ni secretos. El hash normaliza Unicode a
+NFC y los finales de línea a LF, así que volver a guardar un archivo de origen con finales CRLF no
+cambia nada.
 
 ## Cómo se detecta el desfase
 
-Una clave de origen que el destino no tiene está ausente (missing). Para una clave que el destino sí
-tiene, el hash de origen actual se compara con el registrado: una diferencia significa que el origen
-cambió, así que la clave se vuelve a traducir; una coincidencia significa que nunca se envía, así
-que una segunda ejecución sin cambios en el origen no cuesta nada. La canalización completa está en
+Una clave de origen que el destino no tiene está ausente (missing). Para una que sí tiene, el hash
+de origen actual se compara con el registrado: una diferencia significa que el origen cambió y la
+clave se vuelve a traducir; una coincidencia significa que nunca se envía, así que una segunda
+ejecución sin cambios en el origen no cuesta nada. La canalización completa está en
 [Cómo funciona una ejecución](/docs/how-it-works).
 
 ### Claves protegidas
@@ -33,18 +33,17 @@ traducirse.
 
 ## Adoptar un proyecto existente
 
-Apuntar verbatra a archivos de locale que ya contienen traducciones revisadas no las vuelve a
-traducir. En la primera ejecución no hay archivo de bloqueo, así que nada puede estar desfasado:
-una clave que el destino tiene conserva su valor, solo se traducen las que le faltan, y la ejecución
-registra el hash de origen actual de cada clave, fijando la línea base sin coste de proveedor.
+Los archivos de locale que ya contienen traducciones revisadas no se vuelven a traducir. En la
+primera ejecución no hay archivo de bloqueo, así que nada puede estar desfasado: una clave que el
+destino tiene conserva su valor, solo se traducen las que le faltan, y la ejecución registra cada
+hash de origen como línea base sin coste de proveedor.
 
 La adopción se basa en la presencia de la clave, nunca en su valor, lo que tiene dos consecuencias:
 
-- **Un valor vacío o sin traducir cuenta como traducido.** Una clave cuyo valor de destino está
-  vacío, o aún es el texto de origen, existe, así que nunca se rellena. Borra la clave (vaciarla no
-  basta) y la siguiente ejecución la traduce.
-- **Una traducción desfasada se registra como actual.** Corrige o borra esas claves antes de la
-  primera ejecución.
+- **Un valor vacío o sin traducir cuenta como traducido.** Borra la clave (vaciarla no basta) y la
+  siguiente ejecución la traduce.
+- **Una traducción desfasada se registra como actual.** Corrígela o bórrala antes de la primera
+  ejecución.
 
 La misma regla conserva las formas de plural escritas a mano, así que `generatePlurals` es seguro
 durante la adopción. Para ver todo esto de antemano, ejecuta [`verbatra diff`](/docs/cli/diff) o
@@ -57,32 +56,31 @@ durante la adopción. Para ver todo esto de antemano, ejecuta [`verbatra diff`](
 - Una acción de una sola clave, como volver a traducir desde Studio, fusiona solo la entrada de esa
   clave.
 
-En ambos casos, una clave retenida en esta ejecución (una comprobación de integridad fallida, una
-llamada al proveedor fallida, un origen con ICU no válido) conserva su hash anterior, así que la
-siguiente ejecución la reintenta. Las claves huérfanas no tienen entrada. El archivo se escribe con
-las claves ordenadas, así que sus diffs se mantienen pequeños y revisables.
+En ambos casos, una clave retenida en esta ejecución (una comprobación de integridad o llamada al
+proveedor fallida, un origen con ICU no válido) conserva su hash anterior, así que la siguiente
+ejecución la reintenta. Las claves huérfanas no tienen entrada, y las claves ordenadas mantienen
+pequeños los diffs.
 
 ## El bloqueo de escritura
 
 Dos ejecuciones que tocan el mismo locale a la vez podrían comparar con una línea base desfasada y
-pagar dos veces. Por eso cada escritura en un locale toma un bloqueo entre procesos para ese locale,
-guardado en `.verbatra-local/`. Un segundo escritor espera, luego vuelve a leer el archivo de
-bloqueo y compara con una línea base que ya incluye el resultado del primero. Locales distintos
-nunca se bloquean entre sí.
+pagar dos veces, así que cada escritura toma un bloqueo entre procesos para ese locale en
+`.verbatra-local/`. Un segundo escritor espera y luego compara con una línea base que incluye el
+resultado del primero. Locales distintos nunca se bloquean entre sí.
 
 Lo que garantiza el bloqueo:
 
 - **Un tiempo de espera agotado no cuesta nada.** `--lock-timeout` acota solo la espera previa a
   cualquier llamada al proveedor, así que un locale que se rinde no ha gastado ni escrito nada;
-  registrar un archivo ya escrito siempre espera los diez minutos por defecto.
+  registrar un archivo ya escrito espera los diez minutos por defecto.
 - **Los bloqueos abandonados no te frenan.** Un bloqueo cuyo proceso ya no existe en esta máquina se
-  recupera al instante, y quien lo tiene lo refresca cada 10 segundos, así que un bloqueo sin
-  refrescar durante 30 segundos se trata como abandonado aunque su proceso siga en marcha.
+  recupera al instante, y uno sin refrescar durante 30 segundos (quien lo tiene lo refresca cada 10)
+  se trata como abandonado.
 - **Una interrupción libera los bloqueos.** Ctrl-C o SIGTERM durante `translate` o `import`, y la
   segunda interrupción que detiene `watch` a la fuerza, liberan cada bloqueo antes de que el proceso
   termine.
 - **Un bloqueo perdido detiene la escritura.** Cada bloqueo lleva un token aleatorio, que se
-  comprueba antes de cada escritura que protege; cuando otra ejecución se ha quedado con el
+  comprueba antes de cada escritura; cuando otra ejecución se ha quedado con el
   bloqueo, la escritura se detiene con [`LOCK_CONTENDED`](/docs/error-codes#lock_contended) y no se
   escribe nada.
 
@@ -94,9 +92,9 @@ Lo que no cubre:
 - **Una pausa larga entre la comprobación y la escritura.** Una ejecución pausada justo después de
   comprobar el token (una máquina que se duerme, un proceso detenido) todavía puede escribir una vez
   al reanudarse.
-- **Hosts que comparten nombre.** Fuera de Linux, el nombre de host es la única identidad de máquina
-  que se registra, así que dos contenedores con el mismo nombre de host que comparten un
-  `.verbatra-local/` pueden tomar el bloqueo vivo del otro por abandonado. Da a cada uno su propio
+- **Hosts que comparten nombre.** Fuera de Linux, el nombre de host es la única identidad de
+  máquina, así que dos contenedores con un mismo nombre de host que comparten `.verbatra-local/`
+  pueden tomar el bloqueo vivo del otro por abandonado. Da a cada uno su propio
   nombre de host o su propia copia de trabajo.
 
 ## Un código de locale reescrito
@@ -104,22 +102,20 @@ Lo que no cubre:
 <AvailableFrom version="0.12.0" />
 
 El archivo de bloqueo, la caché y el archivo de procedencia indexan su estado por el código de
-locale de tu configuración. Cuando reescribes un código, por ejemplo `pt_BR` como `pt-BR` con
-`files.localeStyle: "posix"`, la siguiente ejecución de `translate` o `watch` traslada el estado
-antiguo una vez e informa
+locale de tu configuración. Cuando reescribes uno, por ejemplo `pt_BR` como `pt-BR`, la siguiente
+ejecución de `translate` o `watch` traslada el estado antiguo una vez e informa
 [`LOCALE_STATE_CARRIED_OVER`](/docs/error-codes#locale_state_carried_over). Un cambio en el origen
 hecho antes del cambio de nombre se sigue traduciendo, y las traducciones en caché se siguen
 reutilizando.
 
-El traslado solo ocurre cuando no hay ambigüedad: `pt-BR` no tiene estado propio, y el archivo
+El traslado solo ocurre sin ambigüedad: `pt-BR` no tiene estado propio, y el archivo
 guarda estado bajo exactamente una grafía con guion bajo (o su grafía de gettext, como `sr@latin`
 para `sr-Latn`), comparada sin distinguir mayúsculas. El estado que `pt-BR` ya tiene nunca se
 sobrescribe. Si el traslado no se puede escribir, ese locale no se ejecuta y falla con
 [`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), para que la
 siguiente ejecución lo intente de nuevo; los demás locales se ejecutan como siempre.
 
-Hasta que una ejecución lo traslade, cada lectura trata el estado antiguo como el de `pt-BR` sin
-escribir nada, así que una clave desfasada se informa como desfasada. Una escritura de una sola
+Hasta entonces, cada lectura trata el estado antiguo como el de `pt-BR` sin escribir, así que una clave desfasada se informa como desfasada. Una escritura de una sola
 clave (una edición, una nueva traducción, una decisión de revisión) y `verbatra import` trasladan
 antes el estado, del mismo modo. La comprobación `locale-state` de
 [`verbatra doctor`](/docs/cli/doctor) nombra cualquier estado que quede atrás.
@@ -127,7 +123,7 @@ antes el estado, del mismo modo. La comprobación `locale-state` de
 ## Ausente o corrupto
 
 Un archivo de bloqueo ausente es una [primera ejecución](#adoptar-un-proyecto-existente), no un
-error. Un archivo de bloqueo que no se puede analizar, con una estructura incorrecta, demasiado
+error. Uno que no se puede analizar, con una estructura incorrecta, demasiado
 grande o con una versión no soportada hace fallar la ejecución con
 [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid) en lugar de sobrescribirse, para que
 puedas restaurarlo en vez de perder la línea base.
@@ -136,9 +132,9 @@ puedas restaurarlo en vez de perder la línea base.
 
 <AvailableFrom version="0.12.0" />
 
-Mientras el bloqueo registra de qué texto de origen salió una traducción, `verbatra.provenance.json`
-registra qué vía de escritura produjo el valor que hay ahora en el archivo de locale, y si alguien
-lo revisó. Como archivo aparte, un verbatra más antiguo, por ejemplo uno fijado en CI, lo ignora.
+`verbatra.provenance.json` registra qué vía de escritura produjo cada valor que hay ahora en el
+archivo de locale, y si alguien lo revisó. Un verbatra más antiguo, por ejemplo uno fijado en CI, lo
+ignora.
 
 | Origen | Lo escribe |
 | --- | --- |
@@ -150,19 +146,17 @@ lo revisó. Como archivo aparte, un verbatra más antiguo, por ejemplo uno fijad
 | `import` | una fila aceptada de `verbatra import` |
 | `unknown` | una decisión de revisión sobre un valor sin registro, o un origen que esta versión no conoce |
 
-Al leer los archivos se derivan dos orígenes más. `unrecorded` es un valor sin registro, que es
-donde empieza cada clave tras actualizar. `external` es un valor que ya no coincide con el hash de
-su registro, porque algo fuera de verbatra lo cambió: la pull request de un traductor, un verbatra
-más antiguo o una fusión. Los campos que devuelve cada lectura están en la
+Al leer se derivan dos más: `unrecorded` es un valor sin registro, como cada clave tras actualizar;
+`external` ya no coincide con el hash de su registro porque algo fuera de verbatra lo cambió, como
+la pull request de un traductor o una fusión. Los campos que devuelve cada lectura están en la
 [referencia del SDK](/docs/sdk/inspect#loadprovenance).
 
 Lo que garantiza el archivo:
 
-- **Diffs estables.** Sin texto traducido y sin marcas de tiempo, un registro ordenado por línea,
-  así que una ejecución que no cambia nada deja el archivo idéntico byte a byte. En un conflicto de
-  fusión, quédate con el lado que coincide con el archivo de locale que conservas: un registro que
-  no coincide se lee como `external`, que no nombra a ningún autor equivocado pero protege el valor
-  de una nueva traducción.
+- **Diffs estables.** Sin texto traducido ni marcas de tiempo, un registro ordenado por línea, así
+  que una ejecución que no cambia nada deja el archivo igual. En un conflicto de fusión, quédate con
+  el lado que coincide con el archivo de locale que conservas: un registro que no coincide se lee
+  como `external`, lo que protege el valor de una nueva traducción.
 - **Registros nuevos para valores nuevos.** Una escritura que cambia un valor sustituye su registro
   por uno nuevo y sin revisar; una escritura que deja igual el valor y el origen lo conserva.
 - **Ninguna sobrescritura silenciosa.** Un archivo corrupto detiene cada escritura con
@@ -171,8 +165,7 @@ Lo que garantiza el archivo:
   verbatra más nuevo se deja intacto, y uno que crecería demasiado para volver a leerlo no se
   escribe ([`PROVENANCE_FILE_TOO_LARGE`](/docs/error-codes#provenance_file_too_large)).
 
-Lo que no es: a prueba de manipulaciones. Cualquiera que pueda editar los archivos de locale puede
-editarlo. Para convertirlo en un informe, consulta
+No es a prueba de manipulaciones; para convertirlo en un informe, consulta
 [Registrar evidencia de traducción automática](/docs/provenance-evidence).
 
 ### Decisiones de revisión
@@ -180,32 +173,26 @@ editarlo. Para convertirlo en un informe, consulta
 <AvailableFrom version="0.12.0" />
 
 Un registro puede llevar una decisión de revisión, `approved` o `rejected`, con un nombre de
-`reviewer` opcional. Las escriben la página Review de Studio, las
+`reviewer` opcional. Las escriben la [página Review de Studio](/docs/review-in-studio), las
 [funciones de revisión del SDK](/docs/sdk/review) y las
 [herramientas MCP de revisión](/docs/cli/mcp); las herramientas MCP transmiten la decisión de una
 persona y exigen su nombre. Una decisión se aplica al valor exacto que vio el revisor y se rechaza
-si ese valor cambió desde entonces.
+si cambió.
 
-- **Una aprobación** solo cambia el archivo de procedencia. Guarda el hash de origen con el que se
-  dio, así que vuelve a leerse como sin revisar en cuanto cambia el texto de origen.
-- **Un rechazo** quita el valor del archivo de locale y su entrada del bloqueo, así que la clave se
-  lee como ausente hasta la siguiente ejecución de `translate` o hasta que una persona escribe un
-  valor nuevo. El registro guarda un hash del texto quitado, y la entrada de caché correspondiente
-  se descarta, para que una ejecución no vuelva a poner el mismo texto. XLIFF no puede quitar una
+- **Una aprobación** solo cambia el archivo de procedencia, y vuelve a leerse como sin revisar en
+  cuanto cambia el texto de origen.
+- **Un rechazo** quita el valor y su entrada del bloqueo, así que la clave se lee como ausente hasta
+  la siguiente ejecución de `translate` o hasta que una persona escribe un valor nuevo. El registro
+  guarda un hash del texto quitado y la entrada de caché se descarta, para que una ejecución no vuelva a poner el mismo texto. XLIFF no puede quitar una
   sola traducción, así que ahí un rechazo se deniega con
   [`REVIEW_REJECT_UNSUPPORTED`](/docs/error-codes#review_reject_unsupported).
 
 Las decisiones viven en este archivo confirmado, así que la cola de revisión y
 [`verbatra check --require-reviewed`](/docs/cli/check#exigir-traducciones-revisadas) ven el mismo
-estado en todas las máquinas, y el nombre de `reviewer` es público; verbatra nunca lo rellena.
+estado en todas partes, y el nombre de `reviewer` es público; verbatra nunca lo rellena.
 
 ## Confírmalo
 
 Confirma `verbatra.lock.json` y `verbatra.provenance.json` junto a tus archivos de locale, y nunca
-los edites a mano: son la línea base compartida con la que comparan tus compañeros y tu CI, y lo
+los edites a mano: son la línea base con la que comparan tu equipo y tu CI, y lo
 que restaura una [reversión](/docs/recovery-and-rollback).
-
-## Relacionado
-
-- [La caché de traducciones](/docs/the-cache): la reutilización por contenido junto al bloqueo.
-- [Revisar en Studio](/docs/review-in-studio): registra aprobaciones y rechazos.

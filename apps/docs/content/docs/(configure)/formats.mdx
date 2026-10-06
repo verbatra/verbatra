@@ -3,7 +3,7 @@ title: Formats
 description: Every supported format, how it reads and writes its files, and what a write preserves.
 type: reference
 ---
-A format adapter reads a locale file into one format-neutral shape for the diff, hashing and integrity checks, then writes it back in the file's own shape. Set the `format` key of your [config](/docs/config-file) to one of these ids:
+A format adapter reads a locale file into one neutral shape and writes it back in the file's own shape. Set the `format` key of your [config](/docs/config-file) to one of these ids:
 
 | `format` | Files | Placeholders | Plurals | Missing target file | [Native placeholder syntax](/docs/error-codes#foreign_placeholder_changed) <AvailableFrom version="0.12.0" /> |
 | --- | --- | --- | --- | --- | --- |
@@ -22,23 +22,23 @@ A format adapter reads a locale file into one format-neutral shape for the diff,
 | `ini` | INI (`.ini`) | `{name}`, `{0}` | none | created | `{name}`, `%{name}`, `${name}` |
 | `resx` | .NET resources (`.resx`) | composite `{0}`, `{1:C}`, named `{name}` | none | created | `{{name}}`, `{name}`, `%{name}`, `${name}` |
 
-The format decides which placeholders the [integrity check](/docs/translation-safety) compares and, for the ICU formats, which values are validated, so match it to your i18n library.
+Match the format to your i18n library: it decides which placeholders the [integrity check](/docs/translation-safety) compares.
 
 ## The four JSON formats
 
-All four read nested JSON objects of string leaves; they differ in message syntax.
+All four read nested JSON objects of string leaves.
 
 ### i18next-json
 
-`{{double-brace}}` interpolation; plural from the CLDR key suffix (`_zero`, `_one`, `_two`, `_few`, `_many`, `_other`). `$t(common.foo)` and `$t(common.foo, { options })` nesting references are guarded as placeholders. Only the default `$t(` prefix is recognized, and nested parentheses inside the options are not supported.
+`{{double-brace}}` interpolation; plural from the CLDR key suffix (`_zero`, `_one`, `_two`, `_few`, `_many`, `_other`). `$t(common.foo)` and `$t(common.foo, { options })` nesting references are guarded as placeholders; only the default `$t(` prefix counts, without nested parentheses in the options.
 
 ### vue-i18n-json
 
-Single-brace `{name}` and `{0}` tokens; names may use any script, such as `{número}` or `{名前}`. Plural from a pipe in the value.
+Single-brace `{name}` and `{0}` tokens, names in any script (`{número}`). Plurals from a pipe in the value.
 
 ### next-intl-json
 
-Values are ICU MessageFormat: argument and rich-text tag names are the placeholders, and the ICU body is kept verbatim except that each `plural` and `selectordinal` gets the target language's CLDR arms ([per target language](/docs/translation-safety#plural-arms-per-target-language)). A value that fails to parse as ICU is reported invalid and skipped.
+Values are ICU MessageFormat: argument and rich-text tag names are the placeholders, and the ICU body is kept verbatim except that each `plural` and `selectordinal` gets the [target language's CLDR arms](/docs/translation-safety#plural-arms-per-target-language). A value that fails to parse as ICU is reported invalid and skipped.
 
 ### ngx-translate-json
 
@@ -48,11 +48,11 @@ Values are ICU MessageFormat: argument and rich-text tag names are the placehold
 
 <AvailableFrom version="0.9.0" />
 
-Under `i18next-json`, `ngx-translate-json` and `yaml`, a `{name}` token is literal text, not a placeholder, so a translation may reword it. A `{name}` token in a translation that never appeared in the source is still rejected as fabricated. The guard works in that direction only: with custom single-brace `interpolation.prefix` and `suffix`, a dropped placeholder is not caught.
+Under `i18next-json`, `ngx-translate-json` and `yaml`, a `{name}` token is literal text a translation may reword, but one that never appeared in the source is rejected as fabricated. Only that direction is guarded: with custom single-brace `interpolation.prefix` and `suffix`, a dropped placeholder is not caught.
 
 ## Namespace layouts
 
-`files.pattern` is a literal path with one `{locale}` token, never a glob, so one config addresses one file per locale. `public/locales/{locale}/*.json` looks for a file named `*.json` and fails with `SOURCE_UNREADABLE`. A single namespace works as configured:
+[`files.pattern`](/docs/config-file#locales-and-files) is a literal path, never a glob: `public/locales/{locale}/*.json` looks for a file named `*.json` and fails with `SOURCE_UNREADABLE`. A single namespace works as configured:
 
 ```ts title="verbatra.config.ts"
 files: {
@@ -62,7 +62,7 @@ files: {
 
 ### One config per namespace
 
-For several namespaces, write one config each and run them one by one; `--config` loads any filename:
+For several namespaces, write one config each and run them in turn:
 
 ```bash
 verbatra translate --config verbatra.common.config.ts
@@ -70,21 +70,21 @@ verbatra translate --config verbatra.auth.config.ts
 ```
 
 <Callout type="warn" title="Only the namespace that ran last keeps change detection">
-All configs in one working directory share `verbatra.lock.json`, and each run replaces the locale's baselines with its own keys. After the second run, an edited string of the first namespace reads as in sync and is not retranslated, whatever the order. To retranslate it, delete the key (or the target file) so it counts as missing.
+All configs in one directory share `verbatra.lock.json`, and each run replaces the locale's baselines with its own keys, so an edited string of an earlier namespace reads as in sync and is not retranslated. To retranslate it, delete the key (or the target file) so it counts as missing.
 </Callout>
 
 ## XLIFF
 
 XLIFF 1.2 (`file/body/trans-unit`) and 2.0 (`file/unit/segment`), a flat list of units.
 
-- **Keys.** The unit `id`, then `resname`, then a position that shifts when units move, so give every unit an `id`. Two units with one key fail with `INVALID_STRUCTURE`.
-- **Source or translation.** A document is the source when the locale matches its `source-language` (`srcLang` in 2.0), a bare language matching its regional forms, and it does not declare that locale as its target. Everything else is a translation, including a plain copy of the source. A target sharing the source's language (`en` to `en-GB`) must declare `target-language` (`trgLang`).
+- **Keys.** The unit `id`, then `resname`, then a position that shifts when units move, so give every unit an `id`. A duplicate key fails with `INVALID_STRUCTURE`.
+- **Source or translation.** A document is the source when the locale matches its `source-language` (`srcLang` in 2.0; a bare language matches its regional forms) and it does not declare that locale as its target; anything else, even a plain copy, is a translation. A target sharing the source's language (`en` to `en-GB`) must declare `target-language` (`trgLang`).
 - **Missing values.** A `<target>` that is absent, empty, or in 1.2 marked `state="new"` or `"needs-translation"` is missing, and so is a 2.0 target equal to its source in a segment marked `state="initial"`. The `<source>` text is never copied in.
-- **Writes in place.** Each value goes into its `<target>`, created after `<source>` if absent. A 1.2 `new` or `needs-translation` state, and a 2.0 `initial` state (with its `subState`), becomes `translated`. `<source>`, attributes and `<note>` stay untouched.
-- **Missing units are added** as a copy of the source unit (id, attributes, notes, source; not its targets or 1.2 `<alt-trans>`) in the matching `<file>`. A value with no unit to go to fails the write with `INVALID_STRUCTURE` naming the key, as does an unreadable source. `verbatra extract` writing the source appends units with only a `<source>`; in 2.0 the key must be a valid NMTOKEN (`u1#0` is refused).
-- **Inline markup.** 1.2's `g`, `x`, `bx`, `ex`, `bpt`, `ept`, `ph`, `it`, `mrk`, 2.0's `ph`, `pc`, `sc`, `ec`, `mrk`, `sm`, `em`, `cp`, and `{name}` are all guarded placeholders in either version. On write only these (plus 1.2 `<sub>` inside `bpt`, `ept`, `ph`, `it`) stay markup, with their version's attributes; anything else, such as `<b>`, becomes text.
-- **Escaping.** Text is read as text (`A &amp; B` is `A & B`) and escaped exactly once on write. Text that exactly matches an allowed element, such as `&lt;x id="1"/&gt;`, is written as that element; `<!DOCTYPE` and `<!ENTITY` are written as text.
-- **Notes** (the unit's `<notes>` in 2.0) are read-only context for the provider and the workbook's [`Context` column](/docs/manual-translation).
+- **Writes in place.** Each value goes into its `<target>`, created after `<source>` if absent, and a 1.2 `new` or `needs-translation` or 2.0 `initial` state (with its `subState`) becomes `translated`. `<source>`, attributes and `<note>` stay untouched.
+- **Missing units are added** as a copy of the source unit (without its targets or 1.2 `<alt-trans>`) in the matching `<file>`. A value with no unit to go to, or an unreadable source, fails the write with `INVALID_STRUCTURE` naming the key. `verbatra extract` appends source units with only a `<source>`; in 2.0 the key must be a valid NMTOKEN (`u1#0` is refused).
+- **Inline markup.** 1.2's `g`, `x`, `bx`, `ex`, `bpt`, `ept`, `ph`, `it`, `mrk`, 2.0's `ph`, `pc`, `sc`, `ec`, `mrk`, `sm`, `em`, `cp`, and `{name}` are guarded placeholders in either version. On write only these (plus 1.2 `<sub>` inside `bpt`, `ept`, `ph`, `it`) stay markup; anything else, such as `<b>`, becomes text.
+- **Escaping.** Text is read as text (`A &amp; B` is `A & B`) and escaped once on write; text exactly matching an allowed element, such as `&lt;x id="1"/&gt;`, is written as that element, and `<!DOCTYPE` and `<!ENTITY` as text.
+- **Notes** (the unit's `<notes>` in 2.0) are read-only [context](/docs/manual-translation).
 
 ## YAML
 
@@ -95,18 +95,18 @@ A nested tree like the JSON formats, with i18next `{{double-brace}}` interpolati
 Flutter's `.arb`: a flat object of messages with `@key` metadata and `@@` globals.
 
 - **Messages are ICU**, handled exactly like `next-intl-json`.
-- **Metadata** is never translated and is merged back in place; a corrupt existing target fails the write rather than losing it. `@key.description` is read-only context for the provider and the workbook.
-- **A write holds exactly its messages.** A message left out (pruned, or rejected in review) is dropped with its `@key` block; `@@` globals such as `@@locale` and `@@context` stay.
-- **`@@locale` comes first.** A created target starts with it in `gen-l10n` spelling (`pt_BR`). An existing one keeps its value and moves to the top; one is never added. `flutter gen-l10n` fails on a value that disagrees with the file name, so fix that by hand.
+- **Metadata** is never translated and is merged back in place; a corrupt existing target fails the write. `@key.description` is read-only context.
+- **A write holds exactly its messages.** A message left out (pruned, or rejected in review) is dropped with its `@key` block; `@@` globals stay.
+- **`@@locale` comes first.** A created target starts with it in `gen-l10n` spelling (`pt_BR`); an existing one keeps its value and moves to the top, and one is never added. Fix a value that disagrees with the file name by hand, or `flutter gen-l10n` fails.
 
 ## Properties
 
 Java and Spring `.properties`: flat key/value lines, keys kept verbatim.
 
-- **Syntax** follows `java.util.Properties`: `=`, `:` or whitespace separate key and value; `#` and `!` start comments; a trailing backslash continues a line; standard escapes and `\uXXXX` are decoded. Files are read as UTF-8 and non-ASCII is written as `\uXXXX`.
+- **Syntax** follows `java.util.Properties` (separators, comments, continuation lines, escapes). Files are read as UTF-8 and non-ASCII is written as `\uXXXX`.
 - **Writes keep** key order, comments and blank lines, rewriting each existing line in place and appending new keys in source order. A duplicate key keeps its first position and last value.
 - **Line endings follow the file**: any CRLF means all CRLF, CR-only stays CR, otherwise LF.
-- **Placeholders are `java.text.MessageFormat`**: `{0}`, `{0,number}`, `{0,number,integer}`, `{count}` (names in any script, such as `{número}`), and `plural`, `select`, `selectordinal` and `choice` arguments. Single-quote quoting is not interpreted, so an apostrophe never swallows a placeholder and `'{0}'` still counts as one.
+- **Placeholders are `java.text.MessageFormat`**: `{0}`, `{0,number}`, `{count}` (names in any script), and `plural`, `select`, `selectordinal` and `choice` arguments. Single-quote quoting is not interpreted, so `'{0}'` still counts as a placeholder.
 
 ## Apple .strings
 
@@ -114,11 +114,11 @@ Java and Spring `.properties`: flat key/value lines, keys kept verbatim.
 
 `"key" = "value";` statements, with plurals in the sibling `.stringsdict` (same directory and base name), read and written together.
 
-- **UTF-8 only.** A UTF-16 byte-order mark fails with `INVALID_STRUCTURE`; re-save the file as UTF-8.
-- **Comments.** A `/* ... */` comment before an entry is read-only context for the provider and the workbook; `//` comments are kept. `\"`, `\\`, `\n`, `\t` and `\U` escapes are decoded; on write only quote, backslash, newline and tab are escaped.
+- **UTF-8 only.** A UTF-16 file fails with `INVALID_STRUCTURE`; re-save it as UTF-8.
+- **Comments.** A `/* ... */` comment before an entry is read-only context; `//` comments are kept. `\"`, `\\`, `\n`, `\t` and `\U` escapes are decoded; on write only quote, backslash, newline and tab are escaped.
 - **Writes keep** order, comments and blank lines; a removed key goes with its own comment. A missing target is created, `.lproj` directory and `.stringsdict` included.
-- **Placeholders are printf**: `%@`, `%d`, `%1$@`, `%%`, with flags, width and length as decoration. A positional reorder is accepted; `"50% off"` has none.
-- **Plurals.** Each `.stringsdict` category becomes `<key>_<category>` (`photo_count_one`), round-tripping only the categories a locale has. A malformed `.stringsdict` names the file and key; its format key, variable name and value type survive a rewrite.
+- **Placeholders are printf**: `%@`, `%d`, `%1$@`, `%%`, with flags, width and length as decoration; a positional reorder is accepted.
+- **Plurals.** Each `.stringsdict` category becomes `<key>_<category>` (`photo_count_one`), round-tripping only the categories a locale has. Errors name the file and key; format key, variable name and value type survive a rewrite.
 - **Layout.** `{locale}.lproj/Localizable.strings` needs no special locale style.
 
 ## Xcode String Catalogs (.xcstrings)
@@ -127,12 +127,12 @@ Java and Spring `.properties`: flat key/value lines, keys kept verbatim.
 
 One JSON catalogue holding every locale, Xcode 15's replacement for `.strings`.
 
-- **One file for all locales.** `files.pattern` still needs `{locale}`, but every locale resolves to the same file (`{locale}Localizable.xcstrings`). Every writer (translate, Studio edits, retranslation, import) is serialized on it, so locales run one at a time even with `--concurrency`.
-- **Keys.** A key without a localization for the catalogue's `sourceLanguage` uses the key text as source; a missing target localization counts as untranslated.
+- **One file for all locales.** `files.pattern` still needs `{locale}`, but every locale resolves to the same file (`{locale}Localizable.xcstrings`). Every writer is serialized on it, so locales run one at a time even with `--concurrency`.
+- **Keys.** A key with no `sourceLanguage` localization uses the key text as source; a missing target localization counts as untranslated.
 - **Plurals** under `variations.plural` become `<key>_<category>`, only for the categories present.
 - **Placeholders are printf**, as in `.strings`; `%lld` equals `%d`.
 - **`shouldTranslate: false`** keys are never sent or changed.
-- **Writes patch the document.** Only touched localizations change, a new value gets `state: "translated"`, and an unchanged one stays byte-identical. The catalogue must already exist: create it in Xcode first.
+- **Writes patch the document.** Only touched localizations change, a new value gets `state: "translated"`, and the rest stays byte-identical. Create the catalogue in Xcode first.
 - **Errors** name the file and, inside an entry, the key and locale.
 
 ## Android strings.xml
@@ -141,10 +141,10 @@ One JSON catalogue holding every locale, Xcode 15's replacement for `.strings`.
 
 `res/values/strings.xml` for the source and `res/values-<qualifier>/strings.xml` per target; set `files.localeStyle: "android"` ([config](/docs/config-file#locales-and-files)).
 
-- **Entries.** `<string name>` is one entry; `<plurals>` becomes `key[quantity]` per `<item>`, only for the quantities present. Names must match Android's identifier grammar.
-- **Skipped.** `translatable="false"` resources, `<string-array>`, and a `<string>` with inline elements (`<b>`, `<xliff:g>`, CDATA) are kept as they are and never translated. `formatted="false"` is translated normally.
+- **Entries.** `<string name>` is one entry; `<plurals>` becomes `key[quantity]` per `<item>`, only for the quantities present.
+- **Skipped.** `translatable="false"` resources, `<string-array>`, and a `<string>` with inline elements (`<b>`, `<xliff:g>`, CDATA) are kept as they are; `formatted="false"` is translated normally.
 - **Escaping.** `\'`, `\"`, `\n`, `\t` and a leading `\@` or `\?` are decoded and re-escaped on write.
-- **Placeholders are printf**: `%s`, `%d`, `%1$s`, `%%`; `"50% off"` has none.
+- **Placeholders are printf**: `%s`, `%d`, `%1$s`, `%%`.
 - **Writes** patch the file, delete removed keys, and create a missing file with its directory.
 - **Limits.** A translated key that later becomes read-through in the source is removed from the target. `--prune` knows nothing of plural quantities, so it can delete target-only quantities.
 - **Errors** name a root other than `<resources>`, an invalid name or quantity, or a duplicate key; a DTD or entity is rejected.
@@ -157,8 +157,8 @@ One JSON catalogue holding every locale, Xcode 15's replacement for `.strings`.
 
 - **`msgctxt`** joins its `msgid` into one key with U+E000; a source containing that character is rejected.
 - **Plurals** are keyed by index, `key[n]`, not by CLDR category. `Plural-Forms` is kept verbatim and only its `nplurals` bounds the indices; plural entries without it are rejected, as `msgfmt --check` does.
-- **Flags and comments.** A `#, fuzzy` value is read as current and the flag kept. `#.` comments are read-only context; `#:` and other flags are kept, `#~` blocks stay inert, and the header is never touched. A `.pot` with empty `msgstr` reads cleanly. As a source catalog, though, each `msgstr` is the text to translate: an entry whose source `msgstr` is empty is skipped with [`SOURCE_VALUE_EMPTY`](/docs/error-codes#source_value_empty).
-- **Missing target** is created with a minimal header and, for plurals, a `Plural-Forms` sized to the highest index (a safe fallback from three forms on; seed from a real template for exact grammar).
+- **Flags and comments.** A `#, fuzzy` value is read as current and the flag kept. `#.` comments are read-only context; `#:` and other flags are kept, `#~` blocks stay inert, and the header is never touched. A `.pot` with empty `msgstr` reads cleanly, but in a source catalog each `msgstr` is the text to translate, so an empty one is skipped with [`SOURCE_VALUE_EMPTY`](/docs/error-codes#source_value_empty).
+- **Missing target** is created with a minimal header and, for plurals, a `Plural-Forms` sized to the highest index (seed from a real template for exact grammar).
 - **Placeholders are printf**, `%(name)s` included.
 - **Errors** name the `msgid` and line. `--prune` knows nothing of plural indices, so it can delete target-only forms.
 
@@ -169,10 +169,10 @@ One JSON catalogue holding every locale, Xcode 15's replacement for `.strings`.
 One level of `[section]` headers over `key=value` lines.
 
 - **Keys.** A key in `[home]` is `home.title`; keys above the first section keep their bare name, and literal dots are escaped.
-- **Writes** change only values, keeping key spelling, spacing, `;` and `#` comments and blank lines. A new key goes to the end of its section, a new section to the end of the file, and a missing file is created.
+- **Writes** change only values, keeping spelling, spacing, comments and blank lines. A new key goes to the end of its section, a new section to the end of the file.
 - **Values.** Double-quoted values are unquoted with `\\`, `\"`, `\n`, `\r`, `\t` decoded, and a value that needs it is written quoted. An inline `;` belongs to the value.
-- **Placeholders** are `{name}` and `{0}`, names in any script (`{名前}`); there are no plurals.
-- **Errors.** An unterminated or empty header, or text after `]` that is not a comment, raises an `AdapterError`. A line without `=` is kept verbatim.
+- **Placeholders** are `{name}` and `{0}`, names in any script; no plurals.
+- **Errors.** A malformed header raises an `AdapterError`; a line without `=` is kept verbatim.
 
 ## .NET .resx
 
@@ -180,26 +180,26 @@ One level of `[section]` headers over `key=value` lines.
 
 `<data name><value>` elements under `<root>`, claimed by `.resx` only.
 
-- **Writes patch values only**: the XSD block, `<resheader>`, `<metadata>`, `<assembly>` and untranslated entries come back unchanged, on the file's line terminator; a byte-order mark is dropped.
+- **Writes patch values only**: everything else comes back unchanged, on the file's line terminator; a byte-order mark is dropped.
 - **Not translated.** `<data>` with `type` or `mimetype`, and names starting with `>>` or `$`, are kept as they are. A `<comment>` is read-only context.
-- **Placeholders** are composite format items taken whole (`{0}`, `{1,-10}`, `{2:C}`), and so are named holes such as `{name}` or `{when:d}`, so a renamed hole is refused; `{{`, `}}` and stray braces are guarded too. There is no ICU check and there are no plurals.
-- **Missing target** is created with the standard `resmimetype`, `version`, `reader` and `writer` headers.
-- **Refused keys.** A value the target holds as a typed, designer or markup entry, and a key that could not be read back (empty, or starting with `>>` or `$`), fails the write with an `AdapterError` naming it.
+- **Placeholders** are composite format items and named holes taken whole (`{0}`, `{1,-10}`, `{2:C}`, `{when:d}`), so a renamed hole is refused; `{{`, `}}` and stray braces are guarded too. No ICU check, no plurals.
+- **Missing target** is created with the standard headers.
+- **Refused keys.** A value the target holds as a typed, designer or markup entry, or a key that could not be read back, fails the write with an `AdapterError` naming it.
 - **Errors.** Invalid XML, a root other than `<root>`, and a DTD or entity are rejected.
 
 ## Document key order
 
-The JSON formats, YAML and ARB keep document order: integer-like keys such as `"404"` stay in place instead of being hoisted, new keys append after the target's keys in source order, and ARB metadata keeps its position. XLIFF updates targets in place, so its order never changes.
+The JSON formats, YAML and ARB keep document order: integer-like keys such as `"404"` are not hoisted, new keys append in source order, and ARB metadata keeps its position. XLIFF updates targets in place, so its order never changes.
 
 ## Dotted keys and collisions
 
-In `i18next-json`, `vue-i18n-json` and `next-intl-json`, a literal dotted leaf such as `"foo.bar"` round-trips as written. `ngx-translate-json` reads it as a nested path. In all four, one path written both ways (`"foo.bar"` beside `"foo": { "bar": ... }`) fails with `INVALID_STRUCTURE` rather than guessing.
+In `i18next-json`, `vue-i18n-json` and `next-intl-json`, a literal dotted leaf such as `"foo.bar"` round-trips as written; `ngx-translate-json` reads it as a nested path. In all four, one path written both ways (`"foo.bar"` beside `"foo": { "bar": ... }`) fails with `INVALID_STRUCTURE`.
 
 ## How files are read and written
 
 - **Limits.** Input size and nesting depth are capped (`INPUT_TOO_LARGE`, `MAX_DEPTH_EXCEEDED`), and a file changing during a read is detected.
 - **Atomic writes.** A temporary file is renamed into place, so an interrupt never leaves half a file.
-- **Layout.** The XML formats keep the line terminator and final newline and indent new elements like their neighbors. A new gettext entry follows a blank line, and a created `.po` names its locale in `Language` (`pt_BR`).
+- **Layout.** The XML formats keep the line terminator and final newline and indent new elements like their neighbors. A new gettext entry follows a blank line; a created `.po` names its locale in `Language` (`pt_BR`).
 - **Non-string leaves.** In the JSON formats, YAML and ARB, a number, boolean or null leaf is accepted but never translated, and a rewrite of that file does not keep it; an array fails with `INVALID_STRUCTURE`.
 - **Errors** are structured and secret-free; see [adapter error codes](/docs/error-codes#adapter-error-codes).
 
@@ -207,7 +207,7 @@ In `i18next-json`, `vue-i18n-json` and `next-intl-json`, a literal dotted leaf s
 
 <AvailableFrom version="0.11.0" />
 
-A format verbatra does not ship can come from an adapter in your own package, named with a `custom:` id such as `custom:toml`. It runs through the SDK only, as trusted code: see [Write a custom format adapter](/docs/custom-format-adapters).
+Another format can come from your own adapter with a `custom:` id such as `custom:toml`, run through the SDK as trusted code: see [Write a custom format adapter](/docs/custom-format-adapters).
 
 ## Inline markup in values
 
@@ -216,6 +216,6 @@ A format verbatra does not ship can come from an adapter in your own package, na
 The [markup parity check](/docs/translation-safety#inline-markup-parity) applies to every format, per tag:
 
 - `xliff` guards its own inline elements as placeholders; other HTML such as `<b>` is compared as markup.
-- `next-intl-json` and `arb` treat a paired `<b>...</b>` as a placeholder, while a self-closing `<br/>` is compared as markup. An attribute-bearing tag is invalid ICU and refused.
+- `next-intl-json` and `arb` treat a paired `<b>...</b>` as a placeholder and compare a self-closing `<br/>` as markup; an attribute-bearing tag is invalid ICU and refused.
 - `android-xml` compares decoded values, so `&lt;b&gt;` is `<b>`.
-- Every other format has no markup concept, so this check is the only one that sees it.
+- Every other format has no markup concept, so only this check sees it.

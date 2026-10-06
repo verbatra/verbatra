@@ -11,11 +11,11 @@ None of these call a provider, write a file, or mutate the lock.
 
 <AvailableFrom version="0.9.0" />
 
-Validates the project setup and spends nothing: it constructs no provider and makes no network request
-unless `live` asks for one. It reads the API key value only for `live`, which sends it in one
-language-list request; LibreTranslate gets no key. Each check returns its own verdict, and every check runs even when an earlier one failed, so one call
-reports every independent problem. [`verbatra doctor`](/docs/cli/doctor#what-it-checks) lists the
-checks. The API key is checked by name only; the source file is parsed, not just found.
+Validates the project setup and spends nothing: it constructs no provider and makes no network
+request unless `live` asks for one, and reads the API key value only for that one language-list
+request (LibreTranslate gets no key). Every check runs even when an earlier one failed, so one call
+reports every independent problem; [`verbatra doctor`](/docs/cli/doctor#what-it-checks) lists the
+checks.
 
 ```ts title="Signature"
 function doctor(
@@ -33,25 +33,23 @@ function doctor(
 <AvailableFrom version="0.12.0" />
 
 The `network-policy` check fails when the effective [network policy](/docs/network-policy) refuses
-the provider's host or proxy, or a network environment variable holds an invalid value; it passes
-for the `none` provider. The `plural-rules`, `plural-completeness`, `locale-codes`, and
-`locale-state` checks are informational, never fail, and rename nothing: each is `warn` when it names something and `pass` otherwise, `plural-completeness` is `skipped` for a format without CLDR plural forms, and `locales` is `warn` when a locale carries a warning or a `live` fetch of the language list failed. A `warn` leaves `ok` true; the
-[check table](/docs/cli/doctor#what-it-checks) says what each names.
+the provider's host or proxy, or a network variable is invalid, and passes for the `none` provider.
+The informational checks never fail and rename nothing; a `warn` leaves `ok` true, and the
+[check table](/docs/cli/doctor#what-it-checks) says what each names and when it is `skipped`.
 
 <AvailableFrom version="0.12.0" />
 
-The `locales` check judges every configured locale against the provider's language support, as
-`translate` does before it spends anything: it fails on an unsupported locale and is `skipped` for
-the `none` provider. The per-locale verdicts travel in `DoctorResult.locales` as a
-`LocaleCapabilityReport`. With `live: true`, `doctor` first fetches the provider's current language
-list, which uses no translation quota; `LocaleCapabilityReport.live` says how that went. See
-[Language support](/docs/language-support#checking-support-before-a-run).
+The `locales` check judges every configured locale as `translate` does before it spends: it fails
+on an unsupported locale, is `skipped` for `none`, and returns the verdicts in
+`DoctorResult.locales` as a `LocaleCapabilityReport`. With `live: true` it first fetches the
+provider's current language list, using no quota; `LocaleCapabilityReport.live` says how that went.
+See [Language support](/docs/language-support#checking-support-before-a-run).
 
-With `literals` set, `doctor` runs only the `config` and `untranslated-literals` checks, as
+With `literals` set, only the `config` and `untranslated-literals` checks run, as
 [`verbatra doctor --literals`](/docs/cli/doctor#untranslated-literals) does. `doctor` loads the
-config itself, so a project with no config still gets a report rather than a thrown error. `ok` is
-true exactly when no check failed; `CONFIG_NOT_FOUND` is thrown only for an explicit `configPath`
-that does not exist.
+config itself, so a project with no config gets a report, not a thrown error: `ok` is true exactly
+when no check failed, and `CONFIG_NOT_FOUND` is thrown only for an explicit `configPath` that does
+not exist.
 
 <AvailableFrom version="0.12.0" />
 
@@ -62,7 +60,7 @@ paths, never a key value.
 
 <AvailableFrom version="0.12.0" />
 
-Describes where a project's data goes, for the loaded config, as a versioned `DataFlowManifest`: the provider, each destination host with the [network policy](/docs/network-policy) verdict, the kinds of data sent with project counts, the code sent per target locale, the local files, other requests, and the agent surfaces. It reads no API key and makes no network request, so DeepL is listed with both of its hosts. An invalid network variable or an unreadable source file is reported in the manifest rather than thrown. [`verbatra doctor --data-flow`](/docs/cli/doctor#data-flow) prints it, and `doctor({ dataFlow: true })` returns it as `DoctorResult.dataFlow`.
+Describes where a project's data goes, for the loaded config, as a versioned `DataFlowManifest`. [`verbatra doctor --data-flow`](/docs/cli/doctor#data-flow) prints it and lists its fields; `doctor({ dataFlow: true })` returns it as `DoctorResult.dataFlow`. It reads no API key and makes no network request. An invalid network variable or an unreadable source file is reported in the manifest rather than thrown.
 
 ```ts title="Signature"
 function dataFlow(
@@ -81,7 +79,7 @@ function dataFlow(
 
 <AvailableFrom version="0.12.0" />
 
-The zod schema for a `DataFlowManifest`, exported so a CI step or a reviewer's tooling can validate a manifest. Unknown fields are allowed and kept, because a newer verbatra may add fields within version 1; ignore the ones you do not know. `DATA_FLOW_MANIFEST_VERSION` is the `version` this build writes.
+The zod schema for a `DataFlowManifest`, so a CI step or a reviewer's tooling can validate one. Unknown fields are kept, since a newer verbatra may add fields within version 1; ignore the ones you do not know. `DATA_FLOW_MANIFEST_VERSION` is the `version` this build writes.
 
 ```ts title="Signature"
 const dataFlowManifestSchema: z.ZodType<DataFlowManifest>;
@@ -110,14 +108,13 @@ function extract(
 
 **Example:** [Extract keys from your source code](/docs/programmatic-api#extract-keys-from-your-source-code)
 
-Only genuinely new keys are added to the source locale file; see
-[What it writes](/docs/cli/extract#what-it-writes). What the scan cannot resolve comes back as data
-in `dynamic`, `conflicts`, and `diagnostics`, never thrown
-([What it reports](/docs/cli/extract#what-it-reports-instead-of-guessing)). The result never carries
-a source file's contents.
+Only genuinely new keys are added ([What it writes](/docs/cli/extract#what-it-writes)). What the
+scan cannot resolve comes back as data in `dynamic`, `conflicts`, and `diagnostics`, never thrown
+([What it reports](/docs/cli/extract#what-it-reports-instead-of-guessing)), and the result never
+carries a source file's contents.
 
-`config.extract` names the framework and the source roots. Discovery goes through the optional `readDirectory` member of `SdkFs`;
-a `deps.fs` without it is reported as `EXTRACT_FS_UNSUPPORTED`.
+`config.extract` names the framework and the source roots. Discovery needs the optional
+`readDirectory` member of `SdkFs`; without it, `EXTRACT_FS_UNSUPPORTED`.
 
 ### check
 
@@ -147,37 +144,33 @@ function check(
 
 With `consistency: true`, each `LocaleCheckSummary` also carries `inconsistencies`: one
 `InconsistencyGroup` per source string the locale translates more than one way under different
-keys, naming the `source`, every distinct translation as `{ value, keys }`, and the `context`,
-`description`, `meaning`, `isPlural`, and `pluralForm` the grouped keys share. It is a report only: it never changes
-`inSync`, a count, or any file.
+keys, in the shape the [consistency report](/docs/cli/check#consistency-report) shows. It is a
+report only: it never changes `inSync`, a count, or any file.
 
 <AvailableFrom version="0.12.0" />
 
 Each `LocaleCheckSummary` also carries `provenance`: counts `byOrigin` and `byReviewState` over the
-keys the locale has a value for, read from `verbatra.provenance.json`. See
-[The lock file](/docs/the-lock-file#provenance-who-wrote-each-value) for what each origin means.
-This and every other provenance field in a report is left out, never an error, when the file is
-corrupt or was written by a newer verbatra.
+keys the locale has a value for, read from `verbatra.provenance.json`
+([origins](/docs/the-lock-file#provenance-who-wrote-each-value)). This and every other provenance
+field in a report is left out, never an error, when the file is corrupt or from a newer verbatra.
 
 <AvailableFrom version="0.12.0" />
 
-Each `LocaleCheckSummary` also carries `protected`, how many of its stale keys a `translate` run would leave for a person under the config's `humanEdits` and `pinnedKeys`: the protected share of `stale`. A missing pinned key has no value to protect yet and counts only as missing. They still count as stale, so `inSync` stays false until a person resolves them. When `verbatra.provenance.json` is corrupt or from a newer verbatra, no origin can be read and only pinned keys are counted.
+Each `LocaleCheckSummary` also carries `protected`, the share of `stale` a `translate` run would leave for a person under `humanEdits` and `pinnedKeys` ([Protected keys](/docs/cli/check#protected-keys)). They still count as stale, so `inSync` stays false until a person resolves them; a missing pinned key counts only as missing.
 
 <AvailableFrom version="0.12.0" />
 
 With `qa: true`, `check` also runs the [quality check](/docs/cli/check#quality-check) over every
 committed value, keyless and without writing: each `LocaleCheckSummary` carries a `qa` report and
-the summary carries `qa` totals, in the shapes that section shows. An error's `reason` comes from
-`INTEGRITY_GATE_REASONS`, a warning's from `REVIEW_REASON_CODES`, and the severities are the
-`QA_SEVERITIES` tuple; `qaSeverity: "error"` skips the warnings. The report never changes `inSync`;
-a CI gate reads `qa.errors`, and `qa.warnings` for a strict gate.
+the summary `qa` totals, in that section's shapes. Error reasons come from `INTEGRITY_GATE_REASONS`,
+warning reasons from `REVIEW_REASON_CODES`, severities from `QA_SEVERITIES`; `qaSeverity: "error"`
+skips warnings. It never changes `inSync`: a CI gate reads `qa.errors`, plus `qa.warnings` when strict.
 
 <AvailableFrom version="0.12.0" />
 
-Each `LocaleCheckSummary` also carries `incompletePlurals`: one `IncompletePlural` per plural whose
-committed forms lack CLDR plural categories the target language uses, as
-`{ code: "PLURAL_CATEGORIES_INCOMPLETE", key, argument?, ruleType, missing }`, ordered by key. It is
-a warning that never changes `inSync` or a count;
+Each `LocaleCheckSummary` also carries `incompletePlurals`, ordered by key: one `IncompletePlural`
+`{ code: "PLURAL_CATEGORIES_INCOMPLETE", key, argument?, ruleType, missing }` per plural lacking CLDR
+categories the target language uses. A warning only;
 [plural categories](/docs/cli/check#plural-categories) lists the formats and rules.
 
 With `requireReviewed: true`, `check` also runs the
@@ -188,10 +181,9 @@ report never changes `inSync`; a CI gate reads `review.reviewed`.
 
 <AvailableFrom version="0.12.0" />
 
-With `sensitive: true`, `check` also scans the source file and each reported locale's glossary with
-the config's `sensitiveData` rules, whatever the provider and mode, keyless and without writing:
-the summary carries `sensitive: { findings, glossaryTerms }`, one `{ key, fields, detectors }` per
-flagged key, never the matched text. A CI gate fails on either.
+With `sensitive: true`, `check` also runs the [sensitive content](/docs/cli/check#sensitive-content)
+scan, keyless and without writing: the summary carries `sensitive: { findings, glossaryTerms }`, one
+`{ key, fields, detectors }` per flagged key, never the matched text. A CI gate fails on either.
 
 ### checkFile
 
@@ -213,12 +205,11 @@ function checkFile(
 
 **Throws:** [`NOT_A_LOCALE_FILE`](/docs/error-codes#not_a_locale_file), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid)
 
-`file` is absolute or relative to `cwd`. [One file](/docs/cli/check#one-file) shows the
-`CheckFileSummary` shape, each `locales` entry a `LocaleFileCheck`. A file that does not parse is
-not thrown: its locale carries one `QaSyntaxFinding`, with the position `AdapterError.position`
-reports for JSON and YAML. A target file is checked like `check` with `qa: true`, the source file
-for syntax alone. A path that is no configured locale's file, or a missing file, throws
-`NOT_A_LOCALE_FILE`.
+`file` is absolute or relative to `cwd`; [One file](/docs/cli/check#one-file) shows the
+`CheckFileSummary` shape. A target file is checked like `check` with `qa: true`, the source file for
+syntax alone. A file that does not parse is not thrown: its locale carries one `QaSyntaxFinding`,
+with the position `AdapterError.position` reports for JSON and YAML. A path that is no configured
+locale's file, or a missing file, throws `NOT_A_LOCALE_FILE`.
 
 ### diff
 
@@ -244,31 +235,28 @@ function diff(
 **Example:** [Check in CI without writing](/docs/programmatic-api#check-in-ci-without-writing)
 
 With `unused: true` it also scans the config's `extract` roots, read-only and keyless, and adds an
-`unused` report, separate from every `orphaned` list: the source-locale keys no static reference
-names, in catalog order, each with its decoded `key` and its `catalogKey`.
-[Unused source keys](/docs/cli/diff#unused-source-keys) explains its `ignored` and `possiblyDynamic`
-lists and its `status`. The report never flips `hasPendingChanges`.
+`unused` report of the source-locale keys no static reference names, separate from every `orphaned`
+list and never flipping `hasPendingChanges`; [Unused source keys](/docs/cli/diff#unused-source-keys)
+explains its fields.
 
 <AvailableFrom version="0.12.0" />
 
-Each `LocaleDiff` also carries `changedOrigins`, the interpreted origin of each `changed` key's
-current value (for example `machine`, `human`, or `external`), so you can see whose work a
-retranslation would replace before you run it.
+Each `LocaleDiff` also carries `changedOrigins`, the origin of each `changed` key's current value
+(such as `machine`, `human`, or `external`): whose work a retranslation would replace.
 
 <AvailableFrom version="0.12.0" />
 
-Each `LocaleDiff` also carries `protected`, the missing and changed keys a `translate` run would leave alone, sorted. They still count as pending. When the provenance file is unreadable, only pinned keys are listed.
+Each `LocaleDiff` also carries `protected`, the missing and changed keys a `translate` run would leave alone, sorted; they still count as pending.
 
 ### keyIntegrity
 
 <AvailableFrom version="0.5.0" />
 
-Reports, for each locale's changed keys, whether the current target value still matches the source's
-placeholders, whether it still carries the source's inline markup, and whether it is valid ICU. Each
-entry carries `key`, `hasPlaceholders`, `matches`, the `missing` and `extra` placeholder tokens on a
-mismatch, `icuValid`, `markupMatches`, and `markupDetails` naming the tags behind a markup mismatch.
-Entries never carry a source or target string value. A value written before the write-time gate existed or edited outside verbatra is judged by the same rule. This is
-the per-key integrity report Studio surfaces.
+Reports, for each locale's changed keys, whether the current target value still matches the
+source's placeholders and inline markup and is valid ICU: each entry carries `key`,
+`hasPlaceholders`, `matches`, the `missing` and `extra` tokens on a mismatch, `icuValid`,
+`markupMatches`, and `markupDetails`, never a string value. Values written before the write-time gate
+existed or edited outside verbatra are judged the same. Studio surfaces this per-key report.
 
 ```ts title="Signature"
 function keyIntegrity(
@@ -286,10 +274,9 @@ function keyIntegrity(
 <AvailableFrom version="0.12.0" />
 
 Each entry also carries `icuArmsMatch` and `icuArmDetails`: whether the value's ICU `plural`,
-`selectordinal`, and `select` arms fit the target language, judged exactly as the write-time gate
-judges them, and one short problem per missing or extra arm, such as `{count} plural: missing arm
-"few" required by the target language`. `icuArmsMatch` is always true for a format that does not
-check arms (every shipped format except next-intl and ARB).
+`selectordinal`, and `select` arms fit the target language, judged as the
+[write-time gate](/docs/translation-safety#plural-arms-per-target-language) judges them, with one
+short problem per wrong arm. `icuArmsMatch` is always true for a format that does not check arms.
 
 `keys` narrows the check; only keys that are "changed" for a locale are ever checked.
 
@@ -297,13 +284,11 @@ check arms (every shipped format except next-intl and ARB).
 
 <AvailableFrom version="0.12.0" />
 
-Finds every translation in the target locales that is broken right now: one that lost or gained a
-placeholder, dropped or added inline markup, no longer parses as ICU, or carries ICU `plural`,
-`selectordinal`, or `select` arms that do not fit the target language. Unlike `keyIntegrity`, it
-judges every key present in both the source and a target locale, whatever its sync state, so a
-defect in a translation nobody touched since it was written is found too. Each key is judged by
-the same rules as `keyIntegrity` and the write-time gate, and only failing keys come back, so an
-empty `entries` list means every translation of that locale passes.
+Finds every translation in the target locales that is broken right now: a lost or added
+placeholder or inline markup, invalid ICU, or ICU arms that do not fit the target language. Unlike
+`keyIntegrity`, it judges every key present in both the source and a target locale, whatever its
+sync state, by the same rules, and returns only failing keys: an empty `entries` list means the
+locale passes.
 
 ```ts title="Signature"
 function localeIntegrity(
@@ -318,17 +303,15 @@ function localeIntegrity(
 
 **Throws:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
 
-The cost is one read and parse of the source file and of each requested target file, plus one
-check per translated key. Nothing is cached; every call reads fresh from disk.
+Each call reads and parses the source and each requested target file fresh, with no cache.
 
 ### lockState
 
 <AvailableFrom version="0.5.0" />
 
 Reports the lock file's existence, version, and per-locale drift (baseline key count plus missing,
-stale, and up-to-date counts). `exists` comes from an explicit probe, so "no lock file yet" and "an
-empty but present lock file" stay distinguishable. When the file is absent the result is
-`{ exists: false }` and nothing else is read.
+stale, and up-to-date counts). `exists` comes from an explicit probe, so an absent and an empty lock
+file stay distinguishable; when absent, the result is `{ exists: false }` and nothing else is read.
 
 ```ts title="Signature"
 function lockState(
@@ -375,11 +358,10 @@ No config needed.
 
 Reads the provenance file itself (`verbatra.provenance.json`, also exported as
 `PROVENANCE_FILE_NAME`) and returns its stored shape: `{ version, locales }`, where each locale maps
-keys to a record `{ origin, provider?, model?, valueHash, reviewState?, reviewer?, reviewedSourceHash? }`. It holds no
-translated text. A missing file, or one written by a newer verbatra, reads as empty; a corrupt one
+keys to a record `{ origin, provider?, model?, valueHash, reviewState?, reviewer?, reviewedSourceHash? }`, with no
+translated text. A missing file, or one from a newer verbatra, reads as empty; a corrupt one
 throws `PROVENANCE_FILE_INVALID`. `keyValue`, `localeValues`, `check`, `diff`, and `lockState`
-already report the interpreted view (`KeyProvenance`), which also tells a value with no record
-(`unrecorded`) from one edited outside verbatra since it was recorded (`external`).
+report the interpreted view (`KeyProvenance`), which also tells `unrecorded` from `external`.
 
 ```ts title="Signature"
 function loadProvenance(
@@ -418,25 +400,23 @@ function runStatus(
 No config needed. Returns `{ available: false, reason }` (see `RUN_STATUS_UNAVAILABLE_REASONS`)
 or `{ available: true, version, generatedAt, usage?, budget?, locales }`.
 
-A snapshot from before the token budget was enforced is still read, but a `budget` with
-`supported: false` is left out: its `tokensUsed: 0` was not a count. New snapshots keep the same
-`version` and add only a marker field, so an older Studio or agent server still shows the queue and
-usage but may show an estimated budget as not tracked. An unknown review reason from a newer release
-is ignored: the entry keeps its known reasons, and one left with none is dropped.
+A snapshot from before the token budget was enforced is still read, minus a `budget` with
+`supported: false` (its `tokensUsed: 0` was not a count). New snapshots add only a marker field, so
+an older reader may show an estimated budget as not tracked. An unknown review reason is ignored,
+and an entry left with none is dropped.
 
 ### reviewQueue
 
 <AvailableFrom version="0.12.0" />
 
 Reads the review queue from the committed files: every key whose current value has a machine-class
-origin (`machine`, `memory`, `fuzzy`, or `agent`, published as the `MACHINE_CLASS_ORIGINS` tuple)
-and is not approved, per target locale, in source order. It reads the locale files,
-`verbatra.lock.json`, and `verbatra.provenance.json`, so every teammate with the same commit sees
-the same queue. A key leaves it once its value is approved or rejected, or a person writes or
-imports a new value; a value an agent rewrote stays, and so does an approval given before the key's
-source changed. The last run's `runStatus` snapshot only adds detail: each entry's `reasons` (empty
-when the run did not flag it, or flagged it only with reasons from a newer release this one does
-not know), the locale's `fuzzyHits`, and `lastRunAt`.
+origin (`machine`, `memory`, `fuzzy`, or `agent`, the `MACHINE_CLASS_ORIGINS` tuple) and is not
+approved, per target locale, in source order. It reads the locale files, `verbatra.lock.json`, and
+`verbatra.provenance.json`, so everyone on the same commit sees the same queue. A key leaves it once
+its value is approved or rejected, or a person writes or imports a new value; a value an agent
+rewrote stays, and so does an approval given before the source changed. The last `runStatus`
+snapshot only adds detail: each entry's `reasons` (empty when the run did not flag it with a known
+reason), the locale's `fuzzyHits`, and `lastRunAt`.
 
 ```ts title="Signature"
 function reviewQueue(
@@ -466,10 +446,9 @@ be read fails the call as it fails `check`. Up to 0.11 the queue was the last ru
 
 Builds the per-locale report `verbatra report provenance` prints: every key with a value in both
 the source and a target locale, in source order, with its origin, review state, provider, model and
-reviewer, counted in one of the buckets of the `PROVENANCE_BUCKETS` tuple, which
-[the provenance report](/docs/provenance-evidence#the-provenance-report) defines. It reads the
-locale files, `verbatra.lock.json` and `verbatra.provenance.json`, calls no provider, and writes
-nothing.
+reviewer, counted in one `PROVENANCE_BUCKETS` bucket
+([the provenance report](/docs/provenance-evidence#the-provenance-report) defines them). It calls no
+provider and writes nothing.
 
 ```ts title="Signature"
 function provenanceReport(
@@ -484,15 +463,12 @@ function provenanceReport(
 
 **Throws:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid)
 
-`deps` also takes `now`, the clock
-`generatedAt` is read from. Returns `{ available: true, generatedAt, toolVersion, sourceLocale, locales }`,
-each locale `{ locale, total, counts, entries }` and each entry
-`{ key, bucket, origin, reviewState, provider?, model?, reviewer? }`. `toolVersion` defaults to
-`unknown`. When the provenance file is corrupt or from a newer verbatra it returns
-`{ available: false, reason: "provenance-unreadable" }`, since a report without it would list
-every value as `unrecorded`. A source, target, or lock file that cannot be read fails the call as it
-fails `check`. The report is supporting evidence, not legal advice; the full schema is on
-[Machine-translation evidence](/docs/provenance-evidence#the-json-schema).
+`deps` also takes `now`, the clock for `generatedAt`. The result's full shape is
+[the JSON schema](/docs/provenance-evidence#the-json-schema).
+When the provenance file is corrupt or from a newer verbatra it returns
+`{ available: false, reason: "provenance-unreadable" }`, since every value would read as
+`unrecorded`. A source, target, or lock file that cannot be read fails the call as it fails
+`check`. The report is supporting evidence, not legal advice.
 
 ### provenanceReportPage
 

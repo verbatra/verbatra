@@ -8,11 +8,9 @@ type: reference
 ### loadConfig
 
 Findet, lädt und validiert die Projektkonfiguration und gibt eine `VerbatraConfig` zurück.
-Die Vorrangfolge ist `configOverride` (ein
-Objekt im Speicher validieren) vor `configPath` (eine explizite Datei laden) vor der Suche. Die
-Suche beginnt bei `cwd` und deckt `verbatra.config.ts` (auch `.js`/`.cjs`), die
-`.verbatrarc`-Familie (`.json`, `.yaml`, `.yml`, `.js`, `.cjs`, `.ts`) und eine
-`"verbatra"`-Eigenschaft in `package.json` ab. Ein als Dateipfad angegebenes `glossary` wird hier
+`configOverride` (ein Objekt im Speicher validieren) geht vor
+`configPath` (eine explizite Datei laden), das vor einer Suche ab `cwd` in der
+[Suchreihenfolge](/docs/config-file#suchreihenfolge) geht. Ein als Dateipfad angegebenes `glossary` wird hier
 gelesen und validiert, sodass nachgelagerter Code immer ein Glossar im Speicher sieht: eine
 Version-1-Zuordnung vom Quellbegriff zur Übersetzung oder eine Version-2-Definition.
 
@@ -30,8 +28,7 @@ function loadConfig(
 
 **Beispiel:** [Eine Konfiguration ohne Datei](/docs/programmatic-api#eine-konfiguration-ohne-datei)
 
-Wirft `CONFIG_NOT_FOUND`, wenn nichts gefunden wird, `CONFIG_INVALID`, wenn eine Konfiguration
-gefunden, aber ungültig ist. Das Schema steht in [Konfigurationsdatei](/docs/config-file). `fs`
+Das Schema steht in [Konfigurationsdatei](/docs/config-file). `fs`
 ist der Dateisystem-Port, über den eine Glossardatei gelesen wird, wie unter
 [Die Abhängigkeits-Nahtstelle](/docs/sdk#die-abhängigkeits-nahtstelle) beschrieben.
 
@@ -71,8 +68,8 @@ Prozess, der die Konfiguration nach einer Änderung neu lädt, setzt es. JSON-, 
 Listet jede Datei, aus der `loadConfigWithMeta` mit denselben `{ cwd?, configPath? }` eine
 Konfiguration lesen könnte: nur die explizite Datei, wenn `configPath` gesetzt ist, sonst jeden
 Suchort in jedem Verzeichnis der Suchkette, das nächste zuerst, ob es die Datei gibt oder nicht.
-Beobachte diese Pfade, zum Beispiel über ihre Änderungszeiten, um zu bemerken, dass eine
-Konfiguration angelegt, bearbeitet oder entfernt wird, ohne sie bei jeder Anfrage zu laden. Die
+Beobachte sie, etwa über die Änderungszeit, um eine angelegte, bearbeitete oder entfernte
+Konfiguration zu bemerken, ohne sie bei jeder Anfrage zu laden. Die
 Glossardatei ist nicht dabei; `loadConfigWithMeta` nennt sie in `glossary`.
 
 ```ts title="Signatur"
@@ -89,12 +86,11 @@ function configCandidatePaths(
 
 <AvailableFrom version="0.12.0" />
 
-Gibt die Projektwurzel zurück: das Verzeichnis, gegen das die Flows ihre relativen Pfade auflösen.
-Eine Konfiguration, die die Suche gefunden hat, verankert das Projekt im Verzeichnis der
-Konfigurationsdatei, sodass ein Prozess aus einem Unterverzeichnis mit den Locale-Dateien, der
-Lock-Datei und `.verbatra-local/` des Projekts arbeitet; eine Konfiguration aus `configPath` behält
-`cwd`. Ein Flow, der das Konfigurationsobjekt aus `loadConfig` oder `loadConfigWithMeta` bekommt,
-nimmt diese Wurzel schon als Standard für `cwd`. Übergib `resolveProjectRoot(loaded.source, cwd)`
+Gibt die Projektwurzel zurück, gegen die die Flows relative Pfade auflösen: das Verzeichnis der
+gefundenen Konfigurationsdatei, sodass ein Prozess aus einem Unterverzeichnis mit den
+Locale-Dateien, der Lock-Datei und `.verbatra-local/` des Projekts arbeitet, oder `cwd` bei einer
+Konfiguration aus `configPath`. Ein Flow, der die Konfiguration aus `loadConfig` oder
+`loadConfigWithMeta` bekommt, nimmt diese Wurzel schon als Standard für `cwd`. Übergib `resolveProjectRoot(loaded.source, cwd)`
 als `cwd`, wenn du die Konfiguration kopierst oder neu baust, und an `loadLockFile`,
 `loadProvenance` und `runStatus`, die keine Konfiguration nehmen.
 
@@ -119,8 +115,8 @@ und für ein [Glossar pro Locale](/docs/config-file#glossary) `2` ist und jeder 
 optionales `target`, `targets`, `forbidden`, `caseSensitive` sowie optional `note` und
 `partOfSpeech` trägt. Die Eingabe `glossary` ist die `GlossaryProvenance` aus `loadConfigWithMeta`,
 sodass die gelesene Datei immer die ist, die die Konfiguration nennt; ein Pfadargument gibt es
-nicht. Nutze es in einem lang laufenden Werkzeug, das das Glossar so zeigen muss, wie es jetzt ist,
-und nicht so, wie es beim Laden der Konfiguration war.
+nicht. Nutze es in einem lang laufenden Werkzeug, das das Glossar zeigt, wie es jetzt ist, nicht wie
+beim Laden.
 
 ```ts title="Signatur"
 function readGlossaryFile(
@@ -136,9 +132,8 @@ function readGlossaryFile(
 **Wirft:** [`GLOSSARY_NOT_FILE_BACKED`](/docs/error-codes#glossary_not_file_backed), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
 
 Wirft `GLOSSARY_NOT_FILE_BACKED`, wenn das Glossar inline oder gar nicht vorhanden ist, und
-`CONFIG_INVALID`, wenn die Datei fehlt, zu groß ist, nicht UTF-8 ist, kein gültiges JSON ist, weder
-eine flache String-Zuordnung noch ein gültiges Glossar der Version 2 ist oder eine andere Version
-angibt.
+`CONFIG_INVALID`, wenn die Datei gegen die [Regeln für Glossardateien](/docs/config-file#glossary)
+verstößt oder eine andere Version angibt.
 
 <AvailableFrom version="0.12.0" />
 
@@ -363,15 +358,13 @@ function editConfiguredGlossaryTerm(
 
 ### defineConfig
 
-Ein Identitätshelfer zum Schreiben einer typisierten `verbatra.config.ts`: er gibt sein Argument
-unverändert zurück und existiert rein für Typinferenz und Editor-Autovervollständigung,
-einschließlich der Vervollständigung der bekannten Modell-IDs des gewählten Providers. Die
-Modell-Einschränkung gilt nur beim Schreiben; zur Laufzeit besteht jeder nicht-leere String die
-Validierung. Jeder Provider außer `openai-compatible`, `libretranslate` und
-`none` bekommt zusätzlich eine Überladung mit `AuthoringConfigFor<"<id>">`, etwa
-`AuthoringConfigFor<"anthropic">`, die den `provider`-Block auf die Optionen dieses Providers
-einschränkt (und bei einem Sprachmodell auf seine bekannten Modell-IDs); diese drei nutzen den
-Rückfall mit `AuthoringConfig` unten.
+Ein Identitätshelfer für eine typisierte `verbatra.config.ts`: er gibt sein Argument unverändert
+zurück, für Typinferenz und Editor-Autovervollständigung, einschließlich der bekannten Modell-IDs
+des gewählten Providers (nur beim Schreiben; zur Laufzeit besteht jeder nicht-leere String). Jeder
+Provider außer `openai-compatible`, `libretranslate` und `none` bekommt zusätzlich eine Überladung
+mit `AuthoringConfigFor<"<id>">`, etwa `AuthoringConfigFor<"anthropic">`, die den `provider`-Block
+auf die Optionen dieses Providers einschränkt; diese drei nutzen den Rückfall mit `AuthoringConfig`
+unten.
 
 ```ts title="Signatur"
 function defineConfig(
@@ -387,10 +380,9 @@ function defineConfig(
 
 Das zod-Schema, mit dem `loadConfig` validiert, exportiert, damit dein eigenes Tooling ein
 Konfigurationsobjekt genauso validieren kann wie das SDK. Unbekannte Top-Level-Keys werden
-abgelehnt, ein verirrtes Secret kann sich also nicht in der Konfiguration verstecken. Die einzige
-Ausnahme ist `$schema`, ein optionaler String, der akzeptiert wird, damit eine JSON- oder
-YAML-Konfiguration einen Editor auf das JSON-Schema-Dokument zeigen lassen kann, das das Paket als
-`@verbatra/sdk/config-schema.json` ausliefert. Zur Laufzeit wird es ignoriert.
+abgelehnt, ein verirrtes Secret kann sich also nicht in der Konfiguration verstecken, außer
+`$schema`: ein optionaler, zur Laufzeit ignorierter String, mit dem eine JSON- oder
+YAML-Konfiguration einen Editor auf das mitgelieferte `@verbatra/sdk/config-schema.json` zeigt.
 
 ```ts title="Signatur"
 const verbatraConfigSchema: z.ZodObject<{ ... }, z.core.$strict>;
@@ -405,12 +397,12 @@ Nur lesbare Metadaten, aus denen der CLI-Befehl `init` seine Abfragen ableitet:
 `scaffoldModels` (ein Standard-Scaffold-Modell pro LLM-Provider), `providerTokenLimitKeys` (der
 Option-Key, unter dem jeder LLM-Provider sein Ausgabe-Token-Limit entgegennimmt) und
 `supportedFormats` (die geschlossene Menge der Format-IDs). Lies den Token-Limit-Key aus
-`providerTokenLimitKeys`, statt einen anzunehmen: Anthropic nennt ihn `maxTokens`, die anderen
-`maxOutputTokens`, das Schema validiert die Optionen jedes Providers strikt, und DeepL und Google Cloud
-Translation haben keinen Eintrag, weil sie kein Token-Limit entgegennehmen. Der Typ `ScaffoldableProviderId` ist
-`Exclude<ProviderId, "openai-compatible" | "libretranslate" | "none">` und deckt damit jeden Provider ab, der nur
-seine Id braucht; `openai-compatible` und `libretranslate` sind ausgenommen, weil beide eine `baseUrl`
-brauchen, die nur du kennst, und keiner eine verpflichtende Umgebungsvariable hat.
+`providerTokenLimitKeys`, statt einen anzunehmen, denn die Keys unterscheiden sich
+([Provider](/docs/providers)); DeepL und Google Cloud Translation haben keinen Eintrag, weil sie kein
+Token-Limit entgegennehmen. Der Typ `ScaffoldableProviderId` ist
+`Exclude<ProviderId, "openai-compatible" | "libretranslate" | "none">`: jeder Provider, der nur
+seine Id braucht, denn diese beiden brauchen je eine `baseUrl`, die nur du kennst, und keiner hat
+eine verpflichtende Umgebungsvariable.
 
 ```ts title="Signatur"
 const scaffoldingMetadata: {
@@ -461,7 +453,7 @@ const format = detection.format?.id;          // for example "yaml"
 const pattern = detection.layout?.pattern;    // for example "config/locales/{locale}.yml"
 ```
 
-Das Ergebnis trägt `format` (mit `from`: `input`, `files` oder `dependencies`), `layout` (`pattern`, `localeStyle`, `locales`, `sourceLocale`, `files`, `unqualifiedSourceFile`), `ambiguities` (jeweils mit einem `subject` von `format` oder `layout` und seinen `candidates`), eine `confidence` von `high`, `medium`, `low` oder `none` und `reasons`, einen Satz pro Entscheidung. Gleichstände werden als Mehrdeutigkeiten gemeldet, nie geraten. Die optionalen Eingaben `format`, `pattern` und `sourceLocale` grenzen die Suche ein, und `deps.fs` und `deps.adapterRegistry` tauschen Dateisystem und Adapter aus, sodass auch die Dateien eines Drittanbieter-Adapters erkannt werden. Es wirft nie wegen einer fehlenden, unlesbaren oder fehlerhaften Datei; es meldet stattdessen weniger. `layout.unqualifiedSourceFile` nennt eine Datei neben dem Layout, die Strings unter keinem Locale-Namen enthält, etwa `messages.properties` oder eine gettext-Vorlage `.pot`; die Quell-Locale bleibt dann offen statt geraten zu werden, da die Quelle aus der Datei gelesen wird, die das Muster dafür benennt.
+Das Ergebnis trägt `format` (mit `from`: `input`, `files` oder `dependencies`), `layout` (`pattern`, `localeStyle`, `locales`, `sourceLocale`, `files`, `unqualifiedSourceFile`), `ambiguities` (jeweils mit einem `subject` von `format` oder `layout` und seinen `candidates`), eine `confidence` von `high`, `medium`, `low` oder `none` und `reasons`, einen Satz pro Entscheidung. Gleichstände werden als Mehrdeutigkeiten gemeldet, nie geraten. Die optionalen Eingaben `format`, `pattern` und `sourceLocale` grenzen die Suche ein, und `deps.fs` und `deps.adapterRegistry` tauschen Dateisystem und Adapter aus, sodass auch die Dateien eines Drittanbieter-Adapters erkannt werden. Eine fehlende, unlesbare oder fehlerhafte Datei wirft nie; der Bericht wird nur dünner. `layout.unqualifiedSourceFile` nennt eine Datei neben dem Layout mit Strings unter keinem Locale-Namen, etwa `messages.properties` oder eine gettext-Vorlage `.pot`; die Quell-Locale bleibt dann offen, da die Quelle aus der Datei gelesen wird, die das Muster dafür benennt.
 
 ### isMachineTranslationEnabled
 
