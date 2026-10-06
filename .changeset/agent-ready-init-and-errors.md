@@ -12,12 +12,21 @@ Non-interactive `init` for agents, and errors with a `hint` and a `causeCode`.
   `openai-compatible` is supported. SDK: `detectProject`.
 - Without a terminal, a missing value fails with `MISSING_OPTIONS` naming every missing flag.
 - `init --agent` also writes a verbatra section into `AGENTS.md` (or an existing `CLAUDE.md` when
-  there is no `AGENTS.md`) and adds the MCP server to `.mcp.json` with spending off. Run in a
-  project that already has a config, it keeps the config and adds only the agent files
-  (`agent.configKept` in `--json`).
-- An unpaired or repeated verbatra marker, or a `.mcp.json` that is not valid JSON, does not hold
-  a JSON object, or has an `mcpServers` value that is not an object, exits 2 with
-  `AGENT_FILE_INVALID` before anything is written.
+  there is no `AGENTS.md`) and adds the MCP server, spending off, for each coding agent it detects
+  in the project: Claude Code (`.mcp.json`), Cursor (`.cursor/mcp.json`) and VS Code
+  (`.vscode/mcp.json`), or only Claude Code when it finds none. `--client claude,cursor,vscode`
+  (or `all`) picks them instead, and `agent.clients` in `--json` reports each one. Other servers
+  keep their bytes, indentation and line endings. `@verbatra/cli` exports the entries as
+  `AGENT_CLIENT_CONFIGS`.
+- `init --agent` leaves `.mcp.json` alone while the verbatra Claude Code plugin is enabled in
+  `.claude/settings.json` or `.claude/settings.local.json`, and says so in the next steps.
+- Run in a project that already has a config, `init --agent` keeps the config and adds only the
+  agent files (`agent.configKept` in `--json`).
+- `init --dry-run` reports every file it would write or change, and writes nothing.
+- An unpaired or repeated verbatra marker, a client file that is not plain JSON (comments and
+  trailing commas included), does not hold a JSON object or has a servers value that is not an
+  object, or a symbolic link where init would write, exits 2 with `AGENT_FILE_INVALID` before
+  anything is written.
 
 **Errors**
 - `errorHint(error)` returns the next step for any error code, printed as a `next:` line and a

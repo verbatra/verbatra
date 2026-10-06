@@ -17,11 +17,11 @@ Diese Codes löst die CLI selbst aus. Dieselbe Liste wird als `CLI_ERROR_CODES` 
 
 ### AGENT_FILE_INVALID
 
-`init --agent` eine `.mcp.json` gefunden hat, die kein JSON-Objekt mit einem `mcpServers`-Objekt ist, oder eine unpaarige oder doppelte verbatra-Markierung in `AGENTS.md` oder `CLAUDE.md`; es wurde nichts geschrieben.
+`init --agent` eine Client-Konfiguration (`.mcp.json`, `.cursor/mcp.json` oder `.vscode/mcp.json`) gefunden hat, die kein reines JSON ist, kein Objekt ist oder einen Server-Wert enthält, der kein Objekt ist, einen symbolischen Link auf einem Pfad, den es schreiben würde, oder eine unpaarige oder doppelte verbatra-Markierung in `AGENTS.md` oder `CLAUDE.md`; es wurde nichts geschrieben.
 
 - **Ausgelöst von**: `init --agent`
 - **Exit-Code**: `2`
-- **Nächster Schritt**: Repair the .mcp.json or the verbatra markers in the file the message names, then run `verbatra init --agent` again.
+- **Nächster Schritt**: Repair the MCP config or the verbatra markers in the file the message names, or replace the symbolic link it names with a plain file, then run `verbatra init --agent` again.
 
 ### CLI_ERROR
 

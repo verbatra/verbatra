@@ -1,25 +1,37 @@
-import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
+import {
+  AGENT_CLIENT_CONFIGS,
+  type AgentClientConfig,
+  type AgentClientId,
+  type ClientSelectedBy,
+  type SelectedClient,
+  selectClients,
+  verbatraPluginSetting,
+} from "./agent-clients.js";
 import { AGENT_INSTRUCTIONS } from "./agent-instructions.js";
 import { CliUsageError } from "./cli-usage-error.js";
+import { appendMember, memberValueSpan, rootObjectSpan } from "./json-text.js";
+import {
+  entryExists,
+  escapesProject,
+  isDirectoryEntry,
+  isRegularFile,
+  resolvesToFile,
+  symlinkOnPath,
+} from "./project-paths.js";
 
 export const MARKER_START = "<!-- verbatra:start -->";
 export const MARKER_END = "<!-- verbatra:end -->";
-export const MCP_CONFIG_FILE = ".mcp.json";
-export const MCP_SERVER_ENTRY = {
-  type: "stdio",
-  command: "npx",
-  args: ["-y", "@verbatra/mcp"],
-} as const;
 
-const MCP_SERVER_NAME = "verbatra";
 const INSTRUCTION_FILES = ["AGENTS.md", "CLAUDE.md"] as const;
-const DEFAULT_INDENT = 2;
 
 export type AgentFileAction = "created" | "updated" | "unchanged";
 
 export type McpServerState = "added" | "present" | "differs";
+
+export type ClientServerState = McpServerState | "skipped";
 
 export interface PlannedAgentFile {
   readonly path: string;
@@ -27,10 +39,25 @@ export interface PlannedAgentFile {
   readonly content: string;
 }
 
+export interface PlannedClientWrite extends PlannedAgentFile {
+  readonly server: McpServerState;
+}
+
+export interface PlannedClient {
+  readonly id: AgentClientId;
+  readonly file: string;
+  readonly server: ClientServerState;
+  readonly reason: "plugin" | null;
+  readonly selectedBy: ClientSelectedBy;
+  readonly markers: readonly string[];
+  readonly write: PlannedClientWrite | undefined;
+}
+
 export interface AgentScaffoldPlan {
   readonly instructions: PlannedAgentFile;
-  readonly mcp: PlannedAgentFile;
-  readonly mcpServer: McpServerState;
+  readonly clients: readonly PlannedClient[];
+  readonly pluginSetting: string | undefined;
+  readonly vscodeHint: boolean;
 }
 
 interface Merged {
@@ -39,10 +66,6 @@ interface Merged {
 }
 
 type JsonObject = Record<string, unknown>;
-
-function readIfPresent(path: string): string | undefined {
-  return existsSync(path) ? readFileSync(path, "utf8") : undefined;
-}
 
 function lineEnding(content: string): string {
   return content.includes("\r\n") ? "\r\n" : "\n";
@@ -63,9 +86,12 @@ function appendSeparator(content: string, eol: string): string {
   return content.endsWith(eol) ? eol : `${eol}${eol}`;
 }
 
+function agentFileInvalid(message: string): CliUsageError {
+  return new CliUsageError("AGENT_FILE_INVALID", message);
+}
+
 function brokenMarkers(file: string): CliUsageError {
-  return new CliUsageError(
-    "AGENT_FILE_INVALID",
+  return agentFileInvalid(
     `${file} has an unpaired or repeated ${MARKER_START} / ${MARKER_END} marker, so init cannot tell which part it wrote. Leave exactly one start marker before one end marker, or remove both, and run init again. ${file} was not changed.`,
   );
 }
@@ -99,80 +125,191 @@ function isJsonObject(value: unknown): value is JsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function invalidMcpConfig(reason: string): CliUsageError {
-  return new CliUsageError(
-    "AGENT_FILE_INVALID",
-    `${MCP_CONFIG_FILE} ${reason}, so init cannot add the verbatra server to it. Fix or remove it and run init again. ${MCP_CONFIG_FILE} was not changed.`,
+function invalidMcpConfig(file: string, reason: string): CliUsageError {
+  return agentFileInvalid(
+    `${file} ${reason}, so init cannot add the verbatra server to it. Fix or remove it and run init again. Nothing was written.`,
   );
 }
 
-function parseMcpConfig(existing: string): JsonObject {
+function parseMcpConfig(client: AgentClientConfig, existing: string): JsonObject {
   let parsed: unknown;
   try {
     parsed = JSON.parse(existing);
   } catch {
-    throw invalidMcpConfig("is not valid JSON");
+    throw invalidMcpConfig(
+      client.file,
+      "is not plain JSON (init never rewrites a file with comments or trailing commas)",
+    );
   }
   if (!isJsonObject(parsed)) {
-    throw invalidMcpConfig("does not hold a JSON object");
+    throw invalidMcpConfig(client.file, "does not hold a JSON object");
   }
-  if (parsed.mcpServers !== undefined && !isJsonObject(parsed.mcpServers)) {
-    throw invalidMcpConfig("has an mcpServers value that is not an object");
+  const servers = parsed[client.serversKey];
+  if (servers !== undefined && !isJsonObject(servers)) {
+    throw invalidMcpConfig(
+      client.file,
+      `has a value under ${client.serversKey} that is not an object`,
+    );
   }
   return parsed;
 }
 
-function indentOf(existing: string): string | number {
-  return /^([ \t]+)\S/m.exec(existing)?.[1] ?? DEFAULT_INDENT;
+const DEFAULT_INDENT_UNIT = "  ";
+
+function indentUnit(existing: string): string {
+  return /^([ \t]+)\S/m.exec(existing)?.[1] ?? DEFAULT_INDENT_UNIT;
 }
 
-function serialize(value: JsonObject, indent: string | number, eol: string, trailing: boolean) {
-  const body = JSON.stringify(value, null, indent).replaceAll("\n", eol);
-  return trailing ? `${body}${eol}` : body;
+function freshConfig(client: AgentClientConfig): string {
+  const config = { [client.serversKey]: { [client.serverName]: client.server } };
+  return `${JSON.stringify(config, null, DEFAULT_INDENT_UNIT)}\n`;
+}
+
+function reserialized(config: JsonObject, client: AgentClientConfig, existing: string): string {
+  const servers = config[client.serversKey];
+  const merged = {
+    ...config,
+    [client.serversKey]: {
+      ...(isJsonObject(servers) ? servers : {}),
+      [client.serverName]: client.server,
+    },
+  };
+  const eol = lineEnding(existing);
+  const body = JSON.stringify(merged, null, indentUnit(existing)).replaceAll("\n", eol);
+  return /\r?\n$/.test(existing) ? `${body}${eol}` : body;
+}
+
+function withServerInserted(
+  config: JsonObject,
+  client: AgentClientConfig,
+  existing: string,
+): string {
+  if (!existing.includes("\n")) {
+    return reserialized(config, client, existing);
+  }
+  const layout = { unit: indentUnit(existing), eol: lineEnding(existing) };
+  const root = rootObjectSpan(existing);
+  const servers = memberValueSpan(existing, root, client.serversKey);
+  const inserted =
+    servers === undefined
+      ? appendMember(
+          existing,
+          root,
+          { key: client.serversKey, value: { [client.serverName]: client.server } },
+          layout,
+        )
+      : appendMember(existing, servers, { key: client.serverName, value: client.server }, layout);
+  return inserted ?? reserialized(config, client, existing);
 }
 
 interface McpMerged extends Merged {
   readonly server: McpServerState;
 }
 
-export function mergeMcpConfig(existing: string | undefined): McpMerged {
+export function mergeMcpConfig(client: AgentClientConfig, existing: string | undefined): McpMerged {
   if (existing === undefined) {
-    const content = serialize(
-      { mcpServers: { [MCP_SERVER_NAME]: MCP_SERVER_ENTRY } },
-      DEFAULT_INDENT,
-      "\n",
-      true,
-    );
-    return { content, action: "created", server: "added" };
+    return { content: freshConfig(client), action: "created", server: "added" };
   }
-  const config = parseMcpConfig(existing);
-  const servers: JsonObject = isJsonObject(config.mcpServers) ? config.mcpServers : {};
-  if (Object.hasOwn(servers, MCP_SERVER_NAME)) {
-    const same = isDeepStrictEqual(servers[MCP_SERVER_NAME], MCP_SERVER_ENTRY);
+  if (existing.trim() === "") {
+    return { content: freshConfig(client), action: "updated", server: "added" };
+  }
+  const config = parseMcpConfig(client, existing);
+  const servers = config[client.serversKey];
+  if (isJsonObject(servers) && Object.hasOwn(servers, client.serverName)) {
+    const same = isDeepStrictEqual(servers[client.serverName], client.server);
     return { content: existing, action: "unchanged", server: same ? "present" : "differs" };
   }
-  const merged = { ...config, mcpServers: { ...servers, [MCP_SERVER_NAME]: MCP_SERVER_ENTRY } };
-  const eol = lineEnding(existing);
-  const content = serialize(merged, indentOf(existing), eol, /\r?\n$/.test(existing));
-  return { content, action: "updated", server: "added" };
+  return {
+    content: withServerInserted(config, client, existing),
+    action: "updated",
+    server: "added",
+  };
+}
+
+function unsafePath(file: string, reason: string): CliUsageError {
+  return agentFileInvalid(
+    `${file} ${reason}, so init will not write through it. Replace it with a plain file or directory inside the project, or wire the client by hand, and run init again. Nothing was written.`,
+  );
+}
+
+function assertWritableClientFile(cwd: string, file: string): void {
+  const link = symlinkOnPath(cwd, file);
+  if (link !== undefined) {
+    throw unsafePath(file, `sits behind the symbolic link ${link}`);
+  }
+  const directory = dirname(file);
+  if (directory !== "." && entryExists(cwd, directory) && !isDirectoryEntry(cwd, directory)) {
+    throw unsafePath(file, `needs ${directory} to be a directory, but it is not`);
+  }
+  if (entryExists(cwd, file) && !isRegularFile(cwd, file)) {
+    throw unsafePath(file, "is not a regular file");
+  }
+}
+
+function readClientFile(cwd: string, file: string): string | undefined {
+  assertWritableClientFile(cwd, file);
+  return entryExists(cwd, file) ? readFileSync(resolve(cwd, file), "utf8") : undefined;
+}
+
+function readInstructionFile(cwd: string, file: string): string | undefined {
+  if (!entryExists(cwd, file)) {
+    return undefined;
+  }
+  if (escapesProject(cwd, file)) {
+    throw unsafePath(file, "is a symbolic link that leads outside the project");
+  }
+  if (!resolvesToFile(cwd, file)) {
+    throw unsafePath(file, "is not a regular file");
+  }
+  return readFileSync(resolve(cwd, file), "utf8");
 }
 
 function instructionsFile(cwd: string): { readonly path: string; readonly existing?: string } {
   const present = INSTRUCTION_FILES.flatMap((path) => {
-    const existing = readIfPresent(resolve(cwd, path));
+    const existing = readInstructionFile(cwd, path);
     return existing === undefined ? [] : [{ path, existing }];
   });
   const marked = present.find((file) => file.existing.includes(MARKER_START));
   return marked ?? present[0] ?? { path: INSTRUCTION_FILES[0] };
 }
 
-export function planAgentScaffold(cwd: string): AgentScaffoldPlan {
+function planClient(
+  cwd: string,
+  selected: SelectedClient,
+  pluginSetting: string | undefined,
+): PlannedClient {
+  const client = AGENT_CLIENT_CONFIGS[selected.id];
+  const base = { ...selected, file: client.file };
+  if (selected.id === "claude" && pluginSetting !== undefined) {
+    return { ...base, server: "skipped", reason: "plugin", write: undefined };
+  }
+  const merged = mergeMcpConfig(client, readClientFile(cwd, client.file));
+  return {
+    ...base,
+    server: merged.server,
+    reason: null,
+    write: {
+      path: client.file,
+      action: merged.action,
+      content: merged.content,
+      server: merged.server,
+    },
+  };
+}
+
+export function planAgentScaffold(
+  cwd: string,
+  flagged?: readonly AgentClientId[],
+): AgentScaffoldPlan {
   const target = instructionsFile(cwd);
   const instructions = mergeInstructions(target.path, target.existing);
-  const mcp = mergeMcpConfig(readIfPresent(resolve(cwd, MCP_CONFIG_FILE)));
+  const selection = selectClients(cwd, flagged);
+  const wiresClaude = selection.clients.some((client) => client.id === "claude");
+  const pluginSetting = wiresClaude ? verbatraPluginSetting(cwd) : undefined;
   return {
     instructions: { path: target.path, ...instructions },
-    mcp: { path: MCP_CONFIG_FILE, content: mcp.content, action: mcp.action },
-    mcpServer: mcp.server,
+    clients: selection.clients.map((client) => planClient(cwd, client, pluginSetting)),
+    pluginSetting,
+    vscodeHint: selection.vscodeHint,
   };
 }

@@ -80,7 +80,7 @@ describe("runInit: the --cwd directory", () => {
     },
   );
 
-  it("names the files already written when a later one cannot be written", async () => {
+  it("refuses an unreadable file it has to change before writing anything", async () => {
     mkdirSync(join(dir, ".gitignore"));
     const cap = captureStreams();
 
@@ -90,8 +90,29 @@ describe("runInit: the --cwd directory", () => {
     const envelope = parseEnvelope(cap.out());
     expect(envelope).toMatchObject({ ok: false, code: "INIT_UNWRITABLE" });
     expect(envelope.message).toContain("init could not write .gitignore");
-    expect(envelope.message).toContain("verbatra.config.ts was already written.");
+    expect(envelope.message).toContain("Nothing was written.");
+    expect(existsSync(join(dir, "verbatra.config.ts"))).toBe(false);
   });
+
+  it.runIf(canDropWriteAccess)(
+    "names the files already written when a later one cannot be written",
+    async () => {
+      writeFileSync(join(dir, ".env.example"), "OTHER=\n");
+      chmodSync(join(dir, ".env.example"), 0o444);
+      const cap = captureStreams();
+
+      const code = await runInit(
+        { cwd: dir, json: true, yes: true, provider: "gemini" },
+        cap.streams,
+      );
+
+      expect(code).toBe(2);
+      const envelope = parseEnvelope(cap.out());
+      expect(envelope).toMatchObject({ ok: false, code: "INIT_UNWRITABLE" });
+      expect(envelope.message).toContain("init could not write .env.example");
+      expect(envelope.message).toContain("verbatra.config.ts was already written.");
+    },
+  );
 
   it("passes a failure without a file-system code through unchanged", async () => {
     const cap = captureStreams();
