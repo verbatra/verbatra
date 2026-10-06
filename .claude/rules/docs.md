@@ -231,8 +231,8 @@ from the `type` frontmatter field.
 | overview | 600 |
 | tutorial | 900 |
 | how-to | 1,200 |
-| concept | 1,800 |
-| reference | 3,000 |
+| concept | 1,600 |
+| reference | 2,500 |
 | CLI command page (`cli/<command>.mdx`, not `cli/index` or `cli/output`) | 2,000 |
 | lookup reference (`LOOKUP_REFERENCE_PAGES`: `(reference)/error-codes.mdx` only) | 12,000 |
 
@@ -243,11 +243,9 @@ The values live in `page-type.ts` (`WORD_CEILING`, `COMMAND_PAGE_CEILING`,
 `pnpm --filter @verbatra/docs docs:budget` lists every page at or above 90 percent of its ceiling,
 so the headroom is visible in review rather than discovered on a failing test.
 
-Until 0.12.0 is released, do not lower a ceiling. After the 0.12.0 release, lower concept to
-1,600 and reference to 2,500, splitting `sdk/inspect`, `providers` or `config-file` if one cannot
-fit. Every page already fits those lowered values: `POST_RELEASE_WORD_CEILING` in `page-type.ts`
-holds them, and `docs-page-type.test.ts` checks every page against it through `wordCeiling`, so
-the lowering is editing the two numbers in `WORD_CEILING`.
+Since the 0.12.0 release, concept is held to 1,600 and reference to 2,500. A page that cannot fit
+is split or trimmed, never given a raised ceiling; `sdk/inspect`, `providers` and `config-file`
+are the pages closest to theirs.
 
 ### One owner per fact
 
