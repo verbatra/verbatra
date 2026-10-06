@@ -72,7 +72,7 @@ Unbekannte Keys werden auf jeder Ebene außer `$schema` abgelehnt. Genau deshalb
 
 ### Locales und Dateien
 
-- **`files.pattern`** muss `{locale}` enthalten, das einzige Token, das es versteht: `locales/{locale}.json` wird zu `locales/de.json`, aufgelöst gegen das Arbeitsverzeichnis. Es ist ein wörtlicher Pfad, nie ein Glob, eine Konfiguration adressiert also eine Datei pro Locale; für mehrere Namespace-Dateien siehe [Namespace-Layouts](/docs/formats#namespace-layouts). `apple-xcstrings` braucht das Token trotzdem, aber jede Locale löst sich zum selben Katalog auf ([Xcode String Catalogs](/docs/formats#xcode-string-catalogs-xcstrings)).
+- **`files.pattern`** muss `{locale}` enthalten, das einzige Token, das es versteht: `locales/{locale}.json` wird zu `locales/de.json`, aufgelöst gegen die Projektwurzel. Es ist ein wörtlicher Pfad, nie ein Glob, eine Konfiguration adressiert also eine Datei pro Locale; für mehrere Namespace-Dateien siehe [Namespace-Layouts](/docs/formats#namespace-layouts). `apple-xcstrings` braucht das Token trotzdem, aber jede Locale löst sich zum selben Katalog auf ([Xcode String Catalogs](/docs/formats#xcode-string-catalogs-xcstrings)).
 - **`files.localeStyle`** entscheidet, wozu das Token expandiert:
   - `literal` schreibt das Tag so, wie es konfiguriert ist; das brauchen die JSON-, YAML-, XLIFF-, ARB-, Properties- und Apple-`.lproj`-Layouts.
   - `posix` ersetzt `-` durch `_`, für gettext und Javas `messages_{locale}.properties`: Aus `pt-BR` wird `pt_BR`, aus `zh-Hant-TW` wird `zh_Hant_TW`. Eine Variante wie `de-1996` hat keine posix-Schreibweise. `gettext-po` schreibt Schriften auf die gettext-Art (nächster Abschnitt).
@@ -266,7 +266,7 @@ extract: {
 ```
 
 - **`framework`** ist eine geschlossene Menge ([Aufrufformen](/docs/cli/extract#was-er-findet)); ein Framework ohne Extractor wird abgelehnt.
-- **`roots`** werden gegen das Arbeitsverzeichnis aufgelöst; nichts außerhalb davon wird gelesen.
+- **`roots`** werden gegen die Projektwurzel aufgelöst; nichts außerhalb davon wird gelesen.
 - **`exclude`** ergänzt Verzeichnisnamen (keine Pfade), die überall unterhalb eines Roots passen, zur [immer übersprungenen Menge](/docs/cli/extract#grenzen-des-scans).
 - **`literals.ignore`** trifft den ganzen Text eines Literals nach dem Zusammenfassen von Leerraum und dem Auflösen von Zeichenreferenzen (`Tom & Jerry`); ein zurückgehaltenes Literal wird als unterdrückt gemeldet.
 - **`unused.ignore`** nimmt exakte Keys oder `*`-Muster für Keys, die nur außerhalb des gescannten Quellcodes verwendet werden, abgeglichen mit dem dekodierten Key, den der Bericht zeigt (`Welcome. Enjoy`); ein Treffer wird als ignoriert gemeldet.
@@ -349,7 +349,7 @@ Diese Regeln lassen sich in JSON Schema nicht ausdrücken, deshalb prüft sie nu
 
 ## Das Arbeitsverzeichnis und .env
 
-Das Arbeitsverzeichnis (wo du verbatra ausführst, oder `--cwd`) ist der Startpunkt der Konfigurationssuche; welche Befehle `.env.local` und `.env` von dort laden, steht unter [Umgebungsdateien](/docs/cli#umgebungsdateien). Die Projektwurzel ist das Verzeichnis der Konfigurationsdatei, die die Suche gefunden hat: Locale-Pfade, `verbatra.lock.json`, der Cache, die Provenienzdatei und `.verbatra-local/` werden gegen sie aufgelöst, sodass ein Lauf aus einem Unterverzeichnis mit denselben Dateien arbeitet wie ein Lauf neben der Konfiguration. Mit `--config` ist das Arbeitsverzeichnis die Wurzel. Ein relativer Pfad, den du selbst übergibst, etwa bei `--out` oder `check --file`, wird gegen das Arbeitsverzeichnis aufgelöst.
+Das Arbeitsverzeichnis (wo du verbatra ausführst, oder `--cwd`) ist der Startpunkt der Konfigurationssuche; welche Befehle `.env.local` und `.env` von dort laden, steht unter [Umgebungsdateien](/docs/cli#umgebungsdateien). Die Projektwurzel ist das Verzeichnis der Konfigurationsdatei, die die Suche gefunden hat: Locale-Pfade, `verbatra.lock.json`, der Cache, die Provenienzdatei und `.verbatra-local/` werden gegen sie aufgelöst, sodass ein Lauf aus einem Unterverzeichnis mit denselben Dateien arbeitet wie ein Lauf neben der Konfiguration. Mit `--config` ist das Arbeitsverzeichnis die Wurzel, und eine Konfigurationsdatei an anderer Stelle bekommt einen Hinweis auf stderr, weil ihr Glossarpfad weiter gegen ihr eigenes Verzeichnis aufgelöst wird. Ein relativer Pfad, den du selbst übergibst, etwa bei `--out` oder `check --file`, wird gegen das Arbeitsverzeichnis aufgelöst.
 
 ## Wenn das Laden fehlschlägt
 

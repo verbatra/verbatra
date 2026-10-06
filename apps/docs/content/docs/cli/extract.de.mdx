@@ -95,7 +95,7 @@ Mit `--json` trägt der [Envelope](/docs/cli/output#json-ausgabe) ein Ergebnis:
 
 ```ts
 interface ExtractResult {
-  sourcePath: string;          // the source locale file, relative to the working directory
+  sourcePath: string;          // the source locale file, relative to the project root
   scannedFiles: number;
   added: { key: string; value: string; file: string; line: number }[];
   existingKeys: number;        // keys found that were already in the catalog

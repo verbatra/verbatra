@@ -33,9 +33,9 @@ Also takes the [global flags](/docs/cli#global-flags) `--cwd` and `--config`. It
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-When `--cwd` is absent and `CLAUDE_PROJECT_DIR` names an existing directory, the server uses it as the project root. Claude Code sets that variable for every stdio server it spawns. An explicit `--cwd` always wins. `verbatra mcp` then loads the [environment files](/docs/cli#environment-files) from that directory; a `CLAUDE_PROJECT_DIR` set only in those files is ignored, because the root is resolved first.
+When `--cwd` is absent and `CLAUDE_PROJECT_DIR` names an existing directory, the server uses it as the project directory. Claude Code sets that variable for every stdio server it spawns. An explicit `--cwd` always wins. `verbatra mcp` then loads the [environment files](/docs/cli#environment-files) from that directory; a `CLAUDE_PROJECT_DIR` set only in those files is ignored, because the project directory is resolved first.
 
-The config search starts there, and a config found in a parent directory roots the tools' paths at its own directory, so a server started in a subdirectory still works on the project's files.
+The config search starts there, and the directory of the config it finds is the [project root](/docs/config-file#the-working-directory-and-env) every tool path resolves against, so a server started in a subdirectory still works on the project's files.
 
 ### Spend tools
 

@@ -72,7 +72,7 @@ Las claves desconocidas se rechazan en todos los niveles salvo `$schema`, y por 
 
 ### Locales y archivos
 
-- **`files.pattern`** debe contener `{locale}`, el único token que entiende: `locales/{locale}.json` se resuelve a `locales/de.json`, contra el directorio de trabajo. Es una ruta literal, nunca un glob, así que una configuración direcciona un archivo por locale; para varios archivos de namespace consulta [Diseños con namespaces](/docs/formats#diseños-con-namespaces). `apple-xcstrings` sigue necesitando el token, pero todos los locales se resuelven al mismo catálogo ([Xcode String Catalogs](/docs/formats#xcode-string-catalogs-xcstrings)).
+- **`files.pattern`** debe contener `{locale}`, el único token que entiende: `locales/{locale}.json` se resuelve a `locales/de.json`, contra la raíz del proyecto. Es una ruta literal, nunca un glob, así que una configuración direcciona un archivo por locale; para varios archivos de namespace consulta [Diseños con namespaces](/docs/formats#diseños-con-namespaces). `apple-xcstrings` sigue necesitando el token, pero todos los locales se resuelven al mismo catálogo ([Xcode String Catalogs](/docs/formats#xcode-string-catalogs-xcstrings)).
 - **`files.localeStyle`** decide en qué se expande el token:
   - `literal` escribe la etiqueta tal como está configurada, que es lo que necesitan los diseños JSON, YAML, XLIFF, ARB, properties y `.lproj` de Apple.
   - `posix` reemplaza `-` por `_`, para gettext y el diseño Java `messages_{locale}.properties`: `pt-BR` pasa a `pt_BR`, `zh-Hant-TW` a `zh_Hant_TW`. Una variante como `de-1996` no tiene escritura posix. `gettext-po` escribe los scripts a la manera de gettext (siguiente sección).
@@ -266,7 +266,7 @@ extract: {
 ```
 
 - **`framework`** es un conjunto cerrado ([formas de llamada](/docs/cli/extract#qué-encuentra)); un framework sin extractor se rechaza.
-- **`roots`** se resuelven contra el directorio de trabajo; nunca se lee nada fuera de ellas.
+- **`roots`** se resuelven contra la raíz del proyecto; nunca se lee nada fuera de ellas.
 - **`exclude`** añade nombres de directorio (no rutas), que coinciden en cualquier punto bajo una raíz, al [conjunto que siempre se omite](/docs/cli/extract#límites-del-análisis).
 - **`literals.ignore`** coincide con el texto completo de un literal con los espacios reducidos y las referencias de caracteres decodificadas (`Tom & Jerry`); un literal retenido se notifica como suprimido.
 - **`unused.ignore`** acepta claves exactas o patrones `*` para claves usadas solo fuera del código analizado, comparados con la clave decodificada que muestra el informe (`Welcome. Enjoy`); una coincidencia se notifica como ignorada.
@@ -349,7 +349,7 @@ Estas reglas no tienen expresión en JSON Schema, así que solo las comprueba la
 
 ## El directorio de trabajo y .env
 
-El directorio de trabajo (donde ejecutas verbatra, o `--cwd`) es donde empieza la búsqueda de configuración; qué comandos cargan `.env.local` y `.env` desde él está en [Archivos de entorno](/docs/cli#archivos-de-entorno). La raíz del proyecto es el directorio del archivo de configuración que encontró la búsqueda: las rutas de locale, `verbatra.lock.json`, la caché, el archivo de procedencia y `.verbatra-local/` se resuelven contra ella, así que una ejecución iniciada en un subdirectorio trabaja con los mismos archivos que una junto a la configuración. Con `--config`, el directorio de trabajo es la raíz. Una ruta relativa que pasas tú, como `--out` o `check --file`, se resuelve contra el directorio de trabajo.
+El directorio de trabajo (donde ejecutas verbatra, o `--cwd`) es donde empieza la búsqueda de configuración; qué comandos cargan `.env.local` y `.env` desde él está en [Archivos de entorno](/docs/cli#archivos-de-entorno). La raíz del proyecto es el directorio del archivo de configuración que encontró la búsqueda: las rutas de locale, `verbatra.lock.json`, la caché, el archivo de procedencia y `.verbatra-local/` se resuelven contra ella, así que una ejecución iniciada en un subdirectorio trabaja con los mismos archivos que una junto a la configuración. Con `--config`, el directorio de trabajo es la raíz, y un archivo de configuración en otro lugar recibe un aviso en stderr, porque la ruta de su glosario se sigue resolviendo contra su propio directorio. Una ruta relativa que pasas tú, como `--out` o `check --file`, se resuelve contra el directorio de trabajo.
 
 ## Cuando la carga falla
 
