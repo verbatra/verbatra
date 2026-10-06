@@ -27,6 +27,7 @@ import {
   isDirectoryEntry,
   isRegularFile,
   LINK_OUTSIDE_PROJECT,
+  readPlainProjectFile,
   resolvesToFile,
   symlinkOnPath,
 } from "./project-paths.js";
@@ -71,6 +72,7 @@ export interface AgentScaffoldPlan {
   readonly clients: readonly PlannedClient[];
   readonly pluginSetting: string | undefined;
   readonly vscodeHint: boolean;
+  readonly geminiContextHint: boolean;
 }
 
 interface Merged {
@@ -461,10 +463,39 @@ export function planAgentScaffold(
   const selection = selectClients(cwd, flagged);
   const wiresClaude = selection.clients.some((client) => client.id === "claude");
   const pluginSetting = wiresClaude ? verbatraPluginSetting(cwd) : undefined;
+  const clients = selection.clients.map((client) => planClient(cwd, client, pluginSetting));
   return {
     instructions: { path: target.path, ...instructions },
-    clients: selection.clients.map((client) => planClient(cwd, client, pluginSetting)),
+    clients,
     pluginSetting,
     vscodeHint: selection.vscodeHint,
+    geminiContextHint: geminiMissesInstructions(cwd, clients, target.path),
   };
+}
+
+const GEMINI_CONTEXT_FILE = "GEMINI.md";
+
+function namesContextFile(settings: string, file: string): boolean {
+  const parsed: unknown = JSON.parse(settings);
+  const context = isJsonObject(parsed) ? parsed.context : undefined;
+  const fileName = isJsonObject(context) ? context.fileName : undefined;
+  return Array.isArray(fileName) ? fileName.includes(file) : fileName === file;
+}
+
+function importsInstructions(cwd: string, file: string): boolean {
+  const content = readPlainProjectFile(cwd, GEMINI_CONTEXT_FILE) ?? "";
+  return new RegExp(`^\\s*@(\\./)?${file.replace(".", "\\.")}\\s*$`, "m").test(content);
+}
+
+function geminiMissesInstructions(
+  cwd: string,
+  clients: readonly PlannedClient[],
+  instructionsPath: string,
+): boolean {
+  const settings = clients.find((client) => client.id === "gemini")?.write?.content;
+  return (
+    settings !== undefined &&
+    !namesContextFile(settings, instructionsPath) &&
+    !importsInstructions(cwd, instructionsPath)
+  );
 }

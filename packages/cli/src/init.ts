@@ -489,6 +489,13 @@ function symlinkStep(client: PlannedClient): NextStep {
   };
 }
 
+function geminiContextStep(instructions: string): NextStep {
+  return {
+    description: `Gemini CLI loads GEMINI.md, not ${instructions}, so it does not see the verbatra section. Set "context": { "fileName": ["${instructions}", "GEMINI.md"] } in .gemini/settings.json, or add the line @${instructions} to GEMINI.md.`,
+    command: null,
+  };
+}
+
 function clientStep(client: PlannedClient, agent: AgentScaffoldPlan): readonly NextStep[] {
   if (client.server === "differs") {
     return [differsStep(client)];
@@ -510,6 +517,9 @@ function agentSteps(agent: AgentScaffoldPlan | undefined, suffix: string): reado
         "This project has a .vscode folder but no .vscode/mcp.json, so init did not wire VS Code. Run this to add it.",
       command: `npx verbatra init --agent --client vscode${suffix}`,
     });
+  }
+  if (agent.geminiContextHint) {
+    steps.push(geminiContextStep(agent.instructions.path));
   }
   return steps;
 }

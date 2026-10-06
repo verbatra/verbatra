@@ -469,6 +469,61 @@ describe("init --agent for Codex: the TOML fixture matrix", () => {
   });
 });
 
+describe("init --agent for Gemini CLI: the instruction file it reads", () => {
+  beforeEach(() => {
+    put("verbatra.config.ts", CONFIG);
+  });
+
+  const contextSteps = async (opts: Record<string, unknown> = { client: "gemini" }) =>
+    (await initJson(opts)).nextSteps.filter((step) => step.description.includes("GEMINI.md"));
+
+  it("tells how to make Gemini CLI read AGENTS.md, writing no GEMINI.md", async () => {
+    expect(await contextSteps()).toEqual([
+      {
+        description:
+          'Gemini CLI loads GEMINI.md, not AGENTS.md, so it does not see the verbatra section. Set "context": { "fileName": ["AGENTS.md", "GEMINI.md"] } in .gemini/settings.json, or add the line @AGENTS.md to GEMINI.md.',
+        command: null,
+      },
+    ]);
+    expect(existsSync(join(dir, "GEMINI.md"))).toBe(false);
+  });
+
+  it("names CLAUDE.md when that is the instruction file", async () => {
+    put("CLAUDE.md", "# rules\n");
+    const [step] = await contextSteps();
+    expect(step?.description).toContain('"fileName": ["CLAUDE.md", "GEMINI.md"]');
+    expect(step?.description).toContain("@CLAUDE.md");
+  });
+
+  it.each([
+    ["a fileName list", { context: { fileName: ["AGENTS.md", "GEMINI.md"] } }],
+    ["a single fileName", { context: { fileName: "AGENTS.md" } }],
+  ])("stays quiet when the settings already load AGENTS.md through %s", async (_label, value) => {
+    put(".gemini/settings.json", `${JSON.stringify(value, null, 2)}\n`);
+    expect(await contextSteps()).toEqual([]);
+  });
+
+  it.each(["@AGENTS.md", "  @./AGENTS.md  "])(
+    "stays quiet when GEMINI.md imports the instruction file with %j",
+    async (line) => {
+      put("GEMINI.md", `# Gemini\n${line}\n`);
+      expect(await contextSteps({})).toEqual([]);
+    },
+  );
+
+  it.each([
+    ["other context settings", { context: { fileName: "GEMINI.md" }, ui: {} }],
+    ["a context that is not an object", { context: "AGENTS.md" }],
+  ])("still tells it beside %s", async (_label, value) => {
+    put(".gemini/settings.json", `${JSON.stringify(value)}\n`);
+    expect(await contextSteps()).toHaveLength(1);
+  });
+
+  it("says nothing about Gemini CLI when it is not wired", async () => {
+    expect(await contextSteps({ client: "codex" })).toEqual([]);
+  });
+});
+
 describe("init --agent: which clients it wires", () => {
   beforeEach(() => {
     put("verbatra.config.ts", CONFIG);
