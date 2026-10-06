@@ -56,11 +56,11 @@ Un échec ne portait aucun code propre (le code de repli).
 
 ### INIT_UNWRITABLE
 
-`init` n'a pas pu écrire un fichier dans son répertoire, par exemple parce qu'il est en lecture seule ; le message nomme le fichier, le code du système de fichiers et les fichiers déjà écrits.
+`init` n'a pas pu écrire un fichier dans son répertoire, par exemple parce qu'il est en lecture seule ou qu'un fichier qu'il écrit est un lien symbolique qui ne se résout pas dans le projet ; le message nomme le fichier, la cause et les fichiers déjà écrits.
 
 - **Levé par** : `init`
 - **Code de sortie** : `2`
-- **Étape suivante** : Make the directory writable, then run `verbatra init` again.
+- **Étape suivante** : Make the directory writable, or replace the symbolic link the message names with a plain file, then run `verbatra init` again.
 
 ### INVALID_CONCURRENCY
 

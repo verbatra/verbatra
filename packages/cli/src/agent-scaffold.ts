@@ -12,12 +12,19 @@ import {
 } from "./agent-clients.js";
 import { AGENT_INSTRUCTIONS } from "./agent-instructions.js";
 import { CliUsageError } from "./cli-usage-error.js";
-import { appendMember, memberValueSpan, rootObjectSpan } from "./json-text.js";
+import {
+  appendMember,
+  memberValueSpan,
+  objectMembers,
+  repeatedKey,
+  rootObjectSpan,
+} from "./json-text.js";
 import {
   entryExists,
   escapesProject,
   isDirectoryEntry,
   isRegularFile,
+  LINK_OUTSIDE_PROJECT,
   resolvesToFile,
   symlinkOnPath,
 } from "./project-paths.js";
@@ -43,11 +50,14 @@ export interface PlannedClientWrite extends PlannedAgentFile {
   readonly server: McpServerState;
 }
 
+export type ClientSkipReason = "plugin" | "symlink";
+
 export interface PlannedClient {
   readonly id: AgentClientId;
   readonly file: string;
   readonly server: ClientServerState;
-  readonly reason: "plugin" | null;
+  readonly reason: ClientSkipReason | null;
+  readonly link: string | undefined;
   readonly selectedBy: ClientSelectedBy;
   readonly markers: readonly string[];
   readonly write: PlannedClientWrite | undefined;
@@ -151,7 +161,19 @@ function parseMcpConfig(client: AgentClientConfig, existing: string): JsonObject
       `has a value under ${client.serversKey} that is not an object`,
     );
   }
+  assertNoRepeatedKeys(client, existing);
   return parsed;
+}
+
+function assertNoRepeatedKeys(client: AgentClientConfig, existing: string): void {
+  const rootMembers = objectMembers(existing, rootObjectSpan(existing));
+  if (repeatedKey(rootMembers) !== undefined) {
+    throw invalidMcpConfig(client.file, "repeats a key at its top level");
+  }
+  const servers = rootMembers.find((member) => member.key === client.serversKey);
+  if (servers !== undefined && repeatedKey(objectMembers(existing, servers)) !== undefined) {
+    throw invalidMcpConfig(client.file, `repeats a server name under ${client.serversKey}`);
+  }
 }
 
 const DEFAULT_INDENT_UNIT = "  ";
@@ -226,23 +248,29 @@ export function mergeMcpConfig(client: AgentClientConfig, existing: string | und
   };
 }
 
-function unsafePath(file: string, reason: string): CliUsageError {
+function unsafeClientPath(file: string, reason: string): CliUsageError {
   return agentFileInvalid(
     `${file} ${reason}, so init will not write through it. Replace it with a plain file or directory inside the project, or wire the client by hand, and run init again. Nothing was written.`,
+  );
+}
+
+function unsafeInstructionPath(file: string, reason: string): CliUsageError {
+  return agentFileInvalid(
+    `${file} ${reason}, so init will not read or write through it. Replace it with a plain file inside the project and run init again. Nothing was written.`,
   );
 }
 
 function assertWritableClientFile(cwd: string, file: string): void {
   const link = symlinkOnPath(cwd, file);
   if (link !== undefined) {
-    throw unsafePath(file, `sits behind the symbolic link ${link}`);
+    throw unsafeClientPath(file, `sits behind the symbolic link ${link}`);
   }
   const directory = dirname(file);
   if (directory !== "." && entryExists(cwd, directory) && !isDirectoryEntry(cwd, directory)) {
-    throw unsafePath(file, `needs ${directory} to be a directory, but it is not`);
+    throw unsafeClientPath(file, `needs ${directory} to be a directory, but it is not`);
   }
   if (entryExists(cwd, file) && !isRegularFile(cwd, file)) {
-    throw unsafePath(file, "is not a regular file");
+    throw unsafeClientPath(file, "is not a regular file");
   }
 }
 
@@ -256,10 +284,10 @@ function readInstructionFile(cwd: string, file: string): string | undefined {
     return undefined;
   }
   if (escapesProject(cwd, file)) {
-    throw unsafePath(file, "is a symbolic link that leads outside the project");
+    throw unsafeInstructionPath(file, LINK_OUTSIDE_PROJECT);
   }
   if (!resolvesToFile(cwd, file)) {
-    throw unsafePath(file, "is not a regular file");
+    throw unsafeInstructionPath(file, "is not a regular file");
   }
   return readFileSync(resolve(cwd, file), "utf8");
 }
@@ -281,13 +309,18 @@ function planClient(
   const client = AGENT_CLIENT_CONFIGS[selected.id];
   const base = { ...selected, file: client.file };
   if (selected.id === "claude" && pluginSetting !== undefined) {
-    return { ...base, server: "skipped", reason: "plugin", write: undefined };
+    return { ...base, server: "skipped", reason: "plugin", link: undefined, write: undefined };
+  }
+  const link = selected.selectedBy === "flag" ? undefined : symlinkOnPath(cwd, client.file);
+  if (link !== undefined) {
+    return { ...base, server: "skipped", reason: "symlink", link, write: undefined };
   }
   const merged = mergeMcpConfig(client, readClientFile(cwd, client.file));
   return {
     ...base,
     server: merged.server,
     reason: null,
+    link: undefined,
     write: {
       path: client.file,
       action: merged.action,

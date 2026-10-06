@@ -1,5 +1,10 @@
 import { CliUsageError } from "./cli-usage-error.js";
-import { entryExists, readPlainProjectFile, resolvesToDirectory } from "./project-paths.js";
+import {
+  entryExists,
+  isDirectoryEntry,
+  isSymlinkEntry,
+  readPlainProjectFile,
+} from "./project-paths.js";
 
 /**
  * The coding-agent clients `verbatra init --agent` can wire, in the order it reports them:
@@ -135,7 +140,7 @@ export function parseClientFlag(
 
 function markerFound(cwd: string, marker: string): boolean {
   return marker.endsWith("/")
-    ? resolvesToDirectory(cwd, marker.slice(0, -1))
+    ? isDirectoryEntry(cwd, marker.slice(0, -1)) || isSymlinkEntry(cwd, marker.slice(0, -1))
     : entryExists(cwd, marker);
 }
 
@@ -166,7 +171,7 @@ export function selectClients(
 ): ClientSelection {
   const clients = pickClients(cwd, flagged);
   const vscodeHint =
-    resolvesToDirectory(cwd, ".vscode") && !clients.some((client) => client.id === "vscode");
+    isDirectoryEntry(cwd, ".vscode") && !clients.some((client) => client.id === "vscode");
   return { clients, vscodeHint };
 }
 

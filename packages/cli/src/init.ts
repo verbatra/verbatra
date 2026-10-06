@@ -1,5 +1,5 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, relative, resolve } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { relative, resolve } from "node:path";
 import process from "node:process";
 import {
   createLocalePathResolver,
@@ -14,6 +14,7 @@ import {
   type PlannedClient,
   planAgentScaffold,
 } from "./agent-scaffold.js";
+import type { CliErrorCode } from "./cli-error-codes.js";
 import { CliUsageError } from "./cli-usage-error.js";
 import { assertCwdDirectory } from "./cwd-option.js";
 import { planGitignore } from "./gitignore.js";
@@ -37,6 +38,7 @@ import {
   renderEnvExample,
 } from "./init-config.js";
 import { renderErrorEnvelope, renderSuccessEnvelope } from "./json-envelope.js";
+import { type LinkPolicy, linkRefusal, writeProjectFile } from "./project-paths.js";
 import { askLine, stdinIsTty } from "./prompt.js";
 import { toRenderableError } from "./render.js";
 import {
@@ -135,6 +137,7 @@ function planEnvExample(
   const path = resolve(cwd, ENV_EXAMPLE_FILE);
   const planned = (action: FileAction, content: string): PlannedWrite => ({
     path: ENV_EXAMPLE_FILE,
+    kind: "base",
     action,
     content,
     note: undefined,
@@ -158,10 +161,25 @@ interface WrittenFile {
   readonly action: FileAction;
 }
 
+type WriteKind = "base" | "instructions" | "client";
+
 interface PlannedWrite extends WrittenFile {
+  readonly kind: WriteKind;
   readonly content: string;
   readonly note: string | undefined;
 }
+
+const LINK_POLICY: Record<WriteKind, LinkPolicy> = {
+  base: "stay-inside",
+  instructions: "stay-inside",
+  client: "never-follow",
+};
+
+const LINK_REFUSAL_CODE: Record<WriteKind, CliErrorCode> = {
+  base: "INIT_UNWRITABLE",
+  instructions: "AGENT_FILE_INVALID",
+  client: "AGENT_FILE_INVALID",
+};
 
 interface Commit {
   readonly cwd: string;
@@ -187,17 +205,33 @@ function writing<T>(file: string, cwd: string, written: readonly WrittenFile[], 
     if (code === undefined) {
       throw error;
     }
-    const changed = written
-      .filter((entry) => entry.action !== "unchanged")
-      .map((entry) => entry.path);
-    const kept =
-      changed.length === 0
-        ? "Nothing was written."
-        : `${changed.join(" and ")} ${changed.length === 1 ? "was" : "were"} already written.`;
     throw new CliUsageError(
       "INIT_UNWRITABLE",
-      `init could not write ${file} in ${cwd} (${code}). ${kept} Make the directory writable, or pass --cwd <path> naming a writable one, and run init again.`,
+      `init could not write ${file} in ${cwd} (${code}). ${keptSentence(written)} Make the directory writable, or pass --cwd <path> naming a writable one, and run init again.`,
     );
+  }
+}
+
+function keptSentence(written: readonly WrittenFile[]): string {
+  const changed = written
+    .filter((entry) => entry.action !== "unchanged")
+    .map((entry) => entry.path);
+  return changed.length === 0
+    ? "Nothing was written."
+    : `${changed.join(" and ")} ${changed.length === 1 ? "was" : "were"} already written.`;
+}
+
+function linkedAway(code: CliErrorCode, file: string, reason: string, kept: string): CliUsageError {
+  return new CliUsageError(
+    code,
+    `${file} ${reason}, so init will not read or write through it. ${kept} Replace it with a plain file inside the project and run init again.`,
+  );
+}
+
+function assertBaseFileInside(cwd: string, file: string): void {
+  const refusal = linkRefusal(cwd, file, "stay-inside");
+  if (refusal !== undefined) {
+    throw linkedAway("INIT_UNWRITABLE", file, refusal, "Nothing was written.");
   }
 }
 
@@ -222,11 +256,15 @@ function reportLine(write: PlannedWrite, dryRun: boolean): string {
 
 function commitWrite(write: PlannedWrite, commit: Commit): void {
   if (!commit.dryRun && write.action !== "unchanged") {
-    writing(write.path, commit.cwd, commit.files, () => {
-      const path = resolve(commit.cwd, write.path);
-      mkdirSync(dirname(path), { recursive: true });
-      writeFileSync(path, write.content);
-    });
+    const policy = LINK_POLICY[write.kind];
+    const refusal = linkRefusal(commit.cwd, write.path, policy);
+    if (refusal !== undefined) {
+      const code = LINK_REFUSAL_CODE[write.kind];
+      throw linkedAway(code, write.path, refusal, keptSentence(commit.files));
+    }
+    writing(write.path, commit.cwd, commit.files, () =>
+      writeProjectFile(commit.cwd, write.path, write.content, policy),
+    );
   }
   commit.streams.out(reportLine(write, commit.dryRun));
   commit.files.push({ path: write.path, action: write.action });
@@ -257,30 +295,48 @@ function clientsLine(agent: AgentScaffoldPlan): string {
   return `agent clients: ${found.join(", ")}\n`;
 }
 
+function skipCause(client: PlannedClient, agent: AgentScaffoldPlan): string {
+  return client.reason === "symlink"
+    ? `${client.link} is a symbolic link, and init never writes through one`
+    : `the verbatra plugin enabled in ${agent.pluginSetting} brings its own server`;
+}
+
 function skippedLine(client: PlannedClient, agent: AgentScaffoldPlan, dryRun: boolean): string {
   const verb = dryRun ? "would skip" : "skipped";
-  return `${verb} ${client.file} (${clientName(client)}: the verbatra plugin enabled in ${agent.pluginSetting} brings its own server)\n`;
+  return `${verb} ${client.file} (${clientName(client)}: ${skipCause(client, agent)})\n`;
 }
 
 function commitAgent(agent: AgentScaffoldPlan, commit: Commit): void {
   commit.streams.out(clientsLine(agent));
-  commitWrite({ ...agent.instructions, note: "verbatra section for coding agents" }, commit);
+  commitWrite(
+    { ...agent.instructions, kind: "instructions", note: "verbatra section for coding agents" },
+    commit,
+  );
   for (const client of agent.clients) {
     if (client.write === undefined) {
       commit.streams.out(skippedLine(client, agent, commit.dryRun));
     } else {
       const { server, ...write } = client.write;
-      commitWrite({ ...write, note: `${clientName(client)}: ${MCP_SERVER_NOTE[server]}` }, commit);
+      const note = `${clientName(client)}: ${MCP_SERVER_NOTE[server]}`;
+      commitWrite({ ...write, kind: "client", note }, commit);
     }
   }
 }
 
 function baseWrites(plan: InitPlan, cwd: string, force: boolean): readonly PlannedWrite[] {
-  const content = renderConfig(plan.draft);
-  const writes: PlannedWrite[] = [
-    { path: CONFIG_FILE, action: configAction(cwd, content, force), content, note: undefined },
-  ];
   const envVar = keyEnvVarFor(plan.draft.provider);
+  for (const file of [
+    CONFIG_FILE,
+    ...(envVar === undefined ? [] : [ENV_EXAMPLE_FILE]),
+    ".gitignore",
+  ]) {
+    assertBaseFileInside(cwd, file);
+  }
+  const content = renderConfig(plan.draft);
+  const action = configAction(cwd, content, force);
+  const writes: PlannedWrite[] = [
+    { path: CONFIG_FILE, kind: "base", action, content, note: undefined },
+  ];
   if (envVar !== undefined) {
     writes.push(
       writing(ENV_EXAMPLE_FILE, cwd, [], () =>
@@ -288,7 +344,8 @@ function baseWrites(plan: InitPlan, cwd: string, force: boolean): readonly Plann
       ),
     );
   }
-  writes.push({ path: ".gitignore", ...writing(".gitignore", cwd, [], () => planGitignore(cwd)) });
+  const gitignore = writing(".gitignore", cwd, [], () => planGitignore(cwd));
+  writes.push({ path: ".gitignore", kind: "base", ...gitignore });
   return writes;
 }
 
@@ -369,11 +426,21 @@ function pluginStep(client: PlannedClient, setting: string | undefined): NextSte
   };
 }
 
+function symlinkStep(client: PlannedClient): NextStep {
+  return {
+    description: `init did not wire ${clientName(client)}: ${client.link} is a symbolic link, and init never writes through one. Add the entry from ${MCP_SETUP_DOCS}#${CLIENT_DOCS_ANCHOR[client.id]} to ${client.file} by hand, or replace the link with a plain directory or file and run init again.`,
+    command: null,
+  };
+}
+
 function clientStep(client: PlannedClient, agent: AgentScaffoldPlan): readonly NextStep[] {
   if (client.server === "differs") {
     return [differsStep(client)];
   }
-  return client.server === "skipped" ? [pluginStep(client, agent.pluginSetting)] : [];
+  if (client.reason === "symlink") {
+    return [symlinkStep(client)];
+  }
+  return client.reason === "plugin" ? [pluginStep(client, agent.pluginSetting)] : [];
 }
 
 function agentSteps(agent: AgentScaffoldPlan | undefined, suffix: string): readonly NextStep[] {

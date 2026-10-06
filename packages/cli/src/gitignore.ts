@@ -1,6 +1,5 @@
-import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import type { Streams } from "./types.js";
 
 const GITIGNORE_ENTRIES = [".env", ".env.local", ".verbatra-local/", "verbatra.cache.json"];
 
@@ -49,15 +48,6 @@ export function planGitignore(cwd: string): GitignorePlan {
     content: `${content}${appendedEntries(content, missing)}`,
     note: `added ${missing.join(", ")}`,
   };
-}
-
-export function ensureGitignore(cwd: string, streams: Streams): GitignoreAction {
-  const plan = planGitignore(cwd);
-  if (plan.action !== "unchanged") {
-    writeFileSync(resolve(cwd, ".gitignore"), plan.content);
-  }
-  streams.out(`${plan.action} .gitignore (${plan.note})\n`);
-  return plan.action;
 }
 
 export function appendMissingGitignoreEntries(cwd: string, dryRun = false): readonly string[] {

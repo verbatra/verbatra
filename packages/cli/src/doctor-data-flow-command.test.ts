@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type DoctorResult, dataFlowManifestSchema, doctor } from "@verbatra/sdk";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ensureGitignore } from "./gitignore.js";
+import { planGitignore } from "./gitignore.js";
 import { run } from "./run.js";
 import { captureStreams, parseEnvelope, recordingDeps } from "./test-support.js";
 
@@ -221,7 +221,7 @@ describe("run doctor --data-flow", () => {
 
   it("marks as gitignored by init exactly what init writes to .gitignore", async () => {
     await writeProject({ id: "none" });
-    ensureGitignore(projectDir, captureStreams().streams);
+    await writeFile(join(projectDir, ".gitignore"), planGitignore(projectDir).content);
     const ignored = new Set(
       (await readFile(join(projectDir, ".gitignore"), "utf8"))
         .split("\n")

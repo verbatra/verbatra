@@ -56,11 +56,11 @@ Un fallo no traía código propio (el código de reserva).
 
 ### INIT_UNWRITABLE
 
-`init` no pudo escribir un archivo en su directorio, por ejemplo porque es de solo lectura; el mensaje nombra el archivo, el código del sistema de archivos y los archivos ya escritos.
+`init` no pudo escribir un archivo en su directorio, por ejemplo porque es de solo lectura o porque un archivo que escribe es un enlace simbólico que no se resuelve dentro del proyecto; el mensaje nombra el archivo, la causa y los archivos ya escritos.
 
 - **Lo lanza**: `init`
 - **Código de salida**: `2`
-- **Siguiente paso**: Make the directory writable, then run `verbatra init` again.
+- **Siguiente paso**: Make the directory writable, or replace the symbolic link the message names with a plain file, then run `verbatra init` again.
 
 ### INVALID_CONCURRENCY
 

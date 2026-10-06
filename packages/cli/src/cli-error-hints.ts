@@ -8,7 +8,8 @@ export const CLI_ERROR_HINTS = {
     "Edit the existing config, or pass --force to replace verbatra.config.ts; remove any other config file the message names first.",
   CONFIG_INVALID: "Correct the init answers the message names, then run `verbatra init` again.",
   FORMAT_AMBIGUOUS: "Pass --format with one of the candidates.",
-  INIT_UNWRITABLE: "Make the directory writable, then run `verbatra init` again.",
+  INIT_UNWRITABLE:
+    "Make the directory writable, or replace the symbolic link the message names with a plain file, then run `verbatra init` again.",
   INVALID_CONCURRENCY: "Pass --concurrency as a whole number from 1 to 100.",
   INVALID_DEBOUNCE: "Pass --debounce as a whole number of milliseconds from 1 to 60000.",
   INVALID_DIRECTION:

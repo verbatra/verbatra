@@ -227,6 +227,27 @@ describe("init --agent per client: the fixture matrix", () => {
       );
     });
 
+    it.each([
+      [
+        "a repeated top-level key",
+        `{\n  "${key}": {},\n  "${key}": {}\n}\n`,
+        "repeats a key at its top level",
+      ],
+      [
+        "a repeated server name",
+        `{\n  "${key}": {\n    "verbatra": {},\n    "verbatra": ${JSON.stringify(client.server)}\n  }\n}\n`,
+        `repeats a server name under ${key}`,
+      ],
+    ])("refuses %s with zero writes in the whole run", async (_label, content, fragment) => {
+      rmSync(join(dir, "verbatra.config.ts"));
+      put(client.file, content);
+      await expectRefusal(
+        { client: "all", provider: "gemini", yes: true },
+        "AGENT_FILE_INVALID",
+        `${client.file} ${fragment}`,
+      );
+    });
+
     it("rewrites a one-line file it cannot splice, keeping its servers", async () => {
       put(client.file, `{"${key}":{"other":{"command":"x"}}}`);
       await initJson({ client: id });
@@ -343,6 +364,99 @@ describe("init --agent: which clients it wires", () => {
       "INVALID_OPTION",
       "needs --agent",
     );
+  });
+});
+
+describe("init: files linked out of the project", () => {
+  it.each([".gitignore", ".env.example", "verbatra.config.ts"])(
+    "refuses %s linked outside the project with INIT_UNWRITABLE, writing nothing",
+    async (name) => {
+      const outside = join(root, "outside-file");
+      writeFileSync(outside, "kept\n");
+      symlinkSync(outside, join(dir, name));
+      await expectRefusal(
+        { agent: undefined, provider: "gemini", yes: true },
+        "INIT_UNWRITABLE",
+        `${name} is a symbolic link that does not resolve inside the project`,
+      );
+      expect(readFileSync(outside, "utf8")).toBe("kept\n");
+    },
+  );
+
+  it("refuses a dangling .gitignore link instead of creating its target", async () => {
+    symlinkSync(join(root, "created-outside"), join(dir, ".gitignore"));
+    await expectRefusal(
+      { agent: undefined, provider: "none", yes: true },
+      "INIT_UNWRITABLE",
+      ".gitignore is a symbolic link",
+    );
+    expect(existsSync(join(root, "created-outside"))).toBe(false);
+  });
+
+  it("writes through a .gitignore linked to a file inside the project", async () => {
+    put("shared/ignore", "node_modules\n");
+    symlinkSync(join(dir, "shared/ignore"), join(dir, ".gitignore"));
+    await initJson({ agent: undefined, provider: "none", yes: true });
+    expect(read("shared/ignore")).toContain("verbatra.cache.json");
+  });
+});
+
+describe("init: a symbolic link introduced after planning", () => {
+  function hookedStreams(trigger: string, hook: () => void) {
+    let out = "";
+    let err = "";
+    return {
+      streams: {
+        out: (text: string) => {
+          out += text;
+          if (text.startsWith(trigger)) {
+            hook();
+          }
+        },
+        err: (text: string) => {
+          err += text;
+        },
+      },
+      out: () => out,
+      err: () => err,
+    };
+  }
+
+  it("refuses to write a client file through a directory linked after planning", async () => {
+    const outside = join(root, "outside");
+    mkdirSync(outside);
+    const cap = hookedStreams("agent clients:", () => {
+      symlinkSync(outside, join(dir, ".cursor"));
+    });
+    const code = await runInit(
+      { cwd: dir, agent: true, client: "cursor", provider: "none", yes: true },
+      cap.streams,
+      nonInteractive,
+    );
+    expect(code).toBe(2);
+    expect(cap.err()).toContain("AGENT_FILE_INVALID");
+    expect(cap.err()).toContain(".cursor/mcp.json sits behind the symbolic link .cursor");
+    expect(cap.err()).toContain(
+      "verbatra.config.ts and .gitignore and AGENTS.md were already written",
+    );
+    expect(readdirSync(outside)).toEqual([]);
+  });
+
+  it("refuses to write a base file linked out of the project after planning", async () => {
+    const outside = join(root, "outside-ignore");
+    writeFileSync(outside, "kept\n");
+    const cap = hookedStreams("created verbatra.config.ts", () => {
+      symlinkSync(outside, join(dir, ".gitignore"));
+    });
+    const code = await runInit(
+      { cwd: dir, provider: "none", yes: true },
+      cap.streams,
+      nonInteractive,
+    );
+    expect(code).toBe(2);
+    expect(cap.err()).toContain("INIT_UNWRITABLE");
+    expect(cap.err()).toContain("verbatra.config.ts was already written");
+    expect(readFileSync(outside, "utf8")).toBe("kept\n");
   });
 });
 
@@ -527,25 +641,55 @@ describe("init --agent: path safety", () => {
     put("verbatra.config.ts", CONFIG);
   });
 
-  it("refuses a client directory that is a symbolic link out of the project", async () => {
+  it("skips a detected client whose directory is a symbolic link, with a next step", async () => {
     const outside = join(root, "outside");
     mkdirSync(outside);
     symlinkSync(outside, join(dir, ".cursor"));
-    await expectRefusal({}, "AGENT_FILE_INVALID", "behind the symbolic link .cursor");
+    const result = await initJson();
+    expect(result.agent.clients).toEqual([
+      {
+        id: "cursor",
+        file: ".cursor/mcp.json",
+        server: "skipped",
+        reason: "symlink",
+        selectedBy: "markers",
+        markers: [".cursor/"],
+      },
+    ]);
+    expect(result.files.map((file) => file.path)).toEqual(["verbatra.config.ts", "AGENTS.md"]);
+    expect(result.nextSteps[0]?.description).toContain(
+      "init did not wire Cursor: .cursor is a symbolic link",
+    );
     expect(readdirSync(outside)).toEqual([]);
   });
 
-  it("refuses a client file that is a symbolic link, even inside the project", async () => {
+  it("says it skipped a symlinked client in human output", async () => {
     put("real.json", "{}\n");
     symlinkSync(join(dir, "real.json"), join(dir, ".mcp.json"));
-    await expectRefusal({}, "AGENT_FILE_INVALID", "behind the symbolic link .mcp.json");
+    const { code, cap } = await init({});
+    expect(code).toBe(0);
+    expect(cap.out()).toContain(
+      "skipped .mcp.json (Claude Code: .mcp.json is a symbolic link, and init never writes through one)",
+    );
+    expect(read("real.json")).toBe("{}\n");
   });
 
-  it("refuses a dangling symbolic link at a client file", async () => {
-    mkdirSync(join(dir, ".vscode"));
-    symlinkSync(join(root, "missing.json"), join(dir, ".vscode/mcp.json"));
-    await expectRefusal({}, "AGENT_FILE_INVALID", "symbolic link .vscode/mcp.json");
-    expect(existsSync(join(root, "missing.json"))).toBe(false);
+  it.each([
+    ["a client directory linked out of the project", "cursor", ".cursor", "dir"],
+    ["a client file linked inside the project", "claude", ".mcp.json", "file"],
+    ["a dangling link at a client file", "vscode", ".vscode/mcp.json", "missing"],
+  ])("refuses %s when --client names it", async (_label, client, link, kind) => {
+    const target = join(root, kind === "dir" ? "outside" : "target.json");
+    if (kind === "dir") {
+      mkdirSync(target);
+    } else if (kind === "file") {
+      writeFileSync(target, "{}\n");
+    }
+    mkdirSync(dirname(join(dir, link)), { recursive: true });
+    symlinkSync(target, join(dir, link));
+    await expectRefusal({ client }, "AGENT_FILE_INVALID", `behind the symbolic link ${link}`);
+    const envelope = await init({ json: true, client });
+    expect(parseEnvelope(envelope.cap.out()).message).toContain("or wire the client by hand");
   });
 
   it("refuses a client directory that is a file", async () => {
@@ -562,23 +706,29 @@ describe("init --agent: path safety", () => {
     await expectRefusal({}, "AGENT_FILE_INVALID", ".vscode/mcp.json is not a regular file");
   });
 
-  it("refuses an instruction file that links outside the project", async () => {
+  it.each([
+    ["links outside the project", "outside"],
+    ["is a dangling link", "missing"],
+  ])("refuses an instruction file that %s, without a client hint", async (_label, kind) => {
     const outside = join(root, "AGENTS.md");
-    writeFileSync(outside, "# outside\n");
+    if (kind === "outside") {
+      writeFileSync(outside, "# outside\n");
+    }
     symlinkSync(outside, join(dir, "AGENTS.md"));
-    await expectRefusal({}, "AGENT_FILE_INVALID", "leads outside the project");
-    expect(readFileSync(outside, "utf8")).toBe("# outside\n");
+    const envelope = await expectRefusal(
+      {},
+      "AGENT_FILE_INVALID",
+      "AGENTS.md is a symbolic link that does not resolve inside the project",
+    );
+    expect(envelope.message).not.toContain("wire the client");
+    expect(existsSync(outside) ? readFileSync(outside, "utf8") : undefined).toBe(
+      kind === "outside" ? "# outside\n" : undefined,
+    );
   });
 
   it("refuses an instruction file that is a directory", async () => {
     mkdirSync(join(dir, "AGENTS.md"));
     await expectRefusal({}, "AGENT_FILE_INVALID", "AGENTS.md is not a regular file");
-  });
-
-  it("refuses a dangling symbolic link as the instruction file", async () => {
-    symlinkSync(join(root, "missing.md"), join(dir, "AGENTS.md"));
-    await expectRefusal({}, "AGENT_FILE_INVALID", "AGENTS.md is not a regular file");
-    expect(existsSync(join(root, "missing.md"))).toBe(false);
   });
 
   it.runIf(canDropReadAccess)("ignores a settings file it cannot read", async () => {

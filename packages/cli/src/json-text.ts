@@ -64,7 +64,12 @@ export function rootObjectSpan(text: string): JsonSpan {
   return { start, end: containerEnd(text, start) };
 }
 
-export function memberValueSpan(text: string, object: JsonSpan, key: string): JsonSpan | undefined {
+export interface JsonMember extends JsonSpan {
+  readonly key: string;
+}
+
+export function objectMembers(text: string, object: JsonSpan): readonly JsonMember[] {
+  const members: JsonMember[] = [];
   let index = object.start + 1;
   while (index < object.end - 1) {
     index = skipWhitespace(text, index);
@@ -73,18 +78,31 @@ export function memberValueSpan(text: string, object: JsonSpan, key: string): Js
       continue;
     }
     if (text.charAt(index) !== '"') {
-      return undefined;
+      break;
     }
     const keyEnd = stringEnd(text, index);
-    const name: unknown = JSON.parse(text.slice(index, keyEnd));
+    const key = String(JSON.parse(text.slice(index, keyEnd)));
     const start = skipWhitespace(text, skipWhitespace(text, keyEnd) + 1);
     const end = valueEnd(text, start);
-    if (name === key) {
-      return { start, end };
-    }
+    members.push({ key, start, end });
     index = end;
   }
-  return undefined;
+  return members;
+}
+
+export function memberValueSpan(text: string, object: JsonSpan, key: string): JsonSpan | undefined {
+  return objectMembers(text, object).find((member) => member.key === key);
+}
+
+export function repeatedKey(members: readonly JsonMember[]): string | undefined {
+  const seen = new Set<string>();
+  return members.find(({ key }) => {
+    if (seen.has(key)) {
+      return true;
+    }
+    seen.add(key);
+    return false;
+  })?.key;
 }
 
 function lineIndent(

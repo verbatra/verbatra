@@ -56,11 +56,11 @@ A failure carried no code of its own (the fallback).
 
 ### INIT_UNWRITABLE
 
-`init` could not write a file into its directory, for example because it is read-only; the message names the file, the file-system code, and the files already written.
+`init` could not write a file into its directory, for example because it is read-only, or a file it writes is a symbolic link that does not resolve inside the project; the message names the file, the cause, and the files already written.
 
 - **Raised by**: `init`
 - **Exit code**: `2`
-- **Next step**: Make the directory writable, then run `verbatra init` again.
+- **Next step**: Make the directory writable, or replace the symbolic link the message names with a plain file, then run `verbatra init` again.
 
 ### INVALID_CONCURRENCY
 
