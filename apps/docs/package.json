@@ -18,16 +18,16 @@
     "contributors": "node --experimental-strip-types scripts/refresh-contributors.mjs"
   },
   "dependencies": {
-    "@arcjet/next": "1.13.0",
+    "@arcjet/next": "1.14.0",
     "@icons-pack/react-simple-icons": "13.15.1",
     "cn": "0.2.6",
-    "fumadocs-core": "16.15.14",
-    "fumadocs-mdx": "15.4.5",
+    "fumadocs-core": "16.15.18",
+    "fumadocs-mdx": "15.4.6",
     "fumadocs-typescript": "5.4.1",
-    "fumadocs-ui": "16.15.14",
-    "next": "16.3.6",
-    "next-intl": "4.14.7",
-    "nodemailer": "10.0.10",
+    "fumadocs-ui": "16.15.18",
+    "next": "16.3.8",
+    "next-intl": "4.14.9",
+    "nodemailer": "10.0.13",
     "react": "catalog:",
     "react-dom": "catalog:",
     "zod": "catalog:"
@@ -44,7 +44,7 @@
     "@verbatra/studio": "workspace:*",
     "jsdom": "30.1.1",
     "playwright": "catalog:",
-    "sharp": "0.35.4",
+    "sharp": "0.35.5",
     "tailwindcss": "4.3.3",
     "typescript": "catalog:",
     "vitest": "catalog:"
