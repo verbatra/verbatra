@@ -108,7 +108,7 @@ function keylessEnv() {
 const TYPELESS_WARNING = "MODULE_TYPELESS_PACKAGE_JSON";
 
 function spawnScript(project, file) {
-  const result = spawnSync(process.execPath, ["--experimental-strip-types", file], {
+  const result = spawnSync(process.execPath, [file], {
     cwd: project,
     encoding: "utf8",
     env: keylessEnv(),

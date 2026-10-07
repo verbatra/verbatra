@@ -4,18 +4,18 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node scripts/sync-version.mjs && node --experimental-strip-types scripts/sync-translation-freshness.mjs && next dev",
-    "build": "node scripts/sync-version.mjs && node --experimental-strip-types scripts/sync-translation-freshness.mjs && next build && node scripts/write-csp-hashes.mjs",
+    "dev": "node scripts/sync-version.mjs && node scripts/sync-translation-freshness.mjs && next dev",
+    "build": "node scripts/sync-version.mjs && node scripts/sync-translation-freshness.mjs && next build && node scripts/write-csp-hashes.mjs",
     "start": "next start",
-    "typecheck": "node scripts/sync-version.mjs && node --experimental-strip-types scripts/sync-translation-freshness.mjs && next typegen && tsc --noEmit",
-    "test": "node scripts/sync-version.mjs && node --experimental-strip-types scripts/sync-translation-freshness.mjs && vitest run",
-    "docs:budget": "node --experimental-strip-types scripts/docs-budget.mjs",
+    "typecheck": "node scripts/sync-version.mjs && node scripts/sync-translation-freshness.mjs && next typegen && tsc --noEmit",
+    "test": "node scripts/sync-version.mjs && node scripts/sync-translation-freshness.mjs && vitest run",
+    "docs:budget": "node scripts/docs-budget.mjs",
     "postinstall": "fumadocs-mdx",
     "i18n": "verbatra translate",
     "studio": "verbatra studio",
     "screenshots": "node scripts/capture-studio.mjs",
     "csp:smoke": "node scripts/csp-smoke.mjs",
-    "contributors": "node --experimental-strip-types scripts/refresh-contributors.mjs"
+    "contributors": "node scripts/refresh-contributors.mjs"
   },
   "dependencies": {
     "@arcjet/next": "1.14.0",
