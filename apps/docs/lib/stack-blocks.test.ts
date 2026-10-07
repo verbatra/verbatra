@@ -3,7 +3,7 @@ import {
   expandStackBlocks,
   remarkStackBlocks,
   type StackMdxNode,
-  SUPPORTED_FORMATS,
+  supportedFormatIds,
   titleMeta,
 } from "./stack-blocks";
 import {
@@ -164,9 +164,9 @@ describe("InitCommand", () => {
   });
 
   it("reads the supported format ids from the published config schema", () => {
-    expect(SUPPORTED_FORMATS).toContain("android-xml");
-    expect(SUPPORTED_FORMATS).toContain("arb");
-    expect(SUPPORTED_FORMATS).not.toContain("custom:anything");
+    expect(supportedFormatIds()).toContain("android-xml");
+    expect(supportedFormatIds()).toContain("arb");
+    expect(supportedFormatIds()).not.toContain("custom:anything");
   });
 });
 

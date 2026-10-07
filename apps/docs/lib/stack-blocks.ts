@@ -1,4 +1,5 @@
-import configSchema from "@verbatra/sdk/config-schema.json" with { type: "json" };
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import {
   CODE_TEXT_FIELDS,
   initCommand,
@@ -20,9 +21,18 @@ export const INIT_COMMAND_COMPONENT = "InitCommand";
 
 type FormatSchema = { properties: { format: { anyOf: readonly { enum?: readonly string[] }[] } } };
 
-export const SUPPORTED_FORMATS: readonly string[] = (
-  configSchema as FormatSchema
-).properties.format.anyOf.flatMap((variant) => variant.enum ?? []);
+const CONFIG_SCHEMA = "@verbatra/sdk/config-schema.json";
+
+let supportedFormats: readonly string[] | undefined;
+
+export function supportedFormatIds(): readonly string[] {
+  if (supportedFormats === undefined) {
+    const path = createRequire(import.meta.url).resolve(CONFIG_SCHEMA);
+    const schema = JSON.parse(readFileSync(path, "utf8")) as FormatSchema;
+    supportedFormats = schema.properties.format.anyOf.flatMap((variant) => variant.enum ?? []);
+  }
+  return supportedFormats;
+}
 
 type MdxAttribute = { type: string; name?: string; value?: unknown };
 
@@ -126,10 +136,9 @@ function expandChildren(stack: Stack, node: StackMdxNode): void {
 
 function initCommandNode(node: StackMdxNode): StackMdxNode {
   const format = attribute(node, "format");
-  if (format === undefined || !SUPPORTED_FORMATS.includes(format)) {
-    throw new Error(
-      `<${INIT_COMMAND_COMPONENT}> needs a format id from ${SUPPORTED_FORMATS.join(", ")}`,
-    );
+  const formats = supportedFormatIds();
+  if (format === undefined || !formats.includes(format)) {
+    throw new Error(`<${INIT_COMMAND_COMPONENT}> needs a format id from ${formats.join(", ")}`);
   }
   return { type: "code", lang: "bash", meta: null, value: initCommand(format) };
 }
