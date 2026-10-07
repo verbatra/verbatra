@@ -10,6 +10,7 @@ Runtime dependency updates that reach consumers of the published packages.
 - `@anthropic-ai/sdk` 0.127.0 -> 0.131.0
 - `@formatjs/icu-messageformat-parser` 3.5.19 -> 3.5.21
 - `@google/genai` 2.23.0 -> 2.27.0
+- `cosmiconfig` 9.0.2 -> 10.0.1
 - `openai` 7.19.0 -> 7.28.0
 
 **Transitive security fixes in your own lockfile**

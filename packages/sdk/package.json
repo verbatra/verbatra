@@ -84,7 +84,7 @@
     "@google/genai": "catalog:bundled",
     "@xmldom/xmldom": "catalog:bundled",
     "chokidar": "catalog:",
-    "cosmiconfig": "9.0.2",
+    "cosmiconfig": "10.0.1",
     "cosmiconfig-typescript-loader": "6.3.0",
     "deepl-node": "catalog:bundled",
     "exceljs": "catalog:bundled",

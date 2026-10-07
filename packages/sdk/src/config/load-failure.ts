@@ -2,6 +2,7 @@ import { SdkError } from "../errors.js";
 import { redact } from "../redact.js";
 
 const TYPESCRIPT_LOADER_PREFIX = /^TypeScriptLoader failed to compile TypeScript:\s*/;
+const JSON_LOADER_PREFIX = /^JSON Error in /;
 
 interface LoaderError {
   readonly name?: unknown;
@@ -24,10 +25,19 @@ function firstLine(message: unknown): string {
   return line.replace(/\.$/, "");
 }
 
+function isJsonFailure(error: LoaderError): boolean {
+  return (
+    error.name === "SyntaxError" &&
+    typeof error.message === "string" &&
+    JSON_LOADER_PREFIX.test(error.message)
+  );
+}
+
 function describeCause(error: LoaderError): string {
+  if (isJsonFailure(error)) {
+    return "the file is not valid JSON";
+  }
   switch (error.name) {
-    case "JSONError":
-      return "the file is not valid JSON";
     case "YAMLException":
       return `the file is not valid YAML${yamlPosition(error.mark)}`;
     case "SyntaxError":

@@ -524,11 +524,11 @@ importers:
         specifier: 'catalog:'
         version: 5.0.0
       cosmiconfig:
-        specifier: 9.0.2
-        version: 9.0.2(typescript@6.0.3)
+        specifier: 10.0.1
+        version: 10.0.1
       cosmiconfig-typescript-loader:
         specifier: 6.3.0
-        version: 6.3.0(@types/node@26.6.4)(cosmiconfig@9.0.2(typescript@6.0.3))(typescript@6.0.3)
+        version: 6.3.0(@types/node@26.6.4)(cosmiconfig@10.0.1)(typescript@6.0.3)
       deepl-node:
         specifier: catalog:bundled
         version: 1.28.0
@@ -3463,6 +3463,10 @@ packages:
       cosmiconfig: '>=9'
       typescript: '>=5'
 
+  cosmiconfig@10.0.1:
+    resolution: {integrity: sha512-/zvGoYn0y27QTBmK+0B+oPdEPC4fKGUmJsMTQbDjqph00TrkqfVFW/M+C6ya54sYCgHC6QCwK/mI6djt8cEGHQ==}
+    engines: {node: ^22.18 || >= 24}
+
   cosmiconfig@9.0.2:
     resolution: {integrity: sha512-gtTZxTDau1wL7Y7zifc2dd8jHSK/k6BTx/2Xp/BpdlAdnlYWFVt7qhJqgwi7637yRwRQ3qL4ZidbB4I8tA5VOg==}
     engines: {node: '>=14'}
@@ -4181,6 +4185,10 @@ packages:
 
   js-yaml@4.3.2:
     resolution: {integrity: sha512-SFNOvSJ+Dgf/9An904Yx+CgSlIPCkIpao4qo51lpee25TIRejdH3rhR4EZMGoNx3/TP3O+wzWuiTFl4sqbltzA==}
+    hasBin: true
+
+  js-yaml@5.4.3:
+    resolution: {integrity: sha512-yzzNtgczwgoVHNigCyKTXcQJU4Y8t/ikU4UxXW0BvrLfHTGWZhsNcOT2s/a7vn81/4KqVnNmHjaUEPlvWnNwVw==}
     hasBin: true
 
   jsdom@30.1.2:
@@ -8053,12 +8061,24 @@ snapshots:
       vary: 1.1.2
     optional: true
 
+  cosmiconfig-typescript-loader@6.3.0(@types/node@26.6.4)(cosmiconfig@10.0.1)(typescript@6.0.3):
+    dependencies:
+      '@types/node': 26.6.4
+      cosmiconfig: 10.0.1
+      jiti: 2.6.1
+      typescript: 6.0.3
+
   cosmiconfig-typescript-loader@6.3.0(@types/node@26.6.4)(cosmiconfig@9.0.2(typescript@6.0.3))(typescript@6.0.3):
     dependencies:
       '@types/node': 26.6.4
       cosmiconfig: 9.0.2(typescript@6.0.3)
       jiti: 2.6.1
       typescript: 6.0.3
+
+  cosmiconfig@10.0.1:
+    dependencies:
+      env-paths: 2.2.1
+      js-yaml: 5.4.3
 
   cosmiconfig@9.0.2(typescript@6.0.3):
     dependencies:
@@ -8911,6 +8931,10 @@ snapshots:
   js-tokens@4.0.0: {}
 
   js-yaml@4.3.2:
+    dependencies:
+      argparse: 2.0.1
+
+  js-yaml@5.4.3:
     dependencies:
       argparse: 2.0.1
 

@@ -9,7 +9,9 @@ function namedError(name: string, message: string, extra: object = {}): Error {
 
 describe("configLoadFailure", () => {
   it("drops a JSON parser message in favor of a fixed description", () => {
-    const failure = configLoadFailure(namedError("JSONError", 'Unexpected token "secret"'));
+    const failure = configLoadFailure(
+      namedError("SyntaxError", 'JSON Error in /project/.verbatrarc:\nUnexpected token "secret"'),
+    );
 
     expect(failure.code).toBe("CONFIG_INVALID");
     expect(failure.message).toBe(
@@ -84,7 +86,9 @@ describe("configLoadFailure", () => {
   });
 
   it("attaches no cause for an uncoded loader error, whose text may quote the file", () => {
-    expect(configLoadFailure(namedError("JSONError", "secret")).cause).toBeUndefined();
+    expect(
+      configLoadFailure(namedError("SyntaxError", "JSON Error in x:\nsecret")).cause,
+    ).toBeUndefined();
     expect(configLoadFailure("plain failure").cause).toBeUndefined();
   });
 
