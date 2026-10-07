@@ -10,11 +10,12 @@ cache answers "have we translated this text before?".
 
 ## What it reuses
 
-Before a key goes to the provider, verbatra looks up the hash of its current source text. A hit is
-free. Because the lookup is by content, reuse survives what the lock file cannot see:
+Before a key goes to the provider, verbatra looks up the hash of its current source entry: the text
+plus its description, meaning, plural flag and placeholders. A hit is free. Because the lookup is by
+content, reuse survives what the lock file cannot see:
 
 - **A renamed key.** Move `home.title` to `landing.title` and its translation is reused.
-- **Duplicate content.** Two keys with the same source text share one translation.
+- **Duplicate content.** Two keys with the same source text and context share one translation.
 
 A reused value is not trusted blindly. It passes the same
 [integrity gate](/docs/translation-safety#the-integrity-gate) against the current source as a fresh

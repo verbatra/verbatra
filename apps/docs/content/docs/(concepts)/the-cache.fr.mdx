@@ -10,12 +10,13 @@ répond à « cette clé est-elle à jour ? » ; le cache répond à « avons-no
 
 ## Ce qu'il réutilise
 
-Avant qu'une clé parte vers le fournisseur, verbatra cherche le hash de son texte source actuel. Un
-succès est gratuit. Comme la recherche se fait par contenu, la réutilisation survit à ce que le
-fichier de verrouillage ne voit pas :
+Avant qu'une clé parte vers le fournisseur, verbatra cherche le hash de son entrée source actuelle :
+le texte avec sa description, son sens, son indicateur de pluriel et ses placeholders. Un succès est
+gratuit. Comme la recherche se fait par contenu, la réutilisation survit à ce que le fichier de
+verrouillage ne voit pas :
 
 - **Une clé renommée.** Déplace `home.title` vers `landing.title` et sa traduction est réutilisée.
-- **Du contenu en double.** Deux clés au même texte source partagent une traduction.
+- **Du contenu en double.** Deux clés au même texte source et au même contexte partagent une traduction.
 
 Une valeur réutilisée n'est pas acceptée aveuglément. Elle passe la même
 [barrière d'intégrité](/docs/translation-safety#la-barrière-dintégrité) contre la source actuelle

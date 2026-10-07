@@ -10,9 +10,11 @@ valeur.
 
 ## Ce qu'il enregistre
 
-Pour chaque locale cible, un hash par clé traduite de la valeur source derrière la traduction
-actuelle, plus un champ `version` : aucune traduction, aucun secret. Le hash normalise l'Unicode en
-NFC et les fins de ligne en LF, donc réenregistrer un fichier source en CRLF ne change rien.
+Pour chaque locale cible, un hash par clé traduite de l'entrée source derrière la traduction
+actuelle, plus un champ `version` : aucune traduction, aucun secret. Le hash couvre la valeur source
+avec sa description, son sens, son indicateur de pluriel et ses placeholders, donc une description
+modifiée rend aussi la clé obsolète. Il normalise l'Unicode en NFC et les fins de ligne en LF, donc
+réenregistrer un fichier source en CRLF ne change rien.
 
 ## Comment la dérive est détectée
 

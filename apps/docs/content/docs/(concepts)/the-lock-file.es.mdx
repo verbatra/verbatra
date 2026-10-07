@@ -10,10 +10,11 @@ cada valor.
 
 ## Qué registra
 
-Para cada locale de destino, un hash por clave traducida del valor de origen detrás de la
-traducción actual, más un campo `version`: ni traducciones ni secretos. El hash normaliza Unicode a
-NFC y los finales de línea a LF, así que volver a guardar un archivo de origen con finales CRLF no
-cambia nada.
+Para cada locale de destino, un hash por clave traducida de la entrada de origen detrás de la
+traducción actual, más un campo `version`: ni traducciones ni secretos. El hash cubre el valor de
+origen junto con su descripción, su significado, su indicador de plural y sus marcadores, así que una
+descripción cambiada también deja la clave desfasada. Normaliza Unicode a NFC y los finales de línea
+a LF, así que volver a guardar un archivo de origen con finales CRLF no cambia nada.
 
 ## Cómo se detecta el desfase
 

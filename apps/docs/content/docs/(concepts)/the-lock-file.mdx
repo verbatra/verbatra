@@ -9,9 +9,11 @@ records who or what wrote each value.
 
 ## What it records
 
-For every target locale, one hash per translated key of the source value behind the current
-translation, plus a `version` field: no translations, no secrets. The hash normalizes Unicode to
-NFC and line endings to LF, so re-saving a source file with CRLF endings changes nothing.
+For every target locale, one hash per translated key of the source entry behind the current
+translation, plus a `version` field: no translations, no secrets. The hash covers the source value
+plus its description, meaning, plural flag and placeholders, so a changed description marks the key
+stale too. It normalizes Unicode to NFC and line endings to LF, so re-saving a source file with CRLF
+endings changes nothing.
 
 ## How drift is detected
 

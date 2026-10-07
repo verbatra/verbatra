@@ -10,10 +10,11 @@ Wert geschrieben hat.
 
 ## Was sie festhält
 
-Für jede Ziel-Locale einen Hash pro übersetztem Key, gebildet aus dem Quellwert hinter der
-aktuellen Übersetzung, plus ein Feld `version`: keine Übersetzungen, keine Secrets. Der Hash
-normalisiert Unicode auf NFC und Zeilenenden auf LF, ein erneutes Speichern einer Quelldatei mit
-CRLF-Zeilenenden ändert also nichts.
+Für jede Ziel-Locale einen Hash pro übersetztem Key, gebildet aus dem Quelleintrag hinter der
+aktuellen Übersetzung, plus ein Feld `version`: keine Übersetzungen, keine Secrets. Der Hash deckt
+den Quellwert samt Beschreibung, Bedeutung, Plural-Flag und Platzhaltern ab, eine geänderte
+Beschreibung macht den Key also ebenfalls veraltet. Er normalisiert Unicode auf NFC und Zeilenenden
+auf LF, ein erneutes Speichern einer Quelldatei mit CRLF-Zeilenenden ändert also nichts.
 
 ## Wie Drift erkannt wird
 

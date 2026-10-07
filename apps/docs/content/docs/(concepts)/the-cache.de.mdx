@@ -10,13 +10,13 @@ Key aktuell?"; der Cache beantwortet "Haben wir diesen Text schon einmal überse
 
 ## Was er wiederverwendet
 
-Bevor ein Key zum Provider geht, schlägt verbatra den Hash seines aktuellen Quelltexts nach. Ein
-Treffer ist kostenlos. Weil nach Inhalt gesucht wird, übersteht die Wiederverwendung, was die
-Lock-Datei nicht sehen kann:
+Bevor ein Key zum Provider geht, schlägt verbatra den Hash seines aktuellen Quelleintrags nach: der
+Text samt Beschreibung, Bedeutung, Plural-Flag und Platzhaltern. Ein Treffer ist kostenlos. Weil nach
+Inhalt gesucht wird, übersteht die Wiederverwendung, was die Lock-Datei nicht sehen kann:
 
 - **Ein umbenannter Key.** Verschieb `home.title` nach `landing.title`, und seine Übersetzung wird
   wiederverwendet.
-- **Doppelter Inhalt.** Zwei Keys mit demselben Quelltext teilen sich eine Übersetzung.
+- **Doppelter Inhalt.** Zwei Keys mit demselben Quelltext und Kontext teilen sich eine Übersetzung.
 
 Einem wiederverwendeten Wert wird nicht blind vertraut. Er durchläuft dasselbe
 [Integritäts-Gate](/docs/translation-safety#das-integritäts-gate) gegen die aktuelle Quelle wie eine

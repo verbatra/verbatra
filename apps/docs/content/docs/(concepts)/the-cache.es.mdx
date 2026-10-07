@@ -10,12 +10,13 @@ que el mismo texto nunca se paga dos veces. [El archivo de bloqueo](/docs/the-lo
 
 ## Qué reutiliza
 
-Antes de que una clave vaya al proveedor, verbatra busca el hash de su texto de origen actual. Un
-acierto es gratis. Como la búsqueda es por contenido, la reutilización sobrevive a lo que el archivo
-de bloqueo no ve:
+Antes de que una clave vaya al proveedor, verbatra busca el hash de su entrada de origen actual: el
+texto junto con su descripción, su significado, su indicador de plural y sus marcadores. Un acierto es
+gratis. Como la búsqueda es por contenido, la reutilización sobrevive a lo que el archivo de bloqueo
+no ve:
 
 - **Una clave renombrada.** Mueve `home.title` a `landing.title` y su traducción se reutiliza.
-- **Contenido duplicado.** Dos claves con el mismo texto de origen comparten una traducción.
+- **Contenido duplicado.** Dos claves con el mismo texto de origen y el mismo contexto comparten una traducción.
 
 Un valor reutilizado no se acepta a ciegas. Pasa la misma
 [puerta de integridad](/docs/translation-safety#la-puerta-de-integridad) frente al origen actual que
