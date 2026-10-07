@@ -1340,7 +1340,8 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   }
 }
 
-.vk-edge-fade {
+.vk-edge-fade,
+.vk-docs-tabs > [role="tablist"] {
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scrollbar-width: thin;
@@ -1349,8 +1350,17 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   mask-image: linear-gradient(to left, transparent, #000 var(--vk-edge-fade));
 }
 
+.vk-docs-tabs > [role="tablist"] {
+  scrollbar-width: none;
+}
+
+.vk-docs-tabs > [role="tablist"]::-webkit-scrollbar {
+  display: none;
+}
+
 @supports (animation-timeline: scroll()) {
-  .vk-edge-fade {
+  .vk-edge-fade,
+  .vk-docs-tabs > [role="tablist"] {
     scrollbar-width: none;
     animation: vk-edge-fade linear both;
     animation-timeline: scroll(self inline);

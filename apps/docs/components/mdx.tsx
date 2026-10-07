@@ -3,7 +3,7 @@ import { Callout } from "fumadocs-ui/components/callout";
 import { Card } from "fumadocs-ui/components/card";
 import { CodeBlock, Pre } from "fumadocs-ui/components/codeblock";
 import { Step, Steps } from "fumadocs-ui/components/steps";
-import { Tabs as ClientTabs, Tab } from "fumadocs-ui/components/tabs";
+import { Tab } from "fumadocs-ui/components/tabs";
 import { TypeTable } from "fumadocs-ui/components/type-table";
 import defaultMdxComponents from "fumadocs-ui/mdx";
 import type { MDXComponents } from "mdx/types";
@@ -18,6 +18,7 @@ import {
   DocsHomeSection,
   DocsHomeSteps,
 } from "@/components/docs-home";
+import { DocsTabs } from "@/components/docs-tabs";
 import { VMark } from "@/components/landing";
 import { McpInstallLink } from "@/components/mcp-install-link";
 import { OutputCodeBlock } from "@/components/output-code-block";
@@ -90,7 +91,7 @@ export function getMDXComponents(
     Step,
     Steps,
     Tab,
-    Tabs: ClientTabs,
+    Tabs: DocsTabs,
     Accordion,
     Accordions,
     TypeTable,
