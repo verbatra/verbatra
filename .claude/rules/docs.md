@@ -243,8 +243,8 @@ The values live in `page-type.ts` (`WORD_CEILING`, `COMMAND_PAGE_CEILING`,
 `pnpm --filter @verbatra/docs docs:budget` lists every page at or above 90 percent of its ceiling,
 so the headroom is visible in review rather than discovered on a failing test.
 
-A ceiling is never raised: a page that cannot fit is split or trimmed. `sdk/inspect`, `providers`
-and `config-file` are the pages closest to theirs.
+A ceiling is never raised: a page that cannot fit is split or trimmed. Run
+`pnpm --filter @verbatra/docs docs:budget` to see which pages are closest to theirs.
 
 ### One owner per fact
 
