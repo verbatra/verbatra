@@ -39,7 +39,11 @@
       "aiLabel": "Prompt für KI-Agenten",
       "copyPromptAria": "Setup-Prompt für den KI-Agenten kopieren",
       "copyCommand": "{command} kopieren",
-      "copyAgentAria": "Befehl zum Einrichten des Agenten kopieren"
+      "copyAgentAria": "Befehl zum Einrichten des Agenten kopieren",
+      "stepInstall": "Installieren",
+      "stepSetUp": "Einrichten",
+      "setUp": "<link>Folge dem Schnellstart</link>: eine Konfiguration, ein kostenloser Probelauf, dann deine erste Übersetzung.",
+      "agentLabel": "Oder lass deinen Agenten einrichten"
     },
     "gate": {
       "rows": {

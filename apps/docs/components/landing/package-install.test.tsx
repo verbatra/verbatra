@@ -7,9 +7,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { AI_SETUP_PROMPT } from "@/lib/ai-setup-prompt";
 import { AGENT_INIT_COMMAND, NPM_INSTALL_COMMAND } from "@/lib/install-commands";
 
-vi.mock("next-intl", () => ({
-  useTranslations: () => (key: string) => key,
-}));
+vi.mock("next-intl", () => {
+  const t = Object.assign((key: string) => key, {
+    rich: (key: string, values: { link: (chunks: string) => unknown }) => values.link(key),
+  });
+  return { useTranslations: () => t, useLocale: () => "de" };
+});
 
 const { PackageInstall } = await import("./package-install");
 
@@ -25,16 +28,28 @@ function renderInstall(): Document {
 }
 
 describe("PackageInstall", () => {
-  it("shows one npm command, then the agent setup command, with no package-manager tabs and no switch", () => {
+  it("numbers two steps, install then set up, with one npm command and no package-manager tabs", () => {
     const doc = renderInstall();
+    const steps = [...doc.querySelectorAll("ol > li")];
+    expect(steps.map((step) => step.querySelector(".vk-label")?.textContent)).toEqual([
+      "1stepInstall",
+      "2stepSetUp",
+    ]);
     const commands = [...doc.querySelectorAll("code")].map((code) => code.textContent);
-    expect(commands).toEqual([NPM_INSTALL_COMMAND, AGENT_INIT_COMMAND]);
+    expect(commands).toEqual([NPM_INSTALL_COMMAND]);
     expect(doc.querySelector('[role="tablist"], [role="tab"], [role="switch"]')).toBeNull();
+  });
+
+  it("sends a new project to the localized quickstart, never to init --agent", () => {
+    const doc = renderInstall();
+    const setUp = doc.querySelectorAll("ol > li")[1];
+    expect(setUp?.querySelector("a")?.getAttribute("href")).toBe("/de/docs/quickstart");
+    expect(doc.body.textContent).not.toContain(AGENT_INIT_COMMAND);
   });
 
   it("shows the whole AI prompt under its own caption, never a truncated preview", () => {
     const figure = renderInstall().querySelector("figure");
-    expect(figure?.querySelector("figcaption")?.textContent).toBe("aiLabel");
+    expect(figure?.querySelector("figcaption")?.textContent).toBe("agentLabel");
     expect(figure?.querySelector("p")?.textContent).toBe(AI_SETUP_PROMPT);
   });
 
@@ -52,7 +67,7 @@ describe("PackageInstall", () => {
     const labels = [...renderInstall().querySelectorAll("button")].map((button) =>
       button.getAttribute("aria-label"),
     );
-    expect(labels).toEqual(["copyAria", "copyAgentAria", "copyPromptAria"]);
+    expect(labels).toEqual(["copyAria", "copyPromptAria"]);
   });
 
   it("sends the copied command text for the command and no data for the prompt", () => {
@@ -68,7 +83,6 @@ describe("PackageInstall", () => {
     act(() => root.unmount());
     expect(track.mock.calls).toEqual([
       ["copy-install-command", { command: NPM_INSTALL_COMMAND }],
-      ["copy-agent-command", { command: AGENT_INIT_COMMAND }],
       ["copy-ai-prompt", undefined],
     ]);
   });

@@ -39,7 +39,11 @@
       "aiLabel": "Prompt pour agents IA",
       "copyPromptAria": "Copier le prompt de configuration pour l'agent IA",
       "copyCommand": "Copier {command}",
-      "copyAgentAria": "Copier la commande de configuration de l'agent"
+      "copyAgentAria": "Copier la commande de configuration de l'agent",
+      "stepInstall": "Installer",
+      "stepSetUp": "Configurer",
+      "setUp": "<link>Suis le démarrage rapide</link> : une configuration, une exécution à blanc gratuite, puis ta première traduction.",
+      "agentLabel": "Ou laisse ton agent s'en charger"
     },
     "gate": {
       "rows": {

@@ -5,7 +5,12 @@ import { describe, expect, it, vi } from "vitest";
 import { AI_SETUP_PROMPT } from "@/lib/ai-setup-prompt";
 import { AGENT_INIT_COMMAND } from "@/lib/install-commands";
 
-vi.mock("next-intl", () => ({ useTranslations: () => (key: string) => key }));
+vi.mock("next-intl", () => {
+  const t = Object.assign((key: string) => key, {
+    rich: (key: string, values: { link: (chunks: string) => unknown }) => values.link(key),
+  });
+  return { useTranslations: () => t, useLocale: () => "en" };
+});
 
 const { StartHere } = await import("./start-here");
 const { PackageInstall } = await import("./landing/package-install");
@@ -34,11 +39,11 @@ describe("StartHere", () => {
     expect(labels).toEqual(["copyAgentAria", "copyPromptAria"]);
   });
 
-  it("shows the same agent command as the install box on the landing and the docs home", () => {
+  it("keeps the agent command off the install box, whose second step is the quickstart", () => {
     const banner = commands(render(<StartHere />));
     const installBox = commands(render(<PackageInstall />));
     expect(banner).toEqual([AGENT_INIT_COMMAND]);
-    expect(installBox).toContain(AGENT_INIT_COMMAND);
+    expect(installBox).not.toContain(AGENT_INIT_COMMAND);
   });
 
   it("carries no start bar, so it never doubles the bar of the locale notice above it", () => {
@@ -54,9 +59,10 @@ describe("StartHere", () => {
   });
 
   it("shares one command row with the install box, which still lets the long npm command wrap", () => {
-    const [npm, agent] = [...render(<PackageInstall />).querySelectorAll("code")];
+    const [npm] = [...render(<PackageInstall />).querySelectorAll("code")];
+    const agent = render(<StartHere />).querySelector("code");
     expect(npm?.className).toContain("@max-[30rem]:whitespace-normal");
-    expect(agent?.className).toBe(render(<StartHere />).querySelector("code")?.className);
+    expect(agent?.className).toBe(npm?.className.replace(" @max-[30rem]:whitespace-normal", ""));
   });
 
   it("stays at the prose measure, outside the prose styles, with no script of its own", () => {

@@ -7,7 +7,7 @@ import { AI_SETUP_PROMPT } from "@/lib/ai-setup-prompt";
 import { trackUmamiEvent } from "@/lib/umami";
 import { breakUrlsAtSlashes } from "@/lib/word-breaks";
 
-export function AiSetupPrompt(): ReactNode {
+export function AiSetupPrompt({ label }: { label?: string } = {}): ReactNode {
   const t = useTranslations("landing.install");
 
   return (
@@ -17,7 +17,7 @@ export function AiSetupPrompt(): ReactNode {
     >
       <div className="flex items-center justify-between gap-2">
         <figcaption className="vk-label flex min-h-6 min-w-0 items-center text-balance leading-snug">
-          {t("aiLabel")}
+          {label ?? t("aiLabel")}
         </figcaption>
         <CopyButton
           text={AI_SETUP_PROMPT}
