@@ -24,7 +24,7 @@ function runtimeSourceFiles(dir, out = []) {
   return out;
 }
 
-const DOC_COMMENT = /\/\*\*[\s\S]*?\*\//g;
+const DOC_COMMENT = /^[ \t]*\/\*\*[\s\S]*?\*\//gm;
 
 function specifiersIn(source) {
   const code = source.replace(DOC_COMMENT, "");
@@ -78,6 +78,8 @@ describe("@verbatra/core runtime code imports only zod and its own modules", () 
     ["const p = await import(`parse5`);", "parse5"],
     ["const p = await import(name);", "<computed dynamic import>"],
     ['import {\n  a,\n  b,\n} from "entities";', "entities"],
+    ['/** doc */\nimport x from "parse5";', "parse5"],
+    ['const g = "src/**/*.ts";\nimport x from "parse5";\n/* */', "parse5"],
   ])("flags %j", (source, specifier) => {
     expect(disallowedSpecifiers(source)).toEqual([specifier]);
   });
