@@ -6,7 +6,7 @@ type: reference
 ---
 <AvailableFrom version="0.11.0" />
 
-Bring einen Übersetzungsspeicher im TMX-Format herein oder hinaus, dem Austauschformat der gängigen Übersetzungsplattformen. `tmx import` übernimmt den Speicher eines anderen Tools in [den Übersetzungsspeicher dieses Projekts](/docs/the-cache), damit spätere Läufe diese Strings wiederverwenden, statt sie erneut zu bezahlen; `tmx export` schreibt den Speicher wieder hinaus. Keine der beiden Richtungen ruft einen Provider auf, liest einen API-Key oder geht ins Netz.
+Bring einen Übersetzungsspeicher im TMX-Format herein oder hinaus, dem Austauschformat der gängigen Übersetzungsplattformen. `tmx import` übernimmt den Speicher eines anderen Tools in [den Übersetzungsspeicher dieses Projekts](/docs/the-cache), damit spätere Läufe diese Strings wiederverwenden, statt sie erneut zu bezahlen; `tmx export` schreibt den Speicher wieder hinaus. Keine der beiden Richtungen ruft einen Provider auf, liest einen API-Key oder geht ins Netz. Ein echter Import ergänzt außerdem fehlende Einträge in einer vorhandenen `.gitignore`, siehe [.gitignore-Einträge](/docs/cli#gitignore-einträge).
 
 ## Synopsis
 
@@ -15,7 +15,7 @@ verbatra tmx <direction> [file] [flags]
 ```
 
 - `<direction>`: `import` oder `export`; alles andere wird mit `INVALID_DIRECTION` abgelehnt.
-- `[file]`: die TMX-Datei, die gelesen oder geschrieben wird, standardmäßig `verbatra-memory.tmx` im Arbeitsverzeichnis.
+- `[file]`: die TMX-Datei, die gelesen oder geschrieben wird, standardmäßig `verbatra-memory.tmx` in der Projektwurzel.
 
 ## Flags
 
@@ -25,7 +25,7 @@ verbatra tmx <direction> [file] [flags]
 | `--dry-run` | keins | aus | nur beim Import: prüfen und berichten, ohne den Speicher zu ändern; ein Export lehnt es mit `INVALID_DIRECTION` ab |
 | `--overwrite` | keins | aus | nur beim Import: eine importierte Einheit darf eine Übersetzung ersetzen, die der Speicher schon hat; ein Export lehnt es mit `INVALID_DIRECTION` ab |
 
-Außerdem nimmt der Befehl die [globalen Flags](/docs/cli#globale-flags) `--cwd`, `--config` und `--json`. `--cwd` ist hier das Verzeichnis, von dem aus Config, Speicher und ein relatives `[file]` aufgelöst werden.
+Außerdem nimmt der Befehl die [globalen Flags](/docs/cli#globale-flags) `--cwd`, `--config` und `--json`. Die Config-Suche und ein relatives `[file]`, das du angibst, gehen hier von `--cwd` aus, der Speicher und das Standard-`verbatra-memory.tmx` dagegen von der [Projektwurzel](/docs/config-file#das-arbeitsverzeichnis-und-env).
 
 ## Verhalten
 
@@ -64,6 +64,10 @@ Zwei Zielsegmente, die dieselbe Locale erreichen, lassen nie einfach das letzte 
 ### Wenn Datei und Übersetzungsspeicher sich widersprechen
 
 Der Speicher des Projekts gewinnt: Eine importierte Übersetzung, die von einer vorhandenen abweicht, wird abgelehnt und als behalten gezählt, außer du gibst `--overwrite` an. Innerhalb einer Datei gewinnt die erste Einheit zu einer Quelle, spätere Wiederholungen zählen als Duplikate, ein zweiter Import derselben Datei schreibt also nichts.
+
+<Callout type="warn">
+`--overwrite` ersetzt Übersetzungen, die der Speicher schon hat, und spätere Läufe verwenden die Ersetzungen wieder. Führe es zuerst mit `--dry-run` aus, um die Zahl `overwritten` zu sehen.
+</Callout>
 
 Importierte Einheiten werden unter dem aktuellen Konfigurations-Fingerprint des Projekts gespeichert, also genau so lange wiederverwendet, wie Provider, Modell, Tonalität, Glossar und `localeMap` gleich bleiben. Importiere die Datei nach einer solchen Änderung erneut. Eine Speicherdatei, die ein neueres verbatra geschrieben hat, bleibt unberührt; die Zahlen werden trotzdem gemeldet, wie bei einem Dry Run.
 
@@ -105,7 +109,7 @@ Jede Import-Locale meldet die Zähler `added`, `unchanged`, `overwritten`, `kept
 
 <AvailableFrom version="0.12.0" />
 
-Beide Richtungen zeigen eine Fortschrittszeile auf stderr. `tmx import` schlägt danach `verbatra translate` vor, nach einem Dry Run den echten Import; `tmx export` schlägt nichts vor:
+Beide Richtungen zeigen eine Fortschrittszeile auf stderr. `tmx import` schlägt danach `verbatra translate` vor, nach einem Dry Run den echten Import; dieser Vorschlag behält Datei, `--cwd` und `--config`, lässt aber `--overwrite` und `--locales` weg, also ergänze sie selbst. `tmx export` schlägt nichts vor:
 
 ```text output
 verbatra: importing legacy.tmx into the memory... done (0.2s)
@@ -138,7 +142,7 @@ verbatra tmx export out/memory.tmx --locales de
 | Code | Bedeutung |
 | --- | --- |
 | `0` | die Datei wurde gelesen oder geschrieben; übersprungene oder abgelehnte Einheiten werden gemeldet, sind aber kein Fehler |
-| `2` | konnte nicht laufen: ein Config-Fehler, eine fehlende, unlesbare oder ungültige TMX-Datei (`SOURCE_INVALID`), ein abgelehnter Exportpfad (`TMX_OUTPUT_CONFLICT`), ein gescheiterter Schreibvorgang (`TMX_UNWRITABLE`) oder ein Bedienfehler |
+| `2` | konnte nicht laufen: ein Config-Fehler, eine fehlende oder unlesbare TMX-Datei (`SOURCE_UNREADABLE`), eine zu große oder nicht parsbare (`SOURCE_INVALID`), ein abgelehnter Exportpfad (`TMX_OUTPUT_CONFLICT`), ein gescheiterter Schreibvorgang (`TMX_UNWRITABLE`) oder ein Bedienfehler |
 
 Bei einer ungültigen Datei nennt die Meldung Zeile, Spalte und Einheit, an der sie scheiterte; Entity-Deklarationen und interne DTD-Subsets werden sofort abgelehnt, ein externer Doctype wird verworfen und nie abgerufen. Siehe [den Exit-Code-Vertrag](/docs/cli/output#exit-codes).
 

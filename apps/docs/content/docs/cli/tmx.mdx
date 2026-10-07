@@ -6,7 +6,7 @@ type: reference
 ---
 <AvailableFrom version="0.11.0" />
 
-Move a translation memory in or out in TMX, the interchange format the mainstream translation platforms use. `tmx import` lands another tool's memory in [this project's translation memory](/docs/the-cache), so later runs reuse those strings instead of paying for them again; `tmx export` writes the memory back out. Neither direction calls a provider, reads an API key, or touches the network.
+Move a translation memory in or out in TMX, the interchange format the mainstream translation platforms use. `tmx import` lands another tool's memory in [this project's translation memory](/docs/the-cache), so later runs reuse those strings instead of paying for them again; `tmx export` writes the memory back out. Neither direction calls a provider, reads an API key, or touches the network. A real import also adds missing entries to an existing `.gitignore`, see [.gitignore entries](/docs/cli#gitignore-entries).
 
 ## Synopsis
 
@@ -15,7 +15,7 @@ verbatra tmx <direction> [file] [flags]
 ```
 
 - `<direction>`: `import` or `export`; anything else is refused with `INVALID_DIRECTION`.
-- `[file]`: the TMX file to read or write, `verbatra-memory.tmx` in the working directory by default.
+- `[file]`: the TMX file to read or write, `verbatra-memory.tmx` in the project root by default.
 
 ## Flags
 
@@ -25,7 +25,7 @@ verbatra tmx <direction> [file] [flags]
 | `--dry-run` | none | off | import only: validate and report without changing the memory; an export refuses it with `INVALID_DIRECTION` |
 | `--overwrite` | none | off | import only: let an imported unit replace a translation the memory already holds; an export refuses it with `INVALID_DIRECTION` |
 
-Also takes the [global flags](/docs/cli#global-flags) `--cwd`, `--config` and `--json`. Here `--cwd` is the directory the config, the memory and a relative `[file]` resolve from.
+Also takes the [global flags](/docs/cli#global-flags) `--cwd`, `--config` and `--json`. Here the config search and a relative `[file]` you pass resolve from `--cwd`, while the memory and the default `verbatra-memory.tmx` resolve from the [project root](/docs/config-file#the-working-directory-and-env).
 
 ## Behavior
 
@@ -64,6 +64,10 @@ Two target segments that reach the same locale never let the last one win: an ex
 ### When the file and the memory disagree
 
 The project's memory wins: an imported translation that differs from one already held is refused and counted as kept, unless you pass `--overwrite`. Within one file, the first unit for a source wins and later repeats count as duplicates, so importing the same file twice writes nothing the second time.
+
+<Callout type="warn">
+`--overwrite` replaces translations the memory already holds, and later runs reuse the replacements. Run it with `--dry-run` first to see the `overwritten` count.
+</Callout>
 
 Imported units are stored under the project's current configuration fingerprint, so they are reused exactly while the provider, model, tone, glossary and `localeMap` stay the same. Re-import the file after changing them. A memory file written by a newer verbatra is left untouched; the counts are still reported, as on a dry run.
 
@@ -105,7 +109,7 @@ Each import locale reports `added`, `unchanged`, `overwritten`, `kept`, `duplica
 
 <AvailableFrom version="0.12.0" />
 
-Both directions show one progress line on stderr. `tmx import` then suggests `verbatra translate`, or the real import after a dry run; `tmx export` suggests nothing:
+Both directions show one progress line on stderr. `tmx import` then suggests `verbatra translate`, or the real import after a dry run; that suggestion keeps the file, `--cwd` and `--config` but drops `--overwrite` and `--locales`, so add them back yourself. `tmx export` suggests nothing:
 
 ```text output
 verbatra: importing legacy.tmx into the memory... done (0.2s)
@@ -138,7 +142,7 @@ verbatra tmx export out/memory.tmx --locales de
 | Code | Meaning |
 | --- | --- |
 | `0` | the file was read or written; skipped or refused units are reported, not a failure |
-| `2` | could not run: a config error, a missing, unreadable or invalid TMX file (`SOURCE_INVALID`), a refused export path (`TMX_OUTPUT_CONFLICT`), a failed write (`TMX_UNWRITABLE`), or a usage error |
+| `2` | could not run: a config error, a missing or unreadable TMX file (`SOURCE_UNREADABLE`), an oversized or unparseable one (`SOURCE_INVALID`), a refused export path (`TMX_OUTPUT_CONFLICT`), a failed write (`TMX_UNWRITABLE`), or a usage error |
 
 An invalid file's message names the line, column and unit where it failed; entity declarations and internal DTD subsets are refused outright, and an external doctype is discarded, never fetched. See [the exit-code contract](/docs/cli/output#exit-codes).
 
