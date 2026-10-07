@@ -50,7 +50,7 @@
     "@commitlint/types": "21.2.3",
     "@vitest/coverage-v8": "catalog:",
     "knip": "catalog:",
-    "lefthook": "2.1.16",
+    "lefthook": "2.1.17",
     "turbo": "2.11.7",
     "typescript": "catalog:",
     "vitest": "catalog:",
