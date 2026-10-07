@@ -12,6 +12,8 @@ describe("absoluteMarkdownHref", () => {
     ["/privacy", `${SITE_URL}/privacy`],
     ["/llms.txt", `${SITE_URL}/llms.txt`],
     ["/xx/docs/formats", `${SITE_URL}/xx/docs/formats`],
+    ["/docs/formats.md", `${SITE_URL}/docs/formats.md`],
+    ["/de/docs/cli/init.md#flags", `${SITE_URL}/de/docs/cli/init.md#flags`],
   ])("resolves %s to %s", (href, expected) => {
     expect(absoluteMarkdownHref(href)).toBe(expected);
   });
@@ -34,6 +36,12 @@ describe("absolutizeMarkdownLinks", () => {
     const markdown = '<Card href="/docs/quickstart" />\n[ref]: /de/docs/formats';
     expect(absolutizeMarkdownLinks(markdown)).toBe(
       `<Card href="${SITE_URL}/docs/quickstart.md" />\n[ref]: ${SITE_URL}/de/docs/formats.md`,
+    );
+  });
+
+  it("rewrites angle-bracket link targets", () => {
+    expect(absolutizeMarkdownLinks("[a](</docs/formats>) [b](</privacy#top>)")).toBe(
+      `[a](<${SITE_URL}/docs/formats.md>) [b](<${SITE_URL}/privacy#top>)`,
     );
   });
 

@@ -1,6 +1,6 @@
 import { i18n, isLocale } from "@/lib/i18n";
 
-const MARKDOWN_SUFFIX = ".md";
+export const MARKDOWN_SUFFIX = ".md";
 const MARKDOWN_TYPE = "text/markdown";
 const DOCS_PATH = /^(?:\/([a-z]{2}))?\/docs((?:\/[^/]+)*)$/;
 

@@ -1,11 +1,11 @@
-import { isDocsPath, markdownUrl } from "@/lib/markdown-route";
+import { isDocsPath, MARKDOWN_SUFFIX, markdownUrl } from "@/lib/markdown-route";
 import { SITE_URL } from "@/lib/site";
 
 const FENCE = /^ {0,3}(`{3,}|~{3,})/;
 const INLINE_CODE = /(`+)[^`][\s\S]*?\1|(`+)/g;
-const SITE_RELATIVE = "\\/(?!\\/)[^\\s)\"'#?]*(?:[?#][^\\s)\"']*)?";
+const SITE_RELATIVE = "\\/(?!\\/)[^\\s)>\"'#?]*(?:[?#][^\\s)>\"']*)?";
 const LINK_TARGET = new RegExp(
-  `(\\]\\(\\s*|\\bhref=["']|^\\s*\\[[^\\]]+\\]:\\s*)(${SITE_RELATIVE})`,
+  `(\\]\\(\\s*<?|\\bhref=["']|^\\s*\\[[^\\]]+\\]:\\s*)(${SITE_RELATIVE})`,
   "g",
 );
 
@@ -14,7 +14,8 @@ export function absoluteMarkdownHref(href: string): string {
   const path = split === -1 ? href : href.slice(0, split);
   const suffix = split === -1 ? "" : href.slice(split);
   const trimmed = path.length > 1 ? path.replace(/\/+$/, "") : path;
-  const target = isDocsPath(trimmed) ? markdownUrl(trimmed) : path;
+  const target =
+    isDocsPath(trimmed) && !trimmed.endsWith(MARKDOWN_SUFFIX) ? markdownUrl(trimmed) : path;
   return `${new URL(target, SITE_URL).href}${suffix}`;
 }
 
