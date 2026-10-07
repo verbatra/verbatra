@@ -158,7 +158,7 @@ code (`CONFIG_NOT_FOUND` or `CONFIG_INVALID`) and message, and a `nextStep`. Eve
 tool except `project.snapshot` and `project.doctor` stays listed but refuses with
 that code and a `Next step:` line, and the spend tools are not listed even with
 spend granted. Call `project.doctor`, relay each failed check's `fix` to the
-human (for a project without verbatra that is `npx verbatra init`), and do not
+human (for a project without verbatra that is `npx @verbatra/cli init`), and do not
 retry other tools until the config is fixed.
 
 No restart is needed afterwards. Before each call the server checks the config

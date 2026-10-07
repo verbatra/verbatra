@@ -154,10 +154,10 @@ Read this table before running anything unattended.
 | `report` | no | no | no |
 | `pseudo` | no | yes, a pseudolocale under the out directory | no |
 | `types` | no | yes, the generated declaration, unless `--check` | no |
-| `doctor` | no | no | no, it never reads a key value; `--literals` does not even check for one; `--live` fetches a machine-translation provider's language list, sending the key DeepL and Google need, which uses no translation quota |
+| `doctor` | no | no | no, it never reads a key value; `--literals` does not even check for one; `--live` fetches a machine-translation provider's language list, sending the key DeepL and Google need, which uses no translation quota; `--data-flow` reads no key, makes no network request and spends nothing |
 | `studio` | only with `--allow-spend` or `VERBATRA_STUDIO_ALLOW_SPEND` | yes, through in-place edits | only when spend is granted |
 | `mcp` | only with `--allow-spend` or `VERBATRA_MCP_ALLOW_SPEND` (also read from `.env.local` and `.env`) | yes, through in-place edits | only when spend is granted |
-| `init` | no | yes, the config, the env example unless the provider is `none`, and `.gitignore`; with `--agent` also `AGENTS.md` or `CLAUDE.md` and `.mcp.json` | no |
+| `init` | no | yes, the config, the env example unless the provider is `none`, and `.gitignore`; with `--agent` also `AGENTS.md` or `CLAUDE.md` and each wired client's MCP config (`.mcp.json`, `.cursor/mcp.json`, `.vscode/mcp.json`, `.codex/config.toml`, `.gemini/settings.json`); nothing with `--dry-run` | no |
 | `extract` | no | yes, the source locale, unless `--dry-run` | no |
 
 `import` is worth calling out: it applies human translations from a workbook and
@@ -208,6 +208,14 @@ the same marking (`state-qualifier="mt-suggestion"` in XLIFF 1.2, `origin` and
 `review-state` metadata in XLIFF 2.0, `x-origin` and `x-review` properties in
 TMX), and imports ignore it; `result.provenanceMarkers: "unavailable"` on an
 export means no marker could be written.
+
+`verbatra pseudo` writes a pseudolocale built from the source strings, with no
+provider, no key and no network request. The default `--mode accented` writes
+`en-XA`; `--mode bidi` writes `ar-XB`, a right-to-left pseudolocale, so layout
+that assumes left-to-right text shows up before a real translation exists, and an
+`i18next-json` plural also gets every CLDR category Arabic needs and the source
+lacks, filled from its `other` form. An unknown `--mode` exits `2` with
+`INVALID_OPTION`.
 
 Three commands read application source through the config's `extract` block, and
 none of them calls a provider: `extract` adds keys found at translation call
@@ -405,6 +413,16 @@ a config that does not load, a missing source file or a provider that cannot
 be built, most often because its key variable is unset, ends `watch` with exit `2`
 and one error envelope, and it never waits for changes.
 
+Every `--json` record has a JSON Schema (draft 2020-12):
+`https://verbatra.kreitz-webdev.de/schema/v1/envelope.json` (any envelope),
+`.../<command>-envelope.json` (one command's envelope with its result),
+`.../error-envelope.json` and `.../stderr-record.json` (progress, lock-wait and
+interrupted lines on stderr). The index is
+`https://verbatra.kreitz-webdev.de/schema/v1`. Offline copies ship in
+`@verbatra/cli/schemas/` (every envelope and result) and `@verbatra/sdk/schemas/`
+(the results and the config, without the envelopes). Schemas allow unknown fields,
+so validate, then ignore fields you do not know.
+
 ## Human output on stderr
 
 Everything below is for a person watching a terminal. It never reaches stdout,
@@ -572,17 +590,59 @@ record names the files it wrote, the resolved config, where each value came from
 `--agent` (off by default) also sets the project up for coding agents: it writes
 a verbatra section between `<!-- verbatra:start -->` and `<!-- verbatra:end -->`
 markers into `AGENTS.md`, or into `CLAUDE.md` when that is the only instruction
-file (`AGENTS.md` wins when both exist), and adds the `verbatra` server,
-`npx -y @verbatra/mcp` with spending off, to `.mcp.json`. In a file that already
-holds the section, the text between the markers is replaced with the current
-text and reported `updated`, or `unchanged` when it already matches; never put
-your own notes between the markers. Text outside the markers and other servers
-are kept, a rerun with the same verbatra leaves both files byte-identical,
-and a `verbatra` server that differs is left as it is and reported as
-`mcpServer: "differs"` in the record's `agent` field, which is `null` without
-the flag. Never hand-edit a differing server back without asking the human.
-Never also install the verbatra Claude Code plugin next to that `.mcp.json`
-entry: the plugin brings its own server, so the two register it twice.
+file (`AGENTS.md` wins when both exist, unless only `CLAUDE.md` already holds
+the markers), and adds the `verbatra` server, `npx -y @verbatra/mcp` with
+spending off, to the project MCP config of each client it wires:
+
+- Claude Code (`--client claude`): `.mcp.json` under `mcpServers`, detected by
+  `CLAUDE.md`, a `.claude/` folder or `.mcp.json`.
+- Cursor (`--client cursor`): `.cursor/mcp.json` under `mcpServers`, with
+  `--cwd ${workspaceFolder}` in `args`, detected by a `.cursor/` folder or
+  `.cursorrules`.
+- VS Code (`--client vscode`): `.vscode/mcp.json` under `servers`, detected by
+  `.vscode/mcp.json`.
+- Codex (`--client codex`): `.codex/config.toml`, appended as a
+  `[mcp_servers.verbatra]` table with `startup_timeout_sec = 60`, detected by a
+  `.codex/` folder. Codex loads it only after the human answers its "Trust this
+  folder?" prompt, which is keyed to the repository root.
+- Gemini CLI (`--client gemini`): `.gemini/settings.json` under `mcpServers`,
+  detected by a `.gemini/` folder or `GEMINI.md`. Gemini CLI reads only the
+  settings of the folder it starts in: the human starts `gemini` in the project
+  root and trusts it in the dialog or with `/permissions trust` (there is no
+  `gemini trust` command). It loads `GEMINI.md`, not `AGENTS.md`, so unless its
+  settings or `GEMINI.md` already load the instruction file, `nextSteps` says to
+  set `"context": { "fileName": ["AGENTS.md", "GEMINI.md"] }` in
+  `.gemini/settings.json` or add the line `@AGENTS.md` to `GEMINI.md`.
+
+With no marker at all, only Claude Code is wired. A `.vscode` folder without
+`mcp.json` is not wired; `nextSteps` suggests `init --agent --client vscode`.
+`--client claude,cursor,vscode,codex,gemini` (or `all`) replaces detection and needs `--agent`;
+an unknown id or an empty list fails with `INVALID_OPTION` and the accepted ids in
+`candidates`. `--dry-run` writes nothing, reports every file with the action it
+would take, and sets `dryRun: true`.
+
+In a file that already holds the section, the text between the markers is
+replaced with the current text and reported `updated`, or `unchanged` when it
+already matches; never put your own notes between the markers. Text outside the
+markers and other servers are kept, a rerun with the same verbatra leaves every
+file byte-identical, and a `verbatra` server that differs is left as it is and
+reported as `differs`. Never hand-edit a differing server back without asking the
+human. The record's `agent` field (`null` without the flag) lists every client
+under `agent.clients[]` as `{ id, file, server, reason, selectedBy, markers }`:
+`server` is `added`, `present`, `differs` or `skipped`, `reason` is `null`,
+`plugin` or `symlink`, and `selectedBy` is `flag`, `markers` or `default`.
+`agent.mcpServer` repeats the Claude Code client's `server`, and is `null` when
+Claude Code was not wired.
+
+When `.claude/settings.json` or `.claude/settings.local.json` enables the verbatra
+Claude Code plugin, `init` skips `.mcp.json` (`server: "skipped"`,
+`reason: "plugin"`), because the plugin brings its own server; it never deletes an
+existing entry, so if `.mcp.json` already names `verbatra`, tell the human to
+remove it or disable the plugin. Never install the plugin next to a `.mcp.json`
+`verbatra` entry yourself: the two register the server twice. A detected client
+whose file sits behind a symbolic link is skipped (`reason: "symlink"`); named
+with `--client`, the same file is refused with `AGENT_FILE_INVALID`.
+
 In a project that already has a config, run `verbatra init --agent --json` with
 no config flag and no `--force`: it keeps the config untouched (listed
 `unchanged`, `agent.configKept: true`, and `config`, `sources`, `apiKeyEnvVar`
@@ -605,12 +665,12 @@ Branch on the failure `code`, all of them exit `2`:
 | --- | --- |
 | `MISSING_OPTIONS` | Pass the flags listed in `missing`, or `--yes` to take the defaults. `--yes` cannot fill a flag without a default: `openai-compatible` still needs `--base-url` and `--model`, and `libretranslate` needs `--base-url`. |
 | `INVALID_PROVIDER`, `INVALID_FORMAT` | Pass one of the values listed in `candidates`. |
-| `INVALID_OPTION` | A flag does not fit the chosen provider, such as `--base-url` without `openai-compatible` or `libretranslate`, or `--cwd` names no existing directory. `doctor` raises it too, for `--locales` or `--live` together with `--literals`, and `check` for an empty `--file` or `--file` with `--locales`, `--consistency`, `--require-reviewed` or `--sensitive`. |
-| `INIT_UNWRITABLE` | `init` could not write a file into its directory, for example a read-only one. The message names the file, the file-system code and any file already written; tell the human rather than retrying. |
+| `INVALID_OPTION` | A flag does not fit the chosen provider, such as `--base-url` without `openai-compatible` or `libretranslate`, `--cwd` names no existing directory, or `--client` is given without `--agent`, empty or with an unknown id (`candidates` lists `claude`, `cursor`, `vscode`, `codex`, `gemini` and `all`). `doctor` raises it too, for `--locales` or `--live` together with `--literals` and for `--data-flow` together with `--literals`, `--locales` or `--live`, `pseudo` for an unknown `--mode`, and `check` for an empty `--file` or `--file` with `--locales`, `--consistency`, `--require-reviewed` or `--sensitive`. |
+| `INIT_UNWRITABLE` | `init` could not write a file into its directory, for example a read-only one, or `verbatra.config.ts`, `.env.example` or `.gitignore` is a symbolic link that resolves outside the project. The message names the file, the cause and any file already written; the hint says: Make the directory writable, or replace the symbolic link the message names with a plain file, then run `verbatra init` again. Tell the human rather than retrying. |
 | `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS` | Several fit; ask the human which of `candidates` is right and pass `--format` or `--path`. |
 | `CONFIG_EXISTS` | A `verbatra.config.ts` is already there (reported before any missing or ambiguous answer); an identical one passes as `unchanged`, a different one is refused; never add `--force` unless the human asked to replace it. Another config file verbatra would read first (or a `verbatra` key in `package.json`) is refused even with `--force`. |
 | `CONFIG_INVALID` | The answers do not form a valid config, including a `--source` or `--targets` locale that is not a BCP 47 code; the message says which field. |
-| `AGENT_FILE_INVALID` | With `--agent`: `.mcp.json` is not a JSON object with an `mcpServers` object, or the instruction file has unpaired or repeated verbatra markers. Nothing was written; show the human the message and let them fix the file. |
+| `AGENT_FILE_INVALID` | With `--agent`: a client's MCP config is not plain JSON (comments or trailing commas, as JSONC allows), is not an object, holds a non-object under its servers key or repeats a key, `.codex/config.toml` is TOML `init` cannot scan safely (an unterminated string, array or table header, or tables nested too deep) or defines `mcp_servers` or the verbatra server inline, with dotted keys, as an array of tables, or twice (the table or a key in it), the instruction file has unpaired or repeated verbatra markers, or a file sits behind a symbolic link `init` will not write through (an instruction file linking outside the project, a client file named with `--client`). The hint says: Repair the MCP config or the verbatra markers in the file the message names, or replace the symbolic link it names with a plain file, then run `verbatra init --agent` again. Show the human the message and let them fix the file by hand. |
 
 Re-running `init` with the same answers is safe: an identical
 `verbatra.config.ts` is reported `unchanged`, and a missing key variable is
@@ -690,9 +750,21 @@ makes `doctor` exit `1`; `warn` and `skipped` never change `ok` or the exit code
 The human report prints `[warn]` for such a check and ends with `no problems found`
 (`no problems found, 2 warnings` when checks warned). Every check but `config`
 reports `skipped` when `config` itself failed. With `--literals` the run has exactly two checks,
-`config` and `untranslated-literals`. Branch on `id`, never on `title` or
-`detail`. A failed check also carries `fix`, one imperative next step (printed as a
-`fix:` line in the human report); a passed or skipped check has none.
+`config` and `untranslated-literals`. With `--data-flow` it has exactly two too,
+`config` and `data-flow`, and `--data-flow` cannot be combined with `--literals`,
+`--locales` or `--live` (`INVALID_OPTION`, exit `2`). With `--json` the data-flow
+manifest is in `result.dataFlow`; its `version` is `1` and changes only when a
+field is renamed or removed, so ignore fields you do not know. Branch on `id`,
+never on `title` or `detail`. A failed check also carries `fix`, one imperative
+next step (printed as a `fix:` line in the human report); a passed or skipped
+check has none.
+
+### Checks that replace the setup run
+
+| Check id | What it answers |
+| --- | --- |
+| `untranslated-literals` | Only with `--literals`: the `extract` source roots hold no hardcoded user-facing string and no file the scan could not read; fails otherwise. |
+| `data-flow` | Only with `--data-flow`, informational: what is sent to which host and what is written locally. `pass`, or `warn` when the network policy refuses a host or holds an invalid value, or the source cannot be read for the counts; never `fail`. |
 
 ## Respelled locale codes
 
