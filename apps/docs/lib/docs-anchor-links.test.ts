@@ -6,8 +6,11 @@ import { readIncludedSource } from "@/lib/docs-pages";
 import { i18n, type Locale } from "@/lib/i18n";
 
 const CONTENT_DIR = join(import.meta.dirname, "../content/docs");
-const LINK_PATTERN =
-  /(?:\]\(|href="|href: ")(?:\/(?:de|es|fr)(?=\/docs))?(\/docs[^)"#\s]*)?#([^)"\s]+)[)"]/g;
+const TRANSLATED_LOCALES = i18n.languages.filter((lang) => lang !== i18n.defaultLanguage).join("|");
+const LINK_PATTERN = new RegExp(
+  `(?:\\]\\(|href="|href: ")(?:\\/(?:${TRANSLATED_LOCALES})(?=\\/docs))?(\\/docs[^)"#\\s]*)?#([^)"\\s]+)[)"]`,
+  "g",
+);
 
 type DocFile = { slug: string; locale: Locale; path: string };
 

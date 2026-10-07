@@ -652,7 +652,12 @@ describe("the types page lists exactly the output paths generateTypes refuses", 
   });
 });
 
-const REVIEW_FLAG_ROW = /^\| \[`([A-Z_]+)`\]\((?:\/(?:de|es|fr))?\/docs\/error-codes#[a-z_]+\) \|/;
+const TRANSLATED_LOCALES = LOCALE_SUFFIXES.filter(Boolean)
+  .map((suffix) => suffix.slice(1))
+  .join("|");
+const REVIEW_FLAG_ROW = new RegExp(
+  `^\\| \\[\`([A-Z_]+)\`\\]\\((?:\\/(?:${TRANSLATED_LOCALES}))?\\/docs\\/error-codes#[a-z_]+\\) \\|`,
+);
 
 function reviewFlagTable(page) {
   const lines = page.split("\n");

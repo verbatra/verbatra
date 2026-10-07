@@ -55,7 +55,11 @@ function rendered(id: StackId, suffix: string): string {
   );
 }
 
-const STACK_PAGE_LINK = /(?:href: "|\]\()(?:\/(?:de|es|fr))?\/docs\/quickstart\/([a-z]+)[")]/g;
+const TRANSLATED_LOCALES = i18n.languages.filter((lang) => lang !== i18n.defaultLanguage).join("|");
+const STACK_PAGE_LINK = new RegExp(
+  `(?:href: "|\\]\\()(?:\\/(?:${TRANSLATED_LOCALES}))?\\/docs\\/quickstart\\/([a-z]+)[")]`,
+  "g",
+);
 
 function linkedStackPages(file: string): string[] {
   const source = readFileSync(join(CONTENT_DIR, file), "utf8");

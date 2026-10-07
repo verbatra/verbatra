@@ -5,7 +5,8 @@ import { i18n } from "@/lib/i18n";
 import { mapProse } from "@/lib/markdown-links";
 
 const CONTENT_DIR = join(import.meta.dirname, "../content");
-const TRANSLATED = /\.(de|es|fr)\.(mdx|json)$/;
+const TRANSLATED_LOCALES = i18n.languages.filter((lang) => lang !== i18n.defaultLanguage).join("|");
+const TRANSLATED = new RegExp(`\\.(${TRANSLATED_LOCALES})\\.(mdx|json)$`);
 const LINK_TARGET = /(?:\]\(\s*|\bhref="|^\s*\[[^\]]+\]:\s*)(\/[^\s)"'#?]*)/g;
 const PROP_TARGET = /\bhref: "(\/[^"#?]*)/g;
 const DOCS_PATH = /^(?:\/([a-z]{2}))?\/docs(?:\/|$)/;
