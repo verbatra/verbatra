@@ -1,7 +1,7 @@
 ---
 name: arcjet
 license: Apache-2.0
-description: Add Arcjet security protection to any code path – HTTP route handlers, API endpoints, AI agent tool calls, MCP servers, background jobs, and queue workers. Covers rate limiting, bot detection, email validation, prompt injection detection, sensitive information blocking (including Rampart NER), content moderation, capture/flush, and abuse prevention. Works with JavaScript/TypeScript, Python, and Go across Next.js, Express, Fastify, SvelteKit, Remix, Bun, Deno, NestJS, FastAPI, Flask, net/http, Vercel AI SDK, Vercel Eve, Mastra, LangChain (Python and JS createAgent), LangGraph, CrewAI, OpenAI Agents, Genkit, and other non-HTTP contexts. Use this skill when the user wants to add security, rate limiting, bot protection, or abuse prevention to any part of their application – whether they say "protect my API," "rate limit tool calls," "block bots," "secure my endpoint," "add security to my MCP server," "guard this Mastra/Eve/LangGraph/LangChain createAgent/CrewAI/OpenAI Agents/Genkit/AI SDK agent," or "prevent abuse" without mentioning Arcjet specifically.
+description: Add Arcjet security protection to HTTP routes, AI agent tool calls, MCP servers, background jobs, and queue workers. Covers rate limiting, bot detection, email validation, prompt injection, sensitive information blocking (including Rampart NER), content moderation, capture/flush, remote Guard policies, typed inputs, and abuse prevention. Works in JavaScript/TypeScript, Python, and Go. HTTP frameworks share this skill. JS Guard adapters that ship on npm are per-adapter reference files loaded from Step 3 — do not keep the whole JS Guard reference in context. Official Python adapters (including Google ADK) have dedicated integrate-arcjet-guard skills, as do JS Cloudflare Think and Microsoft Agent Framework for Go. Use when the user wants security, rate limiting, bot protection, or abuse prevention – "protect my API," "rate limit tool calls," "block bots," "secure my endpoint," or "prevent abuse" – even without naming Arcjet.
 metadata:
   author: arcjet
 ---
@@ -13,6 +13,8 @@ metadata:
 - [Add Arcjet protection to your app](#add-arcjet-protection-to-your-app)
 - [Choose protections](#choose-protections)
 - [Resources](#resources)
+
+Python Guard adapters for LangChain, CrewAI, OpenAI Agents, Claude Agent SDK, Claude Managed Agents, Strands Agents, and Google ADK are dedicated skills (see Step 3). JS Guard adapters that ship on npm are per-file references under `references/guards_js_*.md`. JS Cloudflare Think is a dedicated skill (published `@arcjet/guard` plus peer `@cloudflare/think`). Shared fundamentals stay in [references/guards_javascript.md](references/guards_javascript.md) and [references/guards_python.md](references/guards_python.md).
 
 ## Add Arcjet protection to your app
 
@@ -31,6 +33,8 @@ If the project's server-side code is not JavaScript, TypeScript, Python, or Go �
 ### Step 2: Get an `ARCJET_KEY` into the project's env file
 
 Before writing any code, the project needs a real `ARCJET_KEY` in its env file. Don't write Arcjet code first and "leave the key as a TODO" – that just produces dead code. Get the key first, then wire it up.
+
+**Agent identity (when you need to register yourself, not a human browser login):** follow https://arcjet.com/auth.md exactly. Do not invent registration, claim, or token-exchange flows, and do not print secrets.
 
 **In order of preference:**
 
@@ -59,7 +63,7 @@ See [references/cli.md](references/cli.md) for install options beyond `npx`, age
 
 #### Install the SDK with the project's package manager
 
-Once you know which SDK you need (see Step 3), install it with the package manager the project already uses: `npm install`, `pnpm add`, `yarn add`, `bun add`, `pip install`, `uv add`, `poetry add`, or `go get`. Don't hand-edit `package.json` / `requirements.txt` / `go.mod` and guess a version: typed versions tend to be wrong (`arcjet>=1.0.0` doesn't exist for the Python SDK; `^1.0.0` is stale for `@arcjet/next`; Go must use the module tag, not a copied pseudo-version), and the lockfile/module metadata won't get updated. Let the package manager pick the real version and pin it.
+Once you know which SDK you need (see Step 3), install it with the package manager the project already uses: `npm install`, `pnpm add`, `yarn add`, `bun add`, `pip install`, `uv add`, `poetry add`, or `go get`. Don't hand-edit `package.json` / `requirements.txt` / `go.mod` and guess a version: typed versions go stale (`@arcjet/next` is currently `1.13.0`; Python `arcjet` is `1.2.0`; Go must use a module tag, not a copied pseudo-version), and the lockfile/module metadata won't get updated. Let the package manager pick the real version and pin it.
 
 ### Step 3: Detect protection type and read the reference
 
@@ -71,9 +75,11 @@ Determine which protection type applies:
 | **JS/TS SDK** | Framework adapters such as `@arcjet/next`, `@arcjet/node`, `@arcjet/fastify` | `@arcjet/guard` |
 | **Python SDK** | `arcjet` (with `arcjet()` / `arcjet_sync()`) | `arcjet` (with `launch_arcjet()` / `launch_arcjet_sync()`) |
 | **Go SDK** | `github.com/arcjet/arcjet-go` (with `NewClient`) | `github.com/arcjet/arcjet-go` (with `NewGuardClient`) |
-| **Entry point** | `protect(request)` / `Protect(ctx, r)` | `guard(label, rules)` / `Guard(ctx, request)` |
+| **Entry point** | `protect(request)` / `Protect(ctx, r)` | Core JS `guard({ label, rules })`; Python `guard(label, …)`; Go `Guard(ctx, request)`. Wrappers take `action`, not `label`. |
 
-A single project can use both – for example, request-based on API routes and Guard on agent tool calls. If the project already uses Vercel AI SDK, Vercel Eve, Mastra, LangChain, LangGraph, CrewAI, OpenAI Agents, or Genkit, prefer the versioned Guard wrappers in the language reference over hand-wrapping every tool. In Python, that is `guard_action` / `guard_tool` / `ArcjetMiddleware` / `arcjet.guard.crewai` (see the Python Guard reference) – not a raw `guard()` around every callable. JS LangChain `createAgent` is `@arcjet/guard/langchain/v1`, not the LangGraph Graph API adapter.
+A single project can use both – for example, request-based on API routes and Guard on agent tool calls. If the project already uses a supported agent framework, prefer the official wrapper over hand-wrapping every tool. In Python, load the dedicated skill (table below) — not a raw `guard()` around every callable, and not the JS `@arcjet/guard/...` path. In JavaScript, load fundamentals plus **exactly one** adapter from the JS table — not the sibling adapters. Cloudflare Think loads [integrate-arcjet-guard-cloudflare-think](../integrate-arcjet-guard-cloudflare-think/SKILL.md) from that table, not a `guards_js_*.md` file and not `@arcjet/guard/vercel-ai/v7`. Install published `@arcjet/guard` plus the `@cloudflare/think` peer. In Go, load the Microsoft Agent Framework skill when that framework is present; otherwise use `GuardAction` from the Go Guard reference.
+
+**Coding-agent hooks (Claude Code / GitHub Copilot) are a third path.** There is no SDK and no `guard()` call. Publishing a policy attached to **Execute on** (Tool call, Prompt, or Model switch) turns it on. Install the HTTP hooks from https://docs.arcjet.com/coding-agents — copy the templates, do not invent URLs. Hook URLs must not name a policy and must omit `?surface=` (managed settings reach CLI, IDE, Desktop, and cloud; a hard-coded `cli` mislabels most traffic). Author the policy via MCP ([references/mcp.md](references/mcp.md)).
 
 **Common misclassifications to watch for:**
 
@@ -87,9 +93,29 @@ Read the appropriate reference:
 - **Request-based JS/TS**: [references/requests_javascript.md](references/requests_javascript.md)
 - **Request-based Python**: [references/requests_python.md](references/requests_python.md)
 - **Request-based Go**: [references/requests_go.md](references/requests_go.md)
-- **Guard JS/TS**: [references/guards_javascript.md](references/guards_javascript.md)
+- **Guard JS/TS fundamentals**: [references/guards_javascript.md](references/guards_javascript.md) — then exactly one adapter file from the table in that file (source of truth; do not copy it here)
 - **Guard Python**: [references/guards_python.md](references/guards_python.md)
 - **Guard Go**: [references/guards_go.md](references/guards_go.md)
+
+When the project already uses an official JS agent framework, open the fundamentals file and load **exactly one** adapter from its table. Do not open sibling adapters. Cloudflare Think is the dedicated-skill exception: load that skill from the table.
+
+When the project already uses an official Python agent framework, load the dedicated skill instead of the long adapter sections that used to live in the Python Guard reference:
+
+| Python framework | Import | Skill |
+| --- | --- | --- |
+| LangChain (`BaseTool` / `create_agent`) | `arcjet.guard.langchain` | [integrate-arcjet-guard-langchain-py](../integrate-arcjet-guard-langchain-py/SKILL.md) |
+| CrewAI | `arcjet.guard.crewai` | [integrate-arcjet-guard-crewai](../integrate-arcjet-guard-crewai/SKILL.md) |
+| OpenAI Agents | `arcjet.guard.openai_agents` | [integrate-arcjet-guard-openai-agents-py](../integrate-arcjet-guard-openai-agents-py/SKILL.md) |
+| Claude Agent SDK | `arcjet.guard.claude_agent_sdk` | [integrate-arcjet-guard-claude-agent-sdk-py](../integrate-arcjet-guard-claude-agent-sdk-py/SKILL.md) |
+| Claude Managed Agents | `arcjet.guard.claude_managed_agents` | [integrate-arcjet-guard-claude-managed-agents-py](../integrate-arcjet-guard-claude-managed-agents-py/SKILL.md) |
+| Strands Agents | `arcjet.guard.strands_agents` | [integrate-arcjet-guard-strands-agents-py](../integrate-arcjet-guard-strands-agents-py/SKILL.md) |
+| Google ADK (`LlmAgent` / `Runner`) | `arcjet.guard.google_adk` | [integrate-arcjet-guard-google-adk-py](../integrate-arcjet-guard-google-adk-py/SKILL.md) |
+
+When the project is Go and already uses Microsoft Agent Framework for Go, load the dedicated skill:
+
+| Go framework | Surfaces | Import | Skill |
+| --- | --- | --- | --- |
+| Microsoft Agent Framework | `functool`, `mcptool`, `agent.Config.Middlewares` | `github.com/arcjet/arcjet-go/agentframework` | [integrate-arcjet-guard-agent-framework-go](../integrate-arcjet-guard-agent-framework-go/SKILL.md) |
 
 These references explain architectural decisions and patterns that can't be inferred from the source code alone. For exact API signatures, read the installed package's types and doc comments.
 
@@ -105,38 +131,33 @@ Follow the patterns in the reference file from Step 3. Key principles:
 - Call `protect()` / `Protect()` inside each route handler (not in app-level middleware), once per request.
 - Map denial reasons to HTTP responses. Only branch on reasons that produce a *different* response – there is no point in a Shield-specific arm that returns the same status as the default 403.
 - Put the language's `userId` characteristic selector on the specific rule that needs it, then pass a **trusted, authenticated** user ID at protection time. Never rate limit by a client-controlled header unless a trusted proxy strips and rewrites it.
-- If the application already has a trusted client IP, pass it explicitly: `ipSrc` (JS), `ip_src` (Python – also set `disable_automatic_ip_detection=True`), `WithIPSrc` (Go). The SDK trusts the value; do not pass a client-controlled header.
+- Treat client-IP provenance as security configuration. JavaScript, Python, and Go may fall back to common forwarding headers when no usable public address is available and produce one `client_ip_provenance="unverified-header"` warning for the lifetime of each SDK client instance. Configure every trusted proxy and verify the application is reachable only through infrastructure that overwrites or safely appends forwarding headers. Never silence the warning by copying a client-controlled header into a manual override.
+- If the application already has an independently trusted client IP, pass it explicitly: `ipSrc` (JS), `ip_src` (Python; also set `disable_automatic_ip_detection=True` when constructing the client), or `WithIPSrc` (Go). The SDKs reject malformed values, although JS treats an empty `ipSrc` as omitted. Syntax validation does not prove provenance. Before shipping, inspect representative requests with JS `clientIpDetails()` / `findIpDetails()`, Python `client_ip_details()`, or Go `ClientIPDetails()`.
 - `protect()` accepts nested-JSON `metadata` (same shape as Guard). It does not affect fingerprinting. Do not put secrets or PII in it. When present, request decisions also expose optional IP threat intelligence (`decision.ip.threat` / `ip_details.threat` / `IP.Threat`).
 
 #### Guard (non-HTTP code):
-- Client at module scope with `launchArcjet()` (JS) or `launch_arcjet()` / `launch_arcjet_sync()` (Python – pick async vs sync to match the function you're protecting).
-- In Go, create one `NewGuardClient` at package scope.
-- Rules declared at module scope. Give each rule a meaningful `label` so they show up usefully in the Console.
-- **One `guard()` call per specific operation, with a hardcoded `label`** like `"tools.get-weather"` or `"queue.summarize"`. Put it wherever you already know exactly what's happening – that can be inside the tool/task function itself, or right before calling it from a dispatch arm. Both work; pick whichever makes error propagation cleaner. What to avoid is the generic-dispatcher pattern (`handleToolCall(name, args)` calling `guard(label=f"tools.{name}")`) – interpolated labels break grep and produce messy Console groupings.
-- **Label naming rules**: labels are validated server-side as slugs – **lowercase letters, digits, dash (`-`), and dot (`.`) only**, must start and end with a letter or digit, max 256 bytes. Underscores, uppercase, and slashes are rejected. Use `tools.get-weather`, not `tools.get_weather` or `Tools.GetWeather`.
-- **Pass `metadata` on the `guard()` call** when you have useful auditing context. It is nested JSON – objects, arrays, numbers, booleans – not a flat string map (`metadata={ user: { id: userId }, requestId }`). It appears in the Console and does not affect the decision. Do not put secrets or PII in it.
-- **`capture()` records what happened** after an action (refund issued, tool completed). It is visibility data, never a security decision – it does not deny and never sets `hasFailedOpen()`. Call `flush()` on shutdown so the last batch is not lost. On serverless, pass a platform `waitUntil` (JS) or flush at the end of the invocation. On Python `guard_action` / `guard_tool` / `ArcjetMiddleware`, `success` is not "the action ran" – see the Python Guard reference.
-- **Optional registration (JS/Python only):** `registerArcjet` / `register_arcjet` is a separate call from launch. It enables free `guard()` / `capture()` / `flush()` when you cannot thread a client. Free `guard()` fail-opens if nothing is registered – check `hasFailedOpen()` / `has_failed_open()`; do not treat that ALLOW as a pass. Go has no registration API; pass the client. Prefer an explicit client everywhere you can.
-- **JS framework wrappers** (`@arcjet/guard/vercel-ai/v7`, `@arcjet/guard/vercel-eve/v0`, `@arcjet/guard/mastra/v1`, `@arcjet/guard/langgraph/v1`, `@arcjet/guard/langchain/v1`, `@arcjet/guard/claude-agent-sdk/v0`, `@arcjet/guard/openai-agents/v0`, `@arcjet/guard/genkit/v1`) fail closed by default when Guard is unavailable. Import the versioned path – unversioned aliases do not resolve. JS `createAgent` (`@arcjet/guard/langchain/v1`) is not Python LangChain and not LangGraph JS.
-- **Python framework wrappers** (`guard_action` / `guard_tool` / `ArcjetMiddleware` / `ArcjetCaptureHandler` / `arcjet.guard.crewai`) fail closed by default when Guard is unavailable. Pick the helper that matches what you hold – any callable → `guard_action` / `guard_action_sync` (core `arcjet.guard`); a LangChain `BaseTool` you call → `guard_tool` (`arcjet[langchain]`, `langchain-core>=1.2.5,<2`); `create_agent` → `ArcjetMiddleware` + `ToolPolicy` (`arcjet[langchain-agents]`, `langchain>=1.3` / `langgraph>=1.2`); observe a chain → `ArcjetCaptureHandler` (`arcjet[langchain]` – cannot deny); official CrewAI crew / LiteAgent / MCP → `register_arcjet_hooks` + `ToolPolicy`; a CrewAI `BaseTool` you call yourself → `guard_tool` (`arcjet.guard.crewai`). There is no `arcjet[crewai]` extra (CrewAI pulls `chromadb`, CVE-2026-45829) — install `crewai>=1.15.3,<2` yourself. Importing `arcjet.guard.langchain` does not load LangGraph. Importing `arcjet.guard.crewai` does not load LangChain.
-- **Eve `guardApproval`:** `approval` is one field – a function (request-time only) or `{ request, response }`. Optional peer `eve` `>=0.34.0 <1` (still 0.x); Node.js ≥ 24 still applies. Do not compose with Eve `always()` / `once()` / `never()`. Request/response + HITL details are in the JS Guard reference.
-- **OpenAI Agents:** import `@arcjet/guard/openai-agents/v0` (`guardTool` + `openaiAgentsContext` only). Text `Agent` + `run()` + authored `tool()` – not Realtime, Sandbox, hosted, MCP, or `asTool`. Screen inbound before `run()` and act on that `guard()` decision: core `guard()` fails open, so ALLOW is not proof the rules ran. Details in the JS Guard reference.
-- **Genkit:** import `@arcjet/guard/genkit/v1` (`guardTool` + `guardMiddleware` + `genkitContext` only). JS `genkit()` + `ai.defineTool` + `ai.generate` – not Go / Python Genkit. Authored tools via `guardTool`; filesystem / MCP / unwrapped via `guardMiddleware` on `generate({ use })` (needs Genkit >= 1.33). Screen inbound before `generate()` / `chat.send()` and act on that `guard()` decision: core `guard()` fails open, so ALLOW is not proof the rules ran. Details in the JS Guard reference.
-- **LangChain JS `createAgent`:** import `@arcjet/guard/langchain/v1` (`guardTool` + `guardMiddleware` + `langchainContext` only). JS `createAgent` + `createMiddleware({ wrapToolCall })` – not LangGraph `StateGraph`/`ToolNode`, not Python LangChain (`/guards/langchain/`). Optional peers `langchain` `>=1.2.0 <2` and `@langchain/core` `>=1 <2`; no `@langchain/langgraph` peer; no unversioned alias. Authored tools via `guardTool` (plain `ArcjetDenialResult`); unwrapped / MCP via `guardMiddleware` (`wrapToolCall` short-circuit returns a real `ToolMessage`, JSON content, default status). Policy on `wrapToolCall` only. `wrapToolCall` only sees `runtime.configurable.thread_id` as of langchain 1.2.34. `humanInTheLoopMiddleware` is HITL, not a policy gate. A resumed run keeps its `thread_id` (`agent.invoke(new Command({ resume }), config)` — same config, same Sequence); do not mint an id or derive one from the interrupt / resume payload. Until-published — pin `@arcjet/guard` to git SHA `c49abcc1f9afce7d284b6c294d0dcee5916ada86` ([#6248](https://github.com/arcjet/arcjet-js/pull/6248)); not in npm 1.10.0. Details in the JS Guard reference; docs https://docs.arcjet.com/guards/langchain-js/.
-- **CrewAI:** import `arcjet.guard.crewai`. There is no `arcjet[crewai]` extra (CrewAI pulls `chromadb`, CVE-2026-45829) — install `crewai>=1.15.3,<2` yourself. Official `crewai` only. Once-per-process `register_arcjet_hooks` / `unregister_arcjet_hooks` / `ArcjetCrewAIHooks` on `PRE_TOOL_CALL` only (POST is never registered; sync; `launch_arcjet_sync`). DENY + fail-closed unavailable raise `HookAborted(reason=..., source="arcjet")`. Agent always sees `Tool execution blocked by hook. Tool: {name}`. Optional `guard_tool` for a standalone `BaseTool` you call yourself (only path that raises `ArcjetDeniedError` / `ArcjetUnavailableError`). `ToolPolicy` / `sanitize_tool_name` / `free_text_arguments`. No `guard_crew`. No inbound/approval helper — screen with core `guard` / `guard_sync` before `crew.kickoff`. `human_input` is HITL. Until-published — pin `arcjet` to git SHA `b1253640ce676b948594beed5fe62450d0e1c77d` ([#224](https://github.com/arcjet/arcjet-py/pull/224)); not in PyPI 0.9.0. Details in the Python Guard reference; docs https://docs.arcjet.com/guards/crewai/.
-- **Branch on which rule denied**, not just on `DENY`. Use the per-rule accessors (for example `userLimit.deniedResult(decision)` for retry-after info) or the flat reason string (`decision.reason === "PROMPT_INJECTION"` in JS, `decision.reason == "PROMPT_INJECTION"` in Python) so the error you surface to the caller tells them *why* – "rate limited, retry in 12s" vs "input flagged as prompt injection" – instead of a generic "blocked." Note: guard's `decision.reason` is a flat string literal, unlike the request-based SDK's tagged-helper API. It is `undefined` on ALLOW – typed `Reason | undefined` in JS – so read it after checking the conclusion, or a `strict` build rejects assigning it to a `string`.
-- **A denial by one rule still spends the others' budget.** Rules in a single
-  `guard()` call are all evaluated, so a request that trips
-  `localDetectSensitiveInfo` also consumes a token from a `tokenBucket` in the
-  same `rules` array – visible as `TOKEN_BUCKET` ALLOW with a decremented
-  `remaining` on a decision whose conclusion is DENY. Fine for the usual case
-  (a caller sending PII is a caller you are happy to slow down); split the
-  rules across two `guard()` calls if a PII false positive must not drain a
-  legitimate user's budget.
-- Every rate-limit rule needs a `key` and a `bucket`:
-  - **Per-user context** (agent tool calls inside a logged-in session, queue jobs with a `user_id`): use the user/session id as the key.
-  - **No user context** (stdio MCP server, single-tenant worker): use a stable identifier you control – instance id, deployment name, or a literal like `"default"`. Just be explicit.
-- Check `decision.conclusion === "DENY"` (JS), `decision.conclusion == "DENY"` (Python), or `decision.IsDenied()` / `decision.Conclusion == arcjet.ConclusionDeny` (Go) before proceeding.
+- Client at module scope: `launchArcjet()` (JS), `launch_arcjet()` / `launch_arcjet_sync()` (Python – match async vs sync), `NewGuardClient` (Go).
+- Rules at module scope. **One `guard()` per operation with a hardcoded slug label** (`tools.get-weather`). Interpolated labels break grep and Console grouping. Slugs: lowercase letters, digits, `-`, `.`, `_` only; start and end with a lowercase letter or digit; max 256 bytes.
+- `metadata` is nested JSON for audit only. No secrets or PII. `capture()` is visibility, never a decision – flush on shutdown. Python helper `success` is not "the action ran" – see the Python Guard reference.
+- Free `guard()` (JS/Python registration) fail-opens if nothing is registered. Go has no registration API. Prefer an explicit client.
+- Prefer official wrappers over hand-wrapping. Import the **versioned** JS path and load that adapter file from Step 3. Load the dedicated Python skill from Step 3. Unversioned `@arcjet/guard/<adapter>` aliases do not resolve.
+- **Branch on which rule denied**, not just `DENY`. Guard `decision.reason` is a flat string (`"PROMPT_INJECTION"`) and is `undefined` on ALLOW. A denial by one rule still spends the others' budget in the same `rules` array – split calls if a PII false positive must not drain a rate limit.
+- Every rate-limit rule needs a `key` and a `bucket`. Use a trusted user/session id when you have one; otherwise a stable identifier you control.
+
+**JS adapters:** wrappers fail closed; core `guard()` fails open. Load the Step 3 file (or the Cloudflare Think skill) for the project's framework. `npm install @arcjet/guard` or `pnpm add @arcjet/guard` is enough for every published adapter — plus `actor` / `inputs` / `validateGuardLabel`. Cloudflare Think is the same published `@arcjet/guard` install plus peer `@cloudflare/think`; load [integrate-arcjet-guard-cloudflare-think](../integrate-arcjet-guard-cloudflare-think/SKILL.md). Do not pin a git SHA.
+
+**Python:** `guard_action` / `guard_action_sync` is core. Load the dedicated skill for the project's extra (`arcjet[langchain]`, `arcjet[langchain-agents]`, `arcjet[openai-agents]`, `arcjet[claude-agent-sdk]`, `arcjet[claude-managed-agents]`, `arcjet[strands-agents]`, `arcjet[google-adk]`). There is no `arcjet[crewai]` extra. `validate_guard_label` and adapter `actor` / `inputs` are in PyPI `arcjet` **1.2.0**. Google ADK is `pip install "arcjet[google-adk]"` or `uv add "arcjet[google-adk]"` — load [integrate-arcjet-guard-google-adk-py](../integrate-arcjet-guard-google-adk-py/SKILL.md). Do not pin a git SHA.
+
+**Traps that run without error and enforce nothing** (full write-up in the Guard references and https://docs.arcjet.com/llms.txt):
+
+- Guard has no `sensitiveInfo` rule – that is HTTP `protect()` only. Use `localDetectSensitiveInfo` / `LocalDetectSensitiveInfo`.
+- Python `LocalDetectSensitiveInfo()` with neither `allow` nor `deny` fail-opens as ALLOW (`AJ1203`). Always pass a list. JS works with no args; still pass a list.
+- The sensitive-info rule does **not** inherit the client's backend. Entity types beyond `EMAIL` / `PHONE_NUMBER` / `IP_ADDRESS` / `CREDIT_CARD_NUMBER` need `backend` on the rule. Share one Rampart instance with the client.
+- A label the service will not match reads as `ALLOW` with `hasFailedOpen()` / `has_failed_open()` false, so the guard silently does not run. `@arcjet/guard` 1.13.0 and PyPI `arcjet` 1.2.0 refuse one up front: adapter factories throw / raise `ArcjetInvalidLabelError`, and a capture warns `AJ1023` and still sends. Check a label you build yourself with `validateGuardLabel` / `validate_guard_label`.
+- A remote policy that declares `actor` or typed `inputs` only fires if this call sends them. Import `policyInput` from `@arcjet/guard` (not an adapter path). Python uses `server_input` / `local_input`. Check installed types — do not pass fields a helper does not declare.
+- A missing decision is not a denial. If the model asks a question or masks values itself, Guard never runs. Verify in Console/CLI.
+- Guarding one tool only helps if it is the only path. Claude Agent SDK needs `settingSources: []` / `setting_sources=[]` **and** `strictMcpConfig: true` / `strict_mcp_config=True`.
+- HITL (`needsApproval`, `human_input`, `can_use_tool`, `event.interrupt()`, `always_ask`) is not a policy gate.
 
 #### Conventions outside the Arcjet flow
 
@@ -150,8 +171,8 @@ After wiring up protection, confirm it's actually firing. Three steps:
 
 **2. Trigger a real call so a decision exists to check.** Without one, the Console and CLI are empty and you can't tell whether protection is actually wired up.
 
-- **Request-based**: start the dev server (`npm run dev`, `uvicorn main:app --reload`) and `curl` the protected route. To trip a rate limit, loop the call: `for i in {1..50}; do curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/api/your-route; done` – expect a mix of `200` and `429` once the limit is hit.
-- **Guard**: invoke the protected function directly. A small script that imports the tool or task function and calls it twice (once to allow, once to exceed the limit) is a direct check: `node -e "import('./src/tools.js').then(m => m.getWeather('SF', 'user_123'))"` or `python -c "from worker import process_job; process_job({'user_id': 'user_123'})"`. For MCP servers, send a tool call via the MCP client or inspector. For queue workers, enqueue a real job. Don't try to test Guard by `curl`ing anything – there's no HTTP surface.
+- **Request-based**: start the dev server (`npm run dev`, `uvicorn main:app --reload`) and `curl` the protected route with the method the route actually accepts (`curl -I` is HEAD – FastAPI GET-only routes answer 405, not the documented 403). Empty `bots.allow` / `allow=[]` denies `CURL` before later rules run – temporarily `allow: ["CURL"]` when you need to reach email or rate-limit checks, then drop it. To trip a rate limit: `for i in {1..50}; do curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/api/your-route; done`.
+- **Guard**: invoke the protected function so a decision exists. A missing decision is not a denial – read Console/CLI, not the absence of a side effect. Don't test Guard by `curl`ing anything.
 
 **3. Confirm the decision in the Arcjet platform.**
 
@@ -165,14 +186,14 @@ If you can't run the app in the current environment, tell the user exactly what 
 
 ### Gotchas
 
-- **Wrong SDK/client**: `@arcjet/guard`, `arcjet.guard`, and Go's `NewGuardClient` are for non-HTTP code. `@arcjet/node` / `@arcjet/next` / Python `arcjet()` / Go `NewClient` are for HTTP routes. Using the wrong one is the most common mistake.
+- **Wrong SDK/client**: `@arcjet/guard`, `arcjet.guard`, and Go's `NewGuardClient` are for non-HTTP code. `@arcjet/node` / `@arcjet/next` / Python `arcjet()` / Go `NewClient` are for HTTP routes.
 - **Wrong placement**: `protect()` must not be called in Express middleware or Next.js middleware. Call it inside each route handler.
-- **Wrong layer for `guard()`**: don't put `guard()` in a `handleToolCall(name, args)` dispatcher – put it inside each specific tool / task function so the `label` and metadata can be hardcoded. In Python LangChain / `create_agent`, use the helper from the Python Guard reference instead of hand-wrapping. JS `createAgent` uses `@arcjet/guard/langchain/v1`, not `@arcjet/guard/langgraph/v1`. Official CrewAI uses `register_arcjet_hooks` (crew-executed tools) or `arcjet.guard.crewai.guard_tool` (a `BaseTool` you call yourself) – not a raw `guard()` in every tool, and not `guard_crew`.
-- **Python capture handlers never block**: `ArcjetCaptureHandler` only records. Policy lives in `guard_action` / `guard_tool` / `ArcjetMiddleware`. CrewAI never registers `POST_TOOL_CALL`; the gate is `PRE_TOOL_CALL` + `HookAborted(reason=..., source="arcjet")`.
-- **Python helper `success` is not "the action ran"**: `guard_action` / `guard_tool` / `ArcjetMiddleware` write `metadata.outcome`. `success` means the action ran and policy judged all of it. When `on_guard_error="allow"` lets an action run without a full judgement, that event is `degraded` (`degraded` + `decision_id` = judged in part; without an id = judged not at all). `error` wins over `degraded` – do not count a throwing action in a degraded tally. Default `"deny"` still blocks those cases and records `unavailable`. Filter `degraded` and `unavailable` for post-incident review. This is not a Decision field, conclusion, or new `on_guard_error` value. Do not teach CrewAI `register_arcjet_hooks` as recording `degraded` — a proceed there is still `success`. Details in the Python Guard reference.
-- **Hand-edited dependency manifests**: don't append `"arcjet": "^1.0.0"` to `package.json` or `arcjet>=1.0.0` to `requirements.txt`. Run the project's package manager so the version is real and the lockfile updates.
-- **Double-counting**: Calling `protect()` or `guard()` multiple times for the same operation counts against rate limits multiple times.
-- **JS denial envelopes:** one shared `ArcjetDenialResult` payload (`{ arcjetDenied: true, … }`, wording `"Arcjet denied this call …"`). Delivery is per-framework – AI SDK / Mastra / OpenAI Agents return the object (a throw drops the fields); Genkit returns it as completed `toolResponse.output` (a throw drops the fields; `interrupt()` is HITL, not a denial); Claude wraps it in a MCP `CallToolResult` with `isError: true` (a throw is a raw exception; omitting `isError` looks like success); LangGraph Graph API returns the object so `ToolMessage.status` is `success` (do not fabricate `status: "error"`); LangChain JS `createAgent` `guardTool` returns a plain `ArcjetDenialResult` and `guardMiddleware` `wrapToolCall` short-circuit returns a real `ToolMessage` (JSON content, default status; a throw drops the fields; `humanInTheLoopMiddleware` is HITL); Eve `guardTool` still throws `ArcjetDeniedError` (opt in to a returned payload with `onDeny: "result"`). `guardTool` and `guardAction` are different handlers – envelope vs throw. Details in the JS Guard reference.
+- **Wrong layer for `guard()`**: don't put `guard()` in a generic dispatcher. Use the official wrapper from the table above, or put `guard()` inside the specific tool. Load the dedicated Python skill instead of hand-wrapping.
+- **Python adapter denials and HITL:** load the dedicated skill. Capture handlers never block. HITL is not a policy gate. Helper `metadata.outcome` details live in the Python Guard reference.
+- **Hand-edited dependency manifests**: run the project's package manager so the version is real (`@arcjet/*` 1.13.0, Python `arcjet` 1.2.0).
+- **Double-counting**: calling `protect()` or `guard()` multiple times for the same operation counts against rate limits multiple times.
+- **Client-IP warning bypass**: never "fix" an `unverified-header` warning by copying `X-Forwarded-For` into `ipSrc` / `ip_src` / `WithIPSrc`.
+- **JS denial envelopes:** one `ArcjetDenialResult` payload; delivery is per-framework. Read the adapter file from Step 3 before inventing a status or throwing. `guardTool` and `guardAction` are different handlers.
 - **Never hardcode `ARCJET_KEY`** – always use environment variables.
 
 ## Choose protections
@@ -184,7 +205,11 @@ When you need to pick which rules address the user's concern – bot abuse, rate
 For exact API signatures, parameter names, and the full set of rules and helpers, read the installed SDK's source – types and docstrings are the source of truth:
 
 - **Python SDK**: https://github.com/arcjet/arcjet-py – `arcjet` package (request protection) and `arcjet.guard` subpackage (non-HTTP guard).
-- **JavaScript / TypeScript SDK**: https://github.com/arcjet/arcjet-js – monorepo with framework-specific packages (`@arcjet/next`, `@arcjet/node`, `@arcjet/fastify`, `@arcjet/sveltekit`, `@arcjet/guard`).
-- **Go SDK**: https://github.com/arcjet/arcjet-go – `github.com/arcjet/arcjet-go` module with request and guard clients. The published tag is `v0.1.0`; APIs described in the Go references live on the default branch.
+- **Python Guard integration skills**: [integrate-arcjet-guard-langchain-py](../integrate-arcjet-guard-langchain-py/SKILL.md), [integrate-arcjet-guard-crewai](../integrate-arcjet-guard-crewai/SKILL.md), [integrate-arcjet-guard-openai-agents-py](../integrate-arcjet-guard-openai-agents-py/SKILL.md), [integrate-arcjet-guard-claude-agent-sdk-py](../integrate-arcjet-guard-claude-agent-sdk-py/SKILL.md), [integrate-arcjet-guard-claude-managed-agents-py](../integrate-arcjet-guard-claude-managed-agents-py/SKILL.md), [integrate-arcjet-guard-strands-agents-py](../integrate-arcjet-guard-strands-agents-py/SKILL.md), [integrate-arcjet-guard-google-adk-py](../integrate-arcjet-guard-google-adk-py/SKILL.md).
+- **JS Cloudflare Think skill**: [integrate-arcjet-guard-cloudflare-think](../integrate-arcjet-guard-cloudflare-think/SKILL.md).
+- **JavaScript / TypeScript SDK**: https://github.com/arcjet/arcjet-js – monorepo with framework-specific packages (`@arcjet/next`, `@arcjet/node`, `@arcjet/fastify`, `@arcjet/sveltekit`, `@arcjet/guard`). JS Guard adapter files: [references/guards_js_vercel_ai.md](references/guards_js_vercel_ai.md) and siblings listed in Step 3.
+- **Go SDK**: https://github.com/arcjet/arcjet-go – `github.com/arcjet/arcjet-go` module with request and guard clients. `go get github.com/arcjet/arcjet-go` resolves **v1.0.0** (Go 1.25+). Microsoft Agent Framework helpers live in a separate module: `go get github.com/arcjet/arcjet-go/agentframework` resolves **v0.1.0** and needs Go 1.26+.
+- **Guard policies**: author and publish via MCP (`list-guard-policies` / `describe-guard-policy` / `validate-guard-policy` / `put-guard-policy`). The CLI has no policy commands. Application policies select by `label` / `action`. Coding-agent policies attach by **Execute on** (Tool call, Prompt, or Model switch); publishing turns them on — the hook URL must not name a policy and must omit `?surface=`. Install templates: https://docs.arcjet.com/coding-agents.
+- **Agent registration**: https://arcjet.com/auth.md — follow that file; do not reproduce the ceremony here.
 - **Docs**: https://docs.arcjet.com – narrative guides, blueprints, and product reference.
 - **Console**: https://console.arcjet.com – sites, keys, and decision history.
