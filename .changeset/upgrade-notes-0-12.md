@@ -5,6 +5,11 @@
 
 Upgrading from 0.11: rejected config, rewritten files, new exit codes and SDK type breaks.
 
+**Node.js**
+- `@verbatra/sdk` and `@verbatra/cli` need Node.js `>=22.18.0`; 0.11 accepted `>=22.14.0`. On 22.14
+  to 22.17, npm warns about the engine or refuses to install under `engine-strict`. Upgrade Node.js
+  to 22.18.0 or newer.
+
 **Config that loaded in 0.11 and now fails with `CONFIG_INVALID`**
 - Locale codes must be BCP 47. For an underscore spelling such as `pt_BR`, write `pt-BR` and set
   `files.localeStyle: "posix"`: files keep their paths, and the next `translate` carries the

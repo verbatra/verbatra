@@ -70,7 +70,7 @@ jobs:
         if: steps.key.outputs.present == 'true'
         uses: ./.github/actions/setup-workspace
         with:
-          node-version: "22.14.0"
+          node-version: "22.18.0"
 
       - name: Build
         if: steps.key.outputs.present == 'true'

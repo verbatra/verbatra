@@ -29,7 +29,7 @@ Ces pages cataloguent toute la surface publique, groupée par la tâche de chaqu
 npm install --save-dev @verbatra/sdk
 ```
 
-Requiert Node.js `>=22.14.0`.
+Requiert Node.js `>=22.18.0`.
 
 Avec pnpm, `pnpm add --save-dev @verbatra/sdk` installe correctement mais se termine avec le code `1` et `ERR_PNPM_IGNORED_BUILDS` : pnpm bloque les scripts d'installation du SDK Gemini embarqué et de son `protobufjs`, et laisse un `pnpm-workspace.yaml` sans réponse qui fait échouer de la même façon toutes les commandes pnpm suivantes du projet. Lance `pnpm approve-builds` une fois sans approuver aucune des deux entrées, ou consulte le [Dépannage](/docs/troubleshooting) pour la solution non interactive. Il n'y a pas de raccourci `npx` pour contourner ça comme il en existe un pour la CLI, puisque tu importes une bibliothèque au lieu de lancer un binaire.
 

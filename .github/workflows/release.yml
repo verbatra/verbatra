@@ -31,7 +31,7 @@ jobs:
       - name: Set up workspace
         uses: ./.github/actions/setup-workspace
         with:
-          node-version: "22.14.0"
+          node-version: "22.18.0"
 
       - name: Build
         run: pnpm turbo run build --filter=@verbatra/sdk --filter=@verbatra/cli --filter=@verbatra/studio --filter=@verbatra/mcp
@@ -59,7 +59,7 @@ jobs:
       - name: Set up workspace
         uses: ./.github/actions/setup-workspace
         with:
-          node-version: "22.14.0"
+          node-version: "22.18.0"
           registry-url: "https://registry.npmjs.org"
 
       - name: Build
@@ -95,7 +95,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: "22.14.0"
+          node-version: "22.18.0"
 
       - name: Verify published packages reached npm
         run: node scripts/verify-npm-publish.mjs
@@ -121,7 +121,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: "22.14.0"
+          node-version: "22.18.0"
 
       - name: Check server.json matches the published package
         run: node scripts/mcp-server-json.mjs check

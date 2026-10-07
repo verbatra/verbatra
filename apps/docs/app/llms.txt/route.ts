@@ -88,7 +88,7 @@ verbatra is open source and MIT licensed. You maintain one source locale; on eac
 - Human-only mode: provider \`none\` turns machine translation off; keys are filled only from the translation memory or by a translator through export and import
 - i18n formats: i18next, vue-i18n, next-intl, ngx-translate, Flutter ARB, YAML, XLIFF, Java/Spring properties, Apple .strings, Xcode String Catalogs, Android strings.xml, gettext .po/.pot, INI, and .NET .resx
 - Frameworks: React, Next.js, Vue, Nuxt, Angular, Node.js, SvelteKit, Astro, React Native, Flutter, Spring, iOS and macOS, Android, .NET
-- Requires Node.js >= 22.14.0
+- Requires Node.js >= 22.18.0
 
 ## For AI agents
 

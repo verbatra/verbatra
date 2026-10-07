@@ -22,7 +22,7 @@ body:
     attributes:
       label: Node version
       description: Output of `node --version`.
-      placeholder: v22.14.0
+      placeholder: v22.18.0
     validations:
       required: true
 

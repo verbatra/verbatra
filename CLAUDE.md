@@ -7,7 +7,7 @@ overrides general defaults.
 
 verbatra is an i18n translation automation tool: open source, MIT license, npm scope
 `@verbatra`. A pnpm workspaces monorepo (`packages/*`, `apps/*`) built with
-TypeScript, orchestrated by Turborepo, published with Changesets. Node >=22.14.0,
+TypeScript, orchestrated by Turborepo, published with Changesets. Node >=22.18.0,
 pnpm pinned at 11.6.0.
 
 ## Commands

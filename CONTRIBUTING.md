@@ -10,7 +10,7 @@ open a public issue for vulnerabilities.
 
 ## Prerequisites
 
-- Node.js >= 22.14.0
+- Node.js >= 22.18.0
 - pnpm >= 11 (the repository pins pnpm 11.6.0 via the `packageManager` field; run
   `corepack enable` to use the pinned version)
 
