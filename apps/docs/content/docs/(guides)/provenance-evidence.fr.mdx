@@ -9,7 +9,7 @@ type: how-to
 Utilise ceci quand quelqu'un demande quelle partie de ton texte publié un fournisseur ou un agent d'IA a traduite, et si une personne l'a relue. verbatra consigne cela clé par clé dans `verbatra.provenance.json` ; tu l'en sors sous forme de rapport à archiver, ou de marqueurs dans les fichiers XLIFF et TMX que tu remets à d'autres outils.
 
 <Callout type="warn" title="Élément de preuve à l'appui, pas un conseil juridique">
-Selon l'[article 50 du règlement européen sur l'IA](/docs/data-handling#traductions-générées-par-ia-et-provenance), un texte qu'une
+Selon l'[article 50 du règlement européen sur l'IA](/fr/docs/data-handling#traductions-générées-par-ia-et-provenance), un texte qu'une
 personne a relu sous sa responsabilité éditoriale est traité différemment d'un texte qui ne l'a pas
 été. Le rapport et les marqueurs sont des éléments de preuve à l'appui pour la personne qui décide
 comment cela s'applique à ton produit. Ce ne sont
@@ -18,7 +18,7 @@ pas des conseils juridiques, et les utiliser ne rend un produit conforme à rien
 
 ## Ce que la trace peut et ne peut pas te dire
 
-Chaque valeur que verbatra écrit est consignée avec son origine (le chemin d'écriture qui l'a produite), une éventuelle décision de relecture et le nom du relecteur ; voir [le fichier de verrouillage](/docs/the-lock-file#la-provenance-de-chaque-valeur). Comme preuve, les origines se répartissent en deux classes :
+Chaque valeur que verbatra écrit est consignée avec son origine (le chemin d'écriture qui l'a produite), une éventuelle décision de relecture et le nom du relecteur ; voir [le fichier de verrouillage](/fr/docs/the-lock-file#la-provenance-de-chaque-valeur). Comme preuve, les origines se répartissent en deux classes :
 
 - **Classe machine** : `machine`, `memory`, `fuzzy` et `agent`. La mémoire compte comme machine parce qu'elle n'enregistre pas qui a écrit une entrée.
 - **Personnes** : `human` (une modification via Studio ou le SDK) et `import` (la remise d'un traducteur).
@@ -33,7 +33,7 @@ Garde ces limites en tête quand tu remets la trace à quelqu'un :
 
 ## Le rapport de provenance
 
-[`verbatra report provenance`](/docs/cli/report) affiche, par locale cible, combien de valeurs tombent dans chaque catégorie.
+[`verbatra report provenance`](/fr/docs/cli/report) affiche, par locale cible, combien de valeurs tombent dans chaque catégorie.
 
 ```bash
 verbatra report provenance
@@ -49,7 +49,7 @@ verbatra report provenance
 | `unrecorded` | personne que verbatra connaisse : il n'y a pas de trace | inconnu |
 | `unknown` | enregistrée sans auteur connu | l'un ou l'autre |
 
-Seules les clés qui ont une valeur à la fois dans la source et dans la locale cible sont comptées : une clé manquante n'a pas de texte à justifier. Un agent lit le même rapport avec l'outil MCP [`report.provenance`](/docs/cli/mcp#tools).
+Seules les clés qui ont une valeur à la fois dans la source et dans la locale cible sont comptées : une clé manquante n'a pas de texte à justifier. Un agent lit le même rapport avec l'outil MCP [`report.provenance`](/fr/docs/cli/mcp#tools).
 
 ### Un fichier d'audit depuis la CI
 
@@ -61,11 +61,11 @@ verbatra report provenance --json > provenance-report.json
 
 Si `verbatra.provenance.json` est corrompu ou a été écrit par une version plus récente de verbatra, la commande sort avec `1` au lieu d'afficher un rapport qui listerait chaque valeur comme `unrecorded`. Un job de CI échoue donc au lieu d'archiver un fichier d'audit vide.
 
-Si chaque traduction automatique doit être relue avant une version, bloque aussi avec [`verbatra check --require-reviewed`](/docs/cli/check#exiger-des-traductions-relues).
+Si chaque traduction automatique doit être relue avant une version, bloque aussi avec [`verbatra check --require-reviewed`](/fr/docs/cli/check#exiger-des-traductions-relues).
 
 ### Le schéma JSON
 
-Le rapport est le `result` de l'[enveloppe JSON](/docs/cli/output#sortie-json) habituelle, avec `command` à `"report"`. Les appelants du SDK obtiennent le même objet de [`provenanceReport`](/docs/sdk/inspect#provenancereport).
+Le rapport est le `result` de l'[enveloppe JSON](/fr/docs/cli/output#sortie-json) habituelle, avec `command` à `"report"`. Les appelants du SDK obtiennent le même objet de [`provenanceReport`](/fr/docs/sdk/inspect#provenancereport).
 
 | Champ | Type | Signification |
 | --- | --- | --- |
@@ -94,7 +94,7 @@ L'origine voyage aussi dans les fichiers que tu remets à d'autres outils, pour 
 
 ### XLIFF
 
-[`verbatra export`](/docs/cli/export) avec `--format xliff12` ou `--format xliff2` marque chaque unité qui a une cible :
+[`verbatra export`](/fr/docs/cli/export) avec `--format xliff12` ou `--format xliff2` marque chaque unité qui a une cible :
 
 | La cible est | XLIFF 1.2 | XLIFF 2.0 |
 | --- | --- | --- |
@@ -116,7 +116,7 @@ XLIFF 2.0 n'a pas de qualificatif d'état, donc le groupe de métadonnées `verb
 
 ### TMX
 
-[`verbatra tmx export`](/docs/cli/tmx) écrit une propriété `x-origin` sur chaque segment cible, et `x-review` à côté d'un segment `machine` :
+[`verbatra tmx export`](/fr/docs/cli/tmx) écrit une propriété `x-origin` sur chaque segment cible, et `x-review` à côté d'un segment `machine` :
 
 ```xml
 <tuv xml:lang="de"><prop type="x-origin">machine</prop><prop type="x-review">unreviewed</prop><seg>Zur Kasse</seg></tuv>
@@ -134,6 +134,6 @@ Si `verbatra.provenance.json` est corrompu ou vient d'une version plus récente 
 
 ## Voir aussi
 
-- [`verbatra report`](/docs/cli/report) : options, sortie et codes de sortie du rapport de provenance.
-- [Réviser dans Studio](/docs/review-in-studio) : approuve ou rejette les traductions automatiques, une par une ou par locale.
-- [Traitement des données et vie privée](/docs/data-handling) : ce que verbatra envoie, à qui, et ce qu'il garde en local.
+- [`verbatra report`](/fr/docs/cli/report) : options, sortie et codes de sortie du rapport de provenance.
+- [Réviser dans Studio](/fr/docs/review-in-studio) : approuve ou rejette les traductions automatiques, une par une ou par locale.
+- [Traitement des données et vie privée](/fr/docs/data-handling) : ce que verbatra envoie, à qui, et ce qu'il garde en local.

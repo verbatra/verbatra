@@ -72,11 +72,11 @@ type: overview
 
 <DocsHomeSection title="Cada ejecución es un diff, no una reescritura." lead="Qué pasa cuando ejecutas `verbatra translate`.">
 
-Mantener a mano un locale de origen significa que todos los demás archivos de locale se desfasan: las claves nuevas faltan en los destinos, las cadenas editadas dejan atrás traducciones obsoletas y las claves eliminadas se quedan como huérfanas. verbatra cierra esa brecha comparando cada destino contra un archivo de bloqueo confirmado, `verbatra.lock.json`, y enviando al proveedor que configures solo lo que cambió; una segunda ejecución sin nada nuevo que traducir no hace ni una llamada al proveedor. Cada resultado se comprueba antes de escribirse, así que un placeholder roto se retiene y se reintenta, nunca se publica. Consulta [Cómo funciona](/docs/how-it-works) para ver la canalización completa.
+Mantener a mano un locale de origen significa que todos los demás archivos de locale se desfasan: las claves nuevas faltan en los destinos, las cadenas editadas dejan atrás traducciones obsoletas y las claves eliminadas se quedan como huérfanas. verbatra cierra esa brecha comparando cada destino contra un archivo de bloqueo confirmado, `verbatra.lock.json`, y enviando al proveedor que configures solo lo que cambió; una segunda ejecución sin nada nuevo que traducir no hace ni una llamada al proveedor. Cada resultado se comprueba antes de escribirse, así que un placeholder roto se retiene y se reintenta, nunca se publica. Consulta [Cómo funciona](/es/docs/how-it-works) para ver la canalización completa.
 
 <DocsHomeSteps />
 
-verbatra lee y escribe los formatos habituales de archivos de locale, de JSON y YAML a XLIFF, gettext y los catálogos de Android y Apple, y traduce a través de cualquier proveedor compatible, sea un LLM o un servicio de traducción automática, detrás de una sola interfaz (o de ninguno, para un [flujo solo humano](/docs/human-only-workflow)), y un formato que no trae de serie se puede añadir como [adaptador personalizado](/docs/custom-format-adapters). Las listas completas están en [Formatos](/docs/formats) y [Proveedores](/docs/providers).
+verbatra lee y escribe los formatos habituales de archivos de locale, de JSON y YAML a XLIFF, gettext y los catálogos de Android y Apple, y traduce a través de cualquier proveedor compatible, sea un LLM o un servicio de traducción automática, detrás de una sola interfaz (o de ninguno, para un [flujo solo humano](/es/docs/human-only-workflow)), y un formato que no trae de serie se puede añadir como [adaptador personalizado](/es/docs/custom-format-adapters). Las listas completas están en [Formatos](/es/docs/formats) y [Proveedores](/es/docs/providers).
 
 </DocsHomeSection>
 

@@ -17,14 +17,14 @@ chaque étape suivante fonctionne de la même façon pour tous les formats. Une 
 valeur est invalide pour la syntaxe de message du format (ICU invalide) est mise de côté et
 signalée au lieu d'être envoyée cassée au fournisseur. Un fichier source absent ou impossible à
 analyser fait échouer l'exécution ; voir
-[`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable) et
-[`SOURCE_INVALID`](/docs/error-codes#source_invalid).
+[`SOURCE_UNREADABLE`](/fr/docs/error-codes#source_unreadable) et
+[`SOURCE_INVALID`](/fr/docs/error-codes#source_invalid).
 
 ## Comparer avec la référence du fichier de verrouillage
 
 La comparaison est ce qui rend une exécution incrémentale. verbatra lit le fichier cible existant
 (un fichier absent compte comme vide) et compare chaque clé source avec
-[le fichier de verrouillage](/docs/the-lock-file), la trace de ce qui a été traduit auparavant :
+[le fichier de verrouillage](/fr/docs/the-lock-file), la trace de ce qui a été traduit auparavant :
 
 | Catégorie | Signification | Ce que fait l'exécution |
 | --- | --- | --- |
@@ -40,11 +40,11 @@ La comparaison est ce qui rend une exécution incrémentale. verbatra lit le fic
 Deux sortes de candidates sont retenues. Une clé modifiée dont une personne a écrit ou importé la
 valeur actuelle est protégée par défaut (`humanEdits`), et une clé qui correspond à `pinnedKeys`
 n'est jamais traduite automatiquement. Les deux restent obsolètes jusqu'à ce qu'une personne les
-règle ; voir [Garder les traductions humaines](/docs/protecting-human-translations).
+règle ; voir [Garder les traductions humaines](/fr/docs/protecting-human-translations).
 
 ## Envoyer par lots au fournisseur
 
-Chaque candidate est d'abord cherchée dans le [cache de traduction](/docs/the-cache). Un succès est
+Chaque candidate est d'abord cherchée dans le [cache de traduction](/fr/docs/the-cache). Un succès est
 réutilisé et n'atteint jamais le fournisseur. Parmi les échecs, les clés au contenu source
 identique sont regroupées, pour que ce texte coûte une requête par locale plutôt qu'une par clé.
 
@@ -52,7 +52,7 @@ Les groupes partent vers ton fournisseur en sous-lots séquentiels d'au plus `ma
 défaut), chacun avec les entrées, les termes du glossaire de cette locale et ton `tone`. Si un
 sous-lot échoue (une limite de débit, un délai dépassé, une clé révoquée), ses clés sont retenues
 pour cette exécution pendant que les autres sous-lots continuent.
-[Fournisseurs](/docs/providers) décrit comment chaque fournisseur applique ces entrées.
+[Fournisseurs](/fr/docs/providers) décrit comment chaque fournisseur applique ces entrées.
 
 ## Valider la réponse
 
@@ -72,7 +72,7 @@ Une traduction valide selon le schéma peut quand même être cassée, donc verb
 la valeur candidate elle-même s'il l'accepte, sans jamais se fier au rapport du fournisseur. Une
 candidate qui perd un placeholder, casse un message ICU ou son balisage, revient vide ou dégénère
 est retenue au lieu d'être écrite. Les vérifications sont sur
-[Sûreté de la traduction](/docs/translation-safety#la-barrière-dintégrité).
+[Sûreté de la traduction](/fr/docs/translation-safety#la-barrière-dintégrité).
 
 ## Écrire via l'adaptateur
 
@@ -86,7 +86,7 @@ jamais de fichier à moitié écrit, et les relecteurs voient des diffs petits e
 Après l'écriture d'une locale, ses entrées de verrouillage sont rafraîchies avec les hashs source
 actuels. Une clé retenue pendant cette exécution garde son hash précédent, donc l'exécution suivante
 la voit toujours comme à traiter. Chaque locale est écrite sous un
-[verrou d'écriture](/docs/the-lock-file#le-verrou-décriture) inter-processus, donc deux exécutions
+[verrou d'écriture](/fr/docs/the-lock-file#le-verrou-décriture) inter-processus, donc deux exécutions
 qui se chevauchent ne comparent jamais avec une référence périmée et ne paient jamais deux fois le
 même appel.
 
@@ -94,7 +94,7 @@ même appel.
 
 Chaque locale cible tourne de son côté, et l'échec d'une locale n'arrête pas les autres.
 L'exécution renvoie un résumé par locale : traduites, inchangées, orphelines, retenues, signalées
-pour relecture, et avis. Ce que contient chaque champ est sur [RunSummary](/docs/sdk/run-summary).
+pour relecture, et avis. Ce que contient chaque champ est sur [RunSummary](/fr/docs/sdk/run-summary).
 
 Ce que cette conception garantit :
 
@@ -105,12 +105,12 @@ Ce que cette conception garantit :
   forme, sans construire de fournisseur ni écrire de fichier.
 
 Ce qu'elle ne fait pas : juger si une traduction est bonne. C'est le rôle des
-[signalements de relecture](/docs/translation-safety#signalements-de-relecture) et d'une personne.
+[signalements de relecture](/fr/docs/translation-safety#signalements-de-relecture) et d'une personne.
 
 ## Voir aussi
 
-- [`verbatra translate`](/docs/cli/translate) : options, sortie et codes de sortie d'une exécution.
-- [Le fichier de verrouillage et la provenance](/docs/the-lock-file) : ce que la référence enregistre.
-- [Le cache de traduction](/docs/the-cache) : comment la réutilisation est indexée.
-- [Sûreté de la traduction](/docs/translation-safety) : la barrière d'intégrité et les signalements de relecture.
-- [Codes d'erreur](/docs/error-codes) : chaque code qu'une exécution peut signaler.
+- [`verbatra translate`](/fr/docs/cli/translate) : options, sortie et codes de sortie d'une exécution.
+- [Le fichier de verrouillage et la provenance](/fr/docs/the-lock-file) : ce que la référence enregistre.
+- [Le cache de traduction](/fr/docs/the-cache) : comment la réutilisation est indexée.
+- [Sûreté de la traduction](/fr/docs/translation-safety) : la barrière d'intégrité et les signalements de relecture.
+- [Codes d'erreur](/fr/docs/error-codes) : chaque code qu'une exécution peut signaler.

@@ -44,7 +44,7 @@ verbatra init --agent --client cursor,vscode --dry-run
 | Flag | Argument | Standard | Wirkung |
 | --- | --- | --- | --- |
 | `--provider` | `<id>` | keiner (erforderlich) | Provider, der aufgesetzt wird: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible`, `libretranslate` oder `none` |
-| `--format` | `<id>` | erkannt, sonst `i18next-json` | das Format der Locale-Dateien, eine der IDs unter [Formate](/docs/formats) |
+| `--format` | `<id>` | erkannt, sonst `i18next-json` | das Format der Locale-Dateien, eine der IDs unter [Formate](/de/docs/formats) |
 | `--source` | `<locale>` | erkannt, sonst `en` | die Quell-Locale, in der deine Strings geschrieben sind |
 | `--targets` | `<locales>` | erkannt, sonst `de` | kommagetrennte Ziel-Locales, in die übersetzt wird |
 | `--path` | `<pattern>` | erkannt, sonst das übliche Layout des Formats ([Erkennung](#erkennung)) | Muster der Locale-Dateien; muss das Token `{locale}` enthalten |
@@ -57,7 +57,7 @@ verbatra init --agent --client cursor,vscode --dry-run
 | `--client` | `<ids>` | erkannt | kommagetrennte Clients, die `--agent` statt der erkannten einrichtet: `claude`, `cursor`, `vscode`, `codex`, `gemini` oder `all`; braucht `--agent` |
 | `--dry-run` | keins | aus | jede Datei melden, die `init` schreiben oder ändern würde, und nichts schreiben ([Probelauf](#probelauf)) |
 
-Nimmt außerdem die [globalen Flags](/docs/cli#globale-flags) `--cwd` und `--json`, aber nicht `--config`. Hier ist `--cwd` das Verzeichnis, das durchsucht und beschrieben wird, und es muss schon existieren. `--json` fragt nie nach.
+Nimmt außerdem die [globalen Flags](/de/docs/cli#globale-flags) `--cwd` und `--json`, aber nicht `--config`. Hier ist `--cwd` das Verzeichnis, das durchsucht und beschrieben wird, und es muss schon existieren. `--json` fragt nie nach.
 
 ## Verhalten
 
@@ -80,7 +80,7 @@ Jede Antwort wird sofort geprüft. Eine ungültige wird auf stderr erklärt und 
 
 Eine Datei neben den Locale-Dateien, die Strings unter keinem Locale-Namen enthält, etwa `messages.properties`, `Strings.resx` oder eine gettext-Datei `app.pot`, wird als `unqualifiedSourceFile` gemeldet. verbatra kann die Quelle nicht aus so einer Datei lesen, deshalb rät `init` die Quell-Locale nicht: Übergib `--source`, auch mit `--yes`, und die nächsten Schritte nennen die Datei, in die du die Basisdatei umbenennen oder kopieren sollst.
 
-Gibt es gar keine Locale-Datei, entscheiden allein die Dependencies über das Format, und das Muster folgt dem üblichen Layout des Formats, wie es für jedes Format unter [Wähle deinen Stack](/docs/pick-your-stack) steht.
+Gibt es gar keine Locale-Datei, entscheiden allein die Dependencies über das Format, und das Muster folgt dem üblichen Layout des Formats, wie es für jedes Format unter [Wähle deinen Stack](/de/docs/pick-your-stack) steht.
 
 Ein `apple-xcstrings`-Katalog ist eine einzige Datei für alle Locales, und verbatra legt ihn nie an: Erstelle ihn zuerst in Xcode. `--format`, `--path` und `--source` grenzen die Erkennung ein, statt von ihr überschrieben zu werden, `--format yaml` sieht sich also nur YAML-Dateien an.
 
@@ -96,9 +96,9 @@ npx @verbatra/cli init --provider gemini --yes --json
 
 ### JSON-Ausgabe
 
-Schema: [`init-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/init-envelope.json) validiert den ganzen Envelope; [Schemas](/docs/cli/output#schemas) listet die übrigen auf.
+Schema: [`init-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/init-envelope.json) validiert den ganzen Envelope; [Schemas](/de/docs/cli/output#schemas) listet die übrigen auf.
 
-Mit `--json` steht auf stdout genau ein [Envelope](/docs/cli/output#json-ausgabe). Sein `result`:
+Mit `--json` steht auf stdout genau ein [Envelope](/de/docs/cli/output#json-ausgabe). Sein `result`:
 
 ```ts
 interface InitResult {
@@ -160,9 +160,9 @@ Ein Fehler-Envelope für `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `INVALID_PROVID
 
 <AvailableFrom version="0.12.0" />
 
-- `--provider none` legt eine [rein menschliche](/docs/human-only-workflow) Konfiguration ohne `options` an und schreibt keine `.env.example`, weil nie ein API-Key gelesen wird.
+- `--provider none` legt eine [rein menschliche](/de/docs/human-only-workflow) Konfiguration ohne `options` an und schreibt keine `.env.example`, weil nie ein API-Key gelesen wird.
 - `--provider openai-compatible` setzt einen lokalen oder selbst gehosteten Server aus `--base-url` und `--model` auf, mit `maxOutputTokens: 4096`. Sein Key ist optional: Ein Server, der keinen braucht, lässt `OPENAI_COMPATIBLE_API_KEY` ungesetzt, und `--api-key-env-var` nennt eine andere Variable, in Großbuchstaben wie `LLM_API_KEY`. Ein abgelehnter Wert wird nie wiederholt, falls es der Key selbst war.
-- `--provider libretranslate` setzt einen selbst gehosteten [LibreTranslate](/docs/providers#libretranslate)-Server allein aus `--base-url` auf, etwa `http://localhost:5000`, und lehnt `--model` und `--api-key-env-var` ab. `.env.example` nennt `LIBRETRANSLATE_API_KEY` für einen Server, der mit `--api-keys` gestartet wurde.
+- `--provider libretranslate` setzt einen selbst gehosteten [LibreTranslate](/de/docs/providers#libretranslate)-Server allein aus `--base-url` auf, etwa `http://localhost:5000`, und lehnt `--model` und `--api-key-env-var` ab. `.env.example` nennt `LIBRETRANSLATE_API_KEY` für einen Server, der mit `--api-keys` gestartet wurde.
 
 `init` schreibt den Namen einer Variable in die Konfiguration und in `.env.example`, nie einen Wert, und lehnt eine Base-URL mit Zugangsdaten, Query-String oder Fragment ab (`https://user:key@host`, `https://host/v1?api-key=...`), über die ein Key in der eingecheckten Konfiguration landen könnte.
 
@@ -184,8 +184,8 @@ Ein Verzeichnis, in das `init` nicht schreiben kann, wird mit `INIT_UNWRITABLE` 
 
 `--agent` bereitet das Projekt zusätzlich für Coding-Agenten vor. Es schreibt keinen Key-Wert, schreibt nie durch einen Link aus dem Projekt hinaus und legt an:
 
-- **Die Anweisungsdatei.** Ein verbatra-Abschnitt zwischen den Markierungen `<!-- verbatra:start -->` und `<!-- verbatra:end -->`, Wort für Wort das Snippet aus [Deinem Agenten von verbatra erzählen](/docs/agent-recipes#deinem-agenten-von-verbatra-erzählen). Es landet in `AGENTS.md` oder in `CLAUDE.md`, wenn das die einzige Anweisungsdatei ist; gibt es beide, gewinnt `AGENTS.md`. Enthält eine Datei den Abschnitt schon, wird der Text zwischen den Markierungen durch den aktuellen ersetzt und als `updated` gemeldet, oder als `unchanged`, wenn er schon passt.
-- **Die MCP-Konfiguration jedes Clients.** Der `verbatra`-Servereintrag aus [MCP-Client verbinden](/docs/connect-an-mcp-client), `npx -y @verbatra/mcp` ohne `--allow-spend` und ohne `VERBATRA_MCP_ALLOW_SPEND`, sodass die Tools, die Geld kosten, verborgen bleiben. `@verbatra/cli` exportiert diese Einträge als `AGENT_CLIENT_CONFIGS`.
+- **Die Anweisungsdatei.** Ein verbatra-Abschnitt zwischen den Markierungen `<!-- verbatra:start -->` und `<!-- verbatra:end -->`, Wort für Wort das Snippet aus [Deinem Agenten von verbatra erzählen](/de/docs/agent-recipes#deinem-agenten-von-verbatra-erzählen). Es landet in `AGENTS.md` oder in `CLAUDE.md`, wenn das die einzige Anweisungsdatei ist; gibt es beide, gewinnt `AGENTS.md`. Enthält eine Datei den Abschnitt schon, wird der Text zwischen den Markierungen durch den aktuellen ersetzt und als `updated` gemeldet, oder als `unchanged`, wenn er schon passt.
+- **Die MCP-Konfiguration jedes Clients.** Der `verbatra`-Servereintrag aus [MCP-Client verbinden](/de/docs/connect-an-mcp-client), `npx -y @verbatra/mcp` ohne `--allow-spend` und ohne `VERBATRA_MCP_ALLOW_SPEND`, sodass die Tools, die Geld kosten, verborgen bleiben. `@verbatra/cli` exportiert diese Einträge als `AGENT_CLIENT_CONFIGS`.
 
 | Client | `--client` | Datei | Erkannt an |
 | --- | --- | --- | --- |
@@ -212,11 +212,11 @@ In einem Projekt, das schon eine Konfiguration hat, schreibt `init --agent` nur 
 | `0` | Dateien geschrieben oder schon auf dem aktuellen Stand |
 | `2` | ein Verwendungsfehler: `MISSING_OPTIONS`, `INVALID_PROVIDER`, `INVALID_FORMAT`, `INVALID_OPTION`, `INVALID_LOCALE`, `INVALID_LOCALES`, `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `CONFIG_EXISTS`, `INIT_UNWRITABLE`, `AGENT_FILE_INVALID` oder `CONFIG_INVALID`, wenn die Antworten keine gültige Konfiguration ergeben würden |
 
-Wie jeder Befehl diese Codes nutzt, steht im [Exit-Code-Vertrag](/docs/cli/output#exit-codes).
+Wie jeder Befehl diese Codes nutzt, steht im [Exit-Code-Vertrag](/de/docs/cli/output#exit-codes).
 
 ## Siehe auch
 
-- [verbatra mit einem KI-Agenten einrichten](/docs/start-with-ai) ist der Agenten-Prompt, der auf diesem Befehl aufbaut.
-- [Schnellstart](/docs/quickstart) führt von init bis zum ersten Lauf.
-- [Konfigurationsdatei](/docs/config-file) dokumentiert jeden Key, den das Scaffold setzt.
-- [Provider](/docs/providers) behandelt die Provider-Optionen und API-Key-Variablen.
+- [verbatra mit einem KI-Agenten einrichten](/de/docs/start-with-ai) ist der Agenten-Prompt, der auf diesem Befehl aufbaut.
+- [Schnellstart](/de/docs/quickstart) führt von init bis zum ersten Lauf.
+- [Konfigurationsdatei](/de/docs/config-file) dokumentiert jeden Key, den das Scaffold setzt.
+- [Provider](/de/docs/providers) behandelt die Provider-Optionen und API-Key-Variablen.

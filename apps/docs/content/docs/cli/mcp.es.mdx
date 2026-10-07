@@ -41,7 +41,7 @@ npx -y @verbatra/mcp --cwd /path/to/project
 | `--allow-spend` | ninguno | `VERBATRA_MCP_ALLOW_SPEND`, si no, desactivado | anuncia las dos herramientas que llaman a un proveedor de traducción; consulta [Herramientas de gasto](#herramientas-de-gasto) |
 | `--redact-values` | ninguno | `VERBATRA_MCP_REDACT_VALUES`, si no, desactivado | sustituye cada valor de traducción de los resultados por una marca; consulta [Valores ocultos](#redacted-values) |
 
-También acepta los [flags globales](/docs/cli#flags-globales) `--cwd` y `--config`. No acepta `--json`, porque stdout es el canal del protocolo. Sin `--cwd`, el directorio del proyecto puede venir de `CLAUDE_PROJECT_DIR`; consulta [Directorio del proyecto](#directorio-del-proyecto).
+También acepta los [flags globales](/es/docs/cli#flags-globales) `--cwd` y `--config`. No acepta `--json`, porque stdout es el canal del protocolo. Sin `--cwd`, el directorio del proyecto puede venir de `CLAUDE_PROJECT_DIR`; consulta [Directorio del proyecto](#directorio-del-proyecto).
 
 ## Comportamiento
 
@@ -49,9 +49,9 @@ También acepta los [flags globales](/docs/cli#flags-globales) `--cwd` y `--conf
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Si falta `--cwd` y `CLAUDE_PROJECT_DIR` nombra un directorio existente, el servidor lo usa como directorio del proyecto. `verbatra mcp` carga entonces los [archivos de entorno](/docs/cli#archivos-de-entorno) desde ese directorio; un `CLAUDE_PROJECT_DIR` definido solo en esos archivos se ignora, porque el directorio del proyecto se resuelve antes.
+Si falta `--cwd` y `CLAUDE_PROJECT_DIR` nombra un directorio existente, el servidor lo usa como directorio del proyecto. `verbatra mcp` carga entonces los [archivos de entorno](/es/docs/cli#archivos-de-entorno) desde ese directorio; un `CLAUDE_PROJECT_DIR` definido solo en esos archivos se ignora, porque el directorio del proyecto se resuelve antes.
 
-La búsqueda de configuración empieza ahí, y el directorio de la configuración encontrada es la [raíz del proyecto](/docs/config-file#el-directorio-de-trabajo-y-env) contra la que se resuelve cada ruta de las herramientas, así que un servidor iniciado en un subdirectorio sigue trabajando con los archivos del proyecto.
+La búsqueda de configuración empieza ahí, y el directorio de la configuración encontrada es la [raíz del proyecto](/es/docs/config-file#el-directorio-de-trabajo-y-env) contra la que se resuelve cada ruta de las herramientas, así que un servidor iniciado en un subdirectorio sigue trabajando con los archivos del proyecto.
 
 ### Herramientas de gasto
 
@@ -59,7 +59,7 @@ La búsqueda de configuración empieza ahí, y el directorio de la configuració
 
 `translation.retranslateEntry` y `translation.translatePending` solo se anuncian con `--allow-spend` o, si falta el flag, con `VERBATRA_MCP_ALLOW_SPEND` a `1`, `true`, `yes` u `on` (sin distinguir mayúsculas e ignorando espacios alrededor). El flag gana a la variable. `verbatra mcp` lee antes `.env.local` y `.env`, así que la variable puede estar ahí; `verbatra-mcp` solo la toma de su propio entorno.
 
-Si no, las dos nunca aparecen en la lista, y llamarlas falla como herramienta desconocida. Una configuración con `provider: { id: "none" }` nunca las lista, ni siquiera con `--allow-spend`. Las demás herramientas no llaman a ningún proveedor ni necesitan clave; pasa la clave al servidor por el entorno del cliente solo cuando actives el gasto (consulta [Proveedores](/docs/providers)).
+Si no, las dos nunca aparecen en la lista, y llamarlas falla como herramienta desconocida. Una configuración con `provider: { id: "none" }` nunca las lista, ni siquiera con `--allow-spend`. Las demás herramientas no llaman a ningún proveedor ni necesitan clave; pasa la clave al servidor por el entorno del cliente solo cuando actives el gasto (consulta [Proveedores](/es/docs/providers)).
 
 ### Instrucciones para el agente
 
@@ -97,9 +97,9 @@ El servidor responde al handshake con unas `instructions` fijas, que la mayoría
 | `usage.summary` | el uso de tokens y el estado del presupuesto de la última ejecución | sí | no |
 
 - **Una llamada a la vez.** Una segunda llamada a la misma herramienta para la misma entrada (`translation.editEntry`, `translation.retranslateEntry`), o una segunda ejecución de `translation.translatePending`, se rechaza con `isError` mientras la primera sigue en marcha.
-- **Trabajo humano.** `translation.retranslateEntry` rechaza una clave fijada con `KEY_PINNED` y, salvo con `humanEdits: "overwrite"`, el valor de una persona con `KEY_PROTECTED`; `translation.editEntry` rechaza una clave fijada. `translation.translatePending` lista esas claves en `protected`. Consulta [Proteger las traducciones humanas](/docs/protecting-human-translations).
-- **Procedencia.** Un valor escrito con `translation.editEntry` recibe el origen `agent`. `review.queue` es la misma cola que muestra Studio: cada valor no aprobado con origen `machine`, `memory`, `fuzzy` o `agent`. Consulta [Decisiones de revisión](/docs/the-lock-file#decisiones-de-revisión).
-- **Decisiones de revisión.** `review.approve` y `review.reject` reciben `locale`, `key`, `expectedValue` o `expectedHash` (un valor que ya cambió se rechaza con `REVIEW_VALUE_CHANGED`) y el nombre en `reviewer`. Una aprobación cuenta para [`verbatra check --require-reviewed`](/docs/cli/check#exigir-traducciones-revisadas).
+- **Trabajo humano.** `translation.retranslateEntry` rechaza una clave fijada con `KEY_PINNED` y, salvo con `humanEdits: "overwrite"`, el valor de una persona con `KEY_PROTECTED`; `translation.editEntry` rechaza una clave fijada. `translation.translatePending` lista esas claves en `protected`. Consulta [Proteger las traducciones humanas](/es/docs/protecting-human-translations).
+- **Procedencia.** Un valor escrito con `translation.editEntry` recibe el origen `agent`. `review.queue` es la misma cola que muestra Studio: cada valor no aprobado con origen `machine`, `memory`, `fuzzy` o `agent`. Consulta [Decisiones de revisión](/es/docs/the-lock-file#decisiones-de-revisión).
+- **Decisiones de revisión.** `review.approve` y `review.reject` reciben `locale`, `key`, `expectedValue` o `expectedHash` (un valor que ya cambió se rechaza con `REVIEW_VALUE_CHANGED`) y el nombre en `reviewer`. Una aprobación cuenta para [`verbatra check --require-reviewed`](/es/docs/cli/check#exigir-traducciones-revisadas).
 
 ### Entradas y resultados
 
@@ -129,7 +129,7 @@ El servidor responde al handshake con unas `instructions` fijas, que la mayoría
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-`translation.estimate` siempre está en la lista. `translation.translatePending` acepta `locales` opcionales (uno sin configurar falla con `UNKNOWN_LOCALE` antes de gastar) y `maxTokens`, un techo que solo puede endurecer el de la configuración. Consulta [Estimar el coste](/docs/estimating-cost).
+`translation.estimate` siempre está en la lista. `translation.translatePending` acepta `locales` opcionales (uno sin configurar falla con `UNKNOWN_LOCALE` antes de gastar) y `maxTokens`, un techo que solo puede endurecer el de la configuración. Consulta [Estimar el coste](/es/docs/estimating-cost).
 
 ### Progreso
 
@@ -201,10 +201,10 @@ Cada versión está también en el [registro oficial de MCP](https://registry.mo
 | `2` | no pudo arrancar: un archivo `--config` que no existe, `@verbatra/mcp` sin instalar o, con `--redact-values`, demasiado antiguo, o un error de uso |
 | `130` | detenido a la fuerza por una segunda interrupción durante el apagado |
 
-Al detenerse, el servidor libera cualquier bloqueo de locale. `verbatra-mcp` sale con `1` ante un error de arranque y, desde 0.3.0, con `143` si se detiene a la fuerza tras SIGTERM. Consulta [el contrato de códigos de salida](/docs/cli/output#códigos-de-salida).
+Al detenerse, el servidor libera cualquier bloqueo de locale. `verbatra-mcp` sale con `1` ante un error de arranque y, desde 0.3.0, con `143` si se detiene a la fuerza tras SIGTERM. Consulta [el contrato de códigos de salida](/es/docs/cli/output#códigos-de-salida).
 
 ## Relacionado
 
-- [Conectar un cliente MCP](/docs/connect-an-mcp-client) configura los clientes stdio habituales.
-- [Herramientas de agente en Studio](/docs/agent-tools-in-studio) cubre la superficie de agente en el navegador.
-- [`verbatra check`](/docs/cli/check) y [`verbatra diff`](/docs/cli/diff) son los cálculos detrás de `status.check` y `status.diff`.
+- [Conectar un cliente MCP](/es/docs/connect-an-mcp-client) configura los clientes stdio habituales.
+- [Herramientas de agente en Studio](/es/docs/agent-tools-in-studio) cubre la superficie de agente en el navegador.
+- [`verbatra check`](/es/docs/cli/check) y [`verbatra diff`](/es/docs/cli/diff) son los cálculos detrás de `status.check` y `status.diff`.

@@ -35,27 +35,27 @@ CI. Ce site relève de sa [politique de confidentialité](/privacy).
   Studio in your browser   MCP client (your AI agent)
 ```
 
-La flèche est en HTTPS, sauf que [`openai-compatible`](/docs/providers#openai-compatible) et [`libretranslate`](/docs/providers#libretranslate) peuvent utiliser du http simple vers ta propre `baseUrl`.
+La flèche est en HTTPS, sauf que [`openai-compatible`](/fr/docs/providers#openai-compatible) et [`libretranslate`](/fr/docs/providers#libretranslate) peuvent utiliser du http simple vers ta propre `baseUrl`.
 
 ## Quand une requête est faite
 
 Seules les commandes du schéma appellent un fournisseur ; les actions de Studio et du MCP exigent
-[`--allow-spend`](/docs/cli/mcp#outils-payants). Tout le reste, exécutions à blanc et estimations
-comprises, est local, sauf [`verbatra doctor --live`](/docs/cli/doctor), qui récupère une liste de langues de DeepL, Google ou LibreTranslate et n'envoie aucun texte.
+[`--allow-spend`](/fr/docs/cli/mcp#outils-payants). Tout le reste, exécutions à blanc et estimations
+comprises, est local, sauf [`verbatra doctor --live`](/fr/docs/cli/doctor), qui récupère une liste de langues de DeepL, Google ou LibreTranslate et n'envoie aucun texte.
 
 Une exécution de `translate` n'envoie que les clés manquantes ou modifiées par rapport au
-[fichier de verrouillage](/docs/the-lock-file), moins les succès du [cache](/docs/the-cache), et un
-texte partagé une seule fois ; une clé [épinglée](/docs/protecting-human-translations) n'est jamais
+[fichier de verrouillage](/fr/docs/the-lock-file), moins les succès du [cache](/fr/docs/the-cache), et un
+texte partagé une seule fois ; une clé [épinglée](/fr/docs/protecting-human-translations) n'est jamais
 envoyée. Ton résolveur DNS voit le nom d'hôte du fournisseur.
 
 ## Ce que reçoit chaque fournisseur
 
 | Fournisseur | Ce qui est envoyé | Où ça va |
 | --- | --- | --- |
-| `anthropic`, `openai`, `gemini`, `openai-compatible` | Par clé : le nom de la clé, le texte source, et la description ou le sens que porte ton fichier source. Par requête : les codes source et cible (après [`localeMap`](/docs/providers#codes-de-locale-envoyés-au-fournisseur)) et leurs noms anglais, ton `tone`, les termes du glossaire de la locale cible, les catégories de pluriel de la cible quand un lot contient des pluriels, les instructions fixes de verbatra, le nom du modèle et une limite de tokens de sortie. | `api.anthropic.com`, `api.openai.com`, `generativelanguage.googleapis.com`, ou la `baseUrl` que tu as configurée. [`*_BASE_URL`](/docs/network-policy#fournisseurs-hébergés) redirige les fournisseurs hébergés. |
-| `deepl` | Le texte source de chaque clé, placeholders [masqués](/docs/providers#deepl) <AvailableFrom version="0.12.0" />, les codes de langue, un réglage de formalité quand ton `tone` en demande un avec une clé payante, et ton `glossaryId`. Ni noms de clé, ni descriptions, ni termes de glossaire. | `api.deepl.com`, ou `api-free.deepl.com` pour une clé qui finit par `:fx`. |
-| `google-translate` | Le texte source de chaque clé, placeholders [masqués](/docs/providers#google-cloud-translation) <AvailableFrom version="0.12.0" />, et les codes de langue. | `translation.googleapis.com` |
-| `libretranslate` | Le texte source de chaque clé, placeholders [masqués](/docs/providers#libretranslate) (une valeur avec de la syntaxe ICU n'est pas envoyée), les codes de langue, et `LIBRETRANSLATE_API_KEY` quand elle est définie. | La `baseUrl` que tu as configurée. |
+| `anthropic`, `openai`, `gemini`, `openai-compatible` | Par clé : le nom de la clé, le texte source, et la description ou le sens que porte ton fichier source. Par requête : les codes source et cible (après [`localeMap`](/fr/docs/providers#codes-de-locale-envoyés-au-fournisseur)) et leurs noms anglais, ton `tone`, les termes du glossaire de la locale cible, les catégories de pluriel de la cible quand un lot contient des pluriels, les instructions fixes de verbatra, le nom du modèle et une limite de tokens de sortie. | `api.anthropic.com`, `api.openai.com`, `generativelanguage.googleapis.com`, ou la `baseUrl` que tu as configurée. [`*_BASE_URL`](/fr/docs/network-policy#fournisseurs-hébergés) redirige les fournisseurs hébergés. |
+| `deepl` | Le texte source de chaque clé, placeholders [masqués](/fr/docs/providers#deepl) <AvailableFrom version="0.12.0" />, les codes de langue, un réglage de formalité quand ton `tone` en demande un avec une clé payante, et ton `glossaryId`. Ni noms de clé, ni descriptions, ni termes de glossaire. | `api.deepl.com`, ou `api-free.deepl.com` pour une clé qui finit par `:fx`. |
+| `google-translate` | Le texte source de chaque clé, placeholders [masqués](/fr/docs/providers#google-cloud-translation) <AvailableFrom version="0.12.0" />, et les codes de langue. | `translation.googleapis.com` |
+| `libretranslate` | Le texte source de chaque clé, placeholders [masqués](/fr/docs/providers#libretranslate) (une valeur avec de la syntaxe ICU n'est pas envoyée), les codes de langue, et `LIBRETRANSLATE_API_KEY` quand elle est définie. | La `baseUrl` que tu as configurée. |
 | `none` | Rien. | Nulle part. |
 
 Les SDK envoient aussi des en-têtes avec la bibliothèque, ton OS et Node.js. Ta clé d'API ne va
@@ -65,7 +65,7 @@ qu'au point de terminaison configuré (`google-translate` l'envoie dans la chaî
 
 <AvailableFrom version="0.12.0" />
 
-`sensitiveData` analyse, avant chaque requête, ce que le tableau ci-dessus envoie. Les détecteurs, `patterns` et `allow` sont sous [Chaque clé](/docs/config-file#chaque-clé). Le détecteur `email` ignore `example.com`, `example.org`, `example.net` et les domaines sous `.example`, `.test`, `.invalid` ou `.localhost`. Un motif est refusé s'il répète un groupe contenant un quantificateur ou une alternative, contient plus d'un `*`, `+` ou `{n,}`, ou se ramifie trop. Il lit les 2 000 premiers caractères d'un champ et s'arrête après une seconde ; un dépassement est une trouvaille (`pattern-timeout-<n>`).
+`sensitiveData` analyse, avant chaque requête, ce que le tableau ci-dessus envoie. Les détecteurs, `patterns` et `allow` sont sous [Chaque clé](/fr/docs/config-file#chaque-clé). Le détecteur `email` ignore `example.com`, `example.org`, `example.net` et les domaines sous `.example`, `.test`, `.invalid` ou `.localhost`. Un motif est refusé s'il répète un groupe contenant un quantificateur ou une alternative, contient plus d'un `*`, `+` ou `{n,}`, ou se ramifie trop. Il lit les 2 000 premiers caractères d'un champ et s'arrête après une seconde ; un dépassement est une trouvaille (`pattern-timeout-<n>`).
 
 | `mode` | Effet |
 | --- | --- |
@@ -73,7 +73,7 @@ qu'au point de terminaison configuré (`google-translate` l'envoie dans la chaî
 | `block` | Retient la clé, donc la locale se termine `partial`. |
 | `redact` | Envoie un jeton à la place de chaque correspondance dans la valeur et la restaure ; une correspondance dans une description ou un sens part en `[redacted]`. Une correspondance dans le nom de la clé, ou un jeton qui ne revient pas exactement une fois, retient la clé. Sur DeepL et Google, un jeton compte comme un placeholder, donc une valeur qu'ils ne peuvent pas protéger est retenue comme `PLACEHOLDER_UNSUPPORTED`. |
 
-`block` et `redact` laissent aussi de côté un terme du glossaire qui correspond. `verbatra init` écrit `warn` pour un fournisseur automatique. Pour un faux positif, ajoute le texte à `allow` ou retire son détecteur. [`verbatra check --sensitive`](/docs/cli/check#contenu-sensible) analyse sans clé. Les noms dans du texte libre ne sont pas détectés.
+`block` et `redact` laissent aussi de côté un terme du glossaire qui correspond. `verbatra init` écrit `warn` pour un fournisseur automatique. Pour un faux positif, ajoute le texte à `allow` ou retire son détecteur. [`verbatra check --sensitive`](/fr/docs/cli/check#contenu-sensible) analyse sans clé. Les noms dans du texte libre ne sont pas détectés.
 
 ## Conservation et traitement des données chez le fournisseur
 
@@ -93,10 +93,10 @@ septembre 2026.
 
 | Option | Moyen |
 | --- | --- |
-| Pas de traduction automatique | [Travailler sans traduction automatique](/docs/human-only-workflow) <AvailableFrom version="0.12.0" /> |
-| Ton propre modèle | [`openai-compatible`](/docs/providers#openai-compatible) avec Ollama, LM Studio ou vLLM |
-| Traduction automatique sans modèle de langage | [`libretranslate`](/docs/providers#libretranslate) <AvailableFrom version="0.12.0" /> |
-| L'imposer | une [politique réseau](/docs/network-policy) `local-only`, fixée dans la CI <AvailableFrom version="0.12.0" /> |
+| Pas de traduction automatique | [Travailler sans traduction automatique](/fr/docs/human-only-workflow) <AvailableFrom version="0.12.0" /> |
+| Ton propre modèle | [`openai-compatible`](/fr/docs/providers#openai-compatible) avec Ollama, LM Studio ou vLLM |
+| Traduction automatique sans modèle de langage | [`libretranslate`](/fr/docs/providers#libretranslate) <AvailableFrom version="0.12.0" /> |
+| L'imposer | une [politique réseau](/fr/docs/network-policy) `local-only`, fixée dans la CI <AvailableFrom version="0.12.0" /> |
 
 ## Ce qui est écrit en local
 
@@ -112,16 +112,16 @@ septembre 2026.
 ## Clés d'API
 
 Les erreurs du fournisseur et la sortie de la CLI remplacent par `[REDACTED]` la valeur de chaque
-[variable de clé](/docs/providers#les-clés-viennent-de-lenvironnement) connue, si elle compte 8 caractères ou plus, ainsi que tout ce qui
+[variable de clé](/fr/docs/providers#les-clés-viennent-de-lenvironnement) connue, si elle compte 8 caractères ou plus, ainsi que tout ce qui
 ressemble à une clé d'API.
 
 ## Studio et MCP
 
-**Studio** s'attache à `127.0.0.1` seulement, avec un [jeton de session](/docs/cli/studio), rejette un autre
+**Studio** s'attache à `127.0.0.1` seulement, avec un [jeton de session](/fr/docs/cli/studio), rejette un autre
 `Host` ou `Origin`, et sa Content-Security-Policy bloque les accès à Internet.
 
 **Le serveur MCP** parle via stdio sans ouvrir de port. Ses outils de lecture renvoient textes,
-glossaire et statut ; [`--redact-values`](/docs/cli/mcp#redacted-values) masque chaque valeur.
+glossaire et statut ; [`--redact-values`](/fr/docs/cli/mcp#redacted-values) masque chaque valeur.
 `history.list` donne l'auteur de chaque commit (pas
 avec `--redact-values`), jamais l'e-mail.
 
@@ -134,7 +134,7 @@ jamais masqués.
 Si les règles de transparence du règlement européen sur l'IA
 ([Article 50](https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-50)) s'appliquent, ton
 conseil juridique le dira. verbatra
-[enregistre](/docs/the-lock-file#la-provenance-de-chaque-valeur) le fournisseur et le modèle de
+[enregistre](/fr/docs/the-lock-file#la-provenance-de-chaque-valeur) le fournisseur et le modèle de
 chaque valeur traduite automatiquement.
 
 ### Fichier d'audit
@@ -142,7 +142,7 @@ chaque valeur traduite automatiquement.
 <AvailableFrom version="0.12.0" />
 
 `verbatra report provenance --json` transforme cette trace en
-[fichier d'audit](/docs/provenance-evidence) par clé.
+[fichier d'audit](/fr/docs/provenance-evidence) par clé.
 
 ## Liste de contrôle pour une revue DPA ou NDA
 
@@ -158,5 +158,5 @@ chaque valeur traduite automatiquement.
    `--redact-values`.
 6. Commite `verbatra.provenance.json`, et archive `verbatra report provenance --json` à chaque
    version.
-7. Joins le manifeste de [`verbatra doctor --data-flow --json`](/docs/cli/doctor#flux-de-données)
+7. Joins le manifeste de [`verbatra doctor --data-flow --json`](/fr/docs/cli/doctor#flux-de-données)
    avec chaque hôte et les données qu'il reçoit.

@@ -21,17 +21,17 @@ Cela écrit une config dont le bloc provider se résume à ceci, sans `.env.exam
 provider: { id: "none" }
 ```
 
-Dans un projet existant, remplace le bloc `provider` par `{ id: "none" }`. [`verbatra doctor`](/docs/cli/doctor) signale alors "machine translation disabled by policy" et valide ses contrôles de fournisseur et de clé d'API sans chercher de clé.
+Dans un projet existant, remplace le bloc `provider` par `{ id: "none" }`. [`verbatra doctor`](/fr/docs/cli/doctor) signale alors "machine translation disabled by policy" et valide ses contrôles de fournisseur et de clé d'API sans chercher de clé.
 
 ## Ce que fait chaque commande
 
 | Commande | Avec `provider: { id: "none" }` |
 | --- | --- |
-| `translate`, `watch` | remplissent une clé uniquement à partir d'une correspondance exacte de la [mémoire de traduction](/docs/the-cache), jamais d'une correspondance approximative ; toute autre clé manquante ou modifiée est listée comme `unfilled`, laissée intacte et proposée à nouveau à l'exécution suivante. `translate` sort avec `3` tant qu'il reste une clé |
+| `translate`, `watch` | remplissent une clé uniquement à partir d'une correspondance exacte de la [mémoire de traduction](/fr/docs/the-cache), jamais d'une correspondance approximative ; toute autre clé manquante ou modifiée est listée comme `unfilled`, laissée intacte et proposée à nouveau à l'exécution suivante. `translate` sort avec `3` tant qu'il reste une clé |
 | `export`, `import`, `tmx` | inchangées : la remise et la mémoire de traduction sont les voies d'entrée des traductions humaines |
 | `check`, `diff`, `doctor`, `pseudo`, `types`, `extract` | inchangées ; aucune n'appelle de fournisseur |
 | `studio`, `mcp` | les lectures et modifications locales fonctionnent ; les actions qui dépensent auprès du fournisseur ne sont jamais proposées, même avec `--allow-spend` |
-| SDK [`retranslateEntry`](/docs/sdk/review#retranslateentry) | échoue avec [`MACHINE_TRANSLATION_DISABLED`](/docs/error-codes#machine_translation_disabled) avant de lire ou de verrouiller quoi que ce soit |
+| SDK [`retranslateEntry`](/fr/docs/sdk/review#retranslateentry) | échoue avec [`MACHINE_TRANSLATION_DISABLED`](/fr/docs/error-codes#machine_translation_disabled) avant de lire ou de verrouiller quoi que ce soit |
 
 Aucun fournisseur n'est construit sur aucun de ces chemins, quel que soit le contenu de l'environnement, et aucune requête réseau n'est faite.
 
@@ -51,7 +51,7 @@ verbatra tmx export
 verbatra tmx import verbatra-memory.tmx
 ```
 
-Voir [`verbatra tmx`](/docs/cli/tmx) pour le nom du fichier et les options.
+Voir [`verbatra tmx`](/fr/docs/cli/tmx) pour le nom du fichier et les options.
 
 ## La boucle au quotidien
 
@@ -69,15 +69,15 @@ verbatra import verbatra-translations.xlsx
 verbatra check
 ```
 
-L'étape 1 est facultative, car `verbatra diff` et `verbatra check` montrent les mêmes clés en attente. Elle vaut quand même le coup : elle remplit chaque clé que la mémoire de traduction couvre déjà, donc tes traducteurs ne voient que ce qui est vraiment nouveau. Pour la remise elle-même, voir [Confier avec Excel ou CSV](/docs/manual-translation) ou [Confier à une agence](/docs/translation-agency).
+L'étape 1 est facultative, car `verbatra diff` et `verbatra check` montrent les mêmes clés en attente. Elle vaut quand même le coup : elle remplit chaque clé que la mémoire de traduction couvre déjà, donc tes traducteurs ne voient que ce qui est vraiment nouveau. Pour la remise elle-même, voir [Confier avec Excel ou CSV](/fr/docs/manual-translation) ou [Confier à une agence](/fr/docs/translation-agency).
 
 ## En CI
 
-`translate` sort avec `3` quand des clés attendent une personne ([codes de sortie](/docs/cli/output#codes-de-sortie)), donc un pipeline peut faire échouer le build, ouvrir une demande de traduction ou simplement le signaler. L'[action GitHub](/docs/github-action#mode-humain-uniquement) laisse passer l'étape sur le code `3` et met sa sortie `needs-human` à `"true"` pour qu'une étape suivante agisse.
+`translate` sort avec `3` quand des clés attendent une personne ([codes de sortie](/fr/docs/cli/output#codes-de-sortie)), donc un pipeline peut faire échouer le build, ouvrir une demande de traduction ou simplement le signaler. L'[action GitHub](/fr/docs/github-action#mode-humain-uniquement) laisse passer l'étape sur le code `3` et met sa sortie `needs-human` à `"true"` pour qu'une étape suivante agisse.
 
 ## Voir aussi
 
-- [Codes de sortie](/docs/cli/output#codes-de-sortie) : le contrat complet des codes de sortie.
-- [Le cache de traduction](/docs/the-cache) : la mémoire que `translate` utilise pour remplir.
-- [Fournisseurs](/docs/providers) : `none` à côté des fournisseurs de traduction.
-- [Traitement des données et vie privée](/docs/data-handling) : ce qui quitte la machine avec chaque fournisseur.
+- [Codes de sortie](/fr/docs/cli/output#codes-de-sortie) : le contrat complet des codes de sortie.
+- [Le cache de traduction](/fr/docs/the-cache) : la mémoire que `translate` utilise pour remplir.
+- [Fournisseurs](/fr/docs/providers) : `none` à côté des fournisseurs de traduction.
+- [Traitement des données et vie privée](/fr/docs/data-handling) : ce qui quitte la machine avec chaque fournisseur.

@@ -12,8 +12,8 @@ was die Kommandozeile kann, kannst du also auch im Code.
 Neu im SDK? Fang mit einer dieser Seiten an:
 
 <Cards>
-  <Card title="SDK-Schnellstart" href="/docs/sdk-quickstart">Das SDK installieren, einen Lauf ohne Key vorab ansehen, aus deinem eigenen Skript übersetzen, Fehler behandeln und CI absichern.</Card>
-  <Card title="SDK-Rezepte" href="/docs/programmatic-api">Vollständige Skripte für Schätzungen, den Watch-Modus, einen Fake-Provider, die Review-Warteschlange und die Hin- und Rückwege über Arbeitsmappe und TMX.</Card>
+  <Card title="SDK-Schnellstart" href="/de/docs/sdk-quickstart">Das SDK installieren, einen Lauf ohne Key vorab ansehen, aus deinem eigenen Skript übersetzen, Fehler behandeln und CI absichern.</Card>
+  <Card title="SDK-Rezepte" href="/de/docs/programmatic-api">Vollständige Skripte für Schätzungen, den Watch-Modus, einen Fake-Provider, die Review-Warteschlange und die Hin- und Rückwege über Arbeitsmappe und TMX.</Card>
 </Cards>
 
 ## Referenzseiten
@@ -37,7 +37,7 @@ Mit pnpm installiert `pnpm add --save-dev @verbatra/sdk` korrekt, beendet sich a
 sperrt die Installationsskripte des mitgelieferten Gemini-SDK und dessen `protobufjs` und
 hinterlässt eine unbeantwortete `pnpm-workspace.yaml`, an der jeder spätere pnpm-Befehl im Projekt
 genauso scheitert. Führe einmal `pnpm approve-builds` aus und bestätige keinen der beiden Einträge,
-oder sieh dir in der [Fehlerbehebung](/docs/troubleshooting) die nicht-interaktive Lösung an. Einen
+oder sieh dir in der [Fehlerbehebung](/de/docs/troubleshooting) die nicht-interaktive Lösung an. Einen
 `npx`-Umweg wie bei der CLI gibt es hier nicht, denn du importierst eine Bibliothek und startest
 kein Binary.
 
@@ -82,15 +82,15 @@ Verzeichnisse kennt. `createExclusive` bekommt keinen solchen Aufruf und legt ei
 `deleteFile`, das auch gelingt, wenn die Datei schon fehlt.
 
 `readDirectory` ist optional, damit eine Implementierung, die vor der Quellcode-Extraktion
-geschrieben wurde, weiterhin kompiliert. [`extract`](/docs/sdk/inspect#extract) ist der einzige Einstiegspunkt, der
+geschrieben wurde, weiterhin kompiliert. [`extract`](/de/docs/sdk/inspect#extract) ist der einzige Einstiegspunkt, der
 es braucht, und meldet sein Fehlen als `EXTRACT_FS_UNSUPPORTED`. Es listet die direkten Einträge
 eines Verzeichnisses als `{ name, kind }` auf, wobei `kind` `"file"`, `"directory"` oder `"other"`
 ist. Ein symbolischer Link gehört zu `"other"`: Der Scan folgt ihm nie, und genau das hält ihn
 innerhalb der übergebenen Roots.
 
 `realpath` ist ebenfalls optional. Es löst jeden symbolischen Link in einem bestehenden Pfad auf,
-und die Ausgabe-Guards von [`generateTypes`](/docs/sdk/run#generatetypes), [`exportTmx`](/docs/sdk/exchange#exporttmx),
-[`exportWorkbook`](/docs/sdk/exchange#exportworkbook) und [`pseudolocalize`](/docs/sdk/run#pseudolocalize) sehen damit, wo ein Ausgabepfad wirklich landet, sodass ein Link eine geschriebene Datei weder aus `cwd`
+und die Ausgabe-Guards von [`generateTypes`](/de/docs/sdk/run#generatetypes), [`exportTmx`](/de/docs/sdk/exchange#exporttmx),
+[`exportWorkbook`](/de/docs/sdk/exchange#exportworkbook) und [`pseudolocalize`](/de/docs/sdk/run#pseudolocalize) sehen damit, wo ein Ausgabepfad wirklich landet, sodass ein Link eine geschriebene Datei weder aus `cwd`
 hinaus noch auf eine Datei tragen kann, von der das Projekt abhängt. Ohne es vergleichen diese
 Guards die Pfade so, wie sie geschrieben sind. Ein Link am Ausgabepfad, dessen Ziel nicht existiert,
 lässt sich nicht auflösen, daher gehen die Guards davon aus, dass `writeFile` und `writeBytes`

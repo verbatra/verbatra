@@ -3,7 +3,7 @@ title: verbatra check
 description: Melde, welche Keys pro Locale fehlen oder veraltet sind, ohne Dateien zu schreiben.
 type: reference
 ---
-Melde pro Ziel-Locale, wie viele Keys fehlen, veraltet oder aktuell sind, und beende den Lauf mit einem Code, auf den ein CI-Schritt verzweigen kann. `check` liest und difft wie [`verbatra translate`](/docs/cli/translate) vor dem Provider-Aufruf und hört dann auf: kein Provider-Aufruf, keine geschriebene Datei, kein API-Key nötig.
+Melde pro Ziel-Locale, wie viele Keys fehlen, veraltet oder aktuell sind, und beende den Lauf mit einem Code, auf den ein CI-Schritt verzweigen kann. `check` liest und difft wie [`verbatra translate`](/de/docs/cli/translate) vor dem Provider-Aufruf und hört dann auf: kein Provider-Aufruf, keine geschriebene Datei, kein API-Key nötig.
 
 ## Synopsis
 
@@ -49,9 +49,9 @@ verbatra check --file locales/de.json --json
 | `--require-reviewed` | keins | aus | zusätzlich Exit `1`, solange eine maschinell geschriebene Übersetzung [nicht freigegeben](#freigegebene-übersetzungen-verlangen) ist |
 | `--sensitive` | keins | aus | durchsucht zusätzlich Quelldatei und Glossar nach [sensiblen Inhalten](#sensible-inhalte); Exit `1` bei jedem Fund |
 
-Nimmt außerdem die [globalen Flags](/docs/cli#globale-flags) `--cwd`, `--config` und `--json`.
+Nimmt außerdem die [globalen Flags](/de/docs/cli#globale-flags) `--cwd`, `--config` und `--json`.
 
-Ein Key fehlt, wenn die Quelle ihn hat und das Ziel nicht, und er ist veraltet, wenn sich sein Quelltext seit der letzten Übersetzung geändert hat. Eine Locale ist synchron, wenn sie keins von beidem hat. Die Key-Listen hinter den Zahlen liefert [`verbatra diff`](/docs/cli/diff).
+Ein Key fehlt, wenn die Quelle ihn hat und das Ziel nicht, und er ist veraltet, wenn sich sein Quelltext seit der letzten Übersetzung geändert hat. Eine Locale ist synchron, wenn sie keins von beidem hat. Die Key-Listen hinter den Zahlen liefert [`verbatra diff`](/de/docs/cli/diff).
 
 ## Verhalten
 
@@ -72,7 +72,7 @@ Bekannte Fehlalarme: i18next-Kontextvarianten (`invite_male`, `invite_female`), 
 
 <AvailableFrom version="0.12.0" />
 
-Ein veralteter Key, den eine Person geschrieben, importiert oder außerhalb von verbatra geändert hat, oder ein Key, der auf `pinnedKeys` passt, bleibt bei `translate` für eine Person liegen (siehe [Menschliche Übersetzungen schützen](/docs/protecting-human-translations)). `check` zählt ihn trotzdem und zeigt den geschützten Anteil, etwa `2 stale (1 protected)`. `--json` liefert ihn als `protected` pro Locale; ist `verbatra.provenance.json` unlesbar, zählen nur gepinnte Keys.
+Ein veralteter Key, den eine Person geschrieben, importiert oder außerhalb von verbatra geändert hat, oder ein Key, der auf `pinnedKeys` passt, bleibt bei `translate` für eine Person liegen (siehe [Menschliche Übersetzungen schützen](/de/docs/protecting-human-translations)). `check` zählt ihn trotzdem und zeigt den geschützten Anteil, etwa `2 stale (1 protected)`. `--json` liefert ihn als `protected` pro Locale; ist `verbatra.provenance.json` unlesbar, zählen nur gepinnte Keys.
 
 ### Pluralkategorien
 
@@ -87,7 +87,7 @@ plural categories (warning: exit 1 only under --qa --strict)
     files: missing few, many
 ```
 
-Die Kategorien stammen aus den CLDR-Regeln von Node.js (siehe [Sprachunterstützung](/docs/language-support#plurale)). Geprüfte Formate:
+Die Kategorien stammen aus den CLDR-Regeln von Node.js (siehe [Sprachunterstützung](/de/docs/language-support#plurale)). Geprüfte Formate:
 
 | Format | Gelesene Pluralformen |
 | --- | --- |
@@ -97,7 +97,7 @@ Die Kategorien stammen aus den CLDR-Regeln von Node.js (siehe [Sprachunterstütz
 | `apple-xcstrings` | die `variations.plural`-Kategorien jeder Locale |
 | `next-intl-json`, `arb` | jedes ICU-`plural` und -`selectordinal`, auch verschachtelte |
 
-`other` ist immer Pflicht. Ein exakter Zweig wie `=1` ersetzt nie eine Kategorie, `select`-Zweige werden nie geprüft, und geprüft wird nur ein Plural, von dem das Ziel mindestens eine Form hat. Es ist eine Warnung: Ein einfaches `check` behält seinen Exit-Code, `--qa --strict` schlägt daran fehl. [`verbatra doctor`](/docs/cli/doctor) meldet dieselben Plurale. Mit `--json` trägt jede Locale `incompletePlurals`, nach Key sortiert:
+`other` ist immer Pflicht. Ein exakter Zweig wie `=1` ersetzt nie eine Kategorie, `select`-Zweige werden nie geprüft, und geprüft wird nur ein Plural, von dem das Ziel mindestens eine Form hat. Es ist eine Warnung: Ein einfaches `check` behält seinen Exit-Code, `--qa --strict` schlägt daran fehl. [`verbatra doctor`](/de/docs/cli/doctor) meldet dieselben Plurale. Mit `--json` trägt jede Locale `incompletePlurals`, nach Key sortiert:
 
 ```ts
 interface IncompletePlural {
@@ -115,8 +115,8 @@ interface IncompletePlural {
 
 `--qa` wendet die Prüfungen, die ein Übersetzungslauf auf Provider-Ausgaben anwendet, auf die Werte an, die schon in deinen Locale-Dateien stehen, veraltet oder nicht, samt zusätzlicher Pluralformen, die die Zielsprache braucht. Befunde gibt es in zwei Schweregraden:
 
-- **error**: Der Wert fällt durch das [Integritäts-Gate](/docs/translation-safety#das-integritäts-gate), mit `placeholder`, `markup`, `icu`, `degenerate` oder `empty`. Die Details listen entfernte Tokens als `-{{name}}` und hinzugefügte als `+{{nom}}`.
-- **warning**: Der Wert trägt einen [Review-Grund](/docs/translation-safety#review-flags), der sich aus dem Wert, seiner Quelle und deiner Konfiguration (Glossar, `maxLength`) ergibt, also keinen, der vom Provider oder vom Cache abhängt; bei `FOREIGN_PLACEHOLDER_CHANGED` nennen die `details` des Befunds jedes verlorene oder veränderte Token, etwa `-{name}`. Ein Wert mit Fehler bekommt keine Warnungen.
+- **error**: Der Wert fällt durch das [Integritäts-Gate](/de/docs/translation-safety#das-integritäts-gate), mit `placeholder`, `markup`, `icu`, `degenerate` oder `empty`. Die Details listen entfernte Tokens als `-{{name}}` und hinzugefügte als `+{{nom}}`.
+- **warning**: Der Wert trägt einen [Review-Grund](/de/docs/translation-safety#review-flags), der sich aus dem Wert, seiner Quelle und deiner Konfiguration (Glossar, `maxLength`) ergibt, also keinen, der vom Provider oder vom Cache abhängt; bei `FOREIGN_PLACEHOLDER_CHANGED` nennen die `details` des Befunds jedes verlorene oder veränderte Token, etwa `-{name}`. Ein Wert mit Fehler bekommt keine Warnungen.
 
 ```text output
 qa: 1 error, 1 warning
@@ -139,7 +139,7 @@ type QaFinding =
 
 <AvailableFrom version="0.12.0" />
 
-`--require-reviewed` schlägt mit Exit `1` fehl, solange ein Wert mit [Herkunft](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat) `machine`, `memory`, `fuzzy` oder `agent` in der committeten `verbatra.provenance.json` nicht freigegeben ist; dort speichern [Studio](/docs/review-in-studio) und die [MCP-Tools](/docs/cli/mcp) ihre Entscheidungen. Eine Freigabe von vor der Änderung des Quelltexts oder des Werts zählt nicht.
+`--require-reviewed` schlägt mit Exit `1` fehl, solange ein Wert mit [Herkunft](/de/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat) `machine`, `memory`, `fuzzy` oder `agent` in der committeten `verbatra.provenance.json` nicht freigegeben ist; dort speichern [Studio](/de/docs/review-in-studio) und die [MCP-Tools](/de/docs/cli/mcp) ihre Entscheidungen. Eine Freigabe von vor der Änderung des Quelltexts oder des Werts zählt nicht.
 
 ```text output
 review: failed [REVIEW_REQUIRED] 2 machine-written translations not approved
@@ -152,9 +152,9 @@ Mit `--json` ist `result.review` gleich `{ reviewed, unreviewed, code? }`, wobei
 
 <AvailableFrom version="0.12.0" />
 
-`--sensitive` führt die Prüfung des [Schutzes für sensible Inhalte](/docs/data-handling#schutz-für-sensible-inhalte) über jeden Quell-Key (Key-Name, Wert, Beschreibung und Bedeutung) und das Glossar jeder geprüften Locale aus, mit den Detektoren, Mustern und der Allow-Liste aus `sensitiveData` (ohne Block den Standard-Detektoren), bei jedem `mode` und Provider, auch `none`: Werte verlassen den Rechner trotzdem über Export-, XLIFF- und TMX-Übergaben. Es meldet Keys und Detektoren, nie gefundenen Text außerhalb eines Key-Namens, und endet bei jedem Fund mit Exit `1`.
+`--sensitive` führt die Prüfung des [Schutzes für sensible Inhalte](/de/docs/data-handling#schutz-für-sensible-inhalte) über jeden Quell-Key (Key-Name, Wert, Beschreibung und Bedeutung) und das Glossar jeder geprüften Locale aus, mit den Detektoren, Mustern und der Allow-Liste aus `sensitiveData` (ohne Block den Standard-Detektoren), bei jedem `mode` und Provider, auch `none`: Werte verlassen den Rechner trotzdem über Export-, XLIFF- und TMX-Übergaben. Es meldet Keys und Detektoren, nie gefundenen Text außerhalb eines Key-Namens, und endet bei jedem Fund mit Exit `1`.
 
-Der Detektor `email` überspringt [reservierte Beispiel-Domains](/docs/data-handling#schutz-für-sensible-inhalte), teste also mit einer realistisch wirkenden Adresse.
+Der Detektor `email` überspringt [reservierte Beispiel-Domains](/de/docs/data-handling#schutz-für-sensible-inhalte), teste also mit einer realistisch wirkenden Adresse.
 
 ```text output
 sensitive: 1 key and 0 glossary terms hold content that looks sensitive
@@ -196,9 +196,9 @@ Fehlende und veraltete Keys gehören nicht zur Dateiprüfung.
 
 ### JSON-Ausgabe
 
-Schema: [`check-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/check-envelope.json) validiert den ganzen Envelope; [Schemas](/docs/cli/output#schemas) listet die übrigen auf.
+Schema: [`check-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/check-envelope.json) validiert den ganzen Envelope; [Schemas](/de/docs/cli/output#schemas) listet die übrigen auf.
 
-`--json` gibt einen [Umschlag](/docs/cli/output#json-ausgabe) aus, dessen `result` das Statusdokument ist. Ohne `--qa`, `--require-reviewed` und `--sensitive` ist `inSync` genau dann wahr, wenn der Befehl mit `0` endet:
+`--json` gibt einen [Umschlag](/de/docs/cli/output#json-ausgabe) aus, dessen `result` das Statusdokument ist. Ohne `--qa`, `--require-reviewed` und `--sensitive` ist `inSync` genau dann wahr, wenn der Befehl mit `0` endet:
 
 ```ts
 interface CheckSummary {
@@ -231,7 +231,7 @@ Ein Quell-Key, dessen Wert leer ist oder nur aus Leerraum besteht, etwa einer, d
 
 <AvailableFrom version="0.12.0" />
 
-`check` zeigt auf stderr `verbatra: checking the locales... done (0.1s)`, mit `--file` `verbatra: checking locales/de.json...`. `--quiet` lässt die Zeile weg. Siehe [Terminalausgabe](/docs/cli/output#terminalausgabe).
+`check` zeigt auf stderr `verbatra: checking the locales... done (0.1s)`, mit `--file` `verbatra: checking locales/de.json...`. `--quiet` lässt die Zeile weg. Siehe [Terminalausgabe](/de/docs/cli/output#terminalausgabe).
 
 ## Exit-Codes
 
@@ -241,10 +241,10 @@ Ein Quell-Key, dessen Wert leer ist oder nur aus Leerraum besteht, etwa einer, d
 | `1` | eine Locale hat einen fehlenden oder veralteten Key, `--qa` oder `--file` hat einen Fehler gefunden (oder unter `--strict` eine Warnung oder einen unvollständigen Plural), `--require-reviewed` hat eine nicht freigegebene Übersetzung gefunden, oder `--sensitive` hat sensible Inhalte gefunden |
 | `2` | konnte nicht laufen: ein Fehler für den ganzen Lauf wie `SOURCE_UNREADABLE` oder `NOT_A_LOCALE_FILE`, oder ein Nutzungsfehler wie `INVALID_QA_OPTION`, `INVALID_SEVERITY` oder `INVALID_OPTION` für ein leeres `--file` oder eines zusammen mit `--locales`, `--consistency`, `--require-reviewed` oder `--sensitive` |
 
-Exit `1` heißt, dass das Ergebnis nicht sauber ist, nicht dass der Lauf gescheitert ist; der Bericht wird trotzdem ausgegeben. Bei einem Projekt, dessen Quelldatei noch fehlt, meldet [`verbatra doctor`](/docs/cli/doctor) weiterhin. Den Vertrag findest du unter [Exit-Codes](/docs/cli/output#exit-codes).
+Exit `1` heißt, dass das Ergebnis nicht sauber ist, nicht dass der Lauf gescheitert ist; der Bericht wird trotzdem ausgegeben. Bei einem Projekt, dessen Quelldatei noch fehlt, meldet [`verbatra doctor`](/de/docs/cli/doctor) weiterhin. Den Vertrag findest du unter [Exit-Codes](/de/docs/cli/output#exit-codes).
 
 ## Siehe auch
 
-- [`verbatra diff`](/docs/cli/diff) listet die genauen Keys hinter diesen Zahlen.
-- [CI und Exit-Codes](/docs/ci-and-exit-codes) zeigt `check` als Drift-Gate.
-- [Die Lock-Datei](/docs/the-lock-file) erklärt, wie Veraltung erkannt wird.
+- [`verbatra diff`](/de/docs/cli/diff) listet die genauen Keys hinter diesen Zahlen.
+- [CI und Exit-Codes](/de/docs/ci-and-exit-codes) zeigt `check` als Drift-Gate.
+- [Die Lock-Datei](/de/docs/the-lock-file) erklärt, wie Veraltung erkannt wird.

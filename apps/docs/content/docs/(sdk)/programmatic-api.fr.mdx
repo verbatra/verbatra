@@ -3,7 +3,7 @@ title: Recettes SDK
 description: Des exemples complets et exécutables pour piloter verbatra depuis tes propres scripts, jobs CI et outillage.
 type: how-to
 ---
-Le [démarrage rapide du SDK](/docs/sdk-quickstart) couvre la première exécution. Cette page prend le relais avec des recettes complètes à copier dans un script ; la [référence SDK](/docs/sdk) catalogue chaque point d'entrée. Le SDK ne charge pas les fichiers `.env`, donc lance une recette qui appelle un fournisseur avec `node --env-file=.env`. Pour avancer avec un fournisseur limité en débit une langue à la fois, passe `locales: ["de"]` à `translate`.
+Le [démarrage rapide du SDK](/fr/docs/sdk-quickstart) couvre la première exécution. Cette page prend le relais avec des recettes complètes à copier dans un script ; la [référence SDK](/fr/docs/sdk) catalogue chaque point d'entrée. Le SDK ne charge pas les fichiers `.env`, donc lance une recette qui appelle un fournisseur avec `node --env-file=.env`. Pour avancer avec un fournisseur limité en débit une langue à la fois, passe `locales: ["de"]` à `translate`.
 
 ## Estimer une exécution avant de dépenser
 
@@ -11,7 +11,7 @@ Le [démarrage rapide du SDK](/docs/sdk-quickstart) couvre la première exécuti
 
 `estimate: true` implique `dryRun`. Le chiffre arrive sur `RunSummary.estimate` : base ton
 branchement sur `unit` pour la dimension facturée et sur `pricing` pour savoir si un bloc
-[`rates`](/docs/config-file#rates) l'a chiffré.
+[`rates`](/fr/docs/config-file#rates) l'a chiffré.
 
 ```ts
 import { loadConfig, translate } from "@verbatra/sdk";
@@ -41,8 +41,8 @@ if (estimate !== undefined) {
 }
 ```
 
-Cela borne le plan, pas la facture ; [Estimer le coût](/docs/estimating-cost) explique la méthode,
-et [RunSummary](/docs/sdk/run-summary) liste ce que chaque `EstimateCaveatCode` de `caveats` laisse
+Cela borne le plan, pas la facture ; [Estimer le coût](/fr/docs/estimating-cost) explique la méthode,
+et [RunSummary](/fr/docs/sdk/run-summary) liste ce que chaque `EstimateCaveatCode` de `caveats` laisse
 de côté.
 
 ## Vérifier en CI sans écrire
@@ -64,7 +64,7 @@ if (!summary.inSync) {
 }
 ```
 
-Besoin des noms de clés plutôt que des comptes ? Remplace par `diff`, qui renvoie les listes de clés `missing`, `changed` et `orphaned` par locale, avec le même verdict `hasPendingChanges`. Tu lances plutôt la CLI en CI ? Voir [CI et codes de sortie](/docs/ci-and-exit-codes).
+Besoin des noms de clés plutôt que des comptes ? Remplace par `diff`, qui renvoie les listes de clés `missing`, `changed` et `orphaned` par locale, avec le même verdict `hasPendingChanges`. Tu lances plutôt la CLI en CI ? Voir [CI et codes de sortie](/fr/docs/ci-and-exit-codes).
 
 ```ts
 import { diff, loadConfig } from "@verbatra/sdk";
@@ -109,7 +109,7 @@ if (summary.failed.length > 0 || !after.inSync) {
 }
 ```
 
-L'exécution écrit de vrais fichiers, donc teste sur une copie temporaire du projet. Un vrai fournisseur se branche de la même façon ; voir [Fournisseurs personnalisés](/docs/sdk/extend#fournisseurs-personnalisés).
+L'exécution écrit de vrais fichiers, donc teste sur une copie temporaire du projet. Un vrai fournisseur se branche de la même façon ; voir [Fournisseurs personnalisés](/fr/docs/sdk/extend#fournisseurs-personnalisés).
 
 ## Surveiller dans un processus de longue durée
 
@@ -164,7 +164,7 @@ if (summary.cancelled === true) {
 }
 ```
 
-Une locale que l'annulation a empêchée de démarrer porte le [code d'erreur `RUN_CANCELLED`](/docs/error-codes#run_cancelled), et une qu'elle a arrêtée en cours d'exécution, l'[avis `RUN_CANCELLED`](/docs/error-codes#notice-run_cancelled). Une annulation qui arrive après la fin de chaque locale laisse `cancelled` absent, et une erreur de toute l'exécution au démarrage rejette toujours.
+Une locale que l'annulation a empêchée de démarrer porte le [code d'erreur `RUN_CANCELLED`](/fr/docs/error-codes#run_cancelled), et une qu'elle a arrêtée en cours d'exécution, l'[avis `RUN_CANCELLED`](/fr/docs/error-codes#notice-run_cancelled). Une annulation qui arrive après la fin de chaque locale laisse `cancelled` absent, et une erreur de toute l'exécution au démarrage rejette toujours.
 
 ## Extraire les clés de ton code source
 
@@ -203,7 +203,7 @@ if (preview.added.length > 0 && preview.conflicts.length === 0) {
 ```
 
 `config.extract` doit nommer le framework et les racines de sources, sinon l'appel lève
-`EXTRACT_NOT_CONFIGURED`. [`extract`](/docs/sdk/inspect#extract) liste toutes les autres erreurs
+`EXTRACT_NOT_CONFIGURED`. [`extract`](/fr/docs/sdk/inspect#extract) liste toutes les autres erreurs
 qu'il lève.
 
 ## Générer un catalogue typé
@@ -243,7 +243,7 @@ if (gate.stale) {
 
 Passe `configPath` pour que le fichier de configuration chargé par l'exécution soit refusé comme
 chemin de sortie. Une exécution avec `check` n'écrit rien et ne signale que `stale`.
-[`verbatra types`](/docs/cli/types) liste tout ce qu'une exécution qui génère refuse.
+[`verbatra types`](/fr/docs/cli/types) liste tout ce qu'une exécution qui génère refuse.
 
 ## Construire une pseudo-locale
 
@@ -305,14 +305,14 @@ if (retry.accepted) {
 }
 ```
 
-[`retranslateEntry`](/docs/sdk/review#retranslateentry) liste ce que chacune lève.
+[`retranslateEntry`](/fr/docs/sdk/review#retranslateentry) liste ce que chacune lève.
 
 ### Valeurs écrites par une personne
 
 <AvailableFrom version="0.12.0" />
 
 `retranslateEntry` refuse une valeur écrite par une personne sauf si tu passes `includeHuman: true`,
-et une clé épinglée toujours ; voir [Protéger les traductions humaines](/docs/protecting-human-translations).
+et une clé épinglée toujours ; voir [Protéger les traductions humaines](/fr/docs/protecting-human-translations).
 
 ## Traiter la file de relecture
 
@@ -353,7 +353,7 @@ for (const { locale, needsReview } of queue.locales) {
 }
 ```
 
-[Modifier et relire](/docs/sdk/review#approveentry) présente les variantes par lot et chaque code qu'elles lèvent.
+[Modifier et relire](/fr/docs/sdk/review#approveentry) présente les variantes par lot et chaque code qu'elles lèvent.
 
 ## Lire toutes les valeurs en bloc
 
@@ -405,13 +405,13 @@ const summary = await importWorkbook({ config, workbook: exported.path });
 console.log(`${summary.succeeded.length} locales ok, ${summary.failed.length} failed`);
 ```
 
-Passe `dryRun: true` à `importWorkbook` pour valider un fichier renvoyé sans rien écrire. Voir [Traduction humaine](/docs/manual-translation) pour ce que les traducteurs peuvent modifier et comment les lignes sont validées.
+Passe `dryRun: true` à `importWorkbook` pour valider un fichier renvoyé sans rien écrire. Voir [Traduction humaine](/fr/docs/manual-translation) pour ce que les traducteurs peuvent modifier et comment les lignes sont validées.
 
 ## L'aller-retour TMX
 
 <AvailableFrom version="0.11.0" />
 
-`importTmx` et `exportTmx` font entrer et sortir la [mémoire de traduction](/docs/the-cache) au
+`importTmx` et `exportTmx` font entrer et sortir la [mémoire de traduction](/fr/docs/the-cache) au
 format TMX, le format d'échange que produisent et lisent les plateformes de traduction courantes.
 Contrairement à la paire classeur, elle déplace la mémoire entière comme un seul fichier
 multilingue entre outils.

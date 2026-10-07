@@ -59,7 +59,7 @@ Le fichier de verrouillage enregistre un hash de la valeur **source** derrière 
 
 ## Relancer après un retour arrière
 
-Revenir en arrière puis relancer `verbatra translate` refait la même chose, ce n'est pas un second avis. Avec le même fournisseur, le même modèle, le même ton, le même glossaire et la même `localeMap` du fournisseur, l'empreinte du [cache](/docs/the-cache#lempreinte) ne change pas, donc l'exécution ressert les mêmes traductions depuis `verbatra.cache.json` sans appeler le fournisseur.
+Revenir en arrière puis relancer `verbatra translate` refait la même chose, ce n'est pas un second avis. Avec le même fournisseur, le même modèle, le même ton, le même glossaire et la même `localeMap` du fournisseur, l'empreinte du [cache](/fr/docs/the-cache#lempreinte) ne change pas, donc l'exécution ressert les mêmes traductions depuis `verbatra.cache.json` sans appeler le fournisseur.
 
 Pour obtenir un autre résultat, change ce qui a rendu le premier mauvais : un nouveau ton, un nouveau glossaire ou un autre modèle change l'empreinte et retraduit tout seul. Pour renvoyer la même configuration au fournisseur, ajoute `--no-cache` :
 
@@ -67,7 +67,7 @@ Pour obtenir un autre résultat, change ce qui a rendu le premier mauvais : un n
 verbatra translate --no-cache
 ```
 
-Pour reconstruire une locale de zéro plutôt qu'annuler une exécution, voir [Comment je retraduis tout ?](/docs/faq#comment-je-retraduis-tout-). Supprimer le fichier de verrouillage n'est pas une remise à zéro : sans référence, rien n'est détecté comme obsolète, donc l'exécution suivante ne traduit rien.
+Pour reconstruire une locale de zéro plutôt qu'annuler une exécution, voir [Comment je retraduis tout ?](/fr/docs/faq#comment-je-retraduis-tout-). Supprimer le fichier de verrouillage n'est pas une remise à zéro : sans référence, rien n'est détecté comme obsolète, donc l'exécution suivante ne traduit rien.
 
 ## Une exécution interrompue ou en échec
 
@@ -75,9 +75,9 @@ Une exécution interrompue n'a pas besoin de retour arrière. Relance-la.
 
 Chaque locale est finalisée séparément : son fichier est écrit, puis ses entrées de verrouillage sont enregistrées. Une interruption laisse complètes les locales terminées et intactes les autres, et une nouvelle exécution reprend celles qui n'ont pas été touchées. Le seul écart, entre l'écriture du fichier d'une locale et la mise à jour de son verrouillage, se résout tout seul : les clés ajoutées sont adoptées telles quelles, et les clés modifiées portent encore leur ancien hash, elles sont donc retraduites. Aucun travail n'est perdu.
 
-Les clés retenues pendant une exécution, par un contrôle échoué, un appel au fournisseur échoué ou un budget de tokens, gardent leur hash précédent, donc l'exécution suivante les réessaie. Voir [Dépannage](/docs/troubleshooting) pour chaque cause.
+Les clés retenues pendant une exécution, par un contrôle échoué, un appel au fournisseur échoué ou un budget de tokens, gardent leur hash précédent, donc l'exécution suivante les réessaie. Voir [Dépannage](/fr/docs/troubleshooting) pour chaque cause.
 
-Une exécution interrompue libère ses verrous d'écriture. Un processus tué brutalement (`kill -9`, un plantage) peut en laisser un sous `.verbatra-local/` ; l'exécution suivante sur la même machine voit que le processus a disparu et le récupère. Un verrou qu'elle ne peut pas vérifier la fait attendre puis échouer avec [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), qui nomme le chemin à supprimer.
+Une exécution interrompue libère ses verrous d'écriture. Un processus tué brutalement (`kill -9`, un plantage) peut en laisser un sous `.verbatra-local/` ; l'exécution suivante sur la même machine voit que le processus a disparu et le récupère. Un verrou qu'elle ne peut pas vérifier la fait attendre puis échouer avec [`LOCK_CONTENDED`](/fr/docs/error-codes#lock_contended), qui nomme le chemin à supprimer.
 
 ## Avant une exécution difficile à annuler
 
@@ -87,7 +87,7 @@ Une exécution interrompue libère ses verrous d'écriture. Un processus tué br
 
 ## Voir aussi
 
-- [Le fichier de verrouillage](/docs/the-lock-file) : ce qu'il enregistre et comment les écarts sont détectés.
-- [Le cache](/docs/the-cache) : l'empreinte et `--no-cache`.
-- [`verbatra translate`](/docs/cli/translate) : `--dry-run`, `--locales` et `--no-cache`.
-- [Codes d'erreur](/docs/error-codes#lock_contended) : `LOCK_CONTENDED` et les autres erreurs de verrou.
+- [Le fichier de verrouillage](/fr/docs/the-lock-file) : ce qu'il enregistre et comment les écarts sont détectés.
+- [Le cache](/fr/docs/the-cache) : l'empreinte et `--no-cache`.
+- [`verbatra translate`](/fr/docs/cli/translate) : `--dry-run`, `--locales` et `--no-cache`.
+- [Codes d'erreur](/fr/docs/error-codes#lock_contended) : `LOCK_CONTENDED` et les autres erreurs de verrou.

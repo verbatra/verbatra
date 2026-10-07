@@ -38,7 +38,7 @@ verbatra pseudo --json
 | `--locale` | `<code>` | `en-XA` (`ar-XB` avec `--mode bidi`) | la pseudo-locale à générer ; lettres, chiffres et tirets uniquement (sinon `INVALID_LOCALE`) |
 | `--out` | `<path>` | `.verbatra-local/pseudo` | répertoire où écrire la pseudo-locale, relatif au répertoire de travail et à l'intérieur de la racine du projet |
 
-La commande accepte aussi les [options globales](/docs/cli#options-globales) `--cwd`, `--config` et `--json`.
+La commande accepte aussi les [options globales](/fr/docs/cli#options-globales) `--cwd`, `--config` et `--json`.
 
 ## Comportement
 
@@ -53,7 +53,7 @@ La commande accepte aussi les [options globales](/docs/cli#options-globales) `--
 `Hello {{name}}, you have {{count}} unread messages` devient
 `[Ĥéĺĺó {{name}}, ýóú ĥáṽé {{count}} úńŕéáḋ ṁéśśáġéś············]`.
 
-Seul le texte traduisible change. Les placeholders survivent dans toutes les syntaxes que reconnaissent les [adaptateurs de format](/docs/formats), et dans un message ICU les noms d'arguments, les mots-clés `plural` et `select` et les sélecteurs de branche restent tels quels. Les formes plurielles vue-i18n séparées par des barres verticales sont transformées une à une : `car | cars` devient `[ćáŕ··] | [ćáŕś··]`. La transformation est déterministe, donc le fichier produit des diffs propres.
+Seul le texte traduisible change. Les placeholders survivent dans toutes les syntaxes que reconnaissent les [adaptateurs de format](/fr/docs/formats), et dans un message ICU les noms d'arguments, les mots-clés `plural` et `select` et les sélecteurs de branche restent tels quels. Les formes plurielles vue-i18n séparées par des barres verticales sont transformées une à une : `car | cars` devient `[ćáŕ··] | [ćáŕś··]`. La transformation est déterministe, donc le fichier produit des diffs propres.
 
 ### Mode de droite à gauche
 
@@ -78,7 +78,7 @@ Chaque valeur générée passe le même contrôle d'intégrité que la traductio
 
 ### Où va la sortie
 
-La pseudo-locale est écrite hors de tes vrais fichiers de locale, par défaut sous `.verbatra-local/pseudo`, que [`verbatra init`](/docs/cli/init) ajoute au `.gitignore` (`pseudo` complète l'entrée si elle manque). Ton `files.pattern` est développé dans ce répertoire, donc avec `locales/{locale}.json` l'exécution par défaut écrit `.verbatra-local/pseudo/locales/en-XA.json`. Pointe ton serveur de dev dessus, ou passe `--out` pour écrire là où ton build sert déjà des fichiers.
+La pseudo-locale est écrite hors de tes vrais fichiers de locale, par défaut sous `.verbatra-local/pseudo`, que [`verbatra init`](/fr/docs/cli/init) ajoute au `.gitignore` (`pseudo` complète l'entrée si elle manque). Ton `files.pattern` est développé dans ce répertoire, donc avec `locales/{locale}.json` l'exécution par défaut écrit `.verbatra-local/pseudo/locales/en-XA.json`. Pointe ton serveur de dev dessus, ou passe `--out` pour écrire là où ton build sert déjà des fichiers.
 
 `PSEUDO_OUTPUT_CONFLICT` refuse, avant toute lecture ou écriture :
 
@@ -86,7 +86,7 @@ La pseudo-locale est écrite hors de tes vrais fichiers de locale, par défaut s
 - un `--out` qui place le fichier dans le même répertoire qu'un fichier de locale configuré,
 - un `--out` absolu, qui sort du répertoire de travail ou qui, une fois les liens symboliques résolus, aboutit hors du projet, à sa racine ou sur un fichier dont dépend le projet.
 
-Comme le fichier est hors de `files.pattern`, [`translate`](/docs/cli/translate) ne dépense jamais rien pour lui, et [`check`](/docs/cli/check) et [`diff`](/docs/cli/diff) ne le signalent jamais.
+Comme le fichier est hors de `files.pattern`, [`translate`](/fr/docs/cli/translate) ne dépense jamais rien pour lui, et [`check`](/fr/docs/cli/check) et [`diff`](/fr/docs/cli/diff) ne le signalent jamais.
 
 ### Formats écrits en retouchant un fichier existant
 
@@ -94,9 +94,9 @@ Les writers de `xliff` et `apple-xcstrings` retouchent des unités déjà prése
 
 ### Sortie JSON
 
-Schéma : [`pseudo-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/pseudo-envelope.json) valide l'enveloppe entière ; [Schémas](/docs/cli/output#schémas) liste les autres.
+Schéma : [`pseudo-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/pseudo-envelope.json) valide l'enveloppe entière ; [Schémas](/fr/docs/cli/output#schémas) liste les autres.
 
-Avec `--json`, l'[enveloppe JSON](/docs/cli/output#sortie-json) porte `locale`, `mode` (`accented` ou `bidi`), `path`, `entries` (entrées écrites, y compris les formes de pluriel ajoutées en mode bidi), `transformed` (valeurs qui diffèrent de la source), `copied` (clés copiées telles quelles) et `written` (`false` quand le fichier était déjà à jour).
+Avec `--json`, l'[enveloppe JSON](/fr/docs/cli/output#sortie-json) porte `locale`, `mode` (`accented` ou `bidi`), `path`, `entries` (entrées écrites, y compris les formes de pluriel ajoutées en mode bidi), `transformed` (valeurs qui diffèrent de la source), `copied` (clés copiées telles quelles) et `written` (`false` quand le fichier était déjà à jour).
 
 ### Retour dans le terminal
 
@@ -113,7 +113,7 @@ verbatra pseudo
 next: load .verbatra-local/pseudo/locales/en-XA.json as the en-XA locale in your dev server
 ```
 
-Une deuxième exécution sur une source inchangée rapporte `unchanged` au lieu de `wrote`. `--quiet` supprime les lignes stderr. Voir [Sortie dans le terminal](/docs/cli/output#sortie-dans-le-terminal).
+Une deuxième exécution sur une source inchangée rapporte `unchanged` au lieu de `wrote`. `--quiet` supprime les lignes stderr. Voir [Sortie dans le terminal](/fr/docs/cli/output#sortie-dans-le-terminal).
 
 ## Codes de sortie
 
@@ -122,11 +122,11 @@ Une deuxième exécution sur une source inchangée rapporte `unchanged` au lieu 
 | `0` | la pseudo-locale a été générée, que le fichier ait changé ou non ; les valeurs copiées telles quelles n'y changent rien |
 | `2` | exécution impossible : une erreur d'utilisation, un problème de config ou de source, ou une pseudo-locale ou un chemin de sortie refusé |
 
-Voir [le contrat des codes de sortie](/docs/cli/output#codes-de-sortie).
+Voir [le contrat des codes de sortie](/fr/docs/cli/output#codes-de-sortie).
 
 ## Voir aussi
 
-- [`verbatra translate`](/docs/cli/translate) fait le vrai travail, dès que tu as une clé.
-- [`verbatra doctor`](/docs/cli/doctor) valide aussi un projet sans rien dépenser.
-- [Formats](/docs/formats) liste la syntaxe des placeholders de chaque format.
-- [Le fichier de config](/docs/config-file) documente `files.pattern`, qui fixe la structure du fichier généré.
+- [`verbatra translate`](/fr/docs/cli/translate) fait le vrai travail, dès que tu as une clé.
+- [`verbatra doctor`](/fr/docs/cli/doctor) valide aussi un projet sans rien dépenser.
+- [Formats](/fr/docs/formats) liste la syntaxe des placeholders de chaque format.
+- [Le fichier de config](/fr/docs/config-file) documente `files.pattern`, qui fixe la structure du fichier généré.

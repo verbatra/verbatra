@@ -20,7 +20,7 @@ npm pkg set type=module
 npm install --save-dev @verbatra/sdk
 ```
 
-Führ das in einem leeren Verzeichnis aus: `npm init -y` legt die `package.json` an, die `npm pkg set type=module` als ES-Modul markiert. In einem bestehenden Projekt lässt du `npm init -y` weg. Wenn pnpm mit `ERR_PNPM_IGNORED_BUILDS` endet, sieh unter [Installation](/docs/sdk#installation) nach.
+Führ das in einem leeren Verzeichnis aus: `npm init -y` legt die `package.json` an, die `npm pkg set type=module` als ES-Modul markiert. In einem bestehenden Projekt lässt du `npm init -y` weg. Wenn pnpm mit `ERR_PNPM_IGNORED_BUILDS` endet, sieh unter [Installation](/de/docs/sdk#installation) nach.
 
 </Step>
 <Step>
@@ -48,7 +48,7 @@ export default defineConfig({
 });
 ```
 
-`loadConfig` findet diese Datei ausgehend vom Arbeitsverzeichnis und validiert sie. Unter [Wähle deinen Stack](/docs/pick-your-stack) steht das `format` für dein Framework, und [Provider](/docs/providers) listet jeden Provider mit seinen Optionen. Willst du ganz ohne Datei auskommen, übergib dasselbe Objekt als `configOverride`; siehe [SDK-Rezepte](/docs/programmatic-api#eine-konfiguration-ohne-datei).
+`loadConfig` findet diese Datei ausgehend vom Arbeitsverzeichnis und validiert sie. Unter [Wähle deinen Stack](/de/docs/pick-your-stack) steht das `format` für dein Framework, und [Provider](/de/docs/providers) listet jeden Provider mit seinen Optionen. Willst du ganz ohne Datei auskommen, übergib dasselbe Objekt als `configOverride`; siehe [SDK-Rezepte](/de/docs/programmatic-api#eine-konfiguration-ohne-datei).
 
 </Step>
 <Step>
@@ -74,7 +74,7 @@ node preview.ts
 de: would translate cart.empty, greeting
 ```
 
-Ein Probelauf baut keinen Provider, braucht also keinen Schlüssel, kostet nichts und schreibt nichts. Übergib stattdessen `estimate: true`, um eine Token- oder Kostenzahl zu bekommen; siehe [Kosten schätzen](/docs/estimating-cost).
+Ein Probelauf baut keinen Provider, braucht also keinen Schlüssel, kostet nichts und schreibt nichts. Übergib stattdessen `estimate: true`, um eine Token- oder Kostenzahl zu bekommen; siehe [Kosten schätzen](/de/docs/estimating-cost).
 
 </Step>
 <Step>
@@ -113,13 +113,13 @@ if (failed.length > 0 || partial.length > 0) {
 }
 ```
 
-Der Provider liest seinen Schlüssel aus der Umgebung, und anders als die CLI lädt das SDK keine `.env`-Dateien, also reichst du ihn selbst weiter. [Provider](/docs/providers#keys-kommen-aus-der-umgebung) nennt die Variable für jeden Provider.
+Der Provider liest seinen Schlüssel aus der Umgebung, und anders als die CLI lädt das SDK keine `.env`-Dateien, also reichst du ihn selbst weiter. [Provider](/de/docs/providers#keys-kommen-aus-der-umgebung) nennt die Variable für jeden Provider.
 
 ```bash
 node --env-file=.env translate.ts
 ```
 
-`locales/de.json` enthält jetzt beide Keys, und `{{name}}` ist unversehrt. Eine Locale mit `partial` wurde geschrieben, obwohl noch Keys fehlen, deshalb scheitert das Skript daran genauso wie an `failed`. Probleme einzelner Locales kommen als Daten in der Zusammenfassung an; nur ein Problem des ganzen Laufs wirft. [`translate`](/docs/sdk/run#translate) listet jede weitere Option.
+`locales/de.json` enthält jetzt beide Keys, und `{{name}}` ist unversehrt. Eine Locale mit `partial` wurde geschrieben, obwohl noch Keys fehlen, deshalb scheitert das Skript daran genauso wie an `failed`. Probleme einzelner Locales kommen als Daten in der Zusammenfassung an; nur ein Problem des ganzen Laufs wirft. [`translate`](/de/docs/sdk/run#translate) listet jede weitere Option.
 
 </Step>
 <Step>
@@ -158,7 +158,7 @@ try {
 }
 ```
 
-Führst du es ohne Schlüssel aus, meldet es `PROVIDER_CONSTRUCTION_FAILED` und nennt die fehlende Variable, nie einen Schlüsselwert. [Fehlercodes](/docs/error-codes#sdk-error-codes) listet jeden Code.
+Führst du es ohne Schlüssel aus, meldet es `PROVIDER_CONSTRUCTION_FAILED` und nennt die fehlende Variable, nie einen Schlüsselwert. [Fehlercodes](/de/docs/error-codes#sdk-error-codes) listet jeden Code.
 
 </Step>
 <Step>
@@ -194,7 +194,7 @@ In einem CommonJS-Projekt liefert `require("@verbatra/sdk")` dieselben Exporte. 
 
 ## Nächste Schritte
 
-- [SDK-Rezepte](/docs/programmatic-api): Schätzungen, Watch-Modus, ein Test-Double für den Provider, die Review-Warteschlange und die Roundtrips über Arbeitsmappe und TMX.
-- [SDK-Referenz](/docs/sdk): jeder Einstiegspunkt, seine Eingabe und was er wirft.
-- [Eigene Provider](/docs/sdk/extend#eigene-provider) und [eigene Format-Adapter](/docs/custom-format-adapters): binde ein, was verbatra nicht mitliefert.
-- [Übersetzungssicherheit](/docs/translation-safety): was verbatra prüft, bevor es eine Übersetzung schreibt.
+- [SDK-Rezepte](/de/docs/programmatic-api): Schätzungen, Watch-Modus, ein Test-Double für den Provider, die Review-Warteschlange und die Roundtrips über Arbeitsmappe und TMX.
+- [SDK-Referenz](/de/docs/sdk): jeder Einstiegspunkt, seine Eingabe und was er wirft.
+- [Eigene Provider](/de/docs/sdk/extend#eigene-provider) und [eigene Format-Adapter](/de/docs/custom-format-adapters): binde ein, was verbatra nicht mitliefert.
+- [Übersetzungssicherheit](/de/docs/translation-safety): was verbatra prüft, bevor es eine Übersetzung schreibt.

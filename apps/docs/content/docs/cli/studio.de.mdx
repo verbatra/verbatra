@@ -35,13 +35,13 @@ verbatra studio --expose-agent-tools
 | `--expose-agent-tools` | keins | aus, oder `VERBATRA_STUDIO_AGENT_TOOLS` | die Review-Aktionen von Studio als WebMCP-Tools registrieren, damit ein KI-Agent im Browser sie bedienen kann |
 | `--verbose` | keins | aus | zusätzlich eine stderr-Zeile pro Anfrage ausgeben, mit maskiertem Sitzungstoken |
 
-Außerdem nimmt `studio` die [globalen Flags](/docs/cli#globale-flags) `--cwd` und `--config`.
+Außerdem nimmt `studio` die [globalen Flags](/de/docs/cli#globale-flags) `--cwd` und `--config`.
 
 ## Verhalten
 
 ### Die ausgegebene URL
 
-Vor dem Start lädt `studio` die [Umgebungsdateien](/docs/cli#umgebungsdateien) und löst deine Konfiguration einmal auf; ein Konfigurationsfehler endet mit `2`, bevor irgendein Server startet. Studio bindet sich nur an `127.0.0.1` und gibt, sobald es lauscht, eine Zeile auf stdout aus:
+Vor dem Start lädt `studio` die [Umgebungsdateien](/de/docs/cli#umgebungsdateien) und löst deine Konfiguration einmal auf; ein Konfigurationsfehler endet mit `2`, bevor irgendein Server startet. Studio bindet sich nur an `127.0.0.1` und gibt, sobald es lauscht, eine Zeile auf stdout aus:
 
 ```
 Verbatra Studio running at http://127.0.0.1:5849/?token=<token>
@@ -62,15 +62,15 @@ verbatra: spend tools off (pass --allow-spend to retranslate from Studio)
 verbatra: agent tools off (pass --expose-agent-tools to register them)
 ```
 
-Mit `--allow-spend` unter dem Provider `none` lautet die erste Zeile `verbatra: spend tools off (provider none)`. In einem interaktiven Terminal kommt `verbatra: press Ctrl-C to stop` dazu, und nach dem Herunterfahren erscheint `verbatra: Studio stopped`. `--verbose` reicht eine Zeile pro Anfrage weiter (etwa `GET / 200`, oder `POST /rpc status.check 200` mit dem Namen der RPC-Methode, nie ihren Parametern); die eigene Startzeile von Studio wird immer verworfen. `--quiet` behält nur die URL-Zeile. Eine Zeile `verbatra: studio error: ...`, die erscheint, wenn eine Stapelaktion im Dashboard an einem unerwarteten Serverfehler scheitert, kommt immer, auch unter `--quiet`. Siehe [Terminalausgabe](/docs/cli/output#terminalausgabe).
+Mit `--allow-spend` unter dem Provider `none` lautet die erste Zeile `verbatra: spend tools off (provider none)`. In einem interaktiven Terminal kommt `verbatra: press Ctrl-C to stop` dazu, und nach dem Herunterfahren erscheint `verbatra: Studio stopped`. `--verbose` reicht eine Zeile pro Anfrage weiter (etwa `GET / 200`, oder `POST /rpc status.check 200` mit dem Namen der RPC-Methode, nie ihren Parametern); die eigene Startzeile von Studio wird immer verworfen. `--quiet` behält nur die URL-Zeile. Eine Zeile `verbatra: studio error: ...`, die erscheint, wenn eine Stapelaktion im Dashboard an einem unerwarteten Serverfehler scheitert, kommt immer, auch unter `--quiet`. Siehe [Terminalausgabe](/de/docs/cli/output#terminalausgabe).
 
 ### Ausgaben und Agent-Tools
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Ohne `--allow-spend` liest Studio `VERBATRA_STUDIO_ALLOW_SPEND`; `--expose-agent-tools` greift auf dieselbe Weise auf `VERBATRA_STUDIO_AGENT_TOOLS` zurück. Bei beiden zählt `1`, `true`, `yes` oder `on` (Groß- und Kleinschreibung und umgebende Leerzeichen egal) als an, und das Flag gewinnt immer gegen die Variable. Ohne beides kontaktiert Studio nie einen Provider. Studio lädt vorher die [Umgebungsdateien](/docs/cli#umgebungsdateien), also können beide Variablen in `.env.local` oder `.env` stehen.
+Ohne `--allow-spend` liest Studio `VERBATRA_STUDIO_ALLOW_SPEND`; `--expose-agent-tools` greift auf dieselbe Weise auf `VERBATRA_STUDIO_AGENT_TOOLS` zurück. Bei beiden zählt `1`, `true`, `yes` oder `on` (Groß- und Kleinschreibung und umgebende Leerzeichen egal) als an, und das Flag gewinnt immer gegen die Variable. Ohne beides kontaktiert Studio nie einen Provider. Studio lädt vorher die [Umgebungsdateien](/de/docs/cli#umgebungsdateien), also können beide Variablen in `.env.local` oder `.env` stehen.
 
-Ausgaben durch einen Agenten brauchen beide Flags; keines impliziert das andere. Eine Konfiguration mit `provider: { id: "none" }` schaltet Maschinenübersetzung per Richtlinie ab, dann hält Studio Ausgaben auch mit `--allow-spend` zurück, und die Settings-Seite sagt das. Den Tool-Katalog und das Sicherheitsmodell findest du unter [Studio mit einem Browser-Agenten steuern](/docs/agent-tools-in-studio).
+Ausgaben durch einen Agenten brauchen beide Flags; keines impliziert das andere. Eine Konfiguration mit `provider: { id: "none" }` schaltet Maschinenübersetzung per Richtlinie ab, dann hält Studio Ausgaben auch mit `--allow-spend` zurück, und die Settings-Seite sagt das. Den Tool-Katalog und das Sicherheitsmodell findest du unter [Studio mit einem Browser-Agenten steuern](/de/docs/agent-tools-in-studio).
 
 ### Installation
 
@@ -80,7 +80,7 @@ Ausgaben durch einen Agenten brauchen beide Flags; keines impliziert das andere.
 Verbatra Studio requires @verbatra/studio. Install it alongside the CLI with: npm install --save-dev @verbatra/studio, or run both without installing with: npx -y -p @verbatra/cli -p @verbatra/studio verbatra studio
 ```
 
-Mit pnpm gelingt diese Installation, endet aber mit `1` und `ERR_PNPM_IGNORED_BUILDS` und hinterlässt eine unbeantwortete `pnpm-workspace.yaml`; die einmalige Lösung steht unter [Fehlerbehebung](/docs/troubleshooting). npm und yarn haben dieses Problem nicht.
+Mit pnpm gelingt diese Installation, endet aber mit `1` und `ERR_PNPM_IGNORED_BUILDS` und hinterlässt eine unbeantwortete `pnpm-workspace.yaml`; die einmalige Lösung steht unter [Fehlerbehebung](/de/docs/troubleshooting). npm und yarn haben dieses Problem nicht.
 
 ## Exit-Codes
 
@@ -91,10 +91,10 @@ Mit pnpm gelingt diese Installation, endet aber mit `1` und `ERR_PNPM_IGNORED_BU
 | `2` | konnte nicht starten: ein Konfigurationsfehler, `@verbatra/studio` nicht installiert, der Port belegt oder ein ungültiges `--port` (`INVALID_PORT`) |
 | `130` | durch eine zweite Unterbrechung während des Herunterfahrens hart beendet |
 
-Den Vertrag, dem jeder Befehl folgt, findest du unter [Exit-Codes](/docs/cli/output#exit-codes).
+Den Vertrag, dem jeder Befehl folgt, findest du unter [Exit-Codes](/de/docs/cli/output#exit-codes).
 
 ## Siehe auch
 
-- [In Studio prüfen](/docs/review-in-studio) führt durch die Seite Translations, die Review-Warteschlange und das Neuübersetzen mit `--allow-spend`.
-- [Studio mit einem Browser-Agenten steuern](/docs/agent-tools-in-studio) behandelt `--expose-agent-tools` und die WebMCP-Tools.
-- [`verbatra check`](/docs/cli/check) und [`verbatra diff`](/docs/cli/diff) sind dieselben Berechnungen, die Studio live zeigt.
+- [In Studio prüfen](/de/docs/review-in-studio) führt durch die Seite Translations, die Review-Warteschlange und das Neuübersetzen mit `--allow-spend`.
+- [Studio mit einem Browser-Agenten steuern](/de/docs/agent-tools-in-studio) behandelt `--expose-agent-tools` und die WebMCP-Tools.
+- [`verbatra check`](/de/docs/cli/check) und [`verbatra diff`](/de/docs/cli/diff) sind dieselben Berechnungen, die Studio live zeigt.

@@ -6,7 +6,7 @@ status: new
 ---
 <AvailableFrom version="0.11.0" />
 
-Das brauchst du, wenn deine Locale-Dateien in einem Format vorliegen, das verbatra nicht von Haus aus liest (siehe [Formate](/docs/formats)). Du baust den Adapter in deinem eigenen Paket, benennst das Format mit einem `custom:`-Bezeichner und übergibst verbatra eine Registry, die ihn enthält. Nichts wird bei verbatra veröffentlicht, und kein Release ist nötig.
+Das brauchst du, wenn deine Locale-Dateien in einem Format vorliegen, das verbatra nicht von Haus aus liest (siehe [Formate](/de/docs/formats)). Du baust den Adapter in deinem eigenen Paket, benennst das Format mit einem `custom:`-Bezeichner und übergibst verbatra eine Registry, die ihn enthält. Nichts wird bei verbatra veröffentlicht, und kein Release ist nötig.
 
 Du brauchst `@verbatra/sdk` im Projekt. Die Kommandozeile `verbatra` lädt absichtlich kein Plugin (siehe [Worauf du dich einlässt](#worauf-du-dich-einlässt)), also läuft ein Projekt mit eigenem Format über das SDK.
 
@@ -24,13 +24,13 @@ Ein Format von außerhalb heißt `custom:`, gefolgt von einem kleingeschriebenen
 }
 ```
 
-Die Konfiguration prüft nur die Form des Bezeichners, weil der Adapter in deinem Paket liegt. Liefert niemand einen Adapter dafür, scheitert der Lauf mit [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format). Studio und `project.snapshot` im MCP-Server melden den Bezeichner unverändert, sodass ein Agent ein eigenes Format von einem eingebauten unterscheiden kann.
+Die Konfiguration prüft nur die Form des Bezeichners, weil der Adapter in deinem Paket liegt. Liefert niemand einen Adapter dafür, scheitert der Lauf mit [`UNKNOWN_FORMAT`](/de/docs/error-codes#unknown_format). Studio und `project.snapshot` im MCP-Server melden den Bezeichner unverändert, sodass ein Agent ein eigenes Format von einem eingebauten unterscheiden kann.
 
 ## Den Adapter bauen
 
 Implementier den Adapter-Vertrag nicht von Hand. Zwei Fabriken liefern das begrenzte Lesen, das atomare Schreiben, die Erkennung per Dateiendung und strukturierte Fehler und lassen dir nur das Parsen deines Formats.
 
-Wird jeder Eintrag über genau einen Key ohne Verschachtelung angesprochen, nimmst du [`createFlatFileAdapter`](/docs/sdk/extend#createflatfileadapter):
+Wird jeder Eintrag über genau einen Key ohne Verschachtelung angesprochen, nimmst du [`createFlatFileAdapter`](/de/docs/sdk/extend#createflatfileadapter):
 
 ```ts title="toml-adapter.ts"
 import { createFlatFileAdapter, type FormatAdapter } from "@verbatra/sdk";
@@ -49,7 +49,7 @@ export const tomlAdapter: FormatAdapter = createFlatFileAdapter({
 });
 ```
 
-Liegen die Einträge auf Pfaden durch verschachtelte Objekte, nimmst du [`createTreeFileAdapter`](/docs/sdk/extend#createtreefileadapter); es erwartet `parse` und `serialize` über einen Baum sowie ein `deriveEntry` für jedes Blatt.
+Liegen die Einträge auf Pfaden durch verschachtelte Objekte, nimmst du [`createTreeFileAdapter`](/de/docs/sdk/extend#createtreefileadapter); es erwartet `parse` und `serialize` über einen Baum sowie ein `deriveEntry` für jedes Blatt.
 
 Dann, je nachdem, was dein Format braucht:
 
@@ -57,7 +57,7 @@ Dann, je nachdem, was dein Format braucht:
 - Enthält eine Datei Quell- und Zieltext zugleich oder hält sie ihre Locale fest, lies das zusätzliche Argument `locale`, das `parseEntries` und `serializeEntries` bekommen.
 - Würde eine flache Token-Liste die Struktur deiner Platzhalter verlieren, ergänze `comparePlaceholders`; hat dein Format Plural- oder Select-Zweige, ergänze `compareBranchArms`.
 - Markiert dein Format Inhalte als nicht zu übersetzen, gib aus `parseEntries` `{ entries, excludedLeafPaths }` zurück, statt sie wegzulassen.
-- Lies und schreib über den `fs`-Port, den dir die Fabrik übergibt, standardmäßig [`nodeAdapterFs`](/docs/sdk/extend#nodeadapterfs), nie direkt über `node:fs`. So bleiben das begrenzte Lesen und das atomare Schreiben erhalten, und du kannst den Adapter ohne Festplatte testen.
+- Lies und schreib über den `fs`-Port, den dir die Fabrik übergibt, standardmäßig [`nodeAdapterFs`](/de/docs/sdk/extend#nodeadapterfs), nie direkt über `node:fs`. So bleiben das begrenzte Lesen und das atomare Schreiben erhalten, und du kannst den Adapter ohne Festplatte testen.
 
 ## Registrieren und laufen lassen
 
@@ -73,15 +73,15 @@ const adapterRegistry = createDefaultRegistry().register(tomlAdapter);
 const summary = await translate({ config }, { adapterRegistry });
 ```
 
-`register` gibt die Registry zurück, Registrierungen lassen sich also verketten. Es lehnt ein Format, das die Registry schon hat, mit [`DUPLICATE_FORMAT`](/docs/error-codes#duplicate_format) ab und einen fehlerhaften Bezeichner wie `custom:TOML` mit [`INVALID_FORMAT_ID`](/docs/error-codes#invalid_format_id), sodass zwei Plugins mit demselben Namen schon beim Start scheitern.
+`register` gibt die Registry zurück, Registrierungen lassen sich also verketten. Es lehnt ein Format, das die Registry schon hat, mit [`DUPLICATE_FORMAT`](/de/docs/error-codes#duplicate_format) ab und einen fehlerhaften Bezeichner wie `custom:TOML` mit [`INVALID_FORMAT_ID`](/de/docs/error-codes#invalid_format_id), sodass zwei Plugins mit demselben Namen schon beim Start scheitern.
 
 ## Die richtigen Fehler werfen
 
-Ein `custom:`-Adapter wird beim Registrieren umhüllt, sodass ein unerwarteter Fehler daraus als [`ADAPTER_FAILED`](/docs/error-codes#adapter_failed) auftaucht, mit deinem Format und der Methode, statt verbatra die Schuld zu geben. Die Meldung wiederholt deine nie, weil sie die Datei zitieren könnte; deinen ursprünglichen Fehler liest du aus `cause`.
+Ein `custom:`-Adapter wird beim Registrieren umhüllt, sodass ein unerwarteter Fehler daraus als [`ADAPTER_FAILED`](/de/docs/error-codes#adapter_failed) auftaucht, mit deinem Format und der Methode, statt verbatra die Schuld zu geben. Die Meldung wiederholt deine nie, weil sie die Datei zitieren könnte; deinen ursprünglichen Fehler liest du aus `cause`.
 
 Zwei Arten von Fehlern gehen unverändert durch:
 
-- Ein `AdapterError`, den du selbst wirfst, behält seinen Code. Wirf [`INVALID_STRUCTURE`](/docs/error-codes#invalid_structure) für Inhalte, die dein Format nicht abbilden kann.
+- Ein `AdapterError`, den du selbst wirfst, behält seinen Code. Wirf [`INVALID_STRUCTURE`](/de/docs/error-codes#invalid_structure) für Inhalte, die dein Format nicht abbilden kann.
 - Ein Fehler mit einem errno-Code wie `ENOENT` behält ihn, sodass eine fehlende Datei weiter als solche gemeldet wird. Die Prüfung sieht nur auf die Form des Fehlers, also gib deinen eigenen Validierungsfehlern keinen errno-Code.
 
 ## Worauf du dich einlässt
@@ -90,12 +90,12 @@ Zwei Arten von Fehlern gehen unverändert durch:
 
 Ein Adapter kann `process.env` lesen, wo jeder Provider-Key liegt, jede Datei lesen und schreiben, auf die der Prozess Zugriff hat, und Netzwerkverbindungen öffnen. Der `fs`-Port ist eine Konvention, keine Grenze.
 
-Der Adapter entscheidet außerdem, was als Platzhalter zählt. Meldet er keine, besteht die [Platzhalter-Integritätsprüfung](/docs/translation-safety) für sein Format immer, und eine Übersetzung mit zerstörter Interpolation geht unbemerkt durch, egal ob der Adapter fehlerhaft oder böswillig ist.
+Der Adapter entscheidet außerdem, was als Platzhalter zählt. Meldet er keine, besteht die [Platzhalter-Integritätsprüfung](/de/docs/translation-safety) für sein Format immer, und eine Übersetzung mit zerstörter Interpolation geht unbemerkt durch, egal ob der Adapter fehlerhaft oder böswillig ist.
 
 Zusichern kann verbatra, dass nie etwas implizit geladen wird: Es entdeckt kein Plugin, durchsucht kein Verzeichnis, installiert nichts und folgt keiner Namenskonvention. Ein Adapter läuft nur, weil dein Code ihn importiert und verbatra die Registry übergeben hat. Behandle ihn wie jede Abhängigkeit, die deine Secrets liest: lies ihn, pinne die Version und prüf jedes Update.
 
 ## Siehe auch
 
-- [Adapter, Provider, Schwärzung](/docs/sdk/extend): jede Fabrik-Option und jeder Export.
-- [Fehlercodes der Format-Adapter](/docs/error-codes#adapter-error-codes): was jede Ablehnung bedeutet.
-- [Formate](/docs/formats): die Formate, die verbatra mitbringt.
+- [Adapter, Provider, Schwärzung](/de/docs/sdk/extend): jede Fabrik-Option und jeder Export.
+- [Fehlercodes der Format-Adapter](/de/docs/error-codes#adapter-error-codes): was jede Ablehnung bedeutet.
+- [Formate](/de/docs/formats): die Formate, die verbatra mitbringt.

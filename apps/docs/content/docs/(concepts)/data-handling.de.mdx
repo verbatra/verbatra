@@ -34,28 +34,28 @@ diese Website gilt ihre [Datenschutzerklärung](/privacy).
   Studio in your browser   MCP client (your AI agent)
 ```
 
-Der Pfeil ist HTTPS, nur [`openai-compatible`](/docs/providers#openai-compatible) und [`libretranslate`](/docs/providers#libretranslate) dürfen einfaches http zu deiner eigenen `baseUrl` nutzen.
+Der Pfeil ist HTTPS, nur [`openai-compatible`](/de/docs/providers#openai-compatible) und [`libretranslate`](/de/docs/providers#libretranslate) dürfen einfaches http zu deiner eigenen `baseUrl` nutzen.
 
 ## Wann ein Request gemacht wird
 
 Nur die Befehle im Diagramm rufen einen Provider auf; die Aktionen von Studio und MCP brauchen
-[`--allow-spend`](/docs/cli/mcp#kostenpflichtige-tools). Alles andere, Probeläufe und Schätzungen
-eingeschlossen, ist lokal, außer [`verbatra doctor --live`](/docs/cli/doctor), das eine Sprachliste von DeepL, Google oder LibreTranslate abruft und keine Strings sendet.
+[`--allow-spend`](/de/docs/cli/mcp#kostenpflichtige-tools). Alles andere, Probeläufe und Schätzungen
+eingeschlossen, ist lokal, außer [`verbatra doctor --live`](/de/docs/cli/doctor), das eine Sprachliste von DeepL, Google oder LibreTranslate abruft und keine Strings sendet.
 
-Ein Lauf von `translate` sendet nur Keys, die gegenüber [der Lock-Datei](/docs/the-lock-file) fehlen
-oder geändert sind, abzüglich der Treffer im [Cache](/docs/the-cache), und geteilten Text nur
+Ein Lauf von `translate` sendet nur Keys, die gegenüber [der Lock-Datei](/de/docs/the-lock-file) fehlen
+oder geändert sind, abzüglich der Treffer im [Cache](/de/docs/the-cache), und geteilten Text nur
 einmal. Ein veralteter Key, den ein Mensch geschrieben hat, wird nur für einen Vorschlag mit
-`humanEdits: "suggest"` gesendet, ein [gepinnter](/docs/protecting-human-translations) Key nie. Dein
+`humanEdits: "suggest"` gesendet, ein [gepinnter](/de/docs/protecting-human-translations) Key nie. Dein
 DNS-Resolver sieht den Hostnamen des Providers.
 
 ## Was jeder Provider bekommt
 
 | Provider | Was gesendet wird | Wohin es geht |
 | --- | --- | --- |
-| `anthropic`, `openai`, `gemini`, `openai-compatible` | Pro Key: der Key-Name, der Quelltext und die Beschreibung oder Bedeutung, die deine Quelldatei mitführt. Pro Request: die Quell- und Zielcodes (nach [`localeMap`](/docs/providers#an-den-provider-gesendete-locale-codes)) und ihre englischen Namen, dein `tone`, die Glossarbegriffe der Ziel-Locale, die Pluralkategorien des Ziels, wenn ein Batch Plurale enthält, die festen Anweisungen von verbatra, der Modellname und ein Limit für Output-Tokens. | `api.anthropic.com`, `api.openai.com`, `generativelanguage.googleapis.com` oder die `baseUrl`, die du konfiguriert hast. [`*_BASE_URL`](/docs/network-policy#gehostete-provider) leitet die gehosteten um. |
-| `deepl` | Der Quelltext jedes Keys, Platzhalter [maskiert](/docs/providers#deepl) <AvailableFrom version="0.12.0" />, die Sprachcodes, eine Formalitätsstufe, wenn dein `tone` bei einem bezahlten Key eine verlangt, und deine `glossaryId`. Keine Key-Namen, Beschreibungen oder Glossarbegriffe. | `api.deepl.com`, oder `api-free.deepl.com` für einen Key, der auf `:fx` endet. |
-| `google-translate` | Der Quelltext jedes Keys, Platzhalter [maskiert](/docs/providers#google-cloud-translation) <AvailableFrom version="0.12.0" />, und die Sprachcodes. | `translation.googleapis.com` |
-| `libretranslate` | Der Quelltext jedes Keys, Platzhalter [maskiert](/docs/providers#libretranslate) (ein Wert mit ICU-Syntax wird nicht gesendet), die Sprachcodes und `LIBRETRANSLATE_API_KEY`, wenn gesetzt. | Die `baseUrl`, die du konfiguriert hast. |
+| `anthropic`, `openai`, `gemini`, `openai-compatible` | Pro Key: der Key-Name, der Quelltext und die Beschreibung oder Bedeutung, die deine Quelldatei mitführt. Pro Request: die Quell- und Zielcodes (nach [`localeMap`](/de/docs/providers#an-den-provider-gesendete-locale-codes)) und ihre englischen Namen, dein `tone`, die Glossarbegriffe der Ziel-Locale, die Pluralkategorien des Ziels, wenn ein Batch Plurale enthält, die festen Anweisungen von verbatra, der Modellname und ein Limit für Output-Tokens. | `api.anthropic.com`, `api.openai.com`, `generativelanguage.googleapis.com` oder die `baseUrl`, die du konfiguriert hast. [`*_BASE_URL`](/de/docs/network-policy#gehostete-provider) leitet die gehosteten um. |
+| `deepl` | Der Quelltext jedes Keys, Platzhalter [maskiert](/de/docs/providers#deepl) <AvailableFrom version="0.12.0" />, die Sprachcodes, eine Formalitätsstufe, wenn dein `tone` bei einem bezahlten Key eine verlangt, und deine `glossaryId`. Keine Key-Namen, Beschreibungen oder Glossarbegriffe. | `api.deepl.com`, oder `api-free.deepl.com` für einen Key, der auf `:fx` endet. |
+| `google-translate` | Der Quelltext jedes Keys, Platzhalter [maskiert](/de/docs/providers#google-cloud-translation) <AvailableFrom version="0.12.0" />, und die Sprachcodes. | `translation.googleapis.com` |
+| `libretranslate` | Der Quelltext jedes Keys, Platzhalter [maskiert](/de/docs/providers#libretranslate) (ein Wert mit ICU-Syntax wird nicht gesendet), die Sprachcodes und `LIBRETRANSLATE_API_KEY`, wenn gesetzt. | Die `baseUrl`, die du konfiguriert hast. |
 | `none` | Nichts. | Nirgendwohin. |
 
 Die SDKs senden außerdem Header mit Bibliothek, Betriebssystem und Node.js-Version. Dein API-Key
@@ -65,7 +65,7 @@ geht nur an den konfigurierten Endpunkt (`google-translate` sendet ihn im Query-
 
 <AvailableFrom version="0.12.0" />
 
-`sensitiveData` durchsucht vor jedem Request, was laut der Tabelle oben gesendet wird. Detektoren, `patterns` und `allow` stehen unter [Jeder Key](/docs/config-file#jeder-key). Der Detektor `email` überspringt `example.com`, `example.org`, `example.net` und Domains unter `.example`, `.test`, `.invalid` oder `.localhost`. Ein Muster wird abgelehnt, wenn es eine Gruppe mit einem Quantor oder einer Alternative wiederholt, mehr als ein `*`, `+` oder `{n,}` enthält oder zu oft verzweigt. Es liest die ersten 2.000 Zeichen eines Felds und bricht nach einer Sekunde ab; ein Abbruch ist ein Fund (`pattern-timeout-<n>`).
+`sensitiveData` durchsucht vor jedem Request, was laut der Tabelle oben gesendet wird. Detektoren, `patterns` und `allow` stehen unter [Jeder Key](/de/docs/config-file#jeder-key). Der Detektor `email` überspringt `example.com`, `example.org`, `example.net` und Domains unter `.example`, `.test`, `.invalid` oder `.localhost`. Ein Muster wird abgelehnt, wenn es eine Gruppe mit einem Quantor oder einer Alternative wiederholt, mehr als ein `*`, `+` oder `{n,}` enthält oder zu oft verzweigt. Es liest die ersten 2.000 Zeichen eines Felds und bricht nach einer Sekunde ab; ein Abbruch ist ein Fund (`pattern-timeout-<n>`).
 
 | `mode` | Wirkung |
 | --- | --- |
@@ -73,7 +73,7 @@ geht nur an den konfigurierten Endpunkt (`google-translate` sendet ihn im Query-
 | `block` | Hält den Key zurück, die Locale endet also `partial`. |
 | `redact` | Sendet für jeden Treffer im Wert ein Token und setzt den Treffer wieder ein; ein Treffer in einer Beschreibung oder Bedeutung geht als `[redacted]` hinaus. Ein Treffer im Key-Namen oder ein Token, das nicht genau einmal zurückkommt, hält den Key zurück. Bei DeepL und Google zählt ein Token als Platzhalter, ein Wert, den sie nicht schützen können, wird also als `PLACEHOLDER_UNSUPPORTED` zurückgehalten. |
 
-`block` und `redact` lassen außerdem einen passenden Glossarbegriff weg. `verbatra init` schreibt bei einem maschinellen Provider `warn`. Bei einem Fehlalarm trägst du den Text in `allow` ein oder entfernst seinen Detektor. [`verbatra check --sensitive`](/docs/cli/check#sensible-inhalte) prüft ohne Key. Namen in freiem Text werden nicht gefunden.
+`block` und `redact` lassen außerdem einen passenden Glossarbegriff weg. `verbatra init` schreibt bei einem maschinellen Provider `warn`. Bei einem Fehlalarm trägst du den Text in `allow` ein oder entfernst seinen Detektor. [`verbatra check --sensitive`](/de/docs/cli/check#sensible-inhalte) prüft ohne Key. Namen in freiem Text werden nicht gefunden.
 
 ## Aufbewahrung und Auftragsverarbeitung beim Anbieter
 
@@ -93,10 +93,10 @@ September 2026.
 
 | Option | Weg |
 | --- | --- |
-| Keine maschinelle Übersetzung | [Ohne maschinelle Übersetzung arbeiten](/docs/human-only-workflow) <AvailableFrom version="0.12.0" /> |
-| Dein eigenes Modell | [`openai-compatible`](/docs/providers#openai-compatible) mit Ollama, LM Studio oder vLLM |
-| Maschinelle Übersetzung ohne Sprachmodell | [`libretranslate`](/docs/providers#libretranslate) <AvailableFrom version="0.12.0" /> |
-| Erzwing es | eine [Netzwerkrichtlinie](/docs/network-policy) `local-only`, in der CI festgelegt <AvailableFrom version="0.12.0" /> |
+| Keine maschinelle Übersetzung | [Ohne maschinelle Übersetzung arbeiten](/de/docs/human-only-workflow) <AvailableFrom version="0.12.0" /> |
+| Dein eigenes Modell | [`openai-compatible`](/de/docs/providers#openai-compatible) mit Ollama, LM Studio oder vLLM |
+| Maschinelle Übersetzung ohne Sprachmodell | [`libretranslate`](/de/docs/providers#libretranslate) <AvailableFrom version="0.12.0" /> |
+| Erzwing es | eine [Netzwerkrichtlinie](/de/docs/network-policy) `local-only`, in der CI festgelegt <AvailableFrom version="0.12.0" /> |
 
 ## Was lokal geschrieben wird
 
@@ -112,16 +112,16 @@ September 2026.
 ## API-Keys
 
 Provider-Fehler und CLI-Ausgaben ersetzen den Wert jeder bekannten
-[Key-Variable](/docs/providers#keys-kommen-aus-der-umgebung), sofern er mindestens 8 Zeichen lang ist, und alles, was wie ein API-Key
+[Key-Variable](/de/docs/providers#keys-kommen-aus-der-umgebung), sofern er mindestens 8 Zeichen lang ist, und alles, was wie ein API-Key
 aussieht, durch `[REDACTED]`.
 
 ## Studio und MCP
 
-**Studio** bindet nur an `127.0.0.1`, mit einem [Sitzungs-Token](/docs/cli/studio), weist anderen `Host`
+**Studio** bindet nur an `127.0.0.1`, mit einem [Sitzungs-Token](/de/docs/cli/studio), weist anderen `Host`
 oder `Origin` ab, und seine Content-Security-Policy blockiert Abrufe aus dem Internet.
 
 **Der MCP-Server** spricht über stdio und öffnet keinen Port. Seine Lese-Tools geben deine Strings,
-dein Glossar und deinen Status heraus; [`--redact-values`](/docs/cli/mcp#redacted-values) maskiert
+dein Glossar und deinen Status heraus; [`--redact-values`](/de/docs/cli/mcp#redacted-values) maskiert
 jeden Wert. `history.list` nennt den Autor jedes
 Commits (nicht unter `--redact-values`), nie die E-Mail.
 
@@ -133,7 +133,7 @@ geschwärzt.
 
 Ob die Transparenzregeln des EU AI Act
 ([Artikel 50](https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-50)) gelten, klärt deine Rechtsberatung. verbatra
-[protokolliert](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat) Provider und Modell
+[protokolliert](/de/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat) Provider und Modell
 hinter jedem maschinell übersetzten Wert.
 
 ### Prüfdatei
@@ -141,7 +141,7 @@ hinter jedem maschinell übersetzten Wert.
 <AvailableFrom version="0.12.0" />
 
 `verbatra report provenance --json` macht aus diesem Protokoll eine
-[Prüfdatei](/docs/provenance-evidence) pro Key.
+[Prüfdatei](/de/docs/provenance-evidence) pro Key.
 
 ## Checkliste für ein AVV- oder NDA-Review
 
@@ -156,5 +156,5 @@ hinter jedem maschinell übersetzten Wert.
    `--redact-values` brauchen.
 6. Committe `verbatra.provenance.json` und archiviere `verbatra report provenance --json` pro
    Release.
-7. Häng das Manifest von [`verbatra doctor --data-flow --json`](/docs/cli/doctor#datenfluss) mit
+7. Häng das Manifest von [`verbatra doctor --data-flow --json`](/de/docs/cli/doctor#datenfluss) mit
    jedem Host und den Daten, die er bekommt, an.

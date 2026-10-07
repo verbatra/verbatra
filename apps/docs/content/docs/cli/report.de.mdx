@@ -35,7 +35,7 @@ verbatra report provenance --locales de
 | --- | --- | --- | --- |
 | `--locales` | `<list>` | alle konfigurierten Ziele | nur über diese kommagetrennte Teilmenge berichten; eine nicht konfigurierte Locale scheitert mit `UNKNOWN_LOCALE`, eine leere Liste mit `INVALID_LOCALES`, beide mit Exit `2` |
 
-Nimmt außerdem die [globalen Flags](/docs/cli#globale-flags) `--cwd`, `--config` und `--json`.
+Nimmt außerdem die [globalen Flags](/de/docs/cli#globale-flags) `--cwd`, `--config` und `--json`.
 
 ## Verhalten
 
@@ -48,19 +48,19 @@ verbatra report provenance (source en, verbatra 0.12.0, 2026-09-29T08:00:00.000Z
 Supporting evidence from verbatra.provenance.json, not legal advice. --json lists every key.
 ```
 
-Die erste Zeile nennt die Quell-Locale, die verbatra-Version und wann der Bericht erstellt wurde. Jede Zeile zählt die Keys, die sowohl in der Quelle als auch in dieser Locale einen Wert haben. [Nachweis maschineller Übersetzungen](/docs/provenance-evidence#der-herkunftsbericht) beschreibt die Kategorien, was der Bericht zeigen kann und was nicht, und das vollständige JSON-Schema.
+Die erste Zeile nennt die Quell-Locale, die verbatra-Version und wann der Bericht erstellt wurde. Jede Zeile zählt die Keys, die sowohl in der Quelle als auch in dieser Locale einen Wert haben. [Nachweis maschineller Übersetzungen](/de/docs/provenance-evidence#der-herkunftsbericht) beschreibt die Kategorien, was der Bericht zeigen kann und was nicht, und das vollständige JSON-Schema.
 
 Es gibt kein `--out`: Der Bericht geht wie bei `check` und `diff` auf stdout, also leite ihn um, wenn du ihn aufbewahren willst.
 
 ### JSON-Ausgabe
 
-Schema: [`report-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/report-envelope.json) validiert den ganzen Envelope; [Schemas](/docs/cli/output#schemas) listet die übrigen auf.
+Schema: [`report-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/report-envelope.json) validiert den ganzen Envelope; [Schemas](/de/docs/cli/output#schemas) listet die übrigen auf.
 
-`--json` gibt einen [Envelope](/docs/cli/output#json-ausgabe) aus, dessen `result` für jeden Key Herkunft, Review-Status, Provider, Modell und Reviewer auflistet, für eine Audit-Datei. Lässt sich die Provenienz-Datei nicht lesen, ist das Ergebnis `{ "available": false, "reason": "provenance-unreadable" }`.
+`--json` gibt einen [Envelope](/de/docs/cli/output#json-ausgabe) aus, dessen `result` für jeden Key Herkunft, Review-Status, Provider, Modell und Reviewer auflistet, für eine Audit-Datei. Lässt sich die Provenienz-Datei nicht lesen, ist das Ergebnis `{ "available": false, "reason": "provenance-unreadable" }`.
 
 ### Unlesbare Provenienz-Datei
 
-Ein Bericht ohne lesbare Provenienz-Datei würde jeden Wert als `unrecorded` listen, und das ist nicht dasselbe wie gar keine Aufzeichnung. Der Befehl schlägt deshalb sicher mit Exit `1` fehl, wie [`check --require-reviewed`](/docs/cli/check), damit ein CI-Job keine leere Audit-Datei archiviert.
+Ein Bericht ohne lesbare Provenienz-Datei würde jeden Wert als `unrecorded` listen, und das ist nicht dasselbe wie gar keine Aufzeichnung. Der Befehl schlägt deshalb sicher mit Exit `1` fehl, wie [`check --require-reviewed`](/de/docs/cli/check), damit ein CI-Job keine leere Audit-Datei archiviert.
 
 ### Rückmeldung im Terminal
 
@@ -71,7 +71,7 @@ verbatra: reading the provenance record... done (0.1s)
 next: verbatra studio (approve or reject the 12 machine translations no person has reviewed yet)
 ```
 
-Diese Zeilen gehen auf stderr, und `--quiet` blendet sie aus. Siehe [Terminalausgabe](/docs/cli/output#terminalausgabe).
+Diese Zeilen gehen auf stderr, und `--quiet` blendet sie aus. Siehe [Terminalausgabe](/de/docs/cli/output#terminalausgabe).
 
 ## Exit-Codes
 
@@ -81,10 +81,10 @@ Diese Zeilen gehen auf stderr, und `--quiet` blendet sie aus. Siehe [Terminalaus
 | `1` | kein Bericht: `verbatra.provenance.json` ist beschädigt oder stammt von einer neueren verbatra-Version |
 | `2` | konnte nicht laufen: ein Konfigurationsfehler, eine unlesbare Quell- oder Lock-Datei, ein nicht konfigurierter oder leerer `--locales`-Wert (`UNKNOWN_LOCALE`, `INVALID_LOCALES`) oder ein unbekannter Berichtsname |
 
-Siehe [den Exit-Code-Vertrag](/docs/cli/output#exit-codes).
+Siehe [den Exit-Code-Vertrag](/de/docs/cli/output#exit-codes).
 
 ## Siehe auch
 
-- [Nachweis maschineller Übersetzungen](/docs/provenance-evidence) behandelt den Bericht, sein Schema und die Markierungen maschineller Übersetzung in XLIFF- und TMX-Exporten.
-- [Die Lock-Datei](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat) erklärt die Provenienz-Datei, die der Bericht liest.
-- [`verbatra check --require-reviewed`](/docs/cli/check) lässt CI fehlschlagen, solange eine maschinelle Übersetzung nicht freigegeben ist.
+- [Nachweis maschineller Übersetzungen](/de/docs/provenance-evidence) behandelt den Bericht, sein Schema und die Markierungen maschineller Übersetzung in XLIFF- und TMX-Exporten.
+- [Die Lock-Datei](/de/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat) erklärt die Provenienz-Datei, die der Bericht liest.
+- [`verbatra check --require-reviewed`](/de/docs/cli/check) lässt CI fehlschlagen, solange eine maschinelle Übersetzung nicht freigegeben ist.

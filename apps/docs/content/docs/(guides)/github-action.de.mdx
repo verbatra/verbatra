@@ -3,7 +3,7 @@ title: Die GitHub Action nutzen
 description: "Führe verbatra in GitHub Actions mit der Composite Action aus: übersetze bei einem Push oder sichere einen Pull Request ab, mit Annotationen und einer Job-Zusammenfassung."
 type: how-to
 ---
-Nutze die Action, wenn ein GitHub-Actions-Job verbatra ausführen und dir zeigen soll, was passiert ist. Sie führt `translate`, `check` oder `diff` mit `--json` aus; für jeden anderen Befehl oder jedes andere Flag, etwa `--prune`, führst du [die CLI direkt](/docs/ci-and-exit-codes) aus.
+Nutze die Action, wenn ein GitHub-Actions-Job verbatra ausführen und dir zeigen soll, was passiert ist. Sie führt `translate`, `check` oder `diff` mit `--json` aus; für jeden anderen Befehl oder jedes andere Flag, etwa `--prune`, führst du [die CLI direkt](/de/docs/ci-and-exit-codes) aus.
 
 Bevor du anfängst, brauchst du:
 
@@ -40,7 +40,7 @@ Die Action installiert `@verbatra/cli` und `@verbatra/sdk` in genau dieser Versi
 
 ### Den Provider-Schlüssel übergeben
 
-Reiche den Schlüssel aus deinen Repository-Secrets unter der Variable weiter, die dein Provider liest; [Provider](/docs/providers#keys-kommen-aus-der-umgebung) listet sie auf. Die Action hat keine Schlüssel-Eingabe, ein Schlüssel reist also nie als Eingabe oder CLI-Argument.
+Reiche den Schlüssel aus deinen Repository-Secrets unter der Variable weiter, die dein Provider liest; [Provider](/de/docs/providers#keys-kommen-aus-der-umgebung) listet sie auf. Die Action hat keine Schlüssel-Eingabe, ein Schlüssel reist also nie als Eingabe oder CLI-Argument.
 
 ## Einen Pull Request absichern
 
@@ -57,7 +57,7 @@ Setze `command: check`, damit ein Pull Request mit abweichenden Locale-Dateien f
 
 <AvailableFrom version="0.12.0" />
 
-Ergänze `command: check` um `qa: "true"`, um [`verbatra check --qa`](/docs/cli/check#qualitätsprüfung) über jede eingecheckte Übersetzung laufen zu lassen, auch über von Hand getippte Werte. Es bleibt nur lesend und ohne Schlüssel.
+Ergänze `command: check` um `qa: "true"`, um [`verbatra check --qa`](/de/docs/cli/check#qualitätsprüfung) über jede eingecheckte Übersetzung laufen zu lassen, auch über von Hand getippte Werte. Es bleibt nur lesend und ohne Schlüssel.
 
 ```yaml
       - uses: verbatra/action@<commit-sha> # a commit on the v1 line
@@ -75,7 +75,7 @@ Ergänze `command: check` um `qa: "true"`, um [`verbatra check --qa`](/docs/cli/
 
 <AvailableFrom version="0.12.0" />
 
-Ergänze `command: check` um `require-reviewed: "true"`, um [`verbatra check --require-reviewed`](/docs/cli/check#freigegebene-übersetzungen-verlangen) auszuführen. Der Schritt schlägt fehl, solange eine maschinell geschriebene Übersetzung in der committeten `verbatra.provenance.json` nicht freigegeben ist; dort speichert [Studio](/docs/review-in-studio) die Review-Entscheidungen. Es bleibt nur lesend und ohne Schlüssel und lässt sich mit `qa` kombinieren.
+Ergänze `command: check` um `require-reviewed: "true"`, um [`verbatra check --require-reviewed`](/de/docs/cli/check#freigegebene-übersetzungen-verlangen) auszuführen. Der Schritt schlägt fehl, solange eine maschinell geschriebene Übersetzung in der committeten `verbatra.provenance.json` nicht freigegeben ist; dort speichert [Studio](/de/docs/review-in-studio) die Review-Entscheidungen. Es bleibt nur lesend und ohne Schlüssel und lässt sich mit `qa` kombinieren.
 
 ```yaml
       - uses: verbatra/action@<commit-sha> # a commit on the v1 line
@@ -85,7 +85,7 @@ Ergänze `command: check` um `require-reviewed: "true"`, um [`verbatra check --r
           require-reviewed: "true"
 ```
 
-- Jede Locale mit nicht freigegebenen Keys bekommt eine [`REVIEW_REQUIRED`](/docs/error-codes#review_required)-Fehler-Annotation, die sie nennt, und die Job-Zusammenfassung ergänzt eine Spalte `unreviewed`.
+- Jede Locale mit nicht freigegebenen Keys bekommt eine [`REVIEW_REQUIRED`](/de/docs/error-codes#review_required)-Fehler-Annotation, die sie nennt, und die Job-Zusammenfassung ergänzt eine Spalte `unreviewed`.
 - Ist `verbatra.provenance.json` beschädigt oder stammt sie von einem neueren verbatra, schlägt das Gate mit einer einzigen `REVIEW_STATE_UNREADABLE`-Annotation fehl.
 - Wie `qa` braucht es eine `version` ab `0.12.0`, und ein Prerelease lässt den Schritt fehlschlagen.
 
@@ -93,7 +93,7 @@ Ergänze `command: check` um `require-reviewed: "true"`, um [`verbatra check --r
 
 <AvailableFrom version="0.12.0" />
 
-Mit `provider: { id: "none" }` (siehe [Rein menschlicher Workflow](/docs/human-only-workflow)) endet `translate` mit `3`, wenn es Keys für eine Person übrig lässt. Die Action behandelt das als Arbeit zur Übergabe, nicht als Fehlschlag: Der Schritt besteht, jede betroffene Locale bekommt eine `NEEDS_HUMAN`-Warnung, die Job-Zusammenfassung listet die Keys, und der Output `needs-human` ist `"true"`. Verzweige darauf:
+Mit `provider: { id: "none" }` (siehe [Rein menschlicher Workflow](/de/docs/human-only-workflow)) endet `translate` mit `3`, wenn es Keys für eine Person übrig lässt. Die Action behandelt das als Arbeit zur Übergabe, nicht als Fehlschlag: Der Schritt besteht, jede betroffene Locale bekommt eine `NEEDS_HUMAN`-Warnung, die Job-Zusammenfassung listet die Keys, und der Output `needs-human` ist `"true"`. Verzweige darauf:
 
 ```yaml
       - uses: verbatra/action@<commit-sha> # a commit on the v1 line
@@ -149,7 +149,7 @@ Die booleschen Eingaben akzeptieren nur `"true"` oder `"false"`. Ein ungültiger
 
 - **Annotationen.** Unter `translate` wird jede fehlgeschlagene oder teilweise Locale zu einer Fehler-Annotation mit dem Titel `verbatra: <locale>`. Unter `check` oder `diff` bekommt jede abweichende Locale eine mit dem Titel `verbatra check: <locale>` oder `verbatra diff: <locale>`. Die `LOCALE_PARTIAL`-Annotation einer teilweisen Locale nennt die zurückgehaltenen Keys, nach Ursache gruppiert. Jeder `check` ergänzt pro Locale eine `PLURAL_CATEGORIES_INCOMPLETE`-Warnung, wenn ihren Pluralen eine CLDR-Kategorie fehlt, die die Sprache nutzt. Ein Lauf, der als Ganzes fehlschlägt, bekommt eine einzige `verbatra`-Annotation mit dem Fehlercode, der Ursache als `(cause: X)` und einem `Next step:`-Hinweis, sofern die CLI sie liefert. GitHub zeigt höchstens 10 Annotationen pro Schweregrad, daher sortiert die Action sie nach Drift, Review, Qualitätsfehlern und Warnungen und ergänzt einen Hinweis, der den Rest zählt.
 - **Job-Zusammenfassung.** Eine Zeile pro Locale mit den Zahlen des ausgeführten Befehls, eine Gesamtzeile und die teilweisen und fehlgeschlagenen Locales. Mit `qa` kommt eine Befundtabelle mit bis zu 1000 Befunden hinzu; unvollständige Plurale bekommen einen eigenen Abschnitt.
-- **Exit-Status.** Die Action gibt zuerst die Annotationen und die Zusammenfassung aus und endet dann mit dem [Exit-Code](/docs/cli/output#exit-codes) der CLI, sodass der Schritt erst fehlschlägt, nachdem er gezeigt hat, warum.
+- **Exit-Status.** Die Action gibt zuerst die Annotationen und die Zusammenfassung aus und endet dann mit dem [Exit-Code](/de/docs/cli/output#exit-codes) der CLI, sodass der Schritt erst fehlschlägt, nachdem er gezeigt hat, warum.
 
 ## Sicherheit
 
@@ -157,6 +157,6 @@ Pinne beide Referenzen: `uses:` auf einen Commit-SHA und `version` auf ein exakt
 
 ## Siehe auch
 
-- [verbatra in CI ausführen](/docs/ci-and-exit-codes): dieselben Gates in jedem CI-System.
-- [`verbatra check`](/docs/cli/check) und [`verbatra translate`](/docs/cli/translate).
+- [verbatra in CI ausführen](/de/docs/ci-and-exit-codes): dieselben Gates in jedem CI-System.
+- [`verbatra check`](/de/docs/cli/check) und [`verbatra translate`](/de/docs/cli/translate).
 - [verbatra/action](https://github.com/verbatra/action): die Release Notes und die aus `action.yml` erzeugte Eingaben-Referenz.

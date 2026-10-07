@@ -13,6 +13,10 @@ const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 const LOCALE_SUFFIXES = ["", ".de", ".es", ".fr"];
 
+function docsRoot(suffix) {
+  return suffix === "" ? "/docs" : `/${suffix.slice(1)}/docs`;
+}
+
 function readRepoFile(relativePath) {
   return readFileSync(resolve(REPO_ROOT, relativePath), "utf8");
 }
@@ -304,7 +308,7 @@ describe("the pick-your-stack page covers every built-in format", () => {
         const sections = stackSectionsFor(page, format);
         expect(sections, format).toHaveLength(1);
         expect(sections[0], format).toContain(`\`${patterns.get(format)}\``);
-        expect(sections[0], format).toMatch(/\]\(\/docs\/formats#[^)]+\)/);
+        expect(sections[0], format).toContain(`](${docsRoot(suffix)}/formats#`);
       }
       const cards = stackCards(page);
       expect(cards.every((card) => card.path === "" && card.badge === undefined)).toBe(true);
@@ -574,9 +578,11 @@ function cliMetaCommands(suffix) {
 
 function cliOverviewCommands(suffix) {
   const page = readDocPage("cli/index", suffix);
-  return [...page.matchAll(/^ {2}<Card title="([a-z]+)" href="\/docs\/cli\/\1">/gm)]
-    .map((match) => match[1])
-    .sort();
+  const pattern = new RegExp(
+    `^ {2}<Card title="([a-z]+)" href="${docsRoot(suffix)}/cli/\\1">`,
+    "gm",
+  );
+  return [...page.matchAll(pattern)].map((match) => match[1]).sort();
 }
 
 describe("the CLI reference covers every command", () => {
@@ -634,7 +640,7 @@ describe("the CLI reference covers every command", () => {
           const page = readDocPage(`cli/${name}`, suffix);
 
           expect(documentedFlags(page)).toEqual(own);
-          expect(page).toContain(`](/docs/cli#${GLOBAL_FLAGS_ANCHOR[suffix]})`);
+          expect(page).toContain(`](${docsRoot(suffix)}/cli#${GLOBAL_FLAGS_ANCHOR[suffix]})`);
         },
       );
 

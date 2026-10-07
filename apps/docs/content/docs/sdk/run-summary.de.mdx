@@ -52,15 +52,15 @@ Die Teile, die du kennen solltest:
 
 - **needsReview** listet akzeptierte, geschriebene Keys, die die Review-Heuristiken markiert
   haben, jeder mit seinen Grund-Codes, aufgeführt und erklärt unter
-  [Review-Flags](/docs/translation-safety#review-flags). Die Menge wird als Tupel
+  [Review-Flags](/de/docs/translation-safety#review-flags). Die Menge wird als Tupel
   `REVIEW_REASON_CODES` ausgeliefert; baue jedes Laufzeitschema und jede vollständige Zuordnung
   daraus, statt die Mitglieder abzutippen. Ein Review-Flag ist nur ein Hinweis und hält nie einen
   Key zurück; ein Key erscheint also nie in `needsReview` und `integrityMismatches` zugleich. Das
-  Abarbeiten der Warteschlange steht in [Review in Studio](/docs/review-in-studio).
+  Abarbeiten der Warteschlange steht in [Review in Studio](/de/docs/review-in-studio).
 - **notices** leben pro Locale, nie auf oberster Ebene. Dazu zählen Provider-Notices (etwa eine
-  DeepL-Degradation), aufgeführt unter [Provider-Hinweise](/docs/error-codes#provider-notice-codes),
+  DeepL-Degradation), aufgeführt unter [Provider-Hinweise](/de/docs/error-codes#provider-notice-codes),
   und SDK-Notices, deren Codes die Union `SdkNoticeCode` bilden und unter
-  [Laufhinweise](/docs/error-codes#sdk-notice-codes) erklärt sind. Eine Notice für den gesamten
+  [Laufhinweise](/de/docs/error-codes#sdk-notice-codes) erklärt sind. Eine Notice für den gesamten
   Lauf, etwa die Cache-Notice (eine Datei, die sich alle Locales teilen), wird an jede Locale des
   Laufs gehängt.
 - **usage** ist `undefined`, nie eine erfundene Null, wann immer nichts in diesem Bereich einen
@@ -89,7 +89,7 @@ Die Teile, die du kennen solltest:
   `budgetWithheld` stehen, scheitert, ohne dass etwas geworfen wurde. Der Grund steht in diesen
   Listen und in ihren `notices`, etwa `SUB_BATCH_FAILED` für einen gescheiterten Provider-Batch oder
   `BUDGET_TOKENS_EXCEEDED` für das Token-Budget. Prüf `status`, nie, ob `error` vorhanden ist.
-- **cancelled** erscheint nur, wenn das `signal` des Laufs ihn abgebrochen hat. [`RUN_CANCELLED`](/docs/error-codes#run_cancelled) sagt, was das hinterlässt.
+- **cancelled** erscheint nur, wenn das `signal` des Laufs ihn abgebrochen hat. [`RUN_CANCELLED`](/de/docs/error-codes#run_cancelled) sagt, was das hinterlässt.
 - **estimate** erscheint nur, wenn der Lauf eine Schätzung vor dem Lauf angefordert hat. Seine
   Liste `caveats` ist nie leer und nennt, was die Zahl auslässt, als Member von `EstimateCaveatCode`:
   - `CACHE_NOT_CONSULTED`: Der Übersetzungsspeicher wird nicht gelesen, Keys, die ein echter Lauf
@@ -107,7 +107,7 @@ Die Teile, die du kennen solltest:
   - `REPAIR_REQUESTS_NOT_COUNTED`: Die Reparaturrunde für Keys, die fehlend zurückkamen, und der
     Retry in Hälften bei einer abgeschnittenen Antwort werden nicht gezählt. Nur Provider mit
     Token-Abrechnung.
-- **cacheHits** listet Keys, die aus dem [Übersetzungsspeicher-Cache](/docs/the-cache) statt vom
+- **cacheHits** listet Keys, die aus dem [Übersetzungsspeicher-Cache](/de/docs/the-cache) statt vom
   Provider bedient wurden. **fuzzyHits** listet die Keys, die eine Übersetzung für einen
   geänderten Quellstring wiederverwendet haben, jeweils mit `key`, `similarity` und dem getroffenen
   `previousSource`; sie ist leer, solange `fuzzyCache` nicht aktiviert ist, und diese Keys zählen nie
@@ -117,8 +117,8 @@ Die Teile, die du kennen solltest:
   exportiert wurde), eine Arbeitsmappen-Zeile, die der Reader nicht parsen konnte, und ein
   doppelter Key, dessen erstes Vorkommen gewonnen hat. Das optionale `line` bei den letzten beiden
   ist die Dateizeile, in der der Datensatz beginnt; es ist nur bei einem Import mit Trennzeichen
-  (`csv` oder `tsv`) vorhanden. Die einzige Ausnahme ist ein [rein menschliches](/docs/human-only-workflow) Projekt: Dort listen `translate` und `watch` in **unfilled** jeden Key, für den das Translation Memory keinen exakten Eintrag hatte, und **fuzzyHits** bleibt leer, weil dort nie unscharf wiederverwendet wird.
-- **protected** listet die Keys, die ein `translate`-Lauf in Ruhe gelassen hat, jeweils mit ihrem `reason` (`human`, `import`, `external` oder `pinned`) und, unter `humanEdits: "suggest"`, einer `suggestion` (die Antwort des Providers oder ein exakter Translation-Memory-Eintrag, nie ein Fuzzy-Treffer), die nicht geschrieben wurde, sowie einem `suggestionStatus`: `planned` bei einem Dry Run, `suggested` oder warum nicht (`integrity-mismatch`, `provider-failure`, `budget-withheld`, `sensitive-withheld`). Ein fehlgeschlagener Vorschlag ändert nie den Status einer Locale. Sie stehen nicht in **translated**, ändern nie den Status einer Locale und bleiben für `check` veraltet. `importWorkbook` lässt das Feld leer. Siehe [Menschliche Übersetzungen schützen](/docs/protecting-human-translations).
+  (`csv` oder `tsv`) vorhanden. Die einzige Ausnahme ist ein [rein menschliches](/de/docs/human-only-workflow) Projekt: Dort listen `translate` und `watch` in **unfilled** jeden Key, für den das Translation Memory keinen exakten Eintrag hatte, und **fuzzyHits** bleibt leer, weil dort nie unscharf wiederverwendet wird.
+- **protected** listet die Keys, die ein `translate`-Lauf in Ruhe gelassen hat, jeweils mit ihrem `reason` (`human`, `import`, `external` oder `pinned`) und, unter `humanEdits: "suggest"`, einer `suggestion` (die Antwort des Providers oder ein exakter Translation-Memory-Eintrag, nie ein Fuzzy-Treffer), die nicht geschrieben wurde, sowie einem `suggestionStatus`: `planned` bei einem Dry Run, `suggested` oder warum nicht (`integrity-mismatch`, `provider-failure`, `budget-withheld`, `sensitive-withheld`). Ein fehlgeschlagener Vorschlag ändert nie den Status einer Locale. Sie stehen nicht in **translated**, ändern nie den Status einer Locale und bleiben für `check` veraltet. `importWorkbook` lässt das Feld leer. Siehe [Menschliche Übersetzungen schützen](/de/docs/protecting-human-translations).
 
 ### budgetStanding
 

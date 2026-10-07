@@ -7,7 +7,7 @@ Damit lässt du einen KI-Agenten im Browser, etwa Gemini oder Claude in Chrome, 
 
 Du brauchst:
 
-- ein laufendes Studio über deinem Projekt ([In Studio prüfen](/docs/review-in-studio#starte-studio));
+- ein laufendes Studio über deinem Projekt ([In Studio prüfen](/de/docs/review-in-studio#starte-studio));
 - Chrome 149 oder neuer mit aktiviertem `chrome://flags/#enable-webmcp-testing` oder einen Browser mit nativer WebMCP-Unterstützung, in einem normalen Fenster statt headless.
 
 <Callout title="Experimentell">
@@ -20,11 +20,11 @@ WebMCP ist eine neue Browser-Fähigkeit hinter einem Flag, und ihre Schnittstell
 verbatra studio --expose-agent-tools
 ```
 
-`VERBATRA_STUDIO_AGENT_TOOLS=1` bewirkt dasselbe; wie Flag und Variable aufgelöst werden, steht unter [Ausgaben und Agent-Tools](/docs/cli/studio#ausgaben-und-agent-tools). Öffne die ausgegebene URL im WebMCP-Browser, und der Agent in diesem Tab findet die Tools. In einem Browser ohne WebMCP registriert Studio nichts, und das Dashboard bleibt unverändert.
+`VERBATRA_STUDIO_AGENT_TOOLS=1` bewirkt dasselbe; wie Flag und Variable aufgelöst werden, steht unter [Ausgaben und Agent-Tools](/de/docs/cli/studio#ausgaben-und-agent-tools). Öffne die ausgegebene URL im WebMCP-Browser, und der Agent in diesem Tab findet die Tools. In einem Browser ohne WebMCP registriert Studio nichts, und das Dashboard bleibt unverändert.
 
-Damit der Agent deinen Provider aufrufen darf, startest du Studio zusätzlich mit `--allow-spend` ([Ausgaben und Agent-Tools](/docs/cli/studio#ausgaben-und-agent-tools)).
+Damit der Agent deinen Provider aufrufen darf, startest du Studio zusätzlich mit `--allow-spend` ([Ausgaben und Agent-Tools](/de/docs/cli/studio#ausgaben-und-agent-tools)).
 
-Der Agent liest jeden Wert ungeschwärzt, so wie die Seite ihn zeigt: Studio schwärzt nichts, weil ein Agent im Tab die Seite ohnehin lesen kann. Willst du Werte vor einem Agenten verbergen, nutze stattdessen den MCP-Server mit [`--redact-values`](/docs/cli/mcp#redacted-values); für ein NDA-Projekt siehe [Studio und MCP](/docs/data-handling#studio-und-mcp).
+Der Agent liest jeden Wert ungeschwärzt, so wie die Seite ihn zeigt: Studio schwärzt nichts, weil ein Agent im Tab die Seite ohnehin lesen kann. Willst du Werte vor einem Agenten verbergen, nutze stattdessen den MCP-Server mit [`--redact-values`](/de/docs/cli/mcp#redacted-values); für ein NDA-Projekt siehe [Studio und MCP](/de/docs/data-handling#studio-und-mcp).
 
 ## Wissen, was der Agent aufrufen kann
 
@@ -39,7 +39,7 @@ Jedes Tool ist eine Studio-Aktion mit dem Präfix `verbatra_`. Lese-Tools sind a
 | `verbatra_status_diff` | fehlende, geänderte und verwaiste Keys pro Locale |
 | `verbatra_glossary_get` | das aufgelöste Glossar, mit geschwärzten Secrets |
 | `verbatra_lock_state` | den Zustand der Lock-Datei pro Locale |
-| `verbatra_history_list` | die letzten Commits an den Locale-Dateien, mit dem Namen des Autors ([nie die E-Mail](/docs/data-handling#studio-und-mcp)) |
+| `verbatra_history_list` | die letzten Commits an den Locale-Dateien, mit dem Namen des Autors ([nie die E-Mail](/de/docs/data-handling#studio-und-mcp)) |
 | `verbatra_key_integrity` | Platzhalter-, Markup- und ICU-Prüfung für einen Key, in den Locales, in denen sich seine Quelle geändert hat |
 | `verbatra_review_queue` | jeden maschinell geschriebenen Wert, den noch niemand freigegeben hat, aus den committeten Dateien <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 | `verbatra_key_value` | Quelle und Ziel eines Keys, samt Angabe, wer das Ziel geschrieben hat |
@@ -65,21 +65,21 @@ Jedes Tool ist eine Studio-Aktion mit dem Präfix `verbatra_`. Lese-Tools sind a
 | `verbatra_translation_retranslateEntry` | einen Key in einer Locale neu übersetzen |
 | `verbatra_translation_translatePending` | alles Ausstehende übersetzen, optional nur für bestimmte `locales` und unter einer `maxTokens`-Obergrenze <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 
-`verbatra_key_integrity` liefert nur die Locales, in denen sich die Quelle des Keys geändert hat; eine leere Liste heißt also, dass nichts zu prüfen war. Seine Zeilen sind flacher als die von [`key.integrity`](/docs/cli/mcp#inputs-und-ergebnisse) im MCP-Server. Nur der MCP-Server hat `project.doctor` und `report.provenance`. `verbatra_locale_values` blättert wie sein `locale.values`, mit denselben `limit` und `cursor` ([Weitere Eingaben und Ergebnisse](/docs/cli/mcp#weitere-eingaben-und-ergebnisse)).
+`verbatra_key_integrity` liefert nur die Locales, in denen sich die Quelle des Keys geändert hat; eine leere Liste heißt also, dass nichts zu prüfen war. Seine Zeilen sind flacher als die von [`key.integrity`](/de/docs/cli/mcp#inputs-und-ergebnisse) im MCP-Server. Nur der MCP-Server hat `project.doctor` und `report.provenance`. `verbatra_locale_values` blättert wie sein `locale.values`, mit denselben `limit` und `cursor` ([Weitere Eingaben und Ergebnisse](/de/docs/cli/mcp#weitere-eingaben-und-ergebnisse)).
 
 ## Die Regeln der Tools kennen
 
-Jeder Aufruf läuft über den eigenen, angemeldeten Loopback-RPC des Dashboards, mit derselben Eingabeprüfung und demselben [Integritäts-Gate](/docs/translation-safety): Ein Wert, der eine Prüfung nicht besteht, wird abgelehnt, und nichts wird geschrieben.
+Jeder Aufruf läuft über den eigenen, angemeldeten Loopback-RPC des Dashboards, mit derselben Eingabeprüfung und demselben [Integritäts-Gate](/de/docs/translation-safety): Ein Wert, der eine Prüfung nicht besteht, wird abgelehnt, und nichts wird geschrieben.
 
 ### Regeln je Aufruf
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-- **Herkunft**: Eine Änderung durch den Agenten wird mit der Herkunft `agent` festgehalten und bleibt in der Review-Warteschlange; eine Änderung im Dashboard ist `human`. Die Lese-Tools melden, wer welchen Wert geschrieben hat ([Die Lock-Datei](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat)).
-- **Menschliche Arbeit**: Neu übersetzen verweigert den Wert einer Person mit `KEY_PROTECTED` (außer bei `humanEdits: "overwrite"`) und einen gepinnten Key mit `KEY_PINNED`, Bearbeiten verweigert einen gepinnten Key ([Menschliche Übersetzungen behalten](/docs/protecting-human-translations)).
+- **Herkunft**: Eine Änderung durch den Agenten wird mit der Herkunft `agent` festgehalten und bleibt in der Review-Warteschlange; eine Änderung im Dashboard ist `human`. Die Lese-Tools melden, wer welchen Wert geschrieben hat ([Die Lock-Datei](/de/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat)).
+- **Menschliche Arbeit**: Neu übersetzen verweigert den Wert einer Person mit `KEY_PROTECTED` (außer bei `humanEdits: "overwrite"`) und einen gepinnten Key mit `KEY_PINNED`, Bearbeiten verweigert einen gepinnten Key ([Menschliche Übersetzungen behalten](/de/docs/protecting-human-translations)).
 - **Review-Entscheidungen**: Freigeben und Ablehnen dienen nur dazu, deine Entscheidung weiterzugeben. Beide brauchen `reviewer`, den Namen der Person, und `expectedValue`, den geprüften Text; ein geänderter Wert wird mit `REVIEW_VALUE_CHANGED` abgelehnt.
 - **Keine Sammel-Tools**: **Approve selected**, **Reject selected**, **Retranslate selected** und **Approve all in** bleiben bei einem Menschen.
-- **Erst schätzen**: Eine unbekannte Locale wird mit `UNKNOWN_LOCALE` abgelehnt, bevor etwas ausgegeben wird, und es gilt das niedrigere `maxTokens` von Aufruf und Konfiguration ([Kosten vor einem Lauf schätzen](/docs/estimating-cost)).
+- **Erst schätzen**: Eine unbekannte Locale wird mit `UNKNOWN_LOCALE` abgelehnt, bevor etwas ausgegeben wird, und es gilt das niedrigere `maxTokens` von Aufruf und Konfiguration ([Kosten vor einem Lauf schätzen](/de/docs/estimating-cost)).
 - **Rate-Limits**: pro gleitender Minute 20 Neuübersetzungen, 20 Bearbeitungen, 20 Glossar-Schreibvorgänge, 60 Review-Entscheidungen und 5 Translate-Pending-Aufrufe, einer zur Zeit. Ein zweiter Aufruf für einen Eintrag, der noch läuft, wird mit `ALREADY_IN_PROGRESS` abgelehnt.
 
 ## Einen fehlgeschlagenen Aufruf lesen
@@ -119,6 +119,6 @@ Mit `--allow-spend` und `--expose-agent-tools` zusammen kann ein Agent ohne Best
 
 ## Siehe auch
 
-- [In Studio prüfen](/docs/review-in-studio): derselbe Ablauf von Hand.
-- [`verbatra studio`](/docs/cli/studio): jedes Flag und der Startvertrag.
-- [Einen MCP-Client verbinden](/docs/connect-an-mcp-client#das-verbatra-plugin): Das Plugin bringt den Skill `verbatra-studio-agent-tools` mit, Studio startest du aber selbst.
+- [In Studio prüfen](/de/docs/review-in-studio): derselbe Ablauf von Hand.
+- [`verbatra studio`](/de/docs/cli/studio): jedes Flag und der Startvertrag.
+- [Einen MCP-Client verbinden](/de/docs/connect-an-mcp-client#das-verbatra-plugin): Das Plugin bringt den Skill `verbatra-studio-agent-tools` mit, Studio startest du aber selbst.

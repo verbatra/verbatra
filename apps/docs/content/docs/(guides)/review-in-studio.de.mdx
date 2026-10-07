@@ -16,19 +16,19 @@ npm install --save-dev @verbatra/studio
 verbatra studio
 ```
 
-Öffne die ausgegebene URL samt Token und beende Studio mit Strg+C. [`verbatra studio`](/docs/cli/studio) erklärt Port, Token und jedes Flag. Jede Seite aktualisiert sich live, wenn sich eine Locale-Datei, die Lock-Datei oder die Herkunftsdatei ändert.
+Öffne die ausgegebene URL samt Token und beende Studio mit Strg+C. [`verbatra studio`](/de/docs/cli/studio) erklärt Port, Token und jedes Flag. Jede Seite aktualisiert sich live, wenn sich eine Locale-Datei, die Lock-Datei oder die Herkunftsdatei ändert.
 
 ## Lies die Seite Translations
 
-Translations listet jeden fehlenden, geänderten und verwaisten Key, als **List** pro Locale mit Textfilter oder als **Grid** aus Keys und Locales, über einer Tabelle mit der Abdeckung jeder Locale und dem Zustand in der [Lock-Datei](/docs/the-lock-file).
+Translations listet jeden fehlenden, geänderten und verwaisten Key, als **List** pro Locale mit Textfilter oder als **Grid** aus Keys und Locales, über einer Tabelle mit der Abdeckung jeder Locale und dem Zustand in der [Lock-Datei](/de/docs/the-lock-file).
 
 Klick auf einen Key, um den Wert jeder Locale mit einer Integritätsanzeige zu sehen: Platzhalter stimmen, eine Platzhalter-Abweichung mit den benannten Tokens oder ungültige Nachrichtensyntax. Außerdem angezeigt:
 
 | Detail | Zeigt |
 | --- | --- |
 | **Inline markup mismatch** | jedes Tag, das die Übersetzung weggelassen (`-`) oder hinzugefügt (`+`) hat <AvailableFrom version="0.5.1" pkg="@verbatra/studio" /> |
-| **ICU arms mismatch** | Plural- oder Select-Zweige, die nicht zur Zielsprache passen; Werte von rechts nach links werden auch so dargestellt ([Sprachunterstützung](/docs/language-support#sprachen-die-von-rechts-nach-links-laufen)) <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
-| Herkunfts-Badge | wer jeden Wert geschrieben hat, gelesen aus [`verbatra.provenance.json`](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat), etwa **Machine**, **Human** oder **Edited outside verbatra** <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+| **ICU arms mismatch** | Plural- oder Select-Zweige, die nicht zur Zielsprache passen; Werte von rechts nach links werden auch so dargestellt ([Sprachunterstützung](/de/docs/language-support#sprachen-die-von-rechts-nach-links-laufen)) <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+| Herkunfts-Badge | wer jeden Wert geschrieben hat, gelesen aus [`verbatra.provenance.json`](/de/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat), etwa **Machine**, **Human** oder **Edited outside verbatra** <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 
 ### Nach Zustand filtern
 
@@ -38,7 +38,7 @@ Die Listenansicht filtert außerdem nach Locale und Zustand, darunter **Review q
 
 ### Bearbeiten mit Integritäts-Gate
 
-**Edit** öffnet den Editor. Beim Speichern durchläuft der Wert das [Integritäts-Gate](/docs/translation-safety#das-integritäts-gate); ein abgelehnter Wert wird nicht geschrieben, und der Grund wird angezeigt. Eine angenommene Bearbeitung schreibt die Locale-Datei und aktualisiert die Lock-Datei. Bearbeiten braucht kein Flag und ruft nie einen Provider auf.
+**Edit** öffnet den Editor. Beim Speichern durchläuft der Wert das [Integritäts-Gate](/de/docs/translation-safety#das-integritäts-gate); ein abgelehnter Wert wird nicht geschrieben, und der Grund wird angezeigt. Eine angenommene Bearbeitung schreibt die Locale-Datei und aktualisiert die Lock-Datei. Bearbeiten braucht kein Flag und ruft nie einen Provider auf.
 
 #### Editor mit Vergleichsansicht
 
@@ -48,7 +48,7 @@ Der Editor zeigt Quelle und Entwurf nebeneinander, mit der Beschreibung des Keys
 
 ## Arbeite die Review-Warteschlange ab
 
-Die Seite Review listet jeden Wert, den eine Maschine geschrieben und niemand freigegeben hat: eine Zeile pro Locale und Key, mit dem Quelltext über der Übersetzung, seiner Herkunft und etwaigen [Review-Flags](/docs/translation-safety#review-flags) aus dem letzten Lauf auf diesem Rechner.
+Die Seite Review listet jeden Wert, den eine Maschine geschrieben und niemand freigegeben hat: eine Zeile pro Locale und Key, mit dem Quelltext über der Übersetzung, seiner Herkunft und etwaigen [Review-Flags](/de/docs/translation-safety#review-flags) aus dem letzten Lauf auf diesem Rechner.
 
 <StudioScreenshot
   shot="review"
@@ -76,7 +76,7 @@ Filtere nach Locale oder nach Text in Key, Quelle oder Übersetzung, dann arbeit
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Beide Entscheidungen werden in `verbatra.provenance.json` nach den Regeln unter [Review-Entscheidungen](/docs/the-lock-file#review-entscheidungen) gespeichert, auch was eine Ablehnung entfernt. Eine Freigabe verlangt außerdem, dass der Wert zu seiner Quelle passt. Committe Locale-Datei, Lock-Datei und Herkunftsdatei zusammen; in einem XLIFF-Projekt bearbeitest du, statt abzulehnen.
+Beide Entscheidungen werden in `verbatra.provenance.json` nach den Regeln unter [Review-Entscheidungen](/de/docs/the-lock-file#review-entscheidungen) gespeichert, auch was eine Ablehnung entfernt. Eine Freigabe verlangt außerdem, dass der Wert zu seiner Quelle passt. Committe Locale-Datei, Lock-Datei und Herkunftsdatei zusammen; in einem XLIFF-Projekt bearbeitest du, statt abzulehnen.
 
 ### Eine Warteschlange für das ganze Team
 
@@ -84,7 +84,7 @@ Beide Entscheidungen werden in `verbatra.provenance.json` nach den Regeln unter 
 
 Die Warteschlange wird aus den committeten Dateien gelesen, sodass eine Teamkollegin, die sie pullt, dieselbe Warteschlange sieht. Ein Wert verlässt sie, sobald eine Person ihn freigibt, ablehnt, schreibt oder importiert; ein freigegebener Wert, den eine Maschine neu schreibt, kommt zurück.
 
-Die Filterleiste wechselt zwischen **Needs review** und **Approved** und grenzt nach Herkunft ein; mit gewählter Locale gibt **Approve all in** nach einer Bestätigung alles davon frei. Um einen Pull Request scheitern zu lassen, solange maschinelle Übersetzungen warten, führ in der CI [`verbatra check --require-reviewed`](/docs/cli/check#freigegebene-übersetzungen-verlangen) aus.
+Die Filterleiste wechselt zwischen **Needs review** und **Approved** und grenzt nach Herkunft ein; mit gewählter Locale gibt **Approve all in** nach einer Bestätigung alles davon frei. Um einen Pull Request scheitern zu lassen, solange maschinelle Übersetzungen warten, führ in der CI [`verbatra check --require-reviewed`](/de/docs/cli/check#freigegebene-übersetzungen-verlangen) aus.
 
 ### Arbeite die Warteschlange mit der Tastatur ab
 
@@ -113,7 +113,7 @@ Hak Zeilen an (oder das Kästchen im Tabellenkopf für alles, was der Filter zei
 
 ## Übersetze einen markierten Key neu
 
-Starte Studio mit erlaubten Ausgaben ([wie Ausgaben erlaubt werden](/docs/cli/studio#ausgaben-und-agent-tools)):
+Starte Studio mit erlaubten Ausgaben ([wie Ausgaben erlaubt werden](/de/docs/cli/studio#ausgaben-und-agent-tools)):
 
 ```bash
 verbatra studio --allow-spend
@@ -141,10 +141,10 @@ Eine Glossaränderung ändert, was dem nächsten Lauf gesagt wird, nie bereits g
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-**Show translations for** wechselt in die [Glossar](/docs/config-file#glossary)-Ansicht einer Locale, mit ihrer Übersetzung, verbotenen Varianten und Notiz. Die Liste **Do not translate** hält Markennamen so, wie sie geschrieben sind.
+**Show translations for** wechselt in die [Glossar](/de/docs/config-file#glossary)-Ansicht einer Locale, mit ihrer Übersetzung, verbotenen Varianten und Notiz. Die Liste **Do not translate** hält Markennamen so, wie sie geschrieben sind.
 
 ## Siehe auch
 
-- [Studio mit einem Browser-Agenten steuern](/docs/agent-tools-in-studio): derselbe Ablauf aus einem KI-Agenten im Browser.
-- [Nachweis maschineller Übersetzungen festhalten](/docs/provenance-evidence): mach aus den Review-Entscheidungen eine Audit-Datei.
-- [Bearbeiten und prüfen aus dem SDK](/docs/sdk/review): die Funktionen hinter diesen Buttons.
+- [Studio mit einem Browser-Agenten steuern](/de/docs/agent-tools-in-studio): derselbe Ablauf aus einem KI-Agenten im Browser.
+- [Nachweis maschineller Übersetzungen festhalten](/de/docs/provenance-evidence): mach aus den Review-Entscheidungen eine Audit-Datei.
+- [Bearbeiten und prüfen aus dem SDK](/de/docs/sdk/review): die Funktionen hinter diesen Buttons.

@@ -3,7 +3,7 @@ title: verbatra import
 description: Importa una entrega rellenada (libro, CSV, TSV o XLIFF) de vuelta a los archivos de locale, ejecutando las mismas comprobaciones de seguridad.
 type: reference
 ---
-Lee una entrega que rellenó un traductor de vuelta a tus archivos de locale. Cada valor pasa por las mismas comprobaciones de integridad que una ejecución automática: los valores que las superan se escriben y [el archivo de bloqueo](/docs/the-lock-file) se actualiza, y los que fallan se retienen y se informan, así que una celda rota nunca llega a un archivo de locale. Una ejecución real también añade las entradas que falten a un `.gitignore` existente, consulta [Entradas de .gitignore](/docs/cli#entradas-de-gitignore).
+Lee una entrega que rellenó un traductor de vuelta a tus archivos de locale. Cada valor pasa por las mismas comprobaciones de integridad que una ejecución automática: los valores que las superan se escriben y [el archivo de bloqueo](/es/docs/the-lock-file) se actualiza, y los que fallan se retienen y se informan, así que una celda rota nunca llega a un archivo de locale. Una ejecución real también añade las entradas que falten a un `.gitignore` existente, consulta [Entradas de .gitignore](/es/docs/cli#entradas-de-gitignore).
 
 ## Sinopsis
 
@@ -11,7 +11,7 @@ Lee una entrega que rellenó un traductor de vuelta a tus archivos de locale. Ca
 verbatra import <workbook> [flags]
 ```
 
-- `<workbook>`: la entrega que escribió [`verbatra export`](/docs/cli/export) y rellenó el traductor. Para `xlsx` es el archivo del libro; para `csv`, `tsv`, `xliff2` y `xliff12` es un solo archivo `<locale>.csv`, `<locale>.tsv` o `<locale>.xlf`, o el directorio que contiene un archivo por locale.
+- `<workbook>`: la entrega que escribió [`verbatra export`](/es/docs/cli/export) y rellenó el traductor. Para `xlsx` es el archivo del libro; para `csv`, `tsv`, `xliff2` y `xliff12` es un solo archivo `<locale>.csv`, `<locale>.tsv` o `<locale>.xlf`, o el directorio que contiene un archivo por locale.
 
 ## Ejemplos
 
@@ -38,7 +38,7 @@ verbatra import handoff/de.xlf --reviewer "Agency GmbH"
 | `--reviewer` | `<name>` | ninguno | nombre que se registra en cada unidad XLIFF marcada como revisada o final; como máximo 64 caracteres, guardado en el archivo de procedencia versionado |
 | `--lock-timeout` | `<seconds>` | `600` | cuánto esperar a un bloqueo de escritura por locale ya tomado; un número entero de `1` a `3600`, si no es un error de uso, salida `2` |
 
-También acepta los [flags globales](/docs/cli#flags-globales) `--cwd`, `--config` y `--json`.
+También acepta los [flags globales](/es/docs/cli#flags-globales) `--cwd`, `--config` y `--json`.
 
 ## Comportamiento
 
@@ -56,13 +56,13 @@ Un archivo que quedó de una exportación anterior con una selección de `--loca
 
 <AvailableFrom version="0.12.0" />
 
-`--lock-timeout` fija cuánto espera un locale a un [bloqueo de escritura](/docs/the-lock-file#el-bloqueo-de-escritura) ocupado antes de fallar con `LOCK_CONTENDED`, igual que en [`verbatra translate`](/docs/cli/translate). La espera ocurre antes de escribir el archivo del locale: un locale que agota el tiempo queda intacto mientras los demás se importan, y el comando sale con `1`. Una vez escrito un archivo, registrarlo en el archivo de bloqueo espera hasta los diez minutos por defecto, diga lo que diga `--lock-timeout`. Una espera de más de un segundo muestra una línea con el bloqueo y quién lo tiene (un registro `lock-wait` con `--json`). `--dry-run` no toma ningún bloqueo, así que nunca espera.
+`--lock-timeout` fija cuánto espera un locale a un [bloqueo de escritura](/es/docs/the-lock-file#el-bloqueo-de-escritura) ocupado antes de fallar con `LOCK_CONTENDED`, igual que en [`verbatra translate`](/es/docs/cli/translate). La espera ocurre antes de escribir el archivo del locale: un locale que agota el tiempo queda intacto mientras los demás se importan, y el comando sale con `1`. Una vez escrito un archivo, registrarlo en el archivo de bloqueo espera hasta los diez minutos por defecto, diga lo que diga `--lock-timeout`. Una espera de más de un segundo muestra una línea con el bloqueo y quién lo tiene (un registro `lock-wait` con `--json`). `--dry-run` no toma ningún bloqueo, así que nunca espera.
 
 ### XLIFF
 
 <AvailableFrom version="0.12.0" />
 
-Un archivo XLIFF se lee con la versión que declara, y un archivo suelto cuyo nombre no es un locale configurado se asigna por el idioma de destino que declara. Una unidad cuyo destino es igual al valor actual no cambia nada; cualquier otro destino pasa por la puerta de integridad como una fila del libro. Una unidad marcada como `reviewed` o `final` (en 1.2 también `signed-off` o `approved="yes"`) se registra como aprobada, con `--reviewer` como nombre, y se informa con el aviso `HANDOFF_REVIEWS_RECORDED`. Una unidad cuyo id no nombra ninguna clave de origen se informa como fila mal formada. Consulta [Entregar a una agencia de traducción](/docs/translation-agency).
+Un archivo XLIFF se lee con la versión que declara, y un archivo suelto cuyo nombre no es un locale configurado se asigna por el idioma de destino que declara. Una unidad cuyo destino es igual al valor actual no cambia nada; cualquier otro destino pasa por la puerta de integridad como una fila del libro. Una unidad marcada como `reviewed` o `final` (en 1.2 también `signed-off` o `approved="yes"`) se registra como aprobada, con `--reviewer` como nombre, y se informa con el aviso `HANDOFF_REVIEWS_RECORDED`. Una unidad cuyo id no nombra ninguna clave de origen se informa como fila mal formada. Consulta [Entregar a una agencia de traducción](/es/docs/translation-agency).
 
 ### Filas vacías y rotas
 
@@ -81,13 +81,13 @@ verbatra: importing verbatra-translations.xlsx... done (0.4s)
 next: verbatra check (confirm every locale is in sync)
 ```
 
-Estas líneas van a stderr, y `--quiet` las omite. Consulta [Salida en el terminal](/docs/cli/output#salida-en-el-terminal).
+Estas líneas van a stderr, y `--quiet` las omite. Consulta [Salida en el terminal](/es/docs/cli/output#salida-en-el-terminal).
 
 ### Salida JSON
 
-Esquema: [`import-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/import-envelope.json) valida el envoltorio completo; [Esquemas](/docs/cli/output#esquemas) enumera los demás.
+Esquema: [`import-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/import-envelope.json) valida el envoltorio completo; [Esquemas](/es/docs/cli/output#esquemas) enumera los demás.
 
-Con `--json`, el [envoltorio](/docs/cli/output#salida-json) lleva un `RunSummary`, la misma forma que imprime [`verbatra translate`](/docs/cli/translate); [RunSummary](/docs/sdk/run-summary) enumera cada campo.
+Con `--json`, el [envoltorio](/es/docs/cli/output#salida-json) lleva un `RunSummary`, la misma forma que imprime [`verbatra translate`](/es/docs/cli/translate); [RunSummary](/es/docs/sdk/run-summary) enumera cada campo.
 
 ## Códigos de salida
 
@@ -101,11 +101,11 @@ Con `--json`, el [envoltorio](/docs/cli/output#salida-json) lleva un `RunSummary
 
 <AvailableFrom version="0.9.0" />
 
-El contrato coincide con el de [`verbatra translate`](/docs/cli/translate), así que una entrega manual se bifurca igual en CI: un locale parcial sale con `1`, y un archivo de bloqueo corrupto, o que se corrompe durante el import, detiene toda la ejecución con `2` y deja intactos los locales restantes (los ya aplicados siguen escritos). El contrato que sigue cada comando está en [Códigos de salida](/docs/cli/output#códigos-de-salida).
+El contrato coincide con el de [`verbatra translate`](/es/docs/cli/translate), así que una entrega manual se bifurca igual en CI: un locale parcial sale con `1`, y un archivo de bloqueo corrupto, o que se corrompe durante el import, detiene toda la ejecución con `2` y deja intactos los locales restantes (los ya aplicados siguen escritos). El contrato que sigue cada comando está en [Códigos de salida](/es/docs/cli/output#códigos-de-salida).
 
 ## Relacionado
 
-- [Traducción humana](/docs/manual-translation) cubre el ciclo completo de exportar, rellenar e importar y qué puede editar un traductor.
-- [Seguridad de la traducción](/docs/translation-safety) explica las comprobaciones que pueden retener un valor.
-- [Entregar a una agencia de traducción](/docs/translation-agency) cubre el ciclo XLIFF a través de una herramienta TAO.
-- [`verbatra export`](/docs/cli/export) produce la entrega que este comando lee.
+- [Traducción humana](/es/docs/manual-translation) cubre el ciclo completo de exportar, rellenar e importar y qué puede editar un traductor.
+- [Seguridad de la traducción](/es/docs/translation-safety) explica las comprobaciones que pueden retener un valor.
+- [Entregar a una agencia de traducción](/es/docs/translation-agency) cubre el ciclo XLIFF a través de una herramienta TAO.
+- [`verbatra export`](/es/docs/cli/export) produce la entrega que este comando lee.

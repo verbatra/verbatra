@@ -4,65 +4,65 @@ description: Des réponses courtes aux questions qui reviennent le plus en utili
 type: reference
 ---
 Des réponses courtes avec un lien vers la page qui donne les détails. Pour les messages d'erreur,
-voir [Dépannage](/docs/troubleshooting) et [Codes d'erreur](/docs/error-codes).
+voir [Dépannage](/fr/docs/troubleshooting) et [Codes d'erreur](/fr/docs/error-codes).
 
 ## Comment je contrôle le coût ?
 
 Les exécutions sont incrémentales, donc seules les clés manquantes ou modifiées atteignent le
 fournisseur, et relancer un projet inchangé ne coûte rien. `verbatra translate --estimate`
 dimensionne une exécution sans appeler de fournisseur, et `--max-tokens` ou `maxTokens` dans la
-config la plafonnent. Voir [Estimer le coût](/docs/estimating-cost).
+config la plafonnent. Voir [Estimer le coût](/fr/docs/estimating-cost).
 
 ## Combien coûte réellement une exécution ?
 
 Peu : 400 clés vers 3 locales avec `gemini-2.5-flash` font environ 72 000 tokens, soit à peu près
 1,6 centime à un tarif illustratif, et les exécutions suivantes ne paient que les textes que tu as
 modifiés. L'exemple complet, ses hypothèses et la façon de calibrer sur ton propre projet sont dans
-[Estimer le coût](/docs/estimating-cost).
+[Estimer le coût](/fr/docs/estimating-cost).
 
 ## Avec quel fournisseur commencer ?
 
 Gemini, parce que son niveau d'API gratuit te permet de traduire tout un projet sans frais, et
 changer plus tard revient à modifier un `id`. Garde les textes confidentiels hors du niveau
 gratuit : voir
-[Traitement des données et confidentialité](/docs/data-handling#conservation-et-traitement-des-données-chez-le-fournisseur).
-Tous les fournisseurs sont comparés dans [Fournisseurs](/docs/providers).
+[Traitement des données et confidentialité](/fr/docs/data-handling#conservation-et-traitement-des-données-chez-le-fournisseur).
+Tous les fournisseurs sont comparés dans [Fournisseurs](/fr/docs/providers).
 
 ## Je peux faire tourner un modèle local ?
 
 Oui : le fournisseur `openai-compatible` fait pointer verbatra vers tout serveur qui parle l'API de
 chat d'OpenAI, comme LM Studio, Ollama ou vLLM, en général sans clé. Sans aucun modèle de langage,
 `libretranslate` utilise un serveur LibreTranslate auto-hébergé. Voir
-[Fournisseurs](/docs/providers#libretranslate).
+[Fournisseurs](/fr/docs/providers#libretranslate).
 
 ## Quelles langues verbatra prend-il en charge ?
 
 Toute langue que ton fournisseur prend en charge, écrite sous forme de code BCP 47 valide comme
 `pt-BR` ou `zh-Hant`. DeepL et Google Cloud Translation ont des listes fixes ; les fournisseurs LLM
-n'en ont aucune. Voir [Prise en charge des langues](/docs/language-support).
+n'en ont aucune. Voir [Prise en charge des langues](/fr/docs/language-support).
 
 ## Comment les clés gardent-elles leur ordre ?
 
 Les clés existantes gardent leur position et les nouvelles sont ajoutées dans l'ordre de la source,
-donc un fichier traduit donne un diff propre. Voir [Formats](/docs/formats).
+donc un fichier traduit donne un diff propre. Voir [Formats](/fr/docs/formats).
 
 ## Pourquoi une traduction a-t-elle été signalée pour relecture ?
 
 Une heuristique de relecture a trouvé quelque chose qui mérite un second regard, comme une
 traduction identique à sa source, et l'a signalée sans la retenir. Chaque code de motif figure dans
-[Motifs de relecture](/docs/error-codes#review-reason-codes).
+[Motifs de relecture](/fr/docs/error-codes#review-reason-codes).
 
 ## verbatra fonctionne-t-il dans un monorepo ?
 
 Oui. La recherche de la config remonte depuis le répertoire de travail et s'arrête au `.git` le plus
 proche, donc un paquet trouve sa propre config et la racine celle de la racine ; `--cwd` et
-`--config` pointent n'importe où ailleurs. Voir [Fichier de configuration](/docs/config-file).
+`--config` pointent n'importe où ailleurs. Voir [Fichier de configuration](/fr/docs/config-file).
 
 ## Que dois-je commiter ?
 
 Commite tes fichiers de locale, `verbatra.lock.json` et `verbatra.provenance.json` ; jamais `.env`,
 `.env.local`, `.verbatra-local/` ni `verbatra.cache.json`, que `verbatra init` ajoute au
-`.gitignore`. Voir [Le fichier de verrouillage](/docs/the-lock-file).
+`.gitignore`. Voir [Le fichier de verrouillage](/fr/docs/the-lock-file).
 
 ## Comment je retraduis tout ?
 
@@ -79,14 +79,14 @@ Aucune étape de plus : `@verbatra/cli` dépend de `@verbatra/sdk`, donc il vien
 ## Où vivent les clés d'API ?
 
 Uniquement dans des variables d'environnement, que la CLI lit aussi depuis
-[`.env.local` et `.env`](/docs/cli#fichiers-denvironnement). La config rejette les clés inconnues
-pour qu'aucun secret ne finisse dans un fichier commité. Voir [Fournisseurs](/docs/providers).
+[`.env.local` et `.env`](/fr/docs/cli#fichiers-denvironnement). La config rejette les clés inconnues
+pour qu'aucun secret ne finisse dans un fichier commité. Voir [Fournisseurs](/fr/docs/providers).
 
 ## verbatra envoie-t-il mes textes quelque part ?
 
 Uniquement au fournisseur que tu configures, et uniquement quand une commande traduit ; il n'y a
 aucune télémétrie. Avec `provider: { id: "none" }`, rien ne quitte la machine. Voir
-[Traitement des données et confidentialité](/docs/data-handling).
+[Traitement des données et confidentialité](/fr/docs/data-handling).
 
 ## Que vérifie réellement verbatra doctor ?
 
@@ -96,16 +96,16 @@ L'installation en une seule passe, sans appel de traduction et sans lire la vale
 si tu passes `--live`, qui l'envoie pour récupérer la liste des langues du fournisseur : la config,
 le format, le fournisseur, la variable de la clé d'API, la politique réseau, le fichier source et la
 prise en charge des locales, plus des rapports informatifs sur les pluriels, les codes de locale et
-l'état de locale restant. [`verbatra doctor`](/docs/cli/doctor) a le tableau complet des
+l'état de locale restant. [`verbatra doctor`](/fr/docs/cli/doctor) a le tableau complet des
 vérifications.
 
 ## Un agent IA peut-il configurer ou piloter verbatra à ma place ?
 
 Oui, par quatre surfaces : un prompt d'installation pour les agents de code
-([Installer avec un agent IA](/docs/start-with-ai)), la sortie `--json` pour tes propres boucles
-([Recettes pour agents et scripts](/docs/agent-recipes)), des outils WebMCP dans un onglet Studio
-ouvert ([Piloter Studio avec un agent de navigateur](/docs/agent-tools-in-studio)) et un serveur MCP
-en stdio ([`verbatra mcp`](/docs/cli/mcp)). Aucune ne dépense chez un fournisseur sans la
+([Installer avec un agent IA](/fr/docs/start-with-ai)), la sortie `--json` pour tes propres boucles
+([Recettes pour agents et scripts](/fr/docs/agent-recipes)), des outils WebMCP dans un onglet Studio
+ouvert ([Piloter Studio avec un agent de navigateur](/fr/docs/agent-tools-in-studio)) et un serveur MCP
+en stdio ([`verbatra mcp`](/fr/docs/cli/mcp)). Aucune ne dépense chez un fournisseur sans la
 confirmation d'une personne ou une option `--allow-spend`.
 
 ## Ce site publie-t-il quelque chose pour les agents IA et les robots d'indexation ?
@@ -136,7 +136,7 @@ fichiers de locale ne correspondent plus à la source anglaise. La prose de la d
 lis en ce moment, chaque guide et chaque page de référence y compris celle-ci, est du MDX à suffixe
 de locale (`page.mdx`, `page.de.mdx`, `page.es.mdx`, `page.fr.mdx`) et elle aussi traduite par IA,
 mais en dehors de cette chaîne automatisée : `pnpm i18n` ne traduit que les
-[formats de fichiers de locale](/docs/formats) structurés, jamais le Markdown, donc il ne touche jamais ces pages. À la place, un agent IA
+[formats de fichiers de locale](/fr/docs/formats) structurés, jamais le Markdown, donc il ne touche jamais ces pages. À la place, un agent IA
 traduit chaque page de documentation dans le même changement que celui qui modifie sa source
 anglaise, pour que les quatre langues arrivent ensemble ; c'est pour ça que chaque page non anglaise
 affiche l'avis de traduction automatique.

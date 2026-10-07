@@ -7,7 +7,7 @@ type: how-to
 
 Nutze diese Seite, wenn ein Skript oder ein Coding-Agent verbatra ausführt und entscheiden muss, was als Nächstes passiert. Jeder einmalige Befehl nimmt `--json` an und gibt einen Envelope auf stdout aus, und der Exit-Code sagt, ob der Lauf sauber war. Die Rezepte unten führen aus, parsen, entscheiden und handeln auf echter, aufgezeichneter Ausgabe.
 
-Der Vertrag selbst steht unter [Exit-Codes und JSON-Ausgabe](/docs/cli/output): die Felder des Envelopes, die Exit-Code-Tabelle und welche Befehle `--json` annehmen. Das `result` jedes Befehls steht auf seiner Befehlsseite. Um das Dashboard in einem Browser statt in einer Shell zu steuern, siehe [Studio mit einem Browser-Agenten steuern](/docs/agent-tools-in-studio).
+Der Vertrag selbst steht unter [Exit-Codes und JSON-Ausgabe](/de/docs/cli/output): die Felder des Envelopes, die Exit-Code-Tabelle und welche Befehle `--json` annehmen. Das `result` jedes Befehls steht auf seiner Befehlsseite. Um das Dashboard in einem Browser statt in einer Shell zu steuern, siehe [Studio mit einem Browser-Agenten steuern](/de/docs/agent-tools-in-studio).
 
 Die Rezepte lesen stdout mit `jq`; jeder JSON-Parser funktioniert.
 
@@ -47,7 +47,7 @@ verbatra translate --dry-run --json 2>/dev/null \
 {"dryRun":true,"succeeded":["de"],"partial":[],"failed":[],"translated":["app.greeting"]}
 ```
 
-Die vollständige Form des Eintrags einer Locale steht unter [RunSummary](/docs/sdk/run-summary).
+Die vollständige Form des Eintrags einer Locale steht unter [RunSummary](/de/docs/sdk/run-summary).
 
 Kann ein Lauf gar nicht stattfinden, bekommt stdout einen Fehler-Envelope und der Befehl endet mit `2`. Verzweige auf `code`, nie auf `message`, und handle nach `hint`, wenn es vorhanden ist:
 
@@ -102,7 +102,7 @@ every locale is in sync
 cannot run [CONFIG_INVALID] The verbatra configuration is invalid: provider.options.maxOutputTokens: Invalid input: expected number, received undefined
 ```
 
-Führe das nicht unter `set -e` aus: Ein Exit-Code ungleich null ist genau das Signal, das du willst. Die Codes, auf die dieses Skript nicht verzweigt, stehen unter [Exit-Codes und JSON-Ausgabe](/docs/cli/output#exit-codes).
+Führe das nicht unter `set -e` aus: Ein Exit-Code ungleich null ist genau das Signal, das du willst. Die Codes, auf die dieses Skript nicht verzweigt, stehen unter [Exit-Codes und JSON-Ausgabe](/de/docs/cli/output#exit-codes).
 
 ## `watch` ist ein Strom, kein einzelner Payload
 
@@ -162,7 +162,7 @@ echo "$summary" | jq -r 'if .ok | not then "run error [\(.code)] \(.message)"
 exit $status
 ```
 
-Mit einem offenen Key in `de` gibt sie `de: 1 pending` und dann `succeeded: de` aus und endet mit `0`; gegen einen nicht erreichbaren Provider gibt sie `failed: de` aus und endet mit `1`; ist nichts offen, gibt sie `nothing pending` aus, ohne etwas zu bezahlen. Der erste Schritt nutzt `diff`, weil es nur liest, keinen Schlüssel braucht und sein Exit-Code allein sagt, ob es Arbeit gibt. Der Schlüssel für `translate` kommt aus der Umgebung; siehe [Provider](/docs/providers#keys-kommen-aus-der-umgebung).
+Mit einem offenen Key in `de` gibt sie `de: 1 pending` und dann `succeeded: de` aus und endet mit `0`; gegen einen nicht erreichbaren Provider gibt sie `failed: de` aus und endet mit `1`; ist nichts offen, gibt sie `nothing pending` aus, ohne etwas zu bezahlen. Der erste Schritt nutzt `diff`, weil es nur liest, keinen Schlüssel braucht und sein Exit-Code allein sagt, ob es Arbeit gibt. Der Schlüssel für `translate` kommt aus der Umgebung; siehe [Provider](/de/docs/providers#keys-kommen-aus-der-umgebung).
 
 ## Deinem Agenten von verbatra erzählen
 
@@ -197,7 +197,7 @@ Die meisten Coding-Agenten lesen zu Beginn einer Sitzung eine Projekt-Anweisungs
 
 <AvailableFrom version="0.12.0" />
 
-`verbatra init --agent` schreibt genau diesen Abschnitt für dich, zwischen die Markierungen `<!-- verbatra:start -->` und `<!-- verbatra:end -->`, die ein späterer Lauf auffrischt. Siehe [Coding-Agenten einrichten](/docs/cli/init#coding-agenten-einrichten).
+`verbatra init --agent` schreibt genau diesen Abschnitt für dich, zwischen die Markierungen `<!-- verbatra:start -->` und `<!-- verbatra:end -->`, die ein späterer Lauf auffrischt. Siehe [Coding-Agenten einrichten](/de/docs/cli/init#coding-agenten-einrichten).
 
 ## Das Skills-Paket
 
@@ -215,12 +215,12 @@ npx skills@latest add verbatra/skills --skill verbatra-cli -a claude-code -y
 
 Tausche den Namen nach `--skill` oder wiederhole das Flag, um mehr als einen zu installieren. Für einen anderen Agenten tauschst du die ID nach `-a`, zum Beispiel `codex`, `cursor`, `github-copilot` oder `gemini-cli`; siehe die [Liste der unterstützten Agenten](https://github.com/vercel-labs/skills).
 
-In Claude Code installiert das verbatra-Plugin alle drei Skills zusammen mit dem MCP-Server (Ausgaben ausgeschaltet) und einem Hook, der bearbeitete Locale-Dateien prüft. Nutze es also statt eines `verbatra`-Eintrags in `.mcp.json`, nie zusätzlich. Siehe [Das verbatra-Plugin](/docs/connect-an-mcp-client#das-verbatra-plugin).
+In Claude Code installiert das verbatra-Plugin alle drei Skills zusammen mit dem MCP-Server (Ausgaben ausgeschaltet) und einem Hook, der bearbeitete Locale-Dateien prüft. Nutze es also statt eines `verbatra`-Eintrags in `.mcp.json`, nie zusätzlich. Siehe [Das verbatra-Plugin](/de/docs/connect-an-mcp-client#das-verbatra-plugin).
 
 ## Siehe auch
 
-- [Exit-Codes und JSON-Ausgabe](/docs/cli/output): der Envelope und der Exit-Code-Vertrag.
-- [JSON Schemas](/docs/cli/output#schemas): ein Schema für jeden Envelope und jeden stderr-Datensatz, um die Ausgabe zu prüfen, bevor du darauf handelst.
-- [Fehlercodes](/docs/error-codes): jeder `code`, den ein Payload tragen kann, mit seinem nächsten Schritt.
-- [verbatra in CI ausführen](/docs/ci-and-exit-codes): dieselben Gates in einer Pipeline.
-- [verbatra mit einem KI-Agenten einrichten](/docs/start-with-ai): ein Prompt, der verbatra in ein bestehendes Projekt übernimmt.
+- [Exit-Codes und JSON-Ausgabe](/de/docs/cli/output): der Envelope und der Exit-Code-Vertrag.
+- [JSON Schemas](/de/docs/cli/output#schemas): ein Schema für jeden Envelope und jeden stderr-Datensatz, um die Ausgabe zu prüfen, bevor du darauf handelst.
+- [Fehlercodes](/de/docs/error-codes): jeder `code`, den ein Payload tragen kann, mit seinem nächsten Schritt.
+- [verbatra in CI ausführen](/de/docs/ci-and-exit-codes): dieselben Gates in einer Pipeline.
+- [verbatra mit einem KI-Agenten einrichten](/de/docs/start-with-ai): ein Prompt, der verbatra in ein bestehendes Projekt übernimmt.

@@ -9,7 +9,7 @@ type: reference
 
 Encuentra, carga y valida la configuración del proyecto, devolviendo una `VerbatraConfig`. `configOverride`
 (validar un objeto en memoria) gana a `configPath` (cargar un archivo explícito), que gana a una
-búsqueda desde `cwd` en el [orden de descubrimiento](/docs/config-file#orden-de-descubrimiento). Un `glossary` dado como
+búsqueda desde `cwd` en el [orden de descubrimiento](/es/docs/config-file#orden-de-descubrimiento). Un `glossary` dado como
 ruta de archivo se lee y valida aquí, así que el código posterior siempre ve un glosario en memoria:
 un mapa de versión 1 de término de origen a traducción, o una definición de versión 2.
 
@@ -23,13 +23,13 @@ function loadConfig(
 
 **Devuelve:** `VerbatraConfig`
 
-**Lanza:** [`CONFIG_NOT_FOUND`](/docs/error-codes#config_not_found), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
+**Lanza:** [`CONFIG_NOT_FOUND`](/es/docs/error-codes#config_not_found), [`CONFIG_INVALID`](/es/docs/error-codes#config_invalid)
 
-**Ejemplo:** [Una configuración sin archivo](/docs/programmatic-api#una-configuración-sin-archivo)
+**Ejemplo:** [Una configuración sin archivo](/es/docs/programmatic-api#una-configuración-sin-archivo)
 
-Consulta el [Archivo de configuración](/docs/config-file) para ver el esquema.
+Consulta el [Archivo de configuración](/es/docs/config-file) para ver el esquema.
 `fs` es el puerto del sistema de archivos a través del cual se lee un archivo de glosario, como se
-describe en [El punto de inyección de dependencias](/docs/sdk#el-punto-de-inyección-de-dependencias).
+describe en [El punto de inyección de dependencias](/es/docs/sdk#el-punto-de-inyección-de-dependencias).
 
 ### loadConfigWithMeta
 
@@ -50,7 +50,7 @@ function loadConfigWithMeta(
 
 **Devuelve:** `LoadedConfig`
 
-**Lanza:** [`CONFIG_NOT_FOUND`](/docs/error-codes#config_not_found), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
+**Lanza:** [`CONFIG_NOT_FOUND`](/es/docs/error-codes#config_not_found), [`CONFIG_INVALID`](/es/docs/error-codes#config_invalid)
 
 Ambas aceptan `fresh: true` para volver a evaluar un archivo de configuración en JavaScript o
 TypeScript en lugar de reutilizar lo que evaluó una carga anterior en el mismo proceso; un proceso de
@@ -109,7 +109,7 @@ function resolveProjectRoot(
 
 Lee un glosario respaldado por archivo directamente del disco y lo devuelve como un `Glossary`
 normalizado: `{ version, terms, doNotTranslate }`, donde `version` es `1` para un mapa plano de
-términos y `2` para un [glosario por locale](/docs/config-file#glossary), y cada término lleva
+términos y `2` para un [glosario por locale](/es/docs/config-file#glossary), y cada término lleva
 `source`, un `target` opcional, `targets`, `forbidden`, `caseSensitive` y, de forma opcional, `note`
 y `partOfSpeech`. Su entrada `glossary` es la `GlossaryProvenance` de `loadConfigWithMeta`, de modo
 que el archivo que lee siempre es el que nombra la configuración; no hay ningún argumento de ruta.
@@ -127,10 +127,10 @@ function readGlossaryFile(
 
 **Devuelve:** `Glossary`
 
-**Lanza:** [`GLOSSARY_NOT_FILE_BACKED`](/docs/error-codes#glossary_not_file_backed), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
+**Lanza:** [`GLOSSARY_NOT_FILE_BACKED`](/es/docs/error-codes#glossary_not_file_backed), [`CONFIG_INVALID`](/es/docs/error-codes#config_invalid)
 
 Lanza `GLOSSARY_NOT_FILE_BACKED` cuando el glosario está en línea o ausente, y `CONFIG_INVALID`
-cuando el archivo incumple las [reglas del archivo de glosario](/docs/config-file#glossary) o declara
+cuando el archivo incumple las [reglas del archivo de glosario](/es/docs/config-file#glossary) o declara
 otra versión.
 
 <AvailableFrom version="0.12.0" />
@@ -159,7 +159,7 @@ function updateGlossaryTerm(
 
 **Devuelve:** `Glossary`
 
-**Lanza:** [`GLOSSARY_NOT_FILE_BACKED`](/docs/error-codes#glossary_not_file_backed), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), [`RUN_CANCELLED`](/docs/error-codes#run_cancelled), [`GLOSSARY_UNWRITABLE`](/docs/error-codes#glossary_unwritable)
+**Lanza:** [`GLOSSARY_NOT_FILE_BACKED`](/es/docs/error-codes#glossary_not_file_backed), [`CONFIG_INVALID`](/es/docs/error-codes#config_invalid), [`LOCK_TIMEOUT_INVALID`](/es/docs/error-codes#lock_timeout_invalid), [`LOCK_CONTENDED`](/es/docs/error-codes#lock_contended), [`RUN_CANCELLED`](/es/docs/error-codes#run_cancelled), [`GLOSSARY_UNWRITABLE`](/es/docs/error-codes#glossary_unwritable)
 
 <AvailableFrom version="0.12.0" />
 
@@ -193,7 +193,7 @@ Resuelve la parte de un glosario que se aplica a un locale de destino:
 `target` del locale (su propia entrada, luego la de su idioma base, luego la compartida), sus
 traducciones `forbidden`, `caseSensitive`, y su `note` y `partOfSpeech`, o `undefined` cuando nada
 del glosario se aplica allí. Es exactamente lo que una petición de traducción a ese locale lleva como
-[`TranslateRequest.glossary`](/docs/sdk/extend#proveedores-propios), y lo que ven las comprobaciones de revisión y la huella de caché de
+[`TranslateRequest.glossary`](/es/docs/sdk/extend#proveedores-propios), y lo que ven las comprobaciones de revisión y la huella de caché de
 ese locale.
 
 ```ts title="Firma"
@@ -327,7 +327,7 @@ function readCurrentGlossary(
 
 **Devuelve:** `Glossary | undefined`
 
-**Lanza:** [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
+**Lanza:** [`CONFIG_INVALID`](/es/docs/error-codes#config_invalid)
 
 ### editConfiguredGlossaryTerm
 
@@ -350,7 +350,7 @@ function editConfiguredGlossaryTerm(
 
 **Devuelve:** `Glossary`
 
-**Lanza:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`GLOSSARY_NOT_FILE_BACKED`](/docs/error-codes#glossary_not_file_backed), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), [`RUN_CANCELLED`](/docs/error-codes#run_cancelled), [`GLOSSARY_UNWRITABLE`](/docs/error-codes#glossary_unwritable)
+**Lanza:** [`UNKNOWN_LOCALE`](/es/docs/error-codes#unknown_locale), [`GLOSSARY_NOT_FILE_BACKED`](/es/docs/error-codes#glossary_not_file_backed), [`CONFIG_INVALID`](/es/docs/error-codes#config_invalid), [`LOCK_TIMEOUT_INVALID`](/es/docs/error-codes#lock_timeout_invalid), [`LOCK_CONTENDED`](/es/docs/error-codes#lock_contended), [`RUN_CANCELLED`](/es/docs/error-codes#run_cancelled), [`GLOSSARY_UNWRITABLE`](/es/docs/error-codes#glossary_unwritable)
 
 ## Escritura, detección y modo solo humano
 
@@ -372,7 +372,7 @@ function defineConfig(
 
 **Devuelve:** `VerbatraConfigInput`
 
-**Ejemplo:** [Añade un archivo fuente y una configuración](/docs/sdk-quickstart#añade-un-archivo-fuente-y-una-configuración)
+**Ejemplo:** [Añade un archivo fuente y una configuración](/es/docs/sdk-quickstart#añade-un-archivo-fuente-y-una-configuración)
 
 ### verbatraConfigSchema
 
@@ -395,7 +395,7 @@ id de proveedor a la variable de entorno de la que se lee su clave), `scaffoldMo
 scaffold por defecto por proveedor LLM), `providerTokenLimitKeys` (la clave de opción bajo la que cada
 proveedor LLM recibe su límite de tokens de salida) y `supportedFormats` (el conjunto cerrado de ids de
 formato). Lee la clave del límite de tokens de `providerTokenLimitKeys` en lugar de suponer una, porque
-las claves difieren ([proveedores](/docs/providers)); DeepL y Google Cloud Translation no tienen
+las claves difieren ([proveedores](/es/docs/providers)); DeepL y Google Cloud Translation no tienen
 entrada porque no reciben límite de tokens. El tipo `ScaffoldableProviderId` es
 `Exclude<ProviderId, "openai-compatible" | "libretranslate" | "none">`: todos los proveedores que solo
 necesitan su id. `openai-compatible` y `libretranslate` necesitan cada uno una `baseUrl` que solo tú
@@ -456,7 +456,7 @@ El resultado lleva `format` (con `from`: `input`, `files` o `dependencies`), `la
 
 <AvailableFrom version="0.12.0" />
 
-Devuelve `false` exactamente cuando la configuración fija `provider: { id: "none" }`, el modo [solo humano](/docs/human-only-workflow) en el que nunca se construye un proveedor ni se lee una clave de API. Una interfaz que ofrece acciones que gastan en el proveedor lo lee para omitirlas por completo; así es como Studio y el servidor MCP retienen el gasto incluso con `--allow-spend`.
+Devuelve `false` exactamente cuando la configuración fija `provider: { id: "none" }`, el modo [solo humano](/es/docs/human-only-workflow) en el que nunca se construye un proveedor ni se lee una clave de API. Una interfaz que ofrece acciones que gastan en el proveedor lo lee para omitirlas por completo; así es como Studio y el servidor MCP retienen el gasto incluso con `--allow-spend`.
 
 ```ts title="Firma"
 function isMachineTranslationEnabled(
@@ -481,7 +481,7 @@ function assertMachineTranslationEnabled(
 
 **Devuelve:** `void`
 
-**Lanza:** [`MACHINE_TRANSLATION_DISABLED`](/docs/error-codes#machine_translation_disabled)
+**Lanza:** [`MACHINE_TRANSLATION_DISABLED`](/es/docs/error-codes#machine_translation_disabled)
 
 ### assertTargetLocale
 
@@ -498,4 +498,4 @@ function assertTargetLocale(
 
 **Devuelve:** `void`
 
-**Lanza:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
+**Lanza:** [`UNKNOWN_LOCALE`](/es/docs/error-codes#unknown_locale)

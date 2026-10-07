@@ -33,13 +33,13 @@ verbatra extract --json
 | --- | --- | --- | --- |
 | `--dry-run` | ninguno | desactivado | informa de lo que se añadiría y no escribe nada |
 
-También acepta los [flags globales](/docs/cli#flags-globales) `--cwd`, `--config` y `--json`; las raíces de código de `extract` se resuelven desde la [raíz del proyecto](/docs/config-file#el-directorio-de-trabajo-y-env).
+También acepta los [flags globales](/es/docs/cli#flags-globales) `--cwd`, `--config` y `--json`; las raíces de código de `extract` se resuelven desde la [raíz del proyecto](/es/docs/config-file#el-directorio-de-trabajo-y-env).
 
 ## Comportamiento
 
 ### Configuración
 
-`extract` se rige por el [bloque `extract`](/docs/config-file#extract) de tu configuración. Una ejecución sin él falla con `EXTRACT_NOT_CONFIGURED` y sale con `2`.
+`extract` se rige por el [bloque `extract`](/es/docs/config-file#extract) de tu configuración. Una ejecución sin él falla con `EXTRACT_NOT_CONFIGURED` y sale con `2`.
 
 ```ts title="verbatra.config.ts"
 import { defineConfig } from "@verbatra/sdk";
@@ -81,9 +81,9 @@ Solo el archivo del locale de origen, y solo claves realmente nuevas:
 
 - Una clave que ya está en el catálogo conserva su valor tal cual; un valor por defecto en la llamada nunca sobrescribe una edición.
 - Una clave que el catálogo solo tiene en formas de plural cuenta como presente: `t("cart.items", { count })` no añade nada junto a `cart.items_one` y `cart.items_other`, y lo mismo vale para una entrada gettext con `msgid_plural` y un recurso `<plurals>` de Android. En un formato que no marca las formas de plural, como YAML, cuenta toda clave que termina en un sufijo de plural de i18next.
-- Una clave del catálogo que ninguna llamada menciona se queda donde está. `extract` nunca borra; [`verbatra diff --unused`](/docs/cli/diff#claves-de-origen-sin-uso) lista esas claves.
+- Una clave del catálogo que ninguna llamada menciona se queda donde está. `extract` nunca borra; [`verbatra diff --unused`](/es/docs/cli/diff#claves-de-origen-sin-uso) lista esas claves.
 - Una ejecución que no encuentra nada nuevo no escribe nada, así que el archivo queda idéntico byte a byte.
-- Nunca se escribe un archivo de locale de destino. Ejecuta después [`verbatra translate`](/docs/cli/translate) para rellenar las claves nuevas. Una clave añadida con valor vacío se omite hasta que escribas su texto de origen, y la ejecución la nombra con [`SOURCE_VALUE_EMPTY`](/docs/error-codes#source_value_empty).
+- Nunca se escribe un archivo de locale de destino. Ejecuta después [`verbatra translate`](/es/docs/cli/translate) para rellenar las claves nuevas. Una clave añadida con valor vacío se omite hasta que escribas su texto de origen, y la ejecución la nombra con [`SOURCE_VALUE_EMPTY`](/es/docs/error-codes#source_value_empty).
 
 Los catálogos `xliff` y `apple-xcstrings` nunca se crean desde cero: crea primero el catálogo de origen (el de `.xcstrings` en Xcode) y `extract` lo amplía después.
 
@@ -104,9 +104,9 @@ No se lee nada fuera de las `roots` configuradas. `node_modules`, `.git`, `.next
 
 ### Salida JSON
 
-Esquema: [`extract-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/extract-envelope.json) valida el envoltorio completo; [Esquemas](/docs/cli/output#esquemas) enumera los demás.
+Esquema: [`extract-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/extract-envelope.json) valida el envoltorio completo; [Esquemas](/es/docs/cli/output#esquemas) enumera los demás.
 
-Con `--json`, el [envoltorio](/docs/cli/output#salida-json) lleva un resultado:
+Con `--json`, el [envoltorio](/es/docs/cli/output#salida-json) lleva un resultado:
 
 ```ts
 interface ExtractResult {
@@ -143,7 +143,7 @@ verbatra extract
 next: verbatra translate (translate the new keys)
 ```
 
-Consulta [Salida en el terminal](/docs/cli/output#salida-en-el-terminal) para el color, el spinner y las variables que los controlan.
+Consulta [Salida en el terminal](/es/docs/cli/output#salida-en-el-terminal) para el color, el spinner y las variables que los controlan.
 
 ## Códigos de salida
 
@@ -152,13 +152,13 @@ Consulta [Salida en el terminal](/docs/cli/output#salida-en-el-terminal) para el
 | `0` | el análisis se ejecutó, encontrara lo que encontrara |
 | `2` | no se pudo ejecutar: un error de uso, falta el bloque `extract`, un formato que no se resuelve, un catálogo de origen que no se puede analizar o un catálogo de origen que no se pudo escribir |
 
-No hay salida `1`: las llamadas dinámicas y los valores por defecto en conflicto son hallazgos, no fallos. Consulta [Códigos de salida](/docs/cli/output#códigos-de-salida) para el contrato que sigue cada comando.
+No hay salida `1`: las llamadas dinámicas y los valores por defecto en conflicto son hallazgos, no fallos. Consulta [Códigos de salida](/es/docs/cli/output#códigos-de-salida) para el contrato que sigue cada comando.
 
 ## Relacionado
 
-- [Extrae claves del código fuente](/docs/extract-keys) recorre el flujo desde la llamada hasta la clave traducida.
-- [El archivo de configuración](/docs/config-file#extract) documenta el bloque `extract`.
-- [`verbatra translate`](/docs/cli/translate) rellena los locales de destino una vez que existen las claves nuevas.
-- [`verbatra types`](/docs/cli/types) declara las claves para TypeScript.
-- [`verbatra check`](/docs/cli/check) informa del desfase que crean las claves nuevas.
-- [El SDK](/docs/sdk/inspect#extract) ofrece la misma capacidad como `extract()`.
+- [Extrae claves del código fuente](/es/docs/extract-keys) recorre el flujo desde la llamada hasta la clave traducida.
+- [El archivo de configuración](/es/docs/config-file#extract) documenta el bloque `extract`.
+- [`verbatra translate`](/es/docs/cli/translate) rellena los locales de destino una vez que existen las claves nuevas.
+- [`verbatra types`](/es/docs/cli/types) declara las claves para TypeScript.
+- [`verbatra check`](/es/docs/cli/check) informa del desfase que crean las claves nuevas.
+- [El SDK](/es/docs/sdk/inspect#extract) ofrece la misma capacidad como `extract()`.

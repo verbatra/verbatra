@@ -31,7 +31,7 @@ und `pt-PT` verschwimmen. Deshalb bekommt ein LLM-Provider zusätzlich den engli
 Schrift und die Region jeder Sprache, aus Node.js für die Locale in deiner Konfiguration, auch wenn
 `localeMap` einen anderen Code sendet. Sie reisen als Daten, eine feste Systemregel bittet das
 Modell, in der genannten Schrift und Variante zu schreiben, und sie sind nicht Teil des
-Fingerprints im [Cache](/docs/the-cache). Ein Code, den Node.js nicht benennen kann, etwa das
+Fingerprints im [Cache](/de/docs/the-cache). Ein Code, den Node.js nicht benennen kann, etwa das
 für private Nutzung reservierte `qaa`, wird ohne Namen gesendet.
 
 ## Das Integritäts-Gate
@@ -44,21 +44,21 @@ mehrere Keys mit demselben Quelltext teilen, wird pro Key gegen dessen eigene Qu
 
 | Prüfung | Ein Kandidat wird abgelehnt, wenn |
 | --- | --- |
-| Platzhalter | seine Platzhalter von denen der Quelle abweichen, verglichen als Multimenge (die Anzahl zählt, die Reihenfolge nicht). Was als Platzhalter gilt, legt jedes [Format](/docs/formats) fest. |
+| Platzhalter | seine Platzhalter von denen der Quelle abweichen, verglichen als Multimenge (die Anzahl zählt, die Reihenfolge nicht). Was als Platzhalter gilt, legt jedes [Format](/de/docs/formats) fest. |
 | ICU | er sich bei next-intl und ARB nicht mehr als ICU-Nachricht parsen lässt oder seine Plural-Zweige nicht zur Zielsprache passen (unten). Der Vergleich beachtet Zweige, ein in einem Plural-Zweig erfundener Platzhalter wird also erkannt. |
 | Erfundene Tokens | er bei i18next, ngx-translate und YAML ein Token der Form `{name}` hinzufügt, das die Quelle nie hatte. Eines wegzulassen ist erlaubt, weil einfache geschweifte Klammern dort wörtlicher Text sind. |
 | Inline-Markup | seine HTML- oder XML-Tags von denen der Quelle abweichen oder unausgeglichen sind (unten). |
 | Entartung | er eine Wiederholungsschleife ist oder seine Länge sich von der Quelle entfernt hat. |
-| Leere | er bei nicht leerer Quelle leer ist oder nur aus Leerraum besteht. Eine Übersetzung zu leeren ist ein bewusster Schritt: Das macht der Platzhalter `[[CLEAR]]` der Arbeitsmappe ([Mit Excel oder CSV übergeben](/docs/manual-translation)). |
+| Leere | er bei nicht leerer Quelle leer ist oder nur aus Leerraum besteht. Eine Übersetzung zu leeren ist ein bewusster Schritt: Das macht der Platzhalter `[[CLEAR]]` der Arbeitsmappe ([Mit Excel oder CSV übergeben](/de/docs/manual-translation)). |
 
 Ein Kandidat, der mehrere Prüfungen verletzt, wird mit einem Grund abgelehnt, dem ersten, der in
 dieser Reihenfolge zutrifft: `empty`, `icu` (lässt sich nicht parsen), `placeholder`, `markup`,
 `icu` (Zweige), `degenerate`. Jeder Grund und die Details, die verbatra dazu ausgibt, stehen unter
-[Gründe für Integritätsablehnungen](/docs/error-codes#integrity-refusal-reasons).
+[Gründe für Integritätsablehnungen](/de/docs/error-codes#integrity-refusal-reasons).
 
 Was das Gate garantiert: Ein abgelehnter Wert wird nie geschrieben. Er erscheint in der
 Lauf-Zusammenfassung als Integritätsabweichung, behält seinen bisherigen Hash in
-[der Lock-Datei](/docs/the-lock-file) und wird im nächsten Lauf erneut versucht. Ein Key, für den
+[der Lock-Datei](/de/docs/the-lock-file) und wird im nächsten Lauf erneut versucht. Ein Key, für den
 gar keine Übersetzung kam (der Provider-Aufruf scheiterte, oder der Key fehlte auch nach einer
 Nachfrage noch), wird stattdessen als Provider-Fehlschlag gemeldet und genauso erneut versucht. Auf
 der Quellseite wird ein Key, dessen eigener Wert ungültiges ICU ist, vor der Übersetzung
@@ -71,7 +71,7 @@ Was es nicht garantiert: dass die Übersetzung richtig ist. Es beweist Struktur,
 <AvailableFrom version="0.12.0" />
 
 Ein ICU-Plural hat einen Zweig pro CLDR-Pluralkategorie seiner Sprache
-([Beispiele](/docs/language-support#plurale)). Bei next-intl und ARB liest verbatra die Kategorien
+([Beispiele](/de/docs/language-support#plurale)). Bei next-intl und ARB liest verbatra die Kategorien
 der Zielsprache aus den in Node.js eingebauten CLDR-Daten:
 
 - Ein LLM-Provider wird nach genau diesen Zweigen gefragt (Kardinalzahlen für `plural`,
@@ -85,7 +85,7 @@ der Zielsprache aus den in Node.js eingebauten CLDR-Daten:
 - Für eine Locale, für die Node.js keine Pluralregeln hat, ist nur `other` Pflicht.
 
 Ein Wert, der vor dieser Prüfung geschrieben wurde, etwa ein französischer Plural ohne `many`, bleibt,
-bis sich seine Quelle ändert; [`verbatra check --qa`](/docs/cli/check#qualitätsprüfung) findet ihn
+bis sich seine Quelle ändert; [`verbatra check --qa`](/de/docs/cli/check#qualitätsprüfung) findet ihn
 jetzt schon.
 
 ### Inline-Markup-Parität
@@ -111,7 +111,7 @@ Darstellung, deshalb vergleicht das Gate Tag- und Attributnamen als Multimenge:
 Markup, das in einen String ohne Markup erfunden wird, wird ebenfalls abgelehnt, während ein
 gewöhnliches Wort in spitzen Klammern wie `<Enter>` als Text gelesen wird. Tags, die das Format
 schon als Platzhalter meldet, überlässt es der Platzhalterprüfung. Kommentare, Rohtext und
-fehlerhafte Quellen: siehe [`markup`](/docs/error-codes#markup).
+fehlerhafte Quellen: siehe [`markup`](/de/docs/error-codes#markup).
 
 ## Review-Flags
 
@@ -120,30 +120,30 @@ einen Key zurück: Der Wert wird geschrieben, gelockt und in die Review-Wartesch
 
 | Grund | Markiert eine Übersetzung, die |
 | --- | --- |
-| [`LENGTH_RATIO_OUTLIER`](/docs/error-codes#length_ratio_outlier) | viel kürzer oder länger als ihre Quelle ist, gewichtet nach Schrift |
-| [`MAX_LENGTH_EXCEEDED`](/docs/error-codes#max_length_exceeded) | länger als das [`maxLength`](/docs/config-file#maxlength)-Budget des Keys ist <AvailableFrom version="0.11.0" /> |
-| [`EQUALS_SOURCE`](/docs/error-codes#equals_source) | mit ihrem Quelltext identisch ist |
-| [`GLOSSARY_TERM_MISSED`](/docs/error-codes#glossary_term_missed) | die Übersetzung eines Glossarbegriffs auslässt oder einen nicht zu übersetzenden Begriff verändert |
-| [`GLOSSARY_FORBIDDEN_TERM`](/docs/error-codes#glossary_forbidden_term) | eine Wiedergabe verwendet, die das Glossar verbietet <AvailableFrom version="0.12.0" /> |
-| [`INTEGRITY_REORDERED`](/docs/error-codes#integrity_reordered) | jeden Platzhalter behält, aber in anderer Reihenfolge |
-| [`PROVIDER_DEGRADED`](/docs/error-codes#provider_degraded) | aus einem Batch stammt, den der Provider herabgestuft hat, etwa durch eine weggefallene Formalität |
-| [`FUZZY_CACHE_REUSE`](/docs/error-codes#fuzzy_cache_reuse) | [von einer ähnlichen, bearbeiteten Quelle wiederverwendet](/docs/the-cache#unscharfe-wiederverwendung) wurde <AvailableFrom version="0.11.0" /> |
-| [`FOREIGN_PLACEHOLDER_CHANGED`](/docs/error-codes#foreign_placeholder_changed) | ein platzhalterartiges Token verliert oder ändert, das ihr [Format](/docs/formats) nicht interpoliert, etwa `{name}` in i18next <AvailableFrom version="0.12.0" /> |
-| [`BIDI_CONTROLS_CHANGED`](/docs/error-codes#bidi_controls_changed) | ein Richtungssteuerzeichen offen lässt oder eine Überschreibung hinzufügt, die Text umkehrt <AvailableFrom version="0.12.0" /> |
+| [`LENGTH_RATIO_OUTLIER`](/de/docs/error-codes#length_ratio_outlier) | viel kürzer oder länger als ihre Quelle ist, gewichtet nach Schrift |
+| [`MAX_LENGTH_EXCEEDED`](/de/docs/error-codes#max_length_exceeded) | länger als das [`maxLength`](/de/docs/config-file#maxlength)-Budget des Keys ist <AvailableFrom version="0.11.0" /> |
+| [`EQUALS_SOURCE`](/de/docs/error-codes#equals_source) | mit ihrem Quelltext identisch ist |
+| [`GLOSSARY_TERM_MISSED`](/de/docs/error-codes#glossary_term_missed) | die Übersetzung eines Glossarbegriffs auslässt oder einen nicht zu übersetzenden Begriff verändert |
+| [`GLOSSARY_FORBIDDEN_TERM`](/de/docs/error-codes#glossary_forbidden_term) | eine Wiedergabe verwendet, die das Glossar verbietet <AvailableFrom version="0.12.0" /> |
+| [`INTEGRITY_REORDERED`](/de/docs/error-codes#integrity_reordered) | jeden Platzhalter behält, aber in anderer Reihenfolge |
+| [`PROVIDER_DEGRADED`](/de/docs/error-codes#provider_degraded) | aus einem Batch stammt, den der Provider herabgestuft hat, etwa durch eine weggefallene Formalität |
+| [`FUZZY_CACHE_REUSE`](/de/docs/error-codes#fuzzy_cache_reuse) | [von einer ähnlichen, bearbeiteten Quelle wiederverwendet](/de/docs/the-cache#unscharfe-wiederverwendung) wurde <AvailableFrom version="0.11.0" /> |
+| [`FOREIGN_PLACEHOLDER_CHANGED`](/de/docs/error-codes#foreign_placeholder_changed) | ein platzhalterartiges Token verliert oder ändert, das ihr [Format](/de/docs/formats) nicht interpoliert, etwa `{name}` in i18next <AvailableFrom version="0.12.0" /> |
+| [`BIDI_CONTROLS_CHANGED`](/de/docs/error-codes#bidi_controls_changed) | ein Richtungssteuerzeichen offen lässt oder eine Überschreibung hinzufügt, die Text umkehrt <AvailableFrom version="0.12.0" /> |
 
 DeepL, Google und LibreTranslate bekommen so ein Token maskiert und halten einen Wert zurück, den sie
-nicht maskieren oder wiederherstellen können ([`PLACEHOLDER_UNSUPPORTED`](/docs/error-codes#placeholder_unsupported)); die Markierung deckt LLMs und Menschen ab.
+nicht maskieren oder wiederherstellen können ([`PLACEHOLDER_UNSUPPORTED`](/de/docs/error-codes#placeholder_unsupported)); die Markierung deckt LLMs und Menschen ab.
 
 Cache-Treffer und geteilte Werte werden wie frische Übersetzungen markiert. Markierte Keys
 erscheinen als `needsReview` in der Lauf-Zusammenfassung, in den Review-Spalten der Arbeitsmappe
-und auf [Studios Review-Seite](/docs/review-in-studio), bis ein Mensch den Wert freigibt, ablehnt
-oder neu schreibt ([Review-Entscheidungen](/docs/the-lock-file#review-entscheidungen)).
+und auf [Studios Review-Seite](/de/docs/review-in-studio), bis ein Mensch den Wert freigibt, ablehnt
+oder neu schreibt ([Review-Entscheidungen](/de/docs/the-lock-file#review-entscheidungen)).
 
 ## Das Token-Budget
 
 `maxTokens` zählt die Tokens eines Laufs über jeden Aufruf und jede Locale; `budgetBehavior: "stop"`
 hält den Rest des Laufs zurück, sobald die Obergrenze überschritten würde, für den nächsten Lauf
-([Regeln](/docs/config-file#maxtokens-und-budgetbehavior)).
+([Regeln](/de/docs/config-file#maxtokens-und-budgetbehavior)).
 
 Was das Budget garantiert: Arbeit, die vor der Obergrenze erledigt wurde, bleibt geschrieben und
 gelockt, und nichts bleibt halb geschrieben zurück. Was es nicht garantiert: Ein Request unterwegs
@@ -154,22 +154,22 @@ Retranslates aus Studio oder von Agenten sind nicht abgedeckt.
 
 Scheitert ein Provider-Aufruf, wird der rohe SDK-Fehler (der Request-Header oder Zugangsdaten tragen
 kann) verworfen, nie geloggt oder erneut geworfen. verbatra erzeugt stattdessen einen strukturierten
-Fehler mit stabilem [Code](/docs/error-codes#provider-error-codes) und fester, geheimnisfreier
-Meldung. Das Schwärzen von Keys steht unter [Datenverarbeitung](/docs/data-handling#api-keys).
+Fehler mit stabilem [Code](/de/docs/error-codes#provider-error-codes) und fester, geheimnisfreier
+Meldung. Das Schwärzen von Keys steht unter [Datenverarbeitung](/de/docs/data-handling#api-keys).
 
 ## Wo du das siehst
 
-Alles oben ist Daten in der [Lauf-Zusammenfassung](/docs/sdk/run-summary), pro Locale, und das
+Alles oben ist Daten in der [Lauf-Zusammenfassung](/de/docs/sdk/run-summary), pro Locale, und das
 Scheitern einer Locale hält die anderen nie auf.
 
 ### Bereits eingecheckte Werte
 
 <AvailableFrom version="0.12.0" />
 
-[`verbatra check --qa`](/docs/cli/check#qualitätsprüfung) lässt das Gate und die Review-Flags ohne
+[`verbatra check --qa`](/de/docs/cli/check#qualitätsprüfung) lässt das Gate und die Review-Flags ohne
 Provider-Aufruf über committete Werte laufen.
 
 ## Siehe auch
 
-- [Wie ein Lauf funktioniert](/docs/how-it-works): wo jede Prüfung in der Pipeline sitzt.
-- [Datenverarbeitung und Datenschutz](/docs/data-handling): was deinen Rechner verlässt.
+- [Wie ein Lauf funktioniert](/de/docs/how-it-works): wo jede Prüfung in der Pipeline sitzt.
+- [Datenverarbeitung und Datenschutz](/de/docs/data-handling): was deinen Rechner verlässt.

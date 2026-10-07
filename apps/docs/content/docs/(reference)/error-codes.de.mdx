@@ -7,7 +7,7 @@ codeHeadings: true
 ---
 Jeder Fehler, den verbatra meldet, trägt einen stabilen Code: in der Zeile `verbatra: error [CODE] message` auf stderr, als `code` oder `causeCode` eines `--json`-Envelopes, als `error.code` einer gescheiterten Locale oder als Hinweis in der Laufzusammenfassung. Verzweige auf den Code, nie auf die Meldung. Jeder Code hat seinen eigenen Anker, `/docs/error-codes#` gefolgt vom Code in Kleinbuchstaben, etwa [`#config_not_found`](#config_not_found).
 
-Der **Nächste Schritt** eines Fehlercodes ist der Hinweis, den verbatra nach der Fehlerzeile als `next: ...` ausgibt und in das Feld `hint` des Envelopes schreibt. Er steht hier genau so, wie verbatra ihn ausgibt, auf Englisch, und das SDK liefert denselben Text aus [`errorHint`](/docs/sdk/errors#errorhint). Die Exit-Codes selbst und die Form des Envelopes stehen auf [Exit-Codes und JSON-Ausgabe](/docs/cli/output); Hilfe vom Symptom her findest du unter [Fehlerbehebung](/docs/troubleshooting).
+Der **Nächste Schritt** eines Fehlercodes ist der Hinweis, den verbatra nach der Fehlerzeile als `next: ...` ausgibt und in das Feld `hint` des Envelopes schreibt. Er steht hier genau so, wie verbatra ihn ausgibt, auf Englisch, und das SDK liefert denselben Text aus [`errorHint`](/de/docs/sdk/errors#errorhint). Die Exit-Codes selbst und die Form des Envelopes stehen auf [Exit-Codes und JSON-Ausgabe](/de/docs/cli/output); Hilfe vom Symptom her findest du unter [Fehlerbehebung](/de/docs/troubleshooting).
 
 Zwei Codes gehören zu zwei Familien: `CONFIG_INVALID` (das SDK und `init` in der CLI) und `NETWORK_POLICY_VIOLATION` (das SDK und die Provider). Der Anker in Kleinbuchstaben führt zum SDK-Eintrag; der andere Eintrag hat einen Anker mit Präfix.
 
@@ -285,7 +285,7 @@ Der Argument-Parser die Befehlszeile abgelehnt hat (eine unbekannte Option, ein 
 
 ## SDK-Fehlercodes [#sdk-error-codes]
 
-Fehler, die einen ganzen Lauf betreffen, werfen einen `SdkError` mit einem dieser Codes; [Fehler](/docs/sdk/errors) beschreibt die Klasse und welche Codes ein `cause` tragen. In der CLI beendet ein geworfener Code den Lauf mit `2`, ein Code auf einer einzelnen gescheiterten Locale endet mit `1`. Wo der Index `2` oder `1` nennt, meldet `doctor` den Code als gescheiterte Prüfung und endet mit `1`. Codes ohne CLI-Befehl erreichen dich über das SDK, Studio oder den MCP-Server.
+Fehler, die einen ganzen Lauf betreffen, werfen einen `SdkError` mit einem dieser Codes; [Fehler](/de/docs/sdk/errors) beschreibt die Klasse und welche Codes ein `cause` tragen. In der CLI beendet ein geworfener Code den Lauf mit `2`, ein Code auf einer einzelnen gescheiterten Locale endet mit `1`. Wo der Index `2` oder `1` nennt, meldet `doctor` den Code als gescheiterte Prüfung und endet mit `1`. Codes ohne CLI-Befehl erreichen dich über das SDK, Studio oder den MCP-Server.
 
 ### CONFIG_NOT_FOUND
 
@@ -352,7 +352,7 @@ Die Konfiguration setzt `provider: { id: "none" }`, also wurde eine kostenpflich
 
 ### NETWORK_POLICY_VIOLATION
 
-Die wirksame [Netzwerkrichtlinie](/docs/network-policy) erlaubt den Endpunkt des Providers oder seinen Proxy nicht; geworfen von `translate` außerhalb eines Probelaufs, von `watch` beim Start und von `retranslateEntry`, bevor der Provider gebaut oder ein API-Key gelesen wird.
+Die wirksame [Netzwerkrichtlinie](/de/docs/network-policy) erlaubt den Endpunkt des Providers oder seinen Proxy nicht; geworfen von `translate` außerhalb eines Probelaufs, von `watch` beim Start und von `retranslateEntry`, bevor der Provider gebaut oder ein API-Key gelesen wird.
 
 - **Ausgelöst von**: `translate`, `watch`; Studio und der MCP-Server
 - **Nächster Schritt**: Point the provider at a host the network policy permits, or add its host to `network.allowedHosts` or VERBATRA_NETWORK_ALLOWED_HOSTS.
@@ -587,14 +587,14 @@ Die von `exportWorkbook` erzeugte Übergabe konnte nicht geschrieben werden (ihr
 
 ### LOCALE_STATE_NOT_CARRIED_OVER
 
-Geworfen von `editEntry`, `retranslateEntry`, `approveEntry` und `rejectEntry`, die dann nichts schreiben, sonst steht er auf dem `error` einer Locale, die `translate`, `watch` oder `importWorkbook` nicht ausgeführt hat, weil ihr Zustand unter einem umgeschriebenen Code wie `pt_BR` in der Lock-Datei oder der Provenance-Datei nicht zu ihr verschoben werden konnte; der nächste Lauf versucht es erneut ([Ein umgeschriebener Locale-Code](/docs/the-lock-file#ein-umgeschriebener-locale-code)).
+Geworfen von `editEntry`, `retranslateEntry`, `approveEntry` und `rejectEntry`, die dann nichts schreiben, sonst steht er auf dem `error` einer Locale, die `translate`, `watch` oder `importWorkbook` nicht ausgeführt hat, weil ihr Zustand unter einem umgeschriebenen Code wie `pt_BR` in der Lock-Datei oder der Provenance-Datei nicht zu ihr verschoben werden konnte; der nächste Lauf versucht es erneut ([Ein umgeschriebener Locale-Code](/de/docs/the-lock-file#ein-umgeschriebener-locale-code)).
 
 - **Ausgelöst von**: `translate`, `watch`, `import`; Studio und der MCP-Server
 - **Nächster Schritt**: Wait for other verbatra processes to finish, make verbatra.lock.json and verbatra.provenance.json writable, then try again.
 
 ### LOCALE_UNSUPPORTED_BY_PROVIDER
 
-Der konfigurierte Provider DeepL oder Google Cloud Translation führt die Quell-Locale oder eine ausgewählte Ziel-Locale nicht in der Sprachtabelle, die verbatra mitliefert; geworfen von `translate` (auch bei einem Dry-Run und einer Schätzung), `watch` beim Start und `retranslateEntry`, bevor ein Provider gebaut, ein Key gelesen oder eine Locale gestartet wird; einer Locale, die explizit in `localeMap` abgebildet ist, wird stattdessen vertraut ([Sprachunterstützung](/docs/language-support#unterstützung-vor-einem-lauf-prüfen)).
+Der konfigurierte Provider DeepL oder Google Cloud Translation führt die Quell-Locale oder eine ausgewählte Ziel-Locale nicht in der Sprachtabelle, die verbatra mitliefert; geworfen von `translate` (auch bei einem Dry-Run und einer Schätzung), `watch` beim Start und `retranslateEntry`, bevor ein Provider gebaut, ein Key gelesen oder eine Locale gestartet wird; einer Locale, die explizit in `localeMap` abgebildet ist, wird stattdessen vertraut ([Sprachunterstützung](/de/docs/language-support#unterstützung-vor-einem-lauf-prüfen)).
 
 - **Ausgelöst von**: `translate`, `watch`; Studio und der MCP-Server
 - **Nächster Schritt**: Remove the unsupported locale from `targetLocales`, map it to a supported code in `provider.options.localeMap`, or choose a provider that supports it.
@@ -608,14 +608,14 @@ Der konfigurierte Provider DeepL oder Google Cloud Translation führt die Quell-
 
 ### SENSITIVE_CONTENT_WITHHELD
 
-`retranslateEntry` hat den Key nicht gesendet oder seine Antwort verworfen, weil `sensitiveData.mode` auf `block` oder `redact` steht und der Key Inhalt enthält, den ein Detektor oder Muster getroffen hat und der nicht gesendet werden konnte oder nicht unverändert zurückkam ([Schutz für sensible Inhalte](/docs/data-handling#schutz-für-sensible-inhalte)). `translate` und `watch` listen solche Keys stattdessen in `sensitiveWithheld`.
+`retranslateEntry` hat den Key nicht gesendet oder seine Antwort verworfen, weil `sensitiveData.mode` auf `block` oder `redact` steht und der Key Inhalt enthält, den ein Detektor oder Muster getroffen hat und der nicht gesendet werden konnte oder nicht unverändert zurückkam ([Schutz für sensible Inhalte](/de/docs/data-handling#schutz-für-sensible-inhalte)). `translate` und `watch` listen solche Keys stattdessen in `sensitiveWithheld`.
 
 - **Ausgelöst von**: Studio und der MCP-Server
 - **Nächster Schritt**: Remove the content from the key, list it in `sensitiveData.allow`, or turn the detector off in `sensitiveData.detectors`.
 
 ### RUN_CANCELLED
 
-Das an `translate` oder `retranslateEntry` übergebene `signal` wurde abgebrochen. `retranslateEntry` wirft ihn, wenn der Abbruch kommt, bevor der Provider antwortet, und hat dann nichts geschrieben. `translate` vermerkt ihn auf jeder Locale, die durch den Abbruch nicht mehr startete, und markiert die Zusammenfassung als [`cancelled`](/docs/sdk/run-summary). Ein Einstiegspunkt, der eine Schreibsperre nimmt, etwa `editEntry`, `approveEntry` oder `updateGlossaryTerm`, wirft ihn auch, wenn `releaseHeldLocks` gerade läuft, während er die Sperre nehmen will.
+Das an `translate` oder `retranslateEntry` übergebene `signal` wurde abgebrochen. `retranslateEntry` wirft ihn, wenn der Abbruch kommt, bevor der Provider antwortet, und hat dann nichts geschrieben. `translate` vermerkt ihn auf jeder Locale, die durch den Abbruch nicht mehr startete, und markiert die Zusammenfassung als [`cancelled`](/de/docs/sdk/run-summary). Ein Einstiegspunkt, der eine Schreibsperre nimmt, etwa `editEntry`, `approveEntry` oder `updateGlossaryTerm`, wirft ihn auch, wenn `releaseHeldLocks` gerade läuft, während er die Sperre nehmen will.
 
 - **Ausgelöst von**: nur das SDK
 - **Nächster Schritt**: Run the operation again to finish the work the cancellation left pending.
@@ -629,7 +629,7 @@ Wird nie geworfen: der Rückfall-`code` auf dem `error` einer fehlgeschlagenen L
 
 ## Provider-Fehlercodes [#provider-error-codes]
 
-Ein Provider-Fehler wirft einen `ProviderError` mit einem dieser Codes ([Strukturierte Fehler](/docs/providers#strukturierte-fehler)). Innerhalb von `translate` und `watch` scheitert nur seine eigene Anfrage: deren Keys werden zurückgehalten, die Locale bekommt einen Hinweis `SUB_BATCH_FAILED` mit dem Code, und die Keys werden beim nächsten Lauf wieder aufgegriffen. Eine Neuübersetzung eines einzelnen Keys aus Studio oder dem MCP-Server wirft den `ProviderError` weiter. Eine gescheiterte Anfrage endet mit `1`, und ihre Locale endet `partial` oder `failed`.
+Ein Provider-Fehler wirft einen `ProviderError` mit einem dieser Codes ([Strukturierte Fehler](/de/docs/providers#strukturierte-fehler)). Innerhalb von `translate` und `watch` scheitert nur seine eigene Anfrage: deren Keys werden zurückgehalten, die Locale bekommt einen Hinweis `SUB_BATCH_FAILED` mit dem Code, und die Keys werden beim nächsten Lauf wieder aufgegriffen. Eine Neuübersetzung eines einzelnen Keys aus Studio oder dem MCP-Server wirft den `ProviderError` weiter. Eine gescheiterte Anfrage endet mit `1`, und ihre Locale endet `partial` oder `failed`.
 
 ### MISSING_API_KEY
 
@@ -651,7 +651,7 @@ Die Ausgabe war fehlerhaft, unvollständig oder scheiterte am Abgleich mit der A
 
 ### OUTPUT_TRUNCATED
 
-Das Modell hat sein Ausgabe-Token-Limit erreicht; siehe [Ausgabe-Token-Limits](/docs/providers#ausgabe-token-limits).
+Das Modell hat sein Ausgabe-Token-Limit erreicht; siehe [Ausgabe-Token-Limits](/de/docs/providers#ausgabe-token-limits).
 
 - **Nächster Schritt**: Translate fewer keys at a time, or configure a model with a larger output limit.
 
@@ -675,7 +675,7 @@ HTTP 429 oder ein SDK-Rate-Limit-Fehler. Bei Google Cloud Translation gehört hi
 
 ### TIMEOUT
 
-Ein Netzwerk- oder Anfrage-Timeout; [`requestTimeoutMs`](/docs/providers#anfrage-timeout) hebt die Grenze an.
+Ein Netzwerk- oder Anfrage-Timeout; [`requestTimeoutMs`](/de/docs/providers#anfrage-timeout) hebt die Grenze an.
 
 - **Nächster Schritt**: Try again, or raise the provider's `requestTimeoutMs` in the config.
 
@@ -687,13 +687,13 @@ HTTP 401 oder 403: Der Key ist ungültig, widerrufen oder ohne Berechtigung. Pr�
 
 ### PROVIDER_UNAVAILABLE
 
-HTTP 5xx: Der Provider ist auf seiner eigenen Seite gescheitert, die Anfrage selbst war nie schuld. Die [Wiederholungsebenen](/docs/providers#wiederholungen) fangen ein vorübergehendes 5xx bereits ab; ein 5xx, das diesen Code erreicht, ist also eine anhaltende Störung.
+HTTP 5xx: Der Provider ist auf seiner eigenen Seite gescheitert, die Anfrage selbst war nie schuld. Die [Wiederholungsebenen](/de/docs/providers#wiederholungen) fangen ein vorübergehendes 5xx bereits ab; ein 5xx, das diesen Code erreicht, ist also eine anhaltende Störung.
 
 - **Nächster Schritt**: Try again later, or check the configured endpoint.
 
 ### NETWORK_POLICY_VIOLATION [#provider-network_policy_violation]
 
-Die [Netzwerkrichtlinie](/docs/network-policy) hat die Anfrage direkt vor dem Senden abgelehnt: Der Hostname löste zu einer Adresse auf, die die Richtlinie nicht erlaubt, oder eine Antwort leitete zu einem abgelehnten Host weiter. Die Meldung nennt nur den Host. Wiederholen hilft nicht.
+Die [Netzwerkrichtlinie](/de/docs/network-policy) hat die Anfrage direkt vor dem Senden abgelehnt: Der Hostname löste zu einer Adresse auf, die die Richtlinie nicht erlaubt, oder eine Antwort leitete zu einem abgelehnten Host weiter. Die Meldung nennt nur den Host. Wiederholen hilft nicht.
 
 - **Nächster Schritt**: Point the provider at a host the network policy permits, or add its host to `network.allowedHosts` or VERBATRA_NETWORK_ALLOWED_HOSTS.
 
@@ -705,7 +705,7 @@ Alles Unklassifizierbare. Ist der Fehlschlag ein erkennbares Transportproblem, b
 
 ## Fehlercodes der Format-Adapter [#adapter-error-codes]
 
-Ein Format-Adapter, der eine Datei nicht verarbeiten kann, wirft einen `AdapterError` mit einem dieser Codes. Bei der Quell-Locale-Datei kommt er eingepackt in `SOURCE_INVALID` an, mit dem Code des Adapters als `causeCode`; bei einer Zieldatei wird er zum `error.code` dieser Locale. Jeder Befehl, der Locale-Dateien liest, Studio und der MCP-Server können ihn auslösen; die CLI endet mit `2`, wenn die Quelldatei schuld ist, und mit `1`, wenn eine Zieldatei ihre Locale in `translate` oder `import` scheitern lässt. `check --file` meldet eine Datei, die sich nicht parsen lässt, stattdessen als `syntax`-Befund. Die Menge ist geschlossen: Ein [eigener Adapter](/docs/custom-format-adapters) wirft einen dieser Codes statt eines eigenen.
+Ein Format-Adapter, der eine Datei nicht verarbeiten kann, wirft einen `AdapterError` mit einem dieser Codes. Bei der Quell-Locale-Datei kommt er eingepackt in `SOURCE_INVALID` an, mit dem Code des Adapters als `causeCode`; bei einer Zieldatei wird er zum `error.code` dieser Locale. Jeder Befehl, der Locale-Dateien liest, Studio und der MCP-Server können ihn auslösen; die CLI endet mit `2`, wenn die Quelldatei schuld ist, und mit `1`, wenn eine Zieldatei ihre Locale in `translate` oder `import` scheitern lässt. `check --file` meldet eine Datei, die sich nicht parsen lässt, stattdessen als `syntax`-Befund. Die Menge ist geschlossen: Ein [eigener Adapter](/de/docs/custom-format-adapters) wirft einen dieser Codes statt eines eigenen.
 
 ### INVALID_JSON
 
@@ -772,7 +772,7 @@ Ein Adapter wurde unter einer fehlerhaften `custom:`-Kennung registriert.
 
 ## Codes des Review-Gates [#check-result-codes]
 
-`check --require-reviewed` meldet, warum es scheitert, als `result.review.code` ([`verbatra check`](/docs/cli/check)).
+`check --require-reviewed` meldet, warum es scheitert, als `result.review.code` ([`verbatra check`](/de/docs/cli/check)).
 
 ### REVIEW_REQUIRED
 
@@ -780,7 +780,7 @@ Mindestens eine maschinell geschriebene Übersetzung (Herkunft `machine`, `memor
 
 - **Ausgelöst von**: `check --require-reviewed`
 - **Exit-Code**: `1`
-- **Nächster Schritt**: Gib die genannten Keys in der [Review-Warteschlange von Studio](/docs/review-in-studio) oder mit den MCP-Tools `review.approve` und `review.reject` frei oder korrigiere sie, und committe dann `verbatra.provenance.json`.
+- **Nächster Schritt**: Gib die genannten Keys in der [Review-Warteschlange von Studio](/de/docs/review-in-studio) oder mit den MCP-Tools `review.approve` und `review.reject` frei oder korrigiere sie, und committe dann `verbatra.provenance.json`.
 
 ### REVIEW_STATE_UNREADABLE
 
@@ -792,11 +792,11 @@ Mindestens eine maschinell geschriebene Übersetzung (Herkunft `machine`, `memor
 
 ## Gründe für Integritätsablehnungen [#integrity-refusal-reasons]
 
-Das [Integritäts-Gate](/docs/translation-safety#das-integritäts-gate) lehnt einen Kandidatenwert mit genau einem dieser Gründe ab, dem ersten, der in der dort genannten Reihenfolge zutrifft. Der Grund steht nach `translate`, `watch` und `import` in den `integrityRefusals` einer Locale (`integrity-withheld` in der Ausgabe für Menschen), im Ergebnis von `editEntry` und von `retranslateEntry` (`accepted: false` mit dem `reason`) und als Fehler von `check --qa`, oft mit `details`, die nennen, was abweicht. Eine Ablehnung endet mit `1` bei `check --qa` und bei `translate` und `import`, wenn die Locale partial oder failed endet. Die Menge wird als Tupel `INTEGRITY_GATE_REASONS` ausgeliefert.
+Das [Integritäts-Gate](/de/docs/translation-safety#das-integritäts-gate) lehnt einen Kandidatenwert mit genau einem dieser Gründe ab, dem ersten, der in der dort genannten Reihenfolge zutrifft. Der Grund steht nach `translate`, `watch` und `import` in den `integrityRefusals` einer Locale (`integrity-withheld` in der Ausgabe für Menschen), im Ergebnis von `editEntry` und von `retranslateEntry` (`accepted: false` mit dem `reason`) und als Fehler von `check --qa`, oft mit `details`, die nennen, was abweicht. Eine Ablehnung endet mit `1` bei `check --qa` und bei `translate` und `import`, wenn die Locale partial oder failed endet. Die Menge wird als Tupel `INTEGRITY_GATE_REASONS` ausgeliefert.
 
 ### placeholder
 
-Die Platzhalter des Kandidaten weichen von denen seiner Quelle ab, verglichen als Multimenge: Die Anzahl zählt, die Reihenfolge nicht. Was als Platzhalter gilt, legt jedes [Format](/docs/formats) fest. Bei i18next, ngx-translate und YAML wird auch ein Token der Form `{name}` abgelehnt, das der Kandidat hinzufügt und die Quelle nie hatte, obwohl einfache geschweifte Klammern dort wörtlicher Text sind. Die Details nennen jeden weggelassenen Platzhalter mit `-` und jeden hinzugefügten mit `+`, etwa `-{{name}}` oder `+{{nom}}`.
+Die Platzhalter des Kandidaten weichen von denen seiner Quelle ab, verglichen als Multimenge: Die Anzahl zählt, die Reihenfolge nicht. Was als Platzhalter gilt, legt jedes [Format](/de/docs/formats) fest. Bei i18next, ngx-translate und YAML wird auch ein Token der Form `{name}` abgelehnt, das der Kandidat hinzufügt und die Quelle nie hatte, obwohl einfache geschweifte Klammern dort wörtlicher Text sind. Die Details nennen jeden weggelassenen Platzhalter mit `-` und jeden hinzugefügten mit `+`, etwa `-{{name}}` oder `+{{nom}}`.
 
 - **Nächster Schritt**: Setze die Platzhalter der Quelle wieder in die Übersetzung ein oder lass den nächsten Lauf sie neu übersetzen.
 
@@ -956,7 +956,7 @@ wird weiterhin verglichen, auch ein überzähliges schließendes Tag wie ein zwe
 
 ### icu
 
-Bei next-intl und ARB lässt sich der Kandidat nicht mehr als ICU-Nachricht parsen (auch ein `plural` ohne seinen `other`-Zweig), oder seine `plural`- oder `selectordinal`-Zweige passen nicht zu den CLDR-Kategorien der Zielsprache, oder seine `select`-Zweige weichen von denen der Quelle ab. Die Details nennen jeden falschen Zweig. [Plural-Zweige je Zielsprache](/docs/translation-safety#plural-zweige-je-zielsprache) erklärt die Regel.
+Bei next-intl und ARB lässt sich der Kandidat nicht mehr als ICU-Nachricht parsen (auch ein `plural` ohne seinen `other`-Zweig), oder seine `plural`- oder `selectordinal`-Zweige passen nicht zu den CLDR-Kategorien der Zielsprache, oder seine `select`-Zweige weichen von denen der Quelle ab. Die Details nennen jeden falschen Zweig. [Plural-Zweige je Zielsprache](/de/docs/translation-safety#plural-zweige-je-zielsprache) erklärt die Regel.
 
 - **Nächster Schritt**: Korrigiere die Nachricht, sodass sie sich parsen lässt und genau die Zweige trägt, die die Zielsprache braucht.
 
@@ -974,7 +974,7 @@ Der Kandidat ist leer oder besteht nur aus Leerraum, obwohl seine Quelle es nich
 
 ## Review-Gründe [#review-reason-codes]
 
-Ein Review-Flag markiert eine angenommene Übersetzung als einen zweiten Blick wert; es hält nie einen Key zurück, und eine Warnung von `check --qa` lässt den Job nur mit `--strict` scheitern. Die Menge wird als Tupel `REVIEW_REASON_CODES` ausgeliefert; [Übersetzungssicherheit](/docs/translation-safety#review-flags) erklärt die Review-Schicht.
+Ein Review-Flag markiert eine angenommene Übersetzung als einen zweiten Blick wert; es hält nie einen Key zurück, und eine Warnung von `check --qa` lässt den Job nur mit `--strict` scheitern. Die Menge wird als Tupel `REVIEW_REASON_CODES` ausgeliefert; [Übersetzungssicherheit](/de/docs/translation-safety#review-flags) erklärt die Review-Schicht.
 
 ### LENGTH_RATIO_OUTLIER
 
@@ -1056,7 +1056,7 @@ Der Wert wurde aus dem Cache für eine frühere, fast gleiche Quelle wiederverwe
 
 Die Übersetzung hat ein Token verloren oder verändert, das wie ein Platzhalter aussieht, den das Format des Projekts nicht interpoliert, etwa `{name}` in einem i18next-Wert oder `%{count}` in einem YAML-Wert.
 
-Er greift, wenn ein solches Token in der Quelle öfter vorkommt als, wörtlich, in der Übersetzung. Die eigenen Platzhalter des Formats prüft das Integritäts-Gate, ein Token, das die Übersetzung nur hinzufügt, wird nicht markiert, und ein ICU-Argument zählt einmal, über seinen Kopf wie `{n, plural,`, sodass übersetzte Zweige ihn nie auslösen. Tokens in ICU-Zweigen, ein printf-Token direkt an einem Buchstaben oder einer Ziffer, prozentkodierte Bytes wie `%2F` und alles in einer URL werden nie geprüft, ebenso wenig Formate aus Adaptern von Drittanbietern. Welche Syntax jedes Format schützt, steht unter [Formate](/docs/formats).
+Er greift, wenn ein solches Token in der Quelle öfter vorkommt als, wörtlich, in der Übersetzung. Die eigenen Platzhalter des Formats prüft das Integritäts-Gate, ein Token, das die Übersetzung nur hinzufügt, wird nicht markiert, und ein ICU-Argument zählt einmal, über seinen Kopf wie `{n, plural,`, sodass übersetzte Zweige ihn nie auslösen. Tokens in ICU-Zweigen, ein printf-Token direkt an einem Buchstaben oder einer Ziffer, prozentkodierte Bytes wie `%2F` und alles in einer URL werden nie geprüft, ebenso wenig Formate aus Adaptern von Drittanbietern. Welche Syntax jedes Format schützt, steht unter [Formate](/de/docs/formats).
 
 - **Ausgelöst von**: `translate`, `watch` (in `needsReview`); `retranslateEntry` (in `reviewReasons`); `export` (in der Review-Spalte); `check --qa` (als Warnung, die jedes fehlende Token in `details` nennt, etwa `-{name}`)
 - **Exit-Code**: keiner aus `translate`; `1` aus `check --qa --strict`
@@ -1074,7 +1074,7 @@ Er greift, wenn die Einbettungen (U+202A, U+202B), Überschreibungen (U+202D, U+
 
 ## Laufhinweise [#sdk-notice-codes]
 
-Ein Hinweis steht als Daten in den `notices` einer Locale und wird nie geworfen. Er meldet einen Zustand, den der Lauf behandelt hat, und ändert den Exit-Code nur dort, wo der Eintrag es sagt. [RunSummary](/docs/sdk/run-summary) zeigt, wo Hinweise in der Zusammenfassung stehen.
+Ein Hinweis steht als Daten in den `notices` einer Locale und wird nie geworfen. Er meldet einen Zustand, den der Lauf behandelt hat, und ändert den Exit-Code nur dort, wo der Eintrag es sagt. [RunSummary](/de/docs/sdk/run-summary) zeigt, wo Hinweise in der Zusammenfassung stehen.
 
 ### PLURAL_CATEGORIES_INCOMPLETE
 
@@ -1142,7 +1142,7 @@ Das Festhalten dieser Locale hätte `verbatra.provenance.json` über die Größe
 
 ### LOCALE_STATE_CARRIED_OVER
 
-Unter einer Schreibweise mit Unterstrich wie `pt_BR` festgehaltener Stand wurde zum konfigurierten `pt-BR` verschoben. Siehe [Ein umgeschriebener Locale-Code](/docs/the-lock-file#ein-umgeschriebener-locale-code).
+Unter einer Schreibweise mit Unterstrich wie `pt_BR` festgehaltener Stand wurde zum konfigurierten `pt-BR` verschoben. Siehe [Ein umgeschriebener Locale-Code](/de/docs/the-lock-file#ein-umgeschriebener-locale-code).
 
 - **Ausgelöst von**: `translate`, `watch`, `import`
 - **Exit-Code**: keiner
@@ -1200,7 +1200,7 @@ DeepL, Google Cloud Translation und LibreTranslate bekommen ein solches Token wi
 
 ### SOURCE_VALUE_EMPTY
 
-Quell-Keys, deren Wert leer ist oder nur aus Leerraum besteht, etwa ein Key, den [`extract`](/docs/cli/extract) ohne Standardwert ergänzt hat, sind nie fehlend, veraltet oder aktuell, egal was Ziel oder Lock-Datei enthalten; in einem `gettext-po`-Quellkatalog ist das ein leerer `msgstr`. Für sie wird nichts gesendet, geschrieben oder gezählt, und das Ziel behält den Wert, den es hat. Die Meldung nennt die Zahl der Keys und die ersten davon.
+Quell-Keys, deren Wert leer ist oder nur aus Leerraum besteht, etwa ein Key, den [`extract`](/de/docs/cli/extract) ohne Standardwert ergänzt hat, sind nie fehlend, veraltet oder aktuell, egal was Ziel oder Lock-Datei enthalten; in einem `gettext-po`-Quellkatalog ist das ein leerer `msgstr`. Für sie wird nichts gesendet, geschrieben oder gezählt, und das Ziel behält den Wert, den es hat. Die Meldung nennt die Zahl der Keys und die ersten davon.
 
 - **Ausgelöst von**: `translate` (auch ein Probelauf), `watch`
 - **Exit-Code**: keiner

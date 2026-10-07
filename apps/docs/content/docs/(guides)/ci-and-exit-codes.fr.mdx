@@ -8,14 +8,14 @@ Utilise ce guide quand une pipeline doit repérer les fichiers de locale qui ont
 Avant de commencer, il te faut :
 
 - `@verbatra/cli` en dépendance de développement, avec ton lockfile commité. La CLI demande Node `^22.18.0 || >=24`.
-- Une configuration, des fichiers de locale et un [`verbatra.lock.json`](/docs/the-lock-file) commités.
+- Une configuration, des fichiers de locale et un [`verbatra.lock.json`](/fr/docs/the-lock-file) commités.
 - Pour traduire uniquement : la clé d'API de ton fournisseur dans le coffre à secrets de la CI.
 
-Si tu utilises GitHub Actions et veux des annotations et un résumé de job sans écrire le job toi-même, prends plutôt la [GitHub Action](/docs/github-action).
+Si tu utilises GitHub Actions et veux des annotations et un résumé de job sans écrire le job toi-même, prends plutôt la [GitHub Action](/fr/docs/github-action).
 
 ## Ajouter un contrôle de dérive
 
-[`verbatra check`](/docs/cli/check) compare la source, les fichiers cibles et le fichier de verrouillage, et sort avec `1` quand une locale a des clés manquantes ou obsolètes. Il n'appelle aucun fournisseur, donc le job n'a besoin d'aucune clé et tourne aussi sur les pull requests venant de forks :
+[`verbatra check`](/fr/docs/cli/check) compare la source, les fichiers cibles et le fichier de verrouillage, et sort avec `1` quand une locale a des clés manquantes ou obsolètes. Il n'appelle aucun fournisseur, donc le job n'a besoin d'aucune clé et tourne aussi sur les pull requests venant de forks :
 
 ```yaml title=".github/workflows/i18n.yml"
 name: i18n
@@ -37,7 +37,7 @@ jobs:
       - run: pnpm exec verbatra check
 ```
 
-Remplace `check` par [`verbatra diff`](/docs/cli/diff) quand tu veux les noms des clés derrière la dérive, par exemple pour les publier dans un commentaire de pull request. Il sort avec `1` dans la même condition ; les clés orphelines apparaissent dans sa sortie, mais ne le font jamais échouer à elles seules.
+Remplace `check` par [`verbatra diff`](/fr/docs/cli/diff) quand tu veux les noms des clés derrière la dérive, par exemple pour les publier dans un commentaire de pull request. Il sort avec `1` dans la même condition ; les clés orphelines apparaissent dans sa sortie, mais ne le font jamais échouer à elles seules.
 
 Pour ne contrôler que certaines locales, passe `--locales de,fr`. Une valeur de `--locales` sans aucune locale valide sort avec `2`, donc une faute de frappe ne rend jamais le contrôle vert.
 
@@ -54,23 +54,23 @@ verbatra check --qa
 - Ajoute `--strict` pour échouer aussi sur les avertissements de relecture et les catégories de pluriel manquantes.
 - Dans un hook d'édition, `verbatra check --file <path>` contrôle un seul fichier de locale.
 
-Consulte [le contrôle qualité](/docs/cli/check#contrôle-qualité) et [Un seul fichier](/docs/cli/check#un-seul-fichier). La [GitHub Action](/docs/github-action#vérifier-la-qualité-des-traductions) exécute le même contrôle avec `qa: "true"`.
+Consulte [le contrôle qualité](/fr/docs/cli/check#contrôle-qualité) et [Un seul fichier](/fr/docs/cli/check#un-seul-fichier). La [GitHub Action](/fr/docs/github-action#vérifier-la-qualité-des-traductions) exécute le même contrôle avec `qa: "true"`.
 
 ### Bloquer sur les décisions de relecture
 
 <AvailableFrom version="0.12.0" />
 
-Ajoute `--require-reviewed` pour échouer tant qu'une traduction écrite par une machine n'est pas approuvée dans le `verbatra.provenance.json` commité, le fichier où écrivent [la file de relecture de Studio](/docs/review-in-studio) et les outils de relecture MCP :
+Ajoute `--require-reviewed` pour échouer tant qu'une traduction écrite par une machine n'est pas approuvée dans le `verbatra.provenance.json` commité, le fichier où écrivent [la file de relecture de Studio](/fr/docs/review-in-studio) et les outils de relecture MCP :
 
 ```bash
 verbatra check --require-reviewed
 ```
 
-Il n'a pas besoin de clé non plus. Les codes qu'il signale sont dans [Exiger des traductions relues](/docs/cli/check#exiger-des-traductions-relues).
+Il n'a pas besoin de clé non plus. Les codes qu'il signale sont dans [Exiger des traductions relues](/fr/docs/cli/check#exiger-des-traductions-relues).
 
 ## Traduire lors d'un push
 
-Lance [`verbatra translate`](/docs/cli/translate) et fais passer la clé du fournisseur depuis ton coffre à secrets dans l'environnement de l'étape. La CLI ne prend aucune clé en argument et n'en lit aucune dans la configuration ; [Fournisseurs](/docs/providers#les-clés-viennent-de-lenvironnement) liste la variable que lit chaque fournisseur.
+Lance [`verbatra translate`](/fr/docs/cli/translate) et fais passer la clé du fournisseur depuis ton coffre à secrets dans l'environnement de l'étape. La CLI ne prend aucune clé en argument et n'en lit aucune dans la configuration ; [Fournisseurs](/fr/docs/providers#les-clés-viennent-de-lenvironnement) liste la variable que lit chaque fournisseur.
 
 ```yaml
       - run: pnpm exec verbatra translate --json
@@ -79,30 +79,30 @@ Lance [`verbatra translate`](/docs/cli/translate) et fais passer la clé du four
 ```
 
 - L'étape écrit les fichiers de locale dans le checkout et s'arrête là. Ajoute ta propre étape qui les commite ou ouvre une pull request, et n'accorde `contents: write` ou `pull-requests: write` qu'à ce job.
-- Pour prévisualiser d'abord, lance `verbatra translate --dry-run` ou `--estimate` : aucun des deux n'appelle un fournisseur ni ne demande de clé. Consulte [Estimer le coût](/docs/estimating-cost).
+- Pour prévisualiser d'abord, lance `verbatra translate --dry-run` ou `--estimate` : aucun des deux n'appelle un fournisseur ni ne demande de clé. Consulte [Estimer le coût](/fr/docs/estimating-cost).
 - Face à un fournisseur limité en débit, traduis une locale par étape avec `--locales`.
 
 ## Vérifier d'abord avec doctor
 
-Place [`verbatra doctor`](/docs/cli/doctor) avant l'un ou l'autre job pour échouer tôt sur une installation cassée. Il vérifie la configuration, le format, le fournisseur, la variable de clé, la politique réseau, le fichier source et la prise en charge des locales, sans jamais appeler de fournisseur ni lire la valeur d'une clé. Il signale toutefois une variable de clé non définie comme un contrôle en échec, donc fais passer la clé dans tout job où ce contrôle doit réussir.
+Place [`verbatra doctor`](/fr/docs/cli/doctor) avant l'un ou l'autre job pour échouer tôt sur une installation cassée. Il vérifie la configuration, le format, le fournisseur, la variable de clé, la politique réseau, le fichier source et la prise en charge des locales, sans jamais appeler de fournisseur ni lire la valeur d'une clé. Il signale toutefois une variable de clé non définie comme un contrôle en échec, donc fais passer la clé dans tout job où ce contrôle doit réussir.
 
 ## Codes de sortie
 
-Branche-toi sur le code de sortie, jamais sur le texte. Ce que signifie chaque code, avec ses cas limites, est dans [Codes de sortie et sortie JSON](/docs/cli/output#codes-de-sortie) ; un code d'erreur dans la sortie est expliqué dans [Codes d'erreur](/docs/error-codes).
+Branche-toi sur le code de sortie, jamais sur le texte. Ce que signifie chaque code, avec ses cas limites, est dans [Codes de sortie et sortie JSON](/fr/docs/cli/output#codes-de-sortie) ; un code d'erreur dans la sortie est expliqué dans [Codes d'erreur](/fr/docs/error-codes).
 
 ## Sortie JSON
 
-Passe `--json` pour obtenir une enveloppe par enregistrement sur stdout. Ses champs sont dans [Codes de sortie et sortie JSON](/docs/cli/output#sortie-json), et le `result` de chaque commande sur sa page. [Scripter verbatra avec JSON](/docs/agent-recipes) propose des recettes qui la lisent.
+Passe `--json` pour obtenir une enveloppe par enregistrement sur stdout. Ses champs sont dans [Codes de sortie et sortie JSON](/fr/docs/cli/output#sortie-json), et le `result` de chaque commande sur sa page. [Scripter verbatra avec JSON](/fr/docs/agent-recipes) propose des recettes qui la lisent.
 
 ## Clés et installations
 
 - Installe avec `pnpm install --frozen-lockfile` ou `npm ci`, pour que le job exécute exactement la version de `@verbatra/cli` que ton lockfile enregistre.
 - Garde les secrets hors des jobs qui n'appellent jamais de fournisseur : `check`, `diff`, `report`, `export`, `import`, `extract`, `pseudo`, `types` et `tmx`.
-- En CI, repose-toi sur `env:`. Les commandes qui chargent aussi `.env.local` et `.env` sont listées dans [Fichiers d'environnement](/docs/cli#fichiers-denvironnement).
+- En CI, repose-toi sur `env:`. Les commandes qui chargent aussi `.env.local` et `.env` sont listées dans [Fichiers d'environnement](/fr/docs/cli#fichiers-denvironnement).
 
 ## Voir aussi
 
-- [Utiliser la GitHub Action](/docs/github-action) : les mêmes contrôles avec des annotations et un résumé de job.
-- [`verbatra check`](/docs/cli/check) et [`verbatra diff`](/docs/cli/diff) : toutes les options des deux contrôles.
-- [Codes de sortie et sortie JSON](/docs/cli/output) : le contrat que lit une étape de CI.
-- [Codes d'erreur](/docs/error-codes) : ce que signifie chaque code et l'étape suivante.
+- [Utiliser la GitHub Action](/fr/docs/github-action) : les mêmes contrôles avec des annotations et un résumé de job.
+- [`verbatra check`](/fr/docs/cli/check) et [`verbatra diff`](/fr/docs/cli/diff) : toutes les options des deux contrôles.
+- [Codes de sortie et sortie JSON](/fr/docs/cli/output) : le contrat que lit une étape de CI.
+- [Codes d'erreur](/fr/docs/error-codes) : ce que signifie chaque code et l'étape suivante.

@@ -11,7 +11,7 @@ Nutze das, wenn dein Code deinem Katalog voraus ist: Du schreibst `t("cart.empty
 
 Du brauchst:
 
-- eine verbatra-Konfiguration (führ [`verbatra init`](/docs/cli/init) aus, wenn du keine hast);
+- eine verbatra-Konfiguration (führ [`verbatra init`](/de/docs/cli/init) aus, wenn du keine hast);
 - Code, der `t(...)`, `$t(...)` oder `i18n.t(...)` von i18next aufruft, das einzige Framework, das `extract` heute liest;
 - einen Namespace pro Katalogdatei. Ein Key mit Namespace wie `t("common:nav.home")` wird gemeldet und nie geschrieben, weil eine Konfiguration genau eine Datei adressiert.
 
@@ -29,7 +29,7 @@ export default defineConfig({
 });
 ```
 
-Außerhalb von `roots` wird nichts gelesen, und Build-Ausgaben wie `node_modules` und `dist` werden immer übersprungen. Liegt generierter Code unter einer Root, trag den Namen seines Verzeichnisses in `exclude` ein. Jedes Feld steht unter [`extract`](/docs/config-file#extract).
+Außerhalb von `roots` wird nichts gelesen, und Build-Ausgaben wie `node_modules` und `dist` werden immer übersprungen. Liegt generierter Code unter einer Root, trag den Namen seines Verzeichnisses in `exclude` ein. Jedes Feld steht unter [`extract`](/de/docs/config-file#extract).
 
 ## Sieh dir an, was hinzukäme
 
@@ -72,22 +72,22 @@ Wenn dein Format `xliff` oder `apple-xcstrings` ist, leg den Quellkatalog zuerst
 verbatra translate
 ```
 
-Die neuen Keys fehlen in jeder Ziel-Locale, also übersetzt der Lauf genau sie und sonst nichts. Wenn der Stapel groß ist, schau dir die Kosten vorher mit [`--estimate`](/docs/estimating-cost) an.
+Die neuen Keys fehlen in jeder Ziel-Locale, also übersetzt der Lauf genau sie und sonst nichts. Wenn der Stapel groß ist, schau dir die Kosten vorher mit [`--estimate`](/de/docs/estimating-cost) an.
 
-Wenn du TypeScript nutzt, erzeug deine Key-Deklarationen mit [`verbatra types`](/docs/cli/types) neu, damit ein Tippfehler in einem neuen Key die Kompilierung scheitern lässt.
+Wenn du TypeScript nutzt, erzeug deine Key-Deklarationen mit [`verbatra types`](/de/docs/cli/types) neu, damit ein Tippfehler in einem neuen Key die Kompilierung scheitern lässt.
 
 ## Halte Code und Katalog im Gleichschritt
 
 `extract` fügt nur hinzu. Zwei Prüfungen, die nur lesen, decken die anderen Richtungen ab:
 
-- `verbatra diff --unused` listet Quell-Keys, die keine Aufrufstelle mehr nennt. Es nutzt die `extract`-Roots und löscht nichts; ob du einen Key entfernst, entscheidest du. Unter [Ungenutzte Quell-Keys](/docs/cli/diff#ungenutzte-quell-keys) steht, wann die Liste vollständig genug ist, um ihr zu trauen.
-- `verbatra doctor --literals` listet für Nutzer sichtbare Strings, die nie durch `t(...)` gegangen sind, etwa JSX-Text oder ein `aria-label`. Unter [Nicht übersetzte Literale](/docs/cli/doctor#nicht-übersetzte-literale) steht, was zählt und wie du eines zurückhältst.
+- `verbatra diff --unused` listet Quell-Keys, die keine Aufrufstelle mehr nennt. Es nutzt die `extract`-Roots und löscht nichts; ob du einen Key entfernst, entscheidest du. Unter [Ungenutzte Quell-Keys](/de/docs/cli/diff#ungenutzte-quell-keys) steht, wann die Liste vollständig genug ist, um ihr zu trauen.
+- `verbatra doctor --literals` listet für Nutzer sichtbare Strings, die nie durch `t(...)` gegangen sind, etwa JSX-Text oder ein `aria-label`. Unter [Nicht übersetzte Literale](/de/docs/cli/doctor#nicht-übersetzte-literale) steht, was zählt und wie du eines zurückhältst.
 
 Führ `verbatra extract` erneut aus, wann immer du Aufrufstellen hinzufügst. Das lässt sich gefahrlos wiederholen, und es endet mit `0`, egal was es findet. Ein CI-Schritt, der bei neuen Keys scheitern soll, liest deshalb die Liste `added` aus `--json` statt den Exit-Code.
 
 ## Siehe auch
 
-- [`verbatra extract`](/docs/cli/extract): die Aufrufformen, die es liest, der vollständige Bericht und das JSON-Ergebnis.
-- [Die Konfigurationsdatei](/docs/config-file#extract): der `extract`-Block.
-- [`verbatra translate`](/docs/cli/translate): füllt die Ziel-Locales.
-- [Fehlercodes](/docs/error-codes#extract_not_configured): `EXTRACT_NOT_CONFIGURED`, wenn der Block fehlt.
+- [`verbatra extract`](/de/docs/cli/extract): die Aufrufformen, die es liest, der vollständige Bericht und das JSON-Ergebnis.
+- [Die Konfigurationsdatei](/de/docs/config-file#extract): der `extract`-Block.
+- [`verbatra translate`](/de/docs/cli/translate): füllt die Ziel-Locales.
+- [Fehlercodes](/de/docs/error-codes#extract_not_configured): `EXTRACT_NOT_CONFIGURED`, wenn der Block fehlt.

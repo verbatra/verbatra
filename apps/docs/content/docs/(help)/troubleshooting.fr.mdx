@@ -4,11 +4,11 @@ description: Symptômes, causes et solutions pour les erreurs que verbatra lève
 type: reference
 ---
 Chaque entrée part de ce que tu vois et relie le code qui se cache derrière à
-[Codes d'erreur](/docs/error-codes), où chaque code figure avec sa signification, son code de
+[Codes d'erreur](/fr/docs/error-codes), où chaque code figure avec sa signification, son code de
 sortie et son étape suivante. Cherche le code de `verbatra: error [CODE]`, jamais le texte du
 message.
 
-Lance [`verbatra doctor`](/docs/cli/doctor) avant de passer les entrées une à une : il vérifie la
+Lance [`verbatra doctor`](/fr/docs/cli/doctor) avant de passer les entrées une à une : il vérifie la
 config, le format, le fournisseur, la variable de la clé d'API et le fichier source en une seule
 passe, ne dépense rien et fonctionne avant même que le fichier de locale source existe.
 
@@ -62,9 +62,9 @@ clé inconnue reçoit la note `API keys are read from the environment, not the c
 strict pour qu'aucun secret ne se cache dans un fichier commité.
 
 **Solution** : corrige le champ que nomme le message ; voir
-[Fichier de configuration](/docs/config-file). Pour `No verbatra configuration found...`, voir
-[`CONFIG_NOT_FOUND`](/docs/error-codes#config_not_found). Code :
-[`CONFIG_INVALID`](/docs/error-codes#config_invalid).
+[Fichier de configuration](/fr/docs/config-file). Pour `No verbatra configuration found...`, voir
+[`CONFIG_NOT_FOUND`](/fr/docs/error-codes#config_not_found). Code :
+[`CONFIG_INVALID`](/fr/docs/error-codes#config_invalid).
 
 ## Aucun adaptateur pour le format (UNKNOWN_FORMAT)
 
@@ -74,10 +74,10 @@ charge.
 **Cause** : le `format` de la config n'est pas un id enregistré. Un format `custom:` ne tourne pas
 en ligne de commande, qui ne charge aucun plugin.
 
-**Solution** : utilise un id de [Formats](/docs/formats). Pour un format `custom:`, passe par le SDK
+**Solution** : utilise un id de [Formats](/fr/docs/formats). Pour un format `custom:`, passe par le SDK
 avec un registre qui contient son adaptateur : voir
-[Écrire un adaptateur de format personnalisé](/docs/custom-format-adapters). Code :
-[`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format).
+[Écrire un adaptateur de format personnalisé](/fr/docs/custom-format-adapters). Code :
+[`UNKNOWN_FORMAT`](/fr/docs/error-codes#unknown_format).
 
 ## La locale demandée n'est pas configurée (UNKNOWN_LOCALE)
 
@@ -87,7 +87,7 @@ avec un registre qui contient son adaptateur : voir
 `targetLocales`. Un filtre choisit dans la liste configurée ; il ne l'étend jamais.
 
 **Solution** : ajoute la locale à `targetLocales`, ou corrige la faute de frappe. Code :
-[`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale).
+[`UNKNOWN_LOCALE`](/fr/docs/error-codes#unknown_locale).
 
 ## Le fichier source est absent ou impossible à analyser (SOURCE_UNREADABLE, SOURCE_INVALID)
 
@@ -97,12 +97,12 @@ avec un registre qui contient son adaptateur : voir
 **Cause** : `files.pattern` avec la locale source insérée ne mène à aucun fichier, ou le fichier ne
 se parse pas. Le chemin est résolu depuis la racine du projet, le répertoire de la config trouvée
 (ou le répertoire de travail avec `--config`), donc un `--cwd` ou un `--config` erroné est une cause fréquente, tout comme un joker : `files.pattern` est un chemin littéral, pas un glob (voir
-[Dispositions avec espaces de noms](/docs/formats#dispositions-avec-espaces-de-noms)).
+[Dispositions avec espaces de noms](/fr/docs/formats#dispositions-avec-espaces-de-noms)).
 
 **Solution** : vérifie le chemin affiché. En cas d'échec d'analyse, le `causeCode` nomme le
-[code de l'adaptateur de format](/docs/error-codes#adapter-error-codes). Codes :
-[`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable),
-[`SOURCE_INVALID`](/docs/error-codes#source_invalid).
+[code de l'adaptateur de format](/fr/docs/error-codes#adapter-error-codes). Codes :
+[`SOURCE_UNREADABLE`](/fr/docs/error-codes#source_unreadable),
+[`SOURCE_INVALID`](/fr/docs/error-codes#source_invalid).
 
 ## Clé d'API manquante (PROVIDER_CONSTRUCTION_FAILED)
 
@@ -113,10 +113,10 @@ is not set.` (ou la variable de ton fournisseur).
 uniquement de l'environnement, jamais de la config ni d'une option.
 
 **Solution** : définis la variable et confirme-la avec `verbatra doctor`. La CLI la lit aussi depuis
-[`.env.local` et `.env`](/docs/cli#fichiers-denvironnement) ; le SDK non, donc utilise
+[`.env.local` et `.env`](/fr/docs/cli#fichiers-denvironnement) ; le SDK non, donc utilise
 `node --env-file=.env` dans ton propre script. Codes :
-[`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed),
-[`MISSING_API_KEY`](/docs/error-codes#missing_api_key).
+[`PROVIDER_CONSTRUCTION_FAILED`](/fr/docs/error-codes#provider_construction_failed),
+[`MISSING_API_KEY`](/fr/docs/error-codes#missing_api_key).
 
 ## Limites de débit, délais et échecs d'authentification en cours d'exécution (RATE_LIMITED, TIMEOUT, AUTH_FAILED)
 
@@ -127,10 +127,10 @@ avis `SUB_BATCH_FAILED` qui nomme le code du fournisseur, et la commande sort av
 ou HTTP 401/403.
 
 **Solution** : rien n'est perdu ; les clés sont reprises à la prochaine exécution. Avec
-[`RATE_LIMITED`](/docs/error-codes#rate_limited), relance plus tard, une locale à la fois avec
+[`RATE_LIMITED`](/fr/docs/error-codes#rate_limited), relance plus tard, une locale à la fois avec
 `--locales` si le quota est strict. Pour un modèle lent, relève
-[`requestTimeoutMs`](/docs/providers#délai-de-requête) face à
-[`TIMEOUT`](/docs/error-codes#timeout). [`AUTH_FAILED`](/docs/error-codes#auth_failed) ne se règle
+[`requestTimeoutMs`](/fr/docs/providers#délai-de-requête) face à
+[`TIMEOUT`](/fr/docs/error-codes#timeout). [`AUTH_FAILED`](/fr/docs/error-codes#auth_failed) ne se règle
 pas en réessayant : remplace la clé.
 
 ## Le fichier de verrouillage est corrompu (LOCK_FILE_INVALID)
@@ -144,8 +144,8 @@ locales validées avant l'arrêt gardent ce qu'elles ont écrit.
 
 **Solution** : restaure le fichier depuis le contrôle de version. Le supprimer efface aussi
 l'erreur, mais perd les références, donc les modifications antérieures de la source ne sont plus
-détectées comme obsolètes. Voir [Le fichier de verrouillage](/docs/the-lock-file). Code :
-[`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid).
+détectées comme obsolètes. Voir [Le fichier de verrouillage](/fr/docs/the-lock-file). Code :
+[`LOCK_FILE_INVALID`](/fr/docs/error-codes#lock_file_invalid).
 
 ## Un fichier de locale n'a pas pu être écrit (TARGET_UNWRITABLE)
 
@@ -157,7 +157,7 @@ même répertoire, donc le répertoire doit aussi être accessible en écriture.
 
 **Solution** : corrige ce que nomme le code du système de fichiers et relance. Seule cette locale
 échoue, et elle garde son fichier et sa référence précédents. Code :
-[`TARGET_UNWRITABLE`](/docs/error-codes#target_unwritable).
+[`TARGET_UNWRITABLE`](/fr/docs/error-codes#target_unwritable).
 
 ## Un autre processus détient le verrou d'écriture (LOCK_CONTENDED)
 
@@ -169,9 +169,9 @@ un verrou qui persiste vient d'une autre machine ou d'un verbatra antérieur à 
 
 **Solution** : attends l'autre exécution, ou supprime le fichier de verrou affiché si aucun
 processus verbatra ne tourne nulle part. `--lock-timeout <seconds>` sur
-[`translate`](/docs/cli/translate), [`watch`](/docs/cli/watch) et [`import`](/docs/cli/import)
+[`translate`](/fr/docs/cli/translate), [`watch`](/fr/docs/cli/watch) et [`import`](/fr/docs/cli/import)
 change combien de temps une exécution attend. Code :
-[`LOCK_CONTENDED`](/docs/error-codes#lock_contended).
+[`LOCK_CONTENDED`](/fr/docs/error-codes#lock_contended).
 
 ## Des clés à points ou des clés YAML entrent en collision (INVALID_STRUCTURE)
 
@@ -184,7 +184,7 @@ abandonner une.
 
 **Solution** : renomme l'une des clés, ou utilise une clé YAML scalaire. Dans le fichier source,
 cela arrive enveloppé dans `SOURCE_INVALID`. Code :
-[`INVALID_STRUCTURE`](/docs/error-codes#invalid_structure).
+[`INVALID_STRUCTURE`](/fr/docs/error-codes#invalid_structure).
 
 ## L'exécution s'est arrêtée avant certaines clés (budget de tokens)
 
@@ -198,8 +198,8 @@ termine en `partial` ou `failed`.
 **Solution** : c'est le garde-fou qui fonctionne : ce qui est arrivé est écrit, et les clés retenues
 sont traduites à la prochaine exécution. Relève le budget ou passe à `"warn"` pour tout terminer en
 une exécution. Le calcul du budget est décrit dans
-[Sécurité des traductions](/docs/translation-safety#le-budget-de-tokens). Code :
-[`BUDGET_TOKENS_EXCEEDED`](/docs/error-codes#budget_tokens_exceeded).
+[Sécurité des traductions](/fr/docs/translation-safety#le-budget-de-tokens). Code :
+[`BUDGET_TOKENS_EXCEEDED`](/fr/docs/error-codes#budget_tokens_exceeded).
 
 ## Une traduction est retenue à cause du balisage en ligne (discordance d'intégrité)
 
@@ -213,7 +213,7 @@ ou mal imbriquées, donc la barrière d'intégrité le refuse comme un placehold
 
 **Solution** : relance la clé, ou corrige la valeur à la main dans Studio ou dans un classeur ; la
 même barrière juge les deux. Ce qui est comparé et quels refus sont voulus est décrit dans
-[Parité du balisage en ligne](/docs/translation-safety#parité-du-balisage-en-ligne).
+[Parité du balisage en ligne](/fr/docs/translation-safety#parité-du-balisage-en-ligne).
 
 ## Studio : le port est déjà utilisé
 
@@ -244,11 +244,11 @@ npx télécharge la dernière CLI, qui peut ne pas correspondre à ton `@verbatr
 attente n'apparaissent pas.
 
 **Cause** : la dépense chez le fournisseur s'accorde au démarrage, selon les règles de
-[Dépenses et outils d'agent](/docs/cli/studio#dépenses-et-outils-dagent), et sans cette autorisation
+[Dépenses et outils d'agent](/fr/docs/cli/studio#dépenses-et-outils-dagent), et sans cette autorisation
 les actions de dépense ne sont pas enregistrées.
 
 **Solution** : redémarre avec `verbatra studio --allow-spend`, sauf si le projet est
-[uniquement humain](/docs/human-only-workflow). Voir [Réviser dans Studio](/docs/review-in-studio).
+[uniquement humain](/fr/docs/human-only-workflow). Voir [Réviser dans Studio](/fr/docs/review-in-studio).
 
 ## MCP : @verbatra/mcp n'est pas installé
 
@@ -267,14 +267,14 @@ les actions de dépense ne sont pas enregistrées.
 appeler un par son nom échoue comme outil inconnu.
 
 **Cause** : la dépense s'accorde au démarrage, selon les règles des
-[Outils payants](/docs/cli/mcp#outils-payants), et la liste d'outils ne doit pas changer selon la
+[Outils payants](/fr/docs/cli/mcp#outils-payants), et la liste d'outils ne doit pas changer selon la
 connexion, donc les outils de dépense sont entièrement laissés de côté.
 
 **Solution** : redémarre avec `verbatra mcp --allow-spend`, sauf si le projet est
-[uniquement humain](/docs/human-only-workflow).
+[uniquement humain](/fr/docs/human-only-workflow).
 
 ## Annuler une exécution (aucun code d'erreur)
 
 verbatra n'a pas de commande d'annulation ; le contrôle de version est le chemin du retour.
 Rétablis les fichiers de locale, `verbatra.lock.json` et `verbatra.provenance.json` ensemble, jamais les fichiers de locale
-seuls. Voir [Récupération et retour en arrière](/docs/recovery-and-rollback).
+seuls. Voir [Récupération et retour en arrière](/fr/docs/recovery-and-rollback).

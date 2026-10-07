@@ -22,14 +22,14 @@ Une clé source que la cible n'a pas est manquante. Pour une clé présente, le 
 comparé à celui enregistré : une différence signifie que la source a changé et la clé est
 retraduite ; une correspondance signifie qu'elle n'est jamais envoyée, donc une seconde exécution
 sans modification de la source ne coûte rien. Le pipeline complet est sur
-[Comment se déroule une exécution](/docs/how-it-works).
+[Comment se déroule une exécution](/fr/docs/how-it-works).
 
 ### Clés protégées
 
 <AvailableFrom version="0.12.0" />
 
 L'exception est une clé modifiée dont une personne a écrit ou importé la valeur : par défaut elle
-est [protégée](/docs/protecting-human-translations) et reste obsolète au lieu d'être retraduite.
+est [protégée](/fr/docs/protecting-human-translations) et reste obsolète au lieu d'être retraduite.
 
 ## Adopter un projet existant
 
@@ -46,7 +46,7 @@ L'adoption se décide par la présence d'une clé, jamais par sa valeur, ce qui 
   première exécution.
 
 La même règle garde les formes plurielles écrites à la main, donc `generatePlurals` est sans risque
-pendant l'adoption. Pour voir tout cela à l'avance, lance [`verbatra diff`](/docs/cli/diff) ou
+pendant l'adoption. Pour voir tout cela à l'avance, lance [`verbatra diff`](/fr/docs/cli/diff) ou
 `verbatra translate --dry-run`.
 
 ## Comment il est mis à jour
@@ -80,12 +80,12 @@ Ce que le verrou garantit :
   processus.
 - **Un verrou perdu arrête l'écriture.** Chaque verrou porte un jeton aléatoire, vérifié avant
   chaque écriture ; quand une autre exécution a repris le verrou, l'écriture s'arrête
-  avec [`LOCK_CONTENDED`](/docs/error-codes#lock_contended) et rien n'est écrit.
+  avec [`LOCK_CONTENDED`](/fr/docs/error-codes#lock_contended) et rien n'est écrit.
 
 Ce qu'il ne couvre pas :
 
 - **Un verrou d'une autre machine** (un lecteur réseau partagé) ou d'un verbatra antérieur à 0.12.0
-  n'est jamais récupéré automatiquement ; [Dépannage](/docs/troubleshooting) donne les étapes pour
+  n'est jamais récupéré automatiquement ; [Dépannage](/fr/docs/troubleshooting) donne les étapes pour
   le retirer.
 - **Une longue pause entre vérification et écriture.** Une exécution mise en pause juste après la
   vérification du jeton (une machine en veille, un processus arrêté) peut encore écrire une fois à
@@ -102,7 +102,7 @@ Ce qu'il ne couvre pas :
 Le fichier de verrouillage, le cache et le fichier de provenance rangent leur état sous le code de
 locale de ta configuration. Quand tu en réécris un, par exemple `pt_BR` en `pt-BR`, la prochaine
 exécution de `translate` ou `watch` reporte l'ancien état une fois et signale
-[`LOCALE_STATE_CARRIED_OVER`](/docs/error-codes#locale_state_carried_over). Une modification de la
+[`LOCALE_STATE_CARRIED_OVER`](/fr/docs/error-codes#locale_state_carried_over). Une modification de la
 source faite avant le renommage est toujours retraduite, et les traductions en cache sont toujours
 réutilisées.
 
@@ -110,19 +110,19 @@ Le report n'a lieu que sans ambiguïté : `pt-BR` n'a pas d'état à lui, et le 
 contient un état sous exactement une graphie avec tiret bas (ou sa graphie gettext, comme
 `sr@latin` pour `sr-Latn`), comparée sans tenir compte de la casse. Un état que `pt-BR` a déjà n'est
 jamais écrasé. Si le report ne peut pas être écrit, cette locale ne tourne pas et échoue avec
-[`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), pour que
+[`LOCALE_STATE_NOT_CARRIED_OVER`](/fr/docs/error-codes#locale_state_not_carried_over), pour que
 l'exécution suivante réessaie ; les autres locales tournent normalement.
 
 D'ici là, chaque lecture traite l'ancien état comme celui de `pt-BR` sans écrire, donc une clé périmée est signalée comme périmée. Une écriture sur une seule clé
 (une modification, une retraduction, une décision de relecture) et `verbatra import` déplacent
 d'abord l'état, de la même façon. Le contrôle `locale-state` de
-[`verbatra doctor`](/docs/cli/doctor) nomme tout état resté en arrière.
+[`verbatra doctor`](/fr/docs/cli/doctor) nomme tout état resté en arrière.
 
 ## Absent ou corrompu
 
 Un fichier de verrouillage absent est une [première exécution](#adopter-un-projet-existant), pas une
 erreur. Un fichier illisible, mal structuré, trop gros ou dans une version non prise
-en charge fait échouer l'exécution avec [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid)
+en charge fait échouer l'exécution avec [`LOCK_FILE_INVALID`](/fr/docs/error-codes#lock_file_invalid)
 au lieu d'être écrasé, pour que tu puisses le restaurer plutôt que perdre la référence.
 
 ## La provenance de chaque valeur
@@ -137,7 +137,7 @@ la CI, l'ignore.
 | --- | --- |
 | `machine` | une réponse de fournisseur dans `translate`, `watch` ou une retraduction d'une seule clé, avec l'`id` du fournisseur et, quand il est connu, le modèle |
 | `memory` | un succès exact du cache, y compris chaque valeur que remplit une exécution sans traduction automatique (fournisseur `none`) |
-| `fuzzy` | un succès du [cache approximatif](/docs/the-cache#réutilisation-approximative) |
+| `fuzzy` | un succès du [cache approximatif](/fr/docs/the-cache#réutilisation-approximative) |
 | `human` | la modification d'une personne via `editEntry` du SDK, comme la fait la boîte d'édition de Studio |
 | `agent` | la modification d'un agent IA via `editEntry` avec `actor: "agent"` |
 | `import` | une ligne acceptée par `verbatra import` |
@@ -148,7 +148,7 @@ chaque clé après une mise à jour ; `external` ne correspond plus au hash de s
 que quelque chose hors de verbatra l'a changée, comme la pull request d'un traducteur, un verbatra plus ancien ou une fusion.
 Les champs
 que renvoie chaque lecture sont dans la
-[référence du SDK](/docs/sdk/inspect#loadprovenance).
+[référence du SDK](/fr/docs/sdk/inspect#loadprovenance).
 
 Ce que le fichier garantit :
 
@@ -160,21 +160,21 @@ Ce que le fichier garantit :
   remplace son enregistrement par un nouveau, non relu ; une écriture qui laisse valeur et source
   inchangées le garde.
 - **Pas d'écrasement silencieux.** Un fichier corrompu arrête chaque écriture avec
-  [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid) avant qu'un fichier de
+  [`PROVENANCE_FILE_INVALID`](/fr/docs/error-codes#provenance_file_invalid) avant qu'un fichier de
   locale ne change ; les rapports omettent plutôt leurs champs de provenance. Un fichier écrit par
   un verbatra plus récent est laissé intact, et un fichier trop gros pour être relu n'est pas écrit
-  ([`PROVENANCE_FILE_TOO_LARGE`](/docs/error-codes#provenance_file_too_large)).
+  ([`PROVENANCE_FILE_TOO_LARGE`](/fr/docs/error-codes#provenance_file_too_large)).
 
 Il n'est pas infalsifiable ; pour en faire un rapport, voir
-[Consigner les preuves de traduction automatique](/docs/provenance-evidence).
+[Consigner les preuves de traduction automatique](/fr/docs/provenance-evidence).
 
 ### Décisions de relecture
 
 <AvailableFrom version="0.12.0" />
 
 Un enregistrement peut porter une décision de relecture, `approved` ou `rejected`, avec un nom de
-relecteur `reviewer` facultatif. La [page Review de Studio](/docs/review-in-studio), les
-[fonctions de revue du SDK](/docs/sdk/review) et les [outils MCP de relecture](/docs/cli/mcp) les
+relecteur `reviewer` facultatif. La [page Review de Studio](/fr/docs/review-in-studio), les
+[fonctions de revue du SDK](/fr/docs/sdk/review) et les [outils MCP de relecture](/fr/docs/cli/mcp) les
 écrivent ; les outils MCP relaient la décision d'une personne et exigent son nom. Une décision
 s'applique à la valeur exacte que le relecteur a vue et est refusée si elle a changé.
 
@@ -184,13 +184,13 @@ s'applique à la valeur exacte que le relecteur a vue et est refusée si elle a 
   jusqu'à la prochaine exécution de `translate` ou jusqu'à ce qu'une personne écrive une nouvelle
   valeur. L'enregistrement garde un hash du texte retiré et l'entrée du cache est supprimée, pour qu'une exécution ne remette pas le même texte. XLIFF ne
   peut pas retirer une seule traduction, donc un rejet y est refusé avec
-  [`REVIEW_REJECT_UNSUPPORTED`](/docs/error-codes#review_reject_unsupported).
+  [`REVIEW_REJECT_UNSUPPORTED`](/fr/docs/error-codes#review_reject_unsupported).
 
 Les décisions vivent dans ce fichier commité, donc la file de relecture et
-[`verbatra check --require-reviewed`](/docs/cli/check#exiger-des-traductions-relues) voient le même
+[`verbatra check --require-reviewed`](/fr/docs/cli/check#exiger-des-traductions-relues) voient le même
 état partout, et le nom `reviewer` est public ; verbatra ne le remplit jamais.
 
 ## Commite-le
 
 Commite `verbatra.lock.json` et `verbatra.provenance.json` avec tes fichiers de locale, et ne les
-modifie jamais à la main : ils sont la référence avec laquelle ton équipe et ta CI comparent, et ce que restaure un [retour arrière](/docs/recovery-and-rollback).
+modifie jamais à la main : ils sont la référence avec laquelle ton équipe et ta CI comparent, et ce que restaure un [retour arrière](/fr/docs/recovery-and-rollback).

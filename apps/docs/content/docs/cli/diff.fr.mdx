@@ -3,7 +3,7 @@ title: verbatra diff
 description: Affiche les clés qui seraient ajoutées, retraduites ou orphelines par locale sans écrire de fichiers.
 type: reference
 ---
-Liste, par locale cible, les clés exactes en attente : celles qu'une exécution ajouterait, celles qu'elle retraduirait et celles désormais orphelines. `diff` fait la même lecture et la même comparaison que [`verbatra translate`](/docs/cli/translate), puis s'arrête : aucun appel de fournisseur, aucun fichier écrit, aucune mise à jour du [fichier de verrouillage](/docs/the-lock-file), aucune clé d'API requise.
+Liste, par locale cible, les clés exactes en attente : celles qu'une exécution ajouterait, celles qu'elle retraduirait et celles désormais orphelines. `diff` fait la même lecture et la même comparaison que [`verbatra translate`](/fr/docs/cli/translate), puis s'arrête : aucun appel de fournisseur, aucun fichier écrit, aucune mise à jour du [fichier de verrouillage](/fr/docs/the-lock-file), aucune clé d'API requise.
 
 ## Synopsis
 
@@ -32,9 +32,9 @@ verbatra diff --unused
 | Option | Argument | Défaut | Effet |
 | --- | --- | --- | --- |
 | `--locales` | `<list>` | toutes les cibles configurées | compare seulement ce sous-ensemble séparé par des virgules ; une locale non configurée échoue avec `UNKNOWN_LOCALE` et une liste vide avec `INVALID_LOCALES`, les deux avec la sortie `2` |
-| `--unused` | aucun | désactivé | liste aussi les clés de la locale source qu'aucun appel sous les [racines de `extract`](/docs/config-file#extract) ne nomme ; voir [Clés source inutilisées](#clés-source-inutilisées) |
+| `--unused` | aucun | désactivé | liste aussi les clés de la locale source qu'aucun appel sous les [racines de `extract`](/fr/docs/config-file#extract) ne nomme ; voir [Clés source inutilisées](#clés-source-inutilisées) |
 
-Accepte aussi les [options globales](/docs/cli#options-globales) `--cwd`, `--config` et `--json`.
+Accepte aussi les [options globales](/fr/docs/cli#options-globales) `--cwd`, `--config` et `--json`.
 
 ## Comportement
 
@@ -49,13 +49,13 @@ Chaque locale liste quatre sortes de clés :
 | `orphaned` | dans la cible, disparue de la source : seulement signalée |
 | `emptySource` (affichée comme `empty source`) | la valeur source est vide ou ne contient que des espaces : rien à traduire tant que tu ne l'as pas écrite, jamais en attente |
 
-Une locale a des changements en attente dès qu'elle a au moins une clé manquante ou modifiée. Les clés orphelines ne comptent jamais comme en attente, car une exécution par défaut les laisse en place ; seul [`verbatra translate --prune`](/docs/cli/translate) les supprime. [`verbatra check`](/docs/cli/check) donne les décomptes, `diff` donne les listes de clés.
+Une locale a des changements en attente dès qu'elle a au moins une clé manquante ou modifiée. Les clés orphelines ne comptent jamais comme en attente, car une exécution par défaut les laisse en place ; seul [`verbatra translate --prune`](/fr/docs/cli/translate) les supprime. [`verbatra check`](/fr/docs/cli/check) donne les décomptes, `diff` donne les listes de clés.
 
 ### Clés source inutilisées
 
 <AvailableFrom version="0.11.0" />
 
-`--unused` répond à une autre question que `orphaned` : quelles clés de ton fichier de locale source ton application ne nomme-t-elle plus ? Il analyse les `roots` du [bloc `extract`](/docs/config-file#extract) avec le lecteur de [`verbatra extract`](/docs/cli/extract) et liste chaque clé source qu'aucune référence statique ne nomme. Les deux listes ne sont jamais fusionnées. L'analyse ne fait que lire : rien n'est supprimé, et aucune clé d'API n'est lue. Supprimer une clé, c'est ta décision.
+`--unused` répond à une autre question que `orphaned` : quelles clés de ton fichier de locale source ton application ne nomme-t-elle plus ? Il analyse les `roots` du [bloc `extract`](/fr/docs/config-file#extract) avec le lecteur de [`verbatra extract`](/fr/docs/cli/extract) et liste chaque clé source qu'aucune référence statique ne nomme. Les deux listes ne sont jamais fusionnées. L'analyse ne fait que lire : rien n'est supprimé, et aucune clé d'API n'est lue. Supprimer une clé, c'est ta décision.
 
 L'analyse modélise le runtime i18next. Ceci compte comme une référence :
 
@@ -86,19 +86,19 @@ Le rapport porte un `status` : `complete` (chaque clé atteignable a été born�
 
 Les sources de fonctions de traduction reconnues sont : `useTranslation(...)` déstructuré dans une liaison locale non exportée avec des arguments statiques ; un `i18n.getFixedT(...)` local avec des arguments statiques ; un appel direct sur un membre `t` (`i18n.t("key")`, `this.props.t("key")`) et son alias local ; `<Translation>{(t) => ...}</Translation>` ; `withTranslation("ns")(Component)` avec `props.t(...)` ; et `import { t } from "i18next"`. Toute variable ou tout membre nommé `t` ou `$t` est jugé, donc un `frame.t + 1` sans rapport peut rendre le rapport non fiable. Dans les fichiers `.tsx`, `.jsx` et `.js`, le texte JSX et les valeurs d'attribut entre guillemets sont lus comme du balisage, jamais comme du code.
 
-Chaque clé listée montre sa forme décodée (une entrée `msgctxt` gettext comme `menu|Open`) ; `--json` porte aussi la `catalogKey` telle que l'adaptateur l'écrit. Une clé utilisée seulement hors du code analysé (un template serveur, un CMS) va dans [`extract.unused.ignore`](/docs/config-file#extract) : un motif correspond à la clé décodée, et une clé qui correspond est listée sous `ignored`, jamais écartée en silence.
+Chaque clé listée montre sa forme décodée (une entrée `msgctxt` gettext comme `menu|Open`) ; `--json` porte aussi la `catalogKey` telle que l'adaptateur l'écrit. Une clé utilisée seulement hors du code analysé (un template serveur, un CMS) va dans [`extract.unused.ignore`](/fr/docs/config-file#extract) : un motif correspond à la clé décodée, et une clé qui correspond est listée sous `ignored`, jamais écartée en silence.
 
 ### Clés protégées
 
 <AvailableFrom version="0.12.0" />
 
-Les clés manquantes et modifiées que `translate` laisserait à une personne (une personne a écrit, importé ou modifié la valeur hors de verbatra, ou la clé correspond à `pinnedKeys`) sont listées en plus sous `protected` ; voir [Protéger les traductions humaines](/docs/protecting-human-translations). Elles restent sous `add` et `re-translate`, puisqu'elles sont toujours en attente. Si `verbatra.provenance.json` est corrompu ou vient d'un verbatra plus récent, seules les clés épinglées sont listées.
+Les clés manquantes et modifiées que `translate` laisserait à une personne (une personne a écrit, importé ou modifié la valeur hors de verbatra, ou la clé correspond à `pinnedKeys`) sont listées en plus sous `protected` ; voir [Protéger les traductions humaines](/fr/docs/protecting-human-translations). Elles restent sous `add` et `re-translate`, puisqu'elles sont toujours en attente. Si `verbatra.provenance.json` est corrompu ou vient d'un verbatra plus récent, seules les clés épinglées sont listées.
 
 ### Sortie JSON
 
-Schéma : [`diff-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/diff-envelope.json) valide l'enveloppe entière ; [Schémas](/docs/cli/output#schémas) liste les autres.
+Schéma : [`diff-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/diff-envelope.json) valide l'enveloppe entière ; [Schémas](/fr/docs/cli/output#schémas) liste les autres.
 
-`--json` affiche une [enveloppe](/docs/cli/output#sortie-json) dont le `result` est un `DiffSummary`. `hasPendingChanges` est vrai exactement quand la commande sort avec `1` pour des clés en attente :
+`--json` affiche une [enveloppe](/fr/docs/cli/output#sortie-json) dont le `result` est un `DiffSummary`. `hasPendingChanges` est vrai exactement quand la commande sort avec `1` pour des clés en attente :
 
 ```ts
 interface DiffSummary {
@@ -130,7 +130,7 @@ verbatra: diffing and scanning the source... done (0.8s)
 next: verbatra translate (send the pending keys to your provider)
 ```
 
-Quand toutes les clés en attente sont protégées, il suggère plutôt `verbatra studio` ; avec `provider: { id: "none" }`, il suggère `verbatra export`. Ces lignes vont sur stderr, et `--quiet` les supprime. Consulte [Sortie dans le terminal](/docs/cli/output#sortie-dans-le-terminal).
+Quand toutes les clés en attente sont protégées, il suggère plutôt `verbatra studio` ; avec `provider: { id: "none" }`, il suggère `verbatra export`. Ces lignes vont sur stderr, et `--quiet` les supprime. Consulte [Sortie dans le terminal](/fr/docs/cli/output#sortie-dans-le-terminal).
 
 ## Codes de sortie
 
@@ -140,11 +140,11 @@ Quand toutes les clés en attente sont protégées, il suggère plutôt `verbatr
 | `1` | au moins une locale a une clé manquante ou modifiée, ou une analyse `complete` avec `--unused` a trouvé une clé inutilisée |
 | `2` | impossible de s'exécuter : une erreur globale, une valeur `--locales` non configurée (`UNKNOWN_LOCALE`) ou une erreur d'utilisation, comme une liste `--locales` vide (`INVALID_LOCALES`) |
 
-Les clés orphelines, possiblement dynamiques et ignorées, ainsi qu'un rapport `unreliable` ou `not-run`, ne produisent jamais `1` à eux seuls. Consulte [le contrat des codes de sortie](/docs/cli/output#codes-de-sortie).
+Les clés orphelines, possiblement dynamiques et ignorées, ainsi qu'un rapport `unreliable` ou `not-run`, ne produisent jamais `1` à eux seuls. Consulte [le contrat des codes de sortie](/fr/docs/cli/output#codes-de-sortie).
 
 ## Voir aussi
 
-- [`verbatra check`](/docs/cli/check) donne les décomptes par locale derrière ces listes.
-- [`verbatra translate`](/docs/cli/translate) applique les changements en attente ; `--prune` supprime les clés orphelines.
-- [Le fichier de configuration](/docs/config-file#extract) documente le bloc `extract` et `unused.ignore`.
-- [CI et codes de sortie](/docs/ci-and-exit-codes) montre `diff` dans un pipeline.
+- [`verbatra check`](/fr/docs/cli/check) donne les décomptes par locale derrière ces listes.
+- [`verbatra translate`](/fr/docs/cli/translate) applique les changements en attente ; `--prune` supprime les clés orphelines.
+- [Le fichier de configuration](/fr/docs/config-file#extract) documente le bloc `extract` et `unused.ignore`.
+- [CI et codes de sortie](/fr/docs/ci-and-exit-codes) montre `diff` dans un pipeline.

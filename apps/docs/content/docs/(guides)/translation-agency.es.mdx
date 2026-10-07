@@ -5,7 +5,7 @@ type: how-to
 ---
 <AvailableFrom version="0.12.0" />
 
-Usa esto cuando traductores profesionales trabajan en una herramienta TAO como Trados, memoQ, OmegaT, Matecat o Phrase. XLIFF les llega como segmentos con estados, notas y placeholders protegidos, que es sobre lo que se construyen su memoria de traducción y sus controles de calidad. verbatra escribe XLIFF desde cualquier formato de proyecto, no solo desde un proyecto XLIFF, y lo lee de vuelta con la misma importación que una [entrega de libro](/docs/manual-translation).
+Usa esto cuando traductores profesionales trabajan en una herramienta TAO como Trados, memoQ, OmegaT, Matecat o Phrase. XLIFF les llega como segmentos con estados, notas y placeholders protegidos, que es sobre lo que se construyen su memoria de traducción y sus controles de calidad. verbatra escribe XLIFF desde cualquier formato de proyecto, no solo desde un proyecto XLIFF, y lo lee de vuelta con la misma importación que una [entrega de libro](/es/docs/manual-translation).
 
 ## El ciclo de ida y vuelta
 
@@ -41,7 +41,7 @@ La exportación elige las mismas claves que una exportación de libro: las que f
 
 ### Estados de segmento
 
-El estado de cada segmento sale del archivo de bloqueo y de la [decisión de revisión](/docs/the-lock-file#decisiones-de-revisión) de la clave:
+El estado de cada segmento sale del archivo de bloqueo y de la [decisión de revisión](/es/docs/the-lock-file#decisiones-de-revisión) de la clave:
 
 | La clave está | `state` en XLIFF 2.0 | `state` en XLIFF 1.2 |
 | --- | --- | --- |
@@ -55,15 +55,15 @@ De dónde viene un valor no cambia su estado: una traducción automática, un ac
 
 ### Marcas de traducción automática
 
-El origen viaja junto al estado, para que la agencia vea qué destinos escribió una máquina. En XLIFF 1.2, un destino escrito por una máquina y sin aprobar lleva `state-qualifier="mt-suggestion"`; en XLIFF 2.0 los metadatos de la unidad llevan su origen y su estado de revisión. La importación ignora ambos. Consulta [Registrar evidencia de traducción automática](/docs/provenance-evidence#xliff).
+El origen viaja junto al estado, para que la agencia vea qué destinos escribió una máquina. En XLIFF 1.2, un destino escrito por una máquina y sin aprobar lleva `state-qualifier="mt-suggestion"`; en XLIFF 2.0 los metadatos de la unidad llevan su origen y su estado de revisión. La importación ignora ambos. Consulta [Registrar evidencia de traducción automática](/es/docs/provenance-evidence#xliff).
 
 ## Qué acepta la importación
 
-Cada unidad devuelta pasa por las comprobaciones de una [importación de libro](/docs/manual-translation#qué-acepta-la-importación): la puerta de integridad, la protección contra el origen desactualizado, `[[CLEAR]]` para vaciar un valor a propósito y un destino vacío que significa "todavía sin traducir". XLIFF añade estas reglas:
+Cada unidad devuelta pasa por las comprobaciones de una [importación de libro](/es/docs/manual-translation#qué-acepta-la-importación): la puerta de integridad, la protección contra el origen desactualizado, `[[CLEAR]]` para vaciar un valor a propósito y un destino vacío que significa "todavía sin traducir". XLIFF añade estas reglas:
 
 - **Un destino que se deja como se exportó no cambia nada.** La clave se queda idéntica byte a byte y conserva su procedencia. Si quieres conservar la traducción anterior de una clave desactualizada para el nuevo origen, el traductor mueve su estado más allá de `initial`.
 - **Cualquier otro destino es una traducción, sea cual sea su estado**, porque algunas herramientas escriben el texto pero dejan el estado como estaba.
-- **`reviewed` y `final` registran una aprobación.** También `signed-off`, `final` y `approved="yes"` en XLIFF 1.2. La aprobación se guarda en `verbatra.provenance.json` con el nombre de `--reviewer` y se informa como [`HANDOFF_REVIEWS_RECORDED`](/docs/error-codes#handoff_reviews_recorded). Un valor importado recibe el origen `import`; un valor que el traductor solo confirmó conserva su origen, por ejemplo `machine`.
+- **`reviewed` y `final` registran una aprobación.** También `signed-off`, `final` y `approved="yes"` en XLIFF 1.2. La aprobación se guarda en `verbatra.provenance.json` con el nombre de `--reviewer` y se informa como [`HANDOFF_REVIEWS_RECORDED`](/es/docs/error-codes#handoff_reviews_recorded). Un valor importado recibe el origen `import`; un valor que el traductor solo confirmó conserva su origen, por ejemplo `machine`.
 - **Un hash de origen eliminado recurre al texto de origen.** Si el origen de la unidad sigue coincidiendo, se importa; si no, se retiene como deriva.
 - **Los daños se informan, no son fatales.** Una unidad con una clave desconocida o con códigos en línea rotos se informa como fila malformada, y una clave repetida como duplicado; el resto del archivo se importa igualmente.
 - **El XML se analiza de forma segura.** Un archivo que declara una entidad o un subconjunto DTD interno se rechaza, igual que un archivo de más de 32 MB.
@@ -86,7 +86,7 @@ Las pruebas automáticas editan los archivos exportados como lo haría una herra
 
 ## Desde el SDK
 
-La CLI envuelve las mismas [`exportWorkbook`](/docs/sdk/exchange#exportworkbook) e [`importWorkbook`](/docs/sdk/exchange#importworkbook) que la entrega de libro:
+La CLI envuelve las mismas [`exportWorkbook`](/es/docs/sdk/exchange#exportworkbook) e [`importWorkbook`](/es/docs/sdk/exchange#importworkbook) que la entrega de libro:
 
 ```ts
 import { exportWorkbook, importWorkbook, loadConfig } from "@verbatra/sdk";
@@ -105,6 +105,6 @@ const summary = await importWorkbook({
 
 ## Relacionado
 
-- [`verbatra export`](/docs/cli/export): cada opción de exportación, incluidos los formatos XLIFF.
-- [`verbatra import`](/docs/cli/import): cada opción de importación, incluido `--reviewer`.
-- [Entregar con Excel o CSV](/docs/manual-translation): la entrega de libro y cada comprobación que aplica la importación.
+- [`verbatra export`](/es/docs/cli/export): cada opción de exportación, incluidos los formatos XLIFF.
+- [`verbatra import`](/es/docs/cli/import): cada opción de importación, incluido `--reviewer`.
+- [Entregar con Excel o CSV](/es/docs/manual-translation): la entrega de libro y cada comprobación que aplica la importación.

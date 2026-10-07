@@ -33,13 +33,13 @@ verbatra extract --json
 | --- | --- | --- | --- |
 | `--dry-run` | aucun | désactivé | signale ce qui serait ajouté et n'écrit rien |
 
-Accepte aussi les [options globales](/docs/cli#options-globales) `--cwd`, `--config` et `--json` ; les racines de sources d'`extract` sont résolues depuis la [racine du projet](/docs/config-file#le-répertoire-de-travail-et-env).
+Accepte aussi les [options globales](/fr/docs/cli#options-globales) `--cwd`, `--config` et `--json` ; les racines de sources d'`extract` sont résolues depuis la [racine du projet](/fr/docs/config-file#le-répertoire-de-travail-et-env).
 
 ## Comportement
 
 ### Configuration
 
-`extract` est piloté par le [bloc `extract`](/docs/config-file#extract) de ta configuration. Une exécution sans lui échoue avec `EXTRACT_NOT_CONFIGURED` et la sortie `2`.
+`extract` est piloté par le [bloc `extract`](/fr/docs/config-file#extract) de ta configuration. Une exécution sans lui échoue avec `EXTRACT_NOT_CONFIGURED` et la sortie `2`.
 
 ```ts title="verbatra.config.ts"
 import { defineConfig } from "@verbatra/sdk";
@@ -81,9 +81,9 @@ Uniquement le fichier de la locale source, et uniquement des clés vraiment nouv
 
 - Une clé déjà présente dans le catalogue garde sa valeur telle quelle ; une valeur par défaut dans un appel n'écrase jamais une modification.
 - Une clé que le catalogue ne contient que sous ses formes plurielles compte comme présente : `t("cart.items", { count })` n'ajoute rien à côté de `cart.items_one` et `cart.items_other`, et il en va de même pour une entrée gettext avec `msgid_plural` et une ressource Android `<plurals>`. Dans un format qui ne marque pas les formes plurielles, comme YAML, toute clé terminée par un suffixe de pluriel i18next compte.
-- Une clé du catalogue qu'aucun appel ne mentionne reste en place. `extract` ne supprime jamais rien ; [`verbatra diff --unused`](/docs/cli/diff#clés-source-inutilisées) liste ces clés.
+- Une clé du catalogue qu'aucun appel ne mentionne reste en place. `extract` ne supprime jamais rien ; [`verbatra diff --unused`](/fr/docs/cli/diff#clés-source-inutilisées) liste ces clés.
 - Une exécution qui ne trouve rien de nouveau n'écrit rien, le fichier reste donc identique à l'octet près.
-- Aucun fichier de locale cible n'est écrit. Lance ensuite [`verbatra translate`](/docs/cli/translate) pour remplir les nouvelles clés. Une clé ajoutée avec une valeur vide est ignorée tant que tu n'as pas écrit son texte source, et l'exécution la nomme avec [`SOURCE_VALUE_EMPTY`](/docs/error-codes#source_value_empty).
+- Aucun fichier de locale cible n'est écrit. Lance ensuite [`verbatra translate`](/fr/docs/cli/translate) pour remplir les nouvelles clés. Une clé ajoutée avec une valeur vide est ignorée tant que tu n'as pas écrit son texte source, et l'exécution la nomme avec [`SOURCE_VALUE_EMPTY`](/fr/docs/error-codes#source_value_empty).
 
 Les catalogues `xliff` et `apple-xcstrings` ne sont jamais créés à partir de rien : crée d'abord le catalogue source (celui en `.xcstrings` dans Xcode), puis `extract` le complète.
 
@@ -104,9 +104,9 @@ Rien en dehors des `roots` configurées n'est lu. `node_modules`, `.git`, `.next
 
 ### Sortie JSON
 
-Schéma : [`extract-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/extract-envelope.json) valide l'enveloppe entière ; [Schémas](/docs/cli/output#schémas) liste les autres.
+Schéma : [`extract-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/extract-envelope.json) valide l'enveloppe entière ; [Schémas](/fr/docs/cli/output#schémas) liste les autres.
 
-Avec `--json`, l'[enveloppe](/docs/cli/output#sortie-json) porte un résultat :
+Avec `--json`, l'[enveloppe](/fr/docs/cli/output#sortie-json) porte un résultat :
 
 ```ts
 interface ExtractResult {
@@ -143,7 +143,7 @@ verbatra extract
 next: verbatra translate (translate the new keys)
 ```
 
-Consulte [Sortie dans le terminal](/docs/cli/output#sortie-dans-le-terminal) pour la couleur, le spinner et les variables qui les contrôlent.
+Consulte [Sortie dans le terminal](/fr/docs/cli/output#sortie-dans-le-terminal) pour la couleur, le spinner et les variables qui les contrôlent.
 
 ## Codes de sortie
 
@@ -152,13 +152,13 @@ Consulte [Sortie dans le terminal](/docs/cli/output#sortie-dans-le-terminal) pou
 | `0` | l'analyse s'est exécutée, quoi qu'elle ait trouvé |
 | `2` | exécution impossible : une erreur d'utilisation, aucun bloc `extract`, un format qui ne résout pas, un catalogue source illisible ou un catalogue source qui n'a pas pu être écrit |
 
-Il n'y a pas de sortie `1` : les appels dynamiques et les valeurs par défaut en conflit sont des constats, pas des échecs. Consulte [Codes de sortie](/docs/cli/output#codes-de-sortie) pour le contrat que suit chaque commande.
+Il n'y a pas de sortie `1` : les appels dynamiques et les valeurs par défaut en conflit sont des constats, pas des échecs. Consulte [Codes de sortie](/fr/docs/cli/output#codes-de-sortie) pour le contrat que suit chaque commande.
 
 ## Voir aussi
 
-- [Extraire les clés du code source](/docs/extract-keys) parcourt le déroulé, de l'appel à la clé traduite.
-- [Le fichier de configuration](/docs/config-file#extract) documente le bloc `extract`.
-- [`verbatra translate`](/docs/cli/translate) remplit les locales cibles une fois les nouvelles clés en place.
-- [`verbatra types`](/docs/cli/types) déclare les clés pour TypeScript.
-- [`verbatra check`](/docs/cli/check) signale l'écart que les nouvelles clés créent.
-- [Le SDK](/docs/sdk/inspect#extract) expose la même capacité sous le nom `extract()`.
+- [Extraire les clés du code source](/fr/docs/extract-keys) parcourt le déroulé, de l'appel à la clé traduite.
+- [Le fichier de configuration](/fr/docs/config-file#extract) documente le bloc `extract`.
+- [`verbatra translate`](/fr/docs/cli/translate) remplit les locales cibles une fois les nouvelles clés en place.
+- [`verbatra types`](/fr/docs/cli/types) déclare les clés pour TypeScript.
+- [`verbatra check`](/fr/docs/cli/check) signale l'écart que les nouvelles clés créent.
+- [Le SDK](/fr/docs/sdk/inspect#extract) expose la même capacité sous le nom `extract()`.

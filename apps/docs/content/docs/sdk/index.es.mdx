@@ -12,8 +12,8 @@ lo que hace la línea de comandos lo puedes hacer en código.
 ¿Eres nuevo en el SDK? Empieza por una de estas páginas:
 
 <Cards>
-  <Card title="Inicio rápido del SDK" href="/docs/sdk-quickstart">Instala el SDK, previsualiza una ejecución sin clave, traduce desde tu propio script, gestiona los errores y protege la CI.</Card>
-  <Card title="Recetas del SDK" href="/docs/programmatic-api">Scripts completos para estimaciones, el modo watch, un proveedor falso, la cola de revisión y los viajes de ida y vuelta con libro y TMX.</Card>
+  <Card title="Inicio rápido del SDK" href="/es/docs/sdk-quickstart">Instala el SDK, previsualiza una ejecución sin clave, traduce desde tu propio script, gestiona los errores y protege la CI.</Card>
+  <Card title="Recetas del SDK" href="/es/docs/programmatic-api">Scripts completos para estimaciones, el modo watch, un proveedor falso, la cola de revisión y los viajes de ida y vuelta con libro y TMX.</Card>
 </Cards>
 
 ## Páginas de referencia
@@ -37,7 +37,7 @@ Con pnpm, `pnpm add --save-dev @verbatra/sdk` instala bien, pero sale con `1` y 
 scripts de instalación del SDK de Gemini incluido y de su `protobufjs`, y deja un
 `pnpm-workspace.yaml` sin responder con el que cualquier comando pnpm posterior del proyecto falla
 igual. Ejecuta `pnpm approve-builds` una vez y no apruebes ninguna de las dos entradas, o consulta
-la [Solución de problemas](/docs/troubleshooting) para la solución no interactiva. Aquí no hay
+la [Solución de problemas](/es/docs/troubleshooting) para la solución no interactiva. Aquí no hay
 atajo con `npx` como en la CLI, porque estás importando una biblioteca, no ejecutando un binario.
 
 <Callout title="Las claves de API y el entorno">
@@ -81,15 +81,15 @@ recibe esa llamada y crea él mismo un directorio padre que falte. Los demás mi
 son `fileExists` y `deleteFile`, que tiene éxito aunque el archivo ya no exista.
 
 `readDirectory` es opcional, para que una implementación escrita antes de que existiera la
-extracción desde código siga compilando. [`extract`](/docs/sdk/inspect#extract) es el único punto de entrada que lo
+extracción desde código siga compilando. [`extract`](/es/docs/sdk/inspect#extract) es el único punto de entrada que lo
 necesita, e informa de su ausencia como `EXTRACT_FS_UNSUPPORTED`. Lista las entradas inmediatas de
 un directorio como `{ name, kind }`, donde `kind` es `"file"`, `"directory"` u `"other"`. Un enlace
 simbólico pertenece a `"other"`: el análisis nunca lo sigue, y eso es lo que lo mantiene dentro de
 las raíces que recibió.
 
 `realpath` también es opcional. Resuelve todos los enlaces simbólicos de una ruta existente, y las
-guardas de salida de [`generateTypes`](/docs/sdk/run#generatetypes), [`exportTmx`](/docs/sdk/exchange#exporttmx),
-[`exportWorkbook`](/docs/sdk/exchange#exportworkbook) y [`pseudolocalize`](/docs/sdk/run#pseudolocalize) lo usan para ver
+guardas de salida de [`generateTypes`](/es/docs/sdk/run#generatetypes), [`exportTmx`](/es/docs/sdk/exchange#exporttmx),
+[`exportWorkbook`](/es/docs/sdk/exchange#exportworkbook) y [`pseudolocalize`](/es/docs/sdk/run#pseudolocalize) lo usan para ver
 dónde cae de verdad una ruta de salida, así que un enlace no puede llevar un archivo escrito fuera
 de `cwd` ni sobre un archivo del que depende el proyecto. Sin él, esas guardas comparan las rutas
 tal como están escritas. Un enlace en la ruta de salida cuyo destino no existe no se puede resolver,

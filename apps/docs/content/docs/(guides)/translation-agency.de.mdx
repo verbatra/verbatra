@@ -5,7 +5,7 @@ type: how-to
 ---
 <AvailableFrom version="0.12.0" />
 
-Das brauchst du, wenn professionelle Übersetzerinnen in einem CAT-Tool wie Trados, memoQ, OmegaT, Matecat oder Phrase arbeiten. XLIFF kommt bei ihnen als Segmente mit Status, Notizen und geschützten Platzhaltern an, und genau darauf sind ihr Übersetzungsspeicher und ihre QA-Prüfungen ausgelegt. verbatra schreibt XLIFF aus jedem Projektformat, nicht nur aus einem XLIFF-Projekt, und liest es über denselben Import zurück wie eine [Arbeitsmappen-Übergabe](/docs/manual-translation).
+Das brauchst du, wenn professionelle Übersetzerinnen in einem CAT-Tool wie Trados, memoQ, OmegaT, Matecat oder Phrase arbeiten. XLIFF kommt bei ihnen als Segmente mit Status, Notizen und geschützten Platzhaltern an, und genau darauf sind ihr Übersetzungsspeicher und ihre QA-Prüfungen ausgelegt. verbatra schreibt XLIFF aus jedem Projektformat, nicht nur aus einem XLIFF-Projekt, und liest es über denselben Import zurück wie eine [Arbeitsmappen-Übergabe](/de/docs/manual-translation).
 
 ## Der Roundtrip
 
@@ -41,7 +41,7 @@ Der Export wählt dieselben Keys wie ein Arbeitsmappen-Export: die fehlenden und
 
 ### Segmentstatus
 
-Der Status jedes Segments kommt aus der Lock-Datei und der [Review-Entscheidung](/docs/the-lock-file#review-entscheidungen) des Keys:
+Der Status jedes Segments kommt aus der Lock-Datei und der [Review-Entscheidung](/de/docs/the-lock-file#review-entscheidungen) des Keys:
 
 | Der Key ist | XLIFF 2.0 `state` | XLIFF 1.2 `state` |
 | --- | --- | --- |
@@ -55,15 +55,15 @@ Woher ein Wert kommt, ändert seinen Status nicht: Eine maschinelle Übersetzung
 
 ### Markierungen für maschinelle Übersetzung
 
-Die Herkunft reist neben dem Status mit, sodass die Agentur sieht, welche Ziele eine Maschine geschrieben hat. In XLIFF 1.2 trägt ein nicht freigegebenes, maschinell geschriebenes Ziel `state-qualifier="mt-suggestion"`; in XLIFF 2.0 tragen die Metadaten der Unit ihre Herkunft und ihren Review-Status. Der Import ignoriert beides. Siehe [Nachweis maschineller Übersetzungen festhalten](/docs/provenance-evidence#xliff).
+Die Herkunft reist neben dem Status mit, sodass die Agentur sieht, welche Ziele eine Maschine geschrieben hat. In XLIFF 1.2 trägt ein nicht freigegebenes, maschinell geschriebenes Ziel `state-qualifier="mt-suggestion"`; in XLIFF 2.0 tragen die Metadaten der Unit ihre Herkunft und ihren Review-Status. Der Import ignoriert beides. Siehe [Nachweis maschineller Übersetzungen festhalten](/de/docs/provenance-evidence#xliff).
 
 ## Was der Import annimmt
 
-Jede zurückgeschickte Unit durchläuft die Prüfungen eines [Arbeitsmappen-Imports](/docs/manual-translation#was-der-import-akzeptiert): das Integritäts-Gate, den Schutz vor veralteter Quelle, `[[CLEAR]]`, um einen Wert absichtlich zu leeren, und ein leeres Ziel für "noch nicht übersetzt". XLIFF ergänzt diese Regeln:
+Jede zurückgeschickte Unit durchläuft die Prüfungen eines [Arbeitsmappen-Imports](/de/docs/manual-translation#was-der-import-akzeptiert): das Integritäts-Gate, den Schutz vor veralteter Quelle, `[[CLEAR]]`, um einen Wert absichtlich zu leeren, und ein leeres Ziel für "noch nicht übersetzt". XLIFF ergänzt diese Regeln:
 
 - **Ein Ziel, das so bleibt, wie es exportiert wurde, ändert nichts.** Der Key bleibt Byte für Byte gleich und behält seine Herkunft. Soll die alte Übersetzung eines veralteten Keys für die neue Quelle gelten, setzt die Übersetzerin seinen Status über `initial` hinaus.
 - **Jedes andere Ziel ist eine Übersetzung, egal in welchem Status**, weil manche Tools den Text schreiben, den Status aber stehen lassen.
-- **`reviewed` und `final` halten eine Freigabe fest.** In XLIFF 1.2 auch `signed-off`, `final` und `approved="yes"`. Die Freigabe wird mit dem Namen aus `--reviewer` in `verbatra.provenance.json` gespeichert und als [`HANDOFF_REVIEWS_RECORDED`](/docs/error-codes#handoff_reviews_recorded) gemeldet. Ein importierter Wert bekommt die Herkunft `import`; ein Wert, den die Übersetzerin nur bestätigt hat, behält seine Herkunft, etwa `machine`.
+- **`reviewed` und `final` halten eine Freigabe fest.** In XLIFF 1.2 auch `signed-off`, `final` und `approved="yes"`. Die Freigabe wird mit dem Namen aus `--reviewer` in `verbatra.provenance.json` gespeichert und als [`HANDOFF_REVIEWS_RECORDED`](/de/docs/error-codes#handoff_reviews_recorded) gemeldet. Ein importierter Wert bekommt die Herkunft `import`; ein Wert, den die Übersetzerin nur bestätigt hat, behält seine Herkunft, etwa `machine`.
 - **Fehlt der Quell-Hash, zählt der Quelltext.** Passt der Quelltext der Unit noch, wird sie importiert; sonst wird sie als Drift zurückgehalten.
 - **Schäden werden gemeldet, nicht fatal.** Eine Unit mit unbekanntem Key oder kaputten Inline-Codes wird als fehlerhafte Zeile gemeldet, ein doppelter Key als Duplikat; der Rest der Datei wird trotzdem importiert.
 - **Das XML wird sicher geparst.** Eine Datei, die eine Entity oder ein internes DTD-Subset deklariert, wird abgelehnt, ebenso eine Datei über 32 MB.
@@ -86,7 +86,7 @@ Die automatischen Tests bearbeiten exportierte Dateien so, wie es ein CAT-Tool t
 
 ## Aus dem SDK
 
-Die CLI umhüllt dieselben Funktionen [`exportWorkbook`](/docs/sdk/exchange#exportworkbook) und [`importWorkbook`](/docs/sdk/exchange#importworkbook) wie die Arbeitsmappen-Übergabe:
+Die CLI umhüllt dieselben Funktionen [`exportWorkbook`](/de/docs/sdk/exchange#exportworkbook) und [`importWorkbook`](/de/docs/sdk/exchange#importworkbook) wie die Arbeitsmappen-Übergabe:
 
 ```ts
 import { exportWorkbook, importWorkbook, loadConfig } from "@verbatra/sdk";
@@ -105,6 +105,6 @@ const summary = await importWorkbook({
 
 ## Siehe auch
 
-- [`verbatra export`](/docs/cli/export): jedes Export-Flag, einschließlich der XLIFF-Formate.
-- [`verbatra import`](/docs/cli/import): jedes Import-Flag, einschließlich `--reviewer`.
-- [Mit Excel oder CSV übergeben](/docs/manual-translation): die Arbeitsmappen-Übergabe und jede Prüfung des Imports.
+- [`verbatra export`](/de/docs/cli/export): jedes Export-Flag, einschließlich der XLIFF-Formate.
+- [`verbatra import`](/de/docs/cli/import): jedes Import-Flag, einschließlich `--reviewer`.
+- [Mit Excel oder CSV übergeben](/de/docs/manual-translation): die Arbeitsmappen-Übergabe und jede Prüfung des Imports.

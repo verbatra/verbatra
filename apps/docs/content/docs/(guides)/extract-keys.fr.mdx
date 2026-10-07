@@ -11,7 +11,7 @@ Utilise ceci quand ton code est en avance sur ton catalogue : tu écris `t("cart
 
 Il te faut :
 
-- une configuration verbatra (lance [`verbatra init`](/docs/cli/init) si tu n'en as pas) ;
+- une configuration verbatra (lance [`verbatra init`](/fr/docs/cli/init) si tu n'en as pas) ;
 - du code qui appelle `t(...)`, `$t(...)` ou `i18n.t(...)` d'i18next, le seul framework que `extract` lit aujourd'hui ;
 - un namespace par fichier de catalogue. Une clé avec namespace comme `t("common:nav.home")` est signalée et jamais écrite, car une configuration vise un seul fichier.
 
@@ -29,7 +29,7 @@ export default defineConfig({
 });
 ```
 
-Rien n'est lu en dehors de `roots`, et les sorties de build comme `node_modules` et `dist` sont toujours ignorées. Si du code généré se trouve sous une racine, ajoute le nom de son répertoire à `exclude`. Tous les champs sont décrits dans [`extract`](/docs/config-file#extract).
+Rien n'est lu en dehors de `roots`, et les sorties de build comme `node_modules` et `dist` sont toujours ignorées. Si du code généré se trouve sous une racine, ajoute le nom de son répertoire à `exclude`. Tous les champs sont décrits dans [`extract`](/fr/docs/config-file#extract).
 
 ## Prévisualise ce qui serait ajouté
 
@@ -72,22 +72,22 @@ Si ton format est `xliff` ou `apple-xcstrings`, crée d'abord le catalogue sourc
 verbatra translate
 ```
 
-Les nouvelles clés manquent dans chaque locale cible, donc l'exécution les traduit elles et rien d'autre. Si le lot est grand, vérifie d'abord la dépense avec [`--estimate`](/docs/estimating-cost).
+Les nouvelles clés manquent dans chaque locale cible, donc l'exécution les traduit elles et rien d'autre. Si le lot est grand, vérifie d'abord la dépense avec [`--estimate`](/fr/docs/estimating-cost).
 
-Si tu utilises TypeScript, régénère tes déclarations de clés avec [`verbatra types`](/docs/cli/types) pour qu'une faute de frappe dans une nouvelle clé fasse échouer la compilation.
+Si tu utilises TypeScript, régénère tes déclarations de clés avec [`verbatra types`](/fr/docs/cli/types) pour qu'une faute de frappe dans une nouvelle clé fasse échouer la compilation.
 
 ## Garde le code et le catalogue alignés
 
 `extract` ne fait qu'ajouter. Deux vérifications en lecture seule couvrent les autres sens :
 
-- `verbatra diff --unused` liste les clés source qu'aucun appel ne nomme plus. Il reprend les racines de `extract` et ne supprime rien ; retirer une clé reste ton choix. Voir [Clés source inutilisées](/docs/cli/diff#clés-source-inutilisées) pour savoir quand la liste est assez complète pour s'y fier.
-- `verbatra doctor --literals` liste les chaînes visibles par l'utilisateur qui ne sont jamais passées par `t(...)`, comme du texte JSX ou un `aria-label`. Voir [Littéraux non traduits](/docs/cli/doctor#littéraux-non-traduits) pour ce qui compte et comment en écarter un.
+- `verbatra diff --unused` liste les clés source qu'aucun appel ne nomme plus. Il reprend les racines de `extract` et ne supprime rien ; retirer une clé reste ton choix. Voir [Clés source inutilisées](/fr/docs/cli/diff#clés-source-inutilisées) pour savoir quand la liste est assez complète pour s'y fier.
+- `verbatra doctor --literals` liste les chaînes visibles par l'utilisateur qui ne sont jamais passées par `t(...)`, comme du texte JSX ou un `aria-label`. Voir [Littéraux non traduits](/fr/docs/cli/doctor#littéraux-non-traduits) pour ce qui compte et comment en écarter un.
 
 Relance `verbatra extract` chaque fois que tu ajoutes des appels. Tu peux le répéter sans risque, et il se termine avec `0` quoi qu'il trouve : une étape de CI qui doit échouer sur de nouvelles clés lit donc la liste `added` de `--json` plutôt que le code de sortie.
 
 ## Voir aussi
 
-- [`verbatra extract`](/docs/cli/extract) : les formes d'appel qu'il lit, le rapport complet et le résultat JSON.
-- [Le fichier de configuration](/docs/config-file#extract) : le bloc `extract`.
-- [`verbatra translate`](/docs/cli/translate) : remplit les locales cibles.
-- [Codes d'erreur](/docs/error-codes#extract_not_configured) : `EXTRACT_NOT_CONFIGURED` quand le bloc manque.
+- [`verbatra extract`](/fr/docs/cli/extract) : les formes d'appel qu'il lit, le rapport complet et le résultat JSON.
+- [Le fichier de configuration](/fr/docs/config-file#extract) : le bloc `extract`.
+- [`verbatra translate`](/fr/docs/cli/translate) : remplit les locales cibles.
+- [Codes d'erreur](/fr/docs/error-codes#extract_not_configured) : `EXTRACT_NOT_CONFIGURED` quand le bloc manque.

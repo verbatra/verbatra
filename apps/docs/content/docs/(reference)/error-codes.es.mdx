@@ -7,7 +7,7 @@ codeHeadings: true
 ---
 Cada fallo que informa verbatra lleva un código estable: en la línea `verbatra: error [CODE] message` de stderr, como `code` o `causeCode` de un envoltorio `--json`, como `error.code` de un locale fallido o como aviso en el resumen de la ejecución. Ramifica según el código, nunca según el mensaje. Cada código tiene su propio ancla, `/docs/error-codes#` seguido del código en minúsculas, como [`#config_not_found`](#config_not_found).
 
-El **Siguiente paso** de un código de error es la pista que verbatra imprime tras la línea de error como `next: ...` y pone en el campo `hint` del envoltorio. Aparece aquí tal cual la imprime verbatra, en inglés, y el SDK devuelve el mismo texto desde [`errorHint`](/docs/sdk/errors#errorhint). Los códigos de salida y la forma del envoltorio están en [Códigos de salida y salida JSON](/docs/cli/output); la ayuda a partir del síntoma está en [Solución de problemas](/docs/troubleshooting).
+El **Siguiente paso** de un código de error es la pista que verbatra imprime tras la línea de error como `next: ...` y pone en el campo `hint` del envoltorio. Aparece aquí tal cual la imprime verbatra, en inglés, y el SDK devuelve el mismo texto desde [`errorHint`](/es/docs/sdk/errors#errorhint). Los códigos de salida y la forma del envoltorio están en [Códigos de salida y salida JSON](/es/docs/cli/output); la ayuda a partir del síntoma está en [Solución de problemas](/es/docs/troubleshooting).
 
 Dos códigos pertenecen a dos familias: `CONFIG_INVALID` (el SDK, e `init` en la CLI) y `NETWORK_POLICY_VIOLATION` (el SDK y los proveedores). El ancla en minúsculas lleva a la entrada del SDK; la otra entrada tiene un ancla con prefijo.
 
@@ -285,7 +285,7 @@ El analizador de argumentos rechazó la línea de comandos (una opción desconoc
 
 ## Códigos de error del SDK [#sdk-error-codes]
 
-Los fallos de toda la ejecución lanzan un `SdkError` con uno de estos códigos; [Errores](/docs/sdk/errors) describe la clase y qué códigos llevan un `cause`. En la CLI, un código lanzado termina la ejecución con `2`, mientras que un código registrado en un locale fallido sale con `1`. Donde el índice da `2` o `1`, `doctor` informa del código como una comprobación fallida y sale con `1`. Los códigos sin comando de la CLI te llegan a través del SDK, Studio o el servidor MCP.
+Los fallos de toda la ejecución lanzan un `SdkError` con uno de estos códigos; [Errores](/es/docs/sdk/errors) describe la clase y qué códigos llevan un `cause`. En la CLI, un código lanzado termina la ejecución con `2`, mientras que un código registrado en un locale fallido sale con `1`. Donde el índice da `2` o `1`, `doctor` informa del código como una comprobación fallida y sale con `1`. Los códigos sin comando de la CLI te llegan a través del SDK, Studio o el servidor MCP.
 
 ### CONFIG_NOT_FOUND
 
@@ -352,7 +352,7 @@ La configuración fija `provider: { id: "none" }`, así que se rechazó una acci
 
 ### NETWORK_POLICY_VIOLATION
 
-La [política de red](/docs/network-policy) efectiva no permite el endpoint del proveedor ni su proxy; lo lanzan `translate` fuera de una ejecución de prueba, `watch` al arrancar y `retranslateEntry`, antes de construir el proveedor o leer ninguna clave de API.
+La [política de red](/es/docs/network-policy) efectiva no permite el endpoint del proveedor ni su proxy; lo lanzan `translate` fuera de una ejecución de prueba, `watch` al arrancar y `retranslateEntry`, antes de construir el proveedor o leer ninguna clave de API.
 
 - **Lo lanza**: `translate`, `watch`; Studio y el servidor MCP
 - **Siguiente paso**: Point the provider at a host the network policy permits, or add its host to `network.allowedHosts` or VERBATRA_NETWORK_ALLOWED_HOSTS.
@@ -587,14 +587,14 @@ El archivo de entrega que produce `exportWorkbook` no se pudo escribir (su direc
 
 ### LOCALE_STATE_NOT_CARRIED_OVER
 
-Lo lanzan `editEntry`, `retranslateEntry`, `approveEntry` y `rejectEntry`, que entonces no escriben nada; si no, se registra en el `error` de un locale que `translate`, `watch` o `importWorkbook` no ejecutó porque su estado bajo un código reescrito como `pt_BR` no se pudo trasladar a él en el archivo de bloqueo o en el de procedencia; la siguiente ejecución lo vuelve a intentar ([Un código de locale reescrito](/docs/the-lock-file#un-código-de-locale-reescrito)).
+Lo lanzan `editEntry`, `retranslateEntry`, `approveEntry` y `rejectEntry`, que entonces no escriben nada; si no, se registra en el `error` de un locale que `translate`, `watch` o `importWorkbook` no ejecutó porque su estado bajo un código reescrito como `pt_BR` no se pudo trasladar a él en el archivo de bloqueo o en el de procedencia; la siguiente ejecución lo vuelve a intentar ([Un código de locale reescrito](/es/docs/the-lock-file#un-código-de-locale-reescrito)).
 
 - **Lo lanza**: `translate`, `watch`, `import`; Studio y el servidor MCP
 - **Siguiente paso**: Wait for other verbatra processes to finish, make verbatra.lock.json and verbatra.provenance.json writable, then try again.
 
 ### LOCALE_UNSUPPORTED_BY_PROVIDER
 
-El proveedor DeepL o Google Cloud Translation configurado no incluye el locale de origen o un locale de destino seleccionado en la tabla de idiomas que incluye verbatra; lo lanzan `translate` (también en una ejecución en seco y una estimación), `watch` al arrancar y `retranslateEntry`, antes de construir ningún proveedor, leer ninguna clave o empezar ningún locale; un locale asignado explícitamente en `localeMap` se considera fiable en su lugar ([Soporte de idiomas](/docs/language-support#comprobar-el-soporte-antes-de-una-ejecución)).
+El proveedor DeepL o Google Cloud Translation configurado no incluye el locale de origen o un locale de destino seleccionado en la tabla de idiomas que incluye verbatra; lo lanzan `translate` (también en una ejecución en seco y una estimación), `watch` al arrancar y `retranslateEntry`, antes de construir ningún proveedor, leer ninguna clave o empezar ningún locale; un locale asignado explícitamente en `localeMap` se considera fiable en su lugar ([Soporte de idiomas](/es/docs/language-support#comprobar-el-soporte-antes-de-una-ejecución)).
 
 - **Lo lanza**: `translate`, `watch`; Studio y el servidor MCP
 - **Siguiente paso**: Remove the unsupported locale from `targetLocales`, map it to a supported code in `provider.options.localeMap`, or choose a provider that supports it.
@@ -608,14 +608,14 @@ El proveedor DeepL o Google Cloud Translation configurado no incluye el locale d
 
 ### SENSITIVE_CONTENT_WITHHELD
 
-`retranslateEntry` no envió la clave, o descartó su respuesta, porque `sensitiveData.mode` es `block` o `redact` y la clave contiene contenido que un detector o patrón encontró y que no se pudo enviar o no volvió intacto ([Protección de contenido sensible](/docs/data-handling#protección-de-contenido-sensible)). `translate` y `watch` listan esas claves en `sensitiveWithheld` en su lugar.
+`retranslateEntry` no envió la clave, o descartó su respuesta, porque `sensitiveData.mode` es `block` o `redact` y la clave contiene contenido que un detector o patrón encontró y que no se pudo enviar o no volvió intacto ([Protección de contenido sensible](/es/docs/data-handling#protección-de-contenido-sensible)). `translate` y `watch` listan esas claves en `sensitiveWithheld` en su lugar.
 
 - **Lo lanza**: Studio y el servidor MCP
 - **Siguiente paso**: Remove the content from the key, list it in `sensitiveData.allow`, or turn the detector off in `sensitiveData.detectors`.
 
 ### RUN_CANCELLED
 
-Se abortó el `signal` pasado a `translate` o `retranslateEntry`. `retranslateEntry` lo lanza cuando el aborto llega antes de que el proveedor responda, sin haber escrito nada. `translate` lo registra en cada locale que la cancelación dejó sin empezar y marca el resumen como [`cancelled`](/docs/sdk/run-summary). Un punto de entrada que toma un bloqueo de escritura, como `editEntry`, `approveEntry` o `updateGlossaryTerm`, también lo lanza cuando `releaseHeldLocks` se está ejecutando mientras va a tomar el bloqueo.
+Se abortó el `signal` pasado a `translate` o `retranslateEntry`. `retranslateEntry` lo lanza cuando el aborto llega antes de que el proveedor responda, sin haber escrito nada. `translate` lo registra en cada locale que la cancelación dejó sin empezar y marca el resumen como [`cancelled`](/es/docs/sdk/run-summary). Un punto de entrada que toma un bloqueo de escritura, como `editEntry`, `approveEntry` o `updateGlossaryTerm`, también lo lanza cuando `releaseHeldLocks` se está ejecutando mientras va a tomar el bloqueo.
 
 - **Lo lanza**: solo el SDK
 - **Siguiente paso**: Run the operation again to finish the work the cancellation left pending.
@@ -629,7 +629,7 @@ Nunca se lanza: el `code` de reserva registrado en el `error` de un locale falli
 
 ## Códigos de error del proveedor [#provider-error-codes]
 
-Un fallo del proveedor lanza un `ProviderError` con uno de estos códigos ([Errores estructurados](/docs/providers#errores-estructurados)). Dentro de `translate` y `watch` solo falla su propia petición: sus claves se retienen, el locale recibe un aviso `SUB_BATCH_FAILED` que nombra el código, y las claves se retoman en la siguiente ejecución. Una retraducción de una sola clave desde Studio o el servidor MCP vuelve a lanzar el `ProviderError`. Una petición fallida sale con `1`, y su locale termina `partial` o `failed`.
+Un fallo del proveedor lanza un `ProviderError` con uno de estos códigos ([Errores estructurados](/es/docs/providers#errores-estructurados)). Dentro de `translate` y `watch` solo falla su propia petición: sus claves se retienen, el locale recibe un aviso `SUB_BATCH_FAILED` que nombra el código, y las claves se retoman en la siguiente ejecución. Una retraducción de una sola clave desde Studio o el servidor MCP vuelve a lanzar el `ProviderError`. Una petición fallida sale con `1`, y su locale termina `partial` o `failed`.
 
 ### MISSING_API_KEY
 
@@ -651,7 +651,7 @@ La salida era malformada, incompleta o falló la reconciliación contra la petic
 
 ### OUTPUT_TRUNCATED
 
-El modelo alcanzó su límite de tokens de salida; consulta [Límites de tokens de salida](/docs/providers#límites-de-tokens-de-salida).
+El modelo alcanzó su límite de tokens de salida; consulta [Límites de tokens de salida](/es/docs/providers#límites-de-tokens-de-salida).
 
 - **Siguiente paso**: Translate fewer keys at a time, or configure a model with a larger output limit.
 
@@ -675,7 +675,7 @@ HTTP 429 o un error de límite de tasa del SDK. En Google Cloud Translation, est
 
 ### TIMEOUT
 
-Un tiempo de espera de red o de petición; [`requestTimeoutMs`](/docs/providers#tiempo-de-espera-de-petición) sube el límite.
+Un tiempo de espera de red o de petición; [`requestTimeoutMs`](/es/docs/providers#tiempo-de-espera-de-petición) sube el límite.
 
 - **Siguiente paso**: Try again, or raise the provider's `requestTimeoutMs` in the config.
 
@@ -687,13 +687,13 @@ HTTP 401 o 403: la clave es inválida, está revocada o carece de permisos. En G
 
 ### PROVIDER_UNAVAILABLE
 
-HTTP 5xx: el proveedor falló en su propio lado, y la petición en sí nunca tuvo la culpa. Los [reintentos](/docs/providers#reintentos) de cada capa ya absorben un 5xx transitorio, así que uno que llega a este código es una caída sostenida.
+HTTP 5xx: el proveedor falló en su propio lado, y la petición en sí nunca tuvo la culpa. Los [reintentos](/es/docs/providers#reintentos) de cada capa ya absorben un 5xx transitorio, así que uno que llega a este código es una caída sostenida.
 
 - **Siguiente paso**: Try again later, or check the configured endpoint.
 
 ### NETWORK_POLICY_VIOLATION [#provider-network_policy_violation]
 
-La [política de red](/docs/network-policy) rechazó la petición justo antes de enviarla: el nombre de host resolvió a una dirección que la política no permite, o una respuesta redirigió a un host rechazado. El mensaje nombra solo el host. Reintentar no ayuda.
+La [política de red](/es/docs/network-policy) rechazó la petición justo antes de enviarla: el nombre de host resolvió a una dirección que la política no permite, o una respuesta redirigió a un host rechazado. El mensaje nombra solo el host. Reintentar no ayuda.
 
 - **Siguiente paso**: Point the provider at a host the network policy permits, or add its host to `network.allowedHosts` or VERBATRA_NETWORK_ALLOWED_HOSTS.
 
@@ -705,7 +705,7 @@ Cualquier cosa inclasificable. Cuando el fallo es un problema de transporte reco
 
 ## Códigos de error de los adaptadores de formato [#adapter-error-codes]
 
-Un adaptador de formato que no puede tratar un archivo lanza un `AdapterError` con uno de estos códigos. En el archivo de locale fuente llega envuelto en `SOURCE_INVALID`, con el código del adaptador como `causeCode`; en un archivo de destino se convierte en el `error.code` de ese locale. Cualquier comando que lee archivos de locale, Studio y el servidor MCP pueden lanzarlo; la CLI sale con `2` cuando el archivo fuente tiene la culpa y con `1` cuando un archivo de destino hace fallar su locale en `translate` o `import`. `check --file` informa en su lugar de un archivo que no se puede parsear como un hallazgo `syntax`. El conjunto es cerrado: un [adaptador propio](/docs/custom-format-adapters) lanza uno de estos códigos en lugar de uno suyo.
+Un adaptador de formato que no puede tratar un archivo lanza un `AdapterError` con uno de estos códigos. En el archivo de locale fuente llega envuelto en `SOURCE_INVALID`, con el código del adaptador como `causeCode`; en un archivo de destino se convierte en el `error.code` de ese locale. Cualquier comando que lee archivos de locale, Studio y el servidor MCP pueden lanzarlo; la CLI sale con `2` cuando el archivo fuente tiene la culpa y con `1` cuando un archivo de destino hace fallar su locale en `translate` o `import`. `check --file` informa en su lugar de un archivo que no se puede parsear como un hallazgo `syntax`. El conjunto es cerrado: un [adaptador propio](/es/docs/custom-format-adapters) lanza uno de estos códigos en lugar de uno suyo.
 
 ### INVALID_JSON
 
@@ -772,7 +772,7 @@ Se registró un adaptador con un identificador `custom:` mal formado.
 
 ## Códigos de la puerta de revisión [#check-result-codes]
 
-`check --require-reviewed` informa del motivo de su fallo como `result.review.code` ([Exigir traducciones revisadas](/docs/cli/check#exigir-traducciones-revisadas)).
+`check --require-reviewed` informa del motivo de su fallo como `result.review.code` ([Exigir traducciones revisadas](/es/docs/cli/check#exigir-traducciones-revisadas)).
 
 ### REVIEW_REQUIRED
 
@@ -780,7 +780,7 @@ Al menos una traducción escrita por máquina (origen `machine`, `memory`, `fuzz
 
 - **Lo lanza**: `check --require-reviewed`
 - **Código de salida**: `1`
-- **Siguiente paso**: Aprueba o corrige las claves listadas en la [cola de revisión de Studio](/docs/review-in-studio) o con las herramientas MCP `review.approve` y `review.reject`, y luego confirma `verbatra.provenance.json`.
+- **Siguiente paso**: Aprueba o corrige las claves listadas en la [cola de revisión de Studio](/es/docs/review-in-studio) o con las herramientas MCP `review.approve` y `review.reject`, y luego confirma `verbatra.provenance.json`.
 
 ### REVIEW_STATE_UNREADABLE
 
@@ -792,11 +792,11 @@ Al menos una traducción escrita por máquina (origen `machine`, `memory`, `fuzz
 
 ## Motivos de rechazo por integridad [#integrity-refusal-reasons]
 
-La [puerta de integridad](/docs/translation-safety#la-puerta-de-integridad) rechaza un valor candidato con exactamente uno de estos motivos, el primero que se aplica en el orden que da esa página. El motivo aparece en los `integrityRefusals` de un locale tras `translate`, `watch` e `import` (`integrity-withheld` en la salida para personas), en el resultado de `editEntry` y de `retranslateEntry` (`accepted: false` con el `reason`) y como error de `check --qa`, a menudo con `details` que nombran lo que difiere. Un rechazo sale con `1` en `check --qa`, y en `translate` e `import` cuando el locale termina partial o failed. El conjunto se publica como la tupla `INTEGRITY_GATE_REASONS`.
+La [puerta de integridad](/es/docs/translation-safety#la-puerta-de-integridad) rechaza un valor candidato con exactamente uno de estos motivos, el primero que se aplica en el orden que da esa página. El motivo aparece en los `integrityRefusals` de un locale tras `translate`, `watch` e `import` (`integrity-withheld` en la salida para personas), en el resultado de `editEntry` y de `retranslateEntry` (`accepted: false` con el `reason`) y como error de `check --qa`, a menudo con `details` que nombran lo que difiere. Un rechazo sale con `1` en `check --qa`, y en `translate` e `import` cuando el locale termina partial o failed. El conjunto se publica como la tupla `INTEGRITY_GATE_REASONS`.
 
 ### placeholder
 
-Los placeholders del candidato difieren de los de su fuente, comparados como un multiconjunto: el número cuenta, el orden no. Qué cuenta como placeholder lo define cada [formato](/docs/formats). En i18next, ngx-translate y YAML también se rechaza un token con forma `{name}` que el candidato añade y que la fuente nunca tuvo, aunque ahí las llaves simples sean texto literal. Los detalles nombran cada placeholder eliminado con `-` y cada uno añadido con `+`, como `-{{name}}` o `+{{nom}}`.
+Los placeholders del candidato difieren de los de su fuente, comparados como un multiconjunto: el número cuenta, el orden no. Qué cuenta como placeholder lo define cada [formato](/es/docs/formats). En i18next, ngx-translate y YAML también se rechaza un token con forma `{name}` que el candidato añade y que la fuente nunca tuvo, aunque ahí las llaves simples sean texto literal. Los detalles nombran cada placeholder eliminado con `-` y cada uno añadido con `+`, como `-{{name}}` o `+{{nom}}`.
 
 - **Siguiente paso**: Vuelve a poner los placeholders de la fuente en la traducción, o deja que la siguiente ejecución la traduzca de nuevo.
 
@@ -957,7 +957,7 @@ sobrante como un segundo `</g>`.
 
 ### icu
 
-En next-intl y ARB, el candidato ya no se puede analizar como mensaje ICU (también un `plural` sin su rama `other`), o sus ramas `plural` o `selectordinal` no encajan con las categorías CLDR del idioma de destino, o sus ramas `select` difieren de las de la fuente. Los detalles nombran cada rama incorrecta. [Ramas de plural por idioma de destino](/docs/translation-safety#ramas-de-plural-por-idioma-de-destino) explica la regla.
+En next-intl y ARB, el candidato ya no se puede analizar como mensaje ICU (también un `plural` sin su rama `other`), o sus ramas `plural` o `selectordinal` no encajan con las categorías CLDR del idioma de destino, o sus ramas `select` difieren de las de la fuente. Los detalles nombran cada rama incorrecta. [Ramas de plural por idioma de destino](/es/docs/translation-safety#ramas-de-plural-por-idioma-de-destino) explica la regla.
 
 - **Siguiente paso**: Corrige el mensaje para que se pueda analizar y tenga exactamente las ramas que necesita el idioma de destino.
 
@@ -975,7 +975,7 @@ El candidato está vacío o solo tiene espacios aunque su fuente no lo esté. Va
 
 ## Motivos de revisión [#review-reason-codes]
 
-Una señal de revisión marca una traducción aceptada como digna de una segunda mirada; nunca retiene una clave, y un aviso de `check --qa` solo hace fallar el trabajo con `--strict`. El conjunto se publica como la tupla `REVIEW_REASON_CODES`; [Seguridad de la traducción](/docs/translation-safety#señales-de-revisión) explica la capa de revisión.
+Una señal de revisión marca una traducción aceptada como digna de una segunda mirada; nunca retiene una clave, y un aviso de `check --qa` solo hace fallar el trabajo con `--strict`. El conjunto se publica como la tupla `REVIEW_REASON_CODES`; [Seguridad de la traducción](/es/docs/translation-safety#señales-de-revisión) explica la capa de revisión.
 
 ### LENGTH_RATIO_OUTLIER
 
@@ -1057,7 +1057,7 @@ El valor se reutilizó de la caché para una fuente anterior casi idéntica que 
 
 La traducción perdió o cambió un token con forma de placeholder que el formato del proyecto no interpola, como `{name}` en un valor de i18next o `%{count}` en un valor de YAML.
 
-Se activa cuando ese token aparece en la fuente más veces que, literalmente, en la traducción. Los placeholders propios del formato quedan para la puerta de integridad, un token que la traducción solo añade no se marca, y un argumento ICU cuenta una vez, por su cabecera como `{n, plural,`, así que las ramas traducidas nunca lo activan. Los tokens dentro de ramas ICU, un token printf pegado a una letra o un dígito, los bytes codificados en porcentaje como `%2F` y todo lo que está dentro de una URL nunca se comprueban, ni tampoco los formatos de adaptadores de terceros. Qué sintaxis protege cada formato se indica en [Formatos](/docs/formats).
+Se activa cuando ese token aparece en la fuente más veces que, literalmente, en la traducción. Los placeholders propios del formato quedan para la puerta de integridad, un token que la traducción solo añade no se marca, y un argumento ICU cuenta una vez, por su cabecera como `{n, plural,`, así que las ramas traducidas nunca lo activan. Los tokens dentro de ramas ICU, un token printf pegado a una letra o un dígito, los bytes codificados en porcentaje como `%2F` y todo lo que está dentro de una URL nunca se comprueban, ni tampoco los formatos de adaptadores de terceros. Qué sintaxis protege cada formato se indica en [Formatos](/es/docs/formats).
 
 - **Lo lanza**: `translate`, `watch` (en `needsReview`); `retranslateEntry` (en `reviewReasons`); `export` (en la columna de revisión); `check --qa` (como aviso, que nombra cada token que falta en `details`, como `-{name}`)
 - **Código de salida**: ninguno desde `translate`; `1` desde `check --qa --strict`
@@ -1075,7 +1075,7 @@ Se activa cuando las incrustaciones (U+202A, U+202B), anulaciones (U+202D, U+202
 
 ## Avisos de ejecución [#sdk-notice-codes]
 
-Un aviso son datos en los `notices` de un locale, nunca se lanza. Informa de una situación que la ejecución gestionó, y cambia el código de salida solo donde la entrada lo dice. [RunSummary](/docs/sdk/run-summary) muestra dónde están los avisos en el resumen.
+Un aviso son datos en los `notices` de un locale, nunca se lanza. Informa de una situación que la ejecución gestionó, y cambia el código de salida solo donde la entrada lo dice. [RunSummary](/es/docs/sdk/run-summary) muestra dónde están los avisos en el resumen.
 
 ### PLURAL_CATEGORIES_INCOMPLETE
 
@@ -1143,7 +1143,7 @@ Registrar este locale habría hecho crecer `verbatra.provenance.json` por encima
 
 ### LOCALE_STATE_CARRIED_OVER
 
-El estado registrado con una grafía con guion bajo como `pt_BR` se movió al `pt-BR` configurado. Consulta [Un código de locale reescrito](/docs/the-lock-file#un-código-de-locale-reescrito).
+El estado registrado con una grafía con guion bajo como `pt_BR` se movió al `pt-BR` configurado. Consulta [Un código de locale reescrito](/es/docs/the-lock-file#un-código-de-locale-reescrito).
 
 - **Lo lanza**: `translate`, `watch`, `import`
 - **Código de salida**: ninguno
@@ -1201,7 +1201,7 @@ DeepL, Google Cloud Translation y LibreTranslate reciben ese token enmascarado c
 
 ### SOURCE_VALUE_EMPTY
 
-Claves de origen cuyo valor está vacío o solo tiene espacios, como una clave que [`extract`](/docs/cli/extract) añadió sin valor por defecto, nunca faltan, están desactualizadas ni al día, tenga lo que tenga el destino o el archivo de bloqueo; en un catálogo de origen `gettext-po` es un `msgstr` vacío. No se envía, escribe ni cuenta nada para ellas, y el destino conserva el valor que tenga. El mensaje da el número de claves y nombra las primeras.
+Claves de origen cuyo valor está vacío o solo tiene espacios, como una clave que [`extract`](/es/docs/cli/extract) añadió sin valor por defecto, nunca faltan, están desactualizadas ni al día, tenga lo que tenga el destino o el archivo de bloqueo; en un catálogo de origen `gettext-po` es un `msgstr` vacío. No se envía, escribe ni cuenta nada para ellas, y el destino conserva el valor que tenga. El mensaje da el número de claves y nombra las primeras.
 
 - **Lo lanza**: `translate` (también una ejecución de prueba), `watch`
 - **Código de salida**: ninguno

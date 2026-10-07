@@ -7,7 +7,7 @@ Sers-t'en pour qu'un agent IA de navigateur, comme Gemini ou Claude dans Chrome,
 
 Il te faut :
 
-- Studio lancé sur ton projet ([Réviser dans Studio](/docs/review-in-studio#démarrer-studio)) ;
+- Studio lancé sur ton projet ([Réviser dans Studio](/fr/docs/review-in-studio#démarrer-studio)) ;
 - Chrome 149 ou plus récent avec `chrome://flags/#enable-webmcp-testing` activé, ou un navigateur qui prend WebMCP en charge nativement, dans une fenêtre normale et non headless.
 
 <Callout title="Expérimental">
@@ -20,11 +20,11 @@ WebMCP est une nouvelle capacité du navigateur derrière un flag, et sa surface
 verbatra studio --expose-agent-tools
 ```
 
-`VERBATRA_STUDIO_AGENT_TOOLS=1` fait la même chose ; [Dépenses et outils d'agent](/docs/cli/studio#dépenses-et-outils-dagent) explique comment le flag et la variable sont résolus. Ouvre l'URL affichée dans le navigateur WebMCP, et l'agent de cet onglet trouve les outils. Dans un navigateur sans WebMCP, Studio n'enregistre rien et le tableau de bord ne change pas.
+`VERBATRA_STUDIO_AGENT_TOOLS=1` fait la même chose ; [Dépenses et outils d'agent](/fr/docs/cli/studio#dépenses-et-outils-dagent) explique comment le flag et la variable sont résolus. Ouvre l'URL affichée dans le navigateur WebMCP, et l'agent de cet onglet trouve les outils. Dans un navigateur sans WebMCP, Studio n'enregistre rien et le tableau de bord ne change pas.
 
-Pour que l'agent puisse appeler ton fournisseur, lance aussi Studio avec `--allow-spend` ([Dépenses et outils d'agent](/docs/cli/studio#dépenses-et-outils-dagent)).
+Pour que l'agent puisse appeler ton fournisseur, lance aussi Studio avec `--allow-spend` ([Dépenses et outils d'agent](/fr/docs/cli/studio#dépenses-et-outils-dagent)).
 
-L'agent lit chaque valeur sans masquage, comme la page l'affiche : Studio ne masque rien, car un agent dans l'onglet peut de toute façon lire la page. Pour cacher les valeurs à un agent, utilise plutôt le serveur MCP avec [`--redact-values`](/docs/cli/mcp#redacted-values) ; pour un projet sous NDA, voir [Studio et MCP](/docs/data-handling#studio-et-mcp).
+L'agent lit chaque valeur sans masquage, comme la page l'affiche : Studio ne masque rien, car un agent dans l'onglet peut de toute façon lire la page. Pour cacher les valeurs à un agent, utilise plutôt le serveur MCP avec [`--redact-values`](/fr/docs/cli/mcp#redacted-values) ; pour un projet sous NDA, voir [Studio et MCP](/fr/docs/data-handling#studio-et-mcp).
 
 ## Savoir ce que l'agent peut appeler
 
@@ -39,7 +39,7 @@ Chaque outil est une action Studio avec le préfixe `verbatra_`. Les outils de l
 | `verbatra_status_diff` | les clés manquantes, modifiées et orphelines par locale |
 | `verbatra_glossary_get` | le glossaire résolu, secrets masqués |
 | `verbatra_lock_state` | l'état du fichier de verrouillage par locale |
-| `verbatra_history_list` | les commits récents sur les fichiers de locale, avec le nom de l'auteur ([jamais l'e-mail](/docs/data-handling#studio-et-mcp)) |
+| `verbatra_history_list` | les commits récents sur les fichiers de locale, avec le nom de l'auteur ([jamais l'e-mail](/fr/docs/data-handling#studio-et-mcp)) |
 | `verbatra_key_integrity` | les contrôles de placeholders, de balisage et d'ICU d'une clé, dans les locales où sa source a changé |
 | `verbatra_review_queue` | chaque valeur écrite par une machine que personne n'a approuvée, d'après les fichiers versionnés <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 | `verbatra_key_value` | la source et la cible d'une clé, avec qui a écrit la cible |
@@ -65,21 +65,21 @@ Chaque outil est une action Studio avec le préfixe `verbatra_`. Les outils de l
 | `verbatra_translation_retranslateEntry` | retraduit une clé dans une locale |
 | `verbatra_translation_translatePending` | traduit tout ce qui est en attente, éventuellement pour certaines `locales` et sous un plafond `maxTokens` <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 
-`verbatra_key_integrity` ne renvoie que les locales où la source de la clé a changé, donc une liste vide signifie qu'il n'y avait rien à vérifier. Ses lignes sont plus plates que celles de [`key.integrity`](/docs/cli/mcp#entrées-et-résultats) dans le serveur MCP. Seul le serveur MCP a `project.doctor` et `report.provenance`. `verbatra_locale_values` pagine comme son `locale.values`, avec les mêmes `limit` et `cursor` ([Autres entrées et résultats](/docs/cli/mcp#autres-entrées-et-résultats)).
+`verbatra_key_integrity` ne renvoie que les locales où la source de la clé a changé, donc une liste vide signifie qu'il n'y avait rien à vérifier. Ses lignes sont plus plates que celles de [`key.integrity`](/fr/docs/cli/mcp#entrées-et-résultats) dans le serveur MCP. Seul le serveur MCP a `project.doctor` et `report.provenance`. `verbatra_locale_values` pagine comme son `locale.values`, avec les mêmes `limit` et `cursor` ([Autres entrées et résultats](/fr/docs/cli/mcp#autres-entrées-et-résultats)).
 
 ## Connaître les règles des outils
 
-Chaque appel passe par le RPC loopback authentifié du tableau de bord, avec la même validation des entrées et le même [contrôle d'intégrité](/docs/translation-safety) : une valeur qui échoue à un contrôle est rejetée et rien n'est écrit.
+Chaque appel passe par le RPC loopback authentifié du tableau de bord, avec la même validation des entrées et le même [contrôle d'intégrité](/fr/docs/translation-safety) : une valeur qui échoue à un contrôle est rejetée et rien n'est écrit.
 
 ### Règles par appel
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-- **Provenance** : une modification de l'agent est enregistrée avec l'origine `agent` et reste dans la file de relecture ; une modification depuis le tableau de bord est `human`. Les outils de lecture indiquent qui a écrit chaque valeur ([Le fichier de verrouillage](/docs/the-lock-file#la-provenance-de-chaque-valeur)).
-- **Travail humain** : retraduire refuse la valeur d'une personne avec `KEY_PROTECTED` (sauf avec `humanEdits: "overwrite"`) et une clé épinglée avec `KEY_PINNED`, et modifier refuse une clé épinglée ([Garder les traductions humaines](/docs/protecting-human-translations)).
+- **Provenance** : une modification de l'agent est enregistrée avec l'origine `agent` et reste dans la file de relecture ; une modification depuis le tableau de bord est `human`. Les outils de lecture indiquent qui a écrit chaque valeur ([Le fichier de verrouillage](/fr/docs/the-lock-file#la-provenance-de-chaque-valeur)).
+- **Travail humain** : retraduire refuse la valeur d'une personne avec `KEY_PROTECTED` (sauf avec `humanEdits: "overwrite"`) et une clé épinglée avec `KEY_PINNED`, et modifier refuse une clé épinglée ([Garder les traductions humaines](/fr/docs/protecting-human-translations)).
 - **Décisions de relecture** : approuver et rejeter servent seulement à transmettre ta décision. Les deux exigent `reviewer`, le nom de la personne, et `expectedValue`, le texte relu ; une valeur modifiée est refusée avec `REVIEW_VALUE_CHANGED`.
 - **Pas d'outils groupés** : **Approve selected**, **Reject selected**, **Retranslate selected** et **Approve all in** restent entre les mains d'une personne.
-- **Estimer d'abord** : une locale inconnue est refusée avec `UNKNOWN_LOCALE` avant toute dépense, et c'est le plus bas des `maxTokens` de l'appel et de la config qui s'applique ([Estimer le coût avant une exécution](/docs/estimating-cost)).
+- **Estimer d'abord** : une locale inconnue est refusée avec `UNKNOWN_LOCALE` avant toute dépense, et c'est le plus bas des `maxTokens` de l'appel et de la config qui s'applique ([Estimer le coût avant une exécution](/fr/docs/estimating-cost)).
 - **Limites de débit** : par minute glissante, 20 retraductions, 20 modifications, 20 écritures de glossaire, 60 décisions de relecture et 5 appels translate-pending, un à la fois. Un second appel pour une entrée encore en cours est refusé avec `ALREADY_IN_PROGRESS`.
 
 ## Lire un appel échoué
@@ -119,6 +119,6 @@ Avec `--allow-spend` et `--expose-agent-tools` ensemble, un agent peut dépenser
 
 ## Voir aussi
 
-- [Réviser dans Studio](/docs/review-in-studio) : le même déroulé, à la main.
-- [`verbatra studio`](/docs/cli/studio) : chaque flag et le contrat de démarrage.
-- [Connecter un client MCP](/docs/connect-an-mcp-client#le-plugin-verbatra) : le plugin apporte la skill `verbatra-studio-agent-tools`, mais c'est toi qui lances Studio.
+- [Réviser dans Studio](/fr/docs/review-in-studio) : le même déroulé, à la main.
+- [`verbatra studio`](/fr/docs/cli/studio) : chaque flag et le contrat de démarrage.
+- [Connecter un client MCP](/fr/docs/connect-an-mcp-client#le-plugin-verbatra) : le plugin apporte la skill `verbatra-studio-agent-tools`, mais c'est toi qui lances Studio.

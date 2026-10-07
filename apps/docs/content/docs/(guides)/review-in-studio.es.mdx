@@ -16,19 +16,19 @@ npm install --save-dev @verbatra/studio
 verbatra studio
 ```
 
-Abre la URL que imprime, token incluido, y detén Studio con Ctrl+C. [`verbatra studio`](/docs/cli/studio) cubre el puerto, el token y cada opción. Cada página se actualiza en vivo cuando cambia un archivo de locale, el archivo de bloqueo o el archivo de procedencia.
+Abre la URL que imprime, token incluido, y detén Studio con Ctrl+C. [`verbatra studio`](/es/docs/cli/studio) cubre el puerto, el token y cada opción. Cada página se actualiza en vivo cuando cambia un archivo de locale, el archivo de bloqueo o el archivo de procedencia.
 
 ## Lee la página Translations
 
-Translations lista cada clave que falta, modificada o huérfana, como una **List** por locale con un filtro de texto o como un **Grid** de claves por locale, sobre una tabla con la cobertura de cada locale y el estado del [archivo de bloqueo](/docs/the-lock-file).
+Translations lista cada clave que falta, modificada o huérfana, como una **List** por locale con un filtro de texto o como un **Grid** de claves por locale, sobre una tabla con la cobertura de cada locale y el estado del [archivo de bloqueo](/es/docs/the-lock-file).
 
 Haz clic en una clave para ver el valor de cada locale con un indicador de integridad: los placeholders coinciden, un desajuste de placeholders con los tokens nombrados, o una sintaxis de mensaje no válida. También se muestra:
 
 | Detalle | Muestra |
 | --- | --- |
 | **Inline markup mismatch** | cada etiqueta que la traducción quitó (`-`) o añadió (`+`) <AvailableFrom version="0.5.1" pkg="@verbatra/studio" /> |
-| **ICU arms mismatch** | ramas plural o select que no encajan con el idioma de destino; los valores de derecha a izquierda se muestran de derecha a izquierda ([Idiomas y locales](/docs/language-support#idiomas-de-derecha-a-izquierda)) <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
-| Insignia de origen | quién escribió cada valor, leída de [`verbatra.provenance.json`](/docs/the-lock-file#procedencia-quién-escribió-cada-valor), por ejemplo **Machine**, **Human** o **Edited outside verbatra** <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+| **ICU arms mismatch** | ramas plural o select que no encajan con el idioma de destino; los valores de derecha a izquierda se muestran de derecha a izquierda ([Idiomas y locales](/es/docs/language-support#idiomas-de-derecha-a-izquierda)) <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+| Insignia de origen | quién escribió cada valor, leída de [`verbatra.provenance.json`](/es/docs/the-lock-file#procedencia-quién-escribió-cada-valor), por ejemplo **Machine**, **Human** o **Edited outside verbatra** <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 
 ### Filtrar por estado
 
@@ -38,7 +38,7 @@ La vista List también filtra por locale y por estado, incluidos **Review queue*
 
 ### Edita con la puerta de integridad
 
-**Edit** abre el editor. Guardar pasa el valor por la [puerta de integridad](/docs/translation-safety#la-puerta-de-integridad); un valor rechazado no se escribe, y se muestra el motivo. Una edición aceptada escribe el archivo de locale y actualiza el archivo de bloqueo. Editar no necesita ninguna opción y nunca llama a un proveedor.
+**Edit** abre el editor. Guardar pasa el valor por la [puerta de integridad](/es/docs/translation-safety#la-puerta-de-integridad); un valor rechazado no se escribe, y se muestra el motivo. Una edición aceptada escribe el archivo de locale y actualiza el archivo de bloqueo. Editar no necesita ninguna opción y nunca llama a un proveedor.
 
 #### Editor lado a lado
 
@@ -48,7 +48,7 @@ El editor muestra el origen y tu borrador lado a lado, con la descripción de la
 
 ## Trabaja la cola de Review
 
-La página Review lista cada valor que escribió una máquina y que nadie ha aprobado: una fila por locale y clave, con el texto de origen sobre la traducción, su origen y cualquier [señal de revisión](/docs/translation-safety#señales-de-revisión) de la última ejecución en esta máquina.
+La página Review lista cada valor que escribió una máquina y que nadie ha aprobado: una fila por locale y clave, con el texto de origen sobre la traducción, su origen y cualquier [señal de revisión](/es/docs/translation-safety#señales-de-revisión) de la última ejecución en esta máquina.
 
 <StudioScreenshot
   shot="review"
@@ -76,7 +76,7 @@ Filtra por locale o por texto en la clave, el origen o la traducción, y luego t
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Ambas decisiones se guardan en `verbatra.provenance.json` según las reglas de [Decisiones de revisión](/docs/the-lock-file#decisiones-de-revisión), incluido lo que quita un rechazo. Una aprobación además necesita que el valor esté al día con su origen. Confirma juntos el archivo de locale, el archivo de bloqueo y el archivo de procedencia; en un proyecto XLIFF, edita en lugar de rechazar.
+Ambas decisiones se guardan en `verbatra.provenance.json` según las reglas de [Decisiones de revisión](/es/docs/the-lock-file#decisiones-de-revisión), incluido lo que quita un rechazo. Una aprobación además necesita que el valor esté al día con su origen. Confirma juntos el archivo de locale, el archivo de bloqueo y el archivo de procedencia; en un proyecto XLIFF, edita en lugar de rechazar.
 
 ### Una cola para todo el equipo
 
@@ -84,7 +84,7 @@ Ambas decisiones se guardan en `verbatra.provenance.json` según las reglas de [
 
 La cola se lee de los archivos confirmados, así que un compañero que los descarga ve la misma cola. Un valor sale de ella en cuanto una persona lo aprueba, lo rechaza, lo escribe o lo importa; un valor aprobado que una máquina reescribe vuelve a entrar.
 
-La barra de filtros cambia entre **Needs review** y **Approved** y acota por origen; con un locale elegido, **Approve all in** lo aprueba entero tras una confirmación. Para que un pull request falle mientras haya traducciones automáticas esperando, ejecuta [`verbatra check --require-reviewed`](/docs/cli/check#exigir-traducciones-revisadas) en la CI.
+La barra de filtros cambia entre **Needs review** y **Approved** y acota por origen; con un locale elegido, **Approve all in** lo aprueba entero tras una confirmación. Para que un pull request falle mientras haya traducciones automáticas esperando, ejecuta [`verbatra check --require-reviewed`](/es/docs/cli/check#exigir-traducciones-revisadas) en la CI.
 
 ### Trabaja la cola con el teclado
 
@@ -113,7 +113,7 @@ Marca filas (o la casilla de la cabecera para todo lo que muestra el filtro) y e
 
 ## Retraduce una clave marcada
 
-Arranca Studio con el gasto permitido ([cómo se concede el gasto](/docs/cli/studio#gasto-y-herramientas-de-agente)):
+Arranca Studio con el gasto permitido ([cómo se concede el gasto](/es/docs/cli/studio#gasto-y-herramientas-de-agente)):
 
 ```bash
 verbatra studio --allow-spend
@@ -141,10 +141,10 @@ Una edición del glosario cambia lo que se le indica a la siguiente ejecución, 
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-**Show translations for** cambia a la vista del [glosario](/docs/config-file#glossary) de un locale, con su traducción, las variantes prohibidas y la nota. La lista **Do not translate** mantiene los nombres de marca tal como se escriben.
+**Show translations for** cambia a la vista del [glosario](/es/docs/config-file#glossary) de un locale, con su traducción, las variantes prohibidas y la nota. La lista **Do not translate** mantiene los nombres de marca tal como se escriben.
 
 ## Relacionado
 
-- [Maneja Studio con un agente del navegador](/docs/agent-tools-in-studio): el mismo flujo desde un agente de IA en el navegador.
-- [Registrar evidencia de traducción automática](/docs/provenance-evidence): convierte las decisiones de revisión en un archivo de auditoría.
-- [Editar y revisar desde el SDK](/docs/sdk/review): las funciones detrás de estos botones.
+- [Maneja Studio con un agente del navegador](/es/docs/agent-tools-in-studio): el mismo flujo desde un agente de IA en el navegador.
+- [Registrar evidencia de traducción automática](/es/docs/provenance-evidence): convierte las decisiones de revisión en un archivo de auditoría.
+- [Editar y revisar desde el SDK](/es/docs/sdk/review): las funciones detrás de estos botones.

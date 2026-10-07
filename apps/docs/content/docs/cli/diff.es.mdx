@@ -3,7 +3,7 @@ title: verbatra diff
 description: Muestra las claves que se añadirían, se retraducirían o están huérfanas por locale sin escribir archivos.
 type: reference
 ---
-Lista, por locale de destino, las claves pendientes exactas: las que una ejecución añadiría, las que retraduciría y las que ahora están huérfanas. `diff` hace la misma lectura y el mismo diff que [`verbatra translate`](/docs/cli/translate) y luego se detiene: sin llamada al proveedor, sin archivos escritos, sin actualizar el [archivo de bloqueo](/docs/the-lock-file) y sin clave de API.
+Lista, por locale de destino, las claves pendientes exactas: las que una ejecución añadiría, las que retraduciría y las que ahora están huérfanas. `diff` hace la misma lectura y el mismo diff que [`verbatra translate`](/es/docs/cli/translate) y luego se detiene: sin llamada al proveedor, sin archivos escritos, sin actualizar el [archivo de bloqueo](/es/docs/the-lock-file) y sin clave de API.
 
 ## Sinopsis
 
@@ -32,9 +32,9 @@ verbatra diff --unused
 | Flag | Argumento | Por defecto | Efecto |
 | --- | --- | --- | --- |
 | `--locales` | `<list>` | todos los destinos configurados | compara solo este subconjunto separado por comas; un locale no configurado falla con `UNKNOWN_LOCALE` y una lista vacía con `INVALID_LOCALES`, ambos con salida `2` |
-| `--unused` | ninguno | desactivado | lista también las claves del locale de origen que ninguna llamada bajo las [raíces de `extract`](/docs/config-file#extract) nombra; consulta [Claves de origen sin uso](#claves-de-origen-sin-uso) |
+| `--unused` | ninguno | desactivado | lista también las claves del locale de origen que ninguna llamada bajo las [raíces de `extract`](/es/docs/config-file#extract) nombra; consulta [Claves de origen sin uso](#claves-de-origen-sin-uso) |
 
-También acepta los [flags globales](/docs/cli#flags-globales) `--cwd`, `--config` y `--json`.
+También acepta los [flags globales](/es/docs/cli#flags-globales) `--cwd`, `--config` y `--json`.
 
 ## Comportamiento
 
@@ -49,13 +49,13 @@ Cada locale lista cuatro tipos de clave:
 | `orphaned` | está en el destino y ya no en el origen: solo se informa |
 | `emptySource` (se muestra como `empty source`) | el valor de origen está vacío o solo tiene espacios: nada que traducir hasta que lo escribas, nunca pendiente |
 
-Un locale tiene cambios pendientes cuando tiene al menos una clave faltante o cambiada. Las claves huérfanas nunca cuentan como pendientes, porque una ejecución por defecto las deja donde están; solo [`verbatra translate --prune`](/docs/cli/translate) las elimina. [`verbatra check`](/docs/cli/check) da los contadores, `diff` da las listas de claves.
+Un locale tiene cambios pendientes cuando tiene al menos una clave faltante o cambiada. Las claves huérfanas nunca cuentan como pendientes, porque una ejecución por defecto las deja donde están; solo [`verbatra translate --prune`](/es/docs/cli/translate) las elimina. [`verbatra check`](/es/docs/cli/check) da los contadores, `diff` da las listas de claves.
 
 ### Claves de origen sin uso
 
 <AvailableFrom version="0.11.0" />
 
-`--unused` responde otra pregunta que `orphaned`: ¿qué claves de tu archivo de locale de origen ya no nombra tu aplicación? Analiza las `roots` del [bloque `extract`](/docs/config-file#extract) con el lector que usa [`verbatra extract`](/docs/cli/extract) y lista cada clave de origen que ninguna referencia estática nombra. Las dos listas nunca se fusionan. El análisis solo lee: no se elimina nada y no se lee ninguna clave de API. Borrar una clave es decisión tuya.
+`--unused` responde otra pregunta que `orphaned`: ¿qué claves de tu archivo de locale de origen ya no nombra tu aplicación? Analiza las `roots` del [bloque `extract`](/es/docs/config-file#extract) con el lector que usa [`verbatra extract`](/es/docs/cli/extract) y lista cada clave de origen que ninguna referencia estática nombra. Las dos listas nunca se fusionan. El análisis solo lee: no se elimina nada y no se lee ninguna clave de API. Borrar una clave es decisión tuya.
 
 El análisis modela el runtime de i18next. Esto cuenta como referencia:
 
@@ -86,19 +86,19 @@ El informe lleva un `status`: `complete` (se acotaron todas las claves alcanzabl
 
 Las fuentes de funciones de traducción reconocidas son: `useTranslation(...)` desestructurado en un binding local, no exportado, con argumentos estáticos; un `i18n.getFixedT(...)` local con argumentos estáticos; una llamada directa a un miembro `t` (`i18n.t("key")`, `this.props.t("key")`) y su alias local; `<Translation>{(t) => ...}</Translation>`; `withTranslation("ns")(Component)` con `props.t(...)`; e `import { t } from "i18next"`. Se evalúa cualquier variable o miembro llamado `t` o `$t`, así que un `frame.t + 1` ajeno puede volver el informe poco fiable. En archivos `.tsx`, `.jsx` y `.js`, el texto JSX y los valores de atributo entre comillas se leen como marcado, nunca como código.
 
-Cada clave listada muestra su forma decodificada (una entrada `msgctxt` de gettext como `menu|Open`); `--json` lleva además la `catalogKey` tal como la escribe el adaptador. Una clave usada solo fuera del código analizado (una plantilla de servidor, un CMS) va en [`extract.unused.ignore`](/docs/config-file#extract): un patrón coincide con la clave decodificada, y una clave que coincide se lista bajo `ignored`, nunca desaparece sin aviso.
+Cada clave listada muestra su forma decodificada (una entrada `msgctxt` de gettext como `menu|Open`); `--json` lleva además la `catalogKey` tal como la escribe el adaptador. Una clave usada solo fuera del código analizado (una plantilla de servidor, un CMS) va en [`extract.unused.ignore`](/es/docs/config-file#extract): un patrón coincide con la clave decodificada, y una clave que coincide se lista bajo `ignored`, nunca desaparece sin aviso.
 
 ### Claves protegidas
 
 <AvailableFrom version="0.12.0" />
 
-Las claves faltantes y cambiadas que `translate` dejaría para una persona (una persona escribió, importó o cambió el valor fuera de verbatra, o la clave coincide con `pinnedKeys`) se listan además bajo `protected`; consulta [Proteger traducciones humanas](/docs/protecting-human-translations). Siguen en `add` y `re-translate`, porque siguen pendientes. Si `verbatra.provenance.json` está dañado o es de un verbatra más nuevo, solo se listan las claves fijadas.
+Las claves faltantes y cambiadas que `translate` dejaría para una persona (una persona escribió, importó o cambió el valor fuera de verbatra, o la clave coincide con `pinnedKeys`) se listan además bajo `protected`; consulta [Proteger traducciones humanas](/es/docs/protecting-human-translations). Siguen en `add` y `re-translate`, porque siguen pendientes. Si `verbatra.provenance.json` está dañado o es de un verbatra más nuevo, solo se listan las claves fijadas.
 
 ### Salida JSON
 
-Esquema: [`diff-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/diff-envelope.json) valida el envoltorio completo; [Esquemas](/docs/cli/output#esquemas) enumera los demás.
+Esquema: [`diff-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/diff-envelope.json) valida el envoltorio completo; [Esquemas](/es/docs/cli/output#esquemas) enumera los demás.
 
-`--json` imprime un [envoltorio](/docs/cli/output#salida-json) cuyo `result` es un `DiffSummary`. `hasPendingChanges` es verdadero exactamente cuando el comando sale con `1` por claves pendientes:
+`--json` imprime un [envoltorio](/es/docs/cli/output#salida-json) cuyo `result` es un `DiffSummary`. `hasPendingChanges` es verdadero exactamente cuando el comando sale con `1` por claves pendientes:
 
 ```ts
 interface DiffSummary {
@@ -130,7 +130,7 @@ verbatra: diffing and scanning the source... done (0.8s)
 next: verbatra translate (send the pending keys to your provider)
 ```
 
-Si todas las claves pendientes están protegidas, sugiere `verbatra studio`; con `provider: { id: "none" }`, sugiere `verbatra export`. Estas líneas van a stderr, y `--quiet` las omite. Consulta [Salida en el terminal](/docs/cli/output#salida-en-el-terminal).
+Si todas las claves pendientes están protegidas, sugiere `verbatra studio`; con `provider: { id: "none" }`, sugiere `verbatra export`. Estas líneas van a stderr, y `--quiet` las omite. Consulta [Salida en el terminal](/es/docs/cli/output#salida-en-el-terminal).
 
 ## Códigos de salida
 
@@ -140,11 +140,11 @@ Si todas las claves pendientes están protegidas, sugiere `verbatra studio`; con
 | `1` | al menos un locale tiene una clave faltante o cambiada, o un análisis `complete` con `--unused` encontró una clave sin uso |
 | `2` | no se pudo ejecutar: un error de toda la ejecución, un valor `--locales` no configurado (`UNKNOWN_LOCALE`) o un error de uso, como una lista `--locales` vacía (`INVALID_LOCALES`) |
 
-Las claves huérfanas, posiblemente dinámicas e ignoradas, y un informe `unreliable` o `not-run`, nunca producen `1` por sí solos. Consulta [el contrato de códigos de salida](/docs/cli/output#códigos-de-salida).
+Las claves huérfanas, posiblemente dinámicas e ignoradas, y un informe `unreliable` o `not-run`, nunca producen `1` por sí solos. Consulta [el contrato de códigos de salida](/es/docs/cli/output#códigos-de-salida).
 
 ## Relacionado
 
-- [`verbatra check`](/docs/cli/check) da los contadores por locale detrás de estas listas.
-- [`verbatra translate`](/docs/cli/translate) aplica los cambios pendientes; `--prune` elimina las claves huérfanas.
-- [El archivo de configuración](/docs/config-file#extract) documenta el bloque `extract` y `unused.ignore`.
-- [CI y códigos de salida](/docs/ci-and-exit-codes) muestra `diff` en una canalización.
+- [`verbatra check`](/es/docs/cli/check) da los contadores por locale detrás de estas listas.
+- [`verbatra translate`](/es/docs/cli/translate) aplica los cambios pendientes; `--prune` elimina las claves huérfanas.
+- [El archivo de configuración](/es/docs/config-file#extract) documenta el bloque `extract` y `unused.ignore`.
+- [CI y códigos de salida](/es/docs/ci-and-exit-codes) muestra `diff` en una canalización.

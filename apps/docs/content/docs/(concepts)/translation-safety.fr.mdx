@@ -32,7 +32,7 @@ et `pt-PT` se confondent. Un fournisseur LLM reçoit donc aussi le nom anglais, 
 région de chaque langue, tirés de Node.js pour la locale de ta configuration, même quand `localeMap`
 envoie un autre code. Ils voyagent comme des données, une règle système fixe demande au modèle
 d'écrire dans l'écriture et la variante nommées, et ils ne font pas partie de l'empreinte du
-[cache](/docs/the-cache). Un code que Node.js ne sait pas
+[cache](/fr/docs/the-cache). Un code que Node.js ne sait pas
 nommer, comme le code à usage privé `qaa`, est envoyé sans nom.
 
 ## La barrière d'intégrité
@@ -46,21 +46,21 @@ clé, contre la source propre à chaque clé.
 
 | Vérification | Une candidate est refusée quand |
 | --- | --- |
-| Placeholders | ses placeholders diffèrent de ceux de la source, comparés comme un multiensemble (le nombre compte, l'ordre non). Ce qui compte comme placeholder est défini par [format](/docs/formats). |
+| Placeholders | ses placeholders diffèrent de ceux de la source, comparés comme un multiensemble (le nombre compte, l'ordre non). Ce qui compte comme placeholder est défini par [format](/fr/docs/formats). |
 | ICU | pour next-intl et ARB, elle ne s'analyse plus comme un message ICU, ou ses branches plurielles ne conviennent pas à la langue cible (voir plus bas). La comparaison tient compte des branches, donc un placeholder inventé dans une seule branche plurielle est repéré. |
 | Jetons inventés | pour i18next, ngx-translate et YAML, elle ajoute un jeton de forme `{name}` que la source n'a jamais eu. En supprimer un est permis, car les accolades simples y sont du texte littéral. |
 | Balisage en ligne | ses balises HTML ou XML diffèrent de celles de la source, ou sont déséquilibrées (voir plus bas). |
 | Dégénérescence | c'est une boucle de répétition, ou sa longueur s'est emballée par rapport à la source. |
-| Vide | elle est vide ou ne contient que des espaces pour une source non vide. Vider une traduction est un acte délibéré : c'est le rôle du marqueur `[[CLEAR]]` du classeur ([Confier avec Excel ou CSV](/docs/manual-translation)). |
+| Vide | elle est vide ou ne contient que des espaces pour une source non vide. Vider une traduction est un acte délibéré : c'est le rôle du marqueur `[[CLEAR]]` du classeur ([Confier avec Excel ou CSV](/fr/docs/manual-translation)). |
 
 Une candidate qui enfreint plusieurs vérifications est refusée avec un seul motif, le premier qui
 s'applique dans cet ordre : `empty`, `icu` (ne s'analyse pas), `placeholder`, `markup`, `icu`
 (branches), `degenerate`. Chaque motif, et les détails que verbatra affiche avec, figure sous
-[Motifs de refus d'intégrité](/docs/error-codes#integrity-refusal-reasons).
+[Motifs de refus d'intégrité](/fr/docs/error-codes#integrity-refusal-reasons).
 
 Ce que la barrière garantit : une valeur refusée n'est jamais écrite. Elle apparaît dans le résumé
 de l'exécution comme incohérence d'intégrité, garde son hash précédent dans
-[le fichier de verrouillage](/docs/the-lock-file), et est retentée à l'exécution suivante. Une clé
+[le fichier de verrouillage](/fr/docs/the-lock-file), et est retentée à l'exécution suivante. Une clé
 qui n'a reçu aucune traduction (l'appel fournisseur a échoué, ou la clé manquait encore après une
 requête de réparation) est signalée comme échec du fournisseur, et est retentée de la même façon.
 Côté source, une clé dont la propre valeur est un ICU invalide est mise de côté avant la traduction.
@@ -72,7 +72,7 @@ Ce qu'elle ne garantit pas : que la traduction soit juste. Elle prouve la struct
 <AvailableFrom version="0.12.0" />
 
 Un pluriel ICU a une branche par catégorie plurielle CLDR de sa langue
-([exemples](/docs/language-support#pluriels)). Pour next-intl et ARB, verbatra lit les catégories
+([exemples](/fr/docs/language-support#pluriels)). Pour next-intl et ARB, verbatra lit les catégories
 de la langue cible dans les données CLDR intégrées à Node.js :
 
 - Un fournisseur LLM reçoit la demande d'exactement ces branches (cardinales pour `plural`,
@@ -86,7 +86,7 @@ de la langue cible dans les données CLDR intégrées à Node.js :
 - Pour une locale dont Node.js n'a pas les règles de pluriel, seule `other` est requise.
 
 Une valeur écrite avant cette vérification, comme un pluriel français sans `many`, reste jusqu'à ce
-que sa source change ; [`verbatra check --qa`](/docs/cli/check#contrôle-qualité) la trouve dès
+que sa source change ; [`verbatra check --qa`](/fr/docs/cli/check#contrôle-qualité) la trouve dès
 maintenant.
 
 ### Parité du balisage en ligne
@@ -112,7 +112,7 @@ compare les noms de balise et d'attribut comme un multiensemble :
 Un balisage inventé dans une chaîne qui n'en avait pas est refusé aussi, tandis qu'un simple mot
 entre chevrons comme `<Enter>` est lu comme du texte. Les balises que le format signale déjà comme
 placeholders sont laissées à la vérification des placeholders. Commentaires, texte brut et sources
-mal formées : voir [`markup`](/docs/error-codes#markup).
+mal formées : voir [`markup`](/fr/docs/error-codes#markup).
 
 ## Signalements de relecture
 
@@ -121,31 +121,31 @@ retient jamais une clé : la valeur est écrite, verrouillée, et mise dans la f
 
 | Motif | Signale une traduction qui |
 | --- | --- |
-| [`LENGTH_RATIO_OUTLIER`](/docs/error-codes#length_ratio_outlier) | est bien plus courte ou plus longue que sa source, pondérée selon l'écriture |
-| [`MAX_LENGTH_EXCEEDED`](/docs/error-codes#max_length_exceeded) | est plus longue que le budget [`maxLength`](/docs/config-file#maxlength) de la clé <AvailableFrom version="0.11.0" /> |
-| [`EQUALS_SOURCE`](/docs/error-codes#equals_source) | est identique à son texte source |
-| [`GLOSSARY_TERM_MISSED`](/docs/error-codes#glossary_term_missed) | manque la traduction d'un terme du glossaire, ou altère un terme à ne pas traduire |
-| [`GLOSSARY_FORBIDDEN_TERM`](/docs/error-codes#glossary_forbidden_term) | utilise une forme que le glossaire interdit <AvailableFrom version="0.12.0" /> |
-| [`INTEGRITY_REORDERED`](/docs/error-codes#integrity_reordered) | garde chaque placeholder mais dans un autre ordre |
-| [`PROVIDER_DEGRADED`](/docs/error-codes#provider_degraded) | vient d'un lot que le fournisseur a dégradé, comme une formalité abandonnée |
-| [`FUZZY_CACHE_REUSE`](/docs/error-codes#fuzzy_cache_reuse) | a été [réutilisée depuis une source proche et modifiée](/docs/the-cache#réutilisation-approximative) <AvailableFrom version="0.11.0" /> |
-| [`FOREIGN_PLACEHOLDER_CHANGED`](/docs/error-codes#foreign_placeholder_changed) | perd ou modifie un jeton en forme de placeholder que son [format](/docs/formats) n'interpole pas, comme `{name}` dans i18next <AvailableFrom version="0.12.0" /> |
-| [`BIDI_CONTROLS_CHANGED`](/docs/error-codes#bidi_controls_changed) | laisse un contrôle de direction ouvert, ou ajoute un forçage qui inverse le texte <AvailableFrom version="0.12.0" /> |
+| [`LENGTH_RATIO_OUTLIER`](/fr/docs/error-codes#length_ratio_outlier) | est bien plus courte ou plus longue que sa source, pondérée selon l'écriture |
+| [`MAX_LENGTH_EXCEEDED`](/fr/docs/error-codes#max_length_exceeded) | est plus longue que le budget [`maxLength`](/fr/docs/config-file#maxlength) de la clé <AvailableFrom version="0.11.0" /> |
+| [`EQUALS_SOURCE`](/fr/docs/error-codes#equals_source) | est identique à son texte source |
+| [`GLOSSARY_TERM_MISSED`](/fr/docs/error-codes#glossary_term_missed) | manque la traduction d'un terme du glossaire, ou altère un terme à ne pas traduire |
+| [`GLOSSARY_FORBIDDEN_TERM`](/fr/docs/error-codes#glossary_forbidden_term) | utilise une forme que le glossaire interdit <AvailableFrom version="0.12.0" /> |
+| [`INTEGRITY_REORDERED`](/fr/docs/error-codes#integrity_reordered) | garde chaque placeholder mais dans un autre ordre |
+| [`PROVIDER_DEGRADED`](/fr/docs/error-codes#provider_degraded) | vient d'un lot que le fournisseur a dégradé, comme une formalité abandonnée |
+| [`FUZZY_CACHE_REUSE`](/fr/docs/error-codes#fuzzy_cache_reuse) | a été [réutilisée depuis une source proche et modifiée](/fr/docs/the-cache#réutilisation-approximative) <AvailableFrom version="0.11.0" /> |
+| [`FOREIGN_PLACEHOLDER_CHANGED`](/fr/docs/error-codes#foreign_placeholder_changed) | perd ou modifie un jeton en forme de placeholder que son [format](/fr/docs/formats) n'interpole pas, comme `{name}` dans i18next <AvailableFrom version="0.12.0" /> |
+| [`BIDI_CONTROLS_CHANGED`](/fr/docs/error-codes#bidi_controls_changed) | laisse un contrôle de direction ouvert, ou ajoute un forçage qui inverse le texte <AvailableFrom version="0.12.0" /> |
 
 DeepL, Google et LibreTranslate reçoivent ce jeton masqué et retiennent une valeur qu'ils ne peuvent
-ni masquer ni restaurer ([`PLACEHOLDER_UNSUPPORTED`](/docs/error-codes#placeholder_unsupported)) ; le signalement couvre les LLM et les personnes.
+ni masquer ni restaurer ([`PLACEHOLDER_UNSUPPORTED`](/fr/docs/error-codes#placeholder_unsupported)) ; le signalement couvre les LLM et les personnes.
 
 Les succès du cache et les valeurs partagées sont signalés comme les traductions fraîches. Les clés
 signalées apparaissent sous `needsReview` dans le résumé de l'exécution, dans les colonnes de
-relecture du classeur, et sur la [page Review de Studio](/docs/review-in-studio), jusqu'à ce qu'une
+relecture du classeur, et sur la [page Review de Studio](/fr/docs/review-in-studio), jusqu'à ce qu'une
 personne approuve, rejette ou réécrive la valeur
-([Décisions de relecture](/docs/the-lock-file#décisions-de-relecture)).
+([Décisions de relecture](/fr/docs/the-lock-file#décisions-de-relecture)).
 
 ## Le budget de tokens
 
 `maxTokens` compte les tokens d'une exécution sur tous les appels et toutes les locales ;
 `budgetBehavior: "stop"` retient le reste de l'exécution dès que le plafond serait dépassé, à
-retenter à l'exécution suivante ([règles](/docs/config-file#maxtokens-et-budgetbehavior)).
+retenter à l'exécution suivante ([règles](/fr/docs/config-file#maxtokens-et-budgetbehavior)).
 
 Ce que le budget garantit : le travail fait avant le plafond reste écrit et verrouillé, et rien
 n'est laissé à moitié écrit. Ce qu'il ne garantit pas : une requête en vol peut coûter plus que
@@ -156,22 +156,22 @@ ou par un agent ne sont pas couvertes.
 
 Quand un appel fournisseur échoue, l'erreur brute du SDK (qui peut contenir des en-têtes de requête
 ou des identifiants) est jetée, jamais journalisée ni relancée. verbatra lève à la place une erreur
-structurée avec un [code](/docs/error-codes#provider-error-codes) stable et un message fixe sans
-secret. Le masquage des clés est sur [Traitement des données](/docs/data-handling#clés-dapi).
+structurée avec un [code](/fr/docs/error-codes#provider-error-codes) stable et un message fixe sans
+secret. Le masquage des clés est sur [Traitement des données](/fr/docs/data-handling#clés-dapi).
 
 ## Où tu vois tout ça
 
-Tout ce qui précède est une donnée du [résumé de l'exécution](/docs/sdk/run-summary), par locale,
+Tout ce qui précède est une donnée du [résumé de l'exécution](/fr/docs/sdk/run-summary), par locale,
 et l'échec d'une locale n'arrête jamais les autres.
 
 ### Valeurs déjà versionnées
 
 <AvailableFrom version="0.12.0" />
 
-[`verbatra check --qa`](/docs/cli/check#contrôle-qualité) applique la barrière et les signalements
+[`verbatra check --qa`](/fr/docs/cli/check#contrôle-qualité) applique la barrière et les signalements
 de relecture aux valeurs commitées, sans appel fournisseur.
 
 ## Voir aussi
 
-- [Comment se déroule une exécution](/docs/how-it-works) : où se place chaque vérification dans le pipeline.
-- [Traitement des données et confidentialité](/docs/data-handling) : ce qui quitte ta machine.
+- [Comment se déroule une exécution](/fr/docs/how-it-works) : où se place chaque vérification dans le pipeline.
+- [Traitement des données et confidentialité](/fr/docs/data-handling) : ce qui quitte ta machine.

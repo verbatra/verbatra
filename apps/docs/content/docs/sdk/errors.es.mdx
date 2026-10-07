@@ -9,7 +9,7 @@ Los fallos de toda la ejecución lanzan un `SdkError`: una sola clase, un `code`
 sin secretos. Ramifica sobre el código, no sobre el mensaje. Los fallos por locale, los avisos del
 proveedor y los hallazgos de integridad se comunican como datos en el `RunSummary`, nunca se lanzan.
 
-Cada código, qué significa, qué comandos de la CLI llegan a él y cuál es el siguiente paso están en [Códigos de error del SDK](/docs/error-codes#sdk-error-codes).
+Cada código, qué significa, qué comandos de la CLI llegan a él y cuál es el siguiente paso están en [Códigos de error del SDK](/es/docs/error-codes#sdk-error-codes).
 
 `code` está tipado como la unión `SdkErrorCode`. [`errorHint`](#errorhint) devuelve el siguiente paso que resuelve un error, y [`projectRelativeMessage`](#projectrelativemessage) acorta las rutas del proyecto en su mensaje antes de que se lo muestres a una persona.
 
@@ -40,15 +40,15 @@ Las excepciones a la regla de una sola clase de error:
 - `runStatus` no lanza nunca.
 
 Para cómo estos códigos se corresponden con los códigos de salida de la CLI, consulta
-[Códigos de error del SDK](/docs/error-codes#sdk-error-codes); para ayuda a partir del síntoma, consulta
-[Solución de problemas](/docs/troubleshooting).
+[Códigos de error del SDK](/es/docs/error-codes#sdk-error-codes); para ayuda a partir del síntoma, consulta
+[Solución de problemas](/es/docs/troubleshooting).
 
 ## Clases de error
 
 ### SdkError
 
 La clase con la que se lanza cada fallo de toda la ejecución. Su `name` es `"SdkError"`, su `code`
-es un miembro de la unión `SdkErrorCode`, que [Códigos de error del SDK](/docs/error-codes#sdk-error-codes)
+es un miembro de la unión `SdkErrorCode`, que [Códigos de error del SDK](/es/docs/error-codes#sdk-error-codes)
 enumera completa, y su `cause` solo está presente en los códigos que nombra
 [El modelo de errores](#el-modelo-de-errores). Compruébalo con `error instanceof SdkError` y usa un
 `switch` sobre `error.code`, y TypeScript reduce cada caso a un solo código.
@@ -70,7 +70,7 @@ El error estructurado con el que falla un proveedor de traducción, en lugar de 
 SDK o de HTTP. Su `name` es `"ProviderError"`, su `code` es un `ProviderErrorCode` y su mensaje es
 fijo y está redactado. En un fallo `MISSING_API_KEY`, `envVar` nombra la variable de la que el
 proveedor lee su clave, nunca su valor. `retranslateEntry` lo vuelve a lanzar, y un proveedor propio
-lo lanza desde `translateBatch`; [Códigos de error del proveedor](/docs/error-codes#provider-error-codes)
+lo lanza desde `translateBatch`; [Códigos de error del proveedor](/es/docs/error-codes#provider-error-codes)
 enumera cada código. Compruébalo con `error instanceof ProviderError`. En una versión anterior, que
 no exporta la clase, comprueba `error.name === "ProviderError"` y lee `code`.
 
@@ -90,7 +90,7 @@ class ProviderError extends Error {
 
 El error estructurado con el que falla un adaptador de formato o el registro de adaptadores. Su
 `name` es `"AdapterError"` y su `code` es un `AdapterErrorCode`, enumerado en
-[Códigos de error de los adaptadores de formato](/docs/error-codes#adapter-error-codes). `position`
+[Códigos de error de los adaptadores de formato](/es/docs/error-codes#adapter-error-codes). `position`
 ubica la sintaxis mal formada como `{ line, column }` contados desde 1, con la columna en unidades de
 código UTF-16: un adaptador integrado la fija en un error `INVALID_JSON` o `INVALID_YAML` cuyo parser
 indicó un lugar, y la deja en `undefined` en los demás casos. Lo que lanza un adaptador `custom:`
@@ -154,7 +154,7 @@ function errorHint(error: unknown): string | undefined;
 
 **Devuelve:** `string | undefined`
 
-**Ejemplo:** [Gestiona los errores](/docs/sdk-quickstart#gestiona-los-errores)
+**Ejemplo:** [Gestiona los errores](/es/docs/sdk-quickstart#gestiona-los-errores)
 
 ```ts title="Ejemplo"
 import { errorHint, translate, type VerbatraConfig } from "@verbatra/sdk";

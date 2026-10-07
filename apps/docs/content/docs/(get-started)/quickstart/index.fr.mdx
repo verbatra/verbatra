@@ -6,10 +6,10 @@ type: tutorial
 À la fin de cette page, un fichier de locale anglais a un pendant allemand, écrit par un fournisseur et vérifié par verbatra, ainsi que le fichier de verrouillage grâce auquel chaque exécution suivante ne traduit que ce qui a changé. Il te faut Node.js `^22.18.0 || >=24` et une dizaine de minutes. Les quatre premières étapes ne demandent ni compte ni clé d'API.
 
 <Callout title="Tu as déjà des fichiers de locale et un agent de code ?">
-Donne à ton agent le prompt de [Configure verbatra avec un agent IA](/docs/start-with-ai). Il installe verbatra autour des fichiers de locale que ton projet a déjà et s'arrête avant de dépenser quoi que ce soit. Les étapes ci-dessous partent de zéro.
+Donne à ton agent le prompt de [Configure verbatra avec un agent IA](/fr/docs/start-with-ai). Il installe verbatra autour des fichiers de locale que ton projet a déjà et s'arrête avant de dépenser quoi que ce soit. Les étapes ci-dessous partent de zéro.
 </Callout>
 
-Un démarrage rapide qui charge aussi le fichier traduit dans ton app existe pour [React](/docs/quickstart/react), [Next.js](/docs/quickstart/nextjs), [Vue](/docs/quickstart/vue), [Angular](/docs/quickstart/angular) et [Flutter](/docs/quickstart/flutter).
+Un démarrage rapide qui charge aussi le fichier traduit dans ton app existe pour [React](/fr/docs/quickstart/react), [Next.js](/fr/docs/quickstart/nextjs), [Vue](/fr/docs/quickstart/vue), [Angular](/fr/docs/quickstart/angular) et [Flutter](/fr/docs/quickstart/flutter).
 
 ## Étapes
 
@@ -22,7 +22,7 @@ Un démarrage rapide qui charge aussi le fichier traduit dans ton app existe pou
 npm install --save-dev @verbatra/cli
 ```
 
-Les commandes ci-dessous utilisent `npx`. Avec pnpm, yarn ou bun, lance plutôt `pnpm verbatra`, `yarn verbatra` ou `bun run verbatra`. Si pnpm s'arrête avec `ERR_PNPM_IGNORED_BUILDS`, consulte le [dépannage](/docs/troubleshooting#pnpm-bloque-les-scripts-dinstallation-dune-dépendance-err_pnpm_ignored_builds).
+Les commandes ci-dessous utilisent `npx`. Avec pnpm, yarn ou bun, lance plutôt `pnpm verbatra`, `yarn verbatra` ou `bun run verbatra`. Si pnpm s'arrête avec `ERR_PNPM_IGNORED_BUILDS`, consulte le [dépannage](/fr/docs/troubleshooting#pnpm-bloque-les-scripts-dinstallation-dune-dépendance-err_pnpm_ignored_builds).
 
 </Step>
 <Step>
@@ -49,7 +49,7 @@ Si ton projet a déjà des fichiers de locale, passe cette étape. Sinon, crées
 npx @verbatra/cli init --format i18next-json --provider gemini --yes
 ```
 
-`--format` indique le format de tes fichiers : [Choisis ta stack](/docs/pick-your-stack) donne l'id pour chaque framework. `--yes` reprend ce que `init` a détecté au lieu de poser des questions ; sans lui, tu réponds aux questions que liste [`verbatra init`](/docs/cli/init).
+`--format` indique le format de tes fichiers : [Choisis ta stack](/fr/docs/pick-your-stack) donne l'id pour chaque framework. `--yes` reprend ce que `init` a détecté au lieu de poser des questions ; sans lui, tu réponds aux questions que liste [`verbatra init`](/fr/docs/cli/init).
 
 ```text output
 created verbatra.config.ts
@@ -83,7 +83,7 @@ verbatra translate (dry run)
 next: verbatra translate (run it for real)
 ```
 
-Une exécution à blanc ne construit aucun fournisseur : elle n'a pas besoin de clé, ne dépense rien et n'écrit rien. [`verbatra doctor`](/docs/cli/doctor) vérifie le reste de la configuration de la même façon.
+Une exécution à blanc ne construit aucun fournisseur : elle n'a pas besoin de clé, ne dépense rien et n'écrit rien. [`verbatra doctor`](/fr/docs/cli/doctor) vérifie le reste de la configuration de la même façon.
 
 </Step>
 <Step>
@@ -94,7 +94,7 @@ Une exécution à blanc ne construit aucun fournisseur : elle n'a pas besoin de 
 cp .env.example .env
 ```
 
-Ouvre `.env` et colle ta clé après `GEMINI_API_KEY=`. Les clés viennent uniquement de l'environnement, et la CLI y charge [`.env.local` et `.env`](/docs/cli#fichiers-denvironnement). Pas encore de clé ? Gemini a une offre gratuite : crées-en une dans [Google AI Studio](https://aistudio.google.com/apikey). Les autres fournisseurs et leurs variables sont sur [Fournisseurs](/docs/providers).
+Ouvre `.env` et colle ta clé après `GEMINI_API_KEY=`. Les clés viennent uniquement de l'environnement, et la CLI y charge [`.env.local` et `.env`](/fr/docs/cli#fichiers-denvironnement). Pas encore de clé ? Gemini a une offre gratuite : crées-en une dans [Google AI Studio](https://aistudio.google.com/apikey). Les autres fournisseurs et leurs variables sont sur [Fournisseurs](/fr/docs/providers).
 
 ```bash
 npx @verbatra/cli translate
@@ -134,18 +134,18 @@ all locales in sync
 
 ## Ce qui vient de se passer
 
-- `locales/de.json` contient les mêmes clés dans le même ordre que ta source, et `{{name}}` a survécu : un résultat qui perd un placeholder est retenu, jamais écrit. Voir [Sûreté de la traduction](/docs/translation-safety).
-- `verbatra.lock.json` enregistre un hash du texte source derrière chaque traduction, pour que l'exécution suivante n'envoie que les clés nouvelles ou modifiées. Voir [Le fichier de verrouillage](/docs/the-lock-file).
-- `verbatra.provenance.json` note quel fournisseur et quel modèle a écrit chaque valeur. Voir [La provenance](/docs/the-lock-file#la-provenance-de-chaque-valeur).
-- `verbatra.cache.json` et `.verbatra-local/` contiennent le cache de traduction régénérable et l'état local de l'exécution. `init` les a déjà ajoutés au `.gitignore`. Voir [Le cache](/docs/the-cache).
+- `locales/de.json` contient les mêmes clés dans le même ordre que ta source, et `{{name}}` a survécu : un résultat qui perd un placeholder est retenu, jamais écrit. Voir [Sûreté de la traduction](/fr/docs/translation-safety).
+- `verbatra.lock.json` enregistre un hash du texte source derrière chaque traduction, pour que l'exécution suivante n'envoie que les clés nouvelles ou modifiées. Voir [Le fichier de verrouillage](/fr/docs/the-lock-file).
+- `verbatra.provenance.json` note quel fournisseur et quel modèle a écrit chaque valeur. Voir [La provenance](/fr/docs/the-lock-file#la-provenance-de-chaque-valeur).
+- `verbatra.cache.json` et `.verbatra-local/` contiennent le cache de traduction régénérable et l'état local de l'exécution. `init` les a déjà ajoutés au `.gitignore`. Voir [Le cache](/fr/docs/the-cache).
 
 Commite ensemble les fichiers de locale, le fichier de verrouillage et le fichier de provenance, pour que chaque machine et ta CI comparent avec la même base.
 
 ## Ensuite
 
 <Cards>
-  <Card title="Ajouter une langue" href="/docs/add-a-language" description="Ajoute une locale cible et laisse une exécution la remplir." />
-  <Card title="Exécuter verbatra en CI" href="/docs/ci-and-exit-codes" description="Fais échouer une pull request quand une locale dérive." />
-  <Card title="Comment fonctionne une exécution" href="/docs/how-it-works" description="Le pipeline derrière les commandes que tu viens de lancer." />
-  <Card title="Fichier de configuration" href="/docs/config-file" description="Tout ce que verbatra.config.ts peut contenir." />
+  <Card title="Ajouter une langue" href="/fr/docs/add-a-language" description="Ajoute une locale cible et laisse une exécution la remplir." />
+  <Card title="Exécuter verbatra en CI" href="/fr/docs/ci-and-exit-codes" description="Fais échouer une pull request quand une locale dérive." />
+  <Card title="Comment fonctionne une exécution" href="/fr/docs/how-it-works" description="Le pipeline derrière les commandes que tu viens de lancer." />
+  <Card title="Fichier de configuration" href="/fr/docs/config-file" description="Tout ce que verbatra.config.ts peut contenir." />
 </Cards>

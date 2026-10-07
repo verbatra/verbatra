@@ -17,14 +17,14 @@ modo que cada paso posterior funciona igual para todos los formatos. Una clave d
 no es válido para la sintaxis de mensajes del formato (ICU no válido) se aparta y se informa, en
 lugar de enviarse rota al proveedor. Un archivo de origen que falta o no se puede analizar hace
 fallar la ejecución; consulta
-[`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable) y
-[`SOURCE_INVALID`](/docs/error-codes#source_invalid).
+[`SOURCE_UNREADABLE`](/es/docs/error-codes#source_unreadable) y
+[`SOURCE_INVALID`](/es/docs/error-codes#source_invalid).
 
 ## Comparar con la línea base del bloqueo
 
 La comparación es lo que hace incremental una ejecución. verbatra lee el archivo de destino
 existente (un archivo ausente cuenta como vacío) y compara cada clave de origen con
-[el archivo de bloqueo](/docs/the-lock-file), el registro de lo que ya se tradujo:
+[el archivo de bloqueo](/es/docs/the-lock-file), el registro de lo que ya se tradujo:
 
 | Grupo | Significado | Qué hace la ejecución |
 | --- | --- | --- |
@@ -40,11 +40,11 @@ existente (un archivo ausente cuenta como vacío) y compara cada clave de origen
 Dos tipos de candidatos se retienen. Una clave cambiada cuyo valor actual escribió o importó una
 persona está protegida por defecto (`humanEdits`), y una clave que coincide con `pinnedKeys` nunca
 se traduce automáticamente. Ambas siguen desactualizadas hasta que una persona las resuelve;
-consulta [Conserva las traducciones humanas](/docs/protecting-human-translations).
+consulta [Conserva las traducciones humanas](/es/docs/protecting-human-translations).
 
 ## Enviar lotes al proveedor
 
-Cada candidato se busca primero en la [caché de traducciones](/docs/the-cache). Un acierto se
+Cada candidato se busca primero en la [caché de traducciones](/es/docs/the-cache). Un acierto se
 reutiliza y nunca llega al proveedor. De los fallos, las claves con el mismo contenido de origen se
 agrupan, para que ese texto cueste una petición por locale en lugar de una por clave.
 
@@ -52,7 +52,7 @@ Los grupos van a tu proveedor en sublotes secuenciales de como mucho `maxBatchSi
 defecto), cada uno con las entradas, los términos del glosario de ese locale y tu `tone`. Si un
 sublote falla (un límite de peticiones, un tiempo de espera agotado, una clave revocada), sus claves
 se retienen en esta ejecución mientras los demás sublotes siguen adelante.
-[Proveedores](/docs/providers) describe cómo aplica cada proveedor estas entradas.
+[Proveedores](/es/docs/providers) describe cómo aplica cada proveedor estas entradas.
 
 ## Validar la respuesta
 
@@ -73,7 +73,7 @@ Una traducción que cumple el esquema aún puede estar rota, así que verbatra d
 propio valor candidato si lo acepta y nunca se fía del informe del proveedor. Un candidato que pierde
 un placeholder, rompe un mensaje ICU o su marcado, vuelve vacío o degenera se retiene en lugar de
 escribirse. Las comprobaciones están en
-[Seguridad de la traducción](/docs/translation-safety#la-puerta-de-integridad).
+[Seguridad de la traducción](/es/docs/translation-safety#la-puerta-de-integridad).
 
 ## Escribir a través del adaptador
 
@@ -87,7 +87,7 @@ archivo a medio escribir, y quien revisa ve diffs pequeños y estables.
 Tras escribir un locale, sus entradas del bloqueo se refrescan con los hashes de origen actuales.
 Una clave retenida en esta ejecución conserva su hash anterior, así que la siguiente ejecución la
 sigue viendo pendiente. Cada locale se escribe bajo un
-[bloqueo de escritura](/docs/the-lock-file#el-bloqueo-de-escritura) entre procesos, de modo que dos
+[bloqueo de escritura](/es/docs/the-lock-file#el-bloqueo-de-escritura) entre procesos, de modo que dos
 ejecuciones solapadas nunca comparan con una línea base desfasada ni pagan dos veces la misma
 llamada.
 
@@ -95,7 +95,7 @@ llamada.
 
 Cada locale de destino se ejecuta por su cuenta, y que uno falle no detiene a los demás. La
 ejecución devuelve un resumen por locale: traducidas, sin cambios, huérfanas, retenidas, marcadas
-para revisión y avisos. Qué contiene cada campo está en [RunSummary](/docs/sdk/run-summary).
+para revisión y avisos. Qué contiene cada campo está en [RunSummary](/es/docs/sdk/run-summary).
 
 Lo que garantiza este diseño:
 
@@ -105,13 +105,13 @@ Lo que garantiza este diseño:
   misma forma, sin construir un proveedor ni escribir un archivo.
 
 Lo que no hace: nunca juzga si una traducción es buena. Para eso están las
-[señales de revisión](/docs/translation-safety#señales-de-revisión) y una persona.
+[señales de revisión](/es/docs/translation-safety#señales-de-revisión) y una persona.
 
 ## Relacionado
 
-- [`verbatra translate`](/docs/cli/translate): flags, salida y códigos de salida de una ejecución.
-- [El archivo de bloqueo y la procedencia](/docs/the-lock-file): qué registra la línea base.
-- [La caché de traducciones](/docs/the-cache): cómo se indexa la reutilización.
-- [Seguridad de la traducción](/docs/translation-safety): la puerta de integridad y las señales de
+- [`verbatra translate`](/es/docs/cli/translate): flags, salida y códigos de salida de una ejecución.
+- [El archivo de bloqueo y la procedencia](/es/docs/the-lock-file): qué registra la línea base.
+- [La caché de traducciones](/es/docs/the-cache): cómo se indexa la reutilización.
+- [Seguridad de la traducción](/es/docs/translation-safety): la puerta de integridad y las señales de
   revisión.
-- [Códigos de error](/docs/error-codes): cada código que puede informar una ejecución.
+- [Códigos de error](/es/docs/error-codes): cada código que puede informar una ejecución.

@@ -59,7 +59,7 @@ El archivo de bloqueo registra un hash del valor de **origen** detrás de cada t
 
 ## Vuelve a ejecutar tras una reversión
 
-Revertir y volver a ejecutar `verbatra translate` es repetir, no pedir una segunda opinión. Con el mismo proveedor, modelo, tono, glosario y `localeMap` del proveedor, la huella de la [caché](/docs/the-cache#la-huella) no cambia, así que la ejecución sirve las mismas traducciones desde `verbatra.cache.json` sin llamar al proveedor.
+Revertir y volver a ejecutar `verbatra translate` es repetir, no pedir una segunda opinión. Con el mismo proveedor, modelo, tono, glosario y `localeMap` del proveedor, la huella de la [caché](/es/docs/the-cache#la-huella) no cambia, así que la ejecución sirve las mismas traducciones desde `verbatra.cache.json` sin llamar al proveedor.
 
 Para obtener otro resultado, cambia lo que hizo mal el primero: un tono, un glosario o un modelo nuevos cambian la huella y vuelven a traducir por sí solos. Para reenviar la misma configuración al proveedor, añade `--no-cache`:
 
@@ -67,7 +67,7 @@ Para obtener otro resultado, cambia lo que hizo mal el primero: un tono, un glos
 verbatra translate --no-cache
 ```
 
-Para reconstruir un locale desde cero en lugar de deshacer una ejecución, consulta [¿Cómo lo retraduzco todo?](/docs/faq#cómo-lo-retraduzco-todo). Borrar el archivo de bloqueo no es un reinicio: sin referencia no se detecta nada como desactualizado, así que la siguiente ejecución no traduce nada.
+Para reconstruir un locale desde cero en lugar de deshacer una ejecución, consulta [¿Cómo lo retraduzco todo?](/es/docs/faq#cómo-lo-retraduzco-todo). Borrar el archivo de bloqueo no es un reinicio: sin referencia no se detecta nada como desactualizado, así que la siguiente ejecución no traduce nada.
 
 ## Una ejecución interrumpida o fallida
 
@@ -75,9 +75,9 @@ Una ejecución interrumpida no necesita reversión. Vuelve a ejecutarla.
 
 Cada locale se cierra por separado: primero se escribe su archivo y luego se registran sus entradas de bloqueo. Una interrupción deja completos los locales terminados y sin tocar los demás, y una nueva ejecución recoge los que no se tocaron. El único hueco, entre escribir el archivo de un locale y actualizar su bloqueo, se resuelve solo: las claves añadidas se adoptan tal como están, y las claves cambiadas aún llevan su hash antiguo, así que se vuelven a traducir. No se pierde trabajo.
 
-Las claves retenidas durante una ejecución, por una comprobación fallida, una llamada al proveedor fallida o un presupuesto de tokens, conservan su hash anterior, así que la siguiente ejecución las reintenta. Consulta [Solución de problemas](/docs/troubleshooting) para cada causa.
+Las claves retenidas durante una ejecución, por una comprobación fallida, una llamada al proveedor fallida o un presupuesto de tokens, conservan su hash anterior, así que la siguiente ejecución las reintenta. Consulta [Solución de problemas](/es/docs/troubleshooting) para cada causa.
 
-Una ejecución interrumpida libera sus bloqueos de escritura. Un proceso terminado a la fuerza (`kill -9`, un fallo) puede dejar uno en `.verbatra-local/`; la siguiente ejecución en la misma máquina ve que el proceso ya no existe y lo recupera. Un bloqueo que no puede comprobar hace que la ejecución espere y luego falle con [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), que nombra la ruta que hay que borrar.
+Una ejecución interrumpida libera sus bloqueos de escritura. Un proceso terminado a la fuerza (`kill -9`, un fallo) puede dejar uno en `.verbatra-local/`; la siguiente ejecución en la misma máquina ve que el proceso ya no existe y lo recupera. Un bloqueo que no puede comprobar hace que la ejecución espere y luego falle con [`LOCK_CONTENDED`](/es/docs/error-codes#lock_contended), que nombra la ruta que hay que borrar.
 
 ## Antes de una ejecución que no puedes deshacer fácilmente
 
@@ -87,7 +87,7 @@ Una ejecución interrumpida libera sus bloqueos de escritura. Un proceso termina
 
 ## Relacionado
 
-- [El archivo de bloqueo](/docs/the-lock-file): qué registra y cómo se detectan las desviaciones.
-- [La caché](/docs/the-cache): la huella y `--no-cache`.
-- [`verbatra translate`](/docs/cli/translate): `--dry-run`, `--locales` y `--no-cache`.
-- [Códigos de error](/docs/error-codes#lock_contended): `LOCK_CONTENDED` y los demás errores de bloqueo.
+- [El archivo de bloqueo](/es/docs/the-lock-file): qué registra y cómo se detectan las desviaciones.
+- [La caché](/es/docs/the-cache): la huella y `--no-cache`.
+- [`verbatra translate`](/es/docs/cli/translate): `--dry-run`, `--locales` y `--no-cache`.
+- [Códigos de error](/es/docs/error-codes#lock_contended): `LOCK_CONTENDED` y los demás errores de bloqueo.

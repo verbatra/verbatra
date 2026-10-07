@@ -16,13 +16,13 @@ fournisseur ne peut pas servir une locale.
 Chaque locale de ta configuration doit être une balise BCP 47 valide, comme `fr`, `pt-BR`,
 `sr-Latn` ou `es-419` ; pour des fichiers nommés `pt_BR.json`, écris `pt-BR` et règle
 `files.localeStyle` sur `posix`. Les règles complètes sont sous
-[Codes de locale](/docs/config-file#codes-de-locale).
+[Codes de locale](/fr/docs/config-file#codes-de-locale).
 
 Le code de ta configuration est celui que verbatra stocke partout : chemins de fichiers,
-[le fichier de verrouillage](/docs/the-lock-file) et [le cache](/docs/the-cache). Une graphie
+[le fichier de verrouillage](/fr/docs/the-lock-file) et [le cache](/fr/docs/the-cache). Une graphie
 propre au fournisseur n'existe qu'à l'intérieur d'une requête. Réécrire un code que tu traduis déjà,
 comme `pt_BR` en `pt-BR`, garde son historique ; voir
-[Un code de locale réécrit](/docs/the-lock-file#un-code-de-locale-réécrit).
+[Un code de locale réécrit](/fr/docs/the-lock-file#un-code-de-locale-réécrit).
 
 ## Couverture par fournisseur
 
@@ -43,26 +43,26 @@ Ce que cela veut dire en pratique :
 
 - **Les fournisseurs LLM** n'ont pas de liste fermée. Ils tentent toute langue que tu nommes, et la
   qualité baisse là où les données d'entraînement sont rares, donc une cible moins dotée mérite une
-  relecture humaine. Les [signalements de relecture](/docs/translation-safety#signalements-de-relecture)
+  relecture humaine. Les [signalements de relecture](/fr/docs/translation-safety#signalements-de-relecture)
   pointent vers les résultats les plus suspects.
 - **DeepL et Google Cloud Translation** ont une liste fermée, vérifiée avant une exécution.
 - **LibreTranslate** sert les modèles que ton serveur a installés.
 - Un `tone` ou un glossaire qu'un fournisseur ne peut pas respecter est signalé par un avis ; voir
-  [Ton et glossaire selon les fournisseurs](/docs/providers#ton-et-glossaire-selon-les-fournisseurs).
+  [Ton et glossaire selon les fournisseurs](/fr/docs/providers#ton-et-glossaire-selon-les-fournisseurs).
 
 ### Comment chaque fournisseur reçoit le code
 
 DeepL et Google Cloud Translation reçoivent certains codes sous leur propre graphie, et DeepL refuse
 une cible `en` ou `pt` nue avant toute requête. Les fournisseurs LLM reçoivent le code plus les
-[noms anglais](/docs/translation-safety#noms-de-langue-décriture-et-de-région) de la langue, de
+[noms anglais](/fr/docs/translation-safety#noms-de-langue-décriture-et-de-région) de la langue, de
 l'écriture et de la région. `localeMap` dans les `options` du fournisseur remplace le code par
 locale ; la correspondance complète est sous
-[Codes de locale envoyés au fournisseur](/docs/providers#codes-de-locale-envoyés-au-fournisseur).
+[Codes de locale envoyés au fournisseur](/fr/docs/providers#codes-de-locale-envoyés-au-fournisseur).
 
 ## Vérifier la prise en charge avant une exécution
 
 Avant toute dépense, verbatra juge chaque locale configurée d'après le fournisseur, et
-[`verbatra doctor --locales`](/docs/cli/doctor#prise-en-charge-des-locales) affiche les verdicts :
+[`verbatra doctor --locales`](/fr/docs/cli/doctor#prise-en-charge-des-locales) affiche les verdicts :
 
 - **supported** : le code que verbatra envoie figure dans la table du fournisseur, ou le fournisseur
   est un LLM.
@@ -71,7 +71,7 @@ Avant toute dépense, verbatra juge chaque locale configurée d'après le fourni
   sa liste en direct. Elle est traduite, avec l'avertissement `LOCALE_UNVERIFIED_BY_PROVIDER`.
 - **unsupported** : ni le code ni sa langue de base ne sont listés. `translate`, `watch` et une
   retraduction d'une seule clé refusent toute l'exécution avec
-  [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider).
+  [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/fr/docs/error-codes#locale_unsupported_by_provider).
 
 Laisse la locale de côté avec `--locales`, ou, si le fournisseur a ajouté la langue depuis,
 fais-la correspondre dans `localeMap` : une entrée explicite est considérée comme fiable. Les tables
@@ -109,7 +109,7 @@ verbatra lit les catégories de pluriel d'une langue, ordinaux compris, dans les
 données ICU de Node.js : l'anglais a deux catégories cardinales, le russe et le polonais quatre,
 l'arabe et le gallois six, le japonais seulement `other`. Pour une locale sans règles dans Node.js,
 l'avis de l'exécution suppose `one` et `other`, tandis que la barrière d'intégrité, `check` et
-`doctor` n'exigent que `other` ; le contrôle `plural-rules` de [`verbatra doctor`](/docs/cli/doctor)
+`doctor` n'exigent que `other` ; le contrôle `plural-rules` de [`verbatra doctor`](/fr/docs/cli/doctor)
 nomme une telle locale.
 
 La façon dont un pluriel reste correct dépend du format :
@@ -117,16 +117,16 @@ La façon dont un pluriel reste correct dépend du format :
 - **i18next** marque chaque forme avec un suffixe CLDR (`items_one`, `items_few`). Quand la source
   n'a pas une catégorie dont la cible a besoin, l'exécution signale `PLURAL_CATEGORIES_INCOMPLETE` ;
   avec `generatePlurals: true` et un fournisseur LLM, verbatra écrit les formes manquantes. Voir
-  [Ajouter une langue](/docs/add-a-language#langues-avec-plus-de-catégories-de-pluriel).
+  [Ajouter une langue](/fr/docs/add-a-language#langues-avec-plus-de-catégories-de-pluriel).
 - **next-intl et ARB** gardent tout un pluriel ICU dans une seule valeur, et une valeur dont les
   branches ne conviennent pas à la langue cible est refusée ; voir
-  [Branches plurielles par langue cible](/docs/translation-safety#branches-plurielles-par-langue-cible).
+  [Branches plurielles par langue cible](/fr/docs/translation-safety#branches-plurielles-par-langue-cible).
 - **Apple, Android et gettext** font l'aller-retour exact des formes de chaque locale, et une forme
   manquante doit être ajoutée à la main. gettext garde son en-tête `Plural-Forms` tel qu'écrit.
 
 ### Avertissements de pluriel
 
-[`verbatra check`](/docs/cli/check#catégories-de-pluriel) et `verbatra doctor` avertissent de chaque
+[`verbatra check`](/fr/docs/cli/check#catégories-de-pluriel) et `verbatra doctor` avertissent de chaque
 pluriel à qui manque une catégorie que sa langue utilise, dans chaque format de la liste ci-dessus
 sauf gettext, dont les formes suivent son propre en-tête ; les pluriels des autres formats ne sont
 pas vérifiés. DeepL, Google Cloud Translation et LibreTranslate traduisent les formes existantes
@@ -140,17 +140,17 @@ de direction ajoutée, retirée ou réordonnée. Ce que cela veut dire pour toi 
 
 - **Règle la direction dans ton app, pas dans les chaînes**, avec l'attribut `dir`, le CSS ou la
   direction de mise en page de ta plateforme. La
-  [vérification du balisage en ligne](/docs/translation-safety#parité-du-balisage-en-ligne) refuse
+  [vérification du balisage en ligne](/fr/docs/translation-safety#parité-du-balisage-en-ligne) refuse
   une traduction qui ajoute un attribut `dir` que la source n'a pas.
 - **Les marques de direction sont du texte** et peuvent disparaître ; vérifie les traductions qui
   en dépendent. Enchâssements, forçages ou isolats non fermés (la source fermant les siens) ou
-  forçages ajoutés lèvent [`BIDI_CONTROLS_CHANGED`](/docs/error-codes#bidi_controls_changed).
+  forçages ajoutés lèvent [`BIDI_CONTROLS_CHANGED`](/fr/docs/error-codes#bidi_controls_changed).
 - **Un ordre de placeholders modifié** ne lève que `INTEGRITY_REORDERED`, car un autre ordre est
   souvent correct dans une autre langue.
 - **Studio affiche les valeurs de droite à gauche** pour chaque locale dont l'écriture va dans ce
   sens, d'après la direction du navigateur ou l'écriture probable de la locale (`ku-Arab` de droite
   à gauche, `ku` de gauche à droite). Seul l'affichage change.
-- **[`verbatra pseudo --mode bidi`](/docs/cli/pseudo) affiche ta source de droite à gauche** dans
+- **[`verbatra pseudo --mode bidi`](/fr/docs/cli/pseudo) affiche ta source de droite à gauche** dans
   une pseudo-locale `ar-XB` et révèle les mises en page qui supposent un texte de gauche à droite
   avant toute traduction. Les images et icônes en miroir, c'est à toi de les vérifier.
 
@@ -160,9 +160,9 @@ Pour une langue que ton fournisseur hébergé couvre mal :
 
 - **Faire tourner un modèle local via `openai-compatible`.** Ce doit être un modèle de chat ajusté
   aux instructions qui renvoie un objet JSON ; voir
-  [Choisir un modèle local](/docs/providers#choisir-un-modèle-local).
+  [Choisir un modèle local](/fr/docs/providers#choisir-un-modèle-local).
 - **Utiliser un modèle de traduction dédié hors de verbatra** et ramener le résultat par
-  [l'aller-retour du classeur](/docs/manual-translation), qui applique les mêmes vérifications
+  [l'aller-retour du classeur](/fr/docs/manual-translation), qui applique les mêmes vérifications
   d'intégrité. Aucun ne se branche sur `openai-compatible`, car ce ne sont pas des modèles de chat :
   [MADLAD-400](https://huggingface.co/google/madlad400-3b-mt) (Apache-2.0, plus de 400 langues),
   [TranslateGemma](https://huggingface.co/google/translategemma-4b-it) (55 langues, conditions
@@ -170,4 +170,4 @@ Pour une langue que ton fournisseur hébergé couvre mal :
   (environ 200 langues, mais sous CC-BY-NC-4.0, donc pas pour un produit commercial). Vérifie
   toi-même la licence de chaque modèle.
 - **Faire traduire par une personne.** Le
-  [travail sans traduction automatique](/docs/human-only-workflow) fonctionne pour toute langue.
+  [travail sans traduction automatique](/fr/docs/human-only-workflow) fonctionne pour toute langue.

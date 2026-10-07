@@ -3,7 +3,7 @@ title: verbatra import
 description: Importiere eine ausgefüllte Übergabe als Arbeitsmappe, CSV, TSV oder XLIFF zurück in die Locale-Dateien, mit denselben Sicherheitsprüfungen.
 type: reference
 ---
-Lies eine von einer Übersetzerin ausgefüllte Übergabe zurück in deine Locale-Dateien. Jeder Wert läuft durch dieselben Integritätsprüfungen wie ein automatischer Lauf: Werte, die bestehen, werden geschrieben, und die [Lock-Datei](/docs/the-lock-file) wird aktualisiert; Werte, die durchfallen, werden zurückgehalten und gemeldet. Eine kaputte Zelle landet also nie in einer Locale-Datei. Ein echter Lauf ergänzt außerdem fehlende Einträge in einer vorhandenen `.gitignore`, siehe [.gitignore-Einträge](/docs/cli#gitignore-einträge).
+Lies eine von einer Übersetzerin ausgefüllte Übergabe zurück in deine Locale-Dateien. Jeder Wert läuft durch dieselben Integritätsprüfungen wie ein automatischer Lauf: Werte, die bestehen, werden geschrieben, und die [Lock-Datei](/de/docs/the-lock-file) wird aktualisiert; Werte, die durchfallen, werden zurückgehalten und gemeldet. Eine kaputte Zelle landet also nie in einer Locale-Datei. Ein echter Lauf ergänzt außerdem fehlende Einträge in einer vorhandenen `.gitignore`, siehe [.gitignore-Einträge](/de/docs/cli#gitignore-einträge).
 
 ## Synopsis
 
@@ -11,7 +11,7 @@ Lies eine von einer Übersetzerin ausgefüllte Übergabe zurück in deine Locale
 verbatra import <workbook> [flags]
 ```
 
-- `<workbook>`: die Übergabe, die [`verbatra export`](/docs/cli/export) geschrieben und die Übersetzerin ausgefüllt hat. Bei `xlsx` ist das die Arbeitsmappen-Datei; bei `csv`, `tsv`, `xliff2` und `xliff12` eine einzelne `<locale>.csv`-, `<locale>.tsv`- oder `<locale>.xlf`-Datei oder das Verzeichnis mit einer Datei pro Locale.
+- `<workbook>`: die Übergabe, die [`verbatra export`](/de/docs/cli/export) geschrieben und die Übersetzerin ausgefüllt hat. Bei `xlsx` ist das die Arbeitsmappen-Datei; bei `csv`, `tsv`, `xliff2` und `xliff12` eine einzelne `<locale>.csv`-, `<locale>.tsv`- oder `<locale>.xlf`-Datei oder das Verzeichnis mit einer Datei pro Locale.
 
 ## Beispiele
 
@@ -38,7 +38,7 @@ verbatra import handoff/de.xlf --reviewer "Agency GmbH"
 | `--reviewer` | `<name>` | keiner | Name, der bei jeder als reviewed oder final markierten XLIFF-Unit festgehalten wird; höchstens 64 Zeichen, gespeichert in der eingecheckten Herkunftsdatei |
 | `--lock-timeout` | `<seconds>` | `600` | wie lange auf eine gehaltene Schreibsperre einer Locale gewartet wird; eine ganze Zahl von `1` bis `3600`, sonst ein Verwendungsfehler, Exit `2` |
 
-Außerdem nimmt der Befehl die [globalen Flags](/docs/cli#globale-flags) `--cwd`, `--config` und `--json`.
+Außerdem nimmt der Befehl die [globalen Flags](/de/docs/cli#globale-flags) `--cwd`, `--config` und `--json`.
 
 ## Verhalten
 
@@ -56,13 +56,13 @@ Eine Datei aus einem früheren Export mit breiterer `--locales`-Auswahl wird nie
 
 <AvailableFrom version="0.12.0" />
 
-`--lock-timeout` legt fest, wie lange eine Locale auf eine belegte [Schreibsperre](/docs/the-lock-file#die-schreibsperre) wartet, bevor sie mit `LOCK_CONTENDED` scheitert, genau wie bei [`verbatra translate`](/docs/cli/translate). Das Warten passiert, bevor die Datei der Locale geschrieben wird: Eine Locale, die ins Zeitlimit läuft, bleibt unberührt, die anderen werden trotzdem importiert, und der Befehl endet mit `1`. Ist eine Datei einmal geschrieben, wartet das Eintragen in die Lock-Datei bis zum Standard von zehn Minuten, egal was `--lock-timeout` sagt. Ein Warten über eine Sekunde meldet eine Zeile mit der Sperre und ihrem Halter (unter `--json` ein `lock-wait`-Eintrag). `--dry-run` nimmt keine Sperre und wartet daher nie.
+`--lock-timeout` legt fest, wie lange eine Locale auf eine belegte [Schreibsperre](/de/docs/the-lock-file#die-schreibsperre) wartet, bevor sie mit `LOCK_CONTENDED` scheitert, genau wie bei [`verbatra translate`](/de/docs/cli/translate). Das Warten passiert, bevor die Datei der Locale geschrieben wird: Eine Locale, die ins Zeitlimit läuft, bleibt unberührt, die anderen werden trotzdem importiert, und der Befehl endet mit `1`. Ist eine Datei einmal geschrieben, wartet das Eintragen in die Lock-Datei bis zum Standard von zehn Minuten, egal was `--lock-timeout` sagt. Ein Warten über eine Sekunde meldet eine Zeile mit der Sperre und ihrem Halter (unter `--json` ein `lock-wait`-Eintrag). `--dry-run` nimmt keine Sperre und wartet daher nie.
 
 ### XLIFF
 
 <AvailableFrom version="0.12.0" />
 
-Eine XLIFF-Datei wird in der Version gelesen, die sie angibt, und eine einzelne Datei, deren Name keine konfigurierte Locale ist, wird über ihre angegebene Zielsprache zugeordnet. Eine Unit, deren Ziel dem aktuellen Wert entspricht, ändert nichts; jedes andere Ziel durchläuft das Integritäts-Gate wie eine Arbeitsmappen-Zeile. Eine als `reviewed` oder `final` markierte Unit (in 1.2 auch `signed-off` oder `approved="yes"`) wird als freigegeben festgehalten, mit `--reviewer` als Namen, und mit dem Hinweis `HANDOFF_REVIEWS_RECORDED` gemeldet. Eine Unit, deren ID keinen Quell-Key nennt, wird als fehlerhafte Zeile gemeldet. Siehe [An eine Übersetzungsagentur übergeben](/docs/translation-agency).
+Eine XLIFF-Datei wird in der Version gelesen, die sie angibt, und eine einzelne Datei, deren Name keine konfigurierte Locale ist, wird über ihre angegebene Zielsprache zugeordnet. Eine Unit, deren Ziel dem aktuellen Wert entspricht, ändert nichts; jedes andere Ziel durchläuft das Integritäts-Gate wie eine Arbeitsmappen-Zeile. Eine als `reviewed` oder `final` markierte Unit (in 1.2 auch `signed-off` oder `approved="yes"`) wird als freigegeben festgehalten, mit `--reviewer` als Namen, und mit dem Hinweis `HANDOFF_REVIEWS_RECORDED` gemeldet. Eine Unit, deren ID keinen Quell-Key nennt, wird als fehlerhafte Zeile gemeldet. Siehe [An eine Übersetzungsagentur übergeben](/de/docs/translation-agency).
 
 ### Leere und kaputte Zeilen
 
@@ -81,13 +81,13 @@ verbatra: importing verbatra-translations.xlsx... done (0.4s)
 next: verbatra check (confirm every locale is in sync)
 ```
 
-Diese Zeilen gehen auf stderr, und `--quiet` lässt sie weg. Siehe [Terminalausgabe](/docs/cli/output#terminalausgabe).
+Diese Zeilen gehen auf stderr, und `--quiet` lässt sie weg. Siehe [Terminalausgabe](/de/docs/cli/output#terminalausgabe).
 
 ### JSON-Ausgabe
 
-Schema: [`import-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/import-envelope.json) validiert den ganzen Envelope; [Schemas](/docs/cli/output#schemas) listet die übrigen auf.
+Schema: [`import-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/import-envelope.json) validiert den ganzen Envelope; [Schemas](/de/docs/cli/output#schemas) listet die übrigen auf.
 
-Mit `--json` trägt der [Envelope](/docs/cli/output#json-ausgabe) eine `RunSummary`, dieselbe Form, die [`verbatra translate`](/docs/cli/translate) ausgibt; [RunSummary](/docs/sdk/run-summary) listet jedes Feld auf.
+Mit `--json` trägt der [Envelope](/de/docs/cli/output#json-ausgabe) eine `RunSummary`, dieselbe Form, die [`verbatra translate`](/de/docs/cli/translate) ausgibt; [RunSummary](/de/docs/sdk/run-summary) listet jedes Feld auf.
 
 ## Exit-Codes
 
@@ -101,11 +101,11 @@ Mit `--json` trägt der [Envelope](/docs/cli/output#json-ausgabe) eine `RunSumma
 
 <AvailableFrom version="0.9.0" />
 
-Der Vertrag entspricht [`verbatra translate`](/docs/cli/translate), eine manuelle Übergabe verzweigt in CI also genauso: Eine unvollständige Locale endet mit `1`, und eine Lock-Datei, die kaputt ist oder kaputtgeht, stoppt den gesamten Lauf mit `2` und lässt die übrigen Locales unberührt (bereits angewendete bleiben geschrieben). Den Vertrag, dem jeder Befehl folgt, findest du unter [Exit-Codes](/docs/cli/output#exit-codes).
+Der Vertrag entspricht [`verbatra translate`](/de/docs/cli/translate), eine manuelle Übergabe verzweigt in CI also genauso: Eine unvollständige Locale endet mit `1`, und eine Lock-Datei, die kaputt ist oder kaputtgeht, stoppt den gesamten Lauf mit `2` und lässt die übrigen Locales unberührt (bereits angewendete bleiben geschrieben). Den Vertrag, dem jeder Befehl folgt, findest du unter [Exit-Codes](/de/docs/cli/output#exit-codes).
 
 ## Siehe auch
 
-- [Menschliche Übersetzung](/docs/manual-translation) behandelt den vollständigen Roundtrip aus Export, Ausfüllen und Import und was eine Übersetzerin bearbeiten darf.
-- [Übersetzungssicherheit](/docs/translation-safety) erklärt die Prüfungen, die einen Wert zurückhalten können.
-- [An eine Übersetzungsagentur übergeben](/docs/translation-agency) behandelt den XLIFF-Roundtrip durch ein CAT-Tool.
-- [`verbatra export`](/docs/cli/export) erzeugt die Übergabe, die dieser Befehl liest.
+- [Menschliche Übersetzung](/de/docs/manual-translation) behandelt den vollständigen Roundtrip aus Export, Ausfüllen und Import und was eine Übersetzerin bearbeiten darf.
+- [Übersetzungssicherheit](/de/docs/translation-safety) erklärt die Prüfungen, die einen Wert zurückhalten können.
+- [An eine Übersetzungsagentur übergeben](/de/docs/translation-agency) behandelt den XLIFF-Roundtrip durch ein CAT-Tool.
+- [`verbatra export`](/de/docs/cli/export) erzeugt die Übergabe, die dieser Befehl liest.

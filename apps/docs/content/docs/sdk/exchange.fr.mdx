@@ -26,7 +26,7 @@ function readLocaleFileSnapshot(
 
 **Renvoie :** `LocaleFileSnapshot`
 
-**Lève :** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision)
+**Lève :** [`UNKNOWN_FORMAT`](/fr/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/fr/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/fr/docs/error-codes#locale_path_collision)
 
 Renvoie `{ locale, hashes }`.
 
@@ -72,7 +72,7 @@ function createLocalePathResolver(
 
 **Renvoie :** `LocalePathResolver`
 
-**Lève :** [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision)
+**Lève :** [`LOCALE_LAYOUT_INVALID`](/fr/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/fr/docs/error-codes#locale_path_collision)
 
 Toutes les vérifications ont lieu à la création du résolveur, avant toute lecture de fichier : un
 pattern et un style incompatibles, ou une locale pour laquelle le style n'a pas d'écriture
@@ -81,7 +81,7 @@ correcte, lèvent `LOCALE_LAYOUT_INVALID`, et deux locales qui résolvent vers l
 
 ## La paire classeur
 
-La remise pour les traducteurs humains, sous forme de classeur Excel ou de texte délimité ; voir [Traduction humaine](/docs/manual-translation).
+La remise pour les traducteurs humains, sous forme de classeur Excel ou de texte délimité ; voir [Traduction humaine](/fr/docs/manual-translation).
 
 ### exportWorkbook
 
@@ -100,9 +100,9 @@ function exportWorkbook(
 
 **Renvoie :** `ExportWorkbookResult`
 
-**Lève :** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`EXPORT_OUTPUT_CONFLICT`](/docs/error-codes#export_output_conflict), [`EXPORT_UNWRITABLE`](/docs/error-codes#export_unwritable)
+**Lève :** [`UNKNOWN_FORMAT`](/fr/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/fr/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/fr/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/fr/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/fr/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/fr/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/fr/docs/error-codes#unknown_locale), [`EXPORT_OUTPUT_CONFLICT`](/fr/docs/error-codes#export_output_conflict), [`EXPORT_UNWRITABLE`](/fr/docs/error-codes#export_unwritable)
 
-**Exemple :** [L'aller-retour du classeur](/docs/programmatic-api#laller-retour-du-classeur)
+**Exemple :** [L'aller-retour du classeur](/fr/docs/programmatic-api#laller-retour-du-classeur)
 
 `format` vaut `xlsx` par défaut ; `csv` et `tsv` écrivent à la place un `<locale>.csv` ou `<locale>.tsv` par locale, donc `out` désigne pour eux un répertoire (créé s'il manque) et un chemin de fichier pour `xlsx`. `out` vaut par défaut `DEFAULT_WORKBOOK_PATH` (`verbatra-translations.xlsx`) ou, pour les formats délimités et XLIFF, `DEFAULT_DELIMITED_PATH` (`verbatra-translations`), tous deux exportés comme constantes. Les valeurs acceptées sont exportées comme `EXCHANGE_FORMATS` et la valeur par défaut comme `DEFAULT_EXCHANGE_FORMAT`, pour qu'un outil qui enveloppe le SDK puisse valider un argument de format sans coder la liste en dur. Renvoie `{ path, locales }` : le chemin absolu écrit et un compte de lignes par locale.
 
@@ -110,9 +110,9 @@ Avant toute lecture, `EXPORT_OUTPUT_CONFLICT` refuse un `out` qui tombe hors de 
 
 <AvailableFrom version="0.12.0" />
 
-`format: "xliff2"` et `format: "xliff12"` écrivent pour un outil de TAO un `<locale>.xlf` en XLIFF 2.0 ou 1.2 par locale dans le répertoire `out` : une unité par clé, les espaces réservés et le balisage comme codes en ligne `<ph>` protégés, la description et le sens de la clé comme notes, le hash de la source dans les métadonnées de l'unité et un état de segment tiré de l'état de verrouillage et de relecture (`initial` pour une clé manquante ou obsolète, `translated` quand elle est à jour, `reviewed` quand elle est approuvée). Les deux types sont exportés, `XliffFormat` nommant les deux membres XLIFF d'`ExchangeFormat`. Voir [Confier à une agence de traduction](/docs/translation-agency).
+`format: "xliff2"` et `format: "xliff12"` écrivent pour un outil de TAO un `<locale>.xlf` en XLIFF 2.0 ou 1.2 par locale dans le répertoire `out` : une unité par clé, les espaces réservés et le balisage comme codes en ligne `<ph>` protégés, la description et le sens de la clé comme notes, le hash de la source dans les métadonnées de l'unité et un état de segment tiré de l'état de verrouillage et de relecture (`initial` pour une clé manquante ou obsolète, `translated` quand elle est à jour, `reviewed` quand elle est approuvée). Les deux types sont exportés, `XliffFormat` nommant les deux membres XLIFF d'`ExchangeFormat`. Voir [Confier à une agence de traduction](/fr/docs/translation-agency).
 
-Chaque unité qui a une cible porte aussi son origine : XLIFF 1.2 qualifie une cible de classe machine non approuvée avec `state-qualifier="mt-suggestion"`, et XLIFF 2.0 ajoute les entrées `origin` et `review-state` au groupe de métadonnées `verbatra` de l'unité. Le résultat porte alors aussi `provenanceMarkers` : `"written"`, ou `"unavailable"` quand le fichier de provenance n'a pas pu être lu et qu'aucun marqueur n'a été écrit. Voir [Preuves de traduction automatique](/docs/provenance-evidence#marqueurs-dans-les-exports).
+Chaque unité qui a une cible porte aussi son origine : XLIFF 1.2 qualifie une cible de classe machine non approuvée avec `state-qualifier="mt-suggestion"`, et XLIFF 2.0 ajoute les entrées `origin` et `review-state` au groupe de métadonnées `verbatra` de l'unité. Le résultat porte alors aussi `provenanceMarkers` : `"written"`, ou `"unavailable"` quand le fichier de provenance n'a pas pu être lu et qu'aucun marqueur n'a été écrit. Voir [Preuves de traduction automatique](/fr/docs/provenance-evidence#marqueurs-dans-les-exports).
 
 ### importWorkbook
 
@@ -129,11 +129,11 @@ function importWorkbook(
 
 <SdkTypeTable name="ImportWorkbookInput" />
 
-**Renvoie :** [`RunSummary`](/docs/sdk/run-summary)
+**Renvoie :** [`RunSummary`](/fr/docs/sdk/run-summary)
 
-**Lève :** [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`REVIEWER_INVALID`](/docs/error-codes#reviewer_invalid), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid)
+**Lève :** [`LOCK_TIMEOUT_INVALID`](/fr/docs/error-codes#lock_timeout_invalid), [`REVIEWER_INVALID`](/fr/docs/error-codes#reviewer_invalid), [`UNKNOWN_FORMAT`](/fr/docs/error-codes#unknown_format), [`SOURCE_UNREADABLE`](/fr/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/fr/docs/error-codes#source_invalid), [`LOCALE_LAYOUT_INVALID`](/fr/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/fr/docs/error-codes#locale_path_collision), [`LOCK_FILE_INVALID`](/fr/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/fr/docs/error-codes#provenance_file_invalid)
 
-**Exemple :** [L'aller-retour du classeur](/docs/programmatic-api#laller-retour-du-classeur)
+**Exemple :** [L'aller-retour du classeur](/fr/docs/programmatic-api#laller-retour-du-classeur)
 
 Avec `csv` ou `tsv`, `workbook` est soit un seul fichier d'échange, soit le répertoire qui en contient un par locale, et la locale vient du nom du fichier. Un fichier terminé par `.csv` ou `.tsv` est lu dans ce format quand `format` est omis, et un répertoire dans le format de son manifeste d'export ou de ses fichiers de locale. Renvoie la même forme `RunSummary` que `translate` (avec `needsReview` toujours vide, puisqu'aucun fournisseur n'intervient). Une feuille pour une locale qui n'est pas une cible configurée fait échouer cette locale avec `CONFIG_INVALID` comme donnée sur le résumé, pas comme exception.
 
@@ -153,7 +153,7 @@ Avec `xliff2` ou `xliff12`, qui lisent chacun les deux versions, et par défaut 
 
 <AvailableFrom version="0.11.0" />
 
-`importTmx` et `exportTmx` font entrer et sortir la [mémoire de traduction](/docs/the-cache) en TMX,
+`importTmx` et `exportTmx` font entrer et sortir la [mémoire de traduction](/fr/docs/the-cache) en TMX,
 le format d'échange que produisent et lisent les principales plateformes de traduction. Aucune des
 deux ne construit un fournisseur, ne lit une clé d'API ni ne fait de requête réseau : chaque valeur
 vient du fichier ou de la mémoire déjà présente sur le disque. Ce n'est pas la paire classeur dans un
@@ -175,9 +175,9 @@ function importTmx(
 
 **Renvoie :** `ImportTmxResult`
 
-**Lève :** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision)
+**Lève :** [`UNKNOWN_FORMAT`](/fr/docs/error-codes#unknown_format), [`CONFIG_INVALID`](/fr/docs/error-codes#config_invalid), [`UNKNOWN_LOCALE`](/fr/docs/error-codes#unknown_locale), [`SOURCE_UNREADABLE`](/fr/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/fr/docs/error-codes#source_invalid), [`LOCALE_LAYOUT_INVALID`](/fr/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/fr/docs/error-codes#locale_path_collision)
 
-**Exemple :** [L'aller-retour TMX](/docs/programmatic-api#laller-retour-tmx)
+**Exemple :** [L'aller-retour TMX](/fr/docs/programmatic-api#laller-retour-tmx)
 
 Rien du fichier n'est tenu pour fiable. Le XML est analysé sous le durcissement du paquet d'échange,
 si bien qu'une déclaration d'entité, un sous-ensemble DTD interne, un fichier surdimensionné ou mal
@@ -280,9 +280,9 @@ function exportTmx(
 
 **Renvoie :** `ExportTmxResult`
 
-**Lève :** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`TMX_OUTPUT_CONFLICT`](/docs/error-codes#tmx_output_conflict), [`TMX_UNWRITABLE`](/docs/error-codes#tmx_unwritable), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision)
+**Lève :** [`UNKNOWN_LOCALE`](/fr/docs/error-codes#unknown_locale), [`CONFIG_INVALID`](/fr/docs/error-codes#config_invalid), [`TMX_OUTPUT_CONFLICT`](/fr/docs/error-codes#tmx_output_conflict), [`TMX_UNWRITABLE`](/fr/docs/error-codes#tmx_unwritable), [`LOCALE_LAYOUT_INVALID`](/fr/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/fr/docs/error-codes#locale_path_collision)
 
-**Exemple :** [L'aller-retour TMX](/docs/programmatic-api#laller-retour-tmx)
+**Exemple :** [L'aller-retour TMX](/fr/docs/programmatic-api#laller-retour-tmx)
 
 Renvoie `{ path, units, locales, withoutSource, illegalCharactersRemoved, provenanceMarkers }` ; `withoutSource` compte les entrées laissées de côté parce que la mémoire n'a pas de texte source pour elles, ce qui n'arrive qu'aux entrées héritées d'un cache écrit avant que la mémoire ne stocke le texte source, et `illegalCharactersRemoved` compte les caractères que XML 1.0 ne peut pas représenter et qui ont été retirés du texte des segments.
 

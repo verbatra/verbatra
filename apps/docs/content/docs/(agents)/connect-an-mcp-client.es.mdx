@@ -6,7 +6,7 @@ status: new
 ---
 <StartHere />
 
-Deja que un agente de programación lea el estado de las traducciones y corrija valores a través del servidor MCP stdio de verbatra. Regístralo una vez por cliente: una segunda entrada arranca un segundo servidor. Necesitas un proyecto con configuración de verbatra ([`npx @verbatra/cli init`](/docs/cli/init)) y Node.js `^22.18.0 || >=24`.
+Deja que un agente de programación lea el estado de las traducciones y corrija valores a través del servidor MCP stdio de verbatra. Regístralo una vez por cliente: una segunda entrada arranca un segundo servidor. Necesitas un proyecto con configuración de verbatra ([`npx @verbatra/cli init`](/es/docs/cli/init)) y Node.js `^22.18.0 || >=24`.
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
 
@@ -17,7 +17,7 @@ Deja que un agente de programación lea el estado de las traducciones y corrija 
 | `npx -y @verbatra/mcp` | nada instalado | no |
 | `npx @verbatra/cli mcp` | `@verbatra/cli` y `@verbatra/mcp` como dependencias de desarrollo | sí: `.env.local` y luego `.env` |
 
-Evita `npx -y @verbatra/cli mcp`, que termina con `2` porque la CLI nunca instala `@verbatra/mcp`. [Directorio del proyecto](/docs/cli/mcp#directorio-del-proyecto) explica dónde busca el servidor la configuración.
+Evita `npx -y @verbatra/cli mcp`, que termina con `2` porque la CLI nunca instala `@verbatra/mcp`. [Directorio del proyecto](/es/docs/cli/mcp#directorio-del-proyecto) explica dónde busca el servidor la configuración.
 
 ### Registro de MCP
 
@@ -34,14 +34,14 @@ El servidor arranca solo con herramientas de lectura y edición local: las herra
 
 Para que el agente pueda gastar, añade las dos cosas:
 
-- `--allow-spend` en los argumentos, o `VERBATRA_MCP_ALLOW_SPEND=1` en el entorno ([Herramientas de gasto](/docs/cli/mcp#herramientas-de-gasto));
-- la variable de la clave de tu proveedor, como `ANTHROPIC_API_KEY` ([Proveedores](/docs/providers)).
+- `--allow-spend` en los argumentos, o `VERBATRA_MCP_ALLOW_SPEND=1` en el entorno ([Herramientas de gasto](/es/docs/cli/mcp#herramientas-de-gasto));
+- la variable de la clave de tu proveedor, como `ANTHROPIC_API_KEY` ([Proveedores](/es/docs/providers)).
 
 <Callout type="warn">
 Nunca escribas una clave en un archivo del repositorio como `.mcp.json`, `.codex/config.toml`, `.gemini/settings.json`, `.cursor/mcp.json` o `.vscode/mcp.json`.
 </Callout>
 
-Para que los valores de traducción no lleguen al modelo del agente, añade `--redact-values`; consulta [Studio y MCP](/docs/data-handling#studio-y-mcp).
+Para que los valores de traducción no lleguen al modelo del agente, añade `--redact-values`; consulta [Studio y MCP](/es/docs/data-handling#studio-y-mcp).
 
 </Accordion>
 </Accordions>
@@ -67,7 +67,7 @@ Recomendado, desde la raíz del proyecto:
 npx @verbatra/cli init --agent
 ```
 
-[`init --agent`](/docs/cli/init#preparar-los-agentes-de-programación) escribe el archivo de instrucciones para agentes y, con el gasto desactivado, esta entrada en el `.mcp.json` del repositorio cuando encuentra Claude Code (`CLAUDE.md`, `.claude/` o `.mcp.json`) o ningún cliente; `--client claude` la fuerza:
+[`init --agent`](/es/docs/cli/init#preparar-los-agentes-de-programación) escribe el archivo de instrucciones para agentes y, con el gasto desactivado, esta entrada en el `.mcp.json` del repositorio cuando encuentra Claude Code (`CLAUDE.md`, `.claude/` o `.mcp.json`) o ningún cliente; `--client claude` la fuerza:
 
 ```json
 {
@@ -103,7 +103,7 @@ Esto escribe la misma entrada. Nunca añadas `--env KEY=value` aquí: escribe el
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-En lugar de `.mcp.json`, el plugin reúne las [skills de verbatra](/docs/agent-recipes#el-paquete-de-skills), este servidor y un hook que revisa un archivo de locale después de que Claude lo edite.
+En lugar de `.mcp.json`, el plugin reúne las [skills de verbatra](/es/docs/agent-recipes#el-paquete-de-skills), este servidor y un hook que revisa un archivo de locale después de que Claude lo edite.
 
 <Callout type="warn">
 Nunca combines el plugin de verbatra con una entrada `verbatra` en `.mcp.json`, que `init --agent` entonces omite: el plugin trae un segundo servidor.
@@ -401,11 +401,11 @@ Dale al cliente el comando `npx -y @verbatra/mcp`, más `--cwd /path/to/your/pro
 
 Pídele al agente que llame a `project.snapshot`, que devuelve los locales, el formato y el proveedor sin llamarlo.
 
-- **`configured: false`**: no se encontró una configuración utilizable. Pide `project.doctor` y luego ejecuta `npx @verbatra/cli init` o corrige `--cwd`. Consulta [Sin configuración](/docs/cli/mcp#sin-configuración).
+- **`configured: false`**: no se encontró una configuración utilizable. Pide `project.doctor` y luego ejecuta `npx @verbatra/cli init` o corrige `--cwd`. Consulta [Sin configuración](/es/docs/cli/mcp#sin-configuración).
 - **Faltan las herramientas de gasto**: revisa el interruptor de gasto y si el proveedor es `none`.
-- **Configuración editada**: no hace falta reiniciar; consulta [Tras un cambio de configuración](/docs/cli/mcp#tras-un-cambio-de-configuración).
+- **Configuración editada**: no hace falta reiniciar; consulta [Tras un cambio de configuración](/es/docs/cli/mcp#tras-un-cambio-de-configuración).
 
 ## Relacionado
 
-- [`verbatra mcp`](/docs/cli/mcp): flags y cada herramienta.
-- [Programa verbatra con JSON](/docs/agent-recipes#el-paquete-de-skills): la skill `verbatra-mcp-tools`.
+- [`verbatra mcp`](/es/docs/cli/mcp): flags y cada herramienta.
+- [Programa verbatra con JSON](/es/docs/agent-recipes#el-paquete-de-skills): la skill `verbatra-mcp-tools`.

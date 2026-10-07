@@ -5,7 +5,7 @@ type: concept
 ---
 Le cache de traduction, `verbatra.cache.json`, est une mémoire de traduction locale indexée par
 contenu : il retient la traduction d'un texte source, quelle que soit la clé qui le porte, pour que
-le même texte ne soit jamais payé deux fois. [Le fichier de verrouillage](/docs/the-lock-file)
+le même texte ne soit jamais payé deux fois. [Le fichier de verrouillage](/fr/docs/the-lock-file)
 répond à « cette clé est-elle à jour ? » ; le cache répond à « avons-nous déjà traduit ce texte ? ».
 
 ## Ce qu'il réutilise
@@ -19,11 +19,11 @@ verrouillage ne voit pas :
 - **Du contenu en double.** Deux clés au même texte source et au même contexte partagent une traduction.
 
 Une valeur réutilisée n'est pas acceptée aveuglément. Elle passe la même
-[barrière d'intégrité](/docs/translation-safety#la-barrière-dintégrité) contre la source actuelle
+[barrière d'intégrité](/fr/docs/translation-safety#la-barrière-dintégrité) contre la source actuelle
 qu'une traduction fraîche, et une valeur qui ne convient plus est écartée puis traduite à nouveau.
 Les succès du cache sont signalés par locale, à part des clés traduites pendant l'exécution.
 
-Une valeur qu'un relecteur a [rejetée](/docs/the-lock-file#décisions-de-relecture) n'est jamais
+Une valeur qu'un relecteur a [rejetée](/fr/docs/the-lock-file#décisions-de-relecture) n'est jamais
 réutilisée pour cette clé : le fichier de provenance garde un hash du texte refusé, et une exécution
 saute tout succès qui y correspond. La seule faille est un fichier de provenance que l'exécution ne
 peut pas lire (écrit par un verbatra plus récent, ou corrompu sous `humanEdits: "overwrite"`) ;
@@ -33,7 +33,7 @@ l'exécution ne connaît alors aucun rejet.
 
 Chaque entrée est rattachée au contexte dans lequel elle a été produite : une empreinte sur le
 fournisseur, le modèle, le ton, les termes du glossaire de cette locale, et le
-[`localeMap`](/docs/providers#codes-de-locale-envoyés-au-fournisseur) du fournisseur quand il a
+[`localeMap`](/fr/docs/providers#codes-de-locale-envoyés-au-fournisseur) du fournisseur quand il a
 des entrées. Change l'un d'eux et les entrées précédentes ne correspondent plus, donc un nouveau ton
 ou un glossaire modifié retraduit au lieu de servir un résultat périmé. Chaque locale a sa propre
 empreinte, donc modifier seulement la traduction allemande d'un terme laisse les entrées françaises
@@ -48,7 +48,7 @@ humain que le ton et le glossaire n'affectent pas.
 <AvailableFrom version="0.11.0" />
 
 Un succès exact exige que le texte source donne le même hash qu'avant, donc modifier un seul
-caractère en fait un échec. [`fuzzyCache`](/docs/config-file#fuzzycache) est un repli facultatif
+caractère en fait un échec. [`fuzzyCache`](/fr/docs/config-file#fuzzycache) est un repli facultatif
 pour ce cas : quand une clé échoue, verbatra compare sa source aux autres entrées de la même locale
 et de la même empreinte, et réutilise la plus proche à `threshold` ou au-dessus. Le score vaut un
 moins la distance d'édition en caractères divisée par la longueur de la chaîne la plus longue, donc
@@ -63,14 +63,14 @@ point une réutilisation est sûre. La sûreté vient de règles qui ne dépende
 
 - **C'est désactivé tant que tu ne l'actives pas.**
 - **Chaque réutilisation approximative est signalée pour relecture** avec
-  [`FUZZY_CACHE_REUSE`](/docs/error-codes#fuzzy_cache_reuse), à chaque exécution, quel que soit son
-  score. Si personne ne traite la [file de relecture](/docs/review-in-studio), laisse-la désactivée.
+  [`FUZZY_CACHE_REUSE`](/fr/docs/error-codes#fuzzy_cache_reuse), à chaque exécution, quel que soit son
+  score. Si personne ne traite la [file de relecture](/fr/docs/review-in-studio), laisse-la désactivée.
 - **Des nombres modifiés refusent la réutilisation.** Si les nombres des deux sources diffèrent en
   quantité, en valeur ou en ordre, l'entrée n'est pas candidate. Cela couvre tout caractère
   numérique Unicode (`m²` vers `m³`, `½` vers `¼`), mais pas les nombres écrits en toutes lettres.
 - **Une réutilisation ne règle pas la clé.** Le fichier de verrouillage garde l'ancienne référence
   de la clé, qui reste donc modifiée : chaque exécution suivante la propose à nouveau sans coût
-  fournisseur, et [`check`](/docs/cli/check) continue de la signaler, jusqu'à ce qu'une vraie
+  fournisseur, et [`check`](/fr/docs/cli/check) continue de la signaler, jusqu'à ce qu'une vraie
   traduction arrive.
 - **Un texte source inchangé n'atteint jamais la couche approximative.** Modifier seulement une
   description ou un indicateur de pluriel envoie la clé au fournisseur comme d'habitude.
@@ -108,7 +108,7 @@ ses traductions, donc il grossit à peu près jusqu'à la taille de ton texte so
 
 <AvailableFrom version="0.11.0" />
 
-[`verbatra tmx`](/docs/cli/tmx) importe dans le cache un fichier TMX venant d'un autre outil de
+[`verbatra tmx`](/fr/docs/cli/tmx) importe dans le cache un fichier TMX venant d'un autre outil de
 traduction et exporte le cache en TMX. Les unités importées sont stockées sous l'empreinte actuelle,
 donc elles cessent de correspondre quand le fournisseur, le modèle, le ton, le glossaire ou
 `localeMap` change, comme tout le reste. Une réserve à « supprime-le et il se reconstruit » : une
@@ -116,7 +116,7 @@ mémoire importée n'est récupérable que tant que tu as le fichier TMX d'origi
 
 ## Le contourner
 
-`--no-cache` sur [`translate`](/docs/cli/translate) ou [`watch`](/docs/cli/watch) (`cache: false`
+`--no-cache` sur [`translate`](/fr/docs/cli/translate) ou [`watch`](/fr/docs/cli/watch) (`cache: false`
 dans le SDK) fait exactement les appels fournisseur qu'une exécution sans cache ferait, réutilisation
 approximative comprise, et laisse le fichier intact. Pour garder la réutilisation exacte et ne
 retirer que le repli approximatif, laisse `fuzzyCache` hors de la configuration. Une exécution à
@@ -130,7 +130,7 @@ viennent toujours du fournisseur.
 
 ## Voir aussi
 
-- [`fuzzyCache`](/docs/config-file#fuzzycache) : la clé de configuration et sa plage.
-- [`verbatra tmx`](/docs/cli/tmx) : importer et exporter la mémoire en TMX.
-- [Comment se déroule une exécution](/docs/how-it-works) : où se place la recherche dans le cache.
-- [Estimer le coût avant une exécution](/docs/estimating-cost) : ce que le cache économise avant que tu dépenses.
+- [`fuzzyCache`](/fr/docs/config-file#fuzzycache) : la clé de configuration et sa plage.
+- [`verbatra tmx`](/fr/docs/cli/tmx) : importer et exporter la mémoire en TMX.
+- [Comment se déroule une exécution](/fr/docs/how-it-works) : où se place la recherche dans le cache.
+- [Estimer le coût avant une exécution](/fr/docs/estimating-cost) : ce que le cache économise avant que tu dépenses.

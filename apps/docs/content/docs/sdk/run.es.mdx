@@ -21,24 +21,24 @@ function translate(
 
 <SdkTypeTable name="TranslateInput" />
 
-**Devuelve:** [`RunSummary`](/docs/sdk/run-summary)
+**Devuelve:** [`RunSummary`](/es/docs/sdk/run-summary)
 
-**Lanza:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`CONCURRENCY_INVALID`](/docs/error-codes#concurrency_invalid), [`CONCURRENCY_BUDGET_CONFLICT`](/docs/error-codes#concurrency_budget_conflict), [`MAX_TOKENS_INVALID`](/docs/error-codes#max_tokens_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed), [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid)
+**Lanza:** [`UNKNOWN_LOCALE`](/es/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/es/docs/error-codes#locale_unsupported_by_provider), [`UNKNOWN_FORMAT`](/es/docs/error-codes#unknown_format), [`CONCURRENCY_INVALID`](/es/docs/error-codes#concurrency_invalid), [`CONCURRENCY_BUDGET_CONFLICT`](/es/docs/error-codes#concurrency_budget_conflict), [`MAX_TOKENS_INVALID`](/es/docs/error-codes#max_tokens_invalid), [`LOCK_TIMEOUT_INVALID`](/es/docs/error-codes#lock_timeout_invalid), [`LOCALE_LAYOUT_INVALID`](/es/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/es/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/es/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/es/docs/error-codes#source_invalid), [`PROVIDER_CONSTRUCTION_FAILED`](/es/docs/error-codes#provider_construction_failed), [`NETWORK_POLICY_VIOLATION`](/es/docs/error-codes#network_policy_violation), [`CONFIG_INVALID`](/es/docs/error-codes#config_invalid), [`LOCK_FILE_INVALID`](/es/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/es/docs/error-codes#provenance_file_invalid)
 
-**Ejemplo:** [Traduce y lee el resumen](/docs/sdk-quickstart#traduce-y-lee-el-resumen)
+**Ejemplo:** [Traduce y lee el resumen](/es/docs/sdk-quickstart#traduce-y-lee-el-resumen)
 
 Lo que la tabla no cubre:
 
-- `cache` es la [caché de memoria de traducción](/docs/the-cache) local (`verbatra.cache.json`, exportada también como `CACHE_FILE_NAME`).
+- `cache` es la [caché de memoria de traducción](/es/docs/the-cache) local (`verbatra.cache.json`, exportada también como `CACHE_FILE_NAME`).
 - `humanEdits` (desde 0.12.0): por defecto, las claves obsoletas cuyo valor escribió, importó o
   cambió una persona fuera de verbatra se conservan y se listan en `LocaleSummary.protected`.
-  Consulta [Proteger traducciones humanas](/docs/protecting-human-translations).
+  Consulta [Proteger traducciones humanas](/es/docs/protecting-human-translations).
 - `onProgress` recibe los [eventos de progreso](#eventos-de-progreso) descritos abajo.
 - `maxBatchSize` y `budgetBehavior` son solo de configuración; no hay anulación por ejecución.
 
 Los problemas de toda la ejecución lanzan un `SdkError`; que falle un solo locale nunca lanza y
 queda como `status: "failed"` en la entrada de ese locale mientras la ejecución continúa. Consulta
-[la anatomía de `RunSummary`](/docs/sdk/run-summary#la-anatomía-de-runsummary).
+[la anatomía de `RunSummary`](/es/docs/sdk/run-summary#la-anatomía-de-runsummary).
 
 ### Eventos de progreso
 
@@ -115,9 +115,9 @@ function watch(
 
 **Devuelve:** `WatchController`
 
-**Lanza:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider), [`CONCURRENCY_INVALID`](/docs/error-codes#concurrency_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`CONCURRENCY_BUDGET_CONFLICT`](/docs/error-codes#concurrency_budget_conflict), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation), [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
+**Lanza:** [`UNKNOWN_LOCALE`](/es/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/es/docs/error-codes#locale_unsupported_by_provider), [`CONCURRENCY_INVALID`](/es/docs/error-codes#concurrency_invalid), [`LOCK_TIMEOUT_INVALID`](/es/docs/error-codes#lock_timeout_invalid), [`CONCURRENCY_BUDGET_CONFLICT`](/es/docs/error-codes#concurrency_budget_conflict), [`LOCALE_LAYOUT_INVALID`](/es/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/es/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/es/docs/error-codes#source_unreadable), [`NETWORK_POLICY_VIOLATION`](/es/docs/error-codes#network_policy_violation), [`PROVIDER_CONSTRUCTION_FAILED`](/es/docs/error-codes#provider_construction_failed), [`CONFIG_INVALID`](/es/docs/error-codes#config_invalid)
 
-**Ejemplo:** [Vigila en un proceso de larga duración](/docs/programmatic-api#vigila-en-un-proceso-de-larga-duración)
+**Ejemplo:** [Vigila en un proceso de larga duración](/es/docs/programmatic-api#vigila-en-un-proceso-de-larga-duración)
 
 `debounceMs` es 300 por defecto. `onRun` se llama una vez por ejecución con un `WatchRunResult`:
 `{ status: "succeeded", summary }` o
@@ -161,7 +161,7 @@ function releaseHeldLocks(): Promise<void>;
 
 Un bloqueo que queda atrás de todos modos, porque un proceso se mató de golpe, no lo necesita: una
 ejecución en espera en la misma máquina ve que el proceso registrado ya no existe y recupera el
-bloqueo por sí misma. Consulta [el bloqueo de escritura](/docs/the-lock-file#el-bloqueo-de-escritura).
+bloqueo por sí misma. Consulta [el bloqueo de escritura](/es/docs/the-lock-file#el-bloqueo-de-escritura).
 
 ## Pseudolocalización
 
@@ -188,9 +188,9 @@ function pseudolocalize(
 
 **Devuelve:** `PseudolocalizeResult`
 
-**Lanza:** [`PSEUDO_OUTPUT_CONFLICT`](/docs/error-codes#pseudo_output_conflict), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`TARGET_UNWRITABLE`](/docs/error-codes#target_unwritable)
+**Lanza:** [`PSEUDO_OUTPUT_CONFLICT`](/es/docs/error-codes#pseudo_output_conflict), [`UNKNOWN_FORMAT`](/es/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/es/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/es/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/es/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/es/docs/error-codes#source_invalid), [`TARGET_UNWRITABLE`](/es/docs/error-codes#target_unwritable)
 
-**Ejemplo:** [Construye un pseudolocale](/docs/programmatic-api#construye-un-pseudolocale)
+**Ejemplo:** [Construye un pseudolocale](/es/docs/programmatic-api#construye-un-pseudolocale)
 
 Cada valor generado pasa por la misma puerta de integridad que debe superar la traducción de
 un proveedor. Uno que no la superaría se copia literalmente del origen y se nombra en `copied` en
@@ -202,7 +202,7 @@ lugar de escribirse roto, así que la entrada sigue presente y sigue renderizán
 su lugar envuelve cada palabra de texto traducible en una marca y una anulación de derecha a
 izquierda y deja fuera los placeholders, la sintaxis ICU, el marcado, los dígitos y la puntuación,
 sin acentuar nada. En modo `bidi`, `locale` es `ar-XB` por defecto, un código que se resuelve con
-dirección de derecha a izquierda; consulta [`verbatra pseudo`](/docs/cli/pseudo) para ver cómo sus
+dirección de derecha a izquierda; consulta [`verbatra pseudo`](/es/docs/cli/pseudo) para ver cómo sus
 reglas de plural del árabe encajan con las formas de plural de tu origen.
 
 `locale` es `en-XA` por defecto y `out` es
@@ -249,9 +249,9 @@ function generateTypes(
 
 **Devuelve:** `GenerateTypesResult`
 
-**Lanza:** [`TYPES_OUTPUT_CONFLICT`](/docs/error-codes#types_output_conflict), [`TYPES_UNWRITABLE`](/docs/error-codes#types_unwritable), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid)
+**Lanza:** [`TYPES_OUTPUT_CONFLICT`](/es/docs/error-codes#types_output_conflict), [`TYPES_UNWRITABLE`](/es/docs/error-codes#types_unwritable), [`UNKNOWN_FORMAT`](/es/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/es/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/es/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/es/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/es/docs/error-codes#source_invalid)
 
-**Ejemplo:** [Genera un catálogo tipado](/docs/programmatic-api#genera-un-catálogo-tipado)
+**Ejemplo:** [Genera un catálogo tipado](/es/docs/programmatic-api#genera-un-catálogo-tipado)
 
 Lee un archivo (el catálogo del locale de origen) y escribe un archivo (la declaración); nunca
 toca un archivo de locale de destino. Las claves son exactamente lo que el adaptador de formato ya
@@ -290,7 +290,7 @@ distinguir mayúsculas de minúsculas, y cuando `deps.fs` implementa `realpath`,
 por defecto, las mismas comprobaciones se repiten sobre el sitio donde cae la ruta una vez resueltos
 los enlaces simbólicos. Una ejecución que genera también se niega, con el mismo código, a reemplazar
 un archivo existente que no empieza con la línea de cabecera que escribe verbatra, y deja ese
-archivo intacto. La lista completa está en la página de [`verbatra types`](/docs/cli/types). Con
+archivo intacto. La lista completa está en la página de [`verbatra types`](/es/docs/cli/types). Con
 `check` activado no se escribe nada en absoluto, no se rechaza nada por su contenido, y la ejecución
 solo informa de si el archivo confirmado sigue coincidiendo, que es justo lo que quiere una puerta
 de CI.

@@ -6,7 +6,7 @@ type: reference
 ---
 <AvailableFrom version="0.11.0" />
 
-Mach aus einem vertippten Key oder einem vergessenen Interpolationsargument einen Compile-Fehler. `types` liest deinen Quellkatalog über den konfigurierten [Format-Adapter](/docs/formats) und schreibt eine Deklarationsdatei: eine Union aller Keys und, pro Key, die Argumente, die dessen Nachricht nimmt. Der Befehl ruft keinen Provider auf, liest keinen API-Key und fasst nie eine Ziel-Locale-Datei an.
+Mach aus einem vertippten Key oder einem vergessenen Interpolationsargument einen Compile-Fehler. `types` liest deinen Quellkatalog über den konfigurierten [Format-Adapter](/de/docs/formats) und schreibt eine Deklarationsdatei: eine Union aller Keys und, pro Key, die Argumente, die dessen Nachricht nimmt. Der Befehl ruft keinen Provider auf, liest keinen API-Key und fasst nie eine Ziel-Locale-Datei an.
 
 ## Synopsis
 
@@ -37,7 +37,7 @@ verbatra types --json
 | `--out` | `<path>` | `verbatra-types.d.ts` | wohin die Deklaration geschrieben wird, relativ zum Arbeitsverzeichnis und innerhalb der Projektwurzel; fehlende Verzeichnisse werden angelegt |
 | `--check` | keins | aus | die committete Deklaration Byte für Byte mit einer frischen Generierung vergleichen, ohne etwas zu schreiben; Exit `1`, wenn sie veraltet ist oder fehlt |
 
-Außerdem nimmt der Befehl die [globalen Flags](/docs/cli#globale-flags) `--cwd`, `--config` und `--json`.
+Außerdem nimmt der Befehl die [globalen Flags](/de/docs/cli#globale-flags) `--cwd`, `--config` und `--json`.
 
 ## Verhalten
 
@@ -176,7 +176,7 @@ Dateinamen werden ohne Rücksicht auf Groß- und Kleinschreibung verglichen, und
 
 ### Ehrlich bleiben in der CI
 
-Lass `types --check` im selben Job neben [`verbatra check`](/docs/cli/check) laufen: `check` fängt Locales ab, die hinter der Quelle zurückbleiben, `types --check` deine Typen. Der Vergleich geht Byte für Byte, und die Deklaration wird immer mit Line-Feed-Zeilenenden geschrieben. Leg die Zeilenenden deshalb in `.gitattributes` fest, sonst lässt ein Checkout, der sie umschreibt, die Datei dauerhaft veraltet zurück:
+Lass `types --check` im selben Job neben [`verbatra check`](/de/docs/cli/check) laufen: `check` fängt Locales ab, die hinter der Quelle zurückbleiben, `types --check` deine Typen. Der Vergleich geht Byte für Byte, und die Deklaration wird immer mit Line-Feed-Zeilenenden geschrieben. Leg die Zeilenenden deshalb in `.gitattributes` fest, sonst lässt ein Checkout, der sie umschreibt, die Datei dauerhaft veraltet zurück:
 
 ```text
 verbatra-types.d.ts text eol=lf
@@ -184,9 +184,9 @@ verbatra-types.d.ts text eol=lf
 
 ### JSON-Ausgabe
 
-Schema: [`types-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/types-envelope.json) validiert den ganzen Envelope; [Schemas](/docs/cli/output#schemas) listet die übrigen auf.
+Schema: [`types-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/types-envelope.json) validiert den ganzen Envelope; [Schemas](/de/docs/cli/output#schemas) listet die übrigen auf.
 
-Mit `--json` trägt der [Envelope](/docs/cli/output#json-ausgabe) ein Ergebnis:
+Mit `--json` trägt der [Envelope](/de/docs/cli/output#json-ausgabe) ein Ergebnis:
 
 ```ts
 interface GenerateTypesResult {
@@ -229,7 +229,7 @@ verbatra types
   verbatra-types.d.ts is out of date, re-run verbatra types
 ```
 
-Farbe, Spinner und die Variablen dazu findest du unter [Terminalausgabe](/docs/cli/output#terminalausgabe).
+Farbe, Spinner und die Variablen dazu findest du unter [Terminalausgabe](/de/docs/cli/output#terminalausgabe).
 
 ## Exit-Codes
 
@@ -239,11 +239,11 @@ Farbe, Spinner und die Variablen dazu findest du unter [Terminalausgabe](/docs/c
 | `1` | `--check` hat die committete Deklaration als veraltet oder fehlend befunden (`is missing, run verbatra types to create it`) |
 | `2` | konnte nicht laufen: ein Verwendungsfehler, ein Problem mit Konfiguration oder Quelle, ein zurückgewiesener Ausgabepfad (`TYPES_OUTPUT_CONFLICT`) oder eine Deklaration, die nicht geschrieben werden konnte (`TYPES_UNWRITABLE`) |
 
-Den Vertrag, dem jeder Befehl folgt, findest du unter [Exit-Codes](/docs/cli/output#exit-codes).
+Den Vertrag, dem jeder Befehl folgt, findest du unter [Exit-Codes](/de/docs/cli/output#exit-codes).
 
 ## Siehe auch
 
-- [`verbatra extract`](/docs/cli/extract) trägt die Keys, die dein Code benutzt, in den Katalog ein; `types` deklariert sie dann.
-- [`verbatra check`](/docs/cli/check) ist das CI-Gate für Locale-Drift, direkt neben diesem für Typ-Drift.
-- [Formate](/docs/formats) listet die Platzhaltersyntax jedes Formats.
-- [Exit-Codes und JSON-Ausgabe](/docs/cli/output) behandelt den Envelope und den Exit-Code-Vertrag.
+- [`verbatra extract`](/de/docs/cli/extract) trägt die Keys, die dein Code benutzt, in den Katalog ein; `types` deklariert sie dann.
+- [`verbatra check`](/de/docs/cli/check) ist das CI-Gate für Locale-Drift, direkt neben diesem für Typ-Drift.
+- [Formate](/de/docs/formats) listet die Platzhaltersyntax jedes Formats.
+- [Exit-Codes und JSON-Ausgabe](/de/docs/cli/output) behandelt den Envelope und den Exit-Code-Vertrag.

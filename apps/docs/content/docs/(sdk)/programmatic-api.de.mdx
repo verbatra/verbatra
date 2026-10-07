@@ -3,8 +3,8 @@ title: SDK-Rezepte
 description: Vollständige, lauffähige Muster, um verbatra aus deinen eigenen Skripten, CI-Jobs und Tools anzusteuern.
 type: how-to
 ---
-Der [SDK-Schnellstart](/docs/sdk-quickstart) behandelt den ersten Lauf. Diese Seite setzt dort an
-mit vollständigen Rezepten zum Kopieren in ein Skript; die [SDK-Referenz](/docs/sdk) katalogisiert
+Der [SDK-Schnellstart](/de/docs/sdk-quickstart) behandelt den ersten Lauf. Diese Seite setzt dort an
+mit vollständigen Rezepten zum Kopieren in ein Skript; die [SDK-Referenz](/de/docs/sdk) katalogisiert
 jeden Einstiegspunkt. Das SDK lädt keine `.env`-Dateien, also führst du ein Rezept, das einen
 Provider aufruft, mit `node --env-file=.env` aus. Um einen ratenbegrenzten Provider Sprache für
 Sprache abzuarbeiten, übergib `locales: ["de"]` an `translate`.
@@ -15,7 +15,7 @@ Sprache abzuarbeiten, übergib `locales: ["de"]` an `translate`.
 
 `estimate: true` impliziert `dryRun`. Die Zahl landet auf `RunSummary.estimate`: Verzweige über
 `unit` für die abgerechnete Dimension und über `pricing` dafür, ob ein
-[`rates`](/docs/config-file#rates)-Block sie bepreist hat.
+[`rates`](/de/docs/config-file#rates)-Block sie bepreist hat.
 
 ```ts
 import { loadConfig, translate } from "@verbatra/sdk";
@@ -45,8 +45,8 @@ if (estimate !== undefined) {
 }
 ```
 
-Es begrenzt den Plan, nicht die Rechnung; [Kosten abschätzen](/docs/estimating-cost) erklärt die
-Methode, und [RunSummary](/docs/sdk/run-summary) listet, was jeder `EstimateCaveatCode` in `caveats`
+Es begrenzt den Plan, nicht die Rechnung; [Kosten abschätzen](/de/docs/estimating-cost) erklärt die
+Methode, und [RunSummary](/de/docs/sdk/run-summary) listet, was jeder `EstimateCaveatCode` in `caveats`
 auslässt.
 
 ## In CI prüfen, ohne zu schreiben
@@ -71,7 +71,7 @@ if (!summary.inSync) {
 
 Du brauchst die Key-Namen statt der Anzahlen? Tausche `diff` ein, das die Key-Listen `missing`,
 `changed` und `orphaned` pro Locale zurückgibt, mit demselben `hasPendingChanges`-Gate. Du führst
-stattdessen die CLI in CI aus? Siehe [CI und Exit-Codes](/docs/ci-and-exit-codes).
+stattdessen die CLI in CI aus? Siehe [CI und Exit-Codes](/de/docs/ci-and-exit-codes).
 
 ```ts
 import { diff, loadConfig } from "@verbatra/sdk";
@@ -119,7 +119,7 @@ if (summary.failed.length > 0 || !after.inSync) {
 ```
 
 Der Lauf schreibt echte Dateien, also teste gegen eine temporäre Kopie des Projekts. Ein echter
-Provider wird genauso eingebunden; siehe [Eigene Provider](/docs/sdk/extend#eigene-provider).
+Provider wird genauso eingebunden; siehe [Eigene Provider](/de/docs/sdk/extend#eigene-provider).
 
 ## Beobachten in einem langlaufenden Prozess
 
@@ -177,7 +177,7 @@ if (summary.cancelled === true) {
 }
 ```
 
-Eine Locale, deren Start der Abbruch verhindert hat, trägt den [Fehlercode `RUN_CANCELLED`](/docs/error-codes#run_cancelled), eine, die er mitten im Lauf gestoppt hat, die [Notice `RUN_CANCELLED`](/docs/error-codes#notice-run_cancelled). Ein Abbruch, der erst ankommt, wenn jede Locale fertig ist, lässt `cancelled` weg, und ein Fehler des ganzen Laufs beim Start schlägt weiterhin fehl.
+Eine Locale, deren Start der Abbruch verhindert hat, trägt den [Fehlercode `RUN_CANCELLED`](/de/docs/error-codes#run_cancelled), eine, die er mitten im Lauf gestoppt hat, die [Notice `RUN_CANCELLED`](/de/docs/error-codes#notice-run_cancelled). Ein Abbruch, der erst ankommt, wenn jede Locale fertig ist, lässt `cancelled` weg, und ein Fehler des ganzen Laufs beim Start schlägt weiterhin fehl.
 
 ## Keys aus deinem Quellcode extrahieren
 
@@ -215,7 +215,7 @@ if (preview.added.length > 0 && preview.conflicts.length === 0) {
 ```
 
 `config.extract` muss das Framework und die Quellverzeichnisse nennen, sonst wirft der Aufruf
-`EXTRACT_NOT_CONFIGURED`. [`extract`](/docs/sdk/inspect#extract) listet jeden weiteren Fehler, den
+`EXTRACT_NOT_CONFIGURED`. [`extract`](/de/docs/sdk/inspect#extract) listet jeden weiteren Fehler, den
 es auslöst.
 
 ## Einen typisierten Katalog erzeugen
@@ -254,7 +254,7 @@ if (gate.stale) {
 ```
 
 Übergib `configPath`, damit die vom Lauf geladene Konfigurationsdatei als Ausgabepfad abgelehnt
-wird. Ein `check`-Lauf schreibt nichts und meldet nur `stale`. [`verbatra types`](/docs/cli/types)
+wird. Ein `check`-Lauf schreibt nichts und meldet nur `stale`. [`verbatra types`](/de/docs/cli/types)
 listet alles, was ein schreibender Lauf ablehnt.
 
 ## Eine Pseudo-Locale bauen
@@ -321,7 +321,7 @@ if (retry.accepted) {
 }
 ```
 
-Was jede davon wirft, listet [`retranslateEntry`](/docs/sdk/review#retranslateentry).
+Was jede davon wirft, listet [`retranslateEntry`](/de/docs/sdk/review#retranslateentry).
 
 ### Werte von Menschen
 
@@ -329,7 +329,7 @@ Was jede davon wirft, listet [`retranslateEntry`](/docs/sdk/review#retranslateen
 
 `retranslateEntry` lehnt einen Wert, den ein Mensch geschrieben hat, ab, außer du übergibst
 `includeHuman: true`, und einen gepinnten Key immer; siehe
-[Menschliche Übersetzungen schützen](/docs/protecting-human-translations).
+[Menschliche Übersetzungen schützen](/de/docs/protecting-human-translations).
 
 ## Die Review-Warteschlange abarbeiten
 
@@ -376,7 +376,7 @@ for (const { locale, needsReview } of queue.locales) {
 }
 ```
 
-[Review](/docs/sdk/review#approveentry) zeigt die Batch-Varianten und jeden Code, den sie werfen.
+[Review](/de/docs/sdk/review#approveentry) zeigt die Batch-Varianten und jeden Code, den sie werfen.
 
 ## Alle Werte auf einmal lesen
 
@@ -432,13 +432,13 @@ console.log(`${summary.succeeded.length} locales ok, ${summary.failed.length} fa
 
 Übergib `dryRun: true` an `importWorkbook`, um eine zurückgekommene Datei zu validieren, ohne
 etwas zu schreiben. Was Übersetzerinnen bearbeiten dürfen und wie Zeilen validiert werden, steht
-in [Menschliche Übersetzung](/docs/manual-translation).
+in [Menschliche Übersetzung](/de/docs/manual-translation).
 
 ## Der TMX-Roundtrip
 
 <AvailableFrom version="0.11.0" />
 
-`importTmx` und `exportTmx` bewegen den [Übersetzungsspeicher](/docs/the-cache) in TMX hinein und
+`importTmx` und `exportTmx` bewegen den [Übersetzungsspeicher](/de/docs/the-cache) in TMX hinein und
 wieder heraus, in das Austauschformat, das die gängigen Übersetzungsplattformen erzeugen und lesen.
 Anders als das Arbeitsmappen-Paar bewegt dieses Paar den ganzen Speicher als eine mehrsprachige
 Datei zwischen Werkzeugen.

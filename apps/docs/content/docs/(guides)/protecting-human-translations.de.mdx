@@ -19,7 +19,7 @@ Du brauchst ein Projekt, in dem `translate` mindestens einmal gelaufen ist, dami
 | `import` | eine Zeile aus einer Übersetzerübergabe, importiert mit `verbatra import` |
 | `external` | eine Änderung außerhalb von verbatra, etwa ein Übersetzer, der die Locale-Datei in einem Pull Request ändert |
 
-Maschinelle Ausgaben (`machine`, `memory`, `fuzzy`), Änderungen durch Agenten (`agent`) und Werte ohne Eintrag (`unrecorded`) werden wie gewohnt neu übersetzt. Ein Wert, den ein Reviewer abgelehnt hat, ist nie geschützt. Unter [Herkunft](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat) steht, wie jede Herkunft erfasst wird.
+Maschinelle Ausgaben (`machine`, `memory`, `fuzzy`), Änderungen durch Agenten (`agent`) und Werte ohne Eintrag (`unrecorded`) werden wie gewohnt neu übersetzt. Ein Wert, den ein Reviewer abgelehnt hat, ist nie geschützt. Unter [Herkunft](/de/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat) steht, wie jede Herkunft erfasst wird.
 
 ## Finde die geschützten Keys
 
@@ -46,7 +46,7 @@ verbatra translate (dry run)
 Ein geschützter Key ist nicht mehr veraltet, sobald ein Mensch entscheidet, was er sagen soll:
 
 - Bearbeite ihn in Studio oder speichere ihn unverändert, um den Text zu behalten. In beiden Fällen wird der Wert als `human` gegen den neuen Quelltext erfasst.
-- Exportiere ihn, lass den Übersetzer ihn aktualisieren und importiere die Übergabe. Siehe [Menschliche Übersetzung](/docs/manual-translation).
+- Exportiere ihn, lass den Übersetzer ihn aktualisieren und importiere die Übergabe. Siehe [Menschliche Übersetzung](/de/docs/manual-translation).
 - Übersetze ihn bewusst neu, für einen Lauf mit `verbatra translate --include-human`.
 
 ## Vorschläge statt Überschreiben
@@ -62,7 +62,7 @@ export default defineConfig({
 
 Ein geschützter Key wird dann trotzdem an den Provider gesendet, aber die Antwort ist nur ein Vorschlag. Sie erscheint neben dem Key in der Laufzusammenfassung, mit einem `suggestionStatus`, der sagt, ob sie angekommen ist oder warum nicht, und sie wird im Übersetzungsgedächtnis abgelegt; in die Locale-Datei wird sie nie geschrieben. Ein exakter Gedächtniseintrag für den neuen Text kann als Vorschlag dienen, und der nächste Lauf liefert ihn erneut, ohne noch einmal zu zahlen. `translate --estimate` zählt diese Keys mit, weil sie gesendet werden. In einem rein menschlichen Projekt gibt es keinen Provider, den man fragen könnte, also verhält sich `suggest` wie `protect`.
 
-Um wieder alles neu zu übersetzen, setz `humanEdits` auf `overwrite`. Siehe [`humanEdits` und `pinnedKeys`](/docs/config-file#humanedits-und-pinnedkeys).
+Um wieder alles neu zu übersetzen, setz `humanEdits` auf `overwrite`. Siehe [`humanEdits` und `pinnedKeys`](/de/docs/config-file#humanedits-und-pinnedkeys).
 
 ## Keys pinnen
 
@@ -79,23 +79,23 @@ Ein gepinnter Key wird nie übersetzt, vorgeschlagen oder neu übersetzt, auch w
 
 ## Agenten
 
-Ein KI-Agent kann die Arbeit eines Menschen nicht ersetzen. Das MCP-Tool `translation.retranslateEntry` lehnt einen geschützten Wert mit [`KEY_PROTECTED`](/docs/error-codes#key_protected) und einen gepinnten Key mit [`KEY_PINNED`](/docs/error-codes#key_pinned) ab und bietet keine Übersteuerung an. `translation.translatePending` lässt geschützte Keys in Ruhe und listet sie auf. Ein Agent kann mit `translation.editEntry` weiterhin einen Wert schreiben, solange der Key nicht gepinnt ist; dieser Wert wird als `agent` erfasst und gilt deshalb nie als Arbeit eines Menschen.
+Ein KI-Agent kann die Arbeit eines Menschen nicht ersetzen. Das MCP-Tool `translation.retranslateEntry` lehnt einen geschützten Wert mit [`KEY_PROTECTED`](/de/docs/error-codes#key_protected) und einen gepinnten Key mit [`KEY_PINNED`](/de/docs/error-codes#key_pinned) ab und bietet keine Übersteuerung an. `translation.translatePending` lässt geschützte Keys in Ruhe und listet sie auf. Ein Agent kann mit `translation.editEntry` weiterhin einen Wert schreiben, solange der Key nicht gepinnt ist; dieser Wert wird als `agent` erfasst und gilt deshalb nie als Arbeit eines Menschen.
 
 ## In Studio
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Die Seite Translations markiert einen geschützten Key als **Protected** und führt ihn in einer eigenen Gruppe, mit der Herkunft seines aktuellen Werts. Öffne den Key, um ihn zu bearbeiten, oder speichere ihn unverändert, um den Text zu behalten. Wenn du einen geschützten Key aus der Key-Schublade neu übersetzt, fragt Studio vorher nach und bietet **Replace anyway** an. Siehe [Übersetzungen in Studio prüfen](/docs/review-in-studio).
+Die Seite Translations markiert einen geschützten Key als **Protected** und führt ihn in einer eigenen Gruppe, mit der Herkunft seines aktuellen Werts. Öffne den Key, um ihn zu bearbeiten, oder speichere ihn unverändert, um den Text zu behalten. Wenn du einen geschützten Key aus der Key-Schublade neu übersetzt, fragt Studio vorher nach und bietet **Replace anyway** an. Siehe [Übersetzungen in Studio prüfen](/de/docs/review-in-studio).
 
 ## Sonderfälle
 
 - **Eine Herkunftsdatei aus einer neueren verbatra-Version.** Keine Herkunft lässt sich lesen, also schützt `translate` jeden veralteten Key mit Wert, bis du aktualisierst, während `check` und `diff` nur gepinnte Keys als geschützt auflisten.
-- **Eine beschädigte Herkunftsdatei.** `translate` scheitert, auch als Dry Run, mit [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid). `check` und `diff` funktionieren weiter und führen nur gepinnte Keys als geschützt.
+- **Eine beschädigte Herkunftsdatei.** `translate` scheitert, auch als Dry Run, mit [`PROVENANCE_FILE_INVALID`](/de/docs/error-codes#provenance_file_invalid). `check` und `diff` funktionieren weiter und führen nur gepinnte Keys als geschützt.
 - **Rein menschliche Projekte.** Geschützte Keys zählen zum Exit-Code `3`, wie Keys, die das Übersetzungsgedächtnis nicht füllen konnte: Beide brauchen einen Menschen.
 
 ## Siehe auch
 
-- [Die Konfigurationsdatei](/docs/config-file#humanedits-und-pinnedkeys): `humanEdits` und `pinnedKeys`.
-- [`verbatra translate`](/docs/cli/translate#keys-die-ein-mensch-geschrieben-hat): `--include-human`.
-- [Die Lock-Datei](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat): wie `verbatra.provenance.json` jede Herkunft erfasst.
-- [Rein menschlicher Workflow](/docs/human-only-workflow): Projekte, in denen jeder Wert von einem Menschen stammt.
+- [Die Konfigurationsdatei](/de/docs/config-file#humanedits-und-pinnedkeys): `humanEdits` und `pinnedKeys`.
+- [`verbatra translate`](/de/docs/cli/translate#keys-die-ein-mensch-geschrieben-hat): `--include-human`.
+- [Die Lock-Datei](/de/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat): wie `verbatra.provenance.json` jede Herkunft erfasst.
+- [Rein menschlicher Workflow](/de/docs/human-only-workflow): Projekte, in denen jeder Wert von einem Menschen stammt.

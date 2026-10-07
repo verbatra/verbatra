@@ -7,7 +7,7 @@ type: how-to
 
 Usa esta página cuando un script o un agente de programación ejecute verbatra y tenga que decidir qué hacer después. Cada comando de una sola ejecución acepta `--json` e imprime un envoltorio en stdout, y el código de salida dice si la ejecución fue limpia. Las recetas de abajo ejecutan, analizan, deciden y actúan sobre salida real capturada.
 
-El contrato en sí está en [Códigos de salida y salida JSON](/docs/cli/output): los campos del envoltorio, la tabla de códigos de salida y qué comandos aceptan `--json`. El `result` de cada comando está en su página. Para controlar el panel desde un navegador en lugar de una shell, consulta [Maneja Studio con un agente del navegador](/docs/agent-tools-in-studio).
+El contrato en sí está en [Códigos de salida y salida JSON](/es/docs/cli/output): los campos del envoltorio, la tabla de códigos de salida y qué comandos aceptan `--json`. El `result` de cada comando está en su página. Para controlar el panel desde un navegador en lugar de una shell, consulta [Maneja Studio con un agente del navegador](/es/docs/agent-tools-in-studio).
 
 Las recetas leen stdout con `jq`; sirve cualquier analizador de JSON.
 
@@ -47,7 +47,7 @@ verbatra translate --dry-run --json 2>/dev/null \
 {"dryRun":true,"succeeded":["de"],"partial":[],"failed":[],"translated":["app.greeting"]}
 ```
 
-La forma completa de la entrada de un locale está en [RunSummary](/docs/sdk/run-summary).
+La forma completa de la entrada de un locale está en [RunSummary](/es/docs/sdk/run-summary).
 
 Cuando una ejecución no puede ocurrir en absoluto, stdout recibe un envoltorio de error y el comando sale con `2`. Ramifica sobre `code`, nunca sobre `message`, y actúa según `hint` cuando esté presente:
 
@@ -102,7 +102,7 @@ every locale is in sync
 cannot run [CONFIG_INVALID] The verbatra configuration is invalid: provider.options.maxOutputTokens: Invalid input: expected number, received undefined
 ```
 
-No lo ejecutes con `set -e`: un código distinto de cero es justo la señal que buscas. Los códigos sobre los que este script no ramifica están en [Códigos de salida y salida JSON](/docs/cli/output#códigos-de-salida).
+No lo ejecutes con `set -e`: un código distinto de cero es justo la señal que buscas. Los códigos sobre los que este script no ramifica están en [Códigos de salida y salida JSON](/es/docs/cli/output#códigos-de-salida).
 
 ## `watch` es un flujo, no una única salida
 
@@ -162,7 +162,7 @@ echo "$summary" | jq -r 'if .ok | not then "run error [\(.code)] \(.message)"
 exit $status
 ```
 
-Con una clave pendiente en `de`, imprime `de: 1 pending` y luego `succeeded: de` y sale con `0`; contra un proveedor inalcanzable imprime `failed: de` y sale con `1`; sin nada pendiente imprime `nothing pending` sin gastar nada. El primer paso usa `diff` porque es de solo lectura, no necesita clave y su código de salida ya dice si hay trabajo. La clave para `translate` viene del entorno; consulta [Proveedores](/docs/providers#las-claves-vienen-del-entorno).
+Con una clave pendiente en `de`, imprime `de: 1 pending` y luego `succeeded: de` y sale con `0`; contra un proveedor inalcanzable imprime `failed: de` y sale con `1`; sin nada pendiente imprime `nothing pending` sin gastar nada. El primer paso usa `diff` porque es de solo lectura, no necesita clave y su código de salida ya dice si hay trabajo. La clave para `translate` viene del entorno; consulta [Proveedores](/es/docs/providers#las-claves-vienen-del-entorno).
 
 ## Cuéntale a tu agente sobre verbatra
 
@@ -197,7 +197,7 @@ La mayoría de los agentes de programación leen un archivo de instrucciones del
 
 <AvailableFrom version="0.12.0" />
 
-`verbatra init --agent` escribe exactamente esta sección por ti, entre los marcadores `<!-- verbatra:start -->` y `<!-- verbatra:end -->`, que una ejecución posterior actualiza. Consulta [Preparar los agentes de programación](/docs/cli/init#preparar-los-agentes-de-programación).
+`verbatra init --agent` escribe exactamente esta sección por ti, entre los marcadores `<!-- verbatra:start -->` y `<!-- verbatra:end -->`, que una ejecución posterior actualiza. Consulta [Preparar los agentes de programación](/es/docs/cli/init#preparar-los-agentes-de-programación).
 
 ## El paquete de skills
 
@@ -215,12 +215,12 @@ npx skills@latest add verbatra/skills --skill verbatra-cli -a claude-code -y
 
 Cambia el nombre tras `--skill`, o repite el flag, para instalar más de una. Para otro agente, cambia el id tras `-a`, por ejemplo `codex`, `cursor`, `github-copilot` o `gemini-cli`; consulta la [lista de agentes compatibles](https://github.com/vercel-labs/skills).
 
-En Claude Code, el plugin de verbatra instala las tres skills junto con el servidor MCP (con el gasto desactivado) y un hook que comprueba los archivos de locale editados, así que úsalo en lugar de una entrada `verbatra` en `.mcp.json`, nunca junto a ella. Consulta [El plugin de verbatra](/docs/connect-an-mcp-client#el-plugin-de-verbatra).
+En Claude Code, el plugin de verbatra instala las tres skills junto con el servidor MCP (con el gasto desactivado) y un hook que comprueba los archivos de locale editados, así que úsalo en lugar de una entrada `verbatra` en `.mcp.json`, nunca junto a ella. Consulta [El plugin de verbatra](/es/docs/connect-an-mcp-client#el-plugin-de-verbatra).
 
 ## Relacionado
 
-- [Códigos de salida y salida JSON](/docs/cli/output): el envoltorio y el contrato de códigos de salida.
-- [JSON Schemas](/docs/cli/output#esquemas): un esquema para cada envoltorio y cada registro de stderr, para validar la salida antes de actuar sobre ella.
-- [Códigos de error](/docs/error-codes): cada `code` que puede llevar una salida, con su siguiente paso.
-- [Ejecuta verbatra en CI](/docs/ci-and-exit-codes): las mismas puertas en una pipeline.
-- [Configura verbatra con un agente de IA](/docs/start-with-ai): un prompt que adopta verbatra en un proyecto existente.
+- [Códigos de salida y salida JSON](/es/docs/cli/output): el envoltorio y el contrato de códigos de salida.
+- [JSON Schemas](/es/docs/cli/output#esquemas): un esquema para cada envoltorio y cada registro de stderr, para validar la salida antes de actuar sobre ella.
+- [Códigos de error](/es/docs/error-codes): cada `code` que puede llevar una salida, con su siguiente paso.
+- [Ejecuta verbatra en CI](/es/docs/ci-and-exit-codes): las mismas puertas en una pipeline.
+- [Configura verbatra con un agente de IA](/es/docs/start-with-ai): un prompt que adopta verbatra en un proyecto existente.

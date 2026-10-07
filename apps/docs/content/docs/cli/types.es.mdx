@@ -6,7 +6,7 @@ type: reference
 ---
 <AvailableFrom version="0.11.0" />
 
-Convierte una clave mal escrita o un argumento de interpolación olvidado en un error de compilación. `types` lee tu catálogo de origen a través del [adaptador de formato](/docs/formats) configurado y escribe un archivo de declaraciones: una unión de todas las claves y, por clave, los argumentos que toma su mensaje. No llama a ningún proveedor, no lee ninguna clave de API y nunca toca un archivo de locale de destino.
+Convierte una clave mal escrita o un argumento de interpolación olvidado en un error de compilación. `types` lee tu catálogo de origen a través del [adaptador de formato](/es/docs/formats) configurado y escribe un archivo de declaraciones: una unión de todas las claves y, por clave, los argumentos que toma su mensaje. No llama a ningún proveedor, no lee ninguna clave de API y nunca toca un archivo de locale de destino.
 
 ## Sinopsis
 
@@ -37,7 +37,7 @@ verbatra types --json
 | `--out` | `<path>` | `verbatra-types.d.ts` | dónde escribir la declaración, relativo al directorio de trabajo y dentro de la raíz del proyecto; los directorios que falten se crean |
 | `--check` | ninguno | desactivado | compara byte a byte la declaración confirmada con una generación nueva, sin escribir nada; sale con `1` si está obsoleta o falta |
 
-También acepta los [flags globales](/docs/cli#flags-globales) `--cwd`, `--config` y `--json`.
+También acepta los [flags globales](/es/docs/cli#flags-globales) `--cwd`, `--config` y `--json`.
 
 ## Comportamiento
 
@@ -176,7 +176,7 @@ Los nombres de archivo se comparan sin distinguir mayúsculas de minúsculas, y 
 
 ### Mantenerlo honesto en CI
 
-Ejecuta `types --check` junto a [`verbatra check`](/docs/cli/check) en el mismo job: `check` detecta locales que se quedan atrás respecto a la fuente, `types --check` tus tipos. La comparación es byte a byte y la declaración se escribe siempre con finales de línea line feed, así que fija los finales en `.gitattributes`, o un checkout que los reescriba deja el archivo desactualizado para siempre:
+Ejecuta `types --check` junto a [`verbatra check`](/es/docs/cli/check) en el mismo job: `check` detecta locales que se quedan atrás respecto a la fuente, `types --check` tus tipos. La comparación es byte a byte y la declaración se escribe siempre con finales de línea line feed, así que fija los finales en `.gitattributes`, o un checkout que los reescriba deja el archivo desactualizado para siempre:
 
 ```text
 verbatra-types.d.ts text eol=lf
@@ -184,9 +184,9 @@ verbatra-types.d.ts text eol=lf
 
 ### Salida JSON
 
-Esquema: [`types-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/types-envelope.json) valida el envoltorio completo; [Esquemas](/docs/cli/output#esquemas) enumera los demás.
+Esquema: [`types-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/types-envelope.json) valida el envoltorio completo; [Esquemas](/es/docs/cli/output#esquemas) enumera los demás.
 
-Con `--json`, el [envoltorio](/docs/cli/output#salida-json) lleva un resultado:
+Con `--json`, el [envoltorio](/es/docs/cli/output#salida-json) lleva un resultado:
 
 ```ts
 interface GenerateTypesResult {
@@ -229,7 +229,7 @@ verbatra types
   verbatra-types.d.ts is out of date, re-run verbatra types
 ```
 
-Consulta [Salida en el terminal](/docs/cli/output#salida-en-el-terminal) para el color, el spinner y las variables que los controlan.
+Consulta [Salida en el terminal](/es/docs/cli/output#salida-en-el-terminal) para el color, el spinner y las variables que los controlan.
 
 ## Códigos de salida
 
@@ -239,11 +239,11 @@ Consulta [Salida en el terminal](/docs/cli/output#salida-en-el-terminal) para el
 | `1` | `--check` encontró obsoleta o ausente la declaración confirmada (`is missing, run verbatra types to create it`) |
 | `2` | no se pudo ejecutar: un error de uso, un problema de configuración o de la fuente, una ruta de salida rechazada (`TYPES_OUTPUT_CONFLICT`) o una declaración que no se pudo escribir (`TYPES_UNWRITABLE`) |
 
-Consulta [Códigos de salida](/docs/cli/output#códigos-de-salida) para el contrato que sigue cada comando.
+Consulta [Códigos de salida](/es/docs/cli/output#códigos-de-salida) para el contrato que sigue cada comando.
 
 ## Relacionado
 
-- [`verbatra extract`](/docs/cli/extract) añade al catálogo las claves que usa tu código; `types` las declara después.
-- [`verbatra check`](/docs/cli/check) es la puerta de CI para el desfase de locales, junto a esta para el desfase de tipos.
-- [Formatos](/docs/formats) lista la sintaxis de placeholders de cada formato.
-- [Códigos de salida y salida JSON](/docs/cli/output) cubre el envoltorio y el contrato de códigos de salida.
+- [`verbatra extract`](/es/docs/cli/extract) añade al catálogo las claves que usa tu código; `types` las declara después.
+- [`verbatra check`](/es/docs/cli/check) es la puerta de CI para el desfase de locales, junto a esta para el desfase de tipos.
+- [Formatos](/es/docs/formats) lista la sintaxis de placeholders de cada formato.
+- [Códigos de salida y salida JSON](/es/docs/cli/output) cubre el envoltorio y el contrato de códigos de salida.

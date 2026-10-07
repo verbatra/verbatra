@@ -8,14 +8,14 @@ Usa esta guía cuando una pipeline deba detectar archivos de locale que se han d
 Antes de empezar, necesitas:
 
 - `@verbatra/cli` como dependencia de desarrollo, con tu lockfile confirmado en el repositorio. La CLI necesita Node `^22.18.0 || >=24`.
-- Una configuración, archivos de locale y [`verbatra.lock.json`](/docs/the-lock-file) confirmados en el repositorio.
+- Una configuración, archivos de locale y [`verbatra.lock.json`](/es/docs/the-lock-file) confirmados en el repositorio.
 - Solo para traducir: la clave de API de tu proveedor en el almacén de secretos de la CI.
 
-Si usas GitHub Actions y quieres anotaciones y un resumen del job sin escribir el job tú, usa la [GitHub Action](/docs/github-action).
+Si usas GitHub Actions y quieres anotaciones y un resumen del job sin escribir el job tú, usa la [GitHub Action](/es/docs/github-action).
 
 ## Añade una puerta de deriva
 
-[`verbatra check`](/docs/cli/check) compara el origen, los archivos de destino y el archivo de bloqueo, y sale con `1` cuando a un locale le faltan claves o tiene claves obsoletas. No llama a ningún proveedor, así que el job no necesita clave y se ejecuta en pull requests desde forks:
+[`verbatra check`](/es/docs/cli/check) compara el origen, los archivos de destino y el archivo de bloqueo, y sale con `1` cuando a un locale le faltan claves o tiene claves obsoletas. No llama a ningún proveedor, así que el job no necesita clave y se ejecuta en pull requests desde forks:
 
 ```yaml title=".github/workflows/i18n.yml"
 name: i18n
@@ -37,7 +37,7 @@ jobs:
       - run: pnpm exec verbatra check
 ```
 
-Cambia `check` por [`verbatra diff`](/docs/cli/diff) cuando quieras los nombres de las claves detrás de la deriva, por ejemplo para publicarlos en un comentario del pull request. Sale con `1` en la misma condición; las claves huérfanas aparecen en su salida, pero nunca lo hacen fallar por sí solas.
+Cambia `check` por [`verbatra diff`](/es/docs/cli/diff) cuando quieras los nombres de las claves detrás de la deriva, por ejemplo para publicarlos en un comentario del pull request. Sale con `1` en la misma condición; las claves huérfanas aparecen en su salida, pero nunca lo hacen fallar por sí solas.
 
 Para comprobar solo algunos locales, pasa `--locales de,fr`. Un valor de `--locales` sin ningún locale válido sale con `2`, así que una errata nunca pone la puerta en verde.
 
@@ -54,23 +54,23 @@ verbatra check --qa
 - Añade `--strict` para fallar también con avisos de revisión y categorías de plural que faltan.
 - En un hook de edición, `verbatra check --file <path>` comprueba un solo archivo de locale.
 
-Consulta [el control de calidad](/docs/cli/check#control-de-calidad) y [Un solo archivo](/docs/cli/check#un-solo-archivo). La [GitHub Action](/docs/github-action#comprobar-la-calidad-de-la-traducción) ejecuta la misma puerta con `qa: "true"`.
+Consulta [el control de calidad](/es/docs/cli/check#control-de-calidad) y [Un solo archivo](/es/docs/cli/check#un-solo-archivo). La [GitHub Action](/es/docs/github-action#comprobar-la-calidad-de-la-traducción) ejecuta la misma puerta con `qa: "true"`.
 
 ### Frenar por las decisiones de revisión
 
 <AvailableFrom version="0.12.0" />
 
-Añade `--require-reviewed` para fallar mientras alguna traducción escrita por máquina no esté aprobada en el `verbatra.provenance.json` confirmado, el archivo en el que escriben [la cola de revisión de Studio](/docs/review-in-studio) y las herramientas de revisión MCP:
+Añade `--require-reviewed` para fallar mientras alguna traducción escrita por máquina no esté aprobada en el `verbatra.provenance.json` confirmado, el archivo en el que escriben [la cola de revisión de Studio](/es/docs/review-in-studio) y las herramientas de revisión MCP:
 
 ```bash
 verbatra check --require-reviewed
 ```
 
-Tampoco necesita clave. Los códigos que informa están en [Exigir traducciones revisadas](/docs/cli/check#exigir-traducciones-revisadas).
+Tampoco necesita clave. Los códigos que informa están en [Exigir traducciones revisadas](/es/docs/cli/check#exigir-traducciones-revisadas).
 
 ## Traduce en un push
 
-Ejecuta [`verbatra translate`](/docs/cli/translate) y pasa la clave del proveedor desde tu almacén de secretos al entorno del paso. La CLI no acepta la clave como argumento ni la lee de la configuración; [Proveedores](/docs/providers#las-claves-vienen-del-entorno) indica qué variable lee cada proveedor.
+Ejecuta [`verbatra translate`](/es/docs/cli/translate) y pasa la clave del proveedor desde tu almacén de secretos al entorno del paso. La CLI no acepta la clave como argumento ni la lee de la configuración; [Proveedores](/es/docs/providers#las-claves-vienen-del-entorno) indica qué variable lee cada proveedor.
 
 ```yaml
       - run: pnpm exec verbatra translate --json
@@ -79,30 +79,30 @@ Ejecuta [`verbatra translate`](/docs/cli/translate) y pasa la clave del proveedo
 ```
 
 - El paso escribe los archivos de locale en el checkout y se detiene ahí. Añade tu propio paso que los confirme o abra un pull request, y concede `contents: write` o `pull-requests: write` solo a ese job.
-- Para previsualizar antes, ejecuta `verbatra translate --dry-run` o `--estimate`: ninguno llama a un proveedor ni necesita clave. Consulta [Estimar el coste](/docs/estimating-cost).
+- Para previsualizar antes, ejecuta `verbatra translate --dry-run` o `--estimate`: ninguno llama a un proveedor ni necesita clave. Consulta [Estimar el coste](/es/docs/estimating-cost).
 - Con un proveedor con límite de peticiones, traduce un locale por paso con `--locales`.
 
 ## Comprueba antes con doctor
 
-Pon [`verbatra doctor`](/docs/cli/doctor) antes de cualquiera de los dos jobs para fallar pronto ante una configuración rota. Comprueba la configuración, el formato, el proveedor, la variable de la clave, la política de red, el archivo de origen y el soporte de locales, y nunca llama a un proveedor ni lee el valor de una clave. Eso sí, informa de una variable de clave sin definir como una comprobación fallida, así que pasa la clave a cualquier job en el que esa comprobación deba pasar.
+Pon [`verbatra doctor`](/es/docs/cli/doctor) antes de cualquiera de los dos jobs para fallar pronto ante una configuración rota. Comprueba la configuración, el formato, el proveedor, la variable de la clave, la política de red, el archivo de origen y el soporte de locales, y nunca llama a un proveedor ni lee el valor de una clave. Eso sí, informa de una variable de clave sin definir como una comprobación fallida, así que pasa la clave a cualquier job en el que esa comprobación deba pasar.
 
 ## Códigos de salida
 
-Ramifica sobre el código de salida, nunca sobre el texto. Qué significa cada código, con sus casos límite, está en [Códigos de salida y salida JSON](/docs/cli/output#códigos-de-salida); un código de error en la salida se explica en [Códigos de error](/docs/error-codes).
+Ramifica sobre el código de salida, nunca sobre el texto. Qué significa cada código, con sus casos límite, está en [Códigos de salida y salida JSON](/es/docs/cli/output#códigos-de-salida); un código de error en la salida se explica en [Códigos de error](/es/docs/error-codes).
 
 ## Salida JSON
 
-Pasa `--json` para obtener un envoltorio por registro en stdout. Sus campos están en [Códigos de salida y salida JSON](/docs/cli/output#salida-json), y el `result` de cada comando en su página. [Programa verbatra con JSON](/docs/agent-recipes) tiene recetas que lo leen.
+Pasa `--json` para obtener un envoltorio por registro en stdout. Sus campos están en [Códigos de salida y salida JSON](/es/docs/cli/output#salida-json), y el `result` de cada comando en su página. [Programa verbatra con JSON](/es/docs/agent-recipes) tiene recetas que lo leen.
 
 ## Claves e instalaciones
 
 - Instala con `pnpm install --frozen-lockfile` o `npm ci`, para que el job ejecute exactamente la versión de `@verbatra/cli` que registra tu lockfile.
 - Mantén los secretos fuera de los jobs que nunca llaman a un proveedor: `check`, `diff`, `report`, `export`, `import`, `extract`, `pseudo`, `types` y `tmx`.
-- En CI, confía en `env:`. Qué comandos cargan además `.env.local` y `.env` está en [Archivos de entorno](/docs/cli#archivos-de-entorno).
+- En CI, confía en `env:`. Qué comandos cargan además `.env.local` y `.env` está en [Archivos de entorno](/es/docs/cli#archivos-de-entorno).
 
 ## Relacionado
 
-- [Usa la GitHub Action](/docs/github-action): las mismas puertas con anotaciones y un resumen del job.
-- [`verbatra check`](/docs/cli/check) y [`verbatra diff`](/docs/cli/diff): todos los flags de las dos puertas.
-- [Códigos de salida y salida JSON](/docs/cli/output): el contrato que lee un paso de CI.
-- [Códigos de error](/docs/error-codes): qué significa cada código y cuál es el siguiente paso.
+- [Usa la GitHub Action](/es/docs/github-action): las mismas puertas con anotaciones y un resumen del job.
+- [`verbatra check`](/es/docs/cli/check) y [`verbatra diff`](/es/docs/cli/diff): todos los flags de las dos puertas.
+- [Códigos de salida y salida JSON](/es/docs/cli/output): el contrato que lee un paso de CI.
+- [Códigos de error](/es/docs/error-codes): qué significa cada código y cuál es el siguiente paso.

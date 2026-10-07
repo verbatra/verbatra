@@ -5,7 +5,7 @@ type: concept
 ---
 La caché de traducciones, `verbatra.cache.json`, es una memoria de traducción local indexada por
 contenido: recuerda la traducción de un texto de origen, sea cual sea la clave que lo contiene, así
-que el mismo texto nunca se paga dos veces. [El archivo de bloqueo](/docs/the-lock-file) responde
+que el mismo texto nunca se paga dos veces. [El archivo de bloqueo](/es/docs/the-lock-file) responde
 "¿está esta clave al día?"; la caché responde "¿ya hemos traducido este texto?".
 
 ## Qué reutiliza
@@ -19,11 +19,11 @@ no ve:
 - **Contenido duplicado.** Dos claves con el mismo texto de origen y el mismo contexto comparten una traducción.
 
 Un valor reutilizado no se acepta a ciegas. Pasa la misma
-[puerta de integridad](/docs/translation-safety#la-puerta-de-integridad) frente al origen actual que
+[puerta de integridad](/es/docs/translation-safety#la-puerta-de-integridad) frente al origen actual que
 una traducción nueva, y uno que ya no encaja se descarta y se traduce de nuevo. Los aciertos de caché
 se informan por locale, aparte de las claves traducidas en esta ejecución.
 
-Un valor que un revisor [rechazó](/docs/the-lock-file#decisiones-de-revisión) nunca se reutiliza
+Un valor que un revisor [rechazó](/es/docs/the-lock-file#decisiones-de-revisión) nunca se reutiliza
 para esa clave: el archivo de procedencia guarda un hash del texto rechazado, y una ejecución omite
 cualquier acierto que coincida con él. El único hueco es un archivo de procedencia que la ejecución
 no puede leer (uno de un verbatra más nuevo, o uno corrupto con `humanEdits: "overwrite"`); entonces
@@ -33,7 +33,7 @@ la ejecución no conoce ningún rechazo.
 
 Cada entrada queda acotada al contexto en el que se produjo: una huella sobre el proveedor, el
 modelo, el tono, los términos del glosario de ese locale y el
-[`localeMap`](/docs/providers#códigos-de-locale-enviados-al-proveedor) del proveedor cuando tiene
+[`localeMap`](/es/docs/providers#códigos-de-locale-enviados-al-proveedor) del proveedor cuando tiene
 entradas. Cambia cualquiera de ellos y las entradas anteriores dejan de coincidir, así que un tono
 nuevo o un glosario editado vuelve a traducir en lugar de servir un resultado obsoleto. Cada locale
 tiene su propia huella, así que editar solo la traducción alemana de un término del glosario deja
@@ -48,7 +48,7 @@ afectan ni el tono ni el glosario.
 <AvailableFrom version="0.11.0" />
 
 Un acierto exacto necesita que el texto de origen dé el mismo hash que antes, así que editar un
-carácter lo convierte en fallo. [`fuzzyCache`](/docs/config-file#fuzzycache) es una alternativa
+carácter lo convierte en fallo. [`fuzzyCache`](/es/docs/config-file#fuzzycache) es una alternativa
 opcional para ese caso: cuando una clave falla, verbatra puntúa su origen frente a las demás entradas
 del mismo locale y la misma huella, y reutiliza la más cercana que alcance `threshold`. La puntuación
 es uno menos la distancia de edición en caracteres dividida por la longitud de la cadena más larga,
@@ -63,14 +63,14 @@ reutilización. La seguridad viene de reglas que no dependen del número:
 
 - **Está desactivada salvo que la actives.**
 - **Cada reutilización difusa se marca para revisión** con
-  [`FUZZY_CACHE_REUSE`](/docs/error-codes#fuzzy_cache_reuse), en cada ejecución, puntúe lo que
-  puntúe. Si nadie trabaja la [cola de revisión](/docs/review-in-studio), déjala desactivada.
+  [`FUZZY_CACHE_REUSE`](/es/docs/error-codes#fuzzy_cache_reuse), en cada ejecución, puntúe lo que
+  puntúe. Si nadie trabaja la [cola de revisión](/es/docs/review-in-studio), déjala desactivada.
 - **Los números cambiados rechazan la reutilización.** Si los números de los dos orígenes difieren
   en cantidad, valor u orden, la entrada no es candidata. Esto cubre cada carácter numérico de
   Unicode (`m²` a `m³`, `½` a `¼`), pero no los números escritos con palabras.
 - **Una reutilización no da la clave por resuelta.** El bloqueo conserva la línea base anterior de
   la clave, así que sigue cambiada: cada ejecución posterior la vuelve a ofrecer sin coste de
-  proveedor, y [`check`](/docs/cli/check) sigue informándola, hasta que llega una traducción real.
+  proveedor, y [`check`](/es/docs/cli/check) sigue informándola, hasta que llega una traducción real.
 - **Un texto de origen sin cambios nunca llega a la capa difusa.** Editar solo una descripción o un
   indicador de plural envía la clave al proveedor como siempre.
 
@@ -107,7 +107,7 @@ traducciones, así que crece más o menos hasta el tamaño de tu texto de origen
 
 <AvailableFrom version="0.11.0" />
 
-[`verbatra tmx`](/docs/cli/tmx) importa en la caché un archivo TMX de otra herramienta de traducción
+[`verbatra tmx`](/es/docs/cli/tmx) importa en la caché un archivo TMX de otra herramienta de traducción
 y exporta la caché como TMX. Las unidades importadas se guardan bajo la huella actual, así que dejan
 de coincidir cuando cambian el proveedor, el modelo, el tono, el glosario o el `localeMap`, como todo
 lo demás. Un matiz a "bórrala y se reconstruye": una memoria importada solo es tan recuperable como
@@ -115,7 +115,7 @@ el archivo TMX del que vino, así que conserva ese archivo.
 
 ## Cómo omitirla
 
-`--no-cache` en [`translate`](/docs/cli/translate) o [`watch`](/docs/cli/watch) (`cache: false` en
+`--no-cache` en [`translate`](/es/docs/cli/translate) o [`watch`](/es/docs/cli/watch) (`cache: false` en
 el SDK) hace exactamente las llamadas al proveedor que haría una ejecución sin caché, reutilización
 difusa incluida, y deja el archivo intacto. Para mantener la reutilización exacta y quitar solo la
 alternativa difusa, deja `fuzzyCache` fuera de la configuración. Una ejecución de prueba nunca
@@ -129,9 +129,9 @@ del proveedor.
 
 ## Relacionado
 
-- [`fuzzyCache`](/docs/config-file#fuzzycache): la clave de configuración y su rango.
-- [`verbatra tmx`](/docs/cli/tmx): importa y exporta la memoria como TMX.
-- [Cómo funciona una ejecución](/docs/how-it-works): dónde está la búsqueda en caché dentro de la
+- [`fuzzyCache`](/es/docs/config-file#fuzzycache): la clave de configuración y su rango.
+- [`verbatra tmx`](/es/docs/cli/tmx): importa y exporta la memoria como TMX.
+- [Cómo funciona una ejecución](/es/docs/how-it-works): dónde está la búsqueda en caché dentro de la
   canalización.
-- [Estima el coste antes de una ejecución](/docs/estimating-cost): lo que ahorra la caché antes de
+- [Estima el coste antes de una ejecución](/es/docs/estimating-cost): lo que ahorra la caché antes de
   gastar.

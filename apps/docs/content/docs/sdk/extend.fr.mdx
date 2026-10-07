@@ -7,7 +7,7 @@ type: reference
 
 <AvailableFrom version="0.11.0" />
 
-Tout ce qu'il faut pour construire un adaptateur de format que verbatra ne fournit pas et l'enregistrer à côté des adaptateurs intégrés. Un format qui ne vient pas de verbatra se nomme avec un identifiant `custom:`, par exemple `custom:toml`, que la configuration accepte exactement comme un nom intégré. Voir [Adaptateurs de format personnalisés](/docs/custom-format-adapters) pour le parcours complet, y compris ce à quoi tu accordes ta confiance en installant un adaptateur tiers : c'est du code pleinement de confiance, et verbatra ne le met pas en bac à sable.
+Tout ce qu'il faut pour construire un adaptateur de format que verbatra ne fournit pas et l'enregistrer à côté des adaptateurs intégrés. Un format qui ne vient pas de verbatra se nomme avec un identifiant `custom:`, par exemple `custom:toml`, que la configuration accepte exactement comme un nom intégré. Voir [Adaptateurs de format personnalisés](/fr/docs/custom-format-adapters) pour le parcours complet, y compris ce à quoi tu accordes ta confiance en installant un adaptateur tiers : c'est du code pleinement de confiance, et verbatra ne le met pas en bac à sable.
 
 ### createDefaultRegistry
 
@@ -19,7 +19,7 @@ function createDefaultRegistry(fs?: AdapterFs): AdapterRegistry;
 
 **Renvoie :** `AdapterRegistry`
 
-**Exemple :** [L'enregistrer et lancer](/docs/custom-format-adapters#lenregistrer-et-lancer)
+**Exemple :** [L'enregistrer et lancer](/fr/docs/custom-format-adapters#lenregistrer-et-lancer)
 
 ```ts title="Exemple"
 import {
@@ -53,7 +53,7 @@ class AdapterRegistry {
 
 **Renvoie :** `register` renvoie le registre. `resolve` renvoie une `AdapterResolution`, discriminée par `status` : `resolved` porte l'`adapter`, `no-match` le `filePath` et les `triedFormats`, et `ambiguous` le `filePath` et les `candidates` en concurrence, que tu départages en en passant un comme `format`. Un fichier impossible à résoudre est un statut, jamais une exception.
 
-**Lève :** `AdapterError` [`DUPLICATE_FORMAT`](/docs/error-codes#duplicate_format) et [`INVALID_FORMAT_ID`](/docs/error-codes#invalid_format_id) depuis `register`, et [`ADAPTER_FAILED`](/docs/error-codes#adapter_failed) depuis `resolve` quand le propre `canHandle` d'un adaptateur `custom:` lève pendant la détection
+**Lève :** `AdapterError` [`DUPLICATE_FORMAT`](/fr/docs/error-codes#duplicate_format) et [`INVALID_FORMAT_ID`](/fr/docs/error-codes#invalid_format_id) depuis `register`, et [`ADAPTER_FAILED`](/fr/docs/error-codes#adapter_failed) depuis `resolve` quand le propre `canHandle` d'un adaptateur `custom:` lève pendant la détection
 
 ### createFlatFileAdapter
 
@@ -69,7 +69,7 @@ function createFlatFileAdapter(
 
 **Renvoie :** `FormatAdapter`
 
-**Exemple :** [Construire l'adaptateur](/docs/custom-format-adapters#construire-ladaptateur)
+**Exemple :** [Construire l'adaptateur](/fr/docs/custom-format-adapters#construire-ladaptateur)
 
 ### createTreeFileAdapter
 
@@ -219,7 +219,7 @@ const summary = await translate({ config }, { createProvider });
 - `ProviderKind` vaut `"llm"` ou `"machine-translation"`. Il est purement descriptif : rien dans le
   SDK ne se base dessus.
 - `TranslateRequest` porte `sourceLocale`, `targetLocale`, les `entries` à traduire et, en option,
-  `glossary` (le résultat de [`glossaryForLocale`](/docs/sdk/config#glossaryforlocale) pour la locale cible),
+  `glossary` (le résultat de [`glossaryForLocale`](/fr/docs/sdk/config#glossaryforlocale) pour la locale cible),
   `tone`, `maxLength` et `pluralCategories`. Il porte aussi `extractPlaceholders` et, pour certains
   formats, `comparePlaceholders`, que ton fournisseur utilise pour le contrôle d'intégrité, ainsi
   que `signal`, qui interrompt un appel en cours, `onRepair` et
@@ -231,11 +231,11 @@ const summary = await translate({ config }, { createProvider });
   chaque valeur renvoyée par son propre contrôle d'intégrité dans tous les cas.
 - `ProviderRetryListener` est le type de `CreateProviderHooks.onRetry`. Il reçoit un
   `ProviderRetry`, `{ attempt, delayMs?, status? }`, par nouvelle tentative, et chaque appel devient
-  un [événement de progression](/docs/sdk/run#événements-de-progression) `provider-retry`.
+  un [événement de progression](/fr/docs/sdk/run#événements-de-progression) `provider-retry`.
 - `ProviderNetwork` est ce que contient `CreateProviderContext.network` quand la politique réseau
   restreint les destinations d'un fournisseur : la `policy` effective, l'`env` depuis lequel le
   point de terminaison a été résolu et des `deps` de test optionnels. Un fournisseur personnalisé
   peut l'ignorer, mais seule la vérification que le SDK fait avant d'appeler la fabrique s'applique
   alors à ses requêtes.
 
-**Exemple :** [Tester ton intégration sans clé](/docs/programmatic-api#tester-ton-intégration-sans-clé)
+**Exemple :** [Tester ton intégration sans clé](/fr/docs/programmatic-api#tester-ton-intégration-sans-clé)

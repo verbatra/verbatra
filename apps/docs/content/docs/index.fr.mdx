@@ -72,11 +72,11 @@ type: overview
 
 <DocsHomeSection title="Chaque exécution est un diff, pas une réécriture." lead="Ce qui se passe quand tu lances `verbatra translate`.">
 
-Maintenir à la main une seule locale source signifie que tous les autres fichiers de locale dérivent : les nouvelles clés manquent dans les cibles, les chaînes modifiées laissent derrière elles des traductions périmées, et les clés supprimées traînent en orphelines. verbatra comble cet écart en comparant chaque cible à un fichier de verrouillage commité, `verbatra.lock.json`, et en n'envoyant que ce qui a changé au fournisseur que tu configures ; une deuxième exécution sans rien de nouveau à traduire ne fait aucun appel au fournisseur. Chaque résultat est vérifié avant d'être écrit, donc un placeholder cassé est retenu et retenté, jamais livré. Voir [Comment ça marche](/docs/how-it-works) pour le pipeline complet.
+Maintenir à la main une seule locale source signifie que tous les autres fichiers de locale dérivent : les nouvelles clés manquent dans les cibles, les chaînes modifiées laissent derrière elles des traductions périmées, et les clés supprimées traînent en orphelines. verbatra comble cet écart en comparant chaque cible à un fichier de verrouillage commité, `verbatra.lock.json`, et en n'envoyant que ce qui a changé au fournisseur que tu configures ; une deuxième exécution sans rien de nouveau à traduire ne fait aucun appel au fournisseur. Chaque résultat est vérifié avant d'être écrit, donc un placeholder cassé est retenu et retenté, jamais livré. Voir [Comment ça marche](/fr/docs/how-it-works) pour le pipeline complet.
 
 <DocsHomeSteps />
 
-verbatra lit et écrit les formats de fichiers de locale courants, du JSON et du YAML au XLIFF, à gettext et aux catalogues Android et Apple, et traduit via n'importe quel fournisseur pris en charge, LLM ou service de traduction automatique, derrière une seule interface (ou aucun, pour un [flux 100 % humain](/docs/human-only-workflow)), et un format qu'il n'embarque pas peut être ajouté comme [adaptateur personnalisé](/docs/custom-format-adapters). Les listes complètes sont dans [Formats](/docs/formats) et [Fournisseurs](/docs/providers).
+verbatra lit et écrit les formats de fichiers de locale courants, du JSON et du YAML au XLIFF, à gettext et aux catalogues Android et Apple, et traduit via n'importe quel fournisseur pris en charge, LLM ou service de traduction automatique, derrière une seule interface (ou aucun, pour un [flux 100 % humain](/fr/docs/human-only-workflow)), et un format qu'il n'embarque pas peut être ajouté comme [adaptateur personnalisé](/fr/docs/custom-format-adapters). Les listes complètes sont dans [Formats](/fr/docs/formats) et [Fournisseurs](/fr/docs/providers).
 
 </DocsHomeSection>
 

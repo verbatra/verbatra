@@ -17,7 +17,7 @@ Agent: Folge diesen Schritten der Reihe nach und überspring nie den Halt in Sch
 
 ### 1. Das bestehende Setup prüfen
 
-Bevor du etwas änderst, finde die i18n-Bibliothek in der `package.json` (etwa `i18next`, `vue-i18n` oder `next-intl`) und die Locale-Dateien. Notiere die Quell-Locale, jede bereits vorhandene Ziel-Locale und das Pfadmuster mit einem `{locale}`-Token, etwa `locales/{locale}.json`. [Wähle deinen Stack](/docs/pick-your-stack) ordnet jedem Stack seine Format-ID und sein Layout zu, [Formate](/docs/formats) sagt, welche Dateien schon existieren müssen. Reines JSON ohne i18n-Bibliothek: Platzhalter `{{name}}` bedeuten `i18next-json`, einfache Klammern `{name}` bedeuten `vue-i18n-json`.
+Bevor du etwas änderst, finde die i18n-Bibliothek in der `package.json` (etwa `i18next`, `vue-i18n` oder `next-intl`) und die Locale-Dateien. Notiere die Quell-Locale, jede bereits vorhandene Ziel-Locale und das Pfadmuster mit einem `{locale}`-Token, etwa `locales/{locale}.json`. [Wähle deinen Stack](/de/docs/pick-your-stack) ordnet jedem Stack seine Format-ID und sein Layout zu, [Formate](/de/docs/formats) sagt, welche Dateien schon existieren müssen. Reines JSON ohne i18n-Bibliothek: Platzhalter `{{name}}` bedeuten `i18next-json`, einfache Klammern `{name}` bedeuten `vue-i18n-json`.
 
 ### 2. Die CLI installieren
 
@@ -33,7 +33,7 @@ pnpm, yarn und bun funktionieren auch. Bestätige keine Install-Skripte, weder i
 npx @verbatra/cli init --provider <provider> --yes --json --agent
 ```
 
-Frag den Menschen, welcher Provider genutzt werden soll, außer das Projekt macht es klar. Wähl nie einen, der bei einem Dienst Kosten verursacht, dem der Mensch nicht zugestimmt hat, und übergib `init` nie einen Schlüsselwert. [Provider](/docs/providers) listet die IDs; `none` schaltet die maschinelle Übersetzung ab. `init` erkennt Format, Pfadmuster und Locales, gibt einen JSON-Envelope aus und fragt nie nach. `--agent` schreibt außerdem einen verbatra-Abschnitt in `AGENTS.md` (oder in `CLAUDE.md`, wenn das die einzige Anweisungsdatei ist) und den verbatra-MCP-Server, Ausgaben aus, in die Konfiguration jedes erkannten Clients, die `.mcp.json` von Claude Code, wenn er Claude Code oder gar keinen Client findet; `result.agent.clients` listet die Dateien.
+Frag den Menschen, welcher Provider genutzt werden soll, außer das Projekt macht es klar. Wähl nie einen, der bei einem Dienst Kosten verursacht, dem der Mensch nicht zugestimmt hat, und übergib `init` nie einen Schlüsselwert. [Provider](/de/docs/providers) listet die IDs; `none` schaltet die maschinelle Übersetzung ab. `init` erkennt Format, Pfadmuster und Locales, gibt einen JSON-Envelope aus und fragt nie nach. `--agent` schreibt außerdem einen verbatra-Abschnitt in `AGENTS.md` (oder in `CLAUDE.md`, wenn das die einzige Anweisungsdatei ist) und den verbatra-MCP-Server, Ausgaben aus, in die Konfiguration jedes erkannten Clients, die `.mcp.json` von Claude Code, wenn er Claude Code oder gar keinen Client findet; `result.agent.clients` listet die Dateien.
 
 | Exit-Code und Fehlercode | Tu das |
 | --- | --- |
@@ -42,7 +42,7 @@ Frag den Menschen, welcher Provider genutzt werden soll, außer das Projekt mach
 | `2`, `MISSING_OPTIONS` | Die Meldung nennt jedes noch fehlende Flag. |
 | `2`, `CONFIG_EXISTS` | Sag dem Menschen, welchen Provider die vorhandene Konfiguration nutzt, und warte auf seine Bestätigung. Führ dann `npx @verbatra/cli init --agent --json` aus, das die Konfiguration behält und nur die Agenten-Dateien ergänzt. Frag, bevor du `--force` übergibst. |
 
-[init](/docs/cli/init#provider) beschreibt jedes Flag.
+[init](/de/docs/cli/init#provider) beschreibt jedes Flag.
 
 ### 4. Den API-Schlüssel dem Menschen überlassen
 
@@ -75,14 +75,14 @@ Melde die Listen `succeeded`, `partial` und `failed` aus der Zusammenfassung. Ei
 
 Committe `verbatra.config.ts`, `.env.example`, falls vorhanden, die Anweisungsdatei und die Client-Konfigurationen aus Schritt 3, `verbatra.lock.json`, `verbatra.provenance.json`, sobald ein Lauf sie geschrieben hat, und die übersetzten Locale-Dateien. Committe nie `.env`, `.env.local`, `.verbatra-local/` oder `verbatra.cache.json`; prüf, dass die `.gitignore` sie abdeckt.
 
-Sag dem Menschen dann, dass er seinen Client neu starten und den Server `verbatra` des Projekts bestätigen soll. In Claude Code installiert er nicht zusätzlich das verbatra-Plugin, das ihn ein zweites Mal registriert; `claude mcp list` zeigt die Verbindung. Ein Client, den `init` nicht erkannt hat, bekommt seinen einen Eintrag aus [Einen MCP-Client verbinden](/docs/connect-an-mcp-client).
+Sag dem Menschen dann, dass er seinen Client neu starten und den Server `verbatra` des Projekts bestätigen soll. In Claude Code installiert er nicht zusätzlich das verbatra-Plugin, das ihn ein zweites Mal registriert; `claude mcp list` zeigt die Verbindung. Ein Client, den `init` nicht erkannt hat, bekommt seinen einen Eintrag aus [Einen MCP-Client verbinden](/de/docs/connect-an-mcp-client).
 
 ## Weiter
 
 <Cards>
-  <Card title="Einen MCP-Client verbinden" href="/docs/connect-an-mcp-client" description="Der eine Eintrag, den jeder Client außer Claude Code braucht, und wie du den Agenten Geld ausgeben lässt." />
-  <Card title="Rezepte für Agenten und Skripte" href="/docs/agent-recipes" description="Der --json-Envelope und die Exit-Codes, auf die sich die Befehle dieses Prompts selbst stützen, um darauf eigene Agenten-Loops aufzubauen." />
-  <Card title="Studio mit einem Browser-Agenten steuern" href="/docs/agent-tools-in-studio" description="Eine andere Oberfläche, um ein bereits eingerichtetes Projekt aus einem Browser-Tab statt aus einer Shell zu steuern." />
-  <Card title="Schnellstart" href="/docs/quickstart" description="Derselbe Einrichtungsweg, geschrieben für einen Menschen statt für einen Agenten." />
-  <Card title="Die Lock-Datei" href="/docs/the-lock-file" description="Die vollen Details hinter dem Sicherheitsverhalten bei der Übernahme, auf das sich dieser Prompt stützt." />
+  <Card title="Einen MCP-Client verbinden" href="/de/docs/connect-an-mcp-client" description="Der eine Eintrag, den jeder Client außer Claude Code braucht, und wie du den Agenten Geld ausgeben lässt." />
+  <Card title="Rezepte für Agenten und Skripte" href="/de/docs/agent-recipes" description="Der --json-Envelope und die Exit-Codes, auf die sich die Befehle dieses Prompts selbst stützen, um darauf eigene Agenten-Loops aufzubauen." />
+  <Card title="Studio mit einem Browser-Agenten steuern" href="/de/docs/agent-tools-in-studio" description="Eine andere Oberfläche, um ein bereits eingerichtetes Projekt aus einem Browser-Tab statt aus einer Shell zu steuern." />
+  <Card title="Schnellstart" href="/de/docs/quickstart" description="Derselbe Einrichtungsweg, geschrieben für einen Menschen statt für einen Agenten." />
+  <Card title="Die Lock-Datei" href="/de/docs/the-lock-file" description="Die vollen Details hinter dem Sicherheitsverhalten bei der Übernahme, auf das sich dieser Prompt stützt." />
 </Cards>

@@ -21,26 +21,26 @@ function translate(
 
 <SdkTypeTable name="TranslateInput" />
 
-**Rückgabe:** [`RunSummary`](/docs/sdk/run-summary)
+**Rückgabe:** [`RunSummary`](/de/docs/sdk/run-summary)
 
-**Wirft:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`CONCURRENCY_INVALID`](/docs/error-codes#concurrency_invalid), [`CONCURRENCY_BUDGET_CONFLICT`](/docs/error-codes#concurrency_budget_conflict), [`MAX_TOKENS_INVALID`](/docs/error-codes#max_tokens_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed), [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid)
+**Wirft:** [`UNKNOWN_LOCALE`](/de/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/de/docs/error-codes#locale_unsupported_by_provider), [`UNKNOWN_FORMAT`](/de/docs/error-codes#unknown_format), [`CONCURRENCY_INVALID`](/de/docs/error-codes#concurrency_invalid), [`CONCURRENCY_BUDGET_CONFLICT`](/de/docs/error-codes#concurrency_budget_conflict), [`MAX_TOKENS_INVALID`](/de/docs/error-codes#max_tokens_invalid), [`LOCK_TIMEOUT_INVALID`](/de/docs/error-codes#lock_timeout_invalid), [`LOCALE_LAYOUT_INVALID`](/de/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/de/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/de/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/de/docs/error-codes#source_invalid), [`PROVIDER_CONSTRUCTION_FAILED`](/de/docs/error-codes#provider_construction_failed), [`NETWORK_POLICY_VIOLATION`](/de/docs/error-codes#network_policy_violation), [`CONFIG_INVALID`](/de/docs/error-codes#config_invalid), [`LOCK_FILE_INVALID`](/de/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/de/docs/error-codes#provenance_file_invalid)
 
-**Beispiel:** [Übersetzen und die Zusammenfassung lesen](/docs/sdk-quickstart#übersetzen-und-die-zusammenfassung-lesen)
+**Beispiel:** [Übersetzen und die Zusammenfassung lesen](/de/docs/sdk-quickstart#übersetzen-und-die-zusammenfassung-lesen)
 
 Was die Tabelle nicht abdeckt:
 
-- `cache` ist der lokale [Übersetzungsspeicher-Cache](/docs/the-cache) (`verbatra.cache.json`, ebenfalls exportiert als `CACHE_FILE_NAME`).
+- `cache` ist der lokale [Übersetzungsspeicher-Cache](/de/docs/the-cache) (`verbatra.cache.json`, ebenfalls exportiert als `CACHE_FILE_NAME`).
 - `humanEdits` (ab 0.12.0): Standardmäßig bleiben veraltete Keys, die ein Mensch geschrieben,
   importiert oder außerhalb von verbatra geändert hat, erhalten und werden in
   `LocaleSummary.protected` gelistet. Siehe
-  [Menschliche Übersetzungen schützen](/docs/protecting-human-translations).
+  [Menschliche Übersetzungen schützen](/de/docs/protecting-human-translations).
 - `onProgress` bekommt die unten beschriebenen [Fortschrittsereignisse](#fortschrittsereignisse).
 - `maxBatchSize` und `budgetBehavior` sind nur über die Konfiguration steuerbar; es gibt keine
   Übersteuerung pro Lauf.
 
 Probleme des gesamten Laufs werfen einen `SdkError`; eine einzelne fehlschlagende Locale wirft nie,
 sondern landet als `status: "failed"` auf dem Eintrag dieser Locale, während der Lauf weitergeht.
-Siehe [die Anatomie der `RunSummary`](/docs/sdk/run-summary#die-anatomie-der-runsummary).
+Siehe [die Anatomie der `RunSummary`](/de/docs/sdk/run-summary#die-anatomie-der-runsummary).
 
 ### Fortschrittsereignisse
 
@@ -116,9 +116,9 @@ function watch(
 
 **Rückgabe:** `WatchController`
 
-**Wirft:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider), [`CONCURRENCY_INVALID`](/docs/error-codes#concurrency_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`CONCURRENCY_BUDGET_CONFLICT`](/docs/error-codes#concurrency_budget_conflict), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation), [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
+**Wirft:** [`UNKNOWN_LOCALE`](/de/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/de/docs/error-codes#locale_unsupported_by_provider), [`CONCURRENCY_INVALID`](/de/docs/error-codes#concurrency_invalid), [`LOCK_TIMEOUT_INVALID`](/de/docs/error-codes#lock_timeout_invalid), [`CONCURRENCY_BUDGET_CONFLICT`](/de/docs/error-codes#concurrency_budget_conflict), [`LOCALE_LAYOUT_INVALID`](/de/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/de/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/de/docs/error-codes#source_unreadable), [`NETWORK_POLICY_VIOLATION`](/de/docs/error-codes#network_policy_violation), [`PROVIDER_CONSTRUCTION_FAILED`](/de/docs/error-codes#provider_construction_failed), [`CONFIG_INVALID`](/de/docs/error-codes#config_invalid)
 
-**Beispiel:** [Beobachten in einem langlaufenden Prozess](/docs/programmatic-api#beobachten-in-einem-langlaufenden-prozess)
+**Beispiel:** [Beobachten in einem langlaufenden Prozess](/de/docs/programmatic-api#beobachten-in-einem-langlaufenden-prozess)
 
 `debounceMs` ist standardmäßig 300. `onRun` wird einmal pro Lauf mit einem `WatchRunResult`
 aufgerufen: `{ status: "succeeded", summary }` oder
@@ -164,7 +164,7 @@ function releaseHeldLocks(): Promise<void>;
 
 Eine Sperre, die trotzdem liegen bleibt, weil ein Prozess hart beendet wurde, braucht es nicht: Ein
 wartender Durchlauf auf derselben Maschine erkennt, dass der eingetragene Prozess nicht mehr läuft,
-und übernimmt die Sperre selbst. Siehe [die Schreibsperre](/docs/the-lock-file#die-schreibsperre).
+und übernimmt die Sperre selbst. Siehe [die Schreibsperre](/de/docs/the-lock-file#die-schreibsperre).
 
 ## Pseudolokalisierung
 
@@ -191,9 +191,9 @@ function pseudolocalize(
 
 **Rückgabe:** `PseudolocalizeResult`
 
-**Wirft:** [`PSEUDO_OUTPUT_CONFLICT`](/docs/error-codes#pseudo_output_conflict), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`TARGET_UNWRITABLE`](/docs/error-codes#target_unwritable)
+**Wirft:** [`PSEUDO_OUTPUT_CONFLICT`](/de/docs/error-codes#pseudo_output_conflict), [`UNKNOWN_FORMAT`](/de/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/de/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/de/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/de/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/de/docs/error-codes#source_invalid), [`TARGET_UNWRITABLE`](/de/docs/error-codes#target_unwritable)
 
-**Beispiel:** [Eine Pseudo-Locale bauen](/docs/programmatic-api#eine-pseudo-locale-bauen)
+**Beispiel:** [Eine Pseudo-Locale bauen](/de/docs/programmatic-api#eine-pseudo-locale-bauen)
 
 Jeder erzeugte Wert muss dasselbe Integritäts-Gate passieren wie eine Provider-Übersetzung. Ein
 Wert, der das nicht schaffen würde, wird wortwörtlich aus der Quelle kopiert und in `copied`
@@ -207,7 +207,7 @@ stattdessen jedes Wort übersetzbaren Textes in eine Rechts-nach-links-Marke und
 fasst und Platzhalter, ICU-Syntax, Markup, Ziffern und Satzzeichen draußen lässt, ohne etwas zu
 akzentuieren. Im Modus `bidi` ist `locale` standardmäßig `ar-XB`, ein Code, der zur Richtung rechts
 nach links aufgelöst wird; wie seine arabischen Pluralregeln auf die Pluralformen deiner Quelle
-treffen, steht bei [`verbatra pseudo`](/docs/cli/pseudo).
+treffen, steht bei [`verbatra pseudo`](/de/docs/cli/pseudo).
 
 `locale` ist standardmäßig `en-XA` und `out`
 `.verbatra-local/pseudo`, was `verbatra init` bereits in `.gitignore` einträgt; das konfigurierte
@@ -254,9 +254,9 @@ function generateTypes(
 
 **Rückgabe:** `GenerateTypesResult`
 
-**Wirft:** [`TYPES_OUTPUT_CONFLICT`](/docs/error-codes#types_output_conflict), [`TYPES_UNWRITABLE`](/docs/error-codes#types_unwritable), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid)
+**Wirft:** [`TYPES_OUTPUT_CONFLICT`](/de/docs/error-codes#types_output_conflict), [`TYPES_UNWRITABLE`](/de/docs/error-codes#types_unwritable), [`UNKNOWN_FORMAT`](/de/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/de/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/de/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/de/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/de/docs/error-codes#source_invalid)
 
-**Beispiel:** [Einen typisierten Katalog erzeugen](/docs/programmatic-api#einen-typisierten-katalog-erzeugen)
+**Beispiel:** [Einen typisierten Katalog erzeugen](/de/docs/programmatic-api#einen-typisierten-katalog-erzeugen)
 
 Gelesen wird eine Datei (der Quell-Locale-Katalog), geschrieben eine Datei (die Deklaration); eine
 Ziel-Locale-Datei wird nie angefasst. Die Keys sind genau das, was der Format-Adapter ohnehin schon
@@ -298,7 +298,7 @@ verglichen, und wenn `deps.fs` `realpath` implementiert, wie es die Voreinstellu
 dieselben Prüfungen noch einmal auf dem Ziel, auf dem der Pfad nach dem Auflösen symbolischer Links
 landet. Ein generierender Lauf weist mit demselben Code außerdem zurück, eine bestehende Datei zu
 ersetzen, die nicht mit der Kopfzeile beginnt, die verbatra schreibt, und lässt diese Datei
-unangetastet. Die vollständige Liste steht auf der Seite zu [`verbatra types`](/docs/cli/types). Mit
+unangetastet. Die vollständige Liste steht auf der Seite zu [`verbatra types`](/de/docs/cli/types). Mit
 gesetztem `check` wird überhaupt nichts geschrieben, nichts wegen seines Inhalts zurückgewiesen, und
 der Lauf meldet nur, ob die committete Datei noch passt, und genau das braucht ein CI-Gate.
 

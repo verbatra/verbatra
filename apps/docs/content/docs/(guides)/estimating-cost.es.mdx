@@ -21,7 +21,7 @@ verbatra translate (dry run)
 3 succeeded, 0 partial, 0 failed (dry run: nothing written)
 ```
 
-`would translate` es el número de claves que enviaría una ejecución real: las que faltan en el archivo de destino más las que cambiaron de texto de origen. Un dry run no construye ningún proveedor, no lee ninguna clave y no escribe nada. Toma la cifra como un límite superior: se salta [la caché](/docs/the-cache), que en una ejecución real sirve gratis las cadenas repetidas, y no agrupa las cadenas de origen idénticas, que una ejecución real envía una sola vez.
+`would translate` es el número de claves que enviaría una ejecución real: las que faltan en el archivo de destino más las que cambiaron de texto de origen. Un dry run no construye ningún proveedor, no lee ninguna clave y no escribe nada. Toma la cifra como un límite superior: se salta [la caché](/es/docs/the-cache), que en una ejecución real sirve gratis las cadenas repetidas, y no agrupa las cadenas de origen idénticas, que una ejecución real envía una sola vez.
 
 ## Estima el gasto
 
@@ -70,13 +70,13 @@ export default defineConfig({
 });
 ```
 
-Las tarifas de arriba son marcadores, no precios citados. Cada cifra calculada con ellas lleva la fecha `asOf`, así que una tabla de precios antigua se ve antigua. verbatra nunca inventa una tarifa que falta ni imprime `0.00` para un modelo que no puede tarificar; en su lugar nombra la entrada que falta. El formato de las claves y las unidades están en [`rates`](/docs/config-file#rates).
+Las tarifas de arriba son marcadores, no precios citados. Cada cifra calculada con ellas lleva la fecha `asOf`, así que una tabla de precios antigua se ve antigua. verbatra nunca inventa una tarifa que falta ni imprime `0.00` para un modelo que no puede tarificar; en su lugar nombra la entrada que falta. El formato de las claves y las unidades están en [`rates`](/es/docs/config-file#rates).
 
 ## Entiende qué cubre la cifra
 
 La estimación hace las cuentas que, si no, harías a mano:
 
-- **Peticiones.** Las claves de cada locale se reparten en lotes de como mucho [`maxBatchSize`](/docs/config-file#maxbatchsize) (por defecto `50`), una petición por lote, más los lotes que enviaría [`generatePlurals`](/docs/config-file#generateplurals).
+- **Peticiones.** Las claves de cada locale se reparten en lotes de como mucho [`maxBatchSize`](/es/docs/config-file#maxbatchsize) (por defecto `50`), una petición por lote, más los lotes que enviaría [`generatePlurals`](/es/docs/config-file#generateplurals).
 - **Entrada.** Cada petición a un LLM lleva unas reglas de sistema fijas (unos 550 tokens) y un esquema de respuesta (unos 100 tokens), y después las claves, sus descripciones, el tono y el glosario completo del locale de destino. El prompt se mide serializando la carga que se enviaría, así que un glosario grande cuenta en cada petición que lo lleva.
 - **Salida.** La traducción aún no existe, así que se calcula como el texto de origen más un 50 por ciento, porque el alemán, el francés y el ruso suelen ser entre un tercio y la mitad más largos que el inglés.
 - **Tokens.** Los caracteres se convierten a razón de unos cuatro por token, lo que encaja con prosa en inglés; otras escrituras son más densas.
@@ -86,7 +86,7 @@ Una ejecución real suele costar menos, por las dos razones por las que la cifra
 - **Reintentos.** El SDK de cada proveedor reintenta por su cuenta una petición fallida: dos intentos extra en Anthropic, OpenAI, `openai-compatible` y Gemini, y cinco en DeepL. Un intento que llegó al modelo se factura.
 - **Reparaciones.** Cuando vuelven claves que faltan, verbatra envía una petición de reparación, que lleva de nuevo completos las reglas de sistema, el glosario y el tono.
 
-Planifica con la cifra, pero no la prometas como techo. Además, la estimación solo cubre `translate`: volver a traducir una entrada desde [Studio](/docs/review-in-studio) o con una herramienta de agente gasta por su propio camino.
+Planifica con la cifra, pero no la prometas como techo. Además, la estimación solo cubre `translate`: volver a traducir una entrada desde [Studio](/es/docs/review-in-studio) o con una herramienta de agente gasta por su propio camino.
 
 ## Limita la ejecución
 
@@ -98,7 +98,7 @@ Pon a la ejecución acordada un tope firme algo por encima de la suma de tokens 
 verbatra translate --max-tokens 80000
 ```
 
-Una petición que superaría el tope se retiene en lugar de enviarse, y sus claves quedan pendientes para la siguiente ejecución. Si la configuración también fija `maxTokens`, se aplica la cifra menor. DeepL, Google Cloud Translation y LibreTranslate no informan de tokens, así que con ellos el tope se aplica contra la proyección propia de verbatra. Consulta [Tope de tokens](/docs/cli/translate#tope-de-tokens), y [`maxTokens` y `budgetBehavior`](/docs/config-file#maxtokens-y-budgetbehavior) para un presupuesto que valga en cada ejecución.
+Una petición que superaría el tope se retiene en lugar de enviarse, y sus claves quedan pendientes para la siguiente ejecución. Si la configuración también fija `maxTokens`, se aplica la cifra menor. DeepL, Google Cloud Translation y LibreTranslate no informan de tokens, así que con ellos el tope se aplica contra la proyección propia de verbatra. Consulta [Tope de tokens](/es/docs/cli/translate#tope-de-tokens), y [`maxTokens` y `budgetBehavior`](/es/docs/config-file#maxtokens-y-budgetbehavior) para un presupuesto que valga en cada ejecución.
 
 ## Calibra con un locale
 
@@ -119,7 +119,7 @@ Multiplica por el número de locales que quedan. Con `--json`, las cifras son `u
 
 ## Proveedores de traducción automática
 
-DeepL, Google Cloud Translation y LibreTranslate facturan caracteres de origen, no tokens. verbatra les envía el texto de origen con los placeholders como marcadores numerados cortos, sin reglas de sistema, nombres de clave ni JSON alrededor. La estimación solo cuenta caracteres de origen. DeepL no factura las etiquetas alrededor de sus marcadores; si Google factura el marcado `span` que los rodea no está documentado. Un valor que estos proveedores retienen ([`PLACEHOLDER_UNSUPPORTED`](/docs/error-codes#placeholder_unsupported)) no se envía, así que los caracteres enviados pueden ser menos que el total bruto.
+DeepL, Google Cloud Translation y LibreTranslate facturan caracteres de origen, no tokens. verbatra les envía el texto de origen con los placeholders como marcadores numerados cortos, sin reglas de sistema, nombres de clave ni JSON alrededor. La estimación solo cuenta caracteres de origen. DeepL no factura las etiquetas alrededor de sus marcadores; si Google factura el marcado `span` que los rodea no está documentado. Un valor que estos proveedores retienen ([`PLACEHOLDER_UNSUPPORTED`](/es/docs/error-codes#placeholder_unsupported)) no se envía, así que los caracteres enviados pueden ser menos que el total bruto.
 
 ### Google Cloud Translation
 
@@ -133,21 +133,21 @@ Dos herramientas de agente devuelven lo que imprime `translate --estimate --json
 
 | Herramienta | Dónde |
 | --- | --- |
-| `translation.estimate` | el [servidor MCP](/docs/cli/mcp) <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" /> |
-| `verbatra_translation_estimate` | [las herramientas de agente de Studio](/docs/agent-tools-in-studio) <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+| `translation.estimate` | el [servidor MCP](/es/docs/cli/mcp) <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" /> |
+| `verbatra_translation_estimate` | [las herramientas de agente de Studio](/es/docs/agent-tools-in-studio) <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 
 ### Gasta dentro de lo estimado
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Después, `translation.translatePending` acepta los mismos `locales` y un tope `maxTokens`. Consulta [Estimar y luego gastar](/docs/cli/mcp#estimar-y-luego-gastar).
+Después, `translation.translatePending` acepta los mismos `locales` y un tope `maxTokens`. Consulta [Estimar y luego gastar](/es/docs/cli/mcp#estimar-y-luego-gastar).
 
 ## Por qué la siguiente ejecución cuesta menos
 
-Las cifras de arriba son el coste de la primera ejecución. Después, verbatra solo envía las claves que faltan o cuyo origen cambió desde la referencia de [el archivo de bloqueo](/docs/the-lock-file), y [la caché](/docs/the-cache) reutiliza traducciones anteriores de cadenas idénticas. En el día a día pagas por las cadenas que editaste. Para ensayar gratis, usa el nivel gratuito de Gemini o apunta `openai-compatible` a un modelo local; consulta [Proveedores](/docs/providers).
+Las cifras de arriba son el coste de la primera ejecución. Después, verbatra solo envía las claves que faltan o cuyo origen cambió desde la referencia de [el archivo de bloqueo](/es/docs/the-lock-file), y [la caché](/es/docs/the-cache) reutiliza traducciones anteriores de cadenas idénticas. En el día a día pagas por las cadenas que editaste. Para ensayar gratis, usa el nivel gratuito de Gemini o apunta `openai-compatible` a un modelo local; consulta [Proveedores](/es/docs/providers).
 
 ## Relacionado
 
-- [`verbatra translate`](/docs/cli/translate): `--dry-run`, `--estimate`, `--max-tokens` y `--locales`.
-- [El archivo de configuración](/docs/config-file#rates): `rates`, `maxTokens`, `budgetBehavior` y `maxBatchSize`.
-- [Proveedores](/docs/providers): las opciones de cada proveedor y dónde conseguir una clave.
+- [`verbatra translate`](/es/docs/cli/translate): `--dry-run`, `--estimate`, `--max-tokens` y `--locales`.
+- [El archivo de configuración](/es/docs/config-file#rates): `rates`, `maxTokens`, `budgetBehavior` y `maxBatchSize`.
+- [Proveedores](/es/docs/providers): las opciones de cada proveedor y dónde conseguir una clave.

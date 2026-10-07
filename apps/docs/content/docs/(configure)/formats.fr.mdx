@@ -3,9 +3,9 @@ title: Formats
 description: Tous les formats pris en charge, comment chacun lit et écrit ses fichiers, et ce qu'une écriture préserve.
 type: reference
 ---
-Un adaptateur de format lit un fichier de locale vers une forme neutre et le réécrit dans la forme propre au fichier. Règle le champ `format` de ta [configuration](/docs/config-file) sur l'un de ces identifiants :
+Un adaptateur de format lit un fichier de locale vers une forme neutre et le réécrit dans la forme propre au fichier. Règle le champ `format` de ta [configuration](/fr/docs/config-file) sur l'un de ces identifiants :
 
-| `format` | Fichiers | Placeholders | Pluriels | Fichier cible manquant | [Syntaxe de placeholder native](/docs/error-codes#foreign_placeholder_changed) <AvailableFrom version="0.12.0" /> |
+| `format` | Fichiers | Placeholders | Pluriels | Fichier cible manquant | [Syntaxe de placeholder native](/fr/docs/error-codes#foreign_placeholder_changed) <AvailableFrom version="0.12.0" /> |
 | --- | --- | --- | --- | --- | --- |
 | `i18next-json` | JSON i18next (`.json`) | `{{name}}`, `$t(...)` | suffixe CLDR sur la clé | créé | `{{name}}` |
 | `vue-i18n-json` | JSON vue-i18n (`.json`) | `{name}`, `{0}` | pipe dans la valeur | créé | `{name}`, `%{name}`, `${name}` |
@@ -22,7 +22,7 @@ Un adaptateur de format lit un fichier de locale vers une forme neutre et le ré
 | `ini` | INI (`.ini`) | `{name}`, `{0}` | aucun | créé | `{name}`, `%{name}`, `${name}` |
 | `resx` | ressources .NET (`.resx`) | composite `{0}`, `{1:C}`, nommé `{name}` | aucun | créé | `{{name}}`, `{name}`, `%{name}`, `${name}` |
 
-Fais correspondre le format à ta bibliothèque i18n : il décide quels placeholders compare le [contrôle d'intégrité](/docs/translation-safety).
+Fais correspondre le format à ta bibliothèque i18n : il décide quels placeholders compare le [contrôle d'intégrité](/fr/docs/translation-safety).
 
 ## Les quatre formats JSON
 
@@ -38,7 +38,7 @@ Jetons à accolade simple `{name}` et `{0}`, noms dans n'importe quelle écritur
 
 ### next-intl-json
 
-Les valeurs sont de l'ICU MessageFormat : les noms d'arguments et de balises de texte enrichi sont les placeholders, et le corps ICU est conservé tel quel, sauf que chaque `plural` et `selectordinal` reçoit les [branches CLDR de la langue cible](/docs/translation-safety#branches-plurielles-par-langue-cible). Une valeur qui ne s'analyse pas comme de l'ICU est signalée comme invalide et sautée.
+Les valeurs sont de l'ICU MessageFormat : les noms d'arguments et de balises de texte enrichi sont les placeholders, et le corps ICU est conservé tel quel, sauf que chaque `plural` et `selectordinal` reçoit les [branches CLDR de la langue cible](/fr/docs/translation-safety#branches-plurielles-par-langue-cible). Une valeur qui ne s'analyse pas comme de l'ICU est signalée comme invalide et sautée.
 
 ### ngx-translate-json
 
@@ -52,7 +52,7 @@ Sous `i18next-json`, `ngx-translate-json` et `yaml`, un jeton `{name}` est du te
 
 ## Dispositions avec espaces de noms
 
-[`files.pattern`](/docs/config-file#locales-et-fichiers) est un chemin littéral, jamais un glob : `public/locales/{locale}/*.json` cherche un fichier nommé `*.json` et échoue avec `SOURCE_UNREADABLE`. Un seul espace de noms fonctionne tel qu'il est configuré :
+[`files.pattern`](/fr/docs/config-file#locales-et-fichiers) est un chemin littéral, jamais un glob : `public/locales/{locale}/*.json` cherche un fichier nommé `*.json` et échoue avec `SOURCE_UNREADABLE`. Un seul espace de noms fonctionne tel qu'il est configuré :
 
 ```ts title="verbatra.config.ts"
 files: {
@@ -84,7 +84,7 @@ XLIFF 1.2 (`file/body/trans-unit`) et 2.0 (`file/unit/segment`), une liste plate
 - **Les unités manquantes sont ajoutées** comme copie de l'unité source (sans ses cibles ni son `<alt-trans>` 1.2) dans le `<file>` correspondant. Une valeur sans unité où aller, ou une source illisible, fait échouer l'écriture avec `INVALID_STRUCTURE` en nommant la clé. `verbatra extract` ajoute des unités source avec seulement un `<source>` ; en 2.0, la clé doit être un NMTOKEN valide (`u1#0` est refusé).
 - **Balisage en ligne.** Les `g`, `x`, `bx`, `ex`, `bpt`, `ept`, `ph`, `it`, `mrk` de 1.2, les `ph`, `pc`, `sc`, `ec`, `mrk`, `sm`, `em`, `cp` de 2.0 et `{name}` sont tous des placeholders protégés dans les deux versions. À l'écriture, seuls ceux-ci (plus un `<sub>` 1.2 à l'intérieur de `bpt`, `ept`, `ph`, `it`) restent du balisage ; tout le reste, comme `<b>`, devient du texte.
 - **Échappement.** Le texte est lu comme du texte (`A &amp; B` est `A & B`) et échappé une fois à l'écriture ; un texte qui correspond exactement à un élément autorisé, comme `&lt;x id="1"/&gt;`, est écrit comme cet élément, et `<!DOCTYPE` et `<!ENTITY` comme du texte.
-- **Les notes** (les `<notes>` de l'unité en 2.0) sont du [contexte](/docs/manual-translation) en lecture seule.
+- **Les notes** (les `<notes>` de l'unité en 2.0) sont du [contexte](/fr/docs/manual-translation) en lecture seule.
 
 ## YAML
 
@@ -139,7 +139,7 @@ Un seul catalogue JSON contenant toutes les locales, le remplaçant de `.strings
 
 <AvailableFrom version="0.10.0" />
 
-`res/values/strings.xml` pour la source et `res/values-<qualifier>/strings.xml` pour chaque cible ; règle `files.localeStyle: "android"` ([configuration](/docs/config-file#locales-et-fichiers)).
+`res/values/strings.xml` pour la source et `res/values-<qualifier>/strings.xml` pour chaque cible ; règle `files.localeStyle: "android"` ([configuration](/fr/docs/config-file#locales-et-fichiers)).
 
 - **Entrées.** Un `<string name>` est une entrée ; `<plurals>` devient `key[quantity]` par `<item>`, uniquement pour les quantités présentes.
 - **Sautés.** Les ressources `translatable="false"`, `<string-array>` et un `<string>` avec des éléments en ligne (`<b>`, `<xliff:g>`, CDATA) sont conservés tels quels ; `formatted="false"` est traduit normalement.
@@ -157,7 +157,7 @@ Des entrées `msgid`/`msgstr` indexées par `msgid`.
 
 - **`msgctxt`** se combine avec son `msgid` en une seule clé avec U+E000 ; une source contenant ce caractère est rejetée.
 - **Les pluriels** sont indexés par position, `key[n]`, pas par catégorie CLDR. `Plural-Forms` est conservé mot pour mot et seul son `nplurals` borne les index ; les entrées plurielles sans lui sont rejetées, comme le fait `msgfmt --check`.
-- **Marqueurs et commentaires.** Une valeur `#, fuzzy` est lue comme actuelle et le marqueur conservé. Les commentaires `#.` sont du contexte en lecture seule ; `#:` et les autres marqueurs sont conservés, les blocs `#~` restent inertes, et l'en-tête n'est jamais touché. Un `.pot` aux `msgstr` vides se lit sans accroc, mais dans un catalogue source chaque `msgstr` est le texte à traduire, donc un `msgstr` vide est ignoré avec [`SOURCE_VALUE_EMPTY`](/docs/error-codes#source_value_empty).
+- **Marqueurs et commentaires.** Une valeur `#, fuzzy` est lue comme actuelle et le marqueur conservé. Les commentaires `#.` sont du contexte en lecture seule ; `#:` et les autres marqueurs sont conservés, les blocs `#~` restent inertes, et l'en-tête n'est jamais touché. Un `.pot` aux `msgstr` vides se lit sans accroc, mais dans un catalogue source chaque `msgstr` est le texte à traduire, donc un `msgstr` vide est ignoré avec [`SOURCE_VALUE_EMPTY`](/fr/docs/error-codes#source_value_empty).
 - **Une cible manquante** est créée avec un en-tête minimal et, pour les pluriels, un `Plural-Forms` dimensionné à l'index le plus élevé (amorce depuis un vrai modèle pour la grammaire exacte).
 - **Les placeholders sont de style printf**, `%(name)s` compris.
 - **Les erreurs** nomment le `msgid` et la ligne. `--prune` ne tient pas compte des index pluriels, donc il peut supprimer des formes présentes uniquement dans la cible.
@@ -201,19 +201,19 @@ Dans `i18next-json`, `vue-i18n-json` et `next-intl-json`, une feuille littérale
 - **Écritures atomiques.** Un fichier temporaire est renommé en place, donc une interruption ne laisse jamais un fichier à moitié écrit.
 - **Mise en forme.** Les formats XML conservent la fin de ligne et le saut de ligne final, et indentent les nouveaux éléments comme leurs voisins. Une nouvelle entrée gettext suit une ligne vide ; un `.po` créé nomme sa locale dans `Language` (`pt_BR`).
 - **Feuilles qui ne sont pas des chaînes.** Dans les formats JSON, YAML et ARB, une feuille nombre, booléen ou null est acceptée mais jamais traduite, et une réécriture de ce fichier ne la conserve pas ; un tableau échoue avec `INVALID_STRUCTURE`.
-- **Les erreurs** sont structurées et sans secret ; voir les [codes d'erreur des adaptateurs](/docs/error-codes#adapter-error-codes).
+- **Les erreurs** sont structurées et sans secret ; voir les [codes d'erreur des adaptateurs](/fr/docs/error-codes#adapter-error-codes).
 
 ## Formats extérieurs à verbatra
 
 <AvailableFrom version="0.11.0" />
 
-Un autre format peut venir de ton propre adaptateur avec un id `custom:` comme `custom:toml`, exécuté via le SDK comme du code de confiance : voir [Écrire un adaptateur de format personnalisé](/docs/custom-format-adapters).
+Un autre format peut venir de ton propre adaptateur avec un id `custom:` comme `custom:toml`, exécuté via le SDK comme du code de confiance : voir [Écrire un adaptateur de format personnalisé](/fr/docs/custom-format-adapters).
 
 ## Balisage en ligne dans les valeurs
 
 <AvailableFrom version="0.11.0" />
 
-La [vérification de parité du balisage](/docs/translation-safety#parité-du-balisage-en-ligne) s'applique dans tous les formats, balise par balise :
+La [vérification de parité du balisage](/fr/docs/translation-safety#parité-du-balisage-en-ligne) s'applique dans tous les formats, balise par balise :
 
 - `xliff` protège ses propres éléments en ligne comme placeholders ; tout autre HTML comme `<b>` est comparé comme du balisage.
 - `next-intl-json` et `arb` traitent un `<b>...</b>` apparié comme un placeholder et comparent un `<br/>` auto-fermant comme du balisage ; une balise portant des attributs est de l'ICU invalide et refusée.

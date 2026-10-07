@@ -10,7 +10,7 @@ Fehlschläge des gesamten Laufs werfen einen `SdkError`: eine Klasse, ein stabil
 Provider-Notices und Integritätsbefunde kommen als Daten auf der `RunSummary` an, werden nie
 geworfen.
 
-Jeder Code, was er bedeutet, welche CLI-Befehle ihn erreichen und was der nächste Schritt ist, steht unter [SDK-Fehlercodes](/docs/error-codes#sdk-error-codes).
+Jeder Code, was er bedeutet, welche CLI-Befehle ihn erreichen und was der nächste Schritt ist, steht unter [SDK-Fehlercodes](/de/docs/error-codes#sdk-error-codes).
 
 `code` ist als Union `SdkErrorCode` typisiert. [`errorHint`](#errorhint) liefert den nächsten Schritt, der einen Fehler behebt, und [`projectRelativeMessage`](#projectrelativemessage) kürzt die Projektpfade in seiner Meldung, bevor du sie einem Menschen zeigst.
 
@@ -45,8 +45,8 @@ Die Ausnahmen von der Ein-Fehlerklasse-Regel:
 - `runStatus` wirft überhaupt nie.
 
 Wie diese Codes auf CLI-Exit-Codes abbilden, steht in
-[SDK-Fehlercodes](/docs/error-codes#sdk-error-codes); Hilfe ausgehend vom Symptom findest du unter
-[Fehlerbehebung](/docs/troubleshooting).
+[SDK-Fehlercodes](/de/docs/error-codes#sdk-error-codes); Hilfe ausgehend vom Symptom findest du unter
+[Fehlerbehebung](/de/docs/troubleshooting).
 
 ## Fehlerklassen
 
@@ -54,7 +54,7 @@ Wie diese Codes auf CLI-Exit-Codes abbilden, steht in
 
 Die Klasse, als die jeder Fehlschlag des gesamten Laufs geworfen wird. Ihr `name` ist
 `"SdkError"`, ihr `code` ist ein Mitglied der Union `SdkErrorCode`, die
-[SDK-Fehlercodes](/docs/error-codes#sdk-error-codes) vollständig auflistet, und ihr `cause` ist nur
+[SDK-Fehlercodes](/de/docs/error-codes#sdk-error-codes) vollständig auflistet, und ihr `cause` ist nur
 bei den Codes gesetzt, die [Das Fehlermodell](#das-fehlermodell) nennt. Prüfe ihn mit
 `error instanceof SdkError` und verzweige per `switch` auf `error.code`, dann engt TypeScript jeden
 Fall auf einen Code ein.
@@ -77,7 +77,7 @@ HTTP-Fehlers. Sein `name` ist `"ProviderError"`, sein `code` ein `ProviderErrorC
 Meldung ist fest formuliert und geschwärzt. Bei einem `MISSING_API_KEY`-Fehlschlag nennt `envVar`
 die Variable, aus der der Provider seinen Key liest, nie ihren Wert. `retranslateEntry` wirft ihn
 weiter, und ein eigener Provider wirft ihn aus `translateBatch`;
-[Provider-Fehlercodes](/docs/error-codes#provider-error-codes) listet jeden Code. Prüfe ihn mit
+[Provider-Fehlercodes](/de/docs/error-codes#provider-error-codes) listet jeden Code. Prüfe ihn mit
 `error instanceof ProviderError`. Auf einer älteren Version, die die Klasse nicht exportiert, prüfe
 `error.name === "ProviderError"` und lies `code`.
 
@@ -97,7 +97,7 @@ class ProviderError extends Error {
 
 Der strukturierte Fehler, mit dem ein Format-Adapter oder die Adapter-Registry scheitert. Sein
 `name` ist `"AdapterError"` und sein `code` ein `AdapterErrorCode`, aufgelistet unter
-[Fehlercodes der Format-Adapter](/docs/error-codes#adapter-error-codes). `position` verortet
+[Fehlercodes der Format-Adapter](/de/docs/error-codes#adapter-error-codes). `position` verortet
 fehlerhafte Syntax als `{ line, column }` ab 1, die Spalte in UTF-16-Codeeinheiten gezählt: Ein
 eingebauter Adapter setzt es bei einem `INVALID_JSON`- oder `INVALID_YAML`-Fehler, dessen Parser
 eine Stelle gemeldet hat, und lässt es sonst `undefined`. Was ein `custom:`-Adapter selbst wirft,
@@ -161,7 +161,7 @@ function errorHint(error: unknown): string | undefined;
 
 **Rückgabe:** `string | undefined`
 
-**Beispiel:** [Fehler behandeln](/docs/sdk-quickstart#fehler-behandeln)
+**Beispiel:** [Fehler behandeln](/de/docs/sdk-quickstart#fehler-behandeln)
 
 ```ts title="Beispiel"
 import { errorHint, translate, type VerbatraConfig } from "@verbatra/sdk";

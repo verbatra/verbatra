@@ -3,7 +3,7 @@ title: Utiliser la GitHub Action
 description: "Exécute verbatra dans GitHub Actions avec l'action composite : traduis lors d'un push ou contrôle une pull request, avec des annotations et un résumé de job."
 type: how-to
 ---
-Utilise l'action quand un job GitHub Actions doit exécuter verbatra et te montrer ce qui s'est passé. Elle exécute `translate`, `check` ou `diff` avec `--json` ; pour toute autre commande ou option, comme `--prune`, lance [la CLI directement](/docs/ci-and-exit-codes).
+Utilise l'action quand un job GitHub Actions doit exécuter verbatra et te montrer ce qui s'est passé. Elle exécute `translate`, `check` ou `diff` avec `--json` ; pour toute autre commande ou option, comme `--prune`, lance [la CLI directement](/fr/docs/ci-and-exit-codes).
 
 Avant de commencer, il te faut :
 
@@ -40,7 +40,7 @@ L'action installe `@verbatra/cli` et `@verbatra/sdk` exactement dans cette versi
 
 ### Passer la clé du fournisseur
 
-Fais passer la clé depuis les secrets du dépôt sous la variable que lit ton fournisseur ; [Fournisseurs](/docs/providers#les-clés-viennent-de-lenvironnement) les liste. L'action n'a pas d'entrée pour la clé, donc une clé ne circule jamais comme entrée ni comme argument de la CLI.
+Fais passer la clé depuis les secrets du dépôt sous la variable que lit ton fournisseur ; [Fournisseurs](/fr/docs/providers#les-clés-viennent-de-lenvironnement) les liste. L'action n'a pas d'entrée pour la clé, donc une clé ne circule jamais comme entrée ni comme argument de la CLI.
 
 ## Contrôler une pull request
 
@@ -57,7 +57,7 @@ Mets `command: check` pour faire échouer une pull request dont les fichiers de 
 
 <AvailableFrom version="0.12.0" />
 
-Ajoute `qa: "true"` à `command: check` pour lancer [`verbatra check --qa`](/docs/cli/check#contrôle-qualité) sur chaque traduction commitée, y compris les valeurs saisies à la main. Cela reste en lecture seule et sans clé.
+Ajoute `qa: "true"` à `command: check` pour lancer [`verbatra check --qa`](/fr/docs/cli/check#contrôle-qualité) sur chaque traduction commitée, y compris les valeurs saisies à la main. Cela reste en lecture seule et sans clé.
 
 ```yaml
       - uses: verbatra/action@<commit-sha> # a commit on the v1 line
@@ -75,7 +75,7 @@ Ajoute `qa: "true"` à `command: check` pour lancer [`verbatra check --qa`](/doc
 
 <AvailableFrom version="0.12.0" />
 
-Ajoute `require-reviewed: "true"` à `command: check` pour lancer [`verbatra check --require-reviewed`](/docs/cli/check#exiger-des-traductions-relues). L'étape échoue tant qu'une traduction écrite par une machine n'est pas approuvée dans le `verbatra.provenance.json` commité, où [Studio](/docs/review-in-studio) enregistre les décisions de relecture. Cela reste en lecture seule et sans clé, et se combine avec `qa`.
+Ajoute `require-reviewed: "true"` à `command: check` pour lancer [`verbatra check --require-reviewed`](/fr/docs/cli/check#exiger-des-traductions-relues). L'étape échoue tant qu'une traduction écrite par une machine n'est pas approuvée dans le `verbatra.provenance.json` commité, où [Studio](/fr/docs/review-in-studio) enregistre les décisions de relecture. Cela reste en lecture seule et sans clé, et se combine avec `qa`.
 
 ```yaml
       - uses: verbatra/action@<commit-sha> # a commit on the v1 line
@@ -85,7 +85,7 @@ Ajoute `require-reviewed: "true"` à `command: check` pour lancer [`verbatra che
           require-reviewed: "true"
 ```
 
-- Chaque locale avec des clés non approuvées reçoit une annotation d'erreur [`REVIEW_REQUIRED`](/docs/error-codes#review_required) qui les nomme, et le résumé de job ajoute une colonne `unreviewed`.
+- Chaque locale avec des clés non approuvées reçoit une annotation d'erreur [`REVIEW_REQUIRED`](/fr/docs/error-codes#review_required) qui les nomme, et le résumé de job ajoute une colonne `unreviewed`.
 - Un `verbatra.provenance.json` corrompu ou écrit par un verbatra plus récent fait échouer le contrôle avec une seule annotation `REVIEW_STATE_UNREADABLE`.
 - Comme `qa`, il demande une `version` `0.12.0` ou plus récente, et une préversion fait échouer l'étape.
 
@@ -93,7 +93,7 @@ Ajoute `require-reviewed: "true"` à `command: check` pour lancer [`verbatra che
 
 <AvailableFrom version="0.12.0" />
 
-Avec `provider: { id: "none" }` (consulte [Flux 100 % humain](/docs/human-only-workflow)), `translate` sort avec `3` quand il laisse des clés à une personne. L'action le traite comme du travail à transmettre, pas comme un échec : l'étape réussit, chaque locale concernée reçoit un avertissement `NEEDS_HUMAN`, le résumé de job liste les clés et la sortie `needs-human` vaut `"true"`. Branche-toi dessus :
+Avec `provider: { id: "none" }` (consulte [Flux 100 % humain](/fr/docs/human-only-workflow)), `translate` sort avec `3` quand il laisse des clés à une personne. L'action le traite comme du travail à transmettre, pas comme un échec : l'étape réussit, chaque locale concernée reçoit un avertissement `NEEDS_HUMAN`, le résumé de job liste les clés et la sortie `needs-human` vaut `"true"`. Branche-toi dessus :
 
 ```yaml
       - uses: verbatra/action@<commit-sha> # a commit on the v1 line
@@ -149,7 +149,7 @@ Les entrées booléennes n'acceptent que `"true"` ou `"false"`. Une valeur ou un
 
 - **Annotations.** Avec `translate`, chaque locale en échec ou partielle devient une annotation d'erreur intitulée `verbatra: <locale>`. Avec `check` ou `diff`, chaque locale qui a dérivé en reçoit une intitulée `verbatra check: <locale>` ou `verbatra diff: <locale>`. L'annotation `LOCALE_PARTIAL` d'une locale partielle nomme les clés retenues, regroupées par cause. Chaque `check` ajoute un avertissement `PLURAL_CATEGORIES_INCOMPLETE` par locale dont les pluriels n'ont pas une catégorie CLDR que la langue utilise. Une exécution qui échoue dans son ensemble reçoit une seule annotation `verbatra` avec le code d'erreur, sa cause sous la forme `(cause: X)` et une piste `Next step:` quand la CLI les fournit. GitHub affiche au plus 10 annotations par gravité, donc l'action les ordonne par dérive, relecture, erreurs de qualité puis avertissements, et ajoute une notice qui compte le reste.
 - **Résumé de job.** Une ligne par locale avec les compteurs de la commande exécutée, une ligne agrégée et les locales partielles et en échec. Avec `qa`, il ajoute un tableau de constats jusqu'à 1000 constats ; les pluriels incomplets ont leur propre section.
-- **Statut de sortie.** L'action émet d'abord les annotations et le résumé, puis sort avec le [code de sortie](/docs/cli/output#codes-de-sortie) de la CLI elle-même, donc l'étape n'échoue qu'après avoir montré pourquoi.
+- **Statut de sortie.** L'action émet d'abord les annotations et le résumé, puis sort avec le [code de sortie](/fr/docs/cli/output#codes-de-sortie) de la CLI elle-même, donc l'étape n'échoue qu'après avoir montré pourquoi.
 
 ## Sécurité
 
@@ -157,6 +157,6 @@ Les entrées booléennes n'acceptent que `"true"` ou `"false"`. Une valeur ou un
 
 ## Voir aussi
 
-- [Exécuter verbatra en CI](/docs/ci-and-exit-codes) : les mêmes contrôles dans n'importe quel système de CI.
-- [`verbatra check`](/docs/cli/check) et [`verbatra translate`](/docs/cli/translate).
+- [Exécuter verbatra en CI](/fr/docs/ci-and-exit-codes) : les mêmes contrôles dans n'importe quel système de CI.
+- [`verbatra check`](/fr/docs/cli/check) et [`verbatra translate`](/fr/docs/cli/translate).
 - [verbatra/action](https://github.com/verbatra/action) : les notes de version et la référence des entrées générée à partir de `action.yml`.

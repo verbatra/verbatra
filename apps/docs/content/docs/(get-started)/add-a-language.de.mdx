@@ -5,7 +5,7 @@ type: how-to
 ---
 Nutze das, wenn ein Projekt schon in einige Sprachen übersetzt wird und du eine weitere willst. Es braucht eine Zeile Konfiguration und einen Lauf. verbatra behandelt die neue Locale so, als fehle ihr jeder Key, und füllt sie; deine bestehenden Locales kosten nichts, weil die Lock-Datei sie weiterhin als aktuell verzeichnet.
 
-Du brauchst ein funktionierendes Projekt: eine Konfiguration, eine Quell-Locale-Datei und einen Provider-Key. Wenn du noch keins hast, fang mit dem [Quickstart](/docs/quickstart) an.
+Du brauchst ein funktionierendes Projekt: eine Konfiguration, eine Quell-Locale-Datei und einen Provider-Key. Wenn du noch keins hast, fang mit dem [Quickstart](/de/docs/quickstart) an.
 
 ## Füge die Locale zu deiner Konfiguration hinzu
 
@@ -27,7 +27,7 @@ export default defineConfig({
 
 <AvailableFrom version="0.12.0" />
 
-Schreib den Code in BCP-47-Form, mit Bindestrich: `pt-BR`, nicht `pt_BR`. Wenn deine Dateien Unterstriche verwenden, schreib trotzdem `pt-BR` und setz `files.localeStyle` auf `posix`; verbatra behält den Dateinamen `pt_BR.json`. Beim Laden der Konfiguration werden ein ungültiger Code, die Quell-Locale und zwei Codes, die sich nur in der Groß- und Kleinschreibung unterscheiden, abgelehnt. Die vollständigen Regeln stehen unter [Locale-Codes](/docs/config-file#locale-codes); mit [`verbatra doctor`](/docs/cli/doctor) siehst du, ob ein Provider die neue Sprache unterstützt.
+Schreib den Code in BCP-47-Form, mit Bindestrich: `pt-BR`, nicht `pt_BR`. Wenn deine Dateien Unterstriche verwenden, schreib trotzdem `pt-BR` und setz `files.localeStyle` auf `posix`; verbatra behält den Dateinamen `pt_BR.json`. Beim Laden der Konfiguration werden ein ungültiger Code, die Quell-Locale und zwei Codes, die sich nur in der Groß- und Kleinschreibung unterscheiden, abgelehnt. Die vollständigen Regeln stehen unter [Locale-Codes](/de/docs/config-file#locale-codes); mit [`verbatra doctor`](/de/docs/cli/doctor) siehst du, ob ein Provider die neue Sprache unterstützt.
 
 ## Sieh dir die Arbeit vorab an
 
@@ -37,7 +37,7 @@ Schau dir an, was ein Lauf tun würde, bevor du etwas ausgibst:
 verbatra diff --locales fr
 ```
 
-Die neue Locale hat noch keine Datei, also wird jeder Quell-Key als fehlend aufgeführt. Lass `--locales` weg, um zu prüfen, dass deine anderen Locales nichts auflisten. `diff` ruft keinen Provider auf und schreibt nichts. Für eine Kostenschätzung führ `verbatra translate --estimate` aus; siehe [Kosten vor einem Lauf schätzen](/docs/estimating-cost).
+Die neue Locale hat noch keine Datei, also wird jeder Quell-Key als fehlend aufgeführt. Lass `--locales` weg, um zu prüfen, dass deine anderen Locales nichts auflisten. `diff` ruft keinen Provider auf und schreibt nichts. Für eine Kostenschätzung führ `verbatra translate --estimate` aus; siehe [Kosten vor einem Lauf schätzen](/de/docs/estimating-cost).
 
 ## Übersetze
 
@@ -74,7 +74,7 @@ Erzeugte Formen durchlaufen dieselben Integritätsprüfungen wie jede Übersetzu
 
 <AvailableFrom version="0.12.0" />
 
-Welche Formen eine Sprache braucht, kommt aus den CLDR-Pluralregeln, die in Node.js eingebaut sind, für jede Sprache, Ordinalzahlen eingeschlossen. Die ICU-Formate (next-intl und ARB) halten einen ganzen Plural in einem Wert und brauchen deshalb keine Erzeugung: Der Provider wird genau nach den Zweigen gefragt, die die Zielsprache verwendet. Unter [`generatePlurals`](/docs/config-file#generateplurals) steht, was auf den Hinweis zurückfällt, und unter [Plurale](/docs/language-support#plurale), wie verbatra entscheidet, welche Formen eine Sprache braucht.
+Welche Formen eine Sprache braucht, kommt aus den CLDR-Pluralregeln, die in Node.js eingebaut sind, für jede Sprache, Ordinalzahlen eingeschlossen. Die ICU-Formate (next-intl und ARB) halten einen ganzen Plural in einem Wert und brauchen deshalb keine Erzeugung: Der Provider wird genau nach den Zweigen gefragt, die die Zielsprache verwendet. Unter [`generatePlurals`](/de/docs/config-file#generateplurals) steht, was auf den Hinweis zurückfällt, und unter [Plurale](/de/docs/language-support#plurale), wie verbatra entscheidet, welche Formen eine Sprache braucht.
 
 ## Pflege weiter nur die Quelle
 
@@ -82,7 +82,7 @@ Ab jetzt bearbeitest du nur noch die Quell-Locale. Füg dort einen String hinzu 
 
 ## Siehe auch
 
-- [`verbatra translate`](/docs/cli/translate) und [`verbatra diff`](/docs/cli/diff): jedes Flag, das auf dieser Seite vorkommt.
-- [Die Konfigurationsdatei](/docs/config-file#locales-und-dateien): `targetLocales`, `files.pattern` und `files.localeStyle`.
-- [Sprachen und Locales](/docs/language-support): welche Sprachen jeder Provider abdeckt, Schriften, regionale Varianten und Rechts-nach-links-Text.
-- [Die Lock-Datei](/docs/the-lock-file): warum bestehende Locales bei einem erneuten Lauf nichts kosten.
+- [`verbatra translate`](/de/docs/cli/translate) und [`verbatra diff`](/de/docs/cli/diff): jedes Flag, das auf dieser Seite vorkommt.
+- [Die Konfigurationsdatei](/de/docs/config-file#locales-und-dateien): `targetLocales`, `files.pattern` und `files.localeStyle`.
+- [Sprachen und Locales](/de/docs/language-support): welche Sprachen jeder Provider abdeckt, Schriften, regionale Varianten und Rechts-nach-links-Text.
+- [Die Lock-Datei](/de/docs/the-lock-file): warum bestehende Locales bei einem erneuten Lauf nichts kosten.

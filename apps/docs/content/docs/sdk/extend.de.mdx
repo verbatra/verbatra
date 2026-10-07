@@ -7,7 +7,7 @@ type: reference
 
 <AvailableFrom version="0.11.0" />
 
-Alles, was du brauchst, um einen Format-Adapter für ein Format zu bauen, das verbatra nicht mitbringt, und ihn neben den eingebauten zu registrieren. Ein Format von außerhalb verbatras wird mit einem `custom:`-Bezeichner wie `custom:toml` benannt, den die Konfiguration genau wie einen eingebauten Namen akzeptiert. Die vollständige Anleitung steht unter [Eigene Format-Adapter](/docs/custom-format-adapters), samt dem, worauf du dich beim Installieren eines Drittanbieter-Adapters einlässt: Er ist voll vertrauenswürdiger Code, und verbatra kapselt ihn nicht ab.
+Alles, was du brauchst, um einen Format-Adapter für ein Format zu bauen, das verbatra nicht mitbringt, und ihn neben den eingebauten zu registrieren. Ein Format von außerhalb verbatras wird mit einem `custom:`-Bezeichner wie `custom:toml` benannt, den die Konfiguration genau wie einen eingebauten Namen akzeptiert. Die vollständige Anleitung steht unter [Eigene Format-Adapter](/de/docs/custom-format-adapters), samt dem, worauf du dich beim Installieren eines Drittanbieter-Adapters einlässt: Er ist voll vertrauenswürdiger Code, und verbatra kapselt ihn nicht ab.
 
 ### createDefaultRegistry
 
@@ -19,7 +19,7 @@ function createDefaultRegistry(fs?: AdapterFs): AdapterRegistry;
 
 **Rückgabe:** `AdapterRegistry`
 
-**Beispiel:** [Registrieren und laufen lassen](/docs/custom-format-adapters#registrieren-und-laufen-lassen)
+**Beispiel:** [Registrieren und laufen lassen](/de/docs/custom-format-adapters#registrieren-und-laufen-lassen)
 
 ```ts title="Beispiel"
 import {
@@ -65,7 +65,7 @@ unterschieden nach `status`: `resolved` trägt den `adapter`, `no-match` den `fi
 du entscheidest, indem du einen davon als `format` übergibst. Eine nicht auflösbare Datei ist ein
 Status, nie eine Exception.
 
-**Wirft:** `AdapterError` [`DUPLICATE_FORMAT`](/docs/error-codes#duplicate_format) und [`INVALID_FORMAT_ID`](/docs/error-codes#invalid_format_id) aus `register` sowie [`ADAPTER_FAILED`](/docs/error-codes#adapter_failed) aus `resolve`, wenn das eigene `canHandle` eines `custom:`-Adapters bei der Erkennung wirft
+**Wirft:** `AdapterError` [`DUPLICATE_FORMAT`](/de/docs/error-codes#duplicate_format) und [`INVALID_FORMAT_ID`](/de/docs/error-codes#invalid_format_id) aus `register` sowie [`ADAPTER_FAILED`](/de/docs/error-codes#adapter_failed) aus `resolve`, wenn das eigene `canHandle` eines `custom:`-Adapters bei der Erkennung wirft
 
 ### createFlatFileAdapter
 
@@ -81,7 +81,7 @@ function createFlatFileAdapter(
 
 **Rückgabe:** `FormatAdapter`
 
-**Beispiel:** [Den Adapter bauen](/docs/custom-format-adapters#den-adapter-bauen)
+**Beispiel:** [Den Adapter bauen](/de/docs/custom-format-adapters#den-adapter-bauen)
 
 ### createTreeFileAdapter
 
@@ -232,7 +232,7 @@ const summary = await translate({ config }, { createProvider });
 - `ProviderKind` ist `"llm"` oder `"machine-translation"`. Der Wert ist rein beschreibend: Nichts im
   SDK verzweigt danach.
 - `TranslateRequest` enthält `sourceLocale`, `targetLocale`, die zu übersetzenden `entries` und
-  optional `glossary` (das Ergebnis von [`glossaryForLocale`](/docs/sdk/config#glossaryforlocale) für die
+  optional `glossary` (das Ergebnis von [`glossaryForLocale`](/de/docs/sdk/config#glossaryforlocale) für die
   Ziel-Locale), `tone`, `maxLength` und `pluralCategories`. Dazu kommen `extractPlaceholders` und
   bei manchen Formaten `comparePlaceholders`, die dein Provider für die Integritätsprüfung nutzt,
   außerdem `signal`, das einen laufenden Aufruf abbricht, `onRepair` und
@@ -244,10 +244,10 @@ const summary = await translate({ config }, { createProvider });
   zurückgegebenen Wert ohnehin durch sein eigenes Integritäts-Gate laufen.
 - `ProviderRetryListener` ist der Typ von `CreateProviderHooks.onRetry`. Er erhält pro
   Wiederholung ein `ProviderRetry`, `{ attempt, delayMs?, status? }`, und jeder Aufruf wird zu einem
-  `provider-retry`-[Fortschrittsereignis](/docs/sdk/run#fortschrittsereignisse).
+  `provider-retry`-[Fortschrittsereignis](/de/docs/sdk/run#fortschrittsereignisse).
 - `ProviderNetwork` steht in `CreateProviderContext.network`, wenn die Netzwerk-Policy einschränkt,
   wohin ein Provider sich verbinden darf: die wirksame `policy`, die Umgebung `env`, aus der der
   Endpunkt aufgelöst wurde, und optionale Test-`deps`. Ein eigener Provider darf das ignorieren,
   dann gilt für seine Anfragen aber nur die Prüfung, die das SDK vor dem Aufruf der Fabrik macht.
 
-**Beispiel:** [Deine Integration ohne Schlüssel testen](/docs/programmatic-api#deine-integration-ohne-schlüssel-testen)
+**Beispiel:** [Deine Integration ohne Schlüssel testen](/de/docs/programmatic-api#deine-integration-ohne-schlüssel-testen)

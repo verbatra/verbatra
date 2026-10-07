@@ -8,14 +8,14 @@ Nutze diese Anleitung, wenn eine Pipeline Locale-Dateien erkennen soll, die von 
 Bevor du anfängst, brauchst du:
 
 - `@verbatra/cli` als Dev-Dependency, mit eingecheckter Lockfile. Die CLI braucht Node `^22.18.0 || >=24`.
-- Eine eingecheckte Konfiguration, Locale-Dateien und [`verbatra.lock.json`](/docs/the-lock-file).
+- Eine eingecheckte Konfiguration, Locale-Dateien und [`verbatra.lock.json`](/de/docs/the-lock-file).
 - Nur zum Übersetzen: den API-Schlüssel deines Providers im Secret-Speicher deiner CI.
 
-Wenn du GitHub Actions nutzt und Annotationen und eine Job-Zusammenfassung willst, ohne den Job selbst zu schreiben, nimm stattdessen die [GitHub Action](/docs/github-action).
+Wenn du GitHub Actions nutzt und Annotationen und eine Job-Zusammenfassung willst, ohne den Job selbst zu schreiben, nimm stattdessen die [GitHub Action](/de/docs/github-action).
 
 ## Ein Drift-Gate hinzufügen
 
-[`verbatra check`](/docs/cli/check) vergleicht die Quelle, die Zieldateien und die Lock-Datei und endet mit `1`, wenn einer Locale Keys fehlen oder veraltet sind. Es ruft keinen Provider auf, daher braucht der Job keinen Schlüssel und läuft auch bei Pull Requests aus Forks:
+[`verbatra check`](/de/docs/cli/check) vergleicht die Quelle, die Zieldateien und die Lock-Datei und endet mit `1`, wenn einer Locale Keys fehlen oder veraltet sind. Es ruft keinen Provider auf, daher braucht der Job keinen Schlüssel und läuft auch bei Pull Requests aus Forks:
 
 ```yaml title=".github/workflows/i18n.yml"
 name: i18n
@@ -37,7 +37,7 @@ jobs:
       - run: pnpm exec verbatra check
 ```
 
-Tausche `check` gegen [`verbatra diff`](/docs/cli/diff), wenn du die Key-Namen hinter der Drift willst, etwa um sie in einem Pull-Request-Kommentar zu posten. Es endet unter derselben Bedingung mit `1`; verwaiste Keys erscheinen in seiner Ausgabe, lassen es aber allein nie fehlschlagen.
+Tausche `check` gegen [`verbatra diff`](/de/docs/cli/diff), wenn du die Key-Namen hinter der Drift willst, etwa um sie in einem Pull-Request-Kommentar zu posten. Es endet unter derselben Bedingung mit `1`; verwaiste Keys erscheinen in seiner Ausgabe, lassen es aber allein nie fehlschlagen.
 
 Um nur einige Locales zu prüfen, übergib `--locales de,fr`. Ein `--locales`-Wert ohne gültige Locale endet mit `2`, sodass ein Tippfehler das Gate nie grün macht.
 
@@ -54,23 +54,23 @@ verbatra check --qa
 - Mit `--strict` schlägt er auch bei Review-Warnungen und fehlenden Pluralkategorien fehl.
 - In einem Edit-Hook prüft `verbatra check --file <path>` eine einzelne Locale-Datei.
 
-Siehe [die Qualitätsprüfung](/docs/cli/check#qualitätsprüfung) und [Eine Datei](/docs/cli/check#eine-datei). Die [GitHub Action](/docs/github-action#übersetzungsqualität-prüfen) führt dasselbe Gate mit `qa: "true"` aus.
+Siehe [die Qualitätsprüfung](/de/docs/cli/check#qualitätsprüfung) und [Eine Datei](/de/docs/cli/check#eine-datei). Die [GitHub Action](/de/docs/github-action#übersetzungsqualität-prüfen) führt dasselbe Gate mit `qa: "true"` aus.
 
 ### Auf Review-Entscheidungen prüfen
 
 <AvailableFrom version="0.12.0" />
 
-Mit `--require-reviewed` schlägt der Job fehl, solange eine maschinell geschriebene Übersetzung in der eingecheckten `verbatra.provenance.json` nicht freigegeben ist, der Datei, in die [die Review-Warteschlange in Studio](/docs/review-in-studio) und die MCP-Review-Tools schreiben:
+Mit `--require-reviewed` schlägt der Job fehl, solange eine maschinell geschriebene Übersetzung in der eingecheckten `verbatra.provenance.json` nicht freigegeben ist, der Datei, in die [die Review-Warteschlange in Studio](/de/docs/review-in-studio) und die MCP-Review-Tools schreiben:
 
 ```bash
 verbatra check --require-reviewed
 ```
 
-Auch das braucht keinen Schlüssel. Die Codes, die es meldet, stehen unter [Freigegebene Übersetzungen verlangen](/docs/cli/check#freigegebene-übersetzungen-verlangen).
+Auch das braucht keinen Schlüssel. Die Codes, die es meldet, stehen unter [Freigegebene Übersetzungen verlangen](/de/docs/cli/check#freigegebene-übersetzungen-verlangen).
 
 ## Bei einem Push übersetzen
 
-Führe [`verbatra translate`](/docs/cli/translate) aus und reiche den Provider-Schlüssel aus deinem Secret-Speicher in die Umgebung des Schritts. Die CLI nimmt kein Schlüssel-Argument an und liest keinen Schlüssel aus der Konfiguration; unter [Provider](/docs/providers#keys-kommen-aus-der-umgebung) steht, welche Variable jeder Provider liest.
+Führe [`verbatra translate`](/de/docs/cli/translate) aus und reiche den Provider-Schlüssel aus deinem Secret-Speicher in die Umgebung des Schritts. Die CLI nimmt kein Schlüssel-Argument an und liest keinen Schlüssel aus der Konfiguration; unter [Provider](/de/docs/providers#keys-kommen-aus-der-umgebung) steht, welche Variable jeder Provider liest.
 
 ```yaml
       - run: pnpm exec verbatra translate --json
@@ -79,30 +79,30 @@ Führe [`verbatra translate`](/docs/cli/translate) aus und reiche den Provider-S
 ```
 
 - Der Schritt schreibt Locale-Dateien in den Checkout und hört dort auf. Füge einen eigenen Schritt hinzu, der sie committet oder einen Pull Request öffnet, und gib nur diesem Job `contents: write` oder `pull-requests: write`.
-- Für eine Vorschau führe vorher `verbatra translate --dry-run` oder `--estimate` aus: Keins von beiden ruft einen Provider auf oder braucht einen Schlüssel. Siehe [Kosten abschätzen](/docs/estimating-cost).
+- Für eine Vorschau führe vorher `verbatra translate --dry-run` oder `--estimate` aus: Keins von beiden ruft einen Provider auf oder braucht einen Schlüssel. Siehe [Kosten abschätzen](/de/docs/estimating-cost).
 - Bei einem Provider mit Rate-Limit übersetzt du mit `--locales` eine Locale pro Schritt.
 
 ## Vorab mit doctor prüfen
 
-Setze [`verbatra doctor`](/docs/cli/doctor) vor beide Jobs, damit ein kaputtes Setup früh auffällt. Es prüft die Konfiguration, das Format, den Provider, die Schlüsselvariable, die Netzwerkrichtlinie, die Quelldatei und die Locale-Unterstützung und ruft dabei nie einen Provider auf oder liest einen Schlüsselwert. Eine nicht gesetzte Schlüsselvariable meldet es aber als fehlgeschlagene Prüfung, also reiche den Schlüssel in jeden Job, in dem diese Prüfung bestehen soll.
+Setze [`verbatra doctor`](/de/docs/cli/doctor) vor beide Jobs, damit ein kaputtes Setup früh auffällt. Es prüft die Konfiguration, das Format, den Provider, die Schlüsselvariable, die Netzwerkrichtlinie, die Quelldatei und die Locale-Unterstützung und ruft dabei nie einen Provider auf oder liest einen Schlüsselwert. Eine nicht gesetzte Schlüsselvariable meldet es aber als fehlgeschlagene Prüfung, also reiche den Schlüssel in jeden Job, in dem diese Prüfung bestehen soll.
 
 ## Exit-Codes
 
-Verzweige auf den Exit-Code, nie auf den Text. Was jeder Code bedeutet, samt Sonderfällen, steht unter [Exit-Codes und JSON-Ausgabe](/docs/cli/output#exit-codes); ein Fehlercode in der Ausgabe wird unter [Fehlercodes](/docs/error-codes) erklärt.
+Verzweige auf den Exit-Code, nie auf den Text. Was jeder Code bedeutet, samt Sonderfällen, steht unter [Exit-Codes und JSON-Ausgabe](/de/docs/cli/output#exit-codes); ein Fehlercode in der Ausgabe wird unter [Fehlercodes](/de/docs/error-codes) erklärt.
 
 ## JSON-Ausgabe
 
-Übergib `--json` für einen Envelope pro Datensatz auf stdout. Seine Felder stehen unter [Exit-Codes und JSON-Ausgabe](/docs/cli/output#json-ausgabe), das `result` jedes Befehls auf seiner Befehlsseite. [verbatra mit JSON skripten](/docs/agent-recipes) hat Rezepte, die ihn auswerten.
+Übergib `--json` für einen Envelope pro Datensatz auf stdout. Seine Felder stehen unter [Exit-Codes und JSON-Ausgabe](/de/docs/cli/output#json-ausgabe), das `result` jedes Befehls auf seiner Befehlsseite. [verbatra mit JSON skripten](/de/docs/agent-recipes) hat Rezepte, die ihn auswerten.
 
 ## Schlüssel und Installationen
 
 - Installiere mit `pnpm install --frozen-lockfile` oder `npm ci`, damit der Job genau das `@verbatra/cli`-Release ausführt, das deine Lockfile festhält.
 - Halte Secrets aus Jobs heraus, die nie einen Provider aufrufen: `check`, `diff`, `report`, `export`, `import`, `extract`, `pseudo`, `types` und `tmx`.
-- Verlass dich in CI auf `env:`. Welche Befehle zusätzlich `.env.local` und `.env` laden, steht unter [Umgebungsdateien](/docs/cli#umgebungsdateien).
+- Verlass dich in CI auf `env:`. Welche Befehle zusätzlich `.env.local` und `.env` laden, steht unter [Umgebungsdateien](/de/docs/cli#umgebungsdateien).
 
 ## Siehe auch
 
-- [Die GitHub Action nutzen](/docs/github-action): dieselben Gates mit Annotationen und einer Job-Zusammenfassung.
-- [`verbatra check`](/docs/cli/check) und [`verbatra diff`](/docs/cli/diff): jedes Flag der beiden Gates.
-- [Exit-Codes und JSON-Ausgabe](/docs/cli/output): der Vertrag, den ein CI-Schritt liest.
-- [Fehlercodes](/docs/error-codes): was jeder Code bedeutet und was als Nächstes zu tun ist.
+- [Die GitHub Action nutzen](/de/docs/github-action): dieselben Gates mit Annotationen und einer Job-Zusammenfassung.
+- [`verbatra check`](/de/docs/cli/check) und [`verbatra diff`](/de/docs/cli/diff): jedes Flag der beiden Gates.
+- [Exit-Codes und JSON-Ausgabe](/de/docs/cli/output): der Vertrag, den ein CI-Schritt liest.
+- [Fehlercodes](/de/docs/error-codes): was jeder Code bedeutet und was als Nächstes zu tun ist.

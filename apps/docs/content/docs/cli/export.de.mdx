@@ -3,7 +3,7 @@ title: verbatra export
 description: Exportiere unübersetzte Strings in eine Übergabe für Übersetzerinnen, als formatierte Excel-Arbeitsmappe, als CSV- bzw. TSV-Datei pro Locale oder als XLIFF-Datei pro Locale für ein CAT-Tool.
 type: reference
 ---
-Schreibe die zu übersetzenden Strings in eine Übergabe, die ein Mensch ausfüllt und für [`verbatra import`](/docs/cli/import) zurückschickt. Standardmäßig enthält sie nur die fehlenden und geänderten Strings, also dieselben Keys, die ein automatischer Lauf an einen Provider schicken würde. Ein Key, dessen Quellwert leer ist oder nur aus Leerraum besteht, bekommt keine Zeile, bis du seinen Quelltext schreibst. `export` ruft nie einen Provider auf und braucht keinen API-Key.
+Schreibe die zu übersetzenden Strings in eine Übergabe, die ein Mensch ausfüllt und für [`verbatra import`](/de/docs/cli/import) zurückschickt. Standardmäßig enthält sie nur die fehlenden und geänderten Strings, also dieselben Keys, die ein automatischer Lauf an einen Provider schicken würde. Ein Key, dessen Quellwert leer ist oder nur aus Leerraum besteht, bekommt keine Zeile, bis du seinen Quelltext schreibst. `export` ruft nie einen Provider auf und braucht keinen API-Key.
 
 ## Synopsis
 
@@ -36,7 +36,7 @@ verbatra export --format xliff2 --out handoff
 | `--locales` | `<list>` | jede konfigurierte Ziel-Locale | nur diese kommagetrennte Teilmenge exportieren; eine nicht konfigurierte Locale scheitert mit `UNKNOWN_LOCALE`, eine leere Liste mit `INVALID_LOCALES`, beide mit Exit `2` |
 | `--include-unchanged` | keins | aus | auch bereits aktuelle Strings exportieren |
 
-Außerdem nimmt der Befehl die [globalen Flags](/docs/cli#globale-flags) `--cwd`, `--config` und `--json`.
+Außerdem nimmt der Befehl die [globalen Flags](/de/docs/cli#globale-flags) `--cwd`, `--config` und `--json`.
 
 ## Verhalten
 
@@ -46,15 +46,15 @@ Außerdem nimmt der Befehl die [globalen Flags](/docs/cli#globale-flags) `--cwd`
 
 Eine Datei mit Trennzeichen lässt sich diffen und überall öffnen, hat aber keinen Zellschutz: Jede Spalte ist bearbeitbar, und die Spalte `Source hash` ist sichtbar. Einem geänderten Hash wird nie vertraut: Der Import vergleicht ihn mit der aktuellen Quelle und hält die Zeile zurück.
 
-Jeder Export mit Trennzeichen schreibt zusätzlich ein verstecktes Manifest, `.verbatra-export-csv.json` oder `.verbatra-export-tsv.json`, das die geschriebenen Locales benennt. Ein späterer Export mit engerem `--locales` legt die weggefallenen Locales still: ihre Dateien bleiben liegen, und [`verbatra import`](/docs/cli/import) weist sie als Überbleibsel zurück. Der Export löscht nie etwas aus dem Ausgabeverzeichnis.
+Jeder Export mit Trennzeichen schreibt zusätzlich ein verstecktes Manifest, `.verbatra-export-csv.json` oder `.verbatra-export-tsv.json`, das die geschriebenen Locales benennt. Ein späterer Export mit engerem `--locales` legt die weggefallenen Locales still: ihre Dateien bleiben liegen, und [`verbatra import`](/de/docs/cli/import) weist sie als Überbleibsel zurück. Der Export löscht nie etwas aus dem Ausgabeverzeichnis.
 
 ### XLIFF
 
 <AvailableFrom version="0.12.0" />
 
-`--format xliff2` schreibt XLIFF 2.0 und `--format xliff12` XLIFF 1.2: eine `<locale>.xlf` pro exportierter Locale in das `--out`-Verzeichnis, dazu ein Manifest `.verbatra-export-xliff.json`, das wie das CSV-Manifest funktioniert. Jeder Key wird zu einer Unit mit dem Key als Namen, Platzhalter und Markup werden zu geschützten Inline-Codes, Beschreibung und Bedeutung des Keys werden zu Notizen, und der Segmentstatus folgt dem Lock- und Review-Status (`initial` für einen fehlenden oder veralteten Key, `translated` wenn aktuell, `reviewed` wenn freigegeben). Siehe [An eine Übersetzungsagentur übergeben](/docs/translation-agency).
+`--format xliff2` schreibt XLIFF 2.0 und `--format xliff12` XLIFF 1.2: eine `<locale>.xlf` pro exportierter Locale in das `--out`-Verzeichnis, dazu ein Manifest `.verbatra-export-xliff.json`, das wie das CSV-Manifest funktioniert. Jeder Key wird zu einer Unit mit dem Key als Namen, Platzhalter und Markup werden zu geschützten Inline-Codes, Beschreibung und Bedeutung des Keys werden zu Notizen, und der Segmentstatus folgt dem Lock- und Review-Status (`initial` für einen fehlenden oder veralteten Key, `translated` wenn aktuell, `reviewed` wenn freigegeben). Siehe [An eine Übersetzungsagentur übergeben](/de/docs/translation-agency).
 
-Jedes Ziel sagt außerdem, woher es stammt. In XLIFF 1.2 trägt ein Ziel, das ein Provider, der Übersetzungsspeicher oder ein KI-Agent geschrieben und noch niemand freigegeben hat, `state-qualifier="mt-suggestion"`; in XLIFF 2.0 trägt die `verbatra`-Metagruppe der Unit `origin` und `review-state`. Der Import ignoriert beides. Lässt sich `verbatra.provenance.json` nicht lesen, wird keine Markierung geschrieben, und das `--json`-Ergebnis trägt `provenanceMarkers: "unavailable"`. Siehe [Nachweis maschineller Übersetzungen](/docs/provenance-evidence#markierungen-in-exporten).
+Jedes Ziel sagt außerdem, woher es stammt. In XLIFF 1.2 trägt ein Ziel, das ein Provider, der Übersetzungsspeicher oder ein KI-Agent geschrieben und noch niemand freigegeben hat, `state-qualifier="mt-suggestion"`; in XLIFF 2.0 trägt die `verbatra`-Metagruppe der Unit `origin` und `review-state`. Der Import ignoriert beides. Lässt sich `verbatra.provenance.json` nicht lesen, wird keine Markierung geschrieben, und das `--json`-Ergebnis trägt `provenanceMarkers: "unavailable"`. Siehe [Nachweis maschineller Übersetzungen](/de/docs/provenance-evidence#markierungen-in-exporten).
 
 ### Wohin die Übergabe geschrieben wird
 
@@ -75,13 +75,13 @@ verbatra: exporting to xlsx... done (0.3s)
 next: verbatra import verbatra-translations.xlsx (once your translators have filled it in)
 ```
 
-Diese Zeilen gehen auf stderr, und `--quiet` lässt sie weg. Siehe [Terminalausgabe](/docs/cli/output#terminalausgabe).
+Diese Zeilen gehen auf stderr, und `--quiet` lässt sie weg. Siehe [Terminalausgabe](/de/docs/cli/output#terminalausgabe).
 
 ### JSON-Ausgabe
 
-Schema: [`export-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/export-envelope.json) validiert den ganzen Envelope; [Schemas](/docs/cli/output#schemas) listet die übrigen auf.
+Schema: [`export-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/export-envelope.json) validiert den ganzen Envelope; [Schemas](/de/docs/cli/output#schemas) listet die übrigen auf.
 
-Mit `--json` trägt der [Envelope](/docs/cli/output#json-ausgabe), wohin die Übergabe ging, und die Zeilenzahl pro Locale:
+Mit `--json` trägt der [Envelope](/de/docs/cli/output#json-ausgabe), wohin die Übergabe ging, und die Zeilenzahl pro Locale:
 
 ```ts
 {
@@ -98,10 +98,10 @@ Mit `--json` trägt der [Envelope](/docs/cli/output#json-ausgabe), wohin die Üb
 | `0` | die Übergabe wurde geschrieben |
 | `2` | konnte nicht laufen: ein Fehler des gesamten Laufs, ein abgelehnter Ausgabepfad (`EXPORT_OUTPUT_CONFLICT`), eine Übergabe, die sich nicht schreiben ließ (`EXPORT_UNWRITABLE`, `WORKBOOK_INVALID`), oder ein Verwendungsfehler |
 
-`export` hat keinen Fehlermodus pro Locale und endet deshalb nie mit `1`. Den Vertrag, dem jeder Befehl folgt, findest du unter [Exit-Codes](/docs/cli/output#exit-codes).
+`export` hat keinen Fehlermodus pro Locale und endet deshalb nie mit `1`. Den Vertrag, dem jeder Befehl folgt, findest du unter [Exit-Codes](/de/docs/cli/output#exit-codes).
 
 ## Siehe auch
 
-- [Menschliche Übersetzung](/docs/manual-translation) behandelt den Aufbau der Arbeitsmappe, die Review-Spalten und den vollständigen Roundtrip.
-- [An eine Übersetzungsagentur übergeben](/docs/translation-agency) behandelt die XLIFF-Übergabe für ein CAT-Tool.
-- [`verbatra import`](/docs/cli/import) liest die ausgefüllte Übergabe zurück.
+- [Menschliche Übersetzung](/de/docs/manual-translation) behandelt den Aufbau der Arbeitsmappe, die Review-Spalten und den vollständigen Roundtrip.
+- [An eine Übersetzungsagentur übergeben](/de/docs/translation-agency) behandelt die XLIFF-Übergabe für ein CAT-Tool.
+- [`verbatra import`](/de/docs/cli/import) liest die ausgefüllte Übergabe zurück.

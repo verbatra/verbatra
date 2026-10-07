@@ -27,9 +27,9 @@ function keyValue(
 
 **Devuelve:** `KeyValueResult`
 
-**Lanza:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/docs/error-codes#unknown_key)
+**Lanza:** [`UNKNOWN_FORMAT`](/es/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/es/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/es/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/es/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/es/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/es/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/es/docs/error-codes#unknown_key)
 
-**Ejemplo:** [Edita y retraduce una sola clave](/docs/programmatic-api#edita-y-retraduce-una-sola-clave)
+**Ejemplo:** [Edita y retraduce una sola clave](/es/docs/programmatic-api#edita-y-retraduce-una-sola-clave)
 
 Devuelve `{ source, target? }`; `target` está ausente exactamente cuando la clave todavía no existe
 en ese locale y, cuando está, llega con `provenance`, la `KeyProvenance` interpretada de la clave:
@@ -58,7 +58,7 @@ function keyContext(
 
 **Devuelve:** `KeyContext`
 
-**Lanza:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/docs/error-codes#unknown_key)
+**Lanza:** [`UNKNOWN_FORMAT`](/es/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/es/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/es/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/es/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/es/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/es/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/es/docs/error-codes#unknown_key)
 
 Un glosario ilegible no lanza: `glossary` queda vacío y `glossaryNotice` lleva el código y el mensaje redactado del error. `draftCheck` indica, por término aplicable, si el borrador usa la traducción exigida y qué variantes prohibidas usa.
 
@@ -79,9 +79,9 @@ function localeHistory(
 
 **Devuelve:** `LocaleHistoryResult`
 
-**Lanza:** [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision)
+**Lanza:** [`LOCALE_LAYOUT_INVALID`](/es/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/es/docs/error-codes#locale_path_collision)
 
-Cada commit lleva `hash`, `author` (el nombre tras `.mailmap`, nunca el correo), `authorDate`, `subject` y `touchedPaths`. `limit` vale `LOCALE_HISTORY_LIMIT_DEFAULT` (`50`) por defecto, como máximo `LOCALE_HISTORY_LIMIT_CAP` (`200`), redondeado hacia abajo y al menos 1. Los caracteres de control y de formato bidireccional se quitan de `author` y `subject`; un commit con metadatos ilegibles se omite. Sin git o sin repositorio, o si `git log` supera `LOCALE_HISTORY_TIMEOUT_MS` o `LOCALE_HISTORY_MAX_OUTPUT_BYTES`, el resultado es `{ available: false, reason }`, un motivo de `LOCALE_HISTORY_UNAVAILABLE_REASONS`. Consulta [Studio y MCP](/docs/data-handling#studio-y-mcp).
+Cada commit lleva `hash`, `author` (el nombre tras `.mailmap`, nunca el correo), `authorDate`, `subject` y `touchedPaths`. `limit` vale `LOCALE_HISTORY_LIMIT_DEFAULT` (`50`) por defecto, como máximo `LOCALE_HISTORY_LIMIT_CAP` (`200`), redondeado hacia abajo y al menos 1. Los caracteres de control y de formato bidireccional se quitan de `author` y `subject`; un commit con metadatos ilegibles se omite. Sin git o sin repositorio, o si `git log` supera `LOCALE_HISTORY_TIMEOUT_MS` o `LOCALE_HISTORY_MAX_OUTPUT_BYTES`, el resultado es `{ available: false, reason }`, un motivo de `LOCALE_HISTORY_UNAVAILABLE_REASONS`. Consulta [Studio y MCP](/es/docs/data-handling#studio-y-mcp).
 
 ### editEntry
 
@@ -103,13 +103,13 @@ function editEntry(
 
 **Devuelve:** `EditEntryResult`
 
-**Lanza:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/docs/error-codes#unknown_key), [`KEY_PINNED`](/docs/error-codes#key_pinned), [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), [`RUN_CANCELLED`](/docs/error-codes#run_cancelled), [`TARGET_UNWRITABLE`](/docs/error-codes#target_unwritable), [`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid)
+**Lanza:** [`UNKNOWN_FORMAT`](/es/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/es/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/es/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/es/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/es/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/es/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/es/docs/error-codes#unknown_key), [`KEY_PINNED`](/es/docs/error-codes#key_pinned), [`LOCK_CONTENDED`](/es/docs/error-codes#lock_contended), [`RUN_CANCELLED`](/es/docs/error-codes#run_cancelled), [`TARGET_UNWRITABLE`](/es/docs/error-codes#target_unwritable), [`LOCALE_STATE_NOT_CARRIED_OVER`](/es/docs/error-codes#locale_state_not_carried_over), [`LOCK_TIMEOUT_INVALID`](/es/docs/error-codes#lock_timeout_invalid), [`LOCK_FILE_INVALID`](/es/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/es/docs/error-codes#provenance_file_invalid)
 
-**Ejemplo:** [Edita y retraduce una sola clave](/docs/programmatic-api#edita-y-retraduce-una-sola-clave)
+**Ejemplo:** [Edita y retraduce una sola clave](/es/docs/programmatic-api#edita-y-retraduce-una-sola-clave)
 
 Devuelve `{ accepted: true, value }`, o
 `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }` sin
-escribir nada ([la puerta de integridad](/docs/translation-safety#la-puerta-de-integridad)).
+escribir nada ([la puerta de integridad](/es/docs/translation-safety#la-puerta-de-integridad)).
 Construye cualquier esquema sobre los motivos a partir de la tupla exportada `INTEGRITY_GATE_REASONS`.
 `"empty"` rechaza un valor vacío para un origen con texto; vacía una clave con el centinela
 `[[CLEAR]]` del libro. Un rechazo `placeholder` o `markup` lleva además `details`: cada marcador o
@@ -149,9 +149,9 @@ function retranslateEntry(
 
 **Devuelve:** `RetranslateEntryResult`
 
-**Lanza:** [`MACHINE_TRANSLATION_DISABLED`](/docs/error-codes#machine_translation_disabled), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/docs/error-codes#unknown_key), [`KEY_PINNED`](/docs/error-codes#key_pinned), [`KEY_PROTECTED`](/docs/error-codes#key_protected), [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed), [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), [`RUN_CANCELLED`](/docs/error-codes#run_cancelled), [`TARGET_UNWRITABLE`](/docs/error-codes#target_unwritable), [`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid), [`SENSITIVE_CONTENT_WITHHELD`](/docs/error-codes#sensitive_content_withheld)
+**Lanza:** [`MACHINE_TRANSLATION_DISABLED`](/es/docs/error-codes#machine_translation_disabled), [`LOCK_TIMEOUT_INVALID`](/es/docs/error-codes#lock_timeout_invalid), [`UNKNOWN_FORMAT`](/es/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/es/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/es/docs/error-codes#locale_unsupported_by_provider), [`LOCALE_LAYOUT_INVALID`](/es/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/es/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/es/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/es/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/es/docs/error-codes#unknown_key), [`KEY_PINNED`](/es/docs/error-codes#key_pinned), [`KEY_PROTECTED`](/es/docs/error-codes#key_protected), [`PROVIDER_CONSTRUCTION_FAILED`](/es/docs/error-codes#provider_construction_failed), [`NETWORK_POLICY_VIOLATION`](/es/docs/error-codes#network_policy_violation), [`CONFIG_INVALID`](/es/docs/error-codes#config_invalid), [`LOCK_CONTENDED`](/es/docs/error-codes#lock_contended), [`RUN_CANCELLED`](/es/docs/error-codes#run_cancelled), [`TARGET_UNWRITABLE`](/es/docs/error-codes#target_unwritable), [`LOCALE_STATE_NOT_CARRIED_OVER`](/es/docs/error-codes#locale_state_not_carried_over), [`LOCK_FILE_INVALID`](/es/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/es/docs/error-codes#provenance_file_invalid), [`SENSITIVE_CONTENT_WITHHELD`](/es/docs/error-codes#sensitive_content_withheld)
 
-**Ejemplo:** [Edita y retraduce una sola clave](/docs/programmatic-api#edita-y-retraduce-una-sola-clave)
+**Ejemplo:** [Edita y retraduce una sola clave](/es/docs/programmatic-api#edita-y-retraduce-una-sola-clave)
 
 Devuelve `{ accepted: true, value, reviewReasons }` (los códigos de motivo de revisión del nuevo
 valor) o el rechazo que devuelve `editEntry`. A diferencia de `translate`, aquí un fallo del proveedor lanza: un `ProviderError`, exportado desde
@@ -187,9 +187,9 @@ function approveEntry(
 
 **Devuelve:** `ReviewDecisionResult`
 
-**Lanza:** [`REVIEWER_INVALID`](/docs/error-codes#reviewer_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/docs/error-codes#unknown_key), [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), [`RUN_CANCELLED`](/docs/error-codes#run_cancelled), [`REVIEW_VALUE_CHANGED`](/docs/error-codes#review_value_changed), [`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), [`REVIEW_SOURCE_CHANGED`](/docs/error-codes#review_source_changed), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid), [`PROVENANCE_FILE_UNWRITABLE`](/docs/error-codes#provenance_file_unwritable)
+**Lanza:** [`REVIEWER_INVALID`](/es/docs/error-codes#reviewer_invalid), [`LOCK_TIMEOUT_INVALID`](/es/docs/error-codes#lock_timeout_invalid), [`UNKNOWN_FORMAT`](/es/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/es/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/es/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/es/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/es/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/es/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/es/docs/error-codes#unknown_key), [`LOCK_CONTENDED`](/es/docs/error-codes#lock_contended), [`RUN_CANCELLED`](/es/docs/error-codes#run_cancelled), [`REVIEW_VALUE_CHANGED`](/es/docs/error-codes#review_value_changed), [`LOCALE_STATE_NOT_CARRIED_OVER`](/es/docs/error-codes#locale_state_not_carried_over), [`REVIEW_SOURCE_CHANGED`](/es/docs/error-codes#review_source_changed), [`LOCK_FILE_INVALID`](/es/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/es/docs/error-codes#provenance_file_invalid), [`PROVENANCE_FILE_UNWRITABLE`](/es/docs/error-codes#provenance_file_unwritable)
 
-**Ejemplo:** [Recorre la cola de revisión](/docs/programmatic-api#recorre-la-cola-de-revisión)
+**Ejemplo:** [Recorre la cola de revisión](/es/docs/programmatic-api#recorre-la-cola-de-revisión)
 
 `expectedValue` es el texto que
 vio quien revisa, o pasa `expectedValueHash` con el `valueMarker` que lo generó: la llamada lanza `REVIEW_VALUE_CHANGED` cuando la clave no tiene valor o tiene
@@ -222,9 +222,9 @@ function rejectEntry(
 
 **Devuelve:** `ReviewDecisionResult`
 
-**Lanza:** [`REVIEWER_INVALID`](/docs/error-codes#reviewer_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/docs/error-codes#unknown_key), [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), [`RUN_CANCELLED`](/docs/error-codes#run_cancelled), [`REVIEW_VALUE_CHANGED`](/docs/error-codes#review_value_changed), [`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), [`TARGET_UNWRITABLE`](/docs/error-codes#target_unwritable), [`REVIEW_REJECT_UNSUPPORTED`](/docs/error-codes#review_reject_unsupported), [`REVIEW_RESTORE_FAILED`](/docs/error-codes#review_restore_failed), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid), [`PROVENANCE_FILE_UNWRITABLE`](/docs/error-codes#provenance_file_unwritable)
+**Lanza:** [`REVIEWER_INVALID`](/es/docs/error-codes#reviewer_invalid), [`LOCK_TIMEOUT_INVALID`](/es/docs/error-codes#lock_timeout_invalid), [`UNKNOWN_FORMAT`](/es/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/es/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/es/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/es/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/es/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/es/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/es/docs/error-codes#unknown_key), [`LOCK_CONTENDED`](/es/docs/error-codes#lock_contended), [`RUN_CANCELLED`](/es/docs/error-codes#run_cancelled), [`REVIEW_VALUE_CHANGED`](/es/docs/error-codes#review_value_changed), [`LOCALE_STATE_NOT_CARRIED_OVER`](/es/docs/error-codes#locale_state_not_carried_over), [`TARGET_UNWRITABLE`](/es/docs/error-codes#target_unwritable), [`REVIEW_REJECT_UNSUPPORTED`](/es/docs/error-codes#review_reject_unsupported), [`REVIEW_RESTORE_FAILED`](/es/docs/error-codes#review_restore_failed), [`LOCK_FILE_INVALID`](/es/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/es/docs/error-codes#provenance_file_invalid), [`PROVENANCE_FILE_UNWRITABLE`](/es/docs/error-codes#provenance_file_unwritable)
 
-**Ejemplo:** [Recorre la cola de revisión](/docs/programmatic-api#recorre-la-cola-de-revisión)
+**Ejemplo:** [Recorre la cola de revisión](/es/docs/programmatic-api#recorre-la-cola-de-revisión)
 
 La entrada se comprueba como en
 `approveEntry`, salvo que un origen desactualizado no impide un rechazo. Devuelve
@@ -277,9 +277,9 @@ function localeValues(
 
 **Devuelve:** `readonly LocaleValues[]`
 
-**Lanza:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
+**Lanza:** [`UNKNOWN_FORMAT`](/es/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/es/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/es/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/es/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/es/docs/error-codes#source_invalid), [`UNKNOWN_LOCALE`](/es/docs/error-codes#unknown_locale)
 
-**Ejemplo:** [Lee todos los valores de golpe](/docs/programmatic-api#lee-todos-los-valores-de-golpe)
+**Ejemplo:** [Lee todos los valores de golpe](/es/docs/programmatic-api#lee-todos-los-valores-de-golpe)
 
 Un `locales` omitido cubre cada locale de destino
 configurado. Devuelve un `{ locale, keys, values }` por locale: `keys` lista cada clave en el orden
@@ -307,7 +307,7 @@ function localeValuesPage(
 
 **Devuelve:** `LocaleValuesPage`
 
-**Lanza:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`PAGE_CURSOR_INVALID`](/docs/error-codes#page_cursor_invalid), [`PAGE_LIMIT_INVALID`](/docs/error-codes#page_limit_invalid)
+**Lanza:** [`UNKNOWN_FORMAT`](/es/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/es/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/es/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/es/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/es/docs/error-codes#source_invalid), [`UNKNOWN_LOCALE`](/es/docs/error-codes#unknown_locale), [`PAGE_CURSOR_INVALID`](/es/docs/error-codes#page_cursor_invalid), [`PAGE_LIMIT_INVALID`](/es/docs/error-codes#page_limit_invalid)
 
 Devuelve `{ locales, nextCursor? }`: cada locale con una entrada en la página lleva `entries`, cada una `{ key, source?, target?, provenance? }` como la informa `localeValues`, ordenadas por locale y luego por clave. Una página tiene como mucho `limit` entradas: `PAGE_LIMIT_DEFAULT` (200) por defecto, `PAGE_LIMIT_CAP` (1000) como máximo. Pasa `nextCursor` como `cursor`, con los mismos filtros, hasta que falte. Cada llamada vuelve a leer los archivos, así que un cursor cuya clave se movió o ya no existe se rechaza en vez de saltar o repetir entradas.
 
@@ -345,7 +345,7 @@ function approveEntries(
 
 **Devuelve:** `ReviewEntriesResult`
 
-**Lanza:** [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid)
+**Lanza:** [`LOCK_TIMEOUT_INVALID`](/es/docs/error-codes#lock_timeout_invalid)
 
 ### rejectEntries
 
@@ -364,7 +364,7 @@ function rejectEntries(
 
 **Devuelve:** `ReviewEntriesResult`
 
-**Lanza:** [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid)
+**Lanza:** [`LOCK_TIMEOUT_INVALID`](/es/docs/error-codes#lock_timeout_invalid)
 
 ### approveLocale
 
@@ -389,7 +389,7 @@ function approveLocale(
 
 **Devuelve:** `ApproveLocaleResult`
 
-**Lanza:** [`REVIEWER_INVALID`](/docs/error-codes#reviewer_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), [`RUN_CANCELLED`](/docs/error-codes#run_cancelled), [`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid), [`PROVENANCE_FILE_UNWRITABLE`](/docs/error-codes#provenance_file_unwritable)
+**Lanza:** [`REVIEWER_INVALID`](/es/docs/error-codes#reviewer_invalid), [`LOCK_TIMEOUT_INVALID`](/es/docs/error-codes#lock_timeout_invalid), [`UNKNOWN_FORMAT`](/es/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/es/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/es/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/es/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/es/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/es/docs/error-codes#source_invalid), [`LOCK_CONTENDED`](/es/docs/error-codes#lock_contended), [`RUN_CANCELLED`](/es/docs/error-codes#run_cancelled), [`LOCALE_STATE_NOT_CARRIED_OVER`](/es/docs/error-codes#locale_state_not_carried_over), [`LOCK_FILE_INVALID`](/es/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/es/docs/error-codes#provenance_file_invalid), [`PROVENANCE_FILE_UNWRITABLE`](/es/docs/error-codes#provenance_file_unwritable)
 
 ### retranslateEntries
 
@@ -412,7 +412,7 @@ function retranslateEntries(
 
 **Devuelve:** `RetranslateEntriesResult`
 
-**Lanza:** [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid)
+**Lanza:** [`LOCK_TIMEOUT_INVALID`](/es/docs/error-codes#lock_timeout_invalid)
 
 <AvailableFrom version="0.12.0" />
 

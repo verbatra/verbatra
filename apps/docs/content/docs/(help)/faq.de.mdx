@@ -4,65 +4,65 @@ description: Kurze Antworten auf die Fragen, die beim Einsatz von verbatra am h�
 type: reference
 ---
 Kurze Antworten mit einem Link auf die Seite, die die Details hat. Zu Fehlermeldungen siehe
-[Fehlerbehebung](/docs/troubleshooting) und [Fehlercodes](/docs/error-codes).
+[Fehlerbehebung](/de/docs/troubleshooting) und [Fehlercodes](/de/docs/error-codes).
 
 ## Wie kontrolliere ich die Kosten?
 
 Läufe sind inkrementell, also erreichen nur fehlende oder geänderte Keys den Provider, und ein
 unverändertes Projekt kostet beim erneuten Lauf nichts. `verbatra translate --estimate` bemisst
 einen Lauf, ohne einen Provider aufzurufen, und `--max-tokens` oder `maxTokens` in der Konfiguration
-deckeln ihn. Siehe [Kosten abschätzen](/docs/estimating-cost).
+deckeln ihn. Siehe [Kosten abschätzen](/de/docs/estimating-cost).
 
 ## Was kostet ein Lauf tatsächlich?
 
 Wenig: 400 Keys in 3 Locales mit `gemini-2.5-flash` ergeben etwa 72.000 Tokens, bei einer
 beispielhaften Rate rund 1,6 Cent, und spätere Läufe zahlen nur für die Strings, die du geändert
 hast. Das durchgerechnete Beispiel, seine Annahmen und wie du an deinem eigenen Projekt
-kalibrierst, stehen in [Kosten abschätzen](/docs/estimating-cost).
+kalibrierst, stehen in [Kosten abschätzen](/de/docs/estimating-cost).
 
 ## Mit welchem Provider soll ich anfangen?
 
 Mit Gemini, denn mit seiner kostenlosen API-Stufe übersetzt du ein ganzes Projekt ohne Kosten, und
 ein späterer Wechsel heißt, eine `id` zu ändern. Halte vertrauliche Strings von der kostenlosen
 Stufe fern: siehe
-[Datenverarbeitung und Datenschutz](/docs/data-handling#aufbewahrung-und-auftragsverarbeitung-beim-anbieter).
-Alle Provider im Vergleich findest du unter [Provider](/docs/providers).
+[Datenverarbeitung und Datenschutz](/de/docs/data-handling#aufbewahrung-und-auftragsverarbeitung-beim-anbieter).
+Alle Provider im Vergleich findest du unter [Provider](/de/docs/providers).
 
 ## Kann ich ein lokales Modell verwenden?
 
 Ja: Der Provider `openai-compatible` richtet verbatra auf jeden Server, der die OpenAI-Chat-API
 spricht, etwa LM Studio, Ollama oder vLLM, meist ohne Schlüssel. Ganz ohne Sprachmodell nutzt
 `libretranslate` einen selbst gehosteten LibreTranslate-Server. Siehe
-[Provider](/docs/providers#libretranslate).
+[Provider](/de/docs/providers#libretranslate).
 
 ## Welche Sprachen unterstützt verbatra?
 
 Jede Sprache, die dein Provider unterstützt, geschrieben als gültiger BCP-47-Code wie `pt-BR` oder
 `zh-Hant`. DeepL und Google Cloud Translation haben feste Listen, die LLM-Provider keine. Siehe
-[Sprachunterstützung](/docs/language-support).
+[Sprachunterstützung](/de/docs/language-support).
 
 ## Wie behalten Keys ihre Reihenfolge?
 
 Bestehende Keys behalten ihre Position, und neue Keys werden in der Reihenfolge der Quelle
-angehängt, sodass sich eine übersetzte Datei sauber diffen lässt. Siehe [Formate](/docs/formats).
+angehängt, sodass sich eine übersetzte Datei sauber diffen lässt. Siehe [Formate](/de/docs/formats).
 
 ## Warum wurde eine Übersetzung zum Review markiert?
 
 Eine Review-Heuristik hat etwas gefunden, das einen zweiten Blick wert ist, etwa eine Übersetzung,
 die ihrer Quelle gleicht, und sie markiert, ohne sie zurückzuhalten. Jeder Grund-Code steht unter
-[Review-Gründe](/docs/error-codes#review-reason-codes).
+[Review-Gründe](/de/docs/error-codes#review-reason-codes).
 
 ## Funktioniert verbatra in einem Monorepo?
 
 Ja. Die Suche nach der Konfiguration geht vom Arbeitsverzeichnis nach oben und hält beim nächsten
 `.git` an, sodass ein Paket seine eigene Konfiguration findet und die Wurzel die der Wurzel;
-`--cwd` und `--config` zeigen auf jeden anderen Ort. Siehe [Die Konfigurationsdatei](/docs/config-file).
+`--cwd` und `--config` zeigen auf jeden anderen Ort. Siehe [Die Konfigurationsdatei](/de/docs/config-file).
 
 ## Was soll ich committen?
 
 Committe deine Locale-Dateien, `verbatra.lock.json` und `verbatra.provenance.json`; nie `.env`,
 `.env.local`, `.verbatra-local/` oder `verbatra.cache.json`, die `verbatra init` in die
-`.gitignore` einträgt. Siehe [Die Lock-Datei](/docs/the-lock-file).
+`.gitignore` einträgt. Siehe [Die Lock-Datei](/de/docs/the-lock-file).
 
 ## Wie übersetze ich alles neu?
 
@@ -79,14 +79,14 @@ Kein zusätzlicher Schritt: `@verbatra/cli` hängt von `@verbatra/sdk` ab, also 
 ## Wo leben API-Schlüssel?
 
 Nur in Umgebungsvariablen, die die CLI auch aus
-[`.env.local` und `.env`](/docs/cli#umgebungsdateien) liest. Die Konfiguration lehnt unbekannte Keys
-ab, damit kein Secret in einer committeten Datei landet. Siehe [Provider](/docs/providers).
+[`.env.local` und `.env`](/de/docs/cli#umgebungsdateien) liest. Die Konfiguration lehnt unbekannte Keys
+ab, damit kein Secret in einer committeten Datei landet. Siehe [Provider](/de/docs/providers).
 
 ## Schickt verbatra meine Strings irgendwohin?
 
 Nur an den Provider, den du konfigurierst, und nur, wenn ein Befehl übersetzt; es gibt keine
 Telemetrie. Mit `provider: { id: "none" }` verlässt nichts den Rechner. Siehe
-[Datenverarbeitung und Datenschutz](/docs/data-handling).
+[Datenverarbeitung und Datenschutz](/de/docs/data-handling).
 
 ## Was prüft verbatra doctor eigentlich?
 
@@ -96,16 +96,16 @@ Die Einrichtung in einem Durchgang, ohne Übersetzungsaufruf und ohne den Wert e
 lesen, außer du übergibst `--live`, das ihn sendet, um die Sprachliste des Providers abzurufen:
 Konfiguration, Format, Provider, die Variable des API-Schlüssels, die Netzwerkrichtlinie,
 die Quelldatei und die Sprachunterstützung, dazu informative Berichte zu Pluralen, Locale-Codes und
-zurückgebliebenem Locale-Stand. [`verbatra doctor`](/docs/cli/doctor) hat die vollständige Tabelle
+zurückgebliebenem Locale-Stand. [`verbatra doctor`](/de/docs/cli/doctor) hat die vollständige Tabelle
 der Prüfungen.
 
 ## Kann ein KI-Agent verbatra für mich einrichten oder bedienen?
 
 Ja, über vier Oberflächen: einen Einrichtungs-Prompt für Coding-Agenten
-([Mit einem KI-Agenten einrichten](/docs/start-with-ai)), die `--json`-Ausgabe für deine eigenen
-Schleifen ([Rezepte für Agenten und Skripte](/docs/agent-recipes)), WebMCP-Tools in einem offenen
-Studio-Tab ([Studio mit einem Browser-Agenten steuern](/docs/agent-tools-in-studio)) und einen
-stdio-MCP-Server ([`verbatra mcp`](/docs/cli/mcp)). Keine davon gibt beim Provider Geld aus ohne
+([Mit einem KI-Agenten einrichten](/de/docs/start-with-ai)), die `--json`-Ausgabe für deine eigenen
+Schleifen ([Rezepte für Agenten und Skripte](/de/docs/agent-recipes)), WebMCP-Tools in einem offenen
+Studio-Tab ([Studio mit einem Browser-Agenten steuern](/de/docs/agent-tools-in-studio)) und einen
+stdio-MCP-Server ([`verbatra mcp`](/de/docs/cli/mcp)). Keine davon gibt beim Provider Geld aus ohne
 die Bestätigung eines Menschen oder ein `--allow-spend`-Flag.
 
 ## Veröffentlicht diese Seite etwas für KI-Agenten und Crawler?
@@ -135,7 +135,7 @@ und `fr`-Geschwistern; die werden mit verbatra selbst maschinell übersetzt, geg
 Quelle abweichen. Die Doku-Prosa, die du gerade liest, jeder Guide und jede Referenzseite
 einschließlich dieser hier, ist locale-suffigiertes MDX (`page.mdx`, `page.de.mdx`, `page.es.mdx`,
 `page.fr.mdx`) und ebenfalls KI-übersetzt, nur außerhalb dieser automatisierten Pipeline:
-`pnpm i18n` übersetzt nur die strukturierten [Locale-Dateiformate](/docs/formats), nie Markdown, es rührt
+`pnpm i18n` übersetzt nur die strukturierten [Locale-Dateiformate](/de/docs/formats), nie Markdown, es rührt
 diese Seiten also nie an. Stattdessen übersetzt ein KI-Agent eine Doku-Seite in derselben Änderung,
 die ihre englische Quelle bearbeitet, sodass alle vier Sprachen gemeinsam landen; deshalb trägt jede
 nicht-englische Seite den Hinweis auf die maschinelle Übersetzung.

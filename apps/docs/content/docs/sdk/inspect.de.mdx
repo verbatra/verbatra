@@ -16,7 +16,7 @@ Prüft die Projekteinrichtung und kostet nichts: Es konstruiert keinen Provider 
 Netzwerkanfrage, außer `live` fordert eine an, und liest den Wert des API-Keys nur für diese eine
 Anfrage nach der Sprachliste (LibreTranslate bekommt keinen Key). Jede Prüfung läuft auch dann, wenn
 eine frühere fehlgeschlagen ist, ein Aufruf meldet also jedes unabhängige Problem;
-[`verbatra doctor`](/docs/cli/doctor#was-geprüft-wird) listet die Prüfungen auf.
+[`verbatra doctor`](/de/docs/cli/doctor#was-geprüft-wird) listet die Prüfungen auf.
 
 ```ts title="Signatur"
 function doctor(
@@ -29,15 +29,15 @@ function doctor(
 
 **Rückgabe:** `DoctorResult`
 
-**Wirft:** [`CONFIG_NOT_FOUND`](/docs/error-codes#config_not_found)
+**Wirft:** [`CONFIG_NOT_FOUND`](/de/docs/error-codes#config_not_found)
 
 <AvailableFrom version="0.12.0" />
 
 Die Prüfung `network-policy` schlägt fehl, wenn die wirksame
-[Netzwerkrichtlinie](/docs/network-policy) den Host oder Proxy des Providers abweist oder eine
+[Netzwerkrichtlinie](/de/docs/network-policy) den Host oder Proxy des Providers abweist oder eine
 Netzwerk-Variable ungültig ist, und besteht für den Provider `none`. Die informativen Prüfungen
 schlagen nie fehl und benennen nichts um; ein `warn` lässt `ok` auf true, und die
-[Prüfungstabelle](/docs/cli/doctor#was-geprüft-wird) sagt, was jede nennt und wann sie `skipped` ist.
+[Prüfungstabelle](/de/docs/cli/doctor#was-geprüft-wird) sagt, was jede nennt und wann sie `skipped` ist.
 
 <AvailableFrom version="0.12.0" />
 
@@ -46,10 +46,10 @@ tut: Sie schlägt bei einer nicht unterstützten Locale fehl, ist für `none` `s
 Urteile in `DoctorResult.locales` als `LocaleCapabilityReport`. Mit `live: true` ruft sie zuerst die
 aktuelle Sprachliste des Providers ab, ohne Kontingent zu verbrauchen;
 `LocaleCapabilityReport.live` sagt, wie das ausging. Siehe
-[Sprachunterstützung](/docs/language-support#unterstützung-vor-einem-lauf-prüfen).
+[Sprachunterstützung](/de/docs/language-support#unterstützung-vor-einem-lauf-prüfen).
 
 Mit gesetztem `literals` laufen nur die Prüfungen `config` und `untranslated-literals`, wie bei
-[`verbatra doctor --literals`](/docs/cli/doctor#nicht-übersetzte-literale). `doctor` lädt die
+[`verbatra doctor --literals`](/de/docs/cli/doctor#nicht-übersetzte-literale). `doctor` lädt die
 Konfiguration selbst, ein Projekt ohne Konfiguration bekommt also einen Bericht statt eines
 geworfenen Fehlers: `ok` ist genau dann true, wenn keine Prüfung fehlgeschlagen ist, und
 `CONFIG_NOT_FOUND` wird nur für einen explizit angegebenen `configPath` geworfen, der nicht existiert.
@@ -63,7 +63,7 @@ nennt es Variablen und Pfade, nie den Wert eines Keys.
 
 <AvailableFrom version="0.12.0" />
 
-Beschreibt für die geladene Config, wohin die Daten eines Projekts gehen, als versioniertes `DataFlowManifest`. [`verbatra doctor --data-flow`](/docs/cli/doctor#datenfluss) gibt es aus und listet seine Felder; `doctor({ dataFlow: true })` liefert es als `DoctorResult.dataFlow`. Es liest keinen API-Key und macht keinen Netzwerk-Request. Eine ungültige Netzwerk-Variable oder eine nicht lesbare Quelldatei steht im Manifest, statt geworfen zu werden.
+Beschreibt für die geladene Config, wohin die Daten eines Projekts gehen, als versioniertes `DataFlowManifest`. [`verbatra doctor --data-flow`](/de/docs/cli/doctor#datenfluss) gibt es aus und listet seine Felder; `doctor({ dataFlow: true })` liefert es als `DoctorResult.dataFlow`. Es liest keinen API-Key und macht keinen Netzwerk-Request. Eine ungültige Netzwerk-Variable oder eine nicht lesbare Quelldatei steht im Manifest, statt geworfen zu werden.
 
 ```ts title="Signatur"
 function dataFlow(
@@ -76,7 +76,7 @@ function dataFlow(
 
 **Rückgabe:** `DataFlowManifest`
 
-**Wirft:** [`CONFIG_NOT_FOUND`](/docs/error-codes#config_not_found), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
+**Wirft:** [`CONFIG_NOT_FOUND`](/de/docs/error-codes#config_not_found), [`CONFIG_INVALID`](/de/docs/error-codes#config_invalid)
 
 ### dataFlowManifestSchema
 
@@ -107,13 +107,13 @@ function extract(
 
 **Rückgabe:** `ExtractResult`
 
-**Wirft:** [`EXTRACT_NOT_CONFIGURED`](/docs/error-codes#extract_not_configured), [`EXTRACT_FS_UNSUPPORTED`](/docs/error-codes#extract_fs_unsupported), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`SOURCE_UNWRITABLE`](/docs/error-codes#source_unwritable)
+**Wirft:** [`EXTRACT_NOT_CONFIGURED`](/de/docs/error-codes#extract_not_configured), [`EXTRACT_FS_UNSUPPORTED`](/de/docs/error-codes#extract_fs_unsupported), [`UNKNOWN_FORMAT`](/de/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/de/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/de/docs/error-codes#locale_path_collision), [`SOURCE_INVALID`](/de/docs/error-codes#source_invalid), [`SOURCE_UNWRITABLE`](/de/docs/error-codes#source_unwritable)
 
-**Beispiel:** [Keys aus deinem Quellcode extrahieren](/docs/programmatic-api#keys-aus-deinem-quellcode-extrahieren)
+**Beispiel:** [Keys aus deinem Quellcode extrahieren](/de/docs/programmatic-api#keys-aus-deinem-quellcode-extrahieren)
 
-Nur wirklich neue Keys werden ergänzt ([Was er schreibt](/docs/cli/extract#was-er-schreibt)). Was
+Nur wirklich neue Keys werden ergänzt ([Was er schreibt](/de/docs/cli/extract#was-er-schreibt)). Was
 der Scan nicht auflösen kann, kommt als Daten in `dynamic`, `conflicts` und `diagnostics` zurück,
-nie geworfen ([Was er meldet](/docs/cli/extract#was-er-meldet-statt-zu-raten)), und das Ergebnis
+nie geworfen ([Was er meldet](/de/docs/cli/extract#was-er-meldet-statt-zu-raten)), und das Ergebnis
 trägt nie den Inhalt einer Quelldatei.
 
 `config.extract` benennt das Framework und die Quellverzeichnisse. Die Dateisuche braucht das
@@ -137,9 +137,9 @@ function check(
 
 **Rückgabe:** `CheckSummary`
 
-**Wirft:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
+**Wirft:** [`UNKNOWN_FORMAT`](/de/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/de/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/de/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/de/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/de/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/de/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/de/docs/error-codes#unknown_locale)
 
-**Beispiel:** [In CI prüfen, ohne zu schreiben](/docs/programmatic-api#in-ci-prüfen-ohne-zu-schreiben)
+**Beispiel:** [In CI prüfen, ohne zu schreiben](/de/docs/programmatic-api#in-ci-prüfen-ohne-zu-schreiben)
 
 `inSync` ist genau dann true, wenn jede geprüfte Locale nichts Fehlendes und nichts Veraltetes hat.
 
@@ -147,24 +147,24 @@ function check(
 
 Mit `consistency: true` trägt jede `LocaleCheckSummary` zusätzlich `inconsistencies`: eine
 `InconsistencyGroup` pro Quellstring, den die Locale unter verschiedenen Keys unterschiedlich
-übersetzt, in der Form, die der [Konsistenzbericht](/docs/cli/check#konsistenzbericht) zeigt. Es ist
+übersetzt, in der Form, die der [Konsistenzbericht](/de/docs/cli/check#konsistenzbericht) zeigt. Es ist
 nur ein Bericht: Er ändert nie `inSync`, einen Zähler oder eine Datei.
 
 <AvailableFrom version="0.12.0" />
 
 Jede `LocaleCheckSummary` trägt außerdem `provenance`: Zähler `byOrigin` und `byReviewState` über
 die Keys, für die die Locale einen Wert hat, gelesen aus `verbatra.provenance.json`
-([Herkünfte](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat)). Dieses und jedes
+([Herkünfte](/de/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat)). Dieses und jedes
 andere Herkunftsfeld eines Berichts fehlt, statt einen Fehler auszulösen, wenn die Datei beschädigt
 ist oder von einem neueren verbatra stammt.
 
 <AvailableFrom version="0.12.0" />
 
-Jede `LocaleCheckSummary` enthält außerdem `protected`, den Anteil von `stale`, den ein `translate`-Lauf unter `humanEdits` und `pinnedKeys` für einen Menschen übrig lassen würde ([Geschützte Keys](/docs/cli/check#geschützte-keys)). Sie zählen weiter als veraltet, also bleibt `inSync` false, bis ein Mensch sie auflöst; ein fehlender gepinnter Key zählt nur als fehlend.
+Jede `LocaleCheckSummary` enthält außerdem `protected`, den Anteil von `stale`, den ein `translate`-Lauf unter `humanEdits` und `pinnedKeys` für einen Menschen übrig lassen würde ([Geschützte Keys](/de/docs/cli/check#geschützte-keys)). Sie zählen weiter als veraltet, also bleibt `inSync` false, bis ein Mensch sie auflöst; ein fehlender gepinnter Key zählt nur als fehlend.
 
 <AvailableFrom version="0.12.0" />
 
-Mit `qa: true` lässt `check` zusätzlich die [Qualitätsprüfung](/docs/cli/check#qualitätsprüfung)
+Mit `qa: true` lässt `check` zusätzlich die [Qualitätsprüfung](/de/docs/cli/check#qualitätsprüfung)
 über jeden eingecheckten Wert laufen, ohne Key und ohne zu schreiben: Jede `LocaleCheckSummary`
 trägt einen `qa`-Bericht und die Zusammenfassung die `qa`-Summen, in den Formen dieses Abschnitts.
 Fehlergründe stammen aus `INTEGRITY_GATE_REASONS`, Warngründe aus `REVIEW_REASON_CODES`,
@@ -176,10 +176,10 @@ nie: Ein CI-Gate liest `qa.errors`, streng auch `qa.warnings`.
 Jede `LocaleCheckSummary` trägt außerdem `incompletePlurals`, nach Key sortiert: ein `IncompletePlural`
 `{ code: "PLURAL_CATEGORIES_INCOMPLETE", key, argument?, ruleType, missing }` pro Plural, dem
 CLDR-Kategorien der Zielsprache fehlen. Nur eine Warnung; Formate und Regeln stehen unter
-[Pluralkategorien](/docs/cli/check#pluralkategorien).
+[Pluralkategorien](/de/docs/cli/check#pluralkategorien).
 
 Mit `requireReviewed: true` führt `check` zusätzlich das
-[Review-Gate](/docs/cli/check#freigegebene-übersetzungen-verlangen) aus, ohne Key und ohne zu
+[Review-Gate](/de/docs/cli/check#freigegebene-übersetzungen-verlangen) aus, ohne Key und ohne zu
 schreiben: Jede `LocaleCheckSummary` trägt `review: { unreviewed }`, die nicht freigegebenen
 maschinellen Keys, und die Zusammenfassung trägt `review: { reviewed, unreviewed, code? }` mit den
 Codes, die dieser Abschnitt nennt. Der Bericht ändert `inSync` nie; ein CI-Gate liest
@@ -188,7 +188,7 @@ Codes, die dieser Abschnitt nennt. Der Bericht ändert `inSync` nie; ein CI-Gate
 <AvailableFrom version="0.12.0" />
 
 Mit `sensitive: true` führt `check` außerdem den Scan auf
-[sensible Inhalte](/docs/cli/check#sensible-inhalte) aus, ohne Key und ohne zu schreiben: Die
+[sensible Inhalte](/de/docs/cli/check#sensible-inhalte) aus, ohne Key und ohne zu schreiben: Die
 Zusammenfassung trägt `sensitive: { findings, glossaryTerms }`, ein `{ key, fields, detectors }` pro
 gemeldetem Key, nie den gefundenen Text. Ein CI-Gate scheitert an beidem.
 
@@ -211,9 +211,9 @@ function checkFile(
 
 **Rückgabe:** `CheckFileSummary`
 
-**Wirft:** [`NOT_A_LOCALE_FILE`](/docs/error-codes#not_a_locale_file), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid)
+**Wirft:** [`NOT_A_LOCALE_FILE`](/de/docs/error-codes#not_a_locale_file), [`UNKNOWN_FORMAT`](/de/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/de/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/de/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/de/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/de/docs/error-codes#source_invalid)
 
-`file` ist absolut oder relativ zu `cwd`; [Eine Datei](/docs/cli/check#eine-datei) zeigt die Form der
+`file` ist absolut oder relativ zu `cwd`; [Eine Datei](/de/docs/cli/check#eine-datei) zeigt die Form der
 `CheckFileSummary`. Eine Zieldatei wird wie bei `check` mit `qa: true` geprüft, die Quelldatei nur
 auf ihre Syntax. Eine Datei, die sich nicht parsen lässt, wird nicht geworfen: Ihre Locale trägt
 einen `QaSyntaxFinding`, bei JSON und YAML mit der Position, die `AdapterError.position` meldet. Ein
@@ -238,14 +238,14 @@ function diff(
 
 **Rückgabe:** `DiffSummary`
 
-**Wirft:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
+**Wirft:** [`UNKNOWN_FORMAT`](/de/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/de/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/de/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/de/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/de/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/de/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/de/docs/error-codes#unknown_locale)
 
-**Beispiel:** [In CI prüfen, ohne zu schreiben](/docs/programmatic-api#in-ci-prüfen-ohne-zu-schreiben)
+**Beispiel:** [In CI prüfen, ohne zu schreiben](/de/docs/programmatic-api#in-ci-prüfen-ohne-zu-schreiben)
 
 Mit `unused: true` scannt es zusätzlich die `extract`-Roots der Konfiguration, nur lesend und ohne
 Key, und ergänzt einen `unused`-Bericht der Quell-Keys, die keine statische Referenz nennt, getrennt
 von jeder `orphaned`-Liste und ohne je `hasPendingChanges` zu kippen;
-[Ungenutzte Quell-Keys](/docs/cli/diff#ungenutzte-quell-keys) erklärt seine Felder.
+[Ungenutzte Quell-Keys](/de/docs/cli/diff#ungenutzte-quell-keys) erklärt seine Felder.
 
 <AvailableFrom version="0.12.0" />
 
@@ -278,13 +278,13 @@ function keyIntegrity(
 
 **Rückgabe:** `readonly LocaleKeyIntegrity[]`
 
-**Wirft:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`UNKNOWN_KEY`](/docs/error-codes#unknown_key)
+**Wirft:** [`UNKNOWN_FORMAT`](/de/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/de/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/de/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/de/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/de/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/de/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/de/docs/error-codes#unknown_locale), [`UNKNOWN_KEY`](/de/docs/error-codes#unknown_key)
 
 <AvailableFrom version="0.12.0" />
 
 Jeder Eintrag trägt außerdem `icuArmsMatch` und `icuArmDetails`: ob die ICU-Zweige für `plural`,
 `selectordinal` und `select` des Werts zur Zielsprache passen, so beurteilt wie beim
-[Gate beim Schreiben](/docs/translation-safety#plural-zweige-je-zielsprache), mit einem kurzen
+[Gate beim Schreiben](/de/docs/translation-safety#plural-zweige-je-zielsprache), mit einem kurzen
 Problem pro falschem Zweig. `icuArmsMatch` ist immer true für ein Format, das keine Zweige prüft.
 
 `keys` engt die Prüfung ein; geprüft werden immer nur Keys, die für eine Locale "geändert" sind.
@@ -310,7 +310,7 @@ function localeIntegrity(
 
 **Rückgabe:** `readonly LocaleKeyIntegrity[]`
 
-**Wirft:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
+**Wirft:** [`UNKNOWN_FORMAT`](/de/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/de/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/de/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/de/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/de/docs/error-codes#source_invalid), [`UNKNOWN_LOCALE`](/de/docs/error-codes#unknown_locale)
 
 Jeder Aufruf liest und parst die Quelldatei und jede angefragte Zieldatei frisch, ohne Cache.
 
@@ -334,7 +334,7 @@ function lockState(
 
 **Rückgabe:** `LockStateResult`
 
-**Wirft:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid)
+**Wirft:** [`UNKNOWN_LOCALE`](/de/docs/error-codes#unknown_locale), [`LOCK_FILE_INVALID`](/de/docs/error-codes#lock_file_invalid), [`UNKNOWN_FORMAT`](/de/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/de/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/de/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/de/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/de/docs/error-codes#source_invalid)
 
 Jede Locale trägt außerdem dieselben `provenance`-Zähler, die `check` meldet.
 
@@ -359,7 +359,7 @@ function loadLockFile(
 
 **Rückgabe:** `LockFile`
 
-**Wirft:** [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid)
+**Wirft:** [`LOCK_FILE_INVALID`](/de/docs/error-codes#lock_file_invalid)
 
 Keine Konfiguration nötig.
 
@@ -386,7 +386,7 @@ function loadProvenance(
 
 **Rückgabe:** `ProvenanceFile`
 
-**Wirft:** [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid)
+**Wirft:** [`PROVENANCE_FILE_INVALID`](/de/docs/error-codes#provenance_file_invalid)
 
 Keine Konfiguration nötig.
 
@@ -443,9 +443,9 @@ function reviewQueue(
 
 **Rückgabe:** `ReviewQueueResult`
 
-**Wirft:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid)
+**Wirft:** [`UNKNOWN_FORMAT`](/de/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/de/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/de/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/de/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/de/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/de/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/de/docs/error-codes#lock_file_invalid)
 
-**Beispiel:** [Die Review-Warteschlange abarbeiten](/docs/programmatic-api#die-review-warteschlange-abarbeiten)
+**Beispiel:** [Die Review-Warteschlange abarbeiten](/de/docs/programmatic-api#die-review-warteschlange-abarbeiten)
 
 Gibt `{ available: true, locales, lastRunAt? }`
 zurück, jede Locale als `{ locale, needsReview, approved?, fuzzyHits? }` und jeden Eintrag als
@@ -462,7 +462,7 @@ Eine Quell-, Ziel- oder Lock-Datei, die sich nicht lesen lässt, lässt den Aufr
 Erstellt den Bericht pro Locale, den `verbatra report provenance` ausgibt: jeden Key mit einem Wert
 sowohl in der Quelle als auch in einer Ziel-Locale, in der Reihenfolge der Quelle, mit Herkunft,
 Review-Status, Provider, Modell und Reviewer, gezählt in einer `PROVENANCE_BUCKETS`-Kategorie
-([der Herkunftsbericht](/docs/provenance-evidence#der-herkunftsbericht) definiert sie). Er ruft
+([der Herkunftsbericht](/de/docs/provenance-evidence#der-herkunftsbericht) definiert sie). Er ruft
 keinen Provider auf und schreibt nichts.
 
 ```ts title="Signatur"
@@ -476,10 +476,10 @@ function provenanceReport(
 
 **Rückgabe:** `ProvenanceReportResult`
 
-**Wirft:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid)
+**Wirft:** [`UNKNOWN_FORMAT`](/de/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/de/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/de/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/de/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/de/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/de/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/de/docs/error-codes#lock_file_invalid)
 
 `deps` nimmt außerdem `now`, die Uhr für `generatedAt`. Die vollständige Form des Ergebnisses steht
-im [JSON-Schema](/docs/provenance-evidence#das-json-schema). Ist die Herkunftsdatei beschädigt oder
+im [JSON-Schema](/de/docs/provenance-evidence#das-json-schema). Ist die Herkunftsdatei beschädigt oder
 stammt sie von einem neueren verbatra, gibt er `{ available: false, reason: "provenance-unreadable" }`
 zurück, da jeder Wert als `unrecorded` gälte. Eine Quell-, Ziel- oder Lock-Datei, die sich nicht
 lesen lässt, lässt den Aufruf scheitern wie bei `check`. Der Bericht ist ein unterstützender
@@ -502,6 +502,6 @@ function provenanceReportPage(
 
 **Rückgabe:** `ProvenanceReportPageResult`
 
-**Wirft:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PAGE_CURSOR_INVALID`](/docs/error-codes#page_cursor_invalid), [`PAGE_LIMIT_INVALID`](/docs/error-codes#page_limit_invalid)
+**Wirft:** [`UNKNOWN_FORMAT`](/de/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/de/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/de/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/de/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/de/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/de/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/de/docs/error-codes#lock_file_invalid), [`PAGE_CURSOR_INVALID`](/de/docs/error-codes#page_cursor_invalid), [`PAGE_LIMIT_INVALID`](/de/docs/error-codes#page_limit_invalid)
 
 Eine Locale trägt `entries` nur auf den Seiten, die einen ihrer Einträge enthalten. Eine Seite hält höchstens `limit` Einträge, standardmäßig `PAGE_LIMIT_DEFAULT`; gib `nextCursor` mit denselben `locales` und `buckets` als `cursor` zurück, bis er fehlt. Er ist genau dann nicht verfügbar oder schlägt fehl, wenn `provenanceReport` es tut.

@@ -5,7 +5,7 @@ type: how-to
 ---
 Usa esto cuando un proyecto ya traduce a algunos idiomas y quieres uno más. Basta con cambiar una línea de la configuración y hacer una ejecución. verbatra ve el nuevo locale como si le faltaran todas las claves y lo rellena; tus locales actuales no cuestan nada, porque el archivo de bloqueo los sigue registrando como al día.
 
-Necesitas un proyecto que ya funcione: una configuración, un archivo de locale de origen y una clave de proveedor. Si aún no lo tienes, empieza por el [inicio rápido](/docs/quickstart).
+Necesitas un proyecto que ya funcione: una configuración, un archivo de locale de origen y una clave de proveedor. Si aún no lo tienes, empieza por el [inicio rápido](/es/docs/quickstart).
 
 ## Añade el locale a tu configuración
 
@@ -27,7 +27,7 @@ export default defineConfig({
 
 <AvailableFrom version="0.12.0" />
 
-Escribe el código en forma BCP 47, con guion: `pt-BR`, no `pt_BR`. Si tus archivos usan guiones bajos, escribe igualmente `pt-BR` y pon `files.localeStyle` en `posix`; verbatra conserva el nombre de archivo `pt_BR.json`. Al cargar la configuración se rechazan un código no válido, el locale de origen y dos códigos que solo difieren en mayúsculas. Las reglas completas están en [Códigos de locale](/docs/config-file#códigos-de-locale), y con [`verbatra doctor`](/docs/cli/doctor) ves si un proveedor admite el nuevo idioma.
+Escribe el código en forma BCP 47, con guion: `pt-BR`, no `pt_BR`. Si tus archivos usan guiones bajos, escribe igualmente `pt-BR` y pon `files.localeStyle` en `posix`; verbatra conserva el nombre de archivo `pt_BR.json`. Al cargar la configuración se rechazan un código no válido, el locale de origen y dos códigos que solo difieren en mayúsculas. Las reglas completas están en [Códigos de locale](/es/docs/config-file#códigos-de-locale), y con [`verbatra doctor`](/es/docs/cli/doctor) ves si un proveedor admite el nuevo idioma.
 
 ## Previsualiza el trabajo
 
@@ -37,7 +37,7 @@ Mira qué haría una ejecución antes de gastar nada:
 verbatra diff --locales fr
 ```
 
-El nuevo locale aún no tiene archivo, así que todas las claves de origen aparecen como faltantes. Quita `--locales` para comprobar que tus otros locales no listan nada. `diff` no llama a ningún proveedor ni escribe nada. Para una estimación de coste, ejecuta `verbatra translate --estimate`; consulta [Estima el coste antes de una ejecución](/docs/estimating-cost).
+El nuevo locale aún no tiene archivo, así que todas las claves de origen aparecen como faltantes. Quita `--locales` para comprobar que tus otros locales no listan nada. `diff` no llama a ningún proveedor ni escribe nada. Para una estimación de coste, ejecuta `verbatra translate --estimate`; consulta [Estima el coste antes de una ejecución](/es/docs/estimating-cost).
 
 ## Traduce
 
@@ -74,7 +74,7 @@ Las formas generadas pasan las mismas comprobaciones de integridad que cualquier
 
 <AvailableFrom version="0.12.0" />
 
-Qué formas necesita un idioma sale de las reglas de plural de CLDR integradas en Node.js, para cada idioma, ordinales incluidos. Los formatos ICU (next-intl y ARB) guardan un plural completo en un solo valor, así que no necesitan generación: al proveedor se le piden exactamente las ramas que usa el idioma de destino. En [`generatePlurals`](/docs/config-file#generateplurals) verás qué recurre al aviso, y en [Plurales](/docs/language-support#plurales) cómo decide verbatra qué formas necesita un idioma.
+Qué formas necesita un idioma sale de las reglas de plural de CLDR integradas en Node.js, para cada idioma, ordinales incluidos. Los formatos ICU (next-intl y ARB) guardan un plural completo en un solo valor, así que no necesitan generación: al proveedor se le piden exactamente las ramas que usa el idioma de destino. En [`generatePlurals`](/es/docs/config-file#generateplurals) verás qué recurre al aviso, y en [Plurales](/es/docs/language-support#plurales) cómo decide verbatra qué formas necesita un idioma.
 
 ## Sigue manteniendo solo el origen
 
@@ -82,7 +82,7 @@ A partir de ahora solo editas el locale de origen. Añade ahí una cadena y vuel
 
 ## Relacionado
 
-- [`verbatra translate`](/docs/cli/translate) y [`verbatra diff`](/docs/cli/diff): todos los flags que usa esta página.
-- [El archivo de configuración](/docs/config-file#locales-y-archivos): `targetLocales`, `files.pattern` y `files.localeStyle`.
-- [Soporte de idiomas](/docs/language-support): qué idiomas cubre cada proveedor, escrituras, variantes regionales y texto de derecha a izquierda.
-- [El archivo de bloqueo](/docs/the-lock-file): por qué los locales existentes no cuestan nada al volver a ejecutar.
+- [`verbatra translate`](/es/docs/cli/translate) y [`verbatra diff`](/es/docs/cli/diff): todos los flags que usa esta página.
+- [El archivo de configuración](/es/docs/config-file#locales-y-archivos): `targetLocales`, `files.pattern` y `files.localeStyle`.
+- [Soporte de idiomas](/es/docs/language-support): qué idiomas cubre cada proveedor, escrituras, variantes regionales y texto de derecha a izquierda.
+- [El archivo de bloqueo](/es/docs/the-lock-file): por qué los locales existentes no cuestan nada al volver a ejecutar.

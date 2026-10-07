@@ -59,7 +59,7 @@ Die Lock-Datei hält einen Hash des **Quell**werts hinter jeder Übersetzung fes
 
 ## Nach einem Rollback neu laufen lassen
 
-Zurückrollen und `verbatra translate` erneut ausführen ist eine Wiederholung, keine zweite Meinung. Mit gleichem Provider, Modell, Ton, Glossar und Provider-`localeMap` bleibt der [Cache](/docs/the-cache#der-fingerprint)-Fingerprint gleich, also liefert der Lauf dieselben Übersetzungen aus `verbatra.cache.json`, ohne den Provider aufzurufen.
+Zurückrollen und `verbatra translate` erneut ausführen ist eine Wiederholung, keine zweite Meinung. Mit gleichem Provider, Modell, Ton, Glossar und Provider-`localeMap` bleibt der [Cache](/de/docs/the-cache#der-fingerprint)-Fingerprint gleich, also liefert der Lauf dieselben Übersetzungen aus `verbatra.cache.json`, ohne den Provider aufzurufen.
 
 Für ein anderes Ergebnis änderst du, was das erste falsch gemacht hat: Ein neuer Ton, ein neues Glossar oder ein anderes Modell ändert den Fingerprint und übersetzt von selbst neu. Um dieselbe Konfiguration erneut an den Provider zu schicken, nimm `--no-cache` dazu:
 
@@ -67,7 +67,7 @@ Für ein anderes Ergebnis änderst du, was das erste falsch gemacht hat: Ein neu
 verbatra translate --no-cache
 ```
 
-Um eine Locale von Grund auf neu aufzubauen, statt einen Lauf rückgängig zu machen, siehe [Wie übersetze ich alles neu?](/docs/faq#wie-übersetze-ich-alles-neu). Die Lock-Datei zu löschen ist kein Zurücksetzen: Ohne Baseline wird nichts als veraltet erkannt, also übersetzt der nächste Lauf nichts.
+Um eine Locale von Grund auf neu aufzubauen, statt einen Lauf rückgängig zu machen, siehe [Wie übersetze ich alles neu?](/de/docs/faq#wie-übersetze-ich-alles-neu). Die Lock-Datei zu löschen ist kein Zurücksetzen: Ohne Baseline wird nichts als veraltet erkannt, also übersetzt der nächste Lauf nichts.
 
 ## Ein unterbrochener oder gescheiterter Lauf
 
@@ -75,9 +75,9 @@ Ein unterbrochener Lauf braucht kein Rollback. Führ ihn einfach erneut aus.
 
 Jede Locale wird für sich abgeschlossen: Erst wird ihre Datei geschrieben, dann werden ihre Lock-Einträge erfasst. Eine Unterbrechung lässt die fertigen Locales vollständig und die anderen unberührt, und ein neuer Lauf nimmt die unberührten auf. Die eine Lücke, zwischen dem Schreiben der Datei und dem Lock-Update, schließt sich von selbst: Hinzugefügte Keys werden so übernommen, wie sie sind, und geänderte Keys tragen noch ihren alten Hash, also werden sie erneut übersetzt. Es geht keine Arbeit verloren.
 
-Keys, die während eines Laufs zurückgehalten wurden, durch eine gescheiterte Prüfung, einen gescheiterten Provider-Aufruf oder ein Token-Budget, behalten ihren bisherigen Hash, also versucht der nächste Lauf sie erneut. Siehe [Fehlerbehebung](/docs/troubleshooting) für jede Ursache.
+Keys, die während eines Laufs zurückgehalten wurden, durch eine gescheiterte Prüfung, einen gescheiterten Provider-Aufruf oder ein Token-Budget, behalten ihren bisherigen Hash, also versucht der nächste Lauf sie erneut. Siehe [Fehlerbehebung](/de/docs/troubleshooting) für jede Ursache.
 
-Ein unterbrochener Lauf gibt seine Schreibsperren frei. Ein hart beendeter Prozess (`kill -9`, ein Absturz) kann eine unter `.verbatra-local/` zurücklassen; der nächste Lauf auf derselben Maschine erkennt, dass der Prozess weg ist, und übernimmt sie. Eine Sperre, die er nicht prüfen kann, lässt den Lauf warten und dann mit [`LOCK_CONTENDED`](/docs/error-codes#lock_contended) scheitern, das den zu löschenden Pfad nennt.
+Ein unterbrochener Lauf gibt seine Schreibsperren frei. Ein hart beendeter Prozess (`kill -9`, ein Absturz) kann eine unter `.verbatra-local/` zurücklassen; der nächste Lauf auf derselben Maschine erkennt, dass der Prozess weg ist, und übernimmt sie. Eine Sperre, die er nicht prüfen kann, lässt den Lauf warten und dann mit [`LOCK_CONTENDED`](/de/docs/error-codes#lock_contended) scheitern, das den zu löschenden Pfad nennt.
 
 ## Vor einem Lauf, den du nicht leicht rückgängig machen kannst
 
@@ -87,7 +87,7 @@ Ein unterbrochener Lauf gibt seine Schreibsperren frei. Ein hart beendeter Proze
 
 ## Siehe auch
 
-- [Die Lock-Datei](/docs/the-lock-file): was sie festhält und wie Abweichungen erkannt werden.
-- [Der Cache](/docs/the-cache): der Fingerprint und `--no-cache`.
-- [`verbatra translate`](/docs/cli/translate): `--dry-run`, `--locales` und `--no-cache`.
-- [Fehlercodes](/docs/error-codes#lock_contended): `LOCK_CONTENDED` und die anderen Sperrfehler.
+- [Die Lock-Datei](/de/docs/the-lock-file): was sie festhält und wie Abweichungen erkannt werden.
+- [Der Cache](/de/docs/the-cache): der Fingerprint und `--no-cache`.
+- [`verbatra translate`](/de/docs/cli/translate): `--dry-run`, `--locales` und `--no-cache`.
+- [Fehlercodes](/de/docs/error-codes#lock_contended): `LOCK_CONTENDED` und die anderen Sperrfehler.

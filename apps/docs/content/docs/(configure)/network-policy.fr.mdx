@@ -5,11 +5,11 @@ type: how-to
 ---
 <AvailableFrom version="0.12.0" />
 
-Sers-t'en quand tes chaînes doivent rester sur ton propre réseau, par exemple avec un modèle auto-hébergé derrière `openai-compatible` ou un serveur LibreTranslate derrière `libretranslate`. Une `baseUrl` mal tapée, un `OPENAI_BASE_URL` oublié ou le passage à un fournisseur hébergé enverraient sinon les chaînes vers un point de terminaison public. Avec une politique réseau, verbatra refuse un hôte que la politique n'autorise pas avant qu'aucune requête ne quitte la machine. Le contenu d'une requête est décrit dans [Traitement des données et confidentialité](/docs/data-handling).
+Sers-t'en quand tes chaînes doivent rester sur ton propre réseau, par exemple avec un modèle auto-hébergé derrière `openai-compatible` ou un serveur LibreTranslate derrière `libretranslate`. Une `baseUrl` mal tapée, un `OPENAI_BASE_URL` oublié ou le passage à un fournisseur hébergé enverraient sinon les chaînes vers un point de terminaison public. Avec une politique réseau, verbatra refuse un hôte que la politique n'autorise pas avant qu'aucune requête ne quitte la machine. Le contenu d'une requête est décrit dans [Traitement des données et confidentialité](/fr/docs/data-handling).
 
 ## Définir une politique
 
-Ajoute un bloc `network` à la config ([`network`](/docs/config-file#network) dans la référence) :
+Ajoute un bloc `network` à la config ([`network`](/fr/docs/config-file#network) dans la référence) :
 
 ```ts title="verbatra.config.ts"
 network: {
@@ -51,13 +51,13 @@ export VERBATRA_NETWORK_ALLOWED_HOSTS=gpu.lan,10.20.0.0/16
 
 `VERBATRA_NETWORK_ALLOWED_HOSTS` est une liste d'entrées `allowedHosts` séparées par des virgules. Quand la config et l'environnement définissent tous deux une politique, un hôte doit satisfaire les deux, donc une config ne peut jamais assouplir ce que l'environnement impose.
 
-Une valeur inconnue, comme `local_only`, ou la liste d'hôtes sans la variable de politique fait échouer l'exécution avec [`CONFIG_INVALID`](/docs/error-codes#config_invalid) au lieu d'autoriser tous les hôtes. `translate --dry-run` et `--estimate` vérifient aussi ces variables, sauf avec le fournisseur `none`.
+Une valeur inconnue, comme `local_only`, ou la liste d'hôtes sans la variable de politique fait échouer l'exécution avec [`CONFIG_INVALID`](/fr/docs/error-codes#config_invalid) au lieu d'autoriser tous les hôtes. `translate --dry-run` et `--estimate` vérifient aussi ces variables, sauf avec le fournisseur `none`.
 
 ## Vérifier la politique
 
-Lance [`verbatra doctor`](/docs/cli/doctor) : il indique la politique effective, l'origine de chaque partie, l'hôte du fournisseur et si cet hôte est autorisé. Il ne résout aucun nom et n'envoie rien, et la liste des langues que récupère `doctor --live` est soumise à la même politique.
+Lance [`verbatra doctor`](/fr/docs/cli/doctor) : il indique la politique effective, l'origine de chaque partie, l'hôte du fournisseur et si cet hôte est autorisé. Il ne résout aucun nom et n'envoie rien, et la liste des langues que récupère `doctor --live` est soumise à la même politique.
 
-Un hôte refusé arrête `translate`, `watch` au démarrage, la retraduction dans Studio et MCP, et `retranslateEntry` du SDK avec [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation) et le code de sortie `2`, avant qu'aucune clé ne soit lue. Une exécution à blanc et `--estimate` n'appellent aucun fournisseur, donc ils ne sont pas refusés.
+Un hôte refusé arrête `translate`, `watch` au démarrage, la retraduction dans Studio et MCP, et `retranslateEntry` du SDK avec [`NETWORK_POLICY_VIOLATION`](/fr/docs/error-codes#network_policy_violation) et le code de sortie `2`, avant qu'aucune clé ne soit lue. Une exécution à blanc et `--estimate` n'appellent aucun fournisseur, donc ils ne sont pas refusés.
 
 ## Savoir quand les requêtes sont vérifiées
 
@@ -66,7 +66,7 @@ La première vérification ne résout aucun nom, donc un nom d'hôte qu'elle ne 
 - un nom d'hôte est résolu, et chaque adresse vers laquelle il résout doit être autorisée ;
 - seul un `307` ou `308` vers la même origine est suivi, jusqu'à cinq d'affilée ; une redirection vers une autre origine, y compris de `https` vers `http`, fait échouer la requête.
 
-Une requête refusée ici fait échouer son sous-lot avec l'erreur de fournisseur [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#provider-network_policy_violation), qui ne nomme que l'hôte, et n'est jamais relancée.
+Une requête refusée ici fait échouer son sous-lot avec l'erreur de fournisseur [`NETWORK_POLICY_VIOLATION`](/fr/docs/error-codes#provider-network_policy_violation), qui ne nomme que l'hôte, et n'est jamais relancée.
 
 ## Limites
 
@@ -77,7 +77,7 @@ Une requête refusée ici fait échouer son sous-lot avec l'erreur de fournisseu
 
 ## Traduction automatique sans modèle de langage
 
-Certains NDA interdisent les modèles de langage mais acceptent la traduction automatique classique sur ton propre matériel. [LibreTranslate](/docs/providers#libretranslate), c'est exactement ça : un serveur open source avec des modèles Argos Translate. Lance-le avec les langues dont tu as besoin :
+Certains NDA interdisent les modèles de langage mais acceptent la traduction automatique classique sur ton propre matériel. [LibreTranslate](/fr/docs/providers#libretranslate), c'est exactement ça : un serveur open source avec des modèles Argos Translate. Lance-le avec les langues dont tu as besoin :
 
 ```bash
 docker run -d -p 5000:5000 libretranslate/libretranslate --load-only en,de,fr
@@ -97,6 +97,6 @@ network: { policy: "local-only" },
 
 ## Voir aussi
 
-- [`network`](/docs/config-file#network) : la clé de config.
-- [`verbatra doctor`](/docs/cli/doctor) : vérifier la politique sans traduire.
-- [Traitement des données et confidentialité](/docs/data-handling) : ce qui quitte la machine, et quand.
+- [`network`](/fr/docs/config-file#network) : la clé de config.
+- [`verbatra doctor`](/fr/docs/cli/doctor) : vérifier la politique sans traduire.
+- [Traitement des données et confidentialité](/fr/docs/data-handling) : ce qui quitte la machine, et quand.

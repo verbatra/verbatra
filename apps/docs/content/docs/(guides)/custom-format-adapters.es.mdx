@@ -6,7 +6,7 @@ status: new
 ---
 <AvailableFrom version="0.11.0" />
 
-Úsalo cuando tus archivos de locale estén en un formato que verbatra no lee de serie (consulta [Formatos](/docs/formats)). Construyes el adaptador en tu propio paquete, nombras el formato con un identificador `custom:` y le entregas a verbatra un registro que lo contenga. No se publica nada en verbatra ni hace falta ninguna versión nueva.
+Úsalo cuando tus archivos de locale estén en un formato que verbatra no lee de serie (consulta [Formatos](/es/docs/formats)). Construyes el adaptador en tu propio paquete, nombras el formato con un identificador `custom:` y le entregas a verbatra un registro que lo contenga. No se publica nada en verbatra ni hace falta ninguna versión nueva.
 
 Necesitas `@verbatra/sdk` en el proyecto. La línea de comandos `verbatra` no carga ningún plugin, a propósito (consulta [En qué confías](#en-qué-confías)), así que un proyecto con un formato propio usa verbatra a través del SDK.
 
@@ -24,13 +24,13 @@ Un formato de fuera de verbatra es `custom:` seguido de un nombre en minúsculas
 }
 ```
 
-La configuración solo comprueba la forma del identificador, porque el adaptador vive en tu paquete. Si nada aporta un adaptador para él, la ejecución falla con [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format). Studio y `project.snapshot` del servidor MCP informan del identificador tal cual, así que un agente distingue un formato propio de uno integrado.
+La configuración solo comprueba la forma del identificador, porque el adaptador vive en tu paquete. Si nada aporta un adaptador para él, la ejecución falla con [`UNKNOWN_FORMAT`](/es/docs/error-codes#unknown_format). Studio y `project.snapshot` del servidor MCP informan del identificador tal cual, así que un agente distingue un formato propio de uno integrado.
 
 ## Construir el adaptador
 
 No implementes el contrato del adaptador a mano. Dos fábricas aportan la lectura acotada, la escritura atómica, la detección por extensión y los errores estructurados, y solo te dejan el análisis de tu formato.
 
-Si cada entrada se identifica con una sola clave sin anidamiento, usa [`createFlatFileAdapter`](/docs/sdk/extend#createflatfileadapter):
+Si cada entrada se identifica con una sola clave sin anidamiento, usa [`createFlatFileAdapter`](/es/docs/sdk/extend#createflatfileadapter):
 
 ```ts title="toml-adapter.ts"
 import { createFlatFileAdapter, type FormatAdapter } from "@verbatra/sdk";
@@ -49,7 +49,7 @@ export const tomlAdapter: FormatAdapter = createFlatFileAdapter({
 });
 ```
 
-Si las entradas viven en rutas dentro de objetos anidados, usa [`createTreeFileAdapter`](/docs/sdk/extend#createtreefileadapter), que recibe `parse` y `serialize` sobre un árbol y un `deriveEntry` para cada hoja.
+Si las entradas viven en rutas dentro de objetos anidados, usa [`createTreeFileAdapter`](/es/docs/sdk/extend#createtreefileadapter), que recibe `parse` y `serialize` sobre un árbol y un `deriveEntry` para cada hoja.
 
 Después, según lo que necesite tu formato:
 
@@ -57,7 +57,7 @@ Después, según lo que necesite tu formato:
 - Si un archivo contiene a la vez el texto de origen y el de destino, o registra su locale, lee el argumento extra `locale` que reciben `parseEntries` y `serializeEntries`.
 - Si una lista plana de tokens perdería la estructura de tus placeholders, añade `comparePlaceholders`; si tu formato tiene ramas de plural o select, añade `compareBranchArms`.
 - Si tu formato marca contenido como no traducible, devuelve `{ entries, excludedLeafPaths }` desde `parseEntries` en lugar de descartarlo.
-- Lee y escribe a través del puerto `fs` que te entrega la fábrica, [`nodeAdapterFs`](/docs/sdk/extend#nodeadapterfs) por defecto, nunca directamente con `node:fs`. Así conservas la lectura acotada y la escritura atómica, y puedes probar el adaptador sin disco.
+- Lee y escribe a través del puerto `fs` que te entrega la fábrica, [`nodeAdapterFs`](/es/docs/sdk/extend#nodeadapterfs) por defecto, nunca directamente con `node:fs`. Así conservas la lectura acotada y la escritura atómica, y puedes probar el adaptador sin disco.
 
 ## Registrarlo y ejecutar
 
@@ -73,15 +73,15 @@ const adapterRegistry = createDefaultRegistry().register(tomlAdapter);
 const summary = await translate({ config }, { adapterRegistry });
 ```
 
-`register` devuelve el registro, así que los registros se encadenan. Rechaza un formato que el registro ya tiene con [`DUPLICATE_FORMAT`](/docs/error-codes#duplicate_format) y un identificador mal formado como `custom:TOML` con [`INVALID_FORMAT_ID`](/docs/error-codes#invalid_format_id), así que dos plugins con el mismo nombre fallan al arrancar.
+`register` devuelve el registro, así que los registros se encadenan. Rechaza un formato que el registro ya tiene con [`DUPLICATE_FORMAT`](/es/docs/error-codes#duplicate_format) y un identificador mal formado como `custom:TOML` con [`INVALID_FORMAT_ID`](/es/docs/error-codes#invalid_format_id), así que dos plugins con el mismo nombre fallan al arrancar.
 
 ## Lanzar los errores adecuados
 
-Un adaptador `custom:` se envuelve al registrarlo, así que un fallo inesperado suyo aparece como [`ADAPTER_FAILED`](/docs/error-codes#adapter_failed), con tu formato y el método, en lugar de culpar a verbatra. El mensaje nunca repite el tuyo, que podría citar el archivo; lee tu error original desde `cause`.
+Un adaptador `custom:` se envuelve al registrarlo, así que un fallo inesperado suyo aparece como [`ADAPTER_FAILED`](/es/docs/error-codes#adapter_failed), con tu formato y el método, en lugar de culpar a verbatra. El mensaje nunca repite el tuyo, que podría citar el archivo; lee tu error original desde `cause`.
 
 Dos tipos de error pasan sin cambios:
 
-- Un `AdapterError` que lances tú conserva su código. Lanza [`INVALID_STRUCTURE`](/docs/error-codes#invalid_structure) para contenido que tu formato no puede representar.
+- Un `AdapterError` que lances tú conserva su código. Lanza [`INVALID_STRUCTURE`](/es/docs/error-codes#invalid_structure) para contenido que tu formato no puede representar.
 - Un error con un código errno como `ENOENT` lo conserva, así que un archivo que falta se sigue informando como tal. La comprobación solo mira la forma del error, así que no pongas un código errno en tus propios errores de validación.
 
 ## En qué confías
@@ -90,12 +90,12 @@ Dos tipos de error pasan sin cambios:
 
 Un adaptador puede leer `process.env`, donde vive cada clave de proveedor, leer y escribir cualquier archivo al que acceda el proceso y abrir conexiones de red. El puerto `fs` es una convención, no una frontera.
 
-El adaptador también decide qué cuenta como placeholder. Si no informa de ninguno, la [comprobación de integridad de placeholders](/docs/translation-safety) pasa siempre para su formato, y una traducción que destrozó una interpolación se publica sin aviso, tanto si el adaptador tiene un fallo como si es malicioso.
+El adaptador también decide qué cuenta como placeholder. Si no informa de ninguno, la [comprobación de integridad de placeholders](/es/docs/translation-safety) pasa siempre para su formato, y una traducción que destrozó una interpolación se publica sin aviso, tanto si el adaptador tiene un fallo como si es malicioso.
 
 Lo que verbatra sí garantiza es que la carga nunca es implícita: no descubre plugins, no recorre directorios, no instala nada ni sigue convenciones de nombres. Un adaptador solo se ejecuta porque tu código lo importó y le entregó el registro a verbatra. Trátalo como cualquier dependencia que lee tus secretos: léelo, fija su versión y revisa cada actualización.
 
 ## Relacionado
 
-- [Adaptadores, proveedores, redacción](/docs/sdk/extend): cada opción de las fábricas y cada export.
-- [Códigos de error de los adaptadores de formato](/docs/error-codes#adapter-error-codes): qué significa cada rechazo.
-- [Formatos](/docs/formats): los formatos que trae verbatra.
+- [Adaptadores, proveedores, redacción](/es/docs/sdk/extend): cada opción de las fábricas y cada export.
+- [Códigos de error de los adaptadores de formato](/es/docs/error-codes#adapter-error-codes): qué significa cada rechazo.
+- [Formatos](/es/docs/formats): los formatos que trae verbatra.

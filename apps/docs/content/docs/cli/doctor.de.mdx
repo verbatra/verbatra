@@ -5,7 +5,7 @@ type: reference
 ---
 <AvailableFrom version="0.9.0" />
 
-Prüfe, ob ein Projekt korrekt eingerichtet ist, und bekomm jedes Problem in einem einzigen Bericht. `doctor` konstruiert keinen Provider, schreibt keine Datei und liest den Wert eines API-Keys nur für `--live`, das ihn in einer Anfrage nach der Sprachliste des Providers mitsendet (LibreTranslate bekommt keinen). Nimm es nach [`verbatra init`](/docs/cli/init) oder wenn ein anderer Befehl scheitert.
+Prüfe, ob ein Projekt korrekt eingerichtet ist, und bekomm jedes Problem in einem einzigen Bericht. `doctor` konstruiert keinen Provider, schreibt keine Datei und liest den Wert eines API-Keys nur für `--live`, das ihn in einer Anfrage nach der Sprachliste des Providers mitsendet (LibreTranslate bekommt keinen). Nimm es nach [`verbatra init`](/de/docs/cli/init) oder wenn ein anderer Befehl scheitert.
 
 ## Synopsis
 
@@ -42,12 +42,12 @@ verbatra doctor --data-flow --json
 
 | Flag | Argument | Standard | Wirkung |
 | --- | --- | --- | --- |
-| `--literals` | keins | aus | statt der Einrichtung die Quell-Roots des [`extract`-Blocks](/docs/config-file#extract) nach hartcodierten, für Nutzer sichtbaren Strings durchsuchen (siehe [Nicht übersetzte Literale](#nicht-übersetzte-literale)) |
+| `--literals` | keins | aus | statt der Einrichtung die Quell-Roots des [`extract`-Blocks](/de/docs/config-file#extract) nach hartcodierten, für Nutzer sichtbaren Strings durchsuchen (siehe [Nicht übersetzte Literale](#nicht-übersetzte-literale)) |
 | `--locales` | keins | aus | nach den Prüfungen je Ziel-Locale den gesendeten Code, die Unterstützung durch den Provider, Glossar und Formality auflisten (siehe [Locale-Unterstützung](#locale-unterstützung)) |
 | `--live` | keins | aus | zuerst die aktuelle Sprachliste des Providers abrufen, ohne Übersetzungskontingent zu verbrauchen; schließt `--locales` ein |
 | `--data-flow` | keins | aus | statt der Einrichtung beschreiben, was an welchen Host geht und was lokal geschrieben wird (siehe [Datenfluss](#datenfluss)) |
 
-Nimmt außerdem die [globalen Flags](/docs/cli#globale-flags) `--cwd`, `--config` und `--json`. `--locales` und `--live` lassen sich nicht mit `--literals` kombinieren (`INVALID_OPTION`, Exit `2`), `--data-flow` mit keinem der drei.
+Nimmt außerdem die [globalen Flags](/de/docs/cli#globale-flags) `--cwd`, `--config` und `--json`. `--locales` und `--live` lassen sich nicht mit `--literals` kombinieren (`INVALID_OPTION`, Exit `2`), `--data-flow` mit keinem der drei.
 
 ## Verhalten
 
@@ -63,12 +63,12 @@ Ein Einrichtungslauf meldet diese Prüfungen in dieser Reihenfolge. Plural rules
 | Format adapter | das konfigurierte `format` zu keinem Datei-Adapter auflöst |
 | Provider | die konfigurierte `provider.id` zu keiner Provider-Factory auflöst |
 | API key environment variable | die Variable, aus der dieser Provider seinen Key liest, nicht gesetzt ist |
-| Network policy | die wirksame [Netzwerkrichtlinie](/docs/network-policy) den Host des Providers oder einen Proxy abweist, den er nutzen würde |
+| Network policy | die wirksame [Netzwerkrichtlinie](/de/docs/network-policy) den Host des Providers oder einen Proxy abweist, den er nutzen würde |
 | Source locale file | die Quell-Locale-Datei unter ihrem aufgelösten Pfad fehlt, keine reguläre Datei ist oder sich im konfigurierten Format nicht parsen lässt |
 | Plural rules | nie; nennt die genutzten ICU- und CLDR-Versionen und warnt, wenn eine Ziel-Locale keine ICU-Pluralregeln hat |
-| Plural completeness | nie; warnt und nennt jeden Ziel-Plural, dem eine CLDR-Kategorie seiner Sprache fehlt, und beurteilt einen Plural ohne Formen im Ziel danach, was ein Lauf dort schreiben würde (eine leere Quellform zählt als fehlend, Plural-Generierung nur, wo sie wirklich läuft), bewusst strenger als der i18next-Hinweis von `translate` (höchstens zehn; [`verbatra check`](/docs/cli/check#pluralkategorien) listet die Lücken in Plurals, die ein Ziel schon hat); übersprungen bei einem Format, das Pluralformen nicht nach CLDR-Kategorie speichert |
-| Locale codes | nie; warnt und nennt jeden gültigen, aber nicht kanonischen Code wie `en-us` oder `iw` mit der kanonischen Form (siehe [Locale-Codes](/docs/config-file#locale-codes)) |
-| Locale state | nie; warnt und nennt jede Locale, für die Lock-Datei, Cache oder Provenance-Datei Zustand halten, die die Konfiguration aber nicht aufführt, und ob `translate` sie [übernimmt](/docs/the-lock-file#ein-umgeschriebener-locale-code) |
+| Plural completeness | nie; warnt und nennt jeden Ziel-Plural, dem eine CLDR-Kategorie seiner Sprache fehlt, und beurteilt einen Plural ohne Formen im Ziel danach, was ein Lauf dort schreiben würde (eine leere Quellform zählt als fehlend, Plural-Generierung nur, wo sie wirklich läuft), bewusst strenger als der i18next-Hinweis von `translate` (höchstens zehn; [`verbatra check`](/de/docs/cli/check#pluralkategorien) listet die Lücken in Plurals, die ein Ziel schon hat); übersprungen bei einem Format, das Pluralformen nicht nach CLDR-Kategorie speichert |
+| Locale codes | nie; warnt und nennt jeden gültigen, aber nicht kanonischen Code wie `en-us` oder `iw` mit der kanonischen Form (siehe [Locale-Codes](/de/docs/config-file#locale-codes)) |
+| Locale state | nie; warnt und nennt jede Locale, für die Lock-Datei, Cache oder Provenance-Datei Zustand halten, die die Konfiguration aber nicht aufführt, und ob `translate` sie [übernimmt](/de/docs/the-lock-file#ein-umgeschriebener-locale-code) |
 | Locale support | der Provider die Quell-Locale oder eine Ziel-Locale nicht unterstützt; warnt, wenn eine Locale eine Warnung trägt (siehe [Locale-Unterstützung](#locale-unterstützung)) |
 
 Jede Prüfung läuft auch dann, wenn eine frühere fehlgeschlagen ist. Die eine Ausnahme ist die Konfiguration: Kann sie nicht geladen werden, erscheinen die Prüfungen, die sie brauchen, als `[skip]` (`"status": "skipped"` in JSON), ebenso Plural completeness bei einem Format ohne CLDR-Pluralformen. Eine Prüfung, die etwas Beachtenswertes findet, ohne fehlzuschlagen, erscheint als `[warn]` (`"status": "warn"` in JSON) und ändert nie den Exit-Code. Eine fehlgeschlagene Prüfung trägt außerdem ein `fix`, einen nächsten Schritt im Imperativ, ausgegeben als `fix:`-Zeile und in JSON als `"fix"` mitgeliefert, damit ein Agent handeln kann, ohne `detail` zu parsen.
@@ -93,17 +93,17 @@ verbatra doctor
 
 ### Keys und Dateien
 
-- Der API-Key wird **nur über den Namen** geprüft: `doctor` fragt, ob die Variable gesetzt ist, nie was sie enthält. Die Variable jedes Providers steht unter [Provider](/docs/providers).
+- Der API-Key wird **nur über den Namen** geprüft: `doctor` fragt, ob die Variable gesetzt ist, nie was sie enthält. Die Variable jedes Providers steht unter [Provider](/de/docs/providers).
 - `openai-compatible` fällt auf einen Platzhalter-Key zurück und scheitert nur, wenn die Konfiguration mit `provider.options.apiKeyEnvVar` eine eigene Variable benennt und diese nicht gesetzt ist. `libretranslate` lässt die Prüfung nie scheitern, weil sein Key optional ist.
-- Mit [`provider: { id: "none" }`](/docs/human-only-workflow) bestehen die Prüfungen Provider, API key und Network policy, und Locale support wird übersprungen.
+- Mit [`provider: { id: "none" }`](/de/docs/human-only-workflow) bestehen die Prüfungen Provider, API key und Network policy, und Locale support wird übersprungen.
 - Eine fehlende **Ziel**-Datei ist in Ordnung: `translate` legt sie an. Die **Quell**-Datei wird geparst, also scheitert die Prüfung an einem Verzeichnis, einer leeren Datei oder fehlerhaftem Inhalt.
-- `doctor` lädt zuerst die [Umgebungsdateien](/docs/cli#umgebungsdateien), ein Key in einer dotenv-Datei zählt also als gesetzt; mit `--literals` lädt es keine der beiden.
+- `doctor` lädt zuerst die [Umgebungsdateien](/de/docs/cli#umgebungsdateien), ein Key in einer dotenv-Datei zählt also als gesetzt; mit `--literals` lädt es keine der beiden.
 
 ### Locale-Unterstützung
 
 <AvailableFrom version="0.12.0" />
 
-Die Prüfung Locale support fragt, ob der Provider jede konfigurierte Locale übersetzen kann. DeepL und Google Cloud Translation werden gegen eine datierte Sprachtabelle beurteilt, die verbatra mitliefert; ein LLM-Provider akzeptiert jede Locale. Sie scheitert genau an der Locale, die [`verbatra translate`](/docs/cli/translate) mit `LOCALE_UNSUPPORTED_BY_PROVIDER` ablehnen würde, und zeigt sonst `[warn]`, wenn eine Locale eine Warnung trägt oder `--live` die Liste nicht abrufen konnte. [Sprachunterstützung](/docs/language-support#unterstützung-vor-einem-lauf-prüfen) erklärt die Urteile.
+Die Prüfung Locale support fragt, ob der Provider jede konfigurierte Locale übersetzen kann. DeepL und Google Cloud Translation werden gegen eine datierte Sprachtabelle beurteilt, die verbatra mitliefert; ein LLM-Provider akzeptiert jede Locale. Sie scheitert genau an der Locale, die [`verbatra translate`](/de/docs/cli/translate) mit `LOCALE_UNSUPPORTED_BY_PROVIDER` ablehnen würde, und zeigt sonst `[warn]`, wenn eine Locale eine Warnung trägt oder `--live` die Liste nicht abrufen konnte. [Sprachunterstützung](/de/docs/language-support#unterstützung-vor-einem-lauf-prüfen) erklärt die Urteile.
 
 `--locales` gibt nach den Prüfungen das Urteil je Locale aus:
 
@@ -116,15 +116,15 @@ Die Prüfung Locale support fragt, ob der Provider jede konfigurierte Locale üb
     chr  sent as CHR  unsupported  glossary: no  formality: no
 ```
 
-Jede Zeile nennt die Locale, den Code, den der Provider bekommt (nach [`localeMap`](/docs/providers#an-den-provider-gesendete-locale-codes), dann mit `(localeMap)` markiert), das Urteil und ob ein Glossar und ein `formal`- oder `informal`-Tonfall greifen. Eine Warnung ist nur ein Hinweis.
+Jede Zeile nennt die Locale, den Code, den der Provider bekommt (nach [`localeMap`](/de/docs/providers#an-den-provider-gesendete-locale-codes), dann mit `(localeMap)` markiert), das Urteil und ob ein Glossar und ein `formal`- oder `informal`-Tonfall greifen. Eine Warnung ist nur ein Hinweis.
 
-`--live` urteilt stattdessen gegen die aktuelle Liste des Providers (DeepL `/v3/languages`, Cloud Translation `languages`, LibreTranslate `/languages`). Für LibreTranslate, das keine Tabelle mitbringt, ist das der einzige Weg zu einem anderen Urteil als `unverified`, daher zeigt Locale support `[warn]`, bis `--live` läuft. Die Anfrage geht nur raus, wenn die Key-Variable gesetzt ist (LibreTranslate braucht keine) und die [Netzwerkrichtlinie](/docs/network-policy) den Host erlaubt; sonst, oder wenn sie scheitert, gilt die mitgelieferte Tabelle, und eine Zeile `live language list` sagt, warum.
+`--live` urteilt stattdessen gegen die aktuelle Liste des Providers (DeepL `/v3/languages`, Cloud Translation `languages`, LibreTranslate `/languages`). Für LibreTranslate, das keine Tabelle mitbringt, ist das der einzige Weg zu einem anderen Urteil als `unverified`, daher zeigt Locale support `[warn]`, bis `--live` läuft. Die Anfrage geht nur raus, wenn die Key-Variable gesetzt ist (LibreTranslate braucht keine) und die [Netzwerkrichtlinie](/de/docs/network-policy) den Host erlaubt; sonst, oder wenn sie scheitert, gilt die mitgelieferte Tabelle, und eine Zeile `live language list` sagt, warum.
 
 ### Nicht übersetzte Literale
 
 <AvailableFrom version="0.11.0" />
 
-`--literals` findet für Nutzer sichtbare Strings, die nie in einem Katalog gelandet sind. Es durchläuft die Quell-Roots deines [`extract`-Blocks](/docs/config-file#extract), liest deinen Quellcode und schreibt ihn nie, konstruiert keinen Provider, liest keinen Key und lädt keine `.env`-Datei. Nur zwei Prüfungen laufen: Configuration und Untranslated literals. Jeder Fund nennt Datei, Zeile und Spalte, mit zusammengefasstem Leerraum, aufgelösten JSX-Zeichenreferenzen und höchstens 80 Zeichen:
+`--literals` findet für Nutzer sichtbare Strings, die nie in einem Katalog gelandet sind. Es durchläuft die Quell-Roots deines [`extract`-Blocks](/de/docs/config-file#extract), liest deinen Quellcode und schreibt ihn nie, konstruiert keinen Provider, liest keinen Key und lädt keine `.env`-Datei. Nur zwei Prüfungen laufen: Configuration und Untranslated literals. Jeder Fund nennt Datei, Zeile und Spalte, mit zusammengefasstem Leerraum, aufgelösten JSX-Zeichenreferenzen und höchstens 80 Zeichen:
 
 ```text output
   [fail] Untranslated literals: Scanned 42 source files: 2 untranslated literals found (1 suppressed).
@@ -151,7 +151,7 @@ Die Prüfung scheitert an einem Fund und an einer Datei, die sie nicht öffnen, 
 
 <AvailableFrom version="0.12.0" />
 
-`--data-flow` beschreibt statt der Einrichtung, wohin die Daten dieses Projekts gehen, als Nachweis für ein AVV- oder NDA-Review; [Datenverarbeitung](/docs/data-handling) erklärt jede Kategorie. Es liest keinen API-Key und macht keinen Netzwerk-Request. Nur zwei Prüfungen laufen: Configuration und Data flow. Data flow schlägt nie fehl: Es zeigt `[warn]`, wenn die [Network Policy](/docs/network-policy) einen Host ablehnt oder einen ungültigen Wert hat, oder wenn die Quelldatei für die Zählungen nicht lesbar ist.
+`--data-flow` beschreibt statt der Einrichtung, wohin die Daten dieses Projekts gehen, als Nachweis für ein AVV- oder NDA-Review; [Datenverarbeitung](/de/docs/data-handling) erklärt jede Kategorie. Es liest keinen API-Key und macht keinen Netzwerk-Request. Nur zwei Prüfungen laufen: Configuration und Data flow. Data flow schlägt nie fehl: Es zeigt `[warn]`, wenn die [Network Policy](/de/docs/network-policy) einen Host ablehnt oder einen ungültigen Wert hat, oder wenn die Quelldatei für die Zählungen nicht lesbar ist.
 
 ```text output
   [ok  ] Data flow: Provider "deepl" sends source-text, placeholder-markers, language-codes to api.deepl.com (permitted), api-free.deepl.com (permitted).
@@ -178,13 +178,13 @@ Die Prüfung scheitert an einem Fund und an einer Datei, die sie nicht öffnen, 
 
 Das Manifest nennt den Provider; jeden Ziel-Host, woher er kommt (eingebaut, `provider.options.baseUrl` oder eine `*_BASE_URL`-Variable) und das Urteil der Policy (`permitted`, `deferred`, `refused` oder `invalid-policy`); die Arten gesendeter Daten, mit der Zahl der Quell-Keys, der Keys mit Beschreibung oder Bedeutung und der Keys, deren Platzhalter der Provider nicht maskieren kann (eine Schätzung über die Quell-Keys: Ein Lauf sendet nur fehlende oder geänderte Keys und kann unter `sensitiveData: redact` mehr zurückhalten); Code und Zahl der Glossarbegriffe je Ziel-Locale; die lokalen Dateien mit ihren projektrelativen Pfaden und ob sie Quelltext, Übersetzungen oder personenbezogene Daten enthalten; und die übrigen Requests und Agent-Schnittstellen. DeepL steht mit beiden Hosts drin, weil der Key, der einen davon wählt, nie gelesen wird. Ein wirksamer Proxy steht mit Variable und Host drin, nie mit seinen Zugangsdaten, und die Felder nennen nur, was diese Config senden kann. Mit `provider: { id: "none" }` sagt es, dass nichts gesendet wird. Es nennt Hosts, Datenkategorien und Bedingungen, nie einen Key-Wert oder Dateiinhalte.
 
-Mit `--json` steht das Manifest unter `result.dataFlow`. Sein Feld `version` ändert sich nur, wenn ein Feld umbenannt oder entfernt wird; neue Felder können ohne Erhöhung dazukommen, ignoriere also die, die du nicht kennst. [`dataFlowManifestSchema`](/docs/sdk/inspect#dataflowmanifestschema) aus dem SDK validiert es.
+Mit `--json` steht das Manifest unter `result.dataFlow`. Sein Feld `version` ändert sich nur, wenn ein Feld umbenannt oder entfernt wird; neue Felder können ohne Erhöhung dazukommen, ignoriere also die, die du nicht kennst. [`dataFlowManifestSchema`](/de/docs/sdk/inspect#dataflowmanifestschema) aus dem SDK validiert es.
 
 ### JSON-Ausgabe
 
-Schema: [`doctor-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/doctor-envelope.json) validiert den ganzen Envelope; [Schemas](/docs/cli/output#schemas) listet die übrigen auf.
+Schema: [`doctor-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/doctor-envelope.json) validiert den ganzen Envelope; [Schemas](/de/docs/cli/output#schemas) listet die übrigen auf.
 
-Mit `--json` trägt der [Envelope](/docs/cli/output#json-ausgabe) den Bericht unter `result`. `ok` ist genau dann wahr, wenn der Befehl mit `0` endet:
+Mit `--json` trägt der [Envelope](/de/docs/cli/output#json-ausgabe) den Bericht unter `result`. `ok` ist genau dann wahr, wenn der Befehl mit `0` endet:
 
 ```ts
 interface DoctorResult {
@@ -247,7 +247,7 @@ interface LocaleCapabilityReport {
 
 <AvailableFrom version="0.12.0" />
 
-Während es läuft, zeigt `doctor` eine Zeile auf stderr, die `--quiet` weglässt: `checking the setup`, unter `--live` `checking the setup and fetching the provider's language list`, unter `--data-flow` `describing the data flow` oder unter `--literals` `scanning the source for literals` mit Dateianzahl. Der Bericht bleibt auf stdout. Siehe [Terminalausgabe](/docs/cli/output#terminalausgabe).
+Während es läuft, zeigt `doctor` eine Zeile auf stderr, die `--quiet` weglässt: `checking the setup`, unter `--live` `checking the setup and fetching the provider's language list`, unter `--data-flow` `describing the data flow` oder unter `--literals` `scanning the source for literals` mit Dateianzahl. Der Bericht bleibt auf stdout. Siehe [Terminalausgabe](/de/docs/cli/output#terminalausgabe).
 
 ## Exit-Codes
 
@@ -257,12 +257,12 @@ Während es läuft, zeigt `doctor` eine Zeile auf stderr, die `--quiet` wegläss
 | `1` | mindestens eine Prüfung ist fehlgeschlagen, auch bei einer nicht unterstützten Locale; mit `--literals`: ein Literal gefunden oder eine Datei nicht scannbar |
 | `2` | konnte nicht laufen: ein Verwendungsfehler oder ein explizit angegebener `--config`-Pfad, der nicht existiert |
 
-Eine Konfiguration, die die Suche nicht findet oder die die Validierung nicht besteht, ist eine fehlgeschlagene Prüfung (Exit `1`), denn genau das zu melden ist die Aufgabe des Befehls. Siehe [den Exit-Code-Vertrag](/docs/cli/output#exit-codes).
+Eine Konfiguration, die die Suche nicht findet oder die die Validierung nicht besteht, ist eine fehlgeschlagene Prüfung (Exit `1`), denn genau das zu melden ist die Aufgabe des Befehls. Siehe [den Exit-Code-Vertrag](/de/docs/cli/output#exit-codes).
 
 ## Siehe auch
 
-- [`verbatra init`](/docs/cli/init) erzeugt die Konfiguration und die `.env.example`, die `doctor` prüft.
-- [`verbatra check`](/docs/cli/check) ist das Drift-Gate, sobald die Einrichtung steht.
-- [Die Konfigurationsdatei](/docs/config-file) dokumentiert jeden Key, den `doctor` validiert.
-- [Provider](/docs/providers) listet die API-Key-Variable, die jeder Provider liest.
-- [Sprachunterstützung](/docs/language-support#unterstützung-vor-einem-lauf-prüfen) listet die Sprachtabellen, die die Prüfung Locale support nutzt.
+- [`verbatra init`](/de/docs/cli/init) erzeugt die Konfiguration und die `.env.example`, die `doctor` prüft.
+- [`verbatra check`](/de/docs/cli/check) ist das Drift-Gate, sobald die Einrichtung steht.
+- [Die Konfigurationsdatei](/de/docs/config-file) dokumentiert jeden Key, den `doctor` validiert.
+- [Provider](/de/docs/providers) listet die API-Key-Variable, die jeder Provider liest.
+- [Sprachunterstützung](/de/docs/language-support#unterstützung-vor-einem-lauf-prüfen) listet die Sprachtabellen, die die Prüfung Locale support nutzt.

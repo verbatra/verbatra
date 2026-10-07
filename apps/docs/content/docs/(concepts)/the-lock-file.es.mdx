@@ -22,14 +22,14 @@ Una clave de origen que el destino no tiene está ausente (missing). Para una qu
 de origen actual se compara con el registrado: una diferencia significa que el origen cambió y la
 clave se vuelve a traducir; una coincidencia significa que nunca se envía, así que una segunda
 ejecución sin cambios en el origen no cuesta nada. La canalización completa está en
-[Cómo funciona una ejecución](/docs/how-it-works).
+[Cómo funciona una ejecución](/es/docs/how-it-works).
 
 ### Claves protegidas
 
 <AvailableFrom version="0.12.0" />
 
 La excepción es una clave cambiada cuyo valor escribió o importó una persona: por defecto está
-[protegida](/docs/protecting-human-translations) y sigue desactualizada en lugar de volver a
+[protegida](/es/docs/protecting-human-translations) y sigue desactualizada en lugar de volver a
 traducirse.
 
 ## Adoptar un proyecto existente
@@ -47,7 +47,7 @@ La adopción se basa en la presencia de la clave, nunca en su valor, lo que tien
   ejecución.
 
 La misma regla conserva las formas de plural escritas a mano, así que `generatePlurals` es seguro
-durante la adopción. Para ver todo esto de antemano, ejecuta [`verbatra diff`](/docs/cli/diff) o
+durante la adopción. Para ver todo esto de antemano, ejecuta [`verbatra diff`](/es/docs/cli/diff) o
 `verbatra translate --dry-run`.
 
 ## Cómo se actualiza
@@ -82,13 +82,13 @@ Lo que garantiza el bloqueo:
   termine.
 - **Un bloqueo perdido detiene la escritura.** Cada bloqueo lleva un token aleatorio, que se
   comprueba antes de cada escritura; cuando otra ejecución se ha quedado con el
-  bloqueo, la escritura se detiene con [`LOCK_CONTENDED`](/docs/error-codes#lock_contended) y no se
+  bloqueo, la escritura se detiene con [`LOCK_CONTENDED`](/es/docs/error-codes#lock_contended) y no se
   escribe nada.
 
 Lo que no cubre:
 
 - **Un bloqueo de otra máquina** (una unidad de red compartida) o de un verbatra anterior a 0.12.0
-  nunca se recupera automáticamente; [Solución de problemas](/docs/troubleshooting) tiene los
+  nunca se recupera automáticamente; [Solución de problemas](/es/docs/troubleshooting) tiene los
   pasos para quitarlo.
 - **Una pausa larga entre la comprobación y la escritura.** Una ejecución pausada justo después de
   comprobar el token (una máquina que se duerme, un proceso detenido) todavía puede escribir una vez
@@ -105,7 +105,7 @@ Lo que no cubre:
 El archivo de bloqueo, la caché y el archivo de procedencia indexan su estado por el código de
 locale de tu configuración. Cuando reescribes uno, por ejemplo `pt_BR` como `pt-BR`, la siguiente
 ejecución de `translate` o `watch` traslada el estado antiguo una vez e informa
-[`LOCALE_STATE_CARRIED_OVER`](/docs/error-codes#locale_state_carried_over). Un cambio en el origen
+[`LOCALE_STATE_CARRIED_OVER`](/es/docs/error-codes#locale_state_carried_over). Un cambio en el origen
 hecho antes del cambio de nombre se sigue traduciendo, y las traducciones en caché se siguen
 reutilizando.
 
@@ -113,20 +113,20 @@ El traslado solo ocurre sin ambigüedad: `pt-BR` no tiene estado propio, y el ar
 guarda estado bajo exactamente una grafía con guion bajo (o su grafía de gettext, como `sr@latin`
 para `sr-Latn`), comparada sin distinguir mayúsculas. El estado que `pt-BR` ya tiene nunca se
 sobrescribe. Si el traslado no se puede escribir, ese locale no se ejecuta y falla con
-[`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), para que la
+[`LOCALE_STATE_NOT_CARRIED_OVER`](/es/docs/error-codes#locale_state_not_carried_over), para que la
 siguiente ejecución lo intente de nuevo; los demás locales se ejecutan como siempre.
 
 Hasta entonces, cada lectura trata el estado antiguo como el de `pt-BR` sin escribir, así que una clave desfasada se informa como desfasada. Una escritura de una sola
 clave (una edición, una nueva traducción, una decisión de revisión) y `verbatra import` trasladan
 antes el estado, del mismo modo. La comprobación `locale-state` de
-[`verbatra doctor`](/docs/cli/doctor) nombra cualquier estado que quede atrás.
+[`verbatra doctor`](/es/docs/cli/doctor) nombra cualquier estado que quede atrás.
 
 ## Ausente o corrupto
 
 Un archivo de bloqueo ausente es una [primera ejecución](#adoptar-un-proyecto-existente), no un
 error. Uno que no se puede analizar, con una estructura incorrecta, demasiado
 grande o con una versión no soportada hace fallar la ejecución con
-[`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid) en lugar de sobrescribirse, para que
+[`LOCK_FILE_INVALID`](/es/docs/error-codes#lock_file_invalid) en lugar de sobrescribirse, para que
 puedas restaurarlo en vez de perder la línea base.
 
 ## Procedencia: quién escribió cada valor
@@ -141,7 +141,7 @@ ignora.
 | --- | --- |
 | `machine` | una respuesta del proveedor en `translate`, `watch` o una nueva traducción de una sola clave, con el `id` del proveedor y, si se conoce, el modelo |
 | `memory` | un acierto exacto de la caché, incluido cada valor que rellena una ejecución solo humana (proveedor `none`) |
-| `fuzzy` | un acierto de la [caché difusa](/docs/the-cache#reutilización-difusa) |
+| `fuzzy` | un acierto de la [caché difusa](/es/docs/the-cache#reutilización-difusa) |
 | `human` | la edición de una persona a través de `editEntry` del SDK, como hace el diálogo de edición de Studio |
 | `agent` | la edición de un agente de IA a través de `editEntry` con `actor: "agent"` |
 | `import` | una fila aceptada de `verbatra import` |
@@ -150,7 +150,7 @@ ignora.
 Al leer se derivan dos más: `unrecorded` es un valor sin registro, como cada clave tras actualizar;
 `external` ya no coincide con el hash de su registro porque algo fuera de verbatra lo cambió, como
 la pull request de un traductor, un verbatra más antiguo o una fusión. Los campos que devuelve cada lectura están en la
-[referencia del SDK](/docs/sdk/inspect#loadprovenance).
+[referencia del SDK](/es/docs/sdk/inspect#loadprovenance).
 
 Lo que garantiza el archivo:
 
@@ -161,22 +161,22 @@ Lo que garantiza el archivo:
 - **Registros nuevos para valores nuevos.** Una escritura que cambia un valor sustituye su registro
   por uno nuevo y sin revisar; una escritura que deja igual el valor y el origen lo conserva.
 - **Ninguna sobrescritura silenciosa.** Un archivo corrupto detiene cada escritura con
-  [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid) antes de que cambie ningún
+  [`PROVENANCE_FILE_INVALID`](/es/docs/error-codes#provenance_file_invalid) antes de que cambie ningún
   archivo de locale; los informes omiten en su lugar sus campos de procedencia. Un archivo de un
   verbatra más nuevo se deja intacto, y uno que crecería demasiado para volver a leerlo no se
-  escribe ([`PROVENANCE_FILE_TOO_LARGE`](/docs/error-codes#provenance_file_too_large)).
+  escribe ([`PROVENANCE_FILE_TOO_LARGE`](/es/docs/error-codes#provenance_file_too_large)).
 
 No es a prueba de manipulaciones; para convertirlo en un informe, consulta
-[Registrar evidencia de traducción automática](/docs/provenance-evidence).
+[Registrar evidencia de traducción automática](/es/docs/provenance-evidence).
 
 ### Decisiones de revisión
 
 <AvailableFrom version="0.12.0" />
 
 Un registro puede llevar una decisión de revisión, `approved` o `rejected`, con un nombre de
-`reviewer` opcional. Las escriben la [página Review de Studio](/docs/review-in-studio), las
-[funciones de revisión del SDK](/docs/sdk/review) y las
-[herramientas MCP de revisión](/docs/cli/mcp); las herramientas MCP transmiten la decisión de una
+`reviewer` opcional. Las escriben la [página Review de Studio](/es/docs/review-in-studio), las
+[funciones de revisión del SDK](/es/docs/sdk/review) y las
+[herramientas MCP de revisión](/es/docs/cli/mcp); las herramientas MCP transmiten la decisión de una
 persona y exigen su nombre. Una decisión se aplica al valor exacto que vio el revisor y se rechaza
 si cambió.
 
@@ -186,14 +186,14 @@ si cambió.
   la siguiente ejecución de `translate` o hasta que una persona escribe un valor nuevo. El registro
   guarda un hash del texto quitado y la entrada de caché se descarta, para que una ejecución no vuelva a poner el mismo texto. XLIFF no puede quitar una
   sola traducción, así que ahí un rechazo se deniega con
-  [`REVIEW_REJECT_UNSUPPORTED`](/docs/error-codes#review_reject_unsupported).
+  [`REVIEW_REJECT_UNSUPPORTED`](/es/docs/error-codes#review_reject_unsupported).
 
 Las decisiones viven en este archivo confirmado, así que la cola de revisión y
-[`verbatra check --require-reviewed`](/docs/cli/check#exigir-traducciones-revisadas) ven el mismo
+[`verbatra check --require-reviewed`](/es/docs/cli/check#exigir-traducciones-revisadas) ven el mismo
 estado en todas partes, y el nombre de `reviewer` es público; verbatra nunca lo rellena.
 
 ## Confírmalo
 
 Confirma `verbatra.lock.json` y `verbatra.provenance.json` junto a tus archivos de locale, y nunca
 los edites a mano: son la línea base con la que comparan tu equipo y tu CI, y lo
-que restaura una [reversión](/docs/recovery-and-rollback).
+que restaura una [reversión](/es/docs/recovery-and-rollback).

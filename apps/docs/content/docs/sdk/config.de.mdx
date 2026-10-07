@@ -10,7 +10,7 @@ type: reference
 Findet, lädt und validiert die Projektkonfiguration und gibt eine `VerbatraConfig` zurück.
 `configOverride` (ein Objekt im Speicher validieren) geht vor
 `configPath` (eine explizite Datei laden), das vor einer Suche ab `cwd` in der
-[Suchreihenfolge](/docs/config-file#suchreihenfolge) geht. Ein als Dateipfad angegebenes `glossary` wird hier
+[Suchreihenfolge](/de/docs/config-file#suchreihenfolge) geht. Ein als Dateipfad angegebenes `glossary` wird hier
 gelesen und validiert, sodass nachgelagerter Code immer ein Glossar im Speicher sieht: eine
 Version-1-Zuordnung vom Quellbegriff zur Übersetzung oder eine Version-2-Definition.
 
@@ -24,13 +24,13 @@ function loadConfig(
 
 **Rückgabe:** `VerbatraConfig`
 
-**Wirft:** [`CONFIG_NOT_FOUND`](/docs/error-codes#config_not_found), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
+**Wirft:** [`CONFIG_NOT_FOUND`](/de/docs/error-codes#config_not_found), [`CONFIG_INVALID`](/de/docs/error-codes#config_invalid)
 
-**Beispiel:** [Eine Konfiguration ohne Datei](/docs/programmatic-api#eine-konfiguration-ohne-datei)
+**Beispiel:** [Eine Konfiguration ohne Datei](/de/docs/programmatic-api#eine-konfiguration-ohne-datei)
 
-Das Schema steht in [Konfigurationsdatei](/docs/config-file). `fs`
+Das Schema steht in [Konfigurationsdatei](/de/docs/config-file). `fs`
 ist der Dateisystem-Port, über den eine Glossardatei gelesen wird, wie unter
-[Die Abhängigkeits-Nahtstelle](/docs/sdk#die-abhängigkeits-nahtstelle) beschrieben.
+[Die Abhängigkeits-Nahtstelle](/de/docs/sdk#die-abhängigkeits-nahtstelle) beschrieben.
 
 ### loadConfigWithMeta
 
@@ -52,7 +52,7 @@ function loadConfigWithMeta(
 
 **Rückgabe:** `LoadedConfig`
 
-**Wirft:** [`CONFIG_NOT_FOUND`](/docs/error-codes#config_not_found), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
+**Wirft:** [`CONFIG_NOT_FOUND`](/de/docs/error-codes#config_not_found), [`CONFIG_INVALID`](/de/docs/error-codes#config_invalid)
 
 Beide nehmen `fresh: true`, um eine JavaScript- oder TypeScript-Konfigurationsdatei neu auszuwerten,
 statt wiederzuverwenden, was ein früheres Laden im selben Prozess ausgewertet hat; ein lang laufender
@@ -111,7 +111,7 @@ function resolveProjectRoot(
 
 Liest ein dateibasiertes Glossar frisch von der Festplatte und gibt es als normalisiertes `Glossary`
 zurück: `{ version, terms, doNotTranslate }`, wobei `version` für eine flache Begriffszuordnung `1`
-und für ein [Glossar pro Locale](/docs/config-file#glossary) `2` ist und jeder Begriff `source`, ein
+und für ein [Glossar pro Locale](/de/docs/config-file#glossary) `2` ist und jeder Begriff `source`, ein
 optionales `target`, `targets`, `forbidden`, `caseSensitive` sowie optional `note` und
 `partOfSpeech` trägt. Die Eingabe `glossary` ist die `GlossaryProvenance` aus `loadConfigWithMeta`,
 sodass die gelesene Datei immer die ist, die die Konfiguration nennt; ein Pfadargument gibt es
@@ -129,10 +129,10 @@ function readGlossaryFile(
 
 **Rückgabe:** `Glossary`
 
-**Wirft:** [`GLOSSARY_NOT_FILE_BACKED`](/docs/error-codes#glossary_not_file_backed), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
+**Wirft:** [`GLOSSARY_NOT_FILE_BACKED`](/de/docs/error-codes#glossary_not_file_backed), [`CONFIG_INVALID`](/de/docs/error-codes#config_invalid)
 
 Wirft `GLOSSARY_NOT_FILE_BACKED`, wenn das Glossar inline oder gar nicht vorhanden ist, und
-`CONFIG_INVALID`, wenn die Datei gegen die [Regeln für Glossardateien](/docs/config-file#glossary)
+`CONFIG_INVALID`, wenn die Datei gegen die [Regeln für Glossardateien](/de/docs/config-file#glossary)
 verstößt oder eine andere Version angibt.
 
 <AvailableFrom version="0.12.0" />
@@ -162,7 +162,7 @@ function updateGlossaryTerm(
 
 **Rückgabe:** `Glossary`
 
-**Wirft:** [`GLOSSARY_NOT_FILE_BACKED`](/docs/error-codes#glossary_not_file_backed), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), [`RUN_CANCELLED`](/docs/error-codes#run_cancelled), [`GLOSSARY_UNWRITABLE`](/docs/error-codes#glossary_unwritable)
+**Wirft:** [`GLOSSARY_NOT_FILE_BACKED`](/de/docs/error-codes#glossary_not_file_backed), [`CONFIG_INVALID`](/de/docs/error-codes#config_invalid), [`LOCK_TIMEOUT_INVALID`](/de/docs/error-codes#lock_timeout_invalid), [`LOCK_CONTENDED`](/de/docs/error-codes#lock_contended), [`RUN_CANCELLED`](/de/docs/error-codes#run_cancelled), [`GLOSSARY_UNWRITABLE`](/de/docs/error-codes#glossary_unwritable)
 
 <AvailableFrom version="0.12.0" />
 
@@ -196,7 +196,7 @@ Löst den Teil eines Glossars auf, der für eine Ziel-Locale gilt:
 mit dem `target` der Locale (ihr eigener Eintrag, dann der ihrer Basissprache, dann der gemeinsame),
 seinen `forbidden`-Wiedergaben, `caseSensitive` sowie `note` und `partOfSpeech`, oder `undefined`,
 wenn nichts im Glossar dort gilt. Genau das trägt eine Übersetzungsanfrage in diese Locale als
-[`TranslateRequest.glossary`](/docs/sdk/extend#eigene-provider), und genau das sehen die Review-Prüfungen und der Cache-Fingerprint
+[`TranslateRequest.glossary`](/de/docs/sdk/extend#eigene-provider), und genau das sehen die Review-Prüfungen und der Cache-Fingerprint
 dieser Locale.
 
 ```ts title="Signatur"
@@ -330,7 +330,7 @@ function readCurrentGlossary(
 
 **Rückgabe:** `Glossary | undefined`
 
-**Wirft:** [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
+**Wirft:** [`CONFIG_INVALID`](/de/docs/error-codes#config_invalid)
 
 ### editConfiguredGlossaryTerm
 
@@ -352,7 +352,7 @@ function editConfiguredGlossaryTerm(
 
 **Rückgabe:** `Glossary`
 
-**Wirft:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`GLOSSARY_NOT_FILE_BACKED`](/docs/error-codes#glossary_not_file_backed), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), [`RUN_CANCELLED`](/docs/error-codes#run_cancelled), [`GLOSSARY_UNWRITABLE`](/docs/error-codes#glossary_unwritable)
+**Wirft:** [`UNKNOWN_LOCALE`](/de/docs/error-codes#unknown_locale), [`GLOSSARY_NOT_FILE_BACKED`](/de/docs/error-codes#glossary_not_file_backed), [`CONFIG_INVALID`](/de/docs/error-codes#config_invalid), [`LOCK_TIMEOUT_INVALID`](/de/docs/error-codes#lock_timeout_invalid), [`LOCK_CONTENDED`](/de/docs/error-codes#lock_contended), [`RUN_CANCELLED`](/de/docs/error-codes#run_cancelled), [`GLOSSARY_UNWRITABLE`](/de/docs/error-codes#glossary_unwritable)
 
 ## Schreiben, Erkennen und rein menschlicher Modus
 
@@ -374,7 +374,7 @@ function defineConfig(
 
 **Rückgabe:** `VerbatraConfigInput`
 
-**Beispiel:** [Eine Quelldatei und eine Konfiguration anlegen](/docs/sdk-quickstart#eine-quelldatei-und-eine-konfiguration-anlegen)
+**Beispiel:** [Eine Quelldatei und eine Konfiguration anlegen](/de/docs/sdk-quickstart#eine-quelldatei-und-eine-konfiguration-anlegen)
 
 ### verbatraConfigSchema
 
@@ -398,7 +398,7 @@ Nur lesbare Metadaten, aus denen der CLI-Befehl `init` seine Abfragen ableitet:
 Option-Key, unter dem jeder LLM-Provider sein Ausgabe-Token-Limit entgegennimmt) und
 `supportedFormats` (die geschlossene Menge der Format-IDs). Lies den Token-Limit-Key aus
 `providerTokenLimitKeys`, statt einen anzunehmen, denn die Keys unterscheiden sich
-([Provider](/docs/providers)); DeepL und Google Cloud Translation haben keinen Eintrag, weil sie kein
+([Provider](/de/docs/providers)); DeepL und Google Cloud Translation haben keinen Eintrag, weil sie kein
 Token-Limit entgegennehmen. Der Typ `ScaffoldableProviderId` ist
 `Exclude<ProviderId, "openai-compatible" | "libretranslate" | "none">`: jeder Provider, der nur
 seine Id braucht. `openai-compatible` und `libretranslate` brauchen je eine `baseUrl`, die nur du
@@ -459,7 +459,7 @@ Das Ergebnis trägt `format` (mit `from`: `input`, `files` oder `dependencies`),
 
 <AvailableFrom version="0.12.0" />
 
-Gibt genau dann `false` zurück, wenn die Konfiguration `provider: { id: "none" }` setzt, den [rein menschlichen](/docs/human-only-workflow) Modus, in dem nie ein Provider erzeugt und kein API-Key gelesen wird. Eine Oberfläche, die kostenpflichtige Provider-Aktionen anbietet, liest es, um sie ganz wegzulassen. So halten Studio und der MCP-Server Ausgaben auch mit `--allow-spend` zurück.
+Gibt genau dann `false` zurück, wenn die Konfiguration `provider: { id: "none" }` setzt, den [rein menschlichen](/de/docs/human-only-workflow) Modus, in dem nie ein Provider erzeugt und kein API-Key gelesen wird. Eine Oberfläche, die kostenpflichtige Provider-Aktionen anbietet, liest es, um sie ganz wegzulassen. So halten Studio und der MCP-Server Ausgaben auch mit `--allow-spend` zurück.
 
 ```ts title="Signatur"
 function isMachineTranslationEnabled(
@@ -484,7 +484,7 @@ function assertMachineTranslationEnabled(
 
 **Rückgabe:** `void`
 
-**Wirft:** [`MACHINE_TRANSLATION_DISABLED`](/docs/error-codes#machine_translation_disabled)
+**Wirft:** [`MACHINE_TRANSLATION_DISABLED`](/de/docs/error-codes#machine_translation_disabled)
 
 ### assertTargetLocale
 
@@ -501,4 +501,4 @@ function assertTargetLocale(
 
 **Rückgabe:** `void`
 
-**Wirft:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
+**Wirft:** [`UNKNOWN_LOCALE`](/de/docs/error-codes#unknown_locale)

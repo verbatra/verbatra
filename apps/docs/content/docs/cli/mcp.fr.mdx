@@ -41,7 +41,7 @@ npx -y @verbatra/mcp --cwd /path/to/project
 | `--allow-spend` | aucun | `VERBATRA_MCP_ALLOW_SPEND`, sinon désactivé | annonce les deux outils qui appellent un fournisseur de traduction ; voir [Outils payants](#outils-payants) |
 | `--redact-values` | aucun | `VERBATRA_MCP_REDACT_VALUES`, sinon désactivé | remplace chaque valeur de traduction des résultats par un marqueur ; voir [Valeurs masquées](#redacted-values) |
 
-Prend aussi les [options globales](/docs/cli#options-globales) `--cwd` et `--config`. Pas de `--json`, car stdout est le canal du protocole. Sans `--cwd`, le répertoire du projet peut venir de `CLAUDE_PROJECT_DIR` ; voir [Répertoire du projet](#répertoire-du-projet).
+Prend aussi les [options globales](/fr/docs/cli#options-globales) `--cwd` et `--config`. Pas de `--json`, car stdout est le canal du protocole. Sans `--cwd`, le répertoire du projet peut venir de `CLAUDE_PROJECT_DIR` ; voir [Répertoire du projet](#répertoire-du-projet).
 
 ## Comportement
 
@@ -49,9 +49,9 @@ Prend aussi les [options globales](/docs/cli#options-globales) `--cwd` et `--con
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Si `--cwd` est absent et que `CLAUDE_PROJECT_DIR` désigne un répertoire existant, le serveur l'utilise comme répertoire du projet. `verbatra mcp` charge alors les [fichiers d'environnement](/docs/cli#fichiers-denvironnement) depuis ce répertoire ; un `CLAUDE_PROJECT_DIR` défini seulement dans ces fichiers est ignoré, car le répertoire du projet est résolu avant.
+Si `--cwd` est absent et que `CLAUDE_PROJECT_DIR` désigne un répertoire existant, le serveur l'utilise comme répertoire du projet. `verbatra mcp` charge alors les [fichiers d'environnement](/fr/docs/cli#fichiers-denvironnement) depuis ce répertoire ; un `CLAUDE_PROJECT_DIR` défini seulement dans ces fichiers est ignoré, car le répertoire du projet est résolu avant.
 
-La recherche de configuration commence là, et le répertoire de la config trouvée est la [racine du projet](/docs/config-file#le-répertoire-de-travail-et-env) par rapport à laquelle chaque chemin d'outil est résolu, donc un serveur lancé dans un sous-répertoire travaille quand même sur les fichiers du projet.
+La recherche de configuration commence là, et le répertoire de la config trouvée est la [racine du projet](/fr/docs/config-file#le-répertoire-de-travail-et-env) par rapport à laquelle chaque chemin d'outil est résolu, donc un serveur lancé dans un sous-répertoire travaille quand même sur les fichiers du projet.
 
 ### Outils payants
 
@@ -59,7 +59,7 @@ La recherche de configuration commence là, et le répertoire de la config trouv
 
 `translation.retranslateEntry` et `translation.translatePending` ne sont annoncés qu'avec `--allow-spend` ou, si l'option manque, avec `VERBATRA_MCP_ALLOW_SPEND` à `1`, `true`, `yes` ou `on` (sans tenir compte de la casse ni des espaces autour). L'option l'emporte sur la variable. `verbatra mcp` lit d'abord `.env.local` et `.env`, la variable peut donc s'y trouver ; `verbatra-mcp` ne la prend que dans son propre environnement.
 
-Sinon, les deux n'apparaissent jamais dans la liste, et les appeler échoue comme un outil inconnu. Une config avec `provider: { id: "none" }` ne les liste jamais, même avec `--allow-spend`. Les autres outils n'appellent aucun fournisseur et n'ont besoin d'aucune clé ; ne donne la clé au serveur, via l'environnement du client, que quand tu autorises la dépense (voir [Fournisseurs](/docs/providers)).
+Sinon, les deux n'apparaissent jamais dans la liste, et les appeler échoue comme un outil inconnu. Une config avec `provider: { id: "none" }` ne les liste jamais, même avec `--allow-spend`. Les autres outils n'appellent aucun fournisseur et n'ont besoin d'aucune clé ; ne donne la clé au serveur, via l'environnement du client, que quand tu autorises la dépense (voir [Fournisseurs](/fr/docs/providers)).
 
 ### Instructions pour l'agent
 
@@ -97,9 +97,9 @@ Le serveur répond à la poignée de main avec des `instructions` fixes, que la 
 | `usage.summary` | la consommation de tokens et l'état du budget de la dernière exécution | oui | non |
 
 - **Un appel à la fois.** Un second appel au même outil pour la même entrée (`translation.editEntry`, `translation.retranslateEntry`), ou une seconde exécution de `translation.translatePending`, est refusé avec `isError` tant que le premier tourne.
-- **Travail humain.** `translation.retranslateEntry` refuse une clé épinglée avec `KEY_PINNED` et, sauf avec `humanEdits: "overwrite"`, la valeur d'une personne avec `KEY_PROTECTED` ; `translation.editEntry` refuse une clé épinglée. `translation.translatePending` liste ces clés sous `protected`. Voir [Protéger les traductions humaines](/docs/protecting-human-translations).
-- **Provenance.** Une valeur écrite par `translation.editEntry` reçoit l'origine `agent`. `review.queue` est la même file que celle de Studio : chaque valeur non approuvée d'origine `machine`, `memory`, `fuzzy` ou `agent`. Voir [Décisions de relecture](/docs/the-lock-file#décisions-de-relecture).
-- **Décisions de relecture.** `review.approve` et `review.reject` prennent `locale`, `key`, `expectedValue` ou `expectedHash` (une valeur qui a changé entre-temps est refusée avec `REVIEW_VALUE_CHANGED`) et un nom dans `reviewer`. Une approbation compte pour [`verbatra check --require-reviewed`](/docs/cli/check#exiger-des-traductions-relues).
+- **Travail humain.** `translation.retranslateEntry` refuse une clé épinglée avec `KEY_PINNED` et, sauf avec `humanEdits: "overwrite"`, la valeur d'une personne avec `KEY_PROTECTED` ; `translation.editEntry` refuse une clé épinglée. `translation.translatePending` liste ces clés sous `protected`. Voir [Protéger les traductions humaines](/fr/docs/protecting-human-translations).
+- **Provenance.** Une valeur écrite par `translation.editEntry` reçoit l'origine `agent`. `review.queue` est la même file que celle de Studio : chaque valeur non approuvée d'origine `machine`, `memory`, `fuzzy` ou `agent`. Voir [Décisions de relecture](/fr/docs/the-lock-file#décisions-de-relecture).
+- **Décisions de relecture.** `review.approve` et `review.reject` prennent `locale`, `key`, `expectedValue` ou `expectedHash` (une valeur qui a changé entre-temps est refusée avec `REVIEW_VALUE_CHANGED`) et un nom dans `reviewer`. Une approbation compte pour [`verbatra check --require-reviewed`](/fr/docs/cli/check#exiger-des-traductions-relues).
 
 ### Entrées et résultats
 
@@ -129,7 +129,7 @@ Le serveur répond à la poignée de main avec des `instructions` fixes, que la 
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-`translation.estimate` est toujours listé. `translation.translatePending` prend des `locales` optionnelles (une locale non configurée échoue avec `UNKNOWN_LOCALE` avant toute dépense) et `maxTokens`, un plafond qui ne peut que resserrer celui de la config. Voir [Estimer le coût](/docs/estimating-cost).
+`translation.estimate` est toujours listé. `translation.translatePending` prend des `locales` optionnelles (une locale non configurée échoue avec `UNKNOWN_LOCALE` avant toute dépense) et `maxTokens`, un plafond qui ne peut que resserrer celui de la config. Voir [Estimer le coût](/fr/docs/estimating-cost).
 
 ### Progression
 
@@ -201,10 +201,10 @@ Chaque version est aussi dans le [registre MCP officiel](https://registry.modelc
 | `2` | n'a pas pu démarrer : un fichier `--config` inexistant, `@verbatra/mcp` absent ou, avec `--redact-values`, trop ancien, ou une erreur d'utilisation |
 | `130` | arrêté de force par une seconde interruption pendant l'arrêt |
 
-À l'arrêt, le serveur libère tout verrou de locale. `verbatra-mcp` sort avec `1` sur une erreur de démarrage et, depuis 0.3.0, avec `143` s'il est arrêté de force après SIGTERM. Voir [le contrat des codes de sortie](/docs/cli/output#codes-de-sortie).
+À l'arrêt, le serveur libère tout verrou de locale. `verbatra-mcp` sort avec `1` sur une erreur de démarrage et, depuis 0.3.0, avec `143` s'il est arrêté de force après SIGTERM. Voir [le contrat des codes de sortie](/fr/docs/cli/output#codes-de-sortie).
 
 ## Voir aussi
 
-- [Connecter un client MCP](/docs/connect-an-mcp-client) configure les clients stdio courants.
-- [Les outils d'agent dans Studio](/docs/agent-tools-in-studio) couvrent la surface d'agent dans le navigateur.
-- [`verbatra check`](/docs/cli/check) et [`verbatra diff`](/docs/cli/diff) sont les calculs derrière `status.check` et `status.diff`.
+- [Connecter un client MCP](/fr/docs/connect-an-mcp-client) configure les clients stdio courants.
+- [Les outils d'agent dans Studio](/fr/docs/agent-tools-in-studio) couvrent la surface d'agent dans le navigateur.
+- [`verbatra check`](/fr/docs/cli/check) et [`verbatra diff`](/fr/docs/cli/diff) sont les calculs derrière `status.check` et `status.diff`.

@@ -5,13 +5,13 @@ type: reference
 ---
 <AvailableFrom version="0.12.0" />
 
-Chaque `result` que la CLI affiche avec `--json` a un schéma zod 4 dans le SDK, lié à la compilation au type TypeScript qu'il décrit : les mêmes champs, les mêmes champs optionnels et les mêmes types de valeur, si bien que changer l'un sans l'autre fait échouer la compilation. Son `parse` accepte aussi une valeur venant d'un verbatra plus récent : il admet les champs qu'il ne liste pas et les retire du résultat. Les mêmes schémas sont publiés comme documents JSON Schema ; leurs URL et la règle de versions se trouvent sur [Codes de sortie et sortie JSON](/docs/cli/output#schémas).
+Chaque `result` que la CLI affiche avec `--json` a un schéma zod 4 dans le SDK, lié à la compilation au type TypeScript qu'il décrit : les mêmes champs, les mêmes champs optionnels et les mêmes types de valeur, si bien que changer l'un sans l'autre fait échouer la compilation. Son `parse` accepte aussi une valeur venant d'un verbatra plus récent : il admet les champs qu'il ne liste pas et les retire du résultat. Les mêmes schémas sont publiés comme documents JSON Schema ; leurs URL et la règle de versions se trouvent sur [Codes de sortie et sortie JSON](/fr/docs/cli/output#schémas).
 
 ## Schémas de résultat
 
 ### runSummarySchema
 
-Décrit un [`RunSummary`](/docs/sdk/run-summary), le `result` de `translate`, `watch` et `import`. Publié sous `run-summary.json`.
+Décrit un [`RunSummary`](/fr/docs/sdk/run-summary), le `result` de `translate`, `watch` et `import`. Publié sous `run-summary.json`.
 
 ```ts title="Signature"
 const runSummarySchema: z.ZodObject<{ ... }, z.core.$strip>;
@@ -19,7 +19,7 @@ const runSummarySchema: z.ZodObject<{ ... }, z.core.$strip>;
 
 ### checkSummarySchema
 
-Décrit un `CheckSummary`, le `result` de [`check`](/docs/sdk/inspect#check). Publié sous `check-summary.json`.
+Décrit un `CheckSummary`, le `result` de [`check`](/fr/docs/sdk/inspect#check). Publié sous `check-summary.json`.
 
 ```ts title="Signature"
 const checkSummarySchema: z.ZodObject<{ ... }, z.core.$strip>;
@@ -27,7 +27,7 @@ const checkSummarySchema: z.ZodObject<{ ... }, z.core.$strip>;
 
 ### checkFileSummarySchema
 
-Décrit un `CheckFileSummary`, le `result` de [`checkFile`](/docs/sdk/inspect#checkfile). Publié sous `check-file-summary.json`.
+Décrit un `CheckFileSummary`, le `result` de [`checkFile`](/fr/docs/sdk/inspect#checkfile). Publié sous `check-file-summary.json`.
 
 ```ts title="Signature"
 const checkFileSummarySchema: z.ZodObject<{ ... }, z.core.$strip>;
@@ -35,7 +35,7 @@ const checkFileSummarySchema: z.ZodObject<{ ... }, z.core.$strip>;
 
 ### diffSummarySchema
 
-Décrit un `DiffSummary`, le `result` de [`diff`](/docs/sdk/inspect#diff). Publié sous `diff-summary.json`.
+Décrit un `DiffSummary`, le `result` de [`diff`](/fr/docs/sdk/inspect#diff). Publié sous `diff-summary.json`.
 
 ```ts title="Signature"
 const diffSummarySchema: z.ZodObject<{ ... }, z.core.$strip>;
@@ -43,7 +43,7 @@ const diffSummarySchema: z.ZodObject<{ ... }, z.core.$strip>;
 
 ### doctorResultSchema
 
-Décrit un `DoctorResult`, le `result` de [`doctor`](/docs/sdk/inspect#doctor). Son champ `dataFlow` est [`dataFlowManifestSchema`](/docs/sdk/inspect#dataflowmanifestschema), donc `doctor-result.json` renvoie à `data-flow-manifest.json` au lieu de le répéter.
+Décrit un `DoctorResult`, le `result` de [`doctor`](/fr/docs/sdk/inspect#doctor). Son champ `dataFlow` est [`dataFlowManifestSchema`](/fr/docs/sdk/inspect#dataflowmanifestschema), donc `doctor-result.json` renvoie à `data-flow-manifest.json` au lieu de le répéter.
 
 ```ts title="Signature"
 const doctorResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
@@ -51,7 +51,7 @@ const doctorResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
 
 ### provenanceReportResultSchema
 
-Décrit un `ProvenanceReportResult`, le `result` de [`provenanceReport`](/docs/sdk/inspect#provenancereport), y compris la variante `available: false`. Publié sous `provenance-report.json`.
+Décrit un `ProvenanceReportResult`, le `result` de [`provenanceReport`](/fr/docs/sdk/inspect#provenancereport), y compris la variante `available: false`. Publié sous `provenance-report.json`.
 
 ```ts title="Signature"
 const provenanceReportResultSchema: z.ZodUnion<readonly [...]>;
@@ -59,7 +59,7 @@ const provenanceReportResultSchema: z.ZodUnion<readonly [...]>;
 
 ### pseudolocalizeResultSchema
 
-Décrit un `PseudolocalizeResult`, le `result` de [`pseudolocalize`](/docs/sdk/run#pseudolocalize). Publié sous `pseudolocalize-result.json`.
+Décrit un `PseudolocalizeResult`, le `result` de [`pseudolocalize`](/fr/docs/sdk/run#pseudolocalize). Publié sous `pseudolocalize-result.json`.
 
 ```ts title="Signature"
 const pseudolocalizeResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
@@ -67,7 +67,7 @@ const pseudolocalizeResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
 
 ### generateTypesResultSchema
 
-Décrit un `GenerateTypesResult`, le `result` de [`generateTypes`](/docs/sdk/run#generatetypes). Publié sous `generate-types-result.json`.
+Décrit un `GenerateTypesResult`, le `result` de [`generateTypes`](/fr/docs/sdk/run#generatetypes). Publié sous `generate-types-result.json`.
 
 ```ts title="Signature"
 const generateTypesResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
@@ -75,7 +75,7 @@ const generateTypesResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
 
 ### extractResultSchema
 
-Décrit un `ExtractResult`, le `result` de [`extract`](/docs/sdk/inspect#extract). Publié sous `extract-result.json`.
+Décrit un `ExtractResult`, le `result` de [`extract`](/fr/docs/sdk/inspect#extract). Publié sous `extract-result.json`.
 
 ```ts title="Signature"
 const extractResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
@@ -83,7 +83,7 @@ const extractResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
 
 ### exportWorkbookResultSchema
 
-Décrit un `ExportWorkbookResult`, le `result` de [`exportWorkbook`](/docs/sdk/exchange#exportworkbook). Publié sous `export-workbook-result.json`.
+Décrit un `ExportWorkbookResult`, le `result` de [`exportWorkbook`](/fr/docs/sdk/exchange#exportworkbook). Publié sous `export-workbook-result.json`.
 
 ```ts title="Signature"
 const exportWorkbookResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
@@ -91,7 +91,7 @@ const exportWorkbookResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
 
 ### importTmxResultSchema
 
-Décrit un `ImportTmxResult`, le `result` de [`importTmx`](/docs/sdk/exchange#importtmx). Publié sous `import-tmx-result.json`.
+Décrit un `ImportTmxResult`, le `result` de [`importTmx`](/fr/docs/sdk/exchange#importtmx). Publié sous `import-tmx-result.json`.
 
 ```ts title="Signature"
 const importTmxResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
@@ -99,7 +99,7 @@ const importTmxResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
 
 ### exportTmxResultSchema
 
-Décrit un `ExportTmxResult`, le `result` de [`exportTmx`](/docs/sdk/exchange#exporttmx). Publié sous `export-tmx-result.json`.
+Décrit un `ExportTmxResult`, le `result` de [`exportTmx`](/fr/docs/sdk/exchange#exporttmx). Publié sous `export-tmx-result.json`.
 
 ```ts title="Signature"
 const exportTmxResultSchema: z.ZodObject<{ ... }, z.core.$strip>;

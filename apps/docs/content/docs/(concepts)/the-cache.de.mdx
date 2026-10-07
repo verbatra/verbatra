@@ -5,7 +5,7 @@ type: concept
 ---
 Der Übersetzungs-Cache, `verbatra.cache.json`, ist ein lokales Translation Memory, das nach Inhalt
 geordnet ist: Er merkt sich die Übersetzung eines Quelltexts, egal welcher Key ihn hält, sodass
-derselbe Text nie zweimal bezahlt wird. [Die Lock-Datei](/docs/the-lock-file) beantwortet "Ist dieser
+derselbe Text nie zweimal bezahlt wird. [Die Lock-Datei](/de/docs/the-lock-file) beantwortet "Ist dieser
 Key aktuell?"; der Cache beantwortet "Haben wir diesen Text schon einmal übersetzt?".
 
 ## Was er wiederverwendet
@@ -19,11 +19,11 @@ Inhalt gesucht wird, übersteht die Wiederverwendung, was die Lock-Datei nicht s
 - **Doppelter Inhalt.** Zwei Keys mit demselben Quelltext und Kontext teilen sich eine Übersetzung.
 
 Einem wiederverwendeten Wert wird nicht blind vertraut. Er durchläuft dasselbe
-[Integritäts-Gate](/docs/translation-safety#das-integritäts-gate) gegen die aktuelle Quelle wie eine
+[Integritäts-Gate](/de/docs/translation-safety#das-integritäts-gate) gegen die aktuelle Quelle wie eine
 frische Übersetzung, und einer, der nicht mehr passt, wird verworfen und neu übersetzt.
 Cache-Treffer werden pro Locale gemeldet, getrennt von den Keys, die in diesem Lauf übersetzt wurden.
 
-Ein Wert, den ein Reviewer [abgelehnt](/docs/the-lock-file#review-entscheidungen) hat, wird für
+Ein Wert, den ein Reviewer [abgelehnt](/de/docs/the-lock-file#review-entscheidungen) hat, wird für
 diesen Key nie wiederverwendet: Die Herkunftsdatei behält einen Hash des abgelehnten Texts, und ein
 Lauf überspringt jeden Treffer, der dazu passt. Die einzige Lücke ist eine Herkunftsdatei, die der
 Lauf nicht lesen kann (eine von einer neueren verbatra-Version oder eine beschädigte unter
@@ -33,7 +33,7 @@ Lauf nicht lesen kann (eine von einer neueren verbatra-Version oder eine beschä
 
 Jeder Eintrag ist auf den Kontext beschränkt, in dem er entstanden ist: einen Fingerprint über den
 Provider, das Modell, den Tonfall, die Glossarbegriffe dieser Locale und die
-[`localeMap`](/docs/providers#an-den-provider-gesendete-locale-codes) des Providers, wenn sie
+[`localeMap`](/de/docs/providers#an-den-provider-gesendete-locale-codes) des Providers, wenn sie
 Einträge hat. Ändert sich einer davon, passen frühere Einträge nicht mehr, sodass ein neuer Tonfall
 oder ein bearbeitetes Glossar neu übersetzt statt ein veraltetes Ergebnis zu liefern. Jede Locale
 hat ihren eigenen Fingerprint, das Bearbeiten nur der deutschen Übersetzung eines Glossarbegriffs
@@ -48,7 +48,7 @@ reine Handarbeit, den Tonfall und Glossar nicht beeinflussen.
 <AvailableFrom version="0.11.0" />
 
 Ein exakter Treffer braucht einen Quelltext, der zum selben Wert hasht wie vorher, also macht schon
-ein geändertes Zeichen einen Fehltreffer daraus. [`fuzzyCache`](/docs/config-file#fuzzycache) ist
+ein geändertes Zeichen einen Fehltreffer daraus. [`fuzzyCache`](/de/docs/config-file#fuzzycache) ist
 ein optionaler Rückfall für genau diesen Fall: Wenn ein Key nicht trifft, bewertet verbatra seine
 Quelle gegen die anderen Einträge derselben Locale und desselben Fingerprints und verwendet den
 nächsten wieder, der `threshold` erreicht oder übertrifft. Der Wert ist eins minus die
@@ -63,15 +63,15 @@ Wiederverwendung ist. Sicherheit kommt aus Regeln, die nicht von der Zahl abhän
 
 - **Es ist aus, bis du es einschaltest.**
 - **Jede unscharfe Wiederverwendung wird zum Review markiert**, mit
-  [`FUZZY_CACHE_REUSE`](/docs/error-codes#fuzzy_cache_reuse), bei jedem Lauf, ganz gleich wie sie
-  bewertet wurde. Wenn niemand die [Review-Warteschlange](/docs/review-in-studio) abarbeitet, lass es
+  [`FUZZY_CACHE_REUSE`](/de/docs/error-codes#fuzzy_cache_reuse), bei jedem Lauf, ganz gleich wie sie
+  bewertet wurde. Wenn niemand die [Review-Warteschlange](/de/docs/review-in-studio) abarbeitet, lass es
   aus.
 - **Geänderte Ziffern verhindern die Wiederverwendung.** Unterscheiden sich die Ziffern der beiden
   Quellen in Anzahl, Wert oder Reihenfolge, ist der Eintrag kein Kandidat. Das gilt für jedes
   numerische Unicode-Zeichen (`m²` zu `m³`, `½` zu `¼`), aber nicht für ausgeschriebene Zahlen.
 - **Eine Wiederverwendung erledigt den Key nicht.** Die Lock-Datei behält die alte Baseline des Keys,
   er bleibt also geändert: Jeder spätere Lauf bietet ihn ohne Provider-Kosten erneut an, und
-  [`check`](/docs/cli/check) meldet ihn weiter, bis eine echte Übersetzung ankommt.
+  [`check`](/de/docs/cli/check) meldet ihn weiter, bis eine echte Übersetzung ankommt.
 - **Ein unveränderter Quelltext erreicht die unscharfe Ebene nie.** Wer nur eine Beschreibung oder
   ein Plural-Flag ändert, schickt den Key wie gewohnt an den Provider.
 
@@ -109,7 +109,7 @@ neben seinen Übersetzungen, sie wächst also ungefähr auf die Größe deines Q
 
 <AvailableFrom version="0.11.0" />
 
-[`verbatra tmx`](/docs/cli/tmx) importiert eine TMX-Datei aus einem anderen Übersetzungstool in den
+[`verbatra tmx`](/de/docs/cli/tmx) importiert eine TMX-Datei aus einem anderen Übersetzungstool in den
 Cache und exportiert den Cache als TMX. Importierte Einheiten werden unter dem aktuellen Fingerprint
 gespeichert, passen also wie alles andere nicht mehr, wenn sich Provider, Modell, Tonfall, Glossar
 oder `localeMap` ändern. Ein Vorbehalt zu "lösch sie und sie baut sich neu auf": Ein importierter
@@ -118,7 +118,7 @@ diese Datei.
 
 ## Den Cache umgehen
 
-`--no-cache` bei [`translate`](/docs/cli/translate) oder [`watch`](/docs/cli/watch) (`cache: false`
+`--no-cache` bei [`translate`](/de/docs/cli/translate) oder [`watch`](/de/docs/cli/watch) (`cache: false`
 im SDK) macht genau die Provider-Aufrufe, die ein Lauf ohne Cache machen würde, unscharfe
 Wiederverwendung eingeschlossen, und lässt die Datei unangetastet. Um die exakte Wiederverwendung zu
 behalten und nur den unscharfen Rückfall abzuschalten, lass `fuzzyCache` in der Konfiguration weg.
@@ -132,7 +132,7 @@ Provider.
 
 ## Siehe auch
 
-- [`fuzzyCache`](/docs/config-file#fuzzycache): der Konfigurationsschlüssel und sein Bereich.
-- [`verbatra tmx`](/docs/cli/tmx): den Speicher als TMX importieren und exportieren.
-- [Wie ein Lauf funktioniert](/docs/how-it-works): wo das Nachschlagen im Cache in der Pipeline sitzt.
-- [Kosten vor einem Lauf schätzen](/docs/estimating-cost): was der Cache spart, bevor du Geld ausgibst.
+- [`fuzzyCache`](/de/docs/config-file#fuzzycache): der Konfigurationsschlüssel und sein Bereich.
+- [`verbatra tmx`](/de/docs/cli/tmx): den Speicher als TMX importieren und exportieren.
+- [Wie ein Lauf funktioniert](/de/docs/how-it-works): wo das Nachschlagen im Cache in der Pipeline sitzt.
+- [Kosten vor einem Lauf schätzen](/de/docs/estimating-cost): was der Cache spart, bevor du Geld ausgibst.

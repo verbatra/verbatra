@@ -20,7 +20,7 @@ npm pkg set type=module
 npm install --save-dev @verbatra/sdk
 ```
 
-Lance ça dans un répertoire vide : `npm init -y` crée le `package.json` que `npm pkg set type=module` marque comme module ES. Dans un projet existant, saute `npm init -y`. Si pnpm s'arrête avec `ERR_PNPM_IGNORED_BUILDS`, consulte [Installation](/docs/sdk#installation).
+Lance ça dans un répertoire vide : `npm init -y` crée le `package.json` que `npm pkg set type=module` marque comme module ES. Dans un projet existant, saute `npm init -y`. Si pnpm s'arrête avec `ERR_PNPM_IGNORED_BUILDS`, consulte [Installation](/fr/docs/sdk#installation).
 
 </Step>
 <Step>
@@ -48,7 +48,7 @@ export default defineConfig({
 });
 ```
 
-`loadConfig` trouve ce fichier à partir du répertoire de travail et le valide. [Choisis ta stack](/docs/pick-your-stack) donne le `format` de ton framework, et [Fournisseurs](/docs/providers) liste chaque fournisseur et ses options. Pour te passer complètement du fichier, passe le même objet en `configOverride` ; voir [Recettes SDK](/docs/programmatic-api#une-config-sans-fichier).
+`loadConfig` trouve ce fichier à partir du répertoire de travail et le valide. [Choisis ta stack](/fr/docs/pick-your-stack) donne le `format` de ton framework, et [Fournisseurs](/fr/docs/providers) liste chaque fournisseur et ses options. Pour te passer complètement du fichier, passe le même objet en `configOverride` ; voir [Recettes SDK](/fr/docs/programmatic-api#une-config-sans-fichier).
 
 </Step>
 <Step>
@@ -74,7 +74,7 @@ node preview.ts
 de: would translate cart.empty, greeting
 ```
 
-Une exécution à blanc ne construit aucun fournisseur : elle ne demande donc aucune clé, ne dépense rien et n'écrit rien. Passe plutôt `estimate: true` pour obtenir un chiffre en tokens ou en coût ; voir [Estimer le coût](/docs/estimating-cost).
+Une exécution à blanc ne construit aucun fournisseur : elle ne demande donc aucune clé, ne dépense rien et n'écrit rien. Passe plutôt `estimate: true` pour obtenir un chiffre en tokens ou en coût ; voir [Estimer le coût](/fr/docs/estimating-cost).
 
 </Step>
 <Step>
@@ -113,13 +113,13 @@ if (failed.length > 0 || partial.length > 0) {
 }
 ```
 
-Le fournisseur lit sa clé dans l'environnement, et contrairement à la CLI, le SDK ne charge pas les fichiers `.env` : transmets-la toi-même. [Fournisseurs](/docs/providers#les-clés-viennent-de-lenvironnement) nomme la variable de chaque fournisseur.
+Le fournisseur lit sa clé dans l'environnement, et contrairement à la CLI, le SDK ne charge pas les fichiers `.env` : transmets-la toi-même. [Fournisseurs](/fr/docs/providers#les-clés-viennent-de-lenvironnement) nomme la variable de chaque fournisseur.
 
 ```bash
 node --env-file=.env translate.ts
 ```
 
-`locales/de.json` contient maintenant les deux clés, avec `{{name}}` intact. Une locale `partial` a été écrite avec des clés encore manquantes, donc le script échoue dessus comme sur `failed`. Les problèmes par locale arrivent comme des données sur le résumé ; seul un problème touchant toute l'exécution lève une erreur. [`translate`](/docs/sdk/run#translate) liste toutes les autres options.
+`locales/de.json` contient maintenant les deux clés, avec `{{name}}` intact. Une locale `partial` a été écrite avec des clés encore manquantes, donc le script échoue dessus comme sur `failed`. Les problèmes par locale arrivent comme des données sur le résumé ; seul un problème touchant toute l'exécution lève une erreur. [`translate`](/fr/docs/sdk/run#translate) liste toutes les autres options.
 
 </Step>
 <Step>
@@ -158,7 +158,7 @@ try {
 }
 ```
 
-Lance-le sans la clé : il signale `PROVIDER_CONSTRUCTION_FAILED` en nommant la variable manquante, jamais une valeur de clé. [Codes d'erreur](/docs/error-codes#sdk-error-codes) liste chaque code.
+Lance-le sans la clé : il signale `PROVIDER_CONSTRUCTION_FAILED` en nommant la variable manquante, jamais une valeur de clé. [Codes d'erreur](/fr/docs/error-codes#sdk-error-codes) liste chaque code.
 
 </Step>
 <Step>
@@ -194,7 +194,7 @@ Dans un projet CommonJS, `require("@verbatra/sdk")` renvoie les mêmes exports. 
 
 ## Étapes suivantes
 
-- [Recettes SDK](/docs/programmatic-api) : estimations, mode surveillance, une doublure de test pour le fournisseur, la file de relecture, et les allers-retours classeur et TMX.
-- [Référence SDK](/docs/sdk) : chaque point d'entrée, son entrée et ce qu'il lève.
-- [Fournisseurs personnalisés](/docs/sdk/extend#fournisseurs-personnalisés) et [adaptateurs de format personnalisés](/docs/custom-format-adapters) : branche ce que verbatra ne fournit pas.
-- [Sûreté de la traduction](/docs/translation-safety) : ce que verbatra vérifie avant d'écrire une traduction.
+- [Recettes SDK](/fr/docs/programmatic-api) : estimations, mode surveillance, une doublure de test pour le fournisseur, la file de relecture, et les allers-retours classeur et TMX.
+- [Référence SDK](/fr/docs/sdk) : chaque point d'entrée, son entrée et ce qu'il lève.
+- [Fournisseurs personnalisés](/fr/docs/sdk/extend#fournisseurs-personnalisés) et [adaptateurs de format personnalisés](/fr/docs/custom-format-adapters) : branche ce que verbatra ne fournit pas.
+- [Sûreté de la traduction](/fr/docs/translation-safety) : ce que verbatra vérifie avant d'écrire une traduction.

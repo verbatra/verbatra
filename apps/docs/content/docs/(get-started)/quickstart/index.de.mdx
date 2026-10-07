@@ -6,10 +6,10 @@ type: tutorial
 Am Ende dieser Seite hat eine englische Locale-Datei eine deutsche Schwester, geschrieben von einem Provider und von verbatra geprüft, dazu die Lock-Datei, mit der jeder spätere Lauf nur noch übersetzt, was sich geändert hat. Du brauchst Node.js `^22.18.0 || >=24` und etwa zehn Minuten. Die ersten vier Schritte brauchen weder ein Konto noch einen API-Schlüssel.
 
 <Callout title="Du hast schon Locale-Dateien und einen Coding-Agenten?">
-Gib deinem Agenten den Prompt von [verbatra mit einem KI-Agenten einrichten](/docs/start-with-ai). Er richtet verbatra um die Locale-Dateien ein, die dein Projekt schon hat, und hält an, bevor er etwas ausgibt. Die Schritte unten fangen bei null an.
+Gib deinem Agenten den Prompt von [verbatra mit einem KI-Agenten einrichten](/de/docs/start-with-ai). Er richtet verbatra um die Locale-Dateien ein, die dein Projekt schon hat, und hält an, bevor er etwas ausgibt. Die Schritte unten fangen bei null an.
 </Callout>
 
-Einen Schnellstart, der die übersetzte Datei auch in deiner App lädt, gibt es für [React](/docs/quickstart/react), [Next.js](/docs/quickstart/nextjs), [Vue](/docs/quickstart/vue), [Angular](/docs/quickstart/angular) und [Flutter](/docs/quickstart/flutter).
+Einen Schnellstart, der die übersetzte Datei auch in deiner App lädt, gibt es für [React](/de/docs/quickstart/react), [Next.js](/de/docs/quickstart/nextjs), [Vue](/de/docs/quickstart/vue), [Angular](/de/docs/quickstart/angular) und [Flutter](/de/docs/quickstart/flutter).
 
 ## Schritte
 
@@ -22,7 +22,7 @@ Einen Schnellstart, der die übersetzte Datei auch in deiner App lädt, gibt es 
 npm install --save-dev @verbatra/cli
 ```
 
-Die Befehle unten nutzen `npx`. Mit pnpm, yarn oder bun nimmst du stattdessen `pnpm verbatra`, `yarn verbatra` oder `bun run verbatra`. Bricht pnpm mit `ERR_PNPM_IGNORED_BUILDS` ab, hilft dir die [Fehlerbehebung](/docs/troubleshooting#pnpm-blockiert-die-installationsskripte-einer-abhängigkeit-err_pnpm_ignored_builds).
+Die Befehle unten nutzen `npx`. Mit pnpm, yarn oder bun nimmst du stattdessen `pnpm verbatra`, `yarn verbatra` oder `bun run verbatra`. Bricht pnpm mit `ERR_PNPM_IGNORED_BUILDS` ab, hilft dir die [Fehlerbehebung](/de/docs/troubleshooting#pnpm-blockiert-die-installationsskripte-einer-abhängigkeit-err_pnpm_ignored_builds).
 
 </Step>
 <Step>
@@ -49,7 +49,7 @@ Hat dein Projekt schon Locale-Dateien, überspringst du diesen Schritt. Sonst le
 npx @verbatra/cli init --format i18next-json --provider gemini --yes
 ```
 
-`--format` nennt dein Dateiformat: [Wähle deinen Stack](/docs/pick-your-stack) hat die ID für jedes Framework. `--yes` übernimmt, was `init` erkannt hat, statt nachzufragen; lässt du es weg, beantwortest du die Fragen, die [`verbatra init`](/docs/cli/init) auflistet.
+`--format` nennt dein Dateiformat: [Wähle deinen Stack](/de/docs/pick-your-stack) hat die ID für jedes Framework. `--yes` übernimmt, was `init` erkannt hat, statt nachzufragen; lässt du es weg, beantwortest du die Fragen, die [`verbatra init`](/de/docs/cli/init) auflistet.
 
 ```text output
 created verbatra.config.ts
@@ -83,7 +83,7 @@ verbatra translate (dry run)
 next: verbatra translate (run it for real)
 ```
 
-Ein Probelauf baut keinen Provider, braucht also keinen Schlüssel, kostet nichts und schreibt nichts. [`verbatra doctor`](/docs/cli/doctor) prüft den Rest der Einrichtung auf dieselbe Weise.
+Ein Probelauf baut keinen Provider, braucht also keinen Schlüssel, kostet nichts und schreibt nichts. [`verbatra doctor`](/de/docs/cli/doctor) prüft den Rest der Einrichtung auf dieselbe Weise.
 
 </Step>
 <Step>
@@ -94,7 +94,7 @@ Ein Probelauf baut keinen Provider, braucht also keinen Schlüssel, kostet nicht
 cp .env.example .env
 ```
 
-Öffne `.env` und füge deinen Schlüssel hinter `GEMINI_API_KEY=` ein. Schlüssel kommen immer nur aus der Umgebung, und die CLI lädt [`.env.local` und `.env`](/docs/cli#umgebungsdateien) hinein. Noch kein Schlüssel? Gemini hat eine kostenlose Stufe: Erstelle einen im [Google AI Studio](https://aistudio.google.com/apikey). Alle anderen Provider und ihre Variablen stehen unter [Provider](/docs/providers).
+Öffne `.env` und füge deinen Schlüssel hinter `GEMINI_API_KEY=` ein. Schlüssel kommen immer nur aus der Umgebung, und die CLI lädt [`.env.local` und `.env`](/de/docs/cli#umgebungsdateien) hinein. Noch kein Schlüssel? Gemini hat eine kostenlose Stufe: Erstelle einen im [Google AI Studio](https://aistudio.google.com/apikey). Alle anderen Provider und ihre Variablen stehen unter [Provider](/de/docs/providers).
 
 ```bash
 npx @verbatra/cli translate
@@ -134,18 +134,18 @@ all locales in sync
 
 ## Was gerade passiert ist
 
-- `locales/de.json` hat dieselben Keys in derselben Reihenfolge wie deine Quelle, und `{{name}}` ist erhalten geblieben: Ein Ergebnis, das einen Platzhalter verliert, wird zurückgehalten und nie geschrieben. Siehe [Übersetzungssicherheit](/docs/translation-safety).
-- `verbatra.lock.json` speichert einen Hash des Quelltexts hinter jeder Übersetzung, damit der nächste Lauf nur neue und geänderte Keys schickt. Siehe [Die Lock-Datei](/docs/the-lock-file).
-- `verbatra.provenance.json` hält fest, welcher Provider und welches Modell jeden Wert geschrieben hat. Siehe [Herkunft](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat).
-- `verbatra.cache.json` und `.verbatra-local/` enthalten den neu erzeugbaren Übersetzungscache und den lokalen Laufzustand. `init` hat beide schon in die `.gitignore` eingetragen. Siehe [Der Cache](/docs/the-cache).
+- `locales/de.json` hat dieselben Keys in derselben Reihenfolge wie deine Quelle, und `{{name}}` ist erhalten geblieben: Ein Ergebnis, das einen Platzhalter verliert, wird zurückgehalten und nie geschrieben. Siehe [Übersetzungssicherheit](/de/docs/translation-safety).
+- `verbatra.lock.json` speichert einen Hash des Quelltexts hinter jeder Übersetzung, damit der nächste Lauf nur neue und geänderte Keys schickt. Siehe [Die Lock-Datei](/de/docs/the-lock-file).
+- `verbatra.provenance.json` hält fest, welcher Provider und welches Modell jeden Wert geschrieben hat. Siehe [Herkunft](/de/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat).
+- `verbatra.cache.json` und `.verbatra-local/` enthalten den neu erzeugbaren Übersetzungscache und den lokalen Laufzustand. `init` hat beide schon in die `.gitignore` eingetragen. Siehe [Der Cache](/de/docs/the-cache).
 
 Committe die Locale-Dateien, die Lock-Datei und die Herkunftsdatei zusammen, damit jeder Rechner und deine CI gegen dieselbe Basis vergleichen.
 
 ## Nächste Schritte
 
 <Cards>
-  <Card title="Eine Sprache hinzufügen" href="/docs/add-a-language" description="Ergänze eine Ziel-Locale und lass einen Lauf sie füllen." />
-  <Card title="verbatra in der CI ausführen" href="/docs/ci-and-exit-codes" description="Lass einen Pull Request fehlschlagen, wenn eine Locale abweicht." />
-  <Card title="So funktioniert ein Lauf" href="/docs/how-it-works" description="Die Pipeline hinter den Befehlen, die du gerade ausgeführt hast." />
-  <Card title="Konfigurationsdatei" href="/docs/config-file" description="Alles, was verbatra.config.ts enthalten kann." />
+  <Card title="Eine Sprache hinzufügen" href="/de/docs/add-a-language" description="Ergänze eine Ziel-Locale und lass einen Lauf sie füllen." />
+  <Card title="verbatra in der CI ausführen" href="/de/docs/ci-and-exit-codes" description="Lass einen Pull Request fehlschlagen, wenn eine Locale abweicht." />
+  <Card title="So funktioniert ein Lauf" href="/de/docs/how-it-works" description="Die Pipeline hinter den Befehlen, die du gerade ausgeführt hast." />
+  <Card title="Konfigurationsdatei" href="/de/docs/config-file" description="Alles, was verbatra.config.ts enthalten kann." />
 </Cards>

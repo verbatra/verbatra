@@ -44,7 +44,7 @@ verbatra init --agent --client cursor,vscode --dry-run
 | Option | Argument | Défaut | Effet |
 | --- | --- | --- | --- |
 | `--provider` | `<id>` | aucun (requis) | fournisseur pour lequel générer la config : `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible`, `libretranslate` ou `none` |
-| `--format` | `<id>` | détecté, sinon `i18next-json` | le format des fichiers de locale, l'un des ids de [Formats](/docs/formats) |
+| `--format` | `<id>` | détecté, sinon `i18next-json` | le format des fichiers de locale, l'un des ids de [Formats](/fr/docs/formats) |
 | `--source` | `<locale>` | détectée, sinon `en` | la locale source dans laquelle tes chaînes sont écrites |
 | `--targets` | `<locales>` | détectées, sinon `de` | locales cibles vers lesquelles traduire, séparées par des virgules |
 | `--path` | `<pattern>` | détecté, sinon la structure habituelle du format ([Détection](#détection)) | motif des fichiers de locale ; doit contenir le jeton `{locale}` |
@@ -57,7 +57,7 @@ verbatra init --agent --client cursor,vscode --dry-run
 | `--client` | `<ids>` | détectés | clients séparés par des virgules que `--agent` configure à la place des clients détectés : `claude`, `cursor`, `vscode`, `codex`, `gemini` ou `all` ; requiert `--agent` |
 | `--dry-run` | aucun | désactivé | signale chaque fichier que `init` écrirait ou modifierait, et n'écrit rien ([Exécution à blanc](#exécution-à-blanc)) |
 
-Accepte aussi les [options globales](/docs/cli#options-globales) `--cwd` et `--json`, mais pas `--config`. Ici `--cwd` est le répertoire à analyser et dans lequel écrire, et il doit déjà exister. `--json` ne pose jamais de question.
+Accepte aussi les [options globales](/fr/docs/cli#options-globales) `--cwd` et `--json`, mais pas `--config`. Ici `--cwd` est le répertoire à analyser et dans lequel écrire, et il doit déjà exister. `--json` ne pose jamais de question.
 
 ## Comportement
 
@@ -80,7 +80,7 @@ Chaque réponse est vérifiée dès que tu la donnes. Une réponse invalide est 
 
 Un fichier à côté des fichiers de locale qui contient des chaînes sous aucun nom de locale, comme `messages.properties`, `Strings.resx` ou un `app.pot` gettext, est signalé comme `unqualifiedSourceFile`. verbatra ne peut pas lire la source dans un tel fichier, donc `init` ne devine pas la locale source : passe `--source`, même avec `--yes`, et les étapes suivantes nomment le fichier vers lequel renommer ou copier le fichier de base.
 
-Sans aucun fichier de locale, seules les dépendances décident du format, et le motif suit la structure habituelle du format, celle indiquée pour chaque format dans [Choisis ta stack](/docs/pick-your-stack).
+Sans aucun fichier de locale, seules les dépendances décident du format, et le motif suit la structure habituelle du format, celle indiquée pour chaque format dans [Choisis ta stack](/fr/docs/pick-your-stack).
 
 Un catalogue `apple-xcstrings` est un seul fichier partagé par toutes les locales, et verbatra ne le crée jamais : crée-le d'abord dans Xcode. `--format`, `--path` et `--source` restreignent la détection au lieu d'être remplacés par elle, donc `--format yaml` ne regarde que les fichiers YAML.
 
@@ -96,9 +96,9 @@ npx @verbatra/cli init --provider gemini --yes --json
 
 ### Sortie JSON
 
-Schéma : [`init-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/init-envelope.json) valide l'enveloppe entière ; [Schémas](/docs/cli/output#schémas) liste les autres.
+Schéma : [`init-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/init-envelope.json) valide l'enveloppe entière ; [Schémas](/fr/docs/cli/output#schémas) liste les autres.
 
-Avec `--json`, stdout porte exactement une [enveloppe](/docs/cli/output#sortie-json). Son `result` :
+Avec `--json`, stdout porte exactement une [enveloppe](/fr/docs/cli/output#sortie-json). Son `result` :
 
 ```ts
 interface InitResult {
@@ -160,9 +160,9 @@ Une enveloppe d'erreur pour `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `INVALID_PRO
 
 <AvailableFrom version="0.12.0" />
 
-- `--provider none` génère une config [100 % humaine](/docs/human-only-workflow) sans `options` et n'écrit aucun `.env.example`, puisqu'aucune clé d'API n'est jamais lue.
+- `--provider none` génère une config [100 % humaine](/fr/docs/human-only-workflow) sans `options` et n'écrit aucun `.env.example`, puisqu'aucune clé d'API n'est jamais lue.
 - `--provider openai-compatible` génère la config d'un serveur local ou auto-hébergé à partir de `--base-url` et `--model`, avec `maxOutputTokens: 4096`. Sa clé est facultative : un serveur qui n'en a pas besoin laisse `OPENAI_COMPATIBLE_API_KEY` vide, et `--api-key-env-var` nomme une autre variable, en majuscules comme `LLM_API_KEY`. Une valeur refusée n'est jamais répétée, au cas où ce serait la clé elle-même.
-- `--provider libretranslate` génère la config d'un serveur [LibreTranslate](/docs/providers#libretranslate) auto-hébergé à partir de `--base-url` seul, par exemple `http://localhost:5000`, et refuse `--model` et `--api-key-env-var`. `.env.example` nomme `LIBRETRANSLATE_API_KEY` pour un serveur démarré avec `--api-keys`.
+- `--provider libretranslate` génère la config d'un serveur [LibreTranslate](/fr/docs/providers#libretranslate) auto-hébergé à partir de `--base-url` seul, par exemple `http://localhost:5000`, et refuse `--model` et `--api-key-env-var`. `.env.example` nomme `LIBRETRANSLATE_API_KEY` pour un serveur démarré avec `--api-keys`.
 
 `init` écrit le nom d'une variable dans la config et dans `.env.example`, jamais une valeur, et refuse une URL de base avec identifiants, query string ou fragment (`https://user:key@host`, `https://host/v1?api-key=...`), par laquelle une clé pourrait finir dans la config versionnée.
 
@@ -184,8 +184,8 @@ Un répertoire où `init` ne peut pas écrire est refusé avec `INIT_UNWRITABLE`
 
 `--agent` prépare aussi le projet pour les agents de code. Il n'écrit aucune valeur de clé, n'écrit jamais à travers un lien hors du projet, et ajoute :
 
-- **Le fichier d'instructions.** Une section verbatra entre les marqueurs `<!-- verbatra:start -->` et `<!-- verbatra:end -->`, mot pour mot l'extrait de [Parler de verbatra à ton agent](/docs/agent-recipes#parler-de-verbatra-à-ton-agent). Elle va dans `AGENTS.md`, ou dans `CLAUDE.md` quand c'est le seul fichier d'instructions ; si les deux existent, `AGENTS.md` l'emporte. Dans un fichier qui contient déjà la section, le texte entre les marqueurs est remplacé par le texte actuel et signalé `updated`, ou `unchanged` s'il correspond déjà.
-- **La config MCP de chaque client.** L'entrée du serveur `verbatra` de [Connecter un client MCP](/docs/connect-an-mcp-client), `npx -y @verbatra/mcp` sans `--allow-spend` ni `VERBATRA_MCP_ALLOW_SPEND`, donc les outils qui dépensent restent masqués. `@verbatra/cli` exporte ces entrées sous le nom `AGENT_CLIENT_CONFIGS`.
+- **Le fichier d'instructions.** Une section verbatra entre les marqueurs `<!-- verbatra:start -->` et `<!-- verbatra:end -->`, mot pour mot l'extrait de [Parler de verbatra à ton agent](/fr/docs/agent-recipes#parler-de-verbatra-à-ton-agent). Elle va dans `AGENTS.md`, ou dans `CLAUDE.md` quand c'est le seul fichier d'instructions ; si les deux existent, `AGENTS.md` l'emporte. Dans un fichier qui contient déjà la section, le texte entre les marqueurs est remplacé par le texte actuel et signalé `updated`, ou `unchanged` s'il correspond déjà.
+- **La config MCP de chaque client.** L'entrée du serveur `verbatra` de [Connecter un client MCP](/fr/docs/connect-an-mcp-client), `npx -y @verbatra/mcp` sans `--allow-spend` ni `VERBATRA_MCP_ALLOW_SPEND`, donc les outils qui dépensent restent masqués. `@verbatra/cli` exporte ces entrées sous le nom `AGENT_CLIENT_CONFIGS`.
 
 | Client | `--client` | Fichier | Détecté par |
 | --- | --- | --- | --- |
@@ -212,11 +212,11 @@ Dans un projet qui a déjà une config, `init --agent` n'écrit que les fichiers
 | `0` | fichiers écrits, ou déjà à jour |
 | `2` | une erreur d'utilisation : `MISSING_OPTIONS`, `INVALID_PROVIDER`, `INVALID_FORMAT`, `INVALID_OPTION`, `INVALID_LOCALE`, `INVALID_LOCALES`, `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `CONFIG_EXISTS`, `INIT_UNWRITABLE`, `AGENT_FILE_INVALID`, ou `CONFIG_INVALID` quand les réponses ne donneraient pas une config valide |
 
-La façon dont chaque commande utilise ces codes est décrite dans le [contrat des codes de sortie](/docs/cli/output#codes-de-sortie).
+La façon dont chaque commande utilise ces codes est décrite dans le [contrat des codes de sortie](/fr/docs/cli/output#codes-de-sortie).
 
 ## Voir aussi
 
-- [Configure verbatra avec un agent IA](/docs/start-with-ai) est le prompt pour agent construit sur cette commande.
-- [Démarrage rapide](/docs/quickstart) va de init jusqu'à la première exécution.
-- [Le fichier de configuration](/docs/config-file) documente chaque clé posée par l'échafaudage.
-- [Fournisseurs](/docs/providers) couvre les options de fournisseur et les variables de clé d'API.
+- [Configure verbatra avec un agent IA](/fr/docs/start-with-ai) est le prompt pour agent construit sur cette commande.
+- [Démarrage rapide](/fr/docs/quickstart) va de init jusqu'à la première exécution.
+- [Le fichier de configuration](/fr/docs/config-file) documente chaque clé posée par l'échafaudage.
+- [Fournisseurs](/fr/docs/providers) couvre les options de fournisseur et les variables de clé d'API.

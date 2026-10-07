@@ -52,16 +52,16 @@ Las partes que conviene conocer:
 
 - **needsReview** lista claves aceptadas y escritas que las heurísticas de revisión marcaron, cada una
   con sus códigos de motivo, listados y explicados en
-  [Señales de revisión](/docs/translation-safety#señales-de-revisión). El conjunto se publica como la
+  [Señales de revisión](/es/docs/translation-safety#señales-de-revisión). El conjunto se publica como la
   tupla `REVIEW_REASON_CODES`, así que construye a partir de ella cualquier esquema en tiempo de
   ejecución o búsqueda exhaustiva, en lugar de reescribir los miembros. Una señal de revisión es
   orientativa y nunca retiene una clave, así que una clave nunca aparece a la vez en `needsReview` y
-  en `integrityMismatches`. Consulta [Revisión en Studio](/docs/review-in-studio) para trabajar la
+  en `integrityMismatches`. Consulta [Revisión en Studio](/es/docs/review-in-studio) para trabajar la
   cola.
 - **notices** vive por locale, nunca en el nivel superior. Cubre avisos del proveedor (por ejemplo,
-  una degradación de DeepL), listados en [Avisos del proveedor](/docs/error-codes#provider-notice-codes),
+  una degradación de DeepL), listados en [Avisos del proveedor](/es/docs/error-codes#provider-notice-codes),
   y avisos del SDK, cuyos códigos forman la unión `SdkNoticeCode` y se explican en
-  [Avisos de ejecución](/docs/error-codes#sdk-notice-codes). Un aviso de toda la ejecución, como el
+  [Avisos de ejecución](/es/docs/error-codes#sdk-notice-codes). Un aviso de toda la ejecución, como el
   de la caché (un solo archivo, compartido por cada locale), se adjunta a cada locale de la
   ejecución.
 - **usage** es `undefined`, nunca un cero inventado, siempre que nada en ese ámbito informara de uso:
@@ -90,7 +90,7 @@ Las partes que conviene conocer:
   motivo está en esas listas y en sus `notices`, como `SUB_BATCH_FAILED` para un lote del proveedor
   que falló o `BUDGET_TOKENS_EXCEEDED` para el presupuesto de tokens. Comprueba `status`, nunca si
   `error` está presente.
-- **cancelled** aparece solo cuando el `signal` de la ejecución la abortó. [`RUN_CANCELLED`](/docs/error-codes#run_cancelled) explica lo que eso deja.
+- **cancelled** aparece solo cuando el `signal` de la ejecución la abortó. [`RUN_CANCELLED`](/es/docs/error-codes#run_cancelled) explica lo que eso deja.
 - **estimate** aparece solo cuando la ejecución pidió una estimación previa. Su lista `caveats`
   nunca está vacía y nombra lo que la cifra deja fuera, como miembros de `EstimateCaveatCode`:
   - `CACHE_NOT_CONSULTED`: no se lee la memoria de traducción, así que las claves que una ejecución
@@ -108,7 +108,7 @@ Las partes que conviene conocer:
   - `REPAIR_REQUESTS_NOT_COUNTED`: no se cuentan la ronda de reparación para las claves que volvieron
     faltantes ni el reintento en mitades de una respuesta cortada. Solo proveedores que facturan por
     tokens.
-- **cacheHits** lista las claves servidas desde la [caché de memoria de traducción](/docs/the-cache)
+- **cacheHits** lista las claves servidas desde la [caché de memoria de traducción](/es/docs/the-cache)
   en lugar del proveedor. **fuzzyHits** lista las claves que reutilizaron una traducción para
   una cadena de origen que había cambiado, cada una con `key`, `similarity` y el `previousSource` con
   el que coincidió; está vacía salvo que `fuzzyCache` esté activado, y esas claves nunca se cuentan en
@@ -117,8 +117,8 @@ Las partes que conviene conocer:
   todavía necesita traducción en el momento de la importación (tanto si se exportó como `new` como si
   se exportó como `changed`), una fila del libro que el lector no pudo parsear y una clave duplicada
   cuya primera aparición ganó. El `line` opcional de las dos últimas es la línea del archivo en la
-  que empieza el registro, y solo está presente en una importación delimitada (`csv` o `tsv`). La única excepción es un proyecto [solo humano](/docs/human-only-workflow): ahí `translate` y `watch` listan en **unfilled** cada clave para la que la memoria de traducción no tenía una entrada exacta, y **fuzzyHits** queda vacía porque ahí nunca se aplica una reutilización aproximada.
-- **protected** lista las claves que una ejecución de `translate` dejó en paz, cada una con su `reason` (`human`, `import`, `external` o `pinned`) y, con `humanEdits: "suggest"`, una `suggestion` (la respuesta del proveedor o una entrada exacta de la memoria de traducción, nunca una coincidencia aproximada), que no se escribió, y un `suggestionStatus`: `planned` en un dry run, `suggested` o por qué no (`integrity-mismatch`, `provider-failure`, `budget-withheld`, `sensitive-withheld`). Una sugerencia fallida nunca cambia el estado de un locale. No están en **translated**, nunca cambian el estado de un locale y siguen obsoletas para `check`. `importWorkbook` lo deja vacío. Consulta [Proteger traducciones humanas](/docs/protecting-human-translations).
+  que empieza el registro, y solo está presente en una importación delimitada (`csv` o `tsv`). La única excepción es un proyecto [solo humano](/es/docs/human-only-workflow): ahí `translate` y `watch` listan en **unfilled** cada clave para la que la memoria de traducción no tenía una entrada exacta, y **fuzzyHits** queda vacía porque ahí nunca se aplica una reutilización aproximada.
+- **protected** lista las claves que una ejecución de `translate` dejó en paz, cada una con su `reason` (`human`, `import`, `external` o `pinned`) y, con `humanEdits: "suggest"`, una `suggestion` (la respuesta del proveedor o una entrada exacta de la memoria de traducción, nunca una coincidencia aproximada), que no se escribió, y un `suggestionStatus`: `planned` en un dry run, `suggested` o por qué no (`integrity-mismatch`, `provider-failure`, `budget-withheld`, `sensitive-withheld`). Una sugerencia fallida nunca cambia el estado de un locale. No están en **translated**, nunca cambian el estado de un locale y siguen obsoletas para `check`. `importWorkbook` lo deja vacío. Consulta [Proteger traducciones humanas](/es/docs/protecting-human-translations).
 
 ### budgetStanding
 

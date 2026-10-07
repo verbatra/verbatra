@@ -22,14 +22,14 @@ Ein Quell-Key, der im Ziel fehlt, ist missing. Bei einem vorhandenen Key wird de
 Quell-Hash mit dem festgehaltenen verglichen: Ein Unterschied heißt, die Quelle hat sich geändert
 und der Key wird neu übersetzt; eine Übereinstimmung heißt, er wird nie gesendet, ein zweiter Lauf
 ohne Änderungen an der Quelle kostet also nichts. Die ganze Pipeline steht unter
-[Wie ein Lauf funktioniert](/docs/how-it-works).
+[Wie ein Lauf funktioniert](/de/docs/how-it-works).
 
 ### Geschützte Keys
 
 <AvailableFrom version="0.12.0" />
 
 Die Ausnahme ist ein geänderter Key, dessen Wert ein Mensch geschrieben oder importiert hat: Er ist
-standardmäßig [geschützt](/docs/protecting-human-translations) und bleibt veraltet, statt neu
+standardmäßig [geschützt](/de/docs/protecting-human-translations) und bleibt veraltet, statt neu
 übersetzt zu werden.
 
 ## Ein bestehendes Projekt übernehmen
@@ -48,7 +48,7 @@ Folgen:
   ersten Lauf.
 
 Dieselbe Regel behält handgeschriebene Pluralformen bei, `generatePlurals` ist bei der Übernahme also
-sicher. Um all das vorab zu sehen, führ [`verbatra diff`](/docs/cli/diff) oder `verbatra translate --dry-run` aus.
+sicher. Um all das vorab zu sehen, führ [`verbatra diff`](/de/docs/cli/diff) oder `verbatra translate --dry-run` aus.
 
 ## Wie sie aktualisiert wird
 
@@ -83,14 +83,14 @@ Was die Sperre garantiert:
   endet.
 - **Eine verlorene Sperre stoppt den Schreibvorgang.** Jede Sperre trägt ein zufälliges Token, das
   vor jedem Schreibvorgang geprüft wird; hat ein anderer Lauf die Sperre übernommen,
-  stoppt der Schreibvorgang mit [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), und nichts
+  stoppt der Schreibvorgang mit [`LOCK_CONTENDED`](/de/docs/error-codes#lock_contended), und nichts
   wird geschrieben.
 
 Was sie nicht abdeckt:
 
 - **Eine Sperre von einem anderen Rechner** (ein geteiltes Netzlaufwerk) oder von einer
   verbatra-Version vor 0.12.0 wird nie automatisch übernommen; wie du sie entfernst, steht unter
-  [Fehlerbehebung](/docs/troubleshooting).
+  [Fehlerbehebung](/de/docs/troubleshooting).
 - **Eine lange Pause zwischen Prüfung und Schreiben.** Ein Lauf, der direkt nach der Token-Prüfung
   pausiert (ein schlafender Rechner, ein angehaltener Prozess), kann nach dem Fortsetzen noch einmal
   schreiben.
@@ -106,7 +106,7 @@ Was sie nicht abdeckt:
 Die Lock-Datei, der Cache und die Herkunftsdatei ordnen ihren Zustand nach dem Locale-Code deiner
 Konfiguration. Schreibst du einen um, etwa `pt_BR` zu `pt-BR`, überträgt der nächste Lauf von
 `translate` oder `watch` den alten Zustand einmalig und meldet
-[`LOCALE_STATE_CARRIED_OVER`](/docs/error-codes#locale_state_carried_over). Eine Quelländerung vor
+[`LOCALE_STATE_CARRIED_OVER`](/de/docs/error-codes#locale_state_carried_over). Eine Quelländerung vor
 der Umbenennung wird trotzdem neu übersetzt, und gecachte Übersetzungen werden weiter
 wiederverwendet.
 
@@ -115,13 +115,13 @@ Datei hält Zustand unter genau einer Unterstrich-Schreibweise davon (oder seine
 etwa `sr@latin` für `sr-Latn`), ohne Beachtung der Groß- und Kleinschreibung. Zustand, den `pt-BR`
 schon hat, wird nie überschrieben. Lässt sich die Übertragung nicht schreiben, läuft diese Locale
 nicht und scheitert mit
-[`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), sodass der
+[`LOCALE_STATE_NOT_CARRIED_OVER`](/de/docs/error-codes#locale_state_not_carried_over), sodass der
 nächste Lauf es erneut versucht; die anderen Locales laufen wie gewohnt.
 
 Bis dahin behandelt jedes Lesen den alten Zustand als den von `pt-BR`, ohne zu schreiben, ein
 veralteter Key wird also als veraltet gemeldet. Ein Schreibvorgang für einen einzelnen Key (eine Bearbeitung, ein
 Retranslate, eine Review-Entscheidung) und `verbatra import` übertragen den Zustand vorher auf
-dieselbe Weise. Die Prüfung `locale-state` von [`verbatra doctor`](/docs/cli/doctor) nennt
+dieselbe Weise. Die Prüfung `locale-state` von [`verbatra doctor`](/de/docs/cli/doctor) nennt
 zurückgebliebenen Zustand.
 
 ## Fehlend oder beschädigt
@@ -129,7 +129,7 @@ zurückgebliebenen Zustand.
 Eine fehlende Lock-Datei ist ein [erster Lauf](#ein-bestehendes-projekt-übernehmen), kein Fehler.
 Eine, die sich nicht parsen lässt, strukturell falsch, zu groß
 oder in einer nicht unterstützten Version ist, lässt den Lauf mit
-[`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid) scheitern, statt überschrieben zu werden,
+[`LOCK_FILE_INVALID`](/de/docs/error-codes#lock_file_invalid) scheitern, statt überschrieben zu werden,
 sodass du sie wiederherstellen kannst, statt die Baseline zu verlieren.
 
 ## Herkunft: wer welchen Wert geschrieben hat
@@ -144,7 +144,7 @@ gepinnte, ignoriert sie.
 | --- | --- |
 | `machine` | einer Provider-Antwort in `translate`, `watch` oder einem Retranslate eines einzelnen Keys, mit der `id` des Providers und, wenn bekannt, dem Modell |
 | `memory` | einem exakten Cache-Treffer, einschließlich jedes Werts, den ein reiner Handarbeits-Lauf (Provider `none`) füllt |
-| `fuzzy` | einem Treffer der [unscharfen Wiederverwendung](/docs/the-cache#unscharfe-wiederverwendung) |
+| `fuzzy` | einem Treffer der [unscharfen Wiederverwendung](/de/docs/the-cache#unscharfe-wiederverwendung) |
 | `human` | der Bearbeitung eines Menschen über `editEntry` aus dem SDK, wie sie der Bearbeitungsdialog in Studio macht |
 | `agent` | der Bearbeitung eines KI-Agenten über `editEntry` mit `actor: "agent"` |
 | `import` | einer angenommenen Zeile aus `verbatra import` |
@@ -153,7 +153,7 @@ gepinnte, ignoriert sie.
 Zwei weitere werden beim Lesen abgeleitet: `unrecorded` ist ein Wert ohne Eintrag, wie jeder Key
 nach einem Upgrade; `external` passt nicht mehr zum Hash seines Eintrags, weil ihn etwas außerhalb
 von verbatra geändert hat, etwa der Pull Request eines Übersetzers, ein älteres verbatra oder ein Merge. Die Felder, die jedes Lesen liefert,
-stehen in der [SDK-Referenz](/docs/sdk/inspect#loadprovenance).
+stehen in der [SDK-Referenz](/de/docs/sdk/inspect#loadprovenance).
 
 Was die Datei garantiert:
 
@@ -165,22 +165,22 @@ Was die Datei garantiert:
   Eintrag durch einen neuen, nicht reviewten; einer, der Wert und Quelle unverändert lässt, behält
   ihn.
 - **Kein stilles Überschreiben.** Eine beschädigte Datei stoppt jeden Schreibvorgang mit
-  [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid), bevor sich eine
+  [`PROVENANCE_FILE_INVALID`](/de/docs/error-codes#provenance_file_invalid), bevor sich eine
   Locale-Datei ändert; Berichte lassen ihre Herkunftsfelder stattdessen weg. Eine Datei von einer neueren
   verbatra-Version bleibt unangetastet, und eine, die zu groß zum Zurücklesen würde, wird nicht
   geschrieben
-  ([`PROVENANCE_FILE_TOO_LARGE`](/docs/error-codes#provenance_file_too_large)).
+  ([`PROVENANCE_FILE_TOO_LARGE`](/de/docs/error-codes#provenance_file_too_large)).
 
 Sie ist nicht fälschungssicher; um daraus einen Bericht zu machen, siehe
-[Nachweis maschineller Übersetzungen festhalten](/docs/provenance-evidence).
+[Nachweis maschineller Übersetzungen festhalten](/de/docs/provenance-evidence).
 
 ### Review-Entscheidungen
 
 <AvailableFrom version="0.12.0" />
 
 Ein Eintrag kann eine Review-Entscheidung tragen, `approved` oder `rejected`, mit einem optionalen
-Namen unter `reviewer`. [Studios Review-Seite](/docs/review-in-studio), die [Review-Funktionen des SDK](/docs/sdk/review) und die
-[MCP-Review-Tools](/docs/cli/mcp) schreiben sie; die MCP-Tools geben die Entscheidung eines Menschen
+Namen unter `reviewer`. [Studios Review-Seite](/de/docs/review-in-studio), die [Review-Funktionen des SDK](/de/docs/sdk/review) und die
+[MCP-Review-Tools](/de/docs/cli/mcp) schreiben sie; die MCP-Tools geben die Entscheidung eines Menschen
 weiter und verlangen dessen Namen. Eine Entscheidung gilt für genau
 den Wert, den der Reviewer gesehen hat, und wird abgelehnt, wenn er sich geändert hat.
 
@@ -190,14 +190,14 @@ den Wert, den der Reviewer gesehen hat, und wird abgelehnt, wenn er sich geände
   der nächste Lauf von `translate` oder ein Mensch einen neuen Wert schreibt. Der Eintrag behält
   einen Hash des entfernten Texts und der Cache-Eintrag wird verworfen, damit ein Lauf nicht denselben Text zurückbringt. XLIFF kann keine einzelne
   Übersetzung weglassen, eine Ablehnung wird dort also mit
-  [`REVIEW_REJECT_UNSUPPORTED`](/docs/error-codes#review_reject_unsupported) abgelehnt.
+  [`REVIEW_REJECT_UNSUPPORTED`](/de/docs/error-codes#review_reject_unsupported) abgelehnt.
 
 Die Entscheidungen stehen in dieser committeten Datei, also sehen die Review-Warteschlange und
-[`verbatra check --require-reviewed`](/docs/cli/check#freigegebene-übersetzungen-verlangen) auf
+[`verbatra check --require-reviewed`](/de/docs/cli/check#freigegebene-übersetzungen-verlangen) auf
 jedem Rechner denselben Zustand, und der Name unter `reviewer` ist öffentlich; verbatra trägt ihn
 nie ein.
 
 ## Committe sie
 
 Committe `verbatra.lock.json` und `verbatra.provenance.json` mit deinen Locale-Dateien und
-bearbeite sie nie von Hand: sie sind die Baseline, gegen die dein Team und deine CI vergleichen, und das, was ein [Rollback](/docs/recovery-and-rollback) wiederherstellt.
+bearbeite sie nie von Hand: sie sind die Baseline, gegen die dein Team und deine CI vergleichen, und das, was ein [Rollback](/de/docs/recovery-and-rollback) wiederherstellt.

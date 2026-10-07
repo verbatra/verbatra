@@ -3,8 +3,8 @@ title: Recetas del SDK
 description: Patrones completos y ejecutables para manejar verbatra desde tus propios scripts, jobs de CI y herramientas.
 type: how-to
 ---
-El [inicio rápido del SDK](/docs/sdk-quickstart) cubre la primera ejecución. Esta página sigue desde
-ahí con recetas completas para copiar en un script; la [referencia del SDK](/docs/sdk) cataloga cada
+El [inicio rápido del SDK](/es/docs/sdk-quickstart) cubre la primera ejecución. Esta página sigue desde
+ahí con recetas completas para copiar en un script; la [referencia del SDK](/es/docs/sdk) cataloga cada
 punto de entrada. El SDK no carga archivos `.env`, así que ejecuta una receta que llama a un proveedor
 con `node --env-file=.env`. Para recorrer un proveedor con límite de tasa un idioma cada vez, pasa
 `locales: ["de"]` a `translate`.
@@ -15,7 +15,7 @@ con `node --env-file=.env`. Para recorrer un proveedor con límite de tasa un id
 
 `estimate: true` implica `dryRun`. La cifra aparece en `RunSummary.estimate`: ramifica según `unit`
 para la dimensión facturada y según `pricing` para saber si un bloque
-[`rates`](/docs/config-file#rates) le puso precio.
+[`rates`](/es/docs/config-file#rates) le puso precio.
 
 ```ts
 import { loadConfig, translate } from "@verbatra/sdk";
@@ -45,8 +45,8 @@ if (estimate !== undefined) {
 }
 ```
 
-Acota el plan, no la factura; [Estimar el coste](/docs/estimating-cost) explica el método, y
-[RunSummary](/docs/sdk/run-summary) enumera lo que deja fuera cada `EstimateCaveatCode` de
+Acota el plan, no la factura; [Estimar el coste](/es/docs/estimating-cost) explica el método, y
+[RunSummary](/es/docs/sdk/run-summary) enumera lo que deja fuera cada `EstimateCaveatCode` de
 `caveats`.
 
 ## Comprueba en CI sin escribir
@@ -71,7 +71,7 @@ if (!summary.inSync) {
 
 ¿Necesitas los nombres de las claves en lugar de contadores? Cambia a `diff`, que devuelve listas de
 claves `missing`, `changed` y `orphaned` por locale con la misma puerta `hasPendingChanges`. ¿Ejecutas
-la CLI en CI en su lugar? Consulta [CI y códigos de salida](/docs/ci-and-exit-codes).
+la CLI en CI en su lugar? Consulta [CI y códigos de salida](/es/docs/ci-and-exit-codes).
 
 ```ts
 import { diff, loadConfig } from "@verbatra/sdk";
@@ -119,7 +119,7 @@ if (summary.failed.length > 0 || !after.inSync) {
 ```
 
 La ejecución escribe archivos reales, así que prueba contra una copia temporal del proyecto. Un
-proveedor real se conecta de la misma forma; consulta [Proveedores personalizados](/docs/sdk/extend#proveedores-propios).
+proveedor real se conecta de la misma forma; consulta [Proveedores personalizados](/es/docs/sdk/extend#proveedores-propios).
 
 ## Vigila en un proceso de larga duración
 
@@ -178,7 +178,7 @@ if (summary.cancelled === true) {
 }
 ```
 
-Un locale que la cancelación impidió empezar lleva el [código de error `RUN_CANCELLED`](/docs/error-codes#run_cancelled), y uno que detuvo a media ejecución, el [aviso `RUN_CANCELLED`](/docs/error-codes#notice-run_cancelled). Una cancelación que llega cuando ya terminó cada locale deja `cancelled` ausente, y un error de toda la ejecución al arrancar sigue rechazando.
+Un locale que la cancelación impidió empezar lleva el [código de error `RUN_CANCELLED`](/es/docs/error-codes#run_cancelled), y uno que detuvo a media ejecución, el [aviso `RUN_CANCELLED`](/es/docs/error-codes#notice-run_cancelled). Una cancelación que llega cuando ya terminó cada locale deja `cancelled` ausente, y un error de toda la ejecución al arrancar sigue rechazando.
 
 ## Extrae claves de tu código fuente
 
@@ -217,7 +217,7 @@ if (preview.added.length > 0 && preview.conflicts.length === 0) {
 ```
 
 `config.extract` tiene que nombrar el framework y las raíces de código, o la llamada lanza
-`EXTRACT_NOT_CONFIGURED`. [`extract`](/docs/sdk/inspect#extract) enumera cada uno de los demás
+`EXTRACT_NOT_CONFIGURED`. [`extract`](/es/docs/sdk/inspect#extract) enumera cada uno de los demás
 errores que lanza.
 
 ## Genera un catálogo tipado
@@ -257,7 +257,7 @@ if (gate.stale) {
 
 Pasa `configPath` para que el archivo de configuración que cargó la ejecución se rechace como ruta
 de salida. Una ejecución con `check` no escribe nada y solo informa de `stale`.
-[`verbatra types`](/docs/cli/types) enumera todo lo que rechaza una ejecución que escribe.
+[`verbatra types`](/es/docs/cli/types) enumera todo lo que rechaza una ejecución que escribe.
 
 ## Construye un pseudolocale
 
@@ -322,14 +322,14 @@ if (retry.accepted) {
 }
 ```
 
-[`retranslateEntry`](/docs/sdk/review#retranslateentry) enumera lo que lanza cada una.
+[`retranslateEntry`](/es/docs/sdk/review#retranslateentry) enumera lo que lanza cada una.
 
 ### Valores escritos por personas
 
 <AvailableFrom version="0.12.0" />
 
 `retranslateEntry` rechaza un valor que escribió una persona salvo que pases `includeHuman: true`, y
-una clave fijada siempre; consulta [Proteger traducciones humanas](/docs/protecting-human-translations).
+una clave fijada siempre; consulta [Proteger traducciones humanas](/es/docs/protecting-human-translations).
 
 ## Recorre la cola de revisión
 
@@ -375,7 +375,7 @@ for (const { locale, needsReview } of queue.locales) {
 }
 ```
 
-[Edita y revisa](/docs/sdk/review#approveentry) tiene las variantes por lotes y cada código que lanzan.
+[Edita y revisa](/es/docs/sdk/review#approveentry) tiene las variantes por lotes y cada código que lanzan.
 
 ## Lee todos los valores de golpe
 
@@ -429,14 +429,14 @@ console.log(`${summary.succeeded.length} locales ok, ${summary.failed.length} fa
 ```
 
 Pasa `dryRun: true` a `importWorkbook` para validar un archivo devuelto sin escribir nada. Consulta
-[Traducción humana](/docs/manual-translation) para saber qué pueden editar los traductores y cómo se
+[Traducción humana](/es/docs/manual-translation) para saber qué pueden editar los traductores y cómo se
 validan las filas.
 
 ## El ciclo de ida y vuelta de TMX
 
 <AvailableFrom version="0.11.0" />
 
-`importTmx` y `exportTmx` mueven la [memoria de traducción](/docs/the-cache) hacia y desde TMX, el
+`importTmx` y `exportTmx` mueven la [memoria de traducción](/es/docs/the-cache) hacia y desde TMX, el
 formato de intercambio que producen y leen las plataformas de traducción más extendidas. A diferencia
 del par del libro, mueve la memoria entera como un único archivo multilingüe entre herramientas.
 

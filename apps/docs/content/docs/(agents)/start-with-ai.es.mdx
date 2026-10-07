@@ -17,7 +17,7 @@ Agente: sigue estos pasos en orden y nunca te saltes la parada del paso 6.
 
 ### 1. Revisar la configuración existente
 
-Antes de cambiar nada, busca la biblioteca de i18n en `package.json` (como `i18next`, `vue-i18n` o `next-intl`) y los archivos de locale. Anota el locale de origen, cada locale de destino que ya exista y el patrón de ruta con un token `{locale}`, como `locales/{locale}.json`. [Elige tu stack](/docs/pick-your-stack) asigna a cada stack su id de formato y su estructura, [Formatos](/docs/formats) indica qué archivos ya tienen que existir. JSON sin biblioteca de i18n: los marcadores `{{name}}` indican `i18next-json`, y la llave simple `{name}` indica `vue-i18n-json`.
+Antes de cambiar nada, busca la biblioteca de i18n en `package.json` (como `i18next`, `vue-i18n` o `next-intl`) y los archivos de locale. Anota el locale de origen, cada locale de destino que ya exista y el patrón de ruta con un token `{locale}`, como `locales/{locale}.json`. [Elige tu stack](/es/docs/pick-your-stack) asigna a cada stack su id de formato y su estructura, [Formatos](/es/docs/formats) indica qué archivos ya tienen que existir. JSON sin biblioteca de i18n: los marcadores `{{name}}` indican `i18next-json`, y la llave simple `{name}` indica `vue-i18n-json`.
 
 ### 2. Instalar la CLI
 
@@ -33,7 +33,7 @@ pnpm, yarn y bun también funcionan. No apruebes ningún script de instalación,
 npx @verbatra/cli init --provider <provider> --yes --json --agent
 ```
 
-Pregunta a la persona qué proveedor usar, salvo que el proyecto lo deje claro. Nunca elijas uno que gaste en un servicio que la persona no haya aceptado, y nunca pases un valor de clave a `init`. [Proveedores](/docs/providers) lista los ids; `none` desactiva la traducción automática. `init` detecta el formato, el patrón de ruta y los locales, imprime un envoltorio JSON y nunca pregunta. `--agent` además escribe una sección de verbatra en `AGENTS.md` (o en `CLAUDE.md` cuando es el único archivo de instrucciones) y el servidor MCP de verbatra, con el gasto desactivado, en la config de cada cliente que detecta, el `.mcp.json` de Claude Code cuando encuentra Claude Code o ningún cliente; `result.agent.clients` lista los archivos.
+Pregunta a la persona qué proveedor usar, salvo que el proyecto lo deje claro. Nunca elijas uno que gaste en un servicio que la persona no haya aceptado, y nunca pases un valor de clave a `init`. [Proveedores](/es/docs/providers) lista los ids; `none` desactiva la traducción automática. `init` detecta el formato, el patrón de ruta y los locales, imprime un envoltorio JSON y nunca pregunta. `--agent` además escribe una sección de verbatra en `AGENTS.md` (o en `CLAUDE.md` cuando es el único archivo de instrucciones) y el servidor MCP de verbatra, con el gasto desactivado, en la config de cada cliente que detecta, el `.mcp.json` de Claude Code cuando encuentra Claude Code o ningún cliente; `result.agent.clients` lista los archivos.
 
 | Código de salida y código de error | Haz esto |
 | --- | --- |
@@ -42,7 +42,7 @@ Pregunta a la persona qué proveedor usar, salvo que el proyecto lo deje claro. 
 | `2`, `MISSING_OPTIONS` | El mensaje nombra cada flag que aún falta. |
 | `2`, `CONFIG_EXISTS` | Dile a la persona qué proveedor usa la config existente y espera su confirmación. Después ejecuta `npx @verbatra/cli init --agent --json`, que conserva la config y añade solo los archivos del agente. Pregunta antes de pasar `--force`. |
 
-[init](/docs/cli/init#proveedores) documenta cada flag.
+[init](/es/docs/cli/init#proveedores) documenta cada flag.
 
 ### 4. Dejar la clave de API a la persona
 
@@ -75,14 +75,14 @@ Informa de las listas `succeeded`, `partial` y `failed` del resumen. Un locale `
 
 Haz commit de `verbatra.config.ts`, `.env.example` si existe, el archivo de instrucciones y las configs de cliente del paso 3, `verbatra.lock.json`, `verbatra.provenance.json` cuando una ejecución lo haya escrito, y de los archivos de locale traducidos. Nunca hagas commit de `.env`, `.env.local`, `.verbatra-local/` ni `verbatra.cache.json`; confirma que `.gitignore` los cubre.
 
-Después dile a la persona que reinicie su cliente y apruebe el servidor `verbatra` del proyecto. En Claude Code, que no instale además el plugin de verbatra, que lo registra por segunda vez; `claude mcp list` muestra la conexión. Un cliente que `init` no detectó toma su única entrada de [Conectar un cliente MCP](/docs/connect-an-mcp-client).
+Después dile a la persona que reinicie su cliente y apruebe el servidor `verbatra` del proyecto. En Claude Code, que no instale además el plugin de verbatra, que lo registra por segunda vez; `claude mcp list` muestra la conexión. Un cliente que `init` no detectó toma su única entrada de [Conectar un cliente MCP](/es/docs/connect-an-mcp-client).
 
 ## Siguiente
 
 <Cards>
-  <Card title="Conectar un cliente MCP" href="/docs/connect-an-mcp-client" description="La única entrada que necesita cada cliente que no sea Claude Code, y cómo dejar que el agente gaste." />
-  <Card title="Recetas para agentes y scripts" href="/docs/agent-recipes" description="El envoltorio --json y los códigos de salida en los que se apoyan los propios comandos de este prompt, para construir encima tus propios bucles de agente." />
-  <Card title="Maneja Studio con un agente del navegador" href="/docs/agent-tools-in-studio" description="Una superficie distinta, para manejar un proyecto ya configurado desde una pestaña del navegador en lugar de una shell." />
-  <Card title="Inicio rápido" href="/docs/quickstart" description="El mismo recorrido de configuración, escrito para una persona en lugar de un agente." />
-  <Card title="El archivo de bloqueo" href="/docs/the-lock-file" description="Todo el detalle detrás del comportamiento de seguridad de adopción en el que se apoya este prompt." />
+  <Card title="Conectar un cliente MCP" href="/es/docs/connect-an-mcp-client" description="La única entrada que necesita cada cliente que no sea Claude Code, y cómo dejar que el agente gaste." />
+  <Card title="Recetas para agentes y scripts" href="/es/docs/agent-recipes" description="El envoltorio --json y los códigos de salida en los que se apoyan los propios comandos de este prompt, para construir encima tus propios bucles de agente." />
+  <Card title="Maneja Studio con un agente del navegador" href="/es/docs/agent-tools-in-studio" description="Una superficie distinta, para manejar un proyecto ya configurado desde una pestaña del navegador en lugar de una shell." />
+  <Card title="Inicio rápido" href="/es/docs/quickstart" description="El mismo recorrido de configuración, escrito para una persona en lugar de un agente." />
+  <Card title="El archivo de bloqueo" href="/es/docs/the-lock-file" description="Todo el detalle detrás del comportamiento de seguridad de adopción en el que se apoya este prompt." />
 </Cards>

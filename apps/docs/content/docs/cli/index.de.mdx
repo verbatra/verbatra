@@ -4,24 +4,24 @@ sidebarTitle: "Übersicht"
 description: "Der Befehl verbatra: seine Unterbefehle, die globalen Flags und wie er deine Umgebung liest."
 type: reference
 ---
-`@verbatra/cli` liefert das `verbatra`-Binary, einen dünnen Wrapper über [`@verbatra/sdk`](/docs/sdk). Diese Befehle erledigen die Arbeit:
+`@verbatra/cli` liefert das `verbatra`-Binary, einen dünnen Wrapper über [`@verbatra/sdk`](/de/docs/sdk). Diese Befehle erledigen die Arbeit:
 
 <Cards>
-  <Card title="init" href="/docs/cli/init">Eine verbatra-Konfiguration und `.env.example` für dieses Projekt anlegen.</Card>
-  <Card title="extract" href="/docs/cli/extract">Deinen Anwendungscode nach Übersetzungsaufrufen durchsuchen und die neuen Keys in der Quell-Locale-Datei ergänzen.</Card>
-  <Card title="translate" href="/docs/cli/translate">Jedes Ziel-Locale einmal übersetzen, dann beenden.</Card>
-  <Card title="watch" href="/docs/cli/watch">Bei jeder Quelländerung neu übersetzen, bis unterbrochen wird.</Card>
-  <Card title="check" href="/docs/cli/check">Melden, welche Keys pro Locale fehlen oder veraltet sind, nur lesend.</Card>
-  <Card title="diff" href="/docs/cli/diff">Die genauen Keys pro Locale listen, die hinzugefügt oder neu übersetzt würden oder verwaist sind, nur lesend.</Card>
-  <Card title="report" href="/docs/cli/report">Einen nur lesenden Bericht ausgeben: `report provenance` listet, welche Übersetzungen eine Maschine geschrieben und welche eine Person geprüft hat.</Card>
-  <Card title="doctor" href="/docs/cli/doctor">Die Projekteinrichtung prüfen und alle Probleme auf einmal melden, ohne einen Provider aufzurufen.</Card>
-  <Card title="pseudo" href="/docs/cli/pseudo">Aus den Quellstrings eine Pseudo-Locale erzeugen, ohne einen Provider aufzurufen.</Card>
-  <Card title="types" href="/docs/cli/types">TypeScript-Deklarationen für deine Katalog-Keys und ihre Nachrichtenargumente erzeugen, ohne einen Provider aufzurufen.</Card>
-  <Card title="export" href="/docs/cli/export">Unübersetzte Strings für eine menschliche Übersetzerin exportieren, als Excel-Arbeitsmappe, als je eine CSV- oder TSV-Datei pro Locale oder als je eine XLIFF-Datei pro Locale für ein CAT-Tool.</Card>
-  <Card title="import" href="/docs/cli/import">Eine ausgefüllte Arbeitsmappe oder Datei mit Trennzeichen zurück in die Locale-Dateien importieren.</Card>
-  <Card title="tmx" href="/docs/cli/tmx">Einen TMX-Übersetzungsspeicher aus einem anderen Tool in den Speicher dieses Projekts importieren oder den Speicher dieses Projekts als TMX-Datei exportieren.</Card>
-  <Card title="studio" href="/docs/cli/studio">Verbatra Studio starten, das lokale Übersetzungs-Dashboard.</Card>
-  <Card title="mcp" href="/docs/cli/mcp">Einen stdio-MCP-Server starten, der die Tools von verbatra für einen MCP-Client bereitstellt.</Card>
+  <Card title="init" href="/de/docs/cli/init">Eine verbatra-Konfiguration und `.env.example` für dieses Projekt anlegen.</Card>
+  <Card title="extract" href="/de/docs/cli/extract">Deinen Anwendungscode nach Übersetzungsaufrufen durchsuchen und die neuen Keys in der Quell-Locale-Datei ergänzen.</Card>
+  <Card title="translate" href="/de/docs/cli/translate">Jedes Ziel-Locale einmal übersetzen, dann beenden.</Card>
+  <Card title="watch" href="/de/docs/cli/watch">Bei jeder Quelländerung neu übersetzen, bis unterbrochen wird.</Card>
+  <Card title="check" href="/de/docs/cli/check">Melden, welche Keys pro Locale fehlen oder veraltet sind, nur lesend.</Card>
+  <Card title="diff" href="/de/docs/cli/diff">Die genauen Keys pro Locale listen, die hinzugefügt oder neu übersetzt würden oder verwaist sind, nur lesend.</Card>
+  <Card title="report" href="/de/docs/cli/report">Einen nur lesenden Bericht ausgeben: `report provenance` listet, welche Übersetzungen eine Maschine geschrieben und welche eine Person geprüft hat.</Card>
+  <Card title="doctor" href="/de/docs/cli/doctor">Die Projekteinrichtung prüfen und alle Probleme auf einmal melden, ohne einen Provider aufzurufen.</Card>
+  <Card title="pseudo" href="/de/docs/cli/pseudo">Aus den Quellstrings eine Pseudo-Locale erzeugen, ohne einen Provider aufzurufen.</Card>
+  <Card title="types" href="/de/docs/cli/types">TypeScript-Deklarationen für deine Katalog-Keys und ihre Nachrichtenargumente erzeugen, ohne einen Provider aufzurufen.</Card>
+  <Card title="export" href="/de/docs/cli/export">Unübersetzte Strings für eine menschliche Übersetzerin exportieren, als Excel-Arbeitsmappe, als je eine CSV- oder TSV-Datei pro Locale oder als je eine XLIFF-Datei pro Locale für ein CAT-Tool.</Card>
+  <Card title="import" href="/de/docs/cli/import">Eine ausgefüllte Arbeitsmappe oder Datei mit Trennzeichen zurück in die Locale-Dateien importieren.</Card>
+  <Card title="tmx" href="/de/docs/cli/tmx">Einen TMX-Übersetzungsspeicher aus einem anderen Tool in den Speicher dieses Projekts importieren oder den Speicher dieses Projekts als TMX-Datei exportieren.</Card>
+  <Card title="studio" href="/de/docs/cli/studio">Verbatra Studio starten, das lokale Übersetzungs-Dashboard.</Card>
+  <Card title="mcp" href="/de/docs/cli/mcp">Einen stdio-MCP-Server starten, der die Tools von verbatra für einen MCP-Client bereitstellt.</Card>
 </Cards>
 
 ## Installieren und aufrufen
@@ -49,27 +49,27 @@ Diese Flags bedeuten bei jedem Befehl, der sie nimmt, dasselbe. Die Befehlsseite
 | Flag | Argument | Standard | Wirkung | Nicht bei |
 | --- | --- | --- | --- | --- |
 | `--cwd` | `<path>` | aktuelles Verzeichnis | startet hier die Konfigurationssuche und löst die Pfade, die du übergibst, dagegen auf; Locale-Dateien werden gegen das Verzeichnis der gefundenen Konfiguration aufgelöst; `init` schreibt seine Dateien dorthin | keinem |
-| `--config` | `<path>` | danach suchen | lädt diese Konfigurationsdatei, statt nach einer zu suchen; siehe die [Suchreihenfolge](/docs/config-file) | `init` |
-| `--json` | keins | aus | gibt einen maschinenlesbaren [Envelope](/docs/cli/output#json-ausgabe) auf stdout aus, eine Zeile pro Datensatz; Fehler gehen weiter nach stderr | `mcp`, `studio` |
+| `--config` | `<path>` | danach suchen | lädt diese Konfigurationsdatei, statt nach einer zu suchen; siehe die [Suchreihenfolge](/de/docs/config-file) | `init` |
+| `--json` | keins | aus | gibt einen maschinenlesbaren [Envelope](/de/docs/cli/output#json-ausgabe) auf stdout aus, eine Zeile pro Datensatz; Fehler gehen weiter nach stderr | `mcp`, `studio` |
 | `-q`, `--quiet` | keins | aus | gibt nur Ergebnisse, Warnungen und Fehler aus: keinen Fortschritt, keine Hinweise, keine Infozeilen; wirkt vor oder nach dem Befehlsnamen | keinem |
-| `--no-color` | keins | Farbe im Terminal | färbt die Ausgabe nie ein; siehe [Terminalausgabe](/docs/cli/output#terminalausgabe) | keinem |
+| `--no-color` | keins | Farbe im Terminal | färbt die Ausgabe nie ein; siehe [Terminalausgabe](/de/docs/cli/output#terminalausgabe) | keinem |
 | `-h`, `--help` | keins | aus | gibt die Hilfe des Programms oder des Befehls aus und endet mit `0` | keinem |
 | `-V`, `--version` | keins | aus | gibt die Version der CLI aus und endet mit `0` | keinem |
 
-Ein unbekannter Befehl oder ein unbekanntes Flag endet mit `2`, ebenso ein nacktes `verbatra` ohne Befehl: Es gibt die Hilfe auf stderr aus und schlägt `verbatra init` vor, wenn keine Konfiguration gefunden wird. `mcp` schreibt nie auf stdout, weil stdout sein Protokollkanal ist, und lehnt `--json` deshalb mit `USAGE_ERROR` ab. Ab 0.12.0 endet ein `--cwd`, das kein vorhandenes Verzeichnis nennt, bei jedem Befehl mit `2` und [`INVALID_OPTION`](/docs/error-codes#invalid_option), bevor etwas gelesen oder geschrieben wird.
+Ein unbekannter Befehl oder ein unbekanntes Flag endet mit `2`, ebenso ein nacktes `verbatra` ohne Befehl: Es gibt die Hilfe auf stderr aus und schlägt `verbatra init` vor, wenn keine Konfiguration gefunden wird. `mcp` schreibt nie auf stdout, weil stdout sein Protokollkanal ist, und lehnt `--json` deshalb mit `USAGE_ERROR` ab. Ab 0.12.0 endet ein `--cwd`, das kein vorhandenes Verzeichnis nennt, bei jedem Befehl mit `2` und [`INVALID_OPTION`](/de/docs/error-codes#invalid_option), bevor etwas gelesen oder geschrieben wird.
 
 ## Umgebungsdateien
 
-`translate`, `watch`, `doctor`, `studio` und `mcp` laden `.env.local` und dann `.env` aus dem Arbeitsverzeichnis, bevor sie laufen. Liegt die Konfiguration, die die Suche gefunden hat, in einem übergeordneten Verzeichnis, laden sie danach dieselben zwei Dateien auch von dort; mit `--config` lesen sie nur das Arbeitsverzeichnis. Wechselt ein MCP-Client seine Roots, lädt der MCP-Server beide Dateien auch aus der neuen Projektwurzel. `doctor --literals` ist die Ausnahme: Dieser Aufruf liest keinen API-Key und lädt deshalb keine der beiden Dateien. Eine bereits in deiner echten Umgebung gesetzte Variable gewinnt immer, danach die Dateien des Arbeitsverzeichnisses, dann die des Konfigurationsverzeichnisses, und ein Wert in `.env.local` gewinnt gegen dieselbe Variable in `.env`. API-Keys werden nur aus der Umgebung gelesen, nie aus der Konfigurationsdatei oder einem Flag: siehe [Provider](/docs/providers). Die nur lesenden Befehle (`check`, `diff`, `report`), die Übergabe-Befehle (`export`, `import`), `extract`, `init`, `pseudo`, `types` und `tmx` rufen nie einen Provider auf und laden keine `.env`-Dateien.
+`translate`, `watch`, `doctor`, `studio` und `mcp` laden `.env.local` und dann `.env` aus dem Arbeitsverzeichnis, bevor sie laufen. Liegt die Konfiguration, die die Suche gefunden hat, in einem übergeordneten Verzeichnis, laden sie danach dieselben zwei Dateien auch von dort; mit `--config` lesen sie nur das Arbeitsverzeichnis. Wechselt ein MCP-Client seine Roots, lädt der MCP-Server beide Dateien auch aus der neuen Projektwurzel. `doctor --literals` ist die Ausnahme: Dieser Aufruf liest keinen API-Key und lädt deshalb keine der beiden Dateien. Eine bereits in deiner echten Umgebung gesetzte Variable gewinnt immer, danach die Dateien des Arbeitsverzeichnisses, dann die des Konfigurationsverzeichnisses, und ein Wert in `.env.local` gewinnt gegen dieselbe Variable in `.env`. API-Keys werden nur aus der Umgebung gelesen, nie aus der Konfigurationsdatei oder einem Flag: siehe [Provider](/de/docs/providers). Die nur lesenden Befehle (`check`, `diff`, `report`), die Übergabe-Befehle (`export`, `import`), `extract`, `init`, `pseudo`, `types` und `tmx` rufen nie einen Provider auf und laden keine `.env`-Dateien.
 
 ## .gitignore-Einträge
 
-Ein echter Lauf von `translate`, `watch`, `import`, `tmx import` oder `pseudo` ergänzt außerdem eine vorhandene `.gitignore` in der Projektwurzel um die fehlenden Einträge aus `.env`, `.env.local`, `.verbatra-local/` und `verbatra.cache.json` und nennt sie auf stderr. Ein Dry Run lässt die Datei in Ruhe, und keiner dieser Befehle legt eine an; das macht [`verbatra init`](/docs/cli/init).
+Ein echter Lauf von `translate`, `watch`, `import`, `tmx import` oder `pseudo` ergänzt außerdem eine vorhandene `.gitignore` in der Projektwurzel um die fehlenden Einträge aus `.env`, `.env.local`, `.verbatra-local/` und `verbatra.cache.json` und nennt sie auf stderr. Ein Dry Run lässt die Datei in Ruhe, und keiner dieser Befehle legt eine an; das macht [`verbatra init`](/de/docs/cli/init).
 
 ## Terminalausgabe
 
-Farbe, Spinner, `--quiet` und die Variablen, die sie steuern, findest du unter [Terminalausgabe](/docs/cli/output#terminalausgabe).
+Farbe, Spinner, `--quiet` und die Variablen, die sie steuern, findest du unter [Terminalausgabe](/de/docs/cli/output#terminalausgabe).
 
 ## Exit-Codes
 
-Der Exit-Code-Vertrag und seine Randfälle stehen auf [Exit-Codes und JSON-Ausgabe](/docs/cli/output#exit-codes). Jede Befehlsseite nennt nur die Codes, die dieser Befehl zurückgibt.
+Der Exit-Code-Vertrag und seine Randfälle stehen auf [Exit-Codes und JSON-Ausgabe](/de/docs/cli/output#exit-codes). Jede Befehlsseite nennt nur die Codes, die dieser Befehl zurückgibt.

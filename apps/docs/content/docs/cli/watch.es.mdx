@@ -3,7 +3,7 @@ title: verbatra watch
 description: Retraduce en cada cambio del origen hasta que lo interrumpas.
 type: reference
 ---
-Vigila el archivo del locale de origen y vuelve a traducir tras cada cambio, con anti-rebote, hasta que lo interrumpas. `watch` ejecuta una traducción inicial al arrancar y luego mantiene al día tus locales de destino mientras guardas. Cada ejecución funciona igual que [`verbatra translate`](/docs/cli/translate). Al arrancar también añade las entradas que falten a un `.gitignore` existente, consulta [Entradas de .gitignore](/docs/cli#entradas-de-gitignore).
+Vigila el archivo del locale de origen y vuelve a traducir tras cada cambio, con anti-rebote, hasta que lo interrumpas. `watch` ejecuta una traducción inicial al arrancar y luego mantiene al día tus locales de destino mientras guardas. Cada ejecución funciona igual que [`verbatra translate`](/es/docs/cli/translate). Al arrancar también añade las entradas que falten a un `.gitignore` existente, consulta [Entradas de .gitignore](/es/docs/cli#entradas-de-gitignore).
 
 ## Sinopsis
 
@@ -32,15 +32,15 @@ verbatra watch --locales de
 | `--debounce` | `<ms>` | `300` | espera estos milisegundos tras el último cambio antes de traducir; un entero de `1` a `60000` |
 | `--lock-timeout` | `<seconds>` | `600` | en cada ejecución, espera este tiempo por un bloqueo de escritura ocupado de un locale; un entero de `1` a `3600` |
 | `--concurrency` | `<n>` | `1` | traduce hasta `n` locales de destino a la vez por ejecución; un entero de `1` a `100`, rechazado con un presupuesto `maxTokens` |
-| `--no-cache` | ninguno | desactivado (caché activa) | omite la [caché de memoria de traducción](/docs/the-cache) (`verbatra.cache.json`) en cada ejecución |
+| `--no-cache` | ninguno | desactivado (caché activa) | omite la [caché de memoria de traducción](/es/docs/the-cache) (`verbatra.cache.json`) en cada ejecución |
 
-También acepta los [flags globales](/docs/cli#flags-globales) `--cwd`, `--config` y `--json`; aquí `--json` imprime un registro por ejecución. Antes de arrancar, `watch` carga los [archivos de entorno](/docs/cli#archivos-de-entorno).
+También acepta los [flags globales](/es/docs/cli#flags-globales) `--cwd`, `--config` y `--json`; aquí `--json` imprime un registro por ejecución. Antes de arrancar, `watch` carga los [archivos de entorno](/es/docs/cli#archivos-de-entorno).
 
 ## Comportamiento
 
 ### Cada ejecución
 
-Cada ejecución traduce el subconjunto de `--locales`, o todos los destinos, con un presupuesto de tokens nuevo. Un locale cuyo [bloqueo de escritura](/docs/the-lock-file) siga ocupado más allá de `--lock-timeout` falla con `LOCK_CONTENDED` en el resumen de esa ejecución, mientras los demás siguen; un bloqueo de un proceso de verbatra que ya no corre se recupera al momento. Una ejecución fallida nunca detiene el vigilante.
+Cada ejecución traduce el subconjunto de `--locales`, o todos los destinos, con un presupuesto de tokens nuevo. Un locale cuyo [bloqueo de escritura](/es/docs/the-lock-file) siga ocupado más allá de `--lock-timeout` falla con `LOCK_CONTENDED` en el resumen de esa ejecución, mientras los demás siguen; un bloqueo de un proceso de verbatra que ya no corre se recupera al momento. Una ejecución fallida nunca detiene el vigilante.
 
 Un `--concurrency` mayor que `1` junto con un presupuesto `maxTokens` configurado se rechaza al arrancar con salida `2`, antes de la primera ejecución, porque el orden en que se intercalan los locales decidiría cuál pierde el trabajo restante.
 
@@ -54,9 +54,9 @@ La primera interrupción (Ctrl-C o SIGTERM) deja terminar la ejecución en curso
 
 ### Salida JSON
 
-Esquema: [`watch-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/watch-envelope.json) valida el envoltorio completo; [Esquemas](/docs/cli/output#esquemas) enumera los demás.
+Esquema: [`watch-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/watch-envelope.json) valida el envoltorio completo; [Esquemas](/es/docs/cli/output#esquemas) enumera los demás.
 
-Con `--json`, stdout es NDJSON: un [envoltorio](/docs/cli/output#salida-json) por ejecución, con `command: "watch"`. Una ejecución correcta es un registro `ok: true` con el [`RunSummary`](/docs/cli/translate#salida-json) de esa ejecución; una fallida es un registro `ok: false` con el código propio del fallo, o `WATCH_RUN_FAILED` si no tenía, más su `hint` cuando lo hay. Una ejecución fallida es solo un registro: no detiene el vigilante ni cambia el código de salida. La línea de arranque, el aviso de parada y el progreso van a stderr. Sin `--json`, el resumen de una ejecución va a stdout y la línea `verbatra: error [CODE] message` de una fallida a stderr.
+Con `--json`, stdout es NDJSON: un [envoltorio](/es/docs/cli/output#salida-json) por ejecución, con `command: "watch"`. Una ejecución correcta es un registro `ok: true` con el [`RunSummary`](/es/docs/cli/translate#salida-json) de esa ejecución; una fallida es un registro `ok: false` con el código propio del fallo, o `WATCH_RUN_FAILED` si no tenía, más su `hint` cuando lo hay. Una ejecución fallida es solo un registro: no detiene el vigilante ni cambia el código de salida. La línea de arranque, el aviso de parada y el progreso van a stderr. Sin `--json`, el resumen de una ejecución va a stdout y la línea `verbatra: error [CODE] message` de una fallida a stderr.
 
 ### Información en el terminal
 
@@ -74,7 +74,7 @@ verbatra: run finished, 1 locale processed
 verbatra: waiting for changes...
 ```
 
-Estas líneas van a stderr, y `--quiet` las omite. Consulta [Salida en el terminal](/docs/cli/output#salida-en-el-terminal).
+Estas líneas van a stderr, y `--quiet` las omite. Consulta [Salida en el terminal](/es/docs/cli/output#salida-en-el-terminal).
 
 ## Códigos de salida
 
@@ -84,12 +84,12 @@ Estas líneas van a stderr, y `--quiet` las omite. Consulta [Salida en el termin
 | `2` | no pudo arrancar o detenerse: un error de configuración, un fallo al arrancar o al apagar, o un error de uso como un `--debounce` no válido |
 | `130` | detenido a la fuerza con una segunda interrupción |
 
-Una ejecución fallida durante la sesión nunca cambia el código de salida. Consulta [el contrato de códigos de salida](/docs/cli/output#códigos-de-salida).
+Una ejecución fallida durante la sesión nunca cambia el código de salida. Consulta [el contrato de códigos de salida](/es/docs/cli/output#códigos-de-salida).
 
 ## Relacionado
 
-- [`verbatra translate`](/docs/cli/translate) es la ejecución única que `watch` repite.
-- [La caché](/docs/the-cache) explica qué omite `--no-cache` en cada ejecución.
-- [Cómo funciona](/docs/how-it-works) explica qué hace cada ejecución.
-- [Proteger las traducciones humanas](/docs/protecting-human-translations) explica por qué una ejecución conserva un valor obsoleto que escribió una persona.
-- [La referencia del SDK](/docs/sdk) documenta las formas `WatchRunResult` y `RunSummary`.
+- [`verbatra translate`](/es/docs/cli/translate) es la ejecución única que `watch` repite.
+- [La caché](/es/docs/the-cache) explica qué omite `--no-cache` en cada ejecución.
+- [Cómo funciona](/es/docs/how-it-works) explica qué hace cada ejecución.
+- [Proteger las traducciones humanas](/es/docs/protecting-human-translations) explica por qué una ejecución conserva un valor obsoleto que escribió una persona.
+- [La referencia del SDK](/es/docs/sdk) documenta las formas `WatchRunResult` y `RunSummary`.

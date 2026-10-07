@@ -3,7 +3,7 @@ title: verbatra check
 description: Informa de qué claves faltan o están obsoletas por locale sin escribir archivos.
 type: reference
 ---
-Informa, por cada locale de destino, de cuántas claves faltan, están obsoletas o al día, y termina con un código en el que un paso de CI puede ramificar. `check` lee y compara como [`verbatra translate`](/docs/cli/translate) antes de llamar al proveedor y se detiene ahí: sin llamada al proveedor, sin escribir archivos, sin clave de API.
+Informa, por cada locale de destino, de cuántas claves faltan, están obsoletas o al día, y termina con un código en el que un paso de CI puede ramificar. `check` lee y compara como [`verbatra translate`](/es/docs/cli/translate) antes de llamar al proveedor y se detiene ahí: sin llamada al proveedor, sin escribir archivos, sin clave de API.
 
 ## Sinopsis
 
@@ -49,9 +49,9 @@ verbatra check --file locales/de.json --json
 | `--require-reviewed` | ninguno | desactivado | sale además con `1` mientras una traducción escrita por máquina [no esté aprobada](#exigir-traducciones-revisadas) |
 | `--sensitive` | ninguno | desactivado | revisa además el archivo de origen y el glosario en busca de [contenido sensible](#contenido-sensible); sale con `1` ante cualquier hallazgo |
 
-También acepta los [flags globales](/docs/cli#flags-globales) `--cwd`, `--config` y `--json`.
+También acepta los [flags globales](/es/docs/cli#flags-globales) `--cwd`, `--config` y `--json`.
 
-Una clave falta cuando el origen la tiene y el destino no, y está obsoleta cuando su texto de origen cambió desde la última traducción. Un locale está sincronizado cuando no tiene ninguna de las dos. Para ver las listas de claves detrás de los recuentos, usa [`verbatra diff`](/docs/cli/diff).
+Una clave falta cuando el origen la tiene y el destino no, y está obsoleta cuando su texto de origen cambió desde la última traducción. Un locale está sincronizado cuando no tiene ninguna de las dos. Para ver las listas de claves detrás de los recuentos, usa [`verbatra diff`](/es/docs/cli/diff).
 
 ## Comportamiento
 
@@ -72,7 +72,7 @@ Falsos positivos conocidos: variantes de contexto de i18next (`invite_male`, `in
 
 <AvailableFrom version="0.12.0" />
 
-Una clave obsoleta que una persona escribió, importó o cambió fuera de verbatra, o una clave que coincide con `pinnedKeys`, es una que `translate` deja para una persona (mira [Proteger las traducciones humanas](/docs/protecting-human-translations)). `check` la sigue contando y muestra la parte protegida, por ejemplo `2 stale (1 protected)`. `--json` la da como `protected` por locale; si `verbatra.provenance.json` no se puede leer, solo cuentan las claves fijadas.
+Una clave obsoleta que una persona escribió, importó o cambió fuera de verbatra, o una clave que coincide con `pinnedKeys`, es una que `translate` deja para una persona (mira [Proteger las traducciones humanas](/es/docs/protecting-human-translations)). `check` la sigue contando y muestra la parte protegida, por ejemplo `2 stale (1 protected)`. `--json` la da como `protected` por locale; si `verbatra.provenance.json` no se puede leer, solo cuentan las claves fijadas.
 
 ### Categorías de plural
 
@@ -87,7 +87,7 @@ plural categories (warning: exit 1 only under --qa --strict)
     files: missing few, many
 ```
 
-Las categorías salen de las reglas CLDR integradas en Node.js (mira [soporte de idiomas](/docs/language-support#plurales)). Formatos comprobados:
+Las categorías salen de las reglas CLDR integradas en Node.js (mira [soporte de idiomas](/es/docs/language-support#plurales)). Formatos comprobados:
 
 | Formato | Formas de plural leídas |
 | --- | --- |
@@ -97,7 +97,7 @@ Las categorías salen de las reglas CLDR integradas en Node.js (mira [soporte de
 | `apple-xcstrings` | las categorías `variations.plural` de cada locale |
 | `next-intl-json`, `arb` | cada `plural` y `selectordinal` de ICU, también los anidados |
 
-`other` siempre es obligatoria. Una rama exacta como `=1` nunca sustituye a una categoría, las ramas de `select` nunca se comprueban y solo se comprueba un plural del que el destino tiene al menos una forma. Es un aviso: un `check` simple conserva su código de salida y `--qa --strict` falla por él. [`verbatra doctor`](/docs/cli/doctor) informa de los mismos plurales. Con `--json`, cada locale lleva `incompletePlurals`, ordenado por clave:
+`other` siempre es obligatoria. Una rama exacta como `=1` nunca sustituye a una categoría, las ramas de `select` nunca se comprueban y solo se comprueba un plural del que el destino tiene al menos una forma. Es un aviso: un `check` simple conserva su código de salida y `--qa --strict` falla por él. [`verbatra doctor`](/es/docs/cli/doctor) informa de los mismos plurales. Con `--json`, cada locale lleva `incompletePlurals`, ordenado por clave:
 
 ```ts
 interface IncompletePlural {
@@ -115,8 +115,8 @@ interface IncompletePlural {
 
 `--qa` aplica las comprobaciones que una ejecución de traducción hace sobre la salida del proveedor a los valores que ya están en tus archivos de locale, obsoletos o no, incluidas las formas de plural extra que necesita el idioma de destino. Los hallazgos tienen dos gravedades:
 
-- **error**: el valor no pasa la [puerta de integridad](/docs/translation-safety#la-puerta-de-integridad), con `placeholder`, `markup`, `icu`, `degenerate` o `empty`. Los detalles listan los tokens perdidos como `-{{name}}` y los añadidos como `+{{nom}}`.
-- **warning**: el valor lleva un [motivo de revisión](/docs/translation-safety#señales-de-revisión) calculado a partir del valor, su origen y tu configuración (glosario, `maxLength`), así que ninguno que dependa del proveedor o de la caché; con `FOREIGN_PLACEHOLDER_CHANGED`, los `details` del hallazgo nombran cada token perdido o cambiado, como `-{name}`. Un valor con error no recibe avisos.
+- **error**: el valor no pasa la [puerta de integridad](/es/docs/translation-safety#la-puerta-de-integridad), con `placeholder`, `markup`, `icu`, `degenerate` o `empty`. Los detalles listan los tokens perdidos como `-{{name}}` y los añadidos como `+{{nom}}`.
+- **warning**: el valor lleva un [motivo de revisión](/es/docs/translation-safety#señales-de-revisión) calculado a partir del valor, su origen y tu configuración (glosario, `maxLength`), así que ninguno que dependa del proveedor o de la caché; con `FOREIGN_PLACEHOLDER_CHANGED`, los `details` del hallazgo nombran cada token perdido o cambiado, como `-{name}`. Un valor con error no recibe avisos.
 
 ```text output
 qa: 1 error, 1 warning
@@ -139,7 +139,7 @@ type QaFinding =
 
 <AvailableFrom version="0.12.0" />
 
-`--require-reviewed` falla con `1` mientras un valor cuyo [origen](/docs/the-lock-file#procedencia-quién-escribió-cada-valor) sea `machine`, `memory`, `fuzzy` o `agent` no esté aprobado en el `verbatra.provenance.json` confirmado, donde [Studio](/docs/review-in-studio) y las [herramientas MCP](/docs/cli/mcp) guardan sus decisiones. Una aprobación anterior al cambio del texto de origen o del valor no cuenta.
+`--require-reviewed` falla con `1` mientras un valor cuyo [origen](/es/docs/the-lock-file#procedencia-quién-escribió-cada-valor) sea `machine`, `memory`, `fuzzy` o `agent` no esté aprobado en el `verbatra.provenance.json` confirmado, donde [Studio](/es/docs/review-in-studio) y las [herramientas MCP](/es/docs/cli/mcp) guardan sus decisiones. Una aprobación anterior al cambio del texto de origen o del valor no cuenta.
 
 ```text output
 review: failed [REVIEW_REQUIRED] 2 machine-written translations not approved
@@ -152,9 +152,9 @@ Con `--json`, `result.review` es `{ reviewed, unreviewed, code? }`, donde `code`
 
 <AvailableFrom version="0.12.0" />
 
-`--sensitive` ejecuta la revisión de la [protección de contenido sensible](/docs/data-handling#protección-de-contenido-sensible) sobre cada clave de origen (nombre de clave, valor, descripción y significado) y el glosario de cada locale comprobado, con los detectores, patrones y la lista `allow` de `sensitiveData` (sin bloque, los detectores por defecto), con cualquier `mode` y proveedor, `none` incluido: los valores siguen saliendo del equipo en entregas por exportación, XLIFF y TMX. Informa de claves y detectores, nunca del texto encontrado fuera de un nombre de clave, y sale con `1` ante cualquier hallazgo.
+`--sensitive` ejecuta la revisión de la [protección de contenido sensible](/es/docs/data-handling#protección-de-contenido-sensible) sobre cada clave de origen (nombre de clave, valor, descripción y significado) y el glosario de cada locale comprobado, con los detectores, patrones y la lista `allow` de `sensitiveData` (sin bloque, los detectores por defecto), con cualquier `mode` y proveedor, `none` incluido: los valores siguen saliendo del equipo en entregas por exportación, XLIFF y TMX. Informa de claves y detectores, nunca del texto encontrado fuera de un nombre de clave, y sale con `1` ante cualquier hallazgo.
 
-El detector `email` omite los [dominios de ejemplo reservados](/docs/data-handling#protección-de-contenido-sensible), así que prueba con una dirección de aspecto real.
+El detector `email` omite los [dominios de ejemplo reservados](/es/docs/data-handling#protección-de-contenido-sensible), así que prueba con una dirección de aspecto real.
 
 ```text output
 sensitive: 1 key and 0 glossary terms hold content that looks sensitive
@@ -196,9 +196,9 @@ Las claves que faltan y las obsoletas no forman parte de la comprobación de un 
 
 ### Salida JSON
 
-Esquema: [`check-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/check-envelope.json) valida el envoltorio completo; [Esquemas](/docs/cli/output#esquemas) enumera los demás.
+Esquema: [`check-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/check-envelope.json) valida el envoltorio completo; [Esquemas](/es/docs/cli/output#esquemas) enumera los demás.
 
-`--json` imprime un [envoltorio](/docs/cli/output#salida-json) cuyo `result` es el documento de estado. Sin `--qa`, `--require-reviewed` ni `--sensitive`, `inSync` es verdadero exactamente cuando el comando sale con `0`:
+`--json` imprime un [envoltorio](/es/docs/cli/output#salida-json) cuyo `result` es el documento de estado. Sin `--qa`, `--require-reviewed` ni `--sensitive`, `inSync` es verdadero exactamente cuando el comando sale con `0`:
 
 ```ts
 interface CheckSummary {
@@ -231,7 +231,7 @@ Una clave de origen cuyo valor está vacío o solo tiene espacios, como una que 
 
 <AvailableFrom version="0.12.0" />
 
-`check` muestra `verbatra: checking the locales... done (0.1s)` en stderr, o `verbatra: checking locales/de.json...` con `--file`. `--quiet` la omite. Mira [Salida en el terminal](/docs/cli/output#salida-en-el-terminal).
+`check` muestra `verbatra: checking the locales... done (0.1s)` en stderr, o `verbatra: checking locales/de.json...` con `--file`. `--quiet` la omite. Mira [Salida en el terminal](/es/docs/cli/output#salida-en-el-terminal).
 
 ## Códigos de salida
 
@@ -241,10 +241,10 @@ Una clave de origen cuyo valor está vacío o solo tiene espacios, como una que 
 | `1` | un locale tiene una clave que falta u obsoleta, `--qa` o `--file` encontró un error (o, con `--strict`, un aviso o un plural incompleto), `--require-reviewed` encontró una traducción sin aprobar, o `--sensitive` encontró contenido sensible |
 | `2` | no pudo ejecutarse: un error de toda la ejecución como `SOURCE_UNREADABLE` o `NOT_A_LOCALE_FILE`, o un error de uso como `INVALID_QA_OPTION`, `INVALID_SEVERITY` o `INVALID_OPTION` para un `--file` vacío o combinado con `--locales`, `--consistency`, `--require-reviewed` o `--sensitive` |
 
-La salida `1` significa que el resultado no está limpio, no que la ejecución fallara; el informe se imprime igual. En un proyecto cuyo archivo de origen aún no existe, [`verbatra doctor`](/docs/cli/doctor) sigue informando. El contrato está en [Códigos de salida](/docs/cli/output#códigos-de-salida).
+La salida `1` significa que el resultado no está limpio, no que la ejecución fallara; el informe se imprime igual. En un proyecto cuyo archivo de origen aún no existe, [`verbatra doctor`](/es/docs/cli/doctor) sigue informando. El contrato está en [Códigos de salida](/es/docs/cli/output#códigos-de-salida).
 
 ## Relacionado
 
-- [`verbatra diff`](/docs/cli/diff) lista las claves exactas detrás de estos recuentos.
-- [CI y códigos de salida](/docs/ci-and-exit-codes) muestra `check` como puerta contra desfases.
-- [El archivo de bloqueo](/docs/the-lock-file) explica cómo se detecta que algo está obsoleto.
+- [`verbatra diff`](/es/docs/cli/diff) lista las claves exactas detrás de estos recuentos.
+- [CI y códigos de salida](/es/docs/ci-and-exit-codes) muestra `check` como puerta contra desfases.
+- [El archivo de bloqueo](/es/docs/the-lock-file) explica cómo se detecta que algo está obsoleto.

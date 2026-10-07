@@ -3,9 +3,9 @@ title: Formatos
 description: Todos los formatos soportados, cómo lee y escribe sus archivos cada uno, y qué conserva una escritura.
 type: reference
 ---
-Un adaptador de formato lee un archivo de locale en una forma neutral y lo escribe de vuelta con la forma propia del archivo. Pon en la clave `format` de tu [configuración](/docs/config-file) uno de estos ids:
+Un adaptador de formato lee un archivo de locale en una forma neutral y lo escribe de vuelta con la forma propia del archivo. Pon en la clave `format` de tu [configuración](/es/docs/config-file) uno de estos ids:
 
-| `format` | Archivos | Placeholders | Plurales | Archivo de destino ausente | [Sintaxis de placeholder nativa](/docs/error-codes#foreign_placeholder_changed) <AvailableFrom version="0.12.0" /> |
+| `format` | Archivos | Placeholders | Plurales | Archivo de destino ausente | [Sintaxis de placeholder nativa](/es/docs/error-codes#foreign_placeholder_changed) <AvailableFrom version="0.12.0" /> |
 | --- | --- | --- | --- | --- | --- |
 | `i18next-json` | JSON de i18next (`.json`) | `{{name}}`, `$t(...)` | sufijo CLDR en la clave | se crea | `{{name}}` |
 | `vue-i18n-json` | JSON de vue-i18n (`.json`) | `{name}`, `{0}` | pipe en el valor | se crea | `{name}`, `%{name}`, `${name}` |
@@ -22,7 +22,7 @@ Un adaptador de formato lee un archivo de locale en una forma neutral y lo escri
 | `ini` | INI (`.ini`) | `{name}`, `{0}` | ninguno | se crea | `{name}`, `%{name}`, `${name}` |
 | `resx` | recursos de .NET (`.resx`) | compuesto `{0}`, `{1:C}`, con nombre `{name}` | ninguno | se crea | `{{name}}`, `{name}`, `%{name}`, `${name}` |
 
-Haz coincidir el formato con tu librería de i18n: decide qué placeholders compara la [comprobación de integridad](/docs/translation-safety).
+Haz coincidir el formato con tu librería de i18n: decide qué placeholders compara la [comprobación de integridad](/es/docs/translation-safety).
 
 ## Los cuatro formatos JSON
 
@@ -38,7 +38,7 @@ Tokens de llave simple `{name}` y `{0}`, con nombres en cualquier escritura (`{n
 
 ### next-intl-json
 
-Los valores son ICU MessageFormat: los nombres de argumentos y de etiquetas de texto enriquecido son los placeholders, y el cuerpo ICU se mantiene textual salvo que cada `plural` y `selectordinal` recibe las [ramas CLDR del idioma de destino](/docs/translation-safety#ramas-de-plural-por-idioma-de-destino). Un valor que no parsea como ICU se notifica como inválido y se omite.
+Los valores son ICU MessageFormat: los nombres de argumentos y de etiquetas de texto enriquecido son los placeholders, y el cuerpo ICU se mantiene textual salvo que cada `plural` y `selectordinal` recibe las [ramas CLDR del idioma de destino](/es/docs/translation-safety#ramas-de-plural-por-idioma-de-destino). Un valor que no parsea como ICU se notifica como inválido y se omite.
 
 ### ngx-translate-json
 
@@ -52,7 +52,7 @@ Bajo `i18next-json`, `ngx-translate-json` y `yaml`, un token `{name}` es texto l
 
 ## Diseños con namespaces
 
-[`files.pattern`](/docs/config-file#locales-y-archivos) es una ruta literal, nunca un glob: `public/locales/{locale}/*.json` busca un archivo llamado `*.json` y falla con `SOURCE_UNREADABLE`. Un solo namespace funciona tal cual se configura:
+[`files.pattern`](/es/docs/config-file#locales-y-archivos) es una ruta literal, nunca un glob: `public/locales/{locale}/*.json` busca un archivo llamado `*.json` y falla con `SOURCE_UNREADABLE`. Un solo namespace funciona tal cual se configura:
 
 ```ts title="verbatra.config.ts"
 files: {
@@ -84,7 +84,7 @@ XLIFF 1.2 (`file/body/trans-unit`) y 2.0 (`file/unit/segment`), una lista plana 
 - **Las unidades que faltan se añaden** como copia de la unidad de origen (sin sus targets ni el `<alt-trans>` de 1.2) en el `<file>` correspondiente. Un valor sin unidad a la que ir, o un origen ilegible, hace fallar la escritura con `INVALID_STRUCTURE` nombrando la clave. `verbatra extract` añade unidades de origen con solo un `<source>`; en 2.0 la clave debe ser un NMTOKEN válido (`u1#0` se rechaza).
 - **Marcado en línea.** `g`, `x`, `bx`, `ex`, `bpt`, `ept`, `ph`, `it`, `mrk` de 1.2, `ph`, `pc`, `sc`, `ec`, `mrk`, `sm`, `em`, `cp` de 2.0, y `{name}` son todos placeholders protegidos en cualquiera de las dos versiones. Al escribir, solo estos (más un `<sub>` de 1.2 dentro de `bpt`, `ept`, `ph`, `it`) siguen siendo marcado; cualquier otra cosa, como `<b>`, se convierte en texto.
 - **Escapado.** El texto se lee como texto (`A &amp; B` es `A & B`) y se escapa una vez al escribir; el texto que coincide exactamente con un elemento permitido, como `&lt;x id="1"/&gt;`, se escribe como ese elemento, y `<!DOCTYPE` y `<!ENTITY` como texto.
-- **Las notas** (las `<notes>` de la unidad en 2.0) son [contexto](/docs/manual-translation) de solo lectura.
+- **Las notas** (las `<notes>` de la unidad en 2.0) son [contexto](/es/docs/manual-translation) de solo lectura.
 
 ## YAML
 
@@ -139,7 +139,7 @@ Un único catálogo JSON con todos los locales, el sustituto de `.strings` desde
 
 <AvailableFrom version="0.10.0" />
 
-`res/values/strings.xml` para el origen y `res/values-<qualifier>/strings.xml` para cada destino; pon `files.localeStyle: "android"` ([configuración](/docs/config-file#locales-y-archivos)).
+`res/values/strings.xml` para el origen y `res/values-<qualifier>/strings.xml` para cada destino; pon `files.localeStyle: "android"` ([configuración](/es/docs/config-file#locales-y-archivos)).
 
 - **Entradas.** `<string name>` es una entrada; `<plurals>` pasa a ser `key[quantity]` por cada `<item>`, solo para las cantidades presentes.
 - **Se omiten.** Los recursos con `translatable="false"`, `<string-array>` y un `<string>` con elementos en línea (`<b>`, `<xliff:g>`, CDATA) se conservan tal cual; `formatted="false"` se traduce con normalidad.
@@ -157,7 +157,7 @@ Entradas `msgid`/`msgstr` con clave por `msgid`.
 
 - **`msgctxt`** se une a su `msgid` en una sola clave con U+E000; un origen que contenga ese carácter se rechaza.
 - **Los plurales** tienen clave por índice, `key[n]`, no por categoría CLDR. `Plural-Forms` se conserva literalmente y solo su `nplurals` acota los índices; las entradas plurales sin él se rechazan, como hace `msgfmt --check`.
-- **Marcas y comentarios.** Un valor `#, fuzzy` se lee como actual y la marca se conserva. Los comentarios `#.` son contexto de solo lectura; `#:` y las demás marcas se conservan, los bloques `#~` quedan inertes y la cabecera nunca se toca. Un `.pot` con `msgstr` vacío se lee sin problemas, pero en un catálogo de origen cada `msgstr` es el texto que se traduce, así que uno vacío se omite con [`SOURCE_VALUE_EMPTY`](/docs/error-codes#source_value_empty).
+- **Marcas y comentarios.** Un valor `#, fuzzy` se lee como actual y la marca se conserva. Los comentarios `#.` son contexto de solo lectura; `#:` y las demás marcas se conservan, los bloques `#~` quedan inertes y la cabecera nunca se toca. Un `.pot` con `msgstr` vacío se lee sin problemas, pero en un catálogo de origen cada `msgstr` es el texto que se traduce, así que uno vacío se omite con [`SOURCE_VALUE_EMPTY`](/es/docs/error-codes#source_value_empty).
 - **Un destino ausente** se crea con una cabecera mínima y, para plurales, un `Plural-Forms` dimensionado al índice más alto (siembra desde una plantilla real para la gramática exacta).
 - **Los placeholders son printf**, `%(name)s` incluido.
 - **Los errores** nombran el `msgid` y la línea. `--prune` no sabe nada de índices plurales, así que puede borrar formas que solo existen en el destino.
@@ -201,19 +201,19 @@ En `i18next-json`, `vue-i18n-json` y `next-intl-json`, una hoja literal con punt
 - **Escrituras atómicas.** Un archivo temporal se renombra a su sitio, así que una interrupción nunca deja medio archivo.
 - **Formato.** Los formatos XML conservan el fin de línea y el salto de línea final y sangran los elementos nuevos como sus vecinos. Una entrada nueva de gettext va tras una línea en blanco; un `.po` creado nombra su locale en `Language` (`pt_BR`).
 - **Hojas que no son cadenas.** En los formatos JSON, YAML y ARB, una hoja numérica, booleana o null se acepta pero nunca se traduce, y una reescritura de ese archivo no la conserva; un array falla con `INVALID_STRUCTURE`.
-- **Los errores** son estructurados y sin secretos; consulta los [códigos de error de adaptador](/docs/error-codes#adapter-error-codes).
+- **Los errores** son estructurados y sin secretos; consulta los [códigos de error de adaptador](/es/docs/error-codes#adapter-error-codes).
 
 ## Formatos externos a verbatra
 
 <AvailableFrom version="0.11.0" />
 
-Otro formato puede venir de tu propio adaptador con un id `custom:` como `custom:toml`, ejecutado a través del SDK como código de confianza: consulta [Escribe un adaptador de formato propio](/docs/custom-format-adapters).
+Otro formato puede venir de tu propio adaptador con un id `custom:` como `custom:toml`, ejecutado a través del SDK como código de confianza: consulta [Escribe un adaptador de formato propio](/es/docs/custom-format-adapters).
 
 ## Marcado en línea en los valores
 
 <AvailableFrom version="0.11.0" />
 
-La [comprobación de paridad del marcado](/docs/translation-safety#paridad-del-marcado-en-línea) se aplica en todos los formatos, etiqueta por etiqueta:
+La [comprobación de paridad del marcado](/es/docs/translation-safety#paridad-del-marcado-en-línea) se aplica en todos los formatos, etiqueta por etiqueta:
 
 - `xliff` protege sus propios elementos en línea como placeholders; el resto del HTML, como `<b>`, se compara como marcado.
 - `next-intl-json` y `arb` tratan un `<b>...</b>` emparejado como placeholder y comparan un `<br/>` autocerrado como marcado; una etiqueta con atributos es ICU no válido y se rechaza.

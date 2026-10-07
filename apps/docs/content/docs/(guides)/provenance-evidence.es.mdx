@@ -9,7 +9,7 @@ type: how-to
 Usa esto cuando alguien pregunta qué parte de tu texto publicado tradujo un proveedor o un agente de IA, y si una persona lo revisó. verbatra lo registra por clave en `verbatra.provenance.json`; lo sacas como un informe para archivar, o como marcas en los archivos XLIFF y TMX que entregas a otras herramientas.
 
 <Callout type="warn" title="Evidencia de apoyo, no asesoramiento jurídico">
-Según el [artículo 50 del Reglamento de IA de la UE](/docs/data-handling#traducciones-generadas-por-ia-y-procedencia), el texto que una
+Según el [artículo 50 del Reglamento de IA de la UE](/es/docs/data-handling#traducciones-generadas-por-ia-y-procedencia), el texto que una
 persona revisó bajo responsabilidad editorial se trata de forma distinta del que no se revisó. El
 informe y las marcas son evidencia de apoyo para quien decida cómo se aplica eso a tu producto. No son asesoramiento jurídico, y usarlos no hace que un producto cumpla
 con nada.
@@ -17,7 +17,7 @@ con nada.
 
 ## Qué puede y qué no puede decirte el registro
 
-Cada valor que escribe verbatra se registra con su origen (la ruta de escritura que lo produjo), cualquier decisión de revisión y el nombre de quien revisó; consulta [el archivo de bloqueo](/docs/the-lock-file#procedencia-quién-escribió-cada-valor). Como evidencia, los orígenes se dividen en dos clases:
+Cada valor que escribe verbatra se registra con su origen (la ruta de escritura que lo produjo), cualquier decisión de revisión y el nombre de quien revisó; consulta [el archivo de bloqueo](/es/docs/the-lock-file#procedencia-quién-escribió-cada-valor). Como evidencia, los orígenes se dividen en dos clases:
 
 - **Clase máquina**: `machine`, `memory`, `fuzzy` y `agent`. La memoria cuenta como máquina porque no registra quién escribió una entrada.
 - **Personas**: `human` (una edición desde Studio o el SDK) e `import` (la entrega de un traductor).
@@ -32,7 +32,7 @@ Ten en cuenta los límites cuando entregues el registro a alguien:
 
 ## El informe de procedencia
 
-[`verbatra report provenance`](/docs/cli/report) imprime, por locale de destino, cuántos valores caen en cada categoría.
+[`verbatra report provenance`](/es/docs/cli/report) imprime, por locale de destino, cuántos valores caen en cada categoría.
 
 ```bash
 verbatra report provenance
@@ -48,7 +48,7 @@ verbatra report provenance
 | `unrecorded` | nadie que verbatra conozca: no hay registro | no se sabe |
 | `unknown` | registrado sin autor conocido | cualquiera |
 
-Solo se cuentan las claves con valor tanto en el origen como en el locale de destino: una clave que falta no tiene texto del que dar cuenta. Un agente lee el mismo informe con la herramienta MCP [`report.provenance`](/docs/cli/mcp#tools).
+Solo se cuentan las claves con valor tanto en el origen como en el locale de destino: una clave que falta no tiene texto del que dar cuenta. Un agente lee el mismo informe con la herramienta MCP [`report.provenance`](/es/docs/cli/mcp#tools).
 
 ### Un archivo de auditoría desde la CI
 
@@ -60,11 +60,11 @@ verbatra report provenance --json > provenance-report.json
 
 Si `verbatra.provenance.json` está dañado o lo escribió un verbatra más reciente, el comando sale con `1` en lugar de imprimir un informe que listaría cada valor como `unrecorded`. Así un trabajo de CI falla en lugar de archivar un archivo de auditoría vacío.
 
-Si cada traducción automática debe revisarse antes de una versión, bloquea también con [`verbatra check --require-reviewed`](/docs/cli/check#exigir-traducciones-revisadas).
+Si cada traducción automática debe revisarse antes de una versión, bloquea también con [`verbatra check --require-reviewed`](/es/docs/cli/check#exigir-traducciones-revisadas).
 
 ### El esquema JSON
 
-El informe es el `result` del [envoltorio JSON](/docs/cli/output#salida-json) habitual, con `command` en `"report"`. Quien usa el SDK obtiene el mismo objeto de [`provenanceReport`](/docs/sdk/inspect#provenancereport).
+El informe es el `result` del [envoltorio JSON](/es/docs/cli/output#salida-json) habitual, con `command` en `"report"`. Quien usa el SDK obtiene el mismo objeto de [`provenanceReport`](/es/docs/sdk/inspect#provenancereport).
 
 | Campo | Tipo | Significado |
 | --- | --- | --- |
@@ -93,7 +93,7 @@ El origen también viaja a los archivos que entregas a otras herramientas, para 
 
 ### XLIFF
 
-[`verbatra export`](/docs/cli/export) con `--format xliff12` o `--format xliff2` marca cada unidad que tiene destino:
+[`verbatra export`](/es/docs/cli/export) con `--format xliff12` o `--format xliff2` marca cada unidad que tiene destino:
 
 | El destino es | XLIFF 1.2 | XLIFF 2.0 |
 | --- | --- | --- |
@@ -115,7 +115,7 @@ XLIFF 2.0 no tiene calificador de estado, así que el grupo de metadatos `verbat
 
 ### TMX
 
-[`verbatra tmx export`](/docs/cli/tmx) escribe una propiedad `x-origin` en cada segmento de destino, y `x-review` junto a uno `machine`:
+[`verbatra tmx export`](/es/docs/cli/tmx) escribe una propiedad `x-origin` en cada segmento de destino, y `x-review` junto a uno `machine`:
 
 ```xml
 <tuv xml:lang="de"><prop type="x-origin">machine</prop><prop type="x-review">unreviewed</prop><seg>Zur Kasse</seg></tuv>
@@ -133,6 +133,6 @@ Si `verbatra.provenance.json` está dañado o es de un verbatra más reciente (o
 
 ## Relacionado
 
-- [`verbatra report`](/docs/cli/report): opciones, salida y códigos de salida del informe de procedencia.
-- [Revisar en Studio](/docs/review-in-studio): aprueba o rechaza traducciones automáticas, una a una o por locale.
-- [Tratamiento de datos y privacidad](/docs/data-handling): qué envía verbatra, a quién y qué guarda en local.
+- [`verbatra report`](/es/docs/cli/report): opciones, salida y códigos de salida del informe de procedencia.
+- [Revisar en Studio](/es/docs/review-in-studio): aprueba o rechaza traducciones automáticas, una a una o por locale.
+- [Tratamiento de datos y privacidad](/es/docs/data-handling): qué envía verbatra, a quién y qué guarda en local.

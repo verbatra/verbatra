@@ -7,7 +7,7 @@ type: reference
 
 Les échecs globaux lèvent une `SdkError` : une seule classe, un `code` stable et un `message` sans secret. Base tes branchements sur le code, pas sur le message. Les échecs par locale, les avis de fournisseur et les constats d'intégrité remontent comme données sur le `RunSummary`, jamais comme exceptions.
 
-Chaque code, ce qu'il signifie, quelles commandes de la CLI y mènent et quelle est l'étape suivante se trouvent dans [Codes d'erreur du SDK](/docs/error-codes#sdk-error-codes).
+Chaque code, ce qu'il signifie, quelles commandes de la CLI y mènent et quelle est l'étape suivante se trouvent dans [Codes d'erreur du SDK](/fr/docs/error-codes#sdk-error-codes).
 
 `code` est typé par l'union `SdkErrorCode`. [`errorHint`](#errorhint) renvoie l'étape suivante qui résout une erreur, et [`projectRelativeMessage`](#projectrelativemessage) raccourcit les chemins du projet dans son message avant que tu le montres à une personne.
 
@@ -38,13 +38,13 @@ Les exceptions à la règle de la classe d'erreur unique :
 - `watch` relaie, sans l'envelopper, ce que la fabrique de l'observateur ou ton callback `onReady` a levé.
 - `runStatus` ne lève jamais.
 
-Pour la correspondance entre ces codes et les codes de sortie de la CLI, voir [Codes d'erreur du SDK](/docs/error-codes#sdk-error-codes) ; pour de l'aide par symptôme, voir [Dépannage](/docs/troubleshooting).
+Pour la correspondance entre ces codes et les codes de sortie de la CLI, voir [Codes d'erreur du SDK](/fr/docs/error-codes#sdk-error-codes) ; pour de l'aide par symptôme, voir [Dépannage](/fr/docs/troubleshooting).
 
 ## Classes d'erreur
 
 ### SdkError
 
-La classe sous laquelle chaque échec de toute l'exécution est levé. Son `name` vaut `"SdkError"`, son `code` est un membre de l'union `SdkErrorCode`, que [Codes d'erreur du SDK](/docs/error-codes#sdk-error-codes) liste en entier, et sa `cause` n'est présente que pour les codes que nomme [Le modèle d'erreur](#le-modèle-derreur). Teste-la avec `error instanceof SdkError` et fais un `switch` sur `error.code` : TypeScript réduit alors chaque cas à un seul code.
+La classe sous laquelle chaque échec de toute l'exécution est levé. Son `name` vaut `"SdkError"`, son `code` est un membre de l'union `SdkErrorCode`, que [Codes d'erreur du SDK](/fr/docs/error-codes#sdk-error-codes) liste en entier, et sa `cause` n'est présente que pour les codes que nomme [Le modèle d'erreur](#le-modèle-derreur). Teste-la avec `error instanceof SdkError` et fais un `switch` sur `error.code` : TypeScript réduit alors chaque cas à un seul code.
 
 ```ts title="Signature"
 class SdkError extends Error {
@@ -59,7 +59,7 @@ class SdkError extends Error {
 
 <AvailableFrom version="0.12.0" />
 
-L'erreur structurée par laquelle un fournisseur de traduction échoue, à la place d'une erreur brute du SDK ou HTTP. Son `name` vaut `"ProviderError"`, son `code` est un `ProviderErrorCode`, et son message est fixe et caviardé. Sur un échec `MISSING_API_KEY`, `envVar` nomme la variable dans laquelle le fournisseur lit sa clé, jamais sa valeur. `retranslateEntry` la relance, et un fournisseur personnalisé la lève depuis `translateBatch` ; [Codes d'erreur des fournisseurs](/docs/error-codes#provider-error-codes) liste chaque code. Teste-la avec `error instanceof ProviderError`. Sur une version plus ancienne, qui n'exporte pas la classe, vérifie `error.name === "ProviderError"` et lis `code`.
+L'erreur structurée par laquelle un fournisseur de traduction échoue, à la place d'une erreur brute du SDK ou HTTP. Son `name` vaut `"ProviderError"`, son `code` est un `ProviderErrorCode`, et son message est fixe et caviardé. Sur un échec `MISSING_API_KEY`, `envVar` nomme la variable dans laquelle le fournisseur lit sa clé, jamais sa valeur. `retranslateEntry` la relance, et un fournisseur personnalisé la lève depuis `translateBatch` ; [Codes d'erreur des fournisseurs](/fr/docs/error-codes#provider-error-codes) liste chaque code. Teste-la avec `error instanceof ProviderError`. Sur une version plus ancienne, qui n'exporte pas la classe, vérifie `error.name === "ProviderError"` et lis `code`.
 
 ```ts title="Signature"
 class ProviderError extends Error {
@@ -75,7 +75,7 @@ class ProviderError extends Error {
 
 <AvailableFrom version="0.11.0" />
 
-L'erreur structurée par laquelle un adaptateur de format ou le registre d'adaptateurs échoue. Son `name` vaut `"AdapterError"` et son `code` est un `AdapterErrorCode`, listé sous [Codes d'erreur des adaptateurs de format](/docs/error-codes#adapter-error-codes). `position` situe une syntaxe mal formée sous la forme `{ line, column }` comptés à partir de 1, la colonne en unités de code UTF-16 : un adaptateur intégré la renseigne sur une erreur `INVALID_JSON` ou `INVALID_YAML` dont l'analyseur a indiqué un endroit, et la laisse à `undefined` sinon. Ce que lève un adaptateur `custom:` arrive comme une erreur `ADAPTER_FAILED` qui le porte en `cause`.
+L'erreur structurée par laquelle un adaptateur de format ou le registre d'adaptateurs échoue. Son `name` vaut `"AdapterError"` et son `code` est un `AdapterErrorCode`, listé sous [Codes d'erreur des adaptateurs de format](/fr/docs/error-codes#adapter-error-codes). `position` situe une syntaxe mal formée sous la forme `{ line, column }` comptés à partir de 1, la colonne en unités de code UTF-16 : un adaptateur intégré la renseigne sur une erreur `INVALID_JSON` ou `INVALID_YAML` dont l'analyseur a indiqué un endroit, et la laisse à `undefined` sinon. Ce que lève un adaptateur `custom:` arrive comme une erreur `ADAPTER_FAILED` qui le porte en `cause`.
 
 ```ts title="Signature"
 class AdapterError extends Error {
@@ -135,7 +135,7 @@ function errorHint(error: unknown): string | undefined;
 
 **Renvoie :** `string | undefined`
 
-**Exemple :** [Gère les erreurs](/docs/sdk-quickstart#gère-les-erreurs)
+**Exemple :** [Gère les erreurs](/fr/docs/sdk-quickstart#gère-les-erreurs)
 
 ```ts title="Exemple"
 import { errorHint, translate, type VerbatraConfig } from "@verbatra/sdk";

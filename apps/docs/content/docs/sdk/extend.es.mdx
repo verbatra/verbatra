@@ -7,7 +7,7 @@ type: reference
 
 <AvailableFrom version="0.11.0" />
 
-Todo lo necesario para construir un adaptador de un formato que verbatra no trae y registrarlo junto a los integrados. Un formato externo a verbatra se nombra con un identificador `custom:`, como `custom:toml`, que la configuración acepta igual que un nombre integrado. En [Adaptadores de formato propios](/docs/custom-format-adapters) tienes el recorrido completo, incluido en qué confías al instalar un adaptador de terceros: es código de plena confianza, y verbatra no lo aísla.
+Todo lo necesario para construir un adaptador de un formato que verbatra no trae y registrarlo junto a los integrados. Un formato externo a verbatra se nombra con un identificador `custom:`, como `custom:toml`, que la configuración acepta igual que un nombre integrado. En [Adaptadores de formato propios](/es/docs/custom-format-adapters) tienes el recorrido completo, incluido en qué confías al instalar un adaptador de terceros: es código de plena confianza, y verbatra no lo aísla.
 
 ### createDefaultRegistry
 
@@ -19,7 +19,7 @@ function createDefaultRegistry(fs?: AdapterFs): AdapterRegistry;
 
 **Devuelve:** `AdapterRegistry`
 
-**Ejemplo:** [Registrarlo y ejecutar](/docs/custom-format-adapters#registrarlo-y-ejecutar)
+**Ejemplo:** [Registrarlo y ejecutar](/es/docs/custom-format-adapters#registrarlo-y-ejecutar)
 
 ```ts title="Ejemplo"
 import {
@@ -63,7 +63,7 @@ discriminada por `status`: `resolved` lleva el `adapter`, `no-match` el `filePat
 `triedFormats`, y `ambiguous` el `filePath` y los `candidates` en competencia, que resuelves
 pasando uno como `format`. Un archivo que no se puede resolver es un estado, nunca una excepción.
 
-**Lanza:** `AdapterError` [`DUPLICATE_FORMAT`](/docs/error-codes#duplicate_format) y [`INVALID_FORMAT_ID`](/docs/error-codes#invalid_format_id) desde `register`, y [`ADAPTER_FAILED`](/docs/error-codes#adapter_failed) desde `resolve` cuando el propio `canHandle` de un adaptador `custom:` lanza durante la detección
+**Lanza:** `AdapterError` [`DUPLICATE_FORMAT`](/es/docs/error-codes#duplicate_format) y [`INVALID_FORMAT_ID`](/es/docs/error-codes#invalid_format_id) desde `register`, y [`ADAPTER_FAILED`](/es/docs/error-codes#adapter_failed) desde `resolve` cuando el propio `canHandle` de un adaptador `custom:` lanza durante la detección
 
 ### createFlatFileAdapter
 
@@ -79,7 +79,7 @@ function createFlatFileAdapter(
 
 **Devuelve:** `FormatAdapter`
 
-**Ejemplo:** [Construir el adaptador](/docs/custom-format-adapters#construir-el-adaptador)
+**Ejemplo:** [Construir el adaptador](/es/docs/custom-format-adapters#construir-el-adaptador)
 
 ### createTreeFileAdapter
 
@@ -229,7 +229,7 @@ const summary = await translate({ config }, { createProvider });
 - `ProviderKind` es `"llm"` o `"machine-translation"`. Es solo descriptivo: nada en el SDK se
   ramifica según su valor.
 - `TranslateRequest` lleva `sourceLocale`, `targetLocale`, las `entries` que traducir y, de forma
-  opcional, `glossary` (el resultado de [`glossaryForLocale`](/docs/sdk/config#glossaryforlocale) para el locale de
+  opcional, `glossary` (el resultado de [`glossaryForLocale`](/es/docs/sdk/config#glossaryforlocale) para el locale de
   destino), `tone`, `maxLength` y `pluralCategories`. También lleva `extractPlaceholders` y, en
   algunos formatos, `comparePlaceholders`, que tu proveedor usa para la comprobación de integridad,
   además de `signal`, que cancela una llamada en curso, `onRepair` y
@@ -241,11 +241,11 @@ const summary = await translate({ config }, { createProvider });
   pasa cada valor devuelto por su propia comprobación de integridad.
 - `ProviderRetryListener` es el tipo de `CreateProviderHooks.onRetry`. Recibe un `ProviderRetry`,
   `{ attempt, delayMs?, status? }`, por reintento, y cada llamada se convierte en un
-  [evento de progreso](/docs/sdk/run#eventos-de-progreso) `provider-retry`.
+  [evento de progreso](/es/docs/sdk/run#eventos-de-progreso) `provider-retry`.
 - `ProviderNetwork` es lo que contiene `CreateProviderContext.network` cuando la política de red
   limita a dónde puede conectarse un proveedor: la `policy` efectiva, el `env` desde el que se
   resolvió el endpoint y `deps` opcionales para pruebas. Un proveedor propio puede ignorarlo, pero
   entonces a sus solicitudes solo se aplica la comprobación que hace el SDK antes de llamar a la
   fábrica.
 
-**Ejemplo:** [Prueba tu integración sin clave](/docs/programmatic-api#prueba-tu-integración-sin-clave)
+**Ejemplo:** [Prueba tu integración sin clave](/es/docs/programmatic-api#prueba-tu-integración-sin-clave)

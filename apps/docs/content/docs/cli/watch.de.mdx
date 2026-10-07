@@ -3,7 +3,7 @@ title: verbatra watch
 description: Übersetze bei jeder Quelländerung neu, bis unterbrochen wird.
 type: reference
 ---
-Beobachte die Quell-Locale-Datei und führe nach jeder entprellten Änderung eine neue Übersetzung aus, bis du unterbrichst. `watch` startet mit einer initialen Übersetzung und hält deine Ziel-Locales dann aktuell, während du speicherst. Jeder Lauf arbeitet genau wie [`verbatra translate`](/docs/cli/translate). Beim Start ergänzt es außerdem fehlende Einträge in einer vorhandenen `.gitignore`, siehe [.gitignore-Einträge](/docs/cli#gitignore-einträge).
+Beobachte die Quell-Locale-Datei und führe nach jeder entprellten Änderung eine neue Übersetzung aus, bis du unterbrichst. `watch` startet mit einer initialen Übersetzung und hält deine Ziel-Locales dann aktuell, während du speicherst. Jeder Lauf arbeitet genau wie [`verbatra translate`](/de/docs/cli/translate). Beim Start ergänzt es außerdem fehlende Einträge in einer vorhandenen `.gitignore`, siehe [.gitignore-Einträge](/de/docs/cli#gitignore-einträge).
 
 ## Synopsis
 
@@ -32,15 +32,15 @@ verbatra watch --locales de
 | `--debounce` | `<ms>` | `300` | so viele Millisekunden nach der letzten Änderung warten, bevor übersetzt wird; eine Ganzzahl von `1` bis `60000` |
 | `--lock-timeout` | `<seconds>` | `600` | in jedem Lauf so lange auf eine gehaltene Schreibsperre einer Locale warten; eine Ganzzahl von `1` bis `3600` |
 | `--concurrency` | `<n>` | `1` | pro Lauf bis zu `n` Ziel-Locales gleichzeitig übersetzen; eine Ganzzahl von `1` bis `100`, abgelehnt bei einem `maxTokens`-Budget |
-| `--no-cache` | keins | aus (Cache an) | den [Übersetzungsspeicher-Cache](/docs/the-cache) (`verbatra.cache.json`) bei jedem Lauf umgehen |
+| `--no-cache` | keins | aus (Cache an) | den [Übersetzungsspeicher-Cache](/de/docs/the-cache) (`verbatra.cache.json`) bei jedem Lauf umgehen |
 
-Nimmt außerdem die [globalen Flags](/docs/cli#globale-flags) `--cwd`, `--config` und `--json`; hier gibt `--json` einen Datensatz pro Lauf aus. Vor dem Start lädt `watch` die [Umgebungsdateien](/docs/cli#umgebungsdateien).
+Nimmt außerdem die [globalen Flags](/de/docs/cli#globale-flags) `--cwd`, `--config` und `--json`; hier gibt `--json` einen Datensatz pro Lauf aus. Vor dem Start lädt `watch` die [Umgebungsdateien](/de/docs/cli#umgebungsdateien).
 
 ## Verhalten
 
 ### Jeder Lauf
 
-Jeder Lauf übersetzt die `--locales`-Teilmenge oder jedes Ziel, mit einem frischen Token-Budget. Eine Locale, deren [Schreibsperre](/docs/the-lock-file) länger als `--lock-timeout` belegt bleibt, scheitert in der Zusammenfassung dieses Laufs mit `LOCK_CONTENDED`, während die übrigen Locales weiterlaufen; eine Sperre eines nicht mehr laufenden verbatra-Prozesses wird sofort übernommen. Ein fehlgeschlagener Lauf stoppt den Watcher nie.
+Jeder Lauf übersetzt die `--locales`-Teilmenge oder jedes Ziel, mit einem frischen Token-Budget. Eine Locale, deren [Schreibsperre](/de/docs/the-lock-file) länger als `--lock-timeout` belegt bleibt, scheitert in der Zusammenfassung dieses Laufs mit `LOCK_CONTENDED`, während die übrigen Locales weiterlaufen; eine Sperre eines nicht mehr laufenden verbatra-Prozesses wird sofort übernommen. Ein fehlgeschlagener Lauf stoppt den Watcher nie.
 
 Eine `--concurrency` über `1` zusammen mit einem konfigurierten `maxTokens`-Budget wird beim Start mit Exit `2` abgelehnt, noch vor dem ersten Lauf, weil sonst die Reihenfolge der Locales entscheiden würde, welche ihre restliche Arbeit verliert.
 
@@ -54,9 +54,9 @@ Die erste Unterbrechung (Strg-C oder SIGTERM) lässt den aktuellen Lauf fertig w
 
 ### JSON-Ausgabe
 
-Schema: [`watch-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/watch-envelope.json) validiert den ganzen Envelope; [Schemas](/docs/cli/output#schemas) listet die übrigen auf.
+Schema: [`watch-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/watch-envelope.json) validiert den ganzen Envelope; [Schemas](/de/docs/cli/output#schemas) listet die übrigen auf.
 
-Mit `--json` ist stdout NDJSON: ein [Envelope](/docs/cli/output#json-ausgabe) pro Lauf, mit `command: "watch"`. Ein erfolgreicher Lauf ist ein `ok: true`-Datensatz mit der [`RunSummary`](/docs/cli/translate#json-ausgabe) dieses Laufs; ein fehlgeschlagener Lauf ist ein `ok: false`-Datensatz mit dem eigenen Code des Fehlers, oder `WATCH_RUN_FAILED`, wenn er keinen hatte, plus seinem `hint`, falls vorhanden. Ein fehlgeschlagener Lauf ist nur ein Datensatz: Er stoppt den Watcher nicht und ändert den Exit-Code nicht. Startzeile, Stopp-Hinweis und Fortschritt gehen auf stderr. Ohne `--json` geht die Zusammenfassung eines Laufs auf stdout und die Zeile `verbatra: error [CODE] message` eines fehlgeschlagenen Laufs auf stderr.
+Mit `--json` ist stdout NDJSON: ein [Envelope](/de/docs/cli/output#json-ausgabe) pro Lauf, mit `command: "watch"`. Ein erfolgreicher Lauf ist ein `ok: true`-Datensatz mit der [`RunSummary`](/de/docs/cli/translate#json-ausgabe) dieses Laufs; ein fehlgeschlagener Lauf ist ein `ok: false`-Datensatz mit dem eigenen Code des Fehlers, oder `WATCH_RUN_FAILED`, wenn er keinen hatte, plus seinem `hint`, falls vorhanden. Ein fehlgeschlagener Lauf ist nur ein Datensatz: Er stoppt den Watcher nicht und ändert den Exit-Code nicht. Startzeile, Stopp-Hinweis und Fortschritt gehen auf stderr. Ohne `--json` geht die Zusammenfassung eines Laufs auf stdout und die Zeile `verbatra: error [CODE] message` eines fehlgeschlagenen Laufs auf stderr.
 
 ### Rückmeldung im Terminal
 
@@ -74,7 +74,7 @@ verbatra: run finished, 1 locale processed
 verbatra: waiting for changes...
 ```
 
-Diese Zeilen gehen auf stderr, und `--quiet` lässt sie weg. Siehe [Terminalausgabe](/docs/cli/output#terminalausgabe).
+Diese Zeilen gehen auf stderr, und `--quiet` lässt sie weg. Siehe [Terminalausgabe](/de/docs/cli/output#terminalausgabe).
 
 ## Exit-Codes
 
@@ -84,12 +84,12 @@ Diese Zeilen gehen auf stderr, und `--quiet` lässt sie weg. Siehe [Terminalausg
 | `2` | konnte nicht starten oder stoppen: ein Konfigurationsfehler, ein Fehler beim Start oder Herunterfahren oder ein Verwendungsfehler wie ein ungültiges `--debounce` |
 | `130` | durch eine zweite Unterbrechung zwangsweise gestoppt |
 
-Ein fehlgeschlagener Lauf während der Sitzung ändert den Exit-Code nie. Siehe [den Exit-Code-Vertrag](/docs/cli/output#exit-codes).
+Ein fehlgeschlagener Lauf während der Sitzung ändert den Exit-Code nie. Siehe [den Exit-Code-Vertrag](/de/docs/cli/output#exit-codes).
 
 ## Siehe auch
 
-- [`verbatra translate`](/docs/cli/translate) ist der einmalige Lauf, den `watch` wiederholt.
-- [Der Cache](/docs/the-cache) erklärt, was `--no-cache` bei jedem Lauf umgeht.
-- [So funktioniert es](/docs/how-it-works) erklärt, was jeder Lauf tut.
-- [Menschliche Übersetzungen schützen](/docs/protecting-human-translations) erklärt, warum ein Lauf einen veralteten Wert behält, den ein Mensch geschrieben hat.
-- [Die SDK-Referenz](/docs/sdk) dokumentiert die Formen `WatchRunResult` und `RunSummary`.
+- [`verbatra translate`](/de/docs/cli/translate) ist der einmalige Lauf, den `watch` wiederholt.
+- [Der Cache](/de/docs/the-cache) erklärt, was `--no-cache` bei jedem Lauf umgeht.
+- [So funktioniert es](/de/docs/how-it-works) erklärt, was jeder Lauf tut.
+- [Menschliche Übersetzungen schützen](/de/docs/protecting-human-translations) erklärt, warum ein Lauf einen veralteten Wert behält, den ein Mensch geschrieben hat.
+- [Die SDK-Referenz](/de/docs/sdk) dokumentiert die Formen `WatchRunResult` und `RunSummary`.

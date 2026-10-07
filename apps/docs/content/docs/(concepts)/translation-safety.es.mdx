@@ -30,7 +30,7 @@ Un código de locale solo no siempre basta: `sr-Latn` a menudo vuelve en ciríli
 `pt-PT` se confunden. Por eso un proveedor LLM también recibe el nombre en inglés, la escritura y la
 región de cada idioma, tomados de Node.js para el locale de tu configuración aunque `localeMap` envíe
 otro código. Viajan como datos, una regla de sistema fija pide al modelo que escriba en la escritura
-y la variante nombradas, y no forman parte de la huella de la [caché](/docs/the-cache). Un código que
+y la variante nombradas, y no forman parte de la huella de la [caché](/es/docs/the-cache). Un código que
 Node.js no sabe nombrar, como el de uso privado `qaa`, se envía sin nombre.
 
 ## La puerta de integridad
@@ -43,21 +43,21 @@ claves con el mismo texto de origen se comprueba clave por clave frente al orige
 
 | Comprobación | Un candidato se rechaza cuando |
 | --- | --- |
-| Placeholders | sus placeholders difieren de los del origen, comparados como un multiconjunto (el número cuenta, el orden no). Qué cuenta como placeholder lo define cada [formato](/docs/formats). |
+| Placeholders | sus placeholders difieren de los del origen, comparados como un multiconjunto (el número cuenta, el orden no). Qué cuenta como placeholder lo define cada [formato](/es/docs/formats). |
 | ICU | en next-intl y ARB, ya no se puede analizar como mensaje ICU, o sus ramas de plural no encajan con el idioma de destino (abajo). La comparación tiene en cuenta las ramas, así que se detecta un placeholder inventado dentro de una rama de plural. |
 | Tokens inventados | en i18next, ngx-translate y YAML, añade un token con forma `{name}` que el origen nunca tuvo. Quitar uno está permitido, porque ahí las llaves simples son texto literal. |
 | Marcado en línea | sus etiquetas HTML o XML difieren de las del origen, o están desequilibradas (abajo). |
 | Degeneración | es un bucle de repeticiones, o su longitud se ha disparado respecto al origen. |
-| Vacío | está vacío o solo tiene espacios para un origen que no lo está. Vaciar una traducción es un acto deliberado: lo hace el marcador `[[CLEAR]]` del libro de trabajo ([Traducción manual](/docs/manual-translation)). |
+| Vacío | está vacío o solo tiene espacios para un origen que no lo está. Vaciar una traducción es un acto deliberado: lo hace el marcador `[[CLEAR]]` del libro de trabajo ([Traducción manual](/es/docs/manual-translation)). |
 
 Un candidato que incumple varias comprobaciones se rechaza con un solo motivo, el primero que se
 aplica en este orden: `empty`, `icu` (no se puede analizar), `placeholder`, `markup`, `icu` (ramas),
 `degenerate`. Cada motivo, y los detalles que verbatra imprime con él, está en
-[Motivos de rechazo por integridad](/docs/error-codes#integrity-refusal-reasons).
+[Motivos de rechazo por integridad](/es/docs/error-codes#integrity-refusal-reasons).
 
 Lo que garantiza la puerta: un valor rechazado nunca se escribe. Aparece en el resumen de la
 ejecución como discrepancia de integridad, conserva su hash anterior en
-[el archivo de bloqueo](/docs/the-lock-file) y se reintenta en la siguiente ejecución. Una clave que
+[el archivo de bloqueo](/es/docs/the-lock-file) y se reintenta en la siguiente ejecución. Una clave que
 no recibió ninguna traducción (la llamada al proveedor falló, o la clave seguía ausente tras una
 petición de reparación) se informa en cambio como fallo del proveedor, y se reintenta igual. Del
 lado del origen, una clave cuyo propio valor tiene ICU no válido se aparta antes de traducir.
@@ -69,7 +69,7 @@ Lo que no garantiza: que la traducción sea correcta. Demuestra la estructura, n
 <AvailableFrom version="0.12.0" />
 
 Un plural ICU tiene una rama por categoría de plural CLDR de su idioma
-([ejemplos](/docs/language-support#plurales)). Para next-intl y ARB, verbatra lee las categorías del
+([ejemplos](/es/docs/language-support#plurales)). Para next-intl y ARB, verbatra lee las categorías del
 idioma de destino de los datos CLDR integrados en Node.js:
 
 - A un proveedor LLM se le piden exactamente esas ramas (cardinales para `plural`, ordinales para
@@ -83,7 +83,7 @@ idioma de destino de los datos CLDR integrados en Node.js:
 - Para un locale del que Node.js no tiene reglas de plural, solo se exige `other`.
 
 Un valor escrito antes de esta comprobación, como un plural francés sin `many`, se queda hasta que
-cambie su origen; [`verbatra check --qa`](/docs/cli/check#control-de-calidad) lo encuentra ya.
+cambie su origen; [`verbatra check --qa`](/es/docs/cli/check#control-de-calidad) lo encuentra ya.
 
 ### Paridad del marcado en línea
 
@@ -108,7 +108,7 @@ puerta compara nombres de etiqueta y de atributo como un multiconjunto:
 También se rechaza el marcado inventado en una cadena que no tenía ninguno, mientras que una
 palabra entre corchetes angulares corriente como `<Enter>` se lee como texto. Las etiquetas que el
 formato ya informa como placeholders se dejan a la comprobación de placeholders. Comentarios,
-texto sin procesar y orígenes mal formados: consulta [`markup`](/docs/error-codes#markup).
+texto sin procesar y orígenes mal formados: consulta [`markup`](/es/docs/error-codes#markup).
 
 ## Señales de revisión
 
@@ -117,31 +117,31 @@ retiene una clave: el valor se escribe, se bloquea y entra en la cola de revisi�
 
 | Motivo | Marca una traducción que |
 | --- | --- |
-| [`LENGTH_RATIO_OUTLIER`](/docs/error-codes#length_ratio_outlier) | es mucho más corta o más larga que su origen, ponderada por escritura |
-| [`MAX_LENGTH_EXCEEDED`](/docs/error-codes#max_length_exceeded) | supera el presupuesto [`maxLength`](/docs/config-file#maxlength) de la clave <AvailableFrom version="0.11.0" /> |
-| [`EQUALS_SOURCE`](/docs/error-codes#equals_source) | es idéntica a su texto de origen |
-| [`GLOSSARY_TERM_MISSED`](/docs/error-codes#glossary_term_missed) | omite la traducción de un término del glosario, o altera un término que no se traduce |
-| [`GLOSSARY_FORBIDDEN_TERM`](/docs/error-codes#glossary_forbidden_term) | usa una forma que el glosario prohíbe <AvailableFrom version="0.12.0" /> |
-| [`INTEGRITY_REORDERED`](/docs/error-codes#integrity_reordered) | conserva cada placeholder pero en otro orden |
-| [`PROVIDER_DEGRADED`](/docs/error-codes#provider_degraded) | viene de un lote que el proveedor degradó, como una formalidad perdida |
-| [`FUZZY_CACHE_REUSE`](/docs/error-codes#fuzzy_cache_reuse) | se [reutilizó de un origen parecido y editado](/docs/the-cache#reutilización-difusa) <AvailableFrom version="0.11.0" /> |
-| [`FOREIGN_PLACEHOLDER_CHANGED`](/docs/error-codes#foreign_placeholder_changed) | pierde o cambia un token con forma de placeholder que su [formato](/docs/formats) no interpola, como `{name}` en i18next <AvailableFrom version="0.12.0" /> |
-| [`BIDI_CONTROLS_CHANGED`](/docs/error-codes#bidi_controls_changed) | deja abierto un control de dirección, o añade una anulación que invierte el texto <AvailableFrom version="0.12.0" /> |
+| [`LENGTH_RATIO_OUTLIER`](/es/docs/error-codes#length_ratio_outlier) | es mucho más corta o más larga que su origen, ponderada por escritura |
+| [`MAX_LENGTH_EXCEEDED`](/es/docs/error-codes#max_length_exceeded) | supera el presupuesto [`maxLength`](/es/docs/config-file#maxlength) de la clave <AvailableFrom version="0.11.0" /> |
+| [`EQUALS_SOURCE`](/es/docs/error-codes#equals_source) | es idéntica a su texto de origen |
+| [`GLOSSARY_TERM_MISSED`](/es/docs/error-codes#glossary_term_missed) | omite la traducción de un término del glosario, o altera un término que no se traduce |
+| [`GLOSSARY_FORBIDDEN_TERM`](/es/docs/error-codes#glossary_forbidden_term) | usa una forma que el glosario prohíbe <AvailableFrom version="0.12.0" /> |
+| [`INTEGRITY_REORDERED`](/es/docs/error-codes#integrity_reordered) | conserva cada placeholder pero en otro orden |
+| [`PROVIDER_DEGRADED`](/es/docs/error-codes#provider_degraded) | viene de un lote que el proveedor degradó, como una formalidad perdida |
+| [`FUZZY_CACHE_REUSE`](/es/docs/error-codes#fuzzy_cache_reuse) | se [reutilizó de un origen parecido y editado](/es/docs/the-cache#reutilización-difusa) <AvailableFrom version="0.11.0" /> |
+| [`FOREIGN_PLACEHOLDER_CHANGED`](/es/docs/error-codes#foreign_placeholder_changed) | pierde o cambia un token con forma de placeholder que su [formato](/es/docs/formats) no interpola, como `{name}` en i18next <AvailableFrom version="0.12.0" /> |
+| [`BIDI_CONTROLS_CHANGED`](/es/docs/error-codes#bidi_controls_changed) | deja abierto un control de dirección, o añade una anulación que invierte el texto <AvailableFrom version="0.12.0" /> |
 
 DeepL, Google y LibreTranslate reciben ese token enmascarado y retienen un valor que no pueden
-enmascarar ni restaurar ([`PLACEHOLDER_UNSUPPORTED`](/docs/error-codes#placeholder_unsupported)); la marca cubre los LLM y a las personas.
+enmascarar ni restaurar ([`PLACEHOLDER_UNSUPPORTED`](/es/docs/error-codes#placeholder_unsupported)); la marca cubre los LLM y a las personas.
 
 Los aciertos de caché y los valores compartidos se marcan como las traducciones nuevas. Las claves
 marcadas aparecen como `needsReview` en el resumen de la ejecución, en las columnas de revisión del
-libro de trabajo y en la [página Review de Studio](/docs/review-in-studio), hasta que una persona
+libro de trabajo y en la [página Review de Studio](/es/docs/review-in-studio), hasta que una persona
 aprueba, rechaza o reescribe el valor
-([Decisiones de revisión](/docs/the-lock-file#decisiones-de-revisión)).
+([Decisiones de revisión](/es/docs/the-lock-file#decisiones-de-revisión)).
 
 ## El presupuesto de tokens
 
 `maxTokens` cuenta los tokens de una ejecución en todas las llamadas y todos los locales;
 `budgetBehavior: "stop"` retiene el resto de la ejecución en cuanto se superaría el techo, para
-reintentarlo en la siguiente ([reglas](/docs/config-file#maxtokens-y-budgetbehavior)).
+reintentarlo en la siguiente ([reglas](/es/docs/config-file#maxtokens-y-budgetbehavior)).
 
 Lo que garantiza el presupuesto: el trabajo hecho antes del techo queda escrito y bloqueado, y nada
 se queda a medio escribir. Lo que no: una petición en curso puede costar más de lo proyectado, el
@@ -152,23 +152,23 @@ de agentes.
 
 Cuando una llamada al proveedor falla, el error bruto del SDK (que puede llevar cabeceras de la
 petición o credenciales) se descarta: nunca se registra ni se vuelve a lanzar. verbatra lanza en su
-lugar un error estructurado con un [código](/docs/error-codes#provider-error-codes) estable y un
+lugar un error estructurado con un [código](/es/docs/error-codes#provider-error-codes) estable y un
 mensaje fijo sin secretos. Cómo se ocultan las claves está en
-[Tratamiento de datos](/docs/data-handling#claves-de-api).
+[Tratamiento de datos](/es/docs/data-handling#claves-de-api).
 
 ## Dónde lo ves
 
-Todo lo anterior son datos en el [resumen de la ejecución](/docs/sdk/run-summary), por locale, y el
+Todo lo anterior son datos en el [resumen de la ejecución](/es/docs/sdk/run-summary), por locale, y el
 fallo de un locale nunca detiene a los demás.
 
 ### Valores confirmados
 
 <AvailableFrom version="0.12.0" />
 
-[`verbatra check --qa`](/docs/cli/check#control-de-calidad) aplica la puerta y las señales de
+[`verbatra check --qa`](/es/docs/cli/check#control-de-calidad) aplica la puerta y las señales de
 revisión a los valores confirmados sin llamar al proveedor.
 
 ## Relacionado
 
-- [Cómo funciona una ejecución](/docs/how-it-works): dónde está cada comprobación en la canalización.
-- [Tratamiento de datos y privacidad](/docs/data-handling): qué sale de tu máquina.
+- [Cómo funciona una ejecución](/es/docs/how-it-works): dónde está cada comprobación en la canalización.
+- [Tratamiento de datos y privacidad](/es/docs/data-handling): qué sale de tu máquina.

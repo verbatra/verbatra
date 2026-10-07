@@ -652,7 +652,7 @@ describe("the types page lists exactly the output paths generateTypes refuses", 
   });
 });
 
-const REVIEW_FLAG_ROW = /^\| \[`([A-Z_]+)`\]\(\/docs\/error-codes#[a-z_]+\) \|/;
+const REVIEW_FLAG_ROW = /^\| \[`([A-Z_]+)`\]\((?:\/(?:de|es|fr))?\/docs\/error-codes#[a-z_]+\) \|/;
 
 function reviewFlagTable(page) {
   const lines = page.split("\n");

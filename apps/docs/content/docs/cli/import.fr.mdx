@@ -3,7 +3,7 @@ title: verbatra import
 description: Réimporte une remise remplie (classeur, CSV, TSV ou XLIFF) dans les fichiers de locale, avec les mêmes vérifications de sûreté.
 type: reference
 ---
-Relis une remise remplie par un traducteur dans tes fichiers de locale. Chaque valeur passe par les mêmes contrôles d'intégrité qu'une exécution automatisée : les valeurs qui passent sont écrites et [le fichier de verrouillage](/docs/the-lock-file) est mis à jour, celles qui échouent sont retenues et signalées, si bien qu'une cellule défectueuse n'atterrit jamais dans un fichier de locale. Une vraie exécution ajoute aussi les entrées manquantes à un `.gitignore` existant, voir [Entrées du .gitignore](/docs/cli#entrées-du-gitignore).
+Relis une remise remplie par un traducteur dans tes fichiers de locale. Chaque valeur passe par les mêmes contrôles d'intégrité qu'une exécution automatisée : les valeurs qui passent sont écrites et [le fichier de verrouillage](/fr/docs/the-lock-file) est mis à jour, celles qui échouent sont retenues et signalées, si bien qu'une cellule défectueuse n'atterrit jamais dans un fichier de locale. Une vraie exécution ajoute aussi les entrées manquantes à un `.gitignore` existant, voir [Entrées du .gitignore](/fr/docs/cli#entrées-du-gitignore).
 
 ## Synopsis
 
@@ -11,7 +11,7 @@ Relis une remise remplie par un traducteur dans tes fichiers de locale. Chaque v
 verbatra import <workbook> [flags]
 ```
 
-- `<workbook>` : la remise écrite par [`verbatra export`](/docs/cli/export) et remplie par le traducteur. Avec `xlsx`, c'est le fichier du classeur ; avec `csv`, `tsv`, `xliff2` et `xliff12`, un seul fichier `<locale>.csv`, `<locale>.tsv` ou `<locale>.xlf`, ou le répertoire qui en contient un par locale.
+- `<workbook>` : la remise écrite par [`verbatra export`](/fr/docs/cli/export) et remplie par le traducteur. Avec `xlsx`, c'est le fichier du classeur ; avec `csv`, `tsv`, `xliff2` et `xliff12`, un seul fichier `<locale>.csv`, `<locale>.tsv` ou `<locale>.xlf`, ou le répertoire qui en contient un par locale.
 
 ## Exemples
 
@@ -38,7 +38,7 @@ verbatra import handoff/de.xlf --reviewer "Agency GmbH"
 | `--reviewer` | `<name>` | aucun | nom enregistré sur chaque unité XLIFF marquée relue ou finale ; au plus 64 caractères, stocké dans le fichier de provenance versionné |
 | `--lock-timeout` | `<seconds>` | `600` | combien de temps attendre un verrou d'écriture de locale déjà détenu ; un entier de `1` à `3600`, sinon erreur d'utilisation, sortie `2` |
 
-La commande accepte aussi les [options globales](/docs/cli#options-globales) `--cwd`, `--config` et `--json`.
+La commande accepte aussi les [options globales](/fr/docs/cli#options-globales) `--cwd`, `--config` et `--json`.
 
 ## Comportement
 
@@ -56,13 +56,13 @@ Un fichier resté d'un export précédent avec une sélection `--locales` plus l
 
 <AvailableFrom version="0.12.0" />
 
-`--lock-timeout` fixe combien de temps une locale attend un [verrou d'écriture](/docs/the-lock-file#le-verrou-décriture) occupé avant d'échouer avec `LOCK_CONTENDED`, exactement comme avec [`verbatra translate`](/docs/cli/translate). L'attente a lieu avant l'écriture du fichier de la locale : une locale qui dépasse le délai reste intacte pendant que les autres sont importées, et la commande sort avec `1`. Une fois un fichier écrit, son enregistrement dans le fichier de verrouillage attend jusqu'aux dix minutes par défaut, quoi que dise `--lock-timeout`. Une attente de plus d'une seconde affiche une ligne nommant le verrou et son détenteur (un enregistrement `lock-wait` avec `--json`). `--dry-run` ne prend aucun verrou, donc n'attend jamais.
+`--lock-timeout` fixe combien de temps une locale attend un [verrou d'écriture](/fr/docs/the-lock-file#le-verrou-décriture) occupé avant d'échouer avec `LOCK_CONTENDED`, exactement comme avec [`verbatra translate`](/fr/docs/cli/translate). L'attente a lieu avant l'écriture du fichier de la locale : une locale qui dépasse le délai reste intacte pendant que les autres sont importées, et la commande sort avec `1`. Une fois un fichier écrit, son enregistrement dans le fichier de verrouillage attend jusqu'aux dix minutes par défaut, quoi que dise `--lock-timeout`. Une attente de plus d'une seconde affiche une ligne nommant le verrou et son détenteur (un enregistrement `lock-wait` avec `--json`). `--dry-run` ne prend aucun verrou, donc n'attend jamais.
 
 ### XLIFF
 
 <AvailableFrom version="0.12.0" />
 
-Un fichier XLIFF est lu dans la version qu'il déclare, et un fichier isolé dont le nom n'est pas une locale configurée est rattaché par la langue cible qu'il déclare. Une unité dont la cible est égale à la valeur actuelle ne change rien ; toute autre cible passe le contrôle d'intégrité comme une ligne de classeur. Une unité marquée `reviewed` ou `final` (en 1.2 aussi `signed-off` ou `approved="yes"`) est enregistrée comme approuvée, avec `--reviewer` comme nom, et signalée par l'avis `HANDOFF_REVIEWS_RECORDED`. Une unité dont l'id ne nomme aucune clé source est signalée comme ligne malformée. Consulte [Confier à une agence de traduction](/docs/translation-agency).
+Un fichier XLIFF est lu dans la version qu'il déclare, et un fichier isolé dont le nom n'est pas une locale configurée est rattaché par la langue cible qu'il déclare. Une unité dont la cible est égale à la valeur actuelle ne change rien ; toute autre cible passe le contrôle d'intégrité comme une ligne de classeur. Une unité marquée `reviewed` ou `final` (en 1.2 aussi `signed-off` ou `approved="yes"`) est enregistrée comme approuvée, avec `--reviewer` comme nom, et signalée par l'avis `HANDOFF_REVIEWS_RECORDED`. Une unité dont l'id ne nomme aucune clé source est signalée comme ligne malformée. Consulte [Confier à une agence de traduction](/fr/docs/translation-agency).
 
 ### Lignes vides et défectueuses
 
@@ -81,13 +81,13 @@ verbatra: importing verbatra-translations.xlsx... done (0.4s)
 next: verbatra check (confirm every locale is in sync)
 ```
 
-Ces lignes vont sur stderr, et `--quiet` les supprime. Consulte [Sortie dans le terminal](/docs/cli/output#sortie-dans-le-terminal).
+Ces lignes vont sur stderr, et `--quiet` les supprime. Consulte [Sortie dans le terminal](/fr/docs/cli/output#sortie-dans-le-terminal).
 
 ### Sortie JSON
 
-Schéma : [`import-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/import-envelope.json) valide l'enveloppe entière ; [Schémas](/docs/cli/output#schémas) liste les autres.
+Schéma : [`import-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/import-envelope.json) valide l'enveloppe entière ; [Schémas](/fr/docs/cli/output#schémas) liste les autres.
 
-Avec `--json`, l'[enveloppe](/docs/cli/output#sortie-json) porte un `RunSummary`, la même forme que celle qu'affiche [`verbatra translate`](/docs/cli/translate) ; [RunSummary](/docs/sdk/run-summary) liste chaque champ.
+Avec `--json`, l'[enveloppe](/fr/docs/cli/output#sortie-json) porte un `RunSummary`, la même forme que celle qu'affiche [`verbatra translate`](/fr/docs/cli/translate) ; [RunSummary](/fr/docs/sdk/run-summary) liste chaque champ.
 
 ## Codes de sortie
 
@@ -101,11 +101,11 @@ Avec `--json`, l'[enveloppe](/docs/cli/output#sortie-json) porte un `RunSummary`
 
 <AvailableFrom version="0.9.0" />
 
-Le contrat est celui de [`verbatra translate`](/docs/cli/translate), donc une remise manuelle se branche de la même façon en CI : une locale partielle sort avec `1`, et un fichier de verrouillage corrompu, ou qui se corrompt pendant l'import, arrête toute l'exécution avec `2` en laissant les locales restantes intactes (celles déjà appliquées restent écrites). Le contrat que suit chaque commande est décrit dans [Codes de sortie](/docs/cli/output#codes-de-sortie).
+Le contrat est celui de [`verbatra translate`](/fr/docs/cli/translate), donc une remise manuelle se branche de la même façon en CI : une locale partielle sort avec `1`, et un fichier de verrouillage corrompu, ou qui se corrompt pendant l'import, arrête toute l'exécution avec `2` en laissant les locales restantes intactes (celles déjà appliquées restent écrites). Le contrat que suit chaque commande est décrit dans [Codes de sortie](/fr/docs/cli/output#codes-de-sortie).
 
 ## Voir aussi
 
-- [Traduction humaine](/docs/manual-translation) couvre l'aller-retour complet export, remplissage, import et ce qu'un traducteur peut modifier.
-- [Sûreté de la traduction](/docs/translation-safety) explique les vérifications qui peuvent retenir une valeur.
-- [Confier à une agence de traduction](/docs/translation-agency) couvre l'aller-retour XLIFF via un outil de TAO.
-- [`verbatra export`](/docs/cli/export) produit la remise que cette commande lit.
+- [Traduction humaine](/fr/docs/manual-translation) couvre l'aller-retour complet export, remplissage, import et ce qu'un traducteur peut modifier.
+- [Sûreté de la traduction](/fr/docs/translation-safety) explique les vérifications qui peuvent retenir une valeur.
+- [Confier à une agence de traduction](/fr/docs/translation-agency) couvre l'aller-retour XLIFF via un outil de TAO.
+- [`verbatra export`](/fr/docs/cli/export) produit la remise que cette commande lit.

@@ -5,7 +5,7 @@ type: how-to
 ---
 <AvailableFrom version="0.12.0" />
 
-Utilise ceci quand des traducteurs professionnels travaillent dans un outil de TAO comme Trados, memoQ, OmegaT, Matecat ou Phrase. XLIFF leur arrive sous forme de segments avec des états, des notes et des placeholders protégés, et c'est autour de cela que sont construits leur mémoire de traduction et leurs contrôles qualité. verbatra écrit du XLIFF à partir de n'importe quel format de projet, pas seulement d'un projet XLIFF, et le relit par le même import qu'une [remise par classeur](/docs/manual-translation).
+Utilise ceci quand des traducteurs professionnels travaillent dans un outil de TAO comme Trados, memoQ, OmegaT, Matecat ou Phrase. XLIFF leur arrive sous forme de segments avec des états, des notes et des placeholders protégés, et c'est autour de cela que sont construits leur mémoire de traduction et leurs contrôles qualité. verbatra écrit du XLIFF à partir de n'importe quel format de projet, pas seulement d'un projet XLIFF, et le relit par le même import qu'une [remise par classeur](/fr/docs/manual-translation).
 
 ## L'aller-retour
 
@@ -41,7 +41,7 @@ L'export choisit les mêmes clés qu'un export de classeur : les manquantes et l
 
 ### États de segment
 
-L'état de chaque segment vient du fichier de verrouillage et de la [décision de relecture](/docs/the-lock-file#décisions-de-relecture) de la clé :
+L'état de chaque segment vient du fichier de verrouillage et de la [décision de relecture](/fr/docs/the-lock-file#décisions-de-relecture) de la clé :
 
 | La clé est | `state` XLIFF 2.0 | `state` XLIFF 1.2 |
 | --- | --- | --- |
@@ -55,15 +55,15 @@ L'origine d'une valeur ne change pas son état : une traduction automatique, une
 
 ### Marqueurs de traduction automatique
 
-L'origine voyage à côté de l'état, pour que l'agence voie quelles cibles une machine a écrites. En XLIFF 1.2, une cible écrite par une machine et non approuvée porte `state-qualifier="mt-suggestion"` ; en XLIFF 2.0, les métadonnées de l'unité portent son origine et son état de relecture. L'import ignore les deux. Voir [Consigner les preuves de traduction automatique](/docs/provenance-evidence#xliff).
+L'origine voyage à côté de l'état, pour que l'agence voie quelles cibles une machine a écrites. En XLIFF 1.2, une cible écrite par une machine et non approuvée porte `state-qualifier="mt-suggestion"` ; en XLIFF 2.0, les métadonnées de l'unité portent son origine et son état de relecture. L'import ignore les deux. Voir [Consigner les preuves de traduction automatique](/fr/docs/provenance-evidence#xliff).
 
 ## Ce que l'import accepte
 
-Chaque unité renvoyée passe par les contrôles d'un [import de classeur](/docs/manual-translation#ce-que-limport-accepte) : la barrière d'intégrité, la protection contre une source obsolète, `[[CLEAR]]` pour vider volontairement une valeur, et une cible vide qui signifie "pas encore traduit". XLIFF ajoute ces règles :
+Chaque unité renvoyée passe par les contrôles d'un [import de classeur](/fr/docs/manual-translation#ce-que-limport-accepte) : la barrière d'intégrité, la protection contre une source obsolète, `[[CLEAR]]` pour vider volontairement une valeur, et une cible vide qui signifie "pas encore traduit". XLIFF ajoute ces règles :
 
 - **Une cible laissée telle qu'exportée ne change rien.** La clé reste identique à l'octet près et garde sa provenance. Si tu veux garder l'ancienne traduction d'une clé obsolète pour la nouvelle source, le traducteur fait passer son état au-delà de `initial`.
 - **Toute autre cible est une traduction, quel que soit son état**, parce que certains outils écrivent le texte mais laissent l'état tel quel.
-- **`reviewed` et `final` enregistrent une approbation.** Tout comme `signed-off`, `final` et `approved="yes"` en XLIFF 1.2. L'approbation est enregistrée dans `verbatra.provenance.json` avec le nom passé à `--reviewer` et signalée par [`HANDOFF_REVIEWS_RECORDED`](/docs/error-codes#handoff_reviews_recorded). Une valeur importée reçoit l'origine `import` ; une valeur que le traducteur a seulement confirmée garde son origine, par exemple `machine`.
+- **`reviewed` et `final` enregistrent une approbation.** Tout comme `signed-off`, `final` et `approved="yes"` en XLIFF 1.2. L'approbation est enregistrée dans `verbatra.provenance.json` avec le nom passé à `--reviewer` et signalée par [`HANDOFF_REVIEWS_RECORDED`](/fr/docs/error-codes#handoff_reviews_recorded). Une valeur importée reçoit l'origine `import` ; une valeur que le traducteur a seulement confirmée garde son origine, par exemple `machine`.
 - **Un hash de source supprimé se rabat sur le texte source.** Si la source de l'unité correspond toujours, elle est importée ; sinon, elle est retenue comme dérive.
 - **Les dégâts sont signalés, pas fatals.** Une unité avec une clé inconnue ou des codes inline cassés est signalée comme ligne malformée, et une clé répétée comme doublon ; le reste du fichier est quand même importé.
 - **Le XML est analysé de façon sûre.** Un fichier qui déclare une entité ou un sous-ensemble DTD interne est refusé, tout comme un fichier de plus de 32 Mo.
@@ -86,7 +86,7 @@ Les tests automatiques modifient les fichiers exportés comme le ferait un outil
 
 ## Depuis le SDK
 
-La CLI enveloppe les mêmes [`exportWorkbook`](/docs/sdk/exchange#exportworkbook) et [`importWorkbook`](/docs/sdk/exchange#importworkbook) que la remise par classeur :
+La CLI enveloppe les mêmes [`exportWorkbook`](/fr/docs/sdk/exchange#exportworkbook) et [`importWorkbook`](/fr/docs/sdk/exchange#importworkbook) que la remise par classeur :
 
 ```ts
 import { exportWorkbook, importWorkbook, loadConfig } from "@verbatra/sdk";
@@ -105,6 +105,6 @@ const summary = await importWorkbook({
 
 ## Voir aussi
 
-- [`verbatra export`](/docs/cli/export) : chaque option d'export, y compris les formats XLIFF.
-- [`verbatra import`](/docs/cli/import) : chaque option d'import, y compris `--reviewer`.
-- [Confier avec Excel ou CSV](/docs/manual-translation) : la remise par classeur et chaque contrôle qu'applique l'import.
+- [`verbatra export`](/fr/docs/cli/export) : chaque option d'export, y compris les formats XLIFF.
+- [`verbatra import`](/fr/docs/cli/import) : chaque option d'import, y compris `--reviewer`.
+- [Confier avec Excel ou CSV](/fr/docs/manual-translation) : la remise par classeur et chaque contrôle qu'applique l'import.

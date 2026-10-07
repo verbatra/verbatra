@@ -6,7 +6,7 @@ type: reference
 ---
 <AvailableFrom version="0.11.0" />
 
-Bring einen Übersetzungsspeicher im TMX-Format herein oder hinaus, dem Austauschformat der gängigen Übersetzungsplattformen. `tmx import` übernimmt den Speicher eines anderen Tools in [den Übersetzungsspeicher dieses Projekts](/docs/the-cache), damit spätere Läufe diese Strings wiederverwenden, statt sie erneut zu bezahlen; `tmx export` schreibt den Speicher wieder hinaus. Keine der beiden Richtungen ruft einen Provider auf, liest einen API-Key oder geht ins Netz. Ein echter Import ergänzt außerdem fehlende Einträge in einer vorhandenen `.gitignore`, siehe [.gitignore-Einträge](/docs/cli#gitignore-einträge).
+Bring einen Übersetzungsspeicher im TMX-Format herein oder hinaus, dem Austauschformat der gängigen Übersetzungsplattformen. `tmx import` übernimmt den Speicher eines anderen Tools in [den Übersetzungsspeicher dieses Projekts](/de/docs/the-cache), damit spätere Läufe diese Strings wiederverwenden, statt sie erneut zu bezahlen; `tmx export` schreibt den Speicher wieder hinaus. Keine der beiden Richtungen ruft einen Provider auf, liest einen API-Key oder geht ins Netz. Ein echter Import ergänzt außerdem fehlende Einträge in einer vorhandenen `.gitignore`, siehe [.gitignore-Einträge](/de/docs/cli#gitignore-einträge).
 
 ## Synopsis
 
@@ -44,13 +44,13 @@ verbatra tmx export out/memory.tmx --locales de
 | `--dry-run` | keins | aus | nur beim Import: prüfen und berichten, ohne den Speicher zu ändern; ein Export lehnt es mit `INVALID_DIRECTION` ab |
 | `--overwrite` | keins | aus | nur beim Import: eine importierte Einheit darf eine Übersetzung ersetzen, die der Speicher schon hat; ein Export lehnt es mit `INVALID_DIRECTION` ab |
 
-Außerdem nimmt der Befehl die [globalen Flags](/docs/cli#globale-flags) `--cwd`, `--config` und `--json`. Die Config-Suche und ein relatives `[file]`, das du angibst, gehen hier von `--cwd` aus, der Speicher und das Standard-`verbatra-memory.tmx` dagegen von der [Projektwurzel](/docs/config-file#das-arbeitsverzeichnis-und-env).
+Außerdem nimmt der Befehl die [globalen Flags](/de/docs/cli#globale-flags) `--cwd`, `--config` und `--json`. Die Config-Suche und ein relatives `[file]`, das du angibst, gehen hier von `--cwd` aus, der Speicher und das Standard-`verbatra-memory.tmx` dagegen von der [Projektwurzel](/de/docs/config-file#das-arbeitsverzeichnis-und-env).
 
 ## Verhalten
 
 ### Was eine importierte Einheit erfüllen muss
 
-Eine Datei aus einem anderen Tool ist nicht vertrauenswürdig, und eine Einheit im Speicher kann wiederverwendet werden, ohne dass noch einmal jemand gefragt wird. Deshalb durchläuft jede Kandidat-Übersetzung dasselbe [Integritäts-Gate](/docs/translation-safety) wie die Ausgabe eines Providers, geprüft beim Eintritt in den Speicher:
+Eine Datei aus einem anderen Tool ist nicht vertrauenswürdig, und eine Einheit im Speicher kann wiederverwendet werden, ohne dass noch einmal jemand gefragt wird. Deshalb durchläuft jede Kandidat-Übersetzung dasselbe [Integritäts-Gate](/de/docs/translation-safety) wie die Ausgabe eines Providers, geprüft beim Eintritt in den Speicher:
 
 - ihre Platzhalter passen zu denen ihres eigenen Quellsegments,
 - ihre Inline-HTML- oder XML-Tags passen zu denen des Quellsegments, ein eingeschleustes Tag wie `<img onerror>` wird also abgelehnt,
@@ -92,7 +92,7 @@ Importierte Einheiten werden unter dem aktuellen Konfigurations-Fingerprint des 
 
 ### Importierte Einheiten und unscharfe Wiederverwendung
 
-Der Quelltext einer angenommenen Einheit landet im Index, gegen den die [unscharfe Wiederverwendung](/docs/the-cache) geänderte Strings bewertet, sodass eine importierte Quelle, die von einem deiner Strings abweicht, für ihn verwendet werden kann. Eine solche Wiederverwendung besteht trotzdem das Integritäts-Gate gegen deinen echten Eintrag und trägt das Review-Flag `FUZZY_CACHE_REUSE`. Eine importierte Quelle, die einem deiner Strings gleicht, aber anders gehasht wird (dein Eintrag hat eine Beschreibung oder Bedeutung, die TMX nicht tragen kann), wird nie wiederverwendet. Eine Pluralform wird über ihren Text gefunden: Der Import übernimmt das Plural-Flag aus deiner Quelldatei, sodass sich `cart.items_one` und `cart.items_other` wie jeder andere Key aus dem Speicher füllen. Lass `fuzzyCache` aus deiner Config weg, um nur exakte Treffer zuzulassen.
+Der Quelltext einer angenommenen Einheit landet im Index, gegen den die [unscharfe Wiederverwendung](/de/docs/the-cache) geänderte Strings bewertet, sodass eine importierte Quelle, die von einem deiner Strings abweicht, für ihn verwendet werden kann. Eine solche Wiederverwendung besteht trotzdem das Integritäts-Gate gegen deinen echten Eintrag und trägt das Review-Flag `FUZZY_CACHE_REUSE`. Eine importierte Quelle, die einem deiner Strings gleicht, aber anders gehasht wird (dein Eintrag hat eine Beschreibung oder Bedeutung, die TMX nicht tragen kann), wird nie wiederverwendet. Eine Pluralform wird über ihren Text gefunden: Der Import übernimmt das Plural-Flag aus deiner Quelldatei, sodass sich `cart.items_one` und `cart.items_other` wie jeder andere Key aus dem Speicher füllen. Lass `fuzzyCache` aus deiner Config weg, um nur exakte Treffer zuzulassen.
 
 ### Was der Export schreibt
 
@@ -100,15 +100,15 @@ Ein `tu` pro eindeutigem Quellstring, mit dem Quellsegment und einem Zielsegment
 
 <AvailableFrom version="0.12.0" />
 
-Jedes Zielsegment trägt `<prop type="x-origin">` (`machine`, `human`, `import` oder `unknown`) aus `verbatra.provenance.json`, ein `machine`-Segment außerdem `<prop type="x-review">` (`approved`, `unreviewed` oder `rejected`). Lässt sich die Provenance- oder Lock-Datei nicht lesen, wird keine Eigenschaft geschrieben, und das Ergebnis meldet `provenanceMarkers: "unavailable"`. Siehe [Nachweise zur maschinellen Übersetzung](/docs/provenance-evidence#tmx).
+Jedes Zielsegment trägt `<prop type="x-origin">` (`machine`, `human`, `import` oder `unknown`) aus `verbatra.provenance.json`, ein `machine`-Segment außerdem `<prop type="x-review">` (`approved`, `unreviewed` oder `rejected`). Lässt sich die Provenance- oder Lock-Datei nicht lesen, wird keine Eigenschaft geschrieben, und das Ergebnis meldet `provenanceMarkers: "unavailable"`. Siehe [Nachweise zur maschinellen Übersetzung](/de/docs/provenance-evidence#tmx).
 
 Die Datei wird nur innerhalb des Arbeitsverzeichnisses geschrieben. Ein Pfad, der keine Datei benennt, aus dem Arbeitsverzeichnis herausführt oder eine Datei trifft, von der das Projekt abhängt (eine Locale-Datei, die Lock-, Provenance- oder Cache-Datei, eine Config-Datei, die Glossardatei), wird mit `TMX_OUTPUT_CONFLICT` abgelehnt, bevor der Speicher gelesen wird, auch nach dem Auflösen symbolischer Links. Scheitert das Schreiben auf der Platte, stoppt der Lauf mit `TMX_UNWRITABLE` und nennt die Datei und den Dateisystem-Code.
 
 ### JSON-Ausgabe
 
-Schema: [`tmx-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/tmx-envelope.json) validiert den ganzen Envelope; [Schemas](/docs/cli/output#schemas) listet die übrigen auf.
+Schema: [`tmx-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/tmx-envelope.json) validiert den ganzen Envelope; [Schemas](/de/docs/cli/output#schemas) listet die übrigen auf.
 
-Mit `--json` trägt der [JSON-Envelope](/docs/cli/output#json-ausgabe) das Ergebnis des Imports oder Exports:
+Mit `--json` trägt der [JSON-Envelope](/de/docs/cli/output#json-ausgabe) das Ergebnis des Imports oder Exports:
 
 ```ts
 // tmx import
@@ -135,7 +135,7 @@ verbatra: importing legacy.tmx into the memory... done (0.2s)
 next: verbatra translate (reuses the imported memory before calling a provider)
 ```
 
-`--quiet` unterdrückt diese Zeilen. Siehe [Terminalausgabe](/docs/cli/output#terminalausgabe).
+`--quiet` unterdrückt diese Zeilen. Siehe [Terminalausgabe](/de/docs/cli/output#terminalausgabe).
 
 ## Exit-Codes
 
@@ -144,11 +144,11 @@ next: verbatra translate (reuses the imported memory before calling a provider)
 | `0` | die Datei wurde gelesen oder geschrieben; übersprungene oder abgelehnte Einheiten werden gemeldet, sind aber kein Fehler |
 | `2` | konnte nicht laufen: ein Config-Fehler, eine fehlende oder unlesbare TMX-Datei (`SOURCE_UNREADABLE`), eine zu große oder nicht parsbare (`SOURCE_INVALID`), ein abgelehnter Exportpfad (`TMX_OUTPUT_CONFLICT`), ein gescheiterter Schreibvorgang (`TMX_UNWRITABLE`) oder ein Bedienfehler |
 
-Bei einer ungültigen Datei nennt die Meldung Zeile, Spalte und Einheit, an der sie scheiterte; Entity-Deklarationen und interne DTD-Subsets werden sofort abgelehnt, ein externer Doctype wird verworfen und nie abgerufen. Siehe [den Exit-Code-Vertrag](/docs/cli/output#exit-codes).
+Bei einer ungültigen Datei nennt die Meldung Zeile, Spalte und Einheit, an der sie scheiterte; Entity-Deklarationen und interne DTD-Subsets werden sofort abgelehnt, ein externer Doctype wird verworfen und nie abgerufen. Siehe [den Exit-Code-Vertrag](/de/docs/cli/output#exit-codes).
 
 ## Siehe auch
 
-- [Der Cache](/docs/the-cache) erklärt den Übersetzungsspeicher und wie er geschlüsselt ist.
-- [Manuelle Übersetzung](/docs/manual-translation) beschreibt die Übergabe offener Strings an einen Menschen als xlsx, CSV und TSV.
-- [Übersetzungssicherheit](/docs/translation-safety) erklärt die Prüfungen, die eine importierte Einheit besteht.
-- [`tmxErrorLocation`](/docs/sdk/exchange#tmxerrorlocation) liest im SDK die Stelle eines TMX-Fehlers aus.
+- [Der Cache](/de/docs/the-cache) erklärt den Übersetzungsspeicher und wie er geschlüsselt ist.
+- [Manuelle Übersetzung](/de/docs/manual-translation) beschreibt die Übergabe offener Strings an einen Menschen als xlsx, CSV und TSV.
+- [Übersetzungssicherheit](/de/docs/translation-safety) erklärt die Prüfungen, die eine importierte Einheit besteht.
+- [`tmxErrorLocation`](/de/docs/sdk/exchange#tmxerrorlocation) liest im SDK die Stelle eines TMX-Fehlers aus.

@@ -1,6 +1,6 @@
 À la fin de cette page, ton app <StackText field="name" /> affiche un texte allemand que verbatra a traduit depuis <StackText field="sourceFile" />, et un fichier de verrouillage fait que chaque exécution suivante ne traduit que ce qui a changé. Il te faut Node.js `^22.18.0 || >=24`, un projet <StackText field="name" /> et une dizaine de minutes. Les quatre premières étapes ne demandent ni compte ni clé d'API.
 
-Tu as déjà des fichiers de locale et un agent de code ? Donne-lui plutôt le prompt de [Configure verbatra avec un agent IA](/docs/start-with-ai) : il part des fichiers que ton projet a déjà et s'arrête avant de dépenser quoi que ce soit.
+Tu as déjà des fichiers de locale et un agent de code ? Donne-lui plutôt le prompt de [Configure verbatra avec un agent IA](/fr/docs/start-with-ai) : il part des fichiers que ton projet a déjà et s'arrête avant de dépenser quoi que ce soit.
 
 ## Étapes
 
@@ -69,7 +69,7 @@ Une exécution à blanc ne construit aucun fournisseur : elle n'a pas besoin de 
 cp .env.example .env
 ```
 
-Ouvre `.env` et colle ta clé après `GEMINI_API_KEY=`. Pas encore de clé ? Gemini a une offre gratuite : crées-en une dans [Google AI Studio](https://aistudio.google.com/apikey). Les autres fournisseurs et leurs variables sont sur [Fournisseurs](/docs/providers).
+Ouvre `.env` et colle ta clé après `GEMINI_API_KEY=`. Pas encore de clé ? Gemini a une offre gratuite : crées-en une dans [Google AI Studio](https://aistudio.google.com/apikey). Les autres fournisseurs et leurs variables sont sur [Fournisseurs](/fr/docs/providers).
 
 ```bash
 npx @verbatra/cli translate
@@ -117,8 +117,8 @@ Lance ton app : la salutation affiche `Hallo, Ada!`.
 
 ## Ce qui vient de se passer
 
-- `verbatra.lock.json` enregistre un hash de chaque texte source, pour que l'exécution suivante n'envoie que les textes nouveaux ou modifiés. Voir [Le fichier de verrouillage](/docs/the-lock-file).
-- Un résultat qui perd un placeholder est retenu, jamais écrit. Voir [Sûreté de la traduction](/docs/translation-safety).
+- `verbatra.lock.json` enregistre un hash de chaque texte source, pour que l'exécution suivante n'envoie que les textes nouveaux ou modifiés. Voir [Le fichier de verrouillage](/fr/docs/the-lock-file).
+- Un résultat qui perd un placeholder est retenu, jamais écrit. Voir [Sûreté de la traduction](/fr/docs/translation-safety).
 
 Commite ensemble les fichiers de locale, `verbatra.lock.json` et `verbatra.provenance.json`.
 
@@ -130,7 +130,7 @@ Commite ensemble les fichiers de locale, `verbatra.lock.json` et `verbatra.prove
 npx @verbatra/cli init --agent
 ```
 
-Avec la configuration en place, `init --agent` la garde et ajoute seulement les fichiers pour l'agent : les règles verbatra dans `AGENTS.md` (ou `CLAUDE.md`, quand c'est ton seul fichier d'instructions) et le serveur MCP verbatra, sans les outils qui dépensent, dans la configuration de projet de chaque agent de code qu'il détecte. Quels fichiers il écrit pour quel agent, et comment choisir toi-même les agents avec `--client`, c'est dans [Préparer les agents de code](/docs/cli/init#préparer-les-agents-de-code). `--dry-run` montre les fichiers sans les écrire.
+Avec la configuration en place, `init --agent` la garde et ajoute seulement les fichiers pour l'agent : les règles verbatra dans `AGENTS.md` (ou `CLAUDE.md`, quand c'est ton seul fichier d'instructions) et le serveur MCP verbatra, sans les outils qui dépensent, dans la configuration de projet de chaque agent de code qu'il détecte. Quels fichiers il écrit pour quel agent, et comment choisir toi-même les agents avec `--client`, c'est dans [Préparer les agents de code](/fr/docs/cli/init#préparer-les-agents-de-code). `--dry-run` montre les fichiers sans les écrire.
 
 Ou, sans la CLI, ajoute seulement le serveur MCP à ton profil utilisateur VS Code ; utilise une seule voie, jamais les deux :
 
@@ -139,7 +139,7 @@ Ou, sans la CLI, ajoute seulement le serveur MCP à ton profil utilisateur VS Co
 ## Ensuite
 
 <Cards>
-  <Card title="Ajouter une langue" href="/docs/add-a-language" description="Ajoute une locale cible et laisse une exécution la remplir." />
-  <Card title="Exécuter verbatra en CI" href="/docs/ci-and-exit-codes" description="Fais échouer une pull request quand une locale dérive." />
-  <Card title="Choisis ta stack" href="/docs/pick-your-stack" description="L'id de format et l'organisation de fichiers de tout autre framework." />
+  <Card title="Ajouter une langue" href="/fr/docs/add-a-language" description="Ajoute une locale cible et laisse une exécution la remplir." />
+  <Card title="Exécuter verbatra en CI" href="/fr/docs/ci-and-exit-codes" description="Fais échouer une pull request quand une locale dérive." />
+  <Card title="Choisis ta stack" href="/fr/docs/pick-your-stack" description="L'id de format et l'organisation de fichiers de tout autre framework." />
 </Cards>

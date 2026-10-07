@@ -3,7 +3,7 @@ title: Proveedores
 description: Todos los proveedores de traducción, sus opciones y la variable de su clave de API, y el comportamiento que todos comparten.
 type: reference
 ---
-Selecciona un proveedor por `id` en el bloque `provider` de tu [configuración](/docs/config-file). Anthropic, OpenAI, Gemini y openai-compatible son modelos de lenguaje; DeepL, Google Cloud Translation y LibreTranslate son servicios de traducción automática; `none` desactiva la traducción automática. Los ids de modelo de aquí son ejemplos. La cobertura de idiomas está en [Idiomas y locales](/docs/language-support), y qué recibe cada proveedor en [Tratamiento de datos y privacidad](/docs/data-handling).
+Selecciona un proveedor por `id` en el bloque `provider` de tu [configuración](/es/docs/config-file). Anthropic, OpenAI, Gemini y openai-compatible son modelos de lenguaje; DeepL, Google Cloud Translation y LibreTranslate son servicios de traducción automática; `none` desactiva la traducción automática. Los ids de modelo de aquí son ejemplos. La cobertura de idiomas está en [Idiomas y locales](/es/docs/language-support), y qué recibe cada proveedor en [Tratamiento de datos y privacidad](/es/docs/data-handling).
 
 ## ¿Cuál elijo?
 
@@ -11,7 +11,7 @@ Cualquier proveedor funciona con cualquier formato y comando, y cambiar más tar
 
 | Si quieres | Usa |
 | --- | --- |
-| Gratis, para un proyecto pequeño con cadenas no confidenciales | **Gemini**: un nivel de API gratuito, cuyas peticiones Google puede hacer que revisen personas fuera del EEE, Suiza y el Reino Unido ([condiciones](/docs/data-handling#retención-y-tratamiento-de-datos-del-proveedor)). |
+| Gratis, para un proyecto pequeño con cadenas no confidenciales | **Gemini**: un nivel de API gratuito, cuyas peticiones Google puede hacer que revisen personas fuera del EEE, Suiza y el Reino Unido ([condiciones](/es/docs/data-handling#retención-y-tratamiento-de-datos-del-proveedor)). |
 | La mejor calidad para una app de producción | **Anthropic** u **OpenAI**, ambos de pago. |
 | Alto volumen, un glosario nativo, sin LLM | **DeepL**, nivel gratuito o de pago. |
 | La cobertura más amplia con una clave de API en Google Cloud | **Google Cloud Translation** (Basic, v2). |
@@ -31,7 +31,7 @@ verbatra nunca lee una clave de la configuración. Cada proveedor alojado lee un
 | `deepl` | `DEEPL_API_KEY` |
 | `google-translate` | `GOOGLE_TRANSLATE_API_KEY` |
 
-Defínela en `.env` (que `verbatra init` añade a `.gitignore`), en tu shell o en el almacén de secretos de tu CI, y nunca la confirmes. Una variable no definida o vacía falla con [`MISSING_API_KEY`](/docs/error-codes#missing_api_key), nombrando la variable pero nunca un valor. `openai-compatible` y `libretranslate` normalmente no necesitan clave.
+Defínela en `.env` (que `verbatra init` añade a `.gitignore`), en tu shell o en el almacén de secretos de tu CI, y nunca la confirmes. Una variable no definida o vacía falla con [`MISSING_API_KEY`](/es/docs/error-codes#missing_api_key), nombrando la variable pero nunca un valor. `openai-compatible` y `libretranslate` normalmente no necesitan clave.
 
 ## Anthropic
 
@@ -189,7 +189,7 @@ provider: {
 }
 ```
 
-La respuesta usa el mismo esquema estricto que `openai`; el primer objeto JSON balanceado se toma de cualquier prosa o bloque de código que lo rodee y luego se comprueba como siempre. `verbatra init --provider openai-compatible --base-url <url> --model <name>` escribe este bloque ([init](/docs/cli/init#proveedores)), y `--api-key-env-var <NAME>` añade el nombre de la variable.
+La respuesta usa el mismo esquema estricto que `openai`; el primer objeto JSON balanceado se toma de cualquier prosa o bloque de código que lo rodee y luego se comprueba como siempre. `verbatra init --provider openai-compatible --base-url <url> --model <name>` escribe este bloque ([init](/es/docs/cli/init#proveedores)), y `--api-key-env-var <NAME>` añade el nombre de la variable.
 
 ### Las claves son opcionales
 
@@ -253,7 +253,7 @@ Desactiva la traducción automática por política, para una norma que prohíbe 
 provider: { id: "none" }
 ```
 
-`options` puede omitirse o ser `{}`. No se construye ningún proveedor, no se lee ninguna clave y no se hace ninguna petición; lo que hace cada comando en su lugar está en [Trabajar sin traducción automática](/docs/human-only-workflow).
+`options` puede omitirse o ser `{}`. No se construye ningún proveedor, no se lee ninguna clave y no se hace ninguna petición; lo que hace cada comando en su lugar está en [Trabajar sin traducción automática](/es/docs/human-only-workflow).
 
 ## Tono y glosario entre proveedores
 
@@ -269,7 +269,7 @@ Una petición lleva solo los términos del glosario de su locale de destino, y c
 
 ### Lotes
 
-El trabajo de un locale se envía en sublotes secuenciales de como mucho [`maxBatchSize`](/docs/config-file#maxbatchsize) entradas. Un sublote fallido se retiene y se reintenta en la siguiente ejecución mientras los demás siguen avanzando. DeepL y Google Cloud Translation además dividen un sublote para respetar sus propios topes por petición.
+El trabajo de un locale se envía en sublotes secuenciales de como mucho [`maxBatchSize`](/es/docs/config-file#maxbatchsize) entradas. Un sublote fallido se retiene y se reintenta en la siguiente ejecución mientras los demás siguen avanzando. DeepL y Google Cloud Translation además dividen un sublote para respetar sus propios topes por petición.
 
 ### Reintentos
 
@@ -308,7 +308,7 @@ Los archivos, el bloqueo y la memoria siempre usan los códigos de tu configurac
 | LibreTranslate | Solo el idioma (`de-AT` como `de`), salvo que `pt-BR` se conserva y el chino se envía como `zh-Hans` o `zh-Hant` (`zh-TW` como `zh-Hant`). | Igual que el origen. |
 | Anthropic, OpenAI, Gemini, openai-compatible | Tal como está escrito. | Igual que el origen. |
 
-Un LLM recibe además los [nombres de idioma, escritura y región](/docs/translation-safety#nombres-de-idioma-escritura-y-región). DeepL no tiene un inglés ni un portugués genéricos como destino, así que un destino que acaba siendo un `en` o `pt` escueto (como `en-AU`) se rechaza antes de la ejecución: asígnalo a `EN-GB`, `EN-US`, `PT-BR` o `PT-PT`.
+Un LLM recibe además los [nombres de idioma, escritura y región](/es/docs/translation-safety#nombres-de-idioma-escritura-y-región). DeepL no tiene un inglés ni un portugués genéricos como destino, así que un destino que acaba siendo un `en` o `pt` escueto (como `en-AU`) se rechaza antes de la ejecución: asígnalo a `EN-GB`, `EN-US`, `PT-BR` o `PT-PT`.
 
 `localeMap` sustituye el código por locale, y una entrada siempre gana:
 
@@ -326,7 +326,7 @@ provider: {
 
 - **Las claves** deben ser `sourceLocale` o un locale de destino como en la configuración, o la configuración falla con `CONFIG_INVALID`. El mapa va bajo `options`, en todos los proveedores salvo `none`.
 - **Los valores** son cadenas no vacías de 64 caracteres como máximo, enviadas sin cambios: como código de idioma a un proveedor de traducción automática, en lugar del código a un LLM (`"pt-BR (Brazilian Portuguese)"` funciona), cuyos nombres de idioma siguen saliendo de la clave. Un `EN` o `PT` escueto para DeepL falla con `INVALID_REQUEST`; un valor que el proveedor rechace hace fallar su sublote.
-- **Efecto en la memoria.** Solo las cadenas nuevas y cambiadas se envían con un código nuevo. Un mapa no vacío forma parte de la huella de la [memoria](/docs/the-cache), así que cambiarlo abre un compartimento aparte.
+- **Efecto en la memoria.** Solo las cadenas nuevas y cambiadas se envían con un código nuevo. Un mapa no vacío forma parte de la huella de la [memoria](/es/docs/the-cache), así que cambiarlo abre un compartimento aparte.
 
 ### Comprobar el soporte de idiomas de un proveedor
 
@@ -339,19 +339,19 @@ Cada locale configurado se evalúa antes de gastar nada:
 | DeepL | Su tabla de idiomas incluida, con el soporte de glosario y de formalidad por idioma | Un idioma de origen o de destino que no está en la lista | Un glosario para un par fuera de los idiomas de glosario, un tono sin formalidad, un código que aparece solo en parte en la lista |
 | Google Cloud Translation | Su tabla de idiomas incluida | Un idioma que no está en la lista | Cualquier glosario, un tono `formal` o `informal`, un código regional que aparece en la lista solo como idioma |
 | LibreTranslate | Nada antes de una ejecución; el `/languages` del servidor con `doctor --live` | Nunca | Cada locale de destino en cada ejecución, cualquier glosario, un tono `formal` o `informal` |
-| Anthropic, OpenAI, Gemini, openai-compatible | Nada: un LLM acepta cualquier idioma | Nunca | Un idioma fuera de la [lista de idiomas bien probados](/docs/language-support#comprobar-el-soporte-antes-de-una-ejecución) |
+| Anthropic, OpenAI, Gemini, openai-compatible | Nada: un LLM acepta cualquier idioma | Nunca | Un idioma fuera de la [lista de idiomas bien probados](/es/docs/language-support#comprobar-el-soporte-antes-de-una-ejecución) |
 | none | No aplica | Nunca | Nunca |
 
-Un locale no admitido se rechaza con [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider) (salida `2`) antes de construir ningún proveedor; una advertencia nunca rechaza y aparece como [aviso](/docs/error-codes#sdk-notice-codes). [`verbatra doctor`](/docs/cli/doctor#soporte-de-locales) informa de cada veredicto, y su opción `--live` comprueba la lista actual del proveedor, pero `translate` siempre usa la tabla incluida. Para un idioma añadido después, asigna el locale en `localeMap`: un código explícito se envía con un aviso, no se rechaza.
+Un locale no admitido se rechaza con [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/es/docs/error-codes#locale_unsupported_by_provider) (salida `2`) antes de construir ningún proveedor; una advertencia nunca rechaza y aparece como [aviso](/es/docs/error-codes#sdk-notice-codes). [`verbatra doctor`](/es/docs/cli/doctor#soporte-de-locales) informa de cada veredicto, y su opción `--live` comprueba la lista actual del proveedor, pero `translate` siempre usa la tabla incluida. Para un idioma añadido después, asigna el locale en `localeMap`: un código explícito se envía con un aviso, no se rechaza.
 
 ### Errores estructurados
 
-Un fallo de proveedor aflora como un [error estructurado y sin secretos](/docs/translation-safety#los-errores-nunca-filtran-nada) que solo afecta a su propio sublote. Un `PROVIDER_ERROR` nombra solo el host y el puerto de un `baseUrl` de openai-compatible o LibreTranslate, y en Google solo `translation.googleapis.com`, nunca la consulta que lleva su clave.
+Un fallo de proveedor aflora como un [error estructurado y sin secretos](/es/docs/translation-safety#los-errores-nunca-filtran-nada) que solo afecta a su propio sublote. Un `PROVIDER_ERROR` nombra solo el host y el puerto de un `baseUrl` de openai-compatible o LibreTranslate, y en Google solo `translation.googleapis.com`, nunca la consulta que lleva su clave.
 
 ### Límites de tokens de salida
 
-Los proveedores LLM limitan los tokens de cada respuesta; un modelo que se detiene en el tope levanta [`OUTPUT_TRUNCATED`](/docs/error-codes#output_truncated). verbatra vuelve a dividir un sublote truncado en mitades, bajando hacia una sola entrada, y retiene solo una entrada que sigue desbordándose. Para resolverlo del todo, baja `maxBatchSize` o sube `maxTokens` (Anthropic) o `maxOutputTokens`. Un modelo de razonamiento gasta tokens de razonamiento ocultos del mismo presupuesto, así que dale margen de sobra. Los proveedores de traducción automática no pueden truncar.
+Los proveedores LLM limitan los tokens de cada respuesta; un modelo que se detiene en el tope levanta [`OUTPUT_TRUNCATED`](/es/docs/error-codes#output_truncated). verbatra vuelve a dividir un sublote truncado en mitades, bajando hacia una sola entrada, y retiene solo una entrada que sigue desbordándose. Para resolverlo del todo, baja `maxBatchSize` o sube `maxTokens` (Anthropic) o `maxOutputTokens`. Un modelo de razonamiento gasta tokens de razonamiento ocultos del mismo presupuesto, así que dale margen de sobra. Los proveedores de traducción automática no pueden truncar.
 
 ### Señales de revisión
 
-Una traducción sospechosa de cualquier proveedor se marca para revisión, no se rechaza. Consulta los [motivos de revisión](/docs/error-codes#review-reason-codes) y [Revisar en Studio](/docs/review-in-studio).
+Una traducción sospechosa de cualquier proveedor se marca para revisión, no se rechaza. Consulta los [motivos de revisión](/es/docs/error-codes#review-reason-codes) y [Revisar en Studio](/es/docs/review-in-studio).

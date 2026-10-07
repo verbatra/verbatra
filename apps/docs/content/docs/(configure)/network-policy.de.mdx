@@ -5,11 +5,11 @@ type: how-to
 ---
 <AvailableFrom version="0.12.0" />
 
-Das brauchst du, wenn deine Strings in deinem eigenen Netz bleiben müssen, etwa mit einem selbst gehosteten Modell hinter `openai-compatible` oder einem LibreTranslate-Server hinter `libretranslate`. Eine vertippte `baseUrl`, ein vergessenes `OPENAI_BASE_URL` oder der Wechsel zu einem gehosteten Provider würde Strings sonst an einen öffentlichen Endpunkt schicken. Mit einer Netzwerk-Richtlinie lehnt verbatra einen nicht erlaubten Host ab, bevor eine Anfrage den Rechner verlässt. Was eine Anfrage enthält, steht unter [Datenverarbeitung und Datenschutz](/docs/data-handling).
+Das brauchst du, wenn deine Strings in deinem eigenen Netz bleiben müssen, etwa mit einem selbst gehosteten Modell hinter `openai-compatible` oder einem LibreTranslate-Server hinter `libretranslate`. Eine vertippte `baseUrl`, ein vergessenes `OPENAI_BASE_URL` oder der Wechsel zu einem gehosteten Provider würde Strings sonst an einen öffentlichen Endpunkt schicken. Mit einer Netzwerk-Richtlinie lehnt verbatra einen nicht erlaubten Host ab, bevor eine Anfrage den Rechner verlässt. Was eine Anfrage enthält, steht unter [Datenverarbeitung und Datenschutz](/de/docs/data-handling).
 
 ## Eine Richtlinie festlegen
 
-Ergänz einen Block `network` in der Konfiguration ([`network`](/docs/config-file#network) in der Referenz):
+Ergänz einen Block `network` in der Konfiguration ([`network`](/de/docs/config-file#network) in der Referenz):
 
 ```ts title="verbatra.config.ts"
 network: {
@@ -51,13 +51,13 @@ export VERBATRA_NETWORK_ALLOWED_HOSTS=gpu.lan,10.20.0.0/16
 
 `VERBATRA_NETWORK_ALLOWED_HOSTS` ist eine kommagetrennte Liste von `allowedHosts`-Einträgen. Setzen Konfiguration und Umgebung beide eine Richtlinie, muss ein Host beide erfüllen, sodass eine Konfiguration nie lockern kann, was die Umgebung festlegt.
 
-Ein unbekannter Wert wie `local_only` oder die Host-Liste ohne die Richtlinien-Variable lässt den Lauf mit [`CONFIG_INVALID`](/docs/error-codes#config_invalid) scheitern, statt jeden Host zu erlauben. `translate --dry-run` und `--estimate` prüfen diese Variablen ebenfalls, außer beim Provider `none`.
+Ein unbekannter Wert wie `local_only` oder die Host-Liste ohne die Richtlinien-Variable lässt den Lauf mit [`CONFIG_INVALID`](/de/docs/error-codes#config_invalid) scheitern, statt jeden Host zu erlauben. `translate --dry-run` und `--estimate` prüfen diese Variablen ebenfalls, außer beim Provider `none`.
 
 ## Die Richtlinie prüfen
 
-Führ [`verbatra doctor`](/docs/cli/doctor) aus: Es meldet die wirksame Richtlinie, woher jeder Teil stammt, den Host des Providers und ob dieser Host erlaubt ist. Es löst keine Namen auf und sendet nichts, und die Sprachliste, die `doctor --live` abruft, unterliegt derselben Richtlinie.
+Führ [`verbatra doctor`](/de/docs/cli/doctor) aus: Es meldet die wirksame Richtlinie, woher jeder Teil stammt, den Host des Providers und ob dieser Host erlaubt ist. Es löst keine Namen auf und sendet nichts, und die Sprachliste, die `doctor --live` abruft, unterliegt derselben Richtlinie.
 
-Ein abgelehnter Host stoppt `translate`, `watch` beim Start, das Neuübersetzen in Studio und MCP sowie `retranslateEntry` im SDK mit [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation) und Exit-Code `2`, bevor ein Key gelesen wird. Ein Probelauf und `--estimate` rufen keinen Provider auf und werden deshalb nicht abgelehnt.
+Ein abgelehnter Host stoppt `translate`, `watch` beim Start, das Neuübersetzen in Studio und MCP sowie `retranslateEntry` im SDK mit [`NETWORK_POLICY_VIOLATION`](/de/docs/error-codes#network_policy_violation) und Exit-Code `2`, bevor ein Key gelesen wird. Ein Probelauf und `--estimate` rufen keinen Provider auf und werden deshalb nicht abgelehnt.
 
 ## Wissen, wann Anfragen geprüft werden
 
@@ -66,7 +66,7 @@ Die erste Prüfung löst keine Namen auf, also kommt ein Hostname, den sie allei
 - ein Hostname wird aufgelöst, und jede Adresse, zu der er auflöst, muss erlaubt sein;
 - nur ein `307` oder `308` zum selben Origin wird verfolgt, bis zu fünf hintereinander; eine Weiterleitung zu einem anderen Origin, auch von `https` zu `http`, lässt die Anfrage scheitern.
 
-Eine hier abgelehnte Anfrage lässt ihren Teil-Batch mit dem Provider-Fehler [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#provider-network_policy_violation) scheitern, der nur den Host nennt, und wird nie wiederholt.
+Eine hier abgelehnte Anfrage lässt ihren Teil-Batch mit dem Provider-Fehler [`NETWORK_POLICY_VIOLATION`](/de/docs/error-codes#provider-network_policy_violation) scheitern, der nur den Host nennt, und wird nie wiederholt.
 
 ## Grenzen
 
@@ -77,7 +77,7 @@ Eine hier abgelehnte Anfrage lässt ihren Teil-Batch mit dem Provider-Fehler [`N
 
 ## Maschinelle Übersetzung ohne Sprachmodell
 
-Manche NDAs verbieten Sprachmodelle, akzeptieren aber klassische maschinelle Übersetzung auf deiner eigenen Hardware. [LibreTranslate](/docs/providers#libretranslate) ist genau das: ein Open-Source-Server mit Argos-Translate-Modellen. Starte ihn mit den Sprachen, die du brauchst:
+Manche NDAs verbieten Sprachmodelle, akzeptieren aber klassische maschinelle Übersetzung auf deiner eigenen Hardware. [LibreTranslate](/de/docs/providers#libretranslate) ist genau das: ein Open-Source-Server mit Argos-Translate-Modellen. Starte ihn mit den Sprachen, die du brauchst:
 
 ```bash
 docker run -d -p 5000:5000 libretranslate/libretranslate --load-only en,de,fr
@@ -97,6 +97,6 @@ network: { policy: "local-only" },
 
 ## Siehe auch
 
-- [`network`](/docs/config-file#network): der Konfigurationsschlüssel.
-- [`verbatra doctor`](/docs/cli/doctor): die Richtlinie prüfen, ohne zu übersetzen.
-- [Datenverarbeitung und Datenschutz](/docs/data-handling): was den Rechner verlässt und wann.
+- [`network`](/de/docs/config-file#network): der Konfigurationsschlüssel.
+- [`verbatra doctor`](/de/docs/cli/doctor): die Richtlinie prüfen, ohne zu übersetzen.
+- [Datenverarbeitung und Datenschutz](/de/docs/data-handling): was den Rechner verlässt und wann.

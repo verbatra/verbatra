@@ -21,7 +21,7 @@ verbatra export
 verbatra import verbatra-translations.xlsx
 ```
 
-L'export écrit `verbatra-translations.xlsx` dans le répertoire de travail. L'import valide chaque ligne remplie, écrit les valeurs qui passent et fait avancer le [fichier de verrouillage](/docs/the-lock-file) exactement pour les clés acceptées, comme le ferait une exécution `translate`.
+L'export écrit `verbatra-translations.xlsx` dans le répertoire de travail. L'import valide chaque ligne remplie, écrit les valeurs qui passent et fait avancer le [fichier de verrouillage](/fr/docs/the-lock-file) exactement pour les clés acceptées, comme le ferait une exécution `translate`.
 
 ## Ce qui atterrit dans le classeur
 
@@ -36,8 +36,8 @@ Le classeur s'ouvre sur une feuille **Instructions**, puis une feuille par local
 | `Translation` | **oui** | la seule cellule que le traducteur remplit |
 | `Source hash` | non | masquée ; détecte une source modifiée après l'export |
 | `Context` | non | la description de la clé, quand le format source en porte une ; jamais importée |
-| `Review status` | non | `ok`, ou `review` quand un [signalement de relecture](/docs/translation-safety#signalements-de-relecture) suggère un second regard |
-| `Review reasons` | non | les [raisons de relecture](/docs/error-codes#review-reason-codes) derrière un statut `review` |
+| `Review status` | non | `ok`, ou `review` quand un [signalement de relecture](/fr/docs/translation-safety#signalements-de-relecture) suggère un second regard |
+| `Review reasons` | non | les [raisons de relecture](/fr/docs/error-codes#review-reason-codes) derrière un statut `review` |
 
 Chaque colonne sauf `Translation` est verrouillée par la protection de feuille, et `Translation` utilise le format texte d'Excel, donc une valeur comme `007` ou commençant par `=` reste du texte littéral. Les colonnes de relecture sont consultatives : l'import ne les lit jamais.
 
@@ -56,11 +56,11 @@ Donne ces règles au traducteur (la feuille Instructions les répète) :
 Chaque ligne remplie est jugée par rapport au projet tel qu'il est, avant toute écriture :
 
 - **Dérive de la source** : si la chaîne source a changé après l'export, la ligne est retenue, donc la traduction d'une ancienne source n'atterrit jamais.
-- **Intégrité** : les placeholders, le balisage inline et la structure ICU doivent correspondre à la source, comme à chaque exécution. Voir [la barrière d'intégrité](/docs/translation-safety#la-barrière-dintégrité).
+- **Intégrité** : les placeholders, le balisage inline et la structure ICU doivent correspondre à la source, comme à chaque exécution. Voir [la barrière d'intégrité](/fr/docs/translation-safety#la-barrière-dintégrité).
 - **Valeurs dégénérées** : une boucle de répétition, une longueur qui s'emballe ou une valeur vide pour une source non vide est retenue.
 - **Clés inconnues** : une ligne remplie dont la clé n'existe ni dans la source ni dans la cible fait échouer la feuille de cette locale. Une clé qui n'existe que dans la cible n'est pas écrite.
 
-Une ligne retenue ou vide garde sa référence de verrouillage, donc la clé est exportée à nouveau jusqu'à ce qu'elle soit résolue ; une ligne vide dont la source a dérivé déclenche en plus [`BLANK_ROW_BASELINE_RETAINED`](/docs/error-codes#blank_row_baseline_retained). Une ligne illisible ou une clé en double est signalée sans faire échouer la feuille. Chaque feuille correspond à une locale dans le résumé de l'exécution, et l'import utilise les mêmes codes de sortie que `translate`, donc une remise s'intègre aux mêmes [contrôles CI](/docs/ci-and-exit-codes) qu'une exécution automatisée. [`verbatra import`](/docs/cli/import) donne les détails.
+Une ligne retenue ou vide garde sa référence de verrouillage, donc la clé est exportée à nouveau jusqu'à ce qu'elle soit résolue ; une ligne vide dont la source a dérivé déclenche en plus [`BLANK_ROW_BASELINE_RETAINED`](/fr/docs/error-codes#blank_row_baseline_retained). Une ligne illisible ou une clé en double est signalée sans faire échouer la feuille. Chaque feuille correspond à une locale dans le résumé de l'exécution, et l'import utilise les mêmes codes de sortie que `translate`, donc une remise s'intègre aux mêmes [contrôles CI](/fr/docs/ci-and-exit-codes) qu'une exécution automatisée. [`verbatra import`](/fr/docs/cli/import) donne les détails.
 
 ### D'abord en dry run
 
@@ -93,13 +93,13 @@ La locale vient du nom du fichier, donc garde les fichiers nommés comme à l'ex
 
 <AvailableFrom version="0.12.0" />
 
-Si une agence travaille dans un outil de TAO comme Trados, memoQ ou OmegaT, exporte plutôt du XLIFF : voir [Confier à une agence](/docs/translation-agency).
+Si une agence travaille dans un outil de TAO comme Trados, memoQ ou OmegaT, exporte plutôt du XLIFF : voir [Confier à une agence](/fr/docs/translation-agency).
 
 ## TMX, l'autre chemin
 
 <AvailableFrom version="0.11.0" />
 
-Une remise transporte les chaînes en attente de chaque locale vers une personne. [`verbatra tmx`](/docs/cli/tmx) déplace toute la mémoire de traduction entre outils sous forme d'un seul fichier multilingue, ce n'est donc pas une valeur de `export --format`.
+Une remise transporte les chaînes en attente de chaque locale vers une personne. [`verbatra tmx`](/fr/docs/cli/tmx) déplace toute la mémoire de traduction entre outils sous forme d'un seul fichier multilingue, ce n'est donc pas une valeur de `export --format`.
 
 ## Choisir quoi exporter
 
@@ -116,7 +116,7 @@ verbatra export --include-unchanged
 verbatra export --out handoff/round-2.xlsx
 ```
 
-Utilise `--include-unchanged` quand un traducteur veut une locale entière pour le contexte. `--out` doit rester dans le projet et ne doit pas désigner un fichier dont le projet dépend. Voir [`verbatra export`](/docs/cli/export) pour chaque option et chaque règle.
+Utilise `--include-unchanged` quand un traducteur veut une locale entière pour le contexte. `--out` doit rester dans le projet et ne doit pas désigner un fichier dont le projet dépend. Voir [`verbatra export`](/fr/docs/cli/export) pour chaque option et chaque règle.
 
 ## Les colonnes de relecture
 
@@ -124,7 +124,7 @@ Les deux colonnes sont calculées à l'export à partir de la source et des vale
 
 ## Depuis le SDK
 
-Les deux commandes enveloppent [`exportWorkbook`](/docs/sdk/exchange#exportworkbook) et [`importWorkbook`](/docs/sdk/exchange#importworkbook) :
+Les deux commandes enveloppent [`exportWorkbook`](/fr/docs/sdk/exchange#exportworkbook) et [`importWorkbook`](/fr/docs/sdk/exchange#importworkbook) :
 
 ```ts
 import { exportWorkbook, importWorkbook, loadConfig } from "@verbatra/sdk";
@@ -136,10 +136,10 @@ await exportWorkbook({ config, format: "csv", out: "handoff" });
 const summary = await importWorkbook({ config, workbook: "handoff", format: "csv" });
 ```
 
-`importWorkbook` renvoie le même [`RunSummary`](/docs/sdk/run-summary) que `translate`.
+`importWorkbook` renvoie le même [`RunSummary`](/fr/docs/sdk/run-summary) que `translate`.
 
 ## Voir aussi
 
-- [`verbatra export`](/docs/cli/export) et [`verbatra import`](/docs/cli/import) : chaque option, les chemins de sortie et les codes de sortie.
-- [Sûreté de la traduction](/docs/translation-safety) : la barrière d'intégrité derrière chaque écriture.
-- [Travailler sans traduction automatique](/docs/human-only-workflow) : un projet où chaque traduction vient d'une personne.
+- [`verbatra export`](/fr/docs/cli/export) et [`verbatra import`](/fr/docs/cli/import) : chaque option, les chemins de sortie et les codes de sortie.
+- [Sûreté de la traduction](/fr/docs/translation-safety) : la barrière d'intégrité derrière chaque écriture.
+- [Travailler sans traduction automatique](/fr/docs/human-only-workflow) : un projet où chaque traduction vient d'une personne.
