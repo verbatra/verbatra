@@ -15,7 +15,7 @@ verbatra check [flags]
 
 | Flag | Argument | Default | Effect |
 | --- | --- | --- | --- |
-| `--locales` | `<list>` | all configured targets | check only this comma-separated subset; an empty or unknown value is a usage error |
+| `--locales` | `<list>` | all configured targets | check only this comma-separated subset; an unconfigured locale fails with `UNKNOWN_LOCALE` and an empty list with `INVALID_LOCALES`, both exit `2` |
 | `--consistency` | none | off | also list source strings translated more than one way; report only, see [Consistency report](#consistency-report) |
 | `--qa` | none | off | also run the [quality check](#quality-check) over every committed translation; exit `1` on an error |
 | `--file` | `<path>` | off | check only this locale file, see [One file](#one-file); not with `--locales`, `--consistency`, `--require-reviewed` or `--sensitive` |
@@ -152,7 +152,7 @@ With `--json`, `result` reuses the `--qa` report, so a hook parses one shape:
 
 ```ts
 interface CheckFileSummary {
-  file: string;                          // relative to --cwd
+  file: string;                          // relative to the project root
   role: "source" | "target" | "catalogue";
   locales: {
     locale: string;
@@ -239,7 +239,7 @@ verbatra check --file locales/de.json --json
 | --- | --- |
 | `0` | in sync, and no finding the flags given turn into a failure |
 | `1` | a locale has a missing or stale key, `--qa` or `--file` found an error (or a warning or incomplete plural under `--strict`), `--require-reviewed` found an unapproved translation, or `--sensitive` found sensitive content |
-| `2` | could not run: a whole-run error such as `SOURCE_UNREADABLE` or `NOT_A_LOCALE_FILE`, or a usage error such as `INVALID_QA_OPTION` or `INVALID_SEVERITY` |
+| `2` | could not run: a whole-run error such as `SOURCE_UNREADABLE` or `NOT_A_LOCALE_FILE`, or a usage error such as `INVALID_QA_OPTION`, `INVALID_SEVERITY`, or `INVALID_OPTION` for an empty `--file` or one combined with `--locales`, `--consistency`, `--require-reviewed` or `--sensitive` |
 
 Exit `1` means the result is not clean, not that the run failed; the report is still printed. On a project whose source file is not in place yet, [`verbatra doctor`](/docs/cli/doctor) still reports. See [Exit codes](/docs/cli/output#exit-codes) for the contract.
 

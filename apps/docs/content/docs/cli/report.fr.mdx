@@ -20,7 +20,7 @@ verbatra report <report> [flags]
 
 | Option | Argument | Défaut | Effet |
 | --- | --- | --- | --- |
-| `--locales` | `<list>` | toutes les cibles configurées | rapporte seulement ce sous-ensemble séparé par des virgules ; une valeur vide ou inconnue est une erreur d'utilisation, sortie `2` |
+| `--locales` | `<list>` | toutes les cibles configurées | rapporte seulement ce sous-ensemble séparé par des virgules ; une locale non configurée échoue avec `UNKNOWN_LOCALE` et une liste vide avec `INVALID_LOCALES`, les deux avec la sortie `2` |
 
 Accepte aussi les [options globales](/docs/cli#options-globales) `--cwd`, `--config` et `--json`.
 
@@ -79,7 +79,7 @@ verbatra report provenance --locales de
 | --- | --- |
 | `0` | le rapport a été affiché |
 | `1` | pas de rapport : `verbatra.provenance.json` est corrompu ou a été écrit par un verbatra plus récent |
-| `2` | impossible de s'exécuter : une erreur de config, un fichier source ou de verrouillage illisible, une valeur `--locales` inconnue ou vide, ou un nom de rapport inconnu |
+| `2` | impossible de s'exécuter : une erreur de config, un fichier source ou de verrouillage illisible, une valeur `--locales` non configurée ou vide (`UNKNOWN_LOCALE`, `INVALID_LOCALES`), ou un nom de rapport inconnu |
 
 Consulte [le contrat des codes de sortie](/docs/cli/output#codes-de-sortie).
 

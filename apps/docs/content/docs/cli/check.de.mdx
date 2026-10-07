@@ -15,7 +15,7 @@ verbatra check [flags]
 
 | Flag | Argument | Standard | Wirkung |
 | --- | --- | --- | --- |
-| `--locales` | `<list>` | alle konfigurierten Ziele | prüft nur diese kommagetrennte Teilmenge; ein leerer oder unbekannter Wert ist ein Nutzungsfehler |
+| `--locales` | `<list>` | alle konfigurierten Ziele | prüft nur diese kommagetrennte Teilmenge; eine nicht konfigurierte Locale scheitert mit `UNKNOWN_LOCALE`, eine leere Liste mit `INVALID_LOCALES`, beide mit Exit `2` |
 | `--consistency` | keins | aus | listet zusätzlich Quelltexte, die unterschiedlich übersetzt sind; nur ein Bericht, siehe [Konsistenzbericht](#konsistenzbericht) |
 | `--qa` | keins | aus | führt zusätzlich die [Qualitätsprüfung](#qualitätsprüfung) über jede committete Übersetzung aus; Exit `1` bei einem Fehler |
 | `--file` | `<path>` | aus | prüft nur diese Locale-Datei, siehe [Eine Datei](#eine-datei); nicht mit `--locales`, `--consistency`, `--require-reviewed` oder `--sensitive` |
@@ -152,7 +152,7 @@ Mit `--json` verwendet `result` den Bericht von `--qa` wieder, sodass ein Hook n
 
 ```ts
 interface CheckFileSummary {
-  file: string;                          // relativ zu --cwd
+  file: string;                          // relativ zur Projektwurzel
   role: "source" | "target" | "catalogue";
   locales: {
     locale: string;
@@ -239,7 +239,7 @@ verbatra check --file locales/de.json --json
 | --- | --- |
 | `0` | synchron, und kein Befund, den die übergebenen Flags zum Fehlschlag machen |
 | `1` | eine Locale hat einen fehlenden oder veralteten Key, `--qa` oder `--file` hat einen Fehler gefunden (oder unter `--strict` eine Warnung oder einen unvollständigen Plural), `--require-reviewed` hat eine nicht freigegebene Übersetzung gefunden, oder `--sensitive` hat sensible Inhalte gefunden |
-| `2` | konnte nicht laufen: ein Fehler für den ganzen Lauf wie `SOURCE_UNREADABLE` oder `NOT_A_LOCALE_FILE`, oder ein Nutzungsfehler wie `INVALID_QA_OPTION` oder `INVALID_SEVERITY` |
+| `2` | konnte nicht laufen: ein Fehler für den ganzen Lauf wie `SOURCE_UNREADABLE` oder `NOT_A_LOCALE_FILE`, oder ein Nutzungsfehler wie `INVALID_QA_OPTION`, `INVALID_SEVERITY` oder `INVALID_OPTION` für ein leeres `--file` oder eines zusammen mit `--locales`, `--consistency`, `--require-reviewed` oder `--sensitive` |
 
 Exit `1` heißt, dass das Ergebnis nicht sauber ist, nicht dass der Lauf gescheitert ist; der Bericht wird trotzdem ausgegeben. Bei einem Projekt, dessen Quelldatei noch fehlt, meldet [`verbatra doctor`](/docs/cli/doctor) weiterhin. Den Vertrag findest du unter [Exit-Codes](/docs/cli/output#exit-codes).
 

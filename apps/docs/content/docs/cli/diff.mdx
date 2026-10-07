@@ -15,7 +15,7 @@ verbatra diff [flags]
 
 | Flag | Argument | Default | Effect |
 | --- | --- | --- | --- |
-| `--locales` | `<list>` | all configured targets | diff only this comma-separated subset; an empty or unknown value is a usage error, exit `2` |
+| `--locales` | `<list>` | all configured targets | diff only this comma-separated subset; an unconfigured locale fails with `UNKNOWN_LOCALE` and an empty list with `INVALID_LOCALES`, both exit `2` |
 | `--unused` | none | off | also list the source-locale keys no call site under the [`extract` roots](/docs/config-file#extract) names; see [Unused source keys](#unused-source-keys) |
 
 Also takes the [global flags](/docs/cli#global-flags) `--cwd`, `--config` and `--json`.
@@ -138,7 +138,7 @@ verbatra diff --unused
 | --- | --- |
 | `0` | no locale has a key to add or re-translate, and no complete `--unused` scan found an unused key |
 | `1` | at least one locale has a missing or changed key, or a `complete` `--unused` scan found an unused key |
-| `2` | could not run: a whole-run error, or a usage error such as an empty or unknown `--locales` value |
+| `2` | could not run: a whole-run error, an unconfigured `--locales` value (`UNKNOWN_LOCALE`), or a usage error such as an empty `--locales` list (`INVALID_LOCALES`) |
 
 Orphaned, possibly dynamic and ignored keys, and an `unreliable` or `not-run` report, never cause `1` on their own. See [the exit-code contract](/docs/cli/output#exit-codes).
 

@@ -15,7 +15,7 @@ verbatra diff [flags]
 
 | Flag | Argumento | Por defecto | Efecto |
 | --- | --- | --- | --- |
-| `--locales` | `<list>` | todos los destinos configurados | compara solo este subconjunto separado por comas; un valor vacío o desconocido es un error de uso, salida `2` |
+| `--locales` | `<list>` | todos los destinos configurados | compara solo este subconjunto separado por comas; un locale no configurado falla con `UNKNOWN_LOCALE` y una lista vacía con `INVALID_LOCALES`, ambos con salida `2` |
 | `--unused` | ninguno | desactivado | lista también las claves del locale de origen que ninguna llamada bajo las [raíces de `extract`](/docs/config-file#extract) nombra; consulta [Claves de origen sin uso](#claves-de-origen-sin-uso) |
 
 También acepta los [flags globales](/docs/cli#flags-globales) `--cwd`, `--config` y `--json`.
@@ -138,7 +138,7 @@ verbatra diff --unused
 | --- | --- |
 | `0` | ningún locale tiene una clave que añadir o retraducir, y ningún análisis completo con `--unused` encontró una clave sin uso |
 | `1` | al menos un locale tiene una clave faltante o cambiada, o un análisis `complete` con `--unused` encontró una clave sin uso |
-| `2` | no se pudo ejecutar: un error de toda la ejecución o un error de uso, como un valor `--locales` vacío o desconocido |
+| `2` | no se pudo ejecutar: un error de toda la ejecución, un valor `--locales` no configurado (`UNKNOWN_LOCALE`) o un error de uso, como una lista `--locales` vacía (`INVALID_LOCALES`) |
 
 Las claves huérfanas, posiblemente dinámicas e ignoradas, y un informe `unreliable` o `not-run`, nunca producen `1` por sí solos. Consulta [el contrato de códigos de salida](/docs/cli/output#códigos-de-salida).
 

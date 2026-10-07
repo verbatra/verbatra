@@ -15,7 +15,7 @@ verbatra diff [flags]
 
 | Flag | Argument | Standard | Wirkung |
 | --- | --- | --- | --- |
-| `--locales` | `<list>` | alle konfigurierten Ziele | nur diese kommagetrennte Teilmenge vergleichen; ein leerer oder unbekannter Wert ist ein Bedienfehler, Exit `2` |
+| `--locales` | `<list>` | alle konfigurierten Ziele | nur diese kommagetrennte Teilmenge vergleichen; eine nicht konfigurierte Locale scheitert mit `UNKNOWN_LOCALE`, eine leere Liste mit `INVALID_LOCALES`, beide mit Exit `2` |
 | `--unused` | keins | aus | zusätzlich die Keys der Quell-Locale auflisten, die keine Aufrufstelle unter den [`extract`-Roots](/docs/config-file#extract) nennt; siehe [Ungenutzte Quell-Keys](#ungenutzte-quell-keys) |
 
 Nimmt außerdem die [globalen Flags](/docs/cli#globale-flags) `--cwd`, `--config` und `--json`.
@@ -138,7 +138,7 @@ verbatra diff --unused
 | --- | --- |
 | `0` | keine Locale hat einen Key zum Hinzufügen oder Neuübersetzen, und kein vollständiger `--unused`-Scan hat einen ungenutzten Key gefunden |
 | `1` | mindestens eine Locale hat einen fehlenden oder geänderten Key, oder ein `complete`-Scan mit `--unused` hat einen ungenutzten Key gefunden |
-| `2` | konnte nicht laufen: ein Fehler für den ganzen Lauf oder ein Bedienfehler wie ein leerer oder unbekannter `--locales`-Wert |
+| `2` | konnte nicht laufen: ein Fehler für den ganzen Lauf, ein nicht konfigurierter `--locales`-Wert (`UNKNOWN_LOCALE`) oder ein Bedienfehler wie eine leere `--locales`-Liste (`INVALID_LOCALES`) |
 
 Verwaiste, möglicherweise dynamische und ignorierte Keys sowie ein Bericht mit `unreliable` oder `not-run` führen nie allein zu `1`. Siehe [den Exit-Code-Vertrag](/docs/cli/output#exit-codes).
 

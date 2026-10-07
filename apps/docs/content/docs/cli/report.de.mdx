@@ -20,7 +20,7 @@ verbatra report <report> [flags]
 
 | Flag | Argument | Standard | Wirkung |
 | --- | --- | --- | --- |
-| `--locales` | `<list>` | alle konfigurierten Ziele | nur über diese kommagetrennte Teilmenge berichten; ein leerer oder unbekannter Wert ist ein Bedienfehler, Exit `2` |
+| `--locales` | `<list>` | alle konfigurierten Ziele | nur über diese kommagetrennte Teilmenge berichten; eine nicht konfigurierte Locale scheitert mit `UNKNOWN_LOCALE`, eine leere Liste mit `INVALID_LOCALES`, beide mit Exit `2` |
 
 Nimmt außerdem die [globalen Flags](/docs/cli#globale-flags) `--cwd`, `--config` und `--json`.
 
@@ -79,7 +79,7 @@ verbatra report provenance --locales de
 | --- | --- |
 | `0` | der Bericht wurde ausgegeben |
 | `1` | kein Bericht: `verbatra.provenance.json` ist beschädigt oder stammt von einer neueren verbatra-Version |
-| `2` | konnte nicht laufen: ein Konfigurationsfehler, eine unlesbare Quell- oder Lock-Datei, ein unbekannter oder leerer `--locales`-Wert oder ein unbekannter Berichtsname |
+| `2` | konnte nicht laufen: ein Konfigurationsfehler, eine unlesbare Quell- oder Lock-Datei, ein nicht konfigurierter oder leerer `--locales`-Wert (`UNKNOWN_LOCALE`, `INVALID_LOCALES`) oder ein unbekannter Berichtsname |
 
 Siehe [den Exit-Code-Vertrag](/docs/cli/output#exit-codes).
 

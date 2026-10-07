@@ -15,7 +15,7 @@ verbatra check [flags]
 
 | Option | Argument | Défaut | Effet |
 | --- | --- | --- | --- |
-| `--locales` | `<list>` | toutes les cibles configurées | vérifie seulement ce sous-ensemble séparé par des virgules ; une valeur vide ou inconnue est une erreur d'usage |
+| `--locales` | `<list>` | toutes les cibles configurées | vérifie seulement ce sous-ensemble séparé par des virgules ; une locale non configurée échoue avec `UNKNOWN_LOCALE` et une liste vide avec `INVALID_LOCALES`, les deux avec la sortie `2` |
 | `--consistency` | aucun | désactivé | liste aussi les textes source traduits de plusieurs façons ; rapport seulement, voir le [rapport de cohérence](#rapport-de-cohérence) |
 | `--qa` | aucun | désactivé | lance aussi le [contrôle qualité](#contrôle-qualité) sur chaque traduction commitée ; sortie `1` en cas d'erreur |
 | `--file` | `<path>` | désactivé | vérifie seulement ce fichier de locale, voir [Un seul fichier](#un-seul-fichier) ; pas avec `--locales`, `--consistency`, `--require-reviewed` ni `--sensitive` |
@@ -152,7 +152,7 @@ Avec `--json`, `result` reprend le rapport de `--qa`, pour qu'un hook n'analyse 
 
 ```ts
 interface CheckFileSummary {
-  file: string;                          // relatif à --cwd
+  file: string;                          // relatif à la racine du projet
   role: "source" | "target" | "catalogue";
   locales: {
     locale: string;
@@ -239,7 +239,7 @@ verbatra check --file locales/de.json --json
 | --- | --- |
 | `0` | synchronisé, et aucun résultat que les options passées transforment en échec |
 | `1` | une locale a une clé manquante ou obsolète, `--qa` ou `--file` a trouvé une erreur (ou, avec `--strict`, un avertissement ou un pluriel incomplet), `--require-reviewed` a trouvé une traduction non approuvée, ou `--sensitive` a trouvé du contenu sensible |
-| `2` | exécution impossible : une erreur sur toute l'exécution comme `SOURCE_UNREADABLE` ou `NOT_A_LOCALE_FILE`, ou une erreur d'usage comme `INVALID_QA_OPTION` ou `INVALID_SEVERITY` |
+| `2` | exécution impossible : une erreur sur toute l'exécution comme `SOURCE_UNREADABLE` ou `NOT_A_LOCALE_FILE`, ou une erreur d'usage comme `INVALID_QA_OPTION`, `INVALID_SEVERITY` ou `INVALID_OPTION` pour un `--file` vide ou combiné avec `--locales`, `--consistency`, `--require-reviewed` ou `--sensitive` |
 
 La sortie `1` signifie que le résultat n'est pas propre, pas que l'exécution a échoué ; le rapport est quand même affiché. Sur un projet dont le fichier source n'est pas encore en place, [`verbatra doctor`](/docs/cli/doctor) continue de signaler. Le contrat est dans [Codes de sortie](/docs/cli/output#codes-de-sortie).
 

@@ -15,7 +15,7 @@ verbatra diff [flags]
 
 | Option | Argument | Défaut | Effet |
 | --- | --- | --- | --- |
-| `--locales` | `<list>` | toutes les cibles configurées | compare seulement ce sous-ensemble séparé par des virgules ; une valeur vide ou inconnue est une erreur d'utilisation, sortie `2` |
+| `--locales` | `<list>` | toutes les cibles configurées | compare seulement ce sous-ensemble séparé par des virgules ; une locale non configurée échoue avec `UNKNOWN_LOCALE` et une liste vide avec `INVALID_LOCALES`, les deux avec la sortie `2` |
 | `--unused` | aucun | désactivé | liste aussi les clés de la locale source qu'aucun appel sous les [racines de `extract`](/docs/config-file#extract) ne nomme ; voir [Clés source inutilisées](#clés-source-inutilisées) |
 
 Accepte aussi les [options globales](/docs/cli#options-globales) `--cwd`, `--config` et `--json`.
@@ -138,7 +138,7 @@ verbatra diff --unused
 | --- | --- |
 | `0` | aucune locale n'a de clé à ajouter ou à retraduire, et aucune analyse complète avec `--unused` n'a trouvé de clé inutilisée |
 | `1` | au moins une locale a une clé manquante ou modifiée, ou une analyse `complete` avec `--unused` a trouvé une clé inutilisée |
-| `2` | impossible de s'exécuter : une erreur globale ou une erreur d'utilisation, comme une valeur `--locales` vide ou inconnue |
+| `2` | impossible de s'exécuter : une erreur globale, une valeur `--locales` non configurée (`UNKNOWN_LOCALE`) ou une erreur d'utilisation, comme une liste `--locales` vide (`INVALID_LOCALES`) |
 
 Les clés orphelines, possiblement dynamiques et ignorées, ainsi qu'un rapport `unreliable` ou `not-run`, ne produisent jamais `1` à eux seuls. Consulte [le contrat des codes de sortie](/docs/cli/output#codes-de-sortie).
 

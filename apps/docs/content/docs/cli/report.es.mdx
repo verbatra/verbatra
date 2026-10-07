@@ -20,7 +20,7 @@ verbatra report <report> [flags]
 
 | Flag | Argumento | Por defecto | Efecto |
 | --- | --- | --- | --- |
-| `--locales` | `<list>` | todos los destinos configurados | informa solo de este subconjunto separado por comas; un valor vacío o desconocido es un error de uso, salida `2` |
+| `--locales` | `<list>` | todos los destinos configurados | informa solo de este subconjunto separado por comas; un locale no configurado falla con `UNKNOWN_LOCALE` y una lista vacía con `INVALID_LOCALES`, ambos con salida `2` |
 
 También acepta los [flags globales](/docs/cli#flags-globales) `--cwd`, `--config` y `--json`.
 
@@ -79,7 +79,7 @@ verbatra report provenance --locales de
 | --- | --- |
 | `0` | se imprimió el informe |
 | `1` | no hay informe: `verbatra.provenance.json` está dañado o lo escribió un verbatra más nuevo |
-| `2` | no se pudo ejecutar: un error de configuración, un archivo de origen o de bloqueo ilegible, un valor `--locales` desconocido o vacío, o un nombre de informe desconocido |
+| `2` | no se pudo ejecutar: un error de configuración, un archivo de origen o de bloqueo ilegible, un valor `--locales` no configurado o vacío (`UNKNOWN_LOCALE`, `INVALID_LOCALES`), o un nombre de informe desconocido |
 
 Consulta [el contrato de códigos de salida](/docs/cli/output#códigos-de-salida).
 

@@ -20,7 +20,7 @@ verbatra report <report> [flags]
 
 | Flag | Argument | Default | Effect |
 | --- | --- | --- | --- |
-| `--locales` | `<list>` | all configured targets | report only this comma-separated subset; an empty or unknown value is a usage error, exit `2` |
+| `--locales` | `<list>` | all configured targets | report only this comma-separated subset; an unconfigured locale fails with `UNKNOWN_LOCALE` and an empty list with `INVALID_LOCALES`, both exit `2` |
 
 Also takes the [global flags](/docs/cli#global-flags) `--cwd`, `--config` and `--json`.
 
@@ -79,7 +79,7 @@ verbatra report provenance --locales de
 | --- | --- |
 | `0` | the report was printed |
 | `1` | no report: `verbatra.provenance.json` is corrupt or was written by a newer verbatra |
-| `2` | could not run: a config error, an unreadable source or lock file, an unknown or empty `--locales` value, or an unknown report name |
+| `2` | could not run: a config error, an unreadable source or lock file, an unconfigured or empty `--locales` value (`UNKNOWN_LOCALE`, `INVALID_LOCALES`), or an unknown report name |
 
 See [the exit-code contract](/docs/cli/output#exit-codes).
 

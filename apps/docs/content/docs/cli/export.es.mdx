@@ -17,7 +17,7 @@ verbatra export [flags]
 | --- | --- | --- | --- |
 | `--out` | `<path>` | `verbatra-translations.xlsx`, o `verbatra-translations` para los otros formatos | dónde se escribe la entrega: un archivo para `xlsx`, un directorio para `csv`, `tsv`, `xliff2` y `xliff12` |
 | `--format` | `<format>` | `xlsx` | `xlsx` (libro de Excel), `csv` o `tsv` (un archivo por locale), `xliff2` o `xliff12` (un archivo XLIFF por locale) |
-| `--locales` | `<list>` | cada locale de destino configurado | exporta solo este subconjunto separado por comas; un valor vacío o desconocido es un error de uso, salida `2` |
+| `--locales` | `<list>` | cada locale de destino configurado | exporta solo este subconjunto separado por comas; un locale no configurado falla con `UNKNOWN_LOCALE` y una lista vacía con `INVALID_LOCALES`, ambos con salida `2` |
 | `--include-unchanged` | ninguno | desactivado | exporta también las cadenas que ya están al día |
 
 También acepta los [flags globales](/docs/cli#flags-globales) `--cwd`, `--config` y `--json`.

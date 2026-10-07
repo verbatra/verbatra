@@ -15,7 +15,7 @@ verbatra check [flags]
 
 | Flag | Argumento | Por defecto | Efecto |
 | --- | --- | --- | --- |
-| `--locales` | `<list>` | todos los destinos configurados | comprueba solo este subconjunto separado por comas; un valor vacío o desconocido es un error de uso |
+| `--locales` | `<list>` | todos los destinos configurados | comprueba solo este subconjunto separado por comas; un locale no configurado falla con `UNKNOWN_LOCALE` y una lista vacía con `INVALID_LOCALES`, ambos con salida `2` |
 | `--consistency` | ninguno | desactivado | lista además los textos de origen traducidos de más de una forma; solo informa, mira el [informe de consistencia](#informe-de-consistencia) |
 | `--qa` | ninguno | desactivado | ejecuta además el [control de calidad](#control-de-calidad) sobre cada traducción confirmada; sale con `1` ante un error |
 | `--file` | `<path>` | desactivado | comprueba solo este archivo de locale, mira [Un solo archivo](#un-solo-archivo); no junto a `--locales`, `--consistency`, `--require-reviewed` ni `--sensitive` |
@@ -152,7 +152,7 @@ Con `--json`, `result` reutiliza el informe de `--qa`, así que un hook analiza 
 
 ```ts
 interface CheckFileSummary {
-  file: string;                          // relativo a --cwd
+  file: string;                          // relativo a la raíz del proyecto
   role: "source" | "target" | "catalogue";
   locales: {
     locale: string;
@@ -239,7 +239,7 @@ verbatra check --file locales/de.json --json
 | --- | --- |
 | `0` | sincronizado, y ningún hallazgo que los flags usados conviertan en fallo |
 | `1` | un locale tiene una clave que falta u obsoleta, `--qa` o `--file` encontró un error (o, con `--strict`, un aviso o un plural incompleto), `--require-reviewed` encontró una traducción sin aprobar, o `--sensitive` encontró contenido sensible |
-| `2` | no pudo ejecutarse: un error de toda la ejecución como `SOURCE_UNREADABLE` o `NOT_A_LOCALE_FILE`, o un error de uso como `INVALID_QA_OPTION` o `INVALID_SEVERITY` |
+| `2` | no pudo ejecutarse: un error de toda la ejecución como `SOURCE_UNREADABLE` o `NOT_A_LOCALE_FILE`, o un error de uso como `INVALID_QA_OPTION`, `INVALID_SEVERITY` o `INVALID_OPTION` para un `--file` vacío o combinado con `--locales`, `--consistency`, `--require-reviewed` o `--sensitive` |
 
 La salida `1` significa que el resultado no está limpio, no que la ejecución fallara; el informe se imprime igual. En un proyecto cuyo archivo de origen aún no existe, [`verbatra doctor`](/docs/cli/doctor) sigue informando. El contrato está en [Códigos de salida](/docs/cli/output#códigos-de-salida).
 
