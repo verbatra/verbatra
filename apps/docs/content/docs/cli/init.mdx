@@ -140,9 +140,9 @@ An error envelope for `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `INVALID_PROVIDER`
 
 ### Existing files
 
-Running `init` again with the same answers changes nothing and succeeds. A `verbatra.config.ts` with different content is refused with `CONFIG_EXISTS` unless you pass `--force`, and that refusal comes before any prompt or other error. Another verbatra config in the directory (a `.verbatrarc.json`, or a `verbatra` property in `package.json`) is refused even under `--force`, because it would be read first. Nothing is written when `init` refuses.
+Running `init` again with the same answers changes nothing and succeeds. A `verbatra.config.ts` with different content is refused with `CONFIG_EXISTS` unless you pass `--force`, and that refusal comes before any prompt or other error. Another verbatra config in the directory (a `.verbatrarc.json`, or a `verbatra` property in `package.json`) is refused even under `--force`, because it would be read first. Nothing is written when `init` refuses. A parent directory's config covering this one draws a stderr warning (dry run too): the new `verbatra.config.ts` replaces it here.
 
-A `--cwd` that is not an existing directory is refused with `INVALID_OPTION`, and a directory `init` cannot write to with `INIT_UNWRITABLE`, naming the file and any file already written. Every file is planned before the first one is written. A `verbatra.config.ts`, `.env.example` or `.gitignore` that is a symbolic link leading outside the project, or nowhere, is refused with `INIT_UNWRITABLE` before anything is written. An existing `.env.example` is kept; when it does not name the key variable yet, that one line is appended, and under `--force` a header line `init` wrote itself is rewritten for the new provider. `.gitignore` gets only the entries it is missing.
+A directory `init` cannot write to is refused with `INIT_UNWRITABLE`, naming the file and any file already written. A `verbatra.config.ts`, `.env.example` or `.gitignore` that is a symbolic link leading outside the project, or nowhere, is refused with `INIT_UNWRITABLE` before anything is written. An existing `.env.example` is kept; when it does not name the key variable yet, that one line is appended, and under `--force` a header line `init` wrote itself is rewritten for the new provider. `.gitignore` gets only the entries it is missing.
 
 ### Dry run
 

@@ -55,7 +55,7 @@ With `--allow-spend` under provider `none`, the first line reads `verbatra: spen
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Without `--allow-spend`, Studio reads `VERBATRA_STUDIO_ALLOW_SPEND`; `--expose-agent-tools` falls back to `VERBATRA_STUDIO_AGENT_TOOLS` the same way. For both, `1`, `true`, `yes` or `on` (any case, surrounding spaces ignored) counts as on, and the flag always wins over the variable. Without either, Studio never contacts a provider.
+Without `--allow-spend`, Studio reads `VERBATRA_STUDIO_ALLOW_SPEND`; `--expose-agent-tools` falls back to `VERBATRA_STUDIO_AGENT_TOOLS` the same way. For both, `1`, `true`, `yes` or `on` (any case, surrounding spaces ignored) counts as on, and the flag always wins over the variable. Without either, Studio never contacts a provider. Studio loads the [environment files](/docs/cli#environment-files) first, so both variables can live in `.env.local` or `.env`.
 
 Spend from an agent needs both flags; neither implies the other. A config with `provider: { id: "none" }` disables machine translation by policy, so Studio withholds spend even with `--allow-spend`, and the Settings page says so. See [Drive Studio with a browser agent](/docs/agent-tools-in-studio) for the tool catalog and the security model.
 

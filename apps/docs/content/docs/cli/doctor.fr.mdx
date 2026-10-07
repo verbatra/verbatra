@@ -222,7 +222,7 @@ interface LocaleCapabilityReport {
 
 <AvailableFrom version="0.12.0" />
 
-Pendant son exécution, `doctor` affiche une ligne sur stderr (`checking the setup`, ou `scanning the source for literals` avec un nombre de fichiers), que `--quiet` supprime. Le rapport reste sur stdout. Voir [Sortie dans le terminal](/docs/cli/output#sortie-dans-le-terminal).
+Pendant son exécution, `doctor` affiche une ligne sur stderr, que `--quiet` supprime : `checking the setup`, `checking the setup and fetching the provider's language list` avec `--live`, `describing the data flow` avec `--data-flow`, ou `scanning the source for literals` avec un nombre de fichiers avec `--literals`. Le rapport reste sur stdout. Voir [Sortie dans le terminal](/docs/cli/output#sortie-dans-le-terminal).
 
 ## Exemples
 

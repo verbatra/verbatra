@@ -33,7 +33,7 @@ Nimmt außerdem die [globalen Flags](/docs/cli#globale-flags) `--cwd` und `--con
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Fehlt `--cwd` und nennt `CLAUDE_PROJECT_DIR` ein vorhandenes Verzeichnis, nimmt der Server es als Projektverzeichnis. Claude Code setzt diese Variable für jeden stdio-Server, den es startet. Ein ausdrückliches `--cwd` gewinnt immer. `verbatra mcp` lädt dann die [Umgebungsdateien](/docs/cli#umgebungsdateien) aus diesem Verzeichnis; ein `CLAUDE_PROJECT_DIR`, das nur in diesen Dateien steht, wird ignoriert, weil das Projektverzeichnis vorher feststeht.
+Fehlt `--cwd` und nennt `CLAUDE_PROJECT_DIR` ein vorhandenes Verzeichnis, nimmt der Server es als Projektverzeichnis. `verbatra mcp` lädt dann die [Umgebungsdateien](/docs/cli#umgebungsdateien) aus diesem Verzeichnis; ein `CLAUDE_PROJECT_DIR`, das nur in diesen Dateien steht, wird ignoriert, weil das Projektverzeichnis vorher feststeht.
 
 Die Konfigurationssuche beginnt dort, und das Verzeichnis der gefundenen Konfiguration ist die [Projektwurzel](/docs/config-file#das-arbeitsverzeichnis-und-env), gegen die jeder Tool-Pfad aufgelöst wird, sodass ein Server aus einem Unterverzeichnis trotzdem mit den Dateien des Projekts arbeitet.
 
@@ -80,7 +80,7 @@ Der Server beantwortet den Handshake mit festen `instructions`, die die meisten 
 | `review.reject` | auf Anweisung des Nutzers festhalten, dass eine namentlich genannte Person die Übersetzung eines Keys ablehnt; sie wird entfernt und ersetzt | nein | nein |
 | `usage.summary` | Token-Verbrauch und Budgetstand des letzten Laufs | ja | nein |
 
-- **Ein Aufruf zur Zeit.** Ein zweiter Aufruf von `translation.editEntry` oder `translation.retranslateEntry` für denselben Eintrag, oder ein zweiter Lauf von `translation.translatePending`, wird mit `isError` abgelehnt, solange der erste läuft.
+- **Ein Aufruf zur Zeit.** Ein zweiter Aufruf desselben Tools für denselben Eintrag (`translation.editEntry`, `translation.retranslateEntry`), oder ein zweiter Lauf von `translation.translatePending`, wird mit `isError` abgelehnt, solange der erste läuft.
 - **Menschliche Arbeit.** `translation.retranslateEntry` lehnt einen gepinnten Key mit `KEY_PINNED` ab und, außer bei `humanEdits: "overwrite"`, den Wert einer Person mit `KEY_PROTECTED`; `translation.editEntry` lehnt einen gepinnten Key ab. `translation.translatePending` listet solche Keys unter `protected`. Siehe [Menschliche Übersetzungen schützen](/docs/protecting-human-translations).
 - **Herkunft.** Ein über `translation.editEntry` geschriebener Wert bekommt die Herkunft `agent`. `review.queue` ist dieselbe Warteschlange, die Studio zeigt: jeder nicht freigegebene Wert mit Herkunft `machine`, `memory`, `fuzzy` oder `agent`. Siehe [Review-Entscheidungen](/docs/the-lock-file#review-entscheidungen).
 - **Review-Entscheidungen.** `review.approve` und `review.reject` nehmen `locale`, `key`, `expectedValue` oder `expectedHash` (ein inzwischen geänderter Wert wird mit `REVIEW_VALUE_CHANGED` abgelehnt) und den Namen in `reviewer`. Eine Freigabe zählt für [`verbatra check --require-reviewed`](/docs/cli/check).
@@ -91,14 +91,14 @@ Der Server beantwortet den Handshake mit festen `instructions`, die die meisten 
 
 - `status.check`, `status.diff` und `key.integrity` nehmen ein optionales Array `locales`; `key.integrity` nimmt außerdem den `key`.
 - `key.integrity` liefert `{ locales: [{ locale, entries }] }`, jeder Eintrag mit `matches`, `missing`, `extra`, `icuValid`, `markupMatches` und den zugehörigen Details.
-- `translation.editEntry` nimmt `locale`, `key` und einen `value` mit höchstens 20.000 Zeichen. Es und `translation.retranslateEntry` liefern `{ accepted, value, reason?, details? }`, wobei `reason` `placeholder`, `markup`, `icu`, `degenerate` oder `empty` ist.
+- `translation.editEntry` nimmt `locale`, `key` und einen `value` mit höchstens 20.000 Zeichen. Es liefert `{ accepted, value, reason?, details? }`, `translation.retranslateEntry` dasselbe plus `reviewReasons?`, wobei `reason` `placeholder`, `markup`, `icu`, `degenerate` oder `empty` ist.
 - `glossary.write` braucht ein dateibasiertes Glossar, sonst scheitert es mit `GLOSSARY_NOT_FILE_BACKED`.
 
 ### Weitere Eingaben und Ergebnisse
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-- `translation.estimate` nimmt dasselbe optionale Array `locales`, und `key.integrity` scheitert bei einem unbekannten Key mit `UNKNOWN_KEY`.
+- `translation.estimate`, `locale.integrity`, `locale.values` und `report.provenance` nehmen dasselbe optionale Array `locales`, und `key.integrity` scheitert bei einem unbekannten Key mit `UNKNOWN_KEY`.
 - Jeder Eintrag von `key.integrity` enthält außerdem `icuArmsMatch` mit den zugehörigen Details.
 - `glossary.get` nimmt eine optionale `locale` und ergänzt dann `effective`, die Begriffe, an die diese Locale gebunden ist.
 - `key.value`, `lock.state`, `status.check` und `status.diff` enthalten die Herkunft; sie fehlt, wenn `verbatra.provenance.json` nicht lesbar ist.
