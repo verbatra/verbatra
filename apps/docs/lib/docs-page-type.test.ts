@@ -82,6 +82,18 @@ describe("page type frontmatter", () => {
     }
   });
 
+  it("never raises a word ceiling", () => {
+    expect(WORD_CEILING).toEqual({
+      overview: 600,
+      tutorial: 900,
+      "how-to": 1200,
+      concept: 1600,
+      reference: 2500,
+    });
+    expect(COMMAND_PAGE_CEILING).toBe(2000);
+    expect(LOOKUP_REFERENCE_CEILING).toBe(12000);
+  });
+
   it("keeps the raised ceiling for reference lookup pages only", () => {
     expect(LOOKUP_REFERENCE_CEILING).toBeGreaterThan(WORD_CEILING.reference);
     for (const file of LOOKUP_REFERENCE_PAGES) {
