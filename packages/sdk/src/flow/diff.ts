@@ -167,7 +167,6 @@ function toLocaleDiff(locale: string, diff: DiffResult): LocaleDiff {
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
  * unsupported version.
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: a requested locale is not a configured target locale.
- * @throws `AdapterError`: a target locale file is malformed. Its own code is preserved.
  * @throws `AdapterError`: the adapter refused a target locale file because it is malformed. Its
  * own code is preserved rather than remapped onto an {@link SdkErrorCode}.
  */
