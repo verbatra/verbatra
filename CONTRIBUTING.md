@@ -32,6 +32,8 @@ Run all commands from the repository root; Turborepo orchestrates the per-packag
 tasks.
 
 - `pnpm build` - build all packages
+- `pnpm dev:docs` - serve the docs site locally, after building the workspace
+  packages it imports
 - `pnpm test` - run the test suites (Vitest) with coverage
 - `pnpm lint` - lint all packages (Biome)
 - `pnpm check` - run Biome lint and format checks across the repository

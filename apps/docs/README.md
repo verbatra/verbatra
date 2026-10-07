@@ -9,10 +9,19 @@ formats (such as JSON, XLIFF, YAML, ARB, and properties), not Markdown or MDX.
 
 ## Running it
 
-From this directory:
+Start the dev server from the repository root:
 
 ```bash
-pnpm dev        # next dev, after syncing the version banner
+pnpm dev:docs
+```
+
+It goes through Turborepo, which first builds the workspace packages the site imports
+(`@verbatra/cli`, `@verbatra/sdk`, `@verbatra/studio`), so the server never loads a stale `dist`.
+Set `PORT` to serve on another port than 3000.
+
+The other tasks run from this directory:
+
+```bash
 pnpm build      # production build
 pnpm test       # the site's own Vitest suite
 pnpm typecheck
