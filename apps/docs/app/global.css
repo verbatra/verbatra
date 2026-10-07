@@ -952,6 +952,14 @@ figure.shiki > pre {
   background: transparent;
 }
 
+figure.shiki:not(:has(figcaption)) > div:has(> button) {
+  background: var(--v-void);
+}
+
+figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="region"] {
+  margin-inline-end: 2.5rem;
+}
+
 .shiki:not(.not-fumadocs-codeblock *) .highlighted {
   background: color-mix(in srgb, var(--v-purple) 22%, transparent);
 }
