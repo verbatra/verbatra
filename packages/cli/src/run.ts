@@ -468,12 +468,16 @@ function resolveCommandName(program: Command, argv: readonly string[]): string |
 
 const PROTOCOL_STDOUT_COMMANDS: ReadonlySet<string> = new Set(["mcp"]);
 
-const UNKNOWN_JSON_OPTION = "error: unknown option '--json'";
+function discardCommanderError(): void {}
 
-function writeUnlessJsonRefusal(message: string, write: (text: string) => void): void {
-  if (!message.startsWith(UNKNOWN_JSON_OPTION)) {
-    write(message);
-  }
+function commanderErrorText(error: CommanderError): string {
+  return error.message
+    .replace(/^error: /, "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line !== "")
+    .join(" ")
+    .replace("(Did you mean", "(did you mean");
 }
 
 function argvRequestsQuiet(argv: readonly string[]): boolean {
@@ -510,16 +514,19 @@ function renderUsageFailureExit2(
   facts: TerminalFacts,
 ): number {
   const command = resolveCommandName(program, argv);
+  const hint = usageErrorHint(command);
   if (command !== null && PROTOCOL_STDOUT_COMMANDS.has(command)) {
     if (argvRequestsJson(argv)) {
       streams.err(
         `verbatra: error [${USAGE_ERROR_CODE}] ${command} does not take --json: its stdout carries ` +
           "only MCP protocol messages, so it never prints a JSON envelope. Remove --json.\n",
       );
+    } else {
+      streams.err(`verbatra: error [${USAGE_ERROR_CODE}] ${commanderErrorText(error)}\n`);
+      hintUsage(error, hint, argv, streams, facts);
     }
     return 2;
   }
-  const hint = usageErrorHint(command);
   if (argvRequestsJson(argv)) {
     const envelope = renderErrorEnvelope(command, {
       code: USAGE_ERROR_CODE,
@@ -2279,7 +2286,7 @@ function registerMcpCommand(program: Command, ctx: ProgramContext): void {
       "--redact-values",
       "replace translation values in every tool result with a marker (also: VERBATRA_MCP_REDACT_VALUES)",
     )
-    .configureOutput({ outputError: writeUnlessJsonRefusal })
+    .configureOutput({ outputError: discardCommanderError })
     .action(async (opts: unknown) => {
       ctx.setCode(await runMcpCommand(opts, ctx.deps, ctx.streams, ctx.hooks, ctx.settings()));
     })

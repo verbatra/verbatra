@@ -162,6 +162,9 @@ Upgrading from 0.11: rejected config, rewritten files, new exit codes and SDK ty
   with the CLI, or delete that file to read it with the old versions again.
 - `verbatra mcp` exits 0 when the client closes stdin (it exited 13). `verbatra mcp --json` is
   refused with a stderr line only, so stdout stays clean for the client.
+- Another usage error of `verbatra mcp`, such as `--allowspend`, prints
+  `verbatra: error [USAGE_ERROR] unknown option ...` and a `next:` line on stderr instead of
+  commander's `error: unknown option ...`. Match on the exit code `2` or the `USAGE_ERROR` code.
 - `verbatra init` exits 2 with `MISSING_OPTIONS` when stdin ends at a prompt (it exited 13).
   Answer each prompt, or pass the options as flags.
 - `verbatra pseudo` names the mode in its summary line (`en-XA (accented): 118 of 120 entries`

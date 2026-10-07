@@ -227,14 +227,35 @@ describe("mcp: --json is refused without touching stdout", () => {
     expect(lines[0]).toMatch(/^verbatra: error \[USAGE_ERROR\] mcp does not take --json/);
   });
 
-  it("still reports another unknown mcp option through commander", async () => {
+  it("reports another unknown mcp option as a USAGE_ERROR line with a next hint on stderr", async () => {
     const cap = captureStreams();
 
     const code = await run(["mcp", "--bogus"], recordingDeps().deps, cap.streams);
 
     expect(code).toBe(2);
     expect(cap.out()).toBe("");
-    expect(cap.err()).toContain("error: unknown option '--bogus'");
+    expect(
+      cap
+        .err()
+        .split("\n")
+        .filter((line) => line !== ""),
+    ).toEqual([
+      "verbatra: error [USAGE_ERROR] unknown option '--bogus'",
+      "next: Run `verbatra mcp --help` to see the options and arguments it accepts.",
+    ]);
+  });
+
+  it("keeps commander's suggestion for a mistyped mcp flag on the USAGE_ERROR line", async () => {
+    const cap = captureStreams();
+
+    const code = await run(["mcp", "--allowspend"], recordingDeps().deps, cap.streams);
+
+    expect(code).toBe(2);
+    expect(cap.out()).toBe("");
+    expect(cap.err()).toMatch(
+      /^verbatra: error \[USAGE_ERROR\] unknown option '--allowspend' \(did you mean --allow-spend\?\)\n/,
+    );
+    expect(cap.err()).toContain("next: ");
   });
 
   it("keeps the envelope for another command's usage error under --json", async () => {
