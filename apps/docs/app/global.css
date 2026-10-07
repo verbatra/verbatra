@@ -782,7 +782,9 @@ samp {
 
   #nd-page
     .prose
-    :where(td .vk-code-short, th .vk-code-short):not(:where(.not-prose, .not-prose *)) {
+    :where(td .vk-code-short:has(wbr), th .vk-code-short:has(wbr)):not(
+      :where(.not-prose, .not-prose *)
+    ) {
     overflow-wrap: normal;
   }
 }
