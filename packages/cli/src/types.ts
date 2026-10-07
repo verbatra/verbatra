@@ -68,6 +68,7 @@ export interface CliDeps {
 
 export interface StudioModule {
   startStudioServer(options: StudioServerOptions): Promise<StudioServer>;
+  isRequestLogLine?(line: string): boolean;
 }
 
 export interface McpModule {

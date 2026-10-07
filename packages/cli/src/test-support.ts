@@ -42,7 +42,7 @@ import type {
   WatchController,
   WatchInput,
 } from "@verbatra/sdk";
-import { DEFAULT_STUDIO_PORT } from "@verbatra/studio";
+import { DEFAULT_STUDIO_PORT, isRequestLogLine } from "@verbatra/studio";
 import type { SpinnerClock, TimerHandle } from "./spinner.js";
 import { NON_INTERACTIVE_FACTS, resolveTerminalMode } from "./terminal-mode.js";
 import type { CliDeps, McpModule, Streams, StudioModule } from "./types.js";
@@ -276,6 +276,7 @@ export function makeStudioModule(overrides: Partial<StudioModule> = {}): StudioM
       port: options.port ?? DEFAULT_STUDIO_PORT,
       close: async () => {},
     }),
+    isRequestLogLine,
     ...overrides,
   };
 }

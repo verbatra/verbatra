@@ -52,7 +52,11 @@ function portInUseHint(error: unknown): string | undefined {
 
 const AGENT_TOOLS_ENV_VAR = "VERBATRA_STUDIO_AGENT_TOOLS";
 
-const REQUEST_LOG_LINE = /^[A-Z]+ \S+ \d{3}$/;
+const STUDIO_0_5_REQUEST_LOG_LINE = /^[A-Z]+ \S+ \d{3}$/;
+
+function isStudio05RequestLogLine(line: string): boolean {
+  return STUDIO_0_5_REQUEST_LOG_LINE.test(line);
+}
 
 const SERVER_ERROR_LINE = /^studio error: /;
 
@@ -64,11 +68,16 @@ function masked(line: string, token: string): string {
   return line.replaceAll(token, MASKED_TOKEN).replace(TOKEN_QUERY, `token=${MASKED_TOKEN}`);
 }
 
-function serverOutputForwarder(ui: Ui, token: string, verbose: boolean): (line: string) => void {
+function serverOutputForwarder(
+  ui: Ui,
+  token: string,
+  verbose: boolean,
+  isRequestLogLine: (line: string) => boolean,
+): (line: string) => void {
   return (line) => {
     if (SERVER_ERROR_LINE.test(line)) {
       ui.warn(masked(line, token));
-    } else if (verbose && REQUEST_LOG_LINE.test(line)) {
+    } else if (verbose && isRequestLogLine(line)) {
       ui.line(masked(line, token));
     }
   };
@@ -146,7 +155,12 @@ export async function runStudio(
         loader: () => Promise.resolve(config),
         token,
         cwd: root,
-        output: serverOutputForwarder(ui, token, opts.verbose === true),
+        output: serverOutputForwarder(
+          ui,
+          token,
+          opts.verbose === true,
+          studioModule.isRequestLogLine ?? isStudio05RequestLogLine,
+        ),
         spend,
         exposeAgentTools,
         ...(opts.port !== undefined ? { port: opts.port } : {}),

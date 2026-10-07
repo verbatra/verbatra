@@ -459,6 +459,49 @@ describe("run studio: success path and shutdown", () => {
     await donePromise;
   });
 
+  it("forwards an RPC request line that names its method under --verbose", async () => {
+    const { deps } = recordingDeps({
+      importStudio: async () =>
+        makeStudioModule({
+          startStudioServer: async (options) => {
+            options.output?.("POST /rpc status.check 200");
+            return { url: "http://127.0.0.1:5849/", port: 5849, close: async () => {} };
+          },
+        }),
+    });
+    const cap = captureStreams();
+    const captured = captureStudioSession();
+
+    const donePromise = run(["studio", "--verbose"], deps, cap.streams, captured.hooks);
+    await flush();
+    captured.session()?.requestStop();
+    await donePromise;
+
+    expect(cap.err()).toContain("POST /rpc status.check 200\n");
+  });
+
+  it("falls back to the three-token request line for a Studio without isRequestLogLine", async () => {
+    const { deps } = recordingDeps({
+      importStudio: async () => ({
+        startStudioServer: async (options) => {
+          options.output?.("GET / 200");
+          options.output?.("studio server internal log line");
+          return { url: "http://127.0.0.1:5849/", port: 5849, close: async () => {} };
+        },
+      }),
+    });
+    const cap = captureStreams();
+    const captured = captureStudioSession();
+
+    const donePromise = run(["studio", "--verbose"], deps, cap.streams, captured.hooks);
+    await flush();
+    captured.session()?.requestStop();
+    await donePromise;
+
+    expect(cap.err()).toContain("GET / 200\n");
+    expect(cap.err()).not.toContain("studio server internal log line");
+  });
+
   it("describes --verbose as what it forwards, not the startup banner", async () => {
     const cap = captureStreams();
 
