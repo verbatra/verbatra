@@ -11,6 +11,107 @@ L'**Étape suivante** d'un code d'erreur est l'indice que verbatra affiche aprè
 
 Deux codes appartiennent à deux familles : `CONFIG_INVALID` (le SDK, et `init` dans la CLI) et `NETWORK_POLICY_VIOLATION` (le SDK et les fournisseurs). L'ancre en minuscules mène à l'entrée du SDK ; l'autre entrée porte une ancre préfixée.
 
+## Index des codes
+
+Chaque code d'erreur avec sa famille et les codes de sortie avec lesquels il peut terminer une exécution de la CLI ; l'entrée donne les détails.
+
+| Code | Famille | Code de sortie |
+| --- | --- | --- |
+| [`AGENT_FILE_INVALID`](#agent_file_invalid) | CLI | `2` |
+| [`CLI_ERROR`](#cli_error) | CLI | `2` |
+| [`CONFIG_EXISTS`](#config_exists) | CLI | `2` |
+| [`CONFIG_INVALID`](#cli-config_invalid) | CLI | `2` |
+| [`FORMAT_AMBIGUOUS`](#format_ambiguous) | CLI | `2` |
+| [`INIT_UNWRITABLE`](#init_unwritable) | CLI | `2` |
+| [`INVALID_CONCURRENCY`](#invalid_concurrency) | CLI | `2` |
+| [`INVALID_DEBOUNCE`](#invalid_debounce) | CLI | `2` |
+| [`INVALID_DIRECTION`](#invalid_direction) | CLI | `2` |
+| [`INVALID_FORMAT`](#invalid_format) | CLI | `2` |
+| [`INVALID_LOCALE`](#invalid_locale) | CLI | `2` |
+| [`INVALID_LOCALES`](#invalid_locales) | CLI | `2` |
+| [`INVALID_LOCK_TIMEOUT`](#invalid_lock_timeout) | CLI | `2` |
+| [`INVALID_MAX_TOKENS`](#invalid_max_tokens) | CLI | `2` |
+| [`INVALID_OPTION`](#invalid_option) | CLI | `2` |
+| [`INVALID_OUT`](#invalid_out) | CLI | `2` |
+| [`INVALID_PORT`](#invalid_port) | CLI | `2` |
+| [`INVALID_PROVIDER`](#invalid_provider) | CLI | `2` |
+| [`INVALID_QA_OPTION`](#invalid_qa_option) | CLI | `2` |
+| [`INVALID_SEVERITY`](#invalid_severity) | CLI | `2` |
+| [`LAYOUT_AMBIGUOUS`](#layout_ambiguous) | CLI | `2` |
+| [`MISSING_OPTIONS`](#missing_options) | CLI | `2` |
+| [`REDACTION_UNSUPPORTED`](#redaction_unsupported) | CLI | `2` |
+| [`USAGE_ERROR`](#usage_error) | CLI | `2` |
+| [`CONFIG_NOT_FOUND`](#config_not_found) | SDK | `2` ou `1` |
+| [`CONFIG_INVALID`](#config_invalid) | SDK | `2` ou `1` |
+| [`UNKNOWN_FORMAT`](#unknown_format) | SDK | `2` ou `1` |
+| [`UNKNOWN_LOCALE`](#unknown_locale) | SDK | `2` |
+| [`UNKNOWN_KEY`](#unknown_key) | SDK | aucun |
+| [`KEY_PROTECTED`](#key_protected) | SDK | aucun |
+| [`KEY_PINNED`](#key_pinned) | SDK | aucun |
+| [`PROVIDER_CONSTRUCTION_FAILED`](#provider_construction_failed) | SDK | `2` |
+| [`MACHINE_TRANSLATION_DISABLED`](#machine_translation_disabled) | SDK | aucun |
+| [`NETWORK_POLICY_VIOLATION`](#network_policy_violation) | SDK | `2` |
+| [`SOURCE_UNREADABLE`](#source_unreadable) | SDK | `2` ou `1` |
+| [`SOURCE_INVALID`](#source_invalid) | SDK | `2` ou `1` |
+| [`LOCK_FILE_INVALID`](#lock_file_invalid) | SDK | `2` |
+| [`PROVENANCE_FILE_INVALID`](#provenance_file_invalid) | SDK | `2` |
+| [`PROVENANCE_FILE_UNWRITABLE`](#provenance_file_unwritable) | SDK | aucun |
+| [`REVIEW_VALUE_CHANGED`](#review_value_changed) | SDK | aucun |
+| [`REVIEW_SOURCE_CHANGED`](#review_source_changed) | SDK | aucun |
+| [`REVIEW_REJECT_UNSUPPORTED`](#review_reject_unsupported) | SDK | aucun |
+| [`REVIEW_RESTORE_FAILED`](#review_restore_failed) | SDK | aucun |
+| [`REVIEWER_INVALID`](#reviewer_invalid) | SDK | `2` |
+| [`LOCK_CONTENDED`](#lock_contended) | SDK | `1` |
+| [`GLOSSARY_NOT_FILE_BACKED`](#glossary_not_file_backed) | SDK | aucun |
+| [`GLOSSARY_UNWRITABLE`](#glossary_unwritable) | SDK | aucun |
+| [`LOCALE_LAYOUT_INVALID`](#locale_layout_invalid) | SDK | `2` |
+| [`LOCALE_PATH_COLLISION`](#locale_path_collision) | SDK | `2` |
+| [`CONCURRENCY_INVALID`](#concurrency_invalid) | SDK | aucun |
+| [`CONCURRENCY_BUDGET_CONFLICT`](#concurrency_budget_conflict) | SDK | `2` |
+| [`MAX_TOKENS_INVALID`](#max_tokens_invalid) | SDK | aucun |
+| [`LOCK_TIMEOUT_INVALID`](#lock_timeout_invalid) | SDK | aucun |
+| [`PAGE_CURSOR_INVALID`](#page_cursor_invalid) | SDK | aucun |
+| [`PAGE_LIMIT_INVALID`](#page_limit_invalid) | SDK | aucun |
+| [`TARGET_UNWRITABLE`](#target_unwritable) | SDK | `1` ou `2` |
+| [`PSEUDO_OUTPUT_CONFLICT`](#pseudo_output_conflict) | SDK | `2` |
+| [`SOURCE_UNWRITABLE`](#source_unwritable) | SDK | `2` |
+| [`EXTRACT_NOT_CONFIGURED`](#extract_not_configured) | SDK | `2` |
+| [`EXTRACT_FS_UNSUPPORTED`](#extract_fs_unsupported) | SDK | aucun |
+| [`TYPES_OUTPUT_CONFLICT`](#types_output_conflict) | SDK | `2` |
+| [`TYPES_UNWRITABLE`](#types_unwritable) | SDK | `2` |
+| [`TMX_OUTPUT_CONFLICT`](#tmx_output_conflict) | SDK | `2` |
+| [`TMX_UNWRITABLE`](#tmx_unwritable) | SDK | `2` |
+| [`EXPORT_OUTPUT_CONFLICT`](#export_output_conflict) | SDK | `2` |
+| [`EXPORT_UNWRITABLE`](#export_unwritable) | SDK | `2` |
+| [`LOCALE_STATE_NOT_CARRIED_OVER`](#locale_state_not_carried_over) | SDK | `1` |
+| [`LOCALE_UNSUPPORTED_BY_PROVIDER`](#locale_unsupported_by_provider) | SDK | `2` |
+| [`NOT_A_LOCALE_FILE`](#not_a_locale_file) | SDK | `2` |
+| [`SENSITIVE_CONTENT_WITHHELD`](#sensitive_content_withheld) | SDK | aucun |
+| [`RUN_CANCELLED`](#run_cancelled) | SDK | aucun |
+| [`LOCALE_FAILED`](#locale_failed) | SDK | `1` |
+| [`MISSING_API_KEY`](#missing_api_key) | Fournisseur | `2` |
+| [`INVALID_REQUEST`](#invalid_request) | Fournisseur | `1` |
+| [`INVALID_RESPONSE`](#invalid_response) | Fournisseur | `1` |
+| [`OUTPUT_TRUNCATED`](#output_truncated) | Fournisseur | `1` |
+| [`PROVIDER_REFUSED`](#provider_refused) | Fournisseur | `1` |
+| [`PROVIDER_BLOCKED`](#provider_blocked) | Fournisseur | `1` |
+| [`RATE_LIMITED`](#rate_limited) | Fournisseur | `1` |
+| [`TIMEOUT`](#timeout) | Fournisseur | `1` |
+| [`AUTH_FAILED`](#auth_failed) | Fournisseur | `1` |
+| [`PROVIDER_UNAVAILABLE`](#provider_unavailable) | Fournisseur | `1` |
+| [`NETWORK_POLICY_VIOLATION`](#provider-network_policy_violation) | Fournisseur | `1` |
+| [`PROVIDER_ERROR`](#provider_error) | Fournisseur | `1` |
+| [`INVALID_JSON`](#invalid_json) | Adaptateur de format | `1` ou `2` |
+| [`INVALID_YAML`](#invalid_yaml) | Adaptateur de format | `1` ou `2` |
+| [`INVALID_XML`](#invalid_xml) | Adaptateur de format | `1` ou `2` |
+| [`INVALID_STRUCTURE`](#invalid_structure) | Adaptateur de format | `1` ou `2` |
+| [`MAX_DEPTH_EXCEEDED`](#max_depth_exceeded) | Adaptateur de format | `1` ou `2` |
+| [`INPUT_TOO_LARGE`](#input_too_large) | Adaptateur de format | `1` ou `2` |
+| [`MIXED_STRUCTURE`](#mixed_structure) | Adaptateur de format | `1` ou `2` |
+| [`ADAPTER_FAILED`](#adapter_failed) | Adaptateur de format | aucun |
+| [`DUPLICATE_FORMAT`](#duplicate_format) | Adaptateur de format | aucun |
+| [`INVALID_FORMAT_ID`](#invalid_format_id) | Adaptateur de format | aucun |
+
 ## Codes d'erreur de la CLI [#cli-error-codes]
 
 La CLI lève ces codes elle-même. La même liste est publiée sous le nom `CLI_ERROR_CODES` (avec le type `CliErrorCode`) depuis `@verbatra/cli`. Tous sortent avec `2`.
@@ -128,7 +229,7 @@ Un échec ne portait aucun code propre (le code de repli).
 
 ### INVALID_OPTION
 
-Une option d'`init` ne correspond pas au fournisseur (`--base-url` sans `openai-compatible` ni `libretranslate`, `--model` pour DeepL), `--api-key-env-var` n'est pas un nom de variable, `--base-url` contient des identifiants, une query string ou un fragment, `--cwd` ne nomme aucun répertoire existant (pour toute commande, avant son exécution), ou `doctor` a reçu `--locales` ou `--live` avec `--literals`, ou `check --file` ne nomme aucun fichier ou arrive avec `--locales`, `--consistency`, `--require-reviewed` ou `--sensitive`, ou `pseudo --mode` nomme un autre mode que `accented` ou `bidi`.
+Une option d'`init` ne correspond pas au fournisseur ou est mal formée : `--base-url` sans `openai-compatible` ni `libretranslate`, qui n'est pas une URL ou qui contient des identifiants, une query string ou un fragment ; `--api-key-env-var` avec un autre fournisseur qu'`openai-compatible`, ou qui n'est pas un nom de variable ; `--model` pour un fournisseur sans modèle (`deepl`, `google-translate`, `libretranslate`, `none`) ; une option quelconque avec une valeur vide ; `--targets` sans aucune locale ; `--path` sans `{locale}` ; `--client` sans `--agent`, sans client ou avec un client qu'init ne sait pas configurer. Ou bien `--cwd` ne nomme aucun répertoire existant (pour toute commande, avant son exécution), `doctor --data-flow` arrive avec `--literals`, `--locales` ou `--live`, `doctor --literals` arrive avec `--locales` ou `--live`, `check --file` ne nomme aucun fichier ou arrive avec `--locales`, `--consistency`, `--require-reviewed` ou `--sensitive`, ou `pseudo --mode` nomme un autre mode que `accented` ou `bidi`.
 
 - **Levé par** : toute commande qui accepte `--cwd`, ainsi que `init`, `doctor`, `check`, `pseudo`
 - **Code de sortie** : `2`
@@ -328,7 +429,7 @@ Le fichier de provenance est présent mais corrompu, trop volumineux ou mal form
 
 ### PROVENANCE_FILE_UNWRITABLE
 
-Une décision de relecture n'a pas pu être enregistrée parce que le fichier de provenance vient d'un verbatra plus récent ou grossirait au-delà de la taille que verbatra relit (`approveEntry`, `rejectEntry`) ; rien n'est écrit.
+Une décision de relecture n'a pas pu être enregistrée parce que le fichier de provenance vient d'un verbatra plus récent ou grossirait au-delà de la taille que verbatra relit (`approveEntry`, `rejectEntry`, `approveLocale`) ; rien n'est écrit.
 
 - **Levé par** : Studio et le serveur MCP
 - **Code de sortie** : aucun : aucune commande de la CLI ne le lève
@@ -368,7 +469,7 @@ Le format garde la valeur d'une clé quand le fichier est écrit sans elle, comm
 
 ### REVIEWER_INVALID
 
-`reviewer` est vide, dépasse 64 caractères ou contient un caractère de contrôle (`approveEntry`, `rejectEntry`, `importWorkbook`).
+`reviewer` est vide, dépasse 64 caractères ou contient un caractère de contrôle (`approveEntry`, `rejectEntry`, `approveLocale`, `importWorkbook`).
 
 - **Levé par** : `import --reviewer` ; Studio et le serveur MCP
 - **Code de sortie** : `2`
@@ -804,13 +905,13 @@ Au moins une traduction écrite par la machine (origine `machine`, `memory`, `fu
 
 ## Motifs de refus d'intégrité [#integrity-refusal-reasons]
 
-La [barrière d'intégrité](/docs/translation-safety#la-barrière-dintégrité) refuse une valeur candidate avec exactement un de ces motifs, le premier qui s'applique dans l'ordre donné sur cette page. Le motif apparaît dans les `integrityRefusals` d'une locale après `translate`, `watch` et `import` (`integrity-withheld` dans la sortie lisible), dans le résultat de `editEntry` et comme erreur de `check --qa`, souvent avec des `details` qui nomment ce qui diffère. L'ensemble est publié sous la forme du tuple `INTEGRITY_GATE_REASONS`.
+La [barrière d'intégrité](/docs/translation-safety#la-barrière-dintégrité) refuse une valeur candidate avec exactement un de ces motifs, le premier qui s'applique dans l'ordre donné sur cette page. Le motif apparaît dans les `integrityRefusals` d'une locale après `translate`, `watch` et `import` (`integrity-withheld` dans la sortie lisible), dans le résultat de `editEntry` et de `retranslateEntry` (`accepted: false` avec le `reason`) et comme erreur de `check --qa`, souvent avec des `details` qui nomment ce qui diffère. L'ensemble est publié sous la forme du tuple `INTEGRITY_GATE_REASONS`.
 
 ### placeholder
 
 Les placeholders de la candidate diffèrent de ceux de sa source, comparés comme un multiensemble : le nombre compte, l'ordre non. Ce qui compte comme placeholder est défini par chaque [format](/docs/formats). Pour i18next, ngx-translate et YAML, un jeton de forme `{name}` que la candidate ajoute et que la source n'avait jamais est refusé aussi, même si les accolades simples y sont du texte littéral. Les détails nomment chaque placeholder supprimé avec `-` et chaque placeholder ajouté avec `+`, par exemple `-{{name}}` ou `+{{nom}}`.
 
-- **Levé par** : `translate`, `watch`, `import`, `editEntry` ; `check --qa` (comme erreur)
+- **Levé par** : `translate`, `watch`, `import`, `editEntry`, `retranslateEntry` ; `check --qa` (comme erreur)
 - **Code de sortie** : `1` depuis `translate` et `import` quand la locale finit partielle ou en échec ; `1` depuis `check --qa`
 - **Étape suivante** : Remets les placeholders de la source dans la traduction, ou laisse l'exécution suivante la traduire à nouveau.
 
@@ -818,7 +919,7 @@ Les placeholders de la candidate diffèrent de ceux de sa source, comparés comm
 
 Le balisage HTML ou XML en ligne de la candidate diffère de celui de sa source, ou n'est pas bien formé. Les détails nomment chaque balise à l'origine du refus, précédée de `-` pour une balise que la source avait et que la candidate a supprimée, ou de `+` pour une balise que la candidate a inventée.
 
-- **Levé par** : `translate`, `watch`, `import`, `editEntry` ; `check --qa` (comme erreur)
+- **Levé par** : `translate`, `watch`, `import`, `editEntry`, `retranslateEntry` ; `check --qa` (comme erreur)
 - **Code de sortie** : `1` depuis `translate` et `import` quand la locale finit partielle ou en échec ; `1` depuis `check --qa`
 - **Étape suivante** : Garde dans la traduction les balises, les noms d'attribut et les valeurs d'attribut protégées de la source.
 
@@ -975,7 +1076,7 @@ fermante en trop comme un second `</g>`.
 
 Pour next-intl et ARB, la candidate ne s'analyse plus comme un message ICU (y compris un `plural` sans sa branche `other`), ou ses branches `plural` ou `selectordinal` ne correspondent pas aux catégories CLDR de la langue cible, ou ses branches `select` diffèrent de celles de la source. Les détails nomment chaque branche incorrecte. [Branches plurielles par langue cible](/docs/translation-safety#branches-plurielles-par-langue-cible) explique la règle.
 
-- **Levé par** : `translate`, `watch`, `import`, `editEntry` ; `check --qa` (comme erreur)
+- **Levé par** : `translate`, `watch`, `import`, `editEntry`, `retranslateEntry` ; `check --qa` (comme erreur)
 - **Code de sortie** : `1` depuis `translate` et `import` quand la locale finit partielle ou en échec ; `1` depuis `check --qa`
 - **Étape suivante** : Corrige le message pour qu'il s'analyse et porte exactement les branches dont la langue cible a besoin.
 
@@ -983,7 +1084,7 @@ Pour next-intl et ARB, la candidate ne s'analyse plus comme un message ICU (y co
 
 La candidate est structurellement dégénérée : une boucle de répétition, ou une longueur qui s'est emballée par rapport à sa source. C'est l'allure d'un modèle qui s'est mis à répéter un fragment, même quand chaque placeholder a survécu.
 
-- **Levé par** : `translate`, `watch`, `import`, `editEntry` ; `check --qa` (comme erreur)
+- **Levé par** : `translate`, `watch`, `import`, `editEntry`, `retranslateEntry` ; `check --qa` (comme erreur)
 - **Code de sortie** : `1` depuis `translate` et `import` quand la locale finit partielle ou en échec ; `1` depuis `check --qa`
 - **Étape suivante** : Laisse l'exécution suivante traduire la clé à nouveau, ou écris la traduction à la main.
 
@@ -991,7 +1092,7 @@ La candidate est structurellement dégénérée : une boucle de répétition, ou
 
 La candidate est vide ou ne contient que des espaces alors que sa source ne l'est pas. Vider une traduction est un acte délibéré : c'est le rôle du marqueur `[[CLEAR]]` du classeur.
 
-- **Levé par** : `translate`, `watch`, `import`, `editEntry` ; `check --qa` (comme erreur)
+- **Levé par** : `translate`, `watch`, `import`, `editEntry`, `retranslateEntry` ; `check --qa` (comme erreur)
 - **Code de sortie** : `1` depuis `translate` et `import` quand la locale finit partielle ou en échec ; `1` depuis `check --qa`
 - **Étape suivante** : Écris une traduction, ou vide la valeur volontairement avec `[[CLEAR]]` dans un import de classeur.
 
@@ -1250,7 +1351,7 @@ Avec `"redact"`, les correspondances dans les valeurs de ces clés ont été rem
 Avec `"block"` ou `"redact"`, des clés n'ont pas été envoyées à cause d'une correspondance et figurent dans `sensitiveWithheld`, ou des termes du glossaire avec une correspondance ont été laissés hors de la requête. Avec `"redact"`, une clé est retenue quand la correspondance est dans son nom ou chevauche un placeholder, ou quand un jeton n'est pas revenu exactement une fois. Le message nomme les premières clés en entier, donc une correspondance dans un nom de clé y apparaît.
 
 - **Levé par** : `translate` (y compris une exécution à blanc), `watch`
-- **Code de sortie** : `1`, puisqu'une clé retenue laisse la locale `partial` ou `failed`
+- **Code de sortie** : `1`, puisqu'une clé retenue laisse la locale `partial` ou `failed` ; `0` quand seuls des termes du glossaire ont été laissés de côté, puisque la locale réussit quand même
 - **Étape suivante** : Retire le contenu ou autorise-le dans `sensitiveData.allow` ; les clés sont retentées à la prochaine exécution.
 
 ### RUN_CANCELLED [#notice-run_cancelled]
