@@ -3,7 +3,7 @@ title: verbatra import
 description: Import a filled workbook, CSV, TSV, or XLIFF handoff back into the locale files, running the same safety checks.
 type: reference
 ---
-Read a handoff a translator filled in back into your locale files. Every value runs through the same integrity checks as an automated run: values that pass are written and [the lock file](/docs/the-lock-file) is updated, values that fail are withheld and reported, so a bad cell never lands in a locale file.
+Read a handoff a translator filled in back into your locale files. Every value runs through the same integrity checks as an automated run: values that pass are written and [the lock file](/docs/the-lock-file) is updated, values that fail are withheld and reported, so a bad cell never lands in a locale file. A real run also adds missing entries to an existing `.gitignore`, see [.gitignore entries](/docs/cli#gitignore-entries).
 
 ## Synopsis
 
@@ -25,6 +25,10 @@ verbatra import <workbook> [flags]
 Also takes the [global flags](/docs/cli#global-flags) `--cwd`, `--config` and `--json`.
 
 ## Behavior
+
+<Callout type="warn">
+Every filled value that passes the checks replaces the value in the locale file, including one a person wrote. Run `--dry-run` first to see what would change.
+</Callout>
 
 ### Locale files and leftovers
 

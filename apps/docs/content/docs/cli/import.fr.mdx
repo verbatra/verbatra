@@ -3,7 +3,7 @@ title: verbatra import
 description: Réimporte une remise remplie (classeur, CSV, TSV ou XLIFF) dans les fichiers de locale, avec les mêmes vérifications de sûreté.
 type: reference
 ---
-Relis une remise remplie par un traducteur dans tes fichiers de locale. Chaque valeur passe par les mêmes contrôles d'intégrité qu'une exécution automatisée : les valeurs qui passent sont écrites et [le fichier de verrouillage](/docs/the-lock-file) est mis à jour, celles qui échouent sont retenues et signalées, si bien qu'une cellule défectueuse n'atterrit jamais dans un fichier de locale.
+Relis une remise remplie par un traducteur dans tes fichiers de locale. Chaque valeur passe par les mêmes contrôles d'intégrité qu'une exécution automatisée : les valeurs qui passent sont écrites et [le fichier de verrouillage](/docs/the-lock-file) est mis à jour, celles qui échouent sont retenues et signalées, si bien qu'une cellule défectueuse n'atterrit jamais dans un fichier de locale. Une vraie exécution ajoute aussi les entrées manquantes à un `.gitignore` existant, voir [Entrées du .gitignore](/docs/cli#entrées-du-gitignore).
 
 ## Synopsis
 
@@ -25,6 +25,10 @@ verbatra import <workbook> [flags]
 La commande accepte aussi les [options globales](/docs/cli#options-globales) `--cwd`, `--config` et `--json`.
 
 ## Comportement
+
+<Callout type="warn">
+Chaque valeur remplie qui passe les contrôles remplace la valeur du fichier de locale, y compris une valeur écrite par une personne. Lance d'abord `--dry-run` pour voir ce qui changerait.
+</Callout>
 
 ### Fichiers de locale et reliquats
 

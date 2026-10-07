@@ -3,7 +3,7 @@ title: verbatra translate
 description: Translate every target locale once, then exit.
 type: reference
 ---
-Run one translation pass over every target locale, then exit. `translate` diffs the source against [the lock file](/docs/the-lock-file), sends only new or changed strings to the provider, runs the [integrity checks](/docs/translation-safety), writes the locale files, and updates the lock. An unchanged string is never sent twice.
+Run one translation pass over every target locale, then exit. `translate` diffs the source against [the lock file](/docs/the-lock-file), sends only new or changed strings to the provider, runs the [integrity checks](/docs/translation-safety), writes the locale files, and updates the lock. An unchanged string is never sent twice. A real run also adds missing entries to an existing `.gitignore`, see [.gitignore entries](/docs/cli#gitignore-entries).
 
 ## Synopsis
 
@@ -15,7 +15,7 @@ verbatra translate [flags]
 
 | Flag | Argument | Default | Effect |
 | --- | --- | --- | --- |
-| `--locales` | `<list>` | every configured target locale | translate only this comma-separated subset; an unconfigured locale fails with `UNKNOWN_LOCALE`, an empty list exits `2` |
+| `--locales` | `<list>` | every configured target locale | translate only this comma-separated subset; an unconfigured locale fails with `UNKNOWN_LOCALE` and an empty list with `INVALID_LOCALES`, both exit `2` |
 | `--dry-run` | none | off | report what a run would change without calling a provider or writing files; needs no API key |
 | `--prune` | none | the config's `prune` option, otherwise off | remove orphaned keys (in a target file, absent from source) from the written file and the lock |
 | `--lock-timeout` | `<seconds>` | `600` | wait this long for a held per-locale write lock; a whole number from `1` to `3600` |
@@ -29,11 +29,17 @@ Also takes the [global flags](/docs/cli#global-flags) `--cwd`, `--config` and `-
 
 ## Behavior
 
+<Callout type="warn">
+A run without `--dry-run` or `--estimate` sends every new or changed string to the provider, and a hosted provider bills for it: size the run with `--estimate` and cap it with `--max-tokens`. An API key sent to a self-hosted server over plain `http://` (not loopback) crosses the network unencrypted, see [Keys are optional](/docs/providers#keys-are-optional).
+</Callout>
+
 ### Dry run
 
 `--dry-run` constructs no provider, so it needs no API key and cannot spend anything. It reads the source and target files, diffs them against the lock file, and reports exactly what a real run would change. It writes nothing (no locale file, no lock update, no run-status snapshot), neither reads nor writes the cache, and takes no write lock, so it never waits on a run in progress.
 
-By default a run deletes nothing: orphaned keys are reported and left in place. `--prune` removes exactly those keys, and `--prune --dry-run` previews them.
+<Callout type="warn">
+By default a run deletes nothing: orphaned keys are reported and left in place. `--prune`, or `prune: true` in the config, deletes exactly those keys from the target files and the lock; `--prune --dry-run` previews them.
+</Callout>
 
 ### Cost estimate
 

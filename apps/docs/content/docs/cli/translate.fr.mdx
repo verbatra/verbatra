@@ -3,7 +3,7 @@ title: verbatra translate
 description: Traduit chaque locale cible une fois, puis termine.
 type: reference
 ---
-Lance une passe de traduction sur chaque locale cible, puis termine. `translate` compare la source au [fichier de verrouillage](/docs/the-lock-file), n'envoie au fournisseur que les chaînes nouvelles ou modifiées, exécute les [contrôles d'intégrité](/docs/translation-safety), écrit les fichiers de locale et met à jour le verrou. Une chaîne inchangée n'est jamais envoyée deux fois.
+Lance une passe de traduction sur chaque locale cible, puis termine. `translate` compare la source au [fichier de verrouillage](/docs/the-lock-file), n'envoie au fournisseur que les chaînes nouvelles ou modifiées, exécute les [contrôles d'intégrité](/docs/translation-safety), écrit les fichiers de locale et met à jour le verrou. Une chaîne inchangée n'est jamais envoyée deux fois. Une vraie exécution ajoute aussi les entrées manquantes à un `.gitignore` existant, voir [Entrées du .gitignore](/docs/cli#entrées-du-gitignore).
 
 ## Synopsis
 
@@ -15,7 +15,7 @@ verbatra translate [flags]
 
 | Option | Argument | Défaut | Effet |
 | --- | --- | --- | --- |
-| `--locales` | `<list>` | chaque locale cible configurée | ne traduit que ce sous-ensemble séparé par des virgules ; une locale non configurée échoue avec `UNKNOWN_LOCALE`, une liste vide sort avec `2` |
+| `--locales` | `<list>` | chaque locale cible configurée | ne traduit que ce sous-ensemble séparé par des virgules ; une locale non configurée échoue avec `UNKNOWN_LOCALE` et une liste vide avec `INVALID_LOCALES`, les deux avec la sortie `2` |
 | `--dry-run` | aucun | désactivé | indique ce qu'une exécution changerait sans appeler de fournisseur ni écrire de fichier ; aucune clé d'API nécessaire |
 | `--prune` | aucun | l'option `prune` de la configuration, sinon désactivé | retire les clés orphelines (dans un fichier cible, absentes de la source) du fichier écrit et du verrou |
 | `--lock-timeout` | `<seconds>` | `600` | attend ce délai un verrou d'écriture occupé d'une locale ; un entier de `1` à `3600` |
@@ -29,11 +29,17 @@ Accepte aussi les [options globales](/docs/cli#options-globales) `--cwd`, `--con
 
 ## Comportement
 
+<Callout type="warn">
+Une exécution sans `--dry-run` ni `--estimate` envoie chaque chaîne nouvelle ou modifiée au fournisseur, et un fournisseur hébergé la facture : estime l'exécution avec `--estimate` et plafonne-la avec `--max-tokens`. Une clé d'API envoyée à un serveur auto-hébergé en `http://` simple (hors loopback) traverse le réseau en clair, voir [Les clés sont optionnelles](/docs/providers#les-clés-sont-optionnelles).
+</Callout>
+
 ### Exécution à blanc
 
 `--dry-run` ne construit aucun fournisseur : il n'a besoin d'aucune clé d'API et ne peut rien dépenser. Il lit les fichiers source et cibles, les compare au fichier de verrouillage et indique exactement ce qu'une vraie exécution changerait. Il n'écrit rien (ni fichier de locale, ni mise à jour du verrou, ni instantané d'état d'exécution), ne lit ni n'écrit le cache et ne prend aucun verrou d'écriture, donc n'attend jamais une exécution en cours.
 
-Par défaut, une exécution ne supprime rien : les clés orphelines sont signalées et restent en place. `--prune` retire exactement ces clés, et `--prune --dry-run` te les montre avant.
+<Callout type="warn">
+Par défaut, une exécution ne supprime rien : les clés orphelines sont signalées et restent en place. `--prune`, ou `prune: true` dans la config, supprime exactement ces clés des fichiers cibles et du verrou ; `--prune --dry-run` te les montre avant.
+</Callout>
 
 ### Estimation du coût
 

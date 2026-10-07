@@ -57,7 +57,11 @@ An unknown command or flag exits `2`, and so does a bare `verbatra` with no comm
 
 ## Environment files
 
-`translate`, `watch`, `doctor`, `studio`, and `mcp` load `.env.local` and then `.env` from the working directory before they run. When the config the search found sits in a parent directory, they then load the same two files from that directory too; with `--config` they read only the working directory. `doctor --literals` is the exception: it reads no API key, so it loads neither file. A variable already set in your real environment always wins, then the working directory's files, then the config directory's, and a value in `.env.local` wins over the same variable in `.env`. API keys are read only from the environment, never from the config file or a flag: see [Providers](/docs/providers). The read-only commands (`check`, `diff`, `report`), the handoff commands (`export`, `import`), `extract`, `init`, `pseudo`, `types`, and `tmx` never call a provider and load no `.env` files.
+`translate`, `watch`, `doctor`, `studio`, and `mcp` load `.env.local` and then `.env` from the working directory before they run. When the config the search found sits in a parent directory, they then load the same two files from that directory too; with `--config` they read only the working directory. When an MCP client changes its roots, the MCP server loads both files from the new project root too. `doctor --literals` is the exception: it reads no API key, so it loads neither file. A variable already set in your real environment always wins, then the working directory's files, then the config directory's, and a value in `.env.local` wins over the same variable in `.env`. API keys are read only from the environment, never from the config file or a flag: see [Providers](/docs/providers). The read-only commands (`check`, `diff`, `report`), the handoff commands (`export`, `import`), `extract`, `init`, `pseudo`, `types`, and `tmx` never call a provider and load no `.env` files.
+
+## .gitignore entries
+
+A real run of `translate`, `watch`, `import`, `tmx import` or `pseudo` also appends whichever of `.env`, `.env.local`, `.verbatra-local/` and `verbatra.cache.json` an existing `.gitignore` in the project root is missing, and names them on stderr. A dry run leaves the file alone, and none of these commands creates one; [`verbatra init`](/docs/cli/init) does.
 
 ## Terminal output
 

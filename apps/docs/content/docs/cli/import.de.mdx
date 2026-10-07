@@ -3,7 +3,7 @@ title: verbatra import
 description: Importiere eine ausgefüllte Übergabe als Arbeitsmappe, CSV, TSV oder XLIFF zurück in die Locale-Dateien, mit denselben Sicherheitsprüfungen.
 type: reference
 ---
-Lies eine von einer Übersetzerin ausgefüllte Übergabe zurück in deine Locale-Dateien. Jeder Wert läuft durch dieselben Integritätsprüfungen wie ein automatischer Lauf: Werte, die bestehen, werden geschrieben, und die [Lock-Datei](/docs/the-lock-file) wird aktualisiert; Werte, die durchfallen, werden zurückgehalten und gemeldet. Eine kaputte Zelle landet also nie in einer Locale-Datei.
+Lies eine von einer Übersetzerin ausgefüllte Übergabe zurück in deine Locale-Dateien. Jeder Wert läuft durch dieselben Integritätsprüfungen wie ein automatischer Lauf: Werte, die bestehen, werden geschrieben, und die [Lock-Datei](/docs/the-lock-file) wird aktualisiert; Werte, die durchfallen, werden zurückgehalten und gemeldet. Eine kaputte Zelle landet also nie in einer Locale-Datei. Ein echter Lauf ergänzt außerdem fehlende Einträge in einer vorhandenen `.gitignore`, siehe [.gitignore-Einträge](/docs/cli#gitignore-einträge).
 
 ## Synopsis
 
@@ -25,6 +25,10 @@ verbatra import <workbook> [flags]
 Außerdem nimmt der Befehl die [globalen Flags](/docs/cli#globale-flags) `--cwd`, `--config` und `--json`.
 
 ## Verhalten
+
+<Callout type="warn">
+Jeder ausgefüllte Wert, der die Prüfungen besteht, ersetzt den Wert in der Locale-Datei, auch einen, den eine Person geschrieben hat. Führe zuerst `--dry-run` aus, um zu sehen, was sich ändern würde.
+</Callout>
 
 ### Locale-Dateien und Überbleibsel
 

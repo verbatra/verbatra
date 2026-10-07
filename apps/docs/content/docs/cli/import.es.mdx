@@ -3,7 +3,7 @@ title: verbatra import
 description: Importa una entrega rellenada (libro, CSV, TSV o XLIFF) de vuelta a los archivos de locale, ejecutando las mismas comprobaciones de seguridad.
 type: reference
 ---
-Lee una entrega que rellenó un traductor de vuelta a tus archivos de locale. Cada valor pasa por las mismas comprobaciones de integridad que una ejecución automática: los valores que las superan se escriben y [el archivo de bloqueo](/docs/the-lock-file) se actualiza, y los que fallan se retienen y se informan, así que una celda rota nunca llega a un archivo de locale.
+Lee una entrega que rellenó un traductor de vuelta a tus archivos de locale. Cada valor pasa por las mismas comprobaciones de integridad que una ejecución automática: los valores que las superan se escriben y [el archivo de bloqueo](/docs/the-lock-file) se actualiza, y los que fallan se retienen y se informan, así que una celda rota nunca llega a un archivo de locale. Una ejecución real también añade las entradas que falten a un `.gitignore` existente, consulta [Entradas de .gitignore](/docs/cli#entradas-de-gitignore).
 
 ## Sinopsis
 
@@ -25,6 +25,10 @@ verbatra import <workbook> [flags]
 También acepta los [flags globales](/docs/cli#flags-globales) `--cwd`, `--config` y `--json`.
 
 ## Comportamiento
+
+<Callout type="warn">
+Cada valor rellenado que supera las comprobaciones sustituye el valor del archivo de locale, también uno que escribió una persona. Ejecuta primero `--dry-run` para ver qué cambiaría.
+</Callout>
 
 ### Archivos de locale y restos
 

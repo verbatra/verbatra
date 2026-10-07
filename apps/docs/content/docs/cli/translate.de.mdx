@@ -3,7 +3,7 @@ title: verbatra translate
 description: Übersetze jede Ziel-Locale einmal; danach beendet sich der Befehl.
 type: reference
 ---
-Führe einen Übersetzungsdurchlauf über jede Ziel-Locale aus; danach beendet sich der Befehl. `translate` vergleicht die Quelle mit der [Lock-Datei](/docs/the-lock-file), schickt nur neue oder geänderte Strings an den Provider, führt die [Integritätsprüfungen](/docs/translation-safety) aus, schreibt die Locale-Dateien und aktualisiert das Lock. Einen unveränderten String sendet es nie zweimal.
+Führe einen Übersetzungsdurchlauf über jede Ziel-Locale aus; danach beendet sich der Befehl. `translate` vergleicht die Quelle mit der [Lock-Datei](/docs/the-lock-file), schickt nur neue oder geänderte Strings an den Provider, führt die [Integritätsprüfungen](/docs/translation-safety) aus, schreibt die Locale-Dateien und aktualisiert das Lock. Einen unveränderten String sendet es nie zweimal. Ein echter Lauf ergänzt außerdem fehlende Einträge in einer vorhandenen `.gitignore`, siehe [.gitignore-Einträge](/docs/cli#gitignore-einträge).
 
 ## Synopsis
 
@@ -15,7 +15,7 @@ verbatra translate [flags]
 
 | Flag | Argument | Standard | Wirkung |
 | --- | --- | --- | --- |
-| `--locales` | `<list>` | jede konfigurierte Ziel-Locale | nur diese kommagetrennte Teilmenge übersetzen; eine nicht konfigurierte Locale scheitert mit `UNKNOWN_LOCALE`, eine leere Liste endet mit Exit `2` |
+| `--locales` | `<list>` | jede konfigurierte Ziel-Locale | nur diese kommagetrennte Teilmenge übersetzen; eine nicht konfigurierte Locale scheitert mit `UNKNOWN_LOCALE`, eine leere Liste mit `INVALID_LOCALES`, beide mit Exit `2` |
 | `--dry-run` | keins | aus | melden, was ein Lauf ändern würde, ohne Provider-Aufruf und ohne Dateien zu schreiben; braucht keinen API-Key |
 | `--prune` | keins | die `prune`-Option der Konfiguration, sonst aus | verwaiste Keys (in einer Zieldatei, nicht in der Quelle) aus der geschriebenen Datei und dem Lock entfernen |
 | `--lock-timeout` | `<seconds>` | `600` | so lange auf eine gehaltene Schreibsperre einer Locale warten; eine Ganzzahl von `1` bis `3600` |
@@ -29,11 +29,17 @@ Nimmt außerdem die [globalen Flags](/docs/cli#globale-flags) `--cwd`, `--config
 
 ## Verhalten
 
+<Callout type="warn">
+Ein Lauf ohne `--dry-run` oder `--estimate` schickt jeden neuen oder geänderten String an den Provider, und ein gehosteter Provider rechnet ihn ab: Schätze den Lauf mit `--estimate` ab und deckle ihn mit `--max-tokens`. Ein API-Key, der über einfaches `http://` (nicht Loopback) an einen selbst gehosteten Server geht, reist unverschlüsselt durchs Netz, siehe [Keys sind optional](/docs/providers#keys-sind-optional).
+</Callout>
+
 ### Dry Run
 
 `--dry-run` konstruiert keinen Provider, braucht also keinen API-Key und kann nichts kosten. Es liest Quell- und Zieldateien, vergleicht sie mit der Lock-Datei und meldet genau, was ein echter Lauf ändern würde. Es schreibt nichts (keine Locale-Datei, keine Lock-Aktualisierung, keinen Run-Status-Schnappschuss), liest und schreibt den Cache nicht und nimmt keine Schreibsperre, wartet also nie auf einen laufenden Lauf.
 
-Standardmäßig löscht ein Lauf nichts: Verwaiste Keys werden gemeldet und bleiben stehen. `--prune` entfernt genau diese Keys, und `--prune --dry-run` zeigt sie dir vorher.
+<Callout type="warn">
+Standardmäßig löscht ein Lauf nichts: Verwaiste Keys werden gemeldet und bleiben stehen. `--prune` oder `prune: true` in der Config löscht genau diese Keys aus den Zieldateien und dem Lock; `--prune --dry-run` zeigt sie dir vorher.
+</Callout>
 
 ### Kostenschätzung
 

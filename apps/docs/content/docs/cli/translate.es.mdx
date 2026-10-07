@@ -3,7 +3,7 @@ title: verbatra translate
 description: Traduce cada locale de destino una vez y luego termina.
 type: reference
 ---
-Ejecuta una pasada de traducción sobre cada locale de destino y termina. `translate` compara el origen con [el archivo de bloqueo](/docs/the-lock-file), envía al proveedor solo los strings nuevos o modificados, ejecuta las [comprobaciones de integridad](/docs/translation-safety), escribe los archivos de locale y actualiza el bloqueo. Nunca envía dos veces un string sin cambios.
+Ejecuta una pasada de traducción sobre cada locale de destino y termina. `translate` compara el origen con [el archivo de bloqueo](/docs/the-lock-file), envía al proveedor solo los strings nuevos o modificados, ejecuta las [comprobaciones de integridad](/docs/translation-safety), escribe los archivos de locale y actualiza el bloqueo. Nunca envía dos veces un string sin cambios. Una ejecución real también añade las entradas que falten a un `.gitignore` existente, consulta [Entradas de .gitignore](/docs/cli#entradas-de-gitignore).
 
 ## Sinopsis
 
@@ -15,7 +15,7 @@ verbatra translate [flags]
 
 | Flag | Argumento | Por defecto | Efecto |
 | --- | --- | --- | --- |
-| `--locales` | `<list>` | cada locale de destino configurado | traduce solo este subconjunto separado por comas; un locale no configurado falla con `UNKNOWN_LOCALE`, una lista vacía sale con `2` |
+| `--locales` | `<list>` | cada locale de destino configurado | traduce solo este subconjunto separado por comas; un locale no configurado falla con `UNKNOWN_LOCALE` y una lista vacía con `INVALID_LOCALES`, ambos con salida `2` |
 | `--dry-run` | ninguno | desactivado | informa de lo que cambiaría una ejecución sin llamar a un proveedor ni escribir archivos; no necesita clave de API |
 | `--prune` | ninguno | la opción `prune` de la configuración, si no, desactivado | elimina las claves huérfanas (en un archivo de destino, ausentes del origen) del archivo escrito y del bloqueo |
 | `--lock-timeout` | `<seconds>` | `600` | espera este tiempo por un bloqueo de escritura ocupado de un locale; un entero de `1` a `3600` |
@@ -29,11 +29,17 @@ También acepta los [flags globales](/docs/cli#flags-globales) `--cwd`, `--confi
 
 ## Comportamiento
 
+<Callout type="warn">
+Una ejecución sin `--dry-run` ni `--estimate` envía cada string nuevo o modificado al proveedor, y un proveedor alojado lo factura: mide la ejecución con `--estimate` y limítala con `--max-tokens`. Una clave de API enviada a un servidor autoalojado por `http://` simple (no loopback) cruza la red sin cifrar, consulta [Las claves son opcionales](/docs/providers#las-claves-son-opcionales).
+</Callout>
+
 ### Ejecución de prueba
 
 `--dry-run` no construye ningún proveedor, así que no necesita clave de API y no puede gastar nada. Lee los archivos de origen y de destino, los compara con el archivo de bloqueo e informa exactamente de lo que cambiaría una ejecución real. No escribe nada (ni archivo de locale, ni actualización del bloqueo, ni instantánea del estado de ejecución), no lee ni escribe la caché y no toma ningún bloqueo de escritura, así que nunca espera a una ejecución en curso.
 
-Por defecto una ejecución no borra nada: las claves huérfanas se informan y se quedan donde están. `--prune` elimina exactamente esas claves, y `--prune --dry-run` te las muestra antes.
+<Callout type="warn">
+Por defecto una ejecución no borra nada: las claves huérfanas se informan y se quedan donde están. `--prune`, o `prune: true` en la configuración, borra exactamente esas claves de los archivos de destino y del bloqueo; `--prune --dry-run` te las muestra antes.
+</Callout>
 
 ### Estimación de coste
 
