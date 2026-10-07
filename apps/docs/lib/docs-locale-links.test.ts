@@ -2,11 +2,10 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { i18n } from "@/lib/i18n";
+import { mapProse } from "@/lib/markdown-links";
 
 const CONTENT_DIR = join(import.meta.dirname, "../content");
 const TRANSLATED = /\.(de|es|fr)\.(mdx|json)$/;
-const FENCE = /^ {0,3}(`{3,}|~{3,})/;
-const INLINE_CODE = /(`+)[^`][\s\S]*?\1|(`+)/g;
 const LINK_TARGET = /(?:\]\(\s*|\bhref="|^\s*\[[^\]]+\]:\s*)(\/[^\s)"'#?]*)/g;
 const PROP_TARGET = /\bhref: "(\/[^"#?]*)/g;
 const DOCS_PATH = /^(?:\/([a-z]{2}))?\/docs(?:\/|$)/;
@@ -22,34 +21,13 @@ function translatedFiles(): TranslatedFile[] {
   });
 }
 
-function closesFence(line: string, open: string): boolean {
-  const fence = FENCE.exec(line)?.[1];
-  return (
-    fence !== undefined &&
-    fence[0] === open[0] &&
-    fence.length >= open.length &&
-    line.trim() === fence
-  );
-}
-
-function proseLines(source: string): string[] {
-  const lines: string[] = [];
-  let openFence: string | undefined;
-  for (const line of source.split("\n")) {
-    if (openFence !== undefined) {
-      if (closesFence(line, openFence)) openFence = undefined;
-      continue;
-    }
-    openFence = FENCE.exec(line)?.[1];
-    if (openFence === undefined) lines.push(line.replace(INLINE_CODE, ""));
-  }
-  return lines;
-}
-
 function targets(source: string, pattern: RegExp): string[] {
-  return proseLines(source).flatMap((line) =>
-    [...line.matchAll(pattern)].map((match) => match[1] ?? ""),
-  );
+  const found: string[] = [];
+  mapProse(source, (text) => {
+    found.push(...[...text.matchAll(pattern)].map((match) => match[1] ?? ""));
+    return text;
+  });
+  return found;
 }
 
 function docsLocale(href: string): string | null {

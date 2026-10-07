@@ -26,14 +26,14 @@ function rewriteProse(text: string): string {
   );
 }
 
-function rewriteLine(line: string): string {
+function mapOutsideInlineCode(line: string, mapText: (text: string) => string): string {
   let result = "";
   let last = 0;
   for (const match of line.matchAll(INLINE_CODE)) {
-    result += rewriteProse(line.slice(last, match.index)) + match[0];
+    result += mapText(line.slice(last, match.index)) + match[0];
     last = match.index + match[0].length;
   }
-  return result + rewriteProse(line.slice(last));
+  return result + mapText(line.slice(last));
 }
 
 function closesFence(line: string, open: string): boolean {
@@ -46,7 +46,7 @@ function closesFence(line: string, open: string): boolean {
   );
 }
 
-export function absolutizeMarkdownLinks(markdown: string): string {
+export function mapProse(markdown: string, mapText: (text: string) => string): string {
   let openFence: string | undefined;
   return markdown
     .split("\n")
@@ -60,7 +60,11 @@ export function absolutizeMarkdownLinks(markdown: string): string {
         openFence = fence;
         return line;
       }
-      return rewriteLine(line);
+      return mapOutsideInlineCode(line, mapText);
     })
     .join("\n");
+}
+
+export function absolutizeMarkdownLinks(markdown: string): string {
+  return mapProse(markdown, rewriteProse);
 }
