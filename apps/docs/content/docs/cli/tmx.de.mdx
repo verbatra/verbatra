@@ -109,7 +109,7 @@ Jede Import-Locale meldet die Zähler `added`, `unchanged`, `overwritten`, `kept
 
 <AvailableFrom version="0.12.0" />
 
-Beide Richtungen zeigen eine Fortschrittszeile auf stderr. `tmx import` schlägt danach `verbatra translate` vor, nach einem Dry Run den echten Import; dieser Vorschlag behält Datei, `--cwd` und `--config`, lässt aber `--overwrite` und `--locales` weg, also ergänze sie selbst. `tmx export` schlägt nichts vor:
+Beide Richtungen zeigen eine Fortschrittszeile auf stderr. `tmx import` schlägt danach `verbatra translate` vor, nach einem Dry Run den echten Import; dieser Vorschlag behält Datei, `--overwrite`, `--locales`, `--cwd` und `--config`. `tmx export` schlägt nichts vor:
 
 ```text output
 verbatra: importing legacy.tmx into the memory... done (0.2s)

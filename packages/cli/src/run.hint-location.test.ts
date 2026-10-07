@@ -117,6 +117,29 @@ describe("next: hints for commands that take a file", () => {
     expect(nextCommand(cap.err())).toBe("verbatra tmx import legacy.tmx --cwd proj");
   });
 
+  it("tmx import --dry-run carries --overwrite and --locales into the real import", async () => {
+    const cap = captureStreams();
+    await run(
+      [
+        "tmx",
+        "import",
+        "legacy.tmx",
+        "--dry-run",
+        "--overwrite",
+        "--locales",
+        "de,fr",
+        "--cwd",
+        "proj",
+      ],
+      recordingDeps({ importTmx: async () => makeImportTmxResult({ dryRun: true }) }).deps,
+      cap.streams,
+    );
+
+    expect(nextCommand(cap.err())).toBe(
+      "verbatra tmx import legacy.tmx --overwrite --locales de,fr --cwd proj",
+    );
+  });
+
   it("export names a file outside --cwd by its absolute path", async () => {
     const outside = join(tmpdir(), "elsewhere", "handoff.xlsx");
     const cap = captureStreams();

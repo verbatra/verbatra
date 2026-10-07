@@ -593,6 +593,16 @@ function verbatraCommand(args: readonly string[], opts: LocationOpts): string {
   return words.map(shellQuote).join(" ");
 }
 
+function tmxImportFlagArgs(opts: {
+  readonly overwrite?: boolean | undefined;
+  readonly locales?: readonly string[] | undefined;
+}): readonly string[] {
+  return [
+    ...(opts.overwrite === true ? ["--overwrite"] : []),
+    ...(opts.locales !== undefined ? ["--locales", opts.locales.join(",")] : []),
+  ];
+}
+
 function formatArgs(format: ExchangeFormat | undefined): readonly string[] {
   return format === undefined ? [] : ["--format", format];
 }
@@ -1262,7 +1272,7 @@ async function runTmxImport(
       );
       if (result.dryRun) {
         context.ui.hint(
-          verbatraCommand(["tmx", "import", source], opts),
+          verbatraCommand(["tmx", "import", source, ...tmxImportFlagArgs(opts)], opts),
           "without --dry-run to store it",
         );
       } else {
