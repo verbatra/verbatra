@@ -13,7 +13,7 @@ Deux codes appartiennent à deux familles : `CONFIG_INVALID` (le SDK, et `init` 
 
 ## Index des codes
 
-Chaque code d'erreur avec sa famille et les codes de sortie avec lesquels il peut terminer une exécution de la CLI ; l'entrée donne les détails.
+Chaque code d'erreur avec sa famille et les codes de sortie avec lesquels il peut terminer une exécution de la CLI ; la section de sa famille dit lequel s'applique et quand.
 
 | Code | Famille | Code de sortie |
 | --- | --- | --- |
@@ -121,7 +121,6 @@ La CLI lève ces codes elle-même. La même liste est publiée sous le nom `CLI_
 `init --agent` a trouvé une configuration de client (`.mcp.json`, `.cursor/mcp.json`, `.vscode/mcp.json` ou `.gemini/settings.json`) qui n'est pas du JSON pur, n'est pas un objet ou contient une valeur de serveurs qui n'est pas un objet, un `.codex/config.toml` qu'il ne peut pas lire sans risque ou qui définit le serveur verbatra en ligne, avec des clés pointées, comme tableau de tables ou deux fois, un lien symbolique sur un chemin qu'il écrirait, ou un marqueur verbatra sans paire ou répété dans `AGENTS.md` ou `CLAUDE.md` ; rien n'a été écrit.
 
 - **Levé par** : `init --agent`
-- **Code de sortie** : `2`
 - **Étape suivante** : Repair the MCP config or the verbatra markers in the file the message names, or replace the symbolic link it names with a plain file, then run `verbatra init --agent` again.
 
 ### CLI_ERROR
@@ -129,14 +128,12 @@ La CLI lève ces codes elle-même. La même liste est publiée sous le nom `CLI_
 Un échec ne portait aucun code propre (le code de repli).
 
 - **Levé par** : n'importe quelle commande
-- **Code de sortie** : `2`
 
 ### CONFIG_EXISTS
 
 `init` écraserait un `verbatra.config.ts` différent sans `--force`, ou un autre fichier de config verbatra du répertoire serait lu en premier ; signalé avant toute réponse manquante ou ambiguë, et dans un terminal avant la première question.
 
 - **Levé par** : `init`
-- **Code de sortie** : `2`
 - **Étape suivante** : Edit the existing config, or pass --force to replace verbatra.config.ts; remove any other config file the message names first.
 
 ### CONFIG_INVALID [#cli-config_invalid]
@@ -144,7 +141,6 @@ Un échec ne portait aucun code propre (le code de repli).
 `init` n'a pas pu générer une configuration valide à partir des réponses reçues (le SDK lève le même code pour une configuration qui ne se charge pas).
 
 - **Levé par** : `init`
-- **Code de sortie** : `2`
 - **Étape suivante** : Correct the init answers the message names, then run `verbatra init` again.
 
 ### FORMAT_AMBIGUOUS
@@ -152,7 +148,6 @@ Un échec ne portait aucun code propre (le code de repli).
 `init` a trouvé plusieurs formats qui lisent les fichiers de locale ; `candidates` les liste.
 
 - **Levé par** : `init`
-- **Code de sortie** : `2`
 - **Étape suivante** : Pass --format with one of the candidates.
 
 ### INIT_UNWRITABLE
@@ -160,7 +155,6 @@ Un échec ne portait aucun code propre (le code de repli).
 `init` n'a pas pu écrire un fichier dans son répertoire, par exemple parce qu'il est en lecture seule ou qu'un fichier qu'il écrit est un lien symbolique qui ne se résout pas dans le projet ; le message nomme le fichier, la cause et les fichiers déjà écrits.
 
 - **Levé par** : `init`
-- **Code de sortie** : `2`
 - **Étape suivante** : Make the directory writable, or replace the symbolic link the message names with a plain file, then run `verbatra init` again.
 
 ### INVALID_CONCURRENCY
@@ -168,7 +162,6 @@ Un échec ne portait aucun code propre (le code de repli).
 `--concurrency` n'est pas un nombre entier de 1 à 100.
 
 - **Levé par** : `translate`, `watch`
-- **Code de sortie** : `2`
 - **Étape suivante** : Pass --concurrency as a whole number from 1 to 100.
 
 ### INVALID_DEBOUNCE
@@ -176,7 +169,6 @@ Un échec ne portait aucun code propre (le code de repli).
 `watch --debounce` n'est pas un nombre entier de millisecondes de 1 à 60000.
 
 - **Levé par** : `watch`
-- **Code de sortie** : `2`
 - **Étape suivante** : Pass --debounce as a whole number of milliseconds from 1 to 60000.
 
 ### INVALID_DIRECTION
@@ -184,7 +176,6 @@ Un échec ne portait aucun code propre (le code de repli).
 `tmx` a reçu une direction autre que `import` ou `export`, ou `tmx export` a reçu une option réservée à l'import (`--dry-run`, `--overwrite`).
 
 - **Levé par** : `tmx`
-- **Code de sortie** : `2`
 - **Étape suivante** : Run `verbatra tmx import` or `verbatra tmx export`, with only the flags that direction takes.
 
 ### INVALID_FORMAT
@@ -192,7 +183,6 @@ Un échec ne portait aucun code propre (le code de repli).
 `--format` sur `export` ou `import` ne nomme aucun format de remise pris en charge, ou `--format` sur `init` ne nomme aucun format de fichier de locale pris en charge.
 
 - **Levé par** : `export`, `import`, `init`
-- **Code de sortie** : `2`
 - **Étape suivante** : Pass a supported --format value; the command's --help lists them.
 
 ### INVALID_LOCALE
@@ -200,7 +190,6 @@ Un échec ne portait aucun code propre (le code de repli).
 `pseudo --locale` n'est pas une étiquette de langue composée de lettres, de chiffres et de tirets, ou une locale saisie à une question interactive d'`init` n'est pas un code BCP 47 (les options `--source` et `--targets` échouent à la place avec `CONFIG_INVALID`).
 
 - **Levé par** : `pseudo`, `init`
-- **Code de sortie** : `2`
 - **Étape suivante** : Give the locale as a language tag of letters, digits and hyphens, such as pt-BR or en-XA.
 
 ### INVALID_LOCALES
@@ -208,7 +197,6 @@ Un échec ne portait aucun code propre (le code de repli).
 `--locales` a été donné mais ne liste aucune locale, ou les locales cibles saisies à une question interactive d'`init` incluent la locale source.
 
 - **Levé par** : `translate`, `watch`, `check`, `diff`, `export`, `tmx`, `report`, `init`
-- **Code de sortie** : `2`
 - **Étape suivante** : Pass --locales as a comma-separated list of configured target locales, or omit it.
 
 ### INVALID_LOCK_TIMEOUT
@@ -216,7 +204,6 @@ Un échec ne portait aucun code propre (le code de repli).
 `--lock-timeout` n'est pas un nombre entier de secondes de 1 à 3600.
 
 - **Levé par** : `translate`, `watch`, `import`
-- **Code de sortie** : `2`
 - **Étape suivante** : Pass --lock-timeout as a whole number of seconds from 1 to 3600.
 
 ### INVALID_MAX_TOKENS
@@ -224,7 +211,6 @@ Un échec ne portait aucun code propre (le code de repli).
 `translate --max-tokens` n'est pas un nombre entier d'au moins 1.
 
 - **Levé par** : `translate`
-- **Code de sortie** : `2`
 - **Étape suivante** : Pass --max-tokens as a whole number of at least 1.
 
 ### INVALID_OPTION
@@ -232,7 +218,6 @@ Un échec ne portait aucun code propre (le code de repli).
 Une option d'`init` ne correspond pas au fournisseur ou est mal formée : `--base-url` sans `openai-compatible` ni `libretranslate`, qui n'est pas une URL ou qui contient des identifiants, une query string ou un fragment ; `--api-key-env-var` avec un autre fournisseur qu'`openai-compatible`, ou qui n'est pas un nom de variable ; `--model` pour un fournisseur sans modèle (`deepl`, `google-translate`, `libretranslate`, `none`) ; une option quelconque avec une valeur vide ; `--targets` sans aucune locale ; `--path` sans `{locale}` ; `--client` sans `--agent`, sans client ou avec un client qu'init ne sait pas configurer. Ou bien `--cwd` ne nomme aucun répertoire existant (pour toute commande, avant son exécution), `doctor --data-flow` arrive avec `--literals`, `--locales` ou `--live`, `doctor --literals` arrive avec `--locales` ou `--live`, `check --file` ne nomme aucun fichier ou arrive avec `--locales`, `--consistency`, `--require-reviewed` ou `--sensitive`, ou `pseudo --mode` nomme un autre mode que `accented` ou `bidi`.
 
 - **Levé par** : toute commande qui accepte `--cwd`, ainsi que `init`, `doctor`, `check`, `pseudo`
-- **Code de sortie** : `2`
 - **Étape suivante** : Correct or remove the flag the message names.
 
 ### INVALID_OUT
@@ -240,7 +225,6 @@ Une option d'`init` ne correspond pas au fournisseur ou est mal formée : `--bas
 `--out` sur `types` ou `pseudo` a été donné mais ne nomme aucun chemin.
 
 - **Levé par** : `types`, `pseudo`
-- **Code de sortie** : `2`
 - **Étape suivante** : Pass --out with a file path, or omit it.
 
 ### INVALID_PORT
@@ -248,7 +232,6 @@ Une option d'`init` ne correspond pas au fournisseur ou est mal formée : `--bas
 `studio --port` n'est pas un entier de 1 à 65535.
 
 - **Levé par** : `studio`
-- **Code de sortie** : `2`
 - **Étape suivante** : Pass --port as a whole number from 1 to 65535.
 
 ### INVALID_PROVIDER
@@ -256,7 +239,6 @@ Une option d'`init` ne correspond pas au fournisseur ou est mal formée : `--bas
 `init --provider` ne nomme aucun fournisseur connu.
 
 - **Levé par** : `init`
-- **Code de sortie** : `2`
 - **Étape suivante** : Pass --provider with a supported provider id; `verbatra init --help` lists them.
 
 ### INVALID_QA_OPTION
@@ -264,7 +246,6 @@ Une option d'`init` ne correspond pas au fournisseur ou est mal formée : `--bas
 `check` a reçu `--severity` ou `--strict` sans `--qa` ni `--file`, ou `--strict` avec `--severity error`.
 
 - **Levé par** : `check`
-- **Code de sortie** : `2`
 - **Étape suivante** : Add --qa or --file, and do not combine --strict with --severity error.
 
 ### INVALID_SEVERITY
@@ -272,7 +253,6 @@ Une option d'`init` ne correspond pas au fournisseur ou est mal formée : `--bas
 `check --severity` n'est ni `error` ni `warning`.
 
 - **Levé par** : `check`
-- **Code de sortie** : `2`
 - **Étape suivante** : Pass --severity error or --severity warning.
 
 ### LAYOUT_AMBIGUOUS
@@ -280,7 +260,6 @@ Une option d'`init` ne correspond pas au fournisseur ou est mal formée : `--bas
 `init` a trouvé plusieurs motifs de fichiers qui conviennent aussi bien les uns que les autres ; `candidates` les liste.
 
 - **Levé par** : `init`
-- **Code de sortie** : `2`
 - **Étape suivante** : Pass --path with one of the candidates.
 
 ### MISSING_OPTIONS
@@ -288,7 +267,6 @@ Une option d'`init` ne correspond pas au fournisseur ou est mal formée : `--bas
 `init` n'a pas pu poser de question (pas de terminal, ou `--json`) et une valeur n'a été ni passée, ni détectée, ni fixée par défaut par `--yes` ; le message nomme chaque option manquante.
 
 - **Levé par** : `init`
-- **Code de sortie** : `2`
 - **Étape suivante** : Pass the flags the message names, or --yes where the message offers it.
 
 ### REDACTION_UNSUPPORTED
@@ -296,7 +274,6 @@ Une option d'`init` ne correspond pas au fournisseur ou est mal formée : `--bas
 `mcp --redact-values` a chargé un `@verbatra/mcp` plus ancien qui ne confirme pas masquer les valeurs ; le serveur a été arrêté avant de servir quoi que ce soit.
 
 - **Levé par** : `mcp`
-- **Code de sortie** : `2`
 - **Étape suivante** : Upgrade @verbatra/mcp to the version that ships with this CLI, then start `verbatra mcp --redact-values` again.
 
 ### USAGE_ERROR
@@ -304,19 +281,17 @@ Une option d'`init` ne correspond pas au fournisseur ou est mal formée : `--bas
 L'analyseur d'arguments a rejeté la ligne de commande (une option inconnue, un argument manquant), ou `mcp` a reçu des options qu'il ne peut pas accepter ; son `hint` nomme le `--help` de la commande.
 
 - **Levé par** : n'importe quelle commande
-- **Code de sortie** : `2`
 - **Étape suivante** : Run the command with --help to see the options and arguments it accepts.
 
 ## Codes d'erreur du SDK [#sdk-error-codes]
 
-Les échecs de toute l'exécution lèvent une `SdkError` avec l'un de ces codes ; [Erreurs](/docs/sdk/errors) décrit la classe et quels codes portent une `cause`. Dans la CLI, un code levé termine l'exécution avec `2`, tandis qu'un code enregistré sur une locale en échec sort avec `1`. Les codes sans commande de la CLI te parviennent par le SDK, Studio ou le serveur MCP.
+Les échecs de toute l'exécution lèvent une `SdkError` avec l'un de ces codes ; [Erreurs](/docs/sdk/errors) décrit la classe et quels codes portent une `cause`. Dans la CLI, un code levé termine l'exécution avec `2`, tandis qu'un code enregistré sur une locale en échec sort avec `1`. Là où l'index donne `2` ou `1`, `doctor` signale le code comme une vérification en échec et sort avec `1`. Les codes sans commande de la CLI te parviennent par le SDK, Studio ou le serveur MCP.
 
 ### CONFIG_NOT_FOUND
 
 Aucune config trouvée par la recherche, ou un `configPath` explicite n'existe pas (levé par `loadConfig`).
 
 - **Levé par** : toute commande qui charge la config
-- **Code de sortie** : `2` ; `1` dans `doctor`, qui le signale comme une vérification échouée
 - **Étape suivante** : Run `verbatra init` to create a config, or pass the path of an existing config file.
 
 ### CONFIG_INVALID
@@ -324,7 +299,6 @@ Aucune config trouvée par la recherche, ou un `configPath` explicite n'existe p
 Une config a été trouvée mais est impossible à analyser ou échoue à la validation, ou son fichier de glossaire n'a pas pu être résolu ; `translate` (en dry run aussi, sauf avec le fournisseur `none`) et `retranslateEntry` le lèvent aussi quand `VERBATRA_NETWORK_POLICY` ou `VERBATRA_NETWORK_ALLOWED_HOSTS` contient une valeur invalide, avant qu'aucun fournisseur ne soit construit.
 
 - **Levé par** : toute commande qui charge la config
-- **Code de sortie** : `2` ; `1` dans `doctor`, qui le signale comme une vérification échouée
 - **Étape suivante** : Fix the config field the message names, then run `verbatra doctor` to confirm the setup.
 
 ### UNKNOWN_FORMAT
@@ -332,7 +306,6 @@ Une config a été trouvée mais est impossible à analyser ou échoue à la val
 Aucun adaptateur n'est enregistré pour le format configuré ; levé avant toute lecture de fichier.
 
 - **Levé par** : toute commande qui lit des fichiers de locale ; Studio et le serveur MCP
-- **Code de sortie** : `2` ; `1` dans `doctor`, qui le signale comme une vérification échouée
 - **Étape suivante** : Set `format` in the config to a supported format, or register an adapter for this one.
 
 ### UNKNOWN_LOCALE
@@ -340,7 +313,6 @@ Aucun adaptateur n'est enregistré pour le format configuré ; levé avant toute
 Une locale demandée n'est pas parmi les locales cibles configurées.
 
 - **Levé par** : `translate`, `watch`, `check`, `diff`, `export`, `tmx`, `report` ; Studio et le serveur MCP
-- **Code de sortie** : `2`
 - **Étape suivante** : Use a locale from the config's `targetLocales`, or add it there first.
 
 ### UNKNOWN_KEY
@@ -348,7 +320,6 @@ Une locale demandée n'est pas parmi les locales cibles configurées.
 Une clé demandée n'est pas dans la ressource source (`keyValue`, `keyIntegrity`, `editEntry`, `retranslateEntry`, `approveEntry`, `rejectEntry`).
 
 - **Levé par** : Studio et le serveur MCP
-- **Code de sortie** : aucun : aucune commande de la CLI ne le lève
 - **Étape suivante** : Use a key that exists in the source locale file, or add it there first.
 
 ### KEY_PROTECTED
@@ -356,7 +327,6 @@ Une clé demandée n'est pas dans la ressource source (`keyValue`, `keyIntegrity
 `retranslateEntry` a refusé de remplacer une valeur écrite, importée ou modifiée hors de verbatra par une personne, car ni `includeHuman` ni `humanEdits: "overwrite"` ne l'autorisaient.
 
 - **Levé par** : Studio et le serveur MCP
-- **Code de sortie** : aucun : aucune commande de la CLI ne le lève
 - **Étape suivante** : Keep the human-written value, or opt in to replacing it: include human edits for this call, or set `humanEdits: "overwrite"` in the config.
 
 ### KEY_PINNED
@@ -364,7 +334,6 @@ Une clé demandée n'est pas dans la ressource source (`keyValue`, `keyIntegrity
 La clé correspond aux `pinnedKeys` de la config, donc une écriture automatique a été refusée (`retranslateEntry`, et `editEntry` avec `actor: "agent"`).
 
 - **Levé par** : Studio et le serveur MCP
-- **Code de sortie** : aucun : aucune commande de la CLI ne le lève
 - **Étape suivante** : Edit the value by hand, or remove the key from `pinnedKeys` in the config to let verbatra write it.
 
 ### PROVIDER_CONSTRUCTION_FAILED
@@ -372,7 +341,6 @@ La clé correspond aux `pinnedKeys` de la config, donc une écriture automatique
 Le fournisseur n'a pas pu être construit ; enveloppe l'erreur du fournisseur lui-même, y compris une clé d'API manquante. Pour une clé manquante, l'indication nomme la variable au lieu de l'étape suivante ci-dessous, comme `Set GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project directory.` Le SDK ne lit aucun fichier `.env`.
 
 - **Levé par** : `translate`, `watch` ; Studio et le serveur MCP
-- **Code de sortie** : `2`
 - **Étape suivante** : Check the config's `provider` block and its API key environment variable, then run `verbatra doctor`.
 
 ### MACHINE_TRANSLATION_DISABLED
@@ -380,7 +348,6 @@ Le fournisseur n'a pas pu être construit ; enveloppe l'erreur du fournisseur lu
 La configuration fixe `provider: { id: "none" }`, donc une action dépensant auprès du fournisseur a été refusée avant qu'aucun fournisseur ne soit construit (`retranslateEntry`, `assertMachineTranslationEnabled`) ; `translate` et `watch` ne la lèvent jamais.
 
 - **Levé par** : Studio et le serveur MCP
-- **Code de sortie** : aucun : aucune commande de la CLI ne le lève
 - **Étape suivante** : Translate the key by hand, or configure a machine provider in place of `provider: { id: "none" }`.
 
 ### NETWORK_POLICY_VIOLATION
@@ -388,7 +355,6 @@ La configuration fixe `provider: { id: "none" }`, donc une action dépensant aup
 La [politique réseau](/docs/network-policy) effective n'autorise pas le point de terminaison du fournisseur ni son proxy ; levée par `translate` hors exécution à blanc, par `watch` au démarrage et par `retranslateEntry`, avant de construire le fournisseur ou de lire une clé d'API.
 
 - **Levé par** : `translate`, `watch` ; Studio et le serveur MCP
-- **Code de sortie** : `2`
 - **Étape suivante** : Point the provider at a host the network policy permits, or add its host to `network.allowedHosts` or VERBATRA_NETWORK_ALLOWED_HOSTS.
 
 ### SOURCE_UNREADABLE
@@ -396,7 +362,6 @@ La [politique réseau](/docs/network-policy) effective n'autorise pas le point d
 Le fichier de la locale source n'existe pas, ou, pour `import` et `tmx import`, le fichier ou le répertoire à importer n'existe pas.
 
 - **Levé par** : toute commande qui lit des fichiers de locale ; Studio et le serveur MCP
-- **Code de sortie** : `2` ; `1` dans `doctor`, qui le signale comme une vérification échouée
 - **Étape suivante** : Create the source locale file, or fix `files.pattern` and `sourceLocale` in the config so they point at it.
 - **Étape suivante pour `import`** : Pass the path of the filled handoff file, or of the directory it was exported into, relative to the working directory or `--cwd`.
 - **Étape suivante pour `tmx import`** : Pass the path of an existing TMX file, relative to the working directory or `--cwd`.
@@ -406,7 +371,6 @@ Le fichier de la locale source n'existe pas, ou, pour `import` et `tmx import`, 
 Le fichier de la locale source n'a pas pu être lu ou analysé ; enveloppe l'erreur de lecture de l'adaptateur. Pour `import` et `tmx import`, le fichier à importer est trop volumineux ou n'est pas un document d'échange ou TMX lisible.
 
 - **Levé par** : toute commande qui lit des fichiers de locale ; Studio et le serveur MCP
-- **Code de sortie** : `2` ; `1` dans `doctor`, qui le signale comme une vérification échouée
 - **Étape suivante** : Fix the file the message names so it parses under the configured format.
 - **Étape suivante pour `import`** : Fix the handoff file the message names, or pass its format with `--format` when its extension names none.
 - **Étape suivante pour `tmx import`** : Fix the TMX file the message names, or export it again from the tool that wrote it.
@@ -416,7 +380,6 @@ Le fichier de la locale source n'a pas pu être lu ou analysé ; enveloppe l'err
 Le fichier de verrouillage est présent mais corrompu, trop volumineux ou à une version non prise en charge.
 
 - **Levé par** : `translate`, `import`, `check`, `diff`, `export`, `report` ; Studio et le serveur MCP
-- **Code de sortie** : `2`
 - **Étape suivante** : Restore verbatra.lock.json from version control, then try again.
 
 ### PROVENANCE_FILE_INVALID
@@ -424,7 +387,6 @@ Le fichier de verrouillage est présent mais corrompu, trop volumineux ou à une
 Le fichier de provenance est présent mais corrompu, trop volumineux ou mal formé ; levé par une écriture (`translate`, `watch`, `importWorkbook`, `editEntry`, `retranslateEntry`, `approveEntry`, `rejectEntry`) avant qu'elle ne change quoi que ce soit, et par `loadProvenance`, jamais par un rapport ; celui d'un verbatra plus récent est laissé intact à la place, et `translate`, `watch` et `importWorkbook` signalent l'avis `PROVENANCE_VERSION_UNRECOGNIZED`.
 
 - **Levé par** : `translate`, `watch`, `import` ; Studio et le serveur MCP
-- **Code de sortie** : `2`
 - **Étape suivante** : Restore verbatra.provenance.json from version control, then try again.
 
 ### PROVENANCE_FILE_UNWRITABLE
@@ -432,7 +394,6 @@ Le fichier de provenance est présent mais corrompu, trop volumineux ou mal form
 Une décision de relecture n'a pas pu être enregistrée parce que le fichier de provenance vient d'un verbatra plus récent ou grossirait au-delà de la taille que verbatra relit (`approveEntry`, `rejectEntry`, `approveLocale`) ; rien n'est écrit.
 
 - **Levé par** : Studio et le serveur MCP
-- **Code de sortie** : aucun : aucune commande de la CLI ne le lève
 - **Étape suivante** : Upgrade verbatra if a newer version wrote verbatra.provenance.json, then record the decision again.
 
 ### REVIEW_VALUE_CHANGED
@@ -440,7 +401,6 @@ Une décision de relecture n'a pas pu être enregistrée parce que le fichier de
 La clé n'a pas de valeur, ou sa valeur n'est pas l'`expectedValue` que la personne a vue, ou `expectedValue` n'est pas une chaîne (`approveEntry`, `rejectEntry`).
 
 - **Levé par** : Studio et le serveur MCP
-- **Code de sortie** : aucun : aucune commande de la CLI ne le lève
 - **Étape suivante** : Reload the current value, review it again, and resend the decision.
 
 ### REVIEW_SOURCE_CHANGED
@@ -448,7 +408,6 @@ La clé n'a pas de valeur, ou sa valeur n'est pas l'`expectedValue` que la perso
 La source a changé depuis l'écriture de la valeur, qui ne peut donc pas être approuvée telle quelle (`approveEntry`).
 
 - **Levé par** : Studio et le serveur MCP
-- **Code de sortie** : aucun : aucune commande de la CLI ne le lève
 - **Étape suivante** : Edit or retranslate the key first, then review its new value.
 
 ### REVIEW_REJECT_UNSUPPORTED
@@ -456,7 +415,6 @@ La source a changé depuis l'écriture de la valeur, qui ne peut donc pas être 
 Le format garde la valeur d'une clé quand le fichier est écrit sans elle, comme XLIFF, ou le fichier de locale est trop volumineux pour en garder une copie à restaurer, donc `rejectEntry` a laissé le fichier tel quel.
 
 - **Levé par** : Studio et le serveur MCP
-- **Code de sortie** : aucun : aucune commande de la CLI ne le lève
 - **Étape suivante** : Edit the value instead of rejecting it.
 
 ### REVIEW_RESTORE_FAILED
@@ -464,7 +422,6 @@ Le format garde la valeur d'une clé quand le fichier est écrit sans elle, comm
 `rejectEntry` a échoué après avoir réécrit le fichier de locale, et la restauration du fichier de locale ou du fichier de provenance a échoué aussi ; le message nomme l'échec d'origine (aussi la `cause`) et les fichiers à récupérer depuis le contrôle de version.
 
 - **Levé par** : Studio et le serveur MCP
-- **Code de sortie** : aucun : aucune commande de la CLI ne le lève
 - **Étape suivante** : Restore the files the message names from version control.
 
 ### REVIEWER_INVALID
@@ -472,7 +429,6 @@ Le format garde la valeur d'une clé quand le fichier est écrit sans elle, comm
 `reviewer` est vide, dépasse 64 caractères ou contient un caractère de contrôle (`approveEntry`, `rejectEntry`, `approveLocale`, `importWorkbook`).
 
 - **Levé par** : `import --reviewer` ; Studio et le serveur MCP
-- **Code de sortie** : `2`
 - **Étape suivante** : Pass a reviewer name of 1 to 64 characters with no control characters.
 
 ### LOCK_CONTENDED
@@ -480,7 +436,6 @@ Le format garde la valeur d'une clé quand le fichier est écrit sans elle, comm
 Le verrou d'écriture d'une locale, ou le verrou du glossaire que prend `updateGlossaryTerm`, n'a pas pu être acquis avant l'expiration de son délai, ou un autre processus l'a repris avant une écriture qu'il protège, et rien n'a été écrit ; le message nomme le chemin du fichier de verrouillage.
 
 - **Levé par** : `translate`, `watch`, `import` ; Studio et le serveur MCP
-- **Code de sortie** : `1` quand il fait échouer une locale de `translate` ou `import`
 - **Étape suivante** : Wait for the other verbatra process to finish and try again, or remove the lock file the message names if no process holds it.
 
 ### GLOSSARY_NOT_FILE_BACKED
@@ -488,7 +443,6 @@ Le verrou d'écriture d'une locale, ou le verrou du glossaire que prend `updateG
 Le glossaire de la config est inline ou absent : il n'y a donc aucun fichier de glossaire à lire ou à réécrire (`readGlossaryFile`, `updateGlossaryTerm`). Sans aucun glossaire configuré, l'indice dit à la place : Create a glossary file, such as glossary.json holding `{}`, and set the config's `glossary` to its path, such as `"glossary.json"`.
 
 - **Levé par** : Studio et le serveur MCP
-- **Code de sortie** : aucun : aucune commande de la CLI ne le lève
 - **Étape suivante** : Move the glossary into its own file and set the config's `glossary` to that file's path.
 
 ### GLOSSARY_UNWRITABLE
@@ -496,7 +450,6 @@ Le glossaire de la config est inline ou absent : il n'y a donc aucun fichier de 
 Le fichier de glossaire n'a pas pu être écrit, ou le verrou d'écriture du glossaire n'a pas pu être créé, par exemple dans un projet en lecture seule, ou libéré après une modification enregistrée (`updateGlossaryTerm`) ; l'erreur du système de fichiers est la `cause`.
 
 - **Levé par** : Studio et le serveur MCP
-- **Code de sortie** : aucun : aucune commande de la CLI ne le lève
 - **Étape suivante** : Make the glossary file and its directory writable, then try again.
 
 ### LOCALE_LAYOUT_INVALID
@@ -504,7 +457,6 @@ Le fichier de glossaire n'a pas pu être écrit, ou le verrou d'écriture du glo
 `files.pattern` et `files.localeStyle` ne peuvent pas être combinés, ou le style n'a pas d'écriture de chemin valide pour une locale configurée.
 
 - **Levé par** : toute commande qui lit des fichiers de locale ; Studio et le serveur MCP
-- **Code de sortie** : `2`
 - **Étape suivante** : Fix `files.pattern` and `files.localeStyle` in the config so every locale maps to a valid path.
 
 ### LOCALE_PATH_COLLISION
@@ -512,7 +464,6 @@ Le fichier de glossaire n'a pas pu être écrit, ou le verrou d'écriture du glo
 Deux locales configurées résolvent vers le même chemin absolu.
 
 - **Levé par** : toute commande qui lit des fichiers de locale ; Studio et le serveur MCP
-- **Code de sortie** : `2`
 - **Étape suivante** : Change `files.pattern` or `files.localeStyle` in the config so each locale resolves to its own file.
 
 ### CONCURRENCY_INVALID
@@ -520,7 +471,6 @@ Deux locales configurées résolvent vers le même chemin absolu.
 `concurrency` a été défini mais n'est pas un entier d'au moins 1 ; levé avant l'exécution de toute locale.
 
 - **Levé par** : le SDK uniquement
-- **Code de sortie** : aucun : aucune commande de la CLI ne le lève
 - **Étape suivante** : Pass a concurrency that is a whole number of at least 1.
 
 ### CONCURRENCY_BUDGET_CONFLICT
@@ -528,7 +478,6 @@ Deux locales configurées résolvent vers le même chemin absolu.
 Une exécution réelle a défini `concurrency` au-dessus de 1 alors qu'un budget de tokens s'applique, configuré ou propre à l'exécution ; levé avant tout appel au fournisseur (un dry run est exempté).
 
 - **Levé par** : `translate`, `watch`
-- **Code de sortie** : `2`
 - **Étape suivante** : Run with a concurrency of 1 while a token budget applies, or remove the budget.
 
 ### MAX_TOKENS_INVALID
@@ -536,7 +485,6 @@ Une exécution réelle a défini `concurrency` au-dessus de 1 alors qu'un budget
 Le `maxTokens` par exécution de `translate` a été fixé mais n'est pas un nombre entier d'au moins 1 ; levé avant toute lecture ou dépense.
 
 - **Levé par** : le SDK uniquement
-- **Code de sortie** : aucun : aucune commande de la CLI ne le lève
 - **Étape suivante** : Pass a token budget that is a whole number of at least 1.
 
 ### LOCK_TIMEOUT_INVALID
@@ -544,7 +492,6 @@ Le `maxTokens` par exécution de `translate` a été fixé mais n'est pas un nom
 `lockAcquireTimeoutMs` a été fixé mais n'est pas un nombre entier de millisecondes d'au moins 0 (`translate`, `watch` au démarrage, `importWorkbook`, `retranslateEntry`, `retranslateEntries`, `approveEntry`, `rejectEntry`, `approveEntries`, `rejectEntries`) ; levé avant toute lecture ou tout verrouillage.
 
 - **Levé par** : le SDK uniquement
-- **Code de sortie** : aucun : aucune commande de la CLI ne le lève
 - **Étape suivante** : Pass a lock timeout that is a whole number of at least 0.
 
 ### PAGE_CURSOR_INVALID
@@ -552,7 +499,6 @@ Le `maxTokens` par exécution de `translate` a été fixé mais n'est pas un nom
 Le `cursor` passé à `localeValuesPage` ou `provenanceReportPage` est mal formé, dépasse `PAGE_CURSOR_MAX_LENGTH` (512), a été créé avec d'autres filtres ou pointe vers une clé déplacée ou disparue parce que les fichiers ont changé entre deux pages.
 
 - **Levé par** : le SDK ; l'outil d'agent `verbatra_locale_values` de Studio (`locale.values` et `report.provenance` du serveur MCP le signalent comme entrée invalide pour `cursor`)
-- **Code de sortie** : aucun : aucune commande de la CLI ne le lève
 - **Étape suivante** : Call again without a cursor to start from the first page.
 
 ### PAGE_LIMIT_INVALID
@@ -560,7 +506,6 @@ Le `cursor` passé à `localeValuesPage` ou `provenanceReportPage` est mal form�
 Le `limit` passé à `localeValuesPage` ou `provenanceReportPage` n'est pas un nombre entier de 1 à `PAGE_LIMIT_CAP` (1000).
 
 - **Levé par** : le SDK uniquement
-- **Code de sortie** : aucun : aucune commande de la CLI ne le lève
 - **Étape suivante** : Pass a page limit that is a whole number from 1 to 1000.
 
 ### TARGET_UNWRITABLE
@@ -568,7 +513,6 @@ Le `limit` passé à `localeValuesPage` ou `provenanceReportPage` n'est pas un n
 Un fichier de locale cible n'a pas pu être écrit (son répertoire n'est pas inscriptible, n'existe pas, est en lecture seule ou est plein) ; le message nomme le fichier cible et le code du système de fichiers, jamais le fichier temporaire interne qu'utilise l'écriture atomique.
 
 - **Levé par** : `translate`, `import`, `pseudo` ; Studio et le serveur MCP
-- **Code de sortie** : `1` quand il fait échouer une locale de `translate` ou `import` ; `2` dans `pseudo`
 - **Étape suivante** : Make the target locale file and its directory writable, then try again.
 
 ### PSEUDO_OUTPUT_CONFLICT
@@ -576,7 +520,6 @@ Un fichier de locale cible n'a pas pu être écrit (son répertoire n'est pas in
 `pseudolocalize` s'est vu demander une pseudo-locale qui nomme une locale configurée, ou un chemin de sortie qui écrirait sur un fichier de locale configuré ou hors de `cwd`, y compris une fois les liens symboliques résolus ; refusé avant toute lecture et toute écriture.
 
 - **Levé par** : `pseudo`
-- **Code de sortie** : `2`
 - **Étape suivante** : Choose a pseudolocale and an output path inside the project that name no configured locale.
 
 ### SOURCE_UNWRITABLE
@@ -584,7 +527,6 @@ Un fichier de locale cible n'a pas pu être écrit (son répertoire n'est pas in
 Le fichier de la locale source n'a pas pu être écrit (`extract` uniquement) ; `xliff` et `apple-xcstrings` l'atteignent quand aucun catalogue n'existe encore, car ni l'un ni l'autre n'est créé à partir de rien.
 
 - **Levé par** : `extract`
-- **Code de sortie** : `2`
 - **Étape suivante** : Make the source locale file writable; for xliff and apple-xcstrings, create the catalog first.
 
 ### EXTRACT_NOT_CONFIGURED
@@ -592,7 +534,6 @@ Le fichier de la locale source n'a pas pu être écrit (`extract` uniquement) ; 
 `extract` a été appelé avec une config qui ne porte aucun bloc `extract`.
 
 - **Levé par** : `extract`
-- **Code de sortie** : `2`
 - **Étape suivante** : Add an `extract` block to the config naming the framework and source roots.
 
 ### EXTRACT_FS_UNSUPPORTED
@@ -600,7 +541,6 @@ Le fichier de la locale source n'a pas pu être écrit (`extract` uniquement) ; 
 `extract` a reçu un `deps.fs` qui n'implémente pas `readDirectory` : aucun fichier source ne peut donc être découvert.
 
 - **Levé par** : le SDK uniquement
-- **Code de sortie** : aucun : aucune commande de la CLI ne le lève
 - **Étape suivante** : Pass a file system that implements `readDirectory`, or use the default one.
 
 ### TYPES_OUTPUT_CONFLICT
@@ -608,7 +548,6 @@ Le fichier de la locale source n'a pas pu être écrit (`extract` uniquement) ; 
 `generateTypes` a refusé son chemin de sortie : un chemin qui ne nomme aucun fichier (ou se termine par un séparateur de chemin), est absolu, sort de `cwd` avec `..` ou nomme `cwd` lui-même ou ne se termine pas par `.ts`, `.mts` ou `.cts`, et un chemin nommant un fichier de locale configuré, le fichier de verrouillage, le fichier de provenance, le cache de mémoire de traduction, un fichier que verbatra cherche pour sa configuration, le fichier de configuration chargé par l'exécution, ou le fichier de glossaire de la configuration, y compris une fois les liens symboliques résolus ; une exécution qui génère refuse en plus de remplacer un fichier existant qui ne commence pas par la ligne d'en-tête de verbatra.
 
 - **Levé par** : `types`
-- **Code de sortie** : `2`
 - **Étape suivante** : Choose a relative `.ts`, `.mts` or `.cts` output path inside the project that names no file verbatra manages.
 
 ### TYPES_UNWRITABLE
@@ -616,7 +555,6 @@ Le fichier de la locale source n'a pas pu être écrit (`extract` uniquement) ; 
 Le fichier de déclarations que produit `generateTypes` n'a pas pu être écrit (son répertoire n'est pas inscriptible, n'existe pas, ou le disque est plein) ; le message nomme le fichier et le code du système de fichiers.
 
 - **Levé par** : `types`
-- **Code de sortie** : `2`
 - **Étape suivante** : Make the output file and its directory writable, then try again.
 
 ### TMX_OUTPUT_CONFLICT
@@ -624,7 +562,6 @@ Le fichier de déclarations que produit `generateTypes` n'a pas pu être écrit 
 `exportTmx` a refusé son chemin de sortie : un chemin qui ne nomme aucun fichier (ou se termine par un séparateur de chemin) ou qui tombe hors de `cwd` ou sur `cwd` lui-même, et un chemin nommant un fichier que verbatra gère, tels que les liste [`TYPES_OUTPUT_CONFLICT`](#types_output_conflict), y compris une fois les liens symboliques résolus ; refusé avant toute lecture de la mémoire.
 
 - **Levé par** : `tmx export`
-- **Code de sortie** : `2`
 - **Étape suivante** : Choose an output path inside the project that names no locale file or other file verbatra manages.
 
 ### TMX_UNWRITABLE
@@ -632,7 +569,6 @@ Le fichier de déclarations que produit `generateTypes` n'a pas pu être écrit 
 Le fichier TMX que produit `exportTmx` n'a pas pu être écrit (son répertoire n'est pas inscriptible, un répertoire occupe déjà ce chemin, ou le disque est plein) ; le message nomme le fichier et le code du système de fichiers.
 
 - **Levé par** : `tmx export`
-- **Code de sortie** : `2`
 - **Étape suivante** : Make the output file and its directory writable, then try again.
 
 ### EXPORT_OUTPUT_CONFLICT
@@ -640,7 +576,6 @@ Le fichier TMX que produit `exportTmx` n'a pas pu être écrit (son répertoire 
 `exportWorkbook` a refusé son chemin de sortie : un chemin qui tombe hors de `cwd`, et un chemin qui, lui-même ou par un fichier que l'export écrirait dedans, nomme un fichier que verbatra gère, tels que les liste [`TYPES_OUTPUT_CONFLICT`](#types_output_conflict), y compris une fois les liens symboliques résolus ; un chemin `xlsx` qui ne nomme aucun fichier ou nomme `cwd` lui-même est aussi refusé ; refusé avant toute lecture.
 
 - **Levé par** : `export`
-- **Code de sortie** : `2`
 - **Étape suivante** : Choose an output path inside the project that names no locale file or other file verbatra manages.
 
 ### EXPORT_UNWRITABLE
@@ -648,7 +583,6 @@ Le fichier TMX que produit `exportTmx` n'a pas pu être écrit (son répertoire 
 Le livrable que produit `exportWorkbook` n'a pas pu être écrit (son répertoire n'est pas inscriptible, un répertoire ou un fichier gêne, ou le disque est plein) ; le message nomme le fichier et le code du système de fichiers, et l'erreur du système de fichiers est la `cause`.
 
 - **Levé par** : `export`
-- **Code de sortie** : `2`
 - **Étape suivante** : Make the output file and its directory writable, then try again.
 
 ### LOCALE_STATE_NOT_CARRIED_OVER
@@ -656,7 +590,6 @@ Le livrable que produit `exportWorkbook` n'a pas pu être écrit (son répertoir
 Levé par `editEntry`, `retranslateEntry`, `approveEntry` et `rejectEntry`, qui n'écrivent alors rien ; sinon enregistré sur l'`error` d'une locale que `translate`, `watch` ou `importWorkbook` n'a pas exécutée parce que son état sous un code réécrit comme `pt_BR` n'a pas pu lui être déplacé dans le fichier de verrou ou le fichier de provenance ; l'exécution suivante réessaie ([Un code de locale réécrit](/docs/the-lock-file#un-code-de-locale-réécrit)).
 
 - **Levé par** : `translate`, `watch`, `import` ; Studio et le serveur MCP
-- **Code de sortie** : `1` quand il fait échouer une locale de `translate` ou `import`
 - **Étape suivante** : Wait for other verbatra processes to finish, make verbatra.lock.json and verbatra.provenance.json writable, then try again.
 
 ### LOCALE_UNSUPPORTED_BY_PROVIDER
@@ -664,7 +597,6 @@ Levé par `editEntry`, `retranslateEntry`, `approveEntry` et `rejectEntry`, qui 
 Le fournisseur DeepL ou Google Cloud Translation configuré ne liste pas la locale source ou une locale cible sélectionnée dans la table de langues que verbatra embarque ; levé par `translate` (y compris une exécution à blanc et une estimation), `watch` au démarrage et `retranslateEntry`, avant qu'aucun fournisseur ne soit construit, aucune clé lue ou aucune locale démarrée ; une locale associée explicitement dans `localeMap` est considérée comme fiable à la place ([Prise en charge des langues](/docs/language-support#vérifier-la-prise-en-charge-avant-une-exécution)).
 
 - **Levé par** : `translate`, `watch` ; Studio et le serveur MCP
-- **Code de sortie** : `2`
 - **Étape suivante** : Remove the unsupported locale from `targetLocales`, map it to a supported code in `provider.options.localeMap`, or choose a provider that supports it.
 
 ### NOT_A_LOCALE_FILE
@@ -672,7 +604,6 @@ Le fournisseur DeepL ou Google Cloud Translation configuré ne liste pas la loca
 `checkFile` a reçu un chemin qui n'est le fichier d'aucune locale configurée, ou aucun fichier n'existe à cet endroit.
 
 - **Levé par** : `check --file`
-- **Code de sortie** : `2`
 - **Étape suivante** : Pass the path of an existing locale file that `files.pattern` maps to a configured locale.
 
 ### SENSITIVE_CONTENT_WITHHELD
@@ -680,7 +611,6 @@ Le fournisseur DeepL ou Google Cloud Translation configuré ne liste pas la loca
 `retranslateEntry` n'a pas envoyé la clé, ou a écarté sa réponse, parce que `sensitiveData.mode` vaut `block` ou `redact` et que la clé contient un contenu trouvé par un détecteur ou un motif qui n'a pas pu être envoyé ou n'est pas revenu intact ([Protection des contenus sensibles](/docs/data-handling#protection-des-contenus-sensibles)). `translate` et `watch` listent ces clés dans `sensitiveWithheld` à la place.
 
 - **Levé par** : Studio et le serveur MCP
-- **Code de sortie** : aucun : aucune commande de la CLI ne le lève
 - **Étape suivante** : Remove the content from the key, list it in `sensitiveData.allow`, or turn the detector off in `sensitiveData.detectors`.
 
 ### RUN_CANCELLED
@@ -688,7 +618,6 @@ Le fournisseur DeepL ou Google Cloud Translation configuré ne liste pas la loca
 Le `signal` passé à `translate` ou `retranslateEntry` a été interrompu. `retranslateEntry` la lève quand l'interruption arrive avant la réponse du fournisseur, sans avoir rien écrit. `translate` l'enregistre sur chaque locale que l'annulation a empêchée de démarrer et marque le résumé comme [`cancelled`](/docs/sdk/run-summary). Un point d'entrée qui prend un verrou d'écriture, comme `editEntry`, `approveEntry` ou `updateGlossaryTerm`, la lève aussi quand `releaseHeldLocks` s'exécute au moment où il va prendre le verrou.
 
 - **Levé par** : le SDK uniquement
-- **Code de sortie** : aucun : aucune commande de la CLI ne le lève
 - **Étape suivante** : Run the operation again to finish the work the cancellation left pending.
 
 ### LOCALE_FAILED
@@ -696,167 +625,128 @@ Le `signal` passé à `translate` ou `retranslateEntry` a été interrompu. `ret
 Jamais levé : le `code` de repli enregistré sur l'`error` d'une locale échouée.
 
 - **Levé par** : `translate`, `watch`, `import`
-- **Code de sortie** : `1` quand il fait échouer une locale de `translate` ou `import`
 - **Étape suivante** : Fix the cause the locale's message names, then try again.
 
 ## Codes d'erreur des fournisseurs [#provider-error-codes]
 
-Un échec de fournisseur lève une `ProviderError` avec l'un de ces codes ([Erreurs structurées](/docs/providers#erreurs-structurées)). Dans `translate` et `watch`, seule sa propre requête échoue : ses clés sont retenues, la locale reçoit un avis `SUB_BATCH_FAILED` qui nomme le code, et les clés sont reprises à la prochaine exécution. Une retraduction d'une seule clé depuis Studio ou le serveur MCP relève la `ProviderError`.
+Un échec de fournisseur lève une `ProviderError` avec l'un de ces codes ([Erreurs structurées](/docs/providers#erreurs-structurées)). Dans `translate` et `watch`, seule sa propre requête échoue : ses clés sont retenues, la locale reçoit un avis `SUB_BATCH_FAILED` qui nomme le code, et les clés sont reprises à la prochaine exécution. Une retraduction d'une seule clé depuis Studio ou le serveur MCP relève la `ProviderError`. Une requête en échec sort avec `1`, et sa locale finit `partial` ou `failed`.
 
 ### MISSING_API_KEY
 
-La variable d'environnement requise est absente ou vide. Le message nomme la variable, jamais une valeur. Pour LibreTranslate, dont la clé est facultative, cela veut dire que le serveur a exigé une clé et que `LIBRETRANSLATE_API_KEY` n'est pas définie.
+La variable d'environnement requise est absente ou vide. Le message nomme la variable, jamais une valeur, et dans la CLI il arrive comme `causeCode` de `PROVIDER_CONSTRUCTION_FAILED`, avec la sortie `2`. Pour LibreTranslate, dont la clé est facultative, cela veut dire que le serveur a exigé une clé et que `LIBRETRANSLATE_API_KEY` n'est pas définie.
 
-- **Levé par** : `translate`, `watch` ; Studio et le serveur MCP quand ils retraduisent
-- **Code de sortie** : `2`, comme `causeCode` de `PROVIDER_CONSTRUCTION_FAILED`
 - **Étape suivante** : Set the API key environment variable your provider reads, then run `verbatra doctor`.
 
 ### INVALID_REQUEST
 
 La requête a échoué à la validation avant tout appel réseau : un champ malformé, un code que DeepL n'accepte pas (une entrée de `localeMap` donnant un code source régional, ou une cible qui aboutit à un `en` ou `pt` nu), ou un code qui n'est pas du BCP-47 bien formé pour Google Cloud Translation. Pour LibreTranslate, cela couvre aussi une langue pour laquelle ton serveur n'a pas de modèle et une requête qui dépasse son `--char-limit` ou son `--batch-limit`. Réessayer n'aidera pas.
 
-- **Levé par** : `translate`, `watch` ; Studio et le serveur MCP quand ils retraduisent
-- **Code de sortie** : `1` : les clés de la requête échouée sont retenues, et la locale se termine en `partial` ou `failed`
 - **Étape suivante** : Check the provider options in the config, such as the model name.
 
 ### INVALID_RESPONSE
 
 La sortie était malformée, incomplète, ou a échoué à la réconciliation avec la requête.
 
-- **Levé par** : `translate`, `watch` ; Studio et le serveur MCP quand ils retraduisent
-- **Code de sortie** : `1` : les clés de la requête échouée sont retenues, et la locale se termine en `partial` ou `failed`
 - **Étape suivante** : Try again; if it keeps failing, configure a different model.
 
 ### OUTPUT_TRUNCATED
 
 Le modèle a atteint sa limite de tokens de sortie ; voir [Limites de tokens de sortie](/docs/providers#limites-de-tokens-de-sortie).
 
-- **Levé par** : `translate`, `watch` ; Studio et le serveur MCP quand ils retraduisent
-- **Code de sortie** : `1` : les clés de la requête échouée sont retenues, et la locale se termine en `partial` ou `failed`
 - **Étape suivante** : Translate fewer keys at a time, or configure a model with a larger output limit.
 
 ### PROVIDER_REFUSED
 
 Le modèle a refusé de répondre.
 
-- **Levé par** : `translate`, `watch` ; Studio et le serveur MCP quand ils retraduisent
-- **Code de sortie** : `1` : les clés de la requête échouée sont retenues, et la locale se termine en `partial` ou `failed`
 - **Étape suivante** : Review the source text the provider refused, or translate it by hand.
 
 ### PROVIDER_BLOCKED
 
 La requête ou la réponse a été bloquée ou filtrée pour raison de sécurité.
 
-- **Levé par** : `translate`, `watch` ; Studio et le serveur MCP quand ils retraduisent
-- **Code de sortie** : `1` : les clés de la requête échouée sont retenues, et la locale se termine en `partial` ou `failed`
 - **Étape suivante** : Review the source text the provider blocked, or translate it by hand.
 
 ### RATE_LIMITED
 
 HTTP 429 ou une erreur de limite de débit du SDK. Pour Google Cloud Translation, cela couvre aussi un HTTP 403 dont le corps nomme un motif de quota (une limite quotidienne ou par minute). Google réutilise le 403 à la fois pour les échecs de quota et d'identifiants, donc augmente le quota Cloud Translation de ton projet.
 
-- **Levé par** : `translate`, `watch` ; Studio et le serveur MCP quand ils retraduisent
-- **Code de sortie** : `1` : les clés de la requête échouée sont retenues, et la locale se termine en `partial` ou `failed`
 - **Étape suivante** : Wait a moment and try again, or lower the concurrency.
 
 ### TIMEOUT
 
 Un délai réseau ou de requête dépassé ; [`requestTimeoutMs`](/docs/providers#délai-de-requête) relève la borne.
 
-- **Levé par** : `translate`, `watch` ; Studio et le serveur MCP quand ils retraduisent
-- **Code de sortie** : `1` : les clés de la requête échouée sont retenues, et la locale se termine en `partial` ou `failed`
 - **Étape suivante** : Try again, or raise the provider's `requestTimeoutMs` in the config.
 
 ### AUTH_FAILED
 
 HTTP 401 ou 403 : la clé est invalide, révoquée ou sans permission. Pour Google Cloud Translation, vérifie que `GOOGLE_TRANSLATE_API_KEY` est une clé valide et sans restriction pour un projet où l'API Cloud Translation est activée. Réessayer n'aidera pas.
 
-- **Levé par** : `translate`, `watch` ; Studio et le serveur MCP quand ils retraduisent
-- **Code de sortie** : `1` : les clés de la requête échouée sont retenues, et la locale se termine en `partial` ou `failed`
 - **Étape suivante** : Check that the provider's API key is valid and allowed to use the configured model.
 
 ### PROVIDER_UNAVAILABLE
 
 HTTP 5xx : le fournisseur a échoué de son côté, et la requête elle-même n'a jamais été en cause. Les couches de [nouvelles tentatives](/docs/providers#nouvelles-tentatives) absorbent déjà un 5xx transitoire, donc un 5xx qui atteint ce code est une panne durable.
 
-- **Levé par** : `translate`, `watch` ; Studio et le serveur MCP quand ils retraduisent
-- **Code de sortie** : `1` : les clés de la requête échouée sont retenues, et la locale se termine en `partial` ou `failed`
 - **Étape suivante** : Try again later, or check the configured endpoint.
 
 ### NETWORK_POLICY_VIOLATION [#provider-network_policy_violation]
 
 La [politique réseau](/docs/network-policy) a refusé la requête juste avant son envoi : le nom d'hôte pointait vers une adresse que la politique n'autorise pas, ou une réponse redirigeait vers un hôte refusé. Le message ne nomme que l'hôte. Réessayer n'aidera pas.
 
-- **Levé par** : `translate`, `watch` ; Studio et le serveur MCP quand ils retraduisent
-- **Code de sortie** : `1` : les clés de la requête échouée sont retenues, et la locale se termine en `partial` ou `failed`
 - **Étape suivante** : Point the provider at a host the network policy permits, or add its host to `network.allowedHosts` or VERBATRA_NETWORK_ALLOWED_HOSTS.
 
 ### PROVIDER_ERROR
 
 Tout ce qui est inclassable. Quand l'échec est un problème de transport reconnaissable, le message le nomme (connexion refusée, nom d'hôte non résolu, connexion fermée, hôte injoignable, certificat TLS non vérifié) et dit quoi vérifier ; sinon il se replie sur un message statique sans secret. Si un paquet de fournisseur n'a pas pu être chargé, le message nomme le paquet et te demande de réinstaller `@verbatra/sdk`.
 
-- **Levé par** : `translate`, `watch` ; Studio et le serveur MCP quand ils retraduisent
-- **Code de sortie** : `1` : les clés de la requête échouée sont retenues, et la locale se termine en `partial` ou `failed`
 - **Étape suivante** : Try again; if it keeps failing, check the provider configuration.
 
 ## Codes d'erreur des adaptateurs de format [#adapter-error-codes]
 
-Un adaptateur de format qui ne peut pas traiter un fichier lève une `AdapterError` avec l'un de ces codes. Sur le fichier de locale source, elle arrive enveloppée dans `SOURCE_INVALID`, avec le code de l'adaptateur comme `causeCode` ; sur un fichier cible, elle devient l'`error.code` de cette locale. `check --file` signale plutôt un fichier qui ne se parse pas comme un constat `syntax`. L'ensemble est fermé : un [adaptateur personnalisé](/docs/custom-format-adapters) lève l'un de ces codes plutôt que le sien.
+Un adaptateur de format qui ne peut pas traiter un fichier lève une `AdapterError` avec l'un de ces codes. Sur le fichier de locale source, elle arrive enveloppée dans `SOURCE_INVALID`, avec le code de l'adaptateur comme `causeCode` ; sur un fichier cible, elle devient l'`error.code` de cette locale. Toute commande qui lit des fichiers de locale, Studio et le serveur MCP peuvent la lever ; la CLI sort avec `2` quand le fichier source est en cause et avec `1` quand un fichier cible fait échouer sa locale dans `translate` ou `import`. `check --file` signale plutôt un fichier qui ne se parse pas comme un constat `syntax`. L'ensemble est fermé : un [adaptateur personnalisé](/docs/custom-format-adapters) lève l'un de ces codes plutôt que le sien.
 
 ### INVALID_JSON
 
 Un fichier de locale basé sur JSON n'est pas du JSON valide. Le message se termine par la ligne et la colonne quand le parser les indique.
 
-- **Levé par** : toute commande qui lit des fichiers de locale ; Studio et le serveur MCP
-- **Code de sortie** : `1` quand un fichier cible fait échouer sa locale dans `translate` ou `import` ; `2` quand le fichier source est en cause, comme `causeCode` de `SOURCE_INVALID`
 - **Étape suivante** : Fix the syntax error the message names in that file.
 
 ### INVALID_YAML
 
 Un fichier de locale YAML n'est pas du YAML valide. Le message se termine par la ligne et la colonne quand le parser les indique.
 
-- **Levé par** : toute commande qui lit des fichiers de locale ; Studio et le serveur MCP
-- **Code de sortie** : `1` quand un fichier cible fait échouer sa locale dans `translate` ou `import` ; `2` quand le fichier source est en cause, comme `causeCode` de `SOURCE_INVALID`
 - **Étape suivante** : Fix the syntax error the message names in that file.
 
 ### INVALID_XML
 
 Un fichier de locale basé sur XML, comme XLIFF ou `strings.xml` d'Android, n'est pas du XML bien formé.
 
-- **Levé par** : toute commande qui lit des fichiers de locale ; Studio et le serveur MCP
-- **Code de sortie** : `1` quand un fichier cible fait échouer sa locale dans `translate` ou `import` ; `2` quand le fichier source est en cause, comme `causeCode` de `SOURCE_INVALID`
 - **Étape suivante** : Fix the syntax error the message names in that file.
 
 ### INVALID_STRUCTURE
 
 Le fichier se parse, mais n'a pas la forme qu'attend le format configuré, par exemple une clé à points et un chemin de clés imbriqué qui mènent à la même clé, ou une clé de mapping YAML qui est une map ou une séquence.
 
-- **Levé par** : toute commande qui lit des fichiers de locale ; Studio et le serveur MCP
-- **Code de sortie** : `1` quand un fichier cible fait échouer sa locale dans `translate` ou `import` ; `2` quand le fichier source est en cause, comme `causeCode` de `SOURCE_INVALID`
 - **Étape suivante** : Reshape the file the message names to match the configured format.
 
 ### MAX_DEPTH_EXCEEDED
 
 Le fichier est imbriqué plus profondément que ce que verbatra lit.
 
-- **Levé par** : toute commande qui lit des fichiers de locale ; Studio et le serveur MCP
-- **Code de sortie** : `1` quand un fichier cible fait échouer sa locale dans `translate` ou `import` ; `2` quand le fichier source est en cause, comme `causeCode` de `SOURCE_INVALID`
 - **Étape suivante** : Reduce the nesting depth of the file the message names.
 
 ### INPUT_TOO_LARGE
 
 Le fichier est plus volumineux que ce que verbatra lit.
 
-- **Levé par** : toute commande qui lit des fichiers de locale ; Studio et le serveur MCP
-- **Code de sortie** : `1` quand un fichier cible fait échouer sa locale dans `translate` ou `import` ; `2` quand le fichier source est en cause, comme `causeCode` de `SOURCE_INVALID`
 - **Étape suivante** : Split the file the message names into smaller files.
 
 ### MIXED_STRUCTURE
 
 Le fichier mélange des clés plates et imbriquées là où le format l'interdit.
 
-- **Levé par** : toute commande qui lit des fichiers de locale ; Studio et le serveur MCP
-- **Code de sortie** : `1` quand un fichier cible fait échouer sa locale dans `translate` ou `import` ; `2` quand le fichier source est en cause, comme `causeCode` de `SOURCE_INVALID`
 - **Étape suivante** : Use either flat or nested keys throughout the file the message names.
 
 ### ADAPTER_FAILED
@@ -864,7 +754,6 @@ Le fichier mélange des clés plates et imbriquées là où le format l'interdit
 Un adaptateur `custom:` a levé une erreur inattendue. L'erreur nomme le format de l'adaptateur, et l'erreur d'origine de l'adaptateur est sa `cause`.
 
 - **Levé par** : le SDK, avec un adaptateur `custom:` (la CLI ne charge aucun plugin)
-- **Code de sortie** : aucun : aucune commande de la CLI ne le lève
 - **Étape suivante** : Report the failure to the maintainer of the custom adapter the message names.
 
 ### DUPLICATE_FORMAT
@@ -872,7 +761,6 @@ Un adaptateur `custom:` a levé une erreur inattendue. L'erreur nomme le format 
 Un second adaptateur a été enregistré pour un identifiant de format que le registre contient déjà.
 
 - **Levé par** : `AdapterRegistry.register` dans le SDK
-- **Code de sortie** : aucun : aucune commande de la CLI ne le lève
 - **Étape suivante** : Register only one adapter for each format identifier.
 
 ### INVALID_FORMAT_ID
@@ -880,7 +768,6 @@ Un second adaptateur a été enregistré pour un identifiant de format que le re
 Un adaptateur a été enregistré sous un identifiant `custom:` mal formé.
 
 - **Levé par** : `AdapterRegistry.register` dans le SDK
-- **Code de sortie** : aucun : aucune commande de la CLI ne le lève
 - **Étape suivante** : Name the custom adapter `custom:` followed by a valid name.
 
 ## Codes de la barrière de relecture [#check-result-codes]
@@ -905,22 +792,18 @@ Au moins une traduction écrite par la machine (origine `machine`, `memory`, `fu
 
 ## Motifs de refus d'intégrité [#integrity-refusal-reasons]
 
-La [barrière d'intégrité](/docs/translation-safety#la-barrière-dintégrité) refuse une valeur candidate avec exactement un de ces motifs, le premier qui s'applique dans l'ordre donné sur cette page. Le motif apparaît dans les `integrityRefusals` d'une locale après `translate`, `watch` et `import` (`integrity-withheld` dans la sortie lisible), dans le résultat de `editEntry` et de `retranslateEntry` (`accepted: false` avec le `reason`) et comme erreur de `check --qa`, souvent avec des `details` qui nomment ce qui diffère. L'ensemble est publié sous la forme du tuple `INTEGRITY_GATE_REASONS`.
+La [barrière d'intégrité](/docs/translation-safety#la-barrière-dintégrité) refuse une valeur candidate avec exactement un de ces motifs, le premier qui s'applique dans l'ordre donné sur cette page. Le motif apparaît dans les `integrityRefusals` d'une locale après `translate`, `watch` et `import` (`integrity-withheld` dans la sortie lisible), dans le résultat de `editEntry` et de `retranslateEntry` (`accepted: false` avec le `reason`) et comme erreur de `check --qa`, souvent avec des `details` qui nomment ce qui diffère. Un refus sort avec `1` de `check --qa`, et de `translate` et `import` quand la locale finit partial ou failed. L'ensemble est publié sous la forme du tuple `INTEGRITY_GATE_REASONS`.
 
 ### placeholder
 
 Les placeholders de la candidate diffèrent de ceux de sa source, comparés comme un multiensemble : le nombre compte, l'ordre non. Ce qui compte comme placeholder est défini par chaque [format](/docs/formats). Pour i18next, ngx-translate et YAML, un jeton de forme `{name}` que la candidate ajoute et que la source n'avait jamais est refusé aussi, même si les accolades simples y sont du texte littéral. Les détails nomment chaque placeholder supprimé avec `-` et chaque placeholder ajouté avec `+`, par exemple `-{{name}}` ou `+{{nom}}`.
 
-- **Levé par** : `translate`, `watch`, `import`, `editEntry`, `retranslateEntry` ; `check --qa` (comme erreur)
-- **Code de sortie** : `1` depuis `translate` et `import` quand la locale finit partielle ou en échec ; `1` depuis `check --qa`
 - **Étape suivante** : Remets les placeholders de la source dans la traduction, ou laisse l'exécution suivante la traduire à nouveau.
 
 ### markup
 
 Le balisage HTML ou XML en ligne de la candidate diffère de celui de sa source, ou n'est pas bien formé. Les détails nomment chaque balise à l'origine du refus, précédée de `-` pour une balise que la source avait et que la candidate a supprimée, ou de `+` pour une balise que la candidate a inventée.
 
-- **Levé par** : `translate`, `watch`, `import`, `editEntry`, `retranslateEntry` ; `check --qa` (comme erreur)
-- **Code de sortie** : `1` depuis `translate` et `import` quand la locale finit partielle ou en échec ; `1` depuis `check --qa`
 - **Étape suivante** : Garde dans la traduction les balises, les noms d'attribut et les valeurs d'attribut protégées de la source.
 
 #### Comment le balisage est comparé
@@ -1076,24 +959,18 @@ fermante en trop comme un second `</g>`.
 
 Pour next-intl et ARB, la candidate ne s'analyse plus comme un message ICU (y compris un `plural` sans sa branche `other`), ou ses branches `plural` ou `selectordinal` ne correspondent pas aux catégories CLDR de la langue cible, ou ses branches `select` diffèrent de celles de la source. Les détails nomment chaque branche incorrecte. [Branches plurielles par langue cible](/docs/translation-safety#branches-plurielles-par-langue-cible) explique la règle.
 
-- **Levé par** : `translate`, `watch`, `import`, `editEntry`, `retranslateEntry` ; `check --qa` (comme erreur)
-- **Code de sortie** : `1` depuis `translate` et `import` quand la locale finit partielle ou en échec ; `1` depuis `check --qa`
 - **Étape suivante** : Corrige le message pour qu'il s'analyse et porte exactement les branches dont la langue cible a besoin.
 
 ### degenerate
 
 La candidate est structurellement dégénérée : une boucle de répétition, ou une longueur qui s'est emballée par rapport à sa source. C'est l'allure d'un modèle qui s'est mis à répéter un fragment, même quand chaque placeholder a survécu.
 
-- **Levé par** : `translate`, `watch`, `import`, `editEntry`, `retranslateEntry` ; `check --qa` (comme erreur)
-- **Code de sortie** : `1` depuis `translate` et `import` quand la locale finit partielle ou en échec ; `1` depuis `check --qa`
 - **Étape suivante** : Laisse l'exécution suivante traduire la clé à nouveau, ou écris la traduction à la main.
 
 ### empty
 
 La candidate est vide ou ne contient que des espaces alors que sa source ne l'est pas. Vider une traduction est un acte délibéré : c'est le rôle du marqueur `[[CLEAR]]` du classeur.
 
-- **Levé par** : `translate`, `watch`, `import`, `editEntry`, `retranslateEntry` ; `check --qa` (comme erreur)
-- **Code de sortie** : `1` depuis `translate` et `import` quand la locale finit partielle ou en échec ; `1` depuis `check --qa`
 - **Étape suivante** : Écris une traduction, ou vide la valeur volontairement avec `[[CLEAR]]` dans un import de classeur.
 
 ## Motifs de relecture [#review-reason-codes]
