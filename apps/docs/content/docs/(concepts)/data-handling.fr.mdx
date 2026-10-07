@@ -35,12 +35,13 @@ CI. Ce site relève de sa [politique de confidentialité](/privacy).
   Studio in your browser   MCP client (your AI agent)
 ```
 
+La flèche est en HTTPS pour tout fournisseur hébergé. [`openai-compatible`](/docs/providers#openai-compatible) et [`libretranslate`](/docs/providers#libretranslate) utilisent le schéma de ta `baseUrl` : HTTPS, ou http simple vers ton propre serveur.
+
 ## Quand une requête est faite
 
 Seules les commandes du schéma appellent un fournisseur ; les actions de Studio et du MCP exigent
 [`--allow-spend`](/docs/cli/mcp#outils-payants). Tout le reste, exécutions à blanc et estimations
-comprises, est local, sauf [`verbatra doctor --live`](/docs/cli/doctor), qui envoie ta clé d'API (aucune à
-LibreTranslate) et aucun texte.
+comprises, est local, sauf [`verbatra doctor --live`](/docs/cli/doctor), qui demande la liste des langues à DeepL ou Google Cloud Translation avec ta clé d'API, et à LibreTranslate sans clé ; il n'envoie aucun texte, et aucune requête pour un fournisseur LLM ou `none`.
 
 Une exécution de `translate` n'envoie que les clés manquantes ou modifiées par rapport au
 [fichier de verrouillage](/docs/the-lock-file), moins les succès du [cache](/docs/the-cache), et un

@@ -34,12 +34,13 @@ diese Website gilt ihre [Datenschutzerklärung](/privacy).
   Studio in your browser   MCP client (your AI agent)
 ```
 
+Der Pfeil ist bei jedem gehosteten Provider HTTPS. [`openai-compatible`](/docs/providers#openai-compatible) und [`libretranslate`](/docs/providers#libretranslate) nutzen das Schema deiner `baseUrl`: HTTPS oder einfaches http zu deinem eigenen Server.
+
 ## Wann ein Request gemacht wird
 
 Nur die Befehle im Diagramm rufen einen Provider auf; die Aktionen von Studio und MCP brauchen
 [`--allow-spend`](/docs/cli/mcp#kostenpflichtige-tools). Alles andere, Probeläufe und Schätzungen
-eingeschlossen, ist lokal, außer [`verbatra doctor --live`](/docs/cli/doctor), das deinen API-Key (an LibreTranslate
-keinen) und keine Strings sendet.
+eingeschlossen, ist lokal, außer [`verbatra doctor --live`](/docs/cli/doctor), das DeepL oder Google Cloud Translation mit deinem API-Key nach der Sprachliste fragt und LibreTranslate ohne Key; es sendet keine Strings und bei einem LLM-Provider oder `none` gar keinen Request.
 
 Ein Lauf von `translate` sendet nur Keys, die gegenüber [der Lock-Datei](/docs/the-lock-file) fehlen
 oder geändert sind, abzüglich der Treffer im [Cache](/docs/the-cache), und geteilten Text nur
