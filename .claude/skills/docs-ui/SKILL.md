@@ -139,11 +139,15 @@ footer's oversized watermark only; do not clip it onto a heading.
   a space since `HighlightedCommand` keeps each word whole, so the package name is never clipped;
   it is an ordered list of two numbered steps, each under a `.vk-label` caption with its number
   in an outline circle like the docs `Steps` rail: "Install", one `CommandRow`
-  (`components/command-row.tsx`) for the npm install, which wraps under 30rem, then "Set up", a
+  (`components/command-row.tsx`) for the npm install, which wraps under 30rem (elsewhere a
+  `CommandRow` scrolls sideways inside `.vk-edge-fade`: a mask, not a painted background, so it
+  stays see-through on the translucent hero, and the end fade shows only while the command
+  overflows, driven by a scroll timeline), then "Set up", a
   link to the quickstart, since `init --agent` cannot be a new project's first step; its last row
   is `AiSetupPrompt` (`components/ai-setup-prompt.tsx`, captioned "Or let your agent set it up"
   there through its `label` prop): the whole one-line prompt, wrapped, under a `.vk-label` caption that shares its row with the
-  prompt's small Copy button; its URL breaks only after a path `/`, never inside the scheme or
+  prompt's small Copy button until the caption needs the whole row, when the button wraps under
+  it; its URL breaks only after a path `/`, never inside the scheme or
   host, through `breakUrlsAtSlashes` in `lib/word-breaks.tsx`), `reveal.tsx` (the scroll
   entrance, used once: the providers deck, whose fan-out it triggers; sections do not animate in), `hero-facts.tsx` (the release / formats / providers /
   license row), and an `fx/` folder
@@ -297,7 +301,9 @@ comes from:
   `DocsHomePaths`, `DocsHomeFeatures`, and the prev/next footer cards follow it; the one
   filled card (the primary path) uses `--accent-fill` / `--accent-fill-fg`.
 - **Void code surfaces**: `figure.shiki` sits on `var(--v-void)` inside a `--border-default`
-  border, like `Terminal` and `CommandBox`. A `// [!code highlight]` line gets the landing's
+  border, like `Terminal` and `CommandBox`. On an untitled fence the copy button sits on a void
+  backing, and a one-line fence ends its scroll area before the button, so a long command never
+  runs under it. A `// [!code highlight]` line gets the landing's
   highlight treatment: 22 percent `--v-purple` tint plus a 3px `--v-purple` bar on the start
   edge. `DocsHomeFeatures` cards carry the same 3px `--v-purple` start bar.
 - **Callouts**: one 3px bar plus the icon, both in `--callout-color`, which Fumadocs derives
@@ -338,8 +344,15 @@ comes from:
   `.md` output. The preset plugin stays off (`remarkNpmOptions: false`), and
   `lib/install-commands.test.ts` fails on an `npm` fence that is not an `npm install`, so every
   other command stays one `npx` line in a `bash` fence. `StackBlock name="runtime-install"` emits
-  the `npm` fence for an npm install and `bash` for any other tool. The landing and docs home install
-  box takes `NPM_INSTALL_COMMAND` from `lib/install-commands.ts` and shows no tabs.
+  the `npm` fence for an `npm install` (`isNpmInstall`, the predicate the test shares) and `bash`
+  for any other tool, and `<InitCommand format>` accepts only a format id from the published
+  `@verbatra/sdk/config-schema.json`. The plugin turns each fence into its own tabs and
+  marks that node for the `.md` output, never another `CodeBlockTabs` on the page. A
+  `` ```verbatra-run `` fence (`RUN_FENCE_LANG`) holds only the arguments (`<command>`) and
+  becomes the same tabs with the binary each manager runs (`npx @verbatra/cli`, `pnpm verbatra`,
+  `yarn verbatra`, `bun run verbatra`), sharing the remembered choice; `cli/index` uses it. The
+  landing and docs home install box takes `NPM_INSTALL_COMMAND` from `lib/install-commands.ts`
+  and shows no tabs.
 - **Output blocks**: a fence flagged `output` (`` ```text output ``) is what a command prints, not
   something to run. The flag, not a title, is the marker, so it reads the same in every locale:
   `parseCodeBlockMeta` (`lib/code-block-meta.ts`, wired as `rehypeCodeOptions.parseMetaString` in
@@ -350,6 +363,10 @@ comes from:
   an ordinary English-captioned block.
 - **Steps**: Fumadocs' `.fd-steps` rail is a 3px `--v-purple` start bar (60 percent), and each
   step number sits in an outline circle on `--surface-bg` in mono `--accent`.
+- **Content tabs**: MDX `<Tabs>` is `DocsTabs` (`components/docs-tabs.tsx`), Fumadocs' `Tabs`
+  with `.vk-docs-tabs`: the trigger row hides its scrollbar, fades its end edge like
+  `.vk-edge-fade`, and scrolls the active trigger into view whenever it changes (a click, a
+  remembered group choice, or a TOC jump into a tab).
 - **Sidebar tabs**: the Docs and Reference root folders render as two inline `.vk-label` links
   (`SidebarTabs` in `components/root-tabs.tsx`, the `.vk-sidebar-tabs` hook) in the sidebar banner
   slot of the sidebar and the phone drawer, with a `--accent` underline and `aria-current` on the
@@ -385,10 +402,12 @@ comes from:
   `.vk-terminal-scroll` uses, and the header is not sticky, because a sticky cell inside a
   scroll container is offset against that container, not the page. Cells are compact (0.5rem by
   0.75rem, top-aligned). A table of three or more columns gets `.vk-table-stack` and a
-  `data-label` per body cell from `lib/stacked-tables.ts` at build time; while the article column
-  is under 45rem each row stacks into a card, the first cell as its title and every other cell
-  behind its column name, and under 30rem the column name moves above its value. Under 30rem,
-  code and pills in a cell may wrap too, so a two-column table fits a phone. The header row stays
+  `data-label` per body cell from `lib/stacked-tables.ts` at build time, unless every body row
+  holds at most `COMPACT_ROW_MAX_CHARACTERS` of text (the error code index), which stays a table
+  at every width. Only while the article column is under 30rem (a phone) does a stacked table's
+  row become a card: the first cell as its title, every other cell under its column name. Under
+  30rem, long code and pills in a cell may wrap anywhere too, so a two-column table fits a phone;
+  short code (`.vk-code-short`) still breaks only at its `<wbr>`s. The header row stays
   in the DOM for assistive technology. Short inline code (up to `SHORT_INLINE_CODE_MAX`
   characters in `lib/inline-code.ts`) gets `.vk-code-short` from the MDX `code` mapping and never
   wraps elsewhere; longer inline code wraps, in cells and in prose alike, and the mapping offers a
