@@ -52,14 +52,18 @@ Also takes the [global flags](/docs/cli#global-flags) `--cwd`, `--config` and `-
 ## Behavior
 
 <Callout type="warn">
-A run without `--dry-run` or `--estimate` sends every new or changed string to the provider, and a hosted provider bills for it: size the run with `--estimate` and cap it with `--max-tokens`. An API key sent to a self-hosted server over plain `http://` (not loopback) crosses the network unencrypted, see [Keys are optional](/docs/providers#keys-are-optional).
+A run without `--dry-run` or `--estimate` sends every new or changed string to the provider, and a hosted provider bills for it: size the run with `--estimate` and cap it with `--max-tokens`.
+</Callout>
+
+<Callout type="warn">
+An API key sent to a self-hosted server over plain `http://` (not loopback) crosses the network unencrypted, see [Keys are optional](/docs/providers#keys-are-optional).
 </Callout>
 
 ### Dry run
 
 `--dry-run` constructs no provider, so it needs no API key and cannot spend anything. It reads the source and target files, diffs them against the lock file, and reports exactly what a real run would change. It writes nothing (no locale file, no lock update, no run-status snapshot), neither reads nor writes the cache, and takes no write lock, so it never waits on a run in progress.
 
-<Callout type="warn">
+<Callout>
 By default a run deletes nothing: orphaned keys are reported and left in place. `--prune`, or `prune: true` in the config, deletes exactly those keys from the target files and the lock; `--prune --dry-run` previews them.
 </Callout>
 

@@ -52,14 +52,18 @@ Accepte aussi les [options globales](/docs/cli#options-globales) `--cwd`, `--con
 ## Comportement
 
 <Callout type="warn">
-Une exécution sans `--dry-run` ni `--estimate` envoie chaque chaîne nouvelle ou modifiée au fournisseur, et un fournisseur hébergé la facture : estime l'exécution avec `--estimate` et plafonne-la avec `--max-tokens`. Une clé d'API envoyée à un serveur auto-hébergé en `http://` simple (hors loopback) traverse le réseau en clair, voir [Les clés sont optionnelles](/docs/providers#les-clés-sont-optionnelles).
+Une exécution sans `--dry-run` ni `--estimate` envoie chaque chaîne nouvelle ou modifiée au fournisseur, et un fournisseur hébergé la facture : estime l'exécution avec `--estimate` et plafonne-la avec `--max-tokens`.
+</Callout>
+
+<Callout type="warn">
+Une clé d'API envoyée à un serveur auto-hébergé en `http://` simple (hors loopback) traverse le réseau en clair, voir [Les clés sont optionnelles](/docs/providers#les-clés-sont-optionnelles).
 </Callout>
 
 ### Exécution à blanc
 
 `--dry-run` ne construit aucun fournisseur : il n'a besoin d'aucune clé d'API et ne peut rien dépenser. Il lit les fichiers source et cibles, les compare au fichier de verrouillage et indique exactement ce qu'une vraie exécution changerait. Il n'écrit rien (ni fichier de locale, ni mise à jour du verrou, ni instantané d'état d'exécution), ne lit ni n'écrit le cache et ne prend aucun verrou d'écriture, donc n'attend jamais une exécution en cours.
 
-<Callout type="warn">
+<Callout>
 Par défaut, une exécution ne supprime rien : les clés orphelines sont signalées et restent en place. `--prune`, ou `prune: true` dans la config, supprime exactement ces clés des fichiers cibles et du verrou ; `--prune --dry-run` te les montre avant.
 </Callout>
 

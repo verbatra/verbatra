@@ -52,14 +52,18 @@ Nimmt außerdem die [globalen Flags](/docs/cli#globale-flags) `--cwd`, `--config
 ## Verhalten
 
 <Callout type="warn">
-Ein Lauf ohne `--dry-run` oder `--estimate` schickt jeden neuen oder geänderten String an den Provider, und ein gehosteter Provider rechnet ihn ab: Schätze den Lauf mit `--estimate` ab und deckle ihn mit `--max-tokens`. Ein API-Key, der über einfaches `http://` (nicht Loopback) an einen selbst gehosteten Server geht, reist unverschlüsselt durchs Netz, siehe [Keys sind optional](/docs/providers#keys-sind-optional).
+Ein Lauf ohne `--dry-run` oder `--estimate` schickt jeden neuen oder geänderten String an den Provider, und ein gehosteter Provider rechnet ihn ab: Schätze den Lauf mit `--estimate` ab und deckle ihn mit `--max-tokens`.
+</Callout>
+
+<Callout type="warn">
+Ein API-Key, der über einfaches `http://` (nicht Loopback) an einen selbst gehosteten Server geht, reist unverschlüsselt durchs Netz, siehe [Keys sind optional](/docs/providers#keys-sind-optional).
 </Callout>
 
 ### Dry Run
 
 `--dry-run` konstruiert keinen Provider, braucht also keinen API-Key und kann nichts kosten. Es liest Quell- und Zieldateien, vergleicht sie mit der Lock-Datei und meldet genau, was ein echter Lauf ändern würde. Es schreibt nichts (keine Locale-Datei, keine Lock-Aktualisierung, keinen Run-Status-Schnappschuss), liest und schreibt den Cache nicht und nimmt keine Schreibsperre, wartet also nie auf einen laufenden Lauf.
 
-<Callout type="warn">
+<Callout>
 Standardmäßig löscht ein Lauf nichts: Verwaiste Keys werden gemeldet und bleiben stehen. `--prune` oder `prune: true` in der Config löscht genau diese Keys aus den Zieldateien und dem Lock; `--prune --dry-run` zeigt sie dir vorher.
 </Callout>
 
