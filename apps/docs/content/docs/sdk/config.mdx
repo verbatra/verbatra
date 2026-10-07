@@ -380,8 +380,8 @@ under), and `supportedFormats` (the closed set of format ids). Read the token-li
 `providerTokenLimitKeys` rather than assuming one, since the keys differ ([providers](/docs/providers));
 DeepL and Google Cloud Translation have no entry because they take no token limit. The `ScaffoldableProviderId` type is
 `Exclude<ProviderId, "openai-compatible" | "libretranslate" | "none">`: every provider that needs
-nothing but its id, since those two each need a `baseUrl` only you can supply and neither has a
-required environment variable.
+nothing but its id. `openai-compatible` and `libretranslate` each need a `baseUrl` only you can
+supply and have no required environment variable, and `none` calls no provider at all.
 
 ```ts title="Signature"
 const scaffoldingMetadata: {

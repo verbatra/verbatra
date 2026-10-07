@@ -401,8 +401,8 @@ Option-Key, unter dem jeder LLM-Provider sein Ausgabe-Token-Limit entgegennimmt)
 ([Provider](/docs/providers)); DeepL und Google Cloud Translation haben keinen Eintrag, weil sie kein
 Token-Limit entgegennehmen. Der Typ `ScaffoldableProviderId` ist
 `Exclude<ProviderId, "openai-compatible" | "libretranslate" | "none">`: jeder Provider, der nur
-seine Id braucht, denn diese beiden brauchen je eine `baseUrl`, die nur du kennst, und keiner hat
-eine verpflichtende Umgebungsvariable.
+seine Id braucht. `openai-compatible` und `libretranslate` brauchen je eine `baseUrl`, die nur du
+kennst, und haben keine verpflichtende Umgebungsvariable, und `none` ruft gar keinen Provider auf.
 
 ```ts title="Signatur"
 const scaffoldingMetadata: {

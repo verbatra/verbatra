@@ -398,8 +398,8 @@ formato). Lee la clave del límite de tokens de `providerTokenLimitKeys` en luga
 las claves difieren ([proveedores](/docs/providers)); DeepL y Google Cloud Translation no tienen
 entrada porque no reciben límite de tokens. El tipo `ScaffoldableProviderId` es
 `Exclude<ProviderId, "openai-compatible" | "libretranslate" | "none">`: todos los proveedores que solo
-necesitan su id, ya que esos dos necesitan una `baseUrl` que solo tú conoces y ninguno tiene una
-variable de entorno obligatoria.
+necesitan su id. `openai-compatible` y `libretranslate` necesitan cada uno una `baseUrl` que solo tú
+conoces y no tienen variable de entorno obligatoria, y `none` no llama a ningún proveedor.
 
 ```ts title="Firma"
 const scaffoldingMetadata: {

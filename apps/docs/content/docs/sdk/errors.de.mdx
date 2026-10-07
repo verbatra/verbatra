@@ -17,8 +17,8 @@ Jeder Code, was er bedeutet, welche CLI-Befehle ihn erreichen und was der nächs
 Einige Codes tragen außerdem den Fehler, den sie umhüllen, als standardmäßigen `cause`:
 `SOURCE_INVALID`, wenn ein Parser oder Adapter gescheitert ist (nicht, wenn eine Datei wegen ihrer
 Größe abgelehnt wird), `PROVIDER_CONSTRUCTION_FAILED` (der eigene Fehler der Provider-Factory, dessen
-Meldung außerdem geschwärzt in die `SdkError`-Meldung übernommen wird), `EXPORT_UNWRITABLE` und
-`GLOSSARY_UNWRITABLE` (der Dateisystemfehler), `REVIEW_RESTORE_FAILED` (der Fehler, der die
+Meldung außerdem geschwärzt in die `SdkError`-Meldung übernommen wird), `EXPORT_UNWRITABLE`,
+`GLOSSARY_UNWRITABLE` und `SOURCE_UNWRITABLE` (der Dateisystemfehler), `REVIEW_RESTORE_FAILED` (der Fehler, der die
 Entscheidung unterbrochen hat) und `LOCK_CONTENDED`, wenn die Sperre übernommen wurde oder eine
 verwaiste Sperre nicht zurückgeholt oder beiseitegeschoben werden konnte (der Dateisystemfehler).
 `CONFIG_INVALID` trägt nur dann einen, wenn die Config-Datei mit einem Fehler mit Code nicht geladen
@@ -41,7 +41,7 @@ Die Ausnahmen von der Ein-Fehlerklasse-Regel:
 - Eine Zielsprachdatei, die der Adapter nicht parsen kann, kommt als dessen `AdapterError` mit
   eigenem `code` aus `check`, `diff` und den anderen Flows, die sie lesen; `checkFile` meldet sie
   stattdessen als Syntaxbefund.
-- `watch` gibt weiter, was die Watcher-Factory geworfen hat, unverpackt.
+- `watch` gibt weiter, was die Watcher-Factory oder dein `onReady`-Callback geworfen hat, unverpackt.
 - `runStatus` wirft überhaupt nie.
 
 Wie diese Codes auf CLI-Exit-Codes abbilden, steht in

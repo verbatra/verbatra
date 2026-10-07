@@ -5,7 +5,7 @@ type: reference
 ---
 ## Opérations sur une seule clé
 
-Ce sont les points d'accroche que Verbatra Studio pilote ; utilise-les pour construire ton propre outillage de relecture. Toutes résolvent `locale` et `key` de nouveau à chaque appel et lèvent `UNKNOWN_LOCALE` ou `UNKNOWN_KEY` quand l'un des deux n'existe pas.
+Ce sont les points d'accroche que Verbatra Studio pilote ; utilise-les pour construire ton propre outillage de relecture. Celles qui prennent `locale` et `key` les résolvent de nouveau à chaque appel et lèvent `UNKNOWN_LOCALE` ou `UNKNOWN_KEY` quand l'un des deux n'existe pas.
 
 ### keyValue
 
@@ -103,7 +103,7 @@ La valeur est enregistrée dans `verbatra.provenance.json` avec l'origine `human
 
 <AvailableFrom version="0.12.0" />
 
-Avec `actor: "agent"`, une clé qui correspond aux `pinnedKeys` de la config lève `KEY_PINNED` avant toute lecture ou écriture. La modification d'une clé épinglée par une personne est acceptée.
+Avec `actor: "agent"`, une clé qui correspond aux `pinnedKeys` de la config lève `KEY_PINNED` avant toute écriture. La modification d'une clé épinglée par une personne est acceptée.
 
 <AvailableFrom version="0.12.0" />
 
@@ -159,7 +159,7 @@ function approveEntry(
 
 **Exemple :** [Traiter la file de relecture](/docs/programmatic-api#traiter-la-file-de-relecture)
 
-`expectedValue` est le texte que la personne a vu, ou passe `expectedValueHash` avec le `valueMarker` qui l'a produit : l'appel lève `REVIEW_VALUE_CHANGED` quand la clé n'a pas de valeur ou en a une autre, et `REVIEW_SOURCE_CHANGED` quand la source a changé depuis l'écriture de la valeur. `reviewer` est un texte libre facultatif d'au plus 64 caractères sans caractère de contrôle (sinon `REVIEWER_INVALID`), stocké dans le fichier commité et jamais rempli par verbatra. Renvoie `{ locale, key, provenance }`. Une valeur sans enregistrement préalable, ou modifiée hors de verbatra, est enregistrée avec l'origine `unknown`.
+`expectedValue` est le texte que la personne a vu, ou passe `expectedValueHash` avec le `valueMarker` qui l'a produit : l'appel lève `REVIEW_VALUE_CHANGED` quand la clé n'a pas de valeur ou en a une autre, et `REVIEW_SOURCE_CHANGED` quand la source a changé depuis l'écriture de la valeur. `reviewer` est un texte libre facultatif de 1 à 64 caractères sans caractère de contrôle (sinon `REVIEWER_INVALID`), stocké dans le fichier commité et jamais rempli par verbatra. Renvoie `{ locale, key, provenance }`. Une valeur sans enregistrement préalable, ou modifiée hors de verbatra, est enregistrée avec l'origine `unknown`.
 
 ### rejectEntry
 

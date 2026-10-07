@@ -16,7 +16,7 @@ Every code, what it means, which CLI commands reach it, and its next step are li
 A few codes also carry the error they wrap as the standard `cause`: `SOURCE_INVALID` when a
 parser or adapter failed (not when a file is refused for its size), `PROVIDER_CONSTRUCTION_FAILED`
 (the provider factory's own error, whose message is also redacted into the `SdkError` message),
-`EXPORT_UNWRITABLE` and `GLOSSARY_UNWRITABLE` (the file-system error), `REVIEW_RESTORE_FAILED` (the
+`EXPORT_UNWRITABLE`, `GLOSSARY_UNWRITABLE` and `SOURCE_UNWRITABLE` (the file-system error), `REVIEW_RESTORE_FAILED` (the
 failure that interrupted the decision), and `LOCK_CONTENDED` when the lock was taken over or an
 abandoned lock could not be reclaimed or moved aside (the file-system error). `CONFIG_INVALID`
 carries one only when the config file failed to load with a coded error, such as an import that
@@ -35,7 +35,7 @@ The exceptions to the one-error-class rule:
 - A target locale file the adapter cannot parse surfaces as its `AdapterError`, with its own
   `code`, from `check`, `diff` and the other flows that read it; `checkFile` reports it as a syntax
   finding instead.
-- `watch` passes on whatever the watcher factory raised, unwrapped.
+- `watch` passes on whatever the watcher factory or your `onReady` callback raised, unwrapped.
 - `runStatus` never throws at all.
 
 For how these codes map to CLI exit codes, see [SDK error codes](/docs/error-codes#sdk-error-codes);

@@ -5,8 +5,8 @@ type: reference
 ---
 ## Single-key operations
 
-These are the seams Verbatra Studio drives; use them to build your own review tooling. All of them
-resolve `locale` and `key` fresh on every call and throw `UNKNOWN_LOCALE` or `UNKNOWN_KEY` when
+These are the seams Verbatra Studio drives; use them to build your own review tooling. Those that take
+a `locale` and a `key` resolve them fresh on every call and throw `UNKNOWN_LOCALE` or `UNKNOWN_KEY` when
 either does not exist.
 
 ### keyValue
@@ -122,7 +122,7 @@ verbatra reads back, is left untouched and the value is written without a record
 
 <AvailableFrom version="0.12.0" />
 
-With `actor: "agent"`, a key matching the config's `pinnedKeys` throws `KEY_PINNED` before anything is read or written. A person's edit of a pinned key is accepted.
+With `actor: "agent"`, a key matching the config's `pinnedKeys` throws `KEY_PINNED` before anything is written. A person's edit of a pinned key is accepted.
 
 <AvailableFrom version="0.12.0" />
 
@@ -189,7 +189,7 @@ function approveEntry(
 `expectedValue` is the text the
 reviewer saw, or pass `expectedValueHash` with the `valueMarker` that produced it: the call throws `REVIEW_VALUE_CHANGED` when the key has no value or a different one,
 and `REVIEW_SOURCE_CHANGED` when the source changed since the value was written. `reviewer` is
-optional free text of at most 64 characters with no control characters (`REVIEWER_INVALID`
+optional free text of 1 to 64 characters with no control characters (`REVIEWER_INVALID`
 otherwise), stored in the committed file and never filled in by verbatra. Returns
 `{ locale, key, provenance }`. A value with no record yet, or one changed outside verbatra, is
 recorded with the origin `unknown`.

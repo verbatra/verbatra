@@ -14,8 +14,8 @@ Chaque code, ce qu'il signifie, quelles commandes de la CLI y mènent et quelle 
 Quelques codes portent aussi l'erreur qu'ils enveloppent comme `cause` standard : `SOURCE_INVALID`
 quand un analyseur ou un adaptateur a échoué (pas quand un fichier est refusé pour sa taille),
 `PROVIDER_CONSTRUCTION_FAILED` (l'erreur propre de la fabrique du fournisseur, dont le message est
-aussi repris, expurgé, dans le message de la `SdkError`), `EXPORT_UNWRITABLE` et
-`GLOSSARY_UNWRITABLE` (l'erreur du système de fichiers), `REVIEW_RESTORE_FAILED` (l'échec qui a
+aussi repris, expurgé, dans le message de la `SdkError`), `EXPORT_UNWRITABLE`,
+`GLOSSARY_UNWRITABLE` et `SOURCE_UNWRITABLE` (l'erreur du système de fichiers), `REVIEW_RESTORE_FAILED` (l'échec qui a
 interrompu la décision) et `LOCK_CONTENDED` quand le verrou a été repris par un autre processus ou
 qu'un verrou abandonné n'a pas pu être récupéré ni mis de côté (l'erreur du système de fichiers).
 `CONFIG_INVALID` n'en porte une que lorsque le fichier de config n'a pas pu être chargé à cause d'une
@@ -35,7 +35,7 @@ Les exceptions à la règle de la classe d'erreur unique :
 - Un fichier de locale cible que l'adaptateur ne sait pas analyser remonte comme son `AdapterError`,
   avec son propre `code`, depuis `check`, `diff` et les autres flux qui le lisent ; `checkFile` le
   signale plutôt comme une anomalie de syntaxe.
-- `watch` relaie, sans l'envelopper, ce que la fabrique de l'observateur a levé.
+- `watch` relaie, sans l'envelopper, ce que la fabrique de l'observateur ou ton callback `onReady` a levé.
 - `runStatus` ne lève jamais.
 
 Pour la correspondance entre ces codes et les codes de sortie de la CLI, voir [Codes d'erreur du SDK](/docs/error-codes#sdk-error-codes) ; pour de l'aide par symptôme, voir [Dépannage](/docs/troubleshooting).

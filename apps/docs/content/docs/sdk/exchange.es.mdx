@@ -113,8 +113,8 @@ function exportWorkbook(
 `format` es `xlsx` por
 defecto; `csv` y `tsv` escriben en su lugar un `<locale>.csv` o `<locale>.tsv` por locale, así que `out`
 nombra un directorio para ellos (creado si falta) y una ruta de archivo para `xlsx`. `out` es por
-defecto `DEFAULT_WORKBOOK_PATH` (`verbatra-translations.xlsx`) o `DEFAULT_DELIMITED_PATH`
-(`verbatra-translations`), ambos exportados como constantes. Los valores aceptados se exportan como `EXCHANGE_FORMATS` y el valor por defecto como `DEFAULT_EXCHANGE_FORMAT`, para que una herramienta que envuelve el SDK pueda validar un argumento de formato sin fijar la lista en el código. Devuelve `{ path, locales }`: la ruta
+defecto `DEFAULT_WORKBOOK_PATH` (`verbatra-translations.xlsx`) o, para los formatos
+delimitados y XLIFF, `DEFAULT_DELIMITED_PATH` (`verbatra-translations`), ambos exportados como constantes. Los valores aceptados se exportan como `EXCHANGE_FORMATS` y el valor por defecto como `DEFAULT_EXCHANGE_FORMAT`, para que una herramienta que envuelve el SDK pueda validar un argumento de formato sin fijar la lista en el código. Devuelve `{ path, locales }`: la ruta
 absoluta escrita y un número de filas por locale.
 
 Antes de leer nada, `EXPORT_OUTPUT_CONFLICT` rechaza un `out` que queda fuera de `cwd`, y uno que,
@@ -212,7 +212,7 @@ function importTmx(
 
 **Devuelve:** `ImportTmxResult`
 
-**Lanza:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid)
+**Lanza:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision)
 
 **Ejemplo:** [El ciclo de ida y vuelta de TMX](/docs/programmatic-api#el-ciclo-de-ida-y-vuelta-de-tmx)
 

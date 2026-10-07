@@ -6,7 +6,7 @@ type: reference
 ## Operaciones de una sola clave
 
 Estos son los puntos de integración que usa Verbatra Studio; úsalos para construir tu propia herramienta
-de revisión. Todas resuelven `locale` y `key` de nuevo en cada llamada y lanzan `UNKNOWN_LOCALE` o
+de revisión. Las que reciben `locale` y `key` los resuelven de nuevo en cada llamada y lanzan `UNKNOWN_LOCALE` o
 `UNKNOWN_KEY` cuando alguno no existe.
 
 ### keyValue
@@ -124,7 +124,7 @@ escribe sin registro.
 
 <AvailableFrom version="0.12.0" />
 
-Con `actor: "agent"`, una clave que coincide con los `pinnedKeys` de la configuración lanza `KEY_PINNED` antes de leer o escribir nada. La edición de una clave fijada por parte de una persona se acepta.
+Con `actor: "agent"`, una clave que coincide con los `pinnedKeys` de la configuración lanza `KEY_PINNED` antes de escribir nada. La edición de una clave fijada por parte de una persona se acepta.
 
 <AvailableFrom version="0.12.0" />
 
@@ -194,7 +194,7 @@ function approveEntry(
 `expectedValue` es el texto que
 vio quien revisa, o pasa `expectedValueHash` con el `valueMarker` que lo generó: la llamada lanza `REVIEW_VALUE_CHANGED` cuando la clave no tiene valor o tiene
 otro, y `REVIEW_SOURCE_CHANGED` cuando el origen cambió desde que se escribió el valor. `reviewer` es
-texto libre opcional de 64 caracteres como máximo y sin caracteres de control (si no,
+texto libre opcional de 1 a 64 caracteres y sin caracteres de control (si no,
 `REVIEWER_INVALID`), se guarda en el archivo con commit y verbatra nunca lo rellena. Devuelve
 `{ locale, key, provenance }`. Un valor sin registro previo, o uno cambiado fuera de verbatra, se
 registra con el origen `unknown`.

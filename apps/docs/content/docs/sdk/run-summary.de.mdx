@@ -15,7 +15,7 @@ interface RunSummary {
   partial: string[];        // locales written with keys still missing; the CLI exits 1 on these
   failed: string[];         // locales whose run failed
   usage?: UsageSummary;     // summed input/output tokens; absent when no call reported usage
-  budget?: RunBudget;       // present only when maxTokens is configured
+  budget?: RunBudget;       // present when maxTokens is configured or passed to the run
   estimate?: RunEstimate;   // present only when the run was asked for a pre-run estimate
   cancelled?: true;         // present only when the run's signal aborted it
 }

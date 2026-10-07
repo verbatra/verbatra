@@ -16,7 +16,7 @@ Cada código, qué significa, qué comandos de la CLI llegan a él y cuál es el
 Algunos códigos llevan además el error que envuelven como `cause` estándar: `SOURCE_INVALID` cuando
 falló un analizador o un adaptador (no cuando un archivo se rechaza por su tamaño),
 `PROVIDER_CONSTRUCTION_FAILED` (el propio error de la factoría del proveedor, cuyo mensaje también
-pasa redactado al mensaje del `SdkError`), `EXPORT_UNWRITABLE` y `GLOSSARY_UNWRITABLE` (el error del
+pasa redactado al mensaje del `SdkError`), `EXPORT_UNWRITABLE`, `GLOSSARY_UNWRITABLE` y `SOURCE_UNWRITABLE` (el error del
 sistema de archivos), `REVIEW_RESTORE_FAILED` (el fallo que interrumpió la decisión) y
 `LOCK_CONTENDED` cuando otro proceso tomó el bloqueo o un bloqueo abandonado no se pudo recuperar ni
 apartar (el error del sistema de archivos). `CONFIG_INVALID` lleva uno solo cuando el archivo de
@@ -36,7 +36,7 @@ Las excepciones a la regla de una sola clase de error:
 - Un archivo de locale de destino que el adaptador no puede analizar sale como su `AdapterError`, con
   su propio `code`, de `check`, `diff` y los demás flujos que lo leen; `checkFile` lo informa en
   cambio como un hallazgo de sintaxis.
-- `watch` deja pasar, sin envolver, lo que haya lanzado la factoría del observador.
+- `watch` deja pasar, sin envolver, lo que haya lanzado la factoría del observador o tu callback `onReady`.
 - `runStatus` no lanza nunca.
 
 Para cómo estos códigos se corresponden con los códigos de salida de la CLI, consulta

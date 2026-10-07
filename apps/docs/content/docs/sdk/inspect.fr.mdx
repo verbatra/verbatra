@@ -5,7 +5,8 @@ type: reference
 ---
 ## Inspecter l'état sans écrire
 
-Aucune de ces fonctions n'appelle de fournisseur, n'écrit de fichier ni ne modifie le verrou.
+Aucune de ces fonctions ne traduit ni ne modifie le verrou. Seule `extract` écrit un fichier (le
+catalogue source), et seule `doctor` avec `live` fait une requête réseau (la liste des langues du fournisseur).
 
 ### doctor
 

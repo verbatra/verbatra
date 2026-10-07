@@ -116,8 +116,8 @@ function exportWorkbook(
 `format` ist standardmäßig
 `xlsx`; `csv` und `tsv` schreiben stattdessen eine `<locale>.csv` bzw. `<locale>.tsv` pro Locale, `out`
 benennt dafür also ein Verzeichnis (das angelegt wird, falls es fehlt) und bei `xlsx` einen Dateipfad.
-`out` ist standardmäßig `DEFAULT_WORKBOOK_PATH` (`verbatra-translations.xlsx`) oder
-`DEFAULT_DELIMITED_PATH` (`verbatra-translations`), beide als Konstanten exportiert. Die zulässigen Werte werden als `EXCHANGE_FORMATS` und der Standardwert als `DEFAULT_EXCHANGE_FORMAT` exportiert, damit ein Werkzeug, das als Wrapper über dem SDK sitzt, ein Format-Argument prüfen kann, ohne die Liste fest zu verdrahten. Gibt
+`out` ist standardmäßig `DEFAULT_WORKBOOK_PATH` (`verbatra-translations.xlsx`) oder, bei den
+Getrennt- und XLIFF-Formaten, `DEFAULT_DELIMITED_PATH` (`verbatra-translations`), beide als Konstanten exportiert. Die zulässigen Werte werden als `EXCHANGE_FORMATS` und der Standardwert als `DEFAULT_EXCHANGE_FORMAT` exportiert, damit ein Werkzeug, das als Wrapper über dem SDK sitzt, ein Format-Argument prüfen kann, ohne die Liste fest zu verdrahten. Gibt
 `{ path, locales }` zurück: den absoluten geschriebenen Pfad und eine Zeilenzahl pro Locale.
 
 Bevor irgendetwas gelesen wird, weist `EXPORT_OUTPUT_CONFLICT` ein `out` zurück, das außerhalb von
@@ -218,7 +218,7 @@ function importTmx(
 
 **Rückgabe:** `ImportTmxResult`
 
-**Wirft:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid)
+**Wirft:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision)
 
 **Beispiel:** [Der TMX-Roundtrip](/docs/programmatic-api#der-tmx-roundtrip)
 

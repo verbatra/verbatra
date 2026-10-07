@@ -5,7 +5,8 @@ type: reference
 ---
 ## Inspecciona el estado sin escribir
 
-Ninguna de estas llama a un proveedor, escribe un archivo ni muta el bloqueo.
+Ninguna de estas traduce ni muta el bloqueo. Solo `extract` escribe un archivo (el catálogo de
+origen), y solo `doctor` con `live` hace una petición de red (la lista de idiomas del proveedor).
 
 ### doctor
 

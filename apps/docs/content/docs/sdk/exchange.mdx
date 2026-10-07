@@ -111,8 +111,8 @@ function exportWorkbook(
 `format` is `xlsx` by
 default; `csv` and `tsv` write one `<locale>.csv` or `<locale>.tsv` per locale instead, so `out`
 names a directory for them (created if missing) and a file path for `xlsx`. `out` defaults to
-`DEFAULT_WORKBOOK_PATH` (`verbatra-translations.xlsx`) or `DEFAULT_DELIMITED_PATH`
-(`verbatra-translations`), both exported as constants. The accepted values are exported as `EXCHANGE_FORMATS` and the default as `DEFAULT_EXCHANGE_FORMAT`, so a tool that wraps the SDK can validate a format argument without hardcoding the list. Returns `{ path, locales }`: the absolute
+`DEFAULT_WORKBOOK_PATH` (`verbatra-translations.xlsx`) or, for the delimited
+and XLIFF formats, `DEFAULT_DELIMITED_PATH` (`verbatra-translations`), both exported as constants. The accepted values are exported as `EXCHANGE_FORMATS` and the default as `DEFAULT_EXCHANGE_FORMAT`, so a tool that wraps the SDK can validate a format argument without hardcoding the list. Returns `{ path, locales }`: the absolute
 path written and a per-locale row count.
 
 Before anything is read, `EXPORT_OUTPUT_CONFLICT` refuses an `out` that resolves outside `cwd`, and
@@ -205,7 +205,7 @@ function importTmx(
 
 **Returns:** `ImportTmxResult`
 
-**Throws:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid)
+**Throws:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision)
 
 **Example:** [The TMX round-trip](/docs/programmatic-api#the-tmx-round-trip)
 

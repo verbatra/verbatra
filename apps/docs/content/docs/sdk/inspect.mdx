@@ -5,7 +5,8 @@ type: reference
 ---
 ## Inspect state without writing
 
-None of these call a provider, write a file, or mutate the lock.
+None of these translate or mutate the lock. Only `extract` writes a file (the source catalog), and
+only `doctor` with `live` makes a network request (the provider's language list).
 
 ### doctor
 
