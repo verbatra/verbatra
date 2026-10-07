@@ -29,21 +29,12 @@ function translate(
 
 Was die Tabelle nicht abdeckt:
 
-- `concurrency`: Ein Fehler des gesamten Laufs, der auftritt, während bereits Locales laufen,
-  verhindert den Start jeder weiteren Locale, und die laufenden Locales schließen ab und geben ihre
-  Schreibsperren frei, bevor `translate` fehlschlägt; der Fehlschlag kommt also nach der langsamsten
-  von ihnen an statt sofort.
-- `cache` verwendet den lokalen [Übersetzungsspeicher-Cache](/docs/the-cache) wieder
-  (`verbatra.cache.json`, ebenfalls exportiert als `CACHE_FILE_NAME`); `false` entspricht dem
-  `--no-cache` der CLI.
+- `cache` ist der lokale [Übersetzungsspeicher-Cache](/docs/the-cache) (`verbatra.cache.json`).
 - `humanEdits` (ab 0.12.0): Standardmäßig bleiben veraltete Keys, die ein Mensch geschrieben,
   importiert oder außerhalb von verbatra geändert hat, erhalten und werden in
   `LocaleSummary.protected` gelistet. Siehe
-  [Menschliche Übersetzungen schützen](/docs/protecting-human-translations). Ein Dry Run liest auch
-  `verbatra.provenance.json`, außer `humanEdits` ergibt `"overwrite"`.
-- `onProgress` und `onLockWait` sind Benachrichtigungs-Callbacks; das SDK gibt selbst nichts aus.
-  `onProgress` bekommt die unten beschriebenen [Fortschrittsereignisse](#fortschrittsereignisse).
-  `onLockWait` feuert erst, wenn ein Warten eine Sekunde gedauert hat.
+  [Menschliche Übersetzungen schützen](/docs/protecting-human-translations).
+- `onProgress` bekommt die unten beschriebenen [Fortschrittsereignisse](#fortschrittsereignisse).
 - `maxBatchSize` und `budgetBehavior` sind nur über die Konfiguration steuerbar; es gibt keine
   Übersteuerung pro Lauf.
 

@@ -29,20 +29,11 @@ function translate(
 
 Lo que la tabla no cubre:
 
-- `concurrency`: un error de toda la ejecución que surge cuando ya hay locales en marcha impide que
-  se arranque ningún locale más, y los locales en vuelo terminan y liberan sus bloqueos de escritura
-  antes de que `translate` rechace, así que el rechazo llega después del más lento en vez de al
-  instante.
-- `cache` reutiliza la [caché de memoria de traducción](/docs/the-cache) local
-  (`verbatra.cache.json`, exportada también como `CACHE_FILE_NAME`); `false` equivale al
-  `--no-cache` de la CLI.
+- `cache` es la [caché de memoria de traducción](/docs/the-cache) local (`verbatra.cache.json`).
 - `humanEdits` (desde 0.12.0): por defecto, las claves obsoletas cuyo valor escribió, importó o
   cambió una persona fuera de verbatra se conservan y se listan en `LocaleSummary.protected`.
-  Consulta [Proteger traducciones humanas](/docs/protecting-human-translations). Un dry run también
-  lee `verbatra.provenance.json`, salvo que `humanEdits` resulte en `"overwrite"`.
-- `onProgress` y `onLockWait` son callbacks de notificación; el SDK no escribe nada por sí mismo.
-  `onProgress` recibe los [eventos de progreso](#eventos-de-progreso) descritos abajo. `onLockWait`
-  se dispara cuando una espera ya dura un segundo.
+  Consulta [Proteger traducciones humanas](/docs/protecting-human-translations).
+- `onProgress` recibe los [eventos de progreso](#eventos-de-progreso) descritos abajo.
 - `maxBatchSize` y `budgetBehavior` son solo de configuración; no hay anulación por ejecución.
 
 Los problemas de toda la ejecución lanzan un `SdkError`; que falle un solo locale nunca lanza y
