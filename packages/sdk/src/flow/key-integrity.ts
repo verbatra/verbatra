@@ -26,7 +26,7 @@ import { readSourceResource } from "./source.js";
 export interface KeyIntegrityEntry {
   /** The key this verdict describes. */
   readonly key: string;
-  /** Whether the source text contains any placeholders at all. When false, `matches` is trivially true. */
+  /** Whether the source text contains any placeholders at all. When false, `matches` is false only when the translation added a placeholder, listed in `extra`. */
   readonly hasPlaceholders: boolean;
   /** True when the translation carries exactly the source's placeholders. */
   readonly matches: boolean;

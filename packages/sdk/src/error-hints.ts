@@ -244,7 +244,7 @@ function inputFileHint(code: string, error: unknown): string | undefined {
  * has a hint. The error is matched by its `code` property, and an error about a file an import
  * reads also by its `input` property, so a plain object carrying the same properties, such as the
  * `{ code, message }` error of a failed watch run, gets the same hint as the error it was built
- * from. A
+ * from, except the variable-specific hint of a missing API key, which needs the original error. A
  * `PROVIDER_CONSTRUCTION_FAILED` error takes the hint of the provider error it wraps, so a missing
  * key names the exact environment variable to set, and a `CONFIG_INVALID` error caused by a config
  * file whose import could not be resolved says to install or fix that import. A

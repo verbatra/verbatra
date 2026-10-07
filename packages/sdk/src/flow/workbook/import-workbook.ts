@@ -122,7 +122,7 @@ export interface ImportWorkbookInput {
    */
   readonly format?: ExchangeFormat;
   /**
-   * Free text naming the reviewer, at most 64 characters with no control characters, recorded on
+   * Free text naming the reviewer, 1 to 64 characters with no control characters, recorded on
    * each value an XLIFF handoff marks `reviewed` or `final` (1.2: `signed-off`, `final`, or
    * `approved="yes"`). It is stored in the committed provenance file, so it is public. Other
    * handoff formats carry no review state, so it is not used for them.

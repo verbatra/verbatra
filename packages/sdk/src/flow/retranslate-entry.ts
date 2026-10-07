@@ -357,7 +357,8 @@ async function retranslateUnderLock(context: UnderLockContext): Promise<Retransl
  * @throws {@link SdkError} `CONFIG_INVALID`: `VERBATRA_NETWORK_POLICY` or
  * `VERBATRA_NETWORK_ALLOWED_HOSTS` holds a value that is not valid.
  * @throws {@link SdkError} `LOCK_CONTENDED`: the locale's write lock could not be acquired before
- * `lockAcquireTimeoutMs` elapsed.
+ * `lockAcquireTimeoutMs` elapsed, or the lock-file guard taken to record the value could not be
+ * acquired within its ten-minute default.
  * @throws {@link SdkError} `RUN_CANCELLED`: `signal` aborted before the provider answered, whether
  * before the write lock was taken, while waiting for it, or during the provider request. Nothing
  * was written. A failure the provider reported itself is thrown as is, and an abort while a

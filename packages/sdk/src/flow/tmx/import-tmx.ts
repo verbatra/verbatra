@@ -218,7 +218,7 @@ export interface ImportTmxInput {
 
 /** Injectable dependencies for {@link importTmx}. Every field has a working default. */
 export interface ImportTmxDeps {
-  /** Format-adapter registry, used for placeholder extraction and ICU validation. Defaults to the built-in registry. */
+  /** Format-adapter registry that resolves the configured format, used to read the source catalog and for placeholder extraction and ICU validation. Defaults to the built-in registry. */
   readonly adapterRegistry?: AdapterRegistry;
   /** File-system port. Defaults to the real file system. */
   readonly fs?: SdkFs;
@@ -674,6 +674,10 @@ function additionsByLocale(
  * or declares an XML entity, or the project's source locale file exists but cannot be parsed. When the problem has a place in the file, the message names its line,
  * column and, inside a translation unit, the unit's 1-based ordinal, and `cause` is the interchange
  * reader's error carrying the same as a structured `location`.
+ * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
+ * cannot be combined, or a configured locale has no valid path spelling under that style, so the
+ * source locale file cannot be located.
+ * @throws {@link SdkError} `LOCALE_PATH_COLLISION`: two configured locales resolve to the same path.
  *
  * @example
  * ```ts

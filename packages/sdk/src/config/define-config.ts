@@ -67,8 +67,9 @@ export function defineConfig(config: AuthoringConfigFor<"deepl">): VerbatraConfi
 export function defineConfig(config: AuthoringConfigFor<"google-translate">): VerbatraConfigInput;
 /**
  * Types a `verbatra.config.ts` for any supported provider. This is the fallback overload, and the
- * one that serves `openai-compatible`, where the model is a free-form string because the endpoint
- * is a local or self-hosted server whose model list the SDK cannot know.
+ * one that serves `openai-compatible`, `libretranslate` and `none`. For `openai-compatible` the
+ * model is a free-form string, because the endpoint is a local or self-hosted server whose model
+ * list the SDK cannot know.
  *
  * @param config - The config object, for any provider.
  * @returns The same object, typed as {@link VerbatraConfigInput}.

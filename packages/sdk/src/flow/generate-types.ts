@@ -57,7 +57,7 @@ export interface GenerateTypesInput {
    * Where to write the declaration, relative to `cwd`. Defaults to {@link DEFAULT_TYPES_PATH}.
    * Refused with `TYPES_OUTPUT_CONFLICT`, before anything is read or written, when it names no
    * file, is absolute, climbs out of `cwd`, does not end in `.ts`, `.mts` or `.cts`, or names a
-   * configured locale file, the lock file, the translation-memory cache, a file verbatra searches
+   * configured locale file, the lock file, the provenance file, the translation-memory cache, a file verbatra searches
    * for its configuration, the {@link GenerateTypesInput.configPath} file, or the
    * {@link GenerateTypesInput.glossaryPath} file. When the file-system port implements `realpath`,
    * the same checks run again after symbolic links are resolved. Names are compared
@@ -380,9 +380,9 @@ async function writeDeclaration(
  * function against it turns a misspelled key and a missing interpolation argument into compile
  * errors instead of runtime lookup failures.
  *
- * It reads one file (the source locale catalog) and writes one file (the declaration). It
- * constructs no provider, reads no API key and makes no network request, so it runs on a fresh
- * checkout before any key exists.
+ * It reads the source locale catalog and any existing declaration at the output path, and writes
+ * one file (the declaration). It constructs no provider, reads no API key and makes no network
+ * request, so it runs on a fresh checkout before any key exists.
  *
  * The keys are exactly what the format adapter produced when reading the catalog, in document
  * order, so two runs over an unchanged catalog write byte-identical bytes. Arguments come from the
@@ -427,7 +427,7 @@ async function writeDeclaration(
  * message names the file relative to `cwd` and the underlying file-system code.
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
- * cannot be combined.
+ * cannot be combined, or a configured locale has no valid path spelling under that style.
  * @throws {@link SdkError} `LOCALE_PATH_COLLISION`: two configured locales resolve to the same
  * path.
  * @throws {@link SdkError} `SOURCE_UNREADABLE`: the source locale file does not exist.

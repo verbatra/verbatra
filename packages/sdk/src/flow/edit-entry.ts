@@ -142,8 +142,8 @@ export type EditEntryResult =
  * @throws {@link SdkError} `UNKNOWN_KEY`: the key is not present in the source resource.
  * @throws {@link SdkError} `KEY_PINNED`: `actor` is `agent` and the key matches the config's
  * `pinnedKeys`. A person's edit of a pinned key is accepted.
- * @throws {@link SdkError} `LOCK_CONTENDED`: the locale's write lock could not be acquired before
- * the timeout elapsed.
+ * @throws {@link SdkError} `LOCK_CONTENDED`: the locale's write lock or the lock-file guard could
+ * not be acquired before the timeout elapsed.
  * @throws {@link SdkError} `TARGET_UNWRITABLE`: the target locale file could not be written because
  * of a file-system failure. The message names the target file and the file-system code, never the
  * internal temporary file.

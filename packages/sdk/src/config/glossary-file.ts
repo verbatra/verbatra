@@ -320,7 +320,8 @@ export async function readGlossaryFile(
  * @throws {@link SdkError} `LOCK_TIMEOUT_INVALID`: `lockAcquireTimeoutMs` is not a whole number of
  * milliseconds of at least 0. Thrown before anything is read or locked.
  * @throws {@link SdkError} `LOCK_CONTENDED`: the project's glossary write lock could not be acquired
- * before the timeout elapsed.
+ * before the timeout elapsed, could not be reclaimed from an abandoned holder, or was taken over by
+ * another process before the file was written.
  * @throws {@link SdkError} `GLOSSARY_UNWRITABLE`: the glossary file could not be written, or the
  * project's glossary write lock could not be created, for instance because the project directory
  * is read-only, or could not be released after a successful edit, in which case the edit is saved.

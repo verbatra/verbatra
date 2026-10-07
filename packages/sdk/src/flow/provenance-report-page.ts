@@ -80,7 +80,8 @@ function canonicalFilters(input: ProvenanceReportPageInput): unknown {
  * {@link PAGE_CURSOR_MAX_LENGTH}, was made under other filters, or no longer points at the key it
  * was made for.
  * @throws {@link SdkError} `PAGE_LIMIT_INVALID`: `limit` is not a whole number from 1 to
- * {@link PAGE_LIMIT_CAP}.
+ * {@link PAGE_LIMIT_CAP}. Neither `limit` nor `cursor` is checked when the result is
+ * `available: false`.
  * @throws `AdapterError`: a target locale file is malformed. Its own code is preserved.
  *
  * @example

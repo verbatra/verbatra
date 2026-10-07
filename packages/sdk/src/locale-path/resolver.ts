@@ -133,7 +133,8 @@ function sharedCataloguePathFor(cwd: string, pattern: string): (locale: string) 
  *
  * For a shared-catalogue format (such as `apple-xcstrings`), `pathFor` resolves every locale to the
  * same path (the `{locale}` token is still required in the pattern but substitutes to the empty
- * string), no locale style is applied, and `localeFor` always returns `undefined` rather than
+ * string), no locale style is used for spelling (though a segment style still requires the token to
+ * stand alone between separators), and `localeFor` always returns `undefined` rather than
  * reporting a collision: every configured locale sharing one path is the expected shape for these
  * formats, not a configuration mistake.
  *

@@ -60,7 +60,7 @@ export interface GlossaryDraftTermCheck {
 export interface GlossaryDraftDoNotTranslateCheck {
   /** The term to keep untranslated. */
   readonly term: string;
-  /** Whether the draft still contains the term as written. */
+  /** Whether the draft still contains the term, matched with or without case as the term's `caseSensitive` says. */
   readonly kept: boolean;
 }
 

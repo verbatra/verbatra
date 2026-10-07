@@ -152,10 +152,11 @@ export interface TranslateInput {
   /**
    * Called while waiting on another process's write lock, so a CLI can explain a stall instead of
    * appearing to hang. Never called for a lock this process holds itself, such as the lock-file
-   * guard a sibling locale holds on a concurrent run.
+   * guard a sibling locale holds on a concurrent run. Fires first once a wait has lasted a second.
+   * The SDK writes no output itself.
    */
   readonly onLockWait?: LockWaitListener;
-  /** Called as locales and sub-batches start and finish, for progress reporting. */
+  /** Called as locales and sub-batches start and finish, for progress reporting. The SDK writes no output itself. */
   readonly onProgress?: ProgressListener;
   /**
    * How long, in milliseconds, to wait for a locale's write lock before that locale fails with
@@ -170,20 +171,24 @@ export interface TranslateInput {
    * How many locales to run at once. Must be an integer of at least 1; defaults to 1. On a live
    * run it cannot be combined with a token budget, configured or passed as `maxTokens`: the
    * ceiling would still hold, but which locale loses its remaining work would depend on the order
-   * the locales interleave, so the run would not be reproducible.
+   * the locales interleave, so the run would not be reproducible. A whole-run error raised once
+   * locales are running starts no further locale, and the locales in flight finish and release
+   * their write locks before `translate` rejects, so the rejection arrives after the slowest one.
    */
   readonly concurrency?: number;
   /**
    * Consult and update the translation memory, fuzzy reuse included. Defaults to true. Turning it
    * off forces every key through the provider, which is what to do when you want to re-pay for a
    * fresh translation. A dry run never reads the memory, whatever this says, except in human-only
-   * mode (provider `none`), where the memory is all a live run would use.
+   * mode (provider `none`), where the memory is all a live run would use. The memory is the local
+   * {@link CACHE_FILE_NAME} file; `false` is the CLI's `--no-cache`.
    */
   readonly cache?: boolean;
   /**
    * Overrides the config's `humanEdits` for this run only (see {@link HumanEditsPolicy}). Set
    * `overwrite` to retranslate stale keys a person wrote, as the CLI's `--include-human` flag does.
-   * Keys matching the config's `pinnedKeys` stay protected whatever this says.
+   * Keys matching the config's `pinnedKeys` stay protected whatever this says. A dry run reads the
+   * provenance file too, unless this resolves to `overwrite`.
    */
   readonly humanEdits?: HumanEditsPolicy;
   /**

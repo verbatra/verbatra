@@ -43,7 +43,8 @@ export interface LoadConfigOptions {
   /**
    * Directory the search starts from, and the base a relative `configPath` resolves against.
    * Defaults to the process working directory. A flow given the loaded config without a `cwd`
-   * resolves its paths against the project root {@link resolveProjectRoot} describes.
+   * resolves its paths against the project root {@link resolveProjectRoot} describes, except for a
+   * `configOverride` config, whose flows fall back to the process working directory.
    */
   readonly cwd?: string;
   /**
@@ -99,7 +100,7 @@ export type ConfigSource =
 
 /** A validated config together with the provenance of the config itself and of its glossary. */
 export interface LoadedConfig {
-  /** The validated, fully resolved config, with any glossary file already read into a term map. */
+  /** The validated, fully resolved config, with any glossary file already read into memory (a version 1 term map or a version 2 definition). */
   readonly config: VerbatraConfig;
   /** Where the config itself came from. */
   readonly source: ConfigSource;
@@ -109,8 +110,9 @@ export interface LoadedConfig {
 
 /**
  * Returns the project root for a loaded config: the directory every flow resolves its relative
- * paths against. A flow given a config that {@link loadConfig} or {@link loadConfigWithMeta} returned
- * already defaults its `cwd` to it; pass it explicitly when the config was copied or rebuilt.
+ * paths against. A flow given a config that {@link loadConfig} or {@link loadConfigWithMeta} found
+ * by search or through `configPath` already defaults its `cwd` to it; pass it explicitly when the
+ * config was copied or rebuilt, or given as `configOverride`.
  * Locale files, `verbatra.lock.json`, `verbatra.cache.json`, `verbatra.provenance.json` and
  * `.verbatra-local/` all live under it. A config found by the upward search roots the project at the
  * config file's own directory, so a run started in a subdirectory works on the same files as a run
@@ -330,7 +332,7 @@ async function loadExplicitWithMeta(
  * fallback to searching, so a typo in a path never silently loads a different project's config.
  *
  * A glossary given as a path is read and validated here, so the returned config always carries a
- * resolved term map.
+ * glossary already held in memory (a version 1 term map or a version 2 definition).
  *
  * A `verbatra.config.ts` file is transpiled and loaded through jiti. When it imports `@verbatra/sdk`
  * or `@verbatra/cli`, those bare specifiers are aliased to the package that is actually running this
@@ -345,7 +347,8 @@ async function loadExplicitWithMeta(
  * @throws {@link SdkError} `CONFIG_NOT_FOUND`: no config was found by search, or the explicit
  * `configPath` does not exist.
  * @throws {@link SdkError} `CONFIG_INVALID`: the config could not be loaded or fails validation, or
- * its glossary file is missing, oversized, not UTF-8, not valid JSON, or not a flat string map.
+ * its glossary file is missing, oversized, not UTF-8, not valid JSON, neither a flat string map nor
+ * a valid version 2 glossary, or declares an unsupported version.
  */
 export async function loadConfigWithMeta(options: LoadConfigOptions = {}): Promise<LoadedConfig> {
   const fs = options.fs ?? defaultFs;
@@ -405,7 +408,8 @@ export async function loadConfigWithMeta(options: LoadConfigOptions = {}): Promi
  * cosmiconfig search upward from `cwd`, stopping at the nearest ancestor `.git` directory, or
  * failing that, the user's home directory when it is an ancestor of `cwd`, or failing that, `cwd`
  * itself. A glossary declared as a file path is read and validated here, so the returned
- * {@link VerbatraConfig} always carries a resolved term map.
+ * {@link VerbatraConfig} always carries a glossary already held in memory (a version 1 term map or
+ * a version 2 definition).
  *
  * A config found by the search roots the project at the config file's directory, and a config
  * loaded from `configPath` at `cwd`: a flow given the returned config without a `cwd` of its own
@@ -419,7 +423,8 @@ export async function loadConfigWithMeta(options: LoadConfigOptions = {}): Promi
  * @throws {@link SdkError} `CONFIG_NOT_FOUND`: no config was found by search, or the explicit
  * `configPath` does not exist.
  * @throws {@link SdkError} `CONFIG_INVALID`: the config could not be loaded or fails validation, or
- * its glossary file is missing, oversized, not UTF-8, not valid JSON, or not a flat string map.
+ * its glossary file is missing, oversized, not UTF-8, not valid JSON, neither a flat string map nor
+ * a valid version 2 glossary, or declares an unsupported version.
  *
  * @example
  * ```ts

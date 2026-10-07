@@ -25,8 +25,8 @@ export interface LockLocaleState {
    */
   readonly stale: number;
   /**
-   * Number of keys with a non-blank source value whose translation still matches the recorded
-   * baseline.
+   * Number of translated keys with a non-blank source value whose source text has not changed since
+   * the recorded baseline, including translated keys the lock-file has no baseline for.
    */
   readonly upToDate: number;
   /**

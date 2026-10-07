@@ -7,21 +7,21 @@
  * wraps them.
  *
  * - `CONFIG_NOT_FOUND`: no config file was found by search, or an explicit `configPath` does not
- *   exist. Thrown by {@link loadConfig} and {@link loadConfigWithMeta}. {@link doctor} narrows it
+ *   exist. Thrown by {@link loadConfig}, {@link loadConfigWithMeta} and {@link dataFlow}. {@link doctor} narrows it
  *   to the explicit-path case: a config that is only absent from the search is reported as a failed
  *   check instead, since reporting that is the command's job.
  * - `CONFIG_INVALID`: a config was found but is unparseable or fails validation, or its glossary
  *   file could not be resolved or parsed, including one that declares an unsupported version.
- *   Thrown by {@link loadConfig} and {@link loadConfigWithMeta}, by {@link readGlossaryFile}, and
- *   by {@link updateGlossaryTerm}, which additionally throws it for an edit with a blank field, an
+ *   Thrown by {@link loadConfig}, {@link loadConfigWithMeta} and {@link dataFlow}, by
+ *   {@link readGlossaryFile} and {@link readCurrentGlossary}, and by {@link updateGlossaryTerm}, which additionally throws it for an edit with a blank field, an
  *   edit that sets no field or combines fields that cannot go together, an edit that would leave
  *   an invalid glossary, and an edit whose result would exceed the glossary file size limit.
  *   {@link importTmx} and {@link exportTmx} throw it when the source locale and a target locale are
  *   the same language tag once case and separators are normalized, since a TMX segment could not be
  *   attributed to either. {@link importWorkbook} does not throw it: when a handoff sheet or file
  *   names a locale that is not a configured target locale, it records this code on that locale's
- *   {@link LocaleSummary} instead. A non-dry-run {@link translate} and {@link retranslateEntry}
- *   also throw it, before any provider is constructed, when `VERBATRA_NETWORK_POLICY` or
+ *   {@link LocaleSummary} instead. A non-dry-run {@link translate}, {@link retranslateEntry}, and
+ *   {@link watch} at startup also throw it, before any provider is constructed, when `VERBATRA_NETWORK_POLICY` or
  *   `VERBATRA_NETWORK_ALLOWED_HOSTS` holds a value that is not valid, so a mistyped pin fails
  *   closed instead of allowing every host.
  * - `UNKNOWN_FORMAT`: no adapter is registered for the configured format. Thrown by every entry
@@ -32,11 +32,13 @@
  *   the shared locale selection by {@link translate}, {@link watch}, {@link check}, {@link diff},
  *   {@link keyIntegrity}, {@link lockState}, {@link localeValues}, {@link exportWorkbook},
  *   {@link exportTmx}, {@link importTmx}, {@link keyValue}, {@link editEntry},
- *   {@link retranslateEntry}, {@link approveEntry}, and {@link rejectEntry}. {@link translate} throws it before anything is
- *   read or spent, and {@link watch} once at startup, before any watching begins.
+ *   {@link retranslateEntry}, {@link approveEntry}, {@link rejectEntry}, {@link approveLocale},
+ *   {@link reviewQueue}, {@link keyContext}, {@link localeIntegrity}, {@link localeValuesPage},
+ *   {@link provenanceReport}, {@link provenanceReportPage}, {@link editConfiguredGlossaryTerm}, and
+ *   {@link assertTargetLocale}. {@link translate} throws it before anything is read or spent, and {@link watch} once at startup, before any watching begins.
  * - `UNKNOWN_KEY`: the requested key is not present in the source resource. Thrown by
- *   {@link keyValue}, {@link editEntry}, {@link retranslateEntry}, {@link approveEntry}, and
- *   {@link rejectEntry}.
+ *   {@link keyValue}, {@link keyContext}, {@link keyIntegrity}, {@link editEntry},
+ *   {@link retranslateEntry}, {@link approveEntry}, and {@link rejectEntry}.
  * - `KEY_PROTECTED`: {@link retranslateEntry} refused to replace a value a person wrote, imported,
  *   or changed outside verbatra, because neither its `includeHuman` input nor the config's
  *   `humanEdits: "overwrite"` allowed it.
@@ -46,8 +48,8 @@
  *   including a missing `*_API_KEY` environment variable, as the `cause`, with its message redacted
  *   into this one. The `cause` itself is the original error, not redacted: the built-in factories
  *   throw errors that carry no secret, and an error thrown by a caller-supplied `createProvider` is
- *   returned exactly as it was thrown. Thrown by a non-dry-run {@link translate} and by
- *   {@link retranslateEntry}.
+ *   returned exactly as it was thrown. Thrown by a non-dry-run {@link translate}, by
+ *   {@link retranslateEntry}, and by {@link watch} at startup.
  * - `MACHINE_TRANSLATION_DISABLED`: the config sets `provider: { id: "none" }`, so machine
  *   translation is disabled by policy and a provider-spending action was refused before any
  *   provider was constructed or any API key read. Thrown by {@link retranslateEntry} and by
@@ -73,18 +75,21 @@
  *   version. Thrown wherever the lock-file is read or updated: {@link translate}, {@link check},
  *   {@link diff}, {@link keyIntegrity}, {@link lockState}, {@link loadLockFile},
  *   {@link exportWorkbook}, {@link importWorkbook}, {@link editEntry}, {@link retranslateEntry},
- *   {@link approveEntry}, and {@link rejectEntry}.
+ *   {@link approveEntry}, {@link rejectEntry}, {@link approveLocale}, {@link reviewQueue},
+ *   {@link provenanceReport}, and {@link provenanceReportPage}.
  * - `PROVENANCE_FILE_INVALID`: the provenance file (`verbatra.provenance.json`) exists but is
  *   corrupt, oversized, or structurally wrong. A file from a newer verbatra is not this error: it is
  *   left untouched, {@link translate}, {@link watch}, and {@link importWorkbook} report it as the
  *   notice `PROVENANCE_VERSION_UNRECOGNIZED`, and a single-key edit records nothing. Thrown
  *   wherever the provenance file is written, checked before anything else is: {@link translate},
- *   {@link watch}, {@link importWorkbook}, {@link editEntry}, {@link retranslateEntry}, {@link approveEntry}, and
- *   {@link rejectEntry}, and by {@link loadProvenance}. The reports ({@link check}, {@link diff}, {@link lockState},
+ *   {@link importWorkbook}, {@link editEntry}, {@link retranslateEntry}, {@link approveEntry},
+ *   {@link rejectEntry}, and {@link approveLocale}, and by {@link loadProvenance}. A {@link watch}
+ *   run reports it as a failed run rather than throwing it. The reports ({@link check}, {@link diff}, {@link lockState},
  *   {@link keyValue}, {@link localeValues}) never throw it; they leave their provenance fields out.
  * - `PROVENANCE_FILE_UNWRITABLE`: a review decision could not be recorded, because the provenance
  *   file was written by a newer verbatra or recording the decision would grow it past the size
- *   verbatra reads back. Thrown by {@link approveEntry} and {@link rejectEntry} before anything is
+ *   verbatra reads back. Thrown by {@link approveEntry}, {@link rejectEntry}, and
+ *   {@link approveLocale} before anything is
  *   written, since a decision that is not saved must not be reported as made.
  * - `REVIEW_VALUE_CHANGED`: the target value is no longer the one the reviewer saw, because the
  *   key has no translation in the target locale or its translation differs from the expected
@@ -104,8 +109,8 @@
  *   failure, which is also the error's `cause`, and the files that may no longer match the
  *   lock-file; restore them from version control. A failure that changed no file is thrown as is.
  * - `REVIEWER_INVALID`: the reviewer name is empty, longer than 64 characters, or contains a
- *   control character. Thrown by {@link approveEntry} and {@link rejectEntry} before anything is
- *   read.
+ *   control character. Thrown by {@link approveEntry}, {@link rejectEntry}, {@link approveLocale},
+ *   and {@link importWorkbook} before anything is read.
  * - `LOCK_CONTENDED`: a write lock could not be acquired before its timeout elapsed, because
  *   another process holds it, or a lock file was left behind by a process on another machine or
  *   by an older version (a same-machine holder that is gone is reclaimed automatically), or
@@ -120,8 +125,8 @@
  *   holder paused between them for longer than the heartbeat staleness threshold (30 seconds by
  *   default) can still write once after another process took the lock over. The message names the
  *   lock file's path. Thrown by
- *   {@link editEntry}, {@link retranslateEntry}, {@link approveEntry}, and {@link rejectEntry},
- *   which act on one locale, and by {@link updateGlossaryTerm}, which takes the project's glossary
+ *   {@link editEntry}, {@link retranslateEntry}, {@link approveEntry}, {@link rejectEntry}, and
+ *   {@link approveLocale}, which act on one locale, and by {@link updateGlossaryTerm}, which takes the project's glossary
  *   lock. {@link translate} and {@link importWorkbook} do not throw it: they record it on the
  *   contended locale's {@link LocaleSummary} and carry on with the other locales. For
  *   {@link translate}, {@link watch}, and {@link importWorkbook}, `lockAcquireTimeoutMs` bounds
@@ -156,7 +161,9 @@
  *   by {@link translate} before anything is read, written, or spent.
  * - `LOCK_TIMEOUT_INVALID`: the `lockAcquireTimeoutMs` input is not a whole number of
  *   milliseconds of at least 0. Thrown by {@link translate}, {@link importWorkbook},
- *   {@link retranslateEntry}, and {@link retranslateEntries} before anything is read or locked, and
+ *   {@link retranslateEntry}, {@link retranslateEntries}, {@link editEntry}, {@link approveEntry},
+ *   {@link rejectEntry}, {@link approveEntries}, {@link rejectEntries}, {@link approveLocale}, and
+ *   {@link updateGlossaryTerm} before anything is read or locked, and
  *   by {@link watch} once at startup, before any watching begins.
  * - `PAGE_CURSOR_INVALID`: the `cursor` passed to {@link localeValuesPage} or
  *   {@link provenanceReportPage} is malformed, longer than {@link PAGE_CURSOR_MAX_LENGTH}, was made
@@ -220,7 +227,7 @@
  *   of space. The message names the file relative to `cwd` and the underlying file-system code, and
  *   the file-system error is the `cause`.
  * - `LOCALE_STATE_NOT_CARRIED_OVER`: thrown by {@link editEntry}, {@link retranslateEntry},
- *   {@link approveEntry} and {@link rejectEntry}, which then write nothing, and otherwise recorded
+ *   {@link approveEntry}, {@link rejectEntry} and {@link approveLocale}, which then write nothing, and otherwise recorded
  *   on the failed {@link LocaleSummary} of a locale {@link translate}, {@link watch} or
  *   {@link importWorkbook} did not run because the
  *   state recorded under a respelled code of it, such as `pt_BR` for `pt-BR`, could not be moved
@@ -345,7 +352,7 @@ export class SdkError extends Error {
    * error for a `SOURCE_INVALID` TMX file. Read that file's line, column and unit with
    * `tmxErrorLocation` rather than from the cause directly. Only `SOURCE_INVALID`,
    * `PROVIDER_CONSTRUCTION_FAILED`, `EXPORT_UNWRITABLE`, `GLOSSARY_UNWRITABLE`,
-   * `REVIEW_RESTORE_FAILED` and `LOCK_CONTENDED` carry one, and `CONFIG_INVALID` only when the
+   * `REVIEW_RESTORE_FAILED`, `SOURCE_UNWRITABLE` and `LOCK_CONTENDED` carry one, and `CONFIG_INVALID` only when the
    * config file failed to load with a coded error, such as an import that does not resolve. A
    * config parse or schema error and `CONFIG_NOT_FOUND` carry none, because a config parser's error
    * can quote the file's content.

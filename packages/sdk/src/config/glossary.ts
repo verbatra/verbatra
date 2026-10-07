@@ -499,8 +499,8 @@ function redactTerm(term: GlossaryTerm): RedactedTerm {
 /**
  * Passes every string of a glossary through {@link redact}, so a source term, translation,
  * forbidden rendering, note, part of speech, or term kept untranslated shaped like a provider API
- * key never leaves a tool that shows the glossary. A redacted source term is listed as
- * `[REDACTED]` in `redactedTerms` too, so the list never repeats the secret.
+ * key never leaves a tool that shows the glossary. A redacted source term is listed in
+ * `redactedTerms` in its redacted form, so the list never repeats the secret.
  *
  * @param glossary - A normalized glossary, as {@link readGlossaryFile} or {@link normalizeGlossary}
  * returns it.

@@ -66,8 +66,9 @@ export interface ReviewDecisionInput {
    */
   readonly expectedValueHash?: string;
   /**
-   * Free text naming the reviewer, at most 64 characters with no control characters. It is stored
-   * in the committed provenance file, so it is public; nothing is recorded when it is left out.
+   * Free text naming the reviewer, 1 to 64 characters with no control characters. It is stored
+   * in the committed provenance file, so it is public. When it is left out no new name is recorded,
+   * and a reviewer already recorded for the same decision on the same value is kept.
    */
   readonly reviewer?: string;
   /**

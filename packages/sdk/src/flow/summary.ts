@@ -727,7 +727,7 @@ export interface RunSummary {
   readonly failed: readonly string[];
   /** Token usage summed across every locale. Absent when the provider does not report usage. */
   readonly usage?: UsageSummary;
-  /** The token budget in force, present only when the config set one. */
+  /** The token budget in force, present when the config set one or the run passed its own `maxTokens`. */
   readonly budget?: RunBudget;
   /**
    * What the run would have cost, present only when it was asked for a pre-run estimate. Always a

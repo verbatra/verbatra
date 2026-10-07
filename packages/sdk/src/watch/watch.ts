@@ -200,7 +200,8 @@ export interface WatchController {
  * Thrown once at startup, before any watching begins, since no later run could construct it either.
  * Never thrown under the provider `none`.
  * @throws {@link SdkError} `CONFIG_INVALID`: `VERBATRA_NETWORK_POLICY` or
- * `VERBATRA_NETWORK_ALLOWED_HOSTS` holds a value that is not valid.
+ * `VERBATRA_NETWORK_ALLOWED_HOSTS` holds a value that is not valid. Not checked under the provider
+ * `none`.
  * @throws Whatever the watcher factory raised, unwrapped, when it could not build a watcher over
  * the source file. It is not wrapped as an {@link SdkError}. No run has started at that point, so
  * nothing is watched and `onRun` is never called.
