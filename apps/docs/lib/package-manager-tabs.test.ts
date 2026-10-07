@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { NPM_INSTALL_COMMAND } from "./install-commands";
+import { NPM_INSTALL_COMMAND, RUN_FENCE_LANG } from "./install-commands";
 import {
-  npmFenceMarkdown,
+  commandMarkdown,
   PACKAGE_MANAGER_GROUP,
   remarkPackageManagerTabs,
   TABS_COMPONENT,
@@ -56,8 +56,8 @@ describe("remarkPackageManagerTabs", () => {
       ],
     });
     expect(root.children?.map((tabs) => tabs.data?._stringify)).toEqual([
-      { text: npmFenceMarkdown(NPM_INSTALL_COMMAND) },
-      { text: npmFenceMarkdown("npm install next-intl") },
+      { text: commandMarkdown(NPM_INSTALL_COMMAND) },
+      { text: commandMarkdown("npm install next-intl") },
     ]);
   });
 
@@ -69,5 +69,39 @@ describe("remarkPackageManagerTabs", () => {
     expect(root.children).toEqual([
       { type: "code", lang: "bash", value: "npx @verbatra/cli check" },
     ]);
+  });
+
+  it("marks each fence's own tabs, whatever tabs the page already holds", () => {
+    const handWritten: Node = { type: "mdxJsxFlowElement", name: TABS_COMPONENT, children: [] };
+    const root = run({
+      type: "root",
+      children: [handWritten, { type: "code", lang: "npm", value: NPM_INSTALL_COMMAND }],
+    });
+    expect(root.children?.[0]).toEqual({
+      type: "mdxJsxFlowElement",
+      name: TABS_COMPONENT,
+      children: [],
+    });
+    expect(root.children?.[1]?.data?._stringify).toEqual({
+      text: commandMarkdown(NPM_INSTALL_COMMAND),
+    });
+  });
+
+  it("tabs a verbatra run fence by the binary each package manager runs", () => {
+    const root = run({
+      type: "root",
+      children: [{ type: "code", lang: RUN_FENCE_LANG, value: "<command>" }],
+    });
+    const [tabs] = root.children ?? [];
+    expect(tabs?.name).toBe(TABS_COMPONENT);
+    expect(codes(root)).toEqual([
+      "npx @verbatra/cli <command>",
+      "pnpm verbatra <command>",
+      "yarn verbatra <command>",
+      "bun run verbatra <command>",
+    ]);
+    expect(tabs?.data?._stringify).toEqual({
+      text: commandMarkdown("npx @verbatra/cli <command>"),
+    });
   });
 });
