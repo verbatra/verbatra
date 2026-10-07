@@ -10,6 +10,57 @@ export function breakAfterUnderscores(text: ReactNode): ReactNode {
   ));
 }
 
+export const CODE_BREAK_CLASS = "vk-code-break";
+
+const SOFT_BREAK_AFTER = new Set([".", "/", "]"]);
+const SOFT_BREAK_BEFORE = /[\w{[<$@*]/;
+const SOFT_BREAK_AFTER_CHAR = /[\w\])}>*]/;
+
+function isSoftBreak(token: string, index: number): boolean {
+  return (
+    SOFT_BREAK_AFTER.has(token[index] ?? "") &&
+    SOFT_BREAK_AFTER_CHAR.test(token[index - 1] ?? "") &&
+    SOFT_BREAK_BEFORE.test(token[index + 1] ?? "")
+  );
+}
+
+function keepHyphensWhole(piece: string, key: string): ReactNode {
+  if (!piece.includes("-")) return piece;
+  return (
+    <span key={key} className="whitespace-nowrap">
+      {piece}
+    </span>
+  );
+}
+
+function tokenBreaks(token: string, key: string): ReactNode {
+  if (token.startsWith("-")) return keepHyphensWhole(token, key);
+  const parts: ReactNode[] = [];
+  let start = 0;
+  for (let index = 0; index < token.length - 1; index += 1) {
+    const hard = token[index] === "_";
+    if (!hard && !isSoftBreak(token, index)) continue;
+    parts.push(keepHyphensWhole(token.slice(start, index + 1), `${key}-${start}`));
+    parts.push(
+      hard ? (
+        <wbr key={`${key}-${index}`} />
+      ) : (
+        <span key={`${key}-${index}`} className={CODE_BREAK_CLASS} />
+      ),
+    );
+    start = index + 1;
+  }
+  parts.push(keepHyphensWhole(token.slice(start), `${key}-${start}`));
+  return <Fragment key={key}>{parts}</Fragment>;
+}
+
+export function breakInlineCode(text: ReactNode): ReactNode {
+  if (typeof text !== "string") return text;
+  return text
+    .split(/(\s+)/)
+    .map((token, index) => (/^\s*$/.test(token) ? token : tokenBreaks(token, `${index}-${token}`)));
+}
+
 const URL_PATTERN = /(https?:\/\/\S*[^\s.,;:!?)])/;
 
 const URL_AUTHORITY = /^https?:\/\/[^/?#]*\/*/;

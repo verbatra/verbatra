@@ -4,6 +4,7 @@ import {
   COMPACT_ROW_MAX_CHARACTERS,
   rehypeStackedTables,
   STACKED_TABLE_CLASS,
+  WIDE_TABLE_CLASS,
 } from "./stacked-tables";
 
 const LONG = "start the config search here and resolve the paths you pass against it";
@@ -76,6 +77,24 @@ describe("rehypeStackedTables", () => {
       "Meaning",
       "Fix",
     ]);
+  });
+
+  it("marks a table of six columns as wide, since it cannot fit the desktop article column", () => {
+    const formats = run(
+      table(
+        ["format", "Files", "Placeholders", "Plurals", "Missing", "Native"],
+        [["a", "b", "c", "d", "e", LONG]],
+      ),
+    );
+    const flags = run(
+      table(
+        ["Flag", "Argument", "Default", "Effect", "Not accepted by"],
+        [["a", "b", "c", LONG, "e"]],
+      ),
+    );
+
+    expect(formats.properties?.className).toEqual([STACKED_TABLE_CLASS, WIDE_TABLE_CLASS]);
+    expect(flags.properties?.className).toEqual([STACKED_TABLE_CLASS]);
   });
 
   it("keeps a table whose rows are all short as a table, like the error code index", () => {

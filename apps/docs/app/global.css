@@ -779,13 +779,71 @@ samp {
     white-space: normal;
     overflow-wrap: anywhere;
   }
+}
 
+#nd-page .prose :where(td .vk-code-short, th .vk-code-short):not(:where(.not-prose, .not-prose *)) {
+  white-space: normal;
+  overflow-wrap: normal;
+}
+
+@container vk-article (max-width: 55.99rem) {
   #nd-page
     .prose
-    :where(td .vk-code-short:has(wbr), th .vk-code-short:has(wbr)):not(
-      :where(.not-prose, .not-prose *)
-    ) {
-    overflow-wrap: normal;
+    :where(.vk-table-stack-wide, .vk-table-stack-wide tbody, .vk-table-stack-wide tr) {
+    display: block;
+  }
+
+  #nd-page .prose :where(.vk-table-stack-wide) {
+    --stack-label-width: 9.5rem;
+  }
+
+  #nd-page .prose :where(.vk-table-stack-wide thead) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  #nd-page .prose :where(.vk-table-stack-wide tr) {
+    padding-block: 0.625rem;
+    border-block-end: 1px solid var(--border-default);
+  }
+
+  #nd-page .prose :where(.vk-table-stack-wide tr:last-child) {
+    border-block-end: 0;
+  }
+
+  #nd-page .prose :where(.vk-table-stack-wide td) {
+    display: flow-root;
+    padding-block: 0.1875rem;
+    padding-inline: calc(var(--stack-label-width) + 1.5rem) 0.75rem;
+    border: 0;
+  }
+
+  #nd-page .prose :where(.vk-table-stack-wide td)::before {
+    content: attr(data-label);
+    float: inline-start;
+    width: var(--stack-label-width);
+    margin-inline-start: calc(-0.75rem - var(--stack-label-width));
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    line-height: 1.9;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-faint);
+  }
+
+  #nd-page .prose :where(.vk-table-stack-wide td:first-child) {
+    padding-inline-start: 0.75rem;
+    padding-block-end: 0.375rem;
+    color: var(--text-strong);
+    font-weight: 500;
+  }
+
+  #nd-page .prose :where(.vk-table-stack-wide td:first-child)::before {
+    content: none;
   }
 }
 
@@ -822,6 +880,9 @@ samp {
   #nd-page .prose :where(.vk-table-stack td)::before {
     content: attr(data-label);
     display: block;
+    float: none;
+    width: auto;
+    margin-inline-start: 0;
     font-family: var(--font-mono);
     font-size: var(--text-xs);
     line-height: 1.9;
@@ -977,6 +1038,10 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 
 .vk-code-short {
   white-space: nowrap;
+}
+
+.vk-code-break::after {
+  content: "\200B";
 }
 
 .shiki span[style*="#6A737D" i] {

@@ -1,7 +1,12 @@
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { breakAfterUnderscores, breakUrlsAtSlashes, keepCompoundsWhole } from "./word-breaks";
+import {
+  breakAfterUnderscores,
+  breakInlineCode,
+  breakUrlsAtSlashes,
+  keepCompoundsWhole,
+} from "./word-breaks";
 
 function markup(text: ReactNode): string {
   return renderToStaticMarkup(<span>{text}</span>);
@@ -96,5 +101,47 @@ describe("keepCompoundsWhole", () => {
   it("leaves a spaced hyphen and a title without a hyphen as they are", () => {
     expect(keepCompoundsWhole("Translate - then check")).toBe("Translate - then check");
     expect(keepCompoundsWhole("Gate pull requests")).toBe("Gate pull requests");
+  });
+});
+
+const SOFT = '<span class="vk-code-break"></span>';
+
+describe("breakInlineCode", () => {
+  it("breaks after an underscore, and softly after a dot, slash or bracket between word characters", () => {
+    expect(markup(breakInlineCode("MISSING_OPTIONS"))).toBe("<span>MISSING_<wbr/>OPTIONS</span>");
+    expect(markup(breakInlineCode("result.config.files"))).toBe(
+      `<span>result.${SOFT}config.${SOFT}files</span>`,
+    );
+    expect(markup(breakInlineCode("terms[].caseSensitive"))).toBe(
+      `<span>terms[].${SOFT}caseSensitive</span>`,
+    );
+    expect(markup(breakInlineCode("messages/{locale}.json"))).toBe(
+      `<span>messages/${SOFT}{locale}.${SOFT}json</span>`,
+    );
+  });
+
+  it("never breaks after a leading or trailing separator", () => {
+    expect(markup(breakInlineCode(".json"))).toBe("<span>.json</span>");
+    expect(markup(breakInlineCode("dist/"))).toBe("<span>dist/</span>");
+  });
+
+  it("keeps every flag whole, so --agent never wraps after a hyphen", () => {
+    expect(markup(breakInlineCode("init --agent --client gemini"))).toBe(
+      `<span>init ${NOWRAP("--agent")} ${NOWRAP("--client")} gemini</span>`,
+    );
+  });
+
+  it("keeps a hyphenated piece whole, so next-intl-json never wraps at a hyphen", () => {
+    expect(markup(breakInlineCode("next-intl-json"))).toBe(
+      `<span>${NOWRAP("next-intl-json")}</span>`,
+    );
+    expect(markup(breakInlineCode("my-app/en.json"))).toBe(
+      `<span>${NOWRAP("my-app/")}${SOFT}en.${SOFT}json</span>`,
+    );
+  });
+
+  it("leaves a non-string child as it is", () => {
+    const element = <em>x</em>;
+    expect(breakInlineCode(element)).toBe(element);
   });
 });
