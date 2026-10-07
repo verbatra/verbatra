@@ -11,6 +11,19 @@ Watch the source locale file and re-run a translation after each debounced chang
 verbatra watch [flags]
 ```
 
+## Examples
+
+```bash
+# watch and re-translate on each change
+verbatra watch
+
+# calmer in a busy editor: wait 1s after the last change, stream NDJSON
+verbatra watch --debounce 1000 --json
+
+# keep only German current while you work
+verbatra watch --locales de
+```
+
 ## Flags
 
 | Flag | Argument | Default | Effect |
@@ -62,19 +75,6 @@ verbatra: waiting for changes...
 ```
 
 These lines go to stderr, and `--quiet` drops them. See [Terminal output](/docs/cli/output#terminal-output).
-
-## Examples
-
-```bash
-# watch and re-translate on each change
-verbatra watch
-
-# calmer in a busy editor: wait 1s after the last change, stream NDJSON
-verbatra watch --debounce 1000 --json
-
-# keep only German current while you work
-verbatra watch --locales de
-```
 
 ## Exit codes
 

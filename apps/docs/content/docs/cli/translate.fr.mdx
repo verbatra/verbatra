@@ -11,6 +11,28 @@ Lance une passe de traduction sur chaque locale cible, puis termine. `translate`
 verbatra translate [flags]
 ```
 
+## Exemples
+
+```bash
+# traduire une fois avec la configuration trouvée
+verbatra translate
+
+# voir les clés qui seraient retirées, sans rien dépenser
+verbatra translate --prune --dry-run
+
+# une locale à la fois, ce qu'exige une offre gratuite limitée en débit
+verbatra translate --locales de
+
+# dimensionner et chiffrer l'exécution sans rien dépenser
+verbatra translate --estimate
+
+# s'arrêter avant que l'exécution ne dépasse 50000 tokens
+verbatra translate --max-tokens 50000
+
+# retraduire aussi les clés obsolètes écrites par une personne
+verbatra translate --include-human
+```
+
 ## Options
 
 | Option | Argument | Défaut | Effet |
@@ -119,28 +141,6 @@ next: verbatra check (confirm every locale is in sync)
 ```
 
 Une exécution à blanc ou une estimation termine chaque locale par `would translate`. Une locale qui n'a gardé qu'une partie des clés se termine par `partly done`, une locale en échec par `failed`, et la ligne finale indique combien ont échoué. Ces lignes vont sur stderr, et `--quiet` les supprime. Voir [Sortie dans le terminal](/docs/cli/output#sortie-dans-le-terminal).
-
-## Exemples
-
-```bash
-# traduire une fois avec la configuration trouvée
-verbatra translate
-
-# voir les clés qui seraient retirées, sans rien dépenser
-verbatra translate --prune --dry-run
-
-# une locale à la fois, ce qu'exige une offre gratuite limitée en débit
-verbatra translate --locales de
-
-# dimensionner et chiffrer l'exécution sans rien dépenser
-verbatra translate --estimate
-
-# s'arrêter avant que l'exécution ne dépasse 50000 tokens
-verbatra translate --max-tokens 50000
-
-# retraduire aussi les clés obsolètes écrites par une personne
-verbatra translate --include-human
-```
 
 ## Codes de sortie
 

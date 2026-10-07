@@ -11,6 +11,31 @@ Informa, por cada locale de destino, de cuántas claves faltan, están obsoletas
 verbatra check [flags]
 ```
 
+## Ejemplos
+
+```bash
+# hacer fallar el build cuando las traducciones se desfasaron
+verbatra check
+
+# estado legible por máquina para dos locales
+verbatra check --locales de,fr --json
+
+# listar además los textos de origen traducidos de más de una forma
+verbatra check --consistency
+
+# fallar ante placeholders, markup e ICU rotos, y también ante avisos
+verbatra check --qa --strict
+
+# fallar mientras haya traducciones automáticas esperando aprobación
+verbatra check --require-reviewed
+
+# fallar ante correos, claves de API o números de tarjeta en el origen
+verbatra check --sensitive
+
+# comprobar solo el archivo que un editor o un agente acaba de cambiar
+verbatra check --file locales/de.json --json
+```
+
 ## Flags
 
 | Flag | Argumento | Por defecto | Efecto |
@@ -207,31 +232,6 @@ Una clave de origen cuyo valor está vacío o solo tiene espacios, como una que 
 <AvailableFrom version="0.12.0" />
 
 `check` muestra `verbatra: checking the locales... done (0.1s)` en stderr, o `verbatra: checking locales/de.json...` con `--file`. `--quiet` la omite. Mira [Salida en el terminal](/docs/cli/output#salida-en-el-terminal).
-
-## Ejemplos
-
-```bash
-# hacer fallar el build cuando las traducciones se desfasaron
-verbatra check
-
-# estado legible por máquina para dos locales
-verbatra check --locales de,fr --json
-
-# listar además los textos de origen traducidos de más de una forma
-verbatra check --consistency
-
-# fallar ante placeholders, markup e ICU rotos, y también ante avisos
-verbatra check --qa --strict
-
-# fallar mientras haya traducciones automáticas esperando aprobación
-verbatra check --require-reviewed
-
-# fallar ante correos, claves de API o números de tarjeta en el origen
-verbatra check --sensitive
-
-# comprobar solo el archivo que un editor o un agente acaba de cambiar
-verbatra check --file locales/de.json --json
-```
 
 ## Códigos de salida
 

@@ -14,6 +14,22 @@ Turn a misspelled key or a forgotten interpolation argument into a compile error
 verbatra types [flags]
 ```
 
+## Examples
+
+```bash
+# write verbatra-types.d.ts from the source catalog
+verbatra types
+
+# write it where the app already imports from
+verbatra types --out src/generated/messages.d.ts
+
+# CI gate: exit 1 if the committed declaration is stale
+verbatra types --check
+
+# machine-readable result for a script
+verbatra types --json
+```
+
 ## Flags
 
 | Flag | Argument | Default | Effect |
@@ -214,22 +230,6 @@ verbatra types
 ```
 
 See [Terminal output](/docs/cli/output#terminal-output) for color, the spinner and the variables that control them.
-
-## Examples
-
-```bash
-# write verbatra-types.d.ts from the source catalog
-verbatra types
-
-# write it where the app already imports from
-verbatra types --out src/generated/messages.d.ts
-
-# CI gate: exit 1 if the committed declaration is stale
-verbatra types --check
-
-# machine-readable result for a script
-verbatra types --json
-```
 
 ## Exit codes
 

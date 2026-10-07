@@ -11,6 +11,19 @@ Beobachte die Quell-Locale-Datei und führe nach jeder entprellten Änderung ein
 verbatra watch [flags]
 ```
 
+## Beispiele
+
+```bash
+# beobachten und bei jeder Änderung neu übersetzen
+verbatra watch
+
+# ruhiger in einem hektischen Editor: 1 s nach der letzten Änderung warten, NDJSON ausgeben
+verbatra watch --debounce 1000 --json
+
+# nur Deutsch aktuell halten, während du arbeitest
+verbatra watch --locales de
+```
+
 ## Flags
 
 | Flag | Argument | Standard | Wirkung |
@@ -62,19 +75,6 @@ verbatra: waiting for changes...
 ```
 
 Diese Zeilen gehen auf stderr, und `--quiet` lässt sie weg. Siehe [Terminalausgabe](/docs/cli/output#terminalausgabe).
-
-## Beispiele
-
-```bash
-# beobachten und bei jeder Änderung neu übersetzen
-verbatra watch
-
-# ruhiger in einem hektischen Editor: 1 s nach der letzten Änderung warten, NDJSON ausgeben
-verbatra watch --debounce 1000 --json
-
-# nur Deutsch aktuell halten, während du arbeitest
-verbatra watch --locales de
-```
 
 ## Exit-Codes
 

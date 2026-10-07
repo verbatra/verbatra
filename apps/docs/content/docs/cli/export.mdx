@@ -11,6 +11,22 @@ Write the strings that need translating into a handoff a person fills in and sen
 verbatra export [flags]
 ```
 
+## Examples
+
+```bash
+# write the workbook with missing and changed strings
+verbatra export
+
+# only the German and French sheets, to a specific path
+verbatra export --locales de,fr --out handoff/round-2.xlsx
+
+# one de.csv and fr.csv under handoff/
+verbatra export --format csv --out handoff
+
+# one de.xlf and fr.xlf in XLIFF 2.0 for a CAT tool
+verbatra export --format xliff2 --out handoff
+```
+
 ## Flags
 
 | Flag | Argument | Default | Effect |
@@ -73,22 +89,6 @@ With `--json`, the [envelope](/docs/cli/output#json-output) carries where the ha
   locales: { locale: string; rows: number }[];
   provenanceMarkers?: "written" | "unavailable"; // XLIFF formats only
 }
-```
-
-## Examples
-
-```bash
-# write the workbook with missing and changed strings
-verbatra export
-
-# only the German and French sheets, to a specific path
-verbatra export --locales de,fr --out handoff/round-2.xlsx
-
-# one de.csv and fr.csv under handoff/
-verbatra export --format csv --out handoff
-
-# one de.xlf and fr.xlf in XLIFF 2.0 for a CAT tool
-verbatra export --format xliff2 --out handoff
 ```
 
 ## Exit codes

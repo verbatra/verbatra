@@ -11,6 +11,22 @@ Lista, por locale de destino, las claves pendientes exactas: las que una ejecuci
 verbatra diff [flags]
 ```
 
+## Ejemplos
+
+```bash
+# lista las claves pendientes por locale (sale con 1 si hay alguna)
+verbatra diff
+
+# solo los locales alemán y francés
+verbatra diff --locales de,fr
+
+# listas de claves legibles por máquina para herramientas o un comentario en el PR
+verbatra diff --json
+
+# lista también las claves de origen que tu código ya no nombra
+verbatra diff --unused
+```
+
 ## Flags
 
 | Flag | Argumento | Por defecto | Efecto |
@@ -115,22 +131,6 @@ next: verbatra translate (send the pending keys to your provider)
 ```
 
 Si todas las claves pendientes están protegidas, sugiere `verbatra studio`; con `provider: { id: "none" }`, sugiere `verbatra export`. Estas líneas van a stderr, y `--quiet` las omite. Consulta [Salida en el terminal](/docs/cli/output#salida-en-el-terminal).
-
-## Ejemplos
-
-```bash
-# lista las claves pendientes por locale (sale con 1 si hay alguna)
-verbatra diff
-
-# solo los locales alemán y francés
-verbatra diff --locales de,fr
-
-# listas de claves legibles por máquina para herramientas o un comentario en el PR
-verbatra diff --json
-
-# lista también las claves de origen que tu código ya no nombra
-verbatra diff --unused
-```
 
 ## Códigos de salida
 

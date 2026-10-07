@@ -16,6 +16,19 @@ verbatra report <report> [flags]
 
 - `<report>`: the report to print. `provenance` is the only one today; any other name is a usage error.
 
+## Examples
+
+```bash
+# counts per locale: machine and unreviewed, machine and reviewed, human, imported, and the rest
+verbatra report provenance
+
+# every key's origin and review state, for an audit file
+verbatra report provenance --json > provenance-report.json
+
+# only the German locale
+verbatra report provenance --locales de
+```
+
 ## Flags
 
 | Flag | Argument | Default | Effect |
@@ -59,19 +72,6 @@ next: verbatra studio (approve or reject the 12 machine translations no person h
 ```
 
 These lines go to stderr, and `--quiet` drops them. See [Terminal output](/docs/cli/output#terminal-output).
-
-## Examples
-
-```bash
-# counts per locale: machine and unreviewed, machine and reviewed, human, imported, and the rest
-verbatra report provenance
-
-# every key's origin and review state, for an audit file
-verbatra report provenance --json > provenance-report.json
-
-# only the German locale
-verbatra report provenance --locales de
-```
 
 ## Exit codes
 

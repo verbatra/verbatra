@@ -14,6 +14,19 @@ Empieza por tu código en lugar de por un archivo de locale. `extract` recorre l
 verbatra extract [flags]
 ```
 
+## Ejemplos
+
+```bash
+# add every new key found in your source to the source locale file
+verbatra extract
+
+# preview the keys that would be added, write nothing
+verbatra extract --dry-run
+
+# machine-readable result for a CI step
+verbatra extract --json
+```
+
 ## Flags
 
 | Flag | Argumento | Por defecto | Efecto |
@@ -131,19 +144,6 @@ next: verbatra translate (translate the new keys)
 ```
 
 Consulta [Salida en el terminal](/docs/cli/output#salida-en-el-terminal) para el color, el spinner y las variables que los controlan.
-
-## Ejemplos
-
-```bash
-# add every new key found in your source to the source locale file
-verbatra extract
-
-# preview the keys that would be added, write nothing
-verbatra extract --dry-run
-
-# machine-readable result for a CI step
-verbatra extract --json
-```
 
 ## Códigos de salida
 

@@ -13,6 +13,22 @@ verbatra import <workbook> [flags]
 
 - `<workbook>`: la entrega que escribió [`verbatra export`](/docs/cli/export) y rellenó el traductor. Para `xlsx` es el archivo del libro; para `csv`, `tsv`, `xliff2` y `xliff12` es un solo archivo `<locale>.csv`, `<locale>.tsv` o `<locale>.xlf`, o el directorio que contiene un archivo por locale.
 
+## Ejemplos
+
+```bash
+# import the filled workbook
+verbatra import verbatra-translations.xlsx
+
+# validate and report, write nothing
+verbatra import verbatra-translations.xlsx --dry-run
+
+# import every locale file in a CSV handoff directory
+verbatra import handoff --format csv
+
+# import one XLIFF file back from a CAT tool, naming the reviewer
+verbatra import handoff/de.xlf --reviewer "Agency GmbH"
+```
+
 ## Flags
 
 | Flag | Argumento | Por defecto | Efecto |
@@ -72,22 +88,6 @@ Estas líneas van a stderr, y `--quiet` las omite. Consulta [Salida en el termin
 Esquema: [`import-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/import-envelope.json) valida el envoltorio completo; [Esquemas](/docs/cli/output#esquemas) enumera los demás.
 
 Con `--json`, el [envoltorio](/docs/cli/output#salida-json) lleva un `RunSummary`, la misma forma que imprime [`verbatra translate`](/docs/cli/translate); [RunSummary](/docs/sdk/run-summary) enumera cada campo.
-
-## Ejemplos
-
-```bash
-# import the filled workbook
-verbatra import verbatra-translations.xlsx
-
-# validate and report, write nothing
-verbatra import verbatra-translations.xlsx --dry-run
-
-# import every locale file in a CSV handoff directory
-verbatra import handoff --format csv
-
-# import one XLIFF file back from a CAT tool, naming the reviewer
-verbatra import handoff/de.xlf --reviewer "Agency GmbH"
-```
 
 ## Códigos de salida
 

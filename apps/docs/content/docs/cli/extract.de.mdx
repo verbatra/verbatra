@@ -14,6 +14,19 @@ Starte bei deinem Code statt bei einer Locale-Datei. `extract` durchläuft die k
 verbatra extract [flags]
 ```
 
+## Beispiele
+
+```bash
+# add every new key found in your source to the source locale file
+verbatra extract
+
+# preview the keys that would be added, write nothing
+verbatra extract --dry-run
+
+# machine-readable result for a CI step
+verbatra extract --json
+```
+
 ## Flags
 
 | Flag | Argument | Standard | Wirkung |
@@ -131,19 +144,6 @@ next: verbatra translate (translate the new keys)
 ```
 
 Farbe, Spinner und die Variablen dazu findest du unter [Terminalausgabe](/docs/cli/output#terminalausgabe).
-
-## Beispiele
-
-```bash
-# add every new key found in your source to the source locale file
-verbatra extract
-
-# preview the keys that would be added, write nothing
-verbatra extract --dry-run
-
-# machine-readable result for a CI step
-verbatra extract --json
-```
 
 ## Exit-Codes
 

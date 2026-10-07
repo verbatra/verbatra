@@ -11,6 +11,34 @@ Scaffold a project: `init` writes a `verbatra.config.ts`, a `.env.example` namin
 verbatra init [flags]
 ```
 
+## Examples
+
+```bash
+# prompt for anything not passed or detected
+verbatra init --provider gemini
+
+# fully unattended, one JSON document on stdout
+verbatra init --provider gemini --yes --json
+
+# choose the format and pattern yourself
+verbatra init --provider deepl --format yaml --path "config/locales/{locale}.yml" --yes
+
+# a local server that needs no key
+verbatra init --provider openai-compatible --base-url http://localhost:11434/v1 --model llama3.1 --yes
+
+# a self-hosted LibreTranslate server, no language model
+verbatra init --provider libretranslate --base-url http://localhost:5000 --yes
+
+# human-only: no provider, no API key
+verbatra init --provider none --yes
+
+# also set the project up for coding agents
+verbatra init --provider gemini --yes --agent
+
+# wire Cursor and VS Code, and only show what would change
+verbatra init --agent --client cursor,vscode --dry-run
+```
+
 ## Flags
 
 | Flag | Argument | Default | Effect |
@@ -176,34 +204,6 @@ When `.claude/settings.json` or `.claude/settings.local.json` enables the verbat
 With an existing config, `init --agent` keeps it, writes only the agent files, prints `kept verbatra.config.ts`, never prompts and detects nothing. The JSON result lists the config as `unchanged`, sets `agent.configKept` to `true`, and carries `null` for `config`, `sources`, `apiKeyEnvVar` and `detection`. A config flag or `--force` puts the config back into the run, as without `--agent`.
 
 `init` refuses before writing anything, with `AGENT_FILE_INVALID`, when a client file is not plain JSON (it never rewrites comments or trailing commas), not an object, repeats a key, or has a servers value that is not an object; when `.codex/config.toml` sets `mcp_servers` or the verbatra server inline, with dotted keys or as an array of tables, repeats that table or a key in it, or has an unterminated string, array or header; when a client that `--client` names has a symbolic link on its config path, or an instruction file links outside the project; or when the instruction file has an unpaired, misordered or repeated marker. The message never quotes the file.
-
-## Examples
-
-```bash
-# prompt for anything not passed or detected
-verbatra init --provider gemini
-
-# fully unattended, one JSON document on stdout
-verbatra init --provider gemini --yes --json
-
-# choose the format and pattern yourself
-verbatra init --provider deepl --format yaml --path "config/locales/{locale}.yml" --yes
-
-# a local server that needs no key
-verbatra init --provider openai-compatible --base-url http://localhost:11434/v1 --model llama3.1 --yes
-
-# a self-hosted LibreTranslate server, no language model
-verbatra init --provider libretranslate --base-url http://localhost:5000 --yes
-
-# human-only: no provider, no API key
-verbatra init --provider none --yes
-
-# also set the project up for coding agents
-verbatra init --provider gemini --yes --agent
-
-# wire Cursor and VS Code, and only show what would change
-verbatra init --agent --client cursor,vscode --dry-run
-```
 
 ## Exit codes
 

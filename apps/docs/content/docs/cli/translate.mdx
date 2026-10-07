@@ -11,6 +11,28 @@ Run one translation pass over every target locale, then exit. `translate` diffs 
 verbatra translate [flags]
 ```
 
+## Examples
+
+```bash
+# translate once using the config it finds
+verbatra translate
+
+# preview the keys that would be pruned, spending nothing
+verbatra translate --prune --dry-run
+
+# one locale at a time, which is what a rate-limited free tier needs
+verbatra translate --locales de
+
+# size and price the run without spending anything
+verbatra translate --estimate
+
+# stop before the run passes 50000 tokens
+verbatra translate --max-tokens 50000
+
+# also retranslate stale keys a person wrote
+verbatra translate --include-human
+```
+
 ## Flags
 
 | Flag | Argument | Default | Effect |
@@ -119,28 +141,6 @@ next: verbatra check (confirm every locale is in sync)
 ```
 
 A dry run or an estimate ends each locale with `would translate` instead. A locale that kept only some keys ends with `partly done`, one that failed with `failed`, and the closing line adds how many failed. These lines go to stderr, and `--quiet` drops them. See [Terminal output](/docs/cli/output#terminal-output).
-
-## Examples
-
-```bash
-# translate once using the config it finds
-verbatra translate
-
-# preview the keys that would be pruned, spending nothing
-verbatra translate --prune --dry-run
-
-# one locale at a time, which is what a rate-limited free tier needs
-verbatra translate --locales de
-
-# size and price the run without spending anything
-verbatra translate --estimate
-
-# stop before the run passes 50000 tokens
-verbatra translate --max-tokens 50000
-
-# also retranslate stale keys a person wrote
-verbatra translate --include-human
-```
 
 ## Exit codes
 

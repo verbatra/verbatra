@@ -11,6 +11,31 @@ Melde pro Ziel-Locale, wie viele Keys fehlen, veraltet oder aktuell sind, und be
 verbatra check [flags]
 ```
 
+## Beispiele
+
+```bash
+# den Build scheitern lassen, wenn Übersetzungen abgedriftet sind
+verbatra check
+
+# maschinenlesbarer Status für zwei Locales
+verbatra check --locales de,fr --json
+
+# zusätzlich Quelltexte listen, die unterschiedlich übersetzt sind
+verbatra check --consistency
+
+# bei kaputten Platzhaltern, Markup und ICU scheitern, und auch bei Warnungen
+verbatra check --qa --strict
+
+# scheitern, solange maschinelle Übersetzungen auf Freigabe warten
+verbatra check --require-reviewed
+
+# bei E-Mails, API-Keys oder Kartennummern in der Quelle fehlschlagen
+verbatra check --sensitive
+
+# nur die eine Datei prüfen, die ein Editor oder Agent gerade geändert hat
+verbatra check --file locales/de.json --json
+```
+
 ## Flags
 
 | Flag | Argument | Standard | Wirkung |
@@ -207,31 +232,6 @@ Ein Quell-Key, dessen Wert leer ist oder nur aus Leerraum besteht, etwa einer, d
 <AvailableFrom version="0.12.0" />
 
 `check` zeigt auf stderr `verbatra: checking the locales... done (0.1s)`, mit `--file` `verbatra: checking locales/de.json...`. `--quiet` lässt die Zeile weg. Siehe [Terminalausgabe](/docs/cli/output#terminalausgabe).
-
-## Beispiele
-
-```bash
-# den Build scheitern lassen, wenn Übersetzungen abgedriftet sind
-verbatra check
-
-# maschinenlesbarer Status für zwei Locales
-verbatra check --locales de,fr --json
-
-# zusätzlich Quelltexte listen, die unterschiedlich übersetzt sind
-verbatra check --consistency
-
-# bei kaputten Platzhaltern, Markup und ICU scheitern, und auch bei Warnungen
-verbatra check --qa --strict
-
-# scheitern, solange maschinelle Übersetzungen auf Freigabe warten
-verbatra check --require-reviewed
-
-# bei E-Mails, API-Keys oder Kartennummern in der Quelle fehlschlagen
-verbatra check --sensitive
-
-# nur die eine Datei prüfen, die ein Editor oder Agent gerade geändert hat
-verbatra check --file locales/de.json --json
-```
 
 ## Exit-Codes
 

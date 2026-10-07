@@ -13,6 +13,19 @@ Start Verbatra Studio, a local web dashboard over your project: translation stat
 verbatra studio [flags]
 ```
 
+## Examples
+
+```bash
+# start Verbatra Studio on the default port
+verbatra studio
+
+# enable the provider-calling actions, on a specific port
+verbatra studio --allow-spend --port 6000
+
+# let a browser agent operate the review actions
+verbatra studio --expose-agent-tools
+```
+
 ## Flags
 
 | Flag | Argument | Default | Effect |
@@ -68,19 +81,6 @@ Verbatra Studio requires @verbatra/studio. Install it alongside the CLI with: np
 ```
 
 With pnpm, that install succeeds but exits `1` with `ERR_PNPM_IGNORED_BUILDS` and leaves an unanswered `pnpm-workspace.yaml` behind; see [Troubleshooting](/docs/troubleshooting) for the one-time fix. npm and yarn do not have that problem.
-
-## Examples
-
-```bash
-# start Verbatra Studio on the default port
-verbatra studio
-
-# enable the provider-calling actions, on a specific port
-verbatra studio --allow-spend --port 6000
-
-# let a browser agent operate the review actions
-verbatra studio --expose-agent-tools
-```
 
 ## Exit codes
 

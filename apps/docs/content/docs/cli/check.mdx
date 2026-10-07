@@ -11,6 +11,31 @@ Report, per target locale, how many keys are missing, stale, or up to date, and 
 verbatra check [flags]
 ```
 
+## Examples
+
+```bash
+# fail the build when translations drifted
+verbatra check
+
+# machine-readable status for two locales
+verbatra check --locales de,fr --json
+
+# also list source strings translated more than one way
+verbatra check --consistency
+
+# fail on broken placeholders, markup and ICU, and on warnings too
+verbatra check --qa --strict
+
+# fail while machine translations wait for approval
+verbatra check --require-reviewed
+
+# fail on emails, API keys or card numbers in the source
+verbatra check --sensitive
+
+# check the one file an editor or agent just changed
+verbatra check --file locales/de.json --json
+```
+
 ## Flags
 
 | Flag | Argument | Default | Effect |
@@ -207,31 +232,6 @@ A source key whose value is empty or whitespace only, such as one `extract` adde
 <AvailableFrom version="0.12.0" />
 
 `check` shows `verbatra: checking the locales... done (0.1s)` on stderr, or `verbatra: checking locales/de.json...` with `--file`. `--quiet` drops it. See [Terminal output](/docs/cli/output#terminal-output).
-
-## Examples
-
-```bash
-# fail the build when translations drifted
-verbatra check
-
-# machine-readable status for two locales
-verbatra check --locales de,fr --json
-
-# also list source strings translated more than one way
-verbatra check --consistency
-
-# fail on broken placeholders, markup and ICU, and on warnings too
-verbatra check --qa --strict
-
-# fail while machine translations wait for approval
-verbatra check --require-reviewed
-
-# fail on emails, API keys or card numbers in the source
-verbatra check --sensitive
-
-# check the one file an editor or agent just changed
-verbatra check --file locales/de.json --json
-```
 
 ## Exit codes
 

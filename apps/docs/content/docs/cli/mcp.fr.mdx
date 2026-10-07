@@ -18,6 +18,22 @@ verbatra-mcp [flags]
 - `verbatra-mcp` est le binaire fourni par `@verbatra/mcp`, pour qu'un client lance le serveur sans la CLI. Il prend les mêmes options sauf `-q`/`--quiet` et démarre le même serveur, mais ne charge aucun fichier `.env` et affiche la version de `@verbatra/mcp` avec `--version`.
 - Les deux refusent une option inconnue (comme `--json`), une option sans valeur ou un argument en trop comme erreur d'utilisation, avec le code `2`. `verbatra-mcp` le fait, et accepte `-h` et `-V`, depuis `@verbatra/mcp` 0.3.0.
 
+## Exemples
+
+```bash
+# start the MCP server with only local, non-spending tools
+verbatra mcp
+
+# also advertise the provider-calling tools
+verbatra mcp --allow-spend
+
+# resolve a project outside the current directory
+verbatra mcp --cwd /path/to/project --config verbatra.config.ts
+
+# run the standalone server without the CLI
+npx -y @verbatra/mcp --cwd /path/to/project
+```
+
 ## Options
 
 | Option | Argument | Défaut | Effet |
@@ -175,22 +191,6 @@ Verbatra's MCP server requires @verbatra/mcp. Run it without the CLI with: npx -
 ```
 
 Chaque version est aussi dans le [registre MCP officiel](https://registry.modelcontextprotocol.io) sous `io.github.verbatra/verbatra`.
-
-## Exemples
-
-```bash
-# start the MCP server with only local, non-spending tools
-verbatra mcp
-
-# also advertise the provider-calling tools
-verbatra mcp --allow-spend
-
-# resolve a project outside the current directory
-verbatra mcp --cwd /path/to/project --config verbatra.config.ts
-
-# run the standalone server without the CLI
-npx -y @verbatra/mcp --cwd /path/to/project
-```
 
 ## Codes de sortie
 

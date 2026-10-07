@@ -14,6 +14,22 @@ Run your app in a language that does not exist. `pseudo` builds a fake locale fr
 verbatra pseudo [flags]
 ```
 
+## Examples
+
+```bash
+# generate en-XA under .verbatra-local/pseudo
+verbatra pseudo
+
+# render every string right to left in ar-XB
+verbatra pseudo --mode bidi
+
+# write it where the dev server already serves static files (do not commit a bidi file: GitHub flags its hidden Unicode)
+verbatra pseudo --out public/locales-pseudo
+
+# machine-readable result for a script
+verbatra pseudo --json
+```
+
 ## Flags
 
 | Flag | Argument | Default | Effect |
@@ -98,22 +114,6 @@ next: load .verbatra-local/pseudo/locales/en-XA.json as the en-XA locale in your
 ```
 
 A second run over an unchanged source reports `unchanged` instead of `wrote`. `--quiet` drops the stderr lines. See [Terminal output](/docs/cli/output#terminal-output).
-
-## Examples
-
-```bash
-# generate en-XA under .verbatra-local/pseudo
-verbatra pseudo
-
-# render every string right to left in ar-XB
-verbatra pseudo --mode bidi
-
-# write it where the dev server already serves static files (do not commit a bidi file: GitHub flags its hidden Unicode)
-verbatra pseudo --out public/locales-pseudo
-
-# machine-readable result for a script
-verbatra pseudo --json
-```
 
 ## Exit codes
 

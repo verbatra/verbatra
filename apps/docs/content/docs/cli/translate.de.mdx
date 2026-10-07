@@ -11,6 +11,28 @@ Führe einen Übersetzungsdurchlauf über jede Ziel-Locale aus; danach beendet s
 verbatra translate [flags]
 ```
 
+## Beispiele
+
+```bash
+# einmal übersetzen, mit der gefundenen Konfiguration
+verbatra translate
+
+# die Keys ansehen, die entfernt würden, ohne etwas auszugeben
+verbatra translate --prune --dry-run
+
+# eine Locale nach der anderen, wie es ein Free Tier mit Rate-Limit braucht
+verbatra translate --locales de
+
+# den Lauf schätzen und bepreisen, ohne etwas auszugeben
+verbatra translate --estimate
+
+# anhalten, bevor der Lauf 50000 Tokens überschreitet
+verbatra translate --max-tokens 50000
+
+# auch veraltete Keys neu übersetzen, die ein Mensch geschrieben hat
+verbatra translate --include-human
+```
+
 ## Flags
 
 | Flag | Argument | Standard | Wirkung |
@@ -119,28 +141,6 @@ next: verbatra check (confirm every locale is in sync)
 ```
 
 Ein Dry Run oder eine Schätzung beendet jede Locale stattdessen mit `would translate`. Eine Locale, die nur einen Teil der Keys behalten hat, endet mit `partly done`, eine fehlgeschlagene mit `failed`, und die Schlusszeile nennt, wie viele fehlgeschlagen sind. Diese Zeilen gehen auf stderr, und `--quiet` lässt sie weg. Siehe [Terminalausgabe](/docs/cli/output#terminalausgabe).
-
-## Beispiele
-
-```bash
-# einmal übersetzen, mit der gefundenen Konfiguration
-verbatra translate
-
-# die Keys ansehen, die entfernt würden, ohne etwas auszugeben
-verbatra translate --prune --dry-run
-
-# eine Locale nach der anderen, wie es ein Free Tier mit Rate-Limit braucht
-verbatra translate --locales de
-
-# den Lauf schätzen und bepreisen, ohne etwas auszugeben
-verbatra translate --estimate
-
-# anhalten, bevor der Lauf 50000 Tokens überschreitet
-verbatra translate --max-tokens 50000
-
-# auch veraltete Keys neu übersetzen, die ein Mensch geschrieben hat
-verbatra translate --include-human
-```
 
 ## Exit-Codes
 

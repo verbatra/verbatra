@@ -14,6 +14,22 @@ Transforme une clé mal orthographiée ou un argument d'interpolation oublié en
 verbatra types [flags]
 ```
 
+## Exemples
+
+```bash
+# write verbatra-types.d.ts from the source catalog
+verbatra types
+
+# write it where the app already imports from
+verbatra types --out src/generated/messages.d.ts
+
+# CI gate: exit 1 if the committed declaration is stale
+verbatra types --check
+
+# machine-readable result for a script
+verbatra types --json
+```
+
 ## Options
 
 | Option | Argument | Défaut | Effet |
@@ -214,22 +230,6 @@ verbatra types
 ```
 
 Consulte [Sortie dans le terminal](/docs/cli/output#sortie-dans-le-terminal) pour la couleur, le spinner et les variables qui les contrôlent.
-
-## Exemples
-
-```bash
-# write verbatra-types.d.ts from the source catalog
-verbatra types
-
-# write it where the app already imports from
-verbatra types --out src/generated/messages.d.ts
-
-# CI gate: exit 1 if the committed declaration is stale
-verbatra types --check
-
-# machine-readable result for a script
-verbatra types --json
-```
 
 ## Codes de sortie
 

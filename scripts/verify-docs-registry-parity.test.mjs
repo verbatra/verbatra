@@ -484,13 +484,13 @@ const GLOBAL_FLAGS_ANCHOR = {
 };
 
 const COMMAND_PAGE_SECTIONS = {
-  "": ["Synopsis", "Flags", "Behavior", "Examples", "Exit codes", "Related"],
-  ".de": ["Synopsis", "Flags", "Verhalten", "Beispiele", "Exit-Codes", "Siehe auch"],
-  ".es": ["Sinopsis", "Flags", "Comportamiento", "Ejemplos", "Códigos de salida", "Relacionado"],
-  ".fr": ["Synopsis", "Options", "Comportement", "Exemples", "Codes de sortie", "Voir aussi"],
+  "": ["Synopsis", "Examples", "Flags", "Behavior", "Exit codes", "Related"],
+  ".de": ["Synopsis", "Beispiele", "Flags", "Verhalten", "Exit-Codes", "Siehe auch"],
+  ".es": ["Sinopsis", "Ejemplos", "Flags", "Comportamiento", "Códigos de salida", "Relacionado"],
+  ".fr": ["Synopsis", "Exemples", "Options", "Comportement", "Codes de sortie", "Voir aussi"],
 };
 
-const OPTIONAL_SECTION_INDEX = 2;
+const OPTIONAL_SECTION_INDEX = 3;
 
 const MAX_EFFECT_WORDS = 25;
 
@@ -688,11 +688,13 @@ describe("the CLI reference covers every command", () => {
   });
 
   it("sees a page that drops a template section or reorders two", () => {
-    const page = "## Synopsis\n## Flags\n## Examples\n## Exit codes\n## Related\n";
+    const page = "## Synopsis\n## Examples\n## Flags\n## Exit codes\n## Related\n";
 
     expect(h2Headings(page)).toEqual(expectedSections(page, ""));
     expect(h2Headings(page.replace("## Examples\n", ""))).not.toEqual(expectedSections(page, ""));
-    const swapped = "## Synopsis\n## Examples\n## Flags\n## Exit codes\n## Related\n";
+    const withBehavior = page.replace("## Exit codes\n", "## Behavior\n## Exit codes\n");
+    expect(h2Headings(withBehavior)).toEqual(expectedSections(withBehavior, ""));
+    const swapped = "## Synopsis\n## Flags\n## Examples\n## Exit codes\n## Related\n";
     expect(h2Headings(swapped)).not.toEqual(expectedSections(swapped, ""));
   });
 });

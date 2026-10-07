@@ -11,6 +11,22 @@ Liste pro Ziel-Locale die genauen ausstehenden Keys: die, die ein Lauf hinzufüg
 verbatra diff [flags]
 ```
 
+## Beispiele
+
+```bash
+# die ausstehenden Keys pro Locale auflisten (Exit 1, wenn welche ausstehen)
+verbatra diff
+
+# nur die deutsche und die französische Locale
+verbatra diff --locales de,fr
+
+# maschinenlesbare Key-Listen für Tools oder einen PR-Kommentar
+verbatra diff --json
+
+# zusätzlich die Quell-Keys auflisten, die dein Code nicht mehr nennt
+verbatra diff --unused
+```
+
 ## Flags
 
 | Flag | Argument | Standard | Wirkung |
@@ -115,22 +131,6 @@ next: verbatra translate (send the pending keys to your provider)
 ```
 
 Sind alle ausstehenden Keys geschützt, schlägt es stattdessen `verbatra studio` vor; unter `provider: { id: "none" }` schlägt es `verbatra export` vor. Diese Zeilen gehen auf stderr, und `--quiet` blendet sie aus. Siehe [Terminalausgabe](/docs/cli/output#terminalausgabe).
-
-## Beispiele
-
-```bash
-# die ausstehenden Keys pro Locale auflisten (Exit 1, wenn welche ausstehen)
-verbatra diff
-
-# nur die deutsche und die französische Locale
-verbatra diff --locales de,fr
-
-# maschinenlesbare Key-Listen für Tools oder einen PR-Kommentar
-verbatra diff --json
-
-# zusätzlich die Quell-Keys auflisten, die dein Code nicht mehr nennt
-verbatra diff --unused
-```
 
 ## Exit-Codes
 

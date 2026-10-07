@@ -11,6 +11,22 @@ Liste, par locale cible, les clés exactes en attente : celles qu'une exécution
 verbatra diff [flags]
 ```
 
+## Exemples
+
+```bash
+# liste les clés en attente par locale (sortie 1 s'il y en a)
+verbatra diff
+
+# seulement les locales allemande et française
+verbatra diff --locales de,fr
+
+# listes de clés lisibles par une machine pour un outil ou un commentaire de PR
+verbatra diff --json
+
+# liste aussi les clés source que ton code ne nomme plus
+verbatra diff --unused
+```
+
 ## Options
 
 | Option | Argument | Défaut | Effet |
@@ -115,22 +131,6 @@ next: verbatra translate (send the pending keys to your provider)
 ```
 
 Quand toutes les clés en attente sont protégées, il suggère plutôt `verbatra studio` ; avec `provider: { id: "none" }`, il suggère `verbatra export`. Ces lignes vont sur stderr, et `--quiet` les supprime. Consulte [Sortie dans le terminal](/docs/cli/output#sortie-dans-le-terminal).
-
-## Exemples
-
-```bash
-# liste les clés en attente par locale (sortie 1 s'il y en a)
-verbatra diff
-
-# seulement les locales allemande et française
-verbatra diff --locales de,fr
-
-# listes de clés lisibles par une machine pour un outil ou un commentaire de PR
-verbatra diff --json
-
-# liste aussi les clés source que ton code ne nomme plus
-verbatra diff --unused
-```
 
 ## Codes de sortie
 

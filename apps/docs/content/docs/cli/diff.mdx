@@ -11,6 +11,22 @@ List the exact pending keys per target locale: the ones a run would add, the one
 verbatra diff [flags]
 ```
 
+## Examples
+
+```bash
+# list the pending keys per locale (exit 1 if any are pending)
+verbatra diff
+
+# only the German and French locales
+verbatra diff --locales de,fr
+
+# machine-readable key lists for tooling or a PR comment
+verbatra diff --json
+
+# also list the source keys your code no longer names
+verbatra diff --unused
+```
+
 ## Flags
 
 | Flag | Argument | Default | Effect |
@@ -115,22 +131,6 @@ next: verbatra translate (send the pending keys to your provider)
 ```
 
 When every pending key is protected, it suggests `verbatra studio` instead; under `provider: { id: "none" }` it suggests `verbatra export`. These lines go to stderr, and `--quiet` drops them. See [Terminal output](/docs/cli/output#terminal-output).
-
-## Examples
-
-```bash
-# list the pending keys per locale (exit 1 if any are pending)
-verbatra diff
-
-# only the German and French locales
-verbatra diff --locales de,fr
-
-# machine-readable key lists for tooling or a PR comment
-verbatra diff --json
-
-# also list the source keys your code no longer names
-verbatra diff --unused
-```
 
 ## Exit codes
 

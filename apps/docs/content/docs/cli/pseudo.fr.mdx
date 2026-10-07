@@ -14,6 +14,22 @@ Fais tourner ton app dans une langue qui n'existe pas. `pseudo` construit une fa
 verbatra pseudo [flags]
 ```
 
+## Exemples
+
+```bash
+# générer en-XA sous .verbatra-local/pseudo
+verbatra pseudo
+
+# afficher chaque chaîne de droite à gauche en ar-XB
+verbatra pseudo --mode bidi
+
+# l'écrire là où le serveur de dev sert déjà des fichiers statiques (ne commite pas un fichier bidi : GitHub signale son Unicode caché)
+verbatra pseudo --out public/locales-pseudo
+
+# résultat lisible par une machine pour un script
+verbatra pseudo --json
+```
+
 ## Options
 
 | Option | Argument | Défaut | Effet |
@@ -98,22 +114,6 @@ next: load .verbatra-local/pseudo/locales/en-XA.json as the en-XA locale in your
 ```
 
 Une deuxième exécution sur une source inchangée rapporte `unchanged` au lieu de `wrote`. `--quiet` supprime les lignes stderr. Voir [Sortie dans le terminal](/docs/cli/output#sortie-dans-le-terminal).
-
-## Exemples
-
-```bash
-# générer en-XA sous .verbatra-local/pseudo
-verbatra pseudo
-
-# afficher chaque chaîne de droite à gauche en ar-XB
-verbatra pseudo --mode bidi
-
-# l'écrire là où le serveur de dev sert déjà des fichiers statiques (ne commite pas un fichier bidi : GitHub signale son Unicode caché)
-verbatra pseudo --out public/locales-pseudo
-
-# résultat lisible par une machine pour un script
-verbatra pseudo --json
-```
 
 ## Codes de sortie
 

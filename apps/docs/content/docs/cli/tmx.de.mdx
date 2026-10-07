@@ -17,6 +17,25 @@ verbatra tmx <direction> [file] [flags]
 - `<direction>`: `import` oder `export`; alles andere wird mit `INVALID_DIRECTION` abgelehnt.
 - `[file]`: die TMX-Datei, die gelesen oder geschrieben wird, standardmäßig `verbatra-memory.tmx` in der Projektwurzel.
 
+## Beispiele
+
+```bash
+# den Speicher eines anderen Tools in dieses Projekt übernehmen
+verbatra tmx import legacy.tmx
+
+# berichten, was ankäme, nichts ändern
+verbatra tmx import legacy.tmx --dry-run
+
+# die Datei gewinnen lassen, wo sie dem Speicher widerspricht
+verbatra tmx import legacy.tmx --overwrite
+
+# den Speicher nach verbatra-memory.tmx schreiben
+verbatra tmx export
+
+# nur Deutsch, an einen gewählten Pfad
+verbatra tmx export out/memory.tmx --locales de
+```
+
 ## Flags
 
 | Flag | Argument | Standard | Wirkung |
@@ -117,25 +136,6 @@ next: verbatra translate (reuses the imported memory before calling a provider)
 ```
 
 `--quiet` unterdrückt diese Zeilen. Siehe [Terminalausgabe](/docs/cli/output#terminalausgabe).
-
-## Beispiele
-
-```bash
-# den Speicher eines anderen Tools in dieses Projekt übernehmen
-verbatra tmx import legacy.tmx
-
-# berichten, was ankäme, nichts ändern
-verbatra tmx import legacy.tmx --dry-run
-
-# die Datei gewinnen lassen, wo sie dem Speicher widerspricht
-verbatra tmx import legacy.tmx --overwrite
-
-# den Speicher nach verbatra-memory.tmx schreiben
-verbatra tmx export
-
-# nur Deutsch, an einen gewählten Pfad
-verbatra tmx export out/memory.tmx --locales de
-```
 
 ## Exit-Codes
 

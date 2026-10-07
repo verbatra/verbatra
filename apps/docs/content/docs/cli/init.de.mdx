@@ -11,6 +11,34 @@ Setze ein Projekt auf: `init` schreibt eine `verbatra.config.ts`, eine `.env.exa
 verbatra init [flags]
 ```
 
+## Beispiele
+
+```bash
+# prompt for anything not passed or detected
+verbatra init --provider gemini
+
+# fully unattended, one JSON document on stdout
+verbatra init --provider gemini --yes --json
+
+# choose the format and pattern yourself
+verbatra init --provider deepl --format yaml --path "config/locales/{locale}.yml" --yes
+
+# a local server that needs no key
+verbatra init --provider openai-compatible --base-url http://localhost:11434/v1 --model llama3.1 --yes
+
+# a self-hosted LibreTranslate server, no language model
+verbatra init --provider libretranslate --base-url http://localhost:5000 --yes
+
+# human-only: no provider, no API key
+verbatra init --provider none --yes
+
+# also set the project up for coding agents
+verbatra init --provider gemini --yes --agent
+
+# wire Cursor and VS Code, and only show what would change
+verbatra init --agent --client cursor,vscode --dry-run
+```
+
 ## Flags
 
 | Flag | Argument | Standard | Wirkung |
@@ -176,34 +204,6 @@ Aktiviert `.claude/settings.json` oder `.claude/settings.local.json` das verbatr
 In einem Projekt, das schon eine Konfiguration hat, schreibt `init --agent` nur die Agenten-Dateien, behält die Konfiguration, gibt `kept verbatra.config.ts` aus, fragt nie nach und erkennt nichts. Das JSON-Ergebnis führt die Konfiguration als `unchanged`, setzt `agent.configKept` auf `true` und enthält `null` für `config`, `sources`, `apiKeyEnvVar` und `detection`. Ein Konfigurations-Flag oder `--force` nimmt die Konfiguration wieder in den Lauf auf, wie ohne `--agent`.
 
 `init` lehnt mit `AGENT_FILE_INVALID` ab, bevor irgendetwas geschrieben wird, wenn eine Client-Datei kein reines JSON ist (Kommentare oder nachgestellte Kommas schreibt es nie um), kein Objekt ist, einen Schlüssel wiederholt oder einen Server-Wert hat, der kein Objekt ist; wenn `.codex/config.toml` `mcp_servers` oder den verbatra-Server inline, mit gepunkteten Schlüsseln oder als Array von Tabellen setzt, diese Tabelle oder einen Schlüssel darin wiederholt oder einen nicht abgeschlossenen String, ein offenes Array oder einen offenen Header hat; wenn ein Client, den `--client` nennt, einen symbolischen Link auf seinem Konfigurationspfad hat oder eine Anweisungsdatei aus dem Projekt hinaus verlinkt; oder wenn die Anweisungsdatei eine ungepaarte, falsch geordnete oder doppelte Markierung hat. Die Meldung zitiert die Datei nie.
-
-## Beispiele
-
-```bash
-# prompt for anything not passed or detected
-verbatra init --provider gemini
-
-# fully unattended, one JSON document on stdout
-verbatra init --provider gemini --yes --json
-
-# choose the format and pattern yourself
-verbatra init --provider deepl --format yaml --path "config/locales/{locale}.yml" --yes
-
-# a local server that needs no key
-verbatra init --provider openai-compatible --base-url http://localhost:11434/v1 --model llama3.1 --yes
-
-# a self-hosted LibreTranslate server, no language model
-verbatra init --provider libretranslate --base-url http://localhost:5000 --yes
-
-# human-only: no provider, no API key
-verbatra init --provider none --yes
-
-# also set the project up for coding agents
-verbatra init --provider gemini --yes --agent
-
-# wire Cursor and VS Code, and only show what would change
-verbatra init --agent --client cursor,vscode --dry-run
-```
 
 ## Exit-Codes
 

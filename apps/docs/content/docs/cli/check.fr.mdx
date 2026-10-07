@@ -11,6 +11,31 @@ Indique, pour chaque locale cible, combien de clés manquent, sont obsolètes ou
 verbatra check [flags]
 ```
 
+## Exemples
+
+```bash
+# faire échouer le build quand les traductions ont dérivé
+verbatra check
+
+# état lisible par une machine pour deux locales
+verbatra check --locales de,fr --json
+
+# lister aussi les textes source traduits de plusieurs façons
+verbatra check --consistency
+
+# échouer sur des placeholders, du markup ou de l'ICU cassés, et sur les avertissements
+verbatra check --qa --strict
+
+# échouer tant que des traductions automatiques attendent une approbation
+verbatra check --require-reviewed
+
+# échouer sur des e-mails, clés d'API ou numéros de carte dans la source
+verbatra check --sensitive
+
+# vérifier seulement le fichier qu'un éditeur ou un agent vient de modifier
+verbatra check --file locales/de.json --json
+```
+
 ## Options
 
 | Option | Argument | Défaut | Effet |
@@ -207,31 +232,6 @@ Une clé source dont la valeur est vide ou ne contient que des espaces, comme un
 <AvailableFrom version="0.12.0" />
 
 `check` affiche `verbatra: checking the locales... done (0.1s)` sur stderr, ou `verbatra: checking locales/de.json...` avec `--file`. `--quiet` la supprime. Voir [Sortie dans le terminal](/docs/cli/output#sortie-dans-le-terminal).
-
-## Exemples
-
-```bash
-# faire échouer le build quand les traductions ont dérivé
-verbatra check
-
-# état lisible par une machine pour deux locales
-verbatra check --locales de,fr --json
-
-# lister aussi les textes source traduits de plusieurs façons
-verbatra check --consistency
-
-# échouer sur des placeholders, du markup ou de l'ICU cassés, et sur les avertissements
-verbatra check --qa --strict
-
-# échouer tant que des traductions automatiques attendent une approbation
-verbatra check --require-reviewed
-
-# échouer sur des e-mails, clés d'API ou numéros de carte dans la source
-verbatra check --sensitive
-
-# vérifier seulement le fichier qu'un éditeur ou un agent vient de modifier
-verbatra check --file locales/de.json --json
-```
 
 ## Codes de sortie
 

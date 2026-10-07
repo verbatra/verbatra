@@ -13,6 +13,19 @@ Lance Verbatra Studio, un tableau de bord web local sur ton projet : l'état des
 verbatra studio [flags]
 ```
 
+## Exemples
+
+```bash
+# lance Verbatra Studio sur le port par défaut
+verbatra studio
+
+# active les actions qui appellent le fournisseur, sur un port précis
+verbatra studio --allow-spend --port 6000
+
+# laisse un agent de navigateur utiliser les actions de relecture
+verbatra studio --expose-agent-tools
+```
+
 ## Options
 
 | Option | Argument | Défaut | Effet |
@@ -68,19 +81,6 @@ Verbatra Studio requires @verbatra/studio. Install it alongside the CLI with: np
 ```
 
 Avec pnpm, cette installation réussit mais sort avec `1` et `ERR_PNPM_IGNORED_BUILDS`, et laisse un `pnpm-workspace.yaml` sans réponse ; la correction, à faire une seule fois, est dans [Dépannage](/docs/troubleshooting). npm et yarn n'ont pas ce problème.
-
-## Exemples
-
-```bash
-# lance Verbatra Studio sur le port par défaut
-verbatra studio
-
-# active les actions qui appellent le fournisseur, sur un port précis
-verbatra studio --allow-spend --port 6000
-
-# laisse un agent de navigateur utiliser les actions de relecture
-verbatra studio --expose-agent-tools
-```
 
 ## Codes de sortie
 

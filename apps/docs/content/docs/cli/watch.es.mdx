@@ -11,6 +11,19 @@ Vigila el archivo del locale de origen y vuelve a traducir tras cada cambio, con
 verbatra watch [flags]
 ```
 
+## Ejemplos
+
+```bash
+# vigila y retraduce en cada cambio
+verbatra watch
+
+# más tranquilo en un editor ajetreado: espera 1 s tras el último cambio y emite NDJSON
+verbatra watch --debounce 1000 --json
+
+# mantén al día solo el alemán mientras trabajas
+verbatra watch --locales de
+```
+
 ## Flags
 
 | Flag | Argumento | Por defecto | Efecto |
@@ -62,19 +75,6 @@ verbatra: waiting for changes...
 ```
 
 Estas líneas van a stderr, y `--quiet` las omite. Consulta [Salida en el terminal](/docs/cli/output#salida-en-el-terminal).
-
-## Ejemplos
-
-```bash
-# vigila y retraduce en cada cambio
-verbatra watch
-
-# más tranquilo en un editor ajetreado: espera 1 s tras el último cambio y emite NDJSON
-verbatra watch --debounce 1000 --json
-
-# mantén al día solo el alemán mientras trabajas
-verbatra watch --locales de
-```
 
 ## Códigos de salida
 

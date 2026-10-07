@@ -13,6 +13,31 @@ Comprueba si un proyecto está bien configurado y recibe todos los problemas en 
 verbatra doctor [flags]
 ```
 
+## Ejemplos
+
+```bash
+# report every setup problem at once
+verbatra doctor
+
+# validate a project in another directory, with an explicit config
+verbatra doctor --cwd apps/web --config verbatra.config.ts
+
+# machine-readable report for a CI preflight step
+verbatra doctor --json
+
+# list hardcoded user-facing strings, with no key set
+verbatra doctor --literals
+
+# what the provider supports for each target locale
+verbatra doctor --locales
+
+# the same, against the provider's current language list
+verbatra doctor --live
+
+# a data-flow manifest to attach to a DPA or NDA review
+verbatra doctor --data-flow --json
+```
+
 ## Flags
 
 | Flag | Argumento | Por defecto | Efecto |
@@ -223,31 +248,6 @@ interface LocaleCapabilityReport {
 <AvailableFrom version="0.12.0" />
 
 Mientras se ejecuta, `doctor` muestra una línea en stderr, que `--quiet` omite: `checking the setup`, `checking the setup and fetching the provider's language list` con `--live`, `describing the data flow` con `--data-flow` o `scanning the source for literals` con un recuento de archivos con `--literals`. El informe se queda en stdout. Consulta [Salida en el terminal](/docs/cli/output#salida-en-el-terminal).
-
-## Ejemplos
-
-```bash
-# report every setup problem at once
-verbatra doctor
-
-# validate a project in another directory, with an explicit config
-verbatra doctor --cwd apps/web --config verbatra.config.ts
-
-# machine-readable report for a CI preflight step
-verbatra doctor --json
-
-# list hardcoded user-facing strings, with no key set
-verbatra doctor --literals
-
-# what the provider supports for each target locale
-verbatra doctor --locales
-
-# the same, against the provider's current language list
-verbatra doctor --live
-
-# a data-flow manifest to attach to a DPA or NDA review
-verbatra doctor --data-flow --json
-```
 
 ## Códigos de salida
 
