@@ -136,7 +136,7 @@ export interface McpServerHandle {
  * advertised, whether values are redacted, and optional dependency injection seams.
  * @returns A handle whose `close()` stops the server and releases the stdio transport.
  *
- * @throws {@link SdkError} `CONFIG_NOT_FOUND`: the explicit `configPath` does not exist at startup.
+ * @throws `SdkError` `CONFIG_NOT_FOUND`: the explicit `configPath` does not exist at startup.
  *
  * @example
  * ```ts
