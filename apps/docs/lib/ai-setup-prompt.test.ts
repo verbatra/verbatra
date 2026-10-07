@@ -34,10 +34,10 @@ describe("AI_SETUP_PROMPT", () => {
     expect(AI_SETUP_PROMPT).toContain(` ${url} `);
   });
 
-  it("keeps the spend gate, the key rule and the link-fail stop in the prompt itself, for an agent that cannot open the link", () => {
+  it("keeps the spend gate, the key rule and a no-spend fallback in the prompt itself, for an agent that cannot open the link", () => {
     expect(AI_SETUP_PROMPT).toContain("Spend nothing until I confirm.");
     expect(AI_SETUP_PROMPT).toContain("Never write or ask for an API key.");
-    expect(AI_SETUP_PROMPT).toContain("If the link fails, stop.");
+    expect(AI_SETUP_PROMPT).toContain("(if it fails: npx @verbatra/cli init --help)");
   });
 
   it("is one line, so the install box shows the whole text that Copy pastes", () => {
