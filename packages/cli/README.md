@@ -23,7 +23,7 @@
 
 ## Requirements
 
-Node.js `>=22.18.0`.
+Node.js `^22.18.0 || >=24`.
 
 ## Installation
 

@@ -5,8 +5,8 @@
 Saved review decisions from committed files, bulk and keyboard review, rate-limit feedback.
 
 **Upgrading from 0.5**
-- `@verbatra/studio` needs Node.js `>=22.18.0`; 0.5 accepted `>=22.14.0`. Upgrade Node.js to
-  22.18.0 or newer.
+- `@verbatra/studio` needs Node.js `^22.18.0 || >=24`; 0.5 accepted `>=22.14.0`. Upgrade Node.js
+  to 22.18.0 or newer on the 22 line, or to 24 or newer; Node 23 is not supported.
 - The Review queue is built from the committed files. Approve and Reject now write files (Reject
   removes the value) and are rate limited to 60 calls a minute by default, set through
   `reviewDecisionRateLimitWindowMs` and `reviewDecisionRateLimitMax`.

@@ -22,7 +22,7 @@
 
 ## Quick start
 
-Needs Node.js `>=22.18.0`.
+Needs Node.js `^22.18.0 || >=24`.
 
 ```bash
 # 1. Install as a dev dependency

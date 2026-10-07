@@ -24,7 +24,7 @@ Because the transport is stdio, nothing but a valid MCP protocol message is ever
 
 ## Requirements
 
-Node.js `>=22.18.0`.
+Node.js `^22.18.0 || >=24`.
 
 ## Installation
 

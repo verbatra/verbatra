@@ -5,8 +5,8 @@
 Config-less start, review, glossary and read tools, values-redacted mode, progress, spend limits.
 
 **Upgrading from 0.2**
-- `@verbatra/mcp` needs Node.js `>=22.18.0`; 0.2 accepted `>=22.14.0`. Upgrade Node.js to 22.18.0
-  or newer.
+- `@verbatra/mcp` needs Node.js `^22.18.0 || >=24`; 0.2 accepted `>=22.14.0`. Upgrade Node.js to
+  22.18.0 or newer on the 22 line, or to 24 or newer; Node 23 is not supported.
 - `glossary.get` no longer returns `entries`: it returns `version`, `terms` and `doNotTranslate`.
   In `glossary.write`, `translation: null` clears only the shared translation.
 - `review.queue` lists every unapproved machine-written value from the committed files.
