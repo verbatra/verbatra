@@ -120,7 +120,7 @@ provider: {
 Liest `DEEPL_API_KEY`; `options` darf `{}` sein. DeepL hat kein Modell und kein Ausgabe-Token-Limit und stuft mit einem Hinweis herab, statt fehlzuschlagen:
 
 - **Platzhalter** reisen als nummerierte Markierungen in einem ignorierten Tag (`Hello {{name}}` als `Hello <x>{0}</x>`) und werden wieder eingesetzt. `PLACEHOLDER_UNSUPPORTED` hält einen Wert mit nicht wörtlichem Platzhalter oder mit `<`, `>`, `{` oder `}` im übrigen Text zurück, und ein Ergebnis mit verlorener, wiederholter, geänderter oder bloßer Markierung, unbekannter Entity oder fremdem Tag. Reines Markup geht als Klartext hinaus. <AvailableFrom version="0.12.0" />
-- **Tonfall** wird auf Formalität abgebildet (`formal` formeller, `informal` informeller, `neutral` weggelassen). Angefragt wird mit `prefer_more` oder `prefer_less`, sodass ein Key aus dem kostenlosen Kontingent oder eine Sprache ohne Formalität wie Schwedisch zurückfällt statt zu scheitern. Das [Glossar](#tonfall-und-glossar-über-die-provider-hinweg) wird nicht angewendet.
+- **Tonfall** wird auf Formalität abgebildet (`formal` formeller, `informal` informeller, `neutral` weggelassen). Ein Key aus dem kostenlosen Kontingent sendet gar keine Formalität und meldet `FORMALITY_DOWNGRADED`. Ein bezahlter Key fragt mit `prefer_more` oder `prefer_less` an, sodass eine Sprache ohne Formalität wie Schwedisch mit demselben Hinweis zurückfällt statt zu scheitern. Das [Glossar](#tonfall-und-glossar-über-die-provider-hinweg) wird nicht angewendet.
 
 <AvailableFrom version="0.12.0" />
 

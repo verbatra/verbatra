@@ -120,7 +120,7 @@ provider: {
 Lit `DEEPL_API_KEY` ; `options` peut valoir `{}`. DeepL n'a ni modèle ni limite de tokens de sortie, et se dégrade avec un avis plutôt que d'échouer :
 
 - **Les placeholders** voyagent comme des marqueurs numérotés dans une balise ignorée (`Hello {{name}}` comme `Hello <x>{0}</x>`) puis sont restaurés. `PLACEHOLDER_UNSUPPORTED` retient une valeur avec un placeholder non littéral ou avec `<`, `>`, `{` ou `}` dans le reste du texte, et un résultat avec un marqueur perdu, répété, modifié ou nu, une entité inconnue ou une balise étrangère. Le balisage seul part en texte brut. <AvailableFrom version="0.12.0" />
-- **Le ton** se mappe sur la formalité (`formal` plus formel, `informal` moins, `neutral` omis). La demande passe par `prefer_more` ou `prefer_less`, donc une clé de l'offre gratuite ou une langue sans formalité, comme le suédois, retombe sur le registre par défaut au lieu d'échouer. Le [glossaire](#ton-et-glossaire-selon-les-fournisseurs) n'est pas appliqué.
+- **Le ton** se mappe sur la formalité (`formal` plus formel, `informal` moins, `neutral` omis). Une clé de l'offre gratuite n'envoie aucune formalité et signale `FORMALITY_DOWNGRADED`. Une clé payante la demande avec `prefer_more` ou `prefer_less`, donc une langue sans formalité, comme le suédois, retombe sur le registre par défaut avec le même avis au lieu d'échouer. Le [glossaire](#ton-et-glossaire-selon-les-fournisseurs) n'est pas appliqué.
 
 <AvailableFrom version="0.12.0" />
 

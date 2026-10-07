@@ -120,7 +120,7 @@ provider: {
 Reads `DEEPL_API_KEY`; `options` may be `{}`. DeepL has no model and no output-token limit, and degrades with a notice rather than failing:
 
 - **Placeholders** travel as numbered markers in an ignored tag (`Hello {{name}}` as `Hello <x>{0}</x>`) and are restored. `PLACEHOLDER_UNSUPPORTED` withholds a value with a non-literal placeholder or other text holding `<`, `>`, `{` or `}`, and a result with a lost, repeated, changed or bare marker, an unknown entity or a stray tag. Markup alone goes as plain text. <AvailableFrom version="0.12.0" />
-- **Tone** maps to formality (`formal` more, `informal` less, `neutral` omitted), requested as `prefer_more` or `prefer_less` so a free-tier key or a language without formality, such as Swedish, falls back instead of failing. The [glossary](#tone-and-glossary-across-providers) is not applied.
+- **Tone** maps to formality (`formal` more, `informal` less, `neutral` omitted). A free-tier key sends no formality at all and reports `FORMALITY_DOWNGRADED`. A paid key requests `prefer_more` or `prefer_less`, so a language without formality, such as Swedish, falls back with the same notice instead of failing. The [glossary](#tone-and-glossary-across-providers) is not applied.
 
 <AvailableFrom version="0.12.0" />
 
