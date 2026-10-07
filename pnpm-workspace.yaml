@@ -162,6 +162,10 @@ overrides:
   # end of the document on each key line. Vulnerable <=1.8.0, and 1.9.0 is the first release after it;
   # lifts the 1.8.0 copy knip pulls (dev-only), bounded to the v1 line knip declares.
   smol-toml@<1.9.0: ">=1.9.0 <2"
+  # GHSA-pqg4-j6r4-53mv (critical): shell-quote quote() command injection via a line terminator in a
+  # token after a { comment } token. Vulnerable >=1.8.4 <1.11.0; lifts the 1.10.0 copy launch-editor
+  # pulls through @changesets/cli (dev-only), bounded to the v1 line launch-editor declares.
+  shell-quote@<1.11.0: ">=1.11.0 <2"
 
 allowBuilds:
   '@google/genai': false
