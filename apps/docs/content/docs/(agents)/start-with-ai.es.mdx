@@ -5,7 +5,7 @@ type: tutorial
 ---
 <StartHere />
 
-Esta página es para un proyecto que ya tiene archivos de locale en el repositorio. Pega el prompt de «Empieza aquí» en Claude Code, Codex, Gemini CLI, Cursor o cualquier agente que ejecute comandos de shell. Sigue los pasos de abajo y te pregunta tres cosas:
+Esta página es para un proyecto que ya tiene archivos de locale en el repositorio. Pega el **Prompt para agentes IA** del recuadro de arriba en Claude Code, Codex, Gemini CLI, Cursor o cualquier agente que ejecute comandos de shell. Sigue los pasos de abajo y te pregunta tres cosas:
 
 - **Qué proveedor** usar, salvo que el proyecto lo deje claro.
 - **La clave de API**: el agente deja su variable vacía en `.env` para que la rellenes y nunca te pide la clave.
@@ -35,7 +35,7 @@ npx @verbatra/cli init --provider <provider> --yes --json --agent
 
 Pregunta a la persona qué proveedor usar, salvo que el proyecto lo deje claro. Nunca elijas uno que gaste en un servicio que la persona no haya aceptado, y nunca pases un valor de clave a `init`. [Proveedores](/docs/providers) lista los ids; `none` desactiva la traducción automática. `init` detecta el formato, el patrón de ruta y los locales, imprime un envoltorio JSON y nunca pregunta. `--agent` además escribe una sección de verbatra en `AGENTS.md` (o en `CLAUDE.md` cuando es el único archivo de instrucciones) y el servidor MCP de verbatra, con el gasto desactivado, en la config de cada cliente que detecta, el `.mcp.json` de Claude Code cuando encuentra Claude Code o ningún cliente; `result.agent.clients` lista los archivos.
 
-| Salida y código | Haz esto |
+| Código de salida y código de error | Haz esto |
 | --- | --- |
 | `0` | Compara `result.config` con el paso 1, empezando por cada entrada de `result.sources` que diga `default`; `result.config.files.localeStyle` solo aparece cuando los archivos no escriben los locales tal cual. Si algo está mal, vuelve a ejecutarlo con el `--format`, `--path`, `--source` o `--targets` correcto, más `--force`. |
 | `2`, `FORMAT_AMBIGUOUS` o `LAYOUT_AMBIGUOUS` | Elige entre los `candidates` y vuelve a ejecutarlo con `--format` o `--path`. Archivos de namespace uno junto a otro: detente y pregunta a la persona, porque una config cubre un patrón de archivo. |

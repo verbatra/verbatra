@@ -5,7 +5,7 @@ type: tutorial
 ---
 <StartHere />
 
-This page is for a project that already has committed locale files. Paste the Start here prompt into Claude Code, Codex, Gemini CLI, Cursor, or any agent that runs shell commands. It follows the steps below and asks you three things:
+This page is for a project that already has committed locale files. Paste the **Prompt for AI agents** from the box above into Claude Code, Codex, Gemini CLI, Cursor, or any agent that runs shell commands. It follows the steps below and asks you three things:
 
 - **Which provider** to use, unless the project makes it obvious.
 - **The API key**: the agent leaves its variable blank in `.env` for you to fill in and never asks for the key.
@@ -35,7 +35,7 @@ npx @verbatra/cli init --provider <provider> --yes --json --agent
 
 Ask the human which provider to use unless the project makes it obvious. Never pick one that spends against a service the human did not agree to, and never pass a key value to `init`. [Providers](/docs/providers) lists the ids; `none` turns machine translation off. `init` detects the format, path pattern, and locales, prints one JSON envelope, and never prompts. `--agent` also writes a verbatra section to `AGENTS.md` (or to `CLAUDE.md` when that is the only instruction file) and the verbatra MCP server, spending off, to the config of each client it detects, Claude Code's `.mcp.json` when it finds Claude Code or no client at all; `result.agent.clients` lists the files.
 
-| Exit and code | Do this |
+| Exit code and error code | Do this |
 | --- | --- |
 | `0` | Compare `result.config` with step 1, starting with every `result.sources` entry that says `default`; `result.config.files.localeStyle` appears only when the files do not spell locales as written. If something is wrong, run it again with the right `--format`, `--path`, `--source`, or `--targets`, plus `--force`. |
 | `2`, `FORMAT_AMBIGUOUS` or `LAYOUT_AMBIGUOUS` | Pick from `candidates` and run it again with `--format` or `--path`. Namespace files side by side: stop and ask the human, since one config covers one file pattern. |

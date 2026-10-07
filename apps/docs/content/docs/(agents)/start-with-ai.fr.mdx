@@ -5,7 +5,7 @@ type: tutorial
 ---
 <StartHere />
 
-Cette page s'adresse à un projet qui a déjà des fichiers de locale commités. Colle le prompt de « Commence ici » dans Claude Code, Codex, Gemini CLI, Cursor ou tout agent qui exécute des commandes shell. Il suit les étapes ci-dessous et te demande trois choses :
+Cette page s'adresse à un projet qui a déjà des fichiers de locale commités. Colle le **Prompt pour agents IA** de l'encadré ci-dessus dans Claude Code, Codex, Gemini CLI, Cursor ou tout agent qui exécute des commandes shell. Il suit les étapes ci-dessous et te demande trois choses :
 
 - **Quel fournisseur** utiliser, sauf si le projet le rend évident.
 - **La clé d'API** : l'agent laisse sa variable vide dans `.env` pour que tu la remplisses et ne demande jamais la clé.
@@ -35,7 +35,7 @@ npx @verbatra/cli init --provider <provider> --yes --json --agent
 
 Demande à l'humain quel fournisseur utiliser, sauf si le projet le rend évident. Ne choisis jamais un fournisseur qui dépense sur un service que l'humain n'a pas accepté, et ne passe jamais une valeur de clé à `init`. [Fournisseurs](/docs/providers) liste les ids ; `none` désactive la traduction automatique. `init` détecte le format, le motif de chemin et les locales, affiche une enveloppe JSON et ne pose jamais de question. `--agent` écrit en plus une section verbatra dans `AGENTS.md` (ou dans `CLAUDE.md` quand c'est le seul fichier d'instructions) et le serveur MCP verbatra, dépenses désactivées, dans la config de chaque client détecté, le `.mcp.json` de Claude Code quand il trouve Claude Code ou aucun client ; `result.agent.clients` liste les fichiers.
 
-| Sortie et code | Fais ceci |
+| Code de sortie et code d'erreur | Fais ceci |
 | --- | --- |
 | `0` | Compare `result.config` avec l'étape 1, en commençant par chaque entrée de `result.sources` qui indique `default` ; `result.config.files.localeStyle` n'apparaît que si les fichiers n'écrivent pas les locales telles quelles. Si quelque chose ne va pas, relance-la avec le bon `--format`, `--path`, `--source` ou `--targets`, plus `--force`. |
 | `2`, `FORMAT_AMBIGUOUS` ou `LAYOUT_AMBIGUOUS` | Choisis parmi les `candidates` et relance-la avec `--format` ou `--path`. Des fichiers de namespace côte à côte : arrête-toi et demande à l'humain, car une config couvre un seul motif de fichier. |

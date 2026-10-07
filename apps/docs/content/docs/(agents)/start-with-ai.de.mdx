@@ -5,7 +5,7 @@ type: tutorial
 ---
 <StartHere />
 
-Diese Seite ist für ein Projekt gedacht, das bereits committete Locale-Dateien hat. Füge den Prompt aus „Starte hier“ in Claude Code, Codex, Gemini CLI, Cursor oder jeden Agenten ein, der Shell-Befehle ausführt. Er folgt den Schritten unten und fragt dich drei Dinge:
+Diese Seite ist für ein Projekt gedacht, das bereits committete Locale-Dateien hat. Füge den **Prompt für KI-Agenten** aus dem Kasten oben in Claude Code, Codex, Gemini CLI, Cursor oder jeden Agenten ein, der Shell-Befehle ausführt. Er folgt den Schritten unten und fragt dich drei Dinge:
 
 - **Welchen Provider** er nutzen soll, außer das Projekt macht es klar.
 - **Den API-Key**: Der Agent lässt seine Variable in `.env` leer, damit du sie ausfüllst, und fragt nie nach dem Key.
@@ -35,7 +35,7 @@ npx @verbatra/cli init --provider <provider> --yes --json --agent
 
 Frag den Menschen, welcher Provider genutzt werden soll, außer das Projekt macht es klar. Wähl nie einen, der bei einem Dienst Kosten verursacht, dem der Mensch nicht zugestimmt hat, und übergib `init` nie einen Schlüsselwert. [Provider](/docs/providers) listet die IDs; `none` schaltet die maschinelle Übersetzung ab. `init` erkennt Format, Pfadmuster und Locales, gibt einen JSON-Envelope aus und fragt nie nach. `--agent` schreibt außerdem einen verbatra-Abschnitt in `AGENTS.md` (oder in `CLAUDE.md`, wenn das die einzige Anweisungsdatei ist) und den verbatra-MCP-Server, Ausgaben aus, in die Konfiguration jedes erkannten Clients, die `.mcp.json` von Claude Code, wenn er Claude Code oder gar keinen Client findet; `result.agent.clients` listet die Dateien.
 
-| Exit und Code | Tu das |
+| Exit-Code und Fehlercode | Tu das |
 | --- | --- |
 | `0` | Vergleiche `result.config` mit Schritt 1, beginnend mit jedem Eintrag in `result.sources`, der `default` sagt; `result.config.files.localeStyle` erscheint nur, wenn die Dateien Locales nicht wie geschrieben benennen. Stimmt etwas nicht, führ den Befehl erneut mit dem richtigen `--format`, `--path`, `--source` oder `--targets` plus `--force` aus. |
 | `2`, `FORMAT_AMBIGUOUS` oder `LAYOUT_AMBIGUOUS` | Wähl aus `candidates` und führ den Befehl erneut mit `--format` oder `--path` aus. Nebeneinanderliegende Namespace-Dateien: Halt an und frag den Menschen, denn eine Konfiguration deckt ein Dateimuster ab. |
