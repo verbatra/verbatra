@@ -16,14 +16,16 @@ export default defineConfig({
   targetLocales: ["de", "fr"],
   format: "i18next-json",
   files: {
-    pattern: "locales/{locale}.json", // {locale} is the only token
+    // {locale} is the only token
+    pattern: "locales/{locale}.json",
   },
 
   // Provider: required; the API key comes from the environment, never from here
   provider: {
     id: "gemini",
     options: {
-      model: "gemini-2.5-flash", // example model id; use your provider's current one
+      // example model id; use your provider's current one
+      model: "gemini-2.5-flash",
       maxOutputTokens: 4096,
     },
   },
