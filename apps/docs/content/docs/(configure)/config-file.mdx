@@ -11,12 +11,15 @@ verbatra reads one non-secret config object and validates it before any work. No
 import { defineConfig } from "@verbatra/sdk";
 
 export default defineConfig({
+  // Locales and files: required
   sourceLocale: "en",
   targetLocales: ["de", "fr"],
   format: "i18next-json",
   files: {
-    pattern: "locales/{locale}.json",
+    pattern: "locales/{locale}.json", // {locale} is the only token
   },
+
+  // Provider: required; the API key comes from the environment, never from here
   provider: {
     id: "gemini",
     options: {
@@ -24,8 +27,18 @@ export default defineConfig({
       maxOutputTokens: 4096,
     },
   },
+
+  // Optional groups, each off or at its default until you add it:
+  // tone: "informal",
+  // glossary: "glossary.json",
+  // network: { policy: "local-only" },
+  // sensitiveData: { mode: "warn" },
+  // maxTokens: 200000,
+  // budgetBehavior: "stop",
 });
 ```
+
+Each group has its own section: [locales and files](#locales-and-files), [provider](#provider), [glossary](#glossary), [network](#network), [sensitive data](/docs/data-handling#sensitive-content-guard), [budget](#maxtokens-and-budgetbehavior), [rates](#rates) and [extract](#extract).
 
 `defineConfig` only types its argument: `options.model` completes to the provider's model ids, though any non-empty string is accepted at runtime.
 
@@ -53,7 +66,7 @@ Unknown keys are rejected at every level except `$schema`, so an API key cannot 
 | `pinnedKeys` | string array | none | 0.12.0 | Key patterns (`*` wildcard) no machine write touches. |
 | `network.policy` | `"any"`, `"local-only"`, `"allowlist"` | `"any"` | 0.12.0 | Which hosts a provider may [connect to](/docs/network-policy). |
 | `network.allowedHosts` | string array | none; required for `"allowlist"` | 0.12.0 | Extra permitted hosts: names, `*.suffix` wildcards, IPs or CIDR ranges. |
-| `sensitiveData.mode` | `"off"`, `"warn"`, `"block"`, `"redact"` | `"off"` | 0.12.0 | What a run does with [sensitive content](/docs/data-handling#sensitive-content-guard) before sending. |
+| `sensitiveData.mode` | `"off"`, `"warn"`, `"block"`, `"redact"` | required in the block; `"off"` without the block | 0.12.0 | What a run does with [sensitive content](/docs/data-handling#sensitive-content-guard) before sending. |
 | `sensitiveData.detectors` | detector id array | `secret`, `email`, `iban`, `credit-card` | 0.12.0 | Detectors to run; `phone`, `ip`, `private-host` are opt-in. |
 | `sensitiveData.patterns` | string array | none | 0.12.0 | Regular expressions for your own terms, such as codenames. |
 | `sensitiveData.allow` | string array | none | 0.12.0 | Matches never reported; `*` is a wildcard. |
@@ -221,7 +234,7 @@ Under `"stop"`:
 
 The budget bounds one `translate` run, never a single-entry retranslation; `watch` starts a fresh one per run. A budget rules out [`--concurrency`](/docs/cli/translate#parallel-locales) above `1`. `budgetBehavior` without `maxTokens` has no effect.
 
-<Callout title="Two different maxTokens">
+<Callout type="warn" title="Two different maxTokens">
 The top-level `maxTokens` is this whole-run budget; Anthropic's unrelated `provider.options.maxTokens` caps one response ([Providers](/docs/providers#anthropic)).
 </Callout>
 
@@ -240,7 +253,7 @@ rates: {
 }
 ```
 
-A `table` key is `provider/model`, or the bare id for a provider without a model (`deepl`, `google-translate`). An entry is token-billed (`inputPerMillionTokens`, `outputPerMillionTokens`) or character-billed (`perMillionCharacters`), never both, and a negative rate or the wrong unit is refused. `openai-compatible` and `libretranslate` send no invoice, so their quantity is reported without a rate.
+A `table` key is `provider/model`, or the bare id for a provider without a model (`deepl`, `google-translate`). An entry is token-billed (`inputPerMillionTokens`, `outputPerMillionTokens`) or character-billed (`perMillionCharacters`), never both, and a negative rate, a rate above 1,000,000,000 per million, or the wrong unit is refused. `openai-compatible` and `libretranslate` send no invoice, so their quantity is reported without a rate.
 
 ### extract
 

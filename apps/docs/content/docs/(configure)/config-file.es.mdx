@@ -11,12 +11,15 @@ verbatra lee un único objeto de configuración sin secretos y lo valida antes d
 import { defineConfig } from "@verbatra/sdk";
 
 export default defineConfig({
+  // Locales and files: required
   sourceLocale: "en",
   targetLocales: ["de", "fr"],
   format: "i18next-json",
   files: {
-    pattern: "locales/{locale}.json",
+    pattern: "locales/{locale}.json", // {locale} is the only token
   },
+
+  // Provider: required; the API key comes from the environment, never from here
   provider: {
     id: "gemini",
     options: {
@@ -24,8 +27,18 @@ export default defineConfig({
       maxOutputTokens: 4096,
     },
   },
+
+  // Optional groups, each off or at its default until you add it:
+  // tone: "informal",
+  // glossary: "glossary.json",
+  // network: { policy: "local-only" },
+  // sensitiveData: { mode: "warn" },
+  // maxTokens: 200000,
+  // budgetBehavior: "stop",
 });
 ```
+
+Cada grupo tiene su propia sección: [locales y archivos](#locales-y-archivos), [provider](#provider), [glossary](#glossary), [network](#network), [contenido sensible](/docs/data-handling#protección-de-contenido-sensible), [presupuesto](#maxtokens-y-budgetbehavior), [rates](#rates) y [extract](#extract).
 
 `defineConfig` solo da tipos a su argumento: `options.model` autocompleta con los IDs de modelo del proveedor, aunque en tiempo de ejecución vale cualquier cadena no vacía.
 
@@ -53,7 +66,7 @@ Las claves desconocidas se rechazan en todos los niveles salvo `$schema`, así q
 | `pinnedKeys` | array de strings | ninguno | 0.12.0 | Patrones de claves (`*` como comodín) que ninguna escritura automática toca. |
 | `network.policy` | `"any"`, `"local-only"`, `"allowlist"` | `"any"` | 0.12.0 | A qué hosts puede [conectarse](/docs/network-policy) un proveedor. |
 | `network.allowedHosts` | array de strings | ninguno; obligatoria con `"allowlist"` | 0.12.0 | Hosts permitidos adicionales: nombres, comodines `*.suffix`, IPs o rangos CIDR. |
-| `sensitiveData.mode` | `"off"`, `"warn"`, `"block"`, `"redact"` | `"off"` | 0.12.0 | Qué hace una ejecución con el [contenido sensible](/docs/data-handling#protección-de-contenido-sensible) antes de enviarlo. |
+| `sensitiveData.mode` | `"off"`, `"warn"`, `"block"`, `"redact"` | obligatorio en el bloque; `"off"` sin el bloque | 0.12.0 | Qué hace una ejecución con el [contenido sensible](/docs/data-handling#protección-de-contenido-sensible) antes de enviarlo. |
 | `sensitiveData.detectors` | array de IDs de detector | `secret`, `email`, `iban`, `credit-card` | 0.12.0 | Detectores activos; `phone`, `ip`, `private-host` son opcionales. |
 | `sensitiveData.patterns` | array de strings | ninguno | 0.12.0 | Expresiones regulares para tus propios términos, como nombres en clave. |
 | `sensitiveData.allow` | array de strings | ninguno | 0.12.0 | Coincidencias que nunca se informan; `*` es un comodín. |
@@ -221,7 +234,7 @@ Con `"stop"`:
 
 El presupuesto acota una ejecución de `translate`, nunca la retraducción de una sola entrada; `watch` arranca uno nuevo por ejecución. Un presupuesto excluye [`--concurrency`](/docs/cli/translate#locales-en-paralelo) por encima de `1`. `budgetBehavior` sin `maxTokens` no tiene efecto.
 
-<Callout title="Dos maxTokens distintos">
+<Callout type="warn" title="Dos maxTokens distintos">
 El `maxTokens` de nivel superior es este presupuesto de toda la ejecución; el `provider.options.maxTokens` de Anthropic, sin relación con él, limita una respuesta ([Proveedores](/docs/providers#anthropic)).
 </Callout>
 
@@ -240,7 +253,7 @@ rates: {
 }
 ```
 
-Una clave de `table` es `provider/model`, o el id a secas para un proveedor sin modelo (`deepl`, `google-translate`). Una entrada se factura por tokens (`inputPerMillionTokens`, `outputPerMillionTokens`) o por caracteres (`perMillionCharacters`), nunca ambas cosas, y una tarifa negativa o la unidad equivocada se rechaza. `openai-compatible` y `libretranslate` no emiten factura, así que su cantidad se informa sin tarifa.
+Una clave de `table` es `provider/model`, o el id a secas para un proveedor sin modelo (`deepl`, `google-translate`). Una entrada se factura por tokens (`inputPerMillionTokens`, `outputPerMillionTokens`) o por caracteres (`perMillionCharacters`), nunca ambas cosas, y se rechaza una tarifa negativa, una tarifa por encima de 1.000.000.000 por millón o la unidad equivocada. `openai-compatible` y `libretranslate` no emiten factura, así que su cantidad se informa sin tarifa.
 
 ### extract
 
