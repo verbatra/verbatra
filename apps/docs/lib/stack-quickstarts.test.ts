@@ -132,18 +132,30 @@ describe("the stack quickstart pages", () => {
       expect(proseWords(rendered(id, ""))).toBeLessThanOrEqual(WORD_CEILING.tutorial);
     });
 
-    it("installs with one npm command, inits with its format, and connects the agent", () => {
+    it("runs the generic skeleton in order, with the agent setup after the steps", () => {
       const page = rendered(id, "");
       const commands = [...page.matchAll(/^npx @verbatra\/cli (.+)$/gm)].map(
         ([, command]) => command,
       );
       expect(commands).toEqual([
         `init --format ${STACKS[id].format} --provider gemini --yes`,
-        "init --agent",
         "translate --dry-run",
         "translate",
+        "check",
+        "init --agent",
       ]);
-      expect(page.match(/^npm install --save-dev @verbatra\/cli$/gm)).toHaveLength(1);
+      expect(page.indexOf("init --agent")).toBeGreaterThan(page.indexOf("</Steps>"));
+      expect(page.match(/^```npm\nnpm install --save-dev @verbatra\/cli$/gm)).toHaveLength(1);
+    });
+
+    it("runs the same commands as the generic quickstart, in the same order", () => {
+      const generic = readFileSync(join(QUICKSTART_DIR, "index.mdx"), "utf8");
+      const steps = (page: string) =>
+        [...page.matchAll(/^npx @verbatra\/cli (init|translate|check)\b(?: --dry-run)?/gm)].map(
+          ([command]) => command,
+        );
+      const stackSteps = steps(rendered(id, "").split("</Steps>")[0] ?? "");
+      expect(stackSteps).toEqual(steps(generic));
     });
 
     it.each(["index", "(get-started)/pick-your-stack", "(get-started)/quickstart/index"])(

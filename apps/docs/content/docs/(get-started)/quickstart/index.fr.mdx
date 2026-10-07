@@ -5,8 +5,8 @@ type: tutorial
 ---
 À la fin de cette page, un fichier de locale anglais a un pendant allemand, écrit par un fournisseur et vérifié par verbatra, ainsi que le fichier de verrouillage grâce auquel chaque exécution suivante ne traduit que ce qui a changé. Il te faut Node.js `^22.18.0 || >=24` et une dizaine de minutes. Les quatre premières étapes ne demandent ni compte ni clé d'API.
 
-<Callout title="Tu utilises un agent de code IA ?">
-Donne-lui plutôt le prompt de [Configure verbatra avec un agent IA](/docs/start-with-ai). Il exécute ces mêmes étapes pour toi.
+<Callout title="Tu as déjà des fichiers de locale et un agent de code ?">
+Donne à ton agent le prompt de [Configure verbatra avec un agent IA](/docs/start-with-ai). Il installe verbatra autour des fichiers de locale que ton projet a déjà et s'arrête avant de dépenser quoi que ce soit. Les étapes ci-dessous partent de zéro.
 </Callout>
 
 Un démarrage rapide qui charge aussi le fichier traduit dans ton app existe pour [React](/docs/quickstart/react), [Next.js](/docs/quickstart/nextjs), [Vue](/docs/quickstart/vue), [Angular](/docs/quickstart/angular) et [Flutter](/docs/quickstart/flutter).
@@ -18,7 +18,7 @@ Un démarrage rapide qui charge aussi le fichier traduit dans ton app existe pou
 
 ### Installe la CLI
 
-```bash
+```npm
 npm install --save-dev @verbatra/cli
 ```
 
@@ -83,23 +83,18 @@ verbatra translate (dry run)
 next: verbatra translate (run it for real)
 ```
 
-Une exécution à blanc ne construit aucun fournisseur : elle n'a pas besoin de clé, ne dépense rien et n'écrit rien. [`verbatra doctor`](/docs/cli/doctor) vérifie le reste de la configuration de la même façon.
+Une exécution à blanc ne construit aucun fournisseur : elle n'a pas besoin de clé, ne dépense rien et n'écrit rien. `init` a affiché cette commande avec `--json`, la forme pour les scripts et les agents ; sans, tu obtiens le résumé ci-dessus. [`verbatra doctor`](/docs/cli/doctor) vérifie le reste de la configuration de la même façon.
 
 </Step>
 <Step>
 
-### Définis ta clé d'API
+### Traduis
 
 ```bash
 cp .env.example .env
 ```
 
 Ouvre `.env` et colle ta clé après `GEMINI_API_KEY=`. Les clés viennent uniquement de l'environnement, et la CLI y charge [`.env.local` et `.env`](/docs/cli#fichiers-denvironnement). Pas encore de clé ? Gemini a une offre gratuite : crées-en une dans [Google AI Studio](https://aistudio.google.com/apikey). Les autres fournisseurs et leurs variables sont sur [Fournisseurs](/docs/providers).
-
-</Step>
-<Step>
-
-### Traduis
 
 ```bash
 npx @verbatra/cli translate

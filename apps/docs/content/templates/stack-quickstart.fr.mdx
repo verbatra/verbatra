@@ -1,7 +1,7 @@
-À la fin de cette page, ton app <StackText field="name" /> affiche un texte allemand que verbatra a traduit depuis <StackText field="sourceFile" />, et un fichier de verrouillage fait que chaque exécution suivante ne traduit que ce qui a changé. Il te faut Node.js `^22.18.0 || >=24`, un projet <StackText field="name" /> et une dizaine de minutes. Les cinq premières étapes ne demandent ni compte ni clé d'API.
+À la fin de cette page, ton app <StackText field="name" /> affiche un texte allemand que verbatra a traduit depuis <StackText field="sourceFile" />, et un fichier de verrouillage fait que chaque exécution suivante ne traduit que ce qui a changé. Il te faut Node.js `^22.18.0 || >=24`, un projet <StackText field="name" /> et une dizaine de minutes. Les quatre premières étapes ne demandent ni compte ni clé d'API.
 
-<Callout title="Tu utilises un agent de code IA ?">
-Donne-lui plutôt le prompt de [Configure verbatra avec un agent IA](/docs/start-with-ai). Il exécute ces mêmes étapes pour toi.
+<Callout title="Tu as déjà des fichiers de locale et un agent de code ?">
+Donne à ton agent le prompt de [Configure verbatra avec un agent IA](/docs/start-with-ai). Il installe verbatra autour des fichiers de locale que ton projet a déjà et s'arrête avant de dépenser quoi que ce soit. Les étapes ci-dessous partent de zéro.
 </Callout>
 
 ## Étapes
@@ -11,11 +11,17 @@ Donne-lui plutôt le prompt de [Configure verbatra avec un agent IA](/docs/start
 
 ### Installe la CLI
 
-```bash
+```npm
 npm install --save-dev @verbatra/cli
 ```
 
-verbatra est un outil de développement et n'est jamais livré dans ton app. Dans un projet sans `package.json`, comme une app Flutter, npm en crée un ; ajoute `node_modules/` à son `.gitignore`. Les commandes ci-dessous utilisent `npx` ; avec pnpm, yarn ou bun, lance plutôt `pnpm verbatra`, `yarn verbatra` ou `bun run verbatra`.
+verbatra est un outil de développement et n'est jamais livré dans ton app. Les commandes ci-dessous utilisent `npx` ; avec pnpm, yarn ou bun, lance plutôt `pnpm verbatra`, `yarn verbatra` ou `bun run verbatra`.
+
+<StackOnly stacks="flutter">
+<Callout title="Une app Flutter n'a pas de package.json">
+npm en crée un à la première installation. Ajoute `node_modules/` à ton `.gitignore`.
+</Callout>
+</StackOnly>
 
 </Step>
 <Step>
@@ -38,23 +44,6 @@ Si <StackText field="sourceFile" /> existe déjà, passe cette étape. Sinon, cr
 </Step>
 <Step>
 
-### Connecte ton agent
-
-<AvailableFrom version="0.12.0" />
-
-```bash
-npx @verbatra/cli init --agent
-```
-
-Passe cette étape si tu ne travailles pas avec un agent de code. Avec la configuration en place, `init --agent` la garde et ajoute seulement les fichiers pour l'agent : les règles verbatra dans `AGENTS.md` (ou `CLAUDE.md`, quand c'est ton seul fichier d'instructions) et le serveur MCP verbatra, sans les outils qui dépensent, dans la configuration de projet de chaque agent qu'il détecte : `.mcp.json` pour Claude Code, `.cursor/mcp.json` pour Cursor, `.vscode/mcp.json` pour VS Code. Avec `--client`, tu choisis toi-même les agents, et `--dry-run` montre les fichiers sans les écrire. Voir [Préparer les agents de code](/docs/cli/init#préparer-les-agents-de-code) et [Connecter un client MCP](/docs/connect-an-mcp-client).
-
-Ou, sans la CLI, ajoute seulement le serveur MCP à ton profil utilisateur VS Code ; utilise une voie, jamais les deux :
-
-<McpInstallLink client="vscode" />
-
-</Step>
-<Step>
-
 ### Prévisualise l'exécution sans clé
 
 ```bash
@@ -71,7 +60,7 @@ verbatra translate (dry run)
 next: verbatra translate (run it for real)
 ```
 
-Une exécution à blanc ne construit aucun fournisseur : elle n'a pas besoin de clé, ne dépense rien et n'écrit rien.
+Une exécution à blanc ne construit aucun fournisseur : elle n'a pas besoin de clé, ne dépense rien et n'écrit rien. `init` a affiché cette commande avec `--json`, la forme pour les scripts et les agents ; sans, tu obtiens le résumé ci-dessus.
 
 </Step>
 <Step>
@@ -95,6 +84,24 @@ verbatra envoie les deux textes à Gemini, vérifie que chaque placeholder a sur
 </Step>
 <Step>
 
+### Vérifie que chaque locale est synchronisée
+
+```bash
+npx @verbatra/cli check
+```
+
+```text output
+[ok] checking the locales (0.0s)
+verbatra check
+  de: 0 missing, 0 stale, 2 up-to-date (in sync)
+all locales in sync
+```
+
+`check` n'appelle aucun fournisseur et se termine avec `1` dès qu'une locale n'est plus synchronisée : il peut donc protéger une pull request.
+
+</Step>
+<Step>
+
 ### Charge les locales dans ton app
 
 Ajoute <StackText field="library" /> :
@@ -114,9 +121,22 @@ Lance ton app : la salutation affiche `Hallo, Ada!`.
 
 - `verbatra.lock.json` enregistre un hash de chaque texte source, pour que l'exécution suivante n'envoie que les textes nouveaux ou modifiés. Voir [Le fichier de verrouillage](/docs/the-lock-file).
 - Un résultat qui perd un placeholder est retenu, jamais écrit. Voir [Sûreté de la traduction](/docs/translation-safety).
-- `npx @verbatra/cli check` se termine avec `1` dès qu'une locale n'est plus synchronisée : il peut donc protéger une pull request.
 
 Commite ensemble les fichiers de locale, `verbatra.lock.json` et `verbatra.provenance.json`.
+
+## Optionnel : connecte ton agent de code
+
+<AvailableFrom version="0.12.0" />
+
+```bash
+npx @verbatra/cli init --agent
+```
+
+Avec la configuration en place, `init --agent` la garde et ajoute seulement les fichiers pour l'agent : les règles verbatra dans `AGENTS.md` (ou `CLAUDE.md`, quand c'est ton seul fichier d'instructions) et le serveur MCP verbatra, sans les outils qui dépensent, dans la configuration de projet de chaque agent de code qu'il détecte. Quels fichiers il écrit pour quel agent, et comment choisir toi-même les agents avec `--client`, c'est dans [Préparer les agents de code](/docs/cli/init#préparer-les-agents-de-code). `--dry-run` montre les fichiers sans les écrire.
+
+Ou, sans la CLI, ajoute seulement le serveur MCP à ton profil utilisateur VS Code ; utilise une seule voie, jamais les deux :
+
+<McpInstallLink client="vscode" />
 
 ## Ensuite
 

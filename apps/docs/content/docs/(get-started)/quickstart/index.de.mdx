@@ -5,8 +5,8 @@ type: tutorial
 ---
 Am Ende dieser Seite hat eine englische Locale-Datei eine deutsche Schwester, geschrieben von einem Provider und von verbatra geprüft, dazu die Lock-Datei, mit der jeder spätere Lauf nur noch übersetzt, was sich geändert hat. Du brauchst Node.js `^22.18.0 || >=24` und etwa zehn Minuten. Die ersten vier Schritte brauchen weder ein Konto noch einen API-Schlüssel.
 
-<Callout title="Arbeitest du mit einem KI-Coding-Agenten?">
-Gib ihm stattdessen den Prompt von [verbatra mit einem KI-Agenten einrichten](/docs/start-with-ai). Er führt dieselben Schritte für dich aus.
+<Callout title="Du hast schon Locale-Dateien und einen Coding-Agenten?">
+Gib deinem Agenten den Prompt von [verbatra mit einem KI-Agenten einrichten](/docs/start-with-ai). Er richtet verbatra um die Locale-Dateien ein, die dein Projekt schon hat, und hält an, bevor er etwas ausgibt. Die Schritte unten fangen bei null an.
 </Callout>
 
 Einen Schnellstart, der die übersetzte Datei auch in deiner App lädt, gibt es für [React](/docs/quickstart/react), [Next.js](/docs/quickstart/nextjs), [Vue](/docs/quickstart/vue), [Angular](/docs/quickstart/angular) und [Flutter](/docs/quickstart/flutter).
@@ -18,7 +18,7 @@ Einen Schnellstart, der die übersetzte Datei auch in deiner App lädt, gibt es 
 
 ### Installiere die CLI
 
-```bash
+```npm
 npm install --save-dev @verbatra/cli
 ```
 
@@ -83,23 +83,18 @@ verbatra translate (dry run)
 next: verbatra translate (run it for real)
 ```
 
-Ein Probelauf baut keinen Provider, braucht also keinen Schlüssel, kostet nichts und schreibt nichts. [`verbatra doctor`](/docs/cli/doctor) prüft den Rest der Einrichtung auf dieselbe Weise.
+Ein Probelauf baut keinen Provider, braucht also keinen Schlüssel, kostet nichts und schreibt nichts. `init` hat diesen Befehl mit `--json` ausgegeben, der Form für Skripte und Agenten; ohne bekommst du die Zusammenfassung oben. [`verbatra doctor`](/docs/cli/doctor) prüft den Rest der Einrichtung auf dieselbe Weise.
 
 </Step>
 <Step>
 
-### Setze deinen API-Schlüssel
+### Übersetze
 
 ```bash
 cp .env.example .env
 ```
 
 Öffne `.env` und füge deinen Schlüssel hinter `GEMINI_API_KEY=` ein. Schlüssel kommen immer nur aus der Umgebung, und die CLI lädt [`.env.local` und `.env`](/docs/cli#umgebungsdateien) hinein. Noch kein Schlüssel? Gemini hat eine kostenlose Stufe: Erstelle einen im [Google AI Studio](https://aistudio.google.com/apikey). Alle anderen Provider und ihre Variablen stehen unter [Provider](/docs/providers).
-
-</Step>
-<Step>
-
-### Übersetze
 
 ```bash
 npx @verbatra/cli translate

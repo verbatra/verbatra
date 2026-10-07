@@ -133,6 +133,13 @@ stays `/docs/quickstart`.
   "Schnellstart", "Inicio rápido", "Démarrage rapide"), and end its `pick-your-stack*.mdx`
   section with a link to the page. Cards on `pick-your-stack` itself always jump to a section.
 - **Changing the steps**: edit all four templates in the same change; the stubs never change.
+- **One skeleton**: the generic quickstart and the templates run the same commands in the same
+  order (install, source file, `init`, dry run, key and `translate`, `check`); only a stack page
+  adds "Load the locales in your app", and `init --agent` sits in an optional section after "What
+  just happened", never in the steps. Translated prose for some stacks only goes inside
+  `<StackOnly stacks="flutter">`, which `remarkStackBlocks` keeps on a listed stack and drops on
+  every other. `pick-your-stack` writes each init command as `<InitCommand format="<id>" />`,
+  expanded from `initCommand` in `lib/stacks.ts`, so it carries the quickstart's flags.
 - **Templates hold no page-level badge**: the include nests the template, so a badge before its
   first `##` would not reach `introducedIn` and the sidebar NEW status. Date a step under its
   heading instead.
