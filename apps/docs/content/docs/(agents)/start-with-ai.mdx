@@ -1,11 +1,15 @@
 ---
 title: Set up verbatra with an AI agent
-description: A short prompt for Claude Code, Cursor, or any AI coding agent to add verbatra to a project that already has an i18n setup, gated behind an explicit human confirmation before it ever spends.
+description: A short prompt for Claude Code, Codex, Gemini CLI, Cursor, or any AI coding agent to add verbatra to a project that already has an i18n setup, gated behind an explicit human confirmation before it ever spends.
 type: tutorial
 ---
 <StartHere />
 
-This page is for a project that already has committed locale files. Paste the setup prompt from the Start here box at the top of this page into your AI coding agent (Claude Code, Cursor, or any agent that can open a link and run shell commands). It follows the steps on this page and stops to ask you before it ever calls a provider for real.
+This page is for a project that already has committed locale files. Paste the Start here prompt into Claude Code, Codex, Gemini CLI, Cursor, or any agent that runs shell commands. It follows the steps below and asks you three things:
+
+- **Which provider** to use, unless the project makes it obvious.
+- **The API key**: the agent leaves its variable blank in `.env` for you to fill in and never asks for the key.
+- **The go-ahead** before the first real `translate`, which spends at once.
 
 ## The steps the agent follows
 
@@ -13,7 +17,7 @@ Agent: follow these steps in order, and never skip the stop in step 6.
 
 ### 1. Inspect the existing setup
 
-Before you change anything, find the i18n library in `package.json` (such as `i18next`, `vue-i18n`, or `next-intl`) and the locale files. Note the source locale, every target locale already present, and the path pattern with a `{locale}` token, such as `locales/{locale}.json`. [Pick your stack](/docs/pick-your-stack) maps each stack to its format id and layout, including the Android `res/{locale}/strings.xml` with `files.localeStyle: "android"`; [Formats](/docs/formats) says which files must already exist. Plain JSON with no i18n library: `{{name}}` placeholders mean `i18next-json`, single-brace `{name}` means `vue-i18n-json`.
+Before you change anything, find the i18n library in `package.json` (such as `i18next`, `vue-i18n`, or `next-intl`) and the locale files. Note the source locale, every target locale already present, and the path pattern with a `{locale}` token, such as `locales/{locale}.json`. [Pick your stack](/docs/pick-your-stack) maps each stack to its format id and layout; [Formats](/docs/formats) says which files must already exist. Plain JSON with no i18n library: `{{name}}` placeholders mean `i18next-json`, single-brace `{name}` means `vue-i18n-json`.
 
 ### 2. Install the CLI
 
@@ -29,12 +33,14 @@ pnpm, yarn, and bun work too. Approve no install scripts, neither in `pnpm appro
 npx @verbatra/cli init --provider <provider> --yes --json --agent
 ```
 
-Ask the human which provider to use unless the project makes it obvious. Never pick one that spends against a service the human did not agree to, and never pass a key value to `init`. [Providers](/docs/providers) lists the ids; `none` turns machine translation off. `init` detects the format, path pattern, and locales, prints one JSON envelope, and never prompts. `--agent` also writes a verbatra section to `AGENTS.md` (or to `CLAUDE.md` when that is the only instruction file) and the verbatra MCP server, spending off, to `.mcp.json`:
+Ask the human which provider to use unless the project makes it obvious. Never pick one that spends against a service the human did not agree to, and never pass a key value to `init`. [Providers](/docs/providers) lists the ids; `none` turns machine translation off. `init` detects the format, path pattern, and locales, prints one JSON envelope, and never prompts. `--agent` also writes a verbatra section to `AGENTS.md` (or to `CLAUDE.md` when that is the only instruction file) and the verbatra MCP server, spending off, to the config of each client it detects, Claude Code's `.mcp.json` when it finds Claude Code or no client at all; `result.agent.clients` lists the files.
 
-- Exit `0`: compare `result.config` with step 1, starting with every `result.sources` entry that says `default`; `result.config.files.localeStyle` appears only when the files do not spell locales as written. If something is wrong, run it again with the right `--format`, `--path`, `--source`, or `--targets`, plus `--force`.
-- Exit `2` with `FORMAT_AMBIGUOUS` or `LAYOUT_AMBIGUOUS`: pick from `candidates` and run it again with `--format` or `--path`. When the candidates are namespace files side by side, stop and ask the human, since one config covers one file pattern.
-- Exit `2` with `MISSING_OPTIONS`: the message names every flag still needed.
-- Exit `2` with `CONFIG_EXISTS`: tell the human which provider the existing config uses and wait for their confirmation. Then run `npx @verbatra/cli init --agent --json`, which keeps the config and adds only the agent files. Ask before you pass `--force`.
+| Exit and code | Do this |
+| --- | --- |
+| `0` | Compare `result.config` with step 1, starting with every `result.sources` entry that says `default`; `result.config.files.localeStyle` appears only when the files do not spell locales as written. If something is wrong, run it again with the right `--format`, `--path`, `--source`, or `--targets`, plus `--force`. |
+| `2`, `FORMAT_AMBIGUOUS` or `LAYOUT_AMBIGUOUS` | Pick from `candidates` and run it again with `--format` or `--path`. Namespace files side by side: stop and ask the human, since one config covers one file pattern. |
+| `2`, `MISSING_OPTIONS` | The message names every flag still needed. |
+| `2`, `CONFIG_EXISTS` | Tell the human which provider the existing config uses and wait for their confirmation. Then run `npx @verbatra/cli init --agent --json`, which keeps the config and adds only the agent files. Ask before you pass `--force`. |
 
 [init](/docs/cli/init#providers) documents every flag.
 
@@ -63,17 +69,13 @@ Summarize how many keys are pending per locale and what `translate --dry-run` re
 npx @verbatra/cli translate --json
 ```
 
-Report the summary's `succeeded`, `partial`, and `failed` lists. A `partial` or `failed` locale still keeps everything that succeeded.
+Report the summary's `succeeded`, `partial`, and `failed` lists. A `partial` or `failed` locale keeps what succeeded.
 
 ### 8. Commit and connect
 
-Commit `verbatra.config.ts`, `.env.example` if it exists, the instruction file and `.mcp.json` from step 3, `verbatra.lock.json`, `verbatra.provenance.json` once a run has written it, and the translated locale files. Never commit `.env`, `.env.local`, `.verbatra-local/`, or `verbatra.cache.json`; confirm that `.gitignore` covers them.
+Commit `verbatra.config.ts`, `.env.example` if it exists, the instruction file and the client config files from step 3, `verbatra.lock.json`, `verbatra.provenance.json` once a run has written it, and the translated locale files. Never commit `.env`, `.env.local`, `.verbatra-local/`, or `verbatra.cache.json`; confirm that `.gitignore` covers them.
 
-Then tell the human to restart Claude Code and approve the project's `verbatra` server, without also installing the verbatra plugin, which registers it twice; `claude mcp list` shows the connection. Another client takes its one entry from [Connect an MCP client](/docs/connect-an-mcp-client).
-
-## Why this shape
-
-`translate` has no spend gate of its own, so the gate lives in the agent's instructions: no step before 7 spends.
+Then tell the human to restart their client and approve the project's `verbatra` server. In Claude Code, do not also install the verbatra plugin, which registers it twice; `claude mcp list` shows the connection. A client `init` did not detect takes its one entry from [Connect an MCP client](/docs/connect-an-mcp-client).
 
 ## Next
 

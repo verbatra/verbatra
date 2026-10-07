@@ -1,11 +1,15 @@
 ---
 title: verbatra mit einem KI-Agenten einrichten
-description: "Ein kurzer Prompt für Claude Code, Cursor oder einen beliebigen KI-Coding-Agenten, um verbatra in einem Projekt einzurichten, das bereits ein i18n-Setup hat, abgesichert durch eine ausdrückliche menschliche Bestätigung, bevor irgendetwas Geld kostet."
+description: "Ein kurzer Prompt für Claude Code, Codex, Gemini CLI, Cursor oder einen beliebigen KI-Coding-Agenten, um verbatra in einem Projekt einzurichten, das bereits ein i18n-Setup hat, abgesichert durch eine ausdrückliche menschliche Bestätigung, bevor irgendetwas Geld kostet."
 type: tutorial
 ---
 <StartHere />
 
-Diese Seite ist für ein Projekt gedacht, das bereits committete Locale-Dateien hat. Füge den Setup-Prompt aus dem Kasten „Starte hier“ am Anfang dieser Seite in deinen KI-Coding-Agenten ein (Claude Code, Cursor oder jeden Agenten, der einen Link öffnen und Shell-Befehle ausführen kann). Er folgt den Schritten auf dieser Seite und fragt dich, bevor er je wirklich einen Provider aufruft.
+Diese Seite ist für ein Projekt gedacht, das bereits committete Locale-Dateien hat. Füge den Prompt aus „Starte hier“ in Claude Code, Codex, Gemini CLI, Cursor oder jeden Agenten ein, der Shell-Befehle ausführt. Er folgt den Schritten unten und fragt dich drei Dinge:
+
+- **Welchen Provider** er nutzen soll, außer das Projekt macht es klar.
+- **Den API-Key**: Der Agent lässt seine Variable in `.env` leer, damit du sie ausfüllst, und fragt nie nach dem Key.
+- **Das Go** vor dem ersten echten `translate`, das sofort Geld kostet.
 
 ## Die Schritte, denen der Agent folgt
 
@@ -13,7 +17,7 @@ Agent: Folge diesen Schritten der Reihe nach und überspring nie den Halt in Sch
 
 ### 1. Das bestehende Setup prüfen
 
-Bevor du etwas änderst, finde die i18n-Bibliothek in der `package.json` (etwa `i18next`, `vue-i18n` oder `next-intl`) und die Locale-Dateien. Notiere die Quell-Locale, jede bereits vorhandene Ziel-Locale und das Pfadmuster mit einem `{locale}`-Token, etwa `locales/{locale}.json`. [Wähle deinen Stack](/docs/pick-your-stack) ordnet jedem Stack seine Format-ID und sein Layout zu, auch das Android-Muster `res/{locale}/strings.xml` mit `files.localeStyle: "android"`; [Formate](/docs/formats) sagt, welche Dateien schon existieren müssen. Reines JSON ohne i18n-Bibliothek: Platzhalter `{{name}}` bedeuten `i18next-json`, einfache Klammern `{name}` bedeuten `vue-i18n-json`.
+Bevor du etwas änderst, finde die i18n-Bibliothek in der `package.json` (etwa `i18next`, `vue-i18n` oder `next-intl`) und die Locale-Dateien. Notiere die Quell-Locale, jede bereits vorhandene Ziel-Locale und das Pfadmuster mit einem `{locale}`-Token, etwa `locales/{locale}.json`. [Wähle deinen Stack](/docs/pick-your-stack) ordnet jedem Stack seine Format-ID und sein Layout zu, [Formate](/docs/formats) sagt, welche Dateien schon existieren müssen. Reines JSON ohne i18n-Bibliothek: Platzhalter `{{name}}` bedeuten `i18next-json`, einfache Klammern `{name}` bedeuten `vue-i18n-json`.
 
 ### 2. Die CLI installieren
 
@@ -29,12 +33,14 @@ pnpm, yarn und bun funktionieren auch. Bestätige keine Install-Skripte, weder i
 npx @verbatra/cli init --provider <provider> --yes --json --agent
 ```
 
-Frag den Menschen, welcher Provider genutzt werden soll, außer das Projekt macht es klar. Wähl nie einen, der bei einem Dienst Kosten verursacht, dem der Mensch nicht zugestimmt hat, und übergib `init` nie einen Schlüsselwert. [Provider](/docs/providers) listet die IDs; `none` schaltet die maschinelle Übersetzung ab. `init` erkennt Format, Pfadmuster und Locales, gibt einen JSON-Envelope aus und fragt nie nach. `--agent` schreibt außerdem einen verbatra-Abschnitt in `AGENTS.md` (oder in `CLAUDE.md`, wenn das die einzige Anweisungsdatei ist) und den verbatra-MCP-Server, Ausgaben aus, in `.mcp.json`:
+Frag den Menschen, welcher Provider genutzt werden soll, außer das Projekt macht es klar. Wähl nie einen, der bei einem Dienst Kosten verursacht, dem der Mensch nicht zugestimmt hat, und übergib `init` nie einen Schlüsselwert. [Provider](/docs/providers) listet die IDs; `none` schaltet die maschinelle Übersetzung ab. `init` erkennt Format, Pfadmuster und Locales, gibt einen JSON-Envelope aus und fragt nie nach. `--agent` schreibt außerdem einen verbatra-Abschnitt in `AGENTS.md` (oder in `CLAUDE.md`, wenn das die einzige Anweisungsdatei ist) und den verbatra-MCP-Server, Ausgaben aus, in die Konfiguration jedes erkannten Clients, die `.mcp.json` von Claude Code, wenn er Claude Code oder gar keinen Client findet; `result.agent.clients` listet die Dateien.
 
-- Exit `0`: Vergleiche `result.config` mit Schritt 1, beginnend mit jedem Eintrag in `result.sources`, der `default` sagt; `result.config.files.localeStyle` erscheint nur, wenn die Dateien Locales nicht wie geschrieben benennen. Stimmt etwas nicht, führ den Befehl erneut mit dem richtigen `--format`, `--path`, `--source` oder `--targets` plus `--force` aus.
-- Exit `2` mit `FORMAT_AMBIGUOUS` oder `LAYOUT_AMBIGUOUS`: Wähl aus `candidates` und führ den Befehl erneut mit `--format` oder `--path` aus. Sind die Kandidaten nebeneinanderliegende Namespace-Dateien, halt an und frag den Menschen, denn eine Konfiguration deckt ein Dateimuster ab.
-- Exit `2` mit `MISSING_OPTIONS`: Die Meldung nennt jedes noch fehlende Flag.
-- Exit `2` mit `CONFIG_EXISTS`: Sag dem Menschen, welchen Provider die vorhandene Konfiguration nutzt, und warte auf seine Bestätigung. Führ dann `npx @verbatra/cli init --agent --json` aus, das die Konfiguration behält und nur die Agenten-Dateien ergänzt. Frag, bevor du `--force` übergibst.
+| Exit und Code | Tu das |
+| --- | --- |
+| `0` | Vergleiche `result.config` mit Schritt 1, beginnend mit jedem Eintrag in `result.sources`, der `default` sagt; `result.config.files.localeStyle` erscheint nur, wenn die Dateien Locales nicht wie geschrieben benennen. Stimmt etwas nicht, führ den Befehl erneut mit dem richtigen `--format`, `--path`, `--source` oder `--targets` plus `--force` aus. |
+| `2`, `FORMAT_AMBIGUOUS` oder `LAYOUT_AMBIGUOUS` | Wähl aus `candidates` und führ den Befehl erneut mit `--format` oder `--path` aus. Nebeneinanderliegende Namespace-Dateien: Halt an und frag den Menschen, denn eine Konfiguration deckt ein Dateimuster ab. |
+| `2`, `MISSING_OPTIONS` | Die Meldung nennt jedes noch fehlende Flag. |
+| `2`, `CONFIG_EXISTS` | Sag dem Menschen, welchen Provider die vorhandene Konfiguration nutzt, und warte auf seine Bestätigung. Führ dann `npx @verbatra/cli init --agent --json` aus, das die Konfiguration behält und nur die Agenten-Dateien ergänzt. Frag, bevor du `--force` übergibst. |
 
 [init](/docs/cli/init#provider) beschreibt jedes Flag.
 
@@ -63,17 +69,13 @@ Fass zusammen, wie viele Schlüssel pro Locale ausstehen und was `translate --dr
 npx @verbatra/cli translate --json
 ```
 
-Melde die Listen `succeeded`, `partial` und `failed` aus der Zusammenfassung. Eine Locale mit `partial` oder `failed` behält trotzdem alles, was gelungen ist.
+Melde die Listen `succeeded`, `partial` und `failed` aus der Zusammenfassung. Eine Locale mit `partial` oder `failed` behält, was gelungen ist.
 
 ### 8. Committen und verbinden
 
-Committe `verbatra.config.ts`, `.env.example`, falls vorhanden, die Anweisungsdatei und `.mcp.json` aus Schritt 3, `verbatra.lock.json`, `verbatra.provenance.json`, sobald ein Lauf sie geschrieben hat, und die übersetzten Locale-Dateien. Committe nie `.env`, `.env.local`, `.verbatra-local/` oder `verbatra.cache.json`; prüf, dass die `.gitignore` sie abdeckt.
+Committe `verbatra.config.ts`, `.env.example`, falls vorhanden, die Anweisungsdatei und die Client-Konfigurationen aus Schritt 3, `verbatra.lock.json`, `verbatra.provenance.json`, sobald ein Lauf sie geschrieben hat, und die übersetzten Locale-Dateien. Committe nie `.env`, `.env.local`, `.verbatra-local/` oder `verbatra.cache.json`; prüf, dass die `.gitignore` sie abdeckt.
 
-Sag dem Menschen dann, dass er Claude Code neu starten und den Server `verbatra` des Projekts bestätigen soll, ohne zusätzlich das verbatra-Plugin zu installieren, das ihn ein zweites Mal registriert; `claude mcp list` zeigt die Verbindung. Ein anderer Client bekommt seinen einen Eintrag aus [Einen MCP-Client verbinden](/docs/connect-an-mcp-client).
-
-## Warum diese Form
-
-`translate` hat kein eigenes Ausgaben-Gate, also liegt das Gate in den Anweisungen des Agenten: Kein Schritt vor Schritt 7 kostet Geld.
+Sag dem Menschen dann, dass er seinen Client neu starten und den Server `verbatra` des Projekts bestätigen soll. In Claude Code installiert er nicht zusätzlich das verbatra-Plugin, das ihn ein zweites Mal registriert; `claude mcp list` zeigt die Verbindung. Ein Client, den `init` nicht erkannt hat, bekommt seinen einen Eintrag aus [Einen MCP-Client verbinden](/docs/connect-an-mcp-client).
 
 ## Weiter
 
