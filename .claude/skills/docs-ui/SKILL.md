@@ -405,14 +405,20 @@ comes from:
   `data-label` per body cell from `lib/stacked-tables.ts` at build time, unless every body row
   holds at most `COMPACT_ROW_MAX_CHARACTERS` of text (the error code index), which stays a table
   at every width. Only while the article column is under 30rem (a phone) does a stacked table's
-  row become a card: the first cell as its title, every other cell under its column name. Under
-  30rem, long code and pills in a cell may wrap anywhere too, so a two-column table fits a phone;
-  short code (`.vk-code-short`) still breaks only at its `<wbr>`s. The header row stays
+  row become a card: the first cell as its title, every other cell under its column name. A table
+  of `WIDE_TABLE_MIN_COLUMNS` (six) or more columns also gets `.vk-table-stack-wide` and stacks
+  below 56rem, with its column names beside the values, since it cannot fit the desktop article
+  column (about 41.5rem at 1280). Under 30rem, long code and pills in a cell may wrap anywhere
+  too, so a two-column table fits a phone. Short code (`.vk-code-short`) in a cell, at every
+  width, breaks only at the points `breakInlineCode` offers. The header row stays
   in the DOM for assistive technology. Short inline code (up to `SHORT_INLINE_CODE_MAX`
   characters in `lib/inline-code.ts`) gets `.vk-code-short` from the MDX `code` mapping and never
-  wraps elsewhere; longer inline code wraps, in cells and in prose alike, and the mapping offers a
-  break after every underscore (`breakAfterUnderscores`, `lib/word-breaks.tsx`) so
-  `verbatra_project_snapshot` wraps at `_` before anywhere else.
+  wraps elsewhere; longer inline code wraps, in cells and in prose alike, and the mapping runs it through
+  `breakInlineCode` (`lib/word-breaks.tsx`): a `<wbr>` after every underscore, so
+  `verbatra_project_snapshot` wraps at `_` before anywhere else, a `.vk-code-break` (a zero-width
+  space drawn by CSS, never copied) after a `.`, `/` or `]` between word characters, so
+  `result.config.files` wraps at a dot, and every `--flag` or other hyphenated piece kept whole
+  in a `whitespace-nowrap` span, so `--agent` never wraps after its hyphen.
 - **SDK type tables**: `<SdkTypeTable name="..." />` in `content/docs/sdk/*.mdx` becomes Fumadocs'
   `TypeTable`, generated at MDX compile time by `fumadocs-typescript`'s `remarkAutoTypeTable` from
   the built `packages/sdk/dist/index.d.ts` (`lib/sdk-type-table.ts`, wired in `source.config.ts`).
