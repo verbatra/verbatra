@@ -55,9 +55,10 @@ export interface StudioWatcher {
 /**
  * Builds a {@link StudioWatcher} over a set of absolute paths. Called once per watched entry during
  * {@link startStudioServer}, each call receiving a one-element array: one for the source locale
- * file, one for each configured target locale file, and one for the lock file. An implementation
- * must therefore construct a fresh watcher on every call; one that builds a watcher only the first
- * time observes the source file alone and never reports a target or lock-file change.
+ * file, one for each configured target locale file, one for the lock file, and one for the
+ * provenance file (`verbatra.provenance.json`). An implementation must therefore construct a fresh
+ * watcher on every call; one that builds a watcher only the first time observes the source file
+ * alone and never reports a target, lock-file or provenance-file change.
  *
  * @param paths - The absolute paths to observe.
  * @returns A watcher that is already observing.
