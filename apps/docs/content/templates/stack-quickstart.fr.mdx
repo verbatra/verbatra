@@ -1,8 +1,6 @@
 À la fin de cette page, ton app <StackText field="name" /> affiche un texte allemand que verbatra a traduit depuis <StackText field="sourceFile" />, et un fichier de verrouillage fait que chaque exécution suivante ne traduit que ce qui a changé. Il te faut Node.js `^22.18.0 || >=24`, un projet <StackText field="name" /> et une dizaine de minutes. Les quatre premières étapes ne demandent ni compte ni clé d'API.
 
-<Callout title="Tu as déjà des fichiers de locale et un agent de code ?">
-Donne à ton agent le prompt de [Configure verbatra avec un agent IA](/docs/start-with-ai). Il installe verbatra autour des fichiers de locale que ton projet a déjà et s'arrête avant de dépenser quoi que ce soit. Les étapes ci-dessous partent de zéro.
-</Callout>
+Tu as déjà des fichiers de locale et un agent de code ? Donne-lui plutôt le prompt de [Configure verbatra avec un agent IA](/docs/start-with-ai) : il part des fichiers que ton projet a déjà et s'arrête avant de dépenser quoi que ce soit.
 
 ## Étapes
 
@@ -19,7 +17,7 @@ verbatra est un outil de développement et n'est jamais livré dans ton app. Les
 
 <StackOnly stacks="flutter">
 <Callout title="Une app Flutter n'a pas de package.json">
-npm en crée un à la première installation. Ajoute `node_modules/` à ton `.gitignore`.
+Ton gestionnaire de paquets en crée un à la première installation. Ajoute `node_modules/` à ton `.gitignore`.
 </Callout>
 </StackOnly>
 

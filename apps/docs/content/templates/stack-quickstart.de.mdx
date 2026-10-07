@@ -1,8 +1,6 @@
 Am Ende dieser Seite zeigt deine <StackText field="name" />-App einen deutschen Text, den verbatra aus <StackText field="sourceFile" /> übersetzt hat, und eine Lock-Datei sorgt dafür, dass jeder spätere Lauf nur noch übersetzt, was sich geändert hat. Du brauchst Node.js `^22.18.0 || >=24`, ein <StackText field="name" />-Projekt und etwa zehn Minuten. Die ersten vier Schritte brauchen weder ein Konto noch einen API-Schlüssel.
 
-<Callout title="Du hast schon Locale-Dateien und einen Coding-Agenten?">
-Gib deinem Agenten den Prompt von [verbatra mit einem KI-Agenten einrichten](/docs/start-with-ai). Er richtet verbatra um die Locale-Dateien ein, die dein Projekt schon hat, und hält an, bevor er etwas ausgibt. Die Schritte unten fangen bei null an.
-</Callout>
+Du hast schon Locale-Dateien und einen Coding-Agenten? Gib ihm stattdessen den Prompt von [verbatra mit einem KI-Agenten einrichten](/docs/start-with-ai): Er richtet verbatra um die Dateien ein, die dein Projekt schon hat, und hält an, bevor er etwas ausgibt.
 
 ## Schritte
 
@@ -19,7 +17,7 @@ verbatra ist ein Entwicklungswerkzeug und landet nie in deiner App. Die Befehle 
 
 <StackOnly stacks="flutter">
 <Callout title="Eine Flutter-App hat keine package.json">
-npm legt bei der ersten Installation eine an. Trag `node_modules/` in deine `.gitignore` ein.
+Dein Paketmanager legt bei der ersten Installation eine an. Trag `node_modules/` in deine `.gitignore` ein.
 </Callout>
 </StackOnly>
 
