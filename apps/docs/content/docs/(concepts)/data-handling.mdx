@@ -33,13 +33,13 @@ covered by its [privacy policy](/privacy).
   Studio in your browser   MCP client (your AI agent)
 ```
 
-The arrow is HTTPS for every hosted provider. [`openai-compatible`](/docs/providers#openai-compatible) and [`libretranslate`](/docs/providers#libretranslate) use the scheme of your `baseUrl`: HTTPS, or plain http to your own server.
+The arrow is HTTPS, except that [`openai-compatible`](/docs/providers#openai-compatible) and [`libretranslate`](/docs/providers#libretranslate) may use plain http to your own `baseUrl`.
 
 ## When a request is made
 
 Only the commands in the diagram call a provider; the Studio and MCP actions need
 [`--allow-spend`](/docs/cli/mcp#spend-tools). Everything else, dry runs and estimates included, is local,
-except [`verbatra doctor --live`](/docs/cli/doctor), which asks DeepL or Google Cloud Translation for its language list with your API key, and LibreTranslate without one; it sends no strings, and no request at all for an LLM provider or `none`.
+except [`verbatra doctor --live`](/docs/cli/doctor), which fetches a DeepL, Google or LibreTranslate language list and sends no strings.
 
 A `translate` run sends only keys missing or changed against [the lock file](/docs/the-lock-file),
 minus [cache](/docs/the-cache) hits, and shared text once; a
@@ -50,7 +50,7 @@ provider's host name.
 
 | Provider | What is sent | Where it goes |
 | --- | --- | --- |
-| `anthropic`, `openai`, `gemini`, `openai-compatible` | Per key: the key name, the source text, and the description or meaning your source file carries. Per request: the source and target codes (after [`localeMap`](/docs/providers#locale-codes-sent-to-the-provider)) and their English names, your `tone`, the target locale's glossary terms, the target's plural categories when a batch has plurals, verbatra's fixed instructions, the model name and an output token limit. | `api.anthropic.com`, `api.openai.com`, `generativelanguage.googleapis.com`, or the `baseUrl` you configured. A `*_BASE_URL` variable redirects the hosted ones, see [Network policy](/docs/network-policy#hosted-providers). |
+| `anthropic`, `openai`, `gemini`, `openai-compatible` | Per key: the key name, the source text, and the description or meaning your source file carries. Per request: the source and target codes (after [`localeMap`](/docs/providers#locale-codes-sent-to-the-provider)) and their English names, your `tone`, the target locale's glossary terms, the target's plural categories when a batch has plurals, verbatra's fixed instructions, the model name and an output token limit. | `api.anthropic.com`, `api.openai.com`, `generativelanguage.googleapis.com`, or the `baseUrl` you configured. [`*_BASE_URL`](/docs/network-policy#hosted-providers) redirects the hosted ones. |
 | `deepl` | The source text of each key, placeholders [masked](/docs/providers#deepl) <AvailableFrom version="0.12.0" />, the language codes, a formality setting when your `tone` asks for one on a paid key, and your `glossaryId`. No key names, descriptions or glossary terms. | `api.deepl.com`, or `api-free.deepl.com` for a key ending in `:fx`. |
 | `google-translate` | The source text of each key, placeholders [masked](/docs/providers#google-cloud-translation) <AvailableFrom version="0.12.0" />, and the language codes. | `translation.googleapis.com` |
 | `libretranslate` | The source text of each key, placeholders [masked](/docs/providers#libretranslate) (a value with ICU syntax is not sent), the language codes, and `LIBRETRANSLATE_API_KEY` when set. | The `baseUrl` you configured. |

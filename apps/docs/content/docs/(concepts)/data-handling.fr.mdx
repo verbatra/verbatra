@@ -35,13 +35,13 @@ CI. Ce site relève de sa [politique de confidentialité](/privacy).
   Studio in your browser   MCP client (your AI agent)
 ```
 
-La flèche est en HTTPS pour tout fournisseur hébergé. [`openai-compatible`](/docs/providers#openai-compatible) et [`libretranslate`](/docs/providers#libretranslate) utilisent le schéma de ta `baseUrl` : HTTPS, ou http simple vers ton propre serveur.
+La flèche est en HTTPS, sauf que [`openai-compatible`](/docs/providers#openai-compatible) et [`libretranslate`](/docs/providers#libretranslate) peuvent utiliser du http simple vers ta propre `baseUrl`.
 
 ## Quand une requête est faite
 
 Seules les commandes du schéma appellent un fournisseur ; les actions de Studio et du MCP exigent
 [`--allow-spend`](/docs/cli/mcp#outils-payants). Tout le reste, exécutions à blanc et estimations
-comprises, est local, sauf [`verbatra doctor --live`](/docs/cli/doctor), qui demande la liste des langues à DeepL ou Google Cloud Translation avec ta clé d'API, et à LibreTranslate sans clé ; il n'envoie aucun texte, et aucune requête pour un fournisseur LLM ou `none`.
+comprises, est local, sauf [`verbatra doctor --live`](/docs/cli/doctor), qui récupère une liste de langues de DeepL, Google ou LibreTranslate et n'envoie aucun texte.
 
 Une exécution de `translate` n'envoie que les clés manquantes ou modifiées par rapport au
 [fichier de verrouillage](/docs/the-lock-file), moins les succès du [cache](/docs/the-cache), et un
@@ -52,7 +52,7 @@ envoyée. Ton résolveur DNS voit le nom d'hôte du fournisseur.
 
 | Fournisseur | Ce qui est envoyé | Où ça va |
 | --- | --- | --- |
-| `anthropic`, `openai`, `gemini`, `openai-compatible` | Par clé : le nom de la clé, le texte source, et la description ou le sens que porte ton fichier source. Par requête : les codes source et cible (après [`localeMap`](/docs/providers#codes-de-locale-envoyés-au-fournisseur)) et leurs noms anglais, ton `tone`, les termes du glossaire de la locale cible, les catégories de pluriel de la cible quand un lot contient des pluriels, les instructions fixes de verbatra, le nom du modèle et une limite de tokens de sortie. | `api.anthropic.com`, `api.openai.com`, `generativelanguage.googleapis.com`, ou la `baseUrl` que tu as configurée. Une variable `*_BASE_URL` redirige les fournisseurs hébergés, voir [Politique réseau](/docs/network-policy#fournisseurs-hébergés). |
+| `anthropic`, `openai`, `gemini`, `openai-compatible` | Par clé : le nom de la clé, le texte source, et la description ou le sens que porte ton fichier source. Par requête : les codes source et cible (après [`localeMap`](/docs/providers#codes-de-locale-envoyés-au-fournisseur)) et leurs noms anglais, ton `tone`, les termes du glossaire de la locale cible, les catégories de pluriel de la cible quand un lot contient des pluriels, les instructions fixes de verbatra, le nom du modèle et une limite de tokens de sortie. | `api.anthropic.com`, `api.openai.com`, `generativelanguage.googleapis.com`, ou la `baseUrl` que tu as configurée. [`*_BASE_URL`](/docs/network-policy#fournisseurs-hébergés) redirige les fournisseurs hébergés. |
 | `deepl` | Le texte source de chaque clé, placeholders [masqués](/docs/providers#deepl) <AvailableFrom version="0.12.0" />, les codes de langue, un réglage de formalité quand ton `tone` en demande un avec une clé payante, et ton `glossaryId`. Ni noms de clé, ni descriptions, ni termes de glossaire. | `api.deepl.com`, ou `api-free.deepl.com` pour une clé qui finit par `:fx`. |
 | `google-translate` | Le texte source de chaque clé, placeholders [masqués](/docs/providers#google-cloud-translation) <AvailableFrom version="0.12.0" />, et les codes de langue. | `translation.googleapis.com` |
 | `libretranslate` | Le texte source de chaque clé, placeholders [masqués](/docs/providers#libretranslate) (une valeur avec de la syntaxe ICU n'est pas envoyée), les codes de langue, et `LIBRETRANSLATE_API_KEY` quand elle est définie. | La `baseUrl` que tu as configurée. |
