@@ -1,7 +1,9 @@
+import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
 import { Callout } from "fumadocs-ui/components/callout";
 import { Card } from "fumadocs-ui/components/card";
 import { CodeBlock, Pre } from "fumadocs-ui/components/codeblock";
 import { Step, Steps } from "fumadocs-ui/components/steps";
+import { Tabs as ClientTabs, Tab } from "fumadocs-ui/components/tabs";
 import { TypeTable } from "fumadocs-ui/components/type-table";
 import defaultMdxComponents from "fumadocs-ui/mdx";
 import type { MDXComponents } from "mdx/types";
@@ -87,6 +89,10 @@ export function getMDXComponents(
     DiffPanel,
     Step,
     Steps,
+    Tab,
+    Tabs: ClientTabs,
+    Accordion,
+    Accordions,
     TypeTable,
     StudioScreenshot,
     CommandLine,

@@ -27,7 +27,12 @@ Le serveur figure aussi dans le [registre MCP officiel](https://registry.modelco
 
 ## Décider si l'agent peut dépenser
 
-Le serveur démarre seulement avec des outils de lecture et d'édition locale : les outils payants restent masqués et aucun outil ne lit de clé. Pour que l'agent puisse dépenser, ajoute les deux :
+Le serveur démarre seulement avec des outils de lecture et d'édition locale : les outils payants restent masqués et aucun outil ne lit de clé.
+
+<Accordions type="single">
+<Accordion title="Règles de dépense et de clés">
+
+Pour que l'agent puisse dépenser, ajoute les deux :
 
 - `--allow-spend` dans les arguments, ou `VERBATRA_MCP_ALLOW_SPEND=1` dans l'environnement ([Outils payants](/docs/cli/mcp#outils-payants)) ;
 - la variable de clé de ton fournisseur, par exemple `ANTHROPIC_API_KEY` ([Fournisseurs](/docs/providers)).
@@ -38,11 +43,17 @@ N'écris jamais une clé dans un fichier versionné comme `.mcp.json`, `.codex/c
 
 Pour que les valeurs de traduction n'atteignent pas le modèle de l'agent, ajoute `--redact-values` ; voir [Studio et MCP](/docs/data-handling#studio-et-mcp).
 
+</Accordion>
+</Accordions>
+
 ### Estimer d'abord
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
 Le serveur demande quand même à l'agent de lancer `translation.estimate` et d'attendre ton oui avant de dépenser.
+
+<Tabs items={["Claude Code", "Codex", "Gemini CLI", "Cursor", "VS Code", "Autres"]}>
+<Tab value="Claude Code" forceMount>
 
 ## Claude Code
 
@@ -56,7 +67,7 @@ La voie recommandée, depuis la racine du projet :
 npx @verbatra/cli init --agent
 ```
 
-[`init --agent`](/docs/cli/init#préparer-les-agents-de-code) écrit le fichier d'instructions pour agents et cette entrée dans le `.mcp.json` versionné, dépenses désactivées, plus chaque autre client qu'il détecte :
+[`init --agent`](/docs/cli/init#préparer-les-agents-de-code) écrit le fichier d'instructions pour agents et, dépenses désactivées, cette entrée dans le `.mcp.json` versionné quand il trouve Claude Code (`CLAUDE.md`, `.claude/` ou `.mcp.json`) ou aucun client ; `--client claude` la force :
 
 ```json
 {
@@ -110,6 +121,10 @@ claude plugin install verbatra@verbatra --scope project
 
 Voir la [référence des plugins de Claude Code](https://code.claude.com/docs/en/plugins-reference).
 
+</Tab>
+
+<Tab value="Codex" forceMount>
+
 ## Codex
 
 La voie recommandée : `npx @verbatra/cli init --agent --client codex` ajoute cette table à la fin de `.codex/config.toml`, dépenses désactivées :
@@ -134,6 +149,10 @@ args = ["-y", "@verbatra/mcp", "--allow-spend"]
 cwd = "/path/to/your/project"
 env_vars = ["ANTHROPIC_API_KEY"]
 ```
+
+</Tab>
+
+<Tab value="Gemini CLI" forceMount>
 
 ## Gemini CLI
 
@@ -173,9 +192,13 @@ Pour dépenser, utilise tes paramètres utilisateur avec un `cwd` absolu :
 
 Gemini CLI cache aux serveurs les variables de clés, donc passe la clé par `env`.
 
+</Tab>
+
+<Tab value="Cursor" forceMount>
+
 ## Cursor
 
-`init --agent` écrit le `.cursor/mcp.json` de Cursor :
+`init --agent` écrit le `.cursor/mcp.json` de Cursor quand il trouve `.cursor/` ou `.cursorrules`, ou avec `--client cursor` :
 
 ```json title=".cursor/mcp.json"
 {
@@ -191,9 +214,13 @@ Gemini CLI cache aux serveurs les variables de clés, donc passe la clé par `en
 
 Pour dépenser, ajoute `"--allow-spend"` à la fin de `args` et `"env": { "ANTHROPIC_API_KEY": "${env:ANTHROPIC_API_KEY}" }`. Voir la [documentation MCP de Cursor](https://cursor.com/docs/mcp).
 
+</Tab>
+
+<Tab value="VS Code" forceMount>
+
 ## VS Code
 
-VS Code (le mode agent de GitHub Copilot) lit `.vscode/mcp.json`, de clé `servers`, que `init --agent --client vscode` écrit. Pas besoin de `--cwd` :
+VS Code (le mode agent de GitHub Copilot) lit `.vscode/mcp.json`, de clé `servers`, que `init --agent --client vscode` écrit. Sans `--client`, `init --agent` ne le branche que si ce fichier existe déjà et affiche la commande pour un simple dossier `.vscode/`. Pas besoin de `--cwd` :
 
 ```json title=".vscode/mcp.json"
 {
@@ -242,6 +269,10 @@ code --add-mcp '{"name":"verbatra","command":"npx","args":["-y","@verbatra/mcp"]
 
 Voir la [référence de configuration MCP de VS Code](https://code.visualstudio.com/docs/agents/reference/mcp-configuration).
 
+</Tab>
+
+<Tab value="Autres" forceMount>
+
 ## GitHub Copilot
 
 ### Copilot cloud agent
@@ -260,13 +291,18 @@ Une personne administratrice du dépôt ajoute le serveur sous **Settings**, **C
         "project.doctor",
         "status.check",
         "status.diff",
-        "lock.state",
-        "key.value",
-        "key.integrity",
         "glossary.get",
+        "lock.state",
+        "history.list",
+        "key.integrity",
+        "locale.integrity",
+        "key.value",
+        "key.context",
+        "locale.values",
+        "translation.estimate",
         "review.queue",
-        "usage.summary",
-        "translation.estimate"
+        "report.provenance",
+        "usage.summary"
       ]
     }
   }
@@ -355,6 +391,9 @@ Pour dépenser, ajoute `"--allow-spend"` à la fin et `"env": { "ANTHROPIC_API_K
 ## Tout autre client stdio
 
 Donne au client la commande `npx -y @verbatra/mcp`, plus `--cwd /path/to/your/project` sauf s'il démarre les serveurs dans le projet, et `--config <path>` si la config est ailleurs. N'ajoute `--allow-spend` et la clé que via le mécanisme de secrets du client.
+
+</Tab>
+</Tabs>
 
 ## Vérifier la connexion
 

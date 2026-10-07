@@ -27,7 +27,12 @@ It is also in the [official MCP Registry](https://registry.modelcontextprotocol.
 
 ## Decide whether the agent may spend
 
-The server starts with read and local edit tools only: spend tools stay hidden and no tool reads a key. To let the agent spend, add both:
+The server starts with read and local edit tools only: spend tools stay hidden and no tool reads a key.
+
+<Accordions type="single">
+<Accordion title="Spend and key rules">
+
+To let the agent spend, add both:
 
 - `--allow-spend` in the arguments, or `VERBATRA_MCP_ALLOW_SPEND=1` in the environment ([Spend tools](/docs/cli/mcp#spend-tools));
 - your provider's key variable, such as `ANTHROPIC_API_KEY` ([Providers](/docs/providers)).
@@ -38,11 +43,17 @@ Never write a key into a committed file such as `.mcp.json`, `.codex/config.toml
 
 To keep values from the agent's model, add `--redact-values`; see [Studio and MCP](/docs/data-handling#studio-and-mcp).
 
+</Accordion>
+</Accordions>
+
 ### Estimate first
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
 The server still tells the agent to run `translation.estimate` and wait for your yes before spending.
+
+<Tabs items={["Claude Code", "Codex", "Gemini CLI", "Cursor", "VS Code", "Others"]}>
+<Tab value="Claude Code" forceMount>
 
 ## Claude Code
 
@@ -56,7 +67,7 @@ Recommended, from the project root:
 npx @verbatra/cli init --agent
 ```
 
-[`init --agent`](/docs/cli/init#set-up-coding-agents) writes the agent instruction file and this entry to the committed `.mcp.json`, spending off, plus each other client it detects:
+[`init --agent`](/docs/cli/init#set-up-coding-agents) writes the agent instruction file and, spending off, this entry to the committed `.mcp.json` when it finds Claude Code (`CLAUDE.md`, `.claude/` or `.mcp.json`) or no client at all; `--client claude` forces it:
 
 ```json
 {
@@ -110,6 +121,10 @@ claude plugin install verbatra@verbatra --scope project
 
 See the [Claude Code plugins reference](https://code.claude.com/docs/en/plugins-reference).
 
+</Tab>
+
+<Tab value="Codex" forceMount>
+
 ## Codex
 
 Recommended: `npx @verbatra/cli init --agent --client codex` appends this table to `.codex/config.toml`, spending off:
@@ -134,6 +149,10 @@ args = ["-y", "@verbatra/mcp", "--allow-spend"]
 cwd = "/path/to/your/project"
 env_vars = ["ANTHROPIC_API_KEY"]
 ```
+
+</Tab>
+
+<Tab value="Gemini CLI" forceMount>
 
 ## Gemini CLI
 
@@ -173,9 +192,13 @@ To spend, use your user settings with an absolute `cwd`:
 
 Gemini CLI hides key variables from servers, so pass the key through `env`.
 
+</Tab>
+
+<Tab value="Cursor" forceMount>
+
 ## Cursor
 
-`init --agent` writes Cursor's `.cursor/mcp.json`:
+`init --agent` writes Cursor's `.cursor/mcp.json` when it finds `.cursor/` or `.cursorrules`, or with `--client cursor`:
 
 ```json title=".cursor/mcp.json"
 {
@@ -191,9 +214,13 @@ Gemini CLI hides key variables from servers, so pass the key through `env`.
 
 To spend, append `"--allow-spend"` to `args` and add `"env": { "ANTHROPIC_API_KEY": "${env:ANTHROPIC_API_KEY}" }`. See the [Cursor MCP documentation](https://cursor.com/docs/mcp).
 
+</Tab>
+
+<Tab value="VS Code" forceMount>
+
 ## VS Code
 
-VS Code (GitHub Copilot's agent mode) reads `.vscode/mcp.json`, keyed `servers`, which `init --agent --client vscode` writes. It needs no `--cwd`:
+VS Code (GitHub Copilot's agent mode) reads `.vscode/mcp.json`, keyed `servers`, which `init --agent --client vscode` writes. Without `--client`, `init --agent` wires it only when that file exists and prints the command for a bare `.vscode/` folder. It needs no `--cwd`:
 
 ```json title=".vscode/mcp.json"
 {
@@ -242,6 +269,10 @@ code --add-mcp '{"name":"verbatra","command":"npx","args":["-y","@verbatra/mcp"]
 
 See the [VS Code MCP configuration reference](https://code.visualstudio.com/docs/agents/reference/mcp-configuration).
 
+</Tab>
+
+<Tab value="Others" forceMount>
+
 ## GitHub Copilot
 
 ### Copilot cloud agent
@@ -260,13 +291,18 @@ A repository admin adds the server under **Settings**, **Copilot**, **MCP server
         "project.doctor",
         "status.check",
         "status.diff",
-        "lock.state",
-        "key.value",
-        "key.integrity",
         "glossary.get",
+        "lock.state",
+        "history.list",
+        "key.integrity",
+        "locale.integrity",
+        "key.value",
+        "key.context",
+        "locale.values",
+        "translation.estimate",
         "review.queue",
-        "usage.summary",
-        "translation.estimate"
+        "report.provenance",
+        "usage.summary"
       ]
     }
   }
@@ -355,6 +391,9 @@ To spend, append `"--allow-spend"` and add `"env": { "ANTHROPIC_API_KEY": "..." 
 ## Any other stdio client
 
 Give the client the command `npx -y @verbatra/mcp`, plus `--cwd /path/to/your/project` unless it starts servers inside the project, and `--config <path>` for a config elsewhere. Pass `--allow-spend` and the key only through the client's secret mechanism.
+
+</Tab>
+</Tabs>
 
 ## Check the connection
 
