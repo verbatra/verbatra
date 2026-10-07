@@ -759,6 +759,8 @@ describe("runInit for agents", () => {
     expect(cap.out()).toContain("next steps:");
     expect(cap.out()).toContain("  - Copy .env.example to .env and set DEEPL_API_KEY there.");
     expect(cap.out()).toContain("npx @verbatra/cli doctor --cwd");
+    expect(cap.out()).toContain(`npx @verbatra/cli translate --dry-run --cwd ${dir}`);
+    expect(cap.out()).not.toContain("--json");
   });
 
   it("uses an injected detector and prints a detection without locales", async () => {

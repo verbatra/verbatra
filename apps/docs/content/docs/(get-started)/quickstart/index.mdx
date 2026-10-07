@@ -59,7 +59,7 @@ detected format i18next-json, pattern locales/{locale}.json, locales en (confide
 next steps:
   - Copy .env.example to .env and set GEMINI_API_KEY there. Never commit .env.
   - npx @verbatra/cli doctor  (Check the setup. It calls no provider and reads no key value.)
-  - npx @verbatra/cli translate --dry-run --json  (Preview what a run would translate, without calling the provider.)
+  - npx @verbatra/cli translate --dry-run  (Preview what a run would translate, without calling the provider.)
 ```
 
 The new `verbatra.config.ts` translates from `en` into `de`. Add codes to `targetLocales` for more languages.
@@ -83,7 +83,7 @@ verbatra translate (dry run)
 next: verbatra translate (run it for real)
 ```
 
-A dry run builds no provider, so it needs no key, spends nothing, and writes nothing. `init` printed this command with `--json`, the form for scripts and agents; without it you get the summary above. [`verbatra doctor`](/docs/cli/doctor) checks the rest of the setup the same way.
+A dry run builds no provider, so it needs no key, spends nothing, and writes nothing. [`verbatra doctor`](/docs/cli/doctor) checks the rest of the setup the same way.
 
 </Step>
 <Step>

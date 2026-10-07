@@ -553,6 +553,7 @@ function nextSteps(
   agent: AgentScaffoldPlan | undefined,
   cwdFlag: string | undefined,
   dryRun: boolean,
+  json: boolean,
 ): readonly NextStep[] {
   const suffix = cwdSuffix(cwdFlag);
   const steps = leadingSteps(agent, suffix, dryRun);
@@ -584,7 +585,7 @@ function nextSteps(
         }
       : {
           description: "Preview what a run would translate, without calling the provider.",
-          command: `npx @verbatra/cli translate --dry-run --json${suffix}`,
+          command: `npx @verbatra/cli translate --dry-run${json ? " --json" : ""}${suffix}`,
         },
   );
   return steps;
@@ -828,7 +829,7 @@ export async function runInit(
     const shadowed = parentConfigDir(cwd);
     const files = commitAll(writes, agent, { cwd, dryRun, streams: out, files: [] });
     warnShadowedConfig(shadowed, cwd, dryRun, streams);
-    const steps = nextSteps(plan, agent, opts.cwd, dryRun);
+    const steps = nextSteps(plan, agent, opts.cwd, dryRun, json);
     if (json) {
       const keyEnvVar = keyEnvVarFor(plan.draft.provider);
       streams.out(
