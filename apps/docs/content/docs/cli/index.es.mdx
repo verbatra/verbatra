@@ -26,14 +26,20 @@ type: reference
 
 ## Instala e invoca
 
-Instala `@verbatra/cli` como dependencia de desarrollo y luego ejecuta el binario a través de tu gestor de paquetes:
+Instala `@verbatra/cli` como dependencia de desarrollo:
 
-| Gestor de paquetes | Instalación | Ejecución |
-| --- | --- | --- |
-| npm | `npm install --save-dev @verbatra/cli` | `npx @verbatra/cli <command>` |
-| pnpm | `pnpm add --save-dev @verbatra/cli` | `pnpm verbatra <command>` (o `pnpm exec verbatra <command>`) |
-| yarn | `yarn add --dev @verbatra/cli` | `yarn verbatra <command>` |
-| bun | `bun add --dev @verbatra/cli` | `bun run verbatra <command>` |
+```npm
+npm install --save-dev @verbatra/cli
+```
+
+Luego ejecuta el binario a través de tu gestor de paquetes:
+
+| Gestor de paquetes | Ejecución |
+| --- | --- |
+| npm | `npx @verbatra/cli <command>` |
+| pnpm | `pnpm verbatra <command>` (o `pnpm exec verbatra <command>`) |
+| yarn | `yarn verbatra <command>` |
+| bun | `bun run verbatra <command>` |
 
 Necesitas Node.js `^22.18.0 || >=24`.
 

@@ -26,14 +26,20 @@ type: reference
 
 ## Installieren und aufrufen
 
-Installiere `@verbatra/cli` als Dev-Dependency und starte das Binary anschließend über deinen Paketmanager:
+Installiere `@verbatra/cli` als Dev-Dependency:
 
-| Paketmanager | Installation | Aufruf |
-| --- | --- | --- |
-| npm | `npm install --save-dev @verbatra/cli` | `npx @verbatra/cli <command>` |
-| pnpm | `pnpm add --save-dev @verbatra/cli` | `pnpm verbatra <command>` (oder `pnpm exec verbatra <command>`) |
-| yarn | `yarn add --dev @verbatra/cli` | `yarn verbatra <command>` |
-| bun | `bun add --dev @verbatra/cli` | `bun run verbatra <command>` |
+```npm
+npm install --save-dev @verbatra/cli
+```
+
+Starte das Binary anschließend über deinen Paketmanager:
+
+| Paketmanager | Aufruf |
+| --- | --- |
+| npm | `npx @verbatra/cli <command>` |
+| pnpm | `pnpm verbatra <command>` (oder `pnpm exec verbatra <command>`) |
+| yarn | `yarn verbatra <command>` |
+| bun | `bun run verbatra <command>` |
 
 Du brauchst Node.js `^22.18.0 || >=24`.
 

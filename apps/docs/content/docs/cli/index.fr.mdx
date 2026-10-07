@@ -26,14 +26,20 @@ type: reference
 
 ## Installation et invocation
 
-Installe `@verbatra/cli` comme dépendance de développement, puis lance le binaire via ton gestionnaire de paquets :
+Installe `@verbatra/cli` comme dépendance de développement :
 
-| Gestionnaire de paquets | Installation | Lancement |
-| --- | --- | --- |
-| npm | `npm install --save-dev @verbatra/cli` | `npx @verbatra/cli <command>` |
-| pnpm | `pnpm add --save-dev @verbatra/cli` | `pnpm verbatra <command>` (ou `pnpm exec verbatra <command>`) |
-| yarn | `yarn add --dev @verbatra/cli` | `yarn verbatra <command>` |
-| bun | `bun add --dev @verbatra/cli` | `bun run verbatra <command>` |
+```npm
+npm install --save-dev @verbatra/cli
+```
+
+Puis lance le binaire via ton gestionnaire de paquets :
+
+| Gestionnaire de paquets | Lancement |
+| --- | --- |
+| npm | `npx @verbatra/cli <command>` |
+| pnpm | `pnpm verbatra <command>` (ou `pnpm exec verbatra <command>`) |
+| yarn | `yarn verbatra <command>` |
+| bun | `bun run verbatra <command>` |
 
 Il te faut Node.js `^22.18.0 || >=24`.
 
