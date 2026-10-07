@@ -509,6 +509,41 @@ describe("each SDK entry point states what it takes and what it throws", () => {
   });
 });
 
+describe("each SDK entry point declares the failures its own documentation describes", () => {
+  const entries = sdkValueExports();
+  const exportsByName = new Map(entries.map((entry) => [entry.name, entry]));
+
+  it("declares RUN_CANCELLED wherever it declares LOCK_CONTENDED, since releaseHeldLocks refuses a lock", () => {
+    const lockTaking = entries.filter((entry) =>
+      declaredThrows(entry.name, exportsByName).includes("LOCK_CONTENDED"),
+    );
+
+    expect(lockTaking.map((entry) => entry.name)).toEqual(
+      expect.arrayContaining(["editEntry", "approveEntry", "updateGlossaryTerm"]),
+    );
+    expect(
+      lockTaking
+        .filter((entry) => !declaredThrows(entry.name, exportsByName).includes("RUN_CANCELLED"))
+        .map((entry) => entry.name),
+    ).toEqual([]);
+  });
+
+  it("tags AdapterError with @throws wherever the prose says a target file surfaces it", () => {
+    const surfacing = entries.filter((entry) =>
+      /surfaces the adapter's own error/.test(functionJsDoc(entry)),
+    );
+
+    expect(surfacing.map((entry) => entry.name)).toEqual(
+      expect.arrayContaining(["keyValue", "lockState", "localeValues", "check"]),
+    );
+    expect(
+      surfacing
+        .filter((entry) => !/@throws `AdapterError`/.test(functionJsDoc(entry)))
+        .map((entry) => entry.name),
+    ).toEqual([]);
+  });
+});
+
 describe("the SDK heading rule separates real drift from ordinary prose", () => {
   const page = readSdkReference("");
 

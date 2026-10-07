@@ -601,8 +601,12 @@ export function resolveRunConcurrency(
  *
  * @example
  * ```ts
- * import { resolveDryRun, translate } from "@verbatra/sdk";
+ * import { loadConfig, resolveDryRun, type TranslateInput, translate } from "@verbatra/sdk";
  *
+ * declare const options: Omit<TranslateInput, "config">;
+ * declare function prepareWorkspaceForWrites(): Promise<void>;
+ *
+ * const config = await loadConfig();
  * if (!resolveDryRun(options)) {
  *   await prepareWorkspaceForWrites();
  * }

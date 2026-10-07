@@ -17,6 +17,8 @@ import type { VerbatraConfig } from "./schema.js";
  * ```ts
  * import { isMachineTranslationEnabled, loadConfig } from "@verbatra/sdk";
  *
+ * declare const allowSpend: boolean;
+ *
  * const config = await loadConfig();
  * const offerRetranslate = allowSpend && isMachineTranslationEnabled(config);
  * ```
@@ -39,8 +41,9 @@ export function isMachineTranslationEnabled(config: Pick<VerbatraConfig, "provid
  *
  * @example
  * ```ts
- * import { assertMachineTranslationEnabled, translate } from "@verbatra/sdk";
+ * import { assertMachineTranslationEnabled, loadConfig, translate } from "@verbatra/sdk";
  *
+ * const config = await loadConfig();
  * assertMachineTranslationEnabled(config, "translating every pending key");
  * const summary = await translate({ config });
  * ```

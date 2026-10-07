@@ -85,7 +85,10 @@ function typecheck(sources) {
         skipLibCheck: true,
         types: ["node"],
         typeRoots: [join(SDK_DIR, "node_modules/@types")],
-        paths: { "@verbatra/sdk": [join(SDK_DIR, "dist/index.d.ts")] },
+        paths: {
+          "@verbatra/sdk": [join(SDK_DIR, "dist/index.d.ts")],
+          zod: [join(SDK_DIR, "node_modules/zod/index.d.ts")],
+        },
       },
       include,
     };
@@ -266,6 +269,44 @@ describe("the SDK reference examples", () => {
       const result = typecheck(sources);
       expect(result.status).not.toBe(0);
       expect(result.output).toContain("config");
+    },
+    SLOW,
+  );
+});
+
+function jsDocExamples(declarations) {
+  const fence = "`".repeat(3);
+  const example = new RegExp(`@example\\s*\\n${fence}ts\\n([\\s\\S]*?)\\n${fence}`, "g");
+  return [...declarations.matchAll(/\/\*\*[\s\S]*?\*\//g)].flatMap(([comment]) => {
+    const text = comment
+      .split("\n")
+      .map((line) => line.replace(/^\s*\* ?/, ""))
+      .join("\n");
+    return [...text.matchAll(example)].map((match) => match[1]);
+  });
+}
+
+function publishedJsDocExamples() {
+  return jsDocExamples(readFileSync(join(SDK_DIR, "dist/index.d.ts"), "utf8"));
+}
+
+describe("the @example blocks in the published @verbatra/sdk declarations", () => {
+  it("extracts every example, so the typecheck cannot pass vacuously", () => {
+    const fence = "`".repeat(3);
+    const comment = `/**\n * Lead.\n *\n * @example\n * ${fence}ts\n * const a = 1;\n * ${fence}\n */`;
+
+    expect(jsDocExamples(comment)).toEqual(["const a = 1;"]);
+    expect(publishedJsDocExamples().length).toBeGreaterThanOrEqual(30);
+  });
+
+  it(
+    "typechecks every example on its own, with each import and stand-in written out",
+    () => {
+      const sources = publishedJsDocExamples();
+      expect(sources.every((source) => source.includes("@verbatra/sdk"))).toBe(true);
+      const result = typecheck(sources);
+      expect(result.output).toBe("");
+      expect(result.status).toBe(0);
     },
     SLOW,
   );

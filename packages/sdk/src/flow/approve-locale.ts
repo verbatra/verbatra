@@ -183,6 +183,8 @@ async function recordApprovals(
  * @throws {@link SdkError} `SOURCE_INVALID`: the source locale file could not be parsed.
  * @throws {@link SdkError} `LOCK_CONTENDED`: the locale's write lock or the lock-file guard could
  * not be acquired before the timeout elapsed.
+ * @throws {@link SdkError} `RUN_CANCELLED`: {@link releaseHeldLocks} was running when the call
+ * went to take a write lock, so that lock was refused.
  * @throws {@link SdkError} `LOCALE_STATE_NOT_CARRIED_OVER`: state recorded under a respelled code
  * of the locale could not be moved to it first, so nothing was written.
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an

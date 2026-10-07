@@ -207,6 +207,8 @@ function assertSourceKeys(source: LocaleResource, keys: readonly string[] | unde
  * unsupported version.
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: a requested locale is not a configured target locale.
  * @throws {@link SdkError} `UNKNOWN_KEY`: a requested key is not present in the source resource.
+ * @throws `AdapterError`: the adapter refused a target locale file because it is malformed. Its
+ * own code is preserved rather than remapped onto an {@link SdkErrorCode}.
  */
 export async function keyIntegrity(
   input: KeyIntegrityInput,

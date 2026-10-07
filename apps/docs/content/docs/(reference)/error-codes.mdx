@@ -685,7 +685,7 @@ The configured DeepL or Google Cloud Translation provider does not list the sour
 
 ### RUN_CANCELLED
 
-The `signal` passed to `translate` or `retranslateEntry` aborted. `retranslateEntry` throws it when the abort comes before the provider answers, having written nothing. `translate` records it on each locale the cancellation kept from starting and marks the summary [`cancelled`](/docs/sdk/run-summary).
+The `signal` passed to `translate` or `retranslateEntry` aborted. `retranslateEntry` throws it when the abort comes before the provider answers, having written nothing. `translate` records it on each locale the cancellation kept from starting and marks the summary [`cancelled`](/docs/sdk/run-summary). An entry point that takes a write lock, such as `editEntry`, `approveEntry` or `updateGlossaryTerm`, also throws it when `releaseHeldLocks` is running as it goes to take the lock.
 
 - **Raised by**: the SDK only
 - **Exit code**: none: no CLI command raises it

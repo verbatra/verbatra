@@ -322,6 +322,8 @@ export async function readGlossaryFile(
  * @throws {@link SdkError} `LOCK_CONTENDED`: the project's glossary write lock could not be acquired
  * before the timeout elapsed, could not be reclaimed from an abandoned holder, or was taken over by
  * another process before the file was written.
+ * @throws {@link SdkError} `RUN_CANCELLED`: {@link releaseHeldLocks} was running when the call
+ * went to take a write lock, so that lock was refused.
  * @throws {@link SdkError} `GLOSSARY_UNWRITABLE`: the glossary file could not be written, or the
  * project's glossary write lock could not be created, for instance because the project directory
  * is read-only, or could not be released after a successful edit, in which case the edit is saved.

@@ -79,6 +79,8 @@ function failingEntries(
  * @throws {@link SdkError} `SOURCE_UNREADABLE`: the source locale file does not exist.
  * @throws {@link SdkError} `SOURCE_INVALID`: the source locale file could not be parsed.
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: a requested locale is not a configured target locale.
+ * @throws `AdapterError`: the adapter refused a target locale file because it is malformed. Its
+ * own code is preserved rather than remapped onto an {@link SdkErrorCode}.
  */
 export async function localeIntegrity(
   input: LocaleIntegrityInput,

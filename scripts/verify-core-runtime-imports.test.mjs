@@ -24,14 +24,17 @@ function runtimeSourceFiles(dir, out = []) {
   return out;
 }
 
+const DOC_COMMENT = /\/\*\*[\s\S]*?\*\//g;
+
 function specifiersIn(source) {
+  const code = source.replace(DOC_COMMENT, "");
   const specifiers = [];
   for (const pattern of [STATIC_SPECIFIER, BARE_IMPORT, DYNAMIC_SPECIFIER]) {
-    for (const match of source.matchAll(pattern)) {
+    for (const match of code.matchAll(pattern)) {
       specifiers.push(match[1]);
     }
   }
-  if (DYNAMIC_EXPRESSION.test(source)) {
+  if (DYNAMIC_EXPRESSION.test(code)) {
     specifiers.push("<computed dynamic import>");
   }
   return specifiers;
@@ -85,6 +88,7 @@ describe("@verbatra/core runtime code imports only zod and its own modules", () 
     'export { checkPlaceholders } from "./placeholder/integrity.js";',
     'import type { InlineTag } from "../placeholder/markup-scanner.js";',
     'const text = "import from parse5";',
+    '/**\n * @example\n * ```ts\n * import { isCustomFormatId } from "@verbatra/sdk";\n * ```\n */',
   ])("allows %j", (source) => {
     expect(disallowedSpecifiers(source)).toEqual([]);
   });

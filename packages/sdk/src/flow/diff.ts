@@ -168,6 +168,8 @@ function toLocaleDiff(locale: string, diff: DiffResult): LocaleDiff {
  * unsupported version.
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: a requested locale is not a configured target locale.
  * @throws `AdapterError`: a target locale file is malformed. Its own code is preserved.
+ * @throws `AdapterError`: the adapter refused a target locale file because it is malformed. Its
+ * own code is preserved rather than remapped onto an {@link SdkErrorCode}.
  */
 export async function diff(input: DiffInput, deps: DiffDeps = {}): Promise<DiffSummary> {
   const { source, results } = await diffLocalesWithSource(input, deps);

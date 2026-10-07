@@ -416,6 +416,9 @@ async function writeDeclaration(
  *
  * @example
  * ```ts
+ * import { generateTypes, loadConfig } from "@verbatra/sdk";
+ *
+ * const config = await loadConfig();
  * const result = await generateTypes({ config });
  * console.log(`${result.keys} keys declared in ${result.path}`);
  * ```

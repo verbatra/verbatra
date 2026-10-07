@@ -256,7 +256,9 @@
  * - `RUN_CANCELLED`: the `signal` passed to the call aborted. {@link retranslateEntry} throws it
  *   when the abort arrives before the provider has answered, so nothing is written. {@link translate}
  *   does not throw it: it records it on each locale the cancellation kept from starting, a locale
- *   whose write-lock wait it stopped included, and sets {@link RunSummary.cancelled}.
+ *   whose write-lock wait it stopped included, and sets {@link RunSummary.cancelled}. An entry
+ *   point that takes a write lock also throws it when {@link releaseHeldLocks} is running as it goes
+ *   to take the lock.
  * - `LOCALE_FAILED`: never thrown. It is the fallback code recorded on a failed
  *   {@link LocaleSummary} when a per-locale failure carries no code of its own.
  */

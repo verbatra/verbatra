@@ -250,6 +250,9 @@ async function writeTmxFile(fs: SdkFs, path: string, cwd: string, content: strin
  *
  * @example
  * ```ts
+ * import { exportTmx, loadConfig } from "@verbatra/sdk";
+ *
+ * const config = await loadConfig();
  * const result = await exportTmx({ config, out: "memory.tmx" });
  * console.log(`${result.units} units written to ${result.path}`);
  * ```

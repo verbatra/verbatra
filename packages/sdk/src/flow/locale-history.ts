@@ -55,6 +55,9 @@ export interface LocaleHistoryDeps {
  *
  * @example
  * ```ts
+ * import { localeHistory, loadConfig } from "@verbatra/sdk";
+ *
+ * const config = await loadConfig();
  * const history = await localeHistory({ config, limit: 5 });
  * if (history.available) {
  *   for (const commit of history.commits) {

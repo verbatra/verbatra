@@ -685,7 +685,7 @@ Der konfigurierte Provider DeepL oder Google Cloud Translation führt die Quell-
 
 ### RUN_CANCELLED
 
-Das an `translate` oder `retranslateEntry` übergebene `signal` wurde abgebrochen. `retranslateEntry` wirft ihn, wenn der Abbruch kommt, bevor der Provider antwortet, und hat dann nichts geschrieben. `translate` vermerkt ihn auf jeder Locale, die durch den Abbruch nicht mehr startete, und markiert die Zusammenfassung als [`cancelled`](/docs/sdk/run-summary).
+Das an `translate` oder `retranslateEntry` übergebene `signal` wurde abgebrochen. `retranslateEntry` wirft ihn, wenn der Abbruch kommt, bevor der Provider antwortet, und hat dann nichts geschrieben. `translate` vermerkt ihn auf jeder Locale, die durch den Abbruch nicht mehr startete, und markiert die Zusammenfassung als [`cancelled`](/docs/sdk/run-summary). Ein Einstiegspunkt, der eine Schreibsperre nimmt, etwa `editEntry`, `approveEntry` oder `updateGlossaryTerm`, wirft ihn auch, wenn `releaseHeldLocks` gerade läuft, während er die Sperre nehmen will.
 
 - **Ausgelöst von**: nur das SDK
 - **Exit-Code**: keiner: kein CLI-Befehl löst ihn aus

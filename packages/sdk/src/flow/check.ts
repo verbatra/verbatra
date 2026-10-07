@@ -367,6 +367,8 @@ function qaReports(
  * unsupported version.
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: a requested locale is not a configured target locale.
  * @throws `AdapterError`: a target locale file is malformed. Its own code is preserved.
+ * @throws `AdapterError`: the adapter refused a target locale file because it is malformed. Its
+ * own code is preserved rather than remapped onto an {@link SdkErrorCode}.
  */
 export async function check(input: CheckInput, deps: CheckDeps = {}): Promise<CheckSummary> {
   const { results, adapter, source, sourceInvalidIcuKeys } = await diffLocalesWithSource(

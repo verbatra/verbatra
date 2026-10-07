@@ -429,6 +429,9 @@ function sameValues(
  *
  * @example
  * ```ts
+ * import { pseudolocalize, loadConfig } from "@verbatra/sdk";
+ *
+ * const config = await loadConfig();
  * const result = await pseudolocalize({ config });
  * console.log(`${result.transformed} of ${result.entries} entries in ${result.path}`);
  * ```

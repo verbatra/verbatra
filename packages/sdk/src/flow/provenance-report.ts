@@ -199,6 +199,9 @@ function reportLocale(
  *
  * @example
  * ```ts
+ * import { provenanceReport, loadConfig } from "@verbatra/sdk";
+ *
+ * const config = await loadConfig();
  * const report = await provenanceReport({ config, toolVersion: "1.2.3" });
  * if (report.available) {
  *   for (const locale of report.locales) {

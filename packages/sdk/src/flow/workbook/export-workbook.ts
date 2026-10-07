@@ -469,6 +469,8 @@ async function resolveHandoffPath(
  * automatically and is not a cause. The message names the file relative to `cwd` and the
  * underlying file-system code, never the internal temporary file the atomic write uses, and the
  * file-system error is the `cause`.
+ * @throws `AdapterError`: the adapter refused a target locale file because it is malformed. Its
+ * own code is preserved rather than remapped onto an {@link SdkErrorCode}.
  */
 export async function exportWorkbook(
   input: ExportWorkbookInput,

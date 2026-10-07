@@ -261,10 +261,10 @@ function inputFileHint(code: string, error: unknown): string | undefined {
  *
  * @example
  * ```ts
- * import { errorHint, translate } from "@verbatra/sdk";
+ * import { errorHint, loadConfig, translate } from "@verbatra/sdk";
  *
  * try {
- *   await translate({ config });
+ *   await translate({ config: await loadConfig() });
  * } catch (error) {
  *   const hint = errorHint(error);
  *   if (hint !== undefined) {

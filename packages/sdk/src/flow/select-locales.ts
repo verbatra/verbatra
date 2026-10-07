@@ -35,8 +35,14 @@ export function selectLocales(
  *
  * @example
  * ```ts
- * import { assertTargetLocale, glossaryForLocale, readCurrentGlossary } from "@verbatra/sdk";
+ * import {
+ *   assertTargetLocale,
+ *   glossaryForLocale,
+ *   loadConfigWithMeta,
+ *   readCurrentGlossary,
+ * } from "@verbatra/sdk";
  *
+ * const loaded = await loadConfigWithMeta();
  * assertTargetLocale(loaded.config, "de");
  * const glossary = await readCurrentGlossary({ loaded });
  * const forGerman = glossaryForLocale(glossary, "de");

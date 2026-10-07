@@ -685,7 +685,7 @@ Le fournisseur DeepL ou Google Cloud Translation configuré ne liste pas la loca
 
 ### RUN_CANCELLED
 
-Le `signal` passé à `translate` ou `retranslateEntry` a été interrompu. `retranslateEntry` la lève quand l'interruption arrive avant la réponse du fournisseur, sans avoir rien écrit. `translate` l'enregistre sur chaque locale que l'annulation a empêchée de démarrer et marque le résumé comme [`cancelled`](/docs/sdk/run-summary).
+Le `signal` passé à `translate` ou `retranslateEntry` a été interrompu. `retranslateEntry` la lève quand l'interruption arrive avant la réponse du fournisseur, sans avoir rien écrit. `translate` l'enregistre sur chaque locale que l'annulation a empêchée de démarrer et marque le résumé comme [`cancelled`](/docs/sdk/run-summary). Un point d'entrée qui prend un verrou d'écriture, comme `editEntry`, `approveEntry` ou `updateGlossaryTerm`, la lève aussi quand `releaseHeldLocks` s'exécute au moment où il va prendre le verrou.
 
 - **Levé par** : le SDK uniquement
 - **Code de sortie** : aucun : aucune commande de la CLI ne le lève

@@ -137,6 +137,12 @@ function toEntries(
  *
  * @example
  * ```ts
+ * import { createTreeFileAdapter, type JsonRecord, type OrderedRecord } from "@verbatra/sdk";
+ *
+ * declare function parseHocon(content: string): JsonRecord;
+ * declare function serializeHocon(tree: OrderedRecord): string;
+ * declare function tokensIn(value: string): string[];
+ *
  * const hoconAdapter = createTreeFileAdapter({
  *   format: "custom:hocon",
  *   extensions: [".conf"],

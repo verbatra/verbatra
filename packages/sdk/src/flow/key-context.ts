@@ -98,9 +98,13 @@ async function readGlossaryLeniently(
  * @throws {@link SdkError} `SOURCE_UNREADABLE`: the source locale file does not exist.
  * @throws {@link SdkError} `SOURCE_INVALID`: the source locale file could not be parsed.
  * @throws {@link SdkError} `UNKNOWN_KEY`: the key is not present in the source resource.
+ * @throws `AdapterError`: the adapter refused a target locale file because it is malformed. Its
+ * own code is preserved rather than remapped onto an {@link SdkErrorCode}.
  *
  * @example
  * ```ts
+ * import { keyContext, loadConfigWithMeta } from "@verbatra/sdk";
+ *
  * const loaded = await loadConfigWithMeta();
  * const context = await keyContext({ loaded, locale: "de", key: "cart.title", draft: "Warenkorb" });
  * for (const term of context.draftCheck?.terms ?? []) {

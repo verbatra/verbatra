@@ -57,6 +57,9 @@ export type TmxErrorLocation = ExchangeErrorLocation;
  *
  * @example
  * ```ts
+ * import { importTmx, loadConfig, tmxErrorLocation } from "@verbatra/sdk";
+ *
+ * const config = await loadConfig();
  * try {
  *   await importTmx({ config, file: "legacy.tmx" });
  * } catch (error) {
@@ -681,6 +684,9 @@ function additionsByLocale(
  *
  * @example
  * ```ts
+ * import { importTmx, loadConfig } from "@verbatra/sdk";
+ *
+ * const config = await loadConfig();
  * const result = await importTmx({ config, file: "legacy-memory.tmx" });
  * for (const locale of result.locales) {
  *   console.log(`${locale.locale}: ${locale.added} added, ${locale.kept} kept`);

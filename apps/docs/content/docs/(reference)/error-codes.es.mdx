@@ -685,7 +685,7 @@ El proveedor DeepL o Google Cloud Translation configurado no incluye el locale d
 
 ### RUN_CANCELLED
 
-Se abortó el `signal` pasado a `translate` o `retranslateEntry`. `retranslateEntry` lo lanza cuando el aborto llega antes de que el proveedor responda, sin haber escrito nada. `translate` lo registra en cada locale que la cancelación dejó sin empezar y marca el resumen como [`cancelled`](/docs/sdk/run-summary).
+Se abortó el `signal` pasado a `translate` o `retranslateEntry`. `retranslateEntry` lo lanza cuando el aborto llega antes de que el proveedor responda, sin haber escrito nada. `translate` lo registra en cada locale que la cancelación dejó sin empezar y marca el resumen como [`cancelled`](/docs/sdk/run-summary). Un punto de entrada que toma un bloqueo de escritura, como `editEntry`, `approveEntry` o `updateGlossaryTerm`, también lo lanza cuando `releaseHeldLocks` se está ejecutando mientras va a tomar el bloqueo.
 
 - **Lo lanza**: solo el SDK
 - **Código de salida**: ninguno: ningún comando de la CLI lo lanza

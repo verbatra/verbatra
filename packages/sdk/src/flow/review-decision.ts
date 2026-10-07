@@ -554,6 +554,8 @@ function reviewerOf(input: ReviewDecisionInput): { reviewer?: string } {
  * @throws {@link SdkError} `UNKNOWN_KEY`: the key is not present in the source resource.
  * @throws {@link SdkError} `LOCK_CONTENDED`: the locale's write lock or the lock-file guard could
  * not be acquired before the timeout elapsed.
+ * @throws {@link SdkError} `RUN_CANCELLED`: {@link releaseHeldLocks} was running when the call
+ * went to take a write lock, so that lock was refused.
  * @throws {@link SdkError} `REVIEW_VALUE_CHANGED`: the key has no translation, or its translation is
  * not `expectedValue` (or does not hash to `expectedValueHash`). Also thrown, before anything is
  * read, when `expectedValue` is not a string, when both are given, or when a hash comes without a
@@ -660,6 +662,8 @@ export async function approveEntry(
  * @throws {@link SdkError} `UNKNOWN_KEY`: the key is not present in the source resource.
  * @throws {@link SdkError} `LOCK_CONTENDED`: the locale's write lock or the lock-file guard could
  * not be acquired before the timeout elapsed.
+ * @throws {@link SdkError} `RUN_CANCELLED`: {@link releaseHeldLocks} was running when the call
+ * went to take a write lock, so that lock was refused.
  * @throws {@link SdkError} `REVIEW_VALUE_CHANGED`: the key has no translation, or its translation is
  * not `expectedValue` (or does not hash to `expectedValueHash`). Also thrown, before anything is
  * read, when `expectedValue` is not a string, when both are given, or when a hash comes without a

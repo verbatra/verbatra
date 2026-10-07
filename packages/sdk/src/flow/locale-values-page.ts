@@ -116,6 +116,8 @@ function canonicalFilters(input: LocaleValuesPageInput): unknown {
  * was made for.
  * @throws {@link SdkError} `PAGE_LIMIT_INVALID`: `limit` is not a whole number from 1 to
  * {@link PAGE_LIMIT_CAP}.
+ * @throws `AdapterError`: the adapter refused a target locale file because it is malformed. Its
+ * own code is preserved rather than remapped onto an {@link SdkErrorCode}.
  *
  * @example
  * ```ts

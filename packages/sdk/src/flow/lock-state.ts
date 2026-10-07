@@ -126,6 +126,8 @@ function toLockLocaleState(locale: string, keyCount: number, diff: DiffResult): 
  * @throws {@link SdkError} `LOCALE_PATH_COLLISION`: two configured locales resolve to the same path.
  * @throws {@link SdkError} `SOURCE_UNREADABLE`: the source locale file does not exist.
  * @throws {@link SdkError} `SOURCE_INVALID`: the source locale file could not be parsed.
+ * @throws `AdapterError`: the adapter refused a target locale file because it is malformed. Its
+ * own code is preserved rather than remapped onto an {@link SdkErrorCode}.
  */
 export async function lockState(
   input: LockStateInput,

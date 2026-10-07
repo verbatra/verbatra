@@ -45,6 +45,10 @@ export interface SyntaxPosition {
  *
  * @example
  * ```ts
+ * import { AdapterError, type FormatAdapter } from "@verbatra/sdk";
+ *
+ * declare const adapter: FormatAdapter;
+ *
  * try {
  *   await adapter.read("locales/de.json", "de");
  * } catch (error) {

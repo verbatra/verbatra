@@ -60,6 +60,8 @@ export interface ReadLocaleFileSnapshotDeps {
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
  * cannot be combined, or a configured locale has no valid path spelling under that style.
  * @throws {@link SdkError} `LOCALE_PATH_COLLISION`: two configured locales resolve to the same path.
+ * @throws `AdapterError`: the adapter refused a target locale file because it is malformed. Its
+ * own code is preserved rather than remapped onto an {@link SdkErrorCode}.
  */
 export async function readLocaleFileSnapshot(
   input: ReadLocaleFileSnapshotInput,

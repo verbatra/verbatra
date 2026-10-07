@@ -361,7 +361,8 @@ async function retranslateUnderLock(context: UnderLockContext): Promise<Retransl
  * acquired within its ten-minute default.
  * @throws {@link SdkError} `RUN_CANCELLED`: `signal` aborted before the provider answered, whether
  * before the write lock was taken, while waiting for it, or during the provider request. Nothing
- * was written. A failure the provider reported itself is thrown as is, and an abort while a
+ * was written. It is also thrown when {@link releaseHeldLocks} was running when the call went to
+ * take a write lock. A failure the provider reported itself is thrown as is, and an abort while a
  * respelled locale's state is being moved surfaces as `LOCALE_STATE_NOT_CARRIED_OVER`.
  * @throws {@link SdkError} `TARGET_UNWRITABLE`: the target locale file could not be written because
  * of a file-system failure. The message names the target file and the file-system code, never the

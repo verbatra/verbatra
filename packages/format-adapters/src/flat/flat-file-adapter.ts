@@ -129,6 +129,15 @@ async function toEntries(
  *
  * @example
  * ```ts
+ * import {
+ *   createFlatFileAdapter,
+ *   type FlatParseOutcome,
+ *   type TranslationEntry,
+ * } from "@verbatra/sdk";
+ *
+ * declare function parseToml(content: string, namespace: string): FlatParseOutcome;
+ * declare function serializeToml(entries: ReadonlyMap<string, TranslationEntry>): string;
+ *
  * const tomlAdapter = createFlatFileAdapter({
  *   format: "custom:toml",
  *   extensions: [".toml"],
