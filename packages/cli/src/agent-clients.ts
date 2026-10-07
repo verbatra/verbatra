@@ -71,8 +71,9 @@ export type AgentClientConfig = JsonAgentClientConfig | TomlAgentClientConfig;
 
 /**
  * The exact MCP entry `verbatra init --agent` writes for each client, keyed by
- * {@link AgentClientId}. `file` is project-relative, the entry turns no spend tool on and names no
- * environment variable or working directory, and an existing `verbatra` entry is never changed.
+ * {@link AgentClientId}. `file` is project-relative, the entry turns no spend tool on, names no
+ * environment variable and sets no `cwd` field (Cursor's entry passes its workspace folder as
+ * `--cwd` instead), and an existing `verbatra` entry is never changed.
  */
 export const AGENT_CLIENT_CONFIGS = {
   claude: {
