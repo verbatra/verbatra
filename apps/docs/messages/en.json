@@ -42,7 +42,7 @@
     },
     "startHere": {
       "title": "Start here",
-      "lead": "With `@verbatra/cli` installed, one command wires Claude Code, Cursor or VS Code to verbatra, spending off. Any other agent: paste the prompt.",
+      "lead": "With `@verbatra/cli` installed, one command wires Claude Code, Codex, Gemini CLI, Cursor or VS Code to verbatra, spending off. Any other agent: paste the prompt.",
       "markdown": "Start here: once `@verbatra/cli` is installed in the project, `{command}` wires your coding agent, spending off."
     },
     "mcpInstall": {
@@ -142,7 +142,7 @@
         },
         "providers": {
           "question": "Which translation providers can I use?",
-          "answer": "Any of these, behind one interface: Anthropic, OpenAI, and Gemini (LLMs), DeepL and Google Cloud Translation (machine translation), openai-compatible, which points verbatra at a local or self-hosted server like Ollama, LM Studio, or vLLM, and libretranslate, a self-hosted LibreTranslate server for machine translation with no language model. You pick one by id in your config and can switch later by editing that one line. Gemini has a real free tier, and a local model costs nothing per call. Or set the provider to none to switch machine translation off entirely."
+          "answer": "Any of these, behind one interface: Anthropic, OpenAI, and Gemini (LLMs), DeepL and Google Cloud Translation (machine translation), openai-compatible, which points verbatra at a local or self-hosted server like Ollama, LM Studio, or vLLM, and libretranslate, a self-hosted LibreTranslate server for machine translation with no language model. You pick one by id in the provider block of your config and switch later by rewriting that block, since each provider takes its own options. Gemini has a real free tier, and a local model costs nothing per call. Or set the provider to none to switch machine translation off entirely."
         },
         "languages": {
           "question": "Which languages does verbatra support?",
@@ -150,7 +150,7 @@
         },
         "safety": {
           "question": "What stops a bad translation from breaking my app?",
-          "answer": "Every result passes a placeholder and ICU integrity check before it is written. A translation that drops, invents, or reorders a placeholder, or produces invalid ICU message syntax, is withheld rather than saved to your locale file. The same gate applies to edits and retranslations made in Verbatra Studio."
+          "answer": "Every result passes a placeholder and ICU integrity check before it is written. A translation that drops or invents a placeholder, or produces invalid ICU message syntax, is withheld rather than saved to your locale file; one that only reorders placeholders is saved and flagged for review. The same gate applies to edits and retranslations made in Verbatra Studio."
         },
         "privacy": {
           "question": "Does verbatra send my strings anywhere?",
@@ -271,7 +271,7 @@
     },
     "providers": {
       "heading": "One interface for every provider.",
-      "lead": "Switch by changing one line of config, or set it to none and keep every string in human hands.",
+      "lead": "Switch by rewriting the provider block of your config, or set it to none and keep every string in human hands.",
       "hint": "Hover or tab through the cards.",
       "kinds": {
         "anthropic": "Claude models",
@@ -361,7 +361,7 @@
         },
         "agent": {
           "title": "Or hand it to your agent.",
-          "body": "An MCP server for Claude Code, Cursor, VS Code and GitHub Copilot, plus installable skills for the CLI, MCP and Studio.",
+          "body": "An MCP server for Claude Code, Codex, Gemini CLI, Cursor, VS Code and GitHub Copilot, plus installable skills for the CLI, MCP and Studio.",
           "cta": "Start with AI"
         }
       },

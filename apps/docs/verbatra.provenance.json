@@ -3,41 +3,47 @@
   "locales": {
     "de": {
       "docs.mcpInstall.label": {"origin":"import","valueHash":"eb94e259f0defd19"},
-      "docs.startHere.lead": {"origin":"import","valueHash":"eafd82dc8c334549"},
+      "docs.startHere.lead": {"origin":"import","valueHash":"4d079cf8427e8c8f"},
       "docs.startHere.markdown": {"origin":"import","valueHash":"bd94979a16cd6fde"},
       "docs.startHere.title": {"origin":"import","valueHash":"c40c92fe1c7ca16e"},
-      "landing.faq.items.providers.answer": {"origin":"import","valueHash":"b2c21ab82301ab5d"},
+      "landing.faq.items.providers.answer": {"origin":"import","valueHash":"3da7c6f10640776b"},
+      "landing.faq.items.safety.answer": {"origin":"import","valueHash":"28c282cef9a23672"},
       "landing.install.aiLabel": {"origin":"import","valueHash":"816233e691dc84ee"},
       "landing.install.copyAgentAria": {"origin":"import","valueHash":"3a29535cf044933d"},
       "landing.loop.links.skillsDocs": {"origin":"import","valueHash":"d3b4a17a3c4c051e"},
-      "landing.loop.rows.agent.body": {"origin":"import","valueHash":"e5c3008b203a56b4"},
-      "landing.providers.heading": {"origin":"import","valueHash":"9c7ed865ff1d7fb5"}
+      "landing.loop.rows.agent.body": {"origin":"import","valueHash":"f62e328ddc7baee2"},
+      "landing.providers.heading": {"origin":"import","valueHash":"9c7ed865ff1d7fb5"},
+      "landing.providers.lead": {"origin":"import","valueHash":"a78532d347a2a3f4"}
     },
     "es": {
       "docs.mcpInstall.label": {"origin":"import","valueHash":"40c81c03b3985ccb"},
-      "docs.startHere.lead": {"origin":"import","valueHash":"faf900d11c9a9ff3"},
+      "docs.startHere.lead": {"origin":"import","valueHash":"121ed04f1450a525"},
       "docs.startHere.markdown": {"origin":"import","valueHash":"a3d6d313629ee4b4"},
       "docs.startHere.title": {"origin":"import","valueHash":"7ecad953eb152516"},
-      "landing.faq.items.providers.answer": {"origin":"import","valueHash":"96b7814113034607"},
+      "landing.faq.items.providers.answer": {"origin":"import","valueHash":"7ac7d51dce3c26bc"},
+      "landing.faq.items.safety.answer": {"origin":"import","valueHash":"b077b24a883e4398"},
       "landing.install.aiLabel": {"origin":"import","valueHash":"19850e9b9e91da18"},
       "landing.install.copyAgentAria": {"origin":"import","valueHash":"f34e24a26fd790ae"},
       "landing.loop.links.skillsDocs": {"origin":"import","valueHash":"b1c39d205ceadde7"},
-      "landing.loop.rows.agent.body": {"origin":"import","valueHash":"e47768f0d0f5fa64"},
-      "landing.providers.heading": {"origin":"import","valueHash":"c8f21bced020d8df"}
+      "landing.loop.rows.agent.body": {"origin":"import","valueHash":"5951c5f17b7f95cc"},
+      "landing.providers.heading": {"origin":"import","valueHash":"c8f21bced020d8df"},
+      "landing.providers.lead": {"origin":"import","valueHash":"d7d8ce3bbdeb7a73"}
     },
     "fr": {
       "docs.mcpInstall.label": {"origin":"import","valueHash":"0e0da3b2061b77f6"},
-      "docs.startHere.lead": {"origin":"import","valueHash":"420f8b7e4c14f0ba"},
+      "docs.startHere.lead": {"origin":"import","valueHash":"118766a341398e74"},
       "docs.startHere.markdown": {"origin":"import","valueHash":"c49a1562df85fe72"},
       "docs.startHere.title": {"origin":"import","valueHash":"9419d910d65183fd"},
       "landing.control.groups.people.items.review.body": {"origin":"import","valueHash":"9f244402604c0b24"},
-      "landing.faq.items.providers.answer": {"origin":"import","valueHash":"0a7564f36bbe504b"},
+      "landing.faq.items.providers.answer": {"origin":"import","valueHash":"9eb85704ba3da193"},
+      "landing.faq.items.safety.answer": {"origin":"import","valueHash":"a9cbc71ab29a270f"},
       "landing.install.aiLabel": {"origin":"import","valueHash":"739a7d18479a7e33"},
       "landing.install.copyAgentAria": {"origin":"import","valueHash":"34ca8355f98a4de8"},
       "landing.loop.links.skillsDocs": {"origin":"import","valueHash":"a6b7b28c36634eaa"},
-      "landing.loop.rows.agent.body": {"origin":"import","valueHash":"a8c47fd78226993b"},
+      "landing.loop.rows.agent.body": {"origin":"import","valueHash":"e93c74a6ba70de8b"},
       "landing.loop.rows.studio.alt": {"origin":"import","valueHash":"d1657af5720f3b1b"},
-      "landing.providers.heading": {"origin":"import","valueHash":"8d21641a37809a24"}
+      "landing.providers.heading": {"origin":"import","valueHash":"8d21641a37809a24"},
+      "landing.providers.lead": {"origin":"import","valueHash":"52f5914717119b1c"}
     }
   }
 }

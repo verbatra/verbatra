@@ -88,7 +88,7 @@
         },
         "providers": {
           "question": "Quels fournisseurs de traduction puis-je utiliser ?",
-          "answer": "N'importe lequel de ceux-ci, derrière une seule interface : Anthropic, OpenAI et Gemini (LLM), DeepL et Google Cloud Translation (traduction automatique), openai-compatible, qui pointe verbatra vers un serveur local ou auto-hébergé comme Ollama, LM Studio ou vLLM, et libretranslate, un serveur LibreTranslate auto-hébergé pour la traduction automatique sans aucun modèle de langage. Tu en choisis un par son id dans ta configuration, et tu en changes plus tard en modifiant cette seule ligne. Gemini a une vraie offre gratuite, et un modèle local ne coûte rien par appel. Ou mets le fournisseur sur none pour désactiver complètement la traduction automatique."
+          "answer": "N'importe lequel de ceux-ci, derrière une seule interface : Anthropic, OpenAI et Gemini (LLM), DeepL et Google Cloud Translation (traduction automatique), openai-compatible, qui pointe verbatra vers un serveur local ou auto-hébergé comme Ollama, LM Studio ou vLLM, et libretranslate, un serveur LibreTranslate auto-hébergé pour la traduction automatique sans aucun modèle de langage. Tu en choisis un par son id dans le bloc provider de ta configuration, et tu en changes plus tard en réécrivant ce bloc, car chaque fournisseur a ses propres options. Gemini a une vraie offre gratuite, et un modèle local ne coûte rien par appel. Ou mets le fournisseur sur none pour désactiver complètement la traduction automatique."
         },
         "languages": {
           "question": "Quelles langues verbatra prend-il en charge ?",
@@ -100,7 +100,7 @@
         },
         "safety": {
           "question": "Qu'est-ce qui empêche une mauvaise traduction de casser mon app ?",
-          "answer": "Chaque résultat passe des contrôles d'intégrité des placeholders et de l'ICU avant d'être écrit. Une traduction qui supprime, invente ou réordonne un placeholder, ou qui produit une syntaxe de message ICU invalide, est retenue plutôt qu'enregistrée dans ton fichier de locale. La même barrière d'intégrité s'applique aux modifications et aux retraductions faites dans Verbatra Studio."
+          "answer": "Chaque résultat passe des contrôles d'intégrité des placeholders et de l'ICU avant d'être écrit. Une traduction qui supprime ou invente un placeholder, ou qui produit une syntaxe de message ICU invalide, est retenue plutôt qu'enregistrée dans ton fichier de locale ; une traduction qui ne fait que réordonner les placeholders est enregistrée et signalée pour relecture. La même barrière d'intégrité s'applique aux modifications et aux retraductions faites dans Verbatra Studio."
         },
         "privacy": {
           "question": "verbatra envoie-t-il mes textes quelque part ?",
@@ -299,7 +299,7 @@
       },
       "rows": {
         "agent": {
-          "body": "Un serveur MCP pour Claude Code, Cursor, VS Code et GitHub Copilot, plus des skills installables pour la CLI, MCP et Studio.",
+          "body": "Un serveur MCP pour Claude Code, Codex, Gemini CLI, Cursor, VS Code et GitHub Copilot, plus des skills installables pour la CLI, MCP et Studio.",
           "cta": "Commencer avec l'IA",
           "title": "Ou confie-le à ton agent."
         },
@@ -361,7 +361,7 @@
         "openaiCompatible": "Ollama, vLLM, LM Studio",
         "libretranslate": "auto-hébergé, sans LLM"
       },
-      "lead": "Change de fournisseur en modifiant une ligne de configuration, ou mets-le sur none et garde chaque chaîne entre des mains humaines."
+      "lead": "Change de fournisseur en réécrivant le bloc provider de ta configuration, ou mets-le sur none et garde chaque chaîne entre des mains humaines."
     }
   },
   "legal": {
@@ -519,7 +519,7 @@
     },
     "startHere": {
       "title": "Commence ici",
-      "lead": "Avec `@verbatra/cli` installé, une commande relie Claude Code, Cursor ou VS Code à verbatra, sans dépense. Pour tout autre agent : colle le prompt.",
+      "lead": "Avec `@verbatra/cli` installé, une commande relie Claude Code, Codex, Gemini CLI, Cursor ou VS Code à verbatra, sans dépense. Pour tout autre agent : colle le prompt.",
       "markdown": "Commence ici : une fois `@verbatra/cli` installé dans le projet, `{command}` relie ton agent de code, sans dépense."
     },
     "mcpInstall": {

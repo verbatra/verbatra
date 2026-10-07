@@ -88,7 +88,7 @@
         },
         "providers": {
           "question": "¿Qué proveedores de traducción puedo usar?",
-          "answer": "Cualquiera de estos, detrás de una sola interfaz: Anthropic, OpenAI y Gemini (LLM), DeepL y Google Cloud Translation (traducción automática), openai-compatible, que apunta verbatra a un servidor local o autoalojado como Ollama, LM Studio o vLLM, y libretranslate, un servidor LibreTranslate autoalojado para traducción automática sin ningún modelo de lenguaje. Eliges uno por su id en tu configuración y puedes cambiarlo más adelante editando esa única línea. Gemini tiene un nivel gratuito de verdad, y un modelo local no cuesta nada por llamada. O pon el proveedor en none para desactivar por completo la traducción automática."
+          "answer": "Cualquiera de estos, detrás de una sola interfaz: Anthropic, OpenAI y Gemini (LLM), DeepL y Google Cloud Translation (traducción automática), openai-compatible, que apunta verbatra a un servidor local o autoalojado como Ollama, LM Studio o vLLM, y libretranslate, un servidor LibreTranslate autoalojado para traducción automática sin ningún modelo de lenguaje. Eliges uno por su id en el bloque provider de tu configuración y lo cambias más adelante reescribiendo ese bloque, porque cada proveedor tiene sus propias opciones. Gemini tiene un nivel gratuito de verdad, y un modelo local no cuesta nada por llamada. O pon el proveedor en none para desactivar por completo la traducción automática."
         },
         "languages": {
           "question": "¿Qué idiomas admite verbatra?",
@@ -100,7 +100,7 @@
         },
         "safety": {
           "question": "¿Qué impide que una mala traducción rompa mi app?",
-          "answer": "Cada resultado pasa unas comprobaciones de integridad de placeholders e ICU antes de escribirse. Una traducción que omite, inventa o reordena un placeholder, o que produce una sintaxis de mensaje ICU inválida, se retiene en lugar de guardarse en tu archivo de locale. La misma puerta de integridad se aplica a las ediciones y retraducciones hechas en Verbatra Studio."
+          "answer": "Cada resultado pasa unas comprobaciones de integridad de placeholders e ICU antes de escribirse. Una traducción que omite o inventa un placeholder, o que produce una sintaxis de mensaje ICU inválida, se retiene en lugar de guardarse en tu archivo de locale; una que solo reordena placeholders se guarda y se marca para revisión. La misma puerta de integridad se aplica a las ediciones y retraducciones hechas en Verbatra Studio."
         },
         "privacy": {
           "question": "¿verbatra envía mis textos a algún sitio?",
@@ -299,7 +299,7 @@
       },
       "rows": {
         "agent": {
-          "body": "Un servidor MCP para Claude Code, Cursor, VS Code y GitHub Copilot, más skills instalables para la CLI, MCP y Studio.",
+          "body": "Un servidor MCP para Claude Code, Codex, Gemini CLI, Cursor, VS Code y GitHub Copilot, más skills instalables para la CLI, MCP y Studio.",
           "cta": "Empezar con IA",
           "title": "O déjaselo a tu agente."
         },
@@ -361,7 +361,7 @@
         "openaiCompatible": "Ollama, vLLM, LM Studio",
         "libretranslate": "autoalojado, sin LLM"
       },
-      "lead": "Cambia modificando una línea de la configuración, o ponlo en none y deja cada cadena en manos humanas."
+      "lead": "Cambia reescribiendo el bloque provider de tu configuración, o ponlo en none y deja cada cadena en manos humanas."
     }
   },
   "legal": {
@@ -519,7 +519,7 @@
     },
     "startHere": {
       "title": "Empieza aquí",
-      "lead": "Con `@verbatra/cli` instalado, un comando conecta Claude Code, Cursor o VS Code con verbatra, sin gasto. Con cualquier otro agente: pega el prompt.",
+      "lead": "Con `@verbatra/cli` instalado, un comando conecta Claude Code, Codex, Gemini CLI, Cursor o VS Code con verbatra, sin gasto. Con cualquier otro agente: pega el prompt.",
       "markdown": "Empieza aquí: en cuanto `@verbatra/cli` esté instalado en el proyecto, `{command}` conecta tu agente de programación, sin gasto."
     },
     "mcpInstall": {
