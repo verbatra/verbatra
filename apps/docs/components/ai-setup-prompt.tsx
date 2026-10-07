@@ -15,8 +15,8 @@ export function AiSetupPrompt({ label }: { label?: string } = {}): ReactNode {
       className="m-0 grid border-t px-3.5 py-2"
       style={{ borderColor: "var(--border-default)" }}
     >
-      <div className="flex items-center justify-between gap-2">
-        <figcaption className="vk-label flex min-h-6 min-w-0 items-center text-balance leading-snug">
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+        <figcaption className="vk-label flex min-h-6 items-center leading-snug">
           {label ?? t("aiLabel")}
         </figcaption>
         <CopyButton
