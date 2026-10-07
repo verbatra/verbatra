@@ -34,7 +34,7 @@ Chaque outil est une action Studio avec le préfixe `verbatra_`. Les outils de l
 
 | Outil | Ce qu'il fait |
 | --- | --- |
-| `verbatra_project_snapshot` | la config chargée, les capacités et les limites de débit sous `capabilities.limits` |
+| `verbatra_project_snapshot` | la config chargée, les capacités et, sous `capabilities.limits`, les limites de débit de `retranslate` et `reviewDecision` |
 | `verbatra_status_check` | la couverture par locale |
 | `verbatra_status_diff` | les clés manquantes, modifiées et orphelines par locale |
 | `verbatra_glossary_get` | le glossaire résolu, secrets masqués |
@@ -76,7 +76,7 @@ Chaque appel passe par le RPC loopback authentifié du tableau de bord, avec la 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
 - **Provenance** : une modification de l'agent est enregistrée avec l'origine `agent` et reste dans la file de relecture ; une modification depuis le tableau de bord est `human`. Les outils de lecture indiquent qui a écrit chaque valeur ([Le fichier de verrouillage](/docs/the-lock-file#la-provenance-de-chaque-valeur)).
-- **Travail humain** : retraduire refuse la valeur d'une personne avec `KEY_PROTECTED` et une clé épinglée avec `KEY_PINNED`, et modifier refuse une clé épinglée ([Garder les traductions humaines](/docs/protecting-human-translations)).
+- **Travail humain** : retraduire refuse la valeur d'une personne avec `KEY_PROTECTED` (sauf avec `humanEdits: "overwrite"`) et une clé épinglée avec `KEY_PINNED`, et modifier refuse une clé épinglée ([Garder les traductions humaines](/docs/protecting-human-translations)).
 - **Décisions de relecture** : approuver et rejeter servent seulement à transmettre ta décision. Les deux exigent `reviewer`, le nom de la personne, et `expectedValue`, le texte relu ; une valeur modifiée est refusée avec `REVIEW_VALUE_CHANGED`.
 - **Pas d'outils groupés** : **Approve selected**, **Reject selected**, **Retranslate selected** et **Approve all in** restent entre les mains d'une personne.
 - **Estimer d'abord** : une locale inconnue est refusée avec `UNKNOWN_LOCALE` avant toute dépense, et c'est le plus bas des `maxTokens` de l'appel et de la config qui s'applique ([Estimer le coût avant une exécution](/docs/estimating-cost)).

@@ -34,7 +34,7 @@ Each tool is a Studio action with a `verbatra_` prefix. Read tools are marked re
 
 | Tool | What it does |
 | --- | --- |
-| `verbatra_project_snapshot` | the loaded config, the capabilities, and the rate limits under `capabilities.limits` |
+| `verbatra_project_snapshot` | the loaded config, the capabilities, and, under `capabilities.limits`, the `retranslate` and `reviewDecision` rate limits |
 | `verbatra_status_check` | coverage per locale |
 | `verbatra_status_diff` | missing, changed and orphaned keys per locale |
 | `verbatra_glossary_get` | the resolved glossary, secret-redacted |
@@ -76,7 +76,7 @@ Every call goes through the dashboard's own authenticated loopback RPC, with the
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
 - **Provenance**: an agent's edit is recorded with the origin `agent` and stays in the review queue; a dashboard edit is `human`. The read tools report who wrote each value ([The lock file](/docs/the-lock-file#provenance-who-wrote-each-value)).
-- **Human work**: retranslating refuses a person's value with `KEY_PROTECTED` and a pinned key with `KEY_PINNED`, and editing refuses a pinned key ([Keep human translations](/docs/protecting-human-translations)).
+- **Human work**: retranslating refuses a person's value with `KEY_PROTECTED` (except with `humanEdits: "overwrite"`) and a pinned key with `KEY_PINNED`, and editing refuses a pinned key ([Keep human translations](/docs/protecting-human-translations)).
 - **Review decisions**: approve and reject are for relaying your decision only. Both need `reviewer`, the person's name, and `expectedValue`, the text reviewed; a changed value is refused with `REVIEW_VALUE_CHANGED`.
 - **No bulk tools**: **Approve selected**, **Reject selected**, **Retranslate selected** and **Approve all in** stay with a person.
 - **Estimate first**: an unknown locale is refused with `UNKNOWN_LOCALE` before anything is spent, and the lower of the call's and the config's `maxTokens` applies ([Estimate cost before a run](/docs/estimating-cost)).

@@ -34,7 +34,7 @@ Cada herramienta es una acción de Studio con el prefijo `verbatra_`. Las de lec
 
 | Herramienta | Qué hace |
 | --- | --- |
-| `verbatra_project_snapshot` | la configuración cargada, las capacidades y los límites de frecuencia en `capabilities.limits` |
+| `verbatra_project_snapshot` | la configuración cargada, las capacidades y, en `capabilities.limits`, los límites de frecuencia de `retranslate` y `reviewDecision` |
 | `verbatra_status_check` | la cobertura por locale |
 | `verbatra_status_diff` | las claves faltantes, cambiadas y huérfanas por locale |
 | `verbatra_glossary_get` | el glosario resuelto, con los secretos ocultos |
@@ -76,7 +76,7 @@ Cada llamada pasa por el RPC de loopback autenticado del propio panel, con la mi
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
 - **Procedencia**: una edición del agente se registra con el origen `agent` y sigue en la cola de revisión; una edición desde el panel es `human`. Las herramientas de lectura indican quién escribió cada valor ([El archivo de bloqueo](/docs/the-lock-file#procedencia-quién-escribió-cada-valor)).
-- **Trabajo humano**: volver a traducir rechaza el valor de una persona con `KEY_PROTECTED` y una clave fijada con `KEY_PINNED`, y editar rechaza una clave fijada ([Conserva las traducciones humanas](/docs/protecting-human-translations)).
+- **Trabajo humano**: volver a traducir rechaza el valor de una persona con `KEY_PROTECTED` (salvo con `humanEdits: "overwrite"`) y una clave fijada con `KEY_PINNED`, y editar rechaza una clave fijada ([Conserva las traducciones humanas](/docs/protecting-human-translations)).
 - **Decisiones de revisión**: aprobar y rechazar sirven solo para transmitir tu decisión. Ambas necesitan `reviewer`, el nombre de la persona, y `expectedValue`, el texto revisado; un valor cambiado se rechaza con `REVIEW_VALUE_CHANGED`.
 - **Sin herramientas en lote**: **Approve selected**, **Reject selected**, **Retranslate selected** y **Approve all in** quedan en manos de una persona.
 - **Estima primero**: un locale desconocido se rechaza con `UNKNOWN_LOCALE` antes de gastar nada, y se aplica el `maxTokens` más bajo entre la llamada y la configuración ([Estima el coste antes de una ejecución](/docs/estimating-cost)).
