@@ -1,6 +1,6 @@
 import type { SupportedFormat } from "@verbatra/sdk";
 import type { StackIconKey } from "../components/stack-icons";
-import { NPM_FENCE_LANG } from "./install-commands";
+import { isNpmInstall, NPM_FENCE_LANG } from "./install-commands";
 
 export const STACK_IDS = ["react", "nextjs", "vue", "angular", "flutter"] as const;
 
@@ -422,7 +422,7 @@ export function stackInitCommand(stack: Stack): string {
 }
 
 export function installLang(command: string): string {
-  return command.startsWith("npm ") ? NPM_FENCE_LANG : "bash";
+  return isNpmInstall(command) ? NPM_FENCE_LANG : "bash";
 }
 
 export function stackBlock(stack: Stack, name: StackBlockName): readonly StackCode[] {

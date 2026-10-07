@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { readIncludedSource } from "@/lib/docs-pages";
-import { NPM_FENCE_LANG, NPM_INSTALL_COMMAND } from "@/lib/install-commands";
+import { isNpmInstall, NPM_FENCE_LANG, NPM_INSTALL_COMMAND } from "@/lib/install-commands";
 
 const DOCS_DIR = fileURLToPath(new URL("../", import.meta.url));
 const CONTENT_DIR = join(DOCS_DIR, "content/docs");
@@ -34,10 +34,10 @@ describe("the install command", () => {
   it("tabs only install commands, so every other command stays one npx line", () => {
     const fences = mdxPages().flatMap((file) =>
       [...readIncludedSource(join(CONTENT_DIR, file)).matchAll(/^```npm\n([^\n]*)\n```/gm)].map(
-        ([, command]) => `${file}: ${command}`,
+        ([, command = ""]) => ({ file, command }),
       ),
     );
     expect(fences.length).toBeGreaterThan(0);
-    expect(fences.filter((fence) => !/: npm install /.test(fence))).toEqual([]);
+    expect(fences.filter(({ command }) => !isNpmInstall(command))).toEqual([]);
   });
 });

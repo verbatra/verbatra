@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { expandStackBlocks, remarkStackBlocks, type StackMdxNode, titleMeta } from "./stack-blocks";
+import {
+  expandStackBlocks,
+  remarkStackBlocks,
+  type StackMdxNode,
+  SUPPORTED_FORMATS,
+  titleMeta,
+} from "./stack-blocks";
 import {
   initCommand,
+  installLang,
   STACK_BLOCK_NAMES,
   STACK_IDS,
   STACKS,
@@ -148,12 +155,18 @@ describe("InitCommand", () => {
     expect(initCommand(STACKS.vue.format)).toBe(stackInitCommand(STACKS.vue));
   });
 
-  it("refuses a missing or malformed format id", () => {
+  it.each(["a b", "toml", ""])("refuses %j, which is no supported format id", (format) => {
     const root: StackMdxNode = {
       type: "root",
-      children: [element("mdxJsxFlowElement", "InitCommand", { format: "a b" })],
+      children: [element("mdxJsxFlowElement", "InitCommand", { format })],
     };
-    expect(() => expandStackBlocks(root, {})).toThrow(/needs a format id/);
+    expect(() => expandStackBlocks(root, {})).toThrow(/needs a format id from i18next-json/);
+  });
+
+  it("reads the supported format ids from the published config schema", () => {
+    expect(SUPPORTED_FORMATS).toContain("android-xml");
+    expect(SUPPORTED_FORMATS).toContain("arb");
+    expect(SUPPORTED_FORMATS).not.toContain("custom:anything");
   });
 });
 
@@ -187,11 +200,20 @@ describe("StackOnly", () => {
 });
 
 describe("the runtime install block", () => {
-  it.each(STACK_IDS)(
-    "tabs an npm install by package manager and leaves %s's other tools alone",
-    (id) => {
-      const [block] = stackBlock(STACKS[id], "runtime-install");
-      expect(block?.lang).toBe(STACKS[id].runtimeInstall.startsWith("npm ") ? "npm" : "bash");
-    },
-  );
+  it.each([
+    ["react", "npm"],
+    ["nextjs", "npm"],
+    ["vue", "npm"],
+    ["angular", "npm"],
+    ["flutter", "bash"],
+  ] as const)("renders %s's install as a %s fence", (id, lang) => {
+    const [block] = stackBlock(STACKS[id], "runtime-install");
+    expect(block?.lang).toBe(lang);
+  });
+
+  it("tabs only an npm install, never another npm command", () => {
+    expect(installLang("npm install vue-i18n")).toBe("npm");
+    expect(installLang("npm run build")).toBe("bash");
+    expect(installLang("npx @verbatra/cli check")).toBe("bash");
+  });
 });

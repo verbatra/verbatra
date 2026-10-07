@@ -1,3 +1,4 @@
+import configSchema from "@verbatra/sdk/config-schema.json" with { type: "json" };
 import {
   CODE_TEXT_FIELDS,
   initCommand,
@@ -17,7 +18,11 @@ export const STACK_TEXT_COMPONENT = "StackText";
 export const STACK_ONLY_COMPONENT = "StackOnly";
 export const INIT_COMMAND_COMPONENT = "InitCommand";
 
-const FORMAT_ID = /^[a-z0-9-]+$/;
+type FormatSchema = { properties: { format: { anyOf: readonly { enum?: readonly string[] }[] } } };
+
+export const SUPPORTED_FORMATS: readonly string[] = (
+  configSchema as FormatSchema
+).properties.format.anyOf.flatMap((variant) => variant.enum ?? []);
 
 type MdxAttribute = { type: string; name?: string; value?: unknown };
 
@@ -121,8 +126,10 @@ function expandChildren(stack: Stack, node: StackMdxNode): void {
 
 function initCommandNode(node: StackMdxNode): StackMdxNode {
   const format = attribute(node, "format");
-  if (format === undefined || !FORMAT_ID.test(format)) {
-    throw new Error(`<${INIT_COMMAND_COMPONENT}> needs a format id, such as format="arb"`);
+  if (format === undefined || !SUPPORTED_FORMATS.includes(format)) {
+    throw new Error(
+      `<${INIT_COMMAND_COMPONENT}> needs a format id from ${SUPPORTED_FORMATS.join(", ")}`,
+    );
   }
   return { type: "code", lang: "bash", meta: null, value: initCommand(format) };
 }
