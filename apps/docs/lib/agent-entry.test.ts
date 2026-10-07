@@ -2,12 +2,15 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { AGENT_CLIENT_CONFIGS } from "@verbatra/cli";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
+  CLI_MODULE,
   type MarkdownLocale,
   markdownLocale,
+  mcpInstallConfigsFrom,
   mcpInstallLabel,
   remarkAgentEntryMarkdown,
+  STALE_CLI_BUILD_MESSAGE,
   START_HERE_COMPONENT,
   START_HERE_PAGES,
   START_HERE_SILENT_IN_MARKDOWN,
@@ -225,5 +228,32 @@ describe("remarkAgentEntryMarkdown", () => {
       children: [{ type: "blockquote", children: [banner] }],
     });
     expect(banner.data?._stringify).toEqual({ text: startHereMarkdown("en") });
+  });
+});
+
+describe("the CLI agent configs the install link is built from", () => {
+  it.each([{}, { AGENT_CLIENT_CONFIGS: undefined }, { AGENT_CLIENT_CONFIGS: { claude: {} } }])(
+    "fail with the build command, not a property read on undefined, when the @verbatra/cli dist predates them (%j)",
+    (cli) => {
+      expect(() => mcpInstallConfigsFrom(cli)).toThrow(STALE_CLI_BUILD_MESSAGE);
+    },
+  );
+
+  it("name the command that rebuilds the dist", () => {
+    expect(STALE_CLI_BUILD_MESSAGE).toContain("pnpm turbo run build --filter=@verbatra/docs^...");
+  });
+
+  it("come from the current @verbatra/cli build", () => {
+    expect(mcpInstallConfigsFrom({ AGENT_CLIENT_CONFIGS })).toBe(AGENT_CLIENT_CONFIGS);
+  });
+
+  it("register the @verbatra/cli entry as a compile dependency, so a rebuilt dist recompiles the page instead of replaying a cached failure", async () => {
+    const addDependency = vi.fn();
+    await remarkAgentEntryMarkdown()(
+      { type: "root", children: [] },
+      { path: "/x/page.de.mdx", data: { _compiler: { addDependency } } },
+    );
+    expect(addDependency).toHaveBeenCalledWith(fileURLToPath(import.meta.resolve(CLI_MODULE)));
+    expect(addDependency.mock.calls[0]?.[0]).toMatch(/packages[\\/]cli[\\/]dist[\\/]lib\.js$/);
   });
 });
