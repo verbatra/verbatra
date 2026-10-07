@@ -54,7 +54,7 @@ describe("StartHere", () => {
   it("keeps the agent command on one line, scrolling sideways instead of wrapping", () => {
     const code = render(<StartHere />).querySelector("code");
     expect(code?.classList.contains("whitespace-nowrap")).toBe(true);
-    expect(code?.classList.contains("vk-terminal-scroll")).toBe(true);
+    expect(code?.classList.contains("vk-edge-fade")).toBe(true);
     expect(code?.className).not.toContain("whitespace-normal");
   });
 

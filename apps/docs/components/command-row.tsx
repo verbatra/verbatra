@@ -34,7 +34,7 @@ export function CommandRow({
       </span>
       <code
         className={cn(
-          "vk-terminal-scroll min-w-0 flex-1 whitespace-nowrap pt-1 text-[color:var(--text-strong)]",
+          "vk-edge-fade min-w-0 flex-1 whitespace-nowrap pt-1 text-[color:var(--text-strong)]",
           wrapsWhenNarrow && "@max-[30rem]:whitespace-normal",
         )}
       >

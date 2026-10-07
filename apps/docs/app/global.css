@@ -1324,6 +1324,43 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
     var(--v-void);
 }
 
+@property --vk-edge-fade {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@keyframes vk-edge-fade {
+  from {
+    --vk-edge-fade: 48px;
+  }
+
+  to {
+    --vk-edge-fade: 0px;
+  }
+}
+
+.vk-edge-fade {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-default) transparent;
+  -webkit-mask-image: linear-gradient(to left, transparent, #000 var(--vk-edge-fade));
+  mask-image: linear-gradient(to left, transparent, #000 var(--vk-edge-fade));
+}
+
+@supports (animation-timeline: scroll()) {
+  .vk-edge-fade {
+    scrollbar-width: none;
+    animation: vk-edge-fade linear both;
+    animation-timeline: scroll(self inline);
+  }
+
+  .vk-edge-fade::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 .vk-breadcrumb .vk-pill-status {
   display: none;
 }
