@@ -33,6 +33,7 @@ import {
 } from "@verbatra/sdk";
 import { Argument, Command, CommanderError } from "commander";
 import { z } from "zod";
+import { AGENT_CLIENT_CONFIGS, AGENT_CLIENT_IDS, CLIENT_FLAG_VALUES } from "./agent-clients.js";
 import type { CliErrorCode } from "./cli-error-codes.js";
 import { usageErrorHint } from "./cli-error-hints.js";
 import { CliUsageError } from "./cli-usage-error.js";
@@ -2312,7 +2313,7 @@ function registerInitCommand(program: Command, ctx: ProgramContext): void {
     )
     .option(
       "--path <pattern>",
-      "locale file pattern containing the {locale} token (default: detected, else locales/{locale}.json)",
+      "locale file pattern containing the {locale} token (default: detected, else the format's default layout)",
     )
     .option("--model <name>", "model to use (required for openai-compatible)")
     .option(
@@ -2328,11 +2329,11 @@ function registerInitCommand(program: Command, ctx: ProgramContext): void {
     .option("--json", "print one JSON document describing what was written; never prompts")
     .option(
       "--agent",
-      "also write verbatra rules for coding agents to AGENTS.md (or CLAUDE.md) and the verbatra MCP server, spending off, to each detected client's project config (.mcp.json, .cursor/mcp.json, .vscode/mcp.json)",
+      `also write verbatra rules for coding agents to AGENTS.md (or CLAUDE.md) and the verbatra MCP server, spending off, to each detected client's project config (${AGENT_CLIENT_IDS.map((id) => AGENT_CLIENT_CONFIGS[id].file).join(", ")}; .mcp.json when none is detected)`,
     )
     .option(
       "--client <ids>",
-      "comma-separated clients --agent wires instead of the detected ones: claude, cursor, vscode, or all",
+      `comma-separated clients --agent wires instead of the detected ones: ${CLIENT_FLAG_VALUES.join(", ")}`,
     )
     .option("--dry-run", "report every file init would write or change, and write nothing")
     .action(async (opts: InitOpts) => {
