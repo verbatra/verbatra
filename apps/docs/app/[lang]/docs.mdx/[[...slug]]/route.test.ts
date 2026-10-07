@@ -28,7 +28,8 @@ const PAGES: Record<string, Record<string, FakePage>> = {
       data: {
         title: "Die Lock-Datei",
         description: "Wie verbatra.lock.json funktioniert.",
-        getText: async () => "## Baseline\n\nEin Hash pro Key.",
+        getText: async () =>
+          "## Baseline\n\nEin Hash pro Key, siehe [Formate](/de/docs/formats#yaml).\n\n```md\n[x](/docs/a)\n```",
       },
     },
   },
@@ -67,7 +68,13 @@ describe("GET /[lang]/docs.mdx/[[...slug]]", () => {
   it("serves the locale's own content for a non-default locale", async () => {
     const body = await (await request(["the-lock-file"], "de")).text();
     expect(body).toContain("# Die Lock-Datei");
-    expect(body).toContain("Ein Hash pro Key.");
+    expect(body).toContain("Ein Hash pro Key");
+  });
+
+  it("serves site-relative links as absolute markdown URLs and leaves code fences alone", async () => {
+    const body = await (await request(["the-lock-file"], "de")).text();
+    expect(body).toContain("[Formate](https://verbatra.kreitz-webdev.de/de/docs/formats.md#yaml)");
+    expect(body).toContain("```md\n[x](/docs/a)\n```");
   });
 
   it("omits the description block when the page has none", async () => {

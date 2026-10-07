@@ -1,4 +1,5 @@
 import { i18n } from "@/lib/i18n";
+import { absolutizeMarkdownLinks } from "@/lib/markdown-links";
 import { pageFrontmatter } from "@/lib/page-frontmatter";
 import { SITE_URL } from "@/lib/site";
 import { source } from "@/lib/source";
@@ -7,7 +8,7 @@ export const dynamic = "force-static";
 
 async function renderPage(page: ReturnType<typeof source.getPages>[number]): Promise<string> {
   const url = new URL(page.url, SITE_URL).href;
-  const markdown = await page.data.getText("processed");
+  const markdown = absolutizeMarkdownLinks(await page.data.getText("processed"));
   return `${pageFrontmatter(page.data)}# ${page.data.title} (${url})\n\n${markdown}`;
 }
 
