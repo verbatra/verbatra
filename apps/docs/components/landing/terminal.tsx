@@ -21,6 +21,7 @@ export type TerminalProps = {
   headerAction?: ReactNode;
   bare?: boolean;
   playThreshold?: number;
+  settledCommands?: number;
   className?: string;
 };
 
@@ -40,6 +41,7 @@ type PlayerContext = {
   delayBetweenCommands: number;
   initialDelay: number;
   loop: boolean;
+  settledCommands: number;
 };
 
 async function typeCommand(ctx: PlayerContext, cmd: string): Promise<boolean> {
@@ -49,7 +51,7 @@ async function typeCommand(ctx: PlayerContext, cmd: string): Promise<boolean> {
     ctx.scroll();
     await delay(ctx.typingSpeed);
   }
-  return true;
+  return !ctx.isCancelled();
 }
 
 async function printOutputs(ctx: PlayerContext, lines: ReadonlyArray<string>): Promise<boolean> {
@@ -59,7 +61,7 @@ async function printOutputs(ctx: PlayerContext, lines: ReadonlyArray<string>): P
     ctx.scroll();
     await delay(90);
   }
-  return true;
+  return !ctx.isCancelled();
 }
 
 async function runCommand(
@@ -78,15 +80,17 @@ async function runCommand(
 }
 
 async function playLoop(ctx: PlayerContext): Promise<void> {
+  let start = ctx.settledCommands;
   while (!ctx.isCancelled()) {
-    ctx.reset();
+    if (start === 0) ctx.reset();
     await delay(ctx.initialDelay);
-    for (let i = 0; i < ctx.commands.length; i += 1) {
+    for (let i = start; i < ctx.commands.length; i += 1) {
       const cmd = ctx.commands[i];
       if (cmd === undefined) continue;
       if (!(await runCommand(ctx, cmd, ctx.outputs?.[i] ?? []))) return;
     }
     if (!ctx.loop) return;
+    start = 0;
     await delay(HOLD_PAUSE_MS);
   }
 }
@@ -183,11 +187,14 @@ export function Terminal({
   headerAction,
   bare = false,
   playThreshold = 0.4,
+  settledCommands = 0,
   className,
 }: TerminalProps): ReactNode {
   const [rootRef, inView] = useInViewOnce<HTMLDivElement>(playThreshold);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [history, setHistory] = useState<Line[]>([]);
+  const [history, setHistory] = useState<Line[]>(() =>
+    buildSettled(commands.slice(0, settledCommands), outputs),
+  );
   const [typing, setTyping] = useState<string | null>(null);
 
   useEffect(() => {
@@ -200,6 +207,8 @@ export function Terminal({
     }
 
     let cancelled = false;
+    setHistory(buildSettled(commands.slice(0, settledCommands), outputs));
+    setTyping(null);
     const ctx: PlayerContext = {
       isCancelled: () => cancelled,
       setTyping,
@@ -220,13 +229,23 @@ export function Terminal({
       delayBetweenCommands,
       initialDelay,
       loop,
+      settledCommands,
     };
     void playLoop(ctx);
 
     return () => {
       cancelled = true;
     };
-  }, [inView, commands, outputs, typingSpeed, delayBetweenCommands, initialDelay, loop]);
+  }, [
+    inView,
+    commands,
+    outputs,
+    typingSpeed,
+    delayBetweenCommands,
+    initialDelay,
+    loop,
+    settledCommands,
+  ]);
 
   return (
     <div

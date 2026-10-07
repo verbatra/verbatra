@@ -5,9 +5,28 @@ type: overview
 ---
 
 <DocsHomeHeader
+  eyebrow="Documentation"
   headline="Set up verbatra and keep every locale in sync."
-  lead="Guides and reference for the CLI, the SDK, Studio, and the MCP server. Install the CLI, then set it up with the quickstart, or hand your agent the prompt."
+  lead="Guides and reference for the CLI, the SDK, Studio, and the MCP server: start with the quickstart, or let your coding agent set verbatra up."
+>
+
+<DocsHomeTabs
+  label="Entry points"
+  tabs={[
+    { label: "Quickstart", href: "/docs/quickstart" },
+    { label: "CLI", href: "/docs/cli" },
+    { label: "SDK", href: "/docs/sdk" },
+    { label: "GitHub Action", href: "/docs/github-action" },
+    { label: "MCP server", href: "/docs/cli/mcp" },
+    { label: "Studio", href: "/docs/review-in-studio" },
+  ]}
 />
+
+<DocsHomeAgentTip title="Using a coding agent?">
+Copy the prompt into Claude Code, Cursor, or any coding agent, and it sets verbatra up for you; [Set up with an AI agent](/docs/start-with-ai) shows each step. To let it read and edit your translations directly, connect the [MCP server](/docs/cli/mcp).
+</DocsHomeAgentTip>
+
+</DocsHomeHeader>
 
 <DocsHomeBody>
 
@@ -20,7 +39,6 @@ type: overview
       page: "Quickstart",
       body: "Install the CLI, preview the run without a key, then translate your first file.",
       href: "/docs/quickstart",
-      primary: true,
     },
     {
       goal: "Gate pull requests",
@@ -34,12 +52,6 @@ type: overview
       body: "Export a workbook for a person to translate, then import it back.",
       href: "/docs/manual-translation",
     },
-    {
-      goal: "Use with an AI agent",
-      page: "Set up with AI",
-      body: "Give Claude Code, Cursor, or any coding agent a copy-pasteable prompt.",
-      href: "/docs/start-with-ai",
-    },
   ]}
 />
 
@@ -50,23 +62,26 @@ type: overview
 <StackCards
   labelledBy="pick-your-stack"
   cards={[
-    { label: "React", icon: "react", formats: ["i18next-json"], href: "/docs/quickstart/react", badge: "Quickstart" },
-    { label: "Next.js", icon: "next", formats: ["next-intl-json"], href: "/docs/quickstart/nextjs", badge: "Quickstart" },
-    { label: "Vue", icon: "vue", formats: ["vue-i18n-json"], href: "/docs/quickstart/vue", badge: "Quickstart" },
-    { label: "Nuxt", icon: "nuxt", formats: ["vue-i18n-json"], href: "/docs/pick-your-stack#vue-and-nuxt-with-vue-i18n" },
-    { label: "Angular", icon: "angular", formats: ["ngx-translate-json"], href: "/docs/quickstart/angular", badge: "Quickstart" },
-    { label: "Flutter", icon: "flutter", formats: ["arb"], href: "/docs/quickstart/flutter", badge: "Quickstart" },
-    { label: "Android", icon: "android", formats: ["android-xml"], href: "/docs/pick-your-stack#android" },
-    { label: "iOS and macOS", icon: "apple", formats: ["apple-strings", "apple-xcstrings"], href: "/docs/pick-your-stack#ios-and-macos" },
-    { label: "gettext", icon: "gnu", formats: ["gettext-po"], href: "/docs/pick-your-stack#gettext" },
-    { label: "Java and Spring", icon: "spring", formats: ["properties"], href: "/docs/pick-your-stack#java-and-spring" },
-    { label: ".NET", icon: "dotnet", formats: ["resx"], href: "/docs/pick-your-stack#net" },
-    { label: "YAML", icon: "yaml", formats: ["yaml"], href: "/docs/pick-your-stack#yaml" },
-    { label: "XLIFF", icon: "xliff", formats: ["xliff"], href: "/docs/pick-your-stack#xliff" },
-    { label: "INI", icon: "ini", formats: ["ini"], href: "/docs/pick-your-stack#ini" },
-    { label: "Something else", icon: "custom", formats: [], href: "/docs/pick-your-stack#something-else" },
+    { label: "React", icon: "react", formats: ["i18next-json"], href: "/docs/quickstart/react", badge: "Quickstart", description: "Translate i18next JSON files in a React app." },
+    { label: "Next.js", icon: "next", formats: ["next-intl-json"], href: "/docs/quickstart/nextjs", badge: "Quickstart", description: "Keep next-intl message files in sync across every locale." },
+    { label: "Vue", icon: "vue", formats: ["vue-i18n-json"], href: "/docs/quickstart/vue", badge: "Quickstart", description: "Translate vue-i18n JSON messages in a Vue app." },
+    { label: "Nuxt", icon: "nuxt", formats: ["vue-i18n-json"], href: "/docs/pick-your-stack#vue-and-nuxt-with-vue-i18n", description: "Translate vue-i18n JSON messages in a Nuxt app." },
+    { label: "Angular", icon: "angular", formats: ["ngx-translate-json"], href: "/docs/quickstart/angular", badge: "Quickstart", description: "Translate ngx-translate JSON files in an Angular app." },
+    { label: "Flutter", icon: "flutter", formats: ["arb"], href: "/docs/quickstart/flutter", badge: "Quickstart", description: "Translate ARB files for Flutter's gen-l10n." },
+    { label: "Android", icon: "android", formats: ["android-xml"], href: "/docs/pick-your-stack#android", description: "Translate strings.xml resources, one folder per locale." },
+    { label: "iOS and macOS", icon: "apple", formats: ["apple-strings", "apple-xcstrings"], href: "/docs/pick-your-stack#ios-and-macos", description: "Translate .strings, .stringsdict, and String Catalogs." },
+    { label: "gettext", icon: "gnu", formats: ["gettext-po"], href: "/docs/pick-your-stack#gettext", description: "Translate PO files from a POT template." },
+    { label: "Java and Spring", icon: "spring", formats: ["properties"], href: "/docs/pick-your-stack#java-and-spring", description: "Translate .properties message bundles." },
+    { label: ".NET", icon: "dotnet", formats: ["resx"], href: "/docs/pick-your-stack#net", description: "Translate .resx resource files." },
+    { label: "YAML", icon: "yaml", formats: ["yaml"], href: "/docs/pick-your-stack#yaml", description: "Translate nested YAML locale files." },
+    { label: "XLIFF", icon: "xliff", formats: ["xliff"], href: "/docs/pick-your-stack#xliff", description: "Translate XLIFF files, the format translation tools exchange." },
+    { label: "INI", icon: "ini", formats: ["ini"], href: "/docs/pick-your-stack#ini", description: "Translate flat INI locale files." },
   ]}
 />
+
+<DocsHomeNote>
+Don't see your stack? Start with the [generic quickstart](/docs/quickstart), or teach verbatra your format with a [custom format adapter](/docs/custom-format-adapters).
+</DocsHomeNote>
 
 </DocsHomeSection>
 

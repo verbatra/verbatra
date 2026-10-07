@@ -4,7 +4,7 @@ import { Fragment, type ReactNode } from "react";
 import { StackIcon, type StackIconKey, StackIconSprite } from "@/components/stack-icons";
 import { type Locale, localizeHref } from "@/lib/i18n";
 
-const ICON_SIZE = 20;
+const ICON_SIZE = 28;
 
 export const FORMAT_ID_CLASS = "whitespace-nowrap @max-[23.5rem]:whitespace-normal";
 
@@ -14,6 +14,7 @@ export type StackCard = {
   icon: StackIconKey;
   formats: ReadonlyArray<SupportedFormat>;
   badge?: string;
+  description?: string;
 };
 
 export function stackIconPrefix(labelledBy: string): string {
@@ -22,15 +23,69 @@ export function stackIconPrefix(labelledBy: string): string {
 
 function FormatIds({ formats }: { formats: ReadonlyArray<SupportedFormat> }): ReactNode {
   return (
-    <span className="font-mono text-xs text-[color:var(--text-faint)]">
-      <span className="sr-only">: </span>
+    <p className="vk-stack-card-formats">
       {formats.map((format, index) => (
         <Fragment key={format}>
           {index > 0 ? ", " : null}
           <span className={FORMAT_ID_CLASS}>{format}</span>
         </Fragment>
       ))}
-    </span>
+    </p>
+  );
+}
+
+function Chevron(): ReactNode {
+  return (
+    <svg
+      aria-hidden="true"
+      className="vk-stack-card-chevron"
+      viewBox="0 0 3 6"
+      width="5"
+      height="10"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M0 0L3 3L0 6" />
+    </svg>
+  );
+}
+
+function Card({
+  card,
+  prefix,
+  locale,
+}: {
+  card: StackCard;
+  prefix: string;
+  locale: Locale;
+}): ReactNode {
+  return (
+    <li className="vk-stack-card">
+      <div className="vk-stack-card-text">
+        <p className="vk-stack-card-name">
+          <Link href={localizeHref(locale, card.href) ?? card.href} className="vk-stack-card-link">
+            {card.label}
+            {card.badge === undefined ? null : (
+              <span className="vk-pill vk-stack-card-badge">
+                <span className="sr-only">, </span>
+                {card.badge}
+              </span>
+            )}
+          </Link>
+          <Chevron />
+        </p>
+        {card.description === undefined ? null : (
+          <p className="vk-stack-card-description">{card.description}</p>
+        )}
+        {card.formats.length > 0 ? <FormatIds formats={card.formats} /> : null}
+      </div>
+      <span aria-hidden="true" className="vk-stack-card-chip">
+        <StackIcon prefix={prefix} icon={card.icon} size={ICON_SIZE} />
+      </span>
+    </li>
   );
 }
 
@@ -47,28 +102,9 @@ export function StackCards({
   return (
     <nav aria-labelledby={labelledBy} className="not-prose @container my-6">
       <StackIconSprite prefix={prefix} icons={cards.map((card) => card.icon)} />
-      <ul className="vk-stack-grid m-0 grid list-none gap-3 p-0">
+      <ul className="vk-stack-grid">
         {cards.map((card) => (
-          <li key={card.href} className="m-0 flex p-0">
-            <Link
-              href={localizeHref(locale, card.href) ?? card.href}
-              className="vk-stack-card flex min-h-16 w-full items-center gap-3 rounded-xl border px-3.5 py-3"
-            >
-              <span aria-hidden="true" className="vk-stack-card-chip">
-                <StackIcon prefix={prefix} icon={card.icon} size={ICON_SIZE} />
-              </span>
-              <span className="grid min-w-0 gap-0.5">
-                <span className="vk-stack-card-name">{card.label}</span>
-                {card.formats.length > 0 ? <FormatIds formats={card.formats} /> : null}
-                {card.badge === undefined ? null : (
-                  <span className="vk-pill vk-stack-card-badge">
-                    <span className="sr-only">, </span>
-                    {card.badge}
-                  </span>
-                )}
-              </span>
-            </Link>
-          </li>
+          <Card key={card.href} card={card} prefix={prefix} locale={locale} />
         ))}
       </ul>
     </nav>

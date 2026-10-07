@@ -2,6 +2,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { StudioScreenshot } from "@/components/studio-screenshot";
 import { type Locale, localizedAnchorPath, localizedPath } from "@/lib/i18n";
+import { SKILLS_INSTALL_COMMAND } from "@/lib/install-commands";
 import { cn } from "@/lib/utils";
 import { CommandBox } from "./command-box";
 import { SKILLS_PACK_ANCHORS, SKILLS_PACK_PAGE } from "./links";
@@ -23,8 +24,6 @@ const CHECK_JSON_EXCERPT = [
   '    { "locale": "de", "missing": 0, "stale": 2 }',
   "  ] } }",
 ];
-
-const SKILL_INSTALL = `npx skills@latest add verbatra/skills --skill verbatra-cli -a claude-code -y`;
 
 function Frame({ children, className }: { children: ReactNode; className?: string }): ReactNode {
   return (
@@ -165,7 +164,7 @@ export async function Loop(): Promise<ReactNode> {
         >
           <Frame>
             <div className="grid gap-2.5 p-5">
-              {box(SKILL_INSTALL)}
+              {box(SKILLS_INSTALL_COMMAND)}
               {box("verbatra mcp")}
             </div>
             <p className="flex flex-wrap gap-x-5 gap-y-2 px-5 pb-5 text-sm">

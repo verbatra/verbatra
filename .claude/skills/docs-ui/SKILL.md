@@ -62,8 +62,8 @@ Three layers exist. Write against the third.
    Two brand hues, nothing else. Do not introduce a third brand hue casually. Beside them sit a
    few tints with one job each, never a general palette: `--v-glow-soft` (the lighter end of
    `--gradient-headline`, and flag tokens in `Terminal`), `--v-violet` (the far end of
-   `--gradient-headline` and one corner of `HERO_BACKGROUND` in `fx/hero-wash.ts`), `--v-pink`
-   (only through `--v-status-changed`), and `--v-status-new` / `--v-status-changed` /
+   `--gradient-headline` and one corner of `--wash-hero`), `--v-pink`
+   (through `--v-status-changed`, and a faint corner of `--wash-hero`), and `--v-status-new` / `--v-status-changed` /
    `--v-status-unchanged` (the `tone` colors of `components/ui/badge.tsx`). Reach for one only in
    the role it already has.
 2. **Fumadocs overrides.** `--color-fd-background`, `--color-fd-card`, `--color-fd-popover`,
@@ -91,11 +91,24 @@ Scales are fixed and narrow, deliberately:
 
 - Radii: `--radius-sm` 6px, `--radius-md` 10px, and `--radius-lg`, `--radius-xl`,
   `--radius-2xl` all 12px. The large sizes collapsing to one value is intentional. Do not
-  reintroduce a spread.
+  reintroduce a spread. The one larger radius is `--radius-hero` (24px), for the landing hero
+  card (`.vk-hero-surface`) only.
 - Shadows: `--shadow-panel` (a purple-tinted lift) and `--shadow-sm`. Two, not a ramp. The one
   exception is the providers deck (`.vk-card` in `app/global.css`): its resting and fanned-out
   shadows are part of the fan motion and stay local to it; do not reuse them elsewhere.
 - Layout: `--gutter` (40px from 768px up) via `.vk-gutter`, `--width-wide` via `.vk-w-wide`.
+  `--cta-height` (56px) is the minimum height of the hero's two calls to action (`.vk-hero-cta`
+  on "Get started", `.vk-prompt-trigger` on `PromptCopyButton`); `--width-prompt-pop` (30rem,
+  capped by `100cqw` of its container, never by `100vw`, which counts the scrollbar) is the width
+  of the `.vk-prompt-pop` preview;
+  `--width-hero-actions` (32rem) is the one width of the hero's call to action row
+  (`.vk-hero-cta-row`, two equal columns from 640px) and its install row (`.vk-hero-command`), and
+  the hero grid's centre column from 90rem, with `--hero-grid-column-gap` (2rem) between its
+  columns.
+- Motion: `--ease-out` with `--duration-fast` and `--duration-base` for transitions;
+  `--duration-drift` (32s) is the hero wash's `vk-hero-drift` loop, a `transform` on the
+  `.vk-hero-wash::before` layer (never a `background-position` animation), which runs only under
+  `prefers-reduced-motion: no-preference`.
 
 ## Typography
 
@@ -111,7 +124,9 @@ Three families, loaded in `app/[lang]/layout.tsx` through `next/font/google`:
 per component. Adding a fourth family needs a reason that survives review.
 
 The type scale is a major third (1.25) held in `app/global.css`: `--text-display`, `--text-h2`,
-`--text-h3`, `--text-h4`, `--text-lead`, with `--leading-*` and `--tracking-*` companions. Landing
+`--text-h3`, `--text-h4`, `--text-lead`, with `--leading-*` and `--tracking-*` companions. Above
+it sits `--text-hero` (fluid, up to 6.5rem) with `--leading-hero` (0.95) and `--tracking-hero`
+(-0.045em), used only by the landing headline (`.vk-hero-title`). Landing
 headings take the `.vk-display`, `.vk-h2`, `.vk-h3`, `.vk-h4` and `.vk-lead` classes (declared in
 `@layer components`, so a Tailwind utility still overrides them) rather than inline `fontSize` /
 `letterSpacing` styles. The docs page title, description and prose `h2` to `h4` sit on the same
@@ -122,7 +137,13 @@ footer's oversized watermark only; do not clip it onto a heading.
 
 ## Reuse before you build
 
-- **Primitives:** `components/ui/` holds `badge`, `button`, `command-line`, `copy-button`, `tabs`.
+- **Primitives:** `components/ui/` holds `badge`, `button`, `command-line`, `copy-announcement`,
+  `copy-button`, `tabs`. Every copy control runs on `useCopyToClipboard` (`lib/`: `idle`, `copied`,
+  `failed`, an `attempts` count, `reset`, and `holdFailure` to keep a failure until the next copy)
+  and announces through `CopyAnnouncement`, a polite live region whose text node is keyed on
+  `attempts`, so a repeated copy is announced again. `CopyButton` shows "Copied" or, in
+  `--text-danger`, "Copy failed", and drops its `aria-label` while it does, so the visible status
+  is its accessible name; `CommandLine` renders `CopyButton` rather than its own button.
   `TabList` takes an `idPrefix` to wire `id` / `aria-controls` to `tabPanelId` panels and handles
   arrow-key focus.
   `Button` takes `variant: "primary" | "secondary" | "ghost"` and `size: "sm" | "md" | "lg"`.
@@ -134,24 +155,21 @@ footer's oversized watermark only; do not clip it onto a heading.
   wrap, they scroll sideways inside `.vk-terminal-scroll`, which fades the end edge while there is
   more to see), `hero-demo.tsx` (the hero's Terminal /
   Studio tabs), `evidence.tsx` (the mono evidence chip; a linked chip
-  takes the flat-panel glow border on hover and focus through `.vk-evidence-link`), `package-install.tsx` and
-  `command-box.tsx` (each an `@container`: a command wraps once the box is under 30rem, only at
-  a space since `HighlightedCommand` keeps each word whole, so the package name is never clipped;
-  it is an ordered list of two numbered steps, each under a `.vk-label` caption with its number
-  in an outline circle like the docs `Steps` rail: "Install", one `CommandRow`
-  (`components/command-row.tsx`) for the npm install, which wraps under 30rem (elsewhere a
-  `CommandRow` scrolls sideways inside `.vk-edge-fade`: a mask, not a painted background, so it
-  stays see-through on the translucent hero, and the end fade shows only while the command
-  overflows, driven by a scroll timeline), then "Set up", a
-  link to the quickstart, since `init --agent` cannot be a new project's first step; its last row
-  is `AiSetupPrompt` (`components/ai-setup-prompt.tsx`, captioned "Or let your agent set it up"
-  there through its `label` prop): the whole one-line prompt, wrapped, under a `.vk-label` caption that shares its row with the
-  prompt's small Copy button until the caption needs the whole row, when the button wraps under
-  it; its URL breaks only after a path `/`, never inside the scheme or
-  host, through `breakUrlsAtSlashes` in `lib/word-breaks.tsx`), `reveal.tsx` (the scroll
-  entrance, used once: the providers deck, whose fan-out it triggers; sections do not animate in), `hero-facts.tsx` (the release / formats / providers /
-  license row), and an `fx/` folder
-  (`grid-pattern.ts`, `hero-wash.ts` with `HERO_BACKGROUND` and `HERO_BORDER`). A new
+  takes the flat-panel glow border on hover and focus through `.vk-evidence-link`),
+  `command-box.tsx` (an `@container`: a command wraps once the box is under 30rem, only at
+  a space since `HighlightedCommand` keeps each word whole, so the package name is never clipped),
+  `CommandRow` (`components/command-row.tsx`: the hero's npm install wraps under 30rem through
+  `wrapsWhenNarrow`; elsewhere a `CommandRow` scrolls sideways inside `.vk-edge-fade`: a mask,
+  not a painted background, so it stays see-through on the translucent hero, and the end fade
+  shows only while the command overflows, driven by a scroll timeline), `AiSetupPrompt`
+  (`components/ai-setup-prompt.tsx`: the whole prompt, wrapped, under a `.vk-label` caption that
+  shares its row with the prompt's small Copy button; its URL breaks only after a path `/`,
+  through `breakUrlsAtSlashes` in `lib/word-breaks.tsx`) and `PromptCopyButton` in the same file
+  (the large "Start with a prompt" button with the `.vk-prompt-pop` preview, used by the hero
+  and the docs home agent tip), `reveal.tsx` (the scroll
+  entrance, used once: the providers deck, whose fan-out it triggers; sections do not animate in), `hero-facts.tsx` (the right-aligned mono release / formats / providers /
+  license / GitHub table, `HERO_FACTS` in `lib/landing-facts.ts`), and an `fx/` folder
+  (`grid-pattern.ts`). A new
   section composes `Section` plus `SectionHead`; it does not re-derive page padding or
   heading rhythm. Check `ls apps/docs/components/landing` before quoting a file name from
   this list. Every CLI transcript on the landing (`lib/hero-demo.ts`, `lib/gate-demo.ts`) is
@@ -162,7 +180,7 @@ footer's oversized watermark only; do not clip it onto a heading.
   `START_HERE_PAGES` (`lib/agent-entry.ts`, the agent guides only, not reference pages): a void
   `aside` at the prose measure with no start bar (so it never doubles the locale notice's
   callout bar), a `.vk-label` title and one lead, then the agent `CommandRow` for
-  `AGENT_INIT_COMMAND` and the same `AiSetupPrompt` row as the install box, so
+  `AGENT_INIT_COMMAND` and the same `AiSetupPrompt` row, so
   `AGENT_INIT_COMMAND` and `AI_SETUP_PROMPT` (`lib/ai-setup-prompt.ts`) each have one source. `<McpInstallLink client="vscode" />`
   (`components/mcp-install-link.tsx`; VS Code only, since a Cursor link installs user-wide where
   `${workspaceFolder}` is the home folder) is a plain anchor in the
@@ -175,37 +193,61 @@ footer's oversized watermark only; do not clip it onto a heading.
   Markdown link with its localized label.
   `components/available-from.tsx` renders the version badge. Its rules
   live in `.claude/rules/docs.md`. `components/docs-home.tsx` holds the docs landing
-  (`DocsHomeHeader`, `DocsHomeBody`, `DocsHomeSection`, `DocsHomePaths`, `DocsHomeSteps`,
-  `DocsHomeFeatures`), all registered in `components/mdx.tsx` and driven by
-  `content/docs/index.mdx` and its three locale siblings. The docs home is a docs entry, not a
-  second landing: `DocsHomeHeader` is a compact header (its own headline at the docs `<h1>` size,
-  one lead, and `PackageInstall` beside it from `lg` up), with no hero wash, no buttons and no
-  facts row, so the first section head sits above the fold. The header and the body share one
-  frame (`HOME_FRAME`: one max width, one gutter), so they start and end on the same edges; a
-  section head sets its `vk-h3` heading and its lead on the header's column template, so each
-  lead starts on the install box's edge, on the heading's last baseline. A backticked span in a
-  header or section lead renders in code type (`withInlineCode`, `lib/inline-code-text.tsx`),
+  (`DocsHomeHeader`, `DocsHomeTabs`, `DocsHomeAgentTip`, `DocsHomeNote`, `DocsHomeBody`,
+  `DocsHomeSection`, `DocsHomePaths`, `DocsHomeSteps`, `DocsHomeFeatures`), all registered in
+  `components/mdx.tsx` and driven by `content/docs/index.mdx` and its three locale siblings, which
+  write every label, including the tab names and the tip text, as MDX props or children. The docs
+  home is a docs entry, not a second landing: `DocsHomeHeader` is a compact header (a `.vk-label`
+  eyebrow, the headline in `.vk-docs-home-title` at `--text-h3`, weight 500, tight tracking, and
+  one `.vk-docs-home-lead` sentence at `--text-base`; both rules are scoped under `#nd-page` so
+  they beat the docs `#nd-page h1` and `h1 + p` rules), with no hero wash, no buttons, no install
+  box and no facts row. Its children are `DocsHomeTabs`, an underline tab row of real links
+  (`.vk-home-tabs`, `.vk-home-tabs-track`, `.vk-home-tab`; no tab is active on the home) that
+  bleeds to the screen edge under 768px and scrolls sideways inside `.vk-edge-fade`
+  (`.vk-home-tabs-scroller`, which also fades its start edge once scrolled, through
+  `--vk-start-fade` on the same scroll timeline), and `DocsHomeAgentTip`, the "Using a coding agent?" callout with
+  `PromptCopyButton` at the end of its row once the tip itself is 36rem wide (a container query
+  on `.vk-agent-tip`, never the viewport, since the sidebar takes width; its preview then opens
+  toward the start edge, capped inside the tip). Its text links the setup guide and the MCP page,
+  and a link label stays whole when it has at most two words, otherwise keeps each hyphenated
+  compound whole (`keepLinkLabelWhole`). `DocsHomeNote` is the same ringed callout (`.vk-home-callout`: an inset 1px
+  `--border-default` ring, no fill, an `--accent` icon, the title at `--leading-snug` and the body
+  at `--leading-normal`) without the button; the docs home puts one
+  after the stack grid ("Don't see your stack?"). The header and the body share one frame
+  (`HOME_FRAME`: one max width, one gutter). A section head stacks its `vk-h4` heading and its
+  lead (`--text-sm`, muted) in one block, the lead directly under the heading. Every
+  `DocsHomePaths` card is the same flat panel; there is no filled primary card, and the three cards
+  share their title, body and page-name rows through `grid-rows-subgrid`, so a wrapped title never
+  shifts the body or the link out of line. A backticked span
+  in a header or section lead renders in code type (`withInlineCode`, `lib/inline-code-text.tsx`),
   and a path card title keeps a hyphenated compound on one line (`keepCompoundsWhole`,
   `lib/word-breaks.tsx`).
   `StackCards` (`components/stack-cards.tsx`) is the stack picker on the docs home and at the top
-  of `pick-your-stack`: one flat grid of flat-panel cards (`.vk-stack-grid`: two columns, three
-  from a 50rem container, with the last card spanning the rest of its row so no slot stays
-  empty; under a 30rem container a card stacks its chip above the name), each a single-colour
-  logo in a round `--surface-card` chip, the stack name in the display face, and its `--format`
-  ids in mono `--text-faint`, each id `whitespace-nowrap` (`FORMAT_ID_CLASS`): a list breaks at
-  its comma, and only under a 23.5rem container (the longest rendered id plus 15 percent,
-  pinned by its test) does an id wrap, then only after a hyphen, since no `overflow-wrap` is
-  set; a `<wbr>` would not do, as Chrome breaks at it even inside `nowrap`. There are no group
-  labels and no arrow. The logos come from `@icons-pack/react-simple-icons` through
+  of `pick-your-stack`: one borderless grid (`.vk-stack-grid`: one column, two from a 36rem
+  container, three from a 54rem container, `--stack-grid-column-gap` 24px by
+  `--stack-grid-row-gap` 40px, the last row left ragged). Each card (`.vk-stack-card`, a reversed
+  flex row so the text comes first in the DOM and the logo shows first) has no border or
+  background: only the round `--stack-chip-size` (56px) `.vk-stack-card-chip` on `--surface-card`
+  with an inset `--border-default` ring, holding a single-colour logo. The name
+  (`.vk-stack-card-name`, 16px, 600) is the card's one link (`.vk-stack-card-link`), stretched over
+  the card by a `::before` that reaches `--stack-card-hit-outset` past it and carries the focus
+  ring; a badge sits inside that link as a `.vk-pill.vk-stack-card-badge`, beside the name, so it adds no line. The
+  text column is `.vk-stack-card-text`. A
+  small chevron (`.vk-stack-card-chevron`) after the link fades from opacity 0 to 1 on hover and on
+  `:focus-visible` of the link, and nothing else changes. Under the name come an optional
+  `description` (`.vk-stack-card-description`, 14px, muted) and the `--format` ids
+  (`.vk-stack-card-formats`, mono `--text-faint`), each id `whitespace-nowrap`
+  (`FORMAT_ID_CLASS`): a list breaks at its comma, and only under a 23.5rem container (the
+  longest rendered id plus 15 percent, pinned by its test) does an id wrap, then only after a
+  hyphen. The logos come from `@icons-pack/react-simple-icons` through
   `components/stack-icons.tsx` (shared with the marquee), always `currentColor`, never a brand
-  colour, since several brand colours are black on this dark-only site; a format with no brand
-  mark gets an outline glyph there. The grid is a `nav` named by `labelledBy`, the id of the heading above it (the docs home
-  section's `id`, or `page-title` on the docs `<h1>`), and that id also prefixes its sprite's symbol
-  ids, so two grids on one page never collide. A card's name reads "React: i18next-json".
-  On the docs home, a stack with its own quickstart (`STACKS` in `lib/stacks.ts`) links its card
-  to `/docs/quickstart/<id>` and carries a `badge`, rendered as a `.vk-pill` after the name and
-  read as part of the card's name ("React, Quickstart: i18next-json"); every other card, and every
-  card on `pick-your-stack` itself, jumps to a `pick-your-stack` section.
+  colour; a format with no brand mark gets an outline glyph there. The grid is a `nav` named by
+  `labelledBy`, the id of the heading above it (the docs home section's `id`, or `page-title` on
+  the docs `<h1>`), and that id also prefixes its sprite's symbol ids, so two grids on one page
+  never collide. On the docs home, a stack with its own quickstart (`STACKS` in `lib/stacks.ts`)
+  links its card to `/docs/quickstart/<id>` and carries a `badge` (the link reads "React,
+  Quickstart"); every other card, and every card on `pick-your-stack` itself, jumps to a
+  `pick-your-stack` section.
   `scripts/verify-docs-registry-parity.test.mjs` pins every card's `formats` to
   `SUPPORTED_FORMATS`, a section card's anchor to the page's sections and a quickstart card's
   format to its stack, in all four locales. Fumadocs' `Steps` and `Step` are registered there
@@ -234,7 +276,8 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
   viewport, so it is fetched before the first paint either way; without the preload it is only
   discovered after the stylesheet, at a higher priority that delays the first contentful paint.
 - Content only needed after an interaction is loaded with a dynamic `import()` on hover, focus,
-  or click. The AI setup prompt is not: it is one short line, shown in full in the install box.
+  or click. The AI setup prompt is not: it is short, and its text ships in the page as the
+  `PromptCopyButton` preview.
 
 ## Fumadocs UI strings
 
@@ -276,11 +319,35 @@ the landing page recognizes the same product. The shared vocabulary, and where e
 comes from:
 
 - **Solid white display headlines.** `LandingHero` and the docs home header both set a solid
-  `--text-strong` headline; only `LandingHero` sits on the `HERO_BACKGROUND` / `HERO_BORDER`
-  panel with the `HeroFacts` row. Neither uses a
+  `--text-strong` headline; only `LandingHero` sits on the `.vk-hero-surface` card (`--border-hero`, `--radius-hero`, and
+  `z-index: 1` so its prompt preview paints above the demo below it; inside it the void
+  `.vk-hero-wash` layer clips the drifting `--wash-hero` `::before` and the `--grain-hero` `::after`
+  at `--grain-hero-opacity`) with the
+  `HeroFacts` table and a `.vk-hero-title` headline at `--text-hero`. Inside it, `.vk-hero-grid`
+  is one column, and from 90rem (below it the facts of the longest locale do not fit beside the
+  actions) a three-column grid with `.vk-hero-head` across the top and
+  `.vk-hero-actions` and `.vk-hero-facts` (the right-aligned mono `.vk-hero-facts-table`, its terms
+  and values never wrapping, stretched from 90rem so its first row lines up with the call to action row and
+  its last with the install row) on the second row; `.vk-hero-lead` is the mono lead and `.vk-hero-command` the void-tinted npm install
+  row. `PromptCopyButton` is `.vk-prompt` (`.vk-prompt-trigger`, `.vk-prompt-pop` holding the exact
+  prompt in `.vk-prompt-text`, sans `--text-xs` with a hanging indent per numbered line, its URL
+  broken only after a path `/` and each flag, and the value after it (`--skill verbatra-cli`), kept whole through `breakUrlsAtSlashes(text,
+  keepFlagsWhole)`), whose preview opens on hover and on keyboard focus, CSS only, and stays shut
+  once dismissed (`data-dismissed`). In the hero the preview is centred under the whole
+  `.vk-hero-cta-row`, not the trigger, capped by `100cqw` of the hero card (`container: vk-hero`),
+  so it never leaves the card. A copy announces "copied" (again on every copy) or, when the
+  clipboard refuses, the short "Copy failed" (`landing.install.copyFailed`) in its polite live region, while the
+  tooltip alone carries the full reason, so the failure is not read twice, and counts `copy-ai-prompt` only
+  on success. A failure turns the trigger `--text-danger` with an alert icon and holds the preview
+  open with the reason (`.vk-prompt-failed`, `data-status="failed"`) so the prompt can be selected
+  by hand, on touch too, until a pointer goes down outside it or Escape is pressed. On the docs home it sits in `.vk-agent-tip`, a
+  `.vk-home-callout` (`.vk-home-callout-icon`, `.vk-home-callout-body`, `.vk-home-callout-title`)
+  whose `.vk-agent-tip-action` wraps under the text, with the preview spanning it, while the tip
+  is under 36rem. Neither uses a
   gradient headline: the former `.vk-gradient-text` class is gone, and `--gradient-headline`
-  remains only for the footer's watermark. Neither carries an eyebrow, and no card or
-  button on the docs home appends an arrow to its label: the hover border is the affordance.
+  remains only for the footer's watermark. Only the docs home header carries an eyebrow (a
+  `.vk-label`), and no card or button on the docs home appends an arrow to its label: the hover
+  border, or on a stack card the chevron, is the affordance.
 - **`.vk-label`**: the small mono, uppercase, `0.14em`-tracked, `--text-faint` label the
   landing footer uses for its column titles. The sidebar's top-level folders and separators
   inside each tab (group triggers such as "CLI", the `For AI agents` separator), the TOC's "On
@@ -298,8 +365,8 @@ comes from:
   `DocsPage`'s `footer.className`. Style those classes, not Fumadocs' utility classes.
 - **Flat panels**: `rounded-xl border border-fd-border` on `var(--surface-bg)`, with a
   glow-tinted border on hover (`color-mix(in srgb, var(--v-glow) 45%, var(--border-default))`).
-  `DocsHomePaths`, `DocsHomeFeatures`, and the prev/next footer cards follow it; the one
-  filled card (the primary path) uses `--accent-fill` / `--accent-fill-fg`.
+  `DocsHomePaths`, `DocsHomeFeatures`, and the prev/next footer cards follow it; no docs home
+  card is filled.
 - **Void code surfaces**: `figure.shiki` sits on `var(--v-void)` inside a `--border-default`
   border, like `Terminal` and `CommandBox`. On an untitled fence the copy button sits on a void
   backing, and a one-line fence ends its scroll area before the button, so a long command never
@@ -351,8 +418,8 @@ comes from:
   `` ```verbatra-run `` fence (`RUN_FENCE_LANG`) holds only the arguments (`<command>`) and
   becomes the same tabs with the binary each manager runs (`npx @verbatra/cli`, `pnpm verbatra`,
   `yarn verbatra`, `bun run verbatra`), sharing the remembered choice; `cli/index` uses it. The
-  landing and docs home install box takes `NPM_INSTALL_COMMAND` from `lib/install-commands.ts`
-  and shows no tabs.
+  landing hero's install row takes `NPM_INSTALL_COMMAND` from `lib/install-commands.ts` and shows
+  no tabs; the docs home has no install box (its Quickstart tab and agent tip lead there).
 - **Output blocks**: a fence flagged `output` (`` ```text output ``) is what a command prints, not
   something to run. The flag, not a title, is the marker, so it reads the same in every locale:
   `parseCodeBlockMeta` (`lib/code-block-meta.ts`, wired as `rehypeCodeOptions.parseMetaString` in

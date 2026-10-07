@@ -10,14 +10,14 @@
     },
     "hero": {
       "headline": "Traduce solo lo que cambió.",
-      "lead": "verbatra compara tu locale de origen con un archivo de bloqueo confirmado, envía solo las claves nuevas y modificadas al proveedor que elijas y deja intactas todas las demás.",
-      "ctaGithub": "Estrella en GitHub",
+      "lead": "verbatra compara con un archivo de bloqueo confirmado y traduce solo las claves nuevas o modificadas.",
       "ctaStart": "Guía de inicio",
       "facts": {
         "release": "Última versión",
         "formats": "Formatos de archivo",
         "providers": "Proveedores",
-        "license": "Licencia"
+        "license": "Licencia",
+        "github": "Código fuente"
       },
       "demo": {
         "tablistLabel": "Demo",
@@ -40,10 +40,11 @@
       "copyPromptAria": "Copiar el prompt de configuración para el agente de IA",
       "copyCommand": "Copiar {command}",
       "copyAgentAria": "Copiar el comando de configuración del agente",
-      "stepInstall": "Instalar",
-      "stepSetUp": "Configurar",
-      "setUp": "<link>Sigue el inicio rápido</link>: una configuración, una ejecución de prueba gratuita y luego tu primera traducción.",
-      "agentLabel": "O deja que tu agente lo configure"
+      "promptCta": "Empieza con un prompt",
+      "promptCopied": "Prompt copiado",
+      "promptPreviewLabel": "Copia este prompt para tu agente",
+      "promptCopyFailed": "No se pudo copiar la instrucción. Selecciónala en la vista previa y cópiala a mano.",
+      "copyFailed": "Copia fallida"
     },
     "gate": {
       "rows": {

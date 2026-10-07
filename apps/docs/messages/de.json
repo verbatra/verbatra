@@ -10,14 +10,14 @@
     },
     "hero": {
       "headline": "Übersetze nur, was sich ändert.",
-      "lead": "verbatra vergleicht deine Quell-Locale mit einer committeten Lock-Datei, schickt nur die neuen und geänderten Keys an den Provider deiner Wahl und lässt jeden anderen Key unberührt.",
-      "ctaGithub": "Star auf GitHub",
+      "lead": "verbatra gleicht gegen eine eingecheckte Lock-Datei ab und übersetzt nur neue oder geänderte Keys.",
       "ctaStart": "Loslegen",
       "facts": {
         "release": "Neuestes Release",
         "formats": "Dateiformate",
         "providers": "Provider",
-        "license": "Lizenz"
+        "license": "Lizenz",
+        "github": "Quellcode"
       },
       "demo": {
         "tablistLabel": "Demo",
@@ -40,10 +40,11 @@
       "copyPromptAria": "Setup-Prompt für den KI-Agenten kopieren",
       "copyCommand": "{command} kopieren",
       "copyAgentAria": "Befehl zum Einrichten des Agenten kopieren",
-      "stepInstall": "Installieren",
-      "stepSetUp": "Einrichten",
-      "setUp": "<link>Folge dem Schnellstart</link>: eine Konfiguration, ein kostenloser Probelauf, dann deine erste Übersetzung.",
-      "agentLabel": "Oder lass deinen Agenten einrichten"
+      "promptCta": "Mit einem Prompt starten",
+      "promptCopied": "Prompt kopiert",
+      "promptPreviewLabel": "Kopiert diesen Prompt für deinen Agenten",
+      "promptCopyFailed": "Der Prompt konnte nicht kopiert werden. Wähle ihn in der Vorschau aus und kopiere ihn manuell.",
+      "copyFailed": "Kopieren fehlgeschlagen"
     },
     "gate": {
       "rows": {

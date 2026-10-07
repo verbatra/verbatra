@@ -3,11 +3,12 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { START_HERE_COMPONENT } from "./agent-entry";
 import { AI_SETUP_PROMPT } from "./ai-setup-prompt";
+import { AGENT_SKILLS_INSTALL_COMMAND } from "./install-commands";
 import { markdownUrl } from "./markdown-route";
 import { SITE_URL } from "./site";
 
 const LOCALES = ["", ".de", ".es", ".fr"];
-const PROMPT_CHARACTER_LIMIT = 200;
+const PROMPT_CHARACTER_LIMIT = 300;
 
 function page(suffix: string): string {
   return readFileSync(
@@ -23,7 +24,10 @@ describe("AI_SETUP_PROMPT", () => {
       const mdx = page(suffix);
       expect(mdx).toContain(`<${START_HERE_COMPONENT} />`);
       expect(mdx).not.toMatch(/```text\n/);
-      for (const sentence of AI_SETUP_PROMPT.split(/(?<=\.) /)) {
+      const sentences = AI_SETUP_PROMPT.split("\n")
+        .map((line) => line.replace(/^\d+\. /, ""))
+        .flatMap((line) => line.split(/(?<=\.) /));
+      for (const sentence of sentences) {
         expect(mdx).not.toContain(sentence);
       }
     },
@@ -40,9 +44,19 @@ describe("AI_SETUP_PROMPT", () => {
     expect(AI_SETUP_PROMPT).toContain("(if it fails: npx @verbatra/cli init --help)");
   });
 
-  it("is one line, so the install box shows the whole text that Copy pastes", () => {
-    expect(AI_SETUP_PROMPT).not.toMatch(/\n/);
-    expect(AI_SETUP_PROMPT).toBe(AI_SETUP_PROMPT.trim());
+  it("is exactly two numbered lines, the skills install first, with no stray whitespace", () => {
+    const lines = AI_SETUP_PROMPT.split("\n");
+    expect(lines).toHaveLength(2);
+    expect(lines[0]).toBe(`1. Run: ${AGENT_SKILLS_INSTALL_COMMAND}`);
+    expect(lines[1]).toMatch(/^2\. \S/);
+    for (const line of lines) {
+      expect(line).toBe(line.trim());
+    }
+  });
+
+  it("leaves the agent choice to the skills CLI, which detects the calling agent", () => {
+    expect(AI_SETUP_PROMPT).not.toContain(" -a ");
+    expect(AI_SETUP_PROMPT).not.toContain("--agent");
   });
 
   it(`stays short enough to read at a glance (at most ${PROMPT_CHARACTER_LIMIT} characters)`, () => {

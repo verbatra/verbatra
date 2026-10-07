@@ -11,12 +11,15 @@ import type { ComponentProps } from "react";
 import { AvailableFrom, type AvailableFromProps } from "@/components/available-from";
 import { DiffPanel } from "@/components/diff-panel";
 import {
+  DocsHomeAgentTip,
   DocsHomeBody,
   DocsHomeFeatures,
   DocsHomeHeader,
+  DocsHomeNote,
   DocsHomePaths,
   DocsHomeSection,
   DocsHomeSteps,
+  DocsHomeTabs,
 } from "@/components/docs-home";
 import { DocsTabs } from "@/components/docs-tabs";
 import { VMark } from "@/components/landing";
@@ -101,6 +104,11 @@ export function getMDXComponents(
     VTabs: Tabs,
     VMark,
     DocsHomeHeader,
+    DocsHomeTabs: (props: Omit<ComponentProps<typeof DocsHomeTabs>, "locale">) => (
+      <DocsHomeTabs {...props} locale={locale} />
+    ),
+    DocsHomeAgentTip,
+    DocsHomeNote,
     DocsHomeBody,
     DocsHomeSection,
     DocsHomeSteps,

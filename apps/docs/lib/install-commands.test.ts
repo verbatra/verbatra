@@ -3,7 +3,12 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { readIncludedSource } from "@/lib/docs-pages";
-import { isNpmInstall, NPM_FENCE_LANG, NPM_INSTALL_COMMAND } from "@/lib/install-commands";
+import {
+  isNpmInstall,
+  NPM_FENCE_LANG,
+  NPM_INSTALL_COMMAND,
+  SKILLS_INSTALL_COMMAND,
+} from "@/lib/install-commands";
 
 const DOCS_DIR = fileURLToPath(new URL("../", import.meta.url));
 const CONTENT_DIR = join(DOCS_DIR, "content/docs");
@@ -39,5 +44,22 @@ describe("the install command", () => {
     );
     expect(fences.length).toBeGreaterThan(0);
     expect(fences.filter(({ command }) => !isNpmInstall(command))).toEqual([]);
+  });
+});
+
+describe("the skills install command", () => {
+  it.each(["", ".de", ".es", ".fr"])(
+    "is the command agent-recipes%s.mdx documents for the verbatra-cli skill",
+    (suffix) => {
+      expect(docsFile(`content/docs/(agents)/agent-recipes${suffix}.mdx`)).toContain(
+        SKILLS_INSTALL_COMMAND,
+      );
+    },
+  );
+
+  it("is the only spelling of the command in landing source", () => {
+    const loop = docsFile("components/landing/loop.tsx");
+    expect(loop).toContain("SKILLS_INSTALL_COMMAND");
+    expect(loop).not.toContain("npx skills@latest");
   });
 });

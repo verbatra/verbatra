@@ -85,6 +85,7 @@ export function HeroDemo({ labels }: { labels: HeroDemoLabels }): ReactNode {
               fitContent
               bare
               playThreshold={0.1}
+              settledCommands={1}
             />
           </div>
           <div

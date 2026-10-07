@@ -5,9 +5,28 @@ type: overview
 ---
 
 <DocsHomeHeader
+  eyebrow="Documentation"
   headline="Configure verbatra et garde chaque locale à jour."
-  lead="Guides et référence pour la CLI, le SDK, Studio et le serveur MCP. Installe la CLI, puis configure-la avec le démarrage rapide, ou donne le prompt à ton agent."
+  lead="Guides et référence pour la CLI, le SDK, Studio et le serveur MCP : commence par le démarrage rapide ou laisse ton agent de code configurer verbatra."
+>
+
+<DocsHomeTabs
+  label="Points d'entrée"
+  tabs={[
+    { label: "Démarrage rapide", href: "/docs/quickstart" },
+    { label: "CLI", href: "/docs/cli" },
+    { label: "SDK", href: "/docs/sdk" },
+    { label: "GitHub Action", href: "/docs/github-action" },
+    { label: "Serveur MCP", href: "/docs/cli/mcp" },
+    { label: "Studio", href: "/docs/review-in-studio" },
+  ]}
 />
+
+<DocsHomeAgentTip title="Tu utilises un agent de code ?">
+Copie le prompt dans Claude Code, Cursor ou tout autre agent de code, et il configure verbatra pour toi ; [Configurer avec un agent IA](/fr/docs/start-with-ai) montre chaque étape. Pour qu'il lise et modifie tes traductions directement, connecte le [serveur MCP](/fr/docs/cli/mcp).
+</DocsHomeAgentTip>
+
+</DocsHomeHeader>
 
 <DocsHomeBody>
 
@@ -20,7 +39,6 @@ type: overview
       page: "Démarrage rapide",
       body: "Installe la CLI, prévisualise l'exécution sans clé, puis traduis ton premier fichier.",
       href: "/docs/quickstart",
-      primary: true,
     },
     {
       goal: "Protéger les pull requests",
@@ -34,12 +52,6 @@ type: overview
       body: "Exporte un classeur qu'une personne traduit, puis réimporte-le.",
       href: "/docs/manual-translation",
     },
-    {
-      goal: "Utiliser avec un agent IA",
-      page: "Configurer avec l'IA",
-      body: "Donne à Claude Code, Cursor ou tout agent de code un prompt prêt à copier-coller.",
-      href: "/docs/start-with-ai",
-    },
   ]}
 />
 
@@ -50,23 +62,26 @@ type: overview
 <StackCards
   labelledBy="pick-your-stack"
   cards={[
-    { label: "React", icon: "react", formats: ["i18next-json"], href: "/docs/quickstart/react", badge: "Démarrage rapide" },
-    { label: "Next.js", icon: "next", formats: ["next-intl-json"], href: "/docs/quickstart/nextjs", badge: "Démarrage rapide" },
-    { label: "Vue", icon: "vue", formats: ["vue-i18n-json"], href: "/docs/quickstart/vue", badge: "Démarrage rapide" },
-    { label: "Nuxt", icon: "nuxt", formats: ["vue-i18n-json"], href: "/docs/pick-your-stack#vue-et-nuxt-avec-vue-i18n" },
-    { label: "Angular", icon: "angular", formats: ["ngx-translate-json"], href: "/docs/quickstart/angular", badge: "Démarrage rapide" },
-    { label: "Flutter", icon: "flutter", formats: ["arb"], href: "/docs/quickstart/flutter", badge: "Démarrage rapide" },
-    { label: "Android", icon: "android", formats: ["android-xml"], href: "/docs/pick-your-stack#android" },
-    { label: "iOS et macOS", icon: "apple", formats: ["apple-strings", "apple-xcstrings"], href: "/docs/pick-your-stack#ios-et-macos" },
-    { label: "gettext", icon: "gnu", formats: ["gettext-po"], href: "/docs/pick-your-stack#gettext" },
-    { label: "Java et Spring", icon: "spring", formats: ["properties"], href: "/docs/pick-your-stack#java-et-spring" },
-    { label: ".NET", icon: "dotnet", formats: ["resx"], href: "/docs/pick-your-stack#net" },
-    { label: "YAML", icon: "yaml", formats: ["yaml"], href: "/docs/pick-your-stack#yaml" },
-    { label: "XLIFF", icon: "xliff", formats: ["xliff"], href: "/docs/pick-your-stack#xliff" },
-    { label: "INI", icon: "ini", formats: ["ini"], href: "/docs/pick-your-stack#ini" },
-    { label: "Autre chose", icon: "custom", formats: [], href: "/docs/pick-your-stack#autre-chose" },
+    { label: "React", icon: "react", formats: ["i18next-json"], href: "/docs/quickstart/react", badge: "Démarrage rapide", description: "Traduis les fichiers JSON i18next d'une app React." },
+    { label: "Next.js", icon: "next", formats: ["next-intl-json"], href: "/docs/quickstart/nextjs", badge: "Démarrage rapide", description: "Garde les fichiers de messages next-intl synchronisés dans chaque locale." },
+    { label: "Vue", icon: "vue", formats: ["vue-i18n-json"], href: "/docs/quickstart/vue", badge: "Démarrage rapide", description: "Traduis les messages JSON vue-i18n d'une app Vue." },
+    { label: "Nuxt", icon: "nuxt", formats: ["vue-i18n-json"], href: "/docs/pick-your-stack#vue-et-nuxt-avec-vue-i18n", description: "Traduis les messages JSON vue-i18n d'une app Nuxt." },
+    { label: "Angular", icon: "angular", formats: ["ngx-translate-json"], href: "/docs/quickstart/angular", badge: "Démarrage rapide", description: "Traduis les fichiers JSON ngx-translate d'une app Angular." },
+    { label: "Flutter", icon: "flutter", formats: ["arb"], href: "/docs/quickstart/flutter", badge: "Démarrage rapide", description: "Traduis les fichiers ARB pour gen-l10n de Flutter." },
+    { label: "Android", icon: "android", formats: ["android-xml"], href: "/docs/pick-your-stack#android", description: "Traduis les ressources strings.xml, un dossier par locale." },
+    { label: "iOS et macOS", icon: "apple", formats: ["apple-strings", "apple-xcstrings"], href: "/docs/pick-your-stack#ios-et-macos", description: "Traduis les .strings, .stringsdict et String Catalogs." },
+    { label: "gettext", icon: "gnu", formats: ["gettext-po"], href: "/docs/pick-your-stack#gettext", description: "Traduis les fichiers PO à partir d'un modèle POT." },
+    { label: "Java et Spring", icon: "spring", formats: ["properties"], href: "/docs/pick-your-stack#java-et-spring", description: "Traduis les bundles de messages .properties." },
+    { label: ".NET", icon: "dotnet", formats: ["resx"], href: "/docs/pick-your-stack#net", description: "Traduis les fichiers de ressources .resx." },
+    { label: "YAML", icon: "yaml", formats: ["yaml"], href: "/docs/pick-your-stack#yaml", description: "Traduis les fichiers de locale YAML imbriqués." },
+    { label: "XLIFF", icon: "xliff", formats: ["xliff"], href: "/docs/pick-your-stack#xliff", description: "Traduis les fichiers XLIFF, le format d'échange des outils de traduction." },
+    { label: "INI", icon: "ini", formats: ["ini"], href: "/docs/pick-your-stack#ini", description: "Traduis les fichiers de locale INI plats." },
   ]}
 />
+
+<DocsHomeNote>
+Ta stack n'est pas là ? Commence par le [démarrage rapide général](/fr/docs/quickstart) ou apprends ton format à verbatra avec un [adaptateur de format personnalisé](/fr/docs/custom-format-adapters).
+</DocsHomeNote>
 
 </DocsHomeSection>
 

@@ -60,14 +60,14 @@
     },
     "hero": {
       "headline": "Translate only what changed.",
-      "lead": "verbatra diffs your source locale against a committed lock file, sends only the new and changed keys to the provider you choose, and leaves every other key untouched.",
-      "ctaGithub": "Star on GitHub",
+      "lead": "verbatra diffs against a committed lock file and translates only new or changed keys.",
       "ctaStart": "Get started",
       "facts": {
         "release": "Latest release",
         "formats": "File formats",
         "providers": "Providers",
-        "license": "License"
+        "license": "License",
+        "github": "Source code"
       },
       "demo": {
         "tablistLabel": "Demo",
@@ -85,15 +85,16 @@
     "install": {
       "copy": "Copy",
       "copied": "Copied",
+      "copyFailed": "Copy failed",
       "copyAria": "Copy install command",
       "copyAgentAria": "Copy the agent setup command",
       "aiLabel": "Prompt for AI agents",
       "copyPromptAria": "Copy the AI agent setup prompt",
       "copyCommand": "Copy {command}",
-      "stepInstall": "Install",
-      "stepSetUp": "Set up",
-      "setUp": "<link>Follow the quickstart</link>: a config, a free dry run, then your first translation.",
-      "agentLabel": "Or let your agent set it up"
+      "promptCta": "Start with a prompt",
+      "promptCopied": "Prompt copied",
+      "promptCopyFailed": "Could not copy the prompt. Select it in the preview and copy it by hand.",
+      "promptPreviewLabel": "Copies this prompt for your agent"
     },
     "gate": {
       "rows": {

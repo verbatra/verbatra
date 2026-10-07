@@ -85,3 +85,26 @@ describe("pre mapping", () => {
     }
   });
 });
+
+describe("docs home mappings", () => {
+  it("prefixes every DocsHomeTabs link with the page locale", () => {
+    const Tabs = getMDXComponents("de").DocsHomeTabs as (props: {
+      label: string;
+      tabs: ReadonlyArray<{ label: string; href: string }>;
+    }) => ReactNode;
+    const markup = renderToStaticMarkup(
+      <Tabs
+        label="Einstiege"
+        tabs={[
+          { label: "Schnellstart", href: "/docs/quickstart" },
+          { label: "CLI", href: "/docs/cli" },
+        ]}
+      />,
+    );
+    const hrefs = [
+      ...new DOMParser().parseFromString(markup, "text/html").querySelectorAll("nav a"),
+    ].map((link) => link.getAttribute("href") ?? "");
+    expect(hrefs).toEqual(["/de/docs/quickstart", "/de/docs/cli"]);
+    for (const href of hrefs) expect(href.startsWith("/de/")).toBe(true);
+  });
+});

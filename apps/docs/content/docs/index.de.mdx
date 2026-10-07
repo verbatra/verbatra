@@ -5,9 +5,28 @@ type: overview
 ---
 
 <DocsHomeHeader
+  eyebrow="Dokumentation"
   headline="Richte verbatra ein und halte jede Locale synchron."
-  lead="Anleitungen und Referenz für die CLI, das SDK, Studio und den MCP-Server. Installiere die CLI und richte sie dann mit dem Schnellstart ein, oder gib deinem Agenten den Prompt."
+  lead="Anleitungen und Referenz für die CLI, das SDK, Studio und den MCP-Server: Starte mit dem Schnellstart oder lass deinen Coding-Agenten verbatra einrichten."
+>
+
+<DocsHomeTabs
+  label="Einstiege"
+  tabs={[
+    { label: "Schnellstart", href: "/docs/quickstart" },
+    { label: "CLI", href: "/docs/cli" },
+    { label: "SDK", href: "/docs/sdk" },
+    { label: "GitHub Action", href: "/docs/github-action" },
+    { label: "MCP-Server", href: "/docs/cli/mcp" },
+    { label: "Studio", href: "/docs/review-in-studio" },
+  ]}
 />
+
+<DocsHomeAgentTip title="Arbeitest du mit einem Coding-Agenten?">
+Kopiere den Prompt in Claude Code, Cursor oder einen anderen Coding-Agenten, und er richtet verbatra für dich ein; [Mit einem KI-Agenten einrichten](/de/docs/start-with-ai) zeigt jeden Schritt. Damit er deine Übersetzungen direkt lesen und bearbeiten kann, verbinde den [MCP-Server](/de/docs/cli/mcp).
+</DocsHomeAgentTip>
+
+</DocsHomeHeader>
 
 <DocsHomeBody>
 
@@ -20,7 +39,6 @@ type: overview
       page: "Schnellstart",
       body: "Installiere die CLI, sieh dir den Lauf ohne Schlüssel an und übersetze dann deine erste Datei.",
       href: "/docs/quickstart",
-      primary: true,
     },
     {
       goal: "Pull Requests absichern",
@@ -34,12 +52,6 @@ type: overview
       body: "Exportiere eine Arbeitsmappe, die ein Mensch übersetzt, und importiere sie wieder.",
       href: "/docs/manual-translation",
     },
-    {
-      goal: "Mit einem KI-Agenten arbeiten",
-      page: "Mit KI einrichten",
-      body: "Gib Claude Code, Cursor oder einem beliebigen Coding-Agenten einen Prompt zum Kopieren und Einfügen.",
-      href: "/docs/start-with-ai",
-    },
   ]}
 />
 
@@ -50,23 +62,26 @@ type: overview
 <StackCards
   labelledBy="pick-your-stack"
   cards={[
-    { label: "React", icon: "react", formats: ["i18next-json"], href: "/docs/quickstart/react", badge: "Schnellstart" },
-    { label: "Next.js", icon: "next", formats: ["next-intl-json"], href: "/docs/quickstart/nextjs", badge: "Schnellstart" },
-    { label: "Vue", icon: "vue", formats: ["vue-i18n-json"], href: "/docs/quickstart/vue", badge: "Schnellstart" },
-    { label: "Nuxt", icon: "nuxt", formats: ["vue-i18n-json"], href: "/docs/pick-your-stack#vue-und-nuxt-mit-vue-i18n" },
-    { label: "Angular", icon: "angular", formats: ["ngx-translate-json"], href: "/docs/quickstart/angular", badge: "Schnellstart" },
-    { label: "Flutter", icon: "flutter", formats: ["arb"], href: "/docs/quickstart/flutter", badge: "Schnellstart" },
-    { label: "Android", icon: "android", formats: ["android-xml"], href: "/docs/pick-your-stack#android" },
-    { label: "iOS und macOS", icon: "apple", formats: ["apple-strings", "apple-xcstrings"], href: "/docs/pick-your-stack#ios-und-macos" },
-    { label: "gettext", icon: "gnu", formats: ["gettext-po"], href: "/docs/pick-your-stack#gettext" },
-    { label: "Java und Spring", icon: "spring", formats: ["properties"], href: "/docs/pick-your-stack#java-und-spring" },
-    { label: ".NET", icon: "dotnet", formats: ["resx"], href: "/docs/pick-your-stack#net" },
-    { label: "YAML", icon: "yaml", formats: ["yaml"], href: "/docs/pick-your-stack#yaml" },
-    { label: "XLIFF", icon: "xliff", formats: ["xliff"], href: "/docs/pick-your-stack#xliff" },
-    { label: "INI", icon: "ini", formats: ["ini"], href: "/docs/pick-your-stack#ini" },
-    { label: "Etwas anderes", icon: "custom", formats: [], href: "/docs/pick-your-stack#etwas-anderes" },
+    { label: "React", icon: "react", formats: ["i18next-json"], href: "/docs/quickstart/react", badge: "Schnellstart", description: "Übersetze i18next-JSON-Dateien in einer React-App." },
+    { label: "Next.js", icon: "next", formats: ["next-intl-json"], href: "/docs/quickstart/nextjs", badge: "Schnellstart", description: "Halte next-intl-Nachrichtendateien in jeder Locale synchron." },
+    { label: "Vue", icon: "vue", formats: ["vue-i18n-json"], href: "/docs/quickstart/vue", badge: "Schnellstart", description: "Übersetze vue-i18n-JSON-Nachrichten in einer Vue-App." },
+    { label: "Nuxt", icon: "nuxt", formats: ["vue-i18n-json"], href: "/docs/pick-your-stack#vue-und-nuxt-mit-vue-i18n", description: "Übersetze vue-i18n-JSON-Nachrichten in einer Nuxt-App." },
+    { label: "Angular", icon: "angular", formats: ["ngx-translate-json"], href: "/docs/quickstart/angular", badge: "Schnellstart", description: "Übersetze ngx-translate-JSON-Dateien in einer Angular-App." },
+    { label: "Flutter", icon: "flutter", formats: ["arb"], href: "/docs/quickstart/flutter", badge: "Schnellstart", description: "Übersetze ARB-Dateien für gen-l10n von Flutter." },
+    { label: "Android", icon: "android", formats: ["android-xml"], href: "/docs/pick-your-stack#android", description: "Übersetze strings.xml-Ressourcen, ein Ordner pro Locale." },
+    { label: "iOS und macOS", icon: "apple", formats: ["apple-strings", "apple-xcstrings"], href: "/docs/pick-your-stack#ios-und-macos", description: "Übersetze .strings, .stringsdict und String Catalogs." },
+    { label: "gettext", icon: "gnu", formats: ["gettext-po"], href: "/docs/pick-your-stack#gettext", description: "Übersetze PO-Dateien aus einer POT-Vorlage." },
+    { label: "Java und Spring", icon: "spring", formats: ["properties"], href: "/docs/pick-your-stack#java-und-spring", description: "Übersetze .properties-Message-Bundles." },
+    { label: ".NET", icon: "dotnet", formats: ["resx"], href: "/docs/pick-your-stack#net", description: "Übersetze .resx-Ressourcendateien." },
+    { label: "YAML", icon: "yaml", formats: ["yaml"], href: "/docs/pick-your-stack#yaml", description: "Übersetze verschachtelte YAML-Locale-Dateien." },
+    { label: "XLIFF", icon: "xliff", formats: ["xliff"], href: "/docs/pick-your-stack#xliff", description: "Übersetze XLIFF-Dateien, das Austauschformat von Übersetzungstools." },
+    { label: "INI", icon: "ini", formats: ["ini"], href: "/docs/pick-your-stack#ini", description: "Übersetze flache INI-Locale-Dateien." },
   ]}
 />
+
+<DocsHomeNote>
+Dein Stack ist nicht dabei? Starte mit dem [allgemeinen Schnellstart](/de/docs/quickstart) oder bring verbatra dein Format mit einem [eigenen Format-Adapter](/de/docs/custom-format-adapters) bei.
+</DocsHomeNote>
 
 </DocsHomeSection>
 

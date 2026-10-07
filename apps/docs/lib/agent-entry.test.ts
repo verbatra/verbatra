@@ -160,14 +160,31 @@ describe("the agent setup command", () => {
     expect(docsFile(file)).toContain(`\`\`\`bash\n${AGENT_INIT_COMMAND}\n\`\`\``);
   });
 
-  it.each(["components/landing-hero.tsx", "components/docs-home.tsx"])(
-    "reaches %s through the one install box",
-    (file) => {
-      expect(docsFile(file)).toContain(
-        'import { PackageInstall } from "@/components/landing/package-install";',
-      );
+  it("reaches components/docs-home.tsx through the shared prompt button in the agent tip", () => {
+    const home = docsFile("components/docs-home.tsx");
+    expect(home).toContain('import { PromptCopyButton } from "@/components/ai-setup-prompt";');
+    expect(home).toMatch(/export function DocsHomeAgentTip[\s\S]*?<PromptCopyButton/);
+  });
+
+  it.each(LOCALE_SUFFIXES)(
+    "puts the agent tip and a quickstart tab in the header of index%s.mdx",
+    (suffix) => {
+      const page = docsFile(`content/docs/index${suffix}.mdx`);
+      const header = page.slice(page.indexOf("<DocsHomeHeader"), page.indexOf("</DocsHomeHeader>"));
+      expect(header).toContain("<DocsHomeAgentTip ");
+      expect(header).toMatch(/<DocsHomeTabs\n[\s\S]*?href: "\/docs\/quickstart"/);
     },
   );
+
+  it("reaches components/landing-hero.tsx through the shared prompt button and the install command", () => {
+    const hero = docsFile("components/landing-hero.tsx");
+    expect(hero).toContain('import { PromptCopyButton } from "@/components/ai-setup-prompt";');
+    expect(hero).toContain("<PromptCopyButton");
+    expect(hero).toMatch(
+      /import \{[^}]*\bNPM_INSTALL_COMMAND\b[^}]*\} from "@\/lib\/install-commands";/,
+    );
+    expect(hero).toContain("command={NPM_INSTALL_COMMAND}");
+  });
 });
 
 describe("the install button", () => {

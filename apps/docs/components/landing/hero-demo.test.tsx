@@ -33,4 +33,9 @@ describe("HeroDemo: replay", () => {
     expect(props?.playThreshold).toBeLessThanOrEqual(0.2);
     expect(props?.fitContent).toBe(true);
   });
+
+  it("opens on the first command already settled, so the first frame is never an empty window", () => {
+    renderToStaticMarkup(<HeroDemo labels={LABELS} />);
+    expect(terminalProps.at(-1)?.settledCommands).toBe(1);
+  });
 });

@@ -6,6 +6,8 @@ import {
   breakInlineCode,
   breakUrlsAtSlashes,
   keepCompoundsWhole,
+  keepFlagsWhole,
+  keepLinkLabelWhole,
 } from "./word-breaks";
 
 function markup(text: ReactNode): string {
@@ -143,5 +145,49 @@ describe("breakInlineCode", () => {
   it("leaves a non-string child as it is", () => {
     const element = <em>x</em>;
     expect(breakInlineCode(element)).toBe(element);
+  });
+});
+
+describe("keepFlagsWhole", () => {
+  it("keeps each flag whole, so a line never breaks after its hyphen", () => {
+    expect(markup(keepFlagsWhole("npx x init --help -y now"))).toBe(
+      `<span>npx x init ${NOWRAP("--help")} ${NOWRAP("-y")} now</span>`,
+    );
+  });
+
+  it("keeps a hyphenated value after a flag whole, so --skill verbatra-cli never breaks inside the value", () => {
+    expect(markup(keepFlagsWhole("add x/y --skill verbatra-cli -y"))).toBe(
+      `<span>add x/y ${NOWRAP("--skill")} ${NOWRAP("verbatra-cli")} ${NOWRAP("-y")}</span>`,
+    );
+    expect(markup(keepFlagsWhole("--skill verbatra-cli then start-with-ai"))).toBe(
+      `<span>${NOWRAP("--skill")} ${NOWRAP("verbatra-cli")} then start-with-ai</span>`,
+    );
+  });
+
+  it("leaves a hyphen inside a word alone and text without a flag as it is", () => {
+    expect(markup(keepFlagsWhole("start-with-ai"))).toBe("<span>start-with-ai</span>");
+  });
+
+  it("applies to the text around a URL when breakUrlsAtSlashes is given it", () => {
+    expect(markup(breakUrlsAtSlashes("see https://a.de/x (or --help)", keepFlagsWhole))).toBe(
+      `<span>see ${NOWRAP("https://a.de/")}<wbr/>${NOWRAP("x")} (or ${NOWRAP("--help)")}</span>`,
+    );
+  });
+});
+
+describe("keepLinkLabelWhole", () => {
+  it("keeps a label of up to two words on one line, hyphenated or not", () => {
+    expect(markup(keepLinkLabelWhole("MCP server"))).toBe(`<span>${NOWRAP("MCP server")}</span>`);
+    expect(markup(keepLinkLabelWhole("MCP-Server"))).toBe(`<span>${NOWRAP("MCP-Server")}</span>`);
+    expect(markup(keepLinkLabelWhole("serveur MCP"))).toBe(`<span>${NOWRAP("serveur MCP")}</span>`);
+  });
+
+  it("lets a longer label wrap at its spaces while keeping each compound whole", () => {
+    expect(markup(keepLinkLabelWhole("Mit einem KI-Agenten einrichten"))).toBe(
+      `<span>Mit einem ${NOWRAP("KI-Agenten")} einrichten</span>`,
+    );
+    expect(markup(keepLinkLabelWhole("Set up with an AI agent"))).toBe(
+      "<span>Set up with an AI agent</span>",
+    );
   });
 });

@@ -72,7 +72,20 @@ function urlSegments(url: string): ReadonlyArray<string> {
   return [authority + first, ...rest].filter((segment) => segment !== "");
 }
 
-export function breakUrlsAtSlashes(text: string): ReactNode {
+export function keepFlagsWhole(text: string): ReactNode {
+  if (!/(?:^|\s)-/.test(text)) return text;
+  const tokens = text.split(/(\s+)/);
+  return tokens.map((token, index) => {
+    const isFlag = token.startsWith("-");
+    const isFlagValue = tokens[index - 2]?.startsWith("-") === true;
+    return isFlag || isFlagValue ? keepHyphensWhole(token, `${index}-${token}`) : token;
+  });
+}
+
+export function breakUrlsAtSlashes(
+  text: string,
+  plain: (part: string) => ReactNode = (part) => part,
+): ReactNode {
   return text.split(URL_PATTERN).map((part, index) =>
     index % 2 === 1 ? (
       <Fragment key={`${index}-${part}`}>
@@ -84,7 +97,7 @@ export function breakUrlsAtSlashes(text: string): ReactNode {
         ))}
       </Fragment>
     ) : (
-      part
+      plain(part)
     ),
   );
 }
@@ -100,4 +113,11 @@ export function keepCompoundsWhole(text: string): ReactNode {
       part
     ),
   );
+}
+
+export const LINK_LABEL_WHOLE_MAX_WORDS = 2;
+
+export function keepLinkLabelWhole(text: string): ReactNode {
+  if (text.trim().split(/\s+/).length > LINK_LABEL_WHOLE_MAX_WORDS) return keepCompoundsWhole(text);
+  return <span className="whitespace-nowrap">{text}</span>;
 }

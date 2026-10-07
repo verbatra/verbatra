@@ -1,4 +1,5 @@
 import type { ProviderId, SupportedFormat } from "@verbatra/sdk";
+import { GITHUB_URL } from "@/components/landing/links";
 import { PACKAGE_VERSION } from "./site";
 
 const FORMAT_IDS: Readonly<Record<SupportedFormat, true>> = {
@@ -31,11 +32,20 @@ const PROVIDER_IDS: Readonly<Record<Exclude<ProviderId, "none">, true>> = {
 export const FORMAT_COUNT = Object.keys(FORMAT_IDS).length;
 export const PROVIDER_COUNT = Object.keys(PROVIDER_IDS).length;
 
-export type LandingFactKey = "release" | "formats" | "providers" | "license";
+export type LandingFactKey = "release" | "formats" | "providers" | "license" | "github";
 
-export const LANDING_FACTS: ReadonlyArray<{ key: LandingFactKey; value: string }> = [
+export type LandingFact = { key: LandingFactKey; value: string; href?: string };
+
+export const GITHUB_REPOSITORY = "verbatra/verbatra";
+
+export const LANDING_FACTS: ReadonlyArray<LandingFact> = [
   { key: "release", value: `@verbatra/cli ${PACKAGE_VERSION}` },
   { key: "formats", value: String(FORMAT_COUNT) },
   { key: "providers", value: String(PROVIDER_COUNT) },
   { key: "license", value: "MIT" },
+];
+
+export const HERO_FACTS: ReadonlyArray<LandingFact> = [
+  ...LANDING_FACTS,
+  { key: "github", value: GITHUB_REPOSITORY, href: GITHUB_URL },
 ];

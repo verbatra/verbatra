@@ -3,7 +3,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { AI_SETUP_PROMPT } from "@/lib/ai-setup-prompt";
-import { AGENT_INIT_COMMAND } from "@/lib/install-commands";
+import { AGENT_INIT_COMMAND, NPM_INSTALL_COMMAND } from "@/lib/install-commands";
 
 vi.mock("next-intl", () => {
   const t = Object.assign((key: string) => key, {
@@ -13,7 +13,7 @@ vi.mock("next-intl", () => {
 });
 
 const { StartHere } = await import("./start-here");
-const { PackageInstall } = await import("./landing/package-install");
+const { CommandRow } = await import("./command-row");
 
 function render(node: React.ReactNode): Document {
   return new DOMParser().parseFromString(renderToStaticMarkup(node), "text/html");
@@ -39,11 +39,10 @@ describe("StartHere", () => {
     expect(labels).toEqual(["copyAgentAria", "copyPromptAria"]);
   });
 
-  it("keeps the agent command off the install box, whose second step is the quickstart", () => {
+  it("runs only the agent command, never the npm install a new project starts with", () => {
     const banner = commands(render(<StartHere />));
-    const installBox = commands(render(<PackageInstall />));
     expect(banner).toEqual([AGENT_INIT_COMMAND]);
-    expect(installBox).not.toContain(AGENT_INIT_COMMAND);
+    expect(banner).not.toContain(NPM_INSTALL_COMMAND);
   });
 
   it("carries no start bar, so it never doubles the bar of the locale notice above it", () => {
@@ -58,8 +57,10 @@ describe("StartHere", () => {
     expect(code?.className).not.toContain("whitespace-normal");
   });
 
-  it("shares one command row with the install box, which still lets the long npm command wrap", () => {
-    const [npm] = [...render(<PackageInstall />).querySelectorAll("code")];
+  it("shares one command row with the npm install, which still lets the long npm command wrap", () => {
+    const npm = render(
+      <CommandRow command={NPM_INSTALL_COMMAND} label="copy" event="e" wrapsWhenNarrow />,
+    ).querySelector("code");
     const agent = render(<StartHere />).querySelector("code");
     expect(npm?.className).toContain("@max-[30rem]:whitespace-normal");
     expect(agent?.className).toBe(npm?.className.replace(" @max-[30rem]:whitespace-normal", ""));

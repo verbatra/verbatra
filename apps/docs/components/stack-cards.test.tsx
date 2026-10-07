@@ -19,8 +19,6 @@ const CARDS: ReadonlyArray<StackCard> = [
 
 const GLOBAL_CSS = readFileSync(join(process.cwd(), "app/global.css"), "utf8");
 
-type GridRule = { selector: string; declaration: string; wide: boolean };
-
 function closingBrace(css: string, open: number): number {
   let depth = 0;
   for (let index = open; index < css.length; index += 1) {
@@ -31,47 +29,21 @@ function closingBrace(css: string, open: number): number {
   return css.length;
 }
 
-function stackGridRules(): ReadonlyArray<GridRule> {
+function containerColumns(): ReadonlyArray<{ minRem: number; columns: number }> {
   const css = GLOBAL_CSS.replace(/\s+/g, " ");
-  const wideStart = css.indexOf("@container (min-width: 50rem) {");
-  const wideEnd = closingBrace(css, css.indexOf("{", wideStart));
-  return [...css.matchAll(/(\.vk-stack-grid[^{]*) \{ ([^}]*)\}/g)].map((match) => ({
-    selector: (match[1] ?? "").trim(),
-    declaration: (match[2] ?? "").trim(),
-    wide: (match.index ?? 0) > wideStart && (match.index ?? 0) < wideEnd,
-  }));
-}
-
-function matchesNth(formula: string, position: number): boolean {
-  if (formula === "odd") return position % 2 === 1;
-  if (formula === "even") return position % 2 === 0;
-  const [, step = "0", offset = "0"] =
-    formula.replace(/\s/g, "").match(/^(\d+)n\+?(-?\d+)?$/) ?? [];
-  const a = Number(step);
-  const b = Number(offset);
-  return a === 0 ? position === b : position >= b && (position - b) % a === 0;
-}
-
-function stackGridLayout(wide: boolean): { columns: number; lastSpan: (count: number) => number } {
-  const rules = stackGridRules().filter((rule) => wide || !rule.wide);
-  let columns = 1;
-  for (const rule of rules) {
-    const repeat = rule.declaration.match(/grid-template-columns: repeat\((\d+),/);
-    if (rule.selector === ".vk-stack-grid" && repeat) columns = Number(repeat[1]);
+  const found = [{ minRem: 0, columns: 1 }];
+  for (const match of css.matchAll(/@container \(min-width: ([\d.]+)rem\) \{/g)) {
+    const open = (match.index ?? 0) + match[0].length - 1;
+    const body = css.slice(open, closingBrace(css, open));
+    const repeat = /\.vk-stack-grid \{ grid-template-columns: repeat\((\d+),/.exec(body);
+    if (repeat) found.push({ minRem: Number(match[1]), columns: Number(repeat[1]) });
   }
-  return {
-    columns,
-    lastSpan: (count) => {
-      let span = 1;
-      for (const rule of rules) {
-        const nth = rule.selector.match(/^\.vk-stack-grid > li:last-child:nth-child\(([^)]*)\)$/);
-        const column = rule.declaration.match(/grid-column: (auto|span (\d+));/);
-        if (!nth || !column || !matchesNth(nth[1] ?? "", count)) continue;
-        span = column[1] === "auto" ? 1 : Number(column[2]);
-      }
-      return span;
-    },
-  };
+  return found;
+}
+
+function cssRule(selector: string): string {
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(?:^|\\}|\\n)\\s*${escaped} \\{([^}]*)\\}`).exec(GLOBAL_CSS)?.[1] ?? "";
 }
 
 const MONO_ADVANCE_PX = 12 * 0.6;
@@ -92,10 +64,9 @@ function renderedFormatIds(): ReadonlyArray<string> {
   return ids;
 }
 
-function cardTextWidth(gridPx: number, columns: number, chipBeside: boolean): number {
-  const card = (gridPx - 12 * (columns - 1)) / columns;
-  const frame = 2 + 2 * 14;
-  return card - frame - (chipBeside ? 40 + 12 : 0);
+function cardTextWidth(gridPx: number, columns: number): number {
+  const card = (gridPx - 24 * (columns - 1)) / columns;
+  return card - 56 - 24;
 }
 
 function render(markup: string): Document {
@@ -129,7 +100,7 @@ describe("StackCards", () => {
     expect(nav?.querySelectorAll("li a")).toHaveLength(CARDS.length);
   });
 
-  it("puts a card's badge on its own line after the format ids, so every card in a row matches", () => {
+  it("puts a card's badge inside the name link, beside the name, so it adds no line of its own", () => {
     const doc = render(
       renderToStaticMarkup(
         <StackCards
@@ -152,29 +123,104 @@ describe("StackCards", () => {
     const pill = links[0]?.querySelector(".vk-pill");
     expect(pill?.textContent).toBe(", Quickstart");
     expect(pill?.classList.contains("vk-stack-card-badge")).toBe(true);
-    expect(pill?.previousElementSibling?.textContent).toBe(": i18next-json");
-    expect(pill?.parentElement?.classList.contains("grid")).toBe(true);
-    expect(accessibleText(links[0] as Element)).toBe("React: i18next-json, Quickstart");
-    const badgeRule = /\.vk-pill\.vk-stack-card-badge \{([^}]*)\}/.exec(GLOBAL_CSS)?.[1] ?? "";
-    expect(badgeRule).toContain("max-width: 100%;");
-    expect(badgeRule).toContain("white-space: normal;");
+    expect(pill?.parentElement).toBe(links[0]);
+    expect(links[0]?.parentElement?.classList.contains("vk-stack-card-name")).toBe(true);
+    expect(accessibleText(links[0] as Element)).toBe("React, Quickstart");
+    expect(cssRule(".vk-stack-card-link")).toContain("display: inline-flex;");
+    expect(cssRule(".vk-pill.vk-stack-card-badge")).toContain("white-space: normal;");
+    expect(cssRule(".vk-pill.vk-stack-card-badge")).toContain("max-width: 100%;");
     expect(links.slice(1).some((link) => link.querySelector(".vk-pill") !== null)).toBe(false);
   });
 
-  it("names each card by its stack, a separator, then its format ids, never by its logo", () => {
-    const links = [...renderCards("en").querySelectorAll("a")];
-    expect(links.map(accessibleText)).toEqual([
-      "React: i18next-json",
-      "iOS and macOS: apple-strings, apple-xcstrings",
+  it("names each link by its stack alone, with the format ids and logo outside it", () => {
+    const doc = renderCards("en");
+    const links = [...doc.querySelectorAll("a")];
+    expect(links.map(accessibleText)).toEqual(["React", "iOS and macOS", "Something else"]);
+    const items = [...doc.querySelectorAll("li")];
+    expect(items.map(accessibleText)).toEqual([
+      "Reacti18next-json",
+      "iOS and macOSapple-strings, apple-xcstrings",
       "Something else",
     ]);
-    for (const link of links) {
-      expect(link.querySelector("svg")?.closest('[aria-hidden="true"]')).not.toBeNull();
+    for (const item of items) {
+      expect(item.querySelector("a svg")).toBeNull();
+      expect(item.querySelector(".vk-stack-card-chip")?.getAttribute("aria-hidden")).toBe("true");
     }
   });
 
+  it("gives every card exactly one link, with the chip and the chevron hidden and outside it", () => {
+    const items = [...renderCards("en").querySelectorAll("li")];
+    expect(items.length).toBeGreaterThan(0);
+    for (const item of items) {
+      const links = item.querySelectorAll("a");
+      expect(links).toHaveLength(1);
+      const link = links[0] as Element;
+      for (const selector of [".vk-stack-card-chip", ".vk-stack-card-chevron"]) {
+        const part = item.querySelector(selector);
+        expect(part?.getAttribute("aria-hidden"), selector).toBe("true");
+        expect(link.contains(part), selector).toBe(false);
+      }
+    }
+  });
+
+  it("puts the logo after the text in the DOM and shows it first through a reversed row", () => {
+    const item = renderCards("en").querySelector("li");
+    expect([...(item?.children ?? [])].map((child) => child.className)).toEqual([
+      "vk-stack-card-text",
+      "vk-stack-card-chip",
+    ]);
+    expect(cssRule(".vk-stack-card")).toContain("flex-direction: row-reverse;");
+    const chip = cssRule(".vk-stack-card-chip");
+    expect(chip).toContain("width: var(--stack-chip-size);");
+    expect(chip).toContain("border-radius: var(--radius-full);");
+    expect(GLOBAL_CSS).toMatch(/--stack-chip-size: 3\.5rem;/);
+  });
+
+  it("stretches the one link over the whole card, which keeps no border or background of its own", () => {
+    expect(cssRule(".vk-stack-card")).toContain("position: relative;");
+    const stretch = cssRule(".vk-stack-card-link::before");
+    expect(stretch).toContain("position: absolute;");
+    expect(stretch).toContain("inset: calc(-1 * var(--stack-card-hit-outset));");
+    expect(cssRule(".vk-stack-card-link:focus-visible::before")).toContain(
+      "outline: 2px solid var(--focus-ring);",
+    );
+    expect(cssRule(".vk-stack-card")).not.toMatch(/border|background/);
+  });
+
+  it("fades the chevron in on hover and on keyboard focus only, and changes nothing else", () => {
+    const chevron = renderCards("en").querySelector("li .vk-stack-card-chevron");
+    expect(chevron?.getAttribute("aria-hidden")).toBe("true");
+    expect(cssRule(".vk-stack-card-chevron")).toContain("opacity: 0;");
+    const css = GLOBAL_CSS.replace(/\s+/g, " ");
+    expect(css).toContain(
+      ".vk-stack-card:hover .vk-stack-card-chevron, .vk-stack-card:has(.vk-stack-card-link:focus-visible) .vk-stack-card-chevron { opacity: 1; }",
+    );
+    const hoverRules = [...css.matchAll(/([^{}]*\.vk-stack-card[^{}]*:(?:hover|focus)[^{}]*)\{/g)];
+    expect(hoverRules.map((match) => match[1]?.trim())).toEqual([
+      ".vk-stack-card-link:focus-visible::before",
+      ".vk-stack-card:hover .vk-stack-card-chevron, .vk-stack-card:has(.vk-stack-card-link:focus-visible) .vk-stack-card-chevron",
+    ]);
+  });
+
+  it("renders a description only when the card has one", () => {
+    const doc = render(
+      renderToStaticMarkup(
+        <StackCards
+          labelledBy="stacks"
+          locale="en"
+          cards={[
+            { ...CARDS[0], description: "Translate i18next JSON." } as StackCard,
+            ...CARDS.slice(1),
+          ]}
+        />,
+      ),
+    );
+    const descriptions = [...doc.querySelectorAll(".vk-stack-card-description")];
+    expect(descriptions.map((element) => element.textContent)).toEqual(["Translate i18next JSON."]);
+  });
+
   it("keeps each format id whole, so a list breaks at its comma and an id only after a hyphen in a very narrow grid", () => {
-    const ids = [...renderCards("en").querySelectorAll(".font-mono > span:not(.sr-only)")];
+    const ids = [...renderCards("en").querySelectorAll(".vk-stack-card-formats > span")];
     expect(ids.map((id) => id.textContent)).toEqual([
       "i18next-json",
       "apple-strings",
@@ -190,14 +236,10 @@ describe("StackCards", () => {
     const longest = Math.max(...renderedFormatIds().map((id) => id.length));
     const needed = longest * MONO_ADVANCE_PX * 1.15;
     const wrapBelowRem = Number(FORMAT_ID_CLASS.match(/@max-\[([\d.]+)rem\]/)?.[1]);
-    const gridWidths = {
-      stacked: wrapBelowRem * 16,
-      twoColumnRow: 30 * 16,
-      threeColumnRow: 50 * 16,
-    };
-    expect(cardTextWidth(gridWidths.stacked, 2, false)).toBeGreaterThanOrEqual(needed);
-    expect(cardTextWidth(gridWidths.twoColumnRow, 2, true)).toBeGreaterThanOrEqual(needed);
-    expect(cardTextWidth(gridWidths.threeColumnRow, 3, true)).toBeGreaterThanOrEqual(needed);
+    const [, two, three] = containerColumns();
+    expect(cardTextWidth(wrapBelowRem * 16, 1)).toBeGreaterThanOrEqual(needed);
+    expect(cardTextWidth((two?.minRem ?? 0) * 16, 2)).toBeGreaterThanOrEqual(needed);
+    expect(cardTextWidth((three?.minRem ?? 0) * 16, 3)).toBeGreaterThanOrEqual(needed);
   });
 
   it("draws each logo once in a sprite and references it from the card", () => {
@@ -208,7 +250,7 @@ describe("StackCards", () => {
       "vk-stack-icon-stacks-apple",
       "vk-stack-icon-stacks-custom",
     ]);
-    const uses = [...doc.querySelectorAll("a use")].map((use) => use.getAttribute("href"));
+    const uses = [...doc.querySelectorAll("li use")].map((use) => use.getAttribute("href"));
     expect(uses).toEqual(symbols.map((id) => `#${id}`));
   });
 
@@ -225,7 +267,7 @@ describe("StackCards", () => {
     expect(new Set(ids).size).toBe(ids.length);
     for (const nav of doc.querySelectorAll("nav")) {
       const prefix = `#vk-stack-icon-${nav.getAttribute("aria-labelledby")}-`;
-      for (const use of nav.querySelectorAll("a use")) {
+      for (const use of nav.querySelectorAll("li use")) {
         expect(use.getAttribute("href")?.startsWith(prefix)).toBe(true);
       }
     }
@@ -245,25 +287,21 @@ describe("StackCards", () => {
     expect(doc.body.innerHTML).not.toMatch(/dark:/);
   });
 
-  it("lets the last card fill the rest of its row, so neither two nor three columns leave an empty slot", () => {
+  it("lays the cards out in one, two, then three columns, leaving a short last row ragged", () => {
     expect(renderCards("en").querySelector("ul")?.classList.contains("vk-stack-grid")).toBe(true);
-    for (const columns of [2, 3]) {
-      const layout = stackGridLayout(columns === 3);
-      expect(layout.columns).toBe(columns);
-      for (let count = 1; count <= 20; count += 1) {
-        const start = (count - 1) % columns;
-        expect(start + layout.lastSpan(count), `${count} cards in ${columns} columns`).toBe(
-          columns,
-        );
-      }
-    }
+    expect(containerColumns().map((step) => step.columns)).toEqual([1, 2, 3]);
+    const grid = cssRule(".vk-stack-grid");
+    expect(grid).toContain("grid-template-columns: minmax(0, 1fr);");
+    expect(grid).toContain("column-gap: var(--stack-grid-column-gap);");
+    expect(grid).toContain("row-gap: var(--stack-grid-row-gap);");
+    expect(GLOBAL_CSS).not.toMatch(/\.vk-stack-grid > li:last-child/);
   });
 
-  it("drops the card and chip transitions for readers who prefer reduced motion", () => {
+  it("drops the chevron fade for readers who prefer reduced motion", () => {
     const blocks = [
       ...GLOBAL_CSS.matchAll(/@media \(prefers-reduced-motion: reduce\) \{([\s\S]*?)\n\}/g),
     ].map((match) => match[1] ?? "");
-    const optOut = blocks.find((block) => block.includes(".vk-stack-card,"));
-    expect(optOut).toMatch(/\.vk-stack-card,\s*\.vk-stack-card-chip \{\s*transition: none;/);
+    const optOut = blocks.find((block) => block.includes(".vk-stack-card-chevron,"));
+    expect(optOut).toMatch(/\.vk-stack-card-chevron,\s*\.vk-home-tab \{\s*transition: none;/);
   });
 });
