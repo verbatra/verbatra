@@ -32,9 +32,7 @@ Pour les projets i18next, react-i18next et next-i18next.
 - Format: `i18next-json`
 - Fichiers: `locales/{locale}.json`
 
-```bash
-npx @verbatra/cli init --format i18next-json
-```
+<InitCommand format="i18next-json" />
 
 Détails: [Les quatre formats JSON](/docs/formats#les-quatre-formats-json).
 
@@ -47,9 +45,7 @@ Pour les fichiers de messages next-intl, dont les valeurs sont des messages ICU.
 - Format: `next-intl-json`
 - Fichiers: `messages/{locale}.json`
 
-```bash
-npx @verbatra/cli init --format next-intl-json
-```
+<InitCommand format="next-intl-json" />
 
 Détails: [Les quatre formats JSON](/docs/formats#les-quatre-formats-json).
 
@@ -62,9 +58,7 @@ Pour vue-i18n, y compris Nuxt I18n, avec des placeholders entre accolades simple
 - Format: `vue-i18n-json`
 - Fichiers: `src/locales/{locale}.json`
 
-```bash
-npx @verbatra/cli init --format vue-i18n-json
-```
+<InitCommand format="vue-i18n-json" />
 
 Détails: [Les quatre formats JSON](/docs/formats#les-quatre-formats-json).
 
@@ -77,9 +71,7 @@ Pour le JSON de ngx-translate, plat ou imbriqué.
 - Format: `ngx-translate-json`
 - Fichiers: `src/assets/i18n/{locale}.json`
 
-```bash
-npx @verbatra/cli init --format ngx-translate-json
-```
+<InitCommand format="ngx-translate-json" />
 
 Détails: [Les quatre formats JSON](/docs/formats#les-quatre-formats-json).
 
@@ -92,9 +84,7 @@ Pour les Application Resource Bundles de Flutter. `init` règle aussi `localeSty
 - Format: `arb`
 - Fichiers: `lib/l10n/app_{locale}.arb`
 
-```bash
-npx @verbatra/cli init --format arb
-```
+<InitCommand format="arb" />
 
 Détails: [ARB](/docs/formats#arb).
 
@@ -107,9 +97,7 @@ Pour les ressources `strings.xml`. `init` règle aussi `localeStyle: "android"`,
 - Format: `android-xml`
 - Fichiers: `app/src/main/res/{locale}/strings.xml`
 
-```bash
-npx @verbatra/cli init --format android-xml
-```
+<InitCommand format="android-xml" />
 
 Détails: [Android strings.xml](/docs/formats#android-stringsxml).
 
@@ -120,18 +108,16 @@ Deux formats, selon la façon dont ton projet stocke ses textes. Pour les fichie
 - Format: `apple-strings`
 - Fichiers: `{locale}.lproj/Localizable.strings`
 
-```bash
-npx @verbatra/cli init --format apple-strings
-```
+<InitCommand format="apple-strings" />
 
 Pour un Xcode String Catalog, un seul fichier qui contient toutes les locales. Crée d'abord le catalogue dans Xcode : verbatra écrit dedans mais ne le crée jamais.
 
 - Format: `apple-xcstrings`
 - Fichiers: `{locale}Localizable.xcstrings`
 
-```bash
-npx @verbatra/cli init --format apple-xcstrings
-```
+Le motif a besoin du jeton `{locale}`, mais pour un String Catalog il ne donne rien : chaque locale lit et écrit l'unique fichier `Localizable.xcstrings`.
+
+<InitCommand format="apple-xcstrings" />
 
 Détails: [Apple .strings](/docs/formats#apple-strings) et [Xcode String Catalogs](/docs/formats#xcode-string-catalogs-xcstrings).
 
@@ -142,9 +128,7 @@ Pour les catalogues `.po` et leurs modèles `.pot`, comme dans les projets Pytho
 - Format: `gettext-po`
 - Fichiers: `locales/{locale}/LC_MESSAGES/messages.po`
 
-```bash
-npx @verbatra/cli init --format gettext-po
-```
+<InitCommand format="gettext-po" />
 
 Détails: [gettext .po/.pot](/docs/formats#gettext-popot).
 
@@ -155,9 +139,7 @@ Pour les bundles de messages `.properties`. `init` règle aussi `localeStyle: "p
 - Format: `properties`
 - Fichiers: `src/main/resources/messages_{locale}.properties`
 
-```bash
-npx @verbatra/cli init --format properties
-```
+<InitCommand format="properties" />
 
 Détails: [Properties](/docs/formats#properties).
 
@@ -168,9 +150,7 @@ Pour les fichiers de ressources `.resx`. Les images, les icônes et les entrées
 - Format: `resx`
 - Fichiers: `Resources/Strings.{locale}.resx`
 
-```bash
-npx @verbatra/cli init --format resx
-```
+<InitCommand format="resx" />
 
 Détails: [.NET .resx](/docs/formats#net-resx).
 
@@ -181,9 +161,7 @@ Pour les fichiers de locale YAML imbriqués avec des placeholders à la manière
 - Format: `yaml`
 - Fichiers: `locales/{locale}.yml`
 
-```bash
-npx @verbatra/cli init --format yaml
-```
+<InitCommand format="yaml" />
 
 Détails: [YAML](/docs/formats#yaml).
 
@@ -194,9 +172,7 @@ Pour les documents XLIFF 1.2 et 2.0 produits par `ng extract-i18n` d'Angular, un
 - Format: `xliff`
 - Fichiers: `locales/{locale}.xlf`
 
-```bash
-npx @verbatra/cli init --format xliff
-```
+<InitCommand format="xliff" />
 
 Détails: [XLIFF](/docs/formats#xliff).
 
@@ -207,9 +183,7 @@ Pour les fichiers INI classiques, avec un seul niveau d'en-têtes `[section]`.
 - Format: `ini`
 - Fichiers: `locales/{locale}.ini`
 
-```bash
-npx @verbatra/cli init --format ini
-```
+<InitCommand format="ini" />
 
 Détails: [INI](/docs/formats#ini).
 

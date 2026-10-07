@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { expandStackBlocks, remarkStackBlocks, type StackMdxNode, titleMeta } from "./stack-blocks";
-import { STACK_BLOCK_NAMES, STACK_IDS, STACKS, stackBlock, stackInitCommand } from "./stacks";
+import {
+  initCommand,
+  STACK_BLOCK_NAMES,
+  STACK_IDS,
+  STACKS,
+  stackBlock,
+  stackInitCommand,
+} from "./stacks";
 
 function element(
   type: "mdxJsxFlowElement" | "mdxJsxTextElement",
@@ -126,4 +133,65 @@ describe("expandStackBlocks", () => {
     remarkStackBlocks()(root, { data: { frontmatter: { stack: "nextjs" } } });
     expect(root.children?.[0]?.children?.[1]).toEqual({ type: "text", value: "Next.js" });
   });
+});
+
+describe("InitCommand", () => {
+  it("expands into the quickstart's init command on a page with no stack field", () => {
+    const root: StackMdxNode = {
+      type: "root",
+      children: [element("mdxJsxFlowElement", "InitCommand", { format: "android-xml" })],
+    };
+    expandStackBlocks(root, { title: "Pick your stack" });
+    expect(root.children).toEqual([
+      { type: "code", lang: "bash", meta: null, value: initCommand("android-xml") },
+    ]);
+    expect(initCommand(STACKS.vue.format)).toBe(stackInitCommand(STACKS.vue));
+  });
+
+  it("refuses a missing or malformed format id", () => {
+    const root: StackMdxNode = {
+      type: "root",
+      children: [element("mdxJsxFlowElement", "InitCommand", { format: "a b" })],
+    };
+    expect(() => expandStackBlocks(root, {})).toThrow(/needs a format id/);
+  });
+});
+
+describe("StackOnly", () => {
+  function only(stacks: string): StackMdxNode {
+    const node = element("mdxJsxFlowElement", "StackOnly", { stacks });
+    node.children = [
+      {
+        type: "paragraph",
+        children: [element("mdxJsxTextElement", "StackText", { field: "name" })],
+      },
+    ];
+    return { type: "root", children: [node] };
+  }
+
+  it("keeps its expanded children on a listed stack and drops them on every other", () => {
+    const flutter = only("flutter");
+    expandStackBlocks(flutter, { stack: "flutter" });
+    expect(flutter.children).toEqual([
+      { type: "paragraph", children: [{ type: "text", value: "Flutter" }] },
+    ]);
+    const react = only("flutter");
+    expandStackBlocks(react, { stack: "react" });
+    expect(react.children).toEqual([]);
+  });
+
+  it("refuses an unknown stack id and a page that names no stack", () => {
+    expect(() => expandStackBlocks(only("svelte"), { stack: "react" })).toThrow(/StackOnly/);
+    expect(() => expandStackBlocks(only("flutter"), {})).toThrow(/"stack" frontmatter/);
+  });
+});
+
+describe("the runtime install block", () => {
+  it.each(STACK_IDS)(
+    "tabs an npm install by package manager and leaves %s's other tools alone",
+    (id) => {
+      const [block] = stackBlock(STACKS[id], "runtime-install");
+      expect(block?.lang).toBe(STACKS[id].runtimeInstall.startsWith("npm ") ? "npm" : "bash");
+    },
+  );
 });

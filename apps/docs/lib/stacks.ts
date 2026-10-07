@@ -1,5 +1,6 @@
 import type { SupportedFormat } from "@verbatra/sdk";
 import type { StackIconKey } from "../components/stack-icons";
+import { NPM_FENCE_LANG } from "./install-commands";
 
 export const STACK_IDS = ["react", "nextjs", "vue", "angular", "flutter"] as const;
 
@@ -410,8 +411,18 @@ export function stackText(stack: Stack, field: StackTextField): string {
   }
 }
 
+export const INIT_PROVIDER = "gemini";
+
+export function initCommand(format: string): string {
+  return `npx @verbatra/cli init --format ${format} --provider ${INIT_PROVIDER} --yes`;
+}
+
 export function stackInitCommand(stack: Stack): string {
-  return `npx @verbatra/cli init --format ${stack.format} --provider gemini --yes`;
+  return initCommand(stack.format);
+}
+
+export function installLang(command: string): string {
+  return command.startsWith("npm ") ? NPM_FENCE_LANG : "bash";
 }
 
 export function stackBlock(stack: Stack, name: StackBlockName): readonly StackCode[] {
@@ -425,7 +436,7 @@ export function stackBlock(stack: Stack, name: StackBlockName): readonly StackCo
         { lang: "json", title: stackFile(stack, TARGET_LOCALE), code: stack.translatedStrings },
       ];
     case "runtime-install":
-      return [{ lang: "bash", code: stack.runtimeInstall }];
+      return [{ lang: installLang(stack.runtimeInstall), code: stack.runtimeInstall }];
     case "load":
       return stack.load;
   }

@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { readIncludedSource } from "@/lib/docs-pages";
-import { NPM_INSTALL_COMMAND } from "@/lib/install-commands";
+import { NPM_FENCE_LANG, NPM_INSTALL_COMMAND } from "@/lib/install-commands";
 
 const DOCS_DIR = fileURLToPath(new URL("../", import.meta.url));
 const CONTENT_DIR = join(DOCS_DIR, "content/docs");
@@ -19,17 +19,25 @@ function mdxPages(): string[] {
 }
 
 describe("the install command", () => {
-  it("is the npm command the quickstart installs with", () => {
+  it("is the npm command the quickstart installs with, as a package-manager fence", () => {
     expect(docsFile("content/docs/(get-started)/quickstart/index.mdx")).toContain(
-      `\`\`\`bash\n${NPM_INSTALL_COMMAND}\n\`\`\``,
+      `\`\`\`${NPM_FENCE_LANG}\n${NPM_INSTALL_COMMAND}\n\`\`\``,
     );
   });
 
-  it("renders as one command, with no package-manager tabs on any page", () => {
-    expect(docsFile("source.config.ts")).toContain("remarkNpmOptions: false");
-    const tabbed = mdxPages().filter((file) =>
-      /^```npm\s*$/m.test(readIncludedSource(join(CONTENT_DIR, file))),
+  it("renders package-manager tabs only through remarkPackageManagerTabs, never the preset plugin", () => {
+    const config = docsFile("source.config.ts");
+    expect(config).toContain("remarkNpmOptions: false");
+    expect(config).toContain("remarkPackageManagerTabs,");
+  });
+
+  it("tabs only install commands, so every other command stays one npx line", () => {
+    const fences = mdxPages().flatMap((file) =>
+      [...readIncludedSource(join(CONTENT_DIR, file)).matchAll(/^```npm\n([^\n]*)\n```/gm)].map(
+        ([, command]) => `${file}: ${command}`,
+      ),
     );
-    expect(tabbed).toEqual([]);
+    expect(fences.length).toBeGreaterThan(0);
+    expect(fences.filter((fence) => !/: npm install /.test(fence))).toEqual([]);
   });
 });

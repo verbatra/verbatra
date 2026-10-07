@@ -1,5 +1,6 @@
 import {
   CODE_TEXT_FIELDS,
+  initCommand,
   isStackId,
   STACK_BLOCK_NAMES,
   STACK_TEXT_FIELDS,
@@ -13,6 +14,10 @@ import {
 
 export const STACK_BLOCK_COMPONENT = "StackBlock";
 export const STACK_TEXT_COMPONENT = "StackText";
+export const STACK_ONLY_COMPONENT = "StackOnly";
+export const INIT_COMMAND_COMPONENT = "InitCommand";
+
+const FORMAT_ID = /^[a-z0-9-]+$/;
 
 type MdxAttribute = { type: string; name?: string; value?: unknown };
 
@@ -42,7 +47,11 @@ function isElement(node: StackMdxNode, name: string): boolean {
 }
 
 function isStackElement(node: StackMdxNode): boolean {
-  return isElement(node, STACK_BLOCK_COMPONENT) || isElement(node, STACK_TEXT_COMPONENT);
+  return (
+    isElement(node, STACK_BLOCK_COMPONENT) ||
+    isElement(node, STACK_TEXT_COMPONENT) ||
+    isElement(node, STACK_ONLY_COMPONENT)
+  );
 }
 
 function oneOf<T extends string>(values: readonly T[], value: string | undefined): T | undefined {
@@ -80,8 +89,24 @@ function textNode(stack: Stack, node: StackMdxNode): StackMdxNode {
   };
 }
 
+function stackOnlyIds(node: StackMdxNode): string[] {
+  const ids = (attribute(node, "stacks") ?? "").split(",").map((id) => id.trim());
+  const unknown = ids.filter((id) => !isStackId(id));
+  if (unknown.length > 0) {
+    throw new Error(`<${STACK_ONLY_COMPONENT}> needs stacks="<id>,..." from known stack ids`);
+  }
+  return ids;
+}
+
+function stackOnlyNodes(stack: Stack, node: StackMdxNode): StackMdxNode[] {
+  if (!stackOnlyIds(node).includes(stack.id)) return [];
+  expandChildren(stack, node);
+  return node.children ?? [];
+}
+
 function expanded(stack: Stack, node: StackMdxNode): StackMdxNode[] {
   if (isElement(node, STACK_BLOCK_COMPONENT)) return blockNodes(stack, node);
+  if (isElement(node, STACK_ONLY_COMPONENT)) return stackOnlyNodes(stack, node);
   return [textNode(stack, node)];
 }
 
@@ -91,6 +116,23 @@ function expandChildren(stack: Stack, node: StackMdxNode): void {
     if (isStackElement(child)) return expanded(stack, child);
     expandChildren(stack, child);
     return [child];
+  });
+}
+
+function initCommandNode(node: StackMdxNode): StackMdxNode {
+  const format = attribute(node, "format");
+  if (format === undefined || !FORMAT_ID.test(format)) {
+    throw new Error(`<${INIT_COMMAND_COMPONENT}> needs a format id, such as format="arb"`);
+  }
+  return { type: "code", lang: "bash", meta: null, value: initCommand(format) };
+}
+
+export function expandInitCommands(node: StackMdxNode): void {
+  if (node.children === undefined) return;
+  node.children = node.children.map((child) => {
+    if (isElement(child, INIT_COMMAND_COMPONENT)) return initCommandNode(child);
+    expandInitCommands(child);
+    return child;
   });
 }
 
@@ -108,11 +150,12 @@ export function pageStack(frontmatter: unknown): Stack | undefined {
 }
 
 export function expandStackBlocks(root: StackMdxNode, frontmatter: unknown): void {
+  expandInitCommands(root);
   const stack = pageStack(frontmatter);
   if (stack === undefined) {
     if (containsStackElement(root)) {
       throw new Error(
-        `<${STACK_BLOCK_COMPONENT}> and <${STACK_TEXT_COMPONENT}> need a "stack" frontmatter field`,
+        `<${STACK_BLOCK_COMPONENT}>, <${STACK_TEXT_COMPONENT}> and <${STACK_ONLY_COMPONENT}> need a "stack" frontmatter field`,
       );
     }
     return;

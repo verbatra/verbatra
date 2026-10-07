@@ -7,6 +7,7 @@ import { remarkAgentEntryMarkdown } from "./lib/agent-entry";
 import { rehypeAvailableFromInHeading } from "./lib/available-from-heading";
 import { rehypeCodeOptions } from "./lib/code-block-meta";
 import { remarkIntroducedIn } from "./lib/introduced-in";
+import { remarkPackageManagerTabs } from "./lib/package-manager-tabs";
 import { PAGE_TYPES } from "./lib/page-type";
 import {
   remarkSdkTypeTable,
@@ -40,6 +41,7 @@ export default defineConfig({
     rehypeCodeOptions,
     remarkPlugins: [
       remarkStackBlocks,
+      remarkPackageManagerTabs,
       remarkIntroducedIn,
       remarkSdkTypeTable,
       [remarkAutoTypeTable, sdkTypeTableOptions(REPO_ROOT)],

@@ -137,10 +137,12 @@ footer's oversized watermark only; do not clip it onto a heading.
   takes the flat-panel glow border on hover and focus through `.vk-evidence-link`), `package-install.tsx` and
   `command-box.tsx` (each an `@container`: a command wraps once the box is under 30rem, only at
   a space since `HighlightedCommand` keeps each word whole, so the package name is never clipped;
-  its two command rows are one `CommandRow` each (`components/command-row.tsx`): the npm
-  install, which wraps under 30rem, then `AGENT_INIT_COMMAND` from `lib/install-commands.ts`,
-  which stays on one line and scrolls; its last row is `AiSetupPrompt`
-  (`components/ai-setup-prompt.tsx`): the whole one-line prompt, wrapped, under a `.vk-label` caption that shares its row with the
+  it is an ordered list of two numbered steps, each under a `.vk-label` caption with its number
+  in an outline circle like the docs `Steps` rail: "Install", one `CommandRow`
+  (`components/command-row.tsx`) for the npm install, which wraps under 30rem, then "Set up", a
+  link to the quickstart, since `init --agent` cannot be a new project's first step; its last row
+  is `AiSetupPrompt` (`components/ai-setup-prompt.tsx`, captioned "Or let your agent set it up"
+  there through its `label` prop): the whole one-line prompt, wrapped, under a `.vk-label` caption that shares its row with the
   prompt's small Copy button; its URL breaks only after a path `/`, never inside the scheme or
   host, through `breakUrlsAtSlashes` in `lib/word-breaks.tsx`), `reveal.tsx` (the scroll
   entrance, used once: the providers deck, whose fan-out it triggers; sections do not animate in), `hero-facts.tsx` (the release / formats / providers /
@@ -155,9 +157,9 @@ footer's oversized watermark only; do not clip it onto a heading.
 - **Docs-facing:** `<StartHere />` (`components/start-here.tsx`) opens every page in
   `START_HERE_PAGES` (`lib/agent-entry.ts`, the agent guides only, not reference pages): a void
   `aside` at the prose measure with no start bar (so it never doubles the locale notice's
-  callout bar), a `.vk-label` title and one lead, then the same agent `CommandRow` and
-  `AiSetupPrompt` rows as the install box, so `AGENT_INIT_COMMAND` and `AI_SETUP_PROMPT`
-  (`lib/ai-setup-prompt.ts`) each have one source. `<McpInstallLink client="vscode" />`
+  callout bar), a `.vk-label` title and one lead, then the agent `CommandRow` for
+  `AGENT_INIT_COMMAND` and the same `AiSetupPrompt` row as the install box, so
+  `AGENT_INIT_COMMAND` and `AI_SETUP_PROMPT` (`lib/ai-setup-prompt.ts`) each have one source. `<McpInstallLink client="vscode" />`
   (`components/mcp-install-link.tsx`; VS Code only, since a Cursor link installs user-wide where
   `${workspaceFolder}` is the home folder) is a plain anchor in the
   secondary button style (`buttonClasses` from `components/ui/button.tsx`, not `Button`, whose
@@ -328,11 +330,16 @@ comes from:
   "Next" sections end in a `<Cards>` block. A card that points at the page's own prev/next footer
   target is dropped at render time (`lib/docs-neighbours.ts`, passed to `getMDXComponents` by the
   docs page), so the footer and the cards never link the same page twice.
-- **One install command**: every install is shown as one npm command in a `bash` fence, with no
-  package-manager tabs. remark-npm is off (`remarkNpmOptions: false` in `source.config.ts`), and
-  `lib/install-commands.test.ts` fails on an `npm` fence anywhere in the content. The landing and
-  docs home install box takes `NPM_INSTALL_COMMAND` from `lib/install-commands.ts`; a page that
-  needs pnpm, yarn or bun says so in a sentence.
+- **Install commands as package-manager tabs**: an install command is an `npm` fence
+  (`` ```npm ``) holding the one npm command. `remarkPackageManagerTabs`
+  (`lib/package-manager-tabs.ts`, after `remarkStackBlocks` in `source.config.ts`) runs Fumadocs'
+  own `remarkNpm` on it, so it renders as Fumadocs' `CodeBlockTabs` (npm, pnpm, yarn, bun) with one
+  remembered choice (`groupId` `package-manager`), and prints the npm command alone in the page's
+  `.md` output. The preset plugin stays off (`remarkNpmOptions: false`), and
+  `lib/install-commands.test.ts` fails on an `npm` fence that is not an `npm install`, so every
+  other command stays one `npx` line in a `bash` fence. `StackBlock name="runtime-install"` emits
+  the `npm` fence for an npm install and `bash` for any other tool. The landing and docs home install
+  box takes `NPM_INSTALL_COMMAND` from `lib/install-commands.ts` and shows no tabs.
 - **Output blocks**: a fence flagged `output` (`` ```text output ``) is what a command prints, not
   something to run. The flag, not a title, is the marker, so it reads the same in every locale:
   `parseCodeBlockMeta` (`lib/code-block-meta.ts`, wired as `rehypeCodeOptions.parseMetaString` in

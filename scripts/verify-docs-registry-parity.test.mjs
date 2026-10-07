@@ -194,7 +194,7 @@ function stackSectionsFor(page, format) {
   return page
     .split(/^## /m)
     .slice(1)
-    .filter((section) => section.includes(`npx @verbatra/cli init --format ${format}\n`));
+    .filter((section) => section.includes(`<InitCommand format="${format}" />\n`));
 }
 
 function headingSlug(heading) {
@@ -313,7 +313,7 @@ describe("the pick-your-stack page covers every built-in format", () => {
       expectEveryCardParsed(page);
       expect(page).toContain('<StackCards\n  labelledBy="page-title"');
       expectCardsCoverEveryFormat(cards, page, formats);
-      const commands = [...page.matchAll(/npx @verbatra\/cli init --format ([a-z0-9-]+)/g)];
+      const commands = [...page.matchAll(/<InitCommand format="([a-z0-9-]+)" \/>/g)];
       expect(commands.map((match) => match[1]).sort()).toEqual([...formats].sort());
     },
   );
@@ -345,7 +345,7 @@ describe("the pick-your-stack page covers every built-in format", () => {
 
   it("sees a format whose section, card, or layout is missing or wrong", () => {
     const page = readDocPage("(get-started)/pick-your-stack", "");
-    const withoutIni = page.replace("npx @verbatra/cli init --format ini\n", "");
+    const withoutIni = page.replace('<InitCommand format="ini" />\n', "");
     expect(stackSectionsFor(withoutIni, "ini")).toHaveLength(0);
     const covers = (variant) => () =>
       expectCardsCoverEveryFormat(stackCards(variant), page, supportedFormats());
