@@ -508,7 +508,24 @@ describe("run translate: exit codes", () => {
 
     expect(await run(["translate", "--json"], deps, cap.streams)).toBe(3);
     expect(parseEnvelope(cap.out().trim())).toMatchObject({ ok: true, command: "translate" });
-    expect(cap.err()).toContain("1 key needs a human translation");
+    expect(cap.err()).not.toContain("human translation");
+  });
+
+  it("writes only JSON records to stderr in a human-only --json run", async () => {
+    const summary = makeSummary({
+      locales: [makeLocale({ unfilled: ["farewell", "greeting"] })],
+      succeeded: ["de"],
+    });
+    const { deps } = recordingDeps({ translate: async () => summary, loadConfig: humanOnlyConfig });
+    const cap = captureStreams();
+
+    expect(await run(["translate", "--json"], deps, cap.streams)).toBe(3);
+    for (const line of cap
+      .err()
+      .split("\n")
+      .filter((entry) => entry !== "")) {
+      expect(() => JSON.parse(line)).not.toThrow();
+    }
   });
 
   it("prints no human-only hint when the config names a translation provider", async () => {

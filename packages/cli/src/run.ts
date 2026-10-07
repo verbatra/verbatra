@@ -386,7 +386,7 @@ function renderNeedsHumanHint(
     return;
   }
   const count = needsHumanKeyCount(config, summary);
-  if (count === 0) {
+  if (count === 0 || ui.terminal.mode === "json") {
     return;
   }
   ui.warn(

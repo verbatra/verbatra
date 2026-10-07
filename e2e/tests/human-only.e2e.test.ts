@@ -90,7 +90,7 @@ describe("human-only workflow (provider none, no key, no network)", () => {
     expect(summary.failed).toEqual([]);
     expect(summary.locales[0]?.translated).toEqual([]);
     expect(summary.locales[0]?.unfilled).toEqual(["farewell", "greeting"]);
-    expect(translated.stderr).toContain("2 keys need a human translation");
+    expect(translated.stderr).not.toContain("human translation");
 
     const workbookPath = join(dir, "handoff.xlsx");
     const exported = await run(["export", "--out", workbookPath]);
