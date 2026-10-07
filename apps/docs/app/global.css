@@ -779,15 +779,17 @@ samp {
     white-space: normal;
     overflow-wrap: anywhere;
   }
+
+  #nd-page
+    .prose
+    :where(td .vk-code-short, th .vk-code-short):not(:where(.not-prose, .not-prose *)) {
+    overflow-wrap: normal;
+  }
 }
 
-@container vk-article (max-width: 44.99rem) {
+@container vk-article (max-width: 29.99rem) {
   #nd-page .prose :where(.vk-table-stack, .vk-table-stack tbody, .vk-table-stack tr) {
     display: block;
-  }
-
-  #nd-page .prose :where(.vk-table-stack) {
-    --stack-label-width: 6.5rem;
   }
 
   #nd-page .prose :where(.vk-table-stack thead) {
@@ -809,17 +811,15 @@ samp {
   }
 
   #nd-page .prose :where(.vk-table-stack td) {
-    display: flow-root;
+    display: block;
     padding-block: 0.1875rem;
-    padding-inline: calc(var(--stack-label-width) + 1.5rem) 0.75rem;
+    padding-inline: 0.75rem;
     border: 0;
   }
 
   #nd-page .prose :where(.vk-table-stack td)::before {
     content: attr(data-label);
-    float: inline-start;
-    width: var(--stack-label-width);
-    margin-inline-start: calc(-0.75rem - var(--stack-label-width));
+    display: block;
     font-family: var(--font-mono);
     font-size: var(--text-xs);
     line-height: 1.9;
@@ -829,7 +829,6 @@ samp {
   }
 
   #nd-page .prose :where(.vk-table-stack td:first-child) {
-    padding-inline-start: 0.75rem;
     padding-block-end: 0.375rem;
     color: var(--text-strong);
     font-weight: 500;
@@ -837,19 +836,6 @@ samp {
 
   #nd-page .prose :where(.vk-table-stack td:first-child)::before {
     content: none;
-  }
-}
-
-@container vk-article (max-width: 29.99rem) {
-  #nd-page .prose :where(.vk-table-stack td) {
-    padding-inline: 0.75rem;
-  }
-
-  #nd-page .prose :where(.vk-table-stack td)::before {
-    display: block;
-    float: none;
-    width: auto;
-    margin-inline-start: 0;
   }
 }
 

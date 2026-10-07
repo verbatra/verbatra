@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { HastNode } from "./hast";
-import { rehypeStackedTables, STACKED_TABLE_CLASS } from "./stacked-tables";
+import {
+  COMPACT_ROW_MAX_CHARACTERS,
+  rehypeStackedTables,
+  STACKED_TABLE_CLASS,
+} from "./stacked-tables";
+
+const LONG = "start the config search here and resolve the paths you pass against it";
 
 const text = (value: string): HastNode => ({ type: "text", value });
 const element = (tagName: string, children: HastNode[], properties = {}): HastNode => ({
@@ -40,7 +46,7 @@ function cells(node: HastNode): HastNode[] {
 describe("rehypeStackedTables", () => {
   it("labels every body cell of a wide table with its column header", () => {
     const wide = run(
-      table(["Flag", "Argument", "Default", "Effect"], [["--cwd", "<path>", "here", "resolve"]]),
+      table(["Flag", "Argument", "Default", "Effect"], [["--cwd", "<path>", "here", LONG]]),
     );
 
     expect(wide.properties?.className).toEqual([STACKED_TABLE_CLASS]);
@@ -53,7 +59,7 @@ describe("rehypeStackedTables", () => {
   });
 
   it("keeps existing classes and tolerates a row longer than the header", () => {
-    const wide = table(["A", "B", "C", "D"], [["1", "2", "3", "4", "5"]]);
+    const wide = table(["A", "B", "C", "D"], [["1", "2", "3", LONG, "5"]]);
     wide.properties = { className: ["existing"] };
     run(wide);
 
@@ -62,7 +68,7 @@ describe("rehypeStackedTables", () => {
   });
 
   it("stacks a three-column table", () => {
-    const three = run(table(["Code", "Meaning", "Fix"], [["a", "b", "c"]]));
+    const three = run(table(["Code", "Meaning", "Fix"], [["a", "b", LONG]]));
 
     expect(three.properties?.className).toEqual([STACKED_TABLE_CLASS]);
     expect(cells(three).map((cell) => cell.properties?.dataLabel)).toEqual([
@@ -70,6 +76,24 @@ describe("rehypeStackedTables", () => {
       "Meaning",
       "Fix",
     ]);
+  });
+
+  it("keeps a table whose rows are all short as a table, like the error code index", () => {
+    const index = run(
+      table(
+        ["Code", "Family", "Exit code"],
+        [
+          ["TRANSLATION_ORPHAN_REFUSED", "Provider", "1"],
+          ["CLI_ERROR", "CLI", "2"],
+        ],
+      ),
+    );
+    const longer = run(
+      table(["Code", "Family", "Exit code"], [["a".repeat(COMPACT_ROW_MAX_CHARACTERS), "b", "c"]]),
+    );
+
+    expect(index.properties?.className).toBeUndefined();
+    expect(longer.properties?.className).toEqual([STACKED_TABLE_CLASS]);
   });
 
   it("leaves narrow tables and tables without a header row alone", () => {
