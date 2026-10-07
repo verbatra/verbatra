@@ -143,13 +143,54 @@ describe("run: the hint on a commander usage error", () => {
     expect(cap.err()).not.toContain("next:");
   });
 
-  it("prints the help hint after commander's own line without --json", async () => {
+  it.each([
+    [["translate", "--nope"], "unknown option '--nope'", "translate"],
+    [["bogus"], "unknown command 'bogus'", null],
+    [["import"], "missing required argument 'workbook'", "import"],
+    [
+      ["report", "nope"],
+      "command-argument value 'nope' is invalid for argument 'report'.",
+      "report",
+    ],
+    [["check", "extra"], "too many arguments for 'check'.", "check"],
+  ] as const)(
+    "%j prints one USAGE_ERROR line and the help hint on stderr only",
+    async (argv, message, command) => {
+      const { deps } = recordingDeps();
+      const cap = captureStreams();
+
+      expect(await run([...argv], deps, cap.streams)).toBe(2);
+
+      const lines = cap
+        .err()
+        .split("\n")
+        .filter((line) => line !== "");
+      expect(lines).toHaveLength(2);
+      expect(lines[0]).toMatch(/^verbatra: error \[USAGE_ERROR\] /);
+      expect(lines[0]).toContain(message);
+      expect(lines[1]).toBe(`next: ${usageErrorHint(command)}`);
+      expect(cap.out()).toBe("");
+    },
+  );
+
+  it("writes the USAGE_ERROR line to stderr next to the --json envelope", async () => {
+    const { deps } = recordingDeps();
+    const cap = captureStreams();
+
+    expect(await run(["check", "--json", "--nope"], deps, cap.streams)).toBe(2);
+
+    expect(cap.err()).toBe("verbatra: error [USAGE_ERROR] unknown option '--nope'\n");
+    expect(parseEnvelope(cap.out()).message).toBe("error: unknown option '--nope'");
+  });
+
+  it("prints the help hint after the USAGE_ERROR line without --json", async () => {
     const { deps } = recordingDeps();
     const cap = captureStreams();
 
     expect(await run(["check", "--nope"], deps, cap.streams)).toBe(2);
 
-    expect(cap.err()).toContain("error: unknown option '--nope'");
+    expect(cap.err()).toContain("verbatra: error [USAGE_ERROR] unknown option '--nope'");
+    expect(cap.err()).not.toMatch(/^error: /m);
     expect(
       cap
         .err()

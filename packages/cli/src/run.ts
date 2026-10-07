@@ -515,19 +515,18 @@ function renderUsageFailureExit2(
 ): number {
   const command = resolveCommandName(program, argv);
   const hint = usageErrorHint(command);
-  if (command !== null && PROTOCOL_STDOUT_COMMANDS.has(command)) {
-    if (argvRequestsJson(argv)) {
-      streams.err(
-        `verbatra: error [${USAGE_ERROR_CODE}] ${command} does not take --json: its stdout carries ` +
-          "only MCP protocol messages, so it never prints a JSON envelope. Remove --json.\n",
-      );
-    } else {
-      streams.err(`verbatra: error [${USAGE_ERROR_CODE}] ${commanderErrorText(error)}\n`);
-      hintUsage(error, hint, argv, streams, facts);
-    }
+  const json = argvRequestsJson(argv);
+  if (json && command !== null && PROTOCOL_STDOUT_COMMANDS.has(command)) {
+    streams.err(
+      `verbatra: error [${USAGE_ERROR_CODE}] ${command} does not take --json: its stdout carries ` +
+        "only MCP protocol messages, so it never prints a JSON envelope. Remove --json.\n",
+    );
     return 2;
   }
-  if (argvRequestsJson(argv)) {
+  if (!showsHelp(error)) {
+    streams.err(`verbatra: error [${USAGE_ERROR_CODE}] ${commanderErrorText(error)}\n`);
+  }
+  if (json) {
     const envelope = renderErrorEnvelope(command, {
       code: USAGE_ERROR_CODE,
       message: error.message,
@@ -2286,7 +2285,6 @@ function registerMcpCommand(program: Command, ctx: ProgramContext): void {
       "--redact-values",
       "replace translation values in every tool result with a marker (also: VERBATRA_MCP_REDACT_VALUES)",
     )
-    .configureOutput({ outputError: discardCommanderError })
     .action(async (opts: unknown) => {
       ctx.setCode(await runMcpCommand(opts, ctx.deps, ctx.streams, ctx.hooks, ctx.settings()));
     })
@@ -2490,7 +2488,11 @@ function buildProgram(
     )
     .option("--no-color", "never color the output (also: NO_COLOR, VERBATRA_NO_COLOR)")
     .exitOverride()
-    .configureOutput({ writeOut: (s) => streams.out(s), writeErr: (s) => streams.err(s) })
+    .configureOutput({
+      writeOut: (s) => streams.out(s),
+      writeErr: (s) => streams.err(s),
+      outputError: discardCommanderError,
+    })
     .hook("preAction", (_program, actionCommand) => assertCwdOption(actionCommand.opts(), deps));
 
   const settings = (): TerminalSettings => terminalSettings(program, facts);
