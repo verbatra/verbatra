@@ -450,7 +450,16 @@ describe("runInit for agents", () => {
 
     expect(result.apiKeyEnvVar).toBeNull();
     expect(result.nextSteps.at(-1)?.command).toContain("npx @verbatra/cli export");
-    expect(result.nextSteps[1]?.description).toContain("Set format");
+    expect(result.nextSteps[0]?.description).toContain("Set format");
+  });
+
+  it("names no create step while the format is still the default", async () => {
+    const { out } = await initJson({ provider: "gemini", yes: true });
+    const result = successResult(out);
+
+    expect(result.sources.format).toBe("default");
+    expect(out).not.toContain("Create ");
+    expect(result.nextSteps[0]?.description).toContain("Set format");
   });
 
   describe("when the source locale file does not exist yet", () => {
@@ -500,7 +509,7 @@ describe("runInit for agents", () => {
       options: { baseUrl: "http://localhost:11434/v1", model: "llama3.1", maxOutputTokens: 4096 },
     });
     expect(result.apiKeyEnvVar).toBe("OPENAI_COMPATIBLE_API_KEY");
-    expect(result.nextSteps[2]?.description).toContain("only if your server requires a key");
+    expect(result.nextSteps[1]?.description).toContain("only if your server requires a key");
     const envExample = readFileSync(join(dir, ".env.example"), "utf8");
     expect(envExample).toContain("only if your server requires a key");
     expect(envExample.split("\n")).toContain("OPENAI_COMPATIBLE_API_KEY=");
@@ -522,7 +531,7 @@ describe("runInit for agents", () => {
       options: { baseUrl: "http://localhost:5000" },
     });
     expect(result.apiKeyEnvVar).toBe("LIBRETRANSLATE_API_KEY");
-    expect(result.nextSteps[2]?.description).toContain("only if your server requires a key");
+    expect(result.nextSteps[1]?.description).toContain("only if your server requires a key");
     const envExample = readFileSync(join(dir, ".env.example"), "utf8");
     expect(envExample.split("\n")).toContain("LIBRETRANSLATE_API_KEY=");
     expect(readConfig()).toContain("A self-hosted LibreTranslate server");

@@ -459,7 +459,10 @@ function sourceFileStep(plan: InitPlan): NextStep | undefined {
 }
 
 function createSourceStep(plan: InitPlan, cwd: string): NextStep | undefined {
-  if (plan.detection.layout?.unqualifiedSourceFile !== undefined) {
+  if (
+    plan.sources.format === "default" ||
+    plan.detection.layout?.unqualifiedSourceFile !== undefined
+  ) {
     return undefined;
   }
   const sourceFile = sourceFileFor(plan);
@@ -547,8 +550,13 @@ function leadingSteps(
   agent: AgentScaffoldPlan | undefined,
   suffix: string,
   dryRun: boolean,
+  createSource?: NextStep,
 ): NextStep[] {
-  return [...(dryRun ? [DRY_RUN_STEP] : []), ...agentSteps(agent, suffix)];
+  return [
+    ...(dryRun ? [DRY_RUN_STEP] : []),
+    ...(createSource === undefined ? [] : [createSource]),
+    ...agentSteps(agent, suffix),
+  ];
 }
 
 function cwdSuffix(cwdFlag: string | undefined): string {
@@ -580,12 +588,7 @@ function nextSteps({
   json,
 }: NextStepsInput): readonly NextStep[] {
   const suffix = cwdSuffix(cwdFlag);
-  const createSource = createSourceStep(plan, cwd);
-  const steps = [
-    ...(dryRun ? [DRY_RUN_STEP] : []),
-    ...(createSource === undefined ? [] : [createSource]),
-    ...agentSteps(agent, suffix),
-  ];
+  const steps = leadingSteps(agent, suffix, dryRun, createSourceStep(plan, cwd));
   if (plan.sources.format === "default") {
     steps.push({
       description: `Set format in ${CONFIG_FILE}: init found no locale file to detect it from.`,
