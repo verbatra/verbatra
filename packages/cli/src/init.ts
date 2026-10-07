@@ -458,6 +458,20 @@ function sourceFileStep(plan: InitPlan): NextStep | undefined {
   };
 }
 
+function createSourceStep(plan: InitPlan, cwd: string): NextStep | undefined {
+  if (plan.detection.layout?.unqualifiedSourceFile !== undefined) {
+    return undefined;
+  }
+  const sourceFile = sourceFileFor(plan);
+  if (sourceFile === undefined || existsSync(resolve(cwd, sourceFile))) {
+    return undefined;
+  }
+  return {
+    description: `Create ${sourceFile} with the ${plan.draft.sourceLocale} source strings: verbatra reads the source from that file, and a run fails until it exists.`,
+    command: null,
+  };
+}
+
 const MCP_SETUP_DOCS = "https://verbatra.kreitz-webdev.de/docs/connect-an-mcp-client";
 
 const CLIENT_DOCS_ANCHOR: Record<AgentClientId, string> = {
@@ -548,15 +562,30 @@ function doctorStep(suffix: string): NextStep {
   };
 }
 
-function nextSteps(
-  plan: InitPlan,
-  agent: AgentScaffoldPlan | undefined,
-  cwdFlag: string | undefined,
-  dryRun: boolean,
-  json: boolean,
-): readonly NextStep[] {
+interface NextStepsInput {
+  readonly plan: InitPlan;
+  readonly agent: AgentScaffoldPlan | undefined;
+  readonly cwd: string;
+  readonly cwdFlag: string | undefined;
+  readonly dryRun: boolean;
+  readonly json: boolean;
+}
+
+function nextSteps({
+  plan,
+  agent,
+  cwd,
+  cwdFlag,
+  dryRun,
+  json,
+}: NextStepsInput): readonly NextStep[] {
   const suffix = cwdSuffix(cwdFlag);
-  const steps = leadingSteps(agent, suffix, dryRun);
+  const createSource = createSourceStep(plan, cwd);
+  const steps = [
+    ...(dryRun ? [DRY_RUN_STEP] : []),
+    ...(createSource === undefined ? [] : [createSource]),
+    ...agentSteps(agent, suffix),
+  ];
   if (plan.sources.format === "default") {
     steps.push({
       description: `Set format in ${CONFIG_FILE}: init found no locale file to detect it from.`,
@@ -829,7 +858,7 @@ export async function runInit(
     const shadowed = parentConfigDir(cwd);
     const files = commitAll(writes, agent, { cwd, dryRun, streams: out, files: [] });
     warnShadowedConfig(shadowed, cwd, dryRun, streams);
-    const steps = nextSteps(plan, agent, opts.cwd, dryRun, json);
+    const steps = nextSteps({ plan, agent, cwd, cwdFlag: opts.cwd, dryRun, json });
     if (json) {
       const keyEnvVar = keyEnvVarFor(plan.draft.provider);
       streams.out(

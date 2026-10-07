@@ -28,6 +28,8 @@ Non-interactive `init` for agents, and errors with a `hint` and a `causeCode`.
 - Run in a project that already has a config, `init --agent` keeps the config and adds only the
   agent files (`agent.configKept` in `--json`).
 - `init --dry-run` reports every file it would write or change, and writes nothing.
+- When the source locale file does not exist yet, the first next step names it and says to create
+  it before running anything else.
 - An unpaired or repeated verbatra marker, a client file that is not plain JSON (comments and
   trailing commas included), does not hold a JSON object, repeats a key or has a servers value
   that is not an object, a `.codex/config.toml` init cannot scan safely or that sets the verbatra

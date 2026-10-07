@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import { type ProjectDetection, verbatraConfigSchema } from "@verbatra/sdk";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { type InitDeps, runInit } from "./init.js";
+import { initResultSchema } from "./init-schema.js";
 import { captureStreams, parseEnvelope } from "./test-support.js";
 
 const nonInteractive: InitDeps = { isTty: () => false };
@@ -116,6 +117,7 @@ describe("runInit for agents", () => {
     });
     expect(result.apiKeyEnvVar).toBe("GEMINI_API_KEY");
     expect(result.nextSteps.map((step) => step.command)).toEqual([
+      null,
       null,
       `npx @verbatra/cli doctor --cwd ${dir}`,
       `npx @verbatra/cli translate --dry-run --json --cwd ${dir}`,
@@ -448,7 +450,39 @@ describe("runInit for agents", () => {
 
     expect(result.apiKeyEnvVar).toBeNull();
     expect(result.nextSteps.at(-1)?.command).toContain("npx @verbatra/cli export");
-    expect(result.nextSteps[0]?.description).toContain("Set format");
+    expect(result.nextSteps[1]?.description).toContain("Set format");
+  });
+
+  describe("when the source locale file does not exist yet", () => {
+    const flags = { provider: "gemini", format: "i18next-json", yes: true } as const;
+    const createStep =
+      "Create locales/en.json with the en source strings: verbatra reads the source from that file, and a run fails until it exists.";
+
+    it("leads the --json next steps with creating it, and the envelope stays schema-valid", async () => {
+      const { out } = await initJson(flags);
+      const result = successResult(out);
+
+      expect(result.nextSteps[0]).toEqual({ description: createStep, command: null });
+      expect(result.nextSteps.at(-1)?.command).toContain("translate --dry-run");
+      expect(initResultSchema.safeParse(result).success).toBe(true);
+    });
+
+    it("leads the human next steps with creating it", async () => {
+      const cap = captureStreams();
+
+      expect(await runInit({ cwd: dir, ...flags }, cap.streams, nonInteractive)).toBe(0);
+
+      const lines = cap.out().split("\n");
+      expect(lines[lines.indexOf("next steps:") + 1]).toBe(`  - ${createStep}`);
+    });
+
+    it("names no create step once the source file exists", async () => {
+      write("locales/en.json", "{}\n");
+      const { out } = await initJson(flags);
+
+      expect(out).not.toContain("Create locales/en.json");
+      expect(successResult(out).nextSteps[0]?.description).toContain(".env");
+    });
   });
 
   it("scaffolds an openai-compatible provider without writing a key", async () => {
@@ -466,7 +500,7 @@ describe("runInit for agents", () => {
       options: { baseUrl: "http://localhost:11434/v1", model: "llama3.1", maxOutputTokens: 4096 },
     });
     expect(result.apiKeyEnvVar).toBe("OPENAI_COMPATIBLE_API_KEY");
-    expect(result.nextSteps[1]?.description).toContain("only if your server requires a key");
+    expect(result.nextSteps[2]?.description).toContain("only if your server requires a key");
     const envExample = readFileSync(join(dir, ".env.example"), "utf8");
     expect(envExample).toContain("only if your server requires a key");
     expect(envExample.split("\n")).toContain("OPENAI_COMPATIBLE_API_KEY=");
@@ -488,7 +522,7 @@ describe("runInit for agents", () => {
       options: { baseUrl: "http://localhost:5000" },
     });
     expect(result.apiKeyEnvVar).toBe("LIBRETRANSLATE_API_KEY");
-    expect(result.nextSteps[1]?.description).toContain("only if your server requires a key");
+    expect(result.nextSteps[2]?.description).toContain("only if your server requires a key");
     const envExample = readFileSync(join(dir, ".env.example"), "utf8");
     expect(envExample.split("\n")).toContain("LIBRETRANSLATE_API_KEY=");
     expect(readConfig()).toContain("A self-hosted LibreTranslate server");

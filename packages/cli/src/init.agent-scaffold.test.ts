@@ -144,7 +144,7 @@ describe("runInit --agent", () => {
     expect(read(".mcp.json")).toBe(custom);
     expect(result.agent?.mcpServer).toBe("differs");
     expect(result.files).toContainEqual({ path: ".mcp.json", action: "unchanged" });
-    expect(result.nextSteps[0]?.description).toContain("left it as it is");
+    expect(result.nextSteps[1]?.description).toContain("left it as it is");
 
     const { cap } = await init();
     expect(cap.out()).toContain(
