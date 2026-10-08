@@ -1,12 +1,10 @@
-import { SiNpm } from "@icons-pack/react-simple-icons";
 import { i18nProvider, uiTranslations } from "fumadocs-ui/i18n";
 import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared";
 import { LanguageSelectText } from "fumadocs-ui/layouts/shared/slots/language-select";
 import { getTranslations } from "next-intl/server";
 import { VMark } from "@/components/landing";
 import { GithubIcon } from "@/components/landing/github-icon";
-import { CONTRIBUTING_URL, NPM_CLI } from "@/components/landing/links";
-import { MailIcon } from "@/components/landing/mail-icon";
+import { GITHUB_URL } from "@/components/landing/links";
 import { LocaleAwareLanguageSelect } from "@/components/language-select";
 import { i18n, type Locale, localizedPath } from "@/lib/i18n";
 import { LOCALE_DISPLAY_NAMES } from "@/lib/language-select-copy";
@@ -43,30 +41,13 @@ export async function baseOptions(locale: Locale): Promise<BaseLayoutProps> {
     links: [
       { text: t("docs"), url: localizedPath(locale, "/docs") },
       { text: t("reference"), url: localizedPath(locale, "/docs/cli") },
-      { text: t("startWithAi"), url: localizedPath(locale, "/docs/start-with-ai") },
-      { text: t("contributing"), url: CONTRIBUTING_URL, external: true },
       {
         type: "icon",
         label: "GitHub",
         text: "GitHub",
         icon: <GithubIcon />,
-        url: "https://github.com/verbatra/verbatra",
+        url: GITHUB_URL,
         external: true,
-      },
-      {
-        type: "icon",
-        label: t("npm"),
-        text: t("npm"),
-        icon: <SiNpm size={18} title="" aria-hidden="true" className="shrink-0" />,
-        url: NPM_CLI,
-        external: true,
-      },
-      {
-        type: "icon",
-        label: t("contact"),
-        text: t("contact"),
-        icon: <MailIcon />,
-        url: localizedPath(locale, "/contact"),
       },
     ],
     themeSwitch: { enabled: false },

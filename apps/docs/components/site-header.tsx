@@ -90,6 +90,19 @@ function itemKey(item: LinkItemType): string {
 
 type ActiveOverride = (url: string) => boolean | undefined;
 
+function withoutTrailingSlash(path: string): string {
+  return path.length > 1 && path.endsWith("/") ? path.slice(0, -1) : path;
+}
+
+function currentMarker(
+  active: boolean,
+  url: string,
+  pathname: string,
+): "page" | "true" | undefined {
+  if (!active) return undefined;
+  return withoutTrailingSlash(url) === withoutTrailingSlash(pathname) ? "page" : "true";
+}
+
 function TextLink({
   item,
   className,
@@ -99,20 +112,20 @@ function TextLink({
   className: string;
   activeOverride?: ActiveOverride | undefined;
 }): ReactNode {
+  const pathname = usePathname();
   if (item.type === "custom") return item.children;
   if (item.type === "menu" || item.type === "icon") return null;
-  const active = activeOverride?.(item.url);
-  if (active !== undefined) {
-    return (
-      <Link href={item.url} external={item.external} className={className} data-active={active}>
-        {item.text}
-      </Link>
-    );
-  }
+  const active = activeOverride?.(item.url) ?? isLinkItemActive(item, pathname);
   return (
-    <LinkItem item={item} className={className}>
+    <Link
+      href={item.url}
+      external={item.external}
+      className={className}
+      data-active={active}
+      aria-current={currentMarker(active, item.url, pathname)}
+    >
       {item.text}
-    </LinkItem>
+    </Link>
   );
 }
 
@@ -169,11 +182,11 @@ export function SiteHeaderFrame({
         {slots.searchTrigger ? (
           <slots.searchTrigger.full
             hideIfDisabled
-            className="my-auto w-full max-w-sm rounded-xl ps-2.5 max-md:hidden"
+            className="my-auto w-full max-w-sm rounded-xl ps-2.5 max-lg:max-w-64 max-md:hidden"
           />
         ) : null}
-        <div className="flex flex-1 items-center justify-end md:gap-2">
-          <nav className="flex items-center gap-6 empty:hidden max-lg:hidden">
+        <div className="flex flex-1 items-center justify-end md:gap-2 md:ps-4">
+          <nav className="flex items-center gap-6 empty:hidden max-md:hidden md:me-4">
             {textItems.map((item) => (
               <TextLink
                 key={itemKey(item)}
@@ -184,7 +197,7 @@ export function SiteHeaderFrame({
             ))}
           </nav>
           {iconItems.map((item) => (
-            <IconLink key={itemKey(item)} item={item} className="max-lg:hidden" />
+            <IconLink key={itemKey(item)} item={item} className="max-md:hidden" />
           ))}
           <div className="flex items-center md:hidden">
             {slots.searchTrigger ? <slots.searchTrigger.sm hideIfDisabled className="p-2" /> : null}
@@ -192,7 +205,7 @@ export function SiteHeaderFrame({
           </div>
           <div className="flex items-center gap-2 max-md:hidden">
             <LanguageSelect slots={slots} />
-            {trailing ?? <span aria-hidden="true" className="-me-1.5 size-8" />}
+            {trailing}
           </div>
         </div>
       </div>
@@ -262,19 +275,19 @@ export function HomeSiteHeader(props: ComponentProps<"header">): ReactNode {
       />
       <SidebarDrawerOverlay className="fixed inset-0 z-40 backdrop-blur-xs data-[state=closed]:animate-fd-fade-out data-[state=open]:animate-fd-fade-in" />
       <SidebarDrawerContent className="fixed inset-e-0 inset-y-0 z-40 flex w-[85%] max-w-[380px] flex-col border-s bg-fd-background text-[0.9375rem] shadow-lg data-[state=closed]:animate-fd-sidebar-out data-[state=open]:animate-fd-sidebar-in">
-        <div className="flex justify-end p-4 pb-2">
+        <div className="flex justify-end px-2.5 pt-4 pb-2">
           <SidebarTrigger className={cn(buttonVariants({ variant: "ghost", size: "icon-sm" }))}>
             <CloseIcon />
           </SidebarTrigger>
         </div>
-        <SidebarViewport>
-          <div className="flex flex-col gap-0.5 px-4">
+        <SidebarViewport viewport={{ className: "px-2" }}>
+          <div className="flex flex-col gap-0.5">
             {textItems.map((item) => (
               <TextLink key={itemKey(item)} item={item} className={DRAWER_ITEM} />
             ))}
           </div>
         </SidebarViewport>
-        <div className="flex items-center gap-1 border-t p-4 pt-2 text-fd-muted-foreground">
+        <div className="flex items-center gap-1 border-t px-2.5 pt-2 pb-4 text-fd-muted-foreground">
           {iconItems.map((item) => (
             <IconLink key={itemKey(item)} item={item} />
           ))}

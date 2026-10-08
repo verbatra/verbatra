@@ -83,6 +83,19 @@ describe("FullFooter", () => {
     }
   });
 
+  it("carries the contributor guide, the CLI on npm and the contact page the header leaves out", async () => {
+    const doc = await renderFooter();
+    const hrefs = Array.from(doc.querySelectorAll("a")).map((link) => link.getAttribute("href"));
+
+    expect(hrefs).toEqual(
+      expect.arrayContaining([
+        "https://github.com/verbatra/verbatra/blob/main/CONTRIBUTING.md",
+        "https://www.npmjs.com/package/@verbatra/cli",
+        "/contact",
+      ]),
+    );
+  });
+
   it("labels the new badges through the translated status string", async () => {
     const doc = await renderFooter();
     const badges = Array.from(doc.querySelectorAll("nav a > span")).map((span) => span.textContent);

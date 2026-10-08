@@ -1,10 +1,15 @@
 // @vitest-environment jsdom
 
-import { act, type ComponentProps } from "react";
+import { act, type ComponentProps, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+const location = vi.hoisted(() => ({ pathname: "/" }));
+
+vi.mock("fumadocs-core/framework", () => ({ usePathname: () => location.pathname }));
+
 vi.mock("fumadocs-ui/layouts/shared", () => ({
+  isLinkItemActive: (item: { url: string }, pathname: string) => item.url === pathname,
   LinkItem: ({
     item,
     children,
@@ -69,7 +74,7 @@ const SLOTS = {
 
 const ITEMS: ComponentProps<typeof SiteHeaderFrame>["navItems"] = [
   { text: "Docs", url: "/docs" },
-  { text: "Start with AI", url: "/docs/start-with-ai" },
+  { text: "Reference", url: "/docs/cli" },
   {
     type: "icon",
     text: "GitHub",
@@ -84,6 +89,7 @@ let mounted: { container: HTMLDivElement; root: Root } | undefined;
 
 function render(
   activeOverride?: ComponentProps<typeof SiteHeaderFrame>["activeOverride"],
+  trailing: ReactNode = <span data-trailing />,
 ): HTMLDivElement {
   const container = document.createElement("div");
   document.body.appendChild(container);
@@ -95,7 +101,7 @@ function render(
         slots={SLOTS}
         navItems={ITEMS}
         mobileTrigger={<button type="button" data-mobile />}
-        trailing={<span data-trailing />}
+        trailing={trailing}
         {...(activeOverride ? { activeOverride } : {})}
       />,
     );
@@ -105,6 +111,7 @@ function render(
 }
 
 afterEach(() => {
+  location.pathname = "/";
   if (!mounted) return;
   act(() => mounted?.root.unmount());
   mounted.container.remove();
@@ -126,7 +133,7 @@ describe("SiteHeaderFrame", () => {
   it("renders text links inside the nav and icon links as labelled buttons", () => {
     const container = render();
     const textLinks = Array.from(container.querySelectorAll("nav a.vk-header-link"));
-    expect(textLinks.map((link) => link.textContent)).toEqual(["Docs", "Start with AI"]);
+    expect(textLinks.map((link) => link.textContent)).toEqual(["Docs", "Reference"]);
     const icon = container.querySelector('a[aria-label="GitHub"]');
     expect(icon).not.toBeNull();
     expect(icon?.closest("nav")).toBeNull();
@@ -147,13 +154,52 @@ describe("SiteHeaderFrame", () => {
     ]);
     expect(states).toEqual([
       ["Docs", "true"],
-      ["Start with AI", "false"],
+      ["Reference", "false"],
     ]);
+    expect(container.querySelector('nav a[href="/docs"]')?.getAttribute("aria-current")).toBe(
+      "true",
+    );
+  });
+
+  it("marks a tab link as the current page when the path is exactly its target", () => {
+    location.pathname = "/docs/";
+    const container = render((url) => (url === "/docs" ? true : undefined));
+    expect(container.querySelector('nav a[href="/docs"]')?.getAttribute("aria-current")).toBe(
+      "page",
+    );
+  });
+
+  it("falls back to the current path when the override has no opinion, and marks it current", () => {
+    location.pathname = "/docs/cli";
+    const container = render(() => undefined);
+    const reference = container.querySelector('nav a[href="/docs/cli"]');
+    const docs = container.querySelector('nav a[href="/docs"]');
+    expect(reference?.getAttribute("data-active")).toBe("true");
+    expect(reference?.getAttribute("aria-current")).toBe("page");
+    expect(docs?.hasAttribute("aria-current")).toBe(false);
+  });
+
+  it("shows the text links and icon links from the md breakpoint, where the menu trigger hides", () => {
+    const container = render();
+    expect(container.querySelector("nav")?.classList.contains("max-md:hidden")).toBe(true);
+    expect(
+      container.querySelector('a[aria-label="GitHub"]')?.classList.contains("max-md:hidden"),
+    ).toBe(true);
+    expect(
+      container.querySelector("[data-mobile]")?.parentElement?.classList.contains("md:hidden"),
+    ).toBe(true);
+  });
+
+  it("reserves no empty slot after the language select when there is no trailing control", () => {
+    const container = render(undefined, null);
+    const language = container.querySelector("[data-language]");
+    expect(language?.nextElementSibling).toBeNull();
   });
 
   it("renders a tab link inactive when the override says so", () => {
     const container = render((url) => (url === "/docs" ? false : undefined));
     const docs = container.querySelector('nav a[href="/docs"]');
     expect(docs?.getAttribute("data-active")).toBe("false");
+    expect(docs?.hasAttribute("aria-current")).toBe(false);
   });
 });

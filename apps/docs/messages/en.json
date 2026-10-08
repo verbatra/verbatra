@@ -195,6 +195,7 @@
         },
         "community": {
           "title": "Community",
+          "contributing": "Contributing",
           "codeOfConduct": "Code of conduct",
           "security": "Security policy",
           "releases": "Release notes"
@@ -219,12 +220,6 @@
     "nav": {
       "docs": "Docs",
       "reference": "Reference",
-      "providers": "Providers",
-      "formats": "Formats",
-      "contributing": "Contributing",
-      "startWithAi": "Start with AI",
-      "contact": "Contact",
-      "npm": "verbatra on npm",
       "languageSwitcher": {
         "chooseLanguage": "Choose a language",
         "triggerAriaSuffix": "choose a language",

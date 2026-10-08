@@ -147,7 +147,8 @@
           "title": "Community",
           "codeOfConduct": "Verhaltenskodex",
           "security": "Sicherheitsrichtlinie",
-          "releases": "Release-Notes"
+          "releases": "Release-Notes",
+          "contributing": "Mitwirken"
         },
         "agents": {
           "title": "Für KI-Agenten",
@@ -169,18 +170,12 @@
     "nav": {
       "docs": "Docs",
       "reference": "Referenz",
-      "providers": "Provider",
-      "formats": "Formate",
-      "contributing": "Mitwirken",
-      "startWithAi": "Mit KI starten",
       "languageSwitcher": {
         "chooseLanguage": "Wähle eine Sprache",
         "triggerAriaSuffix": "Sprache wählen",
         "machineTranslatedLabel": "Maschinell übersetzt",
         "machineTranslatedDescription": "Die Oberfläche und die Dokumentationsseiten für diese Sprache werden mit KI übersetzt."
       },
-      "contact": "Kontakt",
-      "npm": "verbatra auf npm",
       "skipToContent": "Zum Inhalt springen"
     },
     "proof": {

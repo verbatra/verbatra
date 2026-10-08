@@ -147,7 +147,8 @@
           "title": "Communauté",
           "codeOfConduct": "Code de conduite",
           "security": "Politique de sécurité",
-          "releases": "Notes de version"
+          "releases": "Notes de version",
+          "contributing": "Contribuer"
         },
         "agents": {
           "title": "Pour les agents IA",
@@ -169,18 +170,12 @@
     "nav": {
       "docs": "Docs",
       "reference": "Référence",
-      "providers": "Fournisseurs",
-      "formats": "Formats",
-      "contributing": "Contribuer",
-      "startWithAi": "Commencer avec l'IA",
       "languageSwitcher": {
         "chooseLanguage": "Choisis une langue",
         "triggerAriaSuffix": "choisir la langue",
         "machineTranslatedLabel": "Traduction automatique",
         "machineTranslatedDescription": "L'interface et les pages de documentation pour cette langue sont traduites avec l'IA."
       },
-      "contact": "Contact",
-      "npm": "verbatra sur npm",
       "skipToContent": "Aller au contenu"
     },
     "proof": {

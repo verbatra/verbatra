@@ -295,7 +295,16 @@ and two thin wrappers feed it from each layout's context: `HomeSiteHeader` (from
 the docs use) and `DocsSiteHeader` (from `useNotebookLayout`, adding the sidebar collapse and
 drawer triggers). They are wired through `slots.header` in `lib/locale-home-layout.tsx` and
 `app/[lang]/docs/layout.tsx`; `lib/layout.shared.tsx` still supplies the links, title and
-language select for both. The home layout swaps Fumadocs' `<main id="nd-home-layout">` container for a `<div>`
+language select for both. The primary navigation is exactly Docs, Reference and the GitHub icon
+(`lib/layout.shared.test.tsx` pins it and the phone drawer): the AI setup guide, the contributor
+guide, npm and the contact page are reached from the docs sidebar and the landing footer, never
+from the header. The text links and the icon show from 768px (`md`), exactly where the phone
+search and menu trigger hide, so every width has one of the two; the home header reserves no
+empty slot after the language select. At least 24px separate the search box from the first text
+link and the last text link from the GitHub icon. A text link carries `data-active` and
+`aria-current` (`page` on an exact path match, `true` for a section or tab), from the root tabs on
+docs and from the current path elsewhere, and the home drawer lines its items,
+close button and footer icons up on one 16px start edge. The home layout swaps Fumadocs' `<main id="nd-home-layout">` container for a `<div>`
 (`components/home-container.tsx`) and renders its own `<main>` around the page, with the landing
 footer passed in by `app/[lang]/(home)/layout.tsx`, so the header and footer stay banner and
 contentinfo landmarks; a page under that layout must not render another `<main>`.

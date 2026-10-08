@@ -10,6 +10,7 @@ import { GRID_PATTERN_STYLE } from "./fx/grid-pattern";
 import { GithubIcon } from "./github-icon";
 import {
   CODE_OF_CONDUCT_URL,
+  CONTRIBUTING_URL,
   GITHUB_URL,
   LEGAL_PAGE_LINKS,
   LICENSE_URL,
@@ -69,6 +70,12 @@ const FOOTER_COLS: ReadonlyArray<FooterCol> = [
     col: "community",
     titleKey: "cols.community.title",
     links: [
+      {
+        labelKey: "cols.community.contributing",
+        href: CONTRIBUTING_URL,
+        external: true,
+        trackingTarget: "contributing",
+      },
       {
         labelKey: "cols.community.codeOfConduct",
         href: CODE_OF_CONDUCT_URL,

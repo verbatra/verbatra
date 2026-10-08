@@ -147,7 +147,8 @@
           "title": "Comunidad",
           "codeOfConduct": "Código de conducta",
           "security": "Política de seguridad",
-          "releases": "Notas de la versión"
+          "releases": "Notas de la versión",
+          "contributing": "Contribuir"
         },
         "agents": {
           "llmsIndex": "llms.txt (índice)",
@@ -169,18 +170,12 @@
     "nav": {
       "docs": "Docs",
       "reference": "Referencia",
-      "providers": "Proveedores",
-      "formats": "Formatos",
-      "contributing": "Contribuir",
-      "startWithAi": "Empezar con IA",
       "languageSwitcher": {
         "chooseLanguage": "Elige un idioma",
         "triggerAriaSuffix": "elegir idioma",
         "machineTranslatedLabel": "Traducción automática",
         "machineTranslatedDescription": "La interfaz y las páginas de documentación para este idioma están traducidas con IA."
       },
-      "contact": "Contacto",
-      "npm": "verbatra en npm",
       "skipToContent": "Saltar al contenido"
     },
     "proof": {
