@@ -93,9 +93,7 @@ Scales are fixed and narrow, deliberately:
   `--radius-2xl` all 12px. The large sizes collapsing to one value is intentional. Do not
   reintroduce a spread. The one larger radius is `--radius-hero` (24px), for the landing hero
   card (`.vk-hero-surface`) only.
-- Shadows: `--shadow-panel` (a purple-tinted lift) and `--shadow-sm`. Two, not a ramp. The one
-  exception is the providers deck (`.vk-card` in `app/global.css`): its resting and fanned-out
-  shadows are part of the fan motion and stay local to it; do not reuse them elsewhere.
+- Shadows: `--shadow-panel` (a purple-tinted lift) and `--shadow-sm`. Two, not a ramp.
 - Layout: `--gutter` (40px from 768px up) via `.vk-gutter`, `--width-wide` via `.vk-w-wide`.
   `--cta-height` (56px) is the minimum height of the hero's two calls to action (`.vk-hero-cta`
   on "Get started", `.vk-prompt-trigger` on `PromptCopyButton`); `--width-prompt-pop` (30rem,
@@ -148,16 +146,38 @@ footer's oversized watermark only; do not clip it onto a heading.
   arrow-key focus.
   `Button` takes `variant: "primary" | "secondary" | "ghost"` and `size: "sm" | "md" | "lg"`.
   Extend the variant union rather than passing ad hoc `className` overrides.
-- **Landing:** `components/landing/` holds the landing sections (`proof.tsx`, `loop.tsx`,
-  `providers.tsx`, `control.tsx`, `gains.tsx`, `faq.tsx`, `final-cta.tsx`, `footer.tsx`,
-  `marquee.tsx`) plus the shared building blocks: `section.tsx` and `section-head.tsx` for
-  structure, `terminal.tsx` (with a `bare` variant; lines never
+- **Landing:** `components/landing/` holds the landing sections (`proof.tsx`, `control.tsx`,
+  `marquee.tsx`, `loop.tsx`, `faq.tsx`, `final-cta.tsx`, `footer.tsx`). Their order on the page
+  is `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, how, control, marquee, loop, faq,
+  final call to action), which the home page maps over and `lib/landing-sections.test.ts` pins;
+  add or move a section there, not by hand in `page.tsx`. Sections do not animate in. The
+  marquee is two rows, the formats and the providers, built from `SUPPORTED_FORMAT_IDS` and
+  `MACHINE_PROVIDER_IDS` in `lib/landing-facts.ts` (pinned to `SUPPORTED_FORMATS` and the sdk's
+  `providerFactories`). Every format's display label and icon is `FORMAT_DISPLAY` in the same
+  file, which the structured data's format list reads too, so a new format fails to compile
+  until it has both. `Control` and `Loop` lay their items out as a rail under 1024px: a
+  `.vk-rail` (`Rail` in `rail.tsx`: a `section` named by its heading through `aria-labelledby`, the scroll container,
+  carrying `.vk-edge-fade` so its end edge fades while there is more to see and its start edge
+  fades once scrolled) around a `.vk-rail-track` (the snap row; a `ul` with `role="list"` in
+  Control), whose `.vk-rail-item`s fall short of the full width so the next one peeks in and
+  carry a `scroll-margin-inline` beside the rail's `scroll-padding-inline`. Chrome does not scroll
+  a partly visible focus target, and a snap container snaps back, so `Rail` scrolls the item that
+  takes focus to the start of the rail at phone width (its one client-side job). From 1024px the track is the plain grid and the fade is off. The
+  shared building blocks: `section.tsx` and `section-head.tsx` for
+  structure, `terminal.tsx` (with a `bare` variant; by default lines never
   wrap, they scroll sideways inside `.vk-terminal-scroll`, which fades the end edge while there is
-  more to see), `hero-demo.tsx` (the hero's Terminal /
-  Studio tabs), `evidence.tsx` (the mono evidence chip; a linked chip
+  more to see; with `wrap` every line wraps through `.vk-wrap-line`, whose hanging indent is the
+  line's own leading whitespace (`--wrap-lead`, set by `wrapLineStyle` in `wrap-text.tsx`) plus
+  2ch, and whose placeholder tokens (`{count}`, `(-{count})`) never break, through `WrapTokens`.
+  The How section's terminal and panels use it so nothing clips at phone width; the hero demo's
+  terminal uses it too, as a stopgap until the demo is replaced),
+  `hero-demo.tsx` (the hero's Terminal /
+  Studio tabs), `evidence.tsx` (the mono evidence chip, which wraps inside a narrow column rather than growing past it; a linked chip
   takes the flat-panel glow border on hover and focus through `.vk-evidence-link`),
-  `command-box.tsx` (an `@container`: a command wraps once the box is under 30rem, only at
-  a space since `HighlightedCommand` keeps each word whole, so the package name is never clipped),
+  `command-box.tsx` (an `@container`: a command wraps once the box is under 30rem, at a space
+  or after a `/` or `.` inside a word, since `HighlightedCommand` keeps every other part of a word
+  whole (a flag such as `--skill` never splits), and under 20rem the copy button drops below the
+  command so the command keeps the full width),
   `CommandRow` (`components/command-row.tsx`: the hero's npm install wraps under 30rem through
   `wrapsWhenNarrow`; elsewhere a `CommandRow` scrolls sideways inside `.vk-edge-fade`: a mask,
   not a painted background, so it stays see-through on the translucent hero, and the end fade
@@ -166,8 +186,7 @@ footer's oversized watermark only; do not clip it onto a heading.
   shares its row with the prompt's small Copy button; its URL breaks only after a path `/`,
   through `breakUrlsAtSlashes` in `lib/word-breaks.tsx`) and `PromptCopyButton` in the same file
   (the large "Start with a prompt" button with the `.vk-prompt-pop` preview, used by the hero
-  and the docs home agent tip), `reveal.tsx` (the scroll
-  entrance, used once: the providers deck, whose fan-out it triggers; sections do not animate in), `hero-facts.tsx` (the right-aligned mono release / formats / providers /
+  and the docs home agent tip), `hero-facts.tsx` (the right-aligned mono release / formats / providers /
   license / GitHub table, `HERO_FACTS` in `lib/landing-facts.ts`), and an `fx/` folder
   (`grid-pattern.ts`). A new
   section composes `Section` plus `SectionHead`; it does not re-derive page padding or

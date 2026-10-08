@@ -49,6 +49,41 @@ describe("Terminal: first frame", () => {
   });
 });
 
+describe("Terminal: line layout", () => {
+  function lineClasses(wrap: boolean): ReadonlyArray<string> {
+    const markup = renderToStaticMarkup(
+      <Terminal
+        commands={COMMANDS}
+        outputs={OUTPUTS}
+        sessionLabel="Session"
+        fitContent
+        wrap={wrap}
+        settledCommands={2}
+        highlight="  de: 2 translated"
+      />,
+    );
+    const doc = new DOMParser().parseFromString(markup, "text/html");
+    return Array.from(doc.querySelectorAll('[aria-hidden="true"] > div:not(.invisible) > div')).map(
+      (line) => line.className,
+    );
+  }
+
+  it("keeps every line on one row and scrolls sideways by default", () => {
+    const classes = lineClasses(false);
+    expect(classes).toHaveLength(4);
+    for (const name of classes) expect(name).toContain("whitespace-pre");
+  });
+
+  it("wraps every line, the highlighted one included, with a hanging indent when asked to", () => {
+    const classes = lineClasses(true);
+    expect(classes).toHaveLength(4);
+    for (const name of classes) {
+      expect(name).toContain("vk-wrap-line");
+      expect(name).not.toContain("whitespace-pre");
+    }
+  });
+});
+
 const SETTLED = [
   "$ verbatra check",
   "  de: 1 missing",

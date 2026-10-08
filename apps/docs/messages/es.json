@@ -60,7 +60,7 @@
       }
     },
     "how": {
-      "heading": "Cada ejecución es un diff, no una reescritura.",
+      "heading": "Cada ejecución se comprueba antes de escribir nada.",
       "steps": {
         "configure": {
           "title": "Configura",
@@ -115,10 +115,11 @@
     },
     "finalClose": {
       "heading": "Deja de sincronizar los archivos de locale a mano.",
-      "docs": "Leer la documentación"
+      "docs": "Leer la documentación",
+      "start": "Empezar"
     },
     "footer": {
-      "tagline": "Traduce solo lo que cambió. Una CLI y un SDK de código abierto que mantienen sincronizados tus archivos de locale i18n a través del proveedor que elijas.",
+      "tagline": "Una CLI y un SDK de código abierto que mantienen sincronizados tus archivos de locale de i18n a través del proveedor que elijas.",
       "cols": {
         "product": {
           "title": "Producto",
@@ -192,42 +193,6 @@
         "title": "Escrito, y solo eso"
       }
     },
-    "gains": {
-      "heading": "Lo que realmente obtienes.",
-      "items": {
-        "ci": {
-          "body": "<code>verbatra check</code> sale con código 1 cuando falta algún locale o está desactualizado, con <code>--json</code> para CI.",
-          "note": "este sitio lo ejecuta en cada pull request",
-          "title": "La deriva de un locale hace fallar el pull request."
-        },
-        "config": {
-          "body": "Un glosario fija cómo se traducen los términos listados; <code>tone</code> define un tono formal, informal o neutro.",
-          "note": "el verbatra.config.ts de este sitio",
-          "title": "Tus términos y tu tono se mantienen fijos."
-        },
-        "cost": {
-          "body": "Solo las claves nuevas y cambiadas van al proveedor, y cada ejecución imprime su recuento de tokens por locale.",
-          "note": "una ejecución sobre los mensajes de este sitio",
-          "title": "Pagas por las claves que has cambiado."
-        },
-        "gate": {
-          "body": "Una traducción candidata que pierde un placeholder, rompe ICU o desequilibra el marcado se retiene, nunca se escribe y se envía de nuevo en la siguiente ejecución.",
-          "note": "la misma puerta de integridad protege las ediciones en Studio y las importaciones",
-          "title": "Un placeholder roto nunca llega a producción."
-        },
-        "git": {
-          "body": "Los archivos de locale y el archivo de bloqueo son texto plano en tu repo, y nada se elimina sin <code>--prune</code>.",
-          "note": "un hash por clave y locale de destino",
-          "title": "Cada traducción es un diff de git."
-        },
-        "handoff": {
-          "body": "Exportación e importación de Excel para traductores, TMX para la memoria de traducción y tipos de TypeScript generados para tus claves.",
-          "note": "los comandos export, import, tmx y types",
-          "title": "Personas y otras herramientas pueden tomar el relevo."
-        }
-      },
-      "lead": "El alemán, el español y el francés de esta página salen de ahí."
-    },
     "control": {
       "heading": "Tú decides qué se publica.",
       "lead": "Las personas tienen la última palabra, cada idioma recibe sus propias reglas y las cadenas solo van a donde tú permites.",
@@ -256,13 +221,13 @@
               "title": "Formas plurales de CLDR",
               "body": "Cada destino recibe las categorías de plural que necesita su idioma, y las ramas de plural ICU que no encajan se rechazan."
             },
-            "locales": {
-              "title": "Códigos de locale válidos",
-              "body": "Cada locale debe ser una etiqueta BCP 47 válida, así que una errata falla al cargar la configuración, no en producción."
-            },
             "qa": {
               "title": "Controles de calidad sobre archivos confirmados",
               "body": "Los controles que una ejecución aplica a la salida del proveedor, aplicados a lo que ya hay en tus archivos de locale. Sin clave."
+            },
+            "terms": {
+              "title": "Tus términos y tu tono se mantienen fijos",
+              "body": "Un glosario fija cómo se traducen los términos listados, y tone define un tratamiento formal, informal o neutro para cada idioma de destino."
             }
           }
         },
@@ -289,7 +254,6 @@
       "heading": "El resto del ciclo de traducción, en la misma herramienta.",
       "links": {
         "llms": "llms.txt",
-        "llmsFull": "llms-full.txt",
         "mcpDocs": "Documentación del servidor MCP",
         "skillsDocs": "Documentación del paquete de skills"
       },
@@ -297,7 +261,7 @@
         "agent": {
           "body": "Un servidor MCP para Claude Code, Codex, Gemini CLI, Cursor, VS Code y GitHub Copilot, más skills instalables para la CLI, MCP y Studio.",
           "cta": "Empezar con IA",
-          "title": "O déjaselo a tu agente."
+          "title": "Déjaselo a tu agente de código."
         },
         "ci": {
           "body": "<code>watch</code> traduce con cada cambio. <code>check</code> hace fallar el pull request cuando un locale se desvía.",
@@ -308,12 +272,6 @@
           "body": "Exporta, recíbelo relleno e impórtalo por la misma puerta de integridad.",
           "cta": "Leer sobre la entrega en Excel",
           "title": "Entrega un libro a los traductores e impórtalo de vuelta."
-        },
-        "studio": {
-          "alt": "La página de Revisión de Verbatra Studio con cinco entradas marcadas en los locales de, es y fr; cada fila muestra la clave, sus motivos de revisión y las acciones Edit, Approve y Reject.",
-          "body": "Cobertura, entradas marcadas, ediciones in situ, aprobar o rechazar. Sin llamadas al proveedor.",
-          "cta": "Revisar traducciones en Studio",
-          "title": "Consulta el estado de cada locale en Verbatra Studio."
         }
       },
       "table": {
@@ -325,39 +283,18 @@
     "marquee": {
       "formatTip": "format: \"{id}\"",
       "formatsLabel": "Formatos de archivo que verbatra lee y escribe",
-      "frameworks": {
-        "android": "strings.xml",
-        "angular": "ngx-translate JSON o XLIFF",
-        "apple": ".strings y .xcstrings",
-        "astro": "i18next JSON o YAML",
-        "dotnet": ".resx",
-        "flutter": "Flutter ARB",
-        "next": "next-intl JSON",
-        "node": "i18next JSON",
-        "nuxt": "vue-i18n JSON",
-        "react": "i18next JSON",
-        "reactNative": "i18next JSON",
-        "spring": "Java .properties",
-        "svelte": "i18next JSON o YAML",
-        "vue": "vue-i18n JSON"
-      },
-      "frameworksLabel": "Frameworks con los que funciona verbatra",
-      "intro": "Funciona con los archivos de locale que ya tienes.",
-      "label": "Frameworks y formatos compatibles"
-    },
-    "providers": {
-      "heading": "Una interfaz para cada proveedor.",
-      "hint": "Pasa el cursor por las tarjetas o recórrelas con Tab.",
-      "kinds": {
+      "intro": "Funciona con los archivos y proveedores que ya tienes.",
+      "label": "Formatos y proveedores compatibles",
+      "providersLabel": "Proveedores de traducción a los que verbatra puede llamar",
+      "providers": {
         "anthropic": "modelos Claude",
-        "deepl": "traducción automática",
-        "gemini": "nivel gratuito disponible",
-        "googleTranslate": "traducción automática",
         "openai": "modelos GPT",
+        "gemini": "nivel gratuito disponible",
+        "deepl": "traducción automática",
+        "googleTranslate": "traducción automática",
         "openaiCompatible": "Ollama, vLLM, LM Studio",
         "libretranslate": "autoalojado, sin LLM"
-      },
-      "lead": "Cambia reescribiendo el bloque provider de tu configuración, o ponlo en none y deja cada cadena en manos humanas."
+      }
     }
   },
   "legal": {

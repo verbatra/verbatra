@@ -14,9 +14,7 @@ const LANDING_NAMESPACES = [
   "proof",
   "how",
   "marquee",
-  "providers",
   "loop",
-  "gains",
   "control",
 ] as const;
 
@@ -57,11 +55,18 @@ describe("landing message parity", () => {
     expect(source).toContain("landing.terminal.sessionLabel");
     expect(source).toContain("landing.gate.rows.reason");
     expect(source).toContain("landing.loop.rows.ci.title");
-    expect(source).toContain("landing.marquee.frameworks.react");
-    expect(source).toContain("landing.providers.kinds.gemini");
-    expect(source).toContain("landing.gains.items.gate.title");
+    expect(source).toContain("landing.marquee.providers.gemini");
+    expect(source).toContain("landing.control.groups.correct.items.terms.title");
     expect(source).toContain("landing.control.groups.people.items.protect.title");
     expect(source).toContain("landing.hero.demo.caption");
+  });
+
+  it("keeps no messages for the removed gains and providers sections", () => {
+    for (const locale of i18n.languages) {
+      const landing = load(locale).landing;
+      expect(typeof landing === "object" && "gains" in landing, locale).toBe(false);
+      expect(typeof landing === "object" && "providers" in landing, locale).toBe(false);
+    }
   });
 
   for (const locale of i18n.languages.filter((lang) => lang !== i18n.defaultLanguage)) {

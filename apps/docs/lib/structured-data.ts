@@ -1,4 +1,4 @@
-import type { SupportedFormat } from "@verbatra/sdk";
+import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { plainAnswer } from "@/lib/plain-answer";
 import { SITE_URL } from "@/lib/site";
 
@@ -46,24 +46,7 @@ export const SUPPORTED_AGENT_CLIENTS = [
   "JetBrains AI Assistant",
   "Claude Desktop",
 ] as const;
-const FORMAT_LABELS: Readonly<Record<SupportedFormat, string>> = {
-  "i18next-json": "i18next",
-  "vue-i18n-json": "vue-i18n",
-  "next-intl-json": "next-intl",
-  "ngx-translate-json": "ngx-translate",
-  arb: "ARB",
-  yaml: "YAML",
-  xliff: "XLIFF",
-  properties: "Java/Spring properties",
-  "apple-strings": "Apple .strings",
-  "apple-xcstrings": "Xcode String Catalog",
-  "android-xml": "Android strings.xml",
-  "gettext-po": "gettext .po/.pot",
-  ini: "INI",
-  resx: ".NET .resx",
-};
-
-const SUPPORTED_FORMATS = Object.values(FORMAT_LABELS);
+const SUPPORTED_FORMAT_LABELS = SUPPORTED_FORMAT_IDS.map((id) => FORMAT_DISPLAY[id].label);
 
 export const AUTHOR_NAME = "Mario Kreitz";
 
@@ -134,7 +117,7 @@ export function softwareApplicationLd(args: {
     featureList: [
       "Incremental translation - only new or changed keys are sent to the provider",
       `Translation providers: ${SUPPORTED_PROVIDERS.join(", ")}`,
-      `i18n formats: ${SUPPORTED_FORMATS.join(", ")}`,
+      `i18n formats: ${SUPPORTED_FORMAT_LABELS.join(", ")}`,
       `Frameworks: ${SUPPORTED_FRAMEWORKS.join(", ")}`,
       "Placeholder, ICU, and inline markup integrity checked after every translation",
       "Human-only mode: the none provider turns machine translation off and hands every key to a translator",

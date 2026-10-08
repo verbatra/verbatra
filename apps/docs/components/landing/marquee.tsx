@@ -1,70 +1,54 @@
-import type { SupportedFormat } from "@verbatra/sdk";
 import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { StackIcon, type StackIconKey, StackIconSprite } from "@/components/stack-icons";
 import { type Locale, localizedPath } from "@/lib/i18n";
+import {
+  FORMAT_DISPLAY,
+  MACHINE_PROVIDER_IDS,
+  type MachineProviderId,
+  SUPPORTED_FORMAT_IDS,
+} from "@/lib/landing-facts";
 
 const ICON = 20;
 const ICON_PREFIX = "vk-marquee-icon";
 
-type FrameworkKey =
-  | "react"
-  | "next"
-  | "vue"
-  | "nuxt"
-  | "angular"
-  | "node"
-  | "svelte"
-  | "astro"
-  | "reactNative"
-  | "flutter"
-  | "spring"
-  | "apple"
-  | "android"
-  | "dotnet";
+type Display = { name: string; icon: StackIconKey };
 
-type Framework = { key: FrameworkKey; name: string; icon: StackIconKey };
-type Format = { id: SupportedFormat; name: string; icon: StackIconKey };
+type ProviderKind =
+  | "anthropic"
+  | "openai"
+  | "gemini"
+  | "deepl"
+  | "googleTranslate"
+  | "openaiCompatible"
+  | "libretranslate";
 
-const FRAMEWORKS: ReadonlyArray<Framework> = [
-  { key: "react", name: "React", icon: "react" },
-  { key: "next", name: "Next.js", icon: "next" },
-  { key: "vue", name: "Vue", icon: "vue" },
-  { key: "nuxt", name: "Nuxt", icon: "nuxt" },
-  { key: "angular", name: "Angular", icon: "angular" },
-  { key: "node", name: "Node.js", icon: "node" },
-  { key: "svelte", name: "SvelteKit", icon: "svelte" },
-  { key: "astro", name: "Astro", icon: "astro" },
-  { key: "reactNative", name: "React Native", icon: "expo" },
-  { key: "flutter", name: "Flutter", icon: "flutter" },
-  { key: "spring", name: "Spring", icon: "spring" },
-  { key: "apple", name: "iOS and macOS", icon: "apple" },
-  { key: "android", name: "Android", icon: "android" },
-  { key: "dotnet", name: ".NET", icon: "dotnet" },
-];
-
-const FORMATS: ReadonlyArray<Format> = [
-  { id: "i18next-json", name: "i18next JSON", icon: "json" },
-  { id: "vue-i18n-json", name: "vue-i18n JSON", icon: "vue" },
-  { id: "next-intl-json", name: "next-intl JSON", icon: "next" },
-  { id: "ngx-translate-json", name: "ngx-translate JSON", icon: "angular" },
-  { id: "xliff", name: "XLIFF", icon: "xliff" },
-  { id: "yaml", name: "YAML", icon: "yaml" },
-  { id: "arb", name: "Flutter ARB", icon: "flutter" },
-  { id: "properties", name: "Java .properties", icon: "spring" },
-  { id: "apple-strings", name: "Apple .strings", icon: "apple" },
-  { id: "apple-xcstrings", name: "Xcode .xcstrings", icon: "xcode" },
-  { id: "android-xml", name: "Android strings.xml", icon: "android" },
-  { id: "gettext-po", name: "gettext .po", icon: "gnu" },
-  { id: "ini", name: "INI", icon: "ini" },
-  { id: "resx", name: ".NET .resx", icon: "dotnet" },
-];
+const PROVIDER_DISPLAY: Readonly<Record<MachineProviderId, Display & { kind: ProviderKind }>> = {
+  anthropic: { name: "Anthropic", icon: "anthropic", kind: "anthropic" },
+  openai: { name: "OpenAI", icon: "openai", kind: "openai" },
+  gemini: { name: "Gemini", icon: "gemini", kind: "gemini" },
+  deepl: { name: "DeepL", icon: "deepl", kind: "deepl" },
+  "google-translate": {
+    name: "Google Translate",
+    icon: "googleTranslate",
+    kind: "googleTranslate",
+  },
+  "openai-compatible": {
+    name: "OpenAI-compatible",
+    icon: "ollama",
+    kind: "openaiCompatible",
+  },
+  libretranslate: { name: "LibreTranslate", icon: "libretranslate", kind: "libretranslate" },
+};
 
 function IconSprite(): ReactNode {
   return (
     <StackIconSprite
       prefix={ICON_PREFIX}
-      icons={[...FRAMEWORKS, ...FORMATS].map((item) => item.icon)}
+      icons={[
+        ...Object.values(FORMAT_DISPLAY).map((item) => item.icon),
+        ...Object.values(PROVIDER_DISPLAY).map((item) => item.icon),
+      ]}
     />
   );
 }
@@ -134,26 +118,35 @@ function Row({
 export async function Marquee(): Promise<ReactNode> {
   const t = await getTranslations("landing.marquee");
   const locale = (await getLocale()) as Locale;
-  const formatsHref = localizedPath(locale, "/docs/formats");
 
-  const frameworks: ReadonlyArray<TrackItem> = FRAMEWORKS.map((framework) => ({
-    ...framework,
-    tip: t(`frameworks.${framework.key}`),
+  const formats: ReadonlyArray<TrackItem> = SUPPORTED_FORMAT_IDS.map((id) => ({
+    key: id,
+    name: FORMAT_DISPLAY[id].label,
+    icon: FORMAT_DISPLAY[id].icon,
+    tip: t("formatTip", { id }),
   }));
-  const formats: ReadonlyArray<TrackItem> = FORMATS.map((format) => ({
-    key: format.id,
-    name: format.name,
-    icon: format.icon,
-    tip: t("formatTip", { id: format.id }),
-  }));
+  const providers: ReadonlyArray<TrackItem> = MACHINE_PROVIDER_IDS.map((id) => {
+    const { name, icon, kind } = PROVIDER_DISPLAY[id];
+    return { key: id, name, icon, tip: t(`providers.${kind}`) };
+  });
 
   return (
-    <section aria-label={t("label")} className="vk-marquee-band">
+    <section aria-label={t("label")} className="vk-marquee-band" id="marquee">
       <IconSprite />
       <p className="vk-marquee-intro px-6 text-center text-fd-muted-foreground">{t("intro")}</p>
       <div className="vk-marquee-rows">
-        <Row items={frameworks} href={formatsHref} label={t("frameworksLabel")} direction="left" />
-        <Row items={formats} href={formatsHref} label={t("formatsLabel")} direction="right" />
+        <Row
+          items={formats}
+          href={localizedPath(locale, "/docs/formats")}
+          label={t("formatsLabel")}
+          direction="left"
+        />
+        <Row
+          items={providers}
+          href={localizedPath(locale, "/docs/providers")}
+          label={t("providersLabel")}
+          direction="right"
+        />
       </div>
     </section>
   );

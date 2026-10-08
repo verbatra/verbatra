@@ -1,12 +1,10 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
+import Button from "@/components/ui/button";
 import { type Locale, localizedPath } from "@/lib/i18n";
-import { CLI_PACKAGE, NPM_INSTALL_COMMAND } from "@/lib/install-commands";
-import { CommandBox } from "./command-box";
-import { NPM_CLI } from "./links";
 
 const CLOSE_BACKGROUND = [
-  "radial-gradient(ellipse 62% 72% at 50% 104%, color-mix(in srgb, var(--v-purple) 58%, transparent), transparent 70%)",
+  "radial-gradient(ellipse 48% 90% at 100% 100%, color-mix(in srgb, var(--v-purple) 48%, transparent), transparent 70%)",
   "var(--surface-bg)",
 ].join(", ");
 
@@ -14,30 +12,22 @@ const CLOSE_BORDER = "color-mix(in srgb, var(--v-glow) 16%, var(--border-default
 
 export async function FinalCta(): Promise<ReactNode> {
   const t = await getTranslations("landing.finalClose");
-  const tInstall = await getTranslations("landing.install");
   const locale = (await getLocale()) as Locale;
   return (
-    <section className="vk-pad-top-lg mx-auto w-full max-w-(--width-layout) px-2 pb-3 md:px-3">
+    <section className="vk-pad-top-sm mx-auto w-full max-w-(--width-layout) px-2 pb-3 md:px-3">
       <div
-        className="relative grid justify-items-center overflow-hidden rounded-xl border px-6 py-[92px] text-center md:px-10"
+        className="grid gap-8 rounded-xl border px-6 py-10 md:px-12 md:py-14 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center"
         style={{ background: CLOSE_BACKGROUND, borderColor: CLOSE_BORDER }}
       >
-        <h2 className="vk-h2 max-w-[15ch]">{t("heading")}</h2>
-        <div className="mt-8 flex w-full justify-center">
-          <div className="w-full max-w-[28rem]">
-            <CommandBox
-              command={NPM_INSTALL_COMMAND}
-              label={tInstall("copyAria")}
-              link={{ token: CLI_PACKAGE, href: NPM_CLI }}
-            />
-          </div>
+        <h2 className="vk-h2">{t("heading")}</h2>
+        <div className="flex flex-wrap gap-3">
+          <Button href={localizedPath(locale, "/docs/quickstart")} variant="primary" size="lg">
+            {t("start")}
+          </Button>
+          <Button href={localizedPath(locale, "/docs")} variant="secondary" size="lg">
+            {t("docs")}
+          </Button>
         </div>
-        <a
-          href={localizedPath(locale, "/docs")}
-          className="mt-6 inline-flex min-h-11 items-center font-medium text-[color:var(--accent)] underline decoration-[color:color-mix(in_srgb,var(--v-glow)_40%,transparent)] underline-offset-4 transition-colors hover:decoration-[color:var(--accent)]"
-        >
-          {t("docs")}
-        </a>
       </div>
     </section>
   );

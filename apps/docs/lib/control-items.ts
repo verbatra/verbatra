@@ -45,15 +45,10 @@ export const CONTROL_GROUPS: ReadonlyArray<ControlGroup> = [
         anchors: { en: "plurals", de: "plurale", es: "plurales", fr: "pluriels" },
       },
       {
-        key: "locales",
-        evidence: "pt-BR, sr-Latn, es-419",
-        page: "/docs/language-support",
-        anchors: {
-          en: "locale-codes",
-          de: "locale-codes",
-          es: "códigos-de-locale",
-          fr: "codes-de-locale",
-        },
+        key: "terms",
+        evidence: 'glossary: { CLI: "CLI" }, tone: "informal"',
+        page: "/docs/config-file",
+        anchors: { en: "glossary", de: "glossary", es: "glossary", fr: "glossary" },
       },
       {
         key: "qa",

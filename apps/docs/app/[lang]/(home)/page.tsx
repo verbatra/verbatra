@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
+import { Fragment, type ReactNode } from "react";
 import { JsonLd } from "@/components/json-ld";
 import { Control } from "@/components/landing/control";
 import { Faq, type FaqEntry } from "@/components/landing/faq";
 import { FinalCta } from "@/components/landing/final-cta";
-import { Gains } from "@/components/landing/gains";
 import { Loop } from "@/components/landing/loop";
 import { Marquee } from "@/components/landing/marquee";
 import { Proof } from "@/components/landing/proof";
-import { Providers } from "@/components/landing/providers";
 import { LandingHero } from "@/components/landing-hero";
 import { toLocale } from "@/lib/i18n";
+import { LANDING_SECTIONS, type LandingSectionId } from "@/lib/landing-sections";
 import { homeAlternates, MCP_VERSION, PACKAGE_VERSION, STUDIO_VERSION } from "@/lib/site";
 import { homeOgImagePath, socialMetadata } from "@/lib/social-metadata";
 import {
@@ -38,6 +38,16 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
     return { name: step?.title ?? "", text: step?.body ?? "" };
   });
 
+  const sections: Readonly<Record<LandingSectionId, ReactNode>> = {
+    hero: <LandingHero />,
+    how: <Proof />,
+    control: <Control />,
+    marquee: <Marquee />,
+    loop: <Loop />,
+    faq: <Faq items={faqItems} />,
+    finalCta: <FinalCta />,
+  };
+
   const version = PACKAGE_VERSION;
   const studioVersion = STUDIO_VERSION;
   const mcpVersion = MCP_VERSION;
@@ -56,15 +66,9 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
       <JsonLd data={faqPageLd({ items: faqItems, lang: locale })} />
       <JsonLd data={howToLd({ name: t("how.heading"), steps: howSteps, lang: locale })} />
 
-      <LandingHero />
-      <Marquee />
-      <Proof />
-      <Providers />
-      <Control />
-      <Loop />
-      <Gains />
-      <Faq items={faqItems} />
-      <FinalCta />
+      {LANDING_SECTIONS.map((id) => (
+        <Fragment key={id}>{sections[id]}</Fragment>
+      ))}
     </div>
   );
 }

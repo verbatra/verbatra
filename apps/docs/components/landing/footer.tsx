@@ -179,8 +179,8 @@ function ContributorsRow({
   if (contributors.length === 0) return null;
 
   return (
-    <div className="mt-12">
-      <p className="mb-4 font-mono text-xs uppercase tracking-[0.14em] text-[color:var(--text-faint)]">
+    <div className="lg:col-span-6 lg:mt-2">
+      <p className="mb-3 font-mono text-xs uppercase tracking-[0.14em] text-[color:var(--text-faint)] md:mb-4">
         {title}
       </p>
       <ul className="flex flex-wrap items-center gap-3">
@@ -263,9 +263,9 @@ export async function FullFooter(): Promise<ReactNode> {
         </span>
       </div>
 
-      <div className="vk-gutter vk-w-wide relative z-10 mx-auto py-16">
-        <div className="grid gap-x-8 gap-y-12 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-[1.4fr_repeat(5,1fr)]">
-          <div>
+      <div className="vk-gutter vk-w-wide relative z-10 mx-auto py-12 md:py-16">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-3 md:gap-x-8 md:gap-y-12 lg:grid-cols-[1.4fr_repeat(5,1fr)]">
+          <div className="col-span-2 md:col-span-3 lg:col-span-1">
             <span className="inline-flex items-center gap-2.5">
               <VMark size={30} />
               <span
@@ -315,10 +315,10 @@ export async function FullFooter(): Promise<ReactNode> {
             const title = t(col.titleKey);
             return (
               <nav key={col.col} aria-label={title}>
-                <p className="mb-4 font-mono text-xs uppercase tracking-[0.14em] text-[color:var(--text-faint)]">
+                <p className="mb-3 font-mono text-xs uppercase tracking-[0.14em] text-[color:var(--text-faint)] md:mb-4">
                   {title}
                 </p>
-                <ul className="flex flex-col gap-2.5 text-sm text-fd-muted-foreground">
+                <ul className="flex flex-col gap-1.5 text-sm text-fd-muted-foreground md:gap-2.5">
                   {col.links.map((link) => (
                     <li key={link.literal ?? link.labelKey}>
                       <FooterLinkItem
@@ -333,14 +333,14 @@ export async function FullFooter(): Promise<ReactNode> {
               </nav>
             );
           })}
+          <ContributorsRow
+            contributors={CONTRIBUTORS}
+            title={t("contributorsTitle")}
+            ariaFor={(login) => t("contributorAria", { name: login })}
+          />
         </div>
-        <ContributorsRow
-          contributors={CONTRIBUTORS}
-          title={t("contributorsTitle")}
-          ariaFor={(login) => t("contributorAria", { name: login })}
-        />
         <div
-          className="mt-14 flex flex-wrap items-center gap-x-6 gap-y-2 pt-6 text-sm text-fd-muted-foreground"
+          className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 pt-6 text-sm text-fd-muted-foreground md:mt-14"
           style={{
             borderTop: "1px solid color-mix(in srgb, var(--border-default) 80%, transparent)",
           }}

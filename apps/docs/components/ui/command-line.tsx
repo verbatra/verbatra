@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import { CopyButton } from "@/components/ui/copy-button";
 
 export type CommandLineLink = { token: string; href: string };
@@ -11,16 +11,21 @@ export type HighlightedCommandProps = {
   link?: CommandLineLink;
 };
 
+function Word({ word }: { word: string }): ReactNode {
+  return word.split(/(?<=[/.])(?=\w)/).map((piece, index) => (
+    <Fragment key={`${index}-${piece}`}>
+      {index > 0 ? <wbr /> : null}
+      <span className="whitespace-nowrap">{piece}</span>
+    </Fragment>
+  ));
+}
+
 function Words({ text }: { text: string }): ReactNode {
-  return text.split(/(\s+)/).map((part, index) =>
-    part.trim() === "" ? (
-      part
-    ) : (
-      <span key={`${index}-${part}`} className="whitespace-nowrap">
-        {part}
-      </span>
-    ),
-  );
+  return text
+    .split(/(\s+)/)
+    .map((part, index) =>
+      part.trim() === "" ? part : <Word key={`${index}-${part}`} word={part} />,
+    );
 }
 
 export function HighlightedCommand({ command, link }: HighlightedCommandProps): ReactNode {

@@ -1,16 +1,22 @@
 import {
   SiAndroid,
   SiAngular,
+  SiAnthropic,
   SiApple,
   SiAstro,
+  SiDeepl,
   SiDotnet,
   SiExpo,
   SiFlutter,
   SiGnu,
+  SiGooglegemini,
+  SiGoogletranslate,
   SiJson,
+  SiLibretranslate,
   SiNextdotjs,
   SiNodedotjs,
   SiNuxt,
+  SiOllama,
   SiReact,
   SiSpring,
   SiSvelte,
@@ -19,6 +25,7 @@ import {
   SiYaml,
 } from "@icons-pack/react-simple-icons";
 import type { ReactNode } from "react";
+import { OpenAiIcon } from "./landing/openai-icon";
 
 const VIEWBOX = 24;
 const SI = { size: VIEWBOX, color: "currentColor", title: "" } as const;
@@ -44,6 +51,7 @@ function OutlineGlyph({ children }: { children: ReactNode }): ReactNode {
 export const STACK_ICONS = {
   android: <SiAndroid {...SI} />,
   angular: <SiAngular {...SI} />,
+  anthropic: <SiAnthropic {...SI} />,
   apple: <SiApple {...SI} />,
   astro: <SiAstro {...SI} />,
   custom: (
@@ -51,10 +59,13 @@ export const STACK_ICONS = {
       <path d="M8 4H5a1 1 0 0 0-1 1v3M16 4h3a1 1 0 0 1 1 1v3M8 20H5a1 1 0 0 1-1-1v-3M16 20h3a1 1 0 0 0 1-1v-3M12 8v8M8 12h8" />
     </OutlineGlyph>
   ),
+  deepl: <SiDeepl {...SI} />,
   dotnet: <SiDotnet {...SI} />,
   expo: <SiExpo {...SI} />,
   flutter: <SiFlutter {...SI} />,
+  gemini: <SiGooglegemini {...SI} />,
   gnu: <SiGnu {...SI} />,
+  googleTranslate: <SiGoogletranslate {...SI} />,
   ini: (
     <OutlineGlyph>
       <path d="M6 3h8l5 5v13H6z" />
@@ -62,9 +73,12 @@ export const STACK_ICONS = {
     </OutlineGlyph>
   ),
   json: <SiJson {...SI} />,
+  libretranslate: <SiLibretranslate {...SI} />,
   next: <SiNextdotjs {...SI} />,
   node: <SiNodedotjs {...SI} />,
   nuxt: <SiNuxt {...SI} />,
+  ollama: <SiOllama {...SI} />,
+  openai: <OpenAiIcon size={VIEWBOX} />,
   react: <SiReact {...SI} />,
   spring: <SiSpring {...SI} />,
   svelte: <SiSvelte {...SI} />,

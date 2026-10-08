@@ -84,6 +84,7 @@ export function HeroDemo({ labels }: { labels: HeroDemoLabels }): ReactNode {
               delayBetweenCommands={700}
               fitContent
               bare
+              wrap
               playThreshold={0.1}
               settledCommands={1}
             />

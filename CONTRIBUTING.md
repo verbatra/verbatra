@@ -392,9 +392,10 @@ Work outward from `packages/core`, then `packages/format-adapters`. Replace
 
 7. **Docs.** Add the format to `apps/docs/content/docs/(configure)/formats.mdx`
    and its `.de.mdx`, `.es.mdx` and `.fr.mdx` siblings. Also update
-   `apps/docs/lib/structured-data.ts`, where `FORMAT_LABELS` is
-   a total `Record<SupportedFormat, string>` and will not compile until the new
-   format has a display label. That one is easy to miss, and the error surfaces
+   `apps/docs/lib/landing-facts.ts`, where `FORMAT_DISPLAY` is
+   a total `Record<SupportedFormat, FormatDisplay>` and will not compile until the new
+   format has a display label and an icon (the landing marquee and the
+   structured data both read it). That one is easy to miss, and the error surfaces
    in the docs app rather than where you were working.
 
    `apps/docs/lib/ai-setup-prompt.ts` names the format set in several places: the
@@ -539,7 +540,7 @@ this list can be trusted even as the files it names change:
   key,
 - `SUPPORTED_FORMATS` is a closed `as const` tuple, so an unlisted format is not
   expressible,
-- `FORMAT_LABELS` is a total record over `SupportedFormat`, so a new format
+- `FORMAT_DISPLAY` is a total record over `SupportedFormat`, so a new format
   cannot ship without a label,
 - `fs-port.no-direct-node-fs.test.ts` fails on a direct file-system import
   anywhere in the adapter package,

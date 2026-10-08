@@ -55,7 +55,11 @@ describe("control section links", () => {
     expect(CONTROL_GROUPS.map((group) => group.items.length)).toEqual([3, 3, 3]);
   });
 
-  it("leaves the glossary to the gains section instead of repeating it", () => {
-    expect(ITEMS.map((item) => item.key)).not.toContain("glossary");
+  it("carries the glossary and tone item, which no other landing section repeats", () => {
+    const terms = ITEMS.find((item) => item.key === "terms");
+    if (!terms) throw new Error("terms item missing");
+    expect(terms.evidence).toContain("glossary");
+    expect(terms.evidence).toContain("tone");
+    expect(controlHref("en", terms)).toBe("/docs/config-file#glossary");
   });
 });

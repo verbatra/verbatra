@@ -34,6 +34,23 @@ describe("HighlightedCommand", () => {
   });
 });
 
+describe("HighlightedCommand break points", () => {
+  it("offers a break only after a slash or a dot inside a word, never inside a flag", () => {
+    expect(
+      renderToStaticMarkup(
+        <HighlightedCommand command="npx skills@latest add verbatra/skills --skill verbatra-cli" />,
+      ),
+    ).toBe(
+      '<span class="whitespace-nowrap">npx</span> <span class="whitespace-nowrap">skills@latest</span> <span class="whitespace-nowrap">add</span> <span class="whitespace-nowrap">verbatra/</span><wbr/><span class="whitespace-nowrap">skills</span> <span class="whitespace-nowrap">--skill</span> <span class="whitespace-nowrap">verbatra-cli</span>',
+    );
+    expect(
+      renderToStaticMarkup(<HighlightedCommand command="import translations.xlsx" />),
+    ).toContain(
+      '<span class="whitespace-nowrap">translations.</span><wbr/><span class="whitespace-nowrap">xlsx</span>',
+    );
+  });
+});
+
 describe("CommandLine", () => {
   it("copies through the shared CopyButton, with its focus ring and its live region", () => {
     const html = renderToStaticMarkup(<CommandLine command="npx @verbatra/cli init" />);

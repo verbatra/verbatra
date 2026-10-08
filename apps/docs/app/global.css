@@ -268,6 +268,14 @@ samp {
     color: var(--text-muted);
     text-wrap: pretty;
   }
+
+  .vk-wrap-line {
+    --wrap-indent: calc(var(--wrap-lead, 0ch) + 2ch);
+    padding-inline-start: var(--wrap-indent);
+    text-indent: calc(var(--wrap-indent) * -1);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
 }
 
 .vk-gutter {
@@ -1578,24 +1586,60 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   }
 }
 
-.vk-reveal {
-  opacity: 0;
-  transform: translateY(28px);
-  transition:
-    opacity 700ms var(--ease-out),
-    transform 700ms var(--ease-out);
+.vk-rail {
+  position: relative;
+  container-type: inline-size;
+  margin: -4px calc(var(--gutter) * -1);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: var(--gutter);
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
 }
 
-.vk-reveal.is-in {
-  opacity: 1;
-  transform: none;
+.vk-rail::-webkit-scrollbar {
+  display: none;
 }
 
-@media (scripting: none), (prefers-reduced-motion: reduce) {
-  .vk-reveal {
-    opacity: 1;
-    transform: none;
-    transition: none;
+.vk-rail-track {
+  display: flex;
+  gap: 1.5rem;
+  width: max-content;
+  margin: 0;
+  padding: 4px var(--gutter);
+}
+
+.vk-rail-item {
+  flex: 0 0 auto;
+  width: min(calc((100cqi - 2 * var(--gutter)) * var(--rail-share, 0.82)), 24rem);
+  scroll-margin-inline: var(--gutter);
+  scroll-snap-align: start;
+}
+
+.vk-loop-rail {
+  --rail-share: 0.88;
+}
+
+@media (min-width: 1024px) {
+  .vk-rail {
+    margin: 0;
+    overflow: visible;
+    scroll-snap-type: none;
+  }
+
+  .vk-rail-track {
+    display: grid;
+    gap: 1.75rem;
+    width: auto;
+    padding: 0;
+  }
+
+  .vk-loop-rail .vk-rail-track {
+    gap: 1.5rem 2rem;
+  }
+
+  .vk-rail-item {
+    width: auto;
   }
 }
 
@@ -1604,6 +1648,10 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   --marquee-gap: clamp(40px, 1.5rem + 2vw, 112px);
   --marquee-row-pad: clamp(40px, 1rem + 2.4vw, 104px);
   padding-top: clamp(3.5rem, 1.5rem + 3vw, 8rem);
+}
+
+.vk-marquee-rows > .vk-marquee:last-child {
+  padding-bottom: 0;
 }
 
 .vk-marquee-intro {
@@ -1698,135 +1746,6 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   transform: translate(-50%, 0);
 }
 
-.vk-deck {
-  --mid: calc((var(--n, 6) - 1) / 2);
-  position: relative;
-  container-type: inline-size;
-  display: flex;
-  height: 300px;
-  align-items: center;
-  justify-content: center;
-}
-
-.vk-card {
-  --w: 108px;
-  --stride: min(112px, (100cqi - var(--w)) / (var(--n, 6) - 1));
-  --rot: calc((var(--i) - var(--mid)) * 5deg);
-  --lift: calc((var(--i) - var(--mid)) * (var(--i) - var(--mid)) * 4px);
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  z-index: calc(var(--n, 6) - var(--i));
-  display: grid;
-  width: var(--w);
-  height: 164px;
-  margin: -82px 0 0 calc(var(--w) / -2);
-  padding: 16px 8px 14px;
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: 1fr auto auto auto;
-  place-items: center;
-  align-content: center;
-  gap: 2px;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  background: linear-gradient(180deg, var(--surface-card), var(--surface-bg));
-  box-shadow: 0 24px 50px -24px rgba(0, 0, 0, 0.8);
-  color: var(--text-strong);
-  text-align: center;
-  text-decoration: none;
-  transform: translateX(calc((var(--i) - var(--mid)) * 4px));
-  transition:
-    transform 520ms var(--ease-out),
-    box-shadow 520ms var(--ease-out),
-    border-color var(--duration-base) var(--ease-out);
-}
-
-.vk-deck.is-in .vk-card {
-  transform: translateX(calc((var(--i) - var(--mid)) * 20px)) translateY(var(--lift))
-    rotate(var(--rot));
-  transition-delay: calc(var(--i) * 60ms);
-}
-
-.vk-deck:hover .vk-card,
-.vk-deck:focus-within .vk-card,
-.vk-deck.is-in:hover .vk-card,
-.vk-deck.is-in:focus-within .vk-card {
-  transform: translateX(calc((var(--i) - var(--mid)) * var(--stride)));
-  box-shadow: 0 30px 60px -28px color-mix(in srgb, var(--v-purple) 60%, transparent);
-  transition-delay: 0ms;
-}
-
-.vk-card:hover,
-.vk-card:focus-visible {
-  z-index: calc(var(--n, 6) + 1);
-  border-color: color-mix(in srgb, var(--v-glow) 45%, var(--border-default));
-}
-
-.vk-card-name,
-.vk-card-kind,
-.vk-card-id {
-  opacity: 0;
-  transition: opacity 320ms var(--ease-out) 120ms;
-}
-
-.vk-card-name {
-  font: 600 12.5px / 1.2 var(--font-display);
-}
-
-.vk-card-kind {
-  font-size: 11px;
-  line-height: 1.3;
-  color: var(--text-muted);
-}
-
-.vk-card-id {
-  margin-top: 4px;
-  font: 10.5px var(--font-mono);
-  color: var(--text-faint);
-}
-
-.vk-deck:hover .vk-card-name,
-.vk-deck:hover .vk-card-kind,
-.vk-deck:hover .vk-card-id,
-.vk-deck:focus-within .vk-card-name,
-.vk-deck:focus-within .vk-card-kind,
-.vk-deck:focus-within .vk-card-id {
-  opacity: 1;
-}
-
-@media (max-width: 1023px) {
-  .vk-deck {
-    --cols: 2;
-    --gap: 12px;
-    flex-wrap: wrap;
-    height: auto;
-    gap: var(--gap);
-  }
-
-  .vk-card,
-  .vk-deck.is-in .vk-card,
-  .vk-deck:hover .vk-card {
-    position: static;
-    flex: 0 0 calc((100% - (var(--cols) - 1) * var(--gap)) / var(--cols));
-    width: auto;
-    margin: 0;
-    box-shadow: none;
-    transform: none;
-  }
-
-  .vk-card-name,
-  .vk-card-kind,
-  .vk-card-id {
-    opacity: 1;
-  }
-}
-
-@media (min-width: 640px) and (max-width: 1023px) {
-  .vk-deck {
-    --cols: 4;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .vk-marquee {
     display: block;
@@ -1850,11 +1769,7 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
     display: none;
   }
 
-  .vk-tip::after,
-  .vk-card,
-  .vk-card-name,
-  .vk-card-kind,
-  .vk-card-id {
+  .vk-tip::after {
     transition: none;
   }
 }
@@ -1944,7 +1859,8 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 }
 
 @supports (animation-timeline: scroll()) {
-  .vk-edge-fade.vk-home-tabs-scroller {
+  .vk-edge-fade.vk-home-tabs-scroller,
+  .vk-edge-fade.vk-rail {
     -webkit-mask-image:
       linear-gradient(to right, transparent, #000 var(--vk-start-fade)),
       linear-gradient(to left, transparent, #000 var(--vk-edge-fade));
@@ -1957,6 +1873,15 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
       vk-edge-fade linear both,
       vk-start-fade linear both;
     animation-timeline: scroll(self inline), scroll(self inline);
+  }
+}
+
+@media (min-width: 1024px) {
+  .vk-edge-fade.vk-rail {
+    overflow: visible;
+    -webkit-mask-image: none;
+    mask-image: none;
+    animation: none;
   }
 }
 

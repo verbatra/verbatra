@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import {
   organizationLd,
   SUPPORTED_AGENT_CLIENTS,
@@ -86,6 +87,30 @@ describe("softwareApplicationLd", () => {
     for (const part of hasPart) {
       expect(part.author).toEqual(AUTHOR_REF);
     }
+  });
+});
+
+describe("softwareApplicationLd formats", () => {
+  it("lists every format by its display label", () => {
+    const result = softwareApplicationLd({
+      description: "test",
+      lang: "en",
+      version: "1.0.0",
+      studioVersion: "1.0.0",
+      mcpVersion: "1.0.0",
+    });
+    const features = result.featureList as ReadonlyArray<string>;
+    const formats = features.find((feature) => feature.startsWith("i18n formats: "));
+    for (const label of [
+      "i18next JSON",
+      "Flutter ARB",
+      "Java/Spring .properties",
+      "Xcode String Catalog",
+      "gettext .po/.pot",
+    ]) {
+      expect(formats).toContain(label);
+    }
+    expect(formats?.split(", ")).toHaveLength(SUPPORTED_FORMAT_IDS.length);
   });
 });
 

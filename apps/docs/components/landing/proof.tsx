@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
 import { Terminal } from "./terminal";
+import { WrapTokens, wrapLineStyle } from "./wrap-text";
 
 const MONO = "font-mono text-sm leading-relaxed";
 
@@ -36,7 +37,10 @@ function Region({
   children: ReactNode;
 }): ReactNode {
   return (
-    <div className="flex min-w-0 flex-col" style={{ background: "var(--surface-bg)" }}>
+    <div
+      className="grid min-w-0 grid-rows-[auto_1fr] lg:row-span-2 lg:grid-rows-subgrid lg:gap-0"
+      style={{ background: "var(--surface-bg)" }}
+    >
       <div className="px-6 pt-[22px] pb-[18px]">
         <h3 className="vk-h4">{title}</h3>
         <p className="mt-1.5 max-w-[48ch] text-sm text-fd-muted-foreground">{body}</p>
@@ -44,7 +48,7 @@ function Region({
       <div
         className={cn(
           MONO,
-          "vk-terminal-scroll mt-auto border-t border-fd-border px-5 py-[18px] text-fd-muted-foreground",
+          "vk-terminal-scroll border-t border-fd-border px-5 py-[18px] text-fd-muted-foreground",
         )}
       >
         {children}
@@ -63,16 +67,15 @@ function WrittenLine({
   const isNew = line.annotation === "new";
   return (
     <div
-      className={cn(
-        "flex items-start gap-4 whitespace-pre",
-        isNew && "-mx-5 px-[17px] pe-5 text-fd-foreground",
-      )}
+      className={cn("flex items-start gap-3", isNew && "-mx-5 px-[17px] pe-5 text-fd-foreground")}
       style={isNew ? HIGHLIGHT_STYLE : undefined}
     >
-      <code className="min-w-0 flex-1">{line.text}</code>
+      <code className="vk-wrap-line min-w-0 flex-1" style={wrapLineStyle(line.text)}>
+        <WrapTokens text={line.text} />
+      </code>
       {line.annotation ? (
         <span
-          className="shrink-0 font-sans text-sm"
+          className="shrink-0 font-sans text-xs leading-[inherit]"
           style={{ color: isNew ? "var(--accent)" : "var(--text-faint)" }}
         >
           {labels[line.annotation]}
@@ -104,7 +107,7 @@ export async function Proof(): Promise<ReactNode> {
         <SectionHead title={tHow("heading")} />
       </div>
       <div
-        className="mt-[52px] grid grid-cols-[minmax(0,1fr)] gap-px overflow-hidden rounded-xl border border-fd-border lg:grid-cols-3"
+        className="mt-[52px] grid grid-cols-[minmax(0,1fr)] gap-px overflow-hidden rounded-xl border border-fd-border lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)] lg:grid-rows-[auto_auto_1fr]"
         style={{ background: "var(--border-default)" }}
       >
         <div className="min-w-0 lg:col-span-3">
@@ -118,6 +121,7 @@ export async function Proof(): Promise<ReactNode> {
             initialDelay={350}
             highlight={GATE_RUN_LINES[2]}
             fitContent
+            wrap
             className="h-full rounded-none border-0"
             headerAction={
               <CopyButton
@@ -128,14 +132,14 @@ export async function Proof(): Promise<ReactNode> {
           />
         </div>
         <Region title={t("written.title")} body={t("written.body")}>
-          <div className="min-w-max">
+          <div>
             {GATE_TARGET_LINES.map((line) => (
               <WrittenLine key={line.text} line={line} labels={annotations} />
             ))}
           </div>
         </Region>
         <Region title={t("refused.title")} body={t("refused.body")}>
-          <dl className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-x-3">
+          <dl className="grid grid-cols-[5.75rem_minmax(0,1fr)] gap-x-3">
             {refusalRows.map(([label, value]) => (
               <div key={label} className="contents">
                 <dt className="text-[color:var(--text-faint)]">{label}</dt>
@@ -153,15 +157,17 @@ export async function Proof(): Promise<ReactNode> {
         </Region>
         <Region title={t("lock.title")} body={t("lock.body")}>
           <div className="text-[color:var(--text-faint)]">{GATE_LOCK_FILE}</div>
-          <pre className="whitespace-pre">
+          <pre>
             {GATE_LOCK_LINES.map((line) => (
-              <div key={line}>{line}</div>
+              <div key={line} className="vk-wrap-line" style={wrapLineStyle(line)}>
+                <WrapTokens text={line} />
+              </div>
             ))}
           </pre>
         </Region>
       </div>
       <div>
-        <ol className="mt-5 grid list-none gap-4 md:grid-cols-4">
+        <ol className="mt-5 grid list-none grid-cols-2 gap-x-4 gap-y-6 md:grid-cols-4">
           {STEP_KEYS.map((key, index) => (
             <li key={key} className="border-t border-fd-border pt-[18px]">
               <h3 className="vk-h4">

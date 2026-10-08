@@ -4,6 +4,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { prefersReducedMotion } from "@/lib/reduced-motion";
 import { useInViewOnce } from "@/lib/use-in-view-once";
 import { cn } from "@/lib/utils";
+import { WrapTokens, wrapLineStyle } from "./wrap-text";
 
 type Line = { kind: "command" | "output"; text: string };
 
@@ -20,6 +21,7 @@ export type TerminalProps = {
   fitContent?: boolean;
   headerAction?: ReactNode;
   bare?: boolean;
+  wrap?: boolean;
   playThreshold?: number;
   settledCommands?: number;
   className?: string;
@@ -116,16 +118,11 @@ function tokenColor(token: string): string | undefined {
 }
 
 function HighlightedText({ text, base }: { text: string; base: string }): ReactNode {
-  const tokens = text.split(" ");
   return (
-    <>
-      {tokens.map((token, i) => (
-        <span key={i} style={{ color: tokenColor(token) ?? base }}>
-          {i > 0 ? " " : ""}
-          {token}
-        </span>
-      ))}
-    </>
+    <WrapTokens
+      text={text}
+      render={(token) => <span style={{ color: tokenColor(token) ?? base }}>{token}</span>}
+    />
   );
 }
 
@@ -134,10 +131,26 @@ const HIGHLIGHT_STYLE = {
   borderInlineStart: "3px solid var(--v-purple)",
 } as const;
 
-function LineRow({ line, highlighted = false }: { line: Line; highlighted?: boolean }): ReactNode {
+const LINE_CLASS = {
+  scroll: "whitespace-pre",
+  wrap: "vk-wrap-line",
+} as const;
+
+type LineMode = keyof typeof LINE_CLASS;
+
+function LineRow({
+  line,
+  mode,
+  highlighted = false,
+}: {
+  line: Line;
+  mode: LineMode;
+  highlighted?: boolean;
+}): ReactNode {
+  const style = mode === "wrap" ? wrapLineStyle(line.text) : undefined;
   if (line.kind === "command") {
     return (
-      <div className="whitespace-pre">
+      <div className={LINE_CLASS[mode]} style={style}>
         <span style={{ color: "var(--v-glow)" }}>$</span>{" "}
         <HighlightedText text={line.text} base="var(--text-strong)" />
       </div>
@@ -145,13 +158,20 @@ function LineRow({ line, highlighted = false }: { line: Line; highlighted?: bool
   }
   if (highlighted) {
     return (
-      <div className="-mx-4 whitespace-pre ps-[13px] pe-4" style={HIGHLIGHT_STYLE}>
+      <div
+        className={cn(
+          LINE_CLASS[mode],
+          "-mx-4 pe-4",
+          mode === "wrap" ? "ps-[calc(13px+var(--wrap-indent))]" : "ps-[13px]",
+        )}
+        style={{ ...HIGHLIGHT_STYLE, ...style }}
+      >
         <HighlightedText text={line.text} base="var(--text-strong)" />
       </div>
     );
   }
   return (
-    <div className="whitespace-pre">
+    <div className={LINE_CLASS[mode]} style={style}>
       <HighlightedText text={line.text} base="var(--text-muted)" />
     </div>
   );
@@ -159,15 +179,18 @@ function LineRow({ line, highlighted = false }: { line: Line; highlighted?: bool
 
 function LineList({
   lines,
+  mode,
   highlight,
 }: {
   lines: ReadonlyArray<Line>;
+  mode: LineMode;
   highlight?: string | undefined;
 }): ReactNode {
   return lines.map((line, index) => (
     <LineRow
       key={`${index}:${line.kind}`}
       line={line}
+      mode={mode}
       highlighted={line.kind === "output" && line.text === highlight}
     />
   ));
@@ -186,11 +209,14 @@ export function Terminal({
   fitContent = false,
   headerAction,
   bare = false,
+  wrap = false,
   playThreshold = 0.4,
   settledCommands = 0,
   className,
 }: TerminalProps): ReactNode {
   const [rootRef, inView] = useInViewOnce<HTMLDivElement>(playThreshold);
+  const mode: LineMode = wrap ? "wrap" : "scroll";
+  const widthClass = wrap ? "min-w-0" : "min-w-max";
   const scrollRef = useRef<HTMLDivElement>(null);
   const [history, setHistory] = useState<Line[]>(() =>
     buildSettled(commands.slice(0, settledCommands), outputs),
@@ -292,14 +318,14 @@ export function Terminal({
         )}
       >
         {fitContent ? (
-          <div className="invisible col-start-1 row-start-1 min-w-max">
-            <LineList lines={buildSettled(commands, outputs)} highlight={highlight} />
+          <div className={cn("invisible col-start-1 row-start-1", widthClass)}>
+            <LineList lines={buildSettled(commands, outputs)} mode={mode} highlight={highlight} />
           </div>
         ) : null}
-        <div className={cn("min-w-max", fitContent && "col-start-1 row-start-1")}>
-          <LineList lines={history} highlight={highlight} />
+        <div className={cn(widthClass, fitContent && "col-start-1 row-start-1")}>
+          <LineList lines={history} mode={mode} highlight={highlight} />
           {typing !== null ? (
-            <div className="whitespace-pre">
+            <div className={LINE_CLASS[mode]}>
               <span style={{ color: "var(--v-glow)" }}>$</span>{" "}
               <HighlightedText text={typing} base="var(--text-strong)" />
               <span className="ms-0.5 animate-pulse" style={{ color: "var(--v-glow)" }}>
