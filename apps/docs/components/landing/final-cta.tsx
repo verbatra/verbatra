@@ -9,13 +9,18 @@ export async function FinalCta(): Promise<ReactNode> {
   const t = await getTranslations("landing.finalClose");
   const locale = (await getLocale()) as Locale;
   return (
-    <section className="vk-pad-top-sm vk-gutter vk-w-wide mx-auto w-full pb-3">
+    <section
+      data-presence="final-cta"
+      className="vk-pad-top-sm vk-gutter vk-w-wide mx-auto w-full pb-3"
+    >
       <div
         className="grid gap-8 rounded-xl border px-6 py-10 md:px-12 md:py-14 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center"
         style={{ background: "var(--surface-bg)", borderColor: CLOSE_BORDER }}
       >
-        <h2 className="vk-h2">{t("heading")}</h2>
-        <div className="flex flex-wrap gap-3">
+        <h2 data-reveal="0" className="vk-h2">
+          {t("heading")}
+        </h2>
+        <div data-reveal="1" className="flex flex-wrap gap-3">
           <Button href={localizedPath(locale, "/docs/quickstart")} variant="primary" size="lg">
             {t("start")}
           </Button>

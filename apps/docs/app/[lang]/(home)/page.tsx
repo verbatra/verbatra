@@ -7,6 +7,7 @@ import { Faq, type FaqEntry } from "@/components/landing/faq";
 import { FinalCta } from "@/components/landing/final-cta";
 import { Loop } from "@/components/landing/loop";
 import { Marquee } from "@/components/landing/marquee";
+import { MotionRoot } from "@/components/landing/motion-root";
 import { Proof } from "@/components/landing/proof";
 import { Showcase } from "@/components/landing/showcase";
 import { LandingHero } from "@/components/landing-hero";
@@ -69,6 +70,7 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
       {LANDING_SECTIONS.map((id) => (
         <Fragment key={id}>{sections[id]}</Fragment>
       ))}
+      <MotionRoot />
     </div>
   );
 }

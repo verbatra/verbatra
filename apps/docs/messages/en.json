@@ -78,6 +78,7 @@
       }
     },
     "showcase": {
+      "eyebrow": "Try it",
       "heading": "See it work",
       "lead": "Try a change to a locale file: verbatra's own diff and hash code shows in your browser what a run would send, skip and lock, and translates nothing.",
       "tryIt": {
@@ -144,6 +145,7 @@
       "promptPreviewLabel": "Copies this prompt for your agent"
     },
     "how": {
+      "eyebrow": "How it works",
       "heading": "Every run is checked before it is written.",
       "steps": {
         "configure": {
@@ -255,6 +257,9 @@
     "nav": {
       "docs": "Docs",
       "reference": "Reference",
+      "headerCta": {
+        "label": "Get started"
+      },
       "languageSwitcher": {
         "chooseLanguage": "Choose a language",
         "triggerAriaSuffix": "choose a language",
@@ -266,6 +271,7 @@
     "marquee": {
       "label": "Supported frameworks and formats",
       "intro": "Works with the locale files you already have.",
+      "pause": "Pause the scrolling lists",
       "frameworksLabel": "Frameworks verbatra works with",
       "formatsLabel": "File formats verbatra reads and writes",
       "formatTip": "format: \"{id}\"",
@@ -287,6 +293,7 @@
       }
     },
     "control": {
+      "eyebrow": "Control",
       "heading": "You decide what ships.",
       "lead": "People keep the last word, every language gets its own rules, and strings go only where you allow.",
       "groups": {
@@ -344,6 +351,7 @@
       }
     },
     "loop": {
+      "eyebrow": "Every day",
       "heading": "The rest of the translation loop, in the same tool.",
       "rows": {
         "excel": {

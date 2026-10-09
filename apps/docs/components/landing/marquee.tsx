@@ -4,6 +4,7 @@ import { StackIcon, type StackIconKey, StackIconSprite } from "@/components/stac
 import { type Locale, localizedPath } from "@/lib/i18n";
 import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { MarqueeRow } from "./marquee-row";
+import { MarqueeToggle } from "./marquee-toggle";
 
 const ICON = 20;
 const ICON_PREFIX = "vk-marquee-icon";
@@ -128,9 +129,17 @@ export async function Marquee(): Promise<ReactNode> {
   }));
 
   return (
-    <section aria-label={t("label")} className="vk-marquee-band" id="marquee">
+    <section
+      aria-label={t("label")}
+      className="vk-marquee-band"
+      id="marquee"
+      data-presence="marquee"
+    >
       <IconSprite />
-      <p className="vk-marquee-intro px-6 text-center text-fd-muted-foreground">{t("intro")}</p>
+      <div className="vk-marquee-head">
+        <p className="vk-marquee-intro text-center text-fd-muted-foreground">{t("intro")}</p>
+        <MarqueeToggle label={t("pause")} />
+      </div>
       <div className="vk-marquee-rows">
         <Row
           row="frameworks"

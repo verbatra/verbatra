@@ -122,7 +122,7 @@ describe("Terminal: playback", () => {
   function lines(container: HTMLDivElement): string[] {
     const layer = container.querySelector('[aria-hidden="true"] > div');
     return Array.from(layer?.children ?? [])
-      .filter((line) => line.querySelector(".animate-pulse") === null)
+      .filter((line) => !line.hasAttribute("data-typing"))
       .map((line) => line.textContent ?? "");
   }
 

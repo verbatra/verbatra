@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { StudioScreenshot } from "@/components/studio-screenshot";
 import { type Locale, localizedAnchorPath, localizedPath } from "@/lib/i18n";
 import { SKILLS_INSTALL_COMMAND } from "@/lib/install-commands";
+import { sectionNumber } from "@/lib/landing-sections";
 import { cn } from "@/lib/utils";
 import { CommandBox } from "./command-box";
 import { SKILLS_PACK_ANCHORS, SKILLS_PACK_PAGE, SKILLS_REPO_URL } from "./links";
@@ -68,6 +69,7 @@ function Row({
   return (
     <div
       data-loop-row={id}
+      data-reveal="0"
       className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] lg:items-center lg:gap-16"
     >
       <div className={cn("min-w-0", flip && "lg:order-2")}>
@@ -98,7 +100,12 @@ export async function Loop(): Promise<ReactNode> {
 
   return (
     <Section width="wide" rhythm="lg" id="loop">
-      <SectionHead id="loop-heading" title={t("heading")} />
+      <SectionHead
+        id="loop-heading"
+        title={t("heading")}
+        step={{ number: sectionNumber("loop"), label: t("eyebrow") }}
+        reveal
+      />
       <div className="mt-[52px] grid gap-[72px]">
         <Row
           id="excel"

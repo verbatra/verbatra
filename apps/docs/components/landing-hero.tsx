@@ -32,7 +32,7 @@ export async function LandingHero(): Promise<ReactNode> {
   const locale = (await getLocale()) as Locale;
 
   return (
-    <section className="vk-hero vk-w-wide mx-auto w-full">
+    <section data-presence="hero" className="vk-hero vk-w-wide mx-auto w-full">
       <div className="vk-hero-lines">
         <div className="vk-hero-line">
           <span aria-hidden="true" className="vk-hero-code vk-hero-code-source">

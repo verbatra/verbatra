@@ -12,6 +12,7 @@ const homeLayout = vi.hoisted(() => ({
 vi.mock("next-intl/server", () => ({
   getTranslations: async () => (key: string) => `nav.${key}`,
 }));
+vi.mock("next-intl", () => ({ useTranslations: () => (key: string) => `cta.${key}` }));
 const location = vi.hoisted(() => ({ pathname: "/" }));
 
 vi.mock("fumadocs-core/framework", () => ({ usePathname: () => location.pathname }));

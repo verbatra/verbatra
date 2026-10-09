@@ -102,13 +102,13 @@ Scales are fixed and narrow, deliberately:
   same left edge as every section heading (the hero is a `.vk-w-wide` column like the sections),
   and `--width-hero-panel` (36rem) the
   command panel's maximum width and, from 80rem, its own column.
-- Motion: `--ease-out` with `--duration-fast` and `--duration-base` for transitions. The hero's
-  one load motion is `vk-locale-in`, a single opacity and transform reveal of the locale rows
-  (never the `h1`), declared only under `prefers-reduced-motion: no-preference`. Nothing else on
-  the landing animates on load, and nothing loops except the marquee: its two rows scroll
-  endlessly, pause on hover and focus, stop and drop their edge mask while a link has keyboard
-  focus (so the focused item scrolls fully into view), and under `prefers-reduced-motion: reduce`
-  wrap as a static list with the duplicate track hidden.
+- Motion: see "Landing motion" below for the system. Its tokens: `--ease-out` (entrances and
+  state changes) and `--ease-in-out` (demo fills), `--duration-fast` (140ms, hover and press),
+  `--duration-base` (240ms, state change), `--duration-reveal` (560ms, entrances),
+  `--duration-demo` (900ms, the How step fill), `--reveal-distance` (16px, 12px under 40rem),
+  `--rise-distance` (12px, the hero load rise), `--reveal-stagger` (70ms) and
+  `--reveal-delay-max` (350ms, the stagger cap). Only `opacity` and `transform` / `translate`
+  ever animate.
 - Showcase: `--showcase-line` (1.125rem, 1.25rem from 40rem) is the line height of a file pane in
   the showcase playground, which reserves its longest scenario's row count with it (on a phone,
   where one file shows at a time, the tallest file's, `--showcase-rows-max`, so a file switch
@@ -164,7 +164,8 @@ footer's oversized watermark only; do not clip it onto a heading.
   `marquee.tsx`, `loop.tsx`, `faq.tsx`, `final-cta.tsx`, `footer.tsx`). Their order on the page
   is `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, marquee, showcase, how, control, loop,
   faq, final call to action), which the home page maps over and `lib/landing-sections.test.ts` pins;
-  add or move a section there, not by hand in `page.tsx`. Sections do not animate in. The
+  add or move a section there, not by hand in `page.tsx`. Sections reveal on scroll through
+  `data-reveal` (see "Landing motion"); the marquee and the FAQ do not. The
   marquee sits directly under the hero and is two rows at fixed sizes (15px items, 40px gaps,
   set on `.vk-marquee-band`): the frameworks (`MARQUEE_FRAMEWORKS` in `marquee.tsx`, each with a
   translated tip naming its format, `landing.marquee.frameworks.*`) scrolling left, and the
@@ -333,12 +334,83 @@ footer's oversized watermark only; do not clip it onto a heading.
   the template, where the TOC and the parity tests see them. Content rules for the templates
   and stubs are in `.claude/rules/docs.md`.
 
+## Landing motion
+
+The landing moves in one deliberate way: content rises into place once as the visitor reaches
+it, and the How steps follow the terminal that demonstrates them. There is no pinning, no
+parallax, no scroll-scrubbing, no scroll listener and no animation library.
+
+- **Reveals.** An element marked `data-reveal="<n>"` (`n` from 0 to 5) is hidden (opacity 0,
+  `translate: 0 var(--reveal-distance)`) only while two things hold: `prefers-reduced-motion:
+  no-preference` and `html[data-motion-ready]`. `MotionRoot`
+  (`components/landing/motion-root.tsx`, mounted once at the end of the home page, rendering
+  nothing) sets that attribute after hydration, so without JavaScript, before hydration and
+  under reduced motion everything is visible. Before it sets the attribute it marks every
+  element already on screen `data-revealed`, so nothing in the first viewport blinks out, then
+  hands the rest to one shared `IntersectionObserver` (`rootMargin: 0px 0px -10% 0px`) that adds
+  `data-revealed` and unobserves, so each element reveals once and never again on scroll up. Only
+  the reveal transitions (`[data-reveal][data-revealed]`); hiding is instant. Focus moving into
+  a block that has not revealed yet shows it at once (`:focus-within`, no transition). The
+  delay is `n * --reveal-stagger`, capped at `--reveal-delay-max` through `--reveal-index`. The
+  order inside a section is heading, then body, then demo: `SectionHead` with `reveal` marks its
+  heading block `0` and its lead `1`; the showcase playground, the How terminal and Control's
+  columns follow; each Loop row reveals as one unit, so its text never trails its picture; the
+  final call to action reveals its heading, then its buttons. Sections
+  stay server components: the marks are plain attributes. Elements keep their box while
+  hidden, so a reveal never moves layout. `components/landing/reveal-marks.test.tsx` pins the
+  marks and `motion-root.test.tsx` pins the observer and the stylesheet guards.
+- **Hero.** The hero is never revealed and the `h1` never moves (it is the largest paint). On
+  load, the locale rows run `vk-locale-in`, and the command panel and the numbers row rise
+  `--rise-distance` once (`vk-rise`, `--duration-reveal`, staggered), all under
+  `no-preference` only.
+- **Numbered eyebrows.** The four story sections after the marquee (`NUMBERED_SECTIONS` in
+  `lib/landing-sections.ts`: showcase, how, control, loop) open with `.vk-eyebrow`: a two-digit
+  mono index in `--accent` (`sectionNumber`) beside a translated sentence-case word
+  (`landing.<section>.eyebrow`), passed to `SectionHead` as `step`. The numbers state the
+  order of the story; do not add one to a section outside that list.
+- **How steps.** `HowReplay` (`components/landing/how-replay.tsx`, the How section's client
+  island) renders the terminal and the four unnumbered steps (the eyebrow and the bars carry the
+  order). The replay starts once the terminal and the step grid are both at least half in view
+  (`HOW_PLAY_RATIO`, one observer on both), which also holds on a landscape phone. The commands,
+  outputs and line pace (`HOW_LINE_DELAY_MS`, longer than `--duration-demo`, so a bar finishes
+  filling before the next step takes over) come from `lib/how-steps.ts`, the same objects the
+  step mapping reads. The terminal reports its progress through
+  `onProgress`, and `howStepStates` (`lib/how-steps.ts`) maps the printed lines to the step
+  being shown: `aria-current="step"` and `data-state` (`upcoming`, `current`, `complete`) on
+  each `.vk-how-step`, whose 2px `--accent` top bar fills (`scaleX`, `--duration-demo`,
+  `--ease-in-out`) as the step becomes current; only the bar of an upcoming step is empty, its
+  text keeps full contrast. When the run has printed, every step is
+  complete and none is current. Without JavaScript and under reduced motion every bar shows
+  filled, statically. The terminal's caret is a fresh element per keystroke
+  (`.vk-terminal-caret`), so typing never counts as a layout shift.
+- **Header call to action.** On the landing only (`landingLocale` in `components/header-cta.tsx`),
+  `HomeSiteHeader` carries a small primary "Get started" (`landing.nav.headerCta.label`), first in
+  the right-hand group in both the DOM and the visual order. It reserves no slot: it is
+  `display: none` until `MotionRoot`'s presence observer sees the hero leave through the top of
+  the viewport (`html[data-past-hero]`), and again while the final call to action is on screen
+  (`html[data-final-cta]`). It then appears with a 4px fade (`vk-header-cta-in`) into the free
+  space of the `justify-end` group, so nothing beside it moves. It shows under 768px and from
+  1280px only, the widths where that space exists. A click counts `click-cta` with
+  `location: header`.
+- **Marquee.** The only infinite motion. Its two rows scroll endlessly, pause on hover and
+  focus, stop and drop their edge mask while a link has keyboard focus (so the focused item
+  scrolls fully into view), pause while the band is off screen (`data-offscreen`, set by the
+  same presence observer), and pause from the visible `MarqueeToggle` beside the intro
+  (WCAG 2.2.2): an `aria-pressed` button named by `landing.marquee.pause`, counted as
+  `toggle-marquee` with `state: paused | playing` and `location: marquee`, whose box stays
+  invisible until
+  `MotionRoot` is ready. Under `prefers-reduced-motion: reduce` the rows wrap as a static list
+  with the duplicate track hidden, and the toggle is gone.
+- **Budget.** Layout shift 0 over a full scroll at 390, 1440 and a 844 by 390 landscape phone; no
+  scroll listener; at most one reveal chain per section; no entrance over 16px or 600ms.
+
 ## Keep the client payload small
 
 Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
 
 - No animation library. Landing motion is CSS keyframes and transitions in `app/global.css`,
-  each with a `prefers-reduced-motion` opt-out.
+  each with a `prefers-reduced-motion` opt-out; the only motion script is `MotionRoot`, which
+  toggles attributes from two `IntersectionObserver`s and stays under 1 KB gzipped.
 - `NextIntlClientProvider` receives only `CLIENT_MESSAGE_NAMESPACES` (`lib/client-messages.ts`),
   not the whole catalog. A new `useTranslations` namespace in a `"use client"` file must be added
   there; `lib/client-messages.test.ts` fails until it is.
@@ -373,8 +445,9 @@ language select for both. The primary navigation is exactly Docs, Reference and 
 guide, npm and the contact page are reached from the docs sidebar and the landing footer, never
 from the header. The text links and the icon show from 768px (`md`), exactly where the phone
 search and menu trigger hide, so every width has one of the two; the home header reserves no
-empty slot after the language select. At least 24px separate the search box from the first text
-link and the last text link from the GitHub icon. A text link carries `data-active` and
+empty slot, not even for its landing call to action (see "Landing motion"). At least 24px
+separate the search box from the first text link and the last text link from the GitHub icon.
+A text link carries `data-active` and
 `aria-current` (`page` on an exact path match, `true` for a section or tab), from the root tabs on
 docs and from the current path elsewhere, and the home drawer lines its items,
 close button and footer icons up on one 16px start edge. The home layout swaps Fumadocs' `<main id="nd-home-layout">` container for a `<div>`
@@ -442,9 +515,10 @@ comes from:
   whose `.vk-agent-tip-action` wraps under the text, with the preview spanning it, while the tip
   is under 36rem. Neither uses a
   gradient headline: the former `.vk-gradient-text` class is gone, and `--gradient-headline`
-  remains only for the footer's watermark. Only the docs home header carries an eyebrow (a
-  `.vk-label`), and no card or button on the docs home appends an arrow to its label: the hover
-  border, or on a stack card the chevron, is the affordance.
+  remains only for the footer's watermark. On the docs surface only the docs home header carries
+  an eyebrow (a `.vk-label`). On the landing, the four story sections carry the numbered
+  `.vk-eyebrow` described under "Landing motion". No card or button on the docs home appends an
+  arrow to its label: the hover border, or on a stack card the chevron, is the affordance.
 - **`.vk-label`**: the small mono, uppercase, `0.14em`-tracked, `--text-faint` label the
   landing footer uses for its column titles. The sidebar's top-level folders and separators
   inside each tab (group triggers such as "CLI", the `For AI agents` separator), the TOC's "On

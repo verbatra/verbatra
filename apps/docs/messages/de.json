@@ -63,7 +63,8 @@
           "title": "Prüfen und schreiben",
           "body": "Kaputte Ergebnisse werden zurückgehalten, der Rest wird geschrieben."
         }
-      }
+      },
+      "eyebrow": "So funktioniert es"
     },
     "faq": {
       "heading": "Häufig gestellte Fragen",
@@ -162,7 +163,10 @@
         "machineTranslatedLabel": "Maschinell übersetzt",
         "machineTranslatedDescription": "Die Oberfläche und die Dokumentationsseiten für diese Sprache werden mit KI übersetzt."
       },
-      "skipToContent": "Zum Inhalt springen"
+      "skipToContent": "Zum Inhalt springen",
+      "headerCta": {
+        "label": "Loslegen"
+      }
     },
     "control": {
       "heading": "Du entscheidest, was live geht.",
@@ -219,7 +223,8 @@
             }
           }
         }
-      }
+      },
+      "eyebrow": "Kontrolle"
     },
     "loop": {
       "heading": "Der Rest des Übersetzungskreislaufs, im selben Tool.",
@@ -256,7 +261,8 @@
         "key": "Key",
         "source": "Quelle",
         "target": "Ziel"
-      }
+      },
+      "eyebrow": "Im Alltag"
     },
     "marquee": {
       "formatTip": "format: \"{id}\"",
@@ -279,7 +285,8 @@
         "apple": ".strings und .xcstrings",
         "android": "strings.xml",
         "dotnet": ".resx"
-      }
+      },
+      "pause": "Laufende Listen anhalten"
     },
     "showcase": {
       "heading": "Sieh es in Aktion",
@@ -328,7 +335,8 @@
         },
         "filesLabel": "Dateien",
         "retry": "Erneut versuchen"
-      }
+      },
+      "eyebrow": "Ausprobieren"
     }
   },
   "legal": {

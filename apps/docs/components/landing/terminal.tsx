@@ -8,6 +8,8 @@ import { WrapTokens, wrapLineStyle } from "./wrap-text";
 
 type Line = { kind: "command" | "output"; text: string };
 
+export type TerminalProgress = { lines: number; typing: boolean };
+
 export type TerminalProps = {
   commands: ReadonlyArray<string>;
   outputs?: Readonly<Record<number, ReadonlyArray<string>>>;
@@ -16,6 +18,8 @@ export type TerminalProps = {
   typingSpeed?: number;
   delayBetweenCommands?: number;
   initialDelay?: number;
+  lineDelay?: number;
+  onProgress?: (progress: TerminalProgress) => void;
   loop?: boolean;
   highlight?: string;
   fitContent?: boolean;
@@ -23,6 +27,7 @@ export type TerminalProps = {
   bare?: boolean;
   wrap?: boolean;
   playThreshold?: number;
+  play?: boolean;
   settledCommands?: number;
   className?: string;
 };
@@ -40,6 +45,7 @@ type PlayerContext = {
   commands: ReadonlyArray<string>;
   outputs?: Readonly<Record<number, ReadonlyArray<string>>>;
   typingSpeed: number;
+  lineDelay: number;
   delayBetweenCommands: number;
   initialDelay: number;
   loop: boolean;
@@ -61,7 +67,7 @@ async function printOutputs(ctx: PlayerContext, lines: ReadonlyArray<string>): P
     if (ctx.isCancelled()) return false;
     ctx.pushLine({ kind: "output", text });
     ctx.scroll();
-    await delay(90);
+    await delay(ctx.lineDelay);
   }
   return !ctx.isCancelled();
 }
@@ -204,6 +210,8 @@ export function Terminal({
   typingSpeed = 45,
   delayBetweenCommands = 900,
   initialDelay = 500,
+  lineDelay = 90,
+  onProgress,
   loop = true,
   highlight,
   fitContent = false,
@@ -211,10 +219,12 @@ export function Terminal({
   bare = false,
   wrap = false,
   playThreshold = 0.4,
+  play,
   settledCommands = 0,
   className,
 }: TerminalProps): ReactNode {
-  const [rootRef, inView] = useInViewOnce<HTMLDivElement>(playThreshold);
+  const [rootRef, seen] = useInViewOnce<HTMLDivElement>(playThreshold);
+  const inView = play ?? seen;
   const mode: LineMode = wrap ? "wrap" : "scroll";
   const widthClass = wrap ? "min-w-0" : "min-w-max";
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -252,6 +262,7 @@ export function Terminal({
       commands,
       outputs,
       typingSpeed,
+      lineDelay,
       delayBetweenCommands,
       initialDelay,
       loop,
@@ -267,11 +278,18 @@ export function Terminal({
     commands,
     outputs,
     typingSpeed,
+    lineDelay,
     delayBetweenCommands,
     initialDelay,
     loop,
     settledCommands,
   ]);
+
+  const shown = history.length;
+  const typingNow = typing !== null;
+  useEffect(() => {
+    onProgress?.({ lines: shown, typing: typingNow });
+  }, [onProgress, shown, typingNow]);
 
   return (
     <div
@@ -325,12 +343,10 @@ export function Terminal({
         <div className={cn(widthClass, fitContent && "col-start-1 row-start-1")}>
           <LineList lines={history} mode={mode} highlight={highlight} />
           {typing !== null ? (
-            <div className={LINE_CLASS[mode]}>
+            <div className={LINE_CLASS[mode]} data-typing="">
               <span style={{ color: "var(--v-glow)" }}>$</span>{" "}
               <HighlightedText text={typing} base="var(--text-strong)" />
-              <span className="ms-0.5 animate-pulse" style={{ color: "var(--v-glow)" }}>
-                &#9613;
-              </span>
+              <span key={typing.length} className="vk-terminal-caret" aria-hidden="true" />
             </div>
           ) : null}
         </div>

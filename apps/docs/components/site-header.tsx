@@ -20,6 +20,7 @@ import {
   type LinkItemType,
 } from "fumadocs-ui/layouts/shared";
 import { type ComponentProps, type ReactNode, useRef } from "react";
+import { HeaderCta } from "@/components/header-cta";
 import { useRootTabs } from "@/components/root-tabs";
 import { useDrawerEscape } from "@/components/use-drawer-escape";
 import { headerActiveTab, isRootTabLinkActive } from "@/lib/root-tabs";
@@ -159,6 +160,7 @@ export type SiteHeaderFrameProps = ComponentProps<"header"> & {
   navItems: ReadonlyArray<LinkItemType>;
   mobileTrigger: ReactNode;
   trailing?: ReactNode;
+  cta?: ReactNode;
   activeOverride?: ActiveOverride;
 };
 
@@ -167,6 +169,7 @@ export function SiteHeaderFrame({
   navItems,
   mobileTrigger,
   trailing,
+  cta,
   activeOverride,
   className,
   ...props
@@ -188,6 +191,7 @@ export function SiteHeaderFrame({
           />
         ) : null}
         <div className="flex flex-1 items-center justify-end md:gap-2 md:ps-4">
+          {cta}
           <nav className="flex items-center gap-6 empty:hidden max-md:hidden md:me-4">
             {textItems.map((item) => (
               <TextLink
@@ -283,6 +287,7 @@ export function HomeSiteHeader(props: ComponentProps<"header">): ReactNode {
         slots={slots}
         navItems={navItems}
         mobileTrigger={<HomeMobileTrigger />}
+        cta={<HeaderCta />}
       />
       <SidebarDrawerOverlay className="fixed inset-0 z-40 backdrop-blur-xs data-[state=closed]:animate-fd-fade-out data-[state=open]:animate-fd-fade-in" />
       <SidebarDrawerContent className="fixed inset-e-0 inset-y-0 z-40 flex w-[85%] max-w-[380px] flex-col border-s bg-fd-background text-[0.9375rem] shadow-lg data-[state=closed]:animate-fd-sidebar-out data-[state=open]:animate-fd-sidebar-in">

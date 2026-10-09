@@ -63,7 +63,8 @@
           "title": "Verifica y escribe",
           "body": "Los resultados rotos se retienen, el resto se escribe."
         }
-      }
+      },
+      "eyebrow": "Cómo funciona"
     },
     "faq": {
       "heading": "Preguntas frecuentes",
@@ -162,7 +163,10 @@
         "machineTranslatedLabel": "Traducción automática",
         "machineTranslatedDescription": "La interfaz y las páginas de documentación para este idioma están traducidas con IA."
       },
-      "skipToContent": "Saltar al contenido"
+      "skipToContent": "Saltar al contenido",
+      "headerCta": {
+        "label": "Empezar"
+      }
     },
     "control": {
       "heading": "Tú decides qué se publica.",
@@ -219,7 +223,8 @@
             }
           }
         }
-      }
+      },
+      "eyebrow": "Control"
     },
     "loop": {
       "heading": "El resto del ciclo de traducción, en la misma herramienta.",
@@ -256,7 +261,8 @@
         "key": "clave",
         "source": "origen",
         "target": "destino"
-      }
+      },
+      "eyebrow": "Día a día"
     },
     "marquee": {
       "formatTip": "format: \"{id}\"",
@@ -279,7 +285,8 @@
         "apple": ".strings y .xcstrings",
         "android": "strings.xml",
         "dotnet": ".resx"
-      }
+      },
+      "pause": "Pausar las listas en movimiento"
     },
     "showcase": {
       "heading": "Míralo en acción",
@@ -328,7 +335,8 @@
         },
         "filesLabel": "Archivos",
         "retry": "Reintentar"
-      }
+      },
+      "eyebrow": "Pruébalo"
     }
   },
   "legal": {

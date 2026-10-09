@@ -2,6 +2,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { CONTROL_GROUPS, controlHref } from "@/lib/control-items";
 import type { Locale } from "@/lib/i18n";
+import { sectionNumber } from "@/lib/landing-sections";
 import { Evidence } from "./evidence";
 import { Rail } from "./rail";
 import { Section } from "./section";
@@ -14,12 +15,18 @@ export async function Control(): Promise<ReactNode> {
   return (
     <Section width="wide" rhythm="lg" id="control">
       <div>
-        <SectionHead title={t("heading")} lead={t("lead")} />
+        <SectionHead
+          title={t("heading")}
+          lead={t("lead")}
+          step={{ number: sectionNumber("control"), label: t("eyebrow") }}
+          reveal
+        />
       </div>
       <div className="mt-10 grid gap-x-12 gap-y-10 lg:mt-12 lg:grid-cols-[repeat(3,minmax(0,1fr))] lg:grid-rows-[repeat(4,auto)] lg:gap-y-7">
-        {CONTROL_GROUPS.map((group) => (
+        {CONTROL_GROUPS.map((group, index) => (
           <div
             key={group.key}
+            data-reveal={String(index + 2)}
             className="grid min-w-0 gap-y-5 border-t border-fd-border pt-6 lg:row-span-4 lg:grid-rows-subgrid lg:gap-y-6"
           >
             <h3 id={`control-${group.key}`} className="vk-h4">
