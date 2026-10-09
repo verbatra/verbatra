@@ -84,7 +84,7 @@ this skill's concern).
 | outbound-link | target, location | hero (site-messages, npm-cli, version, license), header (github, sent from onClick), loop (skills-repo), control (evidence), faq (releases), footer (footer links, contributor, github, npm) |
 | click-cta | location, target | header, hero, marquee, formats, loop, final-cta, docs-home (tabs, path, feature and stack cards), docs-page (stack cards) |
 | copy-command | command, location | how, loop, start-here, docs-page (CommandLine) |
-| copy-install-command | command, manager ("npm"), location | hero |
+| copy-install-command | command, manager ("npm"), location | hero, final-cta |
 | copy-ai-prompt | location | hero, start-here, docs-home |
 | copy-code | location | docs-page (MDX code block copy button) |
 | copy-page-markdown | location | docs-page |

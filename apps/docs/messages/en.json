@@ -203,7 +203,8 @@
       }
     },
     "finalClose": {
-      "heading": "Stop hand‑syncing locale files.",
+      "heading": "Your next run sends what changed, not the whole file.",
+      "installHint": "Install the CLI, then run verbatra init in your project.",
       "docs": "Read the docs",
       "start": "Get started"
     },

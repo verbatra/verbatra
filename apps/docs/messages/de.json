@@ -111,7 +111,8 @@
       }
     },
     "finalClose": {
-      "heading": "Schluss mit dem manuellen Synchronisieren von Locale‑Dateien.",
+      "heading": "Dein nächster Lauf schickt nur, was sich geändert hat, nicht die ganze Datei.",
+      "installHint": "Installiere die CLI und führe dann verbatra init in deinem Projekt aus.",
       "docs": "Zur Dokumentation",
       "start": "Loslegen"
     },

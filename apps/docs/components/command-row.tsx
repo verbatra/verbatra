@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { type CommandLineLink, HighlightedCommand } from "@/components/ui/command-line";
 import { CopyButton } from "@/components/ui/copy-button";
+import { trackUmamiEvent } from "@/lib/umami";
 import { cn } from "@/lib/utils";
 
 export function CommandRow({
@@ -12,6 +13,7 @@ export function CommandRow({
   link,
   divided = false,
   wrapsWhenNarrow = false,
+  installManager,
 }: {
   command: string;
   label: string;
@@ -19,6 +21,7 @@ export function CommandRow({
   link?: CommandLineLink;
   divided?: boolean;
   wrapsWhenNarrow?: boolean;
+  installManager?: "npm";
 }): ReactNode {
   return (
     <div
@@ -39,7 +42,17 @@ export function CommandRow({
       >
         <HighlightedCommand command={command} link={link} />
       </code>
-      <CopyButton text={command} label={label} location={location} />
+      {installManager ? (
+        <CopyButton
+          text={command}
+          label={label}
+          onCopied={() =>
+            trackUmamiEvent("copy-install-command", { command, manager: installManager, location })
+          }
+        />
+      ) : (
+        <CopyButton text={command} label={label} location={location} />
+      )}
     </div>
   );
 }

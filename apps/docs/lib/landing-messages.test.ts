@@ -57,7 +57,6 @@ function heroCopy(locale: string): HeroCopy {
 }
 
 const EM_DASH = String.fromCharCode(0x2014);
-const NON_BREAKING_HYPHEN = String.fromCharCode(0x2011);
 
 describe("landing message parity", () => {
   const source = landingKeys(i18n.defaultLanguage);
@@ -154,7 +153,7 @@ describe("landing message parity", () => {
     }
   });
 
-  it("keeps hyphenated words in the closing heading on one line", () => {
+  it("never breaks the closing heading at a hyphen", () => {
     for (const locale of i18n.languages) {
       const finalClose = load(locale).landing;
       const heading =
@@ -163,7 +162,6 @@ describe("landing message parity", () => {
           : undefined;
       expect(typeof heading, locale).toBe("string");
       expect(heading, locale).not.toContain("-");
-      if (locale === i18n.defaultLanguage) expect(heading).toContain(NON_BREAKING_HYPHEN);
     }
   });
 });

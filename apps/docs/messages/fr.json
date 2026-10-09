@@ -111,7 +111,8 @@
       }
     },
     "finalClose": {
-      "heading": "Arrête de synchroniser tes fichiers de locale à la main.",
+      "heading": "Ta prochaine exécution n'envoie que ce qui a changé, pas tout le fichier.",
+      "installHint": "Installe la CLI, puis lance verbatra init dans ton projet.",
       "docs": "Lire la documentation",
       "start": "Démarrer"
     },

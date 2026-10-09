@@ -185,7 +185,13 @@ footer's oversized watermark only; do not clip it onto a heading.
   on the page is `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, marquee, showcase, how,
   formats, control, loop, faq, final call to action), which the home page maps over and
   `lib/landing-sections.test.ts` pins;
-  add or move a section there, not by hand in `page.tsx`. Sections reveal on scroll through
+  add or move a section there, not by hand in `page.tsx`. The final call to action
+  (`final-cta.tsx`) closes on the promise in concrete terms (`landing.finalClose.heading`: the
+  next run sends what changed, not the whole file), then a `.vk-final-install` void box (an
+  `@container`, at most 36rem) holding the `installHint` line over a `CommandRow` for
+  `NPM_INSTALL_COMMAND` that wraps under 30rem and counts `copy-install-command` with
+  `location: final-cta` through its `installManager` prop, then the two buttons, Get started and
+  Read the docs. Sections reveal on scroll through
   `data-reveal` (see "Landing motion"); the marquee and the FAQ do not. The
   marquee sits directly under the hero and is two rows at fixed sizes (15px items, 40px gaps,
   set on `.vk-marquee-band`): the frameworks (`MARQUEE_FRAMEWORKS` in `marquee.tsx`, which is
@@ -441,7 +447,7 @@ parallax, no scroll-scrubbing, no scroll listener and no animation library.
   order inside a section is heading, then body, then demo: `SectionHead` with `reveal` marks its
   heading block `0` and its lead `1`; the showcase playground, the How terminal, the formats
   switcher and Control's columns follow; each Loop row reveals as one unit, so its text never trails its picture; the
-  final call to action reveals its heading, then its buttons. Sections
+  final call to action reveals its heading block, then its buttons. Sections
   stay server components: the marks are plain attributes. Elements keep their box while
   hidden, so a reveal never moves layout. `components/landing/reveal-marks.test.tsx` pins the
   marks (every section head and its first block; never the hero, and never anything inside the

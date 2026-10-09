@@ -7,7 +7,11 @@ import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CHECK_CLI_COMMAND } from "@/lib/check-demo";
-import { AGENT_INIT_COMMAND, SKILLS_INSTALL_COMMAND } from "@/lib/install-commands";
+import {
+  AGENT_INIT_COMMAND,
+  NPM_INSTALL_COMMAND,
+  SKILLS_INSTALL_COMMAND,
+} from "@/lib/install-commands";
 
 const trackUmamiEvent = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/umami", () => ({ trackUmamiEvent }));
@@ -360,6 +364,18 @@ describe("Landing CTAs", () => {
 });
 
 describe("Landing copy buttons", () => {
+  it("counts the closing install command copy as copy-install-command from the final CTA", async () => {
+    const container = render(await FinalCta());
+    await click(container.querySelector(".vk-final-install button"));
+    expect(writeText).toHaveBeenCalledWith(NPM_INSTALL_COMMAND);
+    expect(trackUmamiEvent.mock.calls).toEqual([
+      [
+        "copy-install-command",
+        { command: NPM_INSTALL_COMMAND, manager: "npm", location: "final-cta" },
+      ],
+    ]);
+  });
+
   it("counts the How terminal copy as copy-command from the how section", async () => {
     const container = render(await Proof());
     await click(container.querySelector('[data-part="how-replay"] button'));

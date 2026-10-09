@@ -111,7 +111,8 @@
       }
     },
     "finalClose": {
-      "heading": "Deja de sincronizar los archivos de locale a mano.",
+      "heading": "Tu próxima ejecución envía solo lo que cambió, no el archivo entero.",
+      "installHint": "Instala la CLI y luego ejecuta verbatra init en tu proyecto.",
       "docs": "Leer la documentación",
       "start": "Empezar"
     },

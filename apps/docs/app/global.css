@@ -336,6 +336,21 @@ samp {
   }
 }
 
+.vk-final-install {
+  max-width: 36rem;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--v-void);
+}
+
+.vk-final-install-hint {
+  margin: 0;
+  padding: 0.625rem 0.875rem;
+  border-bottom: 1px solid var(--border-default);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
 .vk-control-groups {
   row-gap: 2.5rem;
   margin-block-start: 2.5rem;
