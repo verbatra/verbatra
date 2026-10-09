@@ -2576,10 +2576,23 @@ html[data-motion-ready]:not([data-past-hero]) .vk-landing-nav-bar {
 
 .vk-marquee-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  padding-inline: 1.5rem;
+  gap: 0.75rem 1.5rem;
+}
+
+.vk-marquee-intro {
+  margin: 0;
+}
+
+.vk-marquee-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  margin: 0 0 0 auto;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
 }
 
 .vk-marquee-toggle {
@@ -2652,19 +2665,8 @@ html:not([data-motion-ready]) .vk-marquee-toggle {
   animation-duration: 56s;
 }
 
-.vk-marquee:hover .vk-track,
-.vk-marquee:focus-within .vk-track {
+.vk-marquee:hover .vk-track {
   animation-play-state: paused;
-}
-
-.vk-marquee:has(:focus-visible) {
-  scroll-padding-inline: 1rem;
-  -webkit-mask-image: none;
-  mask-image: none;
-}
-
-.vk-marquee:has(:focus-visible) .vk-track {
-  animation: none;
 }
 
 .vk-marquee-band[data-offscreen] .vk-track,
@@ -2706,8 +2708,7 @@ html:not([data-motion-ready]) .vk-marquee-toggle {
     transform var(--duration-fast) var(--ease-out);
 }
 
-.vk-tip:hover::after,
-.vk-tip:focus::after {
+.vk-tip:hover::after {
   opacity: 1;
   transform: translate(-50%, 0);
 }
@@ -2727,6 +2728,7 @@ html:not([data-motion-ready]) .vk-marquee-toggle {
     min-width: 0;
     flex-wrap: wrap;
     justify-content: center;
+    padding-inline: var(--gutter);
     gap: calc(var(--marquee-gap) * 0.2) calc(var(--marquee-gap) * 0.6);
     animation: none;
   }

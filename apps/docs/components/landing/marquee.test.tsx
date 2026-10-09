@@ -32,20 +32,22 @@ function message(path: string): unknown {
     );
 }
 
-async function visibleTrack(label: string): Promise<ReadonlyArray<HTMLAnchorElement>> {
-  const markup = renderToStaticMarkup(await Marquee());
-  const doc = new DOMParser().parseFromString(markup, "text/html");
-  return Array.from(doc.querySelectorAll<HTMLAnchorElement>(`ul[aria-label="${label}"] a`));
+async function render(): Promise<Document> {
+  return new DOMParser().parseFromString(renderToStaticMarkup(await Marquee()), "text/html");
+}
+
+async function visibleTrack(label: string): Promise<ReadonlyArray<HTMLElement>> {
+  const doc = await render();
+  return Array.from(
+    doc.querySelectorAll<HTMLElement>(`ul[aria-label="${label}"] .vk-marquee-item`),
+  );
 }
 
 describe("Marquee", () => {
-  it("lists every supported format, in registry order, linked to the formats page", async () => {
+  it("lists every supported format, in registry order, each with its format id as a tip", async () => {
     const items = await visibleTrack("formatsLabel");
     expect(items.map((item) => item.dataset.tip)).toEqual(
       SUPPORTED_FORMAT_IDS.map((id) => `formatTip:${id}`),
-    );
-    expect(new Set(items.map((item) => item.getAttribute("href")))).toEqual(
-      new Set(["/docs/formats"]),
     );
   });
 
@@ -55,51 +57,57 @@ describe("Marquee", () => {
       MARQUEE_FRAMEWORKS.map((framework) => framework.name),
     );
     for (const item of items) {
-      expect(item.getAttribute("href")).toBe("/docs/formats");
       expect(typeof message(`landing.marquee.${item.dataset.tip}`)).toBe("string");
     }
   });
 
   it("scrolls the frameworks row left and the formats row right", async () => {
-    const markup = renderToStaticMarkup(await Marquee());
-    const doc = new DOMParser().parseFromString(markup, "text/html");
+    const doc = await render();
     const rows = Array.from(doc.querySelectorAll<HTMLElement>(".vk-marquee"));
     expect(rows.map((row) => row.dataset.direction)).toEqual(["left", "right"]);
     expect(rows[0]?.querySelector("ul")?.getAttribute("aria-label")).toBe("frameworksLabel");
     expect(rows[1]?.querySelector("ul")?.getAttribute("aria-label")).toBe("formatsLabel");
   });
 
-  it("links every item to the formats page without a declarative event, which would force a reload", async () => {
-    for (const row of ["frameworks", "formats"]) {
-      for (const item of await visibleTrack(`${row}Label`)) {
-        expect(item.getAttribute("href")).toBe("/docs/formats");
-        expect(item.hasAttribute("data-umami-event")).toBe(false);
-      }
-    }
+  it("keeps every scrolling item out of the tab order: the rows hold plain text, no link", async () => {
+    const doc = await render();
+    expect(doc.querySelectorAll(".vk-marquee a, .vk-marquee [tabindex]")).toHaveLength(0);
+  });
+
+  it("gives each row one link, to the page that owns it, without a declarative event", async () => {
+    const doc = await render();
+    const links = Array.from(doc.querySelectorAll<HTMLAnchorElement>(".vk-marquee-links a"));
+    expect(links.map((link) => [link.getAttribute("href"), link.textContent])).toEqual([
+      ["/docs/pick-your-stack", "frameworksLink"],
+      ["/docs/formats", "formatsLink"],
+    ]);
+    for (const link of links) expect(link.hasAttribute("data-umami-event")).toBe(false);
+    expect(typeof message("landing.marquee.frameworksLink")).toBe("string");
+    expect(typeof message("landing.marquee.formatsLink")).toBe("string");
   });
 
   it("names the band after both rows, frameworks and formats", async () => {
-    const markup = renderToStaticMarkup(await Marquee());
-    const doc = new DOMParser().parseFromString(markup, "text/html");
+    const doc = await render();
     expect(doc.querySelector("section")?.getAttribute("aria-label")).toBe("label");
     expect(message("landing.marquee.label")).toBe("Supported frameworks and formats");
     expect(message("landing.marquee.providers")).toBeUndefined();
   });
 
-  it("hides the duplicate track that keeps the loop seamless from assistive technology and the tab order", async () => {
-    const markup = renderToStaticMarkup(await Marquee());
-    const doc = new DOMParser().parseFromString(markup, "text/html");
+  it("hides the duplicate track that keeps the loop seamless from assistive technology", async () => {
+    const doc = await render();
     expect(doc.querySelectorAll('ul[aria-hidden="true"]')).toHaveLength(2);
-    expect(doc.querySelectorAll("ul[aria-label]")).toHaveLength(2);
-    const hiddenLinks = Array.from(doc.querySelectorAll("ul[aria-hidden] a"));
-    expect(hiddenLinks.length).toBeGreaterThan(0);
-    for (const link of hiddenLinks) expect(link.getAttribute("tabindex")).toBe("-1");
+    expect(doc.querySelectorAll(".vk-marquee ul[aria-label]")).toHaveLength(2);
   });
 
-  it("stops the scroll and drops the edge mask while a link has keyboard focus", () => {
+  it("left-aligns the intro in the shared column and keeps the static rows inside the gutter", async () => {
+    const doc = await render();
+    const head = doc.querySelector(".vk-marquee-head");
+    expect(head?.classList.contains("vk-gutter")).toBe(true);
+    expect(head?.classList.contains("vk-w-wide")).toBe(true);
+    expect(doc.querySelector(".vk-marquee-intro")?.classList.contains("text-center")).toBe(false);
     const css = readFileSync(join(import.meta.dirname, "../../app/global.css"), "utf8");
     expect(css).toMatch(
-      /\.vk-marquee:has\(:focus-visible\) \{[^}]*mask-image: none;[^}]*\}\s*\.vk-marquee:has\(:focus-visible\) \.vk-track \{\s*animation: none;/,
+      /@media \(prefers-reduced-motion: reduce\) \{[^@]*\.vk-track \{[^}]*padding-inline: var\(--gutter\);/,
     );
   });
 });

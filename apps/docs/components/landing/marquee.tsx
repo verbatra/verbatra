@@ -5,7 +5,6 @@ import { TrackedLink } from "@/components/ui/tracked-link";
 import { type Locale, localizedPath } from "@/lib/i18n";
 import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { STACK_FRAMEWORKS } from "@/lib/stack-formats";
-import { MarqueeRow } from "./marquee-row";
 import { MarqueeToggle } from "./marquee-toggle";
 
 const ICON = 20;
@@ -13,7 +12,14 @@ const ICON_PREFIX = "vk-marquee-icon";
 
 export const MARQUEE_FRAMEWORKS = STACK_FRAMEWORKS;
 
-type RowId = "frameworks" | "formats";
+const ROWS = ["frameworks", "formats"] as const;
+
+type RowId = (typeof ROWS)[number];
+
+const ROW_PAGES: Readonly<Record<RowId, string>> = {
+  frameworks: "/docs/pick-your-stack",
+  formats: "/docs/formats",
+};
 
 type TrackItem = { key: string; name: string; icon: StackIconKey; tip: string };
 
@@ -30,15 +36,11 @@ function IconSprite(): ReactNode {
 }
 
 function Track({
-  row,
   items,
-  href,
   label,
   hidden = false,
 }: {
-  row: RowId;
   items: ReadonlyArray<TrackItem>;
-  href: string;
   label: string;
   hidden?: boolean;
 }): ReactNode {
@@ -50,12 +52,9 @@ function Track({
     >
       {items.map((item) => (
         <li key={item.key} className="inline-flex whitespace-nowrap">
-          <TrackedLink
-            href={href}
+          <span
             data-tip={item.tip}
-            track={{ name: "click-cta", data: { location: "marquee", target: row } }}
-            tabIndex={hidden ? -1 : undefined}
-            className="vk-tip vk-marquee-item inline-flex items-center px-1 font-medium text-fd-muted-foreground transition-colors hover:text-fd-foreground focus-visible:text-fd-foreground"
+            className="vk-tip vk-marquee-item inline-flex items-center px-1 font-medium text-fd-muted-foreground"
             style={{ fontFamily: "var(--font-display)" }}
           >
             <span className="shrink-0 text-fd-foreground opacity-85">
@@ -67,7 +66,7 @@ function Track({
               />
             </span>
             <span>{item.name}</span>
-          </TrackedLink>
+          </span>
         </li>
       ))}
     </ul>
@@ -75,31 +74,25 @@ function Track({
 }
 
 function Row({
-  row,
   items,
-  href,
   label,
   direction,
 }: {
-  row: RowId;
   items: ReadonlyArray<TrackItem>;
-  href: string;
   label: string;
   direction: "left" | "right";
 }): ReactNode {
   return (
-    <MarqueeRow direction={direction}>
-      <Track row={row} items={items} href={href} label={label} />
-      <Track row={row} items={items} href={href} label={label} hidden />
-    </MarqueeRow>
+    <div className="vk-marquee" data-direction={direction}>
+      <Track items={items} label={label} />
+      <Track items={items} label={label} hidden />
+    </div>
   );
 }
 
 export async function Marquee(): Promise<ReactNode> {
   const t = await getTranslations("landing.marquee");
   const locale = (await getLocale()) as Locale;
-  const formatsHref = localizedPath(locale, "/docs/formats");
-
   const frameworks: ReadonlyArray<TrackItem> = MARQUEE_FRAMEWORKS.map(({ key, name, icon }) => ({
     key,
     name,
@@ -121,25 +114,30 @@ export async function Marquee(): Promise<ReactNode> {
       data-presence="marquee"
     >
       <IconSprite />
-      <div className="vk-marquee-head">
-        <p className="vk-marquee-intro text-center text-fd-muted-foreground">{t("intro")}</p>
+      <div className="vk-marquee-head vk-gutter vk-w-wide mx-auto">
+        <p className="vk-marquee-intro text-fd-muted-foreground">{t("intro")}</p>
         <MarqueeToggle label={t("pause")} />
+        <ul
+          // biome-ignore lint/a11y/noRedundantRoles: Safari drops list semantics from a list-style: none list
+          role="list"
+          className="vk-marquee-links"
+        >
+          {ROWS.map((row) => (
+            <li key={row}>
+              <TrackedLink
+                href={localizedPath(locale, ROW_PAGES[row])}
+                track={{ name: "click-cta", data: { location: "marquee", target: row } }}
+                className="vk-prose-link"
+              >
+                {t(`${row}Link`)}
+              </TrackedLink>
+            </li>
+          ))}
+        </ul>
       </div>
       <div className="vk-marquee-rows">
-        <Row
-          row="frameworks"
-          items={frameworks}
-          href={formatsHref}
-          label={t("frameworksLabel")}
-          direction="left"
-        />
-        <Row
-          row="formats"
-          items={formats}
-          href={formatsHref}
-          label={t("formatsLabel")}
-          direction="right"
-        />
+        <Row items={frameworks} label={t("frameworksLabel")} direction="left" />
+        <Row items={formats} label={t("formatsLabel")} direction="right" />
       </div>
     </section>
   );

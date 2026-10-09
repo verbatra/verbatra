@@ -199,8 +199,11 @@ footer's oversized watermark only; do not clip it onto a heading.
   `.vk-marquee-band`): the frameworks (`MARQUEE_FRAMEWORKS` in `marquee.tsx`, which is
   `STACK_FRAMEWORKS` from `lib/stack-formats.ts`, each with a translated tip naming its format,
   `landing.marquee.frameworks.*`) scrolling left, and the formats, built from `SUPPORTED_FORMAT_IDS`
-  in `lib/landing-facts.ts` (pinned to `SUPPORTED_FORMATS`), scrolling right. Each item links
-  `/docs/formats` and counts as `click-cta` with `location: marquee` and its row as `target`. Every
+  in `lib/landing-facts.ts` (pinned to `SUPPORTED_FORMATS`), scrolling right. Items are plain
+  text with a hover tip, never links. The left-aligned head in the shared column holds the intro,
+  the pause toggle and one link per row to the page that owns it (`landing.marquee.frameworksLink`
+  to `/docs/pick-your-stack`, `landing.marquee.formatsLink` to `/docs/formats`), each counted as
+  `click-cta` with `location: marquee` and its row as `target`. Every
   format's display label and icon is `FORMAT_DISPLAY` in the same file, which the structured data's
   format list reads too, so a new format fails to compile until it has both. `Formats`
   (`formats.tsx`, the section after How, a server `SectionHead` over `.vk-formats`) is the format
@@ -516,15 +519,14 @@ parallax, no scroll-scrubbing, no scroll listener and no animation library.
   other link none, and teardown clears it. `landing-nav.test.tsx`
   pins the markup, the stylesheet, the shared offset and the link each section owns;
   `motion-root.test.tsx` the observer reuse.
-- **Marquee.** The only infinite motion. Its two rows scroll endlessly, pause on hover and
-  focus, stop and drop their edge mask while a link has keyboard focus (so the focused item
-  scrolls fully into view), pause while the band is off screen (`data-offscreen`, set by the
-  same presence observer), and pause from the visible `MarqueeToggle` beside the intro
-  (WCAG 2.2.2): an `aria-pressed` button named by `landing.marquee.pause`, counted as
-  `toggle-marquee` with `state: paused | playing` and `location: marquee`, whose box stays
-  invisible until
-  `MotionRoot` is ready. Under `prefers-reduced-motion: reduce` the rows wrap as a static list
-  with the duplicate track hidden, and the toggle is hidden.
+- **Marquee.** The only infinite motion. Its two rows scroll endlessly, pause on hover, pause
+  while the band is off screen (`data-offscreen`, set by the same presence observer), and pause
+  from the visible `MarqueeToggle` beside the intro (WCAG 2.2.2): an `aria-pressed` button named
+  by `landing.marquee.pause`, counted as `toggle-marquee` with `state: paused | playing` and
+  `location: marquee`, whose box stays invisible until `MotionRoot` is ready. Nothing in a row
+  takes focus, so the band costs the keyboard three stops. Under `prefers-reduced-motion: reduce`
+  the rows wrap as a static list inside the `--gutter`, with the duplicate track hidden, and the
+  toggle is hidden.
 - **Budget.** Layout shift 0 over a full scroll at 390, 1440 and a 844 by 390 landscape phone; no
   scroll listener; at most one reveal chain per section; no entrance over 16px or 600ms.
 

@@ -290,6 +290,8 @@
       "pause": "Pause the scrolling lists",
       "frameworksLabel": "Frameworks verbatra works with",
       "formatsLabel": "File formats verbatra reads and writes",
+      "frameworksLink": "Pick your stack",
+      "formatsLink": "See every format",
       "formatTip": "format: \"{id}\"",
       "frameworks": {
         "react": "i18next JSON",

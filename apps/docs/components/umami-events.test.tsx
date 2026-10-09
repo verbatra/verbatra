@@ -288,10 +288,9 @@ describe("Loop and marquee links", () => {
     for (const [name] of trackUmamiEvent.mock.calls) expect(name).toBe("click-cta");
   });
 
-  it("counts a marquee item as click-cta naming its row", async () => {
+  it("counts each marquee row's link as click-cta naming its row", async () => {
     const container = render(await Marquee());
-    await click(container.querySelector('ul[aria-label="frameworksLabel"] a'));
-    await click(container.querySelector('ul[aria-label="formatsLabel"] a'));
+    for (const link of container.querySelectorAll(".vk-marquee-links a")) await click(link);
     expect(trackUmamiEvent.mock.calls).toEqual([
       ["click-cta", { location: "marquee", target: "frameworks" }],
       ["click-cta", { location: "marquee", target: "formats" }],

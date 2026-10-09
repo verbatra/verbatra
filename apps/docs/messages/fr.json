@@ -289,6 +289,8 @@
     "marquee": {
       "formatTip": "format: \"{id}\"",
       "formatsLabel": "Formats de fichier que verbatra lit et écrit",
+      "frameworksLink": "Choisis ta stack",
+      "formatsLink": "Voir tous les formats",
       "intro": "Fonctionne avec les fichiers de locale que tu as déjà.",
       "label": "Frameworks et formats pris en charge",
       "frameworksLabel": "Frameworks avec lesquels verbatra fonctionne",
