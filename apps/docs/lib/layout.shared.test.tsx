@@ -12,7 +12,14 @@ const homeLayout = vi.hoisted(() => ({
 vi.mock("next-intl/server", () => ({
   getTranslations: async () => (key: string) => `nav.${key}`,
 }));
-vi.mock("next-intl", () => ({ useTranslations: () => (key: string) => `cta.${key}` }));
+vi.mock("next-intl", async (importOriginal) => {
+  const { createTranslator } = await importOriginal<typeof import("next-intl")>();
+  const { default: messages } = await import("@/messages/en.json");
+  return {
+    useTranslations: (namespace: string) =>
+      createTranslator({ locale: "en", messages, namespace: namespace as never }),
+  };
+});
 const location = vi.hoisted(() => ({ pathname: "/" }));
 
 vi.mock("fumadocs-core/framework", () => ({ usePathname: () => location.pathname }));
@@ -109,7 +116,7 @@ describe("the landing header version pill", () => {
     expect(pill?.getAttribute("href")).toBe(releaseUrl(PACKAGE_VERSION));
     expect(pill?.getAttribute("target")).toBe("_blank");
     expect(pill?.getAttribute("rel")).toBe("noopener noreferrer");
-    expect(pill?.getAttribute("aria-label")).toBe("cta.label");
+    expect(pill?.getAttribute("aria-label")).toBe(`Release notes for v${PACKAGE_VERSION}`);
   });
 
   it("counts a click as an outbound link from the header", async () => {
@@ -142,7 +149,9 @@ describe("the landing header version pill", () => {
   });
 
   it("shows only from 768px", () => {
-    const rules = docsStylesheetRules().filter((rule) => rule.selector === ".vk-version-pill");
+    const rules = docsStylesheetRules().filter(
+      (rule) => rule.selector === ".vk-version-pill" && "display" in rule.declarations,
+    );
     expect(rules.map((rule) => [rule.media, rule.declarations.display])).toEqual([
       ["", "none"],
       ["@media (width >= 768px)", "inline-flex"],

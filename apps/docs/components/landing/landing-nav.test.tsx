@@ -3,10 +3,10 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { LANDING_NAV_SECTIONS, LANDING_SECTIONS } from "@/lib/landing-sections";
 import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
-import { LANDING_OFFSET_REM, startMotion } from "./motion-root";
+import { LANDING_OFFSET_PROPERTY, startMotion } from "./motion-root";
 
 vi.mock("next-intl/server", () => ({
   getTranslations: async (namespace?: string) => (key: string) => `${namespace}.${key}`,
@@ -59,13 +59,13 @@ describe("LandingNav", () => {
     expect(flat).toContain(".vk-landing-nav-bar { position: absolute;");
   });
 
-  it("stays visible without JavaScript and hides before the hero only once the script runs", () => {
+  it("stays visible without JavaScript and hides before the hero from the first paint with it", () => {
     const rules = docsStylesheetRules().filter((rule) => rule.selector.includes("vk-landing-nav"));
     const hiding = rules.filter(
       (rule) => rule.declarations.visibility === "hidden" || rule.declarations.opacity === "0",
     );
     expect(hiding.map((rule) => [rule.selector, rule.media])).toEqual([
-      ["html[data-motion-ready]:not([data-past-hero]) .vk-landing-nav-bar", ""],
+      ["html:not([data-past-hero]) .vk-landing-nav-bar", "@media (scripting: enabled)"],
     ]);
     const [bar] = rulesFor(rules, ".vk-landing-nav-bar");
     for (const property of ["visibility", "opacity", "translate", "transition"]) {
@@ -82,6 +82,24 @@ describe("LandingNav", () => {
     ]);
     for (const rule of moving)
       expect(rule.media).toContain("prefers-reduced-motion: no-preference");
+  });
+
+  it("changes link, chip and pill colors on hover under no-preference only", () => {
+    const hovered = [
+      ".vk-version-pill",
+      ".vk-landing-nav-link",
+      ".vk-hero-fact-link",
+      ".vk-formats-chip",
+    ];
+    for (const selector of hovered) {
+      const moving = rulesFor(docsStylesheetRules(), selector).filter(
+        (rule) => "transition" in rule.declarations,
+      );
+      expect(
+        moving.map((rule) => rule.media),
+        selector,
+      ).toEqual(["@media (prefers-reduced-motion: no-preference)"]);
+    }
   });
 
   it("scrolls the row to a new current link smoothly only under no-preference", () => {
@@ -106,14 +124,15 @@ describe("LandingNav", () => {
     const rules = docsStylesheetRules();
     const declared = (selector: string, property: string) =>
       rulesFor(rules, selector)[0]?.declarations[property];
-    expect(declared(".vk-home", "--vk-landing-offset")).toBe(`${LANDING_OFFSET_REM}rem`);
+    const offset = declared(".vk-home", LANDING_OFFSET_PROPERTY);
+    expect(offset).toMatch(/^\d+(\.\d+)?rem$/);
     expect(declared(".vk-home [id]", "scroll-margin-top")).toBe("var(--vk-landing-offset)");
     const rem = (value: string | undefined) => Number.parseFloat(value ?? "") * 16;
     const header = rem(declared(".vk-landing-nav", "top"));
     const link = rem(declared(".vk-landing-nav-link", "min-height"));
     const border = Number.parseFloat(declared(".vk-landing-nav-bar", "border-bottom") ?? "");
     expect(header).toBe(56);
-    expect(LANDING_OFFSET_REM * 16).toBe(header + link + border);
+    expect(rem(offset)).toBe(header + link + border);
   });
 
   it("lands a void section's heading one band padding under the nav, like a banded one", () => {
@@ -130,6 +149,11 @@ describe("LandingNav", () => {
 });
 
 describe("section ownership", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = "";
+  });
+
   it("gives every section after the hero a link, except the marquee strip and the closing call", () => {
     expect(
       LANDING_SECTIONS.filter(
@@ -144,20 +168,20 @@ describe("section ownership", () => {
     ).join(
       "",
     )}</nav>${LANDING_NAV_SECTIONS.map((id) => `<section id="${id}"></section>`).join("")}`;
-    const fired: Array<(entries: IntersectionObserverEntry[]) => void> = [];
+    const watchers = new Map<Element, (entries: IntersectionObserverEntry[]) => void>();
     vi.stubGlobal(
       "IntersectionObserver",
       class {
-        constructor(callback: (entries: IntersectionObserverEntry[]) => void) {
-          fired.push(callback);
+        constructor(readonly callback: (entries: IntersectionObserverEntry[]) => void) {}
+        observe(element: Element): void {
+          watchers.set(element, this.callback);
         }
-        observe(): void {}
         unobserve(): void {}
         disconnect(): void {}
       },
     );
     const stop = startMotion();
-    const presence = fired[1];
+    const presence = watchers.get(document.getElementById(LANDING_NAV_SECTIONS[0]) as Element);
     const owner = () =>
       [...document.querySelectorAll("[aria-current]")].map((link) => link.getAttribute("href"));
     let previous: Element | null = null;
@@ -170,8 +194,6 @@ describe("section ownership", () => {
       previous = target;
     }
     stop();
-    vi.unstubAllGlobals();
-    document.body.innerHTML = "";
   });
 });
 

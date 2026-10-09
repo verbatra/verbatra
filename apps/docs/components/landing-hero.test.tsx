@@ -5,7 +5,7 @@ import { join } from "node:path";
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { LICENSE_URL, RELEASES_URL, SITE_MESSAGES_URL } from "@/components/landing/links";
+import { LICENSE_URL, releaseUrl, SITE_MESSAGES_URL } from "@/components/landing/links";
 import { HERO_HEADLINE_LOCK_HASH, HERO_HEADLINES } from "@/lib/hero-ledger";
 import type { Locale } from "@/lib/i18n";
 import { FORMAT_COUNT, HERO_FACTS, PROVIDER_COUNT } from "@/lib/landing-facts";
@@ -288,7 +288,7 @@ describe("LandingHero: not the NestJS composition", () => {
     ]);
     const links = items.map((item) => item.querySelector("a"));
     expect(links.map((link) => link?.getAttribute("href"))).toEqual([
-      RELEASES_URL,
+      releaseUrl(PACKAGE_VERSION),
       LICENSE_URL,
       "/docs/formats",
       "/docs/providers",

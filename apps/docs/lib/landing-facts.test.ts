@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { LICENSE_URL, RELEASES_URL } from "@/components/landing/links";
+import { LICENSE_URL, releaseUrl } from "@/components/landing/links";
 import { i18n } from "@/lib/i18n";
 import {
   FORMAT_COUNT,
@@ -63,7 +63,7 @@ describe("landing facts", () => {
 
   it("gives the hero four facts in digits, each linked to the page that owns it", () => {
     expect(HERO_FACTS).toEqual([
-      { key: "version", value: `v${PACKAGE_VERSION}`, href: RELEASES_URL },
+      { key: "version", value: `v${PACKAGE_VERSION}`, href: releaseUrl(PACKAGE_VERSION) },
       { key: "license", value: "MIT", href: LICENSE_URL },
       { key: "formats", value: FORMAT_COUNT, path: "/docs/formats" },
       { key: "providers", value: PROVIDER_COUNT, path: "/docs/providers" },

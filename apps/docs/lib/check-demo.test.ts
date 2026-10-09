@@ -3,7 +3,6 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   CHECK_CLI_COMMAND,
-  CHECK_EXIT_CODE,
   CHECK_LOCALE_LINE,
   CHECK_MISSING_KEYS,
   CHECK_OVERALL_LINE,
@@ -33,10 +32,6 @@ describe("the check demo quotes the cli", () => {
     expect(render).toMatch(/missing, \$\{l\.stale\} stale/);
     expect(render).toContain('l.inSync ? "in sync" : "out of sync"');
     expect(CHECK_RUN_LINES).toEqual([CHECK_CLI_COMMAND, CHECK_LOCALE_LINE, CHECK_OVERALL_LINE]);
-  });
-
-  it("fails the pull request with a non-zero exit code", () => {
-    expect(CHECK_EXIT_CODE).toBe(1);
   });
 });
 

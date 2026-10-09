@@ -1,5 +1,5 @@
 import type { ProviderId, SupportedFormat } from "@verbatra/sdk";
-import { LICENSE_URL, RELEASES_URL } from "@/components/landing/links";
+import { LICENSE_URL, releaseUrl } from "@/components/landing/links";
 import type { StackIconKey } from "@/components/stack-icons";
 import { i18n } from "./i18n";
 import { PACKAGE_VERSION } from "./site";
@@ -58,7 +58,7 @@ export type HeroCountFact = {
 export type HeroFact = HeroReleaseFact | HeroCountFact;
 
 export const HERO_FACTS: ReadonlyArray<HeroFact> = [
-  { key: "version", value: `v${PACKAGE_VERSION}`, href: RELEASES_URL },
+  { key: "version", value: `v${PACKAGE_VERSION}`, href: releaseUrl(PACKAGE_VERSION) },
   { key: "license", value: "MIT", href: LICENSE_URL },
   { key: "formats", value: FORMAT_COUNT, path: "/docs/formats" },
   { key: "providers", value: PROVIDER_COUNT, path: "/docs/providers" },

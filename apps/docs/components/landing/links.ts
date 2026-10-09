@@ -2,10 +2,6 @@ import type { LocalizedAnchors } from "@/lib/i18n";
 
 export const GITHUB_URL = "https://github.com/verbatra/verbatra";
 export const RELEASES_URL = `${GITHUB_URL}/releases`;
-
-export function releaseUrl(version: string): string {
-  return `${RELEASES_URL}/tag/${encodeURIComponent(`@verbatra/cli@${version}`)}`;
-}
 export const SITE_MESSAGES_URL = `${GITHUB_URL}/tree/main/apps/docs/messages`;
 export const NPM_CLI = "https://www.npmjs.com/package/@verbatra/cli";
 export const NPM_SDK = "https://www.npmjs.com/package/@verbatra/sdk";
@@ -23,6 +19,10 @@ export const SKILLS_PACK_ANCHORS = {
   fr: "le-pack-de-skills",
 } as const satisfies LocalizedAnchors;
 export const LICENSE_URL = `${GITHUB_URL}/blob/main/LICENSE`;
+
+export function releaseUrl(version: string): string {
+  return `${RELEASES_URL}/tag/${encodeURIComponent(`@verbatra/cli@${version}`)}`;
+}
 
 export const LEGAL_PAGE_LINKS = [
   { key: "imprint", path: "/imprint" },

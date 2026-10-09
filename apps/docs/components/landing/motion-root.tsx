@@ -8,9 +8,9 @@ type PresenceEntry = Pick<IntersectionObserverEntry, "isIntersecting" | "boundin
 
 const REVEAL_MARGIN = "0px 0px -10% 0px";
 
-const EDGE_FADE = 48;
+export const EDGE_FADE_PX = 48;
 
-export const LANDING_OFFSET_REM = 6.3125;
+export const LANDING_OFFSET_PROPERTY = "--vk-landing-offset";
 
 export function isPastHero(entry: PresenceEntry): boolean {
   return !entry.isIntersecting && entry.boundingClientRect.bottom <= (entry.rootBounds?.top ?? 0);
@@ -34,7 +34,8 @@ function keepInView(link: Element): void {
   }
   const box = scroller.getBoundingClientRect();
   const item = link.getBoundingClientRect();
-  const left = Math.min(0, item.left - box.left) + Math.max(0, item.right - box.right + EDGE_FADE);
+  const left =
+    Math.min(0, item.left - box.left) + Math.max(0, item.right - box.right + EDGE_FADE_PX);
   if (left) scroller.scrollBy({ left });
 }
 
@@ -58,6 +59,15 @@ function applyPresence(entry: IntersectionObserverEntry, root: HTMLElement): voi
   else target.toggleAttribute("data-offscreen", !entry.isIntersecting);
 }
 
+export function landingOffset(doc: Document): number {
+  const view = doc.defaultView;
+  const home = doc.querySelector(".vk-home");
+  if (!view || !home) return 0;
+  const rem = Number.parseFloat(view.getComputedStyle(doc.documentElement).fontSize);
+  const offset = view.getComputedStyle(home).getPropertyValue(LANDING_OFFSET_PROPERTY);
+  return Number.parseFloat(offset) * rem || 0;
+}
+
 export function startMotion(doc: Document = document): () => void {
   const root = doc.documentElement;
   const pending = Array.from(
@@ -78,7 +88,7 @@ export function startMotion(doc: Document = document): () => void {
     if (element.getBoundingClientRect().top < fold) element.setAttribute("data-revealed", "");
     else reveal.observe(element);
   }
-  const offset = LANDING_OFFSET_REM * (Number.parseFloat(getComputedStyle(root).fontSize) || 16);
+  const offset = landingOffset(doc);
   const hero = doc.querySelector('[data-presence="hero"]');
   root.toggleAttribute("data-past-hero", !!hero && hero.getBoundingClientRect().bottom <= offset);
   const links = navLinks(doc);

@@ -4,7 +4,13 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
-import { isPastHero, LANDING_OFFSET_REM, startMotion } from "./motion-root";
+import {
+  EDGE_FADE_PX,
+  isPastHero,
+  LANDING_OFFSET_PROPERTY,
+  landingOffset,
+  startMotion,
+} from "./motion-root";
 
 type Callback = (entries: IntersectionObserverEntry[]) => void;
 
@@ -72,6 +78,8 @@ afterEach(() => {
   stop = undefined;
   vi.unstubAllGlobals();
   document.body.innerHTML = "";
+  document.body.removeAttribute("class");
+  document.body.removeAttribute("style");
 });
 
 describe("startMotion", () => {
@@ -134,6 +142,8 @@ describe("startMotion", () => {
 
   it("knows at start whether the page loaded below the hero, before any observer reports", () => {
     const { hero } = mount();
+    document.body.classList.add("vk-home");
+    document.body.style.setProperty(LANDING_OFFSET_PROPERTY, "6.3125rem");
     hero.getBoundingClientRect = () => ({ bottom: 40 }) as DOMRect;
     stop = startMotion();
     expect(document.documentElement.hasAttribute("data-past-hero")).toBe(true);
@@ -152,6 +162,29 @@ describe("startMotion", () => {
     expect(document.documentElement.hasAttribute("data-motion-ready")).toBe(false);
     expect(document.documentElement.hasAttribute("data-past-hero")).toBe(false);
     for (const observer of FakeObserver.all) expect(observer.observed.size).toBe(0);
+  });
+});
+
+describe("landingOffset", () => {
+  it("reads the landing offset from the stylesheet's custom property in pixels", () => {
+    document.body.innerHTML = `<main class="vk-home"></main>`;
+    const home = document.querySelector<HTMLElement>(".vk-home");
+    home?.style.setProperty(LANDING_OFFSET_PROPERTY, "6.3125rem");
+    expect(landingOffset(document)).toBe(101);
+  });
+
+  it("is zero off the landing page", () => {
+    document.body.innerHTML = "";
+    expect(landingOffset(document)).toBe(0);
+  });
+});
+
+describe("the nav edge fade", () => {
+  it("keeps a new current link clear of the fade the stylesheet paints", () => {
+    const fade = docsStylesheetRules().find(
+      (rule) => rule.media === "@keyframes vk-edge-fade" && rule.selector === "from",
+    );
+    expect(fade?.declarations["--vk-edge-fade"]).toBe(`${EDGE_FADE_PX}px`);
   });
 });
 
@@ -198,10 +231,14 @@ describe("the landing section nav", () => {
 
   it("watches the linked sections on the existing presence observer, below the header and nav", () => {
     const { sections } = mountNav();
+    const home = document.createElement("main");
+    home.className = "vk-home";
+    home.style.setProperty(LANDING_OFFSET_PROPERTY, "5rem");
+    document.body.prepend(home);
     stop = startMotion();
     expect(FakeObserver.all).toHaveLength(2);
     const presence = FakeObserver.all[1];
-    expect(presence?.options?.rootMargin).toBe(`-${LANDING_OFFSET_REM * 16}px 0px 0px 0px`);
+    expect(presence?.options?.rootMargin).toBe("-80px 0px 0px 0px");
     for (const section of sections) expect(presence?.observed.has(section)).toBe(true);
   });
 

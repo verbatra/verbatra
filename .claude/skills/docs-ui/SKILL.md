@@ -161,8 +161,8 @@ The type scale is a major third (1.25) held in `app/global.css`: `--text-display
 and `--tracking-*` companions. Above it sits `--text-hero` (fluid, 2.5rem to 6.25rem; from 80rem the
 hero caps it at `10.6cqi` of its copy column, about 84px at 1440) with `--weight-hero` (700),
 `--leading-hero` (1.04) and `--tracking-hero` (-0.03em), used only by the landing headline
-(`.vk-hero-title`). Landing headings take the `.vk-display`, `.vk-h2`, `.vk-h3`, `.vk-h4` and
-`.vk-lead` classes (declared in `@layer components`, so a Tailwind utility still overrides them)
+(`.vk-hero-title`). Landing headings take the `.vk-h2`, `.vk-h3`, `.vk-h4` and `.vk-lead`
+classes (declared in `@layer components`, so a Tailwind utility still overrides them)
 rather than inline `fontSize` / `letterSpacing` styles. The docs page title, description and prose
 `h2` to `h4` sit on the same scale through the `#nd-page` rules.
 
