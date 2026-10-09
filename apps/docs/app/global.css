@@ -1797,19 +1797,45 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   box-shadow: var(--shadow-panel);
 }
 
-.vk-showcase-controls {
-  padding: 1rem;
-  border-bottom: 1px solid var(--border-default);
+.vk-showcase-try {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "scenarios"
+    "switch"
+    "file"
+    "outcome"
+    "actions";
+  gap: 1px;
+  background: var(--border-default);
+}
+
+.vk-showcase-bar {
+  display: contents;
 }
 
 .vk-showcase-scenarios {
+  grid-area: scenarios;
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
   min-width: 0;
   margin: 0;
-  padding: 0;
+  padding: 1rem;
   border: 0;
+  background: var(--v-void);
+}
+
+.vk-showcase-actions {
+  grid-area: actions;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  box-sizing: content-box;
+  min-height: 2.25rem;
+  padding: 0.75rem 1rem;
+  background: var(--v-void);
 }
 
 .vk-showcase-scenario[aria-pressed="true"] {
@@ -1825,11 +1851,12 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 }
 
 .vk-showcase-file-switch {
+  grid-area: switch;
   display: flex;
   gap: 0.25rem;
   min-width: 0;
   margin: 0;
-  padding: 0.5rem 0.5rem 0;
+  padding: 0.5rem;
   border: 0;
   background: var(--v-void);
 }
@@ -1861,14 +1888,8 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   display: none;
 }
 
-.vk-showcase-files {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 1px;
-  background: var(--border-default);
-}
-
 .vk-showcase-file {
+  grid-area: file;
   min-width: 0;
   margin: 0;
   padding: 0.625rem 0.5rem;
@@ -1885,7 +1906,11 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 }
 
 .vk-showcase-code {
-  min-height: calc(var(--showcase-rows-max) * var(--showcase-line));
+  min-height: calc(
+    var(--showcase-rows-max) *
+    var(--showcase-line) +
+    var(--showcase-scroll-reserve)
+  );
   margin: 0;
   overflow-x: auto;
   font-family: var(--font-mono);
@@ -1934,7 +1959,8 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   color: var(--v-status-changed);
 }
 
-.vk-showcase-line:is([data-mark="removed"], [data-mark="refused"]) .vk-showcase-line-text {
+.vk-showcase-line:is([data-mark="removed"], [data-mark="refused"], [data-mark="replaced"])
+  .vk-showcase-line-text {
   color: var(--text-faint);
   text-decoration: line-through;
 }
@@ -1949,11 +1975,13 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 }
 
 .vk-showcase-outcome {
+  grid-area: outcome;
   display: flex;
   flex-direction: column;
   row-gap: 0.75rem;
+  min-width: 0;
   padding: 1rem;
-  border-top: 1px solid var(--border-default);
+  background: var(--v-void);
 }
 
 .vk-showcase-output {
@@ -2006,12 +2034,6 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   }
 }
 
-.vk-showcase-outcome-footer {
-  display: flex;
-  flex-direction: column;
-  row-gap: 0.75rem;
-}
-
 .vk-showcase-summary {
   display: grid;
   align-content: start;
@@ -2026,13 +2048,6 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   font-size: var(--text-xs);
   line-height: var(--leading-snug);
   color: var(--text-faint);
-}
-
-.vk-showcase-outcome-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  min-height: 2.25rem;
 }
 
 .vk-showcase-result-title {
@@ -2054,6 +2069,33 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
     --showcase-summary-lines: 2;
   }
 
+  .vk-showcase-try {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      "bar bar"
+      "source target"
+      "lock outcome";
+  }
+
+  .vk-showcase-bar {
+    grid-area: bar;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    column-gap: 1rem;
+    padding: 0.75rem 1rem;
+    background: var(--v-void);
+  }
+
+  .vk-showcase-scenarios {
+    padding: 0;
+  }
+
+  .vk-showcase-actions {
+    flex: none;
+    padding: 0;
+  }
+
   .vk-showcase-file-switch {
     display: none;
   }
@@ -2062,42 +2104,28 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
     display: block;
   }
 
+  .vk-showcase-file[data-pane="source"] {
+    grid-area: source;
+  }
+
+  .vk-showcase-file[data-pane="target"] {
+    grid-area: target;
+  }
+
+  .vk-showcase-file[data-pane="lock"] {
+    grid-area: lock;
+  }
+
   .vk-showcase-file-name {
     display: block;
   }
 
   .vk-showcase-code {
-    min-height: calc(var(--showcase-rows) * var(--showcase-line));
-  }
-
-  .vk-showcase-outcome-footer {
-    flex-direction: row;
-    align-items: flex-start;
-    column-gap: 1rem;
-  }
-
-  .vk-showcase-summary {
-    flex: 1;
-  }
-
-  .vk-showcase-savings {
-    min-height: 0;
-  }
-
-  .vk-showcase-outcome-actions {
-    flex: none;
+    min-height: calc(var(--showcase-rows) * var(--showcase-line) + var(--showcase-scroll-reserve));
   }
 
   .vk-showcase-file {
     padding-block: 0.75rem;
-  }
-
-  .vk-showcase-files {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .vk-showcase-file[data-pane="lock"] {
-    grid-column: 1 / -1;
   }
 }
 
@@ -2106,26 +2134,18 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
     margin-block-start: 2.5rem;
   }
 
-  .vk-showcase-outcome {
-    padding-block: 0.75rem;
-  }
-
-  .vk-showcase-controls {
-    display: flex;
-    align-items: center;
+  .vk-showcase-bar {
     box-sizing: border-box;
     height: var(--showcase-bar-height);
     padding: 0 0.625rem;
   }
-}
 
-@media (min-width: 80rem) {
-  .vk-showcase-files {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .vk-showcase-scenarios {
+    flex-wrap: nowrap;
   }
 
-  .vk-showcase-file[data-pane="lock"] {
-    grid-column: auto;
+  .vk-showcase-savings {
+    min-height: 0;
   }
 }
 

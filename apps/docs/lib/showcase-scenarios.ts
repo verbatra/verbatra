@@ -29,6 +29,7 @@ export type ShowcaseMark =
   | "changes"
   | "new"
   | "kept"
+  | "replaced"
   | "refused";
 
 export type ShowcaseLine = { readonly text: string; readonly mark?: ShowcaseMark };
@@ -111,10 +112,15 @@ function lockLines(
   marks: ReadonlyMap<string, ShowcaseMark>,
 ): ReadonlyArray<ShowcaseLine> {
   const keys = Object.keys(hashes).sort();
-  const lines = keys.map((key, index) => {
+  const lines = keys.flatMap((key, index): ShowcaseLine[] => {
     const text = `  "${key}": "${hashes[key]}"${index < keys.length - 1 ? "," : ""}`;
     const mark = marks.get(key);
-    return mark === undefined ? { text } : { text, mark };
+    const before = SEED_LOCK_HASHES[key];
+    const replaced: ShowcaseLine[] =
+      mark === "changes" && before !== undefined
+        ? [{ text: `  "${key}": "${before}"`, mark: "replaced" }]
+        : [];
+    return [...replaced, mark === undefined ? { text } : { text, mark }];
   });
   return [{ text: `{ "${SHOWCASE_TARGET_LOCALE}": {` }, ...lines, { text: "} }" }];
 }

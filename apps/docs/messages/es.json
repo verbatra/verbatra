@@ -320,6 +320,7 @@
           "changes": "cambia",
           "new": "nueva",
           "kept": "se mantiene",
+          "replaced": "antes",
           "refused": "rechazada"
         },
         "result": {

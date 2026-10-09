@@ -196,8 +196,13 @@ export function TryIt({ seed, rows }: { seed: ShowcaseOutcome; rows: ShowcaseRow
   const atSeed = outcome.scenario === null && failedScenario === null && !pending;
 
   return (
-    <div className="vk-showcase-try">
-      <div className="vk-showcase-controls">
+    <div
+      className="vk-showcase-try"
+      style={
+        { "--showcase-rows-max": Math.max(rows.source, rows.target, rows.lock) } as CSSProperties
+      }
+    >
+      <div className="vk-showcase-bar">
         <fieldset className="vk-showcase-scenarios" onPointerEnter={prefetch} onFocus={prefetch}>
           <legend className="sr-only">{t("scenariosLabel")}</legend>
           {SHOWCASE_SCENARIOS.map((id, index) => (
@@ -213,6 +218,25 @@ export function TryIt({ seed, rows }: { seed: ShowcaseOutcome; rows: ShowcaseRow
             </button>
           ))}
         </fieldset>
+        <div className="vk-showcase-actions">
+          {failedScenario === null ? null : (
+            <button
+              type="button"
+              className={buttonClasses("secondary", "sm", "vk-showcase-retry")}
+              onClick={() => run(failedScenario, true)}
+            >
+              {t("retry")}
+            </button>
+          )}
+          <button
+            type="button"
+            className={buttonClasses("ghost", "sm", "vk-showcase-reset")}
+            hidden={atSeed}
+            onClick={reset}
+          >
+            {t("reset")}
+          </button>
+        </div>
       </div>
       <fieldset className="vk-showcase-file-switch">
         <legend className="sr-only">{t("filesLabel")}</legend>
@@ -228,49 +252,21 @@ export function TryIt({ seed, rows }: { seed: ShowcaseOutcome; rows: ShowcaseRow
           </button>
         ))}
       </fieldset>
-      <div
-        className="vk-showcase-files"
-        style={
-          { "--showcase-rows-max": Math.max(rows.source, rows.target, rows.lock) } as CSSProperties
-        }
-      >
-        {PANES.map((pane) => (
-          <FilePane
-            key={pane.id}
-            id={pane.id}
-            file={pane.file}
-            lines={outcome[pane.id]}
-            rows={rows[pane.id]}
-            open={openPane === pane.id}
-            marks={marks}
-            broken={broken}
-          />
-        ))}
-      </div>
+      {PANES.map((pane) => (
+        <FilePane
+          key={pane.id}
+          id={pane.id}
+          file={pane.file}
+          lines={outcome[pane.id]}
+          rows={rows[pane.id]}
+          open={openPane === pane.id}
+          marks={marks}
+          broken={broken}
+        />
+      ))}
       <div className="vk-showcase-outcome">
         <OutputPane outcome={outcome} rows={rows.output} broken={broken} />
-        <div className="vk-showcase-outcome-footer">
-          <Result outcome={outcome} failed={failedScenario !== null} busy={pending} />
-          <div className="vk-showcase-outcome-actions">
-            {failedScenario === null ? null : (
-              <button
-                type="button"
-                className={buttonClasses("secondary", "sm", "vk-showcase-retry")}
-                onClick={() => run(failedScenario, true)}
-              >
-                {t("retry")}
-              </button>
-            )}
-            <button
-              type="button"
-              className={buttonClasses("ghost", "sm", "vk-showcase-reset")}
-              hidden={atSeed}
-              onClick={reset}
-            >
-              {t("reset")}
-            </button>
-          </div>
-        </div>
+        <Result outcome={outcome} failed={failedScenario !== null} busy={pending} />
       </div>
     </div>
   );

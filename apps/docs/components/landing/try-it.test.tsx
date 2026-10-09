@@ -28,6 +28,14 @@ const { TryIt } = await import("./try-it");
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const SEED = showcaseSeed();
+
+function css(selector: string): string {
+  const sheet = readFileSync(join(process.cwd(), "app/global.css"), "utf8");
+  return sheet
+    .split("}")
+    .filter((rule) => rule.includes(selector))
+    .join("}");
+}
 const ROWS = showcaseRows();
 
 function markup(): Document {
@@ -57,8 +65,8 @@ describe("TryIt: server-rendered seed", () => {
     expect(codes.map((code) => code.style.getPropertyValue("--showcase-rows"))).toEqual(
       [ROWS.source, ROWS.target, ROWS.lock].map(String),
     );
-    const files = markup().querySelector<HTMLElement>(".vk-showcase-files");
-    expect(files?.style.getPropertyValue("--showcase-rows-max")).toBe(
+    const board = markup().querySelector<HTMLElement>(".vk-showcase-try");
+    expect(board?.style.getPropertyValue("--showcase-rows-max")).toBe(
       String(Math.max(ROWS.source, ROWS.target, ROWS.lock)),
     );
   });
@@ -139,12 +147,47 @@ describe("TryIt: placeholder chips", () => {
   });
 });
 
-describe("TryIt: layout hooks", () => {
-  it("names each pane so the stylesheet can give the lock file its own row", () => {
+describe("TryIt: two-by-two playground", () => {
+  const css = readFileSync(join(process.cwd(), "app/global.css"), "utf8");
+
+  it("lays the files and the output out two by two under the scenario bar from 40rem", () => {
     const panes = [...markup().querySelectorAll<HTMLElement>(".vk-showcase-file")];
     expect(panes.map((pane) => pane.dataset.pane)).toEqual(["source", "target", "lock"]);
-    const css = readFileSync(join(process.cwd(), "app/global.css"), "utf8");
-    expect(css).toContain('.vk-showcase-file[data-pane="lock"] {\n    grid-column: 1 / -1;');
+    expect(css).toContain('"bar bar"\n      "source target"\n      "lock outcome";');
+    for (const pane of ["source", "target", "lock"]) {
+      expect(css).toContain(`.vk-showcase-file[data-pane="${pane}"] {\n    grid-area: ${pane};`);
+    }
+  });
+
+  it("puts Reset in the scenario bar, and under the output on a phone", () => {
+    const doc = markup();
+    const bar = doc.querySelector(".vk-showcase-bar");
+    expect(bar?.querySelector(".vk-showcase-scenarios")).not.toBeNull();
+    expect(bar?.querySelector(".vk-showcase-actions .vk-showcase-reset")).not.toBeNull();
+    expect(css).toMatch(/\.vk-showcase-bar \{\s+display: contents;/);
+    expect(css).toContain('"scenarios"\n    "switch"\n    "file"\n    "outcome"\n    "actions";');
+  });
+
+  it("keeps the output outside the file switch, so it shows under whichever file is open", () => {
+    const doc = markup();
+    const output = doc.querySelector(".vk-showcase-outcome");
+    expect(output?.closest(".vk-showcase-file")).toBeNull();
+    expect(output?.hasAttribute("data-open")).toBe(false);
+    expect(output?.querySelector(".vk-showcase-output")).not.toBeNull();
+  });
+
+  it("reserves every pane's rows plus room for a sideways scrollbar", () => {
+    const flat = css.replace(/\s+/g, " ").replace(/\( /g, "(").replace(/ \)/g, ")");
+    expect(flat).toContain(
+      "min-height: calc(var(--showcase-rows-max) * var(--showcase-line) + var(--showcase-scroll-reserve));",
+    );
+    expect(flat).toContain(
+      "min-height: calc(var(--showcase-rows) * var(--showcase-line) + var(--showcase-scroll-reserve));",
+    );
+  });
+
+  it("leaves the reveal to the panel, never to its interior", () => {
+    expect(markup().querySelector("[data-reveal]")).toBeNull();
   });
 });
 
@@ -225,6 +268,9 @@ describe("TryIt: scenarios", () => {
 
     await click(button(container, "landing.showcase.tryIt.reset"));
     expect(trackUmamiEvent).toHaveBeenLastCalledWith("reset-showcase", { location: "showcase" });
+    expect(document.activeElement).toBe(
+      button(container, `landing.showcase.tryIt.scenarios.${SHOWCASE_SCENARIOS[0]}`),
+    );
     expect(status?.querySelector(".vk-showcase-result-title")?.textContent).toBe(
       "landing.showcase.tryIt.result.seed",
     );
@@ -285,6 +331,20 @@ describe("TryIt: scenarios", () => {
       scenario: "break",
       location: "showcase",
     });
+  });
+
+  it("shows the lock hash before and after an edit on the lock pane", async () => {
+    const container = render();
+    await click(button(container, "landing.showcase.tryIt.scenarios.edit"));
+    const marked = [
+      ...container.querySelectorAll<HTMLElement>('[data-pane="lock"] [data-mark]'),
+    ].map((line) => [line.dataset.mark, line.querySelector("code")?.textContent?.trim()]);
+    const edited = runShowcaseScenario("edit").lockHashes["cart.checkout"];
+    expect(marked).toEqual([
+      ["replaced", `"cart.checkout": "${SEED.lockHashes["cart.checkout"]}"`],
+      ["changes", `"cart.checkout": "${edited}",`],
+    ]);
+    expect(css(".vk-showcase-line-text")).toContain('[data-mark="replaced"]');
   });
 
   it("reports the orphaned key and changes no lock hash when a key is removed", async () => {

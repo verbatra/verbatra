@@ -105,6 +105,7 @@
           "changes": "changes",
           "new": "new",
           "kept": "kept",
+          "replaced": "before",
           "refused": "refused"
         },
         "result": {

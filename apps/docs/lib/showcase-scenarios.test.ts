@@ -48,7 +48,10 @@ describe("the showcase scenarios", () => {
     expect(outcome.lockHashes["cart.checkout"]).not.toBe(SEED_LOCK_HASHES["cart.checkout"]);
     expect(marked(outcome.source)).toEqual([['"checkout": "Go to checkout"', "edited"]]);
     expect(marked(outcome.target)).toEqual([['"checkout": "Zur Kasse"', "stale"]]);
-    expect(marked(outcome.lock).map(([, mark]) => mark)).toEqual(["changes"]);
+    expect(marked(outcome.lock)).toEqual([
+      [`"cart.checkout": "${SEED_LOCK_HASHES["cart.checkout"]}"`, "replaced"],
+      [`"cart.checkout": "${outcome.lockHashes["cart.checkout"]}",`, "changes"],
+    ]);
   });
 
   it("add a key: one missing key is sent and gains a new lock hash", () => {
