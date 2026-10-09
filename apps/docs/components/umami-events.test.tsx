@@ -92,6 +92,7 @@ vi.mock("fumadocs-ui/components/codeblock", () => ({
 
 const { TrackedAnchor, TrackedLink } = await import("./ui/tracked-link");
 const { Marquee } = await import("./landing/marquee");
+const { Formats } = await import("./landing/formats");
 const { McpInstallLink } = await import("./mcp-install-link");
 const { default: Button } = await import("./ui/button");
 const { LandingHero } = await import("./landing-hero");
@@ -291,6 +292,28 @@ describe("Loop and marquee links", () => {
       ["click-cta", { location: "marquee", target: "frameworks" }],
       ["click-cta", { location: "marquee", target: "formats" }],
     ]);
+  });
+});
+
+describe("Formats switcher", () => {
+  it("counts a format tab and a framework chip as select-tab from the formats section", async () => {
+    const container = render(await Formats());
+    const tabs = [...container.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+    await click(tabs[1]);
+    await click(container.querySelector(".vk-formats-chip"));
+    expect(trackUmamiEvent.mock.calls).toEqual([
+      ["select-tab", { tab: "vue-i18n-json", location: "formats" }],
+      ["select-tab", { tab: "i18next-json", location: "formats", framework: "react" }],
+    ]);
+  });
+
+  it("counts the formats page link as click-cta from the formats section", async () => {
+    const container = render(await Formats());
+    await click(container.querySelector(".vk-formats-more a"));
+    expect(trackUmamiEvent).toHaveBeenCalledWith("click-cta", {
+      location: "formats",
+      target: "formats-docs",
+    });
   });
 });
 
@@ -690,6 +713,7 @@ describe("internal links never carry a declarative Umami event", () => {
       <>
         {await LandingHero()}
         {await Marquee()}
+        {await Formats()}
         {await Proof()}
         {await Loop()}
         <Faq items={[{ id: "cost", question: "Cost?", answer: "None." }]} />

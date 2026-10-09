@@ -69,6 +69,13 @@
       },
       "eyebrow": "So funktioniert es"
     },
+    "formats": {
+      "heading": "Dieselben Strings, jedes Dateiformat.",
+      "lead": "Wähl dein Framework oder ein Format. Jeder Bereich zeigt dieselben vier Strings, geschrieben vom Adapter, den verbatra für dieses Format mitbringt, mit erhaltenem Platzhalter.",
+      "frameworksLabel": "Frameworks",
+      "formatsLabel": "Dateiformate",
+      "link": "Sieh dir alle Formate und ihre Konfiguration an"
+    },
     "faq": {
       "heading": "Häufig gestellte Fragen",
       "items": {

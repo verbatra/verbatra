@@ -155,6 +155,13 @@
         }
       }
     },
+    "formats": {
+      "heading": "Same strings, every file format.",
+      "lead": "Pick your framework or a format. Each pane is the same four strings, written by the adapter verbatra ships for that format, with its placeholder kept.",
+      "frameworksLabel": "Frameworks",
+      "formatsLabel": "File formats",
+      "link": "See every format and how to configure it"
+    },
     "faq": {
       "heading": "Frequently asked questions",
       "items": {

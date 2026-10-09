@@ -12,6 +12,7 @@ const LANDING_NAMESPACES = [
   "footer",
   "finalClose",
   "how",
+  "formats",
   "marquee",
   "loop",
   "control",
@@ -67,6 +68,7 @@ describe("landing message parity", () => {
     expect(source).toContain("landing.terminal.sessionLabel");
     expect(source).toContain("landing.loop.rows.ci.title");
     expect(source).toContain("landing.marquee.frameworks.reactNative");
+    expect(source).toContain("landing.formats.frameworksLabel");
     expect(source).toContain("landing.loop.rows.studio.alt");
     expect(source).toContain("landing.control.groups.correct.items.terms.title");
     expect(source).toContain("landing.control.groups.people.items.protect.title");

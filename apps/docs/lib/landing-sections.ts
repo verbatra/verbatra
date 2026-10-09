@@ -3,6 +3,7 @@ export const LANDING_SECTIONS = [
   "marquee",
   "showcase",
   "how",
+  "formats",
   "control",
   "loop",
   "faq",

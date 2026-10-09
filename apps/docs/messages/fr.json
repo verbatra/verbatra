@@ -69,6 +69,13 @@
       },
       "eyebrow": "Comment ça marche"
     },
+    "formats": {
+      "heading": "Les mêmes chaînes, tous les formats de fichier.",
+      "lead": "Choisis ton framework ou un format. Chaque panneau montre les quatre mêmes chaînes, écrites par l'adaptateur que verbatra fournit pour ce format, avec son placeholder intact.",
+      "frameworksLabel": "Frameworks",
+      "formatsLabel": "Formats de fichier",
+      "link": "Voir tous les formats et comment les configurer"
+    },
     "faq": {
       "heading": "Questions fréquentes",
       "items": {

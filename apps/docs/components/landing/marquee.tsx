@@ -4,28 +4,14 @@ import { StackIcon, type StackIconKey, StackIconSprite } from "@/components/stac
 import { TrackedLink } from "@/components/ui/tracked-link";
 import { type Locale, localizedPath } from "@/lib/i18n";
 import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
+import { STACK_FRAMEWORKS } from "@/lib/stack-formats";
 import { MarqueeRow } from "./marquee-row";
 import { MarqueeToggle } from "./marquee-toggle";
 
 const ICON = 20;
 const ICON_PREFIX = "vk-marquee-icon";
 
-export const MARQUEE_FRAMEWORKS = [
-  { key: "react", name: "React", icon: "react" },
-  { key: "next", name: "Next.js", icon: "next" },
-  { key: "vue", name: "Vue", icon: "vue" },
-  { key: "nuxt", name: "Nuxt", icon: "nuxt" },
-  { key: "angular", name: "Angular", icon: "angular" },
-  { key: "node", name: "Node.js", icon: "node" },
-  { key: "svelte", name: "SvelteKit", icon: "svelte" },
-  { key: "astro", name: "Astro", icon: "astro" },
-  { key: "reactNative", name: "React Native", icon: "expo" },
-  { key: "flutter", name: "Flutter", icon: "flutter" },
-  { key: "spring", name: "Spring", icon: "spring" },
-  { key: "apple", name: "iOS and macOS", icon: "apple" },
-  { key: "android", name: "Android", icon: "android" },
-  { key: "dotnet", name: ".NET", icon: "dotnet" },
-] as const satisfies ReadonlyArray<{ key: string; name: string; icon: StackIconKey }>;
+export const MARQUEE_FRAMEWORKS = STACK_FRAMEWORKS;
 
 type RowId = "frameworks" | "formats";
 

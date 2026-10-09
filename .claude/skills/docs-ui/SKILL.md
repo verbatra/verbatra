@@ -173,20 +173,46 @@ footer's oversized watermark only; do not clip it onto a heading.
   that the hero command panel uses, never a hand-made copy.
   `Button` takes `variant: "primary" | "secondary" | "ghost"` and `size: "sm" | "md" | "lg"`.
   Extend the variant union rather than passing ad hoc `className` overrides.
-- **Landing:** `components/landing/` holds the landing sections (`proof.tsx`, `control.tsx`,
-  `marquee.tsx`, `loop.tsx`, `faq.tsx`, `final-cta.tsx`, `footer.tsx`). Their order on the page
-  is `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, marquee, showcase, how, control, loop,
-  faq, final call to action), which the home page maps over and `lib/landing-sections.test.ts` pins;
+- **Landing:** `components/landing/` holds the landing sections (`proof.tsx`, `formats.tsx`,
+  `control.tsx`, `marquee.tsx`, `loop.tsx`, `faq.tsx`, `final-cta.tsx`, `footer.tsx`). Their order
+  on the page is `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, marquee, showcase, how,
+  formats, control, loop, faq, final call to action), which the home page maps over and
+  `lib/landing-sections.test.ts` pins;
   add or move a section there, not by hand in `page.tsx`. Sections reveal on scroll through
   `data-reveal` (see "Landing motion"); the marquee and the FAQ do not. The
   marquee sits directly under the hero and is two rows at fixed sizes (15px items, 40px gaps,
-  set on `.vk-marquee-band`): the frameworks (`MARQUEE_FRAMEWORKS` in `marquee.tsx`, each with a
-  translated tip naming its format, `landing.marquee.frameworks.*`) scrolling left, and the
+  set on `.vk-marquee-band`): the frameworks (`MARQUEE_FRAMEWORKS` in `marquee.tsx`, which is
+  `STACK_FRAMEWORKS` from `lib/stack-formats.ts`, each with a translated tip naming its format,
+  `landing.marquee.frameworks.*`) scrolling left, and the
   formats, built from `SUPPORTED_FORMAT_IDS` in `lib/landing-facts.ts` (pinned to
   `SUPPORTED_FORMATS`), scrolling right. Each item links `/docs/formats` and counts as
   `click-cta` with `location: marquee` and its row as `target`. Every format's display label and
   icon is `FORMAT_DISPLAY` in the same file, which the structured data's format list reads too,
-  so a new format fails to compile until it has both. `Loop` is four rows at every width
+  so a new format fails to compile until it has both. `Formats` (`formats.tsx`, the section
+  after How, a server `SectionHead` over `.vk-formats`) is the format switcher: a row of framework
+  chips (`STACK_FRAMEWORKS`, each with the `format` its quickstart uses, pinned to `STACKS` by
+  `lib/format-samples.test.ts`; `aria-pressed` buttons whose icons come from one sprite, rendered
+  on the server and passed in as elements, so the icon set never enters the client bundle), then
+  a segmented `TabList` over `SUPPORTED_FORMAT_IDS` labelled from `FORMAT_DISPLAY`, then one pane
+  per format: a void `figure` captioned with the file path, holding the showcase's four English
+  strings exactly as the sdk's real adapter writes them, with the format's own placeholder drawn
+  as a `PlaceholderChip`, and a link to `/docs/formats` (`click-cta`, `location: formats`). The
+  client island is `format-switch.tsx`, which takes every label and pane as props, so it adds no
+  client message namespace; a chip selects its format, a tab clears the chip, and both count
+  `select-tab` with `location: formats` (a chip adds `framework`). Every pane is server-rendered
+  and stacked in one grid cell; a closed pane is `inert` and `visibility: hidden`, so the box is
+  always the tallest pane and a switch moves nothing, and `.vk-formats-code` caps a long output at
+  `--format-pane-rows` (16) lines of `--format-line` and scrolls inside it. Chips and tabs scroll
+  sideways inside `.vk-edge-fade` under 64rem and wrap from it, each at least 44px tall. The panes
+  come from `lib/format-samples.generated.json`, which `scripts/sync-format-samples.mjs` writes
+  before dev, build, typecheck and test (git-ignored like `lib/version.generated.json`): it builds
+  `createDefaultRegistry` from `@verbatra/sdk` over the in-memory `AdapterFs` in
+  `lib/format-samples-seed.mjs` (ENOENT for a missing file; the seed also holds each format's file,
+  placeholder and key style, and the pre-seeded XLIFF file and `.xcstrings` catalogue those
+  adapters require, written with `sourcePath` set to the file itself) and writes each format's
+  output. Nothing in the page graph imports the sdk at runtime, and the docs app never depends on
+  `@verbatra/format-adapters`; `lib/format-samples.test.ts` re-reads every sample through the real
+  adapter and fails unless it parses back to the seed with its placeholder intact. `Loop` is four rows at every width
   (Excel, Studio with the `review` `StudioScreenshot`, CI, agent), each a two-column grid from
   1024px whose sides alternate (`data-loop-row`: the text on the left for Excel and CI, on the
   right for Studio and the agent); each row's call to action and each internal agent link (`llms.txt`, `llms-full.txt`,
@@ -434,7 +460,8 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
 - `NextIntlClientProvider` receives only `CLIENT_MESSAGE_NAMESPACES` (`lib/client-messages.ts`),
   not the whole catalog. A new `useTranslations` namespace in a `"use client"` file must be added
   there; `lib/client-messages.test.ts` fails until it is.
-- A brand icon repeated on a page (the marquee's two tracks, the stack cards) is drawn once as an SVG `<symbol>`
+- A brand icon repeated on a page (the marquee's two tracks, the stack cards, the format switcher's
+  chips) is drawn once as an SVG `<symbol>`
   and referenced with `<use>`, since every copy is serialized twice: in the HTML and in the RSC
   payload.
 - Keep all three `next/font` families preloaded. Every one of them sets text in the first

@@ -82,14 +82,14 @@ this skill's concern).
 | Event | Properties | Where (location values) |
 | --- | --- | --- |
 | outbound-link | target, location | hero (site-messages, npm-cli, version, license), header (github, sent from onClick), loop (skills-repo), control (evidence), faq (releases), footer (footer links, contributor, github, npm) |
-| click-cta | location, target | header, hero, marquee, loop, final-cta, docs-home (tabs, path, feature and stack cards), docs-page (stack cards) |
+| click-cta | location, target | header, hero, marquee, formats, loop, final-cta, docs-home (tabs, path, feature and stack cards), docs-page (stack cards) |
 | copy-command | command, location | how, loop, start-here, docs-page (CommandLine) |
 | copy-install-command | command, manager ("npm"), location | hero |
 | copy-ai-prompt | location | hero, start-here, docs-home |
 | copy-code | location | docs-page (MDX code block copy button) |
 | copy-page-markdown | location | docs-page |
 | open-page-options | location | docs-page (only when the popover opens) |
-| select-tab | tab, location | hero |
+| select-tab | tab, location, framework (a framework chip only) | hero, formats |
 | run-scenario | scenario, location, retry (true on a retry only) | showcase |
 | reset-showcase | location | showcase |
 | open-faq | question (item key, never the text), location | faq |

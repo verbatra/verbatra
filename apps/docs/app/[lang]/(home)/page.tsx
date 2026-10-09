@@ -5,6 +5,7 @@ import { JsonLd } from "@/components/json-ld";
 import { Control } from "@/components/landing/control";
 import { Faq, type FaqEntry } from "@/components/landing/faq";
 import { FinalCta } from "@/components/landing/final-cta";
+import { Formats } from "@/components/landing/formats";
 import { Loop } from "@/components/landing/loop";
 import { Marquee } from "@/components/landing/marquee";
 import { MotionRoot } from "@/components/landing/motion-root";
@@ -43,6 +44,7 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
     marquee: <Marquee />,
     showcase: <Showcase />,
     how: <Proof />,
+    formats: <Formats />,
     control: <Control />,
     loop: <Loop />,
     faq: <Faq items={faqItems} />,

@@ -69,6 +69,13 @@
       },
       "eyebrow": "Cómo funciona"
     },
+    "formats": {
+      "heading": "Las mismas cadenas, cualquier formato de archivo.",
+      "lead": "Elige tu framework o un formato. Cada panel muestra las mismas cuatro cadenas, escritas por el adaptador que verbatra incluye para ese formato, con su marcador intacto.",
+      "frameworksLabel": "Frameworks",
+      "formatsLabel": "Formatos de archivo",
+      "link": "Mira todos los formatos y cómo configurarlos"
+    },
     "faq": {
       "heading": "Preguntas frecuentes",
       "items": {
