@@ -234,8 +234,13 @@ footer's oversized watermark only; do not clip it onto a heading.
   more to see; with `wrap` every line wraps through `.vk-wrap-line`, whose hanging indent is the
   line's own leading whitespace (`--wrap-lead`, set by `wrapLineStyle` in `wrap-text.tsx`) plus
   2ch, and whose placeholder tokens (`{count}`, `(-{count})`) never break, through `WrapTokens`.
-  The How section is that one real CLI run (`lib/gate-demo.ts`) over the four steps the HowTo
-  structured data reads, with no panels: the showcase owns the written, refused and lock story),
+  The How section is one terminal replaying two real commands, `verbatra
+  translate` (the gate run, `lib/gate-demo.ts`: one key translated, one withheld) and then
+  `verbatra check` (`lib/check-demo.ts`: the withheld key still missing, exit code
+  `CHECK_EXIT_CODE`), titled `HOW_TITLE`, over the three numbered steps `HOW_STEP_KEYS` (setup,
+  translate, check) that `howStepCopy` in `lib/how-steps.ts` labels for both the section and the
+  HowTo structured data in `page.tsx`, the check step's body carrying the exit code as `{code}`;
+  no panels: the showcase owns the written, refused and lock story),
   `showcase.tsx` (the section under the marquee: a server `SectionHead` over a `.vk-showcase`
   panel that holds the Try it playground alone, with no tabs; Studio is shown in the loop),
   `try-it.tsx` (the Try it playground, one `.vk-showcase-try` grid: from 40rem a scenario bar
@@ -310,11 +315,13 @@ footer's oversized watermark only; do not clip it onto a heading.
   (`grid-pattern.ts`). A new
   section composes `Section` plus `SectionHead`; it does not re-derive page padding or
   heading rhythm. Check `ls apps/docs/components/landing` before quoting a file name from
-  this list. The CLI transcripts on the landing (`lib/gate-demo.ts`, `lib/showcase-cli.ts`) are
-  real CLI output, English on every locale, and their tests pin each line to
-  `packages/cli/src/render.ts` (`lib/showcase-cli.run.test.ts` imports `renderHuman` from it by
-  relative path, in that run test only, never from `lib/`), so a change to the CLI's output fails
-  until the demo is recaptured.
+  this list. The CLI transcripts on the landing (`lib/gate-demo.ts`, `lib/check-demo.ts`,
+  `lib/showcase-cli.ts`) are real CLI output, English on every locale, and their tests pin each
+  line to `packages/cli/src/render.ts` (`lib/showcase-cli.run.test.ts` imports `renderHuman` and
+  `lib/check-demo.run.test.ts` imports `renderCheckHuman` from it by relative path, and the latter
+  also drives `run` from `packages/cli/src/run.ts` over the real sdk `check` for the exit code, in
+  those run tests only, never from `lib/`), so a change to the CLI's output fails until the demo
+  is recaptured.
 - **Docs-facing:** `<StartHere />` (`components/start-here.tsx`) opens every page in
   `START_HERE_PAGES` (`lib/agent-entry.ts`, the agent guides only, not reference pages): a void
   `aside` at the prose measure with no start bar (so it never doubles the locale notice's
@@ -433,14 +440,16 @@ parallax, no scroll-scrubbing, no scroll listener and no animation library.
   (`landing.<section>.eyebrow`), passed to `SectionHead` as `step`. The numbers state the
   order of the story; do not add one to a section outside that list.
 - **How steps.** `HowReplay` (`components/landing/how-replay.tsx`, the How section's client
-  island) renders the terminal and the four unnumbered steps (the eyebrow and the bars carry the
-  order). The replay starts once the terminal and the step grid are both at least half in view
+  island) renders the terminal and the three steps, each opened by an `aria-hidden` two-digit
+  `.vk-how-step-index` in mono `--accent` above its title (the `ol` carries the order for
+  assistive technology). The replay starts once the terminal and the step grid are both at least half in view
   (`HOW_PLAY_RATIO`, one observer on both), which also holds on a landscape phone. The commands,
   outputs and line pace (`HOW_LINE_DELAY_MS`, longer than `--duration-demo`, so a bar finishes
   filling before the next step takes over) come from `lib/how-steps.ts`, the same objects the
   step mapping reads. The terminal reports its progress through
   `onProgress`, and `howStepStates` (`lib/how-steps.ts`) maps the printed lines to the step
-  being shown: `aria-current="step"` and `data-state` (`upcoming`, `current`, `complete`) on
+  being shown (set up while the first command types, translate until the second command starts
+  typing, then check): `aria-current="step"` and `data-state` (`upcoming`, `current`, `complete`) on
   each `.vk-how-step`, whose 2px `--accent` top bar fills (`scaleX`, `--duration-demo`,
   `--ease-in-out`) as the step becomes current; only the bar of an upcoming step is empty, its
   text keeps full contrast. When the run has printed, every step is

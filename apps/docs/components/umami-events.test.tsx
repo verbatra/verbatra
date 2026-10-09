@@ -6,7 +6,7 @@ import { act, type ComponentProps, type ReactNode, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { GATE_CLI_COMMAND } from "@/lib/gate-demo";
+import { CHECK_CLI_COMMAND } from "@/lib/check-demo";
 import { AGENT_INIT_COMMAND, SKILLS_INSTALL_COMMAND } from "@/lib/install-commands";
 
 const trackUmamiEvent = vi.hoisted(() => vi.fn());
@@ -364,7 +364,7 @@ describe("Landing copy buttons", () => {
     const container = render(await Proof());
     await click(container.querySelector('[data-part="how-replay"] button'));
     expect(trackUmamiEvent.mock.calls).toEqual([
-      ["copy-command", { command: GATE_CLI_COMMAND, location: "how" }],
+      ["copy-command", { command: CHECK_CLI_COMMAND, location: "how" }],
     ]);
   });
 

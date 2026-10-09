@@ -1,10 +1,8 @@
 "use client";
 
 import { type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
-import { howStepStates } from "@/lib/how-steps";
+import { type HowStepCopy, howStepStates } from "@/lib/how-steps";
 import { Terminal, type TerminalProgress, type TerminalProps } from "./terminal";
-
-export type HowStepCopy = { key: string; title: string; body: string };
 
 const IDLE: TerminalProgress = { lines: 0, typing: false };
 
@@ -59,7 +57,7 @@ export function HowReplay({
       <ol
         ref={stepsRef}
         data-reveal="2"
-        className="mt-5 grid list-none grid-cols-2 gap-x-4 gap-y-6 md:grid-cols-4"
+        className="mt-5 grid list-none gap-x-4 gap-y-6 md:grid-cols-3"
       >
         {steps.map((step, index) => {
           const state = states[index] ?? "upcoming";
@@ -70,6 +68,9 @@ export function HowReplay({
               aria-current={state === "current" ? "step" : undefined}
               className="vk-how-step border-t border-fd-border pt-[18px]"
             >
+              <p aria-hidden="true" className="vk-how-step-index">
+                {String(index + 1).padStart(2, "0")}
+              </p>
               <h3 className="vk-h4">{step.title}</h3>
               <p className="mt-1.5 text-sm text-fd-muted-foreground">{step.body}</p>
             </li>

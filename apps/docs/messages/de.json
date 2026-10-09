@@ -53,26 +53,23 @@
       "copyFailed": "Kopieren fehlgeschlagen"
     },
     "how": {
-      "heading": "Jeder Lauf wird geprüft, bevor etwas geschrieben wird.",
+      "heading": "Prüfe jeden Pull Request in der CI.",
       "steps": {
-        "configure": {
-          "title": "Konfigurieren",
-          "body": "Quell-Locale, Ziele, ein Provider."
-        },
-        "diff": {
-          "title": "Vergleichen",
-          "body": "Neu, geändert, unverändert oder verwaist, gegen die Lock-Datei."
+        "setup": {
+          "title": "Einrichten",
+          "body": "verbatra init schreibt die Konfiguration: Quell-Locale, Ziele, ein Provider."
         },
         "translate": {
-          "title": "Übersetzen",
-          "body": "Nur neue und geänderte Keys gehen raus."
+          "title": "Übersetze, was sich geändert hat",
+          "body": "Nur neue und geänderte Keys gehen raus, und eine Antwort, die einen Platzhalter beschädigt, wird zurückgehalten."
         },
-        "verifyWrite": {
-          "title": "Prüfen und schreiben",
-          "body": "Kaputte Ergebnisse werden zurückgehalten, der Rest wird geschrieben."
+        "check": {
+          "title": "Lass den Pull Request scheitern",
+          "body": "verbatra check endet mit {code}, solange ein Key fehlt oder veraltet ist, also blockiert die CI den Merge."
         }
       },
-      "eyebrow": "So funktioniert es"
+      "eyebrow": "So funktioniert es",
+      "lead": "Übersetze, was sich geändert hat, und lass verbatra check den Build scheitern, solange ein Key noch fehlt."
     },
     "formats": {
       "heading": "Dieselben Strings, jedes Dateiformat.",

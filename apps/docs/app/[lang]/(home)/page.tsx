@@ -12,8 +12,9 @@ import { MotionRoot } from "@/components/landing/motion-root";
 import { Proof } from "@/components/landing/proof";
 import { Showcase } from "@/components/landing/showcase";
 import { LandingHero } from "@/components/landing-hero";
+import { howStepCopy } from "@/lib/how-steps";
 import { toLocale } from "@/lib/i18n";
-import { HOW_STEP_KEYS, LANDING_SECTIONS, type LandingSectionId } from "@/lib/landing-sections";
+import { LANDING_SECTIONS, type LandingSectionId } from "@/lib/landing-sections";
 import { homeAlternates, MCP_VERSION, PACKAGE_VERSION, STUDIO_VERSION } from "@/lib/site";
 import { homeOgImagePath, socialMetadata } from "@/lib/social-metadata";
 import {
@@ -33,11 +34,11 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
     t.raw("faq.items") as Record<string, FaqItem>,
   ).map(([id, item]) => ({ ...item, id }));
 
-  const howStepCopy = t.raw("how.steps") as Record<string, { title: string; body: string }>;
-  const howSteps: ReadonlyArray<HowToStepItem> = HOW_STEP_KEYS.map((key) => {
-    const step = howStepCopy[key];
-    return { name: step?.title ?? "", text: step?.body ?? "" };
-  });
+  const tHow = await getTranslations({ locale, namespace: "landing.how" });
+  const howSteps: ReadonlyArray<HowToStepItem> = howStepCopy(tHow).map((step) => ({
+    name: step.title,
+    text: step.body,
+  }));
 
   const sections: Readonly<Record<LandingSectionId, ReactNode>> = {
     hero: <LandingHero />,

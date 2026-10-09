@@ -147,25 +147,22 @@
     },
     "how": {
       "eyebrow": "How it works",
-      "heading": "Every run is checked before it is written.",
+      "heading": "Gate every pull request in CI.",
       "steps": {
-        "configure": {
-          "title": "Configure",
-          "body": "Source locale, targets, one provider."
-        },
-        "diff": {
-          "title": "Diff",
-          "body": "New, changed, unchanged or orphaned, against the lock."
+        "setup": {
+          "title": "Set up",
+          "body": "verbatra init writes the config: source locale, targets, one provider."
         },
         "translate": {
-          "title": "Translate",
-          "body": "Only new and changed keys go out."
+          "title": "Translate what changed",
+          "body": "Only new and changed keys go out, and a reply that breaks a placeholder is withheld."
         },
-        "verifyWrite": {
-          "title": "Verify and write",
-          "body": "Broken results are withheld, the rest written."
+        "check": {
+          "title": "Fail the pull request",
+          "body": "verbatra check exits {code} while a key is missing or stale, so CI blocks the merge."
         }
-      }
+      },
+      "lead": "Translate what changed, then let verbatra check fail the build while a key is still missing."
     },
     "formats": {
       "heading": "Same strings, every file format.",

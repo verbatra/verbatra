@@ -53,26 +53,23 @@
       "copyFailed": "Copie échouée"
     },
     "how": {
-      "heading": "Chaque exécution est vérifiée avant toute écriture.",
+      "heading": "Contrôle chaque pull request en CI.",
       "steps": {
-        "configure": {
-          "title": "Configure",
-          "body": "Locale source, cibles, un fournisseur."
-        },
-        "diff": {
-          "title": "Compare",
-          "body": "Nouvelles, modifiées, inchangées ou orphelines, par rapport au fichier de verrouillage."
+        "setup": {
+          "title": "Mets en place",
+          "body": "verbatra init écrit la configuration : locale source, cibles, un fournisseur."
         },
         "translate": {
-          "title": "Traduis",
-          "body": "Seules les clés nouvelles et modifiées partent."
+          "title": "Traduis ce qui a changé",
+          "body": "Seules les clés nouvelles et modifiées partent, et une réponse qui casse un placeholder est retenue."
         },
-        "verifyWrite": {
-          "title": "Vérifie et écris",
-          "body": "Les résultats cassés sont retenus, le reste est écrit."
+        "check": {
+          "title": "Fais échouer la pull request",
+          "body": "verbatra check se termine avec {code} tant qu'une clé manque ou est obsolète, donc la CI bloque le merge."
         }
       },
-      "eyebrow": "Comment ça marche"
+      "eyebrow": "Comment ça marche",
+      "lead": "Traduis ce qui a changé, puis laisse verbatra check faire échouer le build tant qu'une clé manque."
     },
     "formats": {
       "heading": "Les mêmes chaînes, tous les formats de fichier.",

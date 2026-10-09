@@ -49,7 +49,7 @@ const { HowReplay } = await import("./how-replay");
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-const STEPS = ["configure", "diff", "translate", "verifyWrite"].map((key) => ({
+const STEPS = (["setup", "translate", "check"] as const).map((key) => ({
   key,
   title: key,
   body: `${key} body`,
@@ -94,29 +94,38 @@ describe("HowReplay", () => {
     expect(terminal.play).toBe(true);
   });
 
-  it("numbers no step: the eyebrow and the bars carry the order", () => {
+  it("numbers each step in order, beside its title", () => {
     const container = render();
     expect([...container.querySelectorAll("li h3")].map((h3) => h3.textContent)).toEqual([
-      "configure",
-      "diff",
+      "setup",
       "translate",
-      "verifyWrite",
+      "check",
+    ]);
+    expect(
+      [...container.querySelectorAll("li .vk-how-step-index")].map((index) => [
+        index.textContent,
+        index.getAttribute("aria-hidden"),
+      ]),
+    ).toEqual([
+      ["01", "true"],
+      ["02", "true"],
+      ["03", "true"],
     ]);
   });
 
   it("starts with no current step, then moves aria-current with the terminal run", () => {
     const container = render();
-    expect(states(container)).toEqual(["upcoming:-", "upcoming:-", "upcoming:-", "upcoming:-"]);
+    expect(states(container)).toEqual(["upcoming:-", "upcoming:-", "upcoming:-"]);
     act(() => terminal.report?.({ lines: 0, typing: true }));
     expect(states(container)[0]).toBe("current:step");
     act(() => terminal.report?.({ lines: 3, typing: false }));
-    expect(states(container)).toEqual(["complete:-", "complete:-", "current:step", "upcoming:-"]);
+    expect(states(container)).toEqual(["complete:-", "current:step", "upcoming:-"]);
   });
 
   it("leaves every step complete and none current once the run has printed", () => {
     const container = render();
     act(() => terminal.report?.({ lines: 99, typing: false }));
-    expect(states(container)).toEqual(["complete:-", "complete:-", "complete:-", "complete:-"]);
+    expect(states(container)).toEqual(["complete:-", "complete:-", "complete:-"]);
     expect(container.querySelector('[aria-current="step"]')).toBeNull();
   });
 
