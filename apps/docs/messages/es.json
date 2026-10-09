@@ -10,15 +10,8 @@
     },
     "hero": {
       "headline": "Traduce solo lo que cambió.",
-      "lead": "verbatra compara con un archivo de bloqueo confirmado y traduce solo las claves nuevas o modificadas.",
+      "lead": "El archivo de bloqueo versionado en el repositorio decide qué claves cambiaron, y verbatra comprueba que cada traducción conserve sus marcadores antes de escribirla.",
       "ctaStart": "Guía de inicio",
-      "facts": {
-        "release": "Última versión",
-        "formats": "Formatos de archivo",
-        "providers": "Proveedores",
-        "license": "Licencia",
-        "github": "Código fuente"
-      },
       "demo": {
         "tablistLabel": "Demo",
         "cli": "Terminal",
@@ -27,6 +20,20 @@
         "sessionLabel": "verbatra check informa de una clave que falta y una desactualizada en cada uno de los tres locales, verbatra translate envía al proveedor solo esas dos claves por locale, y un segundo check informa de que todos los locales están sincronizados.",
         "caption": "Salida de la CLI real en un proyecto de ocho claves. Nada en esta página llama a un proveedor.",
         "captionStudio": "Verbatra Studio, el panel local: cobertura por locale y cada clave que aún necesita trabajo."
+      },
+      "dogfood": "Los textos de la interfaz de este sitio en alemán, español y francés vienen de verbatra.",
+      "dogfoodLink": "Mira los archivos de mensajes",
+      "command": {
+        "tablist": "Configura verbatra",
+        "install": "Instalar",
+        "prompt": "Prompt",
+        "promptHint": "Pega esto en tu agente de programación.",
+        "installHint": "Ejecuta esto en tu proyecto."
+      },
+      "numbers": {
+        "formats": "formatos de archivo",
+        "providers": "proveedores de traducción",
+        "locales": "idiomas traducidos en este sitio"
       }
     },
     "terminal": {

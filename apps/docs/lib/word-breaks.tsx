@@ -82,6 +82,22 @@ export function keepFlagsWhole(text: string): ReactNode {
   });
 }
 
+const PACKAGE_RUN = /(\bnpx(?:\s+-\S+)*\s+[^\s-]\S*|--[a-z][\w-]*\s+[^\s-]\S*)/;
+
+export function keepPackageRunsWhole(text: string): ReactNode {
+  const parts = text.split(PACKAGE_RUN);
+  if (parts.length === 1) return keepFlagsWhole(text);
+  return parts.map((part, index) =>
+    index % 2 === 1 ? (
+      <span key={`run-${index}`} className="whitespace-nowrap">
+        {part}
+      </span>
+    ) : (
+      <Fragment key={`text-${index}`}>{keepFlagsWhole(part)}</Fragment>
+    ),
+  );
+}
+
 export function breakUrlsAtSlashes(
   text: string,
   plain: (part: string) => ReactNode = (part) => part,

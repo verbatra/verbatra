@@ -26,6 +26,7 @@ const config = {
   outputFileTracingRoot: path.join(import.meta.dirname, "../.."),
   outputFileTracingIncludes: {
     "/*": ["../../node_modules/.pnpm/@swc+helpers@*/node_modules/@swc/helpers/esm/**/*"],
+    "/[lang]/home-og": ["./assets/og-fonts/*.ttf"],
   },
   experimental: {
     optimizePackageImports: ["@icons-pack/react-simple-icons"],

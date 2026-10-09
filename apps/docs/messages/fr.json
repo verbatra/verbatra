@@ -10,15 +10,8 @@
     },
     "hero": {
       "headline": "Traduis uniquement ce qui a changé.",
-      "lead": "verbatra compare les modifications à un fichier de verrouillage validé et ne traduit que les clés nouvelles ou modifiées.",
+      "lead": "Le fichier de verrouillage versionné décide quelles clés ont changé, et verbatra vérifie que chaque traduction garde ses espaces réservés intacts avant de l'écrire.",
       "ctaStart": "Démarrer",
-      "facts": {
-        "release": "Dernière version",
-        "formats": "Formats de fichier",
-        "providers": "Fournisseurs",
-        "license": "Licence",
-        "github": "Code source"
-      },
       "demo": {
         "tablistLabel": "Démo",
         "cli": "Terminal",
@@ -27,6 +20,20 @@
         "sessionLabel": "verbatra check signale une clé manquante et une clé obsolète dans chacune des trois locales, verbatra translate n'envoie au fournisseur que ces deux clés par locale, et un second check indique que toutes les locales sont synchronisées.",
         "caption": "Sortie de la vraie CLI sur un projet de huit clés. Rien sur cette page n'appelle de fournisseur.",
         "captionStudio": "Verbatra Studio, le tableau de bord local : couverture par locale et chaque clé qui demande encore du travail."
+      },
+      "dogfood": "Les textes de l'interface de ce site en allemand, espagnol et français viennent de verbatra.",
+      "dogfoodLink": "Voir les fichiers de messages",
+      "command": {
+        "tablist": "Configurer verbatra",
+        "install": "Installer",
+        "prompt": "Prompt",
+        "promptHint": "Colle ceci dans ton agent de code.",
+        "installHint": "Exécute ceci dans ton projet."
+      },
+      "numbers": {
+        "formats": "formats de fichier",
+        "providers": "fournisseurs de traduction",
+        "locales": "langues traduites sur ce site"
       }
     },
     "terminal": {

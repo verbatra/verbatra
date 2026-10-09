@@ -96,6 +96,21 @@ describe("TabList", () => {
     expect(document.activeElement).toBe(tabs(first)[0]);
   });
 
+  it("jumps to the first tab with Home and the last with End", () => {
+    const onSelect = vi.fn();
+    const container = render(<TabList tabs={TABS} active="pnpm" onSelect={onSelect} />);
+
+    const end = press(container, "End");
+    expect(onSelect).toHaveBeenLastCalledWith("yarn");
+    expect(document.activeElement).toBe(tabs(container)[2]);
+    expect(end.defaultPrevented).toBe(true);
+
+    const home = press(container, "Home");
+    expect(onSelect).toHaveBeenLastCalledWith("npm");
+    expect(document.activeElement).toBe(tabs(container)[0]);
+    expect(home.defaultPrevented).toBe(true);
+  });
+
   it("ignores other keys", () => {
     const onSelect = vi.fn();
     const container = render(<TabList tabs={TABS} active="npm" onSelect={onSelect} />);

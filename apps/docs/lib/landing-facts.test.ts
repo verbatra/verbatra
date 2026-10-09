@@ -1,15 +1,16 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { GITHUB_URL } from "@/components/landing/links";
 import {
   FORMAT_COUNT,
-  HERO_FACTS,
-  LANDING_FACTS,
+  HERO_NUMBERS,
   MACHINE_PROVIDER_IDS,
   PROVIDER_COUNT,
   SUPPORTED_FORMAT_IDS,
+  TRANSLATED_LOCALE_COUNT,
+  VERSION_LINE,
 } from "@/lib/landing-facts";
+import { PACKAGE_VERSION } from "@/lib/site";
 
 function sourceOf(relativePath: string): string {
   return readFileSync(fileURLToPath(new URL(relativePath, import.meta.url)), "utf8");
@@ -57,14 +58,21 @@ describe("landing facts", () => {
     expect(MACHINE_PROVIDER_IDS).toEqual(keys);
   });
 
-  it("ends the hero facts on the GitHub repository, linked to the one GitHub URL", () => {
-    const last = HERO_FACTS.at(-1);
-    expect(last?.key).toBe("github");
-    expect(last?.href).toBe(GITHUB_URL);
-    expect(HERO_FACTS.slice(0, -1)).toEqual(LANDING_FACTS);
+  it("gives the hero three numbers: formats, providers and this site's translated locales", () => {
+    expect(HERO_NUMBERS).toEqual([
+      { key: "formats", value: FORMAT_COUNT },
+      { key: "providers", value: PROVIDER_COUNT },
+      { key: "locales", value: TRANSLATED_LOCALE_COUNT },
+    ]);
   });
 
-  it("keeps the GitHub row out of the social image facts", () => {
-    expect(LANDING_FACTS.map((fact) => fact.key)).not.toContain("github");
+  it("counts exactly the target locales of this site's own verbatra config", () => {
+    const block = /targetLocales: \[([^\]]*)\]/.exec(sourceOf("../verbatra.config.ts"))?.[1];
+    expect(block).toBeDefined();
+    expect(TRANSLATED_LOCALE_COUNT).toBe(quotedIn(block ?? "").length);
+  });
+
+  it("states the version and license as one plain line, with no release label", () => {
+    expect(VERSION_LINE).toBe(`v${PACKAGE_VERSION} · MIT`);
   });
 });

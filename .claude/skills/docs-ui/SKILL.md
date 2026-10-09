@@ -62,8 +62,8 @@ Three layers exist. Write against the third.
    Two brand hues, nothing else. Do not introduce a third brand hue casually. Beside them sit a
    few tints with one job each, never a general palette: `--v-glow-soft` (the lighter end of
    `--gradient-headline`, and flag tokens in `Terminal`), `--v-violet` (the far end of
-   `--gradient-headline` and one corner of `--wash-hero`), `--v-pink`
-   (through `--v-status-changed`, and a faint corner of `--wash-hero`), and `--v-status-new` / `--v-status-changed` /
+   `--gradient-headline`), `--v-pink`
+   (through `--v-status-changed`), and `--v-status-new` / `--v-status-changed` /
    `--v-status-unchanged` (the `tone` colors of `components/ui/badge.tsx`). Reach for one only in
    the role it already has.
 2. **Fumadocs overrides.** `--color-fd-background`, `--color-fd-card`, `--color-fd-popover`,
@@ -91,22 +91,19 @@ Scales are fixed and narrow, deliberately:
 
 - Radii: `--radius-sm` 6px, `--radius-md` 10px, and `--radius-lg`, `--radius-xl`,
   `--radius-2xl` all 12px. The large sizes collapsing to one value is intentional. Do not
-  reintroduce a spread. The one larger radius is `--radius-hero` (24px), for the landing hero
-  card (`.vk-hero-surface`) only.
+  reintroduce a spread. There is no larger radius: the landing hero sits on the page, in no card.
 - Shadows: `--shadow-panel` (a purple-tinted lift) and `--shadow-sm`. Two, not a ramp.
 - Layout: `--gutter` (40px from 768px up) via `.vk-gutter`, `--width-wide` via `.vk-w-wide`.
-  `--cta-height` (56px) is the minimum height of the hero's two calls to action (`.vk-hero-cta`
-  on "Get started", `.vk-prompt-trigger` on `PromptCopyButton`); `--width-prompt-pop` (30rem,
-  capped by `100cqw` of its container, never by `100vw`, which counts the scrollbar) is the width
-  of the `.vk-prompt-pop` preview;
-  `--width-hero-actions` (32rem) is the one width of the hero's call to action row
-  (`.vk-hero-cta-row`, two equal columns from 640px) and its install row (`.vk-hero-command`), and
-  the hero grid's centre column from 90rem, with `--hero-grid-column-gap` (2rem) between its
-  columns.
-- Motion: `--ease-out` with `--duration-fast` and `--duration-base` for transitions;
-  `--duration-drift` (32s) is the hero wash's `vk-hero-drift` loop, a `transform` on the
-  `.vk-hero-wash::before` layer (never a `background-position` animation), which runs only under
-  `prefers-reduced-motion: no-preference`.
+  `--cta-height` (56px) is the minimum height of `.vk-prompt-trigger` on `PromptCopyButton`;
+  `--width-prompt-pop` (30rem, capped by `100cqw` of its container, never by `100vw`, which counts
+  the scrollbar) is the width of the `.vk-prompt-pop` preview. `--width-hero-gutter` (fluid, 1.75
+  to 3rem) is the hero's locale-code column, which the caption and the hero body indent by from
+  40rem (not below, so a phone keeps the full width), and `--width-hero-panel` (36rem) the
+  command panel's maximum width and, from 80rem, its own column.
+- Motion: `--ease-out` with `--duration-fast` and `--duration-base` for transitions. The hero's
+  one load motion is `vk-locale-in`, a single opacity and transform reveal of the locale rows
+  (never the `h1`), declared only under `prefers-reduced-motion: no-preference`; the demo below
+  the hero keeps `.vk-rise`. Nothing on the landing loops.
 
 ## Typography
 
@@ -123,8 +120,10 @@ per component. Adding a fourth family needs a reason that survives review.
 
 The type scale is a major third (1.25) held in `app/global.css`: `--text-display`, `--text-h2`,
 `--text-h3`, `--text-h4`, `--text-lead`, with `--leading-*` and `--tracking-*` companions. Above
-it sits `--text-hero` (fluid, up to 6.5rem) with `--leading-hero` (0.95) and `--tracking-hero`
-(-0.045em), used only by the landing headline (`.vk-hero-title`). Landing
+it sits `--text-hero` (fluid, 2.5rem to 5rem) with `--weight-hero` (700), `--leading-hero` (1.04)
+and `--tracking-hero` (-0.03em), used only by the landing headline (`.vk-hero-title`), plus
+`--text-hero-locale` (1.25rem to 2rem) for the hero's locale rows and `--text-hero-number`
+(2.25rem to 3.25rem) for its numbers. Landing
 headings take the `.vk-display`, `.vk-h2`, `.vk-h3`, `.vk-h4` and `.vk-lead` classes (declared in
 `@layer components`, so a Tailwind utility still overrides them) rather than inline `fontSize` /
 `letterSpacing` styles. The docs page title, description and prose `h2` to `h4` sit on the same
@@ -142,8 +141,8 @@ footer's oversized watermark only; do not clip it onto a heading.
   `attempts`, so a repeated copy is announced again. `CopyButton` shows "Copied" or, in
   `--text-danger`, "Copy failed", and drops its `aria-label` while it does, so the visible status
   is its accessible name; `CommandLine` renders `CopyButton` rather than its own button.
-  `TabList` takes an `idPrefix` to wire `id` / `aria-controls` to `tabPanelId` panels and handles
-  arrow-key focus.
+  `TabList` takes an `idPrefix` to wire `id` / `aria-controls` to `tabPanelId` panels and moves
+  selection and focus with the arrow keys (wrapping), Home and End.
   `Button` takes `variant: "primary" | "secondary" | "ghost"` and `size: "sm" | "md" | "lg"`.
   Extend the variant union rather than passing ad hoc `className` overrides.
 - **Landing:** `components/landing/` holds the landing sections (`proof.tsx`, `control.tsx`,
@@ -178,16 +177,24 @@ footer's oversized watermark only; do not clip it onto a heading.
   or after a `/` or `.` inside a word, since `HighlightedCommand` keeps every other part of a word
   whole (a flag such as `--skill` never splits), and under 20rem the copy button drops below the
   command so the command keeps the full width),
-  `CommandRow` (`components/command-row.tsx`: the hero's npm install wraps under 30rem through
+  `CommandRow` (`components/command-row.tsx`: the hero panel's npm install wraps under 30rem through
   `wrapsWhenNarrow`; elsewhere a `CommandRow` scrolls sideways inside `.vk-edge-fade`: a mask,
-  not a painted background, so it stays see-through on the translucent hero, and the end fade
+  not a painted background, so it stays see-through on any surface, and the end fade
   shows only while the command overflows, driven by a scroll timeline), `AiSetupPrompt`
   (`components/ai-setup-prompt.tsx`: the whole prompt, wrapped, under a `.vk-label` caption that
   shares its row with the prompt's small Copy button; its URL breaks only after a path `/`,
   through `breakUrlsAtSlashes` in `lib/word-breaks.tsx`) and `PromptCopyButton` in the same file
-  (the large "Start with a prompt" button with the `.vk-prompt-pop` preview, used by the hero
-  and the docs home agent tip), `hero-facts.tsx` (the right-aligned mono release / formats / providers /
-  license / GitHub table, `HERO_FACTS` in `lib/landing-facts.ts`), and an `fx/` folder
+  (the large "Start with a prompt" button with the `.vk-prompt-pop` preview, used only by the docs
+  home agent tip), `command-panel.tsx` (the hero's one client island: a `.vk-command-panel` whose
+  `.vk-segmented` "Install | Prompt" `TabList` switches between the `CommandRow` for
+  `NPM_INSTALL_COMMAND` (counted as `copy-install-command`) and the whole `AI_SETUP_PROMPT`; both
+  panes are one `.vk-command-panel-pane` shape, a muted hint row with its `CopyButton` on the right,
+  then the content at full width, top-aligned, and the prompt keeps each `npx` run and each long
+  flag with its value on one line (`keepPackageRunsWhole`); the closed pane is `inert`, hidden
+  under 40rem (a phone panel resizes on a switch) and from 40rem shares one grid cell of
+  `.vk-command-panel-body` with `visibility: hidden`, so the panel keeps the taller pane's height
+  and nothing below it moves, and a switch counts
+  `hero-command-tab`), and an `fx/` folder
   (`grid-pattern.ts`). A new
   section composes `Section` plus `SectionHead`; it does not re-derive page padding or
   heading rhythm. Check `ls apps/docs/components/landing` before quoting a file name from
@@ -295,8 +302,8 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
   viewport, so it is fetched before the first paint either way; without the preload it is only
   discovered after the stylesheet, at a higher priority that delays the first contentful paint.
 - Content only needed after an interaction is loaded with a dynamic `import()` on hover, focus,
-  or click. The AI setup prompt is not: it is short, and its text ships in the page as the
-  `PromptCopyButton` preview.
+  or click. The AI setup prompt is not: it is short, and its text ships in the page, in the hero
+  command panel's Prompt tab and the `PromptCopyButton` preview.
 
 ## Fumadocs UI strings
 
@@ -347,23 +354,36 @@ the landing page recognizes the same product. The shared vocabulary, and where e
 comes from:
 
 - **Solid white display headlines.** `LandingHero` and the docs home header both set a solid
-  `--text-strong` headline; only `LandingHero` sits on the `.vk-hero-surface` card (`--border-hero`, `--radius-hero`, and
-  `z-index: 1` so its prompt preview paints above the demo below it; inside it the void
-  `.vk-hero-wash` layer clips the drifting `--wash-hero` `::before` and the `--grain-hero` `::after`
-  at `--grain-hero-opacity`) with the
-  `HeroFacts` table and a `.vk-hero-title` headline at `--text-hero`. Inside it, `.vk-hero-grid`
-  is one column, and from 90rem (below it the facts of the longest locale do not fit beside the
-  actions) a three-column grid with `.vk-hero-head` across the top and
-  `.vk-hero-actions` and `.vk-hero-facts` (the right-aligned mono `.vk-hero-facts-table`, its terms
-  and values never wrapping, stretched from 90rem so its first row lines up with the call to action row and
-  its last with the install row) on the second row; `.vk-hero-lead` is the mono lead and `.vk-hero-command` the void-tinted npm install
-  row. `PromptCopyButton` is `.vk-prompt` (`.vk-prompt-trigger`, `.vk-prompt-pop` holding the exact
+  `--text-strong` headline. `LandingHero` sits straight on the void page (no card, wash or
+  grain) and is left-aligned: `.vk-hero-lines` holds `.vk-hero-line` rows on a two-column grid
+  (`--width-hero-gutter`, then the text, baseline-aligned), the first the server-rendered `h1`
+  (`.vk-hero-title`) beside its page locale code (`.vk-hero-code-source`, `--accent`), then a
+  `.vk-hero-locales` list of the same headline in two other locales (`heroLocaleRows` in
+  `lib/hero-lines.ts`, read from `messages/*.json`, each `li` with its `lang`), dimmed to
+  `--text-muted` beside a mono `--text-faint` code, with no box, flag or connector; only the
+  first row shows under 40rem. `.vk-hero-caption` links this site's message files. Under it
+  `.vk-hero-body` stacks `.vk-hero-intro` (the sans `.vk-lead.vk-hero-lead` and the one "Get
+  started" button), `.vk-hero-panel` (`CommandPanel`) and `.vk-hero-numbers-row` (at most three
+  `HERO_NUMBERS` from `lib/landing-facts.ts` as `.vk-hero-number-value` numerals over a label,
+  and `VERSION_LINE` (`v<version> · MIT`) as `.vk-hero-release` small text, with no label); from
+  80rem the panel takes its own column beside the intro and the numbers. The home social image
+  (`HomeOgFrame` in `lib/og-image.tsx`) repeats this look with `OG_PALETTE`, which mirrors these
+  tokens, and the subset Space Grotesk and JetBrains Mono files in `assets/og-fonts/`
+  (`lib/og-fonts.ts`), stripped of their kerning tables, since satori turns kerning into doubled
+  word gaps; its headline wraps with `textWrap: "balance"`, and `lib/og-image.test.tsx` fails when
+  a font lacks a glyph the image draws. Provenance: Space Grotesk 2.000 (`SpaceGrotesk-Medium.ttf`,
+  `SpaceGrotesk-Bold.ttf` from
+  `https://github.com/floriankarsten/space-grotesk/tree/master/fonts/ttf/static`) and JetBrains
+  Mono 2.305 (`JetBrainsMono-Regular.ttf` from
+  `https://github.com/JetBrains/JetBrainsMono/tree/master/fonts/ttf`), both OFL 1.1 with the
+  licence beside them, each subset with fontTools:
+  `pyftsubset <upstream>.ttf --unicodes="U+0020-007E,U+00A0-017F,U+2018-201E,U+2026"
+  --layout-features="" --no-hinting --drop-tables+=GPOS,GSUB,kern,DSIG --output-file=<name>.ttf`.
+  A new character outside those ranges in a headline or number label needs the subset rerun. `PromptCopyButton` is `.vk-prompt` (`.vk-prompt-trigger`, `.vk-prompt-pop` holding the exact
   prompt in `.vk-prompt-text`, sans `--text-xs` with a hanging indent per numbered line, its URL
   broken only after a path `/` and each flag, and the value after it (`--skill verbatra-cli`), kept whole through `breakUrlsAtSlashes(text,
   keepFlagsWhole)`), whose preview opens on hover and on keyboard focus, CSS only, and stays shut
-  once dismissed (`data-dismissed`). In the hero the preview is centred under the whole
-  `.vk-hero-cta-row`, not the trigger, capped by `100cqw` of the hero card (`container: vk-hero`),
-  so it never leaves the card. A copy announces "copied" (again on every copy) or, when the
+  once dismissed (`data-dismissed`). A copy announces "copied" (again on every copy) or, when the
   clipboard refuses, the short "Copy failed" (`landing.install.copyFailed`) in its polite live region, while the
   tooltip alone carries the full reason, so the failure is not read twice, and counts `copy-ai-prompt` only
   on success. A failure turns the trigger `--text-danger` with an alert icon and holds the preview
@@ -446,8 +466,8 @@ comes from:
   `` ```verbatra-run `` fence (`RUN_FENCE_LANG`) holds only the arguments (`<command>`) and
   becomes the same tabs with the binary each manager runs (`npx @verbatra/cli`, `pnpm verbatra`,
   `yarn verbatra`, `bun run verbatra`), sharing the remembered choice; `cli/index` uses it. The
-  landing hero's install row takes `NPM_INSTALL_COMMAND` from `lib/install-commands.ts` and shows
-  no tabs; the docs home has no install box (its Quickstart tab and agent tip lead there).
+  landing hero's command panel takes `NPM_INSTALL_COMMAND` from `lib/install-commands.ts` and shows
+  no package-manager tabs; the docs home has no install box (its Quickstart tab and agent tip lead there).
 - **Output blocks**: a fence flagged `output` (`` ```text output ``) is what a command prints, not
   something to run. The flag, not a title, is the marker, so it reads the same in every locale:
   `parseCodeBlockMeta` (`lib/code-block-meta.ts`, wired as `rehypeCodeOptions.parseMetaString` in

@@ -8,6 +8,7 @@ import {
   keepCompoundsWhole,
   keepFlagsWhole,
   keepLinkLabelWhole,
+  keepPackageRunsWhole,
 } from "./word-breaks";
 
 function markup(text: ReactNode): string {
@@ -171,6 +172,25 @@ describe("keepFlagsWhole", () => {
   it("applies to the text around a URL when breakUrlsAtSlashes is given it", () => {
     expect(markup(breakUrlsAtSlashes("see https://a.de/x (or --help)", keepFlagsWhole))).toBe(
       `<span>see ${NOWRAP("https://a.de/")}<wbr/>${NOWRAP("x")} (or ${NOWRAP("--help)")}</span>`,
+    );
+  });
+});
+
+describe("keepPackageRunsWhole", () => {
+  it("keeps npx, its flags and the package it runs on one line, and a long flag with its value", () => {
+    expect(
+      markup(keepPackageRunsWhole("Run: npx -y skills@latest add x/y --skill verbatra-cli -y")),
+    ).toBe(
+      `<span>Run: ${NOWRAP("npx -y skills@latest")} add x/y ${NOWRAP("--skill verbatra-cli")} ${NOWRAP("-y")}</span>`,
+    );
+    expect(markup(keepPackageRunsWhole("(if it fails: npx @verbatra/cli init --help)"))).toBe(
+      `<span>(if it fails: ${NOWRAP("npx @verbatra/cli")} init ${NOWRAP("--help)")}</span>`,
+    );
+  });
+
+  it("falls back to keepFlagsWhole when no npx run is in the text", () => {
+    expect(markup(keepPackageRunsWhole("add x --help"))).toBe(
+      markup(keepFlagsWhole("add x --help")),
     );
   });
 });

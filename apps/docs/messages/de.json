@@ -10,15 +10,8 @@
     },
     "hero": {
       "headline": "Übersetze nur, was sich ändert.",
-      "lead": "verbatra gleicht gegen eine eingecheckte Lock-Datei ab und übersetzt nur neue oder geänderte Keys.",
+      "lead": "Die eingecheckte Lock-Datei entscheidet, welche Keys sich geändert haben, und jede Übersetzung wird auf intakte Platzhalter geprüft, bevor verbatra sie schreibt.",
       "ctaStart": "Loslegen",
-      "facts": {
-        "release": "Neuestes Release",
-        "formats": "Dateiformate",
-        "providers": "Provider",
-        "license": "Lizenz",
-        "github": "Quellcode"
-      },
       "demo": {
         "tablistLabel": "Demo",
         "cli": "Terminal",
@@ -27,6 +20,20 @@
         "sessionLabel": "verbatra check meldet in jeder der drei Locales einen fehlenden und einen veralteten Key, verbatra translate schickt pro Locale nur diese zwei Keys an den Provider, und ein zweiter check meldet alle Locales als synchron.",
         "caption": "Ausgabe der echten CLI in einem Projekt mit acht Keys. Nichts auf dieser Seite ruft einen Provider auf.",
         "captionStudio": "Verbatra Studio, das lokale Dashboard: Abdeckung pro Locale und jeder Key, der noch Arbeit braucht."
+      },
+      "dogfood": "Die Oberflächentexte dieser Seite auf Deutsch, Spanisch und Französisch kommen von verbatra.",
+      "dogfoodLink": "Sieh dir die Message-Dateien an",
+      "command": {
+        "tablist": "verbatra einrichten",
+        "install": "Installieren",
+        "prompt": "Prompt",
+        "promptHint": "Füge das in deinen Coding-Agenten ein.",
+        "installHint": "Führe das in deinem Projekt aus."
+      },
+      "numbers": {
+        "formats": "Dateiformate",
+        "providers": "Übersetzungs-Provider",
+        "locales": "übersetzte Sprachen auf dieser Seite"
       }
     },
     "terminal": {

@@ -2,6 +2,7 @@ import type { LocalizedAnchors } from "@/lib/i18n";
 
 export const GITHUB_URL = "https://github.com/verbatra/verbatra";
 export const RELEASES_URL = `${GITHUB_URL}/releases`;
+export const SITE_MESSAGES_URL = `${GITHUB_URL}/tree/main/apps/docs/messages`;
 export const NPM_CLI = "https://www.npmjs.com/package/@verbatra/cli";
 export const NPM_SDK = "https://www.npmjs.com/package/@verbatra/sdk";
 export const NPM_STUDIO = "https://www.npmjs.com/package/@verbatra/studio";

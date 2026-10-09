@@ -26,19 +26,30 @@ export function tabPanelId(prefix: string, id: string): string {
   return `${prefix}-panel-${id}`;
 }
 
+function targetIndex(key: string, current: number, count: number): number | undefined {
+  if (key === "Home") return 0;
+  if (key === "End") return count - 1;
+  const step = STEP_BY_KEY[key];
+  if (step === undefined) return undefined;
+  return (current + step + count) % count;
+}
+
 function focusSibling(
   event: KeyboardEvent<HTMLDivElement>,
   tabs: ReadonlyArray<TabItem>,
   active: string,
 ): string | undefined {
-  const step = STEP_BY_KEY[event.key];
-  if (step === undefined) return undefined;
-  const index = tabs.findIndex((tab) => tab.id === active);
-  const next = tabs[(index + step + tabs.length) % tabs.length];
+  const index = targetIndex(
+    event.key,
+    tabs.findIndex((tab) => tab.id === active),
+    tabs.length,
+  );
+  if (index === undefined) return undefined;
+  const next = tabs[index];
   if (!next) return undefined;
   event.preventDefault();
   const buttons = event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]');
-  buttons[tabs.indexOf(next)]?.focus();
+  buttons[index]?.focus();
   return next.id;
 }
 

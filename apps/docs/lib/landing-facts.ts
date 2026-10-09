@@ -1,6 +1,6 @@
 import type { ProviderId, SupportedFormat } from "@verbatra/sdk";
-import { GITHUB_URL } from "@/components/landing/links";
 import type { StackIconKey } from "@/components/stack-icons";
+import { i18n } from "./i18n";
 import { PACKAGE_VERSION } from "./site";
 
 export type FormatDisplay = { readonly label: string; readonly icon: StackIconKey };
@@ -40,20 +40,16 @@ export const MACHINE_PROVIDER_IDS = Object.keys(PROVIDER_IDS) as ReadonlyArray<M
 export const FORMAT_COUNT = SUPPORTED_FORMAT_IDS.length;
 export const PROVIDER_COUNT = MACHINE_PROVIDER_IDS.length;
 
-export type LandingFactKey = "release" | "formats" | "providers" | "license" | "github";
+export const TRANSLATED_LOCALE_COUNT = i18n.languages.length - 1;
 
-export type LandingFact = { key: LandingFactKey; value: string; href?: string };
+export type HeroNumberKey = "formats" | "providers" | "locales";
 
-export const GITHUB_REPOSITORY = "verbatra/verbatra";
+export type HeroNumber = { readonly key: HeroNumberKey; readonly value: number };
 
-export const LANDING_FACTS: ReadonlyArray<LandingFact> = [
-  { key: "release", value: `@verbatra/cli ${PACKAGE_VERSION}` },
-  { key: "formats", value: String(FORMAT_COUNT) },
-  { key: "providers", value: String(PROVIDER_COUNT) },
-  { key: "license", value: "MIT" },
+export const HERO_NUMBERS: ReadonlyArray<HeroNumber> = [
+  { key: "formats", value: FORMAT_COUNT },
+  { key: "providers", value: PROVIDER_COUNT },
+  { key: "locales", value: TRANSLATED_LOCALE_COUNT },
 ];
 
-export const HERO_FACTS: ReadonlyArray<LandingFact> = [
-  ...LANDING_FACTS,
-  { key: "github", value: GITHUB_REPOSITORY, href: GITHUB_URL },
-];
+export const VERSION_LINE = `v${PACKAGE_VERSION} · MIT`;
