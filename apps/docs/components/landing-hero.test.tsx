@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -35,6 +35,30 @@ vi.mock("@/components/landing/command-panel", () => ({
 }));
 
 const { LandingHero } = await import("./landing-hero");
+
+function componentImports(source: string): ReadonlyArray<string> {
+  return [...source.matchAll(/from "(@\/components\/[^"]+)"/g)].map(([, path]) => path ?? "");
+}
+
+function componentSource(path: string): string {
+  const base = join(process.cwd(), path.replace("@/", ""));
+  const file = [".tsx", ".ts"].map((extension) => `${base}${extension}`).find(existsSync);
+  if (file === undefined) throw new Error(`no source for ${path}`);
+  return readFileSync(file, "utf8");
+}
+
+function clientIslands(source: string): ReadonlyArray<string> {
+  const islands = new Set<string>();
+  const visit = (code: string) => {
+    for (const path of componentImports(code)) {
+      const imported = componentSource(path);
+      if (imported.startsWith('"use client"')) islands.add(path);
+      else visit(imported);
+    }
+  };
+  visit(source);
+  return [...islands].toSorted();
+}
 
 const GLOBAL_CSS = readFileSync(join(process.cwd(), "app/global.css"), "utf8");
 const FLAT_CSS = GLOBAL_CSS.replace(/\s+/g, " ");
@@ -302,23 +326,14 @@ describe("LandingHero: largest contentful paint", () => {
     expect(GLOBAL_CSS).not.toContain("vk-locale-in");
   });
 
-  it("keeps the hero server-rendered with the command panel as its only client island", () => {
-    const panel = readFileSync(join(process.cwd(), "components/landing/command-panel.tsx"), "utf8");
-    expect(panel.startsWith('"use client"')).toBe(true);
+  it("keeps the hero server-rendered with the command panel and the tracked links as its client islands", () => {
     const ledger = readFileSync(
       join(process.cwd(), "components/landing/locale-ledger.tsx"),
       "utf8",
     );
     expect(ledger.startsWith('"use client"')).toBe(false);
-    const imports = [...HERO_SOURCE.matchAll(/from "(@\/components\/[^"]+)"/g)].map(
-      ([, path]) => path,
-    );
-    expect(imports).toEqual([
+    expect(clientIslands(HERO_SOURCE)).toEqual([
       "@/components/landing/command-panel",
-      "@/components/landing/fx/grid-pattern",
-      "@/components/landing/links",
-      "@/components/landing/locale-ledger",
-      "@/components/ui/button",
       "@/components/ui/tracked-link",
     ]);
   });

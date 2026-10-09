@@ -16,7 +16,7 @@
       "dogfood": "Les textes de l'interface de ce site en allemand, espagnol et français viennent de verbatra.",
       "dogfoodLink": "Voir les fichiers de messages",
       "ledger": {
-        "caption": "Le titre ci-dessus, tel que le gardent les fichiers de messages et le fichier de verrouillage de ce site."
+        "caption": "Ce titre, tel que le gardent les fichiers de messages et le fichier de verrouillage de ce site."
       },
       "command": {
         "tablist": "Configurer verbatra",
@@ -28,6 +28,11 @@
       "facts": {
         "formats": "formats",
         "providers": "fournisseurs + none"
+      },
+      "og": {
+        "formats": "formats de fichier",
+        "providers": "fournisseurs de traduction",
+        "locales": "langues traduites sur ce site"
       }
     },
     "terminal": {

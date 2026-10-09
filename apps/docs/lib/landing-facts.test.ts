@@ -2,13 +2,16 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { LICENSE_URL, RELEASES_URL } from "@/components/landing/links";
+import { i18n } from "@/lib/i18n";
 import {
   FORMAT_COUNT,
   HERO_COUNT_FACTS,
   HERO_FACTS,
   MACHINE_PROVIDER_IDS,
+  OG_COUNT_FACTS,
   PROVIDER_COUNT,
   SUPPORTED_FORMAT_IDS,
+  TRANSLATED_LOCALE_COUNT,
 } from "@/lib/landing-facts";
 import { PACKAGE_VERSION } from "@/lib/site";
 
@@ -73,5 +76,14 @@ describe("landing facts", () => {
       const page = fact.path.replace("/docs/", "");
       expect(() => sourceOf(`../content/docs/(configure)/${page}.mdx`)).not.toThrow();
     }
+  });
+
+  it("gives the social image its own three counts, the translated locales among them", () => {
+    expect(TRANSLATED_LOCALE_COUNT).toBe(i18n.languages.length - 1);
+    expect(OG_COUNT_FACTS).toEqual([
+      { key: "formats", value: FORMAT_COUNT },
+      { key: "providers", value: PROVIDER_COUNT },
+      { key: "locales", value: TRANSLATED_LOCALE_COUNT },
+    ]);
   });
 });

@@ -8,7 +8,7 @@ import {
   sampleLines,
   splitOnPlaceholder,
 } from "@/lib/format-samples";
-import { type Locale, localizedPath } from "@/lib/i18n";
+import { localizedPath, toLocale } from "@/lib/i18n";
 import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { STACK_FRAMEWORKS } from "@/lib/stack-formats";
 import { FormatSwitch } from "./format-switch";
@@ -57,7 +57,7 @@ function SamplePane({ id, sample }: { id: string; sample: FormatSample }): React
 
 export async function Formats(): Promise<ReactNode> {
   const t = await getTranslations("landing.formats");
-  const locale = (await getLocale()) as Locale;
+  const locale = toLocale(await getLocale());
 
   return (
     <Section width="wide" rhythm="md" id="formats">

@@ -16,7 +16,7 @@
       "dogfood": "Die Oberflächentexte dieser Seite auf Deutsch, Spanisch und Französisch kommen von verbatra.",
       "dogfoodLink": "Sieh dir die Message-Dateien an",
       "ledger": {
-        "caption": "Die Überschrift oben, so wie sie in den Message-Dateien und der Lock-Datei dieser Seite steht."
+        "caption": "Diese Überschrift, so wie sie in den Message-Dateien und der Lock-Datei dieser Seite steht."
       },
       "command": {
         "tablist": "verbatra einrichten",
@@ -28,6 +28,11 @@
       "facts": {
         "formats": "Formate",
         "providers": "Provider + none"
+      },
+      "og": {
+        "formats": "Dateiformate",
+        "providers": "Übersetzungs-Provider",
+        "locales": "übersetzte Sprachen auf dieser Seite"
       }
     },
     "terminal": {

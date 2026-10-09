@@ -8,7 +8,7 @@ import es from "../messages/es.json";
 import fr from "../messages/fr.json";
 import { HERO_HEADLINES, heroLocaleRows } from "./hero-ledger";
 import { i18n } from "./i18n";
-import { HERO_COUNT_FACTS } from "./landing-facts";
+import { OG_COUNT_FACTS } from "./landing-facts";
 import { loadOgFonts, OG_FONT_DIR, OG_FONT_FILES } from "./og-fonts";
 import { gutterOffset, HomeOgFrame, OG_FONT, OG_PALETTE, titleFontSize } from "./og-image";
 import { SITE_URL } from "./site";
@@ -179,8 +179,8 @@ describe("OG font coverage", () => {
   const catalogs = { en, de, es, fr } as const;
   const drawn = [
     ...Object.values(HERO_HEADLINES),
-    ...i18n.languages.flatMap((locale) => Object.values(catalogs[locale].landing.hero.facts)),
-    ...HERO_COUNT_FACTS.map((fact) => String(fact.value)),
+    ...i18n.languages.flatMap((locale) => Object.values(catalogs[locale].landing.hero.og)),
+    ...OG_COUNT_FACTS.map((fact) => String(fact.value)),
     ...i18n.languages,
     new URL(SITE_URL).host,
     "VERBATRA",

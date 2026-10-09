@@ -16,7 +16,7 @@
       "dogfood": "Los textos de la interfaz de este sitio en alemán, español y francés vienen de verbatra.",
       "dogfoodLink": "Mira los archivos de mensajes",
       "ledger": {
-        "caption": "El titular de arriba, tal como lo guardan los archivos de mensajes y el archivo de bloqueo de este sitio."
+        "caption": "Este titular, tal como lo guardan los archivos de mensajes y el archivo de bloqueo de este sitio."
       },
       "command": {
         "tablist": "Configura verbatra",
@@ -28,6 +28,11 @@
       "facts": {
         "formats": "formatos",
         "providers": "proveedores + none"
+      },
+      "og": {
+        "formats": "formatos de archivo",
+        "providers": "proveedores de traducción",
+        "locales": "idiomas traducidos en este sitio"
       }
     },
     "terminal": {

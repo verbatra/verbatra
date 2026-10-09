@@ -63,7 +63,7 @@
       "dogfood": "This site's interface strings in German, Spanish and French come from verbatra.",
       "dogfoodLink": "See the message files",
       "ledger": {
-        "caption": "The headline above, as this site's message files and lock file hold it."
+        "caption": "This headline, as this site's message files and lock file hold it."
       },
       "lead": "The committed lock file decides which keys changed, and every translation is checked for intact placeholders before verbatra writes it.",
       "ctaStart": "Get started",
@@ -78,6 +78,11 @@
       "facts": {
         "formats": "formats",
         "providers": "providers + none"
+      },
+      "og": {
+        "formats": "file formats",
+        "providers": "translation providers",
+        "locales": "languages translated on this site"
       }
     },
     "showcase": {

@@ -297,7 +297,8 @@ footer's oversized watermark only; do not clip it onto a heading.
   shares its row with the prompt's small Copy button; its URL breaks only after a path `/`,
   through `breakUrlsAtSlashes` in `lib/word-breaks.tsx`) and `PromptCopyButton` in the same file
   (the large "Start with a prompt" button with the `.vk-prompt-pop` preview, used only by the docs
-  home agent tip), `command-panel.tsx` (the hero's one client island: a `.vk-command-panel` whose
+  home agent tip), `command-panel.tsx` (one of the hero's two client islands, beside the `TrackedLink` its buttons
+  and count facts render; `components/landing-hero.test.tsx` pins exactly that set: a `.vk-command-panel` whose
   segmented "Install | Prompt" `TabList` switches between the `CommandRow` for
   `NPM_INSTALL_COMMAND` (counted as `copy-install-command`) and the whole `AI_SETUP_PROMPT`; both
   panes are one `.vk-command-panel-pane` shape, a muted hint row with its `CopyButton` on the right,
@@ -570,8 +571,10 @@ comes from:
   licence beside them, each subset with fontTools:
   `pyftsubset <upstream>.ttf --unicodes="U+0020-007E,U+00A0-017F,U+2018-201E,U+2026"
   --layout-features="" --no-hinting --drop-tables+=GPOS,GSUB,kern,DSIG --output-file=<name>.ttf`.
-  The image keeps its own composition: the headline, two other locales (`heroLocaleRows`) and
-  the two count facts labelled from `landing.hero.facts`.
+  The image keeps its own composition and its own labels: the headline, two other locales
+  (`heroLocaleRows`) and three counts (`OG_COUNT_FACTS` in `lib/landing-facts.ts`: formats,
+  providers and the locales this site translates) labelled from `landing.hero.og`, never from
+  the hero's facts row.
   A new character outside those ranges in a headline or number label needs the subset rerun. `PromptCopyButton` is `.vk-prompt` (`.vk-prompt-trigger`, `.vk-prompt-pop` holding the exact
   prompt in `.vk-prompt-text`, sans `--text-xs` with a hanging indent per numbered line, its URL
   broken only after a path `/` and each flag, and the value after it (`--skill verbatra-cli`), kept whole through `breakUrlsAtSlashes(text,

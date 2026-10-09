@@ -1,6 +1,7 @@
 import type { ProviderId, SupportedFormat } from "@verbatra/sdk";
 import { LICENSE_URL, RELEASES_URL } from "@/components/landing/links";
 import type { StackIconKey } from "@/components/stack-icons";
+import { i18n } from "./i18n";
 import { PACKAGE_VERSION } from "./site";
 
 export type FormatDisplay = { readonly label: string; readonly icon: StackIconKey };
@@ -68,3 +69,15 @@ export function isCountFact(fact: HeroFact): fact is HeroCountFact {
 }
 
 export const HERO_COUNT_FACTS: ReadonlyArray<HeroCountFact> = HERO_FACTS.filter(isCountFact);
+
+export const TRANSLATED_LOCALE_COUNT = i18n.languages.length - 1;
+
+export type OgCountKey = "formats" | "providers" | "locales";
+
+export type OgCountFact = { readonly key: OgCountKey; readonly value: number };
+
+export const OG_COUNT_FACTS: ReadonlyArray<OgCountFact> = [
+  { key: "formats", value: FORMAT_COUNT },
+  { key: "providers", value: PROVIDER_COUNT },
+  { key: "locales", value: TRANSLATED_LOCALE_COUNT },
+];
