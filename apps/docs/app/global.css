@@ -94,7 +94,7 @@ samp {
   --text-hero-locale: clamp(1.25rem, 0.9rem + 1.3vw, 2rem);
   --text-hero-number: clamp(2.25rem, 1.6rem + 1.8vw, 3.25rem);
   --text-display: clamp(3.25rem, 1.4rem + 5.4vw, 5.75rem);
-  --text-h2: clamp(2.1rem, 1.3rem + 3.2vw, 3.8rem);
+  --text-h2: clamp(1.9rem, 1.3rem + 2vw, 3rem);
   --text-h3: clamp(1.4rem, 1.1rem + 1.2vw, 1.95rem);
   --text-h4: 1.25rem;
   --text-lead: clamp(1.0625rem, 1rem + 0.35vw, 1.25rem);
@@ -156,12 +156,9 @@ samp {
 
   --cta-height: 3.5rem;
 
-  --wash-globe: radial-gradient(
-    circle at 50% 45%,
-    rgba(179, 157, 219, 0.22),
-    rgba(124, 77, 255, 0.06) 60%,
-    transparent 100%
-  );
+  --grid-columns: 12;
+  --grid-gap: 1.5rem;
+  --hero-grid-mask: linear-gradient(to bottom, #000 0%, transparent 85%);
 
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
@@ -208,6 +205,11 @@ samp {
   --accent-fill: var(--v-purple);
   --accent-fill-fg: hsl(290 60% 98%);
   --focus-ring: var(--v-glow);
+  --surface-band: color-mix(in srgb, var(--surface-card) 40%, var(--surface-bg));
+  --placeholder-fg: var(--accent);
+  --placeholder-fill: color-mix(in srgb, var(--v-glow) 12%, transparent);
+  --placeholder-ring: color-mix(in srgb, var(--v-glow) 45%, transparent);
+  --placeholder-inset: 0.25ch;
 }
 
 @media (width < 40rem) {
@@ -290,6 +292,40 @@ samp {
 
 .vk-w-content {
   max-width: var(--width-content);
+}
+
+.vk-grid-12 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--grid-gap);
+}
+
+@media (min-width: 64rem) {
+  .vk-grid-12 {
+    grid-template-columns: repeat(var(--grid-columns), minmax(0, 1fr));
+  }
+
+  .vk-grid-12 > * {
+    grid-column: span var(--grid-span, var(--grid-columns));
+  }
+}
+
+.vk-placeholder {
+  margin-inline: calc(-1 * var(--placeholder-inset));
+  padding-inline: var(--placeholder-inset);
+  border-radius: var(--radius-sm);
+  background: var(--placeholder-fill);
+  box-shadow: inset 0 0 0 1px var(--placeholder-ring);
+  color: var(--placeholder-fg);
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.vk-placeholder[data-broken] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--border-danger);
+  color: var(--text-danger);
+  text-decoration: line-through;
 }
 
 .vk-rhythm-lg {

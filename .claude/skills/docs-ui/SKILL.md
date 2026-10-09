@@ -101,7 +101,20 @@ Scales are fixed and narrow, deliberately:
   48rem the codes hang in the margin by that width, so the `h1`, caption and body start on the
   same left edge as every section heading (the hero is a `.vk-w-wide` column like the sections),
   and `--width-hero-panel` (36rem) the
-  command panel's maximum width and, from 80rem, its own column.
+  command panel's maximum width and, from 80rem, its own column. `.vk-grid-12` is the landing
+  grid: one column under 64rem, then `--grid-columns` (12) columns with a `--grid-gap` (24px)
+  gap, where each child spans `--grid-span` columns (the full row when unset).
+- Surfaces added for the landing redesign: `--surface-band` (the raised band behind alternating
+  landing sections, mixed from `--surface-card` and `--surface-bg`, never a raw value) and
+  `--hero-grid-mask` (the fade that masks the static `fx/grid-pattern.ts` blueprint grid behind
+  the hero only). There is no wash token: the former `--wash-globe` is gone.
+- Placeholder chip: `PlaceholderChip` (`components/landing/placeholder-chip.tsx`, the `.vk-placeholder`
+  class) is the page's one signature motif, a locked placeholder token (`{{amount}}`, `{count}`)
+  drawn the same way in every pane: `--placeholder-fg` (`--accent`) on `--placeholder-fill` inside
+  an inset `--placeholder-ring` box shadow, never a border. It pads the token by
+  `--placeholder-inset` and pulls the same amount back with a negative margin, so a chip moves no
+  character of a monospace line, and it never wraps. `data-broken` strikes it in `--text-danger`,
+  only for a token a reply broke.
 - Motion: see "Landing motion" below for the system. Its tokens: `--ease-out` (entrances and
   state changes) and `--ease-in-out` (demo fills), `--duration-fast` (140ms, hover and press),
   `--duration-base` (240ms, state change), `--duration-reveal` (560ms, entrances),
@@ -130,8 +143,8 @@ Three families, loaded in `app/[lang]/layout.tsx` through `next/font/google`:
 `h1` through `h6` are globally bound to `--font-display`. You do not set a heading font
 per component. Adding a fourth family needs a reason that survives review.
 
-The type scale is a major third (1.25) held in `app/global.css`: `--text-display`, `--text-h2`,
-`--text-h3`, `--text-h4`, `--text-lead`, with `--leading-*` and `--tracking-*` companions. Above
+The type scale is a major third (1.25) held in `app/global.css`: `--text-display`, `--text-h2`
+(capped at 3rem, read only by `.vk-h2`), `--text-h3`, `--text-h4`, `--text-lead`, with `--leading-*` and `--tracking-*` companions. Above
 it sits `--text-hero` (fluid, 2.5rem to 5rem) with `--weight-hero` (700), `--leading-hero` (1.04)
 and `--tracking-hero` (-0.03em), used only by the landing headline (`.vk-hero-title`), plus
 `--text-hero-locale` (1.25rem to 2rem) for the hero's locale rows and `--text-hero-number`
