@@ -309,6 +309,12 @@
           "remove": "Quitar una clave",
           "break": "Romper un placeholder"
         },
+        "breaksLabel": "Cómo lo rompe la respuesta",
+        "breaks": {
+          "drop": "Omite {token}",
+          "rename": "Lo renombra a {token}",
+          "add": "Añade {token}"
+        },
         "reset": "Restablecer",
         "marks": {
           "edited": "editada",

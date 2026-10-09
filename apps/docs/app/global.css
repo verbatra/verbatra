@@ -1802,6 +1802,7 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   grid-template-columns: minmax(0, 1fr);
   grid-template-areas:
     "scenarios"
+    "breaks"
     "switch"
     "file"
     "outcome"
@@ -1824,6 +1825,50 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   padding: 1rem;
   border: 0;
   background: var(--v-void);
+}
+
+.vk-showcase-breaks {
+  grid-area: breaks;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 1rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0.625rem 1rem;
+  border: 0;
+  background: var(--v-void);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.vk-showcase-breaks-label {
+  float: left;
+  padding: 0;
+  color: var(--text-faint);
+}
+
+.vk-showcase-break {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+
+.vk-showcase-break:has(:checked) {
+  color: var(--text-strong);
+}
+
+.vk-showcase-break-input {
+  accent-color: var(--accent-fill);
+}
+
+.vk-showcase-break-input:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 
 .vk-showcase-actions {
@@ -2073,6 +2118,7 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
     grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-template-areas:
       "bar bar"
+      "breaks breaks"
       "source target"
       "lock outcome";
   }

@@ -15,11 +15,13 @@ import { runShowcaseScenario, type ShowcaseOutcome, showcaseSeed } from "@/lib/s
 import {
   applyShowcaseChange,
   type JsonTree,
+  SHOWCASE_BREAKS,
   SHOWCASE_CHANGES,
   SHOWCASE_SCENARIOS,
   SHOWCASE_SOURCE,
   SHOWCASE_TARGET,
   SHOWCASE_TARGET_LOCALE,
+  showcaseChange,
   showcaseKey,
 } from "@/lib/showcase-seed";
 import { renderHuman } from "../../../packages/cli/src/render";
@@ -109,6 +111,29 @@ describe("the showcase output pane prints what verbatra translate prints", () =>
       (locale?.translated.length ?? 0) + (locale?.integrityMismatches.length ?? 0),
     );
   });
+
+  it.each(SHOWCASE_BREAKS)(
+    "prints the break run where the reply %ss a placeholder",
+    async (reply) => {
+      const dir = await seededProject();
+      const change = showcaseChange("break", reply);
+      await writeFile(
+        join(dir, "locales/en.json"),
+        JSON.stringify(applyShowcaseChange(SHOWCASE_SOURCE, change)),
+      );
+      const summary = await translate(
+        { config: CONFIG, cwd: dir },
+        {
+          createProvider: stubProvider(
+            new Map([[showcaseKey(change.path), change.candidate ?? ""]]),
+          ),
+        },
+      );
+      const outcome = runShowcaseScenario("break", reply);
+      expect(outcome.refusal).not.toBeNull();
+      expect(showcaseRunLines(outcome)).toEqual(printed(summary));
+    },
+  );
 
   it("prints a partial run when one edit is written and another reply is withheld", async () => {
     const dir = await seededProject();

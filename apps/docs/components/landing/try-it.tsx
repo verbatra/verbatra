@@ -1,15 +1,19 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { type CSSProperties, type ReactNode, useRef, useState } from "react";
+import { type CSSProperties, type ReactNode, useId, useRef, useState } from "react";
 import { buttonClasses } from "@/components/ui/button";
 import { SHOWCASE_CLI_COMMAND, showcaseRunLines, showcaseSavings } from "@/lib/showcase-cli";
 import type { ShowcaseLine, ShowcaseOutcome, ShowcaseRows } from "@/lib/showcase-scenarios";
 import {
+  DEFAULT_SHOWCASE_BREAK,
+  SHOWCASE_BREAK_REPLIES,
+  SHOWCASE_BREAKS,
   SHOWCASE_LOCK_FILE,
   SHOWCASE_SCENARIOS,
   SHOWCASE_SOURCE_FILE,
   SHOWCASE_TARGET_FILE,
+  type ShowcaseBreakId,
   type ShowcaseScenarioId,
 } from "@/lib/showcase-seed";
 import { trackUmamiEvent } from "@/lib/umami";
@@ -154,6 +158,8 @@ export function TryIt({ seed, rows }: { seed: ShowcaseOutcome; rows: ShowcaseRow
   const [failedScenario, setFailedScenario] = useState<ShowcaseScenarioId | null>(null);
   const [pending, setPending] = useState(false);
   const [openPane, setOpenPane] = useState<PaneId>("source");
+  const [reply, setReply] = useState<ShowcaseBreakId>(DEFAULT_SHOWCASE_BREAK);
+  const breakGroup = useId();
   const latestRequest = useRef(0);
   const firstScenario = useRef<HTMLButtonElement>(null);
 
@@ -161,10 +167,11 @@ export function TryIt({ seed, rows }: { seed: ShowcaseOutcome; rows: ShowcaseRow
     loadScenarioModule().catch(() => undefined);
   }
 
-  async function run(id: ShowcaseScenarioId, retry = false) {
+  async function run(id: ShowcaseScenarioId, retry = false, breakReply = reply) {
     trackUmamiEvent("run-scenario", {
       scenario: id,
       location: "showcase",
+      ...(id === "break" ? { break: breakReply } : {}),
       ...(retry ? { retry: true } : {}),
     });
     latestRequest.current += 1;
@@ -174,7 +181,7 @@ export function TryIt({ seed, rows }: { seed: ShowcaseOutcome; rows: ShowcaseRow
       const scenarios = await loadScenarioModule();
       if (request !== latestRequest.current) return;
       setFailedScenario(null);
-      setOutcome(scenarios.runShowcaseScenario(id));
+      setOutcome(scenarios.runShowcaseScenario(id, breakReply));
     } catch {
       if (request === latestRequest.current) setFailedScenario(id);
     } finally {
@@ -187,8 +194,14 @@ export function TryIt({ seed, rows }: { seed: ShowcaseOutcome; rows: ShowcaseRow
     latestRequest.current += 1;
     setPending(false);
     setFailedScenario(null);
+    setReply(DEFAULT_SHOWCASE_BREAK);
     setOutcome(seed);
     firstScenario.current?.focus();
+  }
+
+  function chooseBreak(next: ShowcaseBreakId) {
+    setReply(next);
+    run("break", false, next);
   }
 
   const marks = (line: ShowcaseLine) => (line.mark ? t(`marks.${line.mark}`) : "");
@@ -238,6 +251,26 @@ export function TryIt({ seed, rows }: { seed: ShowcaseOutcome; rows: ShowcaseRow
           </button>
         </div>
       </div>
+      <fieldset className="vk-showcase-breaks" onPointerEnter={prefetch} onFocus={prefetch}>
+        <legend className="vk-showcase-breaks-label">{t("breaksLabel")}</legend>
+        {SHOWCASE_BREAKS.map((id) => (
+          <label key={id} className="vk-showcase-break">
+            <input
+              type="radio"
+              name={breakGroup}
+              value={id}
+              checked={reply === id}
+              className="vk-showcase-break-input"
+              onChange={() => chooseBreak(id)}
+            />
+            <span>
+              <PlaceholderText
+                text={t(`breaks.${id}`, { token: SHOWCASE_BREAK_REPLIES[id].token })}
+              />
+            </span>
+          </label>
+        ))}
+      </fieldset>
       <fieldset className="vk-showcase-file-switch">
         <legend className="sr-only">{t("filesLabel")}</legend>
         {PANES.map((pane) => (

@@ -244,7 +244,13 @@ footer's oversized watermark only; do not clip it onto a heading.
   scenarios wrap on top, the file switch picks one file pane, the output sits under it at all
   times and the actions drop under the output. The scenario group holds four `aria-pressed`
   buttons (edit, add, remove, break a placeholder), each counted as `run-scenario`, beside the
-  actions (Reset, and Try again after a failure). The file panes (`.vk-showcase-file`: on a
+  actions (Reset, and Try again after a failure). Under the bar, `.vk-showcase-breaks` is a
+  native radio group (one `name`, so the arrow keys move through it) of the three ways a reply
+  breaks the placeholder, `SHOWCASE_BREAKS` in `lib/showcase-seed.ts`: it drops `{{amount}}`,
+  renames it to `{{betrag}}` (the default) or adds `{{tax}}`; each label is
+  `tryIt.breaks.<id>` with the token passed as `{token}` and drawn as a chip, picking one runs
+  the break scenario with it (counted as `run-scenario` with a `break` property), the refusal
+  detail comes from `checkPlaceholders`, and Reset returns it to the default. The file panes (`.vk-showcase-file`: on a
   phone one at a time, picked by the `aria-pressed` file names of `.vk-showcase-file-switch`;
   each named by `data-pane`, which the stylesheet maps to its grid area); a marked
   line is `.vk-showcase-line[data-mark]`, tinted like a highlighted code line, its mark word in
@@ -271,8 +277,8 @@ footer's oversized watermark only; do not clip it onto a heading.
   `lib/showcase-seed.ts` and the small nested-JSON flattener in `lib/showcase-flatten.ts`
   (`@verbatra/format-adapters` is not browser-safe). `lib/showcase-flatten.test.ts` pins the
   flattener to the real i18next adapter and `lib/showcase-scenarios.sdk.test.ts` pins every
-  scenario's sent, unchanged, orphaned and refused keys and lock hashes to a real sdk `translate`
-  with a stub provider. Only the `.vk-showcase` panel carries a reveal; nothing inside the
+  scenario's (and each break variant's) sent, unchanged, orphaned and refused keys and lock
+  hashes to a real sdk `translate` with a stub provider. Only the `.vk-showcase` panel carries a reveal; nothing inside the
   playground does. The copy says what verbatra would translate; it never claims the page
   translates), `evidence.tsx` (the mono evidence chip, which wraps inside a narrow column rather than growing past it; a linked chip
   takes the flat-panel glow border on hover and focus through `.vk-evidence-link`),

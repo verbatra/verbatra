@@ -90,7 +90,7 @@ this skill's concern).
 | copy-page-markdown | location | docs-page |
 | open-page-options | location | docs-page (only when the popover opens) |
 | select-tab | tab, location, framework (a framework chip only) | hero, formats |
-| run-scenario | scenario, location, retry (true on a retry only) | showcase |
+| run-scenario | scenario, location, break (drop, rename or add; the break scenario only), retry (true on a retry only) | showcase |
 | reset-showcase | location | showcase |
 | open-faq | question (item key, never the text), location | faq |
 | toggle-marquee | state, location | marquee |

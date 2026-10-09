@@ -9,13 +9,17 @@ import { showcaseRunLines } from "./showcase-cli";
 import { flattenJson, i18nextPlaceholders } from "./showcase-flatten";
 import {
   applyShowcaseChange,
+  DEFAULT_SHOWCASE_BREAK,
   type JsonTree,
+  SHOWCASE_BREAKS,
   SHOWCASE_CHANGES,
   SHOWCASE_SCENARIOS,
   SHOWCASE_SOURCE,
   SHOWCASE_TARGET,
   SHOWCASE_TARGET_LOCALE,
+  type ShowcaseBreakId,
   type ShowcaseScenarioId,
+  showcaseChange,
   showcaseKey,
 } from "./showcase-seed";
 
@@ -42,6 +46,7 @@ export type ShowcaseRefusal = {
 
 export type ShowcaseOutcome = {
   readonly scenario: ShowcaseScenarioId | null;
+  readonly reply: ShowcaseBreakId | null;
   readonly source: ReadonlyArray<ShowcaseLine>;
   readonly target: ReadonlyArray<ShowcaseLine>;
   readonly lock: ReadonlyArray<ShowcaseLine>;
@@ -158,11 +163,10 @@ function targetDisplay(id: ShowcaseScenarioId, missing: ReadonlyArray<string>): 
 }
 
 function refusalFor(
-  id: ShowcaseScenarioId,
+  change: ReturnType<typeof showcaseChange>,
   source: LocaleResource,
   sent: ReadonlyArray<string>,
 ): ShowcaseRefusal | null {
-  const change = SHOWCASE_CHANGES[id];
   const key = showcaseKey(change.path);
   const entry = source.entries.get(key);
   if (change.candidate === undefined || entry === undefined || !sent.includes(key)) return null;
@@ -205,6 +209,7 @@ export function showcaseSeed(): ShowcaseOutcome {
   const source = resource(SHOWCASE_SOURCE, "en");
   return {
     scenario: null,
+    reply: null,
     source: jsonLines(displayTree(SHOWCASE_SOURCE, new Map())),
     target: jsonLines(displayTree(SHOWCASE_TARGET, new Map())),
     lock: lockLines(SEED_LOCK_HASHES, new Map()),
@@ -218,15 +223,19 @@ export function showcaseSeed(): ShowcaseOutcome {
   };
 }
 
-export function runShowcaseScenario(id: ShowcaseScenarioId): ShowcaseOutcome {
-  const sourceTree = applyShowcaseChange(SHOWCASE_SOURCE, SHOWCASE_CHANGES[id]);
+export function runShowcaseScenario(
+  id: ShowcaseScenarioId,
+  reply: ShowcaseBreakId = DEFAULT_SHOWCASE_BREAK,
+): ShowcaseOutcome {
+  const change = showcaseChange(id, reply);
+  const sourceTree = applyShowcaseChange(SHOWCASE_SOURCE, change);
   const source = resource(sourceTree, "en");
   const target = resource(SHOWCASE_TARGET, SHOWCASE_TARGET_LOCALE);
   const diff = diffResources(source, target, {
     baseline: new Map(Object.entries(SEED_LOCK_HASHES)),
   });
   const sent = [...diff.missing, ...diff.changed].sort();
-  const refusal = refusalFor(id, source, sent);
+  const refusal = refusalFor(change, source, sent);
   const written = sent.filter((key) => key !== refusal?.key);
   const fresh = hashesOf(source);
   const lockHashes = {
@@ -236,6 +245,7 @@ export function runShowcaseScenario(id: ShowcaseScenarioId): ShowcaseOutcome {
   const held = [...diff.orphaned, ...(refusal ? [refusal.key] : [])];
   return {
     scenario: id,
+    reply: id === "break" ? reply : null,
     source: jsonLines(displayTree(sourceDisplay(id), sourceMarks(id))),
     target: jsonLines(displayTree(targetDisplay(id, diff.missing), targetMarks(diff, refusal))),
     lock: lockLines(lockHashes, lockMarks(written, held)),
@@ -257,7 +267,11 @@ export type ShowcaseRows = {
 };
 
 export function showcaseRows(): ShowcaseRows {
-  const outcomes = [showcaseSeed(), ...SHOWCASE_SCENARIOS.map(runShowcaseScenario)];
+  const outcomes = [
+    showcaseSeed(),
+    ...SHOWCASE_SCENARIOS.map((id) => runShowcaseScenario(id)),
+    ...SHOWCASE_BREAKS.map((reply) => runShowcaseScenario("break", reply)),
+  ];
   const most = (pane: "source" | "target" | "lock") =>
     Math.max(...outcomes.map((outcome) => outcome[pane].length));
   return {

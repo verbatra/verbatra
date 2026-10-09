@@ -10,7 +10,12 @@ import {
   showcaseRows,
   showcaseSeed,
 } from "@/lib/showcase-scenarios";
-import { SHOWCASE_SCENARIOS, showcaseKey } from "@/lib/showcase-seed";
+import {
+  DEFAULT_SHOWCASE_BREAK,
+  SHOWCASE_BREAKS,
+  SHOWCASE_SCENARIOS,
+  showcaseKey,
+} from "@/lib/showcase-seed";
 
 function marked(lines: ReadonlyArray<ShowcaseLine>): ReadonlyArray<readonly [string, string]> {
   return lines.flatMap((line) => (line.mark ? [[line.text.trim(), line.mark] as const] : []));
@@ -90,8 +95,33 @@ describe("the showcase scenarios", () => {
     ]);
   });
 
+  it.each([
+    ["drop", "Fällig: sofort", ["-{{amount}}"]],
+    ["rename", "Fällig: {{betrag}}", ["-{{amount}}", "+{{betrag}}"]],
+    ["add", "Fällig: {{amount}} zzgl. {{tax}}", ["+{{tax}}"]],
+  ] as const)(
+    "break a placeholder: a reply that %ss it is refused with checkPlaceholders' detail",
+    (reply, candidate, details) => {
+      const outcome = runShowcaseScenario("break", reply);
+      expect(outcome.reply).toBe(reply);
+      expect(outcome.refusal).toEqual({ key: "cart.total", candidate, details });
+      expect(outcome.written).toEqual([]);
+      expect(outcome.lockHashes).toEqual(SEED_LOCK_HASHES);
+    },
+  );
+
+  it("only the break scenario carries a reply", () => {
+    expect(runShowcaseScenario("edit", "add").reply).toBeNull();
+    expect(showcaseSeed().reply).toBeNull();
+    expect(runShowcaseScenario("break").reply).toBe(DEFAULT_SHOWCASE_BREAK);
+  });
+
   it("reserves as many rows per file as the longest scenario needs", () => {
-    const outcomes = [showcaseSeed(), ...SHOWCASE_SCENARIOS.map(runShowcaseScenario)];
+    const outcomes = [
+      showcaseSeed(),
+      ...SHOWCASE_SCENARIOS.map((id) => runShowcaseScenario(id)),
+      ...SHOWCASE_BREAKS.map((reply) => runShowcaseScenario("break", reply)),
+    ];
     const rows = showcaseRows();
     for (const pane of ["source", "target", "lock"] as const) {
       expect(rows[pane]).toBe(Math.max(...outcomes.map((outcome) => outcome[pane].length)));

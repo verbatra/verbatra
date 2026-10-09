@@ -9,6 +9,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SHOWCASE_CLI_COMMAND, showcaseRunLines } from "@/lib/showcase-cli";
 import { runShowcaseScenario, showcaseRows, showcaseSeed } from "@/lib/showcase-scenarios";
 import {
+  SHOWCASE_BREAK_REPLIES,
+  SHOWCASE_BREAKS,
   SHOWCASE_LOCK_FILE,
   SHOWCASE_SCENARIOS,
   SHOWCASE_SOURCE_FILE,
@@ -57,7 +59,9 @@ describe("TryIt: server-rendered seed", () => {
     expect(doc.querySelector<HTMLButtonElement>(".vk-showcase-reset")?.hasAttribute("hidden")).toBe(
       true,
     );
-    expect(doc.querySelectorAll("textarea, input, [contenteditable]")).toHaveLength(0);
+    expect(
+      doc.querySelectorAll('textarea, input:not([type="radio"]), [contenteditable]'),
+    ).toHaveLength(0);
   });
 
   it("reserves each file's height for its longest scenario, and the tallest file's on a phone", () => {
@@ -153,7 +157,9 @@ describe("TryIt: two-by-two playground", () => {
   it("lays the files and the output out two by two under the scenario bar from 40rem", () => {
     const panes = [...markup().querySelectorAll<HTMLElement>(".vk-showcase-file")];
     expect(panes.map((pane) => pane.dataset.pane)).toEqual(["source", "target", "lock"]);
-    expect(css).toContain('"bar bar"\n      "source target"\n      "lock outcome";');
+    expect(css).toContain(
+      '"bar bar"\n      "breaks breaks"\n      "source target"\n      "lock outcome";',
+    );
     for (const pane of ["source", "target", "lock"]) {
       expect(css).toContain(`.vk-showcase-file[data-pane="${pane}"] {\n    grid-area: ${pane};`);
     }
@@ -165,7 +171,9 @@ describe("TryIt: two-by-two playground", () => {
     expect(bar?.querySelector(".vk-showcase-scenarios")).not.toBeNull();
     expect(bar?.querySelector(".vk-showcase-actions .vk-showcase-reset")).not.toBeNull();
     expect(css).toMatch(/\.vk-showcase-bar \{\s+display: contents;/);
-    expect(css).toContain('"scenarios"\n    "switch"\n    "file"\n    "outcome"\n    "actions";');
+    expect(css).toContain(
+      '"scenarios"\n    "breaks"\n    "switch"\n    "file"\n    "outcome"\n    "actions";',
+    );
   });
 
   it("keeps the output outside the file switch, so it shows under whichever file is open", () => {
@@ -330,8 +338,58 @@ describe("TryIt: scenarios", () => {
     expect(trackUmamiEvent).toHaveBeenCalledWith("run-scenario", {
       scenario: "break",
       location: "showcase",
+      break: "rename",
     });
   });
+
+  it("offers three ways to break the placeholder as one radio group", () => {
+    const container = render();
+    const group = container.querySelector("fieldset.vk-showcase-breaks");
+    expect(group?.querySelector("legend")?.textContent).toBe("landing.showcase.tryIt.breaksLabel");
+    const radios = [...(group?.querySelectorAll<HTMLInputElement>('input[type="radio"]') ?? [])];
+    expect(radios.map((radio) => radio.value)).toEqual([...SHOWCASE_BREAKS]);
+    expect(new Set(radios.map((radio) => radio.name)).size).toBe(1);
+    expect(radios.filter((radio) => radio.checked).map((radio) => radio.value)).toEqual(["rename"]);
+    expect(
+      [...(group?.querySelectorAll(".vk-showcase-break .vk-placeholder") ?? [])].map(
+        (chip) => chip.textContent,
+      ),
+    ).toEqual(SHOWCASE_BREAKS.map((id) => SHOWCASE_BREAK_REPLIES[id].token));
+  });
+
+  it.each([
+    ["drop", "-{{amount}}"],
+    ["add", "+{{tax}}"],
+  ] as const)(
+    "runs the break scenario when the reply %ss the placeholder",
+    async (reply, detail) => {
+      const container = render();
+      const radio = container.querySelector<HTMLInputElement>(`input[value="${reply}"]`);
+      await click(radio);
+      expect(radio?.checked).toBe(true);
+      expect(trackUmamiEvent).toHaveBeenCalledWith("run-scenario", {
+        scenario: "break",
+        location: "showcase",
+        break: reply,
+      });
+      expect(
+        [...container.querySelectorAll(".vk-showcase-output-line")].map((line) => line.textContent),
+      ).toEqual(showcaseRunLines(runShowcaseScenario("break", reply)));
+      expect(
+        [...container.querySelectorAll(".vk-showcase-output-line")].some((line) =>
+          line.textContent?.includes(detail),
+        ),
+      ).toBe(true);
+      expect(
+        button(container, "landing.showcase.tryIt.scenarios.break")?.getAttribute("aria-pressed"),
+      ).toBe("true");
+
+      await click(button(container, "landing.showcase.tryIt.reset"));
+      expect(container.querySelector<HTMLInputElement>('input[value="rename"]')?.checked).toBe(
+        true,
+      );
+    },
+  );
 
   it("shows the lock hash before and after an edit on the lock pane", async () => {
     const container = render();

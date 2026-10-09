@@ -92,6 +92,12 @@
           "remove": "Remove a key",
           "break": "Break a placeholder"
         },
+        "breaksLabel": "How the reply breaks it",
+        "breaks": {
+          "drop": "Drops {token}",
+          "rename": "Renames it to {token}",
+          "add": "Adds {token}"
+        },
         "reset": "Reset",
         "retry": "Try again",
         "filesLabel": "Files",

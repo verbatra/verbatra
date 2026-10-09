@@ -39,6 +39,20 @@ export type ShowcaseChange = {
   readonly candidate?: string;
 };
 
+export const SHOWCASE_BREAKS = ["drop", "rename", "add"] as const;
+
+export type ShowcaseBreakId = (typeof SHOWCASE_BREAKS)[number];
+
+export const DEFAULT_SHOWCASE_BREAK: ShowcaseBreakId = "rename";
+
+export const SHOWCASE_BREAK_REPLIES: Readonly<
+  Record<ShowcaseBreakId, { readonly candidate: string; readonly token: string }>
+> = {
+  drop: { candidate: "Fällig: sofort", token: "{{amount}}" },
+  rename: { candidate: "Fällig: {{betrag}}", token: "{{betrag}}" },
+  add: { candidate: "Fällig: {{amount}} zzgl. {{tax}}", token: "{{tax}}" },
+};
+
 export const SHOWCASE_CHANGES: Readonly<Record<ShowcaseScenarioId, ShowcaseChange>> = {
   edit: { path: ["cart", "checkout"], value: "Go to checkout", candidate: "Weiter zur Kasse" },
   add: { path: ["account", "wishlist"], value: "Your wishlist", candidate: "Deine Wunschliste" },
@@ -46,9 +60,18 @@ export const SHOWCASE_CHANGES: Readonly<Record<ShowcaseScenarioId, ShowcaseChang
   break: {
     path: ["cart", "total"],
     value: "Due: {{amount}}",
-    candidate: "Fällig: {{betrag}}",
+    candidate: SHOWCASE_BREAK_REPLIES[DEFAULT_SHOWCASE_BREAK].candidate,
   },
 };
+
+export function showcaseChange(
+  id: ShowcaseScenarioId,
+  reply: ShowcaseBreakId = DEFAULT_SHOWCASE_BREAK,
+): ShowcaseChange {
+  const change = SHOWCASE_CHANGES[id];
+  if (id !== "break") return change;
+  return { ...change, candidate: SHOWCASE_BREAK_REPLIES[reply].candidate };
+}
 
 function withLeaf(tree: JsonTree, path: ShowcaseChange["path"], value?: string): JsonTree {
   const [group, leaf] = path;

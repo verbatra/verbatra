@@ -309,6 +309,12 @@
           "remove": "Supprimer une clé",
           "break": "Casser un placeholder"
         },
+        "breaksLabel": "Comment la réponse le casse",
+        "breaks": {
+          "drop": "Supprime {token}",
+          "rename": "Le renomme en {token}",
+          "add": "Ajoute {token}"
+        },
         "reset": "Réinitialiser",
         "marks": {
           "edited": "modifiée",

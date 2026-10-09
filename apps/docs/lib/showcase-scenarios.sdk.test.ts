@@ -15,11 +15,14 @@ import { runShowcaseScenario, SEED_LOCK_HASHES } from "@/lib/showcase-scenarios"
 import {
   applyShowcaseChange,
   type JsonTree,
-  SHOWCASE_CHANGES,
+  SHOWCASE_BREAKS,
   SHOWCASE_SCENARIOS,
   SHOWCASE_SOURCE,
   SHOWCASE_TARGET,
   SHOWCASE_TARGET_LOCALE,
+  type ShowcaseBreakId,
+  type ShowcaseScenarioId,
+  showcaseChange,
   showcaseKey,
 } from "@/lib/showcase-seed";
 
@@ -89,35 +92,41 @@ describe("the showcase seed is what a real run writes", () => {
   });
 });
 
-describe("each showcase scenario matches a real sdk run with a stub provider", () => {
-  it.each(SHOWCASE_SCENARIOS)("%s", async (id) => {
-    const dir = await seededProject();
-    const change = SHOWCASE_CHANGES[id];
-    await writeFile(
-      join(dir, "locales/en.json"),
-      JSON.stringify(applyShowcaseChange(SHOWCASE_SOURCE, change)),
-    );
-    const replies = new Map(
-      change.candidate === undefined ? [] : [[showcaseKey(change.path), change.candidate]],
-    );
-    const summary = await translate(
-      { config: CONFIG, cwd: dir },
-      { createProvider: stubProvider(replies) },
-    );
-    const locale = localeOf(summary);
-    const outcome = runShowcaseScenario(id);
+async function expectRealRun(id: ShowcaseScenarioId, reply?: ShowcaseBreakId): Promise<void> {
+  const dir = await seededProject();
+  const change = showcaseChange(id, reply);
+  await writeFile(
+    join(dir, "locales/en.json"),
+    JSON.stringify(applyShowcaseChange(SHOWCASE_SOURCE, change)),
+  );
+  const replies = new Map(
+    change.candidate === undefined ? [] : [[showcaseKey(change.path), change.candidate]],
+  );
+  const summary = await translate(
+    { config: CONFIG, cwd: dir },
+    { createProvider: stubProvider(replies) },
+  );
+  const locale = localeOf(summary);
+  const outcome = runShowcaseScenario(id, reply);
 
-    expect([...locale.translated].sort()).toEqual(outcome.written);
-    expect([...locale.translated, ...locale.integrityMismatches].sort()).toEqual(
-      [...outcome.missing, ...outcome.stale].sort(),
-    );
-    expect([...locale.unchanged].sort()).toEqual(outcome.unchanged);
-    expect([...locale.orphaned].sort()).toEqual(outcome.orphaned);
-    expect(locale.integrityMismatches).toEqual(outcome.refusal ? [outcome.refusal.key] : []);
-    expect(locale.integrityRefusals?.map((refusal) => refusal.details)).toEqual(
-      outcome.refusal ? [outcome.refusal.details] : [],
-    );
-    const lock = await loadLockFile({ cwd: dir });
-    expect(lock.locales[SHOWCASE_TARGET_LOCALE]).toEqual(outcome.lockHashes);
-  });
+  expect([...locale.translated].sort()).toEqual(outcome.written);
+  expect([...locale.translated, ...locale.integrityMismatches].sort()).toEqual(
+    [...outcome.missing, ...outcome.stale].sort(),
+  );
+  expect([...locale.unchanged].sort()).toEqual(outcome.unchanged);
+  expect([...locale.orphaned].sort()).toEqual(outcome.orphaned);
+  expect(locale.integrityMismatches).toEqual(outcome.refusal ? [outcome.refusal.key] : []);
+  expect(locale.integrityRefusals?.map((refusal) => refusal.details)).toEqual(
+    outcome.refusal ? [outcome.refusal.details] : [],
+  );
+  const lock = await loadLockFile({ cwd: dir });
+  expect(lock.locales[SHOWCASE_TARGET_LOCALE]).toEqual(outcome.lockHashes);
+}
+
+describe("each showcase scenario matches a real sdk run with a stub provider", () => {
+  it.each(SHOWCASE_SCENARIOS)("%s", (id) => expectRealRun(id));
+
+  it.each(SHOWCASE_BREAKS)("break, where the reply %ss a placeholder", (reply) =>
+    expectRealRun("break", reply),
+  );
 });
