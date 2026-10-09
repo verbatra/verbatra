@@ -35,9 +35,10 @@ dashboard in `packages/studio` (different app, different stack), or anything out
 
 ## The stack, and why it constrains you
 
-- `fumadocs-ui` and `fumadocs-core` 16.15.11, `next` 16.3.5, `tailwindcss` 4.3.3,
-  `next-intl` 4.14.5. There is no animation library in the client bundle: landing motion is
-  CSS keyframes and transitions in `app/global.css`, each with a `prefers-reduced-motion` opt-out.
+- `fumadocs-ui` and `fumadocs-core` 16.16.2, `next` 16.3.8, `tailwindcss` 4.3.3, `next-intl` 4.14.9.
+  There is no animation library in the client bundle (Fumadocs depends on `motion` but imports it
+  only in its flux layout, which this site does not use): landing motion is CSS keyframes and
+  transitions in `app/global.css`, each with a `prefers-reduced-motion` opt-out.
 - Tailwind 4 uses CSS-first configuration. There is no `tailwind.config.js`. Tokens are
   CSS custom properties in `app/global.css`, not a JS config object.
 - `app/global.css` opens with three imports in this order, and the order matters:
@@ -103,7 +104,7 @@ Scales are fixed and narrow, deliberately:
   (`.vk-section-head`: the heading block spans 7, the lead 5, bottom-aligned), and so are
   Control's three groups (`.vk-control-groups`, each `.vk-control-group` spanning 4 over a
   four-row subgrid).
-- Surfaces added for the landing redesign: `--surface-band` (mixed from `--surface-card` and
+- Landing surfaces: `--surface-band` (mixed from `--surface-card` and
   `--surface-bg`, never a raw value), the fill of `.vk-band`: `Section` with `band` renders a
   full-width `section.vk-band` (between two `--border-default` hairlines, `--section-sm` above it
   and `--section-md` padding inside) around the usual `.vk-gutter` column, so the page alternates
@@ -112,16 +113,17 @@ Scales are fixed and narrow, deliberately:
   fade that masks the static `fx/grid-pattern.ts` blueprint grid behind the hero only:
   `.vk-hero-blueprint`, an `aria-hidden` layer at `z-index: -1` that never animates). There is no
   wash token.
-- Placeholder chip: `PlaceholderChip` (`components/landing/placeholder-chip.tsx`, the `.vk-placeholder`
-  class) is the page's one signature motif, a locked placeholder token (`{{amount}}`, `{count}`)
-  drawn the same way in every pane: `--placeholder-fg` (`--accent`) on `--placeholder-fill` inside
-  an inset `--placeholder-ring` box shadow, never a border. It pads the token by
-  `--placeholder-inset` and pulls the same amount back with a negative margin, so a chip moves no
-  character of a monospace line, and it never wraps. `data-broken` strikes it in `--text-danger`,
-  only for a token a reply broke. `PlaceholderText` in the same file cuts the tokens out of a line
-  (`splitPlaceholders`: `{{name}}` and `{name}` only, so JSON braces stay text) and draws each as a
-  chip; every showcase file pane and every `Terminal` line goes through it, and the showcase
-  passes the tokens a refused reply added (the `+` details of its refusal) as the broken set.
+- Placeholder chip: `PlaceholderChip` (`components/landing/placeholder-chip.tsx`, the
+  `.vk-placeholder` class) is the page's one signature motif, a locked placeholder token
+  (`{{amount}}`, `{count}`) drawn the same way in every pane: `--placeholder-fg` (`--accent`) on
+  `--placeholder-fill` inside an inset `--placeholder-ring` box shadow, never a border. It pads the
+  token by `--placeholder-inset` and pulls the same amount back with a negative margin, so a chip
+  moves no character of a monospace line, and it never wraps. `data-broken` strikes it in
+  `--text-danger`, only for a token a reply broke. `PlaceholderText` in the same file cuts the
+  tokens out of a line (`splitPlaceholders`: `{{name}}` and `{name}` only, so JSON braces stay text)
+  and draws each as a chip; every showcase file pane and every `Terminal` line goes through it, and
+  the showcase passes the tokens a refused reply added (the `+` details of its refusal) as the
+  broken set.
 - Motion: see "Landing motion" below for the system. Its tokens: `--ease-out` (entrances and
   state changes) and `--ease-in-out` (demo fills), `--duration-fast` (140ms, hover and press),
   `--duration-base` (240ms, state change), `--duration-reveal` (560ms, entrances),
@@ -270,13 +272,13 @@ footer's oversized watermark only; do not clip it onto a heading.
   drops `{{amount}}`, renames `{{amount}}` to `{{betrag}}` (the default) or adds `{{tax}}`; each
   label is `tryIt.breaks.<id>` with the reply token passed as `{token}` and `SHOWCASE_PLACEHOLDER`
   as `{placeholder}`, both drawn as chips. A radio is checked only while the break scenario is on
-  screen, so every radio runs it when another scenario shows; picking one runs the break scenario
-  with it (counted as `run-scenario` with a `break` property), the break button and Try again replay
-  the last chosen reply, the refusal detail comes from `checkPlaceholders`, and Reset returns it to
-  the default. The file panes (`.vk-showcase-file`: on a phone one at a time, picked by the
-  `aria-pressed` file names of `.vk-showcase-file-switch`; each named by `data-pane`, which the
-  stylesheet maps to its grid area); a marked line is `.vk-showcase-line[data-mark]`, tinted like a
-  highlighted code line, its mark word in `--v-status-new` (added, missing, new) or
+  screen or its run is pending, so every radio runs it when another scenario shows; picking one runs
+  the break scenario with it (counted as `run-scenario` with a `break` property), the break button
+  and Try again replay the last chosen reply, the refusal detail comes from `checkPlaceholders`, and
+  Reset returns it to the default. The file panes (`.vk-showcase-file`: on a phone one at a time,
+  picked by the `aria-pressed` file names of `.vk-showcase-file-switch`; each named by `data-pane`,
+  which the stylesheet maps to its grid area); a marked line is `.vk-showcase-line[data-mark]`,
+  tinted like a highlighted code line, its mark word in `--v-status-new` (added, missing, new) or
   `--v-status-changed` (edited, stale, changes); a refused reply shows as a struck
   `data-mark="refused"` line in `--text-danger` above the German value it leaves in place; the lock
   pane prints full 16-character hashes, and a rewritten hash shows before and after: the seed hash
@@ -326,92 +328,88 @@ footer's oversized watermark only; do not clip it onto a heading.
   `CopyButton` on the right, then the content at full width, top-aligned, and the prompt keeps each
   `npx` run and each long flag with its value on one line (`keepPackageRunsWhole`); the closed pane
   is `inert` and hidden at every width, so the install pane carries no empty height under its
-  command and the panel resizes on a switch, and a switch counts `hero-command-tab`), and an `fx/`
-  folder (`grid-pattern.ts`). A new section composes `Section` plus `SectionHead`; it does not
-  re-derive page padding or heading rhythm. Check `ls apps/docs/components/landing` before quoting a
-  file name from this list. The CLI transcripts on the landing (`lib/gate-demo.ts`,
-  `lib/check-demo.ts`, `lib/showcase-cli.ts`) are real CLI output, English on every locale, and
-  their tests pin each line to `packages/cli/src/render.ts` (`lib/showcase-cli.run.test.ts` imports
-  `renderHuman` and `lib/check-demo.run.test.ts` imports `renderCheckHuman` from it by relative
-  path, and the latter also drives `run` from `packages/cli/src/run.ts` over the real sdk `check`
-  for the exit code, in those run tests only, never from `lib/`), so a change to the CLI's output
-  fails until the demo is recaptured.
+  command and the panel resizes on a switch, and a switch counts `select-tab` with
+  `location: hero`), and an `fx/` folder (`grid-pattern.ts`). A new section composes `Section` plus
+  `SectionHead`; it does not re-derive page padding or heading rhythm. Check
+  `ls apps/docs/components/landing` before quoting a file name from this list. The CLI transcripts
+  on the landing (`lib/gate-demo.ts`, `lib/check-demo.ts`, `lib/showcase-cli.ts`) are real CLI
+  output, English on every locale, and their tests pin each line to `packages/cli/src/render.ts`
+  (`lib/showcase-cli.run.test.ts` imports `renderHuman` and `lib/check-demo.run.test.ts` imports
+  `renderCheckHuman` from it by relative path, and the latter also drives `run` from
+  `packages/cli/src/run.ts` over the real sdk `check` for the exit code, in those run tests only,
+  never from `lib/`), so a change to the CLI's output fails until the demo is recaptured.
 - **Docs-facing:** `<StartHere />` (`components/start-here.tsx`) opens every page in
   `START_HERE_PAGES` (`lib/agent-entry.ts`, the agent guides only, not reference pages): a void
-  `aside` at the prose measure with no start bar (so it never doubles the locale notice's
-  callout bar), a `.vk-label` title and one lead, then the agent `CommandRow` for
-  `AGENT_INIT_COMMAND` and the same `AiSetupPrompt` row, so
-  `AGENT_INIT_COMMAND` and `AI_SETUP_PROMPT` (`lib/ai-setup-prompt.ts`) each have one source. `<McpInstallLink client="vscode" />`
+  `aside` at the prose measure with no start bar (so it never doubles the locale notice's callout
+  bar), a `.vk-label` title and one lead, then the agent `CommandRow` for `AGENT_INIT_COMMAND` and
+  the same `AiSetupPrompt` row, so `AGENT_INIT_COMMAND` and `AI_SETUP_PROMPT`
+  (`lib/ai-setup-prompt.ts`) each have one source. `<McpInstallLink client="vscode" />`
   (`components/mcp-install-link.tsx`; VS Code only, since a Cursor link installs user-wide where
-  `${workspaceFolder}` is the home folder) is a plain anchor in the
-  secondary button style (`buttonClasses` from `components/ui/button.tsx`, not `Button`, whose
-  `href` goes through `next/link`), built from `AGENT_CLIENT_CONFIGS` in `@verbatra/cli` by
-  `lib/mcp-install-links.ts` and counted by a `data-umami-event` attribute, never a script.
-  `remarkAgentEntryMarkdown` gives the page's `.md` output no runnable fence for the banner:
-  one localized, conditional sentence (`docs.startHere.markdown`), and nothing at all on
-  `start-with-ai`, whose own steps install the CLI first; the install button becomes a
-  Markdown link with its localized label.
-  `components/available-from.tsx` renders the version badge. Its rules
-  live in `.claude/rules/docs.md`. `components/docs-home.tsx` holds the docs landing
-  (`DocsHomeHeader`, `DocsHomeTabs`, `DocsHomeAgentTip`, `DocsHomeNote`, `DocsHomeBody`,
-  `DocsHomeSection`, `DocsHomePaths`, `DocsHomeSteps`, `DocsHomeFeatures`), all registered in
-  `components/mdx.tsx` and driven by `content/docs/index.mdx` and its three locale siblings, which
-  write every label, including the tab names and the tip text, as MDX props or children. The docs
-  home is a docs entry, not a second landing: `DocsHomeHeader` is a compact header (a `.vk-label`
-  eyebrow, the headline in `.vk-docs-home-title` at `--text-h3`, weight 500, tight tracking, and
-  one `.vk-docs-home-lead` sentence at `--text-base`; both rules are scoped under `#nd-page` so
-  they beat the docs `#nd-page h1` and `h1 + p` rules), with no hero wash, no buttons, no install
-  box and no facts row. Its children are `DocsHomeTabs`, an underline tab row of real links
-  (`.vk-home-tabs`, `.vk-home-tabs-track`, `.vk-home-tab`; no tab is active on the home) that
-  bleeds to the screen edge under 768px and scrolls sideways inside `.vk-edge-fade`
-  (`.vk-home-tabs-scroller`, which also fades its start edge once scrolled, through
-  `--vk-start-fade` on the same scroll timeline), and `DocsHomeAgentTip`, the "Using a coding agent?" callout with
-  `PromptCopyButton` at the end of its row once the tip itself is 36rem wide (a container query
-  on `.vk-agent-tip`, never the viewport, since the sidebar takes width; its preview then opens
-  toward the start edge, capped inside the tip). Its text links the setup guide and the MCP page,
-  and a link label stays whole when it has at most two words, otherwise keeps each hyphenated
-  compound whole (`keepLinkLabelWhole`). `DocsHomeNote` is the same ringed callout (`.vk-home-callout`: an inset 1px
-  `--border-default` ring, no fill, an `--accent` icon, the title at `--leading-snug` and the body
-  at `--leading-normal`) without the button; the docs home puts one
-  after the stack grid ("Don't see your stack?"). The header and the body share one frame
-  (`HOME_FRAME`: one max width, one gutter). A section head stacks its `vk-h4` heading and its
-  lead (`--text-sm`, muted) in one block, the lead directly under the heading. Every
-  `DocsHomePaths` card is the same flat panel; there is no filled primary card, and the three cards
-  share their title, body and page-name rows through `grid-rows-subgrid`, so a wrapped title never
-  shifts the body or the link out of line. A backticked span
-  in a header or section lead renders in code type (`withInlineCode`, `lib/inline-code-text.tsx`),
-  and a path card title keeps a hyphenated compound on one line (`keepCompoundsWhole`,
-  `lib/word-breaks.tsx`).
-  `StackCards` (`components/stack-cards.tsx`) is the stack picker on the docs home and at the top
-  of `pick-your-stack`: one borderless grid (`.vk-stack-grid`: one column, two from a 36rem
-  container, three from a 54rem container, `--stack-grid-column-gap` 24px by
-  `--stack-grid-row-gap` 40px, the last row left ragged). Each card (`.vk-stack-card`, a reversed
-  flex row so the text comes first in the DOM and the logo shows first) has no border or
-  background: only the round `--stack-chip-size` (56px) `.vk-stack-card-chip` on `--surface-card`
-  with an inset `--border-default` ring, holding a single-colour logo. The name
-  (`.vk-stack-card-name`, 16px, 600) is the card's one link (`.vk-stack-card-link`), stretched over
-  the card by a `::before` that reaches `--stack-card-hit-outset` past it and carries the focus
-  ring; a badge sits inside that link as a `.vk-pill.vk-stack-card-badge`, beside the name, so it adds no line. The
-  text column is `.vk-stack-card-text`. A
-  small chevron (`.vk-stack-card-chevron`) after the link fades from opacity 0 to 1 on hover and on
-  `:focus-visible` of the link, and nothing else changes. Under the name come an optional
-  `description` (`.vk-stack-card-description`, 14px, muted) and the `--format` ids
-  (`.vk-stack-card-formats`, mono `--text-faint`), each id `whitespace-nowrap`
-  (`FORMAT_ID_CLASS`): a list breaks at its comma, and only under a 23.5rem container (the
-  longest rendered id plus 15 percent, pinned by its test) does an id wrap, then only after a
-  hyphen. The logos come from `@icons-pack/react-simple-icons` through
-  `components/stack-icons.tsx` (shared with the marquee), always `currentColor`, never a brand
-  colour; a format with no brand mark gets an outline glyph there. The grid is a `nav` named by
-  `labelledBy`, the id of the heading above it (the docs home section's `id`, or `page-title` on
-  the docs `<h1>`), and that id also prefixes its sprite's symbol ids, so two grids on one page
-  never collide. On the docs home, a stack with its own quickstart (`STACKS` in `lib/stacks.ts`)
-  links its card to `/docs/quickstart/<id>` and carries a `badge` (the link reads "React,
-  Quickstart"); every other card, and every card on `pick-your-stack` itself, jumps to a
-  `pick-your-stack` section.
-  `scripts/verify-docs-registry-parity.test.mjs` pins every card's `formats` to
-  `SUPPORTED_FORMATS`, a section card's anchor to the page's sections and a quickstart card's
-  format to its stack, in all four locales. Fumadocs' `Steps` and `Step` are registered there
-  too, for numbered tutorial steps such as the quickstart's.
+  `${workspaceFolder}` is the home folder) is a plain anchor in the secondary button style
+  (`buttonClasses` from `components/ui/button.tsx`, not `Button`, whose `href` goes through
+  `next/link`), built from `AGENT_CLIENT_CONFIGS` in `@verbatra/cli` by `lib/mcp-install-links.ts`
+  and counted by a `data-umami-event` attribute, never a script. `remarkAgentEntryMarkdown` gives
+  the page's `.md` output no runnable fence for the banner: one localized, conditional sentence
+  (`docs.startHere.markdown`), and nothing at all on `start-with-ai`, whose own steps install the
+  CLI first; the install button becomes a Markdown link with its localized label.
+  `components/available-from.tsx` renders the version badge. Its rules live in
+  `.claude/rules/docs.md`. `components/docs-home.tsx` holds the docs landing (`DocsHomeHeader`,
+  `DocsHomeTabs`, `DocsHomeAgentTip`, `DocsHomeNote`, `DocsHomeBody`, `DocsHomeSection`,
+  `DocsHomePaths`, `DocsHomeSteps`, `DocsHomeFeatures`), all registered in `components/mdx.tsx` and
+  driven by `content/docs/index.mdx` and its three locale siblings, which write every label,
+  including the tab names and the tip text, as MDX props or children. The docs home is a docs entry,
+  not a second landing: `DocsHomeHeader` is a compact header (a `.vk-label` eyebrow, the headline in
+  `.vk-docs-home-title` at `--text-h3`, weight 500, tight tracking, and one `.vk-docs-home-lead`
+  sentence at `--text-base`; both rules are scoped under `#nd-page` so they beat the docs
+  `#nd-page h1` and `h1 + p` rules), with no hero wash, no buttons, no install box and no facts row.
+  Its children are `DocsHomeTabs`, an underline tab row of real links (`.vk-home-tabs`,
+  `.vk-home-tabs-track`, `.vk-home-tab`; no tab is active on the home) that bleeds to the screen
+  edge under 768px and scrolls sideways inside `.vk-edge-fade` (`.vk-home-tabs-scroller`, which also
+  fades its start edge once scrolled, through `--vk-start-fade` on the same scroll timeline), and
+  `DocsHomeAgentTip`, the "Using a coding agent?" callout with `PromptCopyButton` at the end of its
+  row once the tip itself is 36rem wide (a container query on `.vk-agent-tip`, never the viewport,
+  since the sidebar takes width; its preview then opens toward the start edge, capped inside the
+  tip). Its text links the setup guide and the MCP page, and a link label stays whole when it has at
+  most two words, otherwise keeps each hyphenated compound whole (`keepLinkLabelWhole`).
+  `DocsHomeNote` is the same ringed callout (`.vk-home-callout`: an inset 1px `--border-default`
+  ring, no fill, an `--accent` icon, the title at `--leading-snug` and the body at
+  `--leading-normal`) without the button; the docs home puts one after the stack grid ("Don't see
+  your stack?"). The header and the body share one frame (`HOME_FRAME`: one max width, one gutter).
+  A section head stacks its `vk-h4` heading and its lead (`--text-sm`, muted) in one block, the lead
+  directly under the heading. Every `DocsHomePaths` card is the same flat panel; there is no filled
+  primary card, and the three cards share their title, body and page-name rows through
+  `grid-rows-subgrid`, so a wrapped title never shifts the body or the link out of line. A
+  backticked span in a header or section lead renders in code type (`withInlineCode`,
+  `lib/inline-code-text.tsx`), and a path card title keeps a hyphenated compound on one line
+  (`keepCompoundsWhole`, `lib/word-breaks.tsx`). `StackCards` (`components/stack-cards.tsx`) is the
+  stack picker on the docs home and at the top of `pick-your-stack`: one borderless grid
+  (`.vk-stack-grid`: one column, two from a 36rem container, three from a 54rem container,
+  `--stack-grid-column-gap` 24px by `--stack-grid-row-gap` 40px, the last row left ragged). Each
+  card (`.vk-stack-card`, a reversed flex row so the text comes first in the DOM and the logo shows
+  first) has no border or background: only the round `--stack-chip-size` (56px)
+  `.vk-stack-card-chip` on `--surface-card` with an inset `--border-default` ring, holding a
+  single-colour logo. The name (`.vk-stack-card-name`, 16px, 600) is the card's one link
+  (`.vk-stack-card-link`), stretched over the card by a `::before` that reaches
+  `--stack-card-hit-outset` past it and carries the focus ring; a badge sits inside that link as a
+  `.vk-pill.vk-stack-card-badge`, beside the name, so it adds no line. The text column is
+  `.vk-stack-card-text`. A small chevron (`.vk-stack-card-chevron`) after the link fades from
+  opacity 0 to 1 on hover and on `:focus-visible` of the link, and nothing else changes. Under the
+  name come an optional `description` (`.vk-stack-card-description`, 14px, muted) and the `--format`
+  ids (`.vk-stack-card-formats`, mono `--text-faint`), each id `whitespace-nowrap`
+  (`FORMAT_ID_CLASS`): a list breaks at its comma, and only under a 23.5rem container (the longest
+  rendered id plus 15 percent, pinned by its test) does an id wrap, then only after a hyphen. The
+  logos come from `@icons-pack/react-simple-icons` through `components/stack-icons.tsx` (shared with
+  the marquee), always `currentColor`, never a brand colour; a format with no brand mark gets an
+  outline glyph there. The grid is a `nav` named by `labelledBy`, the id of the heading above it
+  (the docs home section's `id`, or `page-title` on the docs `<h1>`), and that id also prefixes its
+  sprite's symbol ids, so two grids on one page never collide. On the docs home, a stack with its
+  own quickstart (`STACKS` in `lib/stacks.ts`) links its card to `/docs/quickstart/<id>` and carries
+  a `badge` (the link reads "React, Quickstart"); every other card, and every card on
+  `pick-your-stack` itself, jumps to a `pick-your-stack` section.
+  `scripts/verify-docs-registry-parity.test.mjs` pins every card's `formats` to `SUPPORTED_FORMATS`,
+  a section card's anchor to the page's sections and a quickstart card's format to its stack, in all
+  four locales. Fumadocs' `Steps` and `Step` are registered there too, for numbered tutorial steps
+  such as the quickstart's.
 - **Stack quickstarts:** `<StackBlock name="..." />` and `<StackText field="..." />` are not
   React components. The remark plugin `remarkStackBlocks` (`lib/stack-blocks.ts`, first in
   `source.config.ts`) replaces them at compile time with fenced code (file-labelled through
@@ -453,22 +451,21 @@ parallax, no scroll-scrubbing, no scroll listener and no animation library.
   index and no label word. The landing's sections are not a sequence, so numbering them would
   state an order that is not there; the only numbers on the page are the How steps, which are
   one. `reveal-marks.test.tsx` fails on a `.vk-eyebrow` or an element above a section heading.
-- **How steps.** `HowReplay` (`components/landing/how-replay.tsx`, the How section's client
-  island) renders the terminal and the three steps, each opened by an `aria-hidden` two-digit
-  `.vk-how-step-index` in mono `--accent` above its title (the `ol` carries the order for
-  assistive technology). The replay starts once the terminal and the step grid are both at least half in view
+- **How steps.** `HowReplay` (`components/landing/how-replay.tsx`, the How section's client island)
+  renders the terminal and the three steps, each opened by an `aria-hidden` two-digit
+  `.vk-how-step-index` in mono `--accent` above its title (the `ol` carries the order for assistive
+  technology). The replay starts once the terminal and the step grid are both at least half in view
   (`HOW_PLAY_RATIO`, one observer on both), which also holds on a landscape phone. The commands,
   outputs and line pace (`HOW_LINE_DELAY_MS`, longer than `--duration-demo`, so a bar finishes
-  filling before the next step takes over) come from `lib/how-steps.ts`, the same objects the
-  step mapping reads. The terminal reports its progress through
-  `onProgress`, and `howStepStates` (`lib/how-steps.ts`) maps the printed lines to the step
-  being shown (set up while the first command types, translate until the second command starts
-  typing, then check): `aria-current="step"` and `data-state` (`upcoming`, `current`, `complete`) on
-  each `.vk-how-step`, whose 2px `--accent` top bar fills (`scaleX`, `--duration-demo`,
-  `--ease-in-out`) as the step becomes current; only the bar of an upcoming step is empty, its
-  text keeps full contrast. When the run has printed, every step is
-  complete and none is current. Without JavaScript and under reduced motion every bar shows
-  filled, statically. The terminal's caret is a fresh element per keystroke
+  filling before the next step takes over) come from `lib/how-steps.ts`, the same objects the step
+  mapping reads. The terminal reports its progress through `onProgress`, and `howStepStates`
+  (`lib/how-steps.ts`) maps the printed lines to the step being shown (set up while the first
+  command types, translate until the second command starts typing, then check):
+  `aria-current="step"` and `data-state` (`upcoming`, `current`, `complete`) on each `.vk-how-step`,
+  whose 2px `--accent` top bar fills (`scaleX`, `--duration-demo`, `--ease-in-out`) as the step
+  becomes current; only the bar of an upcoming step is empty, its text keeps full contrast. When the
+  run has printed, every step is complete and none is current. Without JavaScript and under reduced
+  motion every bar shows filled, statically. The terminal's caret is a fresh element per keystroke
   (`.vk-terminal-caret`), so typing never counts as a layout shift.
 - **Header call to action.** On the landing only (`landingLocale` in `components/header-cta.tsx`),
   `HomeSiteHeader` carries a small primary "Get started" (`landing.nav.headerCta.label`), first in
@@ -522,7 +519,7 @@ parallax, no scroll-scrubbing, no scroll listener and no animation library.
   `toggle-marquee` with `state: paused | playing` and `location: marquee`, whose box stays
   invisible until
   `MotionRoot` is ready. Under `prefers-reduced-motion: reduce` the rows wrap as a static list
-  with the duplicate track hidden, and the toggle is gone.
+  with the duplicate track hidden, and the toggle is hidden.
 - **Budget.** Layout shift 0 over a full scroll at 390, 1440 and a 844 by 390 landscape phone; no
   scroll listener; at most one reveal chain per section; no entrance over 16px or 600ms.
 
@@ -532,7 +529,7 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
 
 - No animation library. Landing motion is CSS keyframes and transitions in `app/global.css`,
   each with a `prefers-reduced-motion` opt-out; the only motion script is `MotionRoot`, which
-  toggles attributes from two `IntersectionObserver`s and stays under 1 KB gzipped (about 760
+  toggles attributes from two `IntersectionObserver`s and stays under 1 KB gzipped (about 980
   bytes with the section nav, minified with `esbuild` and `gzip -9`).
 - `NextIntlClientProvider` receives only `CLIENT_MESSAGE_NAMESPACES` (`lib/client-messages.ts`),
   not the whole catalog. A new `useTranslations` namespace in a `"use client"` file must be added
@@ -558,29 +555,27 @@ fails when a Fumadocs upgrade adds a key that de, es or fr lacks.
 ## One header for both surfaces
 
 `components/site-header.tsx` owns the navbar. `SiteHeaderFrame` renders the markup (wordmark,
-centred search, text links, icon links, language select, phone-width search and menu trigger)
-and two thin wrappers feed it from each layout's context: `HomeSiteHeader` (from
-`useHomeLayout`, plus a `SidebarProvider` drawer so the landing's phone menu is the same drawer
-the docs use) and `DocsSiteHeader` (from `useNotebookLayout`, adding the sidebar collapse and
-drawer triggers). They are wired through `slots.header` in `lib/locale-home-layout.tsx` and
-`app/[lang]/docs/layout.tsx`; `lib/layout.shared.tsx` still supplies the links, title and
-language select for both. The primary navigation is exactly Docs, Reference and the GitHub icon
-(`lib/layout.shared.test.tsx` pins it and the phone drawer): the AI setup guide, the contributor
-guide, npm and the contact page are reached from the docs sidebar and the landing footer, never
-from the header. The text links and the icon show from 768px (`md`), exactly where the phone
-search and menu trigger hide, so every width has one of the two; the home header reserves no
-empty slot, not even for its landing call to action (see "Landing motion"). At least 24px
-separate the search box from the first text link and the last text link from the GitHub icon.
-A text link carries `data-active` and
-`aria-current` (`page` on an exact path match, `true` for a section or tab), from the root tabs on
-docs and from the current path elsewhere, and the home drawer lines its items,
-close button and footer icons up on one 16px start edge. The home layout swaps Fumadocs' `<main id="nd-home-layout">` container for a `<div>`
+centred search, text links, icon links, language select, phone-width search and menu trigger) and
+two thin wrappers feed it from each layout's context: `HomeSiteHeader` (from `useHomeLayout`, plus a
+`SidebarProvider` drawer so the landing's phone menu is the same drawer the docs use) and
+`DocsSiteHeader` (from `useNotebookLayout`, adding the sidebar collapse and drawer triggers). They
+are wired through `slots.header` in `lib/locale-home-layout.tsx` and `app/[lang]/docs/layout.tsx`;
+`lib/layout.shared.tsx` still supplies the links, title and language select for both. The primary
+navigation is exactly Docs, Reference and the GitHub icon (`lib/layout.shared.test.tsx` pins it and
+the phone drawer): the AI setup guide, the contributor guide, npm and the contact page are reached
+from the docs sidebar and the landing footer, never from the header. The text links and the icon
+show from 768px (`md`), exactly where the phone search and menu trigger hide, so every width has one
+of the two; the home header reserves no empty slot, not even for its landing call to action (see
+"Landing motion"). At least 24px separate the search box from the first text link and the last text
+link from the GitHub icon. A text link carries `data-active` and `aria-current` (`page` on an exact
+path match, `true` for a section or tab), from the root tabs on docs and from the current path
+elsewhere, and the home drawer lines its items, close button and footer icons up on one 16px start
+edge. The home layout swaps Fumadocs' `<main id="nd-home-layout">` container for a `<div>`
 (`components/home-container.tsx`) and renders its own `<main>` around the page, with the landing
 footer passed in by `app/[lang]/(home)/layout.tsx`, so the header and footer stay banner and
-contentinfo landmarks; a page under that layout must not render another `<main>`.
-Fumadocs' own `HomeLayout` and notebook headers are never rendered,
-so do not style `#nd-nav` or `#nd-subnav`; style `.vk-header` and `.vk-header-link` instead,
-and change the header in one place.
+contentinfo landmarks; a page under that layout must not render another `<main>`. Fumadocs' own
+`HomeLayout` and notebook headers are never rendered, so do not style `#nd-nav` or `#nd-subnav`;
+style `.vk-header` and `.vk-header-link` instead, and change the header in one place.
 
 Both surfaces share one layout width: `--width-layout` (97rem, the notebook layout's own
 default) feeds `--fd-layout-width` from `:root` and again on the home container, so the
@@ -591,80 +586,80 @@ edge; the marquee and the footer bleed on purpose.
 
 ## The docs surface
 
-`app/global.css` carries a docs layer keyed on Fumadocs' DOM ids (`#nd-sidebar` and its
-phone-width twin `#nd-sidebar-mobile`, `#nd-toc`, `#nd-page`, `#nd-nav`) and on
-`figure.shiki`. Every sidebar rule is written for both ids; a rule that names only one of them
-is a bug, since the drawer is a separate `aside` outside `#nd-sidebar`. It exists so a reader coming from
-the landing page recognizes the same product. The shared vocabulary, and where each piece
-comes from:
+`app/global.css` carries a docs layer keyed on Fumadocs' DOM ids (`#nd-sidebar` and its phone-width
+twin `#nd-sidebar-mobile`, `#nd-toc`, `#nd-page`, `#nd-nav`) and on `figure.shiki`. Every sidebar
+rule is written for both ids; a rule that names only one of them is a bug, since the drawer is a
+separate `aside` outside `#nd-sidebar`. It exists so a reader coming from the landing page
+recognizes the same product. The shared vocabulary, and where each piece comes from:
 
 - **Solid white display headlines.** `LandingHero` and the docs home header both set a solid
-  `--text-strong` headline. `LandingHero` sits straight on the void page (no card, wash or
-  grain), over the static blueprint grid, and is left-aligned. `.vk-hero-main` is one column,
-  and from 80rem a 12-column grid: `.vk-hero-copy` spans 7 columns and the `LocaleLedger` the
-  last 4 (`9 / span 4`). The copy stacks the server-rendered `h1` (`.vk-hero-title`), the sans
+  `--text-strong` headline. `LandingHero` sits straight on the void page (no card, wash or grain),
+  over the static blueprint grid, and is left-aligned. `.vk-hero-main` is one column, and from 80rem
+  a 12-column grid: `.vk-hero-copy` spans 7 columns and the `LocaleLedger` the last 4
+  (`9 / span 4`). The copy stacks the server-rendered `h1` (`.vk-hero-title`), the sans
   `.vk-lead.vk-hero-lead` (46ch), `.vk-hero-ctas` with two buttons, the primary "Get started"
   (`/docs/quickstart`) and the secondary "Try it in the browser" (`#showcase`, counted as
   `click-cta` with `target: showcase` from `onClick`, never a `data-umami-event`), then
   `.vk-hero-panel` (`CommandPanel`) and `.vk-hero-facts`: one mono row of `HERO_FACTS` from
-  `lib/landing-facts.ts`, always in digits and each a link to the page that owns it (the version
-  to the GitHub releases and MIT to the licence, both `outbound-link`; the format count to
+  `lib/landing-facts.ts`, always in digits and each a link to the page that owns it (the version to
+  the GitHub releases and MIT to the licence, both `outbound-link`; the format count to
   `/docs/formats` and the provider count, "+ none", to `/docs/providers`, both `click-cta`).
   `LocaleLedger` (`components/landing/locale-ledger.tsx`, a server component) is a void code
   `figure` titled `landing.hero.headline`: one row per message file (`ledgerRows` in
   `lib/hero-ledger.ts`, read from `messages/*.json`; `en`, the source, first and full white, then
-  the page's own locale, then the rest, each value with its `lang`), only the first two under
-  40rem, closed by the `verbatra.lock.json` line whose hash (`HERO_HEADLINE_LOCK_HASH`) is read
-  from `apps/docs/verbatra.lock.json`, never typed, and pinned by `lib/hero-ledger.test.ts` to
-  the content hash of the English headline. Its `figcaption` carries `landing.hero.ledger.caption`
-  and the dogfooding claim linking this site's message files. The home social image
-  (`HomeOgFrame` in `lib/og-image.tsx`) repeats this look with `OG_PALETTE`, which mirrors these
-  tokens, and the subset Space Grotesk and JetBrains Mono files in `assets/og-fonts/`
-  (`lib/og-fonts.ts`), stripped of their kerning tables, since satori turns kerning into doubled
-  word gaps; its headline wraps with `textWrap: "balance"`, and `lib/og-image.test.tsx` fails when
-  a font lacks a glyph the image draws. Provenance: Space Grotesk 2.000 (`SpaceGrotesk-Medium.ttf`,
-  `SpaceGrotesk-Bold.ttf` from
-  `https://github.com/floriankarsten/space-grotesk/tree/master/fonts/ttf/static`) and JetBrains
-  Mono 2.305 (`JetBrainsMono-Regular.ttf` from
-  `https://github.com/JetBrains/JetBrainsMono/tree/master/fonts/ttf`), both OFL 1.1 with the
-  licence beside them, each subset with fontTools:
+  the page's own locale, then the rest, each value with its `lang`), only the first two under 40rem,
+  closed by the `verbatra.lock.json` line whose hash (`HERO_HEADLINE_LOCK_HASH`) is read from
+  `apps/docs/verbatra.lock.json`, never typed, and pinned by `lib/hero-ledger.test.ts` to the
+  content hash of the English headline. Its `figcaption` carries `landing.hero.ledger.caption` and
+  the dogfooding claim linking this site's message files. The home social image (`HomeOgFrame` in
+  `lib/og-image.tsx`) repeats this look with `OG_PALETTE`, which mirrors these tokens, and the
+  subset Space Grotesk and JetBrains Mono files in `assets/og-fonts/` (`lib/og-fonts.ts`), stripped
+  of their kerning tables, since satori turns kerning into doubled word gaps; its headline wraps
+  with `textWrap: "balance"`, and `lib/og-image.test.tsx` fails when a font lacks a glyph the image
+  draws. Provenance: Space Grotesk 2.000 (`SpaceGrotesk-Medium.ttf`, `SpaceGrotesk-Bold.ttf` from
+  `https://github.com/floriankarsten/space-grotesk/tree/master/fonts/ttf/static`) and JetBrains Mono
+  2.305 (`JetBrainsMono-Regular.ttf` from
+  `https://github.com/JetBrains/JetBrainsMono/tree/master/fonts/ttf`), both OFL 1.1 with the licence
+  beside them, each subset with fontTools:
   `pyftsubset <upstream>.ttf --unicodes="U+0020-007E,U+00A0-017F,U+2018-201E,U+2026"
   --layout-features="" --no-hinting --drop-tables+=GPOS,GSUB,kern,DSIG --output-file=<name>.ttf`.
   The image keeps its own composition and its own labels: the headline, two other locales
   (`heroLocaleRows`) and three counts (`OG_COUNT_FACTS` in `lib/landing-facts.ts`: formats,
-  providers and the locales this site translates) labelled from `landing.hero.og`, never from
-  the hero's facts row.
-  A new character outside those ranges in a headline or number label needs the subset rerun. `PromptCopyButton` is `.vk-prompt` (`.vk-prompt-trigger`, `.vk-prompt-pop` holding the exact
-  prompt in `.vk-prompt-text`, sans `--text-xs` with a hanging indent per numbered line, its URL
-  broken only after a path `/` and each flag, and the value after it (`--skill verbatra-cli`), kept whole through `breakUrlsAtSlashes(text,
-  keepFlagsWhole)`), whose preview opens on hover and on keyboard focus, CSS only, and stays shut
-  once dismissed (`data-dismissed`). A copy announces "copied" (again on every copy) or, when the
-  clipboard refuses, the short "Copy failed" (`landing.install.copyFailed`) in its polite live region, while the
-  tooltip alone carries the full reason, so the failure is not read twice, and counts `copy-ai-prompt` only
-  on success. A failure turns the trigger `--text-danger` with an alert icon and holds the preview
-  open with the reason (`.vk-prompt-failed`, `data-status="failed"`) so the prompt can be selected
-  by hand, on touch too, until a pointer goes down outside it or Escape is pressed. On the docs home it sits in `.vk-agent-tip`, a
-  `.vk-home-callout` (`.vk-home-callout-icon`, `.vk-home-callout-body`, `.vk-home-callout-title`)
-  whose `.vk-agent-tip-action` wraps under the text, with the preview spanning it, while the tip
-  is under 36rem. Neither uses a gradient headline: `--gradient-headline` is only for the
-  footer's watermark. On the docs surface only the docs home header carries an eyebrow (a
-  `.vk-label`); no landing section does. No card or button on the docs home appends an arrow to
-  its label: the hover border, or on a stack card the chevron, is the affordance.
-- **`.vk-label`**: the small mono, uppercase, `0.14em`-tracked, `--text-faint` label the
-  landing footer uses for its column titles. The sidebar's top-level folders and separators
-  inside each tab (group triggers such as "CLI", the `For AI agents` separator), the TOC's "On
-  this page" title, table headers, and the sidebar tabs all use this treatment. A top-level page
-  ("Introduction", "Error codes", `llms.txt`) keeps its name as written: a page name, and above
-  all a file name, is never uppercased.
-  `DocsHomePaths` cards do not: the goal is the card title in sentence case, and the page name
-  sits below the body. The sidebar gets it from `lib/docs-group-labels.tsx`, which wraps every folder and separator
-  name directly under a root folder (the Docs and Reference tabs) in the class before the tree reaches
-  `DocsLayout`, and leaves the tab names themselves plain; do not target Fumadocs' or Radix's
-  internal DOM for it.
-  Use the class for a new label rather than restating the four declarations.
+  providers and the locales this site translates) labelled from `landing.hero.og`, never from the
+  hero's facts row. A new character outside those ranges in a headline or number label needs the
+  subset rerun. `PromptCopyButton` is `.vk-prompt` (`.vk-prompt-trigger`, `.vk-prompt-pop` holding
+  the exact prompt in `.vk-prompt-text`, sans `--text-xs` with a hanging indent per numbered line,
+  its URL broken only after a path `/` and each flag, and the value after it
+  (`--skill verbatra-cli`), kept whole through `breakUrlsAtSlashes(text, keepFlagsWhole)`), whose
+  preview opens on hover and on keyboard focus, CSS only, and stays shut once dismissed
+  (`data-dismissed`). A copy announces "copied" (again on every copy) or, when the clipboard
+  refuses, the short "Copy failed" (`landing.install.copyFailed`) in its polite live region, while
+  the tooltip alone carries the full reason, so the failure is not read twice, and counts
+  `copy-ai-prompt` only on success. A failure turns the trigger `--text-danger` with an alert icon
+  and holds the preview open with the reason (`.vk-prompt-failed`, `data-status="failed"`) so the
+  prompt can be selected by hand, on touch too, until a pointer goes down outside it or Escape is
+  pressed. On the docs home it sits in `.vk-agent-tip`, a `.vk-home-callout`
+  (`.vk-home-callout-icon`, `.vk-home-callout-body`, `.vk-home-callout-title`) whose
+  `.vk-agent-tip-action` wraps under the text, with the preview spanning it, while the tip is under
+  36rem. Neither uses a gradient headline: `--gradient-headline` is only for the footer's watermark.
+  On the docs surface only the docs home header carries an eyebrow (a `.vk-label`); no landing
+  section does. No card or button on the docs home appends an arrow to its label: the hover border,
+  or on a stack card the chevron, is the affordance.
+- **`.vk-label`**: the small mono, uppercase, `0.14em`-tracked, `--text-faint` label the landing
+  footer uses for its column titles. The sidebar's top-level folders and separators inside each tab
+  (group triggers such as "CLI", the `For AI agents` separator), the TOC's "On this page" title,
+  table headers, and the sidebar tabs all use this treatment. A top-level page ("Introduction",
+  "Error codes", `llms.txt`) keeps its name as written: a page name, and above all a file name, is
+  never uppercased. `DocsHomePaths` cards do not: the goal is the card title in sentence case, and
+  the page name sits below the body. The sidebar gets it from `lib/docs-group-labels.tsx`, which
+  wraps every folder and separator name directly under a root folder (the Docs and Reference tabs)
+  in the class before the tree reaches `DocsLayout`, and leaves the tab names themselves plain; do
+  not target Fumadocs' or Radix's internal DOM for it. Use the class for a new label rather than
+  restating the four declarations.
 - **Owned hooks, not library internals**: callouts carry `.vk-callout` (added by the `Callout`
-  mapping in `components/mdx.tsx` and passed explicitly by the locale notice in the docs page), and the prev/next footer carries `.vk-docs-footer` through
-  `DocsPage`'s `footer.className`. Style those classes, not Fumadocs' utility classes.
+  mapping in `components/mdx.tsx` and passed explicitly by the locale notice in the docs page), and
+  the prev/next footer carries `.vk-docs-footer` through `DocsPage`'s `footer.className`. Style
+  those classes, not Fumadocs' utility classes.
 - **Flat panels**: `rounded-xl border border-fd-border` on `var(--surface-bg)`, with a
   glow-tinted border on hover (`color-mix(in srgb, var(--v-glow) 45%, var(--border-default))`).
   `DocsHomePaths`, `DocsHomeFeatures`, and the prev/next footer cards follow it; no docs home
@@ -705,23 +700,23 @@ comes from:
   "Next" sections end in a `<Cards>` block. A card that points at the page's own prev/next footer
   target is dropped at render time (`lib/docs-neighbours.ts`, passed to `getMDXComponents` by the
   docs page), so the footer and the cards never link the same page twice.
-- **Install commands as package-manager tabs**: an install command is an `npm` fence
-  (`` ```npm ``) holding the one npm command. `remarkPackageManagerTabs`
-  (`lib/package-manager-tabs.ts`, after `remarkStackBlocks` in `source.config.ts`) runs Fumadocs'
-  own `remarkNpm` on it, so it renders as Fumadocs' `CodeBlockTabs` (npm, pnpm, yarn, bun) with one
-  remembered choice (`groupId` `package-manager`), and prints the npm command alone in the page's
-  `.md` output. The preset plugin stays off (`remarkNpmOptions: false`), and
-  `lib/install-commands.test.ts` fails on an `npm` fence that is not an `npm install`, so every
-  other command stays one `npx` line in a `bash` fence. `StackBlock name="runtime-install"` emits
-  the `npm` fence for an `npm install` (`isNpmInstall`, the predicate the test shares) and `bash`
-  for any other tool, and `<InitCommand format>` accepts only a format id from the published
-  `@verbatra/sdk/config-schema.json`. The plugin turns each fence into its own tabs and
-  marks that node for the `.md` output, never another `CodeBlockTabs` on the page. A
-  `` ```verbatra-run `` fence (`RUN_FENCE_LANG`) holds only the arguments (`<command>`) and
-  becomes the same tabs with the binary each manager runs (`npx @verbatra/cli`, `pnpm verbatra`,
+- **Install commands as package-manager tabs**: an install command is an `npm` fence (`` ```npm ``)
+  holding the one npm command. `remarkPackageManagerTabs` (`lib/package-manager-tabs.ts`, after
+  `remarkStackBlocks` in `source.config.ts`) runs Fumadocs' own `remarkNpm` on it, so it renders as
+  Fumadocs' `CodeBlockTabs` (npm, pnpm, yarn, bun) with one remembered choice (`groupId`
+  `package-manager`), and prints the npm command alone in the page's `.md` output. The preset plugin
+  stays off (`remarkNpmOptions: false`), and `lib/install-commands.test.ts` fails on an `npm` fence
+  that is not an `npm install`, so every other command stays one `npx` line in a `bash` fence.
+  `StackBlock name="runtime-install"` emits the `npm` fence for an `npm install` (`isNpmInstall`,
+  the predicate the test shares) and `bash` for any other tool, and `<InitCommand format>` accepts
+  only a format id from the published `@verbatra/sdk/config-schema.json`. The plugin turns each
+  fence into its own tabs and marks that node for the `.md` output, never another `CodeBlockTabs` on
+  the page. A `` ```verbatra-run `` fence (`RUN_FENCE_LANG`) holds only the arguments (`<command>`)
+  and becomes the same tabs with the binary each manager runs (`npx @verbatra/cli`, `pnpm verbatra`,
   `yarn verbatra`, `bun run verbatra`), sharing the remembered choice; `cli/index` uses it. The
   landing hero's command panel takes `NPM_INSTALL_COMMAND` from `lib/install-commands.ts` and shows
-  no package-manager tabs; the docs home has no install box (its Quickstart tab and agent tip lead there).
+  no package-manager tabs; the docs home has no install box (its Quickstart tab and agent tip lead
+  there).
 - **Output blocks**: a fence flagged `output` (`` ```text output ``) is what a command prints, not
   something to run. The flag, not a title, is the marker, so it reads the same in every locale:
   `parseCodeBlockMeta` (`lib/code-block-meta.ts`, wired as `rehypeCodeOptions.parseMetaString` in
@@ -748,10 +743,10 @@ comes from:
   (localized) so no two pages share a title, and listed as "Overview" in their folder. Both
   overview pages list their pages as `<Cards>`; the SDK one comes from `<SdkEntryPoints />`
   (`components/sdk-reference.tsx`), one card per page naming its entry points.
-- **Table of contents**: TOC entries never break inside a word (`overflow-wrap: normal` on
-  `#nd-toc` and the phone popover); `pageToc` (`lib/page-toc.tsx`) offers a break after each
-  underscore with `<wbr>` (`breakAfterUnderscores`), so `AGENT_FILE_INVALID` wraps as `AGENT_ / FILE_ / INVALID`. A page
-  whose TOC would be taller than the viewport sets `tocDepth: 2` in its frontmatter (all four
+- **Table of contents**: TOC entries never break inside a word (`overflow-wrap: normal` on `#nd-toc`
+  and the phone popover); `pageToc` (`lib/page-toc.tsx`) offers a break after each underscore with
+  `<wbr>` (`breakAfterUnderscores`), so `AGENT_FILE_INVALID` wraps as `AGENT_ / FILE_ / INVALID`. A
+  page whose TOC would be taller than the viewport sets `tocDepth: 2` in its frontmatter (all four
   locales) to list only its H2 families; `error-codes` does. `codeHeadings: true` adds
   `.vk-code-headings` to the page body, which sets its H3s (one code name each) in `--font-mono`.
   The phone TOC button carries an explicit `aria-label` (Fumadocs' localized "On this page",
@@ -765,29 +760,29 @@ comes from:
   `--surface-bg` fill sit on it, the table itself is transparent, and only the `thead th` row is
   filled (`--surface-card`, a `.vk-label`), the same header treatment `.vk-type-table` gets, so a
   Markdown table and a generated type table read as one component. `#nd-page .prose` is the
-  `vk-article` size container, and every table rule keys on its width, never on the viewport.
-  From 45rem up the wrapper is `overflow: visible` and the header row is sticky below the header
+  `vk-article` size container, and every table rule keys on its width, never on the viewport. From
+  45rem up the wrapper is `overflow: visible` and the header row is sticky below the header
   (`top: var(--fd-docs-row-3)`); below 45rem the wrapper scrolls sideways with the end-edge fade
-  `.vk-terminal-scroll` uses, and the header is not sticky, because a sticky cell inside a
-  scroll container is offset against that container, not the page. Cells are compact (0.5rem by
-  0.75rem, top-aligned). A table of three or more columns gets `.vk-table-stack` and a
-  `data-label` per body cell from `lib/stacked-tables.ts` at build time, unless every body row
-  holds at most `COMPACT_ROW_MAX_CHARACTERS` of text (the error code index), which stays a table
-  at every width. Only while the article column is under 30rem (a phone) does a stacked table's
-  row become a card: the first cell as its title, every other cell under its column name. A table
-  of `WIDE_TABLE_MIN_COLUMNS` (six) or more columns also gets `.vk-table-stack-wide` and stacks
-  below 56rem, with its column names beside the values, since it cannot fit the desktop article
-  column (about 41.5rem at 1280). Under 30rem, long code and pills in a cell may wrap anywhere
-  too, so a two-column table fits a phone. Short code (`.vk-code-short`) in a cell, at every
-  width, breaks only at the points `breakInlineCode` offers. The header row stays
-  in the DOM for assistive technology. Short inline code (up to `SHORT_INLINE_CODE_MAX`
-  characters in `lib/inline-code.ts`) gets `.vk-code-short` from the MDX `code` mapping and never
-  wraps elsewhere; longer inline code wraps, in cells and in prose alike, and the mapping runs it through
-  `breakInlineCode` (`lib/word-breaks.tsx`): a `<wbr>` after every underscore, so
-  `verbatra_project_snapshot` wraps at `_` before anywhere else, a `.vk-code-break` (a zero-width
-  space drawn by CSS, never copied) after a `.`, `/` or `]` between word characters, so
-  `result.config.files` wraps at a dot, and every `--flag` or other hyphenated piece kept whole
-  in a `whitespace-nowrap` span, so `--agent` never wraps after its hyphen.
+  `.vk-terminal-scroll` uses, and the header is not sticky, because a sticky cell inside a scroll
+  container is offset against that container, not the page. Cells are compact (0.5rem by 0.75rem,
+  top-aligned). A table of three or more columns gets `.vk-table-stack` and a `data-label` per body
+  cell from `lib/stacked-tables.ts` at build time, unless every body row holds at most
+  `COMPACT_ROW_MAX_CHARACTERS` of text (the error code index), which stays a table at every width.
+  Only while the article column is under 30rem (a phone) does a stacked table's row become a card:
+  the first cell as its title, every other cell under its column name. A table of
+  `WIDE_TABLE_MIN_COLUMNS` (six) or more columns also gets `.vk-table-stack-wide` and stacks below
+  56rem, with its column names beside the values, since it cannot fit the desktop article column
+  (about 41.5rem at 1280). Under 30rem, long code and pills in a cell may wrap anywhere too, so a
+  two-column table fits a phone. Short code (`.vk-code-short`) in a cell, at every width, breaks
+  only at the points `breakInlineCode` offers. The header row stays in the DOM for assistive
+  technology. Short inline code (up to `SHORT_INLINE_CODE_MAX` characters in `lib/inline-code.ts`)
+  gets `.vk-code-short` from the MDX `code` mapping and never wraps elsewhere; longer inline code
+  wraps, in cells and in prose alike, and the mapping runs it through `breakInlineCode`
+  (`lib/word-breaks.tsx`): a `<wbr>` after every underscore, so `verbatra_project_snapshot` wraps at
+  `_` before anywhere else, a `.vk-code-break` (a zero-width space drawn by CSS, never copied) after
+  a `.`, `/` or `]` between word characters, so `result.config.files` wraps at a dot, and every
+  `--flag` or other hyphenated piece kept whole in a `whitespace-nowrap` span, so `--agent` never
+  wraps after its hyphen.
 - **SDK type tables**: `<SdkTypeTable name="..." />` in `content/docs/sdk/*.mdx` becomes Fumadocs'
   `TypeTable`, generated at MDX compile time by `fumadocs-typescript`'s `remarkAutoTypeTable` from
   the built `packages/sdk/dist/index.d.ts` (`lib/sdk-type-table.ts`, wired in `source.config.ts`).

@@ -74,8 +74,8 @@ this skill's concern).
   internal anchor that carries one.
 - **Naming** - verb-object kebab-case names (copy-, select-, click-, open-, run-,
   reset-, install-, toggle-), and the page area goes in a `location` property, never
-  in the name. outbound-link and locale-switch keep their older names for dashboard
-  continuity.
+  in the name. outbound-link and locale-switch keep their established names, so their
+  dashboard series stay continuous.
 
 ## Event catalogue
 
