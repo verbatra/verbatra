@@ -6,10 +6,9 @@ import { HighlightedCommand } from "@/components/ui/command-line";
 import { CopyButton } from "@/components/ui/copy-button";
 import { TabList, tabPanelProps } from "@/components/ui/tabs";
 import { AI_SETUP_PROMPT } from "@/lib/ai-setup-prompt";
-import { CLI_PACKAGE, NPM_INSTALL_COMMAND } from "@/lib/install-commands";
+import { NPM_INSTALL_COMMAND } from "@/lib/install-commands";
 import { trackUmamiEvent } from "@/lib/umami";
 import { breakUrlsAtSlashes, keepPackageRunsWhole } from "@/lib/word-breaks";
-import { NPM_CLI } from "./links";
 
 export const COMMAND_PANEL_ID = "hero-command";
 export const COMMAND_PANEL_TABS = ["install", "prompt"] as const;
@@ -82,10 +81,7 @@ export function CommandPanel({ labels }: { labels: CommandPanelLabels }): ReactN
               ${" "}
             </span>
             <code>
-              <HighlightedCommand
-                command={NPM_INSTALL_COMMAND}
-                link={{ token: CLI_PACKAGE, href: NPM_CLI, target: "npm-cli", location: "hero" }}
-              />
+              <HighlightedCommand command={NPM_INSTALL_COMMAND} />
             </code>
           </p>
         </div>

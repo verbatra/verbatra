@@ -195,11 +195,10 @@ describe("CommandPanel", () => {
     });
   });
 
-  it("counts the npm package link in the install command as an outbound link from the hero", () => {
-    const link = visiblePanel(render())?.querySelector<HTMLAnchorElement>("code a");
-    expect(link?.dataset.umamiEvent).toBe("outbound-link");
-    expect(link?.dataset.umamiEventTarget).toBe("npm-cli");
-    expect(link?.dataset.umamiEventLocation).toBe("hero");
+  it("prints the install command as plain text, with no link inside it to click by mistake", () => {
+    const code = visiblePanel(render())?.querySelector("code");
+    expect(code?.textContent).toBe(NPM_INSTALL_COMMAND);
+    expect(code?.querySelector("a")).toBeNull();
   });
 
   it("copies the whole prompt, counts copy-ai-prompt and announces it", async () => {

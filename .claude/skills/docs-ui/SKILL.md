@@ -155,14 +155,14 @@ Three families, loaded in `app/[lang]/layout.tsx` through `next/font/google`:
 per component. Adding a fourth family needs a reason that survives review.
 
 The type scale is a major third (1.25) held in `app/global.css`: `--text-display`, `--text-h2`
-(capped at 3rem, read only by `.vk-h2`), `--text-h3`, `--text-h4`, `--text-lead`, with
-`--leading-*` and `--tracking-*` companions. Above it sits `--text-hero` (fluid, 2.5rem to
-6.25rem, about 97px at 1440) with `--weight-hero` (700), `--leading-hero` (1.04) and
-`--tracking-hero` (-0.03em), used only by the landing headline (`.vk-hero-title`). Landing
-headings take the `.vk-display`, `.vk-h2`, `.vk-h3`, `.vk-h4` and `.vk-lead` classes (declared in
-`@layer components`, so a Tailwind utility still overrides them) rather than inline `fontSize` /
-`letterSpacing` styles. The docs page title, description and prose `h2` to `h4` sit on the same
-scale through the `#nd-page` rules.
+(capped at 3rem, read only by `.vk-h2`), `--text-h3`, `--text-h4`, `--text-lead`, with `--leading-*`
+and `--tracking-*` companions. Above it sits `--text-hero` (fluid, 2.5rem to 6.25rem; from 80rem the
+hero caps it at `10.6cqi` of its copy column, about 84px at 1440) with `--weight-hero` (700),
+`--leading-hero` (1.04) and `--tracking-hero` (-0.03em), used only by the landing headline
+(`.vk-hero-title`). Landing headings take the `.vk-display`, `.vk-h2`, `.vk-h3`, `.vk-h4` and
+`.vk-lead` classes (declared in `@layer components`, so a Tailwind utility still overrides them)
+rather than inline `fontSize` / `letterSpacing` styles. The docs page title, description and prose
+`h2` to `h4` sit on the same scale through the `#nd-page` rules.
 
 Headlines are solid `--text-strong` on both surfaces. `--gradient-headline` exists for the
 footer's oversized watermark only; do not clip it onto a heading.
@@ -602,17 +602,18 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
 - **Solid white display headlines.** `LandingHero` and the docs home header both set a solid
   `--text-strong` headline. `LandingHero` sits straight on the void page (no card, wash or grain),
   over the static blueprint grid, and is left-aligned. `.vk-hero-main` is one column, and from 80rem
-  a 12-column grid: `.vk-hero-copy` spans 7 columns and the `LocaleLedger` the last 4
-  (`9 / span 4`). The copy stacks the server-rendered `h1` (`.vk-hero-title`), the sans
-  `.vk-lead.vk-hero-lead` (46ch), `.vk-hero-ctas` with two buttons, the primary "Get started"
-  (`/docs/quickstart`) and the secondary "Try it in the browser" (`#showcase`, counted as
-  `click-cta` with `target: showcase` from `onClick`, never a `data-umami-event`), then
-  `.vk-hero-panel` (`CommandPanel`) and `.vk-hero-facts`: one mono row of `HERO_FACTS` from
-  `lib/landing-facts.ts`, always in digits and each a link to the page that owns it (the version to
-  the GitHub releases and MIT to the licence, both `outbound-link`; the format count to
-  `/docs/formats` and the provider count, "+ none", to `/docs/providers`, both `click-cta`).
-  `LocaleLedger` (`components/landing/locale-ledger.tsx`, a server component) is a void code
-  `figure` titled `landing.hero.headline`: one row per message file (`ledgerRows` in
+  a 12-column grid: `.vk-hero-copy` spans 8 columns and the `LocaleLedger` the last 4
+  (`9 / span 4`); there the copy is an inline-size container and the `h1` is capped at `10.6cqi`
+  under `--text-hero`, so the headline holds two lines in all four locales. The copy stacks the
+  server-rendered `h1` (`.vk-hero-title`), the sans `.vk-lead.vk-hero-lead` (46ch), `.vk-hero-ctas`
+  with two buttons, the primary "Get started" (`/docs/quickstart`) and the secondary "Try it in the
+  browser" (`#showcase`, counted as `click-cta` with `target: showcase` from `onClick`, never a
+  `data-umami-event`), then `.vk-hero-panel` (`CommandPanel`) and `.vk-hero-facts`: one mono row of
+  `HERO_FACTS` from `lib/landing-facts.ts`, always in digits and each a link to the page that owns
+  it (the version to the GitHub releases and MIT to the licence, both `outbound-link`; the format
+  count to `/docs/formats` and the provider count, "+ none", to `/docs/providers`, both
+  `click-cta`). `LocaleLedger` (`components/landing/locale-ledger.tsx`, a server component) is a
+  void code `figure` titled `landing.hero.headline`: one row per message file (`ledgerRows` in
   `lib/hero-ledger.ts`, read from `messages/*.json`; `en`, the source, first and full white, then
   the page's own locale, then the rest, each value with its `lang`), only the first two under 40rem,
   closed by the `verbatra.lock.json` line whose hash (`HERO_HEADLINE_LOCK_HASH`) is read from
@@ -721,9 +722,9 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   the page. A `` ```verbatra-run `` fence (`RUN_FENCE_LANG`) holds only the arguments (`<command>`)
   and becomes the same tabs with the binary each manager runs (`npx @verbatra/cli`, `pnpm verbatra`,
   `yarn verbatra`, `bun run verbatra`), sharing the remembered choice; `cli/index` uses it. The
-  landing hero's command panel takes `NPM_INSTALL_COMMAND` from `lib/install-commands.ts` and shows
-  no package-manager tabs; the docs home has no install box (its Quickstart tab and agent tip lead
-  there).
+  landing hero's command panel takes `NPM_INSTALL_COMMAND` from `lib/install-commands.ts` as plain
+  text (no link inside the command) and shows no package-manager tabs; the docs home has no install
+  box (its Quickstart tab and agent tip lead there).
 - **Output blocks**: a fence flagged `output` (`` ```text output ``) is what a command prints, not
   something to run. The flag, not a title, is the marker, so it reads the same in every locale:
   `parseCodeBlockMeta` (`lib/code-block-meta.ts`, wired as `rehypeCodeOptions.parseMetaString` in

@@ -2394,7 +2394,12 @@ html[data-motion-ready]:not([data-past-hero]) .vk-landing-nav-bar {
   }
 
   .vk-hero-copy {
-    grid-column: span 7;
+    grid-column: span 8;
+    container-type: inline-size;
+  }
+
+  .vk-hero-title {
+    font-size: min(var(--text-hero), 10.6cqi);
   }
 
   .vk-ledger {

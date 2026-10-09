@@ -179,12 +179,15 @@ describe("LandingHero: headline and ledger", () => {
     expect(link?.getAttribute("data-umami-event-location")).toBe("hero");
   });
 
-  it("puts the ledger beside the copy only from 80rem, on a 7 and 5 column split", () => {
+  it("puts the ledger beside the copy only from 80rem, on an 8 and 4 column split, the headline capped to its column", () => {
     expect(rule(".vk-hero-main")).toContain("grid-template-columns: minmax(0, 1fr);");
     expect(FLAT_CSS).toMatch(
       /@media \(min-width: 80rem\) \{ \.vk-hero-main \{ grid-template-columns: repeat\(var\(--grid-columns\), minmax\(0, 1fr\)\);/,
     );
-    expect(FLAT_CSS).toContain(".vk-hero-copy { grid-column: span 7; }");
+    expect(FLAT_CSS).toContain(
+      ".vk-hero-copy { grid-column: span 8; container-type: inline-size; }",
+    );
+    expect(FLAT_CSS).toContain(".vk-hero-title { font-size: min(var(--text-hero), 10.6cqi); }");
     expect(FLAT_CSS).toContain("grid-column: 9 / span 4;");
     expect(FLAT_CSS).not.toMatch(/@media \(min-width: 64rem\) \{[^@]*\.vk-hero-main/);
   });
