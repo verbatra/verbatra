@@ -195,7 +195,7 @@ export function SiteHeaderFrame({
   return (
     <header {...props} className={cn("vk-header sticky flex flex-col backdrop-blur-sm", className)}>
       <div className="mx-auto flex h-14 w-full max-w-(--fd-layout-width) items-center gap-2 px-4 md:px-6">
-        <div className="flex flex-1 items-center">
+        <div className="vk-header-start flex flex-1 items-center">
           {slots.navTitle ? (
             <slots.navTitle className="inline-flex items-center gap-2.5 font-semibold" />
           ) : null}
@@ -204,7 +204,7 @@ export function SiteHeaderFrame({
         {slots.searchTrigger ? (
           <slots.searchTrigger.full
             hideIfDisabled
-            className="my-auto w-full max-w-sm rounded-xl ps-2.5 max-lg:max-w-64 max-md:hidden"
+            className="vk-header-search my-auto w-full max-w-sm rounded-xl ps-2.5 max-lg:max-w-64 max-md:hidden"
           />
         ) : null}
         <div className="flex flex-1 items-center justify-end md:gap-2 md:ps-4">

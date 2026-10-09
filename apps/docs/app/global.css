@@ -1516,6 +1516,16 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   }
 }
 
+@media (orientation: landscape) and (height < 32rem) and (768px <= width < 1280px) {
+  .vk-header:has(.vk-header-cta) .vk-header-start {
+    flex: none;
+  }
+
+  .vk-header:has(.vk-header-cta) .vk-header-search {
+    max-width: 12rem;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .vk-header-cta {
     animation: vk-header-cta-in var(--duration-base) var(--ease-out) both;

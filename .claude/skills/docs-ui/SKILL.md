@@ -488,8 +488,10 @@ parallax, no scroll-scrubbing, no scroll listener and no animation library.
   again while the final call to action is on screen (`html[data-final-cta]`). It then appears with a
   4px fade (`vk-header-cta-in`) into the free space of the `justify-end` group, so nothing beside it
   moves. It shows under 768px, from 1280px, and on a landscape screen under 32rem tall (a phone
-  turned sideways), the cases where that space exists. A click counts `click-cta` with
-  `location: header`.
+  turned sideways), the cases where that space exists; for the last, the landing header drops the
+  start group's `flex-1` (`.vk-header-start`) and caps the search box (`.vk-header-search`) at
+  12rem, so the call to action lands in free space and the search never resizes. A click counts
+  `click-cta` with `location: header`.
 - **Version pill.** On the landing only (the same `landingLocale` gate), `HomeSiteHeader` passes
   `VersionPill` (`components/version-pill.tsx`) as the frame's `badge`, rendered right after the
   wordmark and outside the primary nav, which stays Docs, Reference and GitHub. It reads

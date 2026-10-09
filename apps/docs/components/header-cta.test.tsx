@@ -82,4 +82,16 @@ describe("HeaderCta", () => {
       expect(rule.declarations.width).toBeUndefined();
     }
   });
+
+  it("on a phone turned sideways, pins the search box so the call to action moves nothing", () => {
+    const media =
+      "@media (orientation: landscape) and (height < 32rem) and (768px <= width < 1280px)";
+    const rules = docsStylesheetRules().filter((rule) => rule.media === media);
+    const declared = (selector: string) =>
+      rules.find((rule) => rule.selector === selector)?.declarations;
+    expect(declared(".vk-header:has(.vk-header-cta) .vk-header-start")).toEqual({ flex: "none" });
+    expect(declared(".vk-header:has(.vk-header-cta) .vk-header-search")).toEqual({
+      "max-width": "12rem",
+    });
+  });
 });
