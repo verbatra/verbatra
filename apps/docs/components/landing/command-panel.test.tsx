@@ -176,9 +176,12 @@ describe("CommandPanel", () => {
     await click(tabs(container)[0]);
     expect(trackUmamiEvent).not.toHaveBeenCalled();
     await click(tabs(container)[1]);
-    expect(trackUmamiEvent).toHaveBeenCalledWith("hero-command-tab", { tab: "prompt" });
+    expect(trackUmamiEvent).toHaveBeenCalledWith("select-tab", { tab: "prompt", location: "hero" });
     await click(tabs(container)[0]);
-    expect(trackUmamiEvent).toHaveBeenLastCalledWith("hero-command-tab", { tab: "install" });
+    expect(trackUmamiEvent).toHaveBeenLastCalledWith("select-tab", {
+      tab: "install",
+      location: "hero",
+    });
   });
 
   it("copies the install command and counts copy-install-command, the hero's existing event", async () => {
@@ -187,7 +190,16 @@ describe("CommandPanel", () => {
     expect(writeText).toHaveBeenCalledWith(NPM_INSTALL_COMMAND);
     expect(trackUmamiEvent).toHaveBeenCalledWith("copy-install-command", {
       command: NPM_INSTALL_COMMAND,
+      manager: "npm",
+      location: "hero",
     });
+  });
+
+  it("counts the npm package link in the install command as an outbound link from the hero", () => {
+    const link = visiblePanel(render())?.querySelector<HTMLAnchorElement>("code a");
+    expect(link?.dataset.umamiEvent).toBe("outbound-link");
+    expect(link?.dataset.umamiEventTarget).toBe("npm-cli");
+    expect(link?.dataset.umamiEventLocation).toBe("hero");
   });
 
   it("copies the whole prompt, counts copy-ai-prompt and announces it", async () => {
@@ -196,7 +208,7 @@ describe("CommandPanel", () => {
     const panel = visiblePanel(container);
     await click(panel?.querySelector("button"));
     expect(writeText).toHaveBeenCalledWith(AI_SETUP_PROMPT);
-    expect(trackUmamiEvent).toHaveBeenLastCalledWith("copy-ai-prompt");
+    expect(trackUmamiEvent).toHaveBeenLastCalledWith("copy-ai-prompt", { location: "hero" });
     expect(panel?.querySelector('[aria-live="polite"]')?.textContent).toBe("copied");
   });
 

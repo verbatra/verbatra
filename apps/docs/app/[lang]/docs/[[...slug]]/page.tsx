@@ -6,13 +6,12 @@ import {
   DocsPage,
   DocsTitle,
   EditOnGitHub,
-  MarkdownCopyButton,
-  ViewOptionsPopover,
 } from "fumadocs-ui/layouts/notebook/page";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { DocsPageActions } from "@/components/docs-page-actions";
 import { JsonLd } from "@/components/json-ld";
 import { CALLOUT_CLASS, getMDXComponents } from "@/components/mdx";
 import { sdkReferenceComponents } from "@/components/sdk-reference";
@@ -147,10 +146,7 @@ export default async function Page(props: { params: Promise<{ slug?: string[]; l
         <>
           <DocsTitle id="page-title">{page.data.title}</DocsTitle>
           <DocsDescription>{page.data.description}</DocsDescription>
-          <div className="not-prose -mt-4 flex flex-wrap items-center gap-2">
-            <MarkdownCopyButton markdownUrl={markdownHref} />
-            <ViewOptionsPopover markdownUrl={markdownHref} githubUrl={editHref} />
-          </div>
+          <DocsPageActions markdownUrl={markdownHref} githubUrl={editHref} />
         </>
       )}
       <DocsBody className={page.data.codeHeadings ? CODE_HEADINGS_CLASS : undefined}>

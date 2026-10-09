@@ -99,7 +99,8 @@
       "landing.showcase.tryIt.scenarios.break": {"origin":"import","valueHash":"1fc5fd20d9b8283d"},
       "landing.showcase.tryIt.scenarios.edit": {"origin":"import","valueHash":"dfff128f984ce74c"},
       "landing.showcase.tryIt.scenarios.remove": {"origin":"import","valueHash":"77f408812c3f3fc3"},
-      "landing.showcase.tryIt.scenariosLabel": {"origin":"import","valueHash":"72c593922b8f403e"}
+      "landing.showcase.tryIt.scenariosLabel": {"origin":"import","valueHash":"72c593922b8f403e"},
+      "legal.privacy.s4.body": {"origin":"import","valueHash":"e3f7da5c6e43dfaa"}
     },
     "es": {
       "docs.mcpInstall.label": {"origin":"import","valueHash":"40c81c03b3985ccb"},
@@ -199,7 +200,8 @@
       "landing.showcase.tryIt.scenarios.break": {"origin":"import","valueHash":"a1df8359976f224e"},
       "landing.showcase.tryIt.scenarios.edit": {"origin":"import","valueHash":"8a9f9dd3516dfe8f"},
       "landing.showcase.tryIt.scenarios.remove": {"origin":"import","valueHash":"fe9be5eb4138aa24"},
-      "landing.showcase.tryIt.scenariosLabel": {"origin":"import","valueHash":"ceed2588c04f5b60"}
+      "landing.showcase.tryIt.scenariosLabel": {"origin":"import","valueHash":"ceed2588c04f5b60"},
+      "legal.privacy.s4.body": {"origin":"import","valueHash":"1f31a9a47ede66ca"}
     },
     "fr": {
       "docs.mcpInstall.label": {"origin":"import","valueHash":"0e0da3b2061b77f6"},
@@ -300,7 +302,8 @@
       "landing.showcase.tryIt.scenarios.break": {"origin":"import","valueHash":"955fffb04397395a"},
       "landing.showcase.tryIt.scenarios.edit": {"origin":"import","valueHash":"f8a0bd7b1bfcf53f"},
       "landing.showcase.tryIt.scenarios.remove": {"origin":"import","valueHash":"74c793bcf4533b20"},
-      "landing.showcase.tryIt.scenariosLabel": {"origin":"import","valueHash":"6d2a066c4b312074"}
+      "landing.showcase.tryIt.scenariosLabel": {"origin":"import","valueHash":"6d2a066c4b312074"},
+      "legal.privacy.s4.body": {"origin":"import","valueHash":"910c2ebf338c88ad"}
     }
   }
 }

@@ -37,6 +37,7 @@ export async function Proof(): Promise<ReactNode> {
             <CopyButton
               text={GATE_CLI_COMMAND}
               label={tInstall("copyCommand", { command: GATE_CLI_COMMAND })}
+              location="how"
             />
           ),
         }}

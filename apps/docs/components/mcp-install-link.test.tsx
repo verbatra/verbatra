@@ -33,7 +33,8 @@ describe("McpInstallLink", () => {
     const anchor = link();
     expect(anchor?.className).toContain("border-fd-border");
     expect(anchor?.classList.contains("min-h-11")).toBe(true);
-    expect(anchor?.dataset.umamiEvent).toBe("mcp-install");
+    expect(anchor?.dataset.umamiEvent).toBe("install-mcp");
     expect(anchor?.dataset.umamiEventClient).toBe("vscode");
+    expect(anchor?.dataset.umamiEventLocation).toBe("docs-page");
   });
 });

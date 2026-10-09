@@ -8,6 +8,14 @@ export const EVIDENCE_LINK_CLASS = "vk-evidence-link";
 
 const EVIDENCE_STYLE = { background: "var(--surface-bg)" } as const;
 
+const EXTERNAL_EVIDENCE_PROPS = {
+  target: "_blank",
+  rel: "noreferrer noopener",
+  "data-umami-event": "outbound-link",
+  "data-umami-event-target": "evidence",
+  "data-umami-event-location": "control",
+} as const;
+
 export function Evidence({ text, href }: { text: string; href?: string | undefined }): ReactNode {
   if (href) {
     const external = href.startsWith("http");
@@ -16,7 +24,7 @@ export function Evidence({ text, href }: { text: string; href?: string | undefin
         href={href}
         className={cn(EVIDENCE_CLASS, EVIDENCE_LINK_CLASS)}
         style={EVIDENCE_STYLE}
-        {...(external ? { target: "_blank", rel: "noreferrer noopener" } : {})}
+        {...(external ? EXTERNAL_EVIDENCE_PROPS : {})}
       >
         {text}
       </a>

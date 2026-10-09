@@ -21,10 +21,20 @@ export async function FinalCta(): Promise<ReactNode> {
           {t("heading")}
         </h2>
         <div data-reveal="1" className="flex flex-wrap gap-3">
-          <Button href={localizedPath(locale, "/docs/quickstart")} variant="primary" size="lg">
+          <Button
+            href={localizedPath(locale, "/docs/quickstart")}
+            variant="primary"
+            size="lg"
+            track={{ name: "click-cta", data: { location: "final-cta", target: "get-started" } }}
+          >
             {t("start")}
           </Button>
-          <Button href={localizedPath(locale, "/docs")} variant="secondary" size="lg">
+          <Button
+            href={localizedPath(locale, "/docs")}
+            variant="secondary"
+            size="lg"
+            track={{ name: "click-cta", data: { location: "final-cta", target: "docs" } }}
+          >
             {t("docs")}
           </Button>
         </div>

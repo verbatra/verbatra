@@ -24,10 +24,10 @@ export function StartHere(): ReactNode {
       <CommandRow
         command={AGENT_INIT_COMMAND}
         label={install("copyAgentAria")}
-        event="copy-agent-command"
+        location="start-here"
         divided
       />
-      <AiSetupPrompt />
+      <AiSetupPrompt location="start-here" />
     </aside>
   );
 }

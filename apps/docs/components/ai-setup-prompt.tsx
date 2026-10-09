@@ -13,7 +13,13 @@ import { breakUrlsAtSlashes, keepFlagsWhole } from "@/lib/word-breaks";
 
 export const PROMPT_COPIED_RESET_MS = 2000;
 
-export function AiSetupPrompt({ label }: { label?: string } = {}): ReactNode {
+export function AiSetupPrompt({
+  location,
+  label,
+}: {
+  location: string;
+  label?: string;
+}): ReactNode {
   const t = useTranslations("landing.install");
 
   return (
@@ -29,7 +35,7 @@ export function AiSetupPrompt({ label }: { label?: string } = {}): ReactNode {
           text={AI_SETUP_PROMPT}
           label={t("copyPromptAria")}
           size="sm"
-          onCopied={() => trackUmamiEvent("copy-ai-prompt")}
+          onCopied={() => trackUmamiEvent("copy-ai-prompt", { location })}
         />
       </div>
       <p
@@ -156,7 +162,8 @@ export function PromptCopyButton({ className }: { className?: string } = {}): Re
         aria-describedby={popoverId}
         data-copied={status === "copied"}
         onClick={async () => {
-          if (await copy(AI_SETUP_PROMPT)) trackUmamiEvent("copy-ai-prompt");
+          if (await copy(AI_SETUP_PROMPT))
+            trackUmamiEvent("copy-ai-prompt", { location: "docs-home" });
         }}
         className={buttonClasses("secondary", "lg", "vk-prompt-trigger w-full justify-center")}
       >

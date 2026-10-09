@@ -43,7 +43,7 @@ export function CommandPanel({ labels }: { labels: CommandPanelLabels }): ReactN
   function select(id: string) {
     if (!isTab(id) || id === active) return;
     setActive(id);
-    trackUmamiEvent("hero-command-tab", { tab: id });
+    trackUmamiEvent("select-tab", { tab: id, location: "hero" });
   }
 
   return (
@@ -69,7 +69,11 @@ export function CommandPanel({ labels }: { labels: CommandPanelLabels }): ReactN
               label={t("copyAria")}
               size="sm"
               onCopied={() =>
-                trackUmamiEvent("copy-install-command", { command: NPM_INSTALL_COMMAND })
+                trackUmamiEvent("copy-install-command", {
+                  command: NPM_INSTALL_COMMAND,
+                  manager: "npm",
+                  location: "hero",
+                })
               }
             />
           </PaneHead>
@@ -80,7 +84,7 @@ export function CommandPanel({ labels }: { labels: CommandPanelLabels }): ReactN
             <code>
               <HighlightedCommand
                 command={NPM_INSTALL_COMMAND}
-                link={{ token: CLI_PACKAGE, href: NPM_CLI }}
+                link={{ token: CLI_PACKAGE, href: NPM_CLI, target: "npm-cli", location: "hero" }}
               />
             </code>
           </p>
@@ -94,7 +98,7 @@ export function CommandPanel({ labels }: { labels: CommandPanelLabels }): ReactN
               text={AI_SETUP_PROMPT}
               label={t("copyPromptAria")}
               size="sm"
-              onCopied={() => trackUmamiEvent("copy-ai-prompt")}
+              onCopied={() => trackUmamiEvent("copy-ai-prompt", { location: "hero" })}
             />
           </PaneHead>
           <pre lang="en" className="vk-prompt-text">

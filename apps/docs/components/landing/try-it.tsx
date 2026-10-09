@@ -68,7 +68,15 @@ function keyList(keys: ReadonlyArray<string>): string {
   return keys.join(", ");
 }
 
-function Result({ outcome, failed }: { outcome: ShowcaseOutcome; failed: boolean }): ReactNode {
+function Result({
+  outcome,
+  failed,
+  busy,
+}: {
+  outcome: ShowcaseOutcome;
+  failed: boolean;
+  busy: boolean;
+}): ReactNode {
   const t = useTranslations("landing.showcase.tryIt.result");
   const sent = [...outcome.missing, ...outcome.stale];
   const sendValue =
@@ -109,7 +117,13 @@ function Result({ outcome, failed }: { outcome: ShowcaseOutcome; failed: boolean
   ] as const;
 
   return (
-    <div className="vk-showcase-result" role="status" aria-live="polite" aria-atomic="true">
+    <div
+      className="vk-showcase-result"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      aria-busy={busy || undefined}
+    >
       <p className="vk-showcase-result-title" data-failed={failed ? "" : undefined}>
         {title}
       </p>
@@ -140,8 +154,12 @@ export function TryIt({ seed, rows }: { seed: ShowcaseOutcome; rows: ShowcaseRow
     loadScenarioModule().catch(() => undefined);
   }
 
-  async function run(id: ShowcaseScenarioId) {
-    trackUmamiEvent("showcase-scenario", { scenario: id });
+  async function run(id: ShowcaseScenarioId, retry = false) {
+    trackUmamiEvent("run-scenario", {
+      scenario: id,
+      location: "showcase",
+      ...(retry ? { retry: true } : {}),
+    });
     latestRequest.current += 1;
     const request = latestRequest.current;
     setPending(true);
@@ -158,6 +176,7 @@ export function TryIt({ seed, rows }: { seed: ShowcaseOutcome; rows: ShowcaseRow
   }
 
   function reset() {
+    trackUmamiEvent("reset-showcase", { location: "showcase" });
     latestRequest.current += 1;
     setPending(false);
     setFailedScenario(null);
@@ -220,13 +239,13 @@ export function TryIt({ seed, rows }: { seed: ShowcaseOutcome; rows: ShowcaseRow
         ))}
       </div>
       <div className="vk-showcase-outcome">
-        <Result outcome={outcome} failed={failedScenario !== null} />
+        <Result outcome={outcome} failed={failedScenario !== null} busy={pending} />
         <div className="vk-showcase-outcome-actions">
           {failedScenario === null ? null : (
             <button
               type="button"
               className={buttonClasses("secondary", "sm", "vk-showcase-retry")}
-              onClick={() => run(failedScenario)}
+              onClick={() => run(failedScenario, true)}
             >
               {t("retry")}
             </button>

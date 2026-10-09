@@ -1,14 +1,27 @@
-import Link from "next/link";
 import type { ComponentPropsWithoutRef, CSSProperties, ReactNode } from "react";
+import { TrackedLink } from "@/components/ui/tracked-link";
+import type { UmamiEvent } from "@/lib/umami";
 
-export type ButtonProps = {
+type ButtonLook = {
   variant?: "primary" | "secondary" | "ghost";
   size?: "sm" | "md" | "lg";
-  disabled?: boolean;
   trailingArrow?: boolean;
-  href?: string;
+  className?: string;
   children: ReactNode;
-} & ComponentPropsWithoutRef<"button">;
+};
+
+type LinkButtonProps = ButtonLook & {
+  href: string;
+  disabled?: boolean;
+  track?: UmamiEvent;
+} & Omit<ComponentPropsWithoutRef<"a">, keyof ButtonLook | "href" | "onClick" | "onAuxClick">;
+
+type NativeButtonProps = ButtonLook & {
+  href?: undefined;
+  track?: undefined;
+} & Omit<ComponentPropsWithoutRef<"button">, keyof ButtonLook>;
+
+export type ButtonProps = LinkButtonProps | NativeButtonProps;
 
 const BASE =
   "group not-prose inline-flex items-center gap-2 rounded-[10px] font-semibold transition-[filter,background-color,color] disabled:opacity-50 disabled:pointer-events-none";
@@ -33,21 +46,14 @@ export function buttonClasses(
   return `${BASE} ${VARIANT[variant]} ${SIZE[size]}${className ? ` ${className}` : ""}`;
 }
 
-export default function Button({
-  variant = "primary",
-  size = "md",
-  disabled = false,
-  trailingArrow = false,
-  href,
+function ButtonContent({
+  trailingArrow,
   children,
-  className,
-  ...rest
-}: ButtonProps): ReactNode {
-  const classes = buttonClasses(variant, size, className);
-  const style: CSSProperties | undefined =
-    variant === "primary" ? { background: "var(--accent-fill)" } : undefined;
-
-  const content = (
+}: {
+  trailingArrow: boolean;
+  children: ReactNode;
+}): ReactNode {
+  return (
     <>
       {children}
       {trailingArrow ? (
@@ -57,17 +63,63 @@ export default function Button({
       ) : null}
     </>
   );
+}
 
-  if (href && !disabled) {
+function safeAttributes(props: object): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(props).filter(([key]) => key.startsWith("aria-") || key.startsWith("data-")),
+  );
+}
+
+function isLinkButton(props: ButtonProps): props is LinkButtonProps {
+  return typeof props.href === "string";
+}
+
+export default function Button(props: ButtonProps): ReactNode {
+  const { variant = "primary", size = "md", trailingArrow = false, className, children } = props;
+  const classes = buttonClasses(variant, size, className);
+  const style: CSSProperties | undefined =
+    variant === "primary" ? { background: "var(--accent-fill)" } : undefined;
+  const content = <ButtonContent trailingArrow={trailingArrow}>{children}</ButtonContent>;
+
+  if (isLinkButton(props)) {
+    const {
+      variant: _variant,
+      size: _size,
+      trailingArrow: _trailingArrow,
+      className: _className,
+      children: _children,
+      href,
+      disabled,
+      track,
+      ...rest
+    } = props;
+    if (disabled) {
+      return (
+        <button type="button" {...safeAttributes(rest)} className={classes} style={style} disabled>
+          {content}
+        </button>
+      );
+    }
     return (
-      <Link href={href} className={classes} style={style}>
+      <TrackedLink {...rest} href={href} track={track} className={classes} style={style}>
         {content}
-      </Link>
+      </TrackedLink>
     );
   }
 
+  const {
+    variant: _variant,
+    size: _size,
+    trailingArrow: _trailingArrow,
+    className: _className,
+    children: _children,
+    href: _href,
+    track: _track,
+    ...rest
+  } = props;
   return (
-    <button type="button" className={classes} style={style} disabled={disabled} {...rest}>
+    <button type="button" className={classes} style={style} {...rest}>
       {content}
     </button>
   );

@@ -23,7 +23,7 @@ function render(wrapsWhenNarrow?: boolean): HTMLDivElement {
       <CommandRow
         command={NPM_INSTALL_COMMAND}
         label="copy"
-        event="copy-install-command"
+        location="start-here"
         {...(wrapsWhenNarrow === undefined ? {} : { wrapsWhenNarrow })}
       />,
     ),
@@ -59,7 +59,9 @@ describe("CommandRow", () => {
     expect(button?.getAttribute("aria-label")).toBe("copy");
     await clickCopy(container);
     expect(writeText.mock.calls).toEqual([[NPM_INSTALL_COMMAND]]);
-    expect(track.mock.calls).toEqual([["copy-install-command", { command: NPM_INSTALL_COMMAND }]]);
+    expect(track.mock.calls).toEqual([
+      ["copy-command", { command: NPM_INSTALL_COMMAND, location: "start-here" }],
+    ]);
     expect(button?.textContent).toBe("copied");
   });
 

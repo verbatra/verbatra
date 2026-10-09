@@ -24,6 +24,7 @@ import { HeaderCta } from "@/components/header-cta";
 import { useRootTabs } from "@/components/root-tabs";
 import { useDrawerEscape } from "@/components/use-drawer-escape";
 import { headerActiveTab, isRootTabLinkActive } from "@/lib/root-tabs";
+import { trackUmamiEvent } from "@/lib/umami";
 import { cn } from "@/lib/utils";
 
 export type HeaderSlots = Pick<BaseSlots, "navTitle" | "searchTrigger" | "languageSelect">;
@@ -132,9 +133,21 @@ function TextLink({
   );
 }
 
+function trackOutboundIcon(item: IconItem): void {
+  trackUmamiEvent("outbound-link", {
+    target: (item.label ?? item.url).toLowerCase(),
+    location: "header",
+  });
+}
+
 function IconLink({ item, className }: { item: IconItem; className?: string }): ReactNode {
   return (
-    <LinkItem item={item} className={cn(ICON_BUTTON, className)} aria-label={item.label}>
+    <LinkItem
+      item={item}
+      className={cn(ICON_BUTTON, className)}
+      aria-label={item.label}
+      onClick={item.external ? () => trackOutboundIcon(item) : undefined}
+    >
       {item.icon}
     </LinkItem>
   );

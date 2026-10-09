@@ -20,7 +20,7 @@ const { AiSetupPrompt, PromptCopyButton, PROMPT_COPIED_RESET_MS } = await import
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 function prompt(): Element | null {
-  const markup = renderToStaticMarkup(<AiSetupPrompt />);
+  const markup = renderToStaticMarkup(<AiSetupPrompt location="start-here" />);
   return new DOMParser().parseFromString(markup, "text/html").querySelector("figure");
 }
 
@@ -315,7 +315,7 @@ describe("PromptCopyButton", () => {
     const container = render();
     await click(container);
     expect(trackUmamiEvent).toHaveBeenCalledTimes(1);
-    expect(trackUmamiEvent).toHaveBeenCalledWith("copy-ai-prompt");
+    expect(trackUmamiEvent).toHaveBeenCalledWith("copy-ai-prompt", { location: "docs-home" });
   });
 
   it("opens its preview from CSS alone, on hover and on keyboard focus", () => {

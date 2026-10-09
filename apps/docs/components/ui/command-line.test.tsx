@@ -19,12 +19,36 @@ describe("HighlightedCommand", () => {
     const html = renderToStaticMarkup(
       <HighlightedCommand
         command="npm install --save-dev @verbatra/cli"
-        link={{ token: "@verbatra/cli", href: "https://www.npmjs.com/package/@verbatra/cli" }}
+        link={{
+          token: "@verbatra/cli",
+          href: "https://www.npmjs.com/package/@verbatra/cli",
+          target: "npm-cli",
+          location: "hero",
+        }}
       />,
     );
 
     expect(html).toContain('<span class="whitespace-nowrap">--save-dev</span> <a');
     expect(html).toContain(">@verbatra/cli</a>");
+  });
+
+  it("counts a click on the package link as an outbound link with its target and location", () => {
+    const html = renderToStaticMarkup(
+      <HighlightedCommand
+        command="npm install @verbatra/cli"
+        link={{
+          token: "@verbatra/cli",
+          href: "https://npm.example/cli",
+          target: "npm-cli",
+          location: "hero",
+        }}
+      />,
+    );
+    const link = new DOMParser().parseFromString(html, "text/html").querySelector("a");
+
+    expect(link?.getAttribute("data-umami-event")).toBe("outbound-link");
+    expect(link?.getAttribute("data-umami-event-target")).toBe("npm-cli");
+    expect(link?.getAttribute("data-umami-event-location")).toBe("hero");
   });
 
   it("keeps the words whole without a link too", () => {
@@ -110,7 +134,10 @@ describe("CommandLine copy", () => {
     await click(button);
     expect(writeText).toHaveBeenCalledWith(COMMAND);
     expect(trackUmamiEvent).toHaveBeenCalledTimes(1);
-    expect(trackUmamiEvent).toHaveBeenCalledWith("copy-command", { command: COMMAND });
+    expect(trackUmamiEvent).toHaveBeenCalledWith("copy-command", {
+      command: COMMAND,
+      location: "docs-page",
+    });
   });
 
   it("counts nothing when the clipboard refuses the copy", async () => {

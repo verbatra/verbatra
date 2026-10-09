@@ -45,13 +45,12 @@ describe("Loop", () => {
     expect(shot?.getAttribute("aria-label")).toBe("rows.studio.alt");
   });
 
-  it("counts every row call to action as a loop click naming its row", async () => {
+  it("links every row call to action without a declarative event, which would force a reload", async () => {
     const doc = await render();
     for (const id of LOOP_ROWS) {
       const cta = doc.querySelector<HTMLAnchorElement>(`[data-loop-row="${id}"] h3 ~ a`);
-      expect(cta?.dataset.umamiEvent).toBe("click-cta");
-      expect(cta?.dataset.umamiEventLocation).toBe("loop");
-      expect(cta?.dataset.umamiEventTarget).toBe(id);
+      expect(cta?.getAttribute("href")).toMatch(/^\/de\/docs\//);
+      expect(cta?.hasAttribute("data-umami-event")).toBe(false);
     }
   });
 
@@ -59,20 +58,20 @@ describe("Loop", () => {
     const doc = await render();
     const agent = doc.querySelector('[data-loop-row="agent"]');
     expect(agent?.textContent).toContain(SKILLS_INSTALL_COMMAND);
-    const targets = Array.from(
-      agent?.querySelectorAll<HTMLAnchorElement>("p a[data-umami-event]") ?? [],
-    ).map((link) => [
-      link.dataset.umamiEvent,
-      link.dataset.umamiEventTarget,
-      link.dataset.umamiEventLocation,
-      link.getAttribute("href"),
-    ]);
+    const targets = Array.from(agent?.querySelectorAll<HTMLAnchorElement>("p a") ?? []).map(
+      (link) => [
+        link.dataset.umamiEvent,
+        link.dataset.umamiEventTarget,
+        link.dataset.umamiEventLocation,
+        link.getAttribute("href"),
+      ],
+    );
     expect(targets).toEqual([
-      ["click-cta", "llms", "loop", "/llms.txt"],
-      ["click-cta", "llms-full", "loop", "/llms-full.txt"],
-      ["click-cta", "mcp-docs", "loop", "/de/docs/cli/mcp"],
+      [undefined, undefined, undefined, "/llms.txt"],
+      [undefined, undefined, undefined, "/llms-full.txt"],
+      [undefined, undefined, undefined, "/de/docs/cli/mcp"],
       ["outbound-link", "skills-repo", "loop", "https://github.com/verbatra/skills"],
-      ["click-cta", "skills-docs", "loop", "/de/docs/agent-recipes#das-skills-paket"],
+      [undefined, undefined, undefined, "/de/docs/agent-recipes#das-skills-paket"],
     ]);
   });
 

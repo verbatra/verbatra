@@ -1,7 +1,7 @@
 import type { SupportedFormat } from "@verbatra/sdk";
-import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
 import { StackIcon, type StackIconKey, StackIconSprite } from "@/components/stack-icons";
+import { TrackedLink } from "@/components/ui/tracked-link";
 import { type Locale, localizeHref } from "@/lib/i18n";
 
 const ICON_SIZE = 28;
@@ -57,16 +57,22 @@ function Card({
   card,
   prefix,
   locale,
+  location,
 }: {
   card: StackCard;
   prefix: string;
   locale: Locale;
+  location: string;
 }): ReactNode {
   return (
     <li className="vk-stack-card">
       <div className="vk-stack-card-text">
         <p className="vk-stack-card-name">
-          <Link href={localizeHref(locale, card.href) ?? card.href} className="vk-stack-card-link">
+          <TrackedLink
+            href={localizeHref(locale, card.href) ?? card.href}
+            className="vk-stack-card-link"
+            track={{ name: "click-cta", data: { location, target: card.href } }}
+          >
             {card.label}
             {card.badge === undefined ? null : (
               <span className="vk-pill vk-stack-card-badge">
@@ -74,7 +80,7 @@ function Card({
                 {card.badge}
               </span>
             )}
-          </Link>
+          </TrackedLink>
           <Chevron />
         </p>
         {card.description === undefined ? null : (
@@ -93,10 +99,12 @@ export function StackCards({
   labelledBy,
   cards,
   locale,
+  location = "docs-page",
 }: {
   labelledBy: string;
   cards: ReadonlyArray<StackCard>;
   locale: Locale;
+  location?: string;
 }): ReactNode {
   const prefix = stackIconPrefix(labelledBy);
   return (
@@ -104,7 +112,7 @@ export function StackCards({
       <StackIconSprite prefix={prefix} icons={cards.map((card) => card.icon)} />
       <ul className="vk-stack-grid">
         {cards.map((card) => (
-          <Card key={card.href} card={card} prefix={prefix} locale={locale} />
+          <Card key={card.href} card={card} prefix={prefix} locale={locale} location={location} />
         ))}
       </ul>
     </nav>

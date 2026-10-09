@@ -96,11 +96,21 @@ describe("TryIt: scenarios", () => {
     return container;
   }
 
+  async function settle(): Promise<void> {
+    for (let tick = 0; tick < 500; tick += 1) {
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 5));
+      });
+      if (!document.querySelector('[role="status"][aria-busy="true"]')) return;
+    }
+    throw new Error("the scenario load never settled");
+  }
+
   async function click(target: Element | null | undefined): Promise<void> {
     await act(async () => {
       target?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-      await new Promise((resolve) => setTimeout(resolve, 20));
     });
+    await settle();
   }
 
   function button(container: HTMLElement, label: string): HTMLButtonElement | undefined {
@@ -131,12 +141,16 @@ describe("TryIt: scenarios", () => {
     expect(
       button(container, "landing.showcase.tryIt.scenarios.edit")?.getAttribute("aria-pressed"),
     ).toBe("true");
-    expect(trackUmamiEvent).toHaveBeenCalledWith("showcase-scenario", { scenario: "edit" });
+    expect(trackUmamiEvent).toHaveBeenCalledWith("run-scenario", {
+      scenario: "edit",
+      location: "showcase",
+    });
     expect(container.querySelector('[data-mark="edited"]')?.textContent).toContain(
       "Go to checkout",
     );
 
     await click(button(container, "landing.showcase.tryIt.reset"));
+    expect(trackUmamiEvent).toHaveBeenLastCalledWith("reset-showcase", { location: "showcase" });
     expect(status?.querySelector(".vk-showcase-result-title")?.textContent).toBe(
       "landing.showcase.tryIt.result.seed",
     );
@@ -152,6 +166,7 @@ describe("TryIt: scenarios", () => {
     expect(open()).toEqual(["source"]);
     await click(button(container, SHOWCASE_LOCK_FILE));
     expect(open()).toEqual(["lock"]);
+    expect(trackUmamiEvent).not.toHaveBeenCalled();
     expect(button(container, SHOWCASE_LOCK_FILE)?.getAttribute("aria-pressed")).toBe("true");
     expect(container.querySelector(".vk-showcase-file-switch legend")?.textContent).toBe(
       "landing.showcase.tryIt.filesLabel",
@@ -171,7 +186,10 @@ describe("TryIt: scenarios", () => {
     expect(container.querySelector('[data-mark="refused"]')?.textContent).toContain(
       "Fällig: {{betrag}}",
     );
-    expect(trackUmamiEvent).toHaveBeenCalledWith("showcase-scenario", { scenario: "break" });
+    expect(trackUmamiEvent).toHaveBeenCalledWith("run-scenario", {
+      scenario: "break",
+      location: "showcase",
+    });
   });
 
   it("names the orphaned key and changes no lock hash when a key is removed", async () => {

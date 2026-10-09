@@ -152,6 +152,7 @@ function FooterLinkItem({
         rel="noreferrer noopener"
         data-umami-event="outbound-link"
         data-umami-event-target={link.trackingTarget}
+        data-umami-event-location="footer"
       >
         {label}
         {link.isNew ? <NewBadge>{newLabel}</NewBadge> : null}
@@ -193,6 +194,7 @@ function ContributorsRow({
               className="block rounded-full transition-[filter] hover:brightness-110"
               data-umami-event="outbound-link"
               data-umami-event-target="contributor"
+              data-umami-event-location="footer"
             >
               <Image
                 src={contributor.avatarPath}
@@ -287,6 +289,7 @@ export async function FullFooter(): Promise<ReactNode> {
                 className="inline-flex min-h-6 items-center gap-2 text-sm text-fd-muted-foreground transition-colors hover:text-fd-foreground"
                 data-umami-event="outbound-link"
                 data-umami-event-target="github"
+                data-umami-event-location="footer"
               >
                 <GithubIcon size={16} />
                 <span>GitHub</span>
@@ -299,6 +302,7 @@ export async function FullFooter(): Promise<ReactNode> {
                 className="inline-flex min-h-6 items-center gap-2 text-sm text-fd-muted-foreground transition-colors hover:text-fd-foreground"
                 data-umami-event="outbound-link"
                 data-umami-event-target="npm"
+                data-umami-event-location="footer"
               >
                 <SiNpm
                   size={16}

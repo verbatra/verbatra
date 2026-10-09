@@ -49,6 +49,13 @@ describe("Layout: Umami tracker", () => {
     expect(script?.getAttribute("data-do-not-track")).toBe("true");
   });
 
+  it("counts only the production host and ignores URL hashes", async () => {
+    const script = await umamiScript();
+
+    expect(script?.getAttribute("data-domains")).toBe("verbatra.kreitz-webdev.de");
+    expect(script?.getAttribute("data-exclude-hash")).toBe("true");
+  });
+
   it("loads the tracker from an external file rather than inline code", async () => {
     const script = await umamiScript();
 

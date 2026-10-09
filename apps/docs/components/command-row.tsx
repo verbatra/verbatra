@@ -3,20 +3,19 @@
 import type { ReactNode } from "react";
 import { type CommandLineLink, HighlightedCommand } from "@/components/ui/command-line";
 import { CopyButton } from "@/components/ui/copy-button";
-import { trackUmamiEvent } from "@/lib/umami";
 import { cn } from "@/lib/utils";
 
 export function CommandRow({
   command,
   label,
-  event,
+  location,
   link,
   divided = false,
   wrapsWhenNarrow = false,
 }: {
   command: string;
   label: string;
-  event: string;
+  location: string;
   link?: CommandLineLink;
   divided?: boolean;
   wrapsWhenNarrow?: boolean;
@@ -40,11 +39,7 @@ export function CommandRow({
       >
         <HighlightedCommand command={command} link={link} />
       </code>
-      <CopyButton
-        text={command}
-        label={label}
-        onCopied={() => trackUmamiEvent(event, { command })}
-      />
+      <CopyButton text={command} label={label} location={location} />
     </div>
   );
 }

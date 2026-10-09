@@ -76,10 +76,7 @@ describe("DocsHomeTabs", () => {
       ["CLI", "/de/docs/cli"],
     ]);
     expect(nav?.querySelector("[aria-current]")).toBeNull();
-    expect(links.map((link) => link.getAttribute("data-umami-event-target"))).toEqual([
-      "/docs/quickstart",
-      "/docs/cli",
-    ]);
+    expect(links.filter((link) => link.hasAttribute("data-umami-event"))).toEqual([]);
   });
 
   it("scrolls the track sideways inside the edge-fade scroller instead of wrapping", () => {

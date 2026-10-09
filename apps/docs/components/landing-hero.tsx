@@ -63,6 +63,7 @@ export async function LandingHero(): Promise<ReactNode> {
             className="vk-prose-link"
             data-umami-event="outbound-link"
             data-umami-event-target="site-messages"
+            data-umami-event-location="hero"
           >
             {t("dogfoodLink")}
           </a>
@@ -71,7 +72,12 @@ export async function LandingHero(): Promise<ReactNode> {
       <div className="vk-hero-body">
         <div className="vk-hero-intro">
           <p className="vk-lead vk-hero-lead">{t("lead")}</p>
-          <Button href={localizedPath(locale, "/docs/quickstart")} variant="primary" size="lg">
+          <Button
+            href={localizedPath(locale, "/docs/quickstart")}
+            variant="primary"
+            size="lg"
+            track={{ name: "click-cta", data: { location: "hero", target: "get-started" } }}
+          >
             {t("ctaStart")}
           </Button>
         </div>

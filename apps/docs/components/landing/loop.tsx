@@ -1,6 +1,7 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { StudioScreenshot } from "@/components/studio-screenshot";
+import { TrackedAnchor, TrackedLink } from "@/components/ui/tracked-link";
 import { type Locale, localizedAnchorPath, localizedPath } from "@/lib/i18n";
 import { SKILLS_INSTALL_COMMAND } from "@/lib/install-commands";
 import { sectionNumber } from "@/lib/landing-sections";
@@ -30,12 +31,8 @@ const CHECK_JSON_EXCERPT = [
   "  ] } }",
 ];
 
-function trackCta(target: string) {
-  return {
-    "data-umami-event": "click-cta",
-    "data-umami-event-location": "loop",
-    "data-umami-event-target": target,
-  } as const;
+function loopCta(target: string) {
+  return { name: "click-cta", data: { location: "loop", target } } as const;
 }
 
 function Frame({ children }: { children: ReactNode }): ReactNode {
@@ -75,9 +72,9 @@ function Row({
       <div className={cn("min-w-0", flip && "lg:order-2")}>
         <h3 className="vk-h3 max-w-[18ch]">{title}</h3>
         <p className="mt-3.5 max-w-[44ch] text-base text-fd-muted-foreground">{body}</p>
-        <a href={href} className={cn(LINK_CLASS, "mt-4")} {...trackCta(id)}>
+        <TrackedLink href={href} className={cn(LINK_CLASS, "mt-4")} track={loopCta(id)}>
           {cta}
-        </a>
+        </TrackedLink>
       </div>
       <div className={cn("min-w-0", flip && "lg:order-1")}>{children}</div>
     </div>
@@ -88,7 +85,12 @@ export async function Loop(): Promise<ReactNode> {
   const t = await getTranslations("landing.loop");
   const tInstall = await getTranslations("landing.install");
   const box = (command: string) => (
-    <CommandBox command={command} label={tInstall("copyCommand", { command })} scrolls />
+    <CommandBox
+      command={command}
+      label={tInstall("copyCommand", { command })}
+      location="loop"
+      scrolls
+    />
   );
   const locale = (await getLocale()) as Locale;
   const docs = (path: string) => localizedPath(locale, path);
@@ -191,15 +193,23 @@ export async function Loop(): Promise<ReactNode> {
               {box("verbatra mcp")}
             </div>
             <p className="flex flex-wrap gap-x-5 gap-y-2 px-5 pb-5 text-sm">
-              <a href="/llms.txt" className={LINK_CLASS} {...trackCta("llms")}>
+              <TrackedAnchor href="/llms.txt" className={LINK_CLASS} track={loopCta("llms")}>
                 {t("links.llms")}
-              </a>
-              <a href="/llms-full.txt" className={LINK_CLASS} {...trackCta("llms-full")}>
+              </TrackedAnchor>
+              <TrackedAnchor
+                href="/llms-full.txt"
+                className={LINK_CLASS}
+                track={loopCta("llms-full")}
+              >
                 {t("links.llmsFull")}
-              </a>
-              <a href={docs("/docs/cli/mcp")} className={LINK_CLASS} {...trackCta("mcp-docs")}>
+              </TrackedAnchor>
+              <TrackedLink
+                href={docs("/docs/cli/mcp")}
+                className={LINK_CLASS}
+                track={loopCta("mcp-docs")}
+              >
                 {t("links.mcpDocs")}
-              </a>
+              </TrackedLink>
               <a
                 href={SKILLS_REPO_URL}
                 target="_blank"
@@ -211,13 +221,13 @@ export async function Loop(): Promise<ReactNode> {
               >
                 verbatra/skills
               </a>
-              <a
+              <TrackedLink
                 href={localizedAnchorPath(locale, SKILLS_PACK_PAGE, SKILLS_PACK_ANCHORS)}
                 className={LINK_CLASS}
-                {...trackCta("skills-docs")}
+                track={loopCta("skills-docs")}
               >
                 {t("links.skillsDocs")}
-              </a>
+              </TrackedLink>
             </p>
           </Frame>
         </Row>

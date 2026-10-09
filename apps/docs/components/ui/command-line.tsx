@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 import { Fragment, type ReactNode } from "react";
 import { CopyButton } from "@/components/ui/copy-button";
 
-export type CommandLineLink = { token: string; href: string };
+export type CommandLineLink = { token: string; href: string; target: string; location: string };
 
 export type HighlightedCommandProps = {
   command: string;
@@ -40,6 +40,9 @@ export function HighlightedCommand({ command, link }: HighlightedCommandProps): 
         target="_blank"
         rel="noreferrer noopener"
         onClick={(event) => event.stopPropagation()}
+        data-umami-event="outbound-link"
+        data-umami-event-target={link.target}
+        data-umami-event-location={link.location}
         className="inline rounded align-baseline underline decoration-fd-border underline-offset-4 transition-colors hover:text-[var(--accent)] hover:decoration-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-ring)"
       >
         {link.token}
@@ -65,7 +68,13 @@ export default function CommandLine({ command, link }: CommandLineProps): ReactN
       <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap text-left text-fd-foreground">
         <HighlightedCommand command={command} link={link} />
       </code>
-      <CopyButton text={command} label={t("copyAria")} size="sm" className="ms-auto" />
+      <CopyButton
+        text={command}
+        label={t("copyAria")}
+        location="docs-page"
+        size="sm"
+        className="ms-auto"
+      />
     </div>
   );
 }

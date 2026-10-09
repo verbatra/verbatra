@@ -1,5 +1,10 @@
 export interface UmamiEventData {
-  [key: string]: string;
+  [key: string]: string | number | boolean;
+}
+
+export interface UmamiEvent {
+  readonly name: string;
+  readonly data?: UmamiEventData;
 }
 
 interface UmamiTracker {

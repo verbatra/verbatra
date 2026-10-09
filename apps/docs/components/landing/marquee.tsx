@@ -1,6 +1,7 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { StackIcon, type StackIconKey, StackIconSprite } from "@/components/stack-icons";
+import { TrackedLink } from "@/components/ui/tracked-link";
 import { type Locale, localizedPath } from "@/lib/i18n";
 import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { MarqueeRow } from "./marquee-row";
@@ -63,12 +64,10 @@ function Track({
     >
       {items.map((item) => (
         <li key={item.key} className="inline-flex whitespace-nowrap">
-          <a
+          <TrackedLink
             href={href}
             data-tip={item.tip}
-            data-umami-event="click-cta"
-            data-umami-event-location="marquee"
-            data-umami-event-target={row}
+            track={{ name: "click-cta", data: { location: "marquee", target: row } }}
             tabIndex={hidden ? -1 : undefined}
             className="vk-tip vk-marquee-item inline-flex items-center px-1 font-medium text-fd-muted-foreground transition-colors hover:text-fd-foreground focus-visible:text-fd-foreground"
             style={{ fontFamily: "var(--font-display)" }}
@@ -82,7 +81,7 @@ function Track({
               />
             </span>
             <span>{item.name}</span>
-          </a>
+          </TrackedLink>
         </li>
       ))}
     </ul>

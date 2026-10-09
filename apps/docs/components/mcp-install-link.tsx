@@ -15,8 +15,9 @@ export function McpInstallLink({ client }: { client: McpInstallClient }): ReactN
       <a
         href={mcpInstallLink(AGENT_CLIENT_CONFIGS, client)}
         className={buttonClasses("secondary", "sm", "min-h-11")}
-        data-umami-event="mcp-install"
+        data-umami-event="install-mcp"
         data-umami-event-client={client}
+        data-umami-event-location="docs-page"
       >
         {t("label", { client: mcpInstallClientName(AGENT_CLIENT_CONFIGS, client) })}
       </a>

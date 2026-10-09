@@ -6,11 +6,13 @@ import { cn } from "@/lib/utils";
 export function CommandBox({
   command,
   label,
+  location,
   link,
   scrolls = false,
 }: {
   command: string;
   label: string;
+  location: string;
   link?: CommandLineLink;
   scrolls?: boolean;
 }): ReactNode {
@@ -36,7 +38,7 @@ export function CommandBox({
         <HighlightedCommand command={command} link={link} />
       </code>
       <span className={cn("flex", !scrolls && "@max-[20rem]:basis-full @max-[20rem]:justify-end")}>
-        <CopyButton text={command} label={label} />
+        <CopyButton text={command} label={label} location={location} />
       </span>
     </div>
   );

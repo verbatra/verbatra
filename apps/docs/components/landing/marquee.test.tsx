@@ -69,12 +69,11 @@ describe("Marquee", () => {
     expect(rows[1]?.querySelector("ul")?.getAttribute("aria-label")).toBe("formatsLabel");
   });
 
-  it("counts a click on any item as a marquee call to action naming its row", async () => {
+  it("links every item to the formats page without a declarative event, which would force a reload", async () => {
     for (const row of ["frameworks", "formats"]) {
       for (const item of await visibleTrack(`${row}Label`)) {
-        expect(item.dataset.umamiEvent).toBe("click-cta");
-        expect(item.dataset.umamiEventLocation).toBe("marquee");
-        expect(item.dataset.umamiEventTarget).toBe(row);
+        expect(item.getAttribute("href")).toBe("/docs/formats");
+        expect(item.hasAttribute("data-umami-event")).toBe(false);
       }
     }
   });

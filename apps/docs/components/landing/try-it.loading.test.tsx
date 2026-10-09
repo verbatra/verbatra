@@ -29,7 +29,8 @@ vi.mock("@/lib/showcase-scenarios", async (importOriginal) => {
 vi.mock("next-intl", () => ({
   useTranslations: (namespace: string) => (key: string) => `${namespace}.${key}`,
 }));
-vi.mock("@/lib/umami", () => ({ trackUmamiEvent: vi.fn() }));
+const trackUmamiEvent = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/umami", () => ({ trackUmamiEvent }));
 
 const actual = await vi.importActual<ScenarioModule>("@/lib/showcase-scenarios");
 const { TryIt } = await import("./try-it");
@@ -53,11 +54,27 @@ function button(container: HTMLElement, label: string): HTMLButtonElement | unde
   return [...container.querySelectorAll("button")].find((node) => node.textContent === label);
 }
 
+const SETTLE_TICKS = 500;
+
+function busy(): boolean {
+  return document.querySelector('[role="status"][aria-busy="true"]') !== null;
+}
+
+async function settle(): Promise<void> {
+  for (let tick = 0; tick < SETTLE_TICKS; tick += 1) {
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    });
+    if (!busy()) return;
+  }
+  throw new Error("the scenario load never settled");
+}
+
 async function click(target: Element | null | undefined): Promise<void> {
   await act(async () => {
     target?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    await new Promise((resolve) => setTimeout(resolve, 20));
   });
+  await settle();
 }
 
 function title(container: HTMLElement): string | null | undefined {
@@ -81,11 +98,16 @@ describe("TryIt: loading the scenario module", () => {
 
     await click(button(container, "landing.showcase.tryIt.scenarios.edit"));
     const status = container.querySelector('[role="status"]');
+    expect(status?.hasAttribute("aria-busy")).toBe(false);
     expect(title(container)).toBe("landing.showcase.tryIt.result.failed");
     expect(status?.contains(container.querySelector("[data-failed]") ?? null)).toBe(true);
     expect(loading.failuresLeft).toBe(0);
 
+    trackUmamiEvent.mockReset();
     await click(button(container, "landing.showcase.tryIt.retry"));
+    expect(trackUmamiEvent.mock.calls).toEqual([
+      ["run-scenario", { scenario: "edit", location: "showcase", retry: true }],
+    ]);
     expect(title(container)).toBe("landing.showcase.tryIt.result.headline");
     expect(container.querySelector('[data-mark="edited"]')).not.toBeNull();
     expect(button(container, "landing.showcase.tryIt.retry")).toBeUndefined();

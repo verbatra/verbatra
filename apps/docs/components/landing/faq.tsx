@@ -4,6 +4,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
 import { i18n, isLocale, localizedPath } from "@/lib/i18n";
 import type { FaqItem } from "@/lib/structured-data";
+import { trackUmamiEvent } from "@/lib/umami";
 import { cn } from "@/lib/utils";
 import { RELEASES_URL } from "./links";
 import { SectionHead } from "./section-head";
@@ -30,6 +31,9 @@ function answerTags(locale: string) {
         target="_blank"
         rel="noreferrer noopener"
         className={ANSWER_LINK_CLASS}
+        data-umami-event="outbound-link"
+        data-umami-event-target="releases"
+        data-umami-event-location="faq"
       >
         {chunks}
       </a>
@@ -103,6 +107,12 @@ export function Faq({ items }: { items: ReadonlyArray<FaqEntry> }): ReactNode {
   const t = useTranslations("landing.faq");
   const [open, setOpen] = useState(-1);
 
+  function toggle(index: number, id: string): void {
+    const opening = open !== index;
+    setOpen(opening ? index : -1);
+    if (opening) trackUmamiEvent("open-faq", { question: id, location: "faq" });
+  }
+
   return (
     <section className="vk-gutter vk-w-wide vk-rhythm-lg mx-auto" id="faq">
       <div>
@@ -115,7 +125,7 @@ export function Faq({ items }: { items: ReadonlyArray<FaqEntry> }): ReactNode {
             item={item}
             index={i}
             isOpen={open === i}
-            onToggle={() => setOpen((current) => (current === i ? -1 : i))}
+            onToggle={() => toggle(i, item.id)}
           />
         ))}
       </div>

@@ -21,6 +21,19 @@ describe("trackUmamiEvent", () => {
     expect(track).toHaveBeenCalledWith("copy-install-command", { manager: "pnpm" });
   });
 
+  it("passes number and boolean properties through unchanged", () => {
+    const track = vi.fn();
+    window.umami = { track };
+
+    trackUmamiEvent("run-scenario", { scenario: "edit", retry: true, attempt: 2 });
+
+    expect(track).toHaveBeenCalledWith("run-scenario", {
+      scenario: "edit",
+      retry: true,
+      attempt: 2,
+    });
+  });
+
   it("calls window.umami.track with no data when omitted", () => {
     const track = vi.fn();
     window.umami = { track };

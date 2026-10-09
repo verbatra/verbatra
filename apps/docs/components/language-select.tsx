@@ -11,6 +11,11 @@ import { LOCALE_DISPLAY_NAMES } from "@/lib/language-select-copy";
 import { trackUmamiEvent } from "@/lib/umami";
 import { cn } from "@/lib/utils";
 
+export function trackLocaleSwitch(from: string, to: string): void {
+  if (from === to) return;
+  trackUmamiEvent("locale-switch", { to, from });
+}
+
 function SparkleIcon({ className }: { className?: string }): ReactNode {
   return (
     <svg
@@ -92,7 +97,7 @@ export function LocaleAwareLanguageSelect({
                   : "text-fd-muted-foreground hover:bg-fd-accent hover:text-fd-accent-foreground",
               )}
               onClick={() => {
-                trackUmamiEvent("locale-switch", { to: item.locale, from: currentLocale });
+                trackLocaleSwitch(currentLocale, item.locale);
                 context.onChange?.(item.locale);
               }}
             >

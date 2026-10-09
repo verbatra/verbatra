@@ -21,19 +21,27 @@ const STATUS_CLASS: Record<CopyStatus, string> = {
 
 const STATUS_LABEL = { idle: "copy", copied: "copied", failed: "copyFailed" } as const;
 
-export function CopyButton({
-  text,
-  label,
-  size = "md",
-  className,
-  onCopied,
-}: {
+type CopyTracking =
+  | { location: string; onCopied?: undefined }
+  | { location?: string; onCopied: () => void };
+
+export type CopyButtonProps = {
   text: string;
   label: string;
   size?: keyof typeof SIZE;
   className?: string;
-  onCopied?: () => void;
-}): ReactNode {
+} & CopyTracking;
+
+function reportCopy(props: CopyButtonProps): void {
+  if (props.onCopied) {
+    props.onCopied();
+    return;
+  }
+  trackUmamiEvent("copy-command", { command: props.text, location: props.location });
+}
+
+export function CopyButton(props: CopyButtonProps): ReactNode {
+  const { text, label, size = "md", className } = props;
   const t = useTranslations("landing.install");
   const { status, attempts, copy } = useCopyToClipboard();
   return (
@@ -41,12 +49,7 @@ export function CopyButton({
       <button
         type="button"
         onClick={async () => {
-          if (!(await copy(text))) return;
-          if (onCopied) {
-            onCopied();
-          } else {
-            trackUmamiEvent("copy-command", { command: text });
-          }
+          if (await copy(text)) reportCopy(props);
         }}
         aria-label={status === "idle" ? label : undefined}
         data-status={status}

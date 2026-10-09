@@ -157,6 +157,8 @@ describe("LandingHero: living headline", () => {
     );
     expect(link?.getAttribute("rel")).toBe("noreferrer noopener");
     expect(link?.getAttribute("data-umami-event")).toBe("outbound-link");
+    expect(link?.getAttribute("data-umami-event-target")).toBe("site-messages");
+    expect(link?.getAttribute("data-umami-event-location")).toBe("hero");
   });
 });
 

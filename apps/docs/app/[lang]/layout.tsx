@@ -12,7 +12,7 @@ import { LocaleAwareFrameworkProvider } from "@/lib/framework-provider";
 import { i18n, toLocale } from "@/lib/i18n";
 import { i18nConfig } from "@/lib/layout.shared";
 import { UMAMI_ORIGIN } from "@/lib/security-headers.mjs";
-import { homeAlternates, SITE_URL } from "@/lib/site";
+import { homeAlternates, SITE_HOST, SITE_URL } from "@/lib/site";
 import { homeOgImagePath, socialMetadata } from "@/lib/social-metadata";
 import { AUTHOR_NAME, organizationLd, SEO_KEYWORDS, websiteLd } from "@/lib/structured-data";
 
@@ -115,6 +115,8 @@ export default async function Layout({
           src={`${UMAMI_ORIGIN}/script.js`}
           data-website-id="fcf007b7-4579-4486-881c-e8686d61d63d"
           data-do-not-track="true"
+          data-domains={SITE_HOST}
+          data-exclude-hash="true"
           strategy="afterInteractive"
         />
       </body>

@@ -1,7 +1,7 @@
 import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
 import { Callout } from "fumadocs-ui/components/callout";
 import { Card } from "fumadocs-ui/components/card";
-import { CodeBlock, Pre } from "fumadocs-ui/components/codeblock";
+import { type CodeBlock, Pre } from "fumadocs-ui/components/codeblock";
 import { Step, Steps } from "fumadocs-ui/components/steps";
 import { Tab } from "fumadocs-ui/components/tabs";
 import { TypeTable } from "fumadocs-ui/components/type-table";
@@ -28,6 +28,7 @@ import { OutputCodeBlock } from "@/components/output-code-block";
 import { StackCards } from "@/components/stack-cards";
 import { StartHere } from "@/components/start-here";
 import { StudioScreenshot } from "@/components/studio-screenshot";
+import { TrackedCodeBlock } from "@/components/tracked-code-block";
 import Badge from "@/components/ui/badge";
 import CommandLine from "@/components/ui/command-line";
 import Tabs from "@/components/ui/tabs";
@@ -69,9 +70,9 @@ export function getMDXComponents(
           {children}
         </OutputCodeBlock>
       ) : (
-        <CodeBlock {...rest}>
+        <TrackedCodeBlock {...rest}>
           <Pre>{children}</Pre>
-        </CodeBlock>
+        </TrackedCodeBlock>
       ),
     Callout: ({ className, ...rest }: ComponentProps<typeof Callout>) => (
       <Callout className={cn(CALLOUT_CLASS, className)} {...rest} />

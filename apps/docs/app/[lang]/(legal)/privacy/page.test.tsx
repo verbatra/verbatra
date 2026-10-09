@@ -112,19 +112,39 @@ const UMAMI_DEVICE_READS: Record<Locale, RegExp> = {
 
 const UMAMI_EVENT_PAYLOADS: Record<Locale, ReadonlyArray<RegExp>> = {
   en: [
-    /copying a command or prompt \(with the copied command text for a command, and no data for the prompt\)/,
+    /clicks on buttons and links/,
+    /copying a command, a prompt, a code block or a page as Markdown \(with the copied command text for a command\)/,
+    /choosing a tab, opening a question in the FAQ, running or resetting the interactive example/,
+    /only short labels naming what was clicked or chosen and the part of the page it sits in/,
+    /never contains personal data or anything you type/,
+    /only look at events in aggregate/,
     /previous and the newly selected language/,
   ],
   de: [
-    /Kopieren eines Befehls oder Prompts \(mit dem kopierten Befehlstext bei einem Befehl, ohne Daten beim Prompt\)/,
+    /Klicks auf Schaltflächen und Links/,
+    /Kopieren eines Befehls, eines Prompts, eines Codeblocks oder einer Seite als Markdown \(mit dem kopierten Befehlstext bei einem Befehl\)/,
+    /Wahl eines Tabs, das Öffnen einer Frage in den FAQ, das Ausführen oder Zurücksetzen des interaktiven Beispiels/,
+    /nur kurze Bezeichnungen dafür, was angeklickt oder gewählt wurde und in welchem Bereich der Seite es liegt/,
+    /nie personenbezogene Daten oder etwas, das du eingibst/,
+    /werten Ereignisse nur zusammengefasst aus/,
     /bisherigen und der neu gewählten Sprache/,
   ],
   es: [
-    /copiar un comando o un prompt \(con el texto del comando copiado en un comando, y sin datos en el prompt\)/,
+    /los clics en botones y enlaces/,
+    /copiar un comando, un prompt, un bloque de código o una página como Markdown \(con el texto del comando copiado en un comando\)/,
+    /elegir una pestaña, abrir una pregunta de las preguntas frecuentes, ejecutar o restablecer el ejemplo interactivo/,
+    /solo lleva etiquetas breves que nombran lo que se pulsó o eligió y la parte de la página en la que está/,
+    /nunca contiene datos personales ni nada de lo que escribes/,
+    /consultamos los eventos de forma agregada/,
     /idioma anterior y el recién seleccionado/,
   ],
   fr: [
-    /copier une commande ou un prompt \(avec le texte de la commande copiée pour une commande, et sans données pour le prompt\)/,
+    /les clics sur des boutons et des liens/,
+    /la copie d'une commande, d'un prompt, d'un bloc de code ou d'une page en Markdown \(avec le texte de la commande copiée pour une commande\)/,
+    /le choix d'un onglet, l'ouverture d'une question de la FAQ, l'exécution ou la réinitialisation de l'exemple interactif/,
+    /ne contient que de courts libellés désignant ce qui a été cliqué ou choisi et la partie de la page où il se trouve/,
+    /ne contient jamais de données personnelles ni rien de ce que tu saisis/,
+    /consultons les événements que sous forme agrégée/,
     /langue précédente et la langue nouvellement sélectionnée/,
   ],
 };

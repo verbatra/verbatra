@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Children, cloneElement, isValidElement, type ReactNode } from "react";
 import { PromptCopyButton } from "@/components/ai-setup-prompt";
+import { TrackedLink } from "@/components/ui/tracked-link";
 import { type Locale, localizedPath } from "@/lib/i18n";
 import { withInlineCode } from "@/lib/inline-code-text";
 import { MCP_VERSION, PACKAGE_VERSION, STUDIO_VERSION } from "@/lib/site";
@@ -27,6 +27,10 @@ const PACKAGE_VERSIONS: Readonly<Record<PackageKey, string>> = {
 };
 
 const STEP_KEYS = ["configure", "diff", "translate", "verifyWrite"] as const;
+
+export function docsHomeCta(target: string) {
+  return { name: "click-cta", data: { location: "docs-home", target } } as const;
+}
 
 export function DocsHomeHeader({
   eyebrow,
@@ -68,14 +72,13 @@ export function DocsHomeTabs({
         <ul className="vk-home-tabs-track">
           {tabs.map((tab) => (
             <li key={tab.href}>
-              <Link
+              <TrackedLink
                 href={localizedPath(locale, tab.href)}
                 className="vk-home-tab"
-                data-umami-event="docs-home-tab"
-                data-umami-event-target={tab.href}
+                track={docsHomeCta(tab.href)}
               >
                 {tab.label}
-              </Link>
+              </TrackedLink>
             </li>
           ))}
         </ul>
@@ -219,9 +222,10 @@ export function DocsHomePaths({
   return (
     <div className="not-prose grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {cards.map((card) => (
-        <Link
+        <TrackedLink
           key={card.href}
           href={localizedPath(locale, card.href)}
+          track={docsHomeCta(card.href)}
           className={cn(
             "row-span-3 grid grid-rows-subgrid gap-y-2 p-5 transition-[border-color]",
             PANEL,
@@ -246,7 +250,7 @@ export function DocsHomePaths({
             {card.body}
           </span>
           <span className="text-sm font-medium text-[color:var(--accent)]">{card.page}</span>
-        </Link>
+        </TrackedLink>
       ))}
     </div>
   );
@@ -308,14 +312,15 @@ export function DocsHomeFeatures({
           borderInlineStart: "3px solid var(--v-purple)",
         };
         return feature.href && locale ? (
-          <Link
+          <TrackedLink
             key={feature.title}
             href={localizedPath(locale, feature.href)}
             className={className}
             style={style}
+            track={docsHomeCta(feature.href)}
           >
             {content}
-          </Link>
+          </TrackedLink>
         ) : (
           <div key={feature.title} className={className} style={style}>
             {content}
