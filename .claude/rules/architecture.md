@@ -189,6 +189,11 @@ as a test oracle by `packages/core/src/placeholder/inline-markup.parse5-differen
 source file under `packages/core/src` and fails if one imports anything other than `zod` or a
 relative module, so a test-only dependency cannot leak into core's runtime.
 
+`@verbatra/core/pure` (`packages/core/src/pure.ts`) is core's only second entry: it exposes the
+zod-free diff, hash and placeholder functions for a browser consumer (the docs playground), and
+the `@verbatra/core/pure never reaches zod` block in the same script test fails if its source graph
+or its built `dist/pure.js`/`dist/pure.cjs` reaches zod; the sdk still bundles only the `.` entry.
+
 ## Boundaries for zod
 
 zod validates at boundaries only: config loading, CLI argument parsing, provider response

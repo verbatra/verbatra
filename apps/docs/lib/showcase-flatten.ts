@@ -1,4 +1,4 @@
-import type { TranslationEntry } from "@verbatra/core";
+import type { TranslationEntry } from "@verbatra/core/pure";
 import type { JsonTree } from "./showcase-seed";
 
 const I18NEXT_PLACEHOLDER = /\{\{[^{}]*\}\}|\$t\([^()]*\)/g;

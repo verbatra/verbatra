@@ -20,6 +20,11 @@ recommendation in a 2024 RFC for exactly these reasons, converging on the same s
 already has: a single public-surface entry point per package, with internal modules imported by
 their real path.
 
+The one exception is `@verbatra/core`'s second entry, `packages/core/src/pure.ts` (subpath
+`@verbatra/core/pure`, built by `packages/core/tsup.pure.config.ts`): a package-root entry, not a
+subfolder barrel, that re-exports only the zod-free diff, hash and placeholder functions so the docs
+playground (`apps/docs/lib/showcase-scenarios.ts`) loads them without zod; do not add others.
+
 ## No path aliases; cross-package imports use real workspace package names
 
 No `tsconfig*.json` under `packages/*` defines a `paths` map. Confirmed with

@@ -139,7 +139,18 @@ describe("the showcase keeps @verbatra/core out of the initial bundle", () => {
   it.each(["lib/showcase-seed.ts", "lib/showcase-flatten.ts"])(
     "%s takes nothing from core at runtime",
     (file) => {
-      expect(docsFile(file)).not.toMatch(/^import (?!type )[^;]*"@verbatra\/core"/m);
+      expect(docsFile(file)).not.toMatch(/^import (?!type )[^;]*"@verbatra\/core[^"]*"/m);
+    },
+  );
+
+  it.each(["lib/showcase-scenarios.ts", "lib/showcase-flatten.ts"])(
+    "%s reaches core only through the zod-free pure entry",
+    (file) => {
+      const specifiers = [...docsFile(file).matchAll(/from "(@verbatra\/core[^"]*)"/g)].map(
+        (match) => match[1],
+      );
+      expect(specifiers.length).toBeGreaterThan(0);
+      expect(new Set(specifiers)).toEqual(new Set(["@verbatra/core/pure"]));
     },
   );
 });

@@ -4,7 +4,7 @@ import {
   type DiffResult,
   diffResources,
   type LocaleResource,
-} from "@verbatra/core";
+} from "@verbatra/core/pure";
 import { flattenJson, i18nextPlaceholders } from "./showcase-flatten";
 import {
   applyShowcaseChange,
