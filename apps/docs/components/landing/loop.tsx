@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { StudioScreenshot } from "@/components/studio-screenshot";
 import { TrackedAnchor, TrackedLink } from "@/components/ui/tracked-link";
 import { type Locale, localizedAnchorPath, localizedPath } from "@/lib/i18n";
-import { SKILLS_INSTALL_COMMAND } from "@/lib/install-commands";
+import { SDK_INSTALL_COMMAND, SDK_PACKAGE, SKILLS_INSTALL_COMMAND } from "@/lib/install-commands";
 import { sectionNumber } from "@/lib/landing-sections";
 import { cn } from "@/lib/utils";
 import { CommandBox } from "./command-box";
@@ -14,22 +14,19 @@ import { SectionHead } from "./section-head";
 const LINK_CLASS =
   "inline-block font-medium text-[color:var(--accent)] underline decoration-[color:color-mix(in_srgb,var(--v-glow)_40%,transparent)] underline-offset-4 transition-colors hover:decoration-[color:var(--accent)]";
 
-export const LOOP_ROWS = ["excel", "studio", "ci", "agent"] as const;
+export const LOOP_ROWS = ["studio", "handoff", "sdk", "agent"] as const;
 
 type LoopRowId = (typeof LOOP_ROWS)[number];
 
-const EXCEL_ROWS = [
+export const SDK_IMPORTS = ["translate", "check"] as const;
+
+export const SDK_IMPORT_LINE = `import { ${SDK_IMPORTS.join(", ")} } from "${SDK_PACKAGE}";`;
+
+const HANDOFF_ROWS = [
   { key: "cart.pay", source: "Pay now", target: "Bezahlen" },
   { key: "cart.total", source: "Total", target: "Gesamt" },
   { key: "nav.home", source: "Home", target: "Start" },
 ] as const;
-
-const CHECK_JSON_EXCERPT = [
-  '{ "command": "check",',
-  '  "result": { "inSync": false, "locales": [',
-  '    { "locale": "de", "missing": 0, "stale": 2 }',
-  "  ] } }",
-];
 
 function loopCta(target: string) {
   return { name: "click-cta", data: { location: "loop", target } } as const;
@@ -94,11 +91,6 @@ export async function Loop(): Promise<ReactNode> {
   );
   const locale = (await getLocale()) as Locale;
   const docs = (path: string) => localizedPath(locale, path);
-  const codeTags = {
-    code: (chunks: ReactNode) => (
-      <code className="font-mono text-sm text-fd-foreground">{chunks}</code>
-    ),
-  };
 
   return (
     <Section width="wide" rhythm="lg" id="loop">
@@ -110,11 +102,27 @@ export async function Loop(): Promise<ReactNode> {
       />
       <div className="mt-[52px] grid gap-[72px]">
         <Row
-          id="excel"
-          title={t("rows.excel.title")}
-          body={t("rows.excel.body")}
-          cta={t("rows.excel.cta")}
+          id="studio"
+          title={t("rows.studio.title")}
+          body={t("rows.studio.body")}
+          cta={t("rows.studio.cta")}
+          href={docs("/docs/review-in-studio")}
+        >
+          <StudioScreenshot
+            shot="review"
+            alt={t("rows.studio.alt")}
+            elevated={false}
+            className="my-0"
+          />
+        </Row>
+
+        <Row
+          id="handoff"
+          title={t("rows.handoff.title")}
+          body={t("rows.handoff.body")}
+          cta={t("rows.handoff.cta")}
           href={docs("/docs/cli/export")}
+          flip
         >
           <Frame>
             <div className="grid gap-2.5 p-5">
@@ -136,7 +144,7 @@ export async function Loop(): Promise<ReactNode> {
                 </tr>
               </thead>
               <tbody>
-                {EXCEL_ROWS.map((row) => (
+                {HANDOFF_ROWS.map((row) => (
                   <tr key={row.key} className="border-t border-fd-border">
                     <td className="px-4 py-2.5 text-fd-muted-foreground">{row.key}</td>
                     <td className="px-4 py-2.5 text-fd-muted-foreground">{row.source}</td>
@@ -149,32 +157,16 @@ export async function Loop(): Promise<ReactNode> {
         </Row>
 
         <Row
-          id="studio"
-          title={t("rows.studio.title")}
-          body={t("rows.studio.body")}
-          cta={t("rows.studio.cta")}
-          href={docs("/docs/review-in-studio")}
-          flip
-        >
-          <StudioScreenshot
-            shot="review"
-            alt={t("rows.studio.alt")}
-            elevated={false}
-            className="my-0"
-          />
-        </Row>
-
-        <Row
-          id="ci"
-          title={t("rows.ci.title")}
-          body={t.rich("rows.ci.body", codeTags)}
-          cta={t("rows.ci.cta")}
-          href={docs("/docs/ci-and-exit-codes")}
+          id="sdk"
+          title={t("rows.sdk.title")}
+          body={t("rows.sdk.body")}
+          cta={t("rows.sdk.cta")}
+          href={docs("/docs/sdk")}
         >
           <Frame>
-            <div className="p-5">{box("verbatra check --json")}</div>
+            <div className="p-5">{box(SDK_INSTALL_COMMAND)}</div>
             <pre className="vk-mono-sm vk-terminal-scroll border-t border-fd-border px-5 py-4 font-mono leading-relaxed text-fd-muted-foreground">
-              <code>{CHECK_JSON_EXCERPT.join("\n")}</code>
+              <code>{SDK_IMPORT_LINE}</code>
             </pre>
           </Frame>
         </Row>

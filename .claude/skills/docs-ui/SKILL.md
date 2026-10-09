@@ -216,9 +216,12 @@ footer's oversized watermark only; do not clip it onto a heading.
   output. Nothing in the page graph imports the sdk at runtime, and the docs app never depends on
   `@verbatra/format-adapters`; `lib/format-samples.test.ts` re-reads every sample through the real
   adapter and fails unless it parses back to the seed with its placeholder intact. `Loop` is four rows at every width
-  (Excel, Studio with the `review` `StudioScreenshot`, CI, agent), each a two-column grid from
-  1024px whose sides alternate (`data-loop-row`: the text on the left for Excel and CI, on the
-  right for Studio and the agent); each row's call to action and each internal agent link (`llms.txt`, `llms-full.txt`,
+  (`LOOP_ROWS`: Studio with the `review` `StudioScreenshot`, the Excel handoff, the SDK, the agent;
+  CI has no row, since the How section owns it), each a two-column grid from 1024px whose sides
+  alternate (`data-loop-row`: the text on the left for Studio and the SDK, on the right for the
+  handoff and the agent). The SDK row shows `SDK_INSTALL_COMMAND` and `SDK_IMPORT_LINE`, an
+  import of `SDK_IMPORTS` from `@verbatra/sdk` that `loop.test.tsx` checks against the sdk's
+  real exports, and links `/docs/sdk`; each row's call to action and each internal agent link (`llms.txt`, `llms-full.txt`,
   MCP docs, skills docs) counts as `click-cta` with `location: loop`, and the `verbatra/skills`
   GitHub link as `outbound-link`. `Control` lays its items out as a rail under 1024px: a
   `.vk-rail` (`Rail` in `rail.tsx`: a `section` named by its heading through `aria-labelledby`, the scroll container,
@@ -292,8 +295,8 @@ footer's oversized watermark only; do not clip it onto a heading.
   whole (a flag such as `--skill` never splits), and under 20rem the copy button drops below the
   command so the command keeps the full width; the Loop passes `scrolls`, which keeps every
   command on one line that scrolls sideways inside `.vk-edge-fade`, Copy always beside it, as on
-  the live site. The Loop's table and JSON excerpt are set in `.vk-mono-sm` (`--text-mono-sm`,
-  13px), and the excerpt scrolls inside `.vk-terminal-scroll`, whose end edge fades),
+  the live site. The Loop's table and SDK import line are set in `.vk-mono-sm` (`--text-mono-sm`,
+  13px), and the import line scrolls inside `.vk-terminal-scroll`, whose end edge fades),
   `CommandRow` (`components/command-row.tsx`: the hero panel's npm install wraps under 30rem through
   `wrapsWhenNarrow`; elsewhere a `CommandRow` scrolls sideways inside `.vk-edge-fade`: a mask,
   not a painted background, so it stays see-through on any surface, and the end fade

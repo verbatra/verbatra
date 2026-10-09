@@ -66,7 +66,8 @@ describe("landing message parity", () => {
     expect(source.length).toBeGreaterThan(0);
     expect(source).toContain("landing.nav.skipToContent");
     expect(source).toContain("landing.terminal.sessionLabel");
-    expect(source).toContain("landing.loop.rows.ci.title");
+    expect(source).toContain("landing.loop.rows.sdk.title");
+    expect(source).toContain("landing.loop.rows.handoff.title");
     expect(source).toContain("landing.marquee.frameworks.reactNative");
     expect(source).toContain("landing.formats.frameworksLabel");
     expect(source).toContain("landing.loop.rows.studio.alt");
@@ -93,8 +94,10 @@ describe("landing message parity", () => {
     "showcase.tabs",
     "showcase.tablist",
     "showcase.studio",
+    "loop.rows.ci",
+    "loop.rows.excel",
   ])(
-    "keeps no landing.%s message from the removed marquee providers row or showcase tabs",
+    "keeps no landing.%s message from the removed marquee providers row, showcase tabs or loop rows",
     (path) => {
       for (const locale of i18n.languages) {
         const node = path

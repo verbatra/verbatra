@@ -357,23 +357,23 @@
     },
     "loop": {
       "eyebrow": "Every day",
-      "heading": "The rest of the translation loop, in the same tool.",
+      "heading": "Where your team already works.",
       "rows": {
-        "excel": {
-          "title": "Hand a workbook to translators, import it back.",
-          "body": "Export, get it back filled in, import through the same gate.",
-          "cta": "Read about the Excel handoff"
-        },
         "studio": {
           "title": "See every locale's state in Verbatra Studio.",
           "body": "Coverage, flagged entries, in-place edits. No provider call.",
           "cta": "Review translations in Studio",
           "alt": "The Verbatra Studio Review page listing five flagged entries across the de, es and fr locales, each row showing the key, its review reasons, and Edit, Approve and Reject actions."
         },
-        "ci": {
-          "title": "Run it on save, in CI, or from a GitHub Action.",
-          "body": "<code>watch</code> translates on change. <code>check</code> fails the pull request when a locale drifts.",
-          "cta": "Wire up CI"
+        "handoff": {
+          "title": "Hand a workbook to translators, import it back.",
+          "body": "Export, get it back filled in, import through the same gate.",
+          "cta": "Read about the Excel handoff"
+        },
+        "sdk": {
+          "title": "Call it from your own code.",
+          "body": "The SDK runs the same translate and check from a script, a build step or a server.",
+          "cta": "Read the SDK reference"
         },
         "agent": {
           "title": "Or hand it to your agent.",

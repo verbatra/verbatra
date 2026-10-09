@@ -2,9 +2,10 @@
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { check, translate } from "@verbatra/sdk";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { SKILLS_INSTALL_COMMAND } from "@/lib/install-commands";
+import { SDK_INSTALL_COMMAND, SKILLS_INSTALL_COMMAND } from "@/lib/install-commands";
 
 vi.mock("next-intl/server", () => ({
   getTranslations: async () => Object.assign((key: string) => key, { rich: (key: string) => key }),
@@ -17,7 +18,7 @@ vi.mock("@/components/studio-screenshot", () => ({
   ),
 }));
 
-const { Loop, LOOP_ROWS } = await import("./loop");
+const { Loop, LOOP_ROWS, SDK_IMPORT_LINE, SDK_IMPORTS } = await import("./loop");
 
 async function render(): Promise<Document> {
   const markup = renderToStaticMarkup(await Loop());
@@ -25,7 +26,7 @@ async function render(): Promise<Document> {
 }
 
 describe("Loop", () => {
-  it("shows the Excel, Studio, CI and agent rows in that order, alternating sides", async () => {
+  it("shows the Studio, handoff, SDK and agent rows in that order, alternating sides", async () => {
     const doc = await render();
     const rows = Array.from(doc.querySelectorAll<HTMLElement>("[data-loop-row]"));
     expect(rows.map((row) => row.dataset.loopRow)).toEqual([...LOOP_ROWS]);
@@ -36,6 +37,23 @@ describe("Loop", () => {
       true,
     ]);
     for (const row of rows) expect(row.querySelector("h3")?.className).toContain("vk-h3");
+  });
+
+  it("leaves CI to the How section", async () => {
+    const doc = await render();
+    expect(doc.querySelector('[data-loop-row="ci"]')).toBeNull();
+    expect(doc.body.textContent).not.toContain("check --json");
+  });
+
+  it("shows a real sdk import line and links the SDK reference", async () => {
+    const doc = await render();
+    const row = doc.querySelector('[data-loop-row="sdk"]');
+    expect(row?.textContent).toContain(SDK_INSTALL_COMMAND);
+    expect(row?.querySelector("pre code")?.textContent).toBe(SDK_IMPORT_LINE);
+    expect(SDK_IMPORT_LINE).toBe('import { translate, check } from "@verbatra/sdk";');
+    const exported: Record<string, unknown> = { translate, check };
+    for (const name of SDK_IMPORTS) expect(typeof exported[name], name).toBe("function");
+    expect(row?.querySelector("h3 ~ a")?.getAttribute("href")).toBe("/de/docs/sdk");
   });
 
   it("shows the Studio review screenshot in its row", async () => {

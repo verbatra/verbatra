@@ -239,7 +239,7 @@
       "eyebrow": "Contrôle"
     },
     "loop": {
-      "heading": "Le reste de la boucle de traduction, dans le même outil.",
+      "heading": "Là où ton équipe travaille déjà.",
       "links": {
         "llms": "llms.txt",
         "mcpDocs": "Documentation du serveur MCP",
@@ -247,26 +247,26 @@
         "llmsFull": "llms-full.txt"
       },
       "rows": {
-        "agent": {
-          "body": "Un serveur MCP, plus des skills installables pour la CLI, MCP et Studio.",
-          "cta": "Commencer avec l'IA",
-          "title": "Ou confie-le à ton agent."
-        },
-        "ci": {
-          "body": "<code>watch</code> traduit à chaque modification. <code>check</code> fait échouer la pull request quand une locale dérive.",
-          "cta": "Configurer la CI",
-          "title": "Lance-le à l'enregistrement, en CI ou depuis une GitHub Action."
-        },
-        "excel": {
-          "body": "Exporte, récupère-le rempli, réimporte-le via la même barrière d'intégrité.",
-          "cta": "En savoir plus sur le transfert Excel",
-          "title": "Confie un classeur aux traducteurs, puis réimporte-le."
-        },
         "studio": {
           "title": "Consulte l'état de chaque locale dans Verbatra Studio.",
           "body": "Couverture, entrées signalées, modifications sur place. Aucun appel au fournisseur.",
           "cta": "Réviser les traductions dans Studio",
           "alt": "La page Révision de Verbatra Studio affichant cinq entrées signalées dans les locales de, es et fr ; chaque ligne montre la clé, ses motifs de révision et les actions Edit, Approve et Reject."
+        },
+        "handoff": {
+          "body": "Exporte, récupère-le rempli, réimporte-le via la même barrière d'intégrité.",
+          "cta": "En savoir plus sur le transfert Excel",
+          "title": "Confie un classeur aux traducteurs, puis réimporte-le."
+        },
+        "sdk": {
+          "title": "Appelle-le depuis ton propre code.",
+          "body": "Le SDK exécute les mêmes translate et check depuis un script, une étape de build ou un serveur.",
+          "cta": "Lis la référence du SDK"
+        },
+        "agent": {
+          "body": "Un serveur MCP, plus des skills installables pour la CLI, MCP et Studio.",
+          "cta": "Commencer avec l'IA",
+          "title": "Ou confie-le à ton agent."
         }
       },
       "table": {

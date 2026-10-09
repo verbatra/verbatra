@@ -239,7 +239,7 @@
       "eyebrow": "Control"
     },
     "loop": {
-      "heading": "El resto del ciclo de traducción, en la misma herramienta.",
+      "heading": "Donde tu equipo ya trabaja.",
       "links": {
         "llms": "llms.txt",
         "mcpDocs": "Documentación del servidor MCP",
@@ -247,26 +247,26 @@
         "llmsFull": "llms-full.txt"
       },
       "rows": {
-        "agent": {
-          "body": "Un servidor MCP, más skills instalables para la CLI, MCP y Studio.",
-          "cta": "Empezar con IA",
-          "title": "O déjaselo a tu agente."
-        },
-        "ci": {
-          "body": "<code>watch</code> traduce con cada cambio. <code>check</code> hace fallar el pull request cuando un locale se desvía.",
-          "cta": "Configurar CI",
-          "title": "Ejecútalo al guardar, en CI o desde una GitHub Action."
-        },
-        "excel": {
-          "body": "Exporta, recíbelo relleno e impórtalo por la misma puerta de integridad.",
-          "cta": "Leer sobre la entrega en Excel",
-          "title": "Entrega un libro a los traductores e impórtalo de vuelta."
-        },
         "studio": {
           "title": "Consulta el estado de cada locale en Verbatra Studio.",
           "body": "Cobertura, entradas marcadas, ediciones in situ. Sin llamadas al proveedor.",
           "cta": "Revisar traducciones en Studio",
           "alt": "La página de Revisión de Verbatra Studio con cinco entradas marcadas en los locales de, es y fr; cada fila muestra la clave, sus motivos de revisión y las acciones Edit, Approve y Reject."
+        },
+        "handoff": {
+          "body": "Exporta, recíbelo relleno e impórtalo por la misma puerta de integridad.",
+          "cta": "Leer sobre la entrega en Excel",
+          "title": "Entrega un libro a los traductores e impórtalo de vuelta."
+        },
+        "sdk": {
+          "title": "Llámalo desde tu propio código.",
+          "body": "El SDK ejecuta el mismo translate y check desde un script, un paso de build o un servidor.",
+          "cta": "Lee la referencia del SDK"
+        },
+        "agent": {
+          "body": "Un servidor MCP, más skills instalables para la CLI, MCP y Studio.",
+          "cta": "Empezar con IA",
+          "title": "O déjaselo a tu agente."
         }
       },
       "table": {

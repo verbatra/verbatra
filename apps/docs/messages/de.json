@@ -239,7 +239,7 @@
       "eyebrow": "Kontrolle"
     },
     "loop": {
-      "heading": "Der Rest des Übersetzungskreislaufs, im selben Tool.",
+      "heading": "Dort, wo dein Team schon arbeitet.",
       "links": {
         "llms": "llms.txt",
         "mcpDocs": "Doku zum MCP-Server",
@@ -247,26 +247,26 @@
         "llmsFull": "llms-full.txt"
       },
       "rows": {
-        "agent": {
-          "body": "Ein MCP-Server plus installierbare Skills für CLI, MCP und Studio.",
-          "cta": "Mit KI starten",
-          "title": "Oder überlass es deinem Agenten."
-        },
-        "ci": {
-          "body": "<code>watch</code> übersetzt bei jeder Änderung. <code>check</code> lässt den Pull Request fehlschlagen, wenn eine Locale abweicht.",
-          "cta": "CI einrichten",
-          "title": "Führ es beim Speichern aus, in CI oder per GitHub Action."
-        },
-        "excel": {
-          "body": "Exportieren, ausgefüllt zurückbekommen, durch dasselbe Integritäts-Gate importieren.",
-          "cta": "Mehr zur Excel-Übergabe",
-          "title": "Gib Übersetzern eine Arbeitsmappe, importiere sie zurück."
-        },
         "studio": {
           "title": "Sieh den Stand jeder Locale in Verbatra Studio.",
           "body": "Abdeckung, markierte Einträge, Bearbeitung an Ort und Stelle. Kein Provider-Aufruf.",
           "cta": "Übersetzungen in Studio prüfen",
           "alt": "Die Review-Seite in Verbatra Studio mit fünf markierten Einträgen über die Locales de, es und fr; jede Zeile zeigt den Key, seine Review-Gründe und die Aktionen Edit, Approve und Reject."
+        },
+        "handoff": {
+          "body": "Exportieren, ausgefüllt zurückbekommen, durch dasselbe Integritäts-Gate importieren.",
+          "cta": "Mehr zur Excel-Übergabe",
+          "title": "Gib Übersetzern eine Arbeitsmappe, importiere sie zurück."
+        },
+        "sdk": {
+          "title": "Ruf es aus deinem eigenen Code auf.",
+          "body": "Das SDK führt dasselbe translate und check aus einem Skript, einem Build-Schritt oder einem Server aus.",
+          "cta": "Zur SDK-Referenz"
+        },
+        "agent": {
+          "body": "Ein MCP-Server plus installierbare Skills für CLI, MCP und Studio.",
+          "cta": "Mit KI starten",
+          "title": "Oder überlass es deinem Agenten."
         }
       },
       "table": {

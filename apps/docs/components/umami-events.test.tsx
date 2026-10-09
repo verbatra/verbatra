@@ -277,7 +277,7 @@ describe("Loop and marquee links", () => {
     );
     for (const link of internal) await click(link);
     expect(trackUmamiEvent.mock.calls.map(([, data]) => data)).toEqual(
-      ["excel", "studio", "ci", "agent", "llms", "llms-full", "mcp-docs", "skills-docs"].map(
+      ["studio", "handoff", "sdk", "agent", "llms", "llms-full", "mcp-docs", "skills-docs"].map(
         (target) => ({ location: "loop", target }),
       ),
     );
