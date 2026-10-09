@@ -65,10 +65,10 @@
         },
         "check": {
           "title": "Fais échouer la pull request",
-          "body": "verbatra check se termine avec {code} tant qu'une clé manque ou est obsolète, donc la CI bloque le merge."
+          "body": "verbatra check se termine avec le code {code} tant qu'une clé manque ou est obsolète, donc la CI bloque le merge."
         }
       },
-      "lead": "Traduis ce qui a changé, puis laisse verbatra check faire échouer le build tant qu'une clé manque."
+      "lead": "Une configuration, une exécution de translate, un check : la CI fait échouer le build tant qu'une clé manque."
     },
     "formats": {
       "heading": "Les mêmes chaînes, tous les formats de fichier.",
@@ -267,8 +267,8 @@
         },
         "sdk": {
           "title": "Appelle-le depuis ton propre code.",
-          "body": "Le SDK exécute les mêmes translate et check depuis un script, une étape de build ou un serveur.",
-          "cta": "Lis la référence du SDK"
+          "body": "Le SDK exécute translate et check de la même façon depuis un script, une étape de build ou un serveur.",
+          "cta": "Lire la référence du SDK"
         },
         "agent": {
           "body": "Un serveur MCP, plus des skills installables pour la CLI, MCP et Studio.",

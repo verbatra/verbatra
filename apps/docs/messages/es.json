@@ -65,10 +65,10 @@
         },
         "check": {
           "title": "Haz fallar la pull request",
-          "body": "verbatra check termina con {code} mientras falte una clave o esté desactualizada, así que la CI bloquea el merge."
+          "body": "verbatra check termina con el código {code} mientras falte una clave o esté desactualizada, así que la CI bloquea el merge."
         }
       },
-      "lead": "Traduce lo que ha cambiado y deja que verbatra check haga fallar la build mientras falte una clave."
+      "lead": "Una configuración, una ejecución de translate, un check: la CI hace fallar la build mientras falte una clave."
     },
     "formats": {
       "heading": "Las mismas cadenas, cualquier formato de archivo.",
@@ -268,7 +268,7 @@
         "sdk": {
           "title": "Llámalo desde tu propio código.",
           "body": "El SDK ejecuta el mismo translate y check desde un script, un paso de build o un servidor.",
-          "cta": "Lee la referencia del SDK"
+          "cta": "Leer la referencia del SDK"
         },
         "agent": {
           "body": "Un servidor MCP, más skills instalables para la CLI, MCP y Studio.",

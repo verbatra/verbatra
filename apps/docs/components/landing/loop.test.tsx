@@ -2,7 +2,7 @@
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { check, translate } from "@verbatra/sdk";
+import * as sdk from "@verbatra/sdk";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { SDK_INSTALL_COMMAND, SKILLS_INSTALL_COMMAND } from "@/lib/install-commands";
@@ -51,7 +51,7 @@ describe("Loop", () => {
     expect(row?.textContent).toContain(SDK_INSTALL_COMMAND);
     expect(row?.querySelector("pre code")?.textContent).toBe(SDK_IMPORT_LINE);
     expect(SDK_IMPORT_LINE).toBe('import { translate, check } from "@verbatra/sdk";');
-    const exported: Record<string, unknown> = { translate, check };
+    const exported: Record<string, unknown> = sdk;
     for (const name of SDK_IMPORTS) expect(typeof exported[name], name).toBe("function");
     expect(row?.querySelector("h3 ~ a")?.getAttribute("href")).toBe("/de/docs/sdk");
   });

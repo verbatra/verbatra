@@ -53,7 +53,7 @@
       "copyFailed": "Kopieren fehlgeschlagen"
     },
     "how": {
-      "heading": "Prüfe jeden Pull Request in der CI.",
+      "heading": "Sichere jeden Pull Request in der CI ab.",
       "steps": {
         "setup": {
           "title": "Einrichten",
@@ -65,10 +65,10 @@
         },
         "check": {
           "title": "Lass den Pull Request scheitern",
-          "body": "verbatra check endet mit {code}, solange ein Key fehlt oder veraltet ist, also blockiert die CI den Merge."
+          "body": "verbatra check endet mit Exit-Code {code}, solange ein Key fehlt oder veraltet ist, also blockiert die CI den Merge."
         }
       },
-      "lead": "Übersetze, was sich geändert hat, und lass verbatra check den Build scheitern, solange ein Key noch fehlt."
+      "lead": "Eine Konfiguration, ein translate-Lauf, ein check: Die CI lässt den Build scheitern, solange ein Key noch fehlt."
     },
     "formats": {
       "heading": "Dieselben Strings, jedes Dateiformat.",
@@ -267,7 +267,7 @@
         },
         "sdk": {
           "title": "Ruf es aus deinem eigenen Code auf.",
-          "body": "Das SDK führt dasselbe translate und check aus einem Skript, einem Build-Schritt oder einem Server aus.",
+          "body": "Das SDK führt translate und check genauso aus einem Skript, einem Build-Schritt oder einem Server aus.",
           "cta": "Zur SDK-Referenz"
         },
         "agent": {

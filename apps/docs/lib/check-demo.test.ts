@@ -17,7 +17,6 @@ function repoFile(relative: string): string {
 }
 
 const CLI_RENDER = "packages/cli/src/render.ts";
-const CLI_RUN = "packages/cli/src/run.ts";
 
 describe("the check demo quotes the cli", () => {
   it("counts the key the translate run withheld as the one still missing", () => {
@@ -36,10 +35,23 @@ describe("the check demo quotes the cli", () => {
     expect(CHECK_RUN_LINES).toEqual([CHECK_CLI_COMMAND, CHECK_LOCALE_LINE, CHECK_OVERALL_LINE]);
   });
 
-  it("fails the pull request with the exit code check returns when a locale is out of sync", () => {
-    expect(repoFile(CLI_RUN)).toContain(
-      "return summary.inSync && !qaFails && !reviewFails && !sensitiveFails ? 0 : 1;",
-    );
+  it("fails the pull request with a non-zero exit code", () => {
     expect(CHECK_EXIT_CODE).toBe(1);
+  });
+});
+
+describe("the check demo stays out of the cli and the sdk at runtime", () => {
+  it("imports nothing from the cli, the sdk or core", () => {
+    const source = readFileSync(fileURLToPath(new URL("./check-demo.ts", import.meta.url)), "utf8");
+    expect(source).not.toMatch(/@verbatra\/(cli|core|sdk)|packages\/cli/);
+  });
+
+  it("is pinned to the real cli only from the run test", () => {
+    const run = readFileSync(
+      fileURLToPath(new URL("./check-demo.run.test.ts", import.meta.url)),
+      "utf8",
+    );
+    expect(run).toContain('from "../../../packages/cli/src/render"');
+    expect(run).toContain('from "../../../packages/cli/src/run"');
   });
 });

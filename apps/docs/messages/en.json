@@ -160,7 +160,7 @@
           "body": "verbatra check exits {code} while a key is missing or stale, so CI blocks the merge."
         }
       },
-      "lead": "Translate what changed, then let verbatra check fail the build while a key is still missing."
+      "lead": "One config, one translate run, one check: CI fails the build while a key is still missing."
     },
     "formats": {
       "heading": "Same strings, every file format.",

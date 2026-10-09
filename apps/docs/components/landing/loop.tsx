@@ -2,7 +2,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { StudioScreenshot } from "@/components/studio-screenshot";
 import { TrackedAnchor, TrackedLink } from "@/components/ui/tracked-link";
-import { type Locale, localizedAnchorPath, localizedPath } from "@/lib/i18n";
+import { localizedAnchorPath, localizedPath, toLocale } from "@/lib/i18n";
 import { SDK_INSTALL_COMMAND, SDK_PACKAGE, SKILLS_INSTALL_COMMAND } from "@/lib/install-commands";
 import { cn } from "@/lib/utils";
 import { CommandBox } from "./command-box";
@@ -88,7 +88,7 @@ export async function Loop(): Promise<ReactNode> {
       scrolls
     />
   );
-  const locale = (await getLocale()) as Locale;
+  const locale = toLocale(await getLocale());
   const docs = (path: string) => localizedPath(locale, path);
 
   return (
