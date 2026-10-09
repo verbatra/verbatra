@@ -7,6 +7,7 @@ import type { FaqItem } from "@/lib/structured-data";
 import { trackUmamiEvent } from "@/lib/umami";
 import { cn } from "@/lib/utils";
 import { RELEASES_URL } from "./links";
+import { Section } from "./section";
 import { SectionHead } from "./section-head";
 
 export type FaqEntry = FaqItem & { id: string };
@@ -114,23 +115,21 @@ export function Faq({ items }: { items: ReadonlyArray<FaqEntry> }): ReactNode {
   }
 
   return (
-    <section className="vk-band" id="faq">
-      <div className="vk-gutter vk-w-wide mx-auto">
-        <div>
-          <SectionHead id="faq-heading" title={t("heading")} />
-        </div>
-        <div className="mt-11 max-w-[880px] border-t border-fd-border">
-          {items.map((item, i) => (
-            <FaqRow
-              key={item.id}
-              item={item}
-              index={i}
-              isOpen={open === i}
-              onToggle={() => toggle(i, item.id)}
-            />
-          ))}
-        </div>
+    <Section band id="faq">
+      <div>
+        <SectionHead id="faq-heading" title={t("heading")} />
       </div>
-    </section>
+      <div className="mt-11 max-w-[880px] border-t border-fd-border">
+        {items.map((item, i) => (
+          <FaqRow
+            key={item.id}
+            item={item}
+            index={i}
+            isOpen={open === i}
+            onToggle={() => toggle(i, item.id)}
+          />
+        ))}
+      </div>
+    </Section>
   );
 }

@@ -157,7 +157,7 @@ export function TryIt({ seed, rows }: { seed: ShowcaseOutcome; rows: ShowcaseRow
   const t = useTranslations("landing.showcase.tryIt");
   const [outcome, setOutcome] = useState<ShowcaseOutcome>(seed);
   const [failedScenario, setFailedScenario] = useState<ShowcaseScenarioId | null>(null);
-  const [pending, setPending] = useState(false);
+  const [pending, setPending] = useState<ShowcaseScenarioId | null>(null);
   const [openPane, setOpenPane] = useState<PaneId>("source");
   const [reply, setReply] = useState<ShowcaseBreakId>(DEFAULT_SHOWCASE_BREAK);
   const breakGroup = useId();
@@ -177,7 +177,7 @@ export function TryIt({ seed, rows }: { seed: ShowcaseOutcome; rows: ShowcaseRow
     });
     latestRequest.current += 1;
     const request = latestRequest.current;
-    setPending(true);
+    setPending(id);
     try {
       const scenarios = await loadScenarioModule();
       if (request !== latestRequest.current) return;
@@ -186,14 +186,14 @@ export function TryIt({ seed, rows }: { seed: ShowcaseOutcome; rows: ShowcaseRow
     } catch {
       if (request === latestRequest.current) setFailedScenario(id);
     } finally {
-      if (request === latestRequest.current) setPending(false);
+      if (request === latestRequest.current) setPending(null);
     }
   }
 
   function reset() {
     trackUmamiEvent("reset-showcase", { location: "showcase" });
     latestRequest.current += 1;
-    setPending(false);
+    setPending(null);
     setFailedScenario(null);
     setReply(DEFAULT_SHOWCASE_BREAK);
     setOutcome(seed);
@@ -207,7 +207,7 @@ export function TryIt({ seed, rows }: { seed: ShowcaseOutcome; rows: ShowcaseRow
 
   const marks = (line: ShowcaseLine) => (line.mark ? t(`marks.${line.mark}`) : "");
   const broken = brokenTokens(outcome);
-  const atSeed = outcome.scenario === null && failedScenario === null && !pending;
+  const atSeed = outcome.scenario === null && failedScenario === null && pending === null;
 
   return (
     <div
@@ -260,7 +260,7 @@ export function TryIt({ seed, rows }: { seed: ShowcaseOutcome; rows: ShowcaseRow
               type="radio"
               name={breakGroup}
               value={id}
-              checked={outcome.scenario === "break" && reply === id}
+              checked={(outcome.scenario === "break" || pending === "break") && reply === id}
               className="vk-showcase-break-input"
               onChange={() => chooseBreak(id)}
             />
@@ -303,7 +303,7 @@ export function TryIt({ seed, rows }: { seed: ShowcaseOutcome; rows: ShowcaseRow
       ))}
       <div className="vk-showcase-outcome">
         <OutputPane outcome={outcome} rows={rows.output} broken={broken} />
-        <Result outcome={outcome} failed={failedScenario !== null} busy={pending} />
+        <Result outcome={outcome} failed={failedScenario !== null} busy={pending !== null} />
       </div>
     </div>
   );

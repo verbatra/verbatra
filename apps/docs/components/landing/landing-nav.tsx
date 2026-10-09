@@ -7,7 +7,10 @@ export async function LandingNav(): Promise<ReactNode> {
   return (
     <div className="vk-landing-nav">
       <nav aria-label={t("label")} className="vk-landing-nav-bar">
-        <div className="vk-landing-nav-scroller vk-edge-fade vk-gutter vk-w-wide mx-auto">
+        <div
+          data-nav-scroller=""
+          className="vk-landing-nav-scroller vk-edge-fade vk-gutter vk-w-wide mx-auto"
+        >
           <ul
             // biome-ignore lint/a11y/noRedundantRoles: Safari drops list semantics from a list-style: none list
             role="list"

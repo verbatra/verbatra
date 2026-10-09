@@ -1355,6 +1355,7 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 }
 
 .vk-home {
+  --vk-landing-offset: 6.3125rem;
   overflow-x: clip;
   background: var(--v-void);
 }
@@ -1513,7 +1514,7 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 }
 
 .vk-home [id] {
-  scroll-margin-top: 6.25rem;
+  scroll-margin-top: var(--vk-landing-offset);
 }
 
 .vk-landing-nav {
@@ -1530,13 +1531,15 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   border-bottom: 1px solid var(--border-default);
   background-color: color-mix(in srgb, var(--color-fd-background) 80%, transparent);
   backdrop-filter: blur(4px);
+}
+
+html[data-motion-ready]:not([data-past-hero]) .vk-landing-nav-bar {
   visibility: hidden;
   opacity: 0;
 }
 
-html[data-past-hero] .vk-landing-nav-bar {
-  visibility: visible;
-  opacity: 1;
+.vk-landing-nav-scroller {
+  overflow-y: hidden;
 }
 
 .vk-landing-nav-list {
@@ -1568,7 +1571,7 @@ html[data-past-hero] .vk-landing-nav-bar {
   content: "";
   position: absolute;
   inset-inline: 0;
-  bottom: -1px;
+  bottom: 0;
   height: 2px;
   background: var(--accent);
 }
@@ -1579,20 +1582,18 @@ html[data-past-hero] .vk-landing-nav-bar {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .vk-landing-nav-bar {
-    translate: 0 -4px;
-    transition:
-      opacity var(--duration-base) var(--ease-out),
-      translate var(--duration-base) var(--ease-out),
-      visibility 0s linear var(--duration-base);
+  .vk-landing-nav-scroller {
+    scroll-behavior: smooth;
   }
 
   html[data-past-hero] .vk-landing-nav-bar {
-    translate: none;
     transition:
       opacity var(--duration-base) var(--ease-out),
-      translate var(--duration-base) var(--ease-out),
-      visibility 0s;
+      translate var(--duration-base) var(--ease-out);
+  }
+
+  html[data-motion-ready]:not([data-past-hero]) .vk-landing-nav-bar {
+    translate: 0 -4px;
   }
 }
 

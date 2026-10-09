@@ -50,6 +50,25 @@ async function click(target: Element | null | undefined): Promise<void> {
   });
 }
 
+describe("TryIt: a break chosen while the module is still loading", () => {
+  it("shows the chosen reply checked before its run resolves", async () => {
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+    act(() => {
+      root.render(<TryIt seed={actual.showcaseSeed()} rows={actual.showcaseRows()} />);
+    });
+    mounted = { container, root };
+
+    await click(container.querySelector<HTMLInputElement>('input[value="drop"]'));
+    const checked = [...container.querySelectorAll<HTMLInputElement>('input[type="radio"]')]
+      .filter((radio) => radio.checked)
+      .map((radio) => radio.value);
+    expect(checked).toEqual(["drop"]);
+    expect(container.querySelector('[role="status"]')?.getAttribute("aria-busy")).toBe("true");
+  });
+});
+
 describe("TryIt: a Reset while the module is still loading", () => {
   it("keeps the seed once the pending load resolves", async () => {
     const container = document.createElement("div");

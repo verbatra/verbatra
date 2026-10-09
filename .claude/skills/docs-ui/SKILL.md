@@ -105,12 +105,13 @@ Scales are fixed and narrow, deliberately:
   four-row subgrid).
 - Surfaces added for the landing redesign: `--surface-band` (mixed from `--surface-card` and
   `--surface-bg`, never a raw value), the fill of `.vk-band`: `Section` with `band` renders a
-  full-width `section.vk-band` (between two `--border-default` hairlines, `--section-sm` above
-  it and `--section-md` padding inside) around the usual `.vk-gutter` column, so the page
-  alternates void and band from the showcase down: How, Control and the FAQ are banded, the
-  showcase, formats and loop sit on the void (`section-bands.test.tsx` pins the order); and `--hero-grid-mask` (the fade that masks the static
-  `fx/grid-pattern.ts` blueprint grid behind the hero only: `.vk-hero-blueprint`, an
-  `aria-hidden` layer at `z-index: -1` that never animates). There is no wash token.
+  full-width `section.vk-band` (between two `--border-default` hairlines, `--section-sm` above it
+  and `--section-md` padding inside) around the usual `.vk-gutter` column, so the page alternates
+  void and band from the showcase down: How, Control and the FAQ are banded, the showcase, formats
+  and loop sit on the void (`section-bands.test.tsx` pins the order); and `--hero-grid-mask` (the
+  fade that masks the static `fx/grid-pattern.ts` blueprint grid behind the hero only:
+  `.vk-hero-blueprint`, an `aria-hidden` layer at `z-index: -1` that never animates). There is no
+  wash token.
 - Placeholder chip: `PlaceholderChip` (`components/landing/placeholder-chip.tsx`, the `.vk-placeholder`
   class) is the page's one signature motif, a locked placeholder token (`{{amount}}`, `{count}`)
   drawn the same way in every pane: `--placeholder-fg` (`--accent`) on `--placeholder-fill` inside
@@ -182,167 +183,159 @@ footer's oversized watermark only; do not clip it onto a heading.
   Extend the variant union rather than passing ad hoc `className` overrides.
 - **Landing:** `components/landing/` holds the landing sections (`proof.tsx`, `formats.tsx`,
   `control.tsx`, `marquee.tsx`, `loop.tsx`, `faq.tsx`, `final-cta.tsx`, `footer.tsx`, and
-  `landing-nav.tsx`, the section nav under "Landing motion"). Their order
-  on the page is `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, marquee, showcase, how,
-  formats, control, loop, faq, final call to action), which the home page maps over and
-  `lib/landing-sections.test.ts` pins;
-  add or move a section there, not by hand in `page.tsx`. The final call to action
-  (`final-cta.tsx`) closes on the promise in concrete terms (`landing.finalClose.heading`: the
-  next run sends what changed, not the whole file), then a `.vk-final-install` void box (an
-  `@container`, at most 36rem) holding the `installHint` line over a `CommandRow` for
-  `NPM_INSTALL_COMMAND` that wraps under 30rem and counts `copy-install-command` with
-  `location: final-cta` through its `installManager` prop, then the two buttons, Get started and
-  Read the docs. Sections reveal on scroll through
-  `data-reveal` (see "Landing motion"); the marquee and the FAQ do not. The
-  marquee sits directly under the hero and is two rows at fixed sizes (15px items, 40px gaps,
-  set on `.vk-marquee-band`): the frameworks (`MARQUEE_FRAMEWORKS` in `marquee.tsx`, which is
+  `landing-nav.tsx`, the section nav under "Landing motion"). Their order on the page is
+  `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, marquee, showcase, how, formats, control,
+  loop, faq, final call to action), which the home page maps over and `lib/landing-sections.test.ts`
+  pins; add or move a section there, not by hand in `page.tsx`. The final call to action
+  (`final-cta.tsx`) closes on the promise in concrete terms (`landing.finalClose.heading`: the next
+  run sends what changed, not the whole file), then a `.vk-final-install` void box (an `@container`,
+  at most 36rem) holding the `installHint` line over a `CommandRow` for `NPM_INSTALL_COMMAND` that
+  wraps under 30rem and counts `copy-install-command` with `location: final-cta` through its
+  `installManager` prop, then the two buttons, Get started and Read the docs. Sections reveal on
+  scroll through `data-reveal` (see "Landing motion"); the marquee and the FAQ do not. The marquee
+  sits directly under the hero and is two rows at fixed sizes (15px items, 40px gaps, set on
+  `.vk-marquee-band`): the frameworks (`MARQUEE_FRAMEWORKS` in `marquee.tsx`, which is
   `STACK_FRAMEWORKS` from `lib/stack-formats.ts`, each with a translated tip naming its format,
-  `landing.marquee.frameworks.*`) scrolling left, and the
-  formats, built from `SUPPORTED_FORMAT_IDS` in `lib/landing-facts.ts` (pinned to
-  `SUPPORTED_FORMATS`), scrolling right. Each item links `/docs/formats` and counts as
-  `click-cta` with `location: marquee` and its row as `target`. Every format's display label and
-  icon is `FORMAT_DISPLAY` in the same file, which the structured data's format list reads too,
-  so a new format fails to compile until it has both. `Formats` (`formats.tsx`, the section
-  after How, a server `SectionHead` over `.vk-formats`) is the format switcher: a row of framework
-  chips (`STACK_FRAMEWORKS`, each with the `format` its quickstart uses, pinned to `STACKS` by
-  `lib/format-samples.test.ts`; `aria-pressed` buttons whose icons come from one sprite, rendered
-  on the server and passed in as elements, so the icon set never enters the client bundle), then
-  a segmented `TabList` over `SUPPORTED_FORMAT_IDS` labelled from `FORMAT_DISPLAY`, then one pane
-  per format: a void `figure` captioned with the file path, holding the showcase's four English
-  strings exactly as the sdk's real adapter writes them, with the format's own placeholder drawn
-  as a `PlaceholderChip`, and a link to `/docs/formats` (`click-cta`, `location: formats`). The
-  client island is `format-switch.tsx`, which takes every label and pane as props, so it adds no
-  client message namespace; a chip selects its format, a tab clears the chip, and both count
-  `select-tab` with `location: formats` (a chip adds `framework`). Every pane is server-rendered
-  and stacked in one grid cell; a closed pane is `inert` and `visibility: hidden`, so the box is
-  always the tallest pane and a switch moves nothing, and `.vk-formats-code` caps a long output at
-  `--format-pane-rows` (16) lines of `--format-line` and scrolls inside it: it is a `section`
-  named by the pane's file caption with `tabIndex={0}`, so the keyboard reaches and scrolls the
-  open pane, with the `--focus-ring` outline inset. Chips and tabs scroll
-  sideways inside `.vk-edge-fade` under 64rem and wrap from it, each at least 44px tall. The panes
-  come from `lib/format-samples.generated.json`, which `scripts/sync-format-samples.mjs` writes
-  before dev, build, typecheck and test (git-ignored like `lib/version.generated.json`): it builds
-  `createDefaultRegistry` from `@verbatra/sdk` over the in-memory `AdapterFs` in
+  `landing.marquee.frameworks.*`) scrolling left, and the formats, built from `SUPPORTED_FORMAT_IDS`
+  in `lib/landing-facts.ts` (pinned to `SUPPORTED_FORMATS`), scrolling right. Each item links
+  `/docs/formats` and counts as `click-cta` with `location: marquee` and its row as `target`. Every
+  format's display label and icon is `FORMAT_DISPLAY` in the same file, which the structured data's
+  format list reads too, so a new format fails to compile until it has both. `Formats`
+  (`formats.tsx`, the section after How, a server `SectionHead` over `.vk-formats`) is the format
+  switcher: a row of framework chips (`STACK_FRAMEWORKS`, each with the `format` its quickstart
+  uses, pinned to `STACKS` by `lib/format-samples.test.ts`; `aria-pressed` buttons whose icons come
+  from one sprite, rendered on the server and passed in as elements, so the icon set never enters
+  the client bundle), then a segmented `TabList` over `SUPPORTED_FORMAT_IDS` labelled from
+  `FORMAT_DISPLAY`, then one pane per format: a void `figure` captioned with the file path, holding
+  the showcase's four English strings exactly as the sdk's real adapter writes them, with the
+  format's own placeholder drawn as a `PlaceholderChip`, and a link to `/docs/formats` (`click-cta`,
+  `location: formats`). The client island is `format-switch.tsx`, which takes every label and pane
+  as props, so it adds no client message namespace; a chip selects its format, a tab clears the
+  chip, and both count `select-tab` with `location: formats` (a chip adds `framework`). Every pane
+  is server-rendered and stacked in one grid cell; a closed pane is `inert` and
+  `visibility: hidden`, so the box is always the tallest pane and a switch moves nothing, and
+  `.vk-formats-code` caps a long output at `--format-pane-rows` (16) lines of `--format-line` and
+  scrolls inside it: it is a `section` named by the pane's file caption with `tabIndex={0}`, so the
+  keyboard reaches and scrolls the open pane, with the `--focus-ring` outline inset. Chips and tabs
+  scroll sideways inside `.vk-edge-fade` under 64rem and wrap from it, each at least 44px tall. The
+  panes come from `lib/format-samples.generated.json`, which `scripts/sync-format-samples.mjs`
+  writes before dev, build, typecheck and test (git-ignored like `lib/version.generated.json`): it
+  builds `createDefaultRegistry` from `@verbatra/sdk` over the in-memory `AdapterFs` in
   `lib/format-samples-seed.mjs` (ENOENT for a missing file; the seed also holds each format's file,
-  placeholder and key style, and the pre-seeded XLIFF file and `.xcstrings` catalogue those
-  adapters require, written with `sourcePath` set to the file itself) and writes each format's
-  output. Nothing in the page graph imports the sdk at runtime, and the docs app never depends on
+  placeholder and key style, and the pre-seeded XLIFF file and `.xcstrings` catalogue those adapters
+  require, written with `sourcePath` set to the file itself) and writes each format's output.
+  Nothing in the page graph imports the sdk at runtime, and the docs app never depends on
   `@verbatra/format-adapters`; `lib/format-samples.test.ts` re-reads every sample through the real
-  adapter and fails unless it parses back to the seed with its placeholder intact. `Loop` is four rows at every width
-  (`LOOP_ROWS`: Studio with the `review` `StudioScreenshot`, the Excel handoff, the SDK, the agent;
-  CI has no row, since the How section owns it), each a two-column grid from 1024px whose sides
-  alternate (`data-loop-row`: the text on the left for Studio and the SDK, on the right for the
-  handoff and the agent). The SDK row shows `SDK_INSTALL_COMMAND` and `SDK_IMPORT_LINE`, an
-  import of `SDK_IMPORTS` from `@verbatra/sdk` that `loop.test.tsx` checks against the sdk's
-  real exports, and links `/docs/sdk`; each row's call to action and each internal agent link (`llms.txt`, `llms-full.txt`,
-  MCP docs, skills docs) counts as `click-cta` with `location: loop`, and the `verbatra/skills`
-  GitHub link as `outbound-link`. `Control` lays its items out as a rail under 1024px: a
-  `.vk-rail` (`Rail` in `rail.tsx`: a `section` named by its heading through `aria-labelledby`, the scroll container,
-  carrying `.vk-edge-fade` so its end edge fades while there is more to see and its start edge
-  fades once scrolled) around a `.vk-rail-track` (the snap row; a `ul` with `role="list"` in
-  Control), whose `.vk-rail-item`s fall short of the full width so the next one peeks in and
-  carry a `scroll-margin-inline` beside the rail's `scroll-padding-inline`. Chrome does not scroll
-  a partly visible focus target, and a snap container snaps back, so `Rail` scrolls the item that
-  takes focus to the start of the rail at phone width (its one client-side job). From 1024px the track is the plain grid and the fade is off. The
-  shared building blocks: `section.tsx` and `section-head.tsx` for
-  structure, `terminal.tsx` (with a `bare` variant; by default lines never
-  wrap, they scroll sideways inside `.vk-terminal-scroll`, which fades the end edge while there is
-  more to see; with `wrap` every line wraps through `.vk-wrap-line`, whose hanging indent is the
-  line's own leading whitespace (`--wrap-lead`, set by `wrapLineStyle` in `wrap-text.tsx`) plus
-  2ch, and whose placeholder tokens (`{count}`, `(-{count})`) never break, through `WrapTokens`.
-  The How section is one terminal replaying two real commands, `verbatra
-  translate` (the gate run, `lib/gate-demo.ts`: one key translated, one withheld) and then
-  `verbatra check` (`lib/check-demo.ts`: the withheld key still missing, exit code
-  `CHECK_EXIT_CODE`), titled `HOW_TITLE`, over the three numbered steps `HOW_STEP_KEYS` (setup,
-  translate, check) that `howStepCopy` in `lib/how-steps.ts` labels for both the section and the
-  HowTo structured data in `page.tsx`, the check step's body carrying the exit code as `{code}`;
-  no panels: the showcase owns the written, refused and lock story),
-  `showcase.tsx` (the section under the marquee: a server `SectionHead` over a `.vk-showcase`
-  panel that holds the Try it playground alone, with no tabs; Studio is shown in the loop),
-  `try-it.tsx` (the Try it playground, one `.vk-showcase-try` grid: from 40rem a scenario bar
-  (`.vk-showcase-bar`) over a two-by-two board, `en.json` | `de.json` above `verbatra.lock.json`
-  | output, cells split by 1px hairlines; on a phone the bar is one column, the scenarios
-  wrapping on top with the actions under them, then the file switch picks one file pane and the
-  output sits under it at all times. The actions follow the scenarios in the DOM at every width,
-  so the focus order is the visual order, and on a phone they take no row while nothing in them
-  shows. The scenario group holds four `aria-pressed` buttons (edit, add, remove, break a
-  placeholder), each counted as `run-scenario`, beside the actions (Reset, and Try again after a
-  failure). Under the bar, `.vk-showcase-breaks` is a native radio group (one `name`, so the
-  arrow keys move through it) of the three ways a reply breaks the placeholder,
-  `SHOWCASE_BREAKS` in `lib/showcase-seed.ts`: it drops `{{amount}}`, renames `{{amount}}` to
-  `{{betrag}}` (the default) or adds `{{tax}}`; each label is `tryIt.breaks.<id>` with the reply
-  token passed as `{token}` and `SHOWCASE_PLACEHOLDER` as `{placeholder}`, both drawn as chips. A
-  radio is checked only while the break scenario is on screen, so every radio runs it when
-  another scenario shows; picking one runs the break scenario with it (counted as `run-scenario`
-  with a `break` property), the break button and Try again replay the last chosen reply, the
-  refusal detail comes from `checkPlaceholders`, and Reset returns it to the default. The file
-  panes (`.vk-showcase-file`: on a phone one at a time, picked by the `aria-pressed` file names
-  of `.vk-showcase-file-switch`; each named by `data-pane`, which the stylesheet maps to its grid
-  area); a marked line is `.vk-showcase-line[data-mark]`, tinted like a highlighted code line,
-  its mark word in `--v-status-new` (added, missing, new) or `--v-status-changed` (edited,
-  stale, changes); a refused reply shows as a struck `data-mark="refused"` line in
-  `--text-danger` above the German value it leaves in place; the lock pane prints full
-  16-character hashes, and a rewritten hash shows before and after: the seed hash struck as
-  `data-mark="replaced"` above the new one marked `changes`; a mark that does not fit drops to
-  the next row), then the output pane (`.vk-showcase-output`, a `figure` captioned `verbatra
-  translate`, named by `landing.showcase.tryIt.result.outputLabel` and marked `lang="en"`, its
-  fixed height adding `--showcase-scroll-reserve` so a sideways scrollbar on a phone moves
-  nothing) printing, in English on every locale, exactly the lines `renderHuman` prints for that
-  run (`showcaseRunLines` in `lib/showcase-cli.ts`, server-rendered for the seed; after a click
-  the lines fade in one `--print-stagger` apart, under 600ms in all, and at once under reduced
-  motion), a mono savings line (`result.savings`: strings sent against what a full retranslate
-  sends, `showcaseSavings`), and one polite `role="status"` sentence (`result.seed`,
-  `result.summary` or `result.failed`). Reset is hidden at the seed and returns focus to the
-  first scenario; Try again is shown with an announced failure message when the module fails to
-  load (the cached promise is dropped, so a retry loads again). Only the latest request applies:
-  a Reset or a newer click while a load is pending wins. The seed state is server-rendered from
-  `showcaseSeed()`; the first hover, focus or click `import()`s `lib/showcase-scenarios.ts`, the
-  only client code that uses `@verbatra/core` (`diffResources`, `contentHash`,
-  `checkPlaceholders`), over the scenario data in `lib/showcase-seed.ts` and the small
-  nested-JSON flattener in `lib/showcase-flatten.ts` (`@verbatra/format-adapters` is not
-  browser-safe). `lib/showcase-flatten.test.ts` pins the flattener to the real i18next adapter
-  and `lib/showcase-scenarios.sdk.test.ts` pins every scenario's (and each other break
-  variant's) sent, unchanged, orphaned and refused keys and lock hashes to a real sdk
-  `translate` with a stub provider. Only the `.vk-showcase` panel carries a reveal; nothing
-  inside the playground does. The copy says what verbatra would translate; it never claims the
-  page
-  translates), `evidence.tsx` (the mono evidence chip, which wraps inside a narrow column rather than growing past it; a linked chip
-  takes the flat-panel glow border on hover and focus through `.vk-evidence-link`),
-  `command-box.tsx` (by default an `@container`: a command wraps once the box is under 30rem, at a space
-  or after a `/` or `.` inside a word, since `HighlightedCommand` keeps every other part of a word
-  whole (a flag such as `--skill` never splits), and under 20rem the copy button drops below the
-  command so the command keeps the full width; the Loop passes `scrolls`, which keeps every
-  command on one line that scrolls sideways inside `.vk-edge-fade`, Copy always beside it, as on
-  the live site. The Loop's table and SDK import line are set in `.vk-mono-sm` (`--text-mono-sm`,
-  13px), and the import line scrolls inside `.vk-terminal-scroll`, whose end edge fades),
-  `CommandRow` (`components/command-row.tsx`: the hero panel's npm install wraps under 30rem through
-  `wrapsWhenNarrow`; elsewhere a `CommandRow` scrolls sideways inside `.vk-edge-fade`: a mask,
-  not a painted background, so it stays see-through on any surface, and the end fade
-  shows only while the command overflows, driven by a scroll timeline), `AiSetupPrompt`
-  (`components/ai-setup-prompt.tsx`: the whole prompt, wrapped, under a `.vk-label` caption that
-  shares its row with the prompt's small Copy button; its URL breaks only after a path `/`,
-  through `breakUrlsAtSlashes` in `lib/word-breaks.tsx`) and `PromptCopyButton` in the same file
-  (the large "Start with a prompt" button with the `.vk-prompt-pop` preview, used only by the docs
-  home agent tip), `command-panel.tsx` (one of the hero's two client islands, beside the `TrackedLink` its buttons
-  and count facts render; `components/landing-hero.test.tsx` pins exactly that set: a `.vk-command-panel` whose
-  segmented "Install | Prompt" `TabList` switches between the `CommandRow` for
-  `NPM_INSTALL_COMMAND` (counted as `copy-install-command`) and the whole `AI_SETUP_PROMPT`; both
-  panes are one `.vk-command-panel-pane` shape, a muted hint row with its `CopyButton` on the right,
-  then the content at full width, top-aligned, and the prompt keeps each `npx` run and each long
-  flag with its value on one line (`keepPackageRunsWhole`); the closed pane is `inert` and hidden
-  at every width, so the install pane carries no empty height under its command and the panel
-  resizes on a switch, and a switch counts
-  `hero-command-tab`), and an `fx/` folder
-  (`grid-pattern.ts`). A new
-  section composes `Section` plus `SectionHead`; it does not re-derive page padding or
-  heading rhythm. Check `ls apps/docs/components/landing` before quoting a file name from
-  this list. The CLI transcripts on the landing (`lib/gate-demo.ts`, `lib/check-demo.ts`,
-  `lib/showcase-cli.ts`) are real CLI output, English on every locale, and their tests pin each
-  line to `packages/cli/src/render.ts` (`lib/showcase-cli.run.test.ts` imports `renderHuman` and
-  `lib/check-demo.run.test.ts` imports `renderCheckHuman` from it by relative path, and the latter
-  also drives `run` from `packages/cli/src/run.ts` over the real sdk `check` for the exit code, in
-  those run tests only, never from `lib/`), so a change to the CLI's output fails until the demo
-  is recaptured.
+  adapter and fails unless it parses back to the seed with its placeholder intact. `Loop` is four
+  rows at every width (`LOOP_ROWS`: Studio with the `review` `StudioScreenshot`, the Excel handoff,
+  the SDK, the agent; CI has no row, since the How section owns it), each a two-column grid from
+  1024px whose sides alternate (`data-loop-row`: the text on the left for Studio and the SDK, on the
+  right for the handoff and the agent). The SDK row shows `SDK_INSTALL_COMMAND` and
+  `SDK_IMPORT_LINE`, an import of `SDK_IMPORTS` from `@verbatra/sdk` that `loop.test.tsx` checks
+  against the sdk's real exports, and links `/docs/sdk`; each row's call to action and each internal
+  agent link (`llms.txt`, `llms-full.txt`, MCP docs, skills docs) counts as `click-cta` with
+  `location: loop`, and the `verbatra/skills` GitHub link as `outbound-link`. `Control` lays its
+  items out as a rail under 1024px: a `.vk-rail` (`Rail` in `rail.tsx`: a `section` named by its
+  heading through `aria-labelledby`, the scroll container, carrying `.vk-edge-fade` so its end edge
+  fades while there is more to see and its start edge fades once scrolled) around a `.vk-rail-track`
+  (the snap row; a `ul` with `role="list"` in Control), whose `.vk-rail-item`s fall short of the
+  full width so the next one peeks in and carry a `scroll-margin-inline` beside the rail's
+  `scroll-padding-inline`. Chrome does not scroll a partly visible focus target, and a snap
+  container snaps back, so `Rail` scrolls the item that takes focus to the start of the rail at
+  phone width (its one client-side job). From 1024px the track is the plain grid and the fade is
+  off. The shared building blocks: `section.tsx` and `section-head.tsx` for structure,
+  `terminal.tsx` (with a `bare` variant; by default lines never wrap, they scroll sideways inside
+  `.vk-terminal-scroll`, which fades the end edge while there is more to see; with `wrap` every line
+  wraps through `.vk-wrap-line`, whose hanging indent is the line's own leading whitespace
+  (`--wrap-lead`, set by `wrapLineStyle` in `wrap-text.tsx`) plus 2ch, and whose placeholder tokens
+  (`{count}`, `(-{count})`) never break, through `WrapTokens`. The How section is one terminal
+  replaying two real commands, `verbatra translate` (the gate run, `lib/gate-demo.ts`: one key
+  translated, one withheld) and then `verbatra check` (`lib/check-demo.ts`: the withheld key still
+  missing, exit code `CHECK_EXIT_CODE`), titled `HOW_TITLE`, over the three numbered steps
+  `HOW_STEP_KEYS` (setup, translate, check) that `howStepCopy` in `lib/how-steps.ts` labels for both
+  the section and the HowTo structured data in `page.tsx`, the check step's body carrying the exit
+  code as `{code}`; no panels: the showcase owns the written, refused and lock story),
+  `showcase.tsx` (the section under the marquee: a server `SectionHead` over a `.vk-showcase` panel
+  that holds the Try it playground alone, with no tabs; Studio is shown in the loop), `try-it.tsx`
+  (the Try it playground, one `.vk-showcase-try` grid: from 40rem a scenario bar
+  (`.vk-showcase-bar`) over a two-by-two board, `en.json` | `de.json` above `verbatra.lock.json` |
+  output, cells split by 1px hairlines; on a phone the bar is one column, the scenarios wrapping on
+  top with the actions under them, then the file switch picks one file pane and the output sits
+  under it at all times. The actions follow the scenarios in the DOM at every width, so the focus
+  order is the visual order, and on a phone they take no row while nothing in them shows. The
+  scenario group holds four `aria-pressed` buttons (edit, add, remove, break a placeholder), each
+  counted as `run-scenario`, beside the actions (Reset, and Try again after a failure). Under the
+  bar, `.vk-showcase-breaks` is a native radio group (one `name`, so the arrow keys move through it)
+  of the three ways a reply breaks the placeholder, `SHOWCASE_BREAKS` in `lib/showcase-seed.ts`: it
+  drops `{{amount}}`, renames `{{amount}}` to `{{betrag}}` (the default) or adds `{{tax}}`; each
+  label is `tryIt.breaks.<id>` with the reply token passed as `{token}` and `SHOWCASE_PLACEHOLDER`
+  as `{placeholder}`, both drawn as chips. A radio is checked only while the break scenario is on
+  screen, so every radio runs it when another scenario shows; picking one runs the break scenario
+  with it (counted as `run-scenario` with a `break` property), the break button and Try again replay
+  the last chosen reply, the refusal detail comes from `checkPlaceholders`, and Reset returns it to
+  the default. The file panes (`.vk-showcase-file`: on a phone one at a time, picked by the
+  `aria-pressed` file names of `.vk-showcase-file-switch`; each named by `data-pane`, which the
+  stylesheet maps to its grid area); a marked line is `.vk-showcase-line[data-mark]`, tinted like a
+  highlighted code line, its mark word in `--v-status-new` (added, missing, new) or
+  `--v-status-changed` (edited, stale, changes); a refused reply shows as a struck
+  `data-mark="refused"` line in `--text-danger` above the German value it leaves in place; the lock
+  pane prints full 16-character hashes, and a rewritten hash shows before and after: the seed hash
+  struck as `data-mark="replaced"` above the new one marked `changes`; a mark that does not fit
+  drops to the next row), then the output pane (`.vk-showcase-output`, a `figure` captioned
+  `verbatra translate`, named by `landing.showcase.tryIt.result.outputLabel` and marked `lang="en"`,
+  its fixed height adding `--showcase-scroll-reserve` so a sideways scrollbar on a phone moves
+  nothing) printing, in English on every locale, exactly the lines `renderHuman` prints for that run
+  (`showcaseRunLines` in `lib/showcase-cli.ts`, server-rendered for the seed; after a click the
+  lines fade in one `--print-stagger` apart, under 600ms in all, and at once under reduced motion),
+  a mono savings line (`result.savings`: strings sent against what a full retranslate sends,
+  `showcaseSavings`), and one polite `role="status"` sentence (`result.seed`, `result.summary` or
+  `result.failed`). Reset is hidden at the seed and returns focus to the first scenario; Try again
+  is shown with an announced failure message when the module fails to load (the cached promise is
+  dropped, so a retry loads again). Only the latest request applies: a Reset or a newer click while
+  a load is pending wins. The seed state is server-rendered from `showcaseSeed()`; the first hover,
+  focus or click `import()`s `lib/showcase-scenarios.ts`, the only client code that uses
+  `@verbatra/core` (`diffResources`, `contentHash`, `checkPlaceholders`), over the scenario data in
+  `lib/showcase-seed.ts` and the small nested-JSON flattener in `lib/showcase-flatten.ts`
+  (`@verbatra/format-adapters` is not browser-safe). `lib/showcase-flatten.test.ts` pins the
+  flattener to the real i18next adapter and `lib/showcase-scenarios.sdk.test.ts` pins every
+  scenario's (and each other break variant's) sent, unchanged, orphaned and refused keys and lock
+  hashes to a real sdk `translate` with a stub provider. Only the `.vk-showcase` panel carries a
+  reveal; nothing inside the playground does. The copy says what verbatra would translate; it never
+  claims the page translates), `evidence.tsx` (the mono evidence chip, which wraps inside a narrow
+  column rather than growing past it; a linked chip takes the flat-panel glow border on hover and
+  focus through `.vk-evidence-link`), `command-box.tsx` (by default an `@container`: a command wraps
+  once the box is under 30rem, at a space or after a `/` or `.` inside a word, since
+  `HighlightedCommand` keeps every other part of a word whole (a flag such as `--skill` never
+  splits), and under 20rem the copy button drops below the command so the command keeps the full
+  width; the Loop passes `scrolls`, which keeps every command on one line that scrolls sideways
+  inside `.vk-edge-fade`, Copy always beside it, as on the live site. The Loop's table and SDK
+  import line are set in `.vk-mono-sm` (`--text-mono-sm`, 13px), and the import line scrolls inside
+  `.vk-terminal-scroll`, whose end edge fades), `CommandRow` (`components/command-row.tsx`: the hero
+  panel's npm install wraps under 30rem through `wrapsWhenNarrow`; elsewhere a `CommandRow` scrolls
+  sideways inside `.vk-edge-fade`: a mask, not a painted background, so it stays see-through on any
+  surface, and the end fade shows only while the command overflows, driven by a scroll timeline),
+  `AiSetupPrompt` (`components/ai-setup-prompt.tsx`: the whole prompt, wrapped, under a `.vk-label`
+  caption that shares its row with the prompt's small Copy button; its URL breaks only after a path
+  `/`, through `breakUrlsAtSlashes` in `lib/word-breaks.tsx`) and `PromptCopyButton` in the same
+  file (the large "Start with a prompt" button with the `.vk-prompt-pop` preview, used only by the
+  docs home agent tip), `command-panel.tsx` (one of the hero's two client islands, beside the
+  `TrackedLink` its buttons and count facts render; `components/landing-hero.test.tsx` pins exactly
+  that set: a `.vk-command-panel` whose segmented "Install | Prompt" `TabList` switches between the
+  `CommandRow` for `NPM_INSTALL_COMMAND` (counted as `copy-install-command`) and the whole
+  `AI_SETUP_PROMPT`; both panes are one `.vk-command-panel-pane` shape, a muted hint row with its
+  `CopyButton` on the right, then the content at full width, top-aligned, and the prompt keeps each
+  `npx` run and each long flag with its value on one line (`keepPackageRunsWhole`); the closed pane
+  is `inert` and hidden at every width, so the install pane carries no empty height under its
+  command and the panel resizes on a switch, and a switch counts `hero-command-tab`), and an `fx/`
+  folder (`grid-pattern.ts`). A new section composes `Section` plus `SectionHead`; it does not
+  re-derive page padding or heading rhythm. Check `ls apps/docs/components/landing` before quoting a
+  file name from this list. The CLI transcripts on the landing (`lib/gate-demo.ts`,
+  `lib/check-demo.ts`, `lib/showcase-cli.ts`) are real CLI output, English on every locale, and
+  their tests pin each line to `packages/cli/src/render.ts` (`lib/showcase-cli.run.test.ts` imports
+  `renderHuman` and `lib/check-demo.run.test.ts` imports `renderCheckHuman` from it by relative
+  path, and the latter also drives `run` from `packages/cli/src/run.ts` over the real sdk `check`
+  for the exit code, in those run tests only, never from `lib/`), so a change to the CLI's output
+  fails until the demo is recaptured.
 - **Docs-facing:** `<StartHere />` (`components/start-here.tsx`) opens every page in
   `START_HERE_PAGES` (`lib/agent-entry.ts`, the agent guides only, not reference pages): a void
   `aside` at the prose measure with no start bar (so it never doubles the locale notice's
@@ -434,26 +427,25 @@ it, and the How steps follow the terminal that demonstrates them. There is no pi
 parallax, no scroll-scrubbing, no scroll listener and no animation library.
 
 - **Reveals.** An element marked `data-reveal="<n>"` (`n` from 0 to 5) is hidden (opacity 0,
-  `translate: 0 var(--reveal-distance)`) only while two things hold: `prefers-reduced-motion:
-  no-preference` and `html[data-motion-ready]`. `MotionRoot`
+  `translate: 0 var(--reveal-distance)`) only while two things hold:
+  `prefers-reduced-motion: no-preference` and `html[data-motion-ready]`. `MotionRoot`
   (`components/landing/motion-root.tsx`, mounted once at the end of the home page, rendering
-  nothing) sets that attribute after hydration, so without JavaScript, before hydration and
-  under reduced motion everything is visible. Before it sets the attribute it marks every
-  element already on screen `data-revealed`, so nothing in the first viewport blinks out, then
-  hands the rest to one shared `IntersectionObserver` (`rootMargin: 0px 0px -10% 0px`) that adds
-  `data-revealed` and unobserves, so each element reveals once and never again on scroll up. Only
-  the reveal transitions (`[data-reveal][data-revealed]`); hiding is instant. Focus moving into
-  a block that has not revealed yet shows it at once (`:focus-within`, no transition). The
-  delay is `n * --reveal-stagger`, capped at `--reveal-delay-max` through `--reveal-index`. The
-  order inside a section is heading, then body, then demo: `SectionHead` with `reveal` marks its
-  heading block `0` and its lead `1`; the showcase playground, the How terminal, the formats
-  switcher and Control's columns follow; each Loop row reveals as one unit, so its text never trails its picture; the
-  final call to action reveals its heading block, then its buttons. Sections
-  stay server components: the marks are plain attributes. Elements keep their box while
-  hidden, so a reveal never moves layout. `components/landing/reveal-marks.test.tsx` pins the
-  marks (every section head and its first block; never the hero, and never anything inside the
-  showcase or formats demo) and `motion-root.test.tsx` pins the observer and the stylesheet
-  guards.
+  nothing) sets that attribute after hydration, so without JavaScript, before hydration and under
+  reduced motion everything is visible. Before it sets the attribute it marks every element already
+  on screen `data-revealed`, so nothing in the first viewport blinks out, then hands the rest to one
+  shared `IntersectionObserver` (`rootMargin: 0px 0px -10% 0px`) that adds `data-revealed` and
+  unobserves, so each element reveals once and never again on scroll up. Only the reveal transitions
+  (`[data-reveal][data-revealed]`); hiding is instant. Focus moving into a block that has not
+  revealed yet shows it at once (`:focus-within`, no transition). The delay is
+  `n * --reveal-stagger`, capped at `--reveal-delay-max` through `--reveal-index`. The order inside
+  a section is heading, then body, then demo: `SectionHead` with `reveal` marks its heading block
+  `0` and its lead `1`; the showcase playground, the How terminal, the formats switcher and
+  Control's columns follow; each Loop row reveals as one unit, so its text never trails its picture;
+  the final call to action reveals its heading block, then its buttons. Sections stay server
+  components: the marks are plain attributes. Elements keep their box while hidden, so a reveal
+  never moves layout. `components/landing/reveal-marks.test.tsx` pins the marks (every section head
+  and its first block; never the hero, and never anything inside the showcase or formats demo) and
+  `motion-root.test.tsx` pins the observer and the stylesheet guards.
 - **Hero.** The hero is never revealed and the `h1` never moves (it is the largest paint). On
   load, only the command panel rises `--rise-distance` once (`vk-rise`, `--duration-reveal`),
   under `no-preference` only; the ledger, the facts row and the blueprint grid are static.
@@ -481,28 +473,37 @@ parallax, no scroll-scrubbing, no scroll listener and no animation library.
 - **Header call to action.** On the landing only (`landingLocale` in `components/header-cta.tsx`),
   `HomeSiteHeader` carries a small primary "Get started" (`landing.nav.headerCta.label`), first in
   the right-hand group in both the DOM and the visual order. It reserves no slot: it is
-  `display: none` until `MotionRoot`'s presence observer sees the hero leave through the top of
-  its root (`html[data-past-hero]`; the root is the viewport less `PRESENCE_MARGIN`, the 112px the
-  sticky header and section nav cover, and `isPastHero` measures against `rootBounds.top`), and again while the final call to action is on screen
-  (`html[data-final-cta]`). It then appears with a 4px fade (`vk-header-cta-in`) into the free
-  space of the `justify-end` group, so nothing beside it moves. It shows under 768px and from
-  1280px only, the widths where that space exists. A click counts `click-cta` with
-  `location: header`.
+  `display: none` until `MotionRoot`'s presence observer sees the hero leave through the top of its
+  root (`html[data-past-hero]`; the root is the viewport less `--vk-landing-offset`, the height the
+  sticky header and section nav cover, and `isPastHero` measures against `rootBounds.top`), and
+  again while the final call to action is on screen (`html[data-final-cta]`). It then appears with a
+  4px fade (`vk-header-cta-in`) into the free space of the `justify-end` group, so nothing beside it
+  moves. It shows under 768px and from 1280px only, the widths where that space exists. A click
+  counts `click-cta` with `location: header`.
 - **Section nav.** `LandingNav` (`components/landing/landing-nav.tsx`, a server component that
-  `page.tsx` renders right after the hero) is a `nav` named by `landing.nav.sections.label`
-  holding one in-page link per `LANDING_NAV_SECTIONS` id (showcase, how, formats, control, faq;
-  labelled from `landing.nav.sections.<id>`), each `href="#<id>"` with `data-nav-link` and no
-  `data-umami-event`. Its `.vk-landing-nav` wrapper is sticky under the 3.5rem site header at
-  `height: 0`, and the bar inside it is absolutely positioned, so it takes no layout space and
-  moves nothing; it stays `visibility: hidden` until `html[data-past-hero]`, then fades in
-  (opacity and a 4px rise, only under `no-preference`), and it never covers the header or its
-  call to action. Under 64rem the link row scrolls sideways inside `.vk-edge-fade`. Every
-  `.vk-home [id]` carries `scroll-margin-top: 6.25rem`, so a jump lands the section (and a band's
-  top hairline) under the nav. `MotionRoot` resolves each link's section and watches it on the
-  same presence observer, with no scroll listener: the first linked section still inside the
-  root gets `aria-current="true"` on its link (an `--accent` 2px underline), every other link
-  none. `landing-nav.test.tsx` pins the markup and stylesheet, `motion-root.test.tsx` the
-  observer reuse.
+  `page.tsx` renders right after the hero) is a `nav` named by `landing.nav.sections.label` holding
+  one in-page link per `LANDING_NAV_SECTIONS` id (showcase, how, formats, control, loop, faq;
+  labelled from `landing.nav.sections.<id>`, the loop as "Workflows"), each `href="#<id>"` with
+  `data-nav-link` and no `data-umami-event`. Every section after the hero owns a link except the
+  marquee strip and the final call to action. Its `.vk-landing-nav` wrapper is sticky under the
+  3.5rem site header at `height: 0`, and the bar inside it is absolutely positioned, so it takes no
+  layout space and moves nothing. Without JavaScript the bar is always visible; once `MotionRoot`
+  marks the root ready it is `visibility: hidden` until `html[data-past-hero]` (which `startMotion`
+  measures once before any observer reports, so a page loaded below the hero shows the bar at once),
+  then fades in (opacity and a 4px rise, only under `no-preference`); hiding is instant. It never
+  covers the header or its call to action. The link row scrolls sideways inside `.vk-edge-fade` when
+  it overflows, and `MotionRoot` scrolls a newly current link back into view past the fade
+  (`scrollBy` on the `[data-nav-scroller]` row, never the page, smooth through `scroll-behavior`
+  under `no-preference` only). One offset serves every jump and the observer: `--vk-landing-offset`
+  on `.vk-home` (6.3125rem: the 3.5rem header, the 2.75rem link row and its 1px hairline) is the
+  `scroll-margin-top` of every `.vk-home [id]`, so a jump lands the section (and a band's top
+  hairline) under the nav, and `LANDING_OFFSET_REM` in `motion-root.tsx` is the same value for the
+  presence observer's top margin. `MotionRoot` resolves each link's section and watches it on the
+  same presence observer, with no scroll listener: the first linked section still inside the root
+  gets `aria-current="true"` on its link (an `--accent` 2px underline at `bottom: 0`, inside the
+  `overflow-y: hidden` row), every other link none, and teardown clears it. `landing-nav.test.tsx`
+  pins the markup, the stylesheet, the shared offset and the link each section owns;
+  `motion-root.test.tsx` the observer reuse.
 - **Marquee.** The only infinite motion. Its two rows scroll endlessly, pause on hover and
   focus, stop and drop their edge mask while a link has keyboard focus (so the focused item
   scrolls fully into view), pause while the band is off screen (`data-offscreen`, set by the

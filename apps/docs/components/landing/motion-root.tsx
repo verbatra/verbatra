@@ -8,7 +8,9 @@ type PresenceEntry = Pick<IntersectionObserverEntry, "isIntersecting" | "boundin
 
 const REVEAL_MARGIN = "0px 0px -10% 0px";
 
-export const PRESENCE_MARGIN = "-112px 0px 0px 0px";
+const EDGE_FADE = 48;
+
+export const LANDING_OFFSET_REM = 6.3125;
 
 export function isPastHero(entry: PresenceEntry): boolean {
   return !entry.isIntersecting && entry.boundingClientRect.bottom <= (entry.rootBounds?.top ?? 0);
@@ -23,12 +25,24 @@ function navLinks(doc: Document): Map<Element, Element> {
   return links;
 }
 
+function keepInView(link: Element): void {
+  const scroller = link.closest("[data-nav-scroller]");
+  if (!scroller) return;
+  const box = scroller.getBoundingClientRect();
+  const item = link.getBoundingClientRect();
+  const left = Math.min(0, item.left - box.left) + Math.max(0, item.right - box.right + EDGE_FADE);
+  if (left) scroller.scrollBy({ left });
+}
+
 function markCurrent(links: Map<Element, Element>, shown: Set<Element>): void {
   let current: Element | undefined;
   for (const section of links.keys()) if (!current && shown.has(section)) current = section;
   for (const [section, link] of links) {
-    if (section === current) link.setAttribute("aria-current", "true");
-    else link.removeAttribute("aria-current");
+    if (section !== current) link.removeAttribute("aria-current");
+    else if (!link.hasAttribute("aria-current")) {
+      link.setAttribute("aria-current", "true");
+      keepInView(link);
+    }
   }
 }
 
@@ -60,6 +74,9 @@ export function startMotion(doc: Document = document): () => void {
     if (element.getBoundingClientRect().top < fold) element.setAttribute("data-revealed", "");
     else reveal.observe(element);
   }
+  const offset = LANDING_OFFSET_REM * (Number.parseFloat(getComputedStyle(root).fontSize) || 16);
+  const hero = doc.querySelector('[data-presence="hero"]');
+  root.toggleAttribute("data-past-hero", !!hero && hero.getBoundingClientRect().bottom <= offset);
   const links = navLinks(doc);
   const shown = new Set<Element>();
   const presence = new IntersectionObserver(
@@ -71,7 +88,7 @@ export function startMotion(doc: Document = document): () => void {
       }
       markCurrent(links, shown);
     },
-    { rootMargin: PRESENCE_MARGIN },
+    { rootMargin: `-${offset}px 0px 0px 0px` },
   );
   for (const element of doc.querySelectorAll("[data-presence]")) presence.observe(element);
   for (const section of links.keys()) presence.observe(section);
@@ -83,6 +100,7 @@ export function startMotion(doc: Document = document): () => void {
     root.removeAttribute("data-motion-ready");
     root.removeAttribute("data-past-hero");
     root.removeAttribute("data-final-cta");
+    for (const link of links.values()) link.removeAttribute("aria-current");
   };
 }
 

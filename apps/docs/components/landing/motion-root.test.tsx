@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
-import { isPastHero, PRESENCE_MARGIN, startMotion } from "./motion-root";
+import { isPastHero, LANDING_OFFSET_REM, startMotion } from "./motion-root";
 
 type Callback = (entries: IntersectionObserverEntry[]) => void;
 
@@ -132,6 +132,17 @@ describe("startMotion", () => {
     expect(band.hasAttribute("data-offscreen")).toBe(false);
   });
 
+  it("knows at start whether the page loaded below the hero, before any observer reports", () => {
+    const { hero } = mount();
+    hero.getBoundingClientRect = () => ({ bottom: 40 }) as DOMRect;
+    stop = startMotion();
+    expect(document.documentElement.hasAttribute("data-past-hero")).toBe(true);
+    stop();
+    hero.getBoundingClientRect = () => ({ bottom: 700 }) as DOMRect;
+    stop = startMotion();
+    expect(document.documentElement.hasAttribute("data-past-hero")).toBe(false);
+  });
+
   it("leaves no motion state behind when the page unmounts", () => {
     const { hero } = mount();
     stop = startMotion();
@@ -190,7 +201,7 @@ describe("the landing section nav", () => {
     stop = startMotion();
     expect(FakeObserver.all).toHaveLength(2);
     const presence = FakeObserver.all[1];
-    expect(presence?.options?.rootMargin).toBe(PRESENCE_MARGIN);
+    expect(presence?.options?.rootMargin).toBe(`-${LANDING_OFFSET_REM * 16}px 0px 0px 0px`);
     for (const section of sections) expect(presence?.observed.has(section)).toBe(true);
   });
 
@@ -209,6 +220,38 @@ describe("the landing section nav", () => {
     presence?.fire(faq as HTMLElement, true);
     expect(current(links)).toEqual([null, null, "true"]);
     expect(faq?.hasAttribute("data-offscreen")).toBe(false);
+  });
+
+  it("clears the current link when the page unmounts", () => {
+    const { links, sections } = mountNav();
+    stop = startMotion();
+    FakeObserver.all[1]?.fire(sections[0] as HTMLElement, true);
+    expect(current(links)).toEqual(["true", null, null]);
+    stop();
+    stop = undefined;
+    expect(current(links)).toEqual([null, null, null]);
+  });
+
+  it("scrolls a current link that sits outside the row back into view, past the edge fade", () => {
+    const { links, sections } = mountNav();
+    const scroller = document.querySelector("nav") as HTMLElement;
+    scroller.setAttribute("data-nav-scroller", "");
+    scroller.getBoundingClientRect = () => ({ left: 0, right: 390 }) as DOMRect;
+    const scrollBy = vi.fn();
+    scroller.scrollBy = scrollBy as typeof scroller.scrollBy;
+    const box = (left: number, right: number) => () => ({ left, right }) as DOMRect;
+    (links[0] as HTMLElement).getBoundingClientRect = box(20, 80);
+    (links[2] as HTMLElement).getBoundingClientRect = box(400, 450);
+    stop = startMotion();
+    const presence = FakeObserver.all[1];
+    presence?.fire(sections[0] as HTMLElement, true);
+    expect(scrollBy).not.toHaveBeenCalled();
+    presence?.fire(sections[0] as HTMLElement, false);
+    presence?.fire(sections[2] as HTMLElement, true);
+    expect(scrollBy).toHaveBeenCalledTimes(1);
+    expect(scrollBy).toHaveBeenCalledWith({ left: 108 });
+    presence?.fire(sections[2] as HTMLElement, true);
+    expect(scrollBy).toHaveBeenCalledTimes(1);
   });
 
   it("never listens to scroll", () => {
