@@ -304,6 +304,27 @@ describe("Landing CTAs", () => {
     });
   });
 
+  it("counts the hero's Try it in the browser and each count fact as click-cta from the hero", async () => {
+    const container = render(await LandingHero());
+    await click(linkByText(container, "ctaTry"));
+    await click(linkByText(container, "facts.formats"));
+    await click(linkByText(container, "facts.providers"));
+    expect(trackUmamiEvent.mock.calls).toEqual([
+      ["click-cta", { location: "hero", target: "showcase" }],
+      ["click-cta", { location: "hero", target: "formats" }],
+      ["click-cta", { location: "hero", target: "providers" }],
+    ]);
+  });
+
+  it("counts the hero's version and license facts as outbound links from the hero", async () => {
+    const doc = staticDoc(await LandingHero());
+    const facts = [...doc.querySelectorAll<HTMLAnchorElement>('.vk-hero-facts a[target="_blank"]')];
+    expect(facts.map((link) => [link.dataset.umamiEvent, link.dataset.umamiEventTarget])).toEqual([
+      ["outbound-link", "version"],
+      ["outbound-link", "license"],
+    ]);
+  });
+
   it("counts both closing buttons as click-cta from the final CTA", async () => {
     const container = render(await FinalCta());
     await click(linkByText(container, "start"));

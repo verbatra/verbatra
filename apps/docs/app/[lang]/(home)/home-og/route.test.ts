@@ -26,11 +26,11 @@ describe("GET /[lang]/home-og", () => {
     expect(response.headers.get("content-type")).toBe("image/png");
   });
 
-  it("labels the hero numbers in the requested locale and reads nothing else from the catalog", async () => {
+  it("labels the hero counts in the requested locale and reads nothing else from the catalog", async () => {
     getTranslationsMock.mockClear();
     await request("de");
     expect(getTranslationsMock.mock.calls).toEqual([
-      [{ locale: "de", namespace: "landing.hero.numbers" }],
+      [{ locale: "de", namespace: "landing.hero.facts" }],
     ]);
   });
 });

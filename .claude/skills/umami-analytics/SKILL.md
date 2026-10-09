@@ -81,7 +81,7 @@ this skill's concern).
 
 | Event | Properties | Where (location values) |
 | --- | --- | --- |
-| outbound-link | target, location | hero (site-messages, npm-cli), header (github, sent from onClick), loop (skills-repo), control (evidence), faq (releases), footer (footer links, contributor, github, npm) |
+| outbound-link | target, location | hero (site-messages, npm-cli, version, license), header (github, sent from onClick), loop (skills-repo), control (evidence), faq (releases), footer (footer links, contributor, github, npm) |
 | click-cta | location, target | header, hero, marquee, loop, final-cta, docs-home (tabs, path, feature and stack cards), docs-page (stack cards) |
 | copy-command | command, location | how, loop, start-here, docs-page (CommandLine) |
 | copy-install-command | command, manager ("npm"), location | hero |

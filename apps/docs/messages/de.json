@@ -12,8 +12,12 @@
       "headline": "Übersetze nur, was sich ändert.",
       "lead": "Die eingecheckte Lock-Datei entscheidet, welche Keys sich geändert haben, und jede Übersetzung wird auf intakte Platzhalter geprüft, bevor verbatra sie schreibt.",
       "ctaStart": "Loslegen",
+      "ctaTry": "Im Browser ausprobieren",
       "dogfood": "Die Oberflächentexte dieser Seite auf Deutsch, Spanisch und Französisch kommen von verbatra.",
       "dogfoodLink": "Sieh dir die Message-Dateien an",
+      "ledger": {
+        "caption": "Die Überschrift oben, so wie sie in den Message-Dateien und der Lock-Datei dieser Seite steht."
+      },
       "command": {
         "tablist": "verbatra einrichten",
         "install": "Installieren",
@@ -21,10 +25,9 @@
         "promptHint": "Füge das in deinen Coding-Agenten ein.",
         "installHint": "Führe das in deinem Projekt aus."
       },
-      "numbers": {
-        "formats": "Dateiformate",
-        "providers": "Übersetzungs-Provider",
-        "locales": "übersetzte Sprachen auf dieser Seite"
+      "facts": {
+        "formats": "Formate",
+        "providers": "Provider + none"
       }
     },
     "terminal": {

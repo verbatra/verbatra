@@ -1,6 +1,6 @@
 import type { ProviderId, SupportedFormat } from "@verbatra/sdk";
+import { LICENSE_URL, RELEASES_URL } from "@/components/landing/links";
 import type { StackIconKey } from "@/components/stack-icons";
-import { i18n } from "./i18n";
 import { PACKAGE_VERSION } from "./site";
 
 export type FormatDisplay = { readonly label: string; readonly icon: StackIconKey };
@@ -40,16 +40,31 @@ export const MACHINE_PROVIDER_IDS = Object.keys(PROVIDER_IDS) as ReadonlyArray<M
 export const FORMAT_COUNT = SUPPORTED_FORMAT_IDS.length;
 export const PROVIDER_COUNT = MACHINE_PROVIDER_IDS.length;
 
-export const TRANSLATED_LOCALE_COUNT = i18n.languages.length - 1;
+export type HeroCountKey = "formats" | "providers";
 
-export type HeroNumberKey = "formats" | "providers" | "locales";
+export type HeroReleaseFact = {
+  readonly key: "version" | "license";
+  readonly value: string;
+  readonly href: string;
+};
 
-export type HeroNumber = { readonly key: HeroNumberKey; readonly value: number };
+export type HeroCountFact = {
+  readonly key: HeroCountKey;
+  readonly value: number;
+  readonly path: string;
+};
 
-export const HERO_NUMBERS: ReadonlyArray<HeroNumber> = [
-  { key: "formats", value: FORMAT_COUNT },
-  { key: "providers", value: PROVIDER_COUNT },
-  { key: "locales", value: TRANSLATED_LOCALE_COUNT },
+export type HeroFact = HeroReleaseFact | HeroCountFact;
+
+export const HERO_FACTS: ReadonlyArray<HeroFact> = [
+  { key: "version", value: `v${PACKAGE_VERSION}`, href: RELEASES_URL },
+  { key: "license", value: "MIT", href: LICENSE_URL },
+  { key: "formats", value: FORMAT_COUNT, path: "/docs/formats" },
+  { key: "providers", value: PROVIDER_COUNT, path: "/docs/providers" },
 ];
 
-export const VERSION_LINE = `v${PACKAGE_VERSION}, MIT`;
+export function isCountFact(fact: HeroFact): fact is HeroCountFact {
+  return "path" in fact;
+}
+
+export const HERO_COUNT_FACTS: ReadonlyArray<HeroCountFact> = HERO_FACTS.filter(isCountFact);

@@ -1,14 +1,14 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { LICENSE_URL, RELEASES_URL } from "@/components/landing/links";
 import {
   FORMAT_COUNT,
-  HERO_NUMBERS,
+  HERO_COUNT_FACTS,
+  HERO_FACTS,
   MACHINE_PROVIDER_IDS,
   PROVIDER_COUNT,
   SUPPORTED_FORMAT_IDS,
-  TRANSLATED_LOCALE_COUNT,
-  VERSION_LINE,
 } from "@/lib/landing-facts";
 import { PACKAGE_VERSION } from "@/lib/site";
 
@@ -58,22 +58,20 @@ describe("landing facts", () => {
     expect(MACHINE_PROVIDER_IDS).toEqual(keys);
   });
 
-  it("gives the hero three numbers: formats, providers and this site's translated locales", () => {
-    expect(HERO_NUMBERS).toEqual([
-      { key: "formats", value: FORMAT_COUNT },
-      { key: "providers", value: PROVIDER_COUNT },
-      { key: "locales", value: TRANSLATED_LOCALE_COUNT },
+  it("gives the hero four facts in digits, each linked to the page that owns it", () => {
+    expect(HERO_FACTS).toEqual([
+      { key: "version", value: `v${PACKAGE_VERSION}`, href: RELEASES_URL },
+      { key: "license", value: "MIT", href: LICENSE_URL },
+      { key: "formats", value: FORMAT_COUNT, path: "/docs/formats" },
+      { key: "providers", value: PROVIDER_COUNT, path: "/docs/providers" },
     ]);
+    expect(HERO_COUNT_FACTS.map((fact) => fact.key)).toEqual(["formats", "providers"]);
   });
 
-  it("counts exactly the target locales of this site's own verbatra config", () => {
-    const block = /targetLocales: \[([^\]]*)\]/.exec(sourceOf("../verbatra.config.ts"))?.[1];
-    expect(block).toBeDefined();
-    expect(TRANSLATED_LOCALE_COUNT).toBe(quotedIn(block ?? "").length);
-  });
-
-  it("states the version and license as one plain line, with no release label", () => {
-    expect(VERSION_LINE).toBe(`v${PACKAGE_VERSION}, MIT`);
-    expect(VERSION_LINE).not.toContain("\u00b7");
+  it("links each count to a docs page that exists", () => {
+    for (const fact of HERO_COUNT_FACTS) {
+      const page = fact.path.replace("/docs/", "");
+      expect(() => sourceOf(`../content/docs/(configure)/${page}.mdx`)).not.toThrow();
+    }
   });
 });

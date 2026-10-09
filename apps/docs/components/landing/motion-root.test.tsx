@@ -207,13 +207,12 @@ describe("the motion stylesheet", () => {
     );
   });
 
-  it("rises the hero command panel and numbers on load, never the h1", () => {
+  it("rises only the hero command panel on load, never the h1", () => {
     const moving = all
       .filter((rule) => rule.media.includes("no-preference") && "animation" in rule.declarations)
       .map((rule) => rule.selector);
     expect(moving.some((selector) => selector.includes("vk-hero-title"))).toBe(false);
-    expect(moving).toContain(".vk-hero-panel");
-    expect(moving).toContain(".vk-hero-numbers-row");
+    expect(moving.filter((selector) => selector.includes("vk-hero"))).toEqual([".vk-hero-panel"]);
   });
 
   it("dims only the bar of an upcoming How step, never its text", () => {

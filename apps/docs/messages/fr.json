@@ -12,8 +12,12 @@
       "headline": "Traduis uniquement ce qui a changé.",
       "lead": "Le fichier de verrouillage versionné décide quelles clés ont changé, et verbatra vérifie que chaque traduction garde ses placeholders intacts avant de l'écrire.",
       "ctaStart": "Démarrer",
+      "ctaTry": "Essaie-le dans le navigateur",
       "dogfood": "Les textes de l'interface de ce site en allemand, espagnol et français viennent de verbatra.",
       "dogfoodLink": "Voir les fichiers de messages",
+      "ledger": {
+        "caption": "Le titre ci-dessus, tel que le gardent les fichiers de messages et le fichier de verrouillage de ce site."
+      },
       "command": {
         "tablist": "Configurer verbatra",
         "install": "Installer",
@@ -21,10 +25,9 @@
         "promptHint": "Colle ceci dans ton agent de code.",
         "installHint": "Exécute ceci dans ton projet."
       },
-      "numbers": {
-        "formats": "formats de fichier",
-        "providers": "fournisseurs de traduction",
-        "locales": "langues traduites sur ce site"
+      "facts": {
+        "formats": "formats",
+        "providers": "fournisseurs + none"
       }
     },
     "terminal": {

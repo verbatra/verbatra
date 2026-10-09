@@ -2,14 +2,24 @@
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { SITE_MESSAGES_URL } from "@/components/landing/links";
-import { HERO_HEADLINES } from "@/lib/hero-lines";
+import { LICENSE_URL, RELEASES_URL, SITE_MESSAGES_URL } from "@/components/landing/links";
+import { HERO_HEADLINE_LOCK_HASH, HERO_HEADLINES } from "@/lib/hero-ledger";
 import type { Locale } from "@/lib/i18n";
-import { HERO_NUMBERS, VERSION_LINE } from "@/lib/landing-facts";
+import { FORMAT_COUNT, HERO_FACTS, PROVIDER_COUNT } from "@/lib/landing-facts";
+import { PACKAGE_VERSION } from "@/lib/site";
 
 const page: { locale: Locale } = { locale: "en" };
+
+vi.mock("next/link", () => ({
+  default: ({ href, children, ...rest }: { href: string; children: ReactNode }) => (
+    <a href={href} {...rest}>
+      {children}
+    </a>
+  ),
+}));
 
 vi.mock("next-intl/server", () => ({
   getTranslations: async () => (key: string) => key,
@@ -67,89 +77,73 @@ beforeEach(() => {
   panelLabels.length = 0;
 });
 
-describe("LandingHero: living headline", () => {
-  it("sets the page's own headline as the h1, with the locale code outside it", async () => {
+describe("LandingHero: headline and ledger", () => {
+  it("sets the page's own headline as the one h1, with no locale code inside the hero copy", async () => {
     const doc = await renderHero();
-    const h1 = doc.querySelector("h1");
-    expect(h1?.textContent).toBe("headline");
-    const code = h1?.previousElementSibling;
-    expect(code?.getAttribute("aria-hidden")).toBe("true");
-    expect(code?.textContent).toBe("en");
+    expect(doc.querySelectorAll("h1")).toHaveLength(1);
+    expect(doc.querySelector("h1")?.textContent).toBe("headline");
+    expect(doc.querySelector(".vk-hero-copy [aria-hidden]")).toBeNull();
   });
 
   it.each([
-    ["en", ["de", "fr"]],
-    ["de", ["en", "fr"]],
-    ["es", ["en", "de"]],
-    ["fr", ["en", "de"]],
+    ["en", ["en", "de", "es", "fr"]],
+    ["de", ["en", "de", "es", "fr"]],
+    ["es", ["en", "es", "de", "fr"]],
+    ["fr", ["en", "fr", "de", "es"]],
   ] as const)(
-    "on %s, follows the h1 with the headline of %j from their own catalogs",
-    async (locale, rows) => {
+    "on %s, prints the headline from %j message files, each value in its own lang",
+    async (locale, order) => {
       const doc = await renderHero(locale);
-      const items = [...doc.querySelectorAll(".vk-hero-locales > li")];
-      expect(items.map((item) => item.getAttribute("lang"))).toEqual(rows);
-      for (const [index, item] of items.entries()) {
-        const row = rows[index] as Locale;
-        expect(item.querySelector('[aria-hidden="true"]')?.textContent).toBe(row);
-        expect(item.lastElementChild?.textContent).toBe(HERO_HEADLINES[row]);
+      const rows = [...doc.querySelectorAll("figure.vk-ledger .vk-ledger-row")];
+      expect(rows.map((row) => row.querySelector(".vk-ledger-file")?.textContent)).toEqual(
+        order.map((code) => `messages/${code}.json`),
+      );
+      for (const [index, row] of rows.entries()) {
+        const code = order[index] as Locale;
+        const value = row.querySelector(".vk-ledger-value");
+        expect(value?.getAttribute("lang")).toBe(code);
+        expect(value?.textContent).toBe(`"${HERO_HEADLINES[code]}"`);
       }
+      expect(rows[0]?.hasAttribute("data-source")).toBe(true);
+      expect(rows.slice(1).some((row) => row.hasAttribute("data-source"))).toBe(false);
     },
   );
 
-  it("draws no box, flag or connector around the locale rows", () => {
-    for (const selector of [".vk-hero-locales", ".vk-hero-locale", ".vk-hero-line"]) {
-      expect(rule(selector), selector).not.toMatch(/border|background|box-shadow|::before/);
-    }
-    expect(HERO_SOURCE).not.toMatch(/flag|connector/i);
+  it("closes the ledger on the headline's real lock hash", async () => {
+    const doc = await renderHero();
+    const lock = doc.querySelector(".vk-ledger-lock");
+    expect(lock?.querySelector(".vk-ledger-file")?.textContent).toBe("verbatra.lock.json");
+    expect(lock?.querySelector(".vk-ledger-hash")?.textContent).toBe(
+      `"${HERO_HEADLINE_LOCK_HASH}"`,
+    );
+    expect(HERO_SOURCE).not.toContain(HERO_HEADLINE_LOCK_HASH);
   });
 
-  it("shares the sections' left edge: codes stack above the text, then hang in the margin from 48rem", () => {
-    expect(HERO_SOURCE).toContain('className="vk-hero vk-w-wide mx-auto w-full"');
-    expect(rule(".vk-hero-line")).toContain("grid-template-columns: minmax(0, 1fr);");
+  it("shows the source and one target at phone width and every file from 40rem", () => {
+    expect(FLAT_CSS).toContain(".vk-ledger-row:nth-child(n + 3) { display: none; }");
     expect(FLAT_CSS).toContain(
-      "@media (min-width: 48rem) { .vk-hero-line { grid-template-columns: var(--width-hero-gutter) minmax(0, 1fr); margin-inline-start: calc(-1 * var(--width-hero-gutter)); } }",
-    );
-    expect(FLAT_CSS).not.toMatch(/\.vk-hero-(caption|body)[^{]*\{[^}]*padding-inline-start/);
-  });
-
-  it("splits the body into two columns only from 80rem, so the intro never narrows at 1024", () => {
-    expect(rule(".vk-hero-body")).toContain("grid-template-columns: minmax(0, 1fr);");
-    expect(FLAT_CSS).toMatch(
-      /@media \(min-width: 80rem\) \{ \.vk-hero-body \{ grid-template-columns: minmax\(0, 1fr\) minmax\(0, var\(--width-hero-panel\)\);/,
-    );
-    expect(FLAT_CSS).not.toMatch(/@media \(min-width: 64rem\) \{[^@]*\.vk-hero-body/);
-    expect(rule(".vk-hero-numbers")).toContain("grid-auto-flow: column;");
-    expect(rule(".vk-hero-numbers")).not.toContain("wrap");
-  });
-
-  it("shows one locale row at phone width and both from 40rem", () => {
-    expect(FLAT_CSS).toContain(".vk-hero-locale:nth-child(n + 2) { display: none; }");
-    expect(FLAT_CSS).toContain(
-      "@media (min-width: 40rem) { .vk-hero-locale:nth-child(n + 2) { display: grid; }",
+      "@media (min-width: 40rem) { .vk-ledger-row:nth-child(n + 3) { display: grid; }",
     );
   });
 
-  it("dims the locale rows without dropping under 4.5:1 on the void page", () => {
-    expect(rule(".vk-hero-locale")).toContain("color: var(--text-muted);");
-    expect(token("--text-muted")).toBe("var(--color-fd-muted-foreground)");
-    expect(token("--text-faint")).toBe("hsl(240 13% 58%)");
+  it("sets the ledger as a void code figure, not a card", () => {
+    expect(rule(".vk-ledger-frame")).toContain("background: var(--v-void);");
+    expect(rule(".vk-ledger-frame")).toContain("border: 1px solid var(--border-default);");
+    expect(rule(".vk-ledger-frame")).not.toContain("box-shadow");
+  });
+
+  it("keeps the ledger's muted and faint text at 4.5:1 or more on the void", () => {
+    expect(rule(".vk-ledger-file")).toContain("color: var(--text-faint);");
+    expect(rule(".vk-ledger-key")).toContain("color: var(--text-muted);");
     const background = token("--v-void");
     expect(contrast(token("--color-fd-muted-foreground"), background)).toBeGreaterThanOrEqual(4.5);
     expect(contrast(token("--text-faint"), background)).toBeGreaterThanOrEqual(4.5);
   });
 
-  it("reveals only the locale rows once, and not at all under reduced motion", () => {
-    expect(FLAT_CSS).toContain(
-      "@media (prefers-reduced-motion: no-preference) { .vk-hero-locale { animation: vk-locale-in",
-    );
-    expect(rule(".vk-hero-title")).not.toContain("animation");
-    expect(FLAT_CSS).not.toMatch(/vk-locale-in[^;]*infinite/);
-  });
-
-  it("captions the rows with the dogfooding claim, linked to this site's message files", async () => {
+  it("captions the ledger with the dogfooding claim, linked to this site's message files", async () => {
     const doc = await renderHero();
-    const caption = doc.querySelector(".vk-hero-lines > p.vk-hero-caption");
-    expect(caption?.textContent).toBe("dogfood dogfoodLink");
+    const caption = doc.querySelector("figure.vk-ledger > figcaption");
+    expect(caption?.textContent).toBe("ledger.caption dogfood dogfoodLink");
     const link = caption?.querySelector("a");
     expect(link?.getAttribute("href")).toBe(SITE_MESSAGES_URL);
     expect(SITE_MESSAGES_URL).toBe(
@@ -160,14 +154,41 @@ describe("LandingHero: living headline", () => {
     expect(link?.getAttribute("data-umami-event-target")).toBe("site-messages");
     expect(link?.getAttribute("data-umami-event-location")).toBe("hero");
   });
+
+  it("puts the ledger beside the copy only from 80rem, on a 7 and 5 column split", () => {
+    expect(rule(".vk-hero-main")).toContain("grid-template-columns: minmax(0, 1fr);");
+    expect(FLAT_CSS).toMatch(
+      /@media \(min-width: 80rem\) \{ \.vk-hero-main \{ grid-template-columns: repeat\(var\(--grid-columns\), minmax\(0, 1fr\)\);/,
+    );
+    expect(FLAT_CSS).toContain(".vk-hero-copy { grid-column: span 7; }");
+    expect(FLAT_CSS).toContain("grid-column: 9 / span 4;");
+    expect(FLAT_CSS).not.toMatch(/@media \(min-width: 64rem\) \{[^@]*\.vk-hero-main/);
+  });
+});
+
+describe("LandingHero: blueprint grid", () => {
+  it("draws the shared grid pattern behind the hero, masked by --hero-grid-mask and hidden from assistive technology", async () => {
+    const doc = await renderHero();
+    const grid = doc.querySelector(".vk-hero-blueprint");
+    expect(grid?.getAttribute("aria-hidden")).toBe("true");
+    expect(grid?.getAttribute("style")).toContain("background-size:56px 56px");
+    expect(HERO_SOURCE).toContain("style={GRID_PATTERN_STYLE}");
+    expect(rule(".vk-hero-blueprint")).toContain("mask-image: var(--hero-grid-mask);");
+    expect(rule(".vk-hero-blueprint")).toContain("pointer-events: none;");
+  });
+
+  it("never moves the grid", () => {
+    expect(rule(".vk-hero-blueprint")).not.toMatch(/animation|transition/);
+    expect(FLAT_CSS).not.toMatch(/\.vk-hero-blueprint[^{]*\{[^}]*animation/);
+  });
 });
 
 describe("LandingHero: not the NestJS composition", () => {
   it("drops the inset card, the wash, the grain and the drift", async () => {
     const doc = await renderHero();
-    for (const name of ["vk-hero-surface", "vk-hero-wash", "vk-hero-grid", "vk-hero-facts"]) {
+    for (const name of ["vk-hero-surface", "vk-hero-wash", "vk-hero-grid"]) {
       expect(doc.querySelector(`.${name}`), name).toBeNull();
-      expect(GLOBAL_CSS, name).not.toContain(`.${name}`);
+      expect(GLOBAL_CSS, name).not.toContain(`.${name} `);
     }
     for (const name of ["--wash-hero", "--grain-hero", "--radius-hero", "--duration-drift"]) {
       expect(GLOBAL_CSS, name).not.toContain(name);
@@ -181,11 +202,15 @@ describe("LandingHero: not the NestJS composition", () => {
     expect(rule(".vk-hero-title")).not.toContain("text-align");
   });
 
-  it("sets the headline heavier, looser and smaller than 104px / 0.95 / 500", () => {
+  it("sets the headline one step larger at 1440 than before, still under 104px", () => {
     expect(rule(".vk-hero-title")).toContain("font-size: var(--text-hero);");
     expect(rule(".vk-hero-title")).toContain("font-weight: var(--weight-hero);");
     expect(rule(".vk-hero-title")).toContain("line-height: var(--leading-hero);");
-    expect(token("--text-hero")).toBe("clamp(2.5rem, 1.25rem + 4vw, 5rem)");
+    expect(token("--text-hero")).toBe("clamp(2.5rem, 0.25rem + 6.5vw, 6.25rem)");
+    const at1440 = 0.25 * 16 + 0.065 * 1440;
+    const before = 1.25 * 16 + 0.04 * 1440;
+    expect(at1440 / before).toBeGreaterThanOrEqual(1.25);
+    expect(6.25 * 16).toBeLessThan(104);
     expect(token("--weight-hero")).toBe("700");
     expect(token("--leading-hero")).toBe("1.04");
     expect(token("--tracking-hero")).toBe("-0.03em");
@@ -198,13 +223,12 @@ describe("LandingHero: not the NestJS composition", () => {
     expect(rule(".vk-hero-lead")).not.toContain("--font-mono");
   });
 
-  it("offers one button and one command panel instead of two pill calls to action", async () => {
+  it("offers Get started and Try it in the browser, then one command panel", async () => {
     const doc = await renderHero();
-    const intro = doc.querySelector(".vk-hero-intro");
-    expect([...(intro?.querySelectorAll("a, button") ?? [])].map((a) => a.textContent)).toEqual([
-      "ctaStart",
-    ]);
-    expect(intro?.querySelector("a")?.getAttribute("href")).toBe("/docs/quickstart");
+    const ctas = [...doc.querySelectorAll(".vk-hero-ctas a")];
+    expect(ctas.map((a) => a.textContent)).toEqual(["ctaStart", "ctaTry"]);
+    expect(ctas.map((a) => a.getAttribute("href"))).toEqual(["/docs/quickstart", "#showcase"]);
+    for (const cta of ctas) expect(cta.hasAttribute("data-umami-event")).toBe(false);
     expect(doc.querySelectorAll('[data-part="command-panel"]')).toHaveLength(1);
     expect(panelLabels).toEqual([
       {
@@ -219,61 +243,83 @@ describe("LandingHero: not the NestJS composition", () => {
     expect(HERO_SOURCE).not.toContain("CommandRow");
   });
 
-  it("states at most three big numbers from landing-facts, with the version as one plain small line, never a table", async () => {
-    const doc = await renderHero();
-    const items = [...doc.querySelectorAll(".vk-hero-numbers > li")];
-    expect(items).toHaveLength(HERO_NUMBERS.length);
-    expect(HERO_NUMBERS.length).toBeLessThanOrEqual(3);
-    expect(items.map((item) => item.querySelector(".vk-hero-number-value")?.textContent)).toEqual(
-      HERO_NUMBERS.map((number) => String(number.value)),
-    );
-    expect(items.map((item) => item.querySelector(".vk-hero-number-label")?.textContent)).toEqual(
-      HERO_NUMBERS.map((number) => `numbers.${number.key}`),
-    );
-    expect(doc.querySelector(".vk-hero-release")?.textContent).toBe(VERSION_LINE);
-    expect(HERO_SOURCE).not.toMatch(/Latest release|t\("release"\)/);
-    expect(doc.querySelector("section dl, section table")).toBeNull();
-    expect(rule(".vk-hero-release")).toContain("font-size: var(--text-xs);");
+  it("localizes the Get started link and keeps the showcase jump on the page", async () => {
+    const doc = await renderHero("de");
+    const ctas = [...doc.querySelectorAll(".vk-hero-ctas a")];
+    expect(ctas.map((a) => a.getAttribute("href"))).toEqual(["/de/docs/quickstart", "#showcase"]);
   });
 
-  it("orders the headline, rows, caption, lead, button, panel and numbers, with no demo inside the hero", async () => {
+  it("states four facts in digits, each linked to the page that owns it, never spelled out", async () => {
+    const doc = await renderHero();
+    const items = [...doc.querySelectorAll(".vk-hero-facts > li")];
+    expect(items).toHaveLength(HERO_FACTS.length);
+    expect(items.map((item) => item.textContent)).toEqual([
+      `v${PACKAGE_VERSION}`,
+      "MIT",
+      `${FORMAT_COUNT} facts.formats`,
+      `${PROVIDER_COUNT} facts.providers`,
+    ]);
+    const links = items.map((item) => item.querySelector("a"));
+    expect(links.map((link) => link?.getAttribute("href"))).toEqual([
+      RELEASES_URL,
+      LICENSE_URL,
+      "/docs/formats",
+      "/docs/providers",
+    ]);
+    for (const link of links.slice(0, 2)) {
+      expect(link?.getAttribute("target")).toBe("_blank");
+      expect(link?.getAttribute("data-umami-event")).toBe("outbound-link");
+      expect(link?.getAttribute("data-umami-event-location")).toBe("hero");
+    }
+    for (const link of links.slice(2)) expect(link?.hasAttribute("data-umami-event")).toBe(false);
+    expect(rule(".vk-hero-facts")).toContain("font-family: var(--font-mono);");
+    expect(doc.querySelector("section dl, section table")).toBeNull();
+  });
+
+  it("orders the headline, lead, buttons, panel, facts and then the ledger", async () => {
     const doc = await renderHero();
     const parts = [
       ...doc.querySelectorAll(
-        "h1, .vk-hero-locales, .vk-hero-caption, .vk-hero-lead, .vk-hero-intro a, [data-part], .vk-hero-numbers",
+        "h1, .vk-hero-lead, .vk-hero-ctas, [data-part], .vk-hero-facts, figure.vk-ledger",
       ),
     ].map((element) => element.getAttribute("data-part") ?? element.className.split(" ")[0]);
     expect(parts).toEqual([
       "vk-hero-title",
-      "vk-hero-locales",
-      "vk-hero-caption",
       "vk-lead",
-      "group",
+      "vk-hero-ctas",
       "command-panel",
-      "vk-hero-numbers",
+      "vk-hero-facts",
+      "vk-ledger",
     ]);
   });
 });
 
 describe("LandingHero: largest contentful paint", () => {
-  it("renders the h1 on the server, outside every animated wrapper", async () => {
+  it("renders the h1 on the server and never animates it", async () => {
     expect(HERO_SOURCE.startsWith('"use client"')).toBe(false);
-    const doc = await renderHero();
-    const h1 = doc.querySelector("h1");
-    expect(h1?.closest(".vk-hero-locale")).toBeNull();
+    expect(rule(".vk-hero-title")).not.toContain("animation");
     expect(GLOBAL_CSS).not.toContain(".vk-rise");
+    expect(GLOBAL_CSS).not.toContain("vk-locale-in");
   });
 
   it("keeps the hero server-rendered with the command panel as its only client island", () => {
     const panel = readFileSync(join(process.cwd(), "components/landing/command-panel.tsx"), "utf8");
     expect(panel.startsWith('"use client"')).toBe(true);
+    const ledger = readFileSync(
+      join(process.cwd(), "components/landing/locale-ledger.tsx"),
+      "utf8",
+    );
+    expect(ledger.startsWith('"use client"')).toBe(false);
     const imports = [...HERO_SOURCE.matchAll(/from "(@\/components\/[^"]+)"/g)].map(
       ([, path]) => path,
     );
     expect(imports).toEqual([
       "@/components/landing/command-panel",
+      "@/components/landing/fx/grid-pattern",
       "@/components/landing/links",
+      "@/components/landing/locale-ledger",
       "@/components/ui/button",
+      "@/components/ui/tracked-link",
     ]);
   });
 });

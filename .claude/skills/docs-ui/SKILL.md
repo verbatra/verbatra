@@ -96,18 +96,15 @@ Scales are fixed and narrow, deliberately:
 - Layout: `--gutter` (40px from 768px up) via `.vk-gutter`, `--width-wide` via `.vk-w-wide`.
   `--cta-height` (56px) is the minimum height of `.vk-prompt-trigger` on `PromptCopyButton`;
   `--width-prompt-pop` (30rem, capped by `100cqw` of its container, never by `100vw`, which counts
-  the scrollbar) is the width of the `.vk-prompt-pop` preview. `--width-hero-gutter` (fluid, 1.75
-  to 3rem) is the hero's locale-code column: under 48rem a code stacks above its line, and from
-  48rem the codes hang in the margin by that width, so the `h1`, caption and body start on the
-  same left edge as every section heading (the hero is a `.vk-w-wide` column like the sections),
-  and `--width-hero-panel` (36rem) the
-  command panel's maximum width and, from 80rem, its own column. `.vk-grid-12` is the landing
+  the scrollbar) is the width of the `.vk-prompt-pop` preview. `--width-hero-panel` (36rem) is the
+  hero command panel's maximum width. `.vk-grid-12` is the landing
   grid: one column under 64rem, then `--grid-columns` (12) columns with a `--grid-gap` (24px)
   gap, where each child spans `--grid-span` columns (the full row when unset).
 - Surfaces added for the landing redesign: `--surface-band` (the raised band behind alternating
   landing sections, mixed from `--surface-card` and `--surface-bg`, never a raw value) and
   `--hero-grid-mask` (the fade that masks the static `fx/grid-pattern.ts` blueprint grid behind
-  the hero only). There is no wash token: the former `--wash-globe` is gone.
+  the hero only: `.vk-hero-blueprint`, an `aria-hidden` layer at `z-index: -1` that never
+  animates). There is no wash token: the former `--wash-globe` is gone.
 - Placeholder chip: `PlaceholderChip` (`components/landing/placeholder-chip.tsx`, the `.vk-placeholder`
   class) is the page's one signature motif, a locked placeholder token (`{{amount}}`, `{count}`)
   drawn the same way in every pane: `--placeholder-fg` (`--accent`) on `--placeholder-fill` inside
@@ -149,10 +146,9 @@ per component. Adding a fourth family needs a reason that survives review.
 
 The type scale is a major third (1.25) held in `app/global.css`: `--text-display`, `--text-h2`
 (capped at 3rem, read only by `.vk-h2`), `--text-h3`, `--text-h4`, `--text-lead`, with `--leading-*` and `--tracking-*` companions. Above
-it sits `--text-hero` (fluid, 2.5rem to 5rem) with `--weight-hero` (700), `--leading-hero` (1.04)
-and `--tracking-hero` (-0.03em), used only by the landing headline (`.vk-hero-title`), plus
-`--text-hero-locale` (1.25rem to 2rem) for the hero's locale rows and `--text-hero-number`
-(2.25rem to 3.25rem) for its numbers. Landing
+it sits `--text-hero` (fluid, 2.5rem to 6.25rem, about 97px at 1440, one step of the scale above
+the former 5rem cap) with `--weight-hero` (700), `--leading-hero` (1.04) and `--tracking-hero`
+(-0.03em), used only by the landing headline (`.vk-hero-title`). Landing
 headings take the `.vk-display`, `.vk-h2`, `.vk-h3`, `.vk-h4` and `.vk-lead` classes (declared in
 `@layer components`, so a Tailwind utility still overrides them) rather than inline `fontSize` /
 `letterSpacing` styles. The docs page title, description and prose `h2` to `h4` sit on the same
@@ -385,9 +381,8 @@ parallax, no scroll-scrubbing, no scroll listener and no animation library.
   hidden, so a reveal never moves layout. `components/landing/reveal-marks.test.tsx` pins the
   marks and `motion-root.test.tsx` pins the observer and the stylesheet guards.
 - **Hero.** The hero is never revealed and the `h1` never moves (it is the largest paint). On
-  load, the locale rows run `vk-locale-in`, and the command panel and the numbers row rise
-  `--rise-distance` once (`vk-rise`, `--duration-reveal`, staggered), all under
-  `no-preference` only.
+  load, only the command panel rises `--rise-distance` once (`vk-rise`, `--duration-reveal`),
+  under `no-preference` only; the ledger, the facts row and the blueprint grid are static.
 - **Numbered eyebrows.** The four story sections after the marquee (`NUMBERED_SECTIONS` in
   `lib/landing-sections.ts`: showcase, how, control, loop) open with `.vk-eyebrow`: a two-digit
   mono index in `--accent` (`sectionNumber`) beside a translated sentence-case word
@@ -501,19 +496,24 @@ comes from:
 
 - **Solid white display headlines.** `LandingHero` and the docs home header both set a solid
   `--text-strong` headline. `LandingHero` sits straight on the void page (no card, wash or
-  grain) and is left-aligned: `.vk-hero-lines` holds `.vk-hero-line` rows, each a locale code
-  over its text under 48rem and from 48rem a two-column grid (`--width-hero-gutter`, then the
-  text, baseline-aligned) pulled into the margin by the gutter, the first the server-rendered `h1`
-  (`.vk-hero-title`) beside its page locale code (`.vk-hero-code-source`, `--accent`), then a
-  `.vk-hero-locales` list of the same headline in two other locales (`heroLocaleRows` in
-  `lib/hero-lines.ts`, read from `messages/*.json`, each `li` with its `lang`), dimmed to
-  `--text-muted` beside a mono `--text-faint` code, with no box, flag or connector; only the
-  first row shows under 40rem. `.vk-hero-caption` links this site's message files. Under it
-  `.vk-hero-body` stacks `.vk-hero-intro` (the sans `.vk-lead.vk-hero-lead` and the one "Get
-  started" button), `.vk-hero-panel` (`CommandPanel`) and `.vk-hero-numbers-row` (at most three
-  `HERO_NUMBERS` from `lib/landing-facts.ts` as `.vk-hero-number-value` numerals over a label,
-  and `VERSION_LINE` (`v<version>, MIT`) as `.vk-hero-release` small text, with no label); from
-  80rem the panel takes its own column beside the intro and the numbers. The home social image
+  grain), over the static blueprint grid, and is left-aligned. `.vk-hero-main` is one column,
+  and from 80rem a 12-column grid: `.vk-hero-copy` spans 7 columns and the `LocaleLedger` the
+  last 4 (`9 / span 4`). The copy stacks the server-rendered `h1` (`.vk-hero-title`), the sans
+  `.vk-lead.vk-hero-lead` (46ch), `.vk-hero-ctas` with two buttons, the primary "Get started"
+  (`/docs/quickstart`) and the secondary "Try it in the browser" (`#showcase`, counted as
+  `click-cta` with `target: showcase` from `onClick`, never a `data-umami-event`), then
+  `.vk-hero-panel` (`CommandPanel`) and `.vk-hero-facts`: one mono row of `HERO_FACTS` from
+  `lib/landing-facts.ts`, always in digits and each a link to the page that owns it (the version
+  to the GitHub releases and MIT to the licence, both `outbound-link`; the format count to
+  `/docs/formats` and the provider count, "+ none", to `/docs/providers`, both `click-cta`).
+  `LocaleLedger` (`components/landing/locale-ledger.tsx`, a server component) is a void code
+  `figure` titled `landing.hero.headline`: one row per message file (`ledgerRows` in
+  `lib/hero-ledger.ts`, read from `messages/*.json`; `en`, the source, first and full white, then
+  the page's own locale, then the rest, each value with its `lang`), only the first two under
+  40rem, closed by the `verbatra.lock.json` line whose hash (`HERO_HEADLINE_LOCK_HASH`) is read
+  from `apps/docs/verbatra.lock.json`, never typed, and pinned by `lib/hero-ledger.test.ts` to
+  the content hash of the English headline. Its `figcaption` carries `landing.hero.ledger.caption`
+  and the dogfooding claim linking this site's message files. The home social image
   (`HomeOgFrame` in `lib/og-image.tsx`) repeats this look with `OG_PALETTE`, which mirrors these
   tokens, and the subset Space Grotesk and JetBrains Mono files in `assets/og-fonts/`
   (`lib/og-fonts.ts`), stripped of their kerning tables, since satori turns kerning into doubled
@@ -526,6 +526,8 @@ comes from:
   licence beside them, each subset with fontTools:
   `pyftsubset <upstream>.ttf --unicodes="U+0020-007E,U+00A0-017F,U+2018-201E,U+2026"
   --layout-features="" --no-hinting --drop-tables+=GPOS,GSUB,kern,DSIG --output-file=<name>.ttf`.
+  The image keeps its own composition: the headline, two other locales (`heroLocaleRows`) and
+  the two count facts labelled from `landing.hero.facts`.
   A new character outside those ranges in a headline or number label needs the subset rerun. `PromptCopyButton` is `.vk-prompt` (`.vk-prompt-trigger`, `.vk-prompt-pop` holding the exact
   prompt in `.vk-prompt-text`, sans `--text-xs` with a hanging indent per numbered line, its URL
   broken only after a path `/` and each flag, and the value after it (`--skill verbatra-cli`), kept whole through `breakUrlsAtSlashes(text,
