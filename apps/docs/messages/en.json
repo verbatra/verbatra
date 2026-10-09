@@ -79,12 +79,7 @@
     },
     "showcase": {
       "heading": "See it work",
-      "lead": "Try a change to a locale file: verbatra's own diff and hash code shows in your browser what a run would send, skip and lock, and translates nothing. In Studio you review the result.",
-      "tablist": "Showcase",
-      "tabs": {
-        "tryIt": "Try it",
-        "studio": "Studio"
-      },
+      "lead": "Try a change to a locale file: verbatra's own diff and hash code shows in your browser what a run would send, skip and lock, and translates nothing.",
       "tryIt": {
         "scenariosLabel": "Change the English file",
         "scenarios": {
@@ -129,11 +124,6 @@
           "gateRefused": "\"{candidate}\" would be refused ({details}); the German value stays",
           "failed": "The comparison code did not load. Check your connection and try again."
         }
-      },
-      "studio": {
-        "alt": "The Verbatra Studio Translations page: a grid of keys against the de, es and fr locales with missing and in-sync badges, and a coverage table per locale.",
-        "caption": "Verbatra Studio, the local dashboard: coverage per locale and every key that still needs work.",
-        "link": "Review translations in Studio"
       }
     },
     "terminal": {
@@ -274,19 +264,26 @@
       "skipToContent": "Skip to content"
     },
     "marquee": {
-      "label": "Supported formats and providers",
-      "intro": "Works with the files and providers you already have.",
+      "label": "Supported frameworks and formats",
+      "intro": "Works with the locale files you already have.",
+      "frameworksLabel": "Frameworks verbatra works with",
       "formatsLabel": "File formats verbatra reads and writes",
       "formatTip": "format: \"{id}\"",
-      "providersLabel": "Translation providers verbatra can call",
-      "providers": {
-        "anthropic": "Claude models",
-        "openai": "GPT models",
-        "gemini": "free tier available",
-        "deepl": "machine translation",
-        "googleTranslate": "machine translation",
-        "openaiCompatible": "Ollama, vLLM, LM Studio",
-        "libretranslate": "self-hosted, no LLM"
+      "frameworks": {
+        "react": "i18next JSON",
+        "next": "next-intl JSON",
+        "vue": "vue-i18n JSON",
+        "nuxt": "vue-i18n JSON",
+        "angular": "ngx-translate JSON or XLIFF",
+        "node": "i18next JSON",
+        "svelte": "i18next JSON or YAML",
+        "astro": "i18next JSON or YAML",
+        "reactNative": "i18next JSON",
+        "flutter": "Flutter ARB",
+        "spring": "Java .properties",
+        "apple": ".strings and .xcstrings",
+        "android": "strings.xml",
+        "dotnet": ".resx"
       }
     },
     "control": {
@@ -354,19 +351,26 @@
           "body": "Export, get it back filled in, import through the same gate.",
           "cta": "Read about the Excel handoff"
         },
+        "studio": {
+          "title": "See every locale's state in Verbatra Studio.",
+          "body": "Coverage, flagged entries, in-place edits. No provider call.",
+          "cta": "Review translations in Studio",
+          "alt": "The Verbatra Studio Review page listing five flagged entries across the de, es and fr locales, each row showing the key, its review reasons, and Edit, Approve and Reject actions."
+        },
         "ci": {
           "title": "Run it on save, in CI, or from a GitHub Action.",
           "body": "<code>watch</code> translates on change. <code>check</code> fails the pull request when a locale drifts.",
           "cta": "Wire up CI"
         },
         "agent": {
-          "title": "Hand it to your coding agent.",
-          "body": "An MCP server for Claude Code, Codex, Gemini CLI, Cursor, VS Code and GitHub Copilot, plus installable skills for the CLI, MCP and Studio.",
+          "title": "Or hand it to your agent.",
+          "body": "An MCP server, plus installable skills for the CLI, MCP and Studio.",
           "cta": "Start with AI"
         }
       },
       "links": {
         "llms": "llms.txt",
+        "llmsFull": "llms-full.txt",
         "mcpDocs": "MCP server docs",
         "skillsDocs": "Skills pack docs"
       },

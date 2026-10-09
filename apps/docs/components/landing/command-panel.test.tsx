@@ -212,4 +212,21 @@ describe("CommandPanel", () => {
     expect(trackUmamiEvent).not.toHaveBeenCalled();
     expect(panel?.querySelector("pre")?.textContent).toBe(AI_SETUP_PROMPT);
   });
+
+  it("uses the shared segmented TabList variant rather than its own tab classes", () => {
+    const container = render();
+    expect(container.querySelector('[role="tablist"]')?.classList.contains("vk-segmented")).toBe(
+      true,
+    );
+    for (const tab of tabs(container))
+      expect(tab.className).toContain("rounded-(--radius-segment)");
+    const source = readFileSync(
+      join(process.cwd(), "components/landing/command-panel.tsx"),
+      "utf8",
+    );
+    expect(source).toContain('variant="segmented"');
+    expect(source).not.toMatch(/TAB_CLASS|function panelProps|rounded-\[7px\]/);
+    const css = readFileSync(join(process.cwd(), "app/global.css"), "utf8");
+    expect(css).toContain("--radius-segment: 7px;");
+  });
 });

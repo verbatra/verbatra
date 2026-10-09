@@ -8,13 +8,13 @@ function docsPath(relative: string): string {
 }
 
 describe("landing section order", () => {
-  it("leads with the hero, then the showcase, and closes on the call to action, in this order", () => {
+  it("leads with the hero and the marquee, then the showcase, and closes on the call to action, in this order", () => {
     expect(LANDING_SECTIONS).toEqual([
       "hero",
+      "marquee",
       "showcase",
       "how",
       "control",
-      "marquee",
       "loop",
       "faq",
       "finalCta",
@@ -27,7 +27,7 @@ describe("landing section order", () => {
     for (const id of LANDING_SECTIONS) expect(page).toMatch(new RegExp(`^\\s+${id}: <`, "m"));
   });
 
-  it.each(["gains", "providers", "reveal", "hero-demo"])(
+  it.each(["gains", "providers", "reveal", "hero-demo", "showcase-tabs", "openai-icon"])(
     "no longer ships the %s component",
     (name) => {
       expect(existsSync(docsPath(`components/landing/${name}.tsx`))).toBe(false);

@@ -101,6 +101,7 @@ samp {
   --text-base: 1rem;
   --text-sm: 0.875rem;
   --text-xs: 0.75rem;
+  --text-mono-sm: 0.8125rem;
 
   --leading-hero: 1.04;
   --leading-display: 0.98;
@@ -244,6 +245,10 @@ samp {
     font-size: var(--text-h4);
     line-height: var(--leading-snug);
     letter-spacing: var(--tracking-snug);
+  }
+
+  .vk-mono-sm {
+    font-size: var(--text-mono-sm);
   }
 
   .vk-lead {
@@ -1472,58 +1477,6 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   box-shadow: var(--shadow-panel);
 }
 
-.vk-showcase-bar {
-  display: flex;
-  align-items: center;
-  box-sizing: border-box;
-  height: var(--showcase-bar-height);
-  padding-inline: 0.625rem;
-  border-bottom: 1px solid var(--border-default);
-}
-
-.vk-showcase-body {
-  position: relative;
-  display: grid;
-}
-
-.vk-showcase-panel {
-  grid-area: 1 / 1;
-  min-width: 0;
-}
-
-.vk-showcase-panel[data-active="false"] {
-  visibility: hidden;
-}
-
-.vk-showcase-studio {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.vk-showcase-shot {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  border-bottom: 1px solid var(--border-default);
-}
-
-.vk-showcase-shot-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: left top;
-}
-
-.vk-showcase-caption {
-  margin: 0;
-  padding: 0.875rem 1rem;
-  font-size: var(--text-sm);
-  line-height: var(--leading-normal);
-  color: var(--text-muted);
-}
-
 .vk-showcase-controls {
   padding: 1rem;
   border-bottom: 1px solid var(--border-default);
@@ -1801,14 +1754,11 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   }
 
   .vk-showcase-controls {
-    position: absolute;
-    top: calc(-1 * var(--showcase-bar-height));
-    inset-inline-end: 0;
     display: flex;
     align-items: center;
-    height: calc(var(--showcase-bar-height) - 1px);
+    box-sizing: border-box;
+    height: var(--showcase-bar-height);
     padding: 0 0.625rem;
-    border: 0;
   }
 
   .vk-showcase-result-rows {
@@ -1987,13 +1937,9 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 
 .vk-rail-item {
   flex: 0 0 auto;
-  width: min(calc((100cqi - 2 * var(--gutter)) * var(--rail-share, 0.82)), 24rem);
+  width: min(calc((100cqi - 2 * var(--gutter)) * 0.82), 24rem);
   scroll-margin-inline: var(--gutter);
   scroll-snap-align: start;
-}
-
-.vk-loop-rail {
-  --rail-share: 0.88;
 }
 
 @media (min-width: 1024px) {
@@ -2011,44 +1957,35 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
     padding: 0;
   }
 
-  .vk-loop-rail .vk-rail-track {
-    gap: 1.5rem 2rem;
-  }
-
   .vk-rail-item {
     width: auto;
   }
 }
 
 .vk-marquee-band {
-  --marquee-item: clamp(1rem, 0.7rem + 0.55vw, 1.75rem);
-  --marquee-gap: clamp(40px, 1.5rem + 2vw, 112px);
-  --marquee-row-pad: clamp(40px, 1rem + 2.4vw, 104px);
-  padding-top: clamp(3.5rem, 1.5rem + 3vw, 8rem);
-}
-
-.vk-marquee-rows > .vk-marquee:last-child {
-  padding-bottom: 0;
+  --marquee-item: 15px;
+  --marquee-gap: 40px;
+  --marquee-row-pad: 40px;
+  padding-top: 3.5rem;
 }
 
 .vk-marquee-intro {
-  font-size: clamp(1rem, 0.8rem + 0.55vw, 1.875rem);
-  line-height: var(--leading-normal);
+  font-size: var(--marquee-item);
 }
 
 .vk-marquee-rows {
-  margin-top: clamp(22px, 0.5rem + 1.6vw, 72px);
+  margin-top: 22px;
 }
 
 .vk-marquee-item {
-  gap: 0.625em;
-  min-height: 2.25em;
+  gap: 0.625rem;
+  min-height: 2.25rem;
   font-size: var(--marquee-item);
 }
 
 .vk-marquee-icon {
-  width: 1.25em;
-  height: 1.25em;
+  width: 1.25rem;
+  height: 1.25rem;
 }
 
 .vk-marquee {
@@ -2081,6 +2018,16 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 .vk-marquee:hover .vk-track,
 .vk-marquee:focus-within .vk-track {
   animation-play-state: paused;
+}
+
+.vk-marquee:has(:focus-visible) {
+  scroll-padding-inline: 1rem;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+.vk-marquee:has(:focus-visible) .vk-track {
+  animation: none;
 }
 
 @keyframes vk-marquee {

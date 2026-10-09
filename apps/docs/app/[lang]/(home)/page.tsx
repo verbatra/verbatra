@@ -39,10 +39,10 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
 
   const sections: Readonly<Record<LandingSectionId, ReactNode>> = {
     hero: <LandingHero />,
+    marquee: <Marquee />,
     showcase: <Showcase />,
     how: <Proof />,
     control: <Control />,
-    marquee: <Marquee />,
     loop: <Loop />,
     faq: <Faq items={faqItems} />,
     finalCta: <FinalCta />,

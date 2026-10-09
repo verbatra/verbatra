@@ -66,7 +66,8 @@ describe("landing message parity", () => {
     expect(source).toContain("landing.nav.skipToContent");
     expect(source).toContain("landing.terminal.sessionLabel");
     expect(source).toContain("landing.loop.rows.ci.title");
-    expect(source).toContain("landing.marquee.providers.gemini");
+    expect(source).toContain("landing.marquee.frameworks.reactNative");
+    expect(source).toContain("landing.loop.rows.studio.alt");
     expect(source).toContain("landing.control.groups.correct.items.terms.title");
     expect(source).toContain("landing.control.groups.people.items.protect.title");
     expect(source).toContain("landing.showcase.tryIt.result.headline");
@@ -83,6 +84,28 @@ describe("landing message parity", () => {
       expect(typeof hero === "object" && "demo" in hero, locale).toBe(false);
     }
   });
+
+  it.each([
+    "marquee.providers",
+    "marquee.providersLabel",
+    "showcase.tabs",
+    "showcase.tablist",
+    "showcase.studio",
+  ])(
+    "keeps no landing.%s message from the removed marquee providers row or showcase tabs",
+    (path) => {
+      for (const locale of i18n.languages) {
+        const node = path
+          .split(".")
+          .reduce<unknown>(
+            (tree, key) =>
+              typeof tree === "object" && tree !== null ? (tree as MessageTree)[key] : undefined,
+            load(locale).landing,
+          );
+        expect(node, locale).toBeUndefined();
+      }
+    },
+  );
 
   for (const locale of i18n.languages.filter((lang) => lang !== i18n.defaultLanguage)) {
     it(`${locale} holds exactly the source keys`, () => {

@@ -105,14 +105,17 @@ Scales are fixed and narrow, deliberately:
 - Motion: `--ease-out` with `--duration-fast` and `--duration-base` for transitions. The hero's
   one load motion is `vk-locale-in`, a single opacity and transform reveal of the locale rows
   (never the `h1`), declared only under `prefers-reduced-motion: no-preference`. Nothing else on
-  the landing animates on load, and nothing loops.
+  the landing animates on load, and nothing loops except the marquee: its two rows scroll
+  endlessly, pause on hover and focus, stop and drop their edge mask while a link has keyboard
+  focus (so the focused item scrolls fully into view), and under `prefers-reduced-motion: reduce`
+  wrap as a static list with the duplicate track hidden.
 - Showcase: `--showcase-line` (1.125rem, 1.25rem from 40rem) is the line height of a file pane in
   the showcase playground, which reserves its longest scenario's row count with it (on a phone,
   where one file shows at a time, the tallest file's, `--showcase-rows-max`, so a file switch
   moves nothing), `--showcase-result-min` (18rem, 11rem from 40rem, 7.5rem from 64rem) is the
   reserved height of its result area, sized for the longest scenario in the longest locale, so a
   scenario never moves what sits below it, and `--showcase-bar-height` (3.125rem) is the height
-  of its tab bar, which from 64rem also holds the scenario buttons.
+  of its scenario row from 64rem.
 
 ## Typography
 
@@ -154,19 +157,27 @@ footer's oversized watermark only; do not clip it onto a heading.
   selection and focus with the arrow keys (wrapping), Home and End; `tabPanelProps(prefix, id,
   active)` gives a panel its `id`, `role`, `aria-labelledby`, `data-active` and `inert`. Its
   `variant: "segmented"` is the `.vk-segmented` switch (tabs rounded by `--radius-segment`, 7px)
-  that the hero command panel and the showcase both use, never a hand-made copy.
+  that the hero command panel uses, never a hand-made copy.
   `Button` takes `variant: "primary" | "secondary" | "ghost"` and `size: "sm" | "md" | "lg"`.
   Extend the variant union rather than passing ad hoc `className` overrides.
 - **Landing:** `components/landing/` holds the landing sections (`proof.tsx`, `control.tsx`,
   `marquee.tsx`, `loop.tsx`, `faq.tsx`, `final-cta.tsx`, `footer.tsx`). Their order on the page
-  is `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, showcase, how, control, marquee, loop,
+  is `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, marquee, showcase, how, control, loop,
   faq, final call to action), which the home page maps over and `lib/landing-sections.test.ts` pins;
   add or move a section there, not by hand in `page.tsx`. Sections do not animate in. The
-  marquee is two rows, the formats and the providers, built from `SUPPORTED_FORMAT_IDS` and
-  `MACHINE_PROVIDER_IDS` in `lib/landing-facts.ts` (pinned to `SUPPORTED_FORMATS` and the sdk's
-  `providerFactories`). Every format's display label and icon is `FORMAT_DISPLAY` in the same
-  file, which the structured data's format list reads too, so a new format fails to compile
-  until it has both. `Control` and `Loop` lay their items out as a rail under 1024px: a
+  marquee sits directly under the hero and is two rows at fixed sizes (15px items, 40px gaps,
+  set on `.vk-marquee-band`): the frameworks (`MARQUEE_FRAMEWORKS` in `marquee.tsx`, each with a
+  translated tip naming its format, `landing.marquee.frameworks.*`) scrolling left, and the
+  formats, built from `SUPPORTED_FORMAT_IDS` in `lib/landing-facts.ts` (pinned to
+  `SUPPORTED_FORMATS`), scrolling right. Each item links `/docs/formats` and counts as
+  `click-cta` with `location: marquee` and its row as `target`. Every format's display label and
+  icon is `FORMAT_DISPLAY` in the same file, which the structured data's format list reads too,
+  so a new format fails to compile until it has both. `Loop` is four rows at every width
+  (Excel, Studio with the `review` `StudioScreenshot`, CI, agent), each a two-column grid from
+  1024px whose sides alternate (`data-loop-row`: the text on the left for Excel and CI, on the
+  right for Studio and the agent); each row's call to action and each internal agent link (`llms.txt`, `llms-full.txt`,
+  MCP docs, skills docs) counts as `click-cta` with `location: loop`, and the `verbatra/skills`
+  GitHub link as `outbound-link`. `Control` lays its items out as a rail under 1024px: a
   `.vk-rail` (`Rail` in `rail.tsx`: a `section` named by its heading through `aria-labelledby`, the scroll container,
   carrying `.vk-edge-fade` so its end edge fades while there is more to see and its start edge
   fades once scrolled) around a `.vk-rail-track` (the snap row; a `ul` with `role="list"` in
@@ -182,15 +193,11 @@ footer's oversized watermark only; do not clip it onto a heading.
   2ch, and whose placeholder tokens (`{count}`, `(-{count})`) never break, through `WrapTokens`.
   The How section is that one real CLI run (`lib/gate-demo.ts`) over the four steps the HowTo
   structured data reads, with no panels: the showcase owns the written, refused and lock story),
-  `showcase.tsx` (the section under the hero: a server `SectionHead` over `ShowcaseTabs` in
-  `showcase-tabs.tsx`, a `.vk-showcase` panel whose segmented "Try it | Studio" `TabList`
-  counts each switch as `showcase-tab`; both panels share one grid cell of `.vk-showcase-body`,
-  the closed one `inert` and `visibility: hidden`, and the Studio panel sits absolutely over the
-  Try it panel's height, mounting `studio-translations-dark.webp` lazily on its first opening
-  with a caption that links `/docs/review-in-studio`), `try-it.tsx` (the Try it playground: a
+  `showcase.tsx` (the section under the marquee: a server `SectionHead` over a `.vk-showcase`
+  panel that holds the Try it playground alone, with no tabs; Studio is shown in the loop),
+  `try-it.tsx` (the Try it playground: a
   scenario group of four `aria-pressed` buttons (edit, add, remove, break a placeholder), each
-  counted as `showcase-scenario` (from 64rem they sit in the tab bar's row, still inside the Try
-  it panel), the `en.json`, `de.json` and `verbatra.lock.json` panes (`.vk-showcase-file`: on a
+  counted as `showcase-scenario` (from 64rem they sit in one row of `--showcase-bar-height`), the `en.json`, `de.json` and `verbatra.lock.json` panes (`.vk-showcase-file`: on a
   phone one at a time, picked by the `aria-pressed` file names of `.vk-showcase-file-switch`;
   two columns from 40rem with the lock below, three from 80rem; a marked
   line is `.vk-showcase-line[data-mark]`, tinted like a highlighted code line, its mark word in
@@ -212,10 +219,13 @@ footer's oversized watermark only; do not clip it onto a heading.
   with a stub provider. The copy says what verbatra would translate; it never claims the page
   translates), `evidence.tsx` (the mono evidence chip, which wraps inside a narrow column rather than growing past it; a linked chip
   takes the flat-panel glow border on hover and focus through `.vk-evidence-link`),
-  `command-box.tsx` (an `@container`: a command wraps once the box is under 30rem, at a space
+  `command-box.tsx` (by default an `@container`: a command wraps once the box is under 30rem, at a space
   or after a `/` or `.` inside a word, since `HighlightedCommand` keeps every other part of a word
   whole (a flag such as `--skill` never splits), and under 20rem the copy button drops below the
-  command so the command keeps the full width),
+  command so the command keeps the full width; the Loop passes `scrolls`, which keeps every
+  command on one line that scrolls sideways inside `.vk-edge-fade`, Copy always beside it, as on
+  the live site. The Loop's table and JSON excerpt are set in `.vk-mono-sm` (`--text-mono-sm`,
+  13px), and the excerpt scrolls inside `.vk-terminal-scroll`, whose end edge fades),
   `CommandRow` (`components/command-row.tsx`: the hero panel's npm install wraps under 30rem through
   `wrapsWhenNarrow`; elsewhere a `CommandRow` scrolls sideways inside `.vk-edge-fade`: a mask,
   not a painted background, so it stays see-through on any surface, and the end fade

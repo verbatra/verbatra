@@ -121,14 +121,11 @@ describe("the showcase copy", () => {
 });
 
 describe("the showcase keeps @verbatra/core out of the initial bundle", () => {
-  it.each(["components/landing/try-it.tsx", "components/landing/showcase-tabs.tsx"])(
-    "%s never imports the scenario module or core statically",
-    (file) => {
-      const source = docsFile(file);
-      expect(source).not.toMatch(/^import (?!type )[^;]*"@\/lib\/showcase-scenarios"/m);
-      expect(source).not.toContain("@verbatra/core");
-    },
-  );
+  it("the Try it client island never imports the scenario module or core statically", () => {
+    const source = docsFile("components/landing/try-it.tsx");
+    expect(source).not.toMatch(/^import (?!type )[^;]*"@\/lib\/showcase-scenarios"/m);
+    expect(source).not.toContain("@verbatra/core");
+  });
 
   it("loads the scenario module with a dynamic import on interaction", () => {
     expect(docsFile("components/landing/try-it.tsx")).toContain(

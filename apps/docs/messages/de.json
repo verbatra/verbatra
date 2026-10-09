@@ -226,13 +226,14 @@
       "links": {
         "llms": "llms.txt",
         "mcpDocs": "Doku zum MCP-Server",
-        "skillsDocs": "Doku zum Skills-Paket"
+        "skillsDocs": "Doku zum Skills-Paket",
+        "llmsFull": "llms-full.txt"
       },
       "rows": {
         "agent": {
-          "body": "Ein MCP-Server für Claude Code, Codex, Gemini CLI, Cursor, VS Code und GitHub Copilot, plus installierbare Skills für CLI, MCP und Studio.",
+          "body": "Ein MCP-Server plus installierbare Skills für CLI, MCP und Studio.",
           "cta": "Mit KI starten",
-          "title": "Überlass es deinem Coding-Agenten."
+          "title": "Oder überlass es deinem Agenten."
         },
         "ci": {
           "body": "<code>watch</code> übersetzt bei jeder Änderung. <code>check</code> lässt den Pull Request fehlschlagen, wenn eine Locale abweicht.",
@@ -243,6 +244,12 @@
           "body": "Exportieren, ausgefüllt zurückbekommen, durch dasselbe Integritäts-Gate importieren.",
           "cta": "Mehr zur Excel-Übergabe",
           "title": "Gib Übersetzern eine Arbeitsmappe, importiere sie zurück."
+        },
+        "studio": {
+          "title": "Sieh den Stand jeder Locale in Verbatra Studio.",
+          "body": "Abdeckung, markierte Einträge, Bearbeitung an Ort und Stelle. Kein Provider-Aufruf.",
+          "cta": "Übersetzungen in Studio prüfen",
+          "alt": "Die Review-Seite in Verbatra Studio mit fünf markierten Einträgen über die Locales de, es und fr; jede Zeile zeigt den Key, seine Review-Gründe und die Aktionen Edit, Approve und Reject."
         }
       },
       "table": {
@@ -254,27 +261,29 @@
     "marquee": {
       "formatTip": "format: \"{id}\"",
       "formatsLabel": "Dateiformate, die verbatra liest und schreibt",
-      "intro": "Funktioniert mit den Dateien und Providern, die du schon hast.",
-      "label": "Unterstützte Formate und Provider",
-      "providersLabel": "Übersetzungs-Provider, die verbatra aufrufen kann",
-      "providers": {
-        "anthropic": "Claude-Modelle",
-        "openai": "GPT-Modelle",
-        "gemini": "kostenloses Kontingent verfügbar",
-        "deepl": "maschinelle Übersetzung",
-        "googleTranslate": "maschinelle Übersetzung",
-        "openaiCompatible": "Ollama, vLLM, LM Studio",
-        "libretranslate": "selbst gehostet, ohne LLM"
+      "intro": "Funktioniert mit den Locale-Dateien, die du schon hast.",
+      "label": "Unterstützte Frameworks und Formate",
+      "frameworksLabel": "Frameworks, mit denen verbatra funktioniert",
+      "frameworks": {
+        "react": "i18next JSON",
+        "next": "next-intl JSON",
+        "vue": "vue-i18n JSON",
+        "nuxt": "vue-i18n JSON",
+        "angular": "ngx-translate JSON oder XLIFF",
+        "node": "i18next JSON",
+        "svelte": "i18next JSON oder YAML",
+        "astro": "i18next JSON oder YAML",
+        "reactNative": "i18next JSON",
+        "flutter": "Flutter ARB",
+        "spring": "Java .properties",
+        "apple": ".strings und .xcstrings",
+        "android": "strings.xml",
+        "dotnet": ".resx"
       }
     },
     "showcase": {
       "heading": "Sieh es in Aktion",
-      "lead": "Probier eine Änderung an einer Locale-Datei: verbatras eigener Diff- und Hash-Code zeigt in deinem Browser, was ein Lauf senden, überspringen und sperren würde, und übersetzt nichts. In Studio prüfst du das Ergebnis.",
-      "tablist": "Demo",
-      "tabs": {
-        "tryIt": "Ausprobieren",
-        "studio": "Studio"
-      },
+      "lead": "Probier eine Änderung an einer Locale-Datei: verbatras eigener Diff- und Hash-Code zeigt in deinem Browser, was ein Lauf senden, überspringen und sperren würde, und übersetzt nichts.",
       "tryIt": {
         "scenariosLabel": "Ändere die englische Datei",
         "scenarios": {
@@ -319,11 +328,6 @@
         },
         "filesLabel": "Dateien",
         "retry": "Erneut versuchen"
-      },
-      "studio": {
-        "alt": "Die Translations-Seite in Verbatra Studio: ein Raster aus Keys gegen die Locales de, es und fr mit Badges für fehlend und synchron sowie eine Abdeckungstabelle pro Locale.",
-        "caption": "Verbatra Studio, das lokale Dashboard: Abdeckung pro Locale und jeder Key, der noch Arbeit braucht.",
-        "link": "Übersetzungen in Studio prüfen"
       }
     }
   },

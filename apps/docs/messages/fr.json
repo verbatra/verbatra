@@ -226,13 +226,14 @@
       "links": {
         "llms": "llms.txt",
         "mcpDocs": "Documentation du serveur MCP",
-        "skillsDocs": "Documentation du pack de skills"
+        "skillsDocs": "Documentation du pack de skills",
+        "llmsFull": "llms-full.txt"
       },
       "rows": {
         "agent": {
-          "body": "Un serveur MCP pour Claude Code, Codex, Gemini CLI, Cursor, VS Code et GitHub Copilot, plus des skills installables pour la CLI, MCP et Studio.",
+          "body": "Un serveur MCP, plus des skills installables pour la CLI, MCP et Studio.",
           "cta": "Commencer avec l'IA",
-          "title": "Confie-le à ton agent de code."
+          "title": "Ou confie-le à ton agent."
         },
         "ci": {
           "body": "<code>watch</code> traduit à chaque modification. <code>check</code> fait échouer la pull request quand une locale dérive.",
@@ -243,6 +244,12 @@
           "body": "Exporte, récupère-le rempli, réimporte-le via la même barrière d'intégrité.",
           "cta": "En savoir plus sur le transfert Excel",
           "title": "Confie un classeur aux traducteurs, puis réimporte-le."
+        },
+        "studio": {
+          "title": "Consulte l'état de chaque locale dans Verbatra Studio.",
+          "body": "Couverture, entrées signalées, modifications sur place. Aucun appel au fournisseur.",
+          "cta": "Réviser les traductions dans Studio",
+          "alt": "La page Révision de Verbatra Studio affichant cinq entrées signalées dans les locales de, es et fr ; chaque ligne montre la clé, ses motifs de révision et les actions Edit, Approve et Reject."
         }
       },
       "table": {
@@ -254,27 +261,29 @@
     "marquee": {
       "formatTip": "format: \"{id}\"",
       "formatsLabel": "Formats de fichier que verbatra lit et écrit",
-      "intro": "Fonctionne avec les fichiers et les fournisseurs que tu as déjà.",
-      "label": "Formats et fournisseurs pris en charge",
-      "providersLabel": "Fournisseurs de traduction que verbatra peut appeler",
-      "providers": {
-        "anthropic": "modèles Claude",
-        "openai": "modèles GPT",
-        "gemini": "offre gratuite disponible",
-        "deepl": "traduction automatique",
-        "googleTranslate": "traduction automatique",
-        "openaiCompatible": "Ollama, vLLM, LM Studio",
-        "libretranslate": "auto-hébergé, sans LLM"
+      "intro": "Fonctionne avec les fichiers de locale que tu as déjà.",
+      "label": "Frameworks et formats pris en charge",
+      "frameworksLabel": "Frameworks avec lesquels verbatra fonctionne",
+      "frameworks": {
+        "react": "i18next JSON",
+        "next": "next-intl JSON",
+        "vue": "vue-i18n JSON",
+        "nuxt": "vue-i18n JSON",
+        "angular": "ngx-translate JSON ou XLIFF",
+        "node": "i18next JSON",
+        "svelte": "i18next JSON ou YAML",
+        "astro": "i18next JSON ou YAML",
+        "reactNative": "i18next JSON",
+        "flutter": "Flutter ARB",
+        "spring": "Java .properties",
+        "apple": ".strings et .xcstrings",
+        "android": "strings.xml",
+        "dotnet": ".resx"
       }
     },
     "showcase": {
       "heading": "Vois-le à l'œuvre",
-      "lead": "Modifie un fichier de locale : le code de diff et de hachage de verbatra montre dans ton navigateur ce qu'une exécution enverrait, ignorerait et verrouillerait, sans rien traduire. Dans Studio, tu relis le résultat.",
-      "tablist": "Démonstration",
-      "tabs": {
-        "tryIt": "Essaie",
-        "studio": "Studio"
-      },
+      "lead": "Modifie un fichier de locale : le code de diff et de hachage de verbatra montre dans ton navigateur ce qu'une exécution enverrait, ignorerait et verrouillerait, sans rien traduire.",
       "tryIt": {
         "scenariosLabel": "Modifie le fichier anglais",
         "scenarios": {
@@ -319,11 +328,6 @@
         },
         "filesLabel": "Fichiers",
         "retry": "Réessayer"
-      },
-      "studio": {
-        "alt": "La page Translations de Verbatra Studio : une grille de clés face aux locales de, es et fr avec des badges manquant et synchronisé, et un tableau de couverture par locale.",
-        "caption": "Verbatra Studio, le tableau de bord local : couverture par locale et chaque clé qui demande encore du travail.",
-        "link": "Relis les traductions dans Studio"
       }
     }
   },

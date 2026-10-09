@@ -1,9 +1,9 @@
 export const LANDING_SECTIONS = [
   "hero",
+  "marquee",
   "showcase",
   "how",
   "control",
-  "marquee",
   "loop",
   "faq",
   "finalCta",

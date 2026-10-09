@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
+import { SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 
 vi.mock("next-intl/server", () => ({
   getTranslations:
@@ -14,7 +14,7 @@ vi.mock("next-intl/server", () => ({
   getLocale: async () => "en",
 }));
 
-const { Marquee } = await import("./marquee");
+const { Marquee, MARQUEE_FRAMEWORKS } = await import("./marquee");
 
 type MessageTree = { [key: string]: string | MessageTree };
 
@@ -49,30 +49,58 @@ describe("Marquee", () => {
     );
   });
 
-  it("lists every provider the sdk resolves, in factory order, each with a translated tip", async () => {
-    const items = await visibleTrack("providersLabel");
-    const camel = (id: string) =>
-      id.replace(/-([a-z])/g, (_, letter: string) => letter.toUpperCase());
-    expect(items.map((item) => item.dataset.tip)).toEqual(
-      MACHINE_PROVIDER_IDS.map((id) => `providers.${camel(id)}`),
+  it("leads with the frameworks row, each with a translated tip naming its format", async () => {
+    const items = await visibleTrack("frameworksLabel");
+    expect(items.map((item) => item.textContent)).toEqual(
+      MARQUEE_FRAMEWORKS.map((framework) => framework.name),
     );
     for (const item of items) {
-      expect(item.getAttribute("href")).toBe("/docs/providers");
+      expect(item.getAttribute("href")).toBe("/docs/formats");
       expect(typeof message(`landing.marquee.${item.dataset.tip}`)).toBe("string");
     }
   });
 
-  it("names the band after both rows, formats and providers", async () => {
+  it("scrolls the frameworks row left and the formats row right", async () => {
+    const markup = renderToStaticMarkup(await Marquee());
+    const doc = new DOMParser().parseFromString(markup, "text/html");
+    const rows = Array.from(doc.querySelectorAll<HTMLElement>(".vk-marquee"));
+    expect(rows.map((row) => row.dataset.direction)).toEqual(["left", "right"]);
+    expect(rows[0]?.querySelector("ul")?.getAttribute("aria-label")).toBe("frameworksLabel");
+    expect(rows[1]?.querySelector("ul")?.getAttribute("aria-label")).toBe("formatsLabel");
+  });
+
+  it("counts a click on any item as a marquee call to action naming its row", async () => {
+    for (const row of ["frameworks", "formats"]) {
+      for (const item of await visibleTrack(`${row}Label`)) {
+        expect(item.dataset.umamiEvent).toBe("click-cta");
+        expect(item.dataset.umamiEventLocation).toBe("marquee");
+        expect(item.dataset.umamiEventTarget).toBe(row);
+      }
+    }
+  });
+
+  it("names the band after both rows, frameworks and formats", async () => {
     const markup = renderToStaticMarkup(await Marquee());
     const doc = new DOMParser().parseFromString(markup, "text/html");
     expect(doc.querySelector("section")?.getAttribute("aria-label")).toBe("label");
-    expect(message("landing.marquee.label")).toBe("Supported formats and providers");
+    expect(message("landing.marquee.label")).toBe("Supported frameworks and formats");
+    expect(message("landing.marquee.providers")).toBeUndefined();
   });
 
-  it("hides the duplicate track that keeps the loop seamless from assistive technology", async () => {
+  it("hides the duplicate track that keeps the loop seamless from assistive technology and the tab order", async () => {
     const markup = renderToStaticMarkup(await Marquee());
     const doc = new DOMParser().parseFromString(markup, "text/html");
     expect(doc.querySelectorAll('ul[aria-hidden="true"]')).toHaveLength(2);
     expect(doc.querySelectorAll("ul[aria-label]")).toHaveLength(2);
+    const hiddenLinks = Array.from(doc.querySelectorAll("ul[aria-hidden] a"));
+    expect(hiddenLinks.length).toBeGreaterThan(0);
+    for (const link of hiddenLinks) expect(link.getAttribute("tabindex")).toBe("-1");
+  });
+
+  it("stops the scroll and drops the edge mask while a link has keyboard focus", () => {
+    const css = readFileSync(join(import.meta.dirname, "../../app/global.css"), "utf8");
+    expect(css).toMatch(
+      /\.vk-marquee:has\(:focus-visible\) \{[^}]*mask-image: none;[^}]*\}\s*\.vk-marquee:has\(:focus-visible\) \.vk-track \{\s*animation: none;/,
+    );
   });
 });
