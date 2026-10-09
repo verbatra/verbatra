@@ -68,7 +68,6 @@
           "body": "verbatra check termina con {code} mientras falte una clave o esté desactualizada, así que la CI bloquea el merge."
         }
       },
-      "eyebrow": "Cómo funciona",
       "lead": "Traduce lo que ha cambiado y deja que verbatra check haga fallar la build mientras falte una clave."
     },
     "formats": {
@@ -235,8 +234,7 @@
             }
           }
         }
-      },
-      "eyebrow": "Control"
+      }
     },
     "loop": {
       "heading": "Donde tu equipo ya trabaja.",
@@ -273,8 +271,7 @@
         "key": "clave",
         "source": "origen",
         "target": "destino"
-      },
-      "eyebrow": "Día a día"
+      }
     },
     "marquee": {
       "formatTip": "format: \"{id}\"",
@@ -340,8 +337,7 @@
         },
         "filesLabel": "Archivos",
         "retry": "Reintentar"
-      },
-      "eyebrow": "Pruébalo"
+      }
     }
   },
   "legal": {

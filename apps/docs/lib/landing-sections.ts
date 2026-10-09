@@ -15,11 +15,3 @@ export type LandingSectionId = (typeof LANDING_SECTIONS)[number];
 export const HOW_STEP_KEYS = ["setup", "translate", "check"] as const;
 
 export type HowStepKey = (typeof HOW_STEP_KEYS)[number];
-
-export const NUMBERED_SECTIONS = ["showcase", "how", "control", "loop"] as const;
-
-export type NumberedSectionId = (typeof NUMBERED_SECTIONS)[number];
-
-export function sectionNumber(id: NumberedSectionId): string {
-  return String(NUMBERED_SECTIONS.indexOf(id) + 1).padStart(2, "0");
-}

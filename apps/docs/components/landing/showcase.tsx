@@ -1,6 +1,5 @@
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
-import { sectionNumber } from "@/lib/landing-sections";
 import { showcaseRows, showcaseSeed } from "@/lib/showcase-scenarios";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
@@ -13,13 +12,7 @@ export async function Showcase(): Promise<ReactNode> {
 
   return (
     <Section width="wide" rhythm="sm" id="showcase" className="vk-showcase-section">
-      <SectionHead
-        id={SHOWCASE_HEADING_ID}
-        title={t("heading")}
-        lead={t("lead")}
-        step={{ number: sectionNumber("showcase"), label: t("eyebrow") }}
-        reveal
-      />
+      <SectionHead id={SHOWCASE_HEADING_ID} title={t("heading")} lead={t("lead")} reveal />
       <div data-reveal="2" className="vk-showcase not-prose">
         <TryIt seed={showcaseSeed()} rows={showcaseRows()} />
       </div>

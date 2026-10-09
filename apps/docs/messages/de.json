@@ -68,7 +68,6 @@
           "body": "verbatra check endet mit {code}, solange ein Key fehlt oder veraltet ist, also blockiert die CI den Merge."
         }
       },
-      "eyebrow": "So funktioniert es",
       "lead": "Übersetze, was sich geändert hat, und lass verbatra check den Build scheitern, solange ein Key noch fehlt."
     },
     "formats": {
@@ -235,8 +234,7 @@
             }
           }
         }
-      },
-      "eyebrow": "Kontrolle"
+      }
     },
     "loop": {
       "heading": "Dort, wo dein Team schon arbeitet.",
@@ -273,8 +271,7 @@
         "key": "Key",
         "source": "Quelle",
         "target": "Ziel"
-      },
-      "eyebrow": "Im Alltag"
+      }
     },
     "marquee": {
       "formatTip": "format: \"{id}\"",
@@ -340,8 +337,7 @@
         },
         "filesLabel": "Dateien",
         "retry": "Erneut versuchen"
-      },
-      "eyebrow": "Ausprobieren"
+      }
     }
   },
   "legal": {

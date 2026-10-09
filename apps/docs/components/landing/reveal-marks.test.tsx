@@ -5,7 +5,6 @@ import { join } from "node:path";
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { NUMBERED_SECTIONS, sectionNumber } from "@/lib/landing-sections";
 
 vi.mock("next-intl/server", () => ({
   getTranslations: async (namespace?: string) =>
@@ -26,27 +25,36 @@ const { Control } = await import("./control");
 const { Loop } = await import("./loop");
 const { FinalCta } = await import("./final-cta");
 const { Marquee } = await import("./marquee");
+const { Formats } = await import("./formats");
 
 async function render(section: () => Promise<ReactNode>): Promise<Document> {
   const markup = renderToStaticMarkup(await section());
   return new DOMParser().parseFromString(markup, "text/html");
 }
 
-const REVEALED = { showcase: Showcase, how: Proof, control: Control, loop: Loop } as const;
+const REVEALED = {
+  showcase: Showcase,
+  how: Proof,
+  formats: Formats,
+  control: Control,
+  loop: Loop,
+} as const;
+
+const REVEALED_SECTIONS = Object.keys(REVEALED) as ReadonlyArray<keyof typeof REVEALED>;
 
 function revealIndex(element: Element | null | undefined): string | null {
   return element?.closest("[data-reveal]")?.getAttribute("data-reveal") ?? null;
 }
 
 describe("landing reveal marks", () => {
-  it.each(NUMBERED_SECTIONS)(
-    "%s reveals its heading first, under a numbered eyebrow",
+  it.each(REVEALED_SECTIONS)(
+    "%s reveals its heading first, with no eyebrow above it",
     async (id) => {
       const doc = await render(REVEALED[id]);
       const heading = doc.querySelector("h2");
       expect(revealIndex(heading)).toBe("0");
-      const eyebrow = heading?.parentElement?.querySelector(".vk-eyebrow");
-      expect(eyebrow?.textContent).toBe(`${sectionNumber(id)}landing.${id}.eyebrow`);
+      expect(heading?.previousElementSibling).toBeNull();
+      expect(doc.querySelector(".vk-eyebrow")).toBeNull();
       const indexes = [...doc.querySelectorAll("[data-reveal]")].map((node) =>
         Number(node.getAttribute("data-reveal")),
       );
@@ -55,8 +63,28 @@ describe("landing reveal marks", () => {
     },
   );
 
-  it("numbers the four story sections 01 to 04 in page order", () => {
-    expect(NUMBERED_SECTIONS.map(sectionNumber)).toEqual(["01", "02", "03", "04"]);
+  it("ships no numbered eyebrow style, section index or eyebrow message", () => {
+    const css = readFileSync(join(process.cwd(), "app/global.css"), "utf8");
+    expect(css).not.toContain(".vk-eyebrow");
+    const sections = readFileSync(join(process.cwd(), "lib/landing-sections.ts"), "utf8");
+    expect(sections).not.toMatch(/NUMBERED_SECTIONS|sectionNumber/);
+    for (const locale of ["en", "de", "es", "fr"]) {
+      const messages = JSON.parse(
+        readFileSync(join(process.cwd(), `messages/${locale}.json`), "utf8"),
+      ) as { landing: Record<string, Record<string, unknown>> };
+      for (const id of REVEALED_SECTIONS)
+        expect(messages.landing[id]).not.toHaveProperty("eyebrow");
+    }
+  });
+
+  it.each([
+    ["showcase", ".vk-showcase"],
+    ["formats", ".vk-formats"],
+  ] as const)("reveals the %s demo as one block and nothing inside it", async (id, selector) => {
+    const doc = await render(REVEALED[id]);
+    const demo = doc.querySelector(selector);
+    expect(demo?.getAttribute("data-reveal")).toBe("2");
+    expect(demo?.querySelector("[data-reveal]")).toBeNull();
   });
 
   it("reveals the final call to action heading before its buttons", async () => {

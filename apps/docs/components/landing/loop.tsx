@@ -4,7 +4,6 @@ import { StudioScreenshot } from "@/components/studio-screenshot";
 import { TrackedAnchor, TrackedLink } from "@/components/ui/tracked-link";
 import { type Locale, localizedAnchorPath, localizedPath } from "@/lib/i18n";
 import { SDK_INSTALL_COMMAND, SDK_PACKAGE, SKILLS_INSTALL_COMMAND } from "@/lib/install-commands";
-import { sectionNumber } from "@/lib/landing-sections";
 import { cn } from "@/lib/utils";
 import { CommandBox } from "./command-box";
 import { SKILLS_PACK_ANCHORS, SKILLS_PACK_PAGE, SKILLS_REPO_URL } from "./links";
@@ -94,12 +93,7 @@ export async function Loop(): Promise<ReactNode> {
 
   return (
     <Section width="wide" rhythm="lg" id="loop">
-      <SectionHead
-        id="loop-heading"
-        title={t("heading")}
-        step={{ number: sectionNumber("loop"), label: t("eyebrow") }}
-        reveal
-      />
+      <SectionHead id="loop-heading" title={t("heading")} reveal />
       <div className="mt-[52px] grid gap-[72px]">
         <Row
           id="studio"

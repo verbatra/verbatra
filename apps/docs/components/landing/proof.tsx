@@ -10,7 +10,6 @@ import {
   HOW_TITLE,
   howStepCopy,
 } from "@/lib/how-steps";
-import { sectionNumber } from "@/lib/landing-sections";
 import { HowReplay } from "./how-replay";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
@@ -22,12 +21,7 @@ export async function Proof(): Promise<ReactNode> {
 
   return (
     <Section width="wide" rhythm="md" id="how">
-      <SectionHead
-        title={tHow("heading")}
-        lead={tHow("lead")}
-        step={{ number: sectionNumber("how"), label: tHow("eyebrow") }}
-        reveal
-      />
+      <SectionHead title={tHow("heading")} lead={tHow("lead")} reveal />
       <HowReplay
         terminal={{
           commands: HOW_COMMANDS,

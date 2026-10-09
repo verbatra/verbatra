@@ -1,15 +1,12 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-export type SectionStep = { number: string; label: string };
-
 export function SectionHead({
   title,
   lead,
   align = "left",
   maxWidth = "640px",
   id,
-  step,
   reveal = false,
 }: {
   title: ReactNode;
@@ -17,7 +14,6 @@ export function SectionHead({
   align?: "left" | "center";
   maxWidth?: string;
   id?: string;
-  step?: SectionStep;
   reveal?: boolean;
 }): ReactNode {
   const centered = align === "center";
@@ -32,12 +28,6 @@ export function SectionHead({
       style={centered ? { maxWidth } : undefined}
     >
       <div data-reveal={reveal ? "0" : undefined}>
-        {step ? (
-          <p className="vk-eyebrow">
-            <span className="vk-eyebrow-index">{step.number}</span>
-            <span>{step.label}</span>
-          </p>
-        ) : null}
         <h2 id={id} className={cn("vk-h2", centered ? "mx-auto max-w-[18ch]" : "max-w-[15ch]")}>
           {title}
         </h2>

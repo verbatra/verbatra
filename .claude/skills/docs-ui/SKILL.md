@@ -433,20 +433,21 @@ parallax, no scroll-scrubbing, no scroll listener and no animation library.
   a block that has not revealed yet shows it at once (`:focus-within`, no transition). The
   delay is `n * --reveal-stagger`, capped at `--reveal-delay-max` through `--reveal-index`. The
   order inside a section is heading, then body, then demo: `SectionHead` with `reveal` marks its
-  heading block `0` and its lead `1`; the showcase playground, the How terminal and Control's
-  columns follow; each Loop row reveals as one unit, so its text never trails its picture; the
+  heading block `0` and its lead `1`; the showcase playground, the How terminal, the formats
+  switcher and Control's columns follow; each Loop row reveals as one unit, so its text never trails its picture; the
   final call to action reveals its heading, then its buttons. Sections
   stay server components: the marks are plain attributes. Elements keep their box while
   hidden, so a reveal never moves layout. `components/landing/reveal-marks.test.tsx` pins the
-  marks and `motion-root.test.tsx` pins the observer and the stylesheet guards.
+  marks (every section head and its first block; never the hero, and never anything inside the
+  showcase or formats demo) and `motion-root.test.tsx` pins the observer and the stylesheet
+  guards.
 - **Hero.** The hero is never revealed and the `h1` never moves (it is the largest paint). On
   load, only the command panel rises `--rise-distance` once (`vk-rise`, `--duration-reveal`),
   under `no-preference` only; the ledger, the facts row and the blueprint grid are static.
-- **Numbered eyebrows.** The four story sections after the marquee (`NUMBERED_SECTIONS` in
-  `lib/landing-sections.ts`: showcase, how, control, loop) open with `.vk-eyebrow`: a two-digit
-  mono index in `--accent` (`sectionNumber`) beside a translated sentence-case word
-  (`landing.<section>.eyebrow`), passed to `SectionHead` as `step`. The numbers state the
-  order of the story; do not add one to a section outside that list.
+- **No section eyebrows.** A landing section opens with its `h2`; nothing sits above it, no
+  index and no label word. The landing's sections are not a sequence, so numbering them would
+  state an order that is not there; the only numbers on the page are the How steps, which are
+  one. `reveal-marks.test.tsx` fails on a `.vk-eyebrow` or an element above a section heading.
 - **How steps.** `HowReplay` (`components/landing/how-replay.tsx`, the How section's client
   island) renders the terminal and the three steps, each opened by an `aria-hidden` two-digit
   `.vk-how-step-index` in mono `--accent` above its title (the `ol` carries the order for
@@ -604,11 +605,10 @@ comes from:
   by hand, on touch too, until a pointer goes down outside it or Escape is pressed. On the docs home it sits in `.vk-agent-tip`, a
   `.vk-home-callout` (`.vk-home-callout-icon`, `.vk-home-callout-body`, `.vk-home-callout-title`)
   whose `.vk-agent-tip-action` wraps under the text, with the preview spanning it, while the tip
-  is under 36rem. Neither uses a
-  gradient headline: `--gradient-headline` is only for the footer's watermark. On the docs surface only the docs home header carries
-  an eyebrow (a `.vk-label`). On the landing, the four story sections carry the numbered
-  `.vk-eyebrow` described under "Landing motion". No card or button on the docs home appends an
-  arrow to its label: the hover border, or on a stack card the chevron, is the affordance.
+  is under 36rem. Neither uses a gradient headline: `--gradient-headline` is only for the
+  footer's watermark. On the docs surface only the docs home header carries an eyebrow (a
+  `.vk-label`); no landing section does. No card or button on the docs home appends an arrow to
+  its label: the hover border, or on a stack card the chevron, is the affordance.
 - **`.vk-label`**: the small mono, uppercase, `0.14em`-tracked, `--text-faint` label the
   landing footer uses for its column titles. The sidebar's top-level folders and separators
   inside each tab (group triggers such as "CLI", the `For AI agents` separator), the TOC's "On

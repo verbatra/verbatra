@@ -68,7 +68,6 @@
           "body": "verbatra check se termine avec {code} tant qu'une clé manque ou est obsolète, donc la CI bloque le merge."
         }
       },
-      "eyebrow": "Comment ça marche",
       "lead": "Traduis ce qui a changé, puis laisse verbatra check faire échouer le build tant qu'une clé manque."
     },
     "formats": {
@@ -235,8 +234,7 @@
             }
           }
         }
-      },
-      "eyebrow": "Contrôle"
+      }
     },
     "loop": {
       "heading": "Là où ton équipe travaille déjà.",
@@ -273,8 +271,7 @@
         "key": "clé",
         "source": "source",
         "target": "cible"
-      },
-      "eyebrow": "Au quotidien"
+      }
     },
     "marquee": {
       "formatTip": "format: \"{id}\"",
@@ -340,8 +337,7 @@
         },
         "filesLabel": "Fichiers",
         "retry": "Réessayer"
-      },
-      "eyebrow": "Essaie-le"
+      }
     }
   },
   "legal": {
