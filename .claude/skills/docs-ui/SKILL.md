@@ -480,6 +480,16 @@ parallax, no scroll-scrubbing, no scroll listener and no animation library.
   4px fade (`vk-header-cta-in`) into the free space of the `justify-end` group, so nothing beside it
   moves. It shows under 768px and from 1280px only, the widths where that space exists. A click
   counts `click-cta` with `location: header`.
+- **Version pill.** On the landing only (the same `landingLocale` gate), `HomeSiteHeader` passes
+  `VersionPill` (`components/version-pill.tsx`) as the frame's `badge`, rendered right after the
+  wordmark and outside the primary nav, which stays Docs, Reference and GitHub. It reads
+  `v{PACKAGE_VERSION}` (`lib/site.ts`, from the cli version that `scripts/sync-version.mjs` writes
+  to `lib/version.generated.json`) in `--font-mono` at `--text-xs` inside a `--radius-full`
+  `--border-default` outline, and links the cli's GitHub release (`releaseUrl` in
+  `components/landing/links.ts`, the `@verbatra/cli@<version>` tag) in a new tab, counted
+  declaratively as `outbound-link` with `target: version` and `location: header`. Its accessible
+  name is `landing.nav.version.label`, which contains the visible text. `.vk-version-pill` is
+  `display: none` under 768px. `lib/layout.shared.test.tsx` pins it.
 - **Section nav.** `LandingNav` (`components/landing/landing-nav.tsx`, a server component that
   `page.tsx` renders right after the hero) is a `nav` named by `landing.nav.sections.label` holding
   one in-page link per `LANDING_NAV_SECTIONS` id (showcase, how, formats, control, loop, faq;

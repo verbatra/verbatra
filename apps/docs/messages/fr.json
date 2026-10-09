@@ -187,6 +187,9 @@
       "skipToContent": "Aller au contenu",
       "headerCta": {
         "label": "Démarrer"
+      },
+      "version": {
+        "label": "Notes de version {version}"
       }
     },
     "control": {

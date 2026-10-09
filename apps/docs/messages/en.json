@@ -273,6 +273,9 @@
       "headerCta": {
         "label": "Get started"
       },
+      "version": {
+        "label": "Release notes for {version}"
+      },
       "languageSwitcher": {
         "chooseLanguage": "Choose a language",
         "triggerAriaSuffix": "choose a language",

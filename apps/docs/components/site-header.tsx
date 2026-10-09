@@ -23,6 +23,7 @@ import { type ComponentProps, type ReactNode, useRef } from "react";
 import { HeaderCta } from "@/components/header-cta";
 import { useRootTabs } from "@/components/root-tabs";
 import { useDrawerEscape } from "@/components/use-drawer-escape";
+import { VersionPill } from "@/components/version-pill";
 import { headerActiveTab, isRootTabLinkActive } from "@/lib/root-tabs";
 import { trackUmamiEvent } from "@/lib/umami";
 import { cn } from "@/lib/utils";
@@ -174,6 +175,7 @@ export type SiteHeaderFrameProps = ComponentProps<"header"> & {
   mobileTrigger: ReactNode;
   trailing?: ReactNode;
   cta?: ReactNode;
+  badge?: ReactNode;
   activeOverride?: ActiveOverride;
 };
 
@@ -183,6 +185,7 @@ export function SiteHeaderFrame({
   mobileTrigger,
   trailing,
   cta,
+  badge,
   activeOverride,
   className,
   ...props
@@ -196,6 +199,7 @@ export function SiteHeaderFrame({
           {slots.navTitle ? (
             <slots.navTitle className="inline-flex items-center gap-2.5 font-semibold" />
           ) : null}
+          {badge}
         </div>
         {slots.searchTrigger ? (
           <slots.searchTrigger.full
@@ -301,6 +305,7 @@ export function HomeSiteHeader(props: ComponentProps<"header">): ReactNode {
         navItems={navItems}
         mobileTrigger={<HomeMobileTrigger />}
         cta={<HeaderCta />}
+        badge={<VersionPill />}
       />
       <SidebarDrawerOverlay className="fixed inset-0 z-40 backdrop-blur-xs data-[state=closed]:animate-fd-fade-out data-[state=open]:animate-fd-fade-in" />
       <SidebarDrawerContent className="fixed inset-e-0 inset-y-0 z-40 flex w-[85%] max-w-[380px] flex-col border-s bg-fd-background text-[0.9375rem] shadow-lg data-[state=closed]:animate-fd-sidebar-out data-[state=open]:animate-fd-sidebar-in">

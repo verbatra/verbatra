@@ -187,6 +187,9 @@
       "skipToContent": "Zum Inhalt springen",
       "headerCta": {
         "label": "Loslegen"
+      },
+      "version": {
+        "label": "Release Notes zu {version}"
       }
     },
     "control": {

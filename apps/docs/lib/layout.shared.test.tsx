@@ -53,6 +53,9 @@ vi.mock("fumadocs-ui/components/sidebar/base", () => {
 });
 
 const { baseOptions } = await import("./layout.shared");
+const { releaseUrl } = await import("@/components/landing/links");
+const { PACKAGE_VERSION } = await import("@/lib/site");
+const { docsStylesheetRules } = await import("@/lib/stylesheet-rules");
 const { HomeSiteHeader } = await import("@/components/site-header");
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -97,6 +100,56 @@ afterEach(() => {
   mounted = undefined;
 });
 
+describe("the landing header version pill", () => {
+  it("names the released cli version and links its GitHub release in a new tab", async () => {
+    const pill = (await renderHomeHeader()).querySelector<HTMLAnchorElement>(
+      "header a.vk-version-pill",
+    );
+    expect(pill?.textContent).toBe(`v${PACKAGE_VERSION}`);
+    expect(pill?.getAttribute("href")).toBe(releaseUrl(PACKAGE_VERSION));
+    expect(pill?.getAttribute("target")).toBe("_blank");
+    expect(pill?.getAttribute("rel")).toBe("noopener noreferrer");
+    expect(pill?.getAttribute("aria-label")).toBe("cta.label");
+  });
+
+  it("counts a click as an outbound link from the header", async () => {
+    const pill = (await renderHomeHeader()).querySelector("a.vk-version-pill");
+    expect(pill?.getAttribute("data-umami-event")).toBe("outbound-link");
+    expect(pill?.getAttribute("data-umami-event-target")).toBe("version");
+    expect(pill?.getAttribute("data-umami-event-location")).toBe("header");
+  });
+
+  it("sits right after the wordmark, in the title group", async () => {
+    const pill = (await renderHomeHeader()).querySelector("a.vk-version-pill");
+    expect(pill?.parentElement?.classList.contains("flex-1")).toBe(true);
+    expect(pill?.parentElement?.lastElementChild).toBe(pill);
+  });
+
+  it("shows on the landing in every locale and nowhere else", async () => {
+    location.pathname = "/de";
+    expect((await renderHomeHeader("de")).querySelector(".vk-version-pill")).not.toBeNull();
+    act(() => mounted?.root.unmount());
+    mounted?.container.remove();
+    mounted = undefined;
+    location.pathname = "/de/contact";
+    expect((await renderHomeHeader("de")).querySelector(".vk-version-pill")).toBeNull();
+  });
+
+  it("links the tag the release workflow creates for the cli", () => {
+    expect(releaseUrl("0.11.1")).toBe(
+      "https://github.com/verbatra/verbatra/releases/tag/%40verbatra%2Fcli%400.11.1",
+    );
+  });
+
+  it("shows only from 768px", () => {
+    const rules = docsStylesheetRules().filter((rule) => rule.selector === ".vk-version-pill");
+    expect(rules.map((rule) => [rule.media, rule.declarations.display])).toEqual([
+      ["", "none"],
+      ["@media (width >= 768px)", "inline-flex"],
+    ]);
+  });
+});
+
 describe("primary navigation", () => {
   it("holds Docs, Reference and the GitHub icon, nothing else", async () => {
     expect((await headerLinks()).map(describeItem)).toEqual([
@@ -119,7 +172,9 @@ describe("primary navigation", () => {
     const drawer = container.querySelector("[data-drawer]");
 
     expect(hrefs(header, "nav a")).toEqual(["/docs", "/docs/cli"]);
-    expect(hrefs(header, "a[aria-label]")).toEqual(["https://github.com/verbatra/verbatra"]);
+    expect(hrefs(header, "a[aria-label]:not(.vk-version-pill)")).toEqual([
+      "https://github.com/verbatra/verbatra",
+    ]);
     expect(
       Array.from(drawer?.querySelectorAll("a:not([aria-label])") ?? [], (a) => a.textContent),
     ).toEqual(["nav.docs", "nav.reference"]);
@@ -135,6 +190,14 @@ describe("primary navigation", () => {
 
     expect(hrefs(container.querySelector("header"), "nav a")).toEqual(["/de/docs", "/de/docs/cli"]);
     expect(hrefs(drawer, "a:not([aria-label])")).toEqual(["/de/docs", "/de/docs/cli"]);
+  });
+
+  it("keeps the version pill out of the primary nav and the drawer", async () => {
+    const container = await renderHomeHeader();
+    const pill = container.querySelector(".vk-version-pill");
+    expect(pill).not.toBeNull();
+    expect(pill?.closest("nav")).toBeNull();
+    expect(container.querySelector("[data-drawer] .vk-version-pill")).toBeNull();
   });
 
   it("marks the drawer item of the current page as active and current", async () => {
