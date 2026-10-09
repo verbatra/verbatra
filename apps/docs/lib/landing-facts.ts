@@ -52,4 +52,4 @@ export const HERO_NUMBERS: ReadonlyArray<HeroNumber> = [
   { key: "locales", value: TRANSLATED_LOCALE_COUNT },
 ];
 
-export const VERSION_LINE = `v${PACKAGE_VERSION} · MIT`;
+export const VERSION_LINE = `v${PACKAGE_VERSION}, MIT`;

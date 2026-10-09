@@ -51,6 +51,8 @@ config <- core <- format-adapters / ai-providers <- sdk (+ exchange, extract) <-
   arrow.
 - `@verbatra/config` (`packages/config/package.json`) has no workspace dependencies; every other
   package takes it as a `devDependency` for shared tsconfig, biome, tsup, and vitest presets.
+- `apps/docs` takes `@verbatra/core` as a `devDependency` only for the browser island
+  `apps/docs/lib/showcase-scenarios.ts`, because the sdk is not browser-safe.
 
 Never import against the arrow. Never create a cycle. `packages/sdk/src/config/provider-config.ts`
 and `packages/format-adapters/src/default-registry.ts` are the two files where the upward

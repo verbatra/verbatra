@@ -73,6 +73,7 @@ describe("landing facts", () => {
   });
 
   it("states the version and license as one plain line, with no release label", () => {
-    expect(VERSION_LINE).toBe(`v${PACKAGE_VERSION} · MIT`);
+    expect(VERSION_LINE).toBe(`v${PACKAGE_VERSION}, MIT`);
+    expect(VERSION_LINE).not.toContain("\u00b7");
   });
 });

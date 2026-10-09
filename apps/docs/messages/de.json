@@ -12,15 +12,6 @@
       "headline": "Übersetze nur, was sich ändert.",
       "lead": "Die eingecheckte Lock-Datei entscheidet, welche Keys sich geändert haben, und jede Übersetzung wird auf intakte Platzhalter geprüft, bevor verbatra sie schreibt.",
       "ctaStart": "Loslegen",
-      "demo": {
-        "tablistLabel": "Demo",
-        "cli": "Terminal",
-        "studio": "Studio",
-        "studioAlt": "Die Translations-Seite in Verbatra Studio: ein Raster aus Keys gegen die Locales de, es und fr mit Badges für fehlend und synchron sowie eine Abdeckungstabelle pro Locale.",
-        "sessionLabel": "verbatra check meldet in jeder der drei Locales einen fehlenden und einen veralteten Key, verbatra translate schickt pro Locale nur diese zwei Keys an den Provider, und ein zweiter check meldet alle Locales als synchron.",
-        "caption": "Ausgabe der echten CLI in einem Projekt mit acht Keys. Nichts auf dieser Seite ruft einen Provider auf.",
-        "captionStudio": "Verbatra Studio, das lokale Dashboard: Abdeckung pro Locale und jeder Key, der noch Arbeit braucht."
-      },
       "dogfood": "Die Oberflächentexte dieser Seite auf Deutsch, Spanisch und Französisch kommen von verbatra.",
       "dogfoodLink": "Sieh dir die Message-Dateien an",
       "command": {
@@ -52,19 +43,6 @@
       "promptPreviewLabel": "Kopiert diesen Prompt für deinen Agenten",
       "promptCopyFailed": "Der Prompt konnte nicht kopiert werden. Wähle ihn in der Vorschau aus und kopiere ihn manuell.",
       "copyFailed": "Kopieren fehlgeschlagen"
-    },
-    "gate": {
-      "rows": {
-        "key": "Key",
-        "candidate": "Kandidat",
-        "missing": "fehlt",
-        "reason": "Grund",
-        "kept": "behalten"
-      },
-      "annotations": {
-        "new": "neu",
-        "kept": "behalten"
-      }
     },
     "how": {
       "heading": "Jeder Lauf wird geprüft, bevor etwas geschrieben wird.",
@@ -186,20 +164,6 @@
       },
       "skipToContent": "Zum Inhalt springen"
     },
-    "proof": {
-      "lock": {
-        "body": "Ein Hash pro Key und Locale, committet neben deinen Dateien.",
-        "title": "Die Lock-Datei"
-      },
-      "refused": {
-        "body": "Zurückgehalten, nie geschrieben, beim nächsten Lauf erneut gesendet.",
-        "title": "Abgelehnt, bevor es die Datei erreicht"
-      },
-      "written": {
-        "body": "de.json nach dem Lauf.",
-        "title": "Geschrieben, und nur das"
-      }
-    },
     "control": {
       "heading": "Du entscheidest, was live geht.",
       "lead": "Menschen haben das letzte Wort, jede Sprache bekommt ihre eigenen Regeln, und Strings gehen nur dorthin, wo du es erlaubst.",
@@ -301,6 +265,65 @@
         "googleTranslate": "maschinelle Übersetzung",
         "openaiCompatible": "Ollama, vLLM, LM Studio",
         "libretranslate": "selbst gehostet, ohne LLM"
+      }
+    },
+    "showcase": {
+      "heading": "Sieh es in Aktion",
+      "lead": "Probier eine Änderung an einer Locale-Datei: verbatras eigener Diff- und Hash-Code zeigt in deinem Browser, was ein Lauf senden, überspringen und sperren würde, und übersetzt nichts. In Studio prüfst du das Ergebnis.",
+      "tablist": "Demo",
+      "tabs": {
+        "tryIt": "Ausprobieren",
+        "studio": "Studio"
+      },
+      "tryIt": {
+        "scenariosLabel": "Ändere die englische Datei",
+        "scenarios": {
+          "edit": "Wert ändern",
+          "add": "Key hinzufügen",
+          "remove": "Key entfernen",
+          "break": "Platzhalter kaputt machen"
+        },
+        "reset": "Zurücksetzen",
+        "marks": {
+          "edited": "geändert",
+          "added": "hinzugefügt",
+          "removed": "entfernt",
+          "missing": "fehlt",
+          "stale": "veraltet",
+          "orphaned": "verwaist",
+          "changes": "ändert sich",
+          "new": "neu",
+          "kept": "bleibt",
+          "refused": "abgelehnt"
+        },
+        "result": {
+          "seed": "Alles ist synchron: verbatra würde 0 Keys übersetzen.",
+          "headline": "verbatra würde {count, plural, one {# Key} other {# Keys}} übersetzen.",
+          "rows": {
+            "send": "Würde senden",
+            "skip": "Überspringt",
+            "lock": "Lock-Datei",
+            "gate": "Platzhalter"
+          },
+          "nothing": "nichts",
+          "missingKey": "{key} (fehlt)",
+          "staleKey": "{key} (veraltet)",
+          "unchanged": "{count, plural, one {# unveränderten Key} other {# unveränderte Keys}}",
+          "orphanedKey": "{key} bleibt in de.json bis --prune",
+          "lockNone": "keine Hash-Änderung",
+          "lockChanges": "{count, plural, one {# Hash würde sich ändern} other {# Hashes würden sich ändern}}: {keys}",
+          "gateIdle": "nichts zu prüfen",
+          "gatePass": "alle Platzhalter intakt",
+          "gateRefused": "„{candidate}“ würde abgelehnt ({details}); der deutsche Wert bleibt",
+          "failed": "Der Vergleichscode wurde nicht geladen. Prüfe deine Verbindung und versuch es erneut."
+        },
+        "filesLabel": "Dateien",
+        "retry": "Erneut versuchen"
+      },
+      "studio": {
+        "alt": "Die Translations-Seite in Verbatra Studio: ein Raster aus Keys gegen die Locales de, es und fr mit Badges für fehlend und synchron sowie eine Abdeckungstabelle pro Locale.",
+        "caption": "Verbatra Studio, das lokale Dashboard: Abdeckung pro Locale und jeder Key, der noch Arbeit braucht.",
+        "link": "Übersetzungen in Studio prüfen"
       }
     }
   },

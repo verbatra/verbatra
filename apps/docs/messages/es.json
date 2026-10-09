@@ -12,15 +12,6 @@
       "headline": "Traduce solo lo que cambió.",
       "lead": "El archivo de bloqueo versionado en el repositorio decide qué claves cambiaron, y verbatra comprueba que cada traducción conserve sus marcadores antes de escribirla.",
       "ctaStart": "Guía de inicio",
-      "demo": {
-        "tablistLabel": "Demo",
-        "cli": "Terminal",
-        "studio": "Studio",
-        "studioAlt": "La página Translations de Verbatra Studio: una cuadrícula de claves frente a los locales de, es y fr con insignias de falta y sincronizado, y una tabla de cobertura por locale.",
-        "sessionLabel": "verbatra check informa de una clave que falta y una desactualizada en cada uno de los tres locales, verbatra translate envía al proveedor solo esas dos claves por locale, y un segundo check informa de que todos los locales están sincronizados.",
-        "caption": "Salida de la CLI real en un proyecto de ocho claves. Nada en esta página llama a un proveedor.",
-        "captionStudio": "Verbatra Studio, el panel local: cobertura por locale y cada clave que aún necesita trabajo."
-      },
       "dogfood": "Los textos de la interfaz de este sitio en alemán, español y francés vienen de verbatra.",
       "dogfoodLink": "Mira los archivos de mensajes",
       "command": {
@@ -52,19 +43,6 @@
       "promptPreviewLabel": "Copia este prompt para tu agente",
       "promptCopyFailed": "No se pudo copiar la instrucción. Selecciónala en la vista previa y cópiala a mano.",
       "copyFailed": "Copia fallida"
-    },
-    "gate": {
-      "rows": {
-        "key": "clave",
-        "candidate": "candidata",
-        "missing": "falta",
-        "reason": "motivo",
-        "kept": "conservada"
-      },
-      "annotations": {
-        "new": "nueva",
-        "kept": "conservada"
-      }
     },
     "how": {
       "heading": "Cada ejecución se comprueba antes de escribir nada.",
@@ -186,20 +164,6 @@
       },
       "skipToContent": "Saltar al contenido"
     },
-    "proof": {
-      "lock": {
-        "body": "Un hash por clave y locale, confirmado junto a tus archivos.",
-        "title": "El archivo de bloqueo"
-      },
-      "refused": {
-        "body": "Retenido, nunca escrito, enviado de nuevo en la siguiente ejecución.",
-        "title": "Rechazado antes de llegar al archivo"
-      },
-      "written": {
-        "body": "de.json después de la ejecución.",
-        "title": "Escrito, y solo eso"
-      }
-    },
     "control": {
       "heading": "Tú decides qué se publica.",
       "lead": "Las personas tienen la última palabra, cada idioma recibe sus propias reglas y las cadenas solo van a donde tú permites.",
@@ -301,6 +265,65 @@
         "googleTranslate": "traducción automática",
         "openaiCompatible": "Ollama, vLLM, LM Studio",
         "libretranslate": "autoalojado, sin LLM"
+      }
+    },
+    "showcase": {
+      "heading": "Míralo en acción",
+      "lead": "Prueba un cambio en un archivo de locale: el código de diff y hash de verbatra muestra en tu navegador qué enviaría, omitiría y bloquearía una ejecución, y no traduce nada. En Studio revisas el resultado.",
+      "tablist": "Demostración",
+      "tabs": {
+        "tryIt": "Pruébalo",
+        "studio": "Studio"
+      },
+      "tryIt": {
+        "scenariosLabel": "Cambia el archivo en inglés",
+        "scenarios": {
+          "edit": "Editar un valor",
+          "add": "Añadir una clave",
+          "remove": "Quitar una clave",
+          "break": "Romper un placeholder"
+        },
+        "reset": "Restablecer",
+        "marks": {
+          "edited": "editada",
+          "added": "añadida",
+          "removed": "quitada",
+          "missing": "falta",
+          "stale": "obsoleta",
+          "orphaned": "huérfana",
+          "changes": "cambia",
+          "new": "nueva",
+          "kept": "se mantiene",
+          "refused": "rechazada"
+        },
+        "result": {
+          "seed": "Todo está sincronizado: verbatra traduciría 0 claves.",
+          "rows": {
+            "send": "Enviaría",
+            "skip": "Omite",
+            "lock": "Archivo lock",
+            "gate": "Placeholders"
+          },
+          "nothing": "nada",
+          "missingKey": "{key} (falta)",
+          "staleKey": "{key} (obsoleta)",
+          "orphanedKey": "{key} sigue en de.json hasta --prune",
+          "lockNone": "ningún hash cambia",
+          "gateIdle": "nada que comprobar",
+          "gatePass": "todos los placeholders intactos",
+          "gateRefused": "\"{candidate}\" se rechazaría ({details}); el valor en alemán se mantiene",
+          "headline": "verbatra traduciría {count, plural, one {# clave} many {# de claves} other {# claves}}.",
+          "unchanged": "{count, plural, one {# clave sin cambios} many {# de claves sin cambios} other {# claves sin cambios}}",
+          "lockChanges": "{count, plural, one {cambiaría # hash} many {cambiarían # de hashes} other {cambiarían # hashes}}: {keys}",
+          "failed": "El código de comparación no se cargó. Revisa tu conexión y vuelve a intentarlo."
+        },
+        "filesLabel": "Archivos",
+        "retry": "Reintentar"
+      },
+      "studio": {
+        "alt": "La página Translations de Verbatra Studio: una cuadrícula de claves frente a los locales de, es y fr con insignias de falta y sincronizado, y una tabla de cobertura por locale.",
+        "caption": "Verbatra Studio, el panel local: cobertura por locale y cada clave que aún necesita trabajo.",
+        "link": "Revisa traducciones en Studio"
       }
     }
   },

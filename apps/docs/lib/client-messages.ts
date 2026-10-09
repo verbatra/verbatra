@@ -6,6 +6,7 @@ export const CLIENT_MESSAGE_NAMESPACES = [
   "landing.faq",
   "landing.install",
   "landing.nav.languageSwitcher",
+  "landing.showcase",
   "legal.contact.form",
 ] as const;
 

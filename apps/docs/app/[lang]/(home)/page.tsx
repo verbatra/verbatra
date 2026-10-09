@@ -8,9 +8,10 @@ import { FinalCta } from "@/components/landing/final-cta";
 import { Loop } from "@/components/landing/loop";
 import { Marquee } from "@/components/landing/marquee";
 import { Proof } from "@/components/landing/proof";
+import { Showcase } from "@/components/landing/showcase";
 import { LandingHero } from "@/components/landing-hero";
 import { toLocale } from "@/lib/i18n";
-import { LANDING_SECTIONS, type LandingSectionId } from "@/lib/landing-sections";
+import { HOW_STEP_KEYS, LANDING_SECTIONS, type LandingSectionId } from "@/lib/landing-sections";
 import { homeAlternates, MCP_VERSION, PACKAGE_VERSION, STUDIO_VERSION } from "@/lib/site";
 import { homeOgImagePath, socialMetadata } from "@/lib/social-metadata";
 import {
@@ -20,8 +21,6 @@ import {
   howToLd,
   softwareApplicationLd,
 } from "@/lib/structured-data";
-
-const HOW_STEP_KEYS = ["configure", "diff", "translate", "verifyWrite"] as const;
 
 export default async function HomePage(props: { params: Promise<{ lang: string }> }) {
   const { lang } = await props.params;
@@ -40,6 +39,7 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
 
   const sections: Readonly<Record<LandingSectionId, ReactNode>> = {
     hero: <LandingHero />,
+    showcase: <Showcase />,
     how: <Proof />,
     control: <Control />,
     marquee: <Marquee />,

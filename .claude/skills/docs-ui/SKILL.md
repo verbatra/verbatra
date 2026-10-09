@@ -97,13 +97,22 @@ Scales are fixed and narrow, deliberately:
   `--cta-height` (56px) is the minimum height of `.vk-prompt-trigger` on `PromptCopyButton`;
   `--width-prompt-pop` (30rem, capped by `100cqw` of its container, never by `100vw`, which counts
   the scrollbar) is the width of the `.vk-prompt-pop` preview. `--width-hero-gutter` (fluid, 1.75
-  to 3rem) is the hero's locale-code column, which the caption and the hero body indent by from
-  40rem (not below, so a phone keeps the full width), and `--width-hero-panel` (36rem) the
+  to 3rem) is the hero's locale-code column: under 48rem a code stacks above its line, and from
+  48rem the codes hang in the margin by that width, so the `h1`, caption and body start on the
+  same left edge as every section heading (the hero is a `.vk-w-wide` column like the sections),
+  and `--width-hero-panel` (36rem) the
   command panel's maximum width and, from 80rem, its own column.
 - Motion: `--ease-out` with `--duration-fast` and `--duration-base` for transitions. The hero's
   one load motion is `vk-locale-in`, a single opacity and transform reveal of the locale rows
-  (never the `h1`), declared only under `prefers-reduced-motion: no-preference`; the demo below
-  the hero keeps `.vk-rise`. Nothing on the landing loops.
+  (never the `h1`), declared only under `prefers-reduced-motion: no-preference`. Nothing else on
+  the landing animates on load, and nothing loops.
+- Showcase: `--showcase-line` (1.125rem, 1.25rem from 40rem) is the line height of a file pane in
+  the showcase playground, which reserves its longest scenario's row count with it (on a phone,
+  where one file shows at a time, the tallest file's, `--showcase-rows-max`, so a file switch
+  moves nothing), `--showcase-result-min` (18rem, 11rem from 40rem, 7.5rem from 64rem) is the
+  reserved height of its result area, sized for the longest scenario in the longest locale, so a
+  scenario never moves what sits below it, and `--showcase-bar-height` (3.125rem) is the height
+  of its tab bar, which from 64rem also holds the scenario buttons.
 
 ## Typography
 
@@ -142,13 +151,16 @@ footer's oversized watermark only; do not clip it onto a heading.
   `--text-danger`, "Copy failed", and drops its `aria-label` while it does, so the visible status
   is its accessible name; `CommandLine` renders `CopyButton` rather than its own button.
   `TabList` takes an `idPrefix` to wire `id` / `aria-controls` to `tabPanelId` panels and moves
-  selection and focus with the arrow keys (wrapping), Home and End.
+  selection and focus with the arrow keys (wrapping), Home and End; `tabPanelProps(prefix, id,
+  active)` gives a panel its `id`, `role`, `aria-labelledby`, `data-active` and `inert`. Its
+  `variant: "segmented"` is the `.vk-segmented` switch (tabs rounded by `--radius-segment`, 7px)
+  that the hero command panel and the showcase both use, never a hand-made copy.
   `Button` takes `variant: "primary" | "secondary" | "ghost"` and `size: "sm" | "md" | "lg"`.
   Extend the variant union rather than passing ad hoc `className` overrides.
 - **Landing:** `components/landing/` holds the landing sections (`proof.tsx`, `control.tsx`,
   `marquee.tsx`, `loop.tsx`, `faq.tsx`, `final-cta.tsx`, `footer.tsx`). Their order on the page
-  is `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, how, control, marquee, loop, faq,
-  final call to action), which the home page maps over and `lib/landing-sections.test.ts` pins;
+  is `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, showcase, how, control, marquee, loop,
+  faq, final call to action), which the home page maps over and `lib/landing-sections.test.ts` pins;
   add or move a section there, not by hand in `page.tsx`. Sections do not animate in. The
   marquee is two rows, the formats and the providers, built from `SUPPORTED_FORMAT_IDS` and
   `MACHINE_PROVIDER_IDS` in `lib/landing-facts.ts` (pinned to `SUPPORTED_FORMATS` and the sdk's
@@ -168,10 +180,37 @@ footer's oversized watermark only; do not clip it onto a heading.
   more to see; with `wrap` every line wraps through `.vk-wrap-line`, whose hanging indent is the
   line's own leading whitespace (`--wrap-lead`, set by `wrapLineStyle` in `wrap-text.tsx`) plus
   2ch, and whose placeholder tokens (`{count}`, `(-{count})`) never break, through `WrapTokens`.
-  The How section's terminal and panels use it so nothing clips at phone width; the hero demo's
-  terminal uses it too, as a stopgap until the demo is replaced),
-  `hero-demo.tsx` (the hero's Terminal /
-  Studio tabs), `evidence.tsx` (the mono evidence chip, which wraps inside a narrow column rather than growing past it; a linked chip
+  The How section is that one real CLI run (`lib/gate-demo.ts`) over the four steps the HowTo
+  structured data reads, with no panels: the showcase owns the written, refused and lock story),
+  `showcase.tsx` (the section under the hero: a server `SectionHead` over `ShowcaseTabs` in
+  `showcase-tabs.tsx`, a `.vk-showcase` panel whose segmented "Try it | Studio" `TabList`
+  counts each switch as `showcase-tab`; both panels share one grid cell of `.vk-showcase-body`,
+  the closed one `inert` and `visibility: hidden`, and the Studio panel sits absolutely over the
+  Try it panel's height, mounting `studio-translations-dark.webp` lazily on its first opening
+  with a caption that links `/docs/review-in-studio`), `try-it.tsx` (the Try it playground: a
+  scenario group of four `aria-pressed` buttons (edit, add, remove, break a placeholder), each
+  counted as `showcase-scenario` (from 64rem they sit in the tab bar's row, still inside the Try
+  it panel), the `en.json`, `de.json` and `verbatra.lock.json` panes (`.vk-showcase-file`: on a
+  phone one at a time, picked by the `aria-pressed` file names of `.vk-showcase-file-switch`;
+  two columns from 40rem with the lock below, three from 80rem; a marked
+  line is `.vk-showcase-line[data-mark]`, tinted like a highlighted code line, its mark word in
+  `--v-status-new` (added, missing, new) or `--v-status-changed` (edited, stale, changes); a
+  refused reply shows as a struck `data-mark="refused"` line in `--text-danger` above the German
+  value it leaves in place; the lock pane prints full 16-character hashes, and a mark that does
+  not fit drops to the next row), and a polite `role="status"` result (its four rows in two
+  columns from 64rem, placeholder tokens kept whole through `WrapTokens`) with its actions beside
+  it from 40rem and on their own row on a phone: Reset, hidden at the seed, and Try again, shown
+  with an announced failure message when the module fails to load (the cached promise is dropped,
+  so a retry loads again). Only the latest request applies: a Reset or a newer click while a load
+  is pending wins. The seed state is server-rendered from `showcaseSeed()`; the first hover,
+  focus or click `import()`s `lib/showcase-scenarios.ts`, the only client code that uses
+  `@verbatra/core` (`diffResources`, `contentHash`, `checkPlaceholders`), over the scenario data in
+  `lib/showcase-seed.ts` and the small nested-JSON flattener in `lib/showcase-flatten.ts`
+  (`@verbatra/format-adapters` is not browser-safe). `lib/showcase-flatten.test.ts` pins the
+  flattener to the real i18next adapter and `lib/showcase-scenarios.sdk.test.ts` pins every
+  scenario's sent, unchanged, orphaned and refused keys and lock hashes to a real sdk `translate`
+  with a stub provider. The copy says what verbatra would translate; it never claims the page
+  translates), `evidence.tsx` (the mono evidence chip, which wraps inside a narrow column rather than growing past it; a linked chip
   takes the flat-panel glow border on hover and focus through `.vk-evidence-link`),
   `command-box.tsx` (an `@container`: a command wraps once the box is under 30rem, at a space
   or after a `/` or `.` inside a word, since `HighlightedCommand` keeps every other part of a word
@@ -186,22 +225,20 @@ footer's oversized watermark only; do not clip it onto a heading.
   through `breakUrlsAtSlashes` in `lib/word-breaks.tsx`) and `PromptCopyButton` in the same file
   (the large "Start with a prompt" button with the `.vk-prompt-pop` preview, used only by the docs
   home agent tip), `command-panel.tsx` (the hero's one client island: a `.vk-command-panel` whose
-  `.vk-segmented` "Install | Prompt" `TabList` switches between the `CommandRow` for
+  segmented "Install | Prompt" `TabList` switches between the `CommandRow` for
   `NPM_INSTALL_COMMAND` (counted as `copy-install-command`) and the whole `AI_SETUP_PROMPT`; both
   panes are one `.vk-command-panel-pane` shape, a muted hint row with its `CopyButton` on the right,
   then the content at full width, top-aligned, and the prompt keeps each `npx` run and each long
-  flag with its value on one line (`keepPackageRunsWhole`); the closed pane is `inert`, hidden
-  under 40rem (a phone panel resizes on a switch) and from 40rem shares one grid cell of
-  `.vk-command-panel-body` with `visibility: hidden`, so the panel keeps the taller pane's height
-  and nothing below it moves, and a switch counts
+  flag with its value on one line (`keepPackageRunsWhole`); the closed pane is `inert` and hidden
+  at every width, so the install pane carries no empty height under its command and the panel
+  resizes on a switch, and a switch counts
   `hero-command-tab`), and an `fx/` folder
   (`grid-pattern.ts`). A new
   section composes `Section` plus `SectionHead`; it does not re-derive page padding or
   heading rhythm. Check `ls apps/docs/components/landing` before quoting a file name from
-  this list. Every CLI transcript on the landing (`lib/hero-demo.ts`, `lib/gate-demo.ts`) is
-  real CLI output, English on every locale, and its test pins each line to
-  `packages/cli/src/render.ts`, so a change to the CLI's output fails until the demo is
-  recaptured.
+  this list. The CLI transcript on the landing (`lib/gate-demo.ts`) is real CLI output, English
+  on every locale, and its test pins each line to `packages/cli/src/render.ts`, so a change to
+  the CLI's output fails until the demo is recaptured.
 - **Docs-facing:** `<StartHere />` (`components/start-here.tsx`) opens every page in
   `START_HERE_PAGES` (`lib/agent-entry.ts`, the agent guides only, not reference pages): a void
   `aside` at the prose measure with no start bar (so it never doubles the locale notice's
@@ -340,9 +377,10 @@ and change the header in one place.
 
 Both surfaces share one layout width: `--width-layout` (97rem, the notebook layout's own
 default) feeds `--fd-layout-width` from `:root` and again on the home container, so the
-header row, the docs grid, and the landing's hero and closing panels all sit in the same
-centred column on a wide monitor. A landing section that should not bleed edge to edge takes
-`mx-auto w-full max-w-(--width-layout)`; the marquee and the footer bleed on purpose.
+header row and the docs grid sit in the same centred column on a wide monitor. The landing's
+content (the hero, every section and the closing panel) shares one narrower column instead,
+`.vk-gutter` plus `.vk-w-wide`, so the hero `h1` and every section heading start at one left
+edge; the marquee and the footer bleed on purpose.
 
 ## The docs surface
 
@@ -355,8 +393,9 @@ comes from:
 
 - **Solid white display headlines.** `LandingHero` and the docs home header both set a solid
   `--text-strong` headline. `LandingHero` sits straight on the void page (no card, wash or
-  grain) and is left-aligned: `.vk-hero-lines` holds `.vk-hero-line` rows on a two-column grid
-  (`--width-hero-gutter`, then the text, baseline-aligned), the first the server-rendered `h1`
+  grain) and is left-aligned: `.vk-hero-lines` holds `.vk-hero-line` rows, each a locale code
+  over its text under 48rem and from 48rem a two-column grid (`--width-hero-gutter`, then the
+  text, baseline-aligned) pulled into the margin by the gutter, the first the server-rendered `h1`
   (`.vk-hero-title`) beside its page locale code (`.vk-hero-code-source`, `--accent`), then a
   `.vk-hero-locales` list of the same headline in two other locales (`heroLocaleRows` in
   `lib/hero-lines.ts`, read from `messages/*.json`, each `li` with its `lang`), dimmed to
@@ -365,7 +404,7 @@ comes from:
   `.vk-hero-body` stacks `.vk-hero-intro` (the sans `.vk-lead.vk-hero-lead` and the one "Get
   started" button), `.vk-hero-panel` (`CommandPanel`) and `.vk-hero-numbers-row` (at most three
   `HERO_NUMBERS` from `lib/landing-facts.ts` as `.vk-hero-number-value` numerals over a label,
-  and `VERSION_LINE` (`v<version> · MIT`) as `.vk-hero-release` small text, with no label); from
+  and `VERSION_LINE` (`v<version>, MIT`) as `.vk-hero-release` small text, with no label); from
   80rem the panel takes its own column beside the intro and the numbers. The home social image
   (`HomeOgFrame` in `lib/og-image.tsx`) repeats this look with `OG_PALETTE`, which mirrors these
   tokens, and the subset Space Grotesk and JetBrains Mono files in `assets/og-fonts/`

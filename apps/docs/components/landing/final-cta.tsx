@@ -3,21 +3,16 @@ import type { ReactNode } from "react";
 import Button from "@/components/ui/button";
 import { type Locale, localizedPath } from "@/lib/i18n";
 
-const CLOSE_BACKGROUND = [
-  "radial-gradient(ellipse 48% 90% at 100% 100%, color-mix(in srgb, var(--v-purple) 48%, transparent), transparent 70%)",
-  "var(--surface-bg)",
-].join(", ");
-
 const CLOSE_BORDER = "color-mix(in srgb, var(--v-glow) 16%, var(--border-default))";
 
 export async function FinalCta(): Promise<ReactNode> {
   const t = await getTranslations("landing.finalClose");
   const locale = (await getLocale()) as Locale;
   return (
-    <section className="vk-pad-top-sm mx-auto w-full max-w-(--width-layout) px-2 pb-3 md:px-3">
+    <section className="vk-pad-top-sm vk-gutter vk-w-wide mx-auto w-full pb-3">
       <div
         className="grid gap-8 rounded-xl border px-6 py-10 md:px-12 md:py-14 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center"
-        style={{ background: CLOSE_BACKGROUND, borderColor: CLOSE_BORDER }}
+        style={{ background: "var(--surface-bg)", borderColor: CLOSE_BORDER }}
       >
         <h2 className="vk-h2">{t("heading")}</h2>
         <div className="flex flex-wrap gap-3">

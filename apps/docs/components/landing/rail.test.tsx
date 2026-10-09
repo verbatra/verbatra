@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -77,5 +79,12 @@ describe("Rail", () => {
     const { link, scroll } = mountRail(false);
     act(() => link.focus());
     expect(scroll).not.toHaveBeenCalled();
+  });
+
+  it("sets no top margin on the rail, so the heading gap a section gives it survives", () => {
+    const css = readFileSync(join(process.cwd(), "app/global.css"), "utf8");
+    const rules = [...css.matchAll(/\.vk-rail \{([^}]*)\}/g)].map((match) => match[1] ?? "");
+    expect(rules.length).toBeGreaterThan(0);
+    for (const rule of rules) expect(rule).not.toMatch(/margin(-top|-block|):/);
   });
 });

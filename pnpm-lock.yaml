@@ -213,6 +213,9 @@ importers:
       '@verbatra/cli':
         specifier: workspace:*
         version: link:../../packages/cli
+      '@verbatra/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@verbatra/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk

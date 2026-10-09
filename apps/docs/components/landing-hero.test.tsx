@@ -15,7 +15,6 @@ vi.mock("next-intl/server", () => ({
   getTranslations: async () => (key: string) => key,
   getLocale: async () => page.locale,
 }));
-vi.mock("@/components/landing/hero-demo", () => ({ HeroDemo: () => <figure data-part="demo" /> }));
 
 const panelLabels: Array<Record<string, string>> = [];
 vi.mock("@/components/landing/command-panel", () => ({
@@ -104,12 +103,13 @@ describe("LandingHero: living headline", () => {
     expect(HERO_SOURCE).not.toMatch(/flag|connector/i);
   });
 
-  it("indents the caption and the body under the locale gutter only from 40rem", () => {
-    expect(rule(".vk-hero-caption")).not.toContain("padding-inline-start");
-    expect(rule(".vk-hero-body")).not.toContain("padding-inline-start");
+  it("shares the sections' left edge: codes stack above the text, then hang in the margin from 48rem", () => {
+    expect(HERO_SOURCE).toContain('className="vk-hero vk-w-wide mx-auto w-full"');
+    expect(rule(".vk-hero-line")).toContain("grid-template-columns: minmax(0, 1fr);");
     expect(FLAT_CSS).toContain(
-      ".vk-hero-caption, .vk-hero-body { padding-inline-start: var(--width-hero-gutter); }",
+      "@media (min-width: 48rem) { .vk-hero-line { grid-template-columns: var(--width-hero-gutter) minmax(0, 1fr); margin-inline-start: calc(-1 * var(--width-hero-gutter)); } }",
     );
+    expect(FLAT_CSS).not.toMatch(/\.vk-hero-(caption|body)[^{]*\{[^}]*padding-inline-start/);
   });
 
   it("splits the body into two columns only from 80rem, so the intro never narrows at 1024", () => {
@@ -234,7 +234,7 @@ describe("LandingHero: not the NestJS composition", () => {
     expect(rule(".vk-hero-release")).toContain("font-size: var(--text-xs);");
   });
 
-  it("orders the headline, rows, caption, lead, button, panel, numbers and the demo below", async () => {
+  it("orders the headline, rows, caption, lead, button, panel and numbers, with no demo inside the hero", async () => {
     const doc = await renderHero();
     const parts = [
       ...doc.querySelectorAll(
@@ -249,7 +249,6 @@ describe("LandingHero: not the NestJS composition", () => {
       "group",
       "command-panel",
       "vk-hero-numbers",
-      "demo",
     ]);
   });
 });
@@ -259,10 +258,11 @@ describe("LandingHero: largest contentful paint", () => {
     expect(HERO_SOURCE.startsWith('"use client"')).toBe(false);
     const doc = await renderHero();
     const h1 = doc.querySelector("h1");
-    expect(h1?.closest(".vk-rise, .vk-hero-locale")).toBeNull();
+    expect(h1?.closest(".vk-hero-locale")).toBeNull();
+    expect(GLOBAL_CSS).not.toContain(".vk-rise");
   });
 
-  it("keeps the hero itself server-rendered with the command panel as its only client island, the demo block below aside", () => {
+  it("keeps the hero server-rendered with the command panel as its only client island", () => {
     const panel = readFileSync(join(process.cwd(), "components/landing/command-panel.tsx"), "utf8");
     expect(panel.startsWith('"use client"')).toBe(true);
     const imports = [...HERO_SOURCE.matchAll(/from "(@\/components\/[^"]+)"/g)].map(
@@ -270,7 +270,6 @@ describe("LandingHero: largest contentful paint", () => {
     );
     expect(imports).toEqual([
       "@/components/landing/command-panel",
-      "@/components/landing/hero-demo",
       "@/components/landing/links",
       "@/components/ui/button",
     ]);

@@ -112,7 +112,7 @@ describe("CommandPanel", () => {
     expect(panels(container)[1]?.querySelector("pre")?.textContent).toBe(AI_SETUP_PROMPT);
   });
 
-  it("stacks both panels in one grid cell from 40rem, so a tab switch keeps the height there, and lets a phone resize", () => {
+  it("shows only the open pane at every width, so the install pane carries no empty height under its command", () => {
     const container = render();
     expect(
       panels(container).every(
@@ -123,9 +123,8 @@ describe("CommandPanel", () => {
     expect(css).toContain(".vk-command-panel-body { display: grid; }");
     expect(css).toContain('.vk-command-panel-body > [role="tabpanel"] { grid-area: 1 / 1;');
     expect(css).toContain('.vk-command-panel-body > [data-active="false"] { display: none; }');
-    expect(css).toMatch(
-      /@media \(min-width: 40rem\) \{[^@]*\.vk-command-panel-body > \[data-active="false"\] \{ display: grid; visibility: hidden; \}/,
-    );
+    expect(css).not.toContain("visibility: hidden; } }");
+    expect(css).not.toMatch(/\.vk-command-panel-body > \[data-active="false"\] \{ display: grid;/);
     expect(css).toContain(".vk-command-panel-pane { display: grid; align-content: start;");
   });
 

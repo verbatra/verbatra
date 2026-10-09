@@ -12,7 +12,7 @@ export type TabListProps = {
   ariaLabel?: string;
   className?: string;
   tabClassName?: string;
-  variant?: "underline" | "pill";
+  variant?: "underline" | "pill" | "segmented";
   idPrefix?: string;
 };
 
@@ -25,6 +25,20 @@ export function tabId(prefix: string, id: string): string {
 export function tabPanelId(prefix: string, id: string): string {
   return `${prefix}-panel-${id}`;
 }
+
+export function tabPanelProps(prefix: string, id: string, active: string) {
+  const open = id === active;
+  return {
+    id: tabPanelId(prefix, id),
+    role: "tabpanel",
+    "aria-labelledby": tabId(prefix, id),
+    "data-active": open,
+    inert: !open,
+  } as const;
+}
+
+const SEGMENTED_TAB_CLASS =
+  "rounded-(--radius-segment) px-3 py-1 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-ring)";
 
 function targetIndex(key: string, current: number, count: number): number | undefined {
   if (key === "Home") return 0;
@@ -69,7 +83,12 @@ export function TabList({
   }
 
   return (
-    <div role="tablist" aria-label={ariaLabel} className={className} onKeyDown={onKeyDown}>
+    <div
+      role="tablist"
+      aria-label={ariaLabel}
+      className={cn(variant === "segmented" && "vk-segmented", className)}
+      onKeyDown={onKeyDown}
+    >
       {tabs.map((tab) => {
         const selected = tab.id === active;
         return (
@@ -84,9 +103,10 @@ export function TabList({
               : {})}
             onClick={() => onSelect(tab.id)}
             className={cn(
+              variant === "segmented" && SEGMENTED_TAB_CLASS,
               tabClassName,
               selected ? "text-fd-foreground" : "text-fd-muted-foreground hover:text-fd-foreground",
-              selected && variant === "pill" && "bg-[color:var(--surface-card)]",
+              selected && variant !== "underline" && "bg-[color:var(--surface-card)]",
             )}
             style={
               selected && variant === "underline"

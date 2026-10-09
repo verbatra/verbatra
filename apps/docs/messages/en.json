@@ -75,15 +75,65 @@
         "formats": "file formats",
         "providers": "translation providers",
         "locales": "languages translated on this site"
+      }
+    },
+    "showcase": {
+      "heading": "See it work",
+      "lead": "Try a change to a locale file: verbatra's own diff and hash code shows in your browser what a run would send, skip and lock, and translates nothing. In Studio you review the result.",
+      "tablist": "Showcase",
+      "tabs": {
+        "tryIt": "Try it",
+        "studio": "Studio"
       },
-      "demo": {
-        "tablistLabel": "Demo",
-        "cli": "Terminal",
-        "studio": "Studio",
-        "studioAlt": "The Verbatra Studio Translations page: a grid of keys against the de, es and fr locales with missing and in-sync badges, and a coverage table per locale.",
-        "sessionLabel": "verbatra check reports one missing and one stale key in each of three locales, verbatra translate sends only those two keys per locale to the provider, and a second check reports every locale in sync.",
-        "caption": "Output of the real CLI on an eight-key project. Nothing on this page calls a provider.",
-        "captionStudio": "Verbatra Studio, the local dashboard: coverage per locale and every key that still needs work."
+      "tryIt": {
+        "scenariosLabel": "Change the English file",
+        "scenarios": {
+          "edit": "Edit a value",
+          "add": "Add a key",
+          "remove": "Remove a key",
+          "break": "Break a placeholder"
+        },
+        "reset": "Reset",
+        "retry": "Try again",
+        "filesLabel": "Files",
+        "marks": {
+          "edited": "edited",
+          "added": "added",
+          "removed": "removed",
+          "missing": "missing",
+          "stale": "stale",
+          "orphaned": "orphaned",
+          "changes": "changes",
+          "new": "new",
+          "kept": "kept",
+          "refused": "refused"
+        },
+        "result": {
+          "seed": "Everything is in sync: verbatra would translate 0 keys.",
+          "headline": "verbatra would translate {count, plural, one {# key} other {# keys}}.",
+          "rows": {
+            "send": "Would send",
+            "skip": "Skips",
+            "lock": "Lock file",
+            "gate": "Placeholders"
+          },
+          "nothing": "nothing",
+          "missingKey": "{key} (missing)",
+          "staleKey": "{key} (stale)",
+          "unchanged": "{count, plural, one {# unchanged key} other {# unchanged keys}}",
+          "orphanedKey": "{key} stays in de.json until --prune",
+          "lockNone": "no hash changes",
+          "lockChanges": "{count, plural, one {# hash would change} other {# hashes would change}}: {keys}",
+          "gateIdle": "nothing to check",
+          "gatePass": "every placeholder intact",
+          "gateRefused": "\"{candidate}\" would be refused ({details}); the German value stays",
+          "failed": "The comparison code did not load. Check your connection and try again."
+        }
+      },
+      "studio": {
+        "alt": "The Verbatra Studio Translations page: a grid of keys against the de, es and fr locales with missing and in-sync badges, and a coverage table per locale.",
+        "caption": "Verbatra Studio, the local dashboard: coverage per locale and every key that still needs work.",
+        "link": "Review translations in Studio"
       }
     },
     "terminal": {
@@ -102,19 +152,6 @@
       "promptCopied": "Prompt copied",
       "promptCopyFailed": "Could not copy the prompt. Select it in the preview and copy it by hand.",
       "promptPreviewLabel": "Copies this prompt for your agent"
-    },
-    "gate": {
-      "rows": {
-        "key": "key",
-        "candidate": "candidate",
-        "missing": "missing",
-        "reason": "reason",
-        "kept": "kept"
-      },
-      "annotations": {
-        "new": "new",
-        "kept": "kept"
-      }
     },
     "how": {
       "heading": "Every run is checked before it is written.",
@@ -235,20 +272,6 @@
         "machineTranslatedDescription": "Interface and documentation pages for this language are translated with AI."
       },
       "skipToContent": "Skip to content"
-    },
-    "proof": {
-      "lock": {
-        "title": "The lock file",
-        "body": "One hash per key per locale, committed next to your files."
-      },
-      "written": {
-        "title": "Written, and only that",
-        "body": "de.json after the run."
-      },
-      "refused": {
-        "title": "Refused before it reaches the file",
-        "body": "Withheld, never written, sent again next run."
-      }
     },
     "marquee": {
       "label": "Supported formats and providers",

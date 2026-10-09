@@ -7,7 +7,6 @@ import {
   GATE_REASON,
   GATE_REFUSAL,
   GATE_RUN_LINES,
-  GATE_TARGET_LINES,
   GATE_WITHHELD_LABEL,
 } from "@/lib/gate-demo";
 
@@ -43,13 +42,8 @@ describe("the gate demo quotes the sdk", () => {
     expect(GATE_CLI_LINE).toContain(GATE_WITHHELD_LABEL);
   });
 
-  it("shows the placeholder that broke and the previous value it kept", () => {
+  it("names the placeholder that broke in the refusal it prints", () => {
     expect(GATE_REFUSAL.missing).toBe(GATE_MISSING_PLACEHOLDER);
-    expect(GATE_REFUSAL.candidate).not.toContain(GATE_MISSING_PLACEHOLDER);
-    expect(GATE_REFUSAL.kept).toContain(GATE_MISSING_PLACEHOLDER);
-    const kept = GATE_TARGET_LINES.find((line) => line.annotation === "kept");
-    expect(kept?.text).toContain(GATE_MISSING_PLACEHOLDER);
-    expect(GATE_TARGET_LINES.some((line) => line.annotation === "new")).toBe(true);
   });
 
   it("prints the refusal detail the way the cli renders a withheld key", () => {
@@ -58,10 +52,11 @@ describe("the gate demo quotes the sdk", () => {
     expect(render).toMatch(
       /`\s{6}\$\{neutralizeControlCharacters\(refusal\.key\)\}: \$\{refusal\.reason\}/,
     );
-    expect(GATE_RUN_LINES[0]).toBe(`  ${GATE_CLI_LINE}, 149 tokens (131 in, 18 out)`);
-    expect(GATE_RUN_LINES[2]).toBe(
+    expect(GATE_RUN_LINES[1]).toBe(`  ${GATE_CLI_LINE}`);
+    expect(GATE_RUN_LINES[3]).toBe(
       `      ${GATE_REFUSAL.key}: ${GATE_REASON} (-${GATE_MISSING_PLACEHOLDER})`,
     );
     expect(GATE_RUN_LINES.at(-1)).toBe("0 succeeded, 1 partial, 0 failed");
+    expect(GATE_RUN_LINES.join("\n")).not.toMatch(/tokens/);
   });
 });

@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
 import { HighlightedCommand } from "@/components/ui/command-line";
 import { CopyButton } from "@/components/ui/copy-button";
-import { TabList, tabId, tabPanelId } from "@/components/ui/tabs";
+import { TabList, tabPanelProps } from "@/components/ui/tabs";
 import { AI_SETUP_PROMPT } from "@/lib/ai-setup-prompt";
 import { CLI_PACKAGE, NPM_INSTALL_COMMAND } from "@/lib/install-commands";
 import { trackUmamiEvent } from "@/lib/umami";
@@ -22,20 +22,6 @@ export type CommandPanelLabels = {
   installHint: string;
   promptHint: string;
 };
-
-const TAB_CLASS =
-  "rounded-[7px] px-3 py-1 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-ring)";
-
-function panelProps(tab: CommandPanelTab, active: CommandPanelTab) {
-  const open = tab === active;
-  return {
-    id: tabPanelId(COMMAND_PANEL_ID, tab),
-    role: "tabpanel",
-    "aria-labelledby": tabId(COMMAND_PANEL_ID, tab),
-    "data-active": open,
-    inert: !open,
-  } as const;
-}
 
 function isTab(id: string): id is CommandPanelTab {
   return (COMMAND_PANEL_TABS as ReadonlyArray<string>).includes(id);
@@ -68,14 +54,15 @@ export function CommandPanel({ labels }: { labels: CommandPanelLabels }): ReactN
           active={active}
           onSelect={select}
           ariaLabel={labels.tablist}
-          className="vk-segmented"
-          tabClassName={TAB_CLASS}
-          variant="pill"
+          variant="segmented"
           idPrefix={COMMAND_PANEL_ID}
         />
       </div>
       <div className="vk-command-panel-body">
-        <div {...panelProps("install", active)} className="vk-command-panel-pane">
+        <div
+          {...tabPanelProps(COMMAND_PANEL_ID, "install", active)}
+          className="vk-command-panel-pane"
+        >
           <PaneHead hint={labels.installHint}>
             <CopyButton
               text={NPM_INSTALL_COMMAND}
@@ -98,7 +85,10 @@ export function CommandPanel({ labels }: { labels: CommandPanelLabels }): ReactN
             </code>
           </p>
         </div>
-        <div {...panelProps("prompt", active)} className="vk-command-panel-pane">
+        <div
+          {...tabPanelProps(COMMAND_PANEL_ID, "prompt", active)}
+          className="vk-command-panel-pane"
+        >
           <PaneHead hint={labels.promptHint}>
             <CopyButton
               text={AI_SETUP_PROMPT}

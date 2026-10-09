@@ -5,13 +5,12 @@ import { i18n } from "@/lib/i18n";
 
 const LANDING_NAMESPACES = [
   "hero",
+  "showcase",
   "terminal",
   "install",
   "nav",
   "footer",
   "finalClose",
-  "gate",
-  "proof",
   "how",
   "marquee",
   "loop",
@@ -65,21 +64,23 @@ describe("landing message parity", () => {
   it("covers every namespace the landing chrome reads", () => {
     expect(source.length).toBeGreaterThan(0);
     expect(source).toContain("landing.nav.skipToContent");
-    expect(source).toContain("landing.proof.lock.title");
     expect(source).toContain("landing.terminal.sessionLabel");
-    expect(source).toContain("landing.gate.rows.reason");
     expect(source).toContain("landing.loop.rows.ci.title");
     expect(source).toContain("landing.marquee.providers.gemini");
     expect(source).toContain("landing.control.groups.correct.items.terms.title");
     expect(source).toContain("landing.control.groups.people.items.protect.title");
-    expect(source).toContain("landing.hero.demo.caption");
+    expect(source).toContain("landing.showcase.tryIt.result.headline");
   });
 
-  it("keeps no messages for the removed gains and providers sections", () => {
+  it("keeps no messages for the removed gains, providers, How panels or hero demo", () => {
     for (const locale of i18n.languages) {
       const landing = load(locale).landing;
       expect(typeof landing === "object" && "gains" in landing, locale).toBe(false);
       expect(typeof landing === "object" && "providers" in landing, locale).toBe(false);
+      expect(typeof landing === "object" && "proof" in landing, locale).toBe(false);
+      expect(typeof landing === "object" && "gate" in landing, locale).toBe(false);
+      const hero = typeof landing === "object" ? landing.hero : undefined;
+      expect(typeof hero === "object" && "demo" in hero, locale).toBe(false);
     }
   });
 
