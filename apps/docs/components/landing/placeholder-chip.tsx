@@ -2,6 +2,8 @@ import { Fragment, type ReactNode } from "react";
 
 const PLACEHOLDER_TOKEN = /\{\{\s*[\w.]+\s*\}\}|\{[\w.]+\}/g;
 
+const WHOLE_PLACEHOLDER_TOKEN = new RegExp(`^(?:${PLACEHOLDER_TOKEN.source})$`);
+
 const NO_BROKEN_TOKENS: ReadonlySet<string> = new Set();
 
 export function PlaceholderChip({
@@ -31,7 +33,7 @@ export function splitPlaceholders(text: string): ReadonlyArray<string> {
 }
 
 export function isPlaceholderToken(part: string): boolean {
-  return new RegExp(`^(?:${PLACEHOLDER_TOKEN.source})$`).test(part);
+  return WHOLE_PLACEHOLDER_TOKEN.test(part);
 }
 
 export function PlaceholderText({

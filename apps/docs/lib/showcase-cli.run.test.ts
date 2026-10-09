@@ -11,7 +11,7 @@ import {
 import { afterEach, describe, expect, it } from "vitest";
 import { showcaseRunLines, showcaseSavings } from "@/lib/showcase-cli";
 import { flattenJson } from "@/lib/showcase-flatten";
-import { runShowcaseScenario, showcaseSeed } from "@/lib/showcase-scenarios";
+import { runShowcaseScenario, type ShowcaseOutcome, showcaseSeed } from "@/lib/showcase-scenarios";
 import {
   applyShowcaseChange,
   type JsonTree,
@@ -108,5 +108,32 @@ describe("the showcase output pane prints what verbatra translate prints", () =>
     expect(showcaseSavings(outcome).sent).toBe(
       (locale?.translated.length ?? 0) + (locale?.integrityMismatches.length ?? 0),
     );
+  });
+
+  it("prints a partial run when one edit is written and another reply is withheld", async () => {
+    const dir = await seededProject();
+    const edit = SHOWCASE_CHANGES.edit;
+    const broken = SHOWCASE_CHANGES.break;
+    await writeFile(
+      join(dir, "locales/en.json"),
+      JSON.stringify(applyShowcaseChange(applyShowcaseChange(SHOWCASE_SOURCE, edit), broken)),
+    );
+    const replies = new Map([
+      [showcaseKey(edit.path), edit.candidate ?? ""],
+      [showcaseKey(broken.path), broken.candidate ?? ""],
+    ]);
+    const summary = await translate(
+      { config: CONFIG, cwd: dir },
+      { createProvider: stubProvider(replies) },
+    );
+    const breakRun = runShowcaseScenario("break");
+    const mixed: ShowcaseOutcome = {
+      ...breakRun,
+      stale: [showcaseKey(edit.path), showcaseKey(broken.path)].sort(),
+      unchanged: breakRun.unchanged.filter((key) => key !== showcaseKey(edit.path)),
+      written: [showcaseKey(edit.path)],
+    };
+    expect(showcaseRunLines(mixed)).toEqual(printed(summary));
+    expect(printed(summary)).toContain("0 succeeded, 1 partial, 0 failed");
   });
 });

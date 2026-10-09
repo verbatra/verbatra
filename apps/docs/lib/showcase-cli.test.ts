@@ -20,10 +20,15 @@ describe("showcaseRunLines", () => {
 
   it("marks a run partial when one key is written and another withheld", () => {
     const broken = runShowcaseScenario("break");
-    const mixed: ShowcaseOutcome = { ...broken, written: ["cart.checkout"] };
+    const mixed: ShowcaseOutcome = {
+      ...broken,
+      stale: ["cart.checkout", "cart.total"],
+      unchanged: broken.unchanged.filter((key) => key !== "cart.checkout"),
+      written: ["cart.checkout"],
+    };
     expect(showcaseRunLines(mixed)).toEqual([
       SHOWCASE_CLI_COMMAND,
-      "  de: 1 translated, 3 unchanged, 1 integrity-withheld",
+      "  de: 1 translated, 2 unchanged, 1 integrity-withheld",
       "    integrity-withheld:",
       "      cart.total: placeholder (-{{amount}}, +{{betrag}})",
       "0 succeeded, 1 partial, 0 failed",

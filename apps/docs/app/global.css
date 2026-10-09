@@ -150,6 +150,7 @@ samp {
   --showcase-line: 1.125rem;
   --showcase-summary-lines: 3;
   --showcase-bar-height: 3.125rem;
+  --showcase-scroll-reserve: 0.75rem;
   --print-stagger: 90ms;
   --format-line: 1.25rem;
   --format-pane-rows: 16;
@@ -1706,6 +1707,16 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   color: var(--text-body);
 }
 
+.vk-formats-code-text {
+  margin: 0;
+  font: inherit;
+}
+
+.vk-formats-code:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
 .vk-formats-more {
   margin: 0;
   font-size: var(--text-sm);
@@ -1958,7 +1969,8 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 }
 
 .vk-showcase-output-code {
-  min-height: calc(var(--showcase-output-rows) * var(--showcase-line));
+  box-sizing: content-box;
+  height: calc(var(--showcase-output-rows) * var(--showcase-line) + var(--showcase-scroll-reserve));
   margin: 0;
   overflow-x: auto;
   font-family: var(--font-mono);

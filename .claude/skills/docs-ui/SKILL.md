@@ -97,14 +97,14 @@ Scales are fixed and narrow, deliberately:
   `--cta-height` (56px) is the minimum height of `.vk-prompt-trigger` on `PromptCopyButton`;
   `--width-prompt-pop` (30rem, capped by `100cqw` of its container, never by `100vw`, which counts
   the scrollbar) is the width of the `.vk-prompt-pop` preview. `--width-hero-panel` (36rem) is the
-  hero command panel's maximum width. `.vk-grid-12` is the landing
-  grid: one column under 64rem, then `--grid-columns` (12) columns with a `--grid-gap` (24px)
-  gap, where each child spans `--grid-span` columns (the full row when unset).
-- Surfaces added for the landing redesign: `--surface-band` (the raised band behind alternating
-  landing sections, mixed from `--surface-card` and `--surface-bg`, never a raw value) and
-  `--hero-grid-mask` (the fade that masks the static `fx/grid-pattern.ts` blueprint grid behind
-  the hero only: `.vk-hero-blueprint`, an `aria-hidden` layer at `z-index: -1` that never
-  animates). There is no wash token: the former `--wash-globe` is gone.
+  hero command panel's maximum width. `.vk-grid-12` is the landing grid, declared but not yet
+  applied by any section: one column under 64rem, then `--grid-columns` (12) columns with a
+  `--grid-gap` (24px) gap, where each child spans `--grid-span` columns (the full row when unset).
+- Surfaces added for the landing redesign: `--surface-band` (mixed from `--surface-card` and
+  `--surface-bg`, never a raw value; declared for the raised band behind alternating landing
+  sections, which no rule reads yet) and `--hero-grid-mask` (the fade that masks the static
+  `fx/grid-pattern.ts` blueprint grid behind the hero only: `.vk-hero-blueprint`, an
+  `aria-hidden` layer at `z-index: -1` that never animates). There is no wash token.
 - Placeholder chip: `PlaceholderChip` (`components/landing/placeholder-chip.tsx`, the `.vk-placeholder`
   class) is the page's one signature motif, a locked placeholder token (`{{amount}}`, `{count}`)
   drawn the same way in every pane: `--placeholder-fg` (`--accent`) on `--placeholder-fill` inside
@@ -145,8 +145,8 @@ Three families, loaded in `app/[lang]/layout.tsx` through `next/font/google`:
 per component. Adding a fourth family needs a reason that survives review.
 
 The type scale is a major third (1.25) held in `app/global.css`: `--text-display`, `--text-h2`
-(capped at 3rem, read only by `.vk-h2`), `--text-h3`, `--text-h4`, `--text-lead`, with `--leading-*` and `--tracking-*` companions. Above
-it sits `--text-hero` (fluid, 2.5rem to 6.25rem, about 97px at 1440, one step of the scale above
+(capped at 3rem, read only by `.vk-h2`), `--text-h3`, `--text-h4`, `--text-lead`, with
+`--leading-*` and `--tracking-*` companions. Above it sits `--text-hero` (fluid, 2.5rem to 6.25rem, about 97px at 1440, one step of the scale above
 the former 5rem cap) with `--weight-hero` (700), `--leading-hero` (1.04) and `--tracking-hero`
 (-0.03em), used only by the landing headline (`.vk-hero-title`). Landing
 headings take the `.vk-display`, `.vk-h2`, `.vk-h3`, `.vk-h4` and `.vk-lead` classes (declared in
@@ -202,7 +202,9 @@ footer's oversized watermark only; do not clip it onto a heading.
   `select-tab` with `location: formats` (a chip adds `framework`). Every pane is server-rendered
   and stacked in one grid cell; a closed pane is `inert` and `visibility: hidden`, so the box is
   always the tallest pane and a switch moves nothing, and `.vk-formats-code` caps a long output at
-  `--format-pane-rows` (16) lines of `--format-line` and scrolls inside it. Chips and tabs scroll
+  `--format-pane-rows` (16) lines of `--format-line` and scrolls inside it: it is a `section`
+  named by the pane's file caption with `tabIndex={0}`, so the keyboard reaches and scrolls the
+  open pane, with the `--focus-ring` outline inset. Chips and tabs scroll
   sideways inside `.vk-edge-fade` under 64rem and wrap from it, each at least 44px tall. The panes
   come from `lib/format-samples.generated.json`, which `scripts/sync-format-samples.mjs` writes
   before dev, build, typecheck and test (git-ignored like `lib/version.generated.json`): it builds
@@ -245,8 +247,9 @@ footer's oversized watermark only; do not clip it onto a heading.
   refused reply shows as a struck `data-mark="refused"` line in `--text-danger` above the German
   value it leaves in place; the lock pane prints full 16-character hashes, and a mark that does
   not fit drops to the next row), then the output pane (`.vk-showcase-output`, a `figure` captioned
-  `verbatra translate` and named by `landing.showcase.tryIt.result.outputLabel`) printing, in
-  English on every locale, exactly the lines `renderHuman` prints for that run
+  `verbatra translate`, named by `landing.showcase.tryIt.result.outputLabel` and marked
+  `lang="en"`, its fixed height adding `--showcase-scroll-reserve` so a sideways scrollbar on a
+  phone moves nothing) printing, in English on every locale, exactly the lines `renderHuman` prints for that run
   (`showcaseRunLines` in `lib/showcase-cli.ts`, server-rendered for the seed; after a click the
   lines fade in one `--print-stagger` apart, under 600ms in all, and at once under reduced
   motion), a mono savings line (`result.savings`: strings sent against what a full retranslate

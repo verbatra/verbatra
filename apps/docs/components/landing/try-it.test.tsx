@@ -83,6 +83,7 @@ describe("TryIt: output pane", () => {
     const doc = markup();
     const output = doc.querySelector(".vk-showcase-output");
     expect(output?.getAttribute("aria-label")).toBe("landing.showcase.tryIt.result.outputLabel");
+    expect(output?.getAttribute("lang")).toBe("en");
     expect(output?.querySelector("figcaption")?.textContent).toBe(SHOWCASE_CLI_COMMAND);
     expect(outputLines(doc)).toEqual(showcaseRunLines(SEED));
     expect(outputLines(doc)).toContain("  de: 0 translated, 4 unchanged");
@@ -100,6 +101,17 @@ describe("TryIt: output pane", () => {
     expect(doc.querySelector(".vk-showcase-savings")?.textContent).toBe(
       'landing.showcase.tryIt.result.savings{"sent":0,"total":4}',
     );
+  });
+
+  it("keeps the output height fixed when a long line brings up a scrollbar", () => {
+    const css = readFileSync(join(process.cwd(), "app/global.css"), "utf8");
+    const rule = /\.vk-showcase-output-code \{([^}]*)\}/.exec(css)?.[1] ?? "";
+    expect(rule).toContain("box-sizing: content-box;");
+    expect(rule).toContain(
+      "height: calc(var(--showcase-output-rows) * var(--showcase-line) + var(--showcase-scroll-reserve));",
+    );
+    expect(rule).not.toContain("min-height");
+    expect(css).toMatch(/--showcase-scroll-reserve: 0\.75rem;/);
   });
 
   it("keeps every printed line under the 600ms print budget", () => {

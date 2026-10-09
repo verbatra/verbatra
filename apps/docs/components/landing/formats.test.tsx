@@ -141,6 +141,24 @@ describe("Formats", () => {
     expect(GLOBAL_CSS).toContain("--format-pane-rows: 16;");
   });
 
+  it("lets the keyboard reach and scroll the open pane, named by its file", async () => {
+    const container = await render();
+    for (const [index, id] of SUPPORTED_FORMAT_IDS.entries()) {
+      const code = panels(container)[index]?.querySelector<HTMLElement>(".vk-formats-code");
+      const caption = panels(container)[index]?.querySelector("figcaption");
+      expect(code?.tagName).toBe("SECTION");
+      expect(code?.tabIndex).toBe(0);
+      expect(code?.querySelector("pre")).not.toBeNull();
+      expect(caption?.id).toBe(`formats-file-${id}`);
+      expect(code?.getAttribute("aria-labelledby")).toBe(caption?.id);
+    }
+    expect(rule(".vk-formats-code:focus-visible")).toContain(
+      "outline: 2px solid var(--focus-ring);",
+    );
+    const closed = panels(container).filter((panel) => panel.dataset.active === "false");
+    expect(closed.every((panel) => panel.hasAttribute("inert"))).toBe(true);
+  });
+
   it("switches the pane with a tab and counts select-tab from the formats section", async () => {
     const container = await render();
     const yaml = tabs(container)[SUPPORTED_FORMAT_IDS.indexOf("yaml")];

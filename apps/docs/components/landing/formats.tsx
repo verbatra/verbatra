@@ -27,20 +27,30 @@ function SampleLine({ line, placeholder }: { line: string; placeholder: string }
   ));
 }
 
-function SamplePane({ sample }: { sample: FormatSample }): ReactNode {
+function SamplePane({ id, sample }: { id: string; sample: FormatSample }): ReactNode {
+  const captionId = `formats-file-${id}`;
   return (
     <figure className="vk-formats-file">
-      <figcaption className="vk-formats-file-name">{sample.file}</figcaption>
-      <pre className="vk-formats-code vk-terminal-scroll">
-        <code>
-          {sampleLines(sample).map((line, index) => (
-            <Fragment key={`${index}:${line}`}>
-              {index > 0 ? "\n" : null}
-              <SampleLine line={line} placeholder={sample.placeholder} />
-            </Fragment>
-          ))}
-        </code>
-      </pre>
+      <figcaption id={captionId} className="vk-formats-file-name">
+        {sample.file}
+      </figcaption>
+      <section
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: a capped pane scrolls, so the keyboard needs a stop to scroll it
+        tabIndex={0}
+        aria-labelledby={captionId}
+        className="vk-formats-code vk-terminal-scroll"
+      >
+        <pre className="vk-formats-code-text">
+          <code>
+            {sampleLines(sample).map((line, index) => (
+              <Fragment key={`${index}:${line}`}>
+                {index > 0 ? "\n" : null}
+                <SampleLine line={line} placeholder={sample.placeholder} />
+              </Fragment>
+            ))}
+          </code>
+        </pre>
+      </section>
     </figure>
   );
 }
@@ -72,7 +82,7 @@ export async function Formats(): Promise<ReactNode> {
           formats={SUPPORTED_FORMAT_IDS.map((id) => ({
             id,
             label: FORMAT_DISPLAY[id].label,
-            pane: <SamplePane sample={FORMAT_SAMPLES[id]} />,
+            pane: <SamplePane id={id} sample={FORMAT_SAMPLES[id]} />,
           }))}
         />
         <p className="vk-formats-more">

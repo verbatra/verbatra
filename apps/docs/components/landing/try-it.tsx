@@ -87,7 +87,7 @@ function OutputPane({
 }): ReactNode {
   const t = useTranslations("landing.showcase.tryIt.result");
   return (
-    <figure className="vk-showcase-output" aria-label={t("outputLabel")}>
+    <figure className="vk-showcase-output" aria-label={t("outputLabel")} lang="en">
       <figcaption className="vk-showcase-output-name">{SHOWCASE_CLI_COMMAND}</figcaption>
       <pre
         key={outcome.scenario ?? "seed"}
