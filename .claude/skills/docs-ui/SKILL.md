@@ -181,7 +181,8 @@ footer's oversized watermark only; do not clip it onto a heading.
   `Button` takes `variant: "primary" | "secondary" | "ghost"` and `size: "sm" | "md" | "lg"`.
   Extend the variant union rather than passing ad hoc `className` overrides.
 - **Landing:** `components/landing/` holds the landing sections (`proof.tsx`, `formats.tsx`,
-  `control.tsx`, `marquee.tsx`, `loop.tsx`, `faq.tsx`, `final-cta.tsx`, `footer.tsx`). Their order
+  `control.tsx`, `marquee.tsx`, `loop.tsx`, `faq.tsx`, `final-cta.tsx`, `footer.tsx`, and
+  `landing-nav.tsx`, the section nav under "Landing motion"). Their order
   on the page is `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, marquee, showcase, how,
   formats, control, loop, faq, final call to action), which the home page maps over and
   `lib/landing-sections.test.ts` pins;
@@ -481,11 +482,27 @@ parallax, no scroll-scrubbing, no scroll listener and no animation library.
   `HomeSiteHeader` carries a small primary "Get started" (`landing.nav.headerCta.label`), first in
   the right-hand group in both the DOM and the visual order. It reserves no slot: it is
   `display: none` until `MotionRoot`'s presence observer sees the hero leave through the top of
-  the viewport (`html[data-past-hero]`), and again while the final call to action is on screen
+  its root (`html[data-past-hero]`; the root is the viewport less `PRESENCE_MARGIN`, the 112px the
+  sticky header and section nav cover, and `isPastHero` measures against `rootBounds.top`), and again while the final call to action is on screen
   (`html[data-final-cta]`). It then appears with a 4px fade (`vk-header-cta-in`) into the free
   space of the `justify-end` group, so nothing beside it moves. It shows under 768px and from
   1280px only, the widths where that space exists. A click counts `click-cta` with
   `location: header`.
+- **Section nav.** `LandingNav` (`components/landing/landing-nav.tsx`, a server component that
+  `page.tsx` renders right after the hero) is a `nav` named by `landing.nav.sections.label`
+  holding one in-page link per `LANDING_NAV_SECTIONS` id (showcase, how, formats, control, faq;
+  labelled from `landing.nav.sections.<id>`), each `href="#<id>"` with `data-nav-link` and no
+  `data-umami-event`. Its `.vk-landing-nav` wrapper is sticky under the 3.5rem site header at
+  `height: 0`, and the bar inside it is absolutely positioned, so it takes no layout space and
+  moves nothing; it stays `visibility: hidden` until `html[data-past-hero]`, then fades in
+  (opacity and a 4px rise, only under `no-preference`), and it never covers the header or its
+  call to action. Under 64rem the link row scrolls sideways inside `.vk-edge-fade`. Every
+  `.vk-home [id]` carries `scroll-margin-top: 6.25rem`, so a jump lands the section (and a band's
+  top hairline) under the nav. `MotionRoot` resolves each link's section and watches it on the
+  same presence observer, with no scroll listener: the first linked section still inside the
+  root gets `aria-current="true"` on its link (an `--accent` 2px underline), every other link
+  none. `landing-nav.test.tsx` pins the markup and stylesheet, `motion-root.test.tsx` the
+  observer reuse.
 - **Marquee.** The only infinite motion. Its two rows scroll endlessly, pause on hover and
   focus, stop and drop their edge mask while a link has keyboard focus (so the focused item
   scrolls fully into view), pause while the band is off screen (`data-offscreen`, set by the
@@ -504,7 +521,8 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
 
 - No animation library. Landing motion is CSS keyframes and transitions in `app/global.css`,
   each with a `prefers-reduced-motion` opt-out; the only motion script is `MotionRoot`, which
-  toggles attributes from two `IntersectionObserver`s and stays under 1 KB gzipped.
+  toggles attributes from two `IntersectionObserver`s and stays under 1 KB gzipped (about 760
+  bytes with the section nav, minified with `esbuild` and `gzip -9`).
 - `NextIntlClientProvider` receives only `CLIENT_MESSAGE_NAMESPACES` (`lib/client-messages.ts`),
   not the whole catalog. A new `useTranslations` namespace in a `"use client"` file must be added
   there; `lib/client-messages.test.ts` fails until it is.

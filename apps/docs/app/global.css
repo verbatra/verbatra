@@ -1512,6 +1512,90 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   }
 }
 
+.vk-home [id] {
+  scroll-margin-top: 6.25rem;
+}
+
+.vk-landing-nav {
+  position: sticky;
+  top: 3.5rem;
+  z-index: 30;
+  height: 0;
+}
+
+.vk-landing-nav-bar {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  border-bottom: 1px solid var(--border-default);
+  background-color: color-mix(in srgb, var(--color-fd-background) 80%, transparent);
+  backdrop-filter: blur(4px);
+  visibility: hidden;
+  opacity: 0;
+}
+
+html[data-past-hero] .vk-landing-nav-bar {
+  visibility: visible;
+  opacity: 1;
+}
+
+.vk-landing-nav-list {
+  display: flex;
+  column-gap: 1.75rem;
+  width: max-content;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vk-landing-nav-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  color: var(--text-muted);
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.vk-landing-nav-link:hover,
+.vk-landing-nav-link[aria-current="true"] {
+  color: var(--text-strong);
+}
+
+.vk-landing-nav-link[aria-current="true"]::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--accent);
+}
+
+.vk-landing-nav-link:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .vk-landing-nav-bar {
+    translate: 0 -4px;
+    transition:
+      opacity var(--duration-base) var(--ease-out),
+      translate var(--duration-base) var(--ease-out),
+      visibility 0s linear var(--duration-base);
+  }
+
+  html[data-past-hero] .vk-landing-nav-bar {
+    translate: none;
+    transition:
+      opacity var(--duration-base) var(--ease-out),
+      translate var(--duration-base) var(--ease-out),
+      visibility 0s;
+  }
+}
+
 .vk-hero-lead {
   max-width: 46ch;
   margin: 0;

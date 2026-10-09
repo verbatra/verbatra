@@ -2,12 +2,34 @@
 
 import { useEffect } from "react";
 
-type PresenceEntry = Pick<IntersectionObserverEntry, "isIntersecting" | "boundingClientRect">;
+type PresenceEntry = Pick<IntersectionObserverEntry, "isIntersecting" | "boundingClientRect"> & {
+  rootBounds?: DOMRectReadOnly | null;
+};
 
 const REVEAL_MARGIN = "0px 0px -10% 0px";
 
+export const PRESENCE_MARGIN = "-112px 0px 0px 0px";
+
 export function isPastHero(entry: PresenceEntry): boolean {
-  return !entry.isIntersecting && entry.boundingClientRect.bottom <= 0;
+  return !entry.isIntersecting && entry.boundingClientRect.bottom <= (entry.rootBounds?.top ?? 0);
+}
+
+function navLinks(doc: Document): Map<Element, Element> {
+  const links = new Map<Element, Element>();
+  for (const link of doc.querySelectorAll<HTMLAnchorElement>("[data-nav-link]")) {
+    const section = doc.getElementById(link.hash.slice(1));
+    if (section) links.set(section, link);
+  }
+  return links;
+}
+
+function markCurrent(links: Map<Element, Element>, shown: Set<Element>): void {
+  let current: Element | undefined;
+  for (const section of links.keys()) if (!current && shown.has(section)) current = section;
+  for (const [section, link] of links) {
+    if (section === current) link.setAttribute("aria-current", "true");
+    else link.removeAttribute("aria-current");
+  }
 }
 
 function applyPresence(entry: IntersectionObserverEntry, root: HTMLElement): void {
@@ -38,10 +60,21 @@ export function startMotion(doc: Document = document): () => void {
     if (element.getBoundingClientRect().top < fold) element.setAttribute("data-revealed", "");
     else reveal.observe(element);
   }
-  const presence = new IntersectionObserver((entries) => {
-    for (const entry of entries) applyPresence(entry, root);
-  });
+  const links = navLinks(doc);
+  const shown = new Set<Element>();
+  const presence = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (!links.has(entry.target)) applyPresence(entry, root);
+        else if (entry.isIntersecting) shown.add(entry.target);
+        else shown.delete(entry.target);
+      }
+      markCurrent(links, shown);
+    },
+    { rootMargin: PRESENCE_MARGIN },
+  );
   for (const element of doc.querySelectorAll("[data-presence]")) presence.observe(element);
+  for (const section of links.keys()) presence.observe(section);
   root.setAttribute("data-motion-ready", "");
 
   return () => {

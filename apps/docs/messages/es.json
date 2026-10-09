@@ -167,6 +167,14 @@
       "vmarkAlt": "verbatra"
     },
     "nav": {
+      "sections": {
+        "label": "En esta página",
+        "showcase": "Demo",
+        "how": "Cómo funciona",
+        "formats": "Formatos",
+        "control": "Control",
+        "faq": "Preguntas"
+      },
       "docs": "Docs",
       "reference": "Referencia",
       "languageSwitcher": {

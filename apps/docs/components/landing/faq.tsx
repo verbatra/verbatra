@@ -117,7 +117,7 @@ export function Faq({ items }: { items: ReadonlyArray<FaqEntry> }): ReactNode {
     <section className="vk-band" id="faq">
       <div className="vk-gutter vk-w-wide mx-auto">
         <div>
-          <SectionHead title={t("heading")} />
+          <SectionHead id="faq-heading" title={t("heading")} />
         </div>
         <div className="mt-11 max-w-[880px] border-t border-fd-border">
           {items.map((item, i) => (

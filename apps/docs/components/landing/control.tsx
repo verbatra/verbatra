@@ -14,7 +14,7 @@ export async function Control(): Promise<ReactNode> {
   return (
     <Section width="wide" id="control" band>
       <div>
-        <SectionHead title={t("heading")} lead={t("lead")} reveal />
+        <SectionHead id="control-heading" title={t("heading")} lead={t("lead")} reveal />
       </div>
       <div className="vk-grid-12 vk-control-groups">
         {CONTROL_GROUPS.map((group, index) => (

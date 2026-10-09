@@ -21,7 +21,7 @@ export async function Proof(): Promise<ReactNode> {
 
   return (
     <Section width="wide" id="how" band>
-      <SectionHead title={tHow("heading")} lead={tHow("lead")} reveal />
+      <SectionHead id="how-heading" title={tHow("heading")} lead={tHow("lead")} reveal />
       <HowReplay
         terminal={{
           commands: HOW_COMMANDS,

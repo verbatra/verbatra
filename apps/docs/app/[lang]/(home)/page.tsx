@@ -6,6 +6,7 @@ import { Control } from "@/components/landing/control";
 import { Faq, type FaqEntry } from "@/components/landing/faq";
 import { FinalCta } from "@/components/landing/final-cta";
 import { Formats } from "@/components/landing/formats";
+import { LandingNav } from "@/components/landing/landing-nav";
 import { Loop } from "@/components/landing/loop";
 import { Marquee } from "@/components/landing/marquee";
 import { MotionRoot } from "@/components/landing/motion-root";
@@ -71,7 +72,10 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
       <JsonLd data={howToLd({ name: t("how.heading"), steps: howSteps, lang: locale })} />
 
       {LANDING_SECTIONS.map((id) => (
-        <Fragment key={id}>{sections[id]}</Fragment>
+        <Fragment key={id}>
+          {sections[id]}
+          {id === "hero" ? <LandingNav /> : null}
+        </Fragment>
       ))}
       <MotionRoot />
     </div>

@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
-import { isPastHero, startMotion } from "./motion-root";
+import { isPastHero, PRESENCE_MARGIN, startMotion } from "./motion-root";
 
 type Callback = (entries: IntersectionObserverEntry[]) => void;
 
@@ -150,6 +150,71 @@ describe("isPastHero", () => {
     expect(isPastHero({ isIntersecting: false, boundingClientRect: rect(-1) })).toBe(true);
     expect(isPastHero({ isIntersecting: false, boundingClientRect: rect(900) })).toBe(false);
     expect(isPastHero({ isIntersecting: true, boundingClientRect: rect(10) })).toBe(false);
+  });
+
+  it("measures the top edge from the observer's root, which the sticky header and nav cover", () => {
+    const rect = (bottom: number) => ({ bottom }) as DOMRect;
+    const rootBounds = { top: 112 } as DOMRectReadOnly;
+    expect(isPastHero({ isIntersecting: false, boundingClientRect: rect(100), rootBounds })).toBe(
+      true,
+    );
+    expect(isPastHero({ isIntersecting: false, boundingClientRect: rect(500), rootBounds })).toBe(
+      false,
+    );
+  });
+});
+
+describe("the landing section nav", () => {
+  function mountNav(): { links: HTMLAnchorElement[]; sections: HTMLElement[] } {
+    document.body.innerHTML = `
+      <section data-presence="hero"></section>
+      <nav>
+        <a href="#showcase" data-nav-link>Demo</a>
+        <a href="#how" data-nav-link>How</a>
+        <a href="#faq" data-nav-link>FAQ</a>
+      </nav>
+      <section id="showcase"></section>
+      <section id="how"></section>
+      <section id="faq"></section>`;
+    return {
+      links: [...document.querySelectorAll<HTMLAnchorElement>("[data-nav-link]")],
+      sections: [...document.querySelectorAll<HTMLElement>("section[id]")],
+    };
+  }
+
+  const current = (links: HTMLAnchorElement[]) =>
+    links.map((link) => link.getAttribute("aria-current"));
+
+  it("watches the linked sections on the existing presence observer, below the header and nav", () => {
+    const { sections } = mountNav();
+    stop = startMotion();
+    expect(FakeObserver.all).toHaveLength(2);
+    const presence = FakeObserver.all[1];
+    expect(presence?.options?.rootMargin).toBe(PRESENCE_MARGIN);
+    for (const section of sections) expect(presence?.observed.has(section)).toBe(true);
+  });
+
+  it("marks the first linked section still in view as current, and only that one", () => {
+    const { links, sections } = mountNav();
+    stop = startMotion();
+    const presence = FakeObserver.all[1];
+    const [showcase, how, faq] = sections;
+    expect(current(links)).toEqual([null, null, null]);
+    presence?.fire(showcase as HTMLElement, true);
+    presence?.fire(how as HTMLElement, true);
+    expect(current(links)).toEqual(["true", null, null]);
+    presence?.fire(showcase as HTMLElement, false);
+    expect(current(links)).toEqual([null, "true", null]);
+    presence?.fire(how as HTMLElement, false);
+    presence?.fire(faq as HTMLElement, true);
+    expect(current(links)).toEqual([null, null, "true"]);
+    expect(faq?.hasAttribute("data-offscreen")).toBe(false);
+  });
+
+  it("never listens to scroll", () => {
+    const source = readFileSync(join(import.meta.dirname, "motion-root.tsx"), "utf8");
+    expect(source).not.toMatch(/addEventListener\(\s*["']scroll/);
+    expect(source).not.toMatch(/onscroll/i);
   });
 });
 
