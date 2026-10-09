@@ -12,16 +12,16 @@ export async function Control(): Promise<ReactNode> {
   const locale = (await getLocale()) as Locale;
 
   return (
-    <Section width="wide" rhythm="lg" id="control">
+    <Section width="wide" id="control" band>
       <div>
         <SectionHead title={t("heading")} lead={t("lead")} reveal />
       </div>
-      <div className="mt-10 grid gap-x-12 gap-y-10 lg:mt-12 lg:grid-cols-[repeat(3,minmax(0,1fr))] lg:grid-rows-[repeat(4,auto)] lg:gap-y-7">
+      <div className="vk-grid-12 vk-control-groups">
         {CONTROL_GROUPS.map((group, index) => (
           <div
             key={group.key}
             data-reveal={String(index + 2)}
-            className="grid min-w-0 gap-y-5 border-t border-fd-border pt-6 lg:row-span-4 lg:grid-rows-subgrid lg:gap-y-6"
+            className="vk-control-group grid min-w-0 gap-y-5 border-t border-fd-border pt-6 lg:row-span-4 lg:grid-rows-subgrid lg:gap-y-6"
           >
             <h3 id={`control-${group.key}`} className="vk-h4">
               {t(`groups.${group.key}.title`)}

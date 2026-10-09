@@ -97,12 +97,18 @@ Scales are fixed and narrow, deliberately:
   `--cta-height` (56px) is the minimum height of `.vk-prompt-trigger` on `PromptCopyButton`;
   `--width-prompt-pop` (30rem, capped by `100cqw` of its container, never by `100vw`, which counts
   the scrollbar) is the width of the `.vk-prompt-pop` preview. `--width-hero-panel` (36rem) is the
-  hero command panel's maximum width. `.vk-grid-12` is the landing grid, declared but not yet
-  applied by any section: one column under 64rem, then `--grid-columns` (12) columns with a
-  `--grid-gap` (24px) gap, where each child spans `--grid-span` columns (the full row when unset).
+  hero command panel's maximum width. `.vk-grid-12` is the landing grid: one column under 64rem,
+  then `--grid-columns` (12) columns with a `--grid-gap` (24px) gap, where each child spans
+  `--grid-span` columns (the full row when unset). A left-aligned `SectionHead` is one
+  (`.vk-section-head`: the heading block spans 7, the lead 5, bottom-aligned), and so are
+  Control's three groups (`.vk-control-groups`, each `.vk-control-group` spanning 4 over a
+  four-row subgrid).
 - Surfaces added for the landing redesign: `--surface-band` (mixed from `--surface-card` and
-  `--surface-bg`, never a raw value; declared for the raised band behind alternating landing
-  sections, which no rule reads yet) and `--hero-grid-mask` (the fade that masks the static
+  `--surface-bg`, never a raw value), the fill of `.vk-band`: `Section` with `band` renders a
+  full-width `section.vk-band` (between two `--border-default` hairlines, `--section-sm` above
+  it and `--section-md` padding inside) around the usual `.vk-gutter` column, so the page
+  alternates void and band from the showcase down: How, Control and the FAQ are banded, the
+  showcase, formats and loop sit on the void (`section-bands.test.tsx` pins the order); and `--hero-grid-mask` (the fade that masks the static
   `fx/grid-pattern.ts` blueprint grid behind the hero only: `.vk-hero-blueprint`, an
   `aria-hidden` layer at `z-index: -1` that never animates). There is no wash token.
 - Placeholder chip: `PlaceholderChip` (`components/landing/placeholder-chip.tsx`, the `.vk-placeholder`

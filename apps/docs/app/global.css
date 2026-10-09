@@ -311,6 +311,48 @@ samp {
   }
 }
 
+.vk-band {
+  margin-block-start: var(--section-sm);
+  padding-block: var(--section-md);
+  border-block: 1px solid var(--border-default);
+  background: var(--surface-band);
+}
+
+.vk-section-head {
+  row-gap: 1.25rem;
+}
+
+@media (min-width: 64rem) {
+  .vk-section-head {
+    align-items: end;
+  }
+
+  .vk-section-head-title {
+    --grid-span: 7;
+  }
+
+  .vk-section-head-lead {
+    --grid-span: 5;
+  }
+}
+
+.vk-control-groups {
+  row-gap: 2.5rem;
+  margin-block-start: 2.5rem;
+}
+
+@media (min-width: 64rem) {
+  .vk-control-groups {
+    grid-template-rows: repeat(4, auto);
+    row-gap: 1.75rem;
+    margin-block-start: 3rem;
+  }
+
+  .vk-control-group {
+    --grid-span: 4;
+  }
+}
+
 .vk-placeholder {
   margin-inline: calc(-1 * var(--placeholder-inset));
   padding-inline: var(--placeholder-inset);

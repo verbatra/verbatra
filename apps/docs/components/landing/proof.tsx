@@ -20,7 +20,7 @@ export async function Proof(): Promise<ReactNode> {
   const tTerminal = await getTranslations("landing.terminal");
 
   return (
-    <Section width="wide" rhythm="md" id="how">
+    <Section width="wide" id="how" band>
       <SectionHead title={tHow("heading")} lead={tHow("lead")} reveal />
       <HowReplay
         terminal={{

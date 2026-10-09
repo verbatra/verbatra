@@ -20,14 +20,16 @@ export function SectionHead({
   return (
     <div
       className={cn(
-        "grid gap-5",
         centered
-          ? "mx-auto justify-items-center text-center"
-          : "lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:items-end lg:gap-x-16",
+          ? "mx-auto grid justify-items-center gap-5 text-center"
+          : "vk-grid-12 vk-section-head",
       )}
       style={centered ? { maxWidth } : undefined}
     >
-      <div data-reveal={reveal ? "0" : undefined}>
+      <div
+        data-reveal={reveal ? "0" : undefined}
+        className={centered ? undefined : "vk-section-head-title"}
+      >
         <h2 id={id} className={cn("vk-h2", centered ? "mx-auto max-w-[18ch]" : "max-w-[15ch]")}>
           {title}
         </h2>
@@ -35,7 +37,10 @@ export function SectionHead({
       {lead ? (
         <p
           data-reveal={reveal ? "1" : undefined}
-          className={cn("vk-lead max-w-[46ch]", !centered && "lg:justify-self-end lg:pb-2.5")}
+          className={cn(
+            "vk-lead max-w-[46ch]",
+            !centered && "vk-section-head-lead lg:justify-self-end lg:pb-2.5",
+          )}
         >
           {lead}
         </p>
