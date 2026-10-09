@@ -115,6 +115,18 @@ describe("LandingNav", () => {
     expect(header).toBe(56);
     expect(LANDING_OFFSET_REM * 16).toBe(header + link + border);
   });
+
+  it("lands a void section's heading one band padding under the nav, like a banded one", () => {
+    const rules = docsStylesheetRules();
+    const selector = ".vk-home section[id]:is(.vk-rhythm-lg, .vk-rhythm-md, .vk-rhythm-sm)";
+    const rule = rules.find((candidate) => candidate.selector === selector);
+    expect(rule?.declarations["margin-block-start"]).toBe("0");
+    expect(rule?.declarations["padding-block-start"]).toBe("var(--section-rhythm)");
+    expect(rule?.declarations["scroll-margin-top"]).toBe(
+      "calc(var(--vk-landing-offset) + var(--section-md) - var(--section-rhythm))",
+    );
+    expect(rulesFor(rules, ".vk-band")[0]?.declarations["padding-block"]).toBe("var(--section-md)");
+  });
 });
 
 describe("section ownership", () => {

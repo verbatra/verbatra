@@ -74,7 +74,7 @@ describe("HeaderCta", () => {
     expect(shown.map((rule) => [rule.selector, rule.media])).toEqual([
       [
         "html[data-past-hero]:not([data-final-cta]) .vk-header-cta",
-        "@media (width < 768px), (width >= 1280px)",
+        "@media (width < 768px), (width >= 1280px), (orientation: landscape) and (height < 32rem)",
       ],
     ]);
     for (const rule of rules) {

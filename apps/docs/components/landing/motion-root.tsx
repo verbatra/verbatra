@@ -28,6 +28,10 @@ function navLinks(doc: Document): Map<Element, Element> {
 function keepInView(link: Element): void {
   const scroller = link.closest("[data-nav-scroller]");
   if (!scroller) return;
+  if (scroller.querySelector("[data-nav-link]") === link) {
+    if (scroller.scrollLeft > 0) scroller.scrollTo({ left: 0 });
+    return;
+  }
   const box = scroller.getBoundingClientRect();
   const item = link.getBoundingClientRect();
   const left = Math.min(0, item.left - box.left) + Math.max(0, item.right - box.right + EDGE_FADE);

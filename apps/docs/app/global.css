@@ -207,6 +207,7 @@ samp {
   --accent-fill-fg: hsl(290 60% 98%);
   --focus-ring: var(--v-glow);
   --surface-band: color-mix(in srgb, var(--surface-card) 40%, var(--surface-bg));
+  --surface-chrome: color-mix(in srgb, var(--surface-bg) 94%, transparent);
   --placeholder-fg: var(--accent);
   --placeholder-fill: color-mix(in srgb, var(--v-glow) 12%, transparent);
   --placeholder-ring: color-mix(in srgb, var(--v-glow) 45%, transparent);
@@ -387,15 +388,19 @@ samp {
 }
 
 .vk-rhythm-lg {
-  margin-block-start: var(--section-lg);
+  --section-rhythm: var(--section-lg);
 }
 
 .vk-rhythm-md {
-  margin-block-start: var(--section-md);
+  --section-rhythm: var(--section-md);
 }
 
 .vk-rhythm-sm {
-  margin-block-start: var(--section-sm);
+  --section-rhythm: var(--section-sm);
+}
+
+:is(.vk-rhythm-lg, .vk-rhythm-md, .vk-rhythm-sm) {
+  margin-block-start: var(--section-rhythm);
 }
 
 .vk-pad-lg {
@@ -451,7 +456,7 @@ samp {
 }
 
 .vk-header {
-  background-color: color-mix(in srgb, var(--color-fd-background) 80%, transparent);
+  background-color: var(--surface-chrome);
 }
 
 .vk-header::after {
@@ -1501,7 +1506,7 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   }
 }
 
-@media (width < 768px), (width >= 1280px) {
+@media (width < 768px), (width >= 1280px), (orientation: landscape) and (height < 32rem) {
   html[data-past-hero]:not([data-final-cta]) .vk-header-cta {
     display: inline-flex;
   }
@@ -1548,6 +1553,12 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   scroll-margin-top: var(--vk-landing-offset);
 }
 
+.vk-home section[id]:is(.vk-rhythm-lg, .vk-rhythm-md, .vk-rhythm-sm) {
+  margin-block-start: 0;
+  padding-block-start: var(--section-rhythm);
+  scroll-margin-top: calc(var(--vk-landing-offset) + var(--section-md) - var(--section-rhythm));
+}
+
 .vk-landing-nav {
   position: sticky;
   top: 3.5rem;
@@ -1560,7 +1571,7 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   inset-inline: 0;
   top: 0;
   border-bottom: 1px solid var(--border-default);
-  background-color: color-mix(in srgb, var(--color-fd-background) 80%, transparent);
+  background-color: var(--surface-chrome);
   backdrop-filter: blur(4px);
 }
 
@@ -2345,7 +2356,7 @@ html[data-motion-ready]:not([data-past-hero]) .vk-landing-nav-bar {
 
 @media (min-width: 64rem) {
   .vk-showcase-section {
-    margin-block-start: 2.5rem;
+    --section-rhythm: 2.5rem;
   }
 
   .vk-showcase-bar {

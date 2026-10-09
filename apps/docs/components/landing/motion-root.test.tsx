@@ -254,6 +254,23 @@ describe("the landing section nav", () => {
     expect(scrollBy).toHaveBeenCalledTimes(1);
   });
 
+  it("scrolls the row back to its start when the first link becomes current, so its padding shows", () => {
+    const { links, sections } = mountNav();
+    const scroller = document.querySelector("nav") as HTMLElement;
+    scroller.setAttribute("data-nav-scroller", "");
+    scroller.getBoundingClientRect = () => ({ left: 0, right: 390 }) as DOMRect;
+    Object.defineProperty(scroller, "scrollLeft", { value: 30, configurable: true });
+    const scrollTo = vi.fn();
+    const scrollBy = vi.fn();
+    scroller.scrollTo = scrollTo as typeof scroller.scrollTo;
+    scroller.scrollBy = scrollBy as typeof scroller.scrollBy;
+    (links[0] as HTMLElement).getBoundingClientRect = () => ({ left: 4, right: 60 }) as DOMRect;
+    stop = startMotion();
+    FakeObserver.all[1]?.fire(sections[0] as HTMLElement, true);
+    expect(scrollTo).toHaveBeenCalledWith({ left: 0 });
+    expect(scrollBy).not.toHaveBeenCalled();
+  });
+
   it("never listens to scroll", () => {
     const source = readFileSync(join(import.meta.dirname, "motion-root.tsx"), "utf8");
     expect(source).not.toMatch(/addEventListener\(\s*["']scroll/);

@@ -475,8 +475,9 @@ parallax, no scroll-scrubbing, no scroll listener and no animation library.
   sticky header and section nav cover, and `isPastHero` measures against `rootBounds.top`), and
   again while the final call to action is on screen (`html[data-final-cta]`). It then appears with a
   4px fade (`vk-header-cta-in`) into the free space of the `justify-end` group, so nothing beside it
-  moves. It shows under 768px and from 1280px only, the widths where that space exists. A click
-  counts `click-cta` with `location: header`.
+  moves. It shows under 768px, from 1280px, and on a landscape screen under 32rem tall (a phone
+  turned sideways), the cases where that space exists. A click counts `click-cta` with
+  `location: header`.
 - **Version pill.** On the landing only (the same `landingLocale` gate), `HomeSiteHeader` passes
   `VersionPill` (`components/version-pill.tsx`) as the frame's `badge`, rendered right after the
   wordmark and outside the primary nav, which stays Docs, Reference and GitHub. It reads
@@ -501,14 +502,18 @@ parallax, no scroll-scrubbing, no scroll listener and no animation library.
   covers the header or its call to action. The link row scrolls sideways inside `.vk-edge-fade` when
   it overflows, and `MotionRoot` scrolls a newly current link back into view past the fade
   (`scrollBy` on the `[data-nav-scroller]` row, never the page, smooth through `scroll-behavior`
-  under `no-preference` only). One offset serves every jump and the observer: `--vk-landing-offset`
-  on `.vk-home` (6.3125rem: the 3.5rem header, the 2.75rem link row and its 1px hairline) is the
+  under `no-preference` only); the first link scrolls the row back to 0, so the row's start
+  padding shows. One offset serves every jump and the observer: `--vk-landing-offset` on
+  `.vk-home` (6.3125rem: the 3.5rem header, the 2.75rem link row and its 1px hairline) is the
   `scroll-margin-top` of every `.vk-home [id]`, so a jump lands the section (and a band's top
   hairline) under the nav, and `LANDING_OFFSET_REM` in `motion-root.tsx` is the same value for the
-  presence observer's top margin. `MotionRoot` resolves each link's section and watches it on the
-  same presence observer, with no scroll listener: the first linked section still inside the root
-  gets `aria-current="true"` on its link (an `--accent` 2px underline at `bottom: 0`, inside the
-  `overflow-y: hidden` row), every other link none, and teardown clears it. `landing-nav.test.tsx`
+  presence observer's top margin. A void section with an id turns its `--section-rhythm` margin
+  into top padding and offsets its `scroll-margin-top` by `--section-md` less that rhythm, so
+  every heading lands one band padding (`--section-md`) under the nav, banded or not.
+  `MotionRoot` resolves each link's section and watches it on the same presence observer, with no
+  scroll listener: the first linked section still inside the root gets `aria-current="true"` on
+  its link (an `--accent` 2px underline at `bottom: 0`, inside the `overflow-y: hidden` row), every
+  other link none, and teardown clears it. `landing-nav.test.tsx`
   pins the markup, the stylesheet, the shared offset and the link each section owns;
   `motion-root.test.tsx` the observer reuse.
 - **Marquee.** The only infinite motion. Its two rows scroll endlessly, pause on hover and
@@ -575,7 +580,9 @@ edge. The home layout swaps Fumadocs' `<main id="nd-home-layout">` container for
 footer passed in by `app/[lang]/(home)/layout.tsx`, so the header and footer stay banner and
 contentinfo landmarks; a page under that layout must not render another `<main>`. Fumadocs' own
 `HomeLayout` and notebook headers are never rendered, so do not style `#nd-nav` or `#nd-subnav`;
-style `.vk-header` and `.vk-header-link` instead, and change the header in one place.
+style `.vk-header` and `.vk-header-link` instead, and change the header in one place. The header
+and the landing section nav share one fill, `--surface-chrome` (`--surface-bg` at 94 percent, so
+content scrolling under them stays out of the way of their text).
 
 Both surfaces share one layout width: `--width-layout` (97rem, the notebook layout's own
 default) feeds `--fd-layout-width` from `:root` and again on the home container, so the
