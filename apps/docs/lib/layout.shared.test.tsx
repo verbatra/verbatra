@@ -47,6 +47,7 @@ vi.mock("fumadocs-ui/components/sidebar/base", () => {
     SidebarDrawerContent: ({ children }: { children?: ReactNode }) => (
       <div data-drawer>{children}</div>
     ),
+    useSidebar: () => ({ open: false, mode: "drawer", setOpen: () => undefined }),
   };
 });
 

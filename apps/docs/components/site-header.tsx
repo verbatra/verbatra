@@ -8,6 +8,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
   SidebarViewport,
+  useSidebar,
 } from "fumadocs-ui/components/sidebar/base";
 import { buttonVariants } from "fumadocs-ui/components/ui/button";
 import { useHomeLayout } from "fumadocs-ui/layouts/home";
@@ -18,8 +19,9 @@ import {
   LinkItem,
   type LinkItemType,
 } from "fumadocs-ui/layouts/shared";
-import type { ComponentProps, ReactNode } from "react";
+import { type ComponentProps, type ReactNode, useRef } from "react";
 import { useRootTabs } from "@/components/root-tabs";
+import { useDrawerEscape } from "@/components/use-drawer-escape";
 import { headerActiveTab, isRootTabLinkActive } from "@/lib/root-tabs";
 import { cn } from "@/lib/utils";
 
@@ -218,7 +220,10 @@ const MOBILE_TRIGGER = cn(buttonVariants({ variant: "ghost", size: "icon-sm" }),
 export function DocsSiteHeader(props: ComponentProps<"header">): ReactNode {
   const { slots, navItems, isNavTransparent } = useNotebookLayout();
   const sidebar = slots.sidebar;
-  const { open } = sidebar.useSidebar();
+  const sidebarState = useSidebar();
+  const { open } = sidebarState;
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  useDrawerEscape(sidebarState, triggerRef);
   const { tabs, active } = useRootTabs();
   const pathname = usePathname();
   const activeTab = headerActiveTab(navItems, tabs, active, (item) =>
@@ -237,7 +242,7 @@ export function DocsSiteHeader(props: ComponentProps<"header">): ReactNode {
       navItems={navItems}
       activeOverride={(url) => isRootTabLinkActive(url, tabs, activeTab)}
       mobileTrigger={
-        <sidebar.trigger className={MOBILE_TRIGGER}>
+        <sidebar.trigger ref={triggerRef} className={MOBILE_TRIGGER}>
           <SidebarIcon />
         </sidebar.trigger>
       }
@@ -255,6 +260,16 @@ export function DocsSiteHeader(props: ComponentProps<"header">): ReactNode {
   );
 }
 
+function HomeMobileTrigger(): ReactNode {
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  useDrawerEscape(useSidebar(), triggerRef);
+  return (
+    <SidebarTrigger ref={triggerRef} className={MOBILE_TRIGGER}>
+      <SidebarIcon />
+    </SidebarTrigger>
+  );
+}
+
 export function HomeSiteHeader(props: ComponentProps<"header">): ReactNode {
   const { slots, navItems, menuItems } = useHomeLayout();
   const textItems = menuItems.filter((item) => !isIconItem(item));
@@ -267,11 +282,7 @@ export function HomeSiteHeader(props: ComponentProps<"header">): ReactNode {
         className={cn("top-0 z-40", props.className)}
         slots={slots}
         navItems={navItems}
-        mobileTrigger={
-          <SidebarTrigger className={MOBILE_TRIGGER}>
-            <SidebarIcon />
-          </SidebarTrigger>
-        }
+        mobileTrigger={<HomeMobileTrigger />}
       />
       <SidebarDrawerOverlay className="fixed inset-0 z-40 backdrop-blur-xs data-[state=closed]:animate-fd-fade-out data-[state=open]:animate-fd-fade-in" />
       <SidebarDrawerContent className="fixed inset-e-0 inset-y-0 z-40 flex w-[85%] max-w-[380px] flex-col border-s bg-fd-background text-[0.9375rem] shadow-lg data-[state=closed]:animate-fd-sidebar-out data-[state=open]:animate-fd-sidebar-in">
