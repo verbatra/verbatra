@@ -492,7 +492,7 @@ describe("Docs page", () => {
   it("counts a code block copy as copy-code, and nothing for a click on the code itself", async () => {
     const container = render(
       <TrackedCodeBlock>
-        <pre>npx verbatra check</pre>
+        <pre>npx @verbatra/cli check</pre>
       </TrackedCodeBlock>,
     );
     await click(container.querySelector('[data-part="code-area"] pre'));
