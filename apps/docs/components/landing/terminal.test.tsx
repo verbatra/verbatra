@@ -49,6 +49,27 @@ describe("Terminal: first frame", () => {
   });
 });
 
+describe("Terminal: placeholder chips", () => {
+  it("draws a placeholder inside an output token as a locked chip, kept whole", () => {
+    const markup = renderToStaticMarkup(
+      <Terminal
+        commands={["verbatra translate"]}
+        outputs={{ 0: ["      inbox.count: placeholder (-{count})"] }}
+        sessionLabel="Session"
+        fitContent
+        settledCommands={1}
+      />,
+    );
+    const doc = new DOMParser().parseFromString(markup, "text/html");
+    const screen = doc.querySelector('[aria-hidden="true"] > div:not(.invisible)');
+    const chip = screen?.querySelector(".vk-placeholder");
+    expect(chip?.textContent).toBe("{count}");
+    expect(chip?.hasAttribute("data-broken")).toBe(false);
+    expect(chip?.closest(".whitespace-nowrap")?.textContent).toBe("(-{count})");
+    expect(doc.querySelector(".sr-only")?.textContent).toContain("(-{count})");
+  });
+});
+
 describe("Terminal: line layout", () => {
   function lineClasses(wrap: boolean): ReadonlyArray<string> {
     const markup = renderToStaticMarkup(

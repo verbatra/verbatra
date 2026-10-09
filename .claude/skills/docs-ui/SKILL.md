@@ -114,7 +114,10 @@ Scales are fixed and narrow, deliberately:
   an inset `--placeholder-ring` box shadow, never a border. It pads the token by
   `--placeholder-inset` and pulls the same amount back with a negative margin, so a chip moves no
   character of a monospace line, and it never wraps. `data-broken` strikes it in `--text-danger`,
-  only for a token a reply broke.
+  only for a token a reply broke. `PlaceholderText` in the same file cuts the tokens out of a line
+  (`splitPlaceholders`: `{{name}}` and `{name}` only, so JSON braces stay text) and draws each as a
+  chip; every showcase file pane and every `Terminal` line goes through it, and the showcase
+  passes the tokens a refused reply added (the `+` details of its refusal) as the broken set.
 - Motion: see "Landing motion" below for the system. Its tokens: `--ease-out` (entrances and
   state changes) and `--ease-in-out` (demo fills), `--duration-fast` (140ms, hover and press),
   `--duration-base` (240ms, state change), `--duration-reveal` (560ms, entrances),

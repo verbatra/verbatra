@@ -12,6 +12,7 @@ import {
   type ShowcaseScenarioId,
 } from "@/lib/showcase-seed";
 import { trackUmamiEvent } from "@/lib/umami";
+import { PlaceholderText } from "./placeholder-chip";
 import { WrapTokens } from "./wrap-text";
 
 type ScenarioModule = typeof import("@/lib/showcase-scenarios");
@@ -41,6 +42,7 @@ function FilePane({
   rows,
   open,
   marks,
+  broken,
 }: {
   id: PaneId;
   file: string;
@@ -48,6 +50,7 @@ function FilePane({
   rows: number;
   open: boolean;
   marks: (line: ShowcaseLine) => string;
+  broken: ReadonlySet<string>;
 }): ReactNode {
   return (
     <figure className="vk-showcase-file" data-pane={id} data-open={open}>
@@ -55,12 +58,21 @@ function FilePane({
       <pre className="vk-showcase-code" style={{ "--showcase-rows": rows } as CSSProperties}>
         {lines.map((line, index) => (
           <span key={`${index}-${line.text}`} className="vk-showcase-line" data-mark={line.mark}>
-            <code className="vk-showcase-line-text">{line.text}</code>
+            <code className="vk-showcase-line-text">
+              <PlaceholderText text={line.text} broken={broken} />
+            </code>
             {line.mark ? <span className="vk-showcase-mark">{marks(line)}</span> : null}
           </span>
         ))}
       </pre>
     </figure>
+  );
+}
+
+function brokenTokens(outcome: ShowcaseOutcome): ReadonlySet<string> {
+  const details = outcome.refusal?.details ?? [];
+  return new Set(
+    details.filter((detail) => detail.startsWith("+")).map((detail) => detail.slice(1)),
   );
 }
 
@@ -185,6 +197,7 @@ export function TryIt({ seed, rows }: { seed: ShowcaseOutcome; rows: ShowcaseRow
   }
 
   const marks = (line: ShowcaseLine) => (line.mark ? t(`marks.${line.mark}`) : "");
+  const broken = brokenTokens(outcome);
   const atSeed = outcome.scenario === null && failedScenario === null && !pending;
 
   return (
@@ -235,6 +248,7 @@ export function TryIt({ seed, rows }: { seed: ShowcaseOutcome; rows: ShowcaseRow
             rows={rows[pane.id]}
             open={openPane === pane.id}
             marks={marks}
+            broken={broken}
           />
         ))}
       </div>

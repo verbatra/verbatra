@@ -73,6 +73,20 @@ describe("TryIt: server-rendered seed", () => {
   });
 });
 
+describe("TryIt: placeholder chips", () => {
+  it("draws the source and target placeholder as the same locked chip", () => {
+    const doc = markup();
+    const chips = (pane: string) =>
+      [...doc.querySelectorAll(`[data-pane="${pane}"] .vk-placeholder`)].map((chip) => [
+        chip.textContent,
+        chip.hasAttribute("data-broken"),
+      ]);
+    expect(chips("source")).toEqual([["{{amount}}", false]]);
+    expect(chips("target")).toEqual([["{{amount}}", false]]);
+    expect(chips("lock")).toEqual([]);
+  });
+});
+
 describe("TryIt: layout hooks", () => {
   it("names each pane so the stylesheet can give the lock file its own row", () => {
     const panes = [...markup().querySelectorAll<HTMLElement>(".vk-showcase-file")];
@@ -186,6 +200,18 @@ describe("TryIt: scenarios", () => {
     expect(container.querySelector('[data-mark="refused"]')?.textContent).toContain(
       "Fällig: {{betrag}}",
     );
+    const refusedChips = [
+      ...(container.querySelector('[data-mark="refused"]')?.querySelectorAll(".vk-placeholder") ??
+        []),
+    ];
+    expect(
+      refusedChips.map((chip) => [chip.textContent, chip.hasAttribute("data-broken")]),
+    ).toEqual([["{{betrag}}", true]]);
+    expect(
+      [...container.querySelectorAll('[data-pane="source"] .vk-placeholder')].map((chip) =>
+        chip.hasAttribute("data-broken"),
+      ),
+    ).toEqual([false]);
     expect(trackUmamiEvent).toHaveBeenCalledWith("run-scenario", {
       scenario: "break",
       location: "showcase",

@@ -1,7 +1,12 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
-import { PlaceholderChip } from "./placeholder-chip";
+import {
+  isPlaceholderToken,
+  PlaceholderChip,
+  PlaceholderText,
+  splitPlaceholders,
+} from "./placeholder-chip";
 
 const rules = docsStylesheetRules();
 
@@ -21,6 +26,41 @@ describe("PlaceholderChip", () => {
     expect(renderToStaticMarkup(<PlaceholderChip token="{{betrag}}" broken />)).toContain(
       'data-broken=""',
     );
+  });
+});
+
+describe("splitPlaceholders", () => {
+  it("cuts an i18next and an ICU token out of the text around them", () => {
+    expect(splitPlaceholders('"total": "Total: {{amount}}",')).toEqual([
+      '"total": "Total: ',
+      "{{amount}}",
+      '",',
+    ]);
+    expect(splitPlaceholders("(-{count})")).toEqual(["(-", "{count}", ")"]);
+  });
+
+  it("leaves JSON braces and a spaced object alone", () => {
+    expect(splitPlaceholders('{ "de": {')).toEqual(['{ "de": {']);
+    expect(splitPlaceholders('{ "locale": "de", "missing": 0 }')).toEqual([
+      '{ "locale": "de", "missing": 0 }',
+    ]);
+    expect(isPlaceholderToken("{}")).toBe(false);
+    expect(isPlaceholderToken("{{ amount }}")).toBe(true);
+  });
+});
+
+describe("PlaceholderText", () => {
+  it("draws every token as a chip and strikes only the broken ones", () => {
+    const html = renderToStaticMarkup(
+      <PlaceholderText text="Fällig: {{betrag}} {{amount}}" broken={new Set(["{{betrag}}"])} />,
+    );
+    expect(html).toBe(
+      'Fällig: <span class="vk-placeholder" data-placeholder="" data-broken="">{{betrag}}</span> <span class="vk-placeholder" data-placeholder="">{{amount}}</span>',
+    );
+  });
+
+  it("keeps the text of a line without placeholders as it is", () => {
+    expect(renderToStaticMarkup(<PlaceholderText text="  }," />)).toBe("  },");
   });
 });
 

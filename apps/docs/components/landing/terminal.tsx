@@ -4,6 +4,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { prefersReducedMotion } from "@/lib/reduced-motion";
 import { useInViewOnce } from "@/lib/use-in-view-once";
 import { cn } from "@/lib/utils";
+import { PlaceholderText } from "./placeholder-chip";
 import { WrapTokens, wrapLineStyle } from "./wrap-text";
 
 type Line = { kind: "command" | "output"; text: string };
@@ -127,7 +128,11 @@ function HighlightedText({ text, base }: { text: string; base: string }): ReactN
   return (
     <WrapTokens
       text={text}
-      render={(token) => <span style={{ color: tokenColor(token) ?? base }}>{token}</span>}
+      render={(token) => (
+        <span style={{ color: tokenColor(token) ?? base }}>
+          <PlaceholderText text={token} />
+        </span>
+      )}
     />
   );
 }
