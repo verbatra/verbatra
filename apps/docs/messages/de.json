@@ -314,7 +314,7 @@
         "breaksLabel": "Wie die Antwort ihn beschädigt",
         "breaks": {
           "drop": "Lässt {token} weg",
-          "rename": "Benennt ihn in {token} um",
+          "rename": "Benennt {placeholder} in {token} um",
           "add": "Fügt {token} hinzu"
         },
         "reset": "Zurücksetzen",

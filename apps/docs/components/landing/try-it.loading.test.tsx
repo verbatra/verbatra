@@ -19,9 +19,9 @@ vi.mock("@/lib/showcase-scenarios", async (importOriginal) => {
   const original = await importOriginal<ScenarioModule>();
   return {
     ...original,
-    runShowcaseScenario: (id: Parameters<ScenarioModule["runShowcaseScenario"]>[0]) => {
+    runShowcaseScenario: (...args: Parameters<ScenarioModule["runShowcaseScenario"]>) => {
       if (loading.failRun) throw new Error("scenario failed");
-      return original.runShowcaseScenario(id);
+      return original.runShowcaseScenario(...args);
     },
   };
 });
@@ -111,6 +111,28 @@ describe("TryIt: loading the scenario module", () => {
     expect(title(container)).toBe("landing.showcase.tryIt.result.summary");
     expect(container.querySelector('[data-mark="edited"]')).not.toBeNull();
     expect(button(container, "landing.showcase.tryIt.retry")).toBeUndefined();
+  });
+
+  it("keeps the chosen reply when Try again replays a failed break", async () => {
+    const container = render();
+    await click(container.querySelector<HTMLInputElement>('input[value="drop"]'));
+    await click(button(container, "landing.showcase.tryIt.scenarios.edit"));
+    loading.failRun = true;
+    await click(button(container, "landing.showcase.tryIt.scenarios.break"));
+    loading.failRun = false;
+    expect(title(container)).toBe("landing.showcase.tryIt.result.failed");
+
+    trackUmamiEvent.mockReset();
+    await click(button(container, "landing.showcase.tryIt.retry"));
+    expect(trackUmamiEvent.mock.calls).toEqual([
+      ["run-scenario", { scenario: "break", location: "showcase", break: "drop", retry: true }],
+    ]);
+    expect(container.querySelector<HTMLInputElement>('input[value="drop"]')?.checked).toBe(true);
+    expect(
+      [...container.querySelectorAll(".vk-showcase-output-line")].some((line) =>
+        line.textContent?.includes("(-{{amount}})"),
+      ),
+    ).toBe(true);
   });
 
   it("clears the pressed scenario while a failure is shown", async () => {

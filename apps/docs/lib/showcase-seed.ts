@@ -6,6 +6,7 @@ export const SHOWCASE_SOURCE_FILE = "en.json";
 export const SHOWCASE_TARGET_FILE = "de.json";
 export const SHOWCASE_LOCK_FILE = "verbatra.lock.json";
 export const SHOWCASE_TARGET_LOCALE = "de";
+export const SHOWCASE_PLACEHOLDER = "{{amount}}";
 
 export const SHOWCASE_SOURCE: JsonTree = {
   cart: {
@@ -48,7 +49,7 @@ export const DEFAULT_SHOWCASE_BREAK: ShowcaseBreakId = "rename";
 export const SHOWCASE_BREAK_REPLIES: Readonly<
   Record<ShowcaseBreakId, { readonly candidate: string; readonly token: string }>
 > = {
-  drop: { candidate: "Fällig: sofort", token: "{{amount}}" },
+  drop: { candidate: "Fällig: sofort", token: SHOWCASE_PLACEHOLDER },
   rename: { candidate: "Fällig: {{betrag}}", token: "{{betrag}}" },
   add: { candidate: "Fällig: {{amount}} zzgl. {{tax}}", token: "{{tax}}" },
 };

@@ -12,6 +12,7 @@ import {
   SHOWCASE_BREAK_REPLIES,
   SHOWCASE_BREAKS,
   SHOWCASE_LOCK_FILE,
+  SHOWCASE_PLACEHOLDER,
   SHOWCASE_SCENARIOS,
   SHOWCASE_SOURCE_FILE,
   SHOWCASE_TARGET_FILE,
@@ -31,7 +32,7 @@ const { TryIt } = await import("./try-it");
 
 const SEED = showcaseSeed();
 
-function css(selector: string): string {
+function rulesFor(selector: string): string {
   const sheet = readFileSync(join(process.cwd(), "app/global.css"), "utf8");
   return sheet
     .split("}")
@@ -165,14 +166,18 @@ describe("TryIt: two-by-two playground", () => {
     }
   });
 
-  it("puts Reset in the scenario bar, and under the output on a phone", () => {
+  it("keeps Reset right after the scenarios at every width, so focus order matches the layout", () => {
     const doc = markup();
     const bar = doc.querySelector(".vk-showcase-bar");
-    expect(bar?.querySelector(".vk-showcase-scenarios")).not.toBeNull();
+    expect([...(bar?.children ?? [])].map((child) => child.className)).toEqual([
+      "vk-showcase-scenarios",
+      "vk-showcase-actions",
+    ]);
     expect(bar?.querySelector(".vk-showcase-actions .vk-showcase-reset")).not.toBeNull();
-    expect(css).toMatch(/\.vk-showcase-bar \{\s+display: contents;/);
-    expect(css).toContain(
-      '"scenarios"\n    "breaks"\n    "switch"\n    "file"\n    "outcome"\n    "actions";',
+    expect(css).not.toContain("display: contents");
+    expect(css).toContain('"bar"\n    "breaks"\n    "switch"\n    "file"\n    "outcome";');
+    expect(css).toMatch(
+      /\.vk-showcase-actions:not\(:has\(> :not\(\[hidden\]\)\)\) \{\s+display: none;/,
     );
   });
 
@@ -349,12 +354,59 @@ describe("TryIt: scenarios", () => {
     const radios = [...(group?.querySelectorAll<HTMLInputElement>('input[type="radio"]') ?? [])];
     expect(radios.map((radio) => radio.value)).toEqual([...SHOWCASE_BREAKS]);
     expect(new Set(radios.map((radio) => radio.name)).size).toBe(1);
-    expect(radios.filter((radio) => radio.checked).map((radio) => radio.value)).toEqual(["rename"]);
+    expect(radios.filter((radio) => radio.checked)).toEqual([]);
     expect(
-      [...(group?.querySelectorAll(".vk-showcase-break .vk-placeholder") ?? [])].map(
-        (chip) => chip.textContent,
+      [...(group?.querySelectorAll(".vk-showcase-break") ?? [])].map((label) => label.textContent),
+    ).toEqual(
+      SHOWCASE_BREAKS.map(
+        (id) =>
+          `landing.showcase.tryIt.breaks.${id}${JSON.stringify({
+            token: SHOWCASE_BREAK_REPLIES[id].token,
+            placeholder: SHOWCASE_PLACEHOLDER,
+          })}`,
       ),
-    ).toEqual(SHOWCASE_BREAKS.map((id) => SHOWCASE_BREAK_REPLIES[id].token));
+    );
+  });
+
+  it("checks a reply only while the break scenario is on screen", async () => {
+    const container = render();
+    const checked = () =>
+      [...container.querySelectorAll<HTMLInputElement>(".vk-showcase-break-input")]
+        .filter((radio) => radio.checked)
+        .map((radio) => radio.value);
+    await click(button(container, "landing.showcase.tryIt.scenarios.edit"));
+    expect(checked()).toEqual([]);
+    await click(button(container, "landing.showcase.tryIt.scenarios.break"));
+    expect(checked()).toEqual(["rename"]);
+  });
+
+  it("runs the default rename reply from its radio when no break is on screen", async () => {
+    const container = render();
+    await click(container.querySelector<HTMLInputElement>('input[value="rename"]'));
+    expect(trackUmamiEvent).toHaveBeenCalledWith("run-scenario", {
+      scenario: "break",
+      location: "showcase",
+      break: "rename",
+    });
+    expect(container.querySelector<HTMLInputElement>('input[value="rename"]')?.checked).toBe(true);
+    expect(
+      [...container.querySelectorAll(".vk-showcase-output-line")].map((line) => line.textContent),
+    ).toEqual(showcaseRunLines(runShowcaseScenario("break", "rename")));
+  });
+
+  it("replays the last chosen reply when the break scenario comes back", async () => {
+    const container = render();
+    await click(container.querySelector<HTMLInputElement>('input[value="drop"]'));
+    await click(button(container, "landing.showcase.tryIt.scenarios.edit"));
+    trackUmamiEvent.mockReset();
+    await click(button(container, "landing.showcase.tryIt.scenarios.break"));
+    expect(trackUmamiEvent.mock.calls).toEqual([
+      ["run-scenario", { scenario: "break", location: "showcase", break: "drop" }],
+    ]);
+    expect(container.querySelector<HTMLInputElement>('input[value="drop"]')?.checked).toBe(true);
+    expect(
+      [...container.querySelectorAll(".vk-showcase-output-line")].map((line) => line.textContent),
+    ).toEqual(showcaseRunLines(runShowcaseScenario("break", "drop")));
   });
 
   it.each([
@@ -385,6 +437,10 @@ describe("TryIt: scenarios", () => {
       ).toBe("true");
 
       await click(button(container, "landing.showcase.tryIt.reset"));
+      expect(container.querySelector<HTMLInputElement>(`input[value="${reply}"]`)?.checked).toBe(
+        false,
+      );
+      await click(button(container, "landing.showcase.tryIt.scenarios.break"));
       expect(container.querySelector<HTMLInputElement>('input[value="rename"]')?.checked).toBe(
         true,
       );
@@ -402,7 +458,7 @@ describe("TryIt: scenarios", () => {
       ["replaced", `"cart.checkout": "${SEED.lockHashes["cart.checkout"]}"`],
       ["changes", `"cart.checkout": "${edited}",`],
     ]);
-    expect(css(".vk-showcase-line-text")).toContain('[data-mark="replaced"]');
+    expect(rulesFor(".vk-showcase-line-text")).toContain('[data-mark="replaced"]');
   });
 
   it("reports the orphaned key and changes no lock hash when a key is removed", async () => {

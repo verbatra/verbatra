@@ -147,9 +147,9 @@ per component. Adding a fourth family needs a reason that survives review.
 
 The type scale is a major third (1.25) held in `app/global.css`: `--text-display`, `--text-h2`
 (capped at 3rem, read only by `.vk-h2`), `--text-h3`, `--text-h4`, `--text-lead`, with
-`--leading-*` and `--tracking-*` companions. Above it sits `--text-hero` (fluid, 2.5rem to 6.25rem, about 97px at 1440, one step of the scale above
-the former 5rem cap) with `--weight-hero` (700), `--leading-hero` (1.04) and `--tracking-hero`
-(-0.03em), used only by the landing headline (`.vk-hero-title`). Landing
+`--leading-*` and `--tracking-*` companions. Above it sits `--text-hero` (fluid, 2.5rem to
+6.25rem, about 97px at 1440) with `--weight-hero` (700), `--leading-hero` (1.04) and
+`--tracking-hero` (-0.03em), used only by the landing headline (`.vk-hero-title`). Landing
 headings take the `.vk-display`, `.vk-h2`, `.vk-h3`, `.vk-h4` and `.vk-lead` classes (declared in
 `@layer components`, so a Tailwind utility still overrides them) rather than inline `fontSize` /
 `letterSpacing` styles. The docs page title, description and prose `h2` to `h4` sit on the same
@@ -248,46 +248,51 @@ footer's oversized watermark only; do not clip it onto a heading.
   panel that holds the Try it playground alone, with no tabs; Studio is shown in the loop),
   `try-it.tsx` (the Try it playground, one `.vk-showcase-try` grid: from 40rem a scenario bar
   (`.vk-showcase-bar`) over a two-by-two board, `en.json` | `de.json` above `verbatra.lock.json`
-  | output, cells split by 1px hairlines; on a phone the bar is `display: contents`, so the
-  scenarios wrap on top, the file switch picks one file pane, the output sits under it at all
-  times and the actions drop under the output. The scenario group holds four `aria-pressed`
-  buttons (edit, add, remove, break a placeholder), each counted as `run-scenario`, beside the
-  actions (Reset, and Try again after a failure). Under the bar, `.vk-showcase-breaks` is a
-  native radio group (one `name`, so the arrow keys move through it) of the three ways a reply
-  breaks the placeholder, `SHOWCASE_BREAKS` in `lib/showcase-seed.ts`: it drops `{{amount}}`,
-  renames it to `{{betrag}}` (the default) or adds `{{tax}}`; each label is
-  `tryIt.breaks.<id>` with the token passed as `{token}` and drawn as a chip, picking one runs
-  the break scenario with it (counted as `run-scenario` with a `break` property), the refusal
-  detail comes from `checkPlaceholders`, and Reset returns it to the default. The file panes (`.vk-showcase-file`: on a
-  phone one at a time, picked by the `aria-pressed` file names of `.vk-showcase-file-switch`;
-  each named by `data-pane`, which the stylesheet maps to its grid area); a marked
-  line is `.vk-showcase-line[data-mark]`, tinted like a highlighted code line, its mark word in
-  `--v-status-new` (added, missing, new) or `--v-status-changed` (edited, stale, changes); a
-  refused reply shows as a struck `data-mark="refused"` line in `--text-danger` above the German
-  value it leaves in place; the lock pane prints full 16-character hashes, and a rewritten hash
-  shows before and after: the seed hash struck as `data-mark="replaced"` above the new one marked
-  `changes`; a mark that does
-  not fit drops to the next row), then the output pane (`.vk-showcase-output`, a `figure` captioned
-  `verbatra translate`, named by `landing.showcase.tryIt.result.outputLabel` and marked
-  `lang="en"`, its fixed height adding `--showcase-scroll-reserve` so a sideways scrollbar on a
-  phone moves nothing) printing, in English on every locale, exactly the lines `renderHuman` prints for that run
-  (`showcaseRunLines` in `lib/showcase-cli.ts`, server-rendered for the seed; after a click the
-  lines fade in one `--print-stagger` apart, under 600ms in all, and at once under reduced
+  | output, cells split by 1px hairlines; on a phone the bar is one column, the scenarios
+  wrapping on top with the actions under them, then the file switch picks one file pane and the
+  output sits under it at all times. The actions follow the scenarios in the DOM at every width,
+  so the focus order is the visual order, and on a phone they take no row while nothing in them
+  shows. The scenario group holds four `aria-pressed` buttons (edit, add, remove, break a
+  placeholder), each counted as `run-scenario`, beside the actions (Reset, and Try again after a
+  failure). Under the bar, `.vk-showcase-breaks` is a native radio group (one `name`, so the
+  arrow keys move through it) of the three ways a reply breaks the placeholder,
+  `SHOWCASE_BREAKS` in `lib/showcase-seed.ts`: it drops `{{amount}}`, renames `{{amount}}` to
+  `{{betrag}}` (the default) or adds `{{tax}}`; each label is `tryIt.breaks.<id>` with the reply
+  token passed as `{token}` and `SHOWCASE_PLACEHOLDER` as `{placeholder}`, both drawn as chips. A
+  radio is checked only while the break scenario is on screen, so every radio runs it when
+  another scenario shows; picking one runs the break scenario with it (counted as `run-scenario`
+  with a `break` property), the break button and Try again replay the last chosen reply, the
+  refusal detail comes from `checkPlaceholders`, and Reset returns it to the default. The file
+  panes (`.vk-showcase-file`: on a phone one at a time, picked by the `aria-pressed` file names
+  of `.vk-showcase-file-switch`; each named by `data-pane`, which the stylesheet maps to its grid
+  area); a marked line is `.vk-showcase-line[data-mark]`, tinted like a highlighted code line,
+  its mark word in `--v-status-new` (added, missing, new) or `--v-status-changed` (edited,
+  stale, changes); a refused reply shows as a struck `data-mark="refused"` line in
+  `--text-danger` above the German value it leaves in place; the lock pane prints full
+  16-character hashes, and a rewritten hash shows before and after: the seed hash struck as
+  `data-mark="replaced"` above the new one marked `changes`; a mark that does not fit drops to
+  the next row), then the output pane (`.vk-showcase-output`, a `figure` captioned `verbatra
+  translate`, named by `landing.showcase.tryIt.result.outputLabel` and marked `lang="en"`, its
+  fixed height adding `--showcase-scroll-reserve` so a sideways scrollbar on a phone moves
+  nothing) printing, in English on every locale, exactly the lines `renderHuman` prints for that
+  run (`showcaseRunLines` in `lib/showcase-cli.ts`, server-rendered for the seed; after a click
+  the lines fade in one `--print-stagger` apart, under 600ms in all, and at once under reduced
   motion), a mono savings line (`result.savings`: strings sent against what a full retranslate
   sends, `showcaseSavings`), and one polite `role="status"` sentence (`result.seed`,
   `result.summary` or `result.failed`). Reset is hidden at the seed and returns focus to the
-  first scenario; Try again is shown
-  with an announced failure message when the module fails to load (the cached promise is dropped,
-  so a retry loads again). Only the latest request applies: a Reset or a newer click while a load
-  is pending wins. The seed state is server-rendered from `showcaseSeed()`; the first hover,
-  focus or click `import()`s `lib/showcase-scenarios.ts`, the only client code that uses
-  `@verbatra/core` (`diffResources`, `contentHash`, `checkPlaceholders`), over the scenario data in
-  `lib/showcase-seed.ts` and the small nested-JSON flattener in `lib/showcase-flatten.ts`
-  (`@verbatra/format-adapters` is not browser-safe). `lib/showcase-flatten.test.ts` pins the
-  flattener to the real i18next adapter and `lib/showcase-scenarios.sdk.test.ts` pins every
-  scenario's (and each break variant's) sent, unchanged, orphaned and refused keys and lock
-  hashes to a real sdk `translate` with a stub provider. Only the `.vk-showcase` panel carries a reveal; nothing inside the
-  playground does. The copy says what verbatra would translate; it never claims the page
+  first scenario; Try again is shown with an announced failure message when the module fails to
+  load (the cached promise is dropped, so a retry loads again). Only the latest request applies:
+  a Reset or a newer click while a load is pending wins. The seed state is server-rendered from
+  `showcaseSeed()`; the first hover, focus or click `import()`s `lib/showcase-scenarios.ts`, the
+  only client code that uses `@verbatra/core` (`diffResources`, `contentHash`,
+  `checkPlaceholders`), over the scenario data in `lib/showcase-seed.ts` and the small
+  nested-JSON flattener in `lib/showcase-flatten.ts` (`@verbatra/format-adapters` is not
+  browser-safe). `lib/showcase-flatten.test.ts` pins the flattener to the real i18next adapter
+  and `lib/showcase-scenarios.sdk.test.ts` pins every scenario's (and each other break
+  variant's) sent, unchanged, orphaned and refused keys and lock hashes to a real sdk
+  `translate` with a stub provider. Only the `.vk-showcase` panel carries a reveal; nothing
+  inside the playground does. The copy says what verbatra would translate; it never claims the
+  page
   translates), `evidence.tsx` (the mono evidence chip, which wraps inside a narrow column rather than growing past it; a linked chip
   takes the flat-panel glow border on hover and focus through `.vk-evidence-link`),
   `command-box.tsx` (by default an `@container`: a command wraps once the box is under 30rem, at a space
@@ -600,8 +605,7 @@ comes from:
   `.vk-home-callout` (`.vk-home-callout-icon`, `.vk-home-callout-body`, `.vk-home-callout-title`)
   whose `.vk-agent-tip-action` wraps under the text, with the preview spanning it, while the tip
   is under 36rem. Neither uses a
-  gradient headline: the former `.vk-gradient-text` class is gone, and `--gradient-headline`
-  remains only for the footer's watermark. On the docs surface only the docs home header carries
+  gradient headline: `--gradient-headline` is only for the footer's watermark. On the docs surface only the docs home header carries
   an eyebrow (a `.vk-label`). On the landing, the four story sections carry the numbered
   `.vk-eyebrow` described under "Landing motion". No card or button on the docs home appends an
   arrow to its label: the hover border, or on a stack card the chevron, is the affordance.

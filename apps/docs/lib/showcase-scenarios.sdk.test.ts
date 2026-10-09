@@ -14,6 +14,7 @@ import { flattenJson } from "@/lib/showcase-flatten";
 import { runShowcaseScenario, SEED_LOCK_HASHES } from "@/lib/showcase-scenarios";
 import {
   applyShowcaseChange,
+  DEFAULT_SHOWCASE_BREAK,
   type JsonTree,
   SHOWCASE_BREAKS,
   SHOWCASE_SCENARIOS,
@@ -126,7 +127,8 @@ async function expectRealRun(id: ShowcaseScenarioId, reply?: ShowcaseBreakId): P
 describe("each showcase scenario matches a real sdk run with a stub provider", () => {
   it.each(SHOWCASE_SCENARIOS)("%s", (id) => expectRealRun(id));
 
-  it.each(SHOWCASE_BREAKS)("break, where the reply %ss a placeholder", (reply) =>
-    expectRealRun("break", reply),
+  it.each(SHOWCASE_BREAKS.filter((reply) => reply !== DEFAULT_SHOWCASE_BREAK))(
+    "break, where the reply %ss a placeholder",
+    (reply) => expectRealRun("break", reply),
   );
 });

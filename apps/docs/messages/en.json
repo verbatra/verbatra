@@ -100,7 +100,7 @@
         "breaksLabel": "How the reply breaks it",
         "breaks": {
           "drop": "Drops {token}",
-          "rename": "Renames it to {token}",
+          "rename": "Renames {placeholder} to {token}",
           "add": "Adds {token}"
         },
         "reset": "Reset",

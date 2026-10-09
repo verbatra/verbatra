@@ -10,6 +10,7 @@ import {
   SHOWCASE_BREAK_REPLIES,
   SHOWCASE_BREAKS,
   SHOWCASE_LOCK_FILE,
+  SHOWCASE_PLACEHOLDER,
   SHOWCASE_SCENARIOS,
   SHOWCASE_SOURCE_FILE,
   SHOWCASE_TARGET_FILE,
@@ -94,7 +95,7 @@ function OutputPane({
     <figure className="vk-showcase-output" aria-label={t("outputLabel")} lang="en">
       <figcaption className="vk-showcase-output-name">{SHOWCASE_CLI_COMMAND}</figcaption>
       <pre
-        key={outcome.scenario ?? "seed"}
+        key={`${outcome.scenario ?? "seed"}-${outcome.reply ?? ""}`}
         className="vk-showcase-output-code"
         data-printing={outcome.scenario === null ? undefined : ""}
         style={{ "--showcase-output-rows": rows } as CSSProperties}
@@ -259,13 +260,16 @@ export function TryIt({ seed, rows }: { seed: ShowcaseOutcome; rows: ShowcaseRow
               type="radio"
               name={breakGroup}
               value={id}
-              checked={reply === id}
+              checked={outcome.scenario === "break" && reply === id}
               className="vk-showcase-break-input"
               onChange={() => chooseBreak(id)}
             />
             <span>
               <PlaceholderText
-                text={t(`breaks.${id}`, { token: SHOWCASE_BREAK_REPLIES[id].token })}
+                text={t(`breaks.${id}`, {
+                  token: SHOWCASE_BREAK_REPLIES[id].token,
+                  placeholder: SHOWCASE_PLACEHOLDER,
+                })}
               />
             </span>
           </label>

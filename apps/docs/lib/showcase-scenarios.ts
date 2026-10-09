@@ -18,6 +18,7 @@ import {
   SHOWCASE_TARGET,
   SHOWCASE_TARGET_LOCALE,
   type ShowcaseBreakId,
+  type ShowcaseChange,
   type ShowcaseScenarioId,
   showcaseChange,
   showcaseKey,
@@ -163,7 +164,7 @@ function targetDisplay(id: ShowcaseScenarioId, missing: ReadonlyArray<string>): 
 }
 
 function refusalFor(
-  change: ReturnType<typeof showcaseChange>,
+  change: ShowcaseChange,
   source: LocaleResource,
   sent: ReadonlyArray<string>,
 ): ShowcaseRefusal | null {

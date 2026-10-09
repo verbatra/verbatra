@@ -314,7 +314,7 @@
         "breaksLabel": "Comment la réponse le casse",
         "breaks": {
           "drop": "Supprime {token}",
-          "rename": "Le renomme en {token}",
+          "rename": "Renomme {placeholder} en {token}",
           "add": "Ajoute {token}"
         },
         "reset": "Réinitialiser",
