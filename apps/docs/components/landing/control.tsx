@@ -2,6 +2,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { CONTROL_GROUPS, controlHref } from "@/lib/control-items";
 import type { Locale } from "@/lib/i18n";
+import { withInlineCode } from "@/lib/inline-code-text";
 import { Evidence } from "./evidence";
 import { Rail } from "./rail";
 import { Section } from "./section";
@@ -44,7 +45,7 @@ export async function Control(): Promise<ReactNode> {
                       {t(`groups.${group.key}.items.${item.key}.title`)}
                     </span>
                     <span className="max-w-[46ch] text-sm leading-relaxed text-fd-muted-foreground">
-                      {t(`groups.${group.key}.items.${item.key}.body`)}
+                      {withInlineCode(t(`groups.${group.key}.items.${item.key}.body`))}
                     </span>
                     <span className="mt-1 min-w-0">
                       <Evidence text={item.evidence} href={controlHref(locale, item)} />

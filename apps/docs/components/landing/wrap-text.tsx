@@ -2,8 +2,10 @@ import { type CSSProperties, Fragment, type ReactNode } from "react";
 
 const PLACEHOLDER = /\{[^}]*\}/;
 
+const HYPHENATED = /\w-\w/;
+
 export function keepsWhole(token: string): boolean {
-  return PLACEHOLDER.test(token);
+  return PLACEHOLDER.test(token) || HYPHENATED.test(token);
 }
 
 export function wrapLineStyle(text: string): CSSProperties {

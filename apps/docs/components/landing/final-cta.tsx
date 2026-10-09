@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { CommandRow } from "@/components/command-row";
 import Button from "@/components/ui/button";
 import { type Locale, localizedPath } from "@/lib/i18n";
+import { withInlineCode } from "@/lib/inline-code-text";
 import { NPM_INSTALL_COMMAND } from "@/lib/install-commands";
 
 const CLOSE_BORDER = "color-mix(in srgb, var(--v-glow) 16%, var(--border-default))";
@@ -23,7 +24,7 @@ export async function FinalCta(): Promise<ReactNode> {
         <div data-reveal="0" className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6">
           <h2 className="vk-h2 max-w-[20ch]">{t("heading")}</h2>
           <div className="vk-final-install @container">
-            <p className="vk-final-install-hint">{t("installHint")}</p>
+            <p className="vk-final-install-hint">{withInlineCode(t("installHint"))}</p>
             <CommandRow
               command={NPM_INSTALL_COMMAND}
               label={tInstall("copyAria")}

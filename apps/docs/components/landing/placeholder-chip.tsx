@@ -6,15 +6,24 @@ const WHOLE_PLACEHOLDER_TOKEN = new RegExp(`^(?:${PLACEHOLDER_TOKEN.source})$`);
 
 const NO_BROKEN_TOKENS: ReadonlySet<string> = new Set();
 
+const ENDS_IN_SIGN = /[+-]$/;
+
 export function PlaceholderChip({
   token,
   broken = false,
+  afterSign = false,
 }: {
   token: string;
   broken?: boolean;
+  afterSign?: boolean;
 }): ReactNode {
   return (
-    <span className="vk-placeholder" data-placeholder="" data-broken={broken ? "" : undefined}>
+    <span
+      className="vk-placeholder"
+      data-placeholder=""
+      data-broken={broken ? "" : undefined}
+      data-after-sign={afterSign ? "" : undefined}
+    >
       {token}
     </span>
   );
@@ -43,9 +52,18 @@ export function PlaceholderText({
   text: string;
   broken?: ReadonlySet<string>;
 }): ReactNode {
-  return splitPlaceholders(text).map((part, index) => (
+  const parts = splitPlaceholders(text);
+  return parts.map((part, index) => (
     <Fragment key={`${index}:${part}`}>
-      {isPlaceholderToken(part) ? <PlaceholderChip token={part} broken={broken.has(part)} /> : part}
+      {isPlaceholderToken(part) ? (
+        <PlaceholderChip
+          token={part}
+          broken={broken.has(part)}
+          afterSign={ENDS_IN_SIGN.test(parts[index - 1] ?? "")}
+        />
+      ) : (
+        part
+      )}
     </Fragment>
   ));
 }

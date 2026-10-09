@@ -380,6 +380,10 @@ samp {
   text-decoration: none;
 }
 
+.vk-placeholder[data-after-sign] {
+  margin-inline-start: 0;
+}
+
 .vk-placeholder[data-broken] {
   background: transparent;
   box-shadow: inset 0 0 0 1px var(--border-danger);
@@ -1852,8 +1856,25 @@ html[data-motion-ready]:not([data-past-hero]) .vk-landing-nav-bar {
   visibility: hidden;
 }
 
+@media (width < 40rem) {
+  .vk-shot-zoom {
+    position: relative;
+    aspect-ratio: 1.94;
+    overflow: hidden;
+  }
+
+  .vk-shot-zoom > img {
+    position: absolute;
+    bottom: 0;
+    left: -54%;
+    width: 200%;
+    max-width: none;
+  }
+}
+
 .vk-formats-file {
   display: grid;
+  overflow: clip;
   grid-template-rows: auto 1fr;
   height: 100%;
   margin: 0;
@@ -2209,13 +2230,6 @@ html[data-motion-ready]:not([data-past-hero]) .vk-landing-nav-bar {
 .vk-showcase-output {
   min-width: 0;
   margin: 0;
-}
-
-.vk-showcase-output-name {
-  margin-bottom: 0.25rem;
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  color: var(--text-faint);
 }
 
 .vk-showcase-output-code {

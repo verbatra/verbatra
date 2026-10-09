@@ -92,13 +92,14 @@ describe("TryIt: output pane", () => {
     return [...root.querySelectorAll(".vk-showcase-output-line")].map((line) => line.textContent);
   }
 
-  it("server-renders what verbatra translate prints for the seed, without the print motion", () => {
+  it("server-renders what verbatra translate prints for the seed, headed by its own first line, without the print motion", () => {
     const doc = markup();
     const output = doc.querySelector(".vk-showcase-output");
     expect(output?.getAttribute("aria-label")).toBe("landing.showcase.tryIt.result.outputLabel");
     expect(output?.getAttribute("lang")).toBe("en");
-    expect(output?.querySelector("figcaption")?.textContent).toBe(SHOWCASE_CLI_COMMAND);
+    expect(output?.querySelector("figcaption")).toBeNull();
     expect(outputLines(doc)).toEqual(showcaseRunLines(SEED));
+    expect(outputLines(doc)[0]).toBe(SHOWCASE_CLI_COMMAND);
     expect(outputLines(doc)).toContain("  de: 0 translated, 4 unchanged");
     const code = doc.querySelector<HTMLElement>(".vk-showcase-output-code");
     expect(code?.hasAttribute("data-printing")).toBe(false);

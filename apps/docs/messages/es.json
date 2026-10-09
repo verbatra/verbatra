@@ -57,7 +57,7 @@
       "steps": {
         "setup": {
           "title": "Configura",
-          "body": "verbatra init escribe la configuración: locale de origen, destinos, un proveedor."
+          "body": "`verbatra init` escribe la configuración: locale de origen, destinos, un proveedor."
         },
         "translate": {
           "title": "Traduce lo que ha cambiado",
@@ -65,7 +65,7 @@
         },
         "check": {
           "title": "Haz fallar la pull request",
-          "body": "verbatra check termina con el código {code} mientras falte una clave o esté desactualizada, así que la CI bloquea el merge."
+          "body": "`verbatra check` termina con el código {code} mientras falte una clave o esté desactualizada, así que la CI bloquea el merge."
         }
       },
       "lead": "Una configuración, una ejecución de translate, un check: la CI hace fallar la build mientras falte una clave."
@@ -112,7 +112,7 @@
     },
     "finalClose": {
       "heading": "Tu próxima ejecución envía solo lo que cambió, no el archivo entero.",
-      "installHint": "Instala la CLI y luego ejecuta verbatra init en tu proyecto.",
+      "installHint": "Instala la CLI y luego ejecuta `verbatra init` en tu proyecto.",
       "docs": "Leer la documentación",
       "start": "Empezar"
     },
@@ -201,7 +201,7 @@
           "items": {
             "humanOnly": {
               "title": "Traducción automática desactivada por política",
-              "body": "Con el proveedor none, ninguna cadena llega a ningún servicio: una ejecución rellena claves desde tu memoria de traducción y deja el resto listado para una persona."
+              "body": "Con el proveedor en `none`, ninguna cadena llega a ningún servicio: una ejecución rellena claves desde tu memoria de traducción y deja el resto listado para una persona."
             },
             "protect": {
               "title": "La edición de un traductor sobrevive a un cambio en el origen",
@@ -345,7 +345,7 @@
         },
         "result": {
           "seed": "Todo está sincronizado: verbatra traduciría 0 claves.",
-          "summary": "{written, plural, =0 {Una ejecución real no escribiría nada} one {Una ejecución real escribiría # traducción y actualizaría su hash en el lock} many {Una ejecución real escribiría # de traducciones y actualizaría sus hashes en el lock} other {Una ejecución real escribiría # traducciones y actualizaría sus hashes en el lock}}{withheld, select, yes {, y retendría la respuesta que rompe un placeholder} other {}}{orphaned, select, yes {, y dejaría la clave eliminada en de.json hasta --prune} other {}}.",
+          "summary": "{written, plural, =0 {Una ejecución real no escribiría nada} one {Una ejecución real escribiría # traducción y actualizaría su hash en el lock} many {Una ejecución real escribiría # de traducciones y actualizaría sus hashes en el lock} other {Una ejecución real escribiría # traducciones y actualizaría sus hashes en el lock}}{withheld, select, yes {, y retendría la respuesta que rompe un placeholder} other {}}{orphaned, select, yes {, y dejaría la clave eliminada en de.json hasta `--prune`} other {}}.",
           "savings": "{sent, plural, one {# texto enviado} many {# de textos enviados} other {# textos enviados}}, donde retraducir todo enviaría {total}.",
           "outputLabel": "Lo que imprime verbatra translate",
           "failed": "El código de comparación no se cargó. Revisa tu conexión y vuelve a intentarlo."

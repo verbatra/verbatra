@@ -57,7 +57,7 @@
       "steps": {
         "setup": {
           "title": "Einrichten",
-          "body": "verbatra init schreibt die Konfiguration: Quell-Locale, Ziele, ein Provider."
+          "body": "`verbatra init` schreibt die Konfiguration: Quell-Locale, Ziele, ein Provider."
         },
         "translate": {
           "title": "Übersetze, was sich geändert hat",
@@ -65,7 +65,7 @@
         },
         "check": {
           "title": "Lass den Pull Request scheitern",
-          "body": "verbatra check endet mit Exit-Code {code}, solange ein Key fehlt oder veraltet ist, also blockiert die CI den Merge."
+          "body": "`verbatra check` endet mit Exit-Code {code}, solange ein Key fehlt oder veraltet ist, also blockiert die CI den Merge."
         }
       },
       "lead": "Eine Konfiguration, ein translate-Lauf, ein check: Die CI lässt den Build scheitern, solange ein Key noch fehlt."
@@ -112,7 +112,7 @@
     },
     "finalClose": {
       "heading": "Dein nächster Lauf schickt nur, was sich geändert hat, nicht die ganze Datei.",
-      "installHint": "Installiere die CLI und führe dann verbatra init in deinem Projekt aus.",
+      "installHint": "Installiere die CLI und führe dann `verbatra init` in deinem Projekt aus.",
       "docs": "Zur Dokumentation",
       "start": "Loslegen"
     },
@@ -201,7 +201,7 @@
           "items": {
             "humanOnly": {
               "title": "Maschinelle Übersetzung aus, per Richtlinie",
-              "body": "Mit Provider none erreicht kein String irgendeinen Dienst: Ein Lauf füllt Keys aus deinem Translation Memory und listet den Rest für einen Menschen auf."
+              "body": "Steht der Provider auf `none`, erreicht kein String irgendeinen Dienst: Ein Lauf füllt Keys aus deinem Translation Memory und listet den Rest für einen Menschen auf."
             },
             "protect": {
               "title": "Die Änderung einer Übersetzerin übersteht eine Quelländerung",
@@ -345,7 +345,7 @@
         },
         "result": {
           "seed": "Alles ist synchron: verbatra würde 0 Keys übersetzen.",
-          "summary": "{written, plural, =0 {Ein echter Lauf würde nichts schreiben} one {Ein echter Lauf würde # Übersetzung schreiben und ihren Lock-Hash aktualisieren} other {Ein echter Lauf würde # Übersetzungen schreiben und ihre Lock-Hashes aktualisieren}}{withheld, select, yes { und die Antwort zurückhalten, die einen Platzhalter beschädigt} other {}}{orphaned, select, yes { und den entfernten Key bis --prune in de.json lassen} other {}}.",
+          "summary": "{written, plural, =0 {Ein echter Lauf würde nichts schreiben} one {Ein echter Lauf würde # Übersetzung schreiben und ihren Lock-Hash aktualisieren} other {Ein echter Lauf würde # Übersetzungen schreiben und ihre Lock-Hashes aktualisieren}}{withheld, select, yes { und die Antwort zurückhalten, die einen Platzhalter beschädigt} other {}}{orphaned, select, yes { und den entfernten Key bis `--prune` in de.json lassen} other {}}.",
           "savings": "{sent, plural, one {# String gesendet} other {# Strings gesendet}}, wo ein komplettes Neuübersetzen {total} senden würde.",
           "outputLabel": "Was verbatra translate ausgibt",
           "failed": "Der Vergleichscode wurde nicht geladen. Prüfe deine Verbindung und versuch es erneut."

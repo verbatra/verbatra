@@ -15,6 +15,7 @@ import { Showcase } from "@/components/landing/showcase";
 import { LandingHero } from "@/components/landing-hero";
 import { howStepCopy } from "@/lib/how-steps";
 import { toLocale } from "@/lib/i18n";
+import { withoutInlineCode } from "@/lib/inline-code-text";
 import { LANDING_SECTIONS, type LandingSectionId } from "@/lib/landing-sections";
 import { homeAlternates, MCP_VERSION, PACKAGE_VERSION, STUDIO_VERSION } from "@/lib/site";
 import { homeOgImagePath, socialMetadata } from "@/lib/social-metadata";
@@ -38,7 +39,7 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
   const tHow = await getTranslations({ locale, namespace: "landing.how" });
   const howSteps: ReadonlyArray<HowToStepItem> = howStepCopy(tHow).map((step) => ({
     name: step.title,
-    text: step.body,
+    text: withoutInlineCode(step.body),
   }));
 
   const sections: Readonly<Record<LandingSectionId, ReactNode>> = {

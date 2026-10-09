@@ -120,7 +120,7 @@
         },
         "result": {
           "seed": "Everything is in sync: verbatra would translate 0 keys.",
-          "summary": "{written, plural, =0 {A real run would write nothing} one {A real run would write # translation and update its lock hash} other {A real run would write # translations and update their lock hashes}}{withheld, select, yes {, and withhold the reply that breaks a placeholder} other {}}{orphaned, select, yes {, and keep the removed key in de.json until --prune} other {}}.",
+          "summary": "{written, plural, =0 {A real run would write nothing} one {A real run would write # translation and update its lock hash} other {A real run would write # translations and update their lock hashes}}{withheld, select, yes {, and withhold the reply that breaks a placeholder} other {}}{orphaned, select, yes {, and keep the removed key in de.json until `--prune`} other {}}.",
           "savings": "{sent, plural, one {# string sent} other {# strings sent}}, where a full retranslate sends {total}.",
           "outputLabel": "What verbatra translate prints",
           "failed": "The comparison code did not load. Check your connection and try again."
@@ -149,7 +149,7 @@
       "steps": {
         "setup": {
           "title": "Set up",
-          "body": "verbatra init writes the config: source locale, targets, one provider."
+          "body": "`verbatra init` writes the config: source locale, targets, one provider."
         },
         "translate": {
           "title": "Translate what changed",
@@ -157,7 +157,7 @@
         },
         "check": {
           "title": "Fail the pull request",
-          "body": "verbatra check exits {code} while a key is missing or stale, so CI blocks the merge."
+          "body": "`verbatra check` exits {code} while a key is missing or stale, so CI blocks the merge."
         }
       },
       "lead": "One config, one translate run, one check: CI fails the build while a key is still missing."
@@ -204,7 +204,7 @@
     },
     "finalClose": {
       "heading": "Your next run sends what changed, not the whole file.",
-      "installHint": "Install the CLI, then run verbatra init in your project.",
+      "installHint": "Install the CLI, then run `verbatra init` in your project.",
       "docs": "Read the docs",
       "start": "Get started"
     },
@@ -319,7 +319,7 @@
           "items": {
             "humanOnly": {
               "title": "Machine translation off, by policy",
-              "body": "With provider none, no string reaches any service: a run fills keys from your translation memory and lists the rest for a person."
+              "body": "With the provider set to `none`, no string reaches any service: a run fills keys from your translation memory and lists the rest for a person."
             },
             "protect": {
               "title": "A translator's edit survives a source change",

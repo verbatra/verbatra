@@ -106,6 +106,7 @@ export async function Loop(): Promise<ReactNode> {
             shot="review"
             alt={t("rows.studio.alt")}
             elevated={false}
+            zoomOnPhone
             className="my-0"
           />
         </Row>

@@ -118,7 +118,9 @@ Scales are fixed and narrow, deliberately:
   (`{{amount}}`, `{count}`) drawn the same way in every pane: `--placeholder-fg` (`--accent`) on
   `--placeholder-fill` inside an inset `--placeholder-ring` box shadow, never a border. It pads the
   token by `--placeholder-inset` and pulls the same amount back with a negative margin, so a chip
-  moves no character of a monospace line, and it never wraps. `data-broken` strikes it in
+  moves no character of a monospace line, and it never wraps; after a `+` or `-` sign
+  (`data-after-sign`, set by `PlaceholderText`) it keeps its start margin, so the ring clears the
+  sign. `data-broken` strikes it in
   `--text-danger`, only for a token a reply broke. `PlaceholderText` in the same file cuts the
   tokens out of a line (`splitPlaceholders`: `{{name}}` and `{name}` only, so JSON braces stay text)
   and draws each as a chip; every showcase file pane and every `Terminal` line goes through it, and
@@ -221,7 +223,8 @@ footer's oversized watermark only; do not clip it onto a heading.
   `visibility: hidden`, so the box is always the tallest pane and a switch moves nothing, and
   `.vk-formats-code` caps a long output at `--format-pane-rows` (16) lines of `--format-line` and
   scrolls inside it: it is a `section` named by the pane's file caption with `tabIndex={0}`, so the
-  keyboard reaches and scrolls the open pane, with the `--focus-ring` outline inset. Chips and tabs
+  keyboard reaches and scrolls the open pane, with the `--focus-ring` outline inset. The file card
+  (`.vk-formats-file`) clips its content, so the scroller keeps its rounded corners. Chips and tabs
   scroll sideways inside `.vk-edge-fade` under 64rem and wrap from it, each at least 44px tall. The
   panes come from `lib/format-samples.generated.json`, which `scripts/sync-format-samples.mjs`
   writes before dev, build, typecheck and test (git-ignored like `lib/version.generated.json`): it
@@ -232,7 +235,8 @@ footer's oversized watermark only; do not clip it onto a heading.
   Nothing in the page graph imports the sdk at runtime, and the docs app never depends on
   `@verbatra/format-adapters`; `lib/format-samples.test.ts` re-reads every sample through the real
   adapter and fails unless it parses back to the seed with its placeholder intact. `Loop` is four
-  rows at every width (`LOOP_ROWS`: Studio with the `review` `StudioScreenshot`, the Excel handoff,
+  rows at every width (`LOOP_ROWS`: Studio with the `review` `StudioScreenshot`, which under 40rem
+  `zoomOnPhone` crops to the review table at twice the width (`.vk-shot-zoom`), the Excel handoff,
   the SDK, the agent; CI has no row, since the How section owns it), each a two-column grid from
   1024px whose sides alternate (`data-loop-row`: the text on the left for Studio and the SDK, on the
   right for the handoff and the agent). The SDK row shows `SDK_INSTALL_COMMAND` and
@@ -253,7 +257,8 @@ footer's oversized watermark only; do not clip it onto a heading.
   `.vk-terminal-scroll`, which fades the end edge while there is more to see; with `wrap` every line
   wraps through `.vk-wrap-line`, whose hanging indent is the line's own leading whitespace
   (`--wrap-lead`, set by `wrapLineStyle` in `wrap-text.tsx`) plus 2ch, and whose placeholder tokens
-  (`{count}`, `(-{count})`) never break, through `WrapTokens`. The How section is one terminal
+  (`{count}`, `(-{count})`) and hyphenated words (`up-to-date`) never break, through `WrapTokens`.
+  The How section is one terminal
   replaying two real commands, `verbatra translate` (the gate run, `lib/gate-demo.ts`: one key
   translated, one withheld) and then `verbatra check` (`lib/check-demo.ts`: the withheld key still
   missing, exit code `CHECK_EXIT_CODE`), titled `HOW_TITLE`, over the three numbered steps
@@ -286,8 +291,9 @@ footer's oversized watermark only; do not clip it onto a heading.
   `data-mark="refused"` line in `--text-danger` above the German value it leaves in place; the lock
   pane prints full 16-character hashes, and a rewritten hash shows before and after: the seed hash
   struck as `data-mark="replaced"` above the new one marked `changes`; a mark that does not fit
-  drops to the next row), then the output pane (`.vk-showcase-output`, a `figure` captioned
-  `verbatra translate`, named by `landing.showcase.tryIt.result.outputLabel` and marked `lang="en"`,
+  drops to the next row), then the output pane (`.vk-showcase-output`, a `figure` with no caption,
+  since its first line already reads `verbatra translate`, named by
+  `landing.showcase.tryIt.result.outputLabel` and marked `lang="en"`,
   its fixed height adding `--showcase-scroll-reserve` so a sideways scrollbar on a phone moves
   nothing) printing, in English on every locale, exactly the lines `renderHuman` prints for that run
   (`showcaseRunLines` in `lib/showcase-cli.ts`, server-rendered for the seed; after a click the
@@ -383,9 +389,12 @@ footer's oversized watermark only; do not clip it onto a heading.
   primary card, and the three cards share their title, body and page-name rows through
   `grid-rows-subgrid`, so a wrapped title never shifts the body or the link out of line. A
   backticked span in a header or section lead renders in code type (`withInlineCode`,
-  `lib/inline-code-text.tsx`), and a path card title keeps a hyphenated compound on one line
-  (`keepCompoundsWhole`, `lib/word-breaks.tsx`). `StackCards` (`components/stack-cards.tsx`) is the
-  stack picker on the docs home and at the top of `pick-your-stack`: one borderless grid
+  `lib/inline-code-text.tsx`; the landing sets a command or value in a How step, a Control item,
+  the showcase result and the closing install hint the same way, and `withoutInlineCode` drops the
+  backticks for the HowTo structured data), and a path card title keeps a hyphenated compound on
+  one line (`keepCompoundsWhole`, `lib/word-breaks.tsx`). `StackCards`
+  (`components/stack-cards.tsx`) is the stack picker on the docs home and at the top of
+  `pick-your-stack`: one borderless grid
   (`.vk-stack-grid`: one column, two from a 36rem container, three from a 54rem container,
   `--stack-grid-column-gap` 24px by `--stack-grid-row-gap` 40px, the last row left ragged). Each
   card (`.vk-stack-card`, a reversed flex row so the text comes first in the DOM and the logo shows

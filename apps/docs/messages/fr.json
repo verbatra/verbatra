@@ -3,17 +3,17 @@
     "meta": {
       "title": "verbatra : traduction i18n incrémentale pour les fichiers de locale",
       "ogTitle": "verbatra : synchronisation i18n incrémentale",
-      "description": "Garde tes fichiers de locale i18n synchronisés. verbatra traduit uniquement les clés qui ont changé, via le fournisseur d'IA ou de traduction automatique de ton choix. Commence maintenant.",
+      "description": "Garde tes fichiers de locale i18n synchronisés. verbatra traduit uniquement les clés qui ont changé, via le fournisseur d’IA ou de traduction automatique de ton choix. Commence maintenant.",
       "ogDescription": "Garde tes fichiers de locale i18n synchronisés. Traduis uniquement les clés modifiées.",
       "ogImageAlt": "verbatra garde tes fichiers de locale i18n synchronisés et traduit uniquement les clés qui ont changé.",
-      "definition": "verbatra est une CLI et un SDK qui gardent tes fichiers de locale i18n synchronisés en ne traduisant que les clés qui ont changé, via le fournisseur d'IA ou de traduction automatique de ton choix."
+      "definition": "verbatra est une CLI et un SDK qui gardent tes fichiers de locale i18n synchronisés en ne traduisant que les clés qui ont changé, via le fournisseur d’IA ou de traduction automatique de ton choix."
     },
     "hero": {
       "headline": "Traduis uniquement ce qui a changé.",
-      "lead": "Le fichier de verrouillage versionné décide quelles clés ont changé, et verbatra vérifie que chaque traduction garde ses placeholders intacts avant de l'écrire.",
+      "lead": "Le fichier de verrouillage versionné décide quelles clés ont changé, et verbatra vérifie que chaque traduction garde ses placeholders intacts avant de l’écrire.",
       "ctaStart": "Démarrer",
       "ctaTry": "Essaie-le dans le navigateur",
-      "dogfood": "Les textes de l'interface de ce site en allemand, espagnol et français viennent de verbatra.",
+      "dogfood": "Les textes de l’interface de ce site en allemand, espagnol et français viennent de verbatra.",
       "dogfoodLink": "Voir les fichiers de messages",
       "ledger": {
         "caption": "Ce titre, tel que le gardent les fichiers de messages et le fichier de verrouillage de ce site."
@@ -41,15 +41,15 @@
     "install": {
       "copy": "Copier",
       "copied": "Copié",
-      "copyAria": "Copier la commande d'installation",
+      "copyAria": "Copier la commande d’installation",
       "aiLabel": "Prompt pour agents IA",
-      "copyPromptAria": "Copier le prompt de configuration pour l'agent IA",
+      "copyPromptAria": "Copier le prompt de configuration pour l’agent IA",
       "copyCommand": "Copier {command}",
-      "copyAgentAria": "Copier la commande de configuration de l'agent",
+      "copyAgentAria": "Copier la commande de configuration de l’agent",
       "promptCta": "Commence avec un prompt",
       "promptCopied": "Prompt copié",
       "promptPreviewLabel": "Copie ce prompt pour ton agent",
-      "promptCopyFailed": "Impossible de copier l'invite. Sélectionne-la dans l'aperçu et copie-la à la main.",
+      "promptCopyFailed": "Impossible de copier l’invite. Sélectionne-la dans l’aperçu et copie-la à la main.",
       "copyFailed": "Copie échouée"
     },
     "how": {
@@ -57,7 +57,7 @@
       "steps": {
         "setup": {
           "title": "Mets en place",
-          "body": "verbatra init écrit la configuration : locale source, cibles, un fournisseur."
+          "body": "`verbatra init` écrit la configuration : locale source, cibles, un fournisseur."
         },
         "translate": {
           "title": "Traduis ce qui a changé",
@@ -65,14 +65,14 @@
         },
         "check": {
           "title": "Fais échouer la pull request",
-          "body": "verbatra check se termine avec le code {code} tant qu'une clé manque ou est obsolète, donc la CI bloque le merge."
+          "body": "`verbatra check` se termine avec le code {code} tant qu’une clé manque ou est obsolète, donc la CI bloque le merge."
         }
       },
-      "lead": "Une configuration, une exécution de translate, un check : la CI fait échouer le build tant qu'une clé manque."
+      "lead": "Une configuration, une exécution de translate, un check : la CI fait échouer le build tant qu’une clé manque."
     },
     "formats": {
       "heading": "Les mêmes chaînes, tous les formats de fichier.",
-      "lead": "Choisis ton framework ou un format. Chaque panneau montre les quatre mêmes chaînes, écrites par l'adaptateur que verbatra fournit pour ce format, avec son placeholder intact.",
+      "lead": "Choisis ton framework ou un format. Chaque panneau montre les quatre mêmes chaînes, écrites par l’adaptateur que verbatra fournit pour ce format, avec son placeholder intact.",
       "frameworksLabel": "Frameworks",
       "formatsLabel": "Formats de fichier",
       "link": "Voir tous les formats et comment les configurer"
@@ -82,37 +82,37 @@
       "items": {
         "incremental": {
           "question": "Comment verbatra évite-t-il de tout re-traduire à chaque exécution ?",
-          "answer": "Il tient un fichier de verrouillage commité qui enregistre ce qui a déjà été traduit. Chaque exécution compare ta locale source à ce fichier de verrouillage et n'envoie que les clés nouvelles ou modifiées à ton fournisseur. Les clés inchangées ne sont jamais touchées, donc une exécution typique coûte une poignée de chaînes, pas tout ton catalogue."
+          "answer": "Il tient un fichier de verrouillage commité qui enregistre ce qui a déjà été traduit. Chaque exécution compare ta locale source à ce fichier de verrouillage et n’envoie que les clés nouvelles ou modifiées à ton fournisseur. Les clés inchangées ne sont jamais touchées, donc une exécution typique coûte une poignée de chaînes, pas tout ton catalogue."
         },
         "providers": {
           "question": "Quels fournisseurs de traduction puis-je utiliser ?",
-          "answer": "N'importe lequel de ceux-ci, derrière une seule interface : Anthropic, OpenAI et Gemini (LLM), DeepL et Google Cloud Translation (traduction automatique), openai-compatible, qui pointe verbatra vers un serveur local ou auto-hébergé comme Ollama, LM Studio ou vLLM, et libretranslate, un serveur LibreTranslate auto-hébergé pour la traduction automatique sans aucun modèle de langage. Tu en choisis un par son id dans le bloc provider de ta configuration, et tu en changes plus tard en réécrivant ce bloc, car chaque fournisseur a ses propres options. Gemini a une vraie offre gratuite, et un modèle local ne coûte rien par appel. Ou mets le fournisseur sur none pour désactiver complètement la traduction automatique."
+          "answer": "N’importe lequel de ceux-ci, derrière une seule interface : Anthropic, OpenAI et Gemini (LLM), DeepL et Google Cloud Translation (traduction automatique), openai-compatible, qui pointe verbatra vers un serveur local ou auto-hébergé comme Ollama, LM Studio ou vLLM, et libretranslate, un serveur LibreTranslate auto-hébergé pour la traduction automatique sans aucun modèle de langage. Tu en choisis un par son id dans le bloc provider de ta configuration, et tu en changes plus tard en réécrivant ce bloc, car chaque fournisseur a ses propres options. Gemini a une vraie offre gratuite, et un modèle local ne coûte rien par appel. Ou mets le fournisseur sur none pour désactiver complètement la traduction automatique."
         },
         "languages": {
           "question": "Quelles langues verbatra prend-il en charge ?",
-          "answer": "Toutes celles que ton fournisseur prend en charge. verbatra accepte n'importe quel code de locale BCP 47 valide, comme pt-BR, sr-Latn ou zh-Hant, et contrôle les formes de pluriel selon les règles de pluriel CLDR de chaque langue. DeepL et Google Cloud Translation ont des listes de langues fixes, les fournisseurs LLM n'en ont pas. La page <languages>Prise en charge des langues</languages> renvoie vers la liste de chaque fournisseur et couvre les écritures, les variantes régionales et le texte de droite à gauche."
+          "answer": "Toutes celles que ton fournisseur prend en charge. verbatra accepte n’importe quel code de locale BCP 47 valide, comme pt-BR, sr-Latn ou zh-Hant, et contrôle les formes de pluriel selon les règles de pluriel CLDR de chaque langue. DeepL et Google Cloud Translation ont des listes de langues fixes, les fournisseurs LLM n’en ont pas. La page <languages>Prise en charge des langues</languages> renvoie vers la liste de chaque fournisseur et couvre les écritures, les variantes régionales et le texte de droite à gauche."
         },
         "formats": {
           "question": "Quels formats et frameworks verbatra prend-il en charge ?",
-          "answer": "JSON pour i18next, vue-i18n, next-intl et ngx-translate, ainsi que XLIFF, YAML, Flutter ARB, Java/Spring .properties, Apple .strings et les String Catalogs de Xcode, Android strings.xml, les fichiers gettext .po/.pot, INI et .NET .resx. Cela couvre React, Next.js, Vue, Nuxt, Angular, SvelteKit, Astro, Node.js, Spring, Flutter, iOS, macOS, Android et toute stack basée sur gettext. verbatra lit les fichiers que tu as déjà ; il n'y a aucun format propre à verbatra vers lequel migrer."
+          "answer": "JSON pour i18next, vue-i18n, next-intl et ngx-translate, ainsi que XLIFF, YAML, Flutter ARB, Java/Spring .properties, Apple .strings et les String Catalogs de Xcode, Android strings.xml, les fichiers gettext .po/.pot, INI et .NET .resx. Cela couvre React, Next.js, Vue, Nuxt, Angular, SvelteKit, Astro, Node.js, Spring, Flutter, iOS, macOS, Android et toute stack basée sur gettext. verbatra lit les fichiers que tu as déjà ; il n’y a aucun format propre à verbatra vers lequel migrer."
         },
         "safety": {
-          "question": "Qu'est-ce qui empêche une mauvaise traduction de casser mon app ?",
-          "answer": "Chaque résultat passe des contrôles d'intégrité des placeholders et de l'ICU avant d'être écrit. Une traduction qui supprime ou invente un placeholder, ou qui produit une syntaxe de message ICU invalide, est retenue plutôt qu'enregistrée dans ton fichier de locale ; une traduction qui ne fait que réordonner les placeholders est enregistrée et signalée pour relecture. La même barrière d'intégrité s'applique aux modifications et aux retraductions faites dans Verbatra Studio."
+          "question": "Qu’est-ce qui empêche une mauvaise traduction de casser mon app ?",
+          "answer": "Chaque résultat passe des contrôles d’intégrité des placeholders et de l’ICU avant d’être écrit. Une traduction qui supprime ou invente un placeholder, ou qui produit une syntaxe de message ICU invalide, est retenue plutôt qu’enregistrée dans ton fichier de locale ; une traduction qui ne fait que réordonner les placeholders est enregistrée et signalée pour relecture. La même barrière d’intégrité s’applique aux modifications et aux retraductions faites dans Verbatra Studio."
         },
         "privacy": {
           "question": "verbatra envoie-t-il mes textes quelque part ?",
-          "answer": "Seulement au fournisseur de traduction que tu configures, et seulement quand une commande traduit. verbatra n'a ni télémétrie, ni analytics, ni vérification de mise à jour. Tu peux couper complètement la traduction automatique, ou faire tourner un modèle sur ton propre matériel pour que rien ne quitte ton réseau. La <dataHandling>page sur le traitement des données</dataHandling> détaille ce que reçoit chaque fournisseur et renvoie vers les conditions de conservation de chaque éditeur."
+          "answer": "Seulement au fournisseur de traduction que tu configures, et seulement quand une commande traduit. verbatra n’a ni télémétrie, ni analytics, ni vérification de mise à jour. Tu peux couper complètement la traduction automatique, ou faire tourner un modèle sur ton propre matériel pour que rien ne quitte ton réseau. La <dataHandling>page sur le traitement des données</dataHandling> détaille ce que reçoit chaque fournisseur et renvoie vers les conditions de conservation de chaque éditeur."
         },
         "cost": {
           "question": "Combien coûte verbatra ?",
-          "answer": "verbatra lui-même est gratuit et open source sous licence MIT. Le seul coût est l'usage de ton fournisseur, et c'est toi qui le contrôles : il ne traduit que ce qui a changé, et tu peux le faire tourner gratuitement sur l'offre gratuite de Gemini ou sur un modèle local compatible OpenAI. Hors EEE, Suisse et Royaume-Uni, Google peut utiliser les requêtes de l'offre gratuite pour améliorer ses produits : garde donc les textes confidentiels sur une offre payante ou un modèle local ; la <dataHandling>page sur le traitement des données</dataHandling> donne les détails."
+          "answer": "verbatra lui-même est gratuit et open source sous licence MIT. Le seul coût est l’usage de ton fournisseur, et c’est toi qui le contrôles : il ne traduit que ce qui a changé, et tu peux le faire tourner gratuitement sur l’offre gratuite de Gemini ou sur un modèle local compatible OpenAI. Hors EEE, Suisse et Royaume-Uni, Google peut utiliser les requêtes de l’offre gratuite pour améliorer ses produits : garde donc les textes confidentiels sur une offre payante ou un modèle local ; la <dataHandling>page sur le traitement des données</dataHandling> donne les détails."
         }
       }
     },
     "finalClose": {
-      "heading": "Ta prochaine exécution n'envoie que ce qui a changé, pas tout le fichier.",
-      "installHint": "Installe la CLI, puis lance verbatra init dans ton projet.",
+      "heading": "Ta prochaine exécution n’envoie que ce qui a changé, pas tout le fichier.",
+      "installHint": "Installe la CLI, puis lance `verbatra init` dans ton projet.",
       "docs": "Lire la documentation",
       "start": "Démarrer"
     },
@@ -153,7 +153,7 @@
           "title": "Pour les agents IA",
           "llmsIndex": "llms.txt (index)",
           "llmsFull": "llms-full.txt (texte intégral)",
-          "aiTxt": "ai.txt (politique d'utilisation)"
+          "aiTxt": "ai.txt (politique d’utilisation)"
         }
       },
       "legalLicense": "Open source sous la licence MIT",
@@ -182,7 +182,7 @@
         "chooseLanguage": "Choisis une langue",
         "triggerAriaSuffix": "choisir la langue",
         "machineTranslatedLabel": "Traduction automatique",
-        "machineTranslatedDescription": "L'interface et les pages de documentation pour cette langue sont traduites avec l'IA."
+        "machineTranslatedDescription": "L’interface et les pages de documentation pour cette langue sont traduites avec l’IA."
       },
       "skipToContent": "Aller au contenu",
       "headerCta": {
@@ -194,22 +194,22 @@
     },
     "control": {
       "heading": "Tu décides de ce qui part en production.",
-      "lead": "Les humains ont le dernier mot, chaque langue a ses propres règles, et les chaînes ne vont que là où tu l'autorises.",
+      "lead": "Les humains ont le dernier mot, chaque langue a ses propres règles, et les chaînes ne vont que là où tu l’autorises.",
       "groups": {
         "people": {
           "title": "Les humains ont le dernier mot",
           "items": {
             "humanOnly": {
               "title": "Traduction automatique désactivée par règle",
-              "body": "Avec le fournisseur none, aucune chaîne n'atteint un service : une exécution remplit les clés depuis ta mémoire de traduction et liste le reste pour une personne."
+              "body": "Avec le fournisseur réglé sur `none`, aucune chaîne n’atteint un service : une exécution remplit les clés depuis ta mémoire de traduction et liste le reste pour une personne."
             },
             "protect": {
-              "title": "La modification d'un traducteur survit à un changement de source",
-              "body": "Les valeurs qu'une personne a écrites ou importées sont conservées par défaut quand la source change : marquées obsolètes, jamais écrasées."
+              "title": "La modification d’un traducteur survit à un changement de source",
+              "body": "Les valeurs qu’une personne a écrites ou importées sont conservées par défaut quand la source change : marquées obsolètes, jamais écrasées."
             },
             "review": {
-              "title": "Approuve ou rejette ce qu'une exécution a signalé",
-              "body": "Les décisions sont enregistrées à côté du fichier de verrouillage, donc la file de relecture ne montre que ce que personne n'a encore regardé."
+              "title": "Approuve ou rejette ce qu’une exécution a signalé",
+              "body": "Les décisions sont enregistrées à côté du fichier de verrouillage, donc la file de relecture ne montre que ce que personne n’a encore regardé."
             }
           }
         },
@@ -222,7 +222,7 @@
             },
             "qa": {
               "title": "Des contrôles qualité sur les fichiers commités",
-              "body": "Les contrôles qu'une exécution applique à la sortie du fournisseur, appliqués à ce qui est déjà dans tes fichiers de locale. Aucune clé requise."
+              "body": "Les contrôles qu’une exécution applique à la sortie du fournisseur, appliqués à ce qui est déjà dans tes fichiers de locale. Aucune clé requise."
             },
             "terms": {
               "title": "Tes termes et ton registre ne bougent pas",
@@ -231,19 +231,19 @@
           }
         },
         "network": {
-          "title": "Les chaînes ne vont que là où tu l'autorises",
+          "title": "Les chaînes ne vont que là où tu l’autorises",
           "items": {
             "policy": {
               "title": "Une politique réseau que verbatra fait respecter",
-              "body": "Local uniquement ou liste d'autorisation : un hôte que tu n'as pas autorisé est refusé avant qu'une requête ne quitte la machine."
+              "body": "Local uniquement ou liste d’autorisation : un hôte que tu n’as pas autorisé est refusé avant qu’une requête ne quitte la machine."
             },
             "preview": {
-              "title": "Vois d'abord ce qu'une exécution enverrait",
-              "body": "Une exécution à blanc n'a besoin d'aucune clé d'API et n'écrit rien : elle liste exactement les clés qu'une vraie exécution enverrait."
+              "title": "Vois d’abord ce qu’une exécution enverrait",
+              "body": "Une exécution à blanc n’a besoin d’aucune clé d’API et n’écrit rien : elle liste exactement les clés qu’une vraie exécution enverrait."
             },
             "private": {
               "title": "Aucune télémétrie, et les modèles locaux sont les bienvenus",
-              "body": "Les chaînes ne vont qu'au fournisseur que tu configures, et un modèle auto-hébergé les garde sur ton propre matériel."
+              "body": "Les chaînes ne vont qu’au fournisseur que tu configures, et un modèle auto-hébergé les garde sur ton propre matériel."
             }
           }
         }
@@ -259,13 +259,13 @@
       },
       "rows": {
         "studio": {
-          "title": "Consulte l'état de chaque locale dans Verbatra Studio.",
+          "title": "Consulte l’état de chaque locale dans Verbatra Studio.",
           "body": "Couverture, entrées signalées, modifications sur place. Aucun appel au fournisseur.",
           "cta": "Réviser les traductions dans Studio",
           "alt": "La page Révision de Verbatra Studio affichant cinq entrées signalées dans les locales de, es et fr ; chaque ligne montre la clé, ses motifs de révision et les actions Edit, Approve et Reject."
         },
         "handoff": {
-          "body": "Exporte, récupère-le rempli, réimporte-le via la même barrière d'intégrité.",
+          "body": "Exporte, récupère-le rempli, réimporte-le via la même barrière d’intégrité.",
           "cta": "En savoir plus sur le transfert Excel",
           "title": "Confie un classeur aux traducteurs, puis réimporte-le."
         },
@@ -276,7 +276,7 @@
         },
         "agent": {
           "body": "Un serveur MCP, plus des skills installables pour la CLI, MCP et Studio.",
-          "cta": "Commencer avec l'IA",
+          "cta": "Commencer avec l’IA",
           "title": "Ou confie-le à ton agent."
         }
       },
@@ -313,8 +313,8 @@
       "pause": "Mettre en pause les listes défilantes"
     },
     "showcase": {
-      "heading": "Vois-le à l'œuvre",
-      "lead": "Modifie un fichier de locale : le code de diff et de hachage de verbatra montre dans ton navigateur ce qu'une exécution enverrait, ignorerait et verrouillerait, sans rien traduire.",
+      "heading": "Vois-le à l’œuvre",
+      "lead": "Modifie un fichier de locale : le code de diff et de hachage de verbatra montre dans ton navigateur ce qu’une exécution enverrait, ignorerait et verrouillerait, sans rien traduire.",
       "tryIt": {
         "scenariosLabel": "Modifie le fichier anglais",
         "scenarios": {
@@ -345,10 +345,10 @@
         },
         "result": {
           "seed": "Tout est synchronisé : verbatra traduirait 0 clé.",
-          "summary": "{written, plural, =0 {Une vraie exécution n'écrirait rien} one {Une vraie exécution écrirait # traduction et mettrait à jour son hash dans le lock} many {Une vraie exécution écrirait # de traductions et mettrait à jour leurs hashs dans le lock} other {Une vraie exécution écrirait # traductions et mettrait à jour leurs hashs dans le lock}}{withheld, select, yes {, et retiendrait la réponse qui casse un placeholder} other {}}{orphaned, select, yes {, et garderait la clé supprimée dans de.json jusqu'à --prune} other {}}.",
+          "summary": "{written, plural, =0 {Une vraie exécution n’écrirait rien} one {Une vraie exécution écrirait # traduction et mettrait à jour son hash dans le lock} many {Une vraie exécution écrirait # de traductions et mettrait à jour leurs hashs dans le lock} other {Une vraie exécution écrirait # traductions et mettrait à jour leurs hashs dans le lock}}{withheld, select, yes {, et retiendrait la réponse qui casse un placeholder} other {}}{orphaned, select, yes {, et garderait la clé supprimée dans de.json jusqu’à `--prune`} other {}}.",
           "savings": "{sent, plural, one {# chaîne envoyée} many {# de chaînes envoyées} other {# chaînes envoyées}}, là où tout retraduire en enverrait {total}.",
-          "outputLabel": "Ce qu'affiche verbatra translate",
-          "failed": "Le code de comparaison ne s'est pas chargé. Vérifie ta connexion et réessaie."
+          "outputLabel": "Ce qu’affiche verbatra translate",
+          "failed": "Le code de comparaison ne s’est pas chargé. Vérifie ta connexion et réessaie."
         },
         "filesLabel": "Fichiers",
         "retry": "Réessayer"

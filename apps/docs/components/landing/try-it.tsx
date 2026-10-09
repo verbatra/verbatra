@@ -3,7 +3,8 @@
 import { useTranslations } from "next-intl";
 import { type CSSProperties, type ReactNode, useId, useRef, useState } from "react";
 import { buttonClasses } from "@/components/ui/button";
-import { SHOWCASE_CLI_COMMAND, showcaseRunLines, showcaseSavings } from "@/lib/showcase-cli";
+import { withInlineCode } from "@/lib/inline-code-text";
+import { showcaseRunLines, showcaseSavings } from "@/lib/showcase-cli";
 import type { ShowcaseLine, ShowcaseOutcome, ShowcaseRows } from "@/lib/showcase-scenarios";
 import {
   DEFAULT_SHOWCASE_BREAK,
@@ -93,7 +94,6 @@ function OutputPane({
   const t = useTranslations("landing.showcase.tryIt.result");
   return (
     <figure className="vk-showcase-output" aria-label={t("outputLabel")} lang="en">
-      <figcaption className="vk-showcase-output-name">{SHOWCASE_CLI_COMMAND}</figcaption>
       <pre
         key={`${outcome.scenario ?? "seed"}-${outcome.reply ?? ""}`}
         className="vk-showcase-output-code"
@@ -146,7 +146,7 @@ function Result({
         aria-busy={busy || undefined}
       >
         <p className="vk-showcase-result-title" data-failed={failed ? "" : undefined}>
-          {sentence}
+          {withInlineCode(sentence)}
         </p>
       </div>
     </div>

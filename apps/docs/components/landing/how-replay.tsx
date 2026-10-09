@@ -2,6 +2,7 @@
 
 import { type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
 import { type HowStepCopy, howStepStates } from "@/lib/how-steps";
+import { withInlineCode } from "@/lib/inline-code-text";
 import { Terminal, type TerminalProgress, type TerminalProps } from "./terminal";
 
 const IDLE: TerminalProgress = { lines: 0, typing: false };
@@ -72,7 +73,7 @@ export function HowReplay({
                 {String(index + 1).padStart(2, "0")}
               </p>
               <h3 className="vk-h4">{step.title}</h3>
-              <p className="mt-1.5 text-sm text-fd-muted-foreground">{step.body}</p>
+              <p className="mt-1.5 text-sm text-fd-muted-foreground">{withInlineCode(step.body)}</p>
             </li>
           );
         })}

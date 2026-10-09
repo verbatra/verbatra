@@ -15,6 +15,15 @@ describe("WrapTokens", () => {
     expect(keepsWhole('"{count}')).toBe(true);
     expect(keepsWhole("count")).toBe(false);
   });
+
+  it("keeps a hyphenated word such as up-to-date whole, so a narrow terminal never splits it", () => {
+    expect(keepsWhole("up-to-date")).toBe(true);
+    expect(keepsWhole("integrity-withheld")).toBe(true);
+    expect(keepsWhole("--prune")).toBe(false);
+    expect(renderToStaticMarkup(<WrapTokens text="1 up-to-date (out" />)).toContain(
+      '<span class="whitespace-nowrap">up-to-date</span>',
+    );
+  });
 });
 
 describe("wrapLineStyle", () => {

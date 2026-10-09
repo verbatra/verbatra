@@ -122,7 +122,7 @@ describe("landing message parity", () => {
       en: /^This site's interface strings in German, Spanish and French come from verbatra\.$/,
       de: /^Die Oberflächentexte dieser Seite /,
       es: /^Los textos de la interfaz de este sitio /,
-      fr: /^Les textes de l'interface de ce site /,
+      fr: /^Les textes de l’interface de ce site /,
     };
     for (const locale of i18n.languages) {
       const hero = heroCopy(locale);
@@ -163,5 +163,19 @@ describe("landing message parity", () => {
       expect(typeof heading, locale).toBe("string");
       expect(heading, locale).not.toContain("-");
     }
+  });
+});
+
+describe("French landing typography", () => {
+  it("elides with the typographic apostrophe, which the display and body fonts draw alike", () => {
+    const strings: string[] = [];
+    const collect = (node: unknown): void => {
+      if (typeof node === "string") strings.push(node);
+      else if (node && typeof node === "object")
+        for (const value of Object.values(node)) collect(value);
+    };
+    collect(load("fr").landing);
+    expect(strings.filter((text) => /\p{L}'\p{L}/u.test(text))).toEqual([]);
+    expect(strings.some((text) => text.includes("’"))).toBe(true);
   });
 });
