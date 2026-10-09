@@ -108,7 +108,7 @@ describe("TryIt: loading the scenario module", () => {
     expect(trackUmamiEvent.mock.calls).toEqual([
       ["run-scenario", { scenario: "edit", location: "showcase", retry: true }],
     ]);
-    expect(title(container)).toBe("landing.showcase.tryIt.result.headline");
+    expect(title(container)).toBe("landing.showcase.tryIt.result.summary");
     expect(container.querySelector('[data-mark="edited"]')).not.toBeNull();
     expect(button(container, "landing.showcase.tryIt.retry")).toBeUndefined();
   });

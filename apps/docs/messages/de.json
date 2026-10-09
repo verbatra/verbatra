@@ -314,23 +314,9 @@
         },
         "result": {
           "seed": "Alles ist synchron: verbatra würde 0 Keys übersetzen.",
-          "headline": "verbatra würde {count, plural, one {# Key} other {# Keys}} übersetzen.",
-          "rows": {
-            "send": "Würde senden",
-            "skip": "Überspringt",
-            "lock": "Lock-Datei",
-            "gate": "Platzhalter"
-          },
-          "nothing": "nichts",
-          "missingKey": "{key} (fehlt)",
-          "staleKey": "{key} (veraltet)",
-          "unchanged": "{count, plural, one {# unveränderten Key} other {# unveränderte Keys}}",
-          "orphanedKey": "{key} bleibt in de.json bis --prune",
-          "lockNone": "keine Hash-Änderung",
-          "lockChanges": "{count, plural, one {# Hash würde sich ändern} other {# Hashes würden sich ändern}}: {keys}",
-          "gateIdle": "nichts zu prüfen",
-          "gatePass": "alle Platzhalter intakt",
-          "gateRefused": "„{candidate}“ würde abgelehnt ({details}); der deutsche Wert bleibt",
+          "summary": "{written, plural, =0 {Ein echter Lauf würde nichts schreiben} one {Ein echter Lauf würde # Übersetzung schreiben und ihren Lock-Hash aktualisieren} other {Ein echter Lauf würde # Übersetzungen schreiben und ihre Lock-Hashes aktualisieren}}{withheld, select, yes {, und die Antwort zurückhalten, die einen Platzhalter kaputt macht} other {}}{orphaned, select, yes {, und den entfernten Key bis --prune in de.json lassen} other {}}.",
+          "savings": "{sent, plural, one {# String gesendet} other {# Strings gesendet}}, wo ein komplettes Neuübersetzen {total} senden würde.",
+          "outputLabel": "Was verbatra translate ausgibt",
           "failed": "Der Vergleichscode wurde nicht geladen. Prüfe deine Verbindung und versuch es erneut."
         },
         "filesLabel": "Dateien",

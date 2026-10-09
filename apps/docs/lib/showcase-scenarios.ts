@@ -5,6 +5,7 @@ import {
   diffResources,
   type LocaleResource,
 } from "@verbatra/core/pure";
+import { showcaseRunLines } from "./showcase-cli";
 import { flattenJson, i18nextPlaceholders } from "./showcase-flatten";
 import {
   applyShowcaseChange,
@@ -246,11 +247,17 @@ export type ShowcaseRows = {
   readonly source: number;
   readonly target: number;
   readonly lock: number;
+  readonly output: number;
 };
 
 export function showcaseRows(): ShowcaseRows {
   const outcomes = [showcaseSeed(), ...SHOWCASE_SCENARIOS.map(runShowcaseScenario)];
-  const most = (pane: keyof ShowcaseRows) =>
+  const most = (pane: "source" | "target" | "lock") =>
     Math.max(...outcomes.map((outcome) => outcome[pane].length));
-  return { source: most("source"), target: most("target"), lock: most("lock") };
+  return {
+    source: most("source"),
+    target: most("target"),
+    lock: most("lock"),
+    output: Math.max(...outcomes.map((outcome) => showcaseRunLines(outcome).length)),
+  };
 }

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { showcaseRunLines } from "@/lib/showcase-cli";
 import { flattenJson } from "@/lib/showcase-flatten";
 import {
   runShowcaseScenario,
@@ -92,6 +93,9 @@ describe("the showcase scenarios", () => {
     for (const pane of ["source", "target", "lock"] as const) {
       expect(rows[pane]).toBe(Math.max(...outcomes.map((outcome) => outcome[pane].length)));
     }
+    expect(rows.output).toBe(
+      Math.max(...outcomes.map((outcome) => showcaseRunLines(outcome).length)),
+    );
   });
 });
 
@@ -101,6 +105,12 @@ describe("the showcase copy", () => {
     de: /würde .* übersetzen/,
     es: /traduciría/,
     fr: /traduirait/,
+  };
+  const WOULD_WRITE: Readonly<Record<string, RegExp>> = {
+    en: /would write/,
+    de: /würde .* schreiben/,
+    es: /escribiría/,
+    fr: /écrirait/,
   };
   const NOTHING_TRANSLATED: Readonly<Record<string, RegExp>> = {
     en: /translates nothing/,
@@ -113,7 +123,7 @@ describe("the showcase copy", () => {
     "%s says what verbatra would translate, never that the page translates",
     (locale) => {
       const showcase = JSON.parse(docsFile(`messages/${locale}.json`)).landing.showcase;
-      expect(showcase.tryIt.result.headline).toMatch(CONDITIONAL[locale] as RegExp);
+      expect(showcase.tryIt.result.summary).toMatch(WOULD_WRITE[locale] as RegExp);
       expect(showcase.tryIt.result.seed).toMatch(CONDITIONAL[locale] as RegExp);
       expect(showcase.lead).toMatch(NOTHING_TRANSLATED[locale] as RegExp);
     },

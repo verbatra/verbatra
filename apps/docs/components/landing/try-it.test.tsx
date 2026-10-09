@@ -6,7 +6,8 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { showcaseRows, showcaseSeed } from "@/lib/showcase-scenarios";
+import { SHOWCASE_CLI_COMMAND, showcaseRunLines } from "@/lib/showcase-cli";
+import { runShowcaseScenario, showcaseRows, showcaseSeed } from "@/lib/showcase-scenarios";
 import {
   SHOWCASE_LOCK_FILE,
   SHOWCASE_SCENARIOS,
@@ -70,6 +71,45 @@ describe("TryIt: server-rendered seed", () => {
     expect(
       [...(group?.querySelectorAll("button") ?? [])].map((button) => button.textContent),
     ).toEqual(SHOWCASE_SCENARIOS.map((id) => `landing.showcase.tryIt.scenarios.${id}`));
+  });
+});
+
+describe("TryIt: output pane", () => {
+  function outputLines(root: ParentNode): ReadonlyArray<string | null> {
+    return [...root.querySelectorAll(".vk-showcase-output-line")].map((line) => line.textContent);
+  }
+
+  it("server-renders what verbatra translate prints for the seed, without the print motion", () => {
+    const doc = markup();
+    const output = doc.querySelector(".vk-showcase-output");
+    expect(output?.getAttribute("aria-label")).toBe("landing.showcase.tryIt.result.outputLabel");
+    expect(output?.querySelector("figcaption")?.textContent).toBe(SHOWCASE_CLI_COMMAND);
+    expect(outputLines(doc)).toEqual(showcaseRunLines(SEED));
+    expect(outputLines(doc)).toContain("  de: 0 translated, 4 unchanged");
+    const code = doc.querySelector<HTMLElement>(".vk-showcase-output-code");
+    expect(code?.hasAttribute("data-printing")).toBe(false);
+    expect(code?.style.getPropertyValue("--showcase-output-rows")).toBe(String(ROWS.output));
+  });
+
+  it("puts the savings line beside the one status sentence, outside the live region", () => {
+    const doc = markup();
+    const status = doc.querySelector('[role="status"]');
+    expect(status?.getAttribute("aria-atomic")).toBe("true");
+    expect(status?.querySelectorAll("p")).toHaveLength(1);
+    expect(status?.querySelectorAll("dl, dt, dd")).toHaveLength(0);
+    expect(doc.querySelector(".vk-showcase-savings")?.textContent).toBe(
+      'landing.showcase.tryIt.result.savings{"sent":0,"total":4}',
+    );
+  });
+
+  it("keeps every printed line under the 600ms print budget", () => {
+    const css = readFileSync(join(process.cwd(), "app/global.css"), "utf8");
+    const stagger = Number(/--print-stagger: (\d+)ms;/.exec(css)?.[1]);
+    const fade = Number(/--duration-fast: (\d+)ms;/.exec(css)?.[1]);
+    expect((ROWS.output - 1) * stagger + fade).toBeLessThanOrEqual(600);
+    expect(css).toMatch(
+      /@media \(prefers-reduced-motion: no-preference\) \{\s+\.vk-showcase-output-code\[data-printing\]/,
+    );
   });
 });
 
@@ -149,9 +189,17 @@ describe("TryIt: scenarios", () => {
     const status = container.querySelector('[role="status"]');
     await click(button(container, "landing.showcase.tryIt.scenarios.edit"));
     expect(status?.querySelector(".vk-showcase-result-title")?.textContent).toBe(
-      'landing.showcase.tryIt.result.headline{"count":1}',
+      'landing.showcase.tryIt.result.summary{"written":1,"withheld":"no","orphaned":"no"}',
     );
-    expect(status?.textContent).toContain('staleKey{"key":"cart.checkout"}');
+    expect(container.querySelector(".vk-showcase-savings")?.textContent).toBe(
+      'landing.showcase.tryIt.result.savings{"sent":1,"total":4}',
+    );
+    expect(
+      [...container.querySelectorAll(".vk-showcase-output-line")].map((line) => line.textContent),
+    ).toEqual(showcaseRunLines(runShowcaseScenario("edit")));
+    expect(container.querySelector(".vk-showcase-output-code")?.hasAttribute("data-printing")).toBe(
+      true,
+    );
     expect(
       button(container, "landing.showcase.tryIt.scenarios.edit")?.getAttribute("aria-pressed"),
     ).toBe("true");
@@ -190,13 +238,22 @@ describe("TryIt: scenarios", () => {
   it("shows the refusal for a broken placeholder in the danger tone", async () => {
     const container = render();
     await click(button(container, "landing.showcase.tryIt.scenarios.break"));
-    const refused = container.querySelector("dd[data-refused]");
-    expect(refused?.textContent).toContain('"details":"-{{amount}} +{{betrag}}"');
-    const whole = [...(refused?.querySelectorAll(".whitespace-nowrap") ?? [])].map(
-      (token) => token.textContent,
+    expect(container.querySelector(".vk-showcase-result-title")?.textContent).toBe(
+      'landing.showcase.tryIt.result.summary{"written":0,"withheld":"yes","orphaned":"no"}',
     );
-    expect(whole.some((token) => token?.includes("-{{amount}}"))).toBe(true);
-    expect(whole.some((token) => token?.includes("+{{betrag}}"))).toBe(true);
+    const refusal = [...container.querySelectorAll(".vk-showcase-output-line")].find((line) =>
+      line.textContent?.includes("cart.total: placeholder"),
+    );
+    expect(refusal?.textContent).toBe("      cart.total: placeholder (-{{amount}}, +{{betrag}})");
+    expect(
+      [...(refusal?.querySelectorAll(".vk-placeholder") ?? [])].map((chip) => [
+        chip.textContent,
+        chip.hasAttribute("data-broken"),
+      ]),
+    ).toEqual([
+      ["{{amount}}", false],
+      ["{{betrag}}", true],
+    ]);
     expect(container.querySelector('[data-mark="refused"]')?.textContent).toContain(
       "Fällig: {{betrag}}",
     );
@@ -218,11 +275,20 @@ describe("TryIt: scenarios", () => {
     });
   });
 
-  it("names the orphaned key and changes no lock hash when a key is removed", async () => {
+  it("reports the orphaned key and changes no lock hash when a key is removed", async () => {
     const container = render();
     await click(button(container, "landing.showcase.tryIt.scenarios.remove"));
     const text = container.querySelector('[role="status"]')?.textContent ?? "";
-    expect(text).toContain('orphanedKey{"key":"account.orders"}');
-    expect(text).toContain("landing.showcase.tryIt.result.lockNone");
+    expect(text).toBe(
+      'landing.showcase.tryIt.result.summary{"written":0,"withheld":"no","orphaned":"yes"}',
+    );
+    expect(
+      [...container.querySelectorAll(".vk-showcase-output-line")].map((line) => line.textContent),
+    ).toContain("  de: 0 translated, 3 unchanged, 1 orphaned");
+    expect(
+      [...container.querySelectorAll<HTMLElement>('[data-pane="lock"] [data-mark]')].map(
+        (line) => line.dataset.mark,
+      ),
+    ).toEqual(["kept"]);
   });
 });

@@ -128,10 +128,11 @@ Scales are fixed and narrow, deliberately:
 - Showcase: `--showcase-line` (1.125rem, 1.25rem from 40rem) is the line height of a file pane in
   the showcase playground, which reserves its longest scenario's row count with it (on a phone,
   where one file shows at a time, the tallest file's, `--showcase-rows-max`, so a file switch
-  moves nothing), `--showcase-result-min` (18rem, 11rem from 40rem, 7.5rem from 64rem) is the
-  reserved height of its result area, sized for the longest scenario in the longest locale, so a
-  scenario never moves what sits below it, and `--showcase-bar-height` (3.125rem) is the height
-  of its scenario row from 64rem.
+  moves nothing), `--showcase-output-rows` (set inline from `showcaseRows().output`) reserves the
+  output pane for its longest run, `--showcase-summary-lines` (3, 2 from 40rem) reserves the
+  status sentence, so a scenario never moves what sits below it, `--print-stagger` (90ms) paces the
+  printed output lines, and `--showcase-bar-height` (3.125rem) is the height of its scenario row
+  from 64rem.
 
 ## Typography
 
@@ -221,9 +222,15 @@ footer's oversized watermark only; do not clip it onto a heading.
   `--v-status-new` (added, missing, new) or `--v-status-changed` (edited, stale, changes); a
   refused reply shows as a struck `data-mark="refused"` line in `--text-danger` above the German
   value it leaves in place; the lock pane prints full 16-character hashes, and a mark that does
-  not fit drops to the next row), and a polite `role="status"` result (its four rows in two
-  columns from 64rem, placeholder tokens kept whole through `WrapTokens`) with its actions beside
-  it from 40rem and on their own row on a phone: Reset, hidden at the seed, and Try again, shown
+  not fit drops to the next row), then the output pane (`.vk-showcase-output`, a `figure` captioned
+  `verbatra translate` and named by `landing.showcase.tryIt.result.outputLabel`) printing, in
+  English on every locale, exactly the lines `renderHuman` prints for that run
+  (`showcaseRunLines` in `lib/showcase-cli.ts`, server-rendered for the seed; after a click the
+  lines fade in one `--print-stagger` apart, under 600ms in all, and at once under reduced
+  motion), a mono savings line (`result.savings`: strings sent against what a full retranslate
+  sends, `showcaseSavings`), and one polite `role="status"` sentence (`result.seed`,
+  `result.summary` or `result.failed`), with the actions beside them from 40rem and on their own
+  row on a phone: Reset, hidden at the seed, and Try again, shown
   with an announced failure message when the module fails to load (the cached promise is dropped,
   so a retry loads again). Only the latest request applies: a Reset or a newer click while a load
   is pending wins. The seed state is server-rendered from `showcaseSeed()`; the first hover,
@@ -263,9 +270,11 @@ footer's oversized watermark only; do not clip it onto a heading.
   (`grid-pattern.ts`). A new
   section composes `Section` plus `SectionHead`; it does not re-derive page padding or
   heading rhythm. Check `ls apps/docs/components/landing` before quoting a file name from
-  this list. The CLI transcript on the landing (`lib/gate-demo.ts`) is real CLI output, English
-  on every locale, and its test pins each line to `packages/cli/src/render.ts`, so a change to
-  the CLI's output fails until the demo is recaptured.
+  this list. The CLI transcripts on the landing (`lib/gate-demo.ts`, `lib/showcase-cli.ts`) are
+  real CLI output, English on every locale, and their tests pin each line to
+  `packages/cli/src/render.ts` (`lib/showcase-cli.run.test.ts` imports `renderHuman` from it by
+  relative path, in that run test only, never from `lib/`), so a change to the CLI's output fails
+  until the demo is recaptured.
 - **Docs-facing:** `<StartHere />` (`components/start-here.tsx`) opens every page in
   `START_HERE_PAGES` (`lib/agent-entry.ts`, the agent guides only, not reference pages): a void
   `aside` at the prose measure with no start bar (so it never doubles the locale notice's

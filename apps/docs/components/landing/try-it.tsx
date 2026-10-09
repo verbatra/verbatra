@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { type CSSProperties, type ReactNode, useRef, useState } from "react";
 import { buttonClasses } from "@/components/ui/button";
+import { SHOWCASE_CLI_COMMAND, showcaseRunLines, showcaseSavings } from "@/lib/showcase-cli";
 import type { ShowcaseLine, ShowcaseOutcome, ShowcaseRows } from "@/lib/showcase-scenarios";
 import {
   SHOWCASE_LOCK_FILE,
@@ -13,7 +14,6 @@ import {
 } from "@/lib/showcase-seed";
 import { trackUmamiEvent } from "@/lib/umami";
 import { PlaceholderText } from "./placeholder-chip";
-import { WrapTokens } from "./wrap-text";
 
 type ScenarioModule = typeof import("@/lib/showcase-scenarios");
 
@@ -76,8 +76,37 @@ function brokenTokens(outcome: ShowcaseOutcome): ReadonlySet<string> {
   );
 }
 
-function keyList(keys: ReadonlyArray<string>): string {
-  return keys.join(", ");
+function OutputPane({
+  outcome,
+  rows,
+  broken,
+}: {
+  outcome: ShowcaseOutcome;
+  rows: number;
+  broken: ReadonlySet<string>;
+}): ReactNode {
+  const t = useTranslations("landing.showcase.tryIt.result");
+  return (
+    <figure className="vk-showcase-output" aria-label={t("outputLabel")}>
+      <figcaption className="vk-showcase-output-name">{SHOWCASE_CLI_COMMAND}</figcaption>
+      <pre
+        key={outcome.scenario ?? "seed"}
+        className="vk-showcase-output-code"
+        data-printing={outcome.scenario === null ? undefined : ""}
+        style={{ "--showcase-output-rows": rows } as CSSProperties}
+      >
+        {showcaseRunLines(outcome).map((line, index) => (
+          <span
+            key={`${index}-${line}`}
+            className="vk-showcase-output-line"
+            style={{ "--line-index": index } as CSSProperties}
+          >
+            <PlaceholderText text={line} broken={broken} />
+          </span>
+        ))}
+      </pre>
+    </figure>
+  );
 }
 
 function Result({
@@ -90,65 +119,31 @@ function Result({
   busy: boolean;
 }): ReactNode {
   const t = useTranslations("landing.showcase.tryIt.result");
-  const sent = [...outcome.missing, ...outcome.stale];
-  const sendValue =
-    sent.length === 0
-      ? t("nothing")
-      : keyList([
-          ...outcome.missing.map((key) => t("missingKey", { key })),
-          ...outcome.stale.map((key) => t("staleKey", { key })),
-        ]);
-  const skipValue = [
-    t("unchanged", { count: outcome.unchanged.length }),
-    ...outcome.orphaned.map((key) => t("orphanedKey", { key })),
-  ].join("; ");
-  const lockValue =
-    outcome.written.length === 0
-      ? t("lockNone")
-      : t("lockChanges", { count: outcome.written.length, keys: keyList(outcome.written) });
-  const refusal = outcome.refusal;
-  const gateValue = refusal
-    ? t("gateRefused", {
-        key: refusal.key,
-        candidate: refusal.candidate,
-        details: refusal.details.join(" "),
-      })
-    : t(sent.length === 0 ? "gateIdle" : "gatePass");
-
-  const title = failed
+  const savings = showcaseSavings(outcome);
+  const sentence = failed
     ? t("failed")
     : outcome.scenario === null
       ? t("seed")
-      : t("headline", { count: sent.length });
-
-  const rows = [
-    ["send", sendValue],
-    ["skip", skipValue],
-    ["lock", lockValue],
-    ["gate", gateValue],
-  ] as const;
+      : t("summary", {
+          written: outcome.written.length,
+          withheld: outcome.refusal === null ? "no" : "yes",
+          orphaned: outcome.orphaned.length === 0 ? "no" : "yes",
+        });
 
   return (
-    <div
-      className="vk-showcase-result"
-      role="status"
-      aria-live="polite"
-      aria-atomic="true"
-      aria-busy={busy || undefined}
-    >
-      <p className="vk-showcase-result-title" data-failed={failed ? "" : undefined}>
-        {title}
-      </p>
-      <dl className="vk-showcase-result-rows">
-        {rows.map(([id, value]) => (
-          <div key={id} className="contents">
-            <dt>{t(`rows.${id}`)}</dt>
-            <dd data-refused={id === "gate" && refusal !== null ? "" : undefined}>
-              <WrapTokens text={value} />
-            </dd>
-          </div>
-        ))}
-      </dl>
+    <div className="vk-showcase-summary">
+      <p className="vk-showcase-savings">{t("savings", savings)}</p>
+      <div
+        className="vk-showcase-result"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        aria-busy={busy || undefined}
+      >
+        <p className="vk-showcase-result-title" data-failed={failed ? "" : undefined}>
+          {sentence}
+        </p>
+      </div>
     </div>
   );
 }
@@ -253,25 +248,28 @@ export function TryIt({ seed, rows }: { seed: ShowcaseOutcome; rows: ShowcaseRow
         ))}
       </div>
       <div className="vk-showcase-outcome">
-        <Result outcome={outcome} failed={failedScenario !== null} busy={pending} />
-        <div className="vk-showcase-outcome-actions">
-          {failedScenario === null ? null : (
+        <OutputPane outcome={outcome} rows={rows.output} broken={broken} />
+        <div className="vk-showcase-outcome-footer">
+          <Result outcome={outcome} failed={failedScenario !== null} busy={pending} />
+          <div className="vk-showcase-outcome-actions">
+            {failedScenario === null ? null : (
+              <button
+                type="button"
+                className={buttonClasses("secondary", "sm", "vk-showcase-retry")}
+                onClick={() => run(failedScenario, true)}
+              >
+                {t("retry")}
+              </button>
+            )}
             <button
               type="button"
-              className={buttonClasses("secondary", "sm", "vk-showcase-retry")}
-              onClick={() => run(failedScenario, true)}
+              className={buttonClasses("ghost", "sm", "vk-showcase-reset")}
+              hidden={atSeed}
+              onClick={reset}
             >
-              {t("retry")}
+              {t("reset")}
             </button>
-          )}
-          <button
-            type="button"
-            className={buttonClasses("ghost", "sm", "vk-showcase-reset")}
-            hidden={atSeed}
-            onClick={reset}
-          >
-            {t("reset")}
-          </button>
+          </div>
         </div>
       </div>
     </div>

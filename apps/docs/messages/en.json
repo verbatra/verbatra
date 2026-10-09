@@ -106,23 +106,9 @@
         },
         "result": {
           "seed": "Everything is in sync: verbatra would translate 0 keys.",
-          "headline": "verbatra would translate {count, plural, one {# key} other {# keys}}.",
-          "rows": {
-            "send": "Would send",
-            "skip": "Skips",
-            "lock": "Lock file",
-            "gate": "Placeholders"
-          },
-          "nothing": "nothing",
-          "missingKey": "{key} (missing)",
-          "staleKey": "{key} (stale)",
-          "unchanged": "{count, plural, one {# unchanged key} other {# unchanged keys}}",
-          "orphanedKey": "{key} stays in de.json until --prune",
-          "lockNone": "no hash changes",
-          "lockChanges": "{count, plural, one {# hash would change} other {# hashes would change}}: {keys}",
-          "gateIdle": "nothing to check",
-          "gatePass": "every placeholder intact",
-          "gateRefused": "\"{candidate}\" would be refused ({details}); the German value stays",
+          "summary": "{written, plural, =0 {A real run would write nothing} one {A real run would write # translation and update its lock hash} other {A real run would write # translations and update their lock hashes}}{withheld, select, yes {, and withhold the reply that breaks a placeholder} other {}}{orphaned, select, yes {, and keep the removed key in de.json until --prune} other {}}.",
+          "savings": "{sent, plural, one {# string sent} other {# strings sent}}, where a full retranslate sends {total}.",
+          "outputLabel": "What verbatra translate prints",
           "failed": "The comparison code did not load. Check your connection and try again."
         }
       }

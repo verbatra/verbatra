@@ -70,7 +70,7 @@ describe("landing message parity", () => {
     expect(source).toContain("landing.loop.rows.studio.alt");
     expect(source).toContain("landing.control.groups.correct.items.terms.title");
     expect(source).toContain("landing.control.groups.people.items.protect.title");
-    expect(source).toContain("landing.showcase.tryIt.result.headline");
+    expect(source).toContain("landing.showcase.tryIt.result.summary");
   });
 
   it("keeps no messages for the removed gains, providers, How panels or hero demo", () => {

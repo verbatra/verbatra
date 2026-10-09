@@ -314,23 +314,9 @@
         },
         "result": {
           "seed": "Tout est synchronisé : verbatra traduirait 0 clé.",
-          "rows": {
-            "send": "Enverrait",
-            "skip": "Ignore",
-            "lock": "Fichier lock",
-            "gate": "Placeholders"
-          },
-          "nothing": "rien",
-          "missingKey": "{key} (manquante)",
-          "staleKey": "{key} (obsolète)",
-          "orphanedKey": "{key} reste dans de.json jusqu'à --prune",
-          "lockNone": "aucun hash ne change",
-          "gateIdle": "rien à vérifier",
-          "gatePass": "tous les placeholders intacts",
-          "gateRefused": "« {candidate} » serait refusé ({details}) ; la valeur allemande reste",
-          "headline": "verbatra traduirait {count, plural, one {# clé} many {# de clés} other {# clés}}.",
-          "unchanged": "{count, plural, one {# clé inchangée} many {# de clés inchangées} other {# clés inchangées}}",
-          "lockChanges": "{count, plural, one {# hash changerait} many {# de hashes changeraient} other {# hashes changeraient}} : {keys}",
+          "summary": "{written, plural, =0 {Une vraie exécution n'écrirait rien} one {Une vraie exécution écrirait # traduction et mettrait à jour son hash dans le lock} many {Une vraie exécution écrirait # de traductions et mettrait à jour leurs hashs dans le lock} other {Une vraie exécution écrirait # traductions et mettrait à jour leurs hashs dans le lock}}{withheld, select, yes {, et retiendrait la réponse qui casse un placeholder} other {}}{orphaned, select, yes {, et garderait la clé supprimée dans de.json jusqu'à --prune} other {}}.",
+          "savings": "{sent, plural, one {# chaîne envoyée} many {# de chaînes envoyées} other {# chaînes envoyées}}, là où tout retraduire en enverrait {total}.",
+          "outputLabel": "Ce qu'affiche verbatra translate",
           "failed": "Le code de comparaison ne s'est pas chargé. Vérifie ta connexion et réessaie."
         },
         "filesLabel": "Fichiers",
