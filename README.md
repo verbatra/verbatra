@@ -22,23 +22,23 @@
 
 ## Quick start
 
-Needs Node.js `>=22.14.0`.
+Needs Node.js `^22.18.0 || >=24`.
 
 ```bash
 # 1. Install as a dev dependency
 npm install --save-dev @verbatra/cli
 
 # 2. Scaffold verbatra.config.ts and .env.example (choose your provider)
-npx verbatra init --provider gemini
+npx @verbatra/cli init --provider gemini
 
 # 3. Provide the provider's API key, in .env or exported (Gemini shown)
 export GEMINI_API_KEY=your-key-here
 
 # 4. Translate every target locale once
-npx verbatra translate
+npx @verbatra/cli translate
 ```
 
-A dev-dependency install puts the `verbatra` binary in `node_modules/.bin` rather than on your PATH, so the commands above call it through `npx`, which runs the locally installed binary whichever package manager put it there. Gemini is the cheapest way to try verbatra, because its API has a real free tier: create a key at [Google AI Studio](https://aistudio.google.com/apikey) with no billing setup. Pass `anthropic`, `openai`, `deepl`, or `google-translate` to `--provider` instead if you prefer one of those. pnpm users need one extra step before installing; see [Troubleshooting](https://verbatra.kreitz-webdev.de/docs/troubleshooting).
+A dev-dependency install puts the `verbatra` binary in `node_modules/.bin` rather than on your PATH, so the commands above call it through `npx`, which runs the locally installed binary whichever package manager put it there. Gemini is the cheapest way to try verbatra, because its API has a real free tier: create a key at [Google AI Studio](https://aistudio.google.com/apikey) with no billing setup. Pass `anthropic`, `openai`, `deepl`, `google-translate`, `openai-compatible` (with `--model` and `--base-url`), or `libretranslate` (with `--base-url`) to `--provider` instead if you prefer one of those, or `none` to translate by hand only. pnpm users need one extra step before installing; see [Troubleshooting](https://verbatra.kreitz-webdev.de/docs/troubleshooting).
 
 ## Description
 
@@ -49,10 +49,11 @@ The part that matters when a run goes wrong is the integrity gate. Every candida
 ## Features
 
 - **Fourteen locale formats.** JSON for i18next, vue-i18n, next-intl, and ngx-translate, plus XLIFF, YAML, Flutter ARB, Java/Spring `.properties`, Apple `.strings`/`.stringsdict`, Xcode String Catalogs, Android `strings.xml`, gettext `.po`/`.pot`, INI, and .NET `.resx`.
-- **Six providers behind one interface.** Anthropic, OpenAI, Gemini, and any openai-compatible local or self-hosted server as LLMs, plus DeepL and Google Cloud Translation as machine translation.
+- **Seven providers behind one interface.** Anthropic, OpenAI, Gemini, and any openai-compatible local or self-hosted server as LLMs, plus DeepL, Google Cloud Translation, and a self-hosted LibreTranslate server as machine translation, or `none` for a human-only project that never calls one.
 - **Incremental by default.** The lock file makes every run diff-driven, so a run over an unchanged project calls no provider at all.
-- **Read-only CI gates.** `verbatra check`, `diff`, and `doctor` call no provider, need no API key, write no file, and exit non-zero on drift.
-- **Manual translation handoff.** Export the strings that need a human into an Excel workbook, CSV, or TSV, import the filled file back through the same integrity gate, and move the whole memory in or out as TMX.
+- **Read-only CI gates.** `verbatra check`, `diff`, and `doctor` call no provider, need no API key, write no file, and exit non-zero on drift (`doctor --live` is the exception: for a machine-translation provider it fetches the current language list, sending the API key DeepL and Google need); `verbatra check --require-reviewed` also fails while a machine-written translation is not approved.
+- **Manual translation handoff.** Export the strings that need a human into an Excel workbook, CSV, TSV, or XLIFF 2.0 or 1.2 for a CAT tool, import the filled file back through the same integrity gate, and move the whole memory in or out as TMX.
+- **Machine-translation evidence.** Every value is recorded with the write path that produced it and whether a person reviewed it; `verbatra report provenance --json` turns that into a per-key audit file, and XLIFF and TMX exports mark machine-translated text. Supporting evidence, not legal advice.
 - **Source-code extraction.** `verbatra extract` finds translation call sites in your application source and adds the new keys to the source locale; `diff --unused` names the keys nothing references any more.
 - **Spend before you spend.** `--dry-run` and `--estimate` preview a run without calling a provider, and `verbatra pseudo` builds a pseudolocale that exposes truncated layouts before you have a key at all.
 - **Keys stay in your environment.** API keys are read only from environment variables, never from a config file, a CLI argument, or a function argument.
@@ -69,23 +70,40 @@ The part that matters when a run goes wrong is the integrity gate. Every candida
 
 Three agent skill documents in [verbatra/skills](https://github.com/verbatra/skills) teach a coding agent which of these surfaces to reach for; install one with `npx skills@latest add verbatra/skills --skill verbatra-cli -a claude-code -y`. That repository verifies each document against this repository's command, format, provider and tool registries.
 
+## Use with AI agents
+
+verbatra is built to be driven by a coding agent as well as by a person:
+
+- **MCP server.** `npx -y @verbatra/mcp` serves a project over stdio to Claude Code, Codex, Gemini CLI, Cursor, VS Code, GitHub Copilot (agent mode, cloud agent, and CLI), Windsurf, Zed, JetBrains AI Assistant, Claude Desktop, and any other stdio client. Tools that call a paid provider stay off the tool list until spending is granted. Per-client setup: [Connect an MCP client](https://verbatra.kreitz-webdev.de/docs/connect-an-mcp-client).
+- **Claude Code plugin.** `claude plugin marketplace add verbatra/skills`, then `claude plugin install verbatra@verbatra --scope project`, installs the skills, the MCP server with spending off, and a hook that checks edited locale files. Use it instead of a `verbatra` entry in `.mcp.json` (from `verbatra init --agent` or `claude mcp add`), never both: together they register the server twice.
+- **Machine-readable CLI.** Every one-shot command takes `--json` and exits `0`, `1`, or `2` (plus `3` for a human-only project), so an agent branches on the code rather than parsing prose. [Recipes for agents and scripts](https://verbatra.kreitz-webdev.de/docs/agent-recipes).
+- **Docs an agent can read.** [llms.txt](https://verbatra.kreitz-webdev.de/llms.txt) indexes every page, [llms-full.txt](https://verbatra.kreitz-webdev.de/llms-full.txt) holds the full text, and any docs URL returns Markdown with `.md` appended or with `Accept: text/markdown`.
+- **Set it up for someone.** [Start with AI](https://verbatra.kreitz-webdev.de/docs/start-with-ai) is a prompt that walks an agent through a safe first setup, stopping for confirmation before anything spends.
+
 ## Formats and providers
 
 Formats are a closed set of fourteen, each registered by an adapter that round-trips the file in its own document key order rather than rewriting it. See [Formats](https://verbatra.kreitz-webdev.de/docs/formats) for the list and what each adapter preserves.
 
-Providers are a closed set of six behind one narrow interface, four LLM and two machine translation, selected by a single `id` in your config. See [Providers](https://verbatra.kreitz-webdev.de/docs/providers) for each one's options, model ids, and key variable.
+Providers are a closed set of seven behind one narrow interface, four LLM and three machine translation, selected by a single `id` in your config. See [Providers](https://verbatra.kreitz-webdev.de/docs/providers) for each one's options, model ids, and key variable.
 
 A format or provider verbatra does not ship can be added from outside: the SDK re-exports the adapter factories and accepts a registry of your own. See [`.claude/rules/architecture.md`](./.claude/rules/architecture.md).
 
 ## Studio
 
-`verbatra studio` starts Verbatra Studio, a local web dashboard over your project with four pages: translation status and diff, a needs-review queue with in-place editing, a live locale-file activity feed with the last run's token usage, and the resolved config with an editable glossary. Every page refreshes live as your locale files change.
+`verbatra studio` starts Verbatra Studio, a local web dashboard over your project with four pages:
+
+- Translation status and diff.
+- A review queue of every machine-written translation nobody has approved, shared through the committed provenance file. Approve, reject, and edit from the keyboard, in bulk, or a whole locale at once.
+- A live locale-file activity feed with the last run's token usage.
+- The resolved config with an editable glossary.
+
+Every page refreshes live as your locale files change.
 
 The server binds to `127.0.0.1` only and authenticates every request. Local editing is always on and runs through the same integrity gate a translate run applies. Actions that spend provider budget exist only when you start Studio with `--allow-spend`; without that flag, Studio never calls a provider.
 
 ```bash
 npm install --save-dev @verbatra/cli @verbatra/studio
-npx verbatra studio
+npx @verbatra/cli studio
 ```
 
 ## GitHub Action
@@ -99,6 +117,8 @@ It lives in its own repository, [verbatra/action](https://github.com/verbatra/ac
 API keys are read only from environment variables, never from the config file, a CLI argument, or a function argument. The config schema rejects unknown keys, so a key cannot hide there by accident, and error messages name the variable a provider needs without ever including its value.
 
 `verbatra init` adds the local files a verbatra project must not commit to your `.gitignore`, `.env` and `.env.local` among them, and later runs top up an existing `.gitignore` that is missing one.
+
+verbatra has no telemetry, analytics, or update check. The only network requests it makes go to the translation provider you configure, and only when a command translates or `verbatra doctor --live` fetches a machine-translation provider's language list. [Data handling and privacy](https://verbatra.kreitz-webdev.de/docs/data-handling) lists what each provider receives, what stays local, and each vendor's retention terms.
 
 To report a vulnerability, see [SECURITY.md](./SECURITY.md).
 

@@ -1,4 +1,4 @@
-import type { SupportedFormat } from "@verbatra/sdk";
+import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { plainAnswer } from "@/lib/plain-answer";
 import { SITE_URL } from "@/lib/site";
 
@@ -32,25 +32,21 @@ const SUPPORTED_PROVIDERS = [
   "DeepL",
   "Google Cloud Translation",
   "openai-compatible",
+  "LibreTranslate",
 ];
-const FORMAT_LABELS: Readonly<Record<SupportedFormat, string>> = {
-  "i18next-json": "i18next",
-  "vue-i18n-json": "vue-i18n",
-  "next-intl-json": "next-intl",
-  "ngx-translate-json": "ngx-translate",
-  arb: "ARB",
-  yaml: "YAML",
-  xliff: "XLIFF",
-  properties: "Java/Spring properties",
-  "apple-strings": "Apple .strings",
-  "apple-xcstrings": "Xcode String Catalog",
-  "android-xml": "Android strings.xml",
-  "gettext-po": "gettext .po/.pot",
-  ini: "INI",
-  resx: ".NET .resx",
-};
-
-const SUPPORTED_FORMATS = Object.values(FORMAT_LABELS);
+export const SUPPORTED_AGENT_CLIENTS = [
+  "Claude Code",
+  "Codex",
+  "Gemini CLI",
+  "Cursor",
+  "VS Code",
+  "GitHub Copilot",
+  "Windsurf",
+  "Zed",
+  "JetBrains AI Assistant",
+  "Claude Desktop",
+] as const;
+const SUPPORTED_FORMAT_LABELS = SUPPORTED_FORMAT_IDS.map((id) => FORMAT_DISPLAY[id].label);
 
 export const AUTHOR_NAME = "Mario Kreitz";
 
@@ -89,6 +85,8 @@ export const SEO_KEYWORDS = [
   "AI translation",
   "incremental translation",
   "CLI",
+  "MCP server",
+  "AI agents",
 ] as const;
 
 export function softwareApplicationLd(args: {
@@ -107,7 +105,7 @@ export function softwareApplicationLd(args: {
     inLanguage: args.lang,
     url: SITE_URL,
     applicationCategory: "DeveloperApplication",
-    operatingSystem: "Node.js >= 22.14.0",
+    operatingSystem: "Node.js ^22.18.0 || >=24",
     programmingLanguage: "TypeScript",
     license: "https://opensource.org/licenses/MIT",
     codeRepository: GITHUB_URL,
@@ -119,9 +117,11 @@ export function softwareApplicationLd(args: {
     featureList: [
       "Incremental translation - only new or changed keys are sent to the provider",
       `Translation providers: ${SUPPORTED_PROVIDERS.join(", ")}`,
-      `i18n formats: ${SUPPORTED_FORMATS.join(", ")}`,
+      `i18n formats: ${SUPPORTED_FORMAT_LABELS.join(", ")}`,
       `Frameworks: ${SUPPORTED_FRAMEWORKS.join(", ")}`,
       "Placeholder, ICU, and inline markup integrity checked after every translation",
+      "Human-only mode: the none provider turns machine translation off and hands every key to a translator",
+      `AI agent ready: a stdio MCP server for ${SUPPORTED_AGENT_CLIENTS.join(", ")}, JSON output with stable exit codes, and installable agent skills`,
     ],
     softwareHelp: { "@type": "CreativeWork", url: `${SITE_URL}/docs` },
     sameAs: [GITHUB_URL, NPM_CLI_URL, NPM_SDK_URL, NPM_STUDIO_URL, NPM_MCP_URL],
@@ -131,7 +131,7 @@ export function softwareApplicationLd(args: {
         name: "verbatra Studio",
         softwareVersion: args.studioVersion,
         applicationCategory: "DeveloperApplication",
-        operatingSystem: "Node.js >= 22.14.0",
+        operatingSystem: "Node.js ^22.18.0 || >=24",
         url: NPM_STUDIO_URL,
         downloadUrl: NPM_STUDIO_URL,
         license: "https://opensource.org/licenses/MIT",
@@ -144,7 +144,7 @@ export function softwareApplicationLd(args: {
         name: "verbatra MCP",
         softwareVersion: args.mcpVersion,
         applicationCategory: "DeveloperApplication",
-        operatingSystem: "Node.js >= 22.14.0",
+        operatingSystem: "Node.js ^22.18.0 || >=24",
         url: NPM_MCP_URL,
         downloadUrl: NPM_MCP_URL,
         license: "https://opensource.org/licenses/MIT",

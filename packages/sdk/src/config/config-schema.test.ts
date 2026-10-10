@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
+import { LOCALE_CODE_PATTERN } from "./locale-code.js";
 import { verbatraConfigSchema } from "./schema.js";
 
 const SINGLE_CHILD_KEYS = ["element", "innerType", "valueType", "keyType"] as const;
@@ -79,12 +80,76 @@ function propertyOf(
 const document: JsonSchemaObject = z.toJSONSchema(verbatraConfigSchema);
 
 describe("the config JSON Schema document: refinements that cannot be expressed", () => {
-  it("carries exactly the three custom checks the docs list as editor-invisible", () => {
+  it("carries exactly the custom checks the docs list as editor-invisible", () => {
     expect(collectCustomCheckPaths(verbatraConfigSchema)).toEqual([
       "<root>",
       "<root>",
+      "<root>",
+      "sourceLocale",
       "provider[5].options.apiKeyEnvVar.innerType",
+      "glossary.innerType[1]",
+      "network.innerType[0].allowedHosts.innerType.element",
+      "sensitiveData.innerType.patterns.innerType.element",
     ]);
+  });
+});
+
+describe("the config JSON Schema document: the network block", () => {
+  it("states that an allowlist policy needs at least one allowed host", () => {
+    const network = propertyOf(document, "network");
+    const variants = (network?.oneOf ?? network?.anyOf) as JsonSchemaObject[] | undefined;
+    const allowlist = variants?.find(
+      (variant) => propertyOf(variant, "policy")?.const === "allowlist",
+    );
+    expect(allowlist?.required).toEqual(["policy", "allowedHosts"]);
+    expect(propertyOf(allowlist ?? {}, "allowedHosts")?.minItems).toBe(1);
+  });
+});
+
+describe("the config JSON Schema document: the locale code rule", () => {
+  const sourceLocale = propertyOf(document, "sourceLocale");
+  const targetLocales = propertyOf(document, "targetLocales");
+
+  it("emits the locale code grammar as a string pattern on both locale fields", () => {
+    expect(sourceLocale).toEqual({
+      type: "string",
+      minLength: 1,
+      pattern: LOCALE_CODE_PATTERN.source,
+    });
+    expect(targetLocales?.items).toEqual(sourceLocale);
+  });
+
+  it("leaves a repeated variant to the runtime check, which rejects it", () => {
+    const expression = new RegExp(String(sourceLocale?.pattern));
+    const parsed = verbatraConfigSchema.safeParse({
+      sourceLocale: "en",
+      targetLocales: ["de-1996-1996"],
+      format: "i18next-json",
+      files: { pattern: "locales/{locale}.json" },
+      provider: { id: "none" },
+    });
+
+    expect(expression.test("de-1996-1996")).toBe(true);
+    expect(parsed.success).toBe(false);
+    expect(parsed.error?.issues.map((issue) => issue.path.join("."))).toEqual(["targetLocales.0"]);
+  });
+
+  it("accepts and rejects the same well-formed shapes the runtime does", () => {
+    const expression = new RegExp(String(sourceLocale?.pattern));
+
+    for (const accepted of [
+      "en",
+      "pt-BR",
+      "zh-Hant-TW",
+      "es-419",
+      "sr-Latn",
+      "en-US-u-ca-gregory",
+    ]) {
+      expect(expression.test(accepted)).toBe(true);
+    }
+    for (const rejected of ["en_US", "x", "english", "toString", "__proto__", "en-"]) {
+      expect(expression.test(rejected)).toBe(false);
+    }
   });
 });
 
@@ -131,5 +196,34 @@ describe("the config JSON Schema document: the extract block", () => {
       type: "array",
       items: { type: "string", minLength: 1 },
     });
+  });
+});
+
+describe("the config JSON Schema document: provider.options.localeMap", () => {
+  function variantOptions(id: string): JsonSchemaObject | undefined {
+    const variants = asArray(
+      propertyOf(document, "provider")?.oneOf ?? propertyOf(document, "provider")?.anyOf,
+    );
+    const variant = variants.find(
+      (candidate) =>
+        (propertyOf(candidate as JsonSchemaObject, "id") as { const?: unknown } | undefined)
+          ?.const === id,
+    ) as JsonSchemaObject | undefined;
+    return propertyOf(variant, "options");
+  }
+
+  it.each(["anthropic", "openai", "gemini", "deepl", "google-translate", "openai-compatible"])(
+    "offers a string-to-string localeMap on the %s options",
+    (id) => {
+      expect(propertyOf(variantOptions(id), "localeMap")).toEqual({
+        type: "object",
+        propertyNames: { type: "string", minLength: 1 },
+        additionalProperties: { type: "string", minLength: 1, maxLength: 64 },
+      });
+    },
+  );
+
+  it("offers no localeMap on the none options", () => {
+    expect(propertyOf(variantOptions("none"), "localeMap")).toBeUndefined();
   });
 });

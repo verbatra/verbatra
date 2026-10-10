@@ -1,0 +1,296 @@
+---
+title: "Transmission et échange"
+description: "Import et export de classeurs et de TMX, instantanés de fichiers de locale et chemins de locale."
+type: reference
+---
+<SdkAnchorForward />
+
+## Instantanés de fichiers de locale
+
+Les briques d'un observateur à rafraîchissement en direct comme celui de Studio : capture l'état d'un fichier de locale, puis compte ce qui a changé depuis.
+
+### readLocaleFileSnapshot
+
+<AvailableFrom version="0.5.0" />
+
+Lit un fichier de locale (la locale source ou n'importe quelle locale cible) et le réduit à un hash de contenu par clé. Un fichier qui n'existe pas encore se lit comme un instantané vide plutôt que de lever.
+
+```ts title="Signature"
+function readLocaleFileSnapshot(
+  input: ReadLocaleFileSnapshotInput,
+  deps?: ReadLocaleFileSnapshotDeps,
+): Promise<LocaleFileSnapshot>;
+```
+
+<SdkTypeTable name="ReadLocaleFileSnapshotInput" />
+
+**Renvoie :** `LocaleFileSnapshot`
+
+**Lève :** [`UNKNOWN_FORMAT`](/fr/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/fr/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/fr/docs/error-codes#locale_path_collision)
+
+Renvoie `{ locale, hashes }`.
+
+### diffLocaleSnapshots
+
+<AvailableFrom version="0.5.0" />
+
+Compare deux instantanés du même fichier, pris à des moments différents, et compte les clés ajoutées, modifiées et supprimées entre les deux. Une fonction synchrone ordinaire : `diffLocaleSnapshots(previous, current)` renvoie `{ added, changed, removed }`. Des comptes seulement, jamais de noms de clés.
+
+```ts title="Signature"
+function diffLocaleSnapshots(
+  previous: LocaleFileSnapshot,
+  current: LocaleFileSnapshot,
+): LocaleSnapshotDelta;
+```
+
+<SdkTypeTable name="LocaleFileSnapshot" />
+
+**Renvoie :** `LocaleSnapshotDelta`
+
+## Chemins de locale
+
+### createLocalePathResolver
+
+<AvailableFrom version="0.7.0" />
+
+Résout la correspondance entre locales et chemins du projet dans les deux sens, à partir de
+`files.pattern`, des locales configurées et de `files.localeStyle`. `createLocalePathResolver(cwd,
+config)` renvoie `{ pathFor, localeFor }` : `pathFor(locale)` est le chemin absolu du fichier d'une
+locale, et `localeFor(path)` est la locale à laquelle appartient un chemin, ou `undefined` pour un
+chemin qui n'appartient pas à ce projet. Tous les points d'entrée du SDK résolvent les chemins par
+lui, donc un observateur ou un tableau de bord bâti sur le SDK voit exactement les chemins qu'une
+exécution écrit.
+
+```ts title="Signature"
+function createLocalePathResolver(
+  cwd: string,
+  config: LocalePathResolverConfig,
+): LocalePathResolver;
+```
+
+<SdkTypeTable name="LocalePathResolverConfig" />
+
+**Renvoie :** `LocalePathResolver`
+
+**Lève :** [`LOCALE_LAYOUT_INVALID`](/fr/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/fr/docs/error-codes#locale_path_collision)
+
+Toutes les vérifications ont lieu à la création du résolveur, avant toute lecture de fichier : un
+pattern et un style incompatibles, ou une locale pour laquelle le style n'a pas d'écriture
+correcte, lèvent `LOCALE_LAYOUT_INVALID`, et deux locales qui résolvent vers le même chemin lèvent
+`LOCALE_PATH_COLLISION`.
+
+## La paire classeur
+
+La remise pour les traducteurs humains, sous forme de classeur Excel ou de texte délimité ; voir [Traduction humaine](/fr/docs/manual-translation).
+
+### exportWorkbook
+
+<AvailableFrom version="0.2.0" />
+
+Écrit les chaînes encore à traduire (clés manquantes et modifiées par locale ; ajoute les inchangées avec `includeUnchanged`) dans un classeur `.xlsx` stylisé. Les lignes portent le même signal de relecture que calcule une exécution translate. Aucun appel de fournisseur, aucune écriture du verrou.
+
+```ts title="Signature"
+function exportWorkbook(
+  input: ExportWorkbookInput,
+  deps?: ExportWorkbookDeps,
+): Promise<ExportWorkbookResult>;
+```
+
+<SdkTypeTable name="ExportWorkbookInput" />
+
+**Renvoie :** `ExportWorkbookResult`
+
+**Lève :** [`UNKNOWN_FORMAT`](/fr/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/fr/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/fr/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/fr/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/fr/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/fr/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/fr/docs/error-codes#unknown_locale), [`EXPORT_OUTPUT_CONFLICT`](/fr/docs/error-codes#export_output_conflict), [`EXPORT_UNWRITABLE`](/fr/docs/error-codes#export_unwritable)
+
+**Exemple :** [L'aller-retour du classeur](/fr/docs/programmatic-api#laller-retour-du-classeur)
+
+`format` vaut `xlsx` par défaut ; `csv` et `tsv` écrivent à la place un `<locale>.csv` ou `<locale>.tsv` par locale, donc `out` désigne pour eux un répertoire (créé s'il manque) et un chemin de fichier pour `xlsx`. `out` vaut par défaut `DEFAULT_WORKBOOK_PATH` (`verbatra-translations.xlsx`) ou, pour les formats délimités et XLIFF, `DEFAULT_DELIMITED_PATH` (`verbatra-translations`), tous deux exportés comme constantes. Les valeurs acceptées sont exportées comme `EXCHANGE_FORMATS` et la valeur par défaut comme `DEFAULT_EXCHANGE_FORMAT`, pour qu'un outil qui enveloppe le SDK puisse valider un argument de format sans coder la liste en dur. Renvoie `{ path, locales }` : le chemin absolu écrit et un compte de lignes par locale.
+
+Avant toute lecture, `EXPORT_OUTPUT_CONFLICT` refuse un `out` qui tombe hors de `cwd`, et un `out` qui, lui-même ou par un fichier que l'export écrirait dedans, nomme un fichier de locale configuré, le fichier de verrouillage, le fichier de provenance, le cache de mémoire de traduction, un fichier que verbatra cherche pour sa configuration, le fichier `configPath` ou le fichier `glossaryPath`, sans tenir compte de la casse et, quand `deps.fs` implémente `realpath` comme la valeur par défaut, de nouveau une fois les liens symboliques résolus. Un chemin `xlsx` est aussi refusé quand il ne nomme aucun fichier (y compris un chemin terminé par un séparateur de chemin) ou qu'il nomme `cwd` lui-même ; un répertoire `csv`, `tsv` ou XLIFF peut être `cwd`. Une écriture qui échoue, parce que le répertoire n'est pas inscriptible, qu'un répertoire ou un fichier gêne ou que le disque est plein, lève `EXPORT_UNWRITABLE` avec le fichier et le code du système de fichiers dans le message, et l'erreur du système de fichiers comme `cause`.
+
+<AvailableFrom version="0.12.0" />
+
+`format: "xliff2"` et `format: "xliff12"` écrivent pour un outil de TAO un `<locale>.xlf` en XLIFF 2.0 ou 1.2 par locale dans le répertoire `out` : une unité par clé, les espaces réservés et le balisage comme codes en ligne `<ph>` protégés, la description et le sens de la clé comme notes, le hash de la source dans les métadonnées de l'unité et un état de segment tiré de l'état de verrouillage et de relecture (`initial` pour une clé manquante ou obsolète, `translated` quand elle est à jour, `reviewed` quand elle est approuvée). Les deux types sont exportés, `XliffFormat` nommant les deux membres XLIFF d'`ExchangeFormat`. Voir [Confier à une agence de traduction](/fr/docs/translation-agency).
+
+Chaque unité qui a une cible porte aussi son origine : XLIFF 1.2 qualifie une cible de classe machine non approuvée avec `state-qualifier="mt-suggestion"`, et XLIFF 2.0 ajoute les entrées `origin` et `review-state` au groupe de métadonnées `verbatra` de l'unité. Le résultat porte alors aussi `provenanceMarkers` : `"written"`, ou `"unavailable"` quand le fichier de provenance n'a pas pu être lu et qu'aucun marqueur n'a été écrit. Voir [Preuves de traduction automatique](/fr/docs/provenance-evidence#marqueurs-dans-les-exports).
+
+### importWorkbook
+
+<AvailableFrom version="0.2.0" />
+
+Relit un classeur rempli dans les fichiers de locale, en exécutant les mêmes contrôles de dérive de source et d'intégrité que `translate`. Seules les lignes acceptées font avancer leur ligne de base du verrou ; une ligne vide ou rejetée continue de se réexporter jusqu'à sa vraie résolution.
+
+```ts title="Signature"
+function importWorkbook(
+  input: ImportWorkbookInput,
+  deps?: ImportWorkbookDeps,
+): Promise<RunSummary>;
+```
+
+<SdkTypeTable name="ImportWorkbookInput" />
+
+**Renvoie :** [`RunSummary`](/fr/docs/sdk/run-summary)
+
+**Lève :** [`LOCK_TIMEOUT_INVALID`](/fr/docs/error-codes#lock_timeout_invalid), [`REVIEWER_INVALID`](/fr/docs/error-codes#reviewer_invalid), [`UNKNOWN_FORMAT`](/fr/docs/error-codes#unknown_format), [`SOURCE_UNREADABLE`](/fr/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/fr/docs/error-codes#source_invalid), [`LOCALE_LAYOUT_INVALID`](/fr/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/fr/docs/error-codes#locale_path_collision), [`LOCK_FILE_INVALID`](/fr/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/fr/docs/error-codes#provenance_file_invalid)
+
+**Exemple :** [L'aller-retour du classeur](/fr/docs/programmatic-api#laller-retour-du-classeur)
+
+Avec `csv` ou `tsv`, `workbook` est soit un seul fichier d'échange, soit le répertoire qui en contient un par locale, et la locale vient du nom du fichier. Un fichier terminé par `.csv` ou `.tsv` est lu dans ce format quand `format` est omis, et un répertoire dans le format de son manifeste d'export ou de ses fichiers de locale. Renvoie la même forme `RunSummary` que `translate` (avec `needsReview` toujours vide, puisqu'aucun fournisseur n'intervient). Une feuille pour une locale qui n'est pas une cible configurée fait échouer cette locale avec `CONFIG_INVALID` comme donnée sur le résumé, pas comme exception.
+
+<AvailableFrom version="0.12.0" />
+
+`onLockWait` et `lockAcquireTimeoutMs` se comportent exactement comme pour `translate`. `lockAcquireTimeoutMs` borne l'attente du verrou d'écriture d'une locale, pris avant l'écriture du fichier de cette locale, et une locale encore bloquée ensuite échoue avec `LOCK_CONTENDED` sur son propre résumé pendant que les autres locales s'importent. L'enregistrement d'un fichier écrit dans le fichier de verrouillage accorde toujours l'attente par défaut de dix minutes. Un dry run ne prend aucun verrou, donc aucune des deux options ne s'y applique.
+
+<AvailableFrom version="0.12.0" />
+
+`integrityRefusals` de chaque locale nomme les lignes que la barrière d'intégrité a refusées, avec le motif et ses `details`, comme chaque branche ICU qui ne convient pas à la langue cible. Une ligne retenue parce que sa source a changé depuis l'export n'apparaît que dans `integrityMismatches`. `exportWorkbook` signale comme `icu-arms` dans ses colonnes de relecture une traduction actuelle aux branches incorrectes.
+
+<AvailableFrom version="0.12.0" />
+
+Avec `xliff2` ou `xliff12`, qui lisent chacun les deux versions, et par défaut pour un chemin `workbook` terminé par `.xlf` ou `.xliff`, chaque code en ligne est ramené à son texte exact avant les mêmes contrôles. Une cible égale à la valeur actuelle ne change rien, une unité dont l'id ne nomme aucune clé source apparaît dans `malformedRows`, et une unité à l'état `reviewed` ou `final` (1.2 : `signed-off`, `final` ou `approved="yes"`) est enregistrée comme approuvée dans le fichier de provenance, avec `reviewer` comme nom s'il est fourni (validé comme pour `approveEntry`, `REVIEWER_INVALID`), et signalée par l'avis `HANDOFF_REVIEWS_RECORDED`.
+
+## La paire TMX
+
+<AvailableFrom version="0.11.0" />
+
+`importTmx` et `exportTmx` font entrer et sortir la [mémoire de traduction](/fr/docs/the-cache) en TMX,
+le format d'échange que produisent et lisent les principales plateformes de traduction. Aucune des
+deux ne construit un fournisseur, ne lit une clé d'API ni ne fait de requête réseau : chaque valeur
+vient du fichier ou de la mémoire déjà présente sur le disque. Ce n'est pas la paire classeur dans un
+autre format. La paire classeur remet à un traducteur humain une tranche par locale du delta en attente ;
+cette paire déplace la mémoire entière sous la forme d'un seul fichier multilingue entre outils.
+
+### importTmx
+
+Lit un fichier TMX dans la mémoire du projet.
+
+```ts title="Signature"
+function importTmx(
+  input: ImportTmxInput,
+  deps?: ImportTmxDeps,
+): Promise<ImportTmxResult>;
+```
+
+<SdkTypeTable name="ImportTmxInput" />
+
+**Renvoie :** `ImportTmxResult`
+
+**Lève :** [`UNKNOWN_FORMAT`](/fr/docs/error-codes#unknown_format), [`CONFIG_INVALID`](/fr/docs/error-codes#config_invalid), [`UNKNOWN_LOCALE`](/fr/docs/error-codes#unknown_locale), [`SOURCE_UNREADABLE`](/fr/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/fr/docs/error-codes#source_invalid), [`LOCALE_LAYOUT_INVALID`](/fr/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/fr/docs/error-codes#locale_path_collision)
+
+**Exemple :** [L'aller-retour TMX](/fr/docs/programmatic-api#laller-retour-tmx)
+
+Rien du fichier n'est tenu pour fiable. Le XML est analysé sous le durcissement du paquet d'échange,
+si bien qu'une déclaration d'entité, un sous-ensemble DTD interne, un fichier surdimensionné ou mal
+formé est refusé par une erreur structurée `SOURCE_INVALID` plutôt qu'analysé. Quand le problème a
+un emplacement dans le fichier, le message indique la ligne, la colonne et, à l'intérieur d'une
+unité de traduction, son rang en comptant à partir de 1, et `tmxErrorLocation(error)` renvoie le
+même emplacement sous forme de `TmxErrorLocation`, ou `undefined` pour toute autre erreur, si bien
+que tu n'as jamais à caster l'erreur ni son `cause`. Une étiquette de langue est résolue vers une
+locale configurée par une règle explicite : écriture exacte après mise en minuscules et conversion
+des tirets bas en traits d'union ; à défaut, la plus longue locale configurée qui est un préfixe de
+sous-étiquettes de l'étiquette (recherche de la RFC 4647), ou sinon une locale configurée qui ne
+prolonge l'étiquette que par des sous-étiquettes de région ou de variante, jamais par une
+sous-étiquette d'écriture, si bien que deux étiquettes aux sous-étiquettes d'écriture ou de région
+différentes (`sr-Latn` et `sr-Cyrl`, `de-AT` et `de-CH`) ne correspondent jamais ; et une étiquette n'est signalée comme ambiguë que lorsque les
+locales qu'elle pourrait atteindre ne se trouvent pas sur une même chaîne de préfixes. Les segments
+d'une unité qui se résolvent vers la même locale, locale source comprise, ne laissent jamais le
+dernier l'emporter : une étiquette exacte l'emporte sur une correspondance par préfixe, et deux
+segments de même rang aux valeurs différentes ne stockent rien pour cette locale et sont comptés
+comme `conflicting` (pour la locale source, l'unité est refusée et comptée dans
+`conflictingSourceUnits`). Chaque traduction candidate passe ensuite la même barrière d'intégrité
+sur les placeholders, le balisage en ligne, l'ICU, la dégénérescence et la vacuité que subissent
+déjà la sortie du fournisseur et une ligne de classeur remplie, vérifiée à l'entrée de
+l'enregistrement dans la mémoire plutôt que laissée à l'exécution qui la lira plus tard.
+
+Quand une unité importée contredit une traduction que la mémoire possède déjà, la mémoire l'emporte,
+sauf si `overwrite` est passé. Les unités sont stockées sous l'empreinte de configuration actuelle,
+la même clé qu'écrit une exécution réelle, et cessent donc de correspondre dès que le fournisseur, le
+modèle, le ton, le glossaire ou la `localeMap` du fournisseur changent. Importer deux fois le même fichier ne change rien la seconde
+fois.
+
+Face à des données abîmées, renvoie un rapport au lieu de lever : combien d'unités ont été lues, un
+décompte par locale de `added`, `unchanged`, `overwritten`, `kept`, `duplicates`, `conflicting` et
+`rejected` par motif, plus les unités ignorées, sans segment source, ayant perdu leur balisage en
+ligne ou dont le texte `sub` a été laissé de côté (`subflowDroppedUnits`), et les étiquettes de
+langue sans correspondance ou à correspondance ambiguë. `memoryWritable` vaut false quand le fichier
+de mémoire a été écrit par un verbatra plus récent, auquel cas il est laissé intact. Les décomptes
+par locale sont tout de même renvoyés, comme lors d'une exécution à blanc, donc `added` et
+`overwritten` décrivent ce qui serait entré ; avec `memoryWritable` à false, rien n'est entré.
+
+<AvailableFrom version="0.12.0" />
+
+Chaque locale liste aussi ses `refusals`, un `TmxUnitRefusal` par unité comptée sous un motif de la
+barrière : `{ unit, reason, details? }`, où `unit` est la position de l'unité dans le fichier, à
+partir de 1, et `details` nomme ce qui ne va pas, comme chaque branche ICU qui ne convient pas à la
+langue cible.
+
+### tmxErrorLocation
+
+Lit, à partir de ce que `importTmx` a levé, où un fichier TMX refusé a échoué. Renvoie une
+`TmxErrorLocation` (`{ line, column, unit? }`, le tout en comptant à partir de 1) pour un refus
+`SOURCE_INVALID` qui a un emplacement dans le fichier, et `undefined` pour toute autre erreur, y
+compris un fichier absent ou surdimensionné, si bien que tu n'as jamais à caster l'erreur ni son
+`cause`.
+
+```ts title="Signature"
+function tmxErrorLocation(
+  error: unknown,
+): TmxErrorLocation | undefined;
+```
+
+**Renvoie :** `TmxErrorLocation | undefined`
+
+```ts title="Exemple"
+import { importTmx, tmxErrorLocation, type VerbatraConfig } from "@verbatra/sdk";
+
+declare const config: VerbatraConfig;
+
+try {
+  await importTmx({ config, file: "legacy.tmx" });
+} catch (error) {
+  const at = tmxErrorLocation(error);
+  if (at !== undefined) console.error(`line ${at.line}, column ${at.column}`);
+}
+```
+
+### exportTmx
+
+Écrit la mémoire en TMX 1.4b. `out` vaut par défaut `DEFAULT_TMX_PATH` (`verbatra-memory.tmx`), exporté comme
+constante. Avant toute lecture de la mémoire, `TMX_OUTPUT_CONFLICT` refuse un `out` qui ne nomme
+aucun fichier (y compris un `out` terminé par un séparateur de chemin), qui tombe hors de `cwd` ou
+sur `cwd` lui-même, ou qui nomme un fichier de locale configuré, le fichier de verrouillage, le
+cache de mémoire de traduction, un fichier que verbatra cherche pour sa configuration, le fichier
+`configPath` ou le fichier `glossaryPath`, sans tenir compte de la casse et, quand `deps.fs`
+implémente `realpath` comme la valeur par défaut, de nouveau une fois les liens symboliques résolus.
+Une écriture qui échoue, parce que le répertoire n'est pas inscriptible, qu'un répertoire occupe
+déjà ce chemin ou que le disque est plein, lève `TMX_UNWRITABLE` avec le fichier et le code du
+système de fichiers dans le message. Seules les entrées sous l'empreinte de configuration actuelle
+sont écrites, c'est-à-dire l'ensemble qu'une exécution réutiliserait. Les étiquettes de langue sont
+écrites sous forme BCP 47 (`en_US` devient `en-US`), ce qui ne change pas l'indexation de la
+mémoire. Une mémoire vide produit un fichier valide et vide, pas une erreur.
+
+```ts title="Signature"
+function exportTmx(
+  input: ExportTmxInput,
+  deps?: ExportTmxDeps,
+): Promise<ExportTmxResult>;
+```
+
+<SdkTypeTable name="ExportTmxInput" />
+
+**Renvoie :** `ExportTmxResult`
+
+**Lève :** [`UNKNOWN_LOCALE`](/fr/docs/error-codes#unknown_locale), [`CONFIG_INVALID`](/fr/docs/error-codes#config_invalid), [`TMX_OUTPUT_CONFLICT`](/fr/docs/error-codes#tmx_output_conflict), [`TMX_UNWRITABLE`](/fr/docs/error-codes#tmx_unwritable), [`LOCALE_LAYOUT_INVALID`](/fr/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/fr/docs/error-codes#locale_path_collision)
+
+**Exemple :** [L'aller-retour TMX](/fr/docs/programmatic-api#laller-retour-tmx)
+
+Renvoie `{ path, units, locales, withoutSource, illegalCharactersRemoved, provenanceMarkers }` ; `withoutSource` compte les entrées laissées de côté parce que la mémoire n'a pas de texte source pour elles, ce qui n'arrive qu'aux entrées héritées d'un cache écrit avant que la mémoire ne stocke le texte source, et `illegalCharactersRemoved` compte les caractères que XML 1.0 ne peut pas représenter et qui ont été retirés du texte des segments.
+
+<AvailableFrom version="0.12.0" />
+
+Chaque segment cible porte `<prop type="x-origin">` (`machine`, `human`, `import` ou `unknown`,
+le type `TmxOrigin`) et un segment `machine` aussi `<prop type="x-review">` (`approved`,
+`unreviewed` ou `rejected`, le type `TmxReview`), déduits de chaque clé dont l'entrée de
+verrouillage nomme la source du segment et dont l'enregistrement décrit exactement son texte.
+`provenanceMarkers` vaut `"unavailable"` quand le fichier de provenance ou le fichier de
+verrouillage n'a pas pu être lu ; dans ce cas, aucun segment ne porte de propriété.

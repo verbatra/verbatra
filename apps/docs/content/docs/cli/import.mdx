@@ -1,8 +1,9 @@
 ---
 title: verbatra import
-description: Import a filled workbook, CSV, or TSV handoff back into the locale files, running the same safety checks.
+description: Import a filled workbook, CSV, TSV, or XLIFF handoff back into the locale files, running the same safety checks.
+type: reference
 ---
-Read a workbook a translator filled in back into your locale files. Every value runs through the same integrity checks as an automated run: values that pass are written and [the lock file](/docs/the-lock-file) is updated; values that fail are withheld and reported instead of written, so a bad cell never lands in a locale file.
+Read a handoff a translator filled in back into your locale files. Every value runs through the same integrity checks as an automated run: values that pass are written and [the lock file](/docs/the-lock-file) is updated, values that fail are withheld and reported, so a bad cell never lands in a locale file. A real run also adds missing entries to an existing `.gitignore`, see [.gitignore entries](/docs/cli#gitignore-entries).
 
 ## Synopsis
 
@@ -10,17 +11,7 @@ Read a workbook a translator filled in back into your locale files. Every value 
 verbatra import <workbook> [flags]
 ```
 
-`<workbook>` is the path to the handoff produced by [`verbatra export`](/docs/cli/export) and filled in by the translator: the workbook file for `xlsx`, and for `csv` and `tsv` either one `<locale>.csv` file or the directory holding one file per locale.
-
-## Flags
-
-| Flag | Argument | Default | Effect |
-| --- | --- | --- | --- |
-| `--cwd` | `<path>` | current directory | resolve config and locale files from this directory |
-| `--config` | `<path>` | search for one | load this config file instead of searching for one |
-| `--dry-run` | none | off | validate and report without writing locale files or updating the lock |
-| `--format` | `<format>` | `xlsx` | read an Excel workbook (`xlsx`) or delimited files (`csv`, `tsv`) |
-| `--json` | none | off | print one [JSON envelope](/docs/ci-and-exit-codes#json-output) on stdout carrying the run summary under `result` (the same [`RunSummary` shape](/docs/sdk) as `translate`), or the error code on a failed run; the human-readable error line still goes to stderr |
+- `<workbook>`: the handoff [`verbatra export`](/docs/cli/export) wrote and the translator filled in. For `xlsx` it is the workbook file; for `csv`, `tsv`, `xliff2` and `xliff12` it is one `<locale>.csv`, `<locale>.tsv` or `<locale>.xlf` file, or the directory holding one file per locale.
 
 ## Examples
 
@@ -33,11 +24,70 @@ verbatra import verbatra-translations.xlsx --dry-run
 
 # import every locale file in a CSV handoff directory
 verbatra import handoff --format csv
+
+# import one XLIFF file back from a CAT tool, naming the reviewer
+verbatra import handoff/de.xlf --reviewer "Agency GmbH"
 ```
 
-With `csv` or `tsv` the locale comes from the file name, not from a sheet name, so keep every file named exactly as it was exported. A configured target locale with no file (or, in a workbook, no sheet) is reported as that locale's failure with `WORKBOOK_SHEET_MISSING`, never silently skipped.
+## Flags
 
-A file left over from an earlier export with a wider `--locales` selection is never applied. Import reconciles the directory against the manifest the most recent export wrote there and reports such a locale as failed with `HANDOFF_FILE_STALE`, so an outdated translation cannot slip back in unnoticed. Re-export that locale to refresh its file, or delete the file. A directory with no readable manifest (one assembled by hand, or one that lost the hidden file on its way through an archive) is read as it always was, every present file is imported. Naming a single file directly is likewise taken at face value.
+| Flag | Argument | Default | Effect |
+| --- | --- | --- | --- |
+| `--dry-run` | none | off | validate and report without writing locale files or updating the lock |
+| `--format` | `<format>` | from the path's extension: `csv`, `tsv`, `xliff2` for `.xlf` or `.xliff`, otherwise `xlsx`; for a directory, from the export manifest or the locale files inside | `xlsx`, `csv`, `tsv`, `xliff2` or `xliff12`; either XLIFF format reads both versions |
+| `--reviewer` | `<name>` | none | name recorded on each XLIFF unit marked reviewed or final; at most 64 characters, stored in the committed provenance file |
+| `--lock-timeout` | `<seconds>` | `600` | how long to wait for a held per-locale write lock; a whole number from `1` to `3600`, otherwise a usage error, exit `2` |
+
+Also takes the [global flags](/docs/cli#global-flags) `--cwd`, `--config` and `--json`.
+
+## Behavior
+
+<Callout type="warn">
+Every filled value that passes the checks replaces the value in the locale file, including one a person wrote. Run `--dry-run` first to see what would change.
+</Callout>
+
+### Locale files and leftovers
+
+With `csv` or `tsv` the locale comes from the file name, so keep every file named exactly as it was exported. A configured target locale with no file (or, in a workbook, no sheet) fails that locale with `WORKBOOK_SHEET_MISSING`; it is never silently skipped.
+
+A file left over from an earlier export with a wider `--locales` selection is never applied. Import checks the directory against the manifest the most recent export wrote and fails such a locale with `HANDOFF_FILE_STALE`. Re-export that locale or delete the file. A directory with no readable manifest (assembled by hand, or stripped by an archive) is read as it is, and so is a single file you name directly.
+
+### Write locks
+
+<AvailableFrom version="0.12.0" />
+
+`--lock-timeout` sets how long a locale waits for a contended [write lock](/docs/the-lock-file#the-write-lock) before it fails with `LOCK_CONTENDED`, exactly as on [`verbatra translate`](/docs/cli/translate). The wait happens before the locale's file is written, so a locale that times out stays untouched while the others still import, and the command exits `1`. Once a file is written, recording it in the lock file waits up to the ten-minute default whatever `--lock-timeout` says. A wait longer than a second prints a line naming the lock and its holder (a `lock-wait` record under `--json`). `--dry-run` takes no lock, so it never waits.
+
+### XLIFF
+
+<AvailableFrom version="0.12.0" />
+
+An XLIFF file is read with the version it declares, and a single file whose name is not a configured locale is matched by the target language it declares. A unit whose target equals the current value changes nothing; any other target runs the integrity gate like a workbook row. A unit marked `reviewed` or `final` (in 1.2 also `signed-off` or `approved="yes"`) is recorded as approved, naming `--reviewer`, and reported with the `HANDOFF_REVIEWS_RECORDED` notice. A unit whose id names no source key is reported as a malformed row. See [Hand off to a translation agency](/docs/translation-agency).
+
+### Blank and broken rows
+
+A blank `Translation` cell never fails a locale: the row is skipped, its lock baseline is kept, and the key is reported as `unfilled` while it still needs a translation. Importing a handoff nobody has filled in yet therefore succeeds and lists every pending key.
+
+A single unreadable row is reported as a malformed row, and the rest of the locale still imports. A handoff that is oversized or cannot be parsed at all (for example, not a readable xlsx container) is a whole-run `SOURCE_INVALID` error whose message says what was wrong.
+
+### Terminal feedback
+
+<AvailableFrom version="0.12.0" />
+
+`import` shows one line while it reads and applies the file. After a clean import it suggests `verbatra check`, and after `--dry-run` the same import without the flag:
+
+```text output
+verbatra: importing verbatra-translations.xlsx... done (0.4s)
+next: verbatra check (confirm every locale is in sync)
+```
+
+These lines go to stderr, and `--quiet` drops them. See [Terminal output](/docs/cli/output#terminal-output).
+
+### JSON output
+
+Schema: [`import-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/import-envelope.json) validates the whole envelope; [Schemas](/docs/cli/output#schemas) lists the others.
+
+With `--json`, the [envelope](/docs/cli/output#json-output) carries one `RunSummary`, the same shape [`verbatra translate`](/docs/cli/translate) prints; [RunSummary](/docs/sdk/run-summary) lists every field.
 
 ## Exit codes
 
@@ -45,18 +95,17 @@ A file left over from an earlier export with a wider `--locales` selection is ne
 | --- | --- |
 | `0` | every target locale came out complete |
 | `1` | the run finished but one or more locales failed or came out partial |
-| `2` | could not run: a whole-run error (config, workbook, format, or lock), or a usage error |
-
-A handoff that is oversized or cannot be parsed at all (for example, a file that is not a readable xlsx container) is a whole-run `SOURCE_INVALID` error whose message says what was wrong with it. A single unreadable row is not: it is reported as a malformed row and the rest of the locale still imports.
+| `2` | could not run: a whole-run error (config, handoff, format, or a corrupt lock file), or a usage error |
+| `130` | interrupted with Ctrl-C (SIGINT) after releasing the run's write locks |
+| `143` | stopped with SIGTERM after releasing the run's write locks |
 
 <AvailableFrom version="0.9.0" />
 
-The contract matches [`verbatra translate`](/docs/cli/translate), so a manual handoff branches the same way in CI. That includes partial locales: a locale written with keys still missing exits `1`, not `0`. It also includes the lock file: a lock file that is corrupt, or that turns corrupt while the import is running, stops the whole run with `2` instead of reporting one failed locale, so the locales still to come are left untouched. Locales applied before the abort stay written; fix the lock file and import again.
-
-A blank `Translation` cell never fails a locale: the row is skipped, its prior lock baseline is kept, and the key is reported as `unfilled` whenever it still needs a translation, whether the row was exported as `new` or `changed`. Importing a workbook nobody has filled in yet therefore succeeds and returns the full inventory of pending keys.
+The contract matches [`verbatra translate`](/docs/cli/translate), so a manual handoff branches the same way in CI: a partial locale exits `1`, and a lock file that is or turns corrupt stops the whole run with `2`, leaving the remaining locales untouched (locales applied before stay written). See [Exit codes](/docs/cli/output#exit-codes) for the contract every command follows.
 
 ## Related
 
 - [Manual translation](/docs/manual-translation) covers the full export, fill, import round-trip and what a translator may edit.
 - [Translation safety](/docs/translation-safety) explains the checks that can withhold a value.
+- [Hand off to a translation agency](/docs/translation-agency) covers the XLIFF round-trip through a CAT tool.
 - [`verbatra export`](/docs/cli/export) produces the handoff this command reads.

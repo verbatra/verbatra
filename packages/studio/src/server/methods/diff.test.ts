@@ -37,7 +37,16 @@ describe("statusDiffHandler", () => {
 
       expect(result.hasPendingChanges).toBe(false);
       expect(result.locales).toEqual([
-        { locale: "de", missing: [], changed: [], orphaned: [], hasPendingChanges: false },
+        {
+          locale: "de",
+          missing: [],
+          changed: [],
+          orphaned: [],
+          emptySource: [],
+          hasPendingChanges: false,
+          changedOrigins: expect.any(Object),
+          protected: [],
+        },
       ]);
     } finally {
       await project.cleanup();
@@ -61,7 +70,10 @@ describe("statusDiffHandler", () => {
           missing: ["greeting"],
           changed: [],
           orphaned: ["extra"],
+          emptySource: [],
           hasPendingChanges: true,
+          changedOrigins: {},
+          protected: [],
         },
       ]);
     } finally {
@@ -104,14 +116,32 @@ describe("statusDiffHandler", () => {
     try {
       const first = await statusDiffHandler({}, deps(project));
       expect(first.locales).toEqual([
-        { locale: "de", missing: ["greeting"], changed: [], orphaned: [], hasPendingChanges: true },
+        {
+          locale: "de",
+          missing: ["greeting"],
+          changed: [],
+          orphaned: [],
+          emptySource: [],
+          hasPendingChanges: true,
+          changedOrigins: expect.any(Object),
+          protected: [],
+        },
       ]);
 
       await writeTargetFile(project, "de", { greeting: "hallo" });
 
       const second = await statusDiffHandler({}, deps(project));
       expect(second.locales).toEqual([
-        { locale: "de", missing: [], changed: [], orphaned: [], hasPendingChanges: false },
+        {
+          locale: "de",
+          missing: [],
+          changed: [],
+          orphaned: [],
+          emptySource: [],
+          hasPendingChanges: false,
+          changedOrigins: expect.any(Object),
+          protected: [],
+        },
       ]);
     } finally {
       await project.cleanup();

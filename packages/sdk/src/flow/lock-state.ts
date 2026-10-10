@@ -1,10 +1,13 @@
 import { type DiffResult, diffResources } from "@verbatra/core";
 import type { AdapterRegistry } from "@verbatra/format-adapters";
+import { projectCwd } from "../config/project-root.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { defaultFs, type SdkFs } from "../fs.js";
-import { baselineFor, lockFilePath, readLockFile } from "../lock/lock-file.js";
+import { type ProvenanceSummary, summarizeProvenance } from "../lock/key-provenance.js";
+import { baselineFor, lockFilePath } from "../lock/lock-file.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { readTarget } from "./diff-locales.js";
+import { readCarriedOverState } from "./locale-carry-over.js";
 import { selectLocales } from "./select-locales.js";
 import { readSource } from "./source.js";
 
@@ -14,12 +17,32 @@ export interface LockLocaleState {
   readonly locale: string;
   /** How many keys the lock-file records a baseline hash for in this locale. */
   readonly keyCount: number;
-  /** Number of source keys with no translation in this locale yet. */
+  /** Number of source keys with a non-blank value and no translation in this locale yet. */
   readonly missing: number;
-  /** Number of keys whose source text changed since the recorded baseline. */
+  /**
+   * Number of keys with a non-blank source value whose source text changed since the recorded
+   * baseline.
+   */
   readonly stale: number;
-  /** Number of keys whose translation still matches the recorded baseline. */
+  /**
+   * Number of translated keys with a non-blank source value whose source text has not changed since
+   * the recorded baseline, including translated keys the lock-file has no baseline for.
+   */
   readonly upToDate: number;
+  /**
+   * Number of source keys whose value is empty or whitespace only. They are counted here and
+   * never in `missing`, `stale` or `upToDate`, so the four counts add up to the source's keys. A
+   * lock-file baseline such a key already has stays in `keyCount`: nothing is translated for it,
+   * so no run rewrites or drops that entry. {@link lockState} always sets it; it is optional only
+   * so a value built by hand, such as a test double, can leave it out.
+   */
+  readonly emptySource?: number;
+  /**
+   * Counts by origin and review state over the keys this locale has a value for, read from the
+   * provenance file. See {@link KeyProvenance} for what each origin means. Absent when that file is
+   * corrupt or was written by a newer verbatra, since a report never fails over it.
+   */
+  readonly provenance?: ProvenanceSummary;
 }
 
 /**
@@ -44,7 +67,7 @@ export type LockStateResult =
 export interface LockStateInput {
   /** The resolved project config, normally from {@link loadConfig}. */
   readonly config: VerbatraConfig;
-  /** Directory the `files.pattern` is resolved against. Defaults to the process working directory. */
+  /** Directory the `files.pattern` is resolved against. Defaults to the project root of the config object {@link loadConfig} returned, else the process working directory; a copied or rebuilt config loses that root, so pass `cwd` from {@link resolveProjectRoot}. */
   readonly cwd?: string;
   /** Restrict the report to these target locales. Defaults to every configured target locale. */
   readonly locales?: readonly string[];
@@ -65,6 +88,7 @@ function toLockLocaleState(locale: string, keyCount: number, diff: DiffResult): 
     missing: diff.missing.length,
     stale: diff.changed.length,
     upToDate: diff.unchanged.length,
+    emptySource: diff.emptySource.length,
   };
 }
 
@@ -79,6 +103,10 @@ function toLockLocaleState(locale: string, keyCount: number, diff: DiffResult): 
  *
  * When no lock-file exists the call returns `exists: false` rather than throwing, and does no
  * further reading.
+ *
+ * State the lock-file and provenance file still record under an underscore spelling of a configured
+ * locale (`pt_BR` for `pt-BR`) is read as that locale's, the same way {@link translate} carries it
+ * over, so a respelled locale reports the keys a run would retranslate. Nothing is moved or written.
  *
  * Note that a malformed target locale file surfaces the adapter's own error and code rather than a
  * wrapped {@link SdkError}, because only source reads are wrapped. Its message names the offending
@@ -98,13 +126,15 @@ function toLockLocaleState(locale: string, keyCount: number, diff: DiffResult): 
  * @throws {@link SdkError} `LOCALE_PATH_COLLISION`: two configured locales resolve to the same path.
  * @throws {@link SdkError} `SOURCE_UNREADABLE`: the source locale file does not exist.
  * @throws {@link SdkError} `SOURCE_INVALID`: the source locale file could not be parsed.
+ * @throws `AdapterError`: the adapter refused a target locale file because it is malformed. Its
+ * own code is preserved rather than remapped onto an {@link SdkErrorCode}.
  */
 export async function lockState(
   input: LockStateInput,
   deps: LockStateDeps = {},
 ): Promise<LockStateResult> {
   const config = input.config;
-  const cwd = input.cwd ?? process.cwd();
+  const cwd = projectCwd(input);
   const fs = deps.fs ?? defaultFs;
   const locales = selectLocales(config, input.locales);
 
@@ -114,7 +144,7 @@ export async function lockState(
     return { exists: false };
   }
 
-  const lock = await readLockFile(path, fs);
+  const { lock, provenanceFor } = await readCarriedOverState(cwd, fs, locales);
   const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
   const source = await readSource(config, cwd, fs, adapter);
 
@@ -123,7 +153,13 @@ export async function lockState(
       const target = await readTarget(cwd, config, adapter, fs, locale);
       const baseline = baselineFor(lock, locale);
       const diff = diffResources(source.resource, target, { baseline });
-      return toLockLocaleState(locale, baseline.size, diff);
+      const records = provenanceFor?.(locale);
+      return {
+        ...toLockLocaleState(locale, baseline.size, diff),
+        ...(records !== undefined
+          ? { provenance: summarizeProvenance(records, source.resource, target) }
+          : {}),
+      };
     }),
   );
 

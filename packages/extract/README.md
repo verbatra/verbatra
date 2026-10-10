@@ -40,8 +40,6 @@ the sdk flows in `packages/sdk/src/flow/`.
   `node:fs`.
 - Write anything. Extraction reports; the sdk decides what to add to the source locale file.
 
-The decision record is [`docs/adr/0001-source-string-extraction.md`](./docs/adr/0001-source-string-extraction.md).
-
 ## Tests
 
 ```bash

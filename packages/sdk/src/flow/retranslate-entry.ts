@@ -1,19 +1,53 @@
-import { ProviderError, type ReviewReasonCode } from "@verbatra/ai-providers";
-import { contentHash } from "@verbatra/core";
-import type { AdapterRegistry } from "@verbatra/format-adapters";
-import { computeFingerprint } from "../cache/fingerprint.js";
+import {
+  ProviderError,
+  type ReviewReasonCode,
+  type TranslateResult,
+  type TranslationProvider,
+} from "@verbatra/ai-providers";
+import { contentHash, type LocaleResource, type TranslationEntry } from "@verbatra/core";
+import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
+import { fingerprintsFor } from "../cache/fingerprint.js";
 import { feedTranslationMemory } from "../cache/translation-memory.js";
+import { signalField } from "../cancellation.js";
+import { glossaryForLocale } from "../config/glossary.js";
+import { assertMachineTranslationEnabled } from "../config/machine-translation.js";
 import { toMaxLengthMap } from "../config/max-length.js";
+import { projectCwd } from "../config/project-root.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
-import { withLocaleWriteLock, writeLockKeyFor } from "../lock/locale-write-lock.js";
+import {
+  assertLockAcquireTimeout,
+  type LocaleWriteLockOptions,
+  type LockWaitListener,
+  recordLockOptions,
+  withLocaleWriteLock,
+  writeLockKeyFor,
+  writeLockOptions,
+} from "../lock/locale-write-lock.js";
 import { updateLockFileLocale } from "../lock/lock-file.js";
+import { machineAttribution } from "../lock/machine-attribution.js";
+import { type PendingProvenance, settleProvenance } from "../lock/provenance-file.js";
+import { assertProvenanceReadable } from "../lock/provenance-notice.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { type CreateProvider, selectProvider } from "../selection/select-provider.js";
+import { type SensitiveGuard, sensitiveGuardFor } from "../sensitive/guard.js";
+import { sensitiveWithheldOf } from "../sensitive/guarded-provider.js";
+import { throwIfCancelled, unlessCancelled } from "./cancellation.js";
 import { readTarget } from "./diff-locales.js";
+import { withForeignPlaceholderReason } from "./foreign-placeholders.js";
 import { gateCandidateValue, type IntegrityGateReason } from "./integrity-gate.js";
+import { assertConfiguredLocalesSupported } from "./locale-capabilities.js";
+import { carryOverBeforeWrite } from "./locale-carry-over.js";
+import {
+  assertNotPinned,
+  assertNotProtected,
+  type ProtectionPolicy,
+  protectionFor,
+  protectionPolicy,
+  readProvenanceView,
+} from "./protection.js";
 import { selectLocales } from "./select-locales.js";
 import { readSource } from "./source.js";
 import { buildTranslateRequest } from "./translate-request.js";
@@ -23,12 +57,38 @@ import { writeTargetResource } from "./write-target.js";
 export interface RetranslateEntryInput {
   /** The resolved project config, normally from {@link loadConfig}. */
   readonly config: VerbatraConfig;
-  /** Directory the `files.pattern` is resolved against. Defaults to the process working directory. */
+  /** Directory the `files.pattern` is resolved against. Defaults to the project root of the config object {@link loadConfig} returned, else the process working directory; a copied or rebuilt config loses that root, so pass `cwd` from {@link resolveProjectRoot}. */
   readonly cwd?: string;
   /** The target locale to retranslate into. Must be a configured target locale. */
   readonly locale: string;
   /** The key to retranslate. Must exist in the source resource. */
   readonly key: string;
+  /**
+   * Replace the key's value even when a person wrote it: its origin is `human` or `import`, or it
+   * changed outside verbatra. Without it such a key is refused with `KEY_PROTECTED`, unless the
+   * config sets `humanEdits: "overwrite"`. A key matching `pinnedKeys` is refused whatever this
+   * says. Defaults to false.
+   */
+  readonly includeHuman?: boolean;
+  /**
+   * Called while waiting on another process's write lock for the locale, so a caller can explain a
+   * stall instead of appearing to hang. Never called for a lock this process holds itself.
+   */
+  readonly onLockWait?: LockWaitListener;
+  /**
+   * How long, in milliseconds, to wait for the locale's write lock before failing with
+   * `LOCK_CONTENDED`. The wait happens before the provider is called, so a timed-out call has spent
+   * nothing. Defaults to ten minutes. It does not bound the lock-file guard taken to record the
+   * written value, which always allows the ten-minute default.
+   */
+  readonly lockAcquireTimeoutMs?: number;
+  /**
+   * Cancels the call when aborted before the provider has answered: a wait for the write lock
+   * stops, an in-flight provider request is abandoned, and the call rejects with `RUN_CANCELLED`
+   * having written nothing. An abort after the answer arrived does not stop the write. Defaults to
+   * none.
+   */
+  readonly signal?: AbortSignal;
 }
 
 /** Injectable dependencies for {@link retranslateEntry}. Every field has a working default. */
@@ -53,11 +113,12 @@ export type RetranslateEntryResult =
       /** The newly translated value now stored for the key. */
       readonly value: string;
       /**
-       * Quality signals the provider layer raised for this value, such as a length-ratio outlier,
-       * a value identical to the source, or `MAX_LENGTH_EXCEEDED` for a value over the key's
-       * configured `maxLength` budget. Never `FUZZY_CACHE_REUSE`, since this path always calls the
-       * provider and never consults the translation memory. Empty when nothing was flagged. The
-       * value is written either way; these are advisory.
+       * Quality signals raised for this value, such as a length-ratio outlier, a value identical
+       * to the source, `MAX_LENGTH_EXCEEDED` for a value over the key's configured `maxLength`
+       * budget, or `FOREIGN_PLACEHOLDER_CHANGED` for a placeholder of another syntax than the
+       * project's format that the value dropped or changed. Never `FUZZY_CACHE_REUSE`, since
+       * this path always calls the provider and never consults the translation memory. Empty
+       * when nothing was flagged. The value is written either way; these are advisory.
        */
       readonly reviewReasons: readonly ReviewReasonCode[];
     }
@@ -67,16 +128,168 @@ export type RetranslateEntryResult =
       /** Which integrity rule the provider's value broke. */
       readonly reason: IntegrityGateReason;
       /**
-       * The specific tags behind a `markup` refusal, each prefixed with `-` for one the source had
-       * and the candidate dropped or `+` for one the candidate invented. A candidate carrying more
-       * than twice its source's inline tags and constructs is named as `+more than N inline tags`
-       * instead, where N is at least 256. Absent when no single tag is at fault, such as markup
-       * that came back mis-nested, and absent for every other reason.
+       * What is behind a `placeholder`, `markup`, or `icu` refusal. For `placeholder`, each
+       * placeholder the source had and the candidate dropped, prefixed with `-`, then each one the
+       * candidate invented, prefixed with `+`. For `markup`, the specific tags in the same notation;
+       * a candidate carrying more than twice its source's inline tags and constructs is named as
+       * `+more than N inline tags` instead, where N is at least 256, and the field is absent when no
+       * single tag is at fault, such as markup that came back mis-nested. For `icu`, each branch arm
+       * that does not fit the target language, absent when the message itself is invalid. Absent
+       * for every other reason.
        */
       readonly details?: readonly string[];
       /** The rejected value, echoed back so a UI can show what was refused. */
       readonly value: string;
     };
+
+const RETRANSLATION_CANCELLED =
+  "The retranslation was cancelled before the provider answered, so nothing was written.";
+
+function machinePending(
+  value: string,
+  config: VerbatraConfig,
+  provider: TranslationProvider,
+): PendingProvenance {
+  const attribution = machineAttribution(config.provider, provider.id);
+  return attribution === undefined
+    ? { origin: "machine", value }
+    : { origin: "machine", value, attribution };
+}
+
+interface UnderLockContext {
+  readonly config: VerbatraConfig;
+  readonly cwd: string;
+  readonly fs: SdkFs;
+  readonly adapter: FormatAdapter;
+  readonly locale: string;
+  readonly key: string;
+  readonly sourceEntry: TranslationEntry;
+  readonly policy: ProtectionPolicy;
+  readonly provider: TranslationProvider;
+  readonly recordLock: LocaleWriteLockOptions;
+  readonly signal?: AbortSignal;
+}
+
+async function translateOne(context: UnderLockContext) {
+  const { config, locale, adapter, sourceEntry } = context;
+  const result = await unlessCancelled(context.signal, RETRANSLATION_CANCELLED, () =>
+    context.provider.translateBatch({
+      ...buildTranslateRequest(
+        {
+          sourceLocale: config.sourceLocale,
+          targetLocale: locale,
+          adapter,
+          glossary: glossaryForLocale(config.glossary, locale),
+          maxLength: toMaxLengthMap(config.maxLength),
+          tone: config.tone,
+        },
+        [sourceEntry],
+      ),
+      ...signalField(context.signal),
+    }),
+  );
+  const value = result.values.get(context.key);
+  if (value === undefined && sensitiveWithheldOf(result).has(context.key)) {
+    throw sensitiveWithheldError(context.key, locale);
+  }
+  if (value === undefined) {
+    throw missingValueError(result, context.key);
+  }
+  const flag = withForeignPlaceholderReason(
+    result.reviewFlags?.get(context.key),
+    adapter.format,
+    sourceEntry.value,
+    value,
+  );
+  return { value, reviewReasons: flag?.reasons ?? [] };
+}
+
+function missingValueError(result: TranslateResult, key: string): ProviderError {
+  const unsupported = result.notices?.find((notice) => notice.code === "PLACEHOLDER_UNSUPPORTED");
+  return new ProviderError(
+    "INVALID_RESPONSE",
+    unsupported === undefined
+      ? `The provider returned no translated value for key "${key}".`
+      : `The provider left key "${key}" untranslated. ${unsupported.message}`,
+  );
+}
+
+function sensitiveWithheldError(key: string, locale: string): SdkError {
+  return new SdkError(
+    "SENSITIVE_CONTENT_WITHHELD",
+    `The key "${key}" was not retranslated into "${locale}": sensitiveData found content in it ` +
+      "that could not be sent or did not come back intact.",
+  );
+}
+
+function assertSendable(
+  sensitive: SensitiveGuard | undefined,
+  entry: TranslationEntry,
+  locale: string,
+): void {
+  if (sensitive?.entry(entry).action === "withhold") {
+    throw sensitiveWithheldError(entry.key, locale);
+  }
+}
+
+async function saveAccepted(
+  context: UnderLockContext,
+  target: LocaleResource,
+  value: string,
+): Promise<void> {
+  const { config, cwd, fs, adapter, locale, key, sourceEntry } = context;
+  const merged = new Map(target.entries);
+  merged.set(key, { ...sourceEntry, value, namespace: target.namespace });
+  const resolver = createLocalePathResolver(cwd, config);
+  await writeTargetResource(
+    adapter,
+    { locale, namespace: target.namespace, format: config.format, entries: merged },
+    resolver.pathFor(locale),
+    cwd,
+    { sourcePath: resolver.pathFor(config.sourceLocale) },
+  );
+  const hash = contentHash(sourceEntry);
+  await updateLockFileLocale(
+    cwd,
+    fs,
+    locale,
+    { mode: "merge", entries: { [key]: hash } },
+    settleProvenance(
+      new Map([[key, machinePending(value, config, context.provider)]]),
+      await readTarget(cwd, config, adapter, fs, locale),
+    ),
+    context.recordLock,
+  );
+  await feedTranslationMemory(
+    cwd,
+    fs,
+    fingerprintsFor(config),
+    new Map([[locale, { [hash]: { contentHash: hash, value, source: sourceEntry.value } }]]),
+  );
+}
+
+async function retranslateUnderLock(context: UnderLockContext): Promise<RetranslateEntryResult> {
+  const { config, cwd, fs, adapter, locale, key, sourceEntry } = context;
+  const target = await readTarget(cwd, config, adapter, fs, locale);
+  const provenance = await readProvenanceView(context.policy, cwd, fs, locale);
+  assertNotProtected(
+    protectionFor(context.policy, provenance, key, target.entries.get(key)?.value),
+    key,
+    locale,
+  );
+  const { value, reviewReasons } = await translateOne(context);
+  const gate = gateCandidateValue(sourceEntry, value, adapter, locale);
+  if (!gate.accepted) {
+    return {
+      accepted: false,
+      reason: gate.reason,
+      ...(gate.details !== undefined ? { details: gate.details } : {}),
+      value,
+    };
+  }
+  await saveAccepted(context, target, value);
+  return { accepted: true, value, reviewReasons };
+}
 
 /**
  * Re-runs the configured provider for a single key and saves the result. This is the paid
@@ -93,7 +306,9 @@ export type RetranslateEntryResult =
  * and a concurrent {@link translate} run on that locale waits. The lock is held for a refused
  * translation too, since the gate runs inside it. An accepted value then updates the lock-file
  * baseline and feeds the translation memory, so a later {@link translate} run sees the key as up
- * to date.
+ * to date. The provenance file records the value as `machine`, naming the `id` of the provider that
+ * answered and, when that is the configured provider, its model, and any earlier review decision
+ * on the key is cleared.
  *
  * Note that the target locale file surfaces the adapter's own error and code rather than a wrapped
  * {@link SdkError}, on the write as well as on the read, because only the source read is wrapped.
@@ -113,27 +328,65 @@ export type RetranslateEntryResult =
  * @param deps - Optional adapter registry, provider factory, and file-system overrides.
  * @returns Whether the new value was accepted, with review reasons or the rejection reason.
  *
+ * @throws {@link SdkError} `MACHINE_TRANSLATION_DISABLED`: the config sets `provider: { id: "none" }`.
+ * Thrown first, before anything is read, locked, or constructed.
+ * @throws {@link SdkError} `LOCK_TIMEOUT_INVALID`: `lockAcquireTimeoutMs` is not a whole number of
+ * milliseconds of at least 0. Thrown before anything is read or locked.
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: the requested locale is not a configured target locale.
+ * @throws {@link SdkError} `LOCALE_UNSUPPORTED_BY_PROVIDER`: the configured machine-translation
+ * provider does not support the source locale or the requested locale, according to its language
+ * table. Thrown before anything is read or the provider is constructed.
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
  * cannot be combined, or the locale has no valid path spelling under that style.
  * @throws {@link SdkError} `LOCALE_PATH_COLLISION`: two configured locales resolve to the same path.
  * @throws {@link SdkError} `SOURCE_UNREADABLE`: the source locale file does not exist.
  * @throws {@link SdkError} `SOURCE_INVALID`: the source locale file could not be parsed.
  * @throws {@link SdkError} `UNKNOWN_KEY`: the key is not present in the source resource.
+ * @throws {@link SdkError} `KEY_PINNED`: the key matches the config's `pinnedKeys`. Thrown before
+ * the provider is constructed.
+ * @throws {@link SdkError} `KEY_PROTECTED`: the key's current value was written by a person, imported,
+ * or changed outside verbatra (or its origin cannot be read because the provenance file is from a
+ * newer verbatra), and neither `includeHuman` nor `humanEdits: "overwrite"` was set. Thrown inside
+ * the write lock, before the provider is called.
  * @throws {@link SdkError} `PROVIDER_CONSTRUCTION_FAILED`: the provider could not be constructed,
  * most often because its API key environment variable is unset.
+ * @throws {@link SdkError} `NETWORK_POLICY_VIOLATION`: the effective network policy does not permit
+ * the configured provider's endpoint or its proxy. Thrown before the provider is constructed or any
+ * API key is read.
+ * @throws {@link SdkError} `CONFIG_INVALID`: `VERBATRA_NETWORK_POLICY` or
+ * `VERBATRA_NETWORK_ALLOWED_HOSTS` holds a value that is not valid.
  * @throws {@link SdkError} `LOCK_CONTENDED`: the locale's write lock could not be acquired before
- * the timeout elapsed.
+ * `lockAcquireTimeoutMs` elapsed, or the lock-file guard taken to record the value could not be
+ * acquired within its ten-minute default.
+ * @throws {@link SdkError} `RUN_CANCELLED`: `signal` aborted before the provider answered, whether
+ * before the write lock was taken, while waiting for it, or during the provider request. Nothing
+ * was written. It is also thrown when {@link releaseHeldLocks} was running when the call went to
+ * take a write lock. A failure the provider reported itself is thrown as is, and an abort while a
+ * respelled locale's state is being moved surfaces as `LOCALE_STATE_NOT_CARRIED_OVER`.
  * @throws {@link SdkError} `TARGET_UNWRITABLE`: the target locale file could not be written because
  * of a file-system failure. The message names the target file and the file-system code, never the
  * internal temporary file.
+ * @throws {@link SdkError} `LOCALE_STATE_NOT_CARRIED_OVER`: state recorded under a respelled code
+ * of the locale, such as `pt_BR` for `pt-BR`, could not be moved to it first, so nothing was
+ * written.
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
  * unsupported version.
+ * @throws {@link SdkError} `PROVENANCE_FILE_INVALID`: the provenance file is corrupt, oversized, or
+ * structurally wrong. Checked before the provider is called or anything is written. A file from a
+ * newer verbatra is left untouched and the value is written without a record, and so is a value
+ * whose record would grow the file past the size verbatra reads back.
+ * @throws {@link SdkError} `SENSITIVE_CONTENT_WITHHELD`: `sensitiveData.mode` is `block` or
+ * `redact` and the key holds content a detector or pattern matched that cannot be sent: under
+ * `block` any match, under `redact` a match in the key name, one that overlaps a placeholder, or
+ * a redacted match that did not come back exactly once. Thrown before anything is written; under
+ * `block`, also before the write lock is taken and the provider is called.
  * @throws `AdapterError`: the adapter itself refused the target locale file, on the read because it
  * is malformed or on the write because the entries cannot be represented in the configured format.
  * Its own code is preserved rather than remapped onto an {@link SdkErrorCode}.
- * @throws `ProviderError` `INVALID_RESPONSE`: the provider returned no value for the key. Provider
+ * @throws `ProviderError` `INVALID_RESPONSE`: the provider returned no value for the key. When a
+ * machine-translation provider withheld it because its placeholders could not be protected, the
+ * message carries that provider's `PLACEHOLDER_UNSUPPORTED` notice text. Provider
  * transport and rate-limit failures propagate as `ProviderError` too, since a single-key call has
  * no per-locale summary to record them on.
  */
@@ -142,7 +395,9 @@ export async function retranslateEntry(
   deps: RetranslateEntryDeps = {},
 ): Promise<RetranslateEntryResult> {
   const config = input.config;
-  const cwd = input.cwd ?? process.cwd();
+  assertMachineTranslationEnabled(config, "retranslating a key");
+  assertLockAcquireTimeout(input.lockAcquireTimeoutMs);
+  const cwd = projectCwd(input);
   const fs = deps.fs ?? defaultFs;
   const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
 
@@ -151,6 +406,7 @@ export async function retranslateEntry(
   if (locale === undefined) {
     throw new SdkError("UNKNOWN_LOCALE", `Locale "${input.locale}" could not be resolved.`);
   }
+  assertConfiguredLocalesSupported(config, [locale]);
 
   const source = await readSource(config, cwd, fs, adapter);
   const sourceEntry = source.resource.entries.get(input.key);
@@ -161,76 +417,36 @@ export async function retranslateEntry(
     );
   }
 
-  const provider = selectProvider(config.provider, deps.createProvider);
-
-  return withLocaleWriteLock(cwd, writeLockKeyFor(config.format, locale), fs, async () => {
-    const target = await readTarget(cwd, config, adapter, fs, locale);
-
-    const result = await provider.translateBatch(
-      buildTranslateRequest(
-        {
-          sourceLocale: config.sourceLocale,
-          targetLocale: locale,
-          adapter,
-          glossary: config.glossary,
-          maxLength: toMaxLengthMap(config.maxLength),
-          tone: config.tone,
-        },
-        [sourceEntry],
-      ),
-    );
-    const value = result.values.get(input.key);
-    if (value === undefined) {
-      throw new ProviderError(
-        "INVALID_RESPONSE",
-        `The provider returned no translated value for key "${input.key}".`,
-      );
-    }
-
-    const gate = gateCandidateValue(sourceEntry, value, adapter);
-    if (!gate.accepted) {
-      return {
-        accepted: false,
-        reason: gate.reason,
-        ...(gate.details !== undefined ? { details: gate.details } : {}),
-        value,
-      };
-    }
-
-    const merged = new Map(target.entries);
-    merged.set(input.key, { ...sourceEntry, value, namespace: target.namespace });
-    const path = createLocalePathResolver(cwd, config).pathFor(locale);
-    await writeTargetResource(
-      adapter,
-      { locale, namespace: target.namespace, format: config.format, entries: merged },
-      path,
-      cwd,
-    );
-
-    await updateLockFileLocale(cwd, fs, locale, {
-      mode: "merge",
-      entries: { [input.key]: contentHash(sourceEntry) },
-    });
-
-    await feedTranslationMemory(
-      cwd,
-      fs,
-      computeFingerprint(config),
-      new Map([
-        [
-          locale,
-          {
-            [contentHash(sourceEntry)]: {
-              contentHash: contentHash(sourceEntry),
-              value,
-              source: sourceEntry.value,
-            },
-          },
-        ],
-      ]),
-    );
-
-    const reviewReasons = result.reviewFlags?.get(input.key)?.reasons ?? [];
-    return { accepted: true, value, reviewReasons };
+  const policy = protectionPolicy(config, input.includeHuman === true ? "overwrite" : undefined);
+  assertNotPinned(policy, input.key);
+  const sensitive = sensitiveGuardFor(config);
+  const provider = selectProvider(config.provider, deps.createProvider, {
+    network: config.network,
+    ...(sensitive === undefined ? {} : { sensitive }),
   });
+  assertSendable(sensitive, sourceEntry, locale);
+  await assertProvenanceReadable(cwd, fs);
+  throwIfCancelled(input.signal, RETRANSLATION_CANCELLED);
+  await carryOverBeforeWrite(cwd, fs, locale, writeLockOptions(input));
+
+  return withLocaleWriteLock(
+    cwd,
+    writeLockKeyFor(config.format, locale),
+    fs,
+    () =>
+      retranslateUnderLock({
+        config,
+        cwd,
+        fs,
+        adapter,
+        locale,
+        key: input.key,
+        sourceEntry,
+        policy,
+        provider,
+        recordLock: recordLockOptions(input),
+        ...signalField(input.signal),
+      }),
+    writeLockOptions(input),
+  );
 }

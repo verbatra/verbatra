@@ -1,5 +1,17 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { organizationLd, softwareApplicationLd, techArticleLd, websiteLd } from "./structured-data";
+import { CHECK_EXIT_CODE } from "@/lib/check-demo";
+import { howStepCopy } from "@/lib/how-steps";
+import { SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
+import en from "../messages/en.json";
+import {
+  howToLd,
+  organizationLd,
+  SUPPORTED_AGENT_CLIENTS,
+  softwareApplicationLd,
+  techArticleLd,
+  websiteLd,
+} from "./structured-data";
 
 const ORGANIZATION_ID = "https://verbatra.kreitz-webdev.de/#organization";
 const AUTHOR_ID = "https://verbatra.kreitz-webdev.de/#author";
@@ -79,5 +91,74 @@ describe("softwareApplicationLd", () => {
     for (const part of hasPart) {
       expect(part.author).toEqual(AUTHOR_REF);
     }
+  });
+});
+
+describe("softwareApplicationLd formats", () => {
+  it("lists every format by its display label", () => {
+    const result = softwareApplicationLd({
+      description: "test",
+      lang: "en",
+      version: "1.0.0",
+      studioVersion: "1.0.0",
+      mcpVersion: "1.0.0",
+    });
+    const features = result.featureList as ReadonlyArray<string>;
+    const formats = features.find((feature) => feature.startsWith("i18n formats: "));
+    for (const label of [
+      "i18next JSON",
+      "Flutter ARB",
+      "Java/Spring .properties",
+      "Xcode String Catalog",
+      "gettext .po/.pot",
+    ]) {
+      expect(formats).toContain(label);
+    }
+    expect(formats?.split(", ")).toHaveLength(SUPPORTED_FORMAT_IDS.length);
+  });
+});
+
+describe("SUPPORTED_AGENT_CLIENTS", () => {
+  it.each(["", ".de", ".es", ".fr"])(
+    "each client has its own setup section in connect-an-mcp-client%s.mdx",
+    (suffix) => {
+      const page = readFileSync(
+        new URL(`../content/docs/(agents)/connect-an-mcp-client${suffix}.mdx`, import.meta.url),
+        "utf8",
+      );
+      const headings = new Set(
+        [...page.matchAll(/^#{2,3} (.+)$/gm)].map((match) => match[1]?.trim()),
+      );
+      for (const client of SUPPORTED_AGENT_CLIENTS) {
+        expect(headings.has(client), `${client} has no section`).toBe(true);
+      }
+    },
+  );
+});
+
+describe("howToLd", () => {
+  it("lists the three How steps in order, with the check exit code filled in", () => {
+    const t = (key: string, values?: Record<string, number>): string => {
+      const message = key
+        .split(".")
+        .reduce<unknown>((node, part) => (node as Record<string, unknown>)[part], en.landing.how);
+      return String(message).replace(/\{(\w+)\}/g, (_, name: string) => String(values?.[name]));
+    };
+    const steps = howStepCopy(t).map((step) => ({ name: step.title, text: step.body }));
+    const data = howToLd({ name: en.landing.how.heading, steps, lang: "en" });
+    expect(data).toMatchObject({
+      "@type": "HowTo",
+      name: en.landing.how.heading,
+      inLanguage: "en",
+    });
+    const listed = data.step as ReadonlyArray<Record<string, unknown>>;
+    expect(listed.map((step) => [step.position, step.name])).toEqual([
+      [1, en.landing.how.steps.setup.title],
+      [2, en.landing.how.steps.translate.title],
+      [3, en.landing.how.steps.check.title],
+    ]);
+    expect(listed[2]?.text).toBe(
+      en.landing.how.steps.check.body.replace("{code}", String(CHECK_EXIT_CODE)),
+    );
   });
 });

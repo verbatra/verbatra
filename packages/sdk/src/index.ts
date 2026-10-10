@@ -1,4 +1,32 @@
-export { REVIEW_REASON_CODES, type ReviewReasonCode } from "@verbatra/ai-providers";
+export {
+  type DoNotTranslateTerm,
+  type GlossaryDraftCheck,
+  type GlossaryDraftDoNotTranslateCheck,
+  type GlossaryDraftTermCheck,
+  type LocaleGlossary,
+  type LocaleGlossaryTerm,
+  type NetworkPolicy,
+  type NetworkRule,
+  type PlaceholderComparator,
+  type PlaceholderExtractor,
+  type PluralCategories,
+  ProviderError,
+  type ProviderErrorCode,
+  type ProviderKind,
+  type ProviderNetwork,
+  type ProviderNotice,
+  type ProviderNoticeCode,
+  type ProviderRetry,
+  type ProviderRetryListener,
+  REVIEW_REASON_CODES,
+  type ReviewFlag,
+  type ReviewReasonCode,
+  type Tone,
+  type TranslateRequest,
+  type TranslateResult,
+  type TranslationProvider,
+  type Usage,
+} from "@verbatra/ai-providers";
 export {
   type CustomFormatId,
   type FormatId,
@@ -7,6 +35,8 @@ export {
   isCustomFormatId,
   type LocaleResource,
   type PlaceholderIntegrityResult,
+  type PluralCategory,
+  type PluralRuleType,
   type SupportedFormat,
   type TranslationEntry,
 } from "@verbatra/core";
@@ -17,6 +47,7 @@ export type {
   LiteralSuppressionReason,
   ScanDiagnostic,
   ScanDiagnosticReason,
+  SourceExtractor,
   SourceFramework,
   SourceLocation,
   SuppressedLiteral,
@@ -29,6 +60,7 @@ export {
   type AdapterResolution,
   type BoundedReadOutcome,
   type BuildWriteTree,
+  type CompareBranchArms,
   type ComparePlaceholders,
   type ComputeInvalidIcuKeys,
   createDefaultRegistry,
@@ -48,33 +80,71 @@ export {
   nodeAdapterFs,
   type OrderedRecord,
   type OrderedValue,
+  type PluralCategoryLookup,
   type ReadResult,
   type ResolveOptions,
   type Sniff,
+  type SyntaxPosition,
   type TreeFileAdapterOptions,
   type ValidateMessage,
   type ValidateTree,
+  type WriteContext,
 } from "@verbatra/format-adapters";
 export { CACHE_FILE_NAME } from "./cache/translation-memory.js";
 export type { TranslationMemory } from "./cache/types.js";
+export type { AuthoringConfig, AuthoringConfigFor } from "./config/authoring.js";
 export { defineConfig } from "./config/define-config.js";
 export type { ExtractionConfig } from "./config/extraction-config.js";
 export {
+  type Glossary,
+  type GlossaryDefinition,
+  type GlossaryDoNotTranslateDefinition,
+  type GlossaryInput,
+  type GlossaryTerm,
+  type GlossaryTermDefinition,
+  glossaryForLocale,
+  normalizeGlossary,
+  type RedactedGlossary,
+  redactGlossary,
+  sharedGlossaryTranslations,
+} from "./config/glossary.js";
+export {
+  type EditConfiguredGlossaryTermInput,
+  editConfiguredGlossaryTerm,
+  type GlossaryConfig,
   type GlossaryFileDeps,
   type GlossaryFileInput,
+  type ReadCurrentGlossaryInput,
+  readCurrentGlossary,
   readGlossaryFile,
   type UpdateGlossaryTermInput,
   updateGlossaryTerm,
 } from "./config/glossary-file.js";
 export {
+  type GlossaryDraftCheckInput,
+  type GlossaryHitsInput,
+  glossaryDraftCheck,
+  glossaryHits,
+} from "./config/glossary-hits.js";
+export type { HumanEditsPolicy } from "./config/human-edits.js";
+export {
+  type ConfigCandidateOptions,
   type ConfigSource,
+  configCandidatePaths,
   type LoadConfigOptions,
   type LoadedConfig,
   loadConfig,
   loadConfigWithMeta,
+  resolveProjectRoot,
 } from "./config/load-config.js";
+export {
+  assertMachineTranslationEnabled,
+  isMachineTranslationEnabled,
+} from "./config/machine-translation.js";
 export type { BillingUnit, ProviderBilling } from "./config/provider-billing.js";
 export type { ProviderConfig, ProviderId } from "./config/provider-config.js";
+export type { DataFlowApiKey, DataFlowField } from "./config/provider-data-flow.js";
+export { declareProviderKeyEnvVar } from "./config/provider-key-env.js";
 export type {
   CharacterRate,
   ModelRate,
@@ -87,15 +157,70 @@ export {
   type VerbatraConfigInput,
   verbatraConfigSchema,
 } from "./config/schema.js";
+export {
+  type DetectedFormat,
+  type DetectedFormatSource,
+  type DetectedLocaleLayout,
+  type DetectionAmbiguity,
+  type DetectionConfidence,
+  type DetectProjectDeps,
+  type DetectProjectInput,
+  detectProject,
+  type ProjectDetection,
+} from "./detection/detect-project.js";
+export { errorHint, KNOWN_ERROR_CODES } from "./error-hints.js";
 export { SdkError, type SdkErrorCode } from "./errors.js";
+export {
+  type ApproveLocaleDeps,
+  type ApproveLocaleInput,
+  type ApproveLocaleResult,
+  approveLocale,
+} from "./flow/approve-locale.js";
 export { type BudgetStanding, budgetStanding } from "./flow/budget.js";
 export {
   type CheckDeps,
   type CheckInput,
+  type CheckReviewCode,
+  type CheckReviewSummary,
   type CheckSummary,
   check,
   type LocaleCheckSummary,
+  type LocaleReviewReport,
 } from "./flow/check.js";
+export {
+  type CheckFileDeps,
+  type CheckFileFinding,
+  type CheckFileInput,
+  type CheckFileRole,
+  type CheckFileSummary,
+  checkFile,
+  type FileQaReport,
+  type LocaleFileCheck,
+  type QaSyntaxFinding,
+} from "./flow/check-file.js";
+export { checkFileSummarySchema } from "./flow/check-file-schema.js";
+export { checkSummarySchema } from "./flow/check-schema.js";
+export {
+  type DataFlowDeps,
+  type DataFlowInput,
+  dataFlow,
+} from "./flow/data-flow.js";
+export {
+  DATA_FLOW_MANIFEST_VERSION,
+  type DataFlowAgentSurface,
+  type DataFlowCounts,
+  type DataFlowDestination,
+  type DataFlowLocale,
+  type DataFlowLocalFile,
+  type DataFlowManifest,
+  type DataFlowNetwork,
+  type DataFlowOtherRequest,
+  type DataFlowProvider,
+  type DataFlowProviderKind,
+  type DataFlowSent,
+  type DataFlowVerdict,
+  dataFlowManifestSchema,
+} from "./flow/data-flow-manifest.js";
 export {
   type DiffDeps,
   type DiffInput,
@@ -103,6 +228,7 @@ export {
   diff,
   type LocaleDiff,
 } from "./flow/diff.js";
+export { diffSummarySchema } from "./flow/diff-schema.js";
 export {
   type DoctorCheck,
   type DoctorCheckId,
@@ -112,12 +238,30 @@ export {
   type DoctorResult,
   doctor,
 } from "./flow/doctor.js";
+export { doctorResultSchema } from "./flow/doctor-schema.js";
 export {
+  type EditEntryActor,
   type EditEntryDeps,
   type EditEntryInput,
   type EditEntryResult,
   editEntry,
 } from "./flow/edit-entry.js";
+export {
+  approveEntries,
+  type BatchEntry,
+  type BatchEntryFailure,
+  type BatchEntrySkipped,
+  BatchInterruptedError,
+  type RetranslateBatchOutcome,
+  type RetranslateEntriesInput,
+  type RetranslateEntriesResult,
+  type ReviewBatchEntry,
+  type ReviewBatchOutcome,
+  type ReviewEntriesInput,
+  type ReviewEntriesResult,
+  rejectEntries,
+  retranslateEntries,
+} from "./flow/entry-batch.js";
 export {
   type AddedKey,
   type ExtractDeps,
@@ -125,6 +269,7 @@ export {
   type ExtractResult,
   extract,
 } from "./flow/extract.js";
+export { extractResultSchema } from "./flow/extract-schema.js";
 export {
   DEFAULT_TYPES_PATH,
   type GenerateTypesDeps,
@@ -133,10 +278,30 @@ export {
   generateTypes,
   type UnresolvedMessage,
 } from "./flow/generate-types.js";
+export { generateTypesResultSchema } from "./flow/generate-types-schema.js";
+export {
+  type GitExecFile,
+  type GitExecFileResult,
+  LOCALE_HISTORY_LIMIT_CAP,
+  LOCALE_HISTORY_LIMIT_DEFAULT,
+  LOCALE_HISTORY_MAX_OUTPUT_BYTES,
+  LOCALE_HISTORY_TIMEOUT_MS,
+  LOCALE_HISTORY_UNAVAILABLE_REASONS,
+  type LocaleHistoryCommit,
+  type LocaleHistoryResult,
+  type LocaleHistoryUnavailableReason,
+} from "./flow/git-log.js";
 export {
   INTEGRITY_GATE_REASONS,
   type IntegrityGateReason,
 } from "./flow/integrity-gate.js";
+export {
+  type KeyContext,
+  type KeyContextDeps,
+  type KeyContextGlossaryNotice,
+  type KeyContextInput,
+  keyContext,
+} from "./flow/key-context.js";
 export {
   type KeyIntegrityDeps,
   type KeyIntegrityEntry,
@@ -150,6 +315,26 @@ export {
   type KeyValueResult,
   keyValue,
 } from "./flow/key-value.js";
+export type {
+  LanguageTableRefresh,
+  LanguageTableRefreshStatus,
+  LocaleCapability,
+  LocaleCapabilityReport,
+  LocaleCapabilityWarning,
+  LocaleCapabilityWarningCode,
+  LocaleSupport,
+  SourceLocaleCapability,
+} from "./flow/locale-capabilities.js";
+export {
+  type LocaleHistoryDeps,
+  type LocaleHistoryInput,
+  localeHistory,
+} from "./flow/locale-history.js";
+export {
+  type LocaleIntegrityDeps,
+  type LocaleIntegrityInput,
+  localeIntegrity,
+} from "./flow/locale-integrity.js";
 export {
   diffLocaleSnapshots,
   type LocaleFileSnapshot,
@@ -166,6 +351,14 @@ export {
   localeValues,
 } from "./flow/locale-values.js";
 export {
+  LOCALE_VALUES_QUERY_MAX_LENGTH,
+  type LocaleValuesPage,
+  type LocaleValuesPageEntry,
+  type LocaleValuesPageInput,
+  type LocaleValuesPageLocale,
+  localeValuesPage,
+} from "./flow/locale-values-page.js";
+export {
   type LockLocaleState,
   type LockStateDeps,
   type LockStateInput,
@@ -173,12 +366,44 @@ export {
   lockState,
 } from "./flow/lock-state.js";
 export type { UnresolvedArgumentReason } from "./flow/message-arguments.js";
+export type { IncompletePlural } from "./flow/plural-completeness.js";
 export {
+  PROVENANCE_BUCKETS,
+  type ProvenanceBucket,
+  type ProvenanceReport,
+  type ProvenanceReportDeps,
+  type ProvenanceReportEntry,
+  type ProvenanceReportInput,
+  type ProvenanceReportLocale,
+  type ProvenanceReportResult,
+  provenanceReport,
+} from "./flow/provenance-report.js";
+export {
+  type ProvenanceReportPage,
+  type ProvenanceReportPageInput,
+  type ProvenanceReportPageLocale,
+  type ProvenanceReportPageResult,
+  provenanceReportPage,
+} from "./flow/provenance-report-page.js";
+export { provenanceReportResultSchema } from "./flow/provenance-report-schema.js";
+export {
+  PSEUDO_MODES,
   type PseudolocalizeDeps,
   type PseudolocalizeInput,
   type PseudolocalizeResult,
+  type PseudoMode,
   pseudolocalize,
 } from "./flow/pseudo.js";
+export { pseudolocalizeResultSchema } from "./flow/pseudo-schema.js";
+export {
+  type CheckQaSummary,
+  type LocaleQaReport,
+  QA_SEVERITIES,
+  type QaFinding,
+  type QaIntegrityFinding,
+  type QaReviewFinding,
+  type QaSeverity,
+} from "./flow/qa-check.js";
 export {
   type RetranslateEntryDeps,
   type RetranslateEntryInput,
@@ -186,11 +411,29 @@ export {
   retranslateEntry,
 } from "./flow/retranslate-entry.js";
 export {
+  approveEntry,
+  type ReviewDecisionDeps,
+  type ReviewDecisionInput,
+  type ReviewDecisionResult,
+  rejectEntry,
+} from "./flow/review-decision.js";
+export {
+  type ReviewQueueDeps,
+  type ReviewQueueEntry,
+  type ReviewQueueInput,
+  type ReviewQueueLocale,
+  type ReviewQueueResult,
+  reviewQueue,
+} from "./flow/review-queue.js";
+export {
+  RUN_STATUS_UNAVAILABLE_REASONS,
   type RunStatusDeps,
   type RunStatusInput,
   type RunStatusResult,
+  type RunStatusUnavailableReason,
   runStatus,
 } from "./flow/run-status.js";
+export { assertTargetLocale } from "./flow/select-locales.js";
 export type {
   BudgetBehavior,
   CharacterRunQuantity,
@@ -199,6 +442,7 @@ export type {
   EstimateIdentity,
   EstimatePricing,
   FuzzyCacheHit,
+  IntegrityRefusal,
   LocaleEstimate,
   LocaleEstimateQuantity,
   LocaleNotice,
@@ -207,17 +451,21 @@ export type {
   NeedsReviewEntry,
   PricedLocaleEstimate,
   PricedRunEstimate,
+  ProtectedKey,
+  ProtectionReason,
   RunBudget,
   RunEstimate,
   RunEstimateQuantity,
   RunSummary,
   SdkNotice,
   SdkNoticeCode,
+  SuggestionStatus,
   TokenRunQuantity,
   UnpricedLocaleEstimate,
   UnpricedRunEstimate,
   UsageSummary,
 } from "./flow/summary.js";
+export { localeSummarySchema, runSummarySchema } from "./flow/summary-schema.js";
 export {
   DEFAULT_TMX_PATH,
   type ExportTmxDeps,
@@ -226,6 +474,7 @@ export {
   type ExportTmxResult,
   exportTmx,
 } from "./flow/tmx/export-tmx.js";
+export { exportTmxResultSchema } from "./flow/tmx/export-tmx-schema.js";
 export {
   type ImportTmxDeps,
   type ImportTmxInput,
@@ -236,8 +485,11 @@ export {
   type TmxLanguageReport,
   type TmxRejectionCounts,
   type TmxRejectionReason,
+  type TmxUnitRefusal,
   tmxErrorLocation,
 } from "./flow/tmx/import-tmx.js";
+export { importTmxResultSchema } from "./flow/tmx/import-tmx-schema.js";
+export type { TmxOrigin, TmxReview } from "./flow/tmx/tmx-origin.js";
 export {
   resolveDryRun,
   type TranslateDeps,
@@ -256,10 +508,12 @@ export type {
   UnusedKeysUnreliability,
   UnusedKeysUnreliableReason,
 } from "./flow/unused-keys.js";
+export { createValueMarker, type ValueMarker } from "./flow/value-marker.js";
 export {
   DEFAULT_EXCHANGE_FORMAT,
   EXCHANGE_FORMATS,
   type ExchangeFormat,
+  type XliffFormat,
 } from "./flow/workbook/exchange-format.js";
 export {
   DEFAULT_DELIMITED_PATH,
@@ -269,12 +523,22 @@ export {
   type ExportWorkbookResult,
   exportWorkbook,
 } from "./flow/workbook/export-workbook.js";
+export { exportWorkbookResultSchema } from "./flow/workbook/export-workbook-schema.js";
 export {
   type ImportWorkbookDeps,
   type ImportWorkbookInput,
   importWorkbook,
 } from "./flow/workbook/import-workbook.js";
-export type { DirectoryEntry, SdkFs } from "./fs.js";
+export type { BoundedBytesRead, BoundedFileRead, DirectoryEntry, SdkFs } from "./fs.js";
+export {
+  JSON_SCHEMA_BASE_URL,
+  type JsonSchemaDocument,
+  type JsonSchemaObject,
+  jsonSchemaUrl,
+  renderJsonSchemas,
+  renderOutputJsonSchema,
+  SDK_JSON_SCHEMAS,
+} from "./json-schema/documents.js";
 export {
   createLocalePathResolver,
   type LocalePathResolver,
@@ -282,29 +546,81 @@ export {
 } from "./locale-path/resolver.js";
 export type { LocaleStyle } from "./locale-path/style.js";
 export {
+  type KeyOrigin,
+  type KeyProvenance,
+  type KeyReviewState,
+  MACHINE_CLASS_ORIGINS,
+  type MachineClassOrigin,
+  type ProvenanceMarkers,
+  type ProvenanceSummary,
+} from "./lock/key-provenance.js";
+export {
+  keyOriginSchema,
+  keyProvenanceSchema,
+  provenanceSummarySchema,
+} from "./lock/key-provenance-schema.js";
+export {
   type LoadLockFileDeps,
   type LoadLockFileInput,
   loadLockFile,
 } from "./lock/load-lock-file.js";
-export type {
-  LockHolder,
-  LockWaitEvent,
-  LockWaitListener,
+export {
+  type LoadProvenanceDeps,
+  type LoadProvenanceInput,
+  loadProvenance,
+} from "./lock/load-provenance.js";
+export {
+  type LockHolder,
+  type LockWaitEvent,
+  type LockWaitListener,
+  releaseHeldLocks,
 } from "./lock/locale-write-lock.js";
 export { LOCK_FILE_NAME } from "./lock/lock-file.js";
+export { lockWaitEventSchema } from "./lock/lock-wait-schema.js";
+export {
+  PROVENANCE_FILE_NAME,
+  type ProvenanceFile,
+  type ProvenanceOrigin,
+  type ProvenanceRecord,
+  type ProvenanceReviewState,
+} from "./lock/provenance-file.js";
 export type { LockFile } from "./lock/types.js";
+export {
+  PAGE_CURSOR_MAX_LENGTH,
+  PAGE_LIMIT_CAP,
+  PAGE_LIMIT_DEFAULT,
+} from "./paging/page-across-locales.js";
+export { progressEventSchema } from "./progress/progress-schema.js";
 export type {
+  BatchFinishedEvent,
+  ChangeDetectedEvent,
+  IdleEvent,
   LocaleFinishedEvent,
+  LocalePlannedEvent,
   LocaleStartedEvent,
   ProgressEvent,
   ProgressListener,
+  ProviderRetryEvent,
+  RepairEvent,
   RunFinishedEvent,
+  ScanProgressEvent,
+  ScanProgressListener,
+  SplitRetryEvent,
   SubBatchProgressEvent,
+  WritingEvent,
 } from "./progress/types.js";
+export { projectRelativeMessage } from "./project-relative.js";
 export { redact } from "./redact.js";
 export type { RunStatusFile, RunStatusLocale } from "./run-status/types.js";
 export { type ScaffoldableProviderId, scaffoldingMetadata } from "./scaffolding.js";
-export type { CreateProvider } from "./selection/select-provider.js";
+export type {
+  CreateProvider,
+  CreateProviderContext,
+  CreateProviderHooks,
+} from "./selection/select-provider.js";
+export type { CheckSensitiveSummary, SensitiveKeyFinding } from "./sensitive/check-scan.js";
+export type { SensitiveField } from "./sensitive/guard.js";
+export type { SensitiveFindingSource } from "./sensitive/scan-text.js";
 export {
   type CreateWatcher,
   type RunTranslate,

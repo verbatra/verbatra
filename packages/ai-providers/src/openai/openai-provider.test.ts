@@ -11,11 +11,14 @@ import {
   openAiResult,
   openAiStubClient,
   regexExtractor,
+  termGlossary,
   truncatedOpenAiCompletion,
 } from "../test-support.js";
 import { createOpenAiProvider } from "./openai-provider.js";
 import { OPENAI_SYSTEM_RULES } from "./request.js";
 import type { OpenAiClient } from "./types.js";
+
+class APIConnectionTimeoutError extends Error {}
 
 const config = { model: "gpt-test", maxOutputTokens: 1024 };
 
@@ -30,6 +33,8 @@ function request(overrides: Partial<TranslateRequest> = {}): TranslateRequest {
 }
 
 function payloadOf(body: { messages: ReadonlyArray<{ content: string }> }): {
+  sourceLocale: string;
+  targetLocale: string;
   tone?: string;
   glossary?: Record<string, string>;
   items: Array<{ key: string; value: string; description?: string; meaning?: string }>;
@@ -72,7 +77,7 @@ describe("createOpenAiProvider: request building", () => {
       openAiResult([{ key: "greeting", value: "Hallo {{name}}" }]),
     );
     await createOpenAiProvider(config, { client }).translateBatch(
-      request({ tone: "formal", glossary: { Hello: "Servus" } }),
+      request({ tone: "formal", glossary: termGlossary({ Hello: "Servus" }) }),
     );
     const body = firstCallOf(calls);
     expect(body.messages[0].role).toBe("system");
@@ -93,7 +98,7 @@ describe("createOpenAiProvider: request building", () => {
     await createOpenAiProvider(config, { client }).translateBatch(
       request({
         tone: "informal",
-        glossary: { Hello: "Hi" },
+        glossary: termGlossary({ Hello: "Hi" }),
         entries: [entry("post", "Post", [], { description: "a verb", meaning: "publish" })],
       }),
     );
@@ -102,6 +107,23 @@ describe("createOpenAiProvider: request building", () => {
     expect(payload.glossary).toEqual({ Hello: "Hi" });
     expect(payload.items[0]?.description).toBe("a verb");
     expect(payload.items[0]?.meaning).toBe("publish");
+  });
+});
+
+describe("createOpenAiProvider: localeMap", () => {
+  it("sends the mapped source code only in the payload, never in the system prompt", async () => {
+    const mapped = "English (en-US)";
+    const { client, calls } = openAiStubClient(
+      openAiResult([{ key: "greeting", value: "Hallo {{name}}" }]),
+    );
+    await createOpenAiProvider({ ...config, localeMap: { en: mapped } }, { client }).translateBatch(
+      request(),
+    );
+    const body = firstCallOf(calls);
+    expect(payloadOf(body).sourceLocale).toBe(mapped);
+    expect(body.messages[0]?.content).toBe(OPENAI_SYSTEM_RULES);
+    expect(body.messages[0]?.content).not.toContain(mapped);
+    expect(JSON.stringify(body)).not.toContain("localeMap");
   });
 });
 
@@ -114,7 +136,7 @@ describe("createOpenAiProvider: prompt-injection defense", () => {
     const result = await createOpenAiProvider(config, { client }).translateBatch(
       request({
         entries: [entry("greeting", hostile, [], { description: hostile, meaning: hostile })],
-        glossary: { [hostile]: hostile },
+        glossary: termGlossary({ [hostile]: hostile }),
       }),
     );
     const body = firstCallOf(calls);
@@ -400,21 +422,20 @@ describe("createOpenAiProvider: cancellation", () => {
     expect(composed?.aborted).toBe(true);
   });
 
-  it("still passes a live, unaborted signal to the SDK when the request carries none", async () => {
-    const seen: Array<AbortSignal | undefined> = [];
+  it("passes the per-attempt timeout and no signal to the SDK when the request carries none", async () => {
+    const seen: Array<Parameters<OpenAiClient["chat"]["completions"]["create"]>[1]> = [];
     const client: OpenAiClient = {
       chat: {
         completions: {
           create: async (_body, options) => {
-            seen.push(options?.signal);
+            seen.push(options);
             return openAiResult([{ key: "greeting", value: "Hallo {{name}}" }]);
           },
         },
       },
     };
     await createOpenAiProvider(config, { client }).translateBatch(request());
-    expect(seen[0]).toBeInstanceOf(AbortSignal);
-    expect(seen[0]?.aborted).toBe(false);
+    expect(seen[0]).toEqual({ timeout: 120_000 });
   });
 
   it("re-throws an abort unwrapped instead of a ProviderError", async () => {
@@ -444,36 +465,43 @@ describe("createOpenAiProvider: cancellation", () => {
 });
 
 describe("createOpenAiProvider: request timeout", () => {
-  beforeEach(() => vi.useFakeTimers());
-  afterEach(() => vi.useRealTimers());
-
-  const hangingClient: OpenAiClient = {
-    chat: { completions: { create: () => new Promise<never>(() => {}) } },
-  };
-
-  it("rejects with a retriable TIMEOUT ProviderError when the configured timeout elapses", async () => {
-    const provider = createOpenAiProvider(
-      { ...config, requestTimeoutMs: 5000 },
-      {
-        client: hangingClient,
+  it("hands the configured timeout to the SDK as a per-attempt timeout and names it when an attempt times out", async () => {
+    const seen: Array<Parameters<OpenAiClient["chat"]["completions"]["create"]>[1]> = [];
+    const client: OpenAiClient = {
+      chat: {
+        completions: {
+          create: (_body, options) => {
+            seen.push(options);
+            return Promise.reject(new APIConnectionTimeoutError());
+          },
+        },
       },
-    );
-    const rejection = provider.translateBatch(request()).catch((error: unknown) => error);
-    await vi.advanceTimersByTimeAsync(5000);
-    const error = await rejection;
+    };
+    const provider = createOpenAiProvider({ ...config, requestTimeoutMs: 5000 }, { client });
+    const error = await provider.translateBatch(request()).catch((caught: unknown) => caught);
+    expect(seen[0]).toEqual({ timeout: 5000 });
     expect(error).toBeInstanceOf(ProviderError);
     expect((error as ProviderError).code).toBe("TIMEOUT");
     expect((error as ProviderError).message).toContain("5000");
   });
 
-  it("applies the shared default timeout when the config omits requestTimeoutMs", async () => {
-    const provider = createOpenAiProvider(config, { client: hangingClient });
-    const rejection = provider.translateBatch(request()).catch((error: unknown) => error);
-    await vi.advanceTimersByTimeAsync(120_000);
-    const error = await rejection;
-    expect(error).toBeInstanceOf(ProviderError);
-    expect((error as ProviderError).code).toBe("TIMEOUT");
-    expect((error as ProviderError).message).toContain("120000");
+  it("forwards the caller signal next to the timeout", async () => {
+    const controller = new AbortController();
+    const seen: Array<Parameters<OpenAiClient["chat"]["completions"]["create"]>[1]> = [];
+    const client: OpenAiClient = {
+      chat: {
+        completions: {
+          create: async (_body, options) => {
+            seen.push(options);
+            return openAiResult([{ key: "greeting", value: "Hallo {{name}}" }]);
+          },
+        },
+      },
+    };
+    await createOpenAiProvider(config, { client }).translateBatch(
+      request({ signal: controller.signal }),
+    );
+    expect(seen[0]).toEqual({ signal: controller.signal, timeout: 120_000 });
   });
 });
 

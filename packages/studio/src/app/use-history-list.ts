@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import type { StructuredError } from "../client/state.js";
-import type { HistoryCommit } from "../shared/rpc/history.js";
+import type { HistoryCommit, HistoryUnavailableReason } from "../shared/rpc/history.js";
 import { rpcClient } from "./api.js";
 
 export type HistoryState =
   | { readonly kind: "loading" }
   | { readonly kind: "error"; readonly error: StructuredError }
-  | { readonly kind: "unavailable" }
+  | { readonly kind: "unavailable"; readonly reason: HistoryUnavailableReason }
   | { readonly kind: "loaded"; readonly commits: readonly HistoryCommit[] };
 
 export function useHistoryList(refreshToken?: unknown): HistoryState {
@@ -23,7 +23,7 @@ export function useHistoryList(refreshToken?: unknown): HistoryState {
         return;
       }
       if (!response.result.available) {
-        setState({ kind: "unavailable" });
+        setState({ kind: "unavailable", reason: response.result.reason });
         return;
       }
       setState({ kind: "loaded", commits: response.result.commits });

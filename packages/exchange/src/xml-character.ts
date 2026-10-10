@@ -24,3 +24,14 @@ export function stripIllegalXmlCharacters(text: string): string {
 export function countIllegalXmlCharacters(text: string): number {
   return text.match(ILLEGAL_XML_CHARACTERS)?.length ?? 0;
 }
+
+export function splitOnIllegalXmlCharacters(text: string): readonly string[] {
+  const parts: string[] = [];
+  let cursor = 0;
+  for (const match of text.matchAll(ILLEGAL_XML_CHARACTERS)) {
+    parts.push(text.slice(cursor, match.index), match[0]);
+    cursor = match.index + match[0].length;
+  }
+  parts.push(text.slice(cursor));
+  return parts;
+}

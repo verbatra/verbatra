@@ -1,8 +1,10 @@
 import { type LlmCompletion, type LlmMechanism, runLlmTranslation } from "../llm/run.js";
 import { assertNotTruncated } from "../llm/truncation.js";
 import { toUsage as toUsageFromCounts } from "../llm/usage.js";
+import type { ProviderNetwork } from "../network/transport.js";
 import type { TranslateRequest, TranslateResult, TranslationProvider, Usage } from "../provider.js";
-import { DEFAULT_REQUEST_TIMEOUT_MS, withRequestTimeout } from "../request-timeout.js";
+import type { ProviderRetryListener } from "../provider-retry.js";
+import { DEFAULT_REQUEST_TIMEOUT_MS, withSdkAttemptTimeout } from "../request-timeout.js";
 import { createDefaultClient } from "./client.js";
 import { type AnthropicConfig, anthropicConfigSchema } from "./config.js";
 import { type BuiltRequest, buildRequest } from "./request.js";
@@ -13,6 +15,8 @@ const PROVIDER_ID = "anthropic";
 
 export interface AnthropicDeps {
   readonly client?: MessagesClient;
+  readonly network?: ProviderNetwork;
+  readonly onRetry?: ProviderRetryListener;
 }
 
 export function createAnthropicProvider(
@@ -20,14 +24,14 @@ export function createAnthropicProvider(
   deps: AnthropicDeps = {},
 ): TranslationProvider {
   const validConfig = anthropicConfigSchema.parse(config);
-  const client = deps.client ?? createDefaultClient();
+  const client = deps.client ?? createDefaultClient(deps.network, deps.onRetry);
   const mechanism = createMechanism(client, validConfig);
   return {
     id: PROVIDER_ID,
     kind: "llm",
     supportsGlossary: true,
     translateBatch: (request: TranslateRequest): Promise<TranslateResult> =>
-      runLlmTranslation(request, mechanism),
+      runLlmTranslation(request, mechanism, validConfig.localeMap),
   };
 }
 
@@ -51,8 +55,8 @@ function callClient(
   timeoutMs: number,
   signal: AbortSignal | undefined,
 ): Promise<AnthropicMessage> {
-  return withRequestTimeout(timeoutMs, signal, (requestSignal) =>
-    client.messages.create(body, { signal: requestSignal }),
+  return withSdkAttemptTimeout(timeoutMs, signal, (options) =>
+    client.messages.create(body, options),
   );
 }
 

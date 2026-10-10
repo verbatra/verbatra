@@ -2,8 +2,7 @@ import { chmodSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { appendMissingGitignoreEntries, ensureGitignore } from "./gitignore.js";
-import { captureStreams } from "./test-support.js";
+import { appendMissingGitignoreEntries, planGitignore } from "./gitignore.js";
 
 function project(gitignore?: string): string {
   const dir = mkdtempSync(join(tmpdir(), "verbatra-gitignore-"));
@@ -50,6 +49,23 @@ describe("appendMissingGitignoreEntries", () => {
     const content = readGitignore(dir);
     expect(content).toContain(".verbatra-local/");
     expect(content).toContain("verbatra.cache.json");
+  });
+
+  it("returns the entries it added, and none once the file is complete", () => {
+    const dir = project(".env\n.env.local\n");
+
+    expect(appendMissingGitignoreEntries(dir)).toEqual([".verbatra-local/", "verbatra.cache.json"]);
+    expect(appendMissingGitignoreEntries(dir)).toEqual([]);
+  });
+
+  it("returns no entries on a dry run, when no file exists, or when the write fails", () => {
+    expect(appendMissingGitignoreEntries(project(".env\n"), true)).toEqual([]);
+    expect(appendMissingGitignoreEntries(project())).toEqual([]);
+    const dir = project(".env\n");
+    const path = join(dir, ".gitignore");
+    chmodSync(path, 0o444);
+    restore.push(() => chmodSync(path, 0o644));
+    expect(appendMissingGitignoreEntries(dir)).toEqual([]);
   });
 
   it("preserves the user's own entries", () => {
@@ -125,49 +141,39 @@ describe("appendMissingGitignoreEntries", () => {
   });
 });
 
-describe("ensureGitignore", () => {
-  it("creates the file with every entry when none exists", () => {
-    const dir = project();
-    const cap = captureStreams();
-
-    ensureGitignore(dir, cap.streams);
-
-    const content = readGitignore(dir);
+describe("planGitignore", () => {
+  it("plans a new file with every entry when none exists", () => {
+    const plan = planGitignore(project());
+    expect(plan.action).toBe("created");
     for (const entry of [".env", ".env.local", ".verbatra-local/", "verbatra.cache.json"]) {
-      expect(content).toContain(entry);
+      expect(plan.content).toContain(entry);
     }
-    expect(cap.out()).toContain("created .gitignore");
+    expect(plan.note).toBe(".env, .env.local, .verbatra-local/, verbatra.cache.json");
   });
 
-  it("appends only the missing entries to an existing file", () => {
-    const dir = project(".env\n");
-    const cap = captureStreams();
-
-    ensureGitignore(dir, cap.streams);
-
-    expect(readGitignore(dir).match(/\.env\n/g)).toHaveLength(1);
-    expect(cap.out()).toContain("updated .gitignore");
+  it("plans only the missing entries for an existing file, writing nothing itself", () => {
+    const dir = project(".env");
+    const plan = planGitignore(dir);
+    expect(plan).toMatchObject({
+      action: "updated",
+      note: "added .env.local, .verbatra-local/, verbatra.cache.json",
+    });
+    expect(plan.content.match(/\.env\n/g)).toHaveLength(1);
+    expect(readGitignore(dir)).toBe(".env");
   });
 
-  it("reports and writes nothing when every entry is present", () => {
+  it("plans nothing when every entry is present", () => {
     const complete = ".env\n.env.local\n.verbatra-local/\nverbatra.cache.json\n";
-    const dir = project(complete);
-    const cap = captureStreams();
-
-    ensureGitignore(dir, cap.streams);
-
-    expect(readGitignore(dir)).toBe(complete);
-    expect(cap.out()).toContain("already ignores");
+    expect(planGitignore(project(complete))).toEqual({
+      action: "unchanged",
+      content: complete,
+      note: "already ignores .env, .env.local, .verbatra-local/, verbatra.cache.json",
+    });
   });
 
-  it("produces no duplicate after the run-path top-up already added the entries", () => {
+  it("plans no duplicate after the run-path top-up already added the entries", () => {
     const dir = project(".env\n");
     appendMissingGitignoreEntries(dir);
-    const cap = captureStreams();
-
-    ensureGitignore(dir, cap.streams);
-
-    expect(readGitignore(dir).match(/verbatra\.cache\.json/g)).toHaveLength(1);
-    expect(cap.out()).toContain("already ignores");
+    expect(planGitignore(dir).action).toBe("unchanged");
   });
 });

@@ -1,34 +1,40 @@
 ---
-title: Recovery and rollback
-description: How to undo a translate run, why the locale files and the lock file must be reverted together, and what an interrupted run leaves behind.
+title: Undo a run
+description: How to undo a translate run, why the locale files, the lock file and the provenance file must be reverted together, and what an interrupted run leaves behind.
+type: how-to
 ---
-verbatra has no undo command and keeps no backups. A run rewrites your locale files in place and
-updates `verbatra.lock.json`, and nothing on disk remembers the previous state. Version control is
-the recovery mechanism, which is the practical reason both the locale files and the lock file are
-committed: together they are the snapshot you can go back to.
+Use this when a run produced translations you do not want: the wrong tone, the wrong model, a glossary you forgot. verbatra has no undo command and keeps no backups. Version control is the recovery mechanism, which is why the locale files, the lock file and the provenance file are committed: together they are the snapshot you go back to.
+
+You need the project in git, with the state before the run committed.
 
 ## What a run writes
 
-A `translate`, `watch`, or `import` run writes two files a rollback has to care about:
+A `translate`, `watch` or `import` run writes the files a rollback cares about:
 
-- the target locale files, one per locale, at your `files.pattern` path
-- `verbatra.lock.json`, one source content hash per translated key
+- the target locale files, at your `files.pattern` path;
+- `verbatra.lock.json`, one source content hash per translated key.
 
-The rest of what it writes is regenerable sidecar state you never restore: `verbatra.cache.json`
-and the `.verbatra-local/` directory, both gitignored. A run may also add those entries to an
-existing `.gitignore` that is missing them, which is one-time housekeeping rather than part of any
-rollback.
+`verbatra.cache.json` and `.verbatra-local/` are regenerable, gitignored state; never restore them. Every tracked file is written atomically, so there is never a half-written file to repair.
 
-Both tracked files are written atomically (a temporary file, then a rename), so a reader sees
-either the old file or the new one, never a half-written middle. There is no partial file to
-repair.
+### The provenance file
+
+<AvailableFrom version="0.12.0" />
+
+A run also writes `verbatra.provenance.json`, which records who wrote each value. Restore it with the other two, or delete it if this run created it. Forgetting it is not harmless: a reverted value no longer matches its record, so it reads as `external`, counts as a human edit under the default `humanEdits: protect`, and is never translated again.
 
 ## Roll back a completed run
 
-If the run is not committed yet, discard both files together:
+If the run is not committed yet, discard the locale files and the lock file together, then the provenance file:
 
 ```bash
 git checkout HEAD -- locales verbatra.lock.json
+```
+
+Restore `verbatra.provenance.json` the same way if it is already committed. If this run created it, git has nothing to restore, so delete it:
+
+```bash
+git checkout HEAD -- verbatra.provenance.json   # already committed
+rm verbatra.provenance.json                      # created by this run
 ```
 
 If the run is already committed, revert that commit:
@@ -37,77 +43,51 @@ If the run is already committed, revert that commit:
 git revert <commit>
 ```
 
-Either way, restore the locale files and `verbatra.lock.json` in the same operation. The next
-section is why.
+Either way, restore the locale files, `verbatra.lock.json` and `verbatra.provenance.json` in the same operation. The next section is why.
 
-## Why both files, or neither
+## Why all three files, or none
 
-The lock file records a hash of the **source** value that produced each translation. It records
-nothing about the translated value itself. So reverting your locale files does not, and cannot,
-tell the lock file anything.
+The lock file records a hash of the **source** value behind each translation, and nothing about the translated value itself; the provenance file records who wrote each value, keyed to a hash of that value. Reverting one file without the others leaves them describing different points in time.
 
-**Reverting only the locale files.** The lock still holds the hash of the source as it is now. On
-the next run, a key the revert restored is present in the target file, so it is not missing; and
-its recorded hash still matches the current source, so it is not changed. It is unchanged, it is
-never sent to the provider, and the value you rolled back to stays in place permanently. The keys
-the run newly created are the exception: the revert removed them from the file, so they come back
-as missing and are translated again. Everything the run *replaced* is what gets stranded.
+**Only the locale files.** The lock still says every key is current. On the next run, a key the revert restored is present and its hash matches the source, so it is never sent again: the old value stays in place for good. Only keys the run newly created come back as missing. `check` and `diff` compare against the same baseline, so they report the locale as clean, and nothing tells you those translations are out of date.
 
-The failure is silent by design, not by accident. `verbatra check` and `verbatra diff` compare
-against the same lock baseline, so they report the locale as clean. No command will tell you those
-translations are out of date, because as far as the recorded baseline is concerned, they are not.
+**Only the lock file.** The restored hashes are older than the current source, so the affected keys read as changed. The next run translates them again and overwrites the locale files, including hand corrections made since. You pay twice and lose the edits.
 
-**Reverting only the lock file.** The mirror image, and destructive in the other direction. The
-restored hashes are older than the current source, so the affected keys read as changed, and the
-next run translates them again and overwrites what is in your locale files, including any manual
-edits made since. You pay for the provider calls a second time and lose the hand corrections.
+**Without the provenance file.** The reverted values no longer match their records, so they read as `external`, and under the default `humanEdits: protect` they are never translated again.
 
-**Reverting both.** The source hashes and the translations they describe go back to the same point
-in time, the baseline is consistent again, and the next run behaves exactly as it would have if
-the bad run had never happened.
+**All three.** The hashes, the records and the translations go back to the same point, and the next run behaves as if the bad run never happened.
 
-## Re-running after a rollback
+## Re-run after a rollback
 
-Rolling back and running `verbatra translate` again is a redo, not a second opinion. With the same
-provider, model, tone, and glossary, the [cache](/docs/the-cache) fingerprint is unchanged, so the
-run serves the identical translations back from `verbatra.cache.json` without calling the provider
-at all.
+Rolling back and running `verbatra translate` again is a redo, not a second opinion. With the same provider, model, tone, glossary and provider `localeMap`, the [cache](/docs/the-cache#the-fingerprint) fingerprint is unchanged, so the run serves the same translations from `verbatra.cache.json` without calling the provider.
 
-To get a different result, change what made the first one wrong. Editing the tone or the glossary,
-or switching model, changes the fingerprint and re-translates on its own. If you want the same
-configuration re-sent to the provider, pass `--no-cache` to
-[`translate`](/docs/cli/translate).
+To get a different result, change what made the first one wrong: a new tone, glossary or model changes the fingerprint and retranslates on its own. To re-send the same configuration to the provider, add `--no-cache`:
 
-To rebuild a locale from scratch rather than roll one run back, see
-[How do I re-translate everything?](/docs/faq#how-do-i-re-translate-everything) in the FAQ. Note
-that deleting the lock file is not a reset: without a baseline nothing can be detected as stale,
-so a run after deleting it translates nothing.
+```bash
+verbatra translate --no-cache
+```
+
+To rebuild a locale from scratch rather than undo one run, see [How do I re-translate everything?](/docs/faq#how-do-i-re-translate-everything). Deleting the lock file is not a reset: without a baseline nothing is detected as stale, so the next run translates nothing.
 
 ## An interrupted or failed run
 
-An interrupted run needs no rollback. Just run it again.
+An interrupted run needs no rollback. Run it again.
 
-Each locale is committed on its own: its target file is written, then its lock entries are
-recorded. Interrupting the command therefore leaves the locales that had finished fully written and
-recorded, and the ones it had not reached completely untouched. A re-run picks up the untouched
-ones and skips the finished ones.
+Each locale is committed on its own: its file is written, then its lock entries are recorded. An interrupt leaves the finished locales complete and the others untouched, and a re-run picks up the untouched ones. The one gap, between a locale's file write and its lock update, resolves itself: added keys are adopted as they stand, and changed keys still carry their old hash, so they are translated again. No work is lost.
 
-The one gap, between a locale's file write and its lock update, resolves itself on the next run.
-Keys the run had added are now in the target file with no lock entry, so they are adopted as they
-stand; keys whose source had drifted still carry their old hash, so they are detected as changed
-and translated again. Neither case loses work.
+Keys withheld during a run, by a failed check, a failed provider call or a token budget, keep their previous hash, so the next run retries them. See [Troubleshooting](/docs/troubleshooting) for each cause.
 
-Keys withheld during a run (a failed integrity check, a failed provider call, an invalid-ICU
-source, or a stopped token budget) keep their previous hash rather than being recorded as done, so
-the next run retries them. See [Troubleshooting](/docs/troubleshooting) for what each of those
-means.
-
-If the interrupted process was killed hard, it may have left a write lock behind under
-`.verbatra-local/`. The next run reports `LOCK_CONTENDED` and prints the path to delete.
+An interrupted run releases its write locks. A process killed hard (`kill -9`, a crash) can leave one behind under `.verbatra-local/`; the next run on the same machine sees that the process is gone and reclaims it. A lock it cannot check makes the run wait and then fail with [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), which names the path to delete.
 
 ## Before a run you cannot easily undo
 
-- Commit your locale files and `verbatra.lock.json` first, so `git checkout HEAD --` is available.
-- Preview with `verbatra translate --dry-run`, or with `verbatra diff` for the exact key lists and
-  `verbatra check` for the counts. None of the three calls a provider or writes a file.
-- Add `--locales <locale>` to try one locale before running the rest.
+- Commit your locale files, `verbatra.lock.json` and `verbatra.provenance.json` first, so `git checkout HEAD --` has something to return to.
+- Preview with `verbatra translate --dry-run`, `verbatra diff` or `verbatra check`. None of them calls a provider or writes a file.
+- Try one locale first with `--locales <locale>`.
+
+## Related
+
+- [The lock file](/docs/the-lock-file): what it records and how drift is detected.
+- [The translation cache](/docs/the-cache): the fingerprint and `--no-cache`.
+- [`verbatra translate`](/docs/cli/translate): `--dry-run`, `--locales` and `--no-cache`.
+- [Error codes](/docs/error-codes#lock_contended): `LOCK_CONTENDED` and the other lock errors.

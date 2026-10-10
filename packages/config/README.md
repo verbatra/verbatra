@@ -15,11 +15,14 @@ strictness, formatting, build shape, and the coverage gate are defined once.
 - **Lint and format.** `biome.json` holds the rules the root `biome.json` extends, including the
   cognitive-complexity cap.
 - **Build.** `tsup.base.mjs` exports `createTsupConfig`, the shared bundler shape every package's
-  `tsup.config.ts` calls, including the `noExternal` and `dts.resolve` seams the sdk uses to inline
+  `tsup.config.ts` calls, including the `noExternal` seam and `dts` options the sdk uses to inline
   the bundled private packages.
 - **Test.** `vitest.base.mjs` exports `createVitestConfig`, which defaults tests to
   `src/**/*.test.ts`, excludes `src/index.ts` and `src/**/types.ts` from coverage, and sets the
   90 percent gate on lines, functions, statements, and branches.
+- **Scaling tests.** `scaling.base.mjs`, exported as `@verbatra/config/scaling`, holds
+  `cpuScalingRatio` with the `LINEAR_SCALE` and `LINEAR_MAX_RATIO` bounds, which the linear-time
+  tests in other packages use to fail on super-linear input handling.
 - **Task graph.** `turbo.json` is the base Turborepo configuration packages extend with
   `"extends": ["//"]`.
 
@@ -38,6 +41,6 @@ strictness, formatting, build shape, and the coverage gate are defined once.
 pnpm turbo run test --filter=@verbatra/config
 ```
 
-The suite covers the two config factories themselves (`tsup.base.test.mjs`,
-`vitest.base.test.mjs`), so a change to a shared preset cannot silently alter every package's
+The suite covers the two config factories and the scaling preset (`tsup.base.test.mjs`,
+`vitest.base.test.mjs`, `scaling.base.test.mjs`), so a change to a shared preset cannot silently alter every package's
 build or coverage settings.

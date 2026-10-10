@@ -60,7 +60,15 @@ describe("lockStateHandler", () => {
       }
       expect(result.version).toBe(1);
       expect(result.locales).toEqual([
-        { locale: "de", keyCount: 0, missing: 0, stale: 0, upToDate: 1 },
+        {
+          locale: "de",
+          keyCount: 0,
+          missing: 0,
+          stale: 0,
+          upToDate: 1,
+          emptySource: 0,
+          provenance: expect.any(Object),
+        },
       ]);
     } finally {
       await project.cleanup();
@@ -87,8 +95,24 @@ describe("lockStateHandler", () => {
         throw new Error("expected exists: true");
       }
       expect(result.locales).toEqual([
-        { locale: "de", keyCount: 0, missing: 1, stale: 0, upToDate: 1 },
-        { locale: "fr", keyCount: 2, missing: 0, stale: 2, upToDate: 0 },
+        {
+          locale: "de",
+          keyCount: 0,
+          missing: 1,
+          stale: 0,
+          upToDate: 1,
+          emptySource: 0,
+          provenance: expect.any(Object),
+        },
+        {
+          locale: "fr",
+          keyCount: 2,
+          missing: 0,
+          stale: 2,
+          upToDate: 0,
+          emptySource: 0,
+          provenance: expect.any(Object),
+        },
       ]);
     } finally {
       await project.cleanup();
@@ -108,7 +132,17 @@ describe("lockStateHandler", () => {
       expect(second).toEqual({
         exists: true,
         version: 1,
-        locales: [{ locale: "de", keyCount: 0, missing: 0, stale: 0, upToDate: 1 }],
+        locales: [
+          {
+            locale: "de",
+            keyCount: 0,
+            missing: 0,
+            stale: 0,
+            upToDate: 1,
+            emptySource: 0,
+            provenance: expect.any(Object),
+          },
+        ],
       });
     } finally {
       await project.cleanup();

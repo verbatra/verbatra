@@ -4,8 +4,12 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { prefersReducedMotion } from "@/lib/reduced-motion";
 import { useInViewOnce } from "@/lib/use-in-view-once";
 import { cn } from "@/lib/utils";
+import { PlaceholderText } from "./placeholder-chip";
+import { WrapTokens, wrapLineStyle } from "./wrap-text";
 
 type Line = { kind: "command" | "output"; text: string };
+
+export type TerminalProgress = { lines: number; typing: boolean };
 
 export type TerminalProps = {
   commands: ReadonlyArray<string>;
@@ -15,10 +19,17 @@ export type TerminalProps = {
   typingSpeed?: number;
   delayBetweenCommands?: number;
   initialDelay?: number;
+  lineDelay?: number;
+  onProgress?: (progress: TerminalProgress) => void;
   loop?: boolean;
   highlight?: string;
   fitContent?: boolean;
   headerAction?: ReactNode;
+  bare?: boolean;
+  wrap?: boolean;
+  playThreshold?: number;
+  play?: boolean;
+  settledCommands?: number;
   className?: string;
 };
 
@@ -35,9 +46,11 @@ type PlayerContext = {
   commands: ReadonlyArray<string>;
   outputs?: Readonly<Record<number, ReadonlyArray<string>>>;
   typingSpeed: number;
+  lineDelay: number;
   delayBetweenCommands: number;
   initialDelay: number;
   loop: boolean;
+  settledCommands: number;
 };
 
 async function typeCommand(ctx: PlayerContext, cmd: string): Promise<boolean> {
@@ -47,7 +60,7 @@ async function typeCommand(ctx: PlayerContext, cmd: string): Promise<boolean> {
     ctx.scroll();
     await delay(ctx.typingSpeed);
   }
-  return true;
+  return !ctx.isCancelled();
 }
 
 async function printOutputs(ctx: PlayerContext, lines: ReadonlyArray<string>): Promise<boolean> {
@@ -55,9 +68,9 @@ async function printOutputs(ctx: PlayerContext, lines: ReadonlyArray<string>): P
     if (ctx.isCancelled()) return false;
     ctx.pushLine({ kind: "output", text });
     ctx.scroll();
-    await delay(90);
+    await delay(ctx.lineDelay);
   }
-  return true;
+  return !ctx.isCancelled();
 }
 
 async function runCommand(
@@ -76,15 +89,17 @@ async function runCommand(
 }
 
 async function playLoop(ctx: PlayerContext): Promise<void> {
+  let start = ctx.settledCommands;
   while (!ctx.isCancelled()) {
-    ctx.reset();
+    if (start === 0) ctx.reset();
     await delay(ctx.initialDelay);
-    for (let i = 0; i < ctx.commands.length; i += 1) {
+    for (let i = start; i < ctx.commands.length; i += 1) {
       const cmd = ctx.commands[i];
       if (cmd === undefined) continue;
       if (!(await runCommand(ctx, cmd, ctx.outputs?.[i] ?? []))) return;
     }
     if (!ctx.loop) return;
+    start = 0;
     await delay(HOLD_PAUSE_MS);
   }
 }
@@ -110,16 +125,15 @@ function tokenColor(token: string): string | undefined {
 }
 
 function HighlightedText({ text, base }: { text: string; base: string }): ReactNode {
-  const tokens = text.split(" ");
   return (
-    <>
-      {tokens.map((token, i) => (
-        <span key={i} style={{ color: tokenColor(token) ?? base }}>
-          {i > 0 ? " " : ""}
-          {token}
+    <WrapTokens
+      text={text}
+      render={(token) => (
+        <span style={{ color: tokenColor(token) ?? base }}>
+          <PlaceholderText text={token} />
         </span>
-      ))}
-    </>
+      )}
+    />
   );
 }
 
@@ -128,10 +142,26 @@ const HIGHLIGHT_STYLE = {
   borderInlineStart: "3px solid var(--v-purple)",
 } as const;
 
-function LineRow({ line, highlighted = false }: { line: Line; highlighted?: boolean }): ReactNode {
+const LINE_CLASS = {
+  scroll: "whitespace-pre",
+  wrap: "vk-wrap-line",
+} as const;
+
+type LineMode = keyof typeof LINE_CLASS;
+
+function LineRow({
+  line,
+  mode,
+  highlighted = false,
+}: {
+  line: Line;
+  mode: LineMode;
+  highlighted?: boolean;
+}): ReactNode {
+  const style = mode === "wrap" ? wrapLineStyle(line.text) : undefined;
   if (line.kind === "command") {
     return (
-      <div className="whitespace-pre-wrap">
+      <div className={LINE_CLASS[mode]} style={style}>
         <span style={{ color: "var(--v-glow)" }}>$</span>{" "}
         <HighlightedText text={line.text} base="var(--text-strong)" />
       </div>
@@ -139,13 +169,20 @@ function LineRow({ line, highlighted = false }: { line: Line; highlighted?: bool
   }
   if (highlighted) {
     return (
-      <div className="-mx-4 whitespace-pre-wrap ps-[13px] pe-4" style={HIGHLIGHT_STYLE}>
+      <div
+        className={cn(
+          LINE_CLASS[mode],
+          "-mx-4 pe-4",
+          mode === "wrap" ? "ps-[calc(13px+var(--wrap-indent))]" : "ps-[13px]",
+        )}
+        style={{ ...HIGHLIGHT_STYLE, ...style }}
+      >
         <HighlightedText text={line.text} base="var(--text-strong)" />
       </div>
     );
   }
   return (
-    <div className="whitespace-pre-wrap">
+    <div className={LINE_CLASS[mode]} style={style}>
       <HighlightedText text={line.text} base="var(--text-muted)" />
     </div>
   );
@@ -153,15 +190,18 @@ function LineRow({ line, highlighted = false }: { line: Line; highlighted?: bool
 
 function LineList({
   lines,
+  mode,
   highlight,
 }: {
   lines: ReadonlyArray<Line>;
+  mode: LineMode;
   highlight?: string | undefined;
 }): ReactNode {
-  return lines.map((line) => (
+  return lines.map((line, index) => (
     <LineRow
-      key={`${line.kind}:${line.text}`}
+      key={`${index}:${line.kind}`}
       line={line}
+      mode={mode}
       highlighted={line.kind === "output" && line.text === highlight}
     />
   ));
@@ -175,15 +215,27 @@ export function Terminal({
   typingSpeed = 45,
   delayBetweenCommands = 900,
   initialDelay = 500,
+  lineDelay = 90,
+  onProgress,
   loop = true,
   highlight,
   fitContent = false,
   headerAction,
+  bare = false,
+  wrap = false,
+  playThreshold = 0.4,
+  play,
+  settledCommands = 0,
   className,
 }: TerminalProps): ReactNode {
-  const [rootRef, inView] = useInViewOnce<HTMLDivElement>(0.4);
+  const [rootRef, seen] = useInViewOnce<HTMLDivElement>(playThreshold);
+  const inView = play ?? seen;
+  const mode: LineMode = wrap ? "wrap" : "scroll";
+  const widthClass = wrap ? "min-w-0" : "min-w-max";
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [history, setHistory] = useState<Line[]>([]);
+  const [history, setHistory] = useState<Line[]>(() =>
+    buildSettled(commands.slice(0, settledCommands), outputs),
+  );
   const [typing, setTyping] = useState<string | null>(null);
 
   useEffect(() => {
@@ -196,6 +248,8 @@ export function Terminal({
     }
 
     let cancelled = false;
+    setHistory(buildSettled(commands.slice(0, settledCommands), outputs));
+    setTyping(null);
     const ctx: PlayerContext = {
       isCancelled: () => cancelled,
       setTyping,
@@ -213,40 +267,63 @@ export function Terminal({
       commands,
       outputs,
       typingSpeed,
+      lineDelay,
       delayBetweenCommands,
       initialDelay,
       loop,
+      settledCommands,
     };
     void playLoop(ctx);
 
     return () => {
       cancelled = true;
     };
-  }, [inView, commands, outputs, typingSpeed, delayBetweenCommands, initialDelay, loop]);
+  }, [
+    inView,
+    commands,
+    outputs,
+    typingSpeed,
+    lineDelay,
+    delayBetweenCommands,
+    initialDelay,
+    loop,
+    settledCommands,
+  ]);
+
+  const shown = history.length;
+  const typingNow = typing !== null;
+  useEffect(() => {
+    onProgress?.({ lines: shown, typing: typingNow });
+  }, [onProgress, shown, typingNow]);
 
   return (
     <div
       ref={rootRef}
       className={cn(
-        "not-prose flex flex-col overflow-hidden rounded-xl border border-fd-border",
+        "not-prose flex flex-col",
+        !bare && "overflow-hidden rounded-xl border border-fd-border",
         className,
       )}
-      style={{ background: "var(--surface-bg)" }}
+      style={bare ? undefined : { background: "var(--surface-bg)" }}
     >
-      <div className="flex items-center justify-between gap-3 border-b border-fd-border px-4 py-2.5">
-        {title ? <span className="font-mono text-xs text-fd-muted-foreground">{title}</span> : null}
-        {headerAction ? <span className="ms-auto flex">{headerAction}</span> : null}
-      </div>
+      {bare ? null : (
+        <div className="flex items-center justify-between gap-3 border-b border-fd-border px-4 py-2.5">
+          {title ? (
+            <span className="font-mono text-xs text-fd-muted-foreground">{title}</span>
+          ) : null}
+          {headerAction ? <span className="ms-auto flex">{headerAction}</span> : null}
+        </div>
+      )}
 
       <div className="sr-only">
         <p>{sessionLabel}</p>
         <ol>
           {commands.map((cmd, i) => (
-            <li key={cmd}>
+            <li key={`${i}:${cmd}`}>
               <span>{cmd}</span>
               <ul>
-                {(outputs?.[i] ?? []).map((out) => (
-                  <li key={out}>{out}</li>
+                {(outputs?.[i] ?? []).map((out, j) => (
+                  <li key={`${j}:${out}`}>{out}</li>
                 ))}
               </ul>
             </li>
@@ -258,25 +335,23 @@ export function Terminal({
         ref={scrollRef}
         aria-hidden="true"
         className={cn(
-          "px-4 py-4 font-mono text-[13px] leading-relaxed",
+          "vk-terminal-scroll px-4 py-4 font-mono leading-relaxed",
           fitContent ? "grid flex-1 content-start" : "h-80 overflow-y-auto",
+          bare ? "text-xs sm:text-sm md:px-5 md:py-5" : "text-sm",
         )}
-        style={{ background: "var(--v-void)" }}
       >
         {fitContent ? (
-          <div className="invisible col-start-1 row-start-1">
-            <LineList lines={buildSettled(commands, outputs)} highlight={highlight} />
+          <div className={cn("invisible col-start-1 row-start-1", widthClass)}>
+            <LineList lines={buildSettled(commands, outputs)} mode={mode} highlight={highlight} />
           </div>
         ) : null}
-        <div className={cn(fitContent && "col-start-1 row-start-1")}>
-          <LineList lines={history} highlight={highlight} />
+        <div className={cn(widthClass, fitContent && "col-start-1 row-start-1")}>
+          <LineList lines={history} mode={mode} highlight={highlight} />
           {typing !== null ? (
-            <div className="whitespace-pre-wrap">
+            <div className={LINE_CLASS[mode]} data-typing="">
               <span style={{ color: "var(--v-glow)" }}>$</span>{" "}
               <HighlightedText text={typing} base="var(--text-strong)" />
-              <span className="ms-0.5 animate-pulse" style={{ color: "var(--v-glow)" }}>
-                &#9613;
-              </span>
+              <span key={typing.length} className="vk-terminal-caret" aria-hidden="true" />
             </div>
           ) : null}
         </div>

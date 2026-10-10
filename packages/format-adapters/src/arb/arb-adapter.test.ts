@@ -45,6 +45,14 @@ describe("createArbAdapter detection", () => {
     expect(adapter.format).toBe("arb");
   });
 
+  it("exposes the ICU branch-arm check, holding a plural to the target language's categories", () => {
+    const source = "{count, plural, one {# item} other {# items}}";
+    const russianShape = "{count, plural, one {# x} few {# x} many {# x} other {# x}}";
+    const russian = () => ["one", "few", "many", "other"] as const;
+    expect(adapter.compareBranchArms?.(source, russianShape, russian)).toEqual([]);
+    expect(adapter.compareBranchArms?.(source, source, russian)).toHaveLength(2);
+  });
+
   it("exposes branch-aware comparePlaceholders, catching a single-branch invention flat extraction misses", () => {
     const source = "{count, plural, one {# item} other {# items}}";
     const invented = "{count, plural, one {# item} other {# items by {author}}}";
@@ -154,13 +162,32 @@ describe("createArbAdapter write (round-trip fidelity)", () => {
     expect(written["@greeting"]).toEqual(SAMPLE["@greeting"]);
   });
 
-  it("writes messages only when the destination does not exist (fresh target)", async () => {
+  it("removes a message left out of the resource and its @key block, so it reads back missing", async () => {
+    const path = await tempArb("app_de.arb", SAMPLE);
+    const { resource } = await adapter.read(path, "en");
+    const remaining = new Map(resource.entries);
+    remaining.delete("items");
+    await adapter.write({ ...resource, entries: remaining }, path);
+    const written = JSON.parse(await readFile(path, "utf8"));
+    expect(Object.keys(written)).toEqual(["@@locale", "greeting", "@greeting"]);
+    expect((await adapter.read(path, "de")).resource.entries.has("items")).toBe(false);
+  });
+
+  it("starts a fresh target with @@locale for its locale, then the messages", async () => {
     const path = await tempArb("app_en.arb", SAMPLE);
     const { resource } = await adapter.read(path, "en");
     const fresh = join(await mkdtemp(join(tmpdir(), "verbatra-arb-")), "app_fr.arb");
-    await adapter.write(resource, fresh);
+    await adapter.write({ ...resource, locale: "fr" }, fresh);
     const written = JSON.parse(await readFile(fresh, "utf8"));
-    expect(Object.keys(written)).toEqual(["greeting", "items"]);
+    expect(Object.keys(written)).toEqual(["@@locale", "greeting", "items"]);
+    expect(written["@@locale"]).toBe("fr");
+  });
+
+  it("moves a hand-added @@locale to the top on rewrite, keeping its value", async () => {
+    const path = await tempArb("app_de.arb", { greeting: "Hallo {name}", "@@locale": "de" });
+    const { resource } = await adapter.read(path, "de");
+    await adapter.write(resource, path);
+    expect(Object.keys(JSON.parse(await readFile(path, "utf8")))).toEqual(["@@locale", "greeting"]);
   });
 
   it("round-trips metadata that carries numeric and nested leaves verbatim", async () => {

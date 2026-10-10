@@ -1,0 +1,145 @@
+By the end of this page your <StackText field="name" /> app shows a German string that verbatra translated from <StackText field="sourceFile" />, and a lock file makes every later run translate only what changed. You need Node.js `^22.18.0 || >=24`, a <StackText field="name" /> project, and about ten minutes. The first four steps need no account and no API key.
+
+Already have locale files and a coding agent? Hand it the prompt on [Set up with an AI agent](/docs/start-with-ai) instead: it works around the files your project has and stops before it spends anything.
+
+## Steps
+
+<Steps>
+<Step>
+
+### Install the CLI
+
+```npm
+npm install --save-dev @verbatra/cli
+```
+
+verbatra is a development tool and never ships in your app. The commands below use `npx`; with pnpm, yarn, or bun, run `pnpm verbatra`, `yarn verbatra`, or `bun run verbatra` instead.
+
+<StackOnly stacks="flutter">
+<Callout title="A Flutter app has no package.json">
+Your package manager creates one on the first install. Add `node_modules/` to your `.gitignore`.
+</Callout>
+</StackOnly>
+
+</Step>
+<Step>
+
+### Add a source locale file
+
+Skip this step if <StackText field="sourceFile" /> already exists. Otherwise create it with two strings, one of them with a placeholder:
+
+<StackBlock name="source-file" />
+
+</Step>
+<Step>
+
+### Scaffold a config
+
+<StackBlock name="init" />
+
+`--format` <StackText field="format" /> is the file format of <StackText field="library" />. `init` finds your locale files, or writes the pattern <StackText field="pattern" /> when there are none yet. `--yes` takes what `init` detected instead of prompting. The new `verbatra.config.ts` translates from `en` into `de`; add codes to `targetLocales` for more languages.
+
+</Step>
+<Step>
+
+### Preview the run without a key
+
+```bash
+npx @verbatra/cli translate --dry-run
+```
+
+```text output
+verbatra: dry run over 1 locale, no provider call
+verbatra: de done, 2 would translate
+verbatra translate (dry run)
+  de: 2 would translate, 0 unchanged
+1 succeeded, 0 partial, 0 failed (dry run: nothing written)
+[ok] dry run done in 0.0s, nothing written
+next: verbatra translate (run it for real)
+```
+
+A dry run builds no provider, so it needs no key, spends nothing, and writes nothing.
+
+</Step>
+<Step>
+
+### Translate
+
+```bash
+cp .env.example .env
+```
+
+Open `.env` and paste your key after `GEMINI_API_KEY=`. No key yet? Gemini has a free tier: create one in [Google AI Studio](https://aistudio.google.com/apikey). Every other provider and its variable is on [Providers](/docs/providers).
+
+```bash
+npx @verbatra/cli translate
+```
+
+verbatra sends the two strings to Gemini, checks that every placeholder survived, and writes <StackText field="targetFile" />. The wording depends on the model, for example:
+
+<StackBlock name="translated-file" />
+
+</Step>
+<Step>
+
+### Check that every locale is in sync
+
+```bash
+npx @verbatra/cli check
+```
+
+```text output
+[ok] checking the locales (0.0s)
+verbatra check
+  de: 0 missing, 0 stale, 2 up-to-date (in sync)
+all locales in sync
+```
+
+`check` calls no provider and exits `1` once a locale falls out of sync, so it can gate a pull request.
+
+</Step>
+<Step>
+
+### Load the locales in your app
+
+Add <StackText field="library" />:
+
+<StackBlock name="runtime-install" />
+
+Then load both files and render the greeting:
+
+<StackBlock name="load" />
+
+Start your app: the greeting reads `Hallo, Ada!`.
+
+</Step>
+</Steps>
+
+## What just happened
+
+- `verbatra.lock.json` records a hash of each source string, so the next run sends only new and changed strings. See [The lock file](/docs/the-lock-file).
+- A result that drops a placeholder is withheld, never written. See [Translation safety](/docs/translation-safety).
+
+Commit the locale files, `verbatra.lock.json`, and `verbatra.provenance.json` together.
+
+## Optional: connect your coding agent
+
+<AvailableFrom version="0.12.0" />
+
+```bash
+npx @verbatra/cli init --agent
+```
+
+With the config in place, `init --agent` keeps it and adds only the agent files: the verbatra rules in `AGENTS.md` (or `CLAUDE.md`, when that is your only instruction file) and the verbatra MCP server, with spending off, in the project config of each coding agent it detects. Which files it writes for which agent, and `--client` to name the agents yourself, are in [Set up coding agents](/docs/cli/init#set-up-coding-agents). `--dry-run` shows the files without writing them.
+
+Or, without the CLI, add only the MCP server to your VS Code user profile; use one route, never both:
+
+<McpInstallLink client="vscode" />
+
+## Next
+
+<Cards>
+  <Card title="Add a language" href="/docs/add-a-language" description="Add a target locale and let one run fill it in." />
+  <Card title="Run verbatra in CI" href="/docs/ci-and-exit-codes" description="Fail a pull request when a locale drifts." />
+  <Card title="Pick your stack" href="/docs/pick-your-stack" description="The format id and file layout for every other framework." />
+</Cards>

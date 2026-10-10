@@ -1,17 +1,31 @@
 "use client";
 
+import { usePathname } from "fumadocs-core/framework";
+import Link from "fumadocs-core/link";
 import {
   SidebarDrawerContent,
   SidebarDrawerOverlay,
   SidebarProvider,
   SidebarTrigger,
   SidebarViewport,
+  useSidebar,
 } from "fumadocs-ui/components/sidebar/base";
 import { buttonVariants } from "fumadocs-ui/components/ui/button";
 import { useHomeLayout } from "fumadocs-ui/layouts/home";
 import { useNotebookLayout } from "fumadocs-ui/layouts/notebook";
-import { type BaseSlots, LinkItem, type LinkItemType } from "fumadocs-ui/layouts/shared";
-import type { ComponentProps, ReactNode } from "react";
+import {
+  type BaseSlots,
+  isLinkItemActive,
+  LinkItem,
+  type LinkItemType,
+} from "fumadocs-ui/layouts/shared";
+import { type ComponentProps, type ReactNode, useRef } from "react";
+import { HeaderCta } from "@/components/header-cta";
+import { useRootTabs } from "@/components/root-tabs";
+import { useDrawerEscape } from "@/components/use-drawer-escape";
+import { VersionPill } from "@/components/version-pill";
+import { headerActiveTab, isRootTabLinkActive } from "@/lib/root-tabs";
+import { trackUmamiEvent } from "@/lib/umami";
 import { cn } from "@/lib/utils";
 
 export type HeaderSlots = Pick<BaseSlots, "navTitle" | "searchTrigger" | "languageSelect">;
@@ -19,7 +33,7 @@ export type HeaderSlots = Pick<BaseSlots, "navTitle" | "searchTrigger" | "langua
 type IconItem = Extract<LinkItemType, { type: "icon" }>;
 
 const TEXT_LINK =
-  "vk-header-link text-sm text-fd-muted-foreground transition-colors hover:text-fd-accent-foreground data-[active=true]:text-fd-primary";
+  "vk-header-link whitespace-nowrap text-sm text-fd-muted-foreground transition-colors hover:text-fd-accent-foreground data-[active=true]:text-fd-primary";
 
 const ICON_BUTTON = cn(
   buttonVariants({ size: "icon-sm", variant: "ghost" }),
@@ -79,19 +93,62 @@ function itemKey(item: LinkItemType): string {
   return "url" in item && item.url ? item.url : "custom";
 }
 
-function TextLink({ item, className }: { item: LinkItemType; className: string }): ReactNode {
+type ActiveOverride = (url: string) => boolean | undefined;
+
+function withoutTrailingSlash(path: string): string {
+  return path.length > 1 && path.endsWith("/") ? path.slice(0, -1) : path;
+}
+
+function currentMarker(
+  active: boolean,
+  url: string,
+  pathname: string,
+): "page" | "true" | undefined {
+  if (!active) return undefined;
+  return withoutTrailingSlash(url) === withoutTrailingSlash(pathname) ? "page" : "true";
+}
+
+function TextLink({
+  item,
+  className,
+  activeOverride,
+}: {
+  item: LinkItemType;
+  className: string;
+  activeOverride?: ActiveOverride | undefined;
+}): ReactNode {
+  const pathname = usePathname();
   if (item.type === "custom") return item.children;
   if (item.type === "menu" || item.type === "icon") return null;
+  const active = activeOverride?.(item.url) ?? isLinkItemActive(item, pathname);
   return (
-    <LinkItem item={item} className={className}>
+    <Link
+      href={item.url}
+      external={item.external}
+      className={className}
+      data-active={active}
+      aria-current={currentMarker(active, item.url, pathname)}
+    >
       {item.text}
-    </LinkItem>
+    </Link>
   );
+}
+
+function trackOutboundIcon(item: IconItem): void {
+  trackUmamiEvent("outbound-link", {
+    target: (item.label ?? item.url).toLowerCase(),
+    location: "header",
+  });
 }
 
 function IconLink({ item, className }: { item: IconItem; className?: string }): ReactNode {
   return (
-    <LinkItem item={item} className={cn(ICON_BUTTON, className)} aria-label={item.label}>
+    <LinkItem
+      item={item}
+      className={cn(ICON_BUTTON, className)}
+      aria-label={item.label}
+      onClick={item.external ? () => trackOutboundIcon(item) : undefined}
+    >
       {item.icon}
     </LinkItem>
   );
@@ -117,6 +174,9 @@ export type SiteHeaderFrameProps = ComponentProps<"header"> & {
   navItems: ReadonlyArray<LinkItemType>;
   mobileTrigger: ReactNode;
   trailing?: ReactNode;
+  cta?: ReactNode;
+  badge?: ReactNode;
+  activeOverride?: ActiveOverride;
 };
 
 export function SiteHeaderFrame({
@@ -124,6 +184,9 @@ export function SiteHeaderFrame({
   navItems,
   mobileTrigger,
   trailing,
+  cta,
+  badge,
+  activeOverride,
   className,
   ...props
 }: SiteHeaderFrameProps): ReactNode {
@@ -132,25 +195,32 @@ export function SiteHeaderFrame({
   return (
     <header {...props} className={cn("vk-header sticky flex flex-col backdrop-blur-sm", className)}>
       <div className="mx-auto flex h-14 w-full max-w-(--fd-layout-width) items-center gap-2 px-4 md:px-6">
-        <div className="flex flex-1 items-center">
+        <div className="vk-header-start flex flex-1 items-center">
           {slots.navTitle ? (
             <slots.navTitle className="inline-flex items-center gap-2.5 font-semibold" />
           ) : null}
+          {badge}
         </div>
         {slots.searchTrigger ? (
           <slots.searchTrigger.full
             hideIfDisabled
-            className="my-auto w-full max-w-sm rounded-xl ps-2.5 max-md:hidden"
+            className="vk-header-search my-auto w-full max-w-sm rounded-xl ps-2.5 max-lg:max-w-64 max-md:hidden"
           />
         ) : null}
-        <div className="flex flex-1 items-center justify-end md:gap-2">
-          <nav className="flex items-center gap-6 empty:hidden max-lg:hidden">
+        <div className="flex flex-1 items-center justify-end md:gap-2 md:ps-4">
+          {cta}
+          <nav className="flex items-center gap-6 empty:hidden max-md:hidden md:me-4">
             {textItems.map((item) => (
-              <TextLink key={itemKey(item)} item={item} className={TEXT_LINK} />
+              <TextLink
+                key={itemKey(item)}
+                item={item}
+                className={TEXT_LINK}
+                activeOverride={activeOverride}
+              />
             ))}
           </nav>
           {iconItems.map((item) => (
-            <IconLink key={itemKey(item)} item={item} className="max-lg:hidden" />
+            <IconLink key={itemKey(item)} item={item} className="max-md:hidden" />
           ))}
           <div className="flex items-center md:hidden">
             {slots.searchTrigger ? <slots.searchTrigger.sm hideIfDisabled className="p-2" /> : null}
@@ -158,7 +228,7 @@ export function SiteHeaderFrame({
           </div>
           <div className="flex items-center gap-2 max-md:hidden">
             <LanguageSelect slots={slots} />
-            {trailing ?? <span aria-hidden="true" className="-me-1.5 size-8" />}
+            {trailing}
           </div>
         </div>
       </div>
@@ -171,7 +241,15 @@ const MOBILE_TRIGGER = cn(buttonVariants({ variant: "ghost", size: "icon-sm" }),
 export function DocsSiteHeader(props: ComponentProps<"header">): ReactNode {
   const { slots, navItems, isNavTransparent } = useNotebookLayout();
   const sidebar = slots.sidebar;
-  const { open } = sidebar.useSidebar();
+  const sidebarState = useSidebar();
+  const { open } = sidebarState;
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  useDrawerEscape(sidebarState, triggerRef);
+  const { tabs, active } = useRootTabs();
+  const pathname = usePathname();
+  const activeTab = headerActiveTab(navItems, tabs, active, (item) =>
+    isLinkItemActive(item, pathname),
+  );
   return (
     <SiteHeaderFrame
       id="nd-subnav"
@@ -183,8 +261,9 @@ export function DocsSiteHeader(props: ComponentProps<"header">): ReactNode {
       )}
       slots={slots}
       navItems={navItems}
+      activeOverride={(url) => isRootTabLinkActive(url, tabs, activeTab)}
       mobileTrigger={
-        <sidebar.trigger className={MOBILE_TRIGGER}>
+        <sidebar.trigger ref={triggerRef} className={MOBILE_TRIGGER}>
           <SidebarIcon />
         </sidebar.trigger>
       }
@@ -202,6 +281,16 @@ export function DocsSiteHeader(props: ComponentProps<"header">): ReactNode {
   );
 }
 
+function HomeMobileTrigger(): ReactNode {
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  useDrawerEscape(useSidebar(), triggerRef);
+  return (
+    <SidebarTrigger ref={triggerRef} className={MOBILE_TRIGGER}>
+      <SidebarIcon />
+    </SidebarTrigger>
+  );
+}
+
 export function HomeSiteHeader(props: ComponentProps<"header">): ReactNode {
   const { slots, navItems, menuItems } = useHomeLayout();
   const textItems = menuItems.filter((item) => !isIconItem(item));
@@ -214,27 +303,25 @@ export function HomeSiteHeader(props: ComponentProps<"header">): ReactNode {
         className={cn("top-0 z-40", props.className)}
         slots={slots}
         navItems={navItems}
-        mobileTrigger={
-          <SidebarTrigger className={MOBILE_TRIGGER}>
-            <SidebarIcon />
-          </SidebarTrigger>
-        }
+        mobileTrigger={<HomeMobileTrigger />}
+        cta={<HeaderCta />}
+        badge={<VersionPill />}
       />
       <SidebarDrawerOverlay className="fixed inset-0 z-40 backdrop-blur-xs data-[state=closed]:animate-fd-fade-out data-[state=open]:animate-fd-fade-in" />
       <SidebarDrawerContent className="fixed inset-e-0 inset-y-0 z-40 flex w-[85%] max-w-[380px] flex-col border-s bg-fd-background text-[0.9375rem] shadow-lg data-[state=closed]:animate-fd-sidebar-out data-[state=open]:animate-fd-sidebar-in">
-        <div className="flex justify-end p-4 pb-2">
+        <div className="flex justify-end px-2.5 pt-4 pb-2">
           <SidebarTrigger className={cn(buttonVariants({ variant: "ghost", size: "icon-sm" }))}>
             <CloseIcon />
           </SidebarTrigger>
         </div>
-        <SidebarViewport>
-          <div className="flex flex-col gap-0.5 px-4">
+        <SidebarViewport viewport={{ className: "px-2" }}>
+          <div className="flex flex-col gap-0.5">
             {textItems.map((item) => (
               <TextLink key={itemKey(item)} item={item} className={DRAWER_ITEM} />
             ))}
           </div>
         </SidebarViewport>
-        <div className="flex items-center gap-1 border-t p-4 pt-2 text-fd-muted-foreground">
+        <div className="flex items-center gap-1 border-t px-2.5 pt-2 pb-4 text-fd-muted-foreground">
           {iconItems.map((item) => (
             <IconLink key={itemKey(item)} item={item} />
           ))}

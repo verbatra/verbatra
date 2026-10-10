@@ -1,45 +1,62 @@
 "use client";
 
-import { motion } from "motion/react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
-import { useReducedMotionPreference } from "@/lib/reduced-motion";
+import { i18n, isLocale, localizedPath } from "@/lib/i18n";
 import type { FaqItem } from "@/lib/structured-data";
+import { trackUmamiEvent } from "@/lib/umami";
+import { cn } from "@/lib/utils";
 import { RELEASES_URL } from "./links";
-import { Reveal } from "./reveal";
+import { Section } from "./section";
 import { SectionHead } from "./section-head";
-
-const EASE_OUT = [0.22, 1, 0.36, 1] as const;
 
 export type FaqEntry = FaqItem & { id: string };
 
-const answerTags = {
-  releases: (chunks: ReactNode) => (
-    <a
-      href={RELEASES_URL}
-      target="_blank"
-      rel="noreferrer noopener"
-      className="underline underline-offset-4 transition-colors hover:text-[color:var(--accent)]"
-    >
+const ANSWER_LINK_CLASS =
+  "underline underline-offset-4 transition-colors hover:text-[color:var(--accent)]";
+
+const LANGUAGE_SUPPORT_PATH = "/docs/language-support";
+const DATA_HANDLING_PATH = "/docs/data-handling";
+
+function answerTags(locale: string) {
+  const docsLocale = isLocale(locale) ? locale : i18n.defaultLanguage;
+  const docsLink = (path: string) => (chunks: ReactNode) => (
+    <a href={localizedPath(docsLocale, path)} className={ANSWER_LINK_CLASS}>
       {chunks}
     </a>
-  ),
-};
+  );
+  return {
+    releases: (chunks: ReactNode) => (
+      <a
+        href={RELEASES_URL}
+        target="_blank"
+        rel="noreferrer noopener"
+        className={ANSWER_LINK_CLASS}
+        data-umami-event="outbound-link"
+        data-umami-event-target="releases"
+        data-umami-event-location="faq"
+      >
+        {chunks}
+      </a>
+    ),
+    languages: docsLink(LANGUAGE_SUPPORT_PATH),
+    dataHandling: docsLink(DATA_HANDLING_PATH),
+  };
+}
 
 function FaqRow({
   item,
   index,
   isOpen,
   onToggle,
-  reduced,
 }: {
   item: FaqEntry;
   index: number;
   isOpen: boolean;
   onToggle: () => void;
-  reduced: boolean;
 }): ReactNode {
   const t = useTranslations("landing.faq");
+  const locale = useLocale();
   const panelId = `faq-panel-${index}`;
   const buttonId = `faq-button-${index}`;
   return (
@@ -51,36 +68,38 @@ function FaqRow({
           aria-expanded={isOpen}
           aria-controls={panelId}
           onClick={onToggle}
-          className={`flex w-full items-center justify-between gap-4 py-5 text-left text-[17px] font-semibold transition-colors hover:text-[color:var(--accent)] ${
+          className={`flex w-full items-center justify-between gap-4 py-5 text-left text-(length:--text-h4) font-semibold transition-colors hover:text-[color:var(--accent)] ${
             isOpen ? "text-[color:var(--accent)]" : "text-fd-foreground"
           }`}
           style={{ fontFamily: "var(--font-display)" }}
         >
           {item.question}
-          <motion.span
+          <span
             aria-hidden="true"
-            className="relative grid h-4 w-4 shrink-0 place-items-center"
-            initial={false}
-            animate={{ rotate: isOpen ? 45 : 0 }}
-            transition={reduced ? { duration: 0 } : { duration: 0.2, ease: EASE_OUT }}
+            className={cn(
+              "relative grid h-4 w-4 shrink-0 place-items-center transition-transform duration-200 ease-(--ease-out) motion-reduce:transition-none",
+              isOpen && "rotate-45",
+            )}
           >
             <span className="h-px w-3.5" style={{ background: "var(--v-glow)" }} />
             <span className="absolute h-3.5 w-px" style={{ background: "var(--v-glow)" }} />
-          </motion.span>
+          </span>
         </button>
       </h3>
-      <motion.section
+      <section
         id={panelId}
         aria-labelledby={buttonId}
-        className="overflow-hidden"
-        initial={false}
-        animate={{ height: isOpen ? "auto" : 0, opacity: isOpen ? 1 : 0 }}
-        transition={reduced ? { duration: 0 } : { duration: 0.3, ease: EASE_OUT }}
+        className={cn(
+          "grid transition-[grid-template-rows,opacity] duration-300 ease-(--ease-out) motion-reduce:transition-none",
+          isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+        )}
       >
-        <p className="max-w-[68ch] pb-5 text-[15px] leading-relaxed text-fd-muted-foreground">
-          {t.rich(`items.${item.id}.answer`, answerTags)}
-        </p>
-      </motion.section>
+        <div className="overflow-hidden">
+          <p className="max-w-[68ch] pb-5 text-base leading-relaxed text-fd-muted-foreground">
+            {t.rich(`items.${item.id}.answer`, answerTags(locale))}
+          </p>
+        </div>
+      </section>
     </div>
   );
 }
@@ -88,25 +107,29 @@ function FaqRow({
 export function Faq({ items }: { items: ReadonlyArray<FaqEntry> }): ReactNode {
   const t = useTranslations("landing.faq");
   const [open, setOpen] = useState(-1);
-  const reduced = useReducedMotionPreference();
+
+  function toggle(index: number, id: string): void {
+    const opening = open !== index;
+    setOpen(opening ? index : -1);
+    if (opening) trackUmamiEvent("open-faq", { question: id, location: "faq" });
+  }
 
   return (
-    <section className="vk-gutter vk-w-wide vk-rhythm-lg mx-auto" id="faq">
-      <Reveal>
-        <SectionHead title={t("heading")} />
-      </Reveal>
-      <Reveal order={1} className="mt-11 max-w-[880px] border-t border-fd-border">
+    <Section band id="faq">
+      <div>
+        <SectionHead id="faq-heading" title={t("heading")} />
+      </div>
+      <div className="mt-11 max-w-[880px] border-t border-fd-border">
         {items.map((item, i) => (
           <FaqRow
             key={item.id}
             item={item}
             index={i}
             isOpen={open === i}
-            onToggle={() => setOpen((current) => (current === i ? -1 : i))}
-            reduced={reduced}
+            onToggle={() => toggle(i, item.id)}
           />
         ))}
-      </Reveal>
-    </section>
+      </div>
+    </Section>
   );
 }

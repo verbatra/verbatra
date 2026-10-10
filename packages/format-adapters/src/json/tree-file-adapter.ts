@@ -3,6 +3,7 @@ import type { FormatAdapter, ReadResult } from "../adapter.js";
 import { type AdapterFs, nodeAdapterFs } from "../fs-port.js";
 import {
   buildCanHandle,
+  type CompareBranchArms,
   type ComparePlaceholders,
   type ComputeInvalidIcuKeys,
   computeIcu,
@@ -21,12 +22,14 @@ import { unflattenEntries } from "./unflatten.js";
 
 /**
  * Builds the tree to serialize from the entries about to be written, for a format that patches an
- * existing document rather than rebuilding it from the entries alone.
+ * existing document rather than rebuilding it from the entries alone. It also receives the locale
+ * of the resource being written, for a format that records its locale inside the file.
  */
 export type BuildWriteTree = (
   entries: ReadonlyMap<string, TranslationEntry>,
   filePath: string,
   fs: AdapterFs,
+  locale: string,
 ) => OrderedRecord | Promise<OrderedRecord>;
 
 /**
@@ -73,6 +76,8 @@ export interface TreeFileAdapterOptions {
   readonly keyMode?: KeyMode;
   /** Optional whole-value placeholder comparison, for a format whose structure flattening would lose. */
   readonly comparePlaceholders?: ComparePlaceholders;
+  /** Optional check of a translation's plural and select branch arms against its source. */
+  readonly compareBranchArms?: CompareBranchArms;
   /** Optional extraction of per-key translator descriptions from the raw file text. */
   readonly deriveDescriptions?: DeriveDescriptions;
   /** The file-system port to read and write through. Defaults to `nodeAdapterFs`. */
@@ -132,6 +137,12 @@ function toEntries(
  *
  * @example
  * ```ts
+ * import { createTreeFileAdapter, type JsonRecord, type OrderedRecord } from "@verbatra/sdk";
+ *
+ * declare function parseHocon(content: string): JsonRecord;
+ * declare function serializeHocon(tree: OrderedRecord): string;
+ * declare function tokensIn(value: string): string[];
+ *
  * const hoconAdapter = createTreeFileAdapter({
  *   format: "custom:hocon",
  *   extensions: [".conf"],
@@ -156,6 +167,7 @@ export function createTreeFileAdapter(options: TreeFileAdapterOptions): FormatAd
     validateTree,
     buildWriteTree,
     comparePlaceholders,
+    compareBranchArms,
     deriveDescriptions,
     keyMode = "literal-leaf",
     fs = nodeAdapterFs,
@@ -166,6 +178,7 @@ export function createTreeFileAdapter(options: TreeFileAdapterOptions): FormatAd
     extractPlaceholders,
     validateMessage: validateMessage ?? ((): boolean => true),
     ...(comparePlaceholders !== undefined ? { comparePlaceholders } : {}),
+    ...(compareBranchArms !== undefined ? { compareBranchArms } : {}),
     async read(filePath, locale): Promise<ReadResult> {
       const content = await readFileContent(fs, filePath);
       const namespace = namespaceOf(filePath);
@@ -184,7 +197,7 @@ export function createTreeFileAdapter(options: TreeFileAdapterOptions): FormatAd
     },
     async write(resource, filePath): Promise<void> {
       const tree = buildWriteTree
-        ? await buildWriteTree(resource.entries, filePath, fs)
+        ? await buildWriteTree(resource.entries, filePath, fs, resource.locale)
         : unflattenEntries(resource.entries);
       await fs.writeFileAtomic(filePath, serialize(tree));
     },

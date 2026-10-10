@@ -1,6 +1,9 @@
+import { isAbsolute, relative, sep } from "node:path";
+import process from "node:process";
 import {
   type BudgetStanding,
   budgetStanding,
+  type CheckFileSummary,
   type CheckSummary,
   type DiffSummary,
   type DoctorCheckStatus,
@@ -9,47 +12,122 @@ import {
   type ExportTmxResult,
   type ExportWorkbookResult,
   type ExtractResult,
+  errorHint,
   type FuzzyCacheHit,
   type GenerateTypesResult,
   type ImportTmxResult,
   INTEGRITY_GATE_REASONS,
+  type IncompletePlural,
   type InconsistencyGroup,
+  type IntegrityRefusal,
   type LiteralScan,
+  type LocaleCapability,
+  type LocaleCapabilityReport,
+  type LocaleCapabilityWarning,
   type LocaleCheckSummary,
   type LocaleDiff,
+  type LocaleFileCheck,
+  type LocaleFinishedEvent,
+  type LocaleQaReport,
   type LocaleSummary,
   type LockWaitEvent,
+  PROVENANCE_BUCKETS,
   type ProgressEvent,
+  type ProtectedKey,
+  type ProvenanceBucket,
+  type ProvenanceMarkers,
+  type ProvenanceReportResult,
   type PseudolocalizeResult,
+  projectRelativeMessage,
+  type QaFinding,
+  type QaSyntaxFinding,
   type RunBudget,
   type RunEstimate,
   type RunSummary,
+  type SensitiveKeyFinding,
+  scaffoldingMetadata,
   type TmxLanguageReport,
   type TmxRejectionReason,
+  type TmxUnitRefusal,
   type UnusedKeysReport,
   type UnusedKeysScan,
   type UnusedKeysSite,
   type UnusedKeysUnreliability,
   type UsageSummary,
-  type WatchRunResult,
 } from "@verbatra/sdk";
+import type { CliErrorCode } from "./cli-error-codes.js";
+import { CLI_ERROR_HINTS } from "./cli-error-hints.js";
+import { CliUsageError } from "./cli-usage-error.js";
+import type { LockReleaseOutcome } from "./lock-release.js";
+import { renderDataFlowLines } from "./render-data-flow.js";
+
+const FALLBACK_ERROR_CODE: CliErrorCode = "CLI_ERROR";
 
 export interface RenderableError {
   readonly code: string;
   readonly message: string;
+  readonly causeCode?: string;
+  readonly candidates?: readonly string[];
+  readonly missing?: readonly string[];
+  readonly hint?: string;
+}
+
+function stringListOf(
+  error: Error,
+  field: "candidates" | "missing",
+): readonly string[] | undefined {
+  const list = (error as Partial<Record<typeof field, unknown>>)[field];
+  return Array.isArray(list) && list.every((entry) => typeof entry === "string") ? list : undefined;
+}
+
+export function displayPath(path: string, base: string | undefined): string {
+  if (base === undefined || !isAbsolute(path)) {
+    return path;
+  }
+  const inside = relative(base, path);
+  const outside =
+    inside === "" || inside === ".." || inside.startsWith(`..${sep}`) || isAbsolute(inside);
+  return outside ? path : inside;
+}
+
+function codeOf(value: unknown): string | undefined {
+  const code = value instanceof Error ? (value as { code?: unknown }).code : undefined;
+  return typeof code === "string" ? code : undefined;
+}
+
+function hintOf(error: Error): string | undefined {
+  return error instanceof CliUsageError ? CLI_ERROR_HINTS[error.code] : errorHint(error);
 }
 
 export function toRenderableError(error: unknown): RenderableError {
   if (error instanceof Error) {
-    const code = (error as { code?: unknown }).code;
-    return { code: typeof code === "string" ? code : "CLI_ERROR", message: error.message };
+    const causeCode = codeOf(error.cause);
+    const candidates = stringListOf(error, "candidates");
+    const missing = stringListOf(error, "missing");
+    const hint = hintOf(error);
+    return {
+      code: codeOf(error) ?? FALLBACK_ERROR_CODE,
+      message: projectRelativeMessage(error.message, process.cwd()),
+      ...(causeCode === undefined ? {} : { causeCode }),
+      ...(candidates === undefined ? {} : { candidates }),
+      ...(missing === undefined ? {} : { missing }),
+      ...(hint === undefined ? {} : { hint }),
+    };
   }
-  return { code: "CLI_ERROR", message: String(error) };
+  return { code: FALLBACK_ERROR_CODE, message: String(error) };
+}
+
+function runHeader(summary: RunSummary, command: string): string {
+  if (summary.estimate !== undefined) {
+    return `verbatra ${command} (estimate)`;
+  }
+  return summary.dryRun ? `verbatra ${command} (dry run)` : `verbatra ${command}`;
 }
 
 export function renderHuman(summary: RunSummary, command = "translate"): string {
-  const header = summary.dryRun ? `verbatra ${command} (dry run)` : `verbatra ${command}`;
-  const localeLines = summary.locales.flatMap(renderLocaleLine);
+  const header = runHeader(summary, command);
+  const labels = runCountLabels(summary.dryRun, command);
+  const localeLines = summary.locales.flatMap((locale) => renderLocaleLine(locale, labels));
   const aggregate = `${summary.succeeded.length} succeeded, ${summary.partial.length} partial, ${summary.failed.length} failed${
     summary.dryRun ? " (dry run: nothing written)" : ""
   }`;
@@ -62,7 +140,7 @@ export function renderHuman(summary: RunSummary, command = "translate"): string 
 }
 
 function renderTokens(usage: UsageSummary): string {
-  return `${usage.inputTokens + usage.outputTokens} tokens (${usage.inputTokens} in, ${usage.outputTokens} out)`;
+  return `${plural(usage.inputTokens + usage.outputTokens, "token")} (${usage.inputTokens} in, ${usage.outputTokens} out)`;
 }
 
 const BUDGET_STATUS: Record<BudgetStanding, string> = {
@@ -110,7 +188,13 @@ function renderEstimateScale(estimate: RunEstimate): string {
 
 function renderEstimateQuantity(estimate: RunEstimate): string {
   const scale = renderEstimateScale(estimate);
-  return `  estimate: ${estimate.keys} keys in ${estimate.requests} requests, ${scale}`;
+  return `  estimate: ${plural(estimate.keys, "key")} in ${plural(estimate.requests, "request")}, ${scale}`;
+}
+
+function renderNotBilled(estimate: RunEstimate): string {
+  return estimate.provider === scaffoldingMetadata.humanOnlyProviderId
+    ? "  estimated spend: none, machine translation is disabled by policy"
+    : `  estimated spend: no API cost, ${estimate.rateKey} is self-hosted`;
 }
 
 function renderEstimateCost(estimate: RunEstimate): string {
@@ -131,7 +215,7 @@ function renderEstimateCost(estimate: RunEstimate): string {
         `${estimate.unit}; correct rates.table["${estimate.rateKey}"] in your config`
       );
     case "not-billed":
-      return `  estimated spend: no API cost, ${estimate.rateKey} is self-hosted`;
+      return renderNotBilled(estimate);
   }
 }
 
@@ -154,7 +238,7 @@ function renderDetailGroup(label: string, values: readonly string[]): string | u
   if (values.length === 0) {
     return undefined;
   }
-  return `    ${`${label}:`.padEnd(DETAIL_GROUP_WIDTH)}${values.join(", ")}`;
+  return `    ${`${label}:`.padEnd(DETAIL_GROUP_WIDTH - 1)} ${values.join(", ")}`;
 }
 
 const FUZZY_SOURCE_PREVIEW = 40;
@@ -177,19 +261,69 @@ function renderFuzzyHit(hit: FuzzyCacheHit): string {
   return `${hit.key} (${percent}% like "${previewSource(hit.previousSource)}")`;
 }
 
+function renderSuggestion(entry: ProtectedKey): string {
+  if (entry.suggestion !== undefined) {
+    return `, suggestion "${preview(entry.suggestion, FUZZY_SOURCE_PREVIEW)}"`;
+  }
+  return entry.suggestionStatus === undefined ? "" : `, suggestion ${entry.suggestionStatus}`;
+}
+
+function renderProtectedKey(entry: ProtectedKey): string {
+  return `${entry.key} (${entry.reason}${renderSuggestion(entry)})`;
+}
+
 function renderPosition(at: { readonly row: number; readonly line?: number }): string {
   return at.line === undefined ? `row ${at.row}` : `row ${at.row}, line ${at.line}`;
 }
 
-function renderLocaleDetail(locale: LocaleSummary): readonly string[] {
-  return [
+const REFUSAL_DETAIL_PREVIEW = 120;
+
+function renderRefusalDetails(details: readonly string[] | undefined): string {
+  return details === undefined
+    ? ""
+    : ` (${details.map((detail) => preview(detail, REFUSAL_DETAIL_PREVIEW)).join(", ")})`;
+}
+
+function renderRefusal(refusal: IntegrityRefusal): string {
+  return `      ${neutralizeControlCharacters(refusal.key)}: ${refusal.reason}${renderRefusalDetails(refusal.details)}`;
+}
+
+function renderIntegrityWithheld(
+  locale: LocaleSummary,
+  unrefusedReason: string | undefined,
+): readonly string[] {
+  const refusals = locale.integrityRefusals;
+  if (refusals === undefined) {
+    const keys = renderDetailGroup("integrity-withheld", locale.integrityMismatches);
+    return keys === undefined ? [] : [keys];
+  }
+  const refused = new Set(refusals.map((refusal) => refusal.key));
+  const lines = [
+    ...refusals.map((refusal) => ({ key: refusal.key, line: renderRefusal(refusal) })),
+    ...locale.integrityMismatches
+      .filter((key) => !refused.has(key))
+      .map((key) => ({
+        key,
+        line: `      ${neutralizeControlCharacters(key)}${unrefusedReason === undefined ? "" : `: ${unrefusedReason}`}`,
+      })),
+  ].sort((left, right) => (left.key < right.key ? -1 : 1));
+  return lines.length === 0 ? [] : ["    integrity-withheld:", ...lines.map((entry) => entry.line)];
+}
+
+function renderNotices(notices: LocaleSummary["notices"]): readonly string[] {
+  return notices.length === 0
+    ? []
+    : ["    notices:", ...notices.map((notice) => `      [${notice.code}] ${notice.message}`)];
+}
+
+function renderLocaleDetail(locale: LocaleSummary, labels: RunCountLabels): readonly string[] {
+  const groups = [
     renderDetailGroup("fuzzy-reused", locale.fuzzyHits.map(renderFuzzyHit)),
     renderDetailGroup("provider-failed", locale.providerFailures),
-    renderDetailGroup(
-      "notices",
-      locale.notices.map((notice) => `[${notice.code}] ${notice.message}`),
-    ),
+    renderDetailGroup("sensitive-withheld", locale.sensitiveWithheld),
+    ...renderNotices(locale.notices),
     renderDetailGroup("unfilled", locale.unfilled),
+    renderDetailGroup("protected", locale.protected.map(renderProtectedKey)),
     renderDetailGroup(
       "malformed",
       locale.malformedRows.map((problem) => `${renderPosition(problem)} (${problem.column})`),
@@ -199,65 +333,319 @@ function renderLocaleDetail(locale: LocaleSummary): readonly string[] {
       locale.duplicateKeys.map((duplicate) => `${duplicate.key} (${renderPosition(duplicate)})`),
     ),
   ].filter((line): line is string => line !== undefined);
+  return [...renderIntegrityWithheld(locale, labels.unrefusedReason), ...groups];
 }
 
-function renderLocaleLine(locale: LocaleSummary): readonly string[] {
-  if (locale.status === "failed") {
-    const suffix = locale.error ? ` [${locale.error.code}] ${locale.error.message}` : "";
-    return [`  ${locale.locale}: failed${suffix}`, ...renderLocaleDetail(locale)];
+interface RunCountLabels {
+  readonly translated: string;
+  readonly pruned: string;
+  readonly unrefusedReason?: string;
+}
+
+const DRY_RUN_TRANSLATED_LABELS: Readonly<Record<string, string>> = { import: "would import" };
+
+const UNREFUSED_REASONS: Readonly<Record<string, string>> = {
+  import: "source changed since export",
+};
+
+function runCountLabels(dryRun: boolean, command: string): RunCountLabels {
+  const unrefused = UNREFUSED_REASONS[command];
+  const reason = unrefused === undefined ? {} : { unrefusedReason: unrefused };
+  if (!dryRun) {
+    return { translated: "translated", pruned: "pruned", ...reason };
   }
-  const counts: ReadonlyArray<readonly [number, string, boolean]> = [
-    [locale.translated.length, "translated", true],
+  return {
+    translated: DRY_RUN_TRANSLATED_LABELS[command] ?? "would translate",
+    pruned: "would prune",
+    ...reason,
+  };
+}
+
+function renderLocaleLine(locale: LocaleSummary, labels: RunCountLabels): readonly string[] {
+  if (locale.status === "failed" && locale.error !== undefined) {
+    const suffix = ` [${locale.error.code}] ${locale.error.message}`;
+    return [`  ${locale.locale}: failed${suffix}`, ...renderLocaleDetail(locale, labels)];
+  }
+  const counts: ReadonlyArray<readonly [number, string, boolean, string?]> = [
+    [locale.translated.length, labels.translated, true],
     [locale.cacheHits.length, "from cache", false],
     [locale.fuzzyHits.length, "fuzzy-reused", false],
     [locale.unchanged.length, "unchanged", true],
     [locale.generated.length, "generated", false],
     [locale.orphaned.length, "orphaned", false],
-    [locale.pruned.length, "pruned", false],
+    [locale.pruned.length, labels.pruned, false],
     [locale.invalidIcuSource.length, "invalid-ICU skipped", false],
     [locale.integrityMismatches.length, "integrity-withheld", false],
     [locale.providerFailures.length, "provider-failed", false],
     [locale.budgetWithheld.length, "budget-withheld", false],
+    [locale.sensitiveWithheld.length, "sensitive-withheld", false],
     [locale.unfilled.length, "unfilled", false],
-    [locale.malformedRows.length, "malformed-rows", false],
-    [locale.duplicateKeys.length, "duplicate-keys", false],
+    [locale.protected.length, "protected", false],
+    [locale.malformedRows.length, "malformed-row", false, "malformed-rows"],
+    [locale.duplicateKeys.length, "duplicate-key", false, "duplicate-keys"],
     [locale.needsReview.length, "needs-review", false],
-    [locale.notices.length, "notices", false],
+    [locale.notices.length, "notice", false, "notices"],
   ];
   const shown = counts
     .filter(([count, , always]) => always || count > 0)
-    .map(([count, label]) => `${count} ${label}`);
+    .map(([count, label, , pluralLabel]) => plural(count, label, pluralLabel ?? label));
   const tokenSuffix = locale.usage !== undefined ? `, ${renderTokens(locale.usage)}` : "";
-  return [`  ${locale.locale}: ${shown.join(", ")}${tokenSuffix}`, ...renderLocaleDetail(locale)];
+  const status = locale.status === "failed" ? "failed, " : "";
+  return [
+    `  ${locale.locale}: ${status}${shown.join(", ")}${tokenSuffix}`,
+    ...renderLocaleDetail(locale, labels),
+  ];
 }
 
-export function renderRunResultHuman(result: WatchRunResult): string {
-  return result.status === "succeeded" ? renderHuman(result.summary) : renderError(result.error);
+function unavailableMarkersLine(
+  markers: ProvenanceMarkers | undefined,
+  unreadable: string,
+): readonly string[] {
+  return markers === "unavailable"
+    ? [`  no machine-translation markers written: ${unreadable} could not be read`]
+    : [];
 }
 
-export function renderExportHuman(result: ExportWorkbookResult): string {
-  const localeLines = result.locales.map((l) => `  ${l.locale}: ${l.rows} rows`);
+export function renderExportHuman(result: ExportWorkbookResult, base?: string): string {
+  const localeLines = result.locales.map((l) => `  ${l.locale}: ${plural(l.rows, "row")}`);
   const total = result.locales.reduce((sum, l) => sum + l.rows, 0);
   return [
-    `verbatra export -> ${result.path}`,
+    `verbatra export -> ${displayPath(result.path, base)}`,
     ...localeLines,
-    `${total} rows across ${result.locales.length} locales`,
+    `${plural(total, "row")} across ${plural(result.locales.length, "locale")}`,
+    ...unavailableMarkersLine(result.provenanceMarkers, "verbatra.provenance.json"),
   ].join("\n");
 }
 
-export function renderCheckHuman(summary: CheckSummary): string {
+function renderProtectedCount(count: number | undefined): string {
+  return count === undefined || count === 0 ? "" : ` (${count} protected)`;
+}
+
+function outOfSyncLine(summary: CheckSummary, machineTranslation: boolean): string {
+  if (!machineTranslation) {
+    return "out of sync (machine translation is disabled: hand the keys to a translator with verbatra export, or edit them in verbatra studio)";
+  }
+  const everyStaleKeyProtected =
+    summary.locales.some((locale) => locale.stale > 0) &&
+    summary.locales.every(
+      (locale) => locale.missing === 0 && locale.stale === (locale.protected ?? 0),
+    );
+  return everyStaleKeyProtected
+    ? "out of sync (every stale key is protected from machine writes: review or edit it in verbatra studio)"
+    : "out of sync (run verbatra translate to update)";
+}
+
+function renderEmptySourceCount(summary: CheckSummary): readonly string[] {
+  const count = Math.max(0, ...summary.locales.map((locale) => locale.emptySource ?? 0));
+  if (count === 0) {
+    return [];
+  }
+  return [
+    count === 1
+      ? "1 source key has an empty value and is not counted: write its source text to translate it"
+      : `${count} source keys have an empty value and are not counted: write their source text to translate them`,
+  ];
+}
+
+export function renderCheckHuman(summary: CheckSummary, machineTranslation = true): string {
   const localeLines = summary.locales.map(
     (l) =>
-      `  ${l.locale}: ${l.missing} missing, ${l.stale} stale, ${l.upToDate} up-to-date (${
+      `  ${l.locale}: ${l.missing} missing, ${l.stale} stale${renderProtectedCount(l.protected)}, ${l.upToDate} up-to-date (${
         l.inSync ? "in sync" : "out of sync"
       })`,
   );
   const overall = summary.inSync
     ? "all locales in sync"
-    : "out of sync (run verbatra translate to update)";
-  return ["verbatra check", ...localeLines, overall, ...renderConsistencyReport(summary)].join(
-    "\n",
+    : outOfSyncLine(summary, machineTranslation);
+  return [
+    "verbatra check",
+    ...localeLines,
+    overall,
+    ...renderEmptySourceCount(summary),
+    ...renderIncompletePlurals(summary, "--qa --strict"),
+    ...renderConsistencyReport(summary),
+    ...renderQaReport(summary),
+    ...renderReviewReport(summary),
+    ...renderSensitiveReport(summary),
+  ].join("\n");
+}
+
+function renderSensitiveFinding(finding: SensitiveKeyFinding): string {
+  return `  ${neutralizeControlCharacters(finding.key)}: ${finding.detectors.join(", ")} in ${finding.fields.join(", ")}`;
+}
+
+function renderSensitiveReport(summary: CheckSummary): readonly string[] {
+  const sensitive = summary.sensitive;
+  if (sensitive === undefined) {
+    return [];
+  }
+  const count = sensitive.findings.length + sensitive.glossaryTerms;
+  if (count === 0) {
+    return ["sensitive: nothing found"];
+  }
+  return [
+    `sensitive: ${plural(sensitive.findings.length, "key")} and ${plural(sensitive.glossaryTerms, "glossary term")} hold content that looks sensitive`,
+    ...sensitive.findings.map(renderSensitiveFinding),
+    "  remove it, list it in sensitiveData.allow, or turn the detector off in sensitiveData.detectors",
+  ];
+}
+
+const LISTED_UNREVIEWED_KEYS = 10;
+
+function renderUnreviewedKeys(keys: readonly string[]): string {
+  const listed = keys.slice(0, LISTED_UNREVIEWED_KEYS).map(neutralizeControlCharacters).join(", ");
+  const rest = keys.length - LISTED_UNREVIEWED_KEYS;
+  return rest > 0 ? `${listed}, and ${rest} more` : listed;
+}
+
+function renderReviewReport(summary: CheckSummary): readonly string[] {
+  const review = summary.review;
+  if (review === undefined) {
+    return [];
+  }
+  if (review.code === "REVIEW_STATE_UNREADABLE") {
+    return [
+      "review: failed [REVIEW_STATE_UNREADABLE] verbatra.provenance.json is corrupt or from a newer verbatra, so no review state can be read",
+    ];
+  }
+  if (review.reviewed) {
+    return ["review: every machine-written translation is approved"];
+  }
+  return [
+    `review: failed [REVIEW_REQUIRED] ${plural(review.unreviewed, "machine-written translation")} not approved`,
+    ...summary.locales.flatMap((locale) =>
+      locale.review === undefined || locale.review.unreviewed.length === 0
+        ? []
+        : [
+            `  ${locale.locale}: ${locale.review.unreviewed.length} unreviewed: ${renderUnreviewedKeys(locale.review.unreviewed)}`,
+          ],
+    ),
+    "  approve or reject them in verbatra studio's Review queue, then commit verbatra.provenance.json",
+  ];
+}
+
+function plural(count: number, noun: string, pluralNoun = `${noun}s`): string {
+  return `${count} ${count === 1 ? noun : pluralNoun}`;
+}
+
+function renderFindingReason(finding: QaFinding): string {
+  const details =
+    finding.details !== undefined
+      ? ` (${finding.details.map(neutralizeControlCharacters).join(", ")})`
+      : "";
+  return `${finding.reason}${details}`;
+}
+
+function renderKeyFindings(findings: readonly QaFinding[]): readonly string[] {
+  const byKey = new Map<string, QaFinding[]>();
+  for (const finding of findings) {
+    const group = byKey.get(finding.key) ?? [];
+    group.push(finding);
+    byKey.set(finding.key, group);
+  }
+  return [...byKey].map(([key, group]) => {
+    const severity = group.some((finding) => finding.severity === "error") ? "error" : "warning";
+    return `    ${neutralizeControlCharacters(key)}: ${severity} ${group.map(renderFindingReason).join(", ")}`;
+  });
+}
+
+function renderLocaleQa(locale: string, report: LocaleQaReport): readonly string[] {
+  const checked = plural(report.checked, "value");
+  if (report.findings.length === 0) {
+    return [`  ${locale}: clean, ${checked} checked`];
+  }
+  return [
+    `  ${locale}: ${plural(report.errors, "error")}, ${plural(report.warnings, "warning")} in ${checked} checked`,
+    ...renderKeyFindings(report.findings),
+  ];
+}
+
+function renderSkippedSourceKeys(invalidSourceKeys: readonly string[]): readonly string[] {
+  return invalidSourceKeys.length > 0
+    ? [
+        `  skipped, source is not valid ICU: ${invalidSourceKeys.map(neutralizeControlCharacters).join(", ")}`,
+      ]
+    : [];
+}
+
+function renderQaReport(summary: CheckSummary): readonly string[] {
+  const totals = summary.qa;
+  if (totals === undefined) {
+    return [];
+  }
+  const skipped = renderSkippedSourceKeys(totals.invalidSourceKeys);
+  return [
+    `qa: ${plural(totals.errors, "error")}, ${plural(totals.warnings, "warning")}`,
+    ...summary.locales.flatMap((locale) =>
+      locale.qa === undefined ? [] : renderLocaleQa(locale.locale, locale.qa),
+    ),
+    ...skipped,
+  ];
+}
+
+function renderSyntaxFinding(locale: string, finding: QaSyntaxFinding): string {
+  return `  ${locale}: syntax error [${finding.code}] ${neutralizeControlCharacters(finding.message)}`;
+}
+
+function renderLocaleFileCheck(entry: LocaleFileCheck): readonly string[] {
+  const syntax = entry.qa.findings.find(
+    (finding): finding is QaSyntaxFinding => finding.reason === "syntax",
   );
+  if (syntax !== undefined) {
+    return [renderSyntaxFinding(entry.locale, syntax)];
+  }
+  const findings = entry.qa.findings.filter(
+    (finding): finding is QaFinding => finding.reason !== "syntax",
+  );
+  return renderLocaleQa(entry.locale, { ...entry.qa, findings });
+}
+
+export function renderCheckFileHuman(summary: CheckFileSummary): string {
+  return [
+    `verbatra check --file ${neutralizeControlCharacters(summary.file)} (${summary.role})`,
+    `qa: ${plural(summary.qa.errors, "error")}, ${plural(summary.qa.warnings, "warning")}`,
+    ...summary.locales.flatMap(renderLocaleFileCheck),
+    ...renderSkippedSourceKeys(summary.qa.invalidSourceKeys),
+    ...renderIncompletePlurals(summary, "--strict"),
+  ].join("\n");
+}
+
+function describePluralKind(gap: IncompletePlural): string {
+  if (gap.argument !== undefined) {
+    const kind = gap.ruleType === "ordinal" ? "selectordinal" : "plural";
+    return ` {${neutralizeControlCharacters(gap.argument)}} ${kind}`;
+  }
+  return gap.ruleType === "ordinal" ? " (ordinal)" : "";
+}
+
+function renderIncompletePlural(gap: IncompletePlural): string {
+  return `    ${neutralizeControlCharacters(gap.key)}${describePluralKind(gap)}: missing ${gap.missing.join(", ")}`;
+}
+
+interface PluralReportingLocale {
+  readonly locale: string;
+  readonly incompletePlurals?: readonly IncompletePlural[] | undefined;
+}
+
+function renderIncompletePlurals(
+  summary: { readonly locales: readonly PluralReportingLocale[] },
+  strictFlags: string,
+): readonly string[] {
+  const affected = summary.locales.flatMap((locale) =>
+    locale.incompletePlurals !== undefined && locale.incompletePlurals.length > 0
+      ? [{ locale: locale.locale, gaps: locale.incompletePlurals }]
+      : [],
+  );
+  if (affected.length === 0) {
+    return [];
+  }
+  return [
+    `plural categories (warning: exit 1 only under ${strictFlags})`,
+    ...affected.flatMap(({ locale, gaps }) => [
+      `  ${locale}: ${plural(gaps.length, "plural")} missing CLDR categories`,
+      ...gaps.map(renderIncompletePlural),
+    ]),
+  ];
 }
 
 function quoted(text: string): string {
@@ -321,6 +709,7 @@ function renderConsistencyReport(summary: CheckSummary): readonly string[] {
 
 const DOCTOR_STATUS_LABELS: Record<DoctorCheckStatus, string> = {
   pass: "ok  ",
+  warn: "warn",
   fail: "fail",
   skipped: "skip",
 };
@@ -343,15 +732,69 @@ function renderLiteralLines(scan: LiteralScan | undefined): readonly string[] {
   ];
 }
 
-export function renderDoctorHuman(result: DoctorResult): string {
-  const lines = result.checks.map(
-    (entry) => `  [${DOCTOR_STATUS_LABELS[entry.status]}] ${entry.title}: ${entry.detail}`,
-  );
+function yesNo(value: boolean): string {
+  return value ? "yes" : "no";
+}
+
+function renderCapabilityWarnings(warnings: readonly LocaleCapabilityWarning[]): readonly string[] {
+  return warnings.map((warning) => `      warning [${warning.code}] ${warning.message}`);
+}
+
+function renderTargetCapability(entry: LocaleCapability): readonly string[] {
+  return [
+    `    ${entry.locale}  sent as ${entry.providerCode}${entry.mapped ? " (localeMap)" : ""}  ` +
+      `${entry.support}  glossary: ${yesNo(entry.glossary)}  formality: ${yesNo(entry.formality)}`,
+    ...renderCapabilityWarnings(entry.warnings),
+  ];
+}
+
+function renderLocaleCapabilities(report: LocaleCapabilityReport | undefined): readonly string[] {
+  if (report === undefined) {
+    return [];
+  }
+  const table =
+    report.coverage === "open"
+      ? `accepts any locale, well-tested list of ${report.tableVersion}`
+      : `language table of ${report.tableVersion}, ${report.tableOrigin}`;
+  const { source } = report;
+  return [
+    `  locale support (${report.provider}, ${table})`,
+    ...(report.live === undefined
+      ? []
+      : [`    live language list ${report.live.status}: ${report.live.detail}`]),
+    `    ${source.locale}  sent as ${source.providerCode}${source.mapped ? " (localeMap)" : ""}  ` +
+      `source, ${source.support}`,
+    ...renderCapabilityWarnings(source.warnings),
+    ...report.locales.flatMap(renderTargetCapability),
+  ];
+}
+
+export interface DoctorRenderOptions {
+  readonly locales?: boolean;
+  readonly paintStatus?: (status: DoctorCheckStatus, label: string) => string;
+}
+
+export function renderDoctorHuman(result: DoctorResult, options: DoctorRenderOptions = {}): string {
+  const paint = options.paintStatus ?? ((_status: DoctorCheckStatus, label: string) => label);
+  const lines = result.checks.flatMap((entry) => [
+    `  ${paint(entry.status, `[${DOCTOR_STATUS_LABELS[entry.status]}]`)} ${entry.title}: ${entry.detail}`,
+    ...(entry.fix === undefined ? [] : [`         fix: ${entry.fix}`]),
+  ]);
   const failed = result.checks.filter((entry) => entry.status === "fail").length;
+  const warned = result.checks.filter((entry) => entry.status === "warn").length;
   const trailer = result.ok
-    ? "no problems found"
-    : `${failed} ${failed === 1 ? "problem" : "problems"} found (run verbatra doctor again after fixing them)`;
-  return ["verbatra doctor", ...lines, ...renderLiteralLines(result.literals), trailer].join("\n");
+    ? `no problems found${warned === 0 ? "" : `, ${plural(warned, "warning")}`}`
+    : failed === 1
+      ? "1 problem found (run verbatra doctor again after fixing it)"
+      : `${failed} problems found (run verbatra doctor again after fixing them)`;
+  return [
+    "verbatra doctor",
+    ...lines,
+    ...renderLiteralLines(result.literals),
+    ...(options.locales === true ? renderLocaleCapabilities(result.locales) : []),
+    ...renderDataFlowLines(result.dataFlow),
+    trailer,
+  ].join("\n");
 }
 
 const DIFF_GROUP_WIDTH = 14;
@@ -365,14 +808,20 @@ function renderDiffGroup(label: string, keys: readonly string[]): string | undef
 
 function renderDiffLocale(locale: LocaleDiff): readonly string[] {
   const total = locale.missing.length + locale.changed.length + locale.orphaned.length;
+  const emptySource = renderDiffGroup("empty source", locale.emptySource ?? []);
   if (total === 0) {
-    return [`  ${locale.locale}: no pending changes`];
+    return [
+      `  ${locale.locale}: no pending changes`,
+      ...(emptySource === undefined ? [] : [emptySource]),
+    ];
   }
   const header = `  ${locale.locale}: ${locale.missing.length} to add, ${locale.changed.length} to re-translate, ${locale.orphaned.length} orphaned`;
   const groups = [
     renderDiffGroup("add", locale.missing),
     renderDiffGroup("re-translate", locale.changed),
     renderDiffGroup("orphaned", locale.orphaned),
+    renderDiffGroup("protected", locale.protected ?? []),
+    emptySource,
   ].filter((line): line is string => line !== undefined);
   return [header, ...groups];
 }
@@ -399,7 +848,7 @@ function renderUnusedScan(report: UnusedKeysScan): readonly string[] {
   const header =
     `  unused source keys: ${report.status}, ${report.unused.length} unused, ` +
     `${report.possiblyDynamic.length} possibly dynamic, ${report.ignored.length} ignored, ` +
-    `${report.scannedFiles} files scanned`;
+    `${plural(report.scannedFiles, "file")} scanned`;
   const verdict =
     report.status === "complete"
       ? []
@@ -465,6 +914,82 @@ function renderLockHolder(event: LockWaitEvent): string {
   return ` (held${pid}${since})`;
 }
 
+export type InterruptSignal = "SIGINT" | "SIGTERM";
+
+const LEFTOVER_LOCK_ADVICE =
+  "the next run names any lock left behind, and with no verbatra process running it can be deleted";
+
+export type InterruptedRecord =
+  | {
+      readonly type: "interrupted";
+      readonly signal: InterruptSignal;
+      readonly locksReleased: true;
+    }
+  | {
+      readonly type: "interrupted";
+      readonly signal: InterruptSignal;
+      readonly locksReleased: false;
+      readonly reason: "failed";
+      readonly message: string;
+    }
+  | {
+      readonly type: "interrupted";
+      readonly signal: InterruptSignal;
+      readonly locksReleased: false;
+      readonly reason: "timed-out";
+      readonly deadlineMs: number;
+    };
+
+function interruptedRecord(
+  signal: InterruptSignal,
+  outcome: LockReleaseOutcome,
+): InterruptedRecord {
+  switch (outcome.status) {
+    case "released":
+      return { type: "interrupted", signal, locksReleased: true };
+    case "failed":
+      return {
+        type: "interrupted",
+        signal,
+        locksReleased: false,
+        reason: "failed",
+        message: outcome.message,
+      };
+    case "timed-out":
+      return {
+        type: "interrupted",
+        signal,
+        locksReleased: false,
+        reason: "timed-out",
+        deadlineMs: outcome.deadlineMs,
+      };
+  }
+}
+
+function interruptedJson(signal: InterruptSignal, outcome: LockReleaseOutcome): string {
+  return JSON.stringify(interruptedRecord(signal, outcome));
+}
+
+function interruptedHuman(signal: InterruptSignal, outcome: LockReleaseOutcome): string {
+  const lead = `verbatra: interrupted (${signal}),`;
+  switch (outcome.status) {
+    case "released":
+      return `${lead} released locks`;
+    case "failed":
+      return `${lead} could not release locks: ${outcome.message}; ${LEFTOVER_LOCK_ADVICE}`;
+    case "timed-out":
+      return `${lead} lock release did not finish within ${Math.round(outcome.deadlineMs / 1000)}s; ${LEFTOVER_LOCK_ADVICE}`;
+  }
+}
+
+export function renderInterrupted(
+  signal: InterruptSignal,
+  json: boolean,
+  outcome: LockReleaseOutcome,
+): string {
+  return json ? interruptedJson(signal, outcome) : interruptedHuman(signal, outcome);
+}
+
 export function renderLockWaitHuman(event: LockWaitEvent): string {
   const waitedSeconds = Math.round(event.elapsedMs / 1000);
   return (
@@ -481,40 +1006,62 @@ export function renderLockWait(event: LockWaitEvent, json: boolean): string {
   return json ? renderLockWaitJson(event) : renderLockWaitHuman(event);
 }
 
-export function renderProgressHuman(event: ProgressEvent): string {
+const LOCALE_FINISHED_VERBS: Record<LocaleFinishedEvent["status"], string> = {
+  succeeded: "done",
+  partial: "partly done",
+  failed: "failed",
+};
+
+function renderLocaleFinished(event: LocaleFinishedEvent, dryRun: boolean): string {
+  const verb = LOCALE_FINISHED_VERBS[event.status];
+  if (event.status === "failed" || (event.status === "partial" && event.translated === 0)) {
+    return `verbatra: ${event.locale} ${verb}`;
+  }
+  return `verbatra: ${event.locale} ${verb}, ${event.translated} ${dryRun ? "would translate" : "translated"}`;
+}
+
+export function renderProgressHuman(event: ProgressEvent, dryRun = false): string | undefined {
   switch (event.type) {
     case "locale-started":
       return `verbatra: translating ${event.locale}`;
     case "sub-batch":
       return `verbatra: ${event.locale} batch ${event.batchIndex}/${event.totalBatches}`;
     case "locale-finished":
-      return `verbatra: ${event.locale} done, ${event.translated} translated`;
+      return renderLocaleFinished(event, dryRun);
     case "run-finished":
-      return `verbatra: run finished, ${event.localesCompleted} locales processed`;
+      return `verbatra: run finished, ${plural(event.localesCompleted, "locale")} processed${
+        event.localesFailed > 0 ? `, ${event.localesFailed} failed` : ""
+      }`;
+    default:
+      return undefined;
   }
 }
 
-export function renderProgressJson(event: ProgressEvent): string {
-  return JSON.stringify(event);
-}
+const JSON_PROGRESS_TYPES: ReadonlySet<ProgressEvent["type"]> = new Set([
+  "locale-started",
+  "sub-batch",
+  "locale-finished",
+  "run-finished",
+]);
 
-export function renderProgress(event: ProgressEvent, json: boolean): string {
-  return json ? renderProgressJson(event) : renderProgressHuman(event);
+export function renderProgressJson(event: ProgressEvent): string | undefined {
+  return JSON_PROGRESS_TYPES.has(event.type) ? JSON.stringify(event) : undefined;
 }
 
 export function renderError(error: RenderableError): string {
-  return `verbatra: error [${error.code}] ${error.message}`;
+  const cause = error.causeCode === undefined ? "" : ` (cause: ${error.causeCode})`;
+  return `verbatra: error [${error.code}] ${error.message}${cause}`;
 }
 
-export function renderPseudoHuman(result: PseudolocalizeResult): string {
+export function renderPseudoHuman(result: PseudolocalizeResult, base?: string): string {
   const lines = [
     "verbatra pseudo",
-    `  ${result.locale}: ${result.transformed} of ${result.entries} entries pseudolocalized`,
+    `  ${result.locale} (${result.mode}): ${result.transformed} of ${plural(result.entries, "entry", "entries")} pseudolocalized`,
   ];
   if (result.copied.length > 0) {
     lines.push(`    copied verbatim: ${result.copied.join(", ")}`);
   }
-  lines.push(`  ${result.written ? "wrote" : "unchanged"} ${result.path}`);
+  lines.push(`  ${result.written ? "wrote" : "unchanged"} ${displayPath(result.path, base)}`);
   return lines.join("\n");
 }
 
@@ -539,11 +1086,11 @@ function renderExtractOutcome(result: ExtractResult): string {
     return `  no new keys found in ${result.sourcePath}`;
   }
   const verb = result.dryRun ? "would add" : "added";
-  return `  ${verb} ${result.added.length} ${result.added.length === 1 ? "key" : "keys"} to ${result.sourcePath}`;
+  return `  ${verb} ${plural(result.added.length, "key")} to ${result.sourcePath}`;
 }
 
 export function renderExtractHuman(result: ExtractResult): string {
-  const header = `  ${result.scannedFiles} files scanned, ${result.existingKeys} keys already present`;
+  const header = `  ${plural(result.scannedFiles, "file")} scanned, ${plural(result.existingKeys, "key")} already present`;
   const lines = [
     header,
     renderExtractOutcome(result),
@@ -572,20 +1119,28 @@ export function renderExtractHuman(result: ExtractResult): string {
   return ["verbatra extract", ...lines, ...(trailer === undefined ? [] : [trailer])].join("\n");
 }
 
-function renderTypesOutcome(result: GenerateTypesResult): string {
-  if (result.check) {
-    return result.stale
-      ? `  ${result.path} is out of date, re-run verbatra types`
-      : `  ${result.path} is up to date`;
+function checkedTypesLine(result: GenerateTypesResult, path: string): string {
+  if (result.missing) {
+    return `  ${path} is missing, run verbatra types to create it`;
   }
-  return result.written ? `  wrote ${result.path}` : `  unchanged ${result.path}`;
+  return result.stale
+    ? `  ${path} is out of date, re-run verbatra types`
+    : `  ${path} is up to date`;
+}
+
+function renderTypesOutcome(result: GenerateTypesResult, base: string | undefined): string {
+  const path = displayPath(result.path, base);
+  if (result.check) {
+    return checkedTypesLine(result, path);
+  }
+  return result.written ? `  wrote ${path}` : `  unchanged ${path}`;
 }
 
 function renderTypesKeyList(label: string, keys: readonly string[]): readonly string[] {
   return keys.length === 0 ? [] : [`  ${label} (${keys.length}): ${keys.join(", ")}`];
 }
 
-export function renderTypesHuman(result: GenerateTypesResult): string {
+export function renderTypesHuman(result: GenerateTypesResult, base?: string): string {
   const unresolved =
     result.unresolved.length === 0
       ? []
@@ -595,11 +1150,11 @@ export function renderTypesHuman(result: GenerateTypesResult): string {
         ];
   return [
     "verbatra types",
-    `  ${result.keys} keys declared, ${result.withArguments} of them taking arguments, from ${result.sourcePath}`,
+    `  ${plural(result.keys, "key")} declared, ${result.withArguments} of them taking arguments, from ${result.sourcePath}`,
     ...unresolved,
     ...renderTypesKeyList("excluded by the adapter", result.excluded),
     ...renderTypesKeyList("plural keys", result.plural),
-    renderTypesOutcome(result),
+    renderTypesOutcome(result, base),
   ].join("\n");
 }
 
@@ -613,16 +1168,21 @@ const TMX_REJECTION_REASONS: readonly TmxRejectionReason[] = [
 const TMX_REJECTION_LABELS: Record<TmxRejectionReason, string> = {
   placeholder: "placeholders do not match the source",
   markup: "inline markup does not match the source",
-  icu: "not a valid ICU message",
+  icu: "not a valid ICU message, or its arms do not fit the target language",
   degenerate: "runaway output rather than a translation",
   empty: "blank translation of a source that has text",
   sourceBlank: "blank source segment",
 };
 
+function renderTmxRefusal(refusal: TmxUnitRefusal): string {
+  return `        unit ${refusal.unit}: ${refusal.reason}${renderRefusalDetails(refusal.details)}`;
+}
+
 function renderTmxRejections(result: ImportTmxResult["locales"][number]): readonly string[] {
-  return TMX_REJECTION_REASONS.filter((reason) => result.rejected[reason] > 0).map(
+  const counts = TMX_REJECTION_REASONS.filter((reason) => result.rejected[reason] > 0).map(
     (reason) => `      ${result.rejected[reason]} ${TMX_REJECTION_LABELS[reason]}`,
   );
+  return [...counts, ...result.refusals.map(renderTmxRefusal)];
 }
 
 function renderTmxLocale(locale: ImportTmxResult["locales"][number]): readonly string[] {
@@ -636,7 +1196,7 @@ function renderTmxLocale(locale: ImportTmxResult["locales"][number]): readonly s
   const conflicts =
     locale.conflicting > 0
       ? [
-          `      ${locale.conflicting} units carried differing segments for this locale, so none of them was stored`,
+          `      ${plural(locale.conflicting, "unit carried differing segments for this locale, so it was not stored", "units carried differing segments for this locale, so none of them was stored")}`,
         ]
       : [];
   return [`  ${locale.locale}: ${counts}`, ...renderTmxRejections(locale), ...conflicts];
@@ -658,19 +1218,27 @@ function renderTmxLanguages(
 function renderTmxNotes(result: ImportTmxResult): readonly string[] {
   const notes: string[] = [];
   if (result.skippedUnits > 0) {
-    notes.push(`  ${result.skippedUnits} units could not be read and were skipped`);
+    notes.push(
+      `  ${plural(result.skippedUnits, "unit could not be read and was skipped", "units could not be read and were skipped")}`,
+    );
   }
   if (result.unmatchedSourceUnits > 0) {
-    notes.push(`  ${result.unmatchedSourceUnits} units carried no segment in the source locale`);
+    notes.push(
+      `  ${plural(result.unmatchedSourceUnits, "unit")} carried no segment in the source locale`,
+    );
   }
   if (result.conflictingSourceUnits > 0) {
     notes.push(
-      `  ${result.conflictingSourceUnits} units carried source-locale segments of equal standing with different values, and were refused`,
+      `  ${plural(
+        result.conflictingSourceUnits,
+        "unit carried source-locale segments of equal standing with different values, and was refused",
+        "units carried source-locale segments of equal standing with different values, and were refused",
+      )}`,
     );
   }
   if (result.unreachableUnits > 0) {
     notes.push(
-      `  ${result.unreachableUnits} units sit outside the file's first body and were not read`,
+      `  ${plural(result.unreachableUnits, "unit sits outside the file's first body and was not read", "units sit outside the file's first body and were not read")}`,
     );
   }
   if (result.sourceLanguageMismatch !== undefined) {
@@ -680,12 +1248,12 @@ function renderTmxNotes(result: ImportTmxResult): readonly string[] {
   }
   if (result.markupStrippedUnits > 0) {
     notes.push(
-      `  ${result.markupStrippedUnits} units carried inline markup, which was flattened to its text`,
+      `  ${plural(result.markupStrippedUnits, "unit")} carried inline markup, which was flattened to its text`,
     );
   }
   if (result.subflowDroppedUnits > 0) {
     notes.push(
-      `  ${result.subflowDroppedUnits} units carried sub-flow text inside inline markup, which was left out`,
+      `  ${plural(result.subflowDroppedUnits, "unit")} carried sub-flow text inside inline markup, which was left out`,
     );
   }
   notes.push(
@@ -707,36 +1275,87 @@ function renderTmxNotes(result: ImportTmxResult): readonly string[] {
   return notes;
 }
 
-export function renderTmxImportHuman(result: ImportTmxResult): string {
+export function renderTmxImportHuman(result: ImportTmxResult, base?: string): string {
   const language =
     result.sourceLanguage === undefined
       ? "no source language declared"
       : `source language ${preview(result.sourceLanguage, LANGUAGE_TAG_PREVIEW)}`;
   return [
-    `verbatra tmx import <- ${result.file}`,
-    `  ${result.units} units read (${language})`,
+    `verbatra tmx import <- ${displayPath(result.file, base)}`,
+    `  ${plural(result.units, "unit")} read (${language})`,
     ...result.locales.flatMap(renderTmxLocale),
     ...renderTmxNotes(result),
   ].join("\n");
 }
 
-export function renderTmxExportHuman(result: ExportTmxResult): string {
-  const localeLines = result.locales.map((locale) => `  ${locale.locale}: ${locale.units} units`);
+export function renderTmxExportHuman(result: ExportTmxResult, base?: string): string {
+  const localeLines = result.locales.map(
+    (locale) => `  ${locale.locale}: ${plural(locale.units, "segment")}`,
+  );
   const withoutSource =
     result.withoutSource > 0
-      ? [`  ${result.withoutSource} entries left out: the memory holds no source text for them`]
+      ? [
+          `  ${plural(
+            result.withoutSource,
+            "entry left out: the memory holds no source text for it",
+            "entries left out: the memory holds no source text for them",
+          )}`,
+        ]
       : [];
   const removed =
     result.illegalCharactersRemoved > 0
       ? [
-          `  ${result.illegalCharactersRemoved} characters XML 1.0 does not allow were removed from segment text`,
+          `  ${plural(result.illegalCharactersRemoved, "character XML 1.0 does not allow was", "characters XML 1.0 does not allow were")} removed from segment text`,
         ]
       : [];
   return [
-    `verbatra tmx export -> ${result.path}`,
+    `verbatra tmx export -> ${displayPath(result.path, base)}`,
     ...localeLines,
-    `${result.units} units across ${result.locales.length} locales`,
+    `${plural(result.units, "unit")} across ${plural(result.locales.length, "locale")}`,
     ...withoutSource,
     ...removed,
+    ...unavailableMarkersLine(
+      result.provenanceMarkers,
+      "verbatra.provenance.json or verbatra.lock.json",
+    ),
+  ].join("\n");
+}
+
+const BUCKET_LABELS: Readonly<Record<ProvenanceBucket, string>> = {
+  "machine-unreviewed": "machine, unreviewed",
+  "machine-reviewed": "machine, reviewed",
+  human: "human",
+  import: "import",
+  external: "external",
+  unrecorded: "unrecorded",
+  unknown: "unknown",
+};
+
+function renderTable(rows: readonly (readonly string[])[]): string[] {
+  const widths = (rows[0] ?? []).map((_cell, column) =>
+    Math.max(...rows.map((row) => (row[column] ?? "").length)),
+  );
+  return rows.map((row) =>
+    `  ${row.map((cell, column) => cell.padEnd(widths[column] ?? 0)).join("  ")}`.trimEnd(),
+  );
+}
+
+export function renderProvenanceReportHuman(result: ProvenanceReportResult): string {
+  if (!result.available) {
+    return [
+      "verbatra report provenance",
+      "  no report: verbatra.provenance.json is corrupt or from a newer verbatra, so no origin can be read",
+    ].join("\n");
+  }
+  const header = ["locale", ...PROVENANCE_BUCKETS.map((bucket) => BUCKET_LABELS[bucket]), "total"];
+  const rows = result.locales.map((locale) => [
+    locale.locale,
+    ...PROVENANCE_BUCKETS.map((bucket) => String(locale.counts[bucket])),
+    String(locale.total),
+  ]);
+  return [
+    `verbatra report provenance (source ${result.sourceLocale}, verbatra ${result.toolVersion}, ${result.generatedAt})`,
+    ...renderTable([header, ...rows]),
+    "Supporting evidence from verbatra.provenance.json, not legal advice. --json lists every key.",
   ].join("\n");
 }

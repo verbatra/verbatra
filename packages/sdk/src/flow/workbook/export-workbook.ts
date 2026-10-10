@@ -1,40 +1,62 @@
-import { dirname, join, resolve } from "node:path";
-import { computeReviewFlags, type ReviewFlag } from "@verbatra/ai-providers";
+import { dirname, join, relative, resolve, sep } from "node:path";
+import { computeReviewFlags, type LocaleGlossary, type ReviewFlag } from "@verbatra/ai-providers";
 import { checkPlaceholders, contentHash, diffResources, type LocaleResource } from "@verbatra/core";
 import {
   buildDelimited,
   buildWorkbook,
-  type DelimitedFormat,
-  delimitedFileName,
+  buildXliff,
   type ReviewStatus,
   type WorkbookModel,
   type WorkbookRow,
   type WorkbookSheet,
 } from "@verbatra/exchange";
 import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
+import { glossaryForLocale } from "../../config/glossary.js";
 import { toMaxLengthMap } from "../../config/max-length.js";
+import { projectCwd } from "../../config/project-root.js";
 import type { VerbatraConfig } from "../../config/schema.js";
+import { SdkError } from "../../errors.js";
 import { defaultFs, type SdkFs } from "../../fs.js";
 import { createLocalePathResolver } from "../../locale-path/resolver.js";
-import { baselineFor, lockFilePath, readLockFile } from "../../lock/lock-file.js";
+import type { LocaleProvenance, ProvenanceMarkers } from "../../lock/key-provenance.js";
+import { baselineFor } from "../../lock/lock-file.js";
 import { selectAdapter } from "../../selection/select-adapter.js";
+import { withForeignPlaceholderReason } from "../foreign-placeholders.js";
+import { branchArmProblems } from "../integrity-gate.js";
+import { readCarriedOverLock, readCarriedOverProvenance } from "../locale-carry-over.js";
 import { readTargetResource } from "../read-target.js";
+import {
+  createOutputPathGuard,
+  namesNoFile,
+  type OutputPathGuard,
+  type OutputPathRefusal,
+  outputRefusalReason,
+  type ReservedPath,
+  reservedProjectPaths,
+} from "../reserved-output.js";
 import { selectLocales } from "../select-locales.js";
 import { readSourceResource } from "../source.js";
+import { unwritableFileMessage } from "../write-target.js";
+import { xliffUnits } from "../xliff/xliff-units.js";
 import {
   DEFAULT_EXCHANGE_FORMAT,
+  type DirectoryFormat,
   type ExchangeFormat,
-  isDelimitedFormat,
+  handoffFamily,
+  handoffFileName,
+  isDirectoryFormat,
+  isXliffFormat,
+  xliffVersionOf,
 } from "./exchange-format.js";
-import { writeExportManifest } from "./export-manifest.js";
+import { exportManifestFileName, writeExportManifest } from "./export-manifest.js";
 
 /** Default output path for an `.xlsx` handoff, used when {@link ExportWorkbookInput.out} is omitted. */
 export const DEFAULT_WORKBOOK_PATH = "verbatra-translations.xlsx";
 
 /**
- * Default output directory for a delimited handoff. It carries no extension because it names a
- * directory, not a file: the export creates it and writes one `<locale>.<format>` file inside it
- * per exported locale, such as `de.csv`.
+ * Default output directory for a delimited or XLIFF handoff. It carries no extension because it
+ * names a directory, not a file: the export creates it and writes one file inside it per exported
+ * locale, such as `de.csv` for `csv` or `de.xlf` for `xliff2` and `xliff12`.
  */
 export const DEFAULT_DELIMITED_PATH = "verbatra-translations";
 
@@ -42,13 +64,31 @@ export const DEFAULT_DELIMITED_PATH = "verbatra-translations";
 export interface ExportWorkbookInput {
   /** The resolved project config, normally from {@link loadConfig}. */
   readonly config: VerbatraConfig;
-  /** Directory the `files.pattern` and `out` are resolved against. Defaults to the process working directory. */
+  /** Directory the `files.pattern` and `out` are resolved against. Defaults to the project root of the config object {@link loadConfig} returned, else the process working directory; a copied or rebuilt config loses that root, so pass `cwd` from {@link resolveProjectRoot}. */
   readonly cwd?: string;
   /**
    * Where to write the handoff. Defaults to {@link DEFAULT_WORKBOOK_PATH} for `xlsx` and to
-   * {@link DEFAULT_DELIMITED_PATH} for the delimited formats.
+   * {@link DEFAULT_DELIMITED_PATH} for the delimited and XLIFF formats. Refused with `EXPORT_OUTPUT_CONFLICT`,
+   * before anything is read or written, when it resolves outside `cwd`, or when it or a file the
+   * export would write names a configured locale file, the lock file, the provenance file, the
+   * translation-memory cache, a file verbatra searches for its configuration, the
+   * {@link ExportWorkbookInput.configPath} file, or the {@link ExportWorkbookInput.glossaryPath}
+   * file. For `xlsx` it is also refused when it names no file (including one ending in a path
+   * separator) or names `cwd` itself; a delimited or XLIFF export may write into `cwd`. Names are compared
+   * case-insensitively, and, when the file-system port implements `realpath`, again after symbolic
+   * links are resolved, so a link cannot carry the handoff anywhere a plain path could not.
    */
   readonly out?: string;
+  /**
+   * The configuration file `config` was loaded from, absolute or relative to `cwd`. It is refused
+   * as the output path even when its name is not one verbatra searches for.
+   */
+  readonly configPath?: string;
+  /**
+   * The glossary file the config names, absolute or relative to `cwd`, normally the `path` of a
+   * file-backed {@link LoadedConfig.glossary}. It is refused as the output path.
+   */
+  readonly glossaryPath?: string;
   /** Restrict the export to these target locales. Defaults to every configured target locale. */
   readonly locales?: readonly string[];
   /**
@@ -72,7 +112,7 @@ export interface ExportWorkbookDeps {
 export interface ExportWorkbookResult {
   /**
    * The absolute path written: the workbook file for `xlsx`, or the directory the per-locale files
-   * were written into for a delimited format.
+   * were written into for a delimited or XLIFF format.
    */
   readonly path: string;
   /** Row counts per exported locale. */
@@ -82,20 +122,30 @@ export interface ExportWorkbookResult {
     /** How many translatable rows that locale contributed. */
     readonly rows: number;
   }[];
+  /**
+   * Present for the XLIFF formats only: whether each unit with a target carries its origin and
+   * review state (`written`), or none does because `verbatra.provenance.json` is corrupt or from a
+   * newer verbatra (`unavailable`). The export itself succeeds either way.
+   */
+  readonly provenanceMarkers?: ProvenanceMarkers;
 }
 
 function reasonLabel(reason: string): string {
   return reason.toLowerCase().replace(/_/g, "-");
 }
 
-function reviewColumns(flag: ReviewFlag | undefined): {
-  reviewStatus: ReviewStatus;
-  reviewReasons: string;
-} {
-  if (flag === undefined) {
-    return { reviewStatus: "ok", reviewReasons: "" };
-  }
-  return { reviewStatus: "review", reviewReasons: flag.reasons.map(reasonLabel).join(", ") };
+function armLabel(armProblems: readonly string[]): readonly string[] {
+  return armProblems.length === 0 ? [] : [`icu-arms: ${armProblems.join("; ")}`];
+}
+
+function reviewColumns(
+  flag: ReviewFlag | undefined,
+  armProblems: readonly string[],
+): { reviewStatus: ReviewStatus; reviewReasons: string } {
+  const labels = [...(flag?.reasons ?? []).map(reasonLabel), ...armLabel(armProblems)];
+  return labels.length === 0
+    ? { reviewStatus: "ok", reviewReasons: "" }
+    : { reviewStatus: "review", reviewReasons: labels.join(", ") };
 }
 
 function computeRowReview(
@@ -104,7 +154,7 @@ function computeRowReview(
   currentTarget: string,
   sourceLocale: string,
   targetLocale: string,
-  glossary: Readonly<Record<string, string>> | undefined,
+  glossary: LocaleGlossary | undefined,
   maxLength: number | undefined,
 ): { reviewStatus: ReviewStatus; reviewReasons: string } {
   if (currentTarget === "") {
@@ -125,7 +175,10 @@ function computeRowReview(
     glossary,
     maxLength,
   });
-  return reviewColumns(flag);
+  return reviewColumns(
+    withForeignPlaceholderReason(flag, adapter.format, sourceValue, currentTarget),
+    branchArmProblems(sourceValue, currentTarget, adapter, targetLocale),
+  );
 }
 
 function buildRows(
@@ -134,7 +187,7 @@ function buildRows(
   baseline: ReadonlyMap<string, string>,
   includeUnchanged: boolean,
   adapter: FormatAdapter,
-  glossary: Readonly<Record<string, string>> | undefined,
+  glossary: LocaleGlossary | undefined,
   maxLength: ReadonlyMap<string, number> | undefined,
 ): readonly WorkbookRow[] {
   const diff = diffResources(source, target, { baseline });
@@ -174,38 +227,212 @@ function buildRows(
   return [...rows].sort((a, b) => (a.key < b.key ? -1 : 1));
 }
 
-async function writeDelimitedFiles(
+function outputHint(delimited: boolean): string {
+  return delimited
+    ? `Pass a directory inside the working directory, or omit it to use ${DEFAULT_DELIMITED_PATH}.`
+    : `Pass a path naming a file inside the working directory, or omit it to use ${DEFAULT_WORKBOOK_PATH}.`;
+}
+
+function refuseOutput(requested: string, why: string, delimited: boolean): never {
+  throw new SdkError(
+    "EXPORT_OUTPUT_CONFLICT",
+    `The output path "${requested}" ${why} ${outputHint(delimited)}`,
+  );
+}
+
+function displayName(path: string, cwd: string): string {
+  return relative(cwd, path).split(sep).join("/");
+}
+
+interface OutputGuard {
+  readonly cwd: string;
+  readonly paths: OutputPathGuard;
+}
+
+async function resolveWorkbookPath(guard: OutputGuard, requested: string): Promise<string> {
+  if (namesNoFile(requested)) {
+    refuseOutput(requested, "names no file.", false);
+  }
+  const outputPath = resolve(guard.cwd, requested);
+  const refusal = await guard.paths.refusal(outputPath);
+  if (refusal !== undefined) {
+    refuseOutput(requested, outputRefusalReason(refusal), false);
+  }
+  return outputPath;
+}
+
+function directoryRefusal(refusal: OutputPathRefusal | undefined): OutputPathRefusal | undefined {
+  return refusal?.kind === "working-directory" ? undefined : refusal;
+}
+
+async function resolveDelimitedDirectory(
+  guard: OutputGuard,
+  requested: string,
+  fileNames: readonly string[],
+): Promise<string> {
+  if (requested.trim() === "") {
+    refuseOutput(requested, "names no directory.", true);
+  }
+  const directory = resolve(guard.cwd, requested);
+  const refusal = directoryRefusal(await guard.paths.refusal(directory));
+  if (refusal !== undefined) {
+    refuseOutput(requested, outputRefusalReason(refusal), true);
+  }
+  for (const fileName of fileNames) {
+    const filePath = join(directory, fileName);
+    const fileRefusal = await guard.paths.refusal(filePath);
+    if (fileRefusal !== undefined) {
+      refuseOutput(
+        requested,
+        `would write ${displayName(filePath, guard.cwd)}, which ${outputRefusalReason(fileRefusal)}`,
+        true,
+      );
+    }
+  }
+  return directory;
+}
+
+async function writeHandoff(
+  what: string,
+  path: string,
+  cwd: string,
+  write: () => Promise<void>,
+): Promise<void> {
+  try {
+    await write();
+  } catch (error) {
+    throw new SdkError("EXPORT_UNWRITABLE", unwritableFileMessage(what, path, cwd, error), {
+      cause: error,
+    });
+  }
+}
+
+interface HandoffFile {
+  readonly locale: string;
+  readonly content: string;
+}
+
+async function writeDirectoryFiles(
   fs: SdkFs,
+  cwd: string,
   directory: string,
-  format: DelimitedFormat,
+  format: DirectoryFormat,
+  files: readonly HandoffFile[],
+): Promise<void> {
+  await writeHandoff("the handoff directory", directory, cwd, async () => {
+    await fs.mkdir?.(directory);
+  });
+  for (const file of files) {
+    const path = join(directory, handoffFileName(file.locale, format));
+    await writeHandoff("the handoff file", path, cwd, () => fs.writeFile(path, file.content));
+  }
+  const family = handoffFamily(format);
+  const manifestPath = join(directory, exportManifestFileName(family));
+  await writeHandoff("the export manifest", manifestPath, cwd, () =>
+    writeExportManifest(
+      fs,
+      directory,
+      family,
+      files.map((file) => file.locale),
+    ),
+  );
+}
+
+interface ExportedSheet extends WorkbookSheet {
+  readonly baseline: ReadonlyMap<string, string>;
+}
+
+interface RenderContext {
+  readonly config: VerbatraConfig;
+  readonly source: LocaleResource;
+  readonly provenance: LocaleProvenance | undefined;
+}
+
+function renderDirectoryFile(
+  format: DirectoryFormat,
+  sheet: ExportedSheet,
+  context: RenderContext,
+): HandoffFile {
+  if (!isXliffFormat(format)) {
+    return { locale: sheet.locale, content: buildDelimited(sheet, format) };
+  }
+  const units = xliffUnits({
+    rows: sheet.rows,
+    source: context.source,
+    records: context.provenance?.(sheet.locale),
+    baseline: sheet.baseline,
+  });
+  return {
+    locale: sheet.locale,
+    content: buildXliff({
+      version: xliffVersionOf(format),
+      sourceLanguage: context.config.sourceLocale,
+      targetLanguage: sheet.locale,
+      units,
+    }),
+  };
+}
+
+async function writeWorkbookFile(
+  fs: SdkFs,
+  cwd: string,
+  path: string,
   sheets: readonly WorkbookSheet[],
 ): Promise<void> {
-  await fs.mkdir?.(directory);
-  for (const sheet of sheets) {
-    await fs.writeFile(
-      join(directory, delimitedFileName(sheet.locale, format)),
-      buildDelimited(sheet, format),
-    );
+  const model: WorkbookModel = { sheets };
+  const bytes = await buildWorkbook(model);
+  await writeHandoff("the handoff file", path, cwd, async () => {
+    await fs.mkdir?.(dirname(path));
+    await fs.writeBytes(path, bytes);
+  });
+}
+
+function reservedFor(input: ExportWorkbookInput, cwd: string): ReadonlyMap<string, ReservedPath> {
+  return reservedProjectPaths({
+    cwd,
+    config: input.config,
+    resolver: createLocalePathResolver(cwd, input.config),
+    ...(input.configPath !== undefined ? { configPath: input.configPath } : {}),
+    ...(input.glossaryPath !== undefined ? { glossaryPath: input.glossaryPath } : {}),
+  });
+}
+
+async function resolveHandoffPath(
+  guard: OutputGuard,
+  input: ExportWorkbookInput,
+  format: ExchangeFormat,
+  locales: readonly string[],
+): Promise<string> {
+  if (!isDirectoryFormat(format)) {
+    return resolveWorkbookPath(guard, input.out ?? DEFAULT_WORKBOOK_PATH);
   }
-  await writeExportManifest(
-    fs,
-    directory,
-    format,
-    sheets.map((sheet) => sheet.locale),
-  );
+  return resolveDelimitedDirectory(guard, input.out ?? DEFAULT_DELIMITED_PATH, [
+    ...locales.map((locale) => handoffFileName(locale, format)),
+    exportManifestFileName(handoffFamily(format)),
+  ]);
 }
 
 /**
  * Writes the strings awaiting translation to a handoff a human translator can work in: a styled
- * `.xlsx` workbook with one sheet per locale, or one `.csv` or `.tsv` file per locale. A delimited
- * export also writes a `.verbatra-export-<format>.json` manifest into the output directory naming
- * the locales it exported, which {@link importWorkbook} uses to tell a leftover file from an earlier
- * export apart from a current one.
+ * `.xlsx` workbook with one sheet per locale, one `.csv` or `.tsv` file per locale, or one XLIFF
+ * `.xlf` file per locale for a CAT tool. A delimited or XLIFF export also writes a
+ * `.verbatra-export-<csv|tsv|xliff>.json` manifest into the output directory naming the locales it
+ * exported, which {@link importWorkbook} uses to tell a leftover file from an earlier export apart
+ * from a current one.
+ *
+ * An XLIFF file (`xliff2` writes version 2.0, `xliff12` version 1.2) holds one unit per key, named
+ * by the key. Placeholders, inline markup and ICU structure become inline codes a CAT tool shows
+ * and protects, the key's description and meaning become notes, and the source hash travels in the
+ * unit's metadata. Each unit's state comes from the lock and review state: a missing or stale key
+ * is `initial` (1.2: `new`, or `needs-translation` with the stale translation as the target), an
+ * up-to-date translation is `translated`, an approved one is `reviewed` (1.2: `signed-off` and
+ * `approved="yes"`), and a rejected one is `initial` again.
  *
  * By default only missing and stale keys are exported, which is what makes the handoff a work list
  * rather than a dump of the whole project. Each row carries the source text alongside any existing
  * translation and a review status, so the translator sees what changed and why a string was
- * flagged.
+ * flagged. An existing translation whose ICU branch arms do not fit the target language, the check
+ * the write-time gate applies, is flagged `icu-arms` with each wrong arm named.
  *
  * This is the outbound half of the exchange; {@link importWorkbook} reads the filled handoff back
  * through the same diff, lock, and integrity checks. It writes only the handoff file and never
@@ -216,11 +443,12 @@ async function writeDelimitedFiles(
  * locale and the resolved path. A caller that maps SDK codes should be ready for an unrecognized
  * error from a target file.
  *
- * Writing the handoff itself is unwrapped in the same way. It is not a locale file, so a failure to
- * create the output directory or to write the file does not become `TARGET_UNWRITABLE`; the
- * underlying file-system error propagates as it is.
+ * The output path is checked before anything is read or written, and a handoff that could not be
+ * written surfaces as `EXPORT_UNWRITABLE`, never as a raw file-system error. An existing file at
+ * the output path is replaced.
  *
- * @param input - The config, output path, locale filter, and handoff format.
+ * @param input - The config, output path, config and glossary paths to protect, locale filter, and
+ * handoff format.
  * @param deps - Optional adapter registry and file-system overrides.
  * @returns The path written and the per-locale row counts.
  *
@@ -233,28 +461,40 @@ async function writeDelimitedFiles(
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
  * unsupported version.
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: a requested locale is not a configured target locale.
- * @throws The underlying file-system error, unwrapped, when the handoff could not be written: `out`
- * resolves to a location the process lacks permission to write, or the device is full. A missing
- * output directory is created automatically and is not a cause. Branch on the Node `code`, such as
- * `EACCES` or `ENOSPC`, rather than on the message, which can name the internal temporary file the
- * atomic write uses.
+ * @throws {@link SdkError} `EXPORT_OUTPUT_CONFLICT`: the output path is refused (see
+ * {@link ExportWorkbookInput.out} for the full set), before anything is read or written.
+ * @throws {@link SdkError} `EXPORT_UNWRITABLE`: the output directory could not be created or a
+ * handoff file could not be written, because the directory is not writable, a directory or file
+ * already sits in the way, or the disk is out of space. A missing output directory is created
+ * automatically and is not a cause. The message names the file relative to `cwd` and the
+ * underlying file-system code, never the internal temporary file the atomic write uses, and the
+ * file-system error is the `cause`.
+ * @throws `AdapterError`: the adapter refused a target locale file because it is malformed. Its
+ * own code is preserved rather than remapped onto an {@link SdkErrorCode}.
  */
 export async function exportWorkbook(
   input: ExportWorkbookInput,
   deps: ExportWorkbookDeps = {},
 ): Promise<ExportWorkbookResult> {
   const config = input.config;
-  const cwd = input.cwd ?? process.cwd();
+  const cwd = projectCwd(input);
   const fs = deps.fs ?? defaultFs;
   const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
   const resolver = createLocalePathResolver(cwd, config);
   const maxLengthBudgets = toMaxLengthMap(config.maxLength);
+  const locales = selectLocales(config, input.locales);
+  const format = input.format ?? DEFAULT_EXCHANGE_FORMAT;
+  const path = await resolveHandoffPath(
+    { cwd, paths: createOutputPathGuard(fs, cwd, reservedFor(input, cwd)) },
+    input,
+    format,
+    locales,
+  );
 
   const source = await readSourceResource(config, resolver, fs, adapter);
-  const lock = await readLockFile(lockFilePath(cwd), fs);
+  const lock = await readCarriedOverLock(cwd, fs, locales);
 
-  const locales = selectLocales(config, input.locales);
-  const sheets = await Promise.all(
+  const sheets: readonly ExportedSheet[] = await Promise.all(
     locales.map(async (locale) => {
       const target = await readTargetResource({
         resolver,
@@ -263,34 +503,38 @@ export async function exportWorkbook(
         adapter,
         fs,
       });
+      const baseline = baselineFor(lock, locale);
       const rows = buildRows(
         source.resource,
         target,
-        baselineFor(lock, locale),
+        baseline,
         input.includeUnchanged ?? false,
         adapter,
-        config.glossary,
+        glossaryForLocale(config.glossary, locale),
         maxLengthBudgets,
       );
-      return { locale, rows };
+      return { locale, rows, baseline };
     }),
   );
 
-  const format = input.format ?? DEFAULT_EXCHANGE_FORMAT;
-  const path = resolve(
-    cwd,
-    input.out ?? (isDelimitedFormat(format) ? DEFAULT_DELIMITED_PATH : DEFAULT_WORKBOOK_PATH),
-  );
-  if (isDelimitedFormat(format)) {
-    await writeDelimitedFiles(fs, path, format, sheets);
+  let provenanceMarkers: ProvenanceMarkers | undefined;
+  if (isDirectoryFormat(format)) {
+    const provenance = isXliffFormat(format)
+      ? await readCarriedOverProvenance(cwd, fs, locales)
+      : undefined;
+    if (isXliffFormat(format)) {
+      provenanceMarkers = provenance === undefined ? "unavailable" : "written";
+    }
+    const context: RenderContext = { config, source: source.resource, provenance };
+    const files = sheets.map((sheet) => renderDirectoryFile(format, sheet, context));
+    await writeDirectoryFiles(fs, cwd, path, format, files);
   } else {
-    const model: WorkbookModel = { sheets };
-    await fs.mkdir?.(dirname(path));
-    await fs.writeBytes(path, await buildWorkbook(model));
+    await writeWorkbookFile(fs, cwd, path, sheets);
   }
 
   return {
     path,
     locales: sheets.map((sheet) => ({ locale: sheet.locale, rows: sheet.rows.length })),
+    ...(provenanceMarkers !== undefined ? { provenanceMarkers } : {}),
   };
 }

@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
-import type { ValidatedRequestData } from "../provider.js";
-import { entry } from "../test-support.js";
-import { buildDataPayload, dataPayloadCharacters, resultPayloadCharacters } from "./payload.js";
+import { entry, termGlossary } from "../test-support.js";
+import {
+  buildDataPayload,
+  type DataPayloadInput,
+  dataPayloadCharacters,
+  resultPayloadCharacters,
+} from "./payload.js";
 
-function data(overrides: Partial<ValidatedRequestData> = {}): ValidatedRequestData {
+function data(overrides: Partial<DataPayloadInput> = {}): DataPayloadInput {
   return {
     sourceLocale: "en",
     targetLocale: "de",
@@ -32,9 +36,11 @@ describe("buildDataPayload: optional tone and glossary", () => {
   });
 
   it("includes glossary when present and omits it when absent", () => {
-    expect(buildDataPayload(data({ glossary: { Hello: "Hallo" } })).glossary).toEqual({
-      Hello: "Hallo",
-    });
+    expect(buildDataPayload(data({ glossary: termGlossary({ Hello: "Hallo" }) })).glossary).toEqual(
+      {
+        Hello: "Hallo",
+      },
+    );
     expect(buildDataPayload(data())).not.toHaveProperty("glossary");
   });
 });
@@ -76,8 +82,11 @@ describe("dataPayloadCharacters", () => {
 
   it("counts the exact bytes of the wire payload, written out independently", () => {
     expect(dataPayloadCharacters(data())).toBe(
-      '{"sourceLocale":"en","targetLocale":"de","items":[{"key":"greeting","value":"Hello"}]}'
-        .length,
+      (
+        '{"sourceLocale":"en","targetLocale":"de",' +
+        '"sourceLanguage":{"name":"English"},"targetLanguage":{"name":"German"},' +
+        '"items":[{"key":"greeting","value":"Hello"}]}'
+      ).length,
     );
   });
 
@@ -100,7 +109,7 @@ describe("dataPayloadCharacters", () => {
       Array.from({ length: 200 }, (_, index) => [`sourceTerm${index}`, `targetTerm${index}`]),
     );
 
-    expect(dataPayloadCharacters(data({ glossary }))).toBeGreaterThan(
+    expect(dataPayloadCharacters(data({ glossary: termGlossary(glossary) }))).toBeGreaterThan(
       dataPayloadCharacters(data()) + JSON.stringify(glossary).length,
     );
   });
@@ -144,6 +153,156 @@ describe("resultPayloadCharacters", () => {
 
     expect(resultPayloadCharacters(withExtra)).toBe(
       resultPayloadCharacters([{ key: "greeting", value: "Hallo" }]),
+    );
+  });
+});
+
+describe("buildDataPayload: optional plural categories", () => {
+  it("sends the target language's categories as data and omits them when absent", () => {
+    const pluralCategories = {
+      cardinal: ["one", "few", "many", "other"],
+      ordinal: ["other"],
+    } as const;
+    const payload = buildDataPayload(
+      data({
+        pluralCategories: {
+          cardinal: [...pluralCategories.cardinal],
+          ordinal: [...pluralCategories.ordinal],
+        },
+      }),
+    );
+    expect(payload.pluralCategories).toEqual(pluralCategories);
+    expect(buildDataPayload(data())).not.toHaveProperty("pluralCategories");
+  });
+
+  it("places them before the items, alongside the other request-level fields", () => {
+    const payload = buildDataPayload(
+      data({ pluralCategories: { cardinal: ["other"], ordinal: ["other"] } }),
+    );
+    expect(Object.keys(payload)).toEqual([
+      "sourceLocale",
+      "targetLocale",
+      "sourceLanguage",
+      "targetLanguage",
+      "pluralCategories",
+      "items",
+    ]);
+  });
+});
+
+describe("buildDataPayload: language names as data", () => {
+  it.each([
+    ["en", { name: "English" }],
+    ["sr-Latn", { name: "Serbian (Latin)", script: "Latin" }],
+    ["sr-Cyrl", { name: "Serbian (Cyrillic)", script: "Cyrillic" }],
+    [
+      "zh-Hant-TW",
+      { name: "Chinese (Traditional, Taiwan)", script: "Traditional", region: "Taiwan" },
+    ],
+    [
+      "zh-Hant-HK",
+      {
+        name: "Chinese (Traditional, Hong Kong SAR China)",
+        script: "Traditional",
+        region: "Hong Kong SAR China",
+      },
+    ],
+    ["pt-BR", { name: "Portuguese (Brazil)", region: "Brazil" }],
+    ["pt-PT", { name: "Portuguese (Portugal)", region: "Portugal" }],
+    ["es-419", { name: "Spanish (Latin America)", region: "Latin America" }],
+    ["ckb", { name: "Central Kurdish" }],
+    ["fil", { name: "Filipino" }],
+    ["yue", { name: "Cantonese" }],
+  ])("sends %s with its target language names", (targetLocale, targetLanguage) => {
+    expect(buildDataPayload(data({ targetLocale }))).toEqual({
+      sourceLocale: "en",
+      targetLocale,
+      sourceLanguage: { name: "English" },
+      targetLanguage,
+      items: [{ key: "greeting", value: "Hello" }],
+    });
+  });
+
+  it.each(["qaa", "x-private"])(
+    "omits the names of %s, which has no known language, and keeps its code",
+    (targetLocale) => {
+      const payload = buildDataPayload(data({ targetLocale }));
+      expect(payload.targetLocale).toBe(targetLocale);
+      expect(payload).not.toHaveProperty("targetLanguage");
+    },
+  );
+
+  it("names the configured locale while sending the mapped code", () => {
+    const payload = buildDataPayload(
+      data({ targetLocale: "sr-Latn", localeMap: { "sr-Latn": "Serbian written in Latin" } }),
+    );
+    expect(payload.targetLocale).toBe("Serbian written in Latin");
+    expect(payload.targetLanguage).toEqual({ name: "Serbian (Latin)", script: "Latin" });
+  });
+
+  it("counts the names in the measured payload, so an estimate reserves tokens for them", () => {
+    const named = dataPayloadCharacters(data({ targetLocale: "zh-Hant-TW" }));
+    const unnamed = dataPayloadCharacters(data({ targetLocale: "qaa" }));
+    expect(named).toBeGreaterThan(unnamed + "zh-Hant-TW".length - "qaa".length);
+  });
+});
+
+describe("buildDataPayload: locale glossary fields", () => {
+  const glossary = {
+    terms: [
+      {
+        source: "Dashboard",
+        target: "Übersicht",
+        forbidden: ["Instrumententafel"],
+        caseSensitive: false,
+        note: "The start page after sign-in",
+        partOfSpeech: "noun",
+      },
+      { source: "Board", forbidden: ["Brett"], caseSensitive: true },
+      { source: "Save", target: "Speichern", forbidden: [], caseSensitive: false },
+      { source: "Plan", target: "Tarif", forbidden: [], caseSensitive: false, note: "Pricing" },
+    ],
+    doNotTranslate: [{ term: "verbatra", caseSensitive: true }],
+  };
+
+  it("sends required translations, forbidden renderings, notes and kept terms as separate data", () => {
+    const payload = buildDataPayload(data({ glossary }));
+    expect(payload.glossary).toEqual({ Dashboard: "Übersicht", Save: "Speichern", Plan: "Tarif" });
+    expect(payload.forbiddenTranslations).toEqual({
+      Dashboard: ["Instrumententafel"],
+      Board: ["Brett"],
+    });
+    expect(payload.glossaryNotes).toEqual({
+      Dashboard: { note: "The start page after sign-in", partOfSpeech: "noun" },
+      Plan: { note: "Pricing" },
+    });
+    expect(payload.doNotTranslate).toEqual(["verbatra"]);
+  });
+
+  it("sends a glossary of plain required translations exactly as a term map, with no other field", () => {
+    const payload = buildDataPayload(
+      data({ glossary: termGlossary({ Save: "Speichern", Open: "Öffnen" }) }),
+    );
+    expect(payload.glossary).toEqual({ Save: "Speichern", Open: "Öffnen" });
+    expect(payload).not.toHaveProperty("forbiddenTranslations");
+    expect(payload).not.toHaveProperty("glossaryNotes");
+    expect(payload).not.toHaveProperty("doNotTranslate");
+  });
+
+  it("omits every glossary field for an empty glossary", () => {
+    const payload = buildDataPayload(data({ glossary: { terms: [], doNotTranslate: [] } }));
+    expect(payload).not.toHaveProperty("glossary");
+    expect(payload).not.toHaveProperty("doNotTranslate");
+  });
+
+  it("keeps a term named __proto__ as data in the serialized payload", () => {
+    const serialized = JSON.stringify(
+      buildDataPayload(
+        data({ glossary: termGlossary(Object.fromEntries([["__proto__", "Prototyp"]])) }),
+      ),
+    );
+    expect(JSON.parse(serialized).glossary).toEqual(
+      Object.fromEntries([["__proto__", "Prototyp"]]),
     );
   });
 });

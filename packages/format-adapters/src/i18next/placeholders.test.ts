@@ -1,3 +1,4 @@
+import { cpuScalingRatio, LINEAR_MAX_RATIO } from "@verbatra/config/scaling";
 import { describe, expect, it } from "vitest";
 import { extractDoubleBracePlaceholders, extractI18nextPlaceholders } from "./placeholders.js";
 
@@ -47,9 +48,10 @@ describe("extractI18nextPlaceholders", () => {
 
   it("stays linear on a long run of unclosed $t(", () => {
     const hostile = "$t(".repeat(200_000);
-    const start = Date.now();
     expect(extractI18nextPlaceholders(hostile)).toEqual([]);
-    expect(Date.now() - start).toBeLessThan(1000);
+    expect(cpuScalingRatio(extractI18nextPlaceholders, "$t(".repeat(25_000), hostile)).toBeLessThan(
+      LINEAR_MAX_RATIO,
+    );
   });
 });
 

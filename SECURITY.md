@@ -26,7 +26,7 @@ This is stated without version numbers on purpose. A numbered table goes stale
 the moment a release ships, and a security policy that names an outdated line is
 worse than one that names none: it tells you a supported version is unsupported.
 `@verbatra/sdk` and `@verbatra/cli` are released together and share a version;
-`@verbatra/studio` is versioned independently. For the current numbers, see the
+`@verbatra/studio` and `@verbatra/mcp` are each versioned independently. For the current numbers, see the
 packages on npm or the repository's releases.
 
 ## Supply-chain controls
@@ -47,10 +47,10 @@ where that is not the case it is said so explicitly.
 - **The lockfile is committed and CI installs are frozen**, so a build resolves
   the exact dependency tree that was reviewed.
 - **Workflows default to a read-only token.** Every workflow declares
-  `contents: read` at the top, and the release workflow confines its publishing
-  token to the single job that publishes. One exception is worth naming rather
-  than glossing over: the CI workflow still grants its OIDC token workflow-wide
-  instead of only to the job that uploads coverage. Narrowing that is tracked.
+  `contents: read` at the top, and an OIDC token is granted only to the job that
+  needs it: the release job that publishes to npm, the job that publishes
+  `@verbatra/mcp` to the MCP Registry, the CI job that uploads coverage, and the
+  Scorecard job that publishes its results.
 - **Dependencies are audited weekly** and the code is scanned weekly with CodeQL,
   so a newly disclosed advisory surfaces without waiting for a code change.
 - **A change to what a published package makes consumers install must ship with a

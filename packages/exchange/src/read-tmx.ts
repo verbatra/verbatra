@@ -1,8 +1,20 @@
-import { DOMParser, type Document, type Element, type Node } from "@xmldom/xmldom";
-import { ExchangeError, type ExchangeErrorLocation } from "./errors.js";
+import type { Element, Node } from "@xmldom/xmldom";
+import type { ExchangeError, ExchangeErrorLocation } from "./errors.js";
 import { DEFAULT_TMX_LIMITS, type TmxLimits } from "./tmx-limits.js";
 import { hasIllegalXmlCharacter } from "./xml-character.js";
-import { blankSpans, scanProlog } from "./xml-prolog.js";
+import {
+  CDATA_SECTION_NODE,
+  childrenNamed,
+  elementChildren,
+  elementLocation,
+  firstChildNamed,
+  isElement,
+  parseSafeXml,
+  pushChildrenInOrder,
+  refusal,
+  TEXT_NODE,
+  type XmlDocumentKind,
+} from "./xml-document.js";
 
 export interface TmxSegment {
   readonly language: string;
@@ -38,123 +50,18 @@ export interface ReadTmxOptions {
   readonly limits?: TmxLimits;
 }
 
-const ELEMENT_NODE = 1;
-
-const TEXT_NODE = 3;
-
-const CDATA_SECTION_NODE = 4;
-
 const SUBFLOW_ELEMENT = "sub";
-
-const ENTITY_DECLARATION = /<!ENTITY/i;
-
-const UTF8_BOM = "\uFEFF";
 
 const TMX_NAMESPACES: ReadonlySet<string> = new Set(["http://www.lisa.org/tmx14"]);
 
-const PARSER_MESSAGE_LIMIT = 160;
-
-const CONTROL_CHARACTER_SOURCE = "[\\u0000-\\u001F\\u007F-\\u009F]";
-
-const CONTROL_CHARACTERS = new RegExp(CONTROL_CHARACTER_SOURCE, "g");
-
-const NESTED_ERROR_PREFIX = /(^|: )Error: /g;
+const TMX: XmlDocumentKind = {
+  code: "TMX_INVALID",
+  label: "TMX",
+  unitElements: new Set(["tu"]),
+};
 
 function invalid(message: string, location?: ExchangeErrorLocation): ExchangeError {
-  return new ExchangeError("TMX_INVALID", message, location);
-}
-
-function isElement(node: Node): node is Element {
-  return node.nodeType === ELEMENT_NODE;
-}
-
-function elementLocation(element: Element, unit?: number): ExchangeErrorLocation | undefined {
-  const { lineNumber, columnNumber } = element;
-  /* v8 ignore next 3 -- the parser is always built with its locator on, so every element carries a position. */
-  if (lineNumber === undefined || columnNumber === undefined) {
-    return undefined;
-  }
-  const at = { line: lineNumber, column: columnNumber };
-  return unit === undefined ? at : { ...at, unit };
-}
-
-function assertInputBytes(text: string, limits: TmxLimits): void {
-  if (Buffer.byteLength(text, "utf8") > limits.maxInputBytes) {
-    throw invalid(`The TMX file is larger than the maximum of ${limits.maxInputBytes} bytes.`);
-  }
-}
-
-function withoutProlog(text: string): string {
-  const { rootStart, doctypeSpans } = scanProlog(text);
-  if (ENTITY_DECLARATION.test(text.slice(0, rootStart))) {
-    throw invalid(
-      "The TMX file declares an XML entity. Entity declarations are refused, because they can expand without bound or name a file on this machine.",
-    );
-  }
-  return blankSpans(text, doctypeSpans);
-}
-
-interface ParserLocator {
-  readonly lineNumber?: number;
-  readonly columnNumber?: number;
-}
-
-interface ParserContext {
-  readonly locator?: ParserLocator;
-  readonly currentElement?: Node | null;
-}
-
-interface ParseProblem {
-  readonly description: string;
-  readonly location: ExchangeErrorLocation | undefined;
-}
-
-function enclosingUnit(node: Node | null | undefined): Element | undefined {
-  for (let current = node ?? null; current !== null; current = current.parentNode) {
-    if (isElement(current) && current.localName === "tu") {
-      return current;
-    }
-  }
-  return undefined;
-}
-
-function unitOrdinal(tu: Element): number {
-  let ordinal = 1;
-  for (let sibling = tu.previousSibling; sibling !== null; sibling = sibling.previousSibling) {
-    if (isElement(sibling) && sibling.localName === "tu") {
-      ordinal += 1;
-    }
-  }
-  return ordinal;
-}
-
-function parserLocation(context: ParserContext): ExchangeErrorLocation | undefined {
-  const line = context.locator?.lineNumber;
-  const column = context.locator?.columnNumber;
-  /* v8 ignore next 3 -- the parser is always built with its locator on, so a report always carries a position. */
-  if (line === undefined || column === undefined) {
-    return undefined;
-  }
-  const tu = enclosingUnit(context.currentElement);
-  return tu === undefined ? { line, column } : { line, column, unit: unitOrdinal(tu) };
-}
-
-function describeParserMessage(message: string): string {
-  const flat = message
-    .replace(CONTROL_CHARACTERS, " ")
-    .replace(NESTED_ERROR_PREFIX, "$1")
-    .trimEnd();
-  return flat.length > PARSER_MESSAGE_LIMIT ? `${flat.slice(0, PARSER_MESSAGE_LIMIT)}...` : flat;
-}
-
-function assertNoDoctype(document: Document): void {
-  const doctype = document.doctype;
-  /* v8 ignore next 6 -- backstop: scanProlog already refuses an internal subset before the parser runs, so this fires only if that scan and the parser ever disagree. */
-  if (doctype !== null && doctype.internalSubset != null && doctype.internalSubset !== "") {
-    throw invalid(
-      "The TMX file declares an internal DTD subset, which is refused because it can declare an entity.",
-    );
-  }
+  return refusal(TMX, message, location);
 }
 
 function assertTmxRoot(root: Element | null): asserts root is Element {
@@ -169,42 +76,10 @@ function assertTmxRoot(root: Element | null): asserts root is Element {
   }
 }
 
-function parseDocumentElement(text: string): Element {
-  let problem: ParseProblem | undefined;
-  const onError = (
-    level: "warning" | "error" | "fatalError",
-    message: string,
-    context: ParserContext,
-  ): void => {
-    if (level === "warning") {
-      return;
-    }
-    problem = { description: describeParserMessage(message), location: parserLocation(context) };
-    throw new Error("malformed XML");
-  };
-  let document: Document;
-  try {
-    document = new DOMParser({ onError }).parseFromString(text, "text/xml");
-  } catch {
-    const detail = problem === undefined ? "" : `: ${problem.description}`;
-    throw invalid(`The TMX file is not valid XML${detail}.`, problem?.location);
-  }
-  assertNoDoctype(document);
-  const root = document.documentElement;
+function parseDocumentElement(text: string, limits: TmxLimits): Element {
+  const root = parseSafeXml(text, TMX, limits.maxInputBytes);
   assertTmxRoot(root);
   return root;
-}
-
-function elementChildren(parent: Element): Element[] {
-  return Array.from(parent.childNodes).filter(isElement);
-}
-
-function childrenNamed(parent: Element, name: string): Element[] {
-  return elementChildren(parent).filter((child) => child.localName === name);
-}
-
-function firstChildNamed(parent: Element, name: string): Element | undefined {
-  return childrenNamed(parent, name)[0];
 }
 
 function headerSourceLanguage(root: Element): string | undefined {
@@ -269,16 +144,6 @@ function assertUnitCount(count: number, limits: TmxLimits, tu: Element): void {
 interface SegmentText {
   readonly text: string;
   readonly subflowDropped: boolean;
-}
-
-function pushChildrenInOrder(pending: Node[], parent: Node): void {
-  const children = parent.childNodes;
-  for (let index = children.length - 1; index >= 0; index -= 1) {
-    const child = children.item(index);
-    if (child !== null) {
-      pending.push(child);
-    }
-  }
 }
 
 function segmentText(seg: Element): SegmentText {
@@ -348,9 +213,7 @@ function unreachableUnitCount(root: Element, walked: number): number {
 
 export function readTmx(text: string, options: ReadTmxOptions = {}): TmxDocument {
   const limits = options.limits ?? DEFAULT_TMX_LIMITS;
-  assertInputBytes(text, limits);
-  const withoutBom = text.startsWith(UTF8_BOM) ? text.slice(UTF8_BOM.length) : text;
-  const root = parseDocumentElement(withoutProlog(withoutBom));
+  const root = parseDocumentElement(text, limits);
   const units: TmxUnit[] = [];
   const skipped: TmxSkippedUnit[] = [];
   let ordinal = 0;

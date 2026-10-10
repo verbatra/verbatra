@@ -127,7 +127,7 @@ describe("an imported unit reaches the project through fuzzy reuse exactly as do
     expect(served.written.save).toBe("Dokument speichern");
   });
 
-  it("does not serve an imported unit for a plural entry whose source text is identical", async () => {
+  it("serves an imported unit for a plural entry whose source text is identical as an exact hit", async () => {
     const config = cfg();
 
     const served = await importThenTranslate(
@@ -142,7 +142,8 @@ describe("an imported unit reaches the project through fuzzy reuse exactly as do
     );
 
     expect(served.fuzzyKeys).toEqual([]);
-    expect(served.providerCalls).toBe(1);
+    expect(served.providerCalls).toBe(0);
+    expect(served.written.inbox_one).toBe("Du hast eine ungelesene Nachricht");
   });
 
   it("does serve an imported unit for a plural entry once its text merely resembles the source", async () => {

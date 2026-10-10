@@ -23,8 +23,13 @@ export type StudioScreenshotProps = {
   caption?: string;
   priority?: boolean;
   elevated?: boolean;
+  zoomOnPhone?: boolean;
   className?: string;
 };
+
+const SIZES = "(max-width: 768px) 100vw, 900px";
+
+const ZOOMED_SIZES = "(max-width: 639px) 200vw, (max-width: 768px) 100vw, 900px";
 
 export function StudioScreenshot({
   shot,
@@ -32,6 +37,7 @@ export function StudioScreenshot({
   caption,
   priority = false,
   elevated = true,
+  zoomOnPhone = false,
   className,
 }: StudioScreenshotProps): ReactNode {
   const t = useTranslations("docs.screenshot");
@@ -61,15 +67,17 @@ export function StudioScreenshot({
             variant="pill"
           />
         </div>
-        <Image
-          src={`/screenshots/studio-${shot}-${theme}.webp`}
-          alt={alt}
-          width={width}
-          height={height}
-          sizes="(max-width: 768px) 100vw, 900px"
-          priority={priority}
-          className="block h-auto w-full"
-        />
+        <div className={zoomOnPhone ? "vk-shot-zoom" : undefined}>
+          <Image
+            src={`/screenshots/studio-${shot}-${theme}.webp`}
+            alt={alt}
+            width={width}
+            height={height}
+            sizes={zoomOnPhone ? ZOOMED_SIZES : SIZES}
+            priority={priority}
+            className="block h-auto w-full"
+          />
+        </div>
       </div>
       {caption ? (
         <figcaption className="mt-3 text-sm leading-relaxed text-fd-muted-foreground">

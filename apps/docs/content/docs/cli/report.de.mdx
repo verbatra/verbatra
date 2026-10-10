@@ -1,0 +1,90 @@
+---
+title: verbatra report
+description: Gib einen nur lesenden Projektbericht aus. Der Herkunftsbericht listet, woher jede Übersetzung stammt und ob eine Person sie geprüft hat.
+status: new
+type: reference
+---
+<AvailableFrom version="0.12.0" />
+
+`verbatra report provenance` liest `verbatra.provenance.json`, die Lock-Datei und die Locale-Dateien und gibt pro Ziel-Locale aus, wie viele Werte eine Maschine geschrieben hat, wie viele eine Person geprüft hat und wie viele Menschen geschrieben oder importiert haben. Er ruft keinen Provider auf, braucht keinen API-Key und schreibt nichts. Der Bericht ist ein unterstützender Nachweis, keine Rechtsberatung.
+
+## Synopsis
+
+```bash
+verbatra report <report> [flags]
+```
+
+- `<report>`: der Bericht, der ausgegeben wird. `provenance` ist derzeit der einzige; jeder andere Name ist ein Bedienfehler.
+
+## Beispiele
+
+```bash
+# Zähler pro Locale: maschinell und ungeprüft, maschinell und geprüft, menschlich, importiert und der Rest
+verbatra report provenance
+
+# Herkunft und Review-Status jedes Keys, für eine Audit-Datei
+verbatra report provenance --json > provenance-report.json
+
+# nur die deutsche Locale
+verbatra report provenance --locales de
+```
+
+## Flags
+
+| Flag | Argument | Standard | Wirkung |
+| --- | --- | --- | --- |
+| `--locales` | `<list>` | alle konfigurierten Ziele | nur über diese kommagetrennte Teilmenge berichten; eine nicht konfigurierte Locale scheitert mit `UNKNOWN_LOCALE`, eine leere Liste mit `INVALID_LOCALES`, beide mit Exit `2` |
+
+Nimmt außerdem die [globalen Flags](/de/docs/cli#globale-flags) `--cwd`, `--config` und `--json`.
+
+## Verhalten
+
+### Ausgabe
+
+```text output
+verbatra report provenance (source en, verbatra 0.12.0, 2026-09-29T08:00:00.000Z)
+  locale  machine, unreviewed  machine, reviewed  human  import  external  unrecorded  unknown  total
+  de      12                   40                 3      85      1         0           0        141
+Supporting evidence from verbatra.provenance.json, not legal advice. --json lists every key.
+```
+
+Die erste Zeile nennt die Quell-Locale, die verbatra-Version und wann der Bericht erstellt wurde. Jede Zeile zählt die Keys, die sowohl in der Quelle als auch in dieser Locale einen Wert haben. [Nachweis maschineller Übersetzungen](/de/docs/provenance-evidence#der-herkunftsbericht) beschreibt die Kategorien, was der Bericht zeigen kann und was nicht, und das vollständige JSON-Schema.
+
+Es gibt kein `--out`: Der Bericht geht wie bei `check` und `diff` auf stdout, also leite ihn um, wenn du ihn aufbewahren willst.
+
+### JSON-Ausgabe
+
+Schema: [`report-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/report-envelope.json) validiert den ganzen Envelope; [Schemas](/de/docs/cli/output#schemas) listet die übrigen auf.
+
+`--json` gibt einen [Envelope](/de/docs/cli/output#json-ausgabe) aus, dessen `result` für jeden Key Herkunft, Review-Status, Provider, Modell und Reviewer auflistet, für eine Audit-Datei. Lässt sich die Provenienz-Datei nicht lesen, ist das Ergebnis `{ "available": false, "reason": "provenance-unreadable" }`.
+
+### Unlesbare Provenienz-Datei
+
+Ein Bericht ohne lesbare Provenienz-Datei würde jeden Wert als `unrecorded` listen, und das ist nicht dasselbe wie gar keine Aufzeichnung. Der Befehl schlägt deshalb sicher mit Exit `1` fehl, wie [`check --require-reviewed`](/de/docs/cli/check), damit ein CI-Job keine leere Audit-Datei archiviert.
+
+### Rückmeldung im Terminal
+
+Der Befehl zeigt eine Zeile, während er die Dateien liest. Warten maschinelle Übersetzungen auf ein Review, schlägt er Studio vor:
+
+```text output
+verbatra: reading the provenance record... done (0.1s)
+next: verbatra studio (approve or reject the 12 machine translations no person has reviewed yet)
+```
+
+Diese Zeilen gehen auf stderr, und `--quiet` blendet sie aus. Siehe [Terminalausgabe](/de/docs/cli/output#terminalausgabe).
+
+## Exit-Codes
+
+| Code | Bedeutung |
+| --- | --- |
+| `0` | der Bericht wurde ausgegeben |
+| `1` | kein Bericht: `verbatra.provenance.json` ist beschädigt oder stammt von einer neueren verbatra-Version |
+| `2` | konnte nicht laufen: ein Konfigurationsfehler, eine unlesbare Quell- oder Lock-Datei, ein nicht konfigurierter oder leerer `--locales`-Wert (`UNKNOWN_LOCALE`, `INVALID_LOCALES`) oder ein unbekannter Berichtsname |
+
+Siehe [den Exit-Code-Vertrag](/de/docs/cli/output#exit-codes).
+
+## Siehe auch
+
+- [Nachweis maschineller Übersetzungen](/de/docs/provenance-evidence) behandelt den Bericht, sein Schema und die Markierungen maschineller Übersetzung in XLIFF- und TMX-Exporten.
+- [Die Lock-Datei](/de/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat) erklärt die Provenienz-Datei, die der Bericht liest.
+- [`verbatra check --require-reviewed`](/de/docs/cli/check) lässt CI fehlschlagen, solange eine maschinelle Übersetzung nicht freigegeben ist.

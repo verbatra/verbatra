@@ -1,5 +1,34 @@
-import { localeValues } from "@verbatra/sdk";
-import type { RpcHandler } from "../rpc.js";
+import {
+  type LocaleValues,
+  type LocaleValuesPage,
+  localeValues,
+  localeValuesPage,
+} from "@verbatra/sdk";
+import type { LocaleValuesParams } from "../../shared/rpc/locale-values.js";
+import type { RpcHandler, RpcHandlerDeps } from "../rpc.js";
+import { projectReadDeps } from "./project-read-deps.js";
 
-export const localeValuesHandler: RpcHandler<"locale.values"> = async (_params, deps) =>
-  localeValues({ config: deps.config.config, cwd: deps.projectRoot });
+function readAllLocaleValues(deps: RpcHandlerDeps): Promise<readonly LocaleValues[]> {
+  return localeValues({ config: deps.config.config, cwd: deps.projectRoot }, projectReadDeps(deps));
+}
+
+function readLocaleValuesPage(
+  params: LocaleValuesParams,
+  deps: RpcHandlerDeps,
+): Promise<LocaleValuesPage> {
+  return localeValuesPage(
+    {
+      config: deps.config.config,
+      cwd: deps.projectRoot,
+      ...(params.locales !== undefined ? { locales: params.locales } : {}),
+      ...(params.keys !== undefined ? { keys: params.keys } : {}),
+      ...(params.query !== undefined ? { query: params.query } : {}),
+      ...(params.limit !== undefined ? { limit: params.limit } : {}),
+      ...(params.cursor !== undefined ? { cursor: params.cursor } : {}),
+    },
+    projectReadDeps(deps),
+  );
+}
+
+export const localeValuesHandler: RpcHandler<"locale.values"> = async (params, deps) =>
+  params.paged === true ? readLocaleValuesPage(params, deps) : readAllLocaleValues(deps);

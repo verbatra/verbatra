@@ -1,18 +1,15 @@
 ---
 title: Fehlerbehebung
 description: Symptome, Ursachen und Lösungen für die Fehler, die verbatra tatsächlich erzeugt.
+type: reference
 ---
-Jeder Eintrag unten entspricht einem echten Fehlercode oder einer echten Meldung. Fehlschläge des
-ganzen Laufs tragen einen stabilen Code (`SdkError`); verzweige oder suche über den Code, nicht
-über den Meldungstext. Wie Fehlschläge auf CLI-Exit-Codes abgebildet werden, steht in
-[CI und Exit-Codes](/docs/ci-and-exit-codes); die vollständige Code-Tabelle in der
-[SDK-Referenz](/docs/sdk).
+Jeder Eintrag geht von dem aus, was du siehst, und verlinkt den Code dahinter mit
+[Fehlercodes](/de/docs/error-codes), wo jeder Code mit Bedeutung, Exit-Code und nächstem Schritt
+steht. Such nach dem Code in `verbatra: error [CODE]`, nie nach dem Meldungstext.
 
-Vier der Einträge unten (`CONFIG_INVALID`, `UNKNOWN_FORMAT`, `SOURCE_UNREADABLE` und ein fehlender
-API-Schlüssel) sind genau das, was [`verbatra doctor`](/docs/cli/doctor) prüft. Führe es aus,
-bevor du dich Eintrag für Eintrag durcharbeitest: Es meldet alle vier in einem Durchgang, kostet
-nichts und ist die einzige Vorabprüfung, die schon funktioniert, bevor die Quell-Locale-Datei
-existiert.
+Führe [`verbatra doctor`](/de/docs/cli/doctor) aus, bevor du Eintrag für Eintrag durchgehst: Es prüft
+Konfiguration, Format, Provider, die Variable des API-Schlüssels und die Quelldatei in einem
+Durchgang, kostet nichts und funktioniert schon, bevor die Quell-Locale-Datei existiert.
 
 ## pnpm blockiert die Installationsskripte einer Abhängigkeit (ERR_PNPM_IGNORED_BUILDS)
 
@@ -62,308 +59,227 @@ Die Paketversionen in der Meldung folgen dem Release; die Lösung bleibt dieselb
 
 **Symptom**: `The verbatra configuration is invalid: ...`, mit einem Problem pro Feld.
 
-**Ursache**: Die Konfiguration wurde gefunden, besteht aber die Schemavalidierung nicht: ein
-fehlendes Pflichtfeld, ein `files.pattern` ohne das `{locale}`-Token, eine Quell-Locale in
-`targetLocales` oder ein unbekannter Top-Level-Key. Ein unbekannter Key bekommt den Hinweis
-`API keys are read from the environment, not the config`: Das Schema ist genau deshalb strikt,
-damit sich kein Secret in einer committeten Datei verstecken kann.
+**Ursache**: Die Konfiguration wurde gefunden, besteht aber die Prüfung nicht, zum Beispiel ein
+`files.pattern` ohne `{locale}`, ein Locale-Code, der kein BCP 47 ist (etwa `en_US`), oder ein
+unbekannter Key. Ein unbekannter Key bekommt den Hinweis `API keys are read from the environment,
+not the config`: Das Schema ist streng, damit sich kein Secret in einer committeten Datei
+verstecken kann.
 
-**Lösung**: Korrigiere das Feld, das die Meldung nennt. Siehe
-[Konfigurationsdatei](/docs/config-file) für das vollständige Schema. Lautet die Meldung
-`No verbatra configuration found...` (`CONFIG_NOT_FOUND`), führe `verbatra init` aus oder übergib
-`--config <path>`.
+**Lösung**: Korrigiere das Feld, das die Meldung nennt; siehe [Die Konfigurationsdatei](/de/docs/config-file).
+Bei `No verbatra configuration found...` siehe [`CONFIG_NOT_FOUND`](/de/docs/error-codes#config_not_found).
+Code: [`CONFIG_INVALID`](/de/docs/error-codes#config_invalid).
 
 ## Kein Adapter für das Format (UNKNOWN_FORMAT)
 
 **Symptom**: `No adapter is registered for format "..."`, gefolgt von der Liste der unterstützten
 Formate.
 
-**Ursache**: Das `format` der Konfiguration ist keine der vierzehn registrierten Format-Ids. Das
-wird geprüft, bevor irgendeine Datei gelesen wird. Bei einer `custom:`-Id nennt die Meldung
-stattdessen das Fremdformat: Die Registry, die der Lauf bekommen hat, enthält keinen Adapter dafür.
-Die `verbatra`-Kommandozeile lädt kein Plugin, deshalb läuft ein `custom:`-Format dort nicht.
+**Ursache**: Das `format` der Konfiguration ist keine registrierte ID. Ein `custom:`-Format läuft
+nicht auf der Kommandozeile, denn sie lädt kein Plugin.
 
-**Lösung**: Verwende eine der Ids aus [Formate](/docs/formats), zum Beispiel `i18next-json` oder
-`xliff`. Für ein `custom:`-Format arbeite über `@verbatra/sdk` und übergib eine Registry, die seinen
-Adapter enthält: siehe [Eigene Format-Adapter](/docs/custom-format-adapters).
+**Lösung**: Nimm eine ID aus [Formate](/de/docs/formats). Für ein `custom:`-Format arbeite über das
+SDK mit einer Registry, die seinen Adapter enthält: siehe
+[Einen eigenen Format-Adapter schreiben](/de/docs/custom-format-adapters). Code:
+[`UNKNOWN_FORMAT`](/de/docs/error-codes#unknown_format).
 
 ## Die angeforderte Locale ist nicht konfiguriert (UNKNOWN_LOCALE)
 
-**Symptom**: `Requested locale not in the configured target locales: ... Configured targets: ...`
+**Symptom**: `Requested locale not in the configured target locales: ...`
 
-**Ursache**: Ein `--locales`-Wert (oder eine SDK-Eingabe `locales`/`locale`) nennt eine Locale,
-die nicht in `targetLocales` steht. Locale-Filter wählen aus der konfigurierten Liste aus; sie
-erweitern sie nie.
+**Ursache**: `--locales` (oder eine `locales`-Eingabe im SDK) nennt eine Locale, die nicht in
+`targetLocales` steht. Ein Filter wählt aus der konfigurierten Liste aus; er ergänzt sie nie.
 
-**Lösung**: Füge die Locale in der Konfiguration zu `targetLocales` hinzu, oder korrigiere den
-Tippfehler im Filter.
+**Lösung**: Nimm die Locale in `targetLocales` auf, oder korrigiere den Tippfehler. Code:
+[`UNKNOWN_LOCALE`](/de/docs/error-codes#unknown_locale).
 
 ## Die Quelldatei fehlt oder lässt sich nicht parsen (SOURCE_UNREADABLE, SOURCE_INVALID)
 
 **Symptom**: `The source locale file was not found at <path>.` oder `The source locale file at
 <path> could not be read: ...`
 
-**Ursache**: `files.pattern` mit eingesetzter Quell-Locale zeigt auf keine existierende Datei
-(`SOURCE_UNREADABLE`), oder die Datei existiert, aber der Adapter lehnt sie ab, zum Beispiel wegen
-ungültigem JSON oder einem Strukturproblem (`SOURCE_INVALID`, das die Meldung des Adapters
-umhüllt).
+**Ursache**: `files.pattern` mit eingesetztem Quell-Locale zeigt auf keine Datei, oder die Datei
+lässt sich nicht parsen. Der Pfad wird gegen die Projektwurzel aufgelöst, das Verzeichnis der gefundenen Konfiguration
+(oder mit `--config` das Arbeitsverzeichnis), also ist ein falsches `--cwd` oder `--config` eine häufige Ursache, ebenso ein Platzhalter: `files.pattern` ist ein wörtlicher
+Pfad, kein Glob (siehe [Namespace-Layouts](/de/docs/formats#namespace-layouts)).
 
-**Lösung**: Prüfe den Pfad, den die Meldung ausgibt; es ist das gegen das Arbeitsverzeichnis
-aufgelöste Muster, weshalb ein falsches `--cwd` eine häufige Ursache ist. Für strukturelle
-Ablehnungen siehe den `INVALID_STRUCTURE`-Eintrag unten.
-
-Ein Wildcard-Zeichen im Muster ist eine weitere Ursache: `files.pattern` ist ein wörtlicher Pfad,
-kein Glob, also wird `public/locales/{locale}/*.json` als Datei mit dem Namen `*.json` gesucht.
-Siehe [Namespace-Layouts](/docs/formats#namespace-layouts).
+**Lösung**: Prüf den ausgegebenen Pfad. Bei einem Parse-Fehler nennt der `causeCode` den
+[Code des Format-Adapters](/de/docs/error-codes#adapter-error-codes). Codes:
+[`SOURCE_UNREADABLE`](/de/docs/error-codes#source_unreadable),
+[`SOURCE_INVALID`](/de/docs/error-codes#source_invalid).
 
 ## Fehlender API-Schlüssel (PROVIDER_CONSTRUCTION_FAILED)
 
 **Symptom**: `Failed to construct provider "anthropic": The ANTHROPIC_API_KEY environment variable
-is not set.` (oder die passende Variable deines Providers).
+is not set.` (oder die Variable deines Providers).
 
-**Ursache**: Der Provider liest seinen API-Schlüssel beim Konstruieren aus der Umgebung, und die
-genannte Variable ist ungesetzt oder leer. Fehlermeldungen nennen die Variable, enthalten aber nie
-den Wert eines API-Schlüssels, und API-Schlüssel werden nie aus der Konfiguration oder aus
-CLI-Argumenten gelesen.
+**Ursache**: Die Variable, die die Meldung nennt, ist nicht gesetzt oder leer. Schlüssel kommen nur
+aus der Umgebung, nie aus der Konfiguration oder einem Flag.
 
-**Lösung**: Setze die Variable, die die Meldung nennt, und bestätige sie mit `verbatra doctor`,
-das die Variable nur dem Namen nach prüft, ohne ihren Wert zu lesen. `translate`, `watch`,
-`doctor`, `studio` und `mcp` laden `.env` und `.env.local` aus dem Arbeitsverzeichnis; das SDK
-nicht, verwende in deinem eigenen Skript also `node --env-file=.env` oder exportiere die Variable.
-`openai-compatible` erzeugt diesen Fehler nur, wenn die Konfiguration ein `apiKeyEnvVar` nennt,
-das ungesetzt ist; ohne eines fällt es für lokale Server auf einen Platzhalter ohne API-Schlüssel
-zurück.
+**Lösung**: Setz die Variable und bestätige sie mit `verbatra doctor`. Die CLI liest sie auch aus
+[`.env.local` und `.env`](/de/docs/cli#umgebungsdateien); das SDK nicht, also nutze in deinem
+eigenen Skript `node --env-file=.env`. Codes:
+[`PROVIDER_CONSTRUCTION_FAILED`](/de/docs/error-codes#provider_construction_failed),
+[`MISSING_API_KEY`](/de/docs/error-codes#missing_api_key).
 
 ## Rate-Limits, Timeouts und Auth-Fehlschläge mitten im Lauf (RATE_LIMITED, TIMEOUT, AUTH_FAILED)
 
-**Symptom**: Der Lauf wird abgeschlossen, aber einige Keys wurden nicht übersetzt: Diese erscheinen
-unter den `providerFailures` einer Locale, mit einem `SUB_BATCH_FAILED`-Hinweis, der den
-Provider-Code trägt. Die Locale wird als `partial` gemeldet, wenn einige Keys gelandet sind, und
-als `failed`, wenn gar keiner, und der Befehl endet in beiden Fällen mit `1`.
+**Symptom**: Der Lauf wird fertig, aber einige Keys stehen unter `providerFailures` mit einem
+Hinweis `SUB_BATCH_FAILED`, der den Provider-Code nennt, und der Befehl endet mit `1`.
 
-**Ursache**: Ein Provider-Aufruf schlug nach der Konstruktion fehl: HTTP 429 (`RATE_LIMITED`),
-ein Netzwerk- oder Anfrage-Timeout (`TIMEOUT`) oder HTTP 401/403 (`AUTH_FAILED`, ein ungültiger
-oder widerrufener API-Schlüssel).
+**Ursache**: Eine Provider-Anfrage ist gescheitert, nachdem der Provider gebaut war: HTTP 429, ein
+Timeout oder HTTP 401/403.
 
-**Lösung**: Nichts ist verloren. Die betroffenen Keys behalten ihre vorherige Lock-Baseline und
-werden beim nächsten Lauf wieder aufgegriffen; bei `RATE_LIMITED` oder `TIMEOUT` lass den Lauf
-also einfach später erneut laufen, und nutze `--locales <locale>`, um die Ziel-Locales einzeln
-abzuarbeiten, wenn die Grenze ein striktes Kontingent pro Minute oder pro Tag ist. `AUTH_FAILED`
-löst sich durch Wiederholen nicht: Tausche den API-Schlüssel hinter der Umgebungsvariable aus. Ein
-kleineres `maxBatchSize` verringert außerdem den Wirkungsradius einer einzelnen fehlgeschlagenen
-Anfrage. Wenn `TIMEOUT` die Regel statt ein
-Aussetzer ist (ein langsames lokales Modell oder große Batches), erhöhe `requestTimeoutMs` in den
-Optionen des Providers: Es begrenzt jede Anfrage standardmäßig auf zwei Minuten. Siehe
-[Anfrage-Timeout](/docs/providers#anfrage-timeout).
+**Lösung**: Nichts geht verloren; die Keys werden beim nächsten Lauf wieder aufgegriffen. Starte
+bei [`RATE_LIMITED`](/de/docs/error-codes#rate_limited) später erneut, bei einem strengen Kontingent
+eine Locale nach der anderen mit `--locales`. Für ein langsames Modell heb gegen
+[`TIMEOUT`](/de/docs/error-codes#timeout) den Wert [`requestTimeoutMs`](/de/docs/providers#anfrage-timeout)
+an. [`AUTH_FAILED`](/de/docs/error-codes#auth_failed) löst sich nicht durch Wiederholen: Ersetze den
+Schlüssel.
 
 ## Die Lock-Datei ist beschädigt (LOCK_FILE_INVALID)
 
 **Symptom**: `The lock-file at <path> is not valid JSON.`, `... has an unexpected shape.`,
-`... has version N, but this version of verbatra supports version 1.` oder `... exceeds the
-maximum allowed size ...`
+`... has version N ...` oder `... exceeds the maximum allowed size ...`
 
-**Ursache**: `verbatra.lock.json` wurde von Hand bearbeitet, abgeschnitten, von einer
-inkompatiblen Version erzeugt oder in einem Merge beschädigt.
+**Ursache**: `verbatra.lock.json` wurde von Hand bearbeitet, abgeschnitten, bei einem Merge
+beschädigt oder von einer inkompatiblen Version geschrieben. `translate` und `import` brechen
+daran den ganzen Lauf ab, und Locales, die vor dem Abbruch fertig waren, behalten, was sie
+geschrieben haben.
 
-`translate` und `import` behandeln das als Fehler des ganzen Laufs, nicht als Fehlschlag eines
-einzelnen Locales, und beide können mittendrin darauf treffen, weil jedes Locale die Lock-Datei
-unter seiner eigenen Schreibsperre liest. Locales, die vor dem Abbruch festgeschrieben wurden,
-behalten das Geschriebene; die übrigen bleiben unberührt, und es wird keine Zusammenfassung
-ausgegeben. Führe danach `verbatra check` aus, um zu sehen, wie weit der Lauf kam.
-
-**Lösung**: Stelle die Datei aus der Versionskontrolle wieder her; das hält jede Baseline intakt.
-Die Datei zu löschen beseitigt den Fehler auch, verliert aber die Aufzeichnung, aus welcher
-Quellversion jede Übersetzung stammt; Quelländerungen vor dem Löschen werden also nicht mehr als
-veraltet erkannt. Siehe [Die Lock-Datei](/docs/the-lock-file).
+**Lösung**: Stell die Datei aus der Versionskontrolle wieder her. Sie zu löschen beseitigt den
+Fehler auch, verliert aber die Baselines, sodass frühere Änderungen an der Quelle nicht mehr als
+veraltet erkannt werden. Siehe [Die Lock-Datei](/de/docs/the-lock-file). Code:
+[`LOCK_FILE_INVALID`](/de/docs/error-codes#lock_file_invalid).
 
 ## Eine Locale-Datei konnte nicht geschrieben werden (TARGET_UNWRITABLE)
 
-**Symptom**: Eine Locale schlägt fehl mit `Could not write the locale file locales/de.json
-(EACCES). Check the write permissions on the containing directory, then run again.`
+**Symptom**: Eine Locale scheitert mit `Could not write the locale file locales/de.json (EACCES). ...`
 
-**Ursache**: Die Zieldatei oder das Verzeichnis, das sie enthält, ist für den Benutzer, der
-verbatra ausführt, nicht schreibbar: fehlende Schreibrechte, ein Verzeichnis, das nicht existiert,
-ein schreibgeschütztes Mount oder eine volle Platte. Locale-Dateien werden atomar über eine
-temporäre Datei im selben Verzeichnis geschrieben; ein nicht schreibbares Verzeichnis lässt den
-Schreibvorgang also selbst dann scheitern, wenn die Locale-Datei selbst in Ordnung aussieht.
+**Ursache**: Die Datei oder ihr Verzeichnis ist nicht beschreibbar: Rechte, ein fehlendes
+Verzeichnis, ein schreibgeschützter Mount oder eine volle Platte. Geschrieben wird über eine
+temporäre Datei im selben Verzeichnis, also muss auch das Verzeichnis beschreibbar sein.
 
-**Lösung**: Die Meldung nennt das Ziel relativ zu deinem Arbeitsverzeichnis und den
-Dateisystem-Code hinter dem Fehlschlag. Behebe genau das (`chmod` auf das Verzeichnis, es anlegen,
-schreibbar neu einhängen, Platz schaffen) und starte erneut. Nur die betroffene Locale schlägt
-fehl; die anderen laufen weiter, und die fehlgeschlagene Locale behält ihre bisherige Datei und
-ihre Lock-Baseline, es bleibt also nichts halb geschrieben zurück.
+**Lösung**: Behebe, was der Dateisystem-Code nennt, und starte erneut. Nur diese Locale scheitert,
+und sie behält ihre vorige Datei und Baseline. Code:
+[`TARGET_UNWRITABLE`](/de/docs/error-codes#target_unwritable).
 
 ## Ein anderer Prozess hält die Schreibsperre (LOCK_CONTENDED)
 
-**Symptom**: `Could not acquire the write lock at <path>: another process may be holding it. If no
-verbatra process is currently running, this lock file was likely left behind by one that was
-killed; delete it and retry.`
+**Symptom**: `Could not acquire the write lock at <path>: another process is holding it. ...`
 
-**Ursache**: Schreibvorgänge an einer Locale werden über eine Sperrdatei pro Locale serialisiert.
-Ein gleichzeitiges `translate`, `watch`, `import` oder ein Studio-Schreibvorgang hält sie, oder
-ein abgeschossener Prozess hat die Sperrdatei zurückgelassen.
+**Ursache**: Ein anderes `translate`, `watch`, `import` oder ein Schreibvorgang aus Studio hält die
+Sperre der Locale. Eine Sperre eines beendeten Prozesses auf diesem Rechner wird automatisch
+zurückgeholt, eine verbliebene stammt also von einem anderen Rechner oder einem verbatra älter als
+0.12.0.
 
-**Lösung**: Genau, was die Meldung sagt: Warte, bis der andere Lauf fertig ist, oder, wenn keiner
-läuft, lösche die Sperrdatei am ausgegebenen Pfad und versuche es erneut. Um zu ändern, wie lange
-ein Lauf wartet, bevor er aufgibt, gib `--lock-timeout <seconds>` an
-[`translate`](/docs/cli/translate) oder [`watch`](/docs/cli/watch); der Standard sind `600`
-Sekunden.
+**Lösung**: Warte auf den anderen Lauf, oder lösch die ausgegebene Sperrdatei, wenn nirgends ein
+verbatra-Prozess läuft. `--lock-timeout <seconds>` bei [`translate`](/de/docs/cli/translate),
+[`watch`](/de/docs/cli/watch) und [`import`](/de/docs/cli/import) ändert, wie lange ein Lauf wartet.
+Code: [`LOCK_CONTENDED`](/de/docs/error-codes#lock_contended).
 
 ## Gepunktete Keys oder YAML-Keys kollidieren (INVALID_STRUCTURE)
 
-**Symptom**: `A dotted key and a nested key path resolve to the same path.` (oder die Variante
-für wörtliche Blätter), oder für YAML: `A mapping key is a map or sequence (expected scalar
-keys).`
+**Symptom**: `A dotted key and a nested key path resolve to the same path.` oder bei YAML
+`A mapping key is a map or sequence (expected scalar keys).`
 
-**Ursache**: Zwei Einträge in einer Datei lösen zum selben effektiven Key auf, zum Beispiel ein
-wörtlicher `"a.b"`-Key neben einem verschachtelten `a: { b: ... }`, was verbatra ablehnt, statt
-still einen fallen zu lassen; oder eine YAML-Datei verwendet einen zusammengesetzten Mapping-Key,
-der keine treue String-Form hat.
+**Ursache**: Zwei Einträge einer Datei laufen auf denselben Key hinaus, etwa `"a.b"` neben
+`a: { b: ... }`, oder ein YAML-Key hat keine String-Form. verbatra lehnt ab, statt einen zu
+verwerfen.
 
-**Lösung**: Benenne einen der kollidierenden Keys um, oder ersetze den zusammengesetzten YAML-Key
-durch einen Skalar. Ist die Datei deine Quell-Locale, erscheint der Fehler umhüllt in
-`SOURCE_INVALID`. Siehe [Formate](/docs/formats) für die Key-Regeln jedes Formats.
+**Lösung**: Benenne einen der Keys um, oder nimm einen skalaren YAML-Key. In der Quelldatei kommt
+das in `SOURCE_INVALID` eingepackt an. Code:
+[`INVALID_STRUCTURE`](/de/docs/error-codes#invalid_structure).
 
 ## Der Lauf hat einige Keys ausgelassen (Token-Budget)
 
-**Symptom**: Ein `BUDGET_TOKENS_EXCEEDED`-Hinweis. Unter `"warn"` lautet er `The run's cumulative
-token usage (N) reached the configured budget of M tokens (behavior: warn)`. Unter
-`budgetBehavior: "stop"` lautet er `The run's next provider request was projected at P tokens on
-top of the N already counted, which would have crossed the configured budget of M tokens, so it was
-withheld rather than sent`, und Keys erscheinen außerdem unter `budgetWithheld`.
+**Symptom**: ein Hinweis `BUDGET_TOKENS_EXCEEDED`; unter `budgetBehavior: "stop"` stehen außerdem
+Keys unter `budgetWithheld`.
 
-**Ursache**: Der Lauf hat seine konfigurierte `maxTokens`-Obergrenze erreicht. Mit `"warn"` (dem
-Default) läuft der Lauf unverändert weiter und ändert den Exit-Code nicht; mit `"stop"` wird die
-Anfrage, die die Obergrenze überschritten hätte, gar nicht erst gesendet, jeder noch nicht
-versuchte Key wird für den Rest des Laufs zurückgehalten, und das lässt die Locale als `partial`
-(einige Keys sind gelandet) oder `failed` (gar keiner) zurück, beide enden mit `1`.
+**Ursache**: Der Lauf hat `maxTokens` aus der Konfiguration oder `--max-tokens` für den Lauf
+erreicht. `"warn"` meldet das nur; `"stop"` hält jeden noch nicht versuchten Key zurück, und das
+Locale endet `partial` oder `failed`.
 
-**Lösung**: Das ist der Schutzmechanismus, der seine Arbeit tut. Es bleibt nichts halb
-geschrieben: Die Keys, die vor der Obergrenze übersetzt wurden, liegen auf der Platte und sind
-gelockt, und zurückgehaltene Keys behalten ihre Baselines und werden beim nächsten Lauf übersetzt.
-Erhöhe `maxTokens` oder wechsle zu `"warn"`, wenn du den Abschluss in einem einzigen Lauf willst.
-Zwei Details sind wissenswert: Ein Dry Run löst nie aus, weil er keinen Provider erzeugt und nichts
-sendet; und ein Budget gegen DeepL oder Google Cloud Translation löst sehr wohl aus, gezählt aus
-verbatras eigener Projektion, wobei `supported: false` in der Zusammenfassung sagt, dass die Zahl
-geschätzt und nicht gemeldet ist. Ein Lauf kann außerdem leicht über `maxTokens` enden: Die zuletzt
-zugelassene Anfrage wird auf das abgeglichen, was der Provider tatsächlich abgerechnet hat, und
-wenn sie mehr meldet als projiziert war, kommt diese Differenz erst im Nachhinein an. Danach wird
-nichts weiter gesendet. Und die Obergrenze begrenzt einen Lauf: `watch` startet je Lauf ein
-frisches Budget, und das Neuübersetzen eines einzelnen Eintrags aus Studio oder den Agent-Tools
-fällt gar nicht darunter.
+**Lösung**: Das ist die Leitplanke bei der Arbeit: Was angekommen ist, ist geschrieben, und
+zurückgehaltene Keys werden beim nächsten Lauf übersetzt. Heb das Budget an oder wechsle zu
+`"warn"`, wenn ein Lauf alles schaffen soll. Wie das Budget zählt, steht in
+[Übersetzungssicherheit](/de/docs/translation-safety#das-token-budget). Code:
+[`BUDGET_TOKENS_EXCEEDED`](/de/docs/error-codes#budget_tokens_exceeded).
 
 ## Eine Übersetzung wird wegen Inline-Markup zurückgehalten (Integritätsabweichung)
 
-**Symptom**: Ein Key taucht in der Laufzusammenfassung unter `integrityMismatches` auf und behält
-seine bisherige Übersetzung, oder der Integritätsbericht pro Key meldet eine
-Inline-Markup-Abweichung für eine Übersetzung, die schon auf der Platte liegt. Dieser Bericht ist
-`markupMatches: false` aus `keyIntegrity` im SDK, aus dem Tool `key.integrity` des MCP-Servers und
-aus der Key-Anzeige in Studio (`Inline markup mismatch`); `verbatra check` meldet kein Markup. In
-Studio kommt ein Retranslate oder eine Bearbeitung als `Rejected: inline markup mismatch` zurück,
-gefolgt von den betroffenen Tags: `-<a href>` für eines, das die Quelle hatte und der Kandidat
-weggelassen hat, `+<i>` für eines, das der Kandidat erfunden hat.
+**Symptom**: Ein Key steht unter `integrityMismatches` und behält seinen vorigen Wert, oder Studio
+zeigt `Rejected: inline markup mismatch` mit den schuldigen Tags: `-<a href>` für ein Tag, das der
+Kandidat verloren hat, `+<i>` für eines, das er erfunden hat. `verbatra check --qa` meldet dasselbe
+für Werte, die schon auf der Platte liegen.
 
-**Ursache**: Der Kandidat trägt nicht die Inline-HTML- oder -XML-Tags der Quelle oder trägt sie
-unausgeglichen oder falsch verschachtelt. Ein Modell, das ein `<a href>` weglässt, `<b>` in
-`<strong>` umbenennt oder `<b>` mit `</i>` schließt, erzeugt einen String, der falsch dargestellt
-wird, deshalb lehnt die Prüfung ihn genauso ab wie einen weggelassenen Platzhalter. Was genau
-verglichen wird, steht unter [Markup-Parität](/docs/translation-safety#inline-markup-parität).
+**Ursache**: Der Kandidat trägt die Inline-Tags der Quelle nicht, oder er trägt sie unausgeglichen
+oder falsch verschachtelt, also lehnt das Integritäts-Gate ihn ab wie einen verlorenen Platzhalter.
 
-**Lösung**: Lass den Key erneut laufen oder korrigiere den Wert von Hand in Studio oder in einer
-importierten Arbeitsmappe: Dieselbe Prüfung beurteilt beides, ein handgetippter Wert mit passenden,
-wohlgeformten Tags wird also angenommen. Wortreihenfolge, Attributwerte und die beiden Schreibweisen
-eines leeren Elements (`<br>` und `<br/>`) sind nie die Ursache, denn nichts davon wird verglichen.
-Eine Ablehnung ohne genannte Tags ist eine strukturelle: Das Markup kam falsch verschachtelt zurück,
-oder ein Tag, das in der Quelle neben einem gleichen Namens stand, kam darin verschachtelt zurück.
-Eine Ablehnung mit `+more than N inline tags` bedeutet, dass der Kandidat mehr als doppelt so viele
-Tags und Konstrukte trägt wie seine Quelle, bei einer kleineren Quelle mehr als 256. Ein Detail wie
-`+<a href="javascript:...">` nennt ein URL-Attribut, das ein skriptausführendes Schema bekommen hat,
-`+<noscript>...</noscript>` nennt Rohtext, den ein Parser auf zwei Arten lesen kann und den eine
-Übersetzung genau so beibehalten muss, wie die Quelle ihn hat, und ein Detail ohne schließende
-Klammer, etwa `+<a`, nennt ein Tag, das der Kandidat nie vollendet hat. Drei weitere Fälle sind
-gewollte Ablehnungen und keine Fehler: zwei benachbarte Paare zu einem verschmelzen, die Groß- und
-Kleinschreibung eines Tags ändern und einen Attributnamen ergänzen oder entfernen, einschließlich
-eines `dir`-Attributs für ein Ziel mit Rechts-nach-links-Schrift. Lass die Tags so, wie die Quelle
-sie hat, und bring die Änderung dort unter, wo die Prüfung nicht hinsieht, etwa in einem
-Attributwert. Liegt das
-kaputte Markup im Quellwert, korrigiere es dort: Eine Quelle, deren eigene Tags fehlerhaft sind,
-wird trotzdem Tag für Tag verglichen, jede Übersetzung muss also dieselben kaputten Tags
-wiederholen.
+**Lösung**: Lass den Key erneut laufen, oder korrigiere den Wert von Hand in Studio oder einer
+Arbeitsmappe; dasselbe Gate beurteilt beides. Was verglichen wird und welche Ablehnungen gewollt
+sind, steht unter [Inline-Markup-Parität](/de/docs/translation-safety#inline-markup-parität).
 
 ## Studio: Der Port ist schon belegt
 
 **Symptom**: `port 5849 is already in use` (oder dein `--port`-Wert).
 
-**Ursache**: Ein anderer Prozess, oft eine frühere Studio-Instanz, ist an den Port gebunden.
-Studio nutzt standardmäßig 5849 auf 127.0.0.1.
+**Ursache**: Ein anderer Prozess, oft ein früheres Studio, belegt den Port.
 
-**Lösung**: Beende den anderen Prozess, oder starte Studio auf einem anderen Port:
-`verbatra studio --port 6000`.
+**Lösung**: Beende ihn, oder starte Studio auf einem anderen Port: `verbatra studio --port 6000`.
 
 ## Studio: @verbatra/studio ist nicht installiert
 
-**Symptom**: `Verbatra Studio requires @verbatra/studio. Install it with: pnpm add -D
-@verbatra/studio`
+**Symptom**: `Verbatra Studio requires @verbatra/studio.`, gefolgt von den Installationsbefehlen.
 
-**Ursache**: `@verbatra/studio` ist ein separates Paket, das der `studio`-Befehl dynamisch lädt;
-der Rest der CLI funktioniert also ohne es.
+**Ursache**: Studio ist ein eigenes Paket, das der Befehl `studio` bei Bedarf lädt.
 
-**Lösung**: Installiere es, wie der Hinweis sagt, und führe `verbatra studio` erneut aus. Der
-Hinweis nennt den pnpm-Befehl, also lies bei einer Installation mit pnpm zuerst
+**Lösung**: `npm install --save-dev @verbatra/studio`, oder für einen einmaligen Lauf
+`npx -y -p @verbatra/cli -p @verbatra/studio verbatra studio`. Mit pnpm lies vorher
 [pnpm blockiert die Installationsskripte einer Abhängigkeit](#pnpm-blockiert-die-installationsskripte-einer-abhängigkeit-err_pnpm_ignored_builds).
+
+`npx @verbatra/cli` startet die CLI, die im Paket des aktuellen Ordners installiert ist, also
+führe es im Projektstamm aus (oder nutze `pnpm exec verbatra` in einem Workspace-Unterpaket);
+anderswo lädt npx die neueste CLI, die vielleicht nicht zu deinem lokalen `@verbatra/studio` oder
+`@verbatra/mcp` passt.
 
 ## Studio: Retranslate- und Translate-Aktionen fehlen
 
-**Symptom**: Übersetzungen bearbeiten funktioniert, aber die Retranslate- und
-Translate-Pending-Aktionen erscheinen nicht.
+**Symptom**: Bearbeiten funktioniert, aber die Aktionen zum Neuübersetzen und zum Übersetzen
+offener Keys erscheinen nicht.
 
-**Ursache**: Kostenpflichtige Provider-Aufrufe sind eine Fähigkeit, die du beim Start gewährst.
-Ohne sie werden die kostenpflichtigen Methoden gar nicht erst registriert; das lokale Bearbeiten
-von Dateien ist immer an und braucht kein Flag.
+**Ursache**: Ausgaben beim Provider werden beim Start erlaubt, nach den Regeln unter
+[Ausgaben und Agent-Tools](/de/docs/cli/studio#ausgaben-und-agent-tools), und ohne diese Erlaubnis
+werden die Ausgabe-Aktionen nicht registriert.
 
-**Lösung**: Starte Studio neu mit `verbatra studio --allow-spend`, oder setze
-`VERBATRA_STUDIO_ALLOW_SPEND=1` (auch `true`, `yes` oder `on`). Schnelle wiederholte Aktionen
-können außerdem Studios eigene Ratenbegrenzung treffen, `METHOD_RATE_LIMITED: Too many calls to this
-method; wait before retrying.`; das löst sich von selbst. Siehe
-[Review in Studio](/docs/review-in-studio).
+**Lösung**: Starte neu mit `verbatra studio --allow-spend`, außer das Projekt ist
+[nur mit Menschen](/de/docs/human-only-workflow). Siehe [Review in Studio](/de/docs/review-in-studio).
 
 ## MCP: @verbatra/mcp ist nicht installiert
 
-**Symptom**: `Verbatra's MCP server requires @verbatra/mcp. Install it with: pnpm add -D
-@verbatra/mcp`
+**Symptom**: `Verbatra's MCP server requires @verbatra/mcp.`, gefolgt von den
+Installationsbefehlen.
 
-**Ursache**: `@verbatra/mcp` ist ein separates Paket, das der `mcp`-Befehl dynamisch lädt; der
-Rest der CLI funktioniert also ohne es.
+**Ursache**: Der MCP-Server ist ein eigenes Paket, das der Befehl `mcp` bei Bedarf lädt, also
+funktioniert `npx -y @verbatra/cli mcp` allein nie.
 
-**Lösung**: Installiere es, wie der Hinweis sagt, und führe `verbatra mcp` erneut aus, oder führe
-das `verbatra-mcp`-Binary aus, das `@verbatra/mcp` direkt mitliefert. Installierst du mit pnpm,
-lies zuerst
+**Lösung**: Führe `npx -y @verbatra/mcp` aus, oder installiere `@verbatra/mcp` neben der CLI und
+starte `verbatra mcp` erneut. Mit pnpm lies vorher
 [pnpm blockiert die Installationsskripte einer Abhängigkeit](#pnpm-blockiert-die-installationsskripte-einer-abhängigkeit-err_pnpm_ignored_builds).
 
-## MCP: tools/list eines Agenten zeigt nie retranslateEntry oder translatePending
+## MCP: tools/list eines Agenten zeigt nie `translation.retranslateEntry` oder `translation.translatePending`
 
-**Symptom**: `key.value`, `translation.editEntry` und die anderen lokalen Tools funktionieren, aber
-`translation.retranslateEntry` und `translation.translatePending` fehlen in der Tool-Liste, und
-ein Aufruf unter einem der beiden Namen schlägt als unbekanntes Tool fehl.
+**Symptom**: Die lokalen Tools funktionieren, aber die beiden Ausgabe-Tools fehlen, und ein Aufruf
+per Name scheitert als unbekanntes Tool.
 
-**Ursache**: Kostenpflichtige Provider-Aufrufe sind eine Fähigkeit, die du beim Start gewährst, und
-das bereitgestellte Tool-Set des MCP-Servers darf sich nicht pro Verbindung ändern, also fehlen die
-beiden kostenpflichtigen Tools in der Liste ganz. Sie werden nie erst angeboten und dann
-abgelehnt: Wenn Ausgaben nicht erlaubt sind, tauchen sie einfach gar nicht auf.
+**Ursache**: Ausgaben werden beim Start erlaubt, nach den Regeln unter
+[Kostenpflichtige Tools](/de/docs/cli/mcp#kostenpflichtige-tools), und die Tool-Liste darf sich nicht
+pro Verbindung ändern, also bleiben die Ausgabe-Tools ganz draußen.
 
-**Lösung**: Starte den Server neu mit `verbatra mcp --allow-spend` (oder `verbatra-mcp
---allow-spend`), oder setze `VERBATRA_MCP_ALLOW_SPEND=1` (auch `true`, `yes` oder `on`). Siehe
-[`verbatra mcp`](/docs/cli/mcp).
+**Lösung**: Starte neu mit `verbatra mcp --allow-spend`, außer das Projekt ist
+[nur mit Menschen](/de/docs/human-only-workflow).
 
 ## Einen Lauf rückgängig machen (kein Fehlercode)
 
-**Symptom**: Ein Lauf hat Übersetzungen erzeugt, die du nicht willst, und du brauchst den vorherigen
-Stand zurück.
-
-**Ursache**: verbatra schreibt Locale-Dateien direkt um und aktualisiert die Lock-Datei. Es gibt
-keinen Undo-Befehl und kein Backup; die Versionskontrolle ist der Wiederherstellungsweg.
-
-**Lösung**: Setze die Locale-Dateien und `verbatra.lock.json` gemeinsam zurück. Setzt du nur die
-Locale-Dateien zurück, behauptet die Lock-Datei weiterhin, die zurückgesetzten Übersetzungen seien
-aktuell: Nichts übersetzt sie neu, und `check` und `diff` melden die Locale weiterhin als sauber.
-Siehe [Wiederherstellung und Rollback](/docs/recovery-and-rollback).
+verbatra hat keinen Befehl zum Rückgängigmachen; die Versionskontrolle ist der Weg zurück. Setz die
+Locale-Dateien, `verbatra.lock.json` und `verbatra.provenance.json` gemeinsam zurück, nie die Locale-Dateien allein. Siehe
+[Wiederherstellung und Rollback](/de/docs/recovery-and-rollback).

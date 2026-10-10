@@ -1,8 +1,16 @@
-import { countIllegalXmlCharacters, stripIllegalXmlCharacters } from "./xml-character.js";
+import { bcp47 } from "./language-tag.js";
+import { countIllegalXmlCharacters } from "./xml-character.js";
+import { escapeAttribute, escapeText } from "./xml-escape.js";
+
+export interface TmxProperty {
+  readonly type: string;
+  readonly value: string;
+}
 
 export interface TmxTranslation {
   readonly language: string;
   readonly text: string;
+  readonly properties?: readonly TmxProperty[];
 }
 
 export interface TmxExportUnit {
@@ -20,49 +28,20 @@ const CREATION_TOOL = "verbatra";
 
 const UNKNOWN_TOOL_VERSION = "unknown";
 
-function escapeText(raw: string): string {
-  return stripIllegalXmlCharacters(raw)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll("\r", "&#13;");
+function prop(property: TmxProperty): string {
+  return `<prop type="${escapeAttribute(property.type)}">${escapeText(property.value)}</prop>`;
 }
 
-const REGION_SUBTAG = /^[a-z]{2}$/i;
-
-const SCRIPT_SUBTAG = /^[a-z]{4}$/i;
-
-function casedSubtag(subtag: string): string {
-  const lower = subtag.toLowerCase();
-  if (REGION_SUBTAG.test(subtag)) {
-    return subtag.toUpperCase();
-  }
-  return SCRIPT_SUBTAG.test(subtag) ? `${lower.charAt(0).toUpperCase()}${lower.slice(1)}` : lower;
-}
-
-function bcp47(tag: string): string {
-  const [language = "", ...rest] = tag.replaceAll("_", "-").split("-");
-  const singleton = rest.findIndex((subtag) => subtag.length === 1);
-  const cased = singleton === -1 ? rest.length : singleton;
-  return [
-    language.toLowerCase(),
-    ...rest.slice(0, cased).map(casedSubtag),
-    ...rest.slice(cased).map((subtag) => subtag.toLowerCase()),
-  ].join("-");
-}
-
-function escapeAttribute(raw: string): string {
-  return escapeText(raw).replaceAll('"', "&quot;");
-}
-
-function tuv(language: string, text: string): string {
-  return `      <tuv xml:lang="${escapeAttribute(bcp47(language))}"><seg>${escapeText(text)}</seg></tuv>`;
+function tuv(language: string, text: string, properties: readonly TmxProperty[] = []): string {
+  return `      <tuv xml:lang="${escapeAttribute(bcp47(language))}">${properties.map(prop).join("")}<seg>${escapeText(text)}</seg></tuv>`;
 }
 
 function tu(unit: TmxExportUnit, sourceLanguage: string): string {
   const rows = [
     tuv(sourceLanguage, unit.source),
-    ...unit.translations.map((translation) => tuv(translation.language, translation.text)),
+    ...unit.translations.map((translation) =>
+      tuv(translation.language, translation.text, translation.properties),
+    ),
   ];
   return `    <tu>\n${rows.join("\n")}\n    </tu>`;
 }

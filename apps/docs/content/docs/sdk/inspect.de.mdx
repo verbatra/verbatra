@@ -1,0 +1,507 @@
+---
+title: "Ein Projekt inspizieren"
+description: "Nur lesende Einstiegspunkte: doctor, check, diff, Integritätsprüfungen sowie Lock- und Provenienzzustand."
+type: reference
+---
+## Zustand inspizieren, ohne zu schreiben
+
+Keine dieser Funktionen übersetzt oder verändert das Lock. Nur `extract` schreibt eine Datei (den
+Quellkatalog), und nur `doctor` mit `live` stellt eine Netzwerkanfrage (die Sprachliste des Providers).
+
+### doctor
+
+<AvailableFrom version="0.9.0" />
+
+Prüft die Projekteinrichtung und kostet nichts: Es konstruiert keinen Provider und stellt keine
+Netzwerkanfrage, außer `live` fordert eine an, und liest den Wert des API-Keys nur für diese eine
+Anfrage nach der Sprachliste (LibreTranslate bekommt keinen Key). Jede Prüfung läuft auch dann, wenn
+eine frühere fehlgeschlagen ist, ein Aufruf meldet also jedes unabhängige Problem;
+[`verbatra doctor`](/de/docs/cli/doctor#was-geprüft-wird) listet die Prüfungen auf.
+
+```ts title="Signatur"
+function doctor(
+  input?: DoctorInput,
+  deps?: DoctorDeps,
+): Promise<DoctorResult>;
+```
+
+<SdkTypeTable name="DoctorInput" />
+
+**Rückgabe:** `DoctorResult`
+
+**Wirft:** [`CONFIG_NOT_FOUND`](/de/docs/error-codes#config_not_found)
+
+<AvailableFrom version="0.12.0" />
+
+Die Prüfung `network-policy` schlägt fehl, wenn die wirksame
+[Netzwerkrichtlinie](/de/docs/network-policy) den Host oder Proxy des Providers abweist oder eine
+Netzwerk-Variable ungültig ist, und besteht für den Provider `none`. Die informativen Prüfungen
+schlagen nie fehl und benennen nichts um; ein `warn` lässt `ok` auf true, und die
+[Prüfungstabelle](/de/docs/cli/doctor#was-geprüft-wird) sagt, was jede nennt und wann sie `skipped` ist.
+
+<AvailableFrom version="0.12.0" />
+
+Die Prüfung `locales` beurteilt jede konfigurierte Locale so, wie es `translate` vor dem Ausgeben
+tut: Sie schlägt bei einer nicht unterstützten Locale fehl, ist für `none` `skipped` und liefert die
+Urteile in `DoctorResult.locales` als `LocaleCapabilityReport`. Mit `live: true` ruft sie zuerst die
+aktuelle Sprachliste des Providers ab, ohne Kontingent zu verbrauchen;
+`LocaleCapabilityReport.live` sagt, wie das ausging. Siehe
+[Sprachunterstützung](/de/docs/language-support#unterstützung-vor-einem-lauf-prüfen).
+
+Mit gesetztem `literals` laufen nur die Prüfungen `config` und `untranslated-literals`, wie bei
+[`verbatra doctor --literals`](/de/docs/cli/doctor#nicht-übersetzte-literale). `doctor` lädt die
+Konfiguration selbst, ein Projekt ohne Konfiguration bekommt also einen Bericht statt eines
+geworfenen Fehlers: `ok` ist genau dann true, wenn keine Prüfung fehlgeschlagen ist, und
+`CONFIG_NOT_FOUND` wird nur für einen explizit angegebenen `configPath` geworfen, der nicht existiert.
+
+<AvailableFrom version="0.12.0" />
+
+Nur eine fehlgeschlagene Prüfung trägt `fix`, einen nächsten Schritt im Imperativ; wie `detail`
+nennt es Variablen und Pfade, nie den Wert eines Keys.
+
+### dataFlow
+
+<AvailableFrom version="0.12.0" />
+
+Beschreibt für die geladene Config, wohin die Daten eines Projekts gehen, als versioniertes `DataFlowManifest`. [`verbatra doctor --data-flow`](/de/docs/cli/doctor#datenfluss) gibt es aus und listet seine Felder; `doctor({ dataFlow: true })` liefert es als `DoctorResult.dataFlow`. Es liest keinen API-Key und macht keinen Netzwerk-Request. Eine ungültige Netzwerk-Variable oder eine nicht lesbare Quelldatei steht im Manifest, statt geworfen zu werden.
+
+```ts title="Signatur"
+function dataFlow(
+  input?: DataFlowInput,
+  deps?: DataFlowDeps,
+): Promise<DataFlowManifest>;
+```
+
+<SdkTypeTable name="DataFlowInput" />
+
+**Rückgabe:** `DataFlowManifest`
+
+**Wirft:** [`CONFIG_NOT_FOUND`](/de/docs/error-codes#config_not_found), [`CONFIG_INVALID`](/de/docs/error-codes#config_invalid)
+
+### dataFlowManifestSchema
+
+<AvailableFrom version="0.12.0" />
+
+Das zod-Schema für ein `DataFlowManifest`, damit ein CI-Schritt oder das Werkzeug eines Reviewers eines validieren kann. Unbekannte Felder bleiben erhalten, da ein neueres verbatra innerhalb von Version 1 Felder ergänzen kann; ignoriere die, die du nicht kennst. `DATA_FLOW_MANIFEST_VERSION` ist die `version`, die dieser Build schreibt.
+
+```ts title="Signatur"
+const dataFlowManifestSchema: z.ZodType<DataFlowManifest>;
+```
+
+### extract
+
+<AvailableFrom version="0.11.0" />
+
+Durchsucht deinen Anwendungscode nach Übersetzungsaufrufen und führt die Funde in den
+Quell-Locale-Katalog zusammen, auch wenn es ihn noch nicht gibt. Es konstruiert keinen Provider,
+liest keinen API-Key und stellt keine Netzwerkanfrage.
+
+```ts title="Signatur"
+function extract(
+  input: ExtractInput,
+  deps?: ExtractDeps,
+): Promise<ExtractResult>;
+```
+
+<SdkTypeTable name="ExtractInput" />
+
+**Rückgabe:** `ExtractResult`
+
+**Wirft:** [`EXTRACT_NOT_CONFIGURED`](/de/docs/error-codes#extract_not_configured), [`EXTRACT_FS_UNSUPPORTED`](/de/docs/error-codes#extract_fs_unsupported), [`UNKNOWN_FORMAT`](/de/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/de/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/de/docs/error-codes#locale_path_collision), [`SOURCE_INVALID`](/de/docs/error-codes#source_invalid), [`SOURCE_UNWRITABLE`](/de/docs/error-codes#source_unwritable)
+
+**Beispiel:** [Keys aus deinem Quellcode extrahieren](/de/docs/programmatic-api#keys-aus-deinem-quellcode-extrahieren)
+
+Nur wirklich neue Keys werden ergänzt ([Was er schreibt](/de/docs/cli/extract#was-er-schreibt)). Was
+der Scan nicht auflösen kann, kommt als Daten in `dynamic`, `conflicts` und `diagnostics` zurück,
+nie geworfen ([Was er meldet](/de/docs/cli/extract#was-er-meldet-statt-zu-raten)), und das Ergebnis
+trägt nie den Inhalt einer Quelldatei.
+
+`config.extract` benennt das Framework und die Quellverzeichnisse. Die Dateisuche braucht das
+optionale `readDirectory`-Member von `SdkFs`; ohne es `EXTRACT_FS_UNSUPPORTED`.
+
+### check
+
+<AvailableFrom version="0.4.0" />
+
+Meldet die Drift pro Locale als Zähler: `missing` (in der Quelle, im Ziel fehlend), `stale`
+(Quelle seit der letzten Übersetzung geändert) und `upToDate`. Nutze es als CI-Gate.
+
+```ts title="Signatur"
+function check(
+  input: CheckInput,
+  deps?: CheckDeps,
+): Promise<CheckSummary>;
+```
+
+<SdkTypeTable name="CheckInput" />
+
+**Rückgabe:** `CheckSummary`
+
+**Wirft:** [`UNKNOWN_FORMAT`](/de/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/de/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/de/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/de/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/de/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/de/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/de/docs/error-codes#unknown_locale)
+
+**Beispiel:** [In CI prüfen, ohne zu schreiben](/de/docs/programmatic-api#in-ci-prüfen-ohne-zu-schreiben)
+
+`inSync` ist genau dann true, wenn jede geprüfte Locale nichts Fehlendes und nichts Veraltetes hat.
+
+<AvailableFrom version="0.11.0" />
+
+Mit `consistency: true` trägt jede `LocaleCheckSummary` zusätzlich `inconsistencies`: eine
+`InconsistencyGroup` pro Quellstring, den die Locale unter verschiedenen Keys unterschiedlich
+übersetzt, in der Form, die der [Konsistenzbericht](/de/docs/cli/check#konsistenzbericht) zeigt. Es ist
+nur ein Bericht: Er ändert nie `inSync`, einen Zähler oder eine Datei.
+
+<AvailableFrom version="0.12.0" />
+
+Jede `LocaleCheckSummary` trägt außerdem `provenance`: Zähler `byOrigin` und `byReviewState` über
+die Keys, für die die Locale einen Wert hat, gelesen aus `verbatra.provenance.json`
+([Herkünfte](/de/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat)). Dieses und jedes
+andere Herkunftsfeld eines Berichts fehlt, statt einen Fehler auszulösen, wenn die Datei beschädigt
+ist oder von einem neueren verbatra stammt.
+
+<AvailableFrom version="0.12.0" />
+
+Jede `LocaleCheckSummary` enthält außerdem `protected`, den Anteil von `stale`, den ein `translate`-Lauf unter `humanEdits` und `pinnedKeys` für einen Menschen übrig lassen würde ([Geschützte Keys](/de/docs/cli/check#geschützte-keys)). Sie zählen weiter als veraltet, also bleibt `inSync` false, bis ein Mensch sie auflöst; ein fehlender gepinnter Key zählt nur als fehlend.
+
+<AvailableFrom version="0.12.0" />
+
+Mit `qa: true` lässt `check` zusätzlich die [Qualitätsprüfung](/de/docs/cli/check#qualitätsprüfung)
+über jeden eingecheckten Wert laufen, ohne Key und ohne zu schreiben: Jede `LocaleCheckSummary`
+trägt einen `qa`-Bericht und die Zusammenfassung die `qa`-Summen, in den Formen dieses Abschnitts.
+Fehlergründe stammen aus `INTEGRITY_GATE_REASONS`, Warngründe aus `REVIEW_REASON_CODES`,
+Schweregrade aus `QA_SEVERITIES`; `qaSeverity: "error"` lässt Warnungen weg. `inSync` ändert sich
+nie: Ein CI-Gate liest `qa.errors`, streng auch `qa.warnings`.
+
+<AvailableFrom version="0.12.0" />
+
+Jede `LocaleCheckSummary` trägt außerdem `incompletePlurals`, nach Key sortiert: ein `IncompletePlural`
+`{ code: "PLURAL_CATEGORIES_INCOMPLETE", key, argument?, ruleType, missing }` pro Plural, dem
+CLDR-Kategorien der Zielsprache fehlen. Nur eine Warnung; Formate und Regeln stehen unter
+[Pluralkategorien](/de/docs/cli/check#pluralkategorien).
+
+Mit `requireReviewed: true` führt `check` zusätzlich das
+[Review-Gate](/de/docs/cli/check#freigegebene-übersetzungen-verlangen) aus, ohne Key und ohne zu
+schreiben: Jede `LocaleCheckSummary` trägt `review: { unreviewed }`, die nicht freigegebenen
+maschinellen Keys, und die Zusammenfassung trägt `review: { reviewed, unreviewed, code? }` mit den
+Codes, die dieser Abschnitt nennt. Der Bericht ändert `inSync` nie; ein CI-Gate liest
+`review.reviewed`.
+
+<AvailableFrom version="0.12.0" />
+
+Mit `sensitive: true` führt `check` außerdem den Scan auf
+[sensible Inhalte](/de/docs/cli/check#sensible-inhalte) aus, ohne Key und ohne zu schreiben: Die
+Zusammenfassung trägt `sensitive: { findings, glossaryTerms }`, ein `{ key, fields, detectors }` pro
+gemeldetem Key, nie den gefundenen Text. Ein CI-Gate scheitert an beidem.
+
+### checkFile
+
+<AvailableFrom version="0.12.0" />
+
+Prüft eine einzelne Locale-Datei direkt nach einer Änderung durch eine Person oder einen Agenten.
+Es liest nur diese Datei und, für eine Ziel-Locale, die Quelldatei; es ruft keinen Provider auf,
+liest keinen API-Key und schreibt nichts.
+
+```ts title="Signatur"
+function checkFile(
+  input: CheckFileInput,
+  deps?: CheckFileDeps,
+): Promise<CheckFileSummary>;
+```
+
+<SdkTypeTable name="CheckFileInput" />
+
+**Rückgabe:** `CheckFileSummary`
+
+**Wirft:** [`NOT_A_LOCALE_FILE`](/de/docs/error-codes#not_a_locale_file), [`UNKNOWN_FORMAT`](/de/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/de/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/de/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/de/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/de/docs/error-codes#source_invalid)
+
+`file` ist absolut oder relativ zu `cwd`; [Eine Datei](/de/docs/cli/check#eine-datei) zeigt die Form der
+`CheckFileSummary`. Eine Zieldatei wird wie bei `check` mit `qa: true` geprüft, die Quelldatei nur
+auf ihre Syntax. Eine Datei, die sich nicht parsen lässt, wird nicht geworfen: Ihre Locale trägt
+einen `QaSyntaxFinding`, bei JSON und YAML mit der Position, die `AdapterError.position` meldet. Ein
+Pfad, der zu keinem konfigurierten Locale gehört, oder eine fehlende Datei wirft `NOT_A_LOCALE_FILE`.
+
+### diff
+
+<AvailableFrom version="0.4.0" />
+
+Das detaillierte Gegenstück zu `check`: dieselbe Berechnung, aber es gibt die Key-Listen pro
+Locale zurück (`missing`, `changed`, `orphaned`) statt Zähler. Verwaiste Keys sind reine Meldung
+und kippen nie `hasPendingChanges`, da ein Standardlauf kein `prune` ausführt.
+
+```ts title="Signatur"
+function diff(
+  input: DiffInput,
+  deps?: DiffDeps,
+): Promise<DiffSummary>;
+```
+
+<SdkTypeTable name="DiffInput" />
+
+**Rückgabe:** `DiffSummary`
+
+**Wirft:** [`UNKNOWN_FORMAT`](/de/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/de/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/de/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/de/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/de/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/de/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/de/docs/error-codes#unknown_locale)
+
+**Beispiel:** [In CI prüfen, ohne zu schreiben](/de/docs/programmatic-api#in-ci-prüfen-ohne-zu-schreiben)
+
+Mit `unused: true` scannt es zusätzlich die `extract`-Roots der Konfiguration, nur lesend und ohne
+Key, und ergänzt einen `unused`-Bericht der Quell-Keys, die keine statische Referenz nennt, getrennt
+von jeder `orphaned`-Liste und ohne je `hasPendingChanges` zu kippen;
+[Ungenutzte Quell-Keys](/de/docs/cli/diff#ungenutzte-quell-keys) erklärt seine Felder.
+
+<AvailableFrom version="0.12.0" />
+
+Jedes `LocaleDiff` trägt außerdem `changedOrigins`, die Herkunft des aktuellen Werts jedes
+`changed`-Keys (etwa `machine`, `human` oder `external`): wessen Arbeit eine Neuübersetzung ersetzen würde.
+
+<AvailableFrom version="0.12.0" />
+
+Jedes `LocaleDiff` enthält außerdem `protected`, die fehlenden und geänderten Keys, die ein `translate`-Lauf in Ruhe lassen würde, sortiert; sie zählen weiter als ausstehend.
+
+### keyIntegrity
+
+<AvailableFrom version="0.5.0" />
+
+Meldet für die geänderten Keys jeder Locale, ob der aktuelle Zielwert noch zu den Platzhaltern und
+dem Inline-Markup der Quelle passt und gültiges ICU ist: Jeder Eintrag trägt `key`,
+`hasPlaceholders`, `matches`, bei einer Abweichung die `missing`- und `extra`-Tokens, `icuValid`,
+`markupMatches` und `markupDetails`, nie einen String-Wert. Werte, die vor dem Gate beim Schreiben
+entstanden oder außerhalb von verbatra bearbeitet wurden, werden gleich beurteilt. Studio zeigt
+diesen Bericht pro Key an.
+
+```ts title="Signatur"
+function keyIntegrity(
+  input: KeyIntegrityInput,
+  deps?: KeyIntegrityDeps,
+): Promise<readonly LocaleKeyIntegrity[]>;
+```
+
+<SdkTypeTable name="KeyIntegrityInput" />
+
+**Rückgabe:** `readonly LocaleKeyIntegrity[]`
+
+**Wirft:** [`UNKNOWN_FORMAT`](/de/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/de/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/de/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/de/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/de/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/de/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/de/docs/error-codes#unknown_locale), [`UNKNOWN_KEY`](/de/docs/error-codes#unknown_key)
+
+<AvailableFrom version="0.12.0" />
+
+Jeder Eintrag trägt außerdem `icuArmsMatch` und `icuArmDetails`: ob die ICU-Zweige für `plural`,
+`selectordinal` und `select` des Werts zur Zielsprache passen, so beurteilt wie beim
+[Gate beim Schreiben](/de/docs/translation-safety#plural-zweige-je-zielsprache), mit einem kurzen
+Problem pro falschem Zweig. `icuArmsMatch` ist immer true für ein Format, das keine Zweige prüft.
+
+`keys` engt die Prüfung ein; geprüft werden immer nur Keys, die für eine Locale "geändert" sind.
+
+### localeIntegrity
+
+<AvailableFrom version="0.12.0" />
+
+Findet jede Übersetzung in den Ziel-Locales, die gerade kaputt ist: ein verlorener oder ergänzter
+Platzhalter oder Inline-Markup, ungültiges ICU oder ICU-Zweige, die nicht zur Zielsprache passen.
+Anders als `keyIntegrity` beurteilt es jeden Key, der in der Quelle und in einer Ziel-Locale
+vorkommt, egal wie sein Sync-Zustand ist, nach denselben Regeln, und gibt nur fehlerhafte Keys
+zurück: Eine leere `entries`-Liste heißt, dass die Locale besteht.
+
+```ts title="Signatur"
+function localeIntegrity(
+  input: LocaleIntegrityInput,
+  deps?: LocaleIntegrityDeps,
+): Promise<readonly LocaleKeyIntegrity[]>;
+```
+
+<SdkTypeTable name="LocaleIntegrityInput" />
+
+**Rückgabe:** `readonly LocaleKeyIntegrity[]`
+
+**Wirft:** [`UNKNOWN_FORMAT`](/de/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/de/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/de/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/de/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/de/docs/error-codes#source_invalid), [`UNKNOWN_LOCALE`](/de/docs/error-codes#unknown_locale)
+
+Jeder Aufruf liest und parst die Quelldatei und jede angefragte Zieldatei frisch, ohne Cache.
+
+### lockState
+
+<AvailableFrom version="0.5.0" />
+
+Meldet für die Lock-Datei Existenz, Version und Drift pro Locale (Baseline-Key-Anzahl plus Zähler
+für fehlend, veraltet und aktuell). `exists` stammt aus einer expliziten Prüfung, sodass eine
+fehlende und eine leere Lock-Datei unterscheidbar bleiben; fehlt sie, ist das Ergebnis
+`{ exists: false }` und nichts weiter wird gelesen.
+
+```ts title="Signatur"
+function lockState(
+  input: LockStateInput,
+  deps?: LockStateDeps,
+): Promise<LockStateResult>;
+```
+
+<SdkTypeTable name="LockStateInput" />
+
+**Rückgabe:** `LockStateResult`
+
+**Wirft:** [`UNKNOWN_LOCALE`](/de/docs/error-codes#unknown_locale), [`LOCK_FILE_INVALID`](/de/docs/error-codes#lock_file_invalid), [`UNKNOWN_FORMAT`](/de/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/de/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/de/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/de/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/de/docs/error-codes#source_invalid)
+
+Jede Locale trägt außerdem dieselben `provenance`-Zähler, die `check` meldet.
+
+### loadLockFile
+
+<AvailableFrom version="0.5.0" />
+
+Liest die Lock-Datei selbst (`verbatra.lock.json`, auch als `LOCK_FILE_NAME` exportiert) und gibt
+ihre geparste Form zurück: `{ version, locales }`, wobei jede Locale Keys auf den Hash des
+Quellinhalts abbildet, aus dem sie zuletzt übersetzt wurden. Eine fehlende Datei fällt auf ein
+leeres Lock zurück, dasselbe Erstlauf-Verhalten, auf das sich `translate` verlässt; nutze
+`lockState`, wenn du Abwesenheit unterscheiden musst.
+
+```ts title="Signatur"
+function loadLockFile(
+  input?: LoadLockFileInput,
+  deps?: LoadLockFileDeps,
+): Promise<LockFile>;
+```
+
+<SdkTypeTable name="LoadLockFileInput" />
+
+**Rückgabe:** `LockFile`
+
+**Wirft:** [`LOCK_FILE_INVALID`](/de/docs/error-codes#lock_file_invalid)
+
+Keine Konfiguration nötig.
+
+### loadProvenance
+
+<AvailableFrom version="0.12.0" />
+
+Liest die Herkunftsdatei selbst (`verbatra.provenance.json`, auch als `PROVENANCE_FILE_NAME`
+exportiert) und gibt ihre gespeicherte Form zurück: `{ version, locales }`, wobei jede Locale Keys
+auf einen Eintrag `{ origin, provider?, model?, valueHash, reviewState?, reviewer?, reviewedSourceHash? }` abbildet, ohne
+übersetzten Text. Eine fehlende Datei oder eine von einem neueren verbatra liest sich als leer; eine
+korrupte wirft `PROVENANCE_FILE_INVALID`. `keyValue`, `localeValues`, `check`, `diff` und
+`lockState` melden die ausgewertete Sicht (`KeyProvenance`), die auch `unrecorded` von `external`
+unterscheidet.
+
+```ts title="Signatur"
+function loadProvenance(
+  input?: LoadProvenanceInput,
+  deps?: LoadProvenanceDeps,
+): Promise<ProvenanceFile>;
+```
+
+<SdkTypeTable name="LoadProvenanceInput" />
+
+**Rückgabe:** `ProvenanceFile`
+
+**Wirft:** [`PROVENANCE_FILE_INVALID`](/de/docs/error-codes#provenance_file_invalid)
+
+Keine Konfiguration nötig.
+
+### runStatus
+
+<AvailableFrom version="0.5.0" />
+
+Liest den Schnappschuss aus Review-Flags und Token-Verbrauch, den der letzte `translate`- oder
+`watch`-Lauf ohne Dry-Run nach `.verbatra-local/run-status.json` persistiert hat. Wirft nie: eine
+unbrauchbare Datei fällt auf `available: false` zurück. Die Datei ist Best-Effort-Telemetrie, keine
+Korrektheits-Baseline.
+
+```ts title="Signatur"
+function runStatus(
+  input?: RunStatusInput,
+  deps?: RunStatusDeps,
+): Promise<RunStatusResult>;
+```
+
+<SdkTypeTable name="RunStatusInput" />
+
+**Rückgabe:** `RunStatusResult`
+
+Keine Konfiguration nötig. Gibt `{ available: false, reason }` (siehe `RUN_STATUS_UNAVAILABLE_REASONS`)
+oder `{ available: true, version, generatedAt, usage?, budget?, locales }` zurück.
+
+Ein Schnappschuss von vor dem durchgesetzten Token-Budget wird weiter gelesen, ohne ein `budget` mit
+`supported: false` (sein `tokensUsed: 0` war keine Zählung). Neue Schnappschüsse ergänzen nur ein
+Markierungsfeld, sodass ein älterer Leser ein geschätztes Budget eventuell als nicht erfasst zeigt.
+Ein unbekannter Review-Grund wird ignoriert, und ein Eintrag ohne bekannten Grund entfällt.
+
+### reviewQueue
+
+<AvailableFrom version="0.12.0" />
+
+Liest die Review-Warteschlange aus den committeten Dateien: jeden Key, dessen aktueller Wert eine
+maschinelle Herkunft hat (`machine`, `memory`, `fuzzy` oder `agent`, das Tupel
+`MACHINE_CLASS_ORIGINS`) und nicht freigegeben ist, pro Ziel-Locale in der Reihenfolge der Quelle.
+Sie liest die Locale-Dateien, `verbatra.lock.json` und `verbatra.provenance.json`, also sehen alle
+mit demselben Commit dieselbe Warteschlange. Ein Key verlässt sie, sobald sein Wert freigegeben oder
+abgelehnt ist oder eine Person einen neuen Wert schreibt oder importiert; ein Wert, den ein Agent neu
+geschrieben hat, bleibt, ebenso eine Freigabe von vor einer Änderung der Quelle. Der letzte
+`runStatus`-Schnappschuss ergänzt nur Details: die `reasons` jedes Eintrags (leer, wenn der Lauf ihn
+nicht mit einem bekannten Grund markiert hat), die `fuzzyHits` der Locale und `lastRunAt`.
+
+```ts title="Signatur"
+function reviewQueue(
+  input: ReviewQueueInput,
+  deps?: ReviewQueueDeps,
+): Promise<ReviewQueueResult>;
+```
+
+<SdkTypeTable name="ReviewQueueInput" />
+
+**Rückgabe:** `ReviewQueueResult`
+
+**Wirft:** [`UNKNOWN_FORMAT`](/de/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/de/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/de/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/de/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/de/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/de/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/de/docs/error-codes#lock_file_invalid)
+
+**Beispiel:** [Die Review-Warteschlange abarbeiten](/de/docs/programmatic-api#die-review-warteschlange-abarbeiten)
+
+Gibt `{ available: true, locales, lastRunAt? }`
+zurück, jede Locale als `{ locale, needsReview, approved?, fuzzyHits? }` und jeden Eintrag als
+`{ key, reasons, provenance }`; `approved` listet die freigegebenen maschinellen Werte und ist nur mit
+`includeApproved: true` vorhanden. Ist die Herkunftsdatei beschädigt oder stammt sie von einer
+neueren verbatra-Version, gibt sie `{ available: false, reason: "provenance-unreadable" }` zurück.
+Eine Quell-, Ziel- oder Lock-Datei, die sich nicht lesen lässt, lässt den Aufruf scheitern wie bei
+`check`. Bis 0.11 bestand die Warteschlange nur aus den Markierungen des letzten Laufs.
+
+### provenanceReport
+
+<AvailableFrom version="0.12.0" />
+
+Erstellt den Bericht pro Locale, den `verbatra report provenance` ausgibt: jeden Key mit einem Wert
+sowohl in der Quelle als auch in einer Ziel-Locale, in der Reihenfolge der Quelle, mit Herkunft,
+Review-Status, Provider, Modell und Reviewer, gezählt in einer `PROVENANCE_BUCKETS`-Kategorie
+([der Herkunftsbericht](/de/docs/provenance-evidence#der-herkunftsbericht) definiert sie). Er ruft
+keinen Provider auf und schreibt nichts.
+
+```ts title="Signatur"
+function provenanceReport(
+  input: ProvenanceReportInput,
+  deps?: ProvenanceReportDeps,
+): Promise<ProvenanceReportResult>;
+```
+
+<SdkTypeTable name="ProvenanceReportInput" />
+
+**Rückgabe:** `ProvenanceReportResult`
+
+**Wirft:** [`UNKNOWN_FORMAT`](/de/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/de/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/de/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/de/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/de/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/de/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/de/docs/error-codes#lock_file_invalid)
+
+`deps` nimmt außerdem `now`, die Uhr für `generatedAt`. Die vollständige Form des Ergebnisses steht
+im [JSON-Schema](/de/docs/provenance-evidence#das-json-schema). Ist die Herkunftsdatei beschädigt oder
+stammt sie von einem neueren verbatra, gibt er `{ available: false, reason: "provenance-unreadable" }`
+zurück, da jeder Wert als `unrecorded` gälte. Eine Quell-, Ziel- oder Lock-Datei, die sich nicht
+lesen lässt, lässt den Aufruf scheitern wie bei `check`. Der Bericht ist ein unterstützender
+Nachweis, keine Rechtsberatung.
+
+### provenanceReportPage
+
+<AvailableFrom version="0.12.0" />
+
+Baut denselben Bericht wie `provenanceReport` und gibt seine Einträge seitenweise zurück, optional nur die aus bestimmten `buckets`, mit einem Cursor für die nächste Seite. Jede Seite behält `total` und `counts` jeder Locale vollständig. `report.provenance` im MCP-Server blättert damit. Nur lesend.
+
+```ts title="Signatur"
+function provenanceReportPage(
+  input: ProvenanceReportPageInput,
+  deps?: ProvenanceReportDeps,
+): Promise<ProvenanceReportPageResult>;
+```
+
+<SdkTypeTable name="ProvenanceReportPageInput" />
+
+**Rückgabe:** `ProvenanceReportPageResult`
+
+**Wirft:** [`UNKNOWN_FORMAT`](/de/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/de/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/de/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/de/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/de/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/de/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/de/docs/error-codes#lock_file_invalid), [`PAGE_CURSOR_INVALID`](/de/docs/error-codes#page_cursor_invalid), [`PAGE_LIMIT_INVALID`](/de/docs/error-codes#page_limit_invalid)
+
+Eine Locale trägt `entries` nur auf den Seiten, die einen ihrer Einträge enthalten. Eine Seite hält höchstens `limit` Einträge, standardmäßig `PAGE_LIMIT_DEFAULT`; gib `nextCursor` mit denselben `locales` und `buckets` als `cursor` zurück, bis er fehlt. Er ist genau dann nicht verfügbar oder schlägt fehl, wenn `provenanceReport` es tut.

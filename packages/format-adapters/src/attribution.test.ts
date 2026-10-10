@@ -29,6 +29,7 @@ function workingAdapter(): FormatAdapter {
     extractPlaceholders: () => ["{name}"],
     validateMessage: () => true,
     comparePlaceholders: () => INTACT,
+    compareBranchArms: () => ['{n} plural: missing arm "few"'],
     read: () => Promise.resolve({ resource: RESOURCE, invalidIcuKeys: [], excludedLeafPaths: [] }),
     write: () => Promise.resolve(),
   };
@@ -80,6 +81,19 @@ describe("attributeAdapterFailures passes working behaviour through untouched", 
 
   it("keeps comparePlaceholders' verdict", () => {
     expect(adapter.comparePlaceholders?.("a", "b")).toEqual(INTACT);
+  });
+
+  it("keeps compareBranchArms' verdict and hands it the plural lookup", () => {
+    const lookup = (): undefined => undefined;
+    expect(adapter.compareBranchArms?.("a", "b", lookup)).toEqual([
+      '{n} plural: missing arm "few"',
+    ]);
+  });
+
+  it("leaves compareBranchArms absent when the adapter defines none", () => {
+    const { compareBranchArms: _omitted, ...withoutArms } = workingAdapter();
+
+    expect("compareBranchArms" in attributeAdapterFailures(withoutArms)).toBe(false);
   });
 
   it("leaves comparePlaceholders absent when the adapter defines none", () => {
@@ -139,6 +153,15 @@ describe("attributeAdapterFailures names the adapter on every contract method", 
       },
       (adapter) => adapter.comparePlaceholders?.("a", "b"),
     ],
+    [
+      "compareBranchArms",
+      {
+        compareBranchArms: () => {
+          throw new TypeError("boom");
+        },
+      },
+      (adapter) => adapter.compareBranchArms?.("a", "b", () => undefined),
+    ],
   ];
 
   it.each(cases)(
@@ -152,7 +175,7 @@ describe("attributeAdapterFailures names the adapter on every contract method", 
       expect((failure as AdapterError).code).toBe("ADAPTER_FAILED");
       expect((failure as AdapterError).message).toContain("custom:toml");
       expect((failure as AdapterError).message).toContain(method);
-      expect((failure as AdapterError).message).toContain("boom");
+      expect((failure as AdapterError).message).not.toContain("boom");
     },
   );
 
@@ -344,9 +367,10 @@ describe("the containment pin is a real tripwire, not a self-satisfying check", 
     expect(Object.keys(wrapped).sort()).not.toEqual(Object.keys(seventh).sort());
   });
 
-  it("pins the wrapped surface to exactly the six contract methods plus the format", () => {
+  it("pins the wrapped surface to exactly the seven contract methods plus the format", () => {
     expect(Object.keys(attributeAdapterFailures(workingAdapter())).sort()).toEqual([
       "canHandle",
+      "compareBranchArms",
       "comparePlaceholders",
       "extractPlaceholders",
       "format",
@@ -383,14 +407,16 @@ describe("attributeAdapterFailures and the shape of what a plugin throws", () =>
     expect(failure.message).toContain("read");
   });
 
-  it("describes an Error with an empty message by its string form, not as an empty detail", async () => {
+  it("never repeats the plugin's message, which can quote the file being parsed", async () => {
+    const original = new SyntaxError('Unexpected token in "api_secret = hunter2"');
     const adapter = attributeAdapterFailures(
-      throwingAdapter({ read: () => Promise.reject(new Error("")) }),
+      throwingAdapter({ read: () => Promise.reject(original) }),
     );
 
     const failure = (await failureFrom(() => adapter.read("a.toml", "de"))) as AdapterError;
 
-    expect(failure.message).toContain("Error");
+    expect(failure.message).not.toContain("hunter2");
+    expect(failure.cause).toBe(original);
   });
 });
 

@@ -52,6 +52,14 @@ describe("createYamlAdapter read", () => {
     expect((error as AdapterError).code).toBe("INVALID_YAML");
   });
 
+  it("locates malformed YAML by line and column", async () => {
+    const error = await readError(
+      adapter.read(await tempFile("colon.yml", "a: ok\nb: [x\nc: - y: z\n"), "en"),
+    );
+    expect((error as AdapterError).position?.line).toBeGreaterThanOrEqual(2);
+    expect((error as AdapterError).message).toMatch(/\(line \d+, column \d+\)\.$/);
+  });
+
   it("rejects a non-object root as INVALID_STRUCTURE", async () => {
     const error = await readError(adapter.read(await tempFile("seq.yml", "- a\n- b\n"), "en"));
     expect((error as AdapterError).code).toBe("INVALID_STRUCTURE");

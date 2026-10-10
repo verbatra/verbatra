@@ -3,6 +3,7 @@ export interface DiffResult {
   readonly changed: readonly string[];
   readonly orphaned: readonly string[];
   readonly unchanged: readonly string[];
+  readonly emptySource: readonly string[];
 }
 
 export interface DiffOptions {

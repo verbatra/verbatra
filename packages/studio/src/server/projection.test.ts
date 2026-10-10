@@ -4,6 +4,8 @@ import type { StudioCapabilities } from "../shared/rpc/snapshot.js";
 import { buildProjectSnapshot } from "./projection.js";
 import { baseStudioConfig } from "./test-support.js";
 
+const SK_PROJ = ["sk", "proj", ""].join("-");
+
 const PROJECT_ROOT = "/home/user/project";
 const NO_CAPABILITIES: StudioCapabilities = { spend: false, writeToDisk: false };
 
@@ -112,7 +114,7 @@ describe("buildProjectSnapshot", () => {
 
   it("redacts a secret-shaped substring in a free-form config string", () => {
     const loaded: LoadedConfig = {
-      config: baseStudioConfig({ sourceLocale: "sk-abcdEFGH12345678" }),
+      config: baseStudioConfig({ sourceLocale: `${SK_PROJ}Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z` }),
       source: { kind: "override" },
       glossary: { source: "none" },
     };

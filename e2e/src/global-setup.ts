@@ -30,15 +30,17 @@ const TARBALL_ENV_VARS = [
   "VERBATRA_SDK_TARBALL",
   "VERBATRA_CLI_TARBALL",
   "VERBATRA_STUDIO_TARBALL",
+  "VERBATRA_MCP_TARBALL",
 ] as const;
 
-async function packTarballs(): Promise<{ sdk: string; cli: string; studio: string }> {
+async function packTarballs(): Promise<{ sdk: string; cli: string; studio: string; mcp: string }> {
   const set = TARBALL_ENV_VARS.filter((name) => process.env[name]);
   if (set.length === TARBALL_ENV_VARS.length) {
     return {
       sdk: resolve(process.env.VERBATRA_SDK_TARBALL as string),
       cli: resolve(process.env.VERBATRA_CLI_TARBALL as string),
       studio: resolve(process.env.VERBATRA_STUDIO_TARBALL as string),
+      mcp: resolve(process.env.VERBATRA_MCP_TARBALL as string),
     };
   }
   if (set.length > 0) {
@@ -56,10 +58,12 @@ async function packTarballs(): Promise<{ sdk: string; cli: string; studio: strin
   await pack("@verbatra/sdk");
   await pack("@verbatra/cli");
   await pack("@verbatra/studio");
+  await pack("@verbatra/mcp");
   return {
     sdk: await findTarball(dest, "verbatra-sdk-"),
     cli: await findTarball(dest, "verbatra-cli-"),
     studio: await findTarball(dest, "verbatra-studio-"),
+    mcp: await findTarball(dest, "verbatra-mcp-"),
   };
 }
 

@@ -1,64 +1,75 @@
 ---
-title: Vista general
-description: "El comando verbatra: sus catorce subcomandos, los flags compartidos, cómo lee tu entorno y el contrato de códigos de salida."
+title: "Referencia de la CLI"
+sidebarTitle: "Vista general"
+description: "El comando verbatra: sus subcomandos, los flags globales y cómo lee tu entorno."
+type: reference
 ---
-`@verbatra/cli` incluye el binario `verbatra`, una capa fina sobre [`@verbatra/sdk`](/docs/sdk). Catorce comandos hacen el trabajo:
+`@verbatra/cli` incluye el binario `verbatra`, una capa fina sobre [`@verbatra/sdk`](/es/docs/sdk). Estos comandos hacen el trabajo:
 
-| Comando | Qué hace |
-| --- | --- |
-| [`init`](/docs/cli/init) | crea una configuración de verbatra y un `.env.example` para este proyecto |
-| [`extract`](/docs/cli/extract) | analiza el código de tu aplicación en busca de llamadas de traducción y añade las claves nuevas al archivo del locale de origen |
-| [`translate`](/docs/cli/translate) | traduce cada locale de destino una vez y luego sale |
-| [`watch`](/docs/cli/watch) | retraduce en cada cambio del origen hasta que lo interrumpas |
-| [`check`](/docs/cli/check) | informa de qué claves faltan o están obsoletas por locale, solo lectura |
-| [`diff`](/docs/cli/diff) | lista las claves exactas que se añadirían, se retraducirían o están huérfanas por locale, solo lectura |
-| [`doctor`](/docs/cli/doctor) | valida la configuración del proyecto e informa de todos los problemas a la vez, sin llamar a un proveedor |
-| [`pseudo`](/docs/cli/pseudo) | genera un pseudolocale a partir de las cadenas de origen, sin llamar a un proveedor |
-| [`types`](/docs/cli/types) | genera declaraciones de TypeScript para las claves de tu catálogo y los argumentos de sus mensajes, sin llamar a un proveedor |
-| [`export`](/docs/cli/export) | exporta las cadenas sin traducir para un traductor humano, como libro de Excel o como un archivo CSV o TSV por locale |
-| [`import`](/docs/cli/import) | importa un libro rellenado o un archivo delimitado de vuelta a los archivos de locale |
-| [`tmx`](/docs/cli/tmx) | importa una memoria de traducción TMX de otra herramienta a la memoria de este proyecto, o exporta la memoria de este proyecto como archivo TMX |
-| [`studio`](/docs/cli/studio) | arranca Verbatra Studio, el panel local de traducción |
-| [`mcp`](/docs/cli/mcp) | arranca un servidor MCP por stdio que expone las herramientas de verbatra a un cliente MCP |
+<Cards>
+  <Card title="init" href="/es/docs/cli/init">Crea una configuración de verbatra y un `.env.example` para este proyecto.</Card>
+  <Card title="extract" href="/es/docs/cli/extract">Analiza el código de tu aplicación en busca de llamadas de traducción y añade las claves nuevas al archivo del locale de origen.</Card>
+  <Card title="translate" href="/es/docs/cli/translate">Traduce cada locale de destino una vez y luego sale.</Card>
+  <Card title="watch" href="/es/docs/cli/watch">Retraduce en cada cambio del origen hasta que lo interrumpas.</Card>
+  <Card title="check" href="/es/docs/cli/check">Informa de qué claves faltan o están obsoletas por locale, solo lectura.</Card>
+  <Card title="diff" href="/es/docs/cli/diff">Lista las claves exactas que se añadirían, se retraducirían o están huérfanas por locale, solo lectura.</Card>
+  <Card title="report" href="/es/docs/cli/report">Imprime un informe de solo lectura: `report provenance` lista qué traducciones escribió una máquina y cuáles revisó una persona.</Card>
+  <Card title="doctor" href="/es/docs/cli/doctor">Valida la configuración del proyecto e informa de todos los problemas a la vez, sin llamar a un proveedor.</Card>
+  <Card title="pseudo" href="/es/docs/cli/pseudo">Genera un pseudolocale a partir de las cadenas de origen, sin llamar a un proveedor.</Card>
+  <Card title="types" href="/es/docs/cli/types">Genera declaraciones de TypeScript para las claves de tu catálogo y los argumentos de sus mensajes, sin llamar a un proveedor.</Card>
+  <Card title="export" href="/es/docs/cli/export">Exporta las cadenas sin traducir para un traductor humano, como libro de Excel, como un archivo CSV o TSV por locale o como un archivo XLIFF por locale para una herramienta TAO.</Card>
+  <Card title="import" href="/es/docs/cli/import">Importa un libro rellenado o un archivo delimitado de vuelta a los archivos de locale.</Card>
+  <Card title="tmx" href="/es/docs/cli/tmx">Importa una memoria de traducción TMX de otra herramienta a la memoria de este proyecto, o exporta la memoria de este proyecto como archivo TMX.</Card>
+  <Card title="studio" href="/es/docs/cli/studio">Arranca Verbatra Studio, el panel local de traducción.</Card>
+  <Card title="mcp" href="/es/docs/cli/mcp">Arranca un servidor MCP por stdio que expone las herramientas de verbatra a un cliente MCP.</Card>
+</Cards>
 
 ## Instala e invoca
 
-Instala `@verbatra/cli` como dependencia de desarrollo y luego ejecuta el binario a través de tu gestor de paquetes:
+Instala `@verbatra/cli` como dependencia de desarrollo:
 
-| Gestor de paquetes | Instalación | Ejecución |
-| --- | --- | --- |
-| npm | `npm install --save-dev @verbatra/cli` | `npx verbatra <command>` |
-| pnpm | `pnpm add -D @verbatra/cli` | `pnpm verbatra <command>` (o `pnpm exec verbatra <command>`) |
-| yarn | `yarn add -D @verbatra/cli` | `yarn verbatra <command>` |
-| bun | `bun add -d @verbatra/cli` | `bun run verbatra <command>` |
+```npm
+npm install --save-dev @verbatra/cli
+```
 
-Necesitas Node.js `>=22.14.0`.
+Luego ejecuta el binario a través de tu gestor de paquetes:
 
-¿Quieres probar un comando antes de instalar? `npx @verbatra/cli <command>` (npm) o `pnpm dlx @verbatra/cli <command>` (pnpm) funcionan sin una instalación local previa.
+```verbatra-run
+<command>
+```
 
-## Convenciones compartidas
+Necesitas Node.js `^22.18.0 || >=24`.
 
-- `--cwd <path>` resuelve la configuración y los archivos de locale desde ese directorio en lugar del actual. Todos los comandos lo aceptan.
-- `--config <path>` carga ese archivo de configuración en lugar de buscar uno. Todos los comandos excepto `init` lo aceptan; el orden de búsqueda se describe en [Archivo de configuración](/docs/config-file).
-- `--json` imprime un [envoltorio](/docs/ci-and-exit-codes#salida-json) legible por máquina en stdout, una línea por registro, manteniendo stdout limpio para usarlo con pipes.
-  - Decide según su campo `ok`: un éxito lleva los datos del comando bajo `result`, y una ejecución fallida lleva el mismo código de error estable que nombra la línea de stderr. La línea de error legible por humanos va a stderr en ambos casos.
-  - Lo admiten `extract`, `translate`, `watch`, `check`, `diff`, `doctor`, `pseudo`, `types`, `export`, `import` y `tmx`; `init`, `studio` y `mcp` no.
-  - `mcp` no escribe nada en stdout en absoluto, porque stdout es el canal del protocolo MCP; consulta [`verbatra mcp`](/docs/cli/mcp).
-- `--help` y `--version` imprimen y salen con `0`. Un comando o flag desconocido sale con `2`.
+¿Quieres probar un comando antes de instalar? `npx @verbatra/cli <command>` (npm) o `pnpm dlx @verbatra/cli <command>` (pnpm) funcionan sin una instalación local previa. Usa siempre el nombre con scope: el nombre `verbatra` sin scope en npm no pertenece a este proyecto.
+
+## Flags globales
+
+Estos flags significan lo mismo en cada comando que los acepta, así que las páginas de comandos solo listan sus propios flags. La última columna nombra los comandos que no aceptan un flag.
+
+| Flag | Argumento | Por defecto | Efecto | No lo aceptan |
+| --- | --- | --- | --- | --- |
+| `--cwd` | `<path>` | directorio actual | empieza aquí la búsqueda de la config y resuelve contra él las rutas que pasas; los archivos de locale se resuelven contra el directorio de la config encontrada; `init` escribe ahí sus archivos | ninguno |
+| `--config` | `<path>` | buscar uno | carga este archivo de config en lugar de buscar uno; consulta el [orden de búsqueda](/es/docs/config-file) | `init` |
+| `--json` | ninguno | desactivado | imprime un [envoltorio](/es/docs/cli/output#salida-json) legible por máquina en stdout, una línea por registro; los errores siguen yendo a stderr | `mcp`, `studio` |
+| `-q`, `--quiet` | ninguno | desactivado | imprime solo resultados, avisos y errores: sin progreso, sugerencias ni líneas informativas; funciona antes o después del nombre del comando | ninguno |
+| `--no-color` | ninguno | color en un terminal | nunca colorea la salida; consulta [Salida en el terminal](/es/docs/cli/output#salida-en-el-terminal) | ninguno |
+| `-h`, `--help` | ninguno | desactivado | imprime la ayuda del programa o del comando y sale con `0` | ninguno |
+| `-V`, `--version` | ninguno | desactivado | imprime la versión de la CLI y sale con `0` | ninguno |
+
+Un comando o flag desconocido sale con `2`, igual que un `verbatra` sin comando: imprime la ayuda en stderr y, si no encuentra configuración, sugiere `verbatra init`. `mcp` nunca escribe en stdout, porque stdout es su canal de protocolo, así que rechaza `--json` con `USAGE_ERROR`. Desde 0.12.0, un `--cwd` que no nombra un directorio existente sale con `2` e [`INVALID_OPTION`](/es/docs/error-codes#invalid_option) en todos los comandos, antes de leer o escribir nada.
 
 ## Archivos de entorno
 
-`translate`, `watch`, `doctor`, `studio` y `mcp` cargan `.env.local` y luego `.env` desde el directorio de trabajo antes de ejecutarse. `doctor --literals` es la excepción: no lee ninguna clave de API, así que no carga ninguno de los dos archivos. Una variable ya definida en tu entorno real siempre gana. Las claves de API se leen solo del entorno, nunca del archivo de configuración ni de un flag: consulta [Proveedores](/docs/providers). Los comandos de solo lectura (`check`, `diff`), los comandos de entrega (`export`, `import`), `extract`, `pseudo`, `types` y `tmx` nunca llaman a un proveedor y no cargan archivos `.env`.
+`translate`, `watch`, `doctor`, `studio` y `mcp` cargan `.env.local` y luego `.env` desde el directorio de trabajo antes de ejecutarse. Cuando la configuración que encontró la búsqueda está en un directorio superior, cargan después los mismos dos archivos también desde ese directorio; con `--config` solo leen el directorio de trabajo. Cuando un cliente MCP cambia sus raíces, el servidor MCP carga también ambos archivos desde la nueva raíz del proyecto. `doctor --literals` es la excepción: no lee ninguna clave de API, así que no carga ninguno de los dos archivos. Una variable ya definida en tu entorno real siempre gana, después los archivos del directorio de trabajo, luego los del directorio de la configuración, y un valor en `.env.local` gana a la misma variable en `.env`. Las claves de API se leen solo del entorno, nunca del archivo de configuración ni de un flag: consulta [Proveedores](/es/docs/providers). Los comandos de solo lectura (`check`, `diff`, `report`), los comandos de entrega (`export`, `import`), `extract`, `init`, `pseudo`, `types` y `tmx` nunca llaman a un proveedor y no cargan archivos `.env`.
+
+## Entradas de .gitignore
+
+Una ejecución real de `translate`, `watch`, `import`, `tmx import` o `pseudo` también añade a un `.gitignore` existente en la raíz del proyecto las entradas que le falten de `.env`, `.env.local`, `.verbatra-local/` y `verbatra.cache.json`, y las nombra en stderr. Un dry run no toca el archivo, y ninguno de estos comandos crea uno; eso lo hace [`verbatra init`](/es/docs/cli/init).
+
+## Salida en el terminal
+
+El color, el spinner, `--quiet` y las variables que los controlan se describen en [Salida en el terminal](/es/docs/cli/output#salida-en-el-terminal).
 
 ## Códigos de salida
 
-El código de salida es el contrato sobre el que un paso de CI o un script toma su decisión:
-
-| Código | Significado |
-| --- | --- |
-| `0` | éxito (también `--help` y `--version`) |
-| `1` | `translate` o `import` terminó pero algunos locales fallaron o quedaron parciales, `check` encontró un locale desincronizado, `diff` encontró cambios pendientes (o, con `--unused`, un análisis completo encontró una clave de origen sin uso), `doctor` encontró un problema de configuración o, con `--literals`, un literal sin traducir, o `types --check` encontró que la declaración confirmada está desactualizada |
-| `2` | no se pudo ejecutar: un error de toda la ejecución (configuración, origen, proveedor, bloqueo) o un error de uso |
-| `130` | `watch`, `studio` o `mcp` fue detenido a la fuerza por una segunda interrupción |
-
-La página de cada comando detalla cómo se le aplican estos códigos. Consulta [CI y códigos de salida](/docs/ci-and-exit-codes) para conectarlos a una canalización.
+El contrato de códigos de salida y sus casos límite están en [Códigos de salida y salida JSON](/es/docs/cli/output#códigos-de-salida). Cada página de comando lista solo los códigos que devuelve ese comando.

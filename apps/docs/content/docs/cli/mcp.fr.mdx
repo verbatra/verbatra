@@ -2,8 +2,9 @@
 title: verbatra mcp
 description: Démarre le serveur MCP en stdio qui expose les outils de verbatra à n'importe quel client MCP.
 status: new
+type: reference
 ---
-Démarre un serveur [Model Context Protocol](https://modelcontextprotocol.io) en stdio : le transport standard en processus local que les clients MCP (Claude Desktop, Claude Code, Cursor et d'autres) utilisent pour lancer un serveur d'outils et lui parler. Il donne à un agent hébergé dans un terminal ou headless les mêmes capacités de statut de traduction, de glossaire et d'édition que les outils d'agent navigateur de Studio exposent, sans navigateur, sans port et sans application monopage servie.
+Démarre un serveur [Model Context Protocol](https://modelcontextprotocol.io) en stdio, le transport qu'utilisent des clients comme Claude Code ou Cursor pour lancer un serveur d'outils. Il sert le protocole 2026-07-28 et ses révisions antérieures jusqu'à 2024-10-07. Un agent dans le terminal ou sans interface obtient ainsi les outils d'agent de Studio. Il n'y a pas de transport HTTP, qui exposerait les outils d'écriture et les outils payants sur un port.
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
 
@@ -11,116 +12,11 @@ Démarre un serveur [Model Context Protocol](https://modelcontextprotocol.io) en
 
 ```bash
 verbatra mcp [flags]
-```
-
-`@verbatra/mcp` fournit aussi son propre binaire, donc un client MCP peut le lancer directement sans passer par la CLI `verbatra` :
-
-```bash
 verbatra-mcp [flags]
 ```
 
-Les deux formes prennent les trois mêmes options et démarrent le même serveur, mais ce qui l'entoure diffère :
-
-- `verbatra mcp` charge `.env.local` puis `.env` depuis le répertoire de travail avant de démarrer ; `verbatra-mcp` ne charge ni l'un ni l'autre, donc passe toute clé d'API dans l'environnement avec lequel le client MCP le lance.
-- `verbatra mcp` rejette une option inconnue comme erreur d'utilisation et sort avec `2` ; `verbatra-mcp` ignore les options inconnues.
-- Une erreur de démarrage ou de config sort avec `2` depuis `verbatra mcp` et avec `1` depuis `verbatra-mcp`.
-- `verbatra mcp` s'arrête de force avec le code de sortie `130` sur une seconde interruption pendant l'extinction ; `verbatra-mcp` n'a pas ce chemin.
-
-## Options
-
-| Option | Argument | Défaut | Effet |
-| --- | --- | --- | --- |
-| `--cwd` | `<path>` | répertoire courant | résout la config et les fichiers de locale depuis ce répertoire |
-| `--config` | `<path>` | recherche automatique | charge ce fichier de config au lieu d'en chercher un |
-| `--allow-spend` | aucun | désactivé | expose les deux outils qui appellent un fournisseur de traduction |
-
-Quand `--allow-spend` est absente, le serveur lit à la place la variable d'environnement `VERBATRA_MCP_ALLOW_SPEND` : `1`, `true`, `yes` ou `on` (insensible à la casse) compte comme activé. L'option CLI l'emporte toujours sur la variable d'environnement. Sans l'une ni l'autre, `translation.retranslateEntry` et `translation.translatePending` ne sont pas exposés du tout : un client MCP qui liste les outils ne les voit jamais, et les appeler par leur nom échoue comme un outil inconnu. C'est une garantie par processus, pas une vérification par appel : un outil soumis à l'autorisation de dépense est donc structurellement impossible à appeler, et pas seulement refusé au moment de l'appel.
-
-## Configurer un client MCP
-
-Pointe ton client MCP vers le binaire `verbatra-mcp`. Pour Claude Desktop, ajoute ceci à ton `claude_desktop_config.json` :
-
-```json
-{
-  "mcpServers": {
-    "verbatra": {
-      "command": "npx",
-      "args": ["-y", "@verbatra/mcp", "--cwd", "/path/to/your/project"],
-      "env": {
-        "ANTHROPIC_API_KEY": "your-api-key-here"
-      }
-    }
-  }
-}
-```
-
-Omets complètement le bloc `env` et son `--allow-spend` pour un serveur en lecture seule et édition locale uniquement : `project.snapshot`, les outils de statut et de glossaire, et `translation.editEntry` n'appellent jamais de fournisseur et n'ont besoin d'aucune clé. Ajoute `--allow-spend` au tableau `args` dès que tu veux aussi disposer de `translation.retranslateEntry` et `translation.translatePending`, et définis la variable d'environnement de clé d'API que lit ton fournisseur configuré (voir [Fournisseurs](/docs/providers)).
-
-Si tu invoques déjà tout via la CLI `verbatra`, lance-le plutôt comme sous-commande :
-
-```json
-{
-  "mcpServers": {
-    "verbatra": {
-      "command": "npx",
-      "args": ["-y", "@verbatra/cli", "mcp", "--cwd", "/path/to/your/project"]
-    }
-  }
-}
-```
-
-## Outils
-
-| Outil | Ce qu'il fait | Lecture seule | Appelle un fournisseur |
-| --- | --- | --- | --- |
-| `project.snapshot` | config résolue : locale source, locales cibles, format, motif de fichiers (`files.pattern`), id du fournisseur, origine de la config, indicateur de glossaire | oui | non |
-| `status.check` | nombre de clés manquantes, obsolètes et à jour par locale | oui | non |
-| `status.diff` | liste par locale des clés qui seraient ajoutées, retraduites ou orphelines | oui | non |
-| `glossary.get` | chaque terme du glossaire et sa traduction, expurgé des secrets | oui | non |
-| `glossary.write` | ajoute, remplace ou supprime un terme du glossaire | non | non |
-| `lock.state` | version du fichier de verrouillage et, par locale cible, son nombre de clés enregistrées ainsi que ses décomptes de clés manquantes, obsolètes et à jour | oui | non |
-| `key.integrity` | dérive des placeholders, du balisage en ligne et d'ICU d'une clé par rapport à la référence du fichier de verrouillage, par locale (ne vérifie que les clés dont le texte source a changé depuis la référence ; un tableau `entries` vide signifie vérifiée et inchangée) | oui | non |
-| `key.value` | texte source et cible actuel d'une clé | oui | non |
-| `translation.editEntry` | écrit une traduction manuelle pour une clé dans une locale, soumise à la barrière d'intégrité des placeholders, du balisage en ligne et d'ICU | non | non |
-| `translation.retranslateEntry` | demande au fournisseur configuré de retraduire une clé dans une locale | non | oui |
-| `translation.translatePending` | traduit chaque clé manquante ou obsolète dans toutes les locales cibles | non | oui |
-| `review.queue` | clés que la dernière exécution a signalées pour une révision humaine, et pourquoi | oui | non |
-| `usage.summary` | utilisation des tokens et statut du budget de la dernière exécution, y compris `budget.standing` et `budget.supported` | oui | non |
-
-`translation.retranslateEntry` et `translation.translatePending` ne sont exposés que lorsque le serveur a été démarré avec `--allow-spend`. L'entrée de chaque outil, et la sortie de chaque outil dont la forme de résultat est petite et fermée, est un schéma JSON dérivé du même schéma zod contre lequel le serveur valide l'appel. Appeler un nom d'outil inconnu est une erreur au niveau du protocole ; appeler un outil connu avec une entrée qui échoue à la validation renvoie un résultat qui nomme le champ fautif, pour qu'un agent puisse lire l'échec et se corriger lui-même.
-
-Les deux outils qui écrivent une entrée, `translation.editEntry` et `translation.retranslateEntry`, sont en outre protégés par outil, par locale et par clé : pendant qu'un appel pour une entrée donnée est encore en cours, un second appel au même outil nommant les mêmes `locale` et `key` n'est ni mis en file ni exécuté en parallèle. Il reçoit un résultat `isError` dont le texte indique qu'un appel correspondant est déjà en cours, pour que deux agents (ou un agent qui réessaie) ne se disputent pas la même entrée via le même outil. Les appels pour d'autres clés ou d'autres locales continuent de s'exécuter en même temps. `translation.translatePending` n'a pas de tel verrou.
-
-### Entrées et résultats
-
-- `status.check`, `status.diff` et `key.integrity` prennent un tableau `locales` facultatif (au moins une entrée) qui restreint le résultat à ces locales ; `key.integrity` prend aussi la `key` à vérifier.
-- `translation.editEntry` prend `locale`, `key` et `value`, avec `value` limitée à 20 000 caractères.
-- `glossary.write` prend `{ term, translation }`, avec `term` limité à 200 caractères et `translation` à 2 000 ; `translation: null` supprime le terme. Il nécessite un glossaire stocké dans un fichier (la clé `glossary` de la config pointant vers un fichier JSON) ; un glossaire inline ou l'absence de glossaire échoue avec `GLOSSARY_NOT_FILE_BACKED`.
-- `translation.editEntry` et `translation.retranslateEntry` renvoient `{ accepted, value, reason?, details? }`. Une valeur refusée porte `reason`, parmi `placeholder`, `markup`, `icu`, `degenerate` ou `empty`, et `details` qui nomme ce qui a échoué ; `translation.retranslateEntry` ajoute `reviewReasons` à un résultat accepté : les signalements des heuristiques de révision pour la nouvelle valeur, vide quand aucune ne s'est déclenchée.
-- `lock.state` renvoie `exists` et, quand le fichier de verrouillage existe, sa `version` ainsi que, par locale, les décomptes `keyCount`, `missing`, `stale` et `upToDate`.
-- `usage.summary` renvoie l'`usage` de la dernière exécution et, quand un budget de tokens était configuré, un `budget` dont le `standing` vaut `within`, `stopped-before-ceiling` ou `reached`, et dont le `supported` indique si le chiffre compté provient entièrement de l'utilisation rapportée par le fournisseur lui-même.
-
-<AvailableFrom version="0.2.1" pkg="@verbatra/mcp" />
-
-Les contrôles de balisage en ligne dans `key.integrity` (`markupMatches`, `markupDetails`) et dans `translation.editEntry` (la raison `markup`), un id de format `custom:` dans `project.snapshot` et `budget.standing` dans `usage.summary` sont arrivés avec cette version.
-
-## Expurgation des secrets
-
-Chaque résultat d'outil et chaque ligne de log passe par la même expurgation des secrets que Studio utilise : une valeur ayant la forme d'une clé d'API de fournisseur, ou la valeur exacte actuelle d'une variable d'environnement de fournisseur configurée, est remplacée par `[REDACTED]` avant même d'atteindre le client ou stderr. `glossary.get` et `glossary.write` signalent aussi quels termes ont été expurgés, pour que tu puisses distinguer un placeholder expurgé du vrai texte et ne jamais le réécrire.
-
-## stdout est le canal du protocole
-
-Le transport stdio de MCP utilise stdout exclusivement pour les messages du protocole. `verbatra mcp` et `verbatra-mcp` n'impriment jamais de bannière, de ligne de log ni rien d'autre sur stdout ; tous les logs et diagnostics vont sur stderr à la place. Le serveur charge la config avant de connecter le transport, donc une erreur de config est écrite sur stderr immédiatement et le processus sort sans jamais parler le protocole. Une fois en marche, les diagnostics par appel (un appel échoué, un appel rejeté parce qu'un appel correspondant est en cours, un outil inconnu) vont aussi sur stderr.
-
-## Installation
-
-`@verbatra/mcp` est un paquet à part, atteint via un import dynamique pour que le reste de la CLI fonctionne sans lui. S'il n'est pas installé, `verbatra mcp` sort avec le code `2` en affichant :
-
-```
-Verbatra's MCP server requires @verbatra/mcp. Install it with: pnpm add -D @verbatra/mcp
-```
-
-Lancer `verbatra-mcp` directement ne nécessite aucune CLI : installe `@verbatra/mcp` seul, ou laisse `npx` le récupérer à la demande comme montré ci-dessus.
+- `verbatra-mcp` est le binaire fourni par `@verbatra/mcp`, pour qu'un client lance le serveur sans la CLI. Il prend les mêmes options sauf `-q`/`--quiet` et démarre le même serveur, mais ne charge aucun fichier `.env` et affiche la version de `@verbatra/mcp` avec `--version`.
+- Les deux refusent une option inconnue (comme `--json`), une option sans valeur ou un argument en trop comme erreur d'utilisation, avec le code `2`. `verbatra-mcp` le fait, et accepte `-h` et `-V`, depuis `@verbatra/mcp` 0.3.0.
 
 ## Exemples
 
@@ -133,21 +29,182 @@ verbatra mcp --allow-spend
 
 # resolve a project outside the current directory
 verbatra mcp --cwd /path/to/project --config verbatra.config.ts
+
+# run the standalone server without the CLI
+npx -y @verbatra/mcp --cwd /path/to/project
 ```
+
+## Options
+
+| Option | Argument | Défaut | Effet |
+| --- | --- | --- | --- |
+| `--allow-spend` | aucun | `VERBATRA_MCP_ALLOW_SPEND`, sinon désactivé | annonce les deux outils qui appellent un fournisseur de traduction ; voir [Outils payants](#outils-payants) |
+| `--redact-values` | aucun | `VERBATRA_MCP_REDACT_VALUES`, sinon désactivé | remplace chaque valeur de traduction des résultats par un marqueur ; voir [Valeurs masquées](#redacted-values) |
+
+Prend aussi les [options globales](/fr/docs/cli#options-globales) `--cwd` et `--config`. Pas de `--json`, car stdout est le canal du protocole. Sans `--cwd`, le répertoire du projet peut venir de `CLAUDE_PROJECT_DIR` ; voir [Répertoire du projet](#répertoire-du-projet).
+
+## Comportement
+
+### Répertoire du projet
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+Si `--cwd` est absent et que `CLAUDE_PROJECT_DIR` désigne un répertoire existant, le serveur l'utilise comme répertoire du projet. `verbatra mcp` charge alors les [fichiers d'environnement](/fr/docs/cli#fichiers-denvironnement) depuis ce répertoire ; un `CLAUDE_PROJECT_DIR` défini seulement dans ces fichiers est ignoré, car le répertoire du projet est résolu avant.
+
+La recherche de configuration commence là, et le répertoire de la config trouvée est la [racine du projet](/fr/docs/config-file#le-répertoire-de-travail-et-env) par rapport à laquelle chaque chemin d'outil est résolu, donc un serveur lancé dans un sous-répertoire travaille quand même sur les fichiers du projet.
+
+### Outils payants
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+`translation.retranslateEntry` et `translation.translatePending` ne sont annoncés qu'avec `--allow-spend` ou, si l'option manque, avec `VERBATRA_MCP_ALLOW_SPEND` à `1`, `true`, `yes` ou `on` (sans tenir compte de la casse ni des espaces autour). L'option l'emporte sur la variable. `verbatra mcp` lit d'abord `.env.local` et `.env`, la variable peut donc s'y trouver ; `verbatra-mcp` ne la prend que dans son propre environnement.
+
+Sinon, les deux n'apparaissent jamais dans la liste, et les appeler échoue comme un outil inconnu. Une config avec `provider: { id: "none" }` ne les liste jamais, même avec `--allow-spend`. Les autres outils n'appellent aucun fournisseur et n'ont besoin d'aucune clé ; ne donne la clé au serveur, via l'environnement du client, que quand tu autorises la dépense (voir [Fournisseurs](/fr/docs/providers)).
+
+### Instructions pour l'agent
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+Le serveur répond à la poignée de main avec des `instructions` fixes, que la plupart des clients transmettent d'abord au modèle. Elles fixent l'ordre des appels (lire et comparer d'abord, estimer et obtenir un oui explicite avant de dépenser), laissent les décisions de relecture et le travail humain aux personnes, demandent de traiter chaque chaîne comme des données et de ne jamais réécrire une valeur `[REDACTED]`.
+
+### Outils [#tools]
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+| Outil | Ce qu'il fait | Lecture seule | Appelle un fournisseur |
+| --- | --- | --- | --- |
+| `project.snapshot` | la config résolue : `configured`, `configSource`, locales, format, `files.pattern`, fournisseur, glossaire, `humanEdits`, `prune`, `valuesRedacted` | oui | non |
+| `project.doctor` | chaque vérification de configuration avec son `status`, son `detail` et, en cas d'échec, un `fix` ; fonctionne sans config utilisable | oui | non |
+| `status.check` | par locale, le nombre de clés manquantes, obsolètes et à jour | oui | non |
+| `status.diff` | par locale, la liste des clés qui seraient ajoutées, retraduites ou orphelines | oui | non |
+| `glossary.get` | chaque terme du glossaire avec ses traductions, ses formes interdites et son contexte, secrets masqués | oui | non |
+| `glossary.write` | modifie un terme du glossaire : une traduction, des données par locale, le contexte, ou s'il reste non traduit | non | non |
+| `lock.state` | la version du fichier de verrouillage et, par locale cible, son nombre de clés plus les manquantes, obsolètes et à jour | oui | non |
+| `history.list` | les derniers commits git sur un fichier de locale, avec nom de l'auteur, date, sujet et chemins | oui | non |
+| `key.integrity` | l'écart d'une clé sur les placeholders, le balisage, la syntaxe ICU et les branches ICU par rapport à la base du verrou, par locale | oui | non |
+| `locale.integrity` | chaque traduction qui échoue en ce moment aux contrôles de placeholders, de balisage ou ICU, par locale | oui | non |
+| `key.value` | le texte source et cible d'une clé, avec sa provenance et le contexte pour les traducteurs | oui | non |
+| `key.context` | ce que renvoie `key.value`, plus les termes du glossaire qui s'appliquent, `maxLength` et une vérification d'un `draft` optionnel | oui | non |
+| `locale.values` | le texte source et cible de nombreuses clés, filtrées par `keys` ou `query`, page par page | oui | non |
+| `translation.editEntry` | écrit une traduction manuelle pour une clé dans une locale, filtrée par les contrôles d'intégrité | non | non |
+| `translation.estimate` | ce que `translation.translatePending` enverrait et coûterait, comme le rapporte `translate --estimate --json` | oui | non |
+| `translation.retranslateEntry` | demande au fournisseur configuré de retraduire une clé dans une locale | non | oui |
+| `translation.translatePending` | traduit chaque clé manquante ou obsolète, éventuellement pour certaines `locales` seulement et sous un plafond `maxTokens` | non | oui |
+| `review.queue` | chaque valeur écrite par une machine que personne n'a encore approuvée, avec les signalements de la dernière exécution | oui | non |
+| `report.provenance` | par locale, les comptes de provenance comme les donne `verbatra report provenance`, et les clés paginées sur demande | oui | non |
+| `review.approve` | enregistre, sur instruction de l'utilisateur, qu'une personne nommée approuve la traduction actuelle d'une clé | non | non |
+| `review.reject` | enregistre, sur instruction de l'utilisateur, qu'une personne nommée rejette la traduction d'une clé, qui est retirée pour être remplacée | non | non |
+| `usage.summary` | la consommation de tokens et l'état du budget de la dernière exécution | oui | non |
+
+- **Un appel à la fois.** Un second appel au même outil pour la même entrée (`translation.editEntry`, `translation.retranslateEntry`), ou une seconde exécution de `translation.translatePending`, est refusé avec `isError` tant que le premier tourne.
+- **Travail humain.** `translation.retranslateEntry` refuse une clé épinglée avec `KEY_PINNED` et, sauf avec `humanEdits: "overwrite"`, la valeur d'une personne avec `KEY_PROTECTED` ; `translation.editEntry` refuse une clé épinglée. `translation.translatePending` liste ces clés sous `protected`. Voir [Protéger les traductions humaines](/fr/docs/protecting-human-translations).
+- **Provenance.** Une valeur écrite par `translation.editEntry` reçoit l'origine `agent`. `review.queue` est la même file que celle de Studio : chaque valeur non approuvée d'origine `machine`, `memory`, `fuzzy` ou `agent`. Voir [Décisions de relecture](/fr/docs/the-lock-file#décisions-de-relecture).
+- **Décisions de relecture.** `review.approve` et `review.reject` prennent `locale`, `key`, `expectedValue` ou `expectedHash` (une valeur qui a changé entre-temps est refusée avec `REVIEW_VALUE_CHANGED`) et un nom dans `reviewer`. Une approbation compte pour [`verbatra check --require-reviewed`](/fr/docs/cli/check#exiger-des-traductions-relues).
+
+### Entrées et résultats
+
+<AvailableFrom version="0.2.1" pkg="@verbatra/mcp" />
+
+- `status.check`, `status.diff` et `key.integrity` prennent un tableau `locales` optionnel ; `key.integrity` prend aussi la `key`.
+- `key.integrity` renvoie `{ locales: [{ locale, entries }] }`, chaque entrée avec `matches`, `missing`, `extra`, `icuValid`, `markupMatches` et leurs détails.
+- `translation.editEntry` prend `locale`, `key` et une `value` de 20 000 caractères au plus. Il renvoie `{ accepted, value, reason?, details? }`, et `translation.retranslateEntry` la même chose plus `reviewReasons?`, où `reason` vaut `placeholder`, `markup`, `icu`, `degenerate` ou `empty`.
+- `glossary.write` exige un glossaire dans un fichier, sinon il échoue avec `GLOSSARY_NOT_FILE_BACKED`.
+
+### Autres entrées et résultats
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+- `translation.estimate`, `locale.integrity`, `locale.values` et `report.provenance` prennent le même tableau `locales` optionnel, et `key.integrity` échoue avec `UNKNOWN_KEY` pour une clé inconnue.
+- Chaque entrée de `key.integrity` porte aussi `icuArmsMatch` et ses détails.
+- `glossary.get` prend une `locale` optionnelle et ajoute alors `effective`, les termes auxquels cette locale est tenue.
+- `key.value`, `lock.state`, `status.check` et `status.diff` portent la provenance, absente quand `verbatra.provenance.json` est illisible.
+- `locale.values` et `report.provenance` renvoient leurs entrées par pages dans l'ordre des clés source : `limit` (200 par défaut, 1 000 au plus), puis le `nextCursor` de la page précédente comme `cursor`. Une page ne nomme que les locales dont elle contient des entrées, et un curseur périmé échoue comme entrée invalide.
+- `locale.values` prend `keys` ou une `query` insensible à la casse et renvoie des tableaux d'entrées, pas la map par clé de Studio. `report.provenance` renvoie toujours des comptes complets ; `includeEntries` ajoute les clés, éventuellement limitées à certains `buckets`.
+- `history.list` prend `limit` (50 par défaut, 200 au plus). Avec `available: false`, sa `reason` vaut `git-missing`, `not-a-repository`, `timeout` ou `output-too-large`.
+- Les outils qui écrivent prennent un `lockTimeoutMs` optionnel, de `0` à `600000`, par défaut `30000` : la durée d'attente d'un verrou d'écriture occupé avant d'échouer avec `LOCK_CONTENDED`, sans rien avoir écrit.
+- Les entrées et sorties sont des JSON Schemas ; une entrée invalide renvoie un résultat qui nomme le champ. Un résultat qui ne correspond pas à son `outputSchema` échoue avec `OUTPUT_SCHEMA_MISMATCH` ; pour un outil qui écrit, la modification a été appliquée, donc ne relance pas l'appel.
+- Le texte d'un appel en échec commence par son code d'erreur, comme `UNKNOWN_KEY: ...`, et se termine par une ligne `Next step: ...` quand l'erreur en a une, le même texte que le `hint` de la CLI.
+
+### Estimer avant de payer
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+`translation.estimate` est toujours listé. `translation.translatePending` prend des `locales` optionnelles (une locale non configurée échoue avec `UNKNOWN_LOCALE` avant toute dépense) et `maxTokens`, un plafond qui ne peut que resserrer celui de la config. Voir [Estimer le coût](/fr/docs/estimating-cost).
+
+### Progression
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+Quand un appel à `translation.translatePending` porte un `progressToken`, le serveur envoie `notifications/progress` à la fin de chaque lot : `progress` les compte, `total` grandit avec chaque locale planifiée, et `message` nomme la locale et le lot (`de: batch 3/7`), au plus une toutes les 250 ms plus une dernière. Si tu annules un appel payant (`notifications/cancelled`), il s'arrête sans résultat ni autre progression : `translation.translatePending` garde ce qui est déjà arrivé, et le reste reste en attente.
+
+### Sans config
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+Le serveur démarre sans config utilisable. `project.snapshot` renvoie alors `configured: false` avec le `configProblem` et un `nextStep`, `project.doctor` donne la correction, et les autres outils refusent avec l'erreur de config. stderr en donne la raison :
+
+```text output
+Running without a usable project config: CONFIG_NOT_FOUND: No verbatra configuration found. ...
+verbatra MCP server running on stdio (project ., spend tools off)
+No usable verbatra config: project.snapshot and project.doctor work, every other tool refuses until one loads.
+  set it up:  npx @verbatra/cli init in the project, or fix the config project.doctor names
+  no restart needed: the server loads the config on the next call once it is valid
+```
+
+### Après un changement de config
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+Avant chaque appel, le serveur recharge la config si le fichier de config, un fichier que la recherche essaierait ou le fichier de glossaire a changé ; un module importé par la config n'est pas surveillé. `--allow-spend` n'est lu qu'une fois : un changement peut masquer les outils payants, jamais les lister sans lui. Quand la liste d'outils change, le serveur envoie `notifications/tools/list_changed`.
+
+### Expurgation des secrets
+
+Chaque résultat et chaque ligne de log sont expurgés comme dans Studio : une valeur qui ressemble à une clé d'API, ou la valeur d'une variable de clé configurée, devient `[REDACTED]` ; les outils de glossaire nomment les termes masqués.
+
+### Valeurs masquées [#redacted-values]
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+Avec `--redact-values`, ou `VERBATRA_MCP_REDACT_VALUES` sur une valeur qu'accepte `VERBATRA_MCP_ALLOW_SPEND`, les résultats remplacent les textes source, les traductions, les descriptions et les termes du glossaire par un marqueur, `[redacted length=12 hash=3f9a0c1d2e4b5a6c]`, et omettent les noms des relecteurs et auteurs ; des valeurs égales partagent un hash jusqu'à l'arrêt du serveur. Les erreurs qui peuvent porter des valeurs gardent leur code et l'étape suivante ; leur message devient un marqueur. Les noms de clés, les comptes, les origines, les verdicts d'intégrité, les sujets de commit et les chemins restent. `review.approve` et `review.reject` ne prennent que le hash du marqueur, comme `expectedHash` ; `glossary.write` répond par des comptes ; `locale.values` refuse `query` et `key.context` refuse `draft`. Les outils payants exigent toujours `--allow-spend` ; un fournisseur reçoit toujours le texte. Cela n'arrête pas un agent qui sonde exprès, via des écritures de glossaire ou les correspondances de glossaire de `key.context`.
+
+### stdout et stderr
+
+<AvailableFrom version="0.12.0" />
+
+stdout ne transporte que des messages du protocole MCP ; chaque ligne de log et chaque diagnostic partent sur stderr. Une fois connecté, `verbatra mcp` affiche une ligne « prêt », puis une autre à l'arrêt :
+
+```text output
+verbatra MCP server running on stdio (project ., spend tools off)
+verbatra MCP server stopped (client closed stdin)
+```
+
+Lancé à la main dans un terminal, il indique qu'un client doit le démarrer. `verbatra mcp --quiet` supprime ces lignes, mais pas la raison d'une config absente.
+
+### Installation
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+`@verbatra/mcp` est un paquet séparé que la CLI charge à la demande. S'il manque, `verbatra mcp` sort avec `2` et :
+
+```text output
+Verbatra's MCP server requires @verbatra/mcp. Run it without the CLI with: npx -y @verbatra/mcp, or install it alongside the CLI with: npm install --save-dev @verbatra/mcp
+```
+
+Chaque version est aussi dans le [registre MCP officiel](https://registry.modelcontextprotocol.io) sous `io.github.verbatra/verbatra`.
 
 ## Codes de sortie
 
-Voici les codes de sortie de `verbatra mcp` ; le binaire autonome `verbatra-mcp` diffère comme décrit dans le synopsis ci-dessus.
-
 | Code | Signification |
 | --- | --- |
-| `0` | arrêté proprement par une seule interruption (Ctrl-C ou SIGTERM) |
-| `1` | l'arrêt a échoué : la fermeture du serveur a levé une erreur pendant l'extinction |
-| `2` | n'a pas pu démarrer : une erreur de config, `@verbatra/mcp` non installé, ou une erreur d'utilisation |
-| `130` | arrêté de force par une seconde interruption pendant que l'extinction était en cours |
+| `0` | arrêté proprement par une seule interruption, ou parce que le client a fermé stdin |
+| `1` | la fermeture du serveur a échoué pendant l'arrêt |
+| `2` | n'a pas pu démarrer : un fichier `--config` inexistant, `@verbatra/mcp` absent ou, avec `--redact-values`, trop ancien, ou une erreur d'utilisation |
+| `130` | arrêté de force par une seconde interruption pendant l'arrêt |
+
+À l'arrêt, le serveur libère tout verrou de locale. `verbatra-mcp` sort avec `1` sur une erreur de démarrage et, depuis 0.3.0, avec `143` s'il est arrêté de force après SIGTERM. Voir [le contrat des codes de sortie](/fr/docs/cli/output#codes-de-sortie).
 
 ## Voir aussi
 
-- [`verbatra studio`](/docs/cli/studio) et [Piloter Studio avec un agent de navigateur](/docs/agent-tools-in-studio) couvrent la surface d'agent basée sur le navigateur que ce serveur complète.
-- [Fournisseurs](/docs/providers) documente de quelle variable d'environnement chaque fournisseur lit sa clé d'API.
-- [`verbatra check`](/docs/cli/check) et [`verbatra diff`](/docs/cli/diff) sont les mêmes calculs que `status.check` et `status.diff` exposent.
+- [Connecter un client MCP](/fr/docs/connect-an-mcp-client) configure les clients stdio courants.
+- [Les outils d'agent dans Studio](/fr/docs/agent-tools-in-studio) couvrent la surface d'agent dans le navigateur.
+- [`verbatra check`](/fr/docs/cli/check) et [`verbatra diff`](/fr/docs/cli/diff) sont les calculs derrière `status.check` et `status.diff`.

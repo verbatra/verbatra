@@ -1,0 +1,160 @@
+---
+title: Datenverarbeitung und Datenschutz
+description: Was das Tool verbatra von deinem Rechner schickt, an wen, und was es lokal behält, damit ein Security- oder Legal-Review es freigeben kann.
+type: concept
+---
+Was CLI, SDK, Studio und MCP-Server von verbatra von deinem Rechner oder deiner CI schicken. Für
+diese Website gilt ihre [Datenschutzerklärung](/privacy).
+
+## Die kurze Antwort
+
+- **Keine Telemetrie**, keine Update-Prüfung und kein verbatra-Server, den es kontaktieren könnte.
+- **Ein einziges Ziel nach außen: dein Provider**, nur wenn ein Befehl übersetzt; keins mit
+  `provider: { id: "none" }`. Alles andere bleibt lokal, Studio und der MCP-Server eingeschlossen.
+- **Gesendet wird nur, was übersetzt werden muss**: keine unveränderten Keys, keine Cache-Treffer,
+  keine geschützten Keys (außer veralteten menschlichen Änderungen bei `humanEdits: "suggest"`).
+- **API-Keys kommen nur aus Umgebungsvariablen** und tauchen nie in einer Meldung auf.
+
+## Wie die Daten fließen
+
+```text
+ your project (local disk)                               provider (only on translate, watch,
+                                                         SDK retranslateEntry, or a Studio /
+ +-----------------------------------------+             MCP retranslate or translate-pending)
+ | locale files, verbatra.config.ts,       |   HTTPS     +--------------------------+
+ | glossary          -- read by verbatra --|------------>| Anthropic / OpenAI /     |
+ |                                         |  changed    | Gemini / DeepL / Google  |
+ | verbatra.lock.json, provenance file,    |  strings    | or your own server       |
+ | verbatra.cache.json, .verbatra-local/   |<------------| (self-hosted)            |
+ |                 -- written by verbatra  | translations+--------------------------+
+ +-----------------------------------------+
+        |                        |
+        | 127.0.0.1 only         | stdio
+        v                        v
+  Studio in your browser   MCP client (your AI agent)
+```
+
+Der Pfeil ist HTTPS, nur [`openai-compatible`](/de/docs/providers#openai-compatible) und [`libretranslate`](/de/docs/providers#libretranslate) dürfen einfaches http zu deiner eigenen `baseUrl` nutzen.
+
+## Wann ein Request gemacht wird
+
+Nur die Befehle im Diagramm rufen einen Provider auf; die Aktionen von Studio und MCP brauchen
+[`--allow-spend`](/de/docs/cli/mcp#kostenpflichtige-tools). Alles andere, Probeläufe und Schätzungen
+eingeschlossen, ist lokal, außer [`verbatra doctor --live`](/de/docs/cli/doctor), das eine Sprachliste von DeepL, Google oder LibreTranslate abruft und keine Strings sendet.
+
+Ein Lauf von `translate` sendet nur Keys, die gegenüber [der Lock-Datei](/de/docs/the-lock-file) fehlen
+oder geändert sind, abzüglich der Treffer im [Cache](/de/docs/the-cache), und geteilten Text nur
+einmal. Ein veralteter Key, den ein Mensch geschrieben hat, wird nur für einen Vorschlag mit
+`humanEdits: "suggest"` gesendet, ein [gepinnter](/de/docs/protecting-human-translations) Key nie. Dein
+DNS-Resolver sieht den Hostnamen des Providers.
+
+## Was jeder Provider bekommt
+
+| Provider | Was gesendet wird | Wohin es geht |
+| --- | --- | --- |
+| `anthropic`, `openai`, `gemini`, `openai-compatible` | Pro Key: der Key-Name, der Quelltext und die Beschreibung oder Bedeutung, die deine Quelldatei mitführt. Pro Request: die Quell- und Zielcodes (nach [`localeMap`](/de/docs/providers#an-den-provider-gesendete-locale-codes)) und ihre englischen Namen, dein `tone`, die Glossarbegriffe der Ziel-Locale, die Pluralkategorien des Ziels, wenn ein Batch Plurale enthält, die festen Anweisungen von verbatra, der Modellname und ein Limit für Output-Tokens. | `api.anthropic.com`, `api.openai.com`, `generativelanguage.googleapis.com` oder die `baseUrl`, die du konfiguriert hast. [`*_BASE_URL`](/de/docs/network-policy#gehostete-provider) leitet die gehosteten um. |
+| `deepl` | Der Quelltext jedes Keys, Platzhalter [maskiert](/de/docs/providers#deepl) <AvailableFrom version="0.12.0" />, die Sprachcodes, eine Formalitätsstufe, wenn dein `tone` bei einem bezahlten Key eine verlangt, und deine `glossaryId`. Keine Key-Namen, Beschreibungen oder Glossarbegriffe. | `api.deepl.com`, oder `api-free.deepl.com` für einen Key, der auf `:fx` endet. |
+| `google-translate` | Der Quelltext jedes Keys, Platzhalter [maskiert](/de/docs/providers#google-cloud-translation) <AvailableFrom version="0.12.0" />, und die Sprachcodes. | `translation.googleapis.com` |
+| `libretranslate` | Der Quelltext jedes Keys, Platzhalter [maskiert](/de/docs/providers#libretranslate) (ein Wert mit ICU-Syntax wird nicht gesendet), die Sprachcodes und `LIBRETRANSLATE_API_KEY`, wenn gesetzt. | Die `baseUrl`, die du konfiguriert hast. |
+| `none` | Nichts. | Nirgendwohin. |
+
+Die SDKs senden außerdem Header mit Bibliothek, Betriebssystem und Node.js-Version. Dein API-Key
+geht nur an den konfigurierten Endpunkt (`google-translate` sendet ihn im Query-String `?key=`).
+
+## Schutz für sensible Inhalte
+
+<AvailableFrom version="0.12.0" />
+
+`sensitiveData` durchsucht vor jedem Request, was laut der Tabelle oben gesendet wird. Detektoren, `patterns` und `allow` stehen unter [Jeder Key](/de/docs/config-file#jeder-key). Der Detektor `email` überspringt `example.com`, `example.org`, `example.net` und Domains unter `.example`, `.test`, `.invalid` oder `.localhost`. Ein Muster wird abgelehnt, wenn es eine Gruppe mit einem Quantor oder einer Alternative wiederholt, mehr als ein `*`, `+` oder `{n,}` enthält oder zu oft verzweigt. Es liest die ersten 2.000 Zeichen eines Felds und bricht nach einer Sekunde ab; ein Abbruch ist ein Fund (`pattern-timeout-<n>`).
+
+| `mode` | Wirkung |
+| --- | --- |
+| `warn` | Sendet wie gewohnt; ein Hinweis nennt die Keys. |
+| `block` | Hält den Key zurück, die Locale endet also `partial`. |
+| `redact` | Sendet für jeden Treffer im Wert ein Token und setzt den Treffer wieder ein; ein Treffer in einer Beschreibung oder Bedeutung geht als `[redacted]` hinaus. Ein Treffer im Key-Namen oder ein Token, das nicht genau einmal zurückkommt, hält den Key zurück. Bei DeepL und Google zählt ein Token als Platzhalter, ein Wert, den sie nicht schützen können, wird also als `PLACEHOLDER_UNSUPPORTED` zurückgehalten. |
+
+`block` und `redact` lassen außerdem einen passenden Glossarbegriff weg. `verbatra init` schreibt bei einem maschinellen Provider `warn`. Bei einem Fehlalarm trägst du den Text in `allow` ein oder entfernst seinen Detektor. [`verbatra check --sensitive`](/de/docs/cli/check#sensible-inhalte) prüft ohne Key. Namen in freiem Text werden nicht gefunden.
+
+## Aufbewahrung und Auftragsverarbeitung beim Anbieter
+
+Die Aufbewahrung bestimmen der Anbieter und dein Vertrag. Zitate im englischen Original, Stand
+September 2026.
+
+| Provider | Was der Anbieter sagt | Auftragsverarbeitung |
+| --- | --- | --- |
+| Anthropic | "For Anthropic API users, we automatically delete inputs and outputs on our backend within 30 days of receipt or generation" ([Aufbewahrung](https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data)). "By default, we will not use your inputs or outputs from our commercial products [...] to train our models" ([Training](https://privacy.claude.com/en/articles/7996868-is-my-data-used-for-model-training)). Zero Data Retention ist eine Vereinbarung pro Organisation ([Details](https://privacy.claude.com/en/articles/8956058-i-have-a-zero-data-retention-agreement-with-anthropic-what-products-does-it-apply-to)). | [Data Processing Addendum](https://www.anthropic.com/legal/data-processing-addendum) |
+| OpenAI | "data sent to the OpenAI API is not used to train or improve OpenAI models (unless you explicitly opt in to share data with us)"; "abuse monitoring logs are generated for all API feature usage and retained for up to 30 days, unless longer retention is required by law". Zero Data Retention und Modified Abuse Monitoring "are subject to prior approval by OpenAI", und `/v1/chat/completions`, der Endpunkt, den verbatra aufruft, ist als berechtigt aufgeführt ([Your data](https://developers.openai.com/api/docs/guides/your-data)). | [Data Processing Addendum](https://openai.com/policies/data-processing-addendum/) |
+| Gemini | Im kostenlosen Kontingent (Unpaid Services) gilt: "human reviewers may read, annotate, and process your API input and output", und die Bedingungen raten davon ab, "sensitive, confidential, or personal information" zu senden. Bei Paid Services gilt: "Google doesn't use your prompts [...] or responses to improve our products", und sie werden "for a limited period of time, solely for detecting and preventing violations of the Prohibited Use Policy" geloggt. Im EWR, in der Schweiz und im Vereinigten Königreich gelten die Paid-Services-Bedingungen für jede Nutzung, auch für das kostenlose Kontingent ([Gemini API Terms](https://ai.google.dev/gemini-api/terms)). verbatra nutzt weder Grounding noch explizites Caching, die Googles Seite zu [Zero Data Retention](https://ai.google.dev/gemini-api/docs/zdr) ausschließt. | [Processor Terms](https://business.safety.google/processorterms/), die die Gemini API Terms für Paid Services nennen |
+| DeepL | Für DeepL API Free sagt die [Datenschutzerklärung](https://www.deepl.com/en/privacy): "We process the content you upload and their translations or improvements for a limited period of time to train and improve our neural networks and algorithms." Für Pro gilt: "your texts will not be used to improve the quality of our services", und "After complete performance of the contractually agreed services all submitted texts or documents and their translations or improvements will be deleted." | Data Processing Agreement, auf das die [DeepL-Pro-Bedingungen](https://www.deepl.com/en/pro-license) verweisen |
+| Google Cloud Translation | "text is held briefly in-memory in order to perform the translation and return the results to you", und "Google does not use the content you send to train and improve our Google Translation features" ([Data usage](https://docs.cloud.google.com/translate/data-usage)). | [Cloud Data Processing Addendum](https://cloud.google.com/terms/data-processing-addendum) |
+| openai-compatible, LibreTranslate | Was auch immer dein eigener Server tut. | Deine eigene |
+
+## Strings im Haus behalten
+
+| Option | Weg |
+| --- | --- |
+| Keine maschinelle Übersetzung | [Ohne maschinelle Übersetzung arbeiten](/de/docs/human-only-workflow) <AvailableFrom version="0.12.0" /> |
+| Dein eigenes Modell | [`openai-compatible`](/de/docs/providers#openai-compatible) mit Ollama, LM Studio oder vLLM |
+| Maschinelle Übersetzung ohne Sprachmodell | [`libretranslate`](/de/docs/providers#libretranslate) <AvailableFrom version="0.12.0" /> |
+| Erzwing es | eine [Netzwerkrichtlinie](/de/docs/network-policy) `local-only`, in der CI festgelegt <AvailableFrom version="0.12.0" /> |
+
+## Was lokal geschrieben wird
+
+| Datei | Enthält | Committen? |
+| --- | --- | --- |
+| Deine Locale-Dateien | die Übersetzungen | ja |
+| `verbatra.lock.json` | einen Hash jedes Quell-Strings, aus dem eine Übersetzung entstand | ja |
+| `verbatra.provenance.json` | pro Key Schreibpfad, Provider und Modell hinter dem Wert und eine etwaige Review-Entscheidung samt Namen des Reviewers; kein übersetzter Text, keine Zeitstempel | ja |
+| `verbatra.cache.json` | Quelltext und seine Übersetzungen, pro Provider, Modell, Tonfall, Glossar und `localeMap` | nein, `verbatra init` trägt es in die `.gitignore` ein |
+| `.verbatra-local/` | Status, Review-Flags und Token-Verbrauch des letzten Laufs, erzeugte Pseudolocales und Schreibsperren mit Hostnamen und Prozess-ID des haltenden Laufs | nein, ignoriert |
+| `.env`, `.env.local` | deine API-Keys, falls du sie dort ablegst | nie, `verbatra init` ignoriert beide |
+
+## API-Keys
+
+Provider-Fehler und CLI-Ausgaben ersetzen den Wert jeder bekannten
+[Key-Variable](/de/docs/providers#keys-kommen-aus-der-umgebung), sofern er mindestens 8 Zeichen lang ist, und alles, was wie ein API-Key
+aussieht, durch `[REDACTED]`.
+
+## Studio und MCP
+
+**Studio** bindet nur an `127.0.0.1`, mit einem [Sitzungs-Token](/de/docs/cli/studio), weist anderen `Host`
+oder `Origin` ab, und seine Content-Security-Policy blockiert Abrufe aus dem Internet.
+
+**Der MCP-Server** spricht über stdio und öffnet keinen Port. Seine Lese-Tools geben deine Strings,
+dein Glossar und deinen Status heraus; [`--redact-values`](/de/docs/cli/mcp#redacted-values) maskiert
+jeden Wert. `history.list` nennt den Autor jedes
+Commits (nicht unter `--redact-values`), nie die E-Mail.
+
+Ein MCP-Client oder ein Browser-Agent, der Studios `--expose-agent-tools` nutzt, schickt, was er
+liest, an sein KI-Modell, unter den Bedingungen dieses Anbieters. Studios Agent-Tools werden nie
+geschwärzt.
+
+## KI-erzeugte Übersetzungen und Provenance
+
+Ob die Transparenzregeln des EU AI Act
+([Artikel 50](https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-50)) gelten, klärt deine Rechtsberatung. verbatra
+[protokolliert](/de/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat) Provider und Modell
+hinter jedem maschinell übersetzten Wert.
+
+### Prüfdatei
+
+<AvailableFrom version="0.12.0" />
+
+`verbatra report provenance --json` macht aus diesem Protokoll eine
+[Prüfdatei](/de/docs/provenance-evidence) pro Key.
+
+## Checkliste für ein AVV- oder NDA-Review
+
+1. Entscheide, ob Strings dein Netzwerk verlassen dürfen; wenn nicht,
+   [behalte sie im Haus](#strings-im-haus-behalten).
+2. Nimm für einen gehosteten Provider ein bezahltes Kontingent
+   ([Anbieterbedingungen](#aufbewahrung-und-auftragsverarbeitung-beim-anbieter)) und unterschreib
+   seine Auftragsverarbeitungsbedingungen.
+3. Führ `verbatra check --sensitive` aus.
+4. Halte API-Keys in einem Secret Store oder einer ignorierten `.env` und führ `verbatra doctor` aus.
+5. Entscheide, welche KI-Agenten Studio oder den MCP-Server nutzen dürfen, und ob sie
+   `--redact-values` brauchen.
+6. Committe `verbatra.provenance.json` und archiviere `verbatra report provenance --json` pro
+   Release.
+7. Häng das Manifest von [`verbatra doctor --data-flow --json`](/de/docs/cli/doctor#datenfluss) mit
+   jedem Host und den Daten, die er bekommt, an.

@@ -2,24 +2,55 @@ import { dirname, isAbsolute, relative, resolve } from "node:path";
 import {
   type FormatId,
   type LocaleResource,
+  pseudolocalizeBidiValue,
   pseudolocalizeValue,
   type TranslationEntry,
 } from "@verbatra/core";
 import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
+import { projectCwd } from "../config/project-root.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver, type LocalePathResolver } from "../locale-path/resolver.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { gateCandidateValue } from "./integrity-gate.js";
+import { planPluralGeneration, syntheticEntry } from "./plural-categories.js";
+import {
+  createOutputPathGuard,
+  type OutputPathGuard,
+  outputRefusalReason,
+  reservedProjectPaths,
+} from "./reserved-output.js";
 import { readSourceResource } from "./source.js";
 import {
+  displayPath,
   escapesWorkingDirectory,
   targetUnwritableMessage,
   writeTargetResource,
 } from "./write-target.js";
 
-const DEFAULT_PSEUDO_LOCALE = "en-XA";
+/**
+ * The pseudolocale transforms {@link pseudolocalize} can apply, the default first. `accented`
+ * accents, expands and brackets every value to expose truncation and hardcoded strings; `bidi`
+ * forces every word to render right to left to expose layout that assumes left-to-right text.
+ * This tuple is the single source of truth for the set.
+ */
+export const PSEUDO_MODES = ["accented", "bidi"] as const;
+
+/** One of {@link PSEUDO_MODES}. */
+export type PseudoMode = (typeof PSEUDO_MODES)[number];
+
+const DEFAULT_PSEUDO_LOCALES: Readonly<Record<PseudoMode, string>> = {
+  accented: "en-XA",
+  bidi: "ar-XB",
+};
+
+type PseudoTransform = (value: string) => string;
+
+const PSEUDO_TRANSFORMS: Readonly<Record<PseudoMode, PseudoTransform>> = {
+  accented: pseudolocalizeValue,
+  bidi: pseudolocalizeBidiValue,
+};
 
 const DEFAULT_PSEUDO_DIRECTORY = ".verbatra-local/pseudo";
 
@@ -41,12 +72,24 @@ const GROUP_CLOSE = new Set(["}", ")"]);
 export interface PseudolocalizeInput {
   /** The resolved project config, normally from {@link loadConfig}. */
   readonly config: VerbatraConfig;
-  /** Directory the `files.pattern` is resolved against. Defaults to the process working directory. */
+  /** Directory the `files.pattern` is resolved against. Defaults to the project root of the config object {@link loadConfig} returned, else the process working directory; a copied or rebuilt config loses that root, so pass `cwd` from {@link resolveProjectRoot}. */
   readonly cwd?: string;
   /**
-   * The pseudolocale's BCP-47 code. Defaults to `en-XA`. It must not be the source locale or any
-   * configured target locale, compared case-insensitively, so a pseudolocale can never stand in for
-   * a real translation.
+   * The transform to apply. Defaults to `accented`. `bidi` wraps every word of translatable text
+   * in a right-to-left mark and override (`U+200F U+202E` before, `U+202C U+200F` after), so it
+   * renders right to left while the stored letters keep their order; placeholders, ICU syntax,
+   * markup, digits and punctuation stay outside the override, and nothing is accented or padded.
+   */
+  readonly mode?: PseudoMode;
+  /**
+   * The pseudolocale's BCP-47 code. Defaults to `en-XA` in `accented` mode and to `ar-XB` in
+   * `bidi` mode, a code that resolves to right-to-left text direction, so an application that
+   * derives its layout direction from the locale flips without further setup. In `bidi` mode an
+   * `i18next-json` plural keyed by suffix also gets every CLDR category the pseudolocale's
+   * language needs and the source lacks (for `ar-XB`, `_zero`, `_two`, `_few` and `_many`), filled
+   * from the source's `other` form, so no count falls back to another language. It must not be the
+   * source locale or any configured target locale, compared case-insensitively, so a pseudolocale
+   * can never stand in for a real translation.
    */
   readonly locale?: string;
   /**
@@ -57,7 +100,9 @@ export interface PseudolocalizeInput {
    * It must name a directory inside `cwd`: an absolute path, one that climbs out with `..`, and
    * `cwd` itself are all refused, as is a directory under which the expanded pattern would place
    * the pseudolocale file beside a configured locale file, so a generated pseudolocale never lands
-   * outside the project or beside the real translations where nothing ignores it.
+   * outside the project or beside the real translations where nothing ignores it. The same holds
+   * after symbolic links are resolved, so a linked directory cannot carry the file outside `cwd` or
+   * into the directory of a configured locale file.
    */
   readonly out?: string;
 }
@@ -74,11 +119,20 @@ export interface PseudolocalizeDeps {
 export interface PseudolocalizeResult {
   /** The pseudolocale that was generated. */
   readonly locale: string;
+  /** The transform that was applied. */
+  readonly mode: PseudoMode;
   /** Absolute path of the file that was written, or would have been written on a changed run. */
   readonly path: string;
-  /** How many source entries were processed. */
+  /**
+   * How many entries the pseudolocale carries: one per source entry, plus, in `bidi` mode, each
+   * plural form added for a CLDR category the source lacks.
+   */
   readonly entries: number;
-  /** How many entries carry a pseudolocalized value. */
+  /**
+   * How many entries were written with a value that differs from their source value. A value with
+   * nothing to transform, such as a bare placeholder or an empty string in `bidi` mode, is not
+   * counted, and neither is a value in {@link PseudolocalizeResult.copied}.
+   */
   readonly transformed: number;
   /**
    * Keys whose source value was copied verbatim because a pseudolocalized value would not have
@@ -90,16 +144,69 @@ export interface PseudolocalizeResult {
   readonly written: boolean;
 }
 
+const OUTPUT_DIRECTORY_RULE =
+  "must be a relative path naming a directory inside the working directory, so a pseudolocale is never written outside the project it was generated from, and never into the project root itself.";
+
+function requestedOutputDirectory(out: string | undefined): string {
+  return out ?? DEFAULT_PSEUDO_DIRECTORY;
+}
+
 function resolveOutputRoot(cwd: string, out: string | undefined): string {
-  const requested = out ?? DEFAULT_PSEUDO_DIRECTORY;
+  const requested = requestedOutputDirectory(out);
   const root = isAbsolute(requested) ? requested : resolve(cwd, requested);
   if (isAbsolute(requested) || escapesWorkingDirectory(relative(cwd, root))) {
     throw new SdkError(
       "PSEUDO_OUTPUT_CONFLICT",
-      `The output directory "${requested}" must be a relative path naming a directory inside the working directory, so a pseudolocale is never written outside the project it was generated from, and never into the project root itself.`,
+      `The output directory "${requested}" ${OUTPUT_DIRECTORY_RULE}`,
     );
   }
   return root;
+}
+
+interface LinkedOutputCheck {
+  readonly fs: SdkFs;
+  readonly cwd: string;
+  readonly config: VerbatraConfig;
+  readonly resolver: LocalePathResolver;
+  readonly out: string | undefined;
+  readonly root: string;
+  readonly outputPath: string;
+}
+
+async function assertOutputStaysInsideThroughLinks(check: LinkedOutputCheck): Promise<void> {
+  const { fs, cwd } = check;
+  const rootRefusal = await createOutputPathGuard(fs, cwd, new Map()).refusal(check.root);
+  if (rootRefusal !== undefined) {
+    throw new SdkError(
+      "PSEUDO_OUTPUT_CONFLICT",
+      `The output directory "${requestedOutputDirectory(check.out)}" ${outputRefusalReason(rootRefusal)} It ${OUTPUT_DIRECTORY_RULE}`,
+    );
+  }
+  const reserved = reservedProjectPaths({ cwd, config: check.config, resolver: check.resolver });
+  const guard = createOutputPathGuard(fs, cwd, reserved);
+  const fileRefusal = await guard.refusal(check.outputPath);
+  if (fileRefusal !== undefined) {
+    throw new SdkError(
+      "PSEUDO_OUTPUT_CONFLICT",
+      `The pseudolocale would be written to ${displayPath(check.outputPath, cwd)}, which ${outputRefusalReason(fileRefusal)} Choose an output directory inside the working directory that holds no project file.`,
+    );
+  }
+  await assertOutputIsAwayFromTheLocaleFilesThroughLinks(check, guard);
+}
+
+async function assertOutputIsAwayFromTheLocaleFilesThroughLinks(
+  check: LinkedOutputCheck,
+  guard: OutputPathGuard,
+): Promise<void> {
+  const outputDirectory = await guard.canonical(dirname(check.outputPath));
+  for (const locale of configuredLocales(check.config)) {
+    if ((await guard.canonical(dirname(check.resolver.pathFor(locale)))) === outputDirectory) {
+      throw new SdkError(
+        "PSEUDO_OUTPUT_CONFLICT",
+        `The pseudolocale would be written to ${displayPath(check.outputPath, check.cwd)}, which resolves through a symbolic link to the directory holding the locale file for "${locale}", where it is not covered by the scaffolded ignore list. Choose an output directory that holds no real locale file.`,
+      );
+    }
+  }
 }
 
 function configuredLocales(config: VerbatraConfig): readonly string[] {
@@ -135,6 +242,7 @@ function assertOutputIsAwayFromTheLocaleFiles(
 interface PseudoEntries {
   readonly entries: Map<string, TranslationEntry>;
   readonly copied: readonly string[];
+  readonly transformed: number;
 }
 
 function splitPluralForms(value: string): readonly string[] {
@@ -156,34 +264,59 @@ function splitPluralForms(value: string): readonly string[] {
   return forms;
 }
 
-function pseudolocalizeSegment(segment: string): string {
+function pseudolocalizeSegment(segment: string, transform: PseudoTransform): string {
   const [, lead = "", body = "", trail = ""] = SEGMENT_PADDING.exec(segment) ?? [];
-  return body === "" ? segment : `${lead}${pseudolocalizeValue(body)}${trail}`;
+  return body === "" ? segment : `${lead}${transform(body)}${trail}`;
 }
 
-function pseudolocalizeEntryValue(entry: TranslationEntry, format: FormatId): string {
+function pseudolocalizeEntryValue(
+  entry: TranslationEntry,
+  format: FormatId,
+  transform: PseudoTransform,
+): string {
   if (!entry.isPlural || !PIPE_SEGMENTED_FORMATS.has(format)) {
-    return pseudolocalizeValue(entry.value);
+    return transform(entry.value);
   }
-  return splitPluralForms(entry.value).map(pseudolocalizeSegment).join("|");
+  return splitPluralForms(entry.value)
+    .map((segment) => pseudolocalizeSegment(segment, transform))
+    .join("|");
+}
+
+function sourceEntriesFor(
+  source: LocaleResource,
+  locale: string,
+  mode: PseudoMode,
+): ReadonlyMap<string, TranslationEntry> {
+  if (mode !== "bidi") {
+    return source.entries;
+  }
+  const entries = new Map(source.entries);
+  for (const item of planPluralGeneration(source, locale, source.format).items) {
+    entries.set(item.targetKey, syntheticEntry(item));
+  }
+  return entries;
 }
 
 function pseudolocalizeEntries(
   source: ReadonlyMap<string, TranslationEntry>,
   adapter: FormatAdapter,
   format: FormatId,
+  transform: PseudoTransform,
 ): PseudoEntries {
   const entries = new Map<string, TranslationEntry>();
   const copied: string[] = [];
+  let transformed = 0;
   for (const [key, entry] of source) {
-    const candidate = pseudolocalizeEntryValue(entry, format);
-    const accepted = gateCandidateValue(entry, candidate, adapter).accepted;
+    const candidate = pseudolocalizeEntryValue(entry, format, transform);
+    const accepted = gateCandidateValue(entry, candidate, adapter, undefined).accepted;
     if (!accepted) {
       copied.push(key);
+    } else if (candidate !== entry.value) {
+      transformed += 1;
     }
     entries.set(key, { ...entry, value: accepted ? candidate : entry.value });
   }
-  return { entries, copied };
+  return { entries, copied, transformed };
 }
 
 function retargetSeed(content: string, format: FormatId, locale: string): string {
@@ -260,10 +393,13 @@ function sameValues(
 }
 
 /**
- * Generates a pseudolocale from the source strings alone: every value is accented, expanded by
- * roughly a third of its translatable length, and wrapped in `[` and `]` boundary markers, so a
- * truncated or concatenated string is obvious on screen and an untranslated hardcoded string stands
- * out for having escaped the transform.
+ * Generates a pseudolocale from the source strings alone. In the default `accented` mode every
+ * value is accented, expanded by roughly a third of its translatable length, and wrapped in `[` and
+ * `]` boundary markers, so a truncated or concatenated string is obvious on screen and an
+ * untranslated hardcoded string stands out for having escaped the transform. In `bidi` mode every
+ * word is forced to render right to left instead, written to `ar-XB` by default, so layout that
+ * assumes left-to-right text shows up before any right-to-left translation exists; an
+ * `i18next-json` plural also gets the CLDR categories that language needs and the source lacks.
  *
  * It constructs no provider, reads no API key and makes no network request, so it runs on a fresh
  * checkout before any key exists or any budget is approved.
@@ -287,19 +423,27 @@ function sameValues(
  * pseudolocale; a copied XLIFF has its target-language attribute rewritten to the pseudolocale, so
  * the file never misdescribes what it holds.
  *
- * @param input - The config, the pseudolocale code, and the output directory.
+ * @param input - The config, the transform, the pseudolocale code, and the output directory.
  * @param deps - Optional adapter registry and file-system overrides.
  * @returns Where the pseudolocale landed, how many entries it carries, and whether it changed.
  *
  * @example
  * ```ts
+ * import { pseudolocalize, loadConfig } from "@verbatra/sdk";
+ *
+ * const config = await loadConfig();
  * const result = await pseudolocalize({ config });
  * console.log(`${result.transformed} of ${result.entries} entries in ${result.path}`);
  * ```
  *
  * @throws {@link SdkError} `PSEUDO_OUTPUT_CONFLICT`: the pseudolocale names a configured locale, its
  * file would land in the same directory as a configured locale file, or the output directory is not
- * a relative path naming a directory inside `cwd`.
+ * a relative path naming a directory inside `cwd`. When the file-system port implements `realpath`,
+ * as the default does, the directory and the file are checked again after symbolic links are
+ * resolved, so a link that carries either outside `cwd`, onto `cwd` itself, into the directory of a
+ * configured locale file, or onto a configured locale file, the lock file, the provenance file, the
+ * translation-memory cache, or a file verbatra searches for its configuration is refused the same
+ * way. Refused before anything is read or written.
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
  * cannot be combined, or the pseudolocale has no valid path spelling under that style.
@@ -315,30 +459,43 @@ export async function pseudolocalize(
   deps: PseudolocalizeDeps = {},
 ): Promise<PseudolocalizeResult> {
   const { config } = input;
-  const cwd = input.cwd ?? process.cwd();
-  const locale = input.locale ?? DEFAULT_PSEUDO_LOCALE;
+  const cwd = projectCwd(input);
+  const mode = input.mode ?? "accented";
+  const locale = input.locale ?? DEFAULT_PSEUDO_LOCALES[mode];
   const fs = deps.fs ?? defaultFs;
   assertPseudoLocaleIsNotConfigured(config, locale);
 
   const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
   const resolver = createLocalePathResolver(cwd, config);
-  const outputPath = createLocalePathResolver(resolveOutputRoot(cwd, input.out), {
+  const root = resolveOutputRoot(cwd, input.out);
+  const outputPath = createLocalePathResolver(root, {
     ...config,
     targetLocales: [locale],
   }).pathFor(locale);
   assertOutputIsAwayFromTheLocaleFiles(config, resolver, outputPath);
+  await assertOutputStaysInsideThroughLinks({
+    fs,
+    cwd,
+    config,
+    resolver,
+    out: input.out,
+    root,
+    outputPath,
+  });
 
   const source = await readSourceResource(config, resolver, fs, adapter);
-  const { entries, copied } = pseudolocalizeEntries(
-    source.resource.entries,
+  const { entries, copied, transformed } = pseudolocalizeEntries(
+    sourceEntriesFor(source.resource, locale, mode),
     adapter,
     config.format,
+    PSEUDO_TRANSFORMS[mode],
   );
   const summary = {
     locale,
+    mode,
     path: outputPath,
     entries: entries.size,
-    transformed: entries.size - copied.length,
+    transformed,
     copied,
   };
 
@@ -359,6 +516,8 @@ export async function pseudolocalize(
     format: config.format,
     entries,
   };
-  await writeTargetResource(adapter, resource, outputPath, cwd);
+  await writeTargetResource(adapter, resource, outputPath, cwd, {
+    sourcePath: resolver.pathFor(config.sourceLocale),
+  });
   return { ...summary, written: true };
 }

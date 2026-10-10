@@ -1,0 +1,150 @@
+---
+title: "Erreurs"
+description: "Le modèle SdkError : les classes d'erreur, quels codes portent une cause, les exceptions à la règle et les utilitaires d'erreur."
+type: reference
+---
+## Le modèle d'erreur
+
+Les échecs globaux lèvent une `SdkError` : une seule classe, un `code` stable et un `message` sans secret. Base tes branchements sur le code, pas sur le message. Les échecs par locale, les avis de fournisseur et les constats d'intégrité remontent comme données sur le `RunSummary`, jamais comme exceptions.
+
+Chaque code, ce qu'il signifie, quelles commandes de la CLI y mènent et quelle est l'étape suivante se trouvent dans [Codes d'erreur du SDK](/fr/docs/error-codes#sdk-error-codes).
+
+`code` est typé par l'union `SdkErrorCode`. [`errorHint`](#errorhint) renvoie l'étape suivante qui résout une erreur, et [`projectRelativeMessage`](#projectrelativemessage) raccourcit les chemins du projet dans son message avant que tu le montres à une personne.
+
+Quelques codes portent aussi l'erreur qu'ils enveloppent comme `cause` standard : `SOURCE_INVALID`
+quand un analyseur ou un adaptateur a échoué (pas quand un fichier est refusé pour sa taille),
+`PROVIDER_CONSTRUCTION_FAILED` (l'erreur propre de la fabrique du fournisseur, dont le message est
+aussi repris, expurgé, dans le message de la `SdkError`), `EXPORT_UNWRITABLE`,
+`GLOSSARY_UNWRITABLE` et `SOURCE_UNWRITABLE` (l'erreur du système de fichiers), `REVIEW_RESTORE_FAILED` (l'échec qui a
+interrompu la décision) et `LOCK_CONTENDED` quand le verrou a été repris par un autre processus ou
+qu'un verrou abandonné n'a pas pu être récupéré ni mis de côté (l'erreur du système de fichiers).
+`CONFIG_INVALID` n'en porte une que lorsque le fichier de config n'a pas pu être chargé à cause d'une
+erreur dotée d'un code, comme un import qui ne se résout pas. Il n'en porte aucune pour une erreur
+d'analyse ou de schéma, et `CONFIG_NOT_FOUND` jamais, car l'erreur d'un analyseur de config peut
+citer le contenu du fichier, et une clé écrite dans la config ne doit pas voyager avec l'erreur.
+Pour `PROVIDER_CONSTRUCTION_FAILED`, seul le message est expurgé : sa `cause` est l'erreur d'origine,
+intacte. Les fabriques de fournisseur intégrées lèvent des erreurs sans secret, et une erreur levée
+par un `createProvider` que tu fournis revient exactement telle que tu l'as levée : garde donc les
+secrets hors d'elle, ou expurge-la toi-même avant de journaliser la `cause`.
+
+Les exceptions à la règle de la classe d'erreur unique :
+
+- `retranslateEntry` relance la `ProviderError` du fournisseur quand l'appel unique échoue.
+- `approveEntries`, `rejectEntries` et `retranslateEntries` lèvent une `BatchInterruptedError`, avec
+  l'erreur d'origine comme `cause`, quand une erreur inattendue arrête un lot en cours de route.
+- Un fichier de locale cible que l'adaptateur ne sait pas analyser remonte comme son `AdapterError`,
+  avec son propre `code`, depuis `check`, `diff` et les autres flux qui le lisent ; `checkFile` le
+  signale plutôt comme une anomalie de syntaxe.
+- `watch` relaie, sans l'envelopper, ce que la fabrique de l'observateur ou ton callback `onReady` a levé.
+- `runStatus` ne lève jamais.
+
+Pour la correspondance entre ces codes et les codes de sortie de la CLI, voir [Codes d'erreur du SDK](/fr/docs/error-codes#sdk-error-codes) ; pour de l'aide par symptôme, voir [Dépannage](/fr/docs/troubleshooting).
+
+## Classes d'erreur
+
+### SdkError
+
+La classe sous laquelle chaque échec de toute l'exécution est levé. Son `name` vaut `"SdkError"`, son `code` est un membre de l'union `SdkErrorCode`, que [Codes d'erreur du SDK](/fr/docs/error-codes#sdk-error-codes) liste en entier, et sa `cause` n'est présente que pour les codes que nomme [Le modèle d'erreur](#le-modèle-derreur). Teste-la avec `error instanceof SdkError` et fais un `switch` sur `error.code` : TypeScript réduit alors chaque cas à un seul code.
+
+```ts title="Signature"
+class SdkError extends Error {
+  readonly code: SdkErrorCode;
+  constructor(code: SdkErrorCode, message: string, options?: { readonly cause?: unknown });
+}
+```
+
+<SdkTypeTable name="SdkError" />
+
+### ProviderError
+
+<AvailableFrom version="0.12.0" />
+
+L'erreur structurée par laquelle un fournisseur de traduction échoue, à la place d'une erreur brute du SDK ou HTTP. Son `name` vaut `"ProviderError"`, son `code` est un `ProviderErrorCode`, et son message est fixe et caviardé. Sur un échec `MISSING_API_KEY`, `envVar` nomme la variable dans laquelle le fournisseur lit sa clé, jamais sa valeur. `retranslateEntry` la relance, et un fournisseur personnalisé la lève depuis `translateBatch` ; [Codes d'erreur des fournisseurs](/fr/docs/error-codes#provider-error-codes) liste chaque code. Teste-la avec `error instanceof ProviderError`. Sur une version plus ancienne, qui n'exporte pas la classe, vérifie `error.name === "ProviderError"` et lis `code`.
+
+```ts title="Signature"
+class ProviderError extends Error {
+  readonly code: ProviderErrorCode;
+  readonly envVar?: string;
+  constructor(code: ProviderErrorCode, message: string, details?: { readonly envVar?: string });
+}
+```
+
+<SdkTypeTable name="ProviderError" />
+
+### AdapterError
+
+<AvailableFrom version="0.11.0" />
+
+L'erreur structurée par laquelle un adaptateur de format ou le registre d'adaptateurs échoue. Son `name` vaut `"AdapterError"` et son `code` est un `AdapterErrorCode`, listé sous [Codes d'erreur des adaptateurs de format](/fr/docs/error-codes#adapter-error-codes). `position` situe une syntaxe mal formée sous la forme `{ line, column }` comptés à partir de 1, la colonne en unités de code UTF-16 : un adaptateur intégré la renseigne sur une erreur `INVALID_JSON` ou `INVALID_YAML` dont l'analyseur a indiqué un endroit, et la laisse à `undefined` sinon. Ce que lève un adaptateur `custom:` arrive comme une erreur `ADAPTER_FAILED` qui le porte en `cause`.
+
+```ts title="Signature"
+class AdapterError extends Error {
+  readonly code: AdapterErrorCode;
+  readonly position: SyntaxPosition | undefined;
+  constructor(code: AdapterErrorCode, message: string, options?: { readonly cause?: unknown; readonly position?: SyntaxPosition });
+}
+```
+
+<SdkTypeTable name="AdapterError" />
+
+## Utilitaires d'erreur
+
+### projectRelativeMessage
+
+<AvailableFrom version="0.12.0" />
+
+`projectRelativeMessage(message, cwd)` réécrit chaque chemin absolu à l'intérieur du projet dans un
+message en chemin relatif à la racine du projet : un chemin sous `cwd` perd ce préfixe, `cwd`
+lui-même devient `.`, et un chemin hors du projet reste tel quel. Chaque `error.message` et chaque
+message de notice par locale d'un `RunSummary` nomme déjà ainsi les fichiers du projet, relatifs
+au `cwd` de l'exécution ; appelle-la sur le message d'une erreur qu'un flux lève avant de le
+montrer à une personne, à un agent ou à un onglet du navigateur. `verbatra mcp` et Studio font de
+même pour chaque erreur qu'ils renvoient.
+
+```ts title="Signature"
+function projectRelativeMessage(
+  message: string,
+  cwd: string,
+): string;
+```
+
+**Renvoie :** `string`
+
+### errorHint
+
+<AvailableFrom version="0.12.0" />
+
+`errorHint(error)` renvoie la prochaine étape qui résout une erreur levée par verbatra : une
+phrase courte à l'impératif, ou `undefined` quand il n'y en a pas. Chaque code de `SdkError`,
+chaque code de `ProviderError` et chaque code d'erreur d'un adaptateur de format en a une, donc un
+agent peut agir sur un échec sans analyser son message. Elle lit le `code` de l'erreur, donc un
+simple objet `{ code, message }`, comme l'`error` d'une exécution de `watch` en échec, reçoit la
+même indication. Une erreur `PROVIDER_CONSTRUCTION_FAILED` reprend l'indication de l'erreur de
+fournisseur qu'elle enveloppe, donc une clé manquante nomme exactement la variable à définir, lue
+dans le `envVar` que porte un `ProviderError` `MISSING_API_KEY`. Une erreur `CONFIG_INVALID` venant
+d'un fichier de configuration dont un import n'a pas pu être résolu (son `causeCode` vaut
+`MODULE_NOT_FOUND`, `ERR_MODULE_NOT_FOUND`, `ERR_PACKAGE_PATH_NOT_EXPORTED` ou
+`ERR_UNSUPPORTED_DIR_IMPORT`) te dit plutôt d'installer ou de corriger cet import. Une indication est un texte fixe
+plus, au plus, un nom de variable : elle ne contient jamais la valeur d'une clé et ne cite jamais
+le message. L'enveloppe d'erreur `--json` de la CLI la porte sous `hint`, et `verbatra mcp`
+termine avec elle le texte d'un appel en échec.
+
+```ts title="Signature"
+function errorHint(error: unknown): string | undefined;
+```
+
+**Renvoie :** `string | undefined`
+
+**Exemple :** [Gère les erreurs](/fr/docs/sdk-quickstart#gère-les-erreurs)
+
+```ts title="Exemple"
+import { errorHint, translate, type VerbatraConfig } from "@verbatra/sdk";
+
+declare const config: VerbatraConfig;
+
+try {
+  await translate({ config });
+} catch (error) {
+  console.error(errorHint(error)); // e.g. "Set GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project directory."
+}
+```

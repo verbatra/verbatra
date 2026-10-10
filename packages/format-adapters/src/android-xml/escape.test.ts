@@ -1,3 +1,4 @@
+import { cpuScalingRatio, LINEAR_MAX_RATIO } from "@verbatra/config/scaling";
 import { describe, expect, it } from "vitest";
 import { AdapterError } from "../errors.js";
 import { decodeAndroidEscapes, encodeAndroidEscapes } from "./escape.js";
@@ -47,11 +48,10 @@ describe("decodeAndroidEscapes", () => {
 
   it("decodes a large escaped value in bounded time (algorithmic-DoS guard)", () => {
     const value = "a\\\\".repeat(200_000);
-    const start = performance.now();
-    const result = decodeAndroidEscapes(value);
-    const elapsed = performance.now() - start;
-    expect(result).toBe("a\\".repeat(200_000));
-    expect(elapsed).toBeLessThan(2000);
+    expect(decodeAndroidEscapes(value)).toBe("a\\".repeat(200_000));
+    expect(cpuScalingRatio(decodeAndroidEscapes, "a\\\\".repeat(25_000), value)).toBeLessThan(
+      LINEAR_MAX_RATIO,
+    );
   });
 });
 
@@ -81,10 +81,9 @@ describe("encodeAndroidEscapes", () => {
 
   it("encodes a large value in bounded time (algorithmic-DoS guard)", () => {
     const value = "a'b\"c\\d".repeat(200_000);
-    const start = performance.now();
-    const result = encodeAndroidEscapes(value);
-    const elapsed = performance.now() - start;
-    expect(result.length).toBeGreaterThan(value.length);
-    expect(elapsed).toBeLessThan(2000);
+    expect(encodeAndroidEscapes(value).length).toBeGreaterThan(value.length);
+    expect(cpuScalingRatio(encodeAndroidEscapes, "a'b\"c\\d".repeat(25_000), value)).toBeLessThan(
+      LINEAR_MAX_RATIO,
+    );
   });
 });

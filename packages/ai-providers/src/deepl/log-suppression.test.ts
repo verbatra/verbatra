@@ -26,18 +26,18 @@ function makeFake(onSet: (level: "silent") => void) {
 }
 
 describe("DeepL SDK log suppression", () => {
-  it("actually silences the 'deepl' logger our loglevel import returns (AC3)", () => {
+  it("actually silences the 'deepl' logger our loglevel import returns (AC3)", async () => {
     log.getLogger("deepl").setLevel("debug");
-    silenceSdkLogging();
+    await silenceSdkLogging();
     expect(log.getLogger("deepl").getLevel()).toBe(log.levels.SILENT);
   });
 
-  it("silences the 'deepl' logger on the instance deepl-node actually resolves (AC1)", () => {
+  it("silences the 'deepl' logger on the instance deepl-node actually resolves (AC1)", async () => {
     const resolved = resolveDeeplLoglevel();
     expect(resolved).toBeDefined();
     const deeplNodeLog = resolved as unknown as typeof log;
     deeplNodeLog.getLogger("deepl").setLevel("debug");
-    silenceSdkLogging();
+    await silenceSdkLogging();
     expect(deeplNodeLog.getLogger("deepl").getLevel()).toBe(deeplNodeLog.levels.SILENT);
   });
 

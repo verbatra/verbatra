@@ -2,6 +2,7 @@ import type { z } from "zod";
 import { STATUS_CHECK_METHOD, type StatusCheckResult, statusCheckParamsSchema } from "./check.js";
 import { STATUS_DIFF_METHOD, type StatusDiffResult, statusDiffParamsSchema } from "./diff.js";
 import { EDIT_ENTRY_METHOD, type EditEntryResult, editEntryParamsSchema } from "./edit-entry.js";
+import { ESTIMATE_METHOD, type EstimateResult, estimateParamsSchema } from "./estimate.js";
 import {
   GLOSSARY_GET_METHOD,
   GLOSSARY_WRITE_METHOD,
@@ -11,6 +12,12 @@ import {
   glossaryWriteParamsSchema,
 } from "./glossary.js";
 import { HISTORY_LIST_METHOD, type HistoryListResult, historyListParamsSchema } from "./history.js";
+import { IN_FLIGHT_METHOD, type InFlightResult, inFlightParamsSchema } from "./in-flight.js";
+import {
+  KEY_CONTEXT_METHOD,
+  type KeyContextResult,
+  keyContextParamsSchema,
+} from "./key-context.js";
 import {
   KEY_INTEGRITY_METHOD,
   type KeyIntegrityResult,
@@ -18,16 +25,43 @@ import {
 } from "./key-integrity.js";
 import { KEY_VALUE_METHOD, type KeyValueResult, keyValueParamsSchema } from "./key-value.js";
 import {
+  LOCALE_INTEGRITY_METHOD,
+  type LocaleIntegrityResult,
+  localeIntegrityParamsSchema,
+} from "./locale-integrity.js";
+import {
   LOCALE_VALUES_METHOD,
   type LocaleValuesResult,
   localeValuesParamsSchema,
 } from "./locale-values.js";
 import { LOCK_STATE_METHOD, type LockStateResult, lockStateParamsSchema } from "./lock.js";
 import {
+  RETRANSLATE_ENTRIES_METHOD,
+  type RetranslateEntriesResult,
+  retranslateEntriesParamsSchema,
+} from "./retranslate-entries.js";
+import {
   RETRANSLATE_ENTRY_METHOD,
   type RetranslateEntryResult,
   retranslateEntryParamsSchema,
 } from "./retranslate-entry.js";
+import {
+  REVIEW_APPROVE_MANY_METHOD,
+  REVIEW_REJECT_MANY_METHOD,
+  type ReviewBatchResult,
+  reviewBatchParamsSchema,
+} from "./review-batch.js";
+import {
+  REVIEW_APPROVE_METHOD,
+  REVIEW_REJECT_METHOD,
+  type ReviewDecisionResult,
+  reviewDecisionParamsSchema,
+} from "./review-decision.js";
+import {
+  REVIEW_APPROVE_LOCALE_METHOD,
+  type ReviewApproveLocaleResult,
+  reviewApproveLocaleParamsSchema,
+} from "./review-locale.js";
 import {
   REVIEW_QUEUE_METHOD,
   type ReviewQueueResult,
@@ -60,9 +94,19 @@ export const rpcParamsSchemas = {
   [KEY_INTEGRITY_METHOD]: keyIntegrityParamsSchema,
   [RETRANSLATE_ENTRY_METHOD]: retranslateEntryParamsSchema,
   [REVIEW_QUEUE_METHOD]: reviewQueueParamsSchema,
+  [REVIEW_APPROVE_METHOD]: reviewDecisionParamsSchema,
+  [REVIEW_REJECT_METHOD]: reviewDecisionParamsSchema,
+  [REVIEW_APPROVE_MANY_METHOD]: reviewBatchParamsSchema,
+  [REVIEW_REJECT_MANY_METHOD]: reviewBatchParamsSchema,
+  [REVIEW_APPROVE_LOCALE_METHOD]: reviewApproveLocaleParamsSchema,
+  [RETRANSLATE_ENTRIES_METHOD]: retranslateEntriesParamsSchema,
+  [IN_FLIGHT_METHOD]: inFlightParamsSchema,
   [EDIT_ENTRY_METHOD]: editEntryParamsSchema,
   [KEY_VALUE_METHOD]: keyValueParamsSchema,
+  [KEY_CONTEXT_METHOD]: keyContextParamsSchema,
   [LOCALE_VALUES_METHOD]: localeValuesParamsSchema,
+  [LOCALE_INTEGRITY_METHOD]: localeIntegrityParamsSchema,
+  [ESTIMATE_METHOD]: estimateParamsSchema,
   [TRANSLATE_PENDING_METHOD]: translatePendingParamsSchema,
   [USAGE_SUMMARY_METHOD]: usageSummaryParamsSchema,
 } as const;
@@ -82,9 +126,19 @@ export interface RpcResultMap {
   readonly [KEY_INTEGRITY_METHOD]: KeyIntegrityResult;
   readonly [RETRANSLATE_ENTRY_METHOD]: RetranslateEntryResult;
   readonly [REVIEW_QUEUE_METHOD]: ReviewQueueResult;
+  readonly [REVIEW_APPROVE_METHOD]: ReviewDecisionResult;
+  readonly [REVIEW_REJECT_METHOD]: ReviewDecisionResult;
+  readonly [REVIEW_APPROVE_MANY_METHOD]: ReviewBatchResult;
+  readonly [REVIEW_REJECT_MANY_METHOD]: ReviewBatchResult;
+  readonly [REVIEW_APPROVE_LOCALE_METHOD]: ReviewApproveLocaleResult;
+  readonly [RETRANSLATE_ENTRIES_METHOD]: RetranslateEntriesResult;
+  readonly [IN_FLIGHT_METHOD]: InFlightResult;
   readonly [EDIT_ENTRY_METHOD]: EditEntryResult;
   readonly [KEY_VALUE_METHOD]: KeyValueResult;
+  readonly [KEY_CONTEXT_METHOD]: KeyContextResult;
   readonly [LOCALE_VALUES_METHOD]: LocaleValuesResult;
+  readonly [LOCALE_INTEGRITY_METHOD]: LocaleIntegrityResult;
+  readonly [ESTIMATE_METHOD]: EstimateResult;
   readonly [TRANSLATE_PENDING_METHOD]: TranslatePendingResult;
   readonly [USAGE_SUMMARY_METHOD]: UsageSummaryResult;
 }

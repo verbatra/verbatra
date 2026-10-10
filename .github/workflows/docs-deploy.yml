@@ -14,7 +14,7 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  PROJECT_DIR: ~/verbatra
+  PROJECT_DIR: $HOME/verbatra
 
 jobs:
   build-push-deploy:
@@ -27,7 +27,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
           persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22.18.0"
+
+      - name: Snapshot translation freshness
+        run: node apps/docs/scripts/sync-translation-freshness.mjs
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
@@ -41,8 +50,10 @@ jobs:
 
       - name: Compute image tag
         id: image
+        env:
+          REPOSITORY: ${{ github.repository }}
         run: |
-          IMAGE_PATH="${{ env.REGISTRY }}/${{ github.repository }}-docs"
+          IMAGE_PATH="${REGISTRY}/${REPOSITORY}-docs"
           echo "tag=$(echo "$IMAGE_PATH" | tr '[:upper:]' '[:lower:]'):latest" >> "$GITHUB_OUTPUT"
 
       - name: Build and push Docker image
@@ -78,7 +89,7 @@ jobs:
           envs: ARCJET_KEY,CONTACT_SMTP_HOST,CONTACT_SMTP_PORT,CONTACT_SMTP_USER,CONTACT_SMTP_PASSWORD,CONTACT_SMTP_FROM
           script: |
             set -e
-            cd ${{ env.PROJECT_DIR }}
+            cd "${{ env.PROJECT_DIR }}"
             docker compose pull
             docker compose up -d --remove-orphans
             docker image prune -af

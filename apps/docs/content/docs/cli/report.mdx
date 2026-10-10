@@ -1,0 +1,90 @@
+---
+title: verbatra report
+description: Print a read-only project report. The provenance report lists where each translation came from and whether a person reviewed it.
+status: new
+type: reference
+---
+<AvailableFrom version="0.12.0" />
+
+`verbatra report provenance` reads `verbatra.provenance.json`, the lock file and the locale files, and prints per target locale how many values a machine wrote, how many a person reviewed, and how many people wrote or imported. It calls no provider, needs no API key, and writes nothing. The report is supporting evidence, not legal advice.
+
+## Synopsis
+
+```bash
+verbatra report <report> [flags]
+```
+
+- `<report>`: the report to print. `provenance` is the only one today; any other name is a usage error.
+
+## Examples
+
+```bash
+# counts per locale: machine and unreviewed, machine and reviewed, human, imported, and the rest
+verbatra report provenance
+
+# every key's origin and review state, for an audit file
+verbatra report provenance --json > provenance-report.json
+
+# only the German locale
+verbatra report provenance --locales de
+```
+
+## Flags
+
+| Flag | Argument | Default | Effect |
+| --- | --- | --- | --- |
+| `--locales` | `<list>` | all configured targets | report only this comma-separated subset; an unconfigured locale fails with `UNKNOWN_LOCALE` and an empty list with `INVALID_LOCALES`, both exit `2` |
+
+Also takes the [global flags](/docs/cli#global-flags) `--cwd`, `--config` and `--json`.
+
+## Behavior
+
+### Output
+
+```text output
+verbatra report provenance (source en, verbatra 0.12.0, 2026-09-29T08:00:00.000Z)
+  locale  machine, unreviewed  machine, reviewed  human  import  external  unrecorded  unknown  total
+  de      12                   40                 3      85      1         0           0        141
+Supporting evidence from verbatra.provenance.json, not legal advice. --json lists every key.
+```
+
+The first line names the source locale, the verbatra version and when the report was made. Each row counts the keys that have a value in both the source and that locale. [Machine-translation evidence](/docs/provenance-evidence#the-provenance-report) describes the buckets, what the report can and cannot show, and the full JSON schema.
+
+There is no `--out`: the report goes to stdout, like `check` and `diff`, so redirect it to keep it.
+
+### JSON output
+
+Schema: [`report-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/report-envelope.json) validates the whole envelope; [Schemas](/docs/cli/output#schemas) lists the others.
+
+`--json` prints one [envelope](/docs/cli/output#json-output) whose `result` lists every key's origin, review state, provider, model and reviewer, for an audit file. When the provenance file cannot be read, the result is `{ "available": false, "reason": "provenance-unreadable" }`.
+
+### Unreadable provenance
+
+A report built without a readable provenance file would list every value as `unrecorded`, which is not the same as having no record. The command fails closed with exit `1` instead, like [`check --require-reviewed`](/docs/cli/check), so a CI job does not archive an empty audit file.
+
+### Terminal feedback
+
+The command shows one line while it reads the files. When machine translations wait for review, it suggests Studio:
+
+```text output
+verbatra: reading the provenance record... done (0.1s)
+next: verbatra studio (approve or reject the 12 machine translations no person has reviewed yet)
+```
+
+These lines go to stderr, and `--quiet` drops them. See [Terminal output](/docs/cli/output#terminal-output).
+
+## Exit codes
+
+| Code | Meaning |
+| --- | --- |
+| `0` | the report was printed |
+| `1` | no report: `verbatra.provenance.json` is corrupt or was written by a newer verbatra |
+| `2` | could not run: a config error, an unreadable source or lock file, an unconfigured or empty `--locales` value (`UNKNOWN_LOCALE`, `INVALID_LOCALES`), or an unknown report name |
+
+See [the exit-code contract](/docs/cli/output#exit-codes).
+
+## Related
+
+- [Machine-translation evidence](/docs/provenance-evidence) covers the report, its schema, and the machine-translation markers in XLIFF and TMX exports.
+- [The lock file](/docs/the-lock-file#provenance-who-wrote-each-value) explains the provenance file the report reads.
+- [`verbatra check --require-reviewed`](/docs/cli/check) fails CI while a machine translation is not approved.

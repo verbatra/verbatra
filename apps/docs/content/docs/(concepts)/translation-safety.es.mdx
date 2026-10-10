@@ -1,356 +1,174 @@
 ---
 title: Seguridad de la traducción
 description: "El modelo de seguridad: cadenas no confiables, la puerta de integridad, las señales de revisión, el presupuesto de tokens y errores que nunca filtran nada."
+type: concept
 ---
-verbatra no se fía de la salida de la máquina, y tampoco se fía de las cadenas que traduce. Cada
-resultado pasa una puerta de integridad antes de poder escribirse, todo lo que la puerta rechaza
-aflora como datos en lugar de hacer fallar la ejecución, y los secretos se mantienen fuera de cada
-ruta de error. Esta página cubre cada capa de ese modelo.
+verbatra no se fía ni de las cadenas que traduce ni de lo que devuelve un proveedor.
+
+| Capa | Protege contra | Si falla |
+| --- | --- | --- |
+| Frontera contra la inyección de prompts | una cadena que parece una instrucción | nada que falle: las cadenas son siempre solo datos |
+| Puerta de integridad | placeholders, ICU o marcado rotos, valores vacíos o degenerados | la clave se retiene y se reintenta en la siguiente ejecución |
+| Señales de revisión | un valor válido pero sospechoso | la clave se escribe y entra en la cola de una persona |
+| Presupuesto de tokens | gastar por encima de un techo que tú fijas | el resto de la ejecución se retiene, o se marca |
+| Errores estructurados | una clave o una cabecera que se cuela en un mensaje | un código estable con un mensaje fijo |
 
 ## Cadenas no confiables y la frontera contra la inyección de prompts
 
-verbatra nunca deja que una cadena traducible actúe como una instrucción para la IA. Una cadena
-traducible puede contener texto que parece una instrucción (una cadena de UI que dice
-literalmente "ignora tus instrucciones"), así que verbatra trata cada una como entrada no confiable.
-Las reglas de sistema enviadas a un proveedor LLM son constantes de tiempo de compilación. Toda la
-entrada variable, las entradas a traducir junto con tu glosario y tono, viaja solo en la carga JSON
-de datos del turno de usuario, nunca insertada en el canal de instrucciones. La salida del
-proveedor está restringida a un esquema y se valida como datos: una respuesta malformada falla, y
-una respuesta que contiene una clave que nunca se pidió hace fallar el sublote entero, porque no
-hay una aceptación parcial segura alrededor de contenido inventado.
+Una cadena traducible puede contener texto que parece una instrucción ("ignora tus
+instrucciones"), así que verbatra trata cada cadena como entrada no confiable. Las reglas de sistema
+que se envían a un proveedor LLM son constantes de compilación. Todo lo variable (las entradas, tu
+glosario y tu tono, los nombres de idioma, las categorías de destino de un plural) viaja solo en la
+carga JSON del turno de usuario, nunca en el canal de instrucciones. La respuesta debe ajustarse a
+un esquema fijo; una respuesta con una clave que nunca se pidió hace fallar su sublote entero.
+
+### Nombres de idioma, escritura y región
+
+<AvailableFrom version="0.12.0" />
+
+Un código de locale solo no siempre basta: `sr-Latn` a menudo vuelve en cirílico, y `pt-BR` y
+`pt-PT` se confunden. Por eso un proveedor LLM también recibe el nombre en inglés, la escritura y la
+región de cada idioma, tomados de Node.js para el locale de tu configuración aunque `localeMap` envíe
+otro código. Viajan como datos, una regla de sistema fija pide al modelo que escriba en la escritura
+y la variante nombradas, y no forman parte de la huella de la [caché](/es/docs/the-cache). Un código que
+Node.js no sabe nombrar, como el de uso privado `qaa`, se envía sin nombre.
 
 ## La puerta de integridad
 
-Una traducción válida según el esquema todavía puede estar rota, así que una única puerta recalcula
-la decisión de aceptar o rechazar directamente a partir del valor candidato; el informe de
-integridad del propio proveedor nunca se toma por bueno. La misma puerta se ejecuta en cada ruta de
-escritura: una traducción venida del proveedor, una fila importada de un libro de Excel y una
-edición tecleada por una persona en Studio. También se ejecuta por clave sobre un valor reutilizado.
-Cuando una misma traducción se sirve a varias claves con el mismo contenido de origen (un acierto de
-[caché](/docs/the-cache), o la copia que hace que un texto idéntico cueste una sola petición al
-proveedor), cada clave pasa la puerta contra su propia entrada de origen, y una clave cuya
-comprobación falla se retiene en lugar de escribirse. La igualdad la decide un hash de contenido que
-trata el texto como igual salvo por la normalización Unicode NFC y los finales de línea LF, así que
-dos claves pueden coincidir sin ser idénticas byte a byte. Por eso mismo la puerta se ejecuta de
-nuevo por clave.
+Una traducción que cumple el esquema aún puede estar rota, así que una puerta decide a partir del
+propio valor candidato si lo acepta; nunca se fía del informe del proveedor. La misma puerta se
+aplica en todas las vías de escritura: una respuesta del proveedor, un acierto de caché, una fila
+importada de un libro de trabajo y una edición escrita en Studio. Un valor compartido por varias
+claves con el mismo texto de origen se comprueba clave por clave frente al origen de cada una.
 
-- Integridad de los placeholders: el valor traducido debe llevar los mismos placeholders que su
-  origen, comparados como multiconjunto (las cantidades importan, el orden no). Elimina, añade o
-  altera uno y la candidata se rechaza. Qué cuenta como placeholder se define por formato; consulta
-  [Formatos](/docs/formats).
-- Integridad ICU: para los formatos ICU (next-intl y ARB, que usan la sintaxis ICU MessageFormat
-  para plurales y sentencias select), el valor traducido debe seguir parseándose como un mensaje
-  válido. Una candidata que conserva todos los placeholders pero rompe la estructura de plural o de
-  select también se rechaza. Para estos formatos la comparación de placeholders además distingue
-  ramas: un placeholder fabricado dentro de una rama de plural se detecta aunque exista
-  legítimamente en otra.
-- Tokens de llave simple fabricados: en los formatos de doble llave (i18next, ngx-translate y YAML),
-  un token con forma `{name}` es texto literal corriente y no interpolación, así que no se extrae
-  como placeholder ni tiene que sobrevivir a una traducción. Inventar uno se sigue rechazando: un
-  token con forma `{name}` que aparece en la candidata y nunca apareció en el origen es una
-  fabricación bajo cualquier convención de interpolación, y eso es lo que hace seguro rechazarlo sin
-  conocer los delimitadores de tu proyecto. La comprobación se ejecuta solo en esa dirección, así
-  que una candidata que elimina o cambia el texto literal que lo rodea se deja pasar.
-- Paridad del marcado en línea: el valor traducido debe llevar las mismas etiquetas HTML o XML en
-  línea que su origen, y llevarlas bien formadas. Una etiqueta perdida, inventada, renombrada o sin
-  equilibrar rompe la representación de una cadena igual que un placeholder perdido rompe su
-  interpolación, así que se rechaza de la misma manera. Consulta
-  [Paridad del marcado en línea](#paridad-del-marcado-en-línea) más abajo.
-- Degeneración: el valor no debe ser estructuralmente degenerado, como un bucle de repetición o una
-  longitud que se ha disparado respecto al origen. Esto detecta un modelo que colapsó repitiendo un
-  fragmento aunque todos los placeholders sobrevivieran.
-- Vacío: un origen no vacío no puede traducirse a un valor vacío ni compuesto solo de espacios.
-  Vaciar una traducción es un acto aparte y deliberado, y el centinela `[[CLEAR]]` del libro de
-  Excel es la forma de hacerlo; consulta [Traducción manual](/docs/manual-translation).
+| Comprobación | Un candidato se rechaza cuando |
+| --- | --- |
+| Placeholders | sus placeholders difieren de los del origen, comparados como un multiconjunto (el número cuenta, el orden no). Qué cuenta como placeholder lo define cada [formato](/es/docs/formats). |
+| ICU | en next-intl y ARB, ya no se puede analizar como mensaje ICU, o sus ramas de plural no encajan con el idioma de destino (abajo). La comparación tiene en cuenta las ramas, así que se detecta un placeholder inventado dentro de una rama de plural. |
+| Tokens inventados | en i18next, ngx-translate y YAML, añade un token con forma `{name}` que el origen nunca tuvo. Quitar uno está permitido, porque ahí las llaves simples son texto literal. |
+| Marcado en línea | sus etiquetas HTML o XML difieren de las del origen, o están desequilibradas (abajo). |
+| Degeneración | es un bucle de repeticiones, o su longitud se ha disparado respecto al origen. |
+| Vacío | está vacío o solo tiene espacios para un origen que no lo está. Vaciar una traducción es un acto deliberado: lo hace el marcador `[[CLEAR]]` del libro de trabajo ([Traducción manual](/es/docs/manual-translation)). |
 
-Una candidata rechazada se retiene como datos, nunca se escribe: aparece en el resumen de la
-ejecución como una discordancia de integridad, conserva su hash anterior en
-[el archivo de bloqueo](/docs/the-lock-file) y se reintenta en la siguiente ejecución. Retenida
-también se mantiene separada de fallida: una clave para la que no se tradujo nada (la llamada al
-proveedor lanzó un error, o la clave seguía faltando tras la ronda acotada de reparación) se
-informa como un fallo de proveedor, no como una discordancia de integridad. Ambas se reintentan de
-la misma manera.
+Un candidato que incumple varias comprobaciones se rechaza con un solo motivo, el primero que se
+aplica en este orden: `empty`, `icu` (no se puede analizar), `placeholder`, `markup`, `icu` (ramas),
+`degenerate`. Cada motivo, y los detalles que verbatra imprime con él, está en
+[Motivos de rechazo por integridad](/es/docs/error-codes#integrity-refusal-reasons).
 
-Del lado del origen, una clave de origen cuyo propio valor es ICU inválido se aparta antes de la
-traducción y se notifica, en lugar de enviarse al proveedor en un estado roto.
+Lo que garantiza la puerta: un valor rechazado nunca se escribe. Aparece en el resumen de la
+ejecución como discrepancia de integridad, conserva su hash anterior en
+[el archivo de bloqueo](/es/docs/the-lock-file) y se reintenta en la siguiente ejecución. Una clave que
+no recibió ninguna traducción (la llamada al proveedor falló, o la clave seguía ausente tras una
+petición de reparación) se informa en cambio como fallo del proveedor, y se reintenta igual. Del
+lado del origen, una clave cuyo propio valor tiene ICU no válido se aparta antes de traducir.
+
+Lo que no garantiza: que la traducción sea correcta. Demuestra la estructura, no el significado.
+
+### Ramas de plural por idioma de destino
+
+<AvailableFrom version="0.12.0" />
+
+Un plural ICU tiene una rama por categoría de plural CLDR de su idioma
+([ejemplos](/es/docs/language-support#plurales)). Para next-intl y ARB, verbatra lee las categorías del
+idioma de destino de los datos CLDR integrados en Node.js:
+
+- A un proveedor LLM se le piden exactamente esas ramas (cardinales para `plural`, ordinales para
+  `selectordinal`). Las categorías viajan como datos, así que la frontera contra la inyección no
+  cambia.
+- La puerta rechaza un `plural` o `selectordinal` al que le falta una rama obligatoria o que
+  conserva una que el idioma no tiene, en todas las vías de escritura, y nombra cada rama incorrecta.
+- Las ramas de valor exacto como `=0` deben sobrevivir todas, y una traducción puede añadir más. Las
+  ramas de `select` son claves de tu código, así que una traducción conserva exactamente las del
+  origen.
+- Para un locale del que Node.js no tiene reglas de plural, solo se exige `other`.
+
+Un valor escrito antes de esta comprobación, como un plural francés sin `many`, se queda hasta que
+cambie su origen; [`verbatra check --qa`](/es/docs/cli/check#control-de-calidad) lo encuentra ya.
 
 ### Paridad del marcado en línea
 
 <AvailableFrom version="0.11.0" />
 
-El texto enriquecido llega a una cadena traducible como marcado en línea: un `<b>` alrededor de
-parte de un bloque `Trans` de i18next, un `&lt;b&gt;` escapado dentro de un `<string>` de Android,
-un `<a href>` en un catálogo de gettext. Nada de eso es un placeholder, así que hasta ahora nada lo
-comparaba.
+Una etiqueta en línea perdida o rota (un `<b>` en un bloque `Trans` de i18next, un `&lt;b&gt;`
+escapado en un `<string>` de Android, un `<a href>` en gettext) rompe la representación, así que la
+puerta compara nombres de etiqueta y de atributo como un multiconjunto:
 
-Las etiquetas se comparan como un multiconjunto de nombres de etiqueta más nombres de atributo, y
-eso es lo que decide si algo es un hallazgo:
+- **Se rechaza**: una etiqueta quitada, inventada o renombrada; un conjunto distinto de nombres de
+  atributo (incluido añadir `dir`); marcado desequilibrado o mal anidado; dos etiquetas fusionadas
+  en una.
+- **Se acepta**: las mismas etiquetas en otro orden; un valor de atributo traducido como `title` o
+  `alt`; `<br>` escrito como `<br/>`.
+- **Valores vigilados**: un atributo de URL debe conservar su esquema y su host (`/docs` puede pasar
+  a `/de/docs`, nunca a `https://evil.example/docs`), una URL `javascript:` se rechaza, y valores
+  como `style`, los manejadores de eventos o un `<meta content>` deben quedar exactamente como en el
+  origen.
+- **No se traduce**: el contenido de `script`, `style` y elementos parecidos debe volver sin
+  cambios. Escapa esa etiqueta en la prosa (`&lt;script&gt;`) para traducir el texto que la rodea.
 
-- Rechazado: una etiqueta perdida, una etiqueta inventada, una etiqueta renombrada, un conjunto
-  distinto de nombres de atributo, marcado que vuelve sin equilibrar o mal anidado, como
-  `<b>a<i>b</b></i>`, y una etiqueta que vuelve anidada dentro de otra del mismo nombre cuando el
-  origen las tenía como hermanas, que es como dos enlaces se convierten en uno en silencio.
-- Aceptado: las mismas etiquetas en otro orden, porque traducir una frase mueve su marcado de sitio,
-  un valor de atributo distinto, porque un `title` traducido o un `href` localizado es una
-  traducción correcta y no una rota (dentro de los límites para los valores de atributo que se
-  describen más abajo), y cualquiera de las dos grafías de un elemento vacío, así que `<br>` y
-  `<br/>` son la misma etiqueta.
-- Contado, no solo advertido: dos pares adyacentes fusionados en uno (`<b>a</b> <b>b</b>` que pasa a
-  ser `<b>a b</b>`) se rechaza, porque la comparación no puede distinguir una fusión cosmética de
-  dos enlaces que se convierten en uno.
-- Comparado de forma exacta, así que un cambio de mayúsculas es un hallazgo. Los elementos vacíos de
-  HTML (`<br>`, `<img>`, `<hr>` y el resto) no necesitan cierre se escriban como se escriban, así
-  que `<BR>` se reconoce como elemento vacío igual que `<br>`.
-- Rechazado cuando se añade o se quita un nombre de atributo, lo que incluye añadir un atributo
-  `dir` para un destino de derecha a izquierda. Los valores de los atributos son libres salvo por
-  esos límites; el conjunto de nombres no lo es.
-
-Un origen sin ningún marcado también está protegido frente al marcado que se le invente. La
-candidata se rechaza por cualquier par de etiquetas, elemento vacío o etiqueta autocerrada que
-añada, por una etiqueta de cierre sin apertura (`Hallo</div>`) y por una etiqueta de apertura sin
-cerrar que lleve algo más que su nombre, como `<Enter onfocus=...>` o `<x-key onmouseover=...>`.
-
-Un `<Word>` sin cerrar que no lleva más que su nombre, y cuyo nombre solo tiene letras, dígitos,
-guiones y guiones bajos, es una palabra entre corchetes angulares, como `<Enter>` en
-`Druecke <Enter>`. Estas palabras se apartan en ambos lados antes de juzgar el origen, así que un
-origen que lleve una se sigue comparando: una candidata que pierda un par `<b>` junto a `<Enter>`, o
-que invente un par `<script>` junto a ella, se rechaza. En cuanto el origen lleva etiquetas, las
-palabras entre corchetes angulares se cuentan como etiquetas. Si no lleva ninguna, una palabra entre
-corchetes angulares que añada la candidata se lee como texto y se acepta, salvo que su nombre, se
-escriba como se escriba, sea un elemento estándar de HTML (`Hallo <script>`), sea `image`, que un
-analizador convierte en un `<img>`, o contenga un guion, lo que lo convierte en un elemento
-personalizado (`Hallo <my-widget>`).
-
-Esa comprobación del nombre es deliberadamente prudente, así que una palabra corriente que resulte
-ser un nombre de elemento, como `<Del>`, `<Option>`, `<Select>`, `<Input>` o `<Menu>`, se rechaza
-cuando una traducción la añade a un origen que no la tiene. Como solución, mantén la palabra entre
-corchetes angulares también en tu texto de origen: una traducción que lleve las mismas palabras
-entre corchetes angulares que su origen se acepta.
-
-Los comentarios, las secciones CDATA, las declaraciones y las instrucciones de procesamiento no son
-etiquetas, y se leen como las lee un analizador de HTML, porque ahí es donde acaban los valores.
-`<!-->` y `<!--->` son comentarios vacíos completos, un comentario termina en el primer `-->` o
-`--!>`, y un comentario sin final oculta el resto del valor. `<![CDATA[`, `<!DOCTYPE html>`,
-cualquier otro `<!...`, `<?...` y un `</` seguido de algo que no sea una letra, como `</1 x>`,
-terminan todos en el primer `>`, mientras que un `</>` vacío se descarta, igual que lo descarta un
-analizador, y una etiqueta de cierre numérica como `</0>` se compara como etiqueta. Cada una de
-estas construcciones se compara como un multiconjunto de su texto, con las secuencias de espacios
-reducidas a uno, así que una que la candidata añada, pierda o reescriba se rechaza, incluido un
-comentario cuyo texto se tradujo. Las etiquetas que siguen al final de una construcción se comparan
-como siempre, así que `Hallo <![CDATA[><img src=x onerror=...>]]>` se rechaza tanto por la
-construcción como por el `<img>`.
-
-El contenido de un elemento de texto sin formato también es texto, porque así lo lee un analizador.
-Tras una etiqueta de apertura `script`, `style`, `title`, `textarea`, `xmp`, `iframe`, `noscript`,
-`noembed` o `noframes`, todo hasta su etiqueta de cierre, escrita como se escriba y seguida de un
-espacio, `/` o `>`, es texto, y todo lo que sigue a `<plaintext>` es texto hasta el final del valor.
-Una etiqueta escrita dentro de un elemento así no se compara, y un valor de atributo entre comillas
-no puede extenderse más allá de la etiqueta de cierre para ocultar lo que sigue:
-`Füge ein <script><b x="</script><img src=x onerror=...>` se rechaza por el `<img>`. Cuando un
-analizador puede leer ese contenido de dos maneras, la candidata se rechaza salvo que sea el origen
-sin cambios, con un detalle como `+<noscript>...</noscript>`: un `script` cuyo contenido abre
-`<!--`, un `noscript` cuyo contenido lleva un `<`, porque entonces cómo se lee depende de si los
-scripts están activados, y cualquier elemento de texto sin formato cuyo contenido lleva un `<`
-después de una etiqueta `svg`, `math` o `select`, donde puede que ni siquiera sea texto sin formato.
-Por la misma razón, una sección CDATA o una etiqueta `image` en un valor donde el origen o la
-candidata abre `svg`, `math` o `select` se rechaza salvo que la candidata sea el origen sin cambios.
-
-El contenido de un elemento `script`, `style`, `iframe`, `noembed`, `noframes`, `noscript`, `xmp` o
-`plaintext` se ejecuta o da estilo a la página en lugar de mostrarse, así que nunca se traduce: cada
-elemento así en la candidata tiene que llevar exactamente el contenido del elemento en la misma
-posición entre los de su nombre en el origen, o la candidata se rechaza con un detalle como
-`+<script> content`. El contenido de `title` y `textarea` se muestra como texto y se puede traducir.
-Esto hace que un texto corriente que contenga literalmente una de esas etiquetas no se pueda
-traducir, porque en `Add a <script> tag` todo lo que sigue a `<script>` es su contenido:
-`Füge ein <script> Tag` se rechaza. En su lugar, escapa la etiqueta en el origen, como
-`Add a &lt;script&gt; tag`, que es texto en cualquier formato y se traduce como cualquier otra
-palabra.
-
-La comprobación es deliberadamente discreta, pero lee las etiquetas como lo hace un analizador de
-HTML. Una etiqueta empieza en `<` o `</` seguido de una letra o, en una etiqueta numérica de texto
-enriquecido como `<0>`, de dígitos. Su nombre llega hasta un espacio, `/` o `>`, y un valor de
-atributo entre comillas puede contener `>`. Así que `5 < 10`, `x <= y` y un `&lt;b&gt;` escapado
-siguen siendo texto corriente, mientras que `<support@example.com>` y `<abbr title="a > b">` son
-etiquetas, y un `<` que nunca llega a su `>` no representa nada y no es una etiqueta. Una candidata
-que deja así una etiqueta sin terminar se rechaza de todos modos cuando su origen termina todas sus
-etiquetas, con un detalle que nombra el comienzo sin terminar, como `+<a`. Un origen cuyas propias
-etiquetas están mal formadas se compara igualmente. Tras apartar las etiquetas que el formato
-declara como placeholders y las palabras entre corchetes angulares, un origen cuenta como mal
-formado cuando tiene una etiqueta de apertura que nunca se cierra (salvo los elementos vacíos), una
-etiqueta de cierre sin apertura o etiquetas cerradas en el orden equivocado. El texto corriente
-puede provocarlo sin querer: en `a<b and c>d`, `<b and c>` es una etiqueta de apertura `b` con los
-atributos `and` y `c` que nunca se cierra, así que el origen cuenta como mal formado. Para un origen
-así solo se omite la comprobación del anidamiento: sus etiquetas se comparan como un multiconjunto
-igual que cualquier otro, así que una traducción que conserva `a<b and c>d` tal cual se acepta, una
-que añade un `<img>` a su lado se rechaza, y también una que traduce las palabras dentro de la
-secuencia (`a<b und c>d`), porque un analizador lee `und` como un atributo nuevo. Tampoco hay origen
-demasiado grande para compararlo. Una candidata solo se rechaza cuando lleva más del doble de
-etiquetas y construcciones que su origen, o más de 256 para un origen más pequeño, con el detalle
-`+more than N inline tags` que nombra ese límite.
-
-Los valores de los atributos son libres con excepciones, que existen porque un valor traducido acaba
-en una página. El valor de un atributo de URL (`href`, `src`, `action`, `formaction`, `xlink:href`,
-`poster`, `data`, `background`, `ping`, `cite`, `longdesc`, `srcset`, `manifest`, `codebase`,
-`archive`, y los atributos de animación SVG `to`, `from`, `values` y `by`) se lee tras decodificar
-las referencias numéricas de caracteres y `&colon;`, `&Tab;`, `&NewLine;`, `&sol;` y `&bsol;` e
-ignorar tabuladores, saltos de línea y caracteres de control alrededor. Un esquema `javascript:`,
-`vbscript:` o `data:` en él se rechaza salvo que el origen lleve exactamente ese valor en la misma
-etiqueta y el mismo atributo, con un detalle como `+<a href="javascript:...">`. Además, cada URL del
-valor, incluida cada URL de una lista `srcset`, `ping`, `archive` o `values`, tiene que conservar un
-esquema y una autoridad (host y puerto, o el host de una URL relativa al esquema `//host`) que tenga
-un valor de origen de la misma etiqueta y el mismo atributo, y una URL relativa tiene que seguir
-siendo relativa. Así, `/docs` puede pasar a `/de/docs` y `https://verbatra.dev/en` a
-`https://verbatra.dev/de`, pero `/docs` no puede pasar a `https://evil.example/docs` ni a
-`//evil.example/docs`, y un enlace absoluto localizado tiene que conservar el mismo host; el detalle
-nombra el nuevo origen, como `+<a href="https://evil.example...">`, o `+<a href="./...">` para un
-enlace absoluto que se volvió relativo. La ruta, la consulta y el fragmento pueden cambiar
-libremente. Una URL cambiada sin un esquema explícito `http`, `https`, `ws`, `wss`, `ftp` o `file`
-también se rechaza cuando lleva una barra invertida (`\` o `%5C`) en sus barras iniciales o en su
-host, porque una página con otro esquema lee `//verbatra.dev\@evil.example/` como un enlace a
-evil.example.
-
-Algunos valores de atributo tienen que volver exactamente como los tiene el origen, comparados tras
-decodificar las referencias de caracteres, con un detalle como `+<meta content="...">`: `http-equiv`
-y `content` en `meta`; `type`, `nomodule`, `integrity` y `crossorigin` en `script`; `rel`, `as`,
-`integrity`, `crossorigin` y `type` en `link`; `target` en `base`; `attributeName` y `attributeType`
-en `set`, `animate`, `animateTransform` y `animateMotion`; `sandbox`, `allow` y `allowfullscreen` en
-`iframe`; `method`, `enctype` y `target` en `form`; y `style`, `srcdoc` y cualquier manejador de
-eventos como `onclick` en cualquier elemento. Un atributo traducible como `title` o `alt` sigue
-siendo libre.
-
-De comparar valores enteros se siguen dos límites propios del formato. En un formato que mete varias
-formas plurales en un mismo valor separadas por una barra vertical (Vue I18n), una traducción que
-añade las formas que su idioma necesita repite el marcado del origen y se rechaza. Lo mismo pasa con
-un plural de estilo ICU (`{count, plural, one {...} other {...}}`) en un formato que lo guarda como
-texto plano en lugar de analizarlo como ICU (i18next, ngx-translate y YAML): una traducción con un
-número de formas distinto al del origen repite o pierde el marcado que contienen y se rechaza. En
-ambos casos el valor se retiene y la traducción anterior se conserva, así que no se pierde nada,
-pero las formas hay que añadirlas sin multiplicar también el marcado.
-
-La comprobación también se retira etiqueta por etiqueta. Una etiqueta que el formato ya declara
-como placeholder (un elemento en línea de XLIFF, una etiqueta de texto enriquecido ICU de next-intl
-o ARB) queda para la comprobación de placeholders, junto con tantas etiquetas de cierre como aperturas
-tenga, y nunca se informa dos veces. Una etiqueta de apertura de ese tipo que la candidata deja sin
-cerrar se rechaza igualmente, nombrada por la etiqueta de cierre que le falta, como `-</g>`. Lo
-mismo vale para una cuyo anidamiento con las demás etiquetas ya no coincide con el origen, como un
-`<b>` que vuelve cruzando el `<g>` dentro del que estaba, y para una que el origen solo lleva como
-texto, dentro de un comentario o de un elemento de texto sin formato, porque sacarla de ahí crearía
-el elemento. Cualquier otra etiqueta del mismo valor sí se compara, incluida una etiqueta de cierre
-sobrante como un segundo `</g>`. Un rechazo nombra las etiquetas que lo causaron, cada una con `-`
-si el origen la tenía y la candidata la perdió o `+` si la candidata la inventó.
+También se rechaza el marcado inventado en una cadena que no tenía ninguno, mientras que una
+palabra entre corchetes angulares corriente como `<Enter>` se lee como texto. Las etiquetas que el
+formato ya informa como placeholders se dejan a la comprobación de placeholders. Comentarios,
+texto sin procesar y orígenes mal formados: consulta [`markup`](/es/docs/error-codes#markup).
 
 ## Señales de revisión
 
-Pasar la puerta demuestra que una traducción es estructuralmente segura, no que sea buena, así que
-una segunda capa, orientativa, marca los resultados sospechosos para una persona. Una señal de
-revisión nunca retiene una clave y lleva uno o más códigos de motivo:
+Una segunda capa, consultiva, marca los resultados sospechosos para una persona. Una señal nunca
+retiene una clave: el valor se escribe, se bloquea y entra en la cola de revisión.
 
-- `LENGTH_RATIO_OUTLIER`: la traducción es mucho más corta o larga que su origen (por debajo de
-  0.35x o por encima de 3.0x de la longitud recortada; los orígenes muy cortos se omiten). Un aviso
-  para mirar, no un veredicto.
-- `MAX_LENGTH_EXCEEDED`: la traducción es más larga que el presupuesto absoluto configurado para su
-  clave en [`maxLength`](/docs/config-file). Se cuenta en clústeres de grafemas, sobre el valor tal
-  cual está escrito, y el límite es inclusivo: un valor de exactamente el presupuesto no se marca.
-  Una clave sin presupuesto configurado nunca se mide. Como cada motivo de esta lista, marca en vez
-  de bloquear: una traducción por encima del presupuesto se sigue escribiendo y se sigue bloqueando,
-  porque una traducción correcta que se pasa de un presupuesto de maquetación vale más que ninguna
-  traducción.
-- `EQUALS_SOURCE`: la traducción es literalmente idéntica al origen aunque el locale de destino
-  difiere del locale de origen, y el origen sí tenía texto traducible.
-- `GLOSSARY_TERM_MISSED`: un término del glosario configurado aparece en el origen pero su término
-  de destino asignado está ausente de la traducción. La coincidencia no distingue mayúsculas, y cada
-  lado se mide con un listón distinto a propósito. El lado del origen exige palabra completa, así
-  que el término `AI` no cuenta como presente dentro de `Airport` y no puede crear una expectativa
-  que nadie dio. El lado de destino solo exige que el término aparezca en algún punto de la
-  traducción, porque un término traducido se funde con su entorno con toda legitimidad: compuestos
-  alemanes (`Benutzerkonto`), partículas coreanas (`계정을`), préstamos japoneses. Exigir un límite ahí
-  marcaría traducciones correctas en la mayoría de los idiomas para los que mantendrías un glosario.
-  Un término de origen escrito en una escritura sin separadores de palabra (han, kana, tailandés y
-  similares) tampoco tiene límite al que anclarse, así que recae en la misma regla de subcadena.
-- `INTEGRITY_REORDERED`: el conjunto de placeholders coincidió exactamente pero quedó en un orden
-  distinto al del origen. Solo se dispara sobre una traducción que la puerta ya aceptó.
-- `PROVIDER_DEGRADED`: el lote del que salió esta clave sufrió una degradación controlada por parte
-  del proveedor (una rebaja de formalidad o un glosario ignorado; en el conjunto actual de
-  proveedores, solo DeepL).
-- `FUZZY_CACHE_REUSE`: el valor nunca se tradujo para este texto de origen. Vino de
-  [la caché](/docs/the-cache) como reutilización difusa de un origen anterior casi idéntico que
-  desde entonces se ha editado. La similitud se mide en caracteres, y el significado no es función
-  de la distancia entre caracteres: quitar una negación, invertir un modal o cambiar un nombre
-  propio son ediciones pequeñas que invierten una frase, y ningún umbral las separa de una
-  corrección de errata. Por eso toda reutilización difusa lleva esta razón en cada ejecución, sea
-  cual sea su puntuación. Solo aparece cuando `fuzzyCache` está activado.
+| Motivo | Marca una traducción que |
+| --- | --- |
+| [`LENGTH_RATIO_OUTLIER`](/es/docs/error-codes#length_ratio_outlier) | es mucho más corta o más larga que su origen, ponderada por escritura |
+| [`MAX_LENGTH_EXCEEDED`](/es/docs/error-codes#max_length_exceeded) | supera el presupuesto [`maxLength`](/es/docs/config-file#maxlength) de la clave <AvailableFrom version="0.11.0" /> |
+| [`EQUALS_SOURCE`](/es/docs/error-codes#equals_source) | es idéntica a su texto de origen |
+| [`GLOSSARY_TERM_MISSED`](/es/docs/error-codes#glossary_term_missed) | omite la traducción de un término del glosario, o altera un término que no se traduce |
+| [`GLOSSARY_FORBIDDEN_TERM`](/es/docs/error-codes#glossary_forbidden_term) | usa una forma que el glosario prohíbe <AvailableFrom version="0.12.0" /> |
+| [`INTEGRITY_REORDERED`](/es/docs/error-codes#integrity_reordered) | conserva cada placeholder pero en otro orden |
+| [`PROVIDER_DEGRADED`](/es/docs/error-codes#provider_degraded) | viene de un lote que el proveedor degradó, como una formalidad perdida |
+| [`FUZZY_CACHE_REUSE`](/es/docs/error-codes#fuzzy_cache_reuse) | se [reutilizó de un origen parecido y editado](/es/docs/the-cache#reutilización-difusa) <AvailableFrom version="0.11.0" /> |
+| [`FOREIGN_PLACEHOLDER_CHANGED`](/es/docs/error-codes#foreign_placeholder_changed) | pierde o cambia un token con forma de placeholder que su [formato](/es/docs/formats) no interpola, como `{name}` en i18next <AvailableFrom version="0.12.0" /> |
+| [`BIDI_CONTROLS_CHANGED`](/es/docs/error-codes#bidi_controls_changed) | deja abierto un control de dirección, o añade una anulación que invierte el texto <AvailableFrom version="0.12.0" /> |
 
-<AvailableFrom version="0.11.0" />
+DeepL, Google y LibreTranslate reciben ese token enmascarado y retienen un valor que no pueden
+enmascarar ni restaurar ([`PLACEHOLDER_UNSUPPORTED`](/es/docs/error-codes#placeholder_unsupported)); la marca cubre los LLM y a las personas.
 
-`MAX_LENGTH_EXCEEDED` y `FUZZY_CACHE_REUSE` son los dos motivos más recientes; una ejecución con una
-versión anterior nunca los lleva.
-
-Un valor reutilizado desde [la caché](/docs/the-cache), y un valor propagado a una clave que
-comparte su texto de origen, pasan por las mismas heurísticas de revisión que uno recién
-traducido.
-
-Las claves marcadas afloran por locale como `needsReview` en el resumen de la ejecución, y
-alimentan la cola de revisión: la CLI imprime el recuento, el libro de Excel lleva la misma señal
-en sus columnas de revisión, y la página Review de Studio lista las claves marcadas para irlas
-trabajando; consulta [Revisión en Studio](/docs/review-in-studio). La única forma de limpiar una
-señal es corregir la traducción subyacente.
+Los aciertos de caché y los valores compartidos se marcan como las traducciones nuevas. Las claves
+marcadas aparecen como `needsReview` en el resumen de la ejecución, en las columnas de revisión del
+libro de trabajo y en la [página Review de Studio](/es/docs/review-in-studio), hasta que una persona
+aprueba, rechaza o reescribe el valor
+([Decisiones de revisión](/es/docs/the-lock-file#decisiones-de-revisión)).
 
 ## El presupuesto de tokens
 
-El gasto de proveedor debería tener un techo que fijas tú, no uno que descubres en la factura. Con
-`maxTokens` configurado, verbatra cuenta lo que gasta la ejecución a través de cada llamada al
-proveedor y cada locale de destino. Lo que pasa al llegar al techo es `budgetBehavior`:
+`maxTokens` cuenta los tokens de una ejecución en todas las llamadas y todos los locales;
+`budgetBehavior: "stop"` retiene el resto de la ejecución en cuanto se superaría el techo, para
+reintentarlo en la siguiente ([reglas](/es/docs/config-file#maxtokens-y-budgetbehavior)).
 
-- `warn` (el valor por defecto): la ejecución continúa y el resumen señala que el presupuesto se
-  superó. No se retiene nada.
-- `stop`: cada petición se proyecta antes de enviarse, y una que llevaría la ejecución por encima
-  del techo no se envía en absoluto. Sus claves, y cada candidata restante tras ella, se retienen
-  como `budgetWithheld`, conservan su hash anterior en el bloqueo y se reintentan en la siguiente
-  ejecución.
-
-<AvailableFrom version="0.11.0" />
-
-Antes de 0.11.0, `stop` contaba un sublote solo después de haberlo pagado, así que una ejecución podía
-sobrepasar el techo en un sublote, y no contaba nada para DeepL ni para Google Cloud Translation. La
-proyección antes de cada petición es lo que lo convierte en un techo.
-
-Lo ya hecho nunca se deshace, y no queda nada a medias: lo que se tradujo antes del techo queda
-escrito y bloqueado, y una clave retenida conserva la línea base que tenía, así que una ejecución
-detenida no deja ningún archivo de locale a medio escribir ni ninguna entrada de bloqueo que
-reclame trabajo retenido. La comprobación cubre cada petición que envía la ejecución, incluida cada
-mitad de una petición que se vuelve a dividir tras una respuesta truncada, así que una cascada de
-reintentos no puede adelantar a una reserva. Lo único que una proyección no puede prometer es la
-petición ya en vuelo: puede informar de un consumo mayor que el proyectado, así que el recuento
-final puede terminar por encima de `maxTokens` por la diferencia de esa única petición, y no más.
-Después de eso no se envía nada más. Dos cosas quedan fuera de lo que una reserva puede acotar, porque pasan dentro de una petición ya admitida: la capa de proveedor envía una petición de reparación propia cuando faltan claves, así que un lote admitido puede costar hasta cerca del doble de su proyección, y el recuento vale lo que valga lo que informa el proveedor. Ambas llegan en la reconciliación, y después de eso no se admite nada más.
-
-Conviene decir dos límites con claridad. El techo acota una ejecución, no una sesión: `watch`
-arranca un presupuesto nuevo para cada ejecución que dispara, así que una sesión de watch puede
-gastar hasta `maxTokens` otra vez con cada edición del origen. Y cubre `translate` y nada más:
-retraducir una sola entrada desde [el panel de Studio](/docs/review-in-studio) o desde las herramientas de
-agente sigue su propio camino con su propio proveedor, y ningún presupuesto acota ese gasto.
-
-Con `warn` el presupuesto nunca cambia el código de salida del comando. Con `stop` sí puede: un
-locale al que se le retuvieron claves se informa como `partial` cuando algunas claves sí llegaron a
-escribirse y como `failed` cuando no llegó ninguna, y ambos salen con `1`. Un proveedor que no
-informa de su propio uso de tokens (DeepL, Google Cloud Translation) se cuenta a partir de la
-proyección en lugar de quedar sin medir, así que la salvaguarda también actúa ahí; `supported` en
-el presupuesto del resumen dice que la cifra es la cuenta de verbatra y no la del proveedor.
+Lo que garantiza el presupuesto: el trabajo hecho antes del techo queda escrito y bloqueado, y nada
+se queda a medio escribir. Lo que no: una petición en curso puede costar más de lo proyectado, el
+techo acota una ejecución (no una sesión de `watch`), y no cubre las retraducciones desde Studio o
+de agentes.
 
 ## Los errores nunca filtran nada
 
-Las claves de API vienen solo de variables de entorno, nunca de la configuración ni de argumentos,
-así que no hay ninguna clave en ningún valor que verbatra maneje. Cuando una llamada al SDK de un
-proveedor falla, el error en bruto (que puede llevar cabeceras de la petición o credenciales) se
-descarta, nunca se guarda, registra ni relanza; en su lugar verbatra levanta un error estructurado
-con un código estable (como `RATE_LIMITED`, `TIMEOUT` o `AUTH_FAILED`) y un mensaje estático y sin
-secretos. La misma regla rige toda la ejecución: los avisos y los resúmenes llevan códigos y
-recuentos, no secretos.
+Cuando una llamada al proveedor falla, el error bruto del SDK (que puede llevar cabeceras de la
+petición o credenciales) se descarta: nunca se registra ni se vuelve a lanzar. verbatra lanza en su
+lugar un error estructurado con un [código](/es/docs/error-codes#provider-error-codes) estable y un
+mensaje fijo sin secretos. Cómo se ocultan las claves está en
+[Tratamiento de datos](/es/docs/data-handling#claves-de-api).
 
 ## Dónde lo ves
 
-Todo esto son datos en el resumen de la ejecución, por locale: claves traducidas, discordancias de
-integridad, fallos de proveedor, claves retenidas por presupuesto, claves de origen con ICU
-inválido, señales de revisión y avisos. Nada se oculta, y el fallo de un locale nunca detiene a los
-demás. Consulta [Cómo funciona](/docs/how-it-works) para ver dónde se sitúa cada comprobación en la
-canalización.
+Todo lo anterior son datos en el [resumen de la ejecución](/es/docs/sdk/run-summary), por locale, y el
+fallo de un locale nunca detiene a los demás.
+
+### Valores confirmados
+
+<AvailableFrom version="0.12.0" />
+
+[`verbatra check --qa`](/es/docs/cli/check#control-de-calidad) aplica la puerta y las señales de
+revisión a los valores confirmados sin llamar al proveedor.
+
+## Relacionado
+
+- [Cómo funciona una ejecución](/es/docs/how-it-works): dónde está cada comprobación en la canalización.
+- [Tratamiento de datos y privacidad](/es/docs/data-handling): qué sale de tu máquina.

@@ -5,11 +5,14 @@ export interface GoogleTranslateHttpResponse {
   readonly body: unknown;
 }
 
+export type GoogleTranslateTextFormat = "text" | "html";
+
 export interface GoogleTranslateClient {
   translate(
     texts: readonly string[],
     sourceLang: string,
     targetLang: string,
+    format: GoogleTranslateTextFormat,
     signal: AbortSignal,
   ): Promise<GoogleTranslateHttpResponse>;
 }

@@ -7,6 +7,7 @@ import type { HistoryState } from "./use-history-list.js";
 
 const COMMIT: HistoryCommit = {
   hash: "0123456789abcdef",
+  author: "Ada Lovelace",
   authorDate: "2026-07-18T09:41:12+02:00",
   subject: "chore(i18n): sync de and fr",
   touchedPaths: ["locales/de.json", "locales/fr.json"],
@@ -36,16 +37,37 @@ describe("CommitList", () => {
   });
 
   it("explains a project without git as an empty state rather than an error", () => {
-    const view = render(<CommitList state={{ kind: "unavailable" }} emptyMessage="No commits." />);
+    const view = render(
+      <CommitList
+        state={{ kind: "unavailable", reason: "not-a-repository" }}
+        emptyMessage="No commits."
+      />,
+    );
 
     expect(view.query('[role="alert"]')).toBeNull();
     expect(view.getByText("p", "History unavailable")).not.toBeNull();
     expect(view.text()).toContain("This project is not a git repository, or git is not installed.");
   });
 
+  it.each([
+    ["timeout", "Reading the git history took too long and was stopped."],
+    ["output-too-large", "The git history is too large to read here."],
+    ["git-missing", "This project is not a git repository, or git is not installed."],
+  ] as const)("explains the unavailable reason %s", (reason, message) => {
+    const view = render(
+      <CommitList state={{ kind: "unavailable", reason }} compact emptyMessage="No commits." />,
+    );
+
+    expect(view.text()).toBe(message);
+  });
+
   it("drops the empty-state chrome for the unavailable case when compact", () => {
     const view = render(
-      <CommitList state={{ kind: "unavailable" }} compact emptyMessage="No commits." />,
+      <CommitList
+        state={{ kind: "unavailable", reason: "not-a-repository" }}
+        compact
+        emptyMessage="No commits."
+      />,
     );
 
     expect(view.query('[role="alert"]')).toBeNull();
@@ -103,6 +125,26 @@ describe("CommitList", () => {
     const dateLabel = view.getByText("span", "2026-07-18");
 
     expect(dateLabel.getAttribute("title")).toBe("2026-07-18T09:41:12+02:00");
+  });
+
+  it("names the commit author after the date, so only the name wraps", () => {
+    const view = render(<CommitList state={LOADED} emptyMessage="none" />);
+    const spans = [...view.get("li p + p").querySelectorAll("span")].map(
+      (span) => span.textContent,
+    );
+
+    expect(spans).toEqual(["0123456", "2026-07-18", "Ada Lovelace"]);
+  });
+
+  it("writes the author name as text, so a name shaped like markup never becomes markup", () => {
+    const hostile: HistoryCommit = { ...COMMIT, author: "<img src=x onerror=alert(1)>" };
+
+    const view = render(
+      <CommitList state={{ kind: "loaded", commits: [hostile] }} emptyMessage="none" />,
+    );
+
+    expect(view.query("img")).toBeNull();
+    expect(view.getByText("span", "<img src=x onerror=alert(1)>")).not.toBeNull();
   });
 
   it("writes git-sourced text as text, so a subject shaped like markup never becomes markup", () => {

@@ -23,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: ["22.14.0", "24"]
+        node: ["22.18.0", "24"]
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -53,6 +53,12 @@ jobs:
       - name: Guard the emitted config JSON Schema
         run: pnpm check:config-schema
 
+      - name: Guard the emitted --json result JSON Schemas
+        run: pnpm check:schemas
+
+      - name: Guard lazy provider SDK imports in the sdk bundle
+        run: pnpm check:lazy-provider-sdks
+
       - name: Typecheck
         run: pnpm turbo run typecheck
 
@@ -66,7 +72,7 @@ jobs:
         run: pnpm test:scripts
 
       - name: Upload coverage artifact
-        if: ${{ matrix.node == '22.14.0' }}
+        if: ${{ matrix.node == '22.18.0' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: coverage-reports
@@ -128,7 +134,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: "22.14.0"
+          node-version: "22.18.0"
 
       - name: Guard published dependency changes against a missing changeset
         env:
@@ -152,7 +158,7 @@ jobs:
       - name: Set up workspace
         uses: ./.github/actions/setup-workspace
         with:
-          node-version: "22.14.0"
+          node-version: "22.18.0"
 
       - name: Build
         run: pnpm build
@@ -163,9 +169,13 @@ jobs:
           pnpm --filter @verbatra/sdk pack --pack-destination "$RUNNER_TEMP/packs"
           pnpm --filter @verbatra/cli pack --pack-destination "$RUNNER_TEMP/packs"
           pnpm --filter @verbatra/studio pack --pack-destination "$RUNNER_TEMP/packs"
-          echo "VERBATRA_SDK_TARBALL=$(ls "$RUNNER_TEMP"/packs/verbatra-sdk-*.tgz)" >> "$GITHUB_ENV"
-          echo "VERBATRA_CLI_TARBALL=$(ls "$RUNNER_TEMP"/packs/verbatra-cli-*.tgz)" >> "$GITHUB_ENV"
-          echo "VERBATRA_STUDIO_TARBALL=$(ls "$RUNNER_TEMP"/packs/verbatra-studio-*.tgz)" >> "$GITHUB_ENV"
+          pnpm --filter @verbatra/mcp pack --pack-destination "$RUNNER_TEMP/packs"
+          {
+            echo "VERBATRA_SDK_TARBALL=$(ls "$RUNNER_TEMP"/packs/verbatra-sdk-*.tgz)"
+            echo "VERBATRA_CLI_TARBALL=$(ls "$RUNNER_TEMP"/packs/verbatra-cli-*.tgz)"
+            echo "VERBATRA_STUDIO_TARBALL=$(ls "$RUNNER_TEMP"/packs/verbatra-studio-*.tgz)"
+            echo "VERBATRA_MCP_TARBALL=$(ls "$RUNNER_TEMP"/packs/verbatra-mcp-*.tgz)"
+          } >> "$GITHUB_ENV"
 
       - name: Install e2e harness dependencies
         working-directory: e2e

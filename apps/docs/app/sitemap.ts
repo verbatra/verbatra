@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { i18n, type Locale, localizedPath } from "@/lib/i18n";
-import { homePath, SITE_URL } from "@/lib/site";
+import { homePath, LEGAL_LAST_UPDATED, SITE_URL } from "@/lib/site";
 import { source } from "@/lib/source";
 
 const HOME_PRIORITY: Readonly<Record<Locale, number>> = { en: 1, de: 0.9, es: 0.9, fr: 0.9 };
@@ -54,7 +54,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const legal: MetadataRoute.Sitemap = i18n.languages.flatMap((locale) =>
     LEGAL_PATHS.map((path) => ({
       url: new URL(localizedPath(locale, path), SITE_URL).href,
-      lastModified: buildTime,
+      lastModified: LEGAL_LAST_UPDATED,
       changeFrequency: "monthly",
       priority: 0.3,
       alternates: { languages: legalLanguageAlternates(path) },

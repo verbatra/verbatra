@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.13/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
   "extends": ["./packages/config/biome.json"],
   "files": {
     "includes": [
@@ -10,6 +10,8 @@
       "!**/.next",
       "!**/.source",
       "!**/next-env.d.ts",
+      "!**/verbatra.provenance.json",
+      "!apps/docs/lib/fixtures",
       "!**/.agents",
       "!.claude/skills"
     ]

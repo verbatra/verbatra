@@ -1,7 +1,10 @@
+import type { LocaleGlossary } from "@verbatra/ai-providers";
 import { stableStringHash } from "@verbatra/core";
-import type { ProviderConfig } from "../config/provider-config.js";
+import { glossaryForLocale } from "../config/glossary.js";
+import type { MachineProviderConfig, ProviderConfig } from "../config/provider-config.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { sortRecordKeys } from "../record-utils.js";
+import { type SensitiveGuard, sensitiveGuardFor } from "../sensitive/guard.js";
 
 function fingerprintModel(provider: ProviderConfig): string | null {
   const options: Record<string, unknown> = provider.options;
@@ -9,18 +12,96 @@ function fingerprintModel(provider: ProviderConfig): string | null {
   return typeof model === "string" ? model : null;
 }
 
-function sortGlossary(
-  glossary: Readonly<Record<string, string>> | undefined,
-): Record<string, string> {
-  return glossary === undefined ? {} : sortRecordKeys(glossary);
+function fingerprintLocaleMap(provider: MachineProviderConfig): Record<string, string> | undefined {
+  const localeMap = provider.options.localeMap;
+  if (localeMap === undefined || Object.keys(localeMap).length === 0) {
+    return undefined;
+  }
+  return sortRecordKeys(localeMap);
 }
 
-export function computeFingerprint(config: VerbatraConfig): string {
+function isTermMapOnly(glossary: LocaleGlossary): boolean {
+  return (
+    glossary.doNotTranslate.length === 0 &&
+    glossary.terms.every(
+      (term) =>
+        term.target !== undefined &&
+        term.forbidden.length === 0 &&
+        term.note === undefined &&
+        term.partOfSpeech === undefined,
+    )
+  );
+}
+
+function byCodeUnit(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
+function canonicalGlossary(glossary: LocaleGlossary | undefined): unknown {
+  if (glossary === undefined) {
+    return {};
+  }
+  if (isTermMapOnly(glossary)) {
+    return sortRecordKeys(
+      Object.fromEntries(glossary.terms.map(({ source, target }) => [source, target])),
+    );
+  }
+  return {
+    terms: [...glossary.terms]
+      .sort((a, b) => byCodeUnit(a.source, b.source))
+      .map(({ source, target, forbidden, note, partOfSpeech }) => ({
+        source,
+        target: target ?? null,
+        forbidden: [...forbidden].sort(byCodeUnit),
+        note: note ?? null,
+        partOfSpeech: partOfSpeech ?? null,
+      })),
+    doNotTranslate: glossary.doNotTranslate.map(({ term }) => term).sort(byCodeUnit),
+  };
+}
+
+const HUMAN_ONLY_CANONICAL = JSON.stringify({ provider: "none" });
+
+export type FingerprintFor = (locale: string) => string;
+
+function sentGlossary(
+  config: VerbatraConfig,
+  locale: string,
+  guard: SensitiveGuard | undefined,
+): LocaleGlossary | undefined {
+  const glossary = glossaryForLocale(config.glossary, locale);
+  return guard === undefined ? glossary : guard.glossary(glossary).send;
+}
+
+export function computeFingerprint(
+  config: VerbatraConfig,
+  locale: string,
+  guard: SensitiveGuard | undefined = sensitiveGuardFor(config),
+): string {
+  if (config.provider.id === "none") {
+    return stableStringHash(HUMAN_ONLY_CANONICAL);
+  }
+  const localeMap = fingerprintLocaleMap(config.provider);
   const canonical = JSON.stringify({
     provider: config.provider.id,
     model: fingerprintModel(config.provider),
     tone: config.tone ?? null,
-    glossary: sortGlossary(config.glossary),
+    glossary: canonicalGlossary(sentGlossary(config, locale, guard)),
+    ...(localeMap !== undefined ? { localeMap } : {}),
   });
   return stableStringHash(canonical);
+}
+
+export function fingerprintsFor(config: VerbatraConfig): FingerprintFor {
+  const cache = new Map<string, string>();
+  const guard = sensitiveGuardFor(config);
+  return (locale) => {
+    const known = cache.get(locale);
+    if (known !== undefined) {
+      return known;
+    }
+    const fingerprint = computeFingerprint(config, locale, guard);
+    cache.set(locale, fingerprint);
+    return fingerprint;
+  };
 }

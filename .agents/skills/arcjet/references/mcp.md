@@ -68,11 +68,13 @@ Settings → Connectors → Add connection → URL: `https://api.arcjet.com/mcp`
 
 ## Authentication
 
-OAuth-based. On first connection, you'll be redirected to sign in with your Arcjet account. Subsequent calls authenticate automatically.
+OAuth-based for a human sign-in. On first connection, you'll be redirected to sign in with your Arcjet account. Subsequent calls authenticate automatically.
+
+**Agent registration** (the agent registers for its own identity, not a human browser login): follow https://arcjet.com/auth.md exactly. Do not invent registration, claim, or token-exchange flows, and do not print secrets.
 
 ## Available tools
 
-Once connected, the MCP server exposes tools for managing teams, sites, keys, requests, decisions, traffic analysis, anomaly detection, IP investigation, security briefings, and remote rules. The agent can discover available tools through the MCP protocol directly.
+Once connected, the MCP server exposes tools for managing teams, sites, keys, requests, decisions, traffic analysis, anomaly detection, IP investigation, security briefings, remote rules, and Guard policies. The agent can discover available tools through the MCP protocol directly. Guard policy authoring is MCP-only — the CLI has no policy commands.
 
 ## Common workflows
 
@@ -83,6 +85,8 @@ Once connected, the MCP server exposes tools for managing teams, sites, keys, re
 **Daily security briefing:** `get-security-briefing`
 
 **Add protection without redeploying:** `create-rule` (bot/filter in DRY_RUN) → `get-dry-run-impact` → `promote-rule`
+
+**Author a Guard policy:** `list-guard-policies` → `describe-guard-policy` → `validate-guard-policy` → `put-guard-policy`. Application policies select by `label` / wrapper `action`. Coding-agent policies attach by **Execute on** (Tool call, Prompt, or Model switch), not by label; publishing turns them on. Install Claude Code / Copilot HTTP hooks from https://docs.arcjet.com/coding-agents — copy the templates. The hook URL must not name a policy and must omit `?surface=` (managed settings reach CLI, IDE, Desktop, and cloud; a hard-coded `cli` mislabels most traffic).
 
 ## Security notes
 

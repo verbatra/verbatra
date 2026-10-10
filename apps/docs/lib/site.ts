@@ -3,13 +3,17 @@ import versionData from "./version.generated.json";
 
 export const SITE_URL = "https://verbatra.kreitz-webdev.de";
 
+export const SITE_HOST = new URL(SITE_URL).host;
+
 export const PACKAGE_VERSION = versionData.version;
 
 export const STUDIO_VERSION = versionData.studioVersion;
 
 export const MCP_VERSION = versionData.mcpVersion;
 
-export const LEGAL_LAST_UPDATED = "2026-09-01";
+export const LEGAL_LAST_UPDATED = "2026-10-09";
+
+export const PRIVACY_CONTACT_FORM_ANCHOR = "contact-form";
 
 export function localeAlternates(locale: Locale, path: string) {
   const languages: Record<string, string> = {};

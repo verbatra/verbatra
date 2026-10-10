@@ -1,0 +1,151 @@
+---
+title: Quickstart
+description: Install the CLI, scaffold a config, preview the run without an API key, and translate your first locale file.
+type: tutorial
+---
+By the end of this page an English locale file has a German sibling, written by a provider and checked by verbatra, plus the lock file that makes every later run translate only what changed. You need Node.js `^22.18.0 || >=24` and about ten minutes. The first four steps need no account and no API key.
+
+<Callout title="Already have locale files and a coding agent?">
+Hand your agent the prompt on [Set up with an AI agent](/docs/start-with-ai). It adds verbatra around the locale files your project already has and stops before it spends anything. The steps below start from scratch.
+</Callout>
+
+A quickstart that also loads the translated file in your app exists for [React](/docs/quickstart/react), [Next.js](/docs/quickstart/nextjs), [Vue](/docs/quickstart/vue), [Angular](/docs/quickstart/angular), and [Flutter](/docs/quickstart/flutter).
+
+## Steps
+
+<Steps>
+<Step>
+
+### Install the CLI
+
+```npm
+npm install --save-dev @verbatra/cli
+```
+
+The commands below use `npx`. With pnpm, yarn, or bun, run `pnpm verbatra`, `yarn verbatra`, or `bun run verbatra` instead. If pnpm exits with `ERR_PNPM_IGNORED_BUILDS`, see [Troubleshooting](/docs/troubleshooting#pnpm-blocks-a-dependencys-install-scripts-err_pnpm_ignored_builds).
+
+</Step>
+<Step>
+
+### Add a source locale file
+
+Skip this step if your project already has locale files. Otherwise create one:
+
+```json title="locales/en.json"
+{
+  "greeting": "Hello, {{name}}!",
+  "cart": {
+    "empty": "Your cart is empty."
+  }
+}
+```
+
+</Step>
+<Step>
+
+### Scaffold a config
+
+```bash
+npx @verbatra/cli init --format i18next-json --provider gemini --yes
+```
+
+`--format` names your file format: [Pick your stack](/docs/pick-your-stack) has the id for every framework. `--yes` takes what `init` detected instead of prompting; leave it out to answer the prompts that [`verbatra init`](/docs/cli/init) lists.
+
+```text output
+created verbatra.config.ts
+created .env.example
+created .gitignore (.env, .env.local, .verbatra-local/, verbatra.cache.json)
+detected format i18next-json, pattern locales/{locale}.json, locales en (confidence: medium)
+next steps:
+  - Copy .env.example to .env and set GEMINI_API_KEY there. Never commit .env.
+  - npx @verbatra/cli doctor  (Check the setup. It calls no provider and reads no key value.)
+  - npx @verbatra/cli translate --dry-run  (Preview what a run would translate, without calling the provider.)
+```
+
+The new `verbatra.config.ts` translates from `en` into `de`. Add codes to `targetLocales` for more languages.
+
+</Step>
+<Step>
+
+### Preview the run without a key
+
+```bash
+npx @verbatra/cli translate --dry-run
+```
+
+```text output
+verbatra: dry run over 1 locale, no provider call
+verbatra: de done, 2 would translate
+verbatra translate (dry run)
+  de: 2 would translate, 0 unchanged
+1 succeeded, 0 partial, 0 failed (dry run: nothing written)
+[ok] dry run done in 0.0s, nothing written
+next: verbatra translate (run it for real)
+```
+
+A dry run builds no provider, so it needs no key, spends nothing, and writes nothing. [`verbatra doctor`](/docs/cli/doctor) checks the rest of the setup the same way.
+
+</Step>
+<Step>
+
+### Translate
+
+```bash
+cp .env.example .env
+```
+
+Open `.env` and paste your key after `GEMINI_API_KEY=`. Keys only ever come from the environment, and the CLI loads [`.env.local` and `.env`](/docs/cli#environment-files) into it. No key yet? Gemini has a free tier: create one in [Google AI Studio](https://aistudio.google.com/apikey). Every other provider and its variable is on [Providers](/docs/providers).
+
+```bash
+npx @verbatra/cli translate
+```
+
+verbatra sends the two missing keys to Gemini, checks every result, and writes the German file. The summary starts with `de: 2 translated, 0 unchanged` and lists the tokens the run used. The wording depends on the model, for example:
+
+```json title="locales/de.json"
+{
+  "greeting": "Hallo, {{name}}!",
+  "cart": {
+    "empty": "Dein Warenkorb ist leer."
+  }
+}
+```
+
+</Step>
+<Step>
+
+### Check that every locale is in sync
+
+```bash
+npx @verbatra/cli check
+```
+
+```text output
+[ok] checking the locales (0.0s)
+verbatra check
+  de: 0 missing, 0 stale, 2 up-to-date (in sync)
+all locales in sync
+```
+
+`check` calls no provider and exits `1` as soon as a locale falls out of sync, so the same command can gate a pull request.
+
+</Step>
+</Steps>
+
+## What just happened
+
+- `locales/de.json` holds the same keys in the same order as your source, and `{{name}}` survived: a result that drops a placeholder is withheld, never written. See [Translation safety](/docs/translation-safety).
+- `verbatra.lock.json` records a hash of the source string behind each translation, so the next run sends only new and changed keys. See [The lock file](/docs/the-lock-file).
+- `verbatra.provenance.json` records which provider and model wrote each value. See [Provenance](/docs/the-lock-file#provenance-who-wrote-each-value).
+- `verbatra.cache.json` and `.verbatra-local/` hold the regenerable translation cache and local run state. `init` already gitignored both. See [The translation cache](/docs/the-cache).
+
+Commit the locale files, the lock file, and the provenance file together, so every machine and your CI diff against the same baseline.
+
+## Next
+
+<Cards>
+  <Card title="Add a language" href="/docs/add-a-language" description="Add a target locale and let one run fill it in." />
+  <Card title="Run verbatra in CI" href="/docs/ci-and-exit-codes" description="Fail a pull request when a locale drifts." />
+  <Card title="How a run works" href="/docs/how-it-works" description="The pipeline behind the commands you just ran." />
+  <Card title="Config file" href="/docs/config-file" description="Everything verbatra.config.ts can hold." />
+</Cards>

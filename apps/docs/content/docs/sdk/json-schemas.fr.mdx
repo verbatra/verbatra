@@ -1,0 +1,195 @@
+---
+title: "JSON Schemas"
+description: "Les schémas zod derrière chaque résultat de --json, et les fonctions qui en font les documents JSON Schema publiés."
+type: reference
+---
+<AvailableFrom version="0.12.0" />
+
+Chaque `result` que la CLI affiche avec `--json` a un schéma zod 4 dans le SDK, lié à la compilation au type TypeScript qu'il décrit : les mêmes champs, les mêmes champs optionnels et les mêmes types de valeur, si bien que changer l'un sans l'autre fait échouer la compilation. Son `parse` accepte aussi une valeur venant d'un verbatra plus récent : il admet les champs qu'il ne liste pas et les retire du résultat. Les mêmes schémas sont publiés comme documents JSON Schema ; leurs URL et la règle de versions se trouvent sur [Codes de sortie et sortie JSON](/fr/docs/cli/output#schémas).
+
+## Schémas de résultat
+
+### runSummarySchema
+
+Décrit un [`RunSummary`](/fr/docs/sdk/run-summary), le `result` de `translate`, `watch` et `import`. Publié sous `run-summary.json`.
+
+```ts title="Signature"
+const runSummarySchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### checkSummarySchema
+
+Décrit un `CheckSummary`, le `result` de [`check`](/fr/docs/sdk/inspect#check). Publié sous `check-summary.json`.
+
+```ts title="Signature"
+const checkSummarySchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### checkFileSummarySchema
+
+Décrit un `CheckFileSummary`, le `result` de [`checkFile`](/fr/docs/sdk/inspect#checkfile). Publié sous `check-file-summary.json`.
+
+```ts title="Signature"
+const checkFileSummarySchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### diffSummarySchema
+
+Décrit un `DiffSummary`, le `result` de [`diff`](/fr/docs/sdk/inspect#diff). Publié sous `diff-summary.json`.
+
+```ts title="Signature"
+const diffSummarySchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### doctorResultSchema
+
+Décrit un `DoctorResult`, le `result` de [`doctor`](/fr/docs/sdk/inspect#doctor). Son champ `dataFlow` est [`dataFlowManifestSchema`](/fr/docs/sdk/inspect#dataflowmanifestschema), donc `doctor-result.json` renvoie à `data-flow-manifest.json` au lieu de le répéter.
+
+```ts title="Signature"
+const doctorResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### provenanceReportResultSchema
+
+Décrit un `ProvenanceReportResult`, le `result` de [`provenanceReport`](/fr/docs/sdk/inspect#provenancereport), y compris la variante `available: false`. Publié sous `provenance-report.json`.
+
+```ts title="Signature"
+const provenanceReportResultSchema: z.ZodUnion<readonly [...]>;
+```
+
+### pseudolocalizeResultSchema
+
+Décrit un `PseudolocalizeResult`, le `result` de [`pseudolocalize`](/fr/docs/sdk/run#pseudolocalize). Publié sous `pseudolocalize-result.json`.
+
+```ts title="Signature"
+const pseudolocalizeResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### generateTypesResultSchema
+
+Décrit un `GenerateTypesResult`, le `result` de [`generateTypes`](/fr/docs/sdk/run#generatetypes). Publié sous `generate-types-result.json`.
+
+```ts title="Signature"
+const generateTypesResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### extractResultSchema
+
+Décrit un `ExtractResult`, le `result` de [`extract`](/fr/docs/sdk/inspect#extract). Publié sous `extract-result.json`.
+
+```ts title="Signature"
+const extractResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### exportWorkbookResultSchema
+
+Décrit un `ExportWorkbookResult`, le `result` de [`exportWorkbook`](/fr/docs/sdk/exchange#exportworkbook). Publié sous `export-workbook-result.json`.
+
+```ts title="Signature"
+const exportWorkbookResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### importTmxResultSchema
+
+Décrit un `ImportTmxResult`, le `result` de [`importTmx`](/fr/docs/sdk/exchange#importtmx). Publié sous `import-tmx-result.json`.
+
+```ts title="Signature"
+const importTmxResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### exportTmxResultSchema
+
+Décrit un `ExportTmxResult`, le `result` de [`exportTmx`](/fr/docs/sdk/exchange#exporttmx). Publié sous `export-tmx-result.json`.
+
+```ts title="Signature"
+const exportTmxResultSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+## Schémas partagés
+
+### localeSummarySchema
+
+Décrit un `LocaleSummary`, une entrée de `locales` d'un résumé d'exécution.
+
+```ts title="Signature"
+const localeSummarySchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### keyProvenanceSchema
+
+Décrit un `KeyProvenance`, l'origine enregistrée et l'état de relecture d'une clé.
+
+```ts title="Signature"
+const keyProvenanceSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### provenanceSummarySchema
+
+Décrit un `ProvenanceSummary`, les nombres de clés par origine et par état de relecture que porte une locale de `check`.
+
+```ts title="Signature"
+const provenanceSummarySchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+### keyOriginSchema
+
+Décrit un `KeyOrigin` : qui ou quoi a écrit la valeur actuelle d'une clé.
+
+```ts title="Signature"
+const keyOriginSchema: z.ZodEnum<{ ... }>;
+```
+
+## Enregistrements du flux
+
+### progressEventSchema
+
+Décrit un `ProgressEvent`, ce que reçoit `onProgress`. La CLI affiche certains de ces événements sur stderr avec `--json`. Publié sous `progress-event.json`.
+
+```ts title="Signature"
+const progressEventSchema: z.ZodUnion<readonly [...]>;
+```
+
+### lockWaitEventSchema
+
+Décrit un `LockWaitEvent`, ce que reçoit `onLockWait` pendant qu'une exécution attend le verrou d'écriture d'une locale. La CLI l'affiche sur stderr avec `type: "lock-wait"` en plus. Publié sous `lock-wait-event.json`.
+
+```ts title="Signature"
+const lockWaitEventSchema: z.ZodObject<{ ... }, z.core.$strip>;
+```
+
+## Publication
+
+`SDK_JSON_SCHEMAS` liste chaque document que le SDK publie sous `@verbatra/sdk/schemas/`, chacun avec son `name`, son `title`, son `io` et son `schema` zod. `JSON_SCHEMA_BASE_URL` vaut `https://verbatra.kreitz-webdev.de/schema/v1/`. `KNOWN_ERROR_CODES` liste chaque code d'erreur du SDK, des fournisseurs et des adaptateurs ; le schéma de l'enveloppe d'erreur les propose comme indication tout en acceptant n'importe quel code.
+
+### renderJsonSchemas
+
+Génère les documents JSON Schema propres à verbatra (draft 2020-12) à partir d'une liste de `JsonSchemaDocument`, indexés par nom. Chacun reçoit le `$id` que `jsonSchemaUrl` donne à son nom, une URL de ce site : utilise-le donc seulement pour les documents de verbatra, et `renderOutputJsonSchema` pour un schéma à toi. Un document de sortie accepte toute propriété qu'il ne liste pas ; un document d'entrée, comme la configuration, garde ses objets fermés. Un schéma qui intègre un document de l'une des deux listes y renvoie par URL.
+
+```ts title="Signature"
+function renderJsonSchemas(
+  documents: readonly JsonSchemaDocument[],
+  references?: readonly JsonSchemaDocument[],
+): Readonly<Record<string, JsonSchemaObject>>;
+```
+
+**Renvoie :** un document par entrée de `documents`, chacun avec `$schema`, `$id` et `title`.
+
+### renderOutputJsonSchema
+
+Génère le JSON Schema d'un seul schéma zod comme sont générés les documents de sortie, sans `$id`, par exemple pour l'`outputSchema` d'un outil MCP.
+
+```ts title="Signature"
+function renderOutputJsonSchema(schema: z.ZodType): JsonSchemaObject;
+```
+
+**Renvoie :** `JsonSchemaObject`
+
+### jsonSchemaUrl
+
+Renvoie l'URL publique d'un document publié, qui est aussi son `$id` : `jsonSchemaUrl("run-summary")` vaut `https://verbatra.kreitz-webdev.de/schema/v1/run-summary.json`.
+
+```ts title="Signature"
+function jsonSchemaUrl(name: string): string;
+```
+
+**Renvoie :** `string`

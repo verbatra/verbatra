@@ -1,11 +1,10 @@
 import { join } from "node:path";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { Client, InMemoryTransport } from "@modelcontextprotocol/client";
 import type { TranslateRequest, TranslateResult } from "@verbatra/ai-providers";
 import type { SdkFs } from "@verbatra/sdk";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createMcpServer } from "./server.js";
-import { baseLoadedConfig, makeProject, nodeFs } from "./test-support.js";
+import { baseLoadedConfig, makeProject, nodeFs, staticProject } from "./test-support.js";
 import type { McpServerOptions } from "./types.js";
 
 async function connectedClient(options: McpServerOptions): Promise<Client> {
@@ -25,16 +24,13 @@ function deferred<T>(): { readonly promise: Promise<T>; resolve: (value: T) => v
   return { promise, resolve };
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
-
 async function waitUntil(hasArrived: () => boolean): Promise<void> {
-  while (!hasArrived()) {
-    await sleep(5);
-  }
+  await vi.waitFor(
+    () => {
+      expect(hasArrived()).toBe(true);
+    },
+    { timeout: 30_000, interval: 5 },
+  );
 }
 
 interface ToolCallResponse {
@@ -54,7 +50,7 @@ describe("createMcpServer: translation.retranslateEntry's per-(locale,key) in-fl
     let providerCalls = 0;
 
     const client = await connectedClient({
-      config: baseLoadedConfig(),
+      project: staticProject(baseLoadedConfig()),
       cwd: dir,
       allowSpend: true,
       fs: nodeFs,
@@ -129,7 +125,7 @@ describe("createMcpServer: translation.editEntry's per-(locale,key) in-flight gu
     const targetPath = join(dir, "locales", "de.json");
 
     const client = await connectedClient({
-      config: baseLoadedConfig(),
+      project: staticProject(baseLoadedConfig()),
       cwd: dir,
       fs: delayedWriteFs(targetPath, gate.promise, () => {
         writeCalls += 1;
@@ -168,5 +164,63 @@ describe("createMcpServer: translation.editEntry's per-(locale,key) in-flight gu
       arguments: { locale: "de", key: "greeting", value: "Hallo once more" },
     })) as ToolCallResponse;
     expect(textOf(later)).not.toContain("already in progress");
+  });
+});
+
+describe("createMcpServer: translation.translatePending's single-run in-flight guard", () => {
+  it("rejects a second overlapping run even for a different locale subset, calling the provider for the first run only", async () => {
+    const dir = await makeProject({ greeting: "Hello" }, { de: {}, fr: {} });
+    const gate = deferred<void>();
+    const providerLocales: string[] = [];
+
+    const client = await connectedClient({
+      project: staticProject(
+        baseLoadedConfig({
+          config: { ...baseLoadedConfig().config, targetLocales: ["de", "fr"] },
+        }),
+      ),
+      cwd: dir,
+      allowSpend: true,
+      fs: nodeFs,
+      createProvider: () => ({
+        id: "stub",
+        kind: "llm",
+        supportsGlossary: true,
+        translateBatch: async (request: TranslateRequest): Promise<TranslateResult> => {
+          providerLocales.push(request.targetLocale);
+          await gate.promise;
+          return {
+            values: new Map(request.entries.map((entry) => [entry.key, "Hallo"])),
+            integrity: new Map(),
+          };
+        },
+      }),
+    });
+
+    const firstCall = client.callTool({
+      name: "translation.translatePending",
+      arguments: { locales: ["de"] },
+    }) as Promise<ToolCallResponse>;
+
+    await waitUntil(() => providerLocales.length > 0);
+
+    const otherSubset = (await client.callTool({
+      name: "translation.translatePending",
+      arguments: { locales: ["fr"] },
+    })) as ToolCallResponse;
+    expect(otherSubset.isError).toBe(true);
+    expect(textOf(otherSubset)).toContain("already in progress");
+
+    gate.resolve();
+    const first = await firstCall;
+    expect(first.isError).toBeUndefined();
+    expect(providerLocales).toEqual(["de"]);
+
+    const later = (await client.callTool({
+      name: "translation.translatePending",
+      arguments: { locales: ["fr"] },
+    })) as ToolCallResponse;
+    expect(later.isError).toBeUndefined();
+    expect(providerLocales).toEqual(["de", "fr"]);
   });
 });

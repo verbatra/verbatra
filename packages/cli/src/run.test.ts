@@ -2,12 +2,13 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  errorHint,
   type LockWaitEvent,
   type ProgressEvent,
   SdkError,
   type WatchController,
 } from "@verbatra/sdk";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { JSON_ENVELOPE_VERSION } from "./json-envelope.js";
 import { run, runTranslate } from "./run.js";
 import {
@@ -43,7 +44,8 @@ describe("run translate: SDK delegation and rendering", () => {
     expect(typeof calls.translate[0]?.onLockWait).toBe("function");
     expect(calls.translate[0]).not.toHaveProperty("lockAcquireTimeoutMs");
     expect(cap.out()).toContain("de: 1 translated");
-    expect(cap.err()).toBe("");
+    expect(cap.err()).not.toContain("verbatra: error");
+    expect(cap.err()).toMatch(/^verbatra: translating 1 locale with anthropic\//);
   });
 
   it("--config passes configPath to loadConfig and --cwd feeds both loadConfig and translate", async () => {
@@ -52,7 +54,7 @@ describe("run translate: SDK delegation and rendering", () => {
 
     await run(["translate", "--config", "ci.json", "--cwd", "/proj"], deps, cap.streams);
 
-    expect(calls.loadConfig[0]).toEqual({ cwd: "/proj", configPath: "ci.json" });
+    expect(calls.loadConfigWithMeta[0]).toEqual({ cwd: "/proj", configPath: "ci.json" });
     expect(calls.translate[0]?.cwd).toBe("/proj");
   });
 
@@ -62,8 +64,8 @@ describe("run translate: SDK delegation and rendering", () => {
 
     await run(["translate"], deps, cap.streams);
 
-    expect(calls.loadConfig[0]).toEqual({ cwd: process.cwd() });
-    expect(calls.loadConfig[0]).not.toHaveProperty("configPath");
+    expect(calls.loadConfigWithMeta[0]).toEqual({ cwd: process.cwd() });
+    expect(calls.loadConfigWithMeta[0]).not.toHaveProperty("configPath");
   });
 
   it("--dry-run passes dryRun:true and does a single translate call", async () => {
@@ -347,8 +349,15 @@ describe("run translate: progress reporting", () => {
   const events: readonly ProgressEvent[] = [
     { type: "locale-started", locale: "de", localeIndex: 0, totalLocales: 2 },
     { type: "sub-batch", locale: "de", batchIndex: 1, totalBatches: 2 },
-    { type: "locale-finished", locale: "de", translated: 3, localeIndex: 0, totalLocales: 2 },
-    { type: "run-finished", localesCompleted: 2 },
+    {
+      type: "locale-finished",
+      locale: "de",
+      status: "succeeded",
+      translated: 3,
+      localeIndex: 0,
+      totalLocales: 2,
+    },
+    { type: "run-finished", localesCompleted: 2, localesFailed: 0 },
   ];
 
   it("passes an onProgress function to the SDK translate call", async () => {
@@ -426,6 +435,8 @@ describe("run translate: progress reporting", () => {
   });
 });
 
+const humanOnlyConfig = async () => makeConfig({ provider: { id: "none", options: {} } });
+
 describe("run translate: exit codes", () => {
   it("all locales clean -> 0", async () => {
     const { deps } = recordingDeps({ translate: async () => makeSummary({ succeeded: ["de"] }) });
@@ -474,6 +485,75 @@ describe("run translate: exit codes", () => {
     expect(await run(["translate"], deps, captureStreams().streams)).toBe(1);
   });
 
+  it("a human-only run that left keys for a human -> 3, with a hand-off hint on stderr", async () => {
+    const summary = makeSummary({
+      locales: [makeLocale({ cacheHits: ["greeting"], unfilled: ["farewell", "thanks"] })],
+      succeeded: ["de"],
+    });
+    const { deps } = recordingDeps({ translate: async () => summary, loadConfig: humanOnlyConfig });
+    const cap = captureStreams();
+
+    expect(await run(["translate"], deps, cap.streams)).toBe(3);
+    expect(cap.err()).toContain("2 keys need a human translation");
+    expect(cap.err()).toContain("verbatra export");
+  });
+
+  it("a human-only run with one key left keeps the success envelope under --json -> 3", async () => {
+    const summary = makeSummary({
+      locales: [makeLocale({ unfilled: ["farewell"] })],
+      succeeded: ["de"],
+    });
+    const { deps } = recordingDeps({ translate: async () => summary, loadConfig: humanOnlyConfig });
+    const cap = captureStreams();
+
+    expect(await run(["translate", "--json"], deps, cap.streams)).toBe(3);
+    expect(parseEnvelope(cap.out().trim())).toMatchObject({ ok: true, command: "translate" });
+    expect(cap.err()).not.toContain("human translation");
+  });
+
+  it("writes only JSON records to stderr in a human-only --json run", async () => {
+    const summary = makeSummary({
+      locales: [makeLocale({ unfilled: ["farewell", "greeting"] })],
+      succeeded: ["de"],
+    });
+    const { deps } = recordingDeps({ translate: async () => summary, loadConfig: humanOnlyConfig });
+    const cap = captureStreams();
+
+    expect(await run(["translate", "--json"], deps, cap.streams)).toBe(3);
+    for (const line of cap
+      .err()
+      .split("\n")
+      .filter((entry) => entry !== "")) {
+      expect(() => JSON.parse(line)).not.toThrow();
+    }
+  });
+
+  it("prints no human-only hint when the config names a translation provider", async () => {
+    const summary = makeSummary({
+      locales: [makeLocale({ unfilled: ["farewell"] })],
+      succeeded: ["de"],
+    });
+    const { deps } = recordingDeps({ translate: async () => summary });
+    const cap = captureStreams();
+
+    await run(["translate"], deps, cap.streams);
+
+    expect(cap.err()).not.toContain("machine translation is disabled");
+  });
+
+  it("a failed locale outranks keys left for a human -> 1", async () => {
+    const summary = makeSummary({
+      locales: [
+        makeLocale({ status: "failed", error: { code: "LOCALE_FAILED", message: "x" } }),
+        makeLocale({ locale: "fr", unfilled: ["farewell"] }),
+      ],
+      succeeded: ["fr"],
+      failed: ["de"],
+    });
+    const { deps } = recordingDeps({ translate: async () => summary });
+    expect(await run(["translate"], deps, captureStreams().streams)).toBe(1);
+  });
+
   it("a whole-run SdkError -> 2, structured error on stderr, stdout empty", async () => {
     const { deps } = recordingDeps({
       translate: async () => {
@@ -507,10 +587,11 @@ describe("run translate: exit codes", () => {
       command: "translate",
       code: "CONFIG_INVALID",
       message: "bad config",
+      hint: errorHint(new SdkError("CONFIG_INVALID", "bad config")),
     });
   });
 
-  it("under --json the stderr line is byte-identical to the non-json run's", async () => {
+  it("under --json the stderr error line is byte-identical to the non-json run's", async () => {
     const failing = (): { deps: CliDeps } =>
       recordingDeps({
         loadConfig: async () => {
@@ -523,8 +604,9 @@ describe("run translate: exit codes", () => {
     const json = captureStreams();
     expect(await run(["translate", "--json"], failing().deps, json.streams)).toBe(2);
 
-    expect(human.err()).toBe("verbatra: error [CONFIG_INVALID] bad config\n");
-    expect(json.err()).toBe(human.err());
+    const errorLine = "verbatra: error [CONFIG_INVALID] bad config\n";
+    expect(human.err()).toBe(`${errorLine}next: ${errorHint({ code: "CONFIG_INVALID" })}\n`);
+    expect(json.err()).toBe(errorLine);
     expect(human.out()).toBe("");
   });
 
@@ -547,6 +629,9 @@ describe("run translate: exit codes", () => {
     const failing = (): { deps: CliDeps } =>
       recordingDeps({
         loadConfig: async () => {
+          throw new SdkError("CONFIG_NOT_FOUND", "no config");
+        },
+        loadConfigWithMeta: async () => {
           throw new SdkError("CONFIG_NOT_FOUND", "no config");
         },
       });
@@ -603,7 +688,7 @@ describe("run: shared whole-run error helper (withWholeRunErrors)", () => {
 
     expect(code).toBe(0);
     expect(cap.out()).not.toBe("");
-    expect(cap.err()).toBe("");
+    expect(cap.err()).not.toContain("verbatra: error");
   });
 
   it("passes a data-driven 1 from a non-throwing body through without turning it into 2", async () => {
@@ -613,12 +698,12 @@ describe("run: shared whole-run error helper (withWholeRunErrors)", () => {
     const code = await run(["check"], deps, cap.streams);
 
     expect(code).toBe(1);
-    expect(cap.err()).toBe("");
+    expect(cap.err()).not.toContain("verbatra: error");
   });
 
-  it("maps a whole-run SdkError thrown by loadConfig to 2 with clean stdout (export)", async () => {
+  it("maps a whole-run SdkError thrown by loadConfigWithMeta to 2 with clean stdout (export)", async () => {
     const { deps } = recordingDeps({
-      loadConfig: async () => {
+      loadConfigWithMeta: async () => {
         throw new SdkError("CONFIG_INVALID", "bad config");
       },
     });
@@ -664,6 +749,59 @@ describe("run: usage errors, help, version", () => {
 
     expect(await run(["check", "--nope"], deps, cap.streams)).toBe(2);
     expect(cap.out()).toBe("");
+  });
+
+  describe("a bare invocation", () => {
+    let dir: string;
+
+    beforeEach(() => {
+      dir = mkdtempSync(join(tmpdir(), "verbatra-bare-"));
+      vi.spyOn(process, "cwd").mockReturnValue(dir);
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+      rmSync(dir, { recursive: true, force: true });
+    });
+
+    it("without a config suggests verbatra init on stderr after the help", async () => {
+      const { deps } = recordingDeps();
+      const cap = captureStreams();
+
+      expect(await run([], deps, cap.streams)).toBe(2);
+      expect(cap.err()).toContain("Usage: verbatra");
+      expect(cap.err()).toMatch(/Run verbatra init to set up this project\.\n$/);
+      expect(cap.out()).toBe("");
+    });
+
+    it.each([
+      ["a config file that would throw if it were executed", "verbatra.config.ts", "throw 1;"],
+      ["a .verbatrarc.json", ".verbatrarc.json", "{}"],
+      ["a package.json with a verbatra property", "package.json", '{"verbatra":{}}'],
+    ])("adds no init hint for %s, and never loads it", async (_label, name, content) => {
+      writeFileSync(join(dir, name), content);
+      const { deps, calls } = recordingDeps();
+      const cap = captureStreams();
+
+      expect(await run([], deps, cap.streams)).toBe(2);
+      expect(cap.err()).not.toContain("verbatra init");
+      expect(calls.loadConfigWithMeta).toHaveLength(0);
+    });
+
+    it("still suggests init next to a package.json without a verbatra property", async () => {
+      writeFileSync(join(dir, "package.json"), '{"name":"app"}');
+      const cap = captureStreams();
+
+      expect(await run([], recordingDeps().deps, cap.streams)).toBe(2);
+      expect(cap.err()).toContain("Run verbatra init");
+    });
+  });
+
+  it("an unknown command never looks for a config", async () => {
+    const { deps, calls } = recordingDeps();
+
+    expect(await run(["bogus"], deps, captureStreams().streams)).toBe(2);
+    expect(calls.loadConfigWithMeta).toHaveLength(0);
   });
 
   it("--help and --version exit 0, and --version reports the package version", async () => {
@@ -864,7 +1002,7 @@ describe("run: .env loading is wired before the SDK flow", () => {
     expect(code).toBe(2);
     expect(cap.out()).toBe("");
     expect(cap.err()).not.toBe("");
-    expect(calls.loadConfig).toHaveLength(0);
+    expect(calls.loadConfigWithMeta).toHaveLength(0);
   });
 
   it("watch: a non-ENOENT .env read error (EISDIR) exits 2 with a structured error, no unhandled throw", async () => {
@@ -879,7 +1017,7 @@ describe("run: .env loading is wired before the SDK flow", () => {
     expect(code).toBe(2);
     expect(cap.out()).toBe("");
     expect(cap.err()).not.toBe("");
-    expect(calls.loadConfig).toHaveLength(0);
+    expect(calls.loadConfigWithMeta).toHaveLength(0);
   });
 });
 
@@ -893,7 +1031,7 @@ describe("run translate: rawOpts is zod-validated inside the error scaffold", ()
     expect(code).toBe(2);
     expect(cap.out()).toBe("");
     expect(cap.err()).not.toBe("");
-    expect(calls.loadConfig).toHaveLength(0);
+    expect(calls.loadConfigWithMeta).toHaveLength(0);
   });
 });
 
@@ -911,6 +1049,59 @@ describe("run: init command", () => {
       expect(existsSync(join(dir, "verbatra.config.ts"))).toBe(true);
       expect(existsSync(join(dir, ".env.example"))).toBe(true);
       expect(existsSync(join(dir, ".gitignore"))).toBe(true);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("run: init command for agents", () => {
+  it("maps the openai-compatible flags and --json onto init", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "verbatra-init-run-json-"));
+    try {
+      const { deps } = recordingDeps();
+      const cap = captureStreams();
+      const code = await run(
+        [
+          "init",
+          "--provider",
+          "openai-compatible",
+          "--base-url",
+          "http://localhost:11434/v1",
+          "--model",
+          "llama3.1",
+          "--api-key-env-var",
+          "LOCAL_LLM_KEY",
+          "--format",
+          "yaml",
+          "--source",
+          "en",
+          "--targets",
+          "de",
+          "--path",
+          "i18n/{locale}.yml",
+          "--json",
+          "--cwd",
+          dir,
+        ],
+        deps,
+        cap.streams,
+      );
+      expect(code).toBe(0);
+      expect(parseEnvelope(cap.out())).toMatchObject({
+        ok: true,
+        command: "init",
+        result: {
+          apiKeyEnvVar: "LOCAL_LLM_KEY",
+          config: {
+            format: "yaml",
+            provider: {
+              id: "openai-compatible",
+              options: { baseUrl: "http://localhost:11434/v1", model: "llama3.1" },
+            },
+          },
+        },
+      });
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -1034,7 +1225,7 @@ describe("run: translate --estimate", () => {
 
     await run(["translate", "--estimate"], deps, cap.streams);
 
-    expect(cap.out()).toContain("estimate: 4 keys in 1 requests, ~40 source characters");
+    expect(cap.out()).toContain("estimate: 4 keys in 1 request, ~40 source characters");
     expect(cap.out()).toContain("no rate on file for deepl");
   });
 
@@ -1081,5 +1272,36 @@ describe("run: translate --estimate", () => {
     expect(envelope.result.estimate.currency).toBe("USD");
     expect(envelope.result.estimate.asOf).toBe("2026-01-15");
     expect(envelope.result.estimate.locales).toHaveLength(1);
+  });
+});
+
+describe("run: commands that hold write locks announce themselves to the process entry point", () => {
+  it.each([[["translate"]], [["translate", "--dry-run"]], [["import", "handoff.xlsx"]]])(
+    "calls onLockingCommand once for %j, so an interrupt can release held locks",
+    async (argv) => {
+      const { deps } = recordingDeps();
+      let announced = 0;
+
+      await run(argv, deps, captureStreams().streams, {
+        onLockingCommand: () => {
+          announced += 1;
+        },
+      });
+
+      expect(announced).toBe(1);
+    },
+  );
+
+  it.each([[["check"]], [["diff"]]])("does not call onLockingCommand for %j", async (argv) => {
+    const { deps } = recordingDeps();
+    let announced = 0;
+
+    await run(argv, deps, captureStreams().streams, {
+      onLockingCommand: () => {
+        announced += 1;
+      },
+    });
+
+    expect(announced).toBe(0);
   });
 });

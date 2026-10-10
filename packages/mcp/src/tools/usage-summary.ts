@@ -1,28 +1,18 @@
-import { budgetStanding, runStatus } from "@verbatra/sdk";
+import { budgetStanding, runStatus, runSummarySchema } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
 
 const paramsSchema = z.strictObject({});
 
-const usageSchema = z.strictObject({
-  inputTokens: z.number(),
-  outputTokens: z.number(),
-});
-
-const budgetSchema = z.strictObject({
-  maxTokens: z.number(),
-  behavior: z.enum(["warn", "stop"]),
-  supported: z.boolean(),
-  tokensUsed: z.number(),
-  exceeded: z.boolean(),
+const budgetSchema = runSummarySchema.shape.budget.unwrap().extend({
   standing: z.enum(["within", "stopped-before-ceiling", "reached"]),
 });
 
 const usageSummaryResultSchema = z.object({
   available: z.boolean(),
   generatedAt: z.string().optional(),
-  usage: usageSchema.optional(),
+  usage: runSummarySchema.shape.usage.unwrap().optional(),
   budget: budgetSchema.optional(),
 });
 
@@ -51,20 +41,26 @@ async function usageSummary(
 
 export const usageSummaryTool = defineTool({
   name: "usage.summary",
+  values: "none",
   description:
-    "Read the token usage and budget status left behind by the last translate or " +
-    "translation.translatePending run: input and output tokens consumed, and, when a token " +
-    "budget is configured, its ceiling, behavior, how much of it was counted, and whether it " +
-    "was exceeded. budget.standing says where the run ended against its ceiling: within when it " +
-    "never reached it; stopped-before-ceiling when a stop budget withheld a request that would " +
-    "have crossed it while the counted total was still below it; reached when the counted total " +
-    "reached or passed it. budget.supported says where budget.tokensUsed came from: true when " +
-    "every request reported its own usage, false when at least one did not and the figure is " +
-    "partly verbatra's own estimate, which is the case for DeepL and Google Cloud Translation " +
-    "and for any request that failed. It is also false with tokensUsed 0 when the run sent no " +
-    "request at all, which is no estimate. The budget is enforced either way, and it covers one " +
-    "translate run: it does not cap a single-entry retranslation. Reports available: false when " +
-    "no non-dry-run has completed in this project yet. Read-only, calls no provider.",
+    "Reads the token usage and budget status left behind by the last translate or " +
+    "translation.translatePending run: input and output tokens consumed and, when a token " +
+    "budget is configured, its ceiling, behavior, how much of it was counted, and whether " +
+    "it was exceeded. Use it to report what the last run cost before deciding, with the " +
+    "user, to spend more. Do not expect live figures: only a real translate run updates it, " +
+    "and available: false means no non-dry run has completed in this project yet. " +
+    "budget.standing says where the run ended against its ceiling: within when it never " +
+    "reached it; stopped-before-ceiling when a stop budget withheld a request that would " +
+    "have crossed it while the counted total was still below it; reached when the counted " +
+    "total reached or passed it. budget.supported says where budget.tokensUsed came from: " +
+    "true when every request reported its own usage, false when at least one did not and " +
+    "the figure is partly verbatra's own estimate, which is the case for every " +
+    "machine-translation provider, since none reports token usage, and for any request " +
+    "that failed. It is true with tokensUsed 0 when " +
+    "the run sent no request at all, since nothing was estimated. The budget is enforced " +
+    "either way, and it covers one translate run: it does not cap a single-entry " +
+    "retranslation. Takes no parameters. Read-only: it calls no provider and writes " +
+    "nothing.",
   paramsSchema,
   outputSchema: usageSummaryResultSchema,
   annotations: {

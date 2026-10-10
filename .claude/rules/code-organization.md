@@ -20,6 +20,11 @@ recommendation in a 2024 RFC for exactly these reasons, converging on the same s
 already has: a single public-surface entry point per package, with internal modules imported by
 their real path.
 
+The one exception is `@verbatra/core`'s second entry, `packages/core/src/pure.ts` (subpath
+`@verbatra/core/pure`, built by `packages/core/tsup.pure.config.ts`): a package-root entry, not a
+subfolder barrel, that re-exports only the zod-free diff, hash and placeholder functions so the docs
+playground (`apps/docs/lib/showcase-scenarios.ts`) loads them without zod; do not add others.
+
 ## No path aliases; cross-package imports use real workspace package names
 
 No `tsconfig*.json` under `packages/*` defines a `paths` map. Confirmed with
@@ -47,14 +52,15 @@ the module. Reuse count is not what decides placement: a type does not move into
 `types.ts` just because a second sibling file starts importing it. A folder earns its own
 `types.ts` only when the types it holds have no single owning module in that folder.
 
-- `packages/sdk/src/flow/summary.ts` (215 lines) is almost entirely type and interface
-  declarations (`SdkNoticeCode`, `UsageSummary`, `RunBudget`, `SdkNotice`, `LocaleNotice`,
-  `NeedsReviewEntry`, `MalformedRowReport`, `DuplicateKeyReport`, `LocaleSummary`, `RunSummary`).
-  Eight sibling files import from it (`batching.ts`, `budget.ts`, `locale-failure.ts`,
-  `locale-run.ts`, `plural-categories.ts`, `plural-generation.ts`, `translate-project.ts`,
-  `usage.ts`), plus several `*.test.ts` files in the same folder. It is correctly named
-  `summary.ts`, not `types.ts`: "summary" is the concept these types describe, and that concept
-  owns the file regardless of how many siblings import it.
+- `packages/sdk/src/flow/summary.ts` is almost entirely type and interface declarations
+  (`SdkNoticeCode`, `UsageSummary`, `RunBudget`, `RunEstimate` and its estimate family,
+  `SdkNotice`, `LocaleNotice`, `NeedsReviewEntry`, `ProtectedKey`, `FuzzyCacheHit`,
+  `IntegrityRefusal`, `MalformedRowReport`, `DuplicateKeyReport`, `LocaleSummary`, `RunSummary`).
+  Many sibling files in `flow/` import from it (`batching.ts`, `budget.ts`, `estimate.ts`,
+  `integrity-gate.ts`, `locale-run.ts`, `translate-project.ts` among them), plus several
+  `*.test.ts` files in the same folder. It is correctly named `summary.ts`, not `types.ts`:
+  "summary" is the concept these types describe, and that concept owns the file regardless of how
+  many siblings import it.
 - `packages/studio/src/app/panel-props.ts` (3 lines, one interface: `PanelProps`) is consumed by
   `App.tsx` and three files under `panels/` (`ReviewPanel.tsx`, `ActivityPanel.tsx`,
   `TranslationsPanel.tsx`). Same reasoning: `PanelProps` is the concept, the file name already

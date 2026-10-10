@@ -1,18 +1,31 @@
-import type { PlaceholderIntegrityResult, TranslationEntry } from "@verbatra/core";
+import {
+  assessBidiControls,
+  type PlaceholderIntegrityResult,
+  type TranslationEntry,
+} from "@verbatra/core";
+import { type DoNotTranslateTerm, foldGlossaryCase, type LocaleGlossary } from "./glossary.js";
+import {
+  forbiddenRenderingUsed,
+  requiredTermUsed,
+  sourceTermOccurs,
+} from "./glossary-term-checks.js";
 import type { ProviderNotice, ReviewFlag, ReviewReasonCode } from "./provider.js";
+import { wholeTermIndices } from "./whole-term.js";
 
 const LENGTH_RATIO_MIN = 0.35;
 const LENGTH_RATIO_MAX = 3.0;
 const LENGTH_RATIO_MIN_SOURCE_LENGTH = 12;
+const LATIN_GRAPHEME_WEIGHT = 1;
+const SCRIPT_GRAPHEME_WEIGHTS: readonly (readonly [RegExp, number])[] = [
+  [/^\p{Script=Han}/u, 3.5],
+  [/^[\p{Script=Hiragana}\p{Script=Katakana}]/u, 1.5],
+  [/^\p{Script=Hangul}/u, 2],
+];
 
 const UNICODE_LETTER = /\p{L}/u;
-
-const SCRIPTS_WITHOUT_WORD_SEPARATORS =
-  "\\p{scx=Han}\\p{scx=Hiragana}\\p{scx=Katakana}\\p{scx=Thai}\\p{scx=Lao}\\p{scx=Khmer}\\p{scx=Myanmar}\\p{scx=Tibetan}";
-const WORD_JOINING = `[[\\p{L}\\p{M}\\p{N}_]--[${SCRIPTS_WITHOUT_WORD_SEPARATORS}]]`;
-const WORD_JOINING_AT_START = new RegExp(`^${WORD_JOINING}`, "v");
-const WORD_JOINING_AT_END = new RegExp(`${WORD_JOINING}$`, "v");
-const MAX_CODE_UNITS_PER_CODE_POINT = 2;
+const FOLD_UNIT = /\P{M}\p{M}*|\p{M}+/gu;
+const FINAL_SIGMA = /ς/gu;
+const SIGMA = "σ";
 
 const GRAPHEME_SEGMENTER = new Intl.Segmenter(undefined, { granularity: "grapheme" });
 
@@ -27,7 +40,7 @@ export interface ReviewFlagInput {
   readonly sourceLocale: string;
   readonly targetLocale: string;
   readonly integrity: PlaceholderIntegrityResult;
-  readonly glossary?: Readonly<Record<string, string>> | undefined;
+  readonly glossary?: LocaleGlossary | undefined;
   readonly maxLength?: number | undefined;
 }
 
@@ -39,17 +52,147 @@ function graphemeLength(value: string): number {
   return count;
 }
 
+function graphemeWeight(grapheme: string): number {
+  for (const [script, weight] of SCRIPT_GRAPHEME_WEIGHTS) {
+    if (script.test(grapheme)) {
+      return weight;
+    }
+  }
+  return LATIN_GRAPHEME_WEIGHT;
+}
+
+export function latinEquivalentLength(value: string): number {
+  let length = 0;
+  for (const { segment } of GRAPHEME_SEGMENTER.segment(value)) {
+    length += graphemeWeight(segment);
+  }
+  return length;
+}
+
 function exceedsMaxLength(value: string, maxLength: number | undefined): boolean {
   return maxLength !== undefined && graphemeLength(value) > maxLength;
 }
 
 function isLengthRatioOutlier(sourceValue: string, translatedValue: string): boolean {
-  const trimmedSource = sourceValue.trim();
-  if (trimmedSource.length < LENGTH_RATIO_MIN_SOURCE_LENGTH) {
+  const sourceLength = latinEquivalentLength(sourceValue.trim());
+  if (sourceLength < LENGTH_RATIO_MIN_SOURCE_LENGTH) {
     return false;
   }
-  const ratio = translatedValue.trim().length / trimmedSource.length;
+  const ratio = latinEquivalentLength(translatedValue.trim()) / sourceLength;
   return ratio < LENGTH_RATIO_MIN || ratio > LENGTH_RATIO_MAX;
+}
+
+function coveredPositions(text: string, terms: readonly string[]): boolean[] {
+  const covered = new Array<boolean>(text.length).fill(false);
+  for (const term of terms) {
+    for (const index of wholeTermIndices(text, term)) {
+      covered.fill(true, index, index + term.length);
+    }
+  }
+  return covered;
+}
+
+function hasUncoveredLetter(text: string, covered: readonly boolean[]): boolean {
+  let uncovered = "";
+  for (let index = 0; index < text.length; index += 1) {
+    uncovered += covered[index] === true ? " " : text.charAt(index);
+  }
+  return UNICODE_LETTER.test(uncovered);
+}
+
+function unionOf(first: readonly boolean[], second: readonly boolean[]): boolean[] {
+  return first.map((covered, index) => covered || second[index] === true);
+}
+
+interface FoldSpan {
+  readonly start: number;
+  readonly end: number;
+  readonly foldedStart: number;
+  readonly foldedEnd: number;
+}
+
+interface UnitFolding {
+  readonly folded: string;
+  readonly spans: readonly FoldSpan[];
+}
+
+function foldUnit(unit: string, locale: string): string {
+  return foldGlossaryCase(unit, locale, false).replace(FINAL_SIGMA, SIGMA);
+}
+
+function foldByUnit(text: string, locale: string): UnitFolding {
+  let folded = "";
+  const spans: FoldSpan[] = [];
+  for (const match of text.matchAll(FOLD_UNIT)) {
+    const foldedStart = folded.length;
+    folded += foldUnit(match[0], locale);
+    spans.push({
+      start: match.index,
+      end: match.index + match[0].length,
+      foldedStart,
+      foldedEnd: folded.length,
+    });
+  }
+  return { folded, spans };
+}
+
+function lettersCovered(folded: string, covered: readonly boolean[], span: FoldSpan): boolean {
+  let index = span.foldedStart;
+  for (const character of folded.slice(span.foldedStart, span.foldedEnd)) {
+    const end = index + character.length;
+    if (UNICODE_LETTER.test(character) && !covered.slice(index, end).every(Boolean)) {
+      return false;
+    }
+    index = end;
+  }
+  return true;
+}
+
+function caseInsensitiveCoverage(
+  text: string,
+  terms: readonly string[],
+  locale: string,
+): boolean[] {
+  const { folded, spans } = foldByUnit(text, locale);
+  const foldedCovered = coveredPositions(
+    folded,
+    terms.map((term) => foldByUnit(term, locale).folded),
+  );
+  const covered = new Array<boolean>(text.length).fill(false);
+  for (const span of spans) {
+    if (lettersCovered(folded, foldedCovered, span)) {
+      covered.fill(true, span.start, span.end);
+    }
+  }
+  return covered;
+}
+
+function fixedTermsOf(glossary: LocaleGlossary | undefined): readonly DoNotTranslateTerm[] {
+  if (glossary === undefined) {
+    return [];
+  }
+  const identities = glossary.terms
+    .filter((term) => term.target === term.source)
+    .map(({ source, caseSensitive }) => ({ term: source, caseSensitive }));
+  return [...glossary.doNotTranslate, ...identities];
+}
+
+function consistsOfFixedTerms(input: ReviewFlagInput): boolean {
+  const fixed = fixedTermsOf(input.glossary);
+  if (fixed.length === 0) {
+    return false;
+  }
+  const source = input.sourceValue;
+  const exactCoverage = coveredPositions(
+    source,
+    fixed.filter((entry) => entry.caseSensitive).map(({ term }) => term),
+  );
+  const foldedCoverage = caseInsensitiveCoverage(
+    source,
+    fixed.filter((entry) => !entry.caseSensitive).map(({ term }) => term),
+    input.sourceLocale,
+  );
+  return !hasUncoveredLetter(source, unionOf(exactCoverage, foldedCoverage));
 }
 
 function isEqualsSource(input: ReviewFlagInput): boolean {
@@ -58,75 +201,119 @@ function isEqualsSource(input: ReviewFlagInput): boolean {
   return (
     trimmedTranslated === trimmedSource &&
     input.targetLocale !== input.sourceLocale &&
-    UNICODE_LETTER.test(trimmedSource)
+    UNICODE_LETTER.test(trimmedSource) &&
+    !consistsOfFixedTerms(input)
   );
 }
 
-function isPrecededByWordCharacter(text: string, index: number): boolean {
-  const start = Math.max(0, index - MAX_CODE_UNITS_PER_CODE_POINT);
-  return WORD_JOINING_AT_END.test(text.slice(start, index));
+interface ExpectedTerm {
+  readonly source: string;
+  readonly target: string;
+  readonly caseSensitive: boolean;
 }
 
-function isFollowedByWordCharacter(text: string, index: number): boolean {
-  return WORD_JOINING_AT_START.test(text.slice(index, index + MAX_CODE_UNITS_PER_CODE_POINT));
-}
-
-function occursAsWholeTerm(text: string, term: string): boolean {
-  if (term === "") {
-    return false;
-  }
-  const guardStart = WORD_JOINING_AT_START.test(term);
-  const guardEnd = WORD_JOINING_AT_END.test(term);
-  for (let index = text.indexOf(term); index !== -1; index = text.indexOf(term, index + 1)) {
-    const blockedStart = guardStart && isPrecededByWordCharacter(text, index);
-    const blockedEnd = guardEnd && isFollowedByWordCharacter(text, index + term.length);
-    if (!blockedStart && !blockedEnd) {
-      return true;
+function expectedTermsOf(glossary: LocaleGlossary): readonly ExpectedTerm[] {
+  const expected: ExpectedTerm[] = [];
+  for (const { source, target, caseSensitive } of glossary.terms) {
+    if (target !== undefined && target !== "") {
+      expected.push({ source, target, caseSensitive });
     }
   }
-  return false;
+  for (const { term, caseSensitive } of glossary.doNotTranslate) {
+    expected.push({ source: term, target: term, caseSensitive });
+  }
+  return expected;
 }
 
 function isGlossaryTermMissed(input: ReviewFlagInput): boolean {
-  const glossary = input.glossary;
-  if (glossary === undefined || Object.keys(glossary).length === 0) {
+  if (input.glossary === undefined) {
     return false;
   }
-  const sourceLower = input.sourceValue.toLowerCase();
-  const translatedLower = input.translatedValue.toLowerCase();
-  for (const [sourceTerm, targetTerm] of Object.entries(glossary)) {
-    if (targetTerm === "") {
-      continue;
-    }
-    const sourceHit = occursAsWholeTerm(sourceLower, sourceTerm.toLowerCase());
-    const targetHit = translatedLower.includes(targetTerm.toLowerCase());
-    if (sourceHit && !targetHit) {
-      return true;
-    }
+  return expectedTermsOf(input.glossary).some(
+    (term) =>
+      sourceTermOccurs(input.sourceValue, term.source, input.sourceLocale, term) &&
+      !requiredTermUsed(input.translatedValue, term.target, input.targetLocale, term),
+  );
+}
+
+function isForbiddenTermUsed(input: ReviewFlagInput): boolean {
+  if (input.glossary === undefined) {
+    return false;
   }
-  return false;
+  return input.glossary.terms.some((term) =>
+    term.forbidden.some((rendering) =>
+      forbiddenRenderingUsed(
+        input.translatedValue,
+        input.sourceValue,
+        rendering,
+        input.targetLocale,
+        term,
+      ),
+    ),
+  );
 }
 
 function isIntegrityReordered(integrity: PlaceholderIntegrityResult): boolean {
   return integrity.matches && integrity.reordered;
 }
 
+function isBidiControlsChanged(sourceValue: string, translatedValue: string): boolean {
+  const target = assessBidiControls(translatedValue);
+  const source = assessBidiControls(sourceValue);
+  return (
+    (!target.balanced && source.balanced) ||
+    target.leftOverrides > source.leftOverrides ||
+    target.rightOverrides > source.rightOverrides
+  );
+}
+
+type LengthCheck = (
+  sourceValue: string,
+  translatedValue: string,
+  maxLength: number | undefined,
+) => boolean;
+
+const LENGTH_CHECKS: readonly (readonly [ReviewReasonCode, LengthCheck])[] = [
+  [
+    "LENGTH_RATIO_OUTLIER",
+    (sourceValue, translatedValue) => isLengthRatioOutlier(sourceValue, translatedValue),
+  ],
+  [
+    "MAX_LENGTH_EXCEEDED",
+    (_sourceValue, translatedValue, maxLength) => exceedsMaxLength(translatedValue, maxLength),
+  ],
+];
+
+export const LENGTH_REVIEW_REASONS: ReadonlySet<ReviewReasonCode> = new Set(
+  LENGTH_CHECKS.map(([reason]) => reason),
+);
+
+export function lengthReviewReasons(
+  sourceValue: string,
+  translatedValue: string,
+  maxLength: number | undefined,
+): ReviewReasonCode[] {
+  return LENGTH_CHECKS.filter(([, flags]) => flags(sourceValue, translatedValue, maxLength)).map(
+    ([reason]) => reason,
+  );
+}
+
 export function computeReviewFlags(input: ReviewFlagInput): ReviewFlag | undefined {
-  const reasons: ReviewReasonCode[] = [];
-  if (isLengthRatioOutlier(input.sourceValue, input.translatedValue)) {
-    reasons.push("LENGTH_RATIO_OUTLIER");
-  }
-  if (exceedsMaxLength(input.translatedValue, input.maxLength)) {
-    reasons.push("MAX_LENGTH_EXCEEDED");
-  }
+  const reasons = lengthReviewReasons(input.sourceValue, input.translatedValue, input.maxLength);
   if (isEqualsSource(input)) {
     reasons.push("EQUALS_SOURCE");
   }
   if (isGlossaryTermMissed(input)) {
     reasons.push("GLOSSARY_TERM_MISSED");
   }
+  if (isForbiddenTermUsed(input)) {
+    reasons.push("GLOSSARY_FORBIDDEN_TERM");
+  }
   if (isIntegrityReordered(input.integrity)) {
     reasons.push("INTEGRITY_REORDERED");
+  }
+  if (isBidiControlsChanged(input.sourceValue, input.translatedValue)) {
+    reasons.push("BIDI_CONTROLS_CHANGED");
   }
   return reasons.length > 0 ? { status: "review", reasons } : undefined;
 }
@@ -137,7 +324,7 @@ export function buildEntryReviewFlags(
   integrity: ReadonlyMap<string, PlaceholderIntegrityResult>,
   sourceLocale: string,
   targetLocale: string,
-  glossary: Readonly<Record<string, string>> | undefined,
+  glossary: LocaleGlossary | undefined,
   maxLength: ReadonlyMap<string, number> | undefined,
 ): Map<string, ReviewFlag> {
   const reviewFlags = new Map<string, ReviewFlag>();

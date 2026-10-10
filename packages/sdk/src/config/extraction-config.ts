@@ -34,7 +34,8 @@ export const extractionConfigSchema = z.strictObject({
  * The `extract` block of a verbatra config: which translation framework's call sites the source
  * scan looks for, which directories it walks, and which directory names it skips on the way.
  *
- * `roots` are resolved against the run's working directory, and the scan never reads outside them.
+ * `roots` are resolved against the project root (the run's `cwd`, which defaults to the directory of a
+ * config the search found), and the scan never reads outside them.
  * `exclude` adds directory names to the set that is always skipped, which already covers
  * `node_modules`, `.git`, and the usual build output directories.
  *

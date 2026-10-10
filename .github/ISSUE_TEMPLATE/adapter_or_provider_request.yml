@@ -17,7 +17,7 @@ body:
     id: name
     attributes:
       label: Format or provider name
-      placeholder: e.g. gettext PO, Fluent FTL, Azure Translator
+      placeholder: e.g. Fluent FTL, TOML, Azure Translator
     validations:
       required: true
 

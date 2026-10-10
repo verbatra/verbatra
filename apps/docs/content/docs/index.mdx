@@ -1,58 +1,98 @@
 ---
 title: Introduction
 description: What verbatra is, the problem it solves, and how the CLI, SDK, Studio, and MCP server fit together. Translate only the keys that changed, with integrity checks on every result.
+type: overview
 ---
 
-<DocsHomeHero
-  headline="How to translate only what changed."
-  lead="verbatra diffs your source locale against a committed lock file, sends only the new and changed keys to the provider you configure, checks every result, and writes the files back in place. These pages cover the CLI, the SDK, Studio, and the MCP server."
-  primary={{ label: "Your first translation", href: "/docs/your-first-translation" }}
-  secondary={{ label: "CLI reference", href: "/docs/cli" }}
+<DocsHomeHeader
+  eyebrow="Documentation"
+  headline="Set up verbatra and keep every locale in sync."
+  lead="Guides and reference for the CLI, the SDK, Studio, and the MCP server: start with the quickstart, or let your coding agent set verbatra up."
+>
+
+<DocsHomeTabs
+  label="Entry points"
+  tabs={[
+    { label: "Quickstart", href: "/docs/quickstart" },
+    { label: "CLI", href: "/docs/cli" },
+    { label: "SDK", href: "/docs/sdk" },
+    { label: "GitHub Action", href: "/docs/github-action" },
+    { label: "MCP server", href: "/docs/cli/mcp" },
+    { label: "Studio", href: "/docs/review-in-studio" },
+  ]}
 />
+
+<DocsHomeAgentTip title="Using a coding agent?">
+Copy the prompt into Claude Code, Cursor, or any coding agent, and it sets verbatra up for you; [Set up with an AI agent](/docs/start-with-ai) shows each step. To let it read and edit your translations directly, connect the [MCP server](/docs/cli/mcp).
+</DocsHomeAgentTip>
+
+</DocsHomeHeader>
 
 <DocsHomeBody>
 
-<DocsHomeSection title="Where to go next" lead="Four starting points, depending on where you are.">
+<DocsHomeSection title="Start from your goal" lead="Pick what you want to do; each card opens the page that does it.">
 
 <DocsHomePaths
   cards={[
     {
-      tag: "New here",
-      label: "Your first translation",
-      body: "Install the CLI, scaffold a config, preview the run with no key, then translate.",
-      href: "/docs/your-first-translation",
-      primary: true,
+      goal: "Translate a project",
+      page: "Quickstart",
+      body: "Install the CLI, preview the run without a key, then translate your first file.",
+      href: "/docs/quickstart",
     },
     {
-      tag: "Already set up",
-      label: "Add a language",
-      body: "Drop a locale into your config and let one run fill it in.",
-      href: "/docs/add-a-language",
-    },
-    {
-      tag: "Production",
-      label: "CI and exit codes",
-      body: "Fail the pull request when a locale drifts, with JSON output for scripts.",
+      goal: "Gate pull requests",
+      page: "CI and exit codes",
+      body: "Fail a pull request when a locale drifts, with JSON output for scripts.",
       href: "/docs/ci-and-exit-codes",
     },
     {
-      tag: "With an AI agent",
-      label: "Set up with AI",
-      body: "Point Claude Code, Cursor, or any coding agent at a copy-pasteable prompt.",
-      href: "/docs/start-with-ai",
+      goal: "Hand off to translators",
+      page: "Human translation",
+      body: "Export a workbook for a person to translate, then import it back.",
+      href: "/docs/manual-translation",
     },
   ]}
 />
 
 </DocsHomeSection>
 
-<DocsHomeSection title="Every run is a diff, not a rewrite." lead="What happens when you run verbatra translate.">
+<DocsHomeSection id="pick-your-stack" title="Pick your stack" lead="A card marked Quickstart opens a step-by-step guide for that stack; every other card opens its init command and file layout.">
+
+<StackCards
+  labelledBy="pick-your-stack"
+  location="docs-home"
+  cards={[
+    { label: "React", icon: "react", formats: ["i18next-json"], href: "/docs/quickstart/react", badge: "Quickstart", description: "Translate i18next JSON files in a React app." },
+    { label: "Next.js", icon: "next", formats: ["next-intl-json"], href: "/docs/quickstart/nextjs", badge: "Quickstart", description: "Keep next-intl message files in sync across every locale." },
+    { label: "Vue", icon: "vue", formats: ["vue-i18n-json"], href: "/docs/quickstart/vue", badge: "Quickstart", description: "Translate vue-i18n JSON messages in a Vue app." },
+    { label: "Nuxt", icon: "nuxt", formats: ["vue-i18n-json"], href: "/docs/pick-your-stack#vue-and-nuxt-with-vue-i18n", description: "Translate vue-i18n JSON messages in a Nuxt app." },
+    { label: "Angular", icon: "angular", formats: ["ngx-translate-json"], href: "/docs/quickstart/angular", badge: "Quickstart", description: "Translate ngx-translate JSON files in an Angular app." },
+    { label: "Flutter", icon: "flutter", formats: ["arb"], href: "/docs/quickstart/flutter", badge: "Quickstart", description: "Translate ARB files for Flutter's gen-l10n." },
+    { label: "Android", icon: "android", formats: ["android-xml"], href: "/docs/pick-your-stack#android", description: "Translate strings.xml resources, one folder per locale." },
+    { label: "iOS and macOS", icon: "apple", formats: ["apple-strings", "apple-xcstrings"], href: "/docs/pick-your-stack#ios-and-macos", description: "Translate .strings, .stringsdict, and String Catalogs." },
+    { label: "gettext", icon: "gnu", formats: ["gettext-po"], href: "/docs/pick-your-stack#gettext", description: "Translate PO files from a POT template." },
+    { label: "Java and Spring", icon: "spring", formats: ["properties"], href: "/docs/pick-your-stack#java-and-spring", description: "Translate .properties message bundles." },
+    { label: ".NET", icon: "dotnet", formats: ["resx"], href: "/docs/pick-your-stack#net", description: "Translate .resx resource files." },
+    { label: "YAML", icon: "yaml", formats: ["yaml"], href: "/docs/pick-your-stack#yaml", description: "Translate nested YAML locale files." },
+    { label: "XLIFF", icon: "xliff", formats: ["xliff"], href: "/docs/pick-your-stack#xliff", description: "Translate XLIFF files, the format translation tools exchange." },
+    { label: "INI", icon: "ini", formats: ["ini"], href: "/docs/pick-your-stack#ini", description: "Translate flat INI locale files." },
+  ]}
+/>
+
+<DocsHomeNote>
+Don't see your stack? Start with the [generic quickstart](/docs/quickstart), or teach verbatra your format with a [custom format adapter](/docs/custom-format-adapters).
+</DocsHomeNote>
+
+</DocsHomeSection>
+
+<DocsHomeSection title="Every run is a diff, not a rewrite." lead="What happens when you run `verbatra translate`.">
 
 Hand-maintaining one source locale means every other locale file drifts: new keys go missing from the targets, edited strings leave stale translations behind, and deleted keys linger as orphans. verbatra closes that gap by diffing every target against a committed lock file, `verbatra.lock.json`, and sending only what changed to the provider you configure; a second run with nothing new to translate makes no provider call at all. Every result is checked before it is written, so a broken placeholder is withheld and retried, never shipped. See [How it works](/docs/how-it-works) for the full pipeline.
 
 <DocsHomeSteps />
 
-verbatra reads and writes fourteen formats and translates through six providers behind one interface, and a format it does not ship can be added as a [custom adapter](/docs/custom-format-adapters). See [Formats](/docs/formats) and [Providers](/docs/providers).
+verbatra reads and writes the common locale file formats, from JSON and YAML to XLIFF, gettext, and Android and Apple catalogs, and translates through any supported LLM or machine-translation provider behind one interface (or none, for a [human-only workflow](/docs/human-only-workflow)), and a format it does not ship can be added as a [custom adapter](/docs/custom-format-adapters). The full lists are on [Formats](/docs/formats) and [Providers](/docs/providers).
 
 </DocsHomeSection>
 
@@ -63,7 +103,7 @@ verbatra reads and writes fourteen formats and translates through six providers 
     {
       title: "@verbatra/cli",
       pkg: "cli",
-      body: "The verbatra binary: fourteen commands, from init and extract to translate, check, export, and studio, as a thin wrapper over the SDK. Start here.",
+      body: "The verbatra binary: every command, from init and extract to translate, check, export, and studio, as a thin wrapper over the SDK. Start here.",
       href: "/docs/cli",
     },
     {

@@ -1,5 +1,12 @@
 import { relative } from "node:path";
 import { type GlossaryProvenance, type LoadedConfig, redact } from "@verbatra/sdk";
+import { z } from "zod";
+
+export const glossaryProvenanceSchema = z.discriminatedUnion("source", [
+  z.object({ source: z.literal("none") }),
+  z.object({ source: z.literal("inline") }),
+  z.object({ source: z.literal("file"), path: z.string() }),
+]);
 
 export function resolveConfigSource(source: LoadedConfig["source"], cwd: string): string {
   if (source.kind === "override") {

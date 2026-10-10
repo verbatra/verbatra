@@ -74,6 +74,14 @@ describe("studio (no key)", () => {
 
     expect(stopResult.signal).toBeUndefined();
     expect(stopResult.exitCode).toBe(0);
+    expect(stopResult.stderr).toContain(
+      "verbatra: spend tools off (pass --allow-spend to retranslate from Studio)\n",
+    );
+    expect(stopResult.stderr).toContain(
+      "verbatra: agent tools off (pass --expose-agent-tools to register them)\n",
+    );
+    expect(stopResult.stderr).toContain("verbatra: Studio stopped");
+    expect(stopResult.stdout).not.toContain("spend tools");
   }, 120_000);
 
   it("exits 2 with a structured INVALID_PORT error before importing studio or loading config", async () => {
@@ -105,7 +113,7 @@ describe("studio (no key, @verbatra/studio not installed)", () => {
 
     expect(result.exitCode).toBe(2);
     expect(result.stderr).toContain("@verbatra/studio");
-    expect(result.stderr).toContain("pnpm add -D @verbatra/studio");
+    expect(result.stderr).toContain("npm install --save-dev @verbatra/studio");
     expect(result.stdout).not.toContain("Verbatra Studio running at");
   }, 120_000);
 });

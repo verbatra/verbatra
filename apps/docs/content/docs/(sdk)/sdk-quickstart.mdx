@@ -1,0 +1,200 @@
+---
+title: SDK quickstart
+description: Install @verbatra/sdk, preview a run without an API key, translate from your own script, handle errors, and gate CI.
+type: tutorial
+---
+By the end of this page a TypeScript script of yours translates an English locale file into German, reports what happened, and fails a CI job when a locale falls out of sync. You need Node.js `^22.18.0 || >=24` and about ten minutes. The first three steps need no API key.
+
+Each step is a complete script you run with `node`. Node.js runs TypeScript files directly, so no extra flag is needed. The scripts use `import` and top-level `await`, so the first step also marks the project as ES modules.
+
+## Steps
+
+<Steps>
+<Step>
+
+### Install the SDK
+
+```bash
+npm init -y
+npm pkg set type=module
+npm install --save-dev @verbatra/sdk
+```
+
+Run this in an empty directory: `npm init -y` creates the `package.json` that `npm pkg set type=module` marks as ES modules. In an existing project, skip `npm init -y`. If pnpm exits with `ERR_PNPM_IGNORED_BUILDS`, see [Install](/docs/sdk#install).
+
+</Step>
+<Step>
+
+### Add a source file and a config
+
+```json title="locales/en.json"
+{
+  "greeting": "Hello, {{name}}!",
+  "cart": {
+    "empty": "Your cart is empty."
+  }
+}
+```
+
+```ts title="verbatra.config.ts"
+import { defineConfig } from "@verbatra/sdk";
+
+export default defineConfig({
+  sourceLocale: "en",
+  targetLocales: ["de"],
+  format: "i18next-json",
+  files: { pattern: "locales/{locale}.json" },
+  provider: { id: "gemini", options: { model: "gemini-2.5-flash", maxOutputTokens: 4096 } },
+});
+```
+
+`loadConfig` finds this file from the working directory and validates it. [Pick your stack](/docs/pick-your-stack) has the `format` for your framework, and [Providers](/docs/providers) lists every provider and its options. To skip the file entirely, pass the same object as `configOverride`; see [SDK recipes](/docs/programmatic-api#a-config-without-a-file).
+
+</Step>
+<Step>
+
+### Preview the run without a key
+
+```ts title="preview.ts"
+import { loadConfig, translate } from "@verbatra/sdk";
+
+const config = await loadConfig();
+const preview = await translate({ config, dryRun: true });
+
+for (const locale of preview.locales) {
+  console.log(`${locale.locale}: would translate ${locale.translated.join(", ")}`);
+}
+```
+
+```bash
+node preview.ts
+```
+
+```text output
+de: would translate cart.empty, greeting
+```
+
+A dry run builds no provider, so it needs no key, spends nothing, and writes nothing. Pass `estimate: true` instead to get a token or cost figure; see [Estimating cost](/docs/estimating-cost).
+
+</Step>
+<Step>
+
+### Translate and read the summary
+
+```ts title="translate.ts"
+import { loadConfig, translate } from "@verbatra/sdk";
+
+const config = await loadConfig();
+const summary = await translate({
+  config,
+  onProgress: (event) => {
+    if (event.type === "locale-finished") console.log(`${event.locale}: ${event.translated} keys`);
+  },
+});
+
+const { succeeded, partial, failed, usage } = summary;
+console.log(`${succeeded.length} ok, ${partial.length} partial, ${failed.length} failed`);
+if (usage !== undefined) {
+  console.log(`tokens: ${usage.inputTokens} in, ${usage.outputTokens} out`);
+}
+
+for (const locale of summary.locales) {
+  if (locale.status === "failed") {
+    console.error(`${locale.locale}: ${locale.error?.code} ${locale.error?.message}`);
+    continue;
+  }
+  for (const entry of locale.needsReview) {
+    console.warn(`review ${locale.locale}/${entry.key}: ${entry.reasons.join(", ")}`);
+  }
+}
+
+if (failed.length > 0 || partial.length > 0) {
+  process.exitCode = 1;
+}
+```
+
+The provider reads its key from the environment, and unlike the CLI the SDK does not load `.env` files, so hand it over yourself. [Providers](/docs/providers#keys-come-from-the-environment) names the variable for each provider.
+
+```bash
+node --env-file=.env translate.ts
+```
+
+`locales/de.json` now holds both keys, with `{{name}}` intact. A `partial` locale was written with keys still missing, so the script fails on it just as it does on `failed`. Per-locale problems arrive as data on the summary; only a problem with the whole run throws. [`translate`](/docs/sdk/run#translate) lists every other option.
+
+</Step>
+<Step>
+
+### Handle errors
+
+<AvailableFrom version="0.12.0" />
+
+A whole-run problem throws an `SdkError`. Branch on its stable `code`, and print `errorHint` for the next step to take.
+
+```ts title="safe-translate.ts"
+import { errorHint, loadConfig, SdkError, translate } from "@verbatra/sdk";
+
+try {
+  const summary = await translate({ config: await loadConfig() });
+  console.log(`${summary.succeeded.length} locales translated`);
+} catch (error) {
+  if (!(error instanceof SdkError)) {
+    throw error;
+  }
+  switch (error.code) {
+    case "CONFIG_NOT_FOUND":
+      console.error(`${error.code}: ${error.message} (searched from ${process.cwd()} upward)`);
+      break;
+    case "PROVIDER_CONSTRUCTION_FAILED":
+      console.error(`${error.code}: the provider could not be built, most often for a missing key`);
+      break;
+    default:
+      console.error(`${error.code}: ${error.message}`);
+  }
+  const hint = errorHint(error);
+  if (hint !== undefined) {
+    console.error(`next: ${hint}`);
+  }
+  process.exitCode = 2;
+}
+```
+
+Run it without the key, and it reports `PROVIDER_CONSTRUCTION_FAILED` naming the missing variable, never a key value. [Error codes](/docs/error-codes#sdk-error-codes) lists every code.
+
+</Step>
+<Step>
+
+### Gate CI with check
+
+```ts title="check.ts"
+import { check, loadConfig } from "@verbatra/sdk";
+
+const summary = await check({ config: await loadConfig() });
+
+for (const locale of summary.locales) {
+  console.log(`${locale.locale}: ${locale.missing} missing, ${locale.stale} stale`);
+}
+
+if (!summary.inSync) {
+  process.exitCode = 1;
+}
+```
+
+```bash
+node check.ts
+```
+
+`check` calls no provider and writes nothing, so it needs no key in CI. The script exits `1` when a source string has no translation or changed since it was translated.
+
+</Step>
+</Steps>
+
+## CommonJS
+
+In a CommonJS project, `require("@verbatra/sdk")` returns the same exports. Top-level `await` is not available there, so wrap the calls in an `async` function.
+
+## Next steps
+
+- [SDK recipes](/docs/programmatic-api): estimates, watch mode, a test double for the provider, the review queue, and the workbook and TMX round-trips.
+- [SDK reference](/docs/sdk): every entry point, its input, and what it throws.
+- [Custom providers](/docs/sdk/extend#custom-providers) and [custom format adapters](/docs/custom-format-adapters): plug in what verbatra does not ship.
+- [Translation safety](/docs/translation-safety): what verbatra checks before it writes a translation.

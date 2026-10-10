@@ -1,111 +1,114 @@
 ---
-title: Wie es funktioniert
+title: Wie ein Lauf funktioniert
 description: Die Übersetzungs-Pipeline von Anfang bis Ende, vom Lesen der Quell-Locale bis zum Aktualisieren der Lock-Datei.
+type: concept
 ---
-Ein Lauf ist eine Pipeline: die Quell-Locale lesen, jedes Ziel mit der Lock-Datei vergleichen, nur
-das an den Provider senden, was Arbeit braucht, das Ergebnis prüfen, schreiben und das Resultat
-festhalten. Diese Seite geht die Pipeline durch, damit du genau weißt, was bei
-`verbatra translate` passiert.
+Ein Lauf ist eine Pipeline: Quell-Locale lesen, jedes Ziel mit der Lock-Datei vergleichen, nur das
+an den Provider schicken, was Arbeit braucht, prüfen, was zurückkommt, schreiben und das Ergebnis
+festhalten. Die Pipeline ist dieselbe, ob der Lauf aus der CLI, dem SDK oder `watch` kommt.
 
 <DiffPanel />
 
-Ein Lauf startet mit deiner validierten Konfiguration; wo sie gefunden wird und was sie enthält,
-steht unter [Konfigurationsdatei](/docs/config-file). Alles Folgende ist gleich, egal ob der Lauf
-aus der CLI, dem SDK oder `watch` kam.
-
 ## Die Quell-Locale lesen
 
-Der Format-Adapter liest die Quell-Locale-Datei in eine neutrale Menge von Einträgen mit Keys,
-damit der Rest der Pipeline für jedes Format gleich funktioniert. Eine fehlende Quelldatei lässt
-den Lauf mit `SOURCE_UNREADABLE` fehlschlagen; eine Datei, die der Adapter nicht parsen kann, mit
-`SOURCE_INVALID`. Beim Lesen markiert der Adapter außerdem Quell-Keys, deren Werte für die
-Nachrichtensyntax des Formats ungültig sind (ungültiges ICU): Diese Keys laufen mit, werden aber
-beiseitegelegt, statt in kaputtem Zustand an den Provider zu gehen.
+Der Format-Adapter liest die Quelldatei in eine neutrale Menge von Einträgen mit Keys, sodass jeder
+spätere Schritt für jedes Format gleich funktioniert. Ein Quell-Key, dessen Wert für die
+Nachrichtensyntax des Formats ungültig ist (ungültiges ICU), wird beiseitegelegt und gemeldet,
+statt kaputt an den Provider zu gehen. Eine Quelldatei, die fehlt oder sich nicht parsen lässt,
+lässt den Lauf scheitern; siehe [`SOURCE_UNREADABLE`](/de/docs/error-codes#source_unreadable) und
+[`SOURCE_INVALID`](/de/docs/error-codes#source_invalid).
 
 ## Mit der Lock-Baseline vergleichen
 
-Dieser Vergleich existiert, damit ein Lauf inkrementell ist: Der Provider wird nur für Strings
-aufgerufen, die wirklich Arbeit brauchen. verbatra liest die bestehende Ziel-Locale-Datei (eine
-fehlende Datei zählt als leer) und vergleicht die Quelle mit ihr, mit
-[der Lock-Datei](/docs/the-lock-file) als Baseline dessen, was zuvor übersetzt wurde. Jeder
-Quell-Key landet in einer von vier Kategorien:
+Der Vergleich macht einen Lauf inkrementell. verbatra liest die vorhandene Zieldatei (eine fehlende
+Datei zählt als leer) und vergleicht jeden Quell-Key mit [der Lock-Datei](/de/docs/the-lock-file), dem
+Protokoll dessen, was schon übersetzt wurde:
 
-- fehlend (missing): das Ziel hat den Key noch nicht.
-- geändert (changed): der Quellwert passt nicht mehr zum Hash in der Lock-Datei.
-- unverändert (unchanged): der Quellwert passt noch zum aufgezeichneten Hash.
-- verwaist (orphaned): der Key steht im Ziel, aber nicht mehr in der Quelle.
+| Kategorie | Bedeutung | Was der Lauf tut |
+| --- | --- | --- |
+| missing | das Ziel hat den Key noch nicht | übersetzt ihn |
+| changed | die Quelle passt nicht mehr zum festgehaltenen Hash | übersetzt ihn |
+| unchanged | die Quelle passt noch zum festgehaltenen Hash | lässt ihn in Ruhe |
+| orphaned | der Key steht im Ziel, aber nicht mehr in der Quelle | meldet ihn; entfernt ihn nur mit `--prune` oder `prune: true` |
 
-Nur fehlende und geänderte Keys werden Übersetzungskandidaten. Unveränderte Keys bleiben
-unangetastet. Verwaiste Keys werden gemeldet und standardmäßig belassen; mit `--prune` (oder
-`prune: true` in der Konfiguration) werden genau diese Keys aus der Zieldatei und der Lock-Datei
-entfernt, und nichts anderes.
+### Zurückgehaltene Keys
+
+<AvailableFrom version="0.12.0" />
+
+Zwei Arten von Kandidaten werden zurückgehalten. Ein geänderter Key, dessen aktuellen Wert ein
+Mensch geschrieben oder importiert hat, ist standardmäßig geschützt (`humanEdits`), und ein Key, der
+zu `pinnedKeys` passt, wird nie maschinell übersetzt. Beide bleiben veraltet, bis ein Mensch sie
+auflöst; siehe [Menschliche Übersetzungen schützen](/de/docs/protecting-human-translations).
 
 ## In Batches an den Provider
 
-Bevor irgendetwas gesendet wird, wird jeder Kandidat im lokalen Übersetzungsspeicher-Cache
-(`verbatra.cache.json`) nachgeschlagen. Eine gespeicherte Übersetzung für denselben Quelltext,
-unter demselben Fingerabdruck aus Provider, Modell, Tonfall und Glossar, wird unverändert
-wiederverwendet und erreicht den Provider nie; nur die Fehltreffer gehen weiter. Wie Einträge
-ihren Key bilden und wann sie nicht mehr passen, steht unter [Der Cache](/docs/the-cache).
+Jeder Kandidat wird zuerst im [Übersetzungs-Cache](/de/docs/the-cache) nachgeschlagen. Ein Treffer wird
+wiederverwendet und erreicht den Provider nie. Von den Fehltreffern werden Keys mit demselben
+Quellinhalt gruppiert, sodass dieser Text einen Request pro Locale kostet statt einen pro Key.
 
-Von den Kandidaten, die den Provider erreichen, werden zuerst die mit demselben Quellinhalt
-gruppiert, damit dieser Text eine Anfrage pro Locale kostet statt eine pro Key; der zurückkommende
-Wert wird auf die anderen Keys seiner Gruppe kopiert und im Integritätsschritt weiter unten gegen
-die jeweils eigene Quelle erneut geprüft. Die Gruppen gehen in sequenziellen Sub-Batches von
-höchstens `maxBatchSize` Einträgen (Default 50) an deinen konfigurierten Provider, damit eine
-überdimensionierte Anfrage nicht eine ganze Locale zu Fall bringt. Jeder Sub-Batch trägt die
-Einträge plus dein optionales `glossary` und `tone`. Schlägt ein Sub-Batch-Aufruf fehl (ein
-Rate-Limit, ein Timeout, ein widerrufener Key), werden seine Keys für diesen Lauf zurückgehalten
-und beim nächsten Lauf wieder aufgegriffen, während die anderen Sub-Batches weiter vorankommen.
-Wie jeder Provider die Eingaben anwendet, steht unter [Provider](/docs/providers).
+Die Gruppen gehen in aufeinanderfolgenden Teil-Batches von höchstens `maxBatchSize` (Standard 50)
+an deinen Provider, jeder mit den Einträgen, den Glossarbegriffen dieser Locale und deinem `tone`.
+Scheitert ein Teil-Batch (ein Rate-Limit, ein Timeout, ein widerrufener Key), werden seine Keys für
+diesen Lauf zurückgehalten, während die anderen Teil-Batches weiterlaufen. [Provider](/de/docs/providers)
+beschreibt, wie jeder Provider diese Eingaben anwendet.
 
 ## Die Antwort validieren
 
-Die Ausgabe eines Providers gilt nie als vertrauenswürdiger Freitext. Bei den LLM-Providern
-(Anthropic, OpenAI, Gemini und openai-compatible) muss die Antwort einem festen Schema
-entsprechen, und das wird geprüft, bevor irgendetwas anderes passiert:
+Provider-Ausgabe ist Daten, nie freier Text. Bei den LLM-Providern muss die Antwort zu einem festen
+Schema passen:
 
-- Eine Antwort, die fehlerhaft ist oder einen Key enthält, der nie angefragt wurde, lässt den
-  ganzen Sub-Batch fehlschlagen.
-- Ein angefragter Key, der fehlend oder doppelt zurückkommt, wird einmal erneut angefragt.
-- Ist er danach immer noch ungeklärt, gilt der Key in diesem Lauf als nicht übersetzt und wird
-  beim nächsten Lauf erneut versucht.
+- Eine fehlerhafte Antwort oder eine, die einen nie angefragten Key enthält, lässt den ganzen
+  Teil-Batch scheitern.
+- Ein angefragter Key, der fehlt oder doppelt zurückkommt, wird noch einmal angefragt.
+- Ein Key, der danach immer noch ungelöst ist, wird in diesem Lauf nicht übersetzt.
 
-DeepL und Google Cloud Translation sind Maschinenübersetzungs-APIs ohne diese Antwortschicht, aber
-ihre Ergebnisse durchlaufen dieselben Integritätsprüfungen weiter unten.
+Die Provider für maschinelle Übersetzung haben kein Antwortschema, aber ihre Ergebnisse durchlaufen
+dasselbe Integritäts-Gate.
 
 ## Das Integritäts-Gate ausführen
 
-Eine Übersetzung, die die Schemavalidierung bestanden hat, kann trotzdem kaputt sein, deshalb
-berechnet verbatra die Entscheidung über Annehmen oder Ablehnen selbst aus dem Kandidatenwert
-neu: Es vertraut nie dem Bericht des Providers. Jeder akzeptierte Kandidat muss jede Prüfung des
-Gates bestehen; welche das sind, steht unter
-[Übersetzungssicherheit](/docs/translation-safety). Ein Kandidat, der eine davon nicht besteht,
-wird zurückgehalten statt geschrieben, taucht in der Lauf-Zusammenfassung auf und wird beim
-nächsten Lauf erneut versucht. Siehe
-[Übersetzungssicherheit](/docs/translation-safety) für das vollständige Sicherheitsmodell.
+Eine schema-gültige Übersetzung kann trotzdem kaputt sein, deshalb entscheidet verbatra anhand des
+Kandidatenwerts selbst, ob er angenommen wird, und vertraut nie dem eigenen Bericht des Providers.
+Ein Kandidat, der einen Platzhalter verliert, eine ICU-Nachricht oder ihr Markup zerbricht, leer
+zurückkommt oder entartet, wird zurückgehalten statt geschrieben. Die Prüfungen stehen unter
+[Übersetzungssicherheit](/de/docs/translation-safety#das-integritäts-gate).
 
 ## Über den Adapter schreiben
 
-Akzeptierte Übersetzungen werden ins Ziel gemergt und vom Format-Adapter geschrieben, atomar und
-in der Dokumentreihenfolge der Keys: Ein Key, der schon im Ziel steht, behält seine Position, und
-ein neuer Key wird dort angehängt, wo die Quelle ihn hinsetzt. Ein unterbrochener Schreibvorgang
-hinterlässt nie eine halbfertige Locale-Datei, und ein Formatter oder Code-Reviewer sieht stabile,
-minimale Diffs.
+Angenommene Übersetzungen werden ins Ziel gemergt und vom Format-Adapter geschrieben, atomar und in
+einer stabilen Key-Reihenfolge: Ein Key, der schon im Ziel steht, behält seine Position, und neue
+Keys werden in der Reihenfolge der Quelle hinter den vorhandenen angehängt. Ein unterbrochener Schreibvorgang hinterlässt nie eine
+halb geschriebene Datei, und Reviewer sehen kleine, stabile Diffs.
 
 ## Die Lock-Datei aktualisieren
 
-Nachdem eine Locale geschrieben wurde, werden ihre Lock-Einträge mit den aktuellen Quell-Hashes
-aufgefrischt, mit einer bewussten Ausnahme: Ein in diesem Lauf zurückgehaltener Key behält seinen
-vorherigen Hash, damit der nächste Lauf ihn weiterhin als offen ansieht. Der
-Schreibvorgang jeder Locale passiert unter einer prozessübergreifenden Schreibsperre, damit zwei
-überlappende Läufe nie mit einer veralteten Baseline vergleichen oder denselben Provider-Aufruf
-doppelt bezahlen. Die Details stehen in [Die Lock-Datei](/docs/the-lock-file).
+Nachdem eine Locale geschrieben ist, werden ihre Lock-Einträge mit den aktuellen Quell-Hashes
+aufgefrischt. Ein Key, der in diesem Lauf zurückgehalten wurde, behält seinen bisherigen Hash, sodass
+der nächste Lauf ihn weiter als Arbeit sieht. Jede Locale wird unter einer prozessübergreifenden
+[Schreibsperre](/de/docs/the-lock-file#die-schreibsperre) geschrieben, sodass zwei sich überlappende
+Läufe nie gegen eine veraltete Baseline vergleichen oder denselben Aufruf doppelt bezahlen.
 
 ## Eine Locale nach der anderen, Fehlschläge als Daten
 
-Jede Ziel-Locale läuft für sich: Scheitert eine Locale, stoppt das die anderen nicht. Der Lauf
-gibt eine Zusammenfassung pro Locale zurück (übersetzt, unverändert, verwaist, zurückgehalten,
-zum Review markiert, Hinweise), und ein Dry Run (`--dry-run`) erzeugt nach dem Vergleichsschritt
-dieselbe Form von Zusammenfassung, ohne einen Provider zu konstruieren oder irgendetwas zu
-schreiben.
+Jede Ziel-Locale läuft für sich, und eine scheiternde Locale hält die anderen nicht auf. Der Lauf
+liefert eine Zusammenfassung pro Locale: übersetzt, unverändert, verwaist, zurückgehalten, zum Review
+markiert und Hinweise. Was jedes Feld enthält, steht unter [RunSummary](/de/docs/sdk/run-summary).
+
+Was dieses Design garantiert:
+
+- Ein zweiter Lauf ohne Änderungen an der Quelle ruft den Provider für nichts auf.
+- Nichts, was eine Prüfung abgelehnt hat, wird je geschrieben, und nichts Zurückgehaltenes wird als
+  erledigt festgehalten.
+- Ein Probelauf (`--dry-run`) hört nach dem Vergleich auf und liefert dieselbe Form der
+  Zusammenfassung, ohne einen Provider zu bauen oder eine Datei zu schreiben.
+
+Was es nicht tut: Es beurteilt nie, ob eine Übersetzung gut ist. Dafür gibt es
+[Review-Flags](/de/docs/translation-safety#review-flags) und einen Menschen.
+
+## Siehe auch
+
+- [`verbatra translate`](/de/docs/cli/translate): Flags, Ausgabe und Exit-Codes eines Laufs.
+- [Die Lock-Datei und die Herkunft](/de/docs/the-lock-file): was die Baseline festhält.
+- [Der Übersetzungs-Cache](/de/docs/the-cache): worauf die Wiederverwendung beruht.
+- [Übersetzungssicherheit](/de/docs/translation-safety): das Integritäts-Gate und die Review-Flags.
+- [Fehlercodes](/de/docs/error-codes): jeder Code, den ein Lauf melden kann.

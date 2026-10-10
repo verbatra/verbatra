@@ -76,6 +76,53 @@ describe("sendContactEmail", () => {
     expect(result).toEqual({ ok: false });
   });
 
+  it("logs only the error code and message of a failed send, not the full error object", async () => {
+    setSmtpEnv();
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const failure = Object.assign(new Error("mailbox unavailable"), {
+      code: "EENVELOPE",
+      response: "550 rejected ada@example.com",
+      envelope: { from: "contact@kreitz-webdev.de", to: ["info@kreitz-webdev.de"] },
+    });
+    const client = stubClient(vi.fn().mockRejectedValue(failure));
+
+    await sendContactEmail(payload(), { client });
+
+    expect(errorLog).toHaveBeenCalledWith("sendContactEmail: sendMail failed.", {
+      code: "EENVELOPE",
+      message: "mailbox unavailable",
+    });
+    expect(JSON.stringify(errorLog.mock.calls)).not.toContain("ada@example.com");
+    errorLog.mockRestore();
+  });
+
+  it("logs a failed send without a code when the error carries none", async () => {
+    setSmtpEnv();
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const client = stubClient(vi.fn().mockRejectedValue(new Error("network down")));
+
+    await sendContactEmail(payload(), { client });
+
+    expect(errorLog).toHaveBeenCalledWith("sendContactEmail: sendMail failed.", {
+      message: "network down",
+    });
+    errorLog.mockRestore();
+  });
+
+  it("logs a placeholder instead of the value when the client rejects with a non-Error", async () => {
+    setSmtpEnv();
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const client = stubClient(vi.fn().mockRejectedValue({ envelope: { to: ["ada@example.com"] } }));
+
+    const result = await sendContactEmail(payload(), { client });
+
+    expect(result).toEqual({ ok: false });
+    expect(errorLog).toHaveBeenCalledWith("sendContactEmail: sendMail failed.", {
+      message: "non-Error rejection",
+    });
+    errorLog.mockRestore();
+  });
+
   it("returns ok: false when the client throws", async () => {
     setSmtpEnv();
     const client: EmailClient = {

@@ -1,44 +1,43 @@
 ---
 title: Ajouter une langue
-description: Ajoute une nouvelle locale cible à un projet verbatra existant avec un changement de configuration d'une ligne et une exécution de translate, tandis que tes locales existantes restent intactes.
+description: "Ajoute une nouvelle locale cible à un projet verbatra existant avec une ligne de configuration et une exécution de translate, sans toucher à tes locales existantes."
+type: how-to
 ---
-Ajouter une langue, c'est un changement de configuration d'une ligne plus une exécution. verbatra considère que tout manque dans la nouvelle locale et la remplit intégralement ; tes locales existantes ne coûtent rien, parce que le fichier de verrouillage les enregistre toujours comme à jour.
+Utilise ceci quand un projet traduit déjà vers quelques langues et que tu en veux une de plus. Il suffit d'une ligne de configuration et d'une exécution. verbatra considère que la nouvelle locale n'a aucune clé et la remplit ; tes locales existantes ne coûtent rien, car le fichier de verrouillage les enregistre toujours comme à jour.
+
+Il te faut un projet qui fonctionne : une configuration, un fichier de locale source et une clé de fournisseur. Si tu n'en as pas encore, commence par le [démarrage rapide](/fr/docs/quickstart).
 
 ## Ajoute la locale à ta configuration
 
-Ajoute-la à `targetLocales` dans `verbatra.config.ts` :
+Ajoute le code à `targetLocales` dans `verbatra.config.ts` :
 
-```ts
+```ts title="verbatra.config.ts"
 import { defineConfig } from "@verbatra/cli";
 
 export default defineConfig({
   sourceLocale: "en",
-  targetLocales: ["de", "fr"], // "fr" added
+  targetLocales: ["de", "fr"], // [!code highlight]
   format: "i18next-json",
-  files: {
-    pattern: "locales/{locale}.json",
-  },
-  provider: {
-    id: "gemini",
-    options: {
-      model: "gemini-2.5-flash",
-      maxOutputTokens: 4096,
-    },
-  },
+  files: { pattern: "locales/{locale}.json" },
+  provider: { id: "gemini", options: { model: "gemini-2.5-flash", maxOutputTokens: 4096 } },
 });
 ```
 
-Deux règles, toutes deux appliquées au chargement de la configuration : une locale cible ne doit pas être la `sourceLocale`, et deux entrées ne doivent pas entrer en collision à la casse près (pas de `de` et `DE` dans la même liste).
+### Règles des codes de locale
+
+<AvailableFrom version="0.12.0" />
+
+Écris le code sous forme BCP 47, avec un trait d'union : `pt-BR`, pas `pt_BR`. Si tes fichiers utilisent des tirets bas, écris quand même `pt-BR` et règle `files.localeStyle` sur `posix` ; verbatra garde le nom de fichier `pt_BR.json`. Le chargement de la configuration refuse un code invalide, la locale source et deux codes qui ne diffèrent que par la casse. Les règles complètes sont dans [Codes de locale](/fr/docs/config-file#codes-de-locale), et [`verbatra doctor`](/fr/docs/cli/doctor) te dit si un fournisseur prend en charge la nouvelle langue.
 
 ## Prévisualise le travail
 
-Avant de dépenser le moindre token, regarde ce qu'une exécution ferait. `diff` est en lecture seule et liste les clés en attente par locale :
+Regarde ce que ferait une exécution avant de dépenser quoi que ce soit :
 
 ```bash
-verbatra diff
+verbatra diff --locales fr
 ```
 
-La nouvelle locale n'a pas encore de fichier cible, donc verbatra la traite comme vide et chaque clé source apparaît comme manquante ; tes locales existantes ne listent rien, en supposant que leurs chaînes source n'ont pas changé. `diff` sort avec le code `1` tant que des changements sont en attente, `0` dès qu'il n'y en a plus. `verbatra translate --dry-run` te donne la même prévisualisation sous la forme d'un résumé d'exécution, sans appel au fournisseur ni écriture.
+La nouvelle locale n'a pas encore de fichier, donc chaque clé source est listée comme manquante. Retire `--locales` pour vérifier que tes autres locales ne listent rien. `diff` n'appelle aucun fournisseur et n'écrit rien. Pour une estimation du coût, lance `verbatra translate --estimate` ; voir [Estimer le coût avant une exécution](/fr/docs/estimating-cost).
 
 ## Traduis
 
@@ -46,31 +45,44 @@ La nouvelle locale n'a pas encore de fichier cible, donc verbatra la traite comm
 verbatra translate
 ```
 
-L'exécution traduit chaque clé source dans la nouvelle locale et écrit le fichier à l'emplacement défini par ton `files.pattern` (ici `locales/fr.json`). Une source volumineuse est découpée en sous-lots d'au plus 50 clés par requête au fournisseur (configurable avec `maxBatchSize`), pour qu'une requête trop grosse ne puisse pas faire échouer toute la locale.
+L'exécution traduit chaque clé source dans la nouvelle locale et écrit le fichier à ton `files.pattern`, ici `locales/fr.json`. Seule la nouvelle locale déclenche des appels au fournisseur : les autres locales n'ont aucune clé manquante ou modifiée par rapport à leur référence dans le fichier de verrouillage, donc rien n'est envoyé pour elles.
 
-C'est le comportement incrémental à l'œuvre : seule la nouvelle locale déclenche des appels au fournisseur. Pour chaque locale existante, verbatra compare la source avec la référence de cette locale dans `verbatra.lock.json`, ne trouve aucune clé manquante ou modifiée, et n'envoie rien. Ensuite, `verbatra check` sort avec le code `0` : chaque locale, y compris la nouvelle, est synchronisée.
+Si l'exécution ne garde rien pour la nouvelle locale, parce que chaque clé a échoué à une vérification, que ses requêtes au fournisseur ont échoué ou qu'un budget de tokens les a retenues, aucun fichier n'est créé. Les clés restent manquantes et la prochaine exécution les réessaie.
+
+Ensuite, `verbatra check` se termine avec `0` quand chaque locale, la nouvelle comprise, est synchronisée.
 
 ## Langues avec plus de catégories de pluriel
 
-Certaines langues ont besoin de plus de catégories de pluriel CLDR que ta source n'en a. L'anglais en a deux (`one` et `other`) ; le polonais, l'arabe et le russe en ont plus. Par défaut, verbatra traduit les formes plurielles qu'il trouve dans la source et n'invente pas les formes supplémentaires : l'exécution réussit quand même et émet un avis par locale (code `PLURAL_CATEGORIES_INCOMPLETE`) nommant les catégories manquantes.
+Certaines langues ont besoin de plus de formes de pluriel que ta source. L'anglais a `one` et `other` ; le polonais en demande quatre, l'arabe six, et le français ajoute `many`. Par défaut, verbatra traduit les formes présentes dans ta source et n'invente pas les autres : l'exécution réussit et signale un avis `PLURAL_CATEGORIES_INCOMPLETE` qui nomme ce qui manque.
 
-Pour que verbatra synthétise les formes manquantes à la place, définis `generatePlurals: true` dans ta configuration :
+### Générer les formes manquantes
 
-```ts
+<AvailableFrom version="0.3.0" />
+
+Si tu utilises du JSON i18next avec un fournisseur LLM, verbatra peut écrire les formes manquantes :
+
+```ts title="verbatra.config.ts"
 export default defineConfig({
   // ...
   generatePlurals: true,
 });
 ```
 
-La génération n'est prise en charge que pour les projets i18next-JSON traduits par un fournisseur LLM ; DeepL et Google Cloud Translation, les autres formats et les langues cibles inconnues se contentent de l'avis et ne font jamais échouer l'exécution. Les formes générées passent les mêmes contrôles d'intégrité que toute traduction et sont rapportées séparément des clés traduites dans le résumé d'exécution.
+Les formes générées passent les mêmes contrôles d'intégrité que toute traduction.
 
-## Maintenir la locale source
+### Formes issues de CLDR
 
-La seule locale que tu maintiens à la main, c'est la locale source. Pour ajouter des chaînes, mets-les dans le fichier source et relance `translate` : verbatra les remplit dans chaque cible, y compris celle que tu viens d'ajouter.
+<AvailableFrom version="0.12.0" />
 
-## Ensuite
+Les formes dont une langue a besoin viennent des règles de pluriel CLDR intégrées à Node.js, pour chaque langue, ordinaux compris. Les formats ICU (next-intl et ARB) gardent un pluriel entier dans une seule valeur, ils n'ont donc besoin d'aucune génération : on demande au fournisseur exactement les branches qu'utilise la langue cible. Voir [`generatePlurals`](/fr/docs/config-file#generateplurals) pour ce qui retombe sur l'avis, et [Pluriels](/fr/docs/language-support#pluriels) pour la façon dont verbatra décide des formes dont une langue a besoin.
 
-- [Le fichier de verrouillage](/docs/the-lock-file) : pourquoi les nouvelles exécutions coûtent peu et quoi commiter.
-- [Fichier de configuration](/docs/config-file) : le schéma complet de configuration, y compris `glossary` et `tone`.
-- [Fournisseurs](/docs/providers) : les options des fournisseurs et où obtenir une clé.
+## Continue à maintenir seulement la source
+
+Désormais, tu ne modifies que la locale source. Ajoutes-y une chaîne et relance `translate` : verbatra la remplit dans chaque cible, y compris celle que tu viens d'ajouter.
+
+## Voir aussi
+
+- [`verbatra translate`](/fr/docs/cli/translate) et [`verbatra diff`](/fr/docs/cli/diff) : chaque flag utilisé sur cette page.
+- [Le fichier de configuration](/fr/docs/config-file#locales-et-fichiers) : `targetLocales`, `files.pattern` et `files.localeStyle`.
+- [Prise en charge des langues](/fr/docs/language-support) : les langues couvertes par chaque fournisseur, les écritures, les variantes régionales et le texte de droite à gauche.
+- [Le fichier de verrouillage](/fr/docs/the-lock-file) : pourquoi les locales existantes ne coûtent rien lors d'une nouvelle exécution.

@@ -1,34 +1,35 @@
 import type { ReactNode } from "react";
-import { useState } from "react";
-import { deriveGlossaryWriteOutcome, glossaryReadOnlyReason } from "../client/glossary-editing.js";
+import { useId, useState } from "react";
+import {
+  ALL_LOCALES,
+  deriveGlossaryWriteOutcome,
+  glossaryReadOnlyReason,
+} from "../client/glossary-editing.js";
 import {
   type GlossaryGetResult,
   type GlossaryIndicator,
+  type GlossaryWriteParams,
   type GlossaryWriteResult,
+  MAX_GLOSSARY_TERM_LENGTH,
   MAX_GLOSSARY_TRANSLATION_LENGTH,
 } from "../shared/rpc/glossary.js";
 import { rpcClient } from "./api.js";
 import { Badge } from "./Badge.js";
 import { Button } from "./Button.js";
+import { GlossaryDoNotTranslate, glossarySubheadingClassName } from "./GlossaryDoNotTranslate.js";
+import { GlossaryTermRow, type GlossaryWriter } from "./GlossaryTermRow.js";
 import { TextField } from "./Input.js";
+import { Select } from "./Select.js";
 import { EmptyState, SectionCard } from "./ui.js";
-
-interface GlossaryWriter {
-  readonly pending: string | undefined;
-  readonly error: string | undefined;
-  readonly write: (term: string, translation: string | null) => Promise<boolean>;
-}
 
 function useGlossaryWriter(onChange: (next: GlossaryWriteResult) => void): GlossaryWriter {
   const [pending, setPending] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
 
-  async function write(term: string, translation: string | null): Promise<boolean> {
-    setPending(term);
+  async function write(edit: GlossaryWriteParams): Promise<boolean> {
+    setPending(edit.term);
     setError(undefined);
-    const outcome = deriveGlossaryWriteOutcome(
-      await rpcClient.call("glossary.write", { term, translation }),
-    );
+    const outcome = deriveGlossaryWriteOutcome(await rpcClient.call("glossary.write", edit));
     setPending(undefined);
     if (outcome.kind === "error") {
       setError(outcome.message);
@@ -48,141 +49,55 @@ export function glossaryIndicatorLabel(indicator: GlossaryIndicator): string {
   return indicator.source;
 }
 
-function TermValue({
-  term,
-  translation,
-  redacted,
+function ScopeSelect({
+  locales,
+  scope,
+  onScope,
 }: {
-  readonly term: string;
-  readonly translation: string;
-  readonly redacted: boolean;
+  readonly locales: readonly string[];
+  readonly scope: string;
+  readonly onScope: (next: string) => void;
 }): ReactNode {
+  const id = useId();
   return (
-    <>
-      <p className="m-0 mt-0.5 text-sm text-foreground" dir="auto">
-        {translation}
-      </p>
-      {redacted ? (
-        <p className="m-0 mt-1 text-xs text-muted-foreground">
-          The stored value for {term} looks like a secret, so it is hidden here and cannot be
-          edited. Change it in the glossary file itself.
-        </p>
-      ) : null}
-    </>
-  );
-}
-
-function TermEditor({
-  term,
-  draft,
-  busy,
-  onDraft,
-  onCancel,
-  onSave,
-}: {
-  readonly term: string;
-  readonly draft: string;
-  readonly busy: boolean;
-  readonly onDraft: (next: string) => void;
-  readonly onCancel: () => void;
-  readonly onSave: () => void;
-}): ReactNode {
-  return (
-    <div className="mt-1.5 flex flex-wrap items-center gap-2">
-      <TextField
-        aria-label={`Translation for ${term}`}
-        dir="auto"
-        value={draft}
-        disabled={busy}
-        onChange={(event) => onDraft(event.target.value)}
-      />
-      <Button
-        variant="primary"
-        onClick={onSave}
-        disabled={
-          busy || draft.trim().length === 0 || draft.length > MAX_GLOSSARY_TRANSLATION_LENGTH
-        }
-      >
-        Save
-      </Button>
-      <Button onClick={onCancel} disabled={busy}>
-        Cancel
-      </Button>
+    <div className="mb-3 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+      <label htmlFor={id}>Show translations for</label>
+      <Select id={id} value={scope} onChange={(event) => onScope(event.target.value)}>
+        <option value={ALL_LOCALES}>All locales</option>
+        {locales.map((locale) => (
+          <option key={locale} value={locale}>
+            {locale}
+          </option>
+        ))}
+      </Select>
     </div>
   );
 }
 
-function GlossaryTermRow({
-  term,
-  translation,
-  redacted,
-  editable,
+function GlossaryAddForm({
+  scope,
   writer,
 }: {
-  readonly term: string;
-  readonly translation: string;
-  readonly redacted: boolean;
-  readonly editable: boolean;
+  readonly scope: string;
   readonly writer: GlossaryWriter;
 }): ReactNode {
-  const [draft, setDraft] = useState<string | undefined>(undefined);
-  const busy = writer.pending === term;
-
-  async function save(): Promise<void> {
-    if (draft !== undefined && (await writer.write(term, draft))) {
-      setDraft(undefined);
-    }
-  }
-
-  return (
-    <li className="rounded-md border border-border bg-muted/40 px-3 py-2.5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="font-mono text-sm font-semibold text-accent-foreground">{term}</span>
-        {editable ? (
-          <span className="flex items-center gap-1.5">
-            {redacted || draft !== undefined ? null : (
-              <Button
-                onClick={() => setDraft(translation)}
-                disabled={busy}
-                aria-label={`Edit ${term}`}
-              >
-                Edit
-              </Button>
-            )}
-            <Button
-              onClick={() => void writer.write(term, null)}
-              disabled={busy}
-              aria-label={`Remove ${term}`}
-            >
-              Remove
-            </Button>
-          </span>
-        ) : null}
-      </div>
-      {draft === undefined ? (
-        <TermValue term={term} translation={translation} redacted={redacted} />
-      ) : (
-        <TermEditor
-          term={term}
-          draft={draft}
-          busy={busy}
-          onDraft={setDraft}
-          onCancel={() => setDraft(undefined)}
-          onSave={() => void save()}
-        />
-      )}
-    </li>
-  );
-}
-
-function GlossaryAddForm({ writer }: { readonly writer: GlossaryWriter }): ReactNode {
   const [term, setTerm] = useState("");
   const [translation, setTranslation] = useState("");
   const busy = writer.pending !== undefined;
-  const ready = term.trim().length > 0 && translation.trim().length > 0;
+  const trimmedTerm = term.trim();
+  const ready =
+    trimmedTerm.length > 0 &&
+    trimmedTerm.length <= MAX_GLOSSARY_TERM_LENGTH &&
+    translation.trim().length > 0 &&
+    translation.length <= MAX_GLOSSARY_TRANSLATION_LENGTH;
 
   async function add(): Promise<void> {
-    if (await writer.write(term.trim(), translation)) {
+    const edit: GlossaryWriteParams = {
+      term: trimmedTerm,
+      translation,
+      ...(scope === ALL_LOCALES ? {} : { locale: scope }),
+    };
+    if (await writer.write(edit)) {
       setTerm("");
       setTranslation("");
     }
@@ -190,24 +105,30 @@ function GlossaryAddForm({ writer }: { readonly writer: GlossaryWriter }): React
 
   return (
     <div className="mt-4 border-border border-t pt-4">
-      <p className="m-0 mb-2 font-medium text-sm text-foreground">Add a term</p>
-      <div className="flex flex-wrap items-center gap-2">
+      <h3 className={glossarySubheadingClassName}>
+        {scope === ALL_LOCALES ? "Add a term" : `Add a term for ${scope}`}
+      </h3>
+      <div className="grid items-end gap-2 sm:grid-cols-[1fr_1fr_auto]">
         <TextField
           aria-label="New glossary term"
           placeholder="Source term"
+          className="max-w-none"
           value={term}
           disabled={busy}
           onChange={(event) => setTerm(event.target.value)}
         />
         <TextField
           aria-label="New glossary translation"
-          placeholder="Translation to keep"
+          placeholder={
+            scope === ALL_LOCALES ? "Translation for all locales" : `Translation for ${scope}`
+          }
           dir="auto"
+          className="max-w-none"
           value={translation}
           disabled={busy}
           onChange={(event) => setTranslation(event.target.value)}
         />
-        <Button variant="primary" onClick={() => void add()} disabled={busy || !ready}>
+        <Button variant="primary" size="md" onClick={() => void add()} disabled={busy || !ready}>
           Add term
         </Button>
       </div>
@@ -223,8 +144,10 @@ export function GlossarySection({
   readonly onChange: (next: GlossaryWriteResult) => void;
 }): ReactNode {
   const writer = useGlossaryWriter(onChange);
+  const [scope, setScope] = useState<string>(ALL_LOCALES);
   const readOnlyReason = glossaryReadOnlyReason(glossary.indicator);
-  const terms = Object.entries(glossary.entries);
+  const editable = readOnlyReason === undefined;
+  const count = glossary.terms.length;
 
   return (
     <SectionCard
@@ -232,9 +155,9 @@ export function GlossarySection({
       intro={`Source: ${glossaryIndicatorLabel(glossary.indicator)}`}
       className="mb-0"
       meta={
-        terms.length > 0 ? (
+        count > 0 ? (
           <Badge tone="neutral">
-            {terms.length} {terms.length === 1 ? "term" : "terms"}
+            {count} {count === 1 ? "term" : "terms"}
           </Badge>
         ) : undefined
       }
@@ -242,25 +165,34 @@ export function GlossarySection({
       {readOnlyReason !== undefined ? (
         <p className="m-0 mb-3 text-sm text-muted-foreground">{readOnlyReason}</p>
       ) : null}
-      {terms.length === 0 ? (
-        <EmptyState title="No glossary configured">
+      {glossary.locales.length > 0 && (count > 0 || editable) ? (
+        <ScopeSelect locales={glossary.locales} scope={scope} onScope={setScope} />
+      ) : null}
+      {count === 0 ? (
+        <EmptyState title="No glossary terms">
           Add a glossary to keep brand terms and fixed vocabulary consistent across locales.
         </EmptyState>
       ) : (
-        <ul className="m-0 flex list-none flex-col gap-2 p-0">
-          {terms.map(([term, translation]) => (
+        <ul className="m-0 flex min-w-0 list-none flex-col gap-2 p-0">
+          {glossary.terms.map((term) => (
             <GlossaryTermRow
-              key={term}
+              key={`${scope}:${term.source}`}
               term={term}
-              translation={translation}
-              redacted={glossary.redactedTerms.includes(term)}
-              editable={readOnlyReason === undefined}
+              scope={scope}
+              locales={glossary.locales}
+              redacted={glossary.redactedTerms.includes(term.source)}
+              editable={editable}
               writer={writer}
             />
           ))}
         </ul>
       )}
-      {readOnlyReason === undefined ? <GlossaryAddForm writer={writer} /> : null}
+      {editable ? <GlossaryAddForm scope={scope} writer={writer} /> : null}
+      <GlossaryDoNotTranslate
+        entries={glossary.doNotTranslate}
+        editable={editable}
+        writer={writer}
+      />
       {writer.error !== undefined ? (
         <p className="m-0 mt-3 text-danger text-sm" role="alert">
           {writer.error}

@@ -102,6 +102,19 @@ describe("createResxAdapter preserves content it does not own", () => {
     expect(fs.files.get("Resources.resx")).toContain("<![CDATA[raw <b>markup</b> here]]>");
   });
 
+  it("reads named holes as placeholders and writes them back byte-identically", async () => {
+    const source =
+      '<root>\n  <data name="A" xml:space="preserve">\n    <value>Hi {name}, due {when:yyyy-MM-dd} for {名前,-8}</value>\n  </data>\n</root>\n';
+    const { adapter } = setup({ "Resources.resx": source });
+    const { resource: read } = await adapter.read("Resources.resx", "en");
+    expect(read.entries.get("A")?.placeholders).toEqual([
+      "{name}",
+      "{when:yyyy-MM-dd}",
+      "{名前,-8}",
+    ]);
+    expect(await readModifyWrite(source)).toBe(source);
+  });
+
   it("keeps an entry whose value needs escaping semantically identical across a round-trip", async () => {
     const source =
       '<root>\n  <data name="A" xml:space="preserve">\n    <value>a &lt; b &gt; c &amp; d</value>\n  </data>\n</root>\n';

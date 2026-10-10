@@ -1,4 +1,9 @@
-import { conventionalSubtags, type LocaleTag, NUMERIC_REGION, parseLocaleTag } from "./tag.js";
+import {
+  conventionalSubtags,
+  type LocaleTag,
+  NUMERIC_REGION,
+  parseLocaleTag,
+} from "@verbatra/core";
 
 const SOURCE_SEGMENT = "values";
 

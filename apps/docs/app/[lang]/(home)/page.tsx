@@ -1,25 +1,24 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
+import { Fragment, type ReactNode } from "react";
 import { JsonLd } from "@/components/json-ld";
+import { Control } from "@/components/landing/control";
 import { Faq, type FaqEntry } from "@/components/landing/faq";
 import { FinalCta } from "@/components/landing/final-cta";
-import { FullFooter } from "@/components/landing/footer";
-import { Gains } from "@/components/landing/gains";
+import { Formats } from "@/components/landing/formats";
+import { LandingNav } from "@/components/landing/landing-nav";
 import { Loop } from "@/components/landing/loop";
 import { Marquee } from "@/components/landing/marquee";
+import { MotionRoot } from "@/components/landing/motion-root";
 import { Proof } from "@/components/landing/proof";
-import { Providers } from "@/components/landing/providers";
+import { Showcase } from "@/components/landing/showcase";
 import { LandingHero } from "@/components/landing-hero";
-import { localizedPath, toLocale } from "@/lib/i18n";
-import {
-  homeAlternates,
-  MCP_VERSION,
-  ogAlternateLocales,
-  ogLocale,
-  PACKAGE_VERSION,
-  SITE_URL,
-  STUDIO_VERSION,
-} from "@/lib/site";
+import { howStepCopy } from "@/lib/how-steps";
+import { toLocale } from "@/lib/i18n";
+import { withoutInlineCode } from "@/lib/inline-code-text";
+import { LANDING_SECTIONS, type LandingSectionId } from "@/lib/landing-sections";
+import { homeAlternates, MCP_VERSION, PACKAGE_VERSION, STUDIO_VERSION } from "@/lib/site";
+import { homeOgImagePath, socialMetadata } from "@/lib/social-metadata";
 import {
   type FaqItem,
   faqPageLd,
@@ -27,8 +26,6 @@ import {
   howToLd,
   softwareApplicationLd,
 } from "@/lib/structured-data";
-
-const HOW_STEP_KEYS = ["configure", "diff", "translate", "verifyWrite"] as const;
 
 export default async function HomePage(props: { params: Promise<{ lang: string }> }) {
   const { lang } = await props.params;
@@ -39,11 +36,23 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
     t.raw("faq.items") as Record<string, FaqItem>,
   ).map(([id, item]) => ({ ...item, id }));
 
-  const howStepCopy = t.raw("how.steps") as Record<string, { title: string; body: string }>;
-  const howSteps: ReadonlyArray<HowToStepItem> = HOW_STEP_KEYS.map((key) => {
-    const step = howStepCopy[key];
-    return { name: step?.title ?? "", text: step?.body ?? "" };
-  });
+  const tHow = await getTranslations({ locale, namespace: "landing.how" });
+  const howSteps: ReadonlyArray<HowToStepItem> = howStepCopy(tHow).map((step) => ({
+    name: step.title,
+    text: withoutInlineCode(step.body),
+  }));
+
+  const sections: Readonly<Record<LandingSectionId, ReactNode>> = {
+    hero: <LandingHero />,
+    marquee: <Marquee />,
+    showcase: <Showcase />,
+    how: <Proof />,
+    formats: <Formats />,
+    control: <Control />,
+    loop: <Loop />,
+    faq: <Faq items={faqItems} />,
+    finalCta: <FinalCta />,
+  };
 
   const version = PACKAGE_VERSION;
   const studioVersion = STUDIO_VERSION;
@@ -63,15 +72,13 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
       <JsonLd data={faqPageLd({ items: faqItems, lang: locale })} />
       <JsonLd data={howToLd({ name: t("how.heading"), steps: howSteps, lang: locale })} />
 
-      <LandingHero />
-      <Marquee />
-      <Proof />
-      <Providers />
-      <Loop />
-      <Gains />
-      <Faq items={faqItems} />
-      <FinalCta />
-      <FullFooter />
+      {LANDING_SECTIONS.map((id) => (
+        <Fragment key={id}>
+          {sections[id]}
+          {id === "hero" ? <LandingNav /> : null}
+        </Fragment>
+      ))}
+      <MotionRoot />
     </div>
   );
 }
@@ -88,26 +95,15 @@ export async function generateMetadata(props: {
   const ogDescription = t("ogDescription");
   const ogImageAlt = t("ogImageAlt");
   const { canonical } = homeAlternates(locale);
-  const ogImagePath = localizedPath(locale, "/home-og");
 
-  return {
-    openGraph: {
-      type: "website",
-      siteName: "verbatra",
-      locale: ogLocale(locale),
-      alternateLocale: ogAlternateLocales(locale),
-      url: new URL(canonical, SITE_URL).href,
-      title: ogTitle,
-      description: ogDescription,
-      images: [{ url: ogImagePath, width: 1200, height: 630, alt: ogImageAlt }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      site: "@mariokreitz",
-      creator: "@mariokreitz",
-      title,
-      description,
-      images: [ogImagePath],
-    },
-  };
+  return socialMetadata({
+    locale,
+    path: canonical,
+    type: "website",
+    title: ogTitle,
+    description: ogDescription,
+    image: { path: homeOgImagePath(locale), alt: ogImageAlt },
+    twitterTitle: title,
+    twitterDescription: description,
+  });
 }

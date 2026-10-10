@@ -48,24 +48,31 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     },
-    "./config-schema.json": "./dist/config-schema.json"
+    "./config-schema.json": "./dist/config-schema.json",
+    "./schemas/*": "./dist/schemas/*",
+    "./package.json": "./package.json"
   },
   "files": [
     "dist"
   ],
   "engines": {
-    "node": ">=22.14.0"
+    "node": "^22.18.0 || >=24"
   },
   "publishConfig": {
     "access": "public",
     "provenance": true
   },
   "scripts": {
-    "build": "tsup && node scripts/emit-config-schema.mjs",
+    "build": "tsup && node scripts/emit-schemas.mjs",
     "lint": "biome check .",
     "test": "vitest run --coverage",
     "test:watch": "vitest",
@@ -77,7 +84,7 @@
     "@google/genai": "catalog:bundled",
     "@xmldom/xmldom": "catalog:bundled",
     "chokidar": "catalog:",
-    "cosmiconfig": "9.0.2",
+    "cosmiconfig": "10.0.1",
     "cosmiconfig-typescript-loader": "6.3.0",
     "deepl-node": "catalog:bundled",
     "exceljs": "catalog:bundled",

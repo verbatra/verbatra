@@ -56,15 +56,17 @@ describe("readSource", () => {
     expect(read).toBe(false);
   });
 
-  it("wraps an Error thrown by the adapter read as SOURCE_INVALID with its message", async () => {
+  it("wraps an Error thrown by the adapter read as SOURCE_INVALID with its message and cause", async () => {
+    const thrown = new Error("unexpected token");
     const adapter = makeAdapter(async () => {
-      throw new Error("unexpected token");
+      throw thrown;
     });
     const fs = makeFakeFs({ fileExists: async () => true });
 
     await expect(readSource(config, cwd, fs, adapter)).rejects.toMatchObject({
       code: "SOURCE_INVALID",
       message: expect.stringContaining("unexpected token"),
+      cause: thrown,
     });
   });
 

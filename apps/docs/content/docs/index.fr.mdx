@@ -1,58 +1,98 @@
 ---
 title: Introduction
 description: Ce qu'est verbatra, le problème qu'il résout, et comment la CLI, le SDK, Studio et le serveur MCP s'articulent. Traduis uniquement les clés qui ont changé, avec des contrôles d'intégrité sur chaque résultat.
+type: overview
 ---
 
-<DocsHomeHero
-  headline="Comment traduire seulement ce qui a changé."
-  lead="verbatra compare ta locale source avec un fichier de verrouillage commité, n'envoie que les clés nouvelles et modifiées au fournisseur que tu configures, vérifie chaque résultat, et réécrit les fichiers en place. Ces pages couvrent la CLI, le SDK, Studio et le serveur MCP."
-  primary={{ label: "Ta première traduction", href: "/docs/your-first-translation" }}
-  secondary={{ label: "Référence CLI", href: "/docs/cli" }}
+<DocsHomeHeader
+  eyebrow="Documentation"
+  headline="Configure verbatra et garde chaque locale à jour."
+  lead="Guides et référence pour la CLI, le SDK, Studio et le serveur MCP : commence par le démarrage rapide ou laisse ton agent de code configurer verbatra."
+>
+
+<DocsHomeTabs
+  label="Points d'entrée"
+  tabs={[
+    { label: "Démarrage rapide", href: "/docs/quickstart" },
+    { label: "CLI", href: "/docs/cli" },
+    { label: "SDK", href: "/docs/sdk" },
+    { label: "GitHub Action", href: "/docs/github-action" },
+    { label: "Serveur MCP", href: "/docs/cli/mcp" },
+    { label: "Studio", href: "/docs/review-in-studio" },
+  ]}
 />
+
+<DocsHomeAgentTip title="Tu utilises un agent de code ?">
+Copie le prompt dans Claude Code, Cursor ou tout autre agent de code, et il configure verbatra pour toi ; [Configurer avec un agent IA](/fr/docs/start-with-ai) montre chaque étape. Pour qu'il lise et modifie tes traductions directement, connecte le [serveur MCP](/fr/docs/cli/mcp).
+</DocsHomeAgentTip>
+
+</DocsHomeHeader>
 
 <DocsHomeBody>
 
-<DocsHomeSection title="Où aller ensuite" lead="Quatre points de départ, selon où tu en es.">
+<DocsHomeSection title="Pars de ton objectif" lead="Choisis ce que tu veux faire ; chaque carte ouvre la page qui le montre.">
 
 <DocsHomePaths
   cards={[
     {
-      tag: "Nouveau par ici",
-      label: "Ta première traduction",
-      body: "Installe la CLI, génère une configuration, prévisualise l'exécution sans clé, puis traduis.",
-      href: "/docs/your-first-translation",
-      primary: true,
+      goal: "Traduire un projet",
+      page: "Démarrage rapide",
+      body: "Installe la CLI, prévisualise l'exécution sans clé, puis traduis ton premier fichier.",
+      href: "/docs/quickstart",
     },
     {
-      tag: "Déjà en place",
-      label: "Ajouter une langue",
-      body: "Ajoute une locale à ta configuration et laisse une exécution la remplir.",
-      href: "/docs/add-a-language",
-    },
-    {
-      tag: "Production",
-      label: "CI et codes de sortie",
-      body: "Fais échouer la pull request quand une locale dérive, avec une sortie JSON pour les scripts.",
+      goal: "Protéger les pull requests",
+      page: "CI et codes de sortie",
+      body: "Fais échouer une pull request quand une locale dérive, avec une sortie JSON pour les scripts.",
       href: "/docs/ci-and-exit-codes",
     },
     {
-      tag: "Avec un agent IA",
-      label: "Configurer avec l'IA",
-      body: "Donne à Claude Code, Cursor ou tout agent de code un prompt prêt à copier-coller.",
-      href: "/docs/start-with-ai",
+      goal: "Confier à des traducteurs",
+      page: "Traduction humaine",
+      body: "Exporte un classeur qu'une personne traduit, puis réimporte-le.",
+      href: "/docs/manual-translation",
     },
   ]}
 />
 
 </DocsHomeSection>
 
-<DocsHomeSection title="Chaque exécution est un diff, pas une réécriture." lead="Ce qui se passe quand tu lances verbatra translate.">
+<DocsHomeSection id="pick-your-stack" title="Choisis ta stack" lead="Une carte marquée Démarrage rapide ouvre un guide pas à pas pour cette stack ; toute autre carte ouvre sa commande init et son organisation de fichiers.">
 
-Maintenir à la main une seule locale source signifie que tous les autres fichiers de locale dérivent : les nouvelles clés manquent dans les cibles, les chaînes modifiées laissent derrière elles des traductions périmées, et les clés supprimées traînent en orphelines. verbatra comble cet écart en comparant chaque cible à un fichier de verrouillage commité, `verbatra.lock.json`, et en n'envoyant que ce qui a changé au fournisseur que tu configures ; une deuxième exécution sans rien de nouveau à traduire ne fait aucun appel au fournisseur. Chaque résultat est vérifié avant d'être écrit, donc un placeholder cassé est retenu et retenté, jamais livré. Voir [Comment ça marche](/docs/how-it-works) pour le pipeline complet.
+<StackCards
+  labelledBy="pick-your-stack"
+  location="docs-home"
+  cards={[
+    { label: "React", icon: "react", formats: ["i18next-json"], href: "/docs/quickstart/react", badge: "Démarrage rapide", description: "Traduis les fichiers JSON i18next d'une app React." },
+    { label: "Next.js", icon: "next", formats: ["next-intl-json"], href: "/docs/quickstart/nextjs", badge: "Démarrage rapide", description: "Garde les fichiers de messages next-intl synchronisés dans chaque locale." },
+    { label: "Vue", icon: "vue", formats: ["vue-i18n-json"], href: "/docs/quickstart/vue", badge: "Démarrage rapide", description: "Traduis les messages JSON vue-i18n d'une app Vue." },
+    { label: "Nuxt", icon: "nuxt", formats: ["vue-i18n-json"], href: "/docs/pick-your-stack#vue-et-nuxt-avec-vue-i18n", description: "Traduis les messages JSON vue-i18n d'une app Nuxt." },
+    { label: "Angular", icon: "angular", formats: ["ngx-translate-json"], href: "/docs/quickstart/angular", badge: "Démarrage rapide", description: "Traduis les fichiers JSON ngx-translate d'une app Angular." },
+    { label: "Flutter", icon: "flutter", formats: ["arb"], href: "/docs/quickstart/flutter", badge: "Démarrage rapide", description: "Traduis les fichiers ARB pour gen-l10n de Flutter." },
+    { label: "Android", icon: "android", formats: ["android-xml"], href: "/docs/pick-your-stack#android", description: "Traduis les ressources strings.xml, un dossier par locale." },
+    { label: "iOS et macOS", icon: "apple", formats: ["apple-strings", "apple-xcstrings"], href: "/docs/pick-your-stack#ios-et-macos", description: "Traduis les .strings, .stringsdict et String Catalogs." },
+    { label: "gettext", icon: "gnu", formats: ["gettext-po"], href: "/docs/pick-your-stack#gettext", description: "Traduis les fichiers PO à partir d'un modèle POT." },
+    { label: "Java et Spring", icon: "spring", formats: ["properties"], href: "/docs/pick-your-stack#java-et-spring", description: "Traduis les bundles de messages .properties." },
+    { label: ".NET", icon: "dotnet", formats: ["resx"], href: "/docs/pick-your-stack#net", description: "Traduis les fichiers de ressources .resx." },
+    { label: "YAML", icon: "yaml", formats: ["yaml"], href: "/docs/pick-your-stack#yaml", description: "Traduis les fichiers de locale YAML imbriqués." },
+    { label: "XLIFF", icon: "xliff", formats: ["xliff"], href: "/docs/pick-your-stack#xliff", description: "Traduis les fichiers XLIFF, le format d'échange des outils de traduction." },
+    { label: "INI", icon: "ini", formats: ["ini"], href: "/docs/pick-your-stack#ini", description: "Traduis les fichiers de locale INI plats." },
+  ]}
+/>
+
+<DocsHomeNote>
+Ta stack n'est pas là ? Commence par le [démarrage rapide général](/fr/docs/quickstart) ou apprends ton format à verbatra avec un [adaptateur de format personnalisé](/fr/docs/custom-format-adapters).
+</DocsHomeNote>
+
+</DocsHomeSection>
+
+<DocsHomeSection title="Chaque exécution est un diff, pas une réécriture." lead="Ce qui se passe quand tu lances `verbatra translate`.">
+
+Maintenir à la main une seule locale source signifie que tous les autres fichiers de locale dérivent : les nouvelles clés manquent dans les cibles, les chaînes modifiées laissent derrière elles des traductions périmées, et les clés supprimées traînent en orphelines. verbatra comble cet écart en comparant chaque cible à un fichier de verrouillage commité, `verbatra.lock.json`, et en n'envoyant que ce qui a changé au fournisseur que tu configures ; une deuxième exécution sans rien de nouveau à traduire ne fait aucun appel au fournisseur. Chaque résultat est vérifié avant d'être écrit, donc un placeholder cassé est retenu et retenté, jamais livré. Voir [Comment ça marche](/fr/docs/how-it-works) pour le pipeline complet.
 
 <DocsHomeSteps />
 
-verbatra lit et écrit quatorze formats et traduit via six fournisseurs derrière une seule interface, et un format qu'il n'embarque pas peut être ajouté comme [adaptateur personnalisé](/docs/custom-format-adapters). Voir [Formats](/docs/formats) et [Fournisseurs](/docs/providers).
+verbatra lit et écrit les formats de fichiers de locale courants, du JSON et du YAML au XLIFF, à gettext et aux catalogues Android et Apple, et traduit via n'importe quel fournisseur pris en charge, LLM ou service de traduction automatique, derrière une seule interface (ou aucun, pour un [flux 100 % humain](/fr/docs/human-only-workflow)), et un format qu'il n'embarque pas peut être ajouté comme [adaptateur personnalisé](/fr/docs/custom-format-adapters). Les listes complètes sont dans [Formats](/fr/docs/formats) et [Fournisseurs](/fr/docs/providers).
 
 </DocsHomeSection>
 
@@ -63,7 +103,7 @@ verbatra lit et écrit quatorze formats et traduit via six fournisseurs derrièr
     {
       title: "@verbatra/cli",
       pkg: "cli",
-      body: "Le binaire verbatra : quatorze commandes, de init et extract à translate, check, export et studio, comme une fine couche au-dessus du SDK. Commence ici.",
+      body: "Le binaire verbatra : toutes les commandes, de init et extract à translate, check, export et studio, comme une fine couche au-dessus du SDK. Commence ici.",
       href: "/docs/cli",
     },
     {
@@ -75,7 +115,7 @@ verbatra lit et écrit quatorze formats et traduit via six fournisseurs derrièr
     {
       title: "@verbatra/studio",
       pkg: "studio",
-      body: "Un tableau de bord local avec édition en place, une file de révision, l'activité des exécutions et des outils pour agents navigateur. La dépense fournisseur reste désactivée tant que tu ne l'actives pas.",
+      body: "Un tableau de bord local avec édition en place, une file de relecture, l'activité des exécutions et des outils pour agents navigateur. La dépense fournisseur reste désactivée tant que tu ne l'actives pas.",
       href: "/docs/review-in-studio",
     },
     {

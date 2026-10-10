@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useState } from "react";
+import { type KeyboardEvent, type ReactNode, useState } from "react";
 import { cn } from "@/lib/utils";
 
 export type TabItem = { id: string; label: string };
@@ -12,8 +12,60 @@ export type TabListProps = {
   ariaLabel?: string;
   className?: string;
   tabClassName?: string;
-  variant?: "underline" | "pill";
+  variant?: "underline" | "pill" | "segmented";
+  idPrefix?: string;
 };
+
+const STEP_BY_KEY: Readonly<Record<string, number>> = { ArrowRight: 1, ArrowLeft: -1 };
+
+export function tabId(prefix: string, id: string): string {
+  return `${prefix}-tab-${id}`;
+}
+
+export function tabPanelId(prefix: string, id: string): string {
+  return `${prefix}-panel-${id}`;
+}
+
+export function tabPanelProps(prefix: string, id: string, active: string) {
+  const open = id === active;
+  return {
+    id: tabPanelId(prefix, id),
+    role: "tabpanel",
+    "aria-labelledby": tabId(prefix, id),
+    "data-active": open,
+    inert: !open,
+  } as const;
+}
+
+const SEGMENTED_TAB_CLASS =
+  "rounded-(--radius-segment) px-3 py-1 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-ring)";
+
+function targetIndex(key: string, current: number, count: number): number | undefined {
+  if (key === "Home") return 0;
+  if (key === "End") return count - 1;
+  const step = STEP_BY_KEY[key];
+  if (step === undefined) return undefined;
+  return (current + step + count) % count;
+}
+
+function focusSibling(
+  event: KeyboardEvent<HTMLDivElement>,
+  tabs: ReadonlyArray<TabItem>,
+  active: string,
+): string | undefined {
+  const index = targetIndex(
+    event.key,
+    tabs.findIndex((tab) => tab.id === active),
+    tabs.length,
+  );
+  if (index === undefined) return undefined;
+  const next = tabs[index];
+  if (!next) return undefined;
+  event.preventDefault();
+  const buttons = event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]');
+  buttons[index]?.focus();
+  return next.id;
+}
 
 export function TabList({
   tabs,
@@ -23,9 +75,20 @@ export function TabList({
   className,
   tabClassName,
   variant = "underline",
+  idPrefix,
 }: TabListProps): ReactNode {
+  function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    const next = focusSibling(event, tabs, active);
+    if (next !== undefined) onSelect(next);
+  }
+
   return (
-    <div role="tablist" aria-label={ariaLabel} className={className}>
+    <div
+      role="tablist"
+      aria-label={ariaLabel}
+      className={cn(variant === "segmented" && "vk-segmented", className)}
+      onKeyDown={onKeyDown}
+    >
       {tabs.map((tab) => {
         const selected = tab.id === active;
         return (
@@ -34,11 +97,16 @@ export function TabList({
             type="button"
             role="tab"
             aria-selected={selected}
+            tabIndex={selected ? 0 : -1}
+            {...(idPrefix
+              ? { id: tabId(idPrefix, tab.id), "aria-controls": tabPanelId(idPrefix, tab.id) }
+              : {})}
             onClick={() => onSelect(tab.id)}
             className={cn(
+              variant === "segmented" && SEGMENTED_TAB_CLASS,
               tabClassName,
               selected ? "text-fd-foreground" : "text-fd-muted-foreground hover:text-fd-foreground",
-              selected && variant === "pill" && "bg-[color:var(--surface-card)]",
+              selected && variant !== "underline" && "bg-[color:var(--surface-card)]",
             )}
             style={
               selected && variant === "underline"

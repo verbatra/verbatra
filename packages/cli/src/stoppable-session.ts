@@ -1,5 +1,6 @@
 export interface StoppableController {
   stop(): Promise<void>;
+  readonly ended?: Promise<void>;
 }
 
 export interface StoppableSession {
@@ -7,9 +8,12 @@ export interface StoppableSession {
   requestStop(): void;
 }
 
+export type StopCause = "requested" | "ended";
+
 export interface StoppableSessionOptions<C extends StoppableController> {
   getController(): Promise<C>;
   onStopRequested?: () => void;
+  onStopped?: (cause: StopCause) => void;
   onFailure(error: unknown): number;
 }
 
@@ -24,11 +28,15 @@ export function stoppableSession<C extends StoppableController>(
   let controller: C | undefined;
   let stopping = false;
   let startupFailed = false;
+  let endedCleanly = false;
 
   const stopController = (c: C): void => {
     void c
       .stop()
-      .then(() => resolveDone(0))
+      .then(() => {
+        options.onStopped?.("requested");
+        resolveDone(0);
+      })
       .catch((error: unknown) => resolveDone(options.onFailure(error)));
   };
 
@@ -36,6 +44,14 @@ export function stoppableSession<C extends StoppableController>(
     .getController()
     .then((c) => {
       controller = c;
+      void c.ended?.then(() => {
+        if (stopping) {
+          return;
+        }
+        endedCleanly = true;
+        options.onStopped?.("ended");
+        resolveDone(0);
+      });
       if (stopping) {
         stopController(c);
       }
@@ -46,7 +62,7 @@ export function stoppableSession<C extends StoppableController>(
     });
 
   const requestStop = (): void => {
-    if (startupFailed) {
+    if (startupFailed || endedCleanly) {
       return;
     }
     if (!stopping) {

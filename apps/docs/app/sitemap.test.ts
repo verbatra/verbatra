@@ -24,6 +24,7 @@ vi.mock("@/lib/source", () => ({
 }));
 
 const { default: sitemap } = await import("./sitemap");
+const { LEGAL_LAST_UPDATED } = await import("@/lib/site");
 
 const ORIGIN = "https://verbatra.kreitz-webdev.de";
 
@@ -80,12 +81,20 @@ describe("sitemap", () => {
     ]);
   });
 
-  it("stamps every entry with the same build-time lastModified value", () => {
-    const entries = sitemap();
+  it("stamps the home and docs pages with one build-time lastModified value", () => {
+    const entries = sitemap().filter((entry) => !LEGAL_URLS.includes(entry.url ?? ""));
     const first = entries[0]?.lastModified;
     expect(first).toBeInstanceOf(Date);
     for (const entry of entries) {
       expect(entry.lastModified).toBe(first);
+    }
+  });
+
+  it("stamps the legal pages with the date their text last changed", () => {
+    const legal = sitemap().filter((entry) => LEGAL_URLS.includes(entry.url ?? ""));
+    expect(legal).toHaveLength(LEGAL_URLS.length);
+    for (const entry of legal) {
+      expect(entry.lastModified).toBe(LEGAL_LAST_UPDATED);
     }
   });
 

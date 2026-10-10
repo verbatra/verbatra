@@ -2,12 +2,11 @@
 title: verbatra types
 description: Erzeuge TypeScript-Deklarationen für deine Katalog-Keys und deren Nachrichtenargumente, ohne einen Provider aufzurufen oder einen API-Key zu lesen.
 status: new
+type: reference
 ---
 <AvailableFrom version="0.11.0" />
 
-Ein vertippter Key ist ein Lookup-Fehler zur Laufzeit. Ein vergessenes Interpolationsargument ist ein Platzhalter, der wörtlich auf dem Bildschirm landet. `types` macht aus beidem einen Compile-Fehler: Der Befehl liest deinen Quellkatalog über den konfigurierten [Format-Adapter](/docs/formats) und schreibt eine Deklarationsdatei mit einer Union aller Keys und, pro Key, den Argumenten, die dessen Nachricht nimmt. Er kostet nichts: Es wird kein Provider konstruiert, keine Netzwerkanfrage gestellt und kein API-Key gelesen, er funktioniert also in einem frischen Checkout, bevor überhaupt ein Key existiert.
-
-Er liest eine Datei (deinen Quell-Locale-Katalog) und schreibt eine Datei (die Deklaration). Eine Ziel-Locale-Datei fasst er nie an.
+Mach aus einem vertippten Key oder einem vergessenen Interpolationsargument einen Compile-Fehler. `types` liest deinen Quellkatalog über den konfigurierten [Format-Adapter](/de/docs/formats) und schreibt eine Deklarationsdatei: eine Union aller Keys und, pro Key, die Argumente, die dessen Nachricht nimmt. Der Befehl ruft keinen Provider auf, liest keinen API-Key und fasst nie eine Ziel-Locale-Datei an.
 
 ## Synopsis
 
@@ -15,17 +14,34 @@ Er liest eine Datei (deinen Quell-Locale-Katalog) und schreibt eine Datei (die D
 verbatra types [flags]
 ```
 
+## Beispiele
+
+```bash
+# write verbatra-types.d.ts from the source catalog
+verbatra types
+
+# write it where the app already imports from
+verbatra types --out src/generated/messages.d.ts
+
+# CI gate: exit 1 if the committed declaration is stale
+verbatra types --check
+
+# machine-readable result for a script
+verbatra types --json
+```
+
 ## Flags
 
 | Flag | Argument | Standard | Wirkung |
 | --- | --- | --- | --- |
-| `--cwd` | `<path>` | aktuelles Verzeichnis | Konfiguration und Locale-Dateien von diesem Verzeichnis aus auflösen |
-| `--config` | `<path>` | wird gesucht | diese Konfigurationsdatei laden, statt eine zu suchen |
-| `--out` | `<path>` | `verbatra-types.d.ts` | wohin die Deklaration geschrieben wird, relativ zum Arbeitsverzeichnis und innerhalb davon |
-| `--check` | keins | aus | melden, ob die committete Deklaration noch aktuell ist, ohne etwas zu schreiben |
-| `--json` | keins | aus | einen [JSON-Envelope](/docs/ci-and-exit-codes#json-ausgabe) auf stdout ausgeben, der das Ergebnis unter `result` trägt |
+| `--out` | `<path>` | `verbatra-types.d.ts` | wohin die Deklaration geschrieben wird, relativ zum Arbeitsverzeichnis und innerhalb der Projektwurzel; fehlende Verzeichnisse werden angelegt |
+| `--check` | keins | aus | die committete Deklaration Byte für Byte mit einer frischen Generierung vergleichen, ohne etwas zu schreiben; Exit `1`, wenn sie veraltet ist oder fehlt |
 
-## Was erzeugt wird
+Außerdem nimmt der Befehl die [globalen Flags](/de/docs/cli#globale-flags) `--cwd`, `--config` und `--json`.
+
+## Verhalten
+
+### Was erzeugt wird
 
 Aus einer `locales/en.json` wie dieser:
 
@@ -59,6 +75,7 @@ export type VerbatraUnknownArguments = Record<string, VerbatraArgument>;
 export interface VerbatraMessages {
   "app.title": VerbatraNoArguments;
   "greeting": { readonly "name": VerbatraArgument };
+  "cart.item": { readonly "count": VerbatraArgument };
   "cart.item_one": { readonly "count": VerbatraArgument };
   "cart.item_other": { readonly "count": VerbatraArgument };
 }
@@ -90,17 +107,17 @@ t("greeting", {});              // error: the name argument is required
 t("app.title", { name: "Ada" }); // error: this message takes no argument
 ```
 
-## Was behauptet wird und was nicht
+### Was behauptet wird und was nicht
 
-Die Keys sind genau das, was der Format-Adapter beim Lesen des Katalogs ohnehin schon erzeugt hat, in Dokumentreihenfolge, und genau deshalb erzeugt derselbe Katalog immer dieselben Bytes. Bei den meisten Formaten stammen die Argumente aus den Platzhalter-Tokens, die der Adapter extrahiert hat. Bei den beiden ICU-Nachrichtenformaten, `next-intl-json` und `arb`, wird jede Nachricht mit demselben ICU-Parser gelesen, den der Adapter verwendet. Ein Argument, das nur einige `select`- oder `plural`-Zweige verwenden, wird deshalb trotzdem deklariert, und jedes Argument bekommt seinen Typ danach, wie die Nachricht es formatiert. Geraten wird nichts.
+Die Keys sind genau das, was der Format-Adapter erzeugt hat, in Dokumentreihenfolge, deshalb erzeugt derselbe Katalog immer dieselben Bytes. Die Argumente stammen aus den Platzhalter-Tokens, die der Adapter extrahiert hat; Nachrichten in `next-intl-json` und `arb` werden mit dem ICU-Parser des Adapters gelesen, sodass auch ein Argument deklariert wird, das nur einige Zweige verwenden. Geraten wird nichts, und nichts wird als `any` deklariert.
 
 | Deine Nachricht | Was deklariert wird |
 | --- | --- |
 | keine Platzhalter | `VerbatraNoArguments`, jedes übergebene Argument ist also ein Typfehler |
 | benannte Platzhalter (`{{name}}`, `{name}`, `%(name)s`) | eine Objektform mit genau diesen Namen |
 | nummerierte oder anonyme Platzhalter (`{0}`, `%@`, `%1$d`) | ein `readonly`-Tupel, eine Position pro Argument |
-| ein Argument, das nur einige `select`- oder `plural`-Zweige verwenden (`next-intl-json`, `arb`) | eine optionale Eigenschaft, `name?:`, oder bei einem nummerierten Argument eine optionale Tupel-Position (`[number, VerbatraArgument?]`); eines, das jeder Zweig verwendet, bleibt Pflicht |
-| ein ICU-Argument vom Typ `number`, `plural` oder `selectordinal` (`{count, number}`, `{count, plural, ...}`) in `next-intl-json` oder `arb` | `number` |
+| ein Argument, das nur einige `select`- oder `plural`-Zweige verwenden (`next-intl-json`, `arb`) | eine optionale Eigenschaft, `name?:`, oder eine optionale Tupel-Position am Ende (`[number, VerbatraArgument?]`); eines, das jeder Zweig verwendet, bleibt Pflicht |
+| ein ICU-Argument vom Typ `number`, `plural` oder `selectordinal` in `next-intl-json` oder `arb` | `number` |
 | ein ICU-Argument vom Typ `date` oder `time` (`{d, date, short}`) in `next-intl-json` oder `arb` | `Date \| number` |
 | ein ICU-Argument vom Typ `select` (`{gender, select, ...}`) in `next-intl-json` oder `arb` | `string` |
 | ein i18next-Formatter `number` (`{{count, number}}`) in `i18next-json`, `ngx-translate-json` oder `yaml` | `number` |
@@ -111,17 +128,14 @@ Die Keys sind genau das, was der Format-Adapter beim Lesen des Katalogs ohnehin 
 | eine printf-String-Konvertierung (`%s`, `%(name)s`) | `string` |
 | jeder andere Platzhalter, auch ein schlichtes ICU-Argument (`{name}`) | `VerbatraArgument`, ein Alias für `string \| number` |
 | ungültige Nachrichtensyntax, die nur `next-intl-json` und `arb` prüfen | `VerbatraUnknownArguments`, und der Key wird in der Ausgabe genannt |
-| eine Nachricht, die ihre Argumente zugleich benennt und nummeriert | `VerbatraUnknownArguments`, und der Key wird in der Ausgabe genannt |
+| eine Nachricht, die benannte, nummerierte und anonyme Argumente mischt | `VerbatraUnknownArguments`, und der Key wird in der Ausgabe genannt |
+| ein nummeriertes Argument unter Position 0 oder ab Position 64 (`%0$s`, `{64}`) | `VerbatraUnknownArguments`, und der Key wird in der Ausgabe genannt |
 
-Ein Tupel kann nur Positionen am Ende weglassen. Ein nummeriertes Argument, das nur einige Zweige verwenden, wird deshalb nur dann als optional deklariert, wenn jede Position danach ebenfalls optional ist. In `{0, select, a {{1}} other {x}} {2}` bleibt Position `1` Pflicht, weil ihr die Pflicht-Position `2` folgt.
-
-Argumentnamen stammen aus den Platzhalter-Tokens, die der Adapter extrahiert hat. Ein Format, dessen Platzhalter gar keinen Namen tragen (Apple `.strings`, Android `strings.xml`, positionale gettext-Konvertierungen), bekommt deshalb ein Tupel statt erfundener Namen. Argumenttypen stammen ausschließlich daraus, was dein Katalog tatsächlich festhält: wie eine ICU-Nachricht ein Argument formatiert, oder welchen Formatter oder welche Konvertierung ein Platzhalter nennt. Wo ein Format ein Argument benennt, ohne zu sagen, was dafür übergeben werden darf, deklariert verbatra `string | number`, statt einen Typ zu behaupten, den der Katalog nie getragen hat. Ein Name, der mehrfach mit unterschiedlichen Typen vorkommt, wird als Vereinigung von allem deklariert, was die einzelnen Verwendungen akzeptieren: `{d, date, short}` neben einem schlichten `{d}` wird zu `Date | number | string`, und `{n, plural, ...}` neben einem schlichten `{n}` wird zu `string | number`. Nichts wird je als `any` deklariert.
-
-Keys werden immer als String-Literale in Anführungszeichen ausgegeben. Ein Key, der einen Punkt, ein reserviertes Wort, eine führende Ziffer, ein Anführungszeichen oder gar nichts trägt, wird also wortwörtlich deklariert, statt verworfen oder neu aufgeteilt zu werden. Ein Key, den der Adapter als von der Übersetzung ausgeschlossen gemeldet hat (ein verirrtes Blatt, das kein String ist, eine Android-Ressource mit `translatable="false"`), wird nie deklariert und in der Ausgabe genannt, damit du siehst, was weggelassen wurde.
+Ein Format, dessen Platzhalter keinen Namen tragen (Apple `.strings`, Android `strings.xml`, positionale gettext-Konvertierungen), bekommt ein Tupel, nie erfundene Namen. Ein Name, der mit verschiedenen Typen vorkommt, bekommt deren Vereinigung: `{d, date, short}` neben einem schlichten `{d}` wird zu `Date | number | string`. Keys sind immer String-Literale in Anführungszeichen, ein Key mit Punkt, reserviertem Wort, führender Ziffer oder Anführungszeichen wird also wortwörtlich deklariert. Ein Key, den der Adapter von der Übersetzung ausgeschlossen hat (ein Blatt, das kein String ist, eine Android-Ressource mit `translatable="false"`), wird nie deklariert und in der Ausgabe genannt.
 
 ### Ein Key, dessen eigener Name einen Punkt enthält
 
-Der deklarierte Key wird so geschrieben, wie verbatra selbst den Key schreibt, in derselben Form wie in `verbatra.lock.json`. Das ist keine Lookup-Syntax, die deine i18n-Bibliothek versteht. Ein JSON-Katalog mit `{"a.b": "..."}` trägt einen Key, der `a\.b` geschrieben wird, bewusst verschieden vom verschachtelten Pfad `a.b`, und genau diese escapete Schreibweise deklariert die Datei:
+Der deklarierte Key wird so geschrieben, wie verbatra ihn in `verbatra.lock.json` schreibt, nicht in einer Lookup-Syntax, die deine i18n-Bibliothek versteht. Ein JSON-Katalog mit `{"a.b": "..."}` trägt den Key `a\.b`, bewusst verschieden vom verschachtelten Pfad `a.b`:
 
 ```ts
 export interface VerbatraMessages {
@@ -129,108 +143,107 @@ export interface VerbatraMessages {
 }
 ```
 
-Erwarte nicht, dass eine Laufzeitbibliothek diese Schreibweise auflöst. i18next zum Beispiel kennt kein Escape für sein Key-Trennzeichen, `t("a\\.b")` ist also nicht der Weg, auf dem es einen Key mit wörtlichem Punkt nachschlägt. Trägt dein Katalog solche Keys, konfiguriere die Laufzeit so, dass der Punkt kein Trennzeichen ist (bei i18next setzt du `keySeparator` auf ein anderes Zeichen, oder bei einem flachen Katalog auf `false`), und bilde den deklarierten Key in deinem eigenen typisierten Wrapper auf den Key ab, den deine Laufzeit nachschlägt.
+i18next kennt kein Escape für sein Key-Trennzeichen, `t("a\\.b")` schlägt diesen Key also nicht nach. Trägt dein Katalog solche Keys, setz `keySeparator` auf ein anderes Zeichen (oder bei einem flachen Katalog auf `false`) und bilde den deklarierten Key in deinem eigenen typisierten Wrapper auf den Laufzeit-Key ab.
 
 ### Der eine Fall, in dem die Deklaration falsch statt nur still ist
 
-Nur `next-intl-json` und `arb` prüfen die Nachrichtensyntax. Bei jedem anderen Format liefert ein Wert, der kaputt und nicht bloß schlicht ist (`"Hello {name"`, ohne schließende Klammer), überhaupt kein Platzhalter-Token. Die Nachricht wird deshalb als argumentlos deklariert, und das Argument zu übergeben, das sie eigentlich will, ist dann ein Compile-Fehler. Gemeldet wird das nicht, weil es nicht erkannt wurde. Reparieren musst du den Katalog, nicht die Deklaration.
+Nur `next-intl-json` und `arb` prüfen die Nachrichtensyntax. In jedem anderen Format liefert ein kaputter Wert wie `"Hello {name"` kein Platzhalter-Token. Die Nachricht wird deshalb als argumentlos deklariert, und das Argument zu übergeben, das sie wirklich braucht, ist ein Compile-Fehler. Gemeldet wird das nicht, weil es nicht erkannt wurde. Reparier den Katalog, nicht die Deklaration.
 
 ### Plural-Keys
 
-Nichts wird zusammengefasst. i18next trägt den Plural als Key-Suffix, deshalb werden `cart.item_one` und `cart.item_other` als die zwei getrennten Keys deklariert, die sie wirklich sind, denn das sind die zwei Keys, die dein Code tatsächlich nachschlägt. `VerbatraPluralMessageKey` listet genau die Keys, die der Adapter als Träger von Pluralformen markiert hat, damit du bei Bedarf darauf einschränken kannst.
+Nichts wird zusammengefasst. i18next trägt den Plural als Key-Suffix, deshalb werden `cart.item_one` und `cart.item_other` so deklariert, wie sie geschrieben sind, und daneben der Basis-Key `cart.item`, den `t("cart.item", { count })` nachschlägt; er verlangt `count` und jedes Argument, das eine der Formen nimmt. Auch die eigenen Typen von i18next akzeptieren beide Schreibweisen. Eine Ordinalgruppe wie `place_ordinal_one` deklariert `place`, und ein Basis-Key, den der Katalog schon enthält, behält seine eigene Deklaration. `VerbatraPluralMessageKey` listet die Keys, die der Adapter als Träger von Pluralformen markiert hat, also die mit Suffix, damit du darauf einschränken kannst.
 
-## Wohin die Deklaration geht
+### Wohin die Deklaration geht
 
-Standardmäßig landet sie als `verbatra-types.d.ts` im Wurzelverzeichnis deines Projekts. **Committe sie.** Sie ist ein eingechecktes Artefakt, kein lokaler Zwischenstand, und zwar aus zwei Gründen: Eine Kollegin oder ein CI-Job kann dagegen typprüfen, ohne vorher verbatra laufen zu lassen, und `--check` braucht eine committete Datei zum Vergleichen. Nichts trägt sie in `.gitignore` ein.
+Standardmäßig landet sie als `verbatra-types.d.ts` im Wurzelverzeichnis deines Projekts. **Committe sie**: Eine Kollegin oder ein CI-Job typprüft dagegen, ohne verbatra laufen zu lassen, und `--check` braucht eine committete Datei zum Vergleichen. Nichts trägt sie in `.gitignore` ein.
 
-Mit `--out` legst du sie dorthin, wo deine App ohnehin schon importiert, zum Beispiel `--out src/generated/messages.d.ts`. Fehlende Verzeichnisse werden angelegt. Ein Ausgabepfad wird mit `TYPES_OUTPUT_CONFLICT` zurückgewiesen, wenn er:
+Ein Ausgabepfad wird mit `TYPES_OUTPUT_CONFLICT` zurückgewiesen, wenn er:
 
-- keine Datei benennt,
+- keine Datei benennt, auch wenn er auf ein Pfadtrennzeichen endet wie `generated/`,
 - absolut ist,
 - mit `..` aus dem Arbeitsverzeichnis herausklettert,
 - keine TypeScript-Datei ist, sein Name also nicht auf `.ts`, `.mts` oder `.cts` endet,
 - eine konfigurierte Locale-Datei benennt, Quelle oder Ziel, damit die Generierung nie einen Katalog überschreibt,
 - die Lock-Datei `verbatra.lock.json` ist,
+- die Herkunftsdatei `verbatra.provenance.json` ist,
 - der Übersetzungsspeicher-Cache `verbatra.cache.json` ist,
 - eine Datei ist, in der verbatra nach seiner Konfiguration sucht: `package.json`, `.verbatrarc`, `.verbatrarc.json`, `.verbatrarc.yaml`, `.verbatrarc.yml`, `.verbatrarc.js`, `.verbatrarc.cjs`, `.verbatrarc.ts`, `verbatra.config.js`, `verbatra.config.cjs` oder `verbatra.config.ts`,
 - die Konfigurationsdatei ist, die der Lauf tatsächlich geladen hat, auch eine, die du mit `--config` angegeben hast,
+- die Glossardatei ist, auf die `glossary` in deiner Konfiguration zeigt,
 - eine bestehende Datei ist, die nicht mit der Kopfzeile `// Generated by verbatra from` beginnt, die verbatra an den Anfang jeder Deklaration schreibt (eine vorangestellte Byte-Order-Mark und Leerzeilen werden ignoriert), oder zu groß ist, um das zu prüfen.
 
-Dateinamen werden ohne Rücksicht auf Groß- und Kleinschreibung verglichen, `Verbatra.Config.ts` wird also ebenfalls zurückgewiesen. Alle Fälle außer dem letzten werden zurückgewiesen, bevor irgendetwas gelesen oder geschrieben wird. Den letzten prüft nur ein Lauf, der schreiben würde, und deine Datei bleibt dabei unangetastet: Wähle ein anderes `--out`, oder lösche die Datei, wenn sie wirklich eine alte Deklaration ist. `--check` weist eine bestehende Datei nie zurück, es vergleicht nur.
+Dateinamen werden ohne Rücksicht auf Groß- und Kleinschreibung verglichen, und die Prüfungen laufen nach dem Auflösen symbolischer Links noch einmal, sodass ein verlinktes Verzeichnis die Deklaration weder aus dem Arbeitsverzeichnis hinaus noch auf eine geschützte Datei tragen kann. Die letzte Prüfung läuft nur, wenn ein Lauf schreiben würde, und lässt deine Datei unangetastet; `--check` weist eine bestehende Datei nie zurück. Ein Pfad, der alle Prüfungen besteht, kann beim Schreiben trotzdem scheitern (ein schreibgeschütztes Verzeichnis, eine volle Platte): Der Lauf bricht dann mit `TYPES_UNWRITABLE` ab und nennt die Datei und den Dateisystem-Code, etwa `EACCES`.
 
-Ein Pfad, der all diese Prüfungen besteht, kann trotzdem im Moment des Schreibens scheitern: Wenn das Verzeichnis der Deklaration nicht angelegt oder die Datei nicht geschrieben werden kann, weil das Verzeichnis nicht schreibbar ist, nicht mehr existiert oder die Platte voll ist, bricht der Lauf mit `TYPES_UNWRITABLE` ab und endet mit `2`. `--check` erreicht das nie, denn es schreibt nichts.
+### Ehrlich bleiben in der CI
 
-## Ehrlich bleiben in der CI
-
-`--check` schreibt nichts und endet mit `1`, wenn die committete Deklaration nicht mehr dem entspricht, was eine frische Generierung erzeugen würde. Der Vergleich geht Byte für Byte, ohne Neuformatierung, und fängt damit einen Key ab, der zum Katalog hinzugefügt und nie neu generiert wurde:
-
-```yaml
-- run: npx verbatra types --check
-```
-
-Richte eine Sache ein, bevor du dich darauf verlässt. Die Deklaration wird immer mit Line-Feed-Zeilenenden geschrieben, und `--check` vergleicht exakte Bytes. Ein Checkout, der Zeilenenden umschreibt, lässt sie also dauerhaft veraltet zurück, ohne dass ein erneuter Lauf das beheben kann. Lege die Zeilenenden in `.gitattributes` fest:
+Lass `types --check` im selben Job neben [`verbatra check`](/de/docs/cli/check) laufen: `check` fängt Locales ab, die hinter der Quelle zurückbleiben, `types --check` deine Typen. Der Vergleich geht Byte für Byte, und die Deklaration wird immer mit Line-Feed-Zeilenenden geschrieben. Leg die Zeilenenden deshalb in `.gitattributes` fest, sonst lässt ein Checkout, der sie umschreibt, die Datei dauerhaft veraltet zurück:
 
 ```text
 verbatra-types.d.ts text eol=lf
 ```
 
-Lass ihn im selben Job neben [`verbatra check`](/docs/cli/check) laufen. `check` fängt Locales ab, die hinter der Quelle zurückbleiben; `types --check` fängt deine Typen ab, die hinter ihr zurückbleiben.
+### JSON-Ausgabe
 
-## Beispiele
+Schema: [`types-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/types-envelope.json) validiert den ganzen Envelope; [Schemas](/de/docs/cli/output#schemas) listet die übrigen auf.
 
-```bash
-# write verbatra-types.d.ts from the source catalog
-verbatra types
+Mit `--json` trägt der [Envelope](/de/docs/cli/output#json-ausgabe) ein Ergebnis:
 
-# write it where the app already imports from
-verbatra types --out src/generated/messages.d.ts
-
-# CI gate: exit 1 if the committed declaration is stale
-verbatra types --check
-
-# machine-readable result for a script
-verbatra types --json
+```ts
+interface GenerateTypesResult {
+  path: string;               // absolute path of the declaration file
+  sourcePath: string;         // the source catalog, relative to the project root
+  keys: number;               // how many keys are declared
+  withArguments: number;      // keys taking at least one determined argument
+  unresolved: { key: string; reason: "invalid-message-syntax" | "mixed-argument-styles" | "argument-index-out-of-range" }[];
+  excluded: string[];         // keys the adapter excluded, never declared
+  plural: string[];           // keys carrying plural forms
+  written: boolean;           // false under --check and when the file already matched
+  stale: boolean;             // the file on disk differed when the run started
+  missing: boolean;           // no file existed when the run started
+  check: boolean;             // whether this was a --check run
+}
 ```
 
-Ein Lauf sieht so aus:
+### Rückmeldung im Terminal
 
-```text
+<AvailableFrom version="0.12.0" />
+
+Die Zusammenfassung geht auf stdout; eine Spinner-Zeile und nach dem Schreiben ein Hinweis, die Datei zu committen, gehen auf stderr (`--check` schlägt nichts vor, und `--quiet` lässt beides weg). Ein erzeugender Lauf, ein unveränderter zweiter Lauf und ein veraltetes `--check`:
+
+```text output
+verbatra: generating the declarations... done (0.2s)
 verbatra types
   214 keys declared, 63 of them taking arguments, from locales/en.json
   arguments not determined (1):
     legal.notice  invalid-message-syntax
   excluded by the adapter (1): meta.version
-  wrote /app/verbatra-types.d.ts
-```
+  wrote verbatra-types.d.ts
+next: commit verbatra-types.d.ts (verbatra types --check compares against it in CI)
 
-Lass ihn ohne Änderung am Katalog noch einmal laufen, und er schreibt nichts neu:
-
-```text
 verbatra types
   214 keys declared, 63 of them taking arguments, from locales/en.json
-  unchanged /app/verbatra-types.d.ts
-```
+  unchanged verbatra-types.d.ts
 
-Und im Check-Modus, sobald der Katalog weitergezogen ist:
-
-```text
-$ verbatra types --check
 verbatra types
   215 keys declared, 63 of them taking arguments, from locales/en.json
-  /app/verbatra-types.d.ts is out of date, re-run verbatra types
+  verbatra-types.d.ts is out of date, re-run verbatra types
 ```
+
+Farbe, Spinner und die Variablen dazu findest du unter [Terminalausgabe](/de/docs/cli/output#terminalausgabe).
 
 ## Exit-Codes
 
 | Code | Bedeutung |
 | --- | --- |
 | `0` | die Deklaration wurde erzeugt, egal ob sich die Datei geändert hat; oder `--check` hat sie als aktuell befunden |
-| `1` | `--check` hat die committete Deklaration als veraltet befunden |
+| `1` | `--check` hat die committete Deklaration als veraltet oder fehlend befunden (`is missing, run verbatra types to create it`) |
 | `2` | konnte nicht laufen: ein Verwendungsfehler, ein Problem mit Konfiguration oder Quelle, ein zurückgewiesener Ausgabepfad (`TYPES_OUTPUT_CONFLICT`) oder eine Deklaration, die nicht geschrieben werden konnte (`TYPES_UNWRITABLE`) |
+
+Den Vertrag, dem jeder Befehl folgt, findest du unter [Exit-Codes](/de/docs/cli/output#exit-codes).
 
 ## Siehe auch
 
-- [`verbatra extract`](/docs/cli/extract) ist die andere Hälfte des Kreislaufs: Er trägt die Keys, die dein Code benutzt, in den Katalog ein, und `types` deklariert sie dann.
-- [`verbatra check`](/docs/cli/check) ist das CI-Gate für Locale-Drift, direkt neben diesem hier für Typ-Drift.
-- [Formate](/docs/formats) listet die Platzhaltersyntax jedes Formats, und genau daraus stammen die Argumentnamen.
-- [CI und Exit-Codes](/docs/ci-and-exit-codes) behandelt den JSON-Envelope und den Exit-Code-Vertrag.
+- [`verbatra extract`](/de/docs/cli/extract) trägt die Keys, die dein Code benutzt, in den Katalog ein; `types` deklariert sie dann.
+- [`verbatra check`](/de/docs/cli/check) ist das CI-Gate für Locale-Drift, direkt neben diesem für Typ-Drift.
+- [Formate](/de/docs/formats) listet die Platzhaltersyntax jedes Formats.
+- [Exit-Codes und JSON-Ausgabe](/de/docs/cli/output) behandelt den Envelope und den Exit-Code-Vertrag.

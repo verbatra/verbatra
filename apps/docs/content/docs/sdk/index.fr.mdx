@@ -1,0 +1,141 @@
+---
+title: "Référence du SDK"
+sidebarTitle: "Aperçu"
+description: "Installe @verbatra/sdk, trouve la page de chaque point d'entrée et donne au SDK ton propre système de fichiers."
+type: reference
+---
+`@verbatra/sdk` est le moteur sur lequel tourne la commande `verbatra`. La CLI est une surcouche légère, donc tout ce que la ligne de commande fait, tu peux le faire en code.
+
+## Par où commencer
+
+Nouveau dans le SDK ? Commence par l'une de ces pages :
+
+<Cards>
+  <Card title="Démarrage rapide du SDK" href="/fr/docs/sdk-quickstart">Installe le SDK, prévisualise une exécution sans clé, traduis depuis ton propre script, gère les erreurs et protège la CI.</Card>
+  <Card title="Recettes SDK" href="/fr/docs/programmatic-api">Des scripts complets pour les estimations, le mode watch, un faux fournisseur, la file de relecture et les allers-retours par classeur et TMX.</Card>
+</Cards>
+
+## Pages de référence
+
+Ces pages cataloguent toute la surface publique, groupée par la tâche de chaque point d'entrée.
+
+<SdkEntryPoints />
+
+<SdkAnchorForward />
+
+## Installation
+
+```npm
+npm install --save-dev @verbatra/sdk
+```
+
+Requiert Node.js `^22.18.0 || >=24`.
+
+Avec pnpm, `pnpm add --save-dev @verbatra/sdk` installe correctement mais se termine avec le code `1` et `ERR_PNPM_IGNORED_BUILDS` : pnpm bloque les scripts d'installation du SDK Gemini embarqué et de son `protobufjs`, et laisse un `pnpm-workspace.yaml` sans réponse qui fait échouer de la même façon toutes les commandes pnpm suivantes du projet. Lance `pnpm approve-builds` une fois sans approuver aucune des deux entrées, ou consulte le [Dépannage](/fr/docs/troubleshooting) pour la solution non interactive. Il n'y a pas de raccourci `npx` pour contourner ça comme il en existe un pour la CLI, puisque tu importes une bibliothèque au lieu de lancer un binaire.
+
+<Callout title="Clés d'API et environnement">
+Le SDK ne lit, ne détient ni n'accepte jamais de clé d'API. Le fournisseur lit sa clé depuis l'environnement (par exemple `ANTHROPIC_API_KEY`) au moment de sa construction. Contrairement à la CLI, le SDK ne charge pas les fichiers `.env` : dans ton propre script, définis la variable toi-même, par exemple avec `node --env-file=.env script.js`.
+</Callout>
+
+Chaque point d'entrée prend un objet d'entrée dont le premier champ est la `config` validée (issue de `loadConfig`), sauf mention contraire. La plupart acceptent aussi un second argument optionnel `deps` qui injecte un registre, un constructeur de fournisseur ou un système de fichiers ; tu peux l'ignorer en usage normal. Voir [Le point d'injection de dépendances](#le-point-dinjection-de-dépendances) pour ce que `deps.fs` atteint.
+
+## Le point d'injection de dépendances
+
+<AvailableFrom version="0.9.0" />
+
+`deps.fs` remplace le port de système de fichiers par lequel passent les entrées-sorties propres au SDK, typé `SdkFs`. Le point d'injection est complet : le fichier d'état d'exécution, le fichier de verrouillage, les outils du fichier de glossaire, les entrées-sorties de classeur et d'échange, ainsi que les fichiers de locale eux-mêmes y passent tous, car les adaptateurs de format lisent et écrivent via un port construit à partir du même objet. Une exécution entière peut donc être tenue en mémoire : c'est ainsi que les tests du SDK évitent de toucher au disque, et qu'une application hôte peut adosser une partie d'un projet à autre chose qu'un disque local.
+
+<SdkTypeTable name="SdkFs" />
+
+Une implémentation doit respecter deux points du contrat. Les lectures sont bornées en taille : `readFileBounded` et `readBytesBounded` prennent une limite d'octets et rapportent `missing` ou `too-large` comme un état plutôt que de lever, ce qui empêche un fichier hostile ou accidentellement énorme d'épuiser la mémoire. Les écritures doivent être atomiques, pour qu'un crash en cours d'écriture ne laisse jamais un fichier à moitié écrit, et `createExclusive` doit être atomique face aux autres processus, car c'est la primitive derrière le verrou d'écriture par locale. Avant d'écrire un fichier de locale, le fichier d'état d'exécution ou un fichier de sortie comme un classeur, le SDK appelle le `mkdir` optionnel avec le répertoire parent, donc `writeFile` et `writeBytes` n'ont pas à le créer ; laisse `mkdir` de côté quand le stockage n'a pas de répertoires. `createExclusive` ne reçoit pas cet appel et crée lui-même un répertoire parent manquant. Les autres membres obligatoires sont `fileExists` et `deleteFile`, qui réussit même quand le fichier n'existe déjà plus.
+
+`readDirectory` est optionnel, pour qu'une implémentation écrite avant l'extraction depuis le code continue de compiler. [`extract`](/fr/docs/sdk/inspect#extract) est le seul point d'entrée qui en a besoin, et signale son absence par `EXTRACT_FS_UNSUPPORTED`. Il liste les entrées immédiates d'un répertoire sous la forme `{ name, kind }`, où `kind` vaut `"file"`, `"directory"` ou `"other"`. Un lien symbolique relève de `"other"` : l'analyse ne le suit jamais, et c'est ce qui la maintient à l'intérieur des racines qu'on lui a données.
+
+`realpath` est lui aussi optionnel. Il résout tous les liens symboliques d'un chemin existant, et
+les gardes de sortie de [`generateTypes`](/fr/docs/sdk/run#generatetypes), [`exportTmx`](/fr/docs/sdk/exchange#exporttmx),
+[`exportWorkbook`](/fr/docs/sdk/exchange#exportworkbook) et [`pseudolocalize`](/fr/docs/sdk/run#pseudolocalize) s'en servent
+pour voir où un chemin de sortie aboutit vraiment, si bien qu'un lien ne peut porter un fichier
+écrit ni hors de `cwd` ni sur un fichier dont le projet dépend. Sans lui, ces gardes comparent les
+chemins tels qu'ils sont écrits. Un lien au chemin de sortie dont la cible n'existe pas ne peut pas
+être résolu, donc les gardes supposent que `writeFile` et `writeBytes` remplacent ce lien au lieu d'écrire à travers
+lui, comme le fait l'écriture atomique par défaut.
+
+`rename` est lui aussi optionnel.
+
+<AvailableFrom version="0.12.0" />
+
+Il déplace un fichier vers un nouveau nom dans le même répertoire en une seule étape atomique, en remplaçant tout fichier déjà présent, et rejette avec une erreur dont le `code` est `ENOENT` quand la source manque. Le verrou d'écriture s'en sert pour retirer un verrou ou une garde de reprise laissés par un processus disparu, et pour libérer son propre verrou : le fichier est mis de côté sous un nom unique `<name>.<pid>.<tag>.<uuid>.stale` et supprimé seulement s'il est encore l'enregistrement que le verrou attendait. Tout le reste, comme un verrou qu'un autre processus a pris entre-temps, est remis en place avec `createExclusive`. Un renommage qui échoue avec `EPERM`, `EBUSY` ou `EACCES`, comme Windows le signale pour un fichier qu'un autre processus a ouvert, compte comme « pas repris à ce sondage », et le verrou continue de sonder jusqu'à son délai. Quand le renommage qui libère un verrou échoue pour une raison quelconque, la libération se rabat sur la lecture du fichier de verrou et sa suppression tant qu'il porte encore le jeton du détenteur, et réessaie quelques fois, à un sondage d'intervalle, un échec avec `EPERM`, `EBUSY` ou `EACCES`. Un enregistrement qui aurait dû être remis en place mais ne peut pas l'être, parce qu'un troisième processus a pris le chemin entre-temps, est supprimé, puisque la vérification du jeton de son détenteur échoue dès lors. Sans `rename`, le verrou lit le fichier et le supprime s'il n'a pas changé, ce qui laisse une fenêtre plus large pendant laquelle un verrou qu'un autre processus vient de prendre est supprimé.
+
+Mettre un fichier de côté puis le remettre en place prend deux étapes, donc dans de rares entrelacements deux processus peuvent croire un instant détenir le même verrou. Chaque verrou enregistre donc un jeton de propriété aléatoire, et avant chaque écriture que le verrou protège (le fichier de la locale, le fichier de verrouillage, le fichier de provenance, le glossaire), le détenteur vérifie que le fichier de verrou porte toujours son jeton. Sinon, l'opération s'arrête avec `LOCK_CONTENDED` et n'écrit rien. Un fichier de verrou absent ou portant un autre jeton à la libération est signalé de la même façon quand l'opération a réussi, puisque l'autre processus a pu modifier les mêmes fichiers depuis ; une opération qui a échoué lève sa propre erreur. La vérification et l'écriture restent deux étapes, et rien ne borne le temps qui les sépare : un détenteur mis en pause juste après la vérification (une machine en veille, un processus arrêté, un débogueur, un saut d'horloge ou une boucle d'événements longtemps bloquée) cesse de battre, donc une fois son verrou vieux de trois intervalles (30 secondes par défaut), un autre processus de la même machine le reprend, et le détenteur en pause peut encore écrire une fois quand il reprend. La vérification du jeton suppose que `createExclusive` crée un fichier que `readFileBounded` relit, donc une implémentation personnalisée doit tenir cette promesse.
+
+`touch` et `mtimeMs` sont eux aussi optionnels.
+
+<AvailableFrom version="0.12.0" />
+
+`touch(path)` met la date de modification d'un fichier existant à maintenant, et `mtimeMs(path)` la renvoie en millisecondes, ou `undefined` quand le fichier manque. Avec `touch`, le détenteur d'un verrou y enregistre un intervalle de battement de 10 secondes et rafraîchit la date de modification du fichier à ce rythme tant qu'il détient le verrou. Il la rafraîchit aussi juste après avoir créé le fichier, pour que l'âge du fichier se mesure à l'horloge de ce processus et non à celle du serveur de fichiers. Avec `mtimeMs`, un processus en attente traite comme abandonné un verrou de sa propre machine dont le processus tourne encore mais dont le fichier n'a pas été rafraîchi depuis trois des intervalles enregistrés (30 secondes par défaut). Cela couvre un enregistrement de verrou qui a survécu à sa détention, par exemple un verrou remis en place pour un processus Studio, `watch` ou serveur MCP de longue durée qui l'avait déjà libéré. Une garde de reprise n'enregistre aucun battement : elle est retirée une fois que son processus n'existe plus de façon prouvée et qu'elle a été vue inchangée sur deux sondages. Sans ces membres, un verrou n'est jugé abandonné que lorsque son processus n'existe plus de façon prouvée.
+
+Un processus qui plante alors qu'il a mis un verrou de côté peut laisser un fichier `.stale` dans `.verbatra-local/locks/`. Tu peux supprimer ces fichiers à la main sans risque, et la prochaine acquisition d'un verrou les supprime dès que le processus qui les a déplacés n'existe plus ou, quand `touch` est implémenté, dès qu'ils dépassent le seuil de péremption, compté depuis leur mise de côté. Un système de fichiers sans `touch` les garde jusqu'à ce que leur processus disparaisse.
+
+`deps.fs` n'atteint pas un `deps.adapterRegistry` fourni par l'appelant. Ces adaptateurs ont été construits par l'appelant, donc leur accès aux fichiers est celui que l'appelant y a câblé. Fournir les deux signifie que l'appelant possède ce câblage.
+
+Le chargement de la configuration reste lui aussi hors du point d'injection. `loadConfig` et `loadConfigWithMeta` ne prennent pas de `deps` : ils lisent le fichier de configuration lui-même sur le vrai disque, et un fichier de glossaire que nomme la configuration via leur propre option `fs`, donc le `deps.fs` que reçoit un flux ultérieur n'atteint aucune de ces deux lectures. Pour garder un projet entier en mémoire, passe le même `SdkFs` comme `loadConfig({ fs })` et fournis la configuration comme `configOverride` plutôt que comme fichier. Les flux résolvent les chemins par rapport à leur propre `cwd`, alors passe-le aussi là.
+
+L'exemple garde un projet entier en mémoire avec les seuls membres obligatoires. Avec le fournisseur `none`, l'exécution n'a besoin d'aucune clé et laisse `greeting` à traduire par une personne.
+
+```ts title="Exemple"
+import { check, loadConfig, type SdkFs, translate } from "@verbatra/sdk";
+
+const files = new Map<string, Uint8Array>();
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+
+function bounded(path: string, maxBytes: number) {
+  const bytes = files.get(path);
+  if (bytes === undefined) return { kind: "missing" } as const;
+  if (bytes.byteLength > maxBytes) return { kind: "too-large" } as const;
+  return { kind: "ok", bytes } as const;
+}
+
+const memoryFs: SdkFs = {
+  fileExists: async (path) => files.has(path),
+  readFileBounded: async (path, maxBytes) => {
+    const read = bounded(path, maxBytes);
+    return read.kind === "ok" ? { kind: "ok", content: decoder.decode(read.bytes) } : read;
+  },
+  readBytesBounded: async (path, maxBytes) => bounded(path, maxBytes),
+  writeFile: async (path, data) => {
+    files.set(path, encoder.encode(data));
+  },
+  writeBytes: async (path, data) => {
+    files.set(path, data);
+  },
+  createExclusive: async (path, data) => {
+    if (files.has(path)) return false;
+    files.set(path, encoder.encode(data));
+    return true;
+  },
+  deleteFile: async (path) => {
+    files.delete(path);
+  },
+};
+
+files.set("/project/locales/en.json", encoder.encode('{ "greeting": "Hello, {{name}}!" }'));
+
+const config = await loadConfig({
+  cwd: "/project",
+  fs: memoryFs,
+  configOverride: {
+    sourceLocale: "en",
+    targetLocales: ["de"],
+    format: "i18next-json",
+    files: { pattern: "locales/{locale}.json" },
+    provider: { id: "none" },
+  },
+});
+
+const summary = await translate({ config, cwd: "/project" }, { fs: memoryFs });
+const status = await check({ config, cwd: "/project" }, { fs: memoryFs });
+
+console.log(summary.locales[0]?.unfilled, status.inSync); // [ 'greeting' ] false
+console.log([...files.keys()]); // the source, verbatra.lock.json, .verbatra-local/run-status.json
+```

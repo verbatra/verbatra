@@ -1,36 +1,40 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { StudioScreenshot } from "@/components/studio-screenshot";
-import { type Locale, localizedPath } from "@/lib/i18n";
+import { TrackedAnchor, TrackedLink } from "@/components/ui/tracked-link";
+import { localizedAnchorPath, localizedPath, toLocale } from "@/lib/i18n";
+import { SDK_INSTALL_COMMAND, SDK_PACKAGE, SKILLS_INSTALL_COMMAND } from "@/lib/install-commands";
 import { cn } from "@/lib/utils";
 import { CommandBox } from "./command-box";
-import { SKILLS_REPO_URL } from "./links";
-import { Reveal } from "./reveal";
+import { SKILLS_PACK_ANCHORS, SKILLS_PACK_PAGE, SKILLS_REPO_URL } from "./links";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
 
 const LINK_CLASS =
   "inline-block font-medium text-[color:var(--accent)] underline decoration-[color:color-mix(in_srgb,var(--v-glow)_40%,transparent)] underline-offset-4 transition-colors hover:decoration-[color:var(--accent)]";
 
-const EXCEL_ROWS = [
+export const LOOP_ROWS = ["studio", "handoff", "sdk", "agent"] as const;
+
+type LoopRowId = (typeof LOOP_ROWS)[number];
+
+export const SDK_IMPORTS = ["translate", "check"] as const;
+
+export const SDK_IMPORT_LINE = `import { ${SDK_IMPORTS.join(", ")} } from "${SDK_PACKAGE}";`;
+
+const HANDOFF_ROWS = [
   { key: "cart.pay", source: "Pay now", target: "Bezahlen" },
   { key: "cart.total", source: "Total", target: "Gesamt" },
   { key: "nav.home", source: "Home", target: "Start" },
 ] as const;
 
-const CHECK_JSON_EXCERPT = [
-  '{ "command": "check",',
-  '  "result": { "inSync": false, "locales": [',
-  '    { "locale": "de", "missing": 0, "stale": 2 }',
-  "  ] } }",
-];
+function loopCta(target: string) {
+  return { name: "click-cta", data: { location: "loop", target } } as const;
+}
 
-const SKILL_INSTALL = `npx skills@latest add verbatra/skills --skill verbatra-cli -y`;
-
-function Frame({ children, className }: { children: ReactNode; className?: string }): ReactNode {
+function Frame({ children }: { children: ReactNode }): ReactNode {
   return (
     <div
-      className={cn("min-w-0 overflow-hidden rounded-xl border border-fd-border", className)}
+      className="min-w-0 overflow-hidden rounded-xl border border-fd-border"
       style={{ background: "var(--surface-bg)" }}
     >
       {children}
@@ -39,6 +43,7 @@ function Frame({ children, className }: { children: ReactNode; className?: strin
 }
 
 function Row({
+  id,
   title,
   body,
   cta,
@@ -46,6 +51,7 @@ function Row({
   flip = false,
   children,
 }: {
+  id: LoopRowId;
   title: string;
   body: ReactNode;
   cta: string;
@@ -54,26 +60,20 @@ function Row({
   children: ReactNode;
 }): ReactNode {
   return (
-    <Reveal className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] lg:items-center lg:gap-16">
+    <div
+      data-loop-row={id}
+      data-reveal="0"
+      className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] lg:items-center lg:gap-16"
+    >
       <div className={cn("min-w-0", flip && "lg:order-2")}>
-        <h3
-          className="max-w-[18ch] font-semibold text-fd-foreground"
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "clamp(1.5rem, 2.6vw, 2rem)",
-            letterSpacing: "-0.02em",
-            lineHeight: 1.15,
-          }}
-        >
-          {title}
-        </h3>
+        <h3 className="vk-h3 max-w-[18ch]">{title}</h3>
         <p className="mt-3.5 max-w-[44ch] text-base text-fd-muted-foreground">{body}</p>
-        <a href={href} className={cn(LINK_CLASS, "mt-4")}>
+        <TrackedLink href={href} className={cn(LINK_CLASS, "mt-4")} track={loopCta(id)}>
           {cta}
-        </a>
+        </TrackedLink>
       </div>
       <div className={cn("min-w-0", flip && "lg:order-1")}>{children}</div>
-    </Reveal>
+    </div>
   );
 }
 
@@ -81,34 +81,50 @@ export async function Loop(): Promise<ReactNode> {
   const t = await getTranslations("landing.loop");
   const tInstall = await getTranslations("landing.install");
   const box = (command: string) => (
-    <CommandBox command={command} label={tInstall("copyCommand", { command })} />
+    <CommandBox
+      command={command}
+      label={tInstall("copyCommand", { command })}
+      location="loop"
+      scrolls
+    />
   );
-  const locale = (await getLocale()) as Locale;
+  const locale = toLocale(await getLocale());
   const docs = (path: string) => localizedPath(locale, path);
-  const codeTags = {
-    code: (chunks: ReactNode) => (
-      <code className="font-mono text-[14px] text-fd-foreground">{chunks}</code>
-    ),
-  };
 
   return (
     <Section width="wide" rhythm="lg" id="loop">
-      <Reveal>
-        <SectionHead title={t("heading")} />
-      </Reveal>
+      <SectionHead id="loop-heading" title={t("heading")} reveal />
       <div className="mt-[52px] grid gap-[72px]">
         <Row
-          title={t("rows.excel.title")}
-          body={t("rows.excel.body")}
-          cta={t("rows.excel.cta")}
+          id="studio"
+          title={t("rows.studio.title")}
+          body={t("rows.studio.body")}
+          cta={t("rows.studio.cta")}
+          href={docs("/docs/review-in-studio")}
+        >
+          <StudioScreenshot
+            shot="review"
+            alt={t("rows.studio.alt")}
+            elevated={false}
+            zoomOnPhone
+            className="my-0"
+          />
+        </Row>
+
+        <Row
+          id="handoff"
+          title={t("rows.handoff.title")}
+          body={t("rows.handoff.body")}
+          cta={t("rows.handoff.cta")}
           href={docs("/docs/cli/export")}
+          flip
         >
           <Frame>
             <div className="grid gap-2.5 p-5">
               {box("verbatra export")}
               {box("verbatra import translations.xlsx")}
             </div>
-            <table className="w-full border-t border-fd-border font-mono text-[13px]">
+            <table className="vk-mono-sm w-full border-t border-fd-border font-mono">
               <thead>
                 <tr style={{ background: "var(--surface-card)" }}>
                   {(["key", "source", "target"] as const).map((column) => (
@@ -123,7 +139,7 @@ export async function Loop(): Promise<ReactNode> {
                 </tr>
               </thead>
               <tbody>
-                {EXCEL_ROWS.map((row) => (
+                {HANDOFF_ROWS.map((row) => (
                   <tr key={row.key} className="border-t border-fd-border">
                     <td className="px-4 py-2.5 text-fd-muted-foreground">{row.key}</td>
                     <td className="px-4 py-2.5 text-fd-muted-foreground">{row.source}</td>
@@ -136,38 +152,22 @@ export async function Loop(): Promise<ReactNode> {
         </Row>
 
         <Row
-          title={t("rows.studio.title")}
-          body={t("rows.studio.body")}
-          cta={t("rows.studio.cta")}
-          href={docs("/docs/review-in-studio")}
-          flip
-        >
-          <StudioScreenshot
-            shot="review"
-            alt={t("rows.studio.alt")}
-            elevated={false}
-            className="my-0"
-          />
-        </Row>
-
-        <Row
-          title={t("rows.ci.title")}
-          body={t.rich("rows.ci.body", codeTags)}
-          cta={t("rows.ci.cta")}
-          href={docs("/docs/ci-and-exit-codes")}
+          id="sdk"
+          title={t("rows.sdk.title")}
+          body={t("rows.sdk.body")}
+          cta={t("rows.sdk.cta")}
+          href={docs("/docs/sdk")}
         >
           <Frame>
-            <div className="p-5">{box("verbatra check --json")}</div>
-            <pre
-              className="overflow-x-auto border-t border-fd-border px-5 py-4 font-mono text-[13px] leading-relaxed text-fd-muted-foreground"
-              style={{ background: "var(--v-void)" }}
-            >
-              <code>{CHECK_JSON_EXCERPT.join("\n")}</code>
+            <div className="p-5">{box(SDK_INSTALL_COMMAND)}</div>
+            <pre className="vk-mono-sm vk-terminal-scroll border-t border-fd-border px-5 py-4 font-mono leading-relaxed text-fd-muted-foreground">
+              <code>{SDK_IMPORT_LINE}</code>
             </pre>
           </Frame>
         </Row>
 
         <Row
+          id="agent"
           title={t("rows.agent.title")}
           body={t("rows.agent.body")}
           cta={t("rows.agent.cta")}
@@ -176,27 +176,45 @@ export async function Loop(): Promise<ReactNode> {
         >
           <Frame>
             <div className="grid gap-2.5 p-5">
-              {box(SKILL_INSTALL)}
+              {box(SKILLS_INSTALL_COMMAND)}
               {box("verbatra mcp")}
             </div>
             <p className="flex flex-wrap gap-x-5 gap-y-2 px-5 pb-5 text-sm">
-              <a href="/llms.txt" className={LINK_CLASS}>
+              <TrackedAnchor href="/llms.txt" className={LINK_CLASS} track={loopCta("llms")}>
                 {t("links.llms")}
-              </a>
-              <a href="/llms-full.txt" className={LINK_CLASS}>
+              </TrackedAnchor>
+              <TrackedAnchor
+                href="/llms-full.txt"
+                className={LINK_CLASS}
+                track={loopCta("llms-full")}
+              >
                 {t("links.llmsFull")}
-              </a>
-              <a href={docs("/docs/cli/mcp")} className={LINK_CLASS}>
+              </TrackedAnchor>
+              <TrackedLink
+                href={docs("/docs/cli/mcp")}
+                className={LINK_CLASS}
+                track={loopCta("mcp-docs")}
+              >
                 {t("links.mcpDocs")}
-              </a>
+              </TrackedLink>
               <a
                 href={SKILLS_REPO_URL}
                 target="_blank"
                 rel="noreferrer noopener"
                 className={LINK_CLASS}
+                data-umami-event="outbound-link"
+                data-umami-event-target="skills-repo"
+                data-umami-event-location="loop"
               >
                 verbatra/skills
               </a>
+              <TrackedLink
+                href={localizedAnchorPath(locale, SKILLS_PACK_PAGE, SKILLS_PACK_ANCHORS)}
+                className={LINK_CLASS}
+                track={loopCta("skills-docs")}
+              >
+                {t("links.skillsDocs")}
+              </TrackedLink>
             </p>
           </Frame>
         </Row>

@@ -24,13 +24,18 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./pure": {
+      "types": "./dist/pure.d.ts",
+      "import": "./dist/pure.js",
+      "require": "./dist/pure.cjs"
     }
   },
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && tsup --config tsup.pure.config.ts",
     "lint": "biome check .",
     "test": "vitest run --coverage",
     "test:watch": "vitest",
@@ -42,7 +47,7 @@
   "devDependencies": {
     "@verbatra/config": "workspace:*",
     "@vitest/coverage-v8": "catalog:",
-    "fast-check": "4.10.1",
+    "fast-check": "4.10.2",
     "parse5": "catalog:",
     "tsup": "catalog:",
     "typescript": "catalog:",

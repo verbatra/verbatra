@@ -1,9 +1,10 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { LoadedConfig } from "@verbatra/sdk";
+import { editEntry, type LoadedConfig } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import type { RpcHandlerDeps } from "../rpc.js";
 import { type FixtureProject, makeFixtureProject } from "../test-support.js";
+import { reviewApproveHandler } from "./review-decision.js";
 import { reviewQueueHandler } from "./review-queue.js";
 
 function deps(project: FixtureProject): RpcHandlerDeps {
@@ -15,58 +16,41 @@ function deps(project: FixtureProject): RpcHandlerDeps {
   return { config: loaded, projectRoot: project.root };
 }
 
-async function writeRunStatusFile(project: FixtureProject, data: unknown): Promise<void> {
-  await mkdir(join(project.root, ".verbatra-local"), { recursive: true });
-  await writeFile(
-    join(project.root, ".verbatra-local", "run-status.json"),
-    `${JSON.stringify(data, null, 2)}\n`,
-    "utf8",
+async function agentProject(): Promise<FixtureProject> {
+  const project = await makeFixtureProject(
+    { targetLocales: ["de"] },
+    { greeting: "hello", farewell: "bye" },
   );
+  for (const [key, value] of [
+    ["greeting", "hallo"],
+    ["farewell", "tschuss"],
+  ] as const) {
+    await editEntry({
+      config: project.config,
+      cwd: project.root,
+      locale: "de",
+      key,
+      value,
+      actor: "agent",
+    });
+  }
+  return project;
 }
 
+const AGENT = { origin: "agent", reviewState: "unreviewed" } as const;
+
 describe("reviewQueueHandler", () => {
-  it("reports available: false when no run-status file exists yet, not an error", async () => {
-    const project = await makeFixtureProject({ targetLocales: ["de"] }, {});
+  it("lists every unapproved machine-class value from the committed files", async () => {
+    const project = await agentProject();
     try {
-      const result = await reviewQueueHandler({}, deps(project));
-
-      expect(result).toEqual({ available: false });
-    } finally {
-      await project.cleanup();
-    }
-  });
-
-  it("passes through the persisted needsReview entries per locale, unmodified", async () => {
-    const project = await makeFixtureProject({ targetLocales: ["de"] }, {});
-    try {
-      await writeRunStatusFile(project, {
-        version: 1,
-        generatedAt: "2026-07-16T00:00:00.000Z",
-        locales: [
-          {
-            locale: "de",
-            status: "succeeded",
-            needsReview: [
-              { key: "greeting", reasons: ["EQUALS_SOURCE"] },
-              { key: "farewell", reasons: ["LENGTH_RATIO_OUTLIER", "PROVIDER_DEGRADED"] },
-            ],
-          },
-        ],
-      });
-
-      const result = await reviewQueueHandler({}, deps(project));
-
-      expect(result).toEqual({
+      expect(await reviewQueueHandler({}, deps(project))).toEqual({
         available: true,
-        version: 1,
-        generatedAt: "2026-07-16T00:00:00.000Z",
         locales: [
           {
             locale: "de",
-            status: "succeeded",
             needsReview: [
-              { key: "greeting", reasons: ["EQUALS_SOURCE"] },
-              { key: "farewell", reasons: ["LENGTH_RATIO_OUTLIER", "PROVIDER_DEGRADED"] },
+              { key: "greeting", reasons: [], provenance: AGENT },
+              { key: "farewell", reasons: [], provenance: AGENT },
             ],
           },
         ],
@@ -76,34 +60,44 @@ describe("reviewQueueHandler", () => {
     }
   });
 
-  it("degrades a corrupt run-status file to available: false rather than throwing", async () => {
-    const project = await makeFixtureProject({ targetLocales: ["de"] }, {});
+  it("lists the approved values too when asked", async () => {
+    const project = await agentProject();
     try {
-      await mkdir(join(project.root, ".verbatra-local"), { recursive: true });
-      await writeFile(join(project.root, ".verbatra-local", "run-status.json"), "not json", "utf8");
+      await reviewApproveHandler(
+        { locale: "de", key: "greeting", expectedValue: "hallo", reviewer: "mk" },
+        deps(project),
+      );
 
-      const result = await reviewQueueHandler({}, deps(project));
+      const result = await reviewQueueHandler({ includeApproved: true }, deps(project));
 
-      expect(result).toEqual({ available: false });
+      expect(result).toMatchObject({
+        available: true,
+        locales: [
+          {
+            needsReview: [{ key: "farewell" }],
+            approved: [
+              {
+                key: "greeting",
+                provenance: { origin: "agent", reviewState: "approved", reviewer: "mk" },
+              },
+            ],
+          },
+        ],
+      });
     } finally {
       await project.cleanup();
     }
   });
 
-  it("reads the file fresh on every call, never caching it between requests", async () => {
-    const project = await makeFixtureProject({ targetLocales: ["de"] }, {});
+  it("reports available: false when the provenance file cannot be read", async () => {
+    const project = await agentProject();
     try {
-      const first = await reviewQueueHandler({}, deps(project));
-      expect(first).toEqual({ available: false });
+      await writeFile(join(project.root, "verbatra.provenance.json"), "{ not json", "utf8");
 
-      await writeRunStatusFile(project, {
-        version: 1,
-        generatedAt: "2026-07-16T00:00:00.000Z",
-        locales: [{ locale: "de", status: "succeeded", needsReview: [] }],
+      expect(await reviewQueueHandler({}, deps(project))).toEqual({
+        available: false,
+        reason: "provenance-unreadable",
       });
-
-      const second = await reviewQueueHandler({}, deps(project));
-      expect(second.available).toBe(true);
     } finally {
       await project.cleanup();
     }

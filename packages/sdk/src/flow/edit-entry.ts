@@ -1,16 +1,27 @@
 import { contentHash } from "@verbatra/core";
 import type { AdapterRegistry } from "@verbatra/format-adapters";
-import { computeFingerprint } from "../cache/fingerprint.js";
+import { fingerprintsFor } from "../cache/fingerprint.js";
 import { feedTranslationMemory } from "../cache/translation-memory.js";
+import { projectCwd } from "../config/project-root.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
-import { withLocaleWriteLock, writeLockKeyFor } from "../lock/locale-write-lock.js";
+import {
+  assertLockAcquireTimeout,
+  type LockWaitListener,
+  withLocaleWriteLock,
+  writeLockKeyFor,
+  writeLockOptions,
+} from "../lock/locale-write-lock.js";
 import { updateLockFileLocale } from "../lock/lock-file.js";
+import { settleProvenance } from "../lock/provenance-file.js";
+import { assertProvenanceReadable } from "../lock/provenance-notice.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { readTarget } from "./diff-locales.js";
 import { gateCandidateValue, type IntegrityGateReason } from "./integrity-gate.js";
+import { carryOverBeforeWrite } from "./locale-carry-over.js";
+import { assertNotPinned, protectionPolicy } from "./protection.js";
 import { selectLocales } from "./select-locales.js";
 import { readSource } from "./source.js";
 import { writeTargetResource } from "./write-target.js";
@@ -19,7 +30,7 @@ import { writeTargetResource } from "./write-target.js";
 export interface EditEntryInput {
   /** The resolved project config, normally from {@link loadConfig}. */
   readonly config: VerbatraConfig;
-  /** Directory the `files.pattern` is resolved against. Defaults to the process working directory. */
+  /** Directory the `files.pattern` is resolved against. Defaults to the project root of the config object {@link loadConfig} returned, else the process working directory; a copied or rebuilt config loses that root, so pass `cwd` from {@link resolveProjectRoot}. */
   readonly cwd?: string;
   /** The target locale to write to. Must be a configured target locale. */
   readonly locale: string;
@@ -27,7 +38,27 @@ export interface EditEntryInput {
   readonly key: string;
   /** The new translation. It is accepted only if it passes the integrity gate. */
   readonly value: string;
+  /**
+   * Who wrote the value, recorded as its origin in the provenance file: `human` for a person,
+   * `agent` for an AI agent acting through a tool. Defaults to `human`. The calling surface asserts
+   * it; nothing verifies it.
+   */
+  readonly actor?: EditEntryActor;
+  /**
+   * Called while waiting on another process's write lock for the locale, so a caller can explain a
+   * stall instead of appearing to hang. Never called for a lock this process holds itself.
+   */
+  readonly onLockWait?: LockWaitListener;
+  /**
+   * How long, in milliseconds, to wait for the locale's write lock before failing with
+   * `LOCK_CONTENDED`. Defaults to ten minutes. It does not bound the lock-file guard taken to
+   * record the written value, which always allows the ten-minute default.
+   */
+  readonly lockAcquireTimeoutMs?: number;
 }
+
+/** Who wrote a value passed to {@link editEntry}. */
+export type EditEntryActor = "human" | "agent";
 
 /** Injectable dependencies for {@link editEntry}. Every field has a working default. */
 export interface EditEntryDeps {
@@ -55,11 +86,14 @@ export type EditEntryResult =
       /** Which integrity rule the value broke. */
       readonly reason: IntegrityGateReason;
       /**
-       * The specific tags behind a `markup` refusal, each prefixed with `-` for one the source had
-       * and the candidate dropped or `+` for one the candidate invented. A candidate carrying more
-       * than twice its source's inline tags and constructs is named as `+more than N inline tags`
-       * instead, where N is at least 256. Absent when no single tag is at fault, such as markup
-       * that came back mis-nested, and absent for every other reason.
+       * What is behind a `placeholder`, `markup`, or `icu` refusal. For `placeholder`, each
+       * placeholder the source had and the candidate dropped, prefixed with `-`, then each one the
+       * candidate invented, prefixed with `+`. For `markup`, the specific tags in the same notation;
+       * a candidate carrying more than twice its source's inline tags and constructs is named as
+       * `+more than N inline tags` instead, where N is at least 256, and the field is absent when no
+       * single tag is at fault, such as markup that came back mis-nested. For `icu`, each branch arm
+       * that does not fit the target language, absent when the message itself is invalid. Absent
+       * for every other reason.
        */
       readonly details?: readonly string[];
       /** The rejected value, echoed back so a UI can show what was refused. */
@@ -82,6 +116,8 @@ export type EditEntryResult =
  * and feeds the translation memory, which means a later run treats the key as up to date and
  * reuses the edited text rather than paying the provider to translate it again. No review reason
  * is computed for a hand-edited value, so a configured `maxLength` budget is not checked here.
+ * The provenance file records the value with the origin named by `actor`, `human` unless told
+ * otherwise, and any earlier review decision on the key is cleared.
  *
  * Note that the target locale file surfaces the adapter's own error and code rather than a wrapped
  * {@link SdkError}, on the write as well as on the read, because only the source read is wrapped.
@@ -104,13 +140,26 @@ export type EditEntryResult =
  * @throws {@link SdkError} `SOURCE_UNREADABLE`: the source locale file does not exist.
  * @throws {@link SdkError} `SOURCE_INVALID`: the source locale file could not be parsed.
  * @throws {@link SdkError} `UNKNOWN_KEY`: the key is not present in the source resource.
- * @throws {@link SdkError} `LOCK_CONTENDED`: the locale's write lock could not be acquired before
- * the timeout elapsed.
+ * @throws {@link SdkError} `KEY_PINNED`: `actor` is `agent` and the key matches the config's
+ * `pinnedKeys`. A person's edit of a pinned key is accepted.
+ * @throws {@link SdkError} `LOCK_CONTENDED`: the locale's write lock or the lock-file guard could
+ * not be acquired before the timeout elapsed.
+ * @throws {@link SdkError} `RUN_CANCELLED`: {@link releaseHeldLocks} was running when the call
+ * went to take a write lock, so that lock was refused.
  * @throws {@link SdkError} `TARGET_UNWRITABLE`: the target locale file could not be written because
  * of a file-system failure. The message names the target file and the file-system code, never the
  * internal temporary file.
+ * @throws {@link SdkError} `LOCALE_STATE_NOT_CARRIED_OVER`: state recorded under a respelled code
+ * of the locale, such as `pt_BR` for `pt-BR`, could not be moved to it first, so nothing was
+ * written.
+ * @throws {@link SdkError} `LOCK_TIMEOUT_INVALID`: `lockAcquireTimeoutMs` is not a whole number of
+ * milliseconds of at least 0. Thrown before anything is read or locked.
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
  * unsupported version.
+ * @throws {@link SdkError} `PROVENANCE_FILE_INVALID`: the provenance file is corrupt, oversized, or
+ * structurally wrong. Checked before the value is gated or anything is written. A file from a newer
+ * verbatra is left untouched and the value is written without a record, and so is a value whose
+ * record would grow the file past the size verbatra reads back.
  * @throws `AdapterError`: the adapter itself refused the target locale file, on the read because it
  * is malformed or on the write because the entries cannot be represented in the configured format.
  * Its own code is preserved rather than remapped onto an {@link SdkErrorCode}.
@@ -120,7 +169,8 @@ export async function editEntry(
   deps: EditEntryDeps = {},
 ): Promise<EditEntryResult> {
   const config = input.config;
-  const cwd = input.cwd ?? process.cwd();
+  assertLockAcquireTimeout(input.lockAcquireTimeoutMs);
+  const cwd = projectCwd(input);
   const fs = deps.fs ?? defaultFs;
   const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
 
@@ -139,52 +189,71 @@ export async function editEntry(
     );
   }
 
-  return withLocaleWriteLock(cwd, writeLockKeyFor(config.format, locale), fs, async () => {
-    const target = await readTarget(cwd, config, adapter, fs, locale);
+  if (input.actor === "agent") {
+    assertNotPinned(protectionPolicy(config), input.key);
+  }
+  await assertProvenanceReadable(cwd, fs);
+  await carryOverBeforeWrite(cwd, fs, locale, writeLockOptions(input));
 
-    const gate = gateCandidateValue(sourceEntry, input.value, adapter);
-    if (!gate.accepted) {
-      return {
-        accepted: false,
-        reason: gate.reason,
-        ...(gate.details !== undefined ? { details: gate.details } : {}),
-        value: input.value,
-      };
-    }
+  return withLocaleWriteLock(
+    cwd,
+    writeLockKeyFor(config.format, locale),
+    fs,
+    async () => {
+      const target = await readTarget(cwd, config, adapter, fs, locale);
 
-    const merged = new Map(target.entries);
-    merged.set(input.key, { ...sourceEntry, value: input.value, namespace: target.namespace });
-    const path = createLocalePathResolver(cwd, config).pathFor(locale);
-    await writeTargetResource(
-      adapter,
-      { locale, namespace: target.namespace, format: config.format, entries: merged },
-      path,
-      cwd,
-    );
+      const gate = gateCandidateValue(sourceEntry, input.value, adapter, locale);
+      if (!gate.accepted) {
+        return {
+          accepted: false,
+          reason: gate.reason,
+          ...(gate.details !== undefined ? { details: gate.details } : {}),
+          value: input.value,
+        };
+      }
 
-    await updateLockFileLocale(cwd, fs, locale, {
-      mode: "merge",
-      entries: { [input.key]: contentHash(sourceEntry) },
-    });
+      const merged = new Map(target.entries);
+      merged.set(input.key, { ...sourceEntry, value: input.value, namespace: target.namespace });
+      const resolver = createLocalePathResolver(cwd, config);
+      await writeTargetResource(
+        adapter,
+        { locale, namespace: target.namespace, format: config.format, entries: merged },
+        resolver.pathFor(locale),
+        cwd,
+        { sourcePath: resolver.pathFor(config.sourceLocale) },
+      );
 
-    await feedTranslationMemory(
-      cwd,
-      fs,
-      computeFingerprint(config),
-      new Map([
-        [
-          locale,
-          {
-            [contentHash(sourceEntry)]: {
-              contentHash: contentHash(sourceEntry),
-              value: input.value,
-              source: sourceEntry.value,
+      await updateLockFileLocale(
+        cwd,
+        fs,
+        locale,
+        { mode: "merge", entries: { [input.key]: contentHash(sourceEntry) } },
+        settleProvenance(
+          new Map([[input.key, { origin: input.actor ?? "human", value: input.value }]]),
+          await readTarget(cwd, config, adapter, fs, locale),
+        ),
+      );
+
+      await feedTranslationMemory(
+        cwd,
+        fs,
+        fingerprintsFor(config),
+        new Map([
+          [
+            locale,
+            {
+              [contentHash(sourceEntry)]: {
+                contentHash: contentHash(sourceEntry),
+                value: input.value,
+                source: sourceEntry.value,
+              },
             },
-          },
-        ],
-      ]),
-    );
+          ],
+        ]),
+      );
 
-    return { accepted: true, value: input.value };
-  });
+      return { accepted: true, value: input.value };
+    },
+    writeLockOptions(input),
+  );
 }

@@ -4,6 +4,7 @@ import {
   isAbortError,
 } from "./error-classification.js";
 import { ProviderError } from "./errors.js";
+import { findNetworkPolicyViolation } from "./network/guarded-fetch.js";
 import { describeNetworkCause, findNetworkCause } from "./network-cause.js";
 
 export const PROVIDER_CALL_FAILED_MESSAGE = "The translation provider request failed.";
@@ -59,8 +60,12 @@ export async function guardProviderCall<T>(
   try {
     return await call();
   } catch (error) {
-    if (isAbortError(error, signal)) {
+    if (error instanceof ProviderError || isAbortError(error, signal)) {
       throw error;
+    }
+    const violation = findNetworkPolicyViolation(error);
+    if (violation !== undefined) {
+      throw new ProviderError("NETWORK_POLICY_VIOLATION", violation.message);
     }
     const code = classifyProviderError(error);
     throw new ProviderError(code, messageFor(code, error, context));

@@ -2,12 +2,11 @@
 title: verbatra types
 description: Génère des déclarations TypeScript pour les clés de ton catalogue et les arguments de leurs messages, sans appeler de fournisseur ni lire de clé d'API.
 status: new
+type: reference
 ---
 <AvailableFrom version="0.11.0" />
 
-Une clé mal orthographiée, c'est un échec de recherche à l'exécution. Un argument d'interpolation oublié, c'est un placeholder affiché tel quel à l'écran. `types` transforme les deux en erreurs de compilation : la commande lit ton catalogue source via l'[adaptateur de format](/docs/formats) configuré et écrit un fichier de déclarations contenant une union de toutes les clés et, par clé, les arguments que son message prend. Elle ne dépense rien : aucun fournisseur n'est construit, aucune requête réseau n'est faite et aucune clé d'API n'est lue, si bien qu'elle fonctionne sur un dépôt fraîchement cloné, avant même qu'une clé existe.
-
-Elle lit un fichier (le catalogue de ta locale source) et écrit un fichier (la déclaration). Elle ne touche jamais à un fichier de locale cible.
+Transforme une clé mal orthographiée ou un argument d'interpolation oublié en erreur de compilation. `types` lit ton catalogue source via l'[adaptateur de format](/fr/docs/formats) configuré et écrit un fichier de déclarations : une union de toutes les clés et, pour chaque clé, les arguments que prend son message. Il n'appelle aucun fournisseur, ne lit aucune clé d'API et ne touche jamais un fichier de locale cible.
 
 ## Synopsis
 
@@ -15,17 +14,34 @@ Elle lit un fichier (le catalogue de ta locale source) et écrit un fichier (la 
 verbatra types [flags]
 ```
 
+## Exemples
+
+```bash
+# write verbatra-types.d.ts from the source catalog
+verbatra types
+
+# write it where the app already imports from
+verbatra types --out src/generated/messages.d.ts
+
+# CI gate: exit 1 if the committed declaration is stale
+verbatra types --check
+
+# machine-readable result for a script
+verbatra types --json
+```
+
 ## Options
 
 | Option | Argument | Défaut | Effet |
 | --- | --- | --- | --- |
-| `--cwd` | `<path>` | répertoire courant | résout la config et les fichiers de locale depuis ce répertoire |
-| `--config` | `<path>` | recherche automatique | charge ce fichier de config au lieu d'en chercher un |
-| `--out` | `<path>` | `verbatra-types.d.ts` | où écrire la déclaration, relativement au répertoire de travail et à l'intérieur de celui-ci |
-| `--check` | aucun | désactivé | signale si la déclaration commitée est toujours à jour, sans rien écrire |
-| `--json` | aucun | désactivé | affiche une [enveloppe JSON](/docs/ci-and-exit-codes#sortie-json) sur stdout portant le résultat sous `result` |
+| `--out` | `<path>` | `verbatra-types.d.ts` | où écrire la déclaration, relativement au répertoire de travail et à l'intérieur de la racine du projet ; les répertoires manquants sont créés |
+| `--check` | aucun | désactivé | compare octet par octet la déclaration commitée à une génération fraîche, sans rien écrire ; sortie `1` si elle est périmée ou manquante |
 
-## Ce qui est généré
+Accepte aussi les [options globales](/fr/docs/cli#options-globales) `--cwd`, `--config` et `--json`.
+
+## Comportement
+
+### Ce qui est généré
 
 À partir d'un `locales/en.json` comme celui-ci :
 
@@ -59,6 +75,7 @@ export type VerbatraUnknownArguments = Record<string, VerbatraArgument>;
 export interface VerbatraMessages {
   "app.title": VerbatraNoArguments;
   "greeting": { readonly "name": VerbatraArgument };
+  "cart.item": { readonly "count": VerbatraArgument };
   "cart.item_one": { readonly "count": VerbatraArgument };
   "cart.item_other": { readonly "count": VerbatraArgument };
 }
@@ -74,7 +91,7 @@ export type VerbatraMessageArguments<Key extends VerbatraMessageKey> =
 export type VerbatraPluralMessageKey = "cart.item_one" | "cart.item_other";
 ```
 
-Type ta propre fonction de traduction là-dessus, le compilateur fait le reste :
+Type ta propre fonction de traduction avec, et le compilateur fait le reste :
 
 ```ts
 import type { VerbatraMessageArguments, VerbatraMessageKey } from "./verbatra-types.js";
@@ -90,17 +107,17 @@ t("greeting", {});              // error: the name argument is required
 t("app.title", { name: "Ada" }); // error: this message takes no argument
 ```
 
-## Ce qui est affirmé et ce qui ne l'est pas
+### Ce qui est affirmé et ce qui ne l'est pas
 
-Les clés sont exactement ce que l'adaptateur de format avait déjà produit en lisant le catalogue, dans l'ordre du document, et c'est pourquoi le même catalogue produit toujours les mêmes octets. Pour la plupart des formats, les arguments viennent des jetons de placeholders que l'adaptateur a extraits. Pour les deux formats de messages ICU, `next-intl-json` et `arb`, chaque message est lu avec le même analyseur ICU que celui de l'adaptateur : un argument que seules certaines branches `select` ou `plural` utilisent est donc quand même déclaré, et chaque argument reçoit son type selon la façon dont le message le formate. Rien n'est deviné.
+Les clés sont exactement celles que l'adaptateur de format a produites, dans l'ordre du document, donc le même catalogue produit toujours les mêmes octets. Les arguments viennent des jetons de placeholders que l'adaptateur a extraits ; les messages `next-intl-json` et `arb` sont lus avec l'analyseur ICU de l'adaptateur, donc un argument que seules certaines branches utilisent est quand même déclaré. Rien n'est deviné, et rien n'est déclaré en `any`.
 
 | Ton message | Ce qui est déclaré |
 | --- | --- |
 | aucun placeholder | `VerbatraNoArguments`, donc passer quoi que ce soit est une erreur de type |
 | des placeholders nommés (`{{name}}`, `{name}`, `%(name)s`) | une forme d'objet portant ces noms |
 | des placeholders numérotés ou anonymes (`{0}`, `%@`, `%1$d`) | un tuple `readonly`, une position par argument |
-| un argument que seules certaines branches `select` ou `plural` utilisent (`next-intl-json`, `arb`) | un membre optionnel, `name?:`, ou pour un argument numéroté une position de tuple optionnelle (`[number, VerbatraArgument?]`) ; un argument utilisé par toutes les branches reste obligatoire |
-| un argument ICU `number`, `plural` ou `selectordinal` (`{count, number}`, `{count, plural, ...}`) dans `next-intl-json` ou `arb` | `number` |
+| un argument que seules certaines branches `select` ou `plural` utilisent (`next-intl-json`, `arb`) | un membre optionnel, `name?:`, ou une position de tuple optionnelle en fin de tuple (`[number, VerbatraArgument?]`) ; un argument utilisé par toutes les branches reste obligatoire |
+| un argument ICU `number`, `plural` ou `selectordinal` dans `next-intl-json` ou `arb` | `number` |
 | un argument ICU `date` ou `time` (`{d, date, short}`) dans `next-intl-json` ou `arb` | `Date \| number` |
 | un argument ICU `select` (`{gender, select, ...}`) dans `next-intl-json` ou `arb` | `string` |
 | un formateur i18next `number` (`{{count, number}}`) dans `i18next-json`, `ngx-translate-json` ou `yaml` | `number` |
@@ -111,17 +128,14 @@ Les clés sont exactement ce que l'adaptateur de format avait déjà produit en 
 | une conversion printf de chaîne (`%s`, `%(name)s`) | `string` |
 | tout autre placeholder, y compris un argument ICU simple (`{name}`) | `VerbatraArgument`, un alias de `string \| number` |
 | une syntaxe de message invalide, que seuls `next-intl-json` et `arb` vérifient | `VerbatraUnknownArguments`, et la clé est nommée dans la sortie |
-| un message qui à la fois nomme et numérote ses arguments | `VerbatraUnknownArguments`, et la clé est nommée dans la sortie |
+| un message qui mélange arguments nommés, numérotés et anonymes | `VerbatraUnknownArguments`, et la clé est nommée dans la sortie |
+| un argument numéroté sous la position 0 ou à partir de la position 64 (`%0$s`, `{64}`) | `VerbatraUnknownArguments`, et la clé est nommée dans la sortie |
 
-Un tuple ne peut omettre que des positions à sa fin : un argument numéroté que seules certaines branches utilisent n'est donc déclaré optionnel que si toutes les positions qui le suivent le sont aussi. Dans `{0, select, a {{1}} other {x}} {2}`, la position `1` reste obligatoire, parce que la position obligatoire `2` la suit.
-
-Les noms d'arguments viennent des jetons de placeholders que l'adaptateur a extraits : un format dont les placeholders ne portent aucun nom (Apple `.strings`, Android `strings.xml`, conversions gettext positionnelles) reçoit donc un tuple plutôt que des noms inventés. Les types d'arguments viennent uniquement de ce que ton catalogue enregistre vraiment : la façon dont un message ICU formate un argument, ou le formateur ou la conversion que nomme un placeholder. Quand un format nomme un argument sans dire ce qu'on peut lui passer, verbatra déclare `string | number` au lieu d'affirmer un type que le catalogue n'a jamais porté. Un nom utilisé plusieurs fois avec des types différents est déclaré comme l'union de tout ce qu'accepte chaque utilisation : `{d, date, short}` à côté d'un simple `{d}` devient `Date | number | string`, et `{n, plural, ...}` à côté d'un simple `{n}` devient `string | number`. Rien n'est jamais déclaré en `any`.
-
-Les clés sont toujours émises comme des littéraux de chaîne entre guillemets : une clé portant un point, un mot réservé, un chiffre en tête, un guillemet, ou même la clé vide, est donc déclarée telle quelle plutôt qu'abandonnée ou redécoupée. Une clé que l'adaptateur a signalée comme exclue de la traduction (une feuille isolée qui n'est pas une chaîne, une ressource Android avec `translatable="false"`) n'est jamais déclarée, et elle est nommée dans la sortie pour que tu voies ce qui a été laissé de côté.
+Un format dont les placeholders ne portent pas de nom (Apple `.strings`, Android `strings.xml`, conversions gettext positionnelles) reçoit un tuple, jamais des noms inventés. Un nom utilisé avec des types différents reçoit leur union : `{d, date, short}` à côté d'un `{d}` simple devient `Date | number | string`. Les clés sont toujours des littéraux de chaîne entre guillemets, donc une clé avec un point, un mot réservé, un chiffre initial ou un guillemet est déclarée telle quelle. Une clé que l'adaptateur a exclue de la traduction (une feuille qui n'est pas une chaîne, une ressource Android `translatable="false"`) n'est jamais déclarée et est nommée dans la sortie.
 
 ### Une clé dont le nom contient lui-même un point
 
-La clé déclarée est écrite comme verbatra écrit lui-même la clé, sous la même forme que dans `verbatra.lock.json`, et ce n'est pas une syntaxe de recherche que ta bibliothèque i18n comprend. Un catalogue JSON contenant `{"a.b": "..."}` porte une clé écrite `a\.b`, délibérément distincte du chemin imbriqué `a.b`, et c'est cette graphie échappée que le fichier déclare :
+La clé déclarée s'écrit comme verbatra l'écrit dans `verbatra.lock.json`, pas dans une syntaxe de recherche que ta bibliothèque i18n comprend. Un catalogue JSON contenant `{"a.b": "..."}` porte la clé `a\.b`, volontairement distincte du chemin imbriqué `a.b` :
 
 ```ts
 export interface VerbatraMessages {
@@ -129,108 +143,107 @@ export interface VerbatraMessages {
 }
 ```
 
-Ne compte pas sur un runtime pour résoudre cette graphie. i18next, par exemple, n'a pas d'échappement pour son séparateur de clés : `t("a\\.b")` n'est donc pas la façon dont il cherche une clé contenant un point littéral. Si ton catalogue porte de telles clés, configure le runtime pour que le point ne soit pas un séparateur (pour i18next, règle `keySeparator` sur un autre caractère, ou sur `false` pour un catalogue plat) et fais correspondre la clé déclarée à celle que cherche ton runtime dans ton propre wrapper typé.
+i18next n'a pas d'échappement pour son séparateur de clés, donc `t("a\\.b")` ne cherche pas cette clé. Si ton catalogue porte de telles clés, règle `keySeparator` sur un autre caractère (ou sur `false` pour un catalogue plat) et fais correspondre la clé déclarée à la clé du runtime dans ton propre wrapper typé.
 
 ### Le seul cas où la déclaration se trompe au lieu de simplement se taire
 
-Seuls `next-intl-json` et `arb` valident la syntaxe des messages. Pour tout autre format, une valeur cassée plutôt que simplement ordinaire (`"Hello {name"`, sans l'accolade fermante) ne produit aucun jeton de placeholder : le message est donc déclaré comme ne prenant aucun argument, et passer l'argument qu'il veut vraiment devient une erreur de compilation. Rien ne le signale, parce que rien ne l'a détecté. Ce qu'il faut corriger, c'est le catalogue, pas la déclaration.
+Seuls `next-intl-json` et `arb` valident la syntaxe des messages. Dans tout autre format, une valeur cassée comme `"Hello {name"` ne produit aucun jeton de placeholder : le message est donc déclaré sans argument, et lui passer l'argument dont il a vraiment besoin devient une erreur de compilation. Rien ne le signale, puisque rien ne l'a détecté. Corrige le catalogue, pas la déclaration.
 
 ### Clés au pluriel
 
-Rien n'est fusionné. i18next porte le pluriel en suffixe de clé, donc `cart.item_one` et `cart.item_other` sont déclarées comme les deux clés distinctes qu'elles sont réellement, puisque ce sont les deux clés que ton code cherche vraiment. `VerbatraPluralMessageKey` liste précisément les clés que l'adaptateur a marquées comme portant des formes plurielles, si tu veux t'y restreindre.
+Rien n'est regroupé. i18next porte le pluriel comme suffixe de clé, donc `cart.item_one` et `cart.item_other` sont déclarées telles qu'elles sont écrites et, à côté, la clé de base `cart.item` que cherche `t("cart.item", { count })`, qui exige `count` et chaque argument que prend l'une des formes. Les types propres à i18next acceptent eux aussi les deux écritures. Un groupe ordinal comme `place_ordinal_one` déclare `place`, et une clé de base que le catalogue contient déjà garde sa propre déclaration. `VerbatraPluralMessageKey` liste les clés que l'adaptateur a marquées comme portant des formes plurielles, celles avec suffixe, pour que tu puisses t'y restreindre.
 
-## Où atterrit la déclaration
+### Où atterrit la déclaration
 
-Par défaut elle atterrit dans `verbatra-types.d.ts` à la racine de ton projet. **Commite-la.** C'est un artefact commité, pas un brouillon local, pour deux raisons : un collègue ou un job de CI vérifie les types dessus sans avoir à lancer verbatra d'abord, et `--check` a besoin d'un fichier commité auquel se comparer. Rien ne l'ajoute au `.gitignore`.
+Par défaut elle atterrit dans `verbatra-types.d.ts` à la racine de ton projet. **Commite-la** : un collègue ou un job de CI vérifie les types dessus sans lancer verbatra, et `--check` a besoin d'un fichier commité auquel se comparer. Rien ne l'ajoute au `.gitignore`.
 
-Passe `--out` pour la mettre là où ton application importe déjà, par exemple `--out src/generated/messages.d.ts`. Les répertoires manquants sont créés. Un chemin de sortie est refusé avec `TYPES_OUTPUT_CONFLICT` quand il :
+Un chemin de sortie est refusé avec `TYPES_OUTPUT_CONFLICT` quand il :
 
-- ne nomme aucun fichier,
+- ne nomme aucun fichier, y compris quand il se termine par un séparateur de chemin comme `generated/`,
 - est absolu,
 - sort du répertoire de travail avec `..`,
 - n'est pas un fichier TypeScript, c'est-à-dire que son nom ne se termine pas par `.ts`, `.mts` ou `.cts`,
 - nomme un fichier de locale configuré, source ou cible, pour que la génération n'écrase jamais un catalogue,
 - est le fichier de verrouillage, `verbatra.lock.json`,
+- est le fichier de provenance, `verbatra.provenance.json`,
 - est le cache de mémoire de traduction, `verbatra.cache.json`,
 - est un fichier où verbatra cherche sa configuration : `package.json`, `.verbatrarc`, `.verbatrarc.json`, `.verbatrarc.yaml`, `.verbatrarc.yml`, `.verbatrarc.js`, `.verbatrarc.cjs`, `.verbatrarc.ts`, `verbatra.config.js`, `verbatra.config.cjs` ou `verbatra.config.ts`,
 - est le fichier de configuration que l'exécution a réellement chargé, y compris celui que tu as indiqué avec `--config`,
+- est le fichier de glossaire vers lequel pointe `glossary` dans ta configuration,
 - est un fichier existant qui ne commence pas par la ligne d'en-tête `// Generated by verbatra from` que verbatra écrit en tête de chaque déclaration (une marque d'ordre des octets et des lignes vides en tête sont ignorées), ou est trop volumineux pour être vérifié.
 
-Les noms de fichiers sont comparés sans tenir compte de la casse : `Verbatra.Config.ts` est donc refusé aussi. Tous les cas sauf le dernier sont refusés avant toute lecture ou écriture. Le dernier n'est vérifié que par une exécution qui écrirait, et il laisse ton fichier intact : choisis un autre `--out`, ou supprime le fichier s'il s'agit vraiment d'une ancienne déclaration. `--check` ne refuse jamais un fichier existant ; il se contente de comparer.
+Les noms de fichiers sont comparés sans tenir compte de la casse, et les vérifications sont refaites une fois les liens symboliques résolus, si bien qu'un répertoire lié ne peut porter la déclaration ni hors du répertoire de travail ni sur un fichier protégé. La dernière vérification n'a lieu que si une exécution allait écrire, et laisse ton fichier intact ; `--check` ne refuse jamais un fichier existant. Un chemin qui passe toutes les vérifications peut encore échouer à l'écriture (un répertoire en lecture seule, un disque plein) : l'exécution s'arrête avec `TYPES_UNWRITABLE` et nomme le fichier et le code du système de fichiers, comme `EACCES`.
 
-Un chemin qui passe toutes ces vérifications peut quand même échouer au moment de l'écriture : quand le répertoire de la déclaration ne peut pas être créé ou que le fichier ne peut pas être écrit, parce que le répertoire n'est pas inscriptible, n'existe plus ou que le disque est plein, l'exécution s'arrête avec `TYPES_UNWRITABLE` et sort en `2`. `--check` ne l'atteint jamais, puisqu'il n'écrit rien.
+### Rester honnête en CI
 
-## Rester honnête en CI
-
-`--check` n'écrit rien et sort avec `1` quand la déclaration commitée ne correspond plus à ce qu'une génération fraîche produirait. La comparaison se fait octet par octet, sans reformatage : elle attrape donc une clé ajoutée au catalogue et jamais régénérée :
-
-```yaml
-- run: npx verbatra types --check
-```
-
-Mets une chose en place avant de t'y fier. La déclaration est toujours écrite avec des fins de ligne LF et `--check` compare des octets exacts : un checkout qui réécrit les fins de ligne la laisse donc périmée en permanence, sans qu'une nouvelle exécution puisse y remédier. Fixe les fins de ligne dans `.gitattributes` :
+Lance `types --check` à côté de [`verbatra check`](/fr/docs/cli/check) dans le même job : `check` repère les locales qui prennent du retard sur la source, `types --check` tes types. La comparaison se fait octet par octet et la déclaration est toujours écrite avec des fins de ligne line feed, alors fixe-les dans `.gitattributes`, sinon un checkout qui les réécrit laisse le fichier périmé pour de bon :
 
 ```text
 verbatra-types.d.ts text eol=lf
 ```
 
-Lance-la à côté de [`verbatra check`](/docs/cli/check) dans le même job. `check` attrape les locales qui prennent du retard sur la source ; `types --check` attrape tes types qui prennent du retard sur elle.
+### Sortie JSON
 
-## Exemples
+Schéma : [`types-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/types-envelope.json) valide l'enveloppe entière ; [Schémas](/fr/docs/cli/output#schémas) liste les autres.
 
-```bash
-# write verbatra-types.d.ts from the source catalog
-verbatra types
+Avec `--json`, l'[enveloppe](/fr/docs/cli/output#sortie-json) porte un résultat :
 
-# write it where the app already imports from
-verbatra types --out src/generated/messages.d.ts
-
-# CI gate: exit 1 if the committed declaration is stale
-verbatra types --check
-
-# machine-readable result for a script
-verbatra types --json
+```ts
+interface GenerateTypesResult {
+  path: string;               // absolute path of the declaration file
+  sourcePath: string;         // the source catalog, relative to the project root
+  keys: number;               // how many keys are declared
+  withArguments: number;      // keys taking at least one determined argument
+  unresolved: { key: string; reason: "invalid-message-syntax" | "mixed-argument-styles" | "argument-index-out-of-range" }[];
+  excluded: string[];         // keys the adapter excluded, never declared
+  plural: string[];           // keys carrying plural forms
+  written: boolean;           // false under --check and when the file already matched
+  stale: boolean;             // the file on disk differed when the run started
+  missing: boolean;           // no file existed when the run started
+  check: boolean;             // whether this was a --check run
+}
 ```
 
-Une exécution ressemble à ceci :
+### Retour dans le terminal
 
-```text
+<AvailableFrom version="0.12.0" />
+
+Le résumé va sur stdout ; une ligne de spinner et, après l'écriture, une suggestion de committer le fichier vont sur stderr (`--check` ne suggère rien, et `--quiet` supprime les deux). Une exécution qui génère, une relance sans changement et un `--check` périmé :
+
+```text output
+verbatra: generating the declarations... done (0.2s)
 verbatra types
   214 keys declared, 63 of them taking arguments, from locales/en.json
   arguments not determined (1):
     legal.notice  invalid-message-syntax
   excluded by the adapter (1): meta.version
-  wrote /app/verbatra-types.d.ts
-```
+  wrote verbatra-types.d.ts
+next: commit verbatra-types.d.ts (verbatra types --check compares against it in CI)
 
-Relance-la sans toucher au catalogue et elle ne réécrit rien :
-
-```text
 verbatra types
   214 keys declared, 63 of them taking arguments, from locales/en.json
-  unchanged /app/verbatra-types.d.ts
-```
+  unchanged verbatra-types.d.ts
 
-Et en mode vérification, une fois que le catalogue a avancé :
-
-```text
-$ verbatra types --check
 verbatra types
   215 keys declared, 63 of them taking arguments, from locales/en.json
-  /app/verbatra-types.d.ts is out of date, re-run verbatra types
+  verbatra-types.d.ts is out of date, re-run verbatra types
 ```
+
+Consulte [Sortie dans le terminal](/fr/docs/cli/output#sortie-dans-le-terminal) pour la couleur, le spinner et les variables qui les contrôlent.
 
 ## Codes de sortie
 
 | Code | Signification |
 | --- | --- |
 | `0` | la déclaration a été générée, que le fichier ait changé ou non ; ou `--check` l'a trouvée à jour |
-| `1` | `--check` a trouvé la déclaration commitée périmée |
+| `1` | `--check` a trouvé la déclaration commitée périmée ou manquante (`is missing, run verbatra types to create it`) |
 | `2` | n'a pas pu s'exécuter : une erreur d'utilisation, un problème de configuration ou de source, un chemin de sortie refusé (`TYPES_OUTPUT_CONFLICT`), ou une déclaration qui n'a pas pu être écrite (`TYPES_UNWRITABLE`) |
+
+Consulte [Codes de sortie](/fr/docs/cli/output#codes-de-sortie) pour le contrat que suit chaque commande.
 
 ## Voir aussi
 
-- [`verbatra extract`](/docs/cli/extract) est l'autre moitié de la boucle : elle ajoute au catalogue les clés que ton code utilise, et `types` les déclare ensuite.
-- [`verbatra check`](/docs/cli/check) est le garde-fou CI pour la dérive des locales, juste à côté de celui-ci pour la dérive des types.
-- [Formats](/docs/formats) liste la syntaxe de placeholders qu'utilise chaque format, d'où viennent les noms d'arguments.
-- [CI et codes de sortie](/docs/ci-and-exit-codes) couvre l'enveloppe JSON et le contrat des codes de sortie.
+- [`verbatra extract`](/fr/docs/cli/extract) ajoute au catalogue les clés que ton code utilise ; `types` les déclare ensuite.
+- [`verbatra check`](/fr/docs/cli/check) est le contrôle de CI pour la dérive des locales, à côté de celui-ci pour la dérive des types.
+- [Formats](/fr/docs/formats) liste la syntaxe de placeholders de chaque format.
+- [Codes de sortie et sortie JSON](/fr/docs/cli/output) couvre l'enveloppe et le contrat des codes de sortie.

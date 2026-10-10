@@ -1,75 +1,126 @@
 ---
-title: The cache
+title: The translation cache
 description: What verbatra.cache.json reuses, how a fingerprint scopes it, and why it never fails a run.
+type: concept
 ---
-verbatra keeps a local translation-memory cache, `verbatra.cache.json`, so a string it has already translated is never sent to a provider twice, even when its key changes. Where [the lock file](/docs/the-lock-file) tracks whether a key is up to date, the cache is keyed by content: it remembers the translation for a piece of source text, independent of which key holds it.
+The translation cache, `verbatra.cache.json`, is a local translation memory keyed by content: it
+remembers the translation of a piece of source text, whichever key holds it, so the same text is
+never paid for twice. [The lock file](/docs/the-lock-file) answers "is this key up to date?"; the
+cache answers "have we translated this text before?".
 
 ## What it reuses
 
-On a run, before a key goes to the provider, verbatra looks it up in the cache by the hash of its current source content. A hit is served for free, so you never pay for it again. Because the lookup is by content, reuse survives cases the lock file cannot:
+Before a key goes to the provider, verbatra looks up the hash of its current source entry: the text
+plus its description, meaning, plural flag and placeholders. A hit is free. Because the lookup is by
+content, reuse survives what the lock file cannot see:
 
-- **A renamed key.** Move a string from `home.title` to `landing.title` and its translation is reused, not re-translated.
-- **Duplicate content.** Two keys with the same source content share one translation; the second is a cache hit.
+- **A renamed key.** Move `home.title` to `landing.title` and its translation is reused.
+- **Duplicate content.** Two keys with the same source text and context share one translation.
 
-A reused value is not trusted blindly. It still passes the same [integrity checks](/docs/translation-safety) against the current source before it is written, so a cached value that no longer fits its key is discarded and the key is translated fresh. Cache hits are reported per locale in the run summary, separate from the keys translated this run.
+A reused value is not trusted blindly. It passes the same
+[integrity gate](/docs/translation-safety#the-integrity-gate) against the current source as a fresh
+translation, and one that no longer fits is discarded and translated anew. Cache hits are reported
+per locale, apart from the keys translated this run.
+
+A value a reviewer [rejected](/docs/the-lock-file#review-decisions) is never reused for that key:
+the provenance file keeps a hash of the refused text, and a run skips any hit that matches it. The
+one gap is a provenance file the run cannot read (one from a newer verbatra, or a corrupt one under
+`humanEdits: "overwrite"`); the run then knows no rejection.
+
+## The fingerprint
+
+Every entry is scoped to the context it was produced in: a fingerprint over the provider, the
+model, the tone, the glossary terms of that locale, and the provider's
+[`localeMap`](/docs/providers#locale-codes-sent-to-the-provider) when it has entries. Change any of
+them and earlier entries stop matching, so a new tone or an edited glossary retranslates instead of
+serving a stale result. Each locale has its own fingerprint, so editing only the German translation
+of a glossary term leaves the French entries matching.
+
+The format is not part of the fingerprint; the integrity gate on every hit catches a value that no
+longer fits. With provider `none`, every entry goes into one human-only bucket that tone and
+glossary do not affect.
 
 ## Fuzzy reuse
 
 <AvailableFrom version="0.11.0" />
 
-Everything above is an exact match: the source text hashes to the value it hashed to before. Edit one character and that hash changes, so the string is a miss and goes back to the provider. Fuzzy reuse is an opt-in fallback for exactly that case, and it is off unless you ask for it:
-
-```ts title="verbatra.config.ts"
-export default defineConfig({
-  // ...
-  fuzzyCache: { enabled: true, threshold: 0.9 },
-});
-```
-
-When a key misses, verbatra compares its current source against the source text of every entry in the same locale under the same fingerprint, and scores each one from `0` to `1`: one minus the character edit distance divided by the length of the longer of the two strings, so `1` is an exact match. The closest entry at or above `threshold` is reused; everything below it goes to the provider as an ordinary miss. `threshold` runs from `0.5` to `1` and defaults to `0.9`, which is deliberately strict: on a 70 character sentence it tolerates a handful of edited characters, and on a five character button label it tolerates none at all. Lower it only once you have looked at what it starts letting through.
+An exact hit needs the source text to hash to the same value as before, so editing one character
+makes it a miss. [`fuzzyCache`](/docs/config-file#fuzzycache) is an opt-in fallback for that case:
+when a key misses, verbatra scores its source against the other entries of the same locale and
+fingerprint, and reuses the closest one at or above `threshold`. The score is one minus the
+character edit distance divided by the length of the longer string, so `1` is identical.
 
 ### The threshold is not a safety setting
 
-Be clear about what the score can and cannot tell you. It measures characters, and meaning is not a function of character distance. Dropping the "not" from a long sentence, turning "cannot" into "can", swapping Google for Apple, or making a noun plural are all small edits that score *above* `0.9` and reverse or redirect what the sentence says. Raising the threshold does not fix this: a single letter changed at the end of an eighty-character string scores `0.987`, past any threshold you could set.
+Character distance is not meaning. Dropping a "not", turning "cannot" into "can" or swapping one
+brand name for another are small edits that score above `0.9` and reverse what the sentence says.
+The threshold decides how much provider spend you avoid, not how safe a reuse is. Safety comes from
+rules that do not depend on the number:
 
-So the threshold decides how much provider spend you avoid, not how safe the reuse is. Safety comes from five things that do not depend on the number:
-
-- **The feature is off unless you turn it on.**
-- **Every fuzzy reuse is flagged for review**, on every run, whatever it scored. The key carries the `FUZZY_CACHE_REUSE` reason on the run summary's `needsReview` list and in [Studio's Review queue](/docs/review-in-studio), labelled "Reused after source edit". If you are not going to work that queue, do not turn this on.
-- **A reuse whose numerals changed is refused outright.** If the numerals in the current source differ at all from those in the cached source, in count, value or order, the entry is not a candidate whatever it scores. This covers every Unicode numeric character, not just `0` to `9`: Arabic-Indic digits, superscripts (so `m²` cannot become `m³`), vulgar fractions (so `½` cannot become `¼`) and Roman numeral characters. A changed number is always a changed fact, and it is the one meaning-changing edit that can be recognized without knowing the language. It does not catch a number written as a word, so `four` becoming `six` is left to the review flag like any other wording change.
-- **A reuse does not settle the key.** The reused text is written to the locale file, but the lock file keeps the baseline the key already had, so the key stays *changed*. Every later run offers and flags it again, at no provider cost, until a real translation lands and locks normally. That also means [`check`](/docs/cli/check) keeps reporting the key as out of date, which is accurate: its translation was produced for text that is no longer the source. If a green `check` in CI matters more to you than the reminder, translate the key rather than leaving it on a fuzzy reuse.
-- **A source whose text did not change is never the fuzzy layer's business.** Editing only an entry's description, meaning or plural flag leaves the source text identical, so the key goes to the provider exactly as it would with `fuzzyCache` off, and the provider sees the new guidance.
+- **It is off unless you turn it on.**
+- **Every fuzzy reuse is flagged for review** with
+  [`FUZZY_CACHE_REUSE`](/docs/error-codes#fuzzy_cache_reuse), on every run, whatever it scored. If
+  nobody works the [review queue](/docs/review-in-studio), leave it off.
+- **Changed numerals refuse the reuse.** If the numerals in the two sources differ in count, value
+  or order, the entry is not a candidate. This covers every Unicode numeric character (`m²` to
+  `m³`, `½` to `¼`), but not numbers written as words.
+- **A reuse does not settle the key.** The lock keeps the key's old baseline, so it stays changed:
+  every later run offers it again at no provider cost, and [`check`](/docs/cli/check) keeps
+  reporting it, until a real translation lands.
+- **An unchanged source text never reaches the fuzzy layer.** Editing only a description or a
+  plural flag sends the key to the provider as usual.
 
 ### What a fuzzy reuse still is not
 
-A fuzzy reuse is a translation of text that is no longer the source text, so it is never presented as an exact hit:
+A fuzzy reuse is a translation of text that is no longer the source, so it is never presented as an
+exact hit:
 
-- It passes the same [integrity checks](/docs/translation-safety) as any other candidate value. A near match whose placeholders no longer fit the edited source is refused outright rather than patched up, and the key goes to the provider.
-- It is counted and printed apart from exact hits, as `fuzzy-reused`, with the key, the score, and the earlier source text behind each one. `LocaleSummary.fuzzyHits` carries the same three things for SDK and `--json` callers, and `runStatus` persists them so a tool opened after the run can still show what was reused and what it was reused from.
-- It is never written back into the cache. The reused value stays filed under the source it was actually produced for, so a later run cannot mistake it for an exact hit.
+- It passes the integrity gate like any other candidate; a near match whose placeholders no longer
+  fit is refused, and the key goes to the provider.
+- It is reported apart from exact hits, as `fuzzy-reused`, with the key, the score and the earlier
+  source text; the SDK carries the same on `LocaleSummary.fuzzyHits`.
+- It is never written back into the cache, so a later run cannot mistake it for an exact hit.
 
-Scoring stays inside one fingerprint bucket, so a changed provider, model, tone or glossary does not start matching again through the back door. It is bounded too: entries whose length alone puts the threshold out of reach are discarded without being scored, entries whose numerals differ are discarded without being scored, no more than 256 of the entries that survive that are scored for any one key, and source text longer than 2000 characters is skipped entirely. Scoring abandons a comparison as soon as it cannot reach the threshold, which keeps even the worst case at those caps (256 candidates of 2000 characters, all hovering at the threshold) to roughly 0.4 seconds of CPU for a single key on a current laptop, and to milliseconds when the candidates are merely similar in length.
-
-## The fingerprint
-
-Every cached value is scoped to the translation context it was produced in: a short fingerprint over the provider, the model, the tone, and the glossary. Change any of them and prior entries stop matching, so a new tone or an edited glossary re-translates rather than serving a stale result. The format is deliberately not part of the fingerprint; a format change is caught by the integrity check on each hit instead.
+Scoring stays inside one fingerprint and is bounded: at most 256 candidates per key, and source text
+longer than 2,000 characters is skipped. With provider `none`, a fuzzy match is never applied.
 
 ## The file
 
-`verbatra.cache.json` is a local, regenerable sidecar next to your lock file. `verbatra init` adds it to `.gitignore`, and `translate`, `watch`, `import`, `tmx import` and `pseudo` top up an existing `.gitignore` that is missing the entry, so a project scaffolded by an older version picks it up on the next run. Keep it out of version control: unlike the lock file it is a cost optimization, not a shared baseline. It never fails a run. A missing, corrupt, or oversized file degrades to an empty cache and is simply rebuilt on the next run. A file whose `version` this build does not recognize was written by a newer verbatra: it also degrades to an empty cache for the run, but is left on disk untouched rather than rebuilt, so upgrading is not destructive. The run reports a notice and otherwise proceeds normally. To rebuild it from scratch, delete the file.
+`verbatra.cache.json` is a local, regenerable file next to your lock file. Keep it out of version
+control: it is a cost optimization, not a shared baseline. `verbatra init` gitignores it, and
+`translate`, `watch`, `import`, `tmx import` and `pseudo` add the entry to an existing `.gitignore`
+that lacks it and say so on stderr.
 
-Fuzzy reuse needs the source text itself, because a hash cannot be measured for similarity, so the file records each source string beside its translations. That is what schema version 2 carries, and it makes the file roughly as large as your source strings rather than a list of hashes. A version 1 file written by an older verbatra is carried forward rather than rejected: its translations keep working as exact hits immediately, and their source text fills back in as later runs touch them.
+The cache never fails a run. A missing, corrupt or oversized file becomes an empty cache and is
+rebuilt. A file from a newer verbatra is also treated as empty for the run, but left on disk
+untouched, with a notice. To start over, delete the file. For fuzzy scoring the file stores each
+source string beside its translations, so it grows roughly to the size of your source text.
 
 ## Moving a memory between tools
 
 <AvailableFrom version="0.11.0" />
 
-The cache is not filled only by your own runs: [`verbatra tmx`](/docs/cli/tmx) reads a TMX file another translation tool produced into it, and writes it back out as a TMX file those tools can read. Imported units are stored under the same configuration fingerprint a real run writes, so a changed provider, model, tone or glossary makes them stop matching exactly as it does for everything else in the file. That qualifies the "delete it and it rebuilds" framing above: deleting is still safe for everything the project paid for and can pay for again, but an imported memory is only as recoverable as the TMX file it came from, so keep that file.
+[`verbatra tmx`](/docs/cli/tmx) imports a TMX file from another translation tool into the cache and
+exports the cache as TMX. Imported units are stored under the current fingerprint, so they stop
+matching when the provider, model, tone, glossary or `localeMap` changes, like everything else. One
+caveat to "delete it and it rebuilds": an imported memory is only as recoverable as the TMX file it
+came from, so keep that file.
 
 ## Bypassing it
 
-Pass `--no-cache` to [`translate`](/docs/cli/translate) or [`watch`](/docs/cli/watch) to skip the cache for a run: verbatra makes exactly the provider calls it would with no cache present, and leaves any existing cache file untouched. From the SDK, set `cache: false` on the `translate` or `watch` input. A dry run never reads or writes the cache regardless. `--no-cache` covers fuzzy reuse too. To keep exact reuse and turn off only the fuzzy fallback, leave `fuzzyCache` out of the config or set `enabled: false`.
+`--no-cache` on [`translate`](/docs/cli/translate) or [`watch`](/docs/cli/watch) (`cache: false` in
+the SDK) makes exactly the provider calls a run without a cache would, fuzzy reuse included, and
+leaves the file untouched. To keep exact reuse and drop only the fuzzy fallback, leave `fuzzyCache`
+out of the config. A dry run never writes the cache, and reads it only with provider `none`, so
+that plan matches a live run.
 
 ## Limitation
 
-Synthesized plural forms are not cached. When `generatePlurals` fills in a CLDR plural category the source lacks, that generated value is not recorded for reuse, so whenever a run does synthesize it the value comes from the provider, never the cache.
+Plural forms synthesized by `generatePlurals` are not cached, so they always come from the provider.
+
+## Related
+
+- [`fuzzyCache`](/docs/config-file#fuzzycache): the config key and its range.
+- [`verbatra tmx`](/docs/cli/tmx): import and export the memory as TMX.
+- [How a run works](/docs/how-it-works): where the cache lookup sits in the pipeline.
+- [Estimate cost before a run](/docs/estimating-cost): what the cache saves before you spend.

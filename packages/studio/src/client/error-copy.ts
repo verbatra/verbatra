@@ -1,22 +1,50 @@
 import type { StructuredError } from "./state.js";
 
+export const NETWORK_ERROR_COPY =
+  "Studio could not reach its server, or could not read its reply. Check that the terminal running Studio is still open, then try again.";
+
 const REACHABLE_CODE_COPY: Readonly<Record<string, string>> = {
   REQUEST_INVALID:
     "The request body was not shaped as the server expects. Reload the page and try again.",
   METHOD_UNKNOWN:
     "This action is not recognized by the running Studio server. Make sure the CLI and Studio versions match.",
+  SPEND_DISABLED:
+    "This action belongs to the spend set, which is off in this session: start Studio with --allow-spend, or configure a provider other than none.",
   PARAMS_INVALID: "The request parameters failed validation. Reload the page and try again.",
   METHOD_RATE_LIMITED:
     "Studio is limiting how often this action can run. Wait a moment and try again.",
+  BATCH_TOO_LARGE:
+    "This batch has more entries than Studio allows in one rate-limit window. Select fewer entries and try again.",
+  BATCH_INTERRUPTED:
+    "The batch stopped before this entry because of an unexpected error. Check the terminal running Studio, then try again.",
   INTERNAL: "An unexpected server error occurred. Check the terminal running Studio for details.",
   SESSION_EXPIRED: "The session has expired. Reload the page to start a new one.",
+  NETWORK_ERROR: NETWORK_ERROR_COPY,
   UNKNOWN_FORMAT:
     "No adapter is registered for this project's configured format. Check the format field in the verbatra config.",
   SOURCE_UNREADABLE: "The source locale file could not be found on disk.",
   SOURCE_INVALID: "The source locale file could not be read or parsed for the configured format.",
   LOCK_FILE_INVALID: "The lock file is missing, corrupt, or at an unsupported version.",
+  PROVENANCE_FILE_INVALID:
+    "verbatra.provenance.json is corrupt, oversized, or not shaped as verbatra expects, so nothing was written. Restore it from version control and try again.",
+  PROVENANCE_FILE_UNWRITABLE:
+    "The decision was not saved: verbatra.provenance.json was written by a newer verbatra, or saving the decision would make it too large. Nothing was changed.",
+  REVIEW_VALUE_CHANGED:
+    "This translation changed since the queue was loaded, so nothing was saved. Look at the current value and decide again.",
+  REVIEW_SOURCE_CHANGED:
+    "The source text changed since this translation was written, so it cannot be approved as it stands. Edit it to confirm it against the new source.",
+  REVIEW_RESTORE_FAILED:
+    "The rejection failed partway and the files could not be put back. Restore the locale file and verbatra.provenance.json from version control.",
+  REVIEW_REJECT_UNSUPPORTED:
+    "This project's file format cannot drop a single translation, so the file was left as it was. Edit the translation instead.",
   UNKNOWN_LOCALE: "The requested locale is not among this project's configured target locales.",
   UNKNOWN_KEY: "The requested key was not found in the source resource. It may have been removed.",
+  KEY_PROTECTED:
+    "A person wrote, imported, or changed this value outside verbatra, so it is not retranslated without an explicit override.",
+  KEY_PINNED:
+    "This key matches the config's pinnedKeys, so no machine translation or agent edit may change it.",
+  SENSITIVE_CONTENT_WITHHELD:
+    "This key holds content that looks sensitive, so it was not sent to the provider. Remove it, or allow it in the config's sensitiveData block.",
   LOCK_CONTENDED:
     "This locale's write lock is held by another process. Wait a moment and try again.",
   GLOSSARY_NOT_FILE_BACKED:
@@ -54,6 +82,15 @@ export function copyForErrorCode(code: string): string | undefined {
   return Object.hasOwn(ERROR_CODE_COPY, code) ? ERROR_CODE_COPY[code] : undefined;
 }
 
+const RATE_LIMITED_LEAD = "Studio is limiting how often this action can run.";
+
+function retryIn(seconds: number): string {
+  return `Try again in ${seconds} ${seconds === 1 ? "second" : "seconds"}.`;
+}
+
 export function resolveErrorCopy(error: StructuredError): string {
+  if (error.code === "METHOD_RATE_LIMITED" && error.retryAfterSeconds !== undefined) {
+    return `${RATE_LIMITED_LEAD} ${retryIn(error.retryAfterSeconds)}`;
+  }
   return copyForErrorCode(error.code) ?? error.message;
 }

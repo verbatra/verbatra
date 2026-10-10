@@ -1,19 +1,26 @@
 {
-  "title": "Referencia de la CLI",
+  "title": "CLI",
   "pages": [
     "index",
+    "output",
+    "---Configurar---",
     "init",
+    "doctor",
+    "---Traducir---",
     "extract",
     "translate",
     "watch",
+    "---Comprobar---",
     "check",
     "diff",
-    "doctor",
+    "report",
     "pseudo",
     "types",
+    "---Entregar---",
     "export",
     "import",
     "tmx",
+    "---Servidores---",
     "studio",
     "mcp"
   ]
