@@ -24,6 +24,7 @@ import { CodeFrame } from "./code-frame";
 import { Evidence } from "./evidence";
 import { SampleLine } from "./format-pane";
 import { PlaceholderText } from "./placeholder-chip";
+import { ScrollBlock } from "./scroll-block";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
 
@@ -38,7 +39,7 @@ const PANEL_FRAME = "min-w-0 overflow-hidden rounded-xl border border-fd-border 
 const PANEL_CAPTION =
   "flex min-h-10 items-center border-b border-fd-border px-4 py-1.5 font-mono text-xs text-(--text-muted)";
 
-const MONO_BODY = "vk-scroll-fade vk-mono-sm py-3 font-mono leading-6";
+const MONO_BODY = "vk-mono-sm py-3 font-mono leading-6";
 
 const captionId = (artifact: string) => `bento-${artifact}-caption`;
 
@@ -49,12 +50,10 @@ function IntegrityRun(): ReactNode {
       <figcaption id={captionId("integrity")} className={PANEL_CAPTION}>
         {HERO_TERMINAL_TITLE}
       </figcaption>
-      <section
+      <ScrollBlock
         lang="en"
         data-artifact="integrity"
-        // biome-ignore lint/a11y/noNoninteractiveTabindex: the block scrolls sideways, so the keyboard needs a stop to scroll it
-        tabIndex={0}
-        aria-labelledby={captionId("integrity")}
+        labelledBy={captionId("integrity")}
         className={MONO_BODY}
       >
         <div className="px-4 whitespace-pre text-(--text-strong)">
@@ -68,7 +67,7 @@ function IntegrityRun(): ReactNode {
             <PlaceholderText text={line} />
           </div>
         ))}
-      </section>
+      </ScrollBlock>
     </figure>
   );
 }
@@ -91,13 +90,7 @@ function ProviderSwitch(): ReactNode {
       <figcaption id={captionId("providers")} className={PANEL_CAPTION}>
         verbatra.config.ts
       </figcaption>
-      <section
-        lang="en"
-        // biome-ignore lint/a11y/noNoninteractiveTabindex: the block scrolls sideways, so the keyboard needs a stop to scroll it
-        tabIndex={0}
-        aria-labelledby={captionId("providers")}
-        className={MONO_BODY}
-      >
+      <ScrollBlock lang="en" labelledBy={captionId("providers")} className={MONO_BODY}>
         {BENTO_PROVIDER_DIFF.map((line) => (
           <div
             key={`${line.sign}${line.text}`}
@@ -113,7 +106,7 @@ function ProviderSwitch(): ReactNode {
             {line.text}
           </div>
         ))}
-      </section>
+      </ScrollBlock>
     </figure>
   );
 }
@@ -138,16 +131,11 @@ function FormatKeyLines(): ReactNode {
             </span>
             <span className="min-w-0 truncate font-mono text-(--text-faint)">{entry.file}</span>
           </span>
-          <section
-            // biome-ignore lint/a11y/noNoninteractiveTabindex: the block scrolls sideways, so the keyboard needs a stop to scroll it
-            tabIndex={0}
-            aria-labelledby={captionId(`format-${entry.format}`)}
-            className="vk-scroll-fade"
-          >
+          <ScrollBlock labelledBy={captionId(`format-${entry.format}`)}>
             <code className="vk-mono-sm block whitespace-pre font-mono text-(--text-body)">
               <SampleLine line={entry.line} placeholder={entry.placeholder} />
             </code>
-          </section>
+          </ScrollBlock>
         </li>
       ))}
     </ul>

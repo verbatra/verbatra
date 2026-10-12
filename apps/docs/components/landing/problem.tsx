@@ -8,6 +8,7 @@ import {
   type ProblemFile,
 } from "@/lib/landing-problem";
 import { PlaceholderText } from "./placeholder-chip";
+import { ScrollBlock } from "./scroll-block";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
 
@@ -27,11 +28,9 @@ function FilePane({ file, missingLabel }: { file: ProblemFile; missingLabel: str
       >
         {file.path}
       </figcaption>
-      <section
-        // biome-ignore lint/a11y/noNoninteractiveTabindex: the block scrolls sideways, so the keyboard needs a stop to scroll it
-        tabIndex={0}
-        aria-labelledby={fileCaptionId(file)}
-        className="vk-scroll-fade vk-mono-sm py-3 font-mono leading-6 text-(--text-body)"
+      <ScrollBlock
+        labelledBy={fileCaptionId(file)}
+        className="vk-mono-sm py-3 font-mono leading-6 text-(--text-body)"
       >
         {file.lines.map((line, index) =>
           line.missing ? (
@@ -49,7 +48,7 @@ function FilePane({ file, missingLabel }: { file: ProblemFile; missingLabel: str
             </div>
           ),
         )}
-      </section>
+      </ScrollBlock>
     </figure>
   );
 }
@@ -59,13 +58,11 @@ const CHECK_COMMAND_ID = "problem-check-command";
 function CheckOutput(): ReactNode {
   const [command, ...output] = PROBLEM_CHECK_LINES;
   return (
-    <section
+    <ScrollBlock
       lang="en"
       data-check-output
-      // biome-ignore lint/a11y/noNoninteractiveTabindex: the block scrolls sideways, so the keyboard needs a stop to scroll it
-      tabIndex={0}
-      aria-labelledby={CHECK_COMMAND_ID}
-      className="vk-scroll-fade vk-mono-sm border-t border-fd-border px-4 py-3 font-mono leading-6"
+      labelledBy={CHECK_COMMAND_ID}
+      className="vk-mono-sm border-t border-fd-border px-4 py-3 font-mono leading-6"
     >
       <div id={CHECK_COMMAND_ID} className="whitespace-pre text-(--text-strong)">
         <span aria-hidden="true" className="text-(--accent)">
@@ -78,7 +75,7 @@ function CheckOutput(): ReactNode {
           {line}
         </div>
       ))}
-    </section>
+    </ScrollBlock>
   );
 }
 

@@ -33,11 +33,13 @@ function tile(key: string): HTMLElement {
 }
 
 describe("Bento", () => {
-  it("lets the keyboard reach and scroll every sideways-scrolling block, each named and end-faded", () => {
+  it("lets the keyboard reach and scroll every sideways-scrolling block, each a named group, never a landmark, and end-faded", () => {
     const blocks = [...root.querySelectorAll<HTMLElement>(".vk-scroll-fade")];
     expect(blocks.length).toBeGreaterThan(0);
+    expect(root.querySelectorAll("section").length).toBeLessThanOrEqual(1);
     for (const block of blocks) {
-      expect(block.tagName).toBe("SECTION");
+      expect(block.tagName).toBe("DIV");
+      expect(block.getAttribute("role")).toBe("group");
       expect(block.getAttribute("tabindex")).toBe("0");
       const name = root.querySelector(`#${block.getAttribute("aria-labelledby")}`)?.textContent;
       expect(name?.trim()).not.toBe("");
