@@ -36,8 +36,11 @@ dashboard in `packages/studio` (different app, different stack), or anything out
 ## The stack, and why it constrains you
 
 - `fumadocs-ui` and `fumadocs-core` 16.16.2, `next` 16.3.8, `tailwindcss` 4.3.3, `next-intl` 4.14.9.
-  There is no animation library in the client bundle (Fumadocs depends on `motion` but imports it
-  only in its flux layout, which this site does not use): landing motion is CSS keyframes and
+  `motion` (14.0.0, the version Fumadocs already depends on) is a direct dependency for client
+  islands only: import from `motion/react`, render `m.*` elements (never `motion.*`) inside
+  `MotionProvider` (`components/motion-provider.tsx`: `LazyMotion` with `domAnimation` and
+  `strict`, plus `MotionConfig reducedMotion="user"`), animate `opacity` and `transform` only, and
+  keep layout shift at 0. Server sections, reveals and the marquee stay CSS keyframes and
   transitions in `app/global.css`, each with a `prefers-reduced-motion` opt-out.
 - Tailwind 4 uses CSS-first configuration. There is no `tailwind.config.js`. Tokens are
   CSS custom properties in `app/global.css`, not a JS config object.
@@ -47,31 +50,60 @@ dashboard in `packages/studio` (different app, different stack), or anything out
   @import "tailwindcss";
   @import "fumadocs-ui/css/purple.css";
   @import "fumadocs-ui/css/preset.css";
+  @import "tw-animate-css";
   ```
+
+  `tw-animate-css` supplies the enter and exit utilities the shadcn primitives use
+  (`animate-in`, `fade-in-0`, `animate-accordion-down`); a `prefers-reduced-motion: reduce` rule
+  on `[data-slot][data-state]` turns them off.
 
 - `@source "../node_modules/fumadocs-ui/dist/**/*.js";` makes Tailwind scan the
   Fumadocs bundle. Removing it silently drops classes Fumadocs emits at runtime.
-- The site is dark-only: `:root { color-scheme: dark; }`. There is no light theme and
-  no `.dark` toggle. Do not add `dark:` variants or a theme switcher without deciding
-  that question first.
+- Two themes, dark by default. `:root` holds the dark values (`color-scheme: dark`), and
+  `html.light` (declared after the semantic `:root` block, so the first match of a token in the
+  file stays the dark value that `lib/og-image.test.tsx` and `components/landing-hero.test.tsx`
+  read) overrides every theme-dependent token: the brand primitives, the `--color-fd-*` layer,
+  `--text-faint` and the two shadows. The semantic layer is derived from those, so it follows on
+  its own. Fumadocs' `RootProvider` runs `next-themes` with `THEME_PROVIDER_OPTIONS`
+  (`lib/theme.ts`: `attribute: "class"` from Fumadocs, `defaultTheme: "dark"`,
+  `enableSystem: false`, `hotKey: false` so no single-key shortcut toggles it,
+  `disableTransitionOnChange`); its inline script sets `dark` or `light` on `<html>` before the
+  first paint, and `scripts/write-csp-hashes.mjs` hashes it like every other inline script, so it
+  passes the enforced CSP. `<html>` carries no hard-coded theme class. The viewport `themeColor`
+  is a pair keyed on `prefers-color-scheme` (`THEME_COLORS`). A component never branches on the
+  theme in JavaScript and needs no `dark:` variant: write against the semantic tokens and both
+  themes follow. `lib/theme.test.ts` pins the light override of every token and holds every text
+  pair at 4.5:1 and the focus ring at 3:1 in both themes.
+- The theme toggle is `ThemeToggle` (`components/theme-toggle.tsx`), passed as
+  `slots.themeSwitch` in `lib/layout.shared.tsx`: `SiteHeaderFrame` renders it after the language
+  select from 768px, the home drawer footer beside the language select, and Fumadocs renders the
+  same slot in the docs sidebar footer and phone drawer. It is one native `button` with
+  `aria-pressed` (pressed while the light theme shows), named by `docs.theme.light`, and it draws
+  both a moon and a sun icon, leaving the choice to the stylesheet (`.vk-theme-icon-light` is
+  hidden unless `html.light`), so nothing flashes before hydration; `aria-pressed` reads `false`
+  on the server and settles after hydration.
 
 ## Token layers: always use the outermost one
 
 Three layers exist. Write against the third.
 
-1. **Brand primitives.** `--v-purple: hsl(291 64% 42%)` and `--v-glow: hsl(258 47% 74%)`.
-   Two brand hues, nothing else. Do not introduce a third brand hue casually. Beside them sit a
-   few tints with one job each, never a general palette: `--v-glow-soft` (the lighter end of
-   `--gradient-headline`, and flag tokens in `Terminal`), `--v-violet` (the far end of
-   `--gradient-headline`), `--v-pink`
-   (through `--v-status-changed`), and `--v-status-new` / `--v-status-changed` /
-   `--v-status-unchanged` (the `tone` colors of `components/ui/badge.tsx`). Reach for one only in
-   the role it already has.
+1. **Brand primitives.** One brand hue, violet 258. `--v-glow` is the accent (dark
+   `hsl(258 60% 74%)`, light `hsl(258 55% 44%)`) and `--v-purple` its fill and bar shade (dark
+   `hsl(258 52% 56%)`, light `hsl(258 55% 44%)`); the old magenta purple and pink are gone. Do not
+   introduce a second brand hue. Beside them sit a few tints with one job each, never a general
+   palette: `--v-glow-soft` (flag tokens in `Terminal`, and the lighter end of
+   `--gradient-headline`), `--v-violet` (the far end of `--gradient-headline`), and
+   `--v-status-new` (the accent) / `--v-status-changed` (amber, dark `hsl(38 85% 62%)`, light
+   `hsl(30 90% 30%)`, also Fumadocs' warning callout color) / `--v-status-unchanged` (the `tone`
+   colors of `components/ui/badge.tsx`). `--v-pink` and `--gradient-headline` remain only because
+   landing files still read them: `--v-pink` is an alias of `--v-glow-soft`, so no pink renders.
+   Delete both once nothing references them. Reach for one only in the role it already has.
 2. **Fumadocs overrides.** `--color-fd-background`, `--color-fd-card`, `--color-fd-popover`,
    `--color-fd-muted`, `--color-fd-border`, `--color-fd-foreground`,
    `--color-fd-muted-foreground`, `--color-fd-primary`, `--color-fd-primary-foreground`,
    `--color-fd-accent`, `--color-fd-accent-foreground`, `--color-fd-ring`, plus the callout
-   hues `--color-fd-info`, `--color-fd-warning`, `--color-fd-error`, `--color-fd-success`.
+   hues `--color-fd-info`, `--color-fd-warning`, `--color-fd-error`, `--color-fd-success`, and in
+   the light theme `--color-fd-secondary` / `--color-fd-secondary-foreground`.
    These exist so Fumadocs' own components inherit the verbatra palette. Change one only to
    retheme Fumadocs itself.
 3. **Semantic layer.** This is the one to use in components:
@@ -93,7 +125,8 @@ Scales are fixed and narrow, deliberately:
 - Radii: `--radius-sm` 6px, `--radius-md` 10px, and `--radius-lg`, `--radius-xl`,
   `--radius-2xl` all 12px. The large sizes collapsing to one value is intentional. Do not
   reintroduce a spread. There is no larger radius: the landing hero sits on the page, in no card.
-- Shadows: `--shadow-panel` (a purple-tinted lift) and `--shadow-sm`. Two, not a ramp.
+- Shadows: `--shadow-panel` (a violet-tinted lift) and `--shadow-sm`. Two, not a ramp, each
+  lighter in the light theme.
 - Layout: `--gutter` (40px from 768px up) via `.vk-gutter`, `--width-wide` via `.vk-w-wide`.
   `--cta-height` (56px) is the minimum height of `.vk-prompt-trigger` on `PromptCopyButton`;
   `--width-prompt-pop` (30rem, capped by `100cqw` of its container, never by `100vw`, which counts
@@ -145,16 +178,16 @@ Scales are fixed and narrow, deliberately:
 
 ## Typography
 
-Three families, loaded in `app/[lang]/layout.tsx` through `next/font/google`:
+Two families, loaded in `app/[lang]/layout.tsx` through `next/font/google` (latin subset):
 
 | Role | Family | Variable | Mapped to |
 |---|---|---|---|
-| Body | Inter | `--font-inter` | `--font-sans` |
-| Code | JetBrains Mono | `--font-jetbrains-mono` | `--font-mono` |
-| Display | Space Grotesk | `--font-space-grotesk` | `--font-display` |
+| Body and display | Geist | `--font-geist-sans` | `--font-sans`, `--font-display` |
+| Code | Geist Mono | `--font-geist-mono` | `--font-mono` |
 
-`h1` through `h6` are globally bound to `--font-display`. You do not set a heading font
-per component. Adding a fourth family needs a reason that survives review.
+`h1` through `h6` are globally bound to `--font-display`, which is Geist like the body; headings
+differ by weight, size and tracking, not by family. You do not set a heading font per component.
+Adding a third family needs a reason that survives review.
 
 The type scale is a major third (1.25) held in `app/global.css`: `--text-display`, `--text-h2`
 (capped at 3rem, read only by `.vk-h2`), `--text-h3`, `--text-h4`, `--text-lead`, with `--leading-*`
@@ -166,8 +199,8 @@ classes (declared in `@layer components`, so a Tailwind utility still overrides 
 rather than inline `fontSize` / `letterSpacing` styles. The docs page title, description and prose
 `h2` to `h4` sit on the same scale through the `#nd-page` rules.
 
-Headlines are solid `--text-strong` on both surfaces. `--gradient-headline` exists for the
-footer's oversized watermark only; do not clip it onto a heading.
+Headlines are solid `--text-strong` on both surfaces. `--gradient-headline` (violet only) exists
+for the footer's oversized watermark only; do not clip it onto a heading or use it anywhere new.
 
 ## Reuse before you build
 
@@ -185,6 +218,20 @@ footer's oversized watermark only; do not clip it onto a heading.
   that the hero command panel uses, never a hand-made copy.
   `Button` takes `variant: "primary" | "secondary" | "ghost"` and `size: "sm" | "md" | "lg"`.
   Extend the variant union rather than passing ad hoc `className` overrides.
+- **shadcn/ui primitives:** `components.json` (style `new-york`, Tailwind 4 with an empty
+  `tailwind.config`, `cssVariables`) points the `ui` alias at `@/components/ui/shadcn`, so the
+  CLI never overwrites the hand-written `components/ui/button.tsx` and `tabs.tsx`. That folder
+  holds `accordion`, `tabs`, `sheet`, `button` and `tooltip`, taken from the new-york-v4 registry
+  with two changes: each imports its own `@radix-ui/react-*` package (the versions Fumadocs
+  already resolves, plus `@radix-ui/react-tooltip`) instead of the `radix-ui` meta package, and
+  `SheetContent` takes a `closeLabel` (a translated string; no close button without it) instead of
+  the hard-coded English "Close". `cn` is `lib/utils.ts`. The shadcn color names are mapped in one
+  `@theme inline` block in `app/global.css` straight onto the semantic layer (`background` to
+  `--surface-bg`, `primary` to `--accent-fill`, `accent` to `--surface-hover`, `ring` to
+  `--focus-ring`, and so on); there is no second palette and no shadcn `--radius` scale, so
+  `rounded-md` and friends keep the site radii. The shadcn `--accent` variable is never declared:
+  `--accent` stays the site's violet text accent, and `bg-accent` reads `--color-accent`. Use the
+  shadcn `Button` only inside a shadcn composition; the site button stays `components/ui/button.tsx`.
 - **Landing:** `components/landing/` holds the landing sections (`proof.tsx`, `formats.tsx`,
   `control.tsx`, `marquee.tsx`, `loop.tsx`, `faq.tsx`, `final-cta.tsx`, `footer.tsx`, and
   `landing-nav.tsx`, the section nav under "Landing motion"). Their order on the page is
@@ -434,7 +481,7 @@ footer's oversized watermark only; do not clip it onto a heading.
 
 The landing moves in one deliberate way: content rises into place once as the visitor reaches
 it, and the How steps follow the terminal that demonstrates them. There is no pinning, no
-parallax, no scroll-scrubbing, no scroll listener and no animation library.
+parallax, no scroll-scrubbing and no scroll listener; `motion` is reserved for client islands (see "The stack").
 
 - **Reveals.** An element marked `data-reveal="<n>"` (`n` from 0 to 5) is hidden (opacity 0,
   `translate: 0 var(--reveal-distance)`) only while two things hold:
@@ -545,10 +592,12 @@ parallax, no scroll-scrubbing, no scroll listener and no animation library.
 
 Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
 
-- No animation library. Landing motion is CSS keyframes and transitions in `app/global.css`,
-  each with a `prefers-reduced-motion` opt-out; the only motion script is `MotionRoot`, which
-  toggles attributes from two `IntersectionObserver`s and stays under 1 KB gzipped (about 980
-  bytes with the section nav, minified with `esbuild` and `gzip -9`).
+- `motion` only in client islands, through `MotionProvider` (`LazyMotion` + `domAnimation`,
+  `strict`, so a stray `motion.*` element throws instead of pulling the full feature set). Section
+  reveals stay CSS keyframes and transitions in `app/global.css`, each with a
+  `prefers-reduced-motion` opt-out; `MotionRoot` toggles attributes from two
+  `IntersectionObserver`s and stays under 1 KB gzipped (about 980 bytes with the section nav,
+  minified with `esbuild` and `gzip -9`).
 - `NextIntlClientProvider` receives only `CLIENT_MESSAGE_NAMESPACES` (`lib/client-messages.ts`),
   not the whole catalog. A new `useTranslations` namespace in a `"use client"` file must be added
   there; `lib/client-messages.test.ts` fails until it is.
@@ -556,7 +605,7 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
   chips) is drawn once as an SVG `<symbol>`
   and referenced with `<use>`, since every copy is serialized twice: in the HTML and in the RSC
   payload.
-- Keep all three `next/font` families preloaded. Every one of them sets text in the first
+- Keep both `next/font` families preloaded. Every one of them sets text in the first
   viewport, so it is fetched before the first paint either way; without the preload it is only
   discovered after the stylesheet, at a higher priority that delays the first contentful paint.
 - Content only needed after an interaction is loaded with a dynamic `import()` on hover, focus,
@@ -634,14 +683,13 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   content hash of the English headline. Its `figcaption` carries `landing.hero.ledger.caption` and
   the dogfooding claim linking this site's message files. The home social image (`HomeOgFrame` in
   `lib/og-image.tsx`) repeats this look with `OG_PALETTE`, which mirrors these tokens, and the
-  subset Space Grotesk and JetBrains Mono files in `assets/og-fonts/` (`lib/og-fonts.ts`), stripped
+  subset Geist and Geist Mono files in `assets/og-fonts/` (`lib/og-fonts.ts`), stripped
   of their kerning tables, since satori turns kerning into doubled word gaps; its headline wraps
   with `textWrap: "balance"`, and `lib/og-image.test.tsx` fails when a font lacks a glyph the image
-  draws. Provenance: Space Grotesk 2.000 (`SpaceGrotesk-Medium.ttf`, `SpaceGrotesk-Bold.ttf` from
-  `https://github.com/floriankarsten/space-grotesk/tree/master/fonts/ttf/static`) and JetBrains Mono
-  2.305 (`JetBrainsMono-Regular.ttf` from
-  `https://github.com/JetBrains/JetBrainsMono/tree/master/fonts/ttf`), both OFL 1.1 with the licence
-  beside them, each subset with fontTools:
+  draws. Provenance: Geist 1.800 (`Geist-Medium.ttf`, `Geist-Bold.ttf`) and Geist Mono 1.700
+  (`GeistMono-Regular.ttf`), from `dist/fonts/geist-sans` and `dist/fonts/geist-mono` of the
+  `geist` npm package 1.7.2, OFL 1.1 with the licence beside them (`OFL-Geist.txt`), each subset
+  with fontTools:
   `pyftsubset <upstream>.ttf --unicodes="U+0020-007E,U+00A0-017F,U+2018-201E,U+2026"
   --layout-features="" --no-hinting --drop-tables+=GPOS,GSUB,kern,DSIG --output-file=<name>.ttf`.
   The image keeps its own composition and its own labels: the headline, two other locales
@@ -690,11 +738,13 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   backing, and a one-line fence ends its scroll area before the button, so a long command never
   runs under it. A `// [!code highlight]` line gets the landing's
   highlight treatment: 22 percent `--v-purple` tint plus a 3px `--v-purple` bar on the start
-  edge. `DocsHomeFeatures` cards carry the same 3px `--v-purple` start bar.
+  edge. `DocsHomeFeatures` cards carry the same 3px `--v-purple` start bar. Code blocks use
+  Fumadocs' dual Shiki themes, which follow the `dark` / `light` class; the raised comment color
+  (`#8b949e`) applies only under `.dark`.
 - **Callouts**: one 3px bar plus the icon, both in `--callout-color`, which Fumadocs derives
   from `--color-fd-<type>`. The override block in `global.css` pins `--color-fd-info` and
-  `--color-fd-success` to the glow and `--color-fd-warning` to the purple, so an info and a
-  warn callout stay distinguishable without a third hue. Vertical padding is one step under
+  `--color-fd-success` to the glow and `--color-fd-warning` to `--v-status-changed` (amber), so
+  an info and a warn callout stay distinguishable now that the brand has one hue. Vertical padding is one step under
   Fumadocs' default, and a callout is capped at the prose measure like the text around it.
 - **Locale notice**: every translated page opens with the machine-translated info callout. When
   the English page was committed after its translation, the same callout turns into a warn
