@@ -1,14 +1,7 @@
-import {
-  Activity,
-  type ComponentType,
-  isValidElement,
-  type ReactNode,
-  use,
-  useEffect,
-  useState,
-} from "react";
+import { Activity, type ComponentType, type ReactNode, use, useEffect, useState } from "react";
 import { afterFirstContentfulPaint } from "@/lib/first-paint";
 import { RETRY_DELAYS_MS, retrying } from "@/lib/retry";
+import { sameValue } from "@/lib/same-value";
 import { useHydrated } from "@/lib/use-hydrated";
 
 export type Island<P extends object> = ((props: P) => ReactNode) & {
@@ -65,38 +58,6 @@ function gaveUp(promise: Settled<unknown> | undefined): boolean {
 
 function rendersOnServer(): boolean {
   return typeof window === "undefined";
-}
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  if (typeof value !== "object" || value === null) return false;
-  const prototype = Object.getPrototypeOf(value);
-  return prototype === Object.prototype || prototype === null;
-}
-
-function sameEntries(next: Record<string, unknown>, previous: Record<string, unknown>): boolean {
-  const keys = Object.keys(next);
-  return (
-    keys.length === Object.keys(previous).length &&
-    keys.every((key) => Object.hasOwn(previous, key) && sameValue(next[key], previous[key]))
-  );
-}
-
-function sameValue(next: unknown, previous: unknown): boolean {
-  if (Object.is(next, previous)) return true;
-  if (isValidElement(next) && isValidElement(previous)) {
-    return (
-      next.type === previous.type &&
-      next.key === previous.key &&
-      sameValue(next.props, previous.props)
-    );
-  }
-  if (Array.isArray(next) && Array.isArray(previous)) {
-    return (
-      next.length === previous.length &&
-      next.every((item, index) => sameValue(item, previous[index]))
-    );
-  }
-  return isPlainObject(next) && isPlainObject(previous) && sameEntries(next, previous);
 }
 
 const ISLAND_TIMEOUT_MS = 8000;
