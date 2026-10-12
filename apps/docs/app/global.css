@@ -100,6 +100,12 @@ h6 {
 }
 
 @layer base {
+  *,
+  ::before,
+  ::after {
+    outline-color: var(--focus-ring);
+  }
+
   :where(h1, h2, h3, h4, h5, h6, .vk-display, .vk-h2, .vk-h3, .vk-h4) {
     hyphens: manual;
     overflow-wrap: anywhere;
@@ -463,12 +469,6 @@ html.light {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
   --tw-ring-shadow: 0 0 #0000;
-}
-
-body :focus-visible {
-  transition-property:
-    color, background-color, border-color, text-decoration-color, fill, stroke, opacity, transform,
-    translate, scale, rotate;
 }
 
 .vk-theme-icon-light,

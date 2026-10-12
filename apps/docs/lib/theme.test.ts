@@ -156,15 +156,19 @@ describe("theme tokens", () => {
     );
   });
 
-  it("draws every focus ring, in the header, the phone menu and the page body, in --focus-ring at once, never fading it in from the text color", () => {
+  it("draws every focus ring in --focus-ring at once, never fading it in, and leaves every other transition alone", () => {
     expect(rulesFor(rules, ":focus-visible")[0]?.declarations.outline).toBe(
       "2px solid var(--focus-ring)",
     );
-    for (const selector of ["body :focus-visible"]) {
-      const transition = rulesFor(rules, selector)[0]?.declarations["transition-property"] ?? "";
-      expect(transition).not.toBe("");
-      expect(transition).not.toMatch(/outline|all/);
-    }
+    const resting = rulesFor(rules, "*").filter((rule) => rule.declarations["outline-color"]);
+    expect(
+      resting.map((rule) => [rule.media, rule.selector, rule.declarations["outline-color"]]),
+    ).toEqual([["@layer base", "*, ::before, ::after", "var(--focus-ring)"]]);
+    const focusTransitions = rules.filter(
+      (rule) =>
+        rule.selector.includes(":focus-visible") && rule.declarations["transition-property"],
+    );
+    expect(focusTransitions).toEqual([]);
   });
 
   it("keeps both shadows neutral in both themes, leaving the hero glow the only violet haze", () => {
