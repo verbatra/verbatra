@@ -60,7 +60,7 @@ function applies(rule: StyleRule, element: Element, reduced: boolean): boolean {
     return false;
   if (/@media (?!\(prefers-reduced-motion)/.test(rule.media)) return false;
   try {
-    return rule.selector.split(/,\s*/).some((selector) => element.matches(selector));
+    return element.matches(rule.selector);
   } catch {
     return false;
   }
