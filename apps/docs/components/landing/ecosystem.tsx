@@ -3,6 +3,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { TrackedLink } from "@/components/ui/tracked-link";
 import { localizedPath, toLocale } from "@/lib/i18n";
 import { HUMAN_ONLY_PROVIDER, providerGroups } from "@/lib/landing-providers";
+import { FORMAT_PANE_ROWS_STYLE } from "./format-pane";
 import { FormatsDemo } from "./formats";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
@@ -93,7 +94,7 @@ export async function Ecosystem(): Promise<ReactNode> {
           <h3 id="ecosystem-formats" className={SUBHEAD_CLASS}>
             {t("ecosystem.formatsLabel")}
           </h3>
-          <div className="vk-formats mt-0">
+          <div className="vk-formats mt-0" style={FORMAT_PANE_ROWS_STYLE}>
             <FormatsDemo
               labels={{
                 frameworks: t("ecosystem.frameworksLabel"),

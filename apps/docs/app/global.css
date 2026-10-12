@@ -177,7 +177,6 @@ samp {
   --showcase-scroll-reserve: 0.75rem;
   --print-stagger: 90ms;
   --format-line: 1.25rem;
-  --format-pane-rows: 16;
 
   --cta-height: 3.5rem;
 
@@ -1588,6 +1587,10 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   visibility: hidden;
 }
 
+.vk-formats-sizer .vk-formats-code {
+  overflow-x: scroll;
+}
+
 .vk-formats-panes > [data-active="false"] {
   visibility: hidden;
 }
@@ -1621,6 +1624,7 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 
 .vk-formats-file-name {
   padding: 0.625rem 1rem;
+  overflow-wrap: anywhere;
   border-bottom: 1px solid var(--border-default);
   font-family: var(--font-mono);
   font-size: var(--text-mono-sm);

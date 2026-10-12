@@ -301,10 +301,14 @@ license, in that order, after the figures it shows), `problem.tsx` (`#problem`, 
   or chip (one shared request through `retrying` in `lib/retry.ts`; until it lands the chosen pane
   shows its file caption from `FormatPaneFrame` (`format-pane-frame.tsx`), busy, and a failed load
   keeps the caption and asks again on the next intent), and every pane is stacked in one grid cell with `.vk-formats-sizer`, an `aria-hidden`,
-  `inert`, `visibility: hidden` copy of the pane that shows the most rows (`tallestFormat()`), so
+  `inert`, `visibility: hidden` stand-in built from the pane that shows the most rows
+  (`tallestFormat()`) under the longest file caption (`longestCaptionFormat()`; captions wrap
+  anywhere, so a longer one never takes fewer lines), with its sideways scrollbar always on, so
   the box is always the tallest pane and a switch moves nothing; a closed pane is `inert` and
   `visibility: hidden`, and `.vk-formats-code` caps a long output at
-  `--format-pane-rows` (16) lines of `--format-line` and scrolls inside it: it is a `section` named
+  `--format-pane-rows` lines of `--format-line` and scrolls inside it (the row count is
+  `FORMAT_PANE_ROWS` in `format-pane.tsx`, set inline on `.vk-formats` through
+  `FORMAT_PANE_ROWS_STYLE`, never declared in the stylesheet): it is a `section` named
   by the pane's file caption with `tabIndex={0}`, so the keyboard reaches and scrolls the open pane,
   with the `--focus-ring` outline inset. Chips and tabs scroll sideways inside `.vk-edge-fade`
   under 64rem and wrap from it, each at least 44px tall. The panes come from

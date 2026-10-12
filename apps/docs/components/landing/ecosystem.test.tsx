@@ -81,6 +81,9 @@ describe("Ecosystem", () => {
     expect(tabs).toEqual(SUPPORTED_FORMAT_IDS.map((id) => FORMAT_DISPLAY[id].label));
     expect(root.querySelectorAll("[role='tabpanel'] .vk-formats-file")).toHaveLength(1);
     expect(root.querySelectorAll(".vk-formats-sizer .vk-formats-file")).toHaveLength(1);
+    expect(
+      root.querySelector<HTMLElement>(".vk-formats")?.style.getPropertyValue("--format-pane-rows"),
+    ).toBe("16");
   });
 
   it("links the providers, formats and custom adapter pages", () => {

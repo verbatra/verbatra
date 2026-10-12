@@ -1,11 +1,13 @@
 import type { SupportedFormat } from "@verbatra/sdk";
-import { Fragment, type ReactNode } from "react";
+import { type CSSProperties, Fragment, type ReactNode } from "react";
 import { FORMAT_SAMPLES, sampleLines, splitOnPlaceholder } from "@/lib/format-samples";
 import { SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { FormatPaneFrame } from "./format-pane-frame";
 import { PlaceholderChip } from "./placeholder-chip";
 
 export const FORMAT_PANE_ROWS = 16;
+
+export const FORMAT_PANE_ROWS_STYLE = { "--format-pane-rows": FORMAT_PANE_ROWS } as CSSProperties;
 
 export function SampleLine({
   line,
@@ -53,19 +55,28 @@ function widestLine(id: SupportedFormat): number {
   return Math.max(...sampleLines(FORMAT_SAMPLES[id]).map((line) => line.length));
 }
 
+function byRowsThenWidth(a: SupportedFormat, b: SupportedFormat): number {
+  return shownRows(a) - shownRows(b) || widestLine(a) - widestLine(b);
+}
+
 export function tallestFormat(): SupportedFormat {
-  return [...SUPPORTED_FORMAT_IDS].sort(
-    (a, b) => shownRows(b) - shownRows(a) || widestLine(b) - widestLine(a),
-  )[0] as SupportedFormat;
+  return SUPPORTED_FORMAT_IDS.reduce((best, id) => (byRowsThenWidth(id, best) > 0 ? id : best));
+}
+
+export function longestCaptionFormat(): SupportedFormat {
+  return SUPPORTED_FORMAT_IDS.reduce((best, id) =>
+    FORMAT_SAMPLES[id].file.length > FORMAT_SAMPLES[best].file.length ? id : best,
+  );
 }
 
 export function FormatPaneSizer(): ReactNode {
-  const id = tallestFormat();
   return (
     <figure className="vk-formats-file">
-      <figcaption className="vk-formats-file-name">{FORMAT_SAMPLES[id].file}</figcaption>
+      <figcaption className="vk-formats-file-name">
+        {FORMAT_SAMPLES[longestCaptionFormat()].file}
+      </figcaption>
       <div className="vk-formats-code vk-terminal-scroll">
-        <SampleCode id={id} />
+        <SampleCode id={tallestFormat()} />
       </div>
     </figure>
   );

@@ -14,7 +14,8 @@ vi.mock("@/lib/umami", () => ({ trackUmamiEvent }));
 
 const { FormatsDemo } = await import("./formats");
 const { loadFormatPanes } = await import("./format-switch");
-const { tallestFormat } = await import("./format-pane");
+const { FORMAT_PANE_ROWS, FORMAT_PANE_ROWS_STYLE, longestCaptionFormat, tallestFormat } =
+  await import("./format-pane");
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -110,7 +111,10 @@ describe("FormatsDemo", () => {
     expect(sizer?.getAttribute("aria-hidden")).toBe("true");
     expect(sizer?.hasAttribute("inert")).toBe(true);
     expect(sizer?.querySelector("figcaption")?.textContent).toBe(
-      FORMAT_SAMPLES[tallestFormat()].file,
+      FORMAT_SAMPLES[longestCaptionFormat()].file,
+    );
+    expect(sizer?.querySelector("pre")?.textContent).toBe(
+      FORMAT_SAMPLES[tallestFormat()].text.replace(/\n$/, ""),
     );
     expect(sizer?.querySelector("[id], [tabindex]")).toBeNull();
     expect(FLAT_CSS).toContain(".vk-formats-sizer { visibility: hidden; }");
@@ -160,7 +164,18 @@ describe("FormatsDemo", () => {
       "max-height: calc(var(--format-pane-rows) * var(--format-line) + 1.5rem);",
     );
     expect(rule(".vk-formats-code")).toContain("overflow-y: auto;");
-    expect(GLOBAL_CSS).toContain("--format-pane-rows: 16;");
+  });
+
+  it("takes the row cap from the one constant the sizer measures with", () => {
+    expect(GLOBAL_CSS).not.toMatch(/--format-pane-rows:\s*\d/);
+    expect(FORMAT_PANE_ROWS_STYLE).toEqual({ "--format-pane-rows": FORMAT_PANE_ROWS });
+  });
+
+  it("sizes the box for the longest caption and a sideways scrollbar too, so no pane outgrows it", () => {
+    const longest = Math.max(...SUPPORTED_FORMAT_IDS.map((id) => FORMAT_SAMPLES[id].file.length));
+    expect(FORMAT_SAMPLES[longestCaptionFormat()].file).toHaveLength(longest);
+    expect(rule(".vk-formats-file-name")).toContain("overflow-wrap: anywhere;");
+    expect(rule(".vk-formats-sizer .vk-formats-code")).toContain("overflow-x: scroll;");
   });
 
   it("lets the keyboard reach and scroll the open pane, named by its file", async () => {
