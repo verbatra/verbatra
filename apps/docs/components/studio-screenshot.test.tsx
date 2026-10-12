@@ -1,10 +1,25 @@
 // @vitest-environment jsdom
 
+import { act } from "react";
+import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { docsStylesheetRules } from "@/lib/stylesheet-rules";
 
+const site = vi.hoisted(() => ({ resolvedTheme: "dark" as string | undefined }));
+
 vi.mock("next-intl", () => ({ useTranslations: () => (key: string) => key }));
+vi.mock("fumadocs-ui/provider/base", () => ({ useTheme: () => site }));
+
+(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+function mount(resolvedTheme: string): HTMLDivElement {
+  site.resolvedTheme = resolvedTheme;
+  const container = document.createElement("div");
+  document.body.append(container);
+  act(() => createRoot(container).render(<StudioScreenshot shot="review" alt="Review queue" />));
+  return container;
+}
 
 const { StudioScreenshot } = await import("./studio-screenshot");
 
@@ -35,5 +50,27 @@ describe("StudioScreenshot", () => {
     expect(frame?.["aspect-ratio"]).toBe("1.94");
     expect(frame?.overflow).toBe("hidden");
     expect(image?.width).toBe("200%");
+  });
+
+  it("server-renders the dark shot, the site default", () => {
+    site.resolvedTheme = "light";
+    expect(render(false).querySelector("img")?.getAttribute("src")).toContain("studio-review-dark");
+  });
+
+  it("follows the site theme once hydrated, until a tab picks one", () => {
+    const container = mount("light");
+    const image = () => container.querySelector("img")?.getAttribute("src") ?? "";
+    expect(decodeURIComponent(image())).toContain("studio-review-light");
+    const dark = container.querySelector<HTMLButtonElement>('[role="tab"]');
+    expect(dark?.textContent).toBe("dark");
+    act(() => dark?.click());
+    expect(decodeURIComponent(image())).toContain("studio-review-dark");
+  });
+
+  it("shows the dark shot on a dark site", () => {
+    const container = mount("dark");
+    expect(decodeURIComponent(container.querySelector("img")?.getAttribute("src") ?? "")).toContain(
+      "studio-review-dark",
+    );
   });
 });

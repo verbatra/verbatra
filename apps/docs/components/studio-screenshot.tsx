@@ -1,9 +1,11 @@
 "use client";
 
+import { useTheme } from "fumadocs-ui/provider/base";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
 import { TabList } from "@/components/ui/tabs";
+import { useHydrated } from "@/lib/use-hydrated";
 import { cn } from "@/lib/utils";
 
 const SHOTS = {
@@ -12,6 +14,8 @@ const SHOTS = {
 } as const;
 
 const THEMES = ["dark", "light"] as const;
+
+type StudioTheme = (typeof THEMES)[number];
 
 const TAB_CLASS = "rounded-md px-2.5 py-1 text-xs transition-colors";
 
@@ -41,7 +45,11 @@ export function StudioScreenshot({
   className,
 }: StudioScreenshotProps): ReactNode {
   const t = useTranslations("docs.screenshot");
-  const [theme, setTheme] = useState<(typeof THEMES)[number]>("dark");
+  const { resolvedTheme } = useTheme();
+  const hydrated = useHydrated();
+  const [chosen, setChosen] = useState<StudioTheme | null>(null);
+  const siteTheme: StudioTheme = hydrated && resolvedTheme === "light" ? "light" : "dark";
+  const theme = chosen ?? siteTheme;
   const { width, height } = SHOTS[shot];
 
   return (
@@ -60,7 +68,7 @@ export function StudioScreenshot({
           <TabList
             tabs={THEMES.map((id) => ({ id, label: t(id) }))}
             active={theme}
-            onSelect={(id) => setTheme(id as (typeof THEMES)[number])}
+            onSelect={(id) => setChosen(id as StudioTheme)}
             ariaLabel={t("tablistLabel")}
             className="flex gap-1"
             tabClassName={TAB_CLASS}

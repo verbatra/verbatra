@@ -3,8 +3,9 @@
 import { buttonVariants } from "fumadocs-ui/components/ui/button";
 import { useTheme } from "fumadocs-ui/provider/base";
 import { useTranslations } from "next-intl";
-import { type ReactNode, useSyncExternalStore } from "react";
+import type { ReactNode } from "react";
 import { nextTheme } from "@/lib/theme";
+import { useHydrated } from "@/lib/use-hydrated";
 import { cn } from "@/lib/utils";
 
 const ICON_PROPS = {
@@ -17,18 +18,6 @@ const ICON_PROPS = {
   strokeLinecap: "round",
   strokeLinejoin: "round",
 } as const;
-
-function subscribeNever(): () => void {
-  return () => undefined;
-}
-
-function useHydrated(): boolean {
-  return useSyncExternalStore(
-    subscribeNever,
-    () => true,
-    () => false,
-  );
-}
 
 function SunIcon(): ReactNode {
   return (
