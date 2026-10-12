@@ -39,6 +39,23 @@ describe("FullFooter", () => {
     }
   });
 
+  it("draws no background pattern and no wordmark watermark", async () => {
+    const doc = await renderFooter();
+    const footer = doc.querySelector("footer");
+    const decorations = Array.from(footer?.querySelectorAll('[aria-hidden="true"]') ?? []).filter(
+      (node) => node.closest("a") === null && node.tagName !== "svg",
+    );
+    expect(decorations.map((node) => node.getAttribute("style") ?? "").join(" ")).not.toMatch(
+      /background-size|mask-image/,
+    );
+    const wordmarks = Array.from(footer?.querySelectorAll("span") ?? []).filter(
+      (span) => span.children.length === 0 && span.textContent?.trim() === "verbatra",
+    );
+    expect(wordmarks).toHaveLength(1);
+    const source = readFileSync(join(process.cwd(), "components/landing/footer.tsx"), "utf8");
+    expect(source).not.toContain("GRID_PATTERN");
+  });
+
   it("reads no retired or dark-only token, so it follows both themes", () => {
     const source = readFileSync(join(process.cwd(), "components/landing/footer.tsx"), "utf8");
 

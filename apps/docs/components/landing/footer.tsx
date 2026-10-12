@@ -4,7 +4,6 @@ import type { ReactNode } from "react";
 import { VMark } from "@/components/landing";
 import { NewBadge } from "@/components/new-badge";
 import { type Locale, localizedPath, toLocale } from "@/lib/i18n";
-import { GRID_PATTERN_STYLE } from "./fx/grid-pattern";
 import { GithubIcon } from "./github-icon";
 import {
   CODE_OF_CONDUCT_URL,
@@ -185,37 +184,6 @@ export async function FullFooter(): Promise<ReactNode> {
             "linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 55%, transparent) 50%, transparent)",
         }}
       />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-        style={{
-          ...GRID_PATTERN_STYLE,
-          opacity: 0.28,
-          WebkitMaskImage: "linear-gradient(to bottom, #000, transparent 55%)",
-          maskImage: "linear-gradient(to bottom, #000, transparent 55%)",
-        }}
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-0 overflow-hidden"
-      >
-        <span
-          className="block select-none text-center font-semibold"
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "clamp(4rem, 24vw, 15rem)",
-            lineHeight: 1,
-            letterSpacing: "-0.04em",
-            color: "var(--accent)",
-            opacity: 0.08,
-            WebkitMaskImage: "linear-gradient(to top, #000 8%, transparent 82%)",
-            maskImage: "linear-gradient(to top, #000 8%, transparent 82%)",
-          }}
-        >
-          verbatra
-        </span>
-      </div>
-
       <div className="vk-gutter vk-w-wide relative z-10 mx-auto py-12 md:py-16">
         <div className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-3 md:gap-x-8 md:gap-y-12 lg:grid-cols-[1.4fr_repeat(5,1fr)]">
           <div className="col-span-2 md:col-span-3 lg:col-span-1">
