@@ -9,10 +9,14 @@ import en from "@/messages/en.json";
 
 vi.mock("@/lib/umami", () => ({ trackUmamiEvent: vi.fn() }));
 
-vi.mock("motion/react", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("motion/react")>()),
-  useReducedMotion: () => true,
-}));
+const motion = vi.hoisted(() => ({ reduced: false, loads: 0, fades: [] as HTMLElement[] }));
+
+vi.mock("@/lib/reduced-motion", () => ({ prefersReducedMotion: () => motion.reduced }));
+
+vi.mock("./code-showcase-fade", () => {
+  motion.loads += 1;
+  return { fadeInPanel: (element: HTMLElement) => motion.fades.push(element) };
+});
 
 vi.mock("next-intl", async (importOriginal) => {
   const actual = await importOriginal<typeof import("next-intl")>();
@@ -21,19 +25,6 @@ vi.mock("next-intl", async (importOriginal) => {
     ...actual,
     useTranslations: (namespace: string) =>
       actual.createTranslator({ locale: "en", messages, namespace: namespace as never }),
-  };
-});
-
-const features = vi.hoisted(() => ({ loads: 0 }));
-
-vi.mock("@/components/motion-provider", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/components/motion-provider")>();
-  return {
-    ...actual,
-    loadMotionFeatures: () => {
-      features.loads += 1;
-      return actual.loadMotionFeatures();
-    },
   };
 });
 
@@ -51,28 +42,46 @@ function mount(tabs: Parameters<typeof CodeShowcaseTabs>[0]["tabs"]): HTMLDivEle
 
 async function settle(): Promise<void> {
   await act(async () => {
-    await import("@/lib/motion-features");
     await new Promise((resolve) => setTimeout(resolve, 20));
   });
 }
 
+function selectTab(container: HTMLElement, index: number): void {
+  const tab = container.querySelectorAll<HTMLButtonElement>('[role="tab"]')[index];
+  act(() => {
+    tab?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
+  });
+}
+
 describe("CodeShowcaseTabs", () => {
-  it("loads the motion features only once the visitor reaches for the tabs", async () => {
+  it("loads the fade only once the visitor reaches for the tabs", async () => {
     const container = mount([
       { id: "a", label: "A", panel: <p>first</p> },
       { id: "b", label: "B", panel: <p>second</p> },
     ]);
     await settle();
-    expect(features.loads).toBe(0);
+    expect(motion.loads).toBe(0);
     const root = container.querySelector<HTMLElement>('[data-slot="tabs"]');
     await act(async () => {
       root?.dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));
     });
     await settle();
-    expect(features.loads).toBe(1);
+    expect(motion.loads).toBe(1);
   });
 
-  it("keeps a panel's copy state and focus when the motion features arrive", async () => {
+  it("fades in a newly selected panel, and never the one already open", async () => {
+    motion.fades.length = 0;
+    const container = mount([
+      { id: "a", label: "A", panel: <p>first</p> },
+      { id: "b", label: "B", panel: <p>second</p> },
+    ]);
+    selectTab(container, 1);
+    await settle();
+    const panels = [...container.querySelectorAll<HTMLElement>('[role="tabpanel"]')];
+    expect(motion.fades).toEqual([panels[1]?.firstElementChild]);
+  });
+
+  it("keeps a panel's copy state and focus when the fade arrives", async () => {
     const writeText = vi.fn(async () => {});
     Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
     const container = mount([
@@ -98,29 +107,28 @@ describe("CodeShowcaseTabs", () => {
     expect(after?.textContent).toBe(en.landing.install.copied);
   });
 
-  it("shows a newly selected panel at full opacity without a transition under reduced motion", async () => {
+  it("switches panels without a fade under reduced motion", async () => {
+    motion.reduced = true;
+    motion.fades.length = 0;
     const container = mount([
       { id: "a", label: "A", panel: <p>first</p> },
       { id: "b", label: "B", panel: <p>second</p> },
     ]);
-    const second = container.querySelectorAll<HTMLButtonElement>('[role="tab"]')[1];
-    await act(async () => {
-      second?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
-    });
+    selectTab(container, 1);
     await settle();
     const panels = [...container.querySelectorAll<HTMLElement>('[role="tabpanel"]')];
     expect(panels.map((node) => node.dataset.state)).toEqual(["inactive", "active"]);
-    const shown = panels[1]?.firstElementChild as HTMLElement | null;
-    expect(shown?.style.opacity).toBe("1");
-    expect(shown?.style.transform === "" || shown?.style.transform === "none").toBe(true);
+    expect(motion.fades).toEqual([]);
+    motion.reduced = false;
   });
 
-  it("keeps the animation features out of the tabs module itself", () => {
+  it("keeps motion out of the tabs module, which renders one plain element per panel", () => {
     const source = readFileSync(
       join(process.cwd(), "components/landing/code-showcase-tabs.tsx"),
       "utf8",
     );
-    expect(source).not.toMatch(/domAnimation|domMax|motion-features/);
+    expect(source).not.toMatch(/from "motion/);
+    expect(source).toContain('import("./code-showcase-fade")');
   });
 
   it("renders an empty tab list without throwing", () => {

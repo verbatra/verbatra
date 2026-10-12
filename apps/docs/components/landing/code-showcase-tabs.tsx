@@ -1,36 +1,39 @@
 "use client";
 
-import { m, useReducedMotion } from "motion/react";
-import { type ReactNode, useState } from "react";
-import { loadMotionFeatures, MotionProvider } from "@/components/motion-provider";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/shadcn/tabs";
 import { CODE_SHOWCASE_LOCATION } from "@/lib/landing-code";
+import { prefersReducedMotion } from "@/lib/reduced-motion";
 import { trackUmamiEvent } from "@/lib/umami";
 
 export type CodeShowcaseTab = { id: string; label: string; panel: ReactNode };
 
-const PANEL_FADE = { duration: 0.24, ease: [0.22, 1, 0.36, 1] } as const;
+type Fade = (element: HTMLElement) => void;
 
-let requestFeatures: () => void = () => undefined;
-const featuresRequested = new Promise<void>((resolve) => {
-  requestFeatures = resolve;
-});
+let fade: Promise<Fade | null> | undefined;
 
-function featuresOnFirstReach() {
-  return featuresRequested.then(loadMotionFeatures);
+function requestFade(): Promise<Fade | null> {
+  fade ??= import("./code-showcase-fade").then(
+    (module) => module.fadeInPanel,
+    () => {
+      fade = undefined;
+      return null;
+    },
+  );
+  return fade;
 }
 
 function Panel({ active, children }: { active: boolean; children: ReactNode }): ReactNode {
-  const reduced = useReducedMotion();
-  return (
-    <m.div
-      initial={false}
-      animate={{ opacity: active ? 1 : 0, y: active ? 0 : 4 }}
-      transition={reduced ? { duration: 0 } : PANEL_FADE}
-    >
-      {children}
-    </m.div>
-  );
+  const ref = useRef<HTMLDivElement>(null);
+  const shown = useRef(active);
+  useEffect(() => {
+    const wasShown = shown.current;
+    shown.current = active;
+    const element = ref.current;
+    if (!active || wasShown || !element || !fade || prefersReducedMotion()) return;
+    void fade.then((run) => run?.(element));
+  }, [active]);
+  return <div ref={ref}>{children}</div>;
 }
 
 export function CodeShowcaseTabs({
@@ -42,44 +45,42 @@ export function CodeShowcaseTabs({
 }): ReactNode {
   const [active, setActive] = useState(tabs[0]?.id ?? "");
   return (
-    <MotionProvider features={featuresOnFirstReach}>
-      <Tabs
-        value={active}
-        onValueChange={(value) => {
-          requestFeatures();
-          setActive(value);
-          trackUmamiEvent("select-tab", { tab: value, location: CODE_SHOWCASE_LOCATION });
-        }}
-        onPointerEnter={requestFeatures}
-        onFocus={requestFeatures}
-        className="gap-6"
+    <Tabs
+      value={active}
+      onValueChange={(value) => {
+        void requestFade();
+        setActive(value);
+        trackUmamiEvent("select-tab", { tab: value, location: CODE_SHOWCASE_LOCATION });
+      }}
+      onPointerEnter={() => void requestFade()}
+      onFocus={() => void requestFade()}
+      className="gap-6"
+    >
+      <TabsList
+        variant="line"
+        aria-label={label}
+        className="w-full justify-start gap-1 overflow-x-auto rounded-none border-b border-fd-border p-0"
       >
-        <TabsList
-          variant="line"
-          aria-label={label}
-          className="w-full justify-start gap-1 overflow-x-auto rounded-none border-b border-fd-border p-0"
-        >
-          {tabs.map((tab) => (
-            <TabsTrigger
-              key={tab.id}
-              value={tab.id}
-              className="min-h-11 flex-none rounded-none px-3 text-sm font-medium text-(--text-muted) hover:text-(--text-strong) focus-visible:ring-0 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--focus-ring) data-[state=active]:text-(--text-strong) after:bg-(--accent)"
-            >
-              {tab.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
         {tabs.map((tab) => (
-          <TabsContent
+          <TabsTrigger
             key={tab.id}
             value={tab.id}
-            forceMount
-            className="min-w-0 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-(--focus-ring) data-[state=inactive]:hidden"
+            className="min-h-11 flex-none rounded-none px-3 text-sm font-medium text-(--text-muted) hover:text-(--text-strong) focus-visible:ring-0 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--focus-ring) data-[state=active]:text-(--text-strong) after:bg-(--accent)"
           >
-            <Panel active={tab.id === active}>{tab.panel}</Panel>
-          </TabsContent>
+            {tab.label}
+          </TabsTrigger>
         ))}
-      </Tabs>
-    </MotionProvider>
+      </TabsList>
+      {tabs.map((tab) => (
+        <TabsContent
+          key={tab.id}
+          value={tab.id}
+          forceMount
+          className="min-w-0 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-(--focus-ring) data-[state=inactive]:hidden"
+        >
+          <Panel active={tab.id === active}>{tab.panel}</Panel>
+        </TabsContent>
+      ))}
+    </Tabs>
   );
 }
