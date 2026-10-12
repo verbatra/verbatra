@@ -1,3 +1,5 @@
+import { CHECK_CLI_COMMAND, CHECK_OVERALL_LINE, checkLocaleLine } from "@/lib/check-demo";
+
 export type HeroTerminalUsage = { readonly inputTokens: number; readonly outputTokens: number };
 
 export type HeroTerminalLocale = {
@@ -54,11 +56,9 @@ const synced = HERO_TERMINAL_SYNCED_KEYS.length;
 const localeCount = HERO_TERMINAL_LOCALES.length;
 
 export const HERO_CHECK_OUTPUT: ReadonlyArray<string> = [
-  "verbatra check",
-  ...HERO_TERMINAL_LOCALES.map(
-    ({ locale }) => `  ${locale}: ${missing} missing, 0 stale, ${synced} up-to-date (out of sync)`,
-  ),
-  "out of sync (run verbatra translate to update)",
+  CHECK_CLI_COMMAND,
+  ...HERO_TERMINAL_LOCALES.map(({ locale }) => checkLocaleLine(locale, missing, synced)),
+  CHECK_OVERALL_LINE,
 ];
 
 export const HERO_TRANSLATE_OUTPUT: ReadonlyArray<string> = [

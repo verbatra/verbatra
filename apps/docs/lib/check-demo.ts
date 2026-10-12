@@ -10,7 +10,15 @@ export const CHECK_UP_TO_DATE = Object.keys(GATE_SOURCE_VALUES).length - CHECK_M
 
 export const CHECK_EXIT_CODE = 1;
 
-export const CHECK_LOCALE_LINE = `  ${CHECK_LOCALE}: ${CHECK_MISSING_KEYS.length} missing, 0 stale, ${CHECK_UP_TO_DATE} up-to-date (out of sync)`;
+export function checkLocaleLine(locale: string, missing: number, upToDate: number): string {
+  return `  ${locale}: ${missing} missing, 0 stale, ${upToDate} up-to-date (out of sync)`;
+}
+
+export const CHECK_LOCALE_LINE = checkLocaleLine(
+  CHECK_LOCALE,
+  CHECK_MISSING_KEYS.length,
+  CHECK_UP_TO_DATE,
+);
 
 export const CHECK_OVERALL_LINE = "out of sync (run verbatra translate to update)";
 
