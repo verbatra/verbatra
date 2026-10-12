@@ -13,6 +13,7 @@ import {
   LANDING_SHOWCASE_TABS,
   LANDING_STEP_CODE,
   LANDING_STEP_IDS,
+  VERBATRA_ACTION_REF,
 } from "@/lib/landing-code";
 import { PACKAGE_VERSION } from "@/lib/site";
 
@@ -63,9 +64,17 @@ describe("the landing code samples", () => {
     expect(config.provider.id).toBe("gemini");
   });
 
-  it("pins the action to the v1 line and an exact released CLI version", () => {
+  it("pins both actions to full commit SHAs and the CLI to an exact released version", () => {
     const action = LANDING_SHOWCASE_CODE.action.code;
-    expect(action).toContain("uses: verbatra/action@v1\n");
+    const uses = [...action.matchAll(/uses: (\S+)@(\S+) # (v\d+(?:\.\d+){0,2})\n/g)];
+    expect(uses.map(([, name]) => name)).toEqual(["actions/checkout", "verbatra/action"]);
+    for (const [, , ref, tag] of uses) {
+      expect(ref).toMatch(/^[0-9a-f]{40}$/);
+      expect(tag).toMatch(/^v\d/);
+    }
+    expect(action).not.toMatch(/@v\d/);
+    expect(VERBATRA_ACTION_REF).toMatch(/ # v1\./);
+    expect(LANDING_STEP_CODE.ci.code).toContain(`uses: ${VERBATRA_ACTION_REF}\n`);
     expect(PACKAGE_VERSION).toMatch(/^\d+\.\d+\.\d+$/);
     for (const code of [action, LANDING_STEP_CODE.ci.code]) {
       expect(code).toContain(`version: ${PACKAGE_VERSION}\n`);

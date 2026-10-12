@@ -43,6 +43,12 @@ npx @verbatra/cli translate
 npx @verbatra/cli check
 `;
 
+export const CHECKOUT_ACTION_REF =
+  "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1";
+
+export const VERBATRA_ACTION_REF =
+  "verbatra/action@0221b030d517d8af621fb6b812fcfd17a1f940ee # v1.2.0";
+
 const ACTION_CODE = `name: i18n
 on:
   pull_request:
@@ -54,8 +60,8 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: verbatra/action@v1
+      - uses: ${CHECKOUT_ACTION_REF}
+      - uses: ${VERBATRA_ACTION_REF}
         with:
           version: ${PACKAGE_VERSION}
           command: check
@@ -86,7 +92,7 @@ export const LANDING_STEP_CODE: Readonly<Record<LandingStepId, LandingCodeSample
   translate: { language: "bash", code: "npx @verbatra/cli translate\n" },
   ci: {
     language: "yaml",
-    code: `- uses: verbatra/action@v1
+    code: `- uses: ${VERBATRA_ACTION_REF}
   with:
     version: ${PACKAGE_VERSION}
     command: check
