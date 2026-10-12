@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { prefersReducedMotion } from "@/lib/reduced-motion";
-import { useInViewOnce } from "@/lib/use-in-view-once";
+import { useInView } from "@/lib/use-in-view";
 
 type Row = {
   key: string;
@@ -35,7 +35,7 @@ export function DiffPanel({
 
   const [count, setCount] = useState(0);
   const [settled, setSettled] = useState(false);
-  const [ref, inView] = useInViewOnce<HTMLElement>(0.5);
+  const [ref, inView] = useInView<HTMLElement>(0.5, { once: true });
 
   useEffect(() => {
     if (!full || prefersReducedMotion()) {

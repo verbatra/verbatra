@@ -148,6 +148,38 @@ describe("HeroTerminal", () => {
     expect(frozen).not.toEqual(FINAL_FRAME);
   });
 
+  it("continues from where it paused when scrolled back into view", async () => {
+    const container = render();
+    setVisible(true);
+    await advance(1_500);
+    setVisible(false);
+    const paused = painted(container);
+    expect(paused.length).toBeGreaterThan(CHECK_FRAME.length);
+    setVisible(true);
+    await advance(10);
+    expect(painted(container)).toEqual(paused);
+    await advance(20_000);
+    expect(painted(container)).toEqual(FINAL_FRAME);
+  });
+
+  it("keeps the final frame after it finished, when scrolled away and back", async () => {
+    const container = render();
+    setVisible(true);
+    await advance(20_000);
+    expect(painted(container)).toEqual(FINAL_FRAME);
+    setVisible(false);
+    setVisible(true);
+    for (const step of [0, 50, 500, 20_000]) {
+      await advance(step);
+      expect(painted(container)).toEqual(FINAL_FRAME);
+    }
+  });
+
+  it("watches its node with one observer", () => {
+    render();
+    expect(observers.filter((entry) => entry.target !== null)).toHaveLength(1);
+  });
+
   it("replays both runs from an empty prompt when Replay is pressed", async () => {
     const container = render();
     setVisible(true);

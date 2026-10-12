@@ -4,18 +4,23 @@ import { type RefObject, useEffect, useRef, useState } from "react";
 
 export function useInView<T extends Element>(
   threshold: number,
-  enabled = true,
+  { once = false }: { once?: boolean } = {},
 ): [RefObject<T | null>, boolean] {
   const ref = useRef<T | null>(null);
   const [inView, setInView] = useState(false);
+  const settled = once && inView;
 
   useEffect(() => {
     const node = ref.current;
-    if (!node || !enabled) return;
+    if (!node || settled) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        const last = entries[entries.length - 1];
+        if (once) {
+          if (entries.some((entry) => entry.isIntersecting)) setInView(true);
+          return;
+        }
+        const last = entries.at(-1);
         if (last) setInView(last.isIntersecting);
       },
       { threshold },
@@ -23,7 +28,7 @@ export function useInView<T extends Element>(
     observer.observe(node);
 
     return () => observer.disconnect();
-  }, [threshold, enabled]);
+  }, [threshold, once, settled]);
 
   return [ref, inView];
 }

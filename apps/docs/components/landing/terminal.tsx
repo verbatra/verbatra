@@ -1,9 +1,8 @@
 "use client";
 
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { prefersReducedMotion } from "@/lib/reduced-motion";
 import { useInView } from "@/lib/use-in-view";
-import { useInViewOnce } from "@/lib/use-in-view-once";
 import { cn } from "@/lib/utils";
 import { PlaceholderText } from "./placeholder-chip";
 import { WrapTokens, wrapLineStyle } from "./wrap-text";
@@ -39,70 +38,84 @@ const HOLD_PAUSE_MS = 2600;
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-type PlayerContext = {
-  isCancelled: () => boolean;
-  setTyping: (value: string | null) => void;
-  pushLine: (line: Line) => void;
-  reset: () => void;
-  scroll: () => void;
-  commands: ReadonlyArray<string>;
-  outputs?: Readonly<Record<number, ReadonlyArray<string>>>;
-  typingSpeed: number;
-  lineDelay: number;
-  delayBetweenCommands: number;
-  initialDelay: number;
-  loop: boolean;
-  settledCommands: number;
+type Frame = { readonly history: Line[]; readonly typing: string | null; readonly wait: number };
+
+type TimelineOptions = {
+  readonly commands: ReadonlyArray<string>;
+  readonly outputs?: Readonly<Record<number, ReadonlyArray<string>>> | undefined;
+  readonly typingSpeed: number;
+  readonly lineDelay: number;
+  readonly delayBetweenCommands: number;
+  readonly initialDelay: number;
 };
 
-async function typeCommand(ctx: PlayerContext, cmd: string): Promise<boolean> {
-  for (let c = 1; c <= cmd.length; c += 1) {
-    if (ctx.isCancelled()) return false;
-    ctx.setTyping(cmd.slice(0, c));
-    ctx.scroll();
-    await delay(ctx.typingSpeed);
-  }
-  return !ctx.isCancelled();
-}
+type Timeline = { readonly first: Frame[]; readonly repeat: Frame[] };
 
-async function printOutputs(ctx: PlayerContext, lines: ReadonlyArray<string>): Promise<boolean> {
-  for (const text of lines) {
-    if (ctx.isCancelled()) return false;
-    ctx.pushLine({ kind: "output", text });
-    ctx.scroll();
-    await delay(ctx.lineDelay);
-  }
-  return !ctx.isCancelled();
-}
+const COMMAND_PAUSE_MS = 320;
 
-async function runCommand(
-  ctx: PlayerContext,
-  cmd: string,
-  out: ReadonlyArray<string>,
-): Promise<boolean> {
-  if (!(await typeCommand(ctx, cmd))) return false;
-  ctx.setTyping(null);
-  ctx.pushLine({ kind: "command", text: cmd });
-  ctx.scroll();
-  await delay(320);
-  if (!(await printOutputs(ctx, out))) return false;
-  await delay(ctx.delayBetweenCommands);
-  return true;
-}
-
-async function playLoop(ctx: PlayerContext): Promise<void> {
-  let start = ctx.settledCommands;
-  while (!ctx.isCancelled()) {
-    if (start === 0) ctx.reset();
-    await delay(ctx.initialDelay);
-    for (let i = start; i < ctx.commands.length; i += 1) {
-      const cmd = ctx.commands[i];
-      if (cmd === undefined) continue;
-      if (!(await runCommand(ctx, cmd, ctx.outputs?.[i] ?? []))) return;
+function buildPass(options: TimelineOptions, start: number): Frame[] {
+  const { commands, outputs } = options;
+  let history = buildSettled(commands.slice(0, start), outputs);
+  let typing: string | null = start === 0 ? "" : null;
+  const frames: Frame[] = [{ history, typing, wait: options.initialDelay }];
+  commands.slice(start).forEach((cmd, offset) => {
+    for (let c = 1; c <= cmd.length; c += 1) {
+      typing = cmd.slice(0, c);
+      frames.push({ history, typing, wait: options.typingSpeed });
     }
-    if (!ctx.loop) return;
-    start = 0;
-    await delay(HOLD_PAUSE_MS);
+    typing = null;
+    history = [...history, { kind: "command", text: cmd }];
+    frames.push({ history, typing, wait: COMMAND_PAUSE_MS });
+    for (const text of outputs?.[start + offset] ?? []) {
+      history = [...history, { kind: "output", text }];
+      frames.push({ history, typing, wait: options.lineDelay });
+    }
+    const last = frames.at(-1);
+    if (last)
+      frames[frames.length - 1] = { ...last, wait: last.wait + options.delayBetweenCommands };
+  });
+  return frames;
+}
+
+function withHold(frames: Frame[]): Frame[] {
+  const last = frames.at(-1);
+  return last ? [...frames.slice(0, -1), { ...last, wait: last.wait + HOLD_PAUSE_MS }] : frames;
+}
+
+function buildTimeline(options: TimelineOptions, settledCommands: number): Timeline {
+  return {
+    first: withHold(buildPass(options, settledCommands)),
+    repeat: withHold(buildPass(options, 0)),
+  };
+}
+
+type Cursor = { timeline: Timeline; repeating: boolean; index: number; finished: boolean };
+
+type Playback = {
+  readonly cursor: Cursor;
+  readonly loop: boolean;
+  readonly isCancelled: () => boolean;
+  readonly show: (frame: Frame) => void;
+};
+
+async function playFrom(playback: Playback): Promise<void> {
+  const { cursor } = playback;
+  while (!playback.isCancelled()) {
+    const frames = cursor.repeating ? cursor.timeline.repeat : cursor.timeline.first;
+    while (cursor.index < frames.length) {
+      const frame = frames[cursor.index];
+      if (!frame || playback.isCancelled()) return;
+      playback.show(frame);
+      await delay(frame.wait);
+      if (playback.isCancelled()) return;
+      cursor.index += 1;
+    }
+    if (!playback.loop) {
+      cursor.finished = true;
+      return;
+    }
+    cursor.repeating = true;
+    cursor.index = 0;
   }
 }
 
@@ -213,17 +226,9 @@ function usePlaybackView(
   threshold: number,
   play: boolean | undefined,
   pauseOffscreen: boolean,
-): [(node: HTMLDivElement | null) => void, boolean] {
-  const [onceRef, seen] = useInViewOnce<HTMLDivElement>(threshold);
-  const [liveRef, visible] = useInView<HTMLDivElement>(threshold, pauseOffscreen);
-  const setRef = useCallback(
-    (node: HTMLDivElement | null) => {
-      onceRef.current = node;
-      liveRef.current = node;
-    },
-    [onceRef, liveRef],
-  );
-  return [setRef, play ?? (pauseOffscreen ? visible : seen)];
+): [RefObject<HTMLDivElement | null>, boolean] {
+  const [ref, inView] = useInView<HTMLDivElement>(threshold, { once: !pauseOffscreen });
+  return [ref, play ?? inView];
 }
 
 export function Terminal({
@@ -257,57 +262,58 @@ export function Terminal({
   );
   const [typing, setTyping] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!inView) return;
-
-    if (prefersReducedMotion()) {
-      setHistory(buildSettled(commands, outputs));
-      setTyping(null);
-      return;
-    }
-
-    let cancelled = false;
-    setHistory(buildSettled(commands.slice(0, settledCommands), outputs));
-    setTyping(null);
-    const ctx: PlayerContext = {
-      isCancelled: () => cancelled,
-      setTyping,
-      pushLine: (line) => setHistory((h) => [...h, line]),
-      reset: () => {
-        setHistory([]);
-        setTyping("");
-      },
-      scroll: () => {
-        requestAnimationFrame(() => {
-          const el = scrollRef.current;
-          if (el) el.scrollTop = el.scrollHeight;
-        });
-      },
+  const timeline = useMemo(
+    () =>
+      buildTimeline(
+        { commands, outputs, typingSpeed, lineDelay, delayBetweenCommands, initialDelay },
+        settledCommands,
+      ),
+    [
       commands,
       outputs,
       typingSpeed,
       lineDelay,
       delayBetweenCommands,
       initialDelay,
-      loop,
       settledCommands,
-    };
-    void playLoop(ctx);
+    ],
+  );
+  const cursorRef = useRef<Cursor>({ timeline, repeating: false, index: 0, finished: false });
+
+  useEffect(() => {
+    if (!inView) return;
+    if (cursorRef.current.timeline !== timeline) {
+      cursorRef.current = { timeline, repeating: false, index: 0, finished: false };
+    }
+    const cursor = cursorRef.current;
+
+    if (prefersReducedMotion()) {
+      cursor.finished = true;
+      setHistory(buildSettled(commands, outputs));
+      setTyping(null);
+      return;
+    }
+    if (cursor.finished) return;
+
+    let cancelled = false;
+    void playFrom({
+      cursor,
+      loop,
+      isCancelled: () => cancelled,
+      show: (frame) => {
+        setHistory(frame.history);
+        setTyping(frame.typing);
+        requestAnimationFrame(() => {
+          const el = scrollRef.current;
+          if (el) el.scrollTop = el.scrollHeight;
+        });
+      },
+    });
 
     return () => {
       cancelled = true;
     };
-  }, [
-    inView,
-    commands,
-    outputs,
-    typingSpeed,
-    lineDelay,
-    delayBetweenCommands,
-    initialDelay,
-    loop,
-    settledCommands,
-  ]);
+  }, [inView, timeline, commands, outputs, loop]);
 
   const shown = history.length;
   const typingNow = typing !== null;
