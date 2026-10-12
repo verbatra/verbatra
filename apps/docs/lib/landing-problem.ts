@@ -11,9 +11,9 @@ function nest(entries: ReadonlyArray<readonly [string, string]>): Nested {
   const root: Nested = {};
   for (const [key, value] of entries) {
     const parts = key.split(".");
-    const leaf = parts.pop() ?? key;
+    const leaf = parts.slice(-1).join("");
     let node = root;
-    for (const part of parts) {
+    for (const part of parts.slice(0, -1)) {
       const next = node[part];
       const branch: Nested = typeof next === "object" ? next : {};
       node[part] = branch;
