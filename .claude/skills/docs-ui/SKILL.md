@@ -275,7 +275,7 @@ license, in that order, after the figures it shows), `problem.tsx` (`#problem`, 
   region's scroll timeline; without scroll timelines the fade is dropped and the region shades its
   end edge with a `local` cover over a `scroll` shade, which clears at the scroll end), `open-source.tsx` (`#open-source`: license, contributing,
   issues, releases and the contributors), `faq.tsx` (`#faq`) and `final-cta.tsx` (the closing
-  panel on `landing.closing`, the install `CommandRow` counted with `location: final-cta`, then Get
+  panel on `landing.closing`, a `section` whose `vk-final-cta` class is a hook with no stylesheet rule, the install `CommandRow` counted with `location: final-cta`, then Get
   started and Read the docs). The footer is not a section; `app/[lang]/(home)/layout.tsx` passes
   it to the home layout. Section ids are unique; never render two sections that claim the same one.
   The FAQ is a server section (`faq.tsx`, fed only each item's `id` and `question`; it renders the
@@ -582,7 +582,8 @@ On the docs surface `lib/layout.shared.tsx` supplies the primary navigation, exa
 Reference and the GitHub icon (`lib/layout.shared.test.tsx` pins it). The home header (landing and
 legal pages) has no search box and its own items, from `components/home-nav.tsx`: a nav named by
 `landing.topNav.label` holding Docs, Changelog (GitHub Releases, new tab) and GitHub with the star
-count, then a primary "Get started" (`.vk-nav-cta`, to `/docs/quickstart`, visible at every width),
+count, then a primary "Get started" (`GetStartedLink` at `size="sm"`, carrying the `vk-nav-cta` hook
+class, which has no rule in `app/global.css`, to `/docs/quickstart`, visible at every width),
 the language select and the theme toggle. Its labels and the star count reach the client through
 `HomeNavProvider`, which `LocaleHomeLayout` fills on the server (`homeNavValue`: `landing.topNav`
 strings and the build-time star count from `loadProjectStats`, compacted with
@@ -592,7 +593,8 @@ follow the one shared `/api/stats` request (`useLiveCount` in `lib/live-stats.ts
 strip's `LiveStatValue` island shares); without a build-time count the GitHub link shows no number
 and no `aria-label`, and a failed request keeps the build-time number and is not cached, so the next mount asks again. Under 768px the items move into `HomeMobileMenu`, a shadcn `Sheet`
 (focus trap, Escape, focus back to the trigger, close button named by `landing.topNav.menu.close`)
-titled `landing.topNav.menu.title`, with a full-width "Get started" (`.vk-nav-cta-menu`, counted as
+titled `landing.topNav.menu.title`, with a full-width "Get started" (`size="md"`, the `vk-nav-cta-menu`
+hook class, again without a stylesheet rule, counted as
 `click-cta` with `location: menu`) under its nav and the language select and theme toggle in its
 footer.
 The AI setup guide, the contributor guide, npm and the contact page are reached from the docs
