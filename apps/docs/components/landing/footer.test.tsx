@@ -22,6 +22,14 @@ async function renderFooter(): Promise<Document> {
 }
 
 describe("FullFooter", () => {
+  it("labels the license link from the messages, not a hard-coded English name", async () => {
+    const doc = await renderFooter();
+    const license = doc.querySelector(
+      'a[href="https://github.com/verbatra/verbatra/blob/main/LICENSE"]',
+    );
+    expect(license?.textContent).toBe("cols.legal.license");
+  });
+
   it("leaves the contributors to the open source section", async () => {
     const doc = await renderFooter();
 

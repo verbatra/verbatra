@@ -89,6 +89,7 @@
         },
         "legal": {
           "title": "Informations légales",
+          "license": "Licence MIT",
           "privacy": "Politique de confidentialité",
           "imprint": "Mentions légales",
           "contact": "Contact"

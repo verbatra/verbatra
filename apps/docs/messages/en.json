@@ -197,6 +197,7 @@
         },
         "legal": {
           "title": "Legal",
+          "license": "MIT License",
           "privacy": "Privacy policy",
           "imprint": "Imprint",
           "contact": "Contact"

@@ -3,7 +3,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { VMark } from "@/components/landing";
 import { NewBadge } from "@/components/new-badge";
-import { type Locale, localizedPath } from "@/lib/i18n";
+import { type Locale, localizedPath, toLocale } from "@/lib/i18n";
 import { GRID_PATTERN_STYLE } from "./fx/grid-pattern";
 import { GithubIcon } from "./github-icon";
 import {
@@ -113,7 +113,7 @@ const FOOTER_COLS: ReadonlyArray<FooterCol> = [
     titleKey: "cols.legal.title",
     links: [
       {
-        literal: "MIT License",
+        labelKey: "cols.legal.license",
         href: LICENSE_URL,
         external: true,
         trackingTarget: "license",
@@ -169,7 +169,7 @@ function FooterLinkItem({
 export async function FullFooter(): Promise<ReactNode> {
   const t = await getTranslations("landing.footer");
   const tStatus = await getTranslations("docs.statusBadges");
-  const locale = (await getLocale()) as Locale;
+  const locale = toLocale(await getLocale());
   return (
     <footer
       className="relative overflow-hidden"

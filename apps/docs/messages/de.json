@@ -89,6 +89,7 @@
         },
         "legal": {
           "title": "Rechtliches",
+          "license": "MIT-Lizenz",
           "privacy": "Datenschutzerklärung",
           "imprint": "Impressum",
           "contact": "Kontakt"

@@ -1,7 +1,7 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { GATE_RUN_LINES } from "@/lib/gate-demo";
-import type { Locale } from "@/lib/i18n";
+import { toLocale } from "@/lib/i18n";
 import { withInlineCode } from "@/lib/inline-code-text";
 import {
   BENTO_ACTION_ANNOTATION,
@@ -129,7 +129,7 @@ async function tileArtifact(key: BentoKey): Promise<ReactNode> {
 
 export async function Bento(): Promise<ReactNode> {
   const t = await getTranslations("landing.bento");
-  const locale = (await getLocale()) as Locale;
+  const locale = toLocale(await getLocale());
   const artifacts = await Promise.all(BENTO_TILES.map((tile) => tileArtifact(tile.key)));
   return (
     <Section id="features">
