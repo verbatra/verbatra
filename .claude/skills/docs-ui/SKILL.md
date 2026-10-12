@@ -572,7 +572,10 @@ under the header through `--vk-landing-offset` (3.5rem, the header height), the
 
 Both surfaces share one layout width: `--width-layout` (97rem, the notebook layout's own
 default) feeds `--fd-layout-width` from `:root` and again on the home container, so the
-header row and the docs grid sit in the same centred column on a wide monitor. The landing's
+docs header row and the docs grid sit in the same centred column on a wide monitor. The home
+header (landing and legal pages) passes `rowWidth="wide"` to `SiteHeaderFrame`, so its
+`.vk-header-row` takes `--width-wide` and the `--gutter` padding instead, and the wordmark and the
+call to action line up with the landing sections. The landing's
 content (the hero, every section and the closing panel) shares one narrower column instead,
 `.vk-gutter` plus `.vk-w-wide`, so the hero `h1` and every section heading start at one left
 edge; the footer bleeds on purpose.

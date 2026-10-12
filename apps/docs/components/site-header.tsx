@@ -169,7 +169,13 @@ export type SiteHeaderFrameProps = ComponentProps<"header"> & {
   navLinks?: ReactNode;
   navLabel?: string;
   activeOverride?: ActiveOverride;
+  rowWidth?: keyof typeof ROW_WIDTH;
 };
+
+const ROW_WIDTH = {
+  layout: "max-w-(--fd-layout-width) px-4 md:px-6",
+  wide: "max-w-(--width-wide) px-(--gutter)",
+} as const;
 
 export function SiteHeaderFrame({
   slots,
@@ -181,6 +187,7 @@ export function SiteHeaderFrame({
   navLinks,
   navLabel,
   activeOverride,
+  rowWidth = "layout",
   className,
   ...props
 }: SiteHeaderFrameProps): ReactNode {
@@ -188,7 +195,12 @@ export function SiteHeaderFrame({
   const iconItems = navItems.filter(isIconItem);
   return (
     <header {...props} className={cn("vk-header sticky flex flex-col backdrop-blur-sm", className)}>
-      <div className="mx-auto flex h-14 w-full max-w-(--fd-layout-width) items-center gap-2 px-4 md:px-6">
+      <div
+        className={cn(
+          "vk-header-row mx-auto flex h-14 w-full items-center gap-2",
+          ROW_WIDTH[rowWidth],
+        )}
+      >
         <div className="vk-header-start flex flex-1 items-center">
           {slots.navTitle ? (
             <slots.navTitle className="inline-flex items-center gap-2.5 font-semibold" />
@@ -305,6 +317,7 @@ export function HomeSiteHeader(props: ComponentProps<"header">): ReactNode {
       mobileTrigger={<HomeMobileMenu footer={settings} />}
       cta={<GetStartedLink />}
       badge={<VersionPill />}
+      rowWidth="wide"
     />
   );
 }

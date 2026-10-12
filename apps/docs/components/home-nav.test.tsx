@@ -173,6 +173,13 @@ describe("the landing nav", () => {
     expect(github?.textContent).toBe(nav.github);
   });
 
+  it("lines its row up with the landing sections: the wide width and the section gutter", async () => {
+    const row = (await render(null)).querySelector(".vk-header-row");
+    expect(row?.className).toContain("max-w-(--width-wide)");
+    expect(row?.className).toContain("px-(--gutter)");
+    expect(row?.className).not.toContain("--fd-layout-width");
+  });
+
   it("counts Get started as a header call to action", async () => {
     const container = await render(null);
     act(() => container.querySelector<HTMLAnchorElement>("a.vk-nav-cta")?.click());
