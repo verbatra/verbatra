@@ -176,6 +176,24 @@ describe("the landing nav", () => {
     expect(github?.textContent).toBe(nav.github);
   });
 
+  it("keeps the wordmark link mounted when the header re-renders with a new home URL", async () => {
+    const container = await render(null);
+    const value = await homeNavValue("en", null);
+    const title = () =>
+      container.querySelector<HTMLAnchorElement>("header a[href='/'], header a[href='/de']");
+    const before = title();
+    expect(before?.textContent).toBe("verbatra");
+    act(() =>
+      mounted?.root.render(
+        <HomeNavProvider value={value}>
+          <HomeSiteHeader wordmark="verbatra" homeUrl="/de" />
+        </HomeNavProvider>,
+      ),
+    );
+    expect(title()).toBe(before);
+    expect(before?.getAttribute("href")).toBe("/de");
+  });
+
   it("lines its row up with the landing sections: the wide width and the section gutter", async () => {
     const row = (await render(null)).querySelector(".vk-header-row");
     expect(row?.className).toContain("max-w-(--width-wide)");

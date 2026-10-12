@@ -4,7 +4,7 @@ import { usePathname } from "fumadocs-core/framework";
 import Link from "fumadocs-core/link";
 import { buttonVariants } from "fumadocs-ui/components/ui/button";
 import type { BaseSlots, LinkItemType } from "fumadocs-ui/layouts/shared";
-import { type ComponentProps, type ReactNode, useMemo } from "react";
+import { type ComponentProps, createContext, type ReactNode, use, useMemo } from "react";
 import {
   HomeMobileMenu,
   LanguageSelect as LanguageSelectIsland,
@@ -238,46 +238,57 @@ export type HomeSiteHeaderProps = ComponentProps<"header"> & {
   homeUrl: string;
 };
 
+const HomeTitleContext = createContext<{ homeUrl: string; wordmark: ReactNode }>({
+  homeUrl: "/",
+  wordmark: null,
+});
+
+function HomeNavTitle(titleProps: ComponentProps<"a">): ReactNode {
+  const { homeUrl, wordmark } = use(HomeTitleContext);
+  return (
+    <Link href={homeUrl} {...titleProps}>
+      {wordmark}
+    </Link>
+  );
+}
+
+const HOME_SLOTS: HeaderSlots = {
+  navTitle: HomeNavTitle,
+  searchTrigger: false,
+  languageSelect: { root: LanguageSelectIsland, text: () => null },
+  themeSwitch: ThemeToggle,
+};
+
 export function HomeSiteHeader({ wordmark, homeUrl, ...props }: HomeSiteHeaderProps): ReactNode {
   const { labels } = useHomeNav();
-  const slots = useMemo<HeaderSlots>(
-    () => ({
-      navTitle: (titleProps: ComponentProps<"a">) => (
-        <Link href={homeUrl} {...titleProps}>
-          {wordmark}
-        </Link>
-      ),
-      searchTrigger: false,
-      languageSelect: { root: LanguageSelectIsland, text: () => null },
-      themeSwitch: ThemeToggle,
-    }),
-    [wordmark, homeUrl],
-  );
+  const title = useMemo(() => ({ homeUrl, wordmark }), [homeUrl, wordmark]);
   const settings = (
     <>
-      <LanguageSelect slots={slots} />
+      <LanguageSelect slots={HOME_SLOTS} />
       <ThemeToggle />
     </>
   );
   return (
-    <SiteHeaderFrame
-      id="nd-nav"
-      {...props}
-      className={cn("top-0 z-40", props.className)}
-      slots={slots}
-      navItems={[]}
-      navLabel={labels.label}
-      navLinks={
-        <>
-          <DocsNavLink className={NAV_TEXT_LINK} />
-          <ChangelogNavLink className={NAV_TEXT_LINK} location="header" />
-          <GitHubNavLink className={NAV_TEXT_LINK} location="header" />
-        </>
-      }
-      mobileTrigger={<HomeMobileMenu footer={settings} />}
-      cta={<GetStartedLink />}
-      badge={<VersionPill />}
-      rowWidth="wide"
-    />
+    <HomeTitleContext value={title}>
+      <SiteHeaderFrame
+        id="nd-nav"
+        {...props}
+        className={cn("top-0 z-40", props.className)}
+        slots={HOME_SLOTS}
+        navItems={[]}
+        navLabel={labels.label}
+        navLinks={
+          <>
+            <DocsNavLink className={NAV_TEXT_LINK} />
+            <ChangelogNavLink className={NAV_TEXT_LINK} location="header" />
+            <GitHubNavLink className={NAV_TEXT_LINK} location="header" />
+          </>
+        }
+        mobileTrigger={<HomeMobileMenu footer={settings} />}
+        cta={<GetStartedLink />}
+        badge={<VersionPill />}
+        rowWidth="wide"
+      />
+    </HomeTitleContext>
   );
 }
