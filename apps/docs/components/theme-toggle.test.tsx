@@ -10,7 +10,20 @@ const theme = vi.hoisted(() => ({
   setTheme: vi.fn(),
 }));
 
-vi.mock("@/lib/use-site-theme", () => ({ useSiteTheme: () => theme }));
+vi.mock("@/lib/use-site-theme", async () => {
+  const { useSyncExternalStore } = await import("react");
+  const subscribe = () => () => undefined;
+  return {
+    useSiteTheme: () => ({
+      ...theme,
+      resolvedTheme: useSyncExternalStore(
+        subscribe,
+        () => theme.resolvedTheme,
+        () => undefined,
+      ),
+    }),
+  };
+});
 vi.mock("next-intl", async (importOriginal) => {
   const { createTranslator } = await importOriginal<typeof import("next-intl")>();
   const { default: messages } = await import("@/messages/en.json");

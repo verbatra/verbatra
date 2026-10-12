@@ -9,7 +9,20 @@ import { docsStylesheetRules } from "@/lib/stylesheet-rules";
 const site = vi.hoisted(() => ({ resolvedTheme: "dark" as string | undefined }));
 
 vi.mock("next-intl", () => ({ useTranslations: () => (key: string) => key }));
-vi.mock("@/lib/use-site-theme", () => ({ useSiteTheme: () => site }));
+vi.mock("@/lib/use-site-theme", async () => {
+  const { useSyncExternalStore } = await import("react");
+  const subscribe = () => () => undefined;
+  return {
+    useSiteTheme: () => ({
+      ...site,
+      resolvedTheme: useSyncExternalStore(
+        subscribe,
+        () => site.resolvedTheme,
+        () => undefined,
+      ),
+    }),
+  };
+});
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 

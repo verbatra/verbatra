@@ -4,7 +4,6 @@ import { buttonVariants } from "fumadocs-ui/components/ui/button";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { nextTheme } from "@/lib/theme";
-import { useHydrated } from "@/lib/use-hydrated";
 import { useSiteTheme } from "@/lib/use-site-theme";
 import { cn } from "@/lib/utils";
 
@@ -46,8 +45,7 @@ function MoonIcon(): ReactNode {
 export function ThemeToggle({ className }: { className?: string | undefined }): ReactNode {
   const t = useTranslations("docs.theme");
   const { resolvedTheme, setTheme } = useSiteTheme();
-  const hydrated = useHydrated();
-  const light = hydrated && resolvedTheme === "light";
+  const light = resolvedTheme === "light";
   const label = t("light");
   return (
     <button
