@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { FORMAT_DISPLAY, MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { PROVIDER_DISPLAY } from "@/lib/landing-providers";
+import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
 import en from "@/messages/en.json";
 import { preloadRegisteredIslands } from "@/test-support/islands";
 
@@ -73,6 +74,11 @@ describe("Ecosystem", () => {
     expect(
       root.querySelector(`[aria-label="${en.landing.ecosystem.frameworksLabel}"]`),
     ).not.toBeNull();
+  });
+
+  it("puts the format switcher one column gap under its heading, like the providers list", () => {
+    const box = rulesFor(docsStylesheetRules(), ".vk-formats").find((rule) => rule.media === "");
+    expect(box?.declarations).not.toHaveProperty("margin-top");
   });
 
   it("spells out no provider or format count", () => {

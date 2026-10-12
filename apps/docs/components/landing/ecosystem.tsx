@@ -94,7 +94,7 @@ export async function Ecosystem(): Promise<ReactNode> {
           <h3 id="ecosystem-formats" className={SUBHEAD_CLASS}>
             {t("ecosystem.formatsLabel")}
           </h3>
-          <div className="vk-formats mt-0" style={FORMAT_PANE_ROWS_STYLE}>
+          <div className="vk-formats" style={FORMAT_PANE_ROWS_STYLE}>
             <FormatsDemo
               labels={{
                 frameworks: t("ecosystem.frameworksLabel"),

@@ -1507,7 +1507,6 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 .vk-formats {
   display: grid;
   row-gap: 1.25rem;
-  margin-top: 2.5rem;
 }
 
 .vk-formats-switch {
