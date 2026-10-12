@@ -590,7 +590,7 @@ strings and the build-time star count from `loadProjectStats`, compacted with
 and the link's `aria-label` (`landing.topNav.starsAria`, filled on the client through `fillCount`)
 follow the one shared `/api/stats` request (`useLiveCount` in `lib/live-stats.ts`, which the proof
 strip's `LiveStatValue` island shares); without a build-time count the GitHub link shows no number
-and no `aria-label`, and a failed request keeps the build-time number. Under 768px the items move into `HomeMobileMenu`, a shadcn `Sheet`
+and no `aria-label`, and a failed request keeps the build-time number and is not cached, so the next mount asks again. Under 768px the items move into `HomeMobileMenu`, a shadcn `Sheet`
 (focus trap, Escape, focus back to the trigger, close button named by `landing.topNav.menu.close`)
 titled `landing.topNav.menu.title`, with a full-width "Get started" (`.vk-nav-cta-menu`, counted as
 `click-cta` with `location: menu`) under its nav and the language select and theme toggle in its

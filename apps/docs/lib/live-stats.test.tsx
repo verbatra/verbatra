@@ -85,6 +85,30 @@ describe("LiveStatValue", () => {
   });
 });
 
+describe("loadLiveStats", () => {
+  it("does not keep a failed request, so a later mount asks again", async () => {
+    let fail = true;
+    const fetcher = stubFetch(async () =>
+      fail ? new Response("down", { status: 503 }) : Response.json({ stars: 2500, downloads: 1 }),
+    );
+
+    const first = await renderValues("1.2K");
+    expect(values(first)).toEqual(["1.2K", "1.2K"]);
+
+    fail = false;
+    const second = await renderValues("1.2K");
+    expect(values(second)).toEqual(["2.5K", "1"]);
+    expect(fetcher.mock.calls.length).toBeGreaterThan(1);
+  });
+
+  it("keeps a successful answer for every later caller", async () => {
+    const fetcher = stubFetch(async () => Response.json({ stars: 1, downloads: 2 }));
+    await live.loadLiveStats();
+    await live.loadLiveStats();
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("the header star count", () => {
   it("updates the visible count and the link's name together", async () => {
     stubFetch(async () => Response.json({ stars: 2500, downloads: 1 }));

@@ -30,8 +30,13 @@ async function requestLiveStats(fetcher: typeof fetch): Promise<LiveStats | null
 }
 
 export function loadLiveStats(fetcher: typeof fetch = fetch): Promise<LiveStats | null> {
-  pending ??= requestLiveStats(fetcher);
-  return pending;
+  if (pending) return pending;
+  const request: Promise<LiveStats | null> = requestLiveStats(fetcher).then((stats) => {
+    if (stats === null && pending === request) pending = undefined;
+    return stats;
+  });
+  pending = request;
+  return request;
 }
 
 export function useLiveStats(): LiveStats | null {
