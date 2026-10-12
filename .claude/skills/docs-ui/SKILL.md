@@ -272,8 +272,8 @@ license, in that order, after the figures it shows), `problem.tsx` (`#problem`, 
   started and Read the docs). The footer is not a section; `app/[lang]/(home)/layout.tsx` passes
   it to the home layout. Section ids are unique; never render two sections that claim the same one.
   The FAQ is a server section (`faq.tsx`, fed only each item's `id` and `question`; it renders the
-  answers from `landing.faq` on the server) whose one client island is `FaqAccordion`
-  (`faq-accordion.tsx`), the shadcn `Accordion` (`type="single"`, collapsible): each question is a Radix
+  answers from `landing.faq` on the server and hands each as server-rendered `content`) whose one
+  client island is `FaqAccordion` (`faq-accordion.tsx`), the shadcn `Accordion` (`type="single"`, collapsible): each question is a Radix
   trigger inside an `h3`, arrow keys, Home and End move between them, opening one counts
   `open-faq` with its key, and every answer is force-mounted, so the server HTML carries it while a
   closed item hides it (`[data-state=closed]` on the item). Answers link with the `dataHandling`
@@ -289,9 +289,12 @@ license, in that order, after the figures it shows), `problem.tsx` (`#problem`, 
   with the format's own placeholder drawn as a `PlaceholderChip`. The client island is
   `format-switch.tsx`, which takes every label and pane as props, so it adds no client message
   namespace; a chip selects its format, a tab clears the chip, and both count `select-tab` with
-  `location: formats` (a chip adds `framework`). Every pane is server-rendered and stacked in one
-  grid cell; a closed pane is `inert` and `visibility: hidden`, so the box is always the tallest
-  pane and a switch moves nothing, and `.vk-formats-code` caps a long output at
+  `location: formats` (a chip adds `framework`). Only the open pane is server-rendered (`FormatPane`
+  in `format-pane.tsx`); the others come from `loadFormatPanes()` on the first pointer, focus, tab
+  or chip, and every pane is stacked in one grid cell with `.vk-formats-sizer`, an `aria-hidden`,
+  `inert`, `visibility: hidden` copy of the pane that shows the most rows (`tallestFormat()`), so
+  the box is always the tallest pane and a switch moves nothing; a closed pane is `inert` and
+  `visibility: hidden`, and `.vk-formats-code` caps a long output at
   `--format-pane-rows` (16) lines of `--format-line` and scrolls inside it: it is a `section` named
   by the pane's file caption with `tabIndex={0}`, so the keyboard reaches and scrolls the open pane,
   with the `--focus-ring` outline inset. Chips and tabs scroll sideways inside `.vk-edge-fade`
@@ -525,8 +528,21 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
   reveals stay CSS keyframes and transitions in `app/global.css`, each with a
   `prefers-reduced-motion` opt-out; `MotionRoot` toggles attributes from one
   `IntersectionObserver` and stays well under 1 KB gzipped.
-- `NextIntlClientProvider` receives only `CLIENT_MESSAGE_NAMESPACES` (`lib/client-messages.ts`),
-  not the whole catalog. A new `useTranslations` namespace in a `"use client"` file must be added
+- Every first-load request costs a round trip before the largest paint, and Lighthouse counts every
+  script that runs before that paint, so the landing's client code arrives after it. A landing
+  server section imports its client components from `components/landing/islands.tsx`, and the
+  header from `components/chrome-islands.tsx`: each is an `island()` (`lib/island.tsx`), which
+  server-renders the component inline (preloaded through top-level `await preloadOnServer`, with no
+  Suspense boundary, since React outlines a completed boundary to the end of a long stream) and in
+  the browser fetches it after the first contentful paint, hydrating it in place. `intlIsland()`
+  wraps it in `withIntl` (`components/intl-boundary.tsx`), so `next-intl` loads with the island.
+  A server module pulls every client module it imports into the first load, used or not, so the
+  root layout holds no providers: the docs and legal layouts wrap `SiteProviders`, the landing
+  `LandingProviders` (`components/landing-providers.tsx`, no `NextIntlClientProvider`, only the
+  `ClientMessagesProvider` context the islands read). `components/landing/islands.test.tsx` pins
+  the import rules. The Umami tracker loads with `lazyOnload`.
+- `NextIntlClientProvider` and `ClientMessagesProvider` receive only `CLIENT_MESSAGE_NAMESPACES`
+  (`lib/client-messages.ts`), not the whole catalog. A new `useTranslations` namespace in a `"use client"` file must be added
   there; `lib/client-messages.test.ts` fails until it is.
 - A brand icon repeated on a page (the stack cards, the format switcher's chips) is drawn once as an SVG `<symbol>`
   and referenced with `<use>`, since every copy is serialized twice: in the HTML and in the RSC
@@ -541,7 +557,7 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
 ## Fumadocs UI strings
 
 Fumadocs' own chrome (search, "On this page", page actions, sidebar aria-labels, pagination) is
-translated in `lib/ui-translations.ts`, added to `translations` in `lib/layout.shared.tsx`. The
+translated in `lib/ui-translations.ts`, added to `translations` in `lib/root-provider-options.ts`. The
 object is typed against `fumadocs-ui/i18n`'s `Translations`, and `lib/ui-translations.test.ts`
 fails when a Fumadocs upgrade adds a key that de, es or fr lacks.
 
@@ -550,8 +566,11 @@ fails when a Fumadocs upgrade adds a key that de, es or fr lacks.
 `components/site-header.tsx` owns the navbar. `SiteHeaderFrame` renders the markup (wordmark,
 centred search, text links, icon links, call to action, language select, phone-width search and
 menu trigger) and two thin wrappers feed it from each layout's context: `HomeSiteHeader` and
-`DocsSiteHeader` (from `useNotebookLayout`, adding the sidebar collapse and drawer triggers). They
-are wired through `slots.header` in `lib/locale-home-layout.tsx` and `app/[lang]/docs/layout.tsx`.
+`DocsSiteHeader` (from `useNotebookLayout`, adding the sidebar collapse and drawer triggers).
+`lib/locale-home-layout.tsx` renders `HomeSiteHeader` itself (with `SiteWordmark`, no Fumadocs
+`HomeLayout`), and `app/[lang]/docs/layout.tsx` passes `DocsSiteHeader` as `slots.header`. Link
+items go through `lib/link-items.tsx`, never `fumadocs-ui/layouts/shared` at runtime, whose
+module carries the default popover language select.
 On the docs surface `lib/layout.shared.tsx` supplies the primary navigation, exactly Docs,
 Reference and the GitHub icon (`lib/layout.shared.test.tsx` pins it). The home header (landing and
 legal pages) has no search box and its own items, from `components/home-nav.tsx`: a nav named by
@@ -574,8 +593,8 @@ sidebar and the landing footer, never from the header. The text links and the ic
 (`md`), exactly where the phone search and menu trigger hide. At least 24px separate the search box
 from the first text link and the last text link from the GitHub icon. A text link carries
 `data-active` and `aria-current` (`page` on an exact path match, `true` for a section or tab), from
-the root tabs on docs and from the current path elsewhere. The home layout swaps Fumadocs' `<main id="nd-home-layout">` container for a `<div>`
-(`components/home-container.tsx`) and renders its own `<main>` around the page, with the landing
+the root tabs on docs and from the current path elsewhere. The home layout renders a `<div id="nd-home-layout">`
+(`components/home-container.tsx`) in place of Fumadocs' home container and renders its own `<main>` around the page, with the landing
 footer passed in by `app/[lang]/(home)/layout.tsx`, so the header and footer stay banner and
 contentinfo landmarks; a page under that layout must not render another `<main>`. Fumadocs' own
 `HomeLayout` and notebook headers are never rendered, so do not style `#nd-nav` or `#nd-subnav`;
