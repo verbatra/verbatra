@@ -13,6 +13,8 @@ const trackUmamiEvent = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/umami", () => ({ trackUmamiEvent }));
 
 const { FormatsDemo } = await import("./formats");
+const { loadFormatPanes } = await import("./format-switch");
+const { tallestFormat } = await import("./format-pane");
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -30,11 +32,11 @@ function rule(selector: string): string {
 
 let mounted: { container: HTMLDivElement; root: Root } | undefined;
 
-async function render(): Promise<HTMLDivElement> {
+async function renderFirstLoad(): Promise<HTMLDivElement> {
   const container = document.createElement("div");
   document.body.append(container);
   const root = createRoot(container);
-  act(() => {
+  await act(async () => {
     root.render(
       <div className="vk-formats">
         <FormatsDemo labels={{ frameworks: "frameworksLabel", formats: "formatsLabel" }} />
@@ -42,6 +44,17 @@ async function render(): Promise<HTMLDivElement> {
     );
   });
   mounted = { container, root };
+  return container;
+}
+
+async function render(): Promise<HTMLDivElement> {
+  const container = await renderFirstLoad();
+  await act(async () => {
+    container
+      .querySelector(".vk-formats-switch")
+      ?.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    await loadFormatPanes();
+  });
   return container;
 }
 
@@ -86,7 +99,31 @@ describe("FormatsDemo", () => {
     expect(tabs(container)[0]?.getAttribute("aria-selected")).toBe("true");
   });
 
-  it("server-renders every pane with the adapter's real output and its file name", async () => {
+  it("server-renders only the open pane, with a hidden copy of the tallest one holding the box height", async () => {
+    const container = await renderFirstLoad();
+    const [open, ...closed] = panels(container);
+    expect(open?.querySelector("figcaption")?.textContent).toBe(
+      FORMAT_SAMPLES[SUPPORTED_FORMAT_IDS[0] ?? "i18next-json"].file,
+    );
+    for (const panel of closed) expect(panel.childElementCount).toBe(0);
+    const sizer = container.querySelector(".vk-formats-sizer");
+    expect(sizer?.getAttribute("aria-hidden")).toBe("true");
+    expect(sizer?.hasAttribute("inert")).toBe(true);
+    expect(sizer?.querySelector("figcaption")?.textContent).toBe(
+      FORMAT_SAMPLES[tallestFormat()].file,
+    );
+    expect(sizer?.querySelector("[id], [tabindex]")).toBeNull();
+    expect(FLAT_CSS).toContain(".vk-formats-sizer { visibility: hidden; }");
+    expect(FLAT_CSS).toMatch(
+      /\.vk-formats-panes > \[role="tabpanel"\], \.vk-formats-sizer \{ grid-area: 1 \/ 1;/,
+    );
+  });
+
+  it("picks the pane that shows the most rows, then the widest line, as the height to hold", () => {
+    expect(tallestFormat()).toBe("xliff");
+  });
+
+  it("loads every other pane with the adapter's real output and its file name on first intent", async () => {
     const container = await render();
     const all = panels(container);
     expect(all).toHaveLength(SUPPORTED_FORMAT_IDS.length);
@@ -109,7 +146,9 @@ describe("FormatsDemo", () => {
       expect(panel.hasAttribute("inert")).toBe(true);
       expect(panel.dataset.active).toBe("false");
     }
-    expect(rule('.vk-formats-panes > [role="tabpanel"]')).toContain("grid-area: 1 / 1;");
+    expect(FLAT_CSS).toMatch(
+      /\.vk-formats-panes > \[role="tabpanel"\], \.vk-formats-sizer \{ grid-area: 1 \/ 1;/,
+    );
     expect(rule('.vk-formats-panes > [data-active="false"]')).toContain("visibility: hidden;");
     expect(FLAT_CSS).not.toMatch(
       /\.vk-formats-panes > \[data-active="false"\] \{[^}]*display: none/,

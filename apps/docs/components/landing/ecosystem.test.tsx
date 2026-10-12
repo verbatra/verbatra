@@ -79,7 +79,8 @@ describe("Ecosystem", () => {
   it("reuses the real format switcher with one tab per supported format", () => {
     const tabs = Array.from(root.querySelectorAll("[role='tab']")).map((tab) => tab.textContent);
     expect(tabs).toEqual(SUPPORTED_FORMAT_IDS.map((id) => FORMAT_DISPLAY[id].label));
-    expect(root.querySelectorAll(".vk-formats-file")).toHaveLength(SUPPORTED_FORMAT_IDS.length);
+    expect(root.querySelectorAll("[role='tabpanel'] .vk-formats-file")).toHaveLength(1);
+    expect(root.querySelectorAll(".vk-formats-sizer .vk-formats-file")).toHaveLength(1);
   });
 
   it("links the providers, formats and custom adapter pages", () => {

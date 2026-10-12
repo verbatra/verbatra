@@ -1578,9 +1578,14 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   display: grid;
 }
 
-.vk-formats-panes > [role="tabpanel"] {
+.vk-formats-panes > [role="tabpanel"],
+.vk-formats-sizer {
   grid-area: 1 / 1;
   min-width: 0;
+}
+
+.vk-formats-sizer {
+  visibility: hidden;
 }
 
 .vk-formats-panes > [data-active="false"] {

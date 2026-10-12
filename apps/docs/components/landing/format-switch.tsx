@@ -1,12 +1,25 @@
 "use client";
 
-import { type ReactNode, useState } from "react";
+import type { SupportedFormat } from "@verbatra/sdk";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { TabList, tabPanelProps } from "@/components/ui/tabs";
 import { trackUmamiEvent } from "@/lib/umami";
 
 export const FORMAT_SWITCH_ID = "formats";
 
-export type FormatSwitchTab = { id: string; label: string; pane: ReactNode };
+export type FormatSwitchTab = { id: SupportedFormat; label: string };
+
+type PaneModule = typeof import("./format-pane");
+
+let panes: Promise<PaneModule> | undefined;
+
+export function loadFormatPanes(): Promise<PaneModule> {
+  panes ??= import("./format-pane").catch((error: unknown) => {
+    panes = undefined;
+    throw error;
+  });
+  return panes;
+}
 
 export type FormatSwitchFramework = {
   key: string;
@@ -21,15 +34,48 @@ export function FormatSwitch({
   formats,
   frameworks,
   labels,
+  initialPane,
+  sizer,
 }: {
   formats: ReadonlyArray<FormatSwitchTab>;
+  initialPane: ReactNode;
+  sizer: ReactNode;
   frameworks: ReadonlyArray<FormatSwitchFramework>;
   labels: FormatSwitchLabels;
 }): ReactNode {
-  const [active, setActive] = useState(formats[0]?.id ?? "");
+  const [active, setActive] = useState<string>(formats[0]?.id ?? "");
   const [framework, setFramework] = useState<string | undefined>(undefined);
+  const [paneModule, setPaneModule] = useState<PaneModule | null>(null);
+  const initialId = formats[0]?.id;
+
+  const switchRef = useRef<HTMLDivElement>(null);
+
+  function warm() {
+    if (paneModule) return;
+    loadFormatPanes().then(setPaneModule, () => undefined);
+  }
+
+  useEffect(() => {
+    const node = switchRef.current;
+    if (!node || paneModule) return;
+    const load = () => {
+      loadFormatPanes().then(setPaneModule, () => undefined);
+    };
+    node.addEventListener("pointerenter", load);
+    node.addEventListener("focusin", load);
+    return () => {
+      node.removeEventListener("pointerenter", load);
+      node.removeEventListener("focusin", load);
+    };
+  }, [paneModule]);
+
+  function pane(id: SupportedFormat): ReactNode {
+    if (id === initialId) return initialPane;
+    return paneModule ? <paneModule.FormatPane id={id} /> : null;
+  }
 
   function selectFormat(id: string) {
+    warm();
     setFramework(undefined);
     if (id === active) return;
     setActive(id);
@@ -37,6 +83,7 @@ export function FormatSwitch({
   }
 
   function selectFramework(chip: FormatSwitchFramework) {
+    warm();
     if (chip.key === framework) return;
     setFramework(chip.key);
     setActive(chip.format);
@@ -48,7 +95,7 @@ export function FormatSwitch({
   }
 
   return (
-    <div className="vk-formats-switch">
+    <div ref={switchRef} className="vk-formats-switch">
       <div className="vk-formats-chips vk-edge-fade">
         <ul
           // biome-ignore lint/a11y/noRedundantRoles: Safari drops list semantics from a list-style: none list
@@ -83,13 +130,16 @@ export function FormatSwitch({
         />
       </div>
       <div className="vk-formats-panes">
+        <div aria-hidden="true" inert className="vk-formats-sizer">
+          {sizer}
+        </div>
         {formats.map((format) => (
           <div
             key={format.id}
             {...tabPanelProps(FORMAT_SWITCH_ID, format.id, active)}
             className="vk-formats-pane"
           >
-            {format.pane}
+            {pane(format.id)}
           </div>
         ))}
       </div>
