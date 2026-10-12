@@ -575,6 +575,12 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
   explicitly. Every localized layout and page calls `setRequestLocale` itself, since they render in
   parallel (`app/[lang]/request-locale.test.ts`). `components/landing/islands.test.tsx` pins
   the import rules. The Umami tracker loads with `lazyOnload`.
+- Nothing a hydrated page asks for may race the first paint, since Lighthouse's simulation counts
+  every request that starts before the observed largest paint: island chunks, `/api/stats`
+  (`useLiveStats`) and every link prefetch wait for `afterFirstContentfulPaint`. Links go through
+  `useLinkPrefetch` (`lib/use-painted.ts`, `false` until that paint, then the link's own choice) in
+  `FrameworkLink` (`lib/framework-provider.tsx`) and `TrackedLink`, and the header wordmark never
+  prefetches the home page it sits on.
 - `experimental.turbopackChunking` (`minChunkSize` 200000, `requestCost` 1000000 in
   `next.config.mjs`) merges client chunks site-wide on purpose. Scoping it to the landing through
   `priorityRoutes` changed no chunk with Next 16.3.8 (not even `/./`), and the merge helps the docs

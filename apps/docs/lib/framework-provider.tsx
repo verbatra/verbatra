@@ -6,6 +6,7 @@ import NextLink from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import type { ComponentProps, ReactNode } from "react";
 import { i18n } from "@/lib/i18n";
+import { useLinkPrefetch } from "@/lib/use-painted";
 
 const DEFAULT_LOCALE_PREFIX = `/${i18n.defaultLanguage}`;
 
@@ -19,7 +20,7 @@ function useVisiblePathname(): string {
 }
 
 function FrameworkLink({ href, prefetch, ...props }: ComponentProps<"a"> & { prefetch?: boolean }) {
-  return <NextLink {...props} href={href ?? "#"} prefetch={prefetch} />;
+  return <NextLink {...props} href={href ?? "#"} prefetch={useLinkPrefetch(prefetch)} />;
 }
 
 function toDimension(value: string | number | undefined): number | undefined {

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { ComponentProps, MouseEvent, ReactNode } from "react";
 import { trackUmamiEvent, type UmamiEvent } from "@/lib/umami";
+import { useLinkPrefetch } from "@/lib/use-painted";
 
 const MIDDLE_BUTTON = 1;
 
@@ -31,8 +32,20 @@ function trackedHandlers({ track, onClick, onAuxClick }: Tracking & AnchorHandle
 
 export type TrackedLinkProps = ComponentProps<typeof Link> & Tracking;
 
-export function TrackedLink({ track, onClick, onAuxClick, ...rest }: TrackedLinkProps): ReactNode {
-  return <Link {...rest} {...trackedHandlers({ track, onClick, onAuxClick })} />;
+export function TrackedLink({
+  track,
+  onClick,
+  onAuxClick,
+  prefetch,
+  ...rest
+}: TrackedLinkProps): ReactNode {
+  return (
+    <Link
+      {...rest}
+      prefetch={useLinkPrefetch(prefetch)}
+      {...trackedHandlers({ track, onClick, onAuxClick })}
+    />
+  );
 }
 
 export type TrackedAnchorProps = ComponentProps<"a"> & Tracking;
