@@ -51,6 +51,18 @@ describe("HighlightedCommand", () => {
     expect(link?.getAttribute("data-umami-event-location")).toBe("hero");
   });
 
+  it("never breaks a scoped package name after its slash, but still offers a break inside a path", () => {
+    const html = renderToStaticMarkup(
+      <HighlightedCommand command="npx -y -p @verbatra/cli -p @verbatra/studio verbatra studio" />,
+    );
+    expect(html).toContain('<span class="whitespace-nowrap">@verbatra/cli</span>');
+    expect(html).toContain('<span class="whitespace-nowrap">@verbatra/studio</span>');
+    expect(html).not.toContain("<wbr/>");
+    expect(renderToStaticMarkup(<HighlightedCommand command="cat docs/site/en.json" />)).toContain(
+      "<wbr/>",
+    );
+  });
+
   it("keeps the words whole without a link too", () => {
     expect(renderToStaticMarkup(<HighlightedCommand command="bun add --dev x" />)).toBe(
       '<span class="whitespace-nowrap">bun</span> <span class="whitespace-nowrap">add</span> <span class="whitespace-nowrap">--dev</span> <span class="whitespace-nowrap">x</span>',

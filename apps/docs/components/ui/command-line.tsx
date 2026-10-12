@@ -11,7 +11,10 @@ export type HighlightedCommandProps = {
   link?: CommandLineLink;
 };
 
+const SCOPED_PACKAGE = /^@[\w.-]+\/[\w.-]+$/;
+
 function Word({ word }: { word: string }): ReactNode {
+  if (SCOPED_PACKAGE.test(word)) return <span className="whitespace-nowrap">{word}</span>;
   return word.split(/(?<=[/.])(?=\w)/).map((piece, index) => (
     <Fragment key={`${index}-${piece}`}>
       {index > 0 ? <wbr /> : null}
