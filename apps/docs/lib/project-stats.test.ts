@@ -1,11 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  displayableStats,
   fetchGitHubStars,
   fetchProjectStats,
   fetchWeeklyDownloads,
   GITHUB_REPO_API_URL,
   loadProjectStats,
   NPM_WEEKLY_DOWNLOADS_URL,
+  STAT_DISPLAY_THRESHOLDS,
   STATS_REVALIDATE_SECONDS,
 } from "@/lib/project-stats";
 
@@ -145,6 +147,29 @@ describe("fetchProjectStats", () => {
   });
 });
 
+describe("displayableStats", () => {
+  it.each([
+    [99, null],
+    [100, 100],
+    [12_000, 12_000],
+    [null, null],
+  ])("shows %s stars as %s", (stars, shown) => {
+    expect(displayableStats({ stars, weeklyDownloads: null }).stars).toBe(shown);
+  });
+
+  it.each([
+    [499, null],
+    [500, 500],
+    [null, null],
+  ])("shows %s weekly downloads as %s", (weeklyDownloads, shown) => {
+    expect(displayableStats({ stars: null, weeklyDownloads }).weeklyDownloads).toBe(shown);
+  });
+
+  it("starts at 100 stars and 500 weekly downloads", () => {
+    expect(STAT_DISPLAY_THRESHOLDS).toEqual({ stars: 100, weeklyDownloads: 500 });
+  });
+});
+
 describe("loadProjectStats", () => {
   it("reads the stats with build-time caching", async () => {
     const fetcher = fetcherFor(ok);
@@ -154,6 +179,20 @@ describe("loadProjectStats", () => {
 
     expect(stats).toEqual({ stars: 1234, weeklyDownloads: 5678 });
     for (const [, init] of fetcher.mock.calls) expect(init?.cache).toBe("force-cache");
+  });
+
+  it("hides a figure below its display threshold", async () => {
+    vi.stubGlobal(
+      "fetch",
+      fetcherFor({
+        [GITHUB_REPO_API_URL]: () => jsonResponse({ stargazers_count: 2 }),
+        [NPM_WEEKLY_DOWNLOADS_URL]: () => jsonResponse({ downloads: 62 }),
+      }),
+    );
+    const stats = await loadProjectStats();
+    vi.unstubAllGlobals();
+
+    expect(stats).toEqual({ stars: null, weeklyDownloads: null });
   });
 });
 

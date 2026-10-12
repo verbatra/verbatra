@@ -1,13 +1,13 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
-import { GITHUB_URL, NPM_CLI } from "@/components/landing/links";
+import { GITHUB_URL, LICENSE_URL, NPM_CLI } from "@/components/landing/links";
 import { LiveStatValue } from "@/components/landing/live-stat-value";
 import { TrackedLink } from "@/components/ui/tracked-link";
 import { formatCompactNumber } from "@/lib/compact-number";
 import { type Locale, localizedPath } from "@/lib/i18n";
 import { MACHINE_PROVIDER_IDS } from "@/lib/landing-facts";
 import { PROVIDER_DISPLAY } from "@/lib/landing-providers";
-import { loadProjectStats, type ProjectStats } from "@/lib/project-stats";
+import { displayableStats, loadProjectStats, type ProjectStats } from "@/lib/project-stats";
 
 export const PROOF_STRIP_PROVIDERS: ReadonlyArray<string> = MACHINE_PROVIDER_IDS.map(
   (id) => PROVIDER_DISPLAY[id].label,
@@ -48,14 +48,77 @@ function OutboundStat({
   );
 }
 
+export const PROOF_STRIP_SLOTS = 3;
+
+type FactKey = "providers" | "formats" | "license";
+
+function FactItem({ fact, children }: { fact: FactKey; children: ReactNode }): ReactNode {
+  return (
+    <li className="vk-proof-strip-item vk-proof-strip-fact" data-fact={fact}>
+      {children}
+    </li>
+  );
+}
+
+function factItems(t: (key: FactKey) => string, locale: Locale): ReadonlyArray<ReactNode> {
+  return [
+    <FactItem key="providers" fact="providers">
+      <TrackedLink
+        href={localizedPath(locale, "/docs/providers")}
+        className="vk-proof-strip-link"
+        track={{ name: "click-cta", data: { location: "proof-strip", target: "providers" } }}
+      >
+        <span className="vk-proof-strip-value">{PROOF_STRIP_PROVIDERS.join(", ")}</span>{" "}
+        <span className="vk-proof-strip-label">{t("providers")}</span>
+      </TrackedLink>
+    </FactItem>,
+    <FactItem key="formats" fact="formats">
+      <TrackedLink
+        href={localizedPath(locale, "/docs/formats")}
+        className="vk-proof-strip-link"
+        track={{ name: "click-cta", data: { location: "proof-strip", target: "formats" } }}
+      >
+        <span className="vk-proof-strip-value">{t("formats")}</span>
+      </TrackedLink>
+    </FactItem>,
+    <FactItem key="license" fact="license">
+      <a
+        href={LICENSE_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="vk-proof-strip-link"
+        data-umami-event="outbound-link"
+        data-umami-event-target="license"
+        data-umami-event-location="proof-strip"
+      >
+        <span className="vk-proof-strip-value">{t("license")}</span>
+      </a>
+    </FactItem>,
+  ];
+}
+
 export async function ProofStrip({ stats }: { stats?: ProjectStats } = {}): Promise<ReactNode> {
   const t = await getTranslations("landing.stats");
   const locale = (await getLocale()) as Locale;
-  const { stars, weeklyDownloads } = stats ?? (await loadProjectStats());
-  const items: ReadonlyArray<StatItem> = [
+  const { stars, weeklyDownloads } = displayableStats(stats ?? (await loadProjectStats()));
+  const figures: ReadonlyArray<StatItem> = [
     { key: "stars", value: stars, href: GITHUB_URL },
     { key: "downloads", value: weeklyDownloads, href: NPM_CLI },
   ];
+  const shown = figures.flatMap((item) =>
+    item.value === null
+      ? []
+      : [
+          <OutboundStat
+            key={item.key}
+            item={item}
+            value={formatCompactNumber(item.value, locale)}
+            label={t(item.key)}
+            locale={locale}
+          />,
+        ],
+  );
+  const slots = [...shown, ...factItems(t, locale)].slice(0, PROOF_STRIP_SLOTS);
 
   return (
     <section aria-label={t("label")} className="vk-proof-strip vk-w-wide mx-auto w-full">
@@ -64,27 +127,7 @@ export async function ProofStrip({ stats }: { stats?: ProjectStats } = {}): Prom
         role="list"
         className="vk-proof-strip-list"
       >
-        {items.map((item) =>
-          item.value === null ? null : (
-            <OutboundStat
-              key={item.key}
-              item={item}
-              value={formatCompactNumber(item.value, locale)}
-              label={t(item.key)}
-              locale={locale}
-            />
-          ),
-        )}
-        <li className="vk-proof-strip-item vk-proof-strip-providers">
-          <TrackedLink
-            href={localizedPath(locale, "/docs/providers")}
-            className="vk-proof-strip-link"
-            track={{ name: "click-cta", data: { location: "proof-strip", target: "providers" } }}
-          >
-            <span className="vk-proof-strip-value">{PROOF_STRIP_PROVIDERS.join(", ")}</span>{" "}
-            <span className="vk-proof-strip-label">{t("providers")}</span>
-          </TrackedLink>
-        </li>
+        {slots}
       </ul>
     </section>
   );

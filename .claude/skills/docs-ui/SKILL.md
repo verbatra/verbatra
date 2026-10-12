@@ -238,7 +238,9 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   `page.tsx`. The files: `hero.tsx` (the `h1`, two buttons, the `CommandPanel` install box and the
   `HeroTerminal` island), `proof-strip.tsx` (stars, npm weekly downloads and the providers, from
   `lib/project-stats.ts`, read at build time so the page stays static, then refreshed in place by
-`LiveStatValue` from `/api/stats`; a failed build-time fetch hides the number), `problem.tsx` (`#problem`, a real drift
+`LiveStatValue` from `/api/stats`; a failed fetch, or a figure under `STAT_DISPLAY_THRESHOLDS`,
+hides the number, and the strip's three slots fill with the providers, the formats and the MIT
+license, in that order, after the figures it shows), `problem.tsx` (`#problem`, a real drift
   artifact from `lib/landing-problem.ts`), `steps.tsx` (`#how-it-works`: check, translate and CI,
   each with a server-highlighted snippet from `LANDING_STEP_CODE` in `lib/landing-code.ts`; the
   HowTo structured data and the docs home `DocsHomeSteps` read the same `landing.steps.items`),

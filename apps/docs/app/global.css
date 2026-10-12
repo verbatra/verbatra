@@ -2514,7 +2514,7 @@ html.light {
   color: var(--text-strong);
 }
 
-.vk-proof-strip-providers .vk-proof-strip-value {
+.vk-proof-strip-fact .vk-proof-strip-value {
   display: inline;
   text-align: start;
   font-family: var(--font-sans);
@@ -2546,7 +2546,7 @@ html.light {
     border-inline-start: 1px solid var(--border-default);
   }
 
-  .vk-proof-strip-providers {
+  .vk-proof-strip-fact[data-fact="providers"] {
     flex: 1;
   }
 }

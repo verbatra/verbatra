@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { GITHUB_URL, NPM_CLI } from "@/components/landing/links";
+import { GITHUB_URL, LICENSE_URL, NPM_CLI } from "@/components/landing/links";
 import { MACHINE_PROVIDER_IDS } from "@/lib/landing-facts";
 import type { ProjectStats } from "@/lib/project-stats";
 import messages from "@/messages/en.json";
@@ -40,7 +40,8 @@ vi.mock("@/lib/project-stats", async (importOriginal) => ({
   },
 }));
 
-const { ProofStrip, PROOF_STRIP_PROVIDERS } = await import("./proof-strip");
+const { ProofStrip, PROOF_STRIP_PROVIDERS, PROOF_STRIP_SLOTS } = await import("./proof-strip");
+const { STAT_DISPLAY_THRESHOLDS } = await import("@/lib/project-stats");
 
 const labels = messages.landing.stats;
 
@@ -48,6 +49,10 @@ async function render(stats?: ProjectStats, locale = "en"): Promise<Document> {
   page.locale = locale;
   const element = await ProofStrip(stats ? { stats } : undefined);
   return new DOMParser().parseFromString(renderToStaticMarkup(element), "text/html");
+}
+
+function facts(doc: Document): (string | null)[] {
+  return Array.from(doc.querySelectorAll("[data-fact]"), (node) => node.getAttribute("data-fact"));
 }
 
 function items(doc: Document): Element[] {
@@ -67,7 +72,7 @@ describe("ProofStrip", () => {
   });
 
   it("links each figure to its source and the providers to their docs page", async () => {
-    const links = (await render({ stars: 1, weeklyDownloads: 2 })).querySelectorAll("a");
+    const links = (await render({ stars: 1000, weeklyDownloads: 2000 })).querySelectorAll("a");
     expect(Array.from(links, (link) => link.getAttribute("href"))).toEqual([
       GITHUB_URL,
       NPM_CLI,
@@ -77,17 +82,43 @@ describe("ProofStrip", () => {
     expect(links[1]?.getAttribute("rel")).toBe("noopener noreferrer");
   });
 
-  it("drops a figure it could not fetch, leaving no empty item behind", async () => {
-    const doc = await render({ stars: null, weeklyDownloads: 42 });
-    expect(items(doc)).toHaveLength(2);
+  it("drops a figure it could not fetch and fills its slot with the formats", async () => {
+    const doc = await render({ stars: null, weeklyDownloads: 4200 });
+    expect(items(doc)).toHaveLength(PROOF_STRIP_SLOTS);
     expect(doc.body.textContent).not.toContain(labels.stars);
+    expect(facts(doc)).toEqual(["providers", "formats"]);
     expect(doc.querySelectorAll(".vk-proof-strip-item:empty")).toHaveLength(0);
   });
 
-  it("still shows the providers when both figures are missing", async () => {
+  it("shows the providers, the formats and the license when both figures are missing", async () => {
     const doc = await render({ stars: null, weeklyDownloads: null });
-    expect(items(doc)).toHaveLength(1);
-    expect(items(doc)[0]?.classList.contains("vk-proof-strip-providers")).toBe(true);
+    expect(items(doc)).toHaveLength(PROOF_STRIP_SLOTS);
+    expect(facts(doc)).toEqual(["providers", "formats", "license"]);
+    expect(doc.querySelector('[data-fact="formats"] a')?.getAttribute("href")).toBe(
+      "/docs/formats",
+    );
+    expect(doc.querySelector('[data-fact="formats"]')?.textContent).toBe(labels.formats);
+    expect(doc.querySelector('[data-fact="license"] a')?.getAttribute("href")).toBe(LICENSE_URL);
+    expect(doc.querySelector('[data-fact="license"]')?.textContent).toBe(labels.license);
+  });
+
+  it.each([
+    [99, 499, []],
+    [100, 499, ["stars"]],
+    [99, 500, ["downloads"]],
+    [100, 500, ["stars", "downloads"]],
+  ])("with %d stars and %d downloads shows the figures %j", async (stars, downloads, shown) => {
+    const doc = await render({ stars, weeklyDownloads: downloads });
+    const figures = Array.from(doc.querySelectorAll("[data-live-stat]"), (node) =>
+      node.getAttribute("data-live-stat"),
+    );
+    expect(figures).toEqual(shown);
+    expect(items(doc)).toHaveLength(PROOF_STRIP_SLOTS);
+    expect(facts(doc)[0]).toBe("providers");
+  });
+
+  it("holds the display thresholds as typed constants", () => {
+    expect(STAT_DISPLAY_THRESHOLDS).toEqual({ stars: 100, weeklyDownloads: 500 });
   });
 
   it("names every machine provider and never spells out how many there are", async () => {
@@ -103,7 +134,7 @@ describe("ProofStrip", () => {
     expect(items(doc)[0]?.querySelector(".vk-proof-strip-value")?.textContent).toBe(
       new Intl.NumberFormat("de", { notation: "compact", maximumFractionDigits: 1 }).format(1500),
     );
-    expect(doc.querySelector(".vk-proof-strip-providers a")?.getAttribute("href")).toBe(
+    expect(doc.querySelector('[data-fact="providers"] a')?.getAttribute("href")).toBe(
       "/de/docs/providers",
     );
   });

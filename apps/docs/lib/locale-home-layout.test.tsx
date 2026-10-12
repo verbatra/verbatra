@@ -6,10 +6,15 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("next-intl/server", () => ({
   getTranslations: async () => (key: string) => key,
 }));
-vi.mock("@/lib/project-stats", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/lib/project-stats")>()),
-  loadProjectStats: async () => ({ stars: 4321, weeklyDownloads: null }),
-}));
+const fetched = vi.hoisted(() => ({ stars: 4321 as number | null }));
+vi.mock("@/lib/project-stats", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/project-stats")>();
+  return {
+    ...actual,
+    loadProjectStats: async () =>
+      actual.displayableStats({ stars: fetched.stars, weeklyDownloads: null }),
+  };
+});
 vi.mock("@/components/site-header", async () => {
   const { useHomeNav } = await import("@/components/home-nav");
   return {
@@ -58,5 +63,15 @@ describe("LocaleHomeLayout: the landing nav", () => {
   it("fetches the star count on the server and hands it to the header, compacted", async () => {
     const doc = await renderLayout();
     expect(doc.querySelector("header")?.getAttribute("data-stars")).toBe("4.3K");
+  });
+
+  it.each([
+    [99, null],
+    [100, "100"],
+  ])("with %d stars hands the header %s", async (stars, shown) => {
+    fetched.stars = stars;
+    const doc = await renderLayout();
+    fetched.stars = 4321;
+    expect(doc.querySelector("header")?.getAttribute("data-stars")).toBe(shown);
   });
 });
