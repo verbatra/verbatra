@@ -2,7 +2,11 @@ import type { MachineProviderId } from "./landing-facts";
 
 export type ProviderKind = "llm" | "machine" | "local";
 
-export type ProviderDisplay = { readonly label: string; readonly kind: ProviderKind };
+export type ProviderDisplay = {
+  readonly label: string;
+  readonly kind: ProviderKind;
+  readonly shortLabel?: string;
+};
 
 export const PROVIDER_DISPLAY: Readonly<Record<MachineProviderId, ProviderDisplay>> = {
   anthropic: { label: "Anthropic", kind: "llm" },
@@ -10,9 +14,18 @@ export const PROVIDER_DISPLAY: Readonly<Record<MachineProviderId, ProviderDispla
   gemini: { label: "Gemini", kind: "llm" },
   deepl: { label: "DeepL", kind: "machine" },
   "google-translate": { label: "Google Cloud Translation", kind: "machine" },
-  "openai-compatible": { label: "Ollama, LM Studio, vLLM", kind: "local" },
+  "openai-compatible": {
+    label: "Ollama, LM Studio, vLLM",
+    kind: "local",
+    shortLabel: "OpenAI-compatible",
+  },
   libretranslate: { label: "LibreTranslate", kind: "local" },
 };
+
+export function providerShortLabel(id: MachineProviderId): string {
+  const display = PROVIDER_DISPLAY[id];
+  return display.shortLabel ?? display.label;
+}
 
 export const PROVIDER_KINDS: ReadonlyArray<ProviderKind> = ["llm", "machine", "local"];
 

@@ -40,7 +40,9 @@ vi.mock("@/lib/project-stats", async (importOriginal) => ({
   },
 }));
 
-const { ProofStrip, PROOF_STRIP_PROVIDERS, PROOF_STRIP_SLOTS } = await import("./proof-strip");
+const { ProofStrip, PROOF_STRIP_PROVIDERS, PROOF_STRIP_SLOTS, providerList } = await import(
+  "./proof-strip"
+);
 const { STAT_DISPLAY_THRESHOLDS } = await import("@/lib/project-stats");
 
 const labels = messages.landing.stats;
@@ -67,7 +69,7 @@ describe("ProofStrip", () => {
     expect(items(doc).map((item) => item.textContent)).toEqual([
       `1.2K ${labels.stars}`,
       `56.8K ${labels.downloads}`,
-      `${PROOF_STRIP_PROVIDERS.join(", ")} ${labels.providers}`,
+      `${providerList("en")} ${labels.providers}`,
     ]);
   });
 
@@ -115,6 +117,20 @@ describe("ProofStrip", () => {
     expect(figures).toEqual(shown);
     expect(items(doc)).toHaveLength(PROOF_STRIP_SLOTS);
     expect(facts(doc)[0]).toBe("providers");
+  });
+
+  it("names the OpenAI-compatible provider by its short label in the strip", () => {
+    expect(PROOF_STRIP_PROVIDERS).toContain("OpenAI-compatible");
+    expect(PROOF_STRIP_PROVIDERS.join(" ")).not.toContain("Ollama");
+  });
+
+  it("joins the providers the way the page locale writes a list", async () => {
+    expect(providerList("en")).toMatch(/, and LibreTranslate$/);
+    expect(providerList("de")).toMatch(/ und LibreTranslate$/);
+    const doc = await render({ stars: null, weeklyDownloads: null }, "fr");
+    expect(doc.querySelector('[data-fact="providers"] .vk-proof-strip-value')?.textContent).toBe(
+      providerList("fr"),
+    );
   });
 
   it("holds the display thresholds as typed constants", () => {

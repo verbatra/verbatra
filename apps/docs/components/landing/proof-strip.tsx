@@ -4,14 +4,17 @@ import { GITHUB_URL, LICENSE_URL, NPM_CLI } from "@/components/landing/links";
 import { LiveStatValue } from "@/components/landing/live-stat-value";
 import { TrackedLink } from "@/components/ui/tracked-link";
 import { formatCompactNumber } from "@/lib/compact-number";
-import { type Locale, localizedPath } from "@/lib/i18n";
+import { type Locale, localizedPath, toLocale } from "@/lib/i18n";
 import { MACHINE_PROVIDER_IDS } from "@/lib/landing-facts";
-import { PROVIDER_DISPLAY } from "@/lib/landing-providers";
+import { providerShortLabel } from "@/lib/landing-providers";
 import { displayableStats, loadProjectStats, type ProjectStats } from "@/lib/project-stats";
 
-export const PROOF_STRIP_PROVIDERS: ReadonlyArray<string> = MACHINE_PROVIDER_IDS.map(
-  (id) => PROVIDER_DISPLAY[id].label,
-);
+export const PROOF_STRIP_PROVIDERS: ReadonlyArray<string> =
+  MACHINE_PROVIDER_IDS.map(providerShortLabel);
+
+export function providerList(locale: string): string {
+  return new Intl.ListFormat(locale, { type: "conjunction" }).format(PROOF_STRIP_PROVIDERS);
+}
 
 type StatItem = {
   readonly key: "stars" | "downloads";
@@ -68,7 +71,7 @@ function factItems(t: (key: FactKey) => string, locale: Locale): ReadonlyArray<R
         className="vk-proof-strip-link"
         track={{ name: "click-cta", data: { location: "proof-strip", target: "providers" } }}
       >
-        <span className="vk-proof-strip-value">{PROOF_STRIP_PROVIDERS.join(", ")}</span>{" "}
+        <span className="vk-proof-strip-value">{providerList(locale)}</span>{" "}
         <span className="vk-proof-strip-label">{t("providers")}</span>
       </TrackedLink>
     </FactItem>,
@@ -99,7 +102,7 @@ function factItems(t: (key: FactKey) => string, locale: Locale): ReadonlyArray<R
 
 export async function ProofStrip({ stats }: { stats?: ProjectStats } = {}): Promise<ReactNode> {
   const t = await getTranslations("landing.stats");
-  const locale = (await getLocale()) as Locale;
+  const locale = toLocale(await getLocale());
   const { stars, weeklyDownloads } = displayableStats(stats ?? (await loadProjectStats()));
   const figures: ReadonlyArray<StatItem> = [
     { key: "stars", value: stars, href: GITHUB_URL },
