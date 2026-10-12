@@ -33,6 +33,18 @@ function tile(key: string): HTMLElement {
 }
 
 describe("Bento", () => {
+  it("lets the keyboard reach and scroll every sideways-scrolling block, each named and end-faded", () => {
+    const blocks = [...root.querySelectorAll<HTMLElement>(".vk-scroll-fade")];
+    expect(blocks.length).toBeGreaterThan(0);
+    for (const block of blocks) {
+      expect(block.tagName).toBe("SECTION");
+      expect(block.getAttribute("tabindex")).toBe("0");
+      const name = root.querySelector(`#${block.getAttribute("aria-labelledby")}`)?.textContent;
+      expect(name?.trim()).not.toBe("");
+    }
+    expect(root.querySelector(".overflow-x-auto")).toBeNull();
+  });
+
   it("renders every tile with its en.json title and body", () => {
     expect(root.querySelector("h2#features-heading")?.textContent).toBe(en.landing.bento.heading);
     for (const { key } of BENTO_TILES) {

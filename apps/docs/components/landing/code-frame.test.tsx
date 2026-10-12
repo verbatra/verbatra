@@ -75,12 +75,18 @@ describe("CodeFrame", () => {
     expect(button?.textContent).toBe(en.landing.install.copied);
   });
 
-  it("fades the end edge of a long line like the terminal does, instead of clipping it", () => {
+  it("fades the end edge of a long line like the terminal does, in a neutral shade, never a violet bar", () => {
     const rules = docsStylesheetRules();
-    const frame = rulesFor(rules, ".vk-code-frame-body pre.shiki")[0]?.declarations;
-    const terminal = rulesFor(rules, ".vk-terminal-scroll")[0]?.declarations;
-    expect(frame?.["overflow-x"]).toBe("auto");
-    expect(frame?.background).toContain("local");
-    expect(frame?.background).toBe(terminal?.background);
+    const frame = rulesFor(rules, ".vk-code-frame-body pre.shiki");
+    const terminal = rulesFor(rules, ".vk-terminal-scroll");
+    const base = frame.find((rule) => rule.media === "")?.declarations;
+    expect(base?.["overflow-x"]).toBe("auto");
+    expect(base?.background).toContain("var(--scroll-shade)");
+    expect(base?.background).not.toContain("--v-glow");
+    expect(frame.map((rule) => rule.declarations)).toEqual(
+      terminal.map((rule) => rule.declarations),
+    );
+    const timeline = frame.find((rule) => rule.declarations["animation-timeline"]);
+    expect(timeline?.declarations["mask-image"]).toContain("var(--vk-edge-fade)");
   });
 });

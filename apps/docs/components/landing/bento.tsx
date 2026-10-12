@@ -38,14 +38,25 @@ const PANEL_FRAME = "min-w-0 overflow-hidden rounded-xl border border-fd-border 
 const PANEL_CAPTION =
   "flex min-h-10 items-center border-b border-fd-border px-4 py-1.5 font-mono text-xs text-(--text-muted)";
 
-const MONO_BODY = "vk-mono-sm overflow-x-auto py-3 font-mono leading-6";
+const MONO_BODY = "vk-scroll-fade vk-mono-sm py-3 font-mono leading-6";
+
+const captionId = (artifact: string) => `bento-${artifact}-caption`;
 
 function IntegrityRun(): ReactNode {
   const [command, ...output] = GATE_RUN_LINES;
   return (
     <figure className={`${PANEL_FRAME} m-0`}>
-      <figcaption className={PANEL_CAPTION}>{HERO_TERMINAL_TITLE}</figcaption>
-      <div lang="en" data-artifact="integrity" className={MONO_BODY}>
+      <figcaption id={captionId("integrity")} className={PANEL_CAPTION}>
+        {HERO_TERMINAL_TITLE}
+      </figcaption>
+      <section
+        lang="en"
+        data-artifact="integrity"
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: the block scrolls sideways, so the keyboard needs a stop to scroll it
+        tabIndex={0}
+        aria-labelledby={captionId("integrity")}
+        className={MONO_BODY}
+      >
         <div className="px-4 whitespace-pre text-(--text-strong)">
           <span aria-hidden="true" className="text-(--accent)">
             {"$ "}
@@ -57,7 +68,7 @@ function IntegrityRun(): ReactNode {
             <PlaceholderText text={line} />
           </div>
         ))}
-      </div>
+      </section>
     </figure>
   );
 }
@@ -77,8 +88,16 @@ const DIFF_MARK_CLASS: Readonly<Record<BentoDiffLine["sign"], string>> = {
 function ProviderSwitch(): ReactNode {
   return (
     <figure data-artifact="providers" className={`${PANEL_FRAME} m-0`}>
-      <figcaption className={PANEL_CAPTION}>verbatra.config.ts</figcaption>
-      <div lang="en" className={MONO_BODY}>
+      <figcaption id={captionId("providers")} className={PANEL_CAPTION}>
+        verbatra.config.ts
+      </figcaption>
+      <section
+        lang="en"
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: the block scrolls sideways, so the keyboard needs a stop to scroll it
+        tabIndex={0}
+        aria-labelledby={captionId("providers")}
+        className={MONO_BODY}
+      >
         {BENTO_PROVIDER_DIFF.map((line) => (
           <div
             key={`${line.sign}${line.text}`}
@@ -94,7 +113,7 @@ function ProviderSwitch(): ReactNode {
             {line.text}
           </div>
         ))}
-      </div>
+      </section>
     </figure>
   );
 }
@@ -110,15 +129,25 @@ function FormatKeyLines(): ReactNode {
     >
       {BENTO_FORMAT_LINES.map((entry) => (
         <li key={entry.format} data-format={entry.format} className="grid min-w-0 gap-1 px-4 py-3">
-          <span className="flex min-w-0 items-baseline justify-between gap-3 text-xs">
+          <span
+            id={captionId(`format-${entry.format}`)}
+            className="flex min-w-0 items-baseline justify-between gap-3 text-xs"
+          >
             <span className="shrink-0 text-(--text-strong)">
               {FORMAT_DISPLAY[entry.format].label}
             </span>
             <span className="min-w-0 truncate font-mono text-(--text-faint)">{entry.file}</span>
           </span>
-          <code className="vk-mono-sm block overflow-x-auto whitespace-pre font-mono text-(--text-body)">
-            <SampleLine line={entry.line} placeholder={entry.placeholder} />
-          </code>
+          <section
+            // biome-ignore lint/a11y/noNoninteractiveTabindex: the block scrolls sideways, so the keyboard needs a stop to scroll it
+            tabIndex={0}
+            aria-labelledby={captionId(`format-${entry.format}`)}
+            className="vk-scroll-fade"
+          >
+            <code className="vk-mono-sm block whitespace-pre font-mono text-(--text-body)">
+              <SampleLine line={entry.line} placeholder={entry.placeholder} />
+            </code>
+          </section>
         </li>
       ))}
     </ul>

@@ -218,6 +218,7 @@ samp {
   --accent-fill-fg: hsl(258 60% 98%);
   --focus-ring: var(--v-glow);
   --surface-band: color-mix(in srgb, var(--surface-card) 40%, var(--surface-bg));
+  --scroll-shade: color-mix(in srgb, var(--text-muted) 24%, transparent);
   --surface-chrome: color-mix(in srgb, var(--surface-bg) 94%, transparent);
   --placeholder-fg: var(--accent);
   --placeholder-fill: color-mix(in srgb, var(--v-glow) 12%, transparent);
@@ -2240,7 +2241,8 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 }
 
 .vk-terminal-scroll,
-.vk-code-frame-body pre.shiki {
+.vk-code-frame-body pre.shiki,
+.vk-scroll-fade {
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scrollbar-width: thin;
@@ -2248,9 +2250,26 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   background:
     linear-gradient(to left, var(--v-void) 40%, transparent) right center / 48px 100% no-repeat
     local,
-    linear-gradient(to left, color-mix(in srgb, var(--v-glow) 28%, transparent), transparent) right
-    center / 20px 100% no-repeat scroll,
+    linear-gradient(to left, var(--scroll-shade), transparent) right center / 24px 100% no-repeat
+    scroll,
     var(--v-void);
+}
+
+.vk-scroll-fade:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+@supports (animation-timeline: scroll()) {
+  .vk-terminal-scroll,
+  .vk-code-frame-body pre.shiki,
+  .vk-scroll-fade {
+    background: var(--v-void);
+    -webkit-mask-image: linear-gradient(to left, transparent, #000 var(--vk-edge-fade));
+    mask-image: linear-gradient(to left, transparent, #000 var(--vk-edge-fade));
+    animation: vk-edge-fade linear both;
+    animation-timeline: scroll(self inline);
+  }
 }
 
 .vk-terminal-caret::after {

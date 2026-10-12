@@ -329,7 +329,7 @@ link (`landing.stats.starsFallback`, `downloadsFallback`), never an empty value;
   sample through the real adapter. The shared building blocks: `section.tsx` and
   `section-head.tsx` for structure,
   `terminal.tsx` (with a `bare` variant; by default lines never wrap, they scroll sideways inside
-  `.vk-terminal-scroll`, which fades the end edge while there is more to see; with `wrap` every line
+  `.vk-terminal-scroll`, which fades the end edge while there is more to see: a mask on the element's own inline scroll timeline, and without scroll timelines a `--scroll-shade` (neutral, never violet) over a `local` void cover; `.vk-scroll-fade` is the same rule for any other sideways-scrolling mono block, the problem panes and check output and the bento runs, diff and format lines, each a `section` with `tabIndex={0}` named by its caption through `aria-labelledby`; with `wrap` every line
   wraps through `.vk-wrap-line`, whose hanging indent is the line's own leading whitespace
   (`--wrap-lead`, set by `wrapLineStyle` in `wrap-text.tsx`) plus 2ch, and whose placeholder tokens
   (`{count}`, `(-{count})`) and hyphenated words (`up-to-date`) never break, through `WrapTokens`.

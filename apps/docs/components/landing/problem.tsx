@@ -14,13 +14,25 @@ import { SectionHead } from "./section-head";
 const MISSING_LINE_CLASS =
   "border-s-2 border-(--v-status-new) bg-[color-mix(in_srgb,var(--v-status-new)_12%,transparent)] ps-[calc(1rem-2px)]";
 
+function fileCaptionId(file: ProblemFile): string {
+  return `problem-file-${file.path.replace(/[^a-z0-9]+/gi, "-")}`;
+}
+
 function FilePane({ file, missingLabel }: { file: ProblemFile; missingLabel: string }): ReactNode {
   return (
     <figure className="m-0 min-w-0" data-file={file.path}>
-      <figcaption className="border-b border-fd-border px-4 py-2 font-mono text-xs text-(--text-muted)">
+      <figcaption
+        id={fileCaptionId(file)}
+        className="border-b border-fd-border px-4 py-2 font-mono text-xs text-(--text-muted)"
+      >
         {file.path}
       </figcaption>
-      <div className="vk-mono-sm overflow-x-auto py-3 font-mono leading-6 text-(--text-body)">
+      <section
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: the block scrolls sideways, so the keyboard needs a stop to scroll it
+        tabIndex={0}
+        aria-labelledby={fileCaptionId(file)}
+        className="vk-scroll-fade vk-mono-sm py-3 font-mono leading-6 text-(--text-body)"
+      >
         {file.lines.map((line, index) =>
           line.missing ? (
             <div
@@ -37,20 +49,25 @@ function FilePane({ file, missingLabel }: { file: ProblemFile; missingLabel: str
             </div>
           ),
         )}
-      </div>
+      </section>
     </figure>
   );
 }
 
+const CHECK_COMMAND_ID = "problem-check-command";
+
 function CheckOutput(): ReactNode {
   const [command, ...output] = PROBLEM_CHECK_LINES;
   return (
-    <div
+    <section
       lang="en"
       data-check-output
-      className="vk-mono-sm overflow-x-auto border-t border-fd-border px-4 py-3 font-mono leading-6"
+      // biome-ignore lint/a11y/noNoninteractiveTabindex: the block scrolls sideways, so the keyboard needs a stop to scroll it
+      tabIndex={0}
+      aria-labelledby={CHECK_COMMAND_ID}
+      className="vk-scroll-fade vk-mono-sm border-t border-fd-border px-4 py-3 font-mono leading-6"
     >
-      <div className="whitespace-pre text-(--text-strong)">
+      <div id={CHECK_COMMAND_ID} className="whitespace-pre text-(--text-strong)">
         <span aria-hidden="true" className="text-(--accent)">
           {"$ "}
         </span>
@@ -61,7 +78,7 @@ function CheckOutput(): ReactNode {
           {line}
         </div>
       ))}
-    </div>
+    </section>
   );
 }
 
