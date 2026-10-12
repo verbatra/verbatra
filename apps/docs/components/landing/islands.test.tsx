@@ -1,5 +1,5 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { dirname, join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const ROOT = process.cwd();
@@ -71,4 +71,61 @@ describe("the landing first load", () => {
     expect(specifiers).not.toContain("@/lib/layout.shared");
     expect(specifiers).not.toContain("@/components/site-providers");
   });
+});
+
+const REGISTRIES = ["components/landing/islands.tsx", "components/chrome-islands.tsx"];
+
+function resolveLocal(from: string, specifier: string): string | null {
+  const base = specifier.startsWith("@/")
+    ? join(ROOT, specifier.slice(2))
+    : specifier.startsWith(".")
+      ? join(ROOT, dirname(from), specifier)
+      : null;
+  if (base === null) return null;
+  const found = [".tsx", ".ts"].map((extension) => `${base}${extension}`).find(existsSync);
+  return found ? relative(ROOT, found) : null;
+}
+
+function usesTranslations(path: string, seen = new Set<string>()): boolean {
+  if (seen.has(path)) return false;
+  seen.add(path);
+  if (/\buseTranslations\(/.test(source(path))) return true;
+  return imports(path).some((specifier) => {
+    const local = resolveLocal(path, specifier);
+    return local !== null && usesTranslations(local, seen);
+  });
+}
+
+const registered = REGISTRIES.flatMap((registry) =>
+  Array.from(
+    source(registry).matchAll(
+      /export const (\w+) = (intlIsland|island)\(\s*\(\) =>\s*import\("([^"]+)"\)/g,
+    ),
+    ([, name, kind, specifier]) => ({
+      name: name ?? "",
+      intl: kind === "intlIsland",
+      module: resolveLocal(registry, specifier ?? "") ?? "",
+    }),
+  ),
+);
+
+describe("islands that translate", () => {
+  it("finds every registered island and its module", () => {
+    expect(registered.length).toBeGreaterThanOrEqual(14);
+    for (const entry of registered) expect(entry.module).not.toBe("");
+  });
+
+  it.each(registered.filter((entry) => !entry.intl))(
+    "$name is a plain island, so neither it nor anything it imports calls useTranslations",
+    ({ module }) => {
+      expect(usesTranslations(module)).toBe(false);
+    },
+  );
+
+  it.each(registered.filter((entry) => entry.intl))(
+    "$name is an intl island because its module tree calls useTranslations",
+    ({ module }) => {
+      expect(usesTranslations(module)).toBe(true);
+    },
+  );
 });
