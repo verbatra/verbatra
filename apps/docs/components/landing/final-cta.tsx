@@ -2,7 +2,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { CommandRow } from "@/components/command-row";
 import Button from "@/components/ui/button";
-import { type Locale, localizedPath } from "@/lib/i18n";
+import { localizedPath, toLocale } from "@/lib/i18n";
 import { NPM_INSTALL_COMMAND } from "@/lib/install-commands";
 
 const CLOSE_BORDER = "color-mix(in srgb, var(--accent) 16%, var(--border-default))";
@@ -10,7 +10,7 @@ const CLOSE_BORDER = "color-mix(in srgb, var(--accent) 16%, var(--border-default
 export async function FinalCta(): Promise<ReactNode> {
   const t = await getTranslations("landing.closing");
   const tInstall = await getTranslations("landing.install");
-  const locale = (await getLocale()) as Locale;
+  const locale = toLocale(await getLocale());
   return (
     <section className="vk-pad-top-sm vk-gutter vk-w-wide mx-auto w-full pb-3">
       <div

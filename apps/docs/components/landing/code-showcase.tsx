@@ -1,7 +1,7 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { TrackedLink } from "@/components/ui/tracked-link";
-import { type Locale, localizedPath } from "@/lib/i18n";
+import { localizedPath, toLocale } from "@/lib/i18n";
 import {
   LANDING_SHOWCASE_CODE,
   LANDING_SHOWCASE_TABS,
@@ -24,7 +24,7 @@ const LINK_CLASS =
 
 export async function CodeShowcase(): Promise<ReactNode> {
   const t = await getTranslations("landing.code");
-  const locale = (await getLocale()) as Locale;
+  const locale = toLocale(await getLocale());
   const tabs = await Promise.all(
     LANDING_SHOWCASE_TABS.map(async (id) => {
       const sample = LANDING_SHOWCASE_CODE[id];
