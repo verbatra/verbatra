@@ -3,7 +3,10 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { CONTRIBUTORS } from "@/lib/contributors";
+import de from "@/messages/de.json";
 import en from "@/messages/en.json";
+import es from "@/messages/es.json";
+import fr from "@/messages/fr.json";
 
 vi.mock("next-intl/server", async () => {
   const { createTranslator } = await import("next-intl");
@@ -71,5 +74,26 @@ describe("OpenSource", () => {
     expect(
       renderToStaticMarkup(<Contributors contributors={[]} title="t" ariaFor={(login) => login} />),
     ).toBe("");
+  });
+});
+
+describe("license and release labels", () => {
+  it.each([
+    ["en", en],
+    ["de", de],
+    ["es", es],
+    ["fr", fr],
+  ] as const)(
+    "name the license and the release notes the same way here and in the footer (%s)",
+    (_locale, messages) => {
+      const { footer, openSource } = messages.landing;
+      expect(footer.cols.legal.license).toBe(openSource.license);
+      expect(footer.cols.community.releases).toBe(openSource.releases);
+    },
+  );
+
+  it("writes the English license label in sentence case", () => {
+    expect(en.landing.openSource.license).toBe("MIT license");
+    expect(en.landing.footer.legalLicense).toContain("MIT license");
   });
 });

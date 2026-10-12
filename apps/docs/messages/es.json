@@ -98,7 +98,7 @@
           "title": "Comunidad",
           "codeOfConduct": "Código de conducta",
           "security": "Política de seguridad",
-          "releases": "Notas de la versión",
+          "releases": "Notas de versión",
           "contributing": "Contribuir"
         },
         "agents": {
@@ -108,7 +108,7 @@
           "aiTxt": "ai.txt (política de uso)"
         }
       },
-      "legalLicense": "Código abierto bajo la licencia MIT",
+      "legalLicense": "Código abierto con licencia MIT",
       "legalCopyright": "© 2026 Mario Kreitz",
       "githubAria": "verbatra en GitHub",
       "npmAria": "verbatra en npm"
