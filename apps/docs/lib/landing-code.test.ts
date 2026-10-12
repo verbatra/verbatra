@@ -1,0 +1,98 @@
+import { readFileSync } from "node:fs";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { check, defineConfig, loadConfig, translate } from "@verbatra/sdk";
+import { afterEach, describe, expect, it } from "vitest";
+import { NPM_INSTALL_COMMAND } from "@/lib/install-commands";
+import {
+  LANDING_CONFIG_CODE,
+  LANDING_SDK_IMPORTS,
+  LANDING_SHOWCASE_CODE,
+  LANDING_SHOWCASE_TABS,
+  LANDING_STEP_CODE,
+  LANDING_STEP_IDS,
+} from "@/lib/landing-code";
+import { PACKAGE_VERSION } from "@/lib/site";
+
+const RUN_TS = fileURLToPath(new URL("../../../packages/cli/src/run.ts", import.meta.url));
+
+const EM_DASH = String.fromCharCode(0x2014);
+
+function sdkImports(code: string): ReadonlyArray<string> {
+  return [...code.matchAll(/import \{([^}]+)\} from "@verbatra\/sdk"/g)].flatMap(([, names]) =>
+    (names ?? "").split(",").map((name) => name.trim()),
+  );
+}
+
+const samples = [...Object.values(LANDING_SHOWCASE_CODE), ...Object.values(LANDING_STEP_CODE)];
+
+let cwd: string | undefined;
+
+afterEach(async () => {
+  if (cwd) await rm(cwd, { recursive: true, force: true });
+  cwd = undefined;
+});
+
+describe("the landing code samples", () => {
+  it("has one sample per showcase tab and per step", () => {
+    expect(Object.keys(LANDING_SHOWCASE_CODE)).toEqual([...LANDING_SHOWCASE_TABS]);
+    expect(Object.keys(LANDING_STEP_CODE)).toEqual([...LANDING_STEP_IDS]);
+  });
+
+  it("imports only runtime exports the sdk has", () => {
+    const imported = new Set(samples.flatMap((sample) => sdkImports(sample.code)));
+    expect([...imported].sort()).toEqual([...LANDING_SDK_IMPORTS].sort());
+    const exports: Record<(typeof LANDING_SDK_IMPORTS)[number], unknown> = {
+      check,
+      defineConfig,
+      loadConfig,
+      translate,
+    };
+    for (const name of LANDING_SDK_IMPORTS) expect(typeof exports[name], name).toBe("function");
+  });
+
+  it("ships a config file that the sdk loads and validates", async () => {
+    cwd = await mkdtemp(join(tmpdir(), "verbatra-docs-landing-config-"));
+    await writeFile(join(cwd, "verbatra.config.ts"), LANDING_CONFIG_CODE);
+    const config = await loadConfig({ cwd });
+
+    expect(config.sourceLocale).toBe("en");
+    expect(config.targetLocales).toEqual(["de", "fr"]);
+    expect(config.provider.id).toBe("gemini");
+  });
+
+  it("pins the action to the v1 line and an exact released CLI version", () => {
+    const action = LANDING_SHOWCASE_CODE.action.code;
+    expect(action).toContain("uses: verbatra/action@v1\n");
+    expect(PACKAGE_VERSION).toMatch(/^\d+\.\d+\.\d+$/);
+    for (const code of [action, LANDING_STEP_CODE.ci.code]) {
+      expect(code).toContain(`version: ${PACKAGE_VERSION}\n`);
+      expect(code).toContain("command: check\n");
+    }
+  });
+
+  it("starts the CLI tab with the install command the rest of the site uses", () => {
+    expect(LANDING_SHOWCASE_CODE.cli.code.split("\n")[0]).toBe(NPM_INSTALL_COMMAND);
+  });
+
+  it("runs only commands the CLI registers", () => {
+    const commands = LANDING_SHOWCASE_CODE.cli.code
+      .split("\n")
+      .filter((line) => line.startsWith("npx @verbatra/cli "))
+      .map((line) => line.split(" ")[2]);
+    const registered = new Set(
+      [...readFileSync(RUN_TS, "utf8").matchAll(/\.command\("([a-z]+)/g)].map(([, name]) => name),
+    );
+    expect(commands.length).toBeGreaterThan(0);
+    for (const command of commands) expect(registered.has(command), command).toBe(true);
+  });
+
+  it("carries no em dash and ends every sample with a newline", () => {
+    for (const sample of samples) {
+      expect(sample.code).not.toContain(EM_DASH);
+      expect(sample.code.endsWith("\n")).toBe(true);
+    }
+  });
+});

@@ -1,0 +1,87 @@
+export type HeroTerminalUsage = { readonly inputTokens: number; readonly outputTokens: number };
+
+export type HeroTerminalLocale = {
+  readonly locale: string;
+  readonly usage: HeroTerminalUsage;
+};
+
+export const HERO_TERMINAL_LOCALES: ReadonlyArray<HeroTerminalLocale> = [
+  { locale: "de", usage: { inputTokens: 318, outputTokens: 41 } },
+  { locale: "fr", usage: { inputTokens: 322, outputTokens: 44 } },
+];
+
+export const HERO_TERMINAL_SYNCED_KEYS: ReadonlyArray<string> = [
+  "nav.home",
+  "nav.pricing",
+  "nav.docs",
+  "auth.signIn",
+  "auth.signOut",
+  "cart.empty",
+  "cart.total",
+  "cart.remove",
+  "profile.greeting",
+  "profile.save",
+  "errors.notFound",
+  "errors.offline",
+];
+
+export const HERO_TERMINAL_NEW_KEYS: ReadonlyArray<string> = ["checkout.title", "checkout.pay"];
+
+export const HERO_CHECK_COMMAND = "npx @verbatra/cli check";
+
+export const HERO_TRANSLATE_COMMAND = "npx @verbatra/cli translate";
+
+export const HERO_CHECK_EXIT_CODE = 1;
+
+export const HERO_TRANSLATE_EXIT_CODE = 0;
+
+function tokens(usage: HeroTerminalUsage): string {
+  return `${usage.inputTokens + usage.outputTokens} tokens (${usage.inputTokens} in, ${usage.outputTokens} out)`;
+}
+
+function totalUsage(): HeroTerminalUsage {
+  return HERO_TERMINAL_LOCALES.reduce<HeroTerminalUsage>(
+    (sum, { usage }) => ({
+      inputTokens: sum.inputTokens + usage.inputTokens,
+      outputTokens: sum.outputTokens + usage.outputTokens,
+    }),
+    { inputTokens: 0, outputTokens: 0 },
+  );
+}
+
+const missing = HERO_TERMINAL_NEW_KEYS.length;
+const synced = HERO_TERMINAL_SYNCED_KEYS.length;
+const localeCount = HERO_TERMINAL_LOCALES.length;
+
+export const HERO_CHECK_OUTPUT: ReadonlyArray<string> = [
+  "verbatra check",
+  ...HERO_TERMINAL_LOCALES.map(
+    ({ locale }) => `  ${locale}: ${missing} missing, 0 stale, ${synced} up-to-date (out of sync)`,
+  ),
+  "out of sync (run verbatra translate to update)",
+];
+
+export const HERO_TRANSLATE_OUTPUT: ReadonlyArray<string> = [
+  "verbatra translate",
+  ...HERO_TERMINAL_LOCALES.map(
+    ({ locale, usage }) =>
+      `  ${locale}: ${missing} translated, ${synced} unchanged, ${tokens(usage)}`,
+  ),
+  `  total: ${tokens(totalUsage())}`,
+  `${localeCount} succeeded, 0 partial, 0 failed`,
+];
+
+export type HeroTerminalStep = {
+  readonly command: string;
+  readonly output: ReadonlyArray<string>;
+  readonly exitCode: number;
+};
+
+export const HERO_TERMINAL_SCRIPT: ReadonlyArray<HeroTerminalStep> = [
+  { command: HERO_CHECK_COMMAND, output: HERO_CHECK_OUTPUT, exitCode: HERO_CHECK_EXIT_CODE },
+  {
+    command: HERO_TRANSLATE_COMMAND,
+    output: HERO_TRANSLATE_OUTPUT,
+    exitCode: HERO_TRANSLATE_EXIT_CODE,
+  },
+];
