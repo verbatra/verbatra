@@ -58,14 +58,12 @@ function OutboundStat({
             locale={locale}
           />
         ) : (
-          <>
-            <LiveStatValue
-              stat={item.key}
-              initial={formatCompactNumber(item.value, locale)}
-              locale={locale}
-            />{" "}
-            <span className="vk-proof-strip-label">{t(item.key)}</span>
-          </>
+          <LiveStatValue
+            stat={item.key}
+            initial={formatCompactNumber(item.value, locale)}
+            label={t(item.key)}
+            locale={locale}
+          />
         )}
         <span className="sr-only"> {newTab}</span>
       </a>

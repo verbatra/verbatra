@@ -33,8 +33,8 @@ async function renderValues(initial: string): Promise<HTMLElement> {
   await act(async () => {
     createRoot(container).render(
       <>
-        <LiveStatValue stat="stars" initial={initial} locale="en" />
-        <LiveStatValue stat="downloads" initial={initial} locale="en" />
+        <LiveStatValue stat="stars" initial={initial} label="stars" locale="en" />
+        <LiveStatValue stat="downloads" initial={initial} label="downloads" locale="en" />
       </>,
     );
   });
@@ -98,7 +98,9 @@ describe("useLiveStats", () => {
     const container = document.createElement("div");
     document.body.append(container);
     await act(async () => {
-      createRoot(container).render(<fresh.LiveStatValue stat="stars" initial="1.2K" locale="en" />);
+      createRoot(container).render(
+        <fresh.LiveStatValue stat="stars" initial="1.2K" label="stars" locale="en" />,
+      );
     });
     expect(fetcher).not.toHaveBeenCalled();
     await act(async () => {
@@ -107,7 +109,7 @@ describe("useLiveStats", () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
     expect(fetcher).toHaveBeenCalledTimes(1);
-    expect(container.textContent).toBe("2.5K");
+    expect(container.textContent).toBe("2.5K stars");
     vi.doUnmock("@/lib/first-paint");
   });
 });
@@ -207,6 +209,22 @@ describe("LiveStatFallback", () => {
       await live.loadLiveStats();
     });
     expect(container.textContent).toBe(text);
+  });
+
+  it("draws the live figure in the same markup as a build-time figure", async () => {
+    stubFetch(async () => Response.json({ stars: 2, downloads: 15_600 }));
+    const fallback = await renderFallback("en");
+    await act(async () => {
+      await live.loadLiveStats();
+    });
+    const built = document.createElement("div");
+    const { LiveStatValue } = island;
+    await act(async () => {
+      createRoot(built).render(
+        <LiveStatValue stat="downloads" initial="15.6K" label="downloads" locale="en" />,
+      );
+    });
+    expect(fallback.innerHTML).toBe(built.innerHTML.replace(' style="min-inline-size: 5ch;"', ""));
   });
 
   it("keeps the fallback when the live figure it asked for fails too", async () => {
