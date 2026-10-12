@@ -8,13 +8,13 @@ export const OG_PALETTE = {
   strong: "hsl(240, 30%, 94%)",
   muted: "hsl(240, 13%, 65%)",
   faint: "hsl(240, 13%, 58%)",
-  glow: "hsl(258, 47%, 74%)",
-  purple: "hsl(291, 64%, 42%)",
-  glowWash: "hsla(258, 47%, 74%, 0.35)",
-  purpleWash: "hsla(291, 64%, 42%, 0.3)",
+  glow: "hsl(258, 60%, 74%)",
+  purple: "hsl(258, 52%, 56%)",
+  glowWash: "hsla(258, 60%, 74%, 0.35)",
+  purpleWash: "hsla(258, 52%, 56%, 0.3)",
   glowDeep: "hsl(258, 25%, 10%)",
-  purpleDeep: "hsl(291, 40%, 12%)",
-  purpleBright: "hsl(291, 64%, 62%)",
+  purpleDeep: "hsl(258, 40%, 12%)",
+  purpleBright: "hsl(258, 60%, 66%)",
 } as const;
 
 const FRAME_BACKGROUND = [

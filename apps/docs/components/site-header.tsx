@@ -28,7 +28,10 @@ import { headerActiveTab, isRootTabLinkActive } from "@/lib/root-tabs";
 import { trackUmamiEvent } from "@/lib/umami";
 import { cn } from "@/lib/utils";
 
-export type HeaderSlots = Pick<BaseSlots, "navTitle" | "searchTrigger" | "languageSelect">;
+export type HeaderSlots = Pick<
+  BaseSlots,
+  "navTitle" | "searchTrigger" | "languageSelect" | "themeSwitch"
+>;
 
 type IconItem = Extract<LinkItemType, { type: "icon" }>;
 
@@ -228,6 +231,7 @@ export function SiteHeaderFrame({
           </div>
           <div className="flex items-center gap-2 max-md:hidden">
             <LanguageSelect slots={slots} />
+            {slots.themeSwitch ? <slots.themeSwitch /> : null}
             {trailing}
           </div>
         </div>
@@ -325,8 +329,9 @@ export function HomeSiteHeader(props: ComponentProps<"header">): ReactNode {
           {iconItems.map((item) => (
             <IconLink key={itemKey(item)} item={item} />
           ))}
-          <div className="ms-auto">
+          <div className="ms-auto flex items-center gap-1">
             <LanguageSelect slots={slots} />
+            {slots.themeSwitch ? <slots.themeSwitch /> : null}
           </div>
         </div>
       </SidebarDrawerContent>

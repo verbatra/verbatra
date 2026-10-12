@@ -15,6 +15,7 @@ import { UMAMI_ORIGIN } from "@/lib/security-headers.mjs";
 import { homeAlternates, SITE_HOST, SITE_URL } from "@/lib/site";
 import { homeOgImagePath, socialMetadata } from "@/lib/social-metadata";
 import { AUTHOR_NAME, organizationLd, SEO_KEYWORDS, websiteLd } from "@/lib/structured-data";
+import { THEME_COLORS, THEME_PROVIDER_OPTIONS } from "@/lib/theme";
 
 const sans = Geist({ subsets: ["latin"], variable: "--font-geist-sans" });
 const mono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" });
@@ -73,8 +74,11 @@ export async function generateMetadata(props: {
 }
 
 export const viewport: Viewport = {
-  themeColor: "#0B0B12",
-  colorScheme: "dark",
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: THEME_COLORS.dark },
+    { media: "(prefers-color-scheme: light)", color: THEME_COLORS.light },
+  ],
+  colorScheme: "dark light",
 };
 
 export default async function Layout({
@@ -90,11 +94,7 @@ export default async function Layout({
   const messages = await getMessages({ locale });
 
   return (
-    <html
-      lang={locale}
-      suppressHydrationWarning
-      className={`dark ${sans.variable} ${mono.variable}`}
-    >
+    <html lang={locale} suppressHydrationWarning className={`${sans.variable} ${mono.variable}`}>
       <head>
         <link rel="preconnect" href={UMAMI_ORIGIN} crossOrigin="anonymous" />
         <link rel="dns-prefetch" href={UMAMI_ORIGIN} />
@@ -104,7 +104,7 @@ export default async function Layout({
         <JsonLd data={organizationLd()} />
         <NextIntlClientProvider locale={locale} messages={pickClientMessages(messages)}>
           <LocaleAwareFrameworkProvider>
-            <RootProvider theme={{ enabled: false }} i18n={i18nConfig(locale)}>
+            <RootProvider theme={THEME_PROVIDER_OPTIONS} i18n={i18nConfig(locale)}>
               {children}
             </RootProvider>
           </LocaleAwareFrameworkProvider>

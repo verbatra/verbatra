@@ -6,6 +6,7 @@ import { VMark } from "@/components/landing";
 import { GithubIcon } from "@/components/landing/github-icon";
 import { GITHUB_URL } from "@/components/landing/links";
 import { LocaleAwareLanguageSelect } from "@/components/language-select";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { i18n, type Locale, localizedPath } from "@/lib/i18n";
 import { LOCALE_DISPLAY_NAMES } from "@/lib/language-select-copy";
 import { UI_TRANSLATIONS } from "@/lib/ui-translations";
@@ -50,9 +51,9 @@ export async function baseOptions(locale: Locale): Promise<BaseLayoutProps> {
         external: true,
       },
     ],
-    themeSwitch: { enabled: false },
     slots: {
       languageSelect: { root: LocaleAwareLanguageSelect, text: LanguageSelectText },
+      themeSwitch: ThemeToggle,
     },
   };
 }

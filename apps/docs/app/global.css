@@ -7,8 +7,8 @@
 :root {
   color-scheme: dark;
 
-  --v-purple: hsl(291 64% 42%);
-  --v-glow: hsl(258 47% 74%);
+  --v-purple: hsl(258 52% 56%);
+  --v-glow: hsl(258 60% 74%);
 
   --color-fd-background: hsl(240 24% 6%);
   --color-fd-card: hsl(240 28% 14%);
@@ -18,21 +18,21 @@
   --color-fd-foreground: hsl(240 30% 94%);
   --color-fd-muted-foreground: hsl(240 13% 65%);
 
-  --color-fd-primary: hsl(258 47% 74%);
+  --color-fd-primary: var(--v-glow);
   --color-fd-primary-foreground: hsl(240 23% 7%);
   --color-fd-accent: hsl(258 25% 20%);
   --color-fd-accent-foreground: hsl(240 30% 94%);
 
-  --color-fd-ring: hsl(258 47% 74%);
+  --color-fd-ring: var(--v-glow);
 
-  --color-fd-info: hsl(258 47% 74%);
-  --color-fd-warning: hsl(291 64% 42%);
-  --color-fd-error: hsl(0 78% 70%);
-  --color-fd-success: hsl(258 47% 74%);
+  --color-fd-info: var(--v-glow);
+  --color-fd-warning: var(--v-status-changed);
+  --color-fd-error: var(--v-danger);
+  --color-fd-success: var(--v-glow);
 }
 
 .prose {
-  --tw-prose-links: hsl(258 47% 74%);
+  --tw-prose-links: var(--accent);
 }
 
 .prose :where(a):not(:where(.not-prose, .not-prose *)),
@@ -172,9 +172,9 @@ samp {
   --reveal-stagger: 70ms;
   --reveal-delay-max: 350ms;
 
-  --v-glow-soft: #d8c8f5;
-  --v-violet: #7c4dff;
-  --v-pink: #e7b6f2;
+  --v-glow-soft: hsl(258 70% 87%);
+  --v-violet: hsl(258 70% 66%);
+  --v-pink: var(--v-glow-soft);
 
   --v-void: hsl(240 24% 4%);
 
@@ -185,8 +185,8 @@ samp {
     var(--v-violet)
   );
   --v-status-new: var(--v-glow);
-  --v-status-changed: var(--v-pink);
-  --v-status-unchanged: #6f6f86;
+  --v-status-changed: hsl(38 85% 62%);
+  --v-status-unchanged: hsl(240 10% 58%);
   --v-danger: hsl(0 78% 70%);
 
   --surface-bg: var(--color-fd-background);
@@ -204,7 +204,7 @@ samp {
   --border-danger: color-mix(in srgb, var(--v-danger) 55%, transparent);
   --accent: var(--v-glow);
   --accent-fill: var(--v-purple);
-  --accent-fill-fg: hsl(290 60% 98%);
+  --accent-fill-fg: hsl(258 60% 98%);
   --focus-ring: var(--v-glow);
   --surface-band: color-mix(in srgb, var(--surface-card) 40%, var(--surface-bg));
   --surface-chrome: color-mix(in srgb, var(--surface-bg) 94%, transparent);
@@ -212,6 +212,37 @@ samp {
   --placeholder-fill: color-mix(in srgb, var(--v-glow) 12%, transparent);
   --placeholder-ring: color-mix(in srgb, var(--v-glow) 45%, transparent);
   --placeholder-inset: 0.25ch;
+}
+
+html.light {
+  color-scheme: light;
+
+  --v-purple: hsl(258 55% 44%);
+  --v-glow: hsl(258 55% 44%);
+  --v-glow-soft: hsl(258 45% 36%);
+  --v-violet: hsl(258 60% 52%);
+  --v-void: hsl(0 0% 100%);
+  --v-status-changed: hsl(30 90% 30%);
+  --v-status-unchanged: hsl(240 6% 42%);
+  --v-danger: hsl(0 70% 42%);
+
+  --color-fd-background: hsl(240 20% 98%);
+  --color-fd-card: hsl(240 18% 95%);
+  --color-fd-popover: hsl(0 0% 100%);
+  --color-fd-muted: hsl(240 16% 93%);
+  --color-fd-border: hsl(240 14% 86%);
+  --color-fd-foreground: hsl(240 28% 9%);
+  --color-fd-muted-foreground: hsl(240 10% 36%);
+  --color-fd-secondary: hsl(240 16% 93%);
+  --color-fd-secondary-foreground: hsl(240 28% 9%);
+
+  --color-fd-primary-foreground: hsl(258 60% 98%);
+  --color-fd-accent: hsl(258 40% 94%);
+  --color-fd-accent-foreground: hsl(240 28% 9%);
+
+  --text-faint: hsl(240 8% 40%);
+  --shadow-panel: 0 24px 60px -30px color-mix(in srgb, var(--v-purple) 22%, transparent);
+  --shadow-sm: 0 2px 8px -2px rgba(20, 20, 40, 0.12);
 }
 
 @media (width < 40rem) {
@@ -435,6 +466,15 @@ samp {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
   --tw-ring-shadow: 0 0 #0000;
+}
+
+.vk-theme-icon-light,
+html.light .vk-theme-icon-dark {
+  display: none;
+}
+
+html.light .vk-theme-icon-light {
+  display: block;
 }
 
 .vk-skip-link {
@@ -1358,7 +1398,7 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   content: "\200B";
 }
 
-.shiki span[style*="#6A737D" i] {
+.dark .shiki span[style*="#6A737D" i] {
   /* biome-ignore lint/complexity/noImportantStyles: shiki sets token colors through inline custom properties; only an important declaration outranks them, raising comment tokens to WCAG AA. */
   color: #8b949e !important;
 }
