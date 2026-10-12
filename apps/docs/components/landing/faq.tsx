@@ -1,21 +1,17 @@
-"use client";
-
-import { useLocale, useTranslations } from "next-intl";
+import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import {
-  Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/shadcn/accordion";
 import { i18n, isLocale, localizedPath } from "@/lib/i18n";
-import type { FaqItem } from "@/lib/structured-data";
-import { trackUmamiEvent } from "@/lib/umami";
+import { FaqAccordion } from "./faq-accordion";
 import { LICENSE_URL } from "./links";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
 
-export type FaqEntry = FaqItem & { id: string };
+export type FaqEntry = { readonly id: string; readonly question: string };
 
 const ANSWER_LINK_CLASS =
   "underline underline-offset-4 transition-colors hover:text-[color:var(--accent)]";
@@ -52,23 +48,14 @@ function answerTags(locale: string) {
   };
 }
 
-export function Faq({ items }: { items: ReadonlyArray<FaqEntry> }): ReactNode {
-  const t = useTranslations("landing.faq");
-  const tags = answerTags(useLocale());
-
-  function track(value: string): void {
-    if (value) trackUmamiEvent("open-faq", { question: value, location: "faq" });
-  }
+export async function Faq({ items }: { items: ReadonlyArray<FaqEntry> }): Promise<ReactNode> {
+  const t = await getTranslations("landing.faq");
+  const tags = answerTags(await getLocale());
 
   return (
     <Section band id="faq">
       <SectionHead id="faq-heading" title={t("heading")} />
-      <Accordion
-        type="single"
-        collapsible
-        onValueChange={track}
-        className="mt-11 max-w-[880px] border-t border-fd-border"
-      >
+      <FaqAccordion className="mt-11 max-w-[880px] border-t border-fd-border">
         {items.map((item) => (
           <AccordionItem key={item.id} value={item.id} data-faq={item.id} className={ITEM_CLASS}>
             <AccordionTrigger
@@ -84,7 +71,7 @@ export function Faq({ items }: { items: ReadonlyArray<FaqEntry> }): ReactNode {
             </AccordionContent>
           </AccordionItem>
         ))}
-      </Accordion>
+      </FaqAccordion>
     </Section>
   );
 }

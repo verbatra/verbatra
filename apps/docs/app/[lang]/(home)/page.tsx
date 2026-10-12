@@ -35,9 +35,13 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
   const locale = toLocale(lang);
   const t = await getTranslations({ locale, namespace: "landing" });
 
-  const faqItems: ReadonlyArray<FaqEntry> = Object.entries(
+  const faqItems: ReadonlyArray<FaqItem & FaqEntry> = Object.entries(
     t.raw("faq.items") as Record<string, FaqItem>,
   ).map(([id, item]) => ({ ...item, id }));
+  const faqQuestions: ReadonlyArray<FaqEntry> = faqItems.map(({ id, question }) => ({
+    id,
+    question,
+  }));
 
   const howSteps: ReadonlyArray<HowToStepItem> = LANDING_STEP_IDS.map((id) => ({
     name: t(`steps.items.${id}.title`),
@@ -56,7 +60,7 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
     studio: <Studio />,
     compare: <Compare />,
     openSource: <OpenSource />,
-    faq: <Faq items={faqItems} />,
+    faq: <Faq items={faqQuestions} />,
     finalCta: <FinalCta />,
   };
 

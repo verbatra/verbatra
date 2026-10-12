@@ -9,8 +9,8 @@ import { LICENSE_URL } from "./links";
 const intl = vi.hoisted(() => ({ locale: "en" }));
 const TAG_BY_ITEM: Record<string, string> = { privacy: "dataHandling", cost: "license" };
 
-vi.mock("next-intl", () => ({
-  useTranslations: () =>
+vi.mock("next-intl/server", () => ({
+  getTranslations: async () =>
     Object.assign((key: string) => key, {
       rich: (key: string, tags: Record<string, (chunks: ReactNode) => ReactNode>) => {
         const itemId = key.split(".")[1] ?? "";
@@ -18,7 +18,7 @@ vi.mock("next-intl", () => ({
         return tag ? tag("link text") : key;
       },
     }),
-  useLocale: () => intl.locale,
+  getLocale: async () => intl.locale,
 }));
 
 const { Faq } = await import("./faq");
@@ -26,19 +26,20 @@ const { Faq } = await import("./faq");
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const ITEMS = [
-  { id: "privacy", question: "Does it send my strings?", answer: "Only to the provider." },
-  { id: "cost", question: "What does it cost?", answer: "Nothing." },
+  { id: "privacy", question: "Does it send my strings?" },
+  { id: "cost", question: "What does it cost?" },
 ];
 
 let mounted: { container: HTMLDivElement; root: Root } | undefined;
 
-function render(locale: string): HTMLDivElement {
+async function render(locale: string): Promise<HTMLDivElement> {
   intl.locale = locale;
+  const element = await Faq({ items: ITEMS });
   const container = document.createElement("div");
   document.body.append(container);
   const root = createRoot(container);
   act(() => {
-    root.render(<Faq items={ITEMS} />);
+    root.render(element);
   });
   mounted = { container, root };
   return container;
@@ -59,22 +60,26 @@ function answerLink(container: HTMLDivElement, id: string): HTMLAnchorElement | 
 }
 
 describe("the landing faq answer links", () => {
-  it("links the data handling page without a prefix in the default locale", () => {
-    expect(answerLink(render("en"), "privacy")?.getAttribute("href")).toBe("/docs/data-handling");
+  it("links the data handling page without a prefix in the default locale", async () => {
+    expect(answerLink(await render("en"), "privacy")?.getAttribute("href")).toBe(
+      "/docs/data-handling",
+    );
   });
 
-  it("links the data handling page in the reader's locale", () => {
-    expect(answerLink(render("fr"), "privacy")?.getAttribute("href")).toBe(
+  it("links the data handling page in the reader's locale", async () => {
+    expect(answerLink(await render("fr"), "privacy")?.getAttribute("href")).toBe(
       "/fr/docs/data-handling",
     );
   });
 
-  it("falls back to the default locale's page for a locale the site does not serve", () => {
-    expect(answerLink(render("it"), "privacy")?.getAttribute("href")).toBe("/docs/data-handling");
+  it("falls back to the default locale's page for a locale the site does not serve", async () => {
+    expect(answerLink(await render("it"), "privacy")?.getAttribute("href")).toBe(
+      "/docs/data-handling",
+    );
   });
 
-  it("opens the licence in a new tab, counted as an outbound link from the FAQ", () => {
-    const link = answerLink(render("en"), "cost");
+  it("opens the licence in a new tab, counted as an outbound link from the FAQ", async () => {
+    const link = answerLink(await render("en"), "cost");
     expect(link?.getAttribute("href")).toBe(LICENSE_URL);
     expect(link?.getAttribute("target")).toBe("_blank");
     expect(link?.dataset.umamiEvent).toBe("outbound-link");

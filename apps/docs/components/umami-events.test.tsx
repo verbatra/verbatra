@@ -319,12 +319,12 @@ describe("Landing copy buttons", () => {
 
 describe("FAQ", () => {
   const ITEMS = [
-    { id: "formats", question: "Which formats?", answer: "Many." },
-    { id: "cost", question: "What does it cost?", answer: "Nothing." },
+    { id: "formats", question: "Which formats?" },
+    { id: "cost", question: "What does it cost?" },
   ];
 
   it("counts opening a question by its key, never its text, and nothing when it closes", async () => {
-    const container = render(<Faq items={ITEMS} />);
+    const container = render(await Faq({ items: ITEMS }));
     const question = container.querySelectorAll("h3 button")[1];
     await click(question);
     await click(question);
@@ -637,7 +637,7 @@ describe("internal links never carry a declarative Umami event", () => {
       <>
         {await Hero()}
         {await Ecosystem()}
-        <Faq items={[{ id: "cost", question: "Cost?", answer: "None." }]} />
+        {await Faq({ items: [{ id: "cost", question: "Cost?" }] })}
         {await FinalCta()}
         {await FullFooter()}
         <StartHere />

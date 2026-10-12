@@ -257,7 +257,9 @@ license, in that order, after the figures it shows), `problem.tsx` (`#problem`, 
   panel on `landing.closing`, the install `CommandRow` counted with `location: final-cta`, then Get
   started and Read the docs). The footer is not a section; `app/[lang]/(home)/layout.tsx` passes
   it to the home layout. Section ids are unique; never render two sections that claim the same one.
-  The FAQ is the shadcn `Accordion` (`type="single"`, collapsible): each question is a Radix
+  The FAQ is a server section (`faq.tsx`, fed only each item's `id` and `question`; it renders the
+  answers from `landing.faq` on the server) whose one client island is `FaqAccordion`
+  (`faq-accordion.tsx`), the shadcn `Accordion` (`type="single"`, collapsible): each question is a Radix
   trigger inside an `h3`, arrow keys, Home and End move between them, opening one counts
   `open-faq` with its key, and every answer is force-mounted, so the server HTML carries it while a
   closed item hides it (`[data-state=closed]` on the item). Answers link with the `dataHandling`

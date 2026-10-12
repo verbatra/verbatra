@@ -8,10 +8,10 @@ import en from "@/messages/en.json";
 
 const track = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/umami", () => ({ trackUmamiEvent: track }));
-vi.mock("next-intl", () => ({
-  useTranslations: () =>
+vi.mock("next-intl/server", () => ({
+  getTranslations: async () =>
     Object.assign((key: string) => key, { rich: (key: string) => `answer:${key}` }),
-  useLocale: () => "en",
+  getLocale: async () => "en",
 }));
 
 const { Faq } = await import("./faq");
@@ -19,19 +19,20 @@ const { Faq } = await import("./faq");
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const ITEMS = [
-  { id: "formats", question: "Which formats?", answer: "Many." },
-  { id: "incremental", question: "Why incremental?", answer: "A lock file." },
-  { id: "providers", question: "Which providers?", answer: "Six." },
+  { id: "formats", question: "Which formats?" },
+  { id: "incremental", question: "Why incremental?" },
+  { id: "providers", question: "Which providers?" },
 ];
 
 let mounted: { container: HTMLDivElement; root: Root } | undefined;
 
-function render(): HTMLDivElement {
+async function render(): Promise<HTMLDivElement> {
+  const element = await Faq({ items: ITEMS });
   const container = document.createElement("div");
   document.body.append(container);
   const root = createRoot(container);
   act(() => {
-    root.render(<Faq items={ITEMS} />);
+    root.render(element);
   });
   mounted = { container, root };
   return container;
@@ -63,19 +64,19 @@ function press(target: HTMLElement, key: string): void {
 }
 
 describe("the landing faq", () => {
-  it("renders one trigger per item, each a button inside an h3", () => {
-    const buttons = triggers(render());
+  it("renders one trigger per item, each a button inside an h3", async () => {
+    const buttons = triggers(await render());
     expect(buttons).toHaveLength(ITEMS.length);
     for (const button of buttons) expect(button.parentElement?.tagName).toBe("H3");
     expect(buttons.map((button) => button.textContent)).toEqual(ITEMS.map((item) => item.question));
   });
 
-  it("starts with every item collapsed", () => {
-    expect(expanded(render())).toEqual(ITEMS.map(() => "false"));
+  it("starts with every item collapsed", async () => {
+    expect(expanded(await render())).toEqual(ITEMS.map(() => "false"));
   });
 
-  it("opens only the item that was clicked, names its region by the trigger, and closes it again", () => {
-    const container = render();
+  it("opens only the item that was clicked, names its region by the trigger, and closes it again", async () => {
+    const container = await render();
     const [first, second] = triggers(container);
     act(() => first?.click());
     expect(expanded(container)).toEqual(["true", "false", "false"]);
@@ -88,8 +89,8 @@ describe("the landing faq", () => {
     expect(expanded(container)).toEqual(["false", "false", "false"]);
   });
 
-  it("moves focus between the questions with the arrow keys, Home and End", () => {
-    const container = render();
+  it("moves focus between the questions with the arrow keys, Home and End", async () => {
+    const container = await render();
     const buttons = triggers(container);
     buttons[0]?.focus();
     press(buttons[0] as HTMLButtonElement, "ArrowDown");
@@ -100,21 +101,21 @@ describe("the landing faq", () => {
     expect(document.activeElement).toBe(buttons[0]);
   });
 
-  it("counts opening a question by its key, never its text, and nothing when it closes", () => {
-    const container = render();
+  it("counts opening a question by its key, never its text, and nothing when it closes", async () => {
+    const container = await render();
     const question = triggers(container)[1];
     act(() => question?.click());
     act(() => question?.click());
     expect(track.mock.calls).toEqual([["open-faq", { question: "incremental", location: "faq" }]]);
   });
 
-  it("server-renders every answer, so the page carries the text before any script runs", () => {
-    const markup = renderToStaticMarkup(<Faq items={ITEMS} />);
+  it("server-renders every answer, so the page carries the text before any script runs", async () => {
+    const markup = renderToStaticMarkup(await Faq({ items: ITEMS }));
     for (const item of ITEMS) expect(markup).toContain(`answer:items.${item.id}.answer`);
   });
 
-  it("hides a closed answer from layout and assistive technology through its item's state", () => {
-    const container = render();
+  it("hides a closed answer from layout and assistive technology through its item's state", async () => {
+    const container = await render();
     const item = container.querySelector('[data-faq="formats"]');
     expect(item?.getAttribute("data-state")).toBe("closed");
     expect(item?.className).toContain(
@@ -124,7 +125,7 @@ describe("the landing faq", () => {
 });
 
 describe("the landing faq copy", () => {
-  it("answers the landing's audience in a focused set of questions", () => {
+  it("answers the landing's audience in a focused set of questions", async () => {
     expect(Object.keys(en.landing.faq.items)).toEqual([
       "incremental",
       "providers",
@@ -135,5 +136,13 @@ describe("the landing faq copy", () => {
       "cost",
       "studio",
     ]);
+  });
+
+  it("stays a server section whose only client island is the accordion, fed questions only", async () => {
+    const { readFileSync } = await import("node:fs");
+    const read = (name: string) => readFileSync(new URL(name, import.meta.url), "utf8");
+    expect(read("./faq.tsx")).not.toMatch(/^"use client"/);
+    expect(read("./faq-accordion.tsx")).toMatch(/^"use client"/);
+    expect(read("./faq-accordion.tsx")).not.toMatch(/answer/);
   });
 });
