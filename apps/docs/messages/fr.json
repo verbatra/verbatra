@@ -393,7 +393,8 @@
         "partial": "En partie",
         "no": "Non"
       },
-      "note": "Les TMS hébergés diffèrent entre eux. Ce tableau décrit la catégorie, pas un produit en particulier."
+      "note": "Les TMS hébergés diffèrent entre eux. Ce tableau décrit la catégorie, pas un produit en particulier.",
+      "scrollHint": "Fais défiler le tableau sur le côté pour voir toutes les colonnes."
     },
     "openSource": {
       "heading": "Open source sous licence MIT.",

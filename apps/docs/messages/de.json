@@ -393,7 +393,8 @@
         "partial": "Teilweise",
         "no": "Nein"
       },
-      "note": "Gehostete TMS-Produkte unterscheiden sich. Diese Tabelle beschreibt die Kategorie, nicht ein einzelnes Produkt."
+      "note": "Gehostete TMS-Produkte unterscheiden sich. Diese Tabelle beschreibt die Kategorie, nicht ein einzelnes Produkt.",
+      "scrollHint": "Scrolle die Tabelle seitwärts, um alle Spalten zu sehen."
     },
     "openSource": {
       "heading": "Open Source unter der MIT-Lizenz.",

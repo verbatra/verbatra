@@ -2332,6 +2332,63 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   }
 }
 
+.vk-compare {
+  container-type: inline-size;
+  timeline-scope: --vk-compare;
+}
+
+.vk-compare-scroll {
+  scroll-timeline: --vk-compare inline;
+}
+
+.vk-compare-hint,
+.vk-compare-fade {
+  display: none;
+}
+
+.vk-compare-fade {
+  position: absolute;
+  inset-block: 1px;
+  inset-inline-end: 1px;
+  width: 3rem;
+  border-start-end-radius: var(--radius-xl);
+  border-end-end-radius: var(--radius-xl);
+  background: linear-gradient(to left, var(--surface-bg), transparent);
+  pointer-events: none;
+}
+
+@container (max-width: 46rem) {
+  .vk-compare-hint {
+    display: block;
+  }
+
+  .vk-compare-fade {
+    display: block;
+  }
+
+  .vk-compare-sticky {
+    box-shadow: inset -1px 0 0 var(--border-default);
+  }
+}
+
+@keyframes vk-compare-fade {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@supports (animation-timeline: scroll()) {
+  .vk-compare-fade {
+    animation: vk-compare-fade linear both;
+    animation-timeline: --vk-compare;
+    animation-range: 85% 100%;
+  }
+}
+
 .vk-breadcrumb .vk-pill-status {
   display: none;
 }

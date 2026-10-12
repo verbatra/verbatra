@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { COMPARE_COLUMNS, COMPARE_ROWS } from "@/lib/landing-compare";
@@ -26,14 +28,41 @@ beforeAll(async () => {
 });
 
 describe("Compare", () => {
-  it("is a captioned table inside a focusable region the caption names", () => {
+  it("is a captioned table inside a focusable, named region that scrolls sideways", () => {
     const table = root.querySelector("table");
     const caption = table?.querySelector("caption");
     expect(caption?.textContent).toBe(copy.caption);
     const region = table?.closest("section");
     expect(region?.getAttribute("tabindex")).toBe("0");
-    expect(region?.getAttribute("aria-labelledby")).toBe(caption?.id);
+    expect(region?.getAttribute("aria-label")).toBe(copy.caption);
     expect(region?.className).toContain("overflow-x-auto");
+  });
+
+  it("caps the region at its column, describes it with a scroll hint and fades its end edge", () => {
+    const region = root.querySelector("[data-compare-scroll]");
+    const hint = root.querySelector(`#${region?.getAttribute("aria-describedby")}`);
+    expect(hint?.textContent).toBe(copy.scrollHint);
+    expect(hint?.className).toContain("vk-compare-hint");
+    expect(region?.parentElement?.className).toContain("min-w-0");
+    expect(region?.closest(".vk-compare")?.className).toContain("grid-cols-[minmax(0,1fr)]");
+    const fade = region?.parentElement?.querySelector(".vk-compare-fade");
+    expect(fade?.getAttribute("aria-hidden")).toBe("true");
+  });
+
+  it("keeps the row headers pinned while the value columns scroll", () => {
+    for (const th of root.querySelectorAll("tbody th, thead th:first-child")) {
+      expect(th.className).toContain("sticky");
+      expect(th.className).toContain("vk-compare-sticky");
+    }
+  });
+
+  it("shows the hint and fade only while the table is wider than its column", () => {
+    const css = readFileSync(resolve(process.cwd(), "app/global.css"), "utf8");
+    const narrow = css.slice(css.indexOf("@container (max-width: 46rem)"));
+    expect(css).toMatch(/\.vk-compare-hint,\s*\.vk-compare-fade \{\s*display: none;/);
+    expect(narrow).toMatch(/\.vk-compare-hint \{\s*display: block;/);
+    expect(narrow).toMatch(/\.vk-compare-fade \{\s*display: block;/);
+    expect(root.querySelector("table")?.className).toContain("min-w-[46rem]");
   });
 
   it("positions its scroll region, so the visually hidden labels scroll inside it instead of widening the page", () => {

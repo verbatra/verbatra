@@ -393,7 +393,8 @@
         "partial": "En parte",
         "no": "No"
       },
-      "note": "Los TMS alojados difieren entre sí. Esta tabla describe la categoría, no un producto concreto."
+      "note": "Los TMS alojados difieren entre sí. Esta tabla describe la categoría, no un producto concreto.",
+      "scrollHint": "Desplaza la tabla de lado para ver todas las columnas."
     },
     "openSource": {
       "heading": "Código abierto con licencia MIT.",

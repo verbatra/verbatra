@@ -446,7 +446,8 @@
         "partial": "Partly",
         "no": "No"
       },
-      "note": "Hosted TMS products differ. This table describes the category, not one product."
+      "note": "Hosted TMS products differ. This table describes the category, not one product.",
+      "scrollHint": "Scroll the table sideways to see every column."
     },
     "openSource": {
       "heading": "Open source under the MIT license.",
