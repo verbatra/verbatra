@@ -551,7 +551,9 @@ follow the one shared `/api/stats` request (`useLiveCount` in `lib/live-stats.ts
 strip's `LiveStatValue` island shares); without a build-time count the GitHub link shows no number
 and no `aria-label`, and a failed request keeps the build-time number. Under 768px the items move into `HomeMobileMenu`, a shadcn `Sheet`
 (focus trap, Escape, focus back to the trigger, close button named by `landing.topNav.menu.close`)
-titled `landing.topNav.menu.title`, with the language select and theme toggle in its footer.
+titled `landing.topNav.menu.title`, with a full-width "Get started" (`.vk-nav-cta-menu`, counted as
+`click-cta` with `location: menu`) under its nav and the language select and theme toggle in its
+footer.
 The AI setup guide, the contributor guide, npm and the contact page are reached from the docs
 sidebar and the landing footer, never from the header. The text links and the icon show from 768px
 (`md`), exactly where the phone search and menu trigger hide. At least 24px separate the search box

@@ -267,6 +267,18 @@ describe("the landing phone menu", () => {
     expect(sheet()).toBeNull();
   });
 
+  it("offers Get started below the nav, counted from the menu, and closes when followed", async () => {
+    const container = await render(null);
+    act(() => trigger(container)?.click());
+    const cta = sheet()?.querySelector<HTMLAnchorElement>("a.vk-nav-cta-menu");
+    expect(cta?.getAttribute("href")).toBe("/docs/quickstart");
+    expect(cta?.textContent).toBe(nav.getStarted);
+    expect(cta?.closest("nav")).toBeNull();
+    act(() => cta?.click());
+    expect(track).toHaveBeenCalledWith("click-cta", { location: "menu", target: "get-started" });
+    expect(sheet()).toBeNull();
+  });
+
   it("closes when Docs is followed and counts outbound links from the menu", async () => {
     const container = await render(null);
     act(() => trigger(container)?.click());

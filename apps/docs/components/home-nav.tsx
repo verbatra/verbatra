@@ -160,14 +160,25 @@ export function GitHubNavLink({
   );
 }
 
-export function GetStartedLink(): ReactNode {
+export function GetStartedLink({
+  location = "header",
+  className = "vk-nav-cta whitespace-nowrap",
+  onNavigate,
+}: {
+  location?: "header" | "menu";
+  className?: string;
+  onNavigate?: () => void;
+}): ReactNode {
   const { quickstartUrl, labels } = useHomeNav();
   return (
     <Link
       href={quickstartUrl}
-      className={buttonClasses("primary", "sm", "vk-nav-cta whitespace-nowrap")}
+      className={buttonClasses("primary", location === "menu" ? "md" : "sm", className)}
       style={{ background: "var(--accent-fill)" }}
-      onClick={() => trackUmamiEvent("click-cta", { location: "header", target: "get-started" })}
+      onClick={() => {
+        trackUmamiEvent("click-cta", { location, target: "get-started" });
+        onNavigate?.();
+      }}
     >
       {labels.getStarted}
     </Link>
@@ -219,6 +230,13 @@ export function HomeMobileMenu({ footer }: { footer: ReactNode }): ReactNode {
           <ChangelogNavLink className={SHEET_ITEM} location="menu" />
           <GitHubNavLink className={SHEET_ITEM} location="menu" />
         </nav>
+        <div className="px-4 pt-3 pb-4">
+          <GetStartedLink
+            location="menu"
+            className="vk-nav-cta-menu w-full justify-center"
+            onNavigate={close}
+          />
+        </div>
         <SheetFooter className="flex-row items-center justify-end gap-1 border-t border-fd-border px-2.5 pt-2 pb-4">
           {footer}
         </SheetFooter>
