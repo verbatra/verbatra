@@ -7,6 +7,8 @@ import {
   act,
   type ComponentType,
   createContext,
+  type ReactNode,
+  StrictMode,
   startTransition,
   use,
   useState,
@@ -98,6 +100,14 @@ describe("island", () => {
     expect(html).not.toContain("<!--$");
   });
 
+  it("wraps a block island in a div, so block children never sit inside a span", async () => {
+    const Lazy = island(async () => Greeting, { as: "div" });
+    await Lazy.preload();
+    expect(renderToString(<Lazy name="block" />)).toBe(
+      '<!--&--><div class="vk-island"><p>Hello block</p></div><!--/&-->',
+    );
+  });
+
   it("wraps an island in a box-less span, so its server markup can be kept without a client render", () => {
     const css = readFileSync(join(process.cwd(), "app/global.css"), "utf8");
     expect(css).toContain(".vk-island {\n  display: contents;\n}");
@@ -181,7 +191,7 @@ describe("island", () => {
       );
     });
     await flush();
-    expect(failing).toHaveBeenCalledTimes(3);
+    expect(failing.mock.calls.length).toBeGreaterThanOrEqual(3);
     expect(button(container, "broken")).toBe(server);
     await act(async () => server.click());
     expect(server.textContent).toBe("broken 0");
@@ -192,11 +202,12 @@ describe("island", () => {
     expect(spies.onRecoverableError).not.toHaveBeenCalled();
   });
 
-  it("renders nothing for a failed island in a client render, and loads it again on the next mount", async () => {
+  it("renders nothing for a failed island in a client render, and mounts it once a later load succeeds", async () => {
+    const later = deferred<ComponentType<{ label: string }>>();
     const load = vi
       .fn<() => Promise<ComponentType<{ label: string }>>>()
       .mockRejectedValueOnce(new Error("chunk failed"))
-      .mockResolvedValue(Counter);
+      .mockReturnValue(later.promise);
     const Lazy = island(load, { retryDelaysMs: [] });
     const container = document.createElement("div");
     const spies = errorSpies();
@@ -204,11 +215,10 @@ describe("island", () => {
     await act(async () => root.render(<Lazy label="nav" />));
     await flush();
     expect(container.innerHTML).toBe("");
-    await act(async () => root.render(<p>elsewhere</p>));
-    await act(async () => root.render(<Lazy label="nav" />));
+    expect(load).toHaveBeenCalledTimes(2);
+    await act(async () => later.resolve(Counter));
     await flush();
     expect(button(container, "nav").textContent).toBe("nav 0");
-    expect(load).toHaveBeenCalledTimes(2);
     expect(spies.onUncaughtError).not.toHaveBeenCalled();
   });
 
@@ -285,7 +295,7 @@ describe("island", () => {
     expect(spies.onRecoverableError).not.toHaveBeenCalled();
   });
 
-  it("lets a soft navigation under a persisted layout commit past a failed island, keeping its markup", async () => {
+  it("lets a soft navigation under a persisted layout commit past a failed island, dropping its stale markup for good", async () => {
     const failing = vi.fn(() => Promise.reject(new Error("chunk failed")));
     const Header = island<{ label: string }>(failing, { retryDelaysMs: [] });
     let navigate: (path: string) => void = () => undefined;
@@ -314,15 +324,20 @@ describe("island", () => {
       track(hydrateRoot(container, <Layout />, errorSpies()));
     });
     await flush();
+    expect(button(container, "header/").textContent).toBe("header/ 0");
     await act(async () => startTransition(() => navigate("/docs")));
     await flush();
     expect(container.querySelector("[data-page]")?.textContent).toBe("/docs");
-    expect(container.querySelector('[data-island="header/"]')?.textContent).toBe("header/ 0");
+    expect(container.querySelector(".vk-island")).toBeNull();
+    await act(async () => startTransition(() => navigate("/")));
+    await flush();
+    expect(container.querySelector("[data-page]")?.textContent).toBe("/");
+    expect(container.querySelector(".vk-island")).toBeNull();
   });
 
   it("gives up on a client mount whose chunk hangs, so the navigation commits, and mounts it once it lands", async () => {
     const load = deferred<ComponentType<{ label: string }>>();
-    const Lazy = island(() => load.promise, { mountTimeoutMs: 20 });
+    const Lazy = island(() => load.promise, { timeoutMs: 20 });
     const container = document.createElement("div");
     const root = track(createRoot(container));
     await act(async () =>
@@ -361,6 +376,341 @@ describe("island", () => {
     });
     expect(container.textContent).toBe("Hello aHello b");
     expect(load).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("island failure and timeout", () => {
+  function never<T>(): Promise<T> {
+    return new Promise<T>(() => undefined);
+  }
+
+  async function wait(ms: number): Promise<void> {
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, ms));
+    });
+  }
+
+  function hostWithPage(
+    Lazy: ComponentType<{ label: string }>,
+    labelFor: (path: string) => string,
+  ) {
+    let navigate: (path: string) => void = () => undefined;
+    function Host() {
+      const [path, set] = useState("/");
+      navigate = set;
+      return (
+        <>
+          <Lazy label={labelFor(path)} />
+          <main data-page>{path}</main>
+        </>
+      );
+    }
+    return { Host, navigate: (path: string) => navigate(path) };
+  }
+
+  function serverPage(label: string): string {
+    return renderToString(
+      <>
+        <Activity mode="visible">
+          <span className="vk-island">
+            <Counter label={label} />
+          </span>
+        </Activity>
+        <main data-page>/</main>
+      </>,
+    );
+  }
+
+  it("bounds a hydrating island whose chunk never settles, so a transition commits past it with its markup", async () => {
+    const Lazy = island<{ label: string }>(never, { timeoutMs: 20 });
+    const { Host, navigate } = hostWithPage(Lazy, () => "header");
+    const container = document.createElement("div");
+    container.innerHTML = serverPage("header");
+    const server = button(container, "header");
+    const spies = errorSpies();
+    await act(async () => {
+      track(hydrateRoot(container, <Host />, spies));
+    });
+    await act(async () => startTransition(() => navigate("/docs")));
+    await wait(60);
+    expect(container.querySelector("[data-page]")?.textContent).toBe("/docs");
+    expect(button(container, "header")).toBe(server);
+    expect(spies.onUncaughtError).not.toHaveBeenCalled();
+    expect(spies.onRecoverableError).not.toHaveBeenCalled();
+  });
+
+  it("drops the server markup of a never-settling island whose props change in a transition, never showing it stale", async () => {
+    const Lazy = island<{ label: string }>(never, { timeoutMs: 20 });
+    const { Host, navigate } = hostWithPage(Lazy, (path) => `header${path}`);
+    const container = document.createElement("div");
+    container.innerHTML = serverPage("header/");
+    await act(async () => {
+      track(hydrateRoot(container, <Host />, errorSpies()));
+    });
+    await act(async () => startTransition(() => navigate("/docs")));
+    await wait(60);
+    expect(container.querySelector("[data-page]")?.textContent).toBe("/docs");
+    expect(container.querySelector('[data-island="header/"]')).toBeNull();
+  });
+
+  it("renders a failed island whose props changed afresh once a later load succeeds", async () => {
+    const load = vi
+      .fn<() => Promise<ComponentType<{ label: string }>>>()
+      .mockRejectedValueOnce(new Error("chunk failed"))
+      .mockResolvedValue(Counter);
+    const Lazy = island(load, { retryDelaysMs: [] });
+    const { Host, navigate } = hostWithPage(Lazy, (path) => `header${path}`);
+    const container = document.createElement("div");
+    container.innerHTML = serverPage("header/");
+    await act(async () => {
+      track(hydrateRoot(container, <Host />, errorSpies()));
+    });
+    await flush();
+    await act(async () => startTransition(() => navigate("/docs")));
+    await flush();
+    expect(container.querySelector("[data-page]")?.textContent).toBe("/docs");
+    expect(container.querySelector('[data-island="header/"]')).toBeNull();
+    await act(async () => button(container, "header/docs").click());
+    expect(button(container, "header/docs").textContent).toBe("header/docs 1");
+  });
+
+  it("takes over a timed-out server island once its chunk finally lands", async () => {
+    const load = deferred<ComponentType<{ label: string }>>();
+    const Lazy = island(() => load.promise, { timeoutMs: 20 });
+    const container = document.createElement("div");
+    container.innerHTML = serverMarkup("slow");
+    await act(async () => {
+      track(hydrateRoot(container, <Lazy label="slow" />, errorSpies()));
+    });
+    await wait(60);
+    expect(button(container, "slow").textContent).toBe("slow 0");
+    await act(async () => load.resolve(Counter));
+    await flush();
+    await act(async () => button(container, "slow").click());
+    expect(button(container, "slow").textContent).toBe("slow 1");
+  });
+
+  it("loads a failed server island again when it is remounted within the same commit", async () => {
+    const load = vi
+      .fn<() => Promise<ComponentType<{ label: string }>>>()
+      .mockRejectedValueOnce(new Error("chunk failed"))
+      .mockResolvedValue(Counter);
+    const Lazy = island(load, { retryDelaysMs: [] });
+    const container = document.createElement("div");
+    container.innerHTML = serverMarkup("page");
+    const spies = errorSpies();
+    let root: Root | undefined;
+    await act(async () => {
+      root = track(hydrateRoot(container, <Lazy key="en" label="page" />, spies));
+    });
+    await flush();
+    expect(button(container, "page").textContent).toBe("page 0");
+    await act(async () => root?.render(<Lazy key="de" label="page" />));
+    await flush();
+    await act(async () => button(container, "page").click());
+    expect(button(container, "page").textContent).toBe("page 1");
+    expect(spies.onUncaughtError).not.toHaveBeenCalled();
+  });
+
+  it("loads a failed client island again when it is remounted within the same commit", async () => {
+    const load = vi
+      .fn<() => Promise<ComponentType<{ label: string }>>>()
+      .mockRejectedValueOnce(new Error("chunk failed"))
+      .mockResolvedValue(Counter);
+    const Lazy = island(load, { retryDelaysMs: [] });
+    const container = document.createElement("div");
+    const root = track(createRoot(container, errorSpies()));
+    await act(async () => root.render(<Lazy key="en" label="nav" />));
+    await flush();
+    await act(async () => root.render(<Lazy key="de" label="nav" />));
+    await flush();
+    expect(button(container, "nav").textContent).toBe("nav 0");
+  });
+
+  it("keeps a failed server island's markup steady under StrictMode, through later renders", async () => {
+    const failing = vi
+      .fn<() => Promise<ComponentType<{ label: string }>>>()
+      .mockRejectedValueOnce(new Error("chunk failed"))
+      .mockImplementation(never);
+    const Broken = island(failing, { retryDelaysMs: [] });
+    let rerender: () => void = () => undefined;
+    function Host() {
+      const [count, set] = useState(0);
+      rerender = () => set((value) => value + 1);
+      return (
+        <>
+          <Broken label="broken" />
+          <main data-page>{count}</main>
+        </>
+      );
+    }
+    const container = document.createElement("div");
+    container.innerHTML = renderToString(
+      <>
+        <Activity mode="visible">
+          <span className="vk-island">
+            <Counter label="broken" />
+          </span>
+        </Activity>
+        <main data-page>0</main>
+      </>,
+    );
+    const server = button(container, "broken");
+    const removed: Node[] = [];
+    const observer = new MutationObserver((records) => {
+      for (const record of records) removed.push(...record.removedNodes);
+    });
+    observer.observe(container, { childList: true, subtree: true });
+    const spies = errorSpies();
+    await act(async () => {
+      track(
+        hydrateRoot(
+          container,
+          <StrictMode>
+            <Host />
+          </StrictMode>,
+          spies,
+        ),
+      );
+    });
+    await flush();
+    await act(async () => rerender());
+    await flush();
+    await act(async () => startTransition(() => rerender()));
+    await flush();
+    observer.disconnect();
+    expect(container.querySelector("[data-page]")?.textContent).toBe("2");
+    expect(button(container, "broken")).toBe(server);
+    expect(removed.filter((node) => node.contains(server))).toEqual([]);
+    expect(failing.mock.calls.length).toBeLessThanOrEqual(2);
+    expect(spies.onUncaughtError).not.toHaveBeenCalled();
+    expect(spies.onCaughtError).not.toHaveBeenCalled();
+    expect(spies.onRecoverableError).not.toHaveBeenCalled();
+  });
+
+  it("never reloads a failed client island on a later render under StrictMode", async () => {
+    const failing = vi
+      .fn<() => Promise<ComponentType<{ label: string }>>>()
+      .mockRejectedValueOnce(new Error("chunk failed"))
+      .mockImplementation(never);
+    const Lazy = island(failing, { retryDelaysMs: [], gate: async () => undefined, timeoutMs: 20 });
+    await Lazy.preload();
+    let rerender: () => void = () => undefined;
+    function Host() {
+      const [count, set] = useState(0);
+      rerender = () => set((value) => value + 1);
+      return (
+        <>
+          <Lazy label="nav" />
+          <main data-page>{count}</main>
+        </>
+      );
+    }
+    const container = document.createElement("div");
+    const root = track(createRoot(container, errorSpies()));
+    await act(async () =>
+      root.render(
+        <StrictMode>
+          <Host />
+        </StrictMode>,
+      ),
+    );
+    await wait(60);
+    const calls = failing.mock.calls.length;
+    await act(async () => rerender());
+    expect(container.querySelector("[data-page]")?.textContent).toBe("1");
+    expect(failing.mock.calls.length).toBe(calls);
+  });
+
+  it("keeps a failed server island's markup when a parent re-renders it with equal but new props", async () => {
+    function Labelled({ label, children }: { label: string; children: ReactNode }) {
+      return (
+        <>
+          <Counter label={label} />
+          {children}
+        </>
+      );
+    }
+    const failing = vi.fn(() => Promise.reject(new Error("chunk failed")));
+    const Broken = island<{ label: string; children: ReactNode }>(failing, { retryDelaysMs: [] });
+    let rerender: () => void = () => undefined;
+    function Host() {
+      const [count, set] = useState(0);
+      rerender = () => set((value) => value + 1);
+      return (
+        <>
+          <Broken label="broken">
+            <i className="icon" />
+          </Broken>
+          <main data-page>{count}</main>
+        </>
+      );
+    }
+    const container = document.createElement("div");
+    container.innerHTML = renderToString(
+      <>
+        <Activity mode="visible">
+          <span className="vk-island">
+            <Labelled label="broken">
+              <i className="icon" />
+            </Labelled>
+          </span>
+        </Activity>
+        <main data-page>0</main>
+      </>,
+    );
+    const server = button(container, "broken");
+    await act(async () => {
+      track(hydrateRoot(container, <Host />, errorSpies()));
+    });
+    await flush();
+    await act(async () => startTransition(() => rerender()));
+    await flush();
+    expect(container.querySelector("[data-page]")?.textContent).toBe("1");
+    expect(button(container, "broken")).toBe(server);
+  });
+
+  it("never rewrites kept markup when the empty inner HTML object is a new one, so a Fast Refresh keeps it", async () => {
+    let rerender: () => void = () => undefined;
+    function Kept() {
+      const [, set] = useState(0);
+      rerender = () => set((value) => value + 1);
+      return <span dangerouslySetInnerHTML={{ __html: "" }} suppressHydrationWarning />;
+    }
+    const container = document.createElement("div");
+    container.innerHTML = "<span><b>server</b></span>";
+    await act(async () => {
+      track(hydrateRoot(container, <Kept />, errorSpies()));
+    });
+    await act(async () => rerender());
+    expect(container.innerHTML).toBe("<span><b>server</b></span>");
+  });
+
+  it("loads a failed client island again on a keyed remount under StrictMode", async () => {
+    const load = vi
+      .fn<() => Promise<ComponentType<{ label: string }>>>()
+      .mockRejectedValueOnce(new Error("chunk failed"))
+      .mockResolvedValue(Counter);
+    const Lazy = island(load, { retryDelaysMs: [] });
+    const container = document.createElement("div");
+    const root = track(createRoot(container, errorSpies()));
+    await act(async () =>
+      root.render(
+        <StrictMode>
+          <Lazy key="en" label="nav" />
+        </StrictMode>,
+      ),
+    );
+    await flush();
+    await act(async () =>
+      root.render(
+        <StrictMode>
+          <Lazy key="de" label="nav" />
+        </StrictMode>,
+      ),
+    );
+    await flush();
+    expect(button(container, "nav").textContent).toBe("nav 0");
   });
 });
 

@@ -555,19 +555,28 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
   server section imports its client components from `components/landing/islands.tsx`, and the
   header from `components/chrome-islands.tsx`: each is an `island()` (`lib/island.tsx`), which
   server-renders the component inline (preloaded through top-level `await preloadIslands`) inside an
-  `<Activity mode="visible">` and a box-less `span.vk-island` (`display: contents`), never a Suspense boundary, since React outlines a completed Suspense
+  `<Activity mode="visible">` and a box-less `.vk-island` wrapper (`display: contents`; a `span`, or
+  a `div` with `{ as: "div" }` for an island whose root is a block, as every landing section island
+  but `LiveStatValue` and `CopyButton` is), never a Suspense boundary, since React outlines a completed Suspense
   boundary over 500 bytes to the end of a long stream (the fallback flash measured CLS 0.497).
   Activity boundaries are written inline (`<!--&-->`) yet hydrate on their own, so each island
   hydrates when its chunk lands and a slow one holds no other back. In the browser
   `preloadIslands` starts every registered chunk together once the first contentful paint resolves
   (`afterFirstContentfulPaint` in `lib/first-paint.ts`, a 3s fallback whose timer is cleared). A rejected chunk is retried
-  (`retrying` in `lib/retry.ts`); if it still fails, the island never throws and never stays suspended: when
-  it was server-rendered it hydrates its `span.vk-island` with an empty `dangerouslySetInnerHTML`
-  (one shared object, so React never writes it), which keeps the server HTML in place,
-  non-interactive, and lets a provider change or a soft navigation under a persisted layout commit
-  past it, and in a client render it renders nothing (a client mount also gives up after `mountTimeoutMs`, 8s by default, so a hanging chunk never holds a soft navigation), and the failure is forgotten when the island unmounts, so the next soft
-  navigation loads it again. `lib/island.test.tsx` pins all of this, the paint gate through a fake
-  `PerformanceObserver`; `island(load, { gate, retryDelaysMs, mountTimeoutMs })` takes these as options. A test that
+  (`retrying` in `lib/retry.ts`). An island instance waits on one bounded attempt: the shared load
+  raced against `timeoutMs` (8s by default), the same limit for hydration and for a client mount,
+  so a chunk that hangs or fails never holds a transition or a soft navigation longer than that.
+  The instance keeps the attempt it rendered in its own state, so a later render never waits
+  again, and the first instance that commits a failure clears the shared attempt, so the next
+  mount (a keyed remount in the same commit and StrictMode included) starts a fresh one; no
+  cleanup of an old instance is involved. After a failure the island never throws: a
+  server-rendered one hydrates its wrapper with an empty `dangerouslySetInnerHTML` (React compares
+  the `__html` string, so it never writes it, not even after a Fast Refresh), which keeps the server
+  HTML in place, non-interactive, until its props change, when it renders nothing for good rather
+  than stale markup (props are compared structurally, elements included); a client render renders
+  nothing. Either way it loads once more in the background and takes over as soon as that load
+  succeeds. `lib/island.test.tsx` pins all of this, the paint gate through a fake
+  `PerformanceObserver`; `island(load, { gate, retryDelaysMs, timeoutMs, as })` takes these as options. A test that
   renders an island under jsdom awaits `preloadRegisteredIslands()` (`test-support/islands.ts`)
   itself; there is no global setup file.
   `intlIsland()` wraps it in `withIntl` (`components/intl-boundary.tsx`), so `next-intl` loads with
