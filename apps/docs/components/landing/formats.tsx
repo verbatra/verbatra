@@ -11,7 +11,7 @@ import {
 import { localizedPath, toLocale } from "@/lib/i18n";
 import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { STACK_FRAMEWORKS } from "@/lib/stack-formats";
-import { FormatSwitch } from "./format-switch";
+import { FormatSwitch, type FormatSwitchLabels } from "./format-switch";
 import { PlaceholderChip } from "./placeholder-chip";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
@@ -55,6 +55,35 @@ function SamplePane({ id, sample }: { id: string; sample: FormatSample }): React
   );
 }
 
+export function FormatsDemo({ labels }: { labels: FormatSwitchLabels }): ReactNode {
+  return (
+    <>
+      <StackIconSprite prefix={ICON_PREFIX} icons={STACK_FRAMEWORKS.map((item) => item.icon)} />
+      <FormatSwitch
+        labels={labels}
+        frameworks={STACK_FRAMEWORKS.map(({ key, name, format, icon }) => ({
+          key,
+          name,
+          format,
+          icon: (
+            <StackIcon
+              prefix={ICON_PREFIX}
+              icon={icon}
+              size={ICON}
+              className="vk-formats-chip-icon"
+            />
+          ),
+        }))}
+        formats={SUPPORTED_FORMAT_IDS.map((id) => ({
+          id,
+          label: FORMAT_DISPLAY[id].label,
+          pane: <SamplePane id={id} sample={FORMAT_SAMPLES[id]} />,
+        }))}
+      />
+    </>
+  );
+}
+
 export async function Formats(): Promise<ReactNode> {
   const t = await getTranslations("landing.formats");
   const locale = toLocale(await getLocale());
@@ -63,28 +92,7 @@ export async function Formats(): Promise<ReactNode> {
     <Section width="wide" rhythm="md" id="formats">
       <SectionHead id="formats-heading" title={t("heading")} lead={t("lead")} reveal />
       <div data-reveal="2" className="vk-formats not-prose">
-        <StackIconSprite prefix={ICON_PREFIX} icons={STACK_FRAMEWORKS.map((item) => item.icon)} />
-        <FormatSwitch
-          labels={{ frameworks: t("frameworksLabel"), formats: t("formatsLabel") }}
-          frameworks={STACK_FRAMEWORKS.map(({ key, name, format, icon }) => ({
-            key,
-            name,
-            format,
-            icon: (
-              <StackIcon
-                prefix={ICON_PREFIX}
-                icon={icon}
-                size={ICON}
-                className="vk-formats-chip-icon"
-              />
-            ),
-          }))}
-          formats={SUPPORTED_FORMAT_IDS.map((id) => ({
-            id,
-            label: FORMAT_DISPLAY[id].label,
-            pane: <SamplePane id={id} sample={FORMAT_SAMPLES[id]} />,
-          }))}
-        />
+        <FormatsDemo labels={{ frameworks: t("frameworksLabel"), formats: t("formatsLabel") }} />
         <p className="vk-formats-more">
           <TrackedLink
             href={localizedPath(locale, "/docs/formats")}
