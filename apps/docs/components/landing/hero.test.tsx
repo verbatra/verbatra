@@ -12,6 +12,7 @@ import {
 import { NPM_INSTALL_COMMAND } from "@/lib/install-commands";
 import { docsStylesheetRules } from "@/lib/stylesheet-rules";
 import messages from "@/messages/en.json";
+import { preloadRegisteredIslands } from "@/test-support/islands";
 
 const page = vi.hoisted(() => ({ locale: "en" }));
 
@@ -44,6 +45,8 @@ vi.mock("next-intl", async (importOriginal) => {
 });
 
 const { Hero, HERO_TITLE_ID } = await import("./hero");
+
+await preloadRegisteredIslands();
 
 async function render(locale = "en"): Promise<Document> {
   page.locale = locale;

@@ -8,6 +8,7 @@ import { MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts"
 import type { ProjectStats } from "@/lib/project-stats";
 import { docsStylesheetRules } from "@/lib/stylesheet-rules";
 import messages from "@/messages/en.json";
+import { preloadRegisteredIslands } from "@/test-support/islands";
 
 const page = vi.hoisted(() => ({ locale: "en" }));
 const fetched = vi.hoisted(() => ({
@@ -44,6 +45,8 @@ vi.mock("@/lib/project-stats", async (importOriginal) => ({
 const { ProofStrip, PROOF_STRIP_PROVIDERS, providerList } = await import("./proof-strip");
 
 const labels = messages.landing.stats;
+
+await preloadRegisteredIslands();
 
 async function render(stats?: ProjectStats, locale = "en"): Promise<Document> {
   page.locale = locale;

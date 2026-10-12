@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { preloadRegisteredIslands } from "@/test-support/islands";
 import { LICENSE_URL } from "./links";
 
 const intl = vi.hoisted(() => ({ locale: "en" }));
@@ -29,6 +30,8 @@ const ITEMS = [
   { id: "privacy", question: "Does it send my strings?" },
   { id: "cost", question: "What does it cost?" },
 ];
+
+await preloadRegisteredIslands();
 
 let mounted: { container: HTMLDivElement; root: Root } | undefined;
 

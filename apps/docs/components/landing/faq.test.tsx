@@ -5,6 +5,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import en from "@/messages/en.json";
+import { preloadRegisteredIslands } from "@/test-support/islands";
 
 const track = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/umami", () => ({ trackUmamiEvent: track }));
@@ -23,6 +24,8 @@ const ITEMS = [
   { id: "incremental", question: "Why incremental?" },
   { id: "providers", question: "Which providers?" },
 ];
+
+await preloadRegisteredIslands();
 
 let mounted: { container: HTMLDivElement; root: Root } | undefined;
 

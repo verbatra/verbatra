@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { LANDING_STEP_CODE, LANDING_STEP_IDS } from "@/lib/landing-code";
 import en from "@/messages/en.json";
+import { preloadRegisteredIslands } from "@/test-support/islands";
 
 vi.mock("next-intl/server", async () => {
   const { createTranslator } = await import("next-intl");
@@ -25,6 +26,8 @@ vi.mock("next-intl", async (importOriginal) => {
 });
 
 const { Steps } = await import("./steps");
+
+await preloadRegisteredIslands();
 
 let root: HTMLElement;
 

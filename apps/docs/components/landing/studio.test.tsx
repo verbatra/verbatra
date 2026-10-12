@@ -7,6 +7,7 @@ import type { ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import en from "@/messages/en.json";
+import { preloadRegisteredIslands } from "@/test-support/islands";
 
 vi.mock("next-intl/server", async () => {
   const { createTranslator } = await import("next-intl");
@@ -28,6 +29,8 @@ vi.mock("next/link", () => ({
 
 const { Studio, STUDIO_GUIDE_PATH, STUDIO_POINTS } = await import("./studio");
 const { STUDIO_RUN_COMMAND } = await import("@/lib/install-commands");
+
+await preloadRegisteredIslands();
 
 let root: HTMLElement;
 

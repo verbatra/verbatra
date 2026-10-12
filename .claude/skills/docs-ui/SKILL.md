@@ -568,8 +568,8 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
   past it, and in a client render it renders nothing (a client mount also gives up after `mountTimeoutMs`, 8s by default, so a hanging chunk never holds a soft navigation), and the failure is forgotten when the island unmounts, so the next soft
   navigation loads it again. `lib/island.test.tsx` pins all of this, the paint gate through a fake
   `PerformanceObserver`; `island(load, { gate, retryDelaysMs, mountTimeoutMs })` takes these as options. A test that
-  renders an island under jsdom preloads it itself (`beforeAll(() => CopyButton.preload())`); there
-  is no global setup file.
+  renders an island under jsdom awaits `preloadRegisteredIslands()` (`test-support/islands.ts`)
+  itself; there is no global setup file.
   `intlIsland()` wraps it in `withIntl` (`components/intl-boundary.tsx`), so `next-intl` loads with
   the island; `components/landing/islands.test.tsx` fails when a plain `island()` module tree calls
   `useTranslations`, or an `intlIsland()` one does not.

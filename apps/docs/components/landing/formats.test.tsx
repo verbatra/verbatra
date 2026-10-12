@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FORMAT_SAMPLES } from "@/lib/format-samples";
 import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { STACK_FRAMEWORKS } from "@/lib/stack-formats";
+import { preloadRegisteredIslands } from "@/test-support/islands";
 
 const trackUmamiEvent = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/umami", () => ({ trackUmamiEvent }));
@@ -25,6 +26,8 @@ const SWITCH_SOURCE = readFileSync(
   join(process.cwd(), "components/landing/format-switch.tsx"),
   "utf8",
 );
+
+await preloadRegisteredIslands();
 
 function rule(selector: string): string {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

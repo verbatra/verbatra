@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
 import en from "@/messages/en.json";
+import { preloadRegisteredIslands } from "@/test-support/islands";
 
 const trackUmamiEvent = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/umami", () => ({ trackUmamiEvent }));
@@ -20,9 +21,8 @@ vi.mock("next-intl", async (importOriginal) => {
 });
 
 const { CodeFrame } = await import("./code-frame");
-const { CopyButton } = await import("./islands");
 
-beforeAll(() => CopyButton.preload());
+beforeAll(preloadRegisteredIslands);
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 

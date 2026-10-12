@@ -6,6 +6,7 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import { FORMAT_DISPLAY, MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { PROVIDER_DISPLAY } from "@/lib/landing-providers";
 import en from "@/messages/en.json";
+import { preloadRegisteredIslands } from "@/test-support/islands";
 
 vi.mock("next-intl/server", async () => {
   const { createTranslator } = await import("next-intl");
@@ -26,6 +27,8 @@ vi.mock("next/link", () => ({
 }));
 
 const { Ecosystem } = await import("./ecosystem");
+
+await preloadRegisteredIslands();
 
 async function render(): Promise<HTMLElement> {
   const root = document.createElement("div");

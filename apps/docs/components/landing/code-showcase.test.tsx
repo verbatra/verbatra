@@ -6,6 +6,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { LANDING_SHOWCASE_CODE, LANDING_SHOWCASE_TABS } from "@/lib/landing-code";
 import en from "@/messages/en.json";
+import { preloadRegisteredIslands } from "@/test-support/islands";
 
 const trackUmamiEvent = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/umami", () => ({ trackUmamiEvent }));
@@ -41,6 +42,8 @@ vi.mock("next-intl", async (importOriginal) => {
 const { CodeShowcase, CODE_SHOWCASE_PAGES } = await import("./code-showcase");
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+await preloadRegisteredIslands();
 
 let node: Awaited<ReturnType<typeof CodeShowcase>>;
 let mounted: { container: HTMLDivElement; root: Root } | undefined;

@@ -6,6 +6,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { NPM_INSTALL_COMMAND } from "@/lib/install-commands";
 import en from "@/messages/en.json";
+import { preloadRegisteredIslands } from "@/test-support/islands";
 
 vi.mock("next-intl/server", async () => {
   const { createTranslator } = await import("next-intl");
@@ -28,6 +29,8 @@ vi.mock("next/link", () => ({
 const { FinalCta } = await import("./final-cta");
 
 const copy = en.landing.closing;
+
+await preloadRegisteredIslands();
 
 let root: HTMLElement;
 
