@@ -76,7 +76,7 @@ describe("CodeFrame", () => {
 
   it("fades the end edge of a long line like the terminal does, instead of clipping it", () => {
     const rules = docsStylesheetRules();
-    const frame = rulesFor(rules, ".vk-code-frame-body pre")[0]?.declarations;
+    const frame = rulesFor(rules, ".vk-code-frame-body pre.shiki")[0]?.declarations;
     const terminal = rulesFor(rules, ".vk-terminal-scroll")[0]?.declarations;
     expect(frame?.["overflow-x"]).toBe("auto");
     expect(frame?.background).toContain("local");

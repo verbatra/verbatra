@@ -2232,7 +2232,7 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 }
 
 .vk-terminal-scroll,
-.vk-code-frame-body pre {
+.vk-code-frame-body pre.shiki {
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scrollbar-width: thin;
