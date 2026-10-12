@@ -86,12 +86,13 @@ function navValue(locale: "en" | "de") {
   return {
     docsUrl: localizedPath(locale, "/docs"),
     quickstartUrl: localizedPath(locale, "/docs/quickstart"),
+    locale,
     stars: null,
     labels: {
       label: "Main",
       docs: "nav.docs",
       github: "GitHub",
-      starsAria: null,
+      starsAria: "{count} stars on GitHub",
       changelog: "Changelog",
       getStarted: "Get started",
       menuOpen: "Open menu",

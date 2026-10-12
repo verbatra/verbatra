@@ -87,10 +87,15 @@ and `lib/hero-terminal.ts`, never in the component or the copy.
   `page.tsx`, and update the order in `lib/landing-sections.test.ts`. Give it a section `id` that
   no other section uses.
 - **Live stats**: the GitHub star count (header and proof strip) and the npm weekly downloads of
-  `@verbatra/cli` come from `lib/project-stats.ts`, fetched on the server only, cached for an hour
-  (`next.revalidate`) and cut off after a short timeout. `GITHUB_TOKEN`, when set, raises the
-  GitHub rate limit. When a request fails or returns something unexpected, the number is left out;
-  the page never shows a made-up figure.
+  `@verbatra/cli` come from `lib/project-stats.ts`, cut off after a short timeout. The page reads
+  them once at build time (`loadProjectStats`, `cache: "force-cache"`, no revalidation), so every
+  landing and legal page stays fully static and its inline scripts match the CSP hashes written at
+  build. After hydration, one shared client request to the same-origin `/api/stats` route (a static
+  route regenerated hourly) swaps in the current numbers in place, in a width reserved by the
+  build-time number. `GITHUB_TOKEN`, when set, raises the GitHub rate limit. When a request fails
+  or returns something unexpected, the build-time number stays, or the number is left out if the
+  build had none; the page never shows a made-up figure.
+  `lib/project-stats.static-pages.test.ts` fails if page code asks the stats fetch to revalidate.
 
 ## Translating the interface strings
 

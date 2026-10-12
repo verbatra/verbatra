@@ -15,6 +15,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/shadcn/sheet";
+import { fillCount } from "@/lib/live-count";
+import { reservedWidth, useLiveCount } from "@/lib/live-stats";
 import { trackUmamiEvent } from "@/lib/umami";
 import { cn } from "@/lib/utils";
 
@@ -22,7 +24,7 @@ export type HomeNavLabels = {
   readonly label: string;
   readonly docs: string;
   readonly github: string;
-  readonly starsAria: string | null;
+  readonly starsAria: string;
   readonly changelog: string;
   readonly getStarted: string;
   readonly menuOpen: string;
@@ -33,6 +35,7 @@ export type HomeNavLabels = {
 export type HomeNavValue = {
   readonly docsUrl: string;
   readonly quickstartUrl: string;
+  readonly locale: string;
   readonly stars: string | null;
   readonly labels: HomeNavLabels;
 };
@@ -132,21 +135,21 @@ export function GitHubNavLink({
   className: string;
   location: string;
 }): ReactNode {
-  const { stars, labels } = useHomeNav();
-  const named = stars !== null && labels.starsAria !== null;
+  const { stars: initialStars, labels, locale } = useHomeNav();
+  const stars = useLiveCount("stars", initialStars, locale);
   return (
     <a
       href={GITHUB_URL}
       target="_blank"
       rel="noopener noreferrer"
       className={cn("inline-flex items-center gap-1.5", className)}
-      aria-label={named ? (labels.starsAria ?? undefined) : undefined}
+      aria-label={stars === null ? undefined : fillCount(labels.starsAria, stars)}
       onClick={() => trackOutbound("github", location)}
     >
       <GithubIcon size={16} />
       <span>{labels.github}</span>
       {stars === null ? null : (
-        <span className="vk-nav-stars" data-stars="">
+        <span className="vk-nav-stars" data-stars="" style={reservedWidth(initialStars)}>
           {stars}
         </span>
       )}

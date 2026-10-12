@@ -3,8 +3,8 @@ import {
   fetchGitHubStars,
   fetchProjectStats,
   fetchWeeklyDownloads,
-  formatCompactNumber,
   GITHUB_REPO_API_URL,
+  loadProjectStats,
   NPM_WEEKLY_DOWNLOADS_URL,
   STATS_REVALIDATE_SECONDS,
 } from "@/lib/project-stats";
@@ -40,14 +40,25 @@ describe("fetchProjectStats", () => {
     });
   });
 
-  it("revalidates hourly and sets a timeout signal on every request", async () => {
+  it("caches at build time by default, so a prerendered page never regenerates", async () => {
     const fetcher = fetcherFor(ok);
     await fetchProjectStats({ fetcher, env: {} });
 
     expect(fetcher).toHaveBeenCalledTimes(2);
     for (const [, init] of fetcher.mock.calls) {
-      expect(init?.next?.revalidate).toBe(STATS_REVALIDATE_SECONDS);
+      expect(init?.cache).toBe("force-cache");
+      expect(init?.next).toBeUndefined();
       expect(init?.signal).toBeInstanceOf(AbortSignal);
+    }
+  });
+
+  it("revalidates hourly only when the caller asks for it", async () => {
+    const fetcher = fetcherFor(ok);
+    await fetchProjectStats({ fetcher, env: {}, caching: "hourly" });
+
+    for (const [, init] of fetcher.mock.calls) {
+      expect(init?.next?.revalidate).toBe(STATS_REVALIDATE_SECONDS);
+      expect(init?.cache).toBeUndefined();
     }
   });
 
@@ -134,17 +145,15 @@ describe("fetchProjectStats", () => {
   });
 });
 
-describe("formatCompactNumber", () => {
-  it.each([
-    ["en", 950, /^950$/],
-    ["en", 1234, /^1\.2K$/],
-    ["en", 15600, /^15\.6K$/],
-    ["en", 2_300_000, /^2\.3M$/],
-    ["de", 15600, /^15\.600$/],
-    ["fr", 1234, /^1,2\sk$/u],
-    ["es", 1234, /^1,2\smil$/u],
-  ])("formats %s %d in that locale's compact notation", (locale, value, expected) => {
-    expect(formatCompactNumber(value, locale)).toMatch(expected);
+describe("loadProjectStats", () => {
+  it("reads the stats with build-time caching", async () => {
+    const fetcher = fetcherFor(ok);
+    vi.stubGlobal("fetch", fetcher);
+    const stats = await loadProjectStats();
+    vi.unstubAllGlobals();
+
+    expect(stats).toEqual({ stars: 1234, weeklyDownloads: 5678 });
+    for (const [, init] of fetcher.mock.calls) expect(init?.cache).toBe("force-cache");
   });
 });
 

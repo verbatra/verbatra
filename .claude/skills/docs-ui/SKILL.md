@@ -235,7 +235,8 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   over and `lib/landing-sections.test.ts` pins; add or move a section there, not by hand in
   `page.tsx`. The files: `hero.tsx` (the `h1`, two buttons, the `CommandPanel` install box and the
   `HeroTerminal` island), `proof-strip.tsx` (stars, npm weekly downloads and the providers, from
-  `lib/project-stats.ts`; a failed fetch hides the number), `problem.tsx` (`#problem`, a real drift
+  `lib/project-stats.ts`, read at build time so the page stays static, then refreshed in place by
+`LiveStatValue` from `/api/stats`; a failed build-time fetch hides the number), `problem.tsx` (`#problem`, a real drift
   artifact from `lib/landing-problem.ts`), `steps.tsx` (`#how-it-works`: check, translate and CI,
   each with a server-highlighted snippet from `LANDING_STEP_CODE` in `lib/landing-code.ts`; the
   HowTo structured data and the docs home `DocsHomeSteps` read the same `landing.steps.items`),
@@ -536,9 +537,12 @@ legal pages) has no search box and its own items, from `components/home-nav.tsx`
 count, then a primary "Get started" (`.vk-nav-cta`, to `/docs/quickstart`, visible at every width),
 the language select and the theme toggle. Its labels and the star count reach the client through
 `HomeNavProvider`, which `LocaleHomeLayout` fills on the server (`homeNavValue`: `landing.topNav`
-strings and `fetchGitHubStars`, compacted with `formatCompactNumber`), so the header adds no client
-message namespace and never fetches from the browser; without a count the GitHub link shows no
-number and no `aria-label`. Under 768px the items move into `HomeMobileMenu`, a shadcn `Sheet`
+strings and the build-time star count from `loadProjectStats`, compacted with
+`formatCompactNumber`), so the header adds no client message namespace. After hydration the count
+and the link's `aria-label` (`landing.topNav.starsAria`, filled on the client through `fillCount`)
+follow the one shared `/api/stats` request (`useLiveCount` in `lib/live-stats.ts`, which the proof
+strip's `LiveStatValue` island shares); without a build-time count the GitHub link shows no number
+and no `aria-label`, and a failed request keeps the build-time number. Under 768px the items move into `HomeMobileMenu`, a shadcn `Sheet`
 (focus trap, Escape, focus back to the trigger, close button named by `landing.topNav.menu.close`)
 titled `landing.topNav.menu.title`, with the language select and theme toggle in its footer.
 The AI setup guide, the contributor guide, npm and the contact page are reached from the docs

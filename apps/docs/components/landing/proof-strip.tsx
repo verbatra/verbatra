@@ -1,11 +1,13 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { GITHUB_URL, NPM_CLI } from "@/components/landing/links";
+import { LiveStatValue } from "@/components/landing/live-stat-value";
 import { TrackedLink } from "@/components/ui/tracked-link";
+import { formatCompactNumber } from "@/lib/compact-number";
 import { type Locale, localizedPath } from "@/lib/i18n";
 import { MACHINE_PROVIDER_IDS } from "@/lib/landing-facts";
 import { PROVIDER_DISPLAY } from "@/lib/landing-providers";
-import { fetchProjectStats, formatCompactNumber, type ProjectStats } from "@/lib/project-stats";
+import { loadProjectStats, type ProjectStats } from "@/lib/project-stats";
 
 export const PROOF_STRIP_PROVIDERS: ReadonlyArray<string> = MACHINE_PROVIDER_IDS.map(
   (id) => PROVIDER_DISPLAY[id].label,
@@ -21,10 +23,12 @@ function OutboundStat({
   item,
   value,
   label,
+  locale,
 }: {
   item: StatItem;
   value: string;
   label: string;
+  locale: string;
 }): ReactNode {
   return (
     <li className="vk-proof-strip-item">
@@ -37,7 +41,7 @@ function OutboundStat({
         data-umami-event-target={item.key}
         data-umami-event-location="proof-strip"
       >
-        <span className="vk-proof-strip-value">{value}</span>{" "}
+        <LiveStatValue stat={item.key} initial={value} locale={locale} />{" "}
         <span className="vk-proof-strip-label">{label}</span>
       </a>
     </li>
@@ -47,7 +51,7 @@ function OutboundStat({
 export async function ProofStrip({ stats }: { stats?: ProjectStats } = {}): Promise<ReactNode> {
   const t = await getTranslations("landing.stats");
   const locale = (await getLocale()) as Locale;
-  const { stars, weeklyDownloads } = stats ?? (await fetchProjectStats());
+  const { stars, weeklyDownloads } = stats ?? (await loadProjectStats());
   const items: ReadonlyArray<StatItem> = [
     { key: "stars", value: stars, href: GITHUB_URL },
     { key: "downloads", value: weeklyDownloads, href: NPM_CLI },
@@ -67,6 +71,7 @@ export async function ProofStrip({ stats }: { stats?: ProjectStats } = {}): Prom
               item={item}
               value={formatCompactNumber(item.value, locale)}
               label={t(item.key)}
+              locale={locale}
             />
           ),
         )}

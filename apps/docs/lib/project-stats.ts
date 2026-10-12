@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { z } from "zod";
 
 export const GITHUB_REPO_API_URL = "https://api.github.com/repos/verbatra/verbatra";
@@ -10,6 +11,9 @@ export const STATS_REVALIDATE_SECONDS = 3600;
 
 export const STATS_TIMEOUT_MS = 3000;
 
+export const STATS_CACHE_CONTROL =
+  "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400";
+
 const githubRepoSchema = z.object({ stargazers_count: z.number().int().nonnegative() });
 
 const npmDownloadsSchema = z.object({ downloads: z.number().int().nonnegative() });
@@ -19,11 +23,20 @@ export type ProjectStats = {
   readonly weeklyDownloads: number | null;
 };
 
+export type StatsCaching = "build" | "hourly";
+
 export type ProjectStatsOptions = {
+  readonly caching?: StatsCaching;
   readonly fetcher?: typeof fetch;
   readonly env?: Readonly<Record<string, string | undefined>>;
   readonly timeoutMs?: number;
 };
+
+export function statsCacheInit(caching: StatsCaching): RequestInit {
+  return caching === "hourly"
+    ? { next: { revalidate: STATS_REVALIDATE_SECONDS } }
+    : { cache: "force-cache" };
+}
 
 function githubHeaders(token: string | undefined): Record<string, string> {
   const headers: Record<string, string> = {
@@ -42,8 +55,8 @@ async function fetchJson(
   const fetcher = options.fetcher ?? fetch;
   try {
     const response = await fetcher(url, {
+      ...statsCacheInit(options.caching ?? "build"),
       headers,
-      next: { revalidate: STATS_REVALIDATE_SECONDS },
       signal: AbortSignal.timeout(options.timeoutMs ?? STATS_TIMEOUT_MS),
     });
     if (!response.ok) return undefined;
@@ -76,8 +89,6 @@ export async function fetchProjectStats(options: ProjectStatsOptions = {}): Prom
   return { stars, weeklyDownloads };
 }
 
-export function formatCompactNumber(value: number, locale: string): string {
-  return new Intl.NumberFormat(locale, { notation: "compact", maximumFractionDigits: 1 }).format(
-    value,
-  );
-}
+export const loadProjectStats = cache(
+  (): Promise<ProjectStats> => fetchProjectStats({ caching: "build" }),
+);

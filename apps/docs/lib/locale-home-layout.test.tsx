@@ -8,7 +8,7 @@ vi.mock("next-intl/server", () => ({
 }));
 vi.mock("@/lib/project-stats", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/project-stats")>()),
-  fetchGitHubStars: async () => 4321,
+  loadProjectStats: async () => ({ stars: 4321, weeklyDownloads: null }),
 }));
 vi.mock("@/components/site-header", async () => {
   const { useHomeNav } = await import("@/components/home-nav");

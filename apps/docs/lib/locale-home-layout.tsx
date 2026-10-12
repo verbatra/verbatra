@@ -4,9 +4,11 @@ import type { ReactNode } from "react";
 import { HomeContainer } from "@/components/home-container";
 import { HomeNavProvider, type HomeNavValue } from "@/components/home-nav";
 import { HomeSiteHeader } from "@/components/site-header";
+import { formatCompactNumber } from "@/lib/compact-number";
 import { type Locale, localizedPath, toLocale } from "@/lib/i18n";
 import { baseOptions } from "@/lib/layout.shared";
-import { fetchGitHubStars, formatCompactNumber } from "@/lib/project-stats";
+import { LIVE_COUNT_SLOT } from "@/lib/live-count";
+import { loadProjectStats } from "@/lib/project-stats";
 
 export const MAIN_CONTENT_ID = "main-content";
 
@@ -16,12 +18,13 @@ export async function homeNavValue(locale: Locale, stars: number | null): Promis
   return {
     docsUrl: localizedPath(locale, "/docs"),
     quickstartUrl: localizedPath(locale, "/docs/quickstart"),
+    locale,
     stars: count,
     labels: {
       label: t("label"),
       docs: t("docs"),
       github: t("github"),
-      starsAria: count === null ? null : t("starsAria", { count }),
+      starsAria: t("starsAria", { count: LIVE_COUNT_SLOT }),
       changelog: t("changelog"),
       getStarted: t("getStarted"),
       menuOpen: t("menu.open"),
@@ -45,7 +48,7 @@ export async function LocaleHomeLayout({
   const t = await getTranslations({ locale, namespace: "landing.nav" });
   const [options, nav] = await Promise.all([
     baseOptions(locale),
-    fetchGitHubStars().then((stars) => homeNavValue(locale, stars)),
+    loadProjectStats().then(({ stars }) => homeNavValue(locale, stars)),
   ]);
   return (
     <HomeNavProvider value={nav}>

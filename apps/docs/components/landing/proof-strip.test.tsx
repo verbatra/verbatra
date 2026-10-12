@@ -34,7 +34,7 @@ vi.mock("next-intl/server", async () => {
 
 vi.mock("@/lib/project-stats", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/project-stats")>()),
-  fetchProjectStats: async () => {
+  loadProjectStats: async () => {
     fetched.calls += 1;
     return fetched.stats;
   },

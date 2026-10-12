@@ -2463,6 +2463,8 @@ html.light {
 }
 
 .vk-nav-stars {
+  display: inline-block;
+  text-align: end;
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   font-variant-numeric: tabular-nums;
@@ -2504,6 +2506,8 @@ html.light {
 }
 
 .vk-proof-strip-value {
+  display: inline-block;
+  text-align: end;
   font-family: var(--font-mono);
   font-size: var(--text-base);
   font-variant-numeric: tabular-nums;
@@ -2511,6 +2515,8 @@ html.light {
 }
 
 .vk-proof-strip-providers .vk-proof-strip-value {
+  display: inline;
+  text-align: start;
   font-family: var(--font-sans);
   font-size: var(--text-sm);
   color: var(--text-body);
