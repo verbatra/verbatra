@@ -152,7 +152,7 @@ samp {
   --radius-full: 9999px;
   --radius-segment: 7px;
 
-  --shadow-panel: 0 24px 60px -30px color-mix(in srgb, var(--v-purple) 35%, transparent);
+  --shadow-panel: 0 24px 48px -24px rgba(0, 0, 0, 0.6);
   --shadow-sm: 0 2px 8px -2px rgba(0, 0, 0, 0.4);
 
   --section-lg: 104px;
@@ -258,7 +258,7 @@ html.light {
   --color-fd-accent-foreground: hsl(240 28% 9%);
 
   --text-faint: hsl(240 8% 40%);
-  --shadow-panel: 0 24px 60px -30px color-mix(in srgb, var(--v-purple) 22%, transparent);
+  --shadow-panel: 0 24px 48px -28px rgba(20, 20, 40, 0.18);
   --shadow-sm: 0 2px 8px -2px rgba(20, 20, 40, 0.12);
   --banner-dot: color-mix(in srgb, var(--text-faint) 30%, transparent);
   --banner-glow: color-mix(in srgb, var(--v-purple) 16%, transparent);

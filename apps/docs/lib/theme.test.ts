@@ -171,4 +171,15 @@ describe("theme tokens", () => {
       expect(transition).not.toMatch(/outline|all/);
     }
   });
+
+  it("keeps both shadows neutral in both themes, leaving the hero glow the only violet haze", () => {
+    for (const tokens of [DARK, LIGHT]) {
+      for (const shadow of ["--shadow-panel", "--shadow-sm"]) {
+        const value = tokens[shadow] ?? "";
+        expect(value).toMatch(/rgba\((0, 0, 0|20, 20, 40), 0?\.\d+\)/);
+        expect(value).not.toMatch(/var\(--v-|hsl\(/);
+      }
+    }
+    expect(LIGHT["--shadow-panel"]).not.toBe(DARK["--shadow-panel"]);
+  });
 });
