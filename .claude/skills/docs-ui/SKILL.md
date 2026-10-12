@@ -565,21 +565,26 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
   hydrates when its chunk lands and a slow one holds no other back. In the browser
   `preloadIslands` starts every registered chunk together once the first contentful paint resolves
   (`afterFirstContentfulPaint` in `lib/first-paint.ts`, a 3s fallback whose timer is cleared). A rejected chunk is retried
-  (`retrying` in `lib/retry.ts`). An island instance waits on one bounded attempt: the shared load
-  raced against what is left of `timeoutMs` (8s by default, counted from the start of that load),
-  the same limit for hydration and for a client mount, so a later mount never waits again on a load
-  that already outlived it, and a chunk that hangs or fails never holds a transition or a soft navigation longer than that.
-  The instance keeps the attempt it rendered in its own state, so a later render never waits
-  again, and the first instance that commits a failure clears the shared attempt, so the next
-  mount (a keyed remount in the same commit and StrictMode included) starts a fresh one; no
-  cleanup of an old instance is involved. After a failure the island never throws: a
-  server-rendered one hydrates its wrapper with an empty `dangerouslySetInnerHTML` (React compares
-  the `__html` string, so it never writes it, not even after a Fast Refresh), which keeps the server
-  HTML in place, non-interactive, until its props change, when it renders nothing for good rather
-  than stale markup (props are compared structurally, elements included); a client render renders
-  nothing. Either way it loads once more in the background and takes over as soon as that load
-  succeeds. `lib/island.test.tsx` pins all of this, the paint gate through a fake
-  `PerformanceObserver`; `island(load, { gate, retryDelaysMs, timeoutMs, as })` takes these as options. A test that
+  (`retrying` in `lib/retry.ts`). Until the first failure, an island instance waits on one shared
+  bounded attempt: the load raced against what is left of `timeoutMs` (8s by default, counted from
+  the start of that first load), the same limit for hydration and for a client mount. That 8s is the
+  longest any transition or soft navigation ever waits on an island, and only before its first
+  failure: once that attempt has timed out or the load has failed (`degraded`), no mount suspends
+  again, whatever reload is running. A new mount then renders the failed state at once (a hydrating
+  one keeps the server HTML, a client mount renders nothing) and subscribes to the shared takeover
+  list, and a mount after a successful load renders it at once. After a failure the island never
+  throws: a server-rendered one hydrates its wrapper with an empty `dangerouslySetInnerHTML` (React
+  compares the `__html` string, so it never writes it, not even after a Fast Refresh), which keeps
+  the server HTML in place, non-interactive, until its props change, when it renders nothing for
+  good rather than stale markup (props are compared structurally by `sameValue` in
+  `lib/same-value.ts`: elements by type, key and props, Flight and `React.lazy` wrappers by their
+  resolved value, with a cycle guard). While any failed instance is mounted, the island reloads in
+  the background, one load at a time, never one per mount: the first reload right after the first
+  failure, each later one after `reloadDelaysMs` (0, 5s, 15s, then every 30s), and none once the
+  last waiting instance unmounts. Every waiting instance takes over as soon as a load succeeds; an
+  unmounted one leaves the list, so a load that never settles holds none of them.
+  `lib/island.test.tsx` pins all of this, the paint gate through a fake `PerformanceObserver`;
+  `island(load, { gate, retryDelaysMs, reloadDelaysMs, timeoutMs, as })` takes these as options. A test that
   renders an island under jsdom awaits `preloadRegisteredIslands()` (`test-support/islands.ts`)
   itself; there is no global setup file.
   `intlIsland()` wraps it in `withIntl` (`components/intl-boundary.tsx`), so `next-intl` loads with

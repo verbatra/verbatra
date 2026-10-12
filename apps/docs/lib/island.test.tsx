@@ -191,7 +191,10 @@ describe("island", () => {
       );
     });
     await flush();
-    expect(failing.mock.calls.length).toBeGreaterThanOrEqual(3);
+    await flush();
+    expect(failing).toHaveBeenCalledTimes(6);
+    await flush();
+    expect(failing).toHaveBeenCalledTimes(6);
     expect(button(container, "broken")).toBe(server);
     await act(async () => server.click());
     expect(server.textContent).toBe("broken 0");
@@ -704,6 +707,70 @@ describe("island failure and timeout", () => {
     });
     await act(async () => rerender());
     expect(container.innerHTML).toBe("<span><b>server</b></span>");
+  });
+
+  it("commits every new mount at once while it reloads after a failure, and backs the reloads off", async () => {
+    const reload = deferred<ComponentType<{ label: string }>>();
+    const third = deferred<ComponentType<{ label: string }>>();
+    const load = vi
+      .fn<() => Promise<ComponentType<{ label: string }>>>()
+      .mockRejectedValueOnce(new Error("chunk failed"))
+      .mockReturnValueOnce(reload.promise)
+      .mockReturnValue(third.promise);
+    const Lazy = island(load, { retryDelaysMs: [], reloadDelaysMs: [0, 60] });
+    const container = document.createElement("div");
+    const root = track(createRoot(container, errorSpies()));
+    await act(async () => root.render(<Lazy key="page-0" label="nav" />));
+    await flush();
+    expect(load).toHaveBeenCalledTimes(2);
+    const navigateTo = async (page: number) => {
+      await act(async () =>
+        startTransition(() =>
+          root.render(
+            <>
+              <Lazy key={`page-${page}`} label="nav" />
+              <main data-page>{page}</main>
+            </>,
+          ),
+        ),
+      );
+      expect(container.querySelector("[data-page]")?.textContent).toBe(String(page));
+    };
+    for (const page of [1, 2, 3]) await navigateTo(page);
+    expect(load).toHaveBeenCalledTimes(2);
+    await act(async () => reload.reject(new Error("still blocked")));
+    await flush();
+    for (const page of [4, 5, 6]) await navigateTo(page);
+    expect(load).toHaveBeenCalledTimes(2);
+    await wait(100);
+    expect(load).toHaveBeenCalledTimes(3);
+    await act(async () => third.resolve(Counter));
+    await flush();
+    expect(button(container, "nav").textContent).toBe("nav 0");
+  });
+
+  it("releases every instance waiting on a load that never settles once it unmounts", async () => {
+    const load = vi
+      .fn<() => Promise<ComponentType<{ label: string }>>>()
+      .mockRejectedValueOnce(new Error("chunk failed"))
+      .mockImplementation(never);
+    const Lazy = island(load, { retryDelaysMs: [] });
+    const container = document.createElement("div");
+    const root = track(createRoot(container, errorSpies()));
+    await act(async () =>
+      root.render(
+        <>
+          <Lazy label="one" />
+          <Lazy label="two" />
+          <Lazy label="three" />
+        </>,
+      ),
+    );
+    await flush();
+    const pending = Lazy.pendingTakeovers;
+    expect(pending()).toBe(3);
+    await act(async () => root.render(<p>elsewhere</p>));
+    expect(pending()).toBe(0);
   });
 
   it("loads a failed client island again on a keyed remount under StrictMode", async () => {
