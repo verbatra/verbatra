@@ -90,7 +90,12 @@ describe("FormatSwitch", () => {
     chunk.failures = 2;
     const container = mount();
     selectSecond(container);
-    await settle();
+    await vi.waitFor(async () => {
+      await settle();
+      expect(activePanel(container)?.querySelector("section")?.hasAttribute("aria-busy")).toBe(
+        false,
+      );
+    });
     expect(chunk.imports).toBe(2);
     const failed = activePanel(container);
     expect(failed?.querySelector("figcaption")?.textContent).toBe(
@@ -103,9 +108,11 @@ describe("FormatSwitch", () => {
         .querySelector(".vk-formats-switch")
         ?.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
     });
-    await settle();
+    await vi.waitFor(async () => {
+      await settle();
+      expect(activePanel(container)?.querySelector("pre")).not.toBeNull();
+    });
     expect(chunk.imports).toBe(3);
-    expect(activePanel(container)?.querySelector("pre")).not.toBeNull();
   });
 
   it("shows the chosen file's caption at once and the pane once its chunk arrives", async () => {
@@ -115,10 +122,12 @@ describe("FormatSwitch", () => {
     const waiting = activePanel(container);
     expect(waiting?.querySelector("figcaption")?.textContent).toBe(FORMAT_SAMPLES[SECOND].file);
     expect(waiting?.querySelector("section")?.getAttribute("aria-busy")).toBe("true");
-    await settle();
-    expect(activePanel(container)?.querySelector("pre")?.textContent).toBe(
-      FORMAT_SAMPLES[SECOND].text.replace(/\n$/, ""),
-    );
+    await vi.waitFor(async () => {
+      await settle();
+      expect(activePanel(container)?.querySelector("pre")?.textContent).toBe(
+        FORMAT_SAMPLES[SECOND].text.replace(/\n$/, ""),
+      );
+    });
   });
 
   it("shares one request between every intent", async () => {

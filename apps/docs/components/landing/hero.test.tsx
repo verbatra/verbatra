@@ -44,8 +44,6 @@ vi.mock("next-intl", async (importOriginal) => {
 });
 
 const { Hero, HERO_TITLE_ID } = await import("./hero");
-const { CommandPanel, HeroTerminal } = await import("./islands");
-await Promise.all([CommandPanel.preload(), HeroTerminal.preload()]);
 
 async function render(locale = "en"): Promise<Document> {
   page.locale = locale;
