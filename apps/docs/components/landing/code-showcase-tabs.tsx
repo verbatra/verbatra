@@ -46,30 +46,28 @@ export function CodeShowcaseTabs({
         <TabsList
           variant="line"
           aria-label={label}
-          className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-none border-b border-fd-border p-0"
+          className="w-full justify-start gap-1 overflow-x-auto rounded-none border-b border-fd-border p-0"
         >
           {tabs.map((tab) => (
             <TabsTrigger
               key={tab.id}
               value={tab.id}
-              className="min-h-11 flex-none rounded-none px-3 text-sm font-medium text-(--text-muted) hover:text-(--text-strong) focus-visible:ring-0 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--focus-ring) data-[state=active]:text-(--text-strong) after:bg-(--accent) group-data-[orientation=horizontal]/tabs:after:bottom-0"
+              className="min-h-11 flex-none rounded-none px-3 text-sm font-medium text-(--text-muted) hover:text-(--text-strong) focus-visible:ring-0 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--focus-ring) data-[state=active]:text-(--text-strong) after:bg-(--accent)"
             >
               {tab.label}
             </TabsTrigger>
           ))}
         </TabsList>
-        <div className="grid">
-          {tabs.map((tab) => (
-            <TabsContent
-              key={tab.id}
-              value={tab.id}
-              forceMount
-              className="min-w-0 [grid-area:1/1] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-(--focus-ring) data-[state=inactive]:invisible"
-            >
-              <Panel active={tab.id === active}>{tab.panel}</Panel>
-            </TabsContent>
-          ))}
-        </div>
+        {tabs.map((tab) => (
+          <TabsContent
+            key={tab.id}
+            value={tab.id}
+            forceMount
+            className="min-w-0 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-(--focus-ring) data-[state=inactive]:hidden"
+          >
+            <Panel active={tab.id === active}>{tab.panel}</Panel>
+          </TabsContent>
+        ))}
       </Tabs>
     </MotionProvider>
   );

@@ -110,15 +110,16 @@ describe("CodeShowcase on the server", () => {
     expect(container.innerHTML).not.toMatch(/\son[a-z]+="/i);
   });
 
-  it("marks only the first panel active and keeps the others in the document", () => {
+  it("marks only the first panel active and keeps the others in the document out of the layout", () => {
     const container = document.createElement("div");
     container.innerHTML = renderToString(node);
     const states = LANDING_SHOWCASE_TABS.map((id) => panel(container, id).dataset.state);
     expect(states).toEqual(["active", "inactive", "inactive", "inactive"]);
     for (const id of LANDING_SHOWCASE_TABS) {
       expect(panel(container, id).hidden).toBe(false);
-      expect(panel(container, id).className).toContain("data-[state=inactive]:invisible");
-      expect(panel(container, id).className).toContain("[grid-area:1/1]");
+      expect(panel(container, id).className).toContain("data-[state=inactive]:hidden");
+      expect(panel(container, id).className).not.toContain("[grid-area:1/1]");
+      expect(panel(container, id).className).not.toContain("invisible");
     }
   });
 });
