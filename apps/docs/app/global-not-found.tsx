@@ -2,6 +2,7 @@ import "./global.css";
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
+import { DefaultThemeMeta } from "@/components/default-theme-meta";
 import { LegalFooter } from "@/components/legal-footer";
 import { SiteProviders } from "@/components/site-providers";
 import Button from "@/components/ui/button";
@@ -28,6 +29,9 @@ export default async function GlobalNotFound(): Promise<ReactNode> {
   const t = await getTranslations({ locale, namespace: "notFound" });
   return (
     <html lang={locale} suppressHydrationWarning className={`${DEFAULT_THEME} ${FONT_VARIABLES}`}>
+      <head>
+        <DefaultThemeMeta />
+      </head>
       <body className="flex flex-col min-h-screen">
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <SiteProviders locale={locale}>

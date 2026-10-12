@@ -71,10 +71,18 @@ describe("Layout: Umami tracker", () => {
 });
 
 describe("Layout: browser chrome", () => {
-  it("leaves the theme-color and color-scheme meta tags to the theme script, so React never renders a second pair", async () => {
+  it("leaves the theme-color and color-scheme meta tags to the theme script, with the dark pair only for a visitor without JavaScript", async () => {
     expect(await import("./layout")).not.toHaveProperty("viewport");
+    const { THEME_COLORS } = await import("@/lib/theme");
     const tree = await Layout({ params: Promise.resolve({ lang: "en" }), children: null });
-    expect(renderToStaticMarkup(tree)).not.toMatch(/<meta name="(theme-color|color-scheme)"/);
+    const markup = renderToStaticMarkup(tree);
+    const head = /<head>([\s\S]*)<\/head>/.exec(markup)?.[1] ?? "";
+    expect(head).toContain(
+      `<noscript><meta name="theme-color" content="${THEME_COLORS.dark}"/><meta name="color-scheme" content="dark"/></noscript>`,
+    );
+    expect(markup.replace(/<noscript>[\s\S]*?<\/noscript>/g, "")).not.toMatch(
+      /<meta name="(theme-color|color-scheme)"/,
+    );
   });
 });
 

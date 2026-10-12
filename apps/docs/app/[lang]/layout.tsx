@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
+import { DefaultThemeMeta } from "@/components/default-theme-meta";
 import { JsonLd } from "@/components/json-ld";
 import { FONT_VARIABLES } from "@/lib/fonts";
 import { i18n, toLocale } from "@/lib/i18n";
@@ -79,6 +80,7 @@ export default async function Layout({
   return (
     <html lang={locale} suppressHydrationWarning className={`${DEFAULT_THEME} ${FONT_VARIABLES}`}>
       <head>
+        <DefaultThemeMeta />
         <link rel="preconnect" href={UMAMI_ORIGIN} crossOrigin="anonymous" />
         <link rel="dns-prefetch" href={UMAMI_ORIGIN} />
       </head>

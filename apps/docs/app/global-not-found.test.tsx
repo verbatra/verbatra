@@ -53,7 +53,12 @@ describe("the global not-found page", () => {
     expect(first?.tagName).toBe("SCRIPT");
     const { THEME_INIT_SCRIPT } = await import("@/lib/theme");
     expect(first?.textContent).toBe(THEME_INIT_SCRIPT);
-    expect(doc.querySelector('meta[name="theme-color"], meta[name="color-scheme"]')).toBeNull();
+    expect(
+      Array.from(
+        doc.querySelectorAll('meta[name="theme-color"], meta[name="color-scheme"]'),
+        (meta) => meta.parentElement?.tagName,
+      ),
+    ).toEqual(["NOSCRIPT", "NOSCRIPT"]);
     expect(await import("./global-not-found")).not.toHaveProperty("viewport");
     expect(
       doc.querySelector("[data-providers] [data-home-layout] [data-legal-footer]"),

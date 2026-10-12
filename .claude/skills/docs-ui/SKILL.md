@@ -89,7 +89,7 @@ dashboard in `packages/studio` (different app, different stack), or anything out
   the inline script that opens `<body>`, hashed into the CSP by `scripts/write-csp-hashes.mjs` like
   every inline script) owns both tags instead: it applies a stored light theme to the class and
   `color-scheme`, and writes exactly one `theme-color` and one `color-scheme` meta tag
-  (`THEME_COLORS`) before the first paint; `applyThemeMeta` puts them back if anything removed them. A component never branches on the
+  (`THEME_COLORS`) before the first paint; `applyThemeMeta` puts them back if anything removed them. A visitor without JavaScript gets the dark pair from `DefaultThemeMeta` (`components/default-theme-meta.tsx`, a `<noscript>` in both documents' `<head>`), which a browser with scripting on parses as text, so there is still exactly one of each. A component never branches on the
   theme in JavaScript and needs no `dark:` variant: write against the semantic tokens and both
   themes follow. `lib/theme.test.ts` pins the light override of every token and holds every text
   pair at 4.5:1 and the focus ring at 3:1 in both themes.
