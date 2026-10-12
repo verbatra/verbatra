@@ -11,12 +11,15 @@ export const THEME_COLORS: Readonly<Record<ThemeName, string>> = {
   light: "#F9F9FB",
 };
 
+export const THEME_STORAGE_KEY = "theme";
+
 export const THEME_PROVIDER_OPTIONS: NonNullable<RootProviderProps["theme"]> = {
   defaultTheme: DEFAULT_THEME,
   themes: [...THEMES],
   enableSystem: false,
   hotKey: false,
   disableTransitionOnChange: true,
+  storageKey: THEME_STORAGE_KEY,
 };
 
 export function themeName(resolved: string | undefined): ThemeName {
@@ -35,3 +38,9 @@ export function applyThemeMeta(doc: Document, theme: ThemeName): void {
 export function nextTheme(resolved: string | undefined): ThemeName {
   return resolved === "light" ? "dark" : "light";
 }
+
+export const THEME_META_SCRIPT = `try{var t=localStorage.getItem(${JSON.stringify(
+  THEME_STORAGE_KEY,
+)});var c=${JSON.stringify(THEME_COLORS)};if(t&&t!==${JSON.stringify(
+  DEFAULT_THEME,
+)}&&Object.prototype.hasOwnProperty.call(c,t)){document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute("content",c[t])});document.querySelectorAll('meta[name="color-scheme"]').forEach(function(m){m.setAttribute("content",t)})}}catch(e){}`;

@@ -10,7 +10,7 @@ import { UMAMI_ORIGIN } from "@/lib/security-headers.mjs";
 import { homeAlternates, SITE_HOST, SITE_URL } from "@/lib/site";
 import { homeOgImagePath, socialMetadata } from "@/lib/social-metadata";
 import { AUTHOR_NAME, organizationLd, SEO_KEYWORDS, websiteLd } from "@/lib/structured-data";
-import { DEFAULT_THEME, THEME_COLORS } from "@/lib/theme";
+import { DEFAULT_THEME, THEME_COLORS, THEME_META_SCRIPT } from "@/lib/theme";
 
 const sans = Geist({ subsets: ["latin"], variable: "--font-geist-sans" });
 const mono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" });
@@ -95,6 +95,8 @@ export default async function Layout({
         <link rel="dns-prefetch" href={UMAMI_ORIGIN} />
       </head>
       <body className="flex flex-col min-h-screen">
+        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: a fixed script built from the theme constants, hashed into the CSP at build time, sets the browser chrome to a stored light theme before the first paint */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_META_SCRIPT }} />
         <JsonLd data={websiteLd({ lang: locale })} />
         <JsonLd data={organizationLd()} />
         {children}

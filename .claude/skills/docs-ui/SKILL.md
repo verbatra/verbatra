@@ -77,7 +77,9 @@ dashboard in `packages/studio` (different app, different stack), or anything out
   passes the enforced CSP. The layout server-renders `DEFAULT_THEME` (`dark`) as a class on `<html>`
   (with `suppressHydrationWarning`), so a visitor without JavaScript still gets the dark Shiki tokens;
   the script swaps it for `light` when that is the stored choice. The viewport `themeColor`
-  and `colorScheme` server-render the dark default (`THEME_COLORS`), and `ThemeMeta`
+  and `colorScheme` server-render the dark default (`THEME_COLORS`), `THEME_META_SCRIPT`
+  (`lib/theme.ts`, the inline script that opens `<body>`, hashed into the CSP like the theme
+  script) switches both to a stored light theme before the first paint, and `ThemeMeta`
   (`components/theme-meta.tsx`, inside `RootProvider`) rewrites both meta tags from `resolvedTheme`
   whenever the theme changes. A component never branches on the
   theme in JavaScript and needs no `dark:` variant: write against the semantic tokens and both
