@@ -4,6 +4,7 @@ import { act, type ComponentProps, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { GITHUB_URL, RELEASES_URL } from "@/components/landing/links";
+import { i18n, type Locale } from "@/lib/i18n";
 import messages from "@/messages/en.json";
 
 const location = vi.hoisted(() => ({ pathname: "/" }));
@@ -50,7 +51,7 @@ const nav = messages.landing.topNav;
 
 let mounted: { container: HTMLDivElement; root: Root } | undefined;
 
-async function render(stars: number | null, locale: "en" | "de" = "en"): Promise<HTMLDivElement> {
+async function render(stars: number | null, locale: Locale = "en"): Promise<HTMLDivElement> {
   const value = await homeNavValue(locale, stars);
   const container = document.createElement("div");
   document.body.appendChild(container);
@@ -154,7 +155,7 @@ describe("the landing nav", () => {
   });
 
   it("names the GitHub link with its visible text first in every locale", async () => {
-    for (const locale of ["en", "de"] as const) {
+    for (const locale of i18n.languages) {
       const github = primaryNav(await render(1234, locale))?.querySelector(
         `a[href="${GITHUB_URL}"]`,
       );
@@ -320,6 +321,8 @@ describe("the landing phone menu", () => {
     expect(cta?.getAttribute("href")).toBe("/docs/quickstart");
     expect(cta?.textContent).toBe(nav.getStarted);
     expect(cta?.closest("nav")).toBeNull();
+    expect(cta?.className).toContain("py-[11px]");
+    expect(container.querySelector("header a.vk-nav-cta")?.className).toContain("py-[7px]");
     act(() => cta?.click());
     expect(track).toHaveBeenCalledWith("click-cta", { location: "menu", target: "get-started" });
     expect(sheet()).toBeNull();
