@@ -266,9 +266,11 @@ license, in that order, after the figures it shows), `problem.tsx` (`#problem`, 
   command; the screenshot follows the site theme after hydration until one of its tabs picks a
   theme), `compare.tsx` (`#compare`, rows from `lib/landing-compare.ts`; a cell states the fact,
   the mark carries yes, partial or no; the table scrolls sideways inside a focusable `section` named
-  by its caption, with the row headers pinned, and while the column is narrower than the table a
-  `landing.compare.scrollHint` line describes it and `.vk-compare-fade` fades the end edge on the
-  region's scroll timeline), `open-source.tsx` (`#open-source`: license, contributing,
+  by its caption (`aria-labelledby`), with the row headers pinned, and while the column is narrower
+  than the table a `landing.compare.scrollHint` line before it says so (not wired as a description,
+  since it is `display: none` on a wide column) and `.vk-compare-fade` fades the end edge on the
+  region's scroll timeline; without scroll timelines the fade is dropped and the region shades its
+  end edge with a `local` cover over a `scroll` shade, which clears at the scroll end), `open-source.tsx` (`#open-source`: license, contributing,
   issues, releases and the contributors), `faq.tsx` (`#faq`) and `final-cta.tsx` (the closing
   panel on `landing.closing`, the install `CommandRow` counted with `location: final-cta`, then Get
   started and Read the docs). The footer is not a section; `app/[lang]/(home)/layout.tsx` passes

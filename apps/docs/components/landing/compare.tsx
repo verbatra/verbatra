@@ -12,7 +12,6 @@ import { Section } from "./section";
 import { SectionHead } from "./section-head";
 
 const CAPTION_ID = "compare-caption";
-const HINT_ID = "compare-scroll-hint";
 
 const MARK_COLOR: Readonly<Record<CompareMark, string>> = {
   yes: "var(--accent)",
@@ -92,20 +91,16 @@ export async function Compare(): Promise<ReactNode> {
     <Section band id="compare">
       <SectionHead id="compare-heading" title={t("heading")} lead={t("lead")} />
       <div className="vk-compare not-prose mt-10 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4">
-        <p id={HINT_ID} className="vk-compare-hint text-sm text-[color:var(--text-muted)]">
-          {t("scrollHint")}
-        </p>
-        <div className="vk-compare-frame relative min-w-0">
+        <p className="vk-compare-hint text-sm text-[color:var(--text-muted)]">{t("scrollHint")}</p>
+        <div className="relative min-w-0">
           <section
             // biome-ignore lint/a11y/noNoninteractiveTabindex: the table scrolls sideways on a phone, so the keyboard needs a stop to scroll it
             tabIndex={0}
-            aria-label={t("caption")}
-            aria-describedby={HINT_ID}
+            aria-labelledby={CAPTION_ID}
             data-compare-scroll=""
             className="vk-compare-scroll relative overflow-x-auto overscroll-x-contain rounded-xl border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--focus-ring)]"
             style={{
               borderColor: "var(--border-default)",
-              background: "var(--surface-bg)",
               scrollbarWidth: "thin",
               scrollbarColor: "var(--border-default) transparent",
             }}

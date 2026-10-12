@@ -34,15 +34,19 @@ describe("Compare", () => {
     expect(caption?.textContent).toBe(copy.caption);
     const region = table?.closest("section");
     expect(region?.getAttribute("tabindex")).toBe("0");
-    expect(region?.getAttribute("aria-label")).toBe(copy.caption);
+    expect(region?.hasAttribute("aria-label")).toBe(false);
+    expect(root.querySelector(`#${region?.getAttribute("aria-labelledby")}`)).toBe(caption);
     expect(region?.className).toContain("overflow-x-auto");
   });
 
-  it("caps the region at its column, describes it with a scroll hint and fades its end edge", () => {
+  it("caps the region at its column, puts the scroll hint before it and fades its end edge", () => {
     const region = root.querySelector("[data-compare-scroll]");
-    const hint = root.querySelector(`#${region?.getAttribute("aria-describedby")}`);
+    const hint = root.querySelector(".vk-compare-hint");
     expect(hint?.textContent).toBe(copy.scrollHint);
-    expect(hint?.className).toContain("vk-compare-hint");
+    expect(region?.hasAttribute("aria-describedby")).toBe(false);
+    const order = hint && region ? hint.compareDocumentPosition(region) : 0;
+    expect(order & Node.DOCUMENT_POSITION_FOLLOWING).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(root.querySelector(".vk-compare-frame")).toBeNull();
     expect(region?.parentElement?.className).toContain("min-w-0");
     expect(region?.closest(".vk-compare")?.className).toContain("grid-cols-[minmax(0,1fr)]");
     const fade = region?.parentElement?.querySelector(".vk-compare-fade");
@@ -63,6 +67,13 @@ describe("Compare", () => {
     expect(narrow).toMatch(/\.vk-compare-hint \{\s*display: block;/);
     expect(narrow).toMatch(/\.vk-compare-fade \{\s*display: block;/);
     expect(root.querySelector("table")?.className).toContain("min-w-[46rem]");
+  });
+
+  it("drops the end fade where no scroll timeline can hide it, and shades the scroll edge instead", () => {
+    const css = readFileSync(resolve(process.cwd(), "app/global.css"), "utf8");
+    const fallback = css.slice(css.indexOf("@supports not (animation-timeline: scroll())"));
+    expect(fallback).toMatch(/^@supports not[^{]*\{\s*\.vk-compare-fade \{\s*display: none;/);
+    expect(fallback).toMatch(/\.vk-compare-scroll \{\s*background:[^}]*local[^}]*scroll/);
   });
 
   it("positions its scroll region, so the visually hidden labels scroll inside it instead of widening the page", () => {

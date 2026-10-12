@@ -2350,6 +2350,7 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 
 .vk-compare-scroll {
   scroll-timeline: --vk-compare inline;
+  background: var(--surface-bg);
 }
 
 .vk-compare-hint,
@@ -2397,6 +2398,27 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
     animation: vk-compare-fade linear both;
     animation-timeline: --vk-compare;
     animation-range: 85% 100%;
+  }
+}
+
+@supports not (animation-timeline: scroll()) {
+  .vk-compare-fade {
+    display: none;
+  }
+
+  @container (max-width: 46rem) {
+    .vk-compare-scroll {
+      background:
+        linear-gradient(to left, var(--surface-bg) 50%, transparent) 100% 0 / 2rem 100% no-repeat
+        local,
+        linear-gradient(
+          to left,
+          color-mix(in srgb, var(--text-strong) 14%, transparent),
+          transparent
+        )
+        100% 0 / 1rem 100% no-repeat scroll,
+        var(--surface-bg);
+    }
   }
 }
 
