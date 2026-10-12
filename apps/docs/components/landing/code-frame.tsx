@@ -12,7 +12,7 @@ export type CodeFrameProps = {
 };
 
 const BODY_CLASS =
-  "vk-code-frame-body vk-mono-sm min-w-0 flex-1 leading-6 [&_pre]:overflow-x-auto [&_pre]:py-3 [&_pre]:outline-none [&_pre:focus-visible]:outline-2 [&_pre:focus-visible]:-outline-offset-2 [&_pre:focus-visible]:outline-(--focus-ring)";
+  "vk-code-frame-body vk-mono-sm min-w-0 flex-1 leading-6 [&_pre]:py-3 [&_pre]:outline-none [&_pre:focus-visible]:outline-2 [&_pre:focus-visible]:-outline-offset-2 [&_pre:focus-visible]:outline-(--focus-ring)";
 
 export async function CodeFrame({
   code,

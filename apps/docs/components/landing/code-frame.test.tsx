@@ -3,6 +3,7 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { describe, expect, it, vi } from "vitest";
+import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
 import en from "@/messages/en.json";
 
 const trackUmamiEvent = vi.hoisted(() => vi.fn());
@@ -69,5 +70,14 @@ describe("CodeFrame", () => {
       location: "steps",
     });
     expect(button?.textContent).toBe(en.landing.install.copied);
+  });
+
+  it("fades the end edge of a long line like the terminal does, instead of clipping it", () => {
+    const rules = docsStylesheetRules();
+    const frame = rulesFor(rules, ".vk-code-frame-body pre")[0]?.declarations;
+    const terminal = rulesFor(rules, ".vk-terminal-scroll")[0]?.declarations;
+    expect(frame?.["overflow-x"]).toBe("auto");
+    expect(frame?.background).toContain("local");
+    expect(frame?.background).toBe(terminal?.background);
   });
 });

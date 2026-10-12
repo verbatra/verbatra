@@ -2227,7 +2227,8 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   display: none;
 }
 
-.vk-terminal-scroll {
+.vk-terminal-scroll,
+.vk-code-frame-body pre {
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scrollbar-width: thin;
