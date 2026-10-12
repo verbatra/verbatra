@@ -34,9 +34,8 @@ class FakeObserver {
   }
 }
 
-const { HeroTerminal, HERO_TERMINAL_OUTPUTS, HERO_TERMINAL_TITLE } = await import(
-  "./hero-terminal"
-);
+const { HERO_TERMINAL_TITLE } = await import("@/lib/hero-terminal");
+const { HeroTerminal, HERO_TERMINAL_OUTPUTS } = await import("./hero-terminal");
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 

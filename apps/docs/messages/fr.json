@@ -251,7 +251,7 @@
         },
         "formats": {
           "title": "Fonctionne avec ton framework",
-          "body": "i18next, vue-i18n, next-intl, XLIFF, gettext, Android, Apple, Flutter et plus encore. Aucun nouveau format vers lequel migrer."
+          "body": "La même clé, écrite comme chaque stack l’attend. verbatra lit et écrit les fichiers que tu as déjà, donc il n’y a rien à migrer."
         },
         "keys": {
           "title": "Tes clés restent les tiennes",

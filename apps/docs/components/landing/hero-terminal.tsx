@@ -1,10 +1,8 @@
 "use client";
 
 import { type ReactNode, useState } from "react";
-import { HERO_EXIT_LINES, HERO_TERMINAL_SCRIPT } from "@/lib/hero-terminal";
+import { HERO_EXIT_LINES, HERO_TERMINAL_SCRIPT, HERO_TERMINAL_TITLE } from "@/lib/hero-terminal";
 import { Terminal } from "./terminal";
-
-export const HERO_TERMINAL_TITLE = "~/app";
 
 export const HERO_SETTLED_COMMANDS = 1;
 

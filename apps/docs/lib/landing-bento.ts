@@ -1,3 +1,5 @@
+import type { SupportedFormat } from "@verbatra/sdk";
+import { FORMAT_SAMPLES, type FormatSample, sampleLines } from "./format-samples";
 import { GATE_LOCK_HASHES } from "./gate-demo";
 import { type Locale, type LocalizedAnchors, localizedAnchorPath } from "./i18n";
 
@@ -51,11 +53,16 @@ export const BENTO_TILES: ReadonlyArray<BentoTile> = [
   },
   {
     key: "providers",
-    span: 4,
+    span: 5,
     evidence: [
       { text: 'provider: { id: "none" }', page: "/docs/human-only-workflow" },
       { text: 'provider: { id: "gemini" }', page: "/docs/providers" },
     ],
+  },
+  {
+    key: "formats",
+    span: 7,
+    evidence: [{ text: 'format: "next-intl-json"', page: "/docs/formats" }],
   },
   {
     key: "keys",
@@ -71,13 +78,8 @@ export const BENTO_TILES: ReadonlyArray<BentoTile> = [
     evidence: [{ text: "verbatra/action@v1", page: "/docs/github-action" }],
   },
   {
-    key: "formats",
-    span: 5,
-    evidence: [{ text: 'format: "next-intl-json"', page: "/docs/formats" }],
-  },
-  {
     key: "adapters",
-    span: 7,
+    span: 4,
     evidence: [{ text: 'format: "custom:toml"', page: "/docs/custom-format-adapters" }],
   },
 ];
@@ -116,3 +118,56 @@ export const BENTO_ACTION_TRIGGERS: ReadonlyArray<BentoActionTrigger> = [
 ];
 
 export const BENTO_ACTION_ANNOTATION = "verbatra check: de";
+
+export const BENTO_ACTION_FILE = ".github/workflows/i18n.yml";
+
+export type BentoDiffLine = { readonly sign: " " | "-" | "+"; readonly text: string };
+
+export const BENTO_PROVIDER_FROM = {
+  id: "gemini",
+  options: { model: "gemini-2.5-flash", maxOutputTokens: 4096 },
+} as const;
+
+export const BENTO_PROVIDER_TO = { id: "deepl", options: {} } as const;
+
+function providerLines(provider: { readonly id: string; readonly options: object }): string[] {
+  const options = Object.entries(provider.options).map(
+    ([key, value]) => `    ${key}: ${JSON.stringify(value)},`,
+  );
+  const block = options.length === 0 ? ["  options: {},"] : ["  options: {", ...options, "  },"];
+  return [`  id: "${provider.id}",`, ...block];
+}
+
+export const BENTO_PROVIDER_DIFF: ReadonlyArray<BentoDiffLine> = [
+  { sign: " ", text: "provider: {" },
+  ...providerLines(BENTO_PROVIDER_FROM).map((text) => ({ sign: "-" as const, text })),
+  ...providerLines(BENTO_PROVIDER_TO).map((text) => ({ sign: "+" as const, text })),
+  { sign: " ", text: "}," },
+];
+
+export const BENTO_FORMAT_KEY = "cart.total";
+
+export const BENTO_FORMAT_IDS: ReadonlyArray<SupportedFormat> = [
+  "next-intl-json",
+  "android-xml",
+  "apple-strings",
+  "arb",
+];
+
+export type BentoFormatLine = {
+  readonly format: SupportedFormat;
+  readonly file: string;
+  readonly placeholder: string;
+  readonly line: string;
+};
+
+function keyLine(sample: FormatSample): string {
+  const line = sampleLines(sample).find((candidate) => candidate.includes(sample.placeholder));
+  if (line === undefined) throw new Error(`no ${BENTO_FORMAT_KEY} line in ${sample.file}`);
+  return line.trim().replace(/,$/, "");
+}
+
+export const BENTO_FORMAT_LINES: ReadonlyArray<BentoFormatLine> = BENTO_FORMAT_IDS.map((format) => {
+  const sample = FORMAT_SAMPLES[format];
+  return { format, file: sample.file, placeholder: sample.placeholder, line: keyLine(sample) };
+});

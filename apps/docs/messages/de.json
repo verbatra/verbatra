@@ -251,7 +251,7 @@
         },
         "formats": {
           "title": "Passt zu deinem Framework",
-          "body": "i18next, vue-i18n, next-intl, XLIFF, gettext, Android, Apple, Flutter und mehr. Kein neues Format, auf das du migrieren musst."
+          "body": "Derselbe Key, so geschrieben, wie jeder Stack ihn erwartet. verbatra liest und schreibt die Dateien, die du schon hast, also musst du nichts migrieren."
         },
         "keys": {
           "title": "Deine Keys bleiben deine",

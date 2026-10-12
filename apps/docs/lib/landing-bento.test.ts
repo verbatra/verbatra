@@ -3,15 +3,21 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as sdk from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
+import { FORMAT_SAMPLES } from "@/lib/format-samples";
 import { GATE_LOCK_HASHES, GATE_WITHHELD_LABEL } from "@/lib/gate-demo";
 import { headingSlugs } from "@/lib/heading-slugs";
 import { i18n, type Locale } from "@/lib/i18n";
 import {
   BENTO_ADAPTER_CODE,
   BENTO_ADAPTER_IMPORTS,
+  BENTO_FORMAT_KEY,
+  BENTO_FORMAT_LINES,
   BENTO_KEY_ENV_VAR,
   BENTO_LOCK_CODE,
   BENTO_LOCK_LOCALE,
+  BENTO_PROVIDER_DIFF,
+  BENTO_PROVIDER_FROM,
+  BENTO_PROVIDER_TO,
   BENTO_TILES,
   bentoHref,
 } from "@/lib/landing-bento";
@@ -115,5 +121,43 @@ describe("bento samples", () => {
   it("reads the key variable of the provider the config sample names", () => {
     expect(LANDING_CONFIG_CODE).toContain('id: "gemini"');
     expect(BENTO_KEY_ENV_VAR).toBe("GEMINI_API_KEY");
+  });
+
+  it("switches between two provider blocks the sdk accepts", async () => {
+    for (const provider of [BENTO_PROVIDER_FROM, BENTO_PROVIDER_TO]) {
+      const config = await sdk.loadConfig({
+        cwd: CONTENT,
+        configOverride: {
+          sourceLocale: "en",
+          targetLocales: ["de"],
+          format: "i18next-json",
+          files: { pattern: "locales/{locale}.json" },
+          provider,
+        },
+      });
+      expect(config.provider.id).toBe(provider.id);
+    }
+  });
+
+  it("draws the provider diff from the two blocks, removed lines before added ones", () => {
+    const text = BENTO_PROVIDER_DIFF.map((line) => line.text).join("\n");
+    expect(text).toContain(`id: "${BENTO_PROVIDER_FROM.id}"`);
+    expect(text).toContain(`model: "${BENTO_PROVIDER_FROM.options.model}"`);
+    expect(text).toContain(`id: "${BENTO_PROVIDER_TO.id}"`);
+    const signs = BENTO_PROVIDER_DIFF.map((line) => line.sign).join("");
+    expect(signs).toMatch(/^ -+\++ $/);
+    expect(signs.indexOf("+")).toBeGreaterThan(signs.lastIndexOf("-"));
+  });
+
+  it("takes every format line verbatim from the real adapter output for the same key", () => {
+    for (const entry of BENTO_FORMAT_LINES) {
+      const sample = FORMAT_SAMPLES[entry.format];
+      expect(sample.text).toContain(entry.line);
+      expect(entry.line).toContain(entry.placeholder);
+      expect(entry.line.replace(/[^a-z]/gi, "").toLowerCase()).toContain(
+        BENTO_FORMAT_KEY.split(".").at(-1),
+      );
+    }
+    expect(new Set(BENTO_FORMAT_LINES.map((entry) => entry.placeholder)).size).toBeGreaterThan(2);
   });
 });

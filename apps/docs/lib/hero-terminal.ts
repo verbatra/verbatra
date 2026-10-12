@@ -98,3 +98,5 @@ export const HERO_OG_LINES: ReadonlyArray<HeroOgLine> = HERO_TERMINAL_SCRIPT.fla
     text === undefined ? [] : [{ kind: "output" as const, text }],
   ),
 ]);
+
+export const HERO_TERMINAL_TITLE = "~/app";

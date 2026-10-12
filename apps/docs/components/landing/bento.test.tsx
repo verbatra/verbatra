@@ -3,7 +3,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { GATE_RUN_LINES } from "@/lib/gate-demo";
-import { BENTO_TILES } from "@/lib/landing-bento";
+import { BENTO_FORMAT_LINES, BENTO_PROVIDER_DIFF, BENTO_TILES } from "@/lib/landing-bento";
 import { FORMAT_DISPLAY, MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import en from "@/messages/en.json";
 
@@ -50,18 +50,45 @@ describe("Bento", () => {
     expect(root.querySelector("svg")).toBeNull();
   });
 
-  it("lists every provider id and the human-only none", () => {
-    const ids = [...tile("providers").querySelectorAll("[data-artifact] li")].map(
-      (li) => li.textContent,
+  it("shows a provider switch as a config diff instead of repeating the provider list", () => {
+    const diff = tile("providers").querySelector('[data-artifact="providers"]');
+    expect(diff?.querySelector("figcaption")?.textContent).toBe("verbatra.config.ts");
+    const rows = [...(diff?.querySelectorAll<HTMLElement>("[data-diff]") ?? [])];
+    expect(rows.map((row) => row.dataset.diff)).toEqual(
+      BENTO_PROVIDER_DIFF.map((line) =>
+        line.sign === " " ? "context" : line.sign === "-" ? "removed" : "added",
+      ),
     );
-    expect(ids).toEqual([...MACHINE_PROVIDER_IDS, "none"]);
+    expect(rows.map((row) => row.textContent)).toEqual(
+      BENTO_PROVIDER_DIFF.map((line) => `${line.sign}${line.text}`),
+    );
+    for (const id of MACHINE_PROVIDER_IDS.filter((id) => id !== "gemini" && id !== "deepl")) {
+      expect(diff?.textContent).not.toContain(`"${id}"`);
+    }
   });
 
-  it("lists every supported format by its display label", () => {
-    const labels = [...tile("formats").querySelectorAll("[data-artifact] li")].map(
-      (li) => li.textContent,
-    );
-    expect(labels).toEqual(SUPPORTED_FORMAT_IDS.map((id) => FORMAT_DISPLAY[id].label));
+  it("writes one key into several framework files instead of listing every format", () => {
+    const list = tile("formats").querySelector('[data-artifact="formats"]');
+    const rows = [...(list?.querySelectorAll<HTMLElement>("li[data-format]") ?? [])];
+    expect(rows.map((row) => row.dataset.format)).toEqual(BENTO_FORMAT_LINES.map((l) => l.format));
+    expect(rows.length).toBeLessThan(SUPPORTED_FORMAT_IDS.length);
+    BENTO_FORMAT_LINES.forEach((entry, index) => {
+      const row = rows[index];
+      expect(row?.textContent).toContain(FORMAT_DISPLAY[entry.format].label);
+      expect(row?.textContent).toContain(entry.file);
+      expect(row?.querySelector("code")?.textContent).toBe(entry.line);
+      expect(row?.querySelector(".vk-placeholder")?.textContent).toBe(entry.placeholder);
+    });
+  });
+
+  it("stretches every artifact to the tile height and captions each panel, so a row ends level", () => {
+    for (const { key } of BENTO_TILES) {
+      const holder =
+        tile(key).querySelector("[data-tile] > div:nth-child(2)") ?? tile(key).children[1];
+      expect(holder?.className).toContain("flex-1");
+      expect(holder?.className).toContain("[&>*]:flex-1");
+      expect(tile(key).querySelector("figcaption, li[data-format]")).not.toBeNull();
+    }
   });
 
   it("prints the real integrity gate run with the dropped placeholder as a chip", () => {
