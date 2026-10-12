@@ -40,8 +40,10 @@ dashboard in `packages/studio` (different app, different stack), or anything out
   islands only: import from `motion/react`, render `m.*` elements (never `motion.*`) inside
   `MotionProvider` (`components/motion-provider.tsx`: `LazyMotion` with `domAnimation` and
   `strict`, plus `MotionConfig reducedMotion="user"`), animate `opacity` and `transform` only, and
-  keep layout shift at 0. Today only the code showcase tabs (`code-showcase-tabs.tsx`) use it, and
-  they wrap themselves in `MotionProvider`; there is no page-wide provider. Server sections and the
+  keep layout shift at 0. Today only the code showcase tabs use it, and not in the first load:
+  `code-showcase-tabs.tsx` renders plain panels and `import()`s `code-showcase-motion.tsx` (the
+  `m.div` fade inside its own `MotionProvider`) on the first pointer, focus or tab change, so motion
+  never reaches the bytes before the first paint; there is no page-wide provider. Server sections and the
   reveals stay CSS keyframes and transitions in `app/global.css`, each with a
   `prefers-reduced-motion` opt-out.
 - Tailwind 4 uses CSS-first configuration. There is no `tailwind.config.js`. Tokens are
