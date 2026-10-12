@@ -246,7 +246,7 @@ const HomeTitleContext = createContext<{ homeUrl: string; wordmark: ReactNode }>
 function HomeNavTitle(titleProps: ComponentProps<"a">): ReactNode {
   const { homeUrl, wordmark } = use(HomeTitleContext);
   return (
-    <Link href={homeUrl} {...titleProps}>
+    <Link href={homeUrl} prefetch={false} {...titleProps}>
       {wordmark}
     </Link>
   );

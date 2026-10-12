@@ -16,8 +16,13 @@ vi.mock("fumadocs-core/link", () => ({
   default: ({
     children,
     external: _external,
+    prefetch,
     ...props
-  }: ComponentProps<"a"> & { external?: boolean }) => <a {...props}>{children}</a>,
+  }: ComponentProps<"a"> & { external?: boolean; prefetch?: boolean }) => (
+    <a data-prefetch={prefetch === undefined ? undefined : String(prefetch)} {...props}>
+      {children}
+    </a>
+  ),
 }));
 vi.mock("next-intl", async (importOriginal) => {
   const actual = await importOriginal<typeof import("next-intl")>();
@@ -192,6 +197,12 @@ describe("the landing nav", () => {
     );
     expect(title()).toBe(before);
     expect(before?.getAttribute("href")).toBe("/de");
+  });
+
+  it("does not prefetch the home page from its own wordmark", async () => {
+    const container = await render(null);
+    const title = container.querySelector<HTMLAnchorElement>("header a[href='/']");
+    expect(title?.getAttribute("data-prefetch")).toBe("false");
   });
 
   it("lines its row up with the landing sections: the wide width and the section gutter", async () => {
