@@ -111,9 +111,7 @@ const SETTLED = [
   "$ verbatra translate",
   "  de: 2 translated",
 ];
-const HOLD_PAUSE_MS = 2600;
 const PASS_MS = 800;
-const REPLAY_MS = 1500;
 const STEP_MS = 10;
 
 describe("Terminal: playback", () => {
@@ -188,15 +186,13 @@ describe("Terminal: playback", () => {
     expect(frames.at(-1)).toEqual(SETTLED);
   });
 
-  it("restarts the loop from an empty screen and replays every command once", async () => {
+  it("plays once and stays on the finished transcript, never clearing the screen", async () => {
     const container = play();
     await sample(container, PASS_MS);
-    const frames = await sample(container, HOLD_PAUSE_MS + REPLAY_MS);
-    expect(frames.some((frame) => frame.length === 0)).toBe(true);
+    const frames = await sample(container, 4 * PASS_MS);
     for (const frame of frames) {
-      expect(frame).toEqual(SETTLED.slice(0, frame.length));
+      expect(frame).toEqual(SETTLED);
     }
-    expect(frames.at(-1)).toEqual(SETTLED);
   });
 
   it("restarts from the settled commands when the effect runs again, without duplicating a line", async () => {

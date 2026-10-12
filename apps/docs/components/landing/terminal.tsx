@@ -21,7 +21,6 @@ export type TerminalProps = {
   initialDelay?: number;
   lineDelay?: number;
   onProgress?: (progress: TerminalProgress) => void;
-  loop?: boolean;
   highlight?: string;
   fitContent?: boolean;
   headerAction?: ReactNode;
@@ -33,8 +32,6 @@ export type TerminalProps = {
   settledCommands?: number;
   className?: string;
 };
-
-const HOLD_PAUSE_MS = 2600;
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -48,8 +45,6 @@ type TimelineOptions = {
   readonly delayBetweenCommands: number;
   readonly initialDelay: number;
 };
-
-type Timeline = { readonly first: Frame[]; readonly repeat: Frame[] };
 
 const COMMAND_PAUSE_MS = 320;
 
@@ -77,46 +72,26 @@ function buildPass(options: TimelineOptions, start: number): Frame[] {
   return frames;
 }
 
-function withHold(frames: Frame[]): Frame[] {
-  const last = frames.at(-1);
-  return last ? [...frames.slice(0, -1), { ...last, wait: last.wait + HOLD_PAUSE_MS }] : frames;
-}
-
-function buildTimeline(options: TimelineOptions, settledCommands: number): Timeline {
-  return {
-    first: withHold(buildPass(options, settledCommands)),
-    repeat: withHold(buildPass(options, 0)),
-  };
-}
-
-type Cursor = { timeline: Timeline; repeating: boolean; index: number; finished: boolean };
+type Cursor = { timeline: Frame[]; index: number; finished: boolean };
 
 type Playback = {
   readonly cursor: Cursor;
-  readonly loop: boolean;
   readonly isCancelled: () => boolean;
   readonly show: (frame: Frame) => void;
 };
 
 async function playFrom(playback: Playback): Promise<void> {
   const { cursor } = playback;
-  while (!playback.isCancelled()) {
-    const frames = cursor.repeating ? cursor.timeline.repeat : cursor.timeline.first;
-    while (cursor.index < frames.length) {
-      const frame = frames[cursor.index];
-      if (!frame || playback.isCancelled()) return;
-      playback.show(frame);
-      await delay(frame.wait);
-      if (playback.isCancelled()) return;
-      cursor.index += 1;
-    }
-    if (!playback.loop) {
-      cursor.finished = true;
-      return;
-    }
-    cursor.repeating = true;
-    cursor.index = 0;
+  const frames = cursor.timeline;
+  while (cursor.index < frames.length) {
+    const frame = frames[cursor.index];
+    if (!frame || playback.isCancelled()) return;
+    playback.show(frame);
+    await delay(frame.wait);
+    if (playback.isCancelled()) return;
+    cursor.index += 1;
   }
+  cursor.finished = true;
 }
 
 function buildSettled(
@@ -241,7 +216,6 @@ export function Terminal({
   initialDelay = 500,
   lineDelay = 90,
   onProgress,
-  loop = true,
   highlight,
   fitContent = false,
   headerAction,
@@ -264,7 +238,7 @@ export function Terminal({
 
   const timeline = useMemo(
     () =>
-      buildTimeline(
+      buildPass(
         { commands, outputs, typingSpeed, lineDelay, delayBetweenCommands, initialDelay },
         settledCommands,
       ),
@@ -278,12 +252,12 @@ export function Terminal({
       settledCommands,
     ],
   );
-  const cursorRef = useRef<Cursor>({ timeline, repeating: false, index: 0, finished: false });
+  const cursorRef = useRef<Cursor>({ timeline, index: 0, finished: false });
 
   useEffect(() => {
     if (!inView) return;
     if (cursorRef.current.timeline !== timeline) {
-      cursorRef.current = { timeline, repeating: false, index: 0, finished: false };
+      cursorRef.current = { timeline, index: 0, finished: false };
     }
     const cursor = cursorRef.current;
 
@@ -298,7 +272,6 @@ export function Terminal({
     let cancelled = false;
     void playFrom({
       cursor,
-      loop,
       isCancelled: () => cancelled,
       show: (frame) => {
         setHistory(frame.history);
@@ -313,7 +286,7 @@ export function Terminal({
     return () => {
       cancelled = true;
     };
-  }, [inView, timeline, commands, outputs, loop]);
+  }, [inView, timeline, commands, outputs]);
 
   const shown = history.length;
   const typingNow = typing !== null;

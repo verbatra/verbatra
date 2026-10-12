@@ -23,7 +23,6 @@ export function HeroTerminal({ session, replay }: { session: string; replay: str
       title={HERO_TERMINAL_TITLE}
       sessionLabel={session}
       settledCommands={run === 0 ? HERO_SETTLED_COMMANDS : 0}
-      loop={false}
       fitContent
       wrap
       pauseOffscreen
