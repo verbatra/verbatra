@@ -42,4 +42,10 @@ describe("web app manifest colors", () => {
     expect(manifest().theme_color).toBe(THEME_COLORS.dark);
     expect(manifest().background_color).toBe(THEME_COLORS.dark);
   });
+
+  it("keeps the icons the browser fetches during the first load small", () => {
+    for (const file of ["app/favicon.ico", "app/apple-icon.png"]) {
+      expect(readFileSync(join(process.cwd(), file)).byteLength, file).toBeLessThan(8 * 1024);
+    }
+  });
 });
