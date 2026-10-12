@@ -1,3 +1,4 @@
+import { ArrowUpRightIcon } from "lucide-react";
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 import type { CSSProperties, ReactNode } from "react";
@@ -35,10 +36,12 @@ const ROW_CLASS =
 function OutboundRow({
   href,
   target,
+  newTab,
   children,
 }: {
   href: string;
   target: string;
+  newTab: string;
   children: ReactNode;
 }): ReactNode {
   return (
@@ -52,7 +55,15 @@ function OutboundRow({
       data-umami-event-target={target}
       data-umami-event-location="open-source"
     >
-      {children}
+      <span>
+        {children}
+        <span className="sr-only"> {newTab}</span>
+      </span>
+      <ArrowUpRightIcon
+        aria-hidden="true"
+        className="size-4 shrink-0 text-[color:var(--text-muted)]"
+        data-external
+      />
     </a>
   );
 }
@@ -118,7 +129,7 @@ export async function OpenSource(): Promise<ReactNode> {
           style={{ ...LINKS_SPAN, borderColor: "var(--border-default)" }}
         >
           <li>
-            <OutboundRow href={GITHUB_URL} target="github">
+            <OutboundRow href={GITHUB_URL} target="github" newTab={t("newTab")}>
               <span className="inline-flex items-center gap-3">
                 <GithubIcon size={18} />
                 <span className="font-mono text-sm">verbatra/verbatra</span>
@@ -127,7 +138,7 @@ export async function OpenSource(): Promise<ReactNode> {
           </li>
           {OPEN_SOURCE_LINKS.map((link) => (
             <li key={link.key}>
-              <OutboundRow href={link.href} target={link.target}>
+              <OutboundRow href={link.href} target={link.target} newTab={t("newTab")}>
                 {t(link.key)}
               </OutboundRow>
             </li>

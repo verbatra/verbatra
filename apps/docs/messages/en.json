@@ -458,6 +458,7 @@
       "issues": "Issues and feature requests",
       "roadmap": "Roadmap",
       "releases": "Release notes",
+      "newTab": "(opens in a new tab)",
       "contributorsHeading": "Contributors",
       "contributorAria": "{name} on GitHub"
     },

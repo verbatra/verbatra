@@ -48,10 +48,29 @@ describe("OpenSource", () => {
     );
     for (const link of OPEN_SOURCE_LINKS) {
       const anchor = root.querySelector(`a[href='${link.href}']`);
-      expect(anchor?.textContent).toBe(copy[link.key as keyof typeof copy]);
+      expect(anchor?.textContent).toBe(`${copy[link.key as keyof typeof copy]} ${copy.newTab}`);
       expect(anchor?.getAttribute("rel")).toBe("noreferrer noopener");
       expect(anchor?.getAttribute("data-umami-event")).toBe("outbound-link");
       expect(anchor?.getAttribute("data-umami-event-location")).toBe("open-source");
+    }
+  });
+
+  it("marks every project row as a link that opens a new tab, with a hidden icon and a spoken note", () => {
+    const rows = [
+      ...root.querySelectorAll<HTMLAnchorElement>('a[data-umami-event-location="open-source"]'),
+    ].filter((anchor) => anchor.getAttribute("data-umami-event-target") !== "contributor");
+    expect(rows).toHaveLength(OPEN_SOURCE_LINKS.length + 1);
+    for (const row of rows) {
+      expect(row.getAttribute("target")).toBe("_blank");
+      expect(row.querySelector("svg[data-external]")?.getAttribute("aria-hidden")).toBe("true");
+      expect(row.querySelector(".sr-only")?.textContent?.trim()).toBe(copy.newTab);
+      expect(row.textContent).not.toMatch(/[\u2190-\u21FF\u2197]/);
+    }
+  });
+
+  it("says a row opens a new tab in every locale", () => {
+    for (const catalog of [en, de, es, fr]) {
+      expect(catalog.landing.openSource.newTab).toMatch(/^\(.+\)$/);
     }
   });
 

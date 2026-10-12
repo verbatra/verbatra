@@ -405,6 +405,7 @@
       "issues": "Issues et demandes de fonctionnalités",
       "roadmap": "Feuille de route",
       "releases": "Notes de version",
+      "newTab": "(s’ouvre dans un nouvel onglet)",
       "contributorsHeading": "Contributeurs",
       "contributorAria": "{name} sur GitHub"
     },

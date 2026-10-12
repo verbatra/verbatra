@@ -283,7 +283,7 @@ link (`landing.stats.starsFallback`, `downloadsFallback`), never an empty value;
   since it is `display: none` on a wide column) and `.vk-compare-fade` fades the end edge on the
   region's scroll timeline; without scroll timelines the fade is dropped and the region shades its
   end edge with a `local` cover over a `scroll` shade, which clears at the scroll end), `open-source.tsx` (`#open-source`: license, contributing,
-  issues, releases and the contributors), `faq.tsx` (`#faq`) and `final-cta.tsx` (the closing
+  issues, releases and the contributors; every project row opens a new tab and ends in an `aria-hidden` external-link icon, with `landing.openSource.newTab` in an `sr-only` span for screen readers, never an arrow character), `faq.tsx` (`#faq`) and `final-cta.tsx` (the closing
   panel on `landing.closing`, a `section` whose `vk-final-cta` class is a hook with no stylesheet rule, the install `CommandRow` counted with `location: final-cta`, then Get
   started and Read the docs). The footer is not a section; `app/[lang]/(home)/layout.tsx` passes
   it to the home layout. Section ids are unique; never render two sections that claim the same one.
