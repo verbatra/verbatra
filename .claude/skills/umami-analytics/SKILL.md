@@ -81,19 +81,18 @@ this skill's concern).
 
 | Event | Properties | Where (location values) |
 | --- | --- | --- |
-| outbound-link | target, location | hero (site-messages, version, license), header (github, sent from onClick; version, the landing version pill), loop (skills-repo), control (evidence), faq (releases), footer (footer links, contributor, github, npm) |
-| click-cta | location, target | header, hero, marquee, formats, loop, final-cta, docs-home (tabs, path, feature and stack cards), docs-page (stack cards) |
-| copy-command | command, location | how, loop, start-here, docs-page (CommandLine) |
+| outbound-link | target, location | hero (github), header (github and changelog, sent from onClick; version, the landing version pill; the docs header's icon links), menu (changelog, github), proof-strip (stars, downloads, license), features (evidence), open-source (license, contributing, issues, roadmap, releases, contributor), faq (license), footer (footer links, github, npm) |
+| click-cta | location, target | header, menu (get-started), hero, proof-strip (providers, formats), code (tab page links), ecosystem (providers, formats, human-only, custom-adapters), studio (studio-guide), final-cta (get-started, docs), docs-home (tabs, path, feature and stack cards), docs-page (stack cards) |
+| copy-command | command, location | steps, code, studio, start-here, docs-page (CommandLine) |
 | copy-install-command | command, manager ("npm"), location | hero, final-cta |
 | copy-ai-prompt | location | hero, start-here, docs-home |
 | copy-code | location | docs-page (MDX code block copy button) |
 | copy-page-markdown | location | docs-page |
 | open-page-options | location | docs-page (only when the popover opens) |
-| select-tab | tab, location, framework (a framework chip only) | hero, formats |
+| select-tab | tab, location, framework (a framework chip only) | hero, formats, code |
 | run-scenario | scenario, location, break (drop, rename or add; the break scenario only), retry (true on a retry only) | showcase |
 | reset-showcase | location | showcase |
 | open-faq | question (item key, never the text), location | faq |
-| toggle-marquee | state, location | marquee |
 | install-mcp | client, location | docs-page |
 | locale-switch | from, to (only when they differ) | language menu |
 

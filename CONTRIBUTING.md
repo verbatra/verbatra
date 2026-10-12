@@ -394,8 +394,8 @@ Work outward from `packages/core`, then `packages/format-adapters`. Replace
    and its `.de.mdx`, `.es.mdx` and `.fr.mdx` siblings. Also update
    `apps/docs/lib/landing-facts.ts`, where `FORMAT_DISPLAY` is
    a total `Record<SupportedFormat, FormatDisplay>` and will not compile until the new
-   format has a display label and an icon (the landing marquee and the
-   structured data both read it). That one is easy to miss, and the error surfaces
+   format has a display label and an icon (the landing format switcher, the
+   bento tile and the structured data all read it). That one is easy to miss, and the error surfaces
    in the docs app rather than where you were working.
 
    `apps/docs/lib/ai-setup-prompt.ts` names the format set in several places: the
