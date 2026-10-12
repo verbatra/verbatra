@@ -12,7 +12,7 @@ export function CommandRow({
   location,
   link,
   divided = false,
-  wrapsWhenNarrow = false,
+  wrap,
   installManager,
 }: {
   command: string;
@@ -20,7 +20,7 @@ export function CommandRow({
   location: string;
   link?: CommandLineLink;
   divided?: boolean;
-  wrapsWhenNarrow?: boolean;
+  wrap?: "narrow" | "always";
   installManager?: "npm";
 }): ReactNode {
   return (
@@ -36,8 +36,9 @@ export function CommandRow({
       </span>
       <code
         className={cn(
-          "vk-edge-fade min-w-0 flex-1 whitespace-nowrap pt-1 text-[color:var(--text-strong)]",
-          wrapsWhenNarrow && "@max-[30rem]:whitespace-normal",
+          "min-w-0 flex-1 pt-1 text-[color:var(--text-strong)]",
+          wrap === "always" ? "whitespace-normal" : "vk-edge-fade whitespace-nowrap",
+          wrap === "narrow" && "@max-[30rem]:whitespace-normal",
         )}
       >
         <HighlightedCommand command={command} link={link} />

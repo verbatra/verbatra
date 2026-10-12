@@ -26,7 +26,7 @@ export async function FinalCta(): Promise<ReactNode> {
               label={tInstall("copyAria")}
               location="final-cta"
               installManager="npm"
-              wrapsWhenNarrow
+              wrap="narrow"
             />
           </div>
         </div>

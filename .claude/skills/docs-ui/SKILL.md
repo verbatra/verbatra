@@ -389,7 +389,7 @@ link (`landing.stats.starsFallback`, `downloadsFallback`), never an empty value;
   column rather than growing past it; a linked chip takes the flat-panel glow border on hover and
   focus through `.vk-evidence-link`; an external one counts as `outbound-link` from `features`),
   `CommandRow` (`components/command-row.tsx`: the hero
-  panel's npm install wraps under 30rem through `wrapsWhenNarrow`; elsewhere a `CommandRow` scrolls
+  panel's npm install wraps under 30rem through `wrap="narrow"`, the Studio run command wraps at every width through `wrap="always"`, since its text column is too narrow for it on a desktop; elsewhere a `CommandRow` scrolls
   sideways inside `.vk-edge-fade`: a mask, not a painted background, so it stays see-through on any
   surface, and the end fade shows only while the command overflows, driven by a scroll timeline),
   `AiSetupPrompt` (`components/ai-setup-prompt.tsx`: the whole prompt, wrapped, under a `.vk-label`

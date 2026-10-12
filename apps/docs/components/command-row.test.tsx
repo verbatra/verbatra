@@ -14,7 +14,7 @@ const { CommandRow } = await import("./command-row");
 const writeText = vi.fn<(text: string) => Promise<void>>();
 let root: Root | undefined;
 
-function render(wrapsWhenNarrow?: boolean): HTMLDivElement {
+function render(wrap?: "narrow" | "always"): HTMLDivElement {
   const container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
@@ -24,7 +24,7 @@ function render(wrapsWhenNarrow?: boolean): HTMLDivElement {
         command={NPM_INSTALL_COMMAND}
         label="copy"
         location="start-here"
-        {...(wrapsWhenNarrow === undefined ? {} : { wrapsWhenNarrow })}
+        {...(wrap === undefined ? {} : { wrap })}
       />,
     ),
   );
@@ -93,7 +93,7 @@ describe("CommandRow", () => {
 
   it("wraps the command under a narrow container only when asked to", () => {
     const narrow = "@max-[30rem]:whitespace-normal";
-    expect(render(true).querySelector("code")?.classList.contains(narrow)).toBe(true);
+    expect(render("narrow").querySelector("code")?.classList.contains(narrow)).toBe(true);
     act(() => root?.unmount());
     root = undefined;
     document.body.innerHTML = "";
@@ -101,5 +101,12 @@ describe("CommandRow", () => {
     expect(code?.classList.contains(narrow)).toBe(false);
     expect(code?.classList.contains("whitespace-nowrap")).toBe(true);
     expect(code?.classList.contains("vk-edge-fade")).toBe(true);
+  });
+
+  it("wraps the command at every width when asked to, so a long one is never cut off", () => {
+    const code = render("always").querySelector("code");
+    expect(code?.classList.contains("whitespace-normal")).toBe(true);
+    expect(code?.classList.contains("whitespace-nowrap")).toBe(false);
+    expect(code?.classList.contains("vk-edge-fade")).toBe(false);
   });
 });

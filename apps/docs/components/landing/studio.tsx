@@ -52,7 +52,7 @@ export async function Studio(): Promise<ReactNode> {
               command={STUDIO_RUN_COMMAND}
               label={tInstall("copyCommand", { command: STUDIO_RUN_COMMAND })}
               location="studio"
-              wrapsWhenNarrow
+              wrap="always"
             />
           </div>
           <p className="text-sm">

@@ -82,6 +82,14 @@ describe("Studio", () => {
     expect(cliSource).toContain(STUDIO_RUN_COMMAND);
   });
 
+  it("wraps the long run command at every width, so the narrow text column never cuts it off", () => {
+    const code = [...root.querySelectorAll("code")].find(
+      (node) => node.textContent === STUDIO_RUN_COMMAND,
+    );
+    expect(code?.classList.contains("whitespace-normal")).toBe(true);
+    expect(code?.classList.contains("whitespace-nowrap")).toBe(false);
+  });
+
   it("links the Studio guide, a real docs page", () => {
     const link = root.querySelector(`a[href='${STUDIO_GUIDE_PATH}']`);
     expect(link?.textContent).toBe(en.landing.studio.cta);
