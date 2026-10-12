@@ -70,4 +70,12 @@ describe("Steps", () => {
       expect(button.getAttribute("aria-label")).toBe(en.landing.code.copy);
     }
   });
+
+  it("starts every snippet at the top of its shared row, so short ones line up under their text", () => {
+    for (const step of root.querySelectorAll("li[data-step]")) {
+      const holder = step.querySelector("figure")?.parentElement;
+      expect(holder?.className.split(" ")).toContain("self-start");
+      expect(holder?.className).not.toContain("self-end");
+    }
+  });
 });

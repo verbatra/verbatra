@@ -39,7 +39,7 @@ export async function Steps(): Promise<ReactNode> {
             <p className="max-w-[46ch] text-sm leading-relaxed text-(--text-muted)">
               {withInlineCode(t(`items.${id}.body`))}
             </p>
-            <div className="min-w-0 self-end pt-2">{frames[index]}</div>
+            <div className="min-w-0 self-start pt-2">{frames[index]}</div>
           </li>
         ))}
       </ol>
