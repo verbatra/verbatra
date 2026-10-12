@@ -24,6 +24,8 @@ export async function Steps(): Promise<ReactNode> {
     <Section id="how-it-works" band>
       <SectionHead id="how-it-works-heading" title={t("heading")} lead={t("lead")} />
       <ol
+        // biome-ignore lint/a11y/noRedundantRoles: Safari drops list semantics from a list-style: none list
+        role="list"
         data-reveal="2"
         className="mt-10 grid list-none gap-10 lg:mt-14 lg:grid-cols-3 lg:gap-x-6 lg:gap-y-4"
       >

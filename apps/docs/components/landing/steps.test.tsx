@@ -36,6 +36,7 @@ beforeAll(async () => {
 describe("Steps", () => {
   it("renders the three steps in order as an ordered list with no visible numbers", () => {
     expect(root.querySelector("h2")?.textContent).toBe(en.landing.steps.heading);
+    expect(root.querySelector("ol")?.getAttribute("role")).toBe("list");
     const items = [...root.querySelectorAll("ol > li")];
     expect(items.map((item) => item.getAttribute("data-step"))).toEqual(LANDING_STEP_IDS);
     expect(items.map((item) => item.querySelector("h3")?.textContent)).toEqual(
