@@ -62,30 +62,11 @@
       "definition": "verbatra is a CLI and SDK that keeps your i18n locale files in sync, translating only the keys that changed through your choice of AI or machine-translation provider."
     },
     "hero": {
-      "headline": "Translate only what changed.",
-      "dogfood": "This site's interface strings in German, Spanish and French come from verbatra.",
-      "dogfoodLink": "See the message files",
-      "ledger": {
-        "caption": "This headline, as this site's message files and lock file hold it."
-      },
-      "lead": "The committed lock file decides which keys changed, and every translation is checked for intact placeholders before verbatra writes it.",
-      "ctaStart": "Get started",
-      "ctaTry": "Try it in the browser",
       "command": {
-        "tablist": "Set up verbatra",
         "install": "Install",
         "prompt": "Prompt",
         "installHint": "Run this in your project.",
         "promptHint": "Paste this into your coding agent."
-      },
-      "facts": {
-        "formats": "formats",
-        "providers": "providers + none"
-      },
-      "og": {
-        "formats": "file formats",
-        "providers": "translation providers",
-        "locales": "languages translated on this site"
       }
     },
     "showcase": {
@@ -130,9 +111,6 @@
         }
       }
     },
-    "terminal": {
-      "sessionLabel": "An example verbatra command-line session."
-    },
     "install": {
       "copy": "Copy",
       "copied": "Copied",
@@ -147,30 +125,8 @@
       "promptCopyFailed": "Could not copy the prompt. Select it in the preview and copy it by hand.",
       "promptPreviewLabel": "Copies this prompt for your agent"
     },
-    "how": {
-      "heading": "Gate every pull request in CI.",
-      "steps": {
-        "setup": {
-          "title": "Set up",
-          "body": "`verbatra init` writes the config: source locale, targets, one provider."
-        },
-        "translate": {
-          "title": "Translate what changed",
-          "body": "Only new and changed keys go out, and a reply that breaks a placeholder is withheld."
-        },
-        "check": {
-          "title": "Fail the pull request",
-          "body": "`verbatra check` exits {code} while a key is missing or stale, so CI blocks the merge."
-        }
-      },
-      "lead": "One config, one translate run, one check: CI fails the build while a key is still missing."
-    },
     "formats": {
-      "heading": "Same strings, every file format.",
-      "lead": "Pick your framework or a format. Each pane is the same four strings, written by the adapter verbatra ships for that format, with its placeholder kept.",
-      "frameworksLabel": "Frameworks",
-      "formatsLabel": "File formats",
-      "link": "See every format and how to configure it"
+      "frameworksLabel": "Frameworks"
     },
     "faq": {
       "heading": "Frequently asked questions",
@@ -217,12 +173,6 @@
         }
       }
     },
-    "finalClose": {
-      "heading": "Your next run sends what changed, not the whole file.",
-      "installHint": "Install the CLI, then run `verbatra init` in your project.",
-      "docs": "Read the docs",
-      "start": "Get started"
-    },
     "footer": {
       "tagline": "An open-source CLI and SDK that keeps your i18n locale files in sync through the provider you choose.",
       "cols": {
@@ -266,28 +216,14 @@
       "legalLicense": "Open-source under the MIT License",
       "legalCopyright": "© 2026 Mario Kreitz",
       "githubAria": "verbatra on GitHub",
-      "npmAria": "verbatra on npm",
-      "contributorsTitle": "Contributors",
-      "contributorAria": "{name} on GitHub"
+      "npmAria": "verbatra on npm"
     },
     "brand": {
       "vmarkAlt": "verbatra"
     },
     "nav": {
-      "sections": {
-        "label": "On this page",
-        "showcase": "Demo",
-        "how": "How it works",
-        "formats": "Formats",
-        "control": "Control",
-        "loop": "Workflows",
-        "faq": "FAQ"
-      },
       "docs": "Docs",
       "reference": "Reference",
-      "headerCta": {
-        "label": "Get started"
-      },
       "version": {
         "label": "Release notes for {version}"
       },
@@ -298,126 +234,6 @@
         "machineTranslatedDescription": "Interface and documentation pages for this language are translated with AI."
       },
       "skipToContent": "Skip to content"
-    },
-    "marquee": {
-      "label": "Supported frameworks and formats",
-      "intro": "Works with the locale files you already have.",
-      "pause": "Pause the scrolling lists",
-      "frameworksLabel": "Frameworks verbatra works with",
-      "formatsLabel": "File formats verbatra reads and writes",
-      "frameworksLink": "Pick your stack",
-      "formatsLink": "See every format",
-      "formatTip": "format: \"{id}\"",
-      "frameworks": {
-        "react": "i18next JSON",
-        "next": "next-intl JSON",
-        "vue": "vue-i18n JSON",
-        "nuxt": "vue-i18n JSON",
-        "angular": "ngx-translate JSON or XLIFF",
-        "node": "i18next JSON",
-        "svelte": "i18next JSON or YAML",
-        "astro": "i18next JSON or YAML",
-        "reactNative": "i18next JSON",
-        "flutter": "Flutter ARB",
-        "spring": "Java .properties",
-        "apple": ".strings and .xcstrings",
-        "android": "strings.xml",
-        "dotnet": ".resx"
-      }
-    },
-    "control": {
-      "heading": "You decide what ships.",
-      "lead": "People keep the last word, every language gets its own rules, and strings go only where you allow.",
-      "groups": {
-        "people": {
-          "title": "People have the last word",
-          "items": {
-            "humanOnly": {
-              "title": "Machine translation off, by policy",
-              "body": "With the provider set to `none`, no string reaches any service: a run fills keys from your translation memory and lists the rest for a person."
-            },
-            "protect": {
-              "title": "A translator's edit survives a source change",
-              "body": "Values a person wrote or imported are kept by default when the source changes, marked stale, never overwritten."
-            },
-            "review": {
-              "title": "Approve or reject what a run flagged",
-              "body": "Decisions are saved next to the lock file, so the review queue only lists what nobody has looked at yet."
-            }
-          }
-        },
-        "correct": {
-          "title": "Correct in every language",
-          "items": {
-            "plurals": {
-              "title": "Plural forms from CLDR",
-              "body": "Each target gets the plural categories its language needs, and ICU plural arms that do not fit are refused."
-            },
-            "terms": {
-              "title": "Your terms and tone stay fixed",
-              "body": "A glossary binds how listed terms are translated, and tone sets formal, informal or neutral address for every target."
-            },
-            "qa": {
-              "title": "Quality checks on committed files",
-              "body": "The checks a run applies to provider output, run over what is already in your locale files. No key needed."
-            }
-          }
-        },
-        "network": {
-          "title": "Strings go only where you allow",
-          "items": {
-            "policy": {
-              "title": "A network policy verbatra enforces",
-              "body": "Local-only or an allowlist: a host you did not permit is refused before any request leaves the machine."
-            },
-            "preview": {
-              "title": "See what a run would send first",
-              "body": "A dry run needs no API key and writes nothing: it lists exactly which keys a real run would send."
-            },
-            "private": {
-              "title": "No telemetry, and local models welcome",
-              "body": "Strings go only to the provider you configure, and a self-hosted model keeps them on your own hardware."
-            }
-          }
-        }
-      }
-    },
-    "loop": {
-      "heading": "Where your team already works.",
-      "rows": {
-        "studio": {
-          "title": "See every locale's state in Verbatra Studio.",
-          "body": "Coverage, flagged entries, in-place edits. No provider call.",
-          "cta": "Review translations in Studio",
-          "alt": "The Verbatra Studio Review page listing five flagged entries across the de, es and fr locales, each row showing the key, its review reasons, and Edit, Approve and Reject actions."
-        },
-        "handoff": {
-          "title": "Hand a workbook to translators, import it back.",
-          "body": "Export, get it back filled in, import through the same gate.",
-          "cta": "Read about the Excel handoff"
-        },
-        "sdk": {
-          "title": "Call it from your own code.",
-          "body": "The SDK runs the same translate and check from a script, a build step or a server.",
-          "cta": "Read the SDK reference"
-        },
-        "agent": {
-          "title": "Or hand it to your agent.",
-          "body": "An MCP server, plus installable skills for the CLI, MCP and Studio.",
-          "cta": "Start with AI"
-        }
-      },
-      "links": {
-        "llms": "llms.txt",
-        "llmsFull": "llms-full.txt",
-        "mcpDocs": "MCP server docs",
-        "skillsDocs": "Skills pack docs"
-      },
-      "table": {
-        "key": "key",
-        "source": "source",
-        "target": "target"
-      }
     },
     "topNav": {
       "label": "Main",

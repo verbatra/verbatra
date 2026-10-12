@@ -292,21 +292,32 @@ describe("DocsHomePaths", () => {
 });
 
 describe("DocsHomeSteps", () => {
-  it("numbers the four steps in order, each with its title and body", async () => {
+  it("numbers the landing's check, translate and CI steps in order, each with its title and body", async () => {
     const { DocsHomeSteps } = await import("./docs-home");
     const items = [...parse(renderToStaticMarkup(<DocsHomeSteps />)).querySelectorAll("ol > li")];
     expect(items.map((item) => item.querySelector("h3")?.textContent)).toEqual([
-      "1. configure.title",
-      "2. diff.title",
-      "3. translate.title",
-      "4. verifyWrite.title",
+      "1. check.title",
+      "2. translate.title",
+      "3. ci.title",
     ]);
     expect(items.map((item) => item.querySelector("p")?.textContent)).toEqual([
-      "configure.body",
-      "diff.body",
+      "check.body",
       "translate.body",
-      "verifyWrite.body",
+      "ci.body",
     ]);
+  });
+
+  it("reads only step keys that exist in every locale, so the docs home never prints a key", () => {
+    for (const locale of ["en", "de", "es", "fr"]) {
+      const messages = JSON.parse(
+        readFileSync(join(process.cwd(), `messages/${locale}.json`), "utf8"),
+      ) as { landing: { steps: { items: Record<string, { title: string; body: string }> } } };
+      expect(Object.keys(messages.landing.steps.items), locale).toEqual([
+        "check",
+        "translate",
+        "ci",
+      ]);
+    }
   });
 });
 

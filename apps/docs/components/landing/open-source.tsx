@@ -101,8 +101,8 @@ export async function OpenSource(): Promise<ReactNode> {
 
   return (
     <Section width="wide" rhythm="md" id="open-source">
-      <SectionHead id="open-source-heading" title={t("heading")} lead={t("lead")} reveal />
-      <div data-reveal="2" className="vk-grid-12 not-prose mt-10 gap-y-12">
+      <SectionHead id="open-source-heading" title={t("heading")} lead={t("lead")} />
+      <div className="vk-grid-12 not-prose mt-10 gap-y-12">
         <ul
           // biome-ignore lint/a11y/noRedundantRoles: Safari drops list semantics from a list-style: none list
           role="list"

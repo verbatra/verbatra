@@ -132,7 +132,7 @@ export async function Bento(): Promise<ReactNode> {
   const artifacts = await Promise.all(BENTO_TILES.map((tile) => tileArtifact(tile.key)));
   return (
     <Section id="features">
-      <SectionHead id="features-heading" title={t("heading")} reveal />
+      <SectionHead id="features-heading" title={t("heading")} />
       <ul
         // biome-ignore lint/a11y/noRedundantRoles: Safari drops list semantics from a list-style: none list
         role="list"

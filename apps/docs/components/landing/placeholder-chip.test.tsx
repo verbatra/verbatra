@@ -114,9 +114,12 @@ describe("the redesign tokens", () => {
     );
   });
 
-  it("fades the hero grid backdrop out toward the bottom", () => {
-    expect(rootToken("--hero-grid-mask")).toMatch(/^linear-gradient\(to bottom,/);
-  });
+  it.each(["--hero-grid-mask", "--rise-distance", "--v-pink", "--v-violet", "--gradient-headline"])(
+    "no longer ships the retired %s token",
+    (token) => {
+      expect(rules.some((rule) => token in rule.declarations)).toBe(false);
+    },
+  );
 });
 
 describe("the 12-column landing grid", () => {

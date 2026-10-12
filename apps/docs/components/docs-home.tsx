@@ -4,6 +4,7 @@ import { PromptCopyButton } from "@/components/ai-setup-prompt";
 import { TrackedLink } from "@/components/ui/tracked-link";
 import { type Locale, localizedPath } from "@/lib/i18n";
 import { withInlineCode } from "@/lib/inline-code-text";
+import { LANDING_STEP_IDS } from "@/lib/landing-code";
 import { MCP_VERSION, PACKAGE_VERSION, STUDIO_VERSION } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { keepCompoundsWhole, keepLinkLabelWhole } from "@/lib/word-breaks";
@@ -25,8 +26,6 @@ const PACKAGE_VERSIONS: Readonly<Record<PackageKey, string>> = {
   studio: STUDIO_VERSION,
   mcp: MCP_VERSION,
 };
-
-const STEP_KEYS = ["configure", "diff", "translate", "verifyWrite"] as const;
 
 export function docsHomeCta(target: string) {
   return { name: "click-cta", data: { location: "docs-home", target } } as const;
@@ -257,10 +256,10 @@ export function DocsHomePaths({
 }
 
 export function DocsHomeSteps(): ReactNode {
-  const t = useTranslations("landing.how.steps");
+  const t = useTranslations("landing.steps.items");
   return (
-    <ol className="not-prose mt-8 grid list-none gap-4 md:grid-cols-4">
-      {STEP_KEYS.map((key, index) => (
+    <ol className="not-prose mt-8 grid list-none gap-4 md:grid-cols-3">
+      {LANDING_STEP_IDS.map((key, index) => (
         <li key={key} className="border-t border-fd-border pt-[18px]">
           <h3
             className="font-semibold text-fd-foreground"
@@ -269,7 +268,9 @@ export function DocsHomeSteps(): ReactNode {
             <span style={{ color: "var(--accent)" }}>{index + 1}. </span>
             {t(`${key}.title`)}
           </h3>
-          <p className="mt-1.5 text-sm text-fd-muted-foreground">{t(`${key}.body`)}</p>
+          <p className="mt-1.5 text-sm text-fd-muted-foreground">
+            {withInlineCode(t(`${key}.body`))}
+          </p>
         </li>
       ))}
     </ol>

@@ -121,7 +121,7 @@ function buildSettled(
 function tokenColor(token: string): string | undefined {
   if (token === "✓") return "var(--v-glow)";
   if (token.startsWith("-")) return "var(--v-glow-soft)";
-  if (/^["'].*["']$/.test(token)) return "var(--v-pink)";
+  if (/^["'].*["']$/.test(token)) return "var(--text-strong)";
   if (/^\d+$/.test(token)) return "var(--v-glow)";
   return undefined;
 }

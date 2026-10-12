@@ -1,20 +1,15 @@
-import { getLocale, getTranslations } from "next-intl/server";
 import { Fragment, type ReactNode } from "react";
 import { StackIcon, StackIconSprite } from "@/components/stack-icons";
-import { TrackedLink } from "@/components/ui/tracked-link";
 import {
   FORMAT_SAMPLES,
   type FormatSample,
   sampleLines,
   splitOnPlaceholder,
 } from "@/lib/format-samples";
-import { localizedPath, toLocale } from "@/lib/i18n";
 import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { STACK_FRAMEWORKS } from "@/lib/stack-formats";
 import { FormatSwitch, type FormatSwitchLabels } from "./format-switch";
 import { PlaceholderChip } from "./placeholder-chip";
-import { Section } from "./section";
-import { SectionHead } from "./section-head";
 
 const ICON_PREFIX = "vk-formats-icon";
 const ICON = 16;
@@ -81,28 +76,5 @@ export function FormatsDemo({ labels }: { labels: FormatSwitchLabels }): ReactNo
         }))}
       />
     </>
-  );
-}
-
-export async function Formats(): Promise<ReactNode> {
-  const t = await getTranslations("landing.formats");
-  const locale = toLocale(await getLocale());
-
-  return (
-    <Section width="wide" rhythm="md" id="formats">
-      <SectionHead id="formats-heading" title={t("heading")} lead={t("lead")} reveal />
-      <div data-reveal="2" className="vk-formats not-prose">
-        <FormatsDemo labels={{ frameworks: t("frameworksLabel"), formats: t("formatsLabel") }} />
-        <p className="vk-formats-more">
-          <TrackedLink
-            href={localizedPath(locale, "/docs/formats")}
-            className="vk-prose-link"
-            track={{ name: "click-cta", data: { location: "formats", target: "formats-docs" } }}
-          >
-            {t("link")}
-          </TrackedLink>
-        </p>
-      </div>
-    </Section>
   );
 }

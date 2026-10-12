@@ -43,3 +43,9 @@ export function localizeHref(locale: Locale, href: string | undefined): string |
   }
   return localizedPath(locale, href);
 }
+
+export function landingLocale(pathname: string): Locale | null {
+  const segment = pathname.replace(/^\/|\/$/g, "");
+  if (segment === "") return i18n.defaultLanguage as Locale;
+  return isLocale(segment) ? segment : null;
+}

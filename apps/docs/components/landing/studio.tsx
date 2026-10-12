@@ -25,18 +25,15 @@ export async function Studio(): Promise<ReactNode> {
     <Section width="wide" rhythm="md" id="studio">
       <div className="vk-grid-12 not-prose items-center gap-y-10">
         <div className="grid min-w-0 content-start gap-6" style={TEXT_SPAN}>
-          <div data-reveal="0">
+          <div>
             <h2 id="studio-heading" className="vk-h2 max-w-[15ch]">
               {t("heading")}
             </h2>
           </div>
-          <p data-reveal="1" className="vk-lead max-w-[46ch]">
-            {t("lead")}
-          </p>
+          <p className="vk-lead max-w-[46ch]">{t("lead")}</p>
           <ul
             // biome-ignore lint/a11y/noRedundantRoles: Safari drops list semantics from a list-style: none list
             role="list"
-            data-reveal="2"
             className="grid"
           >
             {STUDIO_POINTS.map((point) => (
@@ -50,7 +47,6 @@ export async function Studio(): Promise<ReactNode> {
             ))}
           </ul>
           <div
-            data-reveal="3"
             className="@container min-w-0 rounded-xl border"
             style={{ background: "var(--surface-bg)", borderColor: "var(--border-default)" }}
           >
@@ -70,7 +66,7 @@ export async function Studio(): Promise<ReactNode> {
             </TrackedLink>
           </p>
         </div>
-        <div data-reveal="2" className="min-w-0" style={SHOT_SPAN}>
+        <div className="min-w-0" style={SHOT_SPAN}>
           <StudioScreenshot shot="review" alt={t("alt")} zoomOnPhone className="my-0" />
         </div>
       </div>

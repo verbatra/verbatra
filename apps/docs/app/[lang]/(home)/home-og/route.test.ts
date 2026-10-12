@@ -26,11 +26,11 @@ describe("GET /[lang]/home-og", () => {
     expect(response.headers.get("content-type")).toBe("image/png");
   });
 
-  it("labels its own counts in the requested locale and reads nothing else from the catalog", async () => {
+  it("reads only the landing headline, in the requested locale", async () => {
     getTranslationsMock.mockClear();
     await request("de");
     expect(getTranslationsMock.mock.calls).toEqual([
-      [{ locale: "de", namespace: "landing.hero.og" }],
+      [{ locale: "de", namespace: "landing.banner" }],
     ]);
   });
 });

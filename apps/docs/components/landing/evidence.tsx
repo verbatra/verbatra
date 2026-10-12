@@ -13,7 +13,7 @@ const EXTERNAL_EVIDENCE_PROPS = {
   rel: "noreferrer noopener",
   "data-umami-event": "outbound-link",
   "data-umami-event-target": "evidence",
-  "data-umami-event-location": "control",
+  "data-umami-event-location": "features",
 } as const;
 
 export function Evidence({ text, href }: { text: string; href?: string | undefined }): ReactNode {

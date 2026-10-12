@@ -1,8 +1,5 @@
 import type { ProviderId, SupportedFormat } from "@verbatra/sdk";
-import { LICENSE_URL, releaseUrl } from "@/components/landing/links";
 import type { StackIconKey } from "@/components/stack-icons";
-import { i18n } from "./i18n";
-import { PACKAGE_VERSION } from "./site";
 
 export type FormatDisplay = { readonly label: string; readonly icon: StackIconKey };
 
@@ -37,47 +34,3 @@ const PROVIDER_IDS: Readonly<Record<MachineProviderId, true>> = {
 
 export const SUPPORTED_FORMAT_IDS = Object.keys(FORMAT_DISPLAY) as ReadonlyArray<SupportedFormat>;
 export const MACHINE_PROVIDER_IDS = Object.keys(PROVIDER_IDS) as ReadonlyArray<MachineProviderId>;
-
-export const FORMAT_COUNT = SUPPORTED_FORMAT_IDS.length;
-export const PROVIDER_COUNT = MACHINE_PROVIDER_IDS.length;
-
-export type HeroCountKey = "formats" | "providers";
-
-export type HeroReleaseFact = {
-  readonly key: "version" | "license";
-  readonly value: string;
-  readonly href: string;
-};
-
-export type HeroCountFact = {
-  readonly key: HeroCountKey;
-  readonly value: number;
-  readonly path: string;
-};
-
-export type HeroFact = HeroReleaseFact | HeroCountFact;
-
-export const HERO_FACTS: ReadonlyArray<HeroFact> = [
-  { key: "version", value: `v${PACKAGE_VERSION}`, href: releaseUrl(PACKAGE_VERSION) },
-  { key: "license", value: "MIT", href: LICENSE_URL },
-  { key: "formats", value: FORMAT_COUNT, path: "/docs/formats" },
-  { key: "providers", value: PROVIDER_COUNT, path: "/docs/providers" },
-];
-
-export function isCountFact(fact: HeroFact): fact is HeroCountFact {
-  return "path" in fact;
-}
-
-export const HERO_COUNT_FACTS: ReadonlyArray<HeroCountFact> = HERO_FACTS.filter(isCountFact);
-
-export const TRANSLATED_LOCALE_COUNT = i18n.languages.length - 1;
-
-export type OgCountKey = "formats" | "providers" | "locales";
-
-export type OgCountFact = { readonly key: OgCountKey; readonly value: number };
-
-export const OG_COUNT_FACTS: ReadonlyArray<OgCountFact> = [
-  { key: "formats", value: FORMAT_COUNT },
-  { key: "providers", value: PROVIDER_COUNT },
-  { key: "locales", value: TRANSLATED_LOCALE_COUNT },
-];

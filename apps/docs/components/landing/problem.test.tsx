@@ -94,10 +94,10 @@ describe("Problem", () => {
     expect(output?.textContent).toBe(`$ ${CHECK_RUN_LINES.join("")}`);
   });
 
-  it("reveals the head, then the artifact, then the list", () => {
+  it("reveals the artifact, then the list, and never the heading", () => {
     const marks = [...root.querySelectorAll("[data-reveal]")].map((node) =>
       node.getAttribute("data-reveal"),
     );
-    expect(marks).toEqual(["0", "1", "2", "3"]);
+    expect(marks).toEqual(["2", "3"]);
   });
 });

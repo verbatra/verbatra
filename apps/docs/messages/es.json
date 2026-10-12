@@ -9,34 +9,12 @@
       "definition": "verbatra es una CLI y un SDK que mantiene sincronizados tus archivos de locale i18n y traduce solo las claves que cambiaron, a través del proveedor de IA o de traducción automática que elijas."
     },
     "hero": {
-      "headline": "Traduce solo lo que cambió.",
-      "lead": "El archivo de bloqueo versionado en el repositorio decide qué claves cambiaron, y verbatra comprueba que cada traducción conserve sus marcadores antes de escribirla.",
-      "ctaStart": "Guía de inicio",
-      "ctaTry": "Pruébalo en el navegador",
-      "dogfood": "Los textos de la interfaz de este sitio en alemán, español y francés vienen de verbatra.",
-      "dogfoodLink": "Mira los archivos de mensajes",
-      "ledger": {
-        "caption": "Este titular, tal como lo guardan los archivos de mensajes y el archivo de bloqueo de este sitio."
-      },
       "command": {
-        "tablist": "Configura verbatra",
         "install": "Instalar",
         "prompt": "Prompt",
         "promptHint": "Pega esto en tu agente de programación.",
         "installHint": "Ejecuta esto en tu proyecto."
-      },
-      "facts": {
-        "formats": "formatos",
-        "providers": "proveedores + none"
-      },
-      "og": {
-        "formats": "formatos de archivo",
-        "providers": "proveedores de traducción",
-        "locales": "idiomas traducidos en este sitio"
       }
-    },
-    "terminal": {
-      "sessionLabel": "Una sesión de ejemplo de verbatra en la línea de comandos."
     },
     "install": {
       "copy": "Copiar",
@@ -52,30 +30,8 @@
       "promptCopyFailed": "No se pudo copiar la instrucción. Selecciónala en la vista previa y cópiala a mano.",
       "copyFailed": "Copia fallida"
     },
-    "how": {
-      "heading": "Controla cada pull request en CI.",
-      "steps": {
-        "setup": {
-          "title": "Configura",
-          "body": "`verbatra init` escribe la configuración: locale de origen, destinos, un proveedor."
-        },
-        "translate": {
-          "title": "Traduce lo que ha cambiado",
-          "body": "Solo salen las claves nuevas y cambiadas, y una respuesta que rompe un placeholder se retiene."
-        },
-        "check": {
-          "title": "Haz fallar la pull request",
-          "body": "`verbatra check` termina con el código {code} mientras falte una clave o esté desactualizada, así que la CI bloquea el merge."
-        }
-      },
-      "lead": "Una configuración, una ejecución de translate, un check: la CI hace fallar la build mientras falte una clave."
-    },
     "formats": {
-      "heading": "Las mismas cadenas, cualquier formato de archivo.",
-      "lead": "Elige tu framework o un formato. Cada panel muestra las mismas cuatro cadenas, escritas por el adaptador que verbatra incluye para ese formato, con su marcador intacto.",
-      "frameworksLabel": "Frameworks",
-      "formatsLabel": "Formatos de archivo",
-      "link": "Mira todos los formatos y cómo configurarlos"
+      "frameworksLabel": "Frameworks"
     },
     "faq": {
       "heading": "Preguntas frecuentes",
@@ -122,12 +78,6 @@
         }
       }
     },
-    "finalClose": {
-      "heading": "Tu próxima ejecución envía solo lo que cambió, no el archivo entero.",
-      "installHint": "Instala la CLI y luego ejecuta `verbatra init` en tu proyecto.",
-      "docs": "Leer la documentación",
-      "start": "Empezar"
-    },
     "footer": {
       "tagline": "Una CLI y un SDK de código abierto que mantienen sincronizados tus archivos de locale de i18n a través del proveedor que elijas.",
       "cols": {
@@ -171,23 +121,12 @@
       "legalLicense": "Código abierto bajo la licencia MIT",
       "legalCopyright": "© 2026 Mario Kreitz",
       "githubAria": "verbatra en GitHub",
-      "npmAria": "verbatra en npm",
-      "contributorsTitle": "Colaboradores",
-      "contributorAria": "{name} en GitHub"
+      "npmAria": "verbatra en npm"
     },
     "brand": {
       "vmarkAlt": "verbatra"
     },
     "nav": {
-      "sections": {
-        "label": "En esta página",
-        "showcase": "Demo",
-        "how": "Cómo funciona",
-        "formats": "Formatos",
-        "control": "Control",
-        "loop": "Flujos de trabajo",
-        "faq": "Preguntas"
-      },
       "docs": "Docs",
       "reference": "Referencia",
       "languageSwitcher": {
@@ -197,132 +136,9 @@
         "machineTranslatedDescription": "La interfaz y las páginas de documentación para este idioma están traducidas con IA."
       },
       "skipToContent": "Saltar al contenido",
-      "headerCta": {
-        "label": "Empezar"
-      },
       "version": {
         "label": "Notas de la versión {version}"
       }
-    },
-    "control": {
-      "heading": "Tú decides qué se publica.",
-      "lead": "Las personas tienen la última palabra, cada idioma recibe sus propias reglas y las cadenas solo van a donde tú permites.",
-      "groups": {
-        "people": {
-          "title": "Las personas tienen la última palabra",
-          "items": {
-            "humanOnly": {
-              "title": "Traducción automática desactivada por política",
-              "body": "Con el proveedor en `none`, ninguna cadena llega a ningún servicio: una ejecución rellena claves desde tu memoria de traducción y deja el resto listado para una persona."
-            },
-            "protect": {
-              "title": "La edición de un traductor sobrevive a un cambio en el origen",
-              "body": "Los valores que una persona escribió o importó se conservan por defecto cuando cambia el origen: marcados como desactualizados, nunca sobrescritos."
-            },
-            "review": {
-              "title": "Aprueba o rechaza lo que marcó una ejecución",
-              "body": "Las decisiones se guardan junto al archivo de bloqueo, así que la cola de revisión solo muestra lo que nadie ha mirado todavía."
-            }
-          }
-        },
-        "correct": {
-          "title": "Correcto en cada idioma",
-          "items": {
-            "plurals": {
-              "title": "Formas plurales de CLDR",
-              "body": "Cada destino recibe las categorías de plural que necesita su idioma, y las ramas de plural ICU que no encajan se rechazan."
-            },
-            "qa": {
-              "title": "Controles de calidad sobre archivos confirmados",
-              "body": "Los controles que una ejecución aplica a la salida del proveedor, aplicados a lo que ya hay en tus archivos de locale. Sin clave."
-            },
-            "terms": {
-              "title": "Tus términos y tu tono se mantienen fijos",
-              "body": "Un glosario fija cómo se traducen los términos listados, y tone define un tratamiento formal, informal o neutro para cada idioma de destino."
-            }
-          }
-        },
-        "network": {
-          "title": "Las cadenas solo van a donde tú permites",
-          "items": {
-            "policy": {
-              "title": "Una política de red que verbatra hace cumplir",
-              "body": "Solo local o una lista de permitidos: un host que no permitiste se rechaza antes de que ninguna petición salga de la máquina."
-            },
-            "preview": {
-              "title": "Mira primero qué enviaría una ejecución",
-              "body": "Una ejecución de prueba no necesita clave de API ni escribe nada: muestra exactamente qué claves enviaría una ejecución real."
-            },
-            "private": {
-              "title": "Sin telemetría, y los modelos locales son bienvenidos",
-              "body": "Las cadenas solo van al proveedor que configuras, y un modelo autoalojado las mantiene en tu propio hardware."
-            }
-          }
-        }
-      }
-    },
-    "loop": {
-      "heading": "Donde tu equipo ya trabaja.",
-      "links": {
-        "llms": "llms.txt",
-        "mcpDocs": "Documentación del servidor MCP",
-        "skillsDocs": "Documentación del paquete de skills",
-        "llmsFull": "llms-full.txt"
-      },
-      "rows": {
-        "studio": {
-          "title": "Consulta el estado de cada locale en Verbatra Studio.",
-          "body": "Cobertura, entradas marcadas, ediciones in situ. Sin llamadas al proveedor.",
-          "cta": "Revisar traducciones en Studio",
-          "alt": "La página de Revisión de Verbatra Studio con cinco entradas marcadas en los locales de, es y fr; cada fila muestra la clave, sus motivos de revisión y las acciones Edit, Approve y Reject."
-        },
-        "handoff": {
-          "body": "Exporta, recíbelo relleno e impórtalo por la misma puerta de integridad.",
-          "cta": "Leer sobre la entrega en Excel",
-          "title": "Entrega un libro a los traductores e impórtalo de vuelta."
-        },
-        "sdk": {
-          "title": "Llámalo desde tu propio código.",
-          "body": "El SDK ejecuta el mismo translate y check desde un script, un paso de build o un servidor.",
-          "cta": "Leer la referencia del SDK"
-        },
-        "agent": {
-          "body": "Un servidor MCP, más skills instalables para la CLI, MCP y Studio.",
-          "cta": "Empezar con IA",
-          "title": "O déjaselo a tu agente."
-        }
-      },
-      "table": {
-        "key": "clave",
-        "source": "origen",
-        "target": "destino"
-      }
-    },
-    "marquee": {
-      "formatTip": "format: \"{id}\"",
-      "formatsLabel": "Formatos de archivo que verbatra lee y escribe",
-      "frameworksLink": "Elige tu stack",
-      "formatsLink": "Ver todos los formatos",
-      "intro": "Funciona con los archivos de locale que ya tienes.",
-      "label": "Frameworks y formatos compatibles",
-      "frameworksLabel": "Frameworks con los que funciona verbatra",
-      "frameworks": {
-        "react": "i18next JSON",
-        "next": "next-intl JSON",
-        "vue": "vue-i18n JSON",
-        "nuxt": "vue-i18n JSON",
-        "angular": "ngx-translate JSON o XLIFF",
-        "node": "i18next JSON",
-        "svelte": "i18next JSON o YAML",
-        "astro": "i18next JSON o YAML",
-        "reactNative": "i18next JSON",
-        "flutter": "Flutter ARB",
-        "spring": "Java .properties",
-        "apple": ".strings y .xcstrings",
-        "android": "strings.xml",
-        "dotnet": ".resx"
-      },
-      "pause": "Pausar las listas en movimiento"
     },
     "showcase": {
       "heading": "Míralo en acción",

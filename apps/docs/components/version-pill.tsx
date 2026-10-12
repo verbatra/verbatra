@@ -3,8 +3,8 @@
 import { usePathname } from "fumadocs-core/framework";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
-import { landingLocale } from "@/components/header-cta";
 import { releaseUrl } from "@/components/landing/links";
+import { landingLocale } from "@/lib/i18n";
 import { PACKAGE_VERSION } from "@/lib/site";
 
 export function VersionPill(): ReactNode {

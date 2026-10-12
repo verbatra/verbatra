@@ -31,7 +31,7 @@ describe("FullFooter", () => {
     }
   });
 
-  it("reads no token that is about to be deleted, so it follows both themes", () => {
+  it("reads no retired or dark-only token, so it follows both themes", () => {
     const source = readFileSync(join(process.cwd(), "components/landing/footer.tsx"), "utf8");
 
     for (const token of ["--v-pink", "--gradient-headline", "--v-void", "--v-glow"]) {

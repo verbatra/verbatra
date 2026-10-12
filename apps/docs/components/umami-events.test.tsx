@@ -6,12 +6,7 @@ import { act, type ComponentProps, type ReactNode, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { CHECK_CLI_COMMAND } from "@/lib/check-demo";
-import {
-  AGENT_INIT_COMMAND,
-  NPM_INSTALL_COMMAND,
-  SKILLS_INSTALL_COMMAND,
-} from "@/lib/install-commands";
+import { AGENT_INIT_COMMAND, NPM_INSTALL_COMMAND } from "@/lib/install-commands";
 
 const trackUmamiEvent = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/umami", () => ({ trackUmamiEvent }));
@@ -20,9 +15,11 @@ type RichTags = Record<string, (chunks: string) => ReactNode>;
 
 function translator(): ((key: string) => string) & {
   rich: (key: string, tags?: RichTags) => ReactNode;
+  has: (key: string) => boolean;
 } {
   return Object.assign((key: string) => key, {
     rich: (key: string, tags?: RichTags) => (tags?.releases ? tags.releases(key) : key),
+    has: () => true,
   });
 }
 
@@ -42,12 +39,6 @@ vi.mock("next/link", () => ({
 
 vi.mock("@/components/studio-screenshot", () => ({
   StudioScreenshot: () => <figure data-part="studio-shot" />,
-}));
-
-vi.mock("@/components/landing/how-replay", () => ({
-  HowReplay: ({ terminal }: { terminal: { headerAction?: ReactNode } }) => (
-    <div data-part="how-replay">{terminal.headerAction}</div>
-  ),
 }));
 
 vi.mock("fumadocs-ui/layouts/notebook/page", () => ({
@@ -95,14 +86,11 @@ vi.mock("fumadocs-ui/components/codeblock", () => ({
 }));
 
 const { TrackedAnchor, TrackedLink } = await import("./ui/tracked-link");
-const { Marquee } = await import("./landing/marquee");
-const { Formats } = await import("./landing/formats");
+const { Ecosystem } = await import("./landing/ecosystem");
 const { McpInstallLink } = await import("./mcp-install-link");
 const { default: Button } = await import("./ui/button");
-const { LandingHero } = await import("./landing-hero");
+const { Hero } = await import("./landing/hero");
 const { FinalCta } = await import("./landing/final-cta");
-const { Proof } = await import("./landing/proof");
-const { Loop } = await import("./landing/loop");
 const { Faq } = await import("./landing/faq");
 const { Evidence } = await import("./landing/evidence");
 const { FullFooter } = await import("./landing/footer");
@@ -273,34 +261,9 @@ describe("middle-click", () => {
   });
 });
 
-describe("Loop and marquee links", () => {
-  it("counts each Loop call to action and docs link as click-cta from the loop", async () => {
-    const container = render(await Loop());
-    const internal = [...container.querySelectorAll("a")].filter(
-      (link) => !link.getAttribute("href")?.startsWith("http"),
-    );
-    for (const link of internal) await click(link);
-    expect(trackUmamiEvent.mock.calls.map(([, data]) => data)).toEqual(
-      ["studio", "handoff", "sdk", "agent", "llms", "llms-full", "mcp-docs", "skills-docs"].map(
-        (target) => ({ location: "loop", target }),
-      ),
-    );
-    for (const [name] of trackUmamiEvent.mock.calls) expect(name).toBe("click-cta");
-  });
-
-  it("counts each marquee row's link as click-cta naming its row", async () => {
-    const container = render(await Marquee());
-    for (const link of container.querySelectorAll(".vk-marquee-links a")) await click(link);
-    expect(trackUmamiEvent.mock.calls).toEqual([
-      ["click-cta", { location: "marquee", target: "frameworks" }],
-      ["click-cta", { location: "marquee", target: "formats" }],
-    ]);
-  });
-});
-
 describe("Formats switcher", () => {
-  it("counts a format tab and a framework chip as select-tab from the formats section", async () => {
-    const container = render(await Formats());
+  it("counts a format tab and a framework chip as select-tab from the formats switcher", async () => {
+    const container = render(await Ecosystem());
     const tabs = [...container.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
     await click(tabs[1]);
     await click(container.querySelector(".vk-formats-chip"));
@@ -309,46 +272,28 @@ describe("Formats switcher", () => {
       ["select-tab", { tab: "i18next-json", location: "formats", framework: "react" }],
     ]);
   });
-
-  it("counts the formats page link as click-cta from the formats section", async () => {
-    const container = render(await Formats());
-    await click(container.querySelector(".vk-formats-more a"));
-    expect(trackUmamiEvent).toHaveBeenCalledWith("click-cta", {
-      location: "formats",
-      target: "formats-docs",
-    });
-  });
 });
 
 describe("Landing CTAs", () => {
   it("counts the hero's Get started as click-cta from the hero", async () => {
-    const container = render(await LandingHero());
-    await click(linkByText(container, "ctaStart"));
+    const container = render(await Hero());
+    await click(linkByText(container, "ctaPrimary"));
     expect(trackUmamiEvent).toHaveBeenCalledWith("click-cta", {
       location: "hero",
       target: "get-started",
     });
   });
 
-  it("counts the hero's Try it in the browser and each count fact as click-cta from the hero", async () => {
-    const container = render(await LandingHero());
-    await click(linkByText(container, "ctaTry"));
-    await click(linkByText(container, "facts.formats"));
-    await click(linkByText(container, "facts.providers"));
-    expect(trackUmamiEvent.mock.calls).toEqual([
-      ["click-cta", { location: "hero", target: "showcase" }],
-      ["click-cta", { location: "hero", target: "formats" }],
-      ["click-cta", { location: "hero", target: "providers" }],
+  it("counts the hero's GitHub button as an outbound link from the hero", async () => {
+    const doc = staticDoc(await Hero());
+    const github = [...doc.querySelectorAll<HTMLAnchorElement>('a[target="_blank"]')].find(
+      (link) => link.textContent === "ctaSecondary",
+    );
+    expect([github?.dataset.umamiEvent, github?.dataset.umamiEventTarget]).toEqual([
+      "outbound-link",
+      "github",
     ]);
-  });
-
-  it("counts the hero's version and license facts as outbound links from the hero", async () => {
-    const doc = staticDoc(await LandingHero());
-    const facts = [...doc.querySelectorAll<HTMLAnchorElement>('.vk-hero-facts a[target="_blank"]')];
-    expect(facts.map((link) => [link.dataset.umamiEvent, link.dataset.umamiEventTarget])).toEqual([
-      ["outbound-link", "version"],
-      ["outbound-link", "license"],
-    ]);
+    expect(github?.dataset.umamiEventLocation).toBe("hero");
   });
 
   it("counts both closing buttons as click-cta from the final CTA", async () => {
@@ -373,29 +318,6 @@ describe("Landing copy buttons", () => {
         { command: NPM_INSTALL_COMMAND, manager: "npm", location: "final-cta" },
       ],
     ]);
-  });
-
-  it("counts the How terminal copy as copy-command from the how section", async () => {
-    const container = render(await Proof());
-    await click(container.querySelector('[data-part="how-replay"] button'));
-    expect(trackUmamiEvent.mock.calls).toEqual([
-      ["copy-command", { command: CHECK_CLI_COMMAND, location: "how" }],
-    ]);
-  });
-
-  it("counts every Loop command copy as copy-command from the loop", async () => {
-    const container = render(await Loop());
-    const buttons = [...container.querySelectorAll("button")];
-    expect(buttons.length).toBeGreaterThan(0);
-    for (const button of buttons) await click(button);
-    expect(trackUmamiEvent.mock.calls).toContainEqual([
-      "copy-command",
-      { command: SKILLS_INSTALL_COMMAND, location: "loop" },
-    ]);
-    for (const [name, data] of trackUmamiEvent.mock.calls) {
-      expect(name).toBe("copy-command");
-      expect(data).toMatchObject({ location: "loop" });
-    }
   });
 });
 
@@ -426,13 +348,13 @@ describe("FAQ", () => {
 });
 
 describe("Evidence links", () => {
-  it("counts an external evidence link as an outbound link from the control section", () => {
+  it("counts an external evidence link as an outbound link from the features section", () => {
     const link = staticDoc(
       <Evidence text="ci.yml" href="https://github.com/verbatra/verbatra" />,
     ).querySelector<HTMLAnchorElement>("a");
     expect(link?.dataset.umamiEvent).toBe("outbound-link");
     expect(link?.dataset.umamiEventTarget).toBe("evidence");
-    expect(link?.dataset.umamiEventLocation).toBe("control");
+    expect(link?.dataset.umamiEventLocation).toBe("features");
   });
 
   it("leaves an internal evidence link untracked", () => {
@@ -726,11 +648,8 @@ describe("internal links never carry a declarative Umami event", () => {
     } as const;
     const doc = staticDoc(
       <>
-        {await LandingHero()}
-        {await Marquee()}
-        {await Formats()}
-        {await Proof()}
-        {await Loop()}
+        {await Hero()}
+        {await Ecosystem()}
         <Faq items={[{ id: "cost", question: "Cost?", answer: "None." }]} />
         {await FinalCta()}
         {await FullFooter()}

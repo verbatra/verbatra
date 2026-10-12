@@ -22,7 +22,7 @@ export async function Steps(): Promise<ReactNode> {
   );
   return (
     <Section id="how-it-works" band>
-      <SectionHead id="how-it-works-heading" title={t("heading")} lead={t("lead")} reveal />
+      <SectionHead id="how-it-works-heading" title={t("heading")} lead={t("lead")} />
       <ol
         data-reveal="2"
         className="mt-10 grid list-none gap-10 lg:mt-14 lg:grid-cols-3 lg:gap-x-6 lg:gap-y-4"

@@ -34,9 +34,8 @@ export async function Ecosystem(): Promise<ReactNode> {
         id="ecosystem-heading"
         title={t("ecosystem.heading")}
         lead={t("ecosystem.lead")}
-        reveal
       />
-      <div data-reveal="2" className="vk-grid-12 not-prose mt-10 gap-y-14">
+      <div className="vk-grid-12 not-prose mt-10 gap-y-14">
         <section
           aria-labelledby="ecosystem-providers"
           className="grid content-start gap-8"

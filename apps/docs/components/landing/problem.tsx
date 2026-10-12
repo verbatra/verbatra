@@ -71,7 +71,7 @@ export async function Problem(): Promise<ReactNode> {
   const missingLabel = marks("missing");
   return (
     <Section id="problem">
-      <SectionHead id="problem-heading" title={t("heading")} lead={t("lead")} reveal />
+      <SectionHead id="problem-heading" title={t("heading")} lead={t("lead")} />
       <div className="mt-10 grid gap-10 lg:mt-14 lg:grid-cols-12 lg:gap-6">
         <div
           data-reveal="2"

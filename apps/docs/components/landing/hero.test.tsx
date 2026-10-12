@@ -70,7 +70,6 @@ describe("Hero", () => {
     expect(h1s[0]?.textContent).toBe(banner.headline);
     expect(h1s[0]?.id).toBe(HERO_TITLE_ID);
     expect(section?.getAttribute("aria-labelledby")).toBe(HERO_TITLE_ID);
-    expect(section?.getAttribute("data-presence")).toBe("hero");
     expect(doc.querySelector(".vk-banner-lead")?.textContent).toBe(banner.lead);
   });
 

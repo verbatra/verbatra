@@ -4,13 +4,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
-import {
-  EDGE_FADE_PX,
-  isPastHero,
-  LANDING_OFFSET_PROPERTY,
-  landingOffset,
-  startMotion,
-} from "./motion-root";
+import { startMotion } from "./motion-root";
 
 type Callback = (entries: IntersectionObserverEntry[]) => void;
 
@@ -34,10 +28,8 @@ class FakeObserver {
   disconnect(): void {
     this.observed.clear();
   }
-  fire(target: Element, isIntersecting: boolean, bottom = 100): void {
-    this.callback([
-      { target, isIntersecting, boundingClientRect: { bottom } } as IntersectionObserverEntry,
-    ]);
+  fire(target: Element, isIntersecting: boolean): void {
+    this.callback([{ target, isIntersecting } as IntersectionObserverEntry]);
   }
 }
 
@@ -45,24 +37,16 @@ function place(element: HTMLElement, top: number): void {
   element.getBoundingClientRect = () => ({ top }) as DOMRect;
 }
 
-function mount(): { above: HTMLElement; below: HTMLElement; hero: HTMLElement; band: HTMLElement } {
+function mount(): { above: HTMLElement; below: HTMLElement } {
   document.body.innerHTML = `
-    <section data-presence="hero"></section>
-    <section data-presence="marquee"></section>
-    <section data-presence="final-cta"></section>
-    <h2 data-reveal="0" id="above"></h2>
-    <p data-reveal="1" id="below"></p>`;
+    <div data-reveal="2" id="above"></div>
+    <div data-reveal="3" id="below"></div>`;
   const get = (selector: string) => document.querySelector<HTMLElement>(selector) as HTMLElement;
   const above = get("#above");
   const below = get("#below");
   place(above, 100);
   place(below, 5000);
-  return {
-    above,
-    below,
-    hero: get('[data-presence="hero"]'),
-    band: get('[data-presence="marquee"]'),
-  };
+  return { above, below };
 }
 
 let stop: (() => void) | undefined;
@@ -78,8 +62,6 @@ afterEach(() => {
   stop = undefined;
   vi.unstubAllGlobals();
   document.body.innerHTML = "";
-  document.body.removeAttribute("class");
-  document.body.removeAttribute("style");
 });
 
 describe("startMotion", () => {
@@ -97,6 +79,7 @@ describe("startMotion", () => {
   it("runs one shared observer for every reveal and reveals each element once", () => {
     const { below } = mount();
     stop = startMotion();
+    expect(FakeObserver.all).toHaveLength(1);
     const [reveal] = FakeObserver.all;
     reveal?.fire(below, false);
     expect(below.hasAttribute("data-revealed")).toBe(false);
@@ -108,204 +91,13 @@ describe("startMotion", () => {
     expect(reveal?.options?.rootMargin).toBe("0px 0px -10% 0px");
   });
 
-  it("shows the header call to action only once the hero has scrolled above the viewport", () => {
-    const { hero } = mount();
-    stop = startMotion();
-    const presence = FakeObserver.all[1];
-    const root = document.documentElement;
-    presence?.fire(hero, false, -10);
-    expect(root.hasAttribute("data-past-hero")).toBe(true);
-    presence?.fire(hero, true, 300);
-    expect(root.hasAttribute("data-past-hero")).toBe(false);
-  });
-
-  it("hides the header call to action again while the final call to action is on screen", () => {
+  it("leaves no motion state behind when the page unmounts", () => {
     mount();
     stop = startMotion();
-    const final = document.querySelector('[data-presence="final-cta"]') as HTMLElement;
-    const presence = FakeObserver.all[1];
-    presence?.fire(final, true);
-    expect(document.documentElement.hasAttribute("data-final-cta")).toBe(true);
-    presence?.fire(final, false);
-    expect(document.documentElement.hasAttribute("data-final-cta")).toBe(false);
-  });
-
-  it("stops the marquee while it is off screen", () => {
-    const { band } = mount();
-    stop = startMotion();
-    const presence = FakeObserver.all[1];
-    presence?.fire(band, false);
-    expect(band.hasAttribute("data-offscreen")).toBe(true);
-    presence?.fire(band, true);
-    expect(band.hasAttribute("data-offscreen")).toBe(false);
-  });
-
-  it("knows at start whether the page loaded below the hero, before any observer reports", () => {
-    const { hero } = mount();
-    document.body.classList.add("vk-home");
-    document.body.style.setProperty(LANDING_OFFSET_PROPERTY, "6.3125rem");
-    hero.getBoundingClientRect = () => ({ bottom: 40 }) as DOMRect;
-    stop = startMotion();
-    expect(document.documentElement.hasAttribute("data-past-hero")).toBe(true);
-    stop();
-    hero.getBoundingClientRect = () => ({ bottom: 700 }) as DOMRect;
-    stop = startMotion();
-    expect(document.documentElement.hasAttribute("data-past-hero")).toBe(false);
-  });
-
-  it("leaves no motion state behind when the page unmounts", () => {
-    const { hero } = mount();
-    stop = startMotion();
-    FakeObserver.all[1]?.fire(hero, false, -10);
     stop();
     stop = undefined;
     expect(document.documentElement.hasAttribute("data-motion-ready")).toBe(false);
-    expect(document.documentElement.hasAttribute("data-past-hero")).toBe(false);
     for (const observer of FakeObserver.all) expect(observer.observed.size).toBe(0);
-  });
-});
-
-describe("landingOffset", () => {
-  it("reads the landing offset from the stylesheet's custom property in pixels", () => {
-    document.body.innerHTML = `<main class="vk-home"></main>`;
-    const home = document.querySelector<HTMLElement>(".vk-home");
-    home?.style.setProperty(LANDING_OFFSET_PROPERTY, "6.3125rem");
-    expect(landingOffset(document)).toBe(101);
-  });
-
-  it("is zero off the landing page", () => {
-    document.body.innerHTML = "";
-    expect(landingOffset(document)).toBe(0);
-  });
-});
-
-describe("the nav edge fade", () => {
-  it("keeps a new current link clear of the fade the stylesheet paints", () => {
-    const fade = docsStylesheetRules().find(
-      (rule) => rule.media === "@keyframes vk-edge-fade" && rule.selector === "from",
-    );
-    expect(fade?.declarations["--vk-edge-fade"]).toBe(`${EDGE_FADE_PX}px`);
-  });
-});
-
-describe("isPastHero", () => {
-  it("is true only when the hero left through the top of the viewport", () => {
-    const rect = (bottom: number) => ({ bottom }) as DOMRect;
-    expect(isPastHero({ isIntersecting: false, boundingClientRect: rect(-1) })).toBe(true);
-    expect(isPastHero({ isIntersecting: false, boundingClientRect: rect(900) })).toBe(false);
-    expect(isPastHero({ isIntersecting: true, boundingClientRect: rect(10) })).toBe(false);
-  });
-
-  it("measures the top edge from the observer's root, which the sticky header and nav cover", () => {
-    const rect = (bottom: number) => ({ bottom }) as DOMRect;
-    const rootBounds = { top: 112 } as DOMRectReadOnly;
-    expect(isPastHero({ isIntersecting: false, boundingClientRect: rect(100), rootBounds })).toBe(
-      true,
-    );
-    expect(isPastHero({ isIntersecting: false, boundingClientRect: rect(500), rootBounds })).toBe(
-      false,
-    );
-  });
-});
-
-describe("the landing section nav", () => {
-  function mountNav(): { links: HTMLAnchorElement[]; sections: HTMLElement[] } {
-    document.body.innerHTML = `
-      <section data-presence="hero"></section>
-      <nav>
-        <a href="#showcase" data-nav-link>Demo</a>
-        <a href="#how" data-nav-link>How</a>
-        <a href="#faq" data-nav-link>FAQ</a>
-      </nav>
-      <section id="showcase"></section>
-      <section id="how"></section>
-      <section id="faq"></section>`;
-    return {
-      links: [...document.querySelectorAll<HTMLAnchorElement>("[data-nav-link]")],
-      sections: [...document.querySelectorAll<HTMLElement>("section[id]")],
-    };
-  }
-
-  const current = (links: HTMLAnchorElement[]) =>
-    links.map((link) => link.getAttribute("aria-current"));
-
-  it("watches the linked sections on the existing presence observer, below the header and nav", () => {
-    const { sections } = mountNav();
-    const home = document.createElement("main");
-    home.className = "vk-home";
-    home.style.setProperty(LANDING_OFFSET_PROPERTY, "5rem");
-    document.body.prepend(home);
-    stop = startMotion();
-    expect(FakeObserver.all).toHaveLength(2);
-    const presence = FakeObserver.all[1];
-    expect(presence?.options?.rootMargin).toBe("-80px 0px 0px 0px");
-    for (const section of sections) expect(presence?.observed.has(section)).toBe(true);
-  });
-
-  it("marks the first linked section still in view as current, and only that one", () => {
-    const { links, sections } = mountNav();
-    stop = startMotion();
-    const presence = FakeObserver.all[1];
-    const [showcase, how, faq] = sections;
-    expect(current(links)).toEqual([null, null, null]);
-    presence?.fire(showcase as HTMLElement, true);
-    presence?.fire(how as HTMLElement, true);
-    expect(current(links)).toEqual(["true", null, null]);
-    presence?.fire(showcase as HTMLElement, false);
-    expect(current(links)).toEqual([null, "true", null]);
-    presence?.fire(how as HTMLElement, false);
-    presence?.fire(faq as HTMLElement, true);
-    expect(current(links)).toEqual([null, null, "true"]);
-    expect(faq?.hasAttribute("data-offscreen")).toBe(false);
-  });
-
-  it("clears the current link when the page unmounts", () => {
-    const { links, sections } = mountNav();
-    stop = startMotion();
-    FakeObserver.all[1]?.fire(sections[0] as HTMLElement, true);
-    expect(current(links)).toEqual(["true", null, null]);
-    stop();
-    stop = undefined;
-    expect(current(links)).toEqual([null, null, null]);
-  });
-
-  it("scrolls a current link that sits outside the row back into view, past the edge fade", () => {
-    const { links, sections } = mountNav();
-    const scroller = document.querySelector("nav") as HTMLElement;
-    scroller.setAttribute("data-nav-scroller", "");
-    scroller.getBoundingClientRect = () => ({ left: 0, right: 390 }) as DOMRect;
-    const scrollBy = vi.fn();
-    scroller.scrollBy = scrollBy as typeof scroller.scrollBy;
-    const box = (left: number, right: number) => () => ({ left, right }) as DOMRect;
-    (links[0] as HTMLElement).getBoundingClientRect = box(20, 80);
-    (links[2] as HTMLElement).getBoundingClientRect = box(400, 450);
-    stop = startMotion();
-    const presence = FakeObserver.all[1];
-    presence?.fire(sections[0] as HTMLElement, true);
-    expect(scrollBy).not.toHaveBeenCalled();
-    presence?.fire(sections[0] as HTMLElement, false);
-    presence?.fire(sections[2] as HTMLElement, true);
-    expect(scrollBy).toHaveBeenCalledTimes(1);
-    expect(scrollBy).toHaveBeenCalledWith({ left: 108 });
-    presence?.fire(sections[2] as HTMLElement, true);
-    expect(scrollBy).toHaveBeenCalledTimes(1);
-  });
-
-  it("scrolls the row back to its start when the first link becomes current, so its padding shows", () => {
-    const { links, sections } = mountNav();
-    const scroller = document.querySelector("nav") as HTMLElement;
-    scroller.setAttribute("data-nav-scroller", "");
-    scroller.getBoundingClientRect = () => ({ left: 0, right: 390 }) as DOMRect;
-    Object.defineProperty(scroller, "scrollLeft", { value: 30, configurable: true });
-    const scrollTo = vi.fn();
-    const scrollBy = vi.fn();
-    scroller.scrollTo = scrollTo as typeof scroller.scrollTo;
-    scroller.scrollBy = scrollBy as typeof scroller.scrollBy;
-    (links[0] as HTMLElement).getBoundingClientRect = () => ({ left: 4, right: 60 }) as DOMRect;
-    stop = startMotion();
-    FakeObserver.all[1]?.fire(sections[0] as HTMLElement, true);
-    expect(scrollTo).toHaveBeenCalledWith({ left: 0 });
-    expect(scrollBy).not.toHaveBeenCalled();
   });
 
   it("never listens to scroll", () => {
@@ -369,20 +161,10 @@ describe("the motion stylesheet", () => {
     );
   });
 
-  it("rises only the hero command panel on load, never the h1", () => {
+  it("never animates the hero on load, whose h1 is the largest paint", () => {
     const moving = all
-      .filter((rule) => rule.media.includes("no-preference") && "animation" in rule.declarations)
+      .filter((rule) => "animation" in rule.declarations && rule.declarations.animation !== "none")
       .map((rule) => rule.selector);
-    expect(moving.some((selector) => selector.includes("vk-hero-title"))).toBe(false);
-    expect(moving.filter((selector) => selector.includes("vk-hero"))).toEqual([".vk-hero-panel"]);
-  });
-
-  it("dims only the bar of an upcoming How step, never its text", () => {
-    const steps = all.filter((rule) => rule.selector.includes("vk-how-step"));
-    for (const rule of steps) expect(rule.declarations.opacity).toBeUndefined();
-    const upcoming = steps.filter((rule) => rule.selector.includes('[data-state="upcoming"]'));
-    expect(upcoming.map((rule) => rule.selector)).toEqual([
-      'html[data-motion-ready] .vk-how-step[data-state="upcoming"]::before',
-    ]);
+    expect(moving.some((selector) => selector.includes("vk-banner"))).toBe(false);
   });
 });

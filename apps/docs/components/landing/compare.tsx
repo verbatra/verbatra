@@ -89,8 +89,8 @@ export async function Compare(): Promise<ReactNode> {
 
   return (
     <Section band id="compare">
-      <SectionHead id="compare-heading" title={t("heading")} lead={t("lead")} reveal />
-      <div data-reveal="2" className="not-prose mt-10 grid gap-4">
+      <SectionHead id="compare-heading" title={t("heading")} lead={t("lead")} />
+      <div className="not-prose mt-10 grid gap-4">
         <section
           // biome-ignore lint/a11y/noNoninteractiveTabindex: the table scrolls sideways on a phone, so the keyboard needs a stop to scroll it
           tabIndex={0}
