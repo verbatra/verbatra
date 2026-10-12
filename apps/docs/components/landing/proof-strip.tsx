@@ -1,7 +1,7 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
+import { LiveStatValue } from "@/components/landing/islands";
 import { GITHUB_URL, LICENSE_URL, NPM_CLI } from "@/components/landing/links";
-import { LiveStatValue } from "@/components/landing/live-stat-value";
 import { TrackedLink } from "@/components/ui/tracked-link";
 import { formatCompactNumber } from "@/lib/compact-number";
 import { type Locale, localizedPath, toLocale } from "@/lib/i18n";

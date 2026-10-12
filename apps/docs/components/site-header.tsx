@@ -3,24 +3,23 @@
 import { usePathname } from "fumadocs-core/framework";
 import Link from "fumadocs-core/link";
 import { buttonVariants } from "fumadocs-ui/components/ui/button";
-import { useHomeLayout } from "fumadocs-ui/layouts/home";
+import type { BaseSlots, LinkItemType } from "fumadocs-ui/layouts/shared";
+import { type ComponentProps, type ReactNode, useMemo } from "react";
 import {
-  type BaseSlots,
-  isLinkItemActive,
-  LinkItem,
-  type LinkItemType,
-} from "fumadocs-ui/layouts/shared";
-import type { ComponentProps, ReactNode } from "react";
+  HomeMobileMenu,
+  LanguageSelect as LanguageSelectIsland,
+  ThemeToggle,
+  VersionPill,
+} from "@/components/chrome-islands";
 import {
   ChangelogNavLink,
   DocsNavLink,
   GetStartedLink,
   GitHubNavLink,
-  HomeMobileMenu,
   NAV_TEXT_LINK,
   useHomeNav,
 } from "@/components/home-nav";
-import { VersionPill } from "@/components/version-pill";
+import { isLinkItemActive, LinkItem } from "@/lib/link-items";
 import { trackUmamiEvent } from "@/lib/umami";
 import { cn } from "@/lib/utils";
 
@@ -117,9 +116,11 @@ function trackOutboundIcon(item: IconItem): void {
 }
 
 function IconLink({ item, className }: { item: IconItem; className?: string }): ReactNode {
+  const pathname = usePathname();
   return (
     <LinkItem
       item={item}
+      pathname={pathname}
       className={cn(ICON_BUTTON, className)}
       aria-label={item.label}
       onClick={item.external ? () => trackOutboundIcon(item) : undefined}
@@ -232,13 +233,30 @@ export function SiteHeaderFrame({
   );
 }
 
-export function HomeSiteHeader(props: ComponentProps<"header">): ReactNode {
-  const { slots } = useHomeLayout();
+export type HomeSiteHeaderProps = ComponentProps<"header"> & {
+  wordmark: ReactNode;
+  homeUrl: string;
+};
+
+export function HomeSiteHeader({ wordmark, homeUrl, ...props }: HomeSiteHeaderProps): ReactNode {
   const { labels } = useHomeNav();
+  const slots = useMemo<HeaderSlots>(
+    () => ({
+      navTitle: (titleProps: ComponentProps<"a">) => (
+        <Link href={homeUrl} {...titleProps}>
+          {wordmark}
+        </Link>
+      ),
+      searchTrigger: false,
+      languageSelect: { root: LanguageSelectIsland, text: () => null },
+      themeSwitch: ThemeToggle,
+    }),
+    [wordmark, homeUrl],
+  );
   const settings = (
     <>
       <LanguageSelect slots={slots} />
-      {slots.themeSwitch ? <slots.themeSwitch /> : null}
+      <ThemeToggle />
     </>
   );
   return (
@@ -246,7 +264,7 @@ export function HomeSiteHeader(props: ComponentProps<"header">): ReactNode {
       id="nd-nav"
       {...props}
       className={cn("top-0 z-40", props.className)}
-      slots={{ ...slots, searchTrigger: false }}
+      slots={slots}
       navItems={[]}
       navLabel={labels.label}
       navLinks={

@@ -1,22 +1,16 @@
 import "../global.css";
-import { RootProvider } from "fumadocs-ui/provider/base";
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
-import { NextIntlClientProvider } from "next-intl";
-import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 import { JsonLd } from "@/components/json-ld";
-import { ThemeMeta } from "@/components/theme-meta";
-import { pickClientMessages } from "@/lib/client-messages";
-import { LocaleAwareFrameworkProvider } from "@/lib/framework-provider";
 import { i18n, toLocale } from "@/lib/i18n";
-import { i18nConfig, SEARCH_OPTIONS } from "@/lib/layout.shared";
 import { UMAMI_ORIGIN } from "@/lib/security-headers.mjs";
 import { homeAlternates, SITE_HOST, SITE_URL } from "@/lib/site";
 import { homeOgImagePath, socialMetadata } from "@/lib/social-metadata";
 import { AUTHOR_NAME, organizationLd, SEO_KEYWORDS, websiteLd } from "@/lib/structured-data";
-import { DEFAULT_THEME, THEME_COLORS, THEME_PROVIDER_OPTIONS } from "@/lib/theme";
+import { DEFAULT_THEME, THEME_COLORS } from "@/lib/theme";
 
 const sans = Geist({ subsets: ["latin"], variable: "--font-geist-sans" });
 const mono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" });
@@ -89,7 +83,6 @@ export default async function Layout({
   const { lang } = await params;
   const locale = toLocale(lang);
   setRequestLocale(locale);
-  const messages = await getMessages({ locale });
 
   return (
     <html
@@ -104,18 +97,7 @@ export default async function Layout({
       <body className="flex flex-col min-h-screen">
         <JsonLd data={websiteLd({ lang: locale })} />
         <JsonLd data={organizationLd()} />
-        <NextIntlClientProvider locale={locale} messages={pickClientMessages(messages)}>
-          <LocaleAwareFrameworkProvider>
-            <RootProvider
-              theme={THEME_PROVIDER_OPTIONS}
-              search={SEARCH_OPTIONS}
-              i18n={i18nConfig(locale)}
-            >
-              <ThemeMeta />
-              {children}
-            </RootProvider>
-          </LocaleAwareFrameworkProvider>
-        </NextIntlClientProvider>
+        {children}
         <Script
           defer
           src={`${UMAMI_ORIGIN}/script.js`}

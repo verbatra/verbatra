@@ -67,6 +67,8 @@ jobs:
           command: check
 `;
 
+export const CODE_SHOWCASE_LOCATION = "code";
+
 export type LandingShowcaseTab = "cli" | "sdk" | "config" | "action";
 
 export const LANDING_SHOWCASE_TABS: ReadonlyArray<LandingShowcaseTab> = [

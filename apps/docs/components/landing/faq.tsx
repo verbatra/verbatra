@@ -1,12 +1,7 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
-import {
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/shadcn/accordion";
 import { i18n, isLocale, localizedPath } from "@/lib/i18n";
-import { FaqAccordion } from "./faq-accordion";
+import { FaqAccordion } from "./islands";
 import { LICENSE_URL } from "./links";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
@@ -17,12 +12,6 @@ const ANSWER_LINK_CLASS =
   "underline underline-offset-4 transition-colors hover:text-[color:var(--accent)]";
 
 const DATA_HANDLING_PATH = "/docs/data-handling";
-
-const ITEM_CLASS =
-  "border-b border-fd-border [&[data-state=closed]>[data-slot=accordion-content]]:hidden";
-
-const TRIGGER_CLASS =
-  "items-center py-5 text-(length:--text-h4) font-semibold text-fd-foreground hover:text-[color:var(--accent)] hover:no-underline data-[state=open]:text-[color:var(--accent)] [&>svg]:size-5 [&>svg]:translate-y-0 [&>svg]:text-[color:var(--accent)] motion-reduce:[&>svg]:transition-none";
 
 function answerTags(locale: string) {
   const docsLocale = isLocale(locale) ? locale : i18n.defaultLanguage;
@@ -55,23 +44,14 @@ export async function Faq({ items }: { items: ReadonlyArray<FaqEntry> }): Promis
   return (
     <Section band id="faq">
       <SectionHead id="faq-heading" title={t("heading")} />
-      <FaqAccordion className="mt-11 max-w-[880px] border-t border-fd-border">
-        {items.map((item) => (
-          <AccordionItem key={item.id} value={item.id} data-faq={item.id} className={ITEM_CLASS}>
-            <AccordionTrigger
-              className={TRIGGER_CLASS}
-              style={{ fontFamily: "var(--font-display)" }}
-            >
-              {item.question}
-            </AccordionTrigger>
-            <AccordionContent forceMount className="pb-5">
-              <p className="max-w-[68ch] text-base leading-relaxed text-fd-muted-foreground">
-                {t.rich(`items.${item.id}.answer`, tags)}
-              </p>
-            </AccordionContent>
-          </AccordionItem>
-        ))}
-      </FaqAccordion>
+      <FaqAccordion
+        className="mt-11 max-w-[880px] border-t border-fd-border"
+        items={items.map((item) => ({
+          id: item.id,
+          question: item.question,
+          content: t.rich(`items.${item.id}.answer`, tags),
+        }))}
+      />
     </Section>
   );
 }

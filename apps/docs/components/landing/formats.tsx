@@ -8,7 +8,8 @@ import {
 } from "@/lib/format-samples";
 import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { STACK_FRAMEWORKS } from "@/lib/stack-formats";
-import { FormatSwitch, type FormatSwitchLabels } from "./format-switch";
+import type { FormatSwitchLabels } from "./format-switch";
+import { FormatSwitch } from "./islands";
 import { PlaceholderChip } from "./placeholder-chip";
 
 const ICON_PREFIX = "vk-formats-icon";

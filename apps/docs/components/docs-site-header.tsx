@@ -4,12 +4,12 @@ import { usePathname } from "fumadocs-core/framework";
 import { useSidebar } from "fumadocs-ui/components/sidebar/base";
 import { buttonVariants } from "fumadocs-ui/components/ui/button";
 import { useNotebookLayout } from "fumadocs-ui/layouts/notebook";
-import { isLinkItemActive } from "fumadocs-ui/layouts/shared";
 import { type ComponentProps, type ReactNode, useRef } from "react";
 import { MENU_TRIGGER } from "@/components/home-nav";
 import { useRootTabs } from "@/components/root-tabs";
 import { ICON_PROPS, SiteHeaderFrame } from "@/components/site-header";
 import { useDrawerEscape } from "@/components/use-drawer-escape";
+import { isLinkItemActive } from "@/lib/link-items";
 import { headerActiveTab, isRootTabLinkActive } from "@/lib/root-tabs";
 import { cn } from "@/lib/utils";
 

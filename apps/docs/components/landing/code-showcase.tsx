@@ -3,12 +3,13 @@ import type { ReactNode } from "react";
 import { TrackedLink } from "@/components/ui/tracked-link";
 import { localizedPath, toLocale } from "@/lib/i18n";
 import {
+  CODE_SHOWCASE_LOCATION,
   LANDING_SHOWCASE_CODE,
   LANDING_SHOWCASE_TABS,
   type LandingShowcaseTab,
 } from "@/lib/landing-code";
 import { CodeFrame } from "./code-frame";
-import { CODE_SHOWCASE_LOCATION, CodeShowcaseTabs } from "./code-showcase-tabs";
+import { CodeShowcaseTabs } from "./islands";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
 

@@ -2,7 +2,7 @@ import { uiTranslations } from "fumadocs-ui/i18n";
 import { describe, expect, it } from "vitest";
 import { i18n } from "@/lib/i18n";
 import { LOCALE_DISPLAY_NAMES } from "@/lib/language-select-copy";
-import { translations } from "@/lib/layout.shared";
+import { translations } from "@/lib/root-provider-options";
 import { type TranslatedLocale, UI_TRANSLATIONS } from "@/lib/ui-translations";
 
 const UI_KEYS = uiTranslations().keys;

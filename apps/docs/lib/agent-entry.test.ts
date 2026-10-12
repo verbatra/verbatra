@@ -178,7 +178,9 @@ describe("the agent setup command", () => {
 
   it("reaches the landing hero through its one command panel, never the separate prompt button", () => {
     const hero = docsFile("components/landing/hero.tsx");
-    expect(hero).toContain('import { CommandPanel } from "@/components/landing/command-panel";');
+    expect(hero).toMatch(
+      /import \{ CommandPanel, HeroTerminal \} from "@\/components\/landing\/islands";/,
+    );
     expect(hero).toContain("<CommandPanel");
     expect(hero).not.toContain("PromptCopyButton");
     const panel = docsFile("components/landing/command-panel.tsx");

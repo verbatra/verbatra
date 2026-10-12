@@ -1,9 +1,9 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
-import { CommandRow } from "@/components/command-row";
 import Button from "@/components/ui/button";
 import { localizedPath, toLocale } from "@/lib/i18n";
 import { NPM_INSTALL_COMMAND } from "@/lib/install-commands";
+import { CommandRow } from "./islands";
 
 const CLOSE_BORDER = "color-mix(in srgb, var(--accent) 16%, var(--border-default))";
 

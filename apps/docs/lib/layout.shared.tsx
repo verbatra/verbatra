@@ -1,45 +1,19 @@
-import { i18nProvider, uiTranslations } from "fumadocs-ui/i18n";
 import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared";
 import { LanguageSelectText } from "fumadocs-ui/layouts/shared/slots/language-select";
 import { getTranslations } from "next-intl/server";
-import { VMark } from "@/components/landing";
 import { GithubIcon } from "@/components/landing/github-icon";
 import { GITHUB_URL } from "@/components/landing/links";
 import { LocaleAwareLanguageSelect } from "@/components/language-select";
+import { SiteWordmark } from "@/components/site-wordmark";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { i18n, type Locale, localizedPath } from "@/lib/i18n";
-import { LOCALE_DISPLAY_NAMES } from "@/lib/language-select-copy";
-import { UI_TRANSLATIONS } from "@/lib/ui-translations";
-
-export const translations = i18n.translations().extend(uiTranslations()).add(UI_TRANSLATIONS);
-
-const localeNames = i18n.languages.map((locale) => ({
-  locale,
-  name: LOCALE_DISPLAY_NAMES[locale],
-}));
-
-export const SEARCH_OPTIONS = { preload: false } as const;
-
-export function i18nConfig(locale: string) {
-  return { ...i18nProvider(translations, locale), locales: localeNames };
-}
+import { type Locale, localizedPath } from "@/lib/i18n";
 
 export async function baseOptions(locale: Locale): Promise<BaseLayoutProps> {
   const t = await getTranslations({ locale, namespace: "landing.nav" });
   return {
     nav: {
       url: localizedPath(locale, "/"),
-      title: (
-        <span className="inline-flex items-center gap-2">
-          <VMark size={20} blur={4} decorative />
-          <span
-            className="text-lg font-semibold tracking-tight"
-            style={{ fontFamily: "var(--font-display)" }}
-          >
-            verbatra
-          </span>
-        </span>
-      ),
+      title: <SiteWordmark />,
     },
     links: [
       { text: t("docs"), url: localizedPath(locale, "/docs") },

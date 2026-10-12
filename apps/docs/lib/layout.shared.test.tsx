@@ -6,10 +6,6 @@ import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const homeLayout = vi.hoisted(() => ({
-  current: undefined as unknown,
-}));
-
 vi.mock("next-intl/server", () => ({
   getTranslations: async () => (key: string) => `nav.${key}`,
 }));
@@ -39,7 +35,12 @@ vi.mock("fumadocs-ui/layouts/shared", async (importOriginal) => ({
     </a>
   ),
 }));
-vi.mock("fumadocs-ui/layouts/home", () => ({ useHomeLayout: () => homeLayout.current }));
+vi.mock("@/components/chrome-islands", async () => ({
+  LanguageSelect: () => null,
+  ThemeToggle: () => null,
+  HomeMobileMenu: (await import("@/components/home-mobile-menu")).HomeMobileMenu,
+  VersionPill: (await import("@/components/version-pill")).VersionPill,
+}));
 vi.mock("fumadocs-ui/layouts/notebook", () => ({ useNotebookLayout: () => ({}) }));
 vi.mock("@/components/root-tabs", () => ({ useRootTabs: () => ({ tabs: [] }) }));
 vi.mock("fumadocs-ui/components/sidebar/base", () => {
@@ -104,19 +105,13 @@ function navValue(locale: "en" | "de") {
 }
 
 async function renderHomeHeader(locale: "en" | "de" = "en"): Promise<HTMLDivElement> {
-  const links = await headerLinks(locale);
-  homeLayout.current = {
-    slots: {},
-    navItems: links.filter((item) => item.on !== "menu"),
-    menuItems: links.filter((item) => item.on !== "nav"),
-  };
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
   act(() =>
     root.render(
       <HomeNavProvider value={navValue(locale)}>
-        <HomeSiteHeader />
+        <HomeSiteHeader wordmark="verbatra" homeUrl="/" />
       </HomeNavProvider>,
     ),
   );
@@ -190,7 +185,7 @@ describe("the landing header version pill", () => {
 
 describe("search options", () => {
   it("loads the search dialog on first open, not on every page load", async () => {
-    const { SEARCH_OPTIONS } = await import("./layout.shared");
+    const { SEARCH_OPTIONS } = await import("./root-provider-options");
     expect(SEARCH_OPTIONS.preload).toBe(false);
   });
 });

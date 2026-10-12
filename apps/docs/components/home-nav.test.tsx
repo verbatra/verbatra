@@ -27,28 +27,15 @@ vi.mock("next-intl", async (importOriginal) => {
       actual.createTranslator({ locale: "en", messages: catalog, namespace: namespace as never }),
   };
 });
-vi.mock("fumadocs-ui/layouts/home", () => ({
-  useHomeLayout: () => ({
-    slots: {
-      navTitle: (props: ComponentProps<"a">) => (
-        <a href="/" {...props}>
-          VERBATRA
-        </a>
-      ),
-      searchTrigger: {
-        full: () => <button type="button" data-search="full" />,
-        sm: () => <button type="button" data-search="sm" />,
-      },
-      languageSelect: {
-        root: ({ children }: { children?: ReactNode }) => (
-          <button type="button" data-language>
-            {children}
-          </button>
-        ),
-      },
-      themeSwitch: () => <button type="button" data-theme-toggle />,
-    },
-  }),
+vi.mock("@/components/chrome-islands", async () => ({
+  LanguageSelect: ({ children }: { children?: ReactNode }) => (
+    <button type="button" data-language>
+      {children}
+    </button>
+  ),
+  ThemeToggle: () => <button type="button" data-theme-toggle />,
+  HomeMobileMenu: (await import("./home-mobile-menu")).HomeMobileMenu,
+  VersionPill: (await import("./version-pill")).VersionPill,
 }));
 vi.mock("fumadocs-ui/layouts/notebook", () => ({ useNotebookLayout: () => ({}) }));
 vi.mock("@/components/root-tabs", () => ({ useRootTabs: () => ({ tabs: [] }) }));
@@ -71,7 +58,7 @@ async function render(stars: number | null, locale: "en" | "de" = "en"): Promise
   act(() =>
     root.render(
       <HomeNavProvider value={value}>
-        <HomeSiteHeader />
+        <HomeSiteHeader wordmark="verbatra" homeUrl="/" />
       </HomeNavProvider>,
     ),
   );
@@ -223,7 +210,9 @@ describe("the landing nav", () => {
     const container = document.createElement("div");
     const root = createRoot(container);
     const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
-    expect(() => act(() => root.render(<HomeSiteHeader />))).toThrow(/HomeNavProvider/);
+    expect(() =>
+      act(() => root.render(<HomeSiteHeader wordmark="verbatra" homeUrl="/" />)),
+    ).toThrow(/HomeNavProvider/);
     error.mockRestore();
   });
 });

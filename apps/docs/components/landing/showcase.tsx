@@ -1,9 +1,9 @@
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { showcaseRows, showcaseSeed } from "@/lib/showcase-scenarios";
+import { TryIt } from "./islands";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
-import { TryIt } from "./try-it";
 
 const SHOWCASE_HEADING_ID = "showcase-heading";
 

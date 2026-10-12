@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
-import { CopyButton } from "@/components/ui/copy-button";
 import { type HighlightLanguage, highlightLandingCode } from "@/lib/landing-highlight";
 import { cn } from "@/lib/utils";
+import { CopyButton } from "./islands";
 
 export type CodeFrameProps = {
   code: string;

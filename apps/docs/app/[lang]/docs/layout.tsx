@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { DocsSiteHeader } from "@/components/docs-site-header";
 import { LegalFooter } from "@/components/legal-footer";
 import { RootTabsProvider, SidebarTabs } from "@/components/root-tabs";
+import { SiteProviders } from "@/components/site-providers";
 import { withGroupLabels } from "@/lib/docs-group-labels";
 import { withLlmsLinks, withShortCommandLabels } from "@/lib/docs-page-tree";
 import { withStatusBadges } from "@/lib/docs-status-badges";
@@ -29,19 +30,21 @@ export default async function Layout({
   const { nav, links = [], ...base } = await baseOptions(locale);
   const tabs = rootTabs(tree);
   return (
-    <RootTabsProvider tabs={tabs}>
-      <DocsLayout
-        {...base}
-        links={withNavOnlyTabLinks(links, tabs)}
-        nav={{ ...nav, mode: "top" }}
-        slots={{ ...base.slots, header: DocsSiteHeader }}
-        sidebar={{ banner: <SidebarTabs key="root-tabs" /> }}
-        tabs={false}
-        tree={tree}
-      >
-        {children}
-        <LegalFooter locale={locale} />
-      </DocsLayout>
-    </RootTabsProvider>
+    <SiteProviders locale={locale}>
+      <RootTabsProvider tabs={tabs}>
+        <DocsLayout
+          {...base}
+          links={withNavOnlyTabLinks(links, tabs)}
+          nav={{ ...nav, mode: "top" }}
+          slots={{ ...base.slots, header: DocsSiteHeader }}
+          sidebar={{ banner: <SidebarTabs key="root-tabs" /> }}
+          tabs={false}
+          tree={tree}
+        >
+          {children}
+          <LegalFooter locale={locale} />
+        </DocsLayout>
+      </RootTabsProvider>
+    </SiteProviders>
   );
 }

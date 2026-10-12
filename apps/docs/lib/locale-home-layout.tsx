@@ -1,12 +1,11 @@
-import { HomeLayout } from "fumadocs-ui/layouts/home";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { HomeContainer } from "@/components/home-container";
 import { HomeNavProvider, type HomeNavValue } from "@/components/home-nav";
 import { HomeSiteHeader } from "@/components/site-header";
+import { SiteWordmark } from "@/components/site-wordmark";
 import { formatCompactNumber } from "@/lib/compact-number";
 import { type Locale, localizedPath, toLocale } from "@/lib/i18n";
-import { baseOptions } from "@/lib/layout.shared";
 import { LIVE_COUNT_SLOT } from "@/lib/live-count";
 import { loadProjectStats } from "@/lib/project-stats";
 
@@ -46,25 +45,19 @@ export async function LocaleHomeLayout({
   const { lang } = await params;
   const locale = toLocale(lang);
   const t = await getTranslations({ locale, namespace: "landing.nav" });
-  const [options, nav] = await Promise.all([
-    baseOptions(locale),
-    loadProjectStats().then(({ stars }) => homeNavValue(locale, stars)),
-  ]);
+  const nav = await loadProjectStats().then(({ stars }) => homeNavValue(locale, stars));
   return (
     <HomeNavProvider value={nav}>
       <a className="vk-skip-link" href={`#${MAIN_CONTENT_ID}`}>
         {t("skipToContent")}
       </a>
-      <HomeLayout
-        {...options}
-        slots={{ ...options.slots, header: HomeSiteHeader, container: HomeContainer }}
-        className="[--fd-layout-width:var(--width-layout)]"
-      >
+      <HomeContainer className="[--fd-layout-width:var(--width-layout)]">
+        <HomeSiteHeader wordmark={<SiteWordmark />} homeUrl={localizedPath(locale, "/")} />
         <main id={MAIN_CONTENT_ID} tabIndex={-1} className="flex flex-1 flex-col">
           {children}
         </main>
         {footer}
-      </HomeLayout>
+      </HomeContainer>
     </HomeNavProvider>
   );
 }

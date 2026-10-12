@@ -27,6 +27,12 @@ vi.mock("next-intl/server", () => ({
       : translatorFor(options.locale, options.namespace),
   getLocale: async () => localeState.current,
 }));
+vi.mock("@/components/site-providers", () => ({
+  SiteProviders: ({ children }: { children: ReactNode }) => children,
+}));
+vi.mock("@/components/landing-providers", () => ({
+  LandingProviders: ({ children }: { children: ReactNode }) => children,
+}));
 vi.mock("@/components/site-header", () => ({
   HomeSiteHeader: () => <header>site header</header>,
 }));

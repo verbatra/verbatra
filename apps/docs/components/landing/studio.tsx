@@ -1,7 +1,6 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import type { CSSProperties, ReactNode } from "react";
-import { CommandRow } from "@/components/command-row";
-import { StudioScreenshot } from "@/components/studio-screenshot";
+import { CommandRow, StudioScreenshot } from "@/components/landing/islands";
 import { TrackedLink } from "@/components/ui/tracked-link";
 import { localizedPath, toLocale } from "@/lib/i18n";
 import { withInlineCode } from "@/lib/inline-code-text";

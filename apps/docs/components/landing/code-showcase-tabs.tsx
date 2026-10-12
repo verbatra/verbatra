@@ -2,11 +2,10 @@
 
 import { type ComponentType, type ReactNode, useRef, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/shadcn/tabs";
+import { CODE_SHOWCASE_LOCATION } from "@/lib/landing-code";
 import { trackUmamiEvent } from "@/lib/umami";
 
 export type CodeShowcaseTab = { id: string; label: string; panel: ReactNode };
-
-export const CODE_SHOWCASE_LOCATION = "code";
 
 type PanelComponent = ComponentType<{ active: boolean; children: ReactNode }>;
 
