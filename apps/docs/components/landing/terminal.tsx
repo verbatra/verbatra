@@ -1,7 +1,8 @@
 "use client";
 
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { prefersReducedMotion } from "@/lib/reduced-motion";
+import { useInView } from "@/lib/use-in-view";
 import { useInViewOnce } from "@/lib/use-in-view-once";
 import { cn } from "@/lib/utils";
 import { PlaceholderText } from "./placeholder-chip";
@@ -29,6 +30,7 @@ export type TerminalProps = {
   wrap?: boolean;
   playThreshold?: number;
   play?: boolean;
+  pauseOffscreen?: boolean;
   settledCommands?: number;
   className?: string;
 };
@@ -207,6 +209,23 @@ function LineList({
   ));
 }
 
+function usePlaybackView(
+  threshold: number,
+  play: boolean | undefined,
+  pauseOffscreen: boolean,
+): [(node: HTMLDivElement | null) => void, boolean] {
+  const [onceRef, seen] = useInViewOnce<HTMLDivElement>(threshold);
+  const [liveRef, visible] = useInView<HTMLDivElement>(threshold, pauseOffscreen);
+  const setRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      onceRef.current = node;
+      liveRef.current = node;
+    },
+    [onceRef, liveRef],
+  );
+  return [setRef, play ?? (pauseOffscreen ? visible : seen)];
+}
+
 export function Terminal({
   commands,
   outputs,
@@ -225,11 +244,11 @@ export function Terminal({
   wrap = false,
   playThreshold = 0.4,
   play,
+  pauseOffscreen = false,
   settledCommands = 0,
   className,
 }: TerminalProps): ReactNode {
-  const [rootRef, seen] = useInViewOnce<HTMLDivElement>(playThreshold);
-  const inView = play ?? seen;
+  const [rootRef, inView] = usePlaybackView(playThreshold, play, pauseOffscreen);
   const mode: LineMode = wrap ? "wrap" : "scroll";
   const widthClass = wrap ? "min-w-0" : "min-w-max";
   const scrollRef = useRef<HTMLDivElement>(null);
