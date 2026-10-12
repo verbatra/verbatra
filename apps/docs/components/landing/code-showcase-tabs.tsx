@@ -1,0 +1,76 @@
+"use client";
+
+import { m, useReducedMotion } from "motion/react";
+import { type ReactNode, useState } from "react";
+import { MotionProvider } from "@/components/motion-provider";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/shadcn/tabs";
+import { trackUmamiEvent } from "@/lib/umami";
+
+export type CodeShowcaseTab = { id: string; label: string; panel: ReactNode };
+
+export const CODE_SHOWCASE_LOCATION = "code";
+
+const PANEL_FADE = { duration: 0.24, ease: [0.22, 1, 0.36, 1] } as const;
+
+function Panel({ active, children }: { active: boolean; children: ReactNode }): ReactNode {
+  const reduced = useReducedMotion();
+  return (
+    <m.div
+      initial={false}
+      animate={{ opacity: active ? 1 : 0, y: active ? 0 : 4 }}
+      transition={reduced ? { duration: 0 } : PANEL_FADE}
+    >
+      {children}
+    </m.div>
+  );
+}
+
+export function CodeShowcaseTabs({
+  label,
+  tabs,
+}: {
+  label: string;
+  tabs: ReadonlyArray<CodeShowcaseTab>;
+}): ReactNode {
+  const [active, setActive] = useState(tabs[0]?.id ?? "");
+  return (
+    <MotionProvider>
+      <Tabs
+        value={active}
+        onValueChange={(value) => {
+          setActive(value);
+          trackUmamiEvent("select-tab", { tab: value, location: CODE_SHOWCASE_LOCATION });
+        }}
+        className="gap-6"
+      >
+        <TabsList
+          variant="line"
+          aria-label={label}
+          className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-none border-b border-fd-border p-0"
+        >
+          {tabs.map((tab) => (
+            <TabsTrigger
+              key={tab.id}
+              value={tab.id}
+              className="min-h-11 flex-none rounded-none px-3 text-sm font-medium text-(--text-muted) hover:text-(--text-strong) focus-visible:ring-0 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--focus-ring) data-[state=active]:text-(--text-strong) after:bg-(--accent) group-data-[orientation=horizontal]/tabs:after:bottom-0"
+            >
+              {tab.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+        <div className="grid">
+          {tabs.map((tab) => (
+            <TabsContent
+              key={tab.id}
+              value={tab.id}
+              forceMount
+              className="min-w-0 [grid-area:1/1] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-(--focus-ring) data-[state=inactive]:invisible"
+            >
+              <Panel active={tab.id === active}>{tab.panel}</Panel>
+            </TabsContent>
+          ))}
+        </div>
+      </Tabs>
+    </MotionProvider>
+  );
+}
