@@ -147,3 +147,11 @@ describe("formatCompactNumber", () => {
     expect(formatCompactNumber(value, locale)).toMatch(expected);
   });
 });
+
+describe("the server-only guard", () => {
+  it("imports server-only first, so a client component that reaches the fetcher fails the build", async () => {
+    const { readFileSync } = await import("node:fs");
+    const source = readFileSync(new URL("./project-stats.ts", import.meta.url), "utf8");
+    expect(source.startsWith('import "server-only";\n')).toBe(true);
+  });
+});

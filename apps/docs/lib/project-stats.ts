@@ -1,3 +1,4 @@
+import "server-only";
 import { z } from "zod";
 
 export const GITHUB_REPO_API_URL = "https://api.github.com/repos/verbatra/verbatra";
