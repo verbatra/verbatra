@@ -13,8 +13,39 @@ vi.mock("fumadocs-core/link", () => ({
 }));
 
 const { isLinkItemActive, LinkItem } = await import("./link-items");
+const fumadocs = await import("fumadocs-ui/layouts/shared");
+
+const ITEMS = [
+  { text: "Docs", url: "/docs" },
+  { text: "Docs", url: "/docs/" },
+  { text: "Docs", url: "/docs", active: "nested-url" as const },
+  { text: "Docs", url: "/docs/", active: "nested-url" as const },
+  { text: "Docs", url: "/docs", active: "none" as const },
+  { text: "Docs", url: "/de/docs/cli", active: "nested-url" as const },
+  { text: "Home", url: "/" },
+  { text: "Home", url: "/", active: "nested-url" as const },
+  { type: "custom" as const, children: null },
+];
+
+const PATHS = [
+  "/",
+  "/docs",
+  "/docs/",
+  "/docs/cli",
+  "/docs/cli/",
+  "/docsx",
+  "/de/docs/cli/check",
+  "/de",
+];
 
 describe("isLinkItemActive", () => {
+  it.each(ITEMS.flatMap((item) => PATHS.map((pathname) => [item, pathname] as const)))(
+    "agrees with the fumadocs layout on %o at %s",
+    (item, pathname) => {
+      expect(isLinkItemActive(item, pathname)).toBe(fumadocs.isLinkItemActive(item, pathname));
+    },
+  );
+
   it.each([
     [{ text: "Docs", url: "/docs" }, "/docs", true],
     [{ text: "Docs", url: "/docs/" }, "/docs", true],
