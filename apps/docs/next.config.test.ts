@@ -1,4 +1,4 @@
-import { readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { i18n } from "@/lib/i18n";
@@ -23,6 +23,31 @@ describe("next.config", () => {
       requestCost: 1000000,
     });
   });
+});
+
+const BUILT_APP = join(import.meta.dirname, ".next/server/app");
+
+function firstLoadScripts(page: string): string[] {
+  const html = readFileSync(join(BUILT_APP, page), "utf8");
+  return [
+    ...new Set(
+      Array.from(html.matchAll(/<script[^>]*\bsrc="(\/_next\/static\/[^"]+\.js)"/g), (m) => m[1]),
+    ),
+  ];
+}
+
+describe.skipIf(!existsSync(join(BUILT_APP, "en.html")))("the built first load", () => {
+  it.each([
+    ["en.html", 9],
+    ["en/docs.html", 11],
+    ["en/docs/cli/translate.html", 11],
+    ["en/privacy.html", 10],
+  ])(
+    "%s requests at most %i scripts, which the merged chunks keep below the default chunker's count",
+    (page, budget) => {
+      expect(firstLoadScripts(page).length).toBeLessThanOrEqual(budget);
+    },
+  );
 });
 
 const CONTENT_DIR = join(import.meta.dirname, "content/docs");

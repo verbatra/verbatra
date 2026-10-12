@@ -554,6 +554,13 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
   `LandingProviders` (`components/landing-providers.tsx`, no `NextIntlClientProvider`, only the
   `ClientMessagesProvider` context the islands read). `components/landing/islands.test.tsx` pins
   the import rules. The Umami tracker loads with `lazyOnload`.
+- `experimental.turbopackChunking` (`minChunkSize` 200000, `requestCost` 1000000 in
+  `next.config.mjs`) merges client chunks site-wide on purpose. Scoping it to the landing through
+  `priorityRoutes` changed no chunk with Next 16.3.8 (not even `/./`), and the merge helps the docs
+  too: a docs page loads 11 scripts, 281.7 KB gzip, against 18 and 286.2 KB with the default
+  chunker (the landing 9 against 11, the privacy page 10 against 13). The "built first load" block
+  in `next.config.test.ts` holds those script counts whenever a `.next` build exists (it does
+  under `pnpm verify`).
 - `NextIntlClientProvider` and `ClientMessagesProvider` receive only `CLIENT_MESSAGE_NAMESPACES`
   (`lib/client-messages.ts`), not the whole catalog. A new `useTranslations` namespace in a `"use client"` file must be added
   there; `lib/client-messages.test.ts` fails until it is.
