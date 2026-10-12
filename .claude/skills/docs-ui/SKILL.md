@@ -129,8 +129,9 @@ Scales are fixed and narrow, deliberately:
 - Radii: `--radius-sm` 6px, `--radius-md` 10px, and `--radius-lg`, `--radius-xl`,
   `--radius-2xl` all 12px. The large sizes collapsing to one value is intentional. Do not
   reintroduce a spread. There is no larger radius: the landing hero sits on the page, in no card.
-- Shadows: `--shadow-panel` (a violet-tinted lift) and `--shadow-sm`. Two, not a ramp, each
-  lighter in the light theme.
+- Shadows: `--shadow-panel` (a neutral lift) and `--shadow-sm`. Two, not a ramp, each
+  lighter in the light theme, and neither tinted: the hero glow is the page's only violet haze
+  (`lib/theme.test.ts` fails on a hue in either shadow).
 - Layout: `--gutter` (40px from 768px up) via `.vk-gutter`, `--width-wide` via `.vk-w-wide`.
   `--cta-height` (56px) is the minimum height of `.vk-prompt-trigger` on `PromptCopyButton`;
   `--width-prompt-pop` (30rem, capped by `100cqw` of its container, never by `100vw`, which counts
@@ -197,7 +198,10 @@ and `--tracking-*` companions. Above it sits `--text-hero` (fluid, 2.5rem to 6.2
 `--banner-title`, which caps it at `13.5cqi` of the copy column). Landing headings take the `.vk-h2`, `.vk-h3`, `.vk-h4` and `.vk-lead`
 classes (declared in `@layer components`, so a Tailwind utility still overrides them)
 rather than inline `fontSize` / `letterSpacing` styles. The docs page title, description and prose
-`h2` to `h4` sit on the same scale through the `#nd-page` rules.
+`h2` to `h4` sit on the same scale through the `#nd-page` rules. Headings never hyphenate on their
+own (`hyphens: manual`, `overflow-wrap: break-word`), so a German compound breaks only where the copy
+puts a hyphen. The wordmark is lowercase `verbatra` everywhere: the header, the footer and both
+social images (`OG_WORDMARK` in `lib/og-image.tsx`).
 
 Headlines are solid `--text-strong` on both surfaces. No heading carries a gradient.
 
@@ -245,14 +249,22 @@ license, in that order, after the figures it shows), `problem.tsx` (`#problem`, 
   artifact from `lib/landing-problem.ts`), `steps.tsx` (`#how-it-works`: check, translate and CI,
   each with a server-highlighted snippet from `LANDING_STEP_CODE` in `lib/landing-code.ts`; the
   HowTo structured data and the docs home `DocsHomeSteps` read the same `landing.steps.items`),
-  `bento.tsx` (`#features`, tiles from `lib/landing-bento.ts`, each with a real artifact or an
-  `Evidence` chip), `code-showcase.tsx` (`#code`, CLI, SDK, config and Action tabs from
+  `bento.tsx` (`#features`, tiles from `lib/landing-bento.ts`, each with a real artifact and
+  `Evidence` chips; the artifact stretches to the tile, so a row's panels end level. The provider
+  tile is a `verbatra.config.ts` diff from one provider block to another (`BENTO_PROVIDER_DIFF`,
+  both blocks pinned to the sdk's `loadConfig`), and the framework tile writes one key into several
+  stacks' files, each line taken from the real adapter output in `lib/format-samples.generated.json`
+  (`BENTO_FORMAT_LINES`), so neither repeats the ecosystem lists), `code-showcase.tsx` (`#code`, CLI, SDK, config and Action tabs from
   `lib/landing-code.ts`, highlighted on the server by `lib/landing-highlight.ts` with dual themes
   and framed by `code-frame.tsx`), `showcase.tsx` (the Try it playground, below), `ecosystem.tsx`
   (`#ecosystem`: providers grouped by kind from `lib/landing-providers.ts`, the human-only `none`,
   and the format switcher), `studio.tsx` (`#studio`, the real `StudioScreenshot` and the run
-  command), `compare.tsx` (`#compare`, rows from `lib/landing-compare.ts`; a cell states the fact,
-  the mark carries yes, partial or no), `open-source.tsx` (`#open-source`: license, contributing,
+  command; the screenshot follows the site theme after hydration until one of its tabs picks a
+  theme), `compare.tsx` (`#compare`, rows from `lib/landing-compare.ts`; a cell states the fact,
+  the mark carries yes, partial or no; the table scrolls sideways inside a focusable `section` named
+  by its caption, with the row headers pinned, and while the column is narrower than the table a
+  `landing.compare.scrollHint` line describes it and `.vk-compare-fade` fades the end edge on the
+  region's scroll timeline), `open-source.tsx` (`#open-source`: license, contributing,
   issues, releases and the contributors), `faq.tsx` (`#faq`) and `final-cta.tsx` (the closing
   panel on `landing.closing`, the install `CommandRow` counted with `location: final-cta`, then Get
   started and Read the docs). The footer is not a section; `app/[lang]/(home)/layout.tsx` passes
@@ -365,7 +377,8 @@ license, in that order, after the figures it shows), `problem.tsx` (`#problem`, 
   `npx` run and each long flag with its value on one line (`keepPackageRunsWhole`); the closed pane
   is `inert` and hidden at every width, so the install pane carries no empty height under its
   command and the panel resizes on a switch, and a switch counts `select-tab` with
-  `location: hero`), and an `fx/` folder (`grid-pattern.ts`, the footer's grid). A new section composes `Section` plus
+  `location: hero`). The footer draws no pattern and no watermark; the hero backdrop is the page's only
+  pattern. A new section composes `Section` plus
   `SectionHead`; it does not re-derive page padding or heading rhythm. Check
   `ls apps/docs/components/landing` before quoting a file name from this list. The CLI transcripts
   on the landing (`lib/hero-terminal.ts`, `lib/gate-demo.ts`, `lib/check-demo.ts`,
