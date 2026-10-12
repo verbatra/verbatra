@@ -146,9 +146,7 @@ describe("the motion stylesheet", () => {
 
   it("caps the stagger at the maximum delay and declares the motion tokens on :root", () => {
     for (const token of [
-      "--ease-in-out",
       "--duration-reveal: 560ms",
-      "--duration-demo: 900ms",
       "--reveal-distance: 16px",
       "--reveal-stagger: 70ms",
       "--reveal-delay-max: 350ms",

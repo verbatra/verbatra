@@ -187,11 +187,9 @@ samp {
   --grid-gap: 1.5rem;
 
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   --duration-fast: 140ms;
   --duration-base: 240ms;
   --duration-reveal: 560ms;
-  --duration-demo: 900ms;
   --reveal-distance: 16px;
   --reveal-stagger: 70ms;
   --reveal-delay-max: 350ms;
