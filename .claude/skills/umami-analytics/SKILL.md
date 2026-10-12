@@ -39,10 +39,10 @@ this skill's concern).
 - **Website ID** - a UUID identifying one tracked site in the Umami instance. Lives
   only as a literal string in the Script component's data-website-id prop; there is
   no env var or config file for it.
-- **Script strategy** - next/script's afterInteractive strategy is correct for
-  Umami: it loads after hydration, so it never blocks the first paint or
-  interactivity, and Umami has no reason to load before interactive (unlike, say, a
-  consent-gating script).
+- **Script strategy** - next/script's lazyOnload strategy: the tracker loads after the
+  page's load event. afterInteractive also emits an early high-priority preload of the
+  script from another origin, which Lighthouse counts toward the first paint;
+  lazyOnload emits none. app/[lang]/layout.test.tsx pins it.
 - **Counted host and hashes** - data-domains is the production host (SITE_HOST from
   lib/site.ts), so localhost and preview deployments send nothing, and
   data-exclude-hash="true" keeps TOC anchors from splitting one page into many URLs.
@@ -115,7 +115,7 @@ adds an interaction category the text does not name yet.
 
 | Mistake                                                        | Correct Pattern                                                             |
 | ---------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| Using strategy="beforeInteractive" for the Umami script          | Use "afterInteractive"; analytics scripts never need to block hydration    |
+| Using strategy="beforeInteractive" or "afterInteractive"          | Use "lazyOnload"; the tracker never needs to load before the page has      |
 | Manually calling umami.track() on every route change              | Umami's tracker already auto-tracks SPA navigations; don't duplicate it    |
 | Editing the website ID in an env var or config file                | It is a literal prop value in layout.tsx; there is no env var for it       |
 | Adding a data-host-url override                                    | Not needed; the script is already served from the self-hosted domain      |

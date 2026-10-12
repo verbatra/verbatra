@@ -105,7 +105,7 @@ export default async function Layout({
           data-do-not-track="true"
           data-domains={SITE_HOST}
           data-exclude-hash="true"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
         />
       </body>
     </html>

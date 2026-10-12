@@ -12,10 +12,9 @@ vi.mock("next/font/google", () => {
 });
 
 vi.mock("next/script", () => ({
-  default: ({
-    strategy: _strategy,
-    ...props
-  }: ComponentProps<"script"> & { strategy?: string }) => <script {...props} />,
+  default: ({ strategy, ...props }: ComponentProps<"script"> & { strategy?: string }) => (
+    <script data-strategy={strategy} {...props} />
+  ),
 }));
 
 vi.mock("next-intl/server", () => ({
@@ -55,6 +54,12 @@ describe("Layout: Umami tracker", () => {
 
     expect(script?.getAttribute("data-domains")).toBe("verbatra.kreitz-webdev.de");
     expect(script?.getAttribute("data-exclude-hash")).toBe("true");
+  });
+
+  it("loads the tracker after the page load event, so no early preload competes with the first paint", async () => {
+    const script = await umamiScript();
+
+    expect(script?.getAttribute("data-strategy")).toBe("lazyOnload");
   });
 
   it("loads the tracker from an external file rather than inline code", async () => {
