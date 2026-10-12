@@ -1587,10 +1587,6 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   visibility: hidden;
 }
 
-.vk-formats-sizer .vk-formats-code {
-  overflow-x: scroll;
-}
-
 .vk-formats-panes > [data-active="false"] {
   visibility: hidden;
 }
@@ -1651,6 +1647,10 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 .vk-formats-code:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: -2px;
+}
+
+.vk-formats-sizer .vk-formats-code {
+  overflow-x: scroll;
 }
 
 @media (min-width: 64rem) {
