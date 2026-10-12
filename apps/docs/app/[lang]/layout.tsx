@@ -1,19 +1,16 @@
 import "../global.css";
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 import { JsonLd } from "@/components/json-ld";
+import { FONT_VARIABLES } from "@/lib/fonts";
 import { i18n, toLocale } from "@/lib/i18n";
 import { UMAMI_ORIGIN } from "@/lib/security-headers.mjs";
 import { homeAlternates, SITE_HOST, SITE_URL } from "@/lib/site";
 import { homeOgImagePath, socialMetadata } from "@/lib/social-metadata";
 import { AUTHOR_NAME, organizationLd, SEO_KEYWORDS, websiteLd } from "@/lib/structured-data";
 import { DEFAULT_THEME, THEME_COLORS, THEME_META_SCRIPT } from "@/lib/theme";
-
-const sans = Geist({ subsets: ["latin"], variable: "--font-geist-sans" });
-const mono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" });
 
 export const dynamicParams = false;
 
@@ -85,11 +82,7 @@ export default async function Layout({
   setRequestLocale(locale);
 
   return (
-    <html
-      lang={locale}
-      suppressHydrationWarning
-      className={`${DEFAULT_THEME} ${sans.variable} ${mono.variable}`}
-    >
+    <html lang={locale} suppressHydrationWarning className={`${DEFAULT_THEME} ${FONT_VARIABLES}`}>
       <head>
         <link rel="preconnect" href={UMAMI_ORIGIN} crossOrigin="anonymous" />
         <link rel="dns-prefetch" href={UMAMI_ORIGIN} />
