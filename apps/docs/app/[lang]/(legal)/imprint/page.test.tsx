@@ -10,6 +10,7 @@ import { describe, expect, it, vi } from "vitest";
 const MESSAGES_DIR = join(dirname(fileURLToPath(import.meta.url)), "../../../../messages");
 
 vi.mock("next-intl/server", () => ({
+  setRequestLocale: () => undefined,
   getTranslations: async ({ locale, namespace }: { locale: string; namespace: string }) =>
     createTranslator({
       locale,

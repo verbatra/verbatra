@@ -1,6 +1,6 @@
 import { CalloutContainer } from "fumadocs-ui/components/callout";
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 import { AnalyticsOptOut, type AnalyticsOptOutLabels } from "@/components/analytics-opt-out";
 import { CALLOUT_CLASS } from "@/components/mdx";
@@ -85,6 +85,7 @@ export async function generateMetadata(props: {
 export default async function PrivacyPage(props: { params: Promise<{ lang: string }> }) {
   const { lang } = await props.params;
   const locale = toLocale(lang);
+  setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "legal.privacy" });
   const linkTags = linkTagsFor(locale);
   const optOutLabels: AnalyticsOptOutLabels = {

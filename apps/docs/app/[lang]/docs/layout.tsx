@@ -1,4 +1,5 @@
 import { DocsLayout } from "fumadocs-ui/layouts/notebook";
+import { setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 import { DocsSiteHeader } from "@/components/docs-site-header";
 import { LegalFooter } from "@/components/legal-footer";
@@ -21,6 +22,7 @@ export default async function Layout({
 }) {
   const { lang } = await params;
   const locale = toLocale(lang);
+  setRequestLocale(locale);
   const tree = withGroupLabels(
     await withStatusBadges(
       withShortCommandLabels(await withLlmsLinks(source.getPageTree(locale), locale)),

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Fragment, type ReactNode } from "react";
 import { JsonLd } from "@/components/json-ld";
 import { Bento } from "@/components/landing/bento";
@@ -33,6 +33,7 @@ import {
 export default async function HomePage(props: { params: Promise<{ lang: string }> }) {
   const { lang } = await props.params;
   const locale = toLocale(lang);
+  setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "landing" });
 
   const faqItems: ReadonlyArray<FaqItem & FaqEntry> = Object.entries(

@@ -16,6 +16,7 @@ function loadMessages(locale: string): Record<string, unknown> {
 }
 
 vi.mock("next-intl/server", () => ({
+  setRequestLocale: () => undefined,
   getTranslations: async ({ locale, namespace }: { locale: string; namespace: string }) =>
     createTranslator({ locale, messages: loadMessages(locale), namespace: namespace as never }),
 }));

@@ -1,3 +1,4 @@
+import { setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 import { FullFooter } from "@/components/landing/footer";
 import { LandingProviders } from "@/components/landing-providers";
@@ -12,8 +13,10 @@ export default async function HomeRouteLayout({
   children: ReactNode;
 }): Promise<ReactNode> {
   const { lang } = await params;
+  const locale = toLocale(lang);
+  setRequestLocale(locale);
   return (
-    <LandingProviders locale={toLocale(lang)}>
+    <LandingProviders locale={locale}>
       <LocaleHomeLayout params={params} footer={<FullFooter />}>
         {children}
       </LocaleHomeLayout>

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 import { LICENSE_URL } from "@/components/landing/links";
 import { type Locale, localizedPath, toLocale } from "@/lib/i18n";
@@ -37,6 +37,7 @@ export async function generateMetadata(props: {
 export default async function ImprintPage(props: { params: Promise<{ lang: string }> }) {
   const { lang } = await props.params;
   const locale = toLocale(lang);
+  setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "legal.imprint" });
   const linkTags = linkTagsFor(locale);
 

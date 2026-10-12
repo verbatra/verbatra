@@ -1,3 +1,4 @@
+import { setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 import { LegalFooter } from "@/components/legal-footer";
 import { SiteProviders } from "@/components/site-providers";
@@ -13,6 +14,7 @@ export default async function LegalRouteLayout({
 }): Promise<ReactNode> {
   const { lang } = await params;
   const locale = toLocale(lang);
+  setRequestLocale(locale);
   return (
     <SiteProviders locale={locale}>
       <LocaleHomeLayout params={params} footer={<LegalFooter locale={locale} />}>

@@ -21,6 +21,7 @@ function translatorFor(locale: string, namespace: string) {
 }
 
 vi.mock("next-intl/server", () => ({
+  setRequestLocale: () => undefined,
   getTranslations: async (options: string | { locale: string; namespace: string }) =>
     typeof options === "string"
       ? translatorFor(localeState.current, options)

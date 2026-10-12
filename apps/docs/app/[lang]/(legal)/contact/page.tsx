@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 import { ContactForm } from "@/components/contact-form";
 import { localizedPath, toLocale } from "@/lib/i18n";
@@ -33,6 +33,7 @@ export async function generateMetadata(props: {
 export default async function ContactPage(props: { params: Promise<{ lang: string }> }) {
   const { lang } = await props.params;
   const locale = toLocale(lang);
+  setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "legal.contact" });
   const privacyHref = `${localizedPath(locale, "/privacy")}#${PRIVACY_CONTACT_FORM_ANCHOR}`;
   const privacyNotice = t.rich("privacyNotice", {
