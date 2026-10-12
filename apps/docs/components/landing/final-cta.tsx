@@ -12,7 +12,7 @@ export async function FinalCta(): Promise<ReactNode> {
   const tInstall = await getTranslations("landing.install");
   const locale = toLocale(await getLocale());
   return (
-    <section className="vk-pad-top-sm vk-gutter vk-w-wide mx-auto w-full pb-3">
+    <section className="vk-final-cta vk-pad-sm vk-gutter vk-w-wide mx-auto w-full">
       <div
         className="grid grid-cols-[minmax(0,1fr)] gap-8 rounded-xl border px-6 py-10 md:px-12 md:py-14 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center"
         style={{ background: "var(--surface-bg)", borderColor: CLOSE_BORDER }}

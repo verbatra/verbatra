@@ -51,4 +51,10 @@ describe("FinalCta", () => {
     expect(root.querySelector("a[href='/de/docs/quickstart']")?.textContent).toBe(copy.primary);
     expect(root.querySelector("a[href='/de/docs']")?.textContent).toBe(copy.secondary);
   });
+
+  it("keeps a full section of space between the panel and the footer", () => {
+    const classes = root.querySelector("section")?.className.split(" ") ?? [];
+    expect(classes).toContain("vk-pad-sm");
+    expect(classes.filter((name) => /^p[bt]-/.test(name))).toEqual([]);
+  });
 });
