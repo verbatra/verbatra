@@ -298,7 +298,9 @@ license, in that order, after the figures it shows), `problem.tsx` (`#problem`, 
   namespace; a chip selects its format, a tab clears the chip, and both count `select-tab` with
   `location: formats` (a chip adds `framework`). Only the open pane is server-rendered (`FormatPane`
   in `format-pane.tsx`); the others come from `loadFormatPanes()` on the first pointer, focus, tab
-  or chip, and every pane is stacked in one grid cell with `.vk-formats-sizer`, an `aria-hidden`,
+  or chip (one shared request through `retrying` in `lib/retry.ts`; until it lands the chosen pane
+  shows its file caption from `FormatPaneFrame` (`format-pane-frame.tsx`), busy, and a failed load
+  keeps the caption and asks again on the next intent), and every pane is stacked in one grid cell with `.vk-formats-sizer`, an `aria-hidden`,
   `inert`, `visibility: hidden` copy of the pane that shows the most rows (`tallestFormat()`), so
   the box is always the tallest pane and a switch moves nothing; a closed pane is `inert` and
   `visibility: hidden`, and `.vk-formats-code` caps a long output at

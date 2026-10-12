@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { StackIcon, StackIconSprite } from "@/components/stack-icons";
+import { FORMAT_SAMPLES } from "@/lib/format-samples";
 import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { STACK_FRAMEWORKS } from "@/lib/stack-formats";
 import { FormatPane, FormatPaneSizer } from "./format-pane";
@@ -29,7 +30,11 @@ export function FormatsDemo({ labels }: { labels: FormatSwitchLabels }): ReactNo
             />
           ),
         }))}
-        formats={SUPPORTED_FORMAT_IDS.map((id) => ({ id, label: FORMAT_DISPLAY[id].label }))}
+        formats={SUPPORTED_FORMAT_IDS.map((id) => ({
+          id,
+          label: FORMAT_DISPLAY[id].label,
+          file: FORMAT_SAMPLES[id].file,
+        }))}
         initialPane={initial ? <FormatPane id={initial} /> : null}
         sizer={<FormatPaneSizer />}
       />

@@ -1,20 +1,22 @@
 "use client";
 
 import type { SupportedFormat } from "@verbatra/sdk";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { TabList, tabPanelProps } from "@/components/ui/tabs";
+import { retrying } from "@/lib/retry";
 import { trackUmamiEvent } from "@/lib/umami";
+import { FormatPaneFrame } from "./format-pane-frame";
 
 export const FORMAT_SWITCH_ID = "formats";
 
-export type FormatSwitchTab = { id: SupportedFormat; label: string };
+export type FormatSwitchTab = { id: SupportedFormat; label: string; file: string };
 
 type PaneModule = typeof import("./format-pane");
 
 let panes: Promise<PaneModule> | undefined;
 
 export function loadFormatPanes(): Promise<PaneModule> {
-  panes ??= import("./format-pane").catch((error: unknown) => {
+  panes ??= retrying(() => import("./format-pane")).catch((error: unknown) => {
     panes = undefined;
     throw error;
   });
@@ -29,6 +31,17 @@ export type FormatSwitchFramework = {
 };
 
 export type FormatSwitchLabels = { frameworks: string; formats: string };
+
+function usePaneModule(): [PaneModule | null, boolean, () => void] {
+  const [paneModule, setPaneModule] = useState<PaneModule | null>(null);
+  const [failed, setFailed] = useState(false);
+  const requestPanes = useCallback(() => {
+    if (paneModule) return;
+    setFailed(false);
+    loadFormatPanes().then(setPaneModule, () => setFailed(true));
+  }, [paneModule]);
+  return [paneModule, failed, requestPanes];
+}
 
 export function FormatSwitch({
   formats,
@@ -45,37 +58,31 @@ export function FormatSwitch({
 }): ReactNode {
   const [active, setActive] = useState<string>(formats[0]?.id ?? "");
   const [framework, setFramework] = useState<string | undefined>(undefined);
-  const [paneModule, setPaneModule] = useState<PaneModule | null>(null);
+  const [paneModule, failed, requestPanes] = usePaneModule();
   const initialId = formats[0]?.id;
 
   const switchRef = useRef<HTMLDivElement>(null);
 
-  function warm() {
-    if (paneModule) return;
-    loadFormatPanes().then(setPaneModule, () => undefined);
-  }
-
   useEffect(() => {
     const node = switchRef.current;
     if (!node || paneModule) return;
-    const load = () => {
-      loadFormatPanes().then(setPaneModule, () => undefined);
-    };
-    node.addEventListener("pointerenter", load);
-    node.addEventListener("focusin", load);
+    node.addEventListener("pointerenter", requestPanes);
+    node.addEventListener("focusin", requestPanes);
     return () => {
-      node.removeEventListener("pointerenter", load);
-      node.removeEventListener("focusin", load);
+      node.removeEventListener("pointerenter", requestPanes);
+      node.removeEventListener("focusin", requestPanes);
     };
-  }, [paneModule]);
+  }, [paneModule, requestPanes]);
 
-  function pane(id: SupportedFormat): ReactNode {
-    if (id === initialId) return initialPane;
-    return paneModule ? <paneModule.FormatPane id={id} /> : null;
+  function pane(format: FormatSwitchTab): ReactNode {
+    if (format.id === initialId) return initialPane;
+    if (paneModule) return <paneModule.FormatPane id={format.id} />;
+    if (format.id !== active) return null;
+    return <FormatPaneFrame id={format.id} file={format.file} busy={!failed} />;
   }
 
   function selectFormat(id: string) {
-    warm();
+    requestPanes();
     setFramework(undefined);
     if (id === active) return;
     setActive(id);
@@ -83,7 +90,7 @@ export function FormatSwitch({
   }
 
   function selectFramework(chip: FormatSwitchFramework) {
-    warm();
+    requestPanes();
     if (chip.key === framework) return;
     setFramework(chip.key);
     setActive(chip.format);
@@ -139,7 +146,7 @@ export function FormatSwitch({
             {...tabPanelProps(FORMAT_SWITCH_ID, format.id, active)}
             className="vk-formats-pane"
           >
-            {pane(format.id)}
+            {pane(format)}
           </div>
         ))}
       </div>
