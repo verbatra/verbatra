@@ -545,14 +545,29 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
   script that runs before that paint, so the landing's client code arrives after it. A landing
   server section imports its client components from `components/landing/islands.tsx`, and the
   header from `components/chrome-islands.tsx`: each is an `island()` (`lib/island.tsx`), which
-  server-renders the component inline (preloaded through top-level `await preloadOnServer`, with no
-  Suspense boundary, since React outlines a completed boundary to the end of a long stream) and in
-  the browser fetches it after the first contentful paint, hydrating it in place. `intlIsland()`
-  wraps it in `withIntl` (`components/intl-boundary.tsx`), so `next-intl` loads with the island.
+  server-renders the component inline (preloaded through top-level `await preloadIslands`) inside an
+  `<Activity mode="visible">`, never a Suspense boundary, since React outlines a completed Suspense
+  boundary over 500 bytes to the end of a long stream (the fallback flash measured CLS 0.497).
+  Activity boundaries are written inline (`<!--&-->`) yet hydrate on their own, so each island
+  hydrates when its chunk lands and a slow one holds no other back. In the browser
+  `preloadIslands` starts every registered chunk together once the first contentful paint resolves
+  (`afterFirstContentfulPaint`, a 3s fallback whose timer is cleared). A rejected chunk is retried
+  (`retrying` in `lib/retry.ts`); if it still fails, the island never throws: while hydrating it
+  stays suspended, so its server HTML stays in place, non-interactive, and in a client render it
+  renders nothing, and the failure is forgotten when the island unmounts, so the next soft
+  navigation loads it again. `lib/island.test.tsx` pins all of this, the paint gate through a fake
+  `PerformanceObserver`; `island(load, { gate, retryDelaysMs })` takes both as options. Tests that
+  server-render under jsdom get every registered island preloaded by `vitest.setup.ts`.
+  `intlIsland()` wraps it in `withIntl` (`components/intl-boundary.tsx`), so `next-intl` loads with
+  the island; `components/landing/islands.test.tsx` fails when a plain `island()` module tree calls
+  `useTranslations`, or an `intlIsland()` one does not.
   A server module pulls every client module it imports into the first load, used or not, so the
   root layout holds no providers: the docs and legal layouts wrap `SiteProviders`, the landing
   `LandingProviders` (`components/landing-providers.tsx`, no `NextIntlClientProvider`, only the
-  `ClientMessagesProvider` context the islands read). `components/landing/islands.test.tsx` pins
+  `ClientMessagesProvider` context the islands read), both over `ThemedRootProvider` and
+  `loadClientIntl` (`components/themed-root-provider.tsx`), which pass the locale and time zone
+  explicitly. Every localized layout and page calls `setRequestLocale` itself, since they render in
+  parallel (`app/[lang]/request-locale.test.ts`). `components/landing/islands.test.tsx` pins
   the import rules. The Umami tracker loads with `lazyOnload`.
 - `experimental.turbopackChunking` (`minChunkSize` 200000, `requestCost` 1000000 in
   `next.config.mjs`) merges client chunks site-wide on purpose. Scoping it to the landing through
