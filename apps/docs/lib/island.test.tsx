@@ -1,6 +1,16 @@
 // @vitest-environment jsdom
 
-import { Activity, act, type ComponentType, useState } from "react";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import {
+  Activity,
+  act,
+  type ComponentType,
+  createContext,
+  startTransition,
+  use,
+  useState,
+} from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -35,7 +45,9 @@ function serverMarkup(...labels: string[]): string {
   return renderToString(
     labels.map((label) => (
       <Activity key={label} mode="visible">
-        <Counter label={label} />
+        <span className="vk-island">
+          <Counter label={label} />
+        </span>
       </Activity>
     )),
   );
@@ -82,8 +94,13 @@ describe("island", () => {
     const Lazy = island(async () => Greeting);
     await Lazy.preload();
     const html = renderToString(<Lazy name="verbatra" />);
-    expect(html).toBe("<!--&--><p>Hello verbatra</p><!--/&-->");
+    expect(html).toBe('<!--&--><span class="vk-island"><p>Hello verbatra</p></span><!--/&-->');
     expect(html).not.toContain("<!--$");
+  });
+
+  it("wraps an island in a box-less span, so its server markup can be kept without a client render", () => {
+    const css = readFileSync(join(process.cwd(), "app/global.css"), "utf8");
+    expect(css).toContain(".vk-island {\n  display: contents;\n}");
   });
 
   it("keeps the server markup in place while it hydrates, then takes it over without a client render", async () => {
@@ -214,6 +231,93 @@ describe("island", () => {
     await flush();
     await act(async () => button(container, "page").click());
     expect(button(container, "page").textContent).toBe("page 1");
+  });
+
+  it("lets a transition commit past a failed island under a changed provider, keeping its markup", async () => {
+    const Theme = createContext("dark");
+    function ThemeLabel() {
+      return <span data-theme-label>{use(Theme)}</span>;
+    }
+    function ThemedCounter({ label }: { label: string }) {
+      return <Counter label={`${label}-${use(Theme)}`} />;
+    }
+    const failing = vi.fn(() => Promise.reject(new Error("chunk failed")));
+    const Broken = island<{ label: string }>(failing, { retryDelaysMs: [] });
+    let setTheme: (value: string) => void = () => undefined;
+    function Host() {
+      const [theme, set] = useState("dark");
+      setTheme = set;
+      return (
+        <Theme value={theme}>
+          <ThemeLabel />
+          <Broken label="broken" />
+        </Theme>
+      );
+    }
+    const container = document.createElement("div");
+    container.innerHTML = renderToString(
+      <Theme value="dark">
+        <ThemeLabel />
+        <Activity mode="visible">
+          <span className="vk-island">
+            <ThemedCounter label="broken" />
+          </span>
+        </Activity>
+      </Theme>,
+    );
+    const spies = errorSpies();
+    await act(async () => {
+      track(hydrateRoot(container, <Host />, spies));
+    });
+    await flush();
+    await act(async () => startTransition(() => setTheme("light")));
+    await flush();
+    expect(container.querySelector("[data-theme-label]")?.textContent).toBe("light");
+    expect(container.querySelector('[data-island="broken-dark"]')?.textContent).toBe(
+      "broken-dark 0",
+    );
+    await act(async () => setTheme("contrast"));
+    expect(container.querySelector("[data-theme-label]")?.textContent).toBe("contrast");
+    expect(container.querySelector('[data-island="broken-dark"]')?.textContent).toBe(
+      "broken-dark 0",
+    );
+    expect(spies.onUncaughtError).not.toHaveBeenCalled();
+    expect(spies.onRecoverableError).not.toHaveBeenCalled();
+  });
+
+  it("lets a soft navigation under a persisted layout commit past a failed island, keeping its markup", async () => {
+    const failing = vi.fn(() => Promise.reject(new Error("chunk failed")));
+    const Header = island<{ label: string }>(failing, { retryDelaysMs: [] });
+    let navigate: (path: string) => void = () => undefined;
+    function Layout() {
+      const [path, set] = useState("/");
+      navigate = set;
+      return (
+        <>
+          <Header label={`header${path}`} />
+          <main data-page>{path}</main>
+        </>
+      );
+    }
+    const container = document.createElement("div");
+    container.innerHTML = renderToString(
+      <>
+        <Activity mode="visible">
+          <span className="vk-island">
+            <Counter label="header/" />
+          </span>
+        </Activity>
+        <main data-page>/</main>
+      </>,
+    );
+    await act(async () => {
+      track(hydrateRoot(container, <Layout />, errorSpies()));
+    });
+    await flush();
+    await act(async () => startTransition(() => navigate("/docs")));
+    await flush();
+    expect(container.querySelector("[data-page]")?.textContent).toBe("/docs");
+    expect(container.querySelector('[data-island="header/"]')?.textContent).toBe("header/ 0");
   });
 
   it("loads once however often it renders", async () => {

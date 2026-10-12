@@ -175,7 +175,7 @@ describe("TryIt: two-by-two playground", () => {
       "vk-showcase-actions",
     ]);
     expect(bar?.querySelector(".vk-showcase-actions .vk-showcase-reset")).not.toBeNull();
-    expect(css).not.toContain("display: contents");
+    expect(css).not.toMatch(/\.vk-showcase[^{]*\{[^}]*display: contents/);
     expect(css).toContain('"bar"\n    "breaks"\n    "switch"\n    "file"\n    "outcome";');
     expect(css).toMatch(
       /\.vk-showcase-actions:not\(:has\(> :not\(\[hidden\]\)\)\) \{\s+display: none;/,

@@ -552,15 +552,17 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
   server section imports its client components from `components/landing/islands.tsx`, and the
   header from `components/chrome-islands.tsx`: each is an `island()` (`lib/island.tsx`), which
   server-renders the component inline (preloaded through top-level `await preloadIslands`) inside an
-  `<Activity mode="visible">`, never a Suspense boundary, since React outlines a completed Suspense
+  `<Activity mode="visible">` and a box-less `span.vk-island` (`display: contents`), never a Suspense boundary, since React outlines a completed Suspense
   boundary over 500 bytes to the end of a long stream (the fallback flash measured CLS 0.497).
   Activity boundaries are written inline (`<!--&-->`) yet hydrate on their own, so each island
   hydrates when its chunk lands and a slow one holds no other back. In the browser
   `preloadIslands` starts every registered chunk together once the first contentful paint resolves
   (`afterFirstContentfulPaint`, a 3s fallback whose timer is cleared). A rejected chunk is retried
-  (`retrying` in `lib/retry.ts`); if it still fails, the island never throws: while hydrating it
-  stays suspended, so its server HTML stays in place, non-interactive, and in a client render it
-  renders nothing, and the failure is forgotten when the island unmounts, so the next soft
+  (`retrying` in `lib/retry.ts`); if it still fails, the island never throws and never stays suspended: when
+  it was server-rendered it hydrates its `span.vk-island` with an empty `dangerouslySetInnerHTML`
+  (one shared object, so React never writes it), which keeps the server HTML in place,
+  non-interactive, and lets a provider change or a soft navigation under a persisted layout commit
+  past it, and in a client render it renders nothing, and the failure is forgotten when the island unmounts, so the next soft
   navigation loads it again. `lib/island.test.tsx` pins all of this, the paint gate through a fake
   `PerformanceObserver`; `island(load, { gate, retryDelaysMs })` takes both as options. Tests that
   server-render under jsdom get every registered island preloaded by `vitest.setup.ts`.

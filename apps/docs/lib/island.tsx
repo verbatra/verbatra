@@ -1,12 +1,6 @@
-import {
-  Activity,
-  type ComponentType,
-  type ReactNode,
-  use,
-  useEffect,
-  useSyncExternalStore,
-} from "react";
+import { Activity, type ComponentType, type ReactNode, use, useEffect, useState } from "react";
 import { RETRY_DELAYS_MS, retrying } from "@/lib/retry";
+import { useHydrated } from "@/lib/use-hydrated";
 
 export type Island<P extends object> = ((props: P) => ReactNode) & {
   preload: () => Promise<unknown>;
@@ -71,19 +65,8 @@ export function rendersEagerly(): boolean {
   return typeof window === "undefined";
 }
 
-const neverSettles = new Promise<never>(() => undefined);
-
-function subscribeToNothing(): () => void {
-  return () => undefined;
-}
-
-function useHydrating(): boolean {
-  return useSyncExternalStore(
-    subscribeToNothing,
-    () => false,
-    () => true,
-  );
-}
+const ISLAND_CLASS = "vk-island";
+const KEEP_SERVER_MARKUP = { __html: "" };
 
 export function island<P extends object>(
   load: () => Promise<ComponentType<P>>,
@@ -101,11 +84,24 @@ export function island<P extends object>(
   };
 
   function Hydrated(props: P): ReactNode {
-    const hydrating = useHydrating();
+    const hydrated = useHydrated();
+    const [fromServer] = useState(!hydrated);
     const Component = use(component());
-    if (Component !== ISLAND_FAILED) return <Component {...props} />;
-    if (hydrating) use(neverSettles);
-    return null;
+    if (Component !== ISLAND_FAILED) {
+      return (
+        <span className={ISLAND_CLASS}>
+          <Component {...props} />
+        </span>
+      );
+    }
+    if (!fromServer) return null;
+    return (
+      <span
+        className={ISLAND_CLASS}
+        dangerouslySetInnerHTML={KEEP_SERVER_MARKUP}
+        suppressHydrationWarning
+      />
+    );
   }
 
   function Island(props: P): ReactNode {

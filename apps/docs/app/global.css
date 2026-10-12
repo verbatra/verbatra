@@ -344,6 +344,10 @@ html.light {
   max-width: var(--width-content);
 }
 
+.vk-island {
+  display: contents;
+}
+
 .vk-grid-12 {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
