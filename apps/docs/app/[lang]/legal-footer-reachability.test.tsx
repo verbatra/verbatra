@@ -29,6 +29,8 @@ vi.mock("next-intl/server", () => ({
 }));
 vi.mock("@/components/site-header", () => ({
   HomeSiteHeader: () => <header>site header</header>,
+}));
+vi.mock("@/components/docs-site-header", () => ({
   DocsSiteHeader: () => <header>site header</header>,
 }));
 vi.mock("@/lib/layout.shared", () => ({

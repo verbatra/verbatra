@@ -2,31 +2,25 @@
 
 import { usePathname } from "fumadocs-core/framework";
 import Link from "fumadocs-core/link";
-import { useSidebar } from "fumadocs-ui/components/sidebar/base";
 import { buttonVariants } from "fumadocs-ui/components/ui/button";
 import { useHomeLayout } from "fumadocs-ui/layouts/home";
-import { useNotebookLayout } from "fumadocs-ui/layouts/notebook";
 import {
   type BaseSlots,
   isLinkItemActive,
   LinkItem,
   type LinkItemType,
 } from "fumadocs-ui/layouts/shared";
-import { type ComponentProps, type ReactNode, useRef } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import {
   ChangelogNavLink,
   DocsNavLink,
   GetStartedLink,
   GitHubNavLink,
   HomeMobileMenu,
-  MENU_TRIGGER,
   NAV_TEXT_LINK,
   useHomeNav,
 } from "@/components/home-nav";
-import { useRootTabs } from "@/components/root-tabs";
-import { useDrawerEscape } from "@/components/use-drawer-escape";
 import { VersionPill } from "@/components/version-pill";
-import { headerActiveTab, isRootTabLinkActive } from "@/lib/root-tabs";
 import { trackUmamiEvent } from "@/lib/umami";
 import { cn } from "@/lib/utils";
 
@@ -42,7 +36,7 @@ const ICON_BUTTON = cn(
   "text-fd-muted-foreground",
 );
 
-const ICON_PROPS = {
+export const ICON_PROPS = {
   width: 24,
   height: 24,
   viewBox: "0 0 24 24",
@@ -52,15 +46,6 @@ const ICON_PROPS = {
   strokeLinecap: "round",
   strokeLinejoin: "round",
 } as const;
-
-function SidebarIcon(): ReactNode {
-  return (
-    <svg {...ICON_PROPS} aria-hidden="true">
-      <rect width="18" height="18" x="3" y="3" rx="2" />
-      <path d="M9 3v18" />
-    </svg>
-  );
-}
 
 function LanguagesIcon({ className }: { className?: string }): ReactNode {
   return (
@@ -244,49 +229,6 @@ export function SiteHeaderFrame({
         </div>
       </div>
     </header>
-  );
-}
-
-export function DocsSiteHeader(props: ComponentProps<"header">): ReactNode {
-  const { slots, navItems, isNavTransparent } = useNotebookLayout();
-  const sidebar = slots.sidebar;
-  const sidebarState = useSidebar();
-  const { open } = sidebarState;
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  useDrawerEscape(sidebarState, triggerRef);
-  const { tabs, active } = useRootTabs();
-  const pathname = usePathname();
-  const activeTab = headerActiveTab(navItems, tabs, active, (item) =>
-    isLinkItemActive(item, pathname),
-  );
-  return (
-    <SiteHeaderFrame
-      id="nd-subnav"
-      data-transparent={isNavTransparent && !open}
-      {...props}
-      className={cn(
-        "top-(--fd-docs-row-1) z-10 [grid-area:header] layout:[--fd-header-height:--spacing(14)]",
-        props.className,
-      )}
-      slots={slots}
-      navItems={navItems}
-      activeOverride={(url) => isRootTabLinkActive(url, tabs, activeTab)}
-      mobileTrigger={
-        <sidebar.trigger ref={triggerRef} className={MENU_TRIGGER}>
-          <SidebarIcon />
-        </sidebar.trigger>
-      }
-      trailing={
-        <sidebar.collapseTrigger
-          className={cn(
-            buttonVariants({ variant: "secondary", size: "icon-sm" }),
-            "-me-1.5 rounded-full text-fd-muted-foreground",
-          )}
-        >
-          <SidebarIcon />
-        </sidebar.collapseTrigger>
-      }
-    />
   );
 }
 

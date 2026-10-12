@@ -1,8 +1,8 @@
 import { DocsLayout } from "fumadocs-ui/layouts/notebook";
 import type { ReactNode } from "react";
+import { DocsSiteHeader } from "@/components/docs-site-header";
 import { LegalFooter } from "@/components/legal-footer";
 import { RootTabsProvider, SidebarTabs } from "@/components/root-tabs";
-import { DocsSiteHeader } from "@/components/site-header";
 import { withGroupLabels } from "@/lib/docs-group-labels";
 import { withLlmsLinks, withShortCommandLabels } from "@/lib/docs-page-tree";
 import { withStatusBadges } from "@/lib/docs-status-badges";

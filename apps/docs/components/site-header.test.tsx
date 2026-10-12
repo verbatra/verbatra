@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { act, type ComponentProps, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -222,5 +224,13 @@ describe("SiteHeaderFrame", () => {
     const docs = container.querySelector('nav a[href="/docs"]');
     expect(docs?.getAttribute("data-active")).toBe("false");
     expect(docs?.hasAttribute("aria-current")).toBe(false);
+  });
+
+  it("keeps the docs sidebar stack out of the module the landing header loads", () => {
+    const source = readFileSync(join(process.cwd(), "components/site-header.tsx"), "utf8");
+    expect(source).not.toMatch(/fumadocs-ui\/layouts\/notebook|fumadocs-ui\/components\/sidebar/);
+    expect(source).not.toContain("DocsSiteHeader");
+    const docs = readFileSync(join(process.cwd(), "components/docs-site-header.tsx"), "utf8");
+    expect(docs).toContain("export function DocsSiteHeader");
   });
 });
