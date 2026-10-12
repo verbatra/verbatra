@@ -13,6 +13,10 @@ describe("next.config", () => {
     expect(nextConfig.experimental?.optimisticRouting).toBe(false);
   });
 
+  it("serves unmatched URLs the global not-found page, since the root layout sits under the [lang] segment", () => {
+    expect(nextConfig.experimental?.globalNotFound).toBe(true);
+  });
+
   it("merges small client chunks, since every extra first-load request costs a round trip before the largest paint", () => {
     expect(nextConfig.experimental?.turbopackChunking).toEqual({
       minChunkSize: 200000,

@@ -578,5 +578,15 @@
     "theme": {
       "light": "Tema claro"
     }
+  },
+  "notFound": {
+    "meta": {
+      "title": "Página no encontrada",
+      "description": "Esta página no existe en el sitio de verbatra."
+    },
+    "title": "Esta página no existe",
+    "lead": "Puede que la dirección tenga un error o que la página se haya movido. La documentación y la página de inicio son un buen punto de partida.",
+    "home": "Ir a la página de inicio",
+    "docs": "Abrir la documentación"
   }
 }

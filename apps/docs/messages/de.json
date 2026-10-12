@@ -578,5 +578,15 @@
     "theme": {
       "light": "Helles Design"
     }
+  },
+  "notFound": {
+    "meta": {
+      "title": "Seite nicht gefunden",
+      "description": "Diese Seite gibt es auf der verbatra-Website nicht."
+    },
+    "title": "Diese Seite gibt es nicht",
+    "lead": "Vielleicht ist die Adresse vertippt oder die Seite ist umgezogen. Die Doku und die Startseite sind ein guter Einstieg.",
+    "home": "Zur Startseite",
+    "docs": "Doku öffnen"
   }
 }

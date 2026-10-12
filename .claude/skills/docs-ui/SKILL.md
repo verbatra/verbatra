@@ -629,6 +629,14 @@ content (the hero, every section and the closing panel) shares one narrower colu
 `.vk-gutter` plus `.vk-w-wide`, so the hero `h1` and every section heading start at one left
 edge; the footer bleeds on purpose.
 
+Every URL that matches no page, and every `notFound()`, renders `app/global-not-found.tsx`
+(`experimental.globalNotFound` in `next.config.mjs`, since the root layout sits under `[lang]`): a
+full document in English on the dark default, with the same `THEME_META_SCRIPT`, `SiteProviders`,
+`LocaleHomeLayout` header and `LegalFooter` as the legal pages, a `notFound` namespace in
+`messages/*.json`, and `robots: noindex`. It is prerendered as `/_not-found`, whose inline script
+hashes the proxy serves for any path it has no entry for. The fonts both documents load live in
+`lib/fonts.ts`.
+
 ## The docs surface
 
 `app/global.css` carries a docs layer keyed on Fumadocs' DOM ids (`#nd-sidebar` and its phone-width

@@ -578,5 +578,15 @@
     "theme": {
       "light": "Thème clair"
     }
+  },
+  "notFound": {
+    "meta": {
+      "title": "Page introuvable",
+      "description": "Cette page n’existe pas sur le site de verbatra."
+    },
+    "title": "Cette page n’existe pas",
+    "lead": "L’adresse contient peut-être une faute de frappe, ou la page a été déplacée. La documentation et la page d’accueil sont un bon point de départ.",
+    "home": "Aller à la page d’accueil",
+    "docs": "Ouvrir la documentation"
   }
 }

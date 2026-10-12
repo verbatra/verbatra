@@ -31,6 +31,7 @@ const config = {
   experimental: {
     optimizePackageImports: ["@icons-pack/react-simple-icons"],
     optimisticRouting: false,
+    globalNotFound: true,
     turbopackChunking: { minChunkSize: 200000, requestCost: 1000000 },
   },
   async redirects() {

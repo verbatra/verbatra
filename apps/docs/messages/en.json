@@ -578,5 +578,15 @@
         }
       }
     }
+  },
+  "notFound": {
+    "meta": {
+      "title": "Page not found",
+      "description": "This page does not exist on the verbatra site."
+    },
+    "title": "This page does not exist",
+    "lead": "The address may be mistyped, or the page has moved. The docs and the home page are a good place to start.",
+    "home": "Go to the home page",
+    "docs": "Open the docs"
   }
 }
