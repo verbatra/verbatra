@@ -9,7 +9,6 @@ export default defineConfig({
     },
   },
   test: {
-    setupFiles: ["./vitest.setup.ts"],
     server: {
       deps: {
         inline: ["fumadocs-core"],
