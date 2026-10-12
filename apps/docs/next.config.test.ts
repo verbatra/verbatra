@@ -12,6 +12,13 @@ describe("next.config", () => {
   it("turns off optimistic routing, which would predict /docs as the [lang] home route after a switch from /de and prefetch segments that 404", () => {
     expect(nextConfig.experimental?.optimisticRouting).toBe(false);
   });
+
+  it("merges small client chunks, since every extra first-load request costs a round trip before the largest paint", () => {
+    expect(nextConfig.experimental?.turbopackChunking).toEqual({
+      minChunkSize: 200000,
+      requestCost: 1000000,
+    });
+  });
 });
 
 const CONTENT_DIR = join(import.meta.dirname, "content/docs");
