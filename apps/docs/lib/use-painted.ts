@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import { afterFirstContentfulPaint } from "@/lib/island";
+import { afterFirstContentfulPaint } from "@/lib/first-paint";
 
 let painted = false;
 const listeners = new Set<() => void>();

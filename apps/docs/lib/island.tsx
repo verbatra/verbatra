@@ -1,4 +1,5 @@
 import { Activity, type ComponentType, type ReactNode, use, useEffect, useState } from "react";
+import { afterFirstContentfulPaint } from "@/lib/first-paint";
 import { RETRY_DELAYS_MS, retrying } from "@/lib/retry";
 import { useHydrated } from "@/lib/use-hydrated";
 
@@ -44,39 +45,7 @@ function settle<T>(promise: Promise<T>): Promise<T> {
   return settled;
 }
 
-const FIRST_PAINT_FALLBACK_MS = 3000;
-
-let painted: Promise<void> | undefined;
-
-function hasContentfulPaint(): boolean {
-  return performance.getEntriesByName("first-contentful-paint").length > 0;
-}
-
-export function afterFirstContentfulPaint(): Promise<void> {
-  painted ??= new Promise<void>((resolve) => {
-    if (
-      typeof PerformanceObserver === "undefined" ||
-      !PerformanceObserver.supportedEntryTypes?.includes("paint") ||
-      hasContentfulPaint()
-    ) {
-      resolve();
-      return;
-    }
-    const finish = () => {
-      clearTimeout(fallback);
-      observer.disconnect();
-      resolve();
-    };
-    const observer = new PerformanceObserver(() => {
-      if (hasContentfulPaint()) finish();
-    });
-    const fallback = setTimeout(finish, FIRST_PAINT_FALLBACK_MS);
-    observer.observe({ type: "paint", buffered: true });
-  });
-  return painted;
-}
-
-export function rendersEagerly(): boolean {
+function rendersEagerly(): boolean {
   return typeof window === "undefined";
 }
 

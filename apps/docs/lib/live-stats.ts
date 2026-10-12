@@ -1,6 +1,6 @@
 import { type CSSProperties, useEffect, useState } from "react";
 import { formatCompactNumber } from "@/lib/compact-number";
-import { afterFirstContentfulPaint } from "@/lib/island";
+import { afterFirstContentfulPaint } from "@/lib/first-paint";
 
 export const LIVE_STATS_URL = "/api/stats";
 

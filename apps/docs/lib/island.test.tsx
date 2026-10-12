@@ -14,7 +14,7 @@ import {
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { island, preloadIslands, rendersEagerly } from "./island";
+import { island, preloadIslands } from "./island";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -365,10 +365,6 @@ describe("island", () => {
 });
 
 describe("preloadIslands", () => {
-  it("renders in the browser, where it must not hold the page back", () => {
-    expect(rendersEagerly()).toBe(false);
-  });
-
   it("starts every registered island together once the gate opens, before any of them renders", async () => {
     const gate = deferred<void>();
     const first = vi.fn(async () => Greeting);
@@ -386,7 +382,7 @@ describe("preloadIslands", () => {
   });
 });
 
-describe("afterFirstContentfulPaint", () => {
+describe("the island paint gate", () => {
   it("holds an island's chunk until the first contentful paint, then clears its fallback timer", async () => {
     vi.resetModules();
     vi.useFakeTimers();
@@ -421,27 +417,6 @@ describe("afterFirstContentfulPaint", () => {
     expect(disconnect).toHaveBeenCalled();
     expect(vi.getTimerCount()).toBe(0);
     getEntries.mockRestore();
-    vi.unstubAllGlobals();
-  });
-
-  it("opens after its fallback delay when no paint entry ever arrives", async () => {
-    vi.resetModules();
-    vi.useFakeTimers();
-    class SilentObserver {
-      static supportedEntryTypes = ["paint"];
-      observe() {}
-      disconnect() {}
-    }
-    vi.stubGlobal("PerformanceObserver", SilentObserver);
-    const fresh = await import("./island");
-    let opened = false;
-    void fresh.afterFirstContentfulPaint().then(() => {
-      opened = true;
-    });
-    await vi.advanceTimersByTimeAsync(2999);
-    expect(opened).toBe(false);
-    await vi.advanceTimersByTimeAsync(1);
-    expect(opened).toBe(true);
     vi.unstubAllGlobals();
   });
 });

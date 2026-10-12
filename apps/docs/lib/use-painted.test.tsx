@@ -11,10 +11,7 @@ let paint: () => void = () => undefined;
 const painted = new Promise<void>((resolve) => {
   paint = resolve;
 });
-vi.mock("@/lib/island", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/lib/island")>()),
-  afterFirstContentfulPaint: () => painted,
-}));
+vi.mock("@/lib/first-paint", () => ({ afterFirstContentfulPaint: () => painted }));
 
 const { useLinkPrefetch } = await import("./use-painted");
 

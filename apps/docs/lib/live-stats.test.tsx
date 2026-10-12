@@ -92,10 +92,7 @@ describe("useLiveStats", () => {
       paint = resolve;
     });
     vi.resetModules();
-    vi.doMock("@/lib/island", async (importOriginal) => ({
-      ...(await importOriginal<typeof import("@/lib/island")>()),
-      afterFirstContentfulPaint: () => painted,
-    }));
+    vi.doMock("@/lib/first-paint", () => ({ afterFirstContentfulPaint: () => painted }));
     const fetcher = stubFetch(async () => Response.json({ stars: 2500, downloads: 1 }));
     const fresh = await import("@/components/landing/live-stat-value");
     const container = document.createElement("div");
@@ -111,7 +108,7 @@ describe("useLiveStats", () => {
     });
     expect(fetcher).toHaveBeenCalledTimes(1);
     expect(container.textContent).toBe("2.5K");
-    vi.doUnmock("@/lib/island");
+    vi.doUnmock("@/lib/first-paint");
   });
 });
 
