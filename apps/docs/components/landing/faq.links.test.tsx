@@ -4,9 +4,10 @@ import type { ReactNode } from "react";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { LICENSE_URL } from "./links";
 
 const intl = vi.hoisted(() => ({ locale: "en" }));
-const TAG_BY_ITEM: Record<string, string> = { privacy: "dataHandling" };
+const TAG_BY_ITEM: Record<string, string> = { privacy: "dataHandling", cost: "license" };
 
 vi.mock("next-intl", () => ({
   useTranslations: () =>
@@ -25,25 +26,14 @@ const { Faq } = await import("./faq");
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const ITEMS = [
-  { id: "languages", question: "Which languages?", answer: "Any." },
-  { id: "releases", question: "Where are the releases?", answer: "On GitHub." },
   { id: "privacy", question: "Does it send my strings?", answer: "Only to the provider." },
+  { id: "cost", question: "What does it cost?", answer: "Nothing." },
 ];
 
 let mounted: { container: HTMLDivElement; root: Root } | undefined;
 
 function render(locale: string): HTMLDivElement {
   intl.locale = locale;
-  Object.defineProperty(window, "matchMedia", {
-    configurable: true,
-    writable: true,
-    value: (query: string) => ({
-      matches: false,
-      media: query,
-      addEventListener: () => {},
-      removeEventListener: () => {},
-    }),
-  });
   const container = document.createElement("div");
   document.body.append(container);
   const root = createRoot(container);
@@ -64,35 +54,45 @@ afterEach(() => {
   container.remove();
 });
 
-function answerLink(container: HTMLDivElement, index: number): HTMLAnchorElement | null {
-  return container.querySelector<HTMLAnchorElement>(`#faq-panel-${index} a`);
+function answerLink(container: HTMLDivElement, id: string): HTMLAnchorElement | null {
+  return container.querySelector<HTMLAnchorElement>(`[data-faq="${id}"] [role="region"] a`);
 }
 
 describe("the landing faq answer links", () => {
-  it("links the language support page without a prefix in the default locale", () => {
-    expect(answerLink(render("en"), 0)?.getAttribute("href")).toBe("/docs/language-support");
-  });
-
-  it("links the language support page in the reader's locale", () => {
-    expect(answerLink(render("de"), 0)?.getAttribute("href")).toBe("/de/docs/language-support");
-  });
-
-  it("falls back to the default locale's page for a locale the site does not serve", () => {
-    expect(answerLink(render("it"), 0)?.getAttribute("href")).toBe("/docs/language-support");
-  });
-
   it("links the data handling page without a prefix in the default locale", () => {
-    expect(answerLink(render("en"), 2)?.getAttribute("href")).toBe("/docs/data-handling");
+    expect(answerLink(render("en"), "privacy")?.getAttribute("href")).toBe("/docs/data-handling");
   });
 
   it("links the data handling page in the reader's locale", () => {
-    expect(answerLink(render("fr"), 2)?.getAttribute("href")).toBe("/fr/docs/data-handling");
+    expect(answerLink(render("fr"), "privacy")?.getAttribute("href")).toBe(
+      "/fr/docs/data-handling",
+    );
   });
 
-  it("opens the release notes in a new tab", () => {
-    const link = answerLink(render("en"), 1);
+  it("falls back to the default locale's page for a locale the site does not serve", () => {
+    expect(answerLink(render("it"), "privacy")?.getAttribute("href")).toBe("/docs/data-handling");
+  });
 
+  it("opens the licence in a new tab, counted as an outbound link from the FAQ", () => {
+    const link = answerLink(render("en"), "cost");
+    expect(link?.getAttribute("href")).toBe(LICENSE_URL);
     expect(link?.getAttribute("target")).toBe("_blank");
-    expect(link?.getAttribute("href")).toContain("/releases");
+    expect(link?.dataset.umamiEvent).toBe("outbound-link");
+    expect(link?.dataset.umamiEventTarget).toBe("license");
   });
+
+  it.each(["en", "de", "es", "fr"])(
+    "uses in %s only the tags the component renders, so no answer prints a raw tag",
+    async (locale) => {
+      const { default: messages } = await import(`@/messages/${locale}.json`);
+      const answers = Object.values(
+        (messages as { landing: { faq: { items: Record<string, { answer: string }> } } }).landing
+          .faq.items,
+      ).map((item) => item.answer);
+      const tags = new Set(
+        answers.flatMap((answer) => [...answer.matchAll(/<(\w+)>/g)].map((m) => m[1])),
+      );
+      expect([...tags].toSorted()).toEqual(["dataHandling", "license"]);
+    },
+  );
 });

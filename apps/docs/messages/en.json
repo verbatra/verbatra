@@ -128,10 +128,6 @@
     "faq": {
       "heading": "Frequently asked questions",
       "items": {
-        "formats": {
-          "question": "Which formats and frameworks does verbatra support?",
-          "answer": "JSON for i18next, vue-i18n, next-intl, and ngx-translate, plus XLIFF, YAML, Flutter ARB, Java/Spring .properties, Apple .strings and Xcode String Catalogs, Android strings.xml, gettext .po/.pot files, INI, and .NET .resx. That covers React, Next.js, Vue, Nuxt, Angular, SvelteKit, Astro, Node.js, Spring, Flutter, iOS, macOS, Android, and any gettext-based stack. verbatra reads the files you already have; there is no verbatra-specific format to migrate to."
-        },
         "incremental": {
           "question": "How does verbatra avoid re-translating everything on every run?",
           "answer": "It keeps a committed lock file that records what was already translated. Each run diffs your source locale against that lock and sends only the new or changed keys to your provider. Unchanged keys are never touched, so a typical run costs a handful of strings, not your whole catalog."
@@ -140,21 +136,9 @@
           "question": "Which translation providers can I use?",
           "answer": "Any of these, behind one interface: Anthropic, OpenAI, and Gemini (LLMs), DeepL and Google Cloud Translation (machine translation), openai-compatible, which points verbatra at a local or self-hosted server like Ollama, LM Studio, or vLLM, and libretranslate, a self-hosted LibreTranslate server for machine translation with no language model. You pick one by id in the provider block of your config and switch later by rewriting that block, since each provider takes its own options. Gemini has a real free tier, and a local model costs nothing per call. Or set the provider to none to switch machine translation off entirely."
         },
-        "languages": {
-          "question": "Which languages does verbatra support?",
-          "answer": "Any language your provider supports. verbatra accepts every valid BCP 47 locale code, such as pt-BR, sr-Latn, or zh-Hant, and checks plural forms against each language's CLDR plural rules. DeepL and Google Cloud Translation have fixed language lists, the LLM providers have none. The <languages>language support page</languages> links each vendor's list and covers scripts, regional variants, and right-to-left text."
-        },
-        "safety": {
-          "question": "What stops a bad translation from breaking my app?",
-          "answer": "Every result passes a placeholder and ICU integrity check before it is written. A translation that drops or invents a placeholder, or produces invalid ICU message syntax, is withheld rather than saved to your locale file; one that only reorders placeholders is saved and flagged for review. The same gate applies to edits and retranslations made in Verbatra Studio."
-        },
-        "privacy": {
-          "question": "Does verbatra send my strings anywhere?",
-          "answer": "Only to the translation provider you configure, and only when a command translates. verbatra has no telemetry, analytics, or update check. You can switch machine translation off entirely, or run a model on your own hardware so nothing leaves your network. The <dataHandling>data handling page</dataHandling> lists what each provider receives and links each vendor's retention terms."
-        },
-        "cost": {
-          "question": "What does verbatra cost?",
-          "answer": "verbatra itself is free and open source under the MIT license. The only cost is your provider's usage, which you control: it translates only what changed, and you can run it for free on Gemini's free tier or a local OpenAI-compatible model. Outside the EEA, Switzerland and the UK, Google may use free-tier requests to improve its products, so keep confidential strings on a paid tier or a local model; the <dataHandling>data handling page</dataHandling> has the details."
+        "formats": {
+          "question": "Which formats and frameworks does verbatra support?",
+          "answer": "JSON for i18next, vue-i18n, next-intl, and ngx-translate, plus XLIFF, YAML, Flutter ARB, Java/Spring .properties, Apple .strings and Xcode String Catalogs, Android strings.xml, gettext .po/.pot files, INI, and .NET .resx. That covers React, Next.js, Vue, Nuxt, Angular, SvelteKit, Astro, Node.js, Spring, Flutter, iOS, macOS, Android, and any gettext-based stack. verbatra reads the files you already have; there is no verbatra-specific format to migrate to."
         },
         "ci": {
           "question": "Can I run verbatra in CI?",
@@ -163,6 +147,14 @@
         "keys": {
           "question": "Where do my API keys go?",
           "answer": "Into environment variables, never into the config. The config rejects keys it does not know, so a secret cannot end up there by mistake. The CLI loads .env.local and .env for you, and an error names the missing variable but never prints a key."
+        },
+        "privacy": {
+          "question": "Does verbatra send my strings anywhere?",
+          "answer": "Only to the translation provider you configure, and only when a command translates. verbatra has no telemetry, analytics, or update check. You can switch machine translation off entirely, or run a model on your own hardware so nothing leaves your network. The <dataHandling>data handling page</dataHandling> lists what each provider receives and links each vendor's retention terms."
+        },
+        "cost": {
+          "question": "What does verbatra cost?",
+          "answer": "verbatra itself is free and open source under the <license>MIT license</license>. The only cost is your provider's usage, which you control: it translates only what changed, and you can run it for free on Gemini's free tier or a local OpenAI-compatible model. Outside the EEA, Switzerland and the UK, Google may use free-tier requests to improve its products, so keep confidential strings on a paid tier or a local model; the <dataHandling>data handling page</dataHandling> has the details."
         },
         "studio": {
           "question": "Is Verbatra Studio a hosted service?",

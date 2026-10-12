@@ -11,13 +11,11 @@ import { AGENT_INIT_COMMAND, NPM_INSTALL_COMMAND } from "@/lib/install-commands"
 const trackUmamiEvent = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/umami", () => ({ trackUmamiEvent }));
 
-type RichTags = Record<string, (chunks: string) => ReactNode>;
-
 function translator(): ((key: string) => string) & {
-  rich: (key: string, tags?: RichTags) => ReactNode;
+  rich: (key: string) => ReactNode;
 } {
   return Object.assign((key: string) => key, {
-    rich: (key: string, tags?: RichTags) => (tags?.releases ? tags.releases(key) : key),
+    rich: (key: string) => key,
   });
 }
 
@@ -333,15 +331,6 @@ describe("FAQ", () => {
     expect(trackUmamiEvent.mock.calls).toEqual([
       ["open-faq", { question: "cost", location: "faq" }],
     ]);
-  });
-
-  it("counts the releases link as an outbound link from the FAQ", () => {
-    const link = staticDoc(<Faq items={ITEMS} />).querySelector<HTMLAnchorElement>(
-      'a[target="_blank"]',
-    );
-    expect(link?.dataset.umamiEvent).toBe("outbound-link");
-    expect(link?.dataset.umamiEventTarget).toBe("releases");
-    expect(link?.dataset.umamiEventLocation).toBe("faq");
   });
 });
 
