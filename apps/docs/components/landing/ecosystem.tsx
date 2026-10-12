@@ -29,7 +29,7 @@ export async function Ecosystem(): Promise<ReactNode> {
   const humanKind = t.has("ecosystem.kinds.human") ? t("ecosystem.kinds.human") : null;
 
   return (
-    <Section width="wide" rhythm="md" id="ecosystem">
+    <Section band id="ecosystem">
       <SectionHead
         id="ecosystem-heading"
         title={t("ecosystem.heading")}

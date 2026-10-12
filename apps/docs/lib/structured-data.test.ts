@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { CHECK_EXIT_CODE } from "@/lib/check-demo";
-import { howStepCopy } from "@/lib/how-steps";
+import { withoutInlineCode } from "@/lib/inline-code-text";
+import { LANDING_STEP_IDS } from "@/lib/landing-code";
 import { SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import en from "../messages/en.json";
 import {
@@ -137,28 +137,25 @@ describe("SUPPORTED_AGENT_CLIENTS", () => {
 });
 
 describe("howToLd", () => {
-  it("lists the three How steps in order, with the check exit code filled in", () => {
-    const t = (key: string, values?: Record<string, number>): string => {
-      const message = key
-        .split(".")
-        .reduce<unknown>((node, part) => (node as Record<string, unknown>)[part], en.landing.how);
-      return String(message).replace(/\{(\w+)\}/g, (_, name: string) => String(values?.[name]));
-    };
-    const steps = howStepCopy(t).map((step) => ({ name: step.title, text: step.body }));
-    const data = howToLd({ name: en.landing.how.heading, steps, lang: "en" });
+  it("lists the landing's check, translate and CI steps in order, with the code ticks dropped", () => {
+    const items = en.landing.steps.items;
+    const steps = LANDING_STEP_IDS.map((id) => ({
+      name: items[id].title,
+      text: withoutInlineCode(items[id].body),
+    }));
+    const data = howToLd({ name: en.landing.steps.heading, steps, lang: "en" });
     expect(data).toMatchObject({
       "@type": "HowTo",
-      name: en.landing.how.heading,
+      name: en.landing.steps.heading,
       inLanguage: "en",
     });
     const listed = data.step as ReadonlyArray<Record<string, unknown>>;
     expect(listed.map((step) => [step.position, step.name])).toEqual([
-      [1, en.landing.how.steps.setup.title],
-      [2, en.landing.how.steps.translate.title],
-      [3, en.landing.how.steps.check.title],
+      [1, items.check.title],
+      [2, items.translate.title],
+      [3, items.ci.title],
     ]);
-    expect(listed[2]?.text).toBe(
-      en.landing.how.steps.check.body.replace("{code}", String(CHECK_EXIT_CODE)),
-    );
+    expect(listed[0]?.text).not.toContain("`");
+    expect(listed[0]?.text).toContain("verbatra check");
   });
 });

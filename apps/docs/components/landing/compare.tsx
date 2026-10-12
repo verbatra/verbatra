@@ -88,7 +88,7 @@ export async function Compare(): Promise<ReactNode> {
   const t = await getTranslations("landing.compare");
 
   return (
-    <Section width="wide" rhythm="md" id="compare">
+    <Section band id="compare">
       <SectionHead id="compare-heading" title={t("heading")} lead={t("lead")} reveal />
       <div data-reveal="2" className="not-prose mt-10 grid gap-4">
         <section

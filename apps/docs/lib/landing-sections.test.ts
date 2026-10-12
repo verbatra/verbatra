@@ -8,15 +8,19 @@ function docsPath(relative: string): string {
 }
 
 describe("landing section order", () => {
-  it("leads with the hero and the marquee, then the showcase, how and formats, and closes on the call to action, in this order", () => {
+  it("opens on the hero and proof strip, explains the problem and the loop, then closes on the FAQ and the call to action", () => {
     expect(LANDING_SECTIONS).toEqual([
       "hero",
-      "marquee",
+      "proofStrip",
+      "problem",
+      "howItWorks",
+      "features",
+      "code",
       "showcase",
-      "how",
-      "formats",
-      "control",
-      "loop",
+      "ecosystem",
+      "studio",
+      "compare",
+      "openSource",
       "faq",
       "finalCta",
     ]);
@@ -26,6 +30,11 @@ describe("landing section order", () => {
     const page = readFileSync(docsPath("app/[lang]/(home)/page.tsx"), "utf8");
     expect(page).toContain("LANDING_SECTIONS.map(");
     for (const id of LANDING_SECTIONS) expect(page).toMatch(new RegExp(`^\\s+${id}: <`, "m"));
+  });
+
+  it("never renders a retired section beside the one that replaced it, so no section id collides", () => {
+    const page = readFileSync(docsPath("app/[lang]/(home)/page.tsx"), "utf8");
+    expect(page).not.toMatch(/components\/landing-hero"|components\/landing\/formats"/);
   });
 
   it.each(["gains", "providers", "reveal", "hero-demo", "showcase-tabs", "openai-icon"])(
