@@ -562,9 +562,9 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
   it was server-rendered it hydrates its `span.vk-island` with an empty `dangerouslySetInnerHTML`
   (one shared object, so React never writes it), which keeps the server HTML in place,
   non-interactive, and lets a provider change or a soft navigation under a persisted layout commit
-  past it, and in a client render it renders nothing, and the failure is forgotten when the island unmounts, so the next soft
+  past it, and in a client render it renders nothing (a client mount also gives up after `mountTimeoutMs`, 8s by default, so a hanging chunk never holds a soft navigation), and the failure is forgotten when the island unmounts, so the next soft
   navigation loads it again. `lib/island.test.tsx` pins all of this, the paint gate through a fake
-  `PerformanceObserver`; `island(load, { gate, retryDelaysMs })` takes both as options. Tests that
+  `PerformanceObserver`; `island(load, { gate, retryDelaysMs, mountTimeoutMs })` takes these as options. Tests that
   server-render under jsdom get every registered island preloaded by `vitest.setup.ts`.
   `intlIsland()` wraps it in `withIntl` (`components/intl-boundary.tsx`), so `next-intl` loads with
   the island; `components/landing/islands.test.tsx` fails when a plain `island()` module tree calls

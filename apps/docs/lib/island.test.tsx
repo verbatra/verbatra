@@ -320,6 +320,32 @@ describe("island", () => {
     expect(container.querySelector('[data-island="header/"]')?.textContent).toBe("header/ 0");
   });
 
+  it("gives up on a client mount whose chunk hangs, so the navigation commits, and mounts it once it lands", async () => {
+    const load = deferred<ComponentType<{ label: string }>>();
+    const Lazy = island(() => load.promise, { mountTimeoutMs: 20 });
+    const container = document.createElement("div");
+    const root = track(createRoot(container));
+    await act(async () =>
+      startTransition(() =>
+        root.render(
+          <>
+            <main data-page>docs</main>
+            <Lazy label="late" />
+          </>,
+        ),
+      ),
+    );
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 40));
+    });
+    expect(container.querySelector("[data-page]")?.textContent).toBe("docs");
+    expect(container.querySelector('[data-island="late"]')).toBeNull();
+    await act(async () => load.resolve(Counter));
+    await act(async () => root.render(<p>elsewhere</p>));
+    await act(async () => root.render(<Lazy label="late" />));
+    expect(button(container, "late").textContent).toBe("late 0");
+  });
+
   it("loads once however often it renders", async () => {
     const load = vi.fn(async () => Greeting);
     const Lazy = island(load);

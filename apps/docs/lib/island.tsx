@@ -11,6 +11,7 @@ export type IslandGate = () => Promise<void>;
 export interface IslandOptions {
   gate?: IslandGate;
   retryDelaysMs?: ReadonlyArray<number>;
+  mountTimeoutMs?: number;
 }
 
 const ISLAND_FAILED = Symbol("island-failed");
@@ -19,6 +20,20 @@ type Loaded<P> = ComponentType<P> | typeof ISLAND_FAILED;
 
 function failed(): typeof ISLAND_FAILED {
   return ISLAND_FAILED;
+}
+
+function within<T, F>(promise: Promise<T>, ms: number, fallback: F): Promise<T | F> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(fallback), ms);
+    void promise.then((value) => {
+      clearTimeout(timer);
+      resolve(value);
+    });
+  });
+}
+
+function isFulfilled(promise: Promise<unknown>): boolean {
+  return (promise as { status?: string }).status === "fulfilled";
 }
 
 function settle<T>(promise: Promise<T>): Promise<T> {
@@ -65,28 +80,43 @@ export function rendersEagerly(): boolean {
   return typeof window === "undefined";
 }
 
+const CLIENT_MOUNT_TIMEOUT_MS = 8000;
 const ISLAND_CLASS = "vk-island";
 const KEEP_SERVER_MARKUP = { __html: "" };
 
 export function island<P extends object>(
   load: () => Promise<ComponentType<P>>,
-  { gate = afterFirstContentfulPaint, retryDelaysMs = RETRY_DELAYS_MS }: IslandOptions = {},
+  {
+    gate = afterFirstContentfulPaint,
+    retryDelaysMs = RETRY_DELAYS_MS,
+    mountTimeoutMs = CLIENT_MOUNT_TIMEOUT_MS,
+  }: IslandOptions = {},
 ): Island<P> {
   let pending: Promise<Loaded<P>> | undefined;
+  let mounting: Promise<Loaded<P>> | undefined;
   const component = () => {
     pending ??= settle(
       rendersEagerly() ? load() : gate().then(() => retrying(load, retryDelaysMs).catch(failed)),
     );
     return pending;
   };
+  const mountedComponent = () => {
+    const current = component();
+    if (isFulfilled(current)) return current;
+    mounting ??= settle(within(current, mountTimeoutMs, ISLAND_FAILED));
+    return mounting;
+  };
+  const gaveUp = (promise: Promise<Loaded<P>> | undefined) =>
+    (promise as { value?: unknown } | undefined)?.value === ISLAND_FAILED;
   const forgetFailure = () => {
-    if ((pending as { value?: unknown } | undefined)?.value === ISLAND_FAILED) pending = undefined;
+    if (gaveUp(pending)) pending = undefined;
+    if (gaveUp(mounting) || pending === undefined) mounting = undefined;
   };
 
   function Hydrated(props: P): ReactNode {
     const hydrated = useHydrated();
     const [fromServer] = useState(!hydrated);
-    const Component = use(component());
+    const Component = use(fromServer ? component() : mountedComponent());
     if (Component !== ISLAND_FAILED) {
       return (
         <span className={ISLAND_CLASS}>
