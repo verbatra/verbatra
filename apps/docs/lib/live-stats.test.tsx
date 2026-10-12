@@ -209,11 +209,15 @@ describe("LiveStatFallback", () => {
     expect(container.textContent).toBe(text);
   });
 
-  it("keeps the fallback when the live figure fails too", async () => {
-    stubFetch(async () => new Response("down", { status: 503 }));
+  it("keeps the fallback when the live figure it asked for fails too", async () => {
+    let answer: (response: Response) => void = () => undefined;
+    const fetcher = stubFetch(() => new Promise<Response>((resolve) => (answer = resolve)));
     const container = await renderFallback("en");
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(fetcher.mock.calls[0]?.[0]).toBe(live.LIVE_STATS_URL);
     await act(async () => {
-      await live.loadLiveStats();
+      answer(new Response("down", { status: 503 }));
+      await new Promise((resolve) => setTimeout(resolve, 0));
     });
     expect(container.textContent).toBe("verbatra on npm");
     expect(container.querySelector("[data-fallback]")).not.toBeNull();
