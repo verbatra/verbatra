@@ -115,7 +115,7 @@ adds an interaction category the text does not name yet.
 
 | Mistake                                                        | Correct Pattern                                                             |
 | ---------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| Using strategy="beforeInteractive" or "afterInteractive"          | Use "lazyOnload"; the tracker never needs to load before the page has      |
+| Using strategy="beforeInteractive" or "afterInteractive"          | Use "lazyOnload"; the tracker never needs to load before the page load event |
 | Manually calling umami.track() on every route change              | Umami's tracker already auto-tracks SPA navigations; don't duplicate it    |
 | Editing the website ID in an env var or config file                | It is a literal prop value in layout.tsx; there is no env var for it       |
 | Adding a data-host-url override                                    | Not needed; the script is already served from the self-hosted domain      |
