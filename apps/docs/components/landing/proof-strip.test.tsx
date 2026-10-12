@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from "vitest";
 import { GITHUB_URL, LICENSE_URL, NPM_CLI } from "@/components/landing/links";
 import { MACHINE_PROVIDER_IDS } from "@/lib/landing-facts";
 import type { ProjectStats } from "@/lib/project-stats";
+import { docsStylesheetRules } from "@/lib/stylesheet-rules";
 import messages from "@/messages/en.json";
 
 const page = vi.hoisted(() => ({ locale: "en" }));
@@ -160,5 +161,13 @@ describe("ProofStrip", () => {
     const doc = await render();
     expect(fetched.calls).toBe(before + 1);
     expect(items(doc)).toHaveLength(3);
+  });
+
+  it("keeps every strip link at least 24px tall", () => {
+    const rule = docsStylesheetRules().find(
+      (entry) => entry.selector === ".vk-proof-strip-link" && entry.media === "",
+    );
+    expect(rule?.declarations.display).toBe("inline-block");
+    expect(rule?.declarations["min-height"]).toBe("1.5rem");
   });
 });

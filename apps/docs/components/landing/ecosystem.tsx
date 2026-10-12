@@ -64,7 +64,7 @@ export async function Ecosystem(): Promise<ReactNode> {
               <p className="border-l pl-4" style={{ borderColor: "var(--accent)" }}>
                 <TrackedLink
                   href={localizedPath(locale, "/docs/human-only-workflow")}
-                  className="vk-prose-link font-mono text-sm"
+                  className="vk-prose-link inline-flex min-h-6 items-center font-mono text-sm"
                   track={{
                     name: "click-cta",
                     data: { location: "ecosystem", target: "human-only" },
@@ -78,7 +78,7 @@ export async function Ecosystem(): Promise<ReactNode> {
           <p className="text-sm">
             <TrackedLink
               href={localizedPath(locale, "/docs/providers")}
-              className="vk-prose-link"
+              className="vk-prose-link inline-flex min-h-6 items-center"
               track={{ name: "click-cta", data: { location: "ecosystem", target: "providers" } }}
             >
               {t("ecosystem.providersLink")}
@@ -104,14 +104,14 @@ export async function Ecosystem(): Promise<ReactNode> {
           <p className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
             <TrackedLink
               href={localizedPath(locale, "/docs/formats")}
-              className="vk-prose-link"
+              className="vk-prose-link inline-flex min-h-6 items-center"
               track={{ name: "click-cta", data: { location: "ecosystem", target: "formats" } }}
             >
               {t("ecosystem.formatsLink")}
             </TrackedLink>
             <TrackedLink
               href={localizedPath(locale, "/docs/custom-format-adapters")}
-              className="vk-prose-link"
+              className="vk-prose-link inline-flex min-h-6 items-center"
               track={{
                 name: "click-cta",
                 data: { location: "ecosystem", target: "custom-adapters" },

@@ -2551,7 +2551,8 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 }
 
 .vk-proof-strip-link {
-  display: inline;
+  display: inline-block;
+  min-height: 1.5rem;
   color: inherit;
   text-decoration: underline;
   text-decoration-color: transparent;

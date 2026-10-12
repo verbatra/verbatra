@@ -89,4 +89,12 @@ describe("Ecosystem", () => {
     );
     expect(root.textContent).toContain(en.landing.ecosystem.customFormat);
   });
+
+  it("gives every standalone link a target at least 24px tall", () => {
+    const links = Array.from(root.querySelectorAll<HTMLAnchorElement>("a.vk-prose-link"));
+    expect(links.length).toBeGreaterThan(0);
+    for (const link of links) {
+      expect(link.className.split(" ")).toEqual(expect.arrayContaining(["inline-flex", "min-h-6"]));
+    }
+  });
 });

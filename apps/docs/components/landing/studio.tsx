@@ -59,7 +59,7 @@ export async function Studio(): Promise<ReactNode> {
           <p className="text-sm">
             <TrackedLink
               href={localizedPath(locale, STUDIO_GUIDE_PATH)}
-              className="vk-prose-link"
+              className="vk-prose-link inline-flex min-h-6 items-center"
               track={{ name: "click-cta", data: { location: "studio", target: "studio-guide" } }}
             >
               {t("cta")}
