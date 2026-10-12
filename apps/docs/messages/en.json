@@ -226,16 +226,11 @@
     },
     "topNav": {
       "label": "Main",
-      "home": "verbatra home",
       "docs": "Docs",
       "github": "GitHub",
       "starsAria": "{count} stars on GitHub",
       "changelog": "Changelog",
       "getStarted": "Get started",
-      "theme": {
-        "toLight": "Switch to light theme",
-        "toDark": "Switch to dark theme"
-      },
       "menu": {
         "open": "Open menu",
         "close": "Close menu",

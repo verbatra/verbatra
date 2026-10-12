@@ -173,16 +173,11 @@
     },
     "topNav": {
       "label": "Hauptmenü",
-      "home": "verbatra Startseite",
       "docs": "Docs",
       "github": "GitHub",
       "starsAria": "{count} Sterne auf GitHub",
       "changelog": "Changelog",
       "getStarted": "Loslegen",
-      "theme": {
-        "toLight": "Zum hellen Design wechseln",
-        "toDark": "Zum dunklen Design wechseln"
-      },
       "menu": {
         "open": "Menü öffnen",
         "close": "Menü schließen",

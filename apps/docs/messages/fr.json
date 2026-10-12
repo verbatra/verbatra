@@ -173,16 +173,11 @@
     },
     "topNav": {
       "label": "Principal",
-      "home": "Accueil verbatra",
       "docs": "Docs",
       "github": "GitHub",
       "starsAria": "{count} étoiles sur GitHub",
       "changelog": "Changelog",
       "getStarted": "Démarrer",
-      "theme": {
-        "toLight": "Passer au thème clair",
-        "toDark": "Passer au thème sombre"
-      },
       "menu": {
         "open": "Ouvrir le menu",
         "close": "Fermer le menu",
