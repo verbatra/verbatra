@@ -1,6 +1,5 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
-import { splitOnPlaceholder } from "@/lib/format-samples";
 import { GATE_RUN_LINES } from "@/lib/gate-demo";
 import { HERO_TERMINAL_TITLE } from "@/lib/hero-terminal";
 import { toLocale } from "@/lib/i18n";
@@ -23,7 +22,8 @@ import {
 import { FORMAT_DISPLAY } from "@/lib/landing-facts";
 import { CodeFrame } from "./code-frame";
 import { Evidence } from "./evidence";
-import { PlaceholderChip, PlaceholderText } from "./placeholder-chip";
+import { SampleLine } from "./format-pane";
+import { PlaceholderText } from "./placeholder-chip";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
 
@@ -99,16 +99,6 @@ function ProviderSwitch(): ReactNode {
   );
 }
 
-function KeyLine({ line, placeholder }: { line: string; placeholder: string }): ReactNode {
-  return splitOnPlaceholder(line, placeholder).map((part, index) =>
-    part === placeholder ? (
-      <PlaceholderChip key={`${index}-${part}`} token={part} />
-    ) : (
-      <span key={`${index}-${part}`}>{part}</span>
-    ),
-  );
-}
-
 function FormatKeyLines(): ReactNode {
   return (
     <ul
@@ -127,7 +117,7 @@ function FormatKeyLines(): ReactNode {
             <span className="min-w-0 truncate font-mono text-(--text-faint)">{entry.file}</span>
           </span>
           <code className="vk-mono-sm block overflow-x-auto whitespace-pre font-mono text-(--text-body)">
-            <KeyLine line={entry.line} placeholder={entry.placeholder} />
+            <SampleLine line={entry.line} placeholder={entry.placeholder} />
           </code>
         </li>
       ))}

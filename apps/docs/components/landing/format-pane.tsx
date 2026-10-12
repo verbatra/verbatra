@@ -6,7 +6,13 @@ import { PlaceholderChip } from "./placeholder-chip";
 
 export const FORMAT_PANE_ROWS = 16;
 
-function SampleLine({ line, placeholder }: { line: string; placeholder: string }): ReactNode {
+export function SampleLine({
+  line,
+  placeholder,
+}: {
+  line: string;
+  placeholder: string;
+}): ReactNode {
   return splitOnPlaceholder(line, placeholder).map((part, index) => (
     <Fragment key={`${index}:${part}`}>
       {part === placeholder ? <PlaceholderChip token={part} /> : part}
