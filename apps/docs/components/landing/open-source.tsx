@@ -3,7 +3,14 @@ import { getTranslations } from "next-intl/server";
 import type { CSSProperties, ReactNode } from "react";
 import { CONTRIBUTORS, type Contributor } from "@/lib/contributors";
 import { GithubIcon } from "./github-icon";
-import { CONTRIBUTING_URL, GITHUB_URL, ISSUES_URL, LICENSE_URL, RELEASES_URL } from "./links";
+import {
+  CONTRIBUTING_URL,
+  GITHUB_URL,
+  ISSUES_URL,
+  LICENSE_URL,
+  RELEASES_URL,
+  ROADMAP_URL,
+} from "./links";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
 
@@ -18,6 +25,7 @@ export const OPEN_SOURCE_LINKS: ReadonlyArray<ProjectLink> = [
   { key: "license", href: LICENSE_URL, target: "license" },
   { key: "contributing", href: CONTRIBUTING_URL, target: "contributing" },
   { key: "issues", href: ISSUES_URL, target: "issues" },
+  { key: "roadmap", href: ROADMAP_URL, target: "roadmap" },
   { key: "releases", href: RELEASES_URL, target: "releases" },
 ];
 
