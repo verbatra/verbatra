@@ -1,8 +1,36 @@
 @import "tailwindcss";
 @import "fumadocs-ui/css/purple.css";
 @import "fumadocs-ui/css/preset.css";
+@import "tw-animate-css";
 
 @source "../node_modules/fumadocs-ui/dist/**/*.js";
+
+@theme inline {
+  --color-background: var(--surface-bg);
+  --color-foreground: var(--text-body);
+  --color-card: var(--surface-card);
+  --color-card-foreground: var(--text-body);
+  --color-popover: var(--surface-raised);
+  --color-popover-foreground: var(--text-body);
+  --color-primary: var(--accent-fill);
+  --color-primary-foreground: var(--accent-fill-fg);
+  --color-secondary: var(--surface-card);
+  --color-secondary-foreground: var(--text-strong);
+  --color-muted: var(--surface-card);
+  --color-muted-foreground: var(--text-muted);
+  --color-accent: var(--surface-hover);
+  --color-accent-foreground: var(--text-strong);
+  --color-destructive: var(--text-danger);
+  --color-border: var(--border-default);
+  --color-input: var(--border-default);
+  --color-ring: var(--focus-ring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot][data-state] {
+    animation: none;
+  }
+}
 
 :root {
   color-scheme: dark;
