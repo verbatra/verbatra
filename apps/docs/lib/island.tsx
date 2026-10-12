@@ -113,10 +113,12 @@ export function island<P extends object>(
   }: IslandOptions = {},
 ): Island<P> {
   let loading: Settled<Loaded<P>> | undefined;
+  let loadingSince = 0;
   let attempt: Settled<Loaded<P>> | undefined;
 
   const loadComponent = (): Settled<Loaded<P>> => {
     if (loading === undefined || gaveUp(loading)) {
+      loadingSince = Date.now();
       loading = settle(
         rendersOnServer() ? load() : gate().then(() => retrying(load, retryDelaysMs).catch(failed)),
       );
@@ -129,7 +131,7 @@ export function island<P extends object>(
     attempt =
       rendersOnServer() || settledState(loaded).status === "fulfilled"
         ? loaded
-        : settle(within(loaded, timeoutMs, ISLAND_FAILED));
+        : settle(within(loaded, loadingSince + timeoutMs - Date.now(), ISLAND_FAILED));
     return attempt;
   };
   const consume = (used: Settled<Loaded<P>>) => {

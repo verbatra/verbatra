@@ -566,8 +566,9 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
   `preloadIslands` starts every registered chunk together once the first contentful paint resolves
   (`afterFirstContentfulPaint` in `lib/first-paint.ts`, a 3s fallback whose timer is cleared). A rejected chunk is retried
   (`retrying` in `lib/retry.ts`). An island instance waits on one bounded attempt: the shared load
-  raced against `timeoutMs` (8s by default), the same limit for hydration and for a client mount,
-  so a chunk that hangs or fails never holds a transition or a soft navigation longer than that.
+  raced against what is left of `timeoutMs` (8s by default, counted from the start of that load),
+  the same limit for hydration and for a client mount, so a later mount never waits again on a load
+  that already outlived it, and a chunk that hangs or fails never holds a transition or a soft navigation longer than that.
   The instance keeps the attempt it rendered in its own state, so a later render never waits
   again, and the first instance that commits a failure clears the shared attempt, so the next
   mount (a keyed remount in the same commit and StrictMode included) starts a fresh one; no

@@ -474,6 +474,26 @@ describe("island failure and timeout", () => {
     expect(button(container, "header/docs").textContent).toBe("header/docs 1");
   });
 
+  it("never waits again on a load that already outlived its bound, so a later navigation commits at once", async () => {
+    const Lazy = island<{ label: string }>(never, { timeoutMs: 40 });
+    const container = document.createElement("div");
+    const root = track(createRoot(container, errorSpies()));
+    await act(async () => root.render(<Lazy key="first" label="nav" />));
+    await wait(80);
+    await act(async () =>
+      startTransition(() =>
+        root.render(
+          <>
+            <Lazy key="second" label="nav" />
+            <main data-page>docs</main>
+          </>,
+        ),
+      ),
+    );
+    await wait(10);
+    expect(container.querySelector("[data-page]")?.textContent).toBe("docs");
+  });
+
   it("takes over a timed-out server island once its chunk finally lands", async () => {
     const load = deferred<ComponentType<{ label: string }>>();
     const Lazy = island(() => load.promise, { timeoutMs: 20 });
