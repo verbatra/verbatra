@@ -2,6 +2,8 @@ export const CLI_PACKAGE = "@verbatra/cli";
 
 export const NPM_INSTALL_COMMAND = `npm install --save-dev ${CLI_PACKAGE}`;
 
+export const STUDIO_RUN_COMMAND = `npx -y -p ${CLI_PACKAGE} -p @verbatra/studio verbatra studio`;
+
 export const AGENT_INIT_COMMAND = "npx @verbatra/cli init --agent";
 
 export const AGENT_SKILLS_INSTALL_COMMAND =

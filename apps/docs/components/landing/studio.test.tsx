@@ -26,7 +26,8 @@ vi.mock("next/link", () => ({
   ),
 }));
 
-const { Studio, STUDIO_GUIDE_PATH, STUDIO_POINTS, STUDIO_RUN_COMMAND } = await import("./studio");
+const { Studio, STUDIO_GUIDE_PATH, STUDIO_POINTS } = await import("./studio");
+const { STUDIO_RUN_COMMAND } = await import("@/lib/install-commands");
 
 let root: HTMLElement;
 

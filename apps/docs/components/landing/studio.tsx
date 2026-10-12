@@ -5,11 +5,10 @@ import { StudioScreenshot } from "@/components/studio-screenshot";
 import { TrackedLink } from "@/components/ui/tracked-link";
 import { localizedPath, toLocale } from "@/lib/i18n";
 import { withInlineCode } from "@/lib/inline-code-text";
+import { STUDIO_RUN_COMMAND } from "@/lib/install-commands";
 import { Section } from "./section";
 
 export const STUDIO_POINTS = ["coverage", "edit", "local"] as const;
-
-export const STUDIO_RUN_COMMAND = "npx -y -p @verbatra/cli -p @verbatra/studio verbatra studio";
 
 export const STUDIO_GUIDE_PATH = "/docs/review-in-studio";
 
