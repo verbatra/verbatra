@@ -38,12 +38,14 @@ dashboard in `packages/studio` (different app, different stack), or anything out
 - `fumadocs-ui` and `fumadocs-core` 16.16.2, `next` 16.3.8, `tailwindcss` 4.3.3, `next-intl` 4.14.9.
   `motion` (14.0.0, the version Fumadocs already depends on) is a direct dependency for client
   islands only: import from `motion/react`, render `m.*` elements (never `motion.*`) inside
-  `MotionProvider` (`components/motion-provider.tsx`: `LazyMotion` with `domAnimation` and
-  `strict`, plus `MotionConfig reducedMotion="user"`), animate `opacity` and `transform` only, and
-  keep layout shift at 0. Today only the code showcase tabs use it, and not in the first load:
-  `code-showcase-tabs.tsx` renders plain panels and `import()`s `code-showcase-motion.tsx` (the
-  `m.div` fade inside its own `MotionProvider`) on the first pointer, focus or tab change, so motion
-  never reaches the bytes before the first paint; there is no page-wide provider. Server sections and the
+  `MotionProvider` (`components/motion-provider.tsx`: `LazyMotion` `strict`, whose `features`
+  are loaded on demand, `domAnimation` from `lib/motion-features.ts` by default, plus
+  `MotionConfig reducedMotion="user"`), animate `opacity` and `transform` only, and keep layout
+  shift at 0. Today only the code showcase tabs use it, and not in the first load: they are an
+  island, so `m` itself arrives after the first paint, and each panel is one `m.div` from the first
+  render, so nothing remounts (copy state, focus and scroll survive) when the `domAnimation`
+  features arrive, which `code-showcase-tabs.tsx` holds back until the first pointer, focus or tab
+  change; there is no page-wide provider. Server sections and the
   reveals stay CSS keyframes and transitions in `app/global.css`, each with a
   `prefers-reduced-motion` opt-out.
 - Tailwind 4 uses CSS-first configuration. There is no `tailwind.config.js`. Tokens are
@@ -523,8 +525,8 @@ stack").
 
 Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
 
-- `motion` only in client islands, through `MotionProvider` (`LazyMotion` + `domAnimation`,
-  `strict`, so a stray `motion.*` element throws instead of pulling the full feature set). Section
+- `motion` only in client islands, through `MotionProvider` (`LazyMotion` with lazily loaded
+  `domAnimation`, `strict`, so a stray `motion.*` element throws instead of pulling the full feature set). Section
   reveals stay CSS keyframes and transitions in `app/global.css`, each with a
   `prefers-reduced-motion` opt-out; `MotionRoot` toggles attributes from one
   `IntersectionObserver` and stays well under 1 KB gzipped.

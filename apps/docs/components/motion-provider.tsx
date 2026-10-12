@@ -1,11 +1,23 @@
 "use client";
 
-import { domAnimation, LazyMotion, MotionConfig } from "motion/react";
+import { type FeatureBundle, LazyMotion, MotionConfig } from "motion/react";
 import type { ReactNode } from "react";
 
-export function MotionProvider({ children }: { children: ReactNode }): ReactNode {
+export type MotionFeatures = () => Promise<FeatureBundle>;
+
+export function loadMotionFeatures(): Promise<FeatureBundle> {
+  return import("@/lib/motion-features").then((module) => module.default);
+}
+
+export function MotionProvider({
+  children,
+  features = loadMotionFeatures,
+}: {
+  children: ReactNode;
+  features?: MotionFeatures;
+}): ReactNode {
   return (
-    <LazyMotion features={domAnimation} strict>
+    <LazyMotion features={features} strict>
       <MotionConfig reducedMotion="user">{children}</MotionConfig>
     </LazyMotion>
   );
