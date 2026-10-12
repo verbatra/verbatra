@@ -148,7 +148,7 @@ export type OgHeadlineRow = { locale: string; text: string };
 
 export type OgNumber = { label: string; value: string };
 
-export const OG_FONT = { display: "Space Grotesk", mono: "JetBrains Mono" } as const;
+export const OG_FONT = { display: "Geist", mono: "Geist Mono" } as const;
 
 const CODE_SIZE = 22;
 const SOURCE_LINE = { size: 68, leading: 1.04, weight: 700 } as const;

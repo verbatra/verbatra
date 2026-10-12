@@ -8,7 +8,7 @@ vi.mock("../global.css", () => ({}));
 
 vi.mock("next/font/google", () => {
   const font = () => ({ variable: "font" });
-  return { Inter: font, JetBrains_Mono: font, Space_Grotesk: font };
+  return { Geist: font, Geist_Mono: font };
 });
 
 vi.mock("next/script", () => ({

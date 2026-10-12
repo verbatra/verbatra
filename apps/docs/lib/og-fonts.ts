@@ -5,9 +5,9 @@ import { OG_FONT } from "./og-image";
 export const OG_FONT_DIR = "assets/og-fonts";
 
 export const OG_FONT_FILES = [
-  { name: OG_FONT.display, file: "SpaceGrotesk-Medium.ttf", weight: 500 },
-  { name: OG_FONT.display, file: "SpaceGrotesk-Bold.ttf", weight: 700 },
-  { name: OG_FONT.mono, file: "JetBrainsMono-Regular.ttf", weight: 400 },
+  { name: OG_FONT.display, file: "Geist-Medium.ttf", weight: 500 },
+  { name: OG_FONT.display, file: "Geist-Bold.ttf", weight: 700 },
+  { name: OG_FONT.mono, file: "GeistMono-Regular.ttf", weight: 400 },
 ] as const;
 
 export type OgFontOption = {

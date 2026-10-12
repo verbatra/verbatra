@@ -1,7 +1,7 @@
 import "../global.css";
 import { RootProvider } from "fumadocs-ui/provider/base";
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
@@ -16,9 +16,8 @@ import { homeAlternates, SITE_HOST, SITE_URL } from "@/lib/site";
 import { homeOgImagePath, socialMetadata } from "@/lib/social-metadata";
 import { AUTHOR_NAME, organizationLd, SEO_KEYWORDS, websiteLd } from "@/lib/structured-data";
 
-const sans = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains-mono" });
-const display = Space_Grotesk({ subsets: ["latin"], variable: "--font-space-grotesk" });
+const sans = Geist({ subsets: ["latin"], variable: "--font-geist-sans" });
+const mono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" });
 
 export const dynamicParams = false;
 
@@ -94,7 +93,7 @@ export default async function Layout({
     <html
       lang={locale}
       suppressHydrationWarning
-      className={`dark ${sans.variable} ${mono.variable} ${display.variable}`}
+      className={`dark ${sans.variable} ${mono.variable}`}
     >
       <head>
         <link rel="preconnect" href={UMAMI_ORIGIN} crossOrigin="anonymous" />
