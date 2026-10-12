@@ -68,3 +68,40 @@ describe("preloadOnServer", () => {
     expect(load).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("afterFirstContentfulPaint", () => {
+  it("waits for the first contentful paint before an island fetches its code in the browser", async () => {
+    vi.resetModules();
+    const callbacks: Array<() => void> = [];
+    const entries: Array<{ name: string }> = [];
+    class FakeObserver {
+      static supportedEntryTypes = ["paint"];
+      constructor(callback: () => void) {
+        callbacks.push(callback);
+      }
+      observe() {}
+      disconnect() {}
+    }
+    vi.stubGlobal("PerformanceObserver", FakeObserver);
+    const getEntries = vi
+      .spyOn(performance, "getEntriesByName")
+      .mockImplementation(
+        (name: string) => entries.filter((entry) => entry.name === name) as never,
+      );
+    const { afterFirstContentfulPaint } = await import("./island");
+    let done = false;
+    const painted = afterFirstContentfulPaint().then(() => {
+      done = true;
+    });
+    entries.push({ name: "first-paint" });
+    for (const callback of callbacks) callback();
+    await Promise.resolve();
+    expect(done).toBe(false);
+    entries.push({ name: "first-contentful-paint" });
+    for (const callback of callbacks) callback();
+    await painted;
+    expect(done).toBe(true);
+    getEntries.mockRestore();
+    vi.unstubAllGlobals();
+  });
+});
