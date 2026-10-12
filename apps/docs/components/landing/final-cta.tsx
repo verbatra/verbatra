@@ -3,13 +3,12 @@ import type { ReactNode } from "react";
 import { CommandRow } from "@/components/command-row";
 import Button from "@/components/ui/button";
 import { type Locale, localizedPath } from "@/lib/i18n";
-import { withInlineCode } from "@/lib/inline-code-text";
 import { NPM_INSTALL_COMMAND } from "@/lib/install-commands";
 
-const CLOSE_BORDER = "color-mix(in srgb, var(--v-glow) 16%, var(--border-default))";
+const CLOSE_BORDER = "color-mix(in srgb, var(--accent) 16%, var(--border-default))";
 
 export async function FinalCta(): Promise<ReactNode> {
-  const t = await getTranslations("landing.finalClose");
+  const t = await getTranslations("landing.closing");
   const tInstall = await getTranslations("landing.install");
   const locale = (await getLocale()) as Locale;
   return (
@@ -23,8 +22,8 @@ export async function FinalCta(): Promise<ReactNode> {
       >
         <div data-reveal="0" className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6">
           <h2 className="vk-h2 max-w-[20ch]">{t("heading")}</h2>
+          <p className="vk-lead max-w-[46ch]">{t("lead")}</p>
           <div className="vk-final-install @container">
-            <p className="vk-final-install-hint">{withInlineCode(t("installHint"))}</p>
             <CommandRow
               command={NPM_INSTALL_COMMAND}
               label={tInstall("copyAria")}
@@ -41,7 +40,7 @@ export async function FinalCta(): Promise<ReactNode> {
             size="lg"
             track={{ name: "click-cta", data: { location: "final-cta", target: "get-started" } }}
           >
-            {t("start")}
+            {t("primary")}
           </Button>
           <Button
             href={localizedPath(locale, "/docs")}
@@ -49,7 +48,7 @@ export async function FinalCta(): Promise<ReactNode> {
             size="lg"
             track={{ name: "click-cta", data: { location: "final-cta", target: "docs" } }}
           >
-            {t("docs")}
+            {t("secondary")}
           </Button>
         </div>
       </div>

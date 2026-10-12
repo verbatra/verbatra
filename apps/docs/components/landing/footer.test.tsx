@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { CONTRIBUTORS } from "@/lib/contributors";
@@ -19,22 +21,21 @@ async function renderFooter(): Promise<Document> {
   return new DOMParser().parseFromString(markup, "text/html");
 }
 
-function imageUrls(doc: Document): string[] {
-  return Array.from(doc.querySelectorAll("img")).flatMap((img) => {
-    const srcset = (img.getAttribute("srcset") ?? "")
-      .split(",")
-      .map((candidate) => candidate.trim().split(/\s+/)[0] ?? "")
-      .filter((url) => url.length > 0);
-    return [img.getAttribute("src") ?? "", ...srcset];
-  });
-}
-
 describe("FullFooter", () => {
-  it("renders one avatar per committed contributor", async () => {
+  it("leaves the contributors to the open source section", async () => {
     const doc = await renderFooter();
 
+    expect(doc.querySelectorAll("img")).toHaveLength(0);
     for (const contributor of CONTRIBUTORS) {
-      expect(doc.querySelector(`img[alt="${contributor.login}"]`)).not.toBeNull();
+      expect(doc.querySelector(`a[href="${contributor.profileUrl}"]`)).toBeNull();
+    }
+  });
+
+  it("reads no token that is about to be deleted, so it follows both themes", () => {
+    const source = readFileSync(join(process.cwd(), "components/landing/footer.tsx"), "utf8");
+
+    for (const token of ["--v-pink", "--gradient-headline", "--v-void", "--v-glow"]) {
+      expect(source).not.toContain(token);
     }
   });
 
@@ -116,15 +117,5 @@ describe("FullFooter", () => {
       "legalCopyright",
     ]);
     expect(line?.textContent).not.toContain("\u00b7");
-  });
-
-  it("never points an image at a third-party host", async () => {
-    const urls = imageUrls(await renderFooter());
-
-    expect(urls.length).toBeGreaterThan(0);
-    for (const url of urls) {
-      expect(url).toMatch(/^\/(?!\/)/);
-      expect(new URL(url, "https://verbatra.test").host).toBe("verbatra.test");
-    }
   });
 });

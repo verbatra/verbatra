@@ -353,8 +353,8 @@ describe("Landing CTAs", () => {
 
   it("counts both closing buttons as click-cta from the final CTA", async () => {
     const container = render(await FinalCta());
-    await click(linkByText(container, "start"));
-    await click(linkByText(container, "docs"));
+    await click(linkByText(container, "primary"));
+    await click(linkByText(container, "secondary"));
     expect(trackUmamiEvent.mock.calls).toEqual([
       ["click-cta", { location: "final-cta", target: "get-started" }],
       ["click-cta", { location: "final-cta", target: "docs" }],

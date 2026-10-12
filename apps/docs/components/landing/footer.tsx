@@ -1,10 +1,8 @@
 import { SiNpm } from "@icons-pack/react-simple-icons";
-import Image from "next/image";
 import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { VMark } from "@/components/landing";
 import { NewBadge } from "@/components/new-badge";
-import { CONTRIBUTORS, type Contributor } from "@/lib/contributors";
 import { type Locale, localizedPath } from "@/lib/i18n";
 import { GRID_PATTERN_STYLE } from "./fx/grid-pattern";
 import { GithubIcon } from "./github-icon";
@@ -130,7 +128,7 @@ const FOOTER_COLS: ReadonlyArray<FooterCol> = [
 ];
 
 const LINK_CLASS =
-  "inline-flex min-h-6 items-center underline decoration-transparent underline-offset-4 transition-colors hover:text-fd-foreground hover:decoration-[color:color-mix(in_srgb,var(--v-glow)_45%,transparent)]";
+  "inline-flex min-h-6 items-center underline decoration-transparent underline-offset-4 transition-colors hover:text-fd-foreground hover:decoration-[color:color-mix(in_srgb,var(--accent)_45%,transparent)]";
 
 function FooterLinkItem({
   link,
@@ -168,49 +166,6 @@ function FooterLinkItem({
   );
 }
 
-function ContributorsRow({
-  contributors,
-  title,
-  ariaFor,
-}: {
-  contributors: ReadonlyArray<Contributor>;
-  title: string;
-  ariaFor: (login: string) => string;
-}): ReactNode {
-  if (contributors.length === 0) return null;
-
-  return (
-    <div className="lg:col-span-6 lg:mt-2">
-      <p className="mb-3 font-mono text-xs uppercase tracking-[0.14em] text-[color:var(--text-faint)] md:mb-4">
-        {title}
-      </p>
-      <ul className="flex flex-wrap items-center gap-3">
-        {contributors.map((contributor) => (
-          <li key={contributor.login}>
-            <a
-              href={contributor.profileUrl}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="block rounded-full transition-[filter] hover:brightness-110"
-              data-umami-event="outbound-link"
-              data-umami-event-target="contributor"
-              data-umami-event-location="footer"
-            >
-              <Image
-                src={contributor.avatarPath}
-                alt={ariaFor(contributor.login)}
-                width={32}
-                height={32}
-                className="h-8 w-8 rounded-full"
-              />
-            </a>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
 export async function FullFooter(): Promise<ReactNode> {
   const t = await getTranslations("landing.footer");
   const tStatus = await getTranslations("docs.statusBadges");
@@ -219,8 +174,7 @@ export async function FullFooter(): Promise<ReactNode> {
     <footer
       className="relative overflow-hidden"
       style={{
-        background:
-          "linear-gradient(to bottom, color-mix(in srgb, var(--v-void) 55%, var(--surface-card)), color-mix(in srgb, var(--v-void) 78%, var(--surface-card)))",
+        background: "linear-gradient(to bottom, var(--surface-band), var(--surface-bg))",
       }}
     >
       <div
@@ -228,7 +182,7 @@ export async function FullFooter(): Promise<ReactNode> {
         className="pointer-events-none absolute inset-x-0 top-0 h-px"
         style={{
           background:
-            "linear-gradient(90deg, transparent, color-mix(in srgb, var(--v-glow) 55%, transparent) 50%, transparent)",
+            "linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 55%, transparent) 50%, transparent)",
         }}
       />
       <div
@@ -252,10 +206,7 @@ export async function FullFooter(): Promise<ReactNode> {
             fontSize: "clamp(4rem, 24vw, 15rem)",
             lineHeight: 1,
             letterSpacing: "-0.04em",
-            background: "var(--gradient-headline)",
-            WebkitBackgroundClip: "text",
-            backgroundClip: "text",
-            color: "transparent",
+            color: "var(--accent)",
             opacity: 0.08,
             WebkitMaskImage: "linear-gradient(to top, #000 8%, transparent 82%)",
             maskImage: "linear-gradient(to top, #000 8%, transparent 82%)",
@@ -337,11 +288,6 @@ export async function FullFooter(): Promise<ReactNode> {
               </nav>
             );
           })}
-          <ContributorsRow
-            contributors={CONTRIBUTORS}
-            title={t("contributorsTitle")}
-            ariaFor={(login) => t("contributorAria", { name: login })}
-          />
         </div>
         <div
           className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 pt-6 text-sm text-fd-muted-foreground md:mt-14"
