@@ -19,6 +19,7 @@ import {
   GetStartedLink,
   GitHubNavLink,
   HomeMobileMenu,
+  MENU_TRIGGER,
   NAV_TEXT_LINK,
   useHomeNav,
 } from "@/components/home-nav";
@@ -35,8 +36,6 @@ export type HeaderSlots = Pick<
 >;
 
 type IconItem = Extract<LinkItemType, { type: "icon" }>;
-
-const TEXT_LINK = NAV_TEXT_LINK;
 
 const ICON_BUTTON = cn(
   buttonVariants({ size: "icon-sm", variant: "ghost" }),
@@ -211,7 +210,7 @@ export function SiteHeaderFrame({
               <TextLink
                 key={itemKey(item)}
                 item={item}
-                className={TEXT_LINK}
+                className={NAV_TEXT_LINK}
                 activeOverride={activeOverride}
               />
             ))}
@@ -235,8 +234,6 @@ export function SiteHeaderFrame({
     </header>
   );
 }
-
-const MOBILE_TRIGGER = cn(buttonVariants({ variant: "ghost", size: "icon-sm" }), "-me-1.5 p-2");
 
 export function DocsSiteHeader(props: ComponentProps<"header">): ReactNode {
   const { slots, navItems, isNavTransparent } = useNotebookLayout();
@@ -263,7 +260,7 @@ export function DocsSiteHeader(props: ComponentProps<"header">): ReactNode {
       navItems={navItems}
       activeOverride={(url) => isRootTabLinkActive(url, tabs, activeTab)}
       mobileTrigger={
-        <sidebar.trigger ref={triggerRef} className={MOBILE_TRIGGER}>
+        <sidebar.trigger ref={triggerRef} className={MENU_TRIGGER}>
           <SidebarIcon />
         </sidebar.trigger>
       }
@@ -300,9 +297,9 @@ export function HomeSiteHeader(props: ComponentProps<"header">): ReactNode {
       navLabel={labels.label}
       navLinks={
         <>
-          <DocsNavLink className={TEXT_LINK} />
-          <ChangelogNavLink className={TEXT_LINK} location="header" />
-          <GitHubNavLink className={TEXT_LINK} location="header" />
+          <DocsNavLink className={NAV_TEXT_LINK} />
+          <ChangelogNavLink className={NAV_TEXT_LINK} location="header" />
+          <GitHubNavLink className={NAV_TEXT_LINK} location="header" />
         </>
       }
       mobileTrigger={<HomeMobileMenu footer={settings} />}

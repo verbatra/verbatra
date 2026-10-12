@@ -64,7 +64,10 @@ export const NAV_TEXT_LINK =
 const SHEET_ITEM =
   "flex min-h-11 items-center gap-2 rounded-lg px-2 text-start text-fd-muted-foreground transition-colors hover:bg-fd-accent/50 hover:text-fd-accent-foreground data-[active=true]:bg-fd-primary/10 data-[active=true]:text-fd-primary";
 
-const MENU_TRIGGER = cn(buttonVariants({ variant: "ghost", size: "icon-sm" }), "-me-1.5 p-2");
+export const MENU_TRIGGER = cn(
+  buttonVariants({ variant: "ghost", size: "icon-sm" }),
+  "-me-1.5 p-2",
+);
 
 function withoutTrailingSlash(path: string): string {
   return path.length > 1 && path.endsWith("/") ? path.slice(0, -1) : path;
