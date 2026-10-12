@@ -100,9 +100,7 @@ h6 {
 }
 
 @layer base {
-  *,
-  ::before,
-  ::after {
+  :where(a[href], button, input, select, textarea, summary, [tabindex]) {
     outline-color: var(--focus-ring);
   }
 

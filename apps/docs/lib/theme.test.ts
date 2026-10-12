@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync } from "node:fs";
+import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
 import {
@@ -10,6 +12,18 @@ import {
 } from "./theme";
 
 const rules = docsStylesheetRules();
+
+const FOCUSABLE = ":where(a[href], button, input, select, textarea, summary, [tabindex])";
+
+const OUTLINE_TRANSITION_CLASS = /(?<![\w-])transition-(all|\[[^\]]*outline[^\]]*\])(?![\w-])/g;
+
+function sourceFiles(directories: ReadonlyArray<string>): string[] {
+  return directories.flatMap((directory) =>
+    readdirSync(join(process.cwd(), directory), { recursive: true, encoding: "utf8" })
+      .filter((file) => /\.tsx?$/.test(file) && !/\.test\.tsx?$/.test(file))
+      .map((file) => join(process.cwd(), directory, file)),
+  );
+}
 
 function declarationsOf(selector: string): Record<string, string> {
   return Object.assign(
@@ -160,15 +174,33 @@ describe("theme tokens", () => {
     expect(rulesFor(rules, ":focus-visible")[0]?.declarations.outline).toBe(
       "2px solid var(--focus-ring)",
     );
-    const resting = rulesFor(rules, "*").filter((rule) => rule.declarations["outline-color"]);
+    const resting = rules.filter(
+      (rule) => rule.declarations["outline-color"] && !rule.selector.includes(":focus"),
+    );
     expect(
       resting.map((rule) => [rule.media, rule.selector, rule.declarations["outline-color"]]),
-    ).toEqual([["@layer base", "*, ::before, ::after", "var(--focus-ring)"]]);
+    ).toEqual([["@layer base", FOCUSABLE, "var(--focus-ring)"]]);
     const focusTransitions = rules.filter(
       (rule) =>
         rule.selector.includes(":focus-visible") && rule.declarations["transition-property"],
     );
     expect(focusTransitions).toEqual([]);
+  });
+
+  it("never transitions an outline's width or offset, so a ring never grows in, even under reduced motion", () => {
+    const outlineTransitions = rules.filter((rule) =>
+      ["transition", "transition-property"].some((property) =>
+        /\b(all|outline(-width|-offset)?)\b/.test(rule.declarations[property] ?? ""),
+      ),
+    );
+    expect(outlineTransitions).toEqual([]);
+    const offenders = sourceFiles(["components", "lib", "app"]).flatMap((file) =>
+      Array.from(readFileSync(file, "utf8").matchAll(OUTLINE_TRANSITION_CLASS), (match) => [
+        relative(process.cwd(), file),
+        match[0],
+      ]),
+    );
+    expect(offenders).toEqual([]);
   });
 
   it("keeps both shadows neutral in both themes, leaving the hero glow the only violet haze", () => {
