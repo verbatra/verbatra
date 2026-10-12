@@ -6,11 +6,15 @@ import de from "../messages/de.json";
 import en from "../messages/en.json";
 import es from "../messages/es.json";
 import fr from "../messages/fr.json";
-import { HERO_HEADLINES, heroLocaleRows } from "./hero-ledger";
+import {
+  HERO_CHECK_COMMAND,
+  HERO_OG_LINES,
+  HERO_TERMINAL_SCRIPT,
+  HERO_TRANSLATE_COMMAND,
+} from "./hero-terminal";
 import { i18n } from "./i18n";
-import { OG_COUNT_FACTS } from "./landing-facts";
 import { loadOgFonts, OG_FONT_DIR, OG_FONT_FILES } from "./og-fonts";
-import { gutterOffset, HomeOgFrame, OG_FONT, OG_PALETTE, titleFontSize } from "./og-image";
+import { HomeOgFrame, OG_FONT, OG_PALETTE, OG_TERMINAL_PROMPT, titleFontSize } from "./og-image";
 import { SITE_URL } from "./site";
 
 describe("titleFontSize", () => {
@@ -42,36 +46,38 @@ describe("titleFontSize", () => {
 describe("HomeOgFrame", () => {
   const markup = renderToStaticMarkup(
     <HomeOgFrame
-      headline={{ locale: "en", text: HERO_HEADLINES.en }}
-      rows={heroLocaleRows("en").map((row) => ({ locale: row.locale, text: row.headline }))}
-      numbers={[{ label: "file formats", value: "14" }]}
+      headline={en.landing.banner.headline}
+      lines={HERO_OG_LINES}
       footer="verbatra.kreitz-webdev.de"
     />,
   );
 
-  it("draws the living headline: the source line, then the de and fr rows under locale codes", () => {
-    const en = markup.indexOf(HERO_HEADLINES.en);
-    const de = markup.indexOf(HERO_HEADLINES.de);
-    const fr = markup.indexOf(HERO_HEADLINES.fr);
-    expect(en).toBeGreaterThan(-1);
-    expect(de).toBeGreaterThan(en);
-    expect(fr).toBeGreaterThan(de);
-    expect(markup).toContain(">de</div>");
-    expect(markup).toContain(">fr</div>");
+  it("draws the landing headline above the real check and translate lines", () => {
+    const headline = markup.indexOf(en.landing.banner.headline);
+    const check = markup.indexOf(HERO_CHECK_COMMAND);
+    const translate = markup.indexOf(HERO_TRANSLATE_COMMAND);
+    expect(headline).toBeGreaterThan(-1);
+    expect(check).toBeGreaterThan(headline);
+    expect(translate).toBeGreaterThan(check);
+  });
+
+  it("takes every terminal line from the hero transcript, so it never claims output the CLI does not print", () => {
+    const transcript = HERO_TERMINAL_SCRIPT.flatMap((step) => [step.command, ...step.output]);
+    expect(HERO_OG_LINES.length).toBeGreaterThan(2);
+    for (const line of HERO_OG_LINES) expect(transcript).toContain(line.text);
   });
 
   it("balances a wrapping headline, so a long one never leaves a single word on its last line", () => {
     expect(markup).toContain("text-wrap:balance");
   });
 
-  it("sits on the flat void page, with no wash gradient", () => {
+  it("sits on the flat void page in monochrome and violet, with no wash gradient", () => {
     expect(markup).toContain(`background:${OG_PALETTE.void}`);
-    expect(markup).not.toContain("radial-gradient");
+    expect(markup).not.toContain("gradient");
+    expect(markup).toContain(OG_PALETTE.glow);
   });
 
-  it("ends on the big numbers and the host, not a facts table", () => {
-    expect(markup).toContain("file formats");
-    expect(markup).toContain(">14</div>");
+  it("names the host in the top bar", () => {
     expect(markup).toContain("verbatra.kreitz-webdev.de");
   });
 });
@@ -89,15 +95,9 @@ describe("OG_PALETTE", () => {
     ["faint", "--text-faint"],
     ["glow", "--v-glow"],
     ["purple", "--v-purple"],
+    ["border", "--color-fd-border"],
   ] as const)("mirrors %s from the %s token in global.css", (key, name) => {
     expect(OG_PALETTE[key]).toBe(`hsl(${token(name)})`);
-  });
-});
-
-describe("gutterOffset", () => {
-  it("centres the locale code on the first line of the text beside it", () => {
-    expect(gutterOffset({ size: 68, leading: 1.04 })).toBe(24);
-    expect(gutterOffset({ size: 34, leading: 1.3 })).toBe(11);
   });
 });
 
@@ -178,10 +178,9 @@ describe("OG font coverage", () => {
 
   const catalogs = { en, de, es, fr } as const;
   const drawn = [
-    ...Object.values(HERO_HEADLINES),
-    ...i18n.languages.flatMap((locale) => Object.values(catalogs[locale].landing.hero.og)),
-    ...OG_COUNT_FACTS.map((fact) => String(fact.value)),
-    ...i18n.languages,
+    ...i18n.languages.map((locale) => catalogs[locale].landing.banner.headline),
+    ...HERO_OG_LINES.map((line) => line.text),
+    OG_TERMINAL_PROMPT,
     new URL(SITE_URL).host,
     "VERBATRA",
   ].join("");

@@ -15,6 +15,7 @@ export const OG_PALETTE = {
   glowDeep: "hsl(258, 25%, 10%)",
   purpleDeep: "hsl(258, 40%, 12%)",
   purpleBright: "hsl(258, 60%, 66%)",
+  border: "hsl(240, 23%, 22%)",
 } as const;
 
 const FRAME_BACKGROUND = [
@@ -144,19 +145,11 @@ export function OgFrame({
   );
 }
 
-export type OgHeadlineRow = { locale: string; text: string };
-
-export type OgNumber = { label: string; value: string };
+export type OgTerminalLine = { kind: "command" | "output"; text: string };
 
 export const OG_FONT = { display: "Geist", mono: "Geist Mono" } as const;
 
-const CODE_SIZE = 22;
-const SOURCE_LINE = { size: 68, leading: 1.04, weight: 700 } as const;
-const LOCALE_LINE = { size: 34, leading: 1.3, weight: 500 } as const;
-
-export function gutterOffset(line: { size: number; leading: number }): number {
-  return Math.round((line.size * line.leading - CODE_SIZE) / 2);
-}
+export const OG_TERMINAL_PROMPT = "$";
 
 const HOME_FRAME_STYLE: CSSProperties = {
   ...FRAME_STYLE,
@@ -192,77 +185,27 @@ function Wordmark() {
   );
 }
 
-function HeadlineRow({ row, source }: { row: OgHeadlineRow; source: boolean }) {
-  const line = source ? SOURCE_LINE : LOCALE_LINE;
+function TerminalLine({ line }: { line: OgTerminalLine }) {
+  if (line.kind === "output") {
+    return (
+      <div style={{ display: "flex", color: OG_PALETTE.muted, whiteSpace: "pre" }}>{line.text}</div>
+    );
+  }
   return (
-    <div style={{ display: "flex", alignItems: "flex-start" }}>
-      <div
-        style={{
-          width: "64px",
-          flexShrink: 0,
-          paddingTop: `${gutterOffset(line)}px`,
-          fontFamily: OG_FONT.mono,
-          fontSize: `${CODE_SIZE}px`,
-          lineHeight: 1,
-          color: source ? OG_PALETTE.glow : OG_PALETTE.faint,
-          display: "flex",
-        }}
-      >
-        {row.locale}
-      </div>
-      <div
-        style={{
-          fontSize: `${line.size}px`,
-          fontWeight: line.weight,
-          lineHeight: line.leading,
-          letterSpacing: source ? "-0.03em" : "-0.02em",
-          color: source ? OG_PALETTE.strong : OG_PALETTE.muted,
-          textWrap: "balance",
-          display: "flex",
-        }}
-      >
-        {row.text}
-      </div>
-    </div>
-  );
-}
-
-function NumberRow({ numbers }: { numbers: ReadonlyArray<OgNumber> }) {
-  return (
-    <div style={{ display: "flex", gap: "56px", paddingLeft: "64px" }}>
-      {numbers.map((number) => (
-        <div key={number.label} style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-          <div
-            style={{
-              fontSize: "52px",
-              fontWeight: 700,
-              lineHeight: 1,
-              letterSpacing: "-0.035em",
-              display: "flex",
-            }}
-          >
-            {number.value}
-          </div>
-          <div
-            style={{ fontSize: "20px", fontWeight: 500, color: OG_PALETTE.muted, display: "flex" }}
-          >
-            {number.label}
-          </div>
-        </div>
-      ))}
+    <div style={{ display: "flex", gap: "14px", color: OG_PALETTE.strong, whiteSpace: "pre" }}>
+      <div style={{ display: "flex", color: OG_PALETTE.glow }}>{OG_TERMINAL_PROMPT}</div>
+      <div style={{ display: "flex" }}>{line.text}</div>
     </div>
   );
 }
 
 export function HomeOgFrame({
   headline,
-  rows,
-  numbers,
+  lines,
   footer,
 }: {
-  headline: OgHeadlineRow;
-  rows: ReadonlyArray<OgHeadlineRow>;
-  numbers: ReadonlyArray<OgNumber>;
+  headline: string;
+  lines: ReadonlyArray<OgTerminalLine>;
   footer: string;
 }) {
   return (
@@ -280,13 +223,38 @@ export function HomeOgFrame({
           {footer}
         </div>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-        <HeadlineRow row={headline} source />
-        {rows.map((row) => (
-          <HeadlineRow key={row.locale} row={row} source={false} />
+      <div
+        style={{
+          fontSize: "76px",
+          fontWeight: 700,
+          lineHeight: 1.04,
+          letterSpacing: "-0.03em",
+          color: OG_PALETTE.strong,
+          textWrap: "balance",
+          display: "flex",
+        }}
+      >
+        {headline}
+      </div>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "8px",
+          padding: "26px 30px",
+          border: `1px solid ${OG_PALETTE.border}`,
+          borderLeft: `3px solid ${OG_PALETTE.purple}`,
+          borderRadius: "12px",
+          background: OG_PALETTE.background,
+          fontFamily: OG_FONT.mono,
+          fontSize: "22px",
+          lineHeight: 1.35,
+        }}
+      >
+        {lines.map((line) => (
+          <TerminalLine key={`${line.kind}:${line.text}`} line={line} />
         ))}
       </div>
-      <NumberRow numbers={numbers} />
     </div>
   );
 }

@@ -85,3 +85,16 @@ export const HERO_TERMINAL_SCRIPT: ReadonlyArray<HeroTerminalStep> = [
     exitCode: HERO_TRANSLATE_EXIT_CODE,
   },
 ];
+
+export const HERO_EXIT_LINES: ReadonlyArray<string> = HERO_TERMINAL_SCRIPT.map(
+  (step) => `exit ${step.exitCode}`,
+);
+
+export type HeroOgLine = { readonly kind: "command" | "output"; readonly text: string };
+
+export const HERO_OG_LINES: ReadonlyArray<HeroOgLine> = HERO_TERMINAL_SCRIPT.flatMap((step) => [
+  { kind: "command" as const, text: step.command },
+  ...[step.output[1], step.output.at(-1)].flatMap((text) =>
+    text === undefined ? [] : [{ kind: "output" as const, text }],
+  ),
+]);
