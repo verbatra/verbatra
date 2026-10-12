@@ -129,14 +129,12 @@ samp {
   --text-xs: 0.75rem;
   --text-mono-sm: 0.8125rem;
 
-  --leading-hero: 1.04;
   --leading-display: 0.98;
   --leading-heading: 1.08;
   --leading-tight: 1.1;
   --leading-snug: 1.3;
   --leading-normal: 1.6;
 
-  --tracking-hero: -0.03em;
 
   --weight-hero: 700;
   --tracking-display: -0.035em;
