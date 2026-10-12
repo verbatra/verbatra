@@ -30,9 +30,6 @@
       "promptCopyFailed": "Der Prompt konnte nicht kopiert werden. Wähle ihn in der Vorschau aus und kopiere ihn manuell.",
       "copyFailed": "Kopieren fehlgeschlagen"
     },
-    "formats": {
-      "frameworksLabel": "Frameworks"
-    },
     "faq": {
       "heading": "Häufig gestellte Fragen",
       "items": {
@@ -207,7 +204,6 @@
       "ctaSecondary": "Auf GitHub ansehen",
       "installLabel": "Die CLI installieren",
       "terminalLabel": "Ein verbatra-check-Lauf findet in jeder Locale zwei fehlende Keys. Ein translate-Lauf schickt danach nur diese Keys.",
-      "exitCode": "Exit {code}",
       "replay": "Erneut abspielen"
     },
     "stats": {
@@ -309,19 +305,19 @@
         "config": "Referenz der Konfigurationsdatei",
         "action": "Anleitung zur GitHub Action"
       },
-      "copy": "Code kopieren",
-      "copied": "Kopiert",
-      "copyFailed": "Kopieren fehlgeschlagen"
+      "copy": "Code kopieren"
     },
     "ecosystem": {
       "heading": "Dein Provider. Dein Dateiformat.",
       "lead": "Wähle einen Provider per ID und wechsle später. verbatra liest und schreibt deine Locale-Dateien dort, wo sie liegen.",
       "providersLabel": "Provider",
       "formatsLabel": "Dateiformate",
+      "frameworksLabel": "Frameworks",
       "kinds": {
         "llm": "LLM",
         "machine": "Maschinelle Übersetzung",
-        "local": "Lokal oder selbst gehostet"
+        "local": "Lokal oder selbst gehostet",
+        "human": "Nur Menschen"
       },
       "customFormat": "Dazu Adapter, die du selbst schreibst",
       "providersLink": "Provider vergleichen",
@@ -351,19 +347,19 @@
       "rows": {
         "changedOnly": {
           "label": "Übersetzt nur, was sich geändert hat",
-          "verbatra": "Ja, entschieden durch die Lock-Datei",
+          "verbatra": "Entschieden durch die Lock-Datei",
           "manual": "Nur, wenn jemand den Überblick behält",
-          "tms": "Ja, über das Translation Memory"
+          "tms": "Über das Translation Memory"
         },
         "ciGate": {
           "label": "Lässt die CI bei fehlenden Keys scheitern",
-          "verbatra": "Ja, `verbatra check` endet mit Exit-Code 1",
+          "verbatra": "`verbatra check` endet mit Exit-Code 1",
           "manual": "Nur mit einem eigenen Skript",
           "tms": "Oft, über eine CLI oder Integration"
         },
         "placeholders": {
           "label": "Prüft Platzhalter vor dem Schreiben",
-          "verbatra": "Ja, ein kaputtes Ergebnis wird zurückgehalten",
+          "verbatra": "Ein kaputtes Ergebnis wird zurückgehalten",
           "manual": "Nur im Review",
           "tms": "Viele führen QA-Prüfungen aus"
         },

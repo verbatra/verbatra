@@ -1,7 +1,7 @@
 "use client";
 
-import { type ReactNode, useMemo, useState } from "react";
-import { HERO_TERMINAL_SCRIPT } from "@/lib/hero-terminal";
+import { type ReactNode, useState } from "react";
+import { HERO_EXIT_LINES, HERO_TERMINAL_SCRIPT } from "@/lib/hero-terminal";
 import { Terminal } from "./terminal";
 
 export const HERO_TERMINAL_TITLE = "~/app";
@@ -10,33 +10,18 @@ export const HERO_SETTLED_COMMANDS = 1;
 
 const COMMANDS = HERO_TERMINAL_SCRIPT.map((step) => step.command);
 
-export function heroTerminalOutputs(
-  exitLines: ReadonlyArray<string>,
-): Readonly<Record<number, ReadonlyArray<string>>> {
-  return Object.fromEntries(
-    HERO_TERMINAL_SCRIPT.map((step, index) => {
-      const exit = exitLines[index];
-      return [index, exit === undefined ? step.output : [...step.output, exit]];
-    }),
+export const HERO_TERMINAL_OUTPUTS: Readonly<Record<number, ReadonlyArray<string>>> =
+  Object.fromEntries(
+    HERO_TERMINAL_SCRIPT.map((step, index) => [index, [...step.output, HERO_EXIT_LINES[index]]]),
   );
-}
 
-export function HeroTerminal({
-  session,
-  replay,
-  exitLines,
-}: {
-  session: string;
-  replay: string;
-  exitLines: ReadonlyArray<string>;
-}): ReactNode {
+export function HeroTerminal({ session, replay }: { session: string; replay: string }): ReactNode {
   const [run, setRun] = useState(0);
-  const outputs = useMemo(() => heroTerminalOutputs(exitLines), [exitLines]);
   return (
     <Terminal
       key={run}
       commands={COMMANDS}
-      outputs={outputs}
+      outputs={HERO_TERMINAL_OUTPUTS}
       title={HERO_TERMINAL_TITLE}
       sessionLabel={session}
       settledCommands={run === 0 ? HERO_SETTLED_COMMANDS : 0}

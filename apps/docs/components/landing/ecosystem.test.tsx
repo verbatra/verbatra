@@ -7,25 +7,12 @@ import { FORMAT_DISPLAY, MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/li
 import { PROVIDER_DISPLAY } from "@/lib/landing-providers";
 import en from "@/messages/en.json";
 
-const humanKind = vi.hoisted(() => ({ label: undefined as string | undefined }));
-
 vi.mock("next-intl/server", async () => {
   const { createTranslator } = await import("next-intl");
   const { default: messages } = await import("@/messages/en.json");
   return {
-    getTranslations: async (namespace: string) => {
-      const ecosystem = messages.landing.ecosystem;
-      const withHuman = humanKind.label
-        ? {
-            ...messages,
-            landing: {
-              ...messages.landing,
-              ecosystem: { ...ecosystem, kinds: { ...ecosystem.kinds, human: humanKind.label } },
-            },
-          }
-        : messages;
-      return createTranslator({ locale: "en", messages: withHuman, namespace: namespace as never });
-    },
+    getTranslations: async (namespace: string) =>
+      createTranslator({ locale: "en", messages, namespace: namespace as never }),
     getLocale: async () => "en",
   };
 });
@@ -77,15 +64,12 @@ describe("Ecosystem", () => {
     expect(link?.textContent).toBe("none");
   });
 
-  it("titles the human-only group once its copy exists", async () => {
-    humanKind.label = "Human only";
-    try {
-      const withLabel = await render();
-      const kinds = Array.from(withLabel.querySelectorAll("h4")).map((h4) => h4.textContent);
-      expect(kinds.at(-1)).toBe("Human only");
-    } finally {
-      humanKind.label = undefined;
-    }
+  it("titles the human-only group and labels the framework chips from its own copy", () => {
+    const kinds = Array.from(root.querySelectorAll("h4")).map((h4) => h4.textContent);
+    expect(kinds.at(-1)).toBe(en.landing.ecosystem.kinds.human);
+    expect(
+      root.querySelector(`[aria-label="${en.landing.ecosystem.frameworksLabel}"]`),
+    ).not.toBeNull();
   });
 
   it("spells out no provider or format count", () => {

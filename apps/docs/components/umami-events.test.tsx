@@ -15,11 +15,9 @@ type RichTags = Record<string, (chunks: string) => ReactNode>;
 
 function translator(): ((key: string) => string) & {
   rich: (key: string, tags?: RichTags) => ReactNode;
-  has: (key: string) => boolean;
 } {
   return Object.assign((key: string) => key, {
     rich: (key: string, tags?: RichTags) => (tags?.releases ? tags.releases(key) : key),
-    has: () => true,
   });
 }
 

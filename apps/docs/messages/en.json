@@ -125,9 +125,6 @@
       "promptCopyFailed": "Could not copy the prompt. Select it in the preview and copy it by hand.",
       "promptPreviewLabel": "Copies this prompt for your agent"
     },
-    "formats": {
-      "frameworksLabel": "Frameworks"
-    },
     "faq": {
       "heading": "Frequently asked questions",
       "items": {
@@ -260,7 +257,6 @@
       "ctaSecondary": "View on GitHub",
       "installLabel": "Install the CLI",
       "terminalLabel": "A verbatra check run finds two missing keys in each locale. A translate run then sends only those keys.",
-      "exitCode": "exit {code}",
       "replay": "Replay"
     },
     "stats": {
@@ -362,19 +358,19 @@
         "config": "Config file reference",
         "action": "GitHub Action guide"
       },
-      "copy": "Copy code",
-      "copied": "Copied",
-      "copyFailed": "Copy failed"
+      "copy": "Copy code"
     },
     "ecosystem": {
       "heading": "Your provider. Your file format.",
       "lead": "Pick a provider by id and switch later. verbatra reads and writes your locale files where they are.",
       "providersLabel": "Providers",
       "formatsLabel": "File formats",
+      "frameworksLabel": "Frameworks",
       "kinds": {
         "llm": "LLM",
         "machine": "Machine translation",
-        "local": "Local or self-hosted"
+        "local": "Local or self-hosted",
+        "human": "Human only"
       },
       "customFormat": "Plus adapters you write yourself",
       "providersLink": "Compare the providers",
@@ -404,19 +400,19 @@
       "rows": {
         "changedOnly": {
           "label": "Translates only what changed",
-          "verbatra": "Yes, decided by the lock file",
+          "verbatra": "Decided by the lock file",
           "manual": "Only if someone tracks it",
-          "tms": "Yes, through translation memory"
+          "tms": "Through translation memory"
         },
         "ciGate": {
           "label": "Fails CI on missing keys",
-          "verbatra": "Yes, `verbatra check` exits 1",
+          "verbatra": "`verbatra check` exits 1",
           "manual": "Only with a script you write",
           "tms": "Often, through a CLI or integration"
         },
         "placeholders": {
           "label": "Checks placeholders before writing",
-          "verbatra": "Yes, a broken result is withheld",
+          "verbatra": "A broken result is withheld",
           "manual": "Only in review",
           "tms": "Many run QA checks"
         },

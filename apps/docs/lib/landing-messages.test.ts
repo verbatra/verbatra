@@ -83,6 +83,10 @@ describe("landing message parity", () => {
     "footer.contributorsTitle",
     "footer.contributorAria",
     "showcase.tabs",
+    "formats",
+    "banner.exitCode",
+    "code.copied",
+    "code.copyFailed",
   ])("keeps no landing.%s message from a retired section", (path) => {
     for (const locale of i18n.languages) {
       expect(() => landingText(locale, path), locale).toThrow();
@@ -116,6 +120,19 @@ describe("landing message parity", () => {
   it("never breaks the closing heading at a hyphen", () => {
     for (const locale of i18n.languages) {
       expect(landingText(locale, "closing.heading"), locale).not.toContain("-");
+    }
+  });
+
+  it("states the comparison cells plainly, never opening on a yes the mark already shows", () => {
+    for (const locale of i18n.languages) {
+      for (const path of [
+        "compare.rows.changedOnly.verbatra",
+        "compare.rows.changedOnly.tms",
+        "compare.rows.ciGate.verbatra",
+        "compare.rows.placeholders.verbatra",
+      ]) {
+        expect(landingText(locale, path), `${locale} ${path}`).not.toMatch(/^(Yes|Ja|Sí|Oui),/);
+      }
     }
   });
 });

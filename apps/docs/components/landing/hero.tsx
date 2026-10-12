@@ -4,7 +4,6 @@ import { CommandPanel } from "@/components/landing/command-panel";
 import { HeroTerminal } from "@/components/landing/hero-terminal";
 import { GITHUB_URL } from "@/components/landing/links";
 import Button, { buttonClasses } from "@/components/ui/button";
-import { HERO_TERMINAL_SCRIPT } from "@/lib/hero-terminal";
 import { type Locale, localizedPath } from "@/lib/i18n";
 
 export const HERO_TITLE_ID = "hero-title";
@@ -58,11 +57,7 @@ export async function Hero(): Promise<ReactNode> {
         </div>
         <div className="vk-banner-demo">
           <div aria-hidden="true" className="vk-banner-glow" />
-          <HeroTerminal
-            session={t("terminalLabel")}
-            replay={t("replay")}
-            exitLines={HERO_TERMINAL_SCRIPT.map((step) => t("exitCode", { code: step.exitCode }))}
-          />
+          <HeroTerminal session={t("terminalLabel")} replay={t("replay")} />
         </div>
       </div>
     </section>

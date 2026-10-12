@@ -30,9 +30,6 @@
       "promptCopyFailed": "No se pudo copiar la instrucción. Selecciónala en la vista previa y cópiala a mano.",
       "copyFailed": "Copia fallida"
     },
-    "formats": {
-      "frameworksLabel": "Frameworks"
-    },
     "faq": {
       "heading": "Preguntas frecuentes",
       "items": {
@@ -207,7 +204,6 @@
       "ctaSecondary": "Ver en GitHub",
       "installLabel": "Instala la CLI",
       "terminalLabel": "Una ejecución de verbatra check encuentra dos claves que faltan en cada locale. Después, una ejecución de translate envía solo esas claves.",
-      "exitCode": "salida {code}",
       "replay": "Repetir"
     },
     "stats": {
@@ -309,19 +305,19 @@
         "config": "Referencia del archivo de configuración",
         "action": "Guía de la GitHub Action"
       },
-      "copy": "Copiar código",
-      "copied": "Copiado",
-      "copyFailed": "Error al copiar"
+      "copy": "Copiar código"
     },
     "ecosystem": {
       "heading": "Tu proveedor. Tu formato de archivo.",
       "lead": "Elige un proveedor por su id y cámbialo después. verbatra lee y escribe tus archivos de locale donde están.",
       "providersLabel": "Proveedores",
       "formatsLabel": "Formatos de archivo",
+      "frameworksLabel": "Frameworks",
       "kinds": {
         "llm": "LLM",
         "machine": "Traducción automática",
-        "local": "Local o autoalojado"
+        "local": "Local o autoalojado",
+        "human": "Solo personas"
       },
       "customFormat": "Y adaptadores que escribes tú",
       "providersLink": "Compara los proveedores",
@@ -351,19 +347,19 @@
       "rows": {
         "changedOnly": {
           "label": "Traduce solo lo que cambió",
-          "verbatra": "Sí, lo decide el archivo de bloqueo",
+          "verbatra": "Lo decide el archivo de bloqueo",
           "manual": "Solo si alguien lo controla",
-          "tms": "Sí, mediante memoria de traducción"
+          "tms": "Mediante memoria de traducción"
         },
         "ciGate": {
           "label": "Hace fallar la CI si faltan claves",
-          "verbatra": "Sí, `verbatra check` sale con código 1",
+          "verbatra": "`verbatra check` sale con código 1",
           "manual": "Solo con un script propio",
           "tms": "A menudo, mediante una CLI o integración"
         },
         "placeholders": {
           "label": "Revisa los placeholders antes de escribir",
-          "verbatra": "Sí, un resultado roto se retiene",
+          "verbatra": "Un resultado roto se retiene",
           "manual": "Solo en la revisión",
           "tms": "Muchos hacen controles de calidad"
         },

@@ -26,7 +26,6 @@ function ProviderItem({ label, id }: { label: string; id: string }): ReactNode {
 export async function Ecosystem(): Promise<ReactNode> {
   const t = await getTranslations("landing");
   const locale = toLocale(await getLocale());
-  const humanKind = t.has("ecosystem.kinds.human") ? t("ecosystem.kinds.human") : null;
 
   return (
     <Section band id="ecosystem">
@@ -61,7 +60,7 @@ export async function Ecosystem(): Promise<ReactNode> {
               </div>
             ))}
             <div className="grid content-start gap-3">
-              {humanKind ? <h4 className={KIND_CLASS}>{humanKind}</h4> : null}
+              <h4 className={KIND_CLASS}>{t("ecosystem.kinds.human")}</h4>
               <p className="border-l pl-4" style={{ borderColor: "var(--accent)" }}>
                 <TrackedLink
                   href={localizedPath(locale, "/docs/human-only-workflow")}
@@ -97,7 +96,7 @@ export async function Ecosystem(): Promise<ReactNode> {
           <div className="vk-formats mt-0">
             <FormatsDemo
               labels={{
-                frameworks: t("formats.frameworksLabel"),
+                frameworks: t("ecosystem.frameworksLabel"),
                 formats: t("ecosystem.formatsLabel"),
               }}
             />

@@ -34,11 +34,11 @@ class FakeObserver {
   }
 }
 
-const { HeroTerminal, heroTerminalOutputs, HERO_TERMINAL_TITLE } = await import("./hero-terminal");
+const { HeroTerminal, HERO_TERMINAL_OUTPUTS, HERO_TERMINAL_TITLE } = await import(
+  "./hero-terminal"
+);
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-
-const EXIT_LINES = ["exit 1", "exit 0"];
 
 let mounted: { container: HTMLDivElement; root: Root } | undefined;
 
@@ -46,7 +46,7 @@ function render(): HTMLDivElement {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
-  act(() => root.render(<HeroTerminal session="Session" replay="Replay" exitLines={EXIT_LINES} />));
+  act(() => root.render(<HeroTerminal session="Session" replay="Replay" />));
   mounted = { container, root };
   return container;
 }
@@ -103,13 +103,12 @@ async function advance(ms: number): Promise<void> {
   });
 }
 
-describe("heroTerminalOutputs", () => {
-  it("closes each run with its exit line and leaves a run without one as printed", () => {
-    expect(heroTerminalOutputs(EXIT_LINES)).toEqual({
+describe("HERO_TERMINAL_OUTPUTS", () => {
+  it("closes each run with its exit code as literal English shell text, the same in every locale", () => {
+    expect(HERO_TERMINAL_OUTPUTS).toEqual({
       0: [...HERO_CHECK_OUTPUT, "exit 1"],
       1: [...HERO_TRANSLATE_OUTPUT, "exit 0"],
     });
-    expect(heroTerminalOutputs([])[1]).toEqual(HERO_TRANSLATE_OUTPUT);
   });
 });
 

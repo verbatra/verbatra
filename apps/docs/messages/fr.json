@@ -30,9 +30,6 @@
       "promptCopyFailed": "Impossible de copier l’invite. Sélectionne-la dans l’aperçu et copie-la à la main.",
       "copyFailed": "Copie échouée"
     },
-    "formats": {
-      "frameworksLabel": "Frameworks"
-    },
     "faq": {
       "heading": "Questions fréquentes",
       "items": {
@@ -207,7 +204,6 @@
       "ctaSecondary": "Voir sur GitHub",
       "installLabel": "Installe la CLI",
       "terminalLabel": "Une exécution de verbatra check trouve deux clés manquantes dans chaque locale. Une exécution de translate n’envoie ensuite que ces clés.",
-      "exitCode": "code de sortie {code}",
       "replay": "Rejouer"
     },
     "stats": {
@@ -309,19 +305,19 @@
         "config": "Référence du fichier de configuration",
         "action": "Guide de la GitHub Action"
       },
-      "copy": "Copier le code",
-      "copied": "Copié",
-      "copyFailed": "Échec de la copie"
+      "copy": "Copier le code"
     },
     "ecosystem": {
       "heading": "Ton fournisseur. Ton format de fichier.",
       "lead": "Choisis un fournisseur par son id et change plus tard. verbatra lit et écrit tes fichiers de locale là où ils sont.",
       "providersLabel": "Fournisseurs",
       "formatsLabel": "Formats de fichier",
+      "frameworksLabel": "Frameworks",
       "kinds": {
         "llm": "LLM",
         "machine": "Traduction automatique",
-        "local": "Local ou auto-hébergé"
+        "local": "Local ou auto-hébergé",
+        "human": "Humains uniquement"
       },
       "customFormat": "Et les adaptateurs que tu écris toi-même",
       "providersLink": "Comparer les fournisseurs",
@@ -351,19 +347,19 @@
       "rows": {
         "changedOnly": {
           "label": "Ne traduit que ce qui a changé",
-          "verbatra": "Oui, d’après le fichier de verrouillage",
+          "verbatra": "D’après le fichier de verrouillage",
           "manual": "Seulement si quelqu’un le suit",
-          "tms": "Oui, grâce à la mémoire de traduction"
+          "tms": "Grâce à la mémoire de traduction"
         },
         "ciGate": {
           "label": "Fait échouer la CI si des clés manquent",
-          "verbatra": "Oui, `verbatra check` se termine avec le code 1",
+          "verbatra": "`verbatra check` se termine avec le code 1",
           "manual": "Seulement avec ton propre script",
           "tms": "Souvent, via une CLI ou une intégration"
         },
         "placeholders": {
           "label": "Vérifie les placeholders avant d’écrire",
-          "verbatra": "Oui, un résultat cassé est retenu",
+          "verbatra": "Un résultat cassé est retenu",
           "manual": "Seulement à la relecture",
           "tms": "Beaucoup font des contrôles qualité"
         },
