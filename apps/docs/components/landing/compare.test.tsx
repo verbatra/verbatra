@@ -36,6 +36,12 @@ describe("Compare", () => {
     expect(region?.className).toContain("overflow-x-auto");
   });
 
+  it("positions its scroll region, so the visually hidden labels scroll inside it instead of widening the page", () => {
+    const region = root.querySelector("table")?.closest("section");
+    expect(region?.className.split(" ")).toContain("relative");
+    expect(region?.querySelector(".sr-only")).not.toBeNull();
+  });
+
   it("scopes every column header and every row header", () => {
     const columnHeads = Array.from(root.querySelectorAll("thead th"));
     expect(columnHeads.map((th) => th.getAttribute("scope"))).toEqual(

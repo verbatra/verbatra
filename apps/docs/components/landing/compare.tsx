@@ -95,7 +95,7 @@ export async function Compare(): Promise<ReactNode> {
           // biome-ignore lint/a11y/noNoninteractiveTabindex: the table scrolls sideways on a phone, so the keyboard needs a stop to scroll it
           tabIndex={0}
           aria-labelledby={CAPTION_ID}
-          className="overflow-x-auto overscroll-x-contain rounded-xl border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--focus-ring)]"
+          className="relative overflow-x-auto overscroll-x-contain rounded-xl border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--focus-ring)]"
           style={{
             borderColor: "var(--border-default)",
             background: "var(--surface-bg)",
