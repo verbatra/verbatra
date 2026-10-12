@@ -89,4 +89,39 @@ describe("CodeFrame", () => {
     const timeline = frame.find((rule) => rule.declarations["animation-timeline"]);
     expect(timeline?.declarations["mask-image"]).toContain("var(--vk-edge-fade)");
   });
+
+  it("draws every scroll fade from one mask rule and drops the mask while the ring shows, so no focus ring is faded", () => {
+    const rules = docsStylesheetRules();
+    const faded = [
+      ".vk-terminal-scroll",
+      ".vk-code-frame-body pre.shiki",
+      ".vk-scroll-fade",
+      ".vk-edge-fade",
+      '.vk-docs-tabs > [role="tablist"]',
+    ];
+    const masks = rules.filter((rule) =>
+      rule.declarations["mask-image"]?.includes("--vk-edge-fade"),
+    );
+    const shared = masks.find((rule) =>
+      faded.every((selector) => rulesFor([rule], selector).length),
+    );
+    expect(shared?.media).toBe("@supports (animation-timeline: scroll())");
+    for (const selector of faded) {
+      expect(masks.filter((rule) => rulesFor([rule], selector).length)).toHaveLength(1);
+    }
+    const focused = [
+      ".vk-terminal-scroll:focus-visible",
+      ".vk-code-frame-body pre.shiki:focus-visible",
+      ".vk-scroll-fade:focus-visible",
+      ".vk-edge-fade:has(:focus-visible)",
+      '.vk-docs-tabs > [role="tablist"]:has(:focus-visible)',
+    ];
+    for (const selector of focused) {
+      const rule = rulesFor(rules, selector).at(-1);
+      expect(rule?.declarations["mask-image"]).toBe("none");
+      expect(rules.indexOf(rule as (typeof rules)[number])).toBeGreaterThan(
+        Math.max(...masks.map((mask) => rules.indexOf(mask))),
+      );
+    }
+  });
 });

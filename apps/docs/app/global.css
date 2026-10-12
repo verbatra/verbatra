@@ -2264,10 +2264,6 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   .vk-code-frame-body pre.shiki,
   .vk-scroll-fade {
     background: var(--v-void);
-    -webkit-mask-image: linear-gradient(to left, transparent, #000 var(--vk-edge-fade));
-    mask-image: linear-gradient(to left, transparent, #000 var(--vk-edge-fade));
-    animation: vk-edge-fade linear both;
-    animation-timeline: scroll(self inline);
   }
 }
 
@@ -2311,8 +2307,6 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   overscroll-behavior-x: contain;
   scrollbar-width: thin;
   scrollbar-color: var(--border-default) transparent;
-  -webkit-mask-image: linear-gradient(to left, transparent, #000 var(--vk-edge-fade));
-  mask-image: linear-gradient(to left, transparent, #000 var(--vk-edge-fade));
 }
 
 .vk-docs-tabs > [role="tablist"] {
@@ -2324,11 +2318,20 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 }
 
 @supports (animation-timeline: scroll()) {
+  .vk-terminal-scroll,
+  .vk-code-frame-body pre.shiki,
+  .vk-scroll-fade,
+  .vk-edge-fade,
+  .vk-docs-tabs > [role="tablist"] {
+    -webkit-mask-image: linear-gradient(to left, transparent, #000 var(--vk-edge-fade));
+    mask-image: linear-gradient(to left, transparent, #000 var(--vk-edge-fade));
+    animation: vk-edge-fade linear both;
+    animation-timeline: scroll(self inline);
+  }
+
   .vk-edge-fade,
   .vk-docs-tabs > [role="tablist"] {
     scrollbar-width: none;
-    animation: vk-edge-fade linear both;
-    animation-timeline: scroll(self inline);
   }
 
   .vk-edge-fade::-webkit-scrollbar {
@@ -2366,6 +2369,15 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
       vk-edge-fade linear both,
       vk-start-fade linear both;
     animation-timeline: scroll(self inline), scroll(self inline);
+  }
+
+  .vk-terminal-scroll:focus-visible,
+  .vk-code-frame-body pre.shiki:focus-visible,
+  .vk-scroll-fade:focus-visible,
+  .vk-edge-fade:has(:focus-visible),
+  .vk-docs-tabs > [role="tablist"]:has(:focus-visible) {
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 }
 
