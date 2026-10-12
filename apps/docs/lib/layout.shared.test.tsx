@@ -3,6 +3,7 @@
 import type { LinkItemType } from "fumadocs-ui/layouts/shared";
 import { act, type ComponentProps, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const homeLayout = vi.hoisted(() => ({
@@ -184,6 +185,18 @@ describe("the landing header version pill", () => {
       ["", "none"],
       ["@media (width >= 768px)", "inline-flex"],
     ]);
+  });
+});
+
+describe("wordmark", () => {
+  it("writes the header wordmark in lowercase with tight tracking, like the footer", async () => {
+    const container = document.createElement("div");
+    container.innerHTML = renderToStaticMarkup(<>{(await baseOptions("en")).nav?.title}</>);
+    const word = Array.from(container.querySelectorAll("span")).find(
+      (span) => span.children.length === 0,
+    );
+    expect(word?.textContent).toBe("verbatra");
+    expect(word?.className).not.toMatch(/uppercase|tracking-widest/);
   });
 });
 

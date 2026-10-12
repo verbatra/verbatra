@@ -31,10 +31,10 @@ export async function baseOptions(locale: Locale): Promise<BaseLayoutProps> {
         <span className="inline-flex items-center gap-2">
           <VMark size={20} blur={4} decorative />
           <span
-            className="text-base font-semibold tracking-widest"
+            className="text-lg font-semibold tracking-tight"
             style={{ fontFamily: "var(--font-display)" }}
           >
-            VERBATRA
+            verbatra
           </span>
         </span>
       ),

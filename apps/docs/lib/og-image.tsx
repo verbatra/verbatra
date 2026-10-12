@@ -1,5 +1,7 @@
 import type { CSSProperties } from "react";
 
+export const OG_WORDMARK = "verbatra";
+
 export const OG_IMAGE_SIZE = { width: 1200, height: 630 };
 
 export const OG_PALETTE = {
@@ -50,15 +52,14 @@ function BrandMark() {
       />
       <div
         style={{
-          fontSize: "26px",
+          fontSize: "30px",
           fontWeight: 700,
-          letterSpacing: "6px",
-          textTransform: "uppercase",
+          letterSpacing: "-0.02em",
           color: OG_PALETTE.glow,
           display: "flex",
         }}
       >
-        Verbatra
+        {OG_WORDMARK}
       </div>
     </div>
   );
@@ -172,14 +173,14 @@ function Wordmark() {
       </svg>
       <div
         style={{
-          fontSize: "28px",
+          fontSize: "32px",
           fontWeight: 700,
-          letterSpacing: "0.1em",
+          letterSpacing: "-0.02em",
           color: OG_PALETTE.strong,
           display: "flex",
         }}
       >
-        VERBATRA
+        {OG_WORDMARK}
       </div>
     </div>
   );

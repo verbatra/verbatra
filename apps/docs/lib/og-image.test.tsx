@@ -14,7 +14,14 @@ import {
 } from "./hero-terminal";
 import { i18n } from "./i18n";
 import { loadOgFonts, OG_FONT_DIR, OG_FONT_FILES } from "./og-fonts";
-import { HomeOgFrame, OG_FONT, OG_PALETTE, OG_TERMINAL_PROMPT, titleFontSize } from "./og-image";
+import {
+  HomeOgFrame,
+  OG_FONT,
+  OG_PALETTE,
+  OG_TERMINAL_PROMPT,
+  OG_WORDMARK,
+  titleFontSize,
+} from "./og-image";
 import { SITE_URL } from "./site";
 
 describe("titleFontSize", () => {
@@ -79,6 +86,12 @@ describe("HomeOgFrame", () => {
 
   it("names the host in the top bar", () => {
     expect(markup).toContain("verbatra.kreitz-webdev.de");
+  });
+
+  it("writes the wordmark in lowercase, as the header and footer do", () => {
+    expect(OG_WORDMARK).toBe("verbatra");
+    expect(markup).toContain(`>${OG_WORDMARK}</div>`);
+    expect(markup).not.toMatch(/VERBATRA|text-transform:uppercase/);
   });
 });
 
@@ -182,7 +195,7 @@ describe("OG font coverage", () => {
     ...HERO_OG_LINES.map((line) => line.text),
     OG_TERMINAL_PROMPT,
     new URL(SITE_URL).host,
-    "VERBATRA",
+    OG_WORDMARK,
   ].join("");
   const needed = [...new Set([...drawn].map((char) => char.codePointAt(0) ?? 0))].filter(
     (code) => code !== 0x20,
