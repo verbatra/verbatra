@@ -85,6 +85,36 @@ describe("LiveStatValue", () => {
   });
 });
 
+describe("useLiveStats", () => {
+  it("asks for the live numbers only after the first contentful paint", async () => {
+    let paint: () => void = () => undefined;
+    const painted = new Promise<void>((resolve) => {
+      paint = resolve;
+    });
+    vi.resetModules();
+    vi.doMock("@/lib/island", async (importOriginal) => ({
+      ...(await importOriginal<typeof import("@/lib/island")>()),
+      afterFirstContentfulPaint: () => painted,
+    }));
+    const fetcher = stubFetch(async () => Response.json({ stars: 2500, downloads: 1 }));
+    const fresh = await import("@/components/landing/live-stat-value");
+    const container = document.createElement("div");
+    document.body.append(container);
+    await act(async () => {
+      createRoot(container).render(<fresh.LiveStatValue stat="stars" initial="1.2K" locale="en" />);
+    });
+    expect(fetcher).not.toHaveBeenCalled();
+    await act(async () => {
+      paint();
+      await painted;
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(container.textContent).toBe("2.5K");
+    vi.doUnmock("@/lib/island");
+  });
+});
+
 describe("loadLiveStats", () => {
   it("does not keep a failed request, so a later mount asks again", async () => {
     let fail = true;

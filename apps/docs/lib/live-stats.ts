@@ -1,5 +1,6 @@
 import { type CSSProperties, useEffect, useState } from "react";
 import { formatCompactNumber } from "@/lib/compact-number";
+import { afterFirstContentfulPaint } from "@/lib/island";
 
 export const LIVE_STATS_URL = "/api/stats";
 
@@ -43,9 +44,11 @@ export function useLiveStats(): LiveStats | null {
   const [stats, setStats] = useState<LiveStats | null>(null);
   useEffect(() => {
     let active = true;
-    void loadLiveStats().then((loaded) => {
-      if (active) setStats(loaded);
-    });
+    void afterFirstContentfulPaint()
+      .then(() => loadLiveStats())
+      .then((loaded) => {
+        if (active) setStats(loaded);
+      });
     return () => {
       active = false;
     };
