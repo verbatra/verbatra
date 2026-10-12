@@ -107,6 +107,18 @@
         "cost": {
           "question": "Was kostet verbatra?",
           "answer": "verbatra selbst ist kostenlos und Open Source unter der MIT-Lizenz. Der einzige Kostenfaktor ist die Nutzung deines Providers, und die steuerst du: Es übersetzt nur, was sich geändert hat, und du kannst es kostenlos mit Geminis kostenlosem Kontingent oder einem lokalen OpenAI-kompatiblen Modell betreiben. Außerhalb von EWR, Schweiz und Vereinigtem Königreich darf Google Anfragen im kostenlosen Kontingent zur Verbesserung seiner Produkte nutzen, halte vertrauliche Strings also bei einem bezahlten Kontingent oder einem lokalen Modell; Details stehen auf der <dataHandling>Seite zur Datenverarbeitung</dataHandling>."
+        },
+        "ci": {
+          "question": "Kann ich verbatra in der CI ausführen?",
+          "answer": "Ja. verbatra check ruft keinen Provider auf und endet mit Exit-Code 1, solange einer Locale Keys fehlen oder Keys veraltet sind. So sichert es einen Pull Request ohne API-Key ab. Die GitHub Action führt check, diff oder translate aus und meldet das Ergebnis als Annotationen und Job-Zusammenfassung."
+        },
+        "keys": {
+          "question": "Wo landen meine API-Keys?",
+          "answer": "In Umgebungsvariablen, nie in der Konfiguration. Die Konfiguration lehnt unbekannte Schlüssel ab, also kann ein Geheimnis dort nicht aus Versehen landen. Die CLI lädt .env.local und .env für dich, und eine Fehlermeldung nennt die fehlende Variable, gibt aber nie einen Key aus."
+        },
+        "studio": {
+          "question": "Ist Verbatra Studio ein gehosteter Dienst?",
+          "answer": "Nein. Du startest es in deinem Projekt mit verbatra studio, und es stellt ein Dashboard auf deinem Rechner bereit. Es ruft keinen Provider auf, außer du startest es mit --allow-spend."
         }
       }
     },
@@ -353,6 +365,251 @@
         "filesLabel": "Dateien",
         "retry": "Erneut versuchen"
       }
+    },
+    "topNav": {
+      "label": "Hauptmenü",
+      "home": "verbatra Startseite",
+      "docs": "Docs",
+      "github": "GitHub",
+      "starsAria": "{count} Sterne auf GitHub",
+      "changelog": "Changelog",
+      "getStarted": "Loslegen",
+      "theme": {
+        "toLight": "Zum hellen Design wechseln",
+        "toDark": "Zum dunklen Design wechseln"
+      },
+      "menu": {
+        "open": "Menü öffnen",
+        "close": "Menü schließen",
+        "title": "Menü"
+      }
+    },
+    "banner": {
+      "headline": "Übersetze nur, was sich geändert hat.",
+      "lead": "verbatra vergleicht deine Locale-Dateien mit der Quelle, schickt nur neue und geänderte Keys an den Provider deiner Wahl und lässt die CI scheitern, solange ein Key fehlt.",
+      "ctaPrimary": "Loslegen",
+      "ctaSecondary": "Auf GitHub ansehen",
+      "installLabel": "Die CLI installieren",
+      "terminalLabel": "Ein verbatra-check-Lauf findet in jeder Locale zwei fehlende Keys. Ein translate-Lauf schickt danach nur diese Keys.",
+      "exitCode": "Exit {code}",
+      "replay": "Erneut abspielen"
+    },
+    "stats": {
+      "label": "verbatra in Zahlen",
+      "stars": "GitHub-Sterne",
+      "downloads": "npm-Downloads letzte Woche",
+      "providers": "Übersetzungs-Provider",
+      "formats": "Dateiformate",
+      "license": "MIT-lizenziert"
+    },
+    "problem": {
+      "heading": "Locale-Dateien driften bei jedem Release auseinander.",
+      "lead": "Jedes Feature bringt neue Texte. Jemand muss die fehlenden Keys finden, übersetzen lassen und zurückkopieren, ohne einen Platzhalter zu beschädigen.",
+      "items": {
+        "missing": {
+          "title": "Fehlende Keys landen in Produktion",
+          "body": "Nichts schlägt fehl, wenn der deutschen Datei ein Key fehlt. Nutzer sehen die Fallback-Sprache oder den rohen Key."
+        },
+        "wholeFile": {
+          "title": "Alles neu zu übersetzen kostet mehr",
+          "body": "Wer die ganze Datei erneut schickt, zahlt für unveränderte Texte und kann Formulierungen ersetzen, die jemand von Hand korrigiert hat."
+        },
+        "placeholders": {
+          "title": "Ein kaputter Platzhalter zerstört einen Screen",
+          "body": "Eine Übersetzung, die eine Variable verliert oder die ICU-Pluralsyntax verstümmelt, zeigt den falschen Text oder gar keinen."
+        }
+      }
+    },
+    "steps": {
+      "heading": "Prüfen, übersetzen, absichern.",
+      "lead": "Drei Schritte decken den ganzen Ablauf ab. Eine Lock-Datei in deinem Repository merkt sich, was schon übersetzt ist.",
+      "items": {
+        "check": {
+          "title": "Prüfen",
+          "body": "`verbatra check` vergleicht Quelle, Ziele und Lock-Datei. Es ruft keinen Provider auf und braucht keinen Key."
+        },
+        "translate": {
+          "title": "Übersetzen",
+          "body": "`verbatra translate` schickt nur fehlende und geänderte Keys, prüft jedes Ergebnis und schreibt deine Dateien."
+        },
+        "ci": {
+          "title": "In der CI absichern",
+          "body": "Die GitHub Action führt `check` bei jedem Pull Request aus und lässt ihn scheitern, solange eine Locale nicht synchron ist."
+        }
+      }
+    },
+    "bento": {
+      "heading": "Passt zu dem Projekt, das du schon hast.",
+      "items": {
+        "incremental": {
+          "title": "Standardmäßig inkrementell",
+          "body": "Die committete Lock-Datei speichert einen Hash jedes Quelltexts. Unveränderte Keys werden nicht erneut geschickt."
+        },
+        "providers": {
+          "title": "Provider in einem Block wechseln",
+          "body": "Ein LLM, ein maschineller Übersetzungsdienst oder ein Modell auf deiner eigenen Hardware. Tausch den Provider-Block aus und behalte den Rest."
+        },
+        "formats": {
+          "title": "Passt zu deinem Framework",
+          "body": "i18next, vue-i18n, next-intl, XLIFF, gettext, Android, Apple, Flutter und mehr. Kein neues Format, auf das du migrieren musst."
+        },
+        "keys": {
+          "title": "Deine Keys bleiben deine",
+          "body": "API-Keys kommen nur aus Umgebungsvariablen. Texte gehen an den Provider, den du konfigurierst, und sonst nirgendwohin. Keine Telemetrie."
+        },
+        "action": {
+          "title": "Eine GitHub Action",
+          "body": "Sichere Pull Requests mit `check` ab oder übersetze bei jedem Push. Annotationen und eine Job-Zusammenfassung zeigen, was abweicht."
+        },
+        "adapters": {
+          "title": "Bring dein eigenes Format mit",
+          "body": "Ein Format, das verbatra nicht mitbringt? Baue einen Adapter auf den Adapter-Factories des SDK und reiche ihn hinein."
+        },
+        "integrity": {
+          "title": "Platzhalter bleiben intakt",
+          "body": "Jedes Ergebnis wird auf Platzhalter- und ICU-Integrität geprüft. Eine Antwort, die einen verliert oder erfindet, wird zurückgehalten statt geschrieben."
+        }
+      }
+    },
+    "code": {
+      "heading": "Starte es aus der Shell, deinem Code oder der CI.",
+      "lead": "Eine Engine an drei Orten: Die CLI baut auf dem SDK auf, und die Action führt die CLI aus.",
+      "tablist": "Wege, verbatra auszuführen",
+      "tabs": {
+        "cli": "CLI",
+        "sdk": "SDK",
+        "config": "Konfiguration",
+        "action": "GitHub Action"
+      },
+      "captions": {
+        "cli": "Installieren, einrichten, ohne Key vorab ansehen, übersetzen, prüfen.",
+        "sdk": "Übersetze und sichere ab aus deinem eigenen Skript. Das SDK liest dieselbe Konfigurationsdatei.",
+        "config": "Eine committete Datei ohne Geheimnisse. Der API-Key kommt aus der Umgebung.",
+        "action": "Lass einen Pull Request scheitern, solange eine Locale nicht synchron ist. Kein API-Key nötig."
+      },
+      "links": {
+        "cli": "CLI-Referenz",
+        "sdk": "SDK-Schnellstart",
+        "config": "Referenz der Konfigurationsdatei",
+        "action": "Anleitung zur GitHub Action"
+      },
+      "copy": "Code kopieren",
+      "copied": "Kopiert",
+      "copyFailed": "Kopieren fehlgeschlagen"
+    },
+    "ecosystem": {
+      "heading": "Dein Provider. Dein Dateiformat.",
+      "lead": "Wähle einen Provider per ID und wechsle später. verbatra liest und schreibt deine Locale-Dateien dort, wo sie liegen.",
+      "providersLabel": "Provider",
+      "formatsLabel": "Dateiformate",
+      "kinds": {
+        "llm": "LLM",
+        "machine": "Maschinelle Übersetzung",
+        "local": "Lokal oder selbst gehostet"
+      },
+      "customFormat": "Dazu Adapter, die du selbst schreibst",
+      "providersLink": "Provider vergleichen",
+      "formatsLink": "Alle Formate ansehen"
+    },
+    "studio": {
+      "heading": "Prüfe jede Locale in Verbatra Studio.",
+      "lead": "Ein lokales Dashboard über deinem Projekt. Es zeigt, wo jede Locale steht, und du korrigierst eine Übersetzung an Ort und Stelle.",
+      "points": {
+        "coverage": "Sieh, welche Keys in jeder Locale fehlen, sich geändert haben oder zur Prüfung markiert sind.",
+        "edit": "Bearbeite einen Wert an Ort und Stelle. Er durchläuft dieselbe Integritätsprüfung, bevor er geschrieben wird.",
+        "local": "Starte es mit `verbatra studio`. Es ruft keinen Provider auf, außer du ergänzt `--allow-spend`."
+      },
+      "cta": "Anleitung zu Studio lesen",
+      "alt": "Die Review-Seite in Verbatra Studio mit fünf markierten Einträgen über die Locales de, es und fr; jede Zeile zeigt den Key, seine Review-Gründe und die Aktionen Edit, Approve und Reject."
+    },
+    "compare": {
+      "heading": "So schneidet verbatra im Vergleich ab.",
+      "lead": "Drei Wege, Locale-Dateien übersetzt zu halten, und worin jeder gut ist.",
+      "caption": "verbatra im Vergleich mit einem manuellen Ablauf und einem gehosteten Translation-Management-System",
+      "columns": {
+        "aspect": "Aspekt",
+        "verbatra": "verbatra",
+        "manual": "Manueller Ablauf",
+        "tms": "Gehostetes TMS"
+      },
+      "rows": {
+        "changedOnly": {
+          "label": "Übersetzt nur, was sich geändert hat",
+          "verbatra": "Ja, entschieden durch die Lock-Datei",
+          "manual": "Nur, wenn jemand den Überblick behält",
+          "tms": "Ja, über das Translation Memory"
+        },
+        "ciGate": {
+          "label": "Lässt die CI bei fehlenden Keys scheitern",
+          "verbatra": "Ja, `verbatra check` endet mit Exit-Code 1",
+          "manual": "Nur mit einem eigenen Skript",
+          "tms": "Oft, über eine CLI oder Integration"
+        },
+        "placeholders": {
+          "label": "Prüft Platzhalter vor dem Schreiben",
+          "verbatra": "Ja, ein kaputtes Ergebnis wird zurückgehalten",
+          "manual": "Nur im Review",
+          "tms": "Viele führen QA-Prüfungen aus"
+        },
+        "files": {
+          "label": "Wo die Dateien liegen",
+          "verbatra": "In deinem Repository, direkt bearbeitet",
+          "manual": "In deinem Repository",
+          "tms": "Auf der Plattform, mit deinem Repository synchronisiert"
+        },
+        "data": {
+          "label": "Wohin Texte geschickt werden",
+          "verbatra": "Nur an den Provider, den du konfigurierst",
+          "manual": "Wohin du sie kopierst",
+          "tms": "Auf die Plattform des Anbieters"
+        },
+        "collaboration": {
+          "label": "Zusammenarbeit mit Übersetzern",
+          "verbatra": "Übergabe per Excel und TMX, lokales Studio",
+          "manual": "Tabellen und E-Mail",
+          "tms": "Web-Editor mit Rollen und Kommentaren"
+        },
+        "workflow": {
+          "label": "Workflow-Verwaltung",
+          "verbatra": "Nichts eingebaut: dein Git-Workflow",
+          "manual": "Keine",
+          "tms": "Zuweisungen, Review-Stufen und Fristen"
+        },
+        "cost": {
+          "label": "Kosten",
+          "verbatra": "Kostenlos und MIT-lizenziert, dazu die Nutzung deines Providers",
+          "manual": "Die Zeit deines Teams",
+          "tms": "Ein Abo, oft pro Platz oder pro Wort"
+        },
+        "setup": {
+          "label": "Einrichtung",
+          "verbatra": "Eine Konfigurationsdatei und ein API-Key",
+          "manual": "Nichts einzurichten",
+          "tms": "Ein Konto, ein Projekt und eine Sync-Integration"
+        }
+      },
+      "marks": {
+        "yes": "Ja",
+        "partial": "Teilweise",
+        "no": "Nein"
+      },
+      "note": "Gehostete TMS-Produkte unterscheiden sich. Diese Tabelle beschreibt die Kategorie, nicht ein einzelnes Produkt."
+    },
+    "openSource": {
+      "heading": "Open Source unter der MIT-Lizenz.",
+      "lead": "CLI, SDK, Studio und MCP-Server entstehen offen auf GitHub. Lies den Code, melde ein Issue oder schick einen Pull Request.",
+      "license": "MIT-Lizenz",
+      "contributing": "So trägst du bei",
+      "issues": "Issues und Feature-Wünsche",
+      "releases": "Release Notes",
+      "contributorsHeading": "Mitwirkende",
+      "contributorAria": "{name} auf GitHub"
+    },
+    "closing": {
+      "heading": "Fang mit einem Probelauf an.",
+      "lead": "Ein Probelauf braucht keinen API-Key und schreibt nichts. Er listet genau die Keys, die ein echter Lauf schicken würde.",
+      "primary": "Loslegen",
+      "secondary": "Docs lesen"
     }
   },
   "legal": {
@@ -515,6 +772,9 @@
     },
     "mcpInstall": {
       "label": "Zu {client} hinzufügen"
+    },
+    "theme": {
+      "light": "Helles Design"
     }
   }
 }

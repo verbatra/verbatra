@@ -47,6 +47,9 @@
     },
     "mcpInstall": {
       "label": "Add to {client}"
+    },
+    "theme": {
+      "light": "Light theme"
     }
   },
   "landing": {
@@ -199,6 +202,18 @@
         "cost": {
           "question": "What does verbatra cost?",
           "answer": "verbatra itself is free and open source under the MIT license. The only cost is your provider's usage, which you control: it translates only what changed, and you can run it for free on Gemini's free tier or a local OpenAI-compatible model. Outside the EEA, Switzerland and the UK, Google may use free-tier requests to improve its products, so keep confidential strings on a paid tier or a local model; the <dataHandling>data handling page</dataHandling> has the details."
+        },
+        "ci": {
+          "question": "Can I run verbatra in CI?",
+          "answer": "Yes. verbatra check calls no provider and exits 1 while a locale has missing or stale keys, so it gates a pull request without an API key. The GitHub Action runs check, diff or translate and reports the result as annotations and a job summary."
+        },
+        "keys": {
+          "question": "Where do my API keys go?",
+          "answer": "Into environment variables, never into the config. The config rejects keys it does not know, so a secret cannot end up there by mistake. The CLI loads .env.local and .env for you, and an error names the missing variable but never prints a key."
+        },
+        "studio": {
+          "question": "Is Verbatra Studio a hosted service?",
+          "answer": "No. You start it in your project with verbatra studio, and it serves a dashboard on your machine. It calls no provider unless you start it with --allow-spend."
         }
       }
     },
@@ -403,6 +418,251 @@
         "source": "source",
         "target": "target"
       }
+    },
+    "topNav": {
+      "label": "Main",
+      "home": "verbatra home",
+      "docs": "Docs",
+      "github": "GitHub",
+      "starsAria": "{count} stars on GitHub",
+      "changelog": "Changelog",
+      "getStarted": "Get started",
+      "theme": {
+        "toLight": "Switch to light theme",
+        "toDark": "Switch to dark theme"
+      },
+      "menu": {
+        "open": "Open menu",
+        "close": "Close menu",
+        "title": "Menu"
+      }
+    },
+    "banner": {
+      "headline": "Translate only what changed.",
+      "lead": "verbatra compares your locale files with the source, sends only new and changed keys to the provider you pick, and fails CI while a key is missing.",
+      "ctaPrimary": "Get started",
+      "ctaSecondary": "View on GitHub",
+      "installLabel": "Install the CLI",
+      "terminalLabel": "A verbatra check run finds two missing keys in each locale. A translate run then sends only those keys.",
+      "exitCode": "exit {code}",
+      "replay": "Replay"
+    },
+    "stats": {
+      "label": "verbatra in numbers",
+      "stars": "GitHub stars",
+      "downloads": "npm downloads last week",
+      "providers": "translation providers",
+      "formats": "file formats",
+      "license": "MIT licensed"
+    },
+    "problem": {
+      "heading": "Locale files drift every time you ship.",
+      "lead": "Each feature adds strings. Someone has to spot the missing keys, get them translated, and paste them back without breaking a placeholder.",
+      "items": {
+        "missing": {
+          "title": "Missing keys reach production",
+          "body": "Nothing fails when the German file lacks a key. Users see the fallback language or the raw key."
+        },
+        "wholeFile": {
+          "title": "Retranslating everything costs more",
+          "body": "Sending the whole file again pays for strings that did not change and can replace wording someone fixed by hand."
+        },
+        "placeholders": {
+          "title": "One broken placeholder breaks a screen",
+          "body": "A translation that drops a variable or garbles ICU plural syntax shows the wrong text, or none."
+        }
+      }
+    },
+    "steps": {
+      "heading": "Check, translate, gate.",
+      "lead": "Three steps cover the loop. A lock file in your repository remembers what was already translated.",
+      "items": {
+        "check": {
+          "title": "Check",
+          "body": "`verbatra check` compares the source, the targets and the lock file. It calls no provider and needs no key."
+        },
+        "translate": {
+          "title": "Translate",
+          "body": "`verbatra translate` sends only missing and changed keys, checks every result, and writes your files."
+        },
+        "ci": {
+          "title": "Gate in CI",
+          "body": "The GitHub Action runs `check` on each pull request and fails it while a locale is out of sync."
+        }
+      }
+    },
+    "bento": {
+      "heading": "Fits the project you already have.",
+      "items": {
+        "incremental": {
+          "title": "Incremental by default",
+          "body": "The committed lock file holds a hash of each source string. Unchanged keys are not sent again."
+        },
+        "providers": {
+          "title": "Switch providers in one block",
+          "body": "An LLM, a machine translation service, or a model on your own hardware. Change the provider block and keep the rest."
+        },
+        "formats": {
+          "title": "Works with your framework",
+          "body": "i18next, vue-i18n, next-intl, XLIFF, gettext, Android, Apple, Flutter and more. No new format to migrate to."
+        },
+        "keys": {
+          "title": "Your keys stay yours",
+          "body": "API keys come from environment variables only. Strings go to the provider you configure and nowhere else. No telemetry."
+        },
+        "action": {
+          "title": "A GitHub Action",
+          "body": "Gate pull requests with `check` or translate on push. Annotations and a job summary show what drifted."
+        },
+        "adapters": {
+          "title": "Bring your own format",
+          "body": "A format verbatra does not ship? Build an adapter on the SDK's adapter factories and pass it in."
+        },
+        "integrity": {
+          "title": "Placeholders stay intact",
+          "body": "Every result is checked for placeholder and ICU integrity. A reply that drops or invents one is withheld, not written."
+        }
+      }
+    },
+    "code": {
+      "heading": "Run it from the shell, your code, or CI.",
+      "lead": "One engine in three places: the CLI is built on the SDK, and the action runs the CLI.",
+      "tablist": "Ways to run verbatra",
+      "tabs": {
+        "cli": "CLI",
+        "sdk": "SDK",
+        "config": "Config",
+        "action": "GitHub Action"
+      },
+      "captions": {
+        "cli": "Install, set up, preview without a key, translate, check.",
+        "sdk": "Translate and gate from your own script. The SDK reads the same config file.",
+        "config": "One committed file with no secrets in it. The API key comes from the environment.",
+        "action": "Fail a pull request while a locale is out of sync. No API key needed."
+      },
+      "links": {
+        "cli": "CLI reference",
+        "sdk": "SDK quickstart",
+        "config": "Config file reference",
+        "action": "GitHub Action guide"
+      },
+      "copy": "Copy code",
+      "copied": "Copied",
+      "copyFailed": "Copy failed"
+    },
+    "ecosystem": {
+      "heading": "Your provider. Your file format.",
+      "lead": "Pick a provider by id and switch later. verbatra reads and writes your locale files where they are.",
+      "providersLabel": "Providers",
+      "formatsLabel": "File formats",
+      "kinds": {
+        "llm": "LLM",
+        "machine": "Machine translation",
+        "local": "Local or self-hosted"
+      },
+      "customFormat": "Plus adapters you write yourself",
+      "providersLink": "Compare the providers",
+      "formatsLink": "See every format"
+    },
+    "studio": {
+      "heading": "Review every locale in Verbatra Studio.",
+      "lead": "A local dashboard over your project. It shows where each locale stands and lets you fix a translation in place.",
+      "points": {
+        "coverage": "See which keys are missing, changed or flagged for review in each locale.",
+        "edit": "Edit a value in place. It passes the same integrity check before it is written.",
+        "local": "Start it with `verbatra studio`. It calls no provider unless you add `--allow-spend`."
+      },
+      "cta": "Read the Studio guide",
+      "alt": "The Verbatra Studio Review page listing five flagged entries across the de, es and fr locales, each row showing the key, its review reasons, and Edit, Approve and Reject actions."
+    },
+    "compare": {
+      "heading": "How verbatra compares.",
+      "lead": "Three ways to keep locale files translated, and what each one is good at.",
+      "caption": "verbatra compared with a manual workflow and a hosted translation management system",
+      "columns": {
+        "aspect": "Aspect",
+        "verbatra": "verbatra",
+        "manual": "Manual workflow",
+        "tms": "Hosted TMS"
+      },
+      "rows": {
+        "changedOnly": {
+          "label": "Translates only what changed",
+          "verbatra": "Yes, decided by the lock file",
+          "manual": "Only if someone tracks it",
+          "tms": "Yes, through translation memory"
+        },
+        "ciGate": {
+          "label": "Fails CI on missing keys",
+          "verbatra": "Yes, `verbatra check` exits 1",
+          "manual": "Only with a script you write",
+          "tms": "Often, through a CLI or integration"
+        },
+        "placeholders": {
+          "label": "Checks placeholders before writing",
+          "verbatra": "Yes, a broken result is withheld",
+          "manual": "Only in review",
+          "tms": "Many run QA checks"
+        },
+        "files": {
+          "label": "Where the files live",
+          "verbatra": "In your repository, edited in place",
+          "manual": "In your repository",
+          "tms": "On the platform, synced to your repository"
+        },
+        "data": {
+          "label": "Where strings are sent",
+          "verbatra": "Only to the provider you configure",
+          "manual": "Wherever you paste them",
+          "tms": "To the vendor's platform"
+        },
+        "collaboration": {
+          "label": "Translator collaboration",
+          "verbatra": "Excel and TMX handoff, local Studio",
+          "manual": "Spreadsheets and email",
+          "tms": "Web editor with roles and comments"
+        },
+        "workflow": {
+          "label": "Workflow management",
+          "verbatra": "None built in: your Git workflow",
+          "manual": "None",
+          "tms": "Assignments, review stages and deadlines"
+        },
+        "cost": {
+          "label": "Cost",
+          "verbatra": "Free and MIT licensed, plus your provider's usage",
+          "manual": "Your team's time",
+          "tms": "A subscription, often per seat or per word"
+        },
+        "setup": {
+          "label": "Setup",
+          "verbatra": "One config file and an API key",
+          "manual": "Nothing to set up",
+          "tms": "An account, a project and a sync integration"
+        }
+      },
+      "marks": {
+        "yes": "Yes",
+        "partial": "Partly",
+        "no": "No"
+      },
+      "note": "Hosted TMS products differ. This table describes the category, not one product."
+    },
+    "openSource": {
+      "heading": "Open source under the MIT license.",
+      "lead": "The CLI, SDK, Studio and MCP server are built in the open on GitHub. Read the code, file an issue, or send a pull request.",
+      "license": "MIT license",
+      "contributing": "How to contribute",
+      "issues": "Issues and feature requests",
+      "releases": "Release notes",
+      "contributorsHeading": "Contributors",
+      "contributorAria": "{name} on GitHub"
+    },
+    "closing": {
+      "heading": "Start with a dry run.",
+      "lead": "A dry run needs no API key and writes nothing. It lists exactly which keys a real run would send.",
+      "primary": "Get started",
+      "secondary": "Read the docs"
     }
   },
   "legal": {

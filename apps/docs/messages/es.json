@@ -107,6 +107,18 @@
         "cost": {
           "question": "¿Cuánto cuesta verbatra?",
           "answer": "verbatra en sí es gratuito y de código abierto bajo la licencia MIT. El único coste es el uso de tu proveedor, y ese lo controlas tú: traduce solo lo que cambió, y puedes ejecutarlo gratis en el nivel gratuito de Gemini o en un modelo local compatible con OpenAI. Fuera del EEE, Suiza y el Reino Unido, Google puede usar las peticiones del nivel gratuito para mejorar sus productos, así que deja los textos confidenciales en un nivel de pago o en un modelo local; la <dataHandling>página de tratamiento de datos</dataHandling> tiene los detalles."
+        },
+        "ci": {
+          "question": "¿Puedo ejecutar verbatra en la CI?",
+          "answer": "Sí. verbatra check no llama a ningún proveedor y sale con código 1 mientras a un locale le falten claves o tenga claves desactualizadas, así que protege un pull request sin clave de API. La GitHub Action ejecuta check, diff o translate e informa del resultado con anotaciones y un resumen del job."
+        },
+        "keys": {
+          "question": "¿Dónde van mis claves de API?",
+          "answer": "En variables de entorno, nunca en la configuración. La configuración rechaza las claves que no conoce, así que un secreto no puede acabar ahí por error. La CLI carga .env.local y .env por ti, y un error nombra la variable que falta pero nunca muestra una clave."
+        },
+        "studio": {
+          "question": "¿Verbatra Studio es un servicio alojado?",
+          "answer": "No. Lo arrancas en tu proyecto con verbatra studio y sirve un panel en tu máquina. No llama a ningún proveedor salvo que lo arranques con --allow-spend."
         }
       }
     },
@@ -353,6 +365,251 @@
         "filesLabel": "Archivos",
         "retry": "Reintentar"
       }
+    },
+    "topNav": {
+      "label": "Principal",
+      "home": "Inicio de verbatra",
+      "docs": "Docs",
+      "github": "GitHub",
+      "starsAria": "{count} estrellas en GitHub",
+      "changelog": "Changelog",
+      "getStarted": "Empezar",
+      "theme": {
+        "toLight": "Cambiar al tema claro",
+        "toDark": "Cambiar al tema oscuro"
+      },
+      "menu": {
+        "open": "Abrir menú",
+        "close": "Cerrar menú",
+        "title": "Menú"
+      }
+    },
+    "banner": {
+      "headline": "Traduce solo lo que cambió.",
+      "lead": "verbatra compara tus archivos de locale con la fuente, envía solo las claves nuevas y cambiadas al proveedor que elijas y hace fallar la CI mientras falte una clave.",
+      "ctaPrimary": "Empezar",
+      "ctaSecondary": "Ver en GitHub",
+      "installLabel": "Instala la CLI",
+      "terminalLabel": "Una ejecución de verbatra check encuentra dos claves que faltan en cada locale. Después, una ejecución de translate envía solo esas claves.",
+      "exitCode": "salida {code}",
+      "replay": "Repetir"
+    },
+    "stats": {
+      "label": "verbatra en cifras",
+      "stars": "estrellas en GitHub",
+      "downloads": "descargas en npm la semana pasada",
+      "providers": "proveedores de traducción",
+      "formats": "formatos de archivo",
+      "license": "licencia MIT"
+    },
+    "problem": {
+      "heading": "Los archivos de locale se desincronizan con cada entrega.",
+      "lead": "Cada funcionalidad añade textos. Alguien tiene que detectar las claves que faltan, conseguir su traducción y pegarlas de vuelta sin romper un placeholder.",
+      "items": {
+        "missing": {
+          "title": "Las claves que faltan llegan a producción",
+          "body": "Nada falla cuando al archivo alemán le falta una clave. Tus usuarios ven el idioma de respaldo o la clave sin traducir."
+        },
+        "wholeFile": {
+          "title": "Retraducirlo todo cuesta más",
+          "body": "Enviar el archivo completo otra vez paga por textos que no cambiaron y puede reemplazar frases que alguien corrigió a mano."
+        },
+        "placeholders": {
+          "title": "Un placeholder roto rompe una pantalla",
+          "body": "Una traducción que pierde una variable o estropea la sintaxis de plurales ICU muestra el texto equivocado, o ninguno."
+        }
+      }
+    },
+    "steps": {
+      "heading": "Comprueba, traduce, protege.",
+      "lead": "Tres pasos cubren todo el ciclo. Un archivo de bloqueo en tu repositorio recuerda lo que ya está traducido.",
+      "items": {
+        "check": {
+          "title": "Comprueba",
+          "body": "`verbatra check` compara la fuente, los destinos y el archivo de bloqueo. No llama a ningún proveedor ni necesita clave."
+        },
+        "translate": {
+          "title": "Traduce",
+          "body": "`verbatra translate` envía solo las claves que faltan o cambiaron, revisa cada resultado y escribe tus archivos."
+        },
+        "ci": {
+          "title": "Protege la CI",
+          "body": "La GitHub Action ejecuta `check` en cada pull request y lo hace fallar mientras un locale no esté sincronizado."
+        }
+      }
+    },
+    "bento": {
+      "heading": "Encaja en el proyecto que ya tienes.",
+      "items": {
+        "incremental": {
+          "title": "Incremental de serie",
+          "body": "El archivo de bloqueo versionado guarda un hash de cada texto fuente. Las claves sin cambios no se vuelven a enviar."
+        },
+        "providers": {
+          "title": "Cambia de proveedor en un bloque",
+          "body": "Un LLM, un servicio de traducción automática o un modelo en tu propio hardware. Cambia el bloque del proveedor y conserva el resto."
+        },
+        "formats": {
+          "title": "Funciona con tu framework",
+          "body": "i18next, vue-i18n, next-intl, XLIFF, gettext, Android, Apple, Flutter y más. Sin un formato nuevo al que migrar."
+        },
+        "keys": {
+          "title": "Tus claves siguen siendo tuyas",
+          "body": "Las claves de API vienen solo de variables de entorno. Los textos van al proveedor que configuras y a ningún otro sitio. Sin telemetría."
+        },
+        "action": {
+          "title": "Una GitHub Action",
+          "body": "Protege los pull requests con `check` o traduce en cada push. Las anotaciones y un resumen del job muestran lo que se desvió."
+        },
+        "adapters": {
+          "title": "Trae tu propio formato",
+          "body": "¿Un formato que verbatra no incluye? Crea un adaptador con las factorías de adaptadores del SDK y pásalo."
+        },
+        "integrity": {
+          "title": "Los placeholders quedan intactos",
+          "body": "Cada resultado pasa una comprobación de integridad de placeholders e ICU. Una respuesta que pierde o inventa uno se retiene en lugar de escribirse."
+        }
+      }
+    },
+    "code": {
+      "heading": "Ejecútalo desde la terminal, tu código o la CI.",
+      "lead": "Un mismo motor en tres sitios: la CLI se basa en el SDK y la action ejecuta la CLI.",
+      "tablist": "Formas de ejecutar verbatra",
+      "tabs": {
+        "cli": "CLI",
+        "sdk": "SDK",
+        "config": "Configuración",
+        "action": "GitHub Action"
+      },
+      "captions": {
+        "cli": "Instala, configura, previsualiza sin clave, traduce, comprueba.",
+        "sdk": "Traduce y protege desde tu propio script. El SDK lee el mismo archivo de configuración.",
+        "config": "Un archivo versionado sin secretos. La clave de API viene del entorno.",
+        "action": "Haz fallar un pull request mientras un locale no esté sincronizado. Sin clave de API."
+      },
+      "links": {
+        "cli": "Referencia de la CLI",
+        "sdk": "Inicio rápido del SDK",
+        "config": "Referencia del archivo de configuración",
+        "action": "Guía de la GitHub Action"
+      },
+      "copy": "Copiar código",
+      "copied": "Copiado",
+      "copyFailed": "Error al copiar"
+    },
+    "ecosystem": {
+      "heading": "Tu proveedor. Tu formato de archivo.",
+      "lead": "Elige un proveedor por su id y cámbialo después. verbatra lee y escribe tus archivos de locale donde están.",
+      "providersLabel": "Proveedores",
+      "formatsLabel": "Formatos de archivo",
+      "kinds": {
+        "llm": "LLM",
+        "machine": "Traducción automática",
+        "local": "Local o autoalojado"
+      },
+      "customFormat": "Y adaptadores que escribes tú",
+      "providersLink": "Compara los proveedores",
+      "formatsLink": "Ver todos los formatos"
+    },
+    "studio": {
+      "heading": "Revisa cada locale en Verbatra Studio.",
+      "lead": "Un panel local sobre tu proyecto. Muestra el estado de cada locale y te deja corregir una traducción en el sitio.",
+      "points": {
+        "coverage": "Mira qué claves faltan, cambiaron o están marcadas para revisión en cada locale.",
+        "edit": "Edita un valor en el sitio. Pasa la misma comprobación de integridad antes de escribirse.",
+        "local": "Arráncalo con `verbatra studio`. No llama a ningún proveedor salvo que añadas `--allow-spend`."
+      },
+      "cta": "Lee la guía de Studio",
+      "alt": "La página Review de Verbatra Studio con cinco entradas marcadas en los locales de, es y fr; cada fila muestra la clave, sus motivos de revisión y las acciones Edit, Approve y Reject."
+    },
+    "compare": {
+      "heading": "Cómo se compara verbatra.",
+      "lead": "Tres formas de mantener traducidos los archivos de locale, y en qué destaca cada una.",
+      "caption": "verbatra comparado con un flujo manual y un sistema de gestión de traducciones alojado",
+      "columns": {
+        "aspect": "Aspecto",
+        "verbatra": "verbatra",
+        "manual": "Flujo manual",
+        "tms": "TMS alojado"
+      },
+      "rows": {
+        "changedOnly": {
+          "label": "Traduce solo lo que cambió",
+          "verbatra": "Sí, lo decide el archivo de bloqueo",
+          "manual": "Solo si alguien lo controla",
+          "tms": "Sí, mediante memoria de traducción"
+        },
+        "ciGate": {
+          "label": "Hace fallar la CI si faltan claves",
+          "verbatra": "Sí, `verbatra check` sale con código 1",
+          "manual": "Solo con un script propio",
+          "tms": "A menudo, mediante una CLI o integración"
+        },
+        "placeholders": {
+          "label": "Revisa los placeholders antes de escribir",
+          "verbatra": "Sí, un resultado roto se retiene",
+          "manual": "Solo en la revisión",
+          "tms": "Muchos hacen controles de calidad"
+        },
+        "files": {
+          "label": "Dónde están los archivos",
+          "verbatra": "En tu repositorio, editados en el sitio",
+          "manual": "En tu repositorio",
+          "tms": "En la plataforma, sincronizados con tu repositorio"
+        },
+        "data": {
+          "label": "Adónde se envían los textos",
+          "verbatra": "Solo al proveedor que configuras",
+          "manual": "Adonde los pegues",
+          "tms": "A la plataforma del proveedor del servicio"
+        },
+        "collaboration": {
+          "label": "Colaboración con traductores",
+          "verbatra": "Entrega por Excel y TMX, Studio local",
+          "manual": "Hojas de cálculo y correo",
+          "tms": "Editor web con roles y comentarios"
+        },
+        "workflow": {
+          "label": "Gestión del flujo de trabajo",
+          "verbatra": "Nada integrado: tu flujo de Git",
+          "manual": "Ninguna",
+          "tms": "Asignaciones, etapas de revisión y plazos"
+        },
+        "cost": {
+          "label": "Coste",
+          "verbatra": "Gratis y con licencia MIT, más el uso de tu proveedor",
+          "manual": "El tiempo de tu equipo",
+          "tms": "Una suscripción, a menudo por usuario o por palabra"
+        },
+        "setup": {
+          "label": "Configuración inicial",
+          "verbatra": "Un archivo de configuración y una clave de API",
+          "manual": "Nada que configurar",
+          "tms": "Una cuenta, un proyecto y una integración de sincronización"
+        }
+      },
+      "marks": {
+        "yes": "Sí",
+        "partial": "En parte",
+        "no": "No"
+      },
+      "note": "Los TMS alojados difieren entre sí. Esta tabla describe la categoría, no un producto concreto."
+    },
+    "openSource": {
+      "heading": "Código abierto con licencia MIT.",
+      "lead": "La CLI, el SDK, Studio y el servidor MCP se desarrollan en abierto en GitHub. Lee el código, abre un issue o envía un pull request.",
+      "license": "Licencia MIT",
+      "contributing": "Cómo contribuir",
+      "issues": "Issues y peticiones de funciones",
+      "releases": "Notas de versión",
+      "contributorsHeading": "Colaboradores",
+      "contributorAria": "{name} en GitHub"
+    },
+    "closing": {
+      "heading": "Empieza con una ejecución de prueba.",
+      "lead": "Una ejecución de prueba no necesita clave de API y no escribe nada. Lista exactamente las claves que enviaría una ejecución real.",
+      "primary": "Empezar",
+      "secondary": "Leer la documentación"
     }
   },
   "legal": {
@@ -515,6 +772,9 @@
     },
     "mcpInstall": {
       "label": "Añadir a {client}"
+    },
+    "theme": {
+      "light": "Tema claro"
     }
   }
 }
