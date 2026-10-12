@@ -68,6 +68,30 @@ the interface strings with `pnpm i18n` (see below).
 - `app/`, `components/`, and `lib/` are the Next.js application; `public/` holds the images,
   including the Studio screenshots the root README links.
 
+## The landing page
+
+The home page (`app/[lang]/(home)/page.tsx`) renders its sections in the order of
+`LANDING_SECTIONS` in `lib/landing-sections.ts`; `lib/landing-sections.test.ts` pins that order.
+Each section is one component in `components/landing/` (`hero.tsx`, `proof-strip.tsx`,
+`problem.tsx`, `steps.tsx`, `bento.tsx`, `code-showcase.tsx`, `showcase.tsx`, `ecosystem.tsx`,
+`studio.tsx`, `compare.tsx`, `open-source.tsx`, `faq.tsx`, `final-cta.tsx`). The footer is not a
+section: `app/[lang]/(home)/layout.tsx` passes it to the home layout. Facts a section shows (code
+samples, providers, formats, comparison rows, bento tiles) live in typed tables in `lib/landing-*.ts`
+and `lib/hero-terminal.ts`, never in the component or the copy.
+
+- **Edit copy**: change the `landing.*` key in `messages/en.json`, then update `de.json`,
+  `es.json` and `fr.json` in the same change, with `pnpm i18n` or by hand. After a hand
+  translation, run `npx verbatra check` from this directory: it must report every locale in sync.
+- **Add or reorder a section**: build it in `components/landing/` on `Section` and `SectionHead`,
+  add its id to `LANDING_SECTIONS` at the position it takes, map the id to the component in
+  `page.tsx`, and update the order in `lib/landing-sections.test.ts`. Give it a section `id` that
+  no other section uses.
+- **Live stats**: the GitHub star count (header and proof strip) and the npm weekly downloads of
+  `@verbatra/cli` come from `lib/project-stats.ts`, fetched on the server only, cached for an hour
+  (`next.revalidate`) and cut off after a short timeout. `GITHUB_TOKEN`, when set, raises the
+  GitHub rate limit. When a request fails or returns something unexpected, the number is left out;
+  the page never shows a made-up figure.
+
 ## Translating the interface strings
 
 ```bash
