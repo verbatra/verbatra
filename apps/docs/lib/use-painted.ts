@@ -2,22 +2,27 @@ import { useSyncExternalStore } from "react";
 import { afterFirstContentfulPaint } from "@/lib/first-paint";
 
 let painted = false;
+let waiting = false;
 const listeners = new Set<() => void>();
+
+function waitForPaint(): void {
+  if (waiting) return;
+  waiting = true;
+  void afterFirstContentfulPaint().then(() => {
+    painted = true;
+    for (const notify of listeners) notify();
+  });
+}
 
 function subscribe(listener: () => void): () => void {
   listeners.add(listener);
-  if (!painted) {
-    void afterFirstContentfulPaint().then(() => {
-      painted = true;
-      for (const notify of listeners) notify();
-    });
-  }
+  waitForPaint();
   return () => {
     listeners.delete(listener);
   };
 }
 
-export function usePainted(): boolean {
+function usePainted(): boolean {
   return useSyncExternalStore(
     subscribe,
     () => painted,

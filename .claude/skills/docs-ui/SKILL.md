@@ -560,15 +560,16 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
   Activity boundaries are written inline (`<!--&-->`) yet hydrate on their own, so each island
   hydrates when its chunk lands and a slow one holds no other back. In the browser
   `preloadIslands` starts every registered chunk together once the first contentful paint resolves
-  (`afterFirstContentfulPaint`, a 3s fallback whose timer is cleared). A rejected chunk is retried
+  (`afterFirstContentfulPaint` in `lib/first-paint.ts`, a 3s fallback whose timer is cleared). A rejected chunk is retried
   (`retrying` in `lib/retry.ts`); if it still fails, the island never throws and never stays suspended: when
   it was server-rendered it hydrates its `span.vk-island` with an empty `dangerouslySetInnerHTML`
   (one shared object, so React never writes it), which keeps the server HTML in place,
   non-interactive, and lets a provider change or a soft navigation under a persisted layout commit
   past it, and in a client render it renders nothing (a client mount also gives up after `mountTimeoutMs`, 8s by default, so a hanging chunk never holds a soft navigation), and the failure is forgotten when the island unmounts, so the next soft
   navigation loads it again. `lib/island.test.tsx` pins all of this, the paint gate through a fake
-  `PerformanceObserver`; `island(load, { gate, retryDelaysMs, mountTimeoutMs })` takes these as options. Tests that
-  server-render under jsdom get every registered island preloaded by `vitest.setup.ts`.
+  `PerformanceObserver`; `island(load, { gate, retryDelaysMs, mountTimeoutMs })` takes these as options. A test that
+  renders an island under jsdom preloads it itself (`beforeAll(() => CopyButton.preload())`); there
+  is no global setup file.
   `intlIsland()` wraps it in `withIntl` (`components/intl-boundary.tsx`), so `next-intl` loads with
   the island; `components/landing/islands.test.tsx` fails when a plain `island()` module tree calls
   `useTranslations`, or an `intlIsland()` one does not.
@@ -583,7 +584,7 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
 - Nothing a hydrated page asks for may race the first paint, since Lighthouse's simulation counts
   every request that starts before the observed largest paint: island chunks, `/api/stats`
   (`useLiveStats`) and every link prefetch wait for `afterFirstContentfulPaint`. Links go through
-  `useLinkPrefetch` (`lib/use-painted.ts`, `false` until that paint, then the link's own choice) in
+  `useLinkPrefetch` (`lib/use-painted.ts`, `false` until that paint, then the link's own choice; the module waits on the paint once, however many links subscribe) in
   `FrameworkLink` (`lib/framework-provider.tsx`) and `TrackedLink`, and the header wordmark never
   prefetches the home page it sits on.
 - `experimental.turbopackChunking` (`minChunkSize` 200000, `requestCost` 1000000 in

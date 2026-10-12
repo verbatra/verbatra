@@ -11,7 +11,13 @@ let paint: () => void = () => undefined;
 const painted = new Promise<void>((resolve) => {
   paint = resolve;
 });
-vi.mock("@/lib/first-paint", () => ({ afterFirstContentfulPaint: () => painted }));
+const gate = vi.hoisted(() => ({ calls: 0 }));
+vi.mock("@/lib/first-paint", () => ({
+  afterFirstContentfulPaint: () => {
+    gate.calls += 1;
+    return painted;
+  },
+}));
 
 const { useLinkPrefetch } = await import("./use-painted");
 
@@ -41,5 +47,15 @@ describe("useLinkPrefetch", () => {
       await painted;
     });
     expect(container.textContent).toBe("undefinedtruefalse");
+  });
+
+  it("waits on the paint once for the module, however many links subscribe", async () => {
+    const container = document.createElement("div");
+    await act(async () => {
+      createRoot(container).render(
+        Array.from({ length: 150 }, (_, index) => <Probe key={String(index)} prefetch={true} />),
+      );
+    });
+    expect(gate.calls).toBe(1);
   });
 });
