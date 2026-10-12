@@ -154,10 +154,12 @@ export function GitHubNavLink({
 
 export function GetStartedLink({
   location = "header",
+  size = "sm",
   className = "vk-nav-cta whitespace-nowrap",
   onNavigate,
 }: {
   location?: "header" | "menu";
+  size?: "sm" | "md";
   className?: string;
   onNavigate?: () => void;
 }): ReactNode {
@@ -165,7 +167,7 @@ export function GetStartedLink({
   return (
     <Link
       href={quickstartUrl}
-      className={buttonClasses("primary", location === "menu" ? "md" : "sm", className)}
+      className={buttonClasses("primary", size, className)}
       style={{ background: "var(--accent-fill)" }}
       onClick={() => {
         trackUmamiEvent("click-cta", { location, target: "get-started" });

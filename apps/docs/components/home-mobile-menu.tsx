@@ -74,6 +74,7 @@ export function HomeMobileMenu({ footer }: { footer: ReactNode }): ReactNode {
         <div className="px-4 pt-3 pb-4">
           <GetStartedLink
             location="menu"
+            size="md"
             className="vk-nav-cta-menu w-full justify-center"
             onNavigate={close}
           />
