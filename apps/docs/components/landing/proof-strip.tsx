@@ -1,6 +1,6 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
-import { LiveStatValue } from "@/components/landing/islands";
+import { LiveStatFallback, LiveStatValue } from "@/components/landing/islands";
 import { GITHUB_URL, NPM_CLI } from "@/components/landing/links";
 import { TrackedLink } from "@/components/ui/tracked-link";
 import { formatCompactNumber } from "@/lib/compact-number";
@@ -32,10 +32,12 @@ function OutboundStat({
   item,
   t,
   locale,
+  newTab,
 }: {
   item: StatItem;
   t: StatsT;
   locale: string;
+  newTab: string;
 }): ReactNode {
   return (
     <li className="vk-proof-strip-item" data-stat={item.key}>
@@ -49,9 +51,12 @@ function OutboundStat({
         data-umami-event-location="proof-strip"
       >
         {item.value === null ? (
-          <span className="vk-proof-strip-value" data-fallback>
-            {t(`${item.key}Fallback`)}
-          </span>
+          <LiveStatFallback
+            stat={item.key}
+            fallback={t(`${item.key}Fallback`)}
+            label={t(item.key)}
+            locale={locale}
+          />
         ) : (
           <>
             <LiveStatValue
@@ -62,6 +67,7 @@ function OutboundStat({
             <span className="vk-proof-strip-label">{t(item.key)}</span>
           </>
         )}
+        <span className="sr-only"> {newTab}</span>
       </a>
     </li>
   );
@@ -106,6 +112,7 @@ function factItems(t: StatsT, locale: Locale): ReadonlyArray<ReactNode> {
 
 export async function ProofStrip({ stats }: { stats?: ProjectStats } = {}): Promise<ReactNode> {
   const t = await getTranslations("landing.stats");
+  const newTab = (await getTranslations("landing.openSource"))("newTab");
   const locale = toLocale(await getLocale());
   const { stars, weeklyDownloads } = stats ?? (await loadProjectStats());
   const figures: ReadonlyArray<StatItem> = [
@@ -113,7 +120,9 @@ export async function ProofStrip({ stats }: { stats?: ProjectStats } = {}): Prom
     { key: "downloads", value: weeklyDownloads, href: NPM_CLI },
   ];
   const slots = [
-    ...figures.map((item) => <OutboundStat key={item.key} item={item} t={t} locale={locale} />),
+    ...figures.map((item) => (
+      <OutboundStat key={item.key} item={item} t={t} locale={locale} newTab={newTab} />
+    )),
     ...factItems(t, locale),
   ];
 

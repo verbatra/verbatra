@@ -198,8 +198,8 @@
       "label": "verbatra en chiffres",
       "stars": "étoiles sur GitHub",
       "downloads": "téléchargements npm la semaine dernière",
-      "starsFallback": "GitHub",
-      "downloadsFallback": "npm",
+      "starsFallback": "verbatra sur GitHub",
+      "downloadsFallback": "verbatra sur npm",
       "providers": "fournisseurs de traduction",
       "formats": "formats de fichier"
     },

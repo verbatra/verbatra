@@ -22,6 +22,9 @@ export const FormatSwitch = island(
 );
 export const TryIt = intlIsland(() => import("./try-it").then((m) => m.TryIt), BLOCK);
 export const LiveStatValue = island(() => import("./live-stat-value").then((m) => m.LiveStatValue));
+export const LiveStatFallback = island(() =>
+  import("./live-stat-value").then((m) => m.LiveStatFallback),
+);
 export const FaqAccordion = island(
   () => import("./faq-accordion").then((m) => m.FaqAccordion),
   BLOCK,
@@ -45,6 +48,7 @@ await preloadIslands([
   FormatSwitch,
   TryIt,
   LiveStatValue,
+  LiveStatFallback,
   FaqAccordion,
   StudioScreenshot,
   CommandRow,

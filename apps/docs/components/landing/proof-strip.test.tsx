@@ -67,9 +67,10 @@ describe("ProofStrip", () => {
     const doc = await render({ stars: 1234, weeklyDownloads: 56_789 });
     expect(doc.querySelector("section")?.getAttribute("aria-label")).toBe(labels.label);
     expect(doc.querySelector("ul")?.getAttribute("role")).toBe("list");
+    const newTab = messages.landing.openSource.newTab;
     expect(items(doc).map((item) => item.textContent)).toEqual([
-      `1.2K ${labels.stars}`,
-      `56.8K ${labels.downloads}`,
+      `1.2K ${labels.stars} ${newTab}`,
+      `56.8K ${labels.downloads} ${newTab}`,
       `${providerList("en")} ${labels.providers}`,
       `${SUPPORTED_FORMAT_IDS.length} ${labels.formats}`,
     ]);
@@ -101,14 +102,17 @@ describe("ProofStrip", () => {
     },
   );
 
-  it("falls back to a GitHub or npm link, never an empty value, when a figure could not be fetched", async () => {
+  it("falls back to a named GitHub or npm link, never an empty value, when a figure could not be fetched", async () => {
     const doc = await render({ stars: null, weeklyDownloads: null });
     const stars = doc.querySelector('[data-stat="stars"] a');
     const downloads = doc.querySelector('[data-stat="downloads"] a');
+    const newTab = messages.landing.openSource.newTab;
     expect(stars?.getAttribute("href")).toBe(GITHUB_URL);
-    expect(stars?.textContent).toBe(labels.starsFallback);
+    expect(stars?.textContent).toBe(`${labels.starsFallback} ${newTab}`);
     expect(downloads?.getAttribute("href")).toBe(NPM_CLI);
-    expect(downloads?.textContent).toBe(labels.downloadsFallback);
+    expect(downloads?.textContent).toBe(`${labels.downloadsFallback} ${newTab}`);
+    expect(labels.starsFallback).toContain("verbatra");
+    expect(labels.downloadsFallback).toContain("verbatra");
     expect(doc.querySelectorAll("[data-live-stat]")).toHaveLength(0);
     expect(facts(doc)).toEqual(["providers", "formats"]);
     for (const stat of doc.querySelectorAll("[data-stat]")) {
@@ -151,10 +155,29 @@ describe("ProofStrip", () => {
     expect(text).toContain("LibreTranslate");
   });
 
+  it("tells every outbound figure link's screen reader it opens a new tab", async () => {
+    const doc = await render({ stars: 3, weeklyDownloads: null });
+    for (const link of doc.querySelectorAll('[data-stat] a[target="_blank"]')) {
+      expect(link.querySelector(".sr-only")?.textContent?.trim()).toBe(
+        messages.landing.openSource.newTab,
+      );
+    }
+  });
+
+  it.each([
+    ["en", ["1.5K", "56.8K"]],
+    ["de", ["1500", "56.789"]],
+  ])("formats figures of a thousand and more the way %s writes them", async (locale, expected) => {
+    const doc = await render({ stars: 1500, weeklyDownloads: 56_789 }, locale);
+    expect(
+      Array.from(doc.querySelectorAll("[data-live-stat]"), (node) => node.textContent),
+    ).toEqual(expected);
+  });
+
   it("formats the figures for the page locale and localizes the providers link", async () => {
-    const doc = await render({ stars: 1500, weeklyDownloads: null }, "de");
-    expect(items(doc)[0]?.querySelector(".vk-proof-strip-value")?.textContent).toBe(
-      new Intl.NumberFormat("de", { notation: "compact", maximumFractionDigits: 1 }).format(1500),
+    const doc = await render({ stars: 1_234_567, weeklyDownloads: null }, "de");
+    expect(items(doc)[0]?.querySelector(".vk-proof-strip-value")?.textContent).toMatch(
+      /^1,2\sMio\.$/,
     );
     expect(doc.querySelector('[data-fact="providers"] a')?.getAttribute("href")).toBe(
       "/de/docs/providers",

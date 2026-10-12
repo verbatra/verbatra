@@ -198,8 +198,8 @@
       "label": "verbatra in Zahlen",
       "stars": "GitHub-Sterne",
       "downloads": "npm-Downloads letzte Woche",
-      "starsFallback": "GitHub",
-      "downloadsFallback": "npm",
+      "starsFallback": "verbatra auf GitHub",
+      "downloadsFallback": "verbatra auf npm",
       "providers": "Übersetzungs-Provider",
       "formats": "Dateiformate"
     },

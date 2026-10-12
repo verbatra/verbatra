@@ -176,6 +176,50 @@ describe("the header star count", () => {
   });
 });
 
+describe("LiveStatFallback", () => {
+  async function renderFallback(locale: string): Promise<HTMLElement> {
+    const container = document.createElement("div");
+    document.body.append(container);
+    const { LiveStatFallback } = island;
+    await act(async () => {
+      createRoot(container).render(
+        <LiveStatFallback
+          stat="downloads"
+          fallback="verbatra on npm"
+          label="downloads"
+          locale={locale}
+        />,
+      );
+    });
+    return container;
+  }
+
+  it.each([
+    ["en", "15.6K downloads"],
+    ["de", "15.600 downloads"],
+  ])("turns a fallback link into the live figure once it arrives, in %s", async (locale, text) => {
+    let answer: (response: Response) => void = () => undefined;
+    stubFetch(() => new Promise<Response>((resolve) => (answer = resolve)));
+    const container = await renderFallback(locale);
+    expect(container.textContent).toBe("verbatra on npm");
+    await act(async () => {
+      answer(Response.json({ stars: 2, downloads: 15_600 }));
+      await live.loadLiveStats();
+    });
+    expect(container.textContent).toBe(text);
+  });
+
+  it("keeps the fallback when the live figure fails too", async () => {
+    stubFetch(async () => new Response("down", { status: 503 }));
+    const container = await renderFallback("en");
+    await act(async () => {
+      await live.loadLiveStats();
+    });
+    expect(container.textContent).toBe("verbatra on npm");
+    expect(container.querySelector("[data-fallback]")).not.toBeNull();
+  });
+});
+
 describe("useLiveCount", () => {
   it("never shows a number the build-time render hid", async () => {
     stubFetch(async () => Response.json({ stars: 2500, downloads: 1 }));

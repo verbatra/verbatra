@@ -251,8 +251,8 @@
       "label": "verbatra in numbers",
       "stars": "GitHub stars",
       "downloads": "npm downloads last week",
-      "starsFallback": "GitHub",
-      "downloadsFallback": "npm",
+      "starsFallback": "verbatra on GitHub",
+      "downloadsFallback": "verbatra on npm",
       "providers": "translation providers",
       "formats": "file formats"
     },

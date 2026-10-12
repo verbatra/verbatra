@@ -259,8 +259,10 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   `HeroTerminal` island), `proof-strip.tsx` (stars, npm weekly downloads, the providers and the format count, the stars
 and downloads from `lib/project-stats.ts`, read at build time so the page stays static, then
 refreshed in place by `LiveStatValue` from `/api/stats`; every figure shows as fetched, with no
-display threshold, and a figure the build could not fetch leaves its cell as a plain GitHub or npm
-link (`landing.stats.starsFallback`, `downloadsFallback`), never an empty value; the format count is
+display threshold, and a figure the build could not fetch leaves its cell as a named link
+(`landing.stats.starsFallback`, `downloadsFallback`: "verbatra on GitHub", "verbatra on npm"), never
+an empty value, which `LiveStatFallback` still turns into the live figure once `/api/stats` answers;
+both figure links open a new tab and say so in an `sr-only` `landing.openSource.newTab`; the format count is
 `SUPPORTED_FORMAT_IDS.length`, never a typed number), `problem.tsx` (`#problem`, a real drift
   artifact from `lib/landing-problem.ts`), `steps.tsx` (`#how-it-works`: check, translate and CI,
   each with a server-highlighted snippet from `LANDING_STEP_CODE` in `lib/landing-code.ts`; the
