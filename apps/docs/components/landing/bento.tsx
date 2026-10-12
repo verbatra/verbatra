@@ -15,6 +15,7 @@ import {
   bentoHref,
 } from "@/lib/landing-bento";
 import { FORMAT_DISPLAY, MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
+import { HUMAN_ONLY_PROVIDER } from "@/lib/landing-providers";
 import { CodeFrame } from "./code-frame";
 import { Evidence } from "./evidence";
 import { PlaceholderText } from "./placeholder-chip";
@@ -60,7 +61,7 @@ function ProviderList(): ReactNode {
       data-artifact="providers"
       className="flex list-none flex-wrap gap-2"
     >
-      {[...MACHINE_PROVIDER_IDS, "none" as const].map((id) => (
+      {[...MACHINE_PROVIDER_IDS, HUMAN_ONLY_PROVIDER].map((id) => (
         <li key={id} className={TOKEN_CLASS}>
           {id}
         </li>
