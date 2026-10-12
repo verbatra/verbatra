@@ -225,6 +225,11 @@ samp {
   --placeholder-fill: color-mix(in srgb, var(--v-glow) 12%, transparent);
   --placeholder-ring: color-mix(in srgb, var(--v-glow) 45%, transparent);
   --placeholder-inset: 0.25ch;
+  --banner-dot: color-mix(in srgb, var(--text-faint) 38%, transparent);
+  --banner-dot-gap: 22px;
+  --banner-dot-mask: radial-gradient(ellipse 75% 70% at 60% 35%, #000 25%, transparent 80%);
+  --banner-glow: color-mix(in srgb, var(--v-purple) 30%, transparent);
+  --banner-title: min(var(--text-hero), 13.5cqi);
 }
 
 html.light {
@@ -255,6 +260,8 @@ html.light {
   --text-faint: hsl(240 8% 40%);
   --shadow-panel: 0 24px 60px -30px color-mix(in srgb, var(--v-purple) 22%, transparent);
   --shadow-sm: 0 2px 8px -2px rgba(20, 20, 40, 0.12);
+  --banner-dot: color-mix(in srgb, var(--text-faint) 30%, transparent);
+  --banner-glow: color-mix(in srgb, var(--v-purple) 16%, transparent);
 }
 
 @media (width < 40rem) {
@@ -2339,19 +2346,6 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 
 #nd-toc a {
   overflow-wrap: normal;
-}
-
-:root {
-  --banner-dot: color-mix(in srgb, var(--text-faint) 38%, transparent);
-  --banner-dot-gap: 22px;
-  --banner-dot-mask: radial-gradient(ellipse 75% 70% at 60% 35%, #000 25%, transparent 80%);
-  --banner-glow: color-mix(in srgb, var(--v-purple) 30%, transparent);
-  --banner-title: min(var(--text-hero), 13.5cqi);
-}
-
-html.light {
-  --banner-dot: color-mix(in srgb, var(--text-faint) 30%, transparent);
-  --banner-glow: color-mix(in srgb, var(--v-purple) 16%, transparent);
 }
 
 .vk-banner {
