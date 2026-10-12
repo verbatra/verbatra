@@ -11,7 +11,7 @@ import { ThemeMeta } from "@/components/theme-meta";
 import { pickClientMessages } from "@/lib/client-messages";
 import { LocaleAwareFrameworkProvider } from "@/lib/framework-provider";
 import { i18n, toLocale } from "@/lib/i18n";
-import { i18nConfig } from "@/lib/layout.shared";
+import { i18nConfig, SEARCH_OPTIONS } from "@/lib/layout.shared";
 import { UMAMI_ORIGIN } from "@/lib/security-headers.mjs";
 import { homeAlternates, SITE_HOST, SITE_URL } from "@/lib/site";
 import { homeOgImagePath, socialMetadata } from "@/lib/social-metadata";
@@ -106,7 +106,11 @@ export default async function Layout({
         <JsonLd data={organizationLd()} />
         <NextIntlClientProvider locale={locale} messages={pickClientMessages(messages)}>
           <LocaleAwareFrameworkProvider>
-            <RootProvider theme={THEME_PROVIDER_OPTIONS} i18n={i18nConfig(locale)}>
+            <RootProvider
+              theme={THEME_PROVIDER_OPTIONS}
+              search={SEARCH_OPTIONS}
+              i18n={i18nConfig(locale)}
+            >
               <ThemeMeta />
               {children}
             </RootProvider>

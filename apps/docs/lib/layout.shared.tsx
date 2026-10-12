@@ -18,6 +18,8 @@ const localeNames = i18n.languages.map((locale) => ({
   name: LOCALE_DISPLAY_NAMES[locale],
 }));
 
+export const SEARCH_OPTIONS = { preload: false } as const;
+
 export function i18nConfig(locale: string) {
   return { ...i18nProvider(translations, locale), locales: localeNames };
 }

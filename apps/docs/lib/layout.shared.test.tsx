@@ -188,6 +188,13 @@ describe("the landing header version pill", () => {
   });
 });
 
+describe("search options", () => {
+  it("loads the search dialog on first open, not on every page load", async () => {
+    const { SEARCH_OPTIONS } = await import("./layout.shared");
+    expect(SEARCH_OPTIONS.preload).toBe(false);
+  });
+});
+
 describe("wordmark", () => {
   it("writes the header wordmark in lowercase with tight tracking, like the footer", async () => {
     const container = document.createElement("div");
