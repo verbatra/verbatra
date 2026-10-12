@@ -2,14 +2,7 @@
 
 import { usePathname } from "fumadocs-core/framework";
 import Link from "fumadocs-core/link";
-import {
-  SidebarDrawerContent,
-  SidebarDrawerOverlay,
-  SidebarProvider,
-  SidebarTrigger,
-  SidebarViewport,
-  useSidebar,
-} from "fumadocs-ui/components/sidebar/base";
+import { useSidebar } from "fumadocs-ui/components/sidebar/base";
 import { buttonVariants } from "fumadocs-ui/components/ui/button";
 import { useHomeLayout } from "fumadocs-ui/layouts/home";
 import { useNotebookLayout } from "fumadocs-ui/layouts/notebook";
@@ -20,7 +13,15 @@ import {
   type LinkItemType,
 } from "fumadocs-ui/layouts/shared";
 import { type ComponentProps, type ReactNode, useRef } from "react";
-import { HeaderCta } from "@/components/header-cta";
+import {
+  ChangelogNavLink,
+  DocsNavLink,
+  GetStartedLink,
+  GitHubNavLink,
+  HomeMobileMenu,
+  NAV_TEXT_LINK,
+  useHomeNav,
+} from "@/components/home-nav";
 import { useRootTabs } from "@/components/root-tabs";
 import { useDrawerEscape } from "@/components/use-drawer-escape";
 import { VersionPill } from "@/components/version-pill";
@@ -35,16 +36,12 @@ export type HeaderSlots = Pick<
 
 type IconItem = Extract<LinkItemType, { type: "icon" }>;
 
-const TEXT_LINK =
-  "vk-header-link whitespace-nowrap text-sm text-fd-muted-foreground transition-colors hover:text-fd-accent-foreground data-[active=true]:text-fd-primary";
+const TEXT_LINK = NAV_TEXT_LINK;
 
 const ICON_BUTTON = cn(
   buttonVariants({ size: "icon-sm", variant: "ghost" }),
   "text-fd-muted-foreground",
 );
-
-const DRAWER_ITEM =
-  "relative flex flex-row items-center gap-2 rounded-lg p-2 text-start text-fd-muted-foreground transition-colors hover:bg-fd-accent/50 hover:text-fd-accent-foreground/80 data-[active=true]:bg-fd-primary/10 data-[active=true]:text-fd-primary";
 
 const ICON_PROPS = {
   width: 24,
@@ -62,15 +59,6 @@ function SidebarIcon(): ReactNode {
     <svg {...ICON_PROPS} aria-hidden="true">
       <rect width="18" height="18" x="3" y="3" rx="2" />
       <path d="M9 3v18" />
-    </svg>
-  );
-}
-
-function CloseIcon(): ReactNode {
-  return (
-    <svg {...ICON_PROPS} aria-hidden="true">
-      <path d="M18 6 6 18" />
-      <path d="m6 6 12 12" />
     </svg>
   );
 }
@@ -179,6 +167,8 @@ export type SiteHeaderFrameProps = ComponentProps<"header"> & {
   trailing?: ReactNode;
   cta?: ReactNode;
   badge?: ReactNode;
+  navLinks?: ReactNode;
+  navLabel?: string;
   activeOverride?: ActiveOverride;
 };
 
@@ -189,6 +179,8 @@ export function SiteHeaderFrame({
   trailing,
   cta,
   badge,
+  navLinks,
+  navLabel,
   activeOverride,
   className,
   ...props
@@ -211,8 +203,10 @@ export function SiteHeaderFrame({
           />
         ) : null}
         <div className="flex flex-1 items-center justify-end md:gap-2 md:ps-4">
-          {cta}
-          <nav className="flex items-center gap-6 empty:hidden max-md:hidden md:me-4">
+          <nav
+            aria-label={navLabel}
+            className="flex items-center gap-6 empty:hidden max-md:hidden md:me-4"
+          >
             {textItems.map((item) => (
               <TextLink
                 key={itemKey(item)}
@@ -221,10 +215,12 @@ export function SiteHeaderFrame({
                 activeOverride={activeOverride}
               />
             ))}
+            {navLinks}
           </nav>
           {iconItems.map((item) => (
             <IconLink key={itemKey(item)} item={item} className="max-md:hidden" />
           ))}
+          {cta}
           <div className="flex items-center md:hidden">
             {slots.searchTrigger ? <slots.searchTrigger.sm hideIfDisabled className="p-2" /> : null}
             {mobileTrigger}
@@ -285,56 +281,33 @@ export function DocsSiteHeader(props: ComponentProps<"header">): ReactNode {
   );
 }
 
-function HomeMobileTrigger(): ReactNode {
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  useDrawerEscape(useSidebar(), triggerRef);
-  return (
-    <SidebarTrigger ref={triggerRef} className={MOBILE_TRIGGER}>
-      <SidebarIcon />
-    </SidebarTrigger>
-  );
-}
-
 export function HomeSiteHeader(props: ComponentProps<"header">): ReactNode {
-  const { slots, navItems, menuItems } = useHomeLayout();
-  const textItems = menuItems.filter((item) => !isIconItem(item));
-  const iconItems = menuItems.filter(isIconItem);
+  const { slots } = useHomeLayout();
+  const { labels } = useHomeNav();
+  const settings = (
+    <>
+      <LanguageSelect slots={slots} />
+      {slots.themeSwitch ? <slots.themeSwitch /> : null}
+    </>
+  );
   return (
-    <SidebarProvider>
-      <SiteHeaderFrame
-        id="nd-nav"
-        {...props}
-        className={cn("top-0 z-40", props.className)}
-        slots={slots}
-        navItems={navItems}
-        mobileTrigger={<HomeMobileTrigger />}
-        cta={<HeaderCta />}
-        badge={<VersionPill />}
-      />
-      <SidebarDrawerOverlay className="fixed inset-0 z-40 backdrop-blur-xs data-[state=closed]:animate-fd-fade-out data-[state=open]:animate-fd-fade-in" />
-      <SidebarDrawerContent className="fixed inset-e-0 inset-y-0 z-40 flex w-[85%] max-w-[380px] flex-col border-s bg-fd-background text-[0.9375rem] shadow-lg data-[state=closed]:animate-fd-sidebar-out data-[state=open]:animate-fd-sidebar-in">
-        <div className="flex justify-end px-2.5 pt-4 pb-2">
-          <SidebarTrigger className={cn(buttonVariants({ variant: "ghost", size: "icon-sm" }))}>
-            <CloseIcon />
-          </SidebarTrigger>
-        </div>
-        <SidebarViewport viewport={{ className: "px-2" }}>
-          <div className="flex flex-col gap-0.5">
-            {textItems.map((item) => (
-              <TextLink key={itemKey(item)} item={item} className={DRAWER_ITEM} />
-            ))}
-          </div>
-        </SidebarViewport>
-        <div className="flex items-center gap-1 border-t px-2.5 pt-2 pb-4 text-fd-muted-foreground">
-          {iconItems.map((item) => (
-            <IconLink key={itemKey(item)} item={item} />
-          ))}
-          <div className="ms-auto flex items-center gap-1">
-            <LanguageSelect slots={slots} />
-            {slots.themeSwitch ? <slots.themeSwitch /> : null}
-          </div>
-        </div>
-      </SidebarDrawerContent>
-    </SidebarProvider>
+    <SiteHeaderFrame
+      id="nd-nav"
+      {...props}
+      className={cn("top-0 z-40", props.className)}
+      slots={{ ...slots, searchTrigger: false }}
+      navItems={[]}
+      navLabel={labels.label}
+      navLinks={
+        <>
+          <DocsNavLink className={TEXT_LINK} />
+          <ChangelogNavLink className={TEXT_LINK} location="header" />
+          <GitHubNavLink className={TEXT_LINK} location="header" />
+        </>
+      }
+      mobileTrigger={<HomeMobileMenu footer={settings} />}
+      cta={<GetStartedLink />}
+      badge={<VersionPill />}
+    />
   );
 }

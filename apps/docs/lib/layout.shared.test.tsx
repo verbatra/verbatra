@@ -64,6 +64,8 @@ const { releaseUrl } = await import("@/components/landing/links");
 const { PACKAGE_VERSION } = await import("@/lib/site");
 const { docsStylesheetRules } = await import("@/lib/stylesheet-rules");
 const { HomeSiteHeader } = await import("@/components/site-header");
+const { HomeNavProvider } = await import("@/components/home-nav");
+const { localizedPath } = await import("@/lib/i18n");
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -80,6 +82,25 @@ function describeItem(item: LinkItemType): string {
 
 let mounted: { container: HTMLDivElement; root: Root } | undefined;
 
+function navValue(locale: "en" | "de") {
+  return {
+    docsUrl: localizedPath(locale, "/docs"),
+    quickstartUrl: localizedPath(locale, "/docs/quickstart"),
+    stars: null,
+    labels: {
+      label: "Main",
+      docs: "nav.docs",
+      github: "GitHub",
+      starsAria: null,
+      changelog: "Changelog",
+      getStarted: "Get started",
+      menuOpen: "Open menu",
+      menuClose: "Close menu",
+      menuTitle: "Menu",
+    },
+  };
+}
+
 async function renderHomeHeader(locale: "en" | "de" = "en"): Promise<HTMLDivElement> {
   const links = await headerLinks(locale);
   homeLayout.current = {
@@ -90,7 +111,13 @@ async function renderHomeHeader(locale: "en" | "de" = "en"): Promise<HTMLDivElem
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
-  act(() => root.render(<HomeSiteHeader />));
+  act(() =>
+    root.render(
+      <HomeNavProvider value={navValue(locale)}>
+        <HomeSiteHeader />
+      </HomeNavProvider>,
+    ),
+  );
   mounted = { container, root };
   return container;
 }
@@ -175,49 +202,30 @@ describe("primary navigation", () => {
     }
   });
 
-  it("renders the same items in the header bar and in the phone drawer", async () => {
+  it("gives the landing bar Docs, Changelog and GitHub, and none of the forbidden targets", async () => {
     const container = await renderHomeHeader();
-    const header = container.querySelector("header");
-    const drawer = container.querySelector("[data-drawer]");
-
-    expect(hrefs(header, "nav a")).toEqual(["/docs", "/docs/cli"]);
-    expect(hrefs(header, "a[aria-label]:not(.vk-version-pill)")).toEqual([
+    expect(hrefs(container.querySelector("header"), "nav a")).toEqual([
+      "/docs",
+      "https://github.com/verbatra/verbatra/releases",
       "https://github.com/verbatra/verbatra",
     ]);
-    expect(
-      Array.from(drawer?.querySelectorAll("a:not([aria-label])") ?? [], (a) => a.textContent),
-    ).toEqual(["nav.docs", "nav.reference"]);
-    expect(hrefs(drawer, "a[aria-label]")).toEqual(["https://github.com/verbatra/verbatra"]);
     for (const href of hrefs(container, "a")) {
       for (const target of FORBIDDEN_TARGETS) expect(href ?? "").not.toMatch(target);
     }
   });
 
-  it("prefixes the header and drawer links with a non-default locale", async () => {
+  it("prefixes the landing bar's internal links with a non-default locale", async () => {
     const container = await renderHomeHeader("de");
-    const drawer = container.querySelector("[data-drawer]");
-
-    expect(hrefs(container.querySelector("header"), "nav a")).toEqual(["/de/docs", "/de/docs/cli"]);
-    expect(hrefs(drawer, "a:not([aria-label])")).toEqual(["/de/docs", "/de/docs/cli"]);
+    expect(hrefs(container.querySelector("header"), "nav a")[0]).toBe("/de/docs");
+    expect(hrefs(container.querySelector("header"), "a.vk-nav-cta")).toEqual([
+      "/de/docs/quickstart",
+    ]);
   });
 
-  it("keeps the version pill out of the primary nav and the drawer", async () => {
+  it("keeps the version pill out of the primary nav", async () => {
     const container = await renderHomeHeader();
     const pill = container.querySelector(".vk-version-pill");
     expect(pill).not.toBeNull();
     expect(pill?.closest("nav")).toBeNull();
-    expect(container.querySelector("[data-drawer] .vk-version-pill")).toBeNull();
-  });
-
-  it("marks the drawer item of the current page as active and current", async () => {
-    location.pathname = "/docs";
-    const drawer = (await renderHomeHeader()).querySelector("[data-drawer]");
-    const docs = drawer?.querySelector('a[href="/docs"]');
-    const reference = drawer?.querySelector('a[href="/docs/cli"]');
-
-    expect(docs?.getAttribute("data-active")).toBe("true");
-    expect(docs?.getAttribute("aria-current")).toBe("page");
-    expect(reference?.getAttribute("data-active")).toBe("false");
-    expect(reference?.hasAttribute("aria-current")).toBe(false);
   });
 });

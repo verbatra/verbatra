@@ -526,19 +526,11 @@ parallax, no scroll-scrubbing and no scroll listener; `motion` is reserved for c
   run has printed, every step is complete and none is current. Without JavaScript and under reduced
   motion every bar shows filled, statically. The terminal's caret is a fresh element per keystroke
   (`.vk-terminal-caret`), so typing never counts as a layout shift.
-- **Header call to action.** On the landing only (`landingLocale` in `components/header-cta.tsx`),
-  `HomeSiteHeader` carries a small primary "Get started" (`landing.nav.headerCta.label`), first in
-  the right-hand group in both the DOM and the visual order. It reserves no slot: it is
-  `display: none` until `MotionRoot`'s presence observer sees the hero leave through the top of its
-  root (`html[data-past-hero]`; the root is the viewport less `--vk-landing-offset`, the height the
-  sticky header and section nav cover, and `isPastHero` measures against `rootBounds.top`), and
-  again while the final call to action is on screen (`html[data-final-cta]`). It then appears with a
-  4px fade (`vk-header-cta-in`) into the free space of the `justify-end` group, so nothing beside it
-  moves. It shows under 768px, from 1280px, and on a landscape screen under 32rem tall (a phone
-  turned sideways), the cases where that space exists; for the last, the landing header drops the
-  start group's `flex-1` (`.vk-header-start`) and caps the search box (`.vk-header-search`) at
-  12rem, so the call to action lands in free space and the search never resizes. A click counts
-  `click-cta` with `location: header`.
+- **Header call to action.** The home header's "Get started" is `GetStartedLink`
+  (`components/home-nav.tsx`), always visible and counted as `click-cta` with `location: header`.
+  `HeaderCta` in `components/header-cta.tsx` and its `.vk-header-cta` past-hero rules are no longer
+  rendered; only `landingLocale` from that file is still in use, and both go with the old landing
+  cleanup.
 - **Version pill.** On the landing only (the same `landingLocale` gate), `HomeSiteHeader` passes
   `VersionPill` (`components/version-pill.tsx`) as the frame's `badge`, rendered right after the
   wordmark and outside the primary nav, which stays Docs, Reference and GitHub. It reads
@@ -622,22 +614,28 @@ fails when a Fumadocs upgrade adds a key that de, es or fr lacks.
 ## One header for both surfaces
 
 `components/site-header.tsx` owns the navbar. `SiteHeaderFrame` renders the markup (wordmark,
-centred search, text links, icon links, language select, phone-width search and menu trigger) and
-two thin wrappers feed it from each layout's context: `HomeSiteHeader` (from `useHomeLayout`, plus a
-`SidebarProvider` drawer so the landing's phone menu is the same drawer the docs use) and
+centred search, text links, icon links, call to action, language select, phone-width search and
+menu trigger) and two thin wrappers feed it from each layout's context: `HomeSiteHeader` and
 `DocsSiteHeader` (from `useNotebookLayout`, adding the sidebar collapse and drawer triggers). They
-are wired through `slots.header` in `lib/locale-home-layout.tsx` and `app/[lang]/docs/layout.tsx`;
-`lib/layout.shared.tsx` still supplies the links, title and language select for both. The primary
-navigation is exactly Docs, Reference and the GitHub icon (`lib/layout.shared.test.tsx` pins it and
-the phone drawer): the AI setup guide, the contributor guide, npm and the contact page are reached
-from the docs sidebar and the landing footer, never from the header. The text links and the icon
-show from 768px (`md`), exactly where the phone search and menu trigger hide, so every width has one
-of the two; the home header reserves no empty slot, not even for its landing call to action (see
-"Landing motion"). At least 24px separate the search box from the first text link and the last text
-link from the GitHub icon. A text link carries `data-active` and `aria-current` (`page` on an exact
-path match, `true` for a section or tab), from the root tabs on docs and from the current path
-elsewhere, and the home drawer lines its items, close button and footer icons up on one 16px start
-edge. The home layout swaps Fumadocs' `<main id="nd-home-layout">` container for a `<div>`
+are wired through `slots.header` in `lib/locale-home-layout.tsx` and `app/[lang]/docs/layout.tsx`.
+On the docs surface `lib/layout.shared.tsx` supplies the primary navigation, exactly Docs,
+Reference and the GitHub icon (`lib/layout.shared.test.tsx` pins it). The home header (landing and
+legal pages) has no search box and its own items, from `components/home-nav.tsx`: a nav named by
+`landing.topNav.label` holding Docs, Changelog (GitHub Releases, new tab) and GitHub with the star
+count, then a primary "Get started" (`.vk-nav-cta`, to `/docs/quickstart`, visible at every width),
+the language select and the theme toggle. Its labels and the star count reach the client through
+`HomeNavProvider`, which `LocaleHomeLayout` fills on the server (`homeNavValue`: `landing.topNav`
+strings and `fetchGitHubStars`, compacted with `formatCompactNumber`), so the header adds no client
+message namespace and never fetches from the browser; without a count the GitHub link shows no
+number and no `aria-label`. Under 768px the items move into `HomeMobileMenu`, a shadcn `Sheet`
+(focus trap, Escape, focus back to the trigger, close button named by `landing.topNav.menu.close`)
+titled `landing.topNav.menu.title`, with the language select and theme toggle in its footer.
+The AI setup guide, the contributor guide, npm and the contact page are reached from the docs
+sidebar and the landing footer, never from the header. The text links and the icon show from 768px
+(`md`), exactly where the phone search and menu trigger hide. At least 24px separate the search box
+from the first text link and the last text link from the GitHub icon. A text link carries
+`data-active` and `aria-current` (`page` on an exact path match, `true` for a section or tab), from
+the root tabs on docs and from the current path elsewhere. The home layout swaps Fumadocs' `<main id="nd-home-layout">` container for a `<div>`
 (`components/home-container.tsx`) and renders its own `<main>` around the page, with the landing
 footer passed in by `app/[lang]/(home)/layout.tsx`, so the header and footer stay banner and
 contentinfo landmarks; a page under that layout must not render another `<main>`. Fumadocs' own

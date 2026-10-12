@@ -2,11 +2,34 @@ import { HomeLayout } from "fumadocs-ui/layouts/home";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { HomeContainer } from "@/components/home-container";
+import { HomeNavProvider, type HomeNavValue } from "@/components/home-nav";
 import { HomeSiteHeader } from "@/components/site-header";
-import { toLocale } from "@/lib/i18n";
+import { type Locale, localizedPath, toLocale } from "@/lib/i18n";
 import { baseOptions } from "@/lib/layout.shared";
+import { fetchGitHubStars, formatCompactNumber } from "@/lib/project-stats";
 
 export const MAIN_CONTENT_ID = "main-content";
+
+export async function homeNavValue(locale: Locale, stars: number | null): Promise<HomeNavValue> {
+  const t = await getTranslations({ locale, namespace: "landing.topNav" });
+  const count = stars === null ? null : formatCompactNumber(stars, locale);
+  return {
+    docsUrl: localizedPath(locale, "/docs"),
+    quickstartUrl: localizedPath(locale, "/docs/quickstart"),
+    stars: count,
+    labels: {
+      label: t("label"),
+      docs: t("docs"),
+      github: t("github"),
+      starsAria: count === null ? null : t("starsAria", { count }),
+      changelog: t("changelog"),
+      getStarted: t("getStarted"),
+      menuOpen: t("menu.open"),
+      menuClose: t("menu.close"),
+      menuTitle: t("menu.title"),
+    },
+  };
+}
 
 export async function LocaleHomeLayout({
   params,
@@ -20,9 +43,12 @@ export async function LocaleHomeLayout({
   const { lang } = await params;
   const locale = toLocale(lang);
   const t = await getTranslations({ locale, namespace: "landing.nav" });
-  const options = await baseOptions(locale);
+  const [options, nav] = await Promise.all([
+    baseOptions(locale),
+    fetchGitHubStars().then((stars) => homeNavValue(locale, stars)),
+  ]);
   return (
-    <>
+    <HomeNavProvider value={nav}>
       <a className="vk-skip-link" href={`#${MAIN_CONTENT_ID}`}>
         {t("skipToContent")}
       </a>
@@ -36,6 +62,6 @@ export async function LocaleHomeLayout({
         </main>
         {footer}
       </HomeLayout>
-    </>
+    </HomeNavProvider>
   );
 }

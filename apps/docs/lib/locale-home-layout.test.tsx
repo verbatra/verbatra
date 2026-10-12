@@ -6,9 +6,16 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("next-intl/server", () => ({
   getTranslations: async () => (key: string) => key,
 }));
-vi.mock("@/components/site-header", () => ({
-  HomeSiteHeader: () => <header>site header</header>,
+vi.mock("@/lib/project-stats", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/project-stats")>()),
+  fetchGitHubStars: async () => 4321,
 }));
+vi.mock("@/components/site-header", async () => {
+  const { useHomeNav } = await import("@/components/home-nav");
+  return {
+    HomeSiteHeader: () => <header data-stars={useHomeNav().stars}>site header</header>,
+  };
+});
 vi.mock("@/lib/layout.shared", () => ({
   baseOptions: async () => ({}),
 }));
@@ -44,5 +51,12 @@ describe("LocaleHomeLayout: landmarks", () => {
   it("keeps the id fumadocs scopes its home layout variables to", async () => {
     const doc = await renderLayout();
     expect(doc.getElementById("nd-home-layout")?.tagName).toBe("DIV");
+  });
+});
+
+describe("LocaleHomeLayout: the landing nav", () => {
+  it("fetches the star count on the server and hands it to the header, compacted", async () => {
+    const doc = await renderLayout();
+    expect(doc.querySelector("header")?.getAttribute("data-stars")).toBe("4.3K");
   });
 });
