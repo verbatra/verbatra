@@ -19,6 +19,19 @@ export const THEME_PROVIDER_OPTIONS: NonNullable<RootProviderProps["theme"]> = {
   disableTransitionOnChange: true,
 };
 
+export function themeName(resolved: string | undefined): ThemeName {
+  return resolved === "light" ? "light" : DEFAULT_THEME;
+}
+
+export function applyThemeMeta(doc: Document, theme: ThemeName): void {
+  for (const meta of doc.querySelectorAll('meta[name="theme-color"]')) {
+    meta.setAttribute("content", THEME_COLORS[theme]);
+  }
+  for (const meta of doc.querySelectorAll('meta[name="color-scheme"]')) {
+    meta.setAttribute("content", theme);
+  }
+}
+
 export function nextTheme(resolved: string | undefined): ThemeName {
   return resolved === "light" ? "dark" : "light";
 }

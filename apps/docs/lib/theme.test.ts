@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
-import { DEFAULT_THEME, nextTheme, THEME_COLORS, THEME_PROVIDER_OPTIONS, THEMES } from "./theme";
+import {
+  DEFAULT_THEME,
+  nextTheme,
+  THEME_COLORS,
+  THEME_PROVIDER_OPTIONS,
+  THEMES,
+  themeName,
+} from "./theme";
 
 const rules = docsStylesheetRules();
 
@@ -86,6 +93,13 @@ describe("theme provider options", () => {
     expect(nextTheme("dark")).toBe("light");
     expect(nextTheme("light")).toBe("dark");
     expect(nextTheme(undefined)).toBe("light");
+  });
+
+  it("reads anything but light as the dark default", () => {
+    expect(themeName("light")).toBe("light");
+    expect(themeName("dark")).toBe("dark");
+    expect(themeName("system")).toBe(DEFAULT_THEME);
+    expect(themeName(undefined)).toBe(DEFAULT_THEME);
   });
 
   it("has a browser chrome color for every theme", () => {

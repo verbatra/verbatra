@@ -26,13 +26,14 @@ vi.mock("next-intl/server", () => ({
 
 vi.mock("fumadocs-ui/provider/base", () => ({
   RootProvider: ({ children }: { children: ReactNode }) => children,
+  useTheme: () => ({ resolvedTheme: undefined }),
 }));
 
 vi.mock("@/lib/framework-provider", () => ({
   LocaleAwareFrameworkProvider: ({ children }: { children: ReactNode }) => children,
 }));
 
-const { default: Layout } = await import("./layout");
+const { default: Layout, viewport } = await import("./layout");
 
 async function umamiScript(): Promise<HTMLScriptElement | null> {
   const tree = await Layout({ params: Promise.resolve({ lang: "en" }), children: null });
@@ -61,6 +62,14 @@ describe("Layout: Umami tracker", () => {
 
     expect(script?.textContent).toBe("");
     expect(script?.getAttribute("data-website-id")).toBe("fcf007b7-4579-4486-881c-e8686d61d63d");
+  });
+});
+
+describe("Layout: browser chrome", () => {
+  it("starts on the dark default, matching the server-rendered html class", async () => {
+    const { THEME_COLORS } = await import("@/lib/theme");
+    expect(viewport.themeColor).toBe(THEME_COLORS.dark);
+    expect(viewport.colorScheme).toBe("dark");
   });
 });
 

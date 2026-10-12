@@ -7,6 +7,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 import { JsonLd } from "@/components/json-ld";
+import { ThemeMeta } from "@/components/theme-meta";
 import { pickClientMessages } from "@/lib/client-messages";
 import { LocaleAwareFrameworkProvider } from "@/lib/framework-provider";
 import { i18n, toLocale } from "@/lib/i18n";
@@ -74,11 +75,8 @@ export async function generateMetadata(props: {
 }
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: THEME_COLORS.dark },
-    { media: "(prefers-color-scheme: light)", color: THEME_COLORS.light },
-  ],
-  colorScheme: "dark light",
+  themeColor: THEME_COLORS[DEFAULT_THEME],
+  colorScheme: DEFAULT_THEME,
 };
 
 export default async function Layout({
@@ -109,6 +107,7 @@ export default async function Layout({
         <NextIntlClientProvider locale={locale} messages={pickClientMessages(messages)}>
           <LocaleAwareFrameworkProvider>
             <RootProvider theme={THEME_PROVIDER_OPTIONS} i18n={i18nConfig(locale)}>
+              <ThemeMeta />
               {children}
             </RootProvider>
           </LocaleAwareFrameworkProvider>
