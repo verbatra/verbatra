@@ -203,7 +203,8 @@ and `--tracking-*` companions. Above it sits `--text-hero` (fluid, 2.5rem to 6.2
 classes (declared in `@layer components`, so a Tailwind utility still overrides them)
 rather than inline `fontSize` / `letterSpacing` styles. The docs page title, description and prose
 `h2` to `h4` sit on the same scale through the `#nd-page` rules. Headings never hyphenate on their
-own (`hyphens: manual`, `overflow-wrap: break-word`), so a German compound breaks only where the copy
+own (`hyphens: manual`, `overflow-wrap: anywhere`, which also lets a long word shrink the heading's
+flex or grid track instead of overflowing it), so a German compound breaks only where the copy
 puts a hyphen. The wordmark is lowercase `verbatra` everywhere: the header, the footer and both
 social images (`OG_WORDMARK` in `lib/og-image.tsx`).
 

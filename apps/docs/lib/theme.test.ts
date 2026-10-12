@@ -183,12 +183,12 @@ describe("theme tokens", () => {
     expect(LIGHT["--shadow-panel"]).not.toBe(DARK["--shadow-panel"]);
   });
 
-  it("never hyphenates a heading on its own, so a German compound breaks only where the copy allows", () => {
+  it("never hyphenates a heading on its own, yet lets a long word shrink its flex or grid track", () => {
     const heading = rules.find(
       (rule) => rule.selector.includes(".vk-h2") && "hyphens" in rule.declarations,
     );
     expect(heading?.declarations.hyphens).toBe("manual");
-    expect(heading?.declarations["overflow-wrap"]).toBe("break-word");
+    expect(heading?.declarations["overflow-wrap"]).toBe("anywhere");
     expect(rules.some((rule) => rule.declarations.hyphens === "auto")).toBe(false);
   });
 });
