@@ -43,6 +43,16 @@ describe("the theme store", () => {
     expect(listener).toHaveBeenCalledTimes(1);
   });
 
+  it("puts the chrome tags back, once each, when something removed them from <head>", () => {
+    document.head.innerHTML = "";
+    setTheme("light");
+    setTheme("light");
+    expect(document.head.querySelectorAll('meta[name="theme-color"]')).toHaveLength(1);
+    expect(document.head.querySelectorAll('meta[name="color-scheme"]')).toHaveLength(1);
+    expect(meta("theme-color")).toBe(THEME_COLORS.light);
+    expect(meta("color-scheme")).toBe("light");
+  });
+
   it("switches without running transitions, and removes the guard right after", () => {
     vi.useFakeTimers();
     setTheme("light");

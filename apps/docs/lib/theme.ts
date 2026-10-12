@@ -15,25 +15,30 @@ export function themeName(resolved: string | undefined): ThemeName {
   return resolved === "light" ? "light" : DEFAULT_THEME;
 }
 
+function themeMeta(doc: Document, name: string): HTMLMetaElement {
+  const found = doc.head.querySelector<HTMLMetaElement>(`meta[name="${name}"]`);
+  if (found) return found;
+  const created = doc.createElement("meta");
+  created.name = name;
+  doc.head.append(created);
+  return created;
+}
+
 export function applyThemeMeta(doc: Document, theme: ThemeName): void {
-  for (const meta of doc.querySelectorAll('meta[name="theme-color"]')) {
-    meta.setAttribute("content", THEME_COLORS[theme]);
-  }
-  for (const meta of doc.querySelectorAll('meta[name="color-scheme"]')) {
-    meta.setAttribute("content", theme);
-  }
+  themeMeta(doc, "theme-color").content = THEME_COLORS[theme];
+  themeMeta(doc, "color-scheme").content = theme;
 }
 
 export function nextTheme(resolved: string | undefined): ThemeName {
   return resolved === "light" ? "dark" : "light";
 }
 
-export const THEME_INIT_SCRIPT = `try{var t=localStorage.getItem(${JSON.stringify(
+const DEFAULT = JSON.stringify(DEFAULT_THEME);
+
+export const THEME_INIT_SCRIPT = `(function(){var c=${JSON.stringify(THEME_COLORS)},t=${DEFAULT};try{var s=localStorage.getItem(${JSON.stringify(
   THEME_STORAGE_KEY,
-)});var c=${JSON.stringify(THEME_COLORS)};if(t&&t!==${JSON.stringify(
-  DEFAULT_THEME,
-)}&&Object.prototype.hasOwnProperty.call(c,t)){var d=document.documentElement;d.classList.remove(${THEMES.map(
+)});if(s&&s!==${DEFAULT}&&Object.prototype.hasOwnProperty.call(c,s)){t=s;var d=document.documentElement;d.classList.remove(${THEMES.map(
   (theme) => JSON.stringify(theme),
 ).join(
   ",",
-)});d.classList.add(t);d.style.colorScheme=t;document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute("content",c[t])});document.querySelectorAll('meta[name="color-scheme"]').forEach(function(m){m.setAttribute("content",t)})}}catch(e){}`;
+)});d.classList.add(t);d.style.colorScheme=t}}catch(e){}[["theme-color",c[t]],["color-scheme",t]].forEach(function(p){var m=document.head.querySelector('meta[name="'+p[0]+'"]');if(!m){m=document.createElement("meta");m.name=p[0];document.head.appendChild(m)}m.content=p[1]})})()`;

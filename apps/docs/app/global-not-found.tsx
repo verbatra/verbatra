@@ -1,5 +1,5 @@
 import "./global.css";
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 import { LegalFooter } from "@/components/legal-footer";
@@ -9,7 +9,7 @@ import { FONT_VARIABLES } from "@/lib/fonts";
 import { i18n, localizedPath } from "@/lib/i18n";
 import { LocaleHomeLayout } from "@/lib/locale-home-layout";
 import { SITE_URL } from "@/lib/site";
-import { DEFAULT_THEME, THEME_COLORS, THEME_INIT_SCRIPT } from "@/lib/theme";
+import { DEFAULT_THEME, THEME_INIT_SCRIPT } from "@/lib/theme";
 
 const locale = i18n.defaultLanguage;
 
@@ -22,11 +22,6 @@ export async function generateMetadata(): Promise<Metadata> {
     robots: { index: false, follow: true },
   };
 }
-
-export const viewport: Viewport = {
-  themeColor: THEME_COLORS[DEFAULT_THEME],
-  colorScheme: DEFAULT_THEME,
-};
 
 export default async function GlobalNotFound(): Promise<ReactNode> {
   setRequestLocale(locale);

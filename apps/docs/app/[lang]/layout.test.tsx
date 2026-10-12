@@ -32,7 +32,7 @@ vi.mock("@/lib/framework-provider", () => ({
   LocaleAwareFrameworkProvider: ({ children }: { children: ReactNode }) => children,
 }));
 
-const { default: Layout, viewport } = await import("./layout");
+const { default: Layout } = await import("./layout");
 
 async function umamiScript(): Promise<HTMLScriptElement | null> {
   const tree = await Layout({ params: Promise.resolve({ lang: "en" }), children: null });
@@ -71,10 +71,10 @@ describe("Layout: Umami tracker", () => {
 });
 
 describe("Layout: browser chrome", () => {
-  it("starts on the dark default, matching the server-rendered html class", async () => {
-    const { THEME_COLORS } = await import("@/lib/theme");
-    expect(viewport.themeColor).toBe(THEME_COLORS.dark);
-    expect(viewport.colorScheme).toBe("dark");
+  it("leaves the theme-color and color-scheme meta tags to the theme script, so React never renders a second pair", async () => {
+    expect(await import("./layout")).not.toHaveProperty("viewport");
+    const tree = await Layout({ params: Promise.resolve({ lang: "en" }), children: null });
+    expect(renderToStaticMarkup(tree)).not.toMatch(/<meta name="(theme-color|color-scheme)"/);
   });
 });
 
@@ -98,11 +98,12 @@ describe("Layout: a stored theme before the first paint", () => {
   function runWith(stored: string | null, script: string) {
     document.documentElement.className = "dark";
     document.documentElement.style.colorScheme = "";
-    document.head.innerHTML =
-      '<meta name="theme-color" content="#0B0B12"><meta name="color-scheme" content="dark">';
+    document.head.innerHTML = "";
     if (stored === null) localStorage.removeItem("theme");
     else localStorage.setItem("theme", stored);
     new Function(script)();
+    expect(document.querySelectorAll('meta[name="theme-color"]')).toHaveLength(1);
+    expect(document.querySelectorAll('meta[name="color-scheme"]')).toHaveLength(1);
     return {
       className: document.documentElement.className,
       themeColor:
@@ -134,6 +135,15 @@ describe("Layout: a stored theme before the first paint", () => {
         colorScheme: "dark",
       });
     }
+  });
+
+  it("keeps one pair of tags when it runs again, and leaks no globals", async () => {
+    const script = (await initScript())?.textContent ?? "";
+    runWith("light", script);
+    new Function(script)();
+    expect(document.querySelectorAll('meta[name="theme-color"]')).toHaveLength(1);
+    expect(document.querySelectorAll('meta[name="color-scheme"]')).toHaveLength(1);
+    for (const name of ["c", "t", "s", "d", "p", "m"]) expect(window).not.toHaveProperty(name);
   });
 
   it("reads the key the theme toggle stores the choice under", async () => {

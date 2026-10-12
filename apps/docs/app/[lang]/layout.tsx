@@ -1,5 +1,5 @@
 import "../global.css";
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
 import Script from "next/script";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
@@ -10,7 +10,7 @@ import { UMAMI_ORIGIN } from "@/lib/security-headers.mjs";
 import { homeAlternates, SITE_HOST, SITE_URL } from "@/lib/site";
 import { homeOgImagePath, socialMetadata } from "@/lib/social-metadata";
 import { AUTHOR_NAME, organizationLd, SEO_KEYWORDS, websiteLd } from "@/lib/structured-data";
-import { DEFAULT_THEME, THEME_COLORS, THEME_INIT_SCRIPT } from "@/lib/theme";
+import { DEFAULT_THEME, THEME_INIT_SCRIPT } from "@/lib/theme";
 
 export const dynamicParams = false;
 
@@ -64,11 +64,6 @@ export async function generateMetadata(props: {
     }),
   };
 }
-
-export const viewport: Viewport = {
-  themeColor: THEME_COLORS[DEFAULT_THEME],
-  colorScheme: DEFAULT_THEME,
-};
 
 export default async function Layout({
   params,

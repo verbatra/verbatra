@@ -83,11 +83,13 @@ dashboard in `packages/studio` (different app, different stack), or anything out
   (`lib/use-site-theme.ts`, `useSyncExternalStore` with an `undefined` server snapshot), and
   `lib/theme-store.test.ts` fails on any `next-themes` or `useTheme` import. The layout
   server-renders `DEFAULT_THEME` (`dark`) as a class on `<html>` (with `suppressHydrationWarning`),
-  so a visitor without JavaScript still gets the dark Shiki tokens, and the viewport `themeColor`
-  and `colorScheme` the dark default (`THEME_COLORS`); `THEME_INIT_SCRIPT` (`lib/theme.ts`, the
-  inline script that opens `<body>`, hashed into the CSP by `scripts/write-csp-hashes.mjs` like
-  every inline script) applies a stored light theme to the class, `color-scheme` and both meta
-  tags before the first paint. A component never branches on the
+  so a visitor without JavaScript still gets the dark Shiki tokens. No layout exports a viewport
+  `themeColor` or `colorScheme`: React matches a hoisted meta tag by its `content`, so a tag the
+  script had changed came back as a second pair after hydration. `THEME_INIT_SCRIPT` (`lib/theme.ts`,
+  the inline script that opens `<body>`, hashed into the CSP by `scripts/write-csp-hashes.mjs` like
+  every inline script) owns both tags instead: it applies a stored light theme to the class and
+  `color-scheme`, and writes exactly one `theme-color` and one `color-scheme` meta tag
+  (`THEME_COLORS`) before the first paint; `applyThemeMeta` puts them back if anything removed them. A component never branches on the
   theme in JavaScript and needs no `dark:` variant: write against the semantic tokens and both
   themes follow. `lib/theme.test.ts` pins the light override of every token and holds every text
   pair at 4.5:1 and the focus ring at 3:1 in both themes.
