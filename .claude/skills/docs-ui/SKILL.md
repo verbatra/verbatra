@@ -40,8 +40,10 @@ dashboard in `packages/studio` (different app, different stack), or anything out
   islands only: import from `motion/react`, render `m.*` elements (never `motion.*`) inside
   `MotionProvider` (`components/motion-provider.tsx`: `LazyMotion` with `domAnimation` and
   `strict`, plus `MotionConfig reducedMotion="user"`), animate `opacity` and `transform` only, and
-  keep layout shift at 0. Server sections, reveals and the marquee stay CSS keyframes and
-  transitions in `app/global.css`, each with a `prefers-reduced-motion` opt-out.
+  keep layout shift at 0. Today only the code showcase tabs (`code-showcase-tabs.tsx`) use it, and
+  they wrap themselves in `MotionProvider`; there is no page-wide provider. Server sections and the
+  reveals stay CSS keyframes and transitions in `app/global.css`, each with a
+  `prefers-reduced-motion` opt-out.
 - Tailwind 4 uses CSS-first configuration. There is no `tailwind.config.js`. Tokens are
   CSS custom properties in `app/global.css`, not a JS config object.
 - `app/global.css` opens with three imports in this order, and the order matters:
@@ -61,15 +63,16 @@ dashboard in `packages/studio` (different app, different stack), or anything out
   Fumadocs bundle. Removing it silently drops classes Fumadocs emits at runtime.
 - Two themes, dark by default. `:root` holds the dark values (`color-scheme: dark`), and
   `html.light` (declared after the semantic `:root` block, so the first match of a token in the
-  file stays the dark value that `lib/og-image.test.tsx` and `components/landing-hero.test.tsx`
-  read) overrides every theme-dependent token: the brand primitives, the `--color-fd-*` layer,
+  file stays the dark value that `lib/og-image.test.tsx` reads) overrides every theme-dependent token: the brand primitives, the `--color-fd-*` layer,
   `--text-faint` and the two shadows. The semantic layer is derived from those, so it follows on
   its own. Fumadocs' `RootProvider` runs `next-themes` with `THEME_PROVIDER_OPTIONS`
   (`lib/theme.ts`: `attribute: "class"` from Fumadocs, `defaultTheme: "dark"`,
   `enableSystem: false`, `hotKey: false` so no single-key shortcut toggles it,
   `disableTransitionOnChange`); its inline script sets `dark` or `light` on `<html>` before the
   first paint, and `scripts/write-csp-hashes.mjs` hashes it like every other inline script, so it
-  passes the enforced CSP. `<html>` carries no hard-coded theme class. The viewport `themeColor`
+  passes the enforced CSP. The layout server-renders `DEFAULT_THEME` (`dark`) as a class on `<html>`
+  (with `suppressHydrationWarning`), so a visitor without JavaScript still gets the dark Shiki tokens;
+  the script swaps it for `light` when that is the stored choice. The viewport `themeColor`
   is a pair keyed on `prefers-color-scheme` (`THEME_COLORS`). A component never branches on the
   theme in JavaScript and needs no `dark:` variant: write against the semantic tokens and both
   themes follow. `lib/theme.test.ts` pins the light override of every token and holds every text
@@ -91,13 +94,12 @@ Three layers exist. Write against the third.
    `hsl(258 60% 74%)`, light `hsl(258 55% 44%)`) and `--v-purple` its fill and bar shade (dark
    `hsl(258 52% 56%)`, light `hsl(258 55% 44%)`); the old magenta purple and pink are gone. Do not
    introduce a second brand hue. Beside them sit a few tints with one job each, never a general
-   palette: `--v-glow-soft` (flag tokens in `Terminal`, and the lighter end of
-   `--gradient-headline`), `--v-violet` (the far end of `--gradient-headline`), and
-   `--v-status-new` (the accent) / `--v-status-changed` (amber, dark `hsl(38 85% 62%)`, light
-   `hsl(30 90% 30%)`, also Fumadocs' warning callout color) / `--v-status-unchanged` (the `tone`
-   colors of `components/ui/badge.tsx`). `--v-pink` and `--gradient-headline` remain only because
-   landing files still read them: `--v-pink` is an alias of `--v-glow-soft`, so no pink renders.
-   Delete both once nothing references them. Reach for one only in the role it already has.
+   palette: `--v-glow-soft` (flag tokens in `Terminal`), and `--v-status-new` (the accent) /
+   `--v-status-changed` (amber, dark `hsl(38 85% 62%)`, light `hsl(30 90% 30%)`, also Fumadocs'
+   warning callout color) / `--v-status-unchanged` (the `tone` colors of
+   `components/ui/badge.tsx`). There is no pink and no headline gradient token any more
+   (`placeholder-chip.test.tsx` fails if `--v-pink`, `--v-violet` or `--gradient-headline` comes
+   back). Reach for one only in the role it already has.
 2. **Fumadocs overrides.** `--color-fd-background`, `--color-fd-card`, `--color-fd-popover`,
    `--color-fd-muted`, `--color-fd-border`, `--color-fd-foreground`,
    `--color-fd-muted-foreground`, `--color-fd-primary`, `--color-fd-primary-foreground`,
@@ -134,18 +136,16 @@ Scales are fixed and narrow, deliberately:
   hero command panel's maximum width. `.vk-grid-12` is the landing grid: one column under 64rem,
   then `--grid-columns` (12) columns with a `--grid-gap` (24px) gap, where each child spans
   `--grid-span` columns (the full row when unset). A left-aligned `SectionHead` is one
-  (`.vk-section-head`: the heading block spans 7, the lead 5, bottom-aligned), and so are
-  Control's three groups (`.vk-control-groups`, each `.vk-control-group` spanning 4 over a
-  four-row subgrid).
+  (`.vk-section-head`: the heading block spans 7, the lead 5, bottom-aligned).
 - Landing surfaces: `--surface-band` (mixed from `--surface-card` and
   `--surface-bg`, never a raw value), the fill of `.vk-band`: `Section` with `band` renders a
   full-width `section.vk-band` (between two `--border-default` hairlines, `--section-sm` above it
   and `--section-md` padding inside) around the usual `.vk-gutter` column, so the page alternates
-  void and band from the showcase down: How, Control and the FAQ are banded, the showcase, formats
-  and loop sit on the void (`section-bands.test.tsx` pins the order); and `--hero-grid-mask` (the
-  fade that masks the static `fx/grid-pattern.ts` blueprint grid behind the hero only:
-  `.vk-hero-blueprint`, an `aria-hidden` layer at `z-index: -1` that never animates). There is no
-  wash token.
+  void and band from the problem down to the FAQ: how it works, the code showcase, the ecosystem,
+  the comparison and the FAQ are banded, the problem, features, playground, Studio and open source
+  sections sit on the void (`section-bands.test.tsx` pins the order). The hero draws its own
+  decorative dot backdrop and single glow (`.vk-banner-backdrop`, `.vk-banner-glow`, from the
+  `--banner-*` tokens, lighter under `html.light`); there is no wash token.
 - Placeholder chip: `PlaceholderChip` (`components/landing/placeholder-chip.tsx`, the
   `.vk-placeholder` class) is the page's one signature motif, a locked placeholder token
   (`{{amount}}`, `{count}`) drawn the same way in every pane: `--placeholder-fg` (`--accent`) on
@@ -160,10 +160,9 @@ Scales are fixed and narrow, deliberately:
   the showcase passes the tokens a refused reply added (the `+` details of its refusal) as the
   broken set.
 - Motion: see "Landing motion" below for the system. Its tokens: `--ease-out` (entrances and
-  state changes) and `--ease-in-out` (demo fills), `--duration-fast` (140ms, hover and press),
+  state changes), `--duration-fast` (140ms, hover and press),
   `--duration-base` (240ms, state change), `--duration-reveal` (560ms, entrances),
-  `--duration-demo` (900ms, the How step fill), `--reveal-distance` (16px, 12px under 40rem),
-  `--rise-distance` (12px, the hero load rise), `--reveal-stagger` (70ms) and
+  `--reveal-distance` (16px, 12px under 40rem), `--reveal-stagger` (70ms) and
   `--reveal-delay-max` (350ms, the stagger cap). Only `opacity` and `transform` / `translate`
   ever animate.
 - Showcase: `--showcase-line` (1.125rem, 1.25rem from 40rem) is the line height of a file pane in
@@ -191,16 +190,14 @@ Adding a third family needs a reason that survives review.
 
 The type scale is a major third (1.25) held in `app/global.css`: `--text-display`, `--text-h2`
 (capped at 3rem, read only by `.vk-h2`), `--text-h3`, `--text-h4`, `--text-lead`, with `--leading-*`
-and `--tracking-*` companions. Above it sits `--text-hero` (fluid, 2.5rem to 6.25rem; from 80rem the
-hero caps it at `10.6cqi` of its copy column, about 84px at 1440) with `--weight-hero` (700),
-`--leading-hero` (1.04) and `--tracking-hero` (-0.03em), used only by the landing headline
-(`.vk-hero-title`). Landing headings take the `.vk-h2`, `.vk-h3`, `.vk-h4` and `.vk-lead`
+and `--tracking-*` companions. Above it sits `--text-hero` (fluid, 2.5rem to 6.25rem) with
+`--weight-hero` (700), used only by the landing headline (`.vk-banner-title`, through
+`--banner-title`, which caps it at `13.5cqi` of the copy column). Landing headings take the `.vk-h2`, `.vk-h3`, `.vk-h4` and `.vk-lead`
 classes (declared in `@layer components`, so a Tailwind utility still overrides them)
 rather than inline `fontSize` / `letterSpacing` styles. The docs page title, description and prose
 `h2` to `h4` sit on the same scale through the `#nd-page` rules.
 
-Headlines are solid `--text-strong` on both surfaces. `--gradient-headline` (violet only) exists
-for the footer's oversized watermark only; do not clip it onto a heading or use it anywhere new.
+Headlines are solid `--text-strong` on both surfaces. No heading carries a gradient.
 
 ## Reuse before you build
 
@@ -232,88 +229,70 @@ for the footer's oversized watermark only; do not clip it onto a heading or use 
   `rounded-md` and friends keep the site radii. The shadcn `--accent` variable is never declared:
   `--accent` stays the site's violet text accent, and `bg-accent` reads `--color-accent`. Use the
   shadcn `Button` only inside a shadcn composition; the site button stays `components/ui/button.tsx`.
-- **Landing:** `components/landing/` holds the landing sections (`proof.tsx`, `formats.tsx`,
-  `control.tsx`, `marquee.tsx`, `loop.tsx`, `faq.tsx`, `final-cta.tsx`, `footer.tsx`, and
-  `landing-nav.tsx`, the section nav under "Landing motion"). Their order on the page is
-  `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, marquee, showcase, how, formats, control,
-  loop, faq, final call to action), which the home page maps over and `lib/landing-sections.test.ts`
-  pins; add or move a section there, not by hand in `page.tsx`. The final call to action
-  (`final-cta.tsx`) closes on the promise in concrete terms (`landing.finalClose.heading`: the next
-  run sends what changed, not the whole file), then a `.vk-final-install` void box (an `@container`,
-  at most 36rem) holding the `installHint` line over a `CommandRow` for `NPM_INSTALL_COMMAND` that
-  wraps under 30rem and counts `copy-install-command` with `location: final-cta` through its
-  `installManager` prop, then the two buttons, Get started and Read the docs. Sections reveal on
-  scroll through `data-reveal` (see "Landing motion"); the marquee and the FAQ do not. The marquee
-  sits directly under the hero and is two rows at fixed sizes (15px items, 40px gaps, set on
-  `.vk-marquee-band`): the frameworks (`MARQUEE_FRAMEWORKS` in `marquee.tsx`, which is
-  `STACK_FRAMEWORKS` from `lib/stack-formats.ts`, each with a translated tip naming its format,
-  `landing.marquee.frameworks.*`) scrolling left, and the formats, built from `SUPPORTED_FORMAT_IDS`
-  in `lib/landing-facts.ts` (pinned to `SUPPORTED_FORMATS`), scrolling right. Items are plain
-  text with a hover tip, never links. The left-aligned head in the shared column holds the intro,
-  the pause toggle and one link per row to the page that owns it (`landing.marquee.frameworksLink`
-  to `/docs/pick-your-stack`, `landing.marquee.formatsLink` to `/docs/formats`), each counted as
-  `click-cta` with `location: marquee` and its row as `target`. Every
-  format's display label and icon is `FORMAT_DISPLAY` in the same file, which the structured data's
-  format list reads too, so a new format fails to compile until it has both. `Formats`
-  (`formats.tsx`, the section after How, a server `SectionHead` over `.vk-formats`) is the format
-  switcher: a row of framework chips (`STACK_FRAMEWORKS`, each with the `format` its quickstart
-  uses, pinned to `STACKS` by `lib/format-samples.test.ts`; `aria-pressed` buttons whose icons come
-  from one sprite, rendered on the server and passed in as elements, so the icon set never enters
-  the client bundle), then a segmented `TabList` over `SUPPORTED_FORMAT_IDS` labelled from
-  `FORMAT_DISPLAY`, then one pane per format: a void `figure` captioned with the file path, holding
-  the showcase's four English strings exactly as the sdk's real adapter writes them, with the
-  format's own placeholder drawn as a `PlaceholderChip`, and a link to `/docs/formats` (`click-cta`,
-  `location: formats`). The client island is `format-switch.tsx`, which takes every label and pane
-  as props, so it adds no client message namespace; a chip selects its format, a tab clears the
-  chip, and both count `select-tab` with `location: formats` (a chip adds `framework`). Every pane
-  is server-rendered and stacked in one grid cell; a closed pane is `inert` and
-  `visibility: hidden`, so the box is always the tallest pane and a switch moves nothing, and
-  `.vk-formats-code` caps a long output at `--format-pane-rows` (16) lines of `--format-line` and
-  scrolls inside it: it is a `section` named by the pane's file caption with `tabIndex={0}`, so the
-  keyboard reaches and scrolls the open pane, with the `--focus-ring` outline inset. The file card
-  (`.vk-formats-file`) clips its content, so the scroller keeps its rounded corners. Chips and tabs
-  scroll sideways inside `.vk-edge-fade` under 64rem and wrap from it, each at least 44px tall. The
-  panes come from `lib/format-samples.generated.json`, which `scripts/sync-format-samples.mjs`
-  writes before dev, build, typecheck and test (git-ignored like `lib/version.generated.json`): it
-  builds `createDefaultRegistry` from `@verbatra/sdk` over the in-memory `AdapterFs` in
-  `lib/format-samples-seed.mjs` (ENOENT for a missing file; the seed also holds each format's file,
-  placeholder and key style, and the pre-seeded XLIFF file and `.xcstrings` catalogue those adapters
-  require, written with `sourcePath` set to the file itself) and writes each format's output.
-  Nothing in the page graph imports the sdk at runtime, and the docs app never depends on
-  `@verbatra/format-adapters`; `lib/format-samples.test.ts` re-reads every sample through the real
-  adapter and fails unless it parses back to the seed with its placeholder intact. `Loop` is four
-  rows at every width (`LOOP_ROWS`: Studio with the `review` `StudioScreenshot`, which under 40rem
-  `zoomOnPhone` crops to the review table at twice the width (`.vk-shot-zoom`), the Excel handoff,
-  the SDK, the agent; CI has no row, since the How section owns it), each a two-column grid from
-  1024px whose sides alternate (`data-loop-row`: the text on the left for Studio and the SDK, on the
-  right for the handoff and the agent). The SDK row shows `SDK_INSTALL_COMMAND` and
-  `SDK_IMPORT_LINE`, an import of `SDK_IMPORTS` from `@verbatra/sdk` that `loop.test.tsx` checks
-  against the sdk's real exports, and links `/docs/sdk`; each row's call to action and each internal
-  agent link (`llms.txt`, `llms-full.txt`, MCP docs, skills docs) counts as `click-cta` with
-  `location: loop`, and the `verbatra/skills` GitHub link as `outbound-link`. `Control` lays its
-  items out as a rail under 1024px: a `.vk-rail` (`Rail` in `rail.tsx`: a `section` named by its
-  heading through `aria-labelledby`, the scroll container, carrying `.vk-edge-fade` so its end edge
-  fades while there is more to see and its start edge fades once scrolled) around a `.vk-rail-track`
-  (the snap row; a `ul` with `role="list"` in Control), whose `.vk-rail-item`s fall short of the
-  full width so the next one peeks in and carry a `scroll-margin-inline` beside the rail's
-  `scroll-padding-inline`. Chrome does not scroll a partly visible focus target, and a snap
-  container snaps back, so `Rail` scrolls the item that takes focus to the start of the rail at
-  phone width (its one client-side job). From 1024px the track is the plain grid and the fade is
-  off. The shared building blocks: `section.tsx` and `section-head.tsx` for structure,
+- **Landing:** `components/landing/` holds one component per section. Their order on the page is
+  `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, proofStrip, problem, howItWorks, features,
+  code, showcase, ecosystem, studio, compare, openSource, faq, finalCta), which the home page maps
+  over and `lib/landing-sections.test.ts` pins; add or move a section there, not by hand in
+  `page.tsx`. The files: `hero.tsx` (the `h1`, two buttons, the `CommandPanel` install box and the
+  `HeroTerminal` island), `proof-strip.tsx` (stars, npm weekly downloads and the providers, from
+  `lib/project-stats.ts`; a failed fetch hides the number), `problem.tsx` (`#problem`, a real drift
+  artifact from `lib/landing-problem.ts`), `steps.tsx` (`#how-it-works`: check, translate and CI,
+  each with a server-highlighted snippet from `LANDING_STEP_CODE` in `lib/landing-code.ts`; the
+  HowTo structured data and the docs home `DocsHomeSteps` read the same `landing.steps.items`),
+  `bento.tsx` (`#features`, tiles from `lib/landing-bento.ts`, each with a real artifact or an
+  `Evidence` chip), `code-showcase.tsx` (`#code`, CLI, SDK, config and Action tabs from
+  `lib/landing-code.ts`, highlighted on the server by `lib/landing-highlight.ts` with dual themes
+  and framed by `code-frame.tsx`), `showcase.tsx` (the Try it playground, below), `ecosystem.tsx`
+  (`#ecosystem`: providers grouped by kind from `lib/landing-providers.ts`, the human-only `none`,
+  and the format switcher), `studio.tsx` (`#studio`, the real `StudioScreenshot` and the run
+  command), `compare.tsx` (`#compare`, rows from `lib/landing-compare.ts`; a cell states the fact,
+  the mark carries yes, partial or no), `open-source.tsx` (`#open-source`: license, contributing,
+  issues, releases and the contributors), `faq.tsx` (`#faq`) and `final-cta.tsx` (the closing
+  panel on `landing.closing`, the install `CommandRow` counted with `location: final-cta`, then Get
+  started and Read the docs). The footer is not a section; `app/[lang]/(home)/layout.tsx` passes
+  it to the home layout. Section ids are unique; never render two sections that claim the same one.
+  The FAQ is the shadcn `Accordion` (`type="single"`, collapsible): each question is a Radix
+  trigger inside an `h3`, arrow keys, Home and End move between them, opening one counts
+  `open-faq` with its key, and every answer is force-mounted, so the server HTML carries it while a
+  closed item hides it (`[data-state=closed]` on the item). Answers link with the `dataHandling`
+  and `license` tags only. `FORMAT_DISPLAY` in `lib/landing-facts.ts` is every format's display
+  label and icon, which the structured data's format list reads too, so a new format fails to
+  compile until it has both. The format switcher is `FormatsDemo` (`formats.tsx`), rendered inside
+  `ecosystem.tsx` in a `.vk-formats` box: a row of framework chips (`STACK_FRAMEWORKS`, each with the
+  `format` its quickstart uses, pinned to `STACKS` by `lib/format-samples.test.ts`; `aria-pressed`
+  buttons whose icons come from one sprite, rendered on the server and passed in as elements, so the
+  icon set never enters the client bundle), then a segmented `TabList` over `SUPPORTED_FORMAT_IDS`
+  labelled from `FORMAT_DISPLAY`, then one pane per format: a void `figure` captioned with the file
+  path, holding the showcase's four English strings exactly as the sdk's real adapter writes them,
+  with the format's own placeholder drawn as a `PlaceholderChip`. The client island is
+  `format-switch.tsx`, which takes every label and pane as props, so it adds no client message
+  namespace; a chip selects its format, a tab clears the chip, and both count `select-tab` with
+  `location: formats` (a chip adds `framework`). Every pane is server-rendered and stacked in one
+  grid cell; a closed pane is `inert` and `visibility: hidden`, so the box is always the tallest
+  pane and a switch moves nothing, and `.vk-formats-code` caps a long output at
+  `--format-pane-rows` (16) lines of `--format-line` and scrolls inside it: it is a `section` named
+  by the pane's file caption with `tabIndex={0}`, so the keyboard reaches and scrolls the open pane,
+  with the `--focus-ring` outline inset. Chips and tabs scroll sideways inside `.vk-edge-fade`
+  under 64rem and wrap from it, each at least 44px tall. The panes come from
+  `lib/format-samples.generated.json`, which `scripts/sync-format-samples.mjs` writes before dev,
+  build, typecheck and test (git-ignored like `lib/version.generated.json`) from
+  `createDefaultRegistry` in `@verbatra/sdk` over the in-memory `AdapterFs` in
+  `lib/format-samples-seed.mjs`. Nothing in the page graph imports the sdk at runtime, and the docs
+  app never depends on `@verbatra/format-adapters`; `lib/format-samples.test.ts` re-reads every
+  sample through the real adapter. The shared building blocks: `section.tsx` and
+  `section-head.tsx` for structure,
   `terminal.tsx` (with a `bare` variant; by default lines never wrap, they scroll sideways inside
   `.vk-terminal-scroll`, which fades the end edge while there is more to see; with `wrap` every line
   wraps through `.vk-wrap-line`, whose hanging indent is the line's own leading whitespace
   (`--wrap-lead`, set by `wrapLineStyle` in `wrap-text.tsx`) plus 2ch, and whose placeholder tokens
   (`{count}`, `(-{count})`) and hyphenated words (`up-to-date`) never break, through `WrapTokens`.
-  The How section is one terminal
-  replaying two real commands, `verbatra translate` (the gate run, `lib/gate-demo.ts`: one key
-  translated, one withheld) and then `verbatra check` (`lib/check-demo.ts`: the withheld key still
-  missing, exit code `CHECK_EXIT_CODE`), titled `HOW_TITLE`, over the three numbered steps
-  `HOW_STEP_KEYS` (setup, translate, check) that `howStepCopy` in `lib/how-steps.ts` labels for both
-  the section and the HowTo structured data in `page.tsx`, the check step's body carrying the exit
-  code as `{code}`; no panels: the showcase owns the written, refused and lock story),
-  `showcase.tsx` (the section under the marquee: a server `SectionHead` over a `.vk-showcase` panel
-  that holds the Try it playground alone, with no tabs; Studio is shown in the loop), `try-it.tsx`
+  The hero terminal (`hero-terminal.tsx`) replays `HERO_TERMINAL_SCRIPT` from
+  `lib/hero-terminal.ts`: `verbatra check` finds two missing keys per locale, then
+  `verbatra translate` sends only those, each run closed by its literal `exit 1` / `exit 0`
+  (`HERO_EXIT_LINES`, English on every locale, like all CLI output on the page);
+  `lib/hero-terminal.run.test.ts` pins the lines to the CLI's renderer),
+  `showcase.tsx` (the playground section after the code showcase: a server `SectionHead` over a
+  `.vk-showcase` panel that holds the Try it playground alone, with no tabs), `try-it.tsx`
   (the Try it playground, one `.vk-showcase-try` grid: from 40rem a scenario bar
   (`.vk-showcase-bar`) over a two-by-two board, `en.json` | `de.json` above `verbatra.lock.json` |
   output, cells split by 1px hairlines; on a phone the bar is one column, the scenarios wrapping on
@@ -361,14 +340,8 @@ for the footer's oversized watermark only; do not clip it onto a heading or use 
   reveal; nothing inside the playground does. The copy says what verbatra would translate; it never
   claims the page translates), `evidence.tsx` (the mono evidence chip, which wraps inside a narrow
   column rather than growing past it; a linked chip takes the flat-panel glow border on hover and
-  focus through `.vk-evidence-link`), `command-box.tsx` (by default an `@container`: a command wraps
-  once the box is under 30rem, at a space or after a `/` or `.` inside a word, since
-  `HighlightedCommand` keeps every other part of a word whole (a flag such as `--skill` never
-  splits), and under 20rem the copy button drops below the command so the command keeps the full
-  width; the Loop passes `scrolls`, which keeps every command on one line that scrolls sideways
-  inside `.vk-edge-fade`, Copy always beside it, as on the live site. The Loop's table and SDK
-  import line are set in `.vk-mono-sm` (`--text-mono-sm`, 13px), and the import line scrolls inside
-  `.vk-terminal-scroll`, whose end edge fades), `CommandRow` (`components/command-row.tsx`: the hero
+  focus through `.vk-evidence-link`; an external one counts as `outbound-link` from `features`),
+  `CommandRow` (`components/command-row.tsx`: the hero
   panel's npm install wraps under 30rem through `wrapsWhenNarrow`; elsewhere a `CommandRow` scrolls
   sideways inside `.vk-edge-fade`: a mask, not a painted background, so it stays see-through on any
   surface, and the end fade shows only while the command overflows, driven by a scroll timeline),
@@ -376,19 +349,19 @@ for the footer's oversized watermark only; do not clip it onto a heading or use 
   caption that shares its row with the prompt's small Copy button; its URL breaks only after a path
   `/`, through `breakUrlsAtSlashes` in `lib/word-breaks.tsx`) and `PromptCopyButton` in the same
   file (the large "Start with a prompt" button with the `.vk-prompt-pop` preview, used only by the
-  docs home agent tip), `command-panel.tsx` (one of the hero's two client islands, beside the
-  `TrackedLink` its buttons and count facts render; `components/landing-hero.test.tsx` pins exactly
-  that set: a `.vk-command-panel` whose segmented "Install | Prompt" `TabList` switches between the
+  docs home agent tip), `command-panel.tsx` (one of the hero's two client islands, beside
+  `HeroTerminal`: a `.vk-command-panel` whose segmented "Install | Prompt" `TabList` switches between the
   `CommandRow` for `NPM_INSTALL_COMMAND` (counted as `copy-install-command`) and the whole
   `AI_SETUP_PROMPT`; both panes are one `.vk-command-panel-pane` shape, a muted hint row with its
   `CopyButton` on the right, then the content at full width, top-aligned, and the prompt keeps each
   `npx` run and each long flag with its value on one line (`keepPackageRunsWhole`); the closed pane
   is `inert` and hidden at every width, so the install pane carries no empty height under its
   command and the panel resizes on a switch, and a switch counts `select-tab` with
-  `location: hero`), and an `fx/` folder (`grid-pattern.ts`). A new section composes `Section` plus
+  `location: hero`), and an `fx/` folder (`grid-pattern.ts`, the footer's grid). A new section composes `Section` plus
   `SectionHead`; it does not re-derive page padding or heading rhythm. Check
   `ls apps/docs/components/landing` before quoting a file name from this list. The CLI transcripts
-  on the landing (`lib/gate-demo.ts`, `lib/check-demo.ts`, `lib/showcase-cli.ts`) are real CLI
+  on the landing (`lib/hero-terminal.ts`, `lib/gate-demo.ts`, `lib/check-demo.ts`,
+  `lib/showcase-cli.ts`) are real CLI
   output, English on every locale, and their tests pin each line to `packages/cli/src/render.ts`
   (`lib/showcase-cli.run.test.ts` imports `renderHuman` and `lib/check-demo.run.test.ts` imports
   `renderCheckHuman` from it by relative path, and the latter also drives `run` from
@@ -436,7 +409,7 @@ for the footer's oversized watermark only; do not clip it onto a heading or use 
   primary card, and the three cards share their title, body and page-name rows through
   `grid-rows-subgrid`, so a wrapped title never shifts the body or the link out of line. A
   backticked span in a header or section lead renders in code type (`withInlineCode`,
-  `lib/inline-code-text.tsx`; the landing sets a command or value in a How step, a Control item,
+  `lib/inline-code-text.tsx`; the landing sets a command or value in a step, a bento tile,
   the showcase result and the closing install hint the same way, and `withoutInlineCode` drops the
   backticks for the HowTo structured data), and a path card title keeps a hyphenated compound on
   one line (`keepCompoundsWhole`, `lib/word-breaks.tsx`). `StackCards`
@@ -458,7 +431,7 @@ for the footer's oversized watermark only; do not clip it onto a heading or use 
   (`FORMAT_ID_CLASS`): a list breaks at its comma, and only under a 23.5rem container (the longest
   rendered id plus 15 percent, pinned by its test) does an id wrap, then only after a hyphen. The
   logos come from `@icons-pack/react-simple-icons` through `components/stack-icons.tsx` (shared with
-  the marquee), always `currentColor`, never a brand colour; a format with no brand mark gets an
+  the format switcher), always `currentColor`, never a brand colour; a format with no brand mark gets an
   outline glyph there. The grid is a `nav` named by `labelledBy`, the id of the heading above it
   (the docs home section's `id`, or `page-title` on the docs `<h1>`), and that id also prefixes its
   sprite's symbol ids, so two grids on one page never collide. On the docs home, a stack with its
@@ -479,59 +452,34 @@ for the footer's oversized watermark only; do not clip it onto a heading or use 
 
 ## Landing motion
 
-The landing moves in one deliberate way: content rises into place once as the visitor reaches
-it, and the How steps follow the terminal that demonstrates them. There is no pinning, no
-parallax, no scroll-scrubbing and no scroll listener; `motion` is reserved for client islands (see "The stack").
+The landing moves little, on purpose: the demos rise into place once as the visitor reaches them,
+and nothing else on the page fades in. There is no pinning, no parallax, no scroll-scrubbing and no
+scroll listener; `motion` is reserved for client islands (see "The
+stack").
 
-- **Reveals.** An element marked `data-reveal="<n>"` (`n` from 0 to 5) is hidden (opacity 0,
-  `translate: 0 var(--reveal-distance)`) only while two things hold:
+- **Reveals.** One system: an element marked `data-reveal="<n>"` (`n` from 0 to 5) is hidden
+  (opacity 0, `translate: 0 var(--reveal-distance)`) only while two things hold:
   `prefers-reduced-motion: no-preference` and `html[data-motion-ready]`. `MotionRoot`
   (`components/landing/motion-root.tsx`, mounted once at the end of the home page, rendering
   nothing) sets that attribute after hydration, so without JavaScript, before hydration and under
   reduced motion everything is visible. Before it sets the attribute it marks every element already
   on screen `data-revealed`, so nothing in the first viewport blinks out, then hands the rest to one
   shared `IntersectionObserver` (`rootMargin: 0px 0px -10% 0px`) that adds `data-revealed` and
-  unobserves, so each element reveals once and never again on scroll up. Only the reveal transitions
-  (`[data-reveal][data-revealed]`); hiding is instant. Focus moving into a block that has not
-  revealed yet shows it at once (`:focus-within`, no transition). The delay is
-  `n * --reveal-stagger`, capped at `--reveal-delay-max` through `--reveal-index`. The order inside
-  a section is heading, then body, then demo: `SectionHead` with `reveal` marks its heading block
-  `0` and its lead `1`; the showcase playground, the How terminal, the formats switcher and
-  Control's columns follow; each Loop row reveals as one unit, so its text never trails its picture;
-  the final call to action reveals its heading block, then its buttons. Sections stay server
-  components: the marks are plain attributes. Elements keep their box while hidden, so a reveal
-  never moves layout. `components/landing/reveal-marks.test.tsx` pins the marks (every section head
-  and its first block; never the hero, and never anything inside the showcase or formats demo) and
-  `motion-root.test.tsx` pins the observer and the stylesheet guards.
-- **Hero.** The hero is never revealed and the `h1` never moves (it is the largest paint). On
-  load, only the command panel rises `--rise-distance` once (`vk-rise`, `--duration-reveal`),
-  under `no-preference` only; the ledger, the facts row and the blueprint grid are static.
+  unobserves, so each element reveals once. Only the reveal transitions; hiding is instant. Focus
+  moving into a block that has not revealed yet shows it at once (`:focus-within`). The delay is
+  `n * --reveal-stagger`, capped at `--reveal-delay-max`. Only the demo artifacts of five sections
+  carry a mark: the problem (its artifact, then its list), how it works, the bento grid, the code
+  showcase and the playground panel. No section heading reveals (`SectionHead` takes no reveal
+  prop), and the hero, proof strip, ecosystem, Studio, comparison, open source, FAQ and closing
+  panel never fade in. Elements keep their box while hidden, so a reveal never moves layout.
+  `reveal-marks.test.tsx` pins which files carry marks and `motion-root.test.tsx` the observer and
+  the stylesheet guards.
+- **Hero.** The hero is never revealed and the `h1` never moves (it is the largest paint); no
+  load animation runs in it. The terminal types its translate run once it is in view and settles
+  without JavaScript on the finished check run.
 - **No section eyebrows.** A landing section opens with its `h2`; nothing sits above it, no
-  index and no label word. The landing's sections are not a sequence, so numbering them would
-  state an order that is not there; the only numbers on the page are the How steps, which are
-  one. `reveal-marks.test.tsx` fails on a `.vk-eyebrow` or an element above a section heading.
-- **How steps.** `HowReplay` (`components/landing/how-replay.tsx`, the How section's client island)
-  renders the terminal and the three steps, each opened by an `aria-hidden` two-digit
-  `.vk-how-step-index` in mono `--accent` above its title (the `ol` carries the order for assistive
-  technology). The replay starts once the terminal and the step grid are both at least half in view
-  (`HOW_PLAY_RATIO`, one observer on both), which also holds on a landscape phone. The commands,
-  outputs and line pace (`HOW_LINE_DELAY_MS`, longer than `--duration-demo`, so a bar finishes
-  filling before the next step takes over) come from `lib/how-steps.ts`, the same objects the step
-  mapping reads. The terminal reports its progress through `onProgress`, and `howStepStates`
-  (`lib/how-steps.ts`) maps the printed lines to the step being shown (set up while the first
-  command types, translate until the second command starts typing, then check):
-  `aria-current="step"` and `data-state` (`upcoming`, `current`, `complete`) on each `.vk-how-step`,
-  whose 2px `--accent` top bar fills (`scaleX`, `--duration-demo`, `--ease-in-out`) as the step
-  becomes current; only the bar of an upcoming step is empty, its text keeps full contrast. When the
-  run has printed, every step is complete and none is current. Without JavaScript and under reduced
-  motion every bar shows filled, statically. The terminal's caret is a fresh element per keystroke
-  (`.vk-terminal-caret`), so typing never counts as a layout shift.
-- **Header call to action.** The home header's "Get started" is `GetStartedLink`
-  (`components/home-nav.tsx`), always visible and counted as `click-cta` with `location: header`.
-  `HeaderCta` in `components/header-cta.tsx` and its `.vk-header-cta` past-hero rules are no longer
-  rendered; only `landingLocale` from that file is still in use, and both go with the old landing
-  cleanup.
-- **Version pill.** On the landing only (the same `landingLocale` gate), `HomeSiteHeader` passes
+  index and no label word. `reveal-marks.test.tsx` fails on a `.vk-eyebrow` style.
+- **Version pill.** On the landing only (the `landingLocale` gate in `lib/i18n.ts`), `HomeSiteHeader` passes
   `VersionPill` (`components/version-pill.tsx`) as the frame's `badge`, rendered right after the
   wordmark and outside the primary nav, which stays Docs, Reference and GitHub. It reads
   `v{PACKAGE_VERSION}` (`lib/site.ts`, from the cli version that `scripts/sync-version.mjs` writes
@@ -541,44 +489,9 @@ parallax, no scroll-scrubbing and no scroll listener; `motion` is reserved for c
   declaratively as `outbound-link` with `target: version` and `location: header`. Its accessible
   name is `landing.nav.version.label`, which contains the visible text. `.vk-version-pill` is
   `display: none` under 768px. `lib/layout.shared.test.tsx` pins it.
-- **Section nav.** `LandingNav` (`components/landing/landing-nav.tsx`, a server component that
-  `page.tsx` renders right after the hero) is a `nav` named by `landing.nav.sections.label` holding
-  one in-page link per `LANDING_NAV_SECTIONS` id (showcase, how, formats, control, loop, faq;
-  labelled from `landing.nav.sections.<id>`, the loop as "Workflows"), each `href="#<id>"` with
-  `data-nav-link` and no `data-umami-event`. Every section after the hero owns a link except the
-  marquee strip and the final call to action. Its `.vk-landing-nav` wrapper is sticky under the
-  3.5rem site header at `height: 0`, and the bar inside it is absolutely positioned, so it takes no
-  layout space and moves nothing. Without JavaScript the bar is always visible; once `MotionRoot`
-  marks the root ready it is `visibility: hidden` until `html[data-past-hero]` (which `startMotion`
-  measures once before any observer reports, so a page loaded below the hero shows the bar at once),
-  then fades in (opacity and a 4px rise, only under `no-preference`); hiding is instant. It never
-  covers the header or its call to action. The link row scrolls sideways inside `.vk-edge-fade` when
-  it overflows, and `MotionRoot` scrolls a newly current link back into view past the fade
-  (`scrollBy` on the `[data-nav-scroller]` row, never the page, smooth through `scroll-behavior`
-  under `no-preference` only); the first link scrolls the row back to 0, so the row's start
-  padding shows. One offset serves every jump and the observer: `--vk-landing-offset` on
-  `.vk-home` (6.3125rem: the 3.5rem header, the 2.75rem link row and its 1px hairline) is the
-  `scroll-margin-top` of every `.vk-home [id]`, so a jump lands the section (and a band's top
-  hairline) under the nav, and `LANDING_OFFSET_REM` in `motion-root.tsx` is the same value for the
-  presence observer's top margin. A void section with an id turns its `--section-rhythm` margin
-  into top padding and offsets its `scroll-margin-top` by `--section-md` less that rhythm, so
-  every heading lands one band padding (`--section-md`) under the nav, banded or not.
-  `MotionRoot` resolves each link's section and watches it on the same presence observer, with no
-  scroll listener: the first linked section still inside the root gets `aria-current="true"` on
-  its link (an `--accent` 2px underline at `bottom: 0`, inside the `overflow-y: hidden` row), every
-  other link none, and teardown clears it. `landing-nav.test.tsx`
-  pins the markup, the stylesheet, the shared offset and the link each section owns;
-  `motion-root.test.tsx` the observer reuse.
-- **Marquee.** The only infinite motion. Its two rows scroll endlessly, pause on hover, pause
-  while the band is off screen (`data-offscreen`, set by the same presence observer), and pause
-  from the visible `MarqueeToggle` beside the intro (WCAG 2.2.2): an `aria-pressed` button named
-  by `landing.marquee.pause`, counted as `toggle-marquee` with `state: paused | playing` and
-  `location: marquee`, whose box stays invisible until `MotionRoot` is ready. Nothing in a row
-  takes focus, so the band costs the keyboard three stops. Under `prefers-reduced-motion: reduce`
-  the rows wrap as a static list inside the `--gutter`, with the duplicate track hidden, and the
-  toggle is hidden.
 - **Budget.** Layout shift 0 over a full scroll at 390, 1440 and a 844 by 390 landscape phone; no
-  scroll listener; at most one reveal chain per section; no entrance over 16px or 600ms.
+  scroll listener; at most one reveal chain per section, and only in the five demo sections; no
+  entrance over 16px or 600ms.
 
 ## Keep the client payload small
 
@@ -587,14 +500,12 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
 - `motion` only in client islands, through `MotionProvider` (`LazyMotion` + `domAnimation`,
   `strict`, so a stray `motion.*` element throws instead of pulling the full feature set). Section
   reveals stay CSS keyframes and transitions in `app/global.css`, each with a
-  `prefers-reduced-motion` opt-out; `MotionRoot` toggles attributes from two
-  `IntersectionObserver`s and stays under 1 KB gzipped (about 980 bytes with the section nav,
-  minified with `esbuild` and `gzip -9`).
+  `prefers-reduced-motion` opt-out; `MotionRoot` toggles attributes from one
+  `IntersectionObserver` and stays well under 1 KB gzipped.
 - `NextIntlClientProvider` receives only `CLIENT_MESSAGE_NAMESPACES` (`lib/client-messages.ts`),
   not the whole catalog. A new `useTranslations` namespace in a `"use client"` file must be added
   there; `lib/client-messages.test.ts` fails until it is.
-- A brand icon repeated on a page (the marquee's two tracks, the stack cards, the format switcher's
-  chips) is drawn once as an SVG `<symbol>`
+- A brand icon repeated on a page (the stack cards, the format switcher's chips) is drawn once as an SVG `<symbol>`
   and referenced with `<use>`, since every copy is serialized twice: in the HTML and in the RSC
   payload.
 - Keep both `next/font` families preloaded. Every one of them sets text in the first
@@ -641,15 +552,17 @@ footer passed in by `app/[lang]/(home)/layout.tsx`, so the header and footer sta
 contentinfo landmarks; a page under that layout must not render another `<main>`. Fumadocs' own
 `HomeLayout` and notebook headers are never rendered, so do not style `#nd-nav` or `#nd-subnav`;
 style `.vk-header` and `.vk-header-link` instead, and change the header in one place. The header
-and the landing section nav share one fill, `--surface-chrome` (`--surface-bg` at 94 percent, so
-content scrolling under them stays out of the way of their text).
+has its own fill, `--surface-chrome` (`--surface-bg` at 94 percent, so
+content scrolling under it stays out of the way of its text). An in-page jump lands a section
+under the header through `--vk-landing-offset` (3.5rem, the header height), the
+`scroll-margin-top` of every `.vk-home [id]`.
 
 Both surfaces share one layout width: `--width-layout` (97rem, the notebook layout's own
 default) feeds `--fd-layout-width` from `:root` and again on the home container, so the
 header row and the docs grid sit in the same centred column on a wide monitor. The landing's
 content (the hero, every section and the closing panel) shares one narrower column instead,
 `.vk-gutter` plus `.vk-w-wide`, so the hero `h1` and every section heading start at one left
-edge; the marquee and the footer bleed on purpose.
+edge; the footer bleeds on purpose.
 
 ## The docs surface
 
@@ -659,42 +572,28 @@ rule is written for both ids; a rule that names only one of them is a bug, since
 separate `aside` outside `#nd-sidebar`. It exists so a reader coming from the landing page
 recognizes the same product. The shared vocabulary, and where each piece comes from:
 
-- **Solid white display headlines.** `LandingHero` and the docs home header both set a solid
-  `--text-strong` headline. `LandingHero` sits straight on the void page (no card, wash or grain),
-  over the static blueprint grid, and is left-aligned. `.vk-hero-main` is one column, and from 80rem
-  a 12-column grid: `.vk-hero-copy` spans 8 columns and the `LocaleLedger` the last 4
-  (`9 / span 4`); there the copy is an inline-size container and the `h1` is capped at `10.6cqi`
-  under `--text-hero`, so the headline holds two lines in all four locales. The copy stacks the
-  server-rendered `h1` (`.vk-hero-title`), the sans `.vk-lead.vk-hero-lead` (46ch), `.vk-hero-ctas`
-  with two buttons, the primary "Get started" (`/docs/quickstart`) and the secondary "Try it in the
-  browser" (`#showcase`, counted as `click-cta` with `target: showcase` from `onClick`, never a
-  `data-umami-event`), then `.vk-hero-panel` (`CommandPanel`) and `.vk-hero-facts`: one mono row of
-  `HERO_FACTS` from `lib/landing-facts.ts`, always in digits and each a link to the page that owns
-  it (the version to the GitHub releases and MIT to the licence, both `outbound-link`; the format
-  count to `/docs/formats` and the provider count, "+ none", to `/docs/providers`, both
-  `click-cta`). `LocaleLedger` (`components/landing/locale-ledger.tsx`, a server component) is a
-  void code `figure` titled `landing.hero.headline`: one row per message file (`ledgerRows` in
-  `lib/hero-ledger.ts`, read from `messages/*.json`; `en`, the source, first and full white, then
-  the page's own locale, then the rest, each value with its `lang`), only the first two under 40rem,
-  closed by the `verbatra.lock.json` line whose hash (`HERO_HEADLINE_LOCK_HASH`) is read from
-  `apps/docs/verbatra.lock.json`, never typed, and pinned by `lib/hero-ledger.test.ts` to the
-  content hash of the English headline. Its `figcaption` carries `landing.hero.ledger.caption` and
-  the dogfooding claim linking this site's message files. The home social image (`HomeOgFrame` in
-  `lib/og-image.tsx`) repeats this look with `OG_PALETTE`, which mirrors these tokens, and the
-  subset Geist and Geist Mono files in `assets/og-fonts/` (`lib/og-fonts.ts`), stripped
-  of their kerning tables, since satori turns kerning into doubled word gaps; its headline wraps
-  with `textWrap: "balance"`, and `lib/og-image.test.tsx` fails when a font lacks a glyph the image
-  draws. Provenance: Geist 1.800 (`Geist-Medium.ttf`, `Geist-Bold.ttf`) and Geist Mono 1.700
-  (`GeistMono-Regular.ttf`), from `dist/fonts/geist-sans` and `dist/fonts/geist-mono` of the
-  `geist` npm package 1.7.2, OFL 1.1 with the licence beside them (`OFL-Geist.txt`), each subset
-  with fontTools:
+- **Solid white display headlines.** The landing hero (`hero.tsx`) and the docs home header both
+  set a solid `--text-strong` headline. The hero sits straight on the void page, left-aligned, over
+  its decorative dot backdrop, with one soft glow behind the terminal: `.vk-banner-grid` is one
+  column, and from 64rem two, the copy (`.vk-banner-copy`: the `h1` `.vk-banner-title`, the
+  `.vk-banner-lead`, `.vk-banner-ctas` with Get started (`/docs/quickstart`, `click-cta`) and View
+  on GitHub (`outbound-link`), then `.vk-banner-install` holding `CommandPanel`) beside the
+  terminal (`.vk-banner-demo`). The home social image (`HomeOgFrame` in `lib/og-image.tsx`, served
+  by `app/[lang]/(home)/home-og/route.tsx`) is a monochrome and violet card on `OG_PALETTE.void`:
+  the wordmark and host, the localized `landing.banner.headline`, then a few real terminal lines
+  (`HERO_OG_LINES` in `lib/hero-terminal.ts`, every line taken from the hero transcript, the prompt
+  `$` in violet). `OG_PALETTE` mirrors the tokens (`lib/og-image.test.tsx` pins each one), and the
+  image draws with the subset Geist and Geist Mono files in `assets/og-fonts/`
+  (`lib/og-fonts.ts`), stripped of their kerning tables, since satori turns kerning into doubled
+  word gaps; its headline wraps with `textWrap: "balance"`, and `lib/og-image.test.tsx` fails when a
+  font lacks a glyph the image draws. Provenance: Geist 1.800 (`Geist-Medium.ttf`, `Geist-Bold.ttf`)
+  and Geist Mono 1.700 (`GeistMono-Regular.ttf`), from `dist/fonts/geist-sans` and
+  `dist/fonts/geist-mono` of the `geist` npm package 1.7.2, OFL 1.1 with the licence beside them
+  (`OFL-Geist.txt`), each subset with fontTools:
   `pyftsubset <upstream>.ttf --unicodes="U+0020-007E,U+00A0-017F,U+2018-201E,U+2026"
   --layout-features="" --no-hinting --drop-tables+=GPOS,GSUB,kern,DSIG --output-file=<name>.ttf`.
-  The image keeps its own composition and its own labels: the headline, two other locales
-  (`heroLocaleRows`) and three counts (`OG_COUNT_FACTS` in `lib/landing-facts.ts`: formats,
-  providers and the locales this site translates) labelled from `landing.hero.og`, never from the
-  hero's facts row. A new character outside those ranges in a headline or number label needs the
-  subset rerun. `PromptCopyButton` is `.vk-prompt` (`.vk-prompt-trigger`, `.vk-prompt-pop` holding
+  A new character outside those ranges in a headline needs the subset rerun. `PromptCopyButton` is
+  `.vk-prompt` (`.vk-prompt-trigger`, `.vk-prompt-pop` holding
   the exact prompt in `.vk-prompt-text`, sans `--text-xs` with a hanging indent per numbered line,
   its URL broken only after a path `/` and each flag, and the value after it
   (`--skill verbatra-cli`), kept whole through `breakUrlsAtSlashes(text, keepFlagsWhole)`), whose
@@ -708,7 +607,7 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   pressed. On the docs home it sits in `.vk-agent-tip`, a `.vk-home-callout`
   (`.vk-home-callout-icon`, `.vk-home-callout-body`, `.vk-home-callout-title`) whose
   `.vk-agent-tip-action` wraps under the text, with the preview spanning it, while the tip is under
-  36rem. Neither uses a gradient headline: `--gradient-headline` is only for the footer's watermark.
+  36rem. Neither uses a gradient headline.
   On the docs surface only the docs home header carries an eyebrow (a `.vk-label`); no landing
   section does. No card or button on the docs home appends an arrow to its label: the hover border,
   or on a stack card the chevron, is the affordance.
