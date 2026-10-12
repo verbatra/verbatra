@@ -220,17 +220,18 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
 - **shadcn/ui primitives:** `components.json` (style `new-york`, Tailwind 4 with an empty
   `tailwind.config`, `cssVariables`) points the `ui` alias at `@/components/ui/shadcn`, so the
   CLI never overwrites the hand-written `components/ui/button.tsx` and `tabs.tsx`. That folder
-  holds `accordion`, `tabs`, `sheet`, `button` and `tooltip`, taken from the new-york-v4 registry
+  holds `accordion`, `tabs` and `sheet`, taken from the new-york-v4 registry
   with two changes: each imports its own `@radix-ui/react-*` package (the versions Fumadocs
-  already resolves, plus `@radix-ui/react-tooltip`) instead of the `radix-ui` meta package, and
+  already resolves) instead of the `radix-ui` meta package, and
   `SheetContent` takes a `closeLabel` (a translated string; no close button without it) instead of
   the hard-coded English "Close". `cn` is `lib/utils.ts`. The shadcn color names are mapped in one
   `@theme inline` block in `app/global.css` straight onto the semantic layer (`background` to
   `--surface-bg`, `primary` to `--accent-fill`, `accent` to `--surface-hover`, `ring` to
   `--focus-ring`, and so on); there is no second palette and no shadcn `--radius` scale, so
   `rounded-md` and friends keep the site radii. The shadcn `--accent` variable is never declared:
-  `--accent` stays the site's violet text accent, and `bg-accent` reads `--color-accent`. Use the
-  shadcn `Button` only inside a shadcn composition; the site button stays `components/ui/button.tsx`.
+  `--accent` stays the site's violet text accent, and `bg-accent` reads `--color-accent`. Every
+  button, inside a shadcn composition or not, is the site button in `components/ui/button.tsx`; add a
+  registry primitive only together with the code that uses it.
 - **Landing:** `components/landing/` holds one component per section. Their order on the page is
   `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, proofStrip, problem, howItWorks, features,
   code, showcase, ecosystem, studio, compare, openSource, faq, finalCta), which the home page maps
