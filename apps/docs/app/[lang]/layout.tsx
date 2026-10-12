@@ -15,7 +15,7 @@ import { UMAMI_ORIGIN } from "@/lib/security-headers.mjs";
 import { homeAlternates, SITE_HOST, SITE_URL } from "@/lib/site";
 import { homeOgImagePath, socialMetadata } from "@/lib/social-metadata";
 import { AUTHOR_NAME, organizationLd, SEO_KEYWORDS, websiteLd } from "@/lib/structured-data";
-import { THEME_COLORS, THEME_PROVIDER_OPTIONS } from "@/lib/theme";
+import { DEFAULT_THEME, THEME_COLORS, THEME_PROVIDER_OPTIONS } from "@/lib/theme";
 
 const sans = Geist({ subsets: ["latin"], variable: "--font-geist-sans" });
 const mono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" });
@@ -94,7 +94,11 @@ export default async function Layout({
   const messages = await getMessages({ locale });
 
   return (
-    <html lang={locale} suppressHydrationWarning className={`${sans.variable} ${mono.variable}`}>
+    <html
+      lang={locale}
+      suppressHydrationWarning
+      className={`${DEFAULT_THEME} ${sans.variable} ${mono.variable}`}
+    >
       <head>
         <link rel="preconnect" href={UMAMI_ORIGIN} crossOrigin="anonymous" />
         <link rel="dns-prefetch" href={UMAMI_ORIGIN} />

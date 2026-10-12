@@ -63,3 +63,13 @@ describe("Layout: Umami tracker", () => {
     expect(script?.getAttribute("data-website-id")).toBe("fcf007b7-4579-4486-881c-e8686d61d63d");
   });
 });
+
+describe("Layout: theme before any script", () => {
+  it("server-renders the default dark theme class on <html>, so a visitor without JavaScript gets the dark code tokens", async () => {
+    const tree = await Layout({ params: Promise.resolve({ lang: "en" }), children: null });
+    const markup = renderToStaticMarkup(tree);
+    const html = /<html[^>]*class="([^"]*)"/.exec(markup)?.[1]?.split(" ") ?? [];
+    expect(html).toContain("dark");
+    expect(html).not.toContain("light");
+  });
+});
