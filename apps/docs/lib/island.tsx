@@ -6,6 +6,7 @@ import {
   useEffect,
   useSyncExternalStore,
 } from "react";
+import { RETRY_DELAYS_MS, retrying } from "@/lib/retry";
 
 export type Island<P extends object> = ((props: P) => ReactNode) & {
   preload: () => Promise<unknown>;
@@ -22,7 +23,9 @@ const ISLAND_FAILED = Symbol("island-failed");
 
 type Loaded<P> = ComponentType<P> | typeof ISLAND_FAILED;
 
-export const ISLAND_RETRY_DELAYS_MS: ReadonlyArray<number> = [500, 2000];
+function failed(): typeof ISLAND_FAILED {
+  return ISLAND_FAILED;
+}
 
 function settle<T>(promise: Promise<T>): Promise<T> {
   const settled: Promise<T> = promise.then((value) => {
@@ -30,25 +33,6 @@ function settle<T>(promise: Promise<T>): Promise<T> {
     return value;
   });
   return settled;
-}
-
-function wait(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function loadWithRetry<P>(
-  load: () => Promise<ComponentType<P>>,
-  delays: ReadonlyArray<number>,
-): Promise<Loaded<P>> {
-  for (let attempt = 0; ; attempt += 1) {
-    try {
-      return await load();
-    } catch {
-      const delay = delays[attempt];
-      if (delay === undefined) return ISLAND_FAILED;
-      await wait(delay);
-    }
-  }
 }
 
 const FIRST_PAINT_FALLBACK_MS = 3000;
@@ -103,12 +87,12 @@ function useHydrating(): boolean {
 
 export function island<P extends object>(
   load: () => Promise<ComponentType<P>>,
-  { gate = afterFirstContentfulPaint, retryDelaysMs = ISLAND_RETRY_DELAYS_MS }: IslandOptions = {},
+  { gate = afterFirstContentfulPaint, retryDelaysMs = RETRY_DELAYS_MS }: IslandOptions = {},
 ): Island<P> {
   let pending: Promise<Loaded<P>> | undefined;
   const component = () => {
     pending ??= settle(
-      rendersEagerly() ? load() : gate().then(() => loadWithRetry(load, retryDelaysMs)),
+      rendersEagerly() ? load() : gate().then(() => retrying(load, retryDelaysMs).catch(failed)),
     );
     return pending;
   };
