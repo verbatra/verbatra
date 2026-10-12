@@ -51,8 +51,8 @@ describe("the global not-found page", () => {
     expect(html.className.split(" ")).toContain("dark");
     const first = doc.body.firstElementChild;
     expect(first?.tagName).toBe("SCRIPT");
-    const { THEME_META_SCRIPT } = await import("@/lib/theme");
-    expect(first?.textContent).toBe(THEME_META_SCRIPT);
+    const { THEME_INIT_SCRIPT } = await import("@/lib/theme");
+    expect(first?.textContent).toBe(THEME_INIT_SCRIPT);
     expect(
       doc.querySelector("[data-providers] [data-home-layout] [data-legal-footer]"),
     ).not.toBeNull();

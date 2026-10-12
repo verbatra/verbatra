@@ -69,19 +69,23 @@ dashboard in `packages/studio` (different app, different stack), or anything out
   `html.light` (declared after the semantic `:root` block, so the first match of a token in the
   file stays the dark value that `lib/og-image.test.tsx` reads) overrides every theme-dependent token: the brand primitives, the `--color-fd-*` layer,
   `--text-faint` and the two shadows. The semantic layer is derived from those, so it follows on
-  its own. Fumadocs' `RootProvider` runs `next-themes` with `THEME_PROVIDER_OPTIONS`
-  (`lib/theme.ts`: `attribute: "class"` from Fumadocs, `defaultTheme: "dark"`,
-  `enableSystem: false`, `hotKey: false` so no single-key shortcut toggles it,
-  `disableTransitionOnChange`); its inline script sets `dark` or `light` on `<html>` before the
-  first paint, and `scripts/write-csp-hashes.mjs` hashes it like every other inline script, so it
-  passes the enforced CSP. The layout server-renders `DEFAULT_THEME` (`dark`) as a class on `<html>`
-  (with `suppressHydrationWarning`), so a visitor without JavaScript still gets the dark Shiki tokens;
-  the script swaps it for `light` when that is the stored choice. The viewport `themeColor`
-  and `colorScheme` server-render the dark default (`THEME_COLORS`), `THEME_META_SCRIPT`
-  (`lib/theme.ts`, the inline script that opens `<body>`, hashed into the CSP like the theme
-  script) switches both to a stored light theme before the first paint, and `ThemeMeta`
-  (`components/theme-meta.tsx`, inside `RootProvider`) rewrites both meta tags from `resolvedTheme`
-  whenever the theme changes. A component never branches on the
+  its own. The theme is not a React context: Fumadocs' `RootProvider` runs with
+  `theme: { enabled: false }` (`components/themed-root-provider.tsx`), so `next-themes` never
+  mounts, because a context value that changes after hydration (`next-themes` re-memoizes on the
+  system preference) forces every island still waiting for its chunk to client-render, and throws
+  away its server HTML when that chunk fails. `lib/theme-store.ts` owns it instead: `currentTheme()`
+  reads the class on `<html>`, `setTheme()` stores the choice under `THEME_STORAGE_KEY`, swaps the
+  `dark` / `light` class and `color-scheme` with transitions off for one frame, rewrites the
+  `theme-color` and `color-scheme` meta tags (`applyThemeMeta`) and notifies its subscribers, and a
+  `storage` event from another tab does the same. Components read it through `useSiteTheme()`
+  (`lib/use-site-theme.ts`, `useSyncExternalStore` with an `undefined` server snapshot), and
+  `lib/theme-store.test.ts` fails on any `next-themes` or `useTheme` import. The layout
+  server-renders `DEFAULT_THEME` (`dark`) as a class on `<html>` (with `suppressHydrationWarning`),
+  so a visitor without JavaScript still gets the dark Shiki tokens, and the viewport `themeColor`
+  and `colorScheme` the dark default (`THEME_COLORS`); `THEME_INIT_SCRIPT` (`lib/theme.ts`, the
+  inline script that opens `<body>`, hashed into the CSP by `scripts/write-csp-hashes.mjs` like
+  every inline script) applies a stored light theme to the class, `color-scheme` and both meta
+  tags before the first paint. A component never branches on the
   theme in JavaScript and needs no `dark:` variant: write against the semantic tokens and both
   themes follow. `lib/theme.test.ts` pins the light override of every token and holds every text
   pair at 4.5:1 and the focus ring at 3:1 in both themes.
@@ -653,7 +657,7 @@ edge; the footer bleeds on purpose.
 
 Every URL that matches no page, and every `notFound()`, renders `app/global-not-found.tsx`
 (`experimental.globalNotFound` in `next.config.mjs`, since the root layout sits under `[lang]`): a
-full document in English on the dark default, with the same `THEME_META_SCRIPT`, `SiteProviders`,
+full document in English on the dark default, with the same `THEME_INIT_SCRIPT`, `SiteProviders`,
 `LocaleHomeLayout` header and `LegalFooter` as the legal pages, a `notFound` namespace in
 `messages/*.json`, and `robots: noindex`. It is prerendered as `/_not-found`, whose inline script
 hashes the proxy serves for any path it has no entry for. The fonts both documents load live in

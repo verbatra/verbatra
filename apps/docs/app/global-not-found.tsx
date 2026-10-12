@@ -9,7 +9,7 @@ import { FONT_VARIABLES } from "@/lib/fonts";
 import { i18n, localizedPath } from "@/lib/i18n";
 import { LocaleHomeLayout } from "@/lib/locale-home-layout";
 import { SITE_URL } from "@/lib/site";
-import { DEFAULT_THEME, THEME_COLORS, THEME_META_SCRIPT } from "@/lib/theme";
+import { DEFAULT_THEME, THEME_COLORS, THEME_INIT_SCRIPT } from "@/lib/theme";
 
 const locale = i18n.defaultLanguage;
 
@@ -34,8 +34,7 @@ export default async function GlobalNotFound(): Promise<ReactNode> {
   return (
     <html lang={locale} suppressHydrationWarning className={`${DEFAULT_THEME} ${FONT_VARIABLES}`}>
       <body className="flex flex-col min-h-screen">
-        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: a fixed script built from the theme constants, hashed into the CSP at build time, sets the browser chrome to a stored light theme before the first paint */}
-        <script dangerouslySetInnerHTML={{ __html: THEME_META_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <SiteProviders locale={locale}>
           <LocaleHomeLayout
             params={Promise.resolve({ lang: locale })}

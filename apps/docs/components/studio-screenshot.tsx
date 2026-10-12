@@ -1,11 +1,11 @@
 "use client";
 
-import { useTheme } from "fumadocs-ui/provider/base";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
 import { TabList } from "@/components/ui/tabs";
 import { useHydrated } from "@/lib/use-hydrated";
+import { useSiteTheme } from "@/lib/use-site-theme";
 import { cn } from "@/lib/utils";
 
 const SHOTS = {
@@ -45,7 +45,7 @@ export function StudioScreenshot({
   className,
 }: StudioScreenshotProps): ReactNode {
   const t = useTranslations("docs.screenshot");
-  const { resolvedTheme } = useTheme();
+  const { resolvedTheme } = useSiteTheme();
   const hydrated = useHydrated();
   const [chosen, setChosen] = useState<StudioTheme | null>(null);
   const siteTheme: StudioTheme = hydrated && resolvedTheme === "light" ? "light" : "dark";

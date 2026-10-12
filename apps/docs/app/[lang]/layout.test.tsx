@@ -88,20 +88,23 @@ describe("Layout: theme before any script", () => {
   });
 });
 
-describe("Layout: browser chrome for a stored theme", () => {
-  async function chromeScript(): Promise<HTMLScriptElement | null> {
+describe("Layout: a stored theme before the first paint", () => {
+  async function initScript(): Promise<HTMLScriptElement | null> {
     const tree = await Layout({ params: Promise.resolve({ lang: "en" }), children: null });
     const doc = new DOMParser().parseFromString(renderToStaticMarkup(tree), "text/html");
     return doc.body.querySelector<HTMLScriptElement>("script:not([src])");
   }
 
-  function runWith(stored: string | null, script: string): Record<string, string | null> {
+  function runWith(stored: string | null, script: string) {
+    document.documentElement.className = "dark";
+    document.documentElement.style.colorScheme = "";
     document.head.innerHTML =
       '<meta name="theme-color" content="#0B0B12"><meta name="color-scheme" content="dark">';
     if (stored === null) localStorage.removeItem("theme");
     else localStorage.setItem("theme", stored);
     new Function(script)();
     return {
+      className: document.documentElement.className,
       themeColor:
         document.querySelector('meta[name="theme-color"]')?.getAttribute("content") ?? null,
       colorScheme:
@@ -109,30 +112,35 @@ describe("Layout: browser chrome for a stored theme", () => {
     };
   }
 
-  it("opens the body with an inline script, so the chrome follows a stored light theme before the first paint", async () => {
-    const script = await chromeScript();
+  it("opens the body with an inline script that applies a stored light theme to the page and the chrome", async () => {
+    const script = await initScript();
     const { THEME_COLORS } = await import("@/lib/theme");
     expect(script?.parentElement?.firstElementChild).toBe(script);
     expect(runWith("light", script?.textContent ?? "")).toEqual({
+      className: "light",
       themeColor: THEME_COLORS.light,
       colorScheme: "light",
     });
+    expect(document.documentElement.style.colorScheme).toBe("light");
   });
 
   it("leaves the dark default alone for no stored theme, the dark one or an unknown value", async () => {
-    const script = (await chromeScript())?.textContent ?? "";
+    const script = (await initScript())?.textContent ?? "";
     const { THEME_COLORS } = await import("@/lib/theme");
     for (const stored of [null, "dark", "system", "constructor"]) {
       expect(runWith(stored, script)).toEqual({
+        className: "dark",
         themeColor: THEME_COLORS.dark,
         colorScheme: "dark",
       });
     }
   });
 
-  it("reads the key the theme provider stores the choice under", async () => {
-    const { THEME_PROVIDER_OPTIONS, THEME_STORAGE_KEY } = await import("@/lib/theme");
-    expect(THEME_PROVIDER_OPTIONS.storageKey).toBe(THEME_STORAGE_KEY);
-    expect((await chromeScript())?.textContent).toContain(JSON.stringify(THEME_STORAGE_KEY));
+  it("reads the key the theme toggle stores the choice under", async () => {
+    const { THEME_STORAGE_KEY } = await import("@/lib/theme");
+    const { setTheme } = await import("@/lib/theme-store");
+    setTheme("light");
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe("light");
+    expect((await initScript())?.textContent).toContain(JSON.stringify(THEME_STORAGE_KEY));
   });
 });

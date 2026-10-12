@@ -10,7 +10,7 @@ const theme = vi.hoisted(() => ({
   setTheme: vi.fn(),
 }));
 
-vi.mock("fumadocs-ui/provider/base", () => ({ useTheme: () => theme }));
+vi.mock("@/lib/use-site-theme", () => ({ useSiteTheme: () => theme }));
 vi.mock("next-intl", async (importOriginal) => {
   const { createTranslator } = await importOriginal<typeof import("next-intl")>();
   const { default: messages } = await import("@/messages/en.json");

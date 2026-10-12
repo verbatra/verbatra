@@ -9,7 +9,7 @@ import { docsStylesheetRules } from "@/lib/stylesheet-rules";
 const site = vi.hoisted(() => ({ resolvedTheme: "dark" as string | undefined }));
 
 vi.mock("next-intl", () => ({ useTranslations: () => (key: string) => key }));
-vi.mock("fumadocs-ui/provider/base", () => ({ useTheme: () => site }));
+vi.mock("@/lib/use-site-theme", () => ({ useSiteTheme: () => site }));
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 

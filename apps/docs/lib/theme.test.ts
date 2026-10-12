@@ -4,7 +4,7 @@ import {
   DEFAULT_THEME,
   nextTheme,
   THEME_COLORS,
-  THEME_PROVIDER_OPTIONS,
+  THEME_STORAGE_KEY,
   THEMES,
   themeName,
 } from "./theme";
@@ -78,15 +78,10 @@ const UI_PAIRS = [
   ["--focus-ring", "--v-void"],
 ] as const;
 
-describe("theme provider options", () => {
-  it("defaults to dark, ignores the system preference and drops the single-key hotkey", () => {
+describe("theme defaults", () => {
+  it("defaults to dark and keeps the choice under one storage key", () => {
     expect(DEFAULT_THEME).toBe("dark");
-    expect(THEME_PROVIDER_OPTIONS).toMatchObject({
-      defaultTheme: "dark",
-      enableSystem: false,
-      hotKey: false,
-      themes: ["dark", "light"],
-    });
+    expect(THEME_STORAGE_KEY).toBe("theme");
   });
 
   it("toggles between the two themes", () => {
