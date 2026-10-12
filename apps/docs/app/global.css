@@ -462,6 +462,12 @@ html.light {
   --tw-ring-shadow: 0 0 #0000;
 }
 
+.vk-header :focus-visible,
+.vk-nav-sheet :focus-visible {
+  transition-property:
+    color, background-color, border-color, text-decoration-color, fill, stroke, opacity;
+}
+
 .vk-theme-icon-light,
 html.light .vk-theme-icon-dark {
   display: none;

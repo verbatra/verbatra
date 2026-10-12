@@ -160,4 +160,15 @@ describe("theme tokens", () => {
       "block",
     );
   });
+
+  it("draws every header and phone menu focus ring in --focus-ring at once, never fading it in from the text color", () => {
+    expect(rulesFor(rules, ":focus-visible")[0]?.declarations.outline).toBe(
+      "2px solid var(--focus-ring)",
+    );
+    for (const selector of [".vk-header :focus-visible", ".vk-nav-sheet :focus-visible"]) {
+      const transition = rulesFor(rules, selector)[0]?.declarations["transition-property"] ?? "";
+      expect(transition).not.toBe("");
+      expect(transition).not.toMatch(/outline|all/);
+    }
+  });
 });

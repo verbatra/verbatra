@@ -68,7 +68,7 @@ function SheetContent({
       >
         {children}
         {closeLabel && (
-          <SheetPrimitive.Close className="absolute top-4 right-4 rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none data-[state=open]:bg-secondary">
+          <SheetPrimitive.Close className="absolute top-1.5 right-1.5 inline-flex size-11 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground disabled:pointer-events-none">
             <XIcon className="size-4" />
             <span className="sr-only">{closeLabel}</span>
           </SheetPrimitive.Close>

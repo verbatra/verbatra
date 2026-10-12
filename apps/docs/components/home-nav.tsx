@@ -3,7 +3,7 @@
 import { usePathname } from "fumadocs-core/framework";
 import Link from "fumadocs-core/link";
 import { buttonVariants } from "fumadocs-ui/components/ui/button";
-import { createContext, type ReactNode, use, useState } from "react";
+import { createContext, type ReactNode, use, useRef, useState } from "react";
 import { GithubIcon } from "@/components/landing/github-icon";
 import { GITHUB_URL, RELEASES_URL } from "@/components/landing/links";
 import { buttonClasses } from "@/components/ui/button";
@@ -208,6 +208,7 @@ function MenuIcon(): ReactNode {
 export function HomeMobileMenu({ footer }: { footer: ReactNode }): ReactNode {
   const { labels } = useHomeNav();
   const [open, setOpen] = useState(false);
+  const navRef = useRef<HTMLElement>(null);
   const close = () => setOpen(false);
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -218,6 +219,12 @@ export function HomeMobileMenu({ footer }: { footer: ReactNode }): ReactNode {
         side="right"
         closeLabel={labels.menuClose}
         aria-describedby={undefined}
+        onOpenAutoFocus={(event) => {
+          const first = navRef.current?.querySelector<HTMLElement>("a[href]");
+          if (!first) return;
+          event.preventDefault();
+          first.focus();
+        }}
         className="vk-nav-sheet w-[85%] max-w-[380px] gap-0 text-[0.9375rem]"
       >
         <SheetHeader className="px-4 pt-4 pb-2">
@@ -225,7 +232,7 @@ export function HomeMobileMenu({ footer }: { footer: ReactNode }): ReactNode {
             {labels.menuTitle}
           </SheetTitle>
         </SheetHeader>
-        <nav aria-label={labels.label} className="flex flex-col gap-0.5 px-2">
+        <nav ref={navRef} aria-label={labels.label} className="flex flex-col gap-0.5 px-2">
           <DocsNavLink className={SHEET_ITEM} onNavigate={close} />
           <ChangelogNavLink className={SHEET_ITEM} location="menu" />
           <GitHubNavLink className={SHEET_ITEM} location="menu" />

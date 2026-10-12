@@ -249,6 +249,41 @@ describe("the landing phone menu", () => {
     expect(close).toBeDefined();
   });
 
+  it("puts focus on the first nav link when it opens, then the call to action, the footer controls and the close button", async () => {
+    const container = await render(null);
+    act(() => trigger(container)?.click());
+    const dialog = sheet();
+    expect(document.activeElement?.getAttribute("href")).toBe("/docs");
+    const order = Array.from(dialog?.querySelectorAll<HTMLElement>("a[href], button") ?? []).map(
+      (node) =>
+        node.getAttribute("href") ??
+        (node.hasAttribute("data-language")
+          ? "language"
+          : node.hasAttribute("data-theme-toggle")
+            ? "theme"
+            : node.textContent),
+    );
+    expect(order).toEqual([
+      "/docs",
+      RELEASES_URL,
+      GITHUB_URL,
+      "/docs/quickstart",
+      "language",
+      "theme",
+      nav.menu.close,
+    ]);
+  });
+
+  it("draws the close button focus with the shared outline, not a second ring, on a 44px target", async () => {
+    const container = await render(null);
+    act(() => trigger(container)?.click());
+    const close = Array.from(sheet()?.querySelectorAll("button") ?? []).find(
+      (button) => button.textContent === nav.menu.close,
+    );
+    expect(close?.className).not.toMatch(/focus:ring|focus:outline-hidden|ring-offset/);
+    expect(close?.className).toContain("size-11");
+  });
+
   it("closes on Escape and hands focus back to the menu button", async () => {
     const container = await render(null);
     const open = trigger(container);
