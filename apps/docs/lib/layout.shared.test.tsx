@@ -92,7 +92,7 @@ function navValue(locale: "en" | "de") {
       label: "Main",
       docs: "nav.docs",
       github: "GitHub",
-      starsAria: "{count} stars on GitHub",
+      starsAria: "GitHub {count} stars",
       changelog: "Changelog",
       getStarted: "Get started",
       menuOpen: "Open menu",

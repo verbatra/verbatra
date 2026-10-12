@@ -176,7 +176,7 @@
       "label": "Hauptmenü",
       "docs": "Docs",
       "github": "GitHub",
-      "starsAria": "{count} Sterne auf GitHub",
+      "starsAria": "GitHub {count} Sterne",
       "changelog": "Changelog",
       "getStarted": "Loslegen",
       "menu": {

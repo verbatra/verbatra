@@ -162,8 +162,23 @@ describe("the landing nav", () => {
   it("shows the server-fetched star count inside the GitHub link and names it", async () => {
     const github = primaryNav(await render(1234))?.querySelector(`a[href="${GITHUB_URL}"]`);
     expect(github?.querySelector("[data-stars]")?.textContent).toBe("1.2K");
-    expect(github?.getAttribute("aria-label")).toBe("1.2K stars on GitHub");
+    expect(github?.getAttribute("aria-label")).toBe("GitHub 1.2K stars");
     expect(github?.textContent).toBe("GitHub1.2K");
+  });
+
+  it("names the GitHub link with its visible text first in every locale", async () => {
+    for (const locale of ["en", "de"] as const) {
+      const github = primaryNav(await render(1234, locale))?.querySelector(
+        `a[href="${GITHUB_URL}"]`,
+      );
+      const visible = Array.from(github?.querySelectorAll("span") ?? [])
+        .map((span) => span.textContent)
+        .join(" ");
+      expect(github?.getAttribute("aria-label")?.startsWith(visible)).toBe(true);
+      act(() => mounted?.root.unmount());
+      mounted = undefined;
+      document.body.innerHTML = "";
+    }
   });
 
   it("renders a plain GitHub link with no number and no empty slot without a count", async () => {

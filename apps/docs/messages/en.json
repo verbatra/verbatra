@@ -229,7 +229,7 @@
       "label": "Main",
       "docs": "Docs",
       "github": "GitHub",
-      "starsAria": "{count} stars on GitHub",
+      "starsAria": "GitHub {count} stars",
       "changelog": "Changelog",
       "getStarted": "Get started",
       "menu": {
