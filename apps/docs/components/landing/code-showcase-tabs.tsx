@@ -3,7 +3,6 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/shadcn/tabs";
 import { CODE_SHOWCASE_LOCATION } from "@/lib/landing-code";
-import { prefersReducedMotion } from "@/lib/reduced-motion";
 import { trackUmamiEvent } from "@/lib/umami";
 
 export type CodeShowcaseTab = { id: string; label: string; panel: ReactNode };
@@ -30,7 +29,7 @@ function Panel({ active, children }: { active: boolean; children: ReactNode }): 
     const wasShown = shown.current;
     shown.current = active;
     const element = ref.current;
-    if (!active || wasShown || !element || !fade || prefersReducedMotion()) return;
+    if (!active || wasShown || !element || !fade) return;
     void fade.then((run) => run?.(element));
   }, [active]);
   return <div ref={ref}>{children}</div>;

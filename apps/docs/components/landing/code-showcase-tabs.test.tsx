@@ -9,9 +9,7 @@ import en from "@/messages/en.json";
 
 vi.mock("@/lib/umami", () => ({ trackUmamiEvent: vi.fn() }));
 
-const motion = vi.hoisted(() => ({ reduced: false, loads: 0, fades: [] as HTMLElement[] }));
-
-vi.mock("@/lib/reduced-motion", () => ({ prefersReducedMotion: () => motion.reduced }));
+const motion = vi.hoisted(() => ({ loads: 0, fades: [] as HTMLElement[] }));
 
 vi.mock("./code-showcase-fade", () => {
   motion.loads += 1;
@@ -107,19 +105,12 @@ describe("CodeShowcaseTabs", () => {
     expect(after?.textContent).toBe(en.landing.install.copied);
   });
 
-  it("switches panels without a fade under reduced motion", async () => {
-    motion.reduced = true;
-    motion.fades.length = 0;
-    const container = mount([
-      { id: "a", label: "A", panel: <p>first</p> },
-      { id: "b", label: "B", panel: <p>second</p> },
-    ]);
-    selectTab(container, 1);
-    await settle();
-    const panels = [...container.querySelectorAll<HTMLElement>('[role="tabpanel"]')];
-    expect(panels.map((node) => node.dataset.state)).toEqual(["inactive", "active"]);
-    expect(motion.fades).toEqual([]);
-    motion.reduced = false;
+  it("leaves the reduced motion check to the fade, so the tabs module never reads it", () => {
+    const source = readFileSync(
+      join(process.cwd(), "components/landing/code-showcase-tabs.tsx"),
+      "utf8",
+    );
+    expect(source).not.toContain("reduced-motion");
   });
 
   it("keeps motion out of the tabs module, which renders one plain element per panel", () => {

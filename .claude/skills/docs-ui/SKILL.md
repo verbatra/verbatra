@@ -47,7 +47,7 @@ dashboard in `packages/studio` (different app, different stack), or anything out
   which cost the light-mode mobile run its 95. So each panel is one plain `div` for good, and the
   first pointer, focus or tab change `import()`s `code-showcase-fade.ts`, which fades a newly
   opened panel in with `animate` from `motion/mini` (opacity and a 4px lift), never under reduced
-  motion (`prefersReducedMotion`); there is no page-wide provider. Server sections and the
+  motion (`fadeInPanel` checks `prefersReducedMotion` itself, so the tabs module never reads it); there is no page-wide provider. Server sections and the
   reveals stay CSS keyframes and transitions in `app/global.css`, each with a
   `prefers-reduced-motion` opt-out.
 - Tailwind 4 uses CSS-first configuration. There is no `tailwind.config.js`. Tokens are
