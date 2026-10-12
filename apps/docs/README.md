@@ -81,7 +81,7 @@ and `lib/hero-terminal.ts`, never in the component or the copy.
 
 - **Edit copy**: change the `landing.*` key in `messages/en.json`, then update `de.json`,
   `es.json` and `fr.json` in the same change, with `pnpm i18n` or by hand. After a hand
-  translation, run `npx verbatra check` from this directory: it must report every locale in sync.
+  translation, run `npx @verbatra/cli check` from this directory: it must report every locale in sync.
 - **Add or reorder a section**: build it in `components/landing/` on `Section` and `SectionHead`,
   add its id to `LANDING_SECTIONS` at the position it takes, map the id to the component in
   `page.tsx`, and update the order in `lib/landing-sections.test.ts`. Give it a section `id` that
