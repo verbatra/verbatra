@@ -1,15 +1,74 @@
 // @vitest-environment jsdom
 
-import { act } from "react";
-import { createRoot, hydrateRoot } from "react-dom/client";
+import { Activity, act, type ComponentType, useState } from "react";
+import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
-import { island, preloadOnServer, rendersEagerly } from "./island";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { island, preloadIslands, rendersEagerly } from "./island";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 function Greeting({ name }: { name: string }) {
   return <p>{`Hello ${name}`}</p>;
+}
+
+function Counter({ label }: { label: string }) {
+  const [count, setCount] = useState(0);
+  return (
+    <button type="button" data-island={label} onClick={() => setCount((value) => value + 1)}>
+      {`${label} ${count}`}
+    </button>
+  );
+}
+
+function deferred<T>() {
+  let resolve: (value: T) => void = () => undefined;
+  let reject: (reason: unknown) => void = () => undefined;
+  const promise = new Promise<T>((done, fail) => {
+    resolve = done;
+    reject = fail;
+  });
+  return { promise, resolve, reject };
+}
+
+function serverMarkup(...labels: string[]): string {
+  return renderToString(
+    labels.map((label) => (
+      <Activity key={label} mode="visible">
+        <Counter label={label} />
+      </Activity>
+    )),
+  );
+}
+
+function button(container: HTMLElement, label: string): HTMLButtonElement {
+  const found = container.querySelector<HTMLButtonElement>(`[data-island="${label}"]`);
+  if (!found) throw new Error(`missing island ${label}`);
+  return found;
+}
+
+async function flush(): Promise<void> {
+  await act(async () => {
+    for (let index = 0; index < 5; index += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+  });
+}
+
+const roots: Root[] = [];
+
+function track(root: Root): Root {
+  roots.push(root);
+  return root;
+}
+
+afterEach(() => {
+  for (const root of roots.splice(0)) act(() => root.unmount());
+  vi.useRealTimers();
+});
+
+function errorSpies() {
+  return { onUncaughtError: vi.fn(), onCaughtError: vi.fn(), onRecoverableError: vi.fn() };
 }
 
 describe("island", () => {
@@ -23,29 +82,145 @@ describe("island", () => {
     const Lazy = island(async () => Greeting);
     await Lazy.preload();
     const html = renderToString(<Lazy name="verbatra" />);
-    expect(html).toBe("<p>Hello verbatra</p>");
+    expect(html).toBe("<!--&--><p>Hello verbatra</p><!--/&-->");
+    expect(html).not.toContain("<!--$");
   });
 
   it("keeps the server markup in place while it hydrates, then takes it over without a client render", async () => {
-    let resolve: (component: typeof Greeting) => void = () => undefined;
-    const Lazy = island(() => new Promise<typeof Greeting>((done) => (resolve = done)));
+    const load = deferred<ComponentType<{ label: string }>>();
+    const Lazy = island(() => load.promise);
     const container = document.createElement("div");
-    container.innerHTML = renderToString(<Greeting name="verbatra" />);
-    const server = container.firstElementChild;
+    container.innerHTML = serverMarkup("a");
+    const server = button(container, "a");
     await act(async () => {
-      hydrateRoot(container, <Lazy name="verbatra" />);
+      track(hydrateRoot(container, <Lazy label="a" />));
     });
-    expect(container.firstElementChild).toBe(server);
-    await act(async () => resolve(Greeting));
-    expect(container.firstElementChild).toBe(server);
-    expect(container.textContent).toBe("Hello verbatra");
+    expect(button(container, "a")).toBe(server);
+    await act(async () => load.resolve(Counter));
+    expect(button(container, "a")).toBe(server);
+    await act(async () => server.click());
+    expect(server.textContent).toBe("a 1");
+  });
+
+  it("hydrates each island on its own, so a slow chunk never holds another island back", async () => {
+    const slow = deferred<ComponentType<{ label: string }>>();
+    const Fast = island(async () => Counter);
+    const Slow = island(() => slow.promise);
+    const container = document.createElement("div");
+    container.innerHTML = serverMarkup("fast", "slow");
+    await act(async () => {
+      track(
+        hydrateRoot(
+          container,
+          <>
+            <Fast label="fast" />
+            <Slow label="slow" />
+          </>,
+        ),
+      );
+    });
+    await flush();
+    await act(async () => button(container, "fast").click());
+    expect(button(container, "fast").textContent).toBe("fast 1");
+    expect(button(container, "slow").textContent).toBe("slow 0");
+    await act(async () => slow.resolve(Counter));
+    await act(async () => button(container, "slow").click());
+    expect(button(container, "slow").textContent).toBe("slow 1");
+  });
+
+  it("retries a rejected chunk before it gives up", async () => {
+    const load = vi
+      .fn<() => Promise<ComponentType<{ name: string }>>>()
+      .mockRejectedValueOnce(new Error("chunk failed"))
+      .mockResolvedValue(Greeting);
+    const Lazy = island(load, { retryDelaysMs: [0] });
+    const container = document.createElement("div");
+    await act(async () => {
+      track(createRoot(container)).render(<Lazy name="again" />);
+    });
+    await flush();
+    expect(load).toHaveBeenCalledTimes(2);
+    expect(container.textContent).toBe("Hello again");
+  });
+
+  it("keeps the server markup of an island whose chunk never loads, without an error reaching the root", async () => {
+    const failing = vi.fn(() => Promise.reject(new Error("chunk failed")));
+    const Broken = island<{ label: string }>(failing, { retryDelaysMs: [0, 0] });
+    const Working = island(async () => Counter);
+    const container = document.createElement("div");
+    container.innerHTML = serverMarkup("broken", "working");
+    const server = button(container, "broken");
+    const spies = errorSpies();
+    await act(async () => {
+      track(
+        hydrateRoot(
+          container,
+          <>
+            <Broken label="broken" />
+            <Working label="working" />
+          </>,
+          spies,
+        ),
+      );
+    });
+    await flush();
+    expect(failing).toHaveBeenCalledTimes(3);
+    expect(button(container, "broken")).toBe(server);
+    await act(async () => server.click());
+    expect(server.textContent).toBe("broken 0");
+    await act(async () => button(container, "working").click());
+    expect(button(container, "working").textContent).toBe("working 1");
+    expect(spies.onUncaughtError).not.toHaveBeenCalled();
+    expect(spies.onCaughtError).not.toHaveBeenCalled();
+    expect(spies.onRecoverableError).not.toHaveBeenCalled();
+  });
+
+  it("renders nothing for a failed island in a client render, and loads it again on the next mount", async () => {
+    const load = vi
+      .fn<() => Promise<ComponentType<{ label: string }>>>()
+      .mockRejectedValueOnce(new Error("chunk failed"))
+      .mockResolvedValue(Counter);
+    const Lazy = island(load, { retryDelaysMs: [] });
+    const container = document.createElement("div");
+    const spies = errorSpies();
+    const root = track(createRoot(container, spies));
+    await act(async () => root.render(<Lazy label="nav" />));
+    await flush();
+    expect(container.innerHTML).toBe("");
+    await act(async () => root.render(<p>elsewhere</p>));
+    await act(async () => root.render(<Lazy label="nav" />));
+    await flush();
+    expect(button(container, "nav").textContent).toBe("nav 0");
+    expect(load).toHaveBeenCalledTimes(2);
+    expect(spies.onUncaughtError).not.toHaveBeenCalled();
+  });
+
+  it("recovers on a soft navigation after its chunk failed during hydration", async () => {
+    const load = vi
+      .fn<() => Promise<ComponentType<{ label: string }>>>()
+      .mockRejectedValueOnce(new Error("chunk failed"))
+      .mockResolvedValue(Counter);
+    const Lazy = island(load, { retryDelaysMs: [] });
+    const container = document.createElement("div");
+    container.innerHTML = serverMarkup("page");
+    let root: Root | undefined;
+    await act(async () => {
+      root = track(hydrateRoot(container, <Lazy key="landing" label="page" />));
+    });
+    await flush();
+    expect(button(container, "page").textContent).toBe("page 0");
+    await act(async () => root?.render(<p>docs</p>));
+    await act(async () => root?.render(<Lazy key="landing" label="page" />));
+    await flush();
+    await act(async () => button(container, "page").click());
+    expect(button(container, "page").textContent).toBe("page 1");
   });
 
   it("loads once however often it renders", async () => {
     const load = vi.fn(async () => Greeting);
     const Lazy = island(load);
     const container = document.createElement("div");
-    const root = createRoot(container);
+    const root = track(createRoot(container));
     await act(async () => {
       root.render(
         <>
@@ -56,31 +231,45 @@ describe("island", () => {
     });
     expect(container.textContent).toBe("Hello aHello b");
     expect(load).toHaveBeenCalledTimes(1);
-    act(() => root.unmount());
   });
 });
 
-describe("preloadOnServer", () => {
-  it("preloads every island where pages render ahead of the browser", async () => {
-    const load = vi.fn(async () => Greeting);
-    expect(rendersEagerly()).toBe(true);
-    await preloadOnServer([island(load)]);
-    expect(load).toHaveBeenCalledTimes(1);
+describe("preloadIslands", () => {
+  it("renders in the browser, where it must not hold the page back", () => {
+    expect(rendersEagerly()).toBe(false);
+  });
+
+  it("starts every registered island together once the gate opens, before any of them renders", async () => {
+    const gate = deferred<void>();
+    const first = vi.fn(async () => Greeting);
+    const second = vi.fn(async () => Greeting);
+    const options = { gate: () => gate.promise };
+    const settled = preloadIslands([island(first, options), island(second, options)]);
+    await expect(settled).resolves.toBeUndefined();
+    await flush();
+    expect(first).not.toHaveBeenCalled();
+    expect(second).not.toHaveBeenCalled();
+    gate.resolve();
+    await flush();
+    expect(first).toHaveBeenCalledTimes(1);
+    expect(second).toHaveBeenCalledTimes(1);
   });
 });
 
 describe("afterFirstContentfulPaint", () => {
-  it("waits for the first contentful paint before an island fetches its code in the browser", async () => {
+  it("holds an island's chunk until the first contentful paint, then clears its fallback timer", async () => {
     vi.resetModules();
+    vi.useFakeTimers();
     const callbacks: Array<() => void> = [];
     const entries: Array<{ name: string }> = [];
+    const disconnect = vi.fn();
     class FakeObserver {
       static supportedEntryTypes = ["paint"];
       constructor(callback: () => void) {
         callbacks.push(callback);
       }
       observe() {}
-      disconnect() {}
+      disconnect = disconnect;
     }
     vi.stubGlobal("PerformanceObserver", FakeObserver);
     const getEntries = vi
@@ -88,20 +277,41 @@ describe("afterFirstContentfulPaint", () => {
       .mockImplementation(
         (name: string) => entries.filter((entry) => entry.name === name) as never,
       );
-    const { afterFirstContentfulPaint } = await import("./island");
-    let done = false;
-    const painted = afterFirstContentfulPaint().then(() => {
-      done = true;
-    });
+    const fresh = await import("./island");
+    const load = vi.fn(async () => Greeting);
+    void fresh.preloadIslands([fresh.island(load)]);
     entries.push({ name: "first-paint" });
     for (const callback of callbacks) callback();
-    await Promise.resolve();
-    expect(done).toBe(false);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(load).not.toHaveBeenCalled();
     entries.push({ name: "first-contentful-paint" });
     for (const callback of callbacks) callback();
-    await painted;
-    expect(done).toBe(true);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(load).toHaveBeenCalledTimes(1);
+    expect(disconnect).toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
     getEntries.mockRestore();
+    vi.unstubAllGlobals();
+  });
+
+  it("opens after its fallback delay when no paint entry ever arrives", async () => {
+    vi.resetModules();
+    vi.useFakeTimers();
+    class SilentObserver {
+      static supportedEntryTypes = ["paint"];
+      observe() {}
+      disconnect() {}
+    }
+    vi.stubGlobal("PerformanceObserver", SilentObserver);
+    const fresh = await import("./island");
+    let opened = false;
+    void fresh.afterFirstContentfulPaint().then(() => {
+      opened = true;
+    });
+    await vi.advanceTimersByTimeAsync(2999);
+    expect(opened).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(opened).toBe(true);
     vi.unstubAllGlobals();
   });
 });

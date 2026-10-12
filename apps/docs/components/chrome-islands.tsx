@@ -1,6 +1,6 @@
 "use client";
 
-import { intlIsland, island, preloadOnServer } from "@/lib/island";
+import { intlIsland, island, preloadIslands } from "@/lib/island";
 
 export const LanguageSelect = intlIsland(() =>
   import("@/components/language-select").then((m) => m.LocaleAwareLanguageSelect),
@@ -15,4 +15,4 @@ export const VersionPill = intlIsland(() =>
   import("@/components/version-pill").then((m) => m.VersionPill),
 );
 
-await preloadOnServer([LanguageSelect, ThemeToggle, HomeMobileMenu, VersionPill]);
+await preloadIslands([LanguageSelect, ThemeToggle, HomeMobileMenu, VersionPill]);

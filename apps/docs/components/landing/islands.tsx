@@ -1,6 +1,6 @@
 "use client";
 
-import { intlIsland, island, preloadOnServer } from "@/lib/island";
+import { intlIsland, island, preloadIslands } from "@/lib/island";
 
 export const CommandPanel = intlIsland(() => import("./command-panel").then((m) => m.CommandPanel));
 export const HeroTerminal = island(() => import("./hero-terminal").then((m) => m.HeroTerminal));
@@ -21,7 +21,7 @@ export const CopyButton = intlIsland(() =>
   import("@/components/ui/copy-button").then((m) => m.CopyButton),
 );
 
-await preloadOnServer([
+await preloadIslands([
   CommandPanel,
   HeroTerminal,
   CodeShowcaseTabs,
