@@ -1,12 +1,12 @@
 {
   "landing": {
     "meta": {
-      "title": "verbatra: inkrementelle i18n-Übersetzung für Locale-Dateien",
-      "ogTitle": "verbatra: inkrementelle i18n-Synchronisierung",
-      "description": "Halte deine i18n-Locale-Dateien synchron. verbatra übersetzt nur die Keys, die sich geändert haben, über den Provider deiner Wahl (KI oder maschinelle Übersetzung). Leg jetzt los.",
-      "ogDescription": "Halte i18n-Locale-Dateien synchron. Übersetze nur geänderte Keys.",
-      "ogImageAlt": "verbatra hält deine i18n-Locale-Dateien synchron und übersetzt nur die Keys, die sich geändert haben.",
-      "definition": "verbatra ist eine CLI und ein SDK, die deine i18n-Locale-Dateien synchron halten und über den Provider deiner Wahl (KI oder maschinelle Übersetzung) nur die Keys übersetzen, die sich geändert haben."
+      "title": "verbatra: übersetze nur die i18n-Keys, die sich geändert haben",
+      "ogTitle": "verbatra: übersetze nur, was sich geändert hat",
+      "description": "verbatra prüft deine Locale-Dateien gegen die Quelle, übersetzt nur neue und geänderte Keys mit dem Provider deiner Wahl und lässt die CI scheitern, solange ein Key fehlt.",
+      "ogDescription": "Prüfe deine Locale-Dateien, übersetze nur geänderte Keys und sichere die CI ab.",
+      "ogImageAlt": "verbatra: Übersetze nur, was sich geändert hat, über einem check-Lauf, der zwei fehlende Keys pro Locale findet, und einem translate-Lauf, der nur diese schickt.",
+      "definition": "verbatra ist eine Open-Source-CLI und ein SDK, die i18n-Locale-Dateien gegen die Quelle prüfen, nur neue und geänderte Keys über den Provider deiner Wahl (KI oder maschinelle Übersetzung) übersetzen und die CI scheitern lassen, solange ein Key fehlt."
     },
     "hero": {
       "command": {

@@ -54,12 +54,12 @@
   },
   "landing": {
     "meta": {
-      "title": "verbatra: incremental i18n translation for locale files",
-      "ogTitle": "verbatra: incremental i18n sync",
-      "description": "Keep your i18n locale files in sync. verbatra translates only the keys that changed, through your choice of AI or machine-translation provider. Start now.",
-      "ogDescription": "Keep i18n locale files in sync. Translate only changed keys.",
-      "ogImageAlt": "verbatra keeps your i18n locale files in sync and translates only the keys that changed.",
-      "definition": "verbatra is a CLI and SDK that keeps your i18n locale files in sync, translating only the keys that changed through your choice of AI or machine-translation provider."
+      "title": "verbatra: translate only the i18n keys that changed",
+      "ogTitle": "verbatra: translate only what changed",
+      "description": "verbatra checks your locale files against the source, translates only new and changed keys with the provider you pick, and fails CI while a key is missing.",
+      "ogDescription": "Check your locale files, translate only changed keys, and gate CI.",
+      "ogImageAlt": "verbatra: Translate only what changed, above a check run that finds two missing keys per locale and a translate run that sends only those.",
+      "definition": "verbatra is an open source CLI and SDK that checks i18n locale files against the source, translates only new and changed keys through the AI or machine-translation provider you pick, and fails CI while a key is missing."
     },
     "hero": {
       "command": {

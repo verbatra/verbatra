@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { THEME_COLORS } from "@/lib/theme";
 import manifest from "./manifest";
 
 function icoSizes(file: string): string {
@@ -33,5 +34,12 @@ describe("web app manifest icons", () => {
   it("declares the size the apple icon actually has", () => {
     const apple = icons.find((icon) => icon.src === "/apple-icon.png");
     expect(apple?.sizes).toBe(pngSize(join(process.cwd(), "app/apple-icon.png")));
+  });
+});
+
+describe("web app manifest colors", () => {
+  it("paints the installed app in the default dark theme", () => {
+    expect(manifest().theme_color).toBe(THEME_COLORS.dark);
+    expect(manifest().background_color).toBe(THEME_COLORS.dark);
   });
 });
