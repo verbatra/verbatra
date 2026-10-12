@@ -3,8 +3,8 @@
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { GITHUB_URL, LICENSE_URL, NPM_CLI } from "@/components/landing/links";
-import { MACHINE_PROVIDER_IDS } from "@/lib/landing-facts";
+import { GITHUB_URL, NPM_CLI } from "@/components/landing/links";
+import { MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import type { ProjectStats } from "@/lib/project-stats";
 import { docsStylesheetRules } from "@/lib/stylesheet-rules";
 import messages from "@/messages/en.json";
@@ -41,10 +41,7 @@ vi.mock("@/lib/project-stats", async (importOriginal) => ({
   },
 }));
 
-const { ProofStrip, PROOF_STRIP_PROVIDERS, PROOF_STRIP_SLOTS, providerList } = await import(
-  "./proof-strip"
-);
-const { STAT_DISPLAY_THRESHOLDS } = await import("@/lib/project-stats");
+const { ProofStrip, PROOF_STRIP_PROVIDERS, providerList } = await import("./proof-strip");
 
 const labels = messages.landing.stats;
 
@@ -63,7 +60,7 @@ function items(doc: Document): Element[] {
 }
 
 describe("ProofStrip", () => {
-  it("is a named list of stars, weekly downloads and providers", async () => {
+  it("is a named list of stars, weekly downloads, providers and formats", async () => {
     const doc = await render({ stars: 1234, weeklyDownloads: 56_789 });
     expect(doc.querySelector("section")?.getAttribute("aria-label")).toBe(labels.label);
     expect(doc.querySelector("ul")?.getAttribute("role")).toBe("list");
@@ -71,6 +68,7 @@ describe("ProofStrip", () => {
       `1.2K ${labels.stars}`,
       `56.8K ${labels.downloads}`,
       `${providerList("en")} ${labels.providers}`,
+      `${SUPPORTED_FORMAT_IDS.length} ${labels.formats}`,
     ]);
   });
 
@@ -80,44 +78,52 @@ describe("ProofStrip", () => {
       GITHUB_URL,
       NPM_CLI,
       "/docs/providers",
+      "/docs/formats",
     ]);
     expect(links[0]?.getAttribute("target")).toBe("_blank");
     expect(links[1]?.getAttribute("rel")).toBe("noopener noreferrer");
   });
 
-  it("drops a figure it could not fetch and fills its slot with the formats", async () => {
-    const doc = await render({ stars: null, weeklyDownloads: 4200 });
-    expect(items(doc)).toHaveLength(PROOF_STRIP_SLOTS);
-    expect(doc.body.textContent).not.toContain(labels.stars);
-    expect(facts(doc)).toEqual(["providers", "formats"]);
-    expect(doc.querySelectorAll(".vk-proof-strip-item:empty")).toHaveLength(0);
-  });
-
-  it("shows the providers, the formats and the license when both figures are missing", async () => {
-    const doc = await render({ stars: null, weeklyDownloads: null });
-    expect(items(doc)).toHaveLength(PROOF_STRIP_SLOTS);
-    expect(facts(doc)).toEqual(["providers", "formats", "license"]);
-    expect(doc.querySelector('[data-fact="formats"] a')?.getAttribute("href")).toBe(
-      "/docs/formats",
-    );
-    expect(doc.querySelector('[data-fact="formats"]')?.textContent).toBe(labels.formats);
-    expect(doc.querySelector('[data-fact="license"] a')?.getAttribute("href")).toBe(LICENSE_URL);
-    expect(doc.querySelector('[data-fact="license"]')?.textContent).toBe(labels.license);
-  });
-
   it.each([
-    [99, 499, []],
-    [100, 499, ["stars"]],
-    [99, 500, ["downloads"]],
-    [100, 500, ["stars", "downloads"]],
-  ])("with %d stars and %d downloads shows the figures %j", async (stars, downloads, shown) => {
-    const doc = await render({ stars, weeklyDownloads: downloads });
-    const figures = Array.from(doc.querySelectorAll("[data-live-stat]"), (node) =>
-      node.getAttribute("data-live-stat"),
+    [2, 0],
+    [1, 57],
+    [0, 0],
+  ])(
+    "shows %d stars and %d downloads as they are, with no display threshold",
+    async (stars, downloads) => {
+      const doc = await render({ stars, weeklyDownloads: downloads });
+      expect(
+        Array.from(doc.querySelectorAll("[data-live-stat]"), (node) => node.textContent),
+      ).toEqual([String(stars), String(downloads)]);
+    },
+  );
+
+  it("falls back to a GitHub or npm link, never an empty value, when a figure could not be fetched", async () => {
+    const doc = await render({ stars: null, weeklyDownloads: null });
+    const stars = doc.querySelector('[data-stat="stars"] a');
+    const downloads = doc.querySelector('[data-stat="downloads"] a');
+    expect(stars?.getAttribute("href")).toBe(GITHUB_URL);
+    expect(stars?.textContent).toBe(labels.starsFallback);
+    expect(downloads?.getAttribute("href")).toBe(NPM_CLI);
+    expect(downloads?.textContent).toBe(labels.downloadsFallback);
+    expect(doc.querySelectorAll("[data-live-stat]")).toHaveLength(0);
+    expect(facts(doc)).toEqual(["providers", "formats"]);
+    for (const stat of doc.querySelectorAll("[data-stat]")) {
+      expect(stat.textContent).not.toMatch(/\d/);
+    }
+    for (const value of doc.querySelectorAll(".vk-proof-strip-value")) {
+      expect(value.textContent?.trim()).not.toBe("");
+    }
+  });
+
+  it("counts the formats from the registry rather than a typed number", async () => {
+    const doc = await render({ stars: null, weeklyDownloads: null }, "de");
+    expect(doc.querySelector('[data-fact="formats"] a')?.getAttribute("href")).toBe(
+      "/de/docs/formats",
     );
-    expect(figures).toEqual(shown);
-    expect(items(doc)).toHaveLength(PROOF_STRIP_SLOTS);
-    expect(facts(doc)[0]).toBe("providers");
+    expect(doc.querySelector('[data-fact="formats"] [data-count]')?.textContent).toBe(
+      String(SUPPORTED_FORMAT_IDS.length),
+    );
   });
 
   it("names the OpenAI-compatible provider by its short label in the strip", () => {
@@ -132,10 +138,6 @@ describe("ProofStrip", () => {
     expect(doc.querySelector('[data-fact="providers"] .vk-proof-strip-value')?.textContent).toBe(
       providerList("fr"),
     );
-  });
-
-  it("holds the display thresholds as typed constants", () => {
-    expect(STAT_DISPLAY_THRESHOLDS).toEqual({ stars: 100, weeklyDownloads: 500 });
   });
 
   it("names every machine provider and never spells out how many there are", async () => {
@@ -160,7 +162,7 @@ describe("ProofStrip", () => {
     const before = fetched.calls;
     const doc = await render();
     expect(fetched.calls).toBe(before + 1);
-    expect(items(doc)).toHaveLength(3);
+    expect(items(doc)).toHaveLength(4);
   });
 
   it("keeps every strip link at least 24px tall", () => {

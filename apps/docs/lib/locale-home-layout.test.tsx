@@ -11,8 +11,7 @@ vi.mock("@/lib/project-stats", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/project-stats")>();
   return {
     ...actual,
-    loadProjectStats: async () =>
-      actual.displayableStats({ stars: fetched.stars, weeklyDownloads: null }),
+    loadProjectStats: async () => ({ stars: fetched.stars, weeklyDownloads: null }),
   };
 });
 vi.mock("@/components/site-header", async () => {
@@ -66,9 +65,10 @@ describe("LocaleHomeLayout: the landing nav", () => {
   });
 
   it.each([
-    [99, null],
-    [100, "100"],
-  ])("with %d stars hands the header %s", async (stars, shown) => {
+    [2, "2"],
+    [0, "0"],
+    [null, null],
+  ])("with %s stars hands the header %s", async (stars, shown) => {
     fetched.stars = stars;
     const doc = await renderLayout();
     fetched.stars = 4321;

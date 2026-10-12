@@ -251,9 +251,10 @@
       "label": "verbatra in numbers",
       "stars": "GitHub stars",
       "downloads": "npm downloads last week",
+      "starsFallback": "GitHub",
+      "downloadsFallback": "npm",
       "providers": "translation providers",
-      "formats": "file formats",
-      "license": "MIT licensed"
+      "formats": "file formats"
     },
     "problem": {
       "heading": "Locale files drift every time you ship.",

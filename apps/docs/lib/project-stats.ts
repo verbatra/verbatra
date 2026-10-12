@@ -23,11 +23,6 @@ export type ProjectStats = {
   readonly weeklyDownloads: number | null;
 };
 
-export const STAT_DISPLAY_THRESHOLDS = {
-  stars: 100,
-  weeklyDownloads: 500,
-} as const satisfies Readonly<Record<keyof ProjectStats, number>>;
-
 export type StatsCaching = "build" | "hourly";
 
 export type ProjectStatsOptions = {
@@ -94,18 +89,6 @@ export async function fetchProjectStats(options: ProjectStatsOptions = {}): Prom
   return { stars, weeklyDownloads };
 }
 
-function shownCount(value: number | null, threshold: number): number | null {
-  return value !== null && value >= threshold ? value : null;
-}
-
-export function displayableStats(stats: ProjectStats): ProjectStats {
-  return {
-    stars: shownCount(stats.stars, STAT_DISPLAY_THRESHOLDS.stars),
-    weeklyDownloads: shownCount(stats.weeklyDownloads, STAT_DISPLAY_THRESHOLDS.weeklyDownloads),
-  };
-}
-
 export const loadProjectStats = cache(
-  async (): Promise<ProjectStats> =>
-    displayableStats(await fetchProjectStats({ caching: "build" })),
+  (): Promise<ProjectStats> => fetchProjectStats({ caching: "build" }),
 );

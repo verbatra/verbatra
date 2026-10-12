@@ -198,9 +198,10 @@
       "label": "verbatra en chiffres",
       "stars": "étoiles sur GitHub",
       "downloads": "téléchargements npm la semaine dernière",
+      "starsFallback": "GitHub",
+      "downloadsFallback": "npm",
       "providers": "fournisseurs de traduction",
-      "formats": "formats de fichier",
-      "license": "sous licence MIT"
+      "formats": "formats de fichier"
     },
     "problem": {
       "heading": "Les fichiers de locale divergent à chaque livraison.",

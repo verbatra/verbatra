@@ -198,9 +198,10 @@
       "label": "verbatra en cifras",
       "stars": "estrellas en GitHub",
       "downloads": "descargas en npm la semana pasada",
+      "starsFallback": "GitHub",
+      "downloadsFallback": "npm",
       "providers": "proveedores de traducción",
-      "formats": "formatos de archivo",
-      "license": "licencia MIT"
+      "formats": "formatos de archivo"
     },
     "problem": {
       "heading": "Los archivos de locale se desincronizan con cada entrega.",

@@ -54,13 +54,13 @@ describe("GET /api/stats", () => {
     expect(await response.json()).toEqual({ stars: null, downloads: null });
   });
 
-  it("hides a figure below its display threshold, exactly like a failed fetch", async () => {
+  it("answers with the real figures however small they are", async () => {
     stubFetch({
-      [GITHUB_REPO_API_URL]: () => Response.json({ stargazers_count: 99 }),
-      [NPM_WEEKLY_DOWNLOADS_URL]: () => Response.json({ downloads: 500 }),
+      [GITHUB_REPO_API_URL]: () => Response.json({ stargazers_count: 2 }),
+      [NPM_WEEKLY_DOWNLOADS_URL]: () => Response.json({ downloads: 0 }),
     });
 
-    expect(await (await route.GET()).json()).toEqual({ stars: null, downloads: 500 });
+    expect(await (await route.GET()).json()).toEqual({ stars: 2, downloads: 0 });
   });
 
   it("is a static route that regenerates hourly", () => {

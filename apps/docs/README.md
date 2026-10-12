@@ -97,10 +97,10 @@ the copy; a component keeps only its own link targets and layout.
   build-time number. `GITHUB_TOKEN`, when set, raises the GitHub rate limit. When a request fails
   or returns something unexpected, the build-time number stays, or the number is left out if the
   build had none; the page never shows a made-up figure.
-  A figure below its display threshold (`STAT_DISPLAY_THRESHOLDS`: 100 stars, 500 weekly
-  downloads) is hidden exactly like a failed one, in the header, the proof strip and `/api/stats`;
-  the strip then fills its three slots with the providers, the formats and the MIT license, and a
-  figure shows on its own at the first build after it crosses its threshold.
+  Every figure shows as fetched, however small; there is no display threshold. When the build
+  could not fetch a figure, its proof strip cell links GitHub or npm by name instead of a number,
+  and the header's GitHub link shows no count. The strip's other two cells are the providers and
+  the format count, which is read from the format registry, never typed in.
   `lib/project-stats.static-pages.test.ts` fails if page code asks the stats fetch to revalidate.
 
 ## Translating the interface strings

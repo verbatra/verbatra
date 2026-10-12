@@ -2607,7 +2607,8 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   color: var(--text-strong);
 }
 
-.vk-proof-strip-fact .vk-proof-strip-value {
+.vk-proof-strip-fact .vk-proof-strip-value:not([data-count]),
+.vk-proof-strip-value[data-fallback] {
   display: inline;
   text-align: start;
   font-family: var(--font-sans);

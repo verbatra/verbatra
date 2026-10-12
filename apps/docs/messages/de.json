@@ -198,9 +198,10 @@
       "label": "verbatra in Zahlen",
       "stars": "GitHub-Sterne",
       "downloads": "npm-Downloads letzte Woche",
+      "starsFallback": "GitHub",
+      "downloadsFallback": "npm",
       "providers": "Übersetzungs-Provider",
-      "formats": "Dateiformate",
-      "license": "MIT-lizenziert"
+      "formats": "Dateiformate"
     },
     "problem": {
       "heading": "Locale-Dateien driften bei jedem Release auseinander.",
