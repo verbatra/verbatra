@@ -49,9 +49,6 @@ export function useHomeNav(): HomeNavValue {
   return value;
 }
 
-export const NAV_TEXT_LINK =
-  "vk-header-link whitespace-nowrap text-sm text-(--text-muted) transition-colors hover:text-(--text-strong) data-[active=true]:text-(--accent)";
-
 export const SHEET_ITEM =
   "flex min-h-11 items-center gap-2 rounded-lg px-2 text-start text-(--text-muted) transition-colors hover:bg-(--surface-hover)/50 hover:text-(--text-strong) data-[active=true]:bg-(--accent)/10 data-[active=true]:text-(--accent)";
 

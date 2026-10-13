@@ -16,9 +16,9 @@ import {
   DocsNavLink,
   GetStartedLink,
   GitHubNavLink,
-  NAV_TEXT_LINK,
   useHomeNav,
 } from "@/components/home-nav";
+import { NAV_TEXT_LINK } from "@/components/nav-link-classes";
 import { isLinkItemActive, LinkItem } from "@/lib/link-items";
 import { cn } from "@/lib/utils";
 

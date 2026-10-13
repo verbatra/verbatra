@@ -29,6 +29,7 @@ const TAP_CLASS_SOURCES = [
   "components/ui/copy-button.tsx",
   "components/ui/tabs.tsx",
   "components/site-header.tsx",
+  "components/static-site-header.tsx",
   "components/studio-screenshot.tsx",
   "components/landing/footer.tsx",
   "components/landing/code-showcase.tsx",

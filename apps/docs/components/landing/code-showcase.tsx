@@ -1,6 +1,6 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
-import { PrefetchAfterPaintLink } from "@/components/ui/prefetch-after-paint-link";
+import { IntentPrefetchLink } from "@/components/ui/intent-prefetch-link";
 import { localizedPath, toLocale } from "@/lib/i18n";
 import {
   LANDING_SHOWCASE_CODE,
@@ -43,12 +43,12 @@ export async function CodeShowcase(): Promise<ReactNode> {
               <p className="max-w-[60ch] text-sm leading-relaxed text-(--text-muted)">
                 {t(`captions.${id}`)}
               </p>
-              <PrefetchAfterPaintLink
+              <IntentPrefetchLink
                 href={localizedPath(locale, CODE_SHOWCASE_PAGES[id])}
                 className={LINK_CLASS}
               >
                 {t(`links.${id}`)}
-              </PrefetchAfterPaintLink>
+              </IntentPrefetchLink>
             </div>
             {frame}
           </div>

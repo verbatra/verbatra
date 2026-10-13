@@ -2,7 +2,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { LiveStatFallback, LiveStatValue } from "@/components/landing/islands";
 import { GITHUB_URL, NPM_CLI } from "@/components/landing/links";
-import { PrefetchAfterPaintLink } from "@/components/ui/prefetch-after-paint-link";
+import { IntentPrefetchLink } from "@/components/ui/intent-prefetch-link";
 import { formatCompactNumber } from "@/lib/compact-number";
 import { type Locale, localizedPath, toLocale } from "@/lib/i18n";
 import { MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
@@ -77,16 +77,16 @@ function FactItem({ fact, children }: { fact: FactKey; children: ReactNode }): R
 function factItems(t: StatsT, locale: Locale): ReadonlyArray<ReactNode> {
   return [
     <FactItem key="providers" fact="providers">
-      <PrefetchAfterPaintLink
+      <IntentPrefetchLink
         href={localizedPath(locale, "/docs/providers")}
         className="vk-proof-strip-link"
       >
         <span className="vk-proof-strip-value">{providerList(locale)}</span>{" "}
         <span className="vk-proof-strip-label">{t("providers")}</span>
-      </PrefetchAfterPaintLink>
+      </IntentPrefetchLink>
     </FactItem>,
     <FactItem key="formats" fact="formats">
-      <PrefetchAfterPaintLink
+      <IntentPrefetchLink
         href={localizedPath(locale, "/docs/formats")}
         className="vk-proof-strip-link"
       >
@@ -94,7 +94,7 @@ function factItems(t: StatsT, locale: Locale): ReadonlyArray<ReactNode> {
           {new Intl.NumberFormat(locale).format(SUPPORTED_FORMAT_IDS.length)}
         </span>{" "}
         <span className="vk-proof-strip-label">{t("formats")}</span>
-      </PrefetchAfterPaintLink>
+      </IntentPrefetchLink>
     </FactItem>,
   ];
 }

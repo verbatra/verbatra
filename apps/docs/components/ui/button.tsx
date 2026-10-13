@@ -1,5 +1,5 @@
 import type { ComponentPropsWithoutRef, CSSProperties, ReactNode } from "react";
-import { PrefetchAfterPaintLink } from "@/components/ui/prefetch-after-paint-link";
+import { IntentPrefetchLink } from "@/components/ui/intent-prefetch-link";
 
 type ButtonLook = {
   variant?: "primary" | "secondary" | "ghost";
@@ -98,9 +98,9 @@ export default function Button(props: ButtonProps): ReactNode {
       );
     }
     return (
-      <PrefetchAfterPaintLink {...rest} href={href} className={classes} style={style}>
+      <IntentPrefetchLink {...rest} href={href} className={classes} style={style}>
         {content}
-      </PrefetchAfterPaintLink>
+      </IntentPrefetchLink>
     );
   }
 

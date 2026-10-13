@@ -3,12 +3,13 @@ import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 import { DefaultThemeMeta } from "@/components/default-theme-meta";
+import { HomeContainer } from "@/components/home-container";
 import { LegalFooter } from "@/components/legal-footer";
-import { SiteProviders } from "@/components/site-providers";
+import { StaticSiteHeader } from "@/components/static-site-header";
 import Button from "@/components/ui/button";
 import { FONT_VARIABLES } from "@/lib/fonts";
 import { i18n, localizedPath } from "@/lib/i18n";
-import { LocaleHomeLayout } from "@/lib/locale-home-layout";
+import { MAIN_CONTENT_ID } from "@/lib/locale-home-layout";
 import { SITE_URL } from "@/lib/site";
 import { TITLE_SUFFIX } from "@/lib/social-metadata";
 import { DEFAULT_THEME, THEME_INIT_SCRIPT } from "@/lib/theme";
@@ -27,6 +28,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function GlobalNotFound(): Promise<ReactNode> {
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "notFound" });
+  const nav = await getTranslations({ locale, namespace: "landing.nav" });
   return (
     <html lang={locale} suppressHydrationWarning className={`${DEFAULT_THEME} ${FONT_VARIABLES}`}>
       <head>
@@ -34,11 +36,12 @@ export default async function GlobalNotFound(): Promise<ReactNode> {
       </head>
       <body className="flex flex-col min-h-screen">
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
-        <SiteProviders locale={locale}>
-          <LocaleHomeLayout
-            params={Promise.resolve({ lang: locale })}
-            footer={<LegalFooter locale={locale} />}
-          >
+        <a className="vk-skip-link" href={`#${MAIN_CONTENT_ID}`}>
+          {nav("skipToContent")}
+        </a>
+        <HomeContainer className="[--fd-layout-width:var(--width-layout)]">
+          <StaticSiteHeader locale={locale} />
+          <main id={MAIN_CONTENT_ID} tabIndex={-1} className="flex flex-1 flex-col">
             <section
               aria-labelledby="not-found-title"
               className="vk-gutter vk-w-wide mx-auto grid w-full flex-1 content-center gap-6 py-24"
@@ -56,8 +59,9 @@ export default async function GlobalNotFound(): Promise<ReactNode> {
                 </Button>
               </div>
             </section>
-          </LocaleHomeLayout>
-        </SiteProviders>
+          </main>
+          <LegalFooter locale={locale} />
+        </HomeContainer>
       </body>
     </html>
   );

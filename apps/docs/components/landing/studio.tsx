@@ -1,7 +1,7 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import type { CSSProperties, ReactNode } from "react";
 import { CommandRow, StudioScreenshot } from "@/components/landing/islands";
-import { PrefetchAfterPaintLink } from "@/components/ui/prefetch-after-paint-link";
+import { IntentPrefetchLink } from "@/components/ui/intent-prefetch-link";
 import { localizedPath, toLocale } from "@/lib/i18n";
 import { withInlineCode } from "@/lib/inline-code-text";
 import { STUDIO_RUN_COMMAND } from "@/lib/install-commands";
@@ -52,12 +52,12 @@ export async function Studio(): Promise<ReactNode> {
             />
           </div>
           <p className="text-sm">
-            <PrefetchAfterPaintLink
+            <IntentPrefetchLink
               href={localizedPath(locale, STUDIO_GUIDE_PATH)}
               className="vk-prose-link inline-flex min-h-6 items-center"
             >
               {t("cta")}
-            </PrefetchAfterPaintLink>
+            </IntentPrefetchLink>
           </p>
         </div>
         <div className="min-w-0" style={SHOT_SPAN}>

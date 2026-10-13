@@ -1,7 +1,7 @@
 import { useTranslations } from "next-intl";
 import { Children, cloneElement, isValidElement, type ReactNode } from "react";
 import { PromptCopyButton } from "@/components/ai-setup-prompt";
-import { PrefetchAfterPaintLink } from "@/components/ui/prefetch-after-paint-link";
+import { IntentPrefetchLink } from "@/components/ui/intent-prefetch-link";
 import { type Locale, localizedPath } from "@/lib/i18n";
 import { withInlineCode } from "@/lib/inline-code-text";
 import { LANDING_STEP_IDS } from "@/lib/landing-code";
@@ -66,12 +66,9 @@ export function DocsHomeTabs({
         <ul className="vk-home-tabs-track">
           {tabs.map((tab) => (
             <li key={tab.href}>
-              <PrefetchAfterPaintLink
-                href={localizedPath(locale, tab.href)}
-                className="vk-home-tab"
-              >
+              <IntentPrefetchLink href={localizedPath(locale, tab.href)} className="vk-home-tab">
                 {tab.label}
-              </PrefetchAfterPaintLink>
+              </IntentPrefetchLink>
             </li>
           ))}
         </ul>
@@ -215,7 +212,7 @@ export function DocsHomePaths({
   return (
     <div className="not-prose grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {cards.map((card) => (
-        <PrefetchAfterPaintLink
+        <IntentPrefetchLink
           key={card.href}
           href={localizedPath(locale, card.href)}
           className={cn(
@@ -240,7 +237,7 @@ export function DocsHomePaths({
           </span>
           <span className="text-sm leading-relaxed text-(--text-muted)">{card.body}</span>
           <span className="text-sm font-medium text-(--accent)">{card.page}</span>
-        </PrefetchAfterPaintLink>
+        </IntentPrefetchLink>
       ))}
     </div>
   );
@@ -302,14 +299,14 @@ export function DocsHomeFeatures({
           borderInlineStart: "3px solid var(--accent-fill)",
         };
         return feature.href && locale ? (
-          <PrefetchAfterPaintLink
+          <IntentPrefetchLink
             key={feature.title}
             href={localizedPath(locale, feature.href)}
             className={className}
             style={style}
           >
             {content}
-          </PrefetchAfterPaintLink>
+          </IntentPrefetchLink>
         ) : (
           <div key={feature.title} className={className} style={style}>
             {content}

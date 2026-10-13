@@ -1,6 +1,6 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import type { CSSProperties, ReactNode } from "react";
-import { PrefetchAfterPaintLink } from "@/components/ui/prefetch-after-paint-link";
+import { IntentPrefetchLink } from "@/components/ui/intent-prefetch-link";
 import { localizedPath, toLocale } from "@/lib/i18n";
 import { HUMAN_ONLY_PROVIDER, providerGroups } from "@/lib/landing-providers";
 import { FORMAT_PANE_ROWS_STYLE } from "./format-pane";
@@ -63,22 +63,22 @@ export async function Ecosystem(): Promise<ReactNode> {
             <div className="grid content-start gap-3">
               <h4 className={KIND_CLASS}>{t("ecosystem.kinds.human")}</h4>
               <p className="border-l pl-4" style={{ borderColor: "var(--accent)" }}>
-                <PrefetchAfterPaintLink
+                <IntentPrefetchLink
                   href={localizedPath(locale, "/docs/human-only-workflow")}
                   className="vk-prose-link inline-flex min-h-6 items-center font-mono text-sm"
                 >
                   {HUMAN_ONLY_PROVIDER}
-                </PrefetchAfterPaintLink>
+                </IntentPrefetchLink>
               </p>
             </div>
           </div>
           <p className="text-sm">
-            <PrefetchAfterPaintLink
+            <IntentPrefetchLink
               href={localizedPath(locale, "/docs/providers")}
               className="vk-prose-link inline-flex min-h-6 items-center"
             >
               {t("ecosystem.providersLink")}
-            </PrefetchAfterPaintLink>
+            </IntentPrefetchLink>
           </p>
         </section>
         <section
@@ -98,18 +98,18 @@ export async function Ecosystem(): Promise<ReactNode> {
             />
           </div>
           <p className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-            <PrefetchAfterPaintLink
+            <IntentPrefetchLink
               href={localizedPath(locale, "/docs/formats")}
               className="vk-prose-link inline-flex min-h-6 items-center"
             >
               {t("ecosystem.formatsLink")}
-            </PrefetchAfterPaintLink>
-            <PrefetchAfterPaintLink
+            </IntentPrefetchLink>
+            <IntentPrefetchLink
               href={localizedPath(locale, "/docs/custom-format-adapters")}
               className="vk-prose-link inline-flex min-h-6 items-center"
             >
               {t("ecosystem.customFormat")}
-            </PrefetchAfterPaintLink>
+            </IntentPrefetchLink>
           </p>
         </section>
       </div>

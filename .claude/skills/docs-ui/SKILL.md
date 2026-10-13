@@ -616,10 +616,13 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
   the import rules.
 - Nothing a hydrated page asks for may race the first paint, since Lighthouse's simulation counts
   every request that starts before the observed largest paint: island chunks, `/api/stats`
-  (`useLiveStats`) and every link prefetch wait for `afterFirstContentfulPaint`. Links go through
-  `useLinkPrefetch` (`lib/use-painted.ts`, `false` until that paint, then the link's own choice; the module waits on the paint once, however many links subscribe) in
-  `FrameworkLink` (`lib/framework-provider.tsx`) and `PrefetchAfterPaintLink` (`components/ui/prefetch-after-paint-link.tsx`), and the header wordmark never
-  prefetches the home page it sits on.
+  (`useLiveStats`) wait for `afterFirstContentfulPaint`. Links never prefetch on their own: they go
+  through `useIntentPrefetch` (`lib/use-intent-prefetch.ts`, `false` until the link is hovered,
+  focused or touched, then the link's own choice) in `FrameworkLink`
+  (`lib/framework-provider.tsx`, which every Fumadocs sidebar and header link reaches) and
+  `IntentPrefetchLink` (`components/ui/intent-prefetch-link.tsx`), so the docs sidebar does not
+  fetch some 35 route payloads on load and the landing fetches no docs layout before a visitor
+  reaches for a docs link. The header wordmark never prefetches the home page it sits on.
 - `experimental.turbopackChunking` (`minChunkSize` 200000, `requestCost` 1000000 in
   `next.config.mjs`) merges client chunks site-wide on purpose. Scoping it to the landing through
   `priorityRoutes` changed no chunk with Next 16.3.8 (not even `/./`), and the merge helps the docs

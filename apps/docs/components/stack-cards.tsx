@@ -1,7 +1,7 @@
 import type { SupportedFormat } from "@verbatra/sdk";
 import { Fragment, type ReactNode } from "react";
 import { StackIcon, type StackIconKey, StackIconSprite } from "@/components/stack-icons";
-import { PrefetchAfterPaintLink } from "@/components/ui/prefetch-after-paint-link";
+import { IntentPrefetchLink } from "@/components/ui/intent-prefetch-link";
 import { type Locale, localizeHref } from "@/lib/i18n";
 
 const ICON_SIZE = 28;
@@ -66,7 +66,7 @@ function Card({
     <li className="vk-stack-card">
       <div className="vk-stack-card-text">
         <p className="vk-stack-card-name">
-          <PrefetchAfterPaintLink
+          <IntentPrefetchLink
             href={localizeHref(locale, card.href) ?? card.href}
             className="vk-stack-card-link"
           >
@@ -77,7 +77,7 @@ function Card({
                 {card.badge}
               </span>
             )}
-          </PrefetchAfterPaintLink>
+          </IntentPrefetchLink>
           <Chevron />
         </p>
         {card.description === undefined ? null : (

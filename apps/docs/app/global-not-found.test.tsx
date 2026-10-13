@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { createTranslator } from "next-intl";
-import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import messages from "@/messages/en.json";
@@ -19,17 +20,8 @@ vi.mock("next-intl/server", () => ({
     createTranslator({ locale: "en", messages, namespace: namespace as never }),
 }));
 
-vi.mock("@/components/site-providers", () => ({
-  SiteProviders: ({ children }: { children: ReactNode }) => <div data-providers="">{children}</div>,
-}));
-
-vi.mock("@/lib/locale-home-layout", () => ({
-  LocaleHomeLayout: ({ children, footer }: { children: ReactNode; footer: ReactNode }) => (
-    <div data-home-layout="">
-      <main>{children}</main>
-      {footer}
-    </div>
-  ),
+vi.mock("@/components/static-site-header", () => ({
+  StaticSiteHeader: () => <header data-static-header="" />,
 }));
 
 vi.mock("@/components/legal-footer", () => ({
@@ -61,8 +53,37 @@ describe("the global not-found page", () => {
     ).toEqual(["NOSCRIPT", "NOSCRIPT"]);
     expect(await import("./global-not-found")).not.toHaveProperty("viewport");
     expect(
-      doc.querySelector("[data-providers] [data-home-layout] [data-legal-footer]"),
-    ).not.toBeNull();
+      Array.from(doc.querySelector("#nd-home-layout")?.children ?? [], (child) =>
+        child.tagName.toLowerCase(),
+      ),
+    ).toEqual(["header", "main", "footer"]);
+    expect(doc.querySelector("#nd-home-layout > footer[data-legal-footer]")).not.toBeNull();
+  });
+
+  it("serves the 404 without the client chrome: no providers, no islands, no live stats", async () => {
+    const source = readFileSync(join(import.meta.dirname, "global-not-found.tsx"), "utf8");
+    for (const banned of [
+      "SiteProviders",
+      "LandingProviders",
+      "ThemedRootProvider",
+      "LocaleHomeLayout",
+      "chrome-islands",
+    ]) {
+      expect(source).not.toContain(banned);
+    }
+    const header = readFileSync(
+      join(import.meta.dirname, "../components/static-site-header.tsx"),
+      "utf8",
+    );
+    expect(header).not.toMatch(/^"use client"/);
+    expect(header).not.toMatch(/live-stats|chrome-islands|home-nav"/);
+  });
+
+  it("opens with a skip link to the main content", async () => {
+    const doc = await render();
+    const skip = doc.querySelector("body > a.vk-skip-link");
+    expect(skip?.getAttribute("href")).toBe(`#${doc.querySelector("main")?.id}`);
+    expect(skip?.textContent).toBe(messages.landing.nav.skipToContent);
   });
 
   it("names the page and offers the home page and the docs", async () => {
