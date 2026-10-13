@@ -7,8 +7,6 @@ import { createRoot } from "react-dom/client";
 import { describe, expect, it, vi } from "vitest";
 import en from "@/messages/en.json";
 
-vi.mock("@/lib/umami", () => ({ trackUmamiEvent: vi.fn() }));
-
 const motion = vi.hoisted(() => ({ loads: 0, fades: [] as HTMLElement[] }));
 
 vi.mock("./code-showcase-fade", () => {
@@ -86,7 +84,7 @@ describe("CodeShowcaseTabs", () => {
       {
         id: "a",
         label: "A",
-        panel: <CopyButton text="npx @verbatra/cli check" label="Copy" location="code" />,
+        panel: <CopyButton text="npx @verbatra/cli check" label="Copy" />,
       },
       { id: "b", label: "B", panel: <p>second</p> },
     ]);

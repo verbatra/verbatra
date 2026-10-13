@@ -81,12 +81,10 @@ describe("the landing faq answer links", () => {
     );
   });
 
-  it("opens the licence in a new tab, counted as an outbound link from the FAQ", async () => {
+  it("opens the licence in a new tab", async () => {
     const link = answerLink(await render("en"), "cost");
     expect(link?.getAttribute("href")).toBe(LICENSE_URL);
     expect(link?.getAttribute("target")).toBe("_blank");
-    expect(link?.dataset.umamiEvent).toBe("outbound-link");
-    expect(link?.dataset.umamiEventTarget).toBe("license");
   });
 
   it.each(["en", "de", "es", "fr"])(

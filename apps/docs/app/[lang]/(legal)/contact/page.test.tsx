@@ -90,3 +90,24 @@ describe.each(i18n.languages)("contact page intro (%s)", (locale) => {
     expect(link?.textContent?.length).toBeGreaterThan(0);
   });
 });
+
+const NO_SCRIPT_FALLBACK: Record<Locale, RegExp> = {
+  en: /The form needs JavaScript to send your message\. Without it, write to the email address in the Imprint instead\./,
+  de: /Das Formular braucht JavaScript, um deine Nachricht zu senden\. Ohne JavaScript schreib stattdessen an die E-Mail-Adresse im Impressum\./,
+  es: /El formulario necesita JavaScript para enviar tu mensaje\. Sin él, escribe a la dirección de correo electrónico que figura en el Aviso legal\./,
+  fr: /Le formulaire a besoin de JavaScript pour envoyer ton message\. Sans JavaScript, écris plutôt à l'adresse e-mail indiquée dans les mentions légales\./,
+};
+
+function imprintPath(locale: Locale): string {
+  return locale === "en" ? "/imprint" : `/${locale}/imprint`;
+}
+
+describe.each(i18n.languages)("contact page without JavaScript (%s)", (locale) => {
+  it("says the form needs JavaScript and links the localized imprint as the alternative", async () => {
+    const noscript = (await renderContact(locale)).querySelector("form > noscript");
+    const fallback = new DOMParser().parseFromString(noscript?.innerHTML ?? "", "text/html");
+
+    expect(fallback.body.textContent).toMatch(NO_SCRIPT_FALLBACK[locale]);
+    expect(fallback.querySelector("a")?.getAttribute("href")).toBe(imprintPath(locale));
+  });
+});

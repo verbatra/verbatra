@@ -21,13 +21,8 @@ export function StartHere(): ReactNode {
           {withInlineCode(t("lead"))}
         </p>
       </div>
-      <CommandRow
-        command={AGENT_INIT_COMMAND}
-        label={install("copyAgentAria")}
-        location="start-here"
-        divided
-      />
-      <AiSetupPrompt location="start-here" />
+      <CommandRow command={AGENT_INIT_COMMAND} label={install("copyAgentAria")} divided />
+      <AiSetupPrompt />
     </aside>
   );
 }

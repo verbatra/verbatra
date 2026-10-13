@@ -117,6 +117,27 @@ const RETIRED_CLAIMS: readonly RetiredClaim[] = [
     sample: "Umami erhebt keine personenbezogenen Daten",
   },
   {
+    claim: "Umami writes nothing to the device",
+    pattern:
+      /writes nothing to your device|schreibt nichts auf dein Gerät|ni escribe nada en tu dispositivo|n'écrit rien sur ton appareil/,
+    sample: "Umami sets no cookies and writes nothing to your device",
+  },
+  {
+    claim: "local storage opt-out under umami.disabled",
+    pattern: /umami\.disabled/,
+    sample: "it saves the entry umami.disabled in your browser's local storage",
+  },
+  {
+    claim: "Umami script running in the browser",
+    pattern: /Umami script|Umami-Skript|script de Umami|script Umami/,
+    sample: "When a page loads, the Umami script reads the page address",
+  },
+  {
+    claim: "site sets no cookies at all",
+    pattern: /sets no cookies|setzt keine Cookies|no establece cookies|ne dépose aucun cookie/,
+    sample: "This site sets no cookies.",
+  },
+  {
     claim: "logs kept only for a short period",
     pattern:
       /only for a short period|nur für einen kurzen Zeitraum|solo durante un periodo breve|que pour une courte période/,

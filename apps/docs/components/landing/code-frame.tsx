@@ -7,7 +7,7 @@ export type CodeFrameProps = {
   code: string;
   lang: HighlightLanguage;
   filename?: string | undefined;
-  copy?: { label: string; location: string } | undefined;
+  copy?: { label: string } | undefined;
   className?: string | undefined;
 };
 
@@ -22,9 +22,7 @@ export async function CodeFrame({
   className,
 }: CodeFrameProps): Promise<ReactNode> {
   const highlighted = await highlightLandingCode(code, lang);
-  const copyButton = copy ? (
-    <CopyButton text={code} label={copy.label} location={copy.location} size="sm" />
-  ) : null;
+  const copyButton = copy ? <CopyButton text={code} label={copy.label} size="sm" /> : null;
   return (
     <figure
       data-code-lang={lang}

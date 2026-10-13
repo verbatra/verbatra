@@ -53,7 +53,7 @@ describe("readScriptHashes", () => {
     const [message] = error.mock.calls[0] ?? [];
     expect(message).toContain(join(absent, SCRIPT_HASHES_FILE));
     expect(message).toContain("ENOENT");
-    expect(message).toMatch(/allows no inline script.*do not hydrate.*analytics does not run/);
+    expect(message).toMatch(/allows no inline script.*do not hydrate.*no pageview is counted/);
   });
 
   it("logs an unparsable manifest in production as well", async () => {

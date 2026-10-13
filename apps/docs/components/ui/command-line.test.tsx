@@ -7,9 +7,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next-intl", () => ({ useTranslations: () => (key: string) => key }));
 
-const trackUmamiEvent = vi.fn();
-vi.mock("@/lib/umami", () => ({ trackUmamiEvent }));
-
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const { default: CommandLine, HighlightedCommand } = await import("./command-line");
@@ -22,33 +19,12 @@ describe("HighlightedCommand", () => {
         link={{
           token: "@verbatra/cli",
           href: "https://www.npmjs.com/package/@verbatra/cli",
-          target: "npm-cli",
-          location: "hero",
         }}
       />,
     );
 
     expect(html).toContain('<span class="whitespace-nowrap">--save-dev</span> <a');
     expect(html).toContain(">@verbatra/cli</a>");
-  });
-
-  it("counts a click on the package link as an outbound link with its target and location", () => {
-    const html = renderToStaticMarkup(
-      <HighlightedCommand
-        command="npm install @verbatra/cli"
-        link={{
-          token: "@verbatra/cli",
-          href: "https://npm.example/cli",
-          target: "npm-cli",
-          location: "hero",
-        }}
-      />,
-    );
-    const link = new DOMParser().parseFromString(html, "text/html").querySelector("a");
-
-    expect(link?.getAttribute("data-umami-event")).toBe("outbound-link");
-    expect(link?.getAttribute("data-umami-event-target")).toBe("npm-cli");
-    expect(link?.getAttribute("data-umami-event-location")).toBe("hero");
   });
 
   it("never breaks a scoped package name after its slash, but still offers a break inside a path", () => {
@@ -127,7 +103,6 @@ describe("CommandLine copy", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     writeText.mockReset().mockResolvedValue(undefined);
-    trackUmamiEvent.mockReset();
     Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
   });
 
@@ -141,23 +116,17 @@ describe("CommandLine copy", () => {
     vi.useRealTimers();
   });
 
-  it("counts a successful copy once as copy-command with the command", async () => {
+  it("copies the command once per click", async () => {
     const button = render();
     await click(button);
-    expect(writeText).toHaveBeenCalledWith(COMMAND);
-    expect(trackUmamiEvent).toHaveBeenCalledTimes(1);
-    expect(trackUmamiEvent).toHaveBeenCalledWith("copy-command", {
-      command: COMMAND,
-      location: "docs-page",
-    });
+    expect(writeText.mock.calls).toEqual([[COMMAND]]);
   });
 
-  it("counts nothing when the clipboard refuses the copy", async () => {
+  it("reports a failed copy when the clipboard refuses it", async () => {
     writeText.mockRejectedValue(new Error("denied"));
     const button = render();
     await click(button);
     expect(button.dataset.status).toBe("failed");
-    expect(trackUmamiEvent).not.toHaveBeenCalled();
   });
 
   it("drops its aria-label while copied or failed, so the visible status is the accessible name", async () => {

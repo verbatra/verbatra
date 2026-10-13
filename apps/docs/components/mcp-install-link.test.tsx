@@ -29,12 +29,9 @@ describe("McpInstallLink", () => {
     expect(link()?.textContent).toBe("label:VS Code");
   });
 
-  it("is a secondary button with a 44px target, counted by an Umami data attribute instead of a script", () => {
+  it("is a secondary button with a 44px target", () => {
     const anchor = link();
     expect(anchor?.className).toContain("border-fd-border");
     expect(anchor?.classList.contains("min-h-11")).toBe(true);
-    expect(anchor?.dataset.umamiEvent).toBe("install-mcp");
-    expect(anchor?.dataset.umamiEventClient).toBe("vscode");
-    expect(anchor?.dataset.umamiEventLocation).toBe("docs-page");
   });
 });

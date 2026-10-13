@@ -51,7 +51,6 @@ export async function Studio(): Promise<ReactNode> {
             <CommandRow
               command={STUDIO_RUN_COMMAND}
               label={tInstall("copyCommand", { command: STUDIO_RUN_COMMAND })}
-              location="studio"
               wrap="always"
             />
           </div>
@@ -59,7 +58,6 @@ export async function Studio(): Promise<ReactNode> {
             <TrackedLink
               href={localizedPath(locale, STUDIO_GUIDE_PATH)}
               className="vk-prose-link inline-flex min-h-6 items-center"
-              track={{ name: "click-cta", data: { location: "studio", target: "studio-guide" } }}
             >
               {t("cta")}
             </TrackedLink>

@@ -1,10 +1,10 @@
 ---
 name: umami-analytics
-description: 'Self-hosted Umami analytics configuration and verification for the verbatra docs site (apps/docs). Use when updating the Umami script tag, website ID, or tracker attributes in apps/docs/app/[lang]/layout.tsx, or when adding data-umami-event tracking to docs UI elements.'
+description: 'Server-side Umami pageview counting for the verbatra docs site (apps/docs). Use when changing which requests count as a pageview, the Umami host or website ID, the opt-out (cookie, /api/analytics, the privacy page form), or when someone proposes adding a client-side tracker or event tracking back.'
 license: MIT
 metadata:
   author: verbatra
-  version: '1.0'
+  version: '2.0'
   source: 'internal'
 user-invocable: false
 ---
@@ -13,113 +13,68 @@ user-invocable: false
 
 ## Overview
 
-apps/docs embeds a single self-hosted Umami tracker in the root layout
-(apps/docs/app/[lang]/layout.tsx). It sets no cookies, but it is not free of personal
-data: the Umami server derives a pseudonymous session hash and an approximate location
-from the visitor's IP address and user agent. The privacy page describes exactly what it
-reads and processes in legal.privacy.s4 (apps/docs/messages/*.json) and renders the
-opt-out control there. This skill covers the one file that
-holds the embed, verifying a website ID or host change, and the pattern for adding
-new tracked events.
+apps/docs runs no analytics script in the browser and records no events. The proxy
+(apps/docs/proxy.ts) counts a pageview on the server and posts it to the self-hosted Umami
+API after the response is sent (`event.waitUntil`). Nothing is written to the visitor's device
+for analytics; the only cookie is the opt-out cookie, set when the visitor asks for it and read
+only to honour that objection. The privacy page describes this in legal.privacy.s4 and s5
+(apps/docs/messages/*.json) and renders the opt-out forms in section 4.
 
-**When to use:** rotating or changing the Umami data-website-id or script host,
-adding data-umami-event tracking to a new docs UI element, verifying the tracker
-loads correctly after a change.
+**When to use:** changing the counting rules, the Umami origin or website ID, the opt-out
+cookie or route, or the privacy wording that describes them.
 
-**When NOT to use:** general Next.js Script component questions unrelated to Umami,
-GDPR/privacy-policy wording changes (that is prose content in messages/*.json, not
-this skill's concern).
+**When NOT to use:** general proxy or CSP work unrelated to pageviews.
 
 ## Key Concepts
 
-- **Self-hosted host** - the tracker script and API both live at
-  https://umami.kreitz-webdev.de (script.js). No data-host-url override is needed
-  because the script is already served from the self-hosted domain, not
-  cloud.umami.is.
-- **Website ID** - a UUID identifying one tracked site in the Umami instance. Lives
-  only as a literal string in the Script component's data-website-id prop; there is
-  no env var or config file for it.
-- **Script strategy** - next/script's lazyOnload strategy: the tracker loads after the
-  page's load event. afterInteractive also emits an early high-priority preload of the
-  script from another origin, which Lighthouse counts toward the first paint;
-  lazyOnload emits none. app/[lang]/layout.test.tsx pins it.
-- **Counted host and hashes** - data-domains is the production host (SITE_HOST from
-  lib/site.ts), so localhost and preview deployments send nothing, and
-  data-exclude-hash="true" keeps TOC anchors from splitting one page into many URLs.
-  app/[lang]/layout.test.tsx pins both.
-- **Do Not Track** - the Script carries data-do-not-track="true", so the tracker sends
-  nothing when the browser signals Do Not Track. Keep it; the privacy page promises it
-  and app/[lang]/layout.test.tsx fails without it.
-- **Opt-out** - the tracker sends nothing while localStorage holds the key
-  umami.disabled with any non-empty value. components/analytics-opt-out.tsx sets and clears it
-  through the helpers in lib/umami.ts; do not write the key anywhere else.
-- **Automatic SPA tracking** - Umami's tracker watches pushState/replaceState/popstate
-  and sends a pageview on every client-side route change automatically. Do not add a
-  manual umami.track() call on route change; that produces duplicate pageviews.
-- **Event tracking** - two mechanisms, both real Umami APIs:
-  - Declarative: data-umami-event="name" plus data-umami-event-key="value" attributes
-    on a plain `<a>` or `<button>`. All values become strings.
-  - Programmatic: trackUmamiEvent(name, data) from lib/umami.ts inside an event
-    handler, for dynamic or typed values (string, number, boolean). Event names are
-    capped at 50 characters.
-- **Internal links are programmatic only** - the tracker calls preventDefault on a
-  same-tab `<a data-umami-event>` and navigates by setting location.href after the
-  request, which turns a next/link client navigation into a full reload and delays a
-  plain one. Track an internal link with TrackedLink or TrackedAnchor (plain `<a>`,
-  for files such as /llms.txt) from components/ui/tracked-link.tsx, or
-  `<Button href track>`; both count a click and a middle-click. Declarative
-  attributes stay on external `target="_blank"` links and on buttons.
-  components/umami-events.test.tsx fails on data-umami-event on a Link, LinkItem or
-  Button href (literal or through a spread helper) and on any rendered same-tab
-  internal anchor that carries one.
-- **Naming** - verb-object kebab-case names (copy-, select-, click-, open-, run-,
-  reset-, install-, toggle-), and the page area goes in a `location` property, never
-  in the name. outbound-link and locale-switch keep their established names, so their
-  dashboard series stay continuous.
-
-## Event catalogue
-
-| Event | Properties | Where (location values) |
-| --- | --- | --- |
-| outbound-link | target, location | hero (github), header (github and changelog, sent from onClick; version, the landing version pill; the docs header's icon links), menu (changelog, github), proof-strip (stars, downloads, license), features (evidence), open-source (license, contributing, issues, roadmap, releases, contributor), faq (license), footer (footer links, github, npm) |
-| click-cta | location, target | header, menu (get-started), hero, proof-strip (providers, formats), code (tab page links), ecosystem (providers, formats, human-only, custom-adapters), studio (studio-guide), final-cta (get-started, docs), docs-home (tabs, path, feature and stack cards), docs-page (stack cards) |
-| copy-command | command, location | steps, code, studio, start-here, docs-page (CommandLine) |
-| copy-install-command | command, manager ("npm"), location | hero, final-cta |
-| copy-ai-prompt | location | hero, start-here, docs-home |
-| copy-code | location | docs-page (MDX code block copy button) |
-| copy-page-markdown | location | docs-page |
-| open-page-options | location | docs-page (only when the popover opens) |
-| select-tab | tab, location, framework (a framework chip only) | hero, formats, code |
-| run-scenario | scenario, location, break (drop, rename or add; the break scenario only), retry (true on a retry only) | showcase |
-| reset-showcase | location | showcase |
-| open-faq | question (item key, never the text), location | faq |
-| install-mcp | client, location | docs-page |
-| locale-switch | from, to (only when they differ) | language menu |
-
-A new event or property also updates legal.privacy.s4 in all four locales when it
-adds an interaction category the text does not name yet.
-
-## Quick Reference
-
-| Task                              | Location                                                    |
-| ---------------------------------- | ------------------------------------------------------------ |
-| Change the website ID or host      | apps/docs/app/[lang]/layout.tsx, the Script component        |
-| Update preconnect/dns-prefetch     | apps/docs/app/[lang]/layout.tsx, the two <link> tags in head  |
-| Add a declarative click event      | data-umami-event="..." on a plain `<a>` or `<button>` (never on a Link) |
-| Add a dynamic/typed event          | trackUmamiEvent("name", { ... }) inside the onClick handler   |
-| Track an internal link             | TrackedLink, TrackedAnchor or `<Button href track={{ name, data }}>` |
-| Verify the tracker loaded          | open the deployed page, check Network for a script.js request to the self-hosted host, then check the Umami dashboard's Realtime view for a session |
-| Privacy policy wording for Umami   | apps/docs/messages/{en,de,es,fr}.json, legal.privacy.s4 (update all four locales together, per docs.md) |
+- **One module** - apps/docs/lib/server-pageview.ts (server-only) holds UMAMI_ORIGIN,
+  UMAMI_WEBSITE_ID, the opt-out cookie name and every rule. Neither the origin nor the ID
+  appears in client code or in the Content-Security-Policy.
+- **What counts** - `countedPageview` returns an event only for a GET with
+  `Sec-Fetch-Dest: document` and `Sec-Fetch-Mode: navigate`, no `prefetch` in `Sec-Purpose`
+  or `Purpose`, a 200 response without `Location`, not the `.md` markdown variant, a served
+  pathname listed in the CSP hash manifest (`.next/csp-script-hashes.json`) other than
+  `/_not-found` and `/_global-error`, on the production host (`SITE_HOST`, read from
+  `X-Forwarded-Host`, then `Host`), with a non-empty user agent that is not an obvious tool
+  or crawler. Local runs, csp-smoke and health checks never count.
+- **Refusals** - `Sec-GPC: 1`, `DNT: 1` or the cookie `verbatra_analytics_optout=1` stop the
+  pageview before anything is built.
+- **Payload** - `{ type: "event", payload: { website, hostname, url, referrer, language, ip,
+  userAgent } }`: the path without query or fragment, the Referer without query, the first
+  Accept-Language tag (dropped above 35 characters; a referrer is dropped above 500), and the
+  right-most public address in `X-Forwarded-For` (nginx is the only hop; private, loopback,
+  CGNAT, link-local, multicast, documentation, benchmark and NAT64 ranges skipped, hex-form
+  IPv4-mapped IPv6 normalised), else a public `X-Real-IP`, else no `ip`. Umami 3.3.1 accepts
+  `payload.ip` and `payload.userAgent`, so no Umami setting is needed.
+- **Sending** - `sendPageview` POSTs `${UMAMI_ORIGIN}/api/send` with the visitor's user agent
+  as `User-Agent` and `AbortSignal.timeout(1500)`. It never rejects and never logs.
+- **Opt-out** - apps/docs/app/api/analytics/route.ts takes a form POST
+  (`application/x-www-form-urlencoded`, `choice=off|on`, `lang`), checks the full Origin and
+  refuses `Sec-Fetch-Site: cross-site` like the contact route, sets or clears the HttpOnly,
+  Secure, SameSite=Lax cookie (one year) and answers 303 to
+  `/privacy?analytics=<choice>#analytics-<choice>` for the default locale (no prefix) and
+  `/<lang>/privacy?analytics=<choice>#analytics-<choice>` for the others. The locale is
+  validated with zod, so the target is built from an allowlist.
+  components/analytics-opt-out.tsx renders two plain forms; the confirmation shows through
+  `:target`, so it works without JavaScript.
+- **Accepted limits** - only full page loads count: client-side navigations and prefetched
+  pages never reach the proxy as document requests. No titles, screen sizes or events.
 
 ## Common Mistakes
 
-| Mistake                                                        | Correct Pattern                                                             |
-| ---------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| Using strategy="beforeInteractive" or "afterInteractive"          | Use "lazyOnload"; the tracker never needs to load before the page load event |
-| Manually calling umami.track() on every route change              | Umami's tracker already auto-tracks SPA navigations; don't duplicate it    |
-| Editing the website ID in an env var or config file                | It is a literal prop value in layout.tsx; there is no env var for it       |
-| Adding a data-host-url override                                    | Not needed; the script is already served from the self-hosted domain      |
-| Updating the English privacy-policy Umami paragraph only            | Update de.json, es.json, fr.json in the same change (docs.md rule)         |
-| Assuming Umami auto-tracks outbound link clicks                     | It does not; add data-umami-event="outbound-link" with target and location to each external <a> tag |
-| data-umami-event on a next/link                                      | It forces a full reload; use TrackedLink's track prop instead             |
-| Putting the page area in the event name                              | Use one verb-object name and a location property                          |
+| Mistake | Correct Pattern |
+| --- | --- |
+| Adding the Umami script or a client beacon back | It reads and sends device data, which brings back the § 25 TDDDG consent question; keep counting on the server |
+| Adding custom events or data-umami-event attributes | There is no client tracker; events were dropped on purpose |
+| Counting in a route handler or page | Count only in proxy.ts through `countedPageview`, so prefetch and RSC rules stay in one place |
+| Logging a failed send | `sendPageview` stays silent: no IP, user agent or error text in logs |
+| Adding the Umami origin to the CSP | The browser never talks to Umami; csp-smoke fails on any third-party request |
+| Changing the counted data without the policy | Update legal.privacy.s4 in all four locales and verbatra.lock.json in the same change |
+| Adding a cookie, localStorage or sessionStorage write (including a fumadocs `persist` or `groupId`) without the policy | Name the key, when it is written and that it is never sent in legal.privacy.s5 in all four locales, and pin it in privacy/page.test.tsx |
+
+## Tests
+
+lib/server-pageview.test.ts (every skip rule, IP extraction, payload, silent failures),
+proxy.pageview.test.ts (waitUntil exactly once for a document navigation, never otherwise),
+app/api/analytics/route.test.ts (cookie, 303 target, invalid locale, foreign origin), and
+scripts/csp-smoke.mjs (no request to any other origin) after a build.

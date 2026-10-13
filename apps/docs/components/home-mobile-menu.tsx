@@ -68,12 +68,11 @@ export function HomeMobileMenu({ footer }: { footer: ReactNode }): ReactNode {
         </SheetHeader>
         <nav ref={navRef} aria-label={labels.label} className="flex flex-col gap-0.5 px-2">
           <DocsNavLink className={SHEET_ITEM} onNavigate={close} />
-          <ChangelogNavLink className={SHEET_ITEM} location="menu" />
-          <GitHubNavLink className={SHEET_ITEM} location="menu" />
+          <ChangelogNavLink className={SHEET_ITEM} />
+          <GitHubNavLink className={SHEET_ITEM} />
         </nav>
         <div className="px-4 pt-3 pb-4">
           <GetStartedLink
-            location="menu"
             size="md"
             className="vk-nav-cta-menu w-full justify-center"
             onNavigate={close}

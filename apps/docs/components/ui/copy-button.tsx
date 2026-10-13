@@ -3,7 +3,6 @@
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { CopyAnnouncement } from "@/components/ui/copy-announcement";
-import { trackUmamiEvent } from "@/lib/umami";
 import { type CopyStatus, useCopyToClipboard } from "@/lib/use-copy-to-clipboard";
 import { cn } from "@/lib/utils";
 
@@ -21,36 +20,21 @@ const STATUS_CLASS: Record<CopyStatus, string> = {
 
 const STATUS_LABEL = { idle: "copy", copied: "copied", failed: "copyFailed" } as const;
 
-type CopyTracking =
-  | { location: string; onCopied?: undefined }
-  | { location?: string; onCopied: () => void };
-
 export type CopyButtonProps = {
   text: string;
   label: string;
   size?: keyof typeof SIZE;
   className?: string;
-} & CopyTracking;
+};
 
-function reportCopy(props: CopyButtonProps): void {
-  if (props.onCopied) {
-    props.onCopied();
-    return;
-  }
-  trackUmamiEvent("copy-command", { command: props.text, location: props.location });
-}
-
-export function CopyButton(props: CopyButtonProps): ReactNode {
-  const { text, label, size = "md", className } = props;
+export function CopyButton({ text, label, size = "md", className }: CopyButtonProps): ReactNode {
   const t = useTranslations("landing.install");
   const { status, attempts, copy } = useCopyToClipboard();
   return (
     <>
       <button
         type="button"
-        onClick={async () => {
-          if (await copy(text)) reportCopy(props);
-        }}
+        onClick={() => copy(text)}
         aria-label={status === "idle" ? label : undefined}
         data-status={status}
         className={cn(

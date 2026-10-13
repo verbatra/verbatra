@@ -41,15 +41,7 @@ function OutboundStat({
 }): ReactNode {
   return (
     <li className="vk-proof-strip-item" data-stat={item.key}>
-      <a
-        href={item.href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="vk-proof-strip-link"
-        data-umami-event="outbound-link"
-        data-umami-event-target={item.key}
-        data-umami-event-location="proof-strip"
-      >
+      <a href={item.href} target="_blank" rel="noopener noreferrer" className="vk-proof-strip-link">
         {item.value === null ? (
           <LiveStatFallback
             stat={item.key}
@@ -84,21 +76,13 @@ function FactItem({ fact, children }: { fact: FactKey; children: ReactNode }): R
 function factItems(t: StatsT, locale: Locale): ReadonlyArray<ReactNode> {
   return [
     <FactItem key="providers" fact="providers">
-      <TrackedLink
-        href={localizedPath(locale, "/docs/providers")}
-        className="vk-proof-strip-link"
-        track={{ name: "click-cta", data: { location: "proof-strip", target: "providers" } }}
-      >
+      <TrackedLink href={localizedPath(locale, "/docs/providers")} className="vk-proof-strip-link">
         <span className="vk-proof-strip-value">{providerList(locale)}</span>{" "}
         <span className="vk-proof-strip-label">{t("providers")}</span>
       </TrackedLink>
     </FactItem>,
     <FactItem key="formats" fact="formats">
-      <TrackedLink
-        href={localizedPath(locale, "/docs/formats")}
-        className="vk-proof-strip-link"
-        track={{ name: "click-cta", data: { location: "proof-strip", target: "formats" } }}
-      >
+      <TrackedLink href={localizedPath(locale, "/docs/formats")} className="vk-proof-strip-link">
         <span className="vk-proof-strip-value" data-count>
           {new Intl.NumberFormat(locale).format(SUPPORTED_FORMAT_IDS.length)}
         </span>{" "}

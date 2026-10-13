@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { type EmailClient, resolveClient, sendContactEmail } from "./email";
+import { type EmailClient, resolveMailer, sendContactEmail } from "./email";
 import { HONEYPOT_FIELD } from "./honeypot-field";
 import type { ContactPayload } from "./schema";
 
@@ -140,6 +140,32 @@ describe("sendContactEmail", () => {
     expect(result).toEqual({ ok: false });
   });
 
+  it("sends from the trimmed CONTACT_SMTP_FROM the environment check validated", async () => {
+    setSmtpEnv();
+    process.env.CONTACT_SMTP_FROM = "  sender@kreitz-webdev.de  ";
+    const sendMail = vi.fn().mockResolvedValue({ messageId: "message_1" });
+
+    await sendContactEmail(payload(), { client: stubClient(sendMail) });
+
+    expect(sendMail.mock.calls[0]?.[0]).toMatchObject({
+      from: "verbatra docs contact form <sender@kreitz-webdev.de>",
+    });
+  });
+
+  it("returns ok: false and names the variable when CONTACT_SMTP_FROM is blank", async () => {
+    setSmtpEnv();
+    process.env.CONTACT_SMTP_FROM = "   ";
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const sendMail = vi.fn().mockResolvedValue({ messageId: "message_1" });
+
+    const result = await sendContactEmail(payload(), { client: stubClient(sendMail) });
+
+    expect(result).toEqual({ ok: false });
+    expect(sendMail).not.toHaveBeenCalled();
+    expect(errorLog.mock.calls.flat().join(" ")).toContain("CONTACT_SMTP_FROM");
+    errorLog.mockRestore();
+  });
+
   it("returns ok: false when CONTACT_SMTP_FROM is unset even with an injected client", async () => {
     setSmtpEnv();
     delete process.env.CONTACT_SMTP_FROM;
@@ -149,25 +175,74 @@ describe("sendContactEmail", () => {
   });
 });
 
-describe("resolveClient", () => {
+describe("resolveMailer", () => {
   it("builds a real SMTP transport when every CONTACT_SMTP_* var is set and no client is injected", () => {
     setSmtpEnv();
-    const client = resolveClient({});
-    expect(client).toBeDefined();
-    expect(typeof client?.sendMail).toBe("function");
+    const mailer = resolveMailer({});
+    expect(mailer?.fromAddress).toBe("contact@kreitz-webdev.de");
+    expect(typeof mailer?.client.sendMail).toBe("function");
   });
 
   it.each(SMTP_ENV_VARS)("returns undefined when %s is missing", (missing) => {
     setSmtpEnv();
     delete process.env[missing];
-    expect(resolveClient({})).toBeUndefined();
+    expect(resolveMailer({})).toBeUndefined();
   });
 
-  it("returns the injected client without touching CONTACT_SMTP_* vars", () => {
-    for (const name of SMTP_ENV_VARS) {
-      delete process.env[name];
-    }
+  it.each([
+    ["587", 587, false],
+    ["465", 465, true],
+  ])(
+    "passes CONTACT_SMTP_PORT=%s to the transport as the number %d (secure: %s)",
+    (raw, port, secure) => {
+      setSmtpEnv();
+      process.env.CONTACT_SMTP_PORT = raw;
+      const client = resolveMailer({})?.client as unknown as {
+        options: { port: unknown; secure: unknown };
+      };
+      expect(client.options.port).toBe(port);
+      expect(client.options.secure).toBe(secure);
+    },
+  );
+
+  it.each(["abc", "0", "70000", "587.5"])(
+    "returns undefined and names only the variable when CONTACT_SMTP_PORT is %s",
+    (port) => {
+      setSmtpEnv();
+      process.env.CONTACT_SMTP_PORT = port;
+      const errorLog = vi.spyOn(console, "error").mockImplementation(() => undefined);
+      expect(resolveMailer({})).toBeUndefined();
+      const logged = errorLog.mock.calls.flat().join(" ");
+      errorLog.mockRestore();
+      expect(logged).toContain("CONTACT_SMTP_PORT");
+      expect(logged).not.toContain(port);
+      expect(logged).not.toContain("test-password");
+    },
+  );
+
+  it("never prints a value when variables are missing", () => {
+    setSmtpEnv();
+    delete process.env.CONTACT_SMTP_HOST;
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    resolveMailer({});
+    const logged = errorLog.mock.calls.flat().join(" ");
+    errorLog.mockRestore();
+    expect(logged).toContain("CONTACT_SMTP_HOST");
+    expect(logged).not.toContain("test-password");
+    expect(logged).not.toContain("contact@kreitz-webdev.de");
+  });
+
+  it("uses the injected client in place of a transport and still takes the sender from the environment", () => {
+    setSmtpEnv();
     const client: EmailClient = { sendMail: vi.fn() };
-    expect(resolveClient({ client })).toBe(client);
+    expect(resolveMailer({ client })).toEqual({ client, fromAddress: "contact@kreitz-webdev.de" });
+  });
+});
+
+describe("the server-only guard", () => {
+  it("imports server-only first, so a client component that reaches the SMTP settings fails the build", async () => {
+    const { readFileSync } = await import("node:fs");
+    const source = readFileSync(new URL("./email.ts", import.meta.url), "utf8");
+    expect(source.startsWith('import "server-only";\n')).toBe(true);
   });
 });

@@ -10,9 +10,6 @@ import { NPM_INSTALL_COMMAND } from "@/lib/install-commands";
 
 vi.mock("next-intl", () => ({ useTranslations: () => (key: string) => key }));
 
-const trackUmamiEvent = vi.fn();
-vi.mock("@/lib/umami", () => ({ trackUmamiEvent }));
-
 const { CommandPanel } = await import("./command-panel");
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -67,7 +64,6 @@ describe("CommandPanel", () => {
 
   beforeEach(() => {
     writeText.mockReset().mockResolvedValue(undefined);
-    trackUmamiEvent.mockReset();
     Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
   });
 
@@ -171,28 +167,10 @@ describe("CommandPanel", () => {
     expect(document.activeElement).toBe(tabs(container)[1]);
   });
 
-  it("counts a tab switch once per change, never a click on the open tab", async () => {
-    const container = render();
-    await click(tabs(container)[0]);
-    expect(trackUmamiEvent).not.toHaveBeenCalled();
-    await click(tabs(container)[1]);
-    expect(trackUmamiEvent).toHaveBeenCalledWith("select-tab", { tab: "prompt", location: "hero" });
-    await click(tabs(container)[0]);
-    expect(trackUmamiEvent).toHaveBeenLastCalledWith("select-tab", {
-      tab: "install",
-      location: "hero",
-    });
-  });
-
-  it("copies the install command and counts copy-install-command, the hero's existing event", async () => {
+  it("copies the install command", async () => {
     const container = render();
     await click(visiblePanel(container)?.querySelector("button"));
     expect(writeText).toHaveBeenCalledWith(NPM_INSTALL_COMMAND);
-    expect(trackUmamiEvent).toHaveBeenCalledWith("copy-install-command", {
-      command: NPM_INSTALL_COMMAND,
-      manager: "npm",
-      location: "hero",
-    });
   });
 
   it("prints the install command as plain text, with no link inside it to click by mistake", () => {
@@ -207,20 +185,17 @@ describe("CommandPanel", () => {
     const panel = visiblePanel(container);
     await click(panel?.querySelector("button"));
     expect(writeText).toHaveBeenCalledWith(AI_SETUP_PROMPT);
-    expect(trackUmamiEvent).toHaveBeenLastCalledWith("copy-ai-prompt", { location: "hero" });
     expect(panel?.querySelector('[aria-live="polite"]')?.textContent).toBe("copied");
   });
 
-  it("shows the failure state and counts nothing when the clipboard refuses", async () => {
+  it("shows the failure state when the clipboard refuses", async () => {
     writeText.mockRejectedValue(new Error("denied"));
     const container = render();
     await click(tabs(container)[1]);
-    trackUmamiEvent.mockReset();
     const panel = visiblePanel(container);
     await click(panel?.querySelector("button"));
     expect(panel?.querySelector("button")?.getAttribute("data-status")).toBe("failed");
     expect(panel?.querySelector('[aria-live="polite"]')?.textContent).toBe("copyFailed");
-    expect(trackUmamiEvent).not.toHaveBeenCalled();
     expect(panel?.querySelector("pre")?.textContent).toBe(AI_SETUP_PROMPT);
   });
 

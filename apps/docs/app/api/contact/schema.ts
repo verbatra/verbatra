@@ -49,10 +49,10 @@ export function parseContactPayload(body: unknown): ParsedContactPayload {
   return { success: false, errors: collectFieldErrors(result.error.issues) };
 }
 
-export async function parseContactRequest(request: Request): Promise<ParsedContactPayload> {
+export function parseContactBody(text: string): ParsedContactPayload {
   let body: unknown;
   try {
-    body = await request.json();
+    body = JSON.parse(text);
   } catch {
     return { success: false, errors: {} };
   }

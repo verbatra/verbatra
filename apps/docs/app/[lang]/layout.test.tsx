@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import type { ComponentProps, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
@@ -10,12 +10,6 @@ vi.mock("next/font/google", () => {
   const font = () => ({ variable: "font" });
   return { Geist: font, Geist_Mono: font };
 });
-
-vi.mock("next/script", () => ({
-  default: ({ strategy, ...props }: ComponentProps<"script"> & { strategy?: string }) => (
-    <script data-strategy={strategy} {...props} />
-  ),
-}));
 
 vi.mock("next-intl/server", () => ({
   getMessages: async () => ({}),
@@ -34,39 +28,16 @@ vi.mock("@/lib/framework-provider", () => ({
 
 const { default: Layout } = await import("./layout");
 
-async function umamiScript(): Promise<HTMLScriptElement | null> {
-  const tree = await Layout({ params: Promise.resolve({ lang: "en" }), children: null });
-  const doc = new DOMParser().parseFromString(renderToStaticMarkup(tree), "text/html");
-  return doc.querySelector<HTMLScriptElement>(
-    'script[src="https://umami.kreitz-webdev.de/script.js"]',
-  );
-}
+describe("Layout: no third-party script", () => {
+  it("loads no external script and opens no connection to another origin", async () => {
+    const tree = await Layout({ params: Promise.resolve({ lang: "en" }), children: null });
+    const doc = new DOMParser().parseFromString(renderToStaticMarkup(tree), "text/html");
 
-describe("Layout: Umami tracker", () => {
-  it("tells the tracker to honour the browser's Do Not Track signal", async () => {
-    const script = await umamiScript();
-
-    expect(script?.getAttribute("data-do-not-track")).toBe("true");
-  });
-
-  it("counts only the production host and ignores URL hashes", async () => {
-    const script = await umamiScript();
-
-    expect(script?.getAttribute("data-domains")).toBe("verbatra.kreitz-webdev.de");
-    expect(script?.getAttribute("data-exclude-hash")).toBe("true");
-  });
-
-  it("loads the tracker after the page load event, so no early preload competes with the first paint", async () => {
-    const script = await umamiScript();
-
-    expect(script?.getAttribute("data-strategy")).toBe("lazyOnload");
-  });
-
-  it("loads the tracker from an external file rather than inline code", async () => {
-    const script = await umamiScript();
-
-    expect(script?.textContent).toBe("");
-    expect(script?.getAttribute("data-website-id")).toBe("fcf007b7-4579-4486-881c-e8686d61d63d");
+    expect(doc.querySelectorAll("script[src]")).toHaveLength(0);
+    expect(doc.querySelectorAll('link[rel="preconnect"], link[rel="dns-prefetch"]')).toHaveLength(
+      0,
+    );
+    expect(renderToStaticMarkup(tree)).not.toContain("umami");
   });
 });
 

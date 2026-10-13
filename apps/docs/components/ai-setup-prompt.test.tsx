@@ -10,9 +10,6 @@ import { AI_SETUP_PROMPT } from "@/lib/ai-setup-prompt";
 
 vi.mock("next-intl", () => ({ useTranslations: () => (key: string) => key }));
 
-const trackUmamiEvent = vi.fn();
-vi.mock("@/lib/umami", () => ({ trackUmamiEvent }));
-
 const { AiSetupPrompt, PromptCopyButton, PROMPT_COPIED_RESET_MS } = await import(
   "./ai-setup-prompt"
 );
@@ -20,7 +17,7 @@ const { AiSetupPrompt, PromptCopyButton, PROMPT_COPIED_RESET_MS } = await import
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 function prompt(): Element | null {
-  const markup = renderToStaticMarkup(<AiSetupPrompt location="start-here" />);
+  const markup = renderToStaticMarkup(<AiSetupPrompt />);
   return new DOMParser().parseFromString(markup, "text/html").querySelector("figure");
 }
 
@@ -82,7 +79,6 @@ describe("PromptCopyButton", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     writeText.mockReset().mockResolvedValue(undefined);
-    trackUmamiEvent.mockReset();
     Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
   });
 
@@ -184,7 +180,7 @@ describe("PromptCopyButton", () => {
     expect(liveText(container)).toBe("");
   });
 
-  it("shows and announces a failed copy, keeps the preview open with the reason and counts nothing", async () => {
+  it("shows and announces a failed copy, keeps the preview open with the reason", async () => {
     writeText.mockRejectedValue(new Error("denied"));
     const container = render();
     await click(container);
@@ -196,8 +192,6 @@ describe("PromptCopyButton", () => {
     expect(container.querySelector(".vk-prompt-pop .vk-prompt-failed")?.textContent).toBe(
       "promptCopyFailed",
     );
-    expect(trackUmamiEvent).not.toHaveBeenCalled();
-
     act(() => {
       vi.advanceTimersByTime(PROMPT_COPIED_RESET_MS * 10);
     });
@@ -311,11 +305,10 @@ describe("PromptCopyButton", () => {
     expect(liveText(container)).toBe("");
   });
 
-  it("counts each copy once as the copy-ai-prompt event", async () => {
+  it("copies the prompt once per click", async () => {
     const container = render();
     await click(container);
-    expect(trackUmamiEvent).toHaveBeenCalledTimes(1);
-    expect(trackUmamiEvent).toHaveBeenCalledWith("copy-ai-prompt", { location: "docs-home" });
+    expect(writeText.mock.calls).toEqual([[AI_SETUP_PROMPT]]);
   });
 
   it("opens its preview from CSS alone, on hover and on keyboard focus", () => {

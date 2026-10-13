@@ -18,7 +18,6 @@ import {
   type ShowcaseBreakId,
   type ShowcaseScenarioId,
 } from "@/lib/showcase-seed";
-import { trackUmamiEvent } from "@/lib/umami";
 import { PlaceholderText } from "./placeholder-chip";
 
 type ScenarioModule = typeof import("@/lib/showcase-scenarios");
@@ -168,13 +167,7 @@ export function TryIt({ seed, rows }: { seed: ShowcaseOutcome; rows: ShowcaseRow
     loadScenarioModule().catch(() => undefined);
   }
 
-  async function run(id: ShowcaseScenarioId, retry = false, breakReply = reply) {
-    trackUmamiEvent("run-scenario", {
-      scenario: id,
-      location: "showcase",
-      ...(id === "break" ? { break: breakReply } : {}),
-      ...(retry ? { retry: true } : {}),
-    });
+  async function run(id: ShowcaseScenarioId, breakReply = reply) {
     latestRequest.current += 1;
     const request = latestRequest.current;
     setPending(id);
@@ -191,7 +184,6 @@ export function TryIt({ seed, rows }: { seed: ShowcaseOutcome; rows: ShowcaseRow
   }
 
   function reset() {
-    trackUmamiEvent("reset-showcase", { location: "showcase" });
     latestRequest.current += 1;
     setPending(null);
     setFailedScenario(null);
@@ -202,7 +194,7 @@ export function TryIt({ seed, rows }: { seed: ShowcaseOutcome; rows: ShowcaseRow
 
   function chooseBreak(next: ShowcaseBreakId) {
     setReply(next);
-    run("break", false, next);
+    run("break", next);
   }
 
   const marks = (line: ShowcaseLine) => (line.mark ? t(`marks.${line.mark}`) : "");
@@ -237,7 +229,7 @@ export function TryIt({ seed, rows }: { seed: ShowcaseOutcome; rows: ShowcaseRow
             <button
               type="button"
               className={buttonClasses("secondary", "sm", "vk-showcase-retry")}
-              onClick={() => run(failedScenario, true)}
+              onClick={() => run(failedScenario)}
             >
               {t("retry")}
             </button>

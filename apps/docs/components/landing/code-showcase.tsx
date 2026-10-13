@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import { TrackedLink } from "@/components/ui/tracked-link";
 import { localizedPath, toLocale } from "@/lib/i18n";
 import {
-  CODE_SHOWCASE_LOCATION,
   LANDING_SHOWCASE_CODE,
   LANDING_SHOWCASE_TABS,
   type LandingShowcaseTab,
@@ -33,7 +32,7 @@ export async function CodeShowcase(): Promise<ReactNode> {
         code: sample.code,
         lang: sample.language,
         filename: sample.filename,
-        copy: { label: t("copy"), location: CODE_SHOWCASE_LOCATION },
+        copy: { label: t("copy") },
       });
       return {
         id,
@@ -47,10 +46,6 @@ export async function CodeShowcase(): Promise<ReactNode> {
               <TrackedLink
                 href={localizedPath(locale, CODE_SHOWCASE_PAGES[id])}
                 className={LINK_CLASS}
-                track={{
-                  name: "click-cta",
-                  data: { location: CODE_SHOWCASE_LOCATION, target: id },
-                }}
               >
                 {t(`links.${id}`)}
               </TrackedLink>

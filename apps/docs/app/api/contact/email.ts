@@ -1,4 +1,6 @@
+import "server-only";
 import { createTransport, type Transporter } from "nodemailer";
+import { readSmtpEnv } from "@/lib/contact-env";
 import type { ContactPayload } from "./schema";
 
 const CONTACT_RECIPIENT = "info@kreitz-webdev.de";
@@ -35,58 +37,45 @@ function describeSendFailure(error: unknown): { code?: string; message: string }
   return code === undefined ? { message: error.message } : { code, message: error.message };
 }
 
-export function resolveClient(deps: SendContactEmailDeps): EmailClient | undefined {
-  if (deps.client) return deps.client;
+export type ContactMailer = {
+  client: EmailClient;
+  fromAddress: string;
+};
 
-  const host = process.env.CONTACT_SMTP_HOST;
-  const port = process.env.CONTACT_SMTP_PORT;
-  const user = process.env.CONTACT_SMTP_USER;
-  const password = process.env.CONTACT_SMTP_PASSWORD;
-  const from = process.env.CONTACT_SMTP_FROM;
-
-  if (
-    host === undefined ||
-    host.length === 0 ||
-    port === undefined ||
-    port.length === 0 ||
-    user === undefined ||
-    user.length === 0 ||
-    password === undefined ||
-    password.length === 0 ||
-    from === undefined ||
-    from.length === 0
-  ) {
-    const missing = [
-      host ? null : "CONTACT_SMTP_HOST",
-      port ? null : "CONTACT_SMTP_PORT",
-      user ? null : "CONTACT_SMTP_USER",
-      password ? null : "CONTACT_SMTP_PASSWORD",
-      from ? null : "CONTACT_SMTP_FROM",
-    ].filter((name): name is string => name !== null);
-    console.error(`sendContactEmail: missing environment variables: ${missing.join(", ")}`);
+export function resolveMailer(deps: SendContactEmailDeps): ContactMailer | undefined {
+  const smtp = readSmtpEnv();
+  if (!smtp.ok) {
+    console.error(
+      `sendContactEmail: missing or invalid environment variables: ${smtp.invalid.join(", ")}`,
+    );
     return undefined;
   }
 
-  return createTransport({
-    host,
-    port: Number(port),
-    secure: Number(port) === 465,
-    auth: { user, pass: password },
-  });
+  const {
+    CONTACT_SMTP_HOST,
+    CONTACT_SMTP_PORT,
+    CONTACT_SMTP_USER,
+    CONTACT_SMTP_PASSWORD,
+    CONTACT_SMTP_FROM,
+  } = smtp.value;
+  const client =
+    deps.client ??
+    createTransport({
+      host: CONTACT_SMTP_HOST,
+      port: CONTACT_SMTP_PORT,
+      secure: CONTACT_SMTP_PORT === 465,
+      auth: { user: CONTACT_SMTP_USER, pass: CONTACT_SMTP_PASSWORD },
+    });
+  return { client, fromAddress: CONTACT_SMTP_FROM };
 }
 
 export async function sendContactEmail(
   payload: ContactPayload,
   deps: SendContactEmailDeps = {},
 ): Promise<SendContactEmailResult> {
-  const client = resolveClient(deps);
-  if (!client) return { ok: false };
-
-  const fromAddress = process.env.CONTACT_SMTP_FROM;
-  if (fromAddress === undefined || fromAddress.length === 0) {
-    console.error("sendContactEmail: the CONTACT_SMTP_FROM environment variable is not set.");
-    return { ok: false };
-  }
+  const mailer = resolveMailer(deps);
+  if (!mailer) return { ok: false };
+  const { client, fromAddress } = mailer;
   const from = `verbatra docs contact form <${fromAddress}>`;
 
   const { subject, text } = buildNotificationEmail(payload);

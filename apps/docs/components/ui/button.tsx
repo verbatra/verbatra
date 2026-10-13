@@ -1,6 +1,5 @@
 import type { ComponentPropsWithoutRef, CSSProperties, ReactNode } from "react";
 import { TrackedLink } from "@/components/ui/tracked-link";
-import type { UmamiEvent } from "@/lib/umami";
 
 type ButtonLook = {
   variant?: "primary" | "secondary" | "ghost";
@@ -13,12 +12,10 @@ type ButtonLook = {
 type LinkButtonProps = ButtonLook & {
   href: string;
   disabled?: boolean;
-  track?: UmamiEvent;
 } & Omit<ComponentPropsWithoutRef<"a">, keyof ButtonLook | "href" | "onClick" | "onAuxClick">;
 
 type NativeButtonProps = ButtonLook & {
   href?: undefined;
-  track?: undefined;
 } & Omit<ComponentPropsWithoutRef<"button">, keyof ButtonLook>;
 
 export type ButtonProps = LinkButtonProps | NativeButtonProps;
@@ -91,7 +88,6 @@ export default function Button(props: ButtonProps): ReactNode {
       children: _children,
       href,
       disabled,
-      track,
       ...rest
     } = props;
     if (disabled) {
@@ -102,7 +98,7 @@ export default function Button(props: ButtonProps): ReactNode {
       );
     }
     return (
-      <TrackedLink {...rest} href={href} track={track} className={classes} style={style}>
+      <TrackedLink {...rest} href={href} className={classes} style={style}>
         {content}
       </TrackedLink>
     );
@@ -115,7 +111,6 @@ export default function Button(props: ButtonProps): ReactNode {
     className: _className,
     children: _children,
     href: _href,
-    track: _track,
     ...rest
   } = props;
   return (

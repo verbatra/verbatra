@@ -17,15 +17,7 @@ function answerTags(locale: string) {
   const docsLocale = isLocale(locale) ? locale : i18n.defaultLanguage;
   return {
     license: (chunks: ReactNode) => (
-      <a
-        href={LICENSE_URL}
-        target="_blank"
-        rel="noreferrer noopener"
-        className={ANSWER_LINK_CLASS}
-        data-umami-event="outbound-link"
-        data-umami-event-target="license"
-        data-umami-event-location="faq"
-      >
+      <a href={LICENSE_URL} target="_blank" rel="noreferrer noopener" className={ANSWER_LINK_CLASS}>
         {chunks}
       </a>
     ),

@@ -57,12 +57,10 @@ function Card({
   card,
   prefix,
   locale,
-  location,
 }: {
   card: StackCard;
   prefix: string;
   locale: Locale;
-  location: string;
 }): ReactNode {
   return (
     <li className="vk-stack-card">
@@ -71,7 +69,6 @@ function Card({
           <TrackedLink
             href={localizeHref(locale, card.href) ?? card.href}
             className="vk-stack-card-link"
-            track={{ name: "click-cta", data: { location, target: card.href } }}
           >
             {card.label}
             {card.badge === undefined ? null : (
@@ -99,12 +96,10 @@ export function StackCards({
   labelledBy,
   cards,
   locale,
-  location = "docs-page",
 }: {
   labelledBy: string;
   cards: ReadonlyArray<StackCard>;
   locale: Locale;
-  location?: string;
 }): ReactNode {
   const prefix = stackIconPrefix(labelledBy);
   return (
@@ -112,7 +107,7 @@ export function StackCards({
       <StackIconSprite prefix={prefix} icons={cards.map((card) => card.icon)} />
       <ul className="vk-stack-grid">
         {cards.map((card) => (
-          <Card key={card.href} card={card} prefix={prefix} locale={locale} location={location} />
+          <Card key={card.href} card={card} prefix={prefix} locale={locale} />
         ))}
       </ul>
     </nav>

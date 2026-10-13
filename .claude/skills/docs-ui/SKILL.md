@@ -426,11 +426,11 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   (`components/mcp-install-link.tsx`; VS Code only, since a Cursor link installs user-wide where
   `${workspaceFolder}` is the home folder) is a plain anchor in the secondary button style
   (`buttonClasses` from `components/ui/button.tsx`, not `Button`, whose `href` goes through
-  `next/link`), built from `AGENT_CLIENT_CONFIGS` in `@verbatra/cli` by `lib/mcp-install-links.ts`
-  and counted by a `data-umami-event` attribute, never a script. `remarkAgentEntryMarkdown` gives
-  the page's `.md` output no runnable fence for the banner: one localized, conditional sentence
-  (`docs.startHere.markdown`), and nothing at all on `start-with-ai`, whose own steps install the
-  CLI first; the install button becomes a Markdown link with its localized label.
+  `next/link`), built from `AGENT_CLIENT_CONFIGS` in `@verbatra/cli` by `lib/mcp-install-links.ts`.
+  `remarkAgentEntryMarkdown` gives the page's `.md` output no runnable fence for the banner: one
+  localized, conditional sentence (`docs.startHere.markdown`), and nothing at all on
+  `start-with-ai`, whose own steps install the CLI first; the install button becomes a Markdown link
+  with its localized label.
   `components/available-from.tsx` renders the version badge. Its rules live in
   `.claude/rules/docs.md`. `components/docs-home.tsx` holds the docs landing (`DocsHomeHeader`,
   `DocsHomeTabs`, `DocsHomeAgentTip`, `DocsHomeNote`, `DocsHomeBody`, `DocsHomeSection`,
@@ -597,7 +597,7 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
   `loadClientIntl` (`components/themed-root-provider.tsx`), which pass the locale and time zone
   explicitly. Every localized layout and page calls `setRequestLocale` itself, since they render in
   parallel (`app/[lang]/request-locale.test.ts`). `components/landing/islands.test.tsx` pins
-  the import rules. The Umami tracker loads with `lazyOnload`.
+  the import rules.
 - Nothing a hydrated page asks for may race the first paint, since Lighthouse's simulation counts
   every request that starts before the observed largest paint: island chunks, `/api/stats`
   (`useLiveStats`) and every link prefetch wait for `afterFirstContentfulPaint`. Links go through

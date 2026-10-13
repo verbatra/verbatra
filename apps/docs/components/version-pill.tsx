@@ -18,9 +18,6 @@ export function VersionPill(): ReactNode {
       rel="noopener noreferrer"
       aria-label={t("label", { version })}
       className="vk-version-pill"
-      data-umami-event="outbound-link"
-      data-umami-event-target="version"
-      data-umami-event-location="header"
     >
       {version}
     </a>

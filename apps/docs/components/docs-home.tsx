@@ -27,10 +27,6 @@ const PACKAGE_VERSIONS: Readonly<Record<PackageKey, string>> = {
   mcp: MCP_VERSION,
 };
 
-export function docsHomeCta(target: string) {
-  return { name: "click-cta", data: { location: "docs-home", target } } as const;
-}
-
 export function DocsHomeHeader({
   eyebrow,
   headline,
@@ -71,11 +67,7 @@ export function DocsHomeTabs({
         <ul className="vk-home-tabs-track">
           {tabs.map((tab) => (
             <li key={tab.href}>
-              <TrackedLink
-                href={localizedPath(locale, tab.href)}
-                className="vk-home-tab"
-                track={docsHomeCta(tab.href)}
-              >
+              <TrackedLink href={localizedPath(locale, tab.href)} className="vk-home-tab">
                 {tab.label}
               </TrackedLink>
             </li>
@@ -224,7 +216,6 @@ export function DocsHomePaths({
         <TrackedLink
           key={card.href}
           href={localizedPath(locale, card.href)}
-          track={docsHomeCta(card.href)}
           className={cn(
             "row-span-3 grid grid-rows-subgrid gap-y-2 p-5 transition-[border-color]",
             PANEL,
@@ -318,7 +309,6 @@ export function DocsHomeFeatures({
             href={localizedPath(locale, feature.href)}
             className={className}
             style={style}
-            track={docsHomeCta(feature.href)}
           >
             {content}
           </TrackedLink>

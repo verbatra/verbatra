@@ -8,9 +8,6 @@ import { LANDING_SHOWCASE_CODE, LANDING_SHOWCASE_TABS } from "@/lib/landing-code
 import en from "@/messages/en.json";
 import { preloadRegisteredIslands } from "@/test-support/islands";
 
-const trackUmamiEvent = vi.hoisted(() => vi.fn());
-vi.mock("@/lib/umami", () => ({ trackUmamiEvent }));
-
 vi.mock("next/link", () => ({
   default: ({ href, children, ...rest }: ComponentProps<"a"> & { href: string }) => (
     <a href={href} {...rest}>
@@ -67,7 +64,6 @@ afterEach(() => {
   if (mounted) act(() => mounted?.root.unmount());
   mounted?.container.remove();
   mounted = undefined;
-  trackUmamiEvent.mockReset();
 });
 
 function mount(): HTMLDivElement {
@@ -150,7 +146,6 @@ describe("CodeShowcase tabs", () => {
     expect(second.getAttribute("aria-selected")).toBe("true");
     expect(panel(container, "sdk").dataset.state).toBe("active");
     expect(panel(container, "cli").dataset.state).toBe("inactive");
-    expect(trackUmamiEvent).toHaveBeenCalledWith("select-tab", { tab: "sdk", location: "code" });
     await press(second, "End");
     expect(document.activeElement).toBe(last);
     await press(last, "ArrowRight");
@@ -171,12 +166,6 @@ describe("CodeShowcase tabs", () => {
     const link = panel(container, "action").querySelector("a");
     expect(link?.getAttribute("href")).toBe(`/fr${CODE_SHOWCASE_PAGES.action}`);
     expect(link?.textContent).toBe(en.landing.code.links.action);
-    container.addEventListener("click", (event) => event.preventDefault());
-    act(() => link?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true })));
-    expect(trackUmamiEvent).toHaveBeenCalledWith("click-cta", {
-      location: "code",
-      target: "action",
-    });
   });
 
   it("copies the raw code of the open tab", async () => {

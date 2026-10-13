@@ -22,12 +22,7 @@ export async function Hero(): Promise<ReactNode> {
           </h1>
           <p className="vk-banner-lead">{t("lead")}</p>
           <div className="vk-banner-ctas">
-            <Button
-              href={localizedPath(locale, "/docs/quickstart")}
-              variant="primary"
-              size="lg"
-              track={{ name: "click-cta", data: { location: "hero", target: "get-started" } }}
-            >
+            <Button href={localizedPath(locale, "/docs/quickstart")} variant="primary" size="lg">
               {t("ctaPrimary")}
             </Button>
             <a
@@ -35,9 +30,6 @@ export async function Hero(): Promise<ReactNode> {
               target="_blank"
               rel="noopener noreferrer"
               className={buttonClasses("secondary", "lg")}
-              data-umami-event="outbound-link"
-              data-umami-event-target="github"
-              data-umami-event-location="hero"
             >
               {t("ctaSecondary")}
             </a>

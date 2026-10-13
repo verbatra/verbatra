@@ -59,7 +59,7 @@ describe("StartHere", () => {
 
   it("shares one command row with the npm install, which still lets the long npm command wrap", () => {
     const npm = render(
-      <CommandRow command={NPM_INSTALL_COMMAND} label="copy" location="start-here" wrap="narrow" />,
+      <CommandRow command={NPM_INSTALL_COMMAND} label="copy" wrap="narrow" />,
     ).querySelector("code");
     const agent = render(<StartHere />).querySelector("code");
     expect(npm?.className).toContain("@max-[30rem]:whitespace-normal");

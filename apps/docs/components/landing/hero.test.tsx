@@ -84,7 +84,6 @@ describe("Hero", () => {
     ]);
     expect(links[1]?.getAttribute("target")).toBe("_blank");
     expect(links[1]?.getAttribute("rel")).toBe("noopener noreferrer");
-    expect(links[1]?.getAttribute("data-umami-event")).toBe("outbound-link");
   });
 
   it("prefixes the quickstart link with a non-default locale", async () => {

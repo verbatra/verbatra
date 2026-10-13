@@ -6,20 +6,13 @@ import { buttonClasses } from "@/components/ui/button";
 import { CopyAnnouncement } from "@/components/ui/copy-announcement";
 import { CopyButton } from "@/components/ui/copy-button";
 import { AI_SETUP_PROMPT } from "@/lib/ai-setup-prompt";
-import { trackUmamiEvent } from "@/lib/umami";
 import { type CopyStatus, useCopyToClipboard } from "@/lib/use-copy-to-clipboard";
 import { cn } from "@/lib/utils";
 import { breakUrlsAtSlashes, keepFlagsWhole } from "@/lib/word-breaks";
 
 export const PROMPT_COPIED_RESET_MS = 2000;
 
-export function AiSetupPrompt({
-  location,
-  label,
-}: {
-  location: string;
-  label?: string;
-}): ReactNode {
+export function AiSetupPrompt({ label }: { label?: string } = {}): ReactNode {
   const t = useTranslations("landing.install");
 
   return (
@@ -31,12 +24,7 @@ export function AiSetupPrompt({
         <figcaption className="vk-label flex min-h-6 items-center leading-snug">
           {label ?? t("aiLabel")}
         </figcaption>
-        <CopyButton
-          text={AI_SETUP_PROMPT}
-          label={t("copyPromptAria")}
-          size="sm"
-          onCopied={() => trackUmamiEvent("copy-ai-prompt", { location })}
-        />
+        <CopyButton text={AI_SETUP_PROMPT} label={t("copyPromptAria")} size="sm" />
       </div>
       <p
         lang="en"
@@ -161,10 +149,7 @@ export function PromptCopyButton({ className }: { className?: string } = {}): Re
         type="button"
         aria-describedby={popoverId}
         data-copied={status === "copied"}
-        onClick={async () => {
-          if (await copy(AI_SETUP_PROMPT))
-            trackUmamiEvent("copy-ai-prompt", { location: "docs-home" });
-        }}
+        onClick={() => copy(AI_SETUP_PROMPT)}
         className={buttonClasses("secondary", "lg", "vk-prompt-trigger w-full justify-center")}
       >
         <CopyGlyph status={status} />

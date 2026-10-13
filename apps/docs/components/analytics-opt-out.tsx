@@ -1,69 +1,68 @@
-"use client";
+import type { ReactNode } from "react";
+import { buttonClasses } from "@/components/ui/button";
+import type { Locale } from "@/lib/i18n";
 
-import { type ReactNode, useEffect, useId, useState } from "react";
-import Button from "@/components/ui/button";
-import { type AnalyticsPreference, readAnalyticsPreference, setAnalyticsOptOut } from "@/lib/umami";
+export const ANALYTICS_OPT_OUT_ACTION = "/api/analytics";
 
 export interface AnalyticsOptOutLabels {
   readonly optOut: string;
   readonly optIn: string;
-  readonly statusPending: string;
-  readonly statusCounted: string;
   readonly statusOptedOut: string;
-  readonly statusDoNotTrack: string;
-  readonly statusUnavailable: string;
+  readonly statusOptedIn: string;
+  readonly signals: string;
 }
 
-type OptOutState = AnalyticsPreference | "pending";
+type Choice = "off" | "on";
 
-function statusLabel(state: OptOutState, labels: AnalyticsOptOutLabels): string {
-  switch (state) {
-    case "pending":
-      return labels.statusPending;
-    case "counted":
-      return labels.statusCounted;
-    case "opted-out":
-      return labels.statusOptedOut;
-    case "do-not-track":
-      return labels.statusDoNotTrack;
-    case "unavailable":
-      return labels.statusUnavailable;
-  }
-}
-
-export function AnalyticsOptOut({ labels }: { labels: AnalyticsOptOutLabels }): ReactNode {
-  const [state, setState] = useState<OptOutState>("pending");
-  const [announcement, setAnnouncement] = useState("");
-  const statusId = useId();
-
-  useEffect(() => {
-    setState(readAnalyticsPreference());
-  }, []);
-
-  const optedOut = state === "opted-out";
-  const toggle = () => {
-    const next = setAnalyticsOptOut(!optedOut);
-    setState(next);
-    setAnnouncement(statusLabel(next, labels));
-  };
-
+function ChoiceForm({
+  locale,
+  choice,
+  label,
+}: {
+  locale: Locale;
+  choice: Choice;
+  label: string;
+}): ReactNode {
   return (
-    <div className="not-prose mt-4 flex flex-col items-start gap-3 rounded-xl border border-fd-border bg-[color:var(--surface-card)] p-4 sm:flex-row sm:items-center sm:justify-between">
-      <p id={statusId} className="m-0 text-sm text-[color:var(--text-body)]">
-        {statusLabel(state, labels)}
-      </p>
-      <Button
-        variant="secondary"
-        size="sm"
-        aria-describedby={statusId}
-        disabled={state === "pending" || state === "unavailable"}
-        onClick={toggle}
-      >
-        {optedOut ? labels.optIn : labels.optOut}
-      </Button>
-      <p aria-live="polite" className="sr-only">
-        {announcement}
-      </p>
+    <form method="post" action={ANALYTICS_OPT_OUT_ACTION} className="m-0">
+      <input type="hidden" name="lang" value={locale} />
+      <input type="hidden" name="choice" value={choice} />
+      <button type="submit" className={buttonClasses("secondary", "sm")}>
+        {label}
+      </button>
+    </form>
+  );
+}
+
+function ChoiceStatus({ choice, label }: { choice: Choice; label: string }): ReactNode {
+  return (
+    <p
+      id={`analytics-${choice}`}
+      role="status"
+      tabIndex={-1}
+      className="m-0 hidden scroll-mt-24 text-sm font-medium text-fd-foreground target:block"
+    >
+      {label}
+    </p>
+  );
+}
+
+export function AnalyticsOptOut({
+  locale,
+  labels,
+}: {
+  locale: Locale;
+  labels: AnalyticsOptOutLabels;
+}): ReactNode {
+  return (
+    <div className="not-prose mt-4 flex flex-col gap-3 rounded-xl border border-fd-border bg-[color:var(--surface-card)] p-4">
+      <ChoiceStatus choice="off" label={labels.statusOptedOut} />
+      <ChoiceStatus choice="on" label={labels.statusOptedIn} />
+      <p className="m-0 text-sm text-[color:var(--text-body)]">{labels.signals}</p>
+      <div className="flex flex-wrap gap-3">
+        <ChoiceForm locale={locale} choice="off" label={labels.optOut} />
+        <ChoiceForm locale={locale} choice="on" label={labels.optIn} />
+      </div>
     </div>
   );
 }

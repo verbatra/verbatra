@@ -40,6 +40,7 @@ const SECTION_KEYS = [
 ] as const;
 
 const HEADING_ANCHORS: Partial<Record<(typeof SECTION_KEYS)[number], string>> = {
+  [ANALYTICS_KEY]: "analytics",
   s11: PRIVACY_CONTACT_FORM_ANCHOR,
 };
 
@@ -91,11 +92,9 @@ export default async function PrivacyPage(props: { params: Promise<{ lang: strin
   const optOutLabels: AnalyticsOptOutLabels = {
     optOut: t(`${ANALYTICS_KEY}.optOut.optOut`),
     optIn: t(`${ANALYTICS_KEY}.optOut.optIn`),
-    statusPending: t(`${ANALYTICS_KEY}.optOut.statusPending`),
-    statusCounted: t(`${ANALYTICS_KEY}.optOut.statusCounted`),
     statusOptedOut: t(`${ANALYTICS_KEY}.optOut.statusOptedOut`),
-    statusDoNotTrack: t(`${ANALYTICS_KEY}.optOut.statusDoNotTrack`),
-    statusUnavailable: t(`${ANALYTICS_KEY}.optOut.statusUnavailable`),
+    statusOptedIn: t(`${ANALYTICS_KEY}.optOut.statusOptedIn`),
+    signals: t(`${ANALYTICS_KEY}.optOut.signals`),
   };
 
   const lastUpdated = (
@@ -131,7 +130,7 @@ export default async function PrivacyPage(props: { params: Promise<{ lang: strin
               {t(`${key}.heading`)}
             </h2>
             <p>{t.rich(`${key}.body`, linkTags)}</p>
-            {key === ANALYTICS_KEY && <AnalyticsOptOut labels={optOutLabels} />}
+            {key === ANALYTICS_KEY && <AnalyticsOptOut locale={locale} labels={optOutLabels} />}
           </section>
         ),
       )}

@@ -2,8 +2,6 @@
 
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/shadcn/tabs";
-import { CODE_SHOWCASE_LOCATION } from "@/lib/landing-code";
-import { trackUmamiEvent } from "@/lib/umami";
 
 export type CodeShowcaseTab = { id: string; label: string; panel: ReactNode };
 
@@ -49,7 +47,6 @@ export function CodeShowcaseTabs({
       onValueChange={(value) => {
         void requestFade();
         setActive(value);
-        trackUmamiEvent("select-tab", { tab: value, location: CODE_SHOWCASE_LOCATION });
       }}
       onPointerEnter={() => void requestFade()}
       onFocus={() => void requestFade()}

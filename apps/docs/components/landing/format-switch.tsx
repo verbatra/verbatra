@@ -4,7 +4,6 @@ import type { SupportedFormat } from "@verbatra/sdk";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { TabList, tabPanelProps } from "@/components/ui/tabs";
 import { retrying } from "@/lib/retry";
-import { trackUmamiEvent } from "@/lib/umami";
 import { FormatPaneFrame } from "./format-pane-frame";
 
 export const FORMAT_SWITCH_ID = "formats";
@@ -86,7 +85,6 @@ export function FormatSwitch({
     setFramework(undefined);
     if (id === active) return;
     setActive(id);
-    trackUmamiEvent("select-tab", { tab: id, location: "formats" });
   }
 
   function selectFramework(chip: FormatSwitchFramework) {
@@ -94,11 +92,6 @@ export function FormatSwitch({
     if (chip.key === framework) return;
     setFramework(chip.key);
     setActive(chip.format);
-    trackUmamiEvent("select-tab", {
-      tab: chip.format,
-      location: "formats",
-      framework: chip.key,
-    });
   }
 
   return (

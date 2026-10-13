@@ -3,23 +3,23 @@ import { chromium } from "playwright";
 const baseUrl = process.argv[2] ?? "http://localhost:3000";
 
 const PAGES = [
-  { path: "/", html: true, analytics: true },
-  { path: "/de", html: true, analytics: true },
-  { path: "/docs", html: true, analytics: true, search: true },
-  { path: "/docs/quickstart", html: true, analytics: true },
-  { path: "/fr/docs/quickstart", html: true, analytics: true },
-  { path: "/docs/quickstart/react", html: true, analytics: true },
-  { path: "/de/docs/quickstart/flutter", html: true, analytics: true },
-  { path: "/docs/connect-an-mcp-client", html: true, analytics: true },
-  { path: "/de/docs/start-with-ai", html: true, analytics: true },
-  { path: "/docs/sdk/run", html: true, analytics: true },
-  { path: "/contact", html: true, analytics: true },
-  { path: "/de/imprint", html: true, analytics: true },
-  { path: "/privacy", html: true, analytics: true },
-  { path: "/docs/does-not-exist", html: true, analytics: false },
-  { path: "/docs/quickstart.md", html: false, analytics: false },
-  { path: "/es/docs/quickstart/nextjs.md", html: false, analytics: false },
-  { path: "/llms.txt", html: false, analytics: false },
+  { path: "/", html: true },
+  { path: "/de", html: true },
+  { path: "/docs", html: true, search: true },
+  { path: "/docs/quickstart", html: true },
+  { path: "/fr/docs/quickstart", html: true },
+  { path: "/docs/quickstart/react", html: true },
+  { path: "/de/docs/quickstart/flutter", html: true },
+  { path: "/docs/connect-an-mcp-client", html: true },
+  { path: "/de/docs/start-with-ai", html: true },
+  { path: "/docs/sdk/run", html: true },
+  { path: "/contact", html: true },
+  { path: "/de/imprint", html: true },
+  { path: "/privacy", html: true },
+  { path: "/docs/does-not-exist", html: true },
+  { path: "/docs/quickstart.md", html: false },
+  { path: "/es/docs/quickstart/nextjs.md", html: false },
+  { path: "/llms.txt", html: false },
 ];
 
 const COLLECT_VIOLATIONS = () => {
@@ -31,6 +31,9 @@ const COLLECT_VIOLATIONS = () => {
 
 const STEP_TIMEOUT_MS = 10_000;
 const STATIC_ASSET = "/_next/static/";
+const UMAMI_ORIGIN = "https://umami.kreitz-webdev.de";
+const PAGE_ORIGIN = new URL(baseUrl).origin;
+const NETWORK_SCHEMES = new Set(["http:", "https:", "ws:", "wss:"]);
 const CSP_HEADER = "content-security-policy";
 
 async function searchWorks(page) {
@@ -64,8 +67,6 @@ async function holds(page, predicate) {
 const HYDRATED = () =>
   Object.keys(document.body ?? {}).some((key) => key.startsWith("__reactFiber$"));
 
-const ANALYTICS_RUNNING = () => typeof window.umami === "object" && window.umami !== null;
-
 function policyProblems(headers) {
   const policies = headers.filter(({ name }) => name.toLowerCase() === CSP_HEADER);
   if (policies.length !== 1) return [`${policies.length} ${CSP_HEADER} headers, expected 1`];
@@ -92,17 +93,28 @@ function watchStaticAssets(page) {
   return failures;
 }
 
-async function visit(context, { path, html, analytics, search = false }) {
+function watchThirdPartyRequests(page) {
+  const requests = [];
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (NETWORK_SCHEMES.has(url.protocol) && url.origin !== PAGE_ORIGIN) {
+      requests.push(url.origin === UMAMI_ORIGIN ? `${request.url()} (Umami)` : request.url());
+    }
+  });
+  return requests;
+}
+
+async function visit(context, { path, html, search = false }) {
   const page = await context.newPage();
   const consoleViolations = [];
   page.on("console", (message) => {
     if (/content security policy/i.test(message.text())) consoleViolations.push(message.text());
   });
   const staticFailures = watchStaticAssets(page);
+  const thirdPartyRequests = watchThirdPartyRequests(page);
   const response = await page.goto(`${baseUrl}${path}`, { waitUntil: "networkidle" });
   const headerProblems = html && response ? policyProblems(await response.headersArray()) : [];
   const hydrated = html ? await holds(page, HYDRATED) : null;
-  const analyticsRan = analytics ? await holds(page, ANALYTICS_RUNNING) : null;
   const searched = search ? await searchWorks(page) : null;
   const pageViolations = await page.evaluate(() => window.__cspViolations ?? []);
   const result = {
@@ -111,7 +123,7 @@ async function visit(context, { path, html, analytics, search = false }) {
     staticFailures,
     headerProblems,
     hydrated,
-    analytics: analyticsRan,
+    thirdPartyRequests,
     searched,
   };
   await page.close();
@@ -135,7 +147,7 @@ function failedChecks({
   staticFailures,
   headerProblems,
   hydrated,
-  analytics,
+  thirdPartyRequests,
   searched,
 }) {
   return [
@@ -143,16 +155,16 @@ function failedChecks({
     ...staticFailures.map((failure) => `static asset failed: ${failure}`),
     ...headerProblems.map((problem) => `header: ${problem}`),
     ...(hydrated === false ? ["did not hydrate"] : []),
-    ...(analytics === false ? ["analytics did not run"] : []),
+    ...thirdPartyRequests.map((url) => `request to a third-party origin: ${url}`),
     ...(searched === false ? ["search did not answer"] : []),
   ];
 }
 
 let failures = 0;
 for (const result of results) {
-  const { path, violations, staticFailures, hydrated, analytics, searched } = result;
+  const { path, violations, staticFailures, hydrated, thirdPartyRequests, searched } = result;
   console.log(
-    `${path}: ${violations.length} CSP violations, ${staticFailures.length} failed static assets, hydration ${note(hydrated, "ok", "MISSING")}, analytics ${note(analytics, "running", "NOT running")}, search ${note(searched, "works", "BROKEN")}`,
+    `${path}: ${violations.length} CSP violations, ${staticFailures.length} failed static assets, hydration ${note(hydrated, "ok", "MISSING")}, ${thirdPartyRequests.length} third-party requests, search ${note(searched, "works", "BROKEN")}`,
   );
   const checks = failedChecks(result);
   for (const check of checks) console.log(`  ${check}`);

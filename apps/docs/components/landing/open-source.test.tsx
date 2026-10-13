@@ -2,6 +2,7 @@
 
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it, vi } from "vitest";
+import { GITHUB_URL } from "@/components/landing/links";
 import { CONTRIBUTORS } from "@/lib/contributors";
 import de from "@/messages/de.json";
 import en from "@/messages/en.json";
@@ -50,17 +51,16 @@ describe("OpenSource", () => {
       const anchor = root.querySelector(`a[href='${link.href}']`);
       expect(anchor?.textContent).toBe(`${copy[link.key as keyof typeof copy]} ${copy.newTab}`);
       expect(anchor?.getAttribute("rel")).toBe("noreferrer noopener");
-      expect(anchor?.getAttribute("data-umami-event")).toBe("outbound-link");
-      expect(anchor?.getAttribute("data-umami-event-location")).toBe("open-source");
     }
   });
 
   it("marks every project row as a link that opens a new tab, with a hidden icon and a spoken note", () => {
-    const rows = [
-      ...root.querySelectorAll<HTMLAnchorElement>('a[data-umami-event-location="open-source"]'),
-    ].filter((anchor) => anchor.getAttribute("data-umami-event-target") !== "contributor");
+    const rows = [GITHUB_URL, ...OPEN_SOURCE_LINKS.map((link) => link.href)].map((href) =>
+      root.querySelector<HTMLAnchorElement>(`a[href='${href}']`),
+    );
     expect(rows).toHaveLength(OPEN_SOURCE_LINKS.length + 1);
     for (const row of rows) {
+      if (!row) throw new Error("project row missing");
       expect(row.getAttribute("target")).toBe("_blank");
       expect(row.querySelector("svg[data-external]")?.getAttribute("aria-hidden")).toBe("true");
       expect(row.querySelector(".sr-only")?.textContent?.trim()).toBe(copy.newTab);

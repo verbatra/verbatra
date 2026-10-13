@@ -9,7 +9,6 @@ import { GITHUB_URL, RELEASES_URL } from "@/components/landing/links";
 import { buttonClasses } from "@/components/ui/button";
 import { fillCount } from "@/lib/live-count";
 import { reservedWidth, useLiveCount } from "@/lib/live-stats";
-import { trackUmamiEvent } from "@/lib/umami";
 import { cn } from "@/lib/utils";
 
 export type HomeNavLabels = {
@@ -76,10 +75,6 @@ export function docsLinkState(
   return { active: false, current: undefined };
 }
 
-function trackOutbound(target: string, location: string): void {
-  trackUmamiEvent("outbound-link", { target, location });
-}
-
 export function DocsNavLink({
   className,
   onNavigate,
@@ -102,34 +97,16 @@ export function DocsNavLink({
   );
 }
 
-export function ChangelogNavLink({
-  className,
-  location,
-}: {
-  className: string;
-  location: string;
-}): ReactNode {
+export function ChangelogNavLink({ className }: { className: string }): ReactNode {
   const { labels } = useHomeNav();
   return (
-    <a
-      href={RELEASES_URL}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={className}
-      onClick={() => trackOutbound("changelog", location)}
-    >
+    <a href={RELEASES_URL} target="_blank" rel="noopener noreferrer" className={className}>
       {labels.changelog}
     </a>
   );
 }
 
-export function GitHubNavLink({
-  className,
-  location,
-}: {
-  className: string;
-  location: string;
-}): ReactNode {
+export function GitHubNavLink({ className }: { className: string }): ReactNode {
   const { stars: initialStars, labels, locale } = useHomeNav();
   const stars = useLiveCount("stars", initialStars, locale);
   return (
@@ -139,7 +116,6 @@ export function GitHubNavLink({
       rel="noopener noreferrer"
       className={cn("inline-flex items-center gap-1.5", className)}
       aria-label={stars === null ? undefined : fillCount(labels.starsAria, stars)}
-      onClick={() => trackOutbound("github", location)}
     >
       <GithubIcon size={16} />
       <span>{labels.github}</span>
@@ -153,12 +129,10 @@ export function GitHubNavLink({
 }
 
 export function GetStartedLink({
-  location = "header",
   size = "sm",
   className = "vk-nav-cta whitespace-nowrap",
   onNavigate,
 }: {
-  location?: "header" | "menu";
   size?: "sm" | "md";
   className?: string;
   onNavigate?: () => void;
@@ -169,10 +143,7 @@ export function GetStartedLink({
       href={quickstartUrl}
       className={buttonClasses("primary", size, className)}
       style={{ background: "var(--accent-fill)" }}
-      onClick={() => {
-        trackUmamiEvent("click-cta", { location, target: "get-started" });
-        onNavigate?.();
-      }}
+      onClick={onNavigate}
     >
       {labels.getStarted}
     </Link>

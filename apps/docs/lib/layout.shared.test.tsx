@@ -143,13 +143,6 @@ describe("the landing header version pill", () => {
     expect(pill?.getAttribute("aria-label")).toBe(`Release notes for v${PACKAGE_VERSION}`);
   });
 
-  it("counts a click as an outbound link from the header", async () => {
-    const pill = (await renderHomeHeader()).querySelector("a.vk-version-pill");
-    expect(pill?.getAttribute("data-umami-event")).toBe("outbound-link");
-    expect(pill?.getAttribute("data-umami-event-target")).toBe("version");
-    expect(pill?.getAttribute("data-umami-event-location")).toBe("header");
-  });
-
   it("sits right after the wordmark, in the title group", async () => {
     const pill = (await renderHomeHeader()).querySelector("a.vk-version-pill");
     expect(pill?.parentElement?.classList.contains("flex-1")).toBe(true);

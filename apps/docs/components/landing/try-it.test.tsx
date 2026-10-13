@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { SHOWCASE_CLI_COMMAND, showcaseRunLines } from "@/lib/showcase-cli";
 import { runShowcaseScenario, showcaseRows, showcaseSeed } from "@/lib/showcase-scenarios";
 import {
@@ -22,9 +22,6 @@ vi.mock("next-intl", () => ({
   useTranslations: (namespace: string) => (key: string, values?: Record<string, string | number>) =>
     `${namespace}.${key}${values ? JSON.stringify(values) : ""}`,
 }));
-
-const trackUmamiEvent = vi.fn();
-vi.mock("@/lib/umami", () => ({ trackUmamiEvent }));
 
 const { TryIt } = await import("./try-it");
 
@@ -240,10 +237,6 @@ describe("TryIt: scenarios", () => {
     return [...container.querySelectorAll("button")].find((node) => node.textContent === label);
   }
 
-  beforeEach(() => {
-    trackUmamiEvent.mockReset();
-  });
-
   afterEach(() => {
     if (mounted) {
       const { container, root } = mounted;
@@ -272,16 +265,11 @@ describe("TryIt: scenarios", () => {
     expect(
       button(container, "landing.showcase.tryIt.scenarios.edit")?.getAttribute("aria-pressed"),
     ).toBe("true");
-    expect(trackUmamiEvent).toHaveBeenCalledWith("run-scenario", {
-      scenario: "edit",
-      location: "showcase",
-    });
     expect(container.querySelector('[data-mark="edited"]')?.textContent).toContain(
       "Go to checkout",
     );
 
     await click(button(container, "landing.showcase.tryIt.reset"));
-    expect(trackUmamiEvent).toHaveBeenLastCalledWith("reset-showcase", { location: "showcase" });
     expect(document.activeElement).toBe(
       button(container, `landing.showcase.tryIt.scenarios.${SHOWCASE_SCENARIOS[0]}`),
     );
@@ -300,7 +288,6 @@ describe("TryIt: scenarios", () => {
     expect(open()).toEqual(["source"]);
     await click(button(container, SHOWCASE_LOCK_FILE));
     expect(open()).toEqual(["lock"]);
-    expect(trackUmamiEvent).not.toHaveBeenCalled();
     expect(button(container, SHOWCASE_LOCK_FILE)?.getAttribute("aria-pressed")).toBe("true");
     expect(container.querySelector(".vk-showcase-file-switch legend")?.textContent).toBe(
       "landing.showcase.tryIt.filesLabel",
@@ -341,11 +328,6 @@ describe("TryIt: scenarios", () => {
         chip.hasAttribute("data-broken"),
       ),
     ).toEqual([false]);
-    expect(trackUmamiEvent).toHaveBeenCalledWith("run-scenario", {
-      scenario: "break",
-      location: "showcase",
-      break: "rename",
-    });
   });
 
   it("offers three ways to break the placeholder as one radio group", () => {
@@ -384,11 +366,6 @@ describe("TryIt: scenarios", () => {
   it("runs the default rename reply from its radio when no break is on screen", async () => {
     const container = render();
     await click(container.querySelector<HTMLInputElement>('input[value="rename"]'));
-    expect(trackUmamiEvent).toHaveBeenCalledWith("run-scenario", {
-      scenario: "break",
-      location: "showcase",
-      break: "rename",
-    });
     expect(container.querySelector<HTMLInputElement>('input[value="rename"]')?.checked).toBe(true);
     expect(
       [...container.querySelectorAll(".vk-showcase-output-line")].map((line) => line.textContent),
@@ -399,11 +376,7 @@ describe("TryIt: scenarios", () => {
     const container = render();
     await click(container.querySelector<HTMLInputElement>('input[value="drop"]'));
     await click(button(container, "landing.showcase.tryIt.scenarios.edit"));
-    trackUmamiEvent.mockReset();
     await click(button(container, "landing.showcase.tryIt.scenarios.break"));
-    expect(trackUmamiEvent.mock.calls).toEqual([
-      ["run-scenario", { scenario: "break", location: "showcase", break: "drop" }],
-    ]);
     expect(container.querySelector<HTMLInputElement>('input[value="drop"]')?.checked).toBe(true);
     expect(
       [...container.querySelectorAll(".vk-showcase-output-line")].map((line) => line.textContent),
@@ -420,11 +393,6 @@ describe("TryIt: scenarios", () => {
       const radio = container.querySelector<HTMLInputElement>(`input[value="${reply}"]`);
       await click(radio);
       expect(radio?.checked).toBe(true);
-      expect(trackUmamiEvent).toHaveBeenCalledWith("run-scenario", {
-        scenario: "break",
-        location: "showcase",
-        break: reply,
-      });
       expect(
         [...container.querySelectorAll(".vk-showcase-output-line")].map((line) => line.textContent),
       ).toEqual(showcaseRunLines(runShowcaseScenario("break", reply)));

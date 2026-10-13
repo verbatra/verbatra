@@ -4,14 +4,11 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { FORMAT_SAMPLES } from "@/lib/format-samples";
 import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { STACK_FRAMEWORKS } from "@/lib/stack-formats";
 import { preloadRegisteredIslands } from "@/test-support/islands";
-
-const trackUmamiEvent = vi.hoisted(() => vi.fn());
-vi.mock("@/lib/umami", () => ({ trackUmamiEvent }));
 
 const { FormatsDemo } = await import("./formats");
 const { loadFormatPanes } = await import("./format-switch");
@@ -77,10 +74,6 @@ function chips(container: HTMLElement): HTMLButtonElement[] {
 function activePanel(container: HTMLElement): HTMLElement | undefined {
   return panels(container).find((panel) => panel.dataset.active === "true");
 }
-
-beforeEach(() => {
-  trackUmamiEvent.mockReset();
-});
 
 afterEach(() => {
   if (mounted) {
@@ -199,18 +192,13 @@ describe("FormatsDemo", () => {
     expect(closed.every((panel) => panel.hasAttribute("inert"))).toBe(true);
   });
 
-  it("switches the pane with a tab and counts select-tab from the formats section", async () => {
+  it("switches the pane with a tab", async () => {
     const container = await render();
     const yaml = tabs(container)[SUPPORTED_FORMAT_IDS.indexOf("yaml")];
     act(() => yaml?.click());
     expect(activePanel(container)?.querySelector("figcaption")?.textContent).toBe(
       FORMAT_SAMPLES.yaml.file,
     );
-    expect(trackUmamiEvent.mock.calls).toEqual([
-      ["select-tab", { tab: "yaml", location: "formats" }],
-    ]);
-    act(() => yaml?.click());
-    expect(trackUmamiEvent).toHaveBeenCalledTimes(1);
   });
 
   it("moves through the formats with the arrow keys, Home and End", async () => {
@@ -238,9 +226,6 @@ describe("FormatsDemo", () => {
     expect(
       tabs(container)[SUPPORTED_FORMAT_IDS.indexOf("arb")]?.getAttribute("aria-selected"),
     ).toBe("true");
-    expect(trackUmamiEvent.mock.calls).toEqual([
-      ["select-tab", { tab: "arb", location: "formats", framework: "flutter" }],
-    ]);
     act(() => tabs(container)[0]?.click());
     expect(flutter?.getAttribute("aria-pressed")).toBe("false");
   });

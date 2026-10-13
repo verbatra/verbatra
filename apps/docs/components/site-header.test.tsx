@@ -7,9 +7,6 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const location = vi.hoisted(() => ({ pathname: "/" }));
-const track = vi.hoisted(() => vi.fn());
-
-vi.mock("@/lib/umami", () => ({ trackUmamiEvent: track }));
 
 vi.mock("fumadocs-core/framework", () => ({ usePathname: () => location.pathname }));
 
@@ -118,7 +115,6 @@ function render(
 }
 
 afterEach(() => {
-  track.mockReset();
   location.pathname = "/";
   if (!mounted) return;
   act(() => mounted?.root.unmount());
@@ -152,14 +148,6 @@ describe("SiteHeaderFrame", () => {
     const icon = container.querySelector('a[aria-label="GitHub"]');
     expect(icon).not.toBeNull();
     expect(icon?.closest("nav")).toBeNull();
-  });
-
-  it("counts the external GitHub icon as an outbound link from the header", () => {
-    const icon = render().querySelector<HTMLElement>('a[aria-label="GitHub"]');
-    act(() => {
-      icon?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
-    });
-    expect(track.mock.calls).toEqual([["outbound-link", { target: "github", location: "header" }]]);
   });
 
   it("keeps each text link on one line, since the squeezed nav wraps them at 1024px otherwise", () => {

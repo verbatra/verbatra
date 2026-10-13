@@ -29,8 +29,6 @@ vi.mock("@/lib/showcase-scenarios", async (importOriginal) => {
 vi.mock("next-intl", () => ({
   useTranslations: (namespace: string) => (key: string) => `${namespace}.${key}`,
 }));
-const trackUmamiEvent = vi.hoisted(() => vi.fn());
-vi.mock("@/lib/umami", () => ({ trackUmamiEvent }));
 
 const actual = await vi.importActual<ScenarioModule>("@/lib/showcase-scenarios");
 const { TryIt } = await import("./try-it");
@@ -103,11 +101,7 @@ describe("TryIt: loading the scenario module", () => {
     expect(status?.contains(container.querySelector("[data-failed]") ?? null)).toBe(true);
     expect(loading.failuresLeft).toBe(0);
 
-    trackUmamiEvent.mockReset();
     await click(button(container, "landing.showcase.tryIt.retry"));
-    expect(trackUmamiEvent.mock.calls).toEqual([
-      ["run-scenario", { scenario: "edit", location: "showcase", retry: true }],
-    ]);
     expect(title(container)).toBe("landing.showcase.tryIt.result.summary");
     expect(container.querySelector('[data-mark="edited"]')).not.toBeNull();
     expect(button(container, "landing.showcase.tryIt.retry")).toBeUndefined();
@@ -122,11 +116,7 @@ describe("TryIt: loading the scenario module", () => {
     loading.failRun = false;
     expect(title(container)).toBe("landing.showcase.tryIt.result.failed");
 
-    trackUmamiEvent.mockReset();
     await click(button(container, "landing.showcase.tryIt.retry"));
-    expect(trackUmamiEvent.mock.calls).toEqual([
-      ["run-scenario", { scenario: "break", location: "showcase", break: "drop", retry: true }],
-    ]);
     expect(container.querySelector<HTMLInputElement>('input[value="drop"]')?.checked).toBe(true);
     expect(
       [...container.querySelectorAll(".vk-showcase-output-line")].some((line) =>

@@ -1,5 +1,3 @@
-export const UMAMI_ORIGIN = "https://umami.kreitz-webdev.de";
-
 export const CSP_ENFORCED = true;
 
 const DEV_SCRIPT_SOURCES = ["'unsafe-inline'", "'unsafe-eval'"];
@@ -8,11 +6,11 @@ export function contentSecurityPolicy({ enforce, isDev, scriptHashes = [] }) {
   const inlineScripts = isDev ? DEV_SCRIPT_SOURCES : scriptHashes;
   const directives = [
     "default-src 'self'",
-    ["script-src 'self'", ...inlineScripts, UMAMI_ORIGIN].join(" "),
+    ["script-src 'self'", ...inlineScripts].join(" "),
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data:",
     "font-src 'self'",
-    `connect-src 'self' ${UMAMI_ORIGIN}`,
+    "connect-src 'self'",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

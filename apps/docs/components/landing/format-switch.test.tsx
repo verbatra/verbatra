@@ -6,8 +6,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { FORMAT_SAMPLES } from "@/lib/format-samples";
 import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 
-vi.mock("@/lib/umami", () => ({ trackUmamiEvent: vi.fn() }));
-
 const chunk = vi.hoisted(() => ({ failures: 0, imports: 0 }));
 
 vi.mock("./format-pane", async (importOriginal) => {

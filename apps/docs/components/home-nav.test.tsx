@@ -8,9 +8,6 @@ import { i18n, type Locale } from "@/lib/i18n";
 import messages from "@/messages/en.json";
 
 const location = vi.hoisted(() => ({ pathname: "/" }));
-const track = vi.hoisted(() => vi.fn());
-
-vi.mock("@/lib/umami", () => ({ trackUmamiEvent: track }));
 vi.mock("fumadocs-core/framework", () => ({ usePathname: () => location.pathname }));
 vi.mock("fumadocs-core/link", () => ({
   default: ({
@@ -89,7 +86,6 @@ vi.mock("next-intl/server", async () => {
 vi.mock("@/lib/layout.shared", () => ({ baseOptions: async () => ({}) }));
 
 afterEach(() => {
-  track.mockReset();
   location.pathname = "/";
   if (mounted) act(() => mounted?.root.unmount());
   mounted = undefined;
@@ -137,19 +133,13 @@ describe("the landing nav", () => {
     expect((await render(null)).querySelector("[data-search]")).toBeNull();
   });
 
-  it("opens Changelog and GitHub in a new tab and counts them as outbound links", async () => {
+  it("opens Changelog and GitHub in a new tab", async () => {
     const container = await render(null);
     const [, changelog, github] = Array.from(primaryNav(container)?.querySelectorAll("a") ?? []);
     for (const link of [changelog, github]) {
       expect(link?.getAttribute("target")).toBe("_blank");
       expect(link?.getAttribute("rel")).toBe("noopener noreferrer");
     }
-    act(() => changelog?.click());
-    act(() => github?.click());
-    expect(track.mock.calls).toEqual([
-      ["outbound-link", { target: "changelog", location: "header" }],
-      ["outbound-link", { target: "github", location: "header" }],
-    ]);
   });
 
   it("shows the server-fetched star count inside the GitHub link and names it", async () => {
@@ -210,12 +200,6 @@ describe("the landing nav", () => {
     expect(row?.className).toContain("max-w-(--width-wide)");
     expect(row?.className).toContain("px-(--gutter)");
     expect(row?.className).not.toContain("--fd-layout-width");
-  });
-
-  it("counts Get started as a header call to action", async () => {
-    const container = await render(null);
-    act(() => container.querySelector<HTMLAnchorElement>("a.vk-nav-cta")?.click());
-    expect(track).toHaveBeenCalledWith("click-cta", { location: "header", target: "get-started" });
   });
 
   it("marks Docs active and current on the docs pages only", async () => {
@@ -343,7 +327,7 @@ describe("the landing phone menu", () => {
     expect(sheet()).toBeNull();
   });
 
-  it("offers Get started below the nav, counted from the menu, and closes when followed", async () => {
+  it("offers Get started below the nav and closes when followed", async () => {
     const container = await render(null);
     act(() => trigger(container)?.click());
     const cta = sheet()?.querySelector<HTMLAnchorElement>("a.vk-nav-cta-menu");
@@ -353,16 +337,12 @@ describe("the landing phone menu", () => {
     expect(cta?.className).toContain("py-[11px]");
     expect(container.querySelector("header a.vk-nav-cta")?.className).toContain("py-[7px]");
     act(() => cta?.click());
-    expect(track).toHaveBeenCalledWith("click-cta", { location: "menu", target: "get-started" });
     expect(sheet()).toBeNull();
   });
 
-  it("closes when Docs is followed and counts outbound links from the menu", async () => {
+  it("closes when Docs is followed", async () => {
     const container = await render(null);
     act(() => trigger(container)?.click());
-    const changelog = sheet()?.querySelector<HTMLAnchorElement>(`a[href="${RELEASES_URL}"]`);
-    act(() => changelog?.click());
-    expect(track).toHaveBeenCalledWith("outbound-link", { target: "changelog", location: "menu" });
     act(() => sheet()?.querySelector<HTMLAnchorElement>('a[href="/docs"]')?.click());
     expect(sheet()).toBeNull();
   });

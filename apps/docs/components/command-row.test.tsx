@@ -23,7 +23,6 @@ function render(wrap?: "narrow" | "always"): HTMLDivElement {
       <CommandRow
         command={NPM_INSTALL_COMMAND}
         label="copy"
-        location="start-here"
         {...(wrap === undefined ? {} : { wrap })}
       />,
     ),
@@ -46,32 +45,23 @@ beforeEach(() => {
 afterEach(() => {
   if (root) act(() => root?.unmount());
   root = undefined;
-  window.umami = undefined;
   document.body.innerHTML = "";
 });
 
 describe("CommandRow", () => {
-  it("copies its command and sends its event with the copied text, once per copy", async () => {
-    const track = vi.fn();
-    window.umami = { track };
+  it("copies its command once per copy", async () => {
     const container = render();
     const button = container.querySelector("button");
     expect(button?.getAttribute("aria-label")).toBe("copy");
     await clickCopy(container);
     expect(writeText.mock.calls).toEqual([[NPM_INSTALL_COMMAND]]);
-    expect(track.mock.calls).toEqual([
-      ["copy-command", { command: NPM_INSTALL_COMMAND, location: "start-here" }],
-    ]);
     expect(button?.textContent).toBe("copied");
   });
 
-  it("sends no event when the clipboard refuses the copy", async () => {
-    const track = vi.fn();
-    window.umami = { track };
+  it("reports a failed copy when the clipboard refuses it", async () => {
     writeText.mockRejectedValue(new Error("denied"));
     const container = render();
     await clickCopy(container);
-    expect(track).not.toHaveBeenCalled();
     const button = container.querySelector("button");
     expect(button?.textContent).toBe("copyFailed");
     expect(button?.dataset.status).toBe("failed");

@@ -20,14 +20,14 @@ const AVATAR_SIZE = 40;
 const LINKS_SPAN = { "--grid-span": 7 } as CSSProperties;
 const PEOPLE_SPAN = { "--grid-span": 5 } as CSSProperties;
 
-type ProjectLink = { key: string; href: string; target: string };
+type ProjectLink = { key: string; href: string };
 
 export const OPEN_SOURCE_LINKS: ReadonlyArray<ProjectLink> = [
-  { key: "license", href: LICENSE_URL, target: "license" },
-  { key: "contributing", href: CONTRIBUTING_URL, target: "contributing" },
-  { key: "issues", href: ISSUES_URL, target: "issues" },
-  { key: "roadmap", href: ROADMAP_URL, target: "roadmap" },
-  { key: "releases", href: RELEASES_URL, target: "releases" },
+  { key: "license", href: LICENSE_URL },
+  { key: "contributing", href: CONTRIBUTING_URL },
+  { key: "issues", href: ISSUES_URL },
+  { key: "roadmap", href: ROADMAP_URL },
+  { key: "releases", href: RELEASES_URL },
 ];
 
 const ROW_CLASS =
@@ -35,12 +35,10 @@ const ROW_CLASS =
 
 function OutboundRow({
   href,
-  target,
   newTab,
   children,
 }: {
   href: string;
-  target: string;
   newTab: string;
   children: ReactNode;
 }): ReactNode {
@@ -51,9 +49,6 @@ function OutboundRow({
       rel="noreferrer noopener"
       className={ROW_CLASS}
       style={{ borderColor: "var(--border-default)" }}
-      data-umami-event="outbound-link"
-      data-umami-event-target={target}
-      data-umami-event-location="open-source"
     >
       <span>
         {children}
@@ -95,9 +90,6 @@ export function Contributors({
               target="_blank"
               rel="noreferrer noopener"
               className="block rounded-full"
-              data-umami-event="outbound-link"
-              data-umami-event-target="contributor"
-              data-umami-event-location="open-source"
             >
               <Image
                 src={contributor.avatarPath}
@@ -129,7 +121,7 @@ export async function OpenSource(): Promise<ReactNode> {
           style={{ ...LINKS_SPAN, borderColor: "var(--border-default)" }}
         >
           <li>
-            <OutboundRow href={GITHUB_URL} target="github" newTab={t("newTab")}>
+            <OutboundRow href={GITHUB_URL} newTab={t("newTab")}>
               <span className="inline-flex items-center gap-3">
                 <GithubIcon size={18} />
                 <span className="font-mono text-sm">verbatra/verbatra</span>
@@ -138,7 +130,7 @@ export async function OpenSource(): Promise<ReactNode> {
           </li>
           {OPEN_SOURCE_LINKS.map((link) => (
             <li key={link.key}>
-              <OutboundRow href={link.href} target={link.target} newTab={t("newTab")}>
+              <OutboundRow href={link.href} newTab={t("newTab")}>
                 {t(link.key)}
               </OutboundRow>
             </li>

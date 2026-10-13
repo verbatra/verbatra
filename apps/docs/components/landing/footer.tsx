@@ -24,7 +24,6 @@ type FooterLink = {
   literal?: string;
   href: string;
   external?: boolean;
-  trackingTarget?: string;
   isNew?: boolean;
   localized?: boolean;
 };
@@ -71,38 +70,32 @@ const FOOTER_COLS: ReadonlyArray<FooterCol> = [
         labelKey: "cols.community.contributing",
         href: CONTRIBUTING_URL,
         external: true,
-        trackingTarget: "contributing",
       },
       {
         labelKey: "cols.community.codeOfConduct",
         href: CODE_OF_CONDUCT_URL,
         external: true,
-        trackingTarget: "code-of-conduct",
       },
       {
         labelKey: "cols.community.security",
         href: SECURITY_URL,
         external: true,
-        trackingTarget: "security",
       },
       {
         labelKey: "cols.community.releases",
         href: RELEASES_URL,
         external: true,
-        trackingTarget: "releases",
       },
-      { literal: "@verbatra/sdk", href: NPM_SDK, external: true, trackingTarget: "npm-sdk" },
+      { literal: "@verbatra/sdk", href: NPM_SDK, external: true },
       {
         literal: "@verbatra/studio",
         href: NPM_STUDIO,
         external: true,
-        trackingTarget: "npm-studio",
       },
       {
         literal: "@verbatra/mcp",
         href: NPM_MCP,
         external: true,
-        trackingTarget: "npm-mcp",
         isNew: true,
       },
     ],
@@ -115,7 +108,6 @@ const FOOTER_COLS: ReadonlyArray<FooterCol> = [
         labelKey: "cols.legal.license",
         href: LICENSE_URL,
         external: true,
-        trackingTarget: "license",
       },
       ...LEGAL_PAGE_LINKS.map(({ key, path }) => ({
         labelKey: `cols.legal.${key}`,
@@ -142,15 +134,7 @@ function FooterLinkItem({
 }): ReactNode {
   if (link.external) {
     return (
-      <a
-        href={link.href}
-        className={LINK_CLASS}
-        target="_blank"
-        rel="noreferrer noopener"
-        data-umami-event="outbound-link"
-        data-umami-event-target={link.trackingTarget}
-        data-umami-event-location="footer"
-      >
+      <a href={link.href} className={LINK_CLASS} target="_blank" rel="noreferrer noopener">
         {label}
         {link.isNew ? <NewBadge>{newLabel}</NewBadge> : null}
       </a>
@@ -206,9 +190,6 @@ export async function FullFooter(): Promise<ReactNode> {
                 rel="noreferrer noopener"
                 aria-label={t("githubAria")}
                 className="inline-flex min-h-6 items-center gap-2 text-sm text-fd-muted-foreground transition-colors hover:text-fd-foreground"
-                data-umami-event="outbound-link"
-                data-umami-event-target="github"
-                data-umami-event-location="footer"
               >
                 <GithubIcon size={16} />
                 <span>GitHub</span>
@@ -219,9 +200,6 @@ export async function FullFooter(): Promise<ReactNode> {
                 rel="noreferrer noopener"
                 aria-label={t("npmAria")}
                 className="inline-flex min-h-6 items-center gap-2 text-sm text-fd-muted-foreground transition-colors hover:text-fd-foreground"
-                data-umami-event="outbound-link"
-                data-umami-event-target="npm"
-                data-umami-event-location="footer"
               >
                 <SiNpm
                   size={16}

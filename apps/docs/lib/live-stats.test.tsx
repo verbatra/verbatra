@@ -164,7 +164,7 @@ describe("the header star count", () => {
             },
           }}
         >
-          <GitHubNavLink className="" location="header" />
+          <GitHubNavLink className="" />
         </HomeNavProvider>,
       );
     });

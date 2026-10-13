@@ -7,9 +7,6 @@ import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
 import en from "@/messages/en.json";
 import { preloadRegisteredIslands } from "@/test-support/islands";
 
-const trackUmamiEvent = vi.hoisted(() => vi.fn());
-vi.mock("@/lib/umami", () => ({ trackUmamiEvent }));
-
 vi.mock("next-intl", async (importOriginal) => {
   const actual = await importOriginal<typeof import("next-intl")>();
   const { default: messages } = await import("@/messages/en.json");
@@ -41,7 +38,7 @@ describe("CodeFrame", () => {
         code: "name: i18n\n",
         lang: "yaml",
         filename: ".github/workflows/i18n.yml",
-        copy: { label: "Copy code", location: "test" },
+        copy: { label: "Copy code" },
       }),
     );
     const caption = container.querySelector("figcaption");
@@ -62,16 +59,10 @@ describe("CodeFrame", () => {
     const writeText = vi.fn(async () => {});
     Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
     const code = "npx @verbatra/cli check\n";
-    const container = await mount(
-      CodeFrame({ code, lang: "bash", copy: { label: "Copy code", location: "steps" } }),
-    );
+    const container = await mount(CodeFrame({ code, lang: "bash", copy: { label: "Copy code" } }));
     const button = container.querySelector("button");
     await act(async () => button?.click());
     expect(writeText).toHaveBeenCalledWith(code);
-    expect(trackUmamiEvent).toHaveBeenCalledWith("copy-command", {
-      command: code,
-      location: "steps",
-    });
     expect(button?.textContent).toBe(en.landing.install.copied);
   });
 

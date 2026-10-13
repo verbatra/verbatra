@@ -5,6 +5,7 @@ import { scriptHashesFor } from "@/lib/csp-script-hashes";
 import { i18n } from "@/lib/i18n";
 import { isDocsPath, markdownRewritePath } from "@/lib/markdown-route";
 import { CSP_ENFORCED, contentSecurityPolicy } from "@/lib/security-headers.mjs";
+import { countedPageview, sendPageview } from "@/lib/server-pageview";
 
 const NEXT_ACTION_HEADER = "next-action";
 const REWRITE_HEADER = "x-middleware-rewrite";
@@ -52,9 +53,16 @@ async function route(request: NextRequest, event: NextFetchEvent) {
   return response instanceof Response ? varyOnAccept(response) : response;
 }
 
+function countPageview(request: NextRequest, response: Response, event: NextFetchEvent): void {
+  const pageview = countedPageview(request, response, servedPathname(request, response));
+  if (pageview !== undefined) event.waitUntil(sendPageview(pageview));
+}
+
 export default async function proxy(request: NextRequest, event: NextFetchEvent) {
   const response = await route(request, event);
-  return response instanceof Response ? withContentSecurityPolicy(request, response) : response;
+  if (!(response instanceof Response)) return response;
+  countPageview(request, response, event);
+  return withContentSecurityPolicy(request, response);
 }
 
 export const config = {

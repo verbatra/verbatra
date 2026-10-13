@@ -20,7 +20,6 @@ import {
   useHomeNav,
 } from "@/components/home-nav";
 import { isLinkItemActive, LinkItem } from "@/lib/link-items";
-import { trackUmamiEvent } from "@/lib/umami";
 import { cn } from "@/lib/utils";
 
 export type HeaderSlots = Pick<
@@ -108,13 +107,6 @@ function TextLink({
   );
 }
 
-function trackOutboundIcon(item: IconItem): void {
-  trackUmamiEvent("outbound-link", {
-    target: (item.label ?? item.url).toLowerCase(),
-    location: "header",
-  });
-}
-
 function IconLink({ item, className }: { item: IconItem; className?: string }): ReactNode {
   const pathname = usePathname();
   return (
@@ -123,7 +115,6 @@ function IconLink({ item, className }: { item: IconItem; className?: string }): 
       pathname={pathname}
       className={cn(ICON_BUTTON, className)}
       aria-label={item.label}
-      onClick={item.external ? () => trackOutboundIcon(item) : undefined}
     >
       {item.icon}
     </LinkItem>
@@ -280,8 +271,8 @@ export function HomeSiteHeader({ wordmark, homeUrl, ...props }: HomeSiteHeaderPr
         navLinks={
           <>
             <DocsNavLink className={NAV_TEXT_LINK} />
-            <ChangelogNavLink className={NAV_TEXT_LINK} location="header" />
-            <GitHubNavLink className={NAV_TEXT_LINK} location="header" />
+            <ChangelogNavLink className={NAV_TEXT_LINK} />
+            <GitHubNavLink className={NAV_TEXT_LINK} />
           </>
         }
         mobileTrigger={<HomeMobileMenu footer={settings} />}

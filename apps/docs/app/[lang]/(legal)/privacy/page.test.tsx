@@ -7,6 +7,9 @@ import { createTranslator } from "next-intl";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { i18n, type Locale } from "@/lib/i18n";
+import { PACKAGE_MANAGER_GROUP } from "@/lib/package-manager-tabs";
+import { ANALYTICS_OPT_OUT_COOKIE } from "@/lib/server-pageview";
+import { THEME_STORAGE_KEY } from "@/lib/theme";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const MESSAGES_DIR = join(HERE, "../../../../messages");
@@ -104,50 +107,81 @@ const UMAMI_SAME_SERVER: Record<Locale, RegExp> = {
   fr: /même serveur que ce site \(voir la section 3\)/,
 };
 
-const UMAMI_DEVICE_READS: Record<Locale, RegExp> = {
-  en: /screen size and your browser language/,
-  de: /Bildschirmgröße und deine Browsersprache/,
-  es: /tamaño de tu pantalla y el idioma de tu navegador/,
-  fr: /taille de ton écran et la langue de ton navigateur/,
+const UMAMI_SERVER_FORWARD: Record<Locale, RegExp> = {
+  en: /No analytics script runs in your browser, and nothing is written to your device for counting page views\..*our web server forwards .*: your IP address, your browser's user-agent string, your browser language, the referring page \(without its query string\) and the path of the page you loaded/,
+  de: /In deinem Browser läuft kein Analyseskript, und zum Zählen der Seitenaufrufe wird nichts auf deinem Gerät gespeichert\..*leitet unser Webserver.*deine IP-Adresse, die User-Agent-Zeichenkette deines Browsers, deine Browsersprache, die verweisende Seite \(ohne ihre Query-Parameter\) und den Pfad der geladenen Seite/,
+  es: /En tu navegador no se ejecuta ningún script de analítica, y para contar las visitas no se escribe nada en tu dispositivo\..*nuestro servidor web reenvía .*: tu dirección IP, la cadena de user-agent de tu navegador, el idioma de tu navegador, la página de referencia \(sin sus parámetros de consulta\) y la ruta de la página que cargaste/,
+  fr: /Aucun script de statistiques ne s'exécute dans ton navigateur, et rien n'est écrit sur ton appareil pour compter les pages vues\..*notre serveur web transmet .*: ton adresse IP, la chaîne user-agent de ton navigateur, la langue de ton navigateur, la page référente \(sans ses paramètres de requête\) et le chemin de la page chargée/,
 };
 
-const UMAMI_EVENT_PAYLOADS: Record<Locale, ReadonlyArray<RegExp>> = {
-  en: [
-    /clicks on buttons and links/,
-    /copying a command, a prompt, a code block or a page as Markdown \(with the copied command text for a command\)/,
-    /choosing a tab, opening a question in the FAQ, running or resetting the interactive example/,
-    /only short labels naming what was clicked or chosen and the part of the page it sits in/,
-    /never contains personal data or anything you type/,
-    /only look at events in aggregate/,
-    /previous and the newly selected language/,
-  ],
-  de: [
-    /Klicks auf Schaltflächen und Links/,
-    /Kopieren eines Befehls, eines Prompts, eines Codeblocks oder einer Seite als Markdown \(mit dem kopierten Befehlstext bei einem Befehl\)/,
-    /Wahl eines Tabs, das Öffnen einer Frage in den FAQ, das Ausführen oder Zurücksetzen des interaktiven Beispiels/,
-    /nur kurze Bezeichnungen dafür, was angeklickt oder gewählt wurde und in welchem Bereich der Seite es liegt/,
-    /nie personenbezogene Daten oder etwas, das du eingibst/,
-    /werten Ereignisse nur zusammengefasst aus/,
-    /bisherigen und der neu gewählten Sprache/,
-  ],
-  es: [
-    /los clics en botones y enlaces/,
-    /copiar un comando, un prompt, un bloque de código o una página como Markdown \(con el texto del comando copiado en un comando\)/,
-    /elegir una pestaña, abrir una pregunta de las preguntas frecuentes, ejecutar o restablecer el ejemplo interactivo/,
-    /solo lleva etiquetas breves que nombran lo que se pulsó o eligió y la parte de la página en la que está/,
-    /nunca contiene datos personales ni nada de lo que escribes/,
-    /consultamos los eventos de forma agregada/,
-    /idioma anterior y el recién seleccionado/,
-  ],
-  fr: [
-    /les clics sur des boutons et des liens/,
-    /la copie d'une commande, d'un prompt, d'un bloc de code ou d'une page en Markdown \(avec le texte de la commande copiée pour une commande\)/,
-    /le choix d'un onglet, l'ouverture d'une question de la FAQ, l'exécution ou la réinitialisation de l'exemple interactif/,
-    /ne contient que de courts libellés désignant ce qui a été cliqué ou choisi et la partie de la page où il se trouve/,
-    /ne contient jamais de données personnelles ni rien de ce que tu saisis/,
-    /consultons les événements que sous forme agrégée/,
-    /langue précédente et la langue nouvellement sélectionnée/,
-  ],
+const UMAMI_SESSION_HASH: Record<Locale, RegExp> = {
+  en: /hashing the website ID, your IP address, your user-agent string, a value that changes every month and a secret key of the server/,
+  de: /indem er die Website-ID, deine IP-Adresse, deine User-Agent-Zeichenkette, einen monatlich wechselnden Wert und einen geheimen Schlüssel des Servers hasht/,
+  es: /aplicando un hash al ID del sitio web, tu dirección IP, tu cadena de user-agent, un valor que cambia cada mes y una clave secreta del servidor/,
+  fr: /en hachant l'identifiant du site, ton adresse IP, ta chaîne user-agent, une valeur qui change chaque mois et une clé secrète du serveur/,
+};
+
+const UMAMI_GEOLITE: Record<Locale, RegExp> = {
+  en: /country, region and city, which it looks up from your IP address in a GeoLite2 database on the same server/,
+  de: /Land, Region und Stadt, die er aus deiner IP-Adresse in einer GeoLite2-Datenbank auf demselben Server ermittelt/,
+  es: /país, región y ciudad, que obtiene a partir de tu dirección IP en una base de datos GeoLite2 del mismo servidor/,
+  fr: /ton pays, ta région et ta ville, qu'il détermine à partir de ton adresse IP dans une base de données GeoLite2 sur le même serveur/,
+};
+
+const UMAMI_LEGAL_BASIS: Record<Locale, RegExp> = {
+  en: /no consent under § 25 TDDDG .* is required for it\. The legal basis for the processing is Art\. 6\(1\)\(f\) GDPR/,
+  de: /keine Einwilligung nach § 25 TDDDG .* erforderlich\. Rechtsgrundlage der Verarbeitung ist Art\. 6 Abs\. 1 lit\. f DSGVO/,
+  es: /no se necesita ningún consentimiento según el § 25 de la TDDDG .* La base jurídica del tratamiento es el art\. 6\.1\.f\) del RGPD/,
+  fr: /aucun consentement au titre du § 25 TDDDG .* n'est nécessaire\. La base légale du traitement est l'art\. 6, § 1, point f\) du RGPD/,
+};
+
+const UMAMI_NO_INTERACTIONS: Record<Locale, RegExp> = {
+  en: /Clicks, copied text and other interactions are not recorded\./,
+  de: /Klicks, kopierte Texte und andere Interaktionen werden nicht erfasst\./,
+  es: /No se registran clics, textos copiados ni otras interacciones\./,
+  fr: /Les clics, les textes copiés et les autres interactions ne sont pas enregistrés\./,
+};
+
+const UMAMI_OLD_OPT_OUT_IGNORED: Record<Locale, RegExp> = {
+  en: /opt-out saved in your browser's local storage under this site's earlier analytics setup is no longer read/,
+  de: /Widerspruch, der unter der früheren Analyse-Einrichtung dieser Seite im lokalen Speicher deines Browsers abgelegt wurde, wird nicht mehr ausgelesen/,
+  es: /exclusión guardada en el almacenamiento local de tu navegador con la configuración de analítica anterior de este sitio ya no se lee/,
+  fr: /opposition enregistrée dans le stockage local de ton navigateur avec l'ancienne configuration statistique de ce site n'est plus lue/,
+};
+
+const OPT_OUT_COOKIE_BASIS: Record<Locale, RegExp> = {
+  en: /verbatra_analytics_optout with the value 1, valid for one year.*needs no consent \(§ 25\(2\) no\. 2 TDDDG\)\. Allowing analytics again deletes it\. No other cookies are set\./,
+  de: /verbatra_analytics_optout mit dem Wert 1, gültig für ein Jahr.*keine Einwilligung braucht \(§ 25 Abs\. 2 Nr\. 2 TDDDG\)\. Wenn du die Analyse wieder erlaubst, wird es gelöscht\. Andere Cookies werden nicht gesetzt\./,
+  es: /verbatra_analytics_optout con el valor 1, válida durante un año.*no requiere consentimiento \(§ 25, apdo\. 2, n\.º 2 de la TDDDG\)\. Si vuelves a permitir la analítica, se elimina\. No se establece ninguna otra cookie\./,
+  fr: /verbatra_analytics_optout avec la valeur 1, valable un an.*ne requiert donc aucun consentement \(§ 25, al\. 2, n° 2 TDDDG\)\. Autoriser à nouveau les statistiques le supprime\. Aucun autre cookie n'est déposé\./,
+};
+
+const OPT_OUT_COOKIE_READ_ONLY_TO_HONOUR: Record<Locale, RegExp> = {
+  en: /The only thing read from your device in connection with analytics is the opt-out cookie described in section 5, and only to honour your objection\..*Because nothing is stored on your device for counting page views and the opt-out cookie is read only to honour your objection, no consent/,
+  de: /Im Zusammenhang mit der Analyse wird von deinem Gerät nur das in Abschnitt 5 beschriebene Widerspruchs-Cookie ausgelesen, und zwar ausschließlich, um deinen Widerspruch zu beachten\..*Weil zum Zählen der Seitenaufrufe nichts auf deinem Gerät gespeichert wird und das Widerspruchs-Cookie nur ausgelesen wird, um deinen Widerspruch zu beachten, ist dafür keine Einwilligung/,
+  es: /Lo único que se lee de tu dispositivo en relación con la analítica es la cookie de oposición descrita en la sección 5, y solo para respetar tu oposición\..*Como para contar las visitas no se almacena nada en tu dispositivo y la cookie de oposición solo se lee para respetar tu oposición, no se necesita ningún consentimiento/,
+  fr: /La seule chose lue sur ton appareil en lien avec les statistiques est le cookie d'opposition décrit à la section 5, et uniquement pour respecter ton opposition\..*Comme rien n'est stocké sur ton appareil pour compter les pages vues et que le cookie d'opposition n'est lu que pour respecter ton opposition, aucun consentement/,
+};
+
+const THEME_STORAGE: Record<Locale, RegExp> = {
+  en: /light and dark theme, your choice is saved in local storage under the key theme\./,
+  de: /hellem und dunklem Design wechselst, wird deine Wahl im lokalen Speicher \(Local Storage\) unter dem Schlüssel theme abgelegt\./,
+  es: /tema claro y el oscuro, tu elección se guarda en el almacenamiento local con la clave theme\./,
+  fr: /thème clair au thème sombre ou inversement, ton choix est enregistré dans le stockage local sous la clé theme\./,
+};
+
+const PACKAGE_MANAGER_STORAGE: Record<Locale, RegExp> = {
+  en: /package manager \(npm, pnpm, yarn or bun\) on the tabs above an install command, your choice is saved under the key package-manager in both local storage and session storage/,
+  de: /Paketmanager \(npm, pnpm, yarn oder bun\) auswählst, wird deine Wahl unter dem Schlüssel package-manager sowohl im lokalen Speicher als auch im Sitzungsspeicher \(Session Storage\) abgelegt/,
+  es: /gestor de paquetes \(npm, pnpm, yarn o bun\) en las pestañas encima de un comando de instalación, tu elección se guarda con la clave package-manager tanto en el almacenamiento local como en el almacenamiento de sesión/,
+  fr: /gestionnaire de paquets \(npm, pnpm, yarn ou bun\) dans les onglets au-dessus d'une commande d'installation, ton choix est enregistré sous la clé package-manager, à la fois dans le stockage local et dans le stockage de session/,
+};
+
+const STORAGE_NEVER_SENT: Record<Locale, RegExp> = {
+  en: /Neither entry is written before you make that choice; both stay in your browser, are never sent to our server or anyone else/,
+  de: /Keiner der beiden Einträge wird geschrieben, bevor du diese Wahl triffst; beide bleiben in deinem Browser, werden nie an unseren Server oder an andere gesendet/,
+  es: /Ninguna de las dos entradas se escribe antes de que hagas esa elección; ambas se quedan en tu navegador, nunca se envían a nuestro servidor ni a nadie más/,
+  fr: /Aucune de ces deux entrées n'est écrite avant que tu fasses ce choix ; toutes deux restent dans ton navigateur, ne sont jamais envoyées à notre serveur ni à qui que ce soit/,
 };
 
 const HOSTING_PROCESSOR: Record<Locale, RegExp> = {
@@ -313,34 +347,68 @@ describe.each(i18n.languages)("privacy page (%s)", (locale) => {
     expect(hosting).toMatch(ACCESS_LOG_DELETION[locale]);
   });
 
-  it("describes what Umami reads and processes", async () => {
+  it("describes the server-side pageview and what Umami derives and keeps", async () => {
     const analytics = sectionText(await renderPrivacy(locale), /^4\. /);
 
-    expect(analytics).toMatch(UMAMI_DEVICE_READS[locale]);
+    expect(analytics).toMatch(UMAMI_SERVER_FORWARD[locale]);
     expect(analytics).toMatch(UMAMI_PSEUDONYMOUS[locale]);
+    expect(analytics).toMatch(UMAMI_SESSION_HASH[locale]);
+    expect(analytics).toMatch(UMAMI_GEOLITE[locale]);
     expect(analytics).toMatch(UMAMI_NOT_STORED[locale]);
     expect(analytics).toMatch(UMAMI_SAME_SERVER[locale]);
+    expect(analytics).toMatch(UMAMI_LEGAL_BASIS[locale]);
+    expect(analytics).toMatch(
+      /Global Privacy Control \(GPC\)|Global-Privacy-Control-Signal \(GPC\)/,
+    );
     expect(analytics).toMatch(/Do[ -]Not[ -]Track/);
   });
 
-  it("names the data each tracked event carries", async () => {
+  it("records no interactions and no longer reads the old local storage opt-out", async () => {
     const analytics = sectionText(await renderPrivacy(locale), /^4\. /);
 
-    for (const payload of UMAMI_EVENT_PAYLOADS[locale]) {
-      expect(analytics).toMatch(payload);
-    }
-    expect(analytics).not.toMatch(/install command or prompt|Installationsbefehls oder Prompts/);
+    expect(analytics).toMatch(UMAMI_NO_INTERACTIONS[locale]);
+    expect(analytics).toMatch(UMAMI_OLD_OPT_OUT_IGNORED[locale]);
+    expect(analytics).not.toContain("umami.disabled");
   });
 
-  it("documents the umami.disabled opt-out and renders the control in the analytics section", async () => {
+  it("renders the opt-out as two plain forms in the analytics section", async () => {
     const doc = await renderPrivacy(locale);
     const analytics = sectionNumbered(doc, 4);
+    const forms = Array.from(analytics?.querySelectorAll("form") ?? []);
 
-    expect(analytics?.textContent).toContain("umami.disabled");
-    expect(analytics?.querySelector("button")).not.toBeNull();
-    expect(analytics?.querySelector("button")?.getAttribute("aria-describedby")).toBeTruthy();
-    expect(analytics?.querySelector('[aria-live="polite"]')?.textContent).toBe("");
-    expect(doc.querySelectorAll("button")).toHaveLength(1);
+    expect(analytics?.querySelector("h2")?.id).toBe("analytics");
+    expect(forms).toHaveLength(2);
+    for (const form of forms) {
+      expect(form.getAttribute("method")).toBe("post");
+      expect(form.getAttribute("action")).toBe("/api/analytics");
+      expect(form.querySelector<HTMLInputElement>('input[name="lang"]')?.value).toBe(locale);
+    }
+    expect(analytics?.querySelector("#analytics-off")).not.toBeNull();
+    expect(analytics?.querySelector("#analytics-on")).not.toBeNull();
+    expect(doc.querySelectorAll("form")).toHaveLength(2);
+  });
+
+  it("names the opt-out cookie as the only cookie and every browser storage entry", async () => {
+    const cookies = sectionText(await renderPrivacy(locale), /^5\. /);
+
+    expect(cookies).toMatch(OPT_OUT_COOKIE_BASIS[locale]);
+    expect(cookies).toMatch(THEME_STORAGE[locale]);
+    expect(cookies).toMatch(PACKAGE_MANAGER_STORAGE[locale]);
+    expect(cookies).toMatch(STORAGE_NEVER_SENT[locale]);
+  });
+
+  it("names the cookie and the storage keys under the names the site code writes", async () => {
+    const cookies = sectionText(await renderPrivacy(locale), /^5\. /);
+
+    for (const name of [ANALYTICS_OPT_OUT_COOKIE, THEME_STORAGE_KEY, PACKAGE_MANAGER_GROUP]) {
+      expect(cookies).toMatch(new RegExp(`(^|\\s)${name}[\\s.,]`));
+    }
+  });
+
+  it("states that the opt-out cookie is read only to honour the objection", async () => {
+    const analytics = sectionText(await renderPrivacy(locale), /^4\. /);
+
+    expect(analytics).toMatch(OPT_OUT_COOKIE_READ_ONLY_TO_HONOUR[locale]);
   });
 
   it("states Arcjet's documented 30-day retention and links to its privacy documentation", async () => {

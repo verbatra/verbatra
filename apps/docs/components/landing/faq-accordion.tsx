@@ -7,7 +7,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/shadcn/accordion";
-import { trackUmamiEvent } from "@/lib/umami";
 
 export type FaqAccordionItem = {
   readonly id: string;
@@ -21,10 +20,6 @@ const ITEM_CLASS =
 const TRIGGER_CLASS =
   "items-center py-5 text-(length:--text-h4) font-semibold text-fd-foreground hover:text-[color:var(--accent)] hover:no-underline data-[state=open]:text-[color:var(--accent)] [&>svg]:size-5 [&>svg]:translate-y-0 [&>svg]:text-[color:var(--accent)] motion-reduce:[&>svg]:transition-none";
 
-function trackOpen(value: string): void {
-  if (value) trackUmamiEvent("open-faq", { question: value, location: "faq" });
-}
-
 export function FaqAccordion({
   className,
   items,
@@ -33,7 +28,7 @@ export function FaqAccordion({
   items: ReadonlyArray<FaqAccordionItem>;
 }): ReactNode {
   return (
-    <Accordion type="single" collapsible onValueChange={trackOpen} className={className}>
+    <Accordion type="single" collapsible className={className}>
       {items.map((item) => (
         <AccordionItem key={item.id} value={item.id} data-faq={item.id} className={ITEM_CLASS}>
           <AccordionTrigger className={TRIGGER_CLASS} style={{ fontFamily: "var(--font-display)" }}>

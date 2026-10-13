@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   forbiddenResponse,
+  payloadTooLargeResponse,
   rateLimitedResponse,
   serverErrorResponse,
   successResponse,
+  unsupportedMediaTypeResponse,
   validationErrorResponse,
 } from "./respond";
 
@@ -40,5 +42,13 @@ describe("respond helpers", () => {
     expect(response.status).toBe(500);
     const body = await response.json();
     expect(body).toEqual({ status: "error" });
+  });
+
+  it("payloadTooLargeResponse returns a 413", () => {
+    expect(payloadTooLargeResponse().status).toBe(413);
+  });
+
+  it("unsupportedMediaTypeResponse returns a 415", () => {
+    expect(unsupportedMediaTypeResponse().status).toBe(415);
   });
 });

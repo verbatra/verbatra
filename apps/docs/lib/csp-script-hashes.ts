@@ -14,7 +14,7 @@ function reportUnreadableManifest(file: string, error: unknown): void {
   console.error(
     `csp: cannot read the inline script hashes at ${file} (${reason}); every page is served with a ` +
       "Content-Security-Policy that allows no inline script, so pages render but do not hydrate " +
-      "and analytics does not run. Rebuild with pnpm build, which writes the file.",
+      "and no pageview is counted. Rebuild with pnpm build, which writes the file.",
   );
 }
 
@@ -28,7 +28,7 @@ export function readScriptHashes(distDir: string): ScriptHashesByRoute {
   }
 }
 
-function loadBuiltScriptHashes(): ScriptHashesByRoute {
+export function loadBuiltScriptHashes(): ScriptHashesByRoute {
   builtScriptHashes ??= readScriptHashes(join(process.cwd(), ".next"));
   return builtScriptHashes;
 }

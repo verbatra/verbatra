@@ -11,9 +11,6 @@ const EVIDENCE_STYLE = { background: "var(--surface-bg)" } as const;
 const EXTERNAL_EVIDENCE_PROPS = {
   target: "_blank",
   rel: "noreferrer noopener",
-  "data-umami-event": "outbound-link",
-  "data-umami-event-target": "evidence",
-  "data-umami-event-location": "features",
 } as const;
 
 export function Evidence({ text, href }: { text: string; href?: string | undefined }): ReactNode {

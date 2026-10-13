@@ -7,8 +7,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import en from "@/messages/en.json";
 import { preloadRegisteredIslands } from "@/test-support/islands";
 
-const track = vi.hoisted(() => vi.fn());
-vi.mock("@/lib/umami", () => ({ trackUmamiEvent: track }));
 vi.mock("next-intl/server", () => ({
   getTranslations: async () =>
     Object.assign((key: string) => key, { rich: (key: string) => `answer:${key}` }),
@@ -42,7 +40,6 @@ async function render(): Promise<HTMLDivElement> {
 }
 
 afterEach(() => {
-  track.mockReset();
   if (!mounted) return;
   const { container, root } = mounted;
   mounted = undefined;
@@ -102,14 +99,6 @@ describe("the landing faq", () => {
     expect(document.activeElement).toBe(buttons[2]);
     press(buttons[2] as HTMLButtonElement, "Home");
     expect(document.activeElement).toBe(buttons[0]);
-  });
-
-  it("counts opening a question by its key, never its text, and nothing when it closes", async () => {
-    const container = await render();
-    const question = triggers(container)[1];
-    act(() => question?.click());
-    act(() => question?.click());
-    expect(track.mock.calls).toEqual([["open-faq", { question: "incremental", location: "faq" }]]);
   });
 
   it("server-renders every answer, so the page carries the text before any script runs", async () => {

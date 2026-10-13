@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
 import nextConfig from "../next.config.mjs";
-import {
-  CSP_ENFORCED,
-  contentSecurityPolicy,
-  securityHeaders,
-  UMAMI_ORIGIN,
-} from "./security-headers.mjs";
+import { CSP_ENFORCED, contentSecurityPolicy, securityHeaders } from "./security-headers.mjs";
 
 const SCRIPT_HASHES = [
   "'sha256-OBTN3RiyCV4Bq7dFqZ5a2pAXjnCcCYeTJMO2I/LYKeo='",
@@ -14,11 +9,11 @@ const SCRIPT_HASHES = [
 
 const BASE_DIRECTIVES = [
   "default-src 'self'",
-  `script-src 'self' ${UMAMI_ORIGIN}`,
+  "script-src 'self'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data:",
   "font-src 'self'",
-  `connect-src 'self' ${UMAMI_ORIGIN}`,
+  "connect-src 'self'",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -66,14 +61,14 @@ describe("contentSecurityPolicy", () => {
     const policy = directives(
       contentSecurityPolicy({ enforce: true, isDev: false, scriptHashes: SCRIPT_HASHES }).value,
     );
-    expect(policy.get("script-src")).toBe(`'self' ${SCRIPT_HASHES.join(" ")} ${UMAMI_ORIGIN}`);
+    expect(policy.get("script-src")).toBe(`'self' ${SCRIPT_HASHES.join(" ")}`);
   });
 
   it("allows inline and eval scripts only in development, where nothing is prerendered", () => {
     const dev = directives(
       contentSecurityPolicy({ enforce: true, isDev: true, scriptHashes: SCRIPT_HASHES }).value,
     );
-    expect(dev.get("script-src")).toBe(`'self' 'unsafe-inline' 'unsafe-eval' ${UMAMI_ORIGIN}`);
+    expect(dev.get("script-src")).toBe("'self' 'unsafe-inline' 'unsafe-eval'");
   });
 
   it("keeps inline styles allowed, since React renders style attributes", () => {
@@ -81,10 +76,11 @@ describe("contentSecurityPolicy", () => {
     expect(policy.get("style-src")).toBe("'self' 'unsafe-inline'");
   });
 
-  it("allows the self-hosted Umami origin for its script and its event beacon only", () => {
+  it("allows no origin but the site itself for scripts and connections", () => {
     const policy = directives(contentSecurityPolicy({ enforce: true, isDev: false }).value);
-    const withUmami = [...policy].filter(([, sources]) => sources.includes(UMAMI_ORIGIN));
-    expect(withUmami.map(([name]) => name)).toEqual(["script-src", "connect-src"]);
+    expect(policy.get("connect-src")).toBe("'self'");
+    expect(policy.get("script-src")).toBe("'self'");
+    expect(contentSecurityPolicy({ enforce: true, isDev: false }).value).not.toContain("umami");
   });
 
   it("never allows a wildcard or a scheme-wide source", () => {

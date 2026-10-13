@@ -6,8 +6,6 @@ import { CodeFrame } from "./code-frame";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
 
-export const STEPS_COPY_LOCATION = "steps";
-
 export async function Steps(): Promise<ReactNode> {
   const t = await getTranslations("landing.steps");
   const code = await getTranslations("landing.code");
@@ -16,7 +14,7 @@ export async function Steps(): Promise<ReactNode> {
       CodeFrame({
         code: LANDING_STEP_CODE[id].code,
         lang: LANDING_STEP_CODE[id].language,
-        copy: { label: code("copy"), location: STEPS_COPY_LOCATION },
+        copy: { label: code("copy") },
       }),
     ),
   );

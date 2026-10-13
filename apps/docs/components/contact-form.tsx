@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { type FormEvent, type ReactNode, useId, useState } from "react";
 import { HONEYPOT_FIELD } from "@/app/api/contact/honeypot-field";
 import type { ContactFieldErrors } from "@/app/api/contact/schema";
+import { useHydrated } from "@/lib/use-hydrated";
 import { cn } from "@/lib/utils";
 
 type SubmitState = "idle" | "loading" | "success" | "rate_limited" | "error";
@@ -14,6 +15,8 @@ type ContactResponseBody =
   | { status: "invalid"; errors: ContactFieldErrors }
   | { status: "rate_limited" }
   | { status: "forbidden" }
+  | { status: "too_large" }
+  | { status: "unsupported_media_type" }
   | { status: "error" };
 
 const INPUT_CLASS =
@@ -112,11 +115,18 @@ function Field({
   );
 }
 
-export function ContactForm({ privacyNotice }: { privacyNotice: ReactNode }): ReactNode {
+export function ContactForm({
+  privacyNotice,
+  imprintHref,
+}: {
+  privacyNotice: ReactNode;
+  imprintHref: string;
+}): ReactNode {
   const t = useTranslations("legal.contact.form");
   const nameId = useId();
   const emailId = useId();
   const messageId = useId();
+  const hydrated = useHydrated();
 
   const [state, setState] = useState<SubmitState>("idle");
   const [fieldErrors, setFieldErrors] = useState<ContactFieldErrors>({});
@@ -146,7 +156,23 @@ export function ContactForm({ privacyNotice }: { privacyNotice: ReactNode }): Re
   }
 
   return (
-    <form onSubmit={handleSubmit} className="not-prose flex flex-col gap-5">
+    <form
+      method="post"
+      action="/api/contact"
+      onSubmit={handleSubmit}
+      className="not-prose flex flex-col gap-5"
+    >
+      <noscript>
+        <p className="text-sm text-fd-foreground">
+          {t.rich("noScript", {
+            imprint: (chunks: ReactNode) => (
+              <a href={imprintHref} className="vk-prose-link">
+                {chunks}
+              </a>
+            ),
+          })}
+        </p>
+      </noscript>
       <Field
         id={nameId}
         name="name"
@@ -180,7 +206,7 @@ export function ContactForm({ privacyNotice }: { privacyNotice: ReactNode }): Re
       </div>
       <button
         type="submit"
-        disabled={state === "loading"}
+        disabled={!hydrated || state === "loading"}
         className={cn(buttonVariants({ variant: "primary" }), "self-start")}
       >
         {state === "loading" ? t("submitting") : t("submit")}

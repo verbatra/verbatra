@@ -1,160 +1,85 @@
 // @vitest-environment jsdom
 
-import { act } from "react";
-import { createRoot, type Root } from "react-dom/client";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { renderToStaticMarkup } from "react-dom/server";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { UMAMI_OPT_OUT_KEY } from "@/lib/umami";
-import { AnalyticsOptOut, type AnalyticsOptOutLabels } from "./analytics-opt-out";
-
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+import { describe, expect, it } from "vitest";
+import {
+  ANALYTICS_OPT_OUT_ACTION,
+  AnalyticsOptOut,
+  type AnalyticsOptOutLabels,
+} from "./analytics-opt-out";
 
 const LABELS: AnalyticsOptOutLabels = {
   optOut: "Opt out",
   optIn: "Opt in",
-  statusPending: "Needs JavaScript",
-  statusCounted: "Counted",
   statusOptedOut: "Opted out",
-  statusDoNotTrack: "Do Not Track",
-  statusUnavailable: "Unavailable",
+  statusOptedIn: "Opted in",
+  signals: "GPC and DNT are honored",
 };
 
-let mounted: { container: HTMLDivElement; root: Root } | undefined;
-
-function render(): HTMLDivElement {
-  const container = document.createElement("div");
-  document.body.append(container);
-  const root = createRoot(container);
-  act(() => {
-    root.render(<AnalyticsOptOut labels={LABELS} />);
-  });
-  mounted = { container, root };
-  return container;
+function render(locale: "en" | "de" = "en"): Document {
+  const markup = renderToStaticMarkup(<AnalyticsOptOut locale={locale} labels={LABELS} />);
+  return new DOMParser().parseFromString(markup, "text/html");
 }
-
-function status(container: HTMLElement): string | null | undefined {
-  const id = button(container).getAttribute("aria-describedby");
-  return id ? container.ownerDocument.getElementById(id)?.textContent : undefined;
-}
-
-function announcement(container: HTMLElement): string | null | undefined {
-  return container.querySelector('[aria-live="polite"]')?.textContent;
-}
-
-function button(container: HTMLElement): HTMLButtonElement {
-  const found = container.querySelector("button");
-  if (!found) throw new Error("no button rendered");
-  return found;
-}
-
-afterEach(() => {
-  vi.restoreAllMocks();
-  window.localStorage.clear();
-  Reflect.deleteProperty(window.navigator, "doNotTrack");
-  if (!mounted) return;
-  const { container, root } = mounted;
-  mounted = undefined;
-  act(() => {
-    root.unmount();
-  });
-  container.remove();
-});
 
 describe("AnalyticsOptOut", () => {
-  it("renders a disabled control with the no-JavaScript status on the server", () => {
-    const doc = new DOMParser().parseFromString(
-      renderToStaticMarkup(<AnalyticsOptOut labels={LABELS} />),
-      "text/html",
+  it("renders two plain forms that post the choice and the locale without JavaScript", () => {
+    const doc = render("de");
+    const forms = Array.from(doc.querySelectorAll("form"));
+
+    expect(forms.map((form) => [form.getAttribute("method"), form.getAttribute("action")])).toEqual(
+      [
+        ["post", ANALYTICS_OPT_OUT_ACTION],
+        ["post", ANALYTICS_OPT_OUT_ACTION],
+      ],
     );
-
-    expect(status(doc.body)).toBe("Needs JavaScript");
-    expect(announcement(doc.body)).toBe("");
-    expect(button(doc.body).disabled).toBe(true);
+    expect(
+      forms.map((form) =>
+        Object.fromEntries(
+          Array.from(form.querySelectorAll<HTMLInputElement>('input[type="hidden"]'), (input) => [
+            input.name,
+            input.value,
+          ]),
+        ),
+      ),
+    ).toEqual([
+      { lang: "de", choice: "off" },
+      { lang: "de", choice: "on" },
+    ]);
+    expect(forms.map((form) => form.querySelector('button[type="submit"]')?.textContent)).toEqual([
+      "Opt out",
+      "Opt in",
+    ]);
   });
 
-  it("shows that visits are counted when nothing opts out", () => {
-    const container = render();
+  it("keeps each confirmation hidden until the redirect's fragment targets it", () => {
+    const doc = render();
 
-    expect(status(container)).toBe("Counted");
-    expect(button(container).textContent).toBe("Opt out");
-    expect(button(container).disabled).toBe(false);
+    for (const [id, text] of [
+      ["analytics-off", "Opted out"],
+      ["analytics-on", "Opted in"],
+    ] as const) {
+      const status = doc.getElementById(id);
+      expect(status?.textContent).toBe(text);
+      expect(status?.getAttribute("role")).toBe("status");
+      expect(status?.className.split(" ")).toEqual(
+        expect.arrayContaining(["hidden", "target:block"]),
+      );
+    }
   });
 
-  it("announces nothing on page load, before the visitor has toggled", () => {
-    const container = render();
-
-    expect(container.querySelector('[role="status"]')).toBeNull();
-    expect(announcement(container)).toBe("");
+  it("states that browser privacy signals are honored", () => {
+    expect(render().body.textContent).toContain("GPC and DNT are honored");
   });
 
-  it("keeps the status as the button's description, outside the live region", () => {
-    const container = render();
-    const described = container.ownerDocument.getElementById(
-      button(container).getAttribute("aria-describedby") ?? "",
+  it("runs no client code", () => {
+    const source = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "analytics-opt-out.tsx"),
+      "utf8",
     );
-
-    expect(described?.textContent).toBe("Counted");
-    expect(described?.hasAttribute("aria-live")).toBe(false);
-  });
-
-  it("announces the new status after each toggle", () => {
-    const container = render();
-
-    act(() => {
-      button(container).click();
-    });
-    expect(announcement(container)).toBe("Opted out");
-
-    act(() => {
-      button(container).click();
-    });
-    expect(announcement(container)).toBe("Counted");
-  });
-
-  it("writes the opt-out key on click and removes it on the next click", () => {
-    const container = render();
-
-    act(() => {
-      button(container).click();
-    });
-    expect(window.localStorage.getItem(UMAMI_OPT_OUT_KEY)).toBe("1");
-    expect(status(container)).toBe("Opted out");
-    expect(button(container).textContent).toBe("Opt in");
-
-    act(() => {
-      button(container).click();
-    });
-    expect(window.localStorage.getItem(UMAMI_OPT_OUT_KEY)).toBeNull();
-    expect(status(container)).toBe("Counted");
-  });
-
-  it("reflects an opt-out stored on an earlier visit", () => {
-    window.localStorage.setItem(UMAMI_OPT_OUT_KEY, "1");
-
-    const container = render();
-
-    expect(status(container)).toBe("Opted out");
-    expect(button(container).textContent).toBe("Opt in");
-  });
-
-  it("explains that Do Not Track already stops counting but still offers the opt-out", () => {
-    Object.defineProperty(window.navigator, "doNotTrack", { configurable: true, value: "1" });
-
-    const container = render();
-
-    expect(status(container)).toBe("Do Not Track");
-    expect(button(container).textContent).toBe("Opt out");
-    expect(button(container).disabled).toBe(false);
-  });
-
-  it("disables the control when local storage is blocked", () => {
-    vi.spyOn(window, "localStorage", "get").mockImplementation(() => {
-      throw new DOMException("denied", "SecurityError");
-    });
-
-    const container = render();
-
-    expect(status(container)).toBe("Unavailable");
-    expect(button(container).disabled).toBe(true);
+    expect(source).not.toContain('"use client"');
+    expect(source).not.toMatch(/localStorage|document\.cookie/);
   });
 });

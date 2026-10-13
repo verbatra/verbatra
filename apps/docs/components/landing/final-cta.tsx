@@ -21,30 +21,14 @@ export async function FinalCta(): Promise<ReactNode> {
           <h2 className="vk-h2 max-w-[20ch]">{t("heading")}</h2>
           <p className="vk-lead max-w-[46ch]">{t("lead")}</p>
           <div className="vk-final-install @container">
-            <CommandRow
-              command={NPM_INSTALL_COMMAND}
-              label={tInstall("copyAria")}
-              location="final-cta"
-              installManager="npm"
-              wrap="narrow"
-            />
+            <CommandRow command={NPM_INSTALL_COMMAND} label={tInstall("copyAria")} wrap="narrow" />
           </div>
         </div>
         <div className="flex flex-wrap gap-3 lg:self-end">
-          <Button
-            href={localizedPath(locale, "/docs/quickstart")}
-            variant="primary"
-            size="lg"
-            track={{ name: "click-cta", data: { location: "final-cta", target: "get-started" } }}
-          >
+          <Button href={localizedPath(locale, "/docs/quickstart")} variant="primary" size="lg">
             {t("primary")}
           </Button>
-          <Button
-            href={localizedPath(locale, "/docs")}
-            variant="secondary"
-            size="lg"
-            track={{ name: "click-cta", data: { location: "final-cta", target: "docs" } }}
-          >
+          <Button href={localizedPath(locale, "/docs")} variant="secondary" size="lg">
             {t("secondary")}
           </Button>
         </div>

@@ -52,7 +52,7 @@ export default async function ContactPage(props: { params: Promise<{ lang: strin
           imprint: (chunks: ReactNode) => <a href={localizedPath(locale, "/imprint")}>{chunks}</a>,
         })}
       </p>
-      <ContactForm privacyNotice={privacyNotice} />
+      <ContactForm privacyNotice={privacyNotice} imprintHref={localizedPath(locale, "/imprint")} />
     </article>
   );
 }

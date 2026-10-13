@@ -21,7 +21,6 @@ vi.mock("@/lib/showcase-scenarios", async (importOriginal) => {
 vi.mock("next-intl", () => ({
   useTranslations: (namespace: string) => (key: string) => `${namespace}.${key}`,
 }));
-vi.mock("@/lib/umami", () => ({ trackUmamiEvent: vi.fn() }));
 
 const actual = await vi.importActual<ScenarioModule>("@/lib/showcase-scenarios");
 const { TryIt } = await import("./try-it");

@@ -9,8 +9,6 @@ export interface CspOptions {
   readonly scriptHashes?: readonly string[];
 }
 
-export declare const UMAMI_ORIGIN: string;
-
 export declare const CSP_ENFORCED: boolean;
 
 export declare function contentSecurityPolicy(options: CspOptions): SecurityHeader;

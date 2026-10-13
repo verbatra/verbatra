@@ -7,7 +7,6 @@ import { CopyButton } from "@/components/ui/copy-button";
 import { TabList, tabPanelProps } from "@/components/ui/tabs";
 import { AI_SETUP_PROMPT } from "@/lib/ai-setup-prompt";
 import { NPM_INSTALL_COMMAND } from "@/lib/install-commands";
-import { trackUmamiEvent } from "@/lib/umami";
 import { breakUrlsAtSlashes, keepPackageRunsWhole } from "@/lib/word-breaks";
 
 export const COMMAND_PANEL_ID = "hero-command";
@@ -42,7 +41,6 @@ export function CommandPanel({ labels }: { labels: CommandPanelLabels }): ReactN
   function select(id: string) {
     if (!isTab(id) || id === active) return;
     setActive(id);
-    trackUmamiEvent("select-tab", { tab: id, location: "hero" });
   }
 
   return (
@@ -63,18 +61,7 @@ export function CommandPanel({ labels }: { labels: CommandPanelLabels }): ReactN
           className="vk-command-panel-pane"
         >
           <PaneHead hint={labels.installHint}>
-            <CopyButton
-              text={NPM_INSTALL_COMMAND}
-              label={t("copyAria")}
-              size="sm"
-              onCopied={() =>
-                trackUmamiEvent("copy-install-command", {
-                  command: NPM_INSTALL_COMMAND,
-                  manager: "npm",
-                  location: "hero",
-                })
-              }
-            />
+            <CopyButton text={NPM_INSTALL_COMMAND} label={t("copyAria")} size="sm" />
           </PaneHead>
           <p className="vk-command-panel-command">
             <span aria-hidden="true" className="vk-command-panel-prompt-sign">
@@ -90,12 +77,7 @@ export function CommandPanel({ labels }: { labels: CommandPanelLabels }): ReactN
           className="vk-command-panel-pane"
         >
           <PaneHead hint={labels.promptHint}>
-            <CopyButton
-              text={AI_SETUP_PROMPT}
-              label={t("copyPromptAria")}
-              size="sm"
-              onCopied={() => trackUmamiEvent("copy-ai-prompt", { location: "hero" })}
-            />
+            <CopyButton text={AI_SETUP_PROMPT} label={t("copyPromptAria")} size="sm" />
           </PaneHead>
           <pre lang="en" className="vk-prompt-text">
             {breakUrlsAtSlashes(AI_SETUP_PROMPT, keepPackageRunsWhole)}

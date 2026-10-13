@@ -1,14 +1,12 @@
 import "../global.css";
 import type { Metadata } from "next";
-import Script from "next/script";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 import { DefaultThemeMeta } from "@/components/default-theme-meta";
 import { JsonLd } from "@/components/json-ld";
 import { FONT_VARIABLES } from "@/lib/fonts";
 import { i18n, toLocale } from "@/lib/i18n";
-import { UMAMI_ORIGIN } from "@/lib/security-headers.mjs";
-import { homeAlternates, SITE_HOST, SITE_URL } from "@/lib/site";
+import { homeAlternates, SITE_URL } from "@/lib/site";
 import { homeOgImagePath, socialMetadata } from "@/lib/social-metadata";
 import { AUTHOR_NAME, organizationLd, SEO_KEYWORDS, websiteLd } from "@/lib/structured-data";
 import { DEFAULT_THEME, THEME_INIT_SCRIPT } from "@/lib/theme";
@@ -81,23 +79,12 @@ export default async function Layout({
     <html lang={locale} suppressHydrationWarning className={`${DEFAULT_THEME} ${FONT_VARIABLES}`}>
       <head>
         <DefaultThemeMeta />
-        <link rel="preconnect" href={UMAMI_ORIGIN} crossOrigin="anonymous" />
-        <link rel="dns-prefetch" href={UMAMI_ORIGIN} />
       </head>
       <body className="flex flex-col min-h-screen">
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <JsonLd data={websiteLd({ lang: locale })} />
         <JsonLd data={organizationLd()} />
         {children}
-        <Script
-          defer
-          src={`${UMAMI_ORIGIN}/script.js`}
-          data-website-id="fcf007b7-4579-4486-881c-e8686d61d63d"
-          data-do-not-track="true"
-          data-domains={SITE_HOST}
-          data-exclude-hash="true"
-          strategy="lazyOnload"
-        />
       </body>
     </html>
   );

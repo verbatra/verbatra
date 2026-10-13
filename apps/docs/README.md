@@ -48,8 +48,9 @@ pnpm csp:smoke http://localhost:3000
 ```
 
 `csp:smoke` loads the key pages in Chromium and fails on any CSP violation, any failed
-`/_next/static` asset, a page that did not hydrate, analytics that did not run, a search that did
-not answer, or an HTML response without exactly one hashed policy header. It needs
+`/_next/static` asset, a page that did not hydrate, any request to another origin (the Umami
+server included, since pageviews are sent from the server), a search that did not answer, or an
+HTML response without exactly one hashed policy header. It needs
 `pnpm exec playwright install chromium` once.
 
 No API key is needed to run, build, or test the site. A provider key is needed only to re-translate
