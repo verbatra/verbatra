@@ -30,6 +30,14 @@ beforeAll(async () => {
 });
 
 describe("OpenSource", () => {
+  it("starts the contributors on column 9, under the split lead", () => {
+    const people = root
+      .querySelector("#open-source-contributors")
+      ?.closest("section")?.parentElement;
+    expect(people?.getAttribute("style")).toContain("--grid-start:9");
+    expect(people?.getAttribute("style")).toContain("--grid-span:4");
+  });
+
   it("opens on the open source heading and lead", () => {
     expect(root.querySelector("h2")?.textContent).toBe(copy.heading);
     expect(root.textContent).toContain(copy.lead);

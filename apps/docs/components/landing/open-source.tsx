@@ -20,7 +20,7 @@ import { SectionHead } from "./section-head";
 const AVATAR_SIZE = 40;
 
 const LINKS_SPAN = { "--grid-span": 7 } as CSSProperties;
-const PEOPLE_SPAN = { "--grid-span": 5 } as CSSProperties;
+const PEOPLE_SPAN = { "--grid-start": 9, "--grid-span": 4 } as CSSProperties;
 
 type ProjectLink = { key: string; href: string };
 

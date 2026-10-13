@@ -92,7 +92,7 @@ describe("Ecosystem", () => {
     expect(root.querySelectorAll(".vk-formats-sizer .vk-formats-file")).toHaveLength(1);
     expect(
       root.querySelector<HTMLElement>(".vk-formats")?.style.getPropertyValue("--format-pane-rows"),
-    ).toBe("16");
+    ).toBe("11");
   });
 
   it("links the providers, formats and custom adapter pages", () => {

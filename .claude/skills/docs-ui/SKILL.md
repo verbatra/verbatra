@@ -125,7 +125,7 @@ Three layers exist. Write against the third.
 
    ```
    --surface-bg  --surface-card  --surface-raised  --surface-hover
-   --border-default  --border-danger
+   --border-default  --border-danger  --border-accent
    --text-strong  --text-body  --text-muted  --text-faint
    --text-link  --text-danger  --text-success
    --accent  --accent-fill  --accent-fill-fg  --focus-ring
@@ -133,7 +133,16 @@ Three layers exist. Write against the third.
 
 New component code references `var(--surface-card)`, never `hsl(240 28% 14%)` and never
 `var(--color-fd-card)` directly. A raw hex or hsl value in a component is a defect: it
-breaks the single point of change.
+breaks the single point of change. The same goes for Fumadocs utility classes: write
+`border-(--border-default)`, `text-(--text-muted)`, `text-(--text-strong)`, `bg-(--surface-hover)`
+or `text-(--accent)`, never `border-fd-border`, `text-fd-muted-foreground` or `bg-fd-accent`, and
+`var(--accent)` / `var(--accent-fill)` rather than `var(--v-glow)` / `var(--v-purple)`.
+`--border-accent` (the accent mixed 45 percent into `--border-default`) is the glow-tinted border
+of a flat panel, an evidence chip or a copy button on hover; it is the one token for that mix. In
+`components/` and `app/`, only three brand primitives may still be named directly, each in its one
+documented role: `--v-void` (void code surfaces), `--v-status-*` (badge tones and the showcase and
+problem marks) and `--v-glow-soft` (flag tokens in `Terminal`). `lib/theme.test.ts` fails on any
+other `fd-*` class, `var(--color-fd-*)` or `--v-*` reference there.
 
 Scales are fixed and narrow, deliberately:
 
@@ -149,8 +158,15 @@ Scales are fixed and narrow, deliberately:
   the scrollbar) is the width of the `.vk-prompt-pop` preview. `--width-hero-panel` (36rem) is the
   hero command panel's maximum width. `.vk-grid-12` is the landing grid: one column under 64rem,
   then `--grid-columns` (12) columns with a `--grid-gap` (24px) gap, where each child spans
-  `--grid-span` columns (the full row when unset). A left-aligned `SectionHead` is one
-  (`.vk-section-head`: the heading block spans 7, the lead 5, bottom-aligned).
+  `--grid-span` columns (the full row when unset), starting on `--grid-start` when set (the open
+  source contributors start on column 9). `SectionHead` takes `layout`: `split` (the default, a
+  `.vk-grid-12`: the heading block spans 8, the lead 4, bottom-aligned, so the lead starts on
+  column 9, the column where the problem list, the third step and the contributors start) or
+  `stacked` (the lead under the heading on the first column, for a section whose content runs the
+  full row: the code showcase, the playground and the ecosystem). A head without a lead is always
+  stacked (features, comparison, FAQ), and Studio sets its heading beside the screenshot itself.
+  `section-bands.test.tsx` pins which section uses which, so the page never goes back to one head
+  shape everywhere.
 - Landing surfaces: `--surface-band` (mixed from `--surface-card` and
   `--surface-bg`, never a raw value), the fill of `.vk-band`: `Section` with `band` renders a
   full-width `section.vk-band` (between two `--border-default` hairlines, `--section-sm` above it
@@ -283,7 +299,7 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   region's scroll timeline; without scroll timelines the fade is dropped and the region shades its
   end edge with a `local` cover over a `scroll` shade, which clears at the scroll end), `open-source.tsx` (`#open-source`: license, contributing,
   issues, releases and the contributors; every project row opens a new tab and ends in an `aria-hidden` external-link icon, with `landing.openSource.newTab` in an `sr-only` span for screen readers, never an arrow character), `faq.tsx` (`#faq`) and `final-cta.tsx` (the closing
-  panel on `landing.closing`, a `section` whose `vk-final-cta` class is a hook with no stylesheet rule, the install `CommandRow` counted with `location: final-cta`, then Get
+  section on `landing.closing`, set on the page gutter with no card border or inset, a `section` whose `vk-final-cta` class is a hook with no stylesheet rule, the install `CommandRow` counted with `location: final-cta`, then Get
   started and Read the docs). The footer is not a section; `app/[lang]/(home)/layout.tsx` passes
   it to the home layout. Section ids are unique; never render two sections that claim the same one.
   The FAQ is a server section (`faq.tsx`, fed only each item's `id` and `question`; it renders the
@@ -313,7 +329,8 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   anywhere, so a longer one never takes fewer lines), with its sideways scrollbar always on, so
   the box is always the tallest pane and a switch moves nothing; a closed pane is `inert` and
   `visibility: hidden`, and `.vk-formats-code` caps a long output at
-  `--format-pane-rows` lines of `--format-line` and scrolls inside it (the row count is
+  `--format-pane-rows` lines of `--format-line` (11, the row count of the pane that opens first, so
+  the box holds no empty rows under it) and scrolls inside it (the row count is
   `FORMAT_PANE_ROWS` in `format-pane.tsx`, set inline on `.vk-formats` through
   `FORMAT_PANE_ROWS_STYLE`, never declared in the stylesheet): it is a `section` named
   by the pane's file caption with `tabIndex={0}`, so the keyboard reaches and scrolls the open pane,
@@ -679,9 +696,9 @@ docs header row and the docs grid sit in the same centred column on a wide monit
 header (landing and legal pages) passes `rowWidth="wide"` to `SiteHeaderFrame`, so its
 `.vk-header-row` takes `--width-wide` and the `--gutter` padding instead, and the wordmark and the
 call to action line up with the landing sections. The landing's
-content (the hero, every section and the closing panel) shares one narrower column instead,
-`.vk-gutter` plus `.vk-w-wide`, so the hero `h1` and every section heading start at one left
-edge; the footer bleeds on purpose.
+content (the hero, every section and the closing section) shares one narrower column instead,
+`.vk-gutter` plus `.vk-w-wide`, so the hero `h1`, every section heading and the closing heading
+(no card border or inset of its own) start at one left edge; the footer bleeds on purpose.
 
 Every URL that matches no page, and every `notFound()`, renders `app/global-not-found.tsx`
 (`experimental.globalNotFound` in `next.config.mjs`, since the root layout sits under `[lang]`): a
@@ -738,8 +755,10 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   On the docs surface only the docs home header carries an eyebrow (a `.vk-label`); no landing
   section does. No card or button on the docs home appends an arrow to its label: the hover border,
   or on a stack card the chevron, is the affordance.
-- **`.vk-label`**: the small mono, uppercase, `0.14em`-tracked, `--text-faint` label the landing
-  footer uses for its column titles. The sidebar's top-level folders and separators inside each tab
+- **`.vk-label`**: the small mono, uppercase, `0.14em`-tracked, `--text-faint` label of the docs
+  surface; the landing does not use it for headings or titles (the footer column titles and the
+  Studio screenshot frame title are sentence-case sans, `--text-sm` medium `--text-strong` and
+  `--text-xs` medium `--text-muted`). The sidebar's top-level folders and separators inside each tab
   (group triggers such as "CLI", the `For AI agents` separator), the TOC's "On this page" title,
   table headers, and the sidebar tabs all use this treatment. A top-level page ("Introduction",
   "Error codes", `llms.txt`) keeps its name as written: a page name, and above all a file name, is
@@ -753,8 +772,8 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   mapping in `components/mdx.tsx` and passed explicitly by the locale notice in the docs page), and
   the prev/next footer carries `.vk-docs-footer` through `DocsPage`'s `footer.className`. Style
   those classes, not Fumadocs' utility classes.
-- **Flat panels**: `rounded-xl border border-fd-border` on `var(--surface-bg)`, with a
-  glow-tinted border on hover (`color-mix(in srgb, var(--v-glow) 45%, var(--border-default))`).
+- **Flat panels**: `rounded-xl border border-(--border-default)` on `var(--surface-bg)`, with
+  `--border-accent` as the border on hover.
   `DocsHomePaths`, `DocsHomeFeatures`, and the prev/next footer cards follow it; no docs home
   card is filled.
 - **Void code surfaces**: `figure.shiki` sits on `var(--v-void)` inside a `--border-default`
@@ -778,8 +797,8 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   full history (a shallow clone, or the Docker build, whose context excludes `.git`) it keeps a
   snapshot written earlier or writes an empty one, and an empty one shows no outdated notice.
 - **Pills**: `.vk-pill` is the one badge shape: an outline pill in `--accent` text with the
-  glow-tinted border, mono, `--text-xs`, no fill. The sidebar and footer NEW badge
-  (`components/new-badge.tsx`) adds `.vk-pill-status` (smaller, uppercase) and is hidden in the
+  glow-tinted border, mono, `--text-xs`, no fill. The sidebar NEW badge
+  (`components/new-badge.tsx`; the landing footer carries none, `footer.test.tsx` pins it) adds `.vk-pill-status` (smaller, uppercase) and is hidden in the
   breadcrumb (`.vk-breadcrumb`, set on `DocsPage`), which shares the sidebar's tree; the
   `<AvailableFrom>` badge adds `.vk-available-from`, which sits after the heading text when it is
   inside a heading. A badge placed directly under a heading is moved into it. Where a badge may

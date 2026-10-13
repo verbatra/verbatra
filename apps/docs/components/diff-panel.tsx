@@ -65,10 +65,10 @@ export function DiffPanel({
   const typed = full.slice(0, count);
   const typing = count > 0 && count < full.length;
   const changedStyle = settled
-    ? { color: "var(--v-glow)" }
+    ? { color: "var(--accent)" }
     : {
-        color: "var(--v-purple)",
-        textShadow: "0 0 10px color-mix(in srgb, var(--v-purple) 55%, transparent)",
+        color: "var(--accent-fill)",
+        textShadow: "0 0 10px color-mix(in srgb, var(--accent-fill) 55%, transparent)",
       };
 
   return (
@@ -77,7 +77,7 @@ export function DiffPanel({
       aria-label={t("label")}
       className="not-prose relative my-8 rounded-xl border border-[var(--border-default)] bg-[var(--surface-card)] p-5 font-mono text-sm sm:p-7"
       style={{
-        borderInlineStart: "2px solid var(--v-glow)",
+        borderInlineStart: "2px solid var(--accent)",
         boxShadow: "var(--shadow-panel)",
       }}
     >

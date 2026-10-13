@@ -199,6 +199,25 @@ describe("theme tokens", () => {
     },
   );
 
+  it("derives the accent border from the accent and the default border, in one token", () => {
+    expect(DARK["--border-accent"]).toBe(
+      "color-mix(in srgb, var(--accent) 45%, var(--border-default))",
+    );
+    expect(declarationsOf("html.light")).not.toHaveProperty("--border-accent");
+  });
+
+  it("styles components through the semantic layer, never the Fumadocs or brand primitives", () => {
+    const primitive =
+      /(?<![\w-])(?:text|bg|border|divide|decoration|ring|outline|fill|stroke)-fd-[\w-]+|var\(--color-fd-[\w-]+\)|\(--v-(?!void\)|status-|glow-soft\))[\w-]+\)/g;
+    const offenders = sourceFiles(["components", "app"]).flatMap((file) =>
+      Array.from(readFileSync(file, "utf8").matchAll(primitive), (match) => [
+        relative(process.cwd(), file),
+        match[0],
+      ]),
+    );
+    expect(offenders).toEqual([]);
+  });
+
   it("keeps the accent a single violet hue in both themes", () => {
     for (const tokens of [DARK, LIGHT]) {
       expect(resolve(tokens, "var(--accent)")).toMatch(/^hsl\(258 /);

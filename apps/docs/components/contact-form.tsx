@@ -20,7 +20,7 @@ type ContactResponseBody =
   | { status: "error" };
 
 const INPUT_CLASS =
-  "rounded-[10px] border border-fd-border bg-fd-background px-3 py-2 text-sm text-fd-foreground transition-colors aria-invalid:border-[color:var(--border-danger)]";
+  "rounded-[10px] border border-(--border-default) bg-(--surface-bg) px-3 py-2 text-sm text-(--text-strong) transition-colors aria-invalid:border-[color:var(--border-danger)]";
 
 async function submitContactForm(formData: FormData): Promise<ContactResponseBody> {
   const response = await fetch("/api/contact", {
@@ -98,7 +98,7 @@ function Field({
   };
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="text-sm font-medium text-fd-foreground">
+      <label htmlFor={id} className="text-sm font-medium text-(--text-strong)">
         {label}
       </label>
       {as === "textarea" ? (
@@ -163,7 +163,7 @@ export function ContactForm({
       className="not-prose flex flex-col gap-5"
     >
       <noscript>
-        <p className="text-sm text-fd-foreground">
+        <p className="text-sm text-(--text-strong)">
           {t.rich("noScript", {
             imprint: (chunks: ReactNode) => (
               <a href={imprintHref} className="vk-prose-link">

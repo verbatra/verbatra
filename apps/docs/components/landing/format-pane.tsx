@@ -5,7 +5,7 @@ import { SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { FormatPaneFrame } from "./format-pane-frame";
 import { PlaceholderChip } from "./placeholder-chip";
 
-export const FORMAT_PANE_ROWS = 16;
+export const FORMAT_PANE_ROWS = 11;
 
 export const FORMAT_PANE_ROWS_STYLE = { "--format-pane-rows": FORMAT_PANE_ROWS } as CSSProperties;
 

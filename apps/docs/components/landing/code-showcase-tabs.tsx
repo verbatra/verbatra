@@ -55,7 +55,7 @@ export function CodeShowcaseTabs({
       <TabsList
         variant="line"
         aria-label={label}
-        className="w-full justify-start gap-1 overflow-x-auto rounded-none border-b border-fd-border p-0"
+        className="w-full justify-start gap-1 overflow-x-auto rounded-none border-b border-(--border-default) p-0"
       >
         {tabs.map((tab) => (
           <TabsTrigger

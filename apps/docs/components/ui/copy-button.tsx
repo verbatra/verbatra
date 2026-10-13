@@ -12,9 +12,8 @@ const SIZE = {
 } as const;
 
 const STATUS_CLASS: Record<CopyStatus, string> = {
-  idle: "text-fd-muted-foreground hover:bg-fd-accent hover:text-fd-accent-foreground",
-  copied:
-    "border-[color:color-mix(in_srgb,var(--v-glow)_45%,var(--border-default))] text-[color:var(--accent)]",
+  idle: "text-(--text-muted) hover:bg-(--surface-hover) hover:text-(--text-strong)",
+  copied: "border-[color:var(--border-accent)] text-[color:var(--accent)]",
   failed: "border-[color:var(--border-danger)] text-[color:var(--text-danger)]",
 };
 
@@ -38,7 +37,7 @@ export function CopyButton({ text, label, size = "md", className }: CopyButtonPr
         aria-label={status === "idle" ? label : undefined}
         data-status={status}
         className={cn(
-          "vk-tap inline-flex shrink-0 items-center justify-center rounded-md border border-fd-border font-sans transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-ring)",
+          "vk-tap inline-flex shrink-0 items-center justify-center rounded-md border border-(--border-default) font-sans transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-ring)",
           SIZE[size],
           STATUS_CLASS[status],
           className,

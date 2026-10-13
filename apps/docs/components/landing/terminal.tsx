@@ -107,10 +107,10 @@ function buildSettled(
 }
 
 function tokenColor(token: string): string | undefined {
-  if (token === "✓") return "var(--v-glow)";
+  if (token === "✓") return "var(--accent)";
   if (token.startsWith("-")) return "var(--v-glow-soft)";
   if (/^["'].*["']$/.test(token)) return "var(--text-strong)";
-  if (/^\d+$/.test(token)) return "var(--v-glow)";
+  if (/^\d+$/.test(token)) return "var(--accent)";
   return undefined;
 }
 
@@ -128,8 +128,8 @@ function HighlightedText({ text, base }: { text: string; base: string }): ReactN
 }
 
 const HIGHLIGHT_STYLE = {
-  background: "color-mix(in srgb, var(--v-purple) 22%, transparent)",
-  borderInlineStart: "3px solid var(--v-purple)",
+  background: "color-mix(in srgb, var(--accent-fill) 22%, transparent)",
+  borderInlineStart: "3px solid var(--accent-fill)",
 } as const;
 
 const LINE_CLASS = {
@@ -152,7 +152,7 @@ function LineRow({
   if (line.kind === "command") {
     return (
       <div className={LINE_CLASS[mode]} style={style}>
-        <span style={{ color: "var(--v-glow)" }}>$</span>{" "}
+        <span style={{ color: "var(--accent)" }}>$</span>{" "}
         <HighlightedText text={line.text} base="var(--text-strong)" />
       </div>
     );
@@ -299,16 +299,14 @@ export function Terminal({
       ref={rootRef}
       className={cn(
         "not-prose flex flex-col",
-        !bare && "overflow-hidden rounded-xl border border-fd-border",
+        !bare && "overflow-hidden rounded-xl border border-(--border-default)",
         className,
       )}
       style={bare ? undefined : { background: "var(--surface-bg)" }}
     >
       {bare ? null : (
-        <div className="flex items-center justify-between gap-3 border-b border-fd-border px-4 py-2.5">
-          {title ? (
-            <span className="font-mono text-xs text-fd-muted-foreground">{title}</span>
-          ) : null}
+        <div className="flex items-center justify-between gap-3 border-b border-(--border-default) px-4 py-2.5">
+          {title ? <span className="font-mono text-xs text-(--text-muted)">{title}</span> : null}
           {headerAction ? <span className="ms-auto flex">{headerAction}</span> : null}
         </div>
       )}
@@ -347,7 +345,7 @@ export function Terminal({
           <LineList lines={history} mode={mode} highlight={highlight} />
           {typing !== null ? (
             <div className={LINE_CLASS[mode]} data-typing="">
-              <span style={{ color: "var(--v-glow)" }}>$</span>{" "}
+              <span style={{ color: "var(--accent)" }}>$</span>{" "}
               <HighlightedText text={typing} base="var(--text-strong)" />
               <span key={typing.length} className="vk-terminal-caret" aria-hidden="true" />
             </div>

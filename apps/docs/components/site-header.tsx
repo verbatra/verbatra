@@ -31,7 +31,7 @@ type IconItem = Extract<LinkItemType, { type: "icon" }>;
 
 const ICON_BUTTON = cn(
   buttonVariants({ size: "icon-sm", variant: "ghost" }),
-  "text-fd-muted-foreground",
+  "text-(--text-muted)",
 );
 
 export const ICON_PROPS = {
@@ -131,7 +131,7 @@ function LanguageSelect({
   if (!slots.languageSelect) return null;
   return (
     <slots.languageSelect.root>
-      <LanguagesIcon className={cn("size-4.5 text-fd-muted-foreground", className)} />
+      <LanguagesIcon className={cn("size-4.5 text-(--text-muted)", className)} />
     </slots.languageSelect.root>
   );
 }

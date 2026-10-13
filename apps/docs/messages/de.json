@@ -4,9 +4,9 @@
       "title": "verbatra: übersetze nur neue und geänderte i18n-Keys",
       "ogTitle": "verbatra: übersetze nur, was sich geändert hat",
       "description": "verbatra ist eine Open-Source-CLI mit SDK für i18n. Sie prüft deine Locale-Dateien gegen die Quelle und schickt nur neue oder geänderte Keys an deinen Provider.",
-      "ogDescription": "Prüfe deine Locale-Dateien, übersetze nur geänderte Keys und sichere die CI ab.",
+      "ogDescription": "Übersetze nur die i18n-Keys, die sich geändert haben, und lass die CI scheitern, solange einer fehlt.",
       "ogImageAlt": "verbatra: Übersetze nur, was sich geändert hat, über einem check-Lauf, der zwei fehlende Keys pro Locale findet, und einem translate-Lauf, der nur diese schickt.",
-      "definition": "verbatra ist eine Open-Source-CLI und ein SDK, die i18n-Locale-Dateien gegen die Quelle prüfen, nur neue und geänderte Keys über den Provider deiner Wahl (KI oder maschinelle Übersetzung) übersetzen und die CI scheitern lassen, solange ein Key fehlt."
+      "definition": "verbatra ist eine Open-Source-CLI mit SDK für i18n-Locale-Dateien. Sie schickt nur neue und geänderte Keys an den Provider deiner Wahl (KI oder maschinelle Übersetzung) und lässt die CI scheitern, solange ein Key fehlt."
     },
     "hero": {
       "command": {
@@ -31,7 +31,7 @@
       "copyFailed": "Kopieren fehlgeschlagen"
     },
     "faq": {
-      "heading": "Häufig gestellte Fragen",
+      "heading": "Häufig gestellte Fragen.",
       "items": {
         "incremental": {
           "question": "Wie vermeidet verbatra, bei jedem Lauf alles neu zu übersetzen?",
@@ -132,8 +132,8 @@
       }
     },
     "showcase": {
-      "heading": "Sieh es in Aktion",
-      "lead": "Probier eine Änderung an einer Locale-Datei: verbatras eigener Diff- und Hash-Code zeigt in deinem Browser, was ein Lauf senden, überspringen und sperren würde, und übersetzt nichts.",
+      "heading": "Sieh es in Aktion.",
+      "lead": "Wähle unten eine Änderung an einer Locale-Datei. verbatras eigener Diff- und Hash-Code zeigt in deinem Browser, welche Keys ein Lauf senden würde, und übersetzt nichts.",
       "tryIt": {
         "scenariosLabel": "Ändere die englische Datei",
         "scenarios": {
@@ -209,7 +209,7 @@
     },
     "problem": {
       "heading": "Locale-Dateien driften bei jedem Release auseinander.",
-      "lead": "Jedes Feature bringt neue Texte. Jemand muss die fehlenden Keys finden, übersetzen lassen und zurückkopieren, ohne einen Platzhalter zu beschädigen.",
+      "lead": "Jedes Feature bringt neue Texte, und jemand muss die Keys finden, die in jeder Locale fehlen. Beim Zurückkopieren von Hand gehen Platzhalter kaputt.",
       "items": {
         "missing": {
           "title": "Fehlende Keys landen in Produktion",
@@ -226,8 +226,8 @@
       }
     },
     "steps": {
-      "heading": "Prüfen, übersetzen, absichern.",
-      "lead": "Drei Schritte decken den ganzen Ablauf ab. Eine Lock-Datei in deinem Repository merkt sich, was schon übersetzt ist.",
+      "heading": "Erst prüfen, dann nur die Lücken übersetzen.",
+      "lead": "Eine Lock-Datei in deinem Repository hält fest, was schon übersetzt ist. So weiß jeder Lauf, welche Keys neu oder geändert sind.",
       "items": {
         "check": {
           "title": "Prüfen",
@@ -235,7 +235,7 @@
         },
         "translate": {
           "title": "Übersetzen",
-          "body": "`verbatra translate` schickt nur fehlende und geänderte Keys, prüft jedes Ergebnis und schreibt deine Dateien."
+          "body": "`verbatra translate` schickt nur fehlende und geänderte Keys und schreibt ein Ergebnis erst, wenn seine Platzhalter die Integritätsprüfung bestehen."
         },
         "ci": {
           "title": "In der CI absichern",
@@ -277,8 +277,8 @@
       }
     },
     "code": {
-      "heading": "Starte es aus der Shell, deinem Code oder der CI.",
-      "lead": "Eine Engine an drei Orten: Die CLI baut auf dem SDK auf, und die Action führt die CLI aus.",
+      "heading": "Nutze es im Terminal oder aus deinem eigenen Code.",
+      "lead": "Die CLI baut auf dem SDK auf, und die GitHub Action führt die CLI aus. Alle lesen dieselbe Konfigurationsdatei.",
       "tablist": "Wege, verbatra auszuführen",
       "tabs": {
         "cli": "CLI",
@@ -302,7 +302,7 @@
     },
     "ecosystem": {
       "heading": "Dein Provider. Dein Dateiformat.",
-      "lead": "Wähle einen Provider per ID und wechsle später. verbatra liest und schreibt deine Locale-Dateien dort, wo sie liegen.",
+      "lead": "Für einen Providerwechsel änderst du einen Block in der Konfigurationsdatei. Deine Locale-Dateien bleiben, wo sie sind, im Format, das sie schon haben.",
       "providersLabel": "Provider",
       "formatsLabel": "Dateiformate",
       "frameworksLabel": "Frameworks",
@@ -329,7 +329,6 @@
     },
     "compare": {
       "heading": "So schneidet verbatra im Vergleich ab.",
-      "lead": "Drei Wege, Locale-Dateien übersetzt zu halten, und worin jeder gut ist.",
       "caption": "verbatra im Vergleich mit einem manuellen Ablauf und einem gehosteten Translation-Management-System",
       "columns": {
         "aspect": "Aspekt",
@@ -403,7 +402,7 @@
     },
     "openSource": {
       "heading": "Open Source unter der MIT-Lizenz.",
-      "lead": "CLI, SDK, Studio und MCP-Server entstehen offen auf GitHub. Lies den Code, melde ein Issue oder schick einen Pull Request.",
+      "lead": "CLI, SDK, Studio und MCP-Server entstehen offen auf GitHub. Issues und Pull Requests sind dort willkommen.",
       "license": "MIT-Lizenz",
       "contributing": "So trägst du bei",
       "codeOfConduct": "Verhaltenskodex",

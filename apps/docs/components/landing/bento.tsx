@@ -34,10 +34,11 @@ const SPAN_CLASS: Readonly<Record<BentoTile["span"], string>> = {
   7: "lg:col-span-7",
 };
 
-const PANEL_FRAME = "min-w-0 overflow-hidden rounded-xl border border-fd-border bg-(--v-void)";
+const PANEL_FRAME =
+  "min-w-0 overflow-hidden rounded-xl border border-(--border-default) bg-(--v-void)";
 
 const PANEL_CAPTION =
-  "flex min-h-10 items-center border-b border-fd-border px-4 py-1.5 font-mono text-xs text-(--text-muted)";
+  "flex min-h-10 items-center border-b border-(--border-default) px-4 py-1.5 font-mono text-xs text-(--text-muted)";
 
 const MONO_BODY = "vk-mono-sm py-3 font-mono leading-6";
 
@@ -118,7 +119,7 @@ function FormatKeyLines(): ReactNode {
       role="list"
       lang="en"
       data-artifact="formats"
-      className={`${PANEL_FRAME} list-none divide-y divide-fd-border`}
+      className={`${PANEL_FRAME} list-none divide-y divide-(--border-default)`}
     >
       {BENTO_FORMAT_LINES.map((entry) => (
         <li key={entry.format} data-format={entry.format} className="grid min-w-0 gap-1 px-4 py-3">
@@ -204,7 +205,7 @@ export async function Bento(): Promise<ReactNode> {
           <li
             key={tile.key}
             data-tile={tile.key}
-            className={`flex min-w-0 flex-col gap-4 rounded-xl border border-fd-border bg-(--surface-bg) p-4 sm:gap-5 sm:p-6 ${SPAN_CLASS[tile.span]}`}
+            className={`flex min-w-0 flex-col gap-4 rounded-xl border border-(--border-default) bg-(--surface-bg) p-4 sm:gap-5 sm:p-6 ${SPAN_CLASS[tile.span]}`}
           >
             <div className="grid gap-2">
               <h3 className="text-base font-semibold text-(--text-strong)">

@@ -1,39 +1,35 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
+export type SectionHeadLayout = "split" | "stacked";
+
 export function SectionHead({
   title,
   lead,
-  align = "left",
-  maxWidth = "640px",
+  layout = "split",
   id,
 }: {
   title: ReactNode;
   lead?: ReactNode;
-  align?: "left" | "center";
-  maxWidth?: string;
+  layout?: SectionHeadLayout;
   id?: string;
 }): ReactNode {
-  const centered = align === "center";
+  const split = layout === "split" && lead !== undefined;
   return (
     <div
-      className={cn(
-        centered
-          ? "mx-auto grid justify-items-center gap-5 text-center"
-          : "vk-grid-12 vk-section-head",
-      )}
-      style={centered ? { maxWidth } : undefined}
+      className={cn("vk-section-head", split ? "vk-grid-12" : "vk-section-head-stacked")}
+      data-layout={split ? "split" : "stacked"}
     >
-      <div className={centered ? undefined : "vk-section-head-title"}>
-        <h2 id={id} className={cn("vk-h2", centered ? "mx-auto max-w-[18ch]" : "max-w-[15ch]")}>
+      <div className="vk-section-head-title">
+        <h2 id={id} className={cn("vk-h2", split ? "max-w-[15ch]" : "max-w-[22ch]")}>
           {title}
         </h2>
       </div>
       {lead ? (
         <p
           className={cn(
-            "vk-lead max-w-[46ch]",
-            !centered && "vk-section-head-lead lg:justify-self-end lg:pb-2.5",
+            "vk-lead vk-section-head-lead",
+            split ? "max-w-[46ch] lg:pb-2.5" : "max-w-[56ch]",
           )}
         >
           {lead}

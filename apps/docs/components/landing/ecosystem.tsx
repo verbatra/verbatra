@@ -32,6 +32,7 @@ export async function Ecosystem(): Promise<ReactNode> {
     <Section band id="ecosystem">
       <SectionHead
         id="ecosystem-heading"
+        layout="stacked"
         title={t("ecosystem.heading")}
         lead={t("ecosystem.lead")}
       />

@@ -11,12 +11,11 @@ import { keepCompoundsWhole, keepLinkLabelWhole } from "@/lib/word-breaks";
 
 const DISPLAY = { fontFamily: "var(--font-display)" } as const;
 
-const PANEL = "rounded-xl border border-fd-border";
+const PANEL = "rounded-xl border border-(--border-default)";
 
 const HOME_FRAME = "mx-auto w-full max-w-[1100px] px-4 md:px-6 lg:px-10";
 
-const PANEL_HOVER =
-  "hover:border-[color:color-mix(in_srgb,var(--v-glow)_45%,var(--border-default))]";
+const PANEL_HOVER = "hover:border-[color:var(--border-accent)]";
 
 type PackageKey = "cli" | "sdk" | "studio" | "mcp";
 
@@ -251,17 +250,15 @@ export function DocsHomeSteps(): ReactNode {
   return (
     <ol className="not-prose mt-8 grid list-none gap-4 md:grid-cols-3">
       {LANDING_STEP_IDS.map((key, index) => (
-        <li key={key} className="border-t border-fd-border pt-[18px]">
+        <li key={key} className="border-t border-(--border-default) pt-[18px]">
           <h3
-            className="font-semibold text-fd-foreground"
+            className="font-semibold text-(--text-strong)"
             style={{ ...DISPLAY, fontSize: "1.05rem" }}
           >
             <span style={{ color: "var(--accent)" }}>{index + 1}. </span>
             {t(`${key}.title`)}
           </h3>
-          <p className="mt-1.5 text-sm text-fd-muted-foreground">
-            {withInlineCode(t(`${key}.body`))}
-          </p>
+          <p className="mt-1.5 text-sm text-(--text-muted)">{withInlineCode(t(`${key}.body`))}</p>
         </li>
       ))}
     </ol>
@@ -291,7 +288,7 @@ export function DocsHomeFeatures({
                 </span>
               ) : null}
             </div>
-            <p className="mt-2 text-sm leading-relaxed text-fd-muted-foreground">{feature.body}</p>
+            <p className="mt-2 text-sm leading-relaxed text-(--text-muted)">{feature.body}</p>
           </>
         );
         const className = cn(
@@ -301,7 +298,7 @@ export function DocsHomeFeatures({
         );
         const style = {
           background: "var(--surface-bg)",
-          borderInlineStart: "3px solid var(--v-purple)",
+          borderInlineStart: "3px solid var(--accent-fill)",
         };
         return feature.href && locale ? (
           <TrackedLink

@@ -55,6 +55,14 @@ describe("FinalCta", () => {
     expect(root.querySelector("a[href='/de/docs']")?.textContent).toBe(copy.secondary);
   });
 
+  it("sets the closing copy on the page gutter, with no card border or inset of its own", () => {
+    const inner = root.querySelector("section > div");
+    const classes = inner?.className.split(" ") ?? [];
+    expect(classes).not.toContain("border");
+    expect(classes.filter((name) => /^(md:)?p[xy]?-/.test(name))).toEqual([]);
+    expect(inner?.getAttribute("style")).toBeNull();
+  });
+
   it("keeps a full section of space between the panel and the footer", () => {
     const classes = root.querySelector("section")?.className.split(" ") ?? [];
     expect(classes).toContain("vk-pad-sm");

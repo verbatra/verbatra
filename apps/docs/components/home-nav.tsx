@@ -50,10 +50,10 @@ export function useHomeNav(): HomeNavValue {
 }
 
 export const NAV_TEXT_LINK =
-  "vk-header-link whitespace-nowrap text-sm text-fd-muted-foreground transition-colors hover:text-fd-accent-foreground data-[active=true]:text-fd-primary";
+  "vk-header-link whitespace-nowrap text-sm text-(--text-muted) transition-colors hover:text-(--text-strong) data-[active=true]:text-(--accent)";
 
 export const SHEET_ITEM =
-  "flex min-h-11 items-center gap-2 rounded-lg px-2 text-start text-fd-muted-foreground transition-colors hover:bg-fd-accent/50 hover:text-fd-accent-foreground data-[active=true]:bg-fd-primary/10 data-[active=true]:text-fd-primary";
+  "flex min-h-11 items-center gap-2 rounded-lg px-2 text-start text-(--text-muted) transition-colors hover:bg-(--surface-hover)/50 hover:text-(--text-strong) data-[active=true]:bg-(--accent)/10 data-[active=true]:text-(--accent)";
 
 export const MENU_TRIGGER = cn(
   buttonVariants({ variant: "ghost", size: "icon-sm" }),

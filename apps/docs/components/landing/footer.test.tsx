@@ -122,12 +122,22 @@ describe("FullFooter", () => {
     );
   });
 
-  it("labels the new badges through the translated status string", async () => {
+  it("leaves the NEW status to the docs sidebar and draws no status pill in a footer link", async () => {
     const doc = await renderFooter();
-    const badges = Array.from(doc.querySelectorAll("nav a > span")).map((span) => span.textContent);
 
-    expect(badges.length).toBeGreaterThan(0);
-    expect(new Set(badges)).toEqual(new Set(["badge:new"]));
+    expect(doc.querySelectorAll("nav a > span")).toHaveLength(0);
+    expect(doc.querySelector(".vk-pill-status")).toBeNull();
+    expect(doc.body.textContent).not.toContain("badge:new");
+  });
+
+  it("titles each link column in sentence-case sans type, not as an all-caps mono label", async () => {
+    const doc = await renderFooter();
+    const titles = Array.from(doc.querySelectorAll("nav > p"));
+
+    expect(titles.length).toBeGreaterThan(0);
+    for (const title of titles) {
+      expect(title.className).not.toMatch(/\b(uppercase|font-mono|vk-label)\b/);
+    }
   });
 
   it("sets the license and the copyright apart without a separator glyph", async () => {

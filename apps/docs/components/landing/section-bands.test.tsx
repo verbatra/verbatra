@@ -56,13 +56,69 @@ describe("landing surface bands", () => {
 });
 
 describe("the section head on the 12-column grid", () => {
-  it("splits a section head seven to five", () => {
+  it("splits a section head eight to four, so the lead starts on column 9 like the content beside it", () => {
     const doc = render(<SectionHead id="h" title="Title" lead="Lead" />);
     const head = doc.querySelector(".vk-section-head");
+    expect(head?.getAttribute("data-layout")).toBe("split");
     expect(head?.classList.contains("vk-grid-12")).toBe(true);
     expect(head?.querySelector(".vk-section-head-title h2")).not.toBeNull();
     expect(head?.querySelector(".vk-section-head-lead")).not.toBeNull();
-    expect(css).toMatch(/\.vk-section-head-title \{\s+--grid-span: 7;/);
-    expect(css).toMatch(/\.vk-section-head-lead \{\s+--grid-span: 5;/);
+    expect(css).toMatch(/\.vk-section-head-title \{\s+--grid-span: 8;/);
+    expect(css).toMatch(/\.vk-section-head-lead \{\s+--grid-span: 4;/);
+  });
+
+  it("stacks the lead under the heading on the first column when asked, and when there is no lead", () => {
+    for (const node of [
+      <SectionHead key="stacked" id="h" title="Title" lead="Lead" layout="stacked" />,
+      <SectionHead key="bare" id="h" title="Title" />,
+    ]) {
+      const head = render(node).querySelector(".vk-section-head");
+      expect(head?.getAttribute("data-layout")).toBe("stacked");
+      expect(head?.classList.contains("vk-grid-12")).toBe(false);
+    }
+  });
+
+  it("lets a grid child start on a set column from 64rem, and only there", () => {
+    expect(css).toContain(
+      "grid-column: var(--grid-start, auto) / span var(--grid-span, var(--grid-columns));",
+    );
+  });
+
+  it("varies the section heads instead of splitting every one", () => {
+    const layouts = Object.fromEntries(
+      [
+        "problem.tsx",
+        "steps.tsx",
+        "bento.tsx",
+        "code-showcase.tsx",
+        "showcase.tsx",
+        "ecosystem.tsx",
+        "compare.tsx",
+        "open-source.tsx",
+        "faq.tsx",
+      ].map((file) => {
+        const head = /<SectionHead\b[^>]*\/>/s.exec(
+          readFileSync(join(import.meta.dirname, file), "utf8"),
+        )?.[0];
+        if (!head) throw new Error(`no SectionHead in ${file}`);
+        const layout = !/\blead=/.test(head)
+          ? "heading"
+          : /layout="stacked"/.test(head)
+            ? "stacked"
+            : "split";
+        return [file, layout];
+      }),
+    );
+    expect(layouts).toEqual({
+      "problem.tsx": "split",
+      "steps.tsx": "split",
+      "bento.tsx": "heading",
+      "code-showcase.tsx": "stacked",
+      "showcase.tsx": "stacked",
+      "ecosystem.tsx": "stacked",
+      "compare.tsx": "heading",
+      "open-source.tsx": "split",
+      "faq.tsx": "heading",
+    });
   });
 });

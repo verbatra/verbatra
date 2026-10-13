@@ -217,6 +217,7 @@ samp {
   --text-danger: var(--v-danger);
   --text-success: var(--v-glow);
   --border-danger: color-mix(in srgb, var(--v-danger) 55%, transparent);
+  --border-accent: color-mix(in srgb, var(--accent) 45%, var(--border-default));
   --accent: var(--v-glow);
   --accent-fill: var(--v-purple);
   --accent-fill-fg: hsl(258 60% 98%);
@@ -365,7 +366,7 @@ html.light {
   }
 
   .vk-grid-12 > * {
-    grid-column: span var(--grid-span, var(--grid-columns));
+    grid-column: var(--grid-start, auto) / span var(--grid-span, var(--grid-columns));
   }
 }
 
@@ -380,17 +381,21 @@ html.light {
   row-gap: 1.25rem;
 }
 
+.vk-section-head-stacked {
+  display: grid;
+}
+
 @media (min-width: 64rem) {
-  .vk-section-head {
+  .vk-section-head.vk-grid-12 {
     align-items: end;
   }
 
   .vk-section-head-title {
-    --grid-span: 7;
+    --grid-span: 8;
   }
 
   .vk-section-head-lead {
-    --grid-span: 5;
+    --grid-span: 4;
   }
 }
 
@@ -612,7 +617,7 @@ html.light .vk-theme-icon-light {
 }
 
 .vk-link-card:hover {
-  border-color: color-mix(in srgb, var(--v-glow) 45%, var(--border-default));
+  border-color: var(--border-accent);
   background: var(--surface-bg);
 }
 
@@ -946,7 +951,7 @@ html.light .vk-theme-icon-light {
   align-items: center;
   width: fit-content;
   padding: 0.0625rem 0.5rem;
-  border: 1px solid color-mix(in srgb, var(--v-glow) 45%, var(--border-default));
+  border: 1px solid var(--border-accent);
   border-radius: var(--radius-full);
   background: transparent;
   color: var(--accent);
@@ -1280,7 +1285,7 @@ html.light .vk-theme-icon-light {
 }
 
 .vk-docs-footer > a:hover {
-  border-color: color-mix(in srgb, var(--v-glow) 45%, var(--border-default));
+  border-color: var(--border-accent);
   background: var(--surface-bg);
 }
 
@@ -1388,7 +1393,7 @@ figure.shiki.vk-code-output figcaption {
 }
 
 #nd-page .fd-step::before {
-  border: 1px solid color-mix(in srgb, var(--v-glow) 45%, var(--border-default));
+  border: 1px solid var(--border-accent);
   background: var(--surface-bg);
   color: var(--accent);
   font-family: var(--font-mono);
@@ -1404,7 +1409,7 @@ figure.shiki.vk-code-output figcaption {
 
 .vk-evidence-link:hover,
 .vk-evidence-link:focus-visible {
-  border-color: color-mix(in srgb, var(--v-glow) 45%, var(--border-default));
+  border-color: var(--border-accent);
   color: var(--text-strong);
 }
 
@@ -1615,7 +1620,7 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 
 .vk-formats-chip[aria-pressed="true"] {
   color: var(--text-strong);
-  border-color: color-mix(in srgb, var(--v-glow) 45%, var(--border-default));
+  border-color: var(--border-accent);
 }
 
 .vk-formats-tablist {

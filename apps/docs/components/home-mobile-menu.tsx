@@ -62,7 +62,7 @@ export function HomeMobileMenu({ footer }: { footer: ReactNode }): ReactNode {
         className="vk-nav-sheet w-[85%] max-w-[380px] gap-0 text-[0.9375rem]"
       >
         <SheetHeader className="px-4 pt-4 pb-2">
-          <SheetTitle className="text-sm font-medium text-fd-muted-foreground">
+          <SheetTitle className="text-sm font-medium text-(--text-muted)">
             {labels.menuTitle}
           </SheetTitle>
         </SheetHeader>
@@ -78,7 +78,7 @@ export function HomeMobileMenu({ footer }: { footer: ReactNode }): ReactNode {
             onNavigate={close}
           />
         </div>
-        <SheetFooter className="flex-row items-center justify-end gap-1 border-t border-fd-border px-2.5 pt-2 pb-4">
+        <SheetFooter className="flex-row items-center justify-end gap-1 border-t border-(--border-default) px-2.5 pt-2 pb-4">
           {footer}
         </SheetFooter>
       </SheetContent>

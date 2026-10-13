@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
-import { FORMAT_SAMPLES } from "@/lib/format-samples";
+import { FORMAT_SAMPLES, sampleLines } from "@/lib/format-samples";
 import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { STACK_FRAMEWORKS } from "@/lib/stack-formats";
 import { preloadRegisteredIslands } from "@/test-support/islands";
@@ -120,7 +120,7 @@ describe("FormatsDemo", () => {
   });
 
   it("picks the pane that shows the most rows, then the widest line, as the height to hold", () => {
-    expect(tallestFormat()).toBe("xliff");
+    expect(tallestFormat()).toBe("resx");
   });
 
   it("loads every other pane with the adapter's real output and its file name on first intent", async () => {
@@ -160,6 +160,13 @@ describe("FormatsDemo", () => {
       "max-height: calc(var(--format-pane-rows) * var(--format-line) + 1.5rem);",
     );
     expect(rule(".vk-formats-code")).toContain("overflow-y: auto;");
+  });
+
+  it("reserves at most one empty row under the pane that opens first", () => {
+    const first = SUPPORTED_FORMAT_IDS[0];
+    if (!first) throw new Error("no formats");
+    const shown = Math.min(sampleLines(FORMAT_SAMPLES[first]).length, FORMAT_PANE_ROWS);
+    expect(FORMAT_PANE_ROWS - shown).toBeLessThanOrEqual(1);
   });
 
   it("takes the row cap from the one constant the sizer measures with", () => {

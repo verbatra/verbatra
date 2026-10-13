@@ -52,7 +52,7 @@ export function ThemeToggle({ className }: { className?: string | undefined }): 
       type="button"
       className={cn(
         buttonVariants({ size: "icon-sm", variant: "ghost" }),
-        "vk-tap vk-theme-toggle text-fd-muted-foreground",
+        "vk-tap vk-theme-toggle text-(--text-muted)",
         className,
       )}
       aria-label={label}

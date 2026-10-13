@@ -25,8 +25,8 @@ const BASE =
 
 const VARIANT: Record<NonNullable<ButtonProps["variant"]>, string> = {
   primary: "text-[color:var(--accent-fill-fg)] hover:brightness-[1.08]",
-  secondary: "border border-fd-border text-fd-foreground hover:bg-fd-accent",
-  ghost: "text-fd-muted-foreground hover:text-fd-foreground",
+  secondary: "border border-(--border-default) text-(--text-strong) hover:bg-(--surface-hover)",
+  ghost: "text-(--text-muted) hover:text-(--text-strong)",
 };
 
 const SIZE: Record<NonNullable<ButtonProps["size"]>, string> = {

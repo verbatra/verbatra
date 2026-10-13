@@ -140,6 +140,8 @@ describe("the 12-column landing grid", () => {
       "repeat(var(--grid-columns), minmax(0, 1fr))",
     );
     expect(child?.media).toBe("@media (min-width: 64rem)");
-    expect(child?.declarations["grid-column"]).toBe("span var(--grid-span, var(--grid-columns))");
+    expect(child?.declarations["grid-column"]).toBe(
+      "var(--grid-start, auto) / span var(--grid-span, var(--grid-columns))",
+    );
   });
 });

@@ -31,7 +31,7 @@ describe("McpInstallLink", () => {
 
   it("is a secondary button with a 44px target", () => {
     const anchor = link();
-    expect(anchor?.className).toContain("border-fd-border");
+    expect(anchor?.className).toContain("border-(--border-default)");
     expect(anchor?.classList.contains("min-h-11")).toBe(true);
   });
 });

@@ -43,7 +43,7 @@ export function HighlightedCommand({ command, link }: HighlightedCommandProps): 
         target="_blank"
         rel="noreferrer noopener"
         onClick={(event) => event.stopPropagation()}
-        className="inline rounded align-baseline underline decoration-fd-border underline-offset-4 transition-colors hover:text-[var(--accent)] hover:decoration-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-ring)"
+        className="inline rounded align-baseline underline decoration-(--border-default) underline-offset-4 transition-colors hover:text-[var(--accent)] hover:decoration-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-ring)"
       >
         {link.token}
       </a>
@@ -61,11 +61,11 @@ export default function CommandLine({ command, link }: CommandLineProps): ReactN
   const t = useTranslations("landing.install");
 
   return (
-    <div className="not-prose flex w-full max-w-xl min-w-0 items-center gap-3 rounded-xl border border-fd-border bg-fd-card px-4 py-2.5 font-mono text-sm">
-      <span className="text-fd-muted-foreground" aria-hidden="true">
+    <div className="not-prose flex w-full max-w-xl min-w-0 items-center gap-3 rounded-xl border border-(--border-default) bg-(--surface-card) px-4 py-2.5 font-mono text-sm">
+      <span className="text-(--text-muted)" aria-hidden="true">
         $
       </span>
-      <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap text-left text-fd-foreground">
+      <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap text-left text-(--text-strong)">
         <HighlightedCommand command={command} link={link} />
       </code>
       <CopyButton text={command} label={t("copyAria")} size="sm" className="ms-auto" />

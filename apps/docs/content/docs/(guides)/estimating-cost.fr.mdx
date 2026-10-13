@@ -6,7 +6,7 @@ type: how-to
 ---
 Utilise ceci avant une première exécution sur un vrai projet, ou avant toute exécution que quelqu'un doit approuver. verbatra ne publie aucun prix, car les tarifs appartiennent au fournisseur et changent sans prévenir. Il compte ce qui te sera facturé, et le convertit en argent dès que tu lui donnes les tarifs actuels de ton fournisseur.
 
-Pour un projet typique, quelques centaines de clés vers quelques locales avec un petit modèle coûtent quelques centimes, et l'exécution suivante presque rien, car seules les clés modifiées sont envoyées.
+Pour un projet typique, c'est la première exécution qui coûte, et l'exécution suivante presque rien, car seules les clés modifiées sont envoyées.
 
 ## Compte le travail
 
@@ -50,10 +50,10 @@ Pour voir un montant, cherche le tarif actuel de ton modèle sur la page de tari
 | Fournisseur | Facturé au | Tarifs |
 | --- | --- | --- |
 | Gemini | tokens d'entrée et de sortie (niveau gratuit disponible) | [Gemini API pricing](https://ai.google.dev/gemini-api/docs/pricing) |
-| Anthropic | tokens d'entrée et de sortie | [Anthropic pricing](https://www.anthropic.com/pricing) |
-| OpenAI | tokens d'entrée et de sortie | [OpenAI API pricing](https://openai.com/api/pricing/) |
-| DeepL | caractères source | [DeepL Pro pricing](https://www.deepl.com/pro) |
-| Google Cloud Translation | caractères source | [Cloud Translation pricing](https://cloud.google.com/translate/pricing) |
+| Anthropic | tokens d'entrée et de sortie | [Anthropic pricing](https://platform.claude.com/docs/en/about-claude/pricing) |
+| OpenAI | tokens d'entrée et de sortie | [OpenAI API pricing](https://developers.openai.com/api/docs/pricing) |
+| DeepL | caractères source | [DeepL API pricing](https://www.deepl.com/pro#api) |
+| Google Cloud Translation | caractères source | [Cloud Translation pricing](https://cloud.google.com/products/translate/pricing) |
 | openai-compatible, LibreTranslate | rien : ton propre serveur | aucun coût d'API |
 
 Ajoute-le ensuite à la configuration avec la date à laquelle tu l'as relevé :
@@ -65,7 +65,8 @@ export default defineConfig({
     asOf: "2026-01-15",
     currency: "USD",
     table: {
-      "gemini/gemini-2.5-flash": { inputPerMillionTokens: 0.1, outputPerMillionTokens: 0.4 },
+      // placeholders: copy the current rates from https://ai.google.dev/gemini-api/docs/pricing
+      "gemini/gemini-2.5-flash": { inputPerMillionTokens: 1, outputPerMillionTokens: 2 },
     },
   },
 });

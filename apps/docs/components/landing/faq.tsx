@@ -37,7 +37,7 @@ export async function Faq({ items }: { items: ReadonlyArray<FaqEntry> }): Promis
     <Section band id="faq">
       <SectionHead id="faq-heading" title={t("heading")} />
       <FaqAccordion
-        className="mt-11 max-w-[880px] border-t border-fd-border"
+        className="mt-11 max-w-[880px] border-t border-(--border-default)"
         items={items.map((item) => ({
           id: item.id,
           question: item.question,

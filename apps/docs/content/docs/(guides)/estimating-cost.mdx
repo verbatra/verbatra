@@ -6,7 +6,7 @@ type: how-to
 ---
 Use this before a first run on a real project, or before any run someone has to approve. verbatra publishes no prices, because rates belong to the provider and change without notice. It counts what you will be billed for, and turns that into money once you give it your provider's current rates.
 
-For a typical project, a few hundred keys into a few locales on a small model costs cents, and the next run costs almost nothing because only changed keys are sent.
+For a typical project, the first run is the one that costs anything, and the next run costs almost nothing because only changed keys are sent.
 
 ## Count the work
 
@@ -50,10 +50,10 @@ To see money, look up your model's current rate on the provider's own pricing pa
 | Provider | Billed by | Pricing |
 | --- | --- | --- |
 | Gemini | input and output tokens (free tier available) | [Gemini API pricing](https://ai.google.dev/gemini-api/docs/pricing) |
-| Anthropic | input and output tokens | [Anthropic pricing](https://www.anthropic.com/pricing) |
-| OpenAI | input and output tokens | [OpenAI API pricing](https://openai.com/api/pricing/) |
-| DeepL | source characters | [DeepL Pro pricing](https://www.deepl.com/pro) |
-| Google Cloud Translation | source characters | [Cloud Translation pricing](https://cloud.google.com/translate/pricing) |
+| Anthropic | input and output tokens | [Anthropic pricing](https://platform.claude.com/docs/en/about-claude/pricing) |
+| OpenAI | input and output tokens | [OpenAI API pricing](https://developers.openai.com/api/docs/pricing) |
+| DeepL | source characters | [DeepL API pricing](https://www.deepl.com/pro#api) |
+| Google Cloud Translation | source characters | [Cloud Translation pricing](https://cloud.google.com/products/translate/pricing) |
 | openai-compatible, LibreTranslate | nothing: your own server | no API cost |
 
 Then add it to the config with the date you read it:
@@ -65,7 +65,8 @@ export default defineConfig({
     asOf: "2026-01-15",
     currency: "USD",
     table: {
-      "gemini/gemini-2.5-flash": { inputPerMillionTokens: 0.1, outputPerMillionTokens: 0.4 },
+      // placeholders: copy the current rates from https://ai.google.dev/gemini-api/docs/pricing
+      "gemini/gemini-2.5-flash": { inputPerMillionTokens: 1, outputPerMillionTokens: 2 },
     },
   },
 });

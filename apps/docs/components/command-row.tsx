@@ -26,7 +26,7 @@ export function CommandRow({
       )}
       style={divided ? { borderColor: "var(--border-default)" } : undefined}
     >
-      <span aria-hidden="true" className="pt-1" style={{ color: "var(--v-glow)" }}>
+      <span aria-hidden="true" className="pt-1" style={{ color: "var(--accent)" }}>
         $
       </span>
       <code

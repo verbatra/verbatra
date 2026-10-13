@@ -117,6 +117,40 @@ describe("landing message parity", () => {
     }
   });
 
+  it("keeps the home meta description between 150 and 160 characters in every locale", () => {
+    for (const locale of i18n.languages) {
+      const length = landingText(locale, "meta.description").length;
+      expect(length, locale).toBeGreaterThanOrEqual(150);
+      expect(length, locale).toBeLessThanOrEqual(160);
+    }
+  });
+
+  it("spells open source without a hyphen everywhere in the English landing copy", () => {
+    for (const key of landingKeys(i18n.defaultLanguage)) {
+      expect(landingText("en", key.replace(/^landing\./, "")), key).not.toMatch(/open-source/i);
+    }
+  });
+
+  it("closes every landing section heading with a period", () => {
+    for (const locale of i18n.languages) {
+      for (const path of [
+        "problem.heading",
+        "steps.heading",
+        "bento.heading",
+        "code.heading",
+        "showcase.heading",
+        "ecosystem.heading",
+        "studio.heading",
+        "compare.heading",
+        "openSource.heading",
+        "faq.heading",
+        "closing.heading",
+      ]) {
+        expect(landingText(locale, path), `${locale} ${path}`).toMatch(/\.$/);
+      }
+    }
+  });
+
   it("carries no em dash in any locale", () => {
     for (const locale of i18n.languages) {
       const path = fileURLToPath(new URL(`../messages/${locale}.json`, import.meta.url));

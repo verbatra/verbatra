@@ -27,12 +27,12 @@ export async function CodeFrame({
     <figure
       data-code-lang={lang}
       className={cn(
-        "vk-code-frame m-0 min-w-0 overflow-hidden rounded-xl border border-fd-border bg-(--v-void)",
+        "vk-code-frame m-0 min-w-0 overflow-hidden rounded-xl border border-(--border-default) bg-(--v-void)",
         className,
       )}
     >
       {filename ? (
-        <div className="flex min-h-10 items-center justify-between gap-3 border-b border-fd-border px-4 py-1.5">
+        <div className="flex min-h-10 items-center justify-between gap-3 border-b border-(--border-default) px-4 py-1.5">
           <figcaption className="min-w-0 truncate font-mono text-xs text-(--text-muted)">
             {filename}
           </figcaption>

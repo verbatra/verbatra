@@ -52,16 +52,14 @@ export function StudioScreenshot({
   return (
     <figure className={cn("not-prose my-8", className)}>
       <div
-        className="overflow-hidden rounded-xl border border-fd-border"
+        className="overflow-hidden rounded-xl border border-(--border-default)"
         style={{
           background: "var(--surface-card)",
           boxShadow: elevated ? "var(--shadow-panel)" : undefined,
         }}
       >
-        <div className="flex items-center justify-between gap-3 border-b border-fd-border px-4 py-2.5">
-          <span className="font-mono text-xs tracking-wide text-fd-muted-foreground">
-            {t("label")}
-          </span>
+        <div className="flex items-center justify-between gap-3 border-b border-(--border-default) px-4 py-2.5">
+          <span className="text-xs font-medium text-(--text-muted)">{t("label")}</span>
           <fieldset className="flex gap-1">
             <legend className="sr-only">{t("tablistLabel")}</legend>
             {THEMES.map((id) => {
@@ -75,8 +73,8 @@ export function StudioScreenshot({
                   className={cn(
                     THEME_BUTTON_CLASS,
                     pressed
-                      ? "bg-[color:var(--surface-card)] text-fd-foreground"
-                      : "text-fd-muted-foreground hover:text-fd-foreground",
+                      ? "bg-[color:var(--surface-card)] text-(--text-strong)"
+                      : "text-(--text-muted) hover:text-(--text-strong)",
                   )}
                 >
                   {t(id)}
@@ -98,7 +96,7 @@ export function StudioScreenshot({
         </div>
       </div>
       {caption ? (
-        <figcaption className="mt-3 text-sm leading-relaxed text-fd-muted-foreground">
+        <figcaption className="mt-3 text-sm leading-relaxed text-(--text-muted)">
           {caption}
         </figcaption>
       ) : null}

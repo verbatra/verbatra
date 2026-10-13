@@ -24,7 +24,7 @@ function FilePane({ file, missingLabel }: { file: ProblemFile; missingLabel: str
     <figure className="m-0 min-w-0" data-file={file.path}>
       <figcaption
         id={fileCaptionId(file)}
-        className="border-b border-fd-border px-4 py-2 font-mono text-xs text-(--text-muted)"
+        className="border-b border-(--border-default) px-4 py-2 font-mono text-xs text-(--text-muted)"
       >
         {file.path}
       </figcaption>
@@ -62,7 +62,7 @@ function CheckOutput(): ReactNode {
       lang="en"
       data-check-output
       labelledBy={CHECK_COMMAND_ID}
-      className="vk-mono-sm border-t border-fd-border px-4 py-3 font-mono leading-6"
+      className="vk-mono-sm border-t border-(--border-default) px-4 py-3 font-mono leading-6"
     >
       <div id={CHECK_COMMAND_ID} className="whitespace-pre text-(--text-strong)">
         <span aria-hidden="true" className="text-(--accent)">
@@ -89,9 +89,9 @@ export async function Problem(): Promise<ReactNode> {
       <div className="mt-10 grid gap-10 lg:mt-14 lg:grid-cols-12 lg:gap-6">
         <div
           data-reveal="2"
-          className="min-w-0 overflow-hidden rounded-xl border border-fd-border bg-(--v-void) lg:col-span-7"
+          className="min-w-0 self-start overflow-hidden rounded-xl border border-(--border-default) bg-(--v-void) lg:col-span-7"
         >
-          <div className="grid divide-y divide-fd-border md:grid-cols-2 md:divide-x md:divide-y-0">
+          <div className="grid divide-y divide-(--border-default) md:grid-cols-2 md:divide-x md:divide-y-0">
             <FilePane file={PROBLEM_SOURCE_FILE} missingLabel={missingLabel} />
             <FilePane file={PROBLEM_TARGET_FILE} missingLabel={missingLabel} />
           </div>
@@ -104,7 +104,7 @@ export async function Problem(): Promise<ReactNode> {
           className="grid list-none content-start gap-8 lg:col-span-4 lg:col-start-9"
         >
           {PROBLEM_ITEM_KEYS.map((key) => (
-            <li key={key} className="grid gap-2 border-t border-fd-border pt-5">
+            <li key={key} className="grid gap-2 border-t border-(--border-default) pt-5">
               <h3 className="text-base font-semibold text-(--text-strong)">
                 {t(`items.${key}.title`)}
               </h3>

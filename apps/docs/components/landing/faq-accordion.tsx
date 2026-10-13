@@ -15,10 +15,10 @@ export type FaqAccordionItem = {
 };
 
 const ITEM_CLASS =
-  "border-b border-fd-border [&[data-state=closed]>[data-slot=accordion-content]]:hidden";
+  "border-b border-(--border-default) [&[data-state=closed]>[data-slot=accordion-content]]:hidden";
 
 const TRIGGER_CLASS =
-  "items-center py-5 text-(length:--text-h4) font-semibold text-fd-foreground hover:text-[color:var(--accent)] hover:no-underline data-[state=open]:text-[color:var(--accent)] [&>svg]:size-5 [&>svg]:translate-y-0 [&>svg]:text-[color:var(--accent)] motion-reduce:[&>svg]:transition-none";
+  "items-center py-5 text-(length:--text-h4) font-semibold text-(--text-strong) hover:text-[color:var(--accent)] hover:no-underline data-[state=open]:text-[color:var(--accent)] [&>svg]:size-5 [&>svg]:translate-y-0 [&>svg]:text-[color:var(--accent)] motion-reduce:[&>svg]:transition-none";
 
 export function FaqAccordion({
   className,
@@ -35,7 +35,7 @@ export function FaqAccordion({
             {item.question}
           </AccordionTrigger>
           <AccordionContent forceMount className="pb-5">
-            <p className="max-w-[68ch] text-base leading-relaxed text-fd-muted-foreground">
+            <p className="max-w-[68ch] text-base leading-relaxed text-(--text-muted)">
               {item.content}
             </p>
           </AccordionContent>

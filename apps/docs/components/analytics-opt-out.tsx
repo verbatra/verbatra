@@ -40,7 +40,7 @@ function ChoiceStatus({ choice, label }: { choice: Choice; label: string }): Rea
       id={`analytics-${choice}`}
       role="status"
       tabIndex={-1}
-      className="m-0 hidden scroll-mt-24 text-sm font-medium text-fd-foreground target:block"
+      className="m-0 hidden scroll-mt-24 text-sm font-medium text-(--text-strong) target:block"
     >
       {label}
     </p>
@@ -55,7 +55,7 @@ export function AnalyticsOptOut({
   labels: AnalyticsOptOutLabels;
 }): ReactNode {
   return (
-    <div className="not-prose mt-4 flex flex-col gap-3 rounded-xl border border-fd-border bg-[color:var(--surface-card)] p-4">
+    <div className="not-prose mt-4 flex flex-col gap-3 rounded-xl border border-(--border-default) bg-[color:var(--surface-card)] p-4">
       <ChoiceStatus choice="off" label={labels.statusOptedOut} />
       <ChoiceStatus choice="on" label={labels.statusOptedIn} />
       <p className="m-0 text-sm text-[color:var(--text-body)]">{labels.signals}</p>

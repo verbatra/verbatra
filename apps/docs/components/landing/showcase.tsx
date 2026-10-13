@@ -12,7 +12,12 @@ export async function Showcase(): Promise<ReactNode> {
 
   return (
     <Section width="wide" rhythm="sm" id="showcase" className="vk-showcase-section">
-      <SectionHead id={SHOWCASE_HEADING_ID} title={t("heading")} lead={t("lead")} />
+      <SectionHead
+        id={SHOWCASE_HEADING_ID}
+        layout="stacked"
+        title={t("heading")}
+        lead={t("lead")}
+      />
       <div data-reveal="2" className="vk-showcase not-prose">
         <TryIt seed={showcaseSeed()} rows={showcaseRows()} />
       </div>

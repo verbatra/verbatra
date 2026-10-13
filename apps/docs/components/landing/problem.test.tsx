@@ -108,6 +108,16 @@ describe("Problem", () => {
     expect(output?.textContent).toBe(`$ ${CHECK_RUN_LINES.join("")}`);
   });
 
+  it("keeps the drift artifact at its own height instead of stretching it to the list beside it", () => {
+    const artifact = root.querySelector('[data-reveal="2"]');
+    expect(artifact?.className.split(" ")).toContain("self-start");
+  });
+
+  it("starts the lead on the same column as the list of problems", () => {
+    expect(root.querySelector(".vk-section-head")?.getAttribute("data-layout")).toBe("split");
+    expect(root.querySelector("ul")?.className).toContain("lg:col-start-9");
+  });
+
   it("reveals the artifact, then the list, and never the heading", () => {
     const marks = [...root.querySelectorAll("[data-reveal]")].map((node) =>
       node.getAttribute("data-reveal"),

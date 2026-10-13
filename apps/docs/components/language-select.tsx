@@ -19,7 +19,7 @@ function SparkleIcon({ className }: { className?: string }): ReactNode {
       fill="currentColor"
       aria-hidden="true"
       className={className}
-      style={{ color: "var(--v-glow)" }}
+      style={{ color: "var(--accent)" }}
     >
       <path d="M11 2.5a1 1 0 0 1 1.94 0l1.06 4.24a4 4 0 0 0 2.9 2.9l4.24 1.06a1 1 0 0 1 0 1.94l-4.24 1.06a4 4 0 0 0-2.9 2.9l-1.06 4.24a1 1 0 0 1-1.94 0l-1.06-4.24a4 4 0 0 0-2.9-2.9L2.8 12.7a1 1 0 0 1 0-1.94l4.24-1.06a4 4 0 0 0 2.9-2.9z" />
     </svg>
@@ -68,7 +68,7 @@ export function LocaleAwareLanguageSelect({
         aria-label={ariaLabel}
         className={cn(
           buttonVariants({ variant }),
-          "vk-tap gap-1.5 p-1.5 data-[state=open]:bg-fd-accent",
+          "vk-tap gap-1.5 p-1.5 data-[state=open]:bg-(--surface-hover)",
           className,
         )}
         {...rest}
@@ -76,7 +76,7 @@ export function LocaleAwareLanguageSelect({
         {children}
       </PopoverTrigger>
       <PopoverContent aria-labelledby={headingId} className="flex flex-col gap-0.5 p-1">
-        <p id={headingId} className="p-2 text-xs font-medium text-fd-muted-foreground">
+        <p id={headingId} className="p-2 text-xs font-medium text-(--text-muted)">
           {t("chooseLanguage")}
         </p>
         {context.locales.map((item) => {
@@ -91,8 +91,8 @@ export function LocaleAwareLanguageSelect({
               className={cn(
                 "vk-tap px-2 py-1.5 text-start text-sm rounded-lg transition-colors",
                 item.locale === currentLocale
-                  ? "bg-fd-primary/10 text-fd-primary"
-                  : "text-fd-muted-foreground hover:bg-fd-accent hover:text-fd-accent-foreground",
+                  ? "bg-(--accent)/10 text-(--accent)"
+                  : "text-(--text-muted) hover:bg-(--surface-hover) hover:text-(--text-strong)",
               )}
               onClick={() => context.onChange?.(item.locale)}
             >

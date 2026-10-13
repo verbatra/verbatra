@@ -7,7 +7,7 @@ function VMarkPath() {
   return (
     <path
       d="M4 4 L12 20 L20 4"
-      stroke="var(--v-glow)"
+      stroke="var(--accent)"
       strokeWidth="3"
       strokeLinecap="round"
       strokeLinejoin="round"

@@ -89,7 +89,7 @@ export async function Compare(): Promise<ReactNode> {
 
   return (
     <Section band id="compare">
-      <SectionHead id="compare-heading" title={t("heading")} lead={t("lead")} />
+      <SectionHead id="compare-heading" title={t("heading")} />
       <div className="vk-compare not-prose mt-10 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4">
         <p className="vk-compare-hint text-sm text-[color:var(--text-muted)]">{t("scrollHint")}</p>
         <div className="relative min-w-0">

@@ -6,7 +6,7 @@ type: how-to
 ---
 Nutze das vor dem ersten Lauf auf einem echten Projekt oder vor jedem Lauf, den jemand freigeben muss. verbatra veröffentlicht keine Preise, weil die Tarife dem Provider gehören und sich ohne Ankündigung ändern. Es zählt, wofür du bezahlst, und rechnet das in Geld um, sobald du ihm die aktuellen Tarife deines Providers gibst.
 
-Für ein typisches Projekt kosten ein paar hundert Keys in ein paar Locales mit einem kleinen Modell Cents, und der nächste Lauf kostet fast nichts, weil nur geänderte Keys gesendet werden.
+Bei einem typischen Projekt kostet vor allem der erste Lauf etwas, und der nächste Lauf kostet fast nichts, weil nur geänderte Keys gesendet werden.
 
 ## Zähl die Arbeit
 
@@ -50,10 +50,10 @@ Um Geldbeträge zu sehen, schlag den aktuellen Tarif deines Modells auf der Prei
 | Provider | Abgerechnet nach | Preise |
 | --- | --- | --- |
 | Gemini | Ein- und Ausgabe-Tokens (mit kostenlosem Kontingent) | [Gemini API pricing](https://ai.google.dev/gemini-api/docs/pricing) |
-| Anthropic | Ein- und Ausgabe-Tokens | [Anthropic pricing](https://www.anthropic.com/pricing) |
-| OpenAI | Ein- und Ausgabe-Tokens | [OpenAI API pricing](https://openai.com/api/pricing/) |
-| DeepL | Quellzeichen | [DeepL Pro pricing](https://www.deepl.com/pro) |
-| Google Cloud Translation | Quellzeichen | [Cloud Translation pricing](https://cloud.google.com/translate/pricing) |
+| Anthropic | Ein- und Ausgabe-Tokens | [Anthropic pricing](https://platform.claude.com/docs/en/about-claude/pricing) |
+| OpenAI | Ein- und Ausgabe-Tokens | [OpenAI API pricing](https://developers.openai.com/api/docs/pricing) |
+| DeepL | Quellzeichen | [DeepL API pricing](https://www.deepl.com/pro#api) |
+| Google Cloud Translation | Quellzeichen | [Cloud Translation pricing](https://cloud.google.com/products/translate/pricing) |
 | openai-compatible, LibreTranslate | nichts: dein eigener Server | keine API-Kosten |
 
 Trag ihn dann mit dem Datum, an dem du ihn gelesen hast, in die Konfiguration ein:
@@ -65,7 +65,8 @@ export default defineConfig({
     asOf: "2026-01-15",
     currency: "USD",
     table: {
-      "gemini/gemini-2.5-flash": { inputPerMillionTokens: 0.1, outputPerMillionTokens: 0.4 },
+      // placeholders: copy the current rates from https://ai.google.dev/gemini-api/docs/pricing
+      "gemini/gemini-2.5-flash": { inputPerMillionTokens: 1, outputPerMillionTokens: 2 },
     },
   },
 });

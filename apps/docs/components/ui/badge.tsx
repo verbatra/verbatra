@@ -8,24 +8,24 @@ export type BadgeProps = {
 const BASE =
   "not-prose inline-flex items-center font-mono uppercase rounded-[6px] border px-[7px] py-[3px] text-xs tracking-[0.08em]";
 
-const NEUTRAL = "text-fd-muted-foreground border-fd-border";
+const NEUTRAL = "text-(--text-muted) border-(--border-default)";
 
 const TONE_STYLE: Record<Exclude<NonNullable<BadgeProps["tone"]>, "neutral">, CSSProperties> = {
   glow: {
-    color: "var(--v-glow)",
-    borderColor: "color-mix(in srgb, var(--v-glow) 40%, transparent)",
+    color: "var(--accent)",
+    borderColor: "color-mix(in srgb, var(--accent) 40%, transparent)",
   },
   new: {
     color: "var(--v-status-new)",
-    borderColor: "color-mix(in srgb, var(--v-glow) 40%, transparent)",
+    borderColor: "color-mix(in srgb, var(--accent) 40%, transparent)",
   },
   changed: {
     color: "var(--v-status-changed)",
-    borderColor: "color-mix(in srgb, var(--v-purple) 40%, transparent)",
+    borderColor: "color-mix(in srgb, var(--accent-fill) 40%, transparent)",
   },
   unchanged: {
     color: "var(--v-status-unchanged)",
-    borderColor: "var(--color-fd-border)",
+    borderColor: "var(--border-default)",
   },
   solid: {
     color: "var(--accent-fill-fg)",

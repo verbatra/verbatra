@@ -4,9 +4,9 @@
       "title": "verbatra: traduce solo las claves i18n que cambiaron",
       "ogTitle": "verbatra: traduce solo lo que cambió",
       "description": "verbatra es una CLI y un SDK de i18n de código abierto. Compara tus archivos de locale con la fuente y envía solo las claves nuevas o cambiadas a tu proveedor.",
-      "ogDescription": "Revisa tus archivos de locale, traduce solo las claves cambiadas y protege la CI.",
+      "ogDescription": "Traduce solo las claves de i18n que cambiaron y haz fallar la CI mientras falte alguna.",
       "ogImageAlt": "verbatra: Traduce solo lo que cambió, sobre una ejecución de check que encuentra dos claves faltantes por locale y una de translate que envía solo esas.",
-      "definition": "verbatra es una CLI y un SDK de código abierto que comparan los archivos de locale i18n con la fuente, traducen solo las claves nuevas y cambiadas a través del proveedor de IA o de traducción automática que elijas y hacen fallar la CI mientras falte una clave."
+      "definition": "verbatra es una CLI y un SDK de código abierto para archivos de locale de i18n. Envía solo las claves nuevas y cambiadas al proveedor de IA o de traducción automática que elijas y hace fallar la CI mientras falte una clave."
     },
     "hero": {
       "command": {
@@ -31,7 +31,7 @@
       "copyFailed": "Copia fallida"
     },
     "faq": {
-      "heading": "Preguntas frecuentes",
+      "heading": "Preguntas frecuentes.",
       "items": {
         "incremental": {
           "question": "¿Cómo evita verbatra volver a traducir todo en cada ejecución?",
@@ -132,8 +132,8 @@
       }
     },
     "showcase": {
-      "heading": "Míralo en acción",
-      "lead": "Prueba un cambio en un archivo de locale: el código de diff y hash de verbatra muestra en tu navegador qué enviaría, omitiría y bloquearía una ejecución, y no traduce nada.",
+      "heading": "Míralo en acción.",
+      "lead": "Elige abajo un cambio en un archivo de locale. El código de diff y hash de verbatra muestra en tu navegador qué claves enviaría una ejecución, y no traduce nada.",
       "tryIt": {
         "scenariosLabel": "Cambia el archivo en inglés",
         "scenarios": {
@@ -209,7 +209,7 @@
     },
     "problem": {
       "heading": "Los archivos de locale se desincronizan con cada entrega.",
-      "lead": "Cada funcionalidad añade textos. Alguien tiene que detectar las claves que faltan, conseguir su traducción y pegarlas de vuelta sin romper un placeholder.",
+      "lead": "Cada funcionalidad añade textos, y alguien tiene que encontrar las claves que faltan en cada locale. Al pegar las traducciones a mano es donde se rompen los placeholders.",
       "items": {
         "missing": {
           "title": "Las claves que faltan llegan a producción",
@@ -226,8 +226,8 @@
       }
     },
     "steps": {
-      "heading": "Comprueba, traduce, protege.",
-      "lead": "Tres pasos cubren todo el ciclo. Un archivo de bloqueo en tu repositorio recuerda lo que ya está traducido.",
+      "heading": "Primero comprueba, luego traduce solo lo que falta.",
+      "lead": "Un archivo de bloqueo en tu repositorio registra lo que ya está traducido, así cada ejecución sabe qué claves son nuevas o cambiaron.",
       "items": {
         "check": {
           "title": "Comprueba",
@@ -235,7 +235,7 @@
         },
         "translate": {
           "title": "Traduce",
-          "body": "`verbatra translate` envía solo las claves que faltan o cambiaron, revisa cada resultado y escribe tus archivos."
+          "body": "`verbatra translate` envía solo las claves que faltan o cambiaron y escribe un resultado solo cuando sus placeholders pasan la comprobación de integridad."
         },
         "ci": {
           "title": "Protege la CI",
@@ -277,8 +277,8 @@
       }
     },
     "code": {
-      "heading": "Ejecútalo desde la terminal, tu código o la CI.",
-      "lead": "Un mismo motor en tres sitios: la CLI se basa en el SDK y la action ejecuta la CLI.",
+      "heading": "Úsalo desde la terminal o desde tu propio código.",
+      "lead": "La CLI se basa en el SDK y la GitHub Action ejecuta la CLI. Todas leen el mismo archivo de configuración.",
       "tablist": "Formas de ejecutar verbatra",
       "tabs": {
         "cli": "CLI",
@@ -302,7 +302,7 @@
     },
     "ecosystem": {
       "heading": "Tu proveedor. Tu formato de archivo.",
-      "lead": "Elige un proveedor por su id y cámbialo después. verbatra lee y escribe tus archivos de locale donde están.",
+      "lead": "Cambiar de proveedor es editar un bloque del archivo de configuración. Tus archivos de locale se quedan donde están, en el formato que ya usan.",
       "providersLabel": "Proveedores",
       "formatsLabel": "Formatos de archivo",
       "frameworksLabel": "Frameworks",
@@ -329,7 +329,6 @@
     },
     "compare": {
       "heading": "Cómo se compara verbatra.",
-      "lead": "Tres formas de mantener traducidos los archivos de locale, y en qué destaca cada una.",
       "caption": "verbatra comparado con un flujo manual y un sistema de gestión de traducciones alojado",
       "columns": {
         "aspect": "Aspecto",
@@ -403,7 +402,7 @@
     },
     "openSource": {
       "heading": "Código abierto con licencia MIT.",
-      "lead": "La CLI, el SDK, Studio y el servidor MCP se desarrollan en abierto en GitHub. Lee el código, abre un issue o envía un pull request.",
+      "lead": "La CLI, el SDK, Studio y el servidor MCP se desarrollan en abierto en GitHub, donde los issues y pull requests son bienvenidos.",
       "license": "Licencia MIT",
       "contributing": "Cómo contribuir",
       "codeOfConduct": "Código de conducta",

@@ -2,7 +2,6 @@ import { PackageIcon } from "lucide-react";
 import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { VMark } from "@/components/landing";
-import { NewBadge } from "@/components/new-badge";
 import { type Locale, localizedPath, toLocale } from "@/lib/i18n";
 import { GithubIcon } from "./github-icon";
 import {
@@ -24,7 +23,6 @@ type FooterLink = {
   literal?: string;
   href: string;
   external?: boolean;
-  isNew?: boolean;
   localized?: boolean;
 };
 type FooterCol = { col: string; titleKey: string; links: ReadonlyArray<FooterLink> };
@@ -38,7 +36,7 @@ const FOOTER_COLS: ReadonlyArray<FooterCol> = [
       { labelKey: "cols.product.cliReference", href: "/docs/cli", localized: true },
       { labelKey: "cols.product.sdk", href: "/docs/sdk", localized: true },
       { labelKey: "cols.product.studio", href: "/docs/cli/studio", localized: true },
-      { labelKey: "cols.product.mcpServer", href: "/docs/cli/mcp", isNew: true, localized: true },
+      { labelKey: "cols.product.mcpServer", href: "/docs/cli/mcp", localized: true },
       { labelKey: "cols.product.githubAction", href: "/docs/github-action", localized: true },
     ],
   },
@@ -96,7 +94,6 @@ const FOOTER_COLS: ReadonlyArray<FooterCol> = [
         literal: "@verbatra/mcp",
         href: NPM_MCP,
         external: true,
-        isNew: true,
       },
     ],
   },
@@ -119,24 +116,21 @@ const FOOTER_COLS: ReadonlyArray<FooterCol> = [
 ];
 
 const LINK_CLASS =
-  "vk-tap inline-flex min-h-6 items-center underline decoration-transparent underline-offset-4 transition-colors hover:text-fd-foreground hover:decoration-[color:color-mix(in_srgb,var(--accent)_45%,transparent)]";
+  "vk-tap inline-flex min-h-6 items-center underline decoration-transparent underline-offset-4 transition-colors hover:text-(--text-strong) hover:decoration-[color:color-mix(in_srgb,var(--accent)_45%,transparent)]";
 
 function FooterLinkItem({
   link,
   label,
-  newLabel,
   locale,
 }: {
   link: FooterLink;
   label: string;
-  newLabel: string;
   locale: Locale;
 }): ReactNode {
   if (link.external) {
     return (
       <a href={link.href} className={LINK_CLASS} target="_blank" rel="noreferrer noopener">
         {label}
-        {link.isNew ? <NewBadge>{newLabel}</NewBadge> : null}
       </a>
     );
   }
@@ -144,14 +138,12 @@ function FooterLinkItem({
   return (
     <a href={href} className={LINK_CLASS}>
       {label}
-      {link.isNew ? <NewBadge>{newLabel}</NewBadge> : null}
     </a>
   );
 }
 
 export async function FullFooter(): Promise<ReactNode> {
   const t = await getTranslations("landing.footer");
-  const tStatus = await getTranslations("docs.statusBadges");
   const locale = toLocale(await getLocale());
   return (
     <footer
@@ -174,13 +166,13 @@ export async function FullFooter(): Promise<ReactNode> {
             <span className="inline-flex items-center gap-2.5">
               <VMark size={30} />
               <span
-                className="text-xl font-semibold tracking-tight text-fd-foreground"
+                className="text-xl font-semibold tracking-tight text-(--text-strong)"
                 style={{ fontFamily: "var(--font-display)" }}
               >
                 verbatra
               </span>
             </span>
-            <p className="mt-4 max-w-[34ch] text-sm leading-relaxed text-fd-muted-foreground">
+            <p className="mt-4 max-w-[34ch] text-sm leading-relaxed text-(--text-muted)">
               {t("tagline")}
             </p>
             <div className="mt-5 flex items-center gap-5">
@@ -189,7 +181,7 @@ export async function FullFooter(): Promise<ReactNode> {
                 target="_blank"
                 rel="noreferrer noopener"
                 aria-label={t("githubAria")}
-                className="vk-tap inline-flex min-h-6 items-center gap-2 text-sm text-fd-muted-foreground transition-colors hover:text-fd-foreground"
+                className="vk-tap inline-flex min-h-6 items-center gap-2 text-sm text-(--text-muted) transition-colors hover:text-(--text-strong)"
               >
                 <GithubIcon size={16} />
                 <span>GitHub</span>
@@ -199,7 +191,7 @@ export async function FullFooter(): Promise<ReactNode> {
                 target="_blank"
                 rel="noreferrer noopener"
                 aria-label={t("npmAria")}
-                className="vk-tap inline-flex min-h-6 items-center gap-2 text-sm text-fd-muted-foreground transition-colors hover:text-fd-foreground"
+                className="vk-tap inline-flex min-h-6 items-center gap-2 text-sm text-(--text-muted) transition-colors hover:text-(--text-strong)"
               >
                 <PackageIcon size={16} aria-hidden="true" className="shrink-0" />
                 <span>npm</span>
@@ -210,16 +202,13 @@ export async function FullFooter(): Promise<ReactNode> {
             const title = t(col.titleKey);
             return (
               <nav key={col.col} aria-label={title}>
-                <p className="mb-3 font-mono text-xs uppercase tracking-[0.14em] text-[color:var(--text-faint)] md:mb-4">
-                  {title}
-                </p>
-                <ul className="flex flex-col gap-0 text-sm text-fd-muted-foreground md:gap-2.5">
+                <p className="mb-3 text-sm font-medium text-(--text-strong) md:mb-4">{title}</p>
+                <ul className="flex flex-col gap-0 text-sm text-(--text-muted) md:gap-2.5">
                   {col.links.map((link) => (
                     <li key={link.literal ?? link.labelKey}>
                       <FooterLinkItem
                         link={link}
                         label={link.literal ?? t(link.labelKey ?? "")}
-                        newLabel={tStatus("new")}
                         locale={locale}
                       />
                     </li>
@@ -230,7 +219,7 @@ export async function FullFooter(): Promise<ReactNode> {
           })}
         </div>
         <div
-          className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 pt-6 text-sm text-fd-muted-foreground md:mt-14"
+          className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 pt-6 text-sm text-(--text-muted) md:mt-14"
           style={{
             borderTop: "1px solid color-mix(in srgb, var(--border-default) 80%, transparent)",
           }}

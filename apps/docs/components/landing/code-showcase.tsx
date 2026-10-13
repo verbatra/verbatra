@@ -20,7 +20,7 @@ export const CODE_SHOWCASE_PAGES: Readonly<Record<LandingShowcaseTab, string>> =
 };
 
 const LINK_CLASS =
-  "vk-tap inline-flex items-center font-medium text-(--accent) underline decoration-[color-mix(in_srgb,var(--v-glow)_40%,transparent)] underline-offset-4 transition-colors hover:decoration-current";
+  "vk-tap inline-flex items-center font-medium text-(--accent) underline decoration-[color-mix(in_srgb,var(--accent)_40%,transparent)] underline-offset-4 transition-colors hover:decoration-current";
 
 export async function CodeShowcase(): Promise<ReactNode> {
   const t = await getTranslations("landing.code");
@@ -58,7 +58,7 @@ export async function CodeShowcase(): Promise<ReactNode> {
   );
   return (
     <Section id="code" band>
-      <SectionHead id="code-heading" title={t("heading")} lead={t("lead")} />
+      <SectionHead id="code-heading" layout="stacked" title={t("heading")} lead={t("lead")} />
       <div data-reveal="2" className="mt-10 lg:mt-14">
         <CodeShowcaseTabs label={t("tablist")} tabs={tabs} />
       </div>

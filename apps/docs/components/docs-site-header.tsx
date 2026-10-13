@@ -55,7 +55,7 @@ export function DocsSiteHeader(props: ComponentProps<"header">): ReactNode {
         <sidebar.collapseTrigger
           className={cn(
             buttonVariants({ variant: "secondary", size: "icon-sm" }),
-            "-me-1.5 rounded-full text-fd-muted-foreground",
+            "-me-1.5 rounded-full text-(--text-muted)",
           )}
         >
           <SidebarIcon />

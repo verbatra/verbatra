@@ -105,12 +105,12 @@ export function TabList({
             className={cn(
               variant === "segmented" && SEGMENTED_TAB_CLASS,
               tabClassName,
-              selected ? "text-fd-foreground" : "text-fd-muted-foreground hover:text-fd-foreground",
+              selected ? "text-(--text-strong)" : "text-(--text-muted) hover:text-(--text-strong)",
               selected && variant !== "underline" && "bg-[color:var(--surface-card)]",
             )}
             style={
               selected && variant === "underline"
-                ? { boxShadow: "inset 0 -2px 0 var(--v-glow)" }
+                ? { boxShadow: "inset 0 -2px 0 var(--accent)" }
                 : undefined
             }
           >
@@ -130,7 +130,7 @@ export type TabsProps = {
   children?: ReactNode;
 };
 
-const TAB_LIST_CLASS = "flex gap-4 border-b border-fd-border";
+const TAB_LIST_CLASS = "flex gap-4 border-b border-(--border-default)";
 const TAB_CLASS = "pb-2 font-mono lowercase text-sm transition-colors";
 
 export default function Tabs({

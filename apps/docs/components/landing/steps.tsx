@@ -31,7 +31,7 @@ export async function Steps(): Promise<ReactNode> {
           <li
             key={id}
             data-step={id}
-            className="grid min-w-0 content-start gap-3 border-t border-fd-border pt-5 lg:row-span-3 lg:grid-rows-subgrid lg:gap-3"
+            className="grid min-w-0 content-start gap-3 border-t border-(--border-default) pt-5 lg:row-span-3 lg:grid-rows-subgrid lg:gap-3"
           >
             <h3 className="vk-h4">{t(`items.${id}.title`)}</h3>
             <p className="max-w-[46ch] text-sm leading-relaxed text-(--text-muted)">

@@ -57,9 +57,9 @@
       "title": "verbatra: translate only the i18n keys that changed",
       "ogTitle": "verbatra: translate only what changed",
       "description": "verbatra is an open source i18n CLI and SDK. It checks your locale files against the source and sends only new or changed keys to your translation provider.",
-      "ogDescription": "Check your locale files, translate only changed keys, and gate CI.",
+      "ogDescription": "Translate only the i18n keys that changed, and fail CI while one is missing.",
       "ogImageAlt": "verbatra: Translate only what changed, above a check run that finds two missing keys per locale and a translate run that sends only those.",
-      "definition": "verbatra is an open source CLI and SDK that checks i18n locale files against the source, translates only new and changed keys through the AI or machine-translation provider you pick, and fails CI while a key is missing."
+      "definition": "verbatra is an open source CLI and SDK for i18n locale files. It sends only new and changed keys to the AI or machine-translation provider you pick and fails CI while a key is missing."
     },
     "hero": {
       "command": {
@@ -70,8 +70,8 @@
       }
     },
     "showcase": {
-      "heading": "See it work",
-      "lead": "Try a change to a locale file: verbatra's own diff and hash code shows in your browser what a run would send, skip and lock, and translates nothing.",
+      "heading": "See it work.",
+      "lead": "Pick a change to a locale file below. verbatra's own diff and hash code shows in your browser which keys a run would send, and translates nothing.",
       "tryIt": {
         "scenariosLabel": "Change the English file",
         "scenarios": {
@@ -126,7 +126,7 @@
       "promptPreviewLabel": "Copies this prompt for your agent"
     },
     "faq": {
-      "heading": "Frequently asked questions",
+      "heading": "Frequently asked questions.",
       "items": {
         "incremental": {
           "question": "How does verbatra avoid re-translating everything on every run?",
@@ -163,7 +163,7 @@
       }
     },
     "footer": {
-      "tagline": "An open-source CLI and SDK that keeps your i18n locale files in sync through the provider you choose.",
+      "tagline": "An open source CLI and SDK that keeps your i18n locale files in sync through the provider you choose.",
       "cols": {
         "product": {
           "title": "Product",
@@ -262,7 +262,7 @@
     },
     "problem": {
       "heading": "Locale files drift every time you ship.",
-      "lead": "Each feature adds strings. Someone has to spot the missing keys, get them translated, and paste them back without breaking a placeholder.",
+      "lead": "Each feature adds strings, and someone has to find the keys every locale is missing. Pasting translations back by hand is where placeholders break.",
       "items": {
         "missing": {
           "title": "Missing keys reach production",
@@ -279,8 +279,8 @@
       }
     },
     "steps": {
-      "heading": "Check, translate, gate.",
-      "lead": "Three steps cover the loop. A lock file in your repository remembers what was already translated.",
+      "heading": "Check first, then translate only the gaps.",
+      "lead": "A lock file in your repository records what was already translated, so each run knows which keys are new or changed.",
       "items": {
         "check": {
           "title": "Check",
@@ -288,7 +288,7 @@
         },
         "translate": {
           "title": "Translate",
-          "body": "`verbatra translate` sends only missing and changed keys, checks every result, and writes your files."
+          "body": "`verbatra translate` sends only missing and changed keys and writes a result only after its placeholders pass the integrity check."
         },
         "ci": {
           "title": "Gate in CI",
@@ -330,8 +330,8 @@
       }
     },
     "code": {
-      "heading": "Run it from the shell, your code, or CI.",
-      "lead": "One engine in three places: the CLI is built on the SDK, and the action runs the CLI.",
+      "heading": "Use it from the terminal or from your own code.",
+      "lead": "The CLI is built on the SDK, and the GitHub Action runs the CLI. Each reads the same config file.",
       "tablist": "Ways to run verbatra",
       "tabs": {
         "cli": "CLI",
@@ -355,7 +355,7 @@
     },
     "ecosystem": {
       "heading": "Your provider. Your file format.",
-      "lead": "Pick a provider by id and switch later. verbatra reads and writes your locale files where they are.",
+      "lead": "Switching providers means editing one block of the config file. Your locale files stay where they are, in the format they already use.",
       "providersLabel": "Providers",
       "formatsLabel": "File formats",
       "frameworksLabel": "Frameworks",
@@ -382,7 +382,6 @@
     },
     "compare": {
       "heading": "How verbatra compares.",
-      "lead": "Three ways to keep locale files translated, and what each one is good at.",
       "caption": "verbatra compared with a manual workflow and a hosted translation management system",
       "columns": {
         "aspect": "Aspect",
@@ -456,7 +455,7 @@
     },
     "openSource": {
       "heading": "Open source under the MIT license.",
-      "lead": "The CLI, SDK, Studio and MCP server are built in the open on GitHub. Read the code, file an issue, or send a pull request.",
+      "lead": "The CLI, SDK, Studio and MCP server are developed in the open on GitHub, where issues and pull requests are welcome.",
       "license": "MIT license",
       "contributing": "How to contribute",
       "codeOfConduct": "Code of conduct",
