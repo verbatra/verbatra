@@ -174,7 +174,8 @@ describe("the header star count", () => {
 
     const link = container.querySelector("a");
     expect(link?.querySelector("[data-stars]")?.textContent).toBe("2.5K");
-    expect(link?.getAttribute("aria-label")).toBe("2.5K stars on GitHub");
+    expect(link?.hasAttribute("aria-label")).toBe(false);
+    expect(link?.querySelector(".sr-only")?.textContent).toBe(" stars on GitHub");
   });
 });
 

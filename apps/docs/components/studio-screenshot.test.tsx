@@ -70,14 +70,35 @@ describe("StudioScreenshot", () => {
     expect(render(false).querySelector("img")?.getAttribute("src")).toContain("studio-review-dark");
   });
 
-  it("follows the site theme once hydrated, until a tab picks one", () => {
+  it("follows the site theme once hydrated, until a button picks one", () => {
     const container = mount("light");
     const image = () => container.querySelector("img")?.getAttribute("src") ?? "";
     expect(decodeURIComponent(image())).toContain("studio-review-light");
-    const dark = container.querySelector<HTMLButtonElement>('[role="tab"]');
+    const dark = container.querySelector<HTMLButtonElement>("fieldset button");
     expect(dark?.textContent).toBe("dark");
     act(() => dark?.click());
     expect(decodeURIComponent(image())).toContain("studio-review-dark");
+  });
+
+  it("offers the theme as a named group of pressed buttons, never as tabs without panels", () => {
+    const container = mount("dark");
+    expect(container.querySelector('[role="tab"], [role="tablist"], [role="tabpanel"]')).toBeNull();
+    const group = container.querySelector("fieldset");
+    expect(group?.querySelector("legend")?.textContent).toBe("tablistLabel");
+    const pressed = () =>
+      Array.from(group?.querySelectorAll("button") ?? []).map((button) => [
+        button.textContent,
+        button.getAttribute("aria-pressed"),
+      ]);
+    expect(pressed()).toEqual([
+      ["dark", "true"],
+      ["light", "false"],
+    ]);
+    act(() => group?.querySelectorAll<HTMLButtonElement>("button")[1]?.click());
+    expect(pressed()).toEqual([
+      ["dark", "false"],
+      ["light", "true"],
+    ]);
   });
 
   it("shows the dark shot on a dark site", () => {

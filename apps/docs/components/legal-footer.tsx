@@ -4,7 +4,7 @@ import { LEGAL_PAGE_LINKS } from "@/components/landing/links";
 import { type Locale, localizedPath } from "@/lib/i18n";
 
 const LINK_CLASS =
-  "inline-flex min-h-6 items-center underline decoration-transparent underline-offset-4 transition-colors hover:text-[color:var(--text-strong)] hover:decoration-[color:color-mix(in_srgb,var(--v-glow)_45%,transparent)]";
+  "vk-tap inline-flex min-h-6 items-center underline decoration-transparent underline-offset-4 transition-colors hover:text-[color:var(--text-strong)] hover:decoration-[color:color-mix(in_srgb,var(--v-glow)_45%,transparent)]";
 
 export async function LegalFooter({ locale }: { locale: Locale }): Promise<ReactNode> {
   const t = await getTranslations({ locale, namespace: "landing.footer.cols.legal" });

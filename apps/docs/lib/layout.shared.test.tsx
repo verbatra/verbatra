@@ -181,6 +181,14 @@ describe("search options", () => {
     const { SEARCH_OPTIONS } = await import("./root-provider-options");
     expect(SEARCH_OPTIONS.preload).toBe(false);
   });
+
+  it("uses the dialog that hands focus back to its opener on close", async () => {
+    const { SEARCH_OPTIONS } = await import("./root-provider-options");
+    const { FocusRestoringSearchDialog } = await import(
+      "@/components/focus-restoring-search-dialog"
+    );
+    expect(SEARCH_OPTIONS.SearchDialog).toBe(FocusRestoringSearchDialog);
+  });
 });
 
 describe("wordmark", () => {

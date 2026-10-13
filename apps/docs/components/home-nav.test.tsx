@@ -145,19 +145,21 @@ describe("the landing nav", () => {
   it("shows the server-fetched star count inside the GitHub link and names it", async () => {
     const github = primaryNav(await render(1234))?.querySelector(`a[href="${GITHUB_URL}"]`);
     expect(github?.querySelector("[data-stars]")?.textContent).toBe("1.2K");
-    expect(github?.getAttribute("aria-label")).toBe("GitHub 1.2K stars");
-    expect(github?.textContent).toBe("GitHub1.2K");
+    expect(github?.hasAttribute("aria-label")).toBe(false);
+    expect(github?.textContent).toBe("GitHub 1.2K stars");
   });
 
-  it("names the GitHub link with its visible text first in every locale", async () => {
+  it("names the GitHub link from its content, visible text first, in every locale", async () => {
     for (const locale of i18n.languages) {
       const github = primaryNav(await render(1234, locale))?.querySelector(
         `a[href="${GITHUB_URL}"]`,
       );
-      const visible = Array.from(github?.querySelectorAll("span") ?? [])
+      const visible = Array.from(github?.querySelectorAll("span:not(.sr-only)") ?? [])
         .map((span) => span.textContent)
         .join(" ");
-      expect(github?.getAttribute("aria-label")?.startsWith(visible)).toBe(true);
+      expect(github?.hasAttribute("aria-label")).toBe(false);
+      expect(github?.textContent?.startsWith(visible)).toBe(true);
+      expect(github?.querySelector(".sr-only")?.textContent?.trim()).not.toBe("");
       act(() => mounted?.root.unmount());
       mounted = undefined;
       document.body.innerHTML = "";

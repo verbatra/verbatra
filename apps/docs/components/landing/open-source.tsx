@@ -93,7 +93,7 @@ export function Contributors({
               href={contributor.profileUrl}
               target="_blank"
               rel="noreferrer noopener"
-              className="block rounded-full"
+              className="block rounded-full max-md:p-0.5"
             >
               <Image
                 src={contributor.avatarPath}

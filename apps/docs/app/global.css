@@ -2734,3 +2734,56 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
       text-decoration-color var(--duration-fast) var(--ease-out);
   }
 }
+
+@media (width < 768px) {
+  figure.shiki button {
+    min-width: 44px;
+    min-height: 44px;
+    margin: -10px;
+  }
+
+  .vk-tap,
+  .vk-banner-replay,
+  .vk-showcase-file-tab,
+  .vk-showcase-scenario,
+  .vk-showcase-reset,
+  .vk-prose-link,
+  .vk-stack-card-link,
+  [data-toc-popover-trigger],
+  #nd-sidebar-mobile a[href],
+  #nd-sidebar-mobile button,
+  #nd-page [role="tab"],
+  #nd-page .group\/heading > button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .vk-evidence-link,
+  #nd-page .group\/heading > a[data-card] {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  .vk-breadcrumb a {
+    padding-block: 12px;
+  }
+
+  .vk-proof-strip-item {
+    padding-block: 0.375rem;
+  }
+
+  .vk-proof-strip-link {
+    padding-block: 10px;
+  }
+
+  .vk-showcase-file-switch {
+    padding-block: 0;
+  }
+
+  .vk-home-tab {
+    min-width: 44px;
+    padding-block: 0.4375rem 0.5rem;
+    text-align: center;
+  }
+}

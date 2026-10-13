@@ -3,7 +3,6 @@
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
-import { TabList } from "@/components/ui/tabs";
 import { useSiteTheme } from "@/lib/use-site-theme";
 import { cn } from "@/lib/utils";
 
@@ -16,7 +15,7 @@ const THEMES = ["dark", "light"] as const;
 
 type StudioTheme = (typeof THEMES)[number];
 
-const TAB_CLASS = "rounded-md px-2.5 py-1 text-xs transition-colors";
+const THEME_BUTTON_CLASS = "vk-tap rounded-md px-2.5 py-1 text-xs transition-colors";
 
 export type StudioShot = keyof typeof SHOTS;
 
@@ -63,15 +62,28 @@ export function StudioScreenshot({
           <span className="font-mono text-xs tracking-wide text-fd-muted-foreground">
             {t("label")}
           </span>
-          <TabList
-            tabs={THEMES.map((id) => ({ id, label: t(id) }))}
-            active={theme}
-            onSelect={(id) => setChosen(id as StudioTheme)}
-            ariaLabel={t("tablistLabel")}
-            className="flex gap-1"
-            tabClassName={TAB_CLASS}
-            variant="pill"
-          />
+          <fieldset className="flex gap-1">
+            <legend className="sr-only">{t("tablistLabel")}</legend>
+            {THEMES.map((id) => {
+              const pressed = id === theme;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  aria-pressed={pressed}
+                  onClick={() => setChosen(id)}
+                  className={cn(
+                    THEME_BUTTON_CLASS,
+                    pressed
+                      ? "bg-[color:var(--surface-card)] text-fd-foreground"
+                      : "text-fd-muted-foreground hover:text-fd-foreground",
+                  )}
+                >
+                  {t(id)}
+                </button>
+              );
+            })}
+          </fieldset>
         </div>
         <div className={zoomOnPhone ? "vk-shot-zoom" : undefined}>
           <Image

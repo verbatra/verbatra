@@ -7,7 +7,7 @@ import { createContext, type ReactNode, use } from "react";
 import { GithubIcon } from "@/components/landing/github-icon";
 import { GITHUB_URL, RELEASES_URL } from "@/components/landing/links";
 import { buttonClasses } from "@/components/ui/button";
-import { fillCount } from "@/lib/live-count";
+import { LIVE_COUNT_SLOT } from "@/lib/live-count";
 import { reservedWidth, useLiveCount } from "@/lib/live-stats";
 import { cn } from "@/lib/utils";
 
@@ -57,7 +57,7 @@ export const SHEET_ITEM =
 
 export const MENU_TRIGGER = cn(
   buttonVariants({ variant: "ghost", size: "icon-sm" }),
-  "-me-1.5 p-2",
+  "vk-tap -me-1.5 p-2",
 );
 
 function withoutTrailingSlash(path: string): string {
@@ -106,23 +106,41 @@ export function ChangelogNavLink({ className }: { className: string }): ReactNod
   );
 }
 
+function StarCount({
+  stars,
+  reserved,
+  suffix,
+}: {
+  stars: string;
+  reserved: string | null;
+  suffix: string;
+}): ReactNode {
+  return (
+    <>
+      {" "}
+      <span className="vk-nav-stars" data-stars="" style={reservedWidth(reserved)}>
+        {stars}
+      </span>
+      <span className="sr-only">{suffix}</span>
+    </>
+  );
+}
+
 export function GitHubNavLink({ className }: { className: string }): ReactNode {
   const { stars: initialStars, labels, locale } = useHomeNav();
   const stars = useLiveCount("stars", initialStars, locale);
+  const starsSuffix = labels.starsAria.split(LIVE_COUNT_SLOT)[1] ?? "";
   return (
     <a
       href={GITHUB_URL}
       target="_blank"
       rel="noopener noreferrer"
       className={cn("inline-flex items-center gap-1.5", className)}
-      aria-label={stars === null ? undefined : fillCount(labels.starsAria, stars)}
     >
       <GithubIcon size={16} />
       <span>{labels.github}</span>
       {stars === null ? null : (
-        <span className="vk-nav-stars" data-stars="" style={reservedWidth(initialStars)}>
-          {stars}
-        </span>
+        <StarCount stars={stars} reserved={initialStars} suffix={starsSuffix} />
       )}
     </a>
   );
@@ -130,7 +148,7 @@ export function GitHubNavLink({ className }: { className: string }): ReactNode {
 
 export function GetStartedLink({
   size = "sm",
-  className = "vk-nav-cta whitespace-nowrap",
+  className = "vk-tap vk-nav-cta whitespace-nowrap",
   onNavigate,
 }: {
   size?: "sm" | "md";

@@ -38,7 +38,7 @@ export function tabPanelProps(prefix: string, id: string, active: string) {
 }
 
 const SEGMENTED_TAB_CLASS =
-  "rounded-(--radius-segment) px-3 py-1 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-ring)";
+  "vk-tap rounded-(--radius-segment) px-3 py-1 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-ring)";
 
 function targetIndex(key: string, current: number, count: number): number | undefined {
   if (key === "Home") return 0;

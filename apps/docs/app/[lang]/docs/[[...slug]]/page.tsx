@@ -128,6 +128,7 @@ export default async function Page(props: { params: Promise<{ slug?: string[]; l
       breadcrumb={{ enabled: !isHome, includePage: true, className: BREADCRUMB_CLASS }}
       footer={{ enabled: !isHome, className: "vk-docs-footer" }}
       className={isHome ? "max-w-none p-0 md:p-0 xl:p-0" : undefined}
+      tabIndex={-1}
     >
       {jsonLd.map((data) => (
         <JsonLd key={String(data["@type"])} data={data} />
@@ -148,7 +149,7 @@ export default async function Page(props: { params: Promise<{ slug?: string[]; l
             isHome ? undefined : footerNeighbourUrls(source.getPageTree(lang), page.url),
           )}
         />
-        {editHref ? <EditOnGitHub href={editHref} /> : null}
+        {editHref ? <EditOnGitHub href={editHref} className="vk-tap" /> : null}
       </DocsBody>
     </DocsPage>
   );

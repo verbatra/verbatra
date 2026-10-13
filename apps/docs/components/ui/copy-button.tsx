@@ -38,7 +38,7 @@ export function CopyButton({ text, label, size = "md", className }: CopyButtonPr
         aria-label={status === "idle" ? label : undefined}
         data-status={status}
         className={cn(
-          "inline-flex shrink-0 items-center rounded-md border border-fd-border font-sans transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-ring)",
+          "vk-tap inline-flex shrink-0 items-center justify-center rounded-md border border-fd-border font-sans transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-ring)",
           SIZE[size],
           STATUS_CLASS[status],
           className,

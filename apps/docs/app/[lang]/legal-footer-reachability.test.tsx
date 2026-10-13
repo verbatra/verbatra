@@ -144,3 +144,17 @@ describe("the compact legal footer", () => {
     },
   );
 });
+
+describe.each(i18n.languages)("the docs layout skip link (%s)", (locale) => {
+  it("is the first focusable element and jumps to the docs article", async () => {
+    const docs = LAYOUTS.find(([name]) => name === "docs")?.[1];
+    if (!docs) throw new Error("docs layout missing");
+    const doc = await renderLayout(docs, locale);
+    const first = doc.querySelector("a[href], button, input, select, textarea, [tabindex]");
+    const messages = JSON.parse(readFileSync(join(MESSAGES_DIR, `${locale}.json`), "utf8"));
+
+    expect(first?.classList.contains("vk-skip-link")).toBe(true);
+    expect(first?.getAttribute("href")).toBe("#nd-page");
+    expect(first?.textContent).toBe(messages.landing.nav.skipToContent);
+  });
+});

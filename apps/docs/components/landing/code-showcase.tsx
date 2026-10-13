@@ -20,7 +20,7 @@ export const CODE_SHOWCASE_PAGES: Readonly<Record<LandingShowcaseTab, string>> =
 };
 
 const LINK_CLASS =
-  "font-medium text-(--accent) underline decoration-[color-mix(in_srgb,var(--v-glow)_40%,transparent)] underline-offset-4 transition-colors hover:decoration-current";
+  "vk-tap inline-flex items-center font-medium text-(--accent) underline decoration-[color-mix(in_srgb,var(--v-glow)_40%,transparent)] underline-offset-4 transition-colors hover:decoration-current";
 
 export async function CodeShowcase(): Promise<ReactNode> {
   const t = await getTranslations("landing.code");

@@ -1,5 +1,5 @@
 import { DocsLayout } from "fumadocs-ui/layouts/notebook";
-import { setRequestLocale } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 import { DocsSiteHeader } from "@/components/docs-site-header";
 import { LegalFooter } from "@/components/legal-footer";
@@ -13,6 +13,8 @@ import { baseOptions } from "@/lib/layout.shared";
 import { rootTabs, withNavOnlyTabLinks } from "@/lib/root-tabs";
 import { source } from "@/lib/source";
 
+const DOCS_CONTENT_ID = "nd-page";
+
 export default async function Layout({
   params,
   children,
@@ -23,6 +25,7 @@ export default async function Layout({
   const { lang } = await params;
   const locale = toLocale(lang);
   setRequestLocale(locale);
+  const t = await getTranslations({ locale, namespace: "landing.nav" });
   const tree = withGroupLabels(
     await withStatusBadges(
       withShortCommandLabels(await withLlmsLinks(source.getPageTree(locale), locale)),
@@ -33,6 +36,9 @@ export default async function Layout({
   const tabs = rootTabs(tree);
   return (
     <SiteProviders locale={locale}>
+      <a className="vk-skip-link" href={`#${DOCS_CONTENT_ID}`}>
+        {t("skipToContent")}
+      </a>
       <RootTabsProvider tabs={tabs}>
         <DocsLayout
           {...base}

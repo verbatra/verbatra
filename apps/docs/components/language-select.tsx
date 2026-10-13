@@ -50,7 +50,9 @@ export function LocaleAwareLanguageSelect({
 }: LanguageSelectProps): ReactNode {
   const context = useI18n();
   const t = useTranslations("landing.nav.languageSwitcher");
-  const descriptionId = `${useId()}-machine-translated`;
+  const baseId = useId();
+  const descriptionId = `${baseId}-machine-translated`;
+  const headingId = `${baseId}-heading`;
   if (!context.locales) throw new Error("Missing `<I18nProvider />`");
 
   const currentLocale =
@@ -66,15 +68,17 @@ export function LocaleAwareLanguageSelect({
         aria-label={ariaLabel}
         className={cn(
           buttonVariants({ variant }),
-          "gap-1.5 p-1.5 data-[state=open]:bg-fd-accent",
+          "vk-tap gap-1.5 p-1.5 data-[state=open]:bg-fd-accent",
           className,
         )}
         {...rest}
       >
         {children}
       </PopoverTrigger>
-      <PopoverContent className="flex flex-col gap-0.5 p-1">
-        <p className="p-2 text-xs font-medium text-fd-muted-foreground">{t("chooseLanguage")}</p>
+      <PopoverContent aria-labelledby={headingId} className="flex flex-col gap-0.5 p-1">
+        <p id={headingId} className="p-2 text-xs font-medium text-fd-muted-foreground">
+          {t("chooseLanguage")}
+        </p>
         {context.locales.map((item) => {
           const isMachineTranslated = item.locale !== i18n.defaultLanguage;
           return (
@@ -85,7 +89,7 @@ export function LocaleAwareLanguageSelect({
               aria-describedby={isMachineTranslated ? descriptionId : undefined}
               aria-current={item.locale === currentLocale ? "true" : undefined}
               className={cn(
-                "px-2 py-1.5 text-start text-sm rounded-lg transition-colors",
+                "vk-tap px-2 py-1.5 text-start text-sm rounded-lg transition-colors",
                 item.locale === currentLocale
                   ? "bg-fd-primary/10 text-fd-primary"
                   : "text-fd-muted-foreground hover:bg-fd-accent hover:text-fd-accent-foreground",

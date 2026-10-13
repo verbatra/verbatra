@@ -11,7 +11,7 @@ export function DocsPageActions({
   githubUrl?: string | undefined;
 }): ReactNode {
   return (
-    <div className="not-prose -mt-4 flex flex-wrap items-center gap-2">
+    <div className="not-prose -mt-4 flex flex-wrap items-center gap-2 max-md:*:min-h-11">
       <MarkdownCopyButton markdownUrl={markdownUrl} />
       <ViewOptionsPopover markdownUrl={markdownUrl} {...(githubUrl ? { githubUrl } : {})} />
     </div>

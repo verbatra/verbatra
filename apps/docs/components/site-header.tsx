@@ -180,7 +180,7 @@ export function SiteHeaderFrame({
       >
         <div className="vk-header-start flex flex-1 items-center">
           {slots.navTitle ? (
-            <slots.navTitle className="inline-flex items-center gap-2.5 font-semibold" />
+            <slots.navTitle className="vk-tap inline-flex items-center gap-2.5 font-semibold" />
           ) : null}
           {badge}
         </div>
@@ -210,7 +210,9 @@ export function SiteHeaderFrame({
           ))}
           {cta}
           <div className="flex items-center md:hidden">
-            {slots.searchTrigger ? <slots.searchTrigger.sm hideIfDisabled className="p-2" /> : null}
+            {slots.searchTrigger ? (
+              <slots.searchTrigger.sm hideIfDisabled className="vk-tap p-2" />
+            ) : null}
             {mobileTrigger}
           </div>
           <div className="flex items-center gap-2 max-md:hidden">

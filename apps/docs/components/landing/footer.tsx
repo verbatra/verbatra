@@ -119,7 +119,7 @@ const FOOTER_COLS: ReadonlyArray<FooterCol> = [
 ];
 
 const LINK_CLASS =
-  "inline-flex min-h-6 items-center underline decoration-transparent underline-offset-4 transition-colors hover:text-fd-foreground hover:decoration-[color:color-mix(in_srgb,var(--accent)_45%,transparent)]";
+  "vk-tap inline-flex min-h-6 items-center underline decoration-transparent underline-offset-4 transition-colors hover:text-fd-foreground hover:decoration-[color:color-mix(in_srgb,var(--accent)_45%,transparent)]";
 
 function FooterLinkItem({
   link,
@@ -189,7 +189,7 @@ export async function FullFooter(): Promise<ReactNode> {
                 target="_blank"
                 rel="noreferrer noopener"
                 aria-label={t("githubAria")}
-                className="inline-flex min-h-6 items-center gap-2 text-sm text-fd-muted-foreground transition-colors hover:text-fd-foreground"
+                className="vk-tap inline-flex min-h-6 items-center gap-2 text-sm text-fd-muted-foreground transition-colors hover:text-fd-foreground"
               >
                 <GithubIcon size={16} />
                 <span>GitHub</span>
@@ -199,7 +199,7 @@ export async function FullFooter(): Promise<ReactNode> {
                 target="_blank"
                 rel="noreferrer noopener"
                 aria-label={t("npmAria")}
-                className="inline-flex min-h-6 items-center gap-2 text-sm text-fd-muted-foreground transition-colors hover:text-fd-foreground"
+                className="vk-tap inline-flex min-h-6 items-center gap-2 text-sm text-fd-muted-foreground transition-colors hover:text-fd-foreground"
               >
                 <PackageIcon size={16} aria-hidden="true" className="shrink-0" />
                 <span>npm</span>
@@ -213,7 +213,7 @@ export async function FullFooter(): Promise<ReactNode> {
                 <p className="mb-3 font-mono text-xs uppercase tracking-[0.14em] text-[color:var(--text-faint)] md:mb-4">
                   {title}
                 </p>
-                <ul className="flex flex-col gap-1.5 text-sm text-fd-muted-foreground md:gap-2.5">
+                <ul className="flex flex-col gap-0 text-sm text-fd-muted-foreground md:gap-2.5">
                   {col.links.map((link) => (
                     <li key={link.literal ?? link.labelKey}>
                       <FooterLinkItem
