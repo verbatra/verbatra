@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 interface FakePage {
+  readonly url: string;
   readonly data: {
     readonly title: string;
     readonly description?: string;
@@ -12,6 +13,7 @@ interface FakePage {
 const PAGES: Record<string, Record<string, FakePage>> = {
   en: {
     "the-lock-file": {
+      url: "/docs/the-lock-file",
       data: {
         title: "The lock file",
         description: "How verbatra.lock.json works.",
@@ -20,11 +22,13 @@ const PAGES: Record<string, Record<string, FakePage>> = {
       },
     },
     "": {
+      url: "/docs",
       data: { title: "Introduction", getText: async () => "Welcome." },
     },
   },
   de: {
     "the-lock-file": {
+      url: "/de/docs/the-lock-file",
       data: {
         title: "Die Lock-Datei",
         description: "Wie verbatra.lock.json funktioniert.",
@@ -56,6 +60,18 @@ function request(slug: string[] | undefined, lang: string) {
 }
 
 describe("GET /[lang]/docs.mdx/[[...slug]]", () => {
+  it.each([
+    [["the-lock-file"], "en", "https://verbatra.kreitz-webdev.de/docs/the-lock-file"],
+    [["the-lock-file"], "de", "https://verbatra.kreitz-webdev.de/de/docs/the-lock-file"],
+    [undefined, "en", "https://verbatra.kreitz-webdev.de/docs"],
+  ])(
+    "names the HTML page as canonical for %s in %s, so the Markdown copy is no duplicate",
+    async (slug, lang, html) => {
+      const response = await request(slug, lang);
+      expect(response.headers.get("link")).toBe(`<${html}>; rel="canonical"`);
+    },
+  );
+
   it("serves the page as Markdown with its frontmatter, title, and description on top", async () => {
     const response = await request(["the-lock-file"], "en");
     expect(response.status).toBe(200);

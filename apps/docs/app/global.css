@@ -2558,6 +2558,14 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   container-type: inline-size;
 }
 
+.vk-banner-eyebrow {
+  margin: 0 0 -0.75rem;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  line-height: var(--leading-normal);
+  color: var(--accent);
+}
+
 .vk-banner-title {
   margin: 0;
   font-family: var(--font-display);
@@ -2588,6 +2596,13 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   min-width: 0;
   max-width: var(--width-hero-panel);
   margin-top: 0.5rem;
+}
+
+.vk-banner-requirement {
+  margin: 0.75rem 0 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  color: var(--text-muted);
 }
 
 .vk-banner-demo {

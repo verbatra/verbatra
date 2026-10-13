@@ -25,6 +25,7 @@ export const docs = defineDocs({
   docs: {
     schema: pageSchema.extend({
       status: z.string().optional(),
+      seoTitle: z.string().optional(),
       sidebarTitle: z.string().optional(),
       tocDepth: z.number().int().min(2).max(4).optional(),
       codeHeadings: z.boolean().optional(),

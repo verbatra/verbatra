@@ -10,6 +10,7 @@ import { FONT_VARIABLES } from "@/lib/fonts";
 import { i18n, localizedPath } from "@/lib/i18n";
 import { LocaleHomeLayout } from "@/lib/locale-home-layout";
 import { SITE_URL } from "@/lib/site";
+import { TITLE_SUFFIX } from "@/lib/social-metadata";
 import { DEFAULT_THEME, THEME_INIT_SCRIPT } from "@/lib/theme";
 
 const locale = i18n.defaultLanguage;
@@ -18,9 +19,8 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations({ locale, namespace: "notFound.meta" });
   return {
     metadataBase: new URL(SITE_URL),
-    title: `${t("title")} | verbatra`,
+    title: `${t("title")}${TITLE_SUFFIX}`,
     description: t("description"),
-    robots: { index: false, follow: true },
   };
 }
 

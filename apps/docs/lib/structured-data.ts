@@ -1,6 +1,6 @@
 import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { plainAnswer } from "@/lib/plain-answer";
-import { SITE_URL } from "@/lib/site";
+import { NODE_RANGE, SITE_URL } from "@/lib/site";
 
 const GITHUB_URL = "https://github.com/verbatra/verbatra";
 const GITHUB_ORG_URL = "https://github.com/verbatra";
@@ -46,6 +46,10 @@ export const SUPPORTED_AGENT_CLIENTS = [
   "JetBrains AI Assistant",
   "Claude Desktop",
 ] as const;
+const NODE_OPERATING_SYSTEM = `Node.js ${NODE_RANGE}`;
+
+export const ORGANIZATION_LOGO = { path: "/icon-512.png", width: 512, height: 512 } as const;
+
 const SUPPORTED_FORMAT_LABELS = SUPPORTED_FORMAT_IDS.map((id) => FORMAT_DISPLAY[id].label);
 
 export const AUTHOR_NAME = "Mario Kreitz";
@@ -68,6 +72,12 @@ const ORGANIZATION = {
   "@id": ORGANIZATION_ID,
   name: "verbatra",
   url: SITE_URL,
+  logo: {
+    "@type": "ImageObject",
+    url: new URL(ORGANIZATION_LOGO.path, SITE_URL).href,
+    width: ORGANIZATION_LOGO.width,
+    height: ORGANIZATION_LOGO.height,
+  },
 } as const;
 
 const ORGANIZATION_REF = { "@id": ORGANIZATION_ID } as const;
@@ -105,7 +115,7 @@ export function softwareApplicationLd(args: {
     inLanguage: args.lang,
     url: SITE_URL,
     applicationCategory: "DeveloperApplication",
-    operatingSystem: "Node.js ^22.18.0 || >=24",
+    operatingSystem: NODE_OPERATING_SYSTEM,
     programmingLanguage: "TypeScript",
     license: "https://opensource.org/licenses/MIT",
     codeRepository: GITHUB_URL,
@@ -131,7 +141,7 @@ export function softwareApplicationLd(args: {
         name: "Verbatra Studio",
         softwareVersion: args.studioVersion,
         applicationCategory: "DeveloperApplication",
-        operatingSystem: "Node.js ^22.18.0 || >=24",
+        operatingSystem: NODE_OPERATING_SYSTEM,
         url: NPM_STUDIO_URL,
         downloadUrl: NPM_STUDIO_URL,
         license: "https://opensource.org/licenses/MIT",
@@ -144,7 +154,7 @@ export function softwareApplicationLd(args: {
         name: "Verbatra MCP server",
         softwareVersion: args.mcpVersion,
         applicationCategory: "DeveloperApplication",
-        operatingSystem: "Node.js ^22.18.0 || >=24",
+        operatingSystem: NODE_OPERATING_SYSTEM,
         url: NPM_MCP_URL,
         downloadUrl: NPM_MCP_URL,
         license: "https://opensource.org/licenses/MIT",

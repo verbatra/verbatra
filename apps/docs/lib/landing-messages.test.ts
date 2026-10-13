@@ -110,6 +110,13 @@ describe("landing message parity", () => {
     }
   });
 
+  it("names the MIT license in the hero eyebrow and keeps the version slot in the Node.js note", () => {
+    for (const locale of i18n.languages) {
+      expect(landingText(locale, "banner.eyebrow"), locale).toContain("(MIT)");
+      expect(landingText(locale, "banner.nodeRequirement"), locale).toContain("Node.js {versions}");
+    }
+  });
+
   it("carries no em dash in any locale", () => {
     for (const locale of i18n.languages) {
       const path = fileURLToPath(new URL(`../messages/${locale}.json`, import.meta.url));

@@ -11,6 +11,8 @@ export const STUDIO_VERSION = versionData.studioVersion;
 
 export const MCP_VERSION = versionData.mcpVersion;
 
+export const NODE_RANGE = versionData.nodeRange;
+
 export const LEGAL_LAST_UPDATED = "2026-10-13";
 
 export const PRIVACY_CONTACT_FORM_ANCHOR = "contact-form";

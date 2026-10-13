@@ -19,6 +19,11 @@ function movedDocsPageRedirects(from, to) {
   ]);
 }
 
+export const DEFAULT_LOCALE_PREFIX_REDIRECTS = [
+  { source: "/en", destination: "/", permanent: true },
+  { source: "/en/:path+", destination: "/:path+", permanent: true },
+];
+
 const config = {
   reactStrictMode: true,
   poweredByHeader: false,
@@ -27,6 +32,7 @@ const config = {
   outputFileTracingIncludes: {
     "/*": ["../../node_modules/.pnpm/@swc+helpers@*/node_modules/@swc/helpers/esm/**/*"],
     "/[lang]/home-og": ["./assets/og-fonts/*.ttf"],
+    "/[lang]/docs-og/[[...slug]]": ["./assets/og-fonts/*.ttf"],
   },
   experimental: {
     optimisticRouting: false,
@@ -41,6 +47,7 @@ const config = {
         destination: "https://verbatra.kreitz-webdev.de/:path*",
         permanent: true,
       },
+      ...DEFAULT_LOCALE_PREFIX_REDIRECTS,
       ...Object.entries(MOVED_DOCS_PAGES).flatMap(([from, to]) => movedDocsPageRedirects(from, to)),
     ];
   },

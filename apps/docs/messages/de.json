@@ -1,9 +1,9 @@
 {
   "landing": {
     "meta": {
-      "title": "verbatra: übersetze nur die i18n-Keys, die sich geändert haben",
+      "title": "verbatra: übersetze nur neue und geänderte i18n-Keys",
       "ogTitle": "verbatra: übersetze nur, was sich geändert hat",
-      "description": "verbatra prüft deine Locale-Dateien gegen die Quelle, übersetzt nur neue und geänderte Keys mit dem Provider deiner Wahl und lässt die CI scheitern, solange ein Key fehlt.",
+      "description": "verbatra ist eine Open-Source-CLI mit SDK für i18n. Sie prüft deine Locale-Dateien gegen die Quelle und schickt nur neue oder geänderte Keys an deinen Provider.",
       "ogDescription": "Prüfe deine Locale-Dateien, übersetze nur geänderte Keys und sichere die CI ab.",
       "ogImageAlt": "verbatra: Übersetze nur, was sich geändert hat, über einem check-Lauf, der zwei fehlende Keys pro Locale findet, und einem translate-Lauf, der nur diese schickt.",
       "definition": "verbatra ist eine Open-Source-CLI und ein SDK, die i18n-Locale-Dateien gegen die Quelle prüfen, nur neue und geänderte Keys über den Provider deiner Wahl (KI oder maschinelle Übersetzung) übersetzen und die CI scheitern lassen, solange ein Key fehlt."
@@ -187,11 +187,13 @@
       }
     },
     "banner": {
+      "eyebrow": "i18n-CLI und SDK für Entwickler, Open Source (MIT)",
       "headline": "Übersetze nur, was sich geändert hat.",
-      "lead": "verbatra vergleicht deine Locale-Dateien mit der Quelle, schickt nur neue und geänderte Keys an den Provider deiner Wahl und lässt die CI scheitern, solange ein Key fehlt.",
+      "lead": "verbatra vergleicht deine Locale-Dateien mit der Quelle und schickt nur neue oder geänderte Keys an den Provider deiner Wahl. In der CI schlägt der Build fehl, solange ein Key fehlt.",
       "ctaPrimary": "Loslegen",
       "ctaSecondary": "Auf GitHub ansehen",
       "installLabel": "Die CLI installieren",
+      "nodeRequirement": "Benötigt Node.js {versions}",
       "terminalLabel": "Ein verbatra-check-Lauf findet in jeder Locale zwei fehlende Keys. Ein translate-Lauf schickt danach nur diese Keys.",
       "terminalExample": "Beispielausgabe",
       "replay": "Erneut abspielen"

@@ -1,6 +1,7 @@
 ---
 title: verbatra diff
-description: Affiche les clés qui seraient ajoutées, retraduites ou orphelines par locale sans écrire de fichiers.
+seoTitle: "verbatra diff : ce qu'une exécution changerait"
+description: "Affiche les clés qu'une exécution ajouterait ou retraduirait par locale et celles devenues orphelines, sans écrire de fichiers ni appeler de fournisseur."
 type: reference
 ---
 Liste, par locale cible, les clés exactes en attente : celles qu'une exécution ajouterait, celles qu'elle retraduirait et celles désormais orphelines. `diff` fait la même lecture et la même comparaison que [`verbatra translate`](/fr/docs/cli/translate), puis s'arrête : aucun appel de fournisseur, aucun fichier écrit, aucune mise à jour du [fichier de verrouillage](/fr/docs/the-lock-file), aucune clé d'API requise.

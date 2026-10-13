@@ -7,7 +7,7 @@ import { JsonLd } from "@/components/json-ld";
 import { FONT_VARIABLES } from "@/lib/fonts";
 import { i18n, toLocale } from "@/lib/i18n";
 import { homeAlternates, SITE_URL } from "@/lib/site";
-import { homeOgImagePath, socialMetadata } from "@/lib/social-metadata";
+import { homeOgImagePath, socialMetadata, TITLE_SUFFIX } from "@/lib/social-metadata";
 import { AUTHOR_NAME, organizationLd, SEO_KEYWORDS, websiteLd } from "@/lib/structured-data";
 import { DEFAULT_THEME, THEME_INIT_SCRIPT } from "@/lib/theme";
 
@@ -32,7 +32,7 @@ export async function generateMetadata(props: {
 
   return {
     metadataBase: new URL(SITE_URL),
-    title: { default: title, template: "%s | verbatra" },
+    title: { default: title, template: `%s${TITLE_SUFFIX}` },
     description,
     keywords: [...SEO_KEYWORDS],
     authors: [{ name: AUTHOR_NAME, url: "https://github.com/mariokreitz" }],

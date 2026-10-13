@@ -1,6 +1,7 @@
 import { isLocale } from "@/lib/i18n";
 import { absolutizeMarkdownLinks } from "@/lib/markdown-links";
 import { pageFrontmatter } from "@/lib/page-frontmatter";
+import { SITE_URL } from "@/lib/site";
 import { source } from "@/lib/source";
 
 export const dynamic = "force-static";
@@ -22,6 +23,9 @@ export async function GET(
   const body = `${pageFrontmatter(page.data)}# ${page.data.title}\n${description}\n${markdown}`;
 
   return new Response(body, {
-    headers: { "Content-Type": "text/markdown; charset=utf-8" },
+    headers: {
+      "Content-Type": "text/markdown; charset=utf-8",
+      Link: `<${new URL(page.url, SITE_URL).href}>; rel="canonical"`,
+    },
   });
 }

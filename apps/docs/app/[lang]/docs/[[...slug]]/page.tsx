@@ -16,13 +16,13 @@ import { CALLOUT_CLASS, getMDXComponents } from "@/components/mdx";
 import { sdkReferenceComponents } from "@/components/sdk-reference";
 import { docsBreadcrumbTrail } from "@/lib/docs-breadcrumb";
 import { footerNeighbourUrls } from "@/lib/docs-neighbours";
-import { extractFaqItems } from "@/lib/extract-faq";
+import { extractFaqItems, withoutQuestions } from "@/lib/extract-faq";
 import { i18n, type Locale, localizedPath, toLocale } from "@/lib/i18n";
 import { markdownUrl } from "@/lib/markdown-route";
 import { onThisPageLabel, pageToc } from "@/lib/page-toc";
 import { socialMetadata } from "@/lib/social-metadata";
 import { source } from "@/lib/source";
-import { breadcrumbListLd, faqPageLd, techArticleLd } from "@/lib/structured-data";
+import { breadcrumbListLd, type FaqItem, faqPageLd, techArticleLd } from "@/lib/structured-data";
 import { contentCommitTimes, isTranslationOutdated } from "@/lib/translation-freshness";
 
 const CODE_HEADINGS_CLASS = "vk-code-headings";
@@ -53,7 +53,14 @@ async function pageJsonLd(
   if (trail.length > 0) blocks.push(breadcrumbListLd({ items: trail }));
 
   if (slug.length === 1 && slug[0] === "faq") {
-    const items = extractFaqItems(await page.data.getText("processed"));
+    const homeFaq = await getTranslations({ locale: lang, namespace: "landing.faq" });
+    const homeQuestions = Object.values(homeFaq.raw("items") as Record<string, FaqItem>).map(
+      (item) => item.question,
+    );
+    const items = withoutQuestions(
+      extractFaqItems(await page.data.getText("processed")),
+      homeQuestions,
+    );
     if (items.length > 0) blocks.push(faqPageLd({ items, lang }));
   }
   return blocks;
@@ -182,8 +189,10 @@ export async function generateMetadata(props: {
     `/docs-og${ogImageSegments.length ? `/${ogImageSegments.join("/")}` : ""}`,
   );
 
+  const title = page.data.seoTitle ?? page.data.title;
+
   return {
-    title: page.data.title,
+    title,
     description: page.data.description,
     alternates: {
       canonical: page.url,
@@ -194,7 +203,7 @@ export async function generateMetadata(props: {
       locale: lang,
       path: page.url,
       type: "article",
-      title: page.data.title,
+      title,
       description: page.data.description,
       image: { path: ogImagePath, alt: page.data.title },
     }),

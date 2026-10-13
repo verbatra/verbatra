@@ -29,3 +29,11 @@ export function extractFaqItems(markdown: string): FaqItem[] {
   }
   return items;
 }
+
+export function withoutQuestions(
+  items: ReadonlyArray<FaqItem>,
+  questions: ReadonlyArray<string>,
+): FaqItem[] {
+  const taken = new Set(questions);
+  return items.filter((item) => !taken.has(item.question));
+}

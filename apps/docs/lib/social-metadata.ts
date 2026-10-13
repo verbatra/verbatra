@@ -5,6 +5,14 @@ import { ogAlternateLocales, ogLocale, SITE_URL } from "./site";
 
 const TWITTER_HANDLE = "@mariokreitz";
 
+const BRAND = "verbatra";
+
+export const TITLE_SUFFIX = ` | ${BRAND}`;
+
+export function brandedTitle(title: string): string {
+  return title.toLowerCase().includes(BRAND) ? title : `${title}${TITLE_SUFFIX}`;
+}
+
 function descriptionOf(description: string | undefined): { description?: string } {
   return description === undefined ? {} : { description };
 }
@@ -26,11 +34,11 @@ export function socialMetadata(args: {
   return {
     openGraph: {
       type: args.type,
-      siteName: "verbatra",
+      siteName: BRAND,
       locale: ogLocale(args.locale),
       alternateLocale: ogAlternateLocales(args.locale),
       url: new URL(args.path, SITE_URL).href,
-      title: args.title,
+      title: brandedTitle(args.title),
       ...descriptionOf(args.description),
       images: [{ url: args.image.path, width: 1200, height: 630, alt: args.image.alt }],
     },
@@ -38,7 +46,7 @@ export function socialMetadata(args: {
       card: "summary_large_image",
       site: TWITTER_HANDLE,
       creator: TWITTER_HANDLE,
-      title: args.twitterTitle ?? args.title,
+      title: args.twitterTitle ?? brandedTitle(args.title),
       ...descriptionOf(args.twitterDescription ?? args.description),
       images: [args.image.path],
     },

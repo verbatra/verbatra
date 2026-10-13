@@ -1,8 +1,9 @@
 import { ImageResponse } from "next/og";
 import { NextResponse } from "next/server";
 import { toLocale } from "@/lib/i18n";
+import { loadOgFonts } from "@/lib/og-fonts";
 import { OG_IMAGE_SIZE, OgFrame } from "@/lib/og-image";
-import { SITE_URL } from "@/lib/site";
+import { SITE_HOST } from "@/lib/site";
 import { source } from "@/lib/source";
 
 export function generateStaticParams() {
@@ -20,11 +21,10 @@ export async function GET(
 
   return new ImageResponse(
     <OgFrame
-      eyebrow={locale.toUpperCase()}
       title={page.data.title}
       description={page.data.description}
-      footer={new URL(SITE_URL).host}
+      footer={`${SITE_HOST}${page.url}`}
     />,
-    { ...OG_IMAGE_SIZE },
+    { ...OG_IMAGE_SIZE, fonts: await loadOgFonts() },
   );
 }

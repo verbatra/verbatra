@@ -1,6 +1,7 @@
 ---
 title: verbatra translate
-description: Translate every target locale once, then exit.
+seoTitle: "verbatra translate: translate changed keys once"
+description: "Translate every target locale once, sending only new and changed keys to your provider, then write the results and exit."
 type: reference
 ---
 Run one translation pass over every target locale, then exit. `translate` diffs the source against [the lock file](/docs/the-lock-file), sends only new or changed strings to the provider, runs the [integrity checks](/docs/translation-safety), writes the locale files, and updates the lock. An unchanged string is never sent twice. A real run also adds missing entries to an existing `.gitignore`, see [.gitignore entries](/docs/cli#gitignore-entries).

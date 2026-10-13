@@ -4,6 +4,8 @@ import { CommandPanel, HeroTerminal } from "@/components/landing/islands";
 import { GITHUB_URL } from "@/components/landing/links";
 import Button, { buttonClasses } from "@/components/ui/button";
 import { localizedPath, toLocale } from "@/lib/i18n";
+import { nodeVersionsLabel } from "@/lib/node-requirement";
+import { NODE_RANGE } from "@/lib/site";
 
 export const HERO_TITLE_ID = "hero-title";
 
@@ -17,6 +19,7 @@ export async function Hero(): Promise<ReactNode> {
       <div aria-hidden="true" className="vk-banner-backdrop" />
       <div className="vk-banner-grid">
         <div className="vk-banner-copy">
+          <p className="vk-banner-eyebrow">{t("eyebrow")}</p>
           <h1 id={HERO_TITLE_ID} className="vk-banner-title">
             {t("headline")}
           </h1>
@@ -44,6 +47,9 @@ export async function Hero(): Promise<ReactNode> {
                 promptHint: tCommand("promptHint"),
               }}
             />
+            <p className="vk-banner-requirement">
+              {t("nodeRequirement", { versions: nodeVersionsLabel(NODE_RANGE, locale) })}
+            </p>
           </div>
         </div>
         <div className="vk-banner-demo">

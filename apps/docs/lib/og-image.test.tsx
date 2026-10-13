@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -20,6 +20,7 @@ import {
   OG_PALETTE,
   OG_TERMINAL_PROMPT,
   OG_WORDMARK,
+  OgFrame,
   titleFontSize,
 } from "./og-image";
 import { SITE_URL } from "./site";
@@ -95,6 +96,38 @@ describe("HomeOgFrame", () => {
   });
 });
 
+describe("OgFrame", () => {
+  const markup = renderToStaticMarkup(
+    <OgFrame
+      title="Formats"
+      description="Every supported format and what a write preserves."
+      footer="verbatra.kreitz-webdev.de/docs/formats"
+    />,
+  );
+
+  it("shares the home card's flat void page, wordmark and Geist faces, with no wash gradient", () => {
+    expect(markup).toContain(`background:${OG_PALETTE.void}`);
+    expect(markup).not.toContain("gradient");
+    expect(markup).toContain(`>${OG_WORDMARK}</div>`);
+    expect(markup).toContain(`font-family:${OG_FONT.display}`);
+    expect(markup).toContain(`font-family:${OG_FONT.mono}`);
+  });
+
+  it("draws the page title above its description and names the page URL in the top bar", () => {
+    const url = markup.indexOf("verbatra.kreitz-webdev.de/docs/formats");
+    const title = markup.indexOf(">Formats</div>");
+    const description = markup.indexOf("Every supported format");
+    expect(url).toBeGreaterThan(-1);
+    expect(title).toBeGreaterThan(url);
+    expect(description).toBeGreaterThan(title);
+  });
+
+  it("leaves the description out when a page has none", () => {
+    const bare = renderToStaticMarkup(<OgFrame title="Formats" footer="host" />);
+    expect(bare).not.toContain("border-left");
+  });
+});
+
 describe("OG_PALETTE", () => {
   const css = readFileSync(join(process.cwd(), "app/global.css"), "utf8");
   const token = (name: string) =>
@@ -142,10 +175,13 @@ describe("OG fonts", () => {
     expect(fonts.every((font) => font.data.byteLength > 0)).toBe(true);
   });
 
-  it("ships the font files with the home-og route in the standalone build", () => {
-    const config = readFileSync(join(process.cwd(), "next.config.mjs"), "utf8");
-    expect(config).toContain(`"/[lang]/home-og": ["./${OG_FONT_DIR}/*.ttf"]`);
-  });
+  it.each(["/[lang]/home-og", "/[lang]/docs-og/[[...slug]]"])(
+    "ships the font files with the %s route in the standalone build",
+    (route) => {
+      const config = readFileSync(join(process.cwd(), "next.config.mjs"), "utf8");
+      expect(config).toContain(`"${route}": ["./${OG_FONT_DIR}/*.ttf"]`);
+    },
+  );
 });
 
 describe("OG font coverage", () => {
@@ -190,7 +226,18 @@ describe("OG font coverage", () => {
   }
 
   const catalogs = { en, de, es, fr } as const;
+  const docsFrontmatter = readdirSync(join(process.cwd(), "content/docs"), {
+    recursive: true,
+    encoding: "utf8",
+  })
+    .filter((file) => file.endsWith(".mdx"))
+    .flatMap((file) => {
+      const source = readFileSync(join(process.cwd(), "content/docs", file), "utf8");
+      const frontmatter = /^---\n([\s\S]*?)\n---/.exec(source)?.[1] ?? "";
+      return Array.from(frontmatter.matchAll(/^(?:title|description): (.*)$/gm), (m) => m[1] ?? "");
+    });
   const drawn = [
+    ...docsFrontmatter,
     ...i18n.languages.map((locale) => catalogs[locale].landing.banner.headline),
     ...HERO_OG_LINES.map((line) => line.text),
     OG_TERMINAL_PROMPT,
@@ -202,7 +249,7 @@ describe("OG font coverage", () => {
   );
 
   it.each(OG_FONT_FILES.map((font) => font.file))(
-    "%s has a glyph for every character the home image draws",
+    "%s has a glyph for every character the home and docs images draw",
     (file) => {
       const covered = codePoints(file);
       const missing = needed.filter((code) => !covered.has(code));

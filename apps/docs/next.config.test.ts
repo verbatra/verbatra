@@ -2,7 +2,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { i18n } from "@/lib/i18n";
-import nextConfig, { MOVED_DOCS_PAGES } from "./next.config.mjs";
+import nextConfig, { DEFAULT_LOCALE_PREFIX_REDIRECTS, MOVED_DOCS_PAGES } from "./next.config.mjs";
 
 describe("next.config", () => {
   it("keeps English URLs unprefixed, so /docs and /contact share the shape of /de", () => {
@@ -22,6 +22,27 @@ describe("next.config", () => {
       minChunkSize: 200000,
       requestCost: 1000000,
     });
+  });
+});
+
+describe("the default locale prefix", () => {
+  it("sends /en and every /en/ path permanently to the unprefixed URL in one hop", async () => {
+    const redirects = (await nextConfig.redirects?.()) ?? [];
+    expect(DEFAULT_LOCALE_PREFIX_REDIRECTS).toEqual([
+      { source: `/${i18n.defaultLanguage}`, destination: "/", permanent: true },
+      { source: `/${i18n.defaultLanguage}/:path+`, destination: "/:path+", permanent: true },
+    ]);
+    for (const redirect of DEFAULT_LOCALE_PREFIX_REDIRECTS)
+      expect(redirects).toContainEqual(redirect);
+  });
+
+  it("matches no unprefixed English page, so the redirect cannot loop", () => {
+    const [, prefixed] = DEFAULT_LOCALE_PREFIX_REDIRECTS;
+    const pattern = new RegExp(`^${prefixed?.source.replace("/:path+", "/.+")}$`);
+    for (const path of ["/", "/docs", "/docs/cli/check", "/contact", "/en-us"]) {
+      expect(pattern.test(path), path).toBe(false);
+    }
+    expect(pattern.test("/en/docs")).toBe(true);
   });
 });
 

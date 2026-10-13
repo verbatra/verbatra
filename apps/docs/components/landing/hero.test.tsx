@@ -10,6 +10,8 @@ import {
   HERO_TRANSLATE_OUTPUT,
 } from "@/lib/hero-terminal";
 import { NPM_INSTALL_COMMAND } from "@/lib/install-commands";
+import { nodeVersionsLabel } from "@/lib/node-requirement";
+import { NODE_RANGE } from "@/lib/site";
 import { docsStylesheetRules } from "@/lib/stylesheet-rules";
 import messages from "@/messages/en.json";
 import { preloadRegisteredIslands } from "@/test-support/islands";
@@ -74,6 +76,22 @@ describe("Hero", () => {
     expect(h1s[0]?.id).toBe(HERO_TITLE_ID);
     expect(section?.getAttribute("aria-labelledby")).toBe(HERO_TITLE_ID);
     expect(doc.querySelector(".vk-banner-lead")?.textContent).toBe(banner.lead);
+  });
+
+  it("opens with an eyebrow that names the category, the license and the audience", async () => {
+    const copy = (await render()).querySelector(".vk-banner-copy");
+    const eyebrow = copy?.firstElementChild;
+    expect(eyebrow?.tagName).toBe("P");
+    expect(eyebrow?.className).toBe("vk-banner-eyebrow");
+    expect(eyebrow?.textContent).toBe(banner.eyebrow);
+    expect(eyebrow?.nextElementSibling?.tagName).toBe("H1");
+  });
+
+  it("states the Node.js requirement under the install command, read from the engines range", async () => {
+    const note = (await render()).querySelector(".vk-banner-install .vk-banner-requirement");
+    expect(note?.textContent).toBe(
+      banner.nodeRequirement.replace("{versions}", nodeVersionsLabel(NODE_RANGE, "en")),
+    );
   });
 
   it("offers Get started to the quickstart and View on GitHub in a new tab", async () => {

@@ -78,9 +78,9 @@ describe("the global not-found page", () => {
     ]);
   });
 
-  it("keeps itself out of search results", async () => {
+  it("leaves the noindex to Next, which marks every 404 response, so the head has one robots tag", async () => {
     const metadata = await generateMetadata();
     expect(metadata.title).toBe(`${messages.notFound.meta.title} | verbatra`);
-    expect(metadata.robots).toEqual({ index: false, follow: true });
+    expect(metadata).not.toHaveProperty("robots");
   });
 });

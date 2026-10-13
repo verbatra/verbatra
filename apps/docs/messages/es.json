@@ -3,7 +3,7 @@
     "meta": {
       "title": "verbatra: traduce solo las claves i18n que cambiaron",
       "ogTitle": "verbatra: traduce solo lo que cambió",
-      "description": "verbatra compara tus archivos de locale con la fuente, traduce solo las claves nuevas y cambiadas con el proveedor que elijas y hace fallar la CI mientras falte una clave.",
+      "description": "verbatra es una CLI y un SDK de i18n de código abierto. Compara tus archivos de locale con la fuente y envía solo las claves nuevas o cambiadas a tu proveedor.",
       "ogDescription": "Revisa tus archivos de locale, traduce solo las claves cambiadas y protege la CI.",
       "ogImageAlt": "verbatra: Traduce solo lo que cambió, sobre una ejecución de check que encuentra dos claves faltantes por locale y una de translate que envía solo esas.",
       "definition": "verbatra es una CLI y un SDK de código abierto que comparan los archivos de locale i18n con la fuente, traducen solo las claves nuevas y cambiadas a través del proveedor de IA o de traducción automática que elijas y hacen fallar la CI mientras falte una clave."
@@ -187,11 +187,13 @@
       }
     },
     "banner": {
+      "eyebrow": "CLI y SDK de i18n de código abierto (MIT) para desarrolladores",
       "headline": "Traduce solo lo que cambió.",
-      "lead": "verbatra compara tus archivos de locale con la fuente, envía solo las claves nuevas y cambiadas al proveedor que elijas y hace fallar la CI mientras falte una clave.",
+      "lead": "verbatra compara tus archivos de locale con la fuente y envía solo las claves nuevas o cambiadas al proveedor que elijas. En la CI, el build falla mientras falte una clave.",
       "ctaPrimary": "Empezar",
       "ctaSecondary": "Ver en GitHub",
       "installLabel": "Instala la CLI",
+      "nodeRequirement": "Requiere Node.js {versions}",
       "terminalLabel": "Una ejecución de verbatra check encuentra dos claves que faltan en cada locale. Después, una ejecución de translate envía solo esas claves.",
       "terminalExample": "Salida de ejemplo",
       "replay": "Repetir"

@@ -4,9 +4,11 @@ import { withoutInlineCode } from "@/lib/inline-code-text";
 import { LANDING_STEP_IDS } from "@/lib/landing-code";
 import { SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import en from "../messages/en.json";
+import { NODE_RANGE } from "./site";
 import {
   breadcrumbListLd,
   howToLd,
+  ORGANIZATION_LOGO,
   organizationLd,
   SUPPORTED_AGENT_CLIENTS,
   softwareApplicationLd,
@@ -23,6 +25,12 @@ const ORGANIZATION_NODE = {
   "@id": ORGANIZATION_ID,
   name: "verbatra",
   url: "https://verbatra.kreitz-webdev.de",
+  logo: {
+    "@type": "ImageObject",
+    url: "https://verbatra.kreitz-webdev.de/icon-512.png",
+    width: 512,
+    height: 512,
+  },
 };
 
 const ORGANIZATION_REF = { "@id": ORGANIZATION_ID };
@@ -36,6 +44,16 @@ describe("organizationLd", () => {
       ...ORGANIZATION_NODE,
       sameAs: ["https://github.com/verbatra"],
     });
+  });
+});
+
+describe("ORGANIZATION_LOGO", () => {
+  it("is a served PNG of the declared size, above the 112px search engines require", () => {
+    const png = readFileSync(new URL(`../public${ORGANIZATION_LOGO.path}`, import.meta.url));
+    expect(png.toString("latin1", 1, 4)).toBe("PNG");
+    expect(png.readUInt32BE(16)).toBe(ORGANIZATION_LOGO.width);
+    expect(png.readUInt32BE(20)).toBe(ORGANIZATION_LOGO.height);
+    expect(ORGANIZATION_LOGO.width).toBeGreaterThanOrEqual(112);
   });
 });
 
@@ -105,6 +123,20 @@ describe("softwareApplicationLd", () => {
     const names = (result.hasPart as ReadonlyArray<{ name: string }>).map((part) => part.name);
     expect(names).toEqual(["Verbatra Studio", "Verbatra MCP server"]);
     expect(en.landing.studio.heading).toContain("Verbatra Studio");
+  });
+
+  it("states the Node.js range of the published packages for the app and every part", () => {
+    const result = softwareApplicationLd({
+      description: "test",
+      lang: "en",
+      version: "1.0.0",
+      studioVersion: "1.0.0",
+      mcpVersion: "1.0.0",
+    });
+    const parts = result.hasPart as ReadonlyArray<{ operatingSystem: string }>;
+    for (const value of [result.operatingSystem, ...parts.map((part) => part.operatingSystem)]) {
+      expect(value).toBe(`Node.js ${NODE_RANGE}`);
+    }
   });
 });
 

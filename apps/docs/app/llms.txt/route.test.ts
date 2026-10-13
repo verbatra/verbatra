@@ -95,6 +95,11 @@ describe("llms.txt", () => {
     expect(body).toContain("Accept: text/markdown");
   });
 
+  it("states the Node.js range the published packages declare", async () => {
+    const { NODE_RANGE } = await import("@/lib/site");
+    expect(body).toContain(`- Requires Node.js ${NODE_RANGE}\n`);
+  });
+
   it("points an agent at the MCP client setup page from the agent section", () => {
     const agents = body.slice(body.indexOf("## For AI agents"), body.indexOf("## Introduction"));
     expect(agents).toContain(

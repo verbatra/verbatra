@@ -56,7 +56,7 @@
     "meta": {
       "title": "verbatra: translate only the i18n keys that changed",
       "ogTitle": "verbatra: translate only what changed",
-      "description": "verbatra checks your locale files against the source, translates only new and changed keys with the provider you pick, and fails CI while a key is missing.",
+      "description": "verbatra is an open source i18n CLI and SDK. It checks your locale files against the source and sends only new or changed keys to your translation provider.",
       "ogDescription": "Check your locale files, translate only changed keys, and gate CI.",
       "ogImageAlt": "verbatra: Translate only what changed, above a check run that finds two missing keys per locale and a translate run that sends only those.",
       "definition": "verbatra is an open source CLI and SDK that checks i18n locale files against the source, translates only new and changed keys through the AI or machine-translation provider you pick, and fails CI while a key is missing."
@@ -240,11 +240,13 @@
       }
     },
     "banner": {
+      "eyebrow": "Open source (MIT) i18n CLI and SDK for developers",
       "headline": "Translate only what changed.",
-      "lead": "verbatra compares your locale files with the source, sends only new and changed keys to the provider you pick, and fails CI while a key is missing.",
+      "lead": "verbatra compares your locale files with the source and sends only new or changed keys to the provider you pick. In CI, it fails the build while a key is missing.",
       "ctaPrimary": "Get started",
       "ctaSecondary": "View on GitHub",
       "installLabel": "Install the CLI",
+      "nodeRequirement": "Requires Node.js {versions}",
       "terminalLabel": "A verbatra check run finds two missing keys in each locale. A translate run then sends only those keys.",
       "terminalExample": "Example output",
       "replay": "Replay"

@@ -1,6 +1,7 @@
 ---
 title: verbatra translate
-description: Traduit chaque locale cible une fois, puis termine.
+seoTitle: "verbatra translate : traduire les clés modifiées"
+description: "Traduit chaque locale cible une fois : seules les clés nouvelles et modifiées partent chez ton fournisseur, puis la commande écrit les résultats et termine."
 type: reference
 ---
 Lance une passe de traduction sur chaque locale cible, puis termine. `translate` compare la source au [fichier de verrouillage](/fr/docs/the-lock-file), n'envoie au fournisseur que les chaînes nouvelles ou modifiées, exécute les [contrôles d'intégrité](/fr/docs/translation-safety), écrit les fichiers de locale et met à jour le verrou. Une chaîne inchangée n'est jamais envoyée deux fois. Une vraie exécution ajoute aussi les entrées manquantes à un `.gitignore` existant, voir [Entrées du .gitignore](/fr/docs/cli#entrées-du-gitignore).

@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { homeOgImagePath, socialMetadata } from "./social-metadata";
+import { brandedTitle, homeOgImagePath, socialMetadata, TITLE_SUFFIX } from "./social-metadata";
 
 const ORIGIN = "https://verbatra.kreitz-webdev.de";
 
@@ -17,6 +17,20 @@ describe("homeOgImagePath", () => {
   });
 });
 
+describe("brandedTitle", () => {
+  it("ends a title with the brand the way the <title> template does", () => {
+    expect(brandedTitle("Formats")).toBe(`Formats${TITLE_SUFFIX}`);
+    expect(TITLE_SUFFIX).toBe(" | verbatra");
+  });
+
+  it("leaves a title that already names verbatra alone", () => {
+    expect(brandedTitle("verbatra check: find missing keys")).toBe(
+      "verbatra check: find missing keys",
+    );
+    expect(brandedTitle("Verbatra Studio")).toBe("Verbatra Studio");
+  });
+});
+
 describe("socialMetadata", () => {
   const legal = socialMetadata({
     locale: "de",
@@ -28,7 +42,10 @@ describe("socialMetadata", () => {
   });
 
   it("points og:url at the page itself rather than the home page", () => {
-    expect(legal.openGraph).toMatchObject({ url: `${ORIGIN}/de/imprint`, title: "Impressum" });
+    expect(legal.openGraph).toMatchObject({
+      url: `${ORIGIN}/de/imprint`,
+      title: "Impressum | verbatra",
+    });
   });
 
   it("uses the page's locale and lists the other three as alternates", () => {
@@ -60,8 +77,15 @@ describe("socialMetadata", () => {
       twitterTitle: "long title",
       twitterDescription: "long description",
     });
-    expect(home.openGraph).toMatchObject({ title: "short", description: "short description" });
+    expect(home.openGraph).toMatchObject({
+      title: "short | verbatra",
+      description: "short description",
+    });
     expect(home.twitter).toMatchObject({ title: "long title", description: "long description" });
+  });
+
+  it("brands the Twitter title too when no longer one is given", () => {
+    expect(legal.twitter).toMatchObject({ title: "Impressum | verbatra" });
   });
 
   it("omits the description entirely when a page has none", () => {
