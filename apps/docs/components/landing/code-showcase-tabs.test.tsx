@@ -45,7 +45,7 @@ async function settle(): Promise<void> {
 function selectTab(container: HTMLElement, index: number): void {
   const tab = container.querySelectorAll<HTMLButtonElement>('[role="tab"]')[index];
   act(() => {
-    tab?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
+    tab?.click();
   });
 }
 
@@ -57,7 +57,7 @@ describe("CodeShowcaseTabs", () => {
     ]);
     await settle();
     expect(motion.loads).toBe(0);
-    const root = container.querySelector<HTMLElement>('[data-slot="tabs"]');
+    const root = container.firstElementChild;
     await act(async () => {
       root?.dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));
     });
@@ -92,7 +92,7 @@ describe("CodeShowcaseTabs", () => {
     await act(async () => copy?.click());
     copy?.focus();
     expect(copy?.textContent).toBe(en.landing.install.copied);
-    const root = container.querySelector<HTMLElement>('[data-slot="tabs"]');
+    const root = container.firstElementChild;
     await act(async () => {
       root?.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
     });
@@ -118,6 +118,28 @@ describe("CodeShowcaseTabs", () => {
     );
     expect(source).not.toMatch(/from "motion/);
     expect(source).toContain('import("./code-showcase-fade")');
+  });
+
+  it("wires every tab to its panel, keeps panels focusable and moves selection with the arrow keys", () => {
+    const container = mount([
+      { id: "a", label: "A", panel: <p>first</p> },
+      { id: "b", label: "B", panel: <p>second</p> },
+    ]);
+    const tabs = [...container.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+    const panels = [...container.querySelectorAll<HTMLElement>('[role="tabpanel"]')];
+    tabs.forEach((tab, index) => {
+      expect(tab.getAttribute("aria-controls")).toBe(panels[index]?.id);
+      expect(panels[index]?.getAttribute("aria-labelledby")).toBe(tab.id);
+      expect(panels[index]?.tabIndex).toBe(0);
+      expect(tab.className).toContain("min-h-11");
+    });
+    expect(panels.map((panel) => panel.dataset.active)).toEqual(["true", "false"]);
+    act(() => {
+      tabs[0]?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    });
+    expect(document.activeElement).toBe(tabs[1]);
+    expect(tabs.map((tab) => tab.getAttribute("aria-selected"))).toEqual(["false", "true"]);
+    expect(panels.map((panel) => panel.dataset.active)).toEqual(["false", "true"]);
   });
 
   it("renders an empty tab list without throwing", () => {

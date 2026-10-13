@@ -70,7 +70,7 @@ const HEADER_COPYRIGHT = /^(?:copyright\b|\(c\)|©)/i;
 const TITLE_LINE = /^(?:the\s+)?[\w.-]*(?:\s+[\w.()-]+){0,4}\s+licen[cs]e(?:\s+\(\w+\))?:?$/i;
 const TEMPLATE_COPYRIGHT = /\[yyyy\]|\{yyyy\}|<year>|\[name of copyright owner\]/i;
 
-export const ASSET_SOURCES: ReadonlyArray<AssetSource> = [
+const ASSET_SOURCES: ReadonlyArray<AssetSource> = [
   {
     name: "Geist and Geist Mono fonts",
     license: "OFL-1.1",
@@ -156,7 +156,7 @@ function dependencyNames(manifest: Manifest): string[] {
   return Object.keys(deps as Record<string, unknown>);
 }
 
-export function collectPackages(appDir: string): CollectedPackage[] {
+function collectPackages(appDir: string): CollectedPackage[] {
   const collected = new Map<string, CollectedPackage>();
   const visited = new Set<string>();
   const queue = dependencyNames(readManifest(appDir)).map((name) => ({ from: appDir, name }));

@@ -1,6 +1,6 @@
 import type { SupportedFormat } from "@verbatra/sdk";
 
-export type StackFramework = {
+type StackFramework = {
   readonly key: string;
   readonly name: string;
   readonly format: SupportedFormat;

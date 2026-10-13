@@ -4,7 +4,7 @@ import { Tabs } from "fumadocs-ui/components/tabs";
 import { type ComponentProps, type ReactNode, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
-export const DOCS_TABS_CLASS = "vk-docs-tabs";
+const DOCS_TABS_CLASS = "vk-docs-tabs";
 
 const START_EDGE = 16;
 const END_EDGE = 48;

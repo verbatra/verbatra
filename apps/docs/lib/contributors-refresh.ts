@@ -4,7 +4,7 @@ import { z } from "zod";
 import type { Contributor } from "./contributors";
 
 export const CONTRIBUTORS_URL = "https://api.github.com/repos/verbatra/verbatra/contributors";
-export const CONTRIBUTORS_CAP = 24;
+const CONTRIBUTORS_CAP = 24;
 export const AVATAR_MAX_BYTES = 256 * 1024;
 const AVATAR_PIXELS = 64;
 const AVATAR_EXTENSIONS: Readonly<Record<string, string>> = {
@@ -20,13 +20,13 @@ const githubContributorSchema = z.object({
   type: z.string(),
 });
 
-export type ContributorSource = {
+type ContributorSource = {
   login: string;
   avatarUrl: string;
   profileUrl: string;
 };
 
-export type RefreshContributorsOptions = {
+type RefreshContributorsOptions = {
   avatarDir: string;
   manifestPath: string;
   validate: (data: unknown) => Contributor[];

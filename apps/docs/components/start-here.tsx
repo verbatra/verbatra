@@ -17,7 +17,7 @@ export function StartHere(): ReactNode {
     >
       <div className="grid gap-1 px-3.5 pt-3 pb-2.5">
         <p className="vk-label m-0">{t("title")}</p>
-        <p className="m-0 text-sm leading-(--leading-normal) text-pretty text-[color:var(--text-body)]">
+        <p className="m-0 text-sm leading-(--leading-normal) text-pretty text-(--text-body)">
           {withInlineCode(t("lead"))}
         </p>
       </div>

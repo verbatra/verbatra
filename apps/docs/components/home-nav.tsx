@@ -11,7 +11,7 @@ import { LIVE_COUNT_SLOT } from "@/lib/live-count";
 import { reservedWidth, useLiveCount } from "@/lib/live-stats";
 import { cn } from "@/lib/utils";
 
-export type HomeNavLabels = {
+type HomeNavLabels = {
   readonly label: string;
   readonly docs: string;
   readonly github: string;

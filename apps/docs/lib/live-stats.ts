@@ -4,7 +4,7 @@ import { afterFirstContentfulPaint } from "@/lib/first-paint";
 
 export const LIVE_STATS_URL = "/api/stats";
 
-export type LiveStats = {
+type LiveStats = {
   readonly stars: number | null;
   readonly downloads: number | null;
 };

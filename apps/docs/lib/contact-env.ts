@@ -2,11 +2,11 @@ import { z } from "zod";
 
 const requiredText = z.string().trim().min(1);
 
-export const arcjetEnvSchema = z.object({
+const arcjetEnvSchema = z.object({
   ARCJET_KEY: requiredText,
 });
 
-export const smtpEnvSchema = z.object({
+const smtpEnvSchema = z.object({
   CONTACT_SMTP_HOST: requiredText,
   CONTACT_SMTP_PORT: z.coerce.number().int().min(1).max(65_535),
   CONTACT_SMTP_USER: requiredText,
@@ -14,11 +14,11 @@ export const smtpEnvSchema = z.object({
   CONTACT_SMTP_FROM: requiredText,
 });
 
-export type ArcjetEnv = z.infer<typeof arcjetEnvSchema>;
+type ArcjetEnv = z.infer<typeof arcjetEnvSchema>;
 
-export type SmtpEnv = z.infer<typeof smtpEnvSchema>;
+type SmtpEnv = z.infer<typeof smtpEnvSchema>;
 
-export type EnvCheck<T> = { ok: true; value: T } | { ok: false; invalid: string[] };
+type EnvCheck<T> = { ok: true; value: T } | { ok: false; invalid: string[] };
 
 type Env = Readonly<Record<string, string | undefined>>;
 

@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
+import { PanelCaption } from "@/components/ui/panel-caption";
 import { type HighlightLanguage, highlightLandingCode } from "@/lib/landing-highlight";
 import { cn } from "@/lib/utils";
 import { CopyButton } from "./islands";
 
-export type CodeFrameProps = {
+type CodeFrameProps = {
   code: string;
   lang: HighlightLanguage;
   filename?: string | undefined;
@@ -32,12 +33,12 @@ export async function CodeFrame({
       )}
     >
       {filename ? (
-        <div className="flex min-h-10 items-center justify-between gap-3 border-b border-(--border-default) px-4 py-1.5">
+        <PanelCaption density="control">
           <figcaption className="min-w-0 truncate font-mono text-xs text-(--text-muted)">
             {filename}
           </figcaption>
           {copyButton}
-        </div>
+        </PanelCaption>
       ) : null}
       <div className="flex items-start">
         <div className={BODY_CLASS}>{highlighted}</div>

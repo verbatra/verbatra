@@ -1,5 +1,3 @@
-"use client";
-
 import type { ReactNode } from "react";
 import { type CommandLineLink, HighlightedCommand } from "@/components/ui/command-line";
 import { CopyButton } from "@/components/ui/copy-button";
@@ -31,7 +29,7 @@ export function CommandRow({
       </span>
       <code
         className={cn(
-          "min-w-0 flex-1 pt-1 text-[color:var(--text-strong)]",
+          "min-w-0 flex-1 pt-1 text-(--text-strong)",
           wrap === "always" ? "whitespace-normal" : "vk-edge-fade whitespace-nowrap",
           wrap === "narrow" && "@max-[30rem]:whitespace-normal",
         )}

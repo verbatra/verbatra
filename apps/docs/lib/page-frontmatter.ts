@@ -1,6 +1,6 @@
 import type { PageType } from "./page-type";
 
-export interface PageFrontmatter {
+interface PageFrontmatter {
   readonly title: string;
   readonly description?: string | undefined;
   readonly type?: PageType | undefined;

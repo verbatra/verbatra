@@ -18,7 +18,7 @@ export const CLI_REFERENCE_PAGES: readonly string[] = ["index", "output"];
 
 export const COMMAND_PAGE_CEILING = 2000;
 
-export const HEADROOM_WARNING_RATIO = 0.9;
+const HEADROOM_WARNING_RATIO = 0.9;
 
 export type PageBudget = {
   readonly file: string;
@@ -46,7 +46,7 @@ export function pageType(source: string): string | undefined {
   return /^type:\s*(\S+)\s*$/m.exec(frontmatter)?.[1];
 }
 
-export function isCommandPage(file: string): boolean {
+function isCommandPage(file: string): boolean {
   const name = /^cli\/([^/.]+)\.mdx$/.exec(file)?.[1];
   return name !== undefined && !CLI_REFERENCE_PAGES.includes(name);
 }

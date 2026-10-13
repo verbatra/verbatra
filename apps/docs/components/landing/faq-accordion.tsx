@@ -8,7 +8,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/shadcn/accordion";
 
-export type FaqAccordionItem = {
+type FaqAccordionItem = {
   readonly id: string;
   readonly question: string;
   readonly content: ReactNode;
@@ -18,7 +18,7 @@ const ITEM_CLASS =
   "border-b border-(--border-default) [&[data-state=closed]>[data-slot=accordion-content]]:hidden";
 
 const TRIGGER_CLASS =
-  "items-center py-5 text-(length:--text-h4) font-semibold text-(--text-strong) hover:text-[color:var(--accent)] hover:no-underline data-[state=open]:text-[color:var(--accent)] [&>svg]:size-5 [&>svg]:translate-y-0 [&>svg]:text-[color:var(--accent)] motion-reduce:[&>svg]:transition-none";
+  "items-center py-5 text-(length:--text-h4) font-semibold text-(--text-strong) hover:text-(--accent) hover:no-underline data-[state=open]:text-(--accent) [&>svg]:size-5 [&>svg]:translate-y-0 [&>svg]:text-(--accent) motion-reduce:[&>svg]:transition-none";
 
 export function FaqAccordion({
   className,

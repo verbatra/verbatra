@@ -13,7 +13,7 @@ const optOutFormSchema = z.object({
   lang: z.enum(i18n.languages),
 });
 
-export type OptOutForm = z.infer<typeof optOutFormSchema>;
+type OptOutForm = z.infer<typeof optOutFormSchema>;
 
 export function parseOptOutForm(body: string): OptOutForm | undefined {
   const result = optOutFormSchema.safeParse(Object.fromEntries(new URLSearchParams(body)));

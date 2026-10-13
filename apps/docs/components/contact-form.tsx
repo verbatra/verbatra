@@ -20,7 +20,7 @@ type ContactResponseBody =
   | { status: "error" };
 
 const INPUT_CLASS =
-  "rounded-[10px] border border-(--border-default) bg-(--surface-bg) px-3 py-2 text-sm text-(--text-strong) transition-colors aria-invalid:border-[color:var(--border-danger)]";
+  "rounded-[10px] border border-(--border-default) bg-(--surface-bg) px-3 py-2 text-sm text-(--text-strong) transition-colors aria-invalid:border-(--border-danger)";
 
 async function submitContactForm(formData: FormData): Promise<ContactResponseBody> {
   const response = await fetch("/api/contact", {
@@ -46,20 +46,20 @@ function StatusMessage({
 }): ReactNode {
   if (state === "success") {
     return (
-      <p className="text-[color:var(--text-success)]">
+      <p className="text-(--text-success)">
         <strong>{t("successTitle")}</strong> {t("successBody")}
       </p>
     );
   }
   if (state === "rate_limited") {
-    return <p className="text-[color:var(--text-danger)]">{t("rateLimitedBody")}</p>;
+    return <p className="text-(--text-danger)">{t("rateLimitedBody")}</p>;
   }
   if (state === "error" && hasFieldErrors) {
-    return <p className="text-[color:var(--text-danger)]">{t("validationErrorBody")}</p>;
+    return <p className="text-(--text-danger)">{t("validationErrorBody")}</p>;
   }
   if (state === "error") {
     return (
-      <p className="text-[color:var(--text-danger)]">
+      <p className="text-(--text-danger)">
         <strong>{t("errorTitle")}</strong> {t("errorBody")}
       </p>
     );
@@ -107,7 +107,7 @@ function Field({
         <input {...sharedProps} type={type} maxLength={maxLength} />
       )}
       {errorText && (
-        <p id={errorId} className="text-sm text-[color:var(--text-danger)]">
+        <p id={errorId} className="text-sm text-(--text-danger)">
           {errorText}
         </p>
       )}
@@ -211,7 +211,7 @@ export function ContactForm({
       >
         {state === "loading" ? t("submitting") : t("submit")}
       </button>
-      <p className="-mt-2 text-sm text-[color:var(--text-muted)]">{privacyNotice}</p>
+      <p className="-mt-2 text-sm text-(--text-muted)">{privacyNotice}</p>
       <div role="status" aria-live="polite" className="text-sm">
         <StatusMessage state={state} hasFieldErrors={Object.keys(fieldErrors).length > 0} t={t} />
       </div>

@@ -22,10 +22,7 @@ import {
 import { isLinkItemActive, LinkItem } from "@/lib/link-items";
 import { cn } from "@/lib/utils";
 
-export type HeaderSlots = Pick<
-  BaseSlots,
-  "navTitle" | "searchTrigger" | "languageSelect" | "themeSwitch"
->;
+type HeaderSlots = Pick<BaseSlots, "navTitle" | "searchTrigger" | "languageSelect" | "themeSwitch">;
 
 type IconItem = Extract<LinkItemType, { type: "icon" }>;
 
@@ -136,7 +133,7 @@ function LanguageSelect({
   );
 }
 
-export type SiteHeaderFrameProps = ComponentProps<"header"> & {
+type SiteHeaderFrameProps = ComponentProps<"header"> & {
   slots: HeaderSlots;
   navItems: ReadonlyArray<LinkItemType>;
   mobileTrigger: ReactNode;
@@ -226,7 +223,7 @@ export function SiteHeaderFrame({
   );
 }
 
-export type HomeSiteHeaderProps = ComponentProps<"header"> & {
+type HomeSiteHeaderProps = ComponentProps<"header"> & {
   wordmark: ReactNode;
   homeUrl: string;
 };

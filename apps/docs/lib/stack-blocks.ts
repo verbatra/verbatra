@@ -14,10 +14,10 @@ import {
   stackText,
 } from "./stacks";
 
-export const STACK_BLOCK_COMPONENT = "StackBlock";
-export const STACK_TEXT_COMPONENT = "StackText";
-export const STACK_ONLY_COMPONENT = "StackOnly";
-export const INIT_COMMAND_COMPONENT = "InitCommand";
+const STACK_BLOCK_COMPONENT = "StackBlock";
+const STACK_TEXT_COMPONENT = "StackText";
+const STACK_ONLY_COMPONENT = "StackOnly";
+const INIT_COMMAND_COMPONENT = "InitCommand";
 
 type FormatSchema = { properties: { format: { anyOf: readonly { enum?: readonly string[] }[] } } };
 
@@ -143,7 +143,7 @@ function initCommandNode(node: StackMdxNode): StackMdxNode {
   return { type: "code", lang: "bash", meta: null, value: initCommand(format) };
 }
 
-export function expandInitCommands(node: StackMdxNode): void {
+function expandInitCommands(node: StackMdxNode): void {
   if (node.children === undefined) return;
   node.children = node.children.map((child) => {
     if (isElement(child, INIT_COMMAND_COMPONENT)) return initCommandNode(child);
@@ -156,7 +156,7 @@ function containsStackElement(node: StackMdxNode): boolean {
   return isStackElement(node) || (node.children ?? []).some(containsStackElement);
 }
 
-export function pageStack(frontmatter: unknown): Stack | undefined {
+function pageStack(frontmatter: unknown): Stack | undefined {
   if (typeof frontmatter !== "object" || frontmatter === null || !("stack" in frontmatter)) {
     return undefined;
   }

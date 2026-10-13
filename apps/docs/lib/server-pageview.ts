@@ -52,7 +52,7 @@ export const MAX_LANGUAGE_LENGTH = 35;
 
 export const MAX_REFERRER_LENGTH = 500;
 
-export interface PageviewPayload {
+interface PageviewPayload {
   readonly website: string;
   readonly hostname: string;
   readonly url: string;

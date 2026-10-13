@@ -1,7 +1,7 @@
 import type { SupportedFormat } from "@verbatra/sdk";
 import { Fragment, type ReactNode } from "react";
 import { StackIcon, type StackIconKey, StackIconSprite } from "@/components/stack-icons";
-import { TrackedLink } from "@/components/ui/tracked-link";
+import { PrefetchAfterPaintLink } from "@/components/ui/prefetch-after-paint-link";
 import { type Locale, localizeHref } from "@/lib/i18n";
 
 const ICON_SIZE = 28;
@@ -17,7 +17,7 @@ export type StackCard = {
   description?: string;
 };
 
-export function stackIconPrefix(labelledBy: string): string {
+function stackIconPrefix(labelledBy: string): string {
   return `vk-stack-icon-${labelledBy}`;
 }
 
@@ -66,7 +66,7 @@ function Card({
     <li className="vk-stack-card">
       <div className="vk-stack-card-text">
         <p className="vk-stack-card-name">
-          <TrackedLink
+          <PrefetchAfterPaintLink
             href={localizeHref(locale, card.href) ?? card.href}
             className="vk-stack-card-link"
           >
@@ -77,7 +77,7 @@ function Card({
                 {card.badge}
               </span>
             )}
-          </TrackedLink>
+          </PrefetchAfterPaintLink>
           <Chevron />
         </p>
         {card.description === undefined ? null : (

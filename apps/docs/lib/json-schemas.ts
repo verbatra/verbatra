@@ -2,13 +2,13 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { SITE_URL } from "@/lib/site";
 
-export const SCHEMA_PACKAGES = ["@verbatra/sdk", "@verbatra/cli"] as const;
+const SCHEMA_PACKAGES = ["@verbatra/sdk", "@verbatra/cli"] as const;
 
 export const SCHEMA_CONTENT_TYPE = "application/schema+json";
 
 export const SCHEMA_PATH = "/schema/v1";
 
-export interface PublishedSchema {
+interface PublishedSchema {
   readonly name: string;
   readonly packageName: (typeof SCHEMA_PACKAGES)[number];
   readonly document: Readonly<Record<string, unknown>>;

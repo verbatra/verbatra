@@ -2,7 +2,7 @@ export type CompareMark = "yes" | "partial" | "no";
 
 export type CompareColumn = "verbatra" | "manual" | "tms";
 
-export type CompareRowId =
+type CompareRowId =
   | "changedOnly"
   | "ciGate"
   | "placeholders"
@@ -13,7 +13,7 @@ export type CompareRowId =
   | "cost"
   | "setup";
 
-export type CompareRow = {
+type CompareRow = {
   readonly id: CompareRowId;
   readonly marks?: Readonly<Record<CompareColumn, CompareMark>>;
 };

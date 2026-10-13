@@ -6,7 +6,7 @@ import { CopyButton } from "@/components/ui/copy-button";
 
 export type CommandLineLink = { token: string; href: string };
 
-export type HighlightedCommandProps = {
+type HighlightedCommandProps = {
   command: string;
   link?: CommandLineLink;
 };
@@ -43,7 +43,7 @@ export function HighlightedCommand({ command, link }: HighlightedCommandProps): 
         target="_blank"
         rel="noreferrer noopener"
         onClick={(event) => event.stopPropagation()}
-        className="inline rounded align-baseline underline decoration-(--border-default) underline-offset-4 transition-colors hover:text-[var(--accent)] hover:decoration-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-ring)"
+        className="inline rounded align-baseline underline decoration-(--border-default) underline-offset-4 transition-colors hover:text-(--accent) hover:decoration-(--accent) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-ring)"
       >
         {link.token}
       </a>
@@ -52,7 +52,7 @@ export function HighlightedCommand({ command, link }: HighlightedCommandProps): 
   );
 }
 
-export type CommandLineProps = {
+type CommandLineProps = {
   command: string;
   link?: CommandLineLink;
 };

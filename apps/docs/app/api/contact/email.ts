@@ -9,11 +9,11 @@ export type EmailClient = {
   sendMail: Transporter["sendMail"];
 };
 
-export type SendContactEmailDeps = {
+type SendContactEmailDeps = {
   client?: EmailClient;
 };
 
-export type SendContactEmailResult = { ok: true } | { ok: false };
+type SendContactEmailResult = { ok: true } | { ok: false };
 
 function buildNotificationEmail(payload: ContactPayload): { subject: string; text: string } {
   const subject = `New contact form message from ${payload.name}`;
@@ -37,7 +37,7 @@ function describeSendFailure(error: unknown): { code?: string; message: string }
   return code === undefined ? { message: error.message } : { code, message: error.message };
 }
 
-export type ContactMailer = {
+type ContactMailer = {
   client: EmailClient;
   fromAddress: string;
 };

@@ -1,5 +1,5 @@
 import type { ComponentPropsWithoutRef, CSSProperties, ReactNode } from "react";
-import { TrackedLink } from "@/components/ui/tracked-link";
+import { PrefetchAfterPaintLink } from "@/components/ui/prefetch-after-paint-link";
 
 type ButtonLook = {
   variant?: "primary" | "secondary" | "ghost";
@@ -12,19 +12,19 @@ type ButtonLook = {
 type LinkButtonProps = ButtonLook & {
   href: string;
   disabled?: boolean;
-} & Omit<ComponentPropsWithoutRef<"a">, keyof ButtonLook | "href" | "onClick" | "onAuxClick">;
+} & Omit<ComponentPropsWithoutRef<"a">, keyof ButtonLook | "href">;
 
 type NativeButtonProps = ButtonLook & {
   href?: undefined;
 } & Omit<ComponentPropsWithoutRef<"button">, keyof ButtonLook>;
 
-export type ButtonProps = LinkButtonProps | NativeButtonProps;
+type ButtonProps = LinkButtonProps | NativeButtonProps;
 
 const BASE =
   "group not-prose inline-flex items-center gap-2 rounded-[10px] font-semibold transition-[filter,background-color,color] disabled:opacity-50 disabled:pointer-events-none";
 
 const VARIANT: Record<NonNullable<ButtonProps["variant"]>, string> = {
-  primary: "text-[color:var(--accent-fill-fg)] hover:brightness-[1.08]",
+  primary: "text-(--accent-fill-fg) hover:brightness-[1.08]",
   secondary: "border border-(--border-default) text-(--text-strong) hover:bg-(--surface-hover)",
   ghost: "text-(--text-muted) hover:text-(--text-strong)",
 };
@@ -98,9 +98,9 @@ export default function Button(props: ButtonProps): ReactNode {
       );
     }
     return (
-      <TrackedLink {...rest} href={href} className={classes} style={style}>
+      <PrefetchAfterPaintLink {...rest} href={href} className={classes} style={style}>
         {content}
-      </TrackedLink>
+      </PrefetchAfterPaintLink>
     );
   }
 

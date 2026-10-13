@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 
-export type BadgeProps = {
+type BadgeProps = {
   tone?: "neutral" | "glow" | "new" | "changed" | "unchanged" | "solid";
   children: ReactNode;
 };

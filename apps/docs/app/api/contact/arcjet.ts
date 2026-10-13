@@ -10,7 +10,7 @@ export type ArcjetProtectClient = {
   protect: (request: Request) => Promise<ArcjetDecision>;
 };
 
-export type CheckArcjetDeps = {
+type CheckArcjetDeps = {
   client?: ArcjetProtectClient;
 };
 

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
+import { PanelCaption } from "@/components/ui/panel-caption";
 import { useSiteTheme } from "@/lib/use-site-theme";
 import { cn } from "@/lib/utils";
 
@@ -17,9 +18,9 @@ type StudioTheme = (typeof THEMES)[number];
 
 const THEME_BUTTON_CLASS = "vk-tap rounded-md px-2.5 py-1 text-xs transition-colors";
 
-export type StudioShot = keyof typeof SHOTS;
+type StudioShot = keyof typeof SHOTS;
 
-export type StudioScreenshotProps = {
+type StudioScreenshotProps = {
   shot: StudioShot;
   alt: string;
   caption?: string;
@@ -58,7 +59,7 @@ export function StudioScreenshot({
           boxShadow: elevated ? "var(--shadow-panel)" : undefined,
         }}
       >
-        <div className="flex items-center justify-between gap-3 border-b border-(--border-default) px-4 py-2.5">
+        <PanelCaption>
           <span className="text-xs font-medium text-(--text-muted)">{t("label")}</span>
           <fieldset className="flex gap-1">
             <legend className="sr-only">{t("tablistLabel")}</legend>
@@ -73,7 +74,7 @@ export function StudioScreenshot({
                   className={cn(
                     THEME_BUTTON_CLASS,
                     pressed
-                      ? "bg-[color:var(--surface-card)] text-(--text-strong)"
+                      ? "bg-(--surface-card) text-(--text-strong)"
                       : "text-(--text-muted) hover:text-(--text-strong)",
                   )}
                 >
@@ -82,7 +83,7 @@ export function StudioScreenshot({
               );
             })}
           </fieldset>
-        </div>
+        </PanelCaption>
         <div className={zoomOnPhone ? "vk-shot-zoom" : undefined}>
           <Image
             src={`/screenshots/studio-${shot}-${theme}.webp`}

@@ -3,7 +3,7 @@ import { SHOWCASE_TARGET_LOCALE } from "./showcase-seed";
 
 export const SHOWCASE_CLI_COMMAND = "verbatra translate";
 
-export const SHOWCASE_REFUSAL_REASON = "placeholder";
+const SHOWCASE_REFUSAL_REASON = "placeholder";
 
 const WITHHELD_LABEL = "integrity-withheld";
 
@@ -50,7 +50,7 @@ export function showcaseRunLines(outcome: ShowcaseOutcome): ReadonlyArray<string
   ];
 }
 
-export type ShowcaseSavings = { readonly sent: number; readonly total: number };
+type ShowcaseSavings = { readonly sent: number; readonly total: number };
 
 export function showcaseSavings(outcome: ShowcaseOutcome): ShowcaseSavings {
   const sent = outcome.missing.length + outcome.stale.length;

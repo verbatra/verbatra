@@ -1,5 +1,3 @@
-"use client";
-
 const REDUCE_QUERY = "(prefers-reduced-motion: reduce)";
 
 export function prefersReducedMotion(): boolean {

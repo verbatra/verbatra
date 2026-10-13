@@ -2,12 +2,12 @@ export type CommitTimes = Readonly<Record<string, number>>;
 
 export type GitRunner = (args: readonly string[]) => string;
 
-export type CommitTimesStore = {
+type CommitTimesStore = {
   exists: () => boolean;
   write: (times: CommitTimes) => void;
 };
 
-export type CommitTimesSync = "written" | "kept" | "empty";
+type CommitTimesSync = "written" | "kept" | "empty";
 
 const COMMIT_MARKER = "\u0000";
 

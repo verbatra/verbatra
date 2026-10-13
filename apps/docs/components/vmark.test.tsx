@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { VMark } from "./landing";
+import { VMark } from "./vmark";
 
 describe("VMark", () => {
   it("draws the mark flat, since the hero glow is the page's only glow", () => {

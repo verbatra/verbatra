@@ -1,11 +1,22 @@
 "use client";
 
 import { type ReactNode, useEffect, useRef, useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/shadcn/tabs";
+import { TabList, tabPanelProps } from "@/components/ui/tabs";
 
-export type CodeShowcaseTab = { id: string; label: string; panel: ReactNode };
+type CodeShowcaseTab = { id: string; label: string; panel: ReactNode };
 
 type Fade = (element: HTMLElement) => void;
+
+const CODE_SHOWCASE_ID = "code-showcase";
+
+const TAB_LIST_CLASS =
+  "inline-flex w-full items-center gap-1 overflow-x-auto border-b border-(--border-default)";
+
+const TAB_CLASS =
+  "inline-flex min-h-11 flex-none items-center justify-center gap-1.5 whitespace-nowrap border border-transparent px-3 py-1 text-sm font-medium transition-[color,background-color,border-color,box-shadow] focus-visible:border-(--focus-ring) focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--focus-ring)";
+
+const PANEL_CLASS =
+  "min-w-0 outline-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-(--focus-ring) data-[active=false]:hidden";
 
 let fade: Promise<Fade | null> | undefined;
 
@@ -42,41 +53,35 @@ export function CodeShowcaseTabs({
 }): ReactNode {
   const [active, setActive] = useState(tabs[0]?.id ?? "");
   return (
-    <Tabs
-      value={active}
-      onValueChange={(value) => {
-        void requestFade();
-        setActive(value);
-      }}
+    <div
+      role="none"
+      className="flex flex-col gap-6"
       onPointerEnter={() => void requestFade()}
       onFocus={() => void requestFade()}
-      className="gap-6"
     >
-      <TabsList
-        variant="line"
-        aria-label={label}
-        className="w-full justify-start gap-1 overflow-x-auto rounded-none border-b border-(--border-default) p-0"
-      >
-        {tabs.map((tab) => (
-          <TabsTrigger
-            key={tab.id}
-            value={tab.id}
-            className="min-h-11 flex-none rounded-none px-3 text-sm font-medium text-(--text-muted) hover:text-(--text-strong) focus-visible:ring-0 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--focus-ring) data-[state=active]:text-(--text-strong) after:bg-(--accent)"
-          >
-            {tab.label}
-          </TabsTrigger>
-        ))}
-      </TabsList>
+      <TabList
+        tabs={tabs}
+        active={active}
+        onSelect={(id) => {
+          void requestFade();
+          setActive(id);
+        }}
+        ariaLabel={label}
+        idPrefix={CODE_SHOWCASE_ID}
+        className={TAB_LIST_CLASS}
+        tabClassName={TAB_CLASS}
+      />
       {tabs.map((tab) => (
-        <TabsContent
+        <div
           key={tab.id}
-          value={tab.id}
-          forceMount
-          className="min-w-0 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-(--focus-ring) data-[state=inactive]:hidden"
+          {...tabPanelProps(CODE_SHOWCASE_ID, tab.id, active)}
+          // biome-ignore lint/a11y/noNoninteractiveTabindex: a tab panel is a tab stop in the WAI-ARIA tabs pattern
+          tabIndex={0}
+          className={PANEL_CLASS}
         >
           <Panel active={tab.id === active}>{tab.panel}</Panel>
-        </TabsContent>
+        </div>
       ))}
-    </Tabs>
+    </div>
   );
 }

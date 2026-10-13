@@ -65,7 +65,7 @@ describe("CommandRow", () => {
     const button = container.querySelector("button");
     expect(button?.textContent).toBe("copyFailed");
     expect(button?.dataset.status).toBe("failed");
-    expect(button?.className).toContain("var(--text-danger)");
+    expect(button?.className).toContain("text-(--text-danger)");
     expect(container.querySelector('[aria-live="polite"]')?.textContent).toBe("copyFailed");
   });
 

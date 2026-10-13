@@ -19,7 +19,7 @@ type PackageManager = NonNullable<NpmOptions["packageManagers"]>[number];
 type NpmTransformer = ReturnType<typeof remarkNpm>;
 type NpmTree = Parameters<NpmTransformer>[0];
 
-export function runCommand(args: string): string {
+function runCommand(args: string): string {
   return `npx ${CLI_PACKAGE} ${args}`;
 }
 

@@ -13,13 +13,13 @@ const SIZE = {
 
 const STATUS_CLASS: Record<CopyStatus, string> = {
   idle: "text-(--text-muted) hover:bg-(--surface-hover) hover:text-(--text-strong)",
-  copied: "border-[color:var(--border-accent)] text-[color:var(--accent)]",
-  failed: "border-[color:var(--border-danger)] text-[color:var(--text-danger)]",
+  copied: "border-(--border-accent) text-(--accent)",
+  failed: "border-(--border-danger) text-(--text-danger)",
 };
 
 const STATUS_LABEL = { idle: "copy", copied: "copied", failed: "copyFailed" } as const;
 
-export type CopyButtonProps = {
+type CopyButtonProps = {
   text: string;
   label: string;
   size?: keyof typeof SIZE;

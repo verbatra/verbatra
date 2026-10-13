@@ -218,6 +218,17 @@ describe("theme tokens", () => {
     expect(offenders).toEqual([]);
   });
 
+  it("spells every token utility in the (--token) shorthand, never as an arbitrary var() value", () => {
+    const bracketed = /[\w\]-]-\[(?:color:)?var\(--[\w-]+\)\]/g;
+    const offenders = sourceFiles(["components", "app", "lib"]).flatMap((file) =>
+      Array.from(readFileSync(file, "utf8").matchAll(bracketed), (match) => [
+        relative(process.cwd(), file),
+        match[0],
+      ]),
+    );
+    expect(offenders).toEqual([]);
+  });
+
   it("keeps the accent a single violet hue in both themes", () => {
     for (const tokens of [DARK, LIGHT]) {
       expect(resolve(tokens, "var(--accent)")).toMatch(/^hsl\(258 /);

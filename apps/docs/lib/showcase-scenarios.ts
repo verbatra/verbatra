@@ -24,7 +24,7 @@ import {
   showcaseKey,
 } from "./showcase-seed";
 
-export type ShowcaseMark =
+type ShowcaseMark =
   | "edited"
   | "added"
   | "removed"
@@ -39,7 +39,7 @@ export type ShowcaseMark =
 
 export type ShowcaseLine = { readonly text: string; readonly mark?: ShowcaseMark };
 
-export type ShowcaseRefusal = {
+type ShowcaseRefusal = {
   readonly key: string;
   readonly candidate: string;
   readonly details: ReadonlyArray<string>;

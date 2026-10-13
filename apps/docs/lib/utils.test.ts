@@ -14,6 +14,9 @@ describe("cn", () => {
     [["grid grid-rows-[0fr]", "grid-rows-[1fr]"], "grid grid-rows-[1fr]"],
     [["border border-fd-border", "border-transparent"], "border border-transparent"],
     [["hover:text-fd-foreground", "hover:text-[var(--accent)]"], "hover:text-[var(--accent)]"],
+    [["text-fd-muted-foreground", "text-(--accent)"], "text-(--accent)"],
+    [["hover:text-fd-foreground", "hover:text-(--accent)"], "hover:text-(--accent)"],
+    [["border border-transparent", "border-(--border-danger)"], "border border-(--border-danger)"],
   ])("lets the later Tailwind class win a conflict: %j", (inputs, expected) => {
     expect(cn(...inputs)).toBe(expected);
   });

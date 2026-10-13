@@ -1,8 +1,8 @@
 import { CHECK_CLI_COMMAND, CHECK_OVERALL_LINE, checkLocaleLine } from "@/lib/check-demo";
 
-export type HeroTerminalUsage = { readonly inputTokens: number; readonly outputTokens: number };
+type HeroTerminalUsage = { readonly inputTokens: number; readonly outputTokens: number };
 
-export type HeroTerminalLocale = {
+type HeroTerminalLocale = {
   readonly locale: string;
   readonly usage: HeroTerminalUsage;
 };
@@ -71,7 +71,7 @@ export const HERO_TRANSLATE_OUTPUT: ReadonlyArray<string> = [
   `${localeCount} succeeded, 0 partial, 0 failed`,
 ];
 
-export type HeroTerminalStep = {
+type HeroTerminalStep = {
   readonly command: string;
   readonly output: ReadonlyArray<string>;
   readonly exitCode: number;
@@ -90,7 +90,7 @@ export const HERO_EXIT_LINES: ReadonlyArray<string> = HERO_TERMINAL_SCRIPT.map(
   (step) => `exit ${step.exitCode}`,
 );
 
-export type HeroOgLine = { readonly kind: "command" | "output"; readonly text: string };
+type HeroOgLine = { readonly kind: "command" | "output"; readonly text: string };
 
 export const HERO_OG_LINES: ReadonlyArray<HeroOgLine> = HERO_TERMINAL_SCRIPT.flatMap((step) => [
   { kind: "command" as const, text: step.command },

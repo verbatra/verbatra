@@ -1,4 +1,4 @@
-export type VMarkProps = {
+type VMarkProps = {
   size?: number;
   decorative?: boolean;
 };

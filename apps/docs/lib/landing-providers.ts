@@ -2,7 +2,7 @@ import type { MachineProviderId } from "./landing-facts";
 
 export type ProviderKind = "llm" | "machine" | "local";
 
-export type ProviderDisplay = {
+type ProviderDisplay = {
   readonly label: string;
   readonly kind: ProviderKind;
   readonly shortLabel?: string;
@@ -29,7 +29,7 @@ export function providerShortLabel(id: MachineProviderId): string {
 
 export const PROVIDER_KINDS: ReadonlyArray<ProviderKind> = ["llm", "machine", "local"];
 
-export type ProviderGroup = {
+type ProviderGroup = {
   readonly kind: ProviderKind;
   readonly providers: ReadonlyArray<{ readonly id: MachineProviderId; readonly label: string }>;
 };

@@ -20,8 +20,6 @@ export interface SampleEntry {
 
 export declare const SAMPLE_SOURCE_LOCALE: string;
 
-export declare const SAMPLE_SOURCE_PLACEHOLDER: string;
-
 export declare const SAMPLE_SOURCE: ReadonlyArray<SampleSourceEntry>;
 
 export declare const FORMAT_SAMPLE_SPECS: Readonly<Record<SupportedFormat, FormatSampleSpec>>;

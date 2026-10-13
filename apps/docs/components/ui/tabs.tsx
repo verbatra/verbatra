@@ -3,9 +3,9 @@
 import { type KeyboardEvent, type ReactNode, useState } from "react";
 import { cn } from "@/lib/utils";
 
-export type TabItem = { id: string; label: string };
+type TabItem = { id: string; label: string };
 
-export type TabListProps = {
+type TabListProps = {
   tabs: ReadonlyArray<TabItem>;
   active: string;
   onSelect: (id: string) => void;
@@ -106,7 +106,7 @@ export function TabList({
               variant === "segmented" && SEGMENTED_TAB_CLASS,
               tabClassName,
               selected ? "text-(--text-strong)" : "text-(--text-muted) hover:text-(--text-strong)",
-              selected && variant !== "underline" && "bg-[color:var(--surface-card)]",
+              selected && variant !== "underline" && "bg-(--surface-card)",
             )}
             style={
               selected && variant === "underline"
@@ -122,7 +122,7 @@ export function TabList({
   );
 }
 
-export type TabsProps = {
+type TabsProps = {
   tabs: ReadonlyArray<TabItem>;
   value?: string;
   defaultValue?: string;

@@ -27,7 +27,7 @@ describe("AiSetupPrompt", () => {
     const text = figure?.querySelector("p");
     expect(figure?.classList.contains("border-t")).toBe(true);
     expect(text?.classList.contains("text-xs")).toBe(true);
-    expect(text?.className).toContain("var(--text-muted)");
+    expect(text?.className).toContain("text-(--text-muted)");
     expect(text?.classList.contains("text-pretty")).toBe(true);
   });
 

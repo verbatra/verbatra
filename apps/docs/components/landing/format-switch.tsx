@@ -5,10 +5,11 @@ import { type ReactNode, useCallback, useEffect, useRef, useState } from "react"
 import { TabList, tabPanelProps } from "@/components/ui/tabs";
 import { retrying } from "@/lib/retry";
 import { FormatPaneFrame } from "./format-pane-frame";
+import { PlainList } from "./plain-list";
 
-export const FORMAT_SWITCH_ID = "formats";
+const FORMAT_SWITCH_ID = "formats";
 
-export type FormatSwitchTab = { id: SupportedFormat; label: string; file: string };
+type FormatSwitchTab = { id: SupportedFormat; label: string; file: string };
 
 type PaneModule = typeof import("./format-pane");
 
@@ -22,7 +23,7 @@ export function loadFormatPanes(): Promise<PaneModule> {
   return panes;
 }
 
-export type FormatSwitchFramework = {
+type FormatSwitchFramework = {
   key: string;
   name: string;
   format: string;
@@ -96,12 +97,7 @@ export function FormatSwitch({
   return (
     <div ref={switchRef} className="vk-formats-switch">
       <div className="vk-formats-chips vk-edge-fade">
-        <ul
-          // biome-ignore lint/a11y/noRedundantRoles: Safari drops list semantics from a list-style: none list
-          role="list"
-          aria-label={labels.frameworks}
-          className="vk-formats-chip-list"
-        >
+        <PlainList aria-label={labels.frameworks} className="vk-formats-chip-list">
           {frameworks.map((chip) => (
             <li key={chip.key}>
               <button
@@ -114,7 +110,7 @@ export function FormatSwitch({
               </button>
             </li>
           ))}
-        </ul>
+        </PlainList>
       </div>
       <div className="vk-formats-tabs vk-edge-fade">
         <TabList

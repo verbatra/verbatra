@@ -9,11 +9,11 @@ import { AI_SETUP_PROMPT } from "@/lib/ai-setup-prompt";
 import { NPM_INSTALL_COMMAND } from "@/lib/install-commands";
 import { breakUrlsAtSlashes, keepPackageRunsWhole } from "@/lib/word-breaks";
 
-export const COMMAND_PANEL_ID = "hero-command";
-export const COMMAND_PANEL_TABS = ["install", "prompt"] as const;
-export type CommandPanelTab = (typeof COMMAND_PANEL_TABS)[number];
+const COMMAND_PANEL_ID = "hero-command";
+const COMMAND_PANEL_TABS = ["install", "prompt"] as const;
+type CommandPanelTab = (typeof COMMAND_PANEL_TABS)[number];
 
-export type CommandPanelLabels = {
+type CommandPanelLabels = {
   tablist: string;
   install: string;
   prompt: string;
@@ -28,7 +28,7 @@ function isTab(id: string): id is CommandPanelTab {
 function PaneHead({ hint, children }: { hint: string; children: ReactNode }): ReactNode {
   return (
     <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-      <p className="m-0 text-xs text-[color:var(--text-muted)]">{hint}</p>
+      <p className="m-0 text-xs text-(--text-muted)">{hint}</p>
       {children}
     </div>
   );

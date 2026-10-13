@@ -10,7 +10,7 @@ export function breakAfterUnderscores(text: ReactNode): ReactNode {
   ));
 }
 
-export const CODE_BREAK_CLASS = "vk-code-break";
+const CODE_BREAK_CLASS = "vk-code-break";
 
 const SOFT_BREAK_AFTER = new Set([".", "/", "]"]);
 const SOFT_BREAK_BEFORE = /[\w{[<$@*]/;
@@ -131,7 +131,7 @@ export function keepCompoundsWhole(text: string): ReactNode {
   );
 }
 
-export const LINK_LABEL_WHOLE_MAX_WORDS = 2;
+const LINK_LABEL_WHOLE_MAX_WORDS = 2;
 
 export function keepLinkLabelWhole(text: string): ReactNode {
   if (text.trim().split(/\s+/).length > LINK_LABEL_WHOLE_MAX_WORDS) return keepCompoundsWhole(text);

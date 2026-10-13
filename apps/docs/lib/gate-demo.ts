@@ -29,9 +29,9 @@ export const GATE_CLI_COMMAND = "verbatra translate";
 
 export const GATE_CLI_LINE = `de: 1 translated, 0 unchanged, 1 ${GATE_WITHHELD_LABEL}`;
 
-export const GATE_REFUSAL_LINE = `      ${GATE_REFUSAL.key}: ${GATE_REASON} (-${GATE_MISSING_PLACEHOLDER})`;
+const GATE_REFUSAL_LINE = `      ${GATE_REFUSAL.key}: ${GATE_REASON} (-${GATE_MISSING_PLACEHOLDER})`;
 
-export const GATE_SUMMARY_LINE = "0 succeeded, 1 partial, 0 failed";
+const GATE_SUMMARY_LINE = "0 succeeded, 1 partial, 0 failed";
 
 export const GATE_RUN_LINES: ReadonlyArray<string> = [
   GATE_CLI_COMMAND,

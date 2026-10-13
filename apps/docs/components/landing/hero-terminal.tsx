@@ -4,7 +4,7 @@ import { type ReactNode, useState } from "react";
 import { HERO_EXIT_LINES, HERO_TERMINAL_SCRIPT, HERO_TERMINAL_TITLE } from "@/lib/hero-terminal";
 import { Terminal } from "./terminal";
 
-export const HERO_SETTLED_COMMANDS = 1;
+const HERO_SETTLED_COMMANDS = 1;
 
 const COMMANDS = HERO_TERMINAL_SCRIPT.map((step) => step.command);
 
@@ -37,7 +37,7 @@ export function HeroTerminal({
       className="vk-banner-terminal"
       headerAction={
         <span className="flex items-center gap-3">
-          <span className="text-xs text-[color:var(--text-muted)]">{example}</span>
+          <span className="text-xs text-(--text-muted)">{example}</span>
           <button type="button" className="vk-banner-replay" onClick={() => setRun((n) => n + 1)}>
             {replay}
           </button>

@@ -10,7 +10,7 @@ export const OG_FONT_FILES = [
   { name: OG_FONT.mono, file: "GeistMono-Regular.ttf", weight: 400 },
 ] as const;
 
-export type OgFontOption = {
+type OgFontOption = {
   name: string;
   data: Buffer;
   weight: (typeof OG_FONT_FILES)[number]["weight"];

@@ -9,7 +9,7 @@ export const NPM_WEEKLY_DOWNLOADS_URL =
 
 export const STATS_REVALIDATE_SECONDS = 3600;
 
-export const STATS_TIMEOUT_MS = 3000;
+const STATS_TIMEOUT_MS = 3000;
 
 export const STATS_CACHE_CONTROL =
   "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400";
@@ -23,16 +23,16 @@ export type ProjectStats = {
   readonly weeklyDownloads: number | null;
 };
 
-export type StatsCaching = "build" | "hourly";
+type StatsCaching = "build" | "hourly";
 
-export type ProjectStatsOptions = {
+type ProjectStatsOptions = {
   readonly caching?: StatsCaching;
   readonly fetcher?: typeof fetch;
   readonly env?: Readonly<Record<string, string | undefined>>;
   readonly timeoutMs?: number;
 };
 
-export function statsCacheInit(caching: StatsCaching): RequestInit {
+function statsCacheInit(caching: StatsCaching): RequestInit {
   return caching === "hourly"
     ? { next: { revalidate: STATS_REVALIDATE_SECONDS } }
     : { cache: "force-cache" };

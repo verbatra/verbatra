@@ -1,10 +1,11 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import type { CSSProperties, ReactNode } from "react";
 import { CommandRow, StudioScreenshot } from "@/components/landing/islands";
-import { TrackedLink } from "@/components/ui/tracked-link";
+import { PrefetchAfterPaintLink } from "@/components/ui/prefetch-after-paint-link";
 import { localizedPath, toLocale } from "@/lib/i18n";
 import { withInlineCode } from "@/lib/inline-code-text";
 import { STUDIO_RUN_COMMAND } from "@/lib/install-commands";
+import { PlainList } from "./plain-list";
 import { Section } from "./section";
 
 export const STUDIO_POINTS = ["coverage", "edit", "local"] as const;
@@ -29,21 +30,17 @@ export async function Studio(): Promise<ReactNode> {
             </h2>
           </div>
           <p className="vk-lead max-w-[46ch]">{t("lead")}</p>
-          <ul
-            // biome-ignore lint/a11y/noRedundantRoles: Safari drops list semantics from a list-style: none list
-            role="list"
-            className="grid"
-          >
+          <PlainList className="grid">
             {STUDIO_POINTS.map((point) => (
               <li
                 key={point}
-                className="border-t py-3 text-base text-[color:var(--text-body)]"
+                className="border-t py-3 text-base text-(--text-body)"
                 style={{ borderColor: "var(--border-default)" }}
               >
                 {withInlineCode(t(`points.${point}`))}
               </li>
             ))}
-          </ul>
+          </PlainList>
           <div
             className="@container min-w-0 rounded-xl border"
             style={{ background: "var(--surface-bg)", borderColor: "var(--border-default)" }}
@@ -55,12 +52,12 @@ export async function Studio(): Promise<ReactNode> {
             />
           </div>
           <p className="text-sm">
-            <TrackedLink
+            <PrefetchAfterPaintLink
               href={localizedPath(locale, STUDIO_GUIDE_PATH)}
               className="vk-prose-link inline-flex min-h-6 items-center"
             >
               {t("cta")}
-            </TrackedLink>
+            </PrefetchAfterPaintLink>
           </p>
         </div>
         <div className="min-w-0" style={SHOT_SPAN}>

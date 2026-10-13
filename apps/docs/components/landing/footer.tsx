@@ -1,7 +1,7 @@
 import { PackageIcon } from "lucide-react";
 import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
-import { VMark } from "@/components/landing";
+import { VMark } from "@/components/vmark";
 import { type Locale, localizedPath, toLocale } from "@/lib/i18n";
 import { GithubIcon } from "./github-icon";
 import {

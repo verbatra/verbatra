@@ -1,8 +1,8 @@
 import { PACKAGE_VERSION } from "./site";
 
-export type LandingCodeLanguage = "bash" | "ts" | "yaml";
+type LandingCodeLanguage = "bash" | "ts" | "yaml";
 
-export type LandingCodeSample = {
+type LandingCodeSample = {
   readonly language: LandingCodeLanguage;
   readonly filename?: string;
   readonly code: string;
@@ -43,8 +43,7 @@ npx @verbatra/cli translate
 npx @verbatra/cli check
 `;
 
-export const CHECKOUT_ACTION_REF =
-  "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1";
+const CHECKOUT_ACTION_REF = "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1";
 
 export const VERBATRA_ACTION_REF =
   "verbatra/action@0221b030d517d8af621fb6b812fcfd17a1f940ee # v1.2.0";
@@ -83,7 +82,7 @@ export const LANDING_SHOWCASE_CODE: Readonly<Record<LandingShowcaseTab, LandingC
   action: { language: "yaml", filename: ".github/workflows/i18n.yml", code: ACTION_CODE },
 };
 
-export type LandingStepId = "check" | "translate" | "ci";
+type LandingStepId = "check" | "translate" | "ci";
 
 export const LANDING_STEP_IDS: ReadonlyArray<LandingStepId> = ["check", "translate", "ci"];
 

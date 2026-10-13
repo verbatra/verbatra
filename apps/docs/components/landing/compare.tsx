@@ -65,7 +65,7 @@ function CompareCell({
       data-mark={mark?.id}
       className={cn(
         "px-4 py-3.5 align-top text-sm leading-relaxed",
-        highlighted ? "text-[color:var(--text-strong)]" : "text-[color:var(--text-body)]",
+        highlighted ? "text-(--text-strong)" : "text-(--text-body)",
       )}
       style={
         highlighted
@@ -91,14 +91,14 @@ export async function Compare(): Promise<ReactNode> {
     <Section band id="compare">
       <SectionHead id="compare-heading" title={t("heading")} />
       <div className="vk-compare not-prose mt-10 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4">
-        <p className="vk-compare-hint text-sm text-[color:var(--text-muted)]">{t("scrollHint")}</p>
+        <p className="vk-compare-hint text-sm text-(--text-muted)">{t("scrollHint")}</p>
         <div className="relative min-w-0">
           <section
             // biome-ignore lint/a11y/noNoninteractiveTabindex: the table scrolls sideways on a phone, so the keyboard needs a stop to scroll it
             tabIndex={0}
             aria-labelledby={CAPTION_ID}
             data-compare-scroll=""
-            className="vk-compare-scroll relative overflow-x-auto overscroll-x-contain rounded-xl border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--focus-ring)]"
+            className="vk-compare-scroll relative overflow-x-auto overscroll-x-contain rounded-xl border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-ring)"
             style={{
               borderColor: "var(--border-default)",
               scrollbarWidth: "thin",
@@ -113,7 +113,7 @@ export async function Compare(): Promise<ReactNode> {
                 <tr className="border-b" style={{ borderColor: "var(--border-default)" }}>
                   <th
                     scope="col"
-                    className="vk-compare-sticky sticky left-0 z-10 w-[22%] px-4 py-3 text-sm font-medium text-[color:var(--text-muted)]"
+                    className="vk-compare-sticky sticky left-0 z-10 w-[22%] px-4 py-3 text-sm font-medium text-(--text-muted)"
                     style={{ background: "var(--surface-card)" }}
                   >
                     {t("columns.aspect")}
@@ -125,9 +125,7 @@ export async function Compare(): Promise<ReactNode> {
                       data-column={column}
                       className={cn(
                         "px-4 py-3 text-sm font-semibold",
-                        column === "verbatra"
-                          ? "text-[color:var(--accent)]"
-                          : "text-[color:var(--text-strong)]",
+                        column === "verbatra" ? "text-(--accent)" : "text-(--text-strong)",
                       )}
                       style={{ background: "var(--surface-card)" }}
                     >
@@ -145,7 +143,7 @@ export async function Compare(): Promise<ReactNode> {
                   >
                     <th
                       scope="row"
-                      className="vk-compare-sticky sticky left-0 z-10 px-4 py-3.5 align-top text-sm font-medium text-[color:var(--text-strong)]"
+                      className="vk-compare-sticky sticky left-0 z-10 px-4 py-3.5 align-top text-sm font-medium text-(--text-strong)"
                       style={{ background: "var(--surface-bg)" }}
                     >
                       {t(`rows.${row.id}.label`)}
@@ -168,7 +166,7 @@ export async function Compare(): Promise<ReactNode> {
           </section>
           <span aria-hidden="true" className="vk-compare-fade" />
         </div>
-        <p className="max-w-[72ch] text-sm text-[color:var(--text-muted)]">{t("note")}</p>
+        <p className="max-w-[72ch] text-sm text-(--text-muted)">{t("note")}</p>
       </div>
     </Section>
   );

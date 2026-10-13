@@ -4,12 +4,12 @@ import { RETRY_DELAYS_MS, retrying } from "@/lib/retry";
 import { sameValue } from "@/lib/same-value";
 import { useHydrated } from "@/lib/use-hydrated";
 
-export type Island<P extends object> = ((props: P) => ReactNode) & {
+type Island<P extends object> = ((props: P) => ReactNode) & {
   preload: () => Promise<unknown>;
   pendingTakeovers: () => number;
 };
 
-export type IslandGate = () => Promise<void>;
+type IslandGate = () => Promise<void>;
 
 export interface IslandOptions {
   gate?: IslandGate;

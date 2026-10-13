@@ -12,7 +12,7 @@ export function withInlineCode(text: string): ReactNode {
     index % 2 === 1 ? (
       <code
         key={`${index}-${part}`}
-        className={cn(SHORT_CODE_CLASS, "font-mono text-[0.9em] text-[color:var(--text-strong)]")}
+        className={cn(SHORT_CODE_CLASS, "font-mono text-[0.9em] text-(--text-strong)")}
       >
         {part}
       </code>

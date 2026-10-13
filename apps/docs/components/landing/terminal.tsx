@@ -1,6 +1,7 @@
 "use client";
 
 import { type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from "react";
+import { PanelCaption } from "@/components/ui/panel-caption";
 import { prefersReducedMotion } from "@/lib/reduced-motion";
 import { useInView } from "@/lib/use-in-view";
 import { cn } from "@/lib/utils";
@@ -9,9 +10,9 @@ import { WrapTokens, wrapLineStyle } from "./wrap-text";
 
 type Line = { kind: "command" | "output"; text: string };
 
-export type TerminalProgress = { lines: number; typing: boolean };
+type TerminalProgress = { lines: number; typing: boolean };
 
-export type TerminalProps = {
+type TerminalProps = {
   commands: ReadonlyArray<string>;
   outputs?: Readonly<Record<number, ReadonlyArray<string>>>;
   title?: string;
@@ -305,10 +306,10 @@ export function Terminal({
       style={bare ? undefined : { background: "var(--surface-bg)" }}
     >
       {bare ? null : (
-        <div className="flex items-center justify-between gap-3 border-b border-(--border-default) px-4 py-2.5">
+        <PanelCaption>
           {title ? <span className="font-mono text-xs text-(--text-muted)">{title}</span> : null}
           {headerAction ? <span className="ms-auto flex">{headerAction}</span> : null}
-        </div>
+        </PanelCaption>
       )}
 
       <div className="sr-only">

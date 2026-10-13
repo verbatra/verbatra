@@ -112,11 +112,11 @@ describe("CodeShowcase on the server", () => {
   it("marks only the first panel active and keeps the others in the document out of the layout", () => {
     const container = document.createElement("div");
     container.innerHTML = renderToString(node);
-    const states = LANDING_SHOWCASE_TABS.map((id) => panel(container, id).dataset.state);
-    expect(states).toEqual(["active", "inactive", "inactive", "inactive"]);
+    const states = LANDING_SHOWCASE_TABS.map((id) => panel(container, id).dataset.active);
+    expect(states).toEqual(["true", "false", "false", "false"]);
     for (const id of LANDING_SHOWCASE_TABS) {
       expect(panel(container, id).hidden).toBe(false);
-      expect(panel(container, id).className).toContain("data-[state=inactive]:hidden");
+      expect(panel(container, id).className).toContain("data-[active=false]:hidden");
       expect(panel(container, id).className).not.toContain("[grid-area:1/1]");
       expect(panel(container, id).className).not.toContain("invisible");
     }
@@ -138,14 +138,13 @@ describe("CodeShowcase tabs", () => {
     const container = mount();
     const [first, second, , last] = tabs(container);
     if (!first || !second || !last) throw new Error("tabs missing");
-    expect(container.querySelector<HTMLElement>('[role="tablist"]')?.tabIndex).toBe(0);
-    act(() => first.focus());
     expect(tabs(container).map((tab) => tab.tabIndex)).toEqual([0, -1, -1, -1]);
+    act(() => first.focus());
     await press(first, "ArrowRight");
     expect(document.activeElement).toBe(second);
     expect(second.getAttribute("aria-selected")).toBe("true");
-    expect(panel(container, "sdk").dataset.state).toBe("active");
-    expect(panel(container, "cli").dataset.state).toBe("inactive");
+    expect(panel(container, "sdk").dataset.active).toBe("true");
+    expect(panel(container, "cli").dataset.active).toBe("false");
     await press(second, "End");
     expect(document.activeElement).toBe(last);
     await press(last, "ArrowRight");
@@ -160,7 +159,7 @@ describe("CodeShowcase tabs", () => {
     const container = mount();
     const action = tabs(container)[3];
     act(() => {
-      action?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
+      action?.click();
     });
     expect(action?.getAttribute("aria-selected")).toBe("true");
     const link = panel(container, "action").querySelector("a");

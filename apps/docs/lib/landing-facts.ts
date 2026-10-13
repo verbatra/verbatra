@@ -1,6 +1,6 @@
 import type { ProviderId, SupportedFormat } from "@verbatra/sdk";
 
-export type FormatDisplay = { readonly label: string };
+type FormatDisplay = { readonly label: string };
 
 export const FORMAT_DISPLAY: Readonly<Record<SupportedFormat, FormatDisplay>> = {
   "i18next-json": { label: "i18next JSON" },

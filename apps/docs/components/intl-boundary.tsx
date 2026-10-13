@@ -4,7 +4,7 @@ import { NextIntlClientProvider } from "next-intl";
 import type { ComponentType, ReactNode } from "react";
 import { useClientMessages } from "@/components/client-messages";
 
-export function IntlBoundary({ children }: { children: ReactNode }): ReactNode {
+function IntlBoundary({ children }: { children: ReactNode }): ReactNode {
   const client = useClientMessages();
   if (!client) return children;
   return (

@@ -14,6 +14,7 @@ import {
   ROADMAP_URL,
   SECURITY_URL,
 } from "./links";
+import { PlainList } from "./plain-list";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
 
@@ -35,7 +36,7 @@ export const OPEN_SOURCE_LINKS: ReadonlyArray<ProjectLink> = [
 ];
 
 const ROW_CLASS =
-  "flex min-h-12 items-center justify-between gap-4 border-t py-3 text-base text-[color:var(--text-strong)] underline decoration-transparent underline-offset-4 transition-colors hover:text-[color:var(--accent)] hover:decoration-[color:var(--accent)]";
+  "flex min-h-12 items-center justify-between gap-4 border-t py-3 text-base text-(--text-strong) underline decoration-transparent underline-offset-4 transition-colors hover:text-(--accent) hover:decoration-(--accent)";
 
 function OutboundRow({
   href,
@@ -60,7 +61,7 @@ function OutboundRow({
       </span>
       <ArrowUpRightIcon
         aria-hidden="true"
-        className="size-4 shrink-0 text-[color:var(--text-muted)]"
+        className="size-4 shrink-0 text-(--text-muted)"
         data-external
       />
     </a>
@@ -79,14 +80,10 @@ export function Contributors({
   if (contributors.length === 0) return null;
   return (
     <section aria-labelledby="open-source-contributors" className="grid content-start gap-4">
-      <h3 id="open-source-contributors" className="vk-h4 text-[color:var(--text-strong)]">
+      <h3 id="open-source-contributors" className="vk-h4 text-(--text-strong)">
         {title}
       </h3>
-      <ul
-        // biome-ignore lint/a11y/noRedundantRoles: Safari drops list semantics from a list-style: none list
-        role="list"
-        className="flex flex-wrap gap-3"
-      >
+      <PlainList className="flex flex-wrap gap-3">
         {contributors.map((contributor) => (
           <li key={contributor.login}>
             <a
@@ -106,7 +103,7 @@ export function Contributors({
             </a>
           </li>
         ))}
-      </ul>
+      </PlainList>
     </section>
   );
 }
@@ -118,9 +115,7 @@ export async function OpenSource(): Promise<ReactNode> {
     <Section width="wide" rhythm="md" id="open-source">
       <SectionHead id="open-source-heading" title={t("heading")} lead={t("lead")} />
       <div className="vk-grid-12 not-prose mt-10 gap-y-12">
-        <ul
-          // biome-ignore lint/a11y/noRedundantRoles: Safari drops list semantics from a list-style: none list
-          role="list"
+        <PlainList
           className="grid border-b"
           style={{ ...LINKS_SPAN, borderColor: "var(--border-default)" }}
         >
@@ -139,7 +134,7 @@ export async function OpenSource(): Promise<ReactNode> {
               </OutboundRow>
             </li>
           ))}
-        </ul>
+        </PlainList>
         <div style={PEOPLE_SPAN}>
           <Contributors
             contributors={CONTRIBUTORS}

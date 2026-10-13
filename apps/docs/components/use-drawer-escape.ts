@@ -10,7 +10,7 @@ function isInsideDialog(target: EventTarget | null): boolean {
   return target instanceof Element && target.closest('[role="dialog"]') !== null;
 }
 
-export function shouldCloseDrawer(event: KeyboardEvent): boolean {
+function shouldCloseDrawer(event: KeyboardEvent): boolean {
   if (event.key !== "Escape" || event.defaultPrevented || event.isComposing) return false;
   return !isInsideDialog(event.target);
 }

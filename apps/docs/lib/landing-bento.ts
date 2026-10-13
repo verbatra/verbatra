@@ -12,7 +12,7 @@ export type BentoKey =
   | "formats"
   | "adapters";
 
-export type BentoEvidence = {
+type BentoEvidence = {
   readonly text: string;
   readonly page: string;
   readonly anchors?: LocalizedAnchors;
@@ -113,7 +113,7 @@ const adapterRegistry = createDefaultRegistry().register(tomlAdapter);
 await translate({ config }, { adapterRegistry });
 `;
 
-export type BentoActionTrigger = { readonly event: string; readonly command: string };
+type BentoActionTrigger = { readonly event: string; readonly command: string };
 
 export const BENTO_ACTION_TRIGGERS: ReadonlyArray<BentoActionTrigger> = [
   { event: "pull_request", command: "check" },
@@ -150,14 +150,14 @@ export const BENTO_PROVIDER_DIFF: ReadonlyArray<BentoDiffLine> = [
 
 export const BENTO_FORMAT_KEY = "cart.total";
 
-export const BENTO_FORMAT_IDS: ReadonlyArray<SupportedFormat> = [
+const BENTO_FORMAT_IDS: ReadonlyArray<SupportedFormat> = [
   "next-intl-json",
   "android-xml",
   "apple-strings",
   "arb",
 ];
 
-export type BentoFormatLine = {
+type BentoFormatLine = {
   readonly format: SupportedFormat;
   readonly file: string;
   readonly placeholder: string;

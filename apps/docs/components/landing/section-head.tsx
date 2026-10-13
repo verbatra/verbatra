@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-export type SectionHeadLayout = "split" | "stacked";
+type SectionHeadLayout = "split" | "stacked";
 
 export function SectionHead({
   title,

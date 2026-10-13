@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
+import { PanelCaption } from "@/components/ui/panel-caption";
 import {
   PROBLEM_CHECK_LINES,
   PROBLEM_ITEM_KEYS,
@@ -8,6 +9,7 @@ import {
   type ProblemFile,
 } from "@/lib/landing-problem";
 import { PlaceholderText } from "./placeholder-chip";
+import { PlainList } from "./plain-list";
 import { ScrollBlock } from "./scroll-block";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
@@ -22,12 +24,14 @@ function fileCaptionId(file: ProblemFile): string {
 function FilePane({ file, missingLabel }: { file: ProblemFile; missingLabel: string }): ReactNode {
   return (
     <figure className="m-0 min-w-0" data-file={file.path}>
-      <figcaption
+      <PanelCaption
+        as="figcaption"
+        density="dense"
         id={fileCaptionId(file)}
-        className="border-b border-(--border-default) px-4 py-2 font-mono text-xs text-(--text-muted)"
+        className="font-mono text-xs text-(--text-muted)"
       >
         {file.path}
-      </figcaption>
+      </PanelCaption>
       <ScrollBlock
         labelledBy={fileCaptionId(file)}
         className="vk-mono-sm py-3 font-mono leading-6 text-(--text-body)"
@@ -97,9 +101,7 @@ export async function Problem(): Promise<ReactNode> {
           </div>
           <CheckOutput />
         </div>
-        <ul
-          // biome-ignore lint/a11y/noRedundantRoles: Safari drops list semantics from a list-style: none list
-          role="list"
+        <PlainList
           data-reveal="3"
           className="grid list-none content-start gap-8 lg:col-span-4 lg:col-start-9"
         >
@@ -113,7 +115,7 @@ export async function Problem(): Promise<ReactNode> {
               </p>
             </li>
           ))}
-        </ul>
+        </PlainList>
       </div>
     </Section>
   );

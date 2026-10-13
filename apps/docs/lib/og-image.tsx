@@ -21,7 +21,7 @@ export function titleFontSize(title: string): number {
   return 66;
 }
 
-export type OgTerminalLine = { kind: "command" | "output"; text: string };
+type OgTerminalLine = { kind: "command" | "output"; text: string };
 
 export const OG_FONT = { display: "Geist", mono: "Geist Mono" } as const;
 

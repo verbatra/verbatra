@@ -28,7 +28,7 @@ export function AiSetupPrompt({ label }: { label?: string } = {}): ReactNode {
       </div>
       <p
         lang="en"
-        className="m-0 font-sans text-xs leading-(--leading-normal) whitespace-pre-line text-pretty text-[color:var(--text-muted)]"
+        className="m-0 font-sans text-xs leading-(--leading-normal) whitespace-pre-line text-pretty text-(--text-muted)"
       >
         {breakUrlsAtSlashes(AI_SETUP_PROMPT, keepFlagsWhole)}
       </p>

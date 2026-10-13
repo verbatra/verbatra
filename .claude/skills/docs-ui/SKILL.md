@@ -136,6 +136,7 @@ New component code references `var(--surface-card)`, never `hsl(240 28% 14%)` an
 breaks the single point of change. The same goes for Fumadocs utility classes: write
 `border-(--border-default)`, `text-(--text-muted)`, `text-(--text-strong)`, `bg-(--surface-hover)`
 or `text-(--accent)`, never `border-fd-border`, `text-fd-muted-foreground` or `bg-fd-accent`, and
+never the arbitrary-value spelling `text-[color:var(--text-muted)]` (`lib/theme.test.ts` fails on it), and
 `var(--accent)` / `var(--accent-fill)` rather than `var(--v-glow)` / `var(--v-purple)`.
 `--border-accent` (the accent mixed 45 percent into `--border-default`) is the glow-tinted border
 of a flat panel, an evidence chip or a copy button on hover; it is the one token for that mix. In
@@ -246,13 +247,14 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   selection and focus with the arrow keys (wrapping), Home and End; `tabPanelProps(prefix, id,
   active)` gives a panel its `id`, `role`, `aria-labelledby`, `data-active` and `inert`. Its
   `variant: "segmented"` is the `.vk-segmented` switch (tabs rounded by `--radius-segment`, 7px)
-  that the hero command panel uses, never a hand-made copy.
+  that the hero command panel uses, never a hand-made copy. The code showcase tabs (`code-showcase-tabs.tsx`) use the default `underline` variant;
+  there is no second tab primitive.
   `Button` takes `variant: "primary" | "secondary" | "ghost"` and `size: "sm" | "md" | "lg"`.
   Extend the variant union rather than passing ad hoc `className` overrides.
 - **shadcn/ui primitives:** `components.json` (style `new-york`, Tailwind 4 with an empty
   `tailwind.config`, `cssVariables`) points the `ui` alias at `@/components/ui/shadcn`, so the
   CLI never overwrites the hand-written `components/ui/button.tsx` and `tabs.tsx`. That folder
-  holds `accordion`, `tabs` and `sheet`, taken from the new-york-v4 registry
+  holds `accordion` and `sheet`, taken from the new-york-v4 registry
   with two changes: each imports its own `@radix-ui/react-*` package (the versions Fumadocs
   already resolves) instead of the `radix-ui` meta package, and
   `SheetContent` takes a `closeLabel` (a translated string; no close button without it) instead of
@@ -616,7 +618,7 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
   every request that starts before the observed largest paint: island chunks, `/api/stats`
   (`useLiveStats`) and every link prefetch wait for `afterFirstContentfulPaint`. Links go through
   `useLinkPrefetch` (`lib/use-painted.ts`, `false` until that paint, then the link's own choice; the module waits on the paint once, however many links subscribe) in
-  `FrameworkLink` (`lib/framework-provider.tsx`) and `TrackedLink`, and the header wordmark never
+  `FrameworkLink` (`lib/framework-provider.tsx`) and `PrefetchAfterPaintLink` (`components/ui/prefetch-after-paint-link.tsx`), and the header wordmark never
   prefetches the home page it sits on.
 - `experimental.turbopackChunking` (`minChunkSize` 200000, `requestCost` 1000000 in
   `next.config.mjs`) merges client chunks site-wide on purpose. Scoping it to the landing through

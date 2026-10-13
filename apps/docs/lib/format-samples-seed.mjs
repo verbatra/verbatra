@@ -1,6 +1,6 @@
 export const SAMPLE_SOURCE_LOCALE = "en";
 
-export const SAMPLE_SOURCE_PLACEHOLDER = "{{amount}}";
+const SAMPLE_SOURCE_PLACEHOLDER = "{{amount}}";
 
 export const SAMPLE_SOURCE = [
   { path: ["cart", "total"], value: "Total: {{amount}}" },

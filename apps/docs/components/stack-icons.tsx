@@ -4,7 +4,7 @@ const VIEWBOX = 24;
 
 const FILE_OUTLINE = "M6 3h8l5 5v13H6zM14 3v5h5";
 
-export const STACK_ICON_PATHS = {
+const STACK_ICON_PATHS = {
   web: "M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM3 9h18M6.5 6.5h.01M9 6.5h.01",
   mobile: "M9 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM11 18h2",
   server:
@@ -19,7 +19,7 @@ export const STACK_ICON_PATHS = {
 
 export type StackIconKey = keyof typeof STACK_ICON_PATHS;
 
-export function stackIconId(prefix: string, icon: StackIconKey): string {
+function stackIconId(prefix: string, icon: StackIconKey): string {
   return `${prefix}-${icon}`;
 }
 

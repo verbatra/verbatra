@@ -3,9 +3,9 @@ import { dirname, join, normalize } from "node:path";
 
 export type DocsPage = { readonly file: string; readonly source: string };
 
-export type ReadFile = (absolutePath: string) => string;
+type ReadFile = (absolutePath: string) => string;
 
-export type CommitTimeMap = Readonly<Record<string, number>>;
+type CommitTimeMap = Readonly<Record<string, number>>;
 
 const TRANSLATION_FILE = /^(.*)\.[a-z]{2}\.mdx$/;
 const INCLUDE = /^<include>([^<#]+\.mdx)<\/include>[ \t]*$/gm;

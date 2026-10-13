@@ -1,9 +1,9 @@
 import { childElements, type HastNode, isElement, textContent, visitParents } from "./hast";
 
 export const STACKED_TABLE_CLASS = "vk-table-stack";
-export const STACKED_TABLE_MIN_COLUMNS = 3;
+const STACKED_TABLE_MIN_COLUMNS = 3;
 export const WIDE_TABLE_CLASS = "vk-table-stack-wide";
-export const WIDE_TABLE_MIN_COLUMNS = 6;
+const WIDE_TABLE_MIN_COLUMNS = 6;
 export const COMPACT_ROW_MAX_CHARACTERS = 48;
 
 function headerLabels(table: HastNode): string[] {

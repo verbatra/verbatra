@@ -1,5 +1,6 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
+import { PanelCaption } from "@/components/ui/panel-caption";
 import { GATE_RUN_LINES } from "@/lib/gate-demo";
 import { HERO_TERMINAL_TITLE } from "@/lib/hero-terminal";
 import { toLocale } from "@/lib/i18n";
@@ -24,6 +25,7 @@ import { CodeFrame } from "./code-frame";
 import { Evidence } from "./evidence";
 import { SampleLine } from "./format-pane";
 import { PlaceholderText } from "./placeholder-chip";
+import { PlainList } from "./plain-list";
 import { ScrollBlock } from "./scroll-block";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
@@ -37,8 +39,7 @@ const SPAN_CLASS: Readonly<Record<BentoTile["span"], string>> = {
 const PANEL_FRAME =
   "min-w-0 overflow-hidden rounded-xl border border-(--border-default) bg-(--v-void)";
 
-const PANEL_CAPTION =
-  "flex min-h-10 items-center border-b border-(--border-default) px-4 py-1.5 font-mono text-xs text-(--text-muted)";
+const PANEL_CAPTION = "font-mono text-xs text-(--text-muted)";
 
 const MONO_BODY = "vk-mono-sm py-3 font-mono leading-6";
 
@@ -48,9 +49,14 @@ function IntegrityRun(): ReactNode {
   const [command, ...output] = GATE_RUN_LINES;
   return (
     <figure className={`${PANEL_FRAME} m-0`}>
-      <figcaption id={captionId("integrity")} className={PANEL_CAPTION}>
+      <PanelCaption
+        as="figcaption"
+        density="control"
+        id={captionId("integrity")}
+        className={PANEL_CAPTION}
+      >
         {HERO_TERMINAL_TITLE}
-      </figcaption>
+      </PanelCaption>
       <ScrollBlock
         lang="en"
         data-artifact="integrity"
@@ -88,9 +94,14 @@ const DIFF_MARK_CLASS: Readonly<Record<BentoDiffLine["sign"], string>> = {
 function ProviderSwitch(): ReactNode {
   return (
     <figure data-artifact="providers" className={`${PANEL_FRAME} m-0`}>
-      <figcaption id={captionId("providers")} className={PANEL_CAPTION}>
+      <PanelCaption
+        as="figcaption"
+        density="control"
+        id={captionId("providers")}
+        className={PANEL_CAPTION}
+      >
         verbatra.config.ts
-      </figcaption>
+      </PanelCaption>
       <ScrollBlock lang="en" labelledBy={captionId("providers")} className={MONO_BODY}>
         {BENTO_PROVIDER_DIFF.map((line) => (
           <div
@@ -114,9 +125,7 @@ function ProviderSwitch(): ReactNode {
 
 function FormatKeyLines(): ReactNode {
   return (
-    <ul
-      // biome-ignore lint/a11y/noRedundantRoles: Safari drops list semantics from a list-style: none list
-      role="list"
+    <PlainList
       lang="en"
       data-artifact="formats"
       className={`${PANEL_FRAME} list-none divide-y divide-(--border-default)`}
@@ -141,14 +150,16 @@ function FormatKeyLines(): ReactNode {
           </ScrollBlock>
         </li>
       ))}
-    </ul>
+    </PlainList>
   );
 }
 
 function ActionTriggers(): ReactNode {
   return (
     <figure data-artifact="action" className={`${PANEL_FRAME} m-0`}>
-      <figcaption className={PANEL_CAPTION}>{BENTO_ACTION_FILE}</figcaption>
+      <PanelCaption as="figcaption" density="control" className={PANEL_CAPTION}>
+        {BENTO_ACTION_FILE}
+      </PanelCaption>
       <div className="grid gap-3 px-4 py-3">
         <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 font-mono text-xs">
           {BENTO_ACTION_TRIGGERS.map((trigger) => (
@@ -195,9 +206,7 @@ export async function Bento(): Promise<ReactNode> {
   return (
     <Section id="features">
       <SectionHead id="features-heading" title={t("heading")} />
-      <ul
-        // biome-ignore lint/a11y/noRedundantRoles: Safari drops list semantics from a list-style: none list
-        role="list"
+      <PlainList
         data-reveal="2"
         className="mt-10 grid list-none grid-cols-1 gap-3 sm:gap-4 lg:mt-14 lg:grid-cols-12"
       >
@@ -216,20 +225,16 @@ export async function Bento(): Promise<ReactNode> {
               </p>
             </div>
             <div className="flex min-w-0 flex-1 flex-col [&>*]:flex-1">{artifacts[index]}</div>
-            <ul
-              // biome-ignore lint/a11y/noRedundantRoles: Safari drops list semantics from a list-style: none list
-              role="list"
-              className="flex list-none flex-wrap gap-2"
-            >
+            <PlainList className="flex list-none flex-wrap gap-2">
               {tile.evidence.map((item) => (
                 <li key={item.text} className="min-w-0 max-w-full">
                   <Evidence text={item.text} href={bentoHref(locale, item)} />
                 </li>
               ))}
-            </ul>
+            </PlainList>
           </li>
         ))}
-      </ul>
+      </PlainList>
     </Section>
   );
 }

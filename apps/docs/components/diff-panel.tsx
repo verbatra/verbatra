@@ -75,18 +75,18 @@ export function DiffPanel({
     <figure
       ref={ref}
       aria-label={t("label")}
-      className="not-prose relative my-8 rounded-xl border border-[var(--border-default)] bg-[var(--surface-card)] p-5 font-mono text-sm sm:p-7"
+      className="not-prose relative my-8 rounded-xl border border-(--border-default) bg-(--surface-card) p-5 font-mono text-sm sm:p-7"
       style={{
         borderInlineStart: "2px solid var(--accent)",
         boxShadow: "var(--shadow-panel)",
       }}
     >
-      <span className="absolute -top-2.5 left-5 rounded-md border border-[var(--border-default)] bg-[var(--surface-bg)] px-2 py-0.5 text-xs uppercase tracking-wider text-[var(--text-muted)]">
+      <span className="absolute -top-2.5 left-5 rounded-md border border-(--border-default) bg-(--surface-bg) px-2 py-0.5 text-xs uppercase tracking-wider text-(--text-muted)">
         {tag}
       </span>
       <div className="grid grid-cols-2 gap-x-6 gap-y-3.5">
-        <div className="text-xs text-[var(--text-muted)]">{sourceFile}</div>
-        <div className="text-xs text-[var(--text-muted)]">{targetFile}</div>
+        <div className="text-xs text-(--text-muted)">{sourceFile}</div>
+        <div className="text-xs text-(--text-muted)">{targetFile}</div>
 
         {rows.map((row) => (
           <DiffRow
@@ -98,7 +98,7 @@ export function DiffPanel({
           />
         ))}
       </div>
-      <figcaption className="mt-4 text-xs text-[var(--text-muted)]">{t("caption")}</figcaption>
+      <figcaption className="mt-4 text-xs text-(--text-muted)">{t("caption")}</figcaption>
     </figure>
   );
 }
@@ -116,12 +116,12 @@ function DiffRow({
 }) {
   return (
     <>
-      <div className="text-[var(--text-faint)]">
-        <span className="text-[var(--text-muted)]">&quot;{row.key}&quot;</span>: &quot;
+      <div className="text-(--text-faint)">
+        <span className="text-(--text-muted)">&quot;{row.key}&quot;</span>: &quot;
         {row.source}&quot;
       </div>
-      <div className={row.changed ? "" : "text-[var(--text-faint)]"}>
-        <span className="text-[var(--text-muted)]">&quot;{row.key}&quot;</span>:{" "}
+      <div className={row.changed ? "" : "text-(--text-faint)"}>
+        <span className="text-(--text-muted)">&quot;{row.key}&quot;</span>:{" "}
         {row.changed ? (
           <span style={changedStyle}>
             &quot;{typed}&quot;

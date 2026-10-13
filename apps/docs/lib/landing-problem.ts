@@ -1,7 +1,7 @@
 import { CHECK_LOCALE, CHECK_MISSING_KEYS, CHECK_RUN_LINES } from "./check-demo";
 import { GATE_REPLIES, GATE_SOURCE_VALUES } from "./gate-demo";
 
-export type ProblemFileLine = { readonly text: string; readonly missing?: string };
+type ProblemFileLine = { readonly text: string; readonly missing?: string };
 
 export type ProblemFile = { readonly path: string; readonly lines: ReadonlyArray<ProblemFileLine> };
 

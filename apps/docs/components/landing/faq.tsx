@@ -8,8 +8,7 @@ import { SectionHead } from "./section-head";
 
 export type FaqEntry = { readonly id: string; readonly question: string };
 
-const ANSWER_LINK_CLASS =
-  "underline underline-offset-4 transition-colors hover:text-[color:var(--accent)]";
+const ANSWER_LINK_CLASS = "underline underline-offset-4 transition-colors hover:text-(--accent)";
 
 const DATA_HANDLING_PATH = "/docs/data-handling";
 

@@ -34,11 +34,11 @@ export const CODE_TEXT_FIELDS: ReadonlySet<StackTextField> = new Set([
   "targetFile",
 ]);
 
-export const SOURCE_LOCALE = "en";
+const SOURCE_LOCALE = "en";
 
-export const TARGET_LOCALE = "de";
+const TARGET_LOCALE = "de";
 
-export type StackCode = {
+type StackCode = {
   readonly lang: string;
   readonly title?: string;
   readonly code: string;
@@ -389,7 +389,7 @@ export function isStackId(value: unknown): value is StackId {
   return typeof value === "string" && (STACK_IDS as readonly string[]).includes(value);
 }
 
-export function stackFile(stack: Stack, locale: string): string {
+function stackFile(stack: Stack, locale: string): string {
   return stack.pattern.replace("{locale}", locale);
 }
 
@@ -404,7 +404,7 @@ export function stackText(stack: Stack, field: StackTextField): string {
   }
 }
 
-export const INIT_PROVIDER = "gemini";
+const INIT_PROVIDER = "gemini";
 
 export function initCommand(format: string): string {
   return `npx @verbatra/cli init --format ${format} --provider ${INIT_PROVIDER} --yes`;

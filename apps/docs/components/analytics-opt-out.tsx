@@ -55,10 +55,10 @@ export function AnalyticsOptOut({
   labels: AnalyticsOptOutLabels;
 }): ReactNode {
   return (
-    <div className="not-prose mt-4 flex flex-col gap-3 rounded-xl border border-(--border-default) bg-[color:var(--surface-card)] p-4">
+    <div className="not-prose mt-4 flex flex-col gap-3 rounded-xl border border-(--border-default) bg-(--surface-card) p-4">
       <ChoiceStatus choice="off" label={labels.statusOptedOut} />
       <ChoiceStatus choice="on" label={labels.statusOptedIn} />
-      <p className="m-0 text-sm text-[color:var(--text-body)]">{labels.signals}</p>
+      <p className="m-0 text-sm text-(--text-body)">{labels.signals}</p>
       <div className="flex flex-wrap gap-3">
         <ChoiceForm locale={locale} choice="off" label={labels.optOut} />
         <ChoiceForm locale={locale} choice="on" label={labels.optIn} />

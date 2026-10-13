@@ -10,6 +10,7 @@ import type { MDXComponents } from "mdx/types";
 import type { ComponentProps } from "react";
 import { AvailableFrom, type AvailableFromProps } from "@/components/available-from";
 import { DiffPanel } from "@/components/diff-panel";
+import { DocsCodeBlock } from "@/components/docs-code-block";
 import {
   DocsHomeAgentTip,
   DocsHomeBody,
@@ -22,16 +23,15 @@ import {
   DocsHomeTabs,
 } from "@/components/docs-home";
 import { DocsTabs } from "@/components/docs-tabs";
-import { VMark } from "@/components/landing";
 import { McpInstallLink } from "@/components/mcp-install-link";
 import { OutputCodeBlock } from "@/components/output-code-block";
 import { StackCards } from "@/components/stack-cards";
 import { StartHere } from "@/components/start-here";
 import { StudioScreenshot } from "@/components/studio-screenshot";
-import { TrackedCodeBlock } from "@/components/tracked-code-block";
 import Badge from "@/components/ui/badge";
 import CommandLine from "@/components/ui/command-line";
 import Tabs from "@/components/ui/tabs";
+import { VMark } from "@/components/vmark";
 import { OUTPUT_ATTRIBUTE } from "@/lib/code-block-meta";
 import { duplicatesFooter } from "@/lib/docs-neighbours";
 import { type Locale, localizeHref } from "@/lib/i18n";
@@ -70,9 +70,9 @@ export function getMDXComponents(
           {children}
         </OutputCodeBlock>
       ) : (
-        <TrackedCodeBlock {...rest}>
+        <DocsCodeBlock {...rest}>
           <Pre>{children}</Pre>
-        </TrackedCodeBlock>
+        </DocsCodeBlock>
       ),
     Callout: ({ className, ...rest }: ComponentProps<typeof Callout>) => (
       <Callout className={cn(CALLOUT_CLASS, className)} {...rest} />

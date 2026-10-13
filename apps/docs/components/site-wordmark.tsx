@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { VMark } from "@/components/landing";
+import { VMark } from "@/components/vmark";
 
 export function SiteWordmark(): ReactNode {
   return (

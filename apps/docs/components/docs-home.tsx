@@ -1,7 +1,7 @@
 import { useTranslations } from "next-intl";
 import { Children, cloneElement, isValidElement, type ReactNode } from "react";
 import { PromptCopyButton } from "@/components/ai-setup-prompt";
-import { TrackedLink } from "@/components/ui/tracked-link";
+import { PrefetchAfterPaintLink } from "@/components/ui/prefetch-after-paint-link";
 import { type Locale, localizedPath } from "@/lib/i18n";
 import { withInlineCode } from "@/lib/inline-code-text";
 import { LANDING_STEP_IDS } from "@/lib/landing-code";
@@ -15,7 +15,7 @@ const PANEL = "rounded-xl border border-(--border-default)";
 
 const HOME_FRAME = "mx-auto w-full max-w-[1100px] px-4 md:px-6 lg:px-10";
 
-const PANEL_HOVER = "hover:border-[color:var(--border-accent)]";
+const PANEL_HOVER = "hover:border-(--border-accent)";
 
 type PackageKey = "cli" | "sdk" | "studio" | "mcp";
 
@@ -66,9 +66,12 @@ export function DocsHomeTabs({
         <ul className="vk-home-tabs-track">
           {tabs.map((tab) => (
             <li key={tab.href}>
-              <TrackedLink href={localizedPath(locale, tab.href)} className="vk-home-tab">
+              <PrefetchAfterPaintLink
+                href={localizedPath(locale, tab.href)}
+                className="vk-home-tab"
+              >
                 {tab.label}
-              </TrackedLink>
+              </PrefetchAfterPaintLink>
             </li>
           ))}
         </ul>
@@ -185,7 +188,7 @@ export function DocsHomeSection({
           {title}
         </h2>
         {lead ? (
-          <p className="mt-2 max-w-[62ch] text-sm leading-7 text-pretty text-[color:var(--text-muted)]">
+          <p className="mt-2 max-w-[62ch] text-sm leading-7 text-pretty text-(--text-muted)">
             {withInlineCode(lead)}
           </p>
         ) : null}
@@ -212,7 +215,7 @@ export function DocsHomePaths({
   return (
     <div className="not-prose grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {cards.map((card) => (
-        <TrackedLink
+        <PrefetchAfterPaintLink
           key={card.href}
           href={localizedPath(locale, card.href)}
           className={cn(
@@ -235,11 +238,9 @@ export function DocsHomePaths({
           >
             {keepCompoundsWhole(card.goal)}
           </span>
-          <span className="text-sm leading-relaxed text-[color:var(--text-muted)]">
-            {card.body}
-          </span>
-          <span className="text-sm font-medium text-[color:var(--accent)]">{card.page}</span>
-        </TrackedLink>
+          <span className="text-sm leading-relaxed text-(--text-muted)">{card.body}</span>
+          <span className="text-sm font-medium text-(--accent)">{card.page}</span>
+        </PrefetchAfterPaintLink>
       ))}
     </div>
   );
@@ -281,9 +282,9 @@ export function DocsHomeFeatures({
         const content = (
           <>
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <span className="font-mono text-sm text-[color:var(--accent)]">{feature.title}</span>
+              <span className="font-mono text-sm text-(--accent)">{feature.title}</span>
               {version ? (
-                <span className="font-mono text-xs text-[color:var(--text-faint)] tabular-nums">
+                <span className="font-mono text-xs text-(--text-faint) tabular-nums">
                   {version}
                 </span>
               ) : null}
@@ -301,14 +302,14 @@ export function DocsHomeFeatures({
           borderInlineStart: "3px solid var(--accent-fill)",
         };
         return feature.href && locale ? (
-          <TrackedLink
+          <PrefetchAfterPaintLink
             key={feature.title}
             href={localizedPath(locale, feature.href)}
             className={className}
             style={style}
           >
             {content}
-          </TrackedLink>
+          </PrefetchAfterPaintLink>
         ) : (
           <div key={feature.title} className={className} style={style}>
             {content}

@@ -1,24 +1,25 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import type { CSSProperties, ReactNode } from "react";
-import { TrackedLink } from "@/components/ui/tracked-link";
+import { PrefetchAfterPaintLink } from "@/components/ui/prefetch-after-paint-link";
 import { localizedPath, toLocale } from "@/lib/i18n";
 import { HUMAN_ONLY_PROVIDER, providerGroups } from "@/lib/landing-providers";
 import { FORMAT_PANE_ROWS_STYLE } from "./format-pane";
 import { FormatsDemo } from "./formats";
+import { PlainList } from "./plain-list";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
 
 const PROVIDERS_SPAN = { "--grid-span": 4 } as CSSProperties;
 const FORMATS_SPAN = { "--grid-span": 8 } as CSSProperties;
 
-const SUBHEAD_CLASS = "vk-h4 text-[color:var(--text-strong)]";
-const KIND_CLASS = "text-sm font-medium text-[color:var(--text-muted)]";
-const ID_CLASS = "font-mono text-xs text-[color:var(--text-faint)]";
+const SUBHEAD_CLASS = "vk-h4 text-(--text-strong)";
+const KIND_CLASS = "text-sm font-medium text-(--text-muted)";
+const ID_CLASS = "font-mono text-xs text-(--text-faint)";
 
 function ProviderItem({ label, id }: { label: string; id: string }): ReactNode {
   return (
     <li className="grid gap-0.5">
-      <span className="text-base text-[color:var(--text-strong)]">{label}</span>
+      <span className="text-base text-(--text-strong)">{label}</span>
       <code className={ID_CLASS}>{id}</code>
     </li>
   );
@@ -49,37 +50,35 @@ export async function Ecosystem(): Promise<ReactNode> {
             {providerGroups().map((group) => (
               <div key={group.kind} className="grid content-start gap-3">
                 <h4 className={KIND_CLASS}>{t(`ecosystem.kinds.${group.kind}`)}</h4>
-                <ul
-                  // biome-ignore lint/a11y/noRedundantRoles: Safari drops list semantics from a list-style: none list
-                  role="list"
+                <PlainList
                   className="grid gap-3 border-l pl-4"
                   style={{ borderColor: "var(--border-default)" }}
                 >
                   {group.providers.map((provider) => (
                     <ProviderItem key={provider.id} label={provider.label} id={provider.id} />
                   ))}
-                </ul>
+                </PlainList>
               </div>
             ))}
             <div className="grid content-start gap-3">
               <h4 className={KIND_CLASS}>{t("ecosystem.kinds.human")}</h4>
               <p className="border-l pl-4" style={{ borderColor: "var(--accent)" }}>
-                <TrackedLink
+                <PrefetchAfterPaintLink
                   href={localizedPath(locale, "/docs/human-only-workflow")}
                   className="vk-prose-link inline-flex min-h-6 items-center font-mono text-sm"
                 >
                   {HUMAN_ONLY_PROVIDER}
-                </TrackedLink>
+                </PrefetchAfterPaintLink>
               </p>
             </div>
           </div>
           <p className="text-sm">
-            <TrackedLink
+            <PrefetchAfterPaintLink
               href={localizedPath(locale, "/docs/providers")}
               className="vk-prose-link inline-flex min-h-6 items-center"
             >
               {t("ecosystem.providersLink")}
-            </TrackedLink>
+            </PrefetchAfterPaintLink>
           </p>
         </section>
         <section
@@ -99,18 +98,18 @@ export async function Ecosystem(): Promise<ReactNode> {
             />
           </div>
           <p className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-            <TrackedLink
+            <PrefetchAfterPaintLink
               href={localizedPath(locale, "/docs/formats")}
               className="vk-prose-link inline-flex min-h-6 items-center"
             >
               {t("ecosystem.formatsLink")}
-            </TrackedLink>
-            <TrackedLink
+            </PrefetchAfterPaintLink>
+            <PrefetchAfterPaintLink
               href={localizedPath(locale, "/docs/custom-format-adapters")}
               className="vk-prose-link inline-flex min-h-6 items-center"
             >
               {t("ecosystem.customFormat")}
-            </TrackedLink>
+            </PrefetchAfterPaintLink>
           </p>
         </section>
       </div>

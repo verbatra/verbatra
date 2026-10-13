@@ -16,6 +16,6 @@ function CodeBlockActions({
   return <div className={cn("empty:hidden", className)}>{children}</div>;
 }
 
-export function TrackedCodeBlock(props: Omit<CodeBlockProps, "Actions">): ReactNode {
+export function DocsCodeBlock(props: Omit<CodeBlockProps, "Actions">): ReactNode {
   return <CodeBlock {...props} Actions={CodeBlockActions} />;
 }

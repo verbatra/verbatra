@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { withInlineCode } from "@/lib/inline-code-text";
 import { LANDING_STEP_CODE, LANDING_STEP_IDS } from "@/lib/landing-code";
 import { CodeFrame } from "./code-frame";
+import { PlainList } from "./plain-list";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
 
@@ -21,9 +22,8 @@ export async function Steps(): Promise<ReactNode> {
   return (
     <Section id="how-it-works" band>
       <SectionHead id="how-it-works-heading" title={t("heading")} lead={t("lead")} />
-      <ol
-        // biome-ignore lint/a11y/noRedundantRoles: Safari drops list semantics from a list-style: none list
-        role="list"
+      <PlainList
+        ordered
         data-reveal="2"
         className="mt-10 grid list-none gap-10 lg:mt-14 lg:grid-cols-3 lg:gap-x-6 lg:gap-y-4"
       >
@@ -40,7 +40,7 @@ export async function Steps(): Promise<ReactNode> {
             <div className="min-w-0 self-start pt-2">{frames[index]}</div>
           </li>
         ))}
-      </ol>
+      </PlainList>
     </Section>
   );
 }
