@@ -679,3 +679,9 @@ The script reads the GitHub contributors API, downloads a 64px avatar per
 contributor, validates the result, and only then replaces the manifest and the
 image folder. Set `GITHUB_TOKEN` if the anonymous GitHub API rate limit gets in
 the way. Commit the updated JSON file and images together.
+
+## Refreshing the third-party notices
+
+A production dependency change to `apps/docs` (a Dependabot pull request
+included) needs `pnpm --filter @verbatra/docs licenses:sync` run and its output
+committed.

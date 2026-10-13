@@ -60,6 +60,14 @@ describe("proxy: server-side pageview", () => {
     ["a prefetch", { ...DOCUMENT_NAVIGATION, "sec-purpose": "prefetch" }],
     ["a Do Not Track visitor", { ...DOCUMENT_NAVIGATION, dnt: "1" }],
     ["a local run", { ...DOCUMENT_NAVIGATION, host: "localhost:3480" }],
+    [
+      "a local Host with a spoofed X-Forwarded-Host",
+      {
+        ...DOCUMENT_NAVIGATION,
+        host: "localhost:3480",
+        "x-forwarded-host": "localhost, verbatra.kreitz-webdev.de",
+      },
+    ],
     ["curl", { ...DOCUMENT_NAVIGATION, "user-agent": "curl/8.7.1" }],
   ])("never calls waitUntil for %s", async (_case, headers) => {
     expect(await visit("/", headers)).not.toHaveBeenCalled();

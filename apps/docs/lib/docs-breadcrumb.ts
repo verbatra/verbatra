@@ -1,15 +1,11 @@
+import { getBreadcrumbItemsFromPath, searchPath } from "fumadocs-core/breadcrumb";
 import type { Folder, Node, Root } from "fumadocs-core/page-tree";
 import type { BreadcrumbLdItem } from "@/lib/structured-data";
 
-function pathTo(nodes: ReadonlyArray<Node>, url: string): Node[] | undefined {
-  for (const node of nodes) {
-    if (node.type === "page" && node.url === url) return [node];
-    if (node.type !== "folder") continue;
-    if (node.index?.url === url) return [node, node.index];
-    const rest = pathTo(node.children, url);
-    if (rest) return [node, ...rest];
-  }
-  return undefined;
+export const VISIBLE_BREADCRUMB_OPTIONS = { includePage: true } as const;
+
+function isFolder(node: Node): node is Folder {
+  return node.type === "folder";
 }
 
 function folderUrl(folder: Folder): string | undefined {
@@ -20,33 +16,21 @@ function folderUrl(folder: Folder): string | undefined {
   );
 }
 
-function crumbFor(node: Node): { name: unknown; url: string | undefined } | undefined {
-  if (node.type === "page") return { name: node.name, url: node.url };
-  if (node.type === "folder" && !node.root) return { name: node.name, url: folderUrl(node) };
-  return undefined;
+function folderUrlByName(folders: ReadonlyArray<Folder>, name: unknown): string | undefined {
+  const folder = folders.find((candidate) => candidate.name === name);
+  return folder === undefined ? undefined : folderUrl(folder);
 }
 
-function homeCrumb(tree: Root, homeUrl: string): BreadcrumbLdItem | undefined {
-  const tab = tree.children.find(
-    (node): node is Folder =>
-      node.type === "folder" &&
-      node.children.some((child) => child.type === "page" && child.url === homeUrl),
-  );
-  return typeof tab?.name === "string" ? { name: tab.name, url: homeUrl } : undefined;
-}
-
-export function docsBreadcrumbTrail(
-  tree: Root,
-  pageUrl: string,
-  homeUrl: string,
-): BreadcrumbLdItem[] {
-  const home = homeCrumb(tree, homeUrl);
-  const trail: BreadcrumbLdItem[] = home ? [home] : [];
-  for (const node of pathTo(tree.children, pageUrl) ?? []) {
-    const crumb = crumbFor(node);
-    if (typeof crumb?.name !== "string" || !crumb.url) continue;
-    if (trail.some((entry) => entry.url === crumb.url)) continue;
-    trail.push({ name: crumb.name, url: crumb.url });
-  }
-  return trail;
+export function docsBreadcrumbTrail(tree: Root, pageUrl: string): BreadcrumbLdItem[] {
+  const path = searchPath(tree.children, pageUrl) ?? [];
+  const folders = path.filter(isFolder);
+  const crumbs = getBreadcrumbItemsFromPath(tree, path, VISIBLE_BREADCRUMB_OPTIONS).map((item) => ({
+    name: item.name,
+    url: item.url ?? folderUrlByName(folders, item.name),
+  }));
+  return crumbs.flatMap((crumb, index) => {
+    if (typeof crumb.name !== "string" || !crumb.url) return [];
+    if (crumbs.slice(index + 1).some((later) => later.url === crumb.url)) return [];
+    return [{ name: crumb.name, url: crumb.url }];
+  });
 }

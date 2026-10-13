@@ -5,7 +5,7 @@ import { useSidebar } from "fumadocs-ui/components/sidebar/base";
 import { buttonVariants } from "fumadocs-ui/components/ui/button";
 import { useNotebookLayout } from "fumadocs-ui/layouts/notebook";
 import { type ComponentProps, type ReactNode, useRef } from "react";
-import { MENU_TRIGGER } from "@/components/home-nav";
+import { MENU_TRIGGER } from "@/components/nav-link-classes";
 import { useRootTabs } from "@/components/root-tabs";
 import { ICON_PROPS, SiteHeaderFrame } from "@/components/site-header";
 import { useDrawerEscape } from "@/components/use-drawer-escape";

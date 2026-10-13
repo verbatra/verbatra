@@ -2,7 +2,8 @@
 
 import type { ReactNode } from "react";
 import { formatCompactNumber } from "@/lib/compact-number";
-import { type LiveStat, reservedWidth, useLiveCount, useLiveStats } from "@/lib/live-stats";
+import { type LiveStat, useLiveCount, useLiveStats, widestLiveCount } from "@/lib/live-stats";
+import { reservedWidth } from "@/lib/reserved-width";
 
 function StatFigure({
   stat,
@@ -58,12 +59,19 @@ export function LiveStatFallback({
   locale: string;
 }): ReactNode {
   const live = useLiveStats()?.[stat] ?? null;
-  if (live === null) {
-    return (
-      <span className="vk-proof-strip-value" data-fallback>
+  return (
+    <span className="vk-proof-strip-stack">
+      <span className="vk-proof-strip-value" data-fallback data-shown={live === null}>
         {fallback}
       </span>
-    );
-  }
-  return <StatFigure stat={stat} value={formatCompactNumber(live, locale)} label={label} />;
+      <span data-shown={live !== null}>
+        <StatFigure
+          stat={stat}
+          value={live === null ? null : formatCompactNumber(live, locale)}
+          label={label}
+          reserve={widestLiveCount(locale)}
+        />
+      </span>
+    </span>
+  );
 }

@@ -20,6 +20,18 @@ describe("robots", () => {
     });
   });
 
+  it("keeps the AI crawler group as a deliberate policy: allowed, and identical to * apart from its agents", () => {
+    const rules = [robots().rules].flat();
+    expect(rules).toHaveLength(2);
+    const [everyone, aiCrawlers] = rules;
+    expect(everyone?.userAgent).toBe("*");
+    expect(Array.isArray(aiCrawlers?.userAgent) && aiCrawlers.userAgent.length).toBeGreaterThan(0);
+    const { userAgent: _everyone, ...everyoneRule } = everyone ?? {};
+    const { userAgent: _crawlers, ...crawlerRule } = aiCrawlers ?? {};
+    expect(crawlerRule).toEqual(everyoneRule);
+    expect(crawlerRule).not.toHaveProperty("crawlDelay");
+  });
+
   it("points at the sitemap and sends no non-standard host line", () => {
     const result = robots();
     expect(result.sitemap).toBe("https://verbatra.kreitz-webdev.de/sitemap.xml");

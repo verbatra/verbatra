@@ -129,6 +129,23 @@ describe("the landing nav", () => {
     expect(cta?.closest("nav")).toBeNull();
   });
 
+  it("marks every header control with the phone tap class on the rendered elements", async () => {
+    const container = await render(1234);
+    const controls = [
+      container.querySelector('header a[href="/"]'),
+      ...Array.from(primaryNav(container)?.querySelectorAll("a") ?? []),
+      container.querySelector("header a.vk-nav-cta"),
+      trigger(container),
+    ];
+    expect(controls).toHaveLength(6);
+    for (const control of controls) expect(control?.classList.contains("vk-tap")).toBe(true);
+    act(() => trigger(container)?.click());
+    const items = Array.from(sheet()?.querySelectorAll(`nav[aria-label="${nav.label}"] a`) ?? []);
+    expect(items).toHaveLength(3);
+    for (const item of items) expect(item.classList.contains("min-h-11")).toBe(true);
+    expect(sheet()?.querySelector("a.vk-nav-cta-menu")?.classList.contains("vk-tap")).toBe(true);
+  });
+
   it("drops the search box from the landing bar", async () => {
     expect((await render(null)).querySelector("[data-search]")).toBeNull();
   });

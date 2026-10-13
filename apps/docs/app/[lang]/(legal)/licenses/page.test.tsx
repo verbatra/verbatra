@@ -66,4 +66,17 @@ describe("licenses page", () => {
     }
     expect(doc.body.textContent).toContain("SIL OPEN FONT LICENSE Version 1.1");
   });
+
+  it("prints the LGPL text the deployed libvips binary falls back to, inside its license group", async () => {
+    const doc = await render("en");
+    const section = [...doc.querySelectorAll("section")].find((node) =>
+      node.querySelector("h2")?.textContent?.startsWith("LGPL-3.0-or-later"),
+    );
+    const codes = [...(section?.querySelectorAll("li > code") ?? [])].map(
+      (node) => node.textContent,
+    );
+    expect(codes.some((code) => code?.startsWith("@img/sharp-libvips-linux-x64@"))).toBe(true);
+    expect(section?.textContent).toContain("GNU LESSER GENERAL PUBLIC LICENSE");
+    expect(section?.textContent).toContain("GNU GENERAL PUBLIC LICENSE");
+  });
 });

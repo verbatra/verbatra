@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 
 export type LicensedPackage = {
@@ -37,14 +37,45 @@ export type ThirdPartyLicenses = {
   readonly texts: ReadonlyArray<LicenseText>;
 };
 
-type Manifest = {
+export type Manifest = {
   name?: unknown;
   version?: unknown;
   license?: unknown;
   licenses?: unknown;
   author?: unknown;
   dependencies?: unknown;
+  optionalDependencies?: unknown;
+  peerDependencies?: unknown;
 };
+
+export type PlatformLicense = {
+  readonly license: string;
+  readonly author: string | null;
+};
+
+export type PlatformLicenses = Readonly<Record<string, PlatformLicense>>;
+
+export type Platform = {
+  readonly os: ReadonlyArray<string>;
+  readonly cpu: ReadonlyArray<string>;
+  readonly libc: ReadonlyArray<string>;
+};
+
+export type Lockfile = {
+  readonly platforms: ReadonlyMap<string, Platform>;
+  readonly snapshots: ReadonlyMap<string, ReadonlyMap<string, string>>;
+};
+
+type DependencyKind = "dependency" | "optional" | "peer";
+
+type QueueItem = {
+  readonly from: string;
+  readonly parent: string | null;
+  readonly name: string;
+  readonly kind: DependencyKind;
+};
+
+type PlatformLookup = (key: string) => PlatformLicense;
 
 type CollectedPackage = {
   name: string;
@@ -69,6 +100,18 @@ const DATED_COPYRIGHT = /^(?:copyright\s*(?:\(c\)|©|\d{4})|\(c\)\s*\d{4}|©\s*\
 const HEADER_COPYRIGHT = /^(?:copyright\b|\(c\)|©)/i;
 const TITLE_LINE = /^(?:the\s+)?[\w.-]*(?:\s+[\w.()-]+){0,4}\s+licen[cs]e(?:\s+\(\w+\))?:?$/i;
 const TEMPLATE_COPYRIGHT = /\[yyyy\]|\{yyyy\}|<year>|\[name of copyright owner\]/i;
+
+export const DEPLOY_TARGET: Platform = { os: ["linux"], cpu: ["x64"], libc: ["glibc"] };
+export const PLATFORM_LICENSES_FILE = "lib/platform-licenses.json";
+export const RESYNC_COMMAND = "pnpm --filter @verbatra/docs licenses:sync";
+
+const STANDARD_TEXTS: Readonly<Record<string, ReadonlyArray<{ license: string; file: string }>>> = {
+  "LGPL-3.0-or-later": [
+    { license: "LGPL-3.0-or-later", file: "assets/licenses/LGPL-3.0.txt" },
+    { license: "GPL-3.0-or-later", file: "assets/licenses/GPL-3.0.txt" },
+  ],
+  "MPL-2.0": [{ license: "MPL-2.0", file: "assets/licenses/MPL-2.0.txt" }],
+};
 
 const ASSET_SOURCES: ReadonlyArray<AssetSource> = [
   {
@@ -116,7 +159,7 @@ function licenseOf(manifest: Manifest): string {
   return "UNKNOWN";
 }
 
-function authorOf(manifest: Manifest): string | null {
+export function authorOf(manifest: Manifest): string | null {
   if (typeof manifest.author === "string") return manifest.author.replace(/\s*[<(].*$/, "");
   if (manifest.author !== null && typeof manifest.author === "object") {
     const name = (manifest.author as { name?: unknown }).name;
@@ -125,10 +168,17 @@ function authorOf(manifest: Manifest): string | null {
   return null;
 }
 
-function readMatching(dir: string, pattern: RegExp): string | null {
-  const files = readdirSync(dir, { withFileTypes: true })
-    .filter((entry) => entry.isFile() && pattern.test(entry.name))
-    .map((entry) => entry.name)
+function isReadableFile(dir: string, name: string): boolean {
+  try {
+    return statSync(join(dir, name)).isFile();
+  } catch {
+    return false;
+  }
+}
+
+export function readMatching(dir: string, pattern: RegExp): string | null {
+  const files = readdirSync(dir)
+    .filter((name) => pattern.test(name) && isReadableFile(dir, name))
     .sort();
   if (files.length === 0) return null;
   return files
@@ -150,27 +200,173 @@ function resolveDependency(fromDir: string, name: string): string | null {
   }
 }
 
-function dependencyNames(manifest: Manifest): string[] {
-  const deps = manifest.dependencies;
-  if (deps === null || typeof deps !== "object") return [];
-  return Object.keys(deps as Record<string, unknown>);
+function resolveSibling(fromDir: string, name: string): string | null {
+  const parent = dirname(fromDir);
+  const nodeModules = basename(parent).startsWith("@") ? dirname(parent) : parent;
+  if (basename(nodeModules) !== "node_modules") return null;
+  const candidate = join(nodeModules, name);
+  return existsSync(join(candidate, "package.json")) ? realpathSync(candidate) : null;
 }
 
-function collectPackages(appDir: string): CollectedPackage[] {
-  const collected = new Map<string, CollectedPackage>();
-  const visited = new Set<string>();
-  const queue = dependencyNames(readManifest(appDir)).map((name) => ({ from: appDir, name }));
-  while (queue.length > 0) {
-    const next = queue.shift();
-    if (next === undefined) break;
-    const dir = resolveDependency(next.from, next.name);
-    if (dir === null) throw new Error(`Cannot resolve ${next.name} from ${next.from}`);
-    if (visited.has(dir)) continue;
-    visited.add(dir);
+function namesIn(field: unknown): string[] {
+  if (field === null || typeof field !== "object") return [];
+  return Object.keys(field as Record<string, unknown>);
+}
+
+function unquote(value: string): string {
+  return value.replace(/^'(.*)'$/, "$1");
+}
+
+function listOf(value: string): string[] {
+  return value.split(",").map((item) => unquote(item.trim()));
+}
+
+type LockfileSection = "packages" | "snapshots" | null;
+
+class LockfileParser {
+  readonly platforms = new Map<string, { os: string[]; cpu: string[]; libc: string[] }>();
+  readonly snapshots = new Map<string, Map<string, string>>();
+  private section: LockfileSection = null;
+  private entry: string | null = null;
+  private inDependencies = false;
+
+  line(line: string): void {
+    if (/^\S/.test(line)) {
+      this.section = line === "packages:" ? "packages" : line === "snapshots:" ? "snapshots" : null;
+      this.entry = null;
+      return;
+    }
+    if (this.section === null) return;
+    const entry = /^ {2}(\S.*?):(?: \{\})?$/.exec(line);
+    if (entry?.[1] !== undefined) {
+      this.entry = unquote(entry[1]);
+      this.inDependencies = false;
+      return;
+    }
+    if (this.entry === null) return;
+    if (this.section === "packages") this.packageField(this.entry, line);
+    else this.snapshotField(this.entry, line);
+  }
+
+  private packageField(entry: string, line: string): void {
+    const field = /^ {4}(os|cpu|libc): \[(.*)\]$/.exec(line);
+    if (field?.[1] === undefined || field[2] === undefined) return;
+    const platform = this.platforms.get(entry) ?? { os: [], cpu: [], libc: [] };
+    platform[field[1] as keyof Platform] = listOf(field[2]);
+    this.platforms.set(entry, platform);
+  }
+
+  private snapshotField(entry: string, line: string): void {
+    if (/^ {4}\S/.test(line)) {
+      this.inDependencies = /^ {4}(?:dependencies|optionalDependencies):$/.test(line);
+      return;
+    }
+    const dependency = /^ {6}(\S.*?): (\S+)$/.exec(line);
+    if (!this.inDependencies || dependency?.[1] === undefined || dependency[2] === undefined)
+      return;
+    const base = entry.replace(/\(.*$/, "");
+    const deps = this.snapshots.get(base) ?? new Map<string, string>();
+    deps.set(unquote(dependency[1]), unquote(dependency[2]).replace(/\(.*$/, ""));
+    this.snapshots.set(base, deps);
+  }
+}
+
+export function parseLockfile(text: string): Lockfile {
+  const parser = new LockfileParser();
+  for (const line of text.split(/\r?\n/)) parser.line(line);
+  return { platforms: parser.platforms, snapshots: parser.snapshots };
+}
+
+function findLockfile(appDir: string): Lockfile {
+  let current = appDir;
+  while (true) {
+    const candidate = join(current, "pnpm-lock.yaml");
+    if (existsSync(candidate)) return parseLockfile(readFileSync(candidate, "utf8"));
+    const parent = dirname(current);
+    if (parent === current) return { platforms: new Map(), snapshots: new Map() };
+    current = parent;
+  }
+}
+
+function allows(constraint: ReadonlyArray<string>, value: string | undefined): boolean {
+  if (constraint.length === 0 || value === undefined) return true;
+  const excluded = constraint.filter((item) => item.startsWith("!")).map((item) => item.slice(1));
+  if (excluded.includes(value)) return false;
+  const included = constraint.filter((item) => !item.startsWith("!"));
+  return included.length === 0 || included.includes(value);
+}
+
+export function matchesTarget(platform: Platform, target: Platform = DEPLOY_TARGET): boolean {
+  return (
+    allows(platform.os, target.os[0]) &&
+    allows(platform.cpu, target.cpu[0]) &&
+    allows(platform.libc, target.libc[0])
+  );
+}
+
+function splitKey(key: string): { name: string; version: string } {
+  const at = key.lastIndexOf("@");
+  return { name: key.slice(0, at), version: key.slice(at + 1) };
+}
+
+class PackageCollector {
+  readonly collected = new Map<string, CollectedPackage>();
+  private readonly visited = new Set<string>();
+  private readonly queue: QueueItem[] = [];
+
+  private readonly lock: Lockfile;
+  private readonly platformLicense: PlatformLookup;
+
+  constructor(lock: Lockfile, platformLicense: PlatformLookup) {
+    this.lock = lock;
+    this.platformLicense = platformLicense;
+  }
+
+  run(appDir: string): CollectedPackage[] {
+    for (const name of namesIn(readManifest(appDir).dependencies)) {
+      this.queue.push({ from: appDir, parent: null, name, kind: "dependency" });
+    }
+    let next = this.queue.shift();
+    while (next !== undefined) {
+      this.visit(next);
+      next = this.queue.shift();
+    }
+    return [...this.collected.values()];
+  }
+
+  private lockedKey(parent: string | null, name: string): string | null {
+    if (parent === null) return null;
+    const version = this.lock.snapshots.get(parent)?.get(name);
+    return version === undefined ? null : `${name}@${version}`;
+  }
+
+  private visit(item: QueueItem): void {
+    const locked = this.lockedKey(item.parent, item.name);
+    const platform = locked === null ? undefined : this.lock.platforms.get(locked);
+    if (locked !== null && platform !== undefined) {
+      if (matchesTarget(platform)) this.addPlatformPackage(locked);
+      return;
+    }
+    const dir =
+      item.kind === "dependency"
+        ? resolveDependency(item.from, item.name)
+        : resolveSibling(item.from, item.name);
+    if (dir === null) {
+      if (item.kind === "dependency")
+        throw new Error(`Cannot resolve ${item.name} from ${item.from}`);
+      return;
+    }
+    if (this.visited.has(dir)) return;
+    this.visited.add(dir);
+    this.addInstalledPackage(dir, item.name);
+  }
+
+  private addInstalledPackage(dir: string, fallbackName: string): void {
     const manifest = readManifest(dir);
-    const name = typeof manifest.name === "string" ? manifest.name : next.name;
+    const name = typeof manifest.name === "string" ? manifest.name : fallbackName;
     const version = typeof manifest.version === "string" ? manifest.version : "0.0.0";
-    collected.set(`${name}@${version}`, {
+    const key = `${name}@${version}`;
+    this.collected.set(key, {
       name,
       version,
       license: licenseOf(manifest),
@@ -178,9 +374,58 @@ function collectPackages(appDir: string): CollectedPackage[] {
       licenseText: readMatching(dir, LICENSE_FILE),
       notice: readMatching(dir, NOTICE_FILE),
     });
-    for (const dependency of dependencyNames(manifest)) queue.push({ from: dir, name: dependency });
+    const fields: ReadonlyArray<[DependencyKind, unknown]> = [
+      ["dependency", manifest.dependencies],
+      ["optional", manifest.optionalDependencies],
+      ["peer", manifest.peerDependencies],
+    ];
+    for (const [kind, field] of fields) {
+      for (const dependency of namesIn(field)) {
+        this.queue.push({ from: dir, parent: key, name: dependency, kind });
+      }
+    }
   }
-  return [...collected.values()];
+
+  private addPlatformPackage(key: string): void {
+    if (this.collected.has(key)) return;
+    const { name, version } = splitKey(key);
+    const { license, author } = this.platformLicense(key);
+    this.collected.set(key, { name, version, license, author, licenseText: null, notice: null });
+    for (const [dependency, depVersion] of this.lock.snapshots.get(key) ?? []) {
+      const depKey = `${dependency}@${depVersion}`;
+      const platform = this.lock.platforms.get(depKey);
+      if (platform === undefined) {
+        throw new Error(`${key} depends on ${depKey}, which is not platform-specific`);
+      }
+      if (matchesTarget(platform)) this.addPlatformPackage(depKey);
+    }
+  }
+}
+
+function readPlatformLicenses(appDir: string): PlatformLicenses {
+  const file = join(appDir, PLATFORM_LICENSES_FILE);
+  if (!existsSync(file)) return {};
+  return JSON.parse(readFileSync(file, "utf8")) as PlatformLicenses;
+}
+
+function committedPlatformLicense(appDir: string): PlatformLookup {
+  const known = readPlatformLicenses(appDir);
+  return (key) => {
+    const entry = known[key];
+    if (entry === undefined) {
+      throw new Error(`${PLATFORM_LICENSES_FILE} has no entry for ${key}: run ${RESYNC_COMMAND}`);
+    }
+    return entry;
+  };
+}
+
+export function listDeployedPlatformPackages(appDir: string): string[] {
+  const keys: string[] = [];
+  new PackageCollector(findLockfile(appDir), (key) => {
+    keys.push(key);
+    return { license: "UNKNOWN", author: null };
+  }).run(appDir);
+  return keys.sort();
 }
 
 function isCopyrightLine(line: string, inHeader: boolean): boolean {
@@ -214,17 +459,49 @@ function textKey(text: string): string {
   return text.replace(/\s+/g, " ").trim();
 }
 
-function byName<T extends { name: string; version?: string }>(a: T, b: T): number {
+function compareNumericParts(a: string, b: string): number {
+  const left = a.split(".");
+  const right = b.split(".");
+  for (let index = 0; index < Math.max(left.length, right.length); index++) {
+    const difference = Number(left[index] ?? 0) - Number(right[index] ?? 0);
+    if (difference !== 0) return Math.sign(difference);
+  }
+  return 0;
+}
+
+export function compareVersions(a: string, b: string): number {
+  const [aCore = "", aPre] = a.split(/-(.*)/s);
+  const [bCore = "", bPre] = b.split(/-(.*)/s);
+  const core = compareNumericParts(aCore, bCore);
+  if (core !== 0) return core;
+  if (aPre === bPre) return 0;
+  if (aPre === undefined) return 1;
+  if (bPre === undefined) return -1;
+  return aPre < bPre ? -1 : 1;
+}
+
+function byName(a: CollectedPackage, b: CollectedPackage): number {
   if (a.name !== b.name) return a.name < b.name ? -1 : 1;
-  const av = a.version ?? "";
-  const bv = b.version ?? "";
-  if (av === bv) return 0;
-  return av < bv ? -1 : 1;
+  return compareVersions(a.version, b.version);
 }
 
 class TextRegistry {
   readonly texts: LicenseText[] = [];
   private readonly ids = new Map<string, string>();
+
+  private readonly appDir: string;
+
+  constructor(appDir: string) {
+    this.appDir = appDir;
+  }
+
+  standardIds(license: string): string[] {
+    return (STANDARD_TEXTS[license] ?? []).flatMap((entry) => {
+      const raw = readFileSync(join(this.appDir, entry.file), "utf8");
+      const id = this.idFor(entry.license, raw.replace(/\r\n?/g, "\n").trim());
+      return id === null ? [] : [id];
+    });
+  }
 
   idFor(license: string, body: string): string | null {
     if (body.length === 0) return null;
@@ -282,17 +559,25 @@ function licenseIds(expression: string): string[] {
   return expression.match(/[A-Za-z0-9.+-]+/g)?.filter((id) => !/^(?:AND|OR|WITH)$/.test(id)) ?? [];
 }
 
-function fallbackTextIds(license: string, own: ReadonlyArray<string>, texts: LicenseText[]) {
-  if (own.length > 0) return [own[0] as string];
+function fallbackTextIds(
+  license: string,
+  own: ReadonlyArray<string>,
+  registry: TextRegistry,
+): string[] {
+  const [first] = own;
+  if (first !== undefined) return [first];
   return licenseIds(license).flatMap((id) => {
-    const text = texts.find((candidate) => candidate.license === id);
-    return text === undefined ? [] : [text.id];
+    const text = registry.texts.find((candidate) => candidate.license === id);
+    return text === undefined ? registry.standardIds(id) : [text.id];
   });
 }
 
-export function buildThirdPartyLicenses(appDir: string): ThirdPartyLicenses {
-  const packages = collectPackages(appDir);
-  const registry = new TextRegistry();
+export function buildThirdPartyLicenses(
+  appDir: string,
+  platformLicense: PlatformLookup = committedPlatformLicense(appDir),
+): ThirdPartyLicenses {
+  const packages = new PackageCollector(findLockfile(appDir), platformLicense).run(appDir);
+  const registry = new TextRegistry(appDir);
   const grouped = orderedGroups(groupPackages(packages)).map(([license, members]) => ({
     license,
     packages: members.map((pkg): LicensedPackage => {
@@ -312,7 +597,7 @@ export function buildThirdPartyLicenses(appDir: string): ThirdPartyLicenses {
     const needsFallback = group.packages.some((pkg) => pkg.textId === null);
     return {
       ...group,
-      fallbackTextIds: needsFallback ? fallbackTextIds(group.license, own, registry.texts) : [],
+      fallbackTextIds: needsFallback ? fallbackTextIds(group.license, own, registry) : [],
     };
   });
   const assets = assetsFrom(appDir, registry);

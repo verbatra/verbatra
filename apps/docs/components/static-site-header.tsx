@@ -1,74 +1,103 @@
 import type { ReactNode } from "react";
-import { GithubIcon } from "@/components/landing/github-icon";
+import {
+  GitHubLinkBody,
+  githubLinkClass,
+  HEADER_CLASS,
+  HeaderEnd,
+  HeaderNav,
+  HeaderRow,
+  HeaderStart,
+  MenuIcon,
+  WORDMARK_LINK_CLASS,
+} from "@/components/header-parts";
 import { GITHUB_URL, RELEASES_URL } from "@/components/landing/links";
-import { NAV_TEXT_LINK } from "@/components/nav-link-classes";
+import {
+  GET_STARTED_CLASS,
+  GET_STARTED_STYLE,
+  MENU_TRIGGER,
+  NAV_TEXT_LINK,
+  SHEET_ITEM,
+} from "@/components/nav-link-classes";
 import { SiteWordmark } from "@/components/site-wordmark";
 import { buttonClasses } from "@/components/ui/button";
 import { type Locale, localizedPath } from "@/lib/i18n";
 import { LIVE_COUNT_SLOT } from "@/lib/live-count";
 import { homeNavValue } from "@/lib/locale-home-layout";
 import { loadProjectStats } from "@/lib/project-stats";
+import { cn } from "@/lib/utils";
+
+type NavLinksProps = {
+  docsUrl: string;
+  labels: { docs: string; changelog: string; github: string };
+  stars: string | null;
+  starsSuffix: string;
+  className: string;
+};
+
+function NavLinks({ docsUrl, labels, stars, starsSuffix, className }: NavLinksProps): ReactNode {
+  return (
+    <>
+      <a href={docsUrl} className={className}>
+        {labels.docs}
+      </a>
+      <a href={RELEASES_URL} target="_blank" rel="noopener noreferrer" className={className}>
+        {labels.changelog}
+      </a>
+      <a
+        href={GITHUB_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={githubLinkClass(className)}
+      >
+        <GitHubLinkBody
+          label={labels.github}
+          stars={stars}
+          reserved={stars}
+          starsSuffix={starsSuffix}
+        />
+      </a>
+    </>
+  );
+}
 
 export async function StaticSiteHeader({ locale }: { locale: Locale }): Promise<ReactNode> {
   const { stars } = await loadProjectStats();
   const { docsUrl, quickstartUrl, labels, stars: count } = await homeNavValue(locale, stars);
   const starsSuffix = labels.starsAria.split(LIVE_COUNT_SLOT)[1] ?? "";
+  const links = { docsUrl, labels, stars: count, starsSuffix };
   return (
-    <header
-      id="nd-nav"
-      data-static-header=""
-      className="vk-header sticky top-0 z-40 flex flex-col backdrop-blur-sm"
-    >
-      <div className="vk-header-row mx-auto flex h-14 w-full max-w-(--width-wide) items-center gap-2 px-(--gutter)">
-        <div className="vk-header-start flex flex-1 items-center">
-          <a
-            href={localizedPath(locale, "/")}
-            className="vk-tap inline-flex items-center gap-2.5 font-semibold"
-          >
+    <header id="nd-nav" data-static-header="" className={cn(HEADER_CLASS, "top-0 z-40")}>
+      <HeaderRow width="wide">
+        <HeaderStart>
+          <a href={localizedPath(locale, "/")} className={WORDMARK_LINK_CLASS}>
             <SiteWordmark />
           </a>
-        </div>
-        <div className="flex flex-1 items-center justify-end md:gap-2 md:ps-4">
-          <nav aria-label={labels.label} className="flex items-center gap-6 max-md:hidden md:me-4">
-            <a href={docsUrl} className={`vk-tap ${NAV_TEXT_LINK}`}>
-              {labels.docs}
-            </a>
-            <a
-              href={RELEASES_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`vk-tap ${NAV_TEXT_LINK}`}
-            >
-              {labels.changelog}
-            </a>
-            <a
-              href={GITHUB_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`vk-tap inline-flex items-center gap-1.5 ${NAV_TEXT_LINK}`}
-            >
-              <GithubIcon size={16} />
-              <span>{labels.github}</span>
-              {count === null ? null : (
-                <>
-                  {" "}
-                  <span className="vk-nav-stars" style={{ minInlineSize: `${count.length}ch` }}>
-                    {count}
-                  </span>
-                  <span className="sr-only">{starsSuffix}</span>
-                </>
-              )}
-            </a>
-          </nav>
+        </HeaderStart>
+        <HeaderEnd>
+          <HeaderNav label={labels.label}>
+            <NavLinks {...links} className={NAV_TEXT_LINK} />
+          </HeaderNav>
           <a
             href={quickstartUrl}
-            className={buttonClasses("primary", "sm", "vk-tap vk-nav-cta whitespace-nowrap")}
-            style={{ background: "var(--accent-fill)" }}
+            className={buttonClasses("primary", "sm", GET_STARTED_CLASS)}
+            style={GET_STARTED_STYLE}
           >
             {labels.getStarted}
           </a>
-        </div>
-      </div>
+          <details className="relative flex items-center md:hidden">
+            <summary className={cn(MENU_TRIGGER, "list-none [&::-webkit-details-marker]:hidden")}>
+              <MenuIcon />
+              <span className="sr-only">{labels.menuOpen}</span>
+            </summary>
+            <nav
+              aria-label={labels.label}
+              className="absolute end-0 top-full z-50 mt-2 flex min-w-56 flex-col gap-0.5 rounded-xl border border-(--border-default) bg-(--surface-card) p-2 text-[0.9375rem] shadow-(--shadow-panel)"
+            >
+              <NavLinks {...links} className={cn("vk-tap", SHEET_ITEM)} />
+            </nav>
+          </details>
+        </HeaderEnd>
+      </HeaderRow>
     </header>
   );
 }

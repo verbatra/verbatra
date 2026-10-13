@@ -3,6 +3,7 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { reservedWidth } from "./reserved-width";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -179,6 +180,12 @@ describe("the header star count", () => {
   });
 });
 
+function shownText(element: Element): string {
+  const copy = element.cloneNode(true) as Element;
+  for (const hidden of copy.querySelectorAll('[data-shown="false"]')) hidden.remove();
+  return copy.textContent ?? "";
+}
+
 describe("LiveStatFallback", () => {
   async function renderFallback(locale: string): Promise<HTMLElement> {
     const container = document.createElement("div");
@@ -204,12 +211,49 @@ describe("LiveStatFallback", () => {
     let answer: (response: Response) => void = () => undefined;
     stubFetch(() => new Promise<Response>((resolve) => (answer = resolve)));
     const container = await renderFallback(locale);
-    expect(container.textContent).toBe("verbatra on npm");
+    expect(shownText(container)).toBe("verbatra on npm");
     await act(async () => {
       answer(Response.json({ stars: 2, downloads: 15_600 }));
       await live.loadLiveStats();
     });
-    expect(container.textContent).toBe(text);
+    expect(shownText(container)).toBe(text);
+  });
+
+  it.each(["en", "de", "es", "fr"])(
+    "keeps the fallback and the live figure stacked in one cell, the figure reserving the widest count, in %s",
+    async (locale) => {
+      let answer: (response: Response) => void = () => undefined;
+      stubFetch(() => new Promise<Response>((resolve) => (answer = resolve)));
+      const container = await renderFallback(locale);
+      const stack = container.querySelector(".vk-proof-strip-stack");
+      const value = () => stack?.querySelector<HTMLElement>("[data-live-stat]");
+      const reserved = `${live.widestLiveCount(locale).length}ch`;
+      expect(stack?.children).toHaveLength(2);
+      expect(value()?.style.minInlineSize).toBe(reserved);
+      expect(value()?.closest('[data-shown="false"]')).not.toBeNull();
+      await act(async () => {
+        answer(Response.json({ stars: 2, downloads: 15_600 }));
+        await live.loadLiveStats();
+      });
+      expect(stack?.children).toHaveLength(2);
+      expect(value()?.style.minInlineSize).toBe(reserved);
+      expect(value()?.closest('[data-shown="false"]')).toBeNull();
+      expect(stack?.querySelector("[data-fallback]")?.getAttribute("data-shown")).toBe("false");
+    },
+  );
+
+  it("reserves at least as many characters as any compact count below a million", () => {
+    for (const locale of ["en", "de", "es", "fr"]) {
+      const widest = live.widestLiveCount(locale).length;
+      for (let count = 0; count < 1_000_000; count = Math.ceil(count * 1.07) + 1) {
+        expect(
+          new Intl.NumberFormat(locale, { notation: "compact", maximumFractionDigits: 1 }).format(
+            count,
+          ).length,
+          `${locale} ${count}`,
+        ).toBeLessThanOrEqual(widest);
+      }
+    }
   });
 
   it("draws the live figure in the same markup as a build-time figure", async () => {
@@ -225,7 +269,10 @@ describe("LiveStatFallback", () => {
         <LiveStatValue stat="downloads" initial="15.6K" label="downloads" locale="en" />,
       );
     });
-    expect(fallback.innerHTML).toBe(built.innerHTML.replace(' style="min-inline-size: 5ch;"', ""));
+    const figure = fallback.querySelector('[data-shown="true"]');
+    expect(figure?.innerHTML.replace(/ style="[^"]*"/, "")).toBe(
+      built.innerHTML.replace(/ style="[^"]*"/, ""),
+    );
   });
 
   it("keeps the fallback when the live figure it asked for fails too", async () => {
@@ -238,8 +285,8 @@ describe("LiveStatFallback", () => {
       answer(new Response("down", { status: 503 }));
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
-    expect(container.textContent).toBe("verbatra on npm");
-    expect(container.querySelector("[data-fallback]")).not.toBeNull();
+    expect(shownText(container)).toBe("verbatra on npm");
+    expect(container.querySelector("[data-fallback]")?.getAttribute("data-shown")).toBe("true");
   });
 });
 
@@ -264,7 +311,8 @@ describe("useLiveCount", () => {
 });
 
 describe("reservedWidth", () => {
-  it("reserves nothing without a build-time number", () => {
-    expect(live.reservedWidth(null)).toBeUndefined();
+  it("reserves nothing without a build-time number, and one ch per character with one", () => {
+    expect(reservedWidth(null)).toBeUndefined();
+    expect(reservedWidth("1.2K")).toEqual({ minInlineSize: "4ch" });
   });
 });

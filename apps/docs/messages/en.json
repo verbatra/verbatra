@@ -247,6 +247,7 @@
       "ctaSecondary": "View on GitHub",
       "installLabel": "Install the CLI",
       "nodeRequirement": "Requires Node.js {versions}",
+      "nodeMajorFrom": "{major} ({minimum} or later)",
       "terminalLabel": "A verbatra check run finds two missing keys in each locale. A translate run then sends only those keys.",
       "terminalExample": "Example output",
       "replay": "Replay"
@@ -288,7 +289,7 @@
         },
         "translate": {
           "title": "Translate",
-          "body": "`verbatra translate` sends only missing and changed keys and writes a result only after its placeholders pass the integrity check."
+          "body": "`verbatra translate` sends only missing and changed keys, and refuses any result with mismatched placeholders, broken inline markup or invalid ICU syntax."
         },
         "ci": {
           "title": "Gate in CI",

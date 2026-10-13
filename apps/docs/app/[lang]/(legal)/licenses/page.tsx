@@ -15,6 +15,17 @@ import type {
 
 const LICENSES: ThirdPartyLicenses = manifest;
 const TEXTS = new Map(LICENSES.texts.map((text) => [text.id, text]));
+const OWN_TEXT_IDS = new Set(
+  [...LICENSES.assets, ...LICENSES.groups.flatMap((group) => group.packages)].map(
+    (entry) => entry.textId,
+  ),
+);
+const FALLBACK_HOME = new Map<string, string>();
+for (const group of LICENSES.groups) {
+  for (const id of group.fallbackTextIds) {
+    if (!OWN_TEXT_IDS.has(id) && !FALLBACK_HOME.has(id)) FALLBACK_HOME.set(id, group.license);
+  }
+}
 
 export async function generateMetadata(props: {
   params: Promise<{ lang: string }>;
@@ -48,7 +59,14 @@ function textsUsedBy(entries: ReadonlyArray<{ textId: string | null }>): License
   });
 }
 
-function usageCount(entries: ReadonlyArray<{ textId: string | null }>, id: string): number {
+function fallbackTexts(group: LicenseGroup): LicenseText[] {
+  return group.fallbackTextIds.flatMap((id) => {
+    const text = FALLBACK_HOME.get(id) === group.license ? TEXTS.get(id) : undefined;
+    return text === undefined ? [] : [text];
+  });
+}
+
+function usageCount(entries: ReadonlyArray<{ textId: string | null }>, id: string | null): number {
   return entries.filter((entry) => entry.textId === id).length;
 }
 
@@ -65,7 +83,7 @@ function TextBlock({ text, users }: { text: LicenseText; users: number }): React
 
 function OwnerLines({ pkg }: { pkg: LicensedPackage }): ReactNode {
   if (pkg.copyright.length > 0) {
-    return pkg.copyright.map((line) => <span key={line}>{line}</span>);
+    return pkg.copyright.map((line, index) => <span key={`${index}:${line}`}>{line}</span>);
   }
   if (pkg.author !== null) return <span>Author: {pkg.author}</span>;
   return null;
@@ -131,6 +149,9 @@ function GroupSection({ group }: { group: LicenseGroup }): ReactNode {
       {textsUsedBy(group.packages).map((text) => (
         <TextBlock key={text.id} text={text} users={usageCount(group.packages, text.id)} />
       ))}
+      {fallbackTexts(group).map((text) => (
+        <TextBlock key={text.id} text={text} users={usageCount(group.packages, null)} />
+      ))}
     </section>
   );
 }
@@ -141,8 +162,8 @@ function AssetItem({ asset }: { asset: LicensedAsset }): ReactNode {
       <strong>{asset.name}</strong>
       <span>License: {asset.license}</span>
       <span>{asset.usage}</span>
-      {asset.copyright.map((line) => (
-        <span key={line}>{line}</span>
+      {asset.copyright.map((line, index) => (
+        <span key={`${index}:${line}`}>{line}</span>
       ))}
     </li>
   );

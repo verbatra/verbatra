@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 
 import { act } from "react";
-import { createRoot } from "react-dom/client";
+import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { useIntentPrefetch } from "./use-intent-prefetch";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -23,14 +23,24 @@ function Probe({
   );
 }
 
+const roots: Root[] = [];
+
 async function mount(children: React.ReactNode): Promise<HTMLDivElement> {
   const container = document.createElement("div");
   document.body.append(container);
+  const root = createRoot(container);
+  roots.push(root);
   await act(async () => {
-    createRoot(container).render(children);
+    root.render(children);
   });
   return container;
 }
+
+afterEach(() => {
+  for (const root of roots.splice(0)) act(() => root.unmount());
+  document.body.innerHTML = "";
+  vi.useRealTimers();
+});
 
 describe("useIntentPrefetch", () => {
   it("renders no prefetch on the server", () => {
@@ -49,7 +59,6 @@ describe("useIntentPrefetch", () => {
       vi.advanceTimersByTime(60_000);
     });
     expect(container.textContent).toBe("falsefalse");
-    vi.useRealTimers();
   });
 
   it.each([

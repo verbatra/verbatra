@@ -1,4 +1,4 @@
-import { type CSSProperties, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { formatCompactNumber } from "@/lib/compact-number";
 import { afterFirstContentfulPaint } from "@/lib/first-paint";
 
@@ -66,6 +66,10 @@ export function useLiveCount(
   return formatCompactNumber(live, locale);
 }
 
-export function reservedWidth(initial: string | null): CSSProperties | undefined {
-  return initial === null ? undefined : { minInlineSize: `${initial.length}ch` };
+const WIDEST_COUNTS: ReadonlyArray<number> = [100_900, 999_999];
+
+export function widestLiveCount(locale: string): string {
+  return WIDEST_COUNTS.map((count) => formatCompactNumber(count, locale)).reduce((widest, next) =>
+    next.length > widest.length ? next : widest,
+  );
 }

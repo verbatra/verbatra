@@ -12,6 +12,15 @@ import {
   VersionPill,
 } from "@/components/chrome-islands";
 import {
+  HEADER_CLASS,
+  HeaderEnd,
+  HeaderNav,
+  HeaderRow,
+  HeaderStart,
+  type RowWidth,
+  WORDMARK_LINK_CLASS,
+} from "@/components/header-parts";
+import {
   ChangelogNavLink,
   DocsNavLink,
   GetStartedLink,
@@ -143,13 +152,8 @@ type SiteHeaderFrameProps = ComponentProps<"header"> & {
   navLinks?: ReactNode;
   navLabel?: string;
   activeOverride?: ActiveOverride;
-  rowWidth?: keyof typeof ROW_WIDTH;
+  rowWidth?: RowWidth;
 };
-
-const ROW_WIDTH = {
-  layout: "max-w-(--fd-layout-width) px-4 md:px-6",
-  wide: "max-w-(--width-wide) px-(--gutter)",
-} as const;
 
 export function SiteHeaderFrame({
   slots,
@@ -168,30 +172,20 @@ export function SiteHeaderFrame({
   const textItems = navItems.filter((item) => !isIconItem(item));
   const iconItems = navItems.filter(isIconItem);
   return (
-    <header {...props} className={cn("vk-header sticky flex flex-col backdrop-blur-sm", className)}>
-      <div
-        className={cn(
-          "vk-header-row mx-auto flex h-14 w-full items-center gap-2",
-          ROW_WIDTH[rowWidth],
-        )}
-      >
-        <div className="vk-header-start flex flex-1 items-center">
-          {slots.navTitle ? (
-            <slots.navTitle className="vk-tap inline-flex items-center gap-2.5 font-semibold" />
-          ) : null}
+    <header {...props} className={cn(HEADER_CLASS, className)}>
+      <HeaderRow width={rowWidth}>
+        <HeaderStart>
+          {slots.navTitle ? <slots.navTitle className={WORDMARK_LINK_CLASS} /> : null}
           {badge}
-        </div>
+        </HeaderStart>
         {slots.searchTrigger ? (
           <slots.searchTrigger.full
             hideIfDisabled
             className="vk-header-search my-auto w-full max-w-sm rounded-xl ps-2.5 max-lg:max-w-64 max-md:hidden"
           />
         ) : null}
-        <div className="flex flex-1 items-center justify-end md:gap-2 md:ps-4">
-          <nav
-            aria-label={navLabel}
-            className="flex items-center gap-6 empty:hidden max-md:hidden md:me-4"
-          >
+        <HeaderEnd>
+          <HeaderNav label={navLabel}>
             {textItems.map((item) => (
               <TextLink
                 key={itemKey(item)}
@@ -201,7 +195,7 @@ export function SiteHeaderFrame({
               />
             ))}
             {navLinks}
-          </nav>
+          </HeaderNav>
           {iconItems.map((item) => (
             <IconLink key={itemKey(item)} item={item} className="max-md:hidden" />
           ))}
@@ -217,8 +211,8 @@ export function SiteHeaderFrame({
             {slots.themeSwitch ? <slots.themeSwitch /> : null}
             {trailing}
           </div>
-        </div>
-      </div>
+        </HeaderEnd>
+      </HeaderRow>
     </header>
   );
 }

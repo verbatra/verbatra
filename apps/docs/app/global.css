@@ -2721,6 +2721,18 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   color: var(--text-muted);
 }
 
+.vk-proof-strip-stack {
+  display: inline-grid;
+}
+
+.vk-proof-strip-stack > * {
+  grid-area: 1 / 1;
+}
+
+.vk-proof-strip-stack > [data-shown="false"] {
+  visibility: hidden;
+}
+
 @media (min-width: 48rem) {
   .vk-proof-strip-list {
     flex-direction: row;

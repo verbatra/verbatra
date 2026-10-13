@@ -71,6 +71,8 @@ the interface strings with `pnpm i18n` (see below).
 - `lib/licenses.generated.json` (the `/licenses` page) and the root `THIRD_PARTY_NOTICES.md` are
   written by `pnpm licenses:sync` from the installed production dependencies; run it after a
   dependency change, or `lib/third-party-licenses.test.ts` fails.
+- A production dependency change (a Dependabot pull request included) needs
+  `pnpm --filter @verbatra/docs licenses:sync` run and its output committed.
 
 ## The landing page
 

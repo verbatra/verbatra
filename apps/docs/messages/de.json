@@ -194,6 +194,7 @@
       "ctaSecondary": "Auf GitHub ansehen",
       "installLabel": "Die CLI installieren",
       "nodeRequirement": "Benötigt Node.js {versions}",
+      "nodeMajorFrom": "{major} (ab {minimum})",
       "terminalLabel": "Ein verbatra-check-Lauf findet in jeder Locale zwei fehlende Keys. Ein translate-Lauf schickt danach nur diese Keys.",
       "terminalExample": "Beispielausgabe",
       "replay": "Erneut abspielen"
@@ -235,7 +236,7 @@
         },
         "translate": {
           "title": "Übersetzen",
-          "body": "`verbatra translate` schickt nur fehlende und geänderte Keys und schreibt ein Ergebnis erst, wenn seine Platzhalter die Integritätsprüfung bestehen."
+          "body": "`verbatra translate` schickt nur fehlende und geänderte Keys und verwirft jedes Ergebnis mit abweichenden Platzhaltern, kaputtem Inline-Markup oder ungültiger ICU-Syntax."
         },
         "ci": {
           "title": "In der CI absichern",

@@ -31,9 +31,8 @@ describe("StaticSiteHeader", () => {
     const header = await render();
     expect(header.id).toBe("nd-nav");
     expect(header.querySelector("button")).toBeNull();
-    expect(
-      Array.from(header.querySelectorAll("a"), (a) => [a.getAttribute("href"), a.textContent]),
-    ).toEqual([
+    const desktop = header.querySelectorAll("a:not(details a)");
+    expect(Array.from(desktop, (a) => [a.getAttribute("href"), a.textContent])).toEqual([
       ["/", "verbatra"],
       ["/docs", messages.landing.topNav.docs],
       ["https://github.com/verbatra/verbatra/releases", messages.landing.topNav.changelog],
@@ -42,9 +41,27 @@ describe("StaticSiteHeader", () => {
     ]);
   });
 
+  it("reaches Docs, Changelog and GitHub on a phone through a details menu that needs no script", async () => {
+    const menu = (await render()).querySelector("details");
+    expect(menu?.classList.contains("md:hidden")).toBe(true);
+    const summary = menu?.querySelector("summary");
+    expect(summary?.classList.contains("vk-tap")).toBe(true);
+    expect(summary?.textContent).toBe(messages.landing.topNav.menu.open);
+    const links = Array.from(menu?.querySelectorAll("nav a") ?? []);
+    expect(links.map((a) => a.getAttribute("href"))).toEqual([
+      "/docs",
+      "https://github.com/verbatra/verbatra/releases",
+      "https://github.com/verbatra/verbatra",
+    ]);
+    for (const link of links) {
+      expect(link.classList.contains("vk-tap")).toBe(true);
+      expect(link.classList.contains("min-h-11")).toBe(true);
+    }
+  });
+
   it("gives every link the shared phone tap class", async () => {
     const links = Array.from((await render()).querySelectorAll("a"));
-    expect(links).toHaveLength(5);
+    expect(links).toHaveLength(8);
     for (const link of links) expect(link.classList.contains("vk-tap")).toBe(true);
   });
 

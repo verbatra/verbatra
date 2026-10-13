@@ -34,8 +34,9 @@ cookie or route, or the privacy wording that describes them.
   `Sec-Fetch-Dest: document` and `Sec-Fetch-Mode: navigate`, no `prefetch` in `Sec-Purpose`
   or `Purpose`, a 200 response without `Location`, not the `.md` markdown variant, a served
   pathname listed in the CSP hash manifest (`.next/csp-script-hashes.json`) other than
-  `/_not-found` and `/_global-error`, on the production host (`SITE_HOST`, read from
-  `X-Forwarded-Host`, then `Host`), with a non-empty user agent that is not an obvious tool
+  `/_not-found` and `/_global-error`, on the production host (`SITE_HOST`, read by
+  `lib/request-host.ts` from `Host`, which nginx sets, and only without it from the last
+  `X-Forwarded-Host` value), with a non-empty user agent that is not an obvious tool
   or crawler. Local runs, csp-smoke and health checks never count.
 - **Refusals** - `Sec-GPC: 1`, `DNT: 1` or the cookie `verbatra_analytics_optout=1` stop the
   pageview before anything is built.

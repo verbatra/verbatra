@@ -1,6 +1,5 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { ROW_WIDTH } from "@/components/header-parts";
 import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
 
 describe("LegalFooter", () => {
@@ -10,7 +9,6 @@ describe("LegalFooter", () => {
     )?.declarations;
     expect(nav?.["max-width"]).toBe("var(--width-wide)");
     expect(nav?.["padding-inline"]).toBe("var(--gutter)");
-    const header = readFileSync(join(process.cwd(), "components/site-header.tsx"), "utf8");
-    expect(header).toContain('wide: "max-w-(--width-wide) px-(--gutter)"');
+    expect(ROW_WIDTH.wide).toBe("max-w-(--width-wide) px-(--gutter)");
   });
 });

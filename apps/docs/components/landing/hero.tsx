@@ -48,7 +48,11 @@ export async function Hero(): Promise<ReactNode> {
               }}
             />
             <p className="vk-banner-requirement">
-              {t("nodeRequirement", { versions: nodeVersionsLabel(NODE_RANGE, locale) })}
+              {t("nodeRequirement", {
+                versions: nodeVersionsLabel(NODE_RANGE, locale, (major, minimum) =>
+                  t("nodeMajorFrom", { major, minimum }),
+                ),
+              })}
             </p>
           </div>
         </div>

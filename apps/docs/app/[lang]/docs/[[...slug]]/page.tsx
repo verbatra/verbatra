@@ -14,7 +14,7 @@ import { DocsPageActions } from "@/components/docs-page-actions";
 import { JsonLd } from "@/components/json-ld";
 import { CALLOUT_CLASS, getMDXComponents } from "@/components/mdx";
 import { sdkReferenceComponents } from "@/components/sdk-reference";
-import { docsBreadcrumbTrail } from "@/lib/docs-breadcrumb";
+import { docsBreadcrumbTrail, VISIBLE_BREADCRUMB_OPTIONS } from "@/lib/docs-breadcrumb";
 import { footerNeighbourUrls } from "@/lib/docs-neighbours";
 import { extractFaqItems, withoutQuestions } from "@/lib/extract-faq";
 import { i18n, type Locale, localizedPath, toLocale } from "@/lib/i18n";
@@ -45,11 +45,7 @@ async function pageJsonLd(
   ];
   if (!slug || slug.length === 0) return blocks;
 
-  const trail = docsBreadcrumbTrail(
-    source.getPageTree(lang),
-    page.url,
-    localizedPath(lang, "/docs"),
-  );
+  const trail = docsBreadcrumbTrail(source.getPageTree(lang), page.url);
   if (trail.length > 0) blocks.push(breadcrumbListLd({ items: trail }));
 
   if (slug.length === 1 && slug[0] === "faq") {
@@ -132,7 +128,7 @@ export default async function Page(props: { params: Promise<{ slug?: string[]; l
       toc={isHome ? [] : pageToc(page.data.toc, page.data.tocDepth)}
       tableOfContentPopover={{ trigger: { "aria-label": onThisPageLabel(lang) } }}
       full={isHome}
-      breadcrumb={{ enabled: !isHome, includePage: true, className: BREADCRUMB_CLASS }}
+      breadcrumb={{ enabled: !isHome, ...VISIBLE_BREADCRUMB_OPTIONS, className: BREADCRUMB_CLASS }}
       footer={{ enabled: !isHome, className: "vk-docs-footer" }}
       className={isHome ? "max-w-none p-0 md:p-0 xl:p-0" : undefined}
       tabIndex={-1}

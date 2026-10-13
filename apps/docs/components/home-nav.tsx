@@ -2,14 +2,13 @@
 
 import { usePathname } from "fumadocs-core/framework";
 import Link from "fumadocs-core/link";
-import { buttonVariants } from "fumadocs-ui/components/ui/button";
 import { createContext, type ReactNode, use } from "react";
-import { GithubIcon } from "@/components/landing/github-icon";
+import { GitHubLinkBody, githubLinkClass } from "@/components/header-parts";
 import { GITHUB_URL, RELEASES_URL } from "@/components/landing/links";
+import { GET_STARTED_CLASS, GET_STARTED_STYLE } from "@/components/nav-link-classes";
 import { buttonClasses } from "@/components/ui/button";
 import { LIVE_COUNT_SLOT } from "@/lib/live-count";
-import { reservedWidth, useLiveCount } from "@/lib/live-stats";
-import { cn } from "@/lib/utils";
+import { useLiveCount } from "@/lib/live-stats";
 
 type HomeNavLabels = {
   readonly label: string;
@@ -48,14 +47,6 @@ export function useHomeNav(): HomeNavValue {
   if (!value) throw new Error("HomeSiteHeader needs a HomeNavProvider");
   return value;
 }
-
-export const SHEET_ITEM =
-  "flex min-h-11 items-center gap-2 rounded-lg px-2 text-start text-(--text-muted) transition-colors hover:bg-(--surface-hover)/50 hover:text-(--text-strong) data-[active=true]:bg-(--accent)/10 data-[active=true]:text-(--accent)";
-
-export const MENU_TRIGGER = cn(
-  buttonVariants({ variant: "ghost", size: "icon-sm" }),
-  "vk-tap -me-1.5 p-2",
-);
 
 function withoutTrailingSlash(path: string): string {
   return path.length > 1 && path.endsWith("/") ? path.slice(0, -1) : path;
@@ -103,26 +94,6 @@ export function ChangelogNavLink({ className }: { className: string }): ReactNod
   );
 }
 
-function StarCount({
-  stars,
-  reserved,
-  suffix,
-}: {
-  stars: string;
-  reserved: string | null;
-  suffix: string;
-}): ReactNode {
-  return (
-    <>
-      {" "}
-      <span className="vk-nav-stars" data-stars="" style={reservedWidth(reserved)}>
-        {stars}
-      </span>
-      <span className="sr-only">{suffix}</span>
-    </>
-  );
-}
-
 export function GitHubNavLink({ className }: { className: string }): ReactNode {
   const { stars: initialStars, labels, locale } = useHomeNav();
   const stars = useLiveCount("stars", initialStars, locale);
@@ -132,20 +103,21 @@ export function GitHubNavLink({ className }: { className: string }): ReactNode {
       href={GITHUB_URL}
       target="_blank"
       rel="noopener noreferrer"
-      className={cn("inline-flex items-center gap-1.5", className)}
+      className={githubLinkClass(className)}
     >
-      <GithubIcon size={16} />
-      <span>{labels.github}</span>
-      {stars === null ? null : (
-        <StarCount stars={stars} reserved={initialStars} suffix={starsSuffix} />
-      )}
+      <GitHubLinkBody
+        label={labels.github}
+        stars={stars}
+        reserved={initialStars}
+        starsSuffix={starsSuffix}
+      />
     </a>
   );
 }
 
 export function GetStartedLink({
   size = "sm",
-  className = "vk-tap vk-nav-cta whitespace-nowrap",
+  className = GET_STARTED_CLASS,
   onNavigate,
 }: {
   size?: "sm" | "md";
@@ -157,7 +129,7 @@ export function GetStartedLink({
     <Link
       href={quickstartUrl}
       className={buttonClasses("primary", size, className)}
-      style={{ background: "var(--accent-fill)" }}
+      style={GET_STARTED_STYLE}
       onClick={onNavigate}
     >
       {labels.getStarted}

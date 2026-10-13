@@ -142,6 +142,29 @@ describe("CodeShowcaseTabs", () => {
     expect(panels.map((panel) => panel.dataset.active)).toEqual(["false", "true"]);
   });
 
+  it("derives its ids from useId, so two showcases on one page never share a tab or panel id", () => {
+    const tabs = [
+      { id: "a", label: "A", panel: <p>first</p> },
+      { id: "b", label: "B", panel: <p>second</p> },
+    ];
+    const first = mount(tabs);
+    const second = mount(tabs);
+    const ids = [first, second].flatMap((container) =>
+      [...container.querySelectorAll<HTMLElement>('[role="tab"], [role="tabpanel"]')].map(
+        (element) => element.id,
+      ),
+    );
+    expect(ids).toHaveLength(8);
+    expect(new Set(ids).size).toBe(8);
+    for (const id of ids) {
+      expect(id.startsWith("code-showcase")).toBe(true);
+      expect(document.getElementById(id)?.id).toBe(id);
+    }
+    const tab = second.querySelector<HTMLElement>('[role="tab"]');
+    const panel = document.getElementById(tab?.getAttribute("aria-controls") ?? "");
+    expect(second.contains(panel)).toBe(true);
+  });
+
   it("renders an empty tab list without throwing", () => {
     const container = mount([]);
     expect(container.querySelector('[role="tablist"]')?.children).toHaveLength(0);

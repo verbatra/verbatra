@@ -114,6 +114,9 @@ describe("landing message parity", () => {
     for (const locale of i18n.languages) {
       expect(landingText(locale, "banner.eyebrow"), locale).toContain("(MIT)");
       expect(landingText(locale, "banner.nodeRequirement"), locale).toContain("Node.js {versions}");
+      expect(landingText(locale, "banner.nodeMajorFrom"), locale).toMatch(
+        /^\{major\} \(.*\{minimum\}.*\)$/,
+      );
     }
   });
 

@@ -134,4 +134,4 @@ Contributions are welcome; please read [CONTRIBUTING.md](./CONTRIBUTING.md) and 
 
 ## License
 
-[MIT](./LICENSE) (c) Mario Kreitz. The code, the documentation content and the screenshots are all under the MIT license; third-party fonts, icons and dependencies keep their own licenses, listed in [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).
+[MIT](./LICENSE) (c) Mario Kreitz. The code, the documentation content and the screenshots are all under the MIT license; third-party fonts, icons and dependencies keep their own licenses. [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md) lists them for the documentation site (apps/docs).

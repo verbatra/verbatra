@@ -89,9 +89,12 @@ describe("Hero", () => {
 
   it("states the Node.js requirement under the install command, read from the engines range", async () => {
     const note = (await render()).querySelector(".vk-banner-install .vk-banner-requirement");
+    const majorFrom = (major: string, minimum: string) =>
+      banner.nodeMajorFrom.replace("{major}", major).replace("{minimum}", minimum);
     expect(note?.textContent).toBe(
-      banner.nodeRequirement.replace("{versions}", nodeVersionsLabel(NODE_RANGE, "en")),
+      banner.nodeRequirement.replace("{versions}", nodeVersionsLabel(NODE_RANGE, "en", majorFrom)),
     );
+    expect(note?.textContent).toBe("Requires Node.js 22 (22.18 or later) or 24+");
   });
 
   it("offers Get started to the quickstart and View on GitHub in a new tab", async () => {

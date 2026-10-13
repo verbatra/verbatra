@@ -1,13 +1,11 @@
 "use client";
 
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { TabList, tabPanelProps } from "@/components/ui/tabs";
 
 type CodeShowcaseTab = { id: string; label: string; panel: ReactNode };
 
 type Fade = (element: HTMLElement) => void;
-
-const CODE_SHOWCASE_ID = "code-showcase";
 
 const TAB_LIST_CLASS =
   "inline-flex w-full items-center gap-1 overflow-x-auto border-b border-(--border-default)";
@@ -52,6 +50,7 @@ export function CodeShowcaseTabs({
   tabs: ReadonlyArray<CodeShowcaseTab>;
 }): ReactNode {
   const [active, setActive] = useState(tabs[0]?.id ?? "");
+  const idPrefix = `code-showcase${useId()}`;
   return (
     <div
       role="none"
@@ -67,14 +66,14 @@ export function CodeShowcaseTabs({
           setActive(id);
         }}
         ariaLabel={label}
-        idPrefix={CODE_SHOWCASE_ID}
+        idPrefix={idPrefix}
         className={TAB_LIST_CLASS}
         tabClassName={TAB_CLASS}
       />
       {tabs.map((tab) => (
         <div
           key={tab.id}
-          {...tabPanelProps(CODE_SHOWCASE_ID, tab.id, active)}
+          {...tabPanelProps(idPrefix, tab.id, active)}
           // biome-ignore lint/a11y/noNoninteractiveTabindex: a tab panel is a tab stop in the WAI-ARIA tabs pattern
           tabIndex={0}
           className={PANEL_CLASS}

@@ -68,10 +68,21 @@ describe("proxy: content security policy", () => {
 
   it.each([
     [{ host: "verbatra.kreitz-webdev.de" }],
-    [{ "x-forwarded-host": "verbatra.kreitz-webdev.de", host: "127.0.0.1:3000" }],
+    [{ host: "verbatra.kreitz-webdev.de", "x-forwarded-host": "localhost" }],
+    [{ "x-forwarded-host": "localhost, verbatra.kreitz-webdev.de" }],
   ])("upgrades insecure requests for the public host behind the proxy (%o)", async (headers) => {
     const response = await run("/docs/providers", headers);
     expect(response.headers.get("content-security-policy")).toContain("upgrade-insecure-requests");
+  });
+
+  it.each([
+    [{ host: "127.0.0.1:3000", "x-forwarded-host": "verbatra.kreitz-webdev.de" }],
+    [{ "x-forwarded-host": "verbatra.kreitz-webdev.de, localhost" }],
+  ])("trusts Host, then the last X-Forwarded-Host value, not the first (%o)", async (headers) => {
+    const response = await run("/docs/providers", headers);
+    expect(response.headers.get("content-security-policy")).not.toContain(
+      "upgrade-insecure-requests",
+    );
   });
 
   it("sends one policy, so a second one cannot narrow it", async () => {

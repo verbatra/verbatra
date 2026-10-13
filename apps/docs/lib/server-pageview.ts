@@ -2,6 +2,7 @@ import "server-only";
 import { isIPv4, isIPv6 } from "node:net";
 import { loadBuiltScriptHashes } from "@/lib/csp-script-hashes";
 import { MARKDOWN_SUFFIX } from "@/lib/markdown-route";
+import { requestHost } from "@/lib/request-host";
 import type { ScriptHashesByRoute } from "@/lib/script-hashes-manifest.mjs";
 import { SITE_HOST } from "@/lib/site";
 
@@ -130,11 +131,6 @@ export function clientIp(headers: Headers): string | undefined {
   return [...forwarded, realIp].find(isPublicAddress);
 }
 
-function requestHost(request: Request): string {
-  const forwarded = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
-  return forwarded || request.headers.get("host") || new URL(request.url).host;
-}
-
 function announcesPrefetch(headers: Headers): boolean {
   return ["sec-purpose", "purpose"].some((name) =>
     (headers.get(name) ?? "").toLowerCase().includes("prefetch"),
@@ -227,7 +223,7 @@ export function countedPageview(
   servedPathname: string,
   routes?: ScriptHashesByRoute,
 ): Pageview | undefined {
-  if (requestHost(request) !== SITE_HOST) return undefined;
+  if (requestHost(request.headers, new URL(request.url).host) !== SITE_HOST) return undefined;
   if (isTrackingRefused(request.headers)) return undefined;
   if (!isCountableNavigation(request, response, servedPathname, routes)) return undefined;
   return pageviewFor(request);

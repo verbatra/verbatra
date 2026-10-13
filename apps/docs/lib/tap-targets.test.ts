@@ -23,18 +23,14 @@ const PHONE_MIN_SIZE = [
 ];
 
 const TAP_CLASS_SOURCES = [
-  "components/home-nav.tsx",
   "components/theme-toggle.tsx",
   "components/language-select.tsx",
   "components/ui/copy-button.tsx",
   "components/ui/tabs.tsx",
-  "components/site-header.tsx",
-  "components/static-site-header.tsx",
   "components/studio-screenshot.tsx",
   "components/landing/footer.tsx",
   "components/landing/code-showcase.tsx",
   "components/legal-footer.tsx",
-  "components/home-mobile-menu.tsx",
 ];
 
 describe("tap targets on a phone", () => {

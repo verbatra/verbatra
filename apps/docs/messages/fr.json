@@ -194,6 +194,7 @@
       "ctaSecondary": "Voir sur GitHub",
       "installLabel": "Installe la CLI",
       "nodeRequirement": "Nécessite Node.js {versions}",
+      "nodeMajorFrom": "{major} ({minimum} ou plus récente)",
       "terminalLabel": "Une exécution de verbatra check trouve deux clés manquantes dans chaque locale. Une exécution de translate n’envoie ensuite que ces clés.",
       "terminalExample": "Exemple de sortie",
       "replay": "Rejouer"
@@ -235,7 +236,7 @@
         },
         "translate": {
           "title": "Traduire",
-          "body": "`verbatra translate` n’envoie que les clés manquantes ou modifiées et n’écrit un résultat qu’une fois ses placeholders validés par le contrôle d’intégrité."
+          "body": "`verbatra translate` n’envoie que les clés manquantes ou modifiées et refuse tout résultat aux placeholders divergents, au balisage inline cassé ou à la syntaxe ICU invalide."
         },
         "ci": {
           "title": "Bloquer en CI",

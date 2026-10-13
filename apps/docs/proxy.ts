@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { scriptHashesFor } from "@/lib/csp-script-hashes";
 import { i18n } from "@/lib/i18n";
 import { isDocsPath, markdownRewritePath } from "@/lib/markdown-route";
+import { requestHost } from "@/lib/request-host";
 import {
   CSP_ENFORCED,
   contentSecurityPolicy,
@@ -32,18 +33,15 @@ function servedPathname(request: NextRequest, response: Response): string {
   return pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
 }
 
-function requestHost(request: NextRequest): string {
-  const forwarded = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
-  return forwarded || request.headers.get("host") || request.nextUrl.host;
-}
-
 function withContentSecurityPolicy(request: NextRequest, response: Response): Response {
   const isDev = process.env.NODE_ENV === "development";
   const { key, value } = contentSecurityPolicy({
     enforce: CSP_ENFORCED,
     isDev,
     scriptHashes: isDev ? [] : scriptHashesFor(servedPathname(request, response)),
-    upgradeInsecureRequests: upgradesInsecureRequests(requestHost(request)),
+    upgradeInsecureRequests: upgradesInsecureRequests(
+      requestHost(request.headers, request.nextUrl.host),
+    ),
   });
   response.headers.set(key, value);
   return response;

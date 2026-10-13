@@ -75,7 +75,15 @@ describe("countedPageview", () => {
     ["Do Not Track", { dnt: "1" }],
     ["the opt-out cookie", { cookie: `theme=x; ${ANALYTICS_OPT_OUT_COOKIE}=1` }],
     ["a local host", { host: "localhost:3480" }],
-    ["a forwarded foreign host", { "x-forwarded-host": "preview.example.com" }],
+    ["a forwarded foreign host", { host: null, "x-forwarded-host": "preview.example.com" }],
+    [
+      "a spoofed X-Forwarded-Host behind a local Host",
+      { host: "localhost:3480", "x-forwarded-host": "verbatra.kreitz-webdev.de" },
+    ],
+    [
+      "a spoofed first X-Forwarded-Host value",
+      { host: null, "x-forwarded-host": "verbatra.kreitz-webdev.de, localhost" },
+    ],
   ])("skips %s", (_case, headers) => {
     expect(counted(navigation("/", headers))).toBeUndefined();
   });
@@ -100,10 +108,15 @@ describe("countedPageview", () => {
     expect(counted(navigation("/de/docs"), "/de/docs.mdx")).toBeUndefined();
   });
 
-  it("counts a forwarded production host", () => {
+  it("counts the production Host even when a client sends X-Forwarded-Host", () => {
+    const request = navigation("/", { "x-forwarded-host": "localhost, preview.example.com" });
+    expect(counted(request)).toBeDefined();
+  });
+
+  it("counts the last X-Forwarded-Host value when Host is absent", () => {
     const request = navigation("/", {
-      host: "127.0.0.1:3000",
-      "x-forwarded-host": "verbatra.kreitz-webdev.de",
+      host: null,
+      "x-forwarded-host": "localhost, verbatra.kreitz-webdev.de",
     });
     expect(counted(request)).toBeDefined();
   });

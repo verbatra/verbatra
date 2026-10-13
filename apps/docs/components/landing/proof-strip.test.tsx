@@ -58,6 +58,12 @@ function facts(doc: Document): (string | null)[] {
   return Array.from(doc.querySelectorAll("[data-fact]"), (node) => node.getAttribute("data-fact"));
 }
 
+function shownText(element: Element): string {
+  const copy = element.cloneNode(true) as Element;
+  for (const hidden of copy.querySelectorAll('[data-shown="false"]')) hidden.remove();
+  return copy.textContent ?? "";
+}
+
 function items(doc: Document): Element[] {
   return Array.from(doc.querySelectorAll(".vk-proof-strip-item"));
 }
@@ -108,17 +114,21 @@ describe("ProofStrip", () => {
     const downloads = doc.querySelector('[data-stat="downloads"] a');
     const newTab = messages.landing.openSource.newTab;
     expect(stars?.getAttribute("href")).toBe(GITHUB_URL);
-    expect(stars?.textContent).toBe(`${labels.starsFallback} ${newTab}`);
+    expect(stars && shownText(stars)).toBe(`${labels.starsFallback} ${newTab}`);
     expect(downloads?.getAttribute("href")).toBe(NPM_CLI);
-    expect(downloads?.textContent).toBe(`${labels.downloadsFallback} ${newTab}`);
+    expect(downloads && shownText(downloads)).toBe(`${labels.downloadsFallback} ${newTab}`);
     expect(labels.starsFallback).toContain("verbatra");
     expect(labels.downloadsFallback).toContain("verbatra");
-    expect(doc.querySelectorAll("[data-live-stat]")).toHaveLength(0);
+    for (const value of doc.querySelectorAll("[data-live-stat]")) {
+      expect(value.textContent).toBe("");
+      expect(value.closest('[data-shown="false"]')).not.toBeNull();
+    }
     expect(facts(doc)).toEqual(["providers", "formats"]);
     for (const stat of doc.querySelectorAll("[data-stat]")) {
       expect(stat.textContent).not.toMatch(/\d/);
     }
     for (const value of doc.querySelectorAll(".vk-proof-strip-value")) {
+      if (value.closest('[data-shown="false"]')) continue;
       expect(value.textContent?.trim()).not.toBe("");
     }
   });
