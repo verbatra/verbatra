@@ -5,7 +5,7 @@ import { source } from "@/lib/source";
 
 const HOME_PRIORITY: Readonly<Record<Locale, number>> = { en: 1, de: 0.9, es: 0.9, fr: 0.9 };
 
-const LEGAL_PATHS = ["/contact", "/imprint", "/privacy"] as const;
+const LEGAL_PATHS = ["/contact", "/imprint", "/licenses", "/privacy"] as const;
 
 function homeLanguageAlternates(): Record<string, string> {
   const languages: Record<string, string> = {};

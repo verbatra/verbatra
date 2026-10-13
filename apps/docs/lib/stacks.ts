@@ -1,5 +1,4 @@
 import type { SupportedFormat } from "@verbatra/sdk";
-import type { StackIconKey } from "../components/stack-icons";
 import { isNpmInstall, NPM_FENCE_LANG } from "./install-commands";
 
 export const STACK_IDS = ["react", "nextjs", "vue", "angular", "flutter"] as const;
@@ -49,7 +48,6 @@ export type Stack = {
   readonly id: StackId;
   readonly name: string;
   readonly library: string;
-  readonly icon: StackIconKey;
   readonly format: SupportedFormat;
   readonly pattern: string;
   readonly sourceStrings: string;
@@ -67,7 +65,6 @@ export const STACKS: Readonly<Record<StackId, Stack>> = {
     id: "react",
     name: "React",
     library: "react-i18next",
-    icon: "react",
     format: "i18next-json",
     pattern: "locales/{locale}.json",
     sourceStrings: lines(
@@ -138,7 +135,6 @@ export const STACKS: Readonly<Record<StackId, Stack>> = {
     id: "nextjs",
     name: "Next.js",
     library: "next-intl",
-    icon: "next",
     format: "next-intl-json",
     pattern: "messages/{locale}.json",
     sourceStrings: lines(
@@ -206,7 +202,6 @@ export const STACKS: Readonly<Record<StackId, Stack>> = {
     id: "vue",
     name: "Vue",
     library: "vue-i18n",
-    icon: "vue",
     format: "vue-i18n-json",
     pattern: "src/locales/{locale}.json",
     sourceStrings: lines(
@@ -258,7 +253,6 @@ export const STACKS: Readonly<Record<StackId, Stack>> = {
     id: "angular",
     name: "Angular",
     library: "@ngx-translate/core",
-    icon: "angular",
     format: "ngx-translate-json",
     pattern: "src/assets/i18n/{locale}.json",
     sourceStrings: lines(
@@ -333,7 +327,6 @@ export const STACKS: Readonly<Record<StackId, Stack>> = {
     id: "flutter",
     name: "Flutter",
     library: "flutter_localizations",
-    icon: "flutter",
     format: "arb",
     pattern: "lib/l10n/app_{locale}.arb",
     sourceStrings: lines(

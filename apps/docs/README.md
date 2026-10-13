@@ -68,6 +68,9 @@ the interface strings with `pnpm i18n` (see below).
   and `fr.json` alongside it. These are machine-translated by verbatra.
 - `app/`, `components/`, and `lib/` are the Next.js application; `public/` holds the images,
   including the Studio screenshots the root README links.
+- `lib/licenses.generated.json` (the `/licenses` page) and the root `THIRD_PARTY_NOTICES.md` are
+  written by `pnpm licenses:sync` from the installed production dependencies; run it after a
+  dependency change, or `lib/third-party-licenses.test.ts` fails.
 
 ## The landing page
 

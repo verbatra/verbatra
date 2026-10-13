@@ -38,15 +38,19 @@ const HOME_LANGUAGES = {
 const LEGAL_URLS = [
   `${ORIGIN}/contact`,
   `${ORIGIN}/imprint`,
+  `${ORIGIN}/licenses`,
   `${ORIGIN}/privacy`,
   `${ORIGIN}/de/contact`,
   `${ORIGIN}/de/imprint`,
+  `${ORIGIN}/de/licenses`,
   `${ORIGIN}/de/privacy`,
   `${ORIGIN}/es/contact`,
   `${ORIGIN}/es/imprint`,
+  `${ORIGIN}/es/licenses`,
   `${ORIGIN}/es/privacy`,
   `${ORIGIN}/fr/contact`,
   `${ORIGIN}/fr/imprint`,
+  `${ORIGIN}/fr/licenses`,
   `${ORIGIN}/fr/privacy`,
 ];
 

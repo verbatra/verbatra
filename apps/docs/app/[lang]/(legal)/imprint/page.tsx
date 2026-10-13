@@ -51,7 +51,7 @@ export default async function ImprintPage(props: { params: Promise<{ lang: strin
         </em>
       </p>
 
-      <h2>Angaben gem&auml;&szlig; &sect; 18 Abs. 1 MStV</h2>
+      <h2>Angaben zum Anbieter</h2>
       <p>
         Mario Kreitz
         <br />
@@ -65,20 +65,15 @@ export default async function ImprintPage(props: { params: Promise<{ lang: strin
       </p>
       <p>{t.rich("contactLinkNote", linkTags)}</p>
 
-      <h2>Hinweis</h2>
-      <p>
-        Diese Website ist die Dokumentation des nicht-kommerziellen Open-Source-Projekts verbatra.
-        Es werden keine Waren oder Dienstleistungen gegen Entgelt angeboten, und es wird keine
-        Werbung geschaltet.
-      </p>
-
       <h2>Lizenz</h2>
       <p>
-        Der Quellcode von verbatra steht unter der{" "}
+        verbatra (Quellcode, Dokumentation und Screenshots) steht unter der{" "}
         <a href={LICENSE_URL} target="_blank" rel="noreferrer noopener">
           MIT-Lizenz
         </a>
-        .
+        . Schriftarten, Icons und Bibliotheken Dritter behalten ihre eigenen Lizenzen; die{" "}
+        <a href={localizedPath(locale, "/licenses")}>Lizenzhinweise</a> nennen sie mit vollem
+        Lizenztext.
       </p>
     </article>
   );

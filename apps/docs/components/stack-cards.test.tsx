@@ -7,10 +7,10 @@ import { describe, expect, it } from "vitest";
 import { FORMAT_ID_CLASS, type StackCard, StackCards } from "./stack-cards";
 
 const CARDS: ReadonlyArray<StackCard> = [
-  { label: "React", icon: "react", formats: ["i18next-json"], href: "/docs/pick-your-stack#react" },
+  { label: "React", icon: "web", formats: ["i18next-json"], href: "/docs/pick-your-stack#react" },
   {
     label: "iOS and macOS",
-    icon: "apple",
+    icon: "mobile",
     formats: ["apple-strings", "apple-xcstrings"],
     href: "#ios-and-macos",
   },
@@ -109,7 +109,7 @@ describe("StackCards", () => {
           cards={[
             {
               label: "React",
-              icon: "react",
+              icon: "web",
               formats: ["i18next-json"],
               href: "/docs/quickstart/react",
               badge: "Quickstart",
@@ -132,7 +132,7 @@ describe("StackCards", () => {
     expect(links.slice(1).some((link) => link.querySelector(".vk-pill") !== null)).toBe(false);
   });
 
-  it("names each link by its stack alone, with the format ids and logo outside it", () => {
+  it("names each link by its stack alone, with the format ids and glyph outside it", () => {
     const doc = renderCards("en");
     const links = [...doc.querySelectorAll("a")];
     expect(links.map(accessibleText)).toEqual(["React", "iOS and macOS", "Something else"]);
@@ -163,7 +163,7 @@ describe("StackCards", () => {
     }
   });
 
-  it("puts the logo after the text in the DOM and shows it first through a reversed row", () => {
+  it("puts the glyph after the text in the DOM and shows it first through a reversed row", () => {
     const item = renderCards("en").querySelector("li");
     expect([...(item?.children ?? [])].map((child) => child.className)).toEqual([
       "vk-stack-card-text",
@@ -242,12 +242,12 @@ describe("StackCards", () => {
     expect(cardTextWidth((three?.minRem ?? 0) * 16, 3)).toBeGreaterThanOrEqual(needed);
   });
 
-  it("draws each logo once in a sprite and references it from the card", () => {
+  it("draws each generic glyph once in a sprite and references it from the card", () => {
     const doc = renderCards("en");
     const symbols = [...doc.querySelectorAll("symbol")].map((symbol) => symbol.id);
     expect(symbols).toEqual([
-      "vk-stack-icon-stacks-react",
-      "vk-stack-icon-stacks-apple",
+      "vk-stack-icon-stacks-web",
+      "vk-stack-icon-stacks-mobile",
       "vk-stack-icon-stacks-custom",
     ]);
     const uses = [...doc.querySelectorAll("li use")].map((use) => use.getAttribute("href"));
@@ -278,11 +278,14 @@ describe("StackCards", () => {
     expect(hrefs).toEqual(["/de/docs/pick-your-stack#react", "#ios-and-macos", "#something-else"]);
   });
 
-  it("uses single-colour logos that follow the text colour, never a brand colour", () => {
+  it("draws outline glyphs in the text colour, never a brand logo or a filled mark", () => {
     const doc = renderCards("en");
-    for (const element of doc.querySelectorAll("symbol path, symbol svg")) {
-      const fill = element.getAttribute("fill");
-      expect(fill === null || fill === "none" || fill === "currentColor", fill ?? "").toBe(true);
+    const paths = [...doc.querySelectorAll("symbol > *")];
+    expect(paths.length).toBe(3);
+    for (const element of paths) {
+      expect(element.tagName.toLowerCase()).toBe("path");
+      expect(element.getAttribute("fill")).toBe("none");
+      expect(element.getAttribute("stroke")).toBe("currentColor");
     }
     expect(doc.body.innerHTML).not.toMatch(/dark:/);
   });

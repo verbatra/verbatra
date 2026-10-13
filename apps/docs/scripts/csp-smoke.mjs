@@ -15,6 +15,7 @@ const PAGES = [
   { path: "/docs/sdk/run", html: true },
   { path: "/contact", html: true },
   { path: "/de/imprint", html: true },
+  { path: "/licenses", html: true },
   { path: "/privacy", html: true },
   { path: "/docs/does-not-exist", html: true },
   { path: "/docs/quickstart.md", html: false },

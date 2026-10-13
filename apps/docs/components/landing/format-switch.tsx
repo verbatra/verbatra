@@ -26,7 +26,6 @@ export type FormatSwitchFramework = {
   key: string;
   name: string;
   format: string;
-  icon: ReactNode;
 };
 
 export type FormatSwitchLabels = { frameworks: string; formats: string };
@@ -111,8 +110,7 @@ export function FormatSwitch({
                 className="vk-formats-chip"
                 onClick={() => selectFramework(chip)}
               >
-                {chip.icon}
-                <span>{chip.name}</span>
+                {chip.name}
               </button>
             </li>
           ))}

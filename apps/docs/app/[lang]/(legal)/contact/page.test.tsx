@@ -79,6 +79,13 @@ describe.each(i18n.languages)("contact page privacy notice (%s)", (locale) => {
   });
 });
 
+const IMPRINT_NAME_IN_TEXT: Record<Locale, string> = {
+  en: "legal notice (Impressum)",
+  de: "Impressum",
+  es: "aviso legal (Impressum)",
+  fr: "mentions légales (Impressum)",
+};
+
 describe.each(i18n.languages)("contact page intro (%s)", (locale) => {
   it("links the imprint it mentions, in the reader's locale", async () => {
     const doc = await renderContact(locale);
@@ -87,15 +94,15 @@ describe.each(i18n.languages)("contact page intro (%s)", (locale) => {
     const imprintPath = locale === "en" ? "/imprint" : `/${locale}/imprint`;
 
     expect(link?.getAttribute("href")).toBe(imprintPath);
-    expect(link?.textContent?.length).toBeGreaterThan(0);
+    expect(link?.textContent).toBe(IMPRINT_NAME_IN_TEXT[locale]);
   });
 });
 
 const NO_SCRIPT_FALLBACK: Record<Locale, RegExp> = {
-  en: /The form needs JavaScript to send your message\. Without it, write to the email address in the Imprint instead\./,
+  en: /The form needs JavaScript to send your message\. Without it, write to the email address in the legal notice \(Impressum\) instead\./,
   de: /Das Formular braucht JavaScript, um deine Nachricht zu senden\. Ohne JavaScript schreib stattdessen an die E-Mail-Adresse im Impressum\./,
-  es: /El formulario necesita JavaScript para enviar tu mensaje\. Sin él, escribe a la dirección de correo electrónico que figura en el Aviso legal\./,
-  fr: /Le formulaire a besoin de JavaScript pour envoyer ton message\. Sans JavaScript, écris plutôt à l'adresse e-mail indiquée dans les mentions légales\./,
+  es: /El formulario necesita JavaScript para enviar tu mensaje\. Sin él, escribe a la dirección de correo electrónico que figura en el aviso legal \(Impressum\)\./,
+  fr: /Le formulaire a besoin de JavaScript pour envoyer ton message\. Sans JavaScript, écris plutôt à l'adresse e-mail indiquée dans les mentions légales \(Impressum\)\./,
 };
 
 function imprintPath(locale: Locale): string {

@@ -92,7 +92,8 @@
           "license": "MIT-Lizenz",
           "privacy": "Datenschutzerklärung",
           "imprint": "Impressum",
-          "contact": "Kontakt"
+          "contact": "Kontakt",
+          "licenses": "Lizenzen"
         },
         "community": {
           "title": "Community",
@@ -525,6 +526,14 @@
           "too_long": "Dieses Feld ist zu lang."
         }
       }
+    },
+    "licenses": {
+      "meta": {
+        "title": "Lizenzen",
+        "description": "Lizenzen der Software, Schriftarten und Assets Dritter, die die verbatra-Dokumentationsseite ausliefert."
+      },
+      "title": "Lizenzen",
+      "intro": "verbatra selbst steht unter der MIT-Lizenz. Diese Website liefert außerdem Pakete, Schriftarten und Assets Dritter aus, jeweils unter ihrer eigenen Lizenz. Die Liste und die Lizenztexte unten stehen auf Englisch, so wie ihre Autoren sie verfasst haben."
     }
   },
   "docs": {

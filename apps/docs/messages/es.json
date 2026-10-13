@@ -91,8 +91,9 @@
           "title": "Legal",
           "license": "Licencia MIT",
           "privacy": "Política de privacidad",
-          "imprint": "Aviso legal",
-          "contact": "Contacto"
+          "imprint": "Aviso legal (Impressum)",
+          "contact": "Contacto",
+          "licenses": "Licencias"
         },
         "community": {
           "title": "Comunidad",
@@ -427,7 +428,7 @@
       "languageVersions": "Esta política de privacidad está disponible en inglés, alemán, español y francés. Las cuatro versiones lingüísticas tienen el mismo contenido y son igualmente vinculantes.",
       "s1": {
         "heading": "1. Responsable del tratamiento",
-        "body": "El responsable del tratamiento de datos en este sitio es Mario Kreitz, Mönchfeldstraße 7, 70378 Stuttgart, Alemania (los mismos datos que figuran en el <imprint>aviso legal</imprint>). Puedes contactarnos por correo electrónico en <email>info@kreitz-webdev.de</email>. No se ha designado un delegado de protección de datos, ya que ni el art. 37 del RGPD ni el § 38 de la BDSG (Ley Federal alemana de Protección de Datos) lo exigen para este sitio."
+        "body": "El responsable del tratamiento de datos en este sitio es Mario Kreitz, Mönchfeldstraße 7, 70378 Stuttgart, Alemania (los mismos datos que figuran en el <imprint>aviso legal (Impressum)</imprint>). Puedes contactarnos por correo electrónico en <email>info@kreitz-webdev.de</email>. No se ha designado un delegado de protección de datos, ya que ni el art. 37 del RGPD ni el § 38 de la BDSG (Ley Federal alemana de Protección de Datos) lo exigen para este sitio."
       },
       "s2": {
         "heading": "2. Resumen",
@@ -487,7 +488,7 @@
     },
     "imprint": {
       "meta": {
-        "title": "Aviso legal",
+        "title": "Aviso legal (Impressum)",
         "description": "Información legal (Impressum) del sitio de documentación de verbatra."
       },
       "intro": "Aviso legal (Impressum) de este sitio web. Los datos se indican en alemán.",
@@ -500,7 +501,7 @@
         "description": "Ponte en contacto con el operador del sitio de documentación de verbatra."
       },
       "title": "Contacto",
-      "intro": "Utiliza este formulario para contactar directamente con el operador del sitio. Este es un segundo canal de contacto electrónico directo, además de la dirección de correo electrónico que figura en el <imprint>Aviso legal</imprint>.",
+      "intro": "Utiliza este formulario para contactar directamente con el operador del sitio. Este es un segundo canal de contacto electrónico directo, además de la dirección de correo electrónico que figura en el <imprint>aviso legal (Impressum)</imprint>.",
       "privacyNotice": "Usamos tu nombre, tu dirección de correo electrónico y tu mensaje solo para responder a tu consulta, y los eliminamos una vez gestionada. Encontrarás los detalles en la <privacy>política de privacidad</privacy>.",
       "form": {
         "nameLabel": "Nombre",
@@ -517,7 +518,7 @@
         "errorBody": "No pudimos enviar tu mensaje. Por favor, inténtalo de nuevo en un momento.",
         "rateLimitedBody": "Has enviado demasiados mensajes recientemente. Por favor, inténtalo de nuevo más tarde.",
         "validationErrorBody": "Por favor, corrige los campos resaltados e inténtalo de nuevo.",
-        "noScript": "El formulario necesita JavaScript para enviar tu mensaje. Sin él, escribe a la dirección de correo electrónico que figura en el <imprint>Aviso legal</imprint>.",
+        "noScript": "El formulario necesita JavaScript para enviar tu mensaje. Sin él, escribe a la dirección de correo electrónico que figura en el <imprint>aviso legal (Impressum)</imprint>.",
         "errors": {
           "required": "Este campo es obligatorio.",
           "invalid_email": "Introduce una dirección de correo electrónico válida.",
@@ -525,6 +526,14 @@
           "too_long": "Este campo es demasiado largo."
         }
       }
+    },
+    "licenses": {
+      "meta": {
+        "title": "Licencias",
+        "description": "Licencias del software, las fuentes y los recursos de terceros que incluye el sitio de documentación de verbatra."
+      },
+      "title": "Licencias",
+      "intro": "verbatra tiene licencia MIT. Este sitio también incluye paquetes, fuentes y recursos de terceros, cada uno con su propia licencia. La lista y los textos de las licencias de abajo están en inglés, tal como los escribieron sus autores."
     }
   },
   "docs": {

@@ -27,6 +27,7 @@ const LEGAL_PAGES: ReadonlyArray<readonly [string, LegalPage]> = [
   ["imprint", (await import("./imprint/page")).default],
   ["privacy", (await import("./privacy/page")).default],
   ["contact", (await import("./contact/page")).default],
+  ["licenses", (await import("./licenses/page")).default],
 ];
 
 interface RetiredClaim {
@@ -61,6 +62,18 @@ const RETIRED_CLAIMS: readonly RetiredClaim[] = [
     claim: "commercial imprint basis under § 5 DDG",
     pattern: /§\s*5\s*DDG/,
     sample: "Angaben gemäß § 5 DDG",
+  },
+  {
+    claim: "imprint heading citing a specific imprint law",
+    pattern: /Angaben gemäß/,
+    sample: "Angaben gemäß § 18 Abs. 1 MStV",
+  },
+  {
+    claim: "non-commercial classification note on the imprint",
+    pattern:
+      /nicht-kommerziellen Open-Source-Projekts|keine Waren oder Dienstleistungen gegen Entgelt/,
+    sample:
+      "Diese Website ist die Dokumentation des nicht-kommerziellen Open-Source-Projekts verbatra.",
   },
   {
     claim: "separate § 18 Abs. 2 MStV editorial responsibility block",

@@ -230,14 +230,13 @@ describe("FormatsDemo", () => {
     expect(flutter?.getAttribute("aria-pressed")).toBe("false");
   });
 
-  it("draws each framework icon once, from a sprite, and keeps the icon set out of the client island", async () => {
+  it("names each framework chip in text alone, with no logo, sprite or icon", async () => {
     const container = await render();
-    expect(container.querySelectorAll("symbol").length).toBe(
-      new Set(STACK_FRAMEWORKS.map((item) => item.icon)).size,
-    );
-    expect(container.querySelectorAll(".vk-formats-chip use")).toHaveLength(
-      STACK_FRAMEWORKS.length,
-    );
+    expect(container.querySelectorAll("symbol, use")).toHaveLength(0);
+    for (const chip of chips(container)) {
+      expect(chip.querySelector("svg")).toBeNull();
+      expect(chip.children).toHaveLength(0);
+    }
     expect(SWITCH_SOURCE.startsWith('"use client"')).toBe(true);
     expect(SWITCH_SOURCE).not.toContain("stack-icons");
     expect(SWITCH_SOURCE).not.toContain("useTranslations");

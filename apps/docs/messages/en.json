@@ -199,8 +199,9 @@
           "title": "Legal",
           "license": "MIT license",
           "privacy": "Privacy policy",
-          "imprint": "Imprint",
-          "contact": "Contact"
+          "imprint": "Legal notice (Impressum)",
+          "contact": "Contact",
+          "licenses": "Licenses"
         }
       },
       "legalLicense": "Open source under the MIT license",
@@ -480,7 +481,7 @@
       "languageVersions": "This privacy policy is available in English, German, Spanish, and French. All four language versions have the same content and are equally binding.",
       "s1": {
         "heading": "1. Responsible party",
-        "body": "The party responsible for data processing on this site is Mario Kreitz, Mönchfeldstraße 7, 70378 Stuttgart, Germany (the same details as in the <imprint>imprint</imprint>). You can reach us by email at <email>info@kreitz-webdev.de</email>. No data protection officer has been appointed, because neither Art. 37 GDPR nor § 38 BDSG (German Federal Data Protection Act) requires one for this site."
+        "body": "The party responsible for data processing on this site is Mario Kreitz, Mönchfeldstraße 7, 70378 Stuttgart, Germany (the same details as in the <imprint>legal notice (Impressum)</imprint>). You can reach us by email at <email>info@kreitz-webdev.de</email>. No data protection officer has been appointed, because neither Art. 37 GDPR nor § 38 BDSG (German Federal Data Protection Act) requires one for this site."
       },
       "s2": {
         "heading": "2. Overview",
@@ -540,7 +541,7 @@
     },
     "imprint": {
       "meta": {
-        "title": "Imprint",
+        "title": "Legal notice (Impressum)",
         "description": "Legal disclosure (Impressum) for the verbatra documentation site."
       },
       "intro": "Legal notice (Impressum) for this website. The details below are given in German.",
@@ -553,7 +554,7 @@
         "description": "Get in touch with the verbatra documentation site operator."
       },
       "title": "Contact",
-      "intro": "Use this form to reach the site operator directly. This is a second, direct electronic contact channel alongside the email address in the <imprint>Imprint</imprint>.",
+      "intro": "Use this form to reach the site operator directly. This is a second, direct electronic contact channel alongside the email address in the <imprint>legal notice (Impressum)</imprint>.",
       "privacyNotice": "We use your name, email address, and message only to answer your inquiry and delete them once it has been handled. Details are in the <privacy>privacy policy</privacy>.",
       "form": {
         "nameLabel": "Name",
@@ -570,7 +571,7 @@
         "errorBody": "We could not send your message. Please try again in a moment.",
         "rateLimitedBody": "You have sent too many messages recently. Please try again later.",
         "validationErrorBody": "Please fix the highlighted fields and try again.",
-        "noScript": "The form needs JavaScript to send your message. Without it, write to the email address in the <imprint>Imprint</imprint> instead.",
+        "noScript": "The form needs JavaScript to send your message. Without it, write to the email address in the <imprint>legal notice (Impressum)</imprint> instead.",
         "errors": {
           "required": "This field is required.",
           "invalid_email": "Enter a valid email address.",
@@ -578,6 +579,14 @@
           "too_long": "This field is too long."
         }
       }
+    },
+    "licenses": {
+      "meta": {
+        "title": "Licenses",
+        "description": "Licenses of the third-party software, fonts and assets that the verbatra documentation site ships."
+      },
+      "title": "Licenses",
+      "intro": "verbatra itself is MIT licensed. This site also ships third-party packages, fonts and assets, each under its own license. The list and the license texts below are given in English, as their authors wrote them."
     }
   },
   "notFound": {

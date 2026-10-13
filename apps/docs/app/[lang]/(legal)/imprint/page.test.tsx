@@ -38,39 +38,56 @@ describe("imprint page: contact form link", () => {
   });
 });
 
-describe("imprint page: non-commercial provider details", () => {
-  it("names the provider under § 18 Abs. 1 MStV in one block with name, address and email", async () => {
+describe("imprint page: provider details", () => {
+  it("names the provider under a neutral heading in one block with name, address and email", async () => {
     const page = await ImprintPage({ params: Promise.resolve({ lang: "de" }) });
     const doc = new DOMParser().parseFromString(renderToStaticMarkup(page), "text/html");
     const headings = Array.from(doc.querySelectorAll("h2"), (node) => node.textContent);
     const details = doc.querySelector("h2")?.nextElementSibling?.textContent ?? "";
 
-    expect(headings).toEqual(["Angaben gemäß § 18 Abs. 1 MStV", "Hinweis", "Lizenz"]);
+    expect(headings).toEqual(["Angaben zum Anbieter", "Lizenz"]);
     expect(details).toContain("Mario Kreitz");
+    expect(details).toContain("Mönchfeldstraße 7");
     expect(details).toContain("70378 Stuttgart");
+    expect(details).toContain("Deutschland");
     expect(details).toContain("info@kreitz-webdev.de");
+  });
+
+  it("renders no VAT ID, business ID or trade line while those details are unanswered", async () => {
+    const page = await ImprintPage({ params: Promise.resolve({ lang: "de" }) });
+    const text = new DOMParser().parseFromString(renderToStaticMarkup(page), "text/html").body
+      .textContent;
+
+    expect(text).not.toMatch(/USt-Id|Umsatzsteuer|Wirtschafts-Id|Gewerbe|Handelsregister/i);
   });
 });
 
-describe("imprint page: non-commercial notice and license", () => {
-  it.each(["en", "de", "es", "fr"])(
-    "states the non-commercial basis and links the MIT license for %s readers",
-    async (lang) => {
+describe("imprint page: license", () => {
+  it.each([
+    ["en", "/licenses"],
+    ["de", "/de/licenses"],
+    ["es", "/es/licenses"],
+    ["fr", "/fr/licenses"],
+  ])(
+    "puts code, docs and screenshots under MIT and links the third-party notices for %s readers",
+    async (lang, licensesHref) => {
       const page = await ImprintPage({ params: Promise.resolve({ lang }) });
       const doc = new DOMParser().parseFromString(renderToStaticMarkup(page), "text/html");
       const text = doc.body.textContent?.replace(/\s+/g, " ") ?? "";
-      const license = Array.from(doc.querySelectorAll("a")).find(
-        (link) => link.textContent === "MIT-Lizenz",
-      );
+      const links = Array.from(doc.querySelectorAll("a"));
+      const license = links.find((link) => link.textContent === "MIT-Lizenz");
+      const notices = links.find((link) => link.textContent === "Lizenzhinweise");
 
       expect(text).toContain(
-        "Diese Website ist die Dokumentation des nicht-kommerziellen Open-Source-Projekts verbatra.",
+        "verbatra (Quellcode, Dokumentation und Screenshots) steht unter der MIT-Lizenz.",
       );
-      expect(text).toContain("Es werden keine Waren oder Dienstleistungen gegen Entgelt angeboten");
-      expect(text).toContain("Der Quellcode von verbatra steht unter der MIT-Lizenz.");
+      expect(text).toContain(
+        "Schriftarten, Icons und Bibliotheken Dritter behalten ihre eigenen Lizenzen",
+      );
       expect(license?.getAttribute("href")).toBe(
         "https://github.com/verbatra/verbatra/blob/main/LICENSE",
       );
+      expect(notices?.getAttribute("href")).toBe(licensesHref);
     },
   );
 });

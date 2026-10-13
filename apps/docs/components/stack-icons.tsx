@@ -1,85 +1,23 @@
-import {
-  SiAndroid,
-  SiAngular,
-  SiApple,
-  SiAstro,
-  SiDotnet,
-  SiExpo,
-  SiFlutter,
-  SiGnu,
-  SiJson,
-  SiNextdotjs,
-  SiNodedotjs,
-  SiNuxt,
-  SiReact,
-  SiSpring,
-  SiSvelte,
-  SiVuedotjs,
-  SiXcode,
-  SiYaml,
-} from "@icons-pack/react-simple-icons";
 import type { ReactNode } from "react";
 
 const VIEWBOX = 24;
-const SI = { size: VIEWBOX, color: "currentColor", title: "" } as const;
 
-function OutlineGlyph({ children }: { children: ReactNode }): ReactNode {
-  return (
-    <svg
-      width={VIEWBOX}
-      height={VIEWBOX}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      {children}
-    </svg>
-  );
-}
+const FILE_OUTLINE = "M6 3h8l5 5v13H6zM14 3v5h5";
 
-export const STACK_ICONS = {
-  android: <SiAndroid {...SI} />,
-  angular: <SiAngular {...SI} />,
-  apple: <SiApple {...SI} />,
-  astro: <SiAstro {...SI} />,
-  custom: (
-    <OutlineGlyph>
-      <path d="M8 4H5a1 1 0 0 0-1 1v3M16 4h3a1 1 0 0 1 1 1v3M8 20H5a1 1 0 0 1-1-1v-3M16 20h3a1 1 0 0 0 1-1v-3M12 8v8M8 12h8" />
-    </OutlineGlyph>
-  ),
-  dotnet: <SiDotnet {...SI} />,
-  expo: <SiExpo {...SI} />,
-  flutter: <SiFlutter {...SI} />,
-  gnu: <SiGnu {...SI} />,
-  ini: (
-    <OutlineGlyph>
-      <path d="M6 3h8l5 5v13H6z" />
-      <path d="M14 3v5h5M9 12h6M9 16h6" />
-    </OutlineGlyph>
-  ),
-  json: <SiJson {...SI} />,
-  next: <SiNextdotjs {...SI} />,
-  node: <SiNodedotjs {...SI} />,
-  nuxt: <SiNuxt {...SI} />,
-  react: <SiReact {...SI} />,
-  spring: <SiSpring {...SI} />,
-  svelte: <SiSvelte {...SI} />,
-  vue: <SiVuedotjs {...SI} />,
-  xcode: <SiXcode {...SI} />,
-  xliff: (
-    <OutlineGlyph>
-      <path d="M6 3h8l5 5v13H6z" />
-      <path d="M14 3v5h5M10.5 12 8.5 14.5l2 2.5M13.5 12l2 2.5-2 2.5" />
-    </OutlineGlyph>
-  ),
-  yaml: <SiYaml {...SI} />,
-} as const satisfies Record<string, ReactNode>;
+export const STACK_ICON_PATHS = {
+  web: "M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM3 9h18M6.5 6.5h.01M9 6.5h.01",
+  mobile: "M9 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM11 18h2",
+  server:
+    "M5.5 4h13A1.5 1.5 0 0 1 20 5.5v4a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 9.5v-4A1.5 1.5 0 0 1 5.5 4zM5.5 13h13a1.5 1.5 0 0 1 1.5 1.5v4a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5v-4A1.5 1.5 0 0 1 5.5 13zM8 7.5h.01M8 16.5h.01",
+  custom:
+    "M8 4H5a1 1 0 0 0-1 1v3M16 4h3a1 1 0 0 1 1 1v3M8 20H5a1 1 0 0 1-1-1v-3M16 20h3a1 1 0 0 0 1-1v-3M12 8v8M8 12h8",
+  ini: `${FILE_OUTLINE}M9 12h6M9 16h6`,
+  po: `${FILE_OUTLINE}M9.5 11.5v2M12 11.5v2M9 17h6`,
+  xliff: `${FILE_OUTLINE}M10.5 12 8.5 14.5l2 2.5M13.5 12l2 2.5-2 2.5`,
+  yaml: `${FILE_OUTLINE}M9 12h4M11 15h4M11 18h3`,
+} as const satisfies Record<string, string>;
 
-export type StackIconKey = keyof typeof STACK_ICONS;
+export type StackIconKey = keyof typeof STACK_ICON_PATHS;
 
 export function stackIconId(prefix: string, icon: StackIconKey): string {
   return `${prefix}-${icon}`;
@@ -97,7 +35,14 @@ export function StackIconSprite({
       <defs>
         {[...new Set(icons)].map((icon) => (
           <symbol key={icon} id={stackIconId(prefix, icon)} viewBox={`0 0 ${VIEWBOX} ${VIEWBOX}`}>
-            {STACK_ICONS[icon]}
+            <path
+              d={STACK_ICON_PATHS[icon]}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </symbol>
         ))}
       </defs>

@@ -73,7 +73,7 @@ describe("FullFooter", () => {
     localeState.current = locale;
     try {
       const doc = await renderFooter();
-      for (const key of ["privacy", "imprint", "contact"]) {
+      for (const key of ["privacy", "imprint", "contact", "licenses"]) {
         const link = doc.querySelector(`a[href$="/${key}"]`);
         expect(link?.getAttribute("href")).toBe(`${prefix}/${key}`);
         expect(link?.textContent).toBe(`cols.legal.${key}`);

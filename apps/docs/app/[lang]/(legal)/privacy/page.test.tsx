@@ -51,6 +51,13 @@ function sectionNumbered(doc: Document, n: number): Element | null {
   );
 }
 
+const IMPRINT_NAME_IN_TEXT: Record<Locale, string> = {
+  en: "legal notice (Impressum)",
+  de: "Impressum",
+  es: "aviso legal (Impressum)",
+  fr: "mentions légales (Impressum)",
+};
+
 const NO_DPO_PHRASE: Record<Locale, RegExp> = {
   en: /No data protection officer has been appointed/,
   de: /Ein Datenschutzbeauftragter ist nicht benannt/,
@@ -272,8 +279,9 @@ describe.each(i18n.languages)("privacy page (%s)", (locale) => {
       expect(controller).toContain(fact);
     }
     expect(
-      sectionNumbered(doc, 1)?.querySelector(`a[href="${expectedHref(locale, "/imprint")}"]`),
-    ).not.toBeNull();
+      sectionNumbered(doc, 1)?.querySelector(`a[href="${expectedHref(locale, "/imprint")}"]`)
+        ?.textContent,
+    ).toBe(IMPRINT_NAME_IN_TEXT[locale]);
   });
 
   it("states that no data protection officer is appointed", async () => {

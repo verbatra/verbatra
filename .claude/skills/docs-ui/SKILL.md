@@ -296,12 +296,11 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   `open-faq` with its key, and every answer is force-mounted, so the server HTML carries it while a
   closed item hides it (`[data-state=closed]` on the item). Answers link with the `dataHandling`
   and `license` tags only. `FORMAT_DISPLAY` in `lib/landing-facts.ts` is every format's display
-  label and icon, which the structured data's format list reads too, so a new format fails to
-  compile until it has both. The format switcher is `FormatsDemo` (`formats.tsx`), rendered inside
+  label, which the structured data's format list reads too, so a new format fails to
+  compile until it has one. The format switcher is `FormatsDemo` (`formats.tsx`), rendered inside
   `ecosystem.tsx` in a `.vk-formats` box: a row of framework chips (`STACK_FRAMEWORKS`, each with the
   `format` its quickstart uses, pinned to `STACKS` by `lib/format-samples.test.ts`; `aria-pressed`
-  buttons whose icons come from one sprite, rendered on the server and passed in as elements, so the
-  icon set never enters the client bundle), then a segmented `TabList` over `SUPPORTED_FORMAT_IDS`
+  buttons that carry the framework name in text alone, with no logo or icon), then a segmented `TabList` over `SUPPORTED_FORMAT_IDS`
   labelled from `FORMAT_DISPLAY`, then one pane per format: a void `figure` captioned with the file
   path, holding the showcase's four English strings exactly as the sdk's real adapter writes them,
   with the format's own placeholder drawn as a `PlaceholderChip`. The client island is
@@ -467,10 +466,10 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   `pick-your-stack`: one borderless grid
   (`.vk-stack-grid`: one column, two from a 36rem container, three from a 54rem container,
   `--stack-grid-column-gap` 24px by `--stack-grid-row-gap` 40px, the last row left ragged). Each
-  card (`.vk-stack-card`, a reversed flex row so the text comes first in the DOM and the logo shows
+  card (`.vk-stack-card`, a reversed flex row so the text comes first in the DOM and the glyph shows
   first) has no border or background: only the round `--stack-chip-size` (56px)
   `.vk-stack-card-chip` on `--surface-card` with an inset `--border-default` ring, holding a
-  single-colour logo. The name (`.vk-stack-card-name`, 16px, 600) is the card's one link
+  generic outline glyph. The name (`.vk-stack-card-name`, 16px, 600) is the card's one link
   (`.vk-stack-card-link`), stretched over the card by a `::before` that reaches
   `--stack-card-hit-outset` past it and carries the focus ring; a badge sits inside that link as a
   `.vk-pill.vk-stack-card-badge`, beside the name, so it adds no line. The text column is
@@ -480,9 +479,10 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   ids (`.vk-stack-card-formats`, mono `--text-faint`), each id `whitespace-nowrap`
   (`FORMAT_ID_CLASS`): a list breaks at its comma, and only under a 23.5rem container (the longest
   rendered id plus 15 percent, pinned by its test) does an id wrap, then only after a hyphen. The
-  logos come from `@icons-pack/react-simple-icons` through `components/stack-icons.tsx` (shared with
-  the format switcher), always `currentColor`, never a brand colour; a format with no brand mark gets an
-  outline glyph there. The grid is a `nav` named by `labelledBy`, the id of the heading above it
+  glyphs live in `components/stack-icons.tsx` (`STACK_ICON_PATHS`: `web`, `mobile`, `server` for a
+  framework's kind, a file outline per file format, `custom`), stroked in `currentColor`. No
+  third-party logo is drawn anywhere on the site except the GitHub mark
+  (`components/landing/github-icon.tsx`); a stack is recognised by its name. The grid is a `nav` named by `labelledBy`, the id of the heading above it
   (the docs home section's `id`, or `page-title` on the docs `<h1>`), and that id also prefixes its
   sprite's symbol ids, so two grids on one page never collide. On the docs home, a stack with its
   own quickstart (`STACKS` in `lib/stacks.ts`) links its card to `/docs/quickstart/<id>` and carries
@@ -614,7 +614,7 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
 - `NextIntlClientProvider` and `ClientMessagesProvider` receive only `CLIENT_MESSAGE_NAMESPACES`
   (`lib/client-messages.ts`), not the whole catalog. A new `useTranslations` namespace in a `"use client"` file must be added
   there; `lib/client-messages.test.ts` fails until it is.
-- A brand icon repeated on a page (the stack cards, the format switcher's chips) is drawn once as an SVG `<symbol>`
+- A glyph repeated on a page (the stack cards) is drawn once as an SVG `<symbol>`
   and referenced with `<use>`, since every copy is serialized twice: in the HTML and in the RSC
   payload.
 - Keep both `next/font` families preloaded. Every one of them sets text in the first

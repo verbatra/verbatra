@@ -74,10 +74,10 @@ const LAYOUTS: ReadonlyArray<readonly [string, Layout]> = [
 ];
 
 const IMPRINT_LABEL: Record<Locale, string> = {
-  en: "Imprint",
+  en: "Legal notice (Impressum)",
   de: "Impressum",
-  es: "Aviso legal",
-  fr: "Mentions légales",
+  es: "Aviso legal (Impressum)",
+  fr: "Mentions légales (Impressum)",
 };
 
 type AnyProps = Record<string, unknown> & { children?: ReactNode; footer?: ReactNode };
@@ -126,7 +126,7 @@ describe.each(i18n.languages)("every layout links the imprint (%s)", (locale) =>
 
 describe("the compact legal footer", () => {
   it.each(LAYOUTS.filter(([name]) => name !== "home"))(
-    "gives the %s layout imprint, privacy and contact links in the reader's locale",
+    "gives the %s layout imprint, privacy, contact and licenses links in the reader's locale",
     async (_name, layout) => {
       const doc = await renderLayout(layout, "de");
       const links = Array.from(doc.querySelectorAll("footer nav a"), (link) => [
@@ -138,6 +138,7 @@ describe("the compact legal footer", () => {
         ["/de/imprint", "Impressum"],
         ["/de/privacy", "Datenschutzerklärung"],
         ["/de/contact", "Kontakt"],
+        ["/de/licenses", "Lizenzen"],
       ]);
       expect(doc.querySelector("footer nav")?.getAttribute("aria-label")).toBe("Rechtliches");
     },

@@ -1,4 +1,4 @@
-import { SiNpm } from "@icons-pack/react-simple-icons";
+import { PackageIcon } from "lucide-react";
 import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { VMark } from "@/components/landing";
@@ -201,13 +201,7 @@ export async function FullFooter(): Promise<ReactNode> {
                 aria-label={t("npmAria")}
                 className="inline-flex min-h-6 items-center gap-2 text-sm text-fd-muted-foreground transition-colors hover:text-fd-foreground"
               >
-                <SiNpm
-                  size={16}
-                  title=""
-                  color="currentColor"
-                  aria-hidden="true"
-                  className="shrink-0"
-                />
+                <PackageIcon size={16} aria-hidden="true" className="shrink-0" />
                 <span>npm</span>
               </a>
             </div>

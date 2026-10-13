@@ -30,4 +30,5 @@ export const LEGAL_PAGE_LINKS = [
   { key: "imprint", path: "/imprint" },
   { key: "privacy", path: "/privacy" },
   { key: "contact", path: "/contact" },
+  { key: "licenses", path: "/licenses" },
 ] as const;
