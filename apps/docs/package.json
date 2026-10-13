@@ -4,6 +4,9 @@
   "private": true,
   "license": "MIT",
   "type": "module",
+  "engines": {
+    "node": "^22.18.0 || >=24"
+  },
   "scripts": {
     "dev": "node scripts/sync-version.mjs && node scripts/sync-translation-freshness.mjs && node scripts/sync-format-samples.mjs && next dev",
     "build": "node scripts/sync-version.mjs && node scripts/sync-translation-freshness.mjs && node scripts/sync-format-samples.mjs && next build && node scripts/write-csp-hashes.mjs",

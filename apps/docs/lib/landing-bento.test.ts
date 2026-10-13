@@ -139,6 +139,28 @@ describe("bento samples", () => {
     }
   });
 
+  it("writes the gemini evidence chip with every option the sdk requires, as the diff's first block", async () => {
+    const chip = BENTO_TILES.flatMap((tile) => tile.evidence).find((item) =>
+      item.text.includes('id: "gemini"'),
+    );
+    const { id, options } = BENTO_PROVIDER_FROM;
+    expect(chip?.text).toBe(
+      `provider: { id: "${id}", options: { model: "${options.model}", maxOutputTokens: ${options.maxOutputTokens} } }`,
+    );
+    await expect(
+      sdk.loadConfig({
+        cwd: CONTENT,
+        configOverride: {
+          sourceLocale: "en",
+          targetLocales: ["de"],
+          format: "i18next-json",
+          files: { pattern: "locales/{locale}.json" },
+          provider: { id, options: { model: options.model } },
+        },
+      }),
+    ).rejects.toThrow();
+  });
+
   it("draws the provider diff from the two blocks, removed lines before added ones", () => {
     const text = BENTO_PROVIDER_DIFF.map((line) => line.text).join("\n");
     expect(text).toContain(`id: "${BENTO_PROVIDER_FROM.id}"`);

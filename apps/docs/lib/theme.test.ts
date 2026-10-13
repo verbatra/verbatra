@@ -1,6 +1,9 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { DefaultThemeMeta } from "@/components/default-theme-meta";
 import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
 import {
   DEFAULT_THEME,
@@ -46,6 +49,13 @@ function resolve(tokens: Record<string, string>, value: string, depth = 0): stri
 }
 
 function rgb(value: string): [number, number, number] {
+  const hex = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(value);
+  if (hex)
+    return [hex[1], hex[2], hex[3]].map((pair) => Number.parseInt(pair ?? "", 16) / 255) as [
+      number,
+      number,
+      number,
+    ];
   const match = /^hsl\((\d+(?:\.\d+)?) (\d+(?:\.\d+)?)% (\d+(?:\.\d+)?)%\)$/.exec(value);
   if (!match) throw new Error(`not an hsl() color: ${value}`);
   const [h, s, l] = [Number(match[1]), Number(match[2]) / 100, Number(match[3]) / 100];
@@ -122,6 +132,21 @@ describe("theme tokens", () => {
     expect(LIGHT["color-scheme"]).toBe("light");
   });
 
+  it("gives a visitor without JavaScript the dark surface as the one theme-color", () => {
+    const markup = renderToStaticMarkup(createElement(DefaultThemeMeta));
+    const colors = [...markup.matchAll(/<meta name="theme-color"([^>]*)\/>/g)].map(
+      (match) => match[1] ?? "",
+    );
+    expect(colors).toHaveLength(1);
+    expect(colors[0]).not.toContain("media=");
+    const content = /content="([^"]+)"/.exec(colors[0] ?? "")?.[1] ?? "";
+    expect(markup).toContain(`<meta name="color-scheme" content="${DARK["color-scheme"]}"/>`);
+    const surface = rgb(resolve(DARK, "var(--surface-bg)")).map((channel) => channel * 255);
+    rgb(content).forEach((channel, index) => {
+      expect(Math.abs(channel * 255 - (surface[index] ?? 0))).toBeLessThanOrEqual(1);
+    });
+  });
+
   it("gives the light theme its own value for every Fumadocs color and brand primitive", () => {
     const light = declarationsOf("html.light");
     const themed = Object.keys(DARK).filter(
@@ -154,6 +179,25 @@ describe("theme tokens", () => {
       expect(contrast(tokens, fg, bg), `${fg} on ${bg}`).toBeGreaterThanOrEqual(3);
     }
   });
+
+  it.each([
+    ["dark", DARK],
+    ["light", LIGHT],
+  ] as const)(
+    "raises shiki comment tokens to WCAG AA on every code surface in the %s theme",
+    (theme, tokens) => {
+      const color = rulesFor(rules, `.${theme} .shiki span[style*="#6A737D" i]`)[0]?.declarations
+        .color;
+      if (!color) throw new Error(`no ${theme} comment override`);
+      const comment = luminance(color.replace(/\s*!important$/, ""));
+      for (const surface of ["--surface-bg", "--surface-card", "--color-fd-muted", "--v-void"]) {
+        const background = luminance(resolve(tokens, `var(${surface})`));
+        const ratio =
+          (Math.max(comment, background) + 0.05) / (Math.min(comment, background) + 0.05);
+        expect(ratio, `${theme} comment on ${surface}`).toBeGreaterThanOrEqual(4.5);
+      }
+    },
+  );
 
   it("keeps the accent a single violet hue in both themes", () => {
     for (const tokens of [DARK, LIGHT]) {

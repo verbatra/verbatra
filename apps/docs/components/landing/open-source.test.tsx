@@ -35,13 +35,15 @@ describe("OpenSource", () => {
     expect(root.textContent).toContain(copy.lead);
   });
 
-  it("links the repository, license, contributor guide, issues, roadmap and releases", () => {
+  it("links the repository, license, contributor guide, code of conduct, security policy, issues, roadmap and releases", () => {
     const hrefs = Array.from(root.querySelectorAll("a")).map((a) => a.getAttribute("href"));
     expect(hrefs).toEqual(
       expect.arrayContaining([
         "https://github.com/verbatra/verbatra",
         "https://github.com/verbatra/verbatra/blob/main/LICENSE",
         "https://github.com/verbatra/verbatra/blob/main/CONTRIBUTING.md",
+        "https://github.com/verbatra/verbatra/blob/main/CODE_OF_CONDUCT.md",
+        "https://github.com/verbatra/verbatra/blob/main/SECURITY.md",
         "https://github.com/verbatra/verbatra/issues",
         "https://github.com/verbatra/verbatra/issues?q=is%3Aissue%20is%3Aopen%20label%3Aenhancement",
         "https://github.com/verbatra/verbatra/releases",

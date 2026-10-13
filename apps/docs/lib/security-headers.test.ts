@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import nextConfig from "../next.config.mjs";
-import { CSP_ENFORCED, contentSecurityPolicy, securityHeaders } from "./security-headers.mjs";
+import {
+  CSP_ENFORCED,
+  contentSecurityPolicy,
+  securityHeaders,
+  upgradesInsecureRequests,
+} from "./security-headers.mjs";
 
 const SCRIPT_HASHES = [
   "'sha256-OBTN3RiyCV4Bq7dFqZ5a2pAXjnCcCYeTJMO2I/LYKeo='",
@@ -46,6 +51,16 @@ describe("contentSecurityPolicy", () => {
     expect(header.value).toBe(BASE_DIRECTIVES.join("; "));
   });
 
+  it("leaves out upgrade-insecure-requests when asked to, keeping every other directive", () => {
+    const header = contentSecurityPolicy({
+      enforce: true,
+      isDev: false,
+      upgradeInsecureRequests: false,
+    });
+    expect(header.key).toBe("Content-Security-Policy");
+    expect(header.value).toBe(BASE_DIRECTIVES.join("; "));
+  });
+
   it("never allows inline or eval scripts in production, enforced or not", () => {
     for (const enforce of [true, false]) {
       const scriptSrc = directives(
@@ -86,6 +101,26 @@ describe("contentSecurityPolicy", () => {
   it("never allows a wildcard or a scheme-wide source", () => {
     const { value } = contentSecurityPolicy({ enforce: true, isDev: false });
     expect(value).not.toMatch(/(^|\s)(\*|https:|http:|blob:)(\s|;|$)/);
+  });
+});
+
+describe("upgradesInsecureRequests", () => {
+  it.each(["verbatra.kreitz-webdev.de", "verbatra.kreitz-webdev.de:443", "example.test:3000"])(
+    "upgrades requests for the public host %s",
+    (host) => {
+      expect(upgradesInsecureRequests(host)).toBe(true);
+    },
+  );
+
+  it.each(["localhost", "localhost:3486", "127.0.0.1", "127.0.0.1:3000", "[::1]:3000"])(
+    "sends no upgrade for the loopback host %s, which serves plain http",
+    (host) => {
+      expect(upgradesInsecureRequests(host)).toBe(false);
+    },
+  );
+
+  it.each([null, undefined, ""])("upgrades when the host is unknown (%s)", (host) => {
+    expect(upgradesInsecureRequests(host)).toBe(true);
   });
 });
 

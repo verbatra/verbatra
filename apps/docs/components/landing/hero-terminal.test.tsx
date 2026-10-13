@@ -45,7 +45,9 @@ function render(): HTMLDivElement {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
-  act(() => root.render(<HeroTerminal session="Session" replay="Replay" />));
+  act(() =>
+    root.render(<HeroTerminal session="Session" replay="Replay" example="Example output" />),
+  );
   mounted = { container, root };
   return container;
 }
@@ -116,6 +118,15 @@ describe("HeroTerminal", () => {
     const container = render();
     expect(painted(container)).toEqual(CHECK_FRAME);
     expect(container.textContent).toContain(HERO_TERMINAL_TITLE);
+  });
+
+  it("labels the run as example output in its title bar, outside the hidden replay", () => {
+    const container = render();
+    const label = Array.from(container.querySelectorAll("span")).find(
+      (span) => span.textContent === "Example output",
+    );
+    expect(label).toBeDefined();
+    expect(label?.closest('[aria-hidden="true"]')).toBeNull();
   });
 
   it("types and prints the translate run once it is on screen, then stops", async () => {

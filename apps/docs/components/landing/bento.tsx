@@ -129,7 +129,9 @@ function FormatKeyLines(): ReactNode {
             <span className="shrink-0 text-(--text-strong)">
               {FORMAT_DISPLAY[entry.format].label}
             </span>
-            <span className="min-w-0 truncate font-mono text-(--text-faint)">{entry.file}</span>
+            <span title={entry.file} className="min-w-0 truncate font-mono text-(--text-faint)">
+              {entry.file}
+            </span>
           </span>
           <ScrollBlock labelledBy={captionId(`format-${entry.format}`)}>
             <code className="vk-mono-sm block whitespace-pre font-mono text-(--text-body)">

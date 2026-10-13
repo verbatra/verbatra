@@ -5,6 +5,7 @@ import { LANDING_STEP_IDS } from "@/lib/landing-code";
 import { SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import en from "../messages/en.json";
 import {
+  breadcrumbListLd,
   howToLd,
   organizationLd,
   SUPPORTED_AGENT_CLIENTS,
@@ -92,6 +93,19 @@ describe("softwareApplicationLd", () => {
       expect(part.author).toEqual(AUTHOR_REF);
     }
   });
+
+  it("names Studio and the MCP server the way the visible copy does", () => {
+    const result = softwareApplicationLd({
+      description: "test",
+      lang: "en",
+      version: "1.0.0",
+      studioVersion: "1.0.0",
+      mcpVersion: "1.0.0",
+    });
+    const names = (result.hasPart as ReadonlyArray<{ name: string }>).map((part) => part.name);
+    expect(names).toEqual(["Verbatra Studio", "Verbatra MCP server"]);
+    expect(en.landing.studio.heading).toContain("Verbatra Studio");
+  });
 });
 
 describe("softwareApplicationLd formats", () => {
@@ -157,5 +171,31 @@ describe("howToLd", () => {
     ]);
     expect(listed[0]?.text).not.toContain("`");
     expect(listed[0]?.text).toContain("verbatra check");
+  });
+});
+
+describe("breadcrumbListLd", () => {
+  it("leaves out a folder with no page, so every list item links its page and positions stay in order", () => {
+    const ld = breadcrumbListLd({
+      items: [
+        { name: "Docs", url: "/docs" },
+        { name: "Configure" },
+        { name: "Providers", url: "/docs/providers" },
+      ],
+    });
+    expect(ld.itemListElement).toEqual([
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Docs",
+        item: "https://verbatra.kreitz-webdev.de/docs",
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Providers",
+        item: "https://verbatra.kreitz-webdev.de/docs/providers",
+      },
+    ]);
   });
 });

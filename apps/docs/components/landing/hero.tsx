@@ -48,7 +48,11 @@ export async function Hero(): Promise<ReactNode> {
         </div>
         <div className="vk-banner-demo">
           <div aria-hidden="true" className="vk-banner-glow" />
-          <HeroTerminal session={t("terminalLabel")} replay={t("replay")} />
+          <HeroTerminal
+            session={t("terminalLabel")}
+            replay={t("replay")}
+            example={t("terminalExample")}
+          />
         </div>
       </div>
     </section>

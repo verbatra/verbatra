@@ -59,7 +59,7 @@
         },
         "cost": {
           "question": "Combien coûte verbatra ?",
-          "answer": "verbatra lui-même est gratuit et open source sous <license>licence MIT</license>. Le seul coût est l’usage de ton fournisseur, et c’est toi qui le contrôles : il ne traduit que ce qui a changé, et tu peux le faire tourner gratuitement sur l’offre gratuite de Gemini ou sur un modèle local compatible OpenAI. Hors EEE, Suisse et Royaume-Uni, Google peut utiliser les requêtes de l’offre gratuite pour améliorer ses produits : garde donc les textes confidentiels sur une offre payante ou un modèle local ; la <dataHandling>page sur le traitement des données</dataHandling> donne les détails."
+          "answer": "verbatra lui-même est gratuit et open source sous <license>licence MIT</license>. Le seul coût est l’usage de ton fournisseur, et c’est toi qui le contrôles : il ne traduit que ce qui a changé, et tu peux le faire tourner gratuitement sur l’offre gratuite de Gemini ou sur un modèle local compatible OpenAI. Les conditions de Google lui permettent, dans certaines régions, d’utiliser les requêtes de l’offre gratuite pour améliorer ses produits : garde donc les textes confidentiels sur une offre payante ou un modèle local ; la <dataHandling>page sur le traitement des données</dataHandling> renvoie vers les conditions actuelles."
         },
         "studio": {
           "question": "Verbatra Studio est-il un service hébergé ?",
@@ -193,6 +193,7 @@
       "ctaSecondary": "Voir sur GitHub",
       "installLabel": "Installe la CLI",
       "terminalLabel": "Une exécution de verbatra check trouve deux clés manquantes dans chaque locale. Une exécution de translate n’envoie ensuite que ces clés.",
+      "terminalExample": "Exemple de sortie",
       "replay": "Rejouer"
     },
     "stats": {
@@ -351,7 +352,7 @@
           "label": "Vérifie les placeholders avant d’écrire",
           "verbatra": "Un résultat cassé est retenu",
           "manual": "Seulement à la relecture",
-          "tms": "Beaucoup font des contrôles qualité"
+          "tms": "Les contrôles qualité des placeholders sont courants"
         },
         "files": {
           "label": "Où vivent les fichiers",
@@ -381,7 +382,7 @@
           "label": "Coût",
           "verbatra": "Gratuit et sous licence MIT, plus l’usage de ton fournisseur",
           "manual": "Le temps de ton équipe",
-          "tms": "Un abonnement, souvent par utilisateur ou par mot"
+          "tms": "Souvent un abonnement par utilisateur ou par mot ; certains ont des offres gratuites, par exemple pour l’open source"
         },
         "setup": {
           "label": "Mise en place",
@@ -395,7 +396,7 @@
         "partial": "En partie",
         "no": "Non"
       },
-      "note": "Les TMS hébergés diffèrent entre eux. Ce tableau décrit la catégorie, pas un produit en particulier.",
+      "note": "En octobre 2026. Les TMS hébergés diffèrent entre eux : ce tableau décrit la catégorie, pas un produit en particulier, et laisse de côté les TMS auto-hébergés.",
       "scrollHint": "Fais défiler le tableau sur le côté pour voir toutes les colonnes."
     },
     "openSource": {
@@ -403,6 +404,8 @@
       "lead": "La CLI, le SDK, Studio et le serveur MCP sont développés en public sur GitHub. Lis le code, ouvre une issue ou envoie une pull request.",
       "license": "Licence MIT",
       "contributing": "Comment contribuer",
+      "codeOfConduct": "Code de conduite",
+      "security": "Politique de sécurité",
       "issues": "Issues et demandes de fonctionnalités",
       "roadmap": "Feuille de route",
       "releases": "Notes de version",

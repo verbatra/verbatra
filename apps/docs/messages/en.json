@@ -154,7 +154,7 @@
         },
         "cost": {
           "question": "What does verbatra cost?",
-          "answer": "verbatra itself is free and open source under the <license>MIT license</license>. The only cost is your provider's usage, which you control: it translates only what changed, and you can run it for free on Gemini's free tier or a local OpenAI-compatible model. Outside the EEA, Switzerland and the UK, Google may use free-tier requests to improve its products, so keep confidential strings on a paid tier or a local model; the <dataHandling>data handling page</dataHandling> has the details."
+          "answer": "verbatra itself is free and open source under the <license>MIT license</license>. The only cost is your provider's usage, which you control: it translates only what changed, and you can run it for free on Gemini's free tier or a local OpenAI-compatible model. Google's terms let it use free-tier requests to improve its products in some regions, so keep confidential strings on a paid tier or a local model; the <dataHandling>data handling page</dataHandling> links the current terms."
         },
         "studio": {
           "question": "Is Verbatra Studio a hosted service?",
@@ -246,6 +246,7 @@
       "ctaSecondary": "View on GitHub",
       "installLabel": "Install the CLI",
       "terminalLabel": "A verbatra check run finds two missing keys in each locale. A translate run then sends only those keys.",
+      "terminalExample": "Example output",
       "replay": "Replay"
     },
     "stats": {
@@ -404,7 +405,7 @@
           "label": "Checks placeholders before writing",
           "verbatra": "A broken result is withheld",
           "manual": "Only in review",
-          "tms": "Many run QA checks"
+          "tms": "Placeholder QA checks are common"
         },
         "files": {
           "label": "Where the files live",
@@ -434,7 +435,7 @@
           "label": "Cost",
           "verbatra": "Free and MIT licensed, plus your provider's usage",
           "manual": "Your team's time",
-          "tms": "A subscription, often per seat or per word"
+          "tms": "Often a subscription per seat or per word; some have free plans, for example for open source"
         },
         "setup": {
           "label": "Setup",
@@ -448,7 +449,7 @@
         "partial": "Partly",
         "no": "No"
       },
-      "note": "Hosted TMS products differ. This table describes the category, not one product.",
+      "note": "As of October 2026. Hosted TMS products differ: this table describes the category, not one product, and leaves out self-hosted TMS.",
       "scrollHint": "Scroll the table sideways to see every column."
     },
     "openSource": {
@@ -456,6 +457,8 @@
       "lead": "The CLI, SDK, Studio and MCP server are built in the open on GitHub. Read the code, file an issue, or send a pull request.",
       "license": "MIT license",
       "contributing": "How to contribute",
+      "codeOfConduct": "Code of conduct",
+      "security": "Security policy",
       "issues": "Issues and feature requests",
       "roadmap": "Roadmap",
       "releases": "Release notes",

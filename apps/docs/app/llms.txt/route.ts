@@ -1,4 +1,5 @@
 import type * as PageTree from "fumadocs-core/page-tree";
+import { GITHUB_URL, RELEASES_URL } from "@/components/landing/links";
 import { i18n } from "@/lib/i18n";
 import { readPublishedSchemas, SCHEMA_PATH, schemaUrl } from "@/lib/json-schemas";
 import { markdownUrl } from "@/lib/markdown-route";
@@ -68,6 +69,12 @@ function renderSections(): string {
   return sections.join("\n\n");
 }
 
+const README_URL = `${GITHUB_URL}#readme`;
+
+function renderOptional(): string {
+  return `## Optional\n\n- [Release notes](${RELEASES_URL}): every published version of the CLI, SDK, Studio and MCP server, with its changes\n- [README](${README_URL}): the project overview on GitHub`;
+}
+
 function renderSchemas(): string {
   const lines = readPublishedSchemas().map(
     (schema) => `- [${String(schema.document.title)}](${schemaUrl(schema.name)})`,
@@ -102,6 +109,8 @@ verbatra is open source and MIT licensed. You maintain one source locale; on eac
 ${renderSections()}
 
 ${renderSchemas()}
+
+${renderOptional()}
 `;
 
   return new Response(body, {

@@ -2,7 +2,6 @@ import type { LocalizedAnchors } from "@/lib/i18n";
 
 export const GITHUB_URL = "https://github.com/verbatra/verbatra";
 export const RELEASES_URL = `${GITHUB_URL}/releases`;
-export const SITE_MESSAGES_URL = `${GITHUB_URL}/tree/main/apps/docs/messages`;
 export const NPM_CLI = "https://www.npmjs.com/package/@verbatra/cli";
 export const NPM_SDK = "https://www.npmjs.com/package/@verbatra/sdk";
 export const NPM_STUDIO = "https://www.npmjs.com/package/@verbatra/studio";
@@ -12,7 +11,6 @@ export const ROADMAP_URL = `${ISSUES_URL}?q=is%3Aissue%20is%3Aopen%20label%3Aenh
 export const CONTRIBUTING_URL = `${GITHUB_URL}/blob/main/CONTRIBUTING.md`;
 export const CODE_OF_CONDUCT_URL = `${GITHUB_URL}/blob/main/CODE_OF_CONDUCT.md`;
 export const SECURITY_URL = `${GITHUB_URL}/blob/main/SECURITY.md`;
-export const SKILLS_REPO_URL = "https://github.com/verbatra/skills";
 export const SKILLS_PACK_PAGE = "/docs/agent-recipes";
 export const SKILLS_PACK_ANCHORS = {
   en: "the-skills-pack",

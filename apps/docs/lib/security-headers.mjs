@@ -2,7 +2,23 @@ export const CSP_ENFORCED = true;
 
 const DEV_SCRIPT_SOURCES = ["'unsafe-inline'", "'unsafe-eval'"];
 
-export function contentSecurityPolicy({ enforce, isDev, scriptHashes = [] }) {
+const LOOPBACK_HOSTNAMES = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+export function upgradesInsecureRequests(host) {
+  if (!host) return true;
+  try {
+    return !LOOPBACK_HOSTNAMES.has(new URL(`http://${host}`).hostname);
+  } catch {
+    return true;
+  }
+}
+
+export function contentSecurityPolicy({
+  enforce,
+  isDev,
+  scriptHashes = [],
+  upgradeInsecureRequests = true,
+}) {
   const inlineScripts = isDev ? DEV_SCRIPT_SOURCES : scriptHashes;
   const directives = [
     "default-src 'self'",
@@ -16,7 +32,7 @@ export function contentSecurityPolicy({ enforce, isDev, scriptHashes = [] }) {
     "form-action 'self'",
     "frame-ancestors 'none'",
   ];
-  if (enforce) directives.push("upgrade-insecure-requests");
+  if (enforce && upgradeInsecureRequests) directives.push("upgrade-insecure-requests");
   return {
     key: enforce ? "Content-Security-Policy" : "Content-Security-Policy-Report-Only",
     value: directives.join("; "),

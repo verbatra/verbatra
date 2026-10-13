@@ -36,20 +36,17 @@ dashboard in `packages/studio` (different app, different stack), or anything out
 ## The stack, and why it constrains you
 
 - `fumadocs-ui` and `fumadocs-core` 16.16.2, `next` 16.3.8, `tailwindcss` 4.3.3, `next-intl` 4.14.9.
-  `motion` (14.0.0, the version Fumadocs already depends on) is a direct dependency for client
-  islands only: import from `motion/react`, render `m.*` elements (never `motion.*`) inside
-  `MotionProvider` (`components/motion-provider.tsx`: `LazyMotion` with `domAnimation` and
-  `strict`, plus `MotionConfig reducedMotion="user"`), animate `opacity` and `transform` only, and
-  keep layout shift at 0. Deviation, on purpose: the code showcase tabs, today the only motion on
-  the page, use neither `m` nor the provider. Swapping a plain panel for an `m.div` when motion
-  arrives changes the element type and remounts the panel (copy state, focus and scroll lost), and
-  rendering `m` from the start put about 30 KB gzip of motion into the first load's island batch,
-  which cost the light-mode mobile run its 95. So each panel is one plain `div` for good, and the
-  first pointer, focus or tab change `import()`s `code-showcase-fade.ts`, which fades a newly
-  opened panel in with `animate` from `motion/mini` (opacity and a 4px lift), never under reduced
-  motion (`fadeInPanel` checks `prefersReducedMotion` itself, so the tabs module never reads it); there is no page-wide provider. Server sections and the
-  reveals stay CSS keyframes and transitions in `app/global.css`, each with a
-  `prefers-reduced-motion` opt-out.
+  `motion` (14.0.0, the version Fumadocs already depends on) is a direct dependency with one
+  consumer: the code showcase tabs. Each panel is one plain `div` for good, and the first pointer,
+  focus or tab change `import()`s `code-showcase-fade.ts`, which fades a newly opened panel in with
+  `animate` from `motion/mini` (opacity and a 4px lift), never under reduced motion (`fadeInPanel`
+  checks `prefersReducedMotion` itself, so the tabs module never reads it). There is no page-wide
+  provider and no `m.*` or `motion.*` element: swapping a plain panel for an `m.div` changes the
+  element type and remounts the panel (copy state, focus and scroll lost), and rendering `m` from
+  the start put about 30 KB gzip of motion into the first load's island batch, which cost the
+  light-mode mobile run its 95. Animate `opacity` and `transform` only, and keep layout shift at 0.
+  Server sections and the reveals stay CSS keyframes and transitions in `app/global.css`, each with
+  a `prefers-reduced-motion` opt-out.
 - Tailwind 4 uses CSS-first configuration. There is no `tailwind.config.js`. Tokens are
   CSS custom properties in `app/global.css`, not a JS config object.
 - `app/global.css` opens with three imports in this order, and the order matters:
@@ -89,7 +86,7 @@ dashboard in `packages/studio` (different app, different stack), or anything out
   the inline script that opens `<body>`, hashed into the CSP by `scripts/write-csp-hashes.mjs` like
   every inline script) owns both tags instead: it applies a stored light theme to the class and
   `color-scheme`, and writes exactly one `theme-color` and one `color-scheme` meta tag
-  (`THEME_COLORS`) before the first paint; `applyThemeMeta` puts them back if anything removed them. A visitor without JavaScript gets the dark pair from `DefaultThemeMeta` (`components/default-theme-meta.tsx`, a `<noscript>` in both documents' `<head>`), which a browser with scripting on parses as text, so there is still exactly one of each. A component never branches on the
+  (`THEME_COLORS`) before the first paint; `applyThemeMeta` puts them back if anything removed them. A visitor without JavaScript gets `DefaultThemeMeta` (`components/default-theme-meta.tsx`, a `<noscript>` in both documents' `<head>`): one dark `theme-color` and the dark `color-scheme`, with no light variant and no `media` query, because without the script the page always renders dark and a light bar would not match it. A browser with scripting on parses it as text, so there is still exactly one of each. A component never branches on the
   theme in JavaScript and needs no `dark:` variant: write against the semantic tokens and both
   themes follow. `lib/theme.test.ts` pins the light override of every token and holds every text
   pair at 4.5:1 and the focus ring at 3:1 in both themes.
@@ -547,11 +544,11 @@ stack").
 
 Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
 
-- `motion` only in client islands, through `MotionProvider` (`LazyMotion` + `domAnimation`,
-  `strict`, so a stray `motion.*` element throws instead of pulling the full feature set). Section
-  reveals stay CSS keyframes and transitions in `app/global.css`, each with a
-  `prefers-reduced-motion` opt-out; `MotionRoot` toggles attributes from one
-  `IntersectionObserver` and stays well under 1 KB gzipped.
+- `motion` only through a dynamic `import()` of `motion/mini` inside a client island (today only
+  `code-showcase-fade.ts`), never a static import and never a page-wide provider. Section reveals
+  stay CSS keyframes and transitions in `app/global.css`, each with a `prefers-reduced-motion`
+  opt-out; `MotionRoot` toggles attributes from one `IntersectionObserver` and stays well under
+  1 KB gzipped.
 - Every first-load request costs a round trip before the largest paint, and Lighthouse counts every
   script that runs before that paint, so the landing's client code arrives after it. A landing
   server section imports its client components from `components/landing/islands.tsx`, and the

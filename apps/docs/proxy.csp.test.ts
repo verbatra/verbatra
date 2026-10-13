@@ -59,6 +59,21 @@ describe("proxy: content security policy", () => {
     },
   );
 
+  it("sends no upgrade-insecure-requests on a loopback host, where the site runs over http", async () => {
+    const response = await run("/docs/providers");
+    expect(response.headers.get("content-security-policy")).not.toContain(
+      "upgrade-insecure-requests",
+    );
+  });
+
+  it.each([
+    [{ host: "verbatra.kreitz-webdev.de" }],
+    [{ "x-forwarded-host": "verbatra.kreitz-webdev.de", host: "127.0.0.1:3000" }],
+  ])("upgrades insecure requests for the public host behind the proxy (%o)", async (headers) => {
+    const response = await run("/docs/providers", headers);
+    expect(response.headers.get("content-security-policy")).toContain("upgrade-insecure-requests");
+  });
+
   it("sends one policy, so a second one cannot narrow it", async () => {
     const response = await run("/de/docs/formats");
     expect(response.headers.get("content-security-policy")?.match(/script-src/g)).toHaveLength(1);

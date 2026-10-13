@@ -90,6 +90,7 @@ describe("Bento", () => {
       const row = rows[index];
       expect(row?.textContent).toContain(FORMAT_DISPLAY[entry.format].label);
       expect(row?.textContent).toContain(entry.file);
+      expect(row?.querySelector(".truncate")?.getAttribute("title")).toBe(entry.file);
       expect(row?.querySelector("code")?.textContent).toBe(entry.line);
       expect(row?.querySelector(".vk-placeholder")?.textContent).toBe(entry.placeholder);
     });

@@ -13,7 +13,15 @@ export const HERO_TERMINAL_OUTPUTS: Readonly<Record<number, ReadonlyArray<string
     HERO_TERMINAL_SCRIPT.map((step, index) => [index, [...step.output, HERO_EXIT_LINES[index]]]),
   );
 
-export function HeroTerminal({ session, replay }: { session: string; replay: string }): ReactNode {
+export function HeroTerminal({
+  session,
+  replay,
+  example,
+}: {
+  session: string;
+  replay: string;
+  example: string;
+}): ReactNode {
   const [run, setRun] = useState(0);
   return (
     <Terminal
@@ -28,9 +36,12 @@ export function HeroTerminal({ session, replay }: { session: string; replay: str
       pauseOffscreen
       className="vk-banner-terminal"
       headerAction={
-        <button type="button" className="vk-banner-replay" onClick={() => setRun((n) => n + 1)}>
-          {replay}
-        </button>
+        <span className="flex items-center gap-3">
+          <span className="text-xs text-[color:var(--text-muted)]">{example}</span>
+          <button type="button" className="vk-banner-replay" onClick={() => setRun((n) => n + 1)}>
+            {replay}
+          </button>
+        </span>
       }
     />
   );

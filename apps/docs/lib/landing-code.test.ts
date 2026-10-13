@@ -3,7 +3,8 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { check, defineConfig, loadConfig, translate } from "@verbatra/sdk";
+import { defineConfig as cliDefineConfig } from "@verbatra/cli";
+import { check, loadConfig, translate } from "@verbatra/sdk";
 import { afterEach, describe, expect, it } from "vitest";
 import { NPM_INSTALL_COMMAND } from "@/lib/install-commands";
 import {
@@ -18,6 +19,13 @@ import {
 import { PACKAGE_VERSION } from "@/lib/site";
 
 const RUN_TS = fileURLToPath(new URL("../../../packages/cli/src/run.ts", import.meta.url));
+const CLI_MANIFEST = fileURLToPath(new URL("../../../packages/cli/package.json", import.meta.url));
+const INIT_CONFIG_TS = fileURLToPath(
+  new URL("../../../packages/cli/src/init-config.ts", import.meta.url),
+);
+const INIT_ANSWERS_TS = fileURLToPath(
+  new URL("../../../packages/cli/src/init-answers.ts", import.meta.url),
+);
 
 const EM_DASH = String.fromCharCode(0x2014);
 
@@ -47,11 +55,24 @@ describe("the landing code samples", () => {
     expect([...imported].sort()).toEqual([...LANDING_SDK_IMPORTS].sort());
     const exports: Record<(typeof LANDING_SDK_IMPORTS)[number], unknown> = {
       check,
-      defineConfig,
       loadConfig,
       translate,
     };
     for (const name of LANDING_SDK_IMPORTS) expect(typeof exports[name], name).toBe("function");
+  });
+
+  it("imports defineConfig in the config tab from the package verbatra init writes into the config", () => {
+    const cliName = (JSON.parse(readFileSync(CLI_MANIFEST, "utf8")) as { name: string }).name;
+    expect(readFileSync(INIT_CONFIG_TS, "utf8")).toMatch(
+      /import \{ defineConfig \} from \$\{JSON\.stringify\(draft\.importName\)\}/,
+    );
+    expect(readFileSync(INIT_ANSWERS_TS, "utf8")).toMatch(
+      /importName: readPackageManifest\(\)\.name,/,
+    );
+    expect(LANDING_CONFIG_CODE.split("\n")[0]).toBe(
+      `import { defineConfig } from ${JSON.stringify(cliName)};`,
+    );
+    expect(typeof cliDefineConfig).toBe("function");
   });
 
   it("ships a config file that the sdk loads and validates", async () => {

@@ -1455,6 +1455,11 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   color: #8b949e !important;
 }
 
+.light .shiki span[style*="#6A737D" i] {
+  /* biome-ignore lint/complexity/noImportantStyles: shiki sets token colors through inline custom properties; only an important declaration outranks them, raising comment tokens to WCAG AA. */
+  color: #5c636b !important;
+}
+
 .vk-home {
   --vk-landing-offset: 3.5rem;
   overflow-x: clip;

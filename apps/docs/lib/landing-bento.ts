@@ -56,7 +56,10 @@ export const BENTO_TILES: ReadonlyArray<BentoTile> = [
     span: 5,
     evidence: [
       { text: 'provider: { id: "none" }', page: "/docs/human-only-workflow" },
-      { text: 'provider: { id: "gemini" }', page: "/docs/providers" },
+      {
+        text: 'provider: { id: "gemini", options: { model: "gemini-2.5-flash", maxOutputTokens: 4096 } }',
+        page: "/docs/providers",
+      },
     ],
   },
   {

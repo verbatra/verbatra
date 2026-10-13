@@ -1,4 +1,3 @@
-import { getBreadcrumbItems } from "fumadocs-core/breadcrumb";
 import { Callout } from "fumadocs-ui/components/callout";
 import {
   DocsBody,
@@ -15,6 +14,7 @@ import { DocsPageActions } from "@/components/docs-page-actions";
 import { JsonLd } from "@/components/json-ld";
 import { CALLOUT_CLASS, getMDXComponents } from "@/components/mdx";
 import { sdkReferenceComponents } from "@/components/sdk-reference";
+import { docsBreadcrumbTrail } from "@/lib/docs-breadcrumb";
 import { footerNeighbourUrls } from "@/lib/docs-neighbours";
 import { extractFaqItems } from "@/lib/extract-faq";
 import { i18n, type Locale, localizedPath, toLocale } from "@/lib/i18n";
@@ -22,26 +22,11 @@ import { markdownUrl } from "@/lib/markdown-route";
 import { onThisPageLabel, pageToc } from "@/lib/page-toc";
 import { socialMetadata } from "@/lib/social-metadata";
 import { source } from "@/lib/source";
-import {
-  type BreadcrumbLdItem,
-  breadcrumbListLd,
-  faqPageLd,
-  techArticleLd,
-} from "@/lib/structured-data";
+import { breadcrumbListLd, faqPageLd, techArticleLd } from "@/lib/structured-data";
 import { contentCommitTimes, isTranslationOutdated } from "@/lib/translation-freshness";
 
 const CODE_HEADINGS_CLASS = "vk-code-headings";
 const BREADCRUMB_CLASS = "vk-breadcrumb";
-
-function breadcrumbTrail(pageUrl: string, lang: Locale): BreadcrumbLdItem[] {
-  const items = getBreadcrumbItems(pageUrl, source.getPageTree(lang), { includePage: true });
-  const trail: BreadcrumbLdItem[] = [];
-  for (const item of items) {
-    if (typeof item.name !== "string") continue;
-    trail.push({ name: item.name, url: item.url });
-  }
-  return trail;
-}
 
 type DocsPageData = NonNullable<ReturnType<typeof source.getPage>>;
 
@@ -60,7 +45,11 @@ async function pageJsonLd(
   ];
   if (!slug || slug.length === 0) return blocks;
 
-  const trail = breadcrumbTrail(page.url, lang);
+  const trail = docsBreadcrumbTrail(
+    source.getPageTree(lang),
+    page.url,
+    localizedPath(lang, "/docs"),
+  );
   if (trail.length > 0) blocks.push(breadcrumbListLd({ items: trail }));
 
   if (slug.length === 1 && slug[0] === "faq") {

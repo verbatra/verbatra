@@ -5,12 +5,14 @@ import type { CSSProperties, ReactNode } from "react";
 import { CONTRIBUTORS, type Contributor } from "@/lib/contributors";
 import { GithubIcon } from "./github-icon";
 import {
+  CODE_OF_CONDUCT_URL,
   CONTRIBUTING_URL,
   GITHUB_URL,
   ISSUES_URL,
   LICENSE_URL,
   RELEASES_URL,
   ROADMAP_URL,
+  SECURITY_URL,
 } from "./links";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
@@ -25,6 +27,8 @@ type ProjectLink = { key: string; href: string };
 export const OPEN_SOURCE_LINKS: ReadonlyArray<ProjectLink> = [
   { key: "license", href: LICENSE_URL },
   { key: "contributing", href: CONTRIBUTING_URL },
+  { key: "codeOfConduct", href: CODE_OF_CONDUCT_URL },
+  { key: "security", href: SECURITY_URL },
   { key: "issues", href: ISSUES_URL },
   { key: "roadmap", href: ROADMAP_URL },
   { key: "releases", href: RELEASES_URL },

@@ -8,9 +8,9 @@ export type LandingCodeSample = {
   readonly code: string;
 };
 
-export const LANDING_SDK_IMPORTS = ["check", "defineConfig", "loadConfig", "translate"] as const;
+export const LANDING_SDK_IMPORTS = ["check", "loadConfig", "translate"] as const;
 
-export const LANDING_CONFIG_CODE = `import { defineConfig } from "@verbatra/sdk";
+export const LANDING_CONFIG_CODE = `import { defineConfig } from "@verbatra/cli";
 
 export default defineConfig({
   sourceLocale: "en",

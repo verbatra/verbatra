@@ -35,6 +35,25 @@ describe("web app manifest icons", () => {
     const apple = icons.find((icon) => icon.src === "/apple-icon.png");
     expect(apple?.sizes).toBe(pngSize(join(process.cwd(), "app/apple-icon.png")));
   });
+
+  it.each([
+    ["/icon-192.png", "public/icon-192.png"],
+    ["/icon-512.png", "public/icon-512.png"],
+    ["/icon-maskable-512.png", "public/icon-maskable-512.png"],
+  ])("declares the size %s actually has", (src, file) => {
+    const icon = icons.find((entry) => entry.src === src);
+    expect(icon?.type).toBe("image/png");
+    expect(icon?.sizes).toBe(pngSize(join(process.cwd(), file)));
+  });
+
+  it("offers the install sizes 192 and 512, a scalable icon and one maskable icon", () => {
+    const sizes = icons.flatMap((icon) => icon.sizes?.split(" ") ?? []);
+    expect(sizes).toEqual(expect.arrayContaining(["192x192", "512x512", "any"]));
+    expect(icons.filter((icon) => icon.purpose === "maskable")).toHaveLength(1);
+    const svg = icons.find((icon) => icon.src === "/icon.svg");
+    expect(svg?.type).toBe("image/svg+xml");
+    expect(readFileSync(join(process.cwd(), "app/icon.svg"), "utf8")).toMatch(/^<svg /);
+  });
 });
 
 describe("web app manifest colors", () => {
@@ -44,7 +63,7 @@ describe("web app manifest colors", () => {
   });
 
   it("keeps the icons the browser fetches during the first load small", () => {
-    for (const file of ["app/favicon.ico", "app/apple-icon.png"]) {
+    for (const file of ["app/favicon.ico", "app/apple-icon.png", "app/icon.svg"]) {
       expect(readFileSync(join(process.cwd(), file)).byteLength, file).toBeLessThan(8 * 1024);
     }
   });

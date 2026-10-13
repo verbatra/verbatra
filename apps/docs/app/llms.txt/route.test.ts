@@ -79,6 +79,7 @@ describe("llms.txt", () => {
       "## CLI",
       "## Configuration",
       "## JSON Schemas",
+      "## Optional",
     ]);
     expect(body).toContain(
       "## CLI\n\n- [Overview](https://verbatra.kreitz-webdev.de/docs/cli.md): Every command.\n- [verbatra translate]",
@@ -117,5 +118,11 @@ describe("llms.txt", () => {
     expect(body).toContain(
       "JSON Schemas for every envelope and stderr record: https://verbatra.kreitz-webdev.de/schema/v1",
     );
+  });
+
+  it("ends on an Optional section with the release notes and the README", () => {
+    const optional = body.slice(body.indexOf("## Optional"));
+    expect(optional).toContain("- [Release notes](https://github.com/verbatra/verbatra/releases)");
+    expect(optional).toContain("- [README](https://github.com/verbatra/verbatra#readme)");
   });
 });
