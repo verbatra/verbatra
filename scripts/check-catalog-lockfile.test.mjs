@@ -288,6 +288,14 @@ describe("findMismatches", () => {
       },
     ]);
   });
+
+  it("flags a lockfile catalog specifier whose dependency the manifest no longer declares", () => {
+    const { zod: _removed, ...dependencies } = CORE_MANIFEST.dependencies;
+    const core = { ...CORE_MANIFEST, dependencies };
+    expect(mismatchesFor(CLEAN_LOCK, { core })).toEqual([
+      { importer: "packages/core", dependency: "zod", manifest: "(absent)", lock: "catalog:" },
+    ]);
+  });
 });
 
 describe("check-catalog-lockfile on disk", () => {
@@ -382,6 +390,35 @@ describe("check-catalog-lockfile on disk", () => {
     const result = run(root);
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("  packages/core: has no readable package.json");
+    expect(result.stderr).not.toContain("packages/core > ");
+  });
+
+  it("exits 1 when a lockfile importer's package.json is malformed JSON", () => {
+    const root = fixtureRoot(CLEAN_LOCK);
+    writeFileSync(join(root, "packages/core/package.json"), '{"name": "@fixture/core",');
+    const result = run(root);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("  packages/core: has no readable package.json");
+  });
+
+  it("exits 1 when a lockfile importer's package.json is a directory", () => {
+    const root = fixtureRoot(CLEAN_LOCK);
+    rmSync(join(root, "packages/core/package.json"));
+    mkdirSync(join(root, "packages/core/package.json"));
+    const result = run(root);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("  packages/core: has no readable package.json");
+  });
+
+  it("passes a matching package.json with a byte order mark", () => {
+    const root = fixtureRoot(CLEAN_LOCK);
+    writeFileSync(
+      join(root, "packages/core/package.json"),
+      `\uFEFF${JSON.stringify(CORE_MANIFEST)}`,
+    );
+    const result = run(root);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("2 importer(s)");
   });
 
   it("does not read pnpm-workspace.yaml", () => {
@@ -391,8 +428,8 @@ describe("check-catalog-lockfile on disk", () => {
   });
 
   it("passes the repository's own lockfile", () => {
-    const { importers, gaps, mismatches } = checkRoot(REPO_ROOT);
-    expect(importers).toBeGreaterThan(1);
+    const { importerCount, gaps, mismatches } = checkRoot(REPO_ROOT);
+    expect(importerCount).toBeGreaterThan(1);
     expect(gaps).toEqual([]);
     expect(mismatches).toEqual([]);
   });

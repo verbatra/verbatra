@@ -9,7 +9,6 @@ const REPO_ROOT = resolve(SCRIPT_DIR, "..");
 
 const LOCKFILE = "pnpm-lock.yaml";
 const CATALOG_PROTOCOL = "catalog:";
-const DEPENDENCY_SECTIONS = ["dependencies", "devDependencies", "optionalDependencies"];
 const SECTIONS_BY_PRECEDENCE = ["devDependencies", "dependencies", "optionalDependencies"];
 const ABSENT = "(absent)";
 
@@ -64,7 +63,7 @@ const LINE_HANDLERS = {
     state.dependency = null;
   },
   [SECTION_INDENT]: (state, entry) => {
-    state.inSection = DEPENDENCY_SECTIONS.includes(entry.key);
+    state.inSection = SECTIONS_BY_PRECEDENCE.includes(entry.key);
     state.dependency = null;
   },
   [DEPENDENCY_INDENT]: (state, entry) => {
@@ -86,7 +85,7 @@ function parseLockImporters(lockText) {
 }
 
 function manifestSpecifiers(manifestJson) {
-  const manifest = JSON.parse(manifestJson);
+  const manifest = JSON.parse(manifestJson.replace(/^\uFEFF/, ""));
   const specifiers = {};
   for (const section of SECTIONS_BY_PRECEDENCE) {
     Object.assign(specifiers, manifest[section] ?? {});
@@ -137,8 +136,11 @@ function findMismatches(lockImporters, manifestsByImporter) {
 }
 
 function readManifest(root, importer) {
-  const path = join(root, importer, "package.json");
-  return existsSync(path) ? manifestSpecifiers(readFileSync(path, "utf8")) : null;
+  try {
+    return manifestSpecifiers(readFileSync(join(root, importer, "package.json"), "utf8"));
+  } catch {
+    return null;
+  }
 }
 
 function checkRoot(root) {
@@ -147,8 +149,8 @@ function checkRoot(root) {
     throw new Error(`no ${LOCKFILE} in ${root}.`);
   }
   const lockImporters = parseLockImporters(readFileSync(lockPath, "utf8"));
-  const importers = Object.keys(lockImporters).length;
-  if (importers === 0) {
+  const importerCount = Object.keys(lockImporters).length;
+  if (importerCount === 0) {
     throw new Error(
       `parsed no importers from ${LOCKFILE}; its format may have changed, so the guard cannot vouch for it.`,
     );
@@ -161,7 +163,7 @@ function checkRoot(root) {
   const mismatches = findMismatches(lockImporters, manifestsByImporter).filter(
     (mismatch) => !gapImporters.has(mismatch.importer),
   );
-  return { importers, gaps, mismatches };
+  return { importerCount, gaps, mismatches };
 }
 
 function formatMismatch(mismatch) {
@@ -200,7 +202,7 @@ function reportMismatches(mismatches) {
 
 function main() {
   const root = resolve(process.argv[2] ?? REPO_ROOT);
-  const { importers, gaps, mismatches } = checkRoot(root);
+  const { importerCount, gaps, mismatches } = checkRoot(root);
   if (gaps.length > 0) {
     reportGaps(gaps);
   }
@@ -209,7 +211,7 @@ function main() {
   }
   if (gaps.length === 0 && mismatches.length === 0) {
     console.log(
-      `check-catalog-lockfile: every catalog specifier in ${importers} importer(s) matches its package.json.`,
+      `check-catalog-lockfile: every catalog specifier in ${importerCount} importer(s) matches its package.json.`,
     );
   }
 }
