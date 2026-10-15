@@ -200,13 +200,14 @@ describe("summarizeRetranslateBatch: entries skipped after a batch-wide failure"
         {
           locale: "de",
           key: "a",
-          message: "The translation provider rejected the configured API key.",
+          message:
+            "The translation provider rejected the configured API key or refused the request under its policy.",
         },
         {
           locale: "de",
           key: "b",
           message:
-            "Not attempted after an earlier failure: The translation provider rejected the configured API key.",
+            "Not attempted after an earlier failure: The translation provider rejected the configured API key or refused the request under its policy.",
         },
       ],
     });

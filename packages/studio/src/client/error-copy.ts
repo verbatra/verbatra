@@ -67,7 +67,8 @@ const REACHABLE_CODE_COPY: Readonly<Record<string, string>> = {
 
 const PROVIDER_CODE_COPY: Readonly<Record<string, string>> = {
   RATE_LIMITED: "The translation provider is rate-limiting requests. Wait a moment and try again.",
-  AUTH_FAILED: "The translation provider rejected the configured API key.",
+  AUTH_FAILED:
+    "The translation provider rejected the configured API key or refused the request under its policy.",
   TIMEOUT: "The translation provider did not respond in time. Try again.",
   PROVIDER_UNAVAILABLE:
     "The translation provider is currently unavailable. This is an outage on their side, so try again later.",
