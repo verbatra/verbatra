@@ -38,7 +38,10 @@ commit message for commitlint.
 
 - `pre-commit` (parallel): `check` runs Biome on staged JS/TS/JSON files; `lockfile` runs
   `pnpm install --frozen-lockfile --lockfile-only` when a `package.json`, `pnpm-lock.yaml`, or
-  `pnpm-workspace.yaml` changed; `no-em-dash` runs `pnpm check:no-em-dash` (defined in the root
+  `pnpm-workspace.yaml` changed; `catalog-lockfile` runs `pnpm check:catalog-lockfile`
+  (`scripts/check-catalog-lockfile.mjs`) on the same files, failing when a `catalog:` specifier in
+  `pnpm-lock.yaml` disagrees with its `package.json` (the same check runs in
+  `.github/actions/setup-workspace` before every CI install); `no-em-dash` runs `pnpm check:no-em-dash` (defined in the root
   `package.json`), which fails the commit if a U+2014 em dash was staged anywhere except
   `pnpm-lock.yaml`.
 - `commit-msg`: `lint` runs `pnpm commitlint --edit {1}`.

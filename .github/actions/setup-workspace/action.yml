@@ -19,6 +19,10 @@ runs:
         node-version: ${{ inputs.node-version }}
         registry-url: ${{ inputs.registry-url }}
 
+    - name: Check catalog specifiers in the lockfile
+      shell: bash
+      run: node scripts/check-catalog-lockfile.mjs
+
     - name: Enable corepack and activate pnpm
       shell: bash
       run: corepack enable && corepack prepare pnpm@11.6.0 --activate
