@@ -180,7 +180,7 @@ function collectTypeTables(node: MdxNode, host: MdxNode | undefined, hosts: Tabl
 }
 
 export function remarkTypeTableMarkdown() {
-  return (root: MdxNode, file: object) => {
+  return (root: MdxNode, file: { data: object }) => {
     const hosts: TableHosts = new Map();
     collectTypeTables(root, undefined, hosts);
     for (const [host, tables] of hosts) replaceMarkdown(file, host, tables.join("\n\n"));

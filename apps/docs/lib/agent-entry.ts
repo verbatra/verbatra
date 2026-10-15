@@ -54,7 +54,7 @@ type MdxNode = {
   children?: MdxNode[];
 };
 
-type MdxFile = { path?: string; data?: object };
+type MdxFile = { path?: string; data: object };
 
 export const CLI_MODULE = "@verbatra/cli";
 
@@ -93,7 +93,7 @@ function stringifyAgentEntries(node: MdxNode, file: MdxFile, configs: McpInstall
 }
 
 function addCompileDependency(file: MdxFile, path: string): void {
-  const compiler = file.data && "_compiler" in file.data ? file.data._compiler : undefined;
+  const compiler = "_compiler" in file.data ? file.data._compiler : undefined;
   if (
     typeof compiler === "object" &&
     compiler !== null &&
@@ -110,6 +110,6 @@ async function loadMcpInstallConfigs(file: MdxFile): Promise<McpInstallConfigs> 
 }
 
 export function remarkAgentEntryMarkdown() {
-  return async (root: MdxNode, file: MdxFile = {}): Promise<void> =>
+  return async (root: MdxNode, file: MdxFile): Promise<void> =>
     stringifyAgentEntries(root, file, await loadMcpInstallConfigs(file));
 }
