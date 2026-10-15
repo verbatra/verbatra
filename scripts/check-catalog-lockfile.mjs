@@ -146,13 +146,75 @@ function manifestPath(root, importer) {
   return join(root, importer, "package.json");
 }
 
-function parseWorkspacePatterns(workspaceText) {
+const PACKAGES_KEY = /^(?:packages|"packages"|'packages')[ \t]*:(.*)$/;
+const QUOTED_SCALAR = /^("[^"]*"|'(?:[^']|'')*')(?:\s+#.*)?$/;
+const FLOW_LIST = /^\[(.*)\](?:\s+#.*)?$/;
+const BLOCK_ITEM = /^\s*-\s+(.+?)\s*$/;
+
+function unsupportedWorkspace(detail) {
+  return new Error(`cannot parse the ${WORKSPACE_FILE} packages list (${detail}).`);
+}
+
+function scalarOf(text) {
+  const quoted = QUOTED_SCALAR.exec(text);
+  if (quoted?.[1] !== undefined) {
+    return unquote(quoted[1]);
+  }
+  const plain = text.replace(/\s+#.*$/, "");
+  if (plain === "" || /^["'#[\]{},&*!|>%@`]/.test(plain)) {
+    throw unsupportedWorkspace(`unsupported entry '${text}'`);
+  }
+  return plain;
+}
+
+function flowPatterns(inline) {
+  const flow = FLOW_LIST.exec(inline);
+  if (flow?.[1] === undefined) {
+    throw unsupportedWorkspace(`unsupported value '${inline}'`);
+  }
+  const entries = flow[1].split(",").map((entry) => entry.trim());
+  if (entries.at(-1) === "") {
+    entries.pop();
+  }
+  return entries.map(scalarOf);
+}
+
+function isBlockEnd(line) {
+  return line.trim() !== "" && indentOf(line) === 0 && !/^[-#]/.test(line);
+}
+
+function blockPatterns(lines) {
   const patterns = [];
-  for (const line of topLevelBlock(workspaceText, "packages")) {
-    const item = /^\s+-\s+(.+?)\s*$/.exec(line);
-    if (item?.[1] !== undefined) {
-      patterns.push(unquote(item[1]));
+  for (const line of lines) {
+    if (isBlockEnd(line)) {
+      break;
     }
+    const trimmed = line.trim();
+    if (trimmed === "" || trimmed.startsWith("#")) {
+      continue;
+    }
+    const item = BLOCK_ITEM.exec(line);
+    if (item?.[1] === undefined) {
+      throw unsupportedWorkspace(`unsupported line '${trimmed}'`);
+    }
+    patterns.push(scalarOf(item[1]));
+  }
+  return patterns;
+}
+
+function parseWorkspacePatterns(workspaceText) {
+  const lines = workspaceText.split(/\r?\n/);
+  const start = lines.findIndex((line) => PACKAGES_KEY.test(line));
+  if (start === -1) {
+    return [];
+  }
+  const inline = (PACKAGES_KEY.exec(lines[start])?.[1] ?? "").trim();
+  const patterns =
+    inline === "" || inline.startsWith("#")
+      ? blockPatterns(lines.slice(start + 1))
+      : flowPatterns(inline);
+  if (patterns.length === 0) {
+    throw unsupportedWorkspace("a top-level packages key with no patterns");
   }
   return patterns;
 }

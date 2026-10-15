@@ -167,6 +167,49 @@ describe("parseWorkspacePatterns", () => {
     const workspace = readFileSync(join(REPO_ROOT, "pnpm-workspace.yaml"), "utf8");
     expect(parseWorkspacePatterns(workspace)).toEqual(["packages/*", "apps/*"]);
   });
+
+  it("reads list items written at column 0", () => {
+    const workspace = "packages:\n- packages/*\n- 'apps/*'\ncatalog:\n  zod: 4.4.3\n";
+    expect(parseWorkspacePatterns(workspace)).toEqual(["packages/*", "apps/*"]);
+  });
+
+  it("reads a flow list of quoted and bare entries", () => {
+    const workspace = `packages: ["packages/*", 'apps/*', tools/single,] # globs\n`;
+    expect(parseWorkspacePatterns(workspace)).toEqual(["packages/*", "apps/*", "tools/single"]);
+  });
+
+  it("reads a block list after a comment on the key line and between items", () => {
+    const workspace = 'packages: # globs\n  - packages/* # libs\n# apps next\n  - "apps/*"\n';
+    expect(parseWorkspacePatterns(workspace)).toEqual(["packages/*", "apps/*"]);
+  });
+
+  it("reads a quoted packages key", () => {
+    expect(parseWorkspacePatterns('"packages":\n  - packages/*\n')).toEqual(["packages/*"]);
+    expect(parseWorkspacePatterns("'packages': [apps/*]\n")).toEqual(["apps/*"]);
+  });
+
+  it("returns no patterns when there is no top-level packages key", () => {
+    expect(parseWorkspacePatterns("catalog:\n  zod: 4.4.3\n")).toEqual([]);
+  });
+
+  it.each([
+    ["an empty block", "packages:\ncatalog:\n  zod: 4.4.3\n"],
+    ["an empty flow list", "packages: []\n"],
+    ["a comment-only block", "packages: # none\n  # - packages/*\n"],
+  ])("throws on a packages key with no patterns: %s", (_, workspace) => {
+    expect(() => parseWorkspacePatterns(workspace)).toThrow(
+      "cannot parse the pnpm-workspace.yaml packages list (a top-level packages key with no patterns).",
+    );
+  });
+
+  it.each([
+    ["a scalar value", "packages: packages/*\n", "unsupported value 'packages/*'"],
+    ["a multi-line flow list", 'packages: [\n  "packages/*"\n]\n', "unsupported value '['"],
+    ["a nested mapping", "packages:\n  include: packages/*\n", "unsupported line"],
+    ["a tagged entry", "packages:\n  - !packages/x\n", "unsupported entry '!packages/x'"],
+  ])("throws on a packages list it cannot read: %s", (_, workspace, detail) => {
+    expect(() => parseWorkspacePatterns(workspace)).toThrow(detail);
+  });
 });
 
 describe("findImporterGaps", () => {
@@ -429,6 +472,27 @@ describe("check-catalog-lockfile on disk", () => {
     expect(result.stderr).toContain(
       "unsupported pnpm-workspace.yaml packages pattern 'packages/**'",
     );
+  });
+
+  it("exits 1 on a negated workspace pattern", () => {
+    const root = fixtureRoot(CLEAN_LOCK);
+    writeFileSync(
+      join(root, "pnpm-workspace.yaml"),
+      "packages:\n  - 'packages/*'\n  - '!packages/x'\n",
+    );
+    const result = run(root);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      "unsupported pnpm-workspace.yaml packages pattern '!packages/x'",
+    );
+  });
+
+  it("exits 1 when the workspace packages key holds no patterns", () => {
+    const root = fixtureRoot(CLEAN_LOCK);
+    writeFileSync(join(root, "pnpm-workspace.yaml"), "packages: []\n");
+    const result = run(root);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("a top-level packages key with no patterns");
   });
 
   it("passes the repository's own lockfile", () => {
