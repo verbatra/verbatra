@@ -1,3 +1,5 @@
+import type { MarkdownFile } from "./llm-markdown";
+
 export type IntroducedIn = {
   version: string;
   pkg?: string;
@@ -37,7 +39,7 @@ export function pageIntroducedIn(root: MdxRoot): IntroducedIn | undefined {
 }
 
 export function remarkIntroducedIn() {
-  return (root: MdxRoot, file: { data: object }) => {
+  return (root: MdxRoot, file: MarkdownFile) => {
     const introducedIn = pageIntroducedIn(root);
     if (introducedIn) Object.assign(file.data, { introducedIn });
   };
