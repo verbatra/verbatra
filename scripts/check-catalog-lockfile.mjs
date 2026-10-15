@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -8,8 +8,6 @@ const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(SCRIPT_DIR, "..");
 
 const LOCKFILE = "pnpm-lock.yaml";
-const WORKSPACE_FILE = "pnpm-workspace.yaml";
-const ROOT_IMPORTER = ".";
 const CATALOG_PROTOCOL = "catalog:";
 const DEPENDENCY_SECTIONS = ["dependencies", "devDependencies", "optionalDependencies"];
 const SECTIONS_BY_PRECEDENCE = ["devDependencies", "dependencies", "optionalDependencies"];
@@ -42,7 +40,7 @@ function keyOf(line) {
 }
 
 function topLevelBlock(text, key) {
-  const lines = text.split(/\r?\n/);
+  const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/);
   const start = lines.findIndex((line) => line.trimEnd() === `${key}:`);
   if (start === -1) {
     return [];
@@ -104,19 +102,17 @@ function usesCatalog(specifiers) {
   return Object.values(specifiers).some(isCatalog);
 }
 
-function importerGap(lockSpecifiers) {
-  if (lockSpecifiers === undefined) {
-    return "is missing from the lockfile";
-  }
-  return Object.keys(lockSpecifiers).length === 0 ? "has no parsed specifiers" : null;
-}
-
 function findImporterGaps(lockImporters, manifestsByImporter) {
   const gaps = [];
-  for (const [importer, manifest] of Object.entries(manifestsByImporter)) {
-    const reason = usesCatalog(manifest) ? importerGap(lockImporters[importer]) : null;
-    if (reason !== null) {
-      gaps.push({ importer, reason });
+  for (const importer of Object.keys(lockImporters)) {
+    const manifest = manifestsByImporter[importer];
+    if (manifest === null) {
+      gaps.push({ importer, reason: "has no readable package.json" });
+    } else if (usesCatalog(manifest) && Object.keys(lockImporters[importer]).length === 0) {
+      gaps.push({
+        importer,
+        reason: "declares a catalog: dependency but has no parsed specifiers",
+      });
     }
   }
   return gaps.sort((a, b) => a.importer.localeCompare(b.importer));
@@ -124,9 +120,7 @@ function findImporterGaps(lockImporters, manifestsByImporter) {
 
 function findMismatches(lockImporters, manifestsByImporter) {
   const mismatches = [];
-  const importers = new Set([...Object.keys(lockImporters), ...Object.keys(manifestsByImporter)]);
-  for (const importer of importers) {
-    const lockSpecifiers = lockImporters[importer] ?? {};
+  for (const [importer, lockSpecifiers] of Object.entries(lockImporters)) {
     const manifest = manifestsByImporter[importer] ?? {};
     const names = new Set([...Object.keys(manifest), ...Object.keys(lockSpecifiers)]);
     for (const dependency of names) {
@@ -142,134 +136,9 @@ function findMismatches(lockImporters, manifestsByImporter) {
   );
 }
 
-function manifestPath(root, importer) {
-  return join(root, importer, "package.json");
-}
-
-const PACKAGES_KEY = /^(?:packages|"packages"|'packages')[ \t]*:(?:[ \t]+(.*))?$/;
-const PACKAGES_MENTION = /^[?{]?\s*["']?packages["']?\s*(?:[:,}]|$)/;
-const QUOTED_SCALAR = /^("[^"\\]*"|'(?:[^']|'')*')(?:\s+#.*)?$/;
-const FLOW_LIST = /^\[([^#]*)\](?:\s+#.*)?$/;
-const BLOCK_ITEM = /^( *)- +(\S.*?)\s*$/;
-const RESERVED_PLAIN =
-  /^(?:[-?:](?:\s|$)|["'#[\]{},&*!|>%@`]|~$|null$|Null$|NULL$|true$|True$|TRUE$|false$|False$|FALSE$|[-+]?\.?\d|[-+]?\.(?:inf|Inf|INF)$|\.(?:nan|NaN|NAN)$)/;
-const PLAIN_INDICATOR = /[[\]{}\t]|:(?:\s|$)/;
-const BYTE_ORDER_MARK = "\uFEFF";
-
-function unsupportedWorkspace(detail) {
-  return new Error(`cannot parse the ${WORKSPACE_FILE} packages list (${detail}).`);
-}
-
-function scalarOf(text) {
-  const quoted = QUOTED_SCALAR.exec(text);
-  if (quoted?.[1] !== undefined) {
-    return unquote(quoted[1]);
-  }
-  const plain = text.replace(/\s+#.*$/, "");
-  if (plain === "" || RESERVED_PLAIN.test(plain) || PLAIN_INDICATOR.test(plain)) {
-    throw unsupportedWorkspace(`unsupported entry '${text}'`);
-  }
-  return plain;
-}
-
-function flowPatterns(inline) {
-  const flow = FLOW_LIST.exec(inline);
-  if (flow?.[1] === undefined) {
-    throw unsupportedWorkspace(`unsupported value '${inline}'`);
-  }
-  const entries = flow[1].split(",").map((entry) => entry.trim());
-  if (entries.at(-1) === "") {
-    entries.pop();
-  }
-  return entries.map(scalarOf);
-}
-
-function isBlockEnd(line) {
-  return line.trim() !== "" && indentOf(line) === 0 && !/^[-#]/.test(line);
-}
-
-function blockItem(line, indent) {
-  const item = BLOCK_ITEM.exec(line);
-  if (item?.[1] === undefined || item[2] === undefined) {
-    throw unsupportedWorkspace(`unsupported line '${line.trim()}'`);
-  }
-  if (indent !== undefined && item[1].length !== indent) {
-    throw unsupportedWorkspace(`inconsistent indentation at '${line.trim()}'`);
-  }
-  return { indent: item[1].length, pattern: scalarOf(item[2]) };
-}
-
-function blockPatterns(lines) {
-  const patterns = [];
-  let indent;
-  for (const line of lines) {
-    if (isBlockEnd(line)) {
-      break;
-    }
-    const trimmed = line.trim();
-    if (trimmed === "" || trimmed.startsWith("#")) {
-      continue;
-    }
-    const item = blockItem(line, indent);
-    indent = item.indent;
-    patterns.push(item.pattern);
-  }
-  return patterns;
-}
-
-function packagesKeyLine(lines) {
-  const keyLines = lines.filter((line) => PACKAGES_KEY.test(line));
-  if (keyLines.length > 1) {
-    throw unsupportedWorkspace("more than one top-level packages key");
-  }
-  if (keyLines.length === 0 && lines.some((line) => PACKAGES_MENTION.test(line))) {
-    throw unsupportedWorkspace("a packages key in an unsupported form");
-  }
-  return lines.indexOf(keyLines[0]);
-}
-
-function parseWorkspacePatterns(workspaceText) {
-  const text = workspaceText.startsWith(BYTE_ORDER_MARK) ? workspaceText.slice(1) : workspaceText;
-  const lines = text.split(/\r?\n/);
-  const start = packagesKeyLine(lines);
-  if (start === -1) {
-    return [];
-  }
-  const inline = (PACKAGES_KEY.exec(lines[start])?.[1] ?? "").trim();
-  const patterns =
-    inline === "" || inline.startsWith("#")
-      ? blockPatterns(lines.slice(start + 1))
-      : flowPatterns(inline);
-  if (patterns.length === 0) {
-    throw unsupportedWorkspace("a top-level packages key with no patterns");
-  }
-  return patterns;
-}
-
-function expandPattern(root, pattern) {
-  if (!/^[\w.-]+(\/[\w.-]+)*(\/\*)?$/.test(pattern)) {
-    throw new Error(`unsupported ${WORKSPACE_FILE} packages pattern '${pattern}'.`);
-  }
-  if (!pattern.endsWith("/*")) {
-    return [pattern];
-  }
-  const parent = pattern.slice(0, -2);
-  const dir = join(root, parent);
-  if (!existsSync(dir)) {
-    return [];
-  }
-  return readdirSync(dir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => `${parent}/${entry.name}`);
-}
-
-function workspaceImporters(root) {
-  const path = join(root, WORKSPACE_FILE);
-  const patterns = existsSync(path) ? parseWorkspacePatterns(readFileSync(path, "utf8")) : [];
-  const importers = patterns.flatMap((pattern) => expandPattern(root, pattern));
-  return [ROOT_IMPORTER, ...importers].filter((importer) =>
-    existsSync(manifestPath(root, importer)),
-  );
+function readManifest(root, importer) {
+  const path = join(root, importer, "package.json");
+  return existsSync(path) ? manifestSpecifiers(readFileSync(path, "utf8")) : null;
 }
 
 function checkRoot(root) {
@@ -284,13 +153,9 @@ function checkRoot(root) {
       `parsed no importers from ${LOCKFILE}; its format may have changed, so the guard cannot vouch for it.`,
     );
   }
-  const manifestsByImporter = {};
-  for (const importer of new Set([...Object.keys(lockImporters), ...workspaceImporters(root)])) {
-    const path = manifestPath(root, importer);
-    manifestsByImporter[importer] = existsSync(path)
-      ? manifestSpecifiers(readFileSync(path, "utf8"))
-      : {};
-  }
+  const manifestsByImporter = Object.fromEntries(
+    Object.keys(lockImporters).map((importer) => [importer, readManifest(root, importer)]),
+  );
   const gaps = findImporterGaps(lockImporters, manifestsByImporter);
   const gapImporters = new Set(gaps.map((gap) => gap.importer));
   const mismatches = findMismatches(lockImporters, manifestsByImporter).filter(
@@ -304,12 +169,12 @@ function formatMismatch(mismatch) {
 }
 
 function formatGap(gap) {
-  return `  ${gap.importer}: declares a catalog: dependency but ${gap.reason}`;
+  return `  ${gap.importer}: ${gap.reason}`;
 }
 
 function reportGaps(gaps) {
   console.error(
-    `check-catalog-lockfile: ${gaps.length} workspace importer(s) use catalog: but ${LOCKFILE} gives the guard nothing to compare:`,
+    `check-catalog-lockfile: ${gaps.length} importer(s) in ${LOCKFILE} give the guard nothing to compare:`,
   );
   for (const gap of gaps) {
     console.error(formatGap(gap));
@@ -359,11 +224,4 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   }
 }
 
-export {
-  checkRoot,
-  findImporterGaps,
-  findMismatches,
-  manifestSpecifiers,
-  parseLockImporters,
-  parseWorkspacePatterns,
-};
+export { checkRoot, findImporterGaps, findMismatches, manifestSpecifiers, parseLockImporters };

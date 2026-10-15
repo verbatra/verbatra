@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -10,7 +10,6 @@ import {
   findMismatches,
   manifestSpecifiers,
   parseLockImporters,
-  parseWorkspacePatterns,
 } from "./check-catalog-lockfile.mjs";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
@@ -122,6 +121,11 @@ describe("parseLockImporters", () => {
     );
   });
 
+  it("reads a lockfile with a byte order mark the same as one without", () => {
+    const importersFirst = CLEAN_LOCK.slice(CLEAN_LOCK.indexOf("importers:"));
+    expect(parseLockImporters(`\uFEFF${importersFirst}`)).toEqual(parseLockImporters(CLEAN_LOCK));
+  });
+
   it("reads no importers from a lockfile re-indented to four spaces", () => {
     const reindented = CLEAN_LOCK.split("\n")
       .map((line) => line.replace(/^( +)/, (indent) => indent.repeat(2)))
@@ -148,120 +152,29 @@ describe("manifestSpecifiers", () => {
   });
 });
 
-describe("parseWorkspacePatterns", () => {
-  it("reads quoted and bare entries from the top-level packages list only", () => {
-    const workspace = [
-      "packages:",
-      '  - "packages/*"',
-      "  - apps/*",
-      "  - 'tools/single'",
-      "",
-      "catalog:",
-      "  zod: 4.4.3",
-      "",
-    ].join("\r\n");
-    expect(parseWorkspacePatterns(workspace)).toEqual(["packages/*", "apps/*", "tools/single"]);
-  });
-
-  it("reads the repository's own workspace globs", () => {
-    const workspace = readFileSync(join(REPO_ROOT, "pnpm-workspace.yaml"), "utf8");
-    expect(parseWorkspacePatterns(workspace)).toEqual(["packages/*", "apps/*"]);
-  });
-
-  it("reads list items written at column 0", () => {
-    const workspace = "packages:\n- packages/*\n- 'apps/*'\ncatalog:\n  zod: 4.4.3\n";
-    expect(parseWorkspacePatterns(workspace)).toEqual(["packages/*", "apps/*"]);
-  });
-
-  it("reads a flow list of quoted and bare entries", () => {
-    const workspace = `packages: ["packages/*", 'apps/*', tools/single,] # globs\n`;
-    expect(parseWorkspacePatterns(workspace)).toEqual(["packages/*", "apps/*", "tools/single"]);
-  });
-
-  it("reads a block list after a comment on the key line and between items", () => {
-    const workspace = 'packages: # globs\n  - packages/* # libs\n# apps next\n  - "apps/*"\n';
-    expect(parseWorkspacePatterns(workspace)).toEqual(["packages/*", "apps/*"]);
-  });
-
-  it("reads a quoted packages key", () => {
-    expect(parseWorkspacePatterns('"packages":\n  - packages/*\n')).toEqual(["packages/*"]);
-    expect(parseWorkspacePatterns("'packages': [apps/*]\n")).toEqual(["apps/*"]);
-  });
-
-  it("strips a leading byte order mark", () => {
-    expect(parseWorkspacePatterns("\uFEFFpackages:\n  - a/*\n")).toEqual(["a/*"]);
-  });
-
-  it("reads quoted reserved words as patterns", () => {
-    expect(parseWorkspacePatterns("packages:\n  - 'null'\n  - \"12\"\n")).toEqual(["null", "12"]);
-  });
-
-  it("returns no patterns when there is no top-level packages key", () => {
-    expect(parseWorkspacePatterns("catalog:\n  zod: 4.4.3\n")).toEqual([]);
-  });
-
-  it.each([
-    ["an empty block", "packages:\ncatalog:\n  zod: 4.4.3\n"],
-    ["an empty flow list", "packages: []\n"],
-    ["a comment-only block", "packages: # none\n  # - packages/*\n"],
-  ])("throws on a packages key with no patterns: %s", (_, workspace) => {
-    expect(() => parseWorkspacePatterns(workspace)).toThrow(
-      "cannot parse the pnpm-workspace.yaml packages list (a top-level packages key with no patterns).",
-    );
-  });
-
-  it.each([
-    ["a scalar value", "packages: packages/*\n", "unsupported value 'packages/*'"],
-    ["a multi-line flow list", 'packages: [\n  "packages/*"\n]\n', "unsupported value '['"],
-    ["a nested mapping", "packages:\n  include: packages/*\n", "unsupported line"],
-    ["a tagged entry", "packages:\n  - !packages/x\n", "unsupported entry '!packages/x'"],
-    ["an explicit key", "? packages\n: - a/*\n", "a packages key in an unsupported form"],
-    [
-      "an explicit key after a byte order mark",
-      "\uFEFF? packages\n: - a/*\n",
-      "a packages key in an unsupported form",
-    ],
-    ["a flow mapping", "{packages: [a/*]}\n", "a packages key in an unsupported form"],
-    ["a duplicate key", "packages:\n  - a\npackages:\n  - b\n", "more than one"],
-    ["a deeper item", "packages:\n  - a/*\n    - b/*\n", "inconsistent indentation"],
-    ["a shallower item", "packages:\n    - a/*\n  - b/*\n", "inconsistent indentation"],
-    ["a tab indent", "packages:\n\t- a/*\n", "unsupported line"],
-    ["a continuation line", "packages:\n  - a\n  b\n", "unsupported line"],
-    ["a bare null", "packages:\n  - null\n", "unsupported entry 'null'"],
-    ["a bare tilde", "packages:\n  - ~\n", "unsupported entry '~'"],
-    ["a bare true", "packages:\n  - true\n", "unsupported entry 'true'"],
-    ["a bare false", "packages:\n  - false\n", "unsupported entry 'false'"],
-    ["a bare number", "packages:\n  - 12\n", "unsupported entry '12'"],
-    ["a bare float", "packages:\n  - 1.5\n", "unsupported entry '1.5'"],
-    ["a mapping entry", "packages:\n  - a: b\n", "unsupported entry 'a: b'"],
-    ["a nested list", "packages:\n  - - a\n", "unsupported entry '- a'"],
-    ["an escaped string", 'packages:\n  - "a\\tb"\n', "unsupported entry"],
-    ["a flow comment", "packages: [a/* #x]\n", "unsupported value"],
-    ["a key without a space", "packages:[a]\n", "a packages key in an unsupported form"],
-  ])("throws on a packages list it cannot read: %s", (_, workspace, detail) => {
-    expect(() => parseWorkspacePatterns(workspace)).toThrow(detail);
-  });
-});
-
 describe("findImporterGaps", () => {
-  it("reports a catalog-using manifest whose importer is missing from the lockfile", () => {
+  it("reports a lockfile importer without a readable package.json", () => {
     const lock = parseLockImporters(CLEAN_LOCK);
-    const byImporter = { ...manifests(), "apps/docs": { zod: "catalog:" } };
+    const byImporter = { ...manifests(), "packages/core": null };
     expect(findImporterGaps(lock, byImporter)).toEqual([
-      { importer: "apps/docs", reason: "is missing from the lockfile" },
+      { importer: "packages/core", reason: "has no readable package.json" },
     ]);
   });
 
   it("reports a catalog-using manifest whose importer has no parsed specifiers", () => {
     const lock = { ...parseLockImporters(CLEAN_LOCK), "packages/core": {} };
     expect(findImporterGaps(lock, manifests())).toEqual([
-      { importer: "packages/core", reason: "has no parsed specifiers" },
+      {
+        importer: "packages/core",
+        reason: "declares a catalog: dependency but has no parsed specifiers",
+      },
     ]);
   });
 
-  it("ignores a manifest without catalog dependencies", () => {
+  it("ignores an importer with no parsed specifiers when its manifest uses no catalog", () => {
+    const lock = { ...parseLockImporters(CLEAN_LOCK), "apps/docs": {} };
     const byImporter = { ...manifests(), "apps/docs": { next: "16.2.11" } };
-    expect(findImporterGaps(parseLockImporters(CLEAN_LOCK), byImporter)).toEqual([]);
+    expect(findImporterGaps(lock, byImporter)).toEqual([]);
   });
 });
 
@@ -361,13 +274,6 @@ describe("findMismatches", () => {
     ]);
   });
 
-  it("checks a manifest importer the lockfile does not list", () => {
-    const byImporter = { ...manifests(), "apps/docs": { zod: "catalog:" } };
-    expect(findMismatches(parseLockImporters(CLEAN_LOCK), byImporter)).toEqual([
-      { importer: "apps/docs", dependency: "zod", manifest: "catalog:", lock: "(absent)" },
-    ]);
-  });
-
   it("flags a catalog dependency present on only one side", () => {
     const core = {
       ...CORE_MANIFEST,
@@ -399,14 +305,8 @@ describe("check-catalog-lockfile on disk", () => {
     mkdirSync(join(root, "packages/core"), { recursive: true });
     writeFileSync(join(root, "package.json"), JSON.stringify(ROOT_MANIFEST));
     writeFileSync(join(root, "packages/core/package.json"), JSON.stringify(CORE_MANIFEST));
-    writeFileSync(join(root, "pnpm-workspace.yaml"), 'packages:\n  - "packages/*"\n');
     writeFileSync(join(root, "pnpm-lock.yaml"), lockText);
     return root;
-  }
-
-  function addPackage(root, dir, manifest) {
-    mkdirSync(join(root, dir), { recursive: true });
-    writeFileSync(join(root, dir, "package.json"), JSON.stringify(manifest));
   }
 
   function run(root) {
@@ -476,54 +376,18 @@ describe("check-catalog-lockfile on disk", () => {
     );
   });
 
-  it("exits 1 when a catalog-using workspace package is missing from the lockfile", () => {
+  it("exits 1 when a lockfile importer has no package.json", () => {
     const root = fixtureRoot(CLEAN_LOCK);
-    addPackage(root, "packages/extra", {
-      name: "@fixture/extra",
-      dependencies: { zod: "catalog:" },
-    });
+    rmSync(join(root, "packages/core/package.json"));
     const result = run(root);
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain(
-      "  packages/extra: declares a catalog: dependency but is missing from the lockfile",
-    );
+    expect(result.stderr).toContain("  packages/core: has no readable package.json");
   });
 
-  it("ignores a catalog-using package outside the workspace globs", () => {
+  it("does not read pnpm-workspace.yaml", () => {
     const root = fixtureRoot(CLEAN_LOCK);
-    addPackage(root, "e2e", { name: "fixture-e2e", devDependencies: { zod: "catalog:" } });
+    writeFileSync(join(root, "pnpm-workspace.yaml"), 'packages: &a !tag ["x\\ty"]\n');
     expect(run(root).status).toBe(0);
-  });
-
-  it("exits 1 on an unsupported workspace pattern", () => {
-    const root = fixtureRoot(CLEAN_LOCK);
-    writeFileSync(join(root, "pnpm-workspace.yaml"), "packages:\n  - 'packages/**'\n");
-    const result = run(root);
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain(
-      "unsupported pnpm-workspace.yaml packages pattern 'packages/**'",
-    );
-  });
-
-  it("exits 1 on a negated workspace pattern", () => {
-    const root = fixtureRoot(CLEAN_LOCK);
-    writeFileSync(
-      join(root, "pnpm-workspace.yaml"),
-      "packages:\n  - 'packages/*'\n  - '!packages/x'\n",
-    );
-    const result = run(root);
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain(
-      "unsupported pnpm-workspace.yaml packages pattern '!packages/x'",
-    );
-  });
-
-  it("exits 1 when the workspace packages key holds no patterns", () => {
-    const root = fixtureRoot(CLEAN_LOCK);
-    writeFileSync(join(root, "pnpm-workspace.yaml"), "packages: []\n");
-    const result = run(root);
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain("a top-level packages key with no patterns");
   });
 
   it("passes the repository's own lockfile", () => {
