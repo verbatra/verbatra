@@ -83,26 +83,42 @@ describe("guardProviderCall: classification by status code", () => {
     const call = () => Promise.reject(new StatusError(400));
     await expect(guardProviderCall(call)).rejects.toMatchObject({
       code: "PROVIDER_ERROR",
-      message: "The translation provider request failed with HTTP 400.",
+      message: "The translation provider request failed (HTTP 400).",
     });
   });
 
-  it("adds the endpoint remedy for a 400 when a base URL is configured", async () => {
+  it("adds the rejected-request remedy for a 400 from a Chat Completions endpoint", async () => {
     const call = () => Promise.reject(new StatusError(400));
     await expect(
-      guardProviderCall(call, undefined, { endpointHost: "opencode.ai" }),
+      guardProviderCall(call, undefined, {
+        endpointHost: "gateway.example.test",
+        remedies: "chat-completions",
+      }),
     ).rejects.toMatchObject({
       code: "PROVIDER_ERROR",
-      message: `The translation provider request to opencode.ai failed with HTTP 400. ${REJECTED_REQUEST_REMEDY}`,
+      message: `The translation provider request to gateway.example.test failed (HTTP 400). ${REJECTED_REQUEST_REMEDY}`,
     });
   });
 
-  it("adds the base URL remedy for a 404 when a base URL is configured", async () => {
+  it("adds the base URL remedy for a 404 from a Chat Completions endpoint", async () => {
     const call = () => Promise.reject(new StatusError(404));
     await expect(
-      guardProviderCall(call, undefined, { endpointHost: "localhost:1234" }),
+      guardProviderCall(call, undefined, {
+        endpointHost: "localhost:1234",
+        remedies: "chat-completions",
+      }),
     ).rejects.toMatchObject({
-      message: `The translation provider request to localhost:1234 failed with HTTP 404. ${BASE_URL_REMEDY}`,
+      message: `The translation provider request to localhost:1234 failed (HTTP 404). ${BASE_URL_REMEDY}`,
+    });
+  });
+
+  it("adds no Chat Completions remedy when only the endpoint host is known", async () => {
+    const call = () => Promise.reject(new StatusError(404));
+    await expect(
+      guardProviderCall(call, undefined, { endpointHost: "translation.googleapis.com" }),
+    ).rejects.toMatchObject({
+      code: "PROVIDER_ERROR",
+      message: "The translation provider request to translation.googleapis.com failed (HTTP 404).",
     });
   });
 

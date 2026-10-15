@@ -1,7 +1,9 @@
 import type { ClassifiedProviderErrorCode } from "./error-classification.js";
 
-const SAFE_VENDOR_ERROR_TYPE = /^[A-Za-z][A-Za-z0-9_.-]{0,63}$/;
+const SAFE_VENDOR_ERROR_TYPE = /^[A-Za-z][A-Za-z0-9_]{0,39}$/;
 const GENERIC_VENDOR_ERROR_TYPE = "error";
+
+export type EndpointRemedies = "chat-completions";
 
 export const BASE_URL_REMEDY =
   "Check that provider.options.baseUrl points at the API root, usually ending in /v1, not at " +
@@ -12,7 +14,17 @@ export const REJECTED_REQUEST_REMEDY =
 export const REFUSED_REQUEST_REMEDY =
   "The server refused the request under its policy or the key's permissions.";
 
-const ENDPOINT_REMEDY_BY_STATUS: Readonly<Record<number, string>> = {
+export const LEAD_BY_CODE: Readonly<Record<ClassifiedProviderErrorCode, string>> = {
+  RATE_LIMITED: "The translation provider rate-limited this request",
+  TIMEOUT: "The translation provider request timed out",
+  AUTH_FAILED: "The translation provider rejected the request credentials",
+  PROVIDER_UNAVAILABLE: "The translation provider is currently unavailable",
+  PROVIDER_ERROR: "The translation provider request failed",
+};
+
+const REFUSED_LEAD = "The translation provider refused the request";
+
+const CHAT_COMPLETIONS_REMEDY_BY_STATUS: Readonly<Record<number, string>> = {
   400: REJECTED_REQUEST_REMEDY,
   404: BASE_URL_REMEDY,
   405: BASE_URL_REMEDY,
@@ -24,6 +36,11 @@ const FORBIDDEN_STATUS = 403;
 export interface HttpFailure {
   readonly status: number;
   readonly vendorType: string | undefined;
+}
+
+export interface FailureEndpoint {
+  readonly host: string | undefined;
+  readonly remedies: EndpointRemedies | undefined;
 }
 
 function fieldOf(value: unknown, field: string): unknown {
@@ -50,42 +67,40 @@ export function vendorErrorTypeOf(error: unknown): string | undefined {
   return candidates.find(isSafeVendorType);
 }
 
+export function requestFailedLead(endpointHost: string | undefined): string {
+  return endpointHost === undefined
+    ? LEAD_BY_CODE.PROVIDER_ERROR
+    : `The translation provider request to ${endpointHost} failed`;
+}
+
 function statusLabel({ status, vendorType }: HttpFailure): string {
   return vendorType === undefined ? `HTTP ${status}` : `HTTP ${status}, ${vendorType}`;
 }
 
-function remedyFor(status: number, endpointConfigured: boolean): string | undefined {
+function leadFor(
+  code: ClassifiedProviderErrorCode,
+  status: number,
+  endpointHost: string | undefined,
+): string {
+  if (status === FORBIDDEN_STATUS) {
+    return REFUSED_LEAD;
+  }
+  return code === "PROVIDER_ERROR" ? requestFailedLead(endpointHost) : LEAD_BY_CODE[code];
+}
+
+function remedyFor(status: number, remedies: EndpointRemedies | undefined): string | undefined {
   if (status === FORBIDDEN_STATUS) {
     return REFUSED_REQUEST_REMEDY;
   }
-  return endpointConfigured ? ENDPOINT_REMEDY_BY_STATUS[status] : undefined;
-}
-
-function headlineFor(
-  code: ClassifiedProviderErrorCode,
-  failure: HttpFailure,
-  endpointHost: string | undefined,
-  fallback: string,
-): string {
-  if (code === "PROVIDER_ERROR") {
-    const where = endpointHost === undefined ? "" : ` to ${endpointHost}`;
-    const type = failure.vendorType === undefined ? "" : ` (${failure.vendorType})`;
-    return `The translation provider request${where} failed with HTTP ${failure.status}${type}.`;
-  }
-  const lead =
-    failure.status === FORBIDDEN_STATUS
-      ? "The translation provider refused the request"
-      : fallback.replace(/\.$/, "");
-  return `${lead} (${statusLabel(failure)}).`;
+  return remedies === "chat-completions" ? CHAT_COMPLETIONS_REMEDY_BY_STATUS[status] : undefined;
 }
 
 export function httpFailureMessage(
   code: ClassifiedProviderErrorCode,
   failure: HttpFailure,
-  endpointHost: string | undefined,
-  fallback: string,
+  endpoint: FailureEndpoint,
 ): string {
-  const headline = headlineFor(code, failure, endpointHost, fallback);
-  const remedy = remedyFor(failure.status, endpointHost !== undefined);
+  const headline = `${leadFor(code, failure.status, endpoint.host)} (${statusLabel(failure)}).`;
+  const remedy = remedyFor(failure.status, endpoint.remedies);
   return remedy === undefined ? headline : `${headline} ${remedy}`;
 }
