@@ -1,4 +1,4 @@
-import type { ProviderNotice, ReviewReasonCode } from "@verbatra/ai-providers";
+import type { ProviderErrorCode, ProviderNotice, ReviewReasonCode } from "@verbatra/ai-providers";
 import type { ProviderId } from "../config/provider-config.js";
 import type { IntegrityGateReason } from "./integrity-gate.js";
 
@@ -416,7 +416,7 @@ export interface SdkNotice {
    * {@link errorHint} can name the next step for it. Absent on every other notice, and when the
    * failure was not a structured provider error.
    */
-  readonly causeCode?: string;
+  readonly causeCode?: ProviderErrorCode;
 }
 
 /**
