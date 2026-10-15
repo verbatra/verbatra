@@ -121,7 +121,8 @@ const PROVIDER_ERROR_HINTS = {
     "Check that the provider's API key is valid and allowed to use the configured model.",
   PROVIDER_UNAVAILABLE: "Try again later, or check the configured endpoint.",
   NETWORK_POLICY_VIOLATION: SDK_ERROR_HINTS.NETWORK_POLICY_VIOLATION,
-  PROVIDER_ERROR: "Try again; if it keeps failing, check the provider configuration.",
+  PROVIDER_ERROR:
+    "Act on the cause or HTTP status the message names, then check the provider's `baseUrl` (if it takes one), `model` and the rest of the `provider` block in the config.",
 } as const satisfies Record<ProviderErrorCode, string>;
 
 const MODULE_RESOLUTION_CODES: ReadonlySet<string> = new Set([

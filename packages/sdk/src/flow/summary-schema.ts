@@ -174,7 +174,11 @@ export const protectedKeySchema = z.object({
 
 const localeNoticeSchema = z.union([
   z.object({ code: z.enum(PROVIDER_NOTICE_CODES), message: z.string() }),
-  z.object({ code: z.enum(SDK_NOTICE_CODES), message: z.string() }),
+  z.object({
+    code: z.enum(SDK_NOTICE_CODES),
+    message: z.string(),
+    causeCode: z.string().exactOptional(),
+  }),
 ]);
 
 /**
