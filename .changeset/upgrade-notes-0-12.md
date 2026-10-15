@@ -23,6 +23,9 @@ Upgrading from 0.11: rejected config, rewritten files, new exit codes and SDK ty
   are rejected. Move a provider option under `provider.options`, or remove the key.
 - An invalid `VERBATRA_NETWORK_POLICY` or `VERBATRA_NETWORK_ALLOWED_HOSTS` value fails
   `translate`, dry runs and estimates included.
+- An `openai-compatible` `baseUrl` ending in `/chat/completions` or `/completions`, which 0.11
+  accepted and then failed every request against, is rejected. Set `baseUrl` to the API root,
+  such as `https://host/v1`.
 
 **Files that change on the first 0.12 run**
 - A new `verbatra.provenance.json` next to the lock file records who wrote each value. Commit it.

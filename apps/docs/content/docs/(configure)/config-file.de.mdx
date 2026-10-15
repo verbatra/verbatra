@@ -354,7 +354,7 @@ provider:
 
 ### Was das Dokument nicht prüfen kann
 
-Nur das Laden der Konfiguration prüft diese Regeln: die Regeln für `targetLocales` und [Locale-Codes](#locale-codes), die Keys von [`localeMap`](/de/docs/providers#an-den-provider-gesendete-locale-codes) und [`apiKeyEnvVar`](/de/docs/providers#openai-compatible), gültige Adressen und Bereiche in [`network.allowedHosts`](/de/docs/network-policy), `sensitiveData.patterns` innerhalb der [Sicherheitsregeln für Muster](/de/docs/data-handling#schutz-für-sensible-inhalte) und die Begriffsregeln eines Inline-Glossars der [Version 2](#glossar-pro-locale-version-2).
+Nur das Laden der Konfiguration prüft diese Regeln: die Regeln für `targetLocales` und [Locale-Codes](#locale-codes), die Keys von [`localeMap`](/de/docs/providers#an-den-provider-gesendete-locale-codes) und die Regeln für `baseUrl` und [`apiKeyEnvVar`](/de/docs/providers#openai-compatible) von `openai-compatible`, gültige Adressen und Bereiche in [`network.allowedHosts`](/de/docs/network-policy), `sensitiveData.patterns` innerhalb der [Sicherheitsregeln für Muster](/de/docs/data-handling#schutz-für-sensible-inhalte) und die Begriffsregeln eines Inline-Glossars der [Version 2](#glossar-pro-locale-version-2).
 
 ## Das Arbeitsverzeichnis und .env
 

@@ -49,4 +49,6 @@ LibreTranslate, placeholder masking, network policy, sensitive-data guard, `--ma
   provider says the server refused the request under its policy or the key's permissions.
 
 **openai-compatible**
+- A `baseUrl` ending in `/chat/completions` or `/completions` fails with `CONFIG_INVALID`, in
+  `init` too: give the API root, usually ending in `/v1`.
 - Requests identify themselves with `User-Agent: verbatra` instead of the OpenAI SDK's default.
