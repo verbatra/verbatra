@@ -41,9 +41,9 @@ commit message for commitlint.
   `pnpm-workspace.yaml` changed; `catalog-lockfile` runs `pnpm check:catalog-lockfile`
   (`scripts/check-catalog-lockfile.mjs`) on the same files, failing when a `catalog:` specifier in
   `pnpm-lock.yaml` disagrees with its `package.json` (the same check runs in
-  `.github/actions/setup-workspace` before every CI install); `no-em-dash` runs `pnpm check:no-em-dash` (defined in the root
-  `package.json`), which fails the commit if a U+2014 em dash was staged anywhere except
-  `pnpm-lock.yaml`.
+  `.github/actions/setup-workspace` before every CI install); `no-em-dash` runs
+  `pnpm check:no-em-dash` (defined in the root `package.json`), which fails the commit if a U+2014
+  em dash was staged anywhere except `pnpm-lock.yaml`.
 - `commit-msg`: `lint` runs `pnpm commitlint --edit {1}`.
 
 ## Commit hygiene

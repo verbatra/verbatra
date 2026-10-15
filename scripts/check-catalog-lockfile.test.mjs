@@ -1,14 +1,16 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, describe, expect, it } from "vitest";
 import {
   checkRoot,
+  findImporterGaps,
   findMismatches,
   manifestSpecifiers,
   parseLockImporters,
+  parseWorkspacePatterns,
 } from "./check-catalog-lockfile.mjs";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
@@ -113,6 +115,80 @@ describe("parseLockImporters", () => {
   it("returns nothing for a lockfile without importers", () => {
     expect(parseLockImporters("lockfileVersion: '9.0'\n")).toEqual({});
   });
+
+  it("reads a CRLF lockfile the same as an LF one", () => {
+    expect(parseLockImporters(CLEAN_LOCK.replaceAll("\n", "\r\n"))).toEqual(
+      parseLockImporters(CLEAN_LOCK),
+    );
+  });
+
+  it("reads no importers from a lockfile re-indented to four spaces", () => {
+    const reindented = CLEAN_LOCK.split("\n")
+      .map((line) => line.replace(/^( +)/, (indent) => indent.repeat(2)))
+      .join("\n");
+    expect(parseLockImporters(reindented)).toEqual({});
+  });
+});
+
+describe("manifestSpecifiers", () => {
+  it("lets dependencies win over devDependencies, as pnpm's lockfile does", () => {
+    const manifest = {
+      dependencies: { "is-number": "7.0.0" },
+      devDependencies: { "is-number": "catalog:" },
+    };
+    expect(manifestSpecifiers(JSON.stringify(manifest))).toEqual({ "is-number": "7.0.0" });
+  });
+
+  it("lets optionalDependencies win over dependencies, as pnpm's lockfile does", () => {
+    const manifest = {
+      dependencies: { "is-number": "7.0.0" },
+      optionalDependencies: { "is-number": "catalog:" },
+    };
+    expect(manifestSpecifiers(JSON.stringify(manifest))).toEqual({ "is-number": "catalog:" });
+  });
+});
+
+describe("parseWorkspacePatterns", () => {
+  it("reads quoted and bare entries from the top-level packages list only", () => {
+    const workspace = [
+      "packages:",
+      '  - "packages/*"',
+      "  - apps/*",
+      "  - 'tools/single'",
+      "",
+      "catalog:",
+      "  zod: 4.4.3",
+      "",
+    ].join("\r\n");
+    expect(parseWorkspacePatterns(workspace)).toEqual(["packages/*", "apps/*", "tools/single"]);
+  });
+
+  it("reads the repository's own workspace globs", () => {
+    const workspace = readFileSync(join(REPO_ROOT, "pnpm-workspace.yaml"), "utf8");
+    expect(parseWorkspacePatterns(workspace)).toEqual(["packages/*", "apps/*"]);
+  });
+});
+
+describe("findImporterGaps", () => {
+  it("reports a catalog-using manifest whose importer is missing from the lockfile", () => {
+    const lock = parseLockImporters(CLEAN_LOCK);
+    const byImporter = { ...manifests(), "apps/docs": { zod: "catalog:" } };
+    expect(findImporterGaps(lock, byImporter)).toEqual([
+      { importer: "apps/docs", reason: "is missing from the lockfile" },
+    ]);
+  });
+
+  it("reports a catalog-using manifest whose importer has no parsed specifiers", () => {
+    const lock = { ...parseLockImporters(CLEAN_LOCK), "packages/core": {} };
+    expect(findImporterGaps(lock, manifests())).toEqual([
+      { importer: "packages/core", reason: "has no parsed specifiers" },
+    ]);
+  });
+
+  it("ignores a manifest without catalog dependencies", () => {
+    const byImporter = { ...manifests(), "apps/docs": { next: "16.2.11" } };
+    expect(findImporterGaps(parseLockImporters(CLEAN_LOCK), byImporter)).toEqual([]);
+  });
 });
 
 describe("findMismatches", () => {
@@ -211,6 +287,13 @@ describe("findMismatches", () => {
     ]);
   });
 
+  it("checks a manifest importer the lockfile does not list", () => {
+    const byImporter = { ...manifests(), "apps/docs": { zod: "catalog:" } };
+    expect(findMismatches(parseLockImporters(CLEAN_LOCK), byImporter)).toEqual([
+      { importer: "apps/docs", dependency: "zod", manifest: "catalog:", lock: "(absent)" },
+    ]);
+  });
+
   it("flags a catalog dependency present on only one side", () => {
     const core = {
       ...CORE_MANIFEST,
@@ -242,8 +325,14 @@ describe("check-catalog-lockfile on disk", () => {
     mkdirSync(join(root, "packages/core"), { recursive: true });
     writeFileSync(join(root, "package.json"), JSON.stringify(ROOT_MANIFEST));
     writeFileSync(join(root, "packages/core/package.json"), JSON.stringify(CORE_MANIFEST));
+    writeFileSync(join(root, "pnpm-workspace.yaml"), 'packages:\n  - "packages/*"\n');
     writeFileSync(join(root, "pnpm-lock.yaml"), lockText);
     return root;
+  }
+
+  function addPackage(root, dir, manifest) {
+    mkdirSync(join(root, dir), { recursive: true });
+    writeFileSync(join(root, dir, "package.json"), JSON.stringify(manifest));
   }
 
   function run(root) {
@@ -284,9 +373,68 @@ describe("check-catalog-lockfile on disk", () => {
     expect(result.stderr).toContain("no pnpm-lock.yaml");
   });
 
+  it("exits 1 when the lockfile has no importers section", () => {
+    const lock = CLEAN_LOCK.slice(0, CLEAN_LOCK.indexOf("importers:"));
+    const result = run(fixtureRoot(lock));
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("parsed no importers from pnpm-lock.yaml");
+  });
+
+  it("exits 1 when the lockfile is re-indented to four spaces", () => {
+    const lock = CLEAN_LOCK.split("\n")
+      .map((line) => line.replace(/^( +)/, (indent) => indent.repeat(2)))
+      .join("\n");
+    const result = run(fixtureRoot(lock));
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("parsed no importers from pnpm-lock.yaml");
+  });
+
+  it("exits 1 when a catalog-using importer's specifiers do not parse", () => {
+    const reindented = CLEAN_LOCK.replace(
+      /( {2}packages\/core:\n)([\s\S]*?)(\n\npackages:)/,
+      (_, head, body, tail) => head + body.replace(/^ {4}/gm, "     ") + tail,
+    );
+    expect(reindented).not.toEqual(CLEAN_LOCK);
+    const result = run(fixtureRoot(reindented));
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      "  packages/core: declares a catalog: dependency but has no parsed specifiers",
+    );
+  });
+
+  it("exits 1 when a catalog-using workspace package is missing from the lockfile", () => {
+    const root = fixtureRoot(CLEAN_LOCK);
+    addPackage(root, "packages/extra", {
+      name: "@fixture/extra",
+      dependencies: { zod: "catalog:" },
+    });
+    const result = run(root);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      "  packages/extra: declares a catalog: dependency but is missing from the lockfile",
+    );
+  });
+
+  it("ignores a catalog-using package outside the workspace globs", () => {
+    const root = fixtureRoot(CLEAN_LOCK);
+    addPackage(root, "e2e", { name: "fixture-e2e", devDependencies: { zod: "catalog:" } });
+    expect(run(root).status).toBe(0);
+  });
+
+  it("exits 1 on an unsupported workspace pattern", () => {
+    const root = fixtureRoot(CLEAN_LOCK);
+    writeFileSync(join(root, "pnpm-workspace.yaml"), "packages:\n  - 'packages/**'\n");
+    const result = run(root);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      "unsupported pnpm-workspace.yaml packages pattern 'packages/**'",
+    );
+  });
+
   it("passes the repository's own lockfile", () => {
-    const { importers, mismatches } = checkRoot(REPO_ROOT);
+    const { importers, gaps, mismatches } = checkRoot(REPO_ROOT);
     expect(importers).toBeGreaterThan(1);
+    expect(gaps).toEqual([]);
     expect(mismatches).toEqual([]);
   });
 });
