@@ -48,7 +48,7 @@ LibreTranslate, placeholder masking, network policy, sensitive-data guard, `--ma
 - A failed `openai-compatible` request adds a next step: check that `baseUrl` is the API root on a
   404 or 405, check the model and Chat Completions support on a 400 or 422. A 403 from one of
   these four providers says the server refused the request under its policy or the key's
-  permissions.
+  permissions. (#281, thanks @MessiasLima)
 
 **openai-compatible**
 - A `baseUrl` ending in `/chat/completions` or `/completions` fails with `CONFIG_INVALID`, in
