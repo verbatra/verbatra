@@ -10,7 +10,7 @@ import {
   type Generator,
   type RemarkAutoTypeTableOptions,
 } from "fumadocs-typescript";
-import { replaceMarkdown } from "./llm-markdown";
+import { type MarkdownFile, replaceMarkdown } from "./llm-markdown";
 
 const SDK_TYPE_TABLE = "SdkTypeTable";
 export const SDK_DECLARATIONS = "packages/sdk/dist/index.d.ts";
@@ -180,7 +180,7 @@ function collectTypeTables(node: MdxNode, host: MdxNode | undefined, hosts: Tabl
 }
 
 export function remarkTypeTableMarkdown() {
-  return (root: MdxNode, file: { data: object }) => {
+  return (root: MdxNode, file: MarkdownFile) => {
     const hosts: TableHosts = new Map();
     collectTypeTables(root, undefined, hosts);
     for (const [host, tables] of hosts) replaceMarkdown(file, host, tables.join("\n\n"));

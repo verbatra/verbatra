@@ -4,7 +4,7 @@ import en from "../messages/en.json";
 import es from "../messages/es.json";
 import fr from "../messages/fr.json";
 import { AGENT_INIT_COMMAND } from "./install-commands";
-import { replaceMarkdown } from "./llm-markdown";
+import { type MarkdownFile, replaceMarkdown } from "./llm-markdown";
 import {
   isMcpInstallClient,
   isMcpInstallConfigs,
@@ -54,7 +54,7 @@ type MdxNode = {
   children?: MdxNode[];
 };
 
-type MdxFile = { path?: string; data: object };
+type MdxFile = MarkdownFile & { path?: string };
 
 export const CLI_MODULE = "@verbatra/cli";
 

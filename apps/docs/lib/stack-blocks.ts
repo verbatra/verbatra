@@ -4,6 +4,7 @@ import {
   fencedMarkdown,
   inlineCodeMarkdown,
   keepInnerMarkdown,
+  type MarkdownFile,
   replaceMarkdown,
 } from "./llm-markdown";
 import { packageManagerFenceMarkdown } from "./package-manager-tabs";
@@ -52,8 +53,6 @@ export type StackMdxNode = {
   lang?: string | null;
   meta?: string | null;
 };
-
-type StackFile = { data: object };
 
 function attribute(node: StackMdxNode, name: string): string | undefined {
   const found = node.attributes?.find(
@@ -131,26 +130,26 @@ function nodeMarkdown(node: StackMdxNode): string {
   return node.value ?? "";
 }
 
-function replacedBy(file: StackFile, node: StackMdxNode, nodes: StackMdxNode[]): StackMdxNode[] {
+function replacedBy(file: MarkdownFile, node: StackMdxNode, nodes: StackMdxNode[]): StackMdxNode[] {
   replaceMarkdown(file, node, nodes.map(nodeMarkdown).join("\n\n"));
   return nodes;
 }
 
-function stackOnlyNodes(stack: Stack, node: StackMdxNode, file: StackFile): StackMdxNode[] {
+function stackOnlyNodes(stack: Stack, node: StackMdxNode, file: MarkdownFile): StackMdxNode[] {
   if (!stackOnlyIds(node).includes(stack.id)) return replacedBy(file, node, []);
   expandChildren(stack, node, file);
   keepInnerMarkdown(file, node);
   return node.children ?? [];
 }
 
-function expanded(stack: Stack, node: StackMdxNode, file: StackFile): StackMdxNode[] {
+function expanded(stack: Stack, node: StackMdxNode, file: MarkdownFile): StackMdxNode[] {
   if (isElement(node, STACK_BLOCK_COMPONENT))
     return replacedBy(file, node, blockNodes(stack, node));
   if (isElement(node, STACK_ONLY_COMPONENT)) return stackOnlyNodes(stack, node, file);
   return replacedBy(file, node, [textNode(stack, node)]);
 }
 
-function expandChildren(stack: Stack, node: StackMdxNode, file: StackFile): void {
+function expandChildren(stack: Stack, node: StackMdxNode, file: MarkdownFile): void {
   if (node.children === undefined) return;
   node.children = node.children.flatMap((child) => {
     if (isStackElement(child)) return expanded(stack, child, file);
@@ -168,7 +167,7 @@ function initCommandNode(node: StackMdxNode): StackMdxNode {
   return { type: "code", lang: "bash", meta: null, value: initCommand(format) };
 }
 
-function expandInitCommands(node: StackMdxNode, file: StackFile): void {
+function expandInitCommands(node: StackMdxNode, file: MarkdownFile): void {
   if (node.children === undefined) return;
   node.children = node.children.flatMap((child) => {
     if (isElement(child, INIT_COMMAND_COMPONENT))
@@ -191,7 +190,11 @@ function pageStack(frontmatter: unknown): Stack | undefined {
   return STACKS[id];
 }
 
-export function expandStackBlocks(root: StackMdxNode, frontmatter: unknown, file: StackFile): void {
+export function expandStackBlocks(
+  root: StackMdxNode,
+  frontmatter: unknown,
+  file: MarkdownFile,
+): void {
   expandInitCommands(root, file);
   const stack = pageStack(frontmatter);
   if (stack === undefined) {
@@ -206,6 +209,6 @@ export function expandStackBlocks(root: StackMdxNode, frontmatter: unknown, file
 }
 
 export function remarkStackBlocks() {
-  return (root: StackMdxNode, file: StackFile) =>
+  return (root: StackMdxNode, file: MarkdownFile) =>
     expandStackBlocks(root, "frontmatter" in file.data ? file.data.frontmatter : undefined, file);
 }
