@@ -34,6 +34,7 @@
     "check:schemas": "node scripts/check-build-output.mjs schemas",
     "check:lazy-provider-sdks": "node scripts/check-build-output.mjs lazy-provider-sdks",
     "check:dependency-changeset": "node scripts/check-dependency-changeset.mjs",
+    "check:catalog-lockfile": "node scripts/check-catalog-lockfile.mjs",
     "knip": "knip",
     "test:scripts": "vitest run --dir scripts",
     "typecheck:configs": "tsc -p tsconfig.configs.json",
