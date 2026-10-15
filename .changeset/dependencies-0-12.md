@@ -7,11 +7,12 @@
 Runtime dependency updates that reach consumers of the published packages.
 
 **`@verbatra/sdk`**
-- `@anthropic-ai/sdk` 0.127.0 -> 0.131.0
+- `@anthropic-ai/sdk` 0.127.0 -> 0.133.0
 - `@formatjs/icu-messageformat-parser` 3.5.19 -> 3.5.21
-- `@google/genai` 2.23.0 -> 2.27.0
+- `@google/genai` 2.23.0 -> 2.28.0
 - `cosmiconfig` 9.0.2 -> 10.0.1
-- `openai` 7.19.0 -> 7.28.0
+- `deepl-node` 1.28.0 -> 1.28.1
+- `openai` 7.19.0 -> 7.32.0
 
 **Transitive security fixes in your own lockfile**
 - verbatra's repository pins patched `axios` 1.20.0 (through `deepl-node`) and `brace-expansion`

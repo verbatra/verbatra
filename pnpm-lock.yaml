@@ -7,20 +7,20 @@ settings:
 catalogs:
   bundled:
     '@anthropic-ai/sdk':
-      specifier: 0.131.0
-      version: 0.131.0
+      specifier: 0.133.0
+      version: 0.133.0
     '@formatjs/icu-messageformat-parser':
       specifier: 3.5.21
       version: 3.5.21
     '@google/genai':
-      specifier: 2.27.0
-      version: 2.27.0
+      specifier: 2.28.0
+      version: 2.28.0
     '@xmldom/xmldom':
       specifier: 0.9.12
       version: 0.9.12
     deepl-node:
-      specifier: 1.28.0
-      version: 1.28.0
+      specifier: 1.28.1
+      version: 1.28.1
     exceljs:
       specifier: 4.4.0
       version: 4.4.0
@@ -31,8 +31,8 @@ catalogs:
       specifier: 1.9.2
       version: 1.9.2
     openai:
-      specifier: 7.28.0
-      version: 7.28.0
+      specifier: 7.32.0
+      version: 7.32.0
     yaml:
       specifier: 2.9.1
       version: 2.9.1
@@ -263,22 +263,22 @@ importers:
     dependencies:
       '@anthropic-ai/sdk':
         specifier: catalog:bundled
-        version: 0.131.0(zod@4.6.5)
+        version: 0.133.0(zod@4.6.5)
       '@google/genai':
         specifier: catalog:bundled
-        version: 2.27.0(@modelcontextprotocol/sdk@1.31.0(zod@4.6.5))
+        version: 2.28.0(@modelcontextprotocol/sdk@1.31.0(zod@4.6.5))
       '@verbatra/core':
         specifier: workspace:*
         version: link:../core
       deepl-node:
         specifier: catalog:bundled
-        version: 1.28.0
+        version: 1.28.1
       loglevel:
         specifier: catalog:bundled
         version: 1.9.2
       openai:
         specifier: catalog:bundled
-        version: 7.28.0(undici@8.11.2)(ws@8.21.0)(zod@4.6.5)
+        version: 7.32.0(undici@8.11.2)(ws@8.21.0)(zod@4.6.5)
       zod:
         specifier: 'catalog:'
         version: 4.6.5
@@ -528,13 +528,13 @@ importers:
     dependencies:
       '@anthropic-ai/sdk':
         specifier: catalog:bundled
-        version: 0.131.0(zod@4.6.5)
+        version: 0.133.0(zod@4.6.5)
       '@formatjs/icu-messageformat-parser':
         specifier: catalog:bundled
         version: 3.5.21
       '@google/genai':
         specifier: catalog:bundled
-        version: 2.27.0(@modelcontextprotocol/sdk@1.31.0(zod@4.6.5))
+        version: 2.28.0(@modelcontextprotocol/sdk@1.31.0(zod@4.6.5))
       '@xmldom/xmldom':
         specifier: catalog:bundled
         version: 0.9.12
@@ -549,7 +549,7 @@ importers:
         version: 6.3.0(@types/node@26.6.4)(cosmiconfig@10.0.1)(typescript@6.0.3)
       deepl-node:
         specifier: catalog:bundled
-        version: 1.28.0
+        version: 1.28.1
       exceljs:
         specifier: catalog:bundled
         version: 4.4.0
@@ -561,7 +561,7 @@ importers:
         version: 1.9.2
       openai:
         specifier: catalog:bundled
-        version: 7.28.0(undici@8.11.2)(ws@8.21.0)(zod@4.6.5)
+        version: 7.32.0(undici@8.11.2)(ws@8.21.0)(zod@4.6.5)
       yaml:
         specifier: catalog:bundled
         version: 2.9.1
@@ -679,8 +679,8 @@ packages:
     resolution: {integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==}
     engines: {node: '>=10'}
 
-  '@anthropic-ai/sdk@0.131.0':
-    resolution: {integrity: sha512-9+PepoU7qVMmM70jSahdnfcMHAvAnzhMOLv2W9WjRLO+OG/MAiBETkwKZqv7KIJ1Cj5h8eZ019bHzZaq+Mbepw==}
+  '@anthropic-ai/sdk@0.133.0':
+    resolution: {integrity: sha512-jlqUN8p8ESTJj+GJnA4KjzbEfF1waEoGzRT8jwytlYGFFgv+/DUQOxlYGvYw10UzhD1kwLqYzxvA3FrTB2YWuQ==}
     hasBin: true
     peerDependencies:
       zod: ^3.25.0 || ^4.0.0
@@ -1329,8 +1329,8 @@ packages:
   '@fumari/image-size@0.1.1':
     resolution: {integrity: sha512-iaiV2wyzJ4mW358NX4CX3yGit+WjKYzpaQ+rldK9BjL/5jFpeV6ruWnZVq7MEyMn3Gd0DLi8g/79NZAAQaGscw==}
 
-  '@google/genai@2.27.0':
-    resolution: {integrity: sha512-W6F9Y9d4h7cVQNa85IPCOVVP9PiUzve/ZQPBvQnBmnBJcLvxstEw+R2X/RyCH0SOe0HVDQzeKDpDUf6ZRtbmdQ==}
+  '@google/genai@2.28.0':
+    resolution: {integrity: sha512-hyNAJj+ywu3L46qlZod6KO/JvcT3QONz6VCiPevC/FWOjAD+LQb7DMLUoV8vzoLpt61Q0ruQX99iqbxEjPJWmw==}
     engines: {node: '>=20.0.0'}
     peerDependencies:
       '@modelcontextprotocol/sdk': ^1.25.2
@@ -3538,8 +3538,8 @@ packages:
   decode-named-character-reference@1.3.0:
     resolution: {integrity: sha512-GtpQYB283KrPp6nRw50q3U9/VfOutZOe103qlN7BPP6Ad27xYnOIWv4lPzo8HCAL+mMZofJ9KEy30fq6MfaK6Q==}
 
-  deepl-node@1.28.0:
-    resolution: {integrity: sha512-Kb4K1OVYuqFrHMHBSQq25HAhrcLjlFrkxYsWRfhbuPpEVfODOWiIdggZA+8JQ43egP/vLAReAj9h2mrR+15Ezw==}
+  deepl-node@1.28.1:
+    resolution: {integrity: sha512-lij0T7t+8G+mmHltZ1U8pmDUu9tRCgxzqpuVdFkNAgUD3kfDYd8EwUmhXulWEf70KdHdoXRYCxEhOcyA0ucttg==}
     engines: {node: '>=14.17'}
 
   delayed-stream@1.0.0:
@@ -4876,8 +4876,8 @@ packages:
   oniguruma-to-es@4.3.6:
     resolution: {integrity: sha512-csuQ9x3Yr0cEIs/Zgx/OEt9iBw9vqIunAPQkx19R/fiMq2oGVTgcMqO/V3Ybqefr1TBvosI6jU539ksaBULJyA==}
 
-  openai@7.28.0:
-    resolution: {integrity: sha512-HSY4fFLflQGYe2kvO0atm6/GzhD61gpyiOZZUvO4nptMUhuB1to2K3wwFpFqc5gfEK0SxyIIFiu1yE2MtygWcA==}
+  openai@7.32.0:
+    resolution: {integrity: sha512-avqxu/jl1gsVBCBgFNPr9sTh+wZppQphuhhFy1zEvAJxEaJ4t0ery6hZdOT9kws/EcNTARoQcZs2IT3bliE1SA==}
     engines: {node: '>=22.0.0'}
     peerDependencies:
       '@aws-sdk/credential-provider-node': '>=3.972.0 <4'
@@ -5772,7 +5772,7 @@ snapshots:
 
   '@alloc/quick-lru@5.2.0': {}
 
-  '@anthropic-ai/sdk@0.131.0(zod@4.6.5)':
+  '@anthropic-ai/sdk@0.133.0(zod@4.6.5)':
     dependencies:
       json-schema-to-ts: 3.1.1
       standardwebhooks: 1.0.0
@@ -6383,7 +6383,7 @@ snapshots:
 
   '@fumari/image-size@0.1.1': {}
 
-  '@google/genai@2.27.0(@modelcontextprotocol/sdk@1.31.0(zod@4.6.5))':
+  '@google/genai@2.28.0(@modelcontextprotocol/sdk@1.31.0(zod@4.6.5))':
     dependencies:
       google-auth-library: 10.7.0
       p-retry: 4.6.2
@@ -8147,7 +8147,7 @@ snapshots:
     dependencies:
       character-entities: 2.0.2
 
-  deepl-node@1.28.0:
+  deepl-node@1.28.1:
     dependencies:
       '@types/node': 26.6.4
       adm-zip: 0.6.1
@@ -9855,7 +9855,7 @@ snapshots:
       regex: 6.1.0
       regex-recursion: 6.0.2
 
-  openai@7.28.0(undici@8.11.2)(ws@8.21.0)(zod@4.6.5):
+  openai@7.32.0(undici@8.11.2)(ws@8.21.0)(zod@4.6.5):
     optionalDependencies:
       undici: 8.11.2
       ws: 8.21.0
