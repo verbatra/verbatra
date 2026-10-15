@@ -15,7 +15,7 @@ import {
   transformCacheKey,
   typeTableMarkdown,
 } from "@/lib/sdk-type-table";
-import { llmMarkdown } from "./llm-markdown-test-support";
+import { llmMarkdown } from "@/test-support/llm-markdown";
 
 const REPO_ROOT = fileURLToPath(new URL("../../..", import.meta.url));
 const SDK_PAGES = fileURLToPath(new URL("../content/docs/sdk", import.meta.url));
@@ -148,6 +148,39 @@ describe("remarkTypeTableMarkdown", () => {
       expect(markdown).not.toContain("SdkTypeTable");
       expect(docs.flatMap((doc) => doc.entries).length).toBeGreaterThan(0);
       expect(markdown).toBe(`${docs.map(typeTableMarkdown).join("\n\n")}\n`);
+    },
+    GENERATOR_TIMEOUT,
+  );
+
+  it(
+    "replaces only the SdkTypeTable inside a Callout, keeping the Callout's other text",
+    async () => {
+      const table = sdkTypeTableOptions(REPO_ROOT, false);
+      const value = [
+        "<Callout>",
+        "Before the table.",
+        "",
+        '<SdkTypeTable name="LoadConfigOptions" />',
+        "",
+        "After the table.",
+        "</Callout>",
+        "",
+      ].join("\n");
+      const markdown = await llmMarkdown({ value }, [
+        remarkSdkTypeTable,
+        [remarkAutoTypeTable, table],
+        remarkTypeTableMarkdown,
+      ]);
+      const docs = await table.generator.generateTypeTable(
+        { path: SDK_DECLARATIONS, name: "LoadConfigOptions" },
+        table.options,
+      );
+
+      expect(markdown).not.toContain("SdkTypeTable");
+      expect(markdown).toContain("<Callout>");
+      expect(markdown).toContain("Before the table.");
+      expect(markdown).toContain("After the table.");
+      expect(markdown).toContain(docs.map(typeTableMarkdown).join("\n\n"));
     },
     GENERATOR_TIMEOUT,
   );

@@ -1,5 +1,9 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { remarkInclude } from "fumadocs-mdx/config";
 import { describe, expect, it } from "vitest";
-import { llmMarkdown } from "./llm-markdown-test-support";
+import sourceConfig from "@/source.config";
+import { llmMarkdown, type RemarkPlugins } from "@/test-support/llm-markdown";
 import {
   expandStackBlocks,
   remarkStackBlocks,
@@ -35,6 +39,12 @@ function element(
   };
 }
 
+const STUB_TIMEOUT = 60_000;
+
+function sourceFile(): { data: object } {
+  return { data: {} };
+}
+
 function page(): StackMdxNode {
   return {
     type: "root",
@@ -64,7 +74,7 @@ function nodeTypes(node: StackMdxNode): string[] {
 describe("expandStackBlocks", () => {
   it("expands a text field in place and a block into fenced code, nested in a component", () => {
     const root = page();
-    expandStackBlocks(root, { stack: "react" });
+    expandStackBlocks(root, { stack: "react" }, sourceFile());
     expect(root.children?.[0]?.children).toEqual([
       { type: "text", value: "Your " },
       { type: "text", value: "React" },
@@ -81,7 +91,7 @@ describe("expandStackBlocks", () => {
       type: "root",
       children: [element("mdxJsxFlowElement", "StackBlock", { name: "source-file" })],
     };
-    expandStackBlocks(root, { stack: "flutter" });
+    expandStackBlocks(root, { stack: "flutter" }, sourceFile());
     expect(root.children?.[0]).toMatchObject({
       type: "code",
       lang: "json",
@@ -109,32 +119,40 @@ describe("expandStackBlocks", () => {
         element("mdxJsxFlowElement", "StackBlock", { name }),
       ),
     };
-    expandStackBlocks(root, { stack: id });
+    expandStackBlocks(root, { stack: id }, sourceFile());
     expect(nodeTypes(root).filter((type) => type !== "root" && type !== "code")).toEqual([]);
   });
 
   it("leaves a page without a stack field and without stack elements untouched", () => {
     const root: StackMdxNode = { type: "root", children: [{ type: "text", value: "x" }] };
-    expandStackBlocks(root, { title: "Page" });
+    expandStackBlocks(root, { title: "Page" }, sourceFile());
     expect(root).toEqual({ type: "root", children: [{ type: "text", value: "x" }] });
   });
 
   it("refuses a stack element on a page that names no stack", () => {
-    expect(() => expandStackBlocks(page(), { title: "Page" })).toThrow(/"stack" frontmatter/);
+    expect(() => expandStackBlocks(page(), { title: "Page" }, sourceFile())).toThrow(
+      /"stack" frontmatter/,
+    );
   });
 
   it("refuses an unknown stack, block name or text field", () => {
-    expect(() => expandStackBlocks(page(), { stack: "svelte" })).toThrow(/Unknown stack/);
+    expect(() => expandStackBlocks(page(), { stack: "svelte" }, sourceFile())).toThrow(
+      /Unknown stack/,
+    );
     const badBlock: StackMdxNode = {
       type: "root",
       children: [element("mdxJsxFlowElement", "StackBlock", { name: "nope" })],
     };
-    expect(() => expandStackBlocks(badBlock, { stack: "vue" })).toThrow(/needs a name/);
+    expect(() => expandStackBlocks(badBlock, { stack: "vue" }, sourceFile())).toThrow(
+      /needs a name/,
+    );
     const badText: StackMdxNode = {
       type: "root",
       children: [element("mdxJsxTextElement", "StackText", { field: "nope" })],
     };
-    expect(() => expandStackBlocks(badText, { stack: "vue" })).toThrow(/needs a field/);
+    expect(() => expandStackBlocks(badText, { stack: "vue" }, sourceFile())).toThrow(
+      /needs a field/,
+    );
   });
 
   it("reads the stack from the frontmatter fumadocs-mdx puts on the file", () => {
@@ -150,7 +168,7 @@ describe("InitCommand", () => {
       type: "root",
       children: [element("mdxJsxFlowElement", "InitCommand", { format: "android-xml" })],
     };
-    expandStackBlocks(root, { title: "Pick your stack" });
+    expandStackBlocks(root, { title: "Pick your stack" }, sourceFile());
     expect(root.children).toEqual([
       { type: "code", lang: "bash", meta: null, value: initCommand("android-xml") },
     ]);
@@ -162,7 +180,9 @@ describe("InitCommand", () => {
       type: "root",
       children: [element("mdxJsxFlowElement", "InitCommand", { format })],
     };
-    expect(() => expandStackBlocks(root, {})).toThrow(/needs a format id from i18next-json/);
+    expect(() => expandStackBlocks(root, {}, sourceFile())).toThrow(
+      /needs a format id from i18next-json/,
+    );
   });
 
   it("reads the supported format ids from the published config schema", () => {
@@ -186,18 +206,22 @@ describe("StackOnly", () => {
 
   it("keeps its expanded children on a listed stack and drops them on every other", () => {
     const flutter = only("flutter");
-    expandStackBlocks(flutter, { stack: "flutter" });
+    expandStackBlocks(flutter, { stack: "flutter" }, sourceFile());
     expect(flutter.children).toEqual([
       { type: "paragraph", children: [{ type: "text", value: "Flutter" }] },
     ]);
     const react = only("flutter");
-    expandStackBlocks(react, { stack: "react" });
+    expandStackBlocks(react, { stack: "react" }, sourceFile());
     expect(react.children).toEqual([]);
   });
 
   it("refuses an unknown stack id and a page that names no stack", () => {
-    expect(() => expandStackBlocks(only("svelte"), { stack: "react" })).toThrow(/StackOnly/);
-    expect(() => expandStackBlocks(only("flutter"), {})).toThrow(/"stack" frontmatter/);
+    expect(() => expandStackBlocks(only("svelte"), { stack: "react" }, sourceFile())).toThrow(
+      /StackOnly/,
+    );
+    expect(() => expandStackBlocks(only("flutter"), {}, sourceFile())).toThrow(
+      /"stack" frontmatter/,
+    );
   });
 });
 
@@ -263,6 +287,41 @@ describe("the .md output of a stack page", () => {
     expect(await markdownOf(value, "flutter")).toBe(
       `A\n\nOn ${stackText(STACKS.flutter, "name")}.\n\nB\n`,
     );
-    expect(await markdownOf(value, "react")).toBe("A\n\n\n\nB\n");
+    const dropped = await markdownOf(value, "react");
+    expect(dropped).toMatch(/^A\n/);
+    expect(dropped).toMatch(/\nB\n$/);
+    expect(dropped).not.toContain("On ");
+    expect(dropped).not.toContain(stackText(STACKS.react, "name"));
   });
+});
+
+describe("the .md output of a real stack quickstart stub", () => {
+  const STUB = fileURLToPath(
+    new URL("../content/docs/(get-started)/quickstart/vue.mdx", import.meta.url),
+  );
+
+  async function stubMarkdown(): Promise<string> {
+    const source = readFileSync(STUB, "utf8");
+    const [, frontmatter = "", body = ""] = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/.exec(source) ?? [];
+    const stack = /^stack: (\S+)$/m.exec(frontmatter)?.[1];
+    expect(stack).toBe("vue");
+    const { remarkPlugins } = sourceConfig.mdxOptions as { remarkPlugins: RemarkPlugins };
+    return llmMarkdown({ value: body, path: STUB, data: { frontmatter: { stack } } }, [
+      remarkInclude,
+      ...remarkPlugins,
+    ]);
+  }
+
+  it(
+    "leaves no stack or init tag behind and writes the runtime install as a bash fence",
+    async () => {
+      const markdown = await stubMarkdown();
+      expect(markdown).not.toContain("<include");
+      expect(markdown).not.toMatch(/<Stack/);
+      expect(markdown).not.toMatch(/<InitCommand/);
+      expect(markdown).not.toContain("```npm");
+      expect(markdown).toContain(`\`\`\`bash\n${STACKS.vue.runtimeInstall}\n\`\`\``);
+    },
+    STUB_TIMEOUT,
+  );
 });

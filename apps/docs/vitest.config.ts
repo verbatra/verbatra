@@ -11,7 +11,7 @@ export default defineConfig({
   test: {
     server: {
       deps: {
-        inline: ["fumadocs-core"],
+        inline: ["fumadocs-core", "fumadocs-mdx"],
       },
     },
     include: [

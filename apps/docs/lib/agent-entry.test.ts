@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { AGENT_CLIENT_CONFIGS } from "@verbatra/cli";
 import { describe, expect, it, vi } from "vitest";
+import { llmMarkdown } from "@/test-support/llm-markdown";
 import {
   CLI_MODULE,
   type MarkdownLocale,
@@ -17,7 +18,6 @@ import {
   startHereMarkdown,
 } from "./agent-entry";
 import { AGENT_INIT_COMMAND, NPM_INSTALL_COMMAND } from "./install-commands";
-import { llmMarkdown } from "./llm-markdown-test-support";
 import { MCP_INSTALL_COMPONENT, mcpInstallMarkdown } from "./mcp-install-links";
 
 const DOCS_DIR = fileURLToPath(new URL("../", import.meta.url));

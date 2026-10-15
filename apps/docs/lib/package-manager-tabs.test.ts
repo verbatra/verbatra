@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { llmMarkdown } from "@/test-support/llm-markdown";
 import { NPM_INSTALL_COMMAND, RUN_FENCE_LANG } from "./install-commands";
-import { llmMarkdown } from "./llm-markdown-test-support";
 import {
   commandMarkdown,
   PACKAGE_MANAGER_GROUP,
