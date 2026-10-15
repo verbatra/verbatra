@@ -287,13 +287,16 @@ describe("the .md output of a stack page", () => {
     expect(await markdownOf(value, "flutter")).toBe(
       `A\n\nOn ${stackText(STACKS.flutter, "name")}.\n\nB\n`,
     );
-    const dropped = await markdownOf(value, "react");
-    expect(dropped).toMatch(/^A\n/);
-    expect(dropped).toMatch(/\nB\n$/);
-    expect(dropped).not.toContain("On ");
-    expect(dropped).not.toContain(stackText(STACKS.react, "name"));
+    expect(await markdownOf(value, "react")).toBe("A\n\n\n\nB\n");
   });
 });
+
+function sourceRemarkPlugins(): RemarkPlugins {
+  const options = sourceConfig.mdxOptions;
+  const plugins = typeof options === "object" ? options.remarkPlugins : undefined;
+  if (!Array.isArray(plugins)) throw new Error("source.config.ts sets no remarkPlugins list");
+  return plugins;
+}
 
 describe("the .md output of a real stack quickstart stub", () => {
   const STUB = fileURLToPath(
@@ -302,10 +305,11 @@ describe("the .md output of a real stack quickstart stub", () => {
 
   async function stubMarkdown(): Promise<string> {
     const source = readFileSync(STUB, "utf8");
-    const [, frontmatter = "", body = ""] = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/.exec(source) ?? [];
+    const [, frontmatter = "", body = ""] =
+      /^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/.exec(source) ?? [];
     const stack = /^stack: (\S+)$/m.exec(frontmatter)?.[1];
     expect(stack).toBe("vue");
-    const { remarkPlugins } = sourceConfig.mdxOptions as { remarkPlugins: RemarkPlugins };
+    const remarkPlugins = sourceRemarkPlugins();
     return llmMarkdown({ value: body, path: STUB, data: { frontmatter: { stack } } }, [
       remarkInclude,
       ...remarkPlugins,
