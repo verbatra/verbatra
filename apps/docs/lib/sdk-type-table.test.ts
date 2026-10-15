@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createGenerator, type GeneratedDoc } from "fumadocs-typescript";
+import { createGenerator, type GeneratedDoc, remarkAutoTypeTable } from "fumadocs-typescript";
 import { describe, expect, it } from "vitest";
 import {
   isDefaultLibraryMember,
@@ -15,6 +15,7 @@ import {
   transformCacheKey,
   typeTableMarkdown,
 } from "@/lib/sdk-type-table";
+import { llmMarkdown } from "./llm-markdown-test-support";
 
 const REPO_ROOT = fileURLToPath(new URL("../../..", import.meta.url));
 const SDK_PAGES = fileURLToPath(new URL("../content/docs/sdk", import.meta.url));
@@ -26,7 +27,6 @@ type Node = {
   name?: string;
   attributes?: { type: string; name?: string; value?: unknown }[];
   children?: Node[];
-  data?: Record<string, unknown>;
 };
 
 function flowElement(name: string, attributes: Node["attributes"] = []): Node {
@@ -114,32 +114,43 @@ describe("typeTableMarkdown", () => {
 });
 
 describe("remarkTypeTableMarkdown", () => {
-  it("gives a generated TypeTable a Markdown table for the .md output", () => {
-    const table = flowElement("TypeTable", [
+  it("prints a TypeTable written with its data as a Markdown table in the .md output", async () => {
+    const markdown = await llmMarkdown(
       {
-        type: "mdxJsxAttribute",
-        name: "type",
-        value: {
-          type: "mdxJsxAttributeValueExpression",
-          value: JSON.stringify({ entries: [entry] }),
-        },
+        value: `Before\n\n<TypeTable type={${JSON.stringify({ entries: [entry] })}} />\n\nAfter\n`,
       },
-    ]);
+      [remarkTypeTableMarkdown],
+    );
 
-    remarkTypeTableMarkdown()({ type: "root", children: [table] });
-
-    expect(table.data).toEqual({
-      _stringify: { text: typeTableMarkdown({ entries: [entry] }) },
-    });
+    expect(markdown).toBe(`Before\n\n${typeTableMarkdown({ entries: [entry] })}\n\nAfter\n`);
   });
 
-  it("leaves a TypeTable without generated data untouched", () => {
-    const table = flowElement("TypeTable");
-
-    remarkTypeTableMarkdown()({ type: "root", children: [table] });
-
-    expect(table.data).toBeUndefined();
+  it("leaves a TypeTable without generated data as written", async () => {
+    expect(await llmMarkdown({ value: "<TypeTable />\n" }, [remarkTypeTableMarkdown])).toBe(
+      "<TypeTable />\n",
+    );
   });
+
+  it(
+    "prints the rows of a generated SdkTypeTable in the .md output instead of the tag",
+    async () => {
+      const table = sdkTypeTableOptions(REPO_ROOT, false);
+      const markdown = await llmMarkdown({ value: '<SdkTypeTable name="LoadConfigOptions" />\n' }, [
+        remarkSdkTypeTable,
+        [remarkAutoTypeTable, table],
+        remarkTypeTableMarkdown,
+      ]);
+      const docs = await table.generator.generateTypeTable(
+        { path: SDK_DECLARATIONS, name: "LoadConfigOptions" },
+        table.options,
+      );
+
+      expect(markdown).not.toContain("SdkTypeTable");
+      expect(docs.flatMap((doc) => doc.entries).length).toBeGreaterThan(0);
+      expect(markdown).toBe(`${docs.map(typeTableMarkdown).join("\n\n")}\n`);
+    },
+    GENERATOR_TIMEOUT,
+  );
 });
 
 function tableNamesOf(page: string): string[] {

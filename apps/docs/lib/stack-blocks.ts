@@ -1,5 +1,7 @@
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
+import { fencedMarkdown, keepInnerMarkdown, replaceMarkdown } from "./llm-markdown";
+import { packageManagerFenceMarkdown } from "./package-manager-tabs";
 import {
   CODE_TEXT_FIELDS,
   initCommand,
@@ -113,23 +115,41 @@ function stackOnlyIds(node: StackMdxNode): string[] {
   return ids;
 }
 
-function stackOnlyNodes(stack: Stack, node: StackMdxNode): StackMdxNode[] {
-  if (!stackOnlyIds(node).includes(stack.id)) return [];
-  expandChildren(stack, node);
+function nodeMarkdown(node: StackMdxNode): string {
+  if (node.type === "code") {
+    const value = node.value ?? "";
+    return (
+      packageManagerFenceMarkdown(node.lang, value) ?? fencedMarkdown(node.lang, node.meta, value)
+    );
+  }
+  if (node.type === "inlineCode") return `\`${node.value ?? ""}\``;
+  return node.value ?? "";
+}
+
+function replacedBy(file: object, node: StackMdxNode, nodes: StackMdxNode[]): StackMdxNode[] {
+  replaceMarkdown(file, node, nodes.map(nodeMarkdown).join("\n\n"));
+  return nodes;
+}
+
+function stackOnlyNodes(stack: Stack, node: StackMdxNode, file: object): StackMdxNode[] {
+  if (!stackOnlyIds(node).includes(stack.id)) return replacedBy(file, node, []);
+  expandChildren(stack, node, file);
+  keepInnerMarkdown(file, node);
   return node.children ?? [];
 }
 
-function expanded(stack: Stack, node: StackMdxNode): StackMdxNode[] {
-  if (isElement(node, STACK_BLOCK_COMPONENT)) return blockNodes(stack, node);
-  if (isElement(node, STACK_ONLY_COMPONENT)) return stackOnlyNodes(stack, node);
-  return [textNode(stack, node)];
+function expanded(stack: Stack, node: StackMdxNode, file: object): StackMdxNode[] {
+  if (isElement(node, STACK_BLOCK_COMPONENT))
+    return replacedBy(file, node, blockNodes(stack, node));
+  if (isElement(node, STACK_ONLY_COMPONENT)) return stackOnlyNodes(stack, node, file);
+  return replacedBy(file, node, [textNode(stack, node)]);
 }
 
-function expandChildren(stack: Stack, node: StackMdxNode): void {
+function expandChildren(stack: Stack, node: StackMdxNode, file: object): void {
   if (node.children === undefined) return;
   node.children = node.children.flatMap((child) => {
-    if (isStackElement(child)) return expanded(stack, child);
-    expandChildren(stack, child);
+    if (isStackElement(child)) return expanded(stack, child, file);
+    expandChildren(stack, child, file);
     return [child];
   });
 }
@@ -143,12 +163,13 @@ function initCommandNode(node: StackMdxNode): StackMdxNode {
   return { type: "code", lang: "bash", meta: null, value: initCommand(format) };
 }
 
-function expandInitCommands(node: StackMdxNode): void {
+function expandInitCommands(node: StackMdxNode, file: object): void {
   if (node.children === undefined) return;
-  node.children = node.children.map((child) => {
-    if (isElement(child, INIT_COMMAND_COMPONENT)) return initCommandNode(child);
-    expandInitCommands(child);
-    return child;
+  node.children = node.children.flatMap((child) => {
+    if (isElement(child, INIT_COMMAND_COMPONENT))
+      return replacedBy(file, child, [initCommandNode(child)]);
+    expandInitCommands(child, file);
+    return [child];
   });
 }
 
@@ -165,8 +186,12 @@ function pageStack(frontmatter: unknown): Stack | undefined {
   return STACKS[id];
 }
 
-export function expandStackBlocks(root: StackMdxNode, frontmatter: unknown): void {
-  expandInitCommands(root);
+export function expandStackBlocks(
+  root: StackMdxNode,
+  frontmatter: unknown,
+  file: object = {},
+): void {
+  expandInitCommands(root, file);
   const stack = pageStack(frontmatter);
   if (stack === undefined) {
     if (containsStackElement(root)) {
@@ -176,10 +201,10 @@ export function expandStackBlocks(root: StackMdxNode, frontmatter: unknown): voi
     }
     return;
   }
-  expandChildren(stack, root);
+  expandChildren(stack, root, file);
 }
 
 export function remarkStackBlocks() {
   return (root: StackMdxNode, file: StackFile) =>
-    expandStackBlocks(root, "frontmatter" in file.data ? file.data.frontmatter : undefined);
+    expandStackBlocks(root, "frontmatter" in file.data ? file.data.frontmatter : undefined, file);
 }

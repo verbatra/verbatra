@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { llmMarkdown } from "./llm-markdown-test-support";
 import {
   expandStackBlocks,
   remarkStackBlocks,
@@ -14,6 +15,7 @@ import {
   STACKS,
   stackBlock,
   stackInitCommand,
+  stackText,
 } from "./stacks";
 
 function element(
@@ -215,5 +217,52 @@ describe("the runtime install block", () => {
     expect(installLang("npm install vue-i18n")).toBe("npm");
     expect(installLang("npm run build")).toBe("bash");
     expect(installLang("npx @verbatra/cli check")).toBe("bash");
+  });
+});
+
+describe("the .md output of a stack page", () => {
+  function markdownOf(value: string, stack?: string): Promise<string> {
+    const frontmatter = stack === undefined ? {} : { stack };
+    return llmMarkdown({ value, data: { frontmatter } }, [remarkStackBlocks]);
+  }
+
+  it("writes each StackText as the stack's own text, code fields as inline code", async () => {
+    const markdown = await markdownOf(
+      'Your <StackText field="name" /> app reads <StackText field="sourceFile" />.\n',
+      "react",
+    );
+    expect(markdown).toBe(
+      `Your ${stackText(STACKS.react, "name")} app reads \`${stackText(STACKS.react, "sourceFile")}\`.\n`,
+    );
+  });
+
+  it("writes a StackBlock as the stack's fenced code blocks", async () => {
+    const markdown = await markdownOf('<StackBlock name="init" />\n', "vue");
+    const fences = stackBlock(STACKS.vue, "init").map(({ lang, title, code }) =>
+      [`\`\`\`${[lang, titleMeta(title)].filter(Boolean).join(" ")}`, code, "```"].join("\n"),
+    );
+    expect(markdown).not.toContain("StackBlock");
+    expect(markdown).toBe(`${fences.join("\n\n")}\n`);
+  });
+
+  it("writes an npm install StackBlock as the npm command alone, like a hand-written npm fence", async () => {
+    const markdown = await markdownOf('<StackBlock name="runtime-install" />\n', "vue");
+    expect(markdown).toBe(`\`\`\`bash\n${STACKS.vue.runtimeInstall}\n\`\`\`\n`);
+    expect(installLang(STACKS.vue.runtimeInstall)).toBe("npm");
+  });
+
+  it("writes an InitCommand as a bash fence holding the quickstart's init command", async () => {
+    expect(await markdownOf('<InitCommand format="arb" />\n')).toBe(
+      `\`\`\`bash\n${initCommand("arb")}\n\`\`\`\n`,
+    );
+  });
+
+  it("keeps a StackOnly's expanded children on a listed stack and drops them on every other", async () => {
+    const value =
+      'A\n\n<StackOnly stacks="flutter">\n  On <StackText field="name" />.\n</StackOnly>\n\nB\n';
+    expect(await markdownOf(value, "flutter")).toBe(
+      `A\n\nOn ${stackText(STACKS.flutter, "name")}.\n\nB\n`,
+    );
+    expect(await markdownOf(value, "react")).toBe("A\n\n\n\nB\n");
   });
 });

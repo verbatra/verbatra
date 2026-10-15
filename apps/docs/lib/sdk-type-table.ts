@@ -10,6 +10,7 @@ import {
   type Generator,
   type RemarkAutoTypeTableOptions,
 } from "fumadocs-typescript";
+import { replaceMarkdown } from "./llm-markdown";
 
 const SDK_TYPE_TABLE = "SdkTypeTable";
 export const SDK_DECLARATIONS = "packages/sdk/dist/index.d.ts";
@@ -28,7 +29,7 @@ type MdxNode = {
   name?: string | null;
   attributes?: MdxAttribute[];
   children?: MdxNode[];
-  data?: Record<string, unknown>;
+  position?: unknown;
 };
 
 function isFlowElement(node: MdxNode, name: string): boolean {
@@ -165,15 +166,25 @@ function generatedDoc(node: MdxNode): GeneratedDoc | undefined {
   return typeof json === "string" && json !== "" ? (JSON.parse(json) as GeneratedDoc) : undefined;
 }
 
-function stringifyAsMarkdownTable(node: MdxNode): void {
-  if (!isFlowElement(node, TYPE_TABLE)) return;
-  const doc = generatedDoc(node);
-  if (doc === undefined) return;
-  node.data = { ...node.data, _stringify: { text: typeTableMarkdown(doc) } };
+type TableHosts = Map<MdxNode, string[]>;
+
+function collectTypeTables(node: MdxNode, host: MdxNode | undefined, hosts: TableHosts): void {
+  for (const child of node.children ?? []) {
+    const childHost = child.position === undefined ? host : child;
+    const doc = isFlowElement(child, TYPE_TABLE) ? generatedDoc(child) : undefined;
+    if (doc !== undefined && childHost !== undefined) {
+      hosts.set(childHost, [...(hosts.get(childHost) ?? []), typeTableMarkdown(doc)]);
+    }
+    collectTypeTables(child, childHost, hosts);
+  }
 }
 
 export function remarkTypeTableMarkdown() {
-  return (root: MdxNode) => visit(root, stringifyAsMarkdownTable);
+  return (root: MdxNode, file: object) => {
+    const hosts: TableHosts = new Map();
+    collectTypeTables(root, undefined, hosts);
+    for (const [host, tables] of hosts) replaceMarkdown(file, host, tables.join("\n\n"));
+  };
 }
 
 export function sdkTypeTableOptions(

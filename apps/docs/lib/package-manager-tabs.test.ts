@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { NPM_INSTALL_COMMAND, RUN_FENCE_LANG } from "./install-commands";
+import { llmMarkdown } from "./llm-markdown-test-support";
 import {
   commandMarkdown,
   PACKAGE_MANAGER_GROUP,
@@ -14,13 +15,16 @@ type Node = {
   value?: string;
   attributes?: { name?: string; value?: unknown }[];
   children?: Node[];
-  data?: Record<string, unknown>;
 };
 
 function run(root: Node): Node {
-  const transform = remarkPackageManagerTabs() as (tree: Node) => void;
-  transform(root);
+  const transform = remarkPackageManagerTabs() as (tree: Node, file: object) => void;
+  transform(root, {});
   return root;
+}
+
+function markdownOf(value: string): Promise<string> {
+  return llmMarkdown({ value }, [remarkPackageManagerTabs]);
 }
 
 function codes(node: Node): string[] {
@@ -47,18 +51,24 @@ describe("remarkPackageManagerTabs", () => {
     ]);
   });
 
-  it("prints the npm command alone in the page's Markdown", () => {
-    const root = run({
-      type: "root",
-      children: [
-        { type: "code", lang: "npm", value: NPM_INSTALL_COMMAND },
-        { type: "code", lang: "npm", value: "npm install next-intl" },
-      ],
-    });
-    expect(root.children?.map((tabs) => tabs.data?._stringify)).toEqual([
-      { text: commandMarkdown(NPM_INSTALL_COMMAND) },
-      { text: commandMarkdown("npm install next-intl") },
-    ]);
+  it("prints the npm command alone in the page's Markdown", async () => {
+    const markdown = await markdownOf(
+      `Install:\n\n\`\`\`npm\n${NPM_INSTALL_COMMAND}\n\`\`\`\n\n\`\`\`npm\nnpm install next-intl\n\`\`\`\n`,
+    );
+    expect(markdown).toBe(
+      `${[
+        "Install:",
+        commandMarkdown(NPM_INSTALL_COMMAND),
+        commandMarkdown("npm install next-intl"),
+      ].join("\n\n")}\n`,
+    );
+  });
+
+  it("keeps a fence nested in a list as a command in the page's Markdown", async () => {
+    const markdown = await markdownOf(
+      `- Run:\n\n  \`\`\`npm\n  ${NPM_INSTALL_COMMAND}\n  \`\`\`\n`,
+    );
+    expect(markdown).toBe(`- Run:\n\n  \`\`\`bash\n  ${NPM_INSTALL_COMMAND}\n  \`\`\`\n`);
   });
 
   it("leaves a bash fence alone", () => {
@@ -82,12 +92,10 @@ describe("remarkPackageManagerTabs", () => {
       name: TABS_COMPONENT,
       children: [],
     });
-    expect(root.children?.[1]?.data?._stringify).toEqual({
-      text: commandMarkdown(NPM_INSTALL_COMMAND),
-    });
+    expect(root.children?.[1]?.name).toBe(TABS_COMPONENT);
   });
 
-  it("tabs a verbatra run fence by the binary each package manager runs", () => {
+  it("tabs a verbatra run fence by the binary each package manager runs", async () => {
     const root = run({
       type: "root",
       children: [{ type: "code", lang: RUN_FENCE_LANG, value: "<command>" }],
@@ -100,8 +108,8 @@ describe("remarkPackageManagerTabs", () => {
       "yarn verbatra <command>",
       "bun run verbatra <command>",
     ]);
-    expect(tabs?.data?._stringify).toEqual({
-      text: commandMarkdown("npx @verbatra/cli <command>"),
-    });
+    expect(await markdownOf(`\`\`\`${RUN_FENCE_LANG}\n<command>\n\`\`\`\n`)).toBe(
+      `${commandMarkdown("npx @verbatra/cli <command>")}\n`,
+    );
   });
 });

@@ -17,6 +17,7 @@ import {
   startHereMarkdown,
 } from "./agent-entry";
 import { AGENT_INIT_COMMAND, NPM_INSTALL_COMMAND } from "./install-commands";
+import { llmMarkdown } from "./llm-markdown-test-support";
 import { MCP_INSTALL_COMPONENT, mcpInstallMarkdown } from "./mcp-install-links";
 
 const DOCS_DIR = fileURLToPath(new URL("../", import.meta.url));
@@ -44,30 +45,13 @@ function filesUnder(dir: string, pattern: RegExp): string[] {
     .map((file) => join(dir, file));
 }
 
-type Node = {
-  type: string;
-  name?: string;
-  attributes?: Array<{ type: string; name: string; value: unknown }>;
-  children?: Node[];
-  data?: Record<string, unknown>;
-};
-
-function element(name: string, attributes: Node["attributes"] = []): Node {
-  return { type: "mdxJsxFlowElement", name, attributes, children: [] };
-}
-
-async function stringified(node: Node, path?: string): Promise<unknown> {
-  await remarkAgentEntryMarkdown()(
-    { type: "root", children: [node] },
-    path === undefined ? {} : { path },
-  );
-  return node.data?._stringify;
+function markdownOf(value: string, path?: string): Promise<string> {
+  return llmMarkdown(path === undefined ? { value } : { value, path }, [remarkAgentEntryMarkdown]);
 }
 
 async function bannerMarkdown(slug: string, suffix: string): Promise<string> {
   const path = join(CONTENT_DIR, `${slug}${suffix}.mdx`);
-  const text = await stringified(element(START_HERE_COMPONENT), path);
-  return typeof text === "object" && text !== null && "text" in text ? String(text.text) : "";
+  return (await markdownOf(`${START_HERE_ELEMENT}\n`, path)).trimEnd();
 }
 
 const BANNER_CASES = START_HERE_PAGES.flatMap((slug) =>
@@ -226,31 +210,21 @@ describe("the install button", () => {
 
 describe("remarkAgentEntryMarkdown", () => {
   it("writes the VS Code install link as a localized Markdown link", async () => {
-    const node = element(MCP_INSTALL_COMPONENT, [
-      { type: "mdxJsxAttribute", name: "client", value: "vscode" },
-    ]);
-    expect(await stringified(node, "/x/page.es.mdx")).toEqual({
-      text: mcpInstallMarkdown(AGENT_CLIENT_CONFIGS, "vscode", mcpInstallLabel("es", "VS Code")),
-    });
+    expect(await markdownOf(`Install:\n\n${VSCODE_BUTTON}\n`, "/x/page.es.mdx")).toBe(
+      `Install:\n\n${mcpInstallMarkdown(AGENT_CLIENT_CONFIGS, "vscode", mcpInstallLabel("es", "VS Code"))}\n`,
+    );
     expect(mcpInstallLabel("es", "VS Code")).not.toContain("{client}");
   });
 
   it("leaves an install link for an unknown client and every other component alone", async () => {
-    const unknown = element(MCP_INSTALL_COMPONENT, [
-      { type: "mdxJsxAttribute", name: "client", value: "cursor" },
-    ]);
-    expect(await stringified(unknown)).toBeUndefined();
-    expect(await stringified(element("Callout"))).toBeUndefined();
-    expect(await stringified({ type: "paragraph", children: [] })).toBeUndefined();
+    const page = `<${MCP_INSTALL_COMPONENT} client="cursor" />\n\n<Callout>Note</Callout>\n\nText\n`;
+    expect(await markdownOf(page)).toBe(page);
   });
 
   it("reaches a banner nested inside another node", async () => {
-    const banner = element(START_HERE_COMPONENT);
-    await remarkAgentEntryMarkdown()({
-      type: "root",
-      children: [{ type: "blockquote", children: [banner] }],
-    });
-    expect(banner.data?._stringify).toEqual({ text: startHereMarkdown("en") });
+    expect(await markdownOf(`<Callout>\n  ${START_HERE_ELEMENT}\n</Callout>\n`)).toBe(
+      `<Callout>\n  ${startHereMarkdown("en")}\n</Callout>\n`,
+    );
   });
 });
 

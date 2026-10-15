@@ -31,7 +31,7 @@
     "license": "Apache-2.0",
     "author": "Microsoft Corp."
   },
-  "@yuku-analyzer/binding-linux-x64-gnu@0.10.2": {
+  "@yuku-core/binding-linux-x64-gnu@0.17.0": {
     "license": "MIT",
     "author": null
   },

@@ -1,5 +1,6 @@
 import { remarkNpm } from "fumadocs-core/mdx-plugins/remark-npm";
 import { CLI_PACKAGE, NPM_FENCE_LANG, RUN_FENCE_LANG } from "./install-commands";
+import { fencedMarkdown, replaceMarkdown } from "./llm-markdown";
 
 export const PACKAGE_MANAGER_GROUP = "package-manager";
 
@@ -11,7 +12,6 @@ type TabsNode = {
   lang?: string | null;
   value?: string;
   children?: TabsNode[];
-  data?: Record<string, unknown>;
 };
 
 type NpmOptions = NonNullable<Parameters<typeof remarkNpm>[0]>;
@@ -31,18 +31,31 @@ const RUN_MANAGERS: PackageManager[] = [
 ];
 
 export function commandMarkdown(command: string): string {
-  return `\`\`\`bash\n${command}\n\`\`\``;
+  return fencedMarkdown("bash", null, command);
 }
 
-type FenceKind = { transform: NpmTransformer; markdown: (value: string) => string };
+const FENCE_COMMANDS: ReadonlyMap<string, (value: string) => string> = new Map([
+  [NPM_FENCE_LANG, (value: string) => value],
+  [RUN_FENCE_LANG, runCommand],
+]);
+
+export function packageManagerFenceMarkdown(
+  lang: string | null | undefined,
+  value: string,
+): string | undefined {
+  const command = FENCE_COMMANDS.get(lang ?? "");
+  return command === undefined ? undefined : commandMarkdown(command(value));
+}
+
+type FenceKind = { transform: NpmTransformer; lang: string };
 
 function fenceKinds(): ReadonlyMap<string, FenceKind> {
   const persist = { id: PACKAGE_MANAGER_GROUP };
   return new Map([
-    [NPM_FENCE_LANG, { transform: remarkNpm({ persist }), markdown: (value) => value }],
+    [NPM_FENCE_LANG, { transform: remarkNpm({ persist }), lang: NPM_FENCE_LANG }],
     [
       RUN_FENCE_LANG,
-      { transform: remarkNpm({ persist, packageManagers: RUN_MANAGERS }), markdown: runCommand },
+      { transform: remarkNpm({ persist, packageManagers: RUN_MANAGERS }), lang: RUN_FENCE_LANG },
     ],
   ]);
 }
@@ -52,11 +65,13 @@ function toTabs(
   kind: FenceKind,
   [, file, next]: Parameters<NpmTransformer>,
 ): TabsNode {
-  const tree = { type: "root", children: [{ ...fence, lang: NPM_FENCE_LANG }] };
+  const markdown = packageManagerFenceMarkdown(kind.lang, fence.value ?? "") ?? "";
+  fence.lang = NPM_FENCE_LANG;
+  const tree = { type: "root", children: [fence] };
   kind.transform(tree as NpmTree, file, next);
+  replaceMarkdown(file, fence, markdown);
   const [tabs = fence] = tree.children;
-  const markdown = commandMarkdown(kind.markdown(fence.value ?? ""));
-  return { ...tabs, data: { ...tabs.data, _stringify: { text: markdown } } };
+  return tabs;
 }
 
 export function remarkPackageManagerTabs() {

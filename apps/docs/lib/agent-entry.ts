@@ -4,6 +4,7 @@ import en from "../messages/en.json";
 import es from "../messages/es.json";
 import fr from "../messages/fr.json";
 import { AGENT_INIT_COMMAND } from "./install-commands";
+import { replaceMarkdown } from "./llm-markdown";
 import {
   isMcpInstallClient,
   isMcpInstallConfigs,
@@ -51,7 +52,6 @@ type MdxNode = {
   name?: string | null;
   attributes?: MdxAttribute[];
   children?: MdxNode[];
-  data?: Record<string, unknown>;
 };
 
 type MdxFile = { path?: string; data?: object };
@@ -88,7 +88,7 @@ function markdownFor(node: MdxNode, file: MdxFile, configs: McpInstallConfigs): 
 
 function stringifyAgentEntries(node: MdxNode, file: MdxFile, configs: McpInstallConfigs): void {
   const text = markdownFor(node, file, configs);
-  if (text !== undefined) node.data = { ...node.data, _stringify: { text } };
+  if (text !== undefined) replaceMarkdown(file, node, text);
   for (const child of node.children ?? []) stringifyAgentEntries(child, file, configs);
 }
 
