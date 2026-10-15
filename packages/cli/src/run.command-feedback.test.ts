@@ -106,7 +106,7 @@ describe("translate: start, outcome and next step", () => {
     const notice = {
       code: "SUB_BATCH_FAILED" as const,
       message:
-        "A sub-batch of 1 entry failed (PROVIDER_ERROR: The translation provider request to opencode.ai failed with HTTP 400 (MissingSessionID).) and was withheld; it will be retried next run.",
+        "A sub-batch of 1 entry failed (PROVIDER_ERROR: The translation provider request to opencode.ai failed (HTTP 400, MissingSessionID).) and was withheld; it will be retried next run.",
       causeCode: "PROVIDER_ERROR",
     };
     const { code, err } = await stderrOf(["translate"], {
@@ -143,6 +143,31 @@ describe("translate: start, outcome and next step", () => {
 
     expect(err).toContain(`next: ${errorHint({ code: "RATE_LIMITED" })}\n`);
     expect(err.match(/next:/g)).toHaveLength(1);
+  });
+
+  it("names the provider fix before the hand-off when a needs-human run also lost a sub-batch", async () => {
+    const { code, err } = await stderrOf(["translate"], {
+      translate: async () =>
+        makeSummary({
+          partial: [],
+          succeeded: ["de"],
+          locales: [
+            makeLocale({
+              unfilled: ["a"],
+              notices: [{ code: "SUB_BATCH_FAILED", message: "refused", causeCode: "AUTH_FAILED" }],
+            }),
+          ],
+        }),
+    });
+
+    expect(code).toBe(3);
+    const providerHint = `next: ${errorHint({ code: "AUTH_FAILED" })}\n`;
+    const handOff =
+      "next: verbatra export (hand the keys that need a person to a translator, or edit them in verbatra studio)\n";
+    expect(err).toContain(providerHint);
+    expect(err).toContain(handOff);
+    expect(err.indexOf(providerHint)).toBeLessThan(err.indexOf(handOff));
+    expect(err.match(/next:/g)).toHaveLength(2);
   });
 
   it("prints no start line when the SDK rejects the run before it starts", async () => {
