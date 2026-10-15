@@ -41,7 +41,10 @@ export function createOpenAiCompatibleProvider(
 
 function createMechanism(client: OpenAiClient, config: OpenAiCompatibleConfig): LlmMechanism {
   const timeoutMs = config.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
-  const endpoint = endpointContextOf(config.baseUrl);
+  const endpoint: ProviderCallContext = {
+    ...endpointContextOf(config.baseUrl),
+    remedies: "chat-completions",
+  };
   return {
     translate: async ({ payloadJson, signal }): Promise<ReturnType<typeof extractOpenAiResult>> => {
       const body = buildOpenAiRequest(config, payloadJson, "strict-schema", "max_tokens");
@@ -56,7 +59,7 @@ function callClient(
   body: OpenAiRequest,
   timeoutMs: number,
   signal: AbortSignal | undefined,
-  endpoint: ProviderCallContext | undefined,
+  endpoint: ProviderCallContext,
 ): Promise<OpenAiCompletion> {
   return withSdkAttemptTimeout(
     timeoutMs,

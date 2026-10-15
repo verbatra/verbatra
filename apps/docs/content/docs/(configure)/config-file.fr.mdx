@@ -354,7 +354,7 @@ provider:
 
 ### Ce que le document ne peut pas vérifier
 
-Seul le chargement de la configuration vérifie ces règles : les règles de `targetLocales` et des [codes de locale](#codes-de-locale), les clés de [`localeMap`](/fr/docs/providers#codes-de-locale-envoyés-au-fournisseur) et [`apiKeyEnvVar`](/fr/docs/providers#openai-compatible), des adresses et plages valides dans [`network.allowedHosts`](/fr/docs/network-policy), `sensitiveData.patterns` dans les [règles de sécurité des motifs](/fr/docs/data-handling#protection-des-contenus-sensibles) et les règles des termes d'un glossaire en ligne en [version 2](#glossaire-par-locale-version-2).
+Seul le chargement de la configuration vérifie ces règles : les règles de `targetLocales` et des [codes de locale](#codes-de-locale), les clés de [`localeMap`](/fr/docs/providers#codes-de-locale-envoyés-au-fournisseur) et les règles de `baseUrl` et [`apiKeyEnvVar`](/fr/docs/providers#openai-compatible) d'`openai-compatible`, des adresses et plages valides dans [`network.allowedHosts`](/fr/docs/network-policy), `sensitiveData.patterns` dans les [règles de sécurité des motifs](/fr/docs/data-handling#protection-des-contenus-sensibles) et les règles des termes d'un glossaire en ligne en [version 2](#glossaire-par-locale-version-2).
 
 ## Le répertoire de travail et .env
 

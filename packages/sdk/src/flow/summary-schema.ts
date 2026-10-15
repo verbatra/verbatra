@@ -1,4 +1,8 @@
-import { type ProviderNoticeCode, REVIEW_REASON_CODES } from "@verbatra/ai-providers";
+import {
+  PROVIDER_ERROR_CODES,
+  type ProviderNoticeCode,
+  REVIEW_REASON_CODES,
+} from "@verbatra/ai-providers";
 import { z } from "zod";
 import { MANIFEST_PROVIDER_IDS } from "./data-flow-manifest.js";
 import { INTEGRITY_GATE_REASONS } from "./integrity-gate.js";
@@ -174,7 +178,11 @@ export const protectedKeySchema = z.object({
 
 const localeNoticeSchema = z.union([
   z.object({ code: z.enum(PROVIDER_NOTICE_CODES), message: z.string() }),
-  z.object({ code: z.enum(SDK_NOTICE_CODES), message: z.string() }),
+  z.object({
+    code: z.enum(SDK_NOTICE_CODES),
+    message: z.string(),
+    causeCode: z.enum(PROVIDER_ERROR_CODES).exactOptional(),
+  }),
 ]);
 
 /**

@@ -354,7 +354,7 @@ provider:
 
 ### What the document cannot check
 
-Only loading the config checks these rules: the `targetLocales` rules and [locale codes](#locale-codes), [`localeMap`](/docs/providers#locale-codes-sent-to-the-provider) keys and [`apiKeyEnvVar`](/docs/providers#openai-compatible), valid [`network.allowedHosts`](/docs/network-policy) addresses and ranges, `sensitiveData.patterns` within the [safety rules](/docs/data-handling#sensitive-content-guard), and an inline [version 2 glossary](#per-locale-glossary-version-2)'s term rules.
+Only loading the config checks these rules: the `targetLocales` rules and [locale codes](#locale-codes), [`localeMap`](/docs/providers#locale-codes-sent-to-the-provider) keys and the `openai-compatible` `baseUrl` and [`apiKeyEnvVar`](/docs/providers#openai-compatible) rules, valid [`network.allowedHosts`](/docs/network-policy) addresses and ranges, `sensitiveData.patterns` within the [safety rules](/docs/data-handling#sensitive-content-guard), and an inline [version 2 glossary](#per-locale-glossary-version-2)'s term rules.
 
 ## The working directory and .env
 

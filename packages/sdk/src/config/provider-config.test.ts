@@ -62,6 +62,33 @@ describe("providerConfigSchema: openai-compatible", () => {
   });
 });
 
+describe("providerConfigSchema: an endpoint path as baseUrl", () => {
+  it("rejects an openai-compatible baseUrl ending in /chat/completions at options.baseUrl", () => {
+    const result = providerConfigSchema.safeParse({
+      ...validOpenAiCompatible,
+      options: {
+        ...validOpenAiCompatible.options,
+        baseUrl: "https://opencode.ai/zen/go/v1/chat/completions",
+      },
+    });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues).toEqual([
+      expect.objectContaining({
+        path: ["options", "baseUrl"],
+        message: expect.stringContaining("must be the API root"),
+      }),
+    ]);
+  });
+
+  it("leaves a libretranslate baseUrl unchecked for endpoint paths", () => {
+    const result = providerConfigSchema.safeParse({
+      id: "libretranslate",
+      options: { baseUrl: "http://localhost:5000/chat/completions" },
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
 describe("buildProvider: openai-compatible", () => {
   it("constructs the provider from config with no API key set anywhere", () => {
     const provider = buildProvider(validOpenAiCompatible);

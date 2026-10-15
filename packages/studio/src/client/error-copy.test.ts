@@ -70,6 +70,12 @@ describe("copyForErrorCode", () => {
     expect(copyForErrorCode("RATE_LIMITED")).not.toBe(copyForErrorCode("METHOD_RATE_LIMITED"));
   });
 
+  it("maps AUTH_FAILED to copy that covers both a rejected key and a policy refusal", () => {
+    expect(copyForErrorCode("AUTH_FAILED")).toBe(
+      "The translation provider rejected the configured API key or refused the request under its policy.",
+    );
+  });
+
   it("maps PROVENANCE_FILE_INVALID to copy naming the provenance file and that nothing was written", () => {
     const copy = copyForErrorCode("PROVENANCE_FILE_INVALID");
 

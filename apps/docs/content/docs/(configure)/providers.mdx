@@ -156,6 +156,8 @@ verbatra ships Google's dated [language table](https://docs.cloud.google.com/tra
 
 Any server speaking the OpenAI Chat Completions API: LM Studio, Ollama, vLLM, or a hosted API.
 
+The server must serve Chat Completions at `<baseUrl>/chat/completions` with strict JSON schema output. Gateways serving only their own client apps, for example by requiring a client session header or app-specific authentication, do not work.
+
 ```ts title="verbatra.config.ts"
 provider: {
   id: "openai-compatible",
@@ -169,14 +171,14 @@ provider: {
 
 | Option | Type | Default | Effect |
 | --- | --- | --- | --- |
-| `baseUrl` | `http` or `https` URL | required | The server, including its API path, usually `/v1`. A URL without it passes validation and fails at request time. |
+| `baseUrl` | `http` or `https` URL | required | The API root, usually ending in `/v1`. A URL ending in `/chat/completions` or `/completions` is rejected; one missing `/v1` passes validation, then fails at request time. |
 | `model` | string | required | Whatever model your server exposes. |
 | `maxOutputTokens` | positive integer | required | Caps one response's output tokens. |
-| `apiKeyEnvVar` | variable name | none | The variable holding a key for this server. |
+| `apiKeyEnvVar` | variable name | none | The variable holding this server's key. |
 | `requestTimeoutMs` | positive integer | `120000` | Bounds each request attempt. |
 | `localeMap` | map of locale to code | none | Overrides the code sent per locale. |
 
-A hosted API works the same way, for example Mistral:
+For a hosted API such as Mistral:
 
 ```ts title="verbatra.config.ts"
 provider: {
@@ -190,14 +192,14 @@ provider: {
 }
 ```
 
-The response uses the same strict schema as `openai`; the first balanced JSON object is taken from any surrounding prose or code fence, then checked as usual. `verbatra init --provider openai-compatible --base-url <url> --model <name>` writes this block ([init](/docs/cli/init#providers)), and `--api-key-env-var <NAME>` adds the variable's name.
+The response uses the same strict schema as `openai`; the first balanced JSON object is taken from any surrounding prose or code fence and validated. `verbatra init --provider openai-compatible --base-url <url> --model <name>` writes this block ([init](/docs/cli/init#providers)), and `--api-key-env-var <NAME>` adds the variable's name.
 
 ### Keys are optional
 
 The key resolves in order:
 
 1. **`apiKeyEnvVar`**: if set, its variable must hold a key, or the run fails with `MISSING_API_KEY`.
-2. **`OPENAI_COMPATIBLE_API_KEY`**: used when set and non-empty; otherwise verbatra moves on.
+2. **`OPENAI_COMPATIBLE_API_KEY`**: used when set and non-empty.
 3. **`"local"`**: a fixed, non-secret placeholder, which is what makes a keyless server work.
 
 `apiKeyEnvVar` cannot name a hosted provider's variable, and the client never reads `OPENAI_API_KEY`, so a hosted key never reaches a custom `baseUrl`.

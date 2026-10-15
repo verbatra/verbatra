@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import type { ScanProgressEvent } from "@verbatra/sdk";
-import { SdkError } from "@verbatra/sdk";
+import { errorHint, SdkError } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import { run } from "./run.js";
 import {
@@ -100,6 +100,74 @@ describe("translate: start, outcome and next step", () => {
     expect(code).toBe(1);
     expect(err).toMatch(/\[warn\] finished in \d+\.\ds, see the summary above\n/);
     expect(err).not.toContain("next:");
+  });
+
+  it("names the next step for the provider failure when every sub-batch failed", async () => {
+    const notice = {
+      code: "SUB_BATCH_FAILED" as const,
+      message:
+        "A sub-batch of 1 entry failed (PROVIDER_ERROR: The translation provider request to opencode.ai failed (HTTP 400, MissingSessionID).) and was withheld; it will be retried next run.",
+      causeCode: "PROVIDER_ERROR" as const,
+    };
+    const { code, err } = await stderrOf(["translate"], {
+      translate: async () =>
+        makeSummary({
+          failed: ["de"],
+          locales: [makeLocale({ status: "failed", providerFailures: ["a"], notices: [notice] })],
+        }),
+    });
+
+    expect(code).toBe(1);
+    expect(err).toMatch(/\[warn\] finished in \d+\.\ds, see the summary above\n/);
+    expect(err).toContain(`next: ${errorHint({ code: "PROVIDER_ERROR" })}\n`);
+    expect(err).not.toMatch(/next: Try again/);
+  });
+
+  it("names the hint of the first provider failure that has one", async () => {
+    const { err } = await stderrOf(["translate"], {
+      translate: async () =>
+        makeSummary({
+          failed: ["de"],
+          locales: [
+            makeLocale({
+              status: "failed",
+              providerFailures: ["a", "b"],
+              notices: [
+                { code: "SUB_BATCH_FAILED", message: "untyped failure" },
+                { code: "SUB_BATCH_FAILED", message: "rate limited", causeCode: "RATE_LIMITED" },
+              ],
+            }),
+          ],
+        }),
+    });
+
+    expect(err).toContain(`next: ${errorHint({ code: "RATE_LIMITED" })}\n`);
+    expect(err.match(/next:/g)).toHaveLength(1);
+  });
+
+  it("names the provider fix before the hand-off when a needs-human run also lost a sub-batch", async () => {
+    const { code, err } = await stderrOf(["translate"], {
+      translate: async () =>
+        makeSummary({
+          partial: [],
+          succeeded: ["de"],
+          locales: [
+            makeLocale({
+              unfilled: ["a"],
+              notices: [{ code: "SUB_BATCH_FAILED", message: "refused", causeCode: "AUTH_FAILED" }],
+            }),
+          ],
+        }),
+    });
+
+    expect(code).toBe(3);
+    const providerHint = `next: ${errorHint({ code: "AUTH_FAILED" })}\n`;
+    const handOff =
+      "next: verbatra export (hand the keys that need a person to a translator, or edit them in verbatra studio)\n";
+    expect(err).toContain(providerHint);
+    expect(err).toContain(handOff);
+    expect(err.indexOf(providerHint)).toBeLessThan(err.indexOf(handOff));
+    expect(err.match(/next:/g)).toHaveLength(2);
   });
 
   it("prints no start line when the SDK rejects the run before it starts", async () => {

@@ -156,6 +156,8 @@ verbatra embarque la [table de langues](https://docs.cloud.google.com/translate/
 
 Tout serveur qui parle l'API Chat Completions d'OpenAI : LM Studio, Ollama, vLLM, ou une API hébergée.
 
+Le serveur doit servir Chat Completions à `<baseUrl>/chat/completions` avec une sortie en JSON schema strict. Les passerelles qui ne servent que leurs propres applications clientes, par exemple en exigeant un en-tête de session client ou une authentification propre à l'application, ne fonctionnent pas.
+
 ```ts title="verbatra.config.ts"
 provider: {
   id: "openai-compatible",
@@ -169,14 +171,14 @@ provider: {
 
 | Option | Type | Défaut | Effet |
 | --- | --- | --- | --- |
-| `baseUrl` | URL `http` ou `https` | requis | Le serveur, chemin d'API compris, généralement `/v1`. Une URL sans lui passe la validation et échoue au moment de la requête. |
+| `baseUrl` | URL `http` ou `https` | requis | La racine de l'API, qui finit généralement par `/v1`. Une URL qui se termine par `/chat/completions` ou `/completions` est refusée ; une URL sans `/v1` passe la validation puis échoue à la requête. |
 | `model` | chaîne | requis | Le modèle que ton serveur expose. |
 | `maxOutputTokens` | entier positif | requis | Plafonne les tokens de sortie d'une réponse. |
 | `apiKeyEnvVar` | nom de variable | aucun | La variable qui contient une clé pour ce serveur. |
 | `requestTimeoutMs` | entier positif | `120000` | Borne chaque tentative de requête. |
 | `localeMap` | table de locale vers code | aucun | Remplace le code envoyé par locale. |
 
-Une API hébergée fonctionne de la même façon, par exemple Mistral :
+Pour une API hébergée comme Mistral :
 
 ```ts title="verbatra.config.ts"
 provider: {
@@ -190,14 +192,14 @@ provider: {
 }
 ```
 
-La réponse suit le même schéma strict que `openai` ; le premier objet JSON équilibré est pris dans toute prose ou bloc de code qui l'entoure, puis vérifié comme d'habitude. `verbatra init --provider openai-compatible --base-url <url> --model <name>` écrit ce bloc ([init](/fr/docs/cli/init#fournisseurs)), et `--api-key-env-var <NAME>` ajoute le nom de la variable.
+La réponse suit le même schéma strict que `openai` ; le premier objet JSON équilibré est pris dans toute prose ou bloc de code qui l'entoure, puis validé. `verbatra init --provider openai-compatible --base-url <url> --model <name>` écrit ce bloc ([init](/fr/docs/cli/init#fournisseurs)), et `--api-key-env-var <NAME>` ajoute le nom de la variable.
 
 ### Les clés sont optionnelles
 
 La clé se résout dans cet ordre :
 
 1. **`apiKeyEnvVar`** : s'il est défini, sa variable doit contenir une clé, sinon l'exécution échoue avec `MISSING_API_KEY`.
-2. **`OPENAI_COMPATIBLE_API_KEY`** : utilisée quand elle est définie et non vide ; sinon verbatra passe à la suite.
+2. **`OPENAI_COMPATIBLE_API_KEY`** : utilisée quand elle est définie et non vide.
 3. **`"local"`** : un placeholder fixe et non secret, qui est ce qui fait fonctionner un serveur sans clé.
 
 `apiKeyEnvVar` ne peut pas nommer la variable d'un fournisseur hébergé, et le client ne lit jamais `OPENAI_API_KEY`, donc une clé hébergée n'atteint jamais un `baseUrl` personnalisé.

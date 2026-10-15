@@ -682,7 +682,7 @@ A network or request timeout; [`requestTimeoutMs`](/docs/providers#request-timeo
 
 ### AUTH_FAILED
 
-HTTP 401 or 403: the key is invalid, revoked, or lacks permission. For Google Cloud Translation, check that `GOOGLE_TRANSLATE_API_KEY` is a valid, unrestricted key for a project with the Cloud Translation API enabled. Retrying will not help.
+HTTP 401 or 403: the key is invalid, revoked, or lacks permission. From the Anthropic, OpenAI, Gemini and `openai-compatible` providers the message names the status, and on a 403 adds that the server refused the request under its policy or the key's permissions. For Google Cloud Translation, check that `GOOGLE_TRANSLATE_API_KEY` is a valid, unrestricted key for a project with the Cloud Translation API enabled. Retrying will not help.
 
 - **Next step**: Check that the provider's API key is valid and allowed to use the configured model.
 
@@ -700,9 +700,9 @@ The [network policy](/docs/network-policy) refused the request right before it w
 
 ### PROVIDER_ERROR
 
-Anything unclassifiable. When the failure is a recognizable transport problem, the message names it (connection refused, host name not resolved, connection closed, host unreachable, TLS certificate not verified) and says what to check; otherwise it falls back to a static, secret-free message. When a provider package could not be loaded, the message names the package and says to reinstall `@verbatra/sdk`.
+Anything unclassifiable. From the Anthropic, OpenAI, Gemini and `openai-compatible` providers, an HTTP failure names its status, such as `HTTP 404`, and the server's error type when it is a short token of letters, digits and underscores, such as `MissingSessionID`; the server's own message, the response body and the URL path never appear. For an `openai-compatible` `baseUrl`, a 404 or 405 adds a check that `baseUrl` is the API root, and a 400 or 422 a check of the model name and of Chat Completions support with strict JSON schema output; retrying will not help a 4xx status. When the failure is a recognizable transport problem, the message names it (connection refused, host name not resolved, connection closed, host unreachable, TLS certificate not verified) and says what to check; otherwise it falls back to a static, secret-free message. When a provider package could not be loaded, the message names the package and says to reinstall `@verbatra/sdk`.
 
-- **Next step**: Try again; if it keeps failing, check the provider configuration.
+- **Next step**: Act on the cause or HTTP status the message names, then check the provider's `baseUrl` (if it takes one), `model` and the rest of the `provider` block in the config.
 
 ## Format adapter error codes [#adapter-error-codes]
 
@@ -1073,7 +1073,7 @@ A plural in a target locale lacks a CLDR plural category its language uses, such
 
 ### SUB_BATCH_FAILED
 
-A provider request failed. The notice names the provider's error code, or `PROVIDER_CALL_FAILED` when the failure was not a structured provider error, and the request's keys are listed under `providerFailures`.
+A provider request failed. The notice names the provider's error code, or `PROVIDER_CALL_FAILED` when the failure was not a structured provider error, and the request's keys are listed under `providerFailures`. Its `causeCode` carries the provider's code when there is one, and the CLI prints that code's next step after the run.
 
 - **Raised by**: `translate`, `watch`
 - **Exit code**: `1`: the locale ends `partial` or `failed`

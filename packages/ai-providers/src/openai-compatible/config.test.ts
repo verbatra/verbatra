@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { openAiCompatibleConfigSchema } from "./config.js";
+import { ENDPOINT_PATH_BASE_URL_MESSAGE, openAiCompatibleConfigSchema } from "./config.js";
 
 const validConfig = {
   baseUrl: "http://192.168.178.74:1234",
@@ -62,6 +62,41 @@ describe("openAiCompatibleConfigSchema: baseUrl", () => {
     expect(result.error?.issues.map((issue) => issue.message)).toContain(
       "baseUrl must use the http or https scheme.",
     );
+  });
+});
+
+describe("openAiCompatibleConfigSchema: baseUrl names the API root, not an endpoint", () => {
+  function messagesFor(baseUrl: string): readonly string[] {
+    const result = openAiCompatibleConfigSchema.safeParse({ ...validConfig, baseUrl });
+    return result.success ? [] : result.error.issues.map((issue) => issue.message);
+  }
+
+  it.each([
+    "https://opencode.ai/zen/go/v1/chat/completions",
+    "https://opencode.ai/zen/go/v1/chat/completions/",
+    "http://localhost:1234/v1/completions",
+    "http://localhost:1234/v1/completions//",
+    "http://localhost:1234/V1/Chat/Completions",
+  ])("rejects %s with a message saying to use the API root", (baseUrl) => {
+    expect(messagesFor(baseUrl)).toEqual([ENDPOINT_PATH_BASE_URL_MESSAGE]);
+  });
+
+  it.each([
+    "https://opencode.ai/zen/go/v1",
+    "http://localhost:1234/v1/",
+    "http://localhost:11434/v1",
+    "https://api.example.com/completions-gateway/v1",
+  ])("accepts the API root %s", (baseUrl) => {
+    expect(messagesFor(baseUrl)).toEqual([]);
+  });
+
+  it("says to use the API root and that verbatra appends the endpoint", () => {
+    expect(ENDPOINT_PATH_BASE_URL_MESSAGE).toContain("API root");
+    expect(ENDPOINT_PATH_BASE_URL_MESSAGE).toContain("appends /chat/completions");
+  });
+
+  it("reports only the URL error for a malformed baseUrl", () => {
+    expect(messagesFor("not-a-url")).not.toContain(ENDPOINT_PATH_BASE_URL_MESSAGE);
   });
 });
 

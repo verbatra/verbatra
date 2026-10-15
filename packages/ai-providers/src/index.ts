@@ -18,7 +18,7 @@ export {
 export { deepLLanguageSupport } from "./deepl/language-support.js";
 export type { DeepLTranslateResult } from "./deepl/types.js";
 export { processEnvironment } from "./env.js";
-export { ProviderError, type ProviderErrorCode } from "./errors.js";
+export { PROVIDER_ERROR_CODES, ProviderError, type ProviderErrorCode } from "./errors.js";
 export {
   type GeminiConfig,
   geminiConfigSchema,

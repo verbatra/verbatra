@@ -19,6 +19,21 @@ export type ProviderErrorCode =
   | "NETWORK_POLICY_VIOLATION"
   | "PROVIDER_ERROR";
 
+export const PROVIDER_ERROR_CODES = [
+  "MISSING_API_KEY",
+  "INVALID_REQUEST",
+  "INVALID_RESPONSE",
+  "OUTPUT_TRUNCATED",
+  "PROVIDER_REFUSED",
+  "PROVIDER_BLOCKED",
+  "RATE_LIMITED",
+  "TIMEOUT",
+  "AUTH_FAILED",
+  "PROVIDER_UNAVAILABLE",
+  "NETWORK_POLICY_VIOLATION",
+  "PROVIDER_ERROR",
+] as const satisfies readonly ProviderErrorCode[];
+
 /**
  * The structured error a translation provider fails with, in place of a raw SDK or HTTP error. Its
  * `name` is `"ProviderError"` and its message is fixed and secret-free: every API key shape and

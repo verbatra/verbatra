@@ -675,6 +675,21 @@ describe("runInit for agents", () => {
     expect(err).toContain("[CONFIG_INVALID]");
   });
 
+  it("refuses an openai-compatible base URL that names the endpoint through the config schema", async () => {
+    const { code, out } = await initJson({
+      provider: "openai-compatible",
+      baseUrl: "https://opencode.ai/zen/go/v1/chat/completions",
+      model: "m",
+      yes: true,
+    });
+
+    expect(code).toBe(2);
+    const envelope = parseEnvelope(out);
+    expect(envelope).toMatchObject({ ok: false, code: "CONFIG_INVALID" });
+    expect(envelope.ok ? "" : envelope.message).toContain("baseUrl must be the API root");
+    expect(existsSync(join(dir, "verbatra.config.ts"))).toBe(false);
+  });
+
   it("uses a --model override for a hosted language-model provider", async () => {
     const { code } = await initJson({ provider: "anthropic", model: "claude-opus-4-1", yes: true });
 

@@ -45,6 +45,8 @@ Side-by-side editor, state filters, provenance badges, per-locale glossary, RTL 
   English format of the interface, and a run without token usage says why it has no count.
 - **Translate pending** counts keys the config's `sensitiveData` guard kept from the provider among
   the withheld keys, and a retranslation it refuses explains why.
+- A provider authentication failure says the provider rejected the configured API key or refused
+  the request under its policy, so a policy refusal is no longer reported as a bad key.
 - The session-expired screen says to reopen the printed URL, and an unexpected server error is
   printed in the terminal running Studio. Error messages use project-relative paths.
 - The dashboard no longer trips its own Content-Security-Policy.

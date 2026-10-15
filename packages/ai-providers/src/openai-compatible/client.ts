@@ -7,6 +7,8 @@ import type { OpenAiCallOptions, OpenAiClient, OpenAiCompletion } from "../opena
 import type { ProviderRetryListener } from "../provider-retry.js";
 import type { OpenAiCompatibleConfig } from "./config.js";
 
+export const OPENAI_COMPATIBLE_USER_AGENT = "verbatra";
+
 export function createDefaultClient(
   config: OpenAiCompatibleConfig,
   network?: ProviderNetwork,
@@ -24,6 +26,7 @@ export function createDefaultClient(
       apiKey,
       baseURL: config.baseUrl,
       logLevel: "off",
+      defaultHeaders: { "User-Agent": OPENAI_COMPATIBLE_USER_AGENT },
       ...transport.options,
     });
   });

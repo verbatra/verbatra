@@ -870,8 +870,27 @@ function reportTranslateOutcome(
     return;
   }
   context.ui.status("warn", `finished in ${elapsed}${usagePhrase(summary)}, see the summary above`);
+  hintProviderFailure(context, summary);
   if (exitCode === NEEDS_HUMAN_EXIT_CODE) {
     handOff();
+  }
+}
+
+function providerFailureHint(summary: RunSummary): string | undefined {
+  return summary.locales
+    .flatMap((locale) => locale.notices)
+    .map((notice) =>
+      "causeCode" in notice && notice.causeCode !== undefined
+        ? errorHint({ code: notice.causeCode })
+        : undefined,
+    )
+    .find((hint) => hint !== undefined);
+}
+
+function hintProviderFailure(context: CommandContext, summary: RunSummary): void {
+  const hint = providerFailureHint(summary);
+  if (hint !== undefined) {
+    context.ui.hint(hint);
   }
 }
 

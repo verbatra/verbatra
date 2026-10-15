@@ -243,3 +243,19 @@ describe("KNOWN_ERROR_CODES", () => {
     }
   });
 });
+
+describe("errorHint: a provider failure that retrying does not fix", () => {
+  it.each(["INVALID_REQUEST", "AUTH_FAILED", "NETWORK_POLICY_VIOLATION", "PROVIDER_ERROR"])(
+    "does not tell the reader to try again for %s",
+    (code) => {
+      expect(errorHint({ code })).not.toMatch(/^try again/i);
+    },
+  );
+
+  it("points a PROVIDER_ERROR at the HTTP status, the baseUrl and the model", () => {
+    const hint = errorHint({ code: "PROVIDER_ERROR" });
+    expect(hint).toContain("HTTP status");
+    expect(hint).toContain("`baseUrl`");
+    expect(hint).toContain("`model`");
+  });
+});

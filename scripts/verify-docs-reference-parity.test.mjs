@@ -337,6 +337,31 @@ describe("the error codes page documents every code family verbatra reports", ()
   });
 });
 
+function notRetryableProviderCodes(page) {
+  const section = page.split("\n## Provider error codes")[1]?.split("\n## ")[0] ?? "";
+  return section
+    .split("\n### ")
+    .slice(1)
+    .filter((entry) => /retrying will not help/i.test(entry))
+    .map((entry) => /^[A-Z_]+/.exec(entry)?.[0]);
+}
+
+describe("a provider code the page calls not retryable never says to try again", () => {
+  const codes = notRetryableProviderCodes(errorCodesPage(""));
+  const hints = ERROR_CODE_FAMILIES.find(({ id }) => id === "provider-error-codes").hints;
+
+  it("finds the codes the page calls not retryable, so the check cannot pass vacuously", () => {
+    expect(codes).toEqual(
+      expect.arrayContaining(["INVALID_REQUEST", "AUTH_FAILED", "PROVIDER_ERROR"]),
+    );
+  });
+
+  it.each(codes)("gives %s a next step that does not start with Try again", (code) => {
+    expect(hints.get(code)).toBeTypeOf("string");
+    expect(hints.get(code)).not.toMatch(/^try again/i);
+  });
+});
+
 describe("the SDK reference catalogs the whole public surface", () => {
   const valueExports = sdkValueExports();
   const entryPoints = valueExports

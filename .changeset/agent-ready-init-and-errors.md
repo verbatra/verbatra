@@ -40,6 +40,10 @@ Non-interactive `init` for agents, and errors with a `hint` and a `causeCode`.
 - `errorHint(error)` returns the next step for any error code, printed as a `next:` line and a
   `hint` in `--json`. A failed `doctor` check carries `fix`.
 - A wrapped error's code is shown as `(cause: CODE)` and `causeCode`.
+- A `translate` run whose provider requests failed ends with a `next:` line for the provider's
+  error code, and each `SUB_BATCH_FAILED` notice carries that code as `causeCode`. The
+  `PROVIDER_ERROR` hint points at the HTTP status, `baseUrl` and `model` instead of saying to try
+  again.
 - `@verbatra/cli` exports `CLI_ERROR_CODES`. Error messages name project-relative paths
   (`projectRelativeMessage`).
 - A throw from a `custom:` adapter's parser is `ADAPTER_FAILED` naming the format.
