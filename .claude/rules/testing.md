@@ -80,7 +80,7 @@ Split into two tiers by determinism, which doubles as the trust boundary for sec
 `packages/studio/package.json`) with unit/component tests under `packages/studio/src/` (jsdom-based)
 but **no test that drives it in a real browser**. Concretely, as of this writing:
 
-- `playwright` (`pnpm-workspace.yaml` catalog, pinned `1.63.0`) is a devDependency only of
+- `playwright` (`pnpm-workspace.yaml` catalog, pinned `1.64.0`) is a devDependency only of
   `apps/docs` (`apps/docs/package.json`), used exclusively by the one-off screenshot script
   `apps/docs/scripts/capture-studio.mjs` (see `CONTRIBUTING.md` "Refreshing the Studio
   screenshots"). It is not wired up as a test runner anywhere.

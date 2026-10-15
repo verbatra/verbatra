@@ -38,7 +38,7 @@ headlessly, no DOM).
 
 ## The stack, and why it constrains you
 
-- `vite` 8.3.0, `@vitejs/plugin-react` 6.1.1, `tailwindcss` 4.3.3 through
+- `vite` 8.3.4, `@vitejs/plugin-react` 6.1.2, `tailwindcss` 4.3.3 through
   `@tailwindcss/vite`, `clsx` 2.1.1, `tailwind-merge` 3.7.0. React and TypeScript come
   from the workspace catalog.
 - Tailwind 4 uses CSS-first configuration. There is no `tailwind.config.js` and no

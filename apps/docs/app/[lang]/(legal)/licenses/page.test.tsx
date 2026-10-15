@@ -54,7 +54,7 @@ describe("licenses page", () => {
     );
     const codes = [...doc.querySelectorAll("li > code")].map((node) => node.textContent);
     expect(codes).toHaveLength(manifest.packageCount);
-    expect(codes).toContain("next@16.3.8");
+    expect(codes).toContain("next@16.4.0");
   });
 
   it("prints every distinct license text once, each reachable by its anchor", async () => {

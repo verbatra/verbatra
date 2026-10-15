@@ -35,8 +35,8 @@ dashboard in `packages/studio` (different app, different stack), or anything out
 
 ## The stack, and why it constrains you
 
-- `fumadocs-ui` and `fumadocs-core` 16.16.2, `next` 16.3.8, `tailwindcss` 4.3.3, `next-intl` 4.14.9.
-  `motion` (14.0.0, the version Fumadocs already depends on) is a direct dependency with one
+- `fumadocs-ui` and `fumadocs-core` 16.16.2, `next` 16.4.0, `tailwindcss` 4.3.3, `next-intl` 4.14.9.
+  `motion` (14.1.0, the version Fumadocs already depends on) is a direct dependency with one
   consumer: the code showcase tabs. Each panel is one plain `div` for good, and the first pointer,
   focus or tab change `import()`s `code-showcase-fade.ts`, which fades a newly opened panel in with
   `animate` from `motion/mini` (opacity and a 4px lift), never under reduced motion (`fadeInPanel`
