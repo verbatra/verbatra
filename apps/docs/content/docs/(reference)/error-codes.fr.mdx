@@ -682,7 +682,7 @@ Un délai réseau ou de requête dépassé ; [`requestTimeoutMs`](/fr/docs/provi
 
 ### AUTH_FAILED
 
-HTTP 401 ou 403 : la clé est invalide, révoquée ou sans permission. Sur un 403, le message ajoute que le serveur a refusé la requête selon sa politique ou les permissions de la clé. Pour Google Cloud Translation, vérifie que `GOOGLE_TRANSLATE_API_KEY` est une clé valide et sans restriction pour un projet où l'API Cloud Translation est activée. Réessayer n'aidera pas.
+HTTP 401 ou 403 : la clé est invalide, révoquée ou sans permission. Avec les fournisseurs Anthropic, OpenAI, Gemini et `openai-compatible`, le message nomme le statut et, sur un 403, ajoute que le serveur a refusé la requête selon sa politique ou les permissions de la clé. Pour Google Cloud Translation, vérifie que `GOOGLE_TRANSLATE_API_KEY` est une clé valide et sans restriction pour un projet où l'API Cloud Translation est activée. Réessayer n'aidera pas.
 
 - **Étape suivante** : Check that the provider's API key is valid and allowed to use the configured model.
 
@@ -700,7 +700,7 @@ La [politique réseau](/fr/docs/network-policy) a refusé la requête juste avan
 
 ### PROVIDER_ERROR
 
-Tout ce qui est inclassable. Un échec HTTP nomme son statut, par exemple `HTTP 404`, et le type d'erreur du serveur quand il en a envoyé un court et bien formé, par exemple `MissingSessionID` ; le message propre du serveur, le corps de la réponse et le chemin de l'URL n'apparaissent jamais. Pour une `baseUrl` `openai-compatible`, un 404 ou 405 ajoute de vérifier que `baseUrl` est la racine de l'API, et un 400 ou 422 de vérifier le nom du modèle et la prise en charge de Chat Completions avec une sortie en JSON schema strict ; réessayer n'aidera pas pour un statut 4xx. Quand l'échec est un problème de transport reconnaissable, le message le nomme (connexion refusée, nom d'hôte non résolu, connexion fermée, hôte injoignable, certificat TLS non vérifié) et dit quoi vérifier ; sinon il se replie sur un message statique sans secret. Si un paquet de fournisseur n'a pas pu être chargé, le message nomme le paquet et te demande de réinstaller `@verbatra/sdk`.
+Tout ce qui est inclassable. Avec les fournisseurs Anthropic, OpenAI, Gemini et `openai-compatible`, un échec HTTP nomme son statut, par exemple `HTTP 404`, et le type d'erreur du serveur quand c'est un jeton court de lettres, chiffres et tirets bas, par exemple `MissingSessionID` ; le message propre du serveur, le corps de la réponse et le chemin de l'URL n'apparaissent jamais. Pour une `baseUrl` `openai-compatible`, un 404 ou 405 ajoute de vérifier que `baseUrl` est la racine de l'API, et un 400 ou 422 de vérifier le nom du modèle et la prise en charge de Chat Completions avec une sortie en JSON schema strict ; réessayer n'aidera pas pour un statut 4xx. Quand l'échec est un problème de transport reconnaissable, le message le nomme (connexion refusée, nom d'hôte non résolu, connexion fermée, hôte injoignable, certificat TLS non vérifié) et dit quoi vérifier ; sinon il se replie sur un message statique sans secret. Si un paquet de fournisseur n'a pas pu être chargé, le message nomme le paquet et te demande de réinstaller `@verbatra/sdk`.
 
 - **Étape suivante** : Act on the cause or HTTP status the message names, then check the provider's `baseUrl` (if it takes one), `model` and the rest of the `provider` block in the config.
 

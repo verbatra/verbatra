@@ -682,7 +682,7 @@ Ein Netzwerk- oder Anfrage-Timeout; [`requestTimeoutMs`](/de/docs/providers#anfr
 
 ### AUTH_FAILED
 
-HTTP 401 oder 403: Der Key ist ungültig, widerrufen oder ohne Berechtigung. Bei 403 ergänzt die Meldung, dass der Server die Anfrage wegen seiner Richtlinie oder der Rechte des Keys abgelehnt hat. Prüfe bei Google Cloud Translation, dass `GOOGLE_TRANSLATE_API_KEY` ein gültiger, uneingeschränkter Key für ein Projekt mit aktivierter Cloud Translation API ist. Wiederholen hilft nicht.
+HTTP 401 oder 403: Der Key ist ungültig, widerrufen oder ohne Berechtigung. Bei den Providern Anthropic, OpenAI, Gemini und `openai-compatible` nennt die Meldung den Status und ergänzt bei 403, dass der Server die Anfrage wegen seiner Richtlinie oder der Rechte des Keys abgelehnt hat. Prüfe bei Google Cloud Translation, dass `GOOGLE_TRANSLATE_API_KEY` ein gültiger, uneingeschränkter Key für ein Projekt mit aktivierter Cloud Translation API ist. Wiederholen hilft nicht.
 
 - **Nächster Schritt**: Check that the provider's API key is valid and allowed to use the configured model.
 
@@ -700,7 +700,7 @@ Die [Netzwerkrichtlinie](/de/docs/network-policy) hat die Anfrage direkt vor dem
 
 ### PROVIDER_ERROR
 
-Alles Unklassifizierbare. Ein HTTP-Fehlschlag nennt seinen Status, etwa `HTTP 404`, und den Fehlertyp des Servers, wenn er einen kurzen, wohlgeformten mitgeschickt hat, etwa `MissingSessionID`; die eigene Meldung des Servers, der Antworttext und der URL-Pfad erscheinen nie. Bei einer `openai-compatible`-`baseUrl` ergänzt ein 404 oder 405 die Prüfung, ob `baseUrl` die API-Wurzel ist, und ein 400 oder 422 die Prüfung des Modellnamens und der Unterstützung für Chat Completions mit striktem JSON-Schema-Output; bei einem 4xx-Status hilft Wiederholen nicht. Ist der Fehlschlag ein erkennbares Transportproblem, benennt die Meldung es (Verbindung abgelehnt, Hostname nicht aufgelöst, Verbindung geschlossen, Host nicht erreichbar, TLS-Zertifikat nicht verifiziert) und sagt, was zu prüfen ist; sonst fällt sie auf eine statische, geheimnisfreie Meldung zurück. Konnte ein Provider-Paket nicht geladen werden, nennt die Meldung das Paket und rät, `@verbatra/sdk` neu zu installieren.
+Alles Unklassifizierbare. Bei den Providern Anthropic, OpenAI, Gemini und `openai-compatible` nennt ein HTTP-Fehlschlag seinen Status, etwa `HTTP 404`, und den Fehlertyp des Servers, wenn er ein kurzes Token aus Buchstaben, Ziffern und Unterstrichen ist, etwa `MissingSessionID`; die eigene Meldung des Servers, der Antworttext und der URL-Pfad erscheinen nie. Bei einer `openai-compatible`-`baseUrl` ergänzt ein 404 oder 405 die Prüfung, ob `baseUrl` die API-Wurzel ist, und ein 400 oder 422 die Prüfung des Modellnamens und der Unterstützung für Chat Completions mit striktem JSON-Schema-Output; bei einem 4xx-Status hilft Wiederholen nicht. Ist der Fehlschlag ein erkennbares Transportproblem, benennt die Meldung es (Verbindung abgelehnt, Hostname nicht aufgelöst, Verbindung geschlossen, Host nicht erreichbar, TLS-Zertifikat nicht verifiziert) und sagt, was zu prüfen ist; sonst fällt sie auf eine statische, geheimnisfreie Meldung zurück. Konnte ein Provider-Paket nicht geladen werden, nennt die Meldung das Paket und rät, `@verbatra/sdk` neu zu installieren.
 
 - **Nächster Schritt**: Act on the cause or HTTP status the message names, then check the provider's `baseUrl` (if it takes one), `model` and the rest of the `provider` block in the config.
 
