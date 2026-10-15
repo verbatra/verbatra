@@ -16,10 +16,7 @@ import { findNetworkPolicyViolation } from "./network/guarded-fetch.js";
 import { describeNetworkCause, findNetworkCause } from "./network-cause.js";
 
 export const PROVIDER_CALL_FAILED_MESSAGE = `${LEAD_BY_CODE.PROVIDER_ERROR}.`;
-export const RATE_LIMITED_MESSAGE = `${LEAD_BY_CODE.RATE_LIMITED}.`;
 export const TIMEOUT_MESSAGE = `${LEAD_BY_CODE.TIMEOUT}.`;
-export const AUTH_FAILED_MESSAGE = `${LEAD_BY_CODE.AUTH_FAILED}.`;
-export const PROVIDER_UNAVAILABLE_MESSAGE = `${LEAD_BY_CODE.PROVIDER_UNAVAILABLE}.`;
 
 /**
  * What a caller knows about the endpoint it is about to call, used only to make a transport failure

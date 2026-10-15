@@ -125,11 +125,6 @@ const PROVIDER_ERROR_HINTS = {
     "Act on the cause or HTTP status the message names, then check the provider's `baseUrl` (if it takes one), `model` and the rest of the `provider` block in the config.",
 } as const satisfies Record<ProviderErrorCode, string>;
 
-export const PROVIDER_ERROR_CODES = Object.keys(PROVIDER_ERROR_HINTS) as [
-  ProviderErrorCode,
-  ...ProviderErrorCode[],
-];
-
 const MODULE_RESOLUTION_CODES: ReadonlySet<string> = new Set([
   "MODULE_NOT_FOUND",
   "ERR_MODULE_NOT_FOUND",
