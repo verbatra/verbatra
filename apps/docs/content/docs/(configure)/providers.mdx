@@ -171,10 +171,10 @@ provider: {
 
 | Option | Type | Default | Effect |
 | --- | --- | --- | --- |
-| `baseUrl` | `http` or `https` URL | required | The API root, usually ending in `/v1`. One ending in `/chat/completions` or `/completions` is rejected; one missing `/v1` passes validation, then fails at request time. |
+| `baseUrl` | `http` or `https` URL | required | The API root, usually ending in `/v1`. A URL ending in `/chat/completions` or `/completions` is rejected; one missing `/v1` passes validation, then fails at request time. |
 | `model` | string | required | Whatever model your server exposes. |
 | `maxOutputTokens` | positive integer | required | Caps one response's output tokens. |
-| `apiKeyEnvVar` | variable name | none | The variable holding a key for this server. |
+| `apiKeyEnvVar` | variable name | none | The variable holding this server's key. |
 | `requestTimeoutMs` | positive integer | `120000` | Bounds each request attempt. |
 | `localeMap` | map of locale to code | none | Overrides the code sent per locale. |
 
