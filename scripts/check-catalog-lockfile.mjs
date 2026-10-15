@@ -146,10 +146,15 @@ function manifestPath(root, importer) {
   return join(root, importer, "package.json");
 }
 
-const PACKAGES_KEY = /^(?:packages|"packages"|'packages')[ \t]*:(.*)$/;
-const QUOTED_SCALAR = /^("[^"]*"|'(?:[^']|'')*')(?:\s+#.*)?$/;
-const FLOW_LIST = /^\[(.*)\](?:\s+#.*)?$/;
-const BLOCK_ITEM = /^\s*-\s+(.+?)\s*$/;
+const PACKAGES_KEY = /^(?:packages|"packages"|'packages')[ \t]*:(?:[ \t]+(.*))?$/;
+const PACKAGES_MENTION = /^[?{]?\s*["']?packages["']?\s*(?:[:,}]|$)/;
+const QUOTED_SCALAR = /^("[^"\\]*"|'(?:[^']|'')*')(?:\s+#.*)?$/;
+const FLOW_LIST = /^\[([^#]*)\](?:\s+#.*)?$/;
+const BLOCK_ITEM = /^( *)- +(\S.*?)\s*$/;
+const RESERVED_PLAIN =
+  /^(?:[-?:](?:\s|$)|["'#[\]{},&*!|>%@`]|~$|null$|Null$|NULL$|true$|True$|TRUE$|false$|False$|FALSE$|[-+]?\.?\d|[-+]?\.(?:inf|Inf|INF)$|\.(?:nan|NaN|NAN)$)/;
+const PLAIN_INDICATOR = /[[\]{}\t]|:(?:\s|$)/;
+const BYTE_ORDER_MARK = "\uFEFF";
 
 function unsupportedWorkspace(detail) {
   return new Error(`cannot parse the ${WORKSPACE_FILE} packages list (${detail}).`);
@@ -161,7 +166,7 @@ function scalarOf(text) {
     return unquote(quoted[1]);
   }
   const plain = text.replace(/\s+#.*$/, "");
-  if (plain === "" || /^["'#[\]{},&*!|>%@`]/.test(plain)) {
+  if (plain === "" || RESERVED_PLAIN.test(plain) || PLAIN_INDICATOR.test(plain)) {
     throw unsupportedWorkspace(`unsupported entry '${text}'`);
   }
   return plain;
@@ -183,8 +188,20 @@ function isBlockEnd(line) {
   return line.trim() !== "" && indentOf(line) === 0 && !/^[-#]/.test(line);
 }
 
+function blockItem(line, indent) {
+  const item = BLOCK_ITEM.exec(line);
+  if (item?.[1] === undefined || item[2] === undefined) {
+    throw unsupportedWorkspace(`unsupported line '${line.trim()}'`);
+  }
+  if (indent !== undefined && item[1].length !== indent) {
+    throw unsupportedWorkspace(`inconsistent indentation at '${line.trim()}'`);
+  }
+  return { indent: item[1].length, pattern: scalarOf(item[2]) };
+}
+
 function blockPatterns(lines) {
   const patterns = [];
+  let indent;
   for (const line of lines) {
     if (isBlockEnd(line)) {
       break;
@@ -193,18 +210,28 @@ function blockPatterns(lines) {
     if (trimmed === "" || trimmed.startsWith("#")) {
       continue;
     }
-    const item = BLOCK_ITEM.exec(line);
-    if (item?.[1] === undefined) {
-      throw unsupportedWorkspace(`unsupported line '${trimmed}'`);
-    }
-    patterns.push(scalarOf(item[1]));
+    const item = blockItem(line, indent);
+    indent = item.indent;
+    patterns.push(item.pattern);
   }
   return patterns;
 }
 
+function packagesKeyLine(lines) {
+  const keyLines = lines.filter((line) => PACKAGES_KEY.test(line));
+  if (keyLines.length > 1) {
+    throw unsupportedWorkspace("more than one top-level packages key");
+  }
+  if (keyLines.length === 0 && lines.some((line) => PACKAGES_MENTION.test(line))) {
+    throw unsupportedWorkspace("a packages key in an unsupported form");
+  }
+  return lines.indexOf(keyLines[0]);
+}
+
 function parseWorkspacePatterns(workspaceText) {
-  const lines = workspaceText.split(/\r?\n/);
-  const start = lines.findIndex((line) => PACKAGES_KEY.test(line));
+  const text = workspaceText.startsWith(BYTE_ORDER_MARK) ? workspaceText.slice(1) : workspaceText;
+  const lines = text.split(/\r?\n/);
+  const start = packagesKeyLine(lines);
   if (start === -1) {
     return [];
   }

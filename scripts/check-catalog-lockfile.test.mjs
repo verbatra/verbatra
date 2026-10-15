@@ -188,6 +188,14 @@ describe("parseWorkspacePatterns", () => {
     expect(parseWorkspacePatterns("'packages': [apps/*]\n")).toEqual(["apps/*"]);
   });
 
+  it("strips a leading byte order mark", () => {
+    expect(parseWorkspacePatterns("\uFEFFpackages:\n  - a/*\n")).toEqual(["a/*"]);
+  });
+
+  it("reads quoted reserved words as patterns", () => {
+    expect(parseWorkspacePatterns("packages:\n  - 'null'\n  - \"12\"\n")).toEqual(["null", "12"]);
+  });
+
   it("returns no patterns when there is no top-level packages key", () => {
     expect(parseWorkspacePatterns("catalog:\n  zod: 4.4.3\n")).toEqual([]);
   });
@@ -207,6 +215,29 @@ describe("parseWorkspacePatterns", () => {
     ["a multi-line flow list", 'packages: [\n  "packages/*"\n]\n', "unsupported value '['"],
     ["a nested mapping", "packages:\n  include: packages/*\n", "unsupported line"],
     ["a tagged entry", "packages:\n  - !packages/x\n", "unsupported entry '!packages/x'"],
+    ["an explicit key", "? packages\n: - a/*\n", "a packages key in an unsupported form"],
+    [
+      "an explicit key after a byte order mark",
+      "\uFEFF? packages\n: - a/*\n",
+      "a packages key in an unsupported form",
+    ],
+    ["a flow mapping", "{packages: [a/*]}\n", "a packages key in an unsupported form"],
+    ["a duplicate key", "packages:\n  - a\npackages:\n  - b\n", "more than one"],
+    ["a deeper item", "packages:\n  - a/*\n    - b/*\n", "inconsistent indentation"],
+    ["a shallower item", "packages:\n    - a/*\n  - b/*\n", "inconsistent indentation"],
+    ["a tab indent", "packages:\n\t- a/*\n", "unsupported line"],
+    ["a continuation line", "packages:\n  - a\n  b\n", "unsupported line"],
+    ["a bare null", "packages:\n  - null\n", "unsupported entry 'null'"],
+    ["a bare tilde", "packages:\n  - ~\n", "unsupported entry '~'"],
+    ["a bare true", "packages:\n  - true\n", "unsupported entry 'true'"],
+    ["a bare false", "packages:\n  - false\n", "unsupported entry 'false'"],
+    ["a bare number", "packages:\n  - 12\n", "unsupported entry '12'"],
+    ["a bare float", "packages:\n  - 1.5\n", "unsupported entry '1.5'"],
+    ["a mapping entry", "packages:\n  - a: b\n", "unsupported entry 'a: b'"],
+    ["a nested list", "packages:\n  - - a\n", "unsupported entry '- a'"],
+    ["an escaped string", 'packages:\n  - "a\\tb"\n', "unsupported entry"],
+    ["a flow comment", "packages: [a/* #x]\n", "unsupported value"],
+    ["a key without a space", "packages:[a]\n", "a packages key in an unsupported form"],
   ])("throws on a packages list it cannot read: %s", (_, workspace, detail) => {
     expect(() => parseWorkspacePatterns(workspace)).toThrow(detail);
   });
