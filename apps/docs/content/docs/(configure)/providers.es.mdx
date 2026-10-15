@@ -156,6 +156,8 @@ verbatra incluye la [tabla de idiomas](https://docs.cloud.google.com/translate/d
 
 Cualquier servidor que hable la API Chat Completions de OpenAI: LM Studio, Ollama, vLLM o una API alojada.
 
+El servidor debe servir Chat Completions en `<baseUrl>/chat/completions` con salida de JSON schema estricto. Las pasarelas que solo atienden a sus propias apps cliente, como OpenCode Go y los modelos gratuitos de OpenCode, no funcionan.
+
 ```ts title="verbatra.config.ts"
 provider: {
   id: "openai-compatible",
@@ -169,7 +171,7 @@ provider: {
 
 | Opción | Tipo | Por defecto | Efecto |
 | --- | --- | --- | --- |
-| `baseUrl` | URL `http` o `https` | obligatoria | El servidor, incluida su ruta de API, normalmente `/v1`. Una URL sin ella pasa la validación y falla en tiempo de petición. |
+| `baseUrl` | URL `http` o `https` | obligatoria | La raíz de la API, que suele terminar en `/v1`; una URL que termina en `/chat/completions` o `/completions` se rechaza. |
 | `model` | string | obligatoria | El modelo que exponga tu servidor. |
 | `maxOutputTokens` | entero positivo | obligatoria | Limita los tokens de salida de una respuesta. |
 | `apiKeyEnvVar` | nombre de variable | ninguno | La variable que contiene una clave para este servidor. |

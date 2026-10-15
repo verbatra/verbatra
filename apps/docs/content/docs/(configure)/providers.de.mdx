@@ -156,6 +156,8 @@ verbatra liefert Googles datierte [Sprachtabelle](https://docs.cloud.google.com/
 
 Jeder Server, der die OpenAI-Chat-Completions-API spricht: LM Studio, Ollama, vLLM oder eine gehostete API.
 
+Der Server muss Chat Completions unter `<baseUrl>/chat/completions` mit striktem JSON-Schema-Output bereitstellen. Gateways, die nur ihre eigenen Client-Apps bedienen, etwa OpenCode Go und die kostenlosen Modelle von OpenCode, funktionieren nicht.
+
 ```ts title="verbatra.config.ts"
 provider: {
   id: "openai-compatible",
@@ -169,7 +171,7 @@ provider: {
 
 | Option | Typ | Default | Wirkung |
 | --- | --- | --- | --- |
-| `baseUrl` | `http`- oder `https`-URL | erforderlich | Der Server, einschließlich seines API-Pfads, meist `/v1`. Eine URL ohne ihn besteht die Validierung und scheitert zur Anfragezeit. |
+| `baseUrl` | `http`- oder `https`-URL | erforderlich | Die API-Wurzel, meist mit `/v1` am Ende; eine URL, die auf `/chat/completions` oder `/completions` endet, wird abgelehnt. |
 | `model` | String | erforderlich | Das Modell, das dein Server anbietet. |
 | `maxOutputTokens` | positive Ganzzahl | erforderlich | Begrenzt die Ausgabe-Tokens einer Antwort. |
 | `apiKeyEnvVar` | Variablenname | keine | Die Variable mit einem Key für diesen Server. |
