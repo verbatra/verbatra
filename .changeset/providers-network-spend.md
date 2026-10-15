@@ -39,3 +39,6 @@ LibreTranslate, placeholder masking, network policy, sensitive-data guard, `--ma
   are listed under `budgetWithheld`.
 - `requestTimeoutMs` applies to each attempt, and a failure reports its real cause.
 - An unknown key in the `provider` block fails with `CONFIG_INVALID`.
+
+**openai-compatible**
+- Requests identify themselves with `User-Agent: verbatra` instead of the OpenAI SDK's default.

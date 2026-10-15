@@ -91,7 +91,12 @@ describe("client construction without a network policy", () => {
     expect(constructed.anthropic).toEqual([{ apiKey: "test-key-value", logLevel: "off" }]);
     expect(constructed.openai).toEqual([
       { apiKey: "test-key-value", logLevel: "off" },
-      { apiKey: "local", baseURL: "http://localhost:11434/v1", logLevel: "off" },
+      {
+        apiKey: "local",
+        baseURL: "http://localhost:11434/v1",
+        logLevel: "off",
+        defaultHeaders: { "User-Agent": "verbatra" },
+      },
     ]);
     expect(constructed.gemini).toEqual([{ apiKey: "test-key-value" }]);
   });
