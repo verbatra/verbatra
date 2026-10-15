@@ -1,13 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { ProviderError } from "./errors.js";
+import { guardProviderCall, PROVIDER_CALL_FAILED_MESSAGE, TIMEOUT_MESSAGE } from "./guard.js";
 import {
-  AUTH_FAILED_MESSAGE,
-  guardProviderCall,
-  PROVIDER_CALL_FAILED_MESSAGE,
-  PROVIDER_UNAVAILABLE_MESSAGE,
-  RATE_LIMITED_MESSAGE,
-  TIMEOUT_MESSAGE,
-} from "./guard.js";
+  BASE_URL_REMEDY,
+  REFUSED_REQUEST_REMEDY,
+  REJECTED_REQUEST_REMEDY,
+} from "./http-failure-message.js";
 import { NetworkPolicyViolation } from "./network/guarded-fetch.js";
 
 class StatusError extends Error {
@@ -41,49 +39,77 @@ describe("guardProviderCall: success", () => {
 });
 
 describe("guardProviderCall: classification by status code", () => {
-  it("maps a 429 to RATE_LIMITED with the static message", async () => {
+  it("maps a 429 to RATE_LIMITED and names the status", async () => {
     const call = () => Promise.reject(new StatusError(429));
     await expect(guardProviderCall(call)).rejects.toMatchObject({
       code: "RATE_LIMITED",
-      message: RATE_LIMITED_MESSAGE,
+      message: "The translation provider rate-limited this request (HTTP 429).",
     });
   });
 
-  it("maps a 401 to AUTH_FAILED", async () => {
+  it("maps a 401 to AUTH_FAILED and names the status", async () => {
     const call = () => Promise.reject(new StatusError(401));
     await expect(guardProviderCall(call)).rejects.toMatchObject({
       code: "AUTH_FAILED",
-      message: AUTH_FAILED_MESSAGE,
+      message: "The translation provider rejected the request credentials (HTTP 401).",
     });
   });
 
-  it("maps a 403 to AUTH_FAILED", async () => {
+  it("maps a 403 to AUTH_FAILED with the policy remedy", async () => {
     const call = () => Promise.reject(new StatusError(403));
-    await expect(guardProviderCall(call)).rejects.toMatchObject({ code: "AUTH_FAILED" });
+    await expect(guardProviderCall(call)).rejects.toMatchObject({
+      code: "AUTH_FAILED",
+      message: `The translation provider refused the request (HTTP 403). ${REFUSED_REQUEST_REMEDY}`,
+    });
   });
 
   it("maps a 408 to TIMEOUT", async () => {
     const call = () => Promise.reject(new StatusError(408));
     await expect(guardProviderCall(call)).rejects.toMatchObject({
       code: "TIMEOUT",
-      message: TIMEOUT_MESSAGE,
+      message: "The translation provider request timed out (HTTP 408).",
     });
   });
 
-  it("maps a 503 to PROVIDER_UNAVAILABLE", async () => {
+  it("maps a 503 to PROVIDER_UNAVAILABLE and names the status", async () => {
     const call = () => Promise.reject(new StatusError(503));
     await expect(guardProviderCall(call)).rejects.toMatchObject({
       code: "PROVIDER_UNAVAILABLE",
-      message: PROVIDER_UNAVAILABLE_MESSAGE,
+      message: "The translation provider is currently unavailable (HTTP 503).",
     });
   });
 
-  it("falls back to PROVIDER_ERROR for an unrecognized status", async () => {
+  it("falls back to PROVIDER_ERROR for an unrecognized status and names the status", async () => {
     const call = () => Promise.reject(new StatusError(400));
     await expect(guardProviderCall(call)).rejects.toMatchObject({
       code: "PROVIDER_ERROR",
-      message: PROVIDER_CALL_FAILED_MESSAGE,
+      message: "The translation provider request failed with HTTP 400.",
     });
+  });
+
+  it("adds the endpoint remedy for a 400 when a base URL is configured", async () => {
+    const call = () => Promise.reject(new StatusError(400));
+    await expect(
+      guardProviderCall(call, undefined, { endpointHost: "opencode.ai" }),
+    ).rejects.toMatchObject({
+      code: "PROVIDER_ERROR",
+      message: `The translation provider request to opencode.ai failed with HTTP 400. ${REJECTED_REQUEST_REMEDY}`,
+    });
+  });
+
+  it("adds the base URL remedy for a 404 when a base URL is configured", async () => {
+    const call = () => Promise.reject(new StatusError(404));
+    await expect(
+      guardProviderCall(call, undefined, { endpointHost: "localhost:1234" }),
+    ).rejects.toMatchObject({
+      message: `The translation provider request to localhost:1234 failed with HTTP 404. ${BASE_URL_REMEDY}`,
+    });
+  });
+
+  it("never relays the upstream message text", async () => {
+    const call = () => Promise.reject(new StatusError(400));
+    const rejection = await guardProviderCall(call).catch((error: unknown) => error);
+    expect((rejection as Error).message).not.toContain("upstream detail");
   });
 });
 

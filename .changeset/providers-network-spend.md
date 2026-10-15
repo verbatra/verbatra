@@ -40,5 +40,13 @@ LibreTranslate, placeholder masking, network policy, sensitive-data guard, `--ma
 - `requestTimeoutMs` applies to each attempt, and a failure reports its real cause.
 - An unknown key in the `provider` block fails with `CONFIG_INVALID`.
 
+**Provider failures**
+- An HTTP failure names its status, and the server's error type when it is a short, well-formed
+  token, as in `failed with HTTP 400 (MissingSessionID)`. The server's own message, the response
+  body and the URL path are never shown.
+- A failed `openai-compatible` request adds a next step: check that `baseUrl` is the API root on a
+  404 or 405, check the model and Chat Completions support on a 400 or 422. A 403 from any
+  provider says the server refused the request under its policy or the key's permissions.
+
 **openai-compatible**
 - Requests identify themselves with `User-Agent: verbatra` instead of the OpenAI SDK's default.

@@ -10,7 +10,7 @@ import {
 const TARGET = { locale: "de", key: "welcome" } as const;
 
 const REAL_RATE_LIMIT_NOTICE =
-  "A sub-batch of 1 entry failed (RATE_LIMITED: The translation provider rate-limited this request.) and was withheld; it will be retried next run.";
+  "A sub-batch of 1 entry failed (RATE_LIMITED: The translation provider rate-limited this request (HTTP 429).) and was withheld; it will be retried next run.";
 
 function locale(overrides: Partial<RunLocaleSummary> = {}): RunLocaleSummary {
   return {

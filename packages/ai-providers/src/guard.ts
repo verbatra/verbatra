@@ -1,9 +1,11 @@
 import {
   type ClassifiedProviderErrorCode,
   classifyProviderError,
+  getErrorStatus,
   isAbortError,
 } from "./error-classification.js";
 import { ProviderError } from "./errors.js";
+import { httpFailureMessage, vendorErrorTypeOf } from "./http-failure-message.js";
 import { findNetworkPolicyViolation } from "./network/guarded-fetch.js";
 import { describeNetworkCause, findNetworkCause } from "./network-cause.js";
 
@@ -46,6 +48,11 @@ function messageFor(
   error: unknown,
   context: ProviderCallContext | undefined,
 ): string {
+  const status = getErrorStatus(error);
+  if (status !== undefined) {
+    const failure = { status, vendorType: vendorErrorTypeOf(error) };
+    return httpFailureMessage(code, failure, context?.endpointHost, MESSAGE_BY_CODE[code]);
+  }
   return code === "PROVIDER_ERROR"
     ? providerErrorMessage(error, context?.endpointHost)
     : MESSAGE_BY_CODE[code];
