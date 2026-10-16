@@ -2225,12 +2225,9 @@ html:has(.vk-home) {
 }
 
 .vk-showcase {
-  margin-top: 1.75rem;
-  overflow: hidden;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  background: var(--v-void);
-  box-shadow: var(--shadow-panel);
+  position: relative;
+  margin-top: 1.25rem;
+  background: var(--surface-band);
 }
 
 .vk-showcase-try {
@@ -2242,26 +2239,42 @@ html:has(.vk-home) {
     "switch"
     "file"
     "outcome";
-  gap: 1px;
-  background: var(--border-default);
+  gap: 0.75rem;
 }
 
 .vk-showcase-bar {
   grid-area: bar;
   display: flex;
   flex-direction: column;
-  background: var(--v-void);
+  row-gap: 0.75rem;
 }
 
 .vk-showcase-scenarios {
-  display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  align-self: start;
   min-width: 0;
   margin: 0;
-  padding: 1rem;
-  border: 0;
-  background: var(--v-void);
+}
+
+@media (width < 40rem) {
+  .vk-showcase-scenarios {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-self: stretch;
+  }
+}
+
+.vk-showcase-scenario {
+  padding: 0.25rem 0.75rem;
+  text-align: start;
+  border-radius: var(--radius-segment);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.vk-showcase-scenario:hover {
+  color: var(--text-strong);
 }
 
 .vk-showcase-breaks {
@@ -2272,9 +2285,8 @@ html:has(.vk-home) {
   gap: 0.25rem 1rem;
   min-width: 0;
   margin: 0;
-  padding: 0.625rem 1rem;
+  padding: 0;
   border: 0;
-  background: var(--v-void);
   font-size: var(--text-sm);
   color: var(--text-muted);
 }
@@ -2314,7 +2326,6 @@ html:has(.vk-home) {
   gap: 0.5rem;
   box-sizing: content-box;
   min-height: 2.25rem;
-  padding: 0 1rem 1rem;
 }
 
 .vk-showcase-actions:not(:has(> :not([hidden]))) {
@@ -2322,9 +2333,9 @@ html:has(.vk-home) {
 }
 
 .vk-showcase-scenario[aria-pressed="true"] {
-  border-color: color-mix(in srgb, var(--v-glow) 55%, var(--border-default));
   background: var(--surface-card);
   color: var(--text-strong);
+  box-shadow: inset 0 -2px 0 var(--accent-fill);
 }
 
 .vk-showcase-scenario:focus-visible,
@@ -2340,9 +2351,8 @@ html:has(.vk-home) {
   gap: 0.25rem;
   min-width: 0;
   margin: 0;
-  padding: 0.5rem;
+  padding: 0;
   border: 0;
-  background: var(--v-void);
 }
 
 .vk-showcase-file-tab {
@@ -2374,21 +2384,31 @@ html:has(.vk-home) {
   display: none;
 }
 
+.vk-showcase-file,
+.vk-showcase-outcome {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  background: var(--v-void);
+}
+
 .vk-showcase-file {
   grid-area: file;
-  min-width: 0;
   margin: 0;
+}
+
+.vk-showcase-file > .vk-showcase-code {
   padding: 0.625rem 0.5rem;
-  background: var(--v-void);
 }
 
 .vk-showcase-file-name {
   display: none;
-  margin-bottom: 0.25rem;
-  padding-inline: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--border-default);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
-  color: var(--text-faint);
+  color: var(--text-muted);
 }
 
 .vk-showcase-code {
@@ -2465,9 +2485,7 @@ html:has(.vk-home) {
   display: flex;
   flex-direction: column;
   row-gap: 0.75rem;
-  min-width: 0;
   padding: 1rem;
-  background: var(--v-void);
 }
 
 .vk-showcase-output {
@@ -2532,6 +2550,8 @@ html:has(.vk-home) {
 .vk-showcase-result-title {
   min-height: calc(var(--showcase-summary-lines) * var(--leading-normal) * 1em);
   margin: 0;
+  padding-inline-start: 0.75rem;
+  border-inline-start: 2px solid var(--accent-fill);
   line-height: var(--leading-normal);
   text-wrap: pretty;
   font-weight: 600;
@@ -2539,6 +2559,7 @@ html:has(.vk-home) {
 }
 
 .vk-showcase-result-title[data-failed] {
+  border-inline-start-color: var(--v-danger);
   color: var(--text-danger);
 }
 
@@ -2562,12 +2583,10 @@ html:has(.vk-home) {
     align-items: center;
     justify-content: space-between;
     column-gap: 1rem;
-    padding: 0.75rem 1rem;
-    background: var(--v-void);
   }
 
   .vk-showcase-scenarios {
-    padding: 0;
+    margin: 0;
   }
 
   .vk-showcase-actions,
@@ -2606,7 +2625,7 @@ html:has(.vk-home) {
     min-height: calc(var(--showcase-rows) * var(--showcase-line) + var(--showcase-scroll-reserve));
   }
 
-  .vk-showcase-file {
+  .vk-showcase-file > .vk-showcase-code {
     padding-block: 0.75rem;
   }
 }
@@ -2615,7 +2634,6 @@ html:has(.vk-home) {
   .vk-showcase-bar {
     box-sizing: border-box;
     height: var(--showcase-bar-height);
-    padding: 0 0.625rem;
   }
 
   .vk-showcase-scenarios {

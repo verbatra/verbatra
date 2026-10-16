@@ -209,7 +209,11 @@ export function TryIt({ seed, rows }: { seed: ShowcaseOutcome; rows: ShowcaseRow
       }
     >
       <div className="vk-showcase-bar">
-        <fieldset className="vk-showcase-scenarios" onPointerEnter={prefetch} onFocus={prefetch}>
+        <fieldset
+          className="vk-showcase-scenarios vk-segmented"
+          onPointerEnter={prefetch}
+          onFocus={prefetch}
+        >
           <legend className="sr-only">{t("scenariosLabel")}</legend>
           {SHOWCASE_SCENARIOS.map((id, index) => (
             <button
@@ -217,7 +221,7 @@ export function TryIt({ seed, rows }: { seed: ShowcaseOutcome; rows: ShowcaseRow
               ref={index === 0 ? firstScenario : undefined}
               type="button"
               aria-pressed={failedScenario === null && outcome.scenario === id}
-              className={buttonClasses("secondary", "sm", "vk-showcase-scenario")}
+              className="vk-tap vk-showcase-scenario"
               onClick={() => run(id)}
             >
               {t(`scenarios.${id}`)}

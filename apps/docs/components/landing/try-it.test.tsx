@@ -167,10 +167,13 @@ describe("TryIt: two-by-two playground", () => {
   it("keeps Reset right after the scenarios at every width, so focus order matches the layout", () => {
     const doc = markup();
     const bar = doc.querySelector(".vk-showcase-bar");
-    expect([...(bar?.children ?? [])].map((child) => child.className)).toEqual([
+    expect([...(bar?.children ?? [])].map((child) => child.classList[0])).toEqual([
       "vk-showcase-scenarios",
       "vk-showcase-actions",
     ]);
+    expect(bar?.querySelector(".vk-showcase-scenarios")?.classList.contains("vk-segmented")).toBe(
+      true,
+    );
     expect(bar?.querySelector(".vk-showcase-actions .vk-showcase-reset")).not.toBeNull();
     expect(css).not.toMatch(/\.vk-showcase[^{]*\{[^}]*display: contents/);
     expect(css).toContain('"bar"\n    "breaks"\n    "switch"\n    "file"\n    "outcome";');

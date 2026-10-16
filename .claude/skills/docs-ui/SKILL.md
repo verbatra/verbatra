@@ -570,7 +570,11 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   `try-it.tsx`
   (the Try it demo, one `.vk-showcase-try` grid: from 40rem a scenario bar
   (`.vk-showcase-bar`) over a two-by-two board, `en.json` | `de.json` above `verbatra.lock.json` |
-  output, cells split by 1px hairlines; on a phone the bar is one column, the scenarios wrapping on
+  output, each pane its own `rounded-xl` void frame with a captioned file name over a hairline,
+  like the flow's code frames, on a `--surface-band` ground that hides the rail behind it; the
+  scenarios are one `.vk-segmented` switch (a 2-column grid under 40rem), its pressed button on
+  `--surface-card` with an inset `--accent-fill` underline, and the status sentence carries an
+  `--accent-fill` start bar (`--v-danger` after a failure); on a phone the bar is one column, the scenarios wrapping on
   top with the actions under them, then the file switch picks one file pane and the output sits
   under it at all times. The actions follow the scenarios in the DOM at every width, so the focus
   order is the visual order, and on a phone they take no row while nothing in them shows. The
