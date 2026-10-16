@@ -20,6 +20,13 @@ describe("versionAtLeast", () => {
     ["0.12.0-rc.1", "0.12.0", false],
     ["0.12.0", "0.12.0-rc.1", true],
     ["0.12.1-rc.1", "0.12.0", true],
+    ["0.12.0-rc.2", "0.12.0-rc.1", true],
+    ["0.12.0-rc.1", "0.12.0-rc.2", false],
+    ["0.12.0-rc.10", "0.12.0-rc.2", true],
+    ["0.12.0-rc.1", "0.12.0-rc.1", true],
+    ["0.12.0-beta.1", "0.12.0-rc.1", false],
+    ["0.12.0-rc", "0.12.0-rc.1", false],
+    ["0.12.0-rc.1", "0.12.0-1", true],
   ])("%s at least %s is %s", (version, minimum, expected) => {
     expect(versionAtLeast(version, minimum)).toBe(expected);
   });

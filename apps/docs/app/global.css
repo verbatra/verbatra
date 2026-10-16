@@ -2937,6 +2937,10 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   background: var(--compare-head);
 }
 
+.vk-compare-ref {
+  scroll-margin-inline: 0.25rem;
+}
+
 .vk-compare-ref:focus-visible {
   position: relative;
   z-index: 20;

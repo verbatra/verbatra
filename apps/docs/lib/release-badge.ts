@@ -22,25 +22,51 @@ export function featureReleaseBadge(feature: ReleaseFeature): string | null {
   return RELEASE_BADGE.features.includes(feature) ? RELEASE_BADGE.version : null;
 }
 
-const SEMVER = /^(\d+)\.(\d+)\.(\d+)(?:-(.+))?$/;
+const SEMVER = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/;
 
-type ParsedVersion = { readonly core: ReadonlyArray<number>; readonly prerelease: boolean };
+type ParsedVersion = {
+  readonly core: readonly [number, number, number];
+  readonly prerelease: ReadonlyArray<string>;
+};
 
 function parseVersion(version: string): ParsedVersion {
   const match = SEMVER.exec(version);
   if (match === null) throw new Error(`not a semantic version: ${version}`);
   return {
     core: [Number(match[1]), Number(match[2]), Number(match[3])],
-    prerelease: match[4] !== undefined,
+    prerelease: match[4] === undefined ? [] : match[4].split("."),
   };
 }
 
-export function versionAtLeast(version: string, minimum: string): boolean {
-  const actual = parseVersion(version);
-  const wanted = parseVersion(minimum);
-  for (let index = 0; index < 3; index += 1) {
-    const difference = (actual.core[index] ?? 0) - (wanted.core[index] ?? 0);
-    if (difference !== 0) return difference > 0;
+const NUMERIC = /^\d+$/;
+
+function compareIdentifier(left: string, right: string): number {
+  const leftNumeric = NUMERIC.test(left);
+  const rightNumeric = NUMERIC.test(right);
+  if (leftNumeric && rightNumeric) return Number(left) - Number(right);
+  if (leftNumeric !== rightNumeric) return leftNumeric ? -1 : 1;
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
+function comparePrerelease(left: ReadonlyArray<string>, right: ReadonlyArray<string>): number {
+  if (left.length === 0 || right.length === 0) return right.length - left.length;
+  for (let index = 0; index < Math.min(left.length, right.length); index += 1) {
+    const difference = compareIdentifier(left[index] as string, right[index] as string);
+    if (difference !== 0) return difference;
   }
-  return !actual.prerelease || wanted.prerelease;
+  return left.length - right.length;
+}
+
+function compareVersions(left: string, right: string): number {
+  const a = parseVersion(left);
+  const b = parseVersion(right);
+  for (const index of [0, 1, 2] as const) {
+    const difference = a.core[index] - b.core[index];
+    if (difference !== 0) return difference;
+  }
+  return comparePrerelease(a.prerelease, b.prerelease);
+}
+
+export function versionAtLeast(version: string, minimum: string): boolean {
+  return compareVersions(version, minimum) >= 0;
 }

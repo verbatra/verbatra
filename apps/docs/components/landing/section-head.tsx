@@ -30,13 +30,7 @@ type SectionHeadProps = {
   id?: string;
 };
 
-function HeadBlock({
-  title,
-  lead,
-  id,
-  shape,
-  extra,
-}: SectionHeadProps & { shape: HeadShape; extra?: ReactNode }): ReactNode {
+function HeadBlock({ title, lead, id, shape }: SectionHeadProps & { shape: HeadShape }): ReactNode {
   return (
     <div
       className={cn(
@@ -55,7 +49,6 @@ function HeadBlock({
       {lead ? (
         <p className={cn("vk-lead vk-section-head-lead", LEAD_MEASURE[shape])}>{lead}</p>
       ) : null}
-      {extra}
     </div>
   );
 }
@@ -80,19 +73,17 @@ export function SectionAside({
   title,
   lead,
   id,
-  aside,
   trailing,
   className,
   children,
 }: SectionHeadProps & {
-  aside?: ReactNode;
   trailing?: ReactNode;
   className?: string;
   children: ReactNode;
 }): ReactNode {
   return (
     <div className={cn("vk-section-aside vk-grid-12", className)}>
-      <HeadBlock title={title} lead={lead} id={id} shape="aside" extra={aside} />
+      <HeadBlock title={title} lead={lead} id={id} shape="aside" />
       <div className="vk-section-aside-content">{children}</div>
       {trailing}
     </div>

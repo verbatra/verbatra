@@ -10,6 +10,7 @@ import {
 } from "@/lib/landing-compare";
 import { cn } from "@/lib/utils";
 import { breakUrlsAtSlashes } from "@/lib/word-breaks";
+import { CompareFocus } from "./islands";
 
 export type CompareTranslator = Awaited<ReturnType<typeof getTranslations<"landing.compare">>>;
 
@@ -217,6 +218,7 @@ export function CompareRegion({
   return (
     <>
       <p className="vk-compare-hint text-sm text-(--text-muted)">{t("scrollHint")}</p>
+      <CompareFocus />
       <div className="relative min-w-0">
         <section
           // biome-ignore lint/a11y/noNoninteractiveTabindex: the table scrolls sideways on a phone, so the keyboard needs a stop to scroll it

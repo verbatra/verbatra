@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, type Page } from "playwright/test";
+import { expect, type Locator, type Page } from "playwright/test";
 import type { Locale } from "@/lib/i18n";
 import { THEME_STORAGE_KEY, THEMES, type ThemeName } from "@/lib/theme";
 
@@ -65,6 +65,17 @@ export async function expectNoHorizontalScroll(page: Page): Promise<void> {
   expect(overflow).toBeLessThanOrEqual(0);
 }
 
+export async function expectClearOfPinnedColumn(
+  row: Locator,
+  ref: Locator,
+  label: string,
+): Promise<void> {
+  const sticky = await row.locator("th").boundingBox();
+  const box = await ref.boundingBox();
+  if (!sticky || !box) throw new Error("a box is missing");
+  expect(box.x - 3, label).toBeGreaterThanOrEqual(sticky.x + sticky.width - 1);
+}
+
 export async function expectEdgeRefsReachable(page: Page, scope: string): Promise<void> {
   const region = page.locator(`${scope} [data-compare-scroll]`);
   const rows = await page.locator(`${scope} tbody tr[data-row]`).count();
@@ -73,9 +84,13 @@ export async function expectEdgeRefsReachable(page: Page, scope: string): Promis
       .locator(`${scope} tbody tr[data-row] >> nth=${row}`)
       .locator("[data-footnotes] a");
     const count = await refs.count();
-    await refs.nth(count - 2).focus();
-    await page.keyboard.press("Tab");
+    if (count === 0) continue;
     const last = refs.nth(count - 1);
+    if (count === 1) await last.focus();
+    else {
+      await refs.nth(count - 2).focus();
+      await page.keyboard.press("Tab");
+    }
     await expect(last).toBeFocused();
     await expect(page.locator(`${scope} .vk-compare-fade`)).toBeHidden();
     const frame = await region.boundingBox();

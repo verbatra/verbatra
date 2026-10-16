@@ -1,5 +1,6 @@
 import { expect, test } from "playwright/test";
 import {
+  expectClearOfPinnedColumn,
   expectEdgeRefsReachable,
   expectNoAxeViolations,
   expectNoHorizontalScroll,
@@ -94,7 +95,7 @@ test.describe("full comparison table", () => {
     await expectNoHorizontalScroll(page);
   });
 
-  for (const width of [1024, 1440]) {
+  for (const width of [375, 1024, 1440]) {
     test(`never lets the pinned column cover a footnote focused backwards at ${width}px`, async ({
       page,
     }) => {
@@ -106,12 +107,11 @@ test.describe("full comparison table", () => {
         await refs.last().focus();
         for (let index = (await refs.count()) - 1; index >= 0; index -= 1) {
           await expect(refs.nth(index)).toBeFocused();
-          const covered = await refs.nth(index).evaluate((ref) => {
-            const box = ref.getBoundingClientRect();
-            const hit = document.elementFromPoint(box.x + 1, box.y + box.height / 2);
-            return hit !== ref && !ref.contains(hit);
-          });
-          expect(covered, `row ${row} ref ${index}`).toBe(false);
+          await expectClearOfPinnedColumn(
+            rows.nth(row),
+            refs.nth(index),
+            `row ${row} ref ${index}`,
+          );
           if (index > 0) await page.keyboard.press("Shift+Tab");
         }
       }

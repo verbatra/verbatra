@@ -187,8 +187,7 @@ Scales are fixed and narrow, deliberately:
   `SectionAside` (same file) is the head beside its content: a `.vk-section-aside` `.vk-grid-12`
   with the stacked heading and lead (`data-layout="aside"`) in span 4 at the start and its
   `children` in `.vk-section-aside-content`, span 8, top-aligned; one column, head first, under
-  64rem: the marquee and the FAQ. Its optional `aside` renders under the lead in the head column;
-  its optional `trailing` renders after the content as a direct grid child (the FAQ's docs link
+  64rem: the marquee and the FAQ. Its optional `trailing` renders after the content as a direct grid child (the FAQ's docs link
   list, placed in the head column's second row from 64rem by `.vk-faq-aside`). `section-bands.test.tsx` renders each section and pins the head shape it
   draws, so the page never goes back to one head shape everywhere.
 - Landing surfaces: `--surface-band` (mixed from `--surface-card` and
@@ -411,8 +410,12 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   where the row headers drop to `--text-xs` with tighter inline padding so every criterion word
   fits unbroken in all four locales), which is
   also the region's `scroll-padding-inline-start`, so a focused link scrolls clear of the pinned
-  column; Chrome leaves a link that is only partly under it unscrolled, so a focused footnote link
-  (`.vk-compare-ref:focus-visible`) rises above the pinned column on the region surface; `scroll-padding-inline-end: 3rem` keeps a focused link at the end edge clear of the fade,
+  column; Chrome leaves a link that is only partly under it unscrolled, so the lazy `CompareFocus`
+  island (`compare-focus.tsx`, one `focusin` listener) scrolls a control focused inside the region
+  with `scrollIntoView` at `nearest`, which honours that padding and the footnote link's 0.25rem
+  `scroll-margin-inline` (room for its focus ring), and `e2e/compare-page.spec.ts` checks the
+  geometry, not a hit test; the focused link (`.vk-compare-ref:focus-visible`) still sits above the
+  pinned column on the region surface; `scroll-padding-inline-end: 3rem` keeps a focused link at the end edge clear of the fade,
   and the fade is dropped (`display: none`) while the region holds focus. A row header breaks a
   long word (`overflow-wrap: anywhere`; never `hyphens: auto`, which `lib/theme.test.ts` bans), and a
   pill in a cell wraps inside it. A thin scrollbar thumb, here and on every other sideways

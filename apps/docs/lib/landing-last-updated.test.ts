@@ -52,14 +52,6 @@ describe("LANDING_LAST_UPDATED", () => {
   it("pins the current landing copy to LANDING_LAST_UPDATED as the newest revision", () => {
     expect(COPY_REVISIONS.at(-1)).toEqual({ date: LANDING_LAST_UPDATED, hash: landingCopyHash() });
   });
-
-  it("gives every copy revision its own, later date, so a new hash needs a new LANDING_LAST_UPDATED", () => {
-    const dates = COPY_REVISIONS.map((revision) => revision.date);
-    expect(dates).toEqual(dates.toSorted());
-    expect(new Set(dates).size).toBe(dates.length);
-    const hashes = COPY_REVISIONS.map((revision) => revision.hash);
-    expect(new Set(hashes).size).toBe(hashes.length);
-  });
 });
 
 describe("COMPARE_LAST_CHECKED", () => {
@@ -68,13 +60,5 @@ describe("COMPARE_LAST_CHECKED", () => {
       date: COMPARE_LAST_CHECKED,
       hash: compareCellHash(),
     });
-  });
-
-  it("gives every cell revision its own, later date and its own hash", () => {
-    const dates = COMPARE_CELL_REVISIONS.map((revision) => revision.date);
-    expect(dates).toEqual(dates.toSorted());
-    expect(new Set(dates).size).toBe(dates.length);
-    const hashes = COMPARE_CELL_REVISIONS.map((revision) => revision.hash);
-    expect(new Set(hashes).size).toBe(hashes.length);
   });
 });

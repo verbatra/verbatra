@@ -125,6 +125,18 @@ describe("the landing faq markup", () => {
   it("leaves a modified arrow, Home or End key to the browser", async () => {
     const container = await render("en");
     const list = questions(container);
+    await vi.waitFor(() => {
+      list[0]?.focus();
+      press(list[0] as HTMLElement, "End");
+      expect(document.activeElement).toBe(list.at(-1));
+    });
+    const control = new KeyboardEvent("keydown", { key: "End", bubbles: true, cancelable: true });
+    list[0]?.focus();
+    act(() => {
+      list[0]?.dispatchEvent(control);
+    });
+    expect(control.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(list.at(-1));
     list[0]?.focus();
     for (const modifier of ["ctrlKey", "metaKey", "altKey", "shiftKey"] as const) {
       const event = new KeyboardEvent("keydown", {
@@ -139,6 +151,16 @@ describe("the landing faq markup", () => {
       expect(event.defaultPrevented, modifier).toBe(false);
       expect(document.activeElement).toBe(list[0]);
     }
+    const unmodified = new KeyboardEvent("keydown", {
+      key: "End",
+      bubbles: true,
+      cancelable: true,
+    });
+    act(() => {
+      list[0]?.dispatchEvent(unmodified);
+    });
+    expect(unmodified.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(list.at(-1));
   });
 
   it("stays a server section that loads its keyboard helper as a lazy island", () => {
