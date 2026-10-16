@@ -525,7 +525,7 @@
         "inContext": {
           "label": "In-Context-Bearbeitung",
           "verbatra": "Nein",
-          "lingo": "Unbekannt: weder in der Plattform-Doku noch im Repository erwähnt",
+          "lingo": "Unbekannt: weder in der Plattform-Doku noch in der README des Repositorys erwähnt",
           "tolgee": "Ja, Alt-Klick oder Wahltaste-Klick auf ein Element öffnet den Editor",
           "weblate": "Kein offizieller In-Context-Editor gefunden",
           "crowdin": "Ja, Crowdin In-Context",
@@ -591,10 +591,10 @@
     "meta": {
       "title": "Verbatra im Vergleich: Lingo.dev, Tolgee, Crowdin und mehr",
       "description": "Verbatra, Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise und Phrase: Lizenz, Provider, eigene API-Keys, CI, MCP und Formate, jeweils mit datierter Quelle.",
-      "ogImageAlt": "So schneidet Verbatra im Vergleich ab, mit dem verbatra-Schriftzug"
+      "ogImageAlt": "Verbatra im Vergleich, mit dem verbatra-Schriftzug"
     },
     "heading": "Verbatra im Vergleich",
-    "lead": "Verbatra neben Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise, Phrase und einem manuellen Ablauf. Jede Zelle gibt wieder, was die eigenen Seiten des Anbieters sagten, und verlinkt ihre Quelle.",
+    "lead": "Verbatra neben Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise, Phrase und einem manuellen Ablauf. Jede Zelle eines Produkts gibt wieder, was die eigenen Seiten des Anbieters sagten, und verlinkt ihre Quelle; die manuelle Spalte verweist auf die Anmerkung M.",
     "caption": "Wege, Locale-Dateien übersetzt zu halten: Verbatra, Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise, Phrase und ein manueller Ablauf",
     "lingoNote": "Die Lingo.dev-Zellen beziehen sich auf die aktuelle `@lingo.dev/cli` und die gehostete Plattform, sofern sie nicht die ältere Open-Source-CLI `lingo.dev` nennen.",
     "formatsNote": "Die Anzahl der Formate stammt aus der eigenen Liste jedes Anbieters und ist nicht untereinander vereinheitlicht.",

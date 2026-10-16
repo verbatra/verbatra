@@ -525,7 +525,7 @@
         "inContext": {
           "label": "Edición en contexto",
           "verbatra": "No disponible",
-          "lingo": "Desconocido: no se menciona en la documentación de la plataforma ni en el repositorio",
+          "lingo": "Desconocido: no se menciona en la documentación de la plataforma ni en el README del repositorio",
           "tolgee": "Sí, Alt+clic u Opción+clic en un elemento abre el editor",
           "weblate": "No se encontró un editor en contexto oficial",
           "crowdin": "Sí, Crowdin In-Context",
@@ -590,11 +590,11 @@
   "compare": {
     "meta": {
       "title": "Compara Verbatra con Lingo.dev, Tolgee, Crowdin y otros",
-      "description": "Verbatra frente a Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise y Phrase: licencia, proveedores, claves de API, CI, MCP y formatos, con fuente fechada.",
+      "description": "Verbatra frente a Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise y Phrase: licencia, proveedores, tus propias claves de API, CI, MCP y formatos, con fuentes.",
       "ogImageAlt": "Cómo se compara Verbatra, con el logotipo de verbatra"
     },
     "heading": "Cómo se compara Verbatra",
-    "lead": "Verbatra junto a Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise, Phrase y un flujo manual. Cada celda recoge lo que decían las propias páginas del proveedor y enlaza su fuente.",
+    "lead": "Verbatra junto a Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise, Phrase y un flujo manual. Cada celda de un producto recoge lo que decían las propias páginas del proveedor y enlaza su fuente; la columna manual remite a la nota M.",
     "caption": "Formas de mantener traducidos los archivos de locale: Verbatra, Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise, Phrase y un flujo manual",
     "lingoNote": "Las celdas de Lingo.dev se refieren a la CLI actual `@lingo.dev/cli` y a la plataforma alojada, salvo que nombren la CLI de código abierto anterior `lingo.dev`.",
     "formatsNote": "El número de formatos procede de la propia lista de cada proveedor y no está normalizado entre ellos.",

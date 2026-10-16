@@ -578,7 +578,7 @@
         "inContext": {
           "label": "In-context editing",
           "verbatra": "No",
-          "lingo": "Unknown: not mentioned in the platform docs or the repository",
+          "lingo": "Unknown: not mentioned in the platform docs or the repository README",
           "tolgee": "Yes, Alt-click or Option-click on an element opens the editor",
           "weblate": "No official in-context editor found",
           "crowdin": "Yes, Crowdin In-Context",
@@ -647,7 +647,7 @@
       "ogImageAlt": "How Verbatra compares, with the verbatra wordmark"
     },
     "heading": "How Verbatra compares",
-    "lead": "Verbatra next to Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise, Phrase and a manual workflow. Every cell says what the vendor's own pages stated and links its source.",
+    "lead": "Verbatra next to Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise, Phrase and a manual workflow. Every product cell says what the vendor's own pages stated and links its source; the manual column cites note M.",
     "caption": "Ways to keep locale files translated: Verbatra, Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise, Phrase and a manual workflow",
     "lingoNote": "Lingo.dev cells refer to the current `@lingo.dev/cli` and the hosted platform unless they name the older open source CLI `lingo.dev`.",
     "formatsNote": "Format counts come from each vendor's own list and are not normalized against each other.",

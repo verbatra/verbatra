@@ -525,7 +525,7 @@
         "inContext": {
           "label": "Édition en contexte",
           "verbatra": "Non",
-          "lingo": "Inconnu : non mentionné dans la documentation de la plateforme ni dans le dépôt",
+          "lingo": "Inconnu : non mentionné dans la documentation de la plateforme ni dans le README du dépôt",
           "tolgee": "Oui, Alt+clic ou Option+clic sur un élément ouvre l’éditeur",
           "weblate": "Aucun éditeur en contexte officiel trouvé",
           "crowdin": "Oui, Crowdin In-Context",
@@ -540,7 +540,7 @@
           "tolgee": "Oui, la plateforme web, hébergée ou auto-hébergée",
           "weblate": "Oui, une interface web de traduction",
           "crowdin": "Oui, l’éditeur en ligne dans le navigateur",
-          "lokalise": "Éditeur de clés du projet documenté ; la page ne précise pas qu’il est en ligne",
+          "lokalise": "Éditeur de clés du projet documenté ; la page ne précise pas qu’il s’utilise dans le navigateur",
           "phrase": "Oui, le Strings Editor dans le navigateur",
           "manual": "L’interface du service choisi, pas de produit"
         },
@@ -590,11 +590,11 @@
   "compare": {
     "meta": {
       "title": "Compare Verbatra à Lingo.dev, Tolgee, Crowdin et d’autres",
-      "description": "Verbatra face à Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise et Phrase : licence, fournisseurs, clés d’API, CI, MCP et formats, chacun avec une source datée.",
+      "description": "Verbatra face à Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise et Phrase : licence, fournisseurs, tes propres clés d’API, CI, MCP et formats, avec source datée.",
       "ogImageAlt": "Comment Verbatra se compare, avec le logo verbatra"
     },
     "heading": "Comment Verbatra se compare",
-    "lead": "Verbatra à côté de Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise, Phrase et d’un processus manuel. Chaque cellule reprend ce que disaient les propres pages de l’éditeur et renvoie à sa source.",
+    "lead": "Verbatra à côté de Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise, Phrase et d’un processus manuel. Chaque cellule d’un produit reprend ce que disaient les propres pages de l’éditeur et renvoie à sa source ; la colonne manuelle renvoie à la note M.",
     "caption": "Façons de garder les fichiers de locale traduits : Verbatra, Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise, Phrase et un processus manuel",
     "lingoNote": "Les cellules Lingo.dev concernent la CLI actuelle `@lingo.dev/cli` et la plateforme hébergée, sauf si elles nomment l’ancienne CLI open source `lingo.dev`.",
     "formatsNote": "Le nombre de formats provient de la propre liste de chaque éditeur et n’est pas harmonisé entre eux.",
