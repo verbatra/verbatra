@@ -345,7 +345,8 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   `BENTO_TILES` in `lib/landing-bento.ts`, in reading order: the head is an `inline` `SectionHead`
   in `.vk-bento-head`, span 4 from 64rem beside the keys tile, and above the tiles under 64rem,
   where its `margin-block-end` tops the grid gap up to `--head-gap`. Each tile carries
-  `span: { lg, xl? }` (`--grid-span` per breakpoint) and the same `data-reveal` step. The keys tile
+  `span: { lg, xl? }` (`--grid-span` per breakpoint); only the first row's two tiles carry a
+  `data-reveal` step. The keys tile
   leads (span 8: a `figure` with a `dl` pairing each provider's short label with its
   `BENTO_KEY_ENV_VARS` name, pinned to `packages/ai-providers/src/key-env-vars.ts`, the optional
   ones marked, the `apiKeyEnvVar` alternative noted where `configurable`, a provider that
@@ -667,7 +668,8 @@ reserved for client islands (see "The stack").
   moving into a block that has not revealed yet shows it at once (`:focus-within`). The delay is
   `n * --reveal-stagger`, capped at `--reveal-delay-max`. Only the demo artifacts of four sections
   carry a mark: the Try it panel in the feature flow, the problem (its artifact, then its list), the
-  bento tiles (each tile marked on the same step, the head beside them never) and the code showcase. No section heading reveals (`SectionHead` takes no reveal
+  bento's first row (the keys and provider tiles, on one step; the head beside them and the
+  later tiles never) and the code showcase. No section heading reveals (`SectionHead` takes no reveal
   prop), and the hero, marquee, SDK playground, proof strip, comparison, open source, FAQ
   and closing panel never take a reveal; nothing else in the flow does either; the hero diff's fill and the marquee loop below are their own
   motions, not reveals. Elements keep their box while hidden, so a reveal never moves layout.

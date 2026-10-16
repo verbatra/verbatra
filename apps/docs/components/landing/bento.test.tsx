@@ -78,6 +78,9 @@ describe("Bento", () => {
     expect(tiles.map((node) => node.dataset.tile)).toEqual(BENTO_TILES.map((t) => t.key));
     expect(tiles.every((node) => node.parentElement === grid)).toBe(true);
     expect(tiles.every((node) => node.querySelector("[data-reveal]") === null)).toBe(true);
+    expect(
+      tiles.filter((node) => node.hasAttribute("data-reveal")).map((n) => n.dataset.tile),
+    ).toEqual(["keys", "providers"]);
     expect(head?.hasAttribute("data-reveal")).toBe(false);
     expect(root.innerHTML).not.toContain("dense");
   });

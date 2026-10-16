@@ -80,6 +80,8 @@ const TILE_CLASS =
 const STRIP_CLASS =
   "vk-grid-12 min-w-0 border-t border-(--border-default) pt-6 sm:pt-8 lg:items-baseline";
 
+const BENTO_REVEALED_TILES = 2;
+
 const LINK_ROW = "flex flex-wrap gap-x-5 gap-y-2 text-sm";
 
 const captionId = (artifact: string) => `bento-${artifact}-caption`;
@@ -376,6 +378,27 @@ const TILE_BODY: Readonly<
   frameworks: FrameworksStrip,
 };
 
+function TileCell({
+  tile,
+  revealed,
+  children,
+}: {
+  tile: BentoTile;
+  revealed: boolean;
+  children: ReactNode;
+}): ReactNode {
+  const className = `${tile.key === "frameworks" ? STRIP_CLASS : TILE_CLASS} ${spanClass(tile.span)}`;
+  return revealed ? (
+    <div data-tile={tile.key} data-reveal="2" className={className}>
+      {children}
+    </div>
+  ) : (
+    <div data-tile={tile.key} className={className}>
+      {children}
+    </div>
+  );
+}
+
 export async function Bento(): Promise<ReactNode> {
   const t = await getTranslations("landing.bento");
   const locale = toLocale(await getLocale());
@@ -400,14 +423,9 @@ export async function Bento(): Promise<ReactNode> {
           />
         </div>
         {BENTO_TILES.map((tile, index) => (
-          <div
-            key={tile.key}
-            data-tile={tile.key}
-            data-reveal="2"
-            className={`${tile.key === "frameworks" ? STRIP_CLASS : TILE_CLASS} ${spanClass(tile.span)}`}
-          >
+          <TileCell key={tile.key} tile={tile} revealed={index < BENTO_REVEALED_TILES}>
             {bodies[index]}
-          </div>
+          </TileCell>
         ))}
       </div>
     </Section>
