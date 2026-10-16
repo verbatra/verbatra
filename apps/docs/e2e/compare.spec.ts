@@ -149,3 +149,26 @@ for (const width of [375, 1024]) {
     await expectBackwardWalkClearsHeader(page, COMPARE);
   });
 }
+
+for (const locale of LOCALES) {
+  test(`tops the comparison head and keeps its lead to three lines at 1440px in ${locale}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(homeUrl(locale));
+    const metrics = await page.locator(`${COMPARE} .vk-section-head`).evaluate((head) => {
+      const title = head.querySelector("h2")?.getBoundingClientRect();
+      const lead = head.querySelector(".vk-section-head-lead");
+      const box = lead?.getBoundingClientRect();
+      const lineHeight = lead ? Number.parseFloat(getComputedStyle(lead).lineHeight) : 0;
+      return {
+        titleTop: title?.top ?? 0,
+        leadTop: box?.top ?? 0,
+        lines: box && lineHeight > 0 ? Math.round(box.height / lineHeight) : 0,
+      };
+    });
+    expect(Math.abs(metrics.titleTop - metrics.leadTop)).toBeLessThanOrEqual(12);
+    expect(metrics.lines).toBeGreaterThan(0);
+    expect(metrics.lines).toBeLessThanOrEqual(3);
+  });
+}

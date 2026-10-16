@@ -383,7 +383,7 @@
     },
     "compare": {
       "heading": "Verbatra face aux autres approches.",
-      "lead": "Les critères qui décident comment une équipe garde ses fichiers de locale traduits. Chaque cellule d’un produit est tirée des pages de l’éditeur et reliée à sa source dans la comparaison complète ; la colonne manuelle renvoie à la note M.",
+      "lead": "Chaque cellule vient des pages de l’éditeur et renvoie à sa source ; la colonne manuelle cite la note M.",
       "caption": "Façons de garder les fichiers de locale traduits : Verbatra, Lingo.dev, Tolgee, systèmes de gestion de traduction hébergés et un processus manuel",
       "columns": {
         "criterion": "Critère",

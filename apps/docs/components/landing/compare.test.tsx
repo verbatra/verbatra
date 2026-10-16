@@ -179,6 +179,7 @@ describe("Compare", () => {
   it("opens with a split head that carries a lead", () => {
     const head = root.querySelector(".vk-section-head");
     expect(head?.getAttribute("data-layout")).toBe("split");
+    expect(head?.getAttribute("data-align")).toBe("start");
     expect(head?.querySelector(".vk-section-head-lead")?.textContent).toBe(copy.lead);
   });
 

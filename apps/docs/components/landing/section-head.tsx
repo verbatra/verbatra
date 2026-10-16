@@ -30,7 +30,15 @@ type SectionHeadProps = {
   id?: string;
 };
 
-function HeadBlock({ title, lead, id, shape }: SectionHeadProps & { shape: HeadShape }): ReactNode {
+type HeadAlign = "end" | "start";
+
+function HeadBlock({
+  title,
+  lead,
+  id,
+  shape,
+  align = "end",
+}: SectionHeadProps & { shape: HeadShape; align?: HeadAlign | undefined }): ReactNode {
   return (
     <div
       className={cn(
@@ -40,6 +48,7 @@ function HeadBlock({ title, lead, id, shape }: SectionHeadProps & { shape: HeadS
         shape === "aside" && "vk-section-head-aside",
       )}
       data-layout={shape}
+      data-align={shape === "split" && align === "start" ? "start" : undefined}
     >
       <div className="vk-section-head-title">
         <h2 id={id} className={cn("vk-h2", TITLE_MEASURE[shape])}>
@@ -58,13 +67,15 @@ export function SectionHead({
   lead,
   id,
   layout = "split",
-}: SectionHeadProps & { layout?: SectionHeadLayout }): ReactNode {
+  align,
+}: SectionHeadProps & { layout?: SectionHeadLayout; align?: HeadAlign }): ReactNode {
   return (
     <HeadBlock
       title={title}
       lead={lead}
       id={id}
       shape={resolvedLayout(layout, lead !== undefined)}
+      align={align}
     />
   );
 }

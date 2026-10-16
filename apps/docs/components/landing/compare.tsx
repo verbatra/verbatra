@@ -22,7 +22,7 @@ export async function Compare(): Promise<ReactNode> {
 
   return (
     <Section band id="compare" labelledBy="compare-heading">
-      <SectionHead id="compare-heading" title={t("heading")} lead={t("lead")} />
+      <SectionHead id="compare-heading" title={t("heading")} lead={t("lead")} align="start" />
       <div className="vk-compare not-prose mt-(--head-gap) grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4">
         <CompareRegion
           t={t}

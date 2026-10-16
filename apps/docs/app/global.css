@@ -624,6 +624,14 @@ html.light {
     align-items: end;
   }
 
+  .vk-section-head[data-align="start"] {
+    align-items: start;
+  }
+
+  .vk-section-head[data-align="start"] .vk-section-head-lead {
+    padding-block-end: 0;
+  }
+
   .vk-section-head-title {
     --grid-span: 8;
   }
