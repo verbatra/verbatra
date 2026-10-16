@@ -11,6 +11,8 @@
 *.log
 .env
 .env.*
+**/.env
+**/.env.*
 .changeset
 
 # Local-only planning material (root-anchored; does not match apps/docs).
