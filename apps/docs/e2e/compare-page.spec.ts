@@ -1,7 +1,9 @@
 import { expect, test } from "playwright/test";
 import {
+  expectEdgeRefsReachable,
   expectNoAxeViolations,
   expectNoHorizontalScroll,
+  expectStickyLabelsFit,
   LOCALES,
   openInTheme,
   pageUrl,
@@ -65,6 +67,7 @@ for (const locale of LOCALES) {
       await page.setViewportSize({ width: 320, height: 800 });
       await page.goto(url);
       await expectNoHorizontalScroll(page);
+      await expectStickyLabelsFit(page, "main");
       const overflow = await page
         .locator(REGION)
         .evaluate((node) => node.scrollWidth - node.clientWidth);
@@ -92,24 +95,61 @@ test.describe("full comparison table", () => {
   });
 
   for (const width of [1024, 1440]) {
-    test(`keeps every focused footnote clear of the pinned column at ${width}px`, async ({
+    test(`never lets the pinned column cover a footnote focused backwards at ${width}px`, async ({
       page,
     }) => {
       await page.setViewportSize({ width, height: 900 });
       await page.goto("/compare");
-      const sticky = await page.locator("main tbody tr:first-child th").boundingBox();
-      const refs = page.locator('main tr[data-row="license"] td [data-footnotes] a');
-      await refs.last().focus();
-      for (let index = (await refs.count()) - 1; index >= 0; index -= 1) {
-        await expect(refs.nth(index)).toBeFocused();
-        const box = await refs.nth(index).boundingBox();
-        expect(box?.x ?? 0, `ref ${index}`).toBeGreaterThanOrEqual(
-          (sticky?.x ?? 0) + (sticky?.width ?? 0) - 1,
-        );
-        if (index > 0) await page.keyboard.press("Shift+Tab");
+      const rows = page.locator("main tbody tr[data-row]");
+      for (let row = 0; row < (await rows.count()); row += 1) {
+        const refs = rows.nth(row).locator("[data-footnotes] a");
+        await refs.last().focus();
+        for (let index = (await refs.count()) - 1; index >= 0; index -= 1) {
+          await expect(refs.nth(index)).toBeFocused();
+          const covered = await refs.nth(index).evaluate((ref) => {
+            const box = ref.getBoundingClientRect();
+            const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+            return hit !== ref && !ref.contains(hit);
+          });
+          expect(covered, `row ${row} ref ${index}`).toBe(false);
+          if (index > 0) await page.keyboard.press("Shift+Tab");
+        }
       }
     });
   }
+
+  for (const width of [375, 1440]) {
+    test(`tabs to the last footnote of every row fully into view at ${width}px`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/compare");
+      await expectEdgeRefsReachable(page, "main");
+    });
+  }
+
+  test("pins an 11rem criterion column and keeps every pill inside its cell at 1440px", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/compare");
+    const sticky = await page.locator("main tbody tr:first-child th").boundingBox();
+    expect(Math.abs((sticky?.width ?? 0) - 11 * 16)).toBeLessThan(1);
+    const outside = await page.locator("main td .vk-available-from").evaluateAll(
+      (pills) =>
+        pills.filter((pill) => {
+          const cell = pill.closest("td")?.getBoundingClientRect();
+          const box = pill.getBoundingClientRect();
+          return cell === undefined || box.right > cell.right + 0.5;
+        }).length,
+    );
+    expect(outside).toBe(0);
+  });
+
+  test("tints a followed source with its number inside the tint", async ({ page }) => {
+    await page.goto("/compare#source-6");
+    await expect(page.locator("#source-6")).toHaveCSS("list-style-position", "inside");
+  });
 
   test("tells a wide screen that the table scrolls sideways", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });

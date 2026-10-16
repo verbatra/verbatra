@@ -488,7 +488,7 @@
     },
     "compare": {
       "heading": "How Verbatra compares.",
-      "lead": "The criteria that decide how a team keeps its locale files translated, each answered from the vendor's own pages and linked to the source on the full comparison.",
+      "lead": "The criteria that decide how a team keeps its locale files translated. Each product cell is answered from the vendor's own pages and linked to its source on the full comparison; the manual column cites note M.",
       "caption": "Ways to keep locale files translated: Verbatra, Lingo.dev, Tolgee, hosted translation management systems and a manual workflow",
       "columns": {
         "criterion": "Criterion",

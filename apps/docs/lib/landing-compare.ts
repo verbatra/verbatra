@@ -456,4 +456,4 @@ export const CONCESSION_FOOTNOTES: ReadonlyArray<CompareFootnote> = [
   ...["tolgee" as const, ...HOSTED_TMS_TOOLS].map((tool) => cellFootnote("inContext", tool)),
   cellFootnote("inContext", "verbatra"),
   cellFootnote("translatorUi", "verbatra"),
-];
+].toSorted((a, b) => Number(a) - Number(b));

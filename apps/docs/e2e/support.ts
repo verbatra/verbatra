@@ -64,3 +64,43 @@ export async function expectNoHorizontalScroll(page: Page): Promise<void> {
   });
   expect(overflow).toBeLessThanOrEqual(0);
 }
+
+export async function expectEdgeRefsReachable(page: Page, scope: string): Promise<void> {
+  const region = page.locator(`${scope} [data-compare-scroll]`);
+  const rows = await page.locator(`${scope} tbody tr[data-row]`).count();
+  for (let row = 0; row < rows; row += 1) {
+    const refs = page
+      .locator(`${scope} tbody tr[data-row] >> nth=${row}`)
+      .locator("[data-footnotes] a");
+    const count = await refs.count();
+    await refs.nth(count - 2).focus();
+    await page.keyboard.press("Tab");
+    const last = refs.nth(count - 1);
+    await expect(last).toBeFocused();
+    await expect(page.locator(`${scope} .vk-compare-fade`)).toBeHidden();
+    const frame = await region.boundingBox();
+    const sticky = await page
+      .locator(`${scope} tbody tr[data-row] >> nth=${row}`)
+      .locator("th")
+      .boundingBox();
+    const box = await last.boundingBox();
+    if (!frame || !sticky || !box) throw new Error("a box is missing");
+    expect(box.x - 3, `row ${row}`).toBeGreaterThanOrEqual(sticky.x + sticky.width - 1);
+    expect(box.x + box.width + 3, `row ${row}`).toBeLessThanOrEqual(frame.x + frame.width + 0.5);
+  }
+}
+
+export async function expectStickyLabelsFit(page: Page, scope: string): Promise<void> {
+  const overflowing = await page.locator(`${scope} .vk-compare-sticky`).evaluateAll((cells) =>
+    cells
+      .filter((cell) => {
+        const node = cell as HTMLElement;
+        node.style.overflowWrap = "normal";
+        const overflows = node.scrollWidth > node.clientWidth + 0.5;
+        node.style.overflowWrap = "";
+        return overflows;
+      })
+      .map((cell) => cell.textContent),
+  );
+  expect(overflowing).toEqual([]);
+}

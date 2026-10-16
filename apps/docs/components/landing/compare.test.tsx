@@ -41,6 +41,7 @@ vi.mock("next-intl/server", async () => {
 });
 
 const { Compare } = await import("./compare");
+const { TextWithRefs } = await import("./compare-table");
 
 const copy = en.landing.compare;
 
@@ -163,6 +164,18 @@ describe("Compare", () => {
     }
   });
 
+  it("keeps a closing quote or other punctuation-only tail with the word before it", () => {
+    for (const [text, glued] of [
+      ["limited to \u00ab Untranslated strings \u00bb", "strings \u00bb"],
+      ["ends in a word", "word"],
+      ["a note (see M )", "M )"],
+    ] as const) {
+      const holder = document.createElement("div");
+      holder.innerHTML = renderToStaticMarkup(<TextWithRefs text={text} refs={<sup>1</sup>} />);
+      expect(holder.querySelector(".whitespace-nowrap")?.textContent).toBe(`${glued}1`);
+    }
+  });
+
   it("opens with a split head that carries a lead", () => {
     const head = root.querySelector(".vk-section-head");
     expect(head?.getAttribute("data-layout")).toBe("split");
@@ -175,9 +188,9 @@ describe("Compare", () => {
     expect(root.querySelector("[data-fairness]")?.textContent).toBe(copy.fairness);
     const concession = root.querySelector("[data-concession]");
     expect(concession?.textContent).toContain(copy.concession);
-    expect([...(concession?.querySelectorAll("a") ?? [])].map((a) => a.textContent)).toEqual(
-      CONCESSION_FOOTNOTES.map(String),
-    );
+    const refs = [...(concession?.querySelectorAll("a") ?? [])].map((a) => Number(a.textContent));
+    expect(refs).toEqual(CONCESSION_FOOTNOTES.map(Number));
+    expect(refs).toEqual(refs.toSorted((a, b) => a - b));
   });
 
   it("links the full comparison page in the visitor's locale", () => {

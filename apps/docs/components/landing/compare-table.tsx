@@ -20,7 +20,7 @@ const SOURCES_ID = "compare-sources-heading";
 const REF_CLASS =
   "vk-compare-ref inline-flex min-h-6 min-w-6 items-center justify-center rounded-sm px-1 font-mono text-xs text-(--accent) underline decoration-(--accent)/40 underline-offset-2 hover:decoration-(--accent) focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--focus-ring)";
 
-const NO_BREAK_SPACE = " ";
+const NO_BREAK_SPACE = "\u00a0";
 
 function footnoteId(footnote: CompareFootnote): string {
   return `source-${footnote === "M" ? "m" : footnote}`;
@@ -80,7 +80,7 @@ export function SourceList({
       {intro}
       <ol
         aria-labelledby={SOURCES_ID}
-        className="list-decimal gap-x-10 ps-8 text-xs leading-relaxed text-(--text-muted) lg:columns-2"
+        className="list-inside list-decimal gap-x-10 text-xs leading-relaxed text-(--text-muted) lg:columns-2"
       >
         {footnotes.map((footnote) => {
           const source = compareSource(footnote);
@@ -89,7 +89,7 @@ export function SourceList({
               key={footnote}
               id={footnoteId(footnote)}
               value={footnote}
-              className="vk-compare-source mb-2 min-w-0 break-inside-avoid ps-1"
+              className="vk-compare-source mb-2 min-w-0 break-inside-avoid ps-8 -indent-8"
             >
               <span className="text-(--text-body)">{COMPARE_TOOL_NAMES[source.tool]}: </span>
               {source.urls.map((link, index) => {
@@ -133,8 +133,13 @@ type CompareTableRow = {
   readonly cells: ReadonlyArray<CompareCellContent>;
 };
 
+const WORD_CHARACTER = /[\p{L}\p{N}]/u;
+
 function splitLastWord(text: string): readonly [string, string] {
-  const index = text.lastIndexOf(" ");
+  let index = text.lastIndexOf(" ");
+  while (index > 0 && !WORD_CHARACTER.test(text.slice(index + 1))) {
+    index = text.lastIndexOf(" ", index - 1);
+  }
   const tail = text.slice(index + 1);
   if (tail.split("`").length % 2 === 0) return [text, ""];
   return [text.slice(0, index + 1), tail];
@@ -240,7 +245,7 @@ export function CompareRegion({
                     scope="col"
                     data-column={column.id}
                     className={cn(
-                      "px-4 py-3 align-bottom text-sm font-semibold",
+                      "px-4 py-3 align-bottom text-sm font-medium",
                       column.id === "verbatra"
                         ? "vk-compare-mark text-(--accent)"
                         : "text-(--text-strong)",

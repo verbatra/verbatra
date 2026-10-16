@@ -435,7 +435,7 @@
     },
     "compare": {
       "heading": "So schneidet Verbatra im Vergleich ab.",
-      "lead": "Die Kriterien, die entscheiden, wie ein Team seine Locale-Dateien übersetzt hält, jeweils aus den eigenen Seiten des Anbieters beantwortet und im vollständigen Vergleich mit der Quelle verlinkt.",
+      "lead": "Die Kriterien, die entscheiden, wie ein Team seine Locale-Dateien übersetzt hält. Jede Zelle eines Produkts ist aus den eigenen Seiten des Anbieters beantwortet und im vollständigen Vergleich mit ihrer Quelle verlinkt; die manuelle Spalte verweist auf die Anmerkung M.",
       "caption": "Wege, Locale-Dateien übersetzt zu halten: Verbatra, Lingo.dev, Tolgee, gehostete Übersetzungsmanagementsysteme und ein manueller Ablauf",
       "columns": {
         "criterion": "Kriterium",

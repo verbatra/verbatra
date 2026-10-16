@@ -96,7 +96,7 @@ describe("the comparison data", () => {
   });
 
   it("backs the concession with every in-context source, Tolgee's included, and Verbatra's own", () => {
-    expect(CONCESSION_FOOTNOTES).toEqual([34, 58, 70, 82, 10, 11]);
+    expect(CONCESSION_FOOTNOTES).toEqual([10, 11, 34, 58, 70, 82]);
   });
 
   it("dates the check as a real ISO day", () => {

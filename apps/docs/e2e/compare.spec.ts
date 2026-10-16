@@ -1,7 +1,9 @@
 import { expect, test } from "playwright/test";
 import {
+  expectEdgeRefsReachable,
   expectNoAxeViolations,
   expectNoHorizontalScroll,
+  expectStickyLabelsFit,
   homeUrl,
   LOCALES,
   openInTheme,
@@ -35,6 +37,18 @@ for (const locale of LOCALES) {
       await expect(page.locator("main [data-compare-scroll]")).toBeVisible();
     });
   });
+}
+
+for (const width of [320, 375]) {
+  for (const locale of LOCALES) {
+    test(`keeps every criterion inside its pinned column at ${width}px in ${locale}`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto(homeUrl(locale));
+      await expectStickyLabelsFit(page, COMPARE);
+    });
+  }
 }
 
 test.describe("comparison table on a phone", () => {
@@ -97,7 +111,15 @@ test.describe("comparison footnotes", () => {
     const sticky = await page.locator(`${COMPARE} tbody tr:first-child th`).boundingBox();
     const box = await ref.last().boundingBox();
     expect(box?.x ?? 0).toBeGreaterThanOrEqual((sticky?.x ?? 0) + (sticky?.width ?? 0) - 1);
-    expect(sticky?.width ?? 0).toBeLessThanOrEqual(7 * 16 + 1);
+    expect(sticky?.width ?? 0).toBeLessThanOrEqual(7.5 * 16 + 1);
     await expect.poll(() => region.evaluate((node) => node.scrollLeft)).toBeGreaterThan(0);
   });
 });
+
+for (const width of [375, 1024]) {
+  test(`tabs to the last footnote of every row fully into view at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto("/");
+    await expectEdgeRefsReachable(page, COMPARE);
+  });
+}

@@ -435,7 +435,7 @@
     },
     "compare": {
       "heading": "Cómo se compara Verbatra.",
-      "lead": "Los criterios que deciden cómo un equipo mantiene traducidos sus archivos de locale, cada uno respondido a partir de las páginas del propio proveedor y enlazado a su fuente en la comparación completa.",
+      "lead": "Los criterios que deciden cómo un equipo mantiene traducidos sus archivos de locale. Cada celda de un producto se responde a partir de las páginas del propio proveedor y enlaza su fuente en la comparación completa; la columna manual remite a la nota M.",
       "caption": "Formas de mantener traducidos los archivos de locale: Verbatra, Lingo.dev, Tolgee, sistemas de gestión de traducciones alojados y un flujo manual",
       "columns": {
         "criterion": "Criterio",

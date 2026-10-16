@@ -435,7 +435,7 @@
     },
     "compare": {
       "heading": "Verbatra face aux autres approches.",
-      "lead": "Les critères qui décident comment une équipe garde ses fichiers de locale traduits, chacun tiré des pages de l’éditeur et relié à sa source dans la comparaison complète.",
+      "lead": "Les critères qui décident comment une équipe garde ses fichiers de locale traduits. Chaque cellule d’un produit est tirée des pages de l’éditeur et reliée à sa source dans la comparaison complète ; la colonne manuelle renvoie à la note M.",
       "caption": "Façons de garder les fichiers de locale traduits : Verbatra, Lingo.dev, Tolgee, systèmes de gestion de traduction hébergés et un processus manuel",
       "columns": {
         "criterion": "Critère",
@@ -509,7 +509,7 @@
           "lingo": "Oui, un diff du lockfile dans la CLI",
           "tolgee": "Traduit automatiquement les cibles non traduites (docs 2.x)",
           "weblate": "Module de traduction automatique pour les chaînes pas encore traduites",
-          "crowdin": "La prétraduction peut se limiter aux « Untranslated strings »",
+          "crowdin": "La prétraduction peut se limiter aux « Untranslated strings »",
           "lokalise": "Les automatisations et la prétraduction remplissent les valeurs vides",
           "phrase": "La prétraduction remplit les traductions vides et ignore les clés qui en ont déjà une",
           "manual": "À la main, pas de produit",
@@ -589,7 +589,7 @@
       "sources": "Sources",
       "manualNote": "Le processus manuel n’est pas un produit, il n’a donc pas de source : la colonne décrit la copie des textes à la main vers un service de traduction et retour.",
       "lastChecked": "Dernière vérification",
-      "fairness": "Verbatra est une CLI et un SDK ; les autres colonnes sont des plateformes de traduction et un processus manuel, comparés comme façons de garder les fichiers de locale traduits. Chaque cellule reprend ce que disaient les propres pages de l’éditeur à cette date, et « aucun ... officiel trouvé » signifie que notre recherche n’a rien trouvé, pas que le produit en est dépourvu.",
+      "fairness": "Verbatra est une CLI et un SDK ; les autres colonnes sont des plateformes de traduction et un processus manuel, comparés comme façons de garder les fichiers de locale traduits. Chaque cellule reprend ce que disaient les propres pages de l’éditeur à cette date, et « aucun ... officiel trouvé » signifie que notre recherche n’a rien trouvé, pas que le produit en est dépourvu.",
       "concession": "Tolgee, Crowdin, Lokalise et Phrase proposent l’édition en contexte, que Verbatra n’a pas. Pour la relecture, Verbatra a le tableau de bord local Studio, pas d’éditeur hébergé pour les traducteurs.",
       "fullLink": "Comparaison complète avec les sources",
       "scrollHint": "Fais défiler le tableau sur le côté pour voir toutes les colonnes."

@@ -6,6 +6,8 @@ const PAGES = [
   { path: "/", html: true },
   { path: "/de", html: true },
   { path: "/compare", html: true },
+  { path: "/de/compare", html: true },
+  { path: "/es/compare", html: true },
   { path: "/fr/compare", html: true },
   { path: "/docs", html: true, search: true },
   { path: "/docs/quickstart", html: true },

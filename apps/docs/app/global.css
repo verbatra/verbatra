@@ -1229,7 +1229,7 @@ html.light .vk-theme-icon-light {
   border-radius: var(--radius-md);
   overscroll-behavior-x: contain;
   scrollbar-width: thin;
-  scrollbar-color: var(--border-default) transparent;
+  scrollbar-color: var(--text-faint) transparent;
   background:
     linear-gradient(to left, var(--surface-bg) 40%, transparent) right center / 48px 100% no-repeat
     local,
@@ -1972,7 +1972,7 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   line-height: var(--showcase-line);
   color: var(--text-muted);
   scrollbar-width: thin;
-  scrollbar-color: var(--border-default) transparent;
+  scrollbar-color: var(--text-faint) transparent;
 }
 
 .vk-showcase-line {
@@ -2053,7 +2053,7 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   line-height: var(--showcase-line);
   color: var(--text-muted);
   scrollbar-width: thin;
-  scrollbar-color: var(--border-default) transparent;
+  scrollbar-color: var(--text-faint) transparent;
 }
 
 .vk-showcase-output-line {
@@ -2507,7 +2507,7 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scrollbar-width: thin;
-  scrollbar-color: var(--border-default) transparent;
+  scrollbar-color: var(--text-faint) transparent;
   background:
     linear-gradient(to left, var(--v-void) 40%, transparent) right center / 48px 100% no-repeat
     local,
@@ -2568,7 +2568,7 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scrollbar-width: thin;
-  scrollbar-color: var(--border-default) transparent;
+  scrollbar-color: var(--text-faint) transparent;
 }
 
 .vk-docs-tabs > [role="tablist"] {
@@ -2658,13 +2658,14 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 .vk-compare-scroll {
   scroll-timeline: --vk-compare inline;
   scroll-padding-inline-start: var(--compare-sticky);
+  scroll-padding-inline-end: 3rem;
   scrollbar-width: thin;
-  scrollbar-color: var(--border-default) transparent;
+  scrollbar-color: var(--text-faint) transparent;
   background: var(--compare-surface);
 }
 
 .vk-compare-full .vk-compare-scroll {
-  --compare-sticky: 16rem;
+  --compare-sticky: 11rem;
 }
 
 .vk-compare-table {
@@ -2684,10 +2685,22 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 .vk-compare-sticky {
   width: var(--compare-sticky);
   background: var(--compare-surface);
+  overflow-wrap: anywhere;
+}
+
+.vk-compare-table .vk-available-from {
+  max-width: 100%;
+  white-space: normal;
 }
 
 .vk-compare-table thead .vk-compare-sticky {
   background: var(--compare-head);
+}
+
+.vk-compare-ref:focus-visible {
+  position: relative;
+  z-index: 20;
+  background: var(--compare-surface);
 }
 
 .vk-compare-mark {
@@ -2721,10 +2734,14 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   pointer-events: none;
 }
 
+.vk-compare-scroll:focus-within + .vk-compare-fade {
+  display: none;
+}
+
 @container (max-width: 56rem) {
   .vk-compare-scroll,
   .vk-compare-full .vk-compare-scroll {
-    --compare-sticky: min(7rem, 30cqi);
+    --compare-sticky: min(7.5rem, 36cqi);
   }
 
   .vk-compare-hint {
@@ -2736,6 +2753,8 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   }
 
   .vk-compare-sticky {
+    padding-inline: 0.75rem 0.5rem;
+    font-size: var(--text-xs);
     box-shadow: inset -1px 0 0 var(--border-default);
   }
 }

@@ -398,19 +398,31 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   hairline table (`.vk-compare-table`, `table-layout: fixed`): a top and bottom rule, rows split by
   `--border-default`, the header row on `--compare-head` (the band surface) over a `--text-faint`
   rule, no filled header and no tinted column; the Verbatra column is marked by `.vk-compare-mark`,
-  an inset `--accent-fill` start bar, with medium-weight cells and its header in `--accent`. Every
+  an inset `--accent-fill` start bar, with medium-weight cells and its header in `--accent`; every
+  column header is medium weight too. Every
   surface of the region (its background, the opaque sticky cells, the fade, the no-timeline
   shades) reads `--compare-surface`, the page under `.vk-compare` and the band under
   `.vk-band .vk-compare`. The table scrolls sideways inside a focusable `section` named by its
-  caption (`aria-labelledby`), with the row headers pinned at `--compare-sticky` (16 percent, at
-  most 7rem while the column is narrower than 56rem), which is also the region's
-  `scroll-padding-inline-start`, so a focused link never hides under the pinned column. While the
+  caption (`aria-labelledby`), with the row headers pinned at `--compare-sticky` (16% on the
+  landing, 11rem on `/compare`, at most 7.5rem (36cqi) while the column is narrower than 56rem,
+  where the row headers drop to `--text-xs` with tighter inline padding so every criterion word
+  fits unbroken in all four locales), which is
+  also the region's `scroll-padding-inline-start`, so a focused link scrolls clear of the pinned
+  column; Chrome leaves a link that is only partly under it unscrolled, so a focused footnote link
+  (`.vk-compare-ref:focus-visible`) rises above the pinned column on the region surface; `scroll-padding-inline-end: 3rem` keeps a focused link at the end edge clear of the fade,
+  and the fade is dropped (`display: none`) while the region holds focus. A row header breaks a
+  long word (`overflow-wrap: anywhere`; never `hyphens: auto`, which `lib/theme.test.ts` bans), and a
+  pill in a cell wraps inside it. A thin scrollbar thumb, here and on every other sideways
+  scroller of the site (prose tables, code frames, the showcase, tab rows), is `--text-faint`,
+  never `--border-default`. While the
   column is narrower than the table (56rem) a `landing.compare.scrollHint` line before it says so
   (not wired as a description, since it is `display: none` on a wide column) and
   `.vk-compare-fade` fades the end edge on the region's scroll timeline; without scroll timelines
   the fade is dropped and the region shades its end edge with a `local` cover over a `scroll`
   shade, which clears at the scroll end. A followed source (`.vk-compare-source:target`) gets an
-  `--accent-fill` tint and start bar, and `scroll-margin-top` clears the sticky header. The
+  `--accent-fill` tint and start bar, its number inside the tint (`list-inside` with a hanging
+  indent), and `scroll-margin-top` clears the sticky header. `TextWithRefs` keeps a closing quote or
+  other punctuation-only tail with the word before it, and French copy puts U+202F inside `« »`. The
   region, its caption and sticky headers, the footnote links and the source list (two CSS
   columns from 64rem, each URL breaking at its slashes through `breakUrlsAtSlashes`) live in
   `compare-table.tsx` (`CompareRegion`, `FootnoteRefs`, `TextWithRefs`, `SourceList`), shared
