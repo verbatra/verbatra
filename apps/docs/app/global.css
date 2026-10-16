@@ -2067,8 +2067,30 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   inset-inline-start: calc(var(--flow-rail) / 2 - 1px);
   width: 2px;
   height: calc(100% - var(--flow-mark-size) / 2);
-  overflow: visible;
   pointer-events: none;
+}
+
+.vk-flow-rail > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+@supports (anchor-name: --vk-flow-end) {
+  .vk-flow-node:first-child .vk-flow-mark {
+    anchor-name: --vk-flow-start;
+  }
+
+  .vk-flow-node:last-child .vk-flow-mark {
+    anchor-name: --vk-flow-end;
+  }
+
+  .vk-flow-rail {
+    top: anchor(--vk-flow-start center);
+    bottom: anchor(--vk-flow-end center);
+    height: auto;
+  }
 }
 
 .vk-flow-track,

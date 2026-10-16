@@ -281,11 +281,11 @@
         },
         "action": {
           "title": "Traduce en GitHub Actions",
-          "body": "La action instala exactamente la versión de la CLI que fijas y ejecuta `translate` en cada push a main. Tu clave del proveedor viene de un secreto del repositorio y nunca viaja como input.",
+          "body": "La acción instala exactamente la versión de la CLI que fijas y ejecuta `translate` en cada push a main, con la clave de tu proveedor desde un secreto del repositorio. Nunca hace commit, así que añade tu propio paso que haga commit de los archivos de locale actualizados, como describe la guía.",
           "link": "Guía de la GitHub Action"
         },
         "check": {
-          "title": "Haz fallar un pull request si hay desajustes",
+          "title": "Haz fallar un pull request si hay deriva",
           "body": "`check` no llama a ningún proveedor ni necesita clave, así que puede proteger cada pull request. Sale con {fail} mientras falte una clave o esté desactualizada, con {ok} cuando todos los locales estén sincronizados y con {usage} ante un error de uso o de configuración.",
           "link": "CI y códigos de salida"
         },

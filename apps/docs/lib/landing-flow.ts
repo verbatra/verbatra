@@ -24,7 +24,7 @@ export const FLOW_DEMO_NODE: FlowNodeId = "incremental";
 
 const SOURCE_SAMPLE = FORMAT_SAMPLES["next-intl-json"];
 
-export const FLOW_CLI_CODE = `npx @verbatra/cli init --provider gemini --yes
+export const FLOW_CLI_CODE = `npx @verbatra/cli init --provider gemini --path "messages/{locale}.json" --yes
 npx @verbatra/cli translate --dry-run
 npx @verbatra/cli translate
 `;
@@ -52,7 +52,7 @@ jobs:
         with:
           version: ${PACKAGE_VERSION}
         env:
-          ANTHROPIC_API_KEY: \${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: \${{ secrets.GEMINI_API_KEY }}
 `;
 
 export const FLOW_CHECK_CODE = "npx @verbatra/cli check\n";

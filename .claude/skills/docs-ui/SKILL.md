@@ -503,8 +503,8 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   backticked span in a header or section lead renders in code type (`withInlineCode`,
   `lib/inline-code-text.tsx`; the landing sets a command or value in a step, a bento tile,
   a flow node, the showcase result and the closing install hint the same way; the docs home
-  `DocsHomeSteps` reads `landing.steps.items`, the check, translate and CI steps, with
-  `LANDING_STEP_IDS`), and a path card title keeps a hyphenated compound on
+  `DocsHomeSteps` reads `landing.steps.items`, the check, translate and CI steps, with its own
+  `DOCS_HOME_STEP_IDS`), and a path card title keeps a hyphenated compound on
   one line (`keepCompoundsWhole`, `lib/word-breaks.tsx`). `StackCards`
   (`components/stack-cards.tsx`) is the stack picker on the docs home and at the top of
   `pick-your-stack`: one borderless grid
@@ -631,16 +631,22 @@ reserved for client islands (see "The stack").
   `h2` is `landing.flow.heading`) is one `ol.vk-flow-list`, one `li.vk-flow-node` per entry of
   `FLOW_NODES` in `lib/landing-flow.ts`: an `h3`, two sentences, one docs link and one `CodeFrame`
   snippet, each snippet taken from its source and pinned to it by `flow.test.tsx` (the next-intl
-  sample from the real adapter, CLI commands and flags that `@verbatra/cli` 0.11.1 registers, the
-  SDK quickstart call, the GitHub Action guide's workflow with `CHECKOUT_ACTION_REF`,
-  `VERBATRA_ACTION_REF` and `PACKAGE_VERSION`, `check` with the exit codes of `checkExitCode`,
+  sample from the real adapter, the `init`, `translate` and `check` commands and flags of the
+  published `@verbatra/cli`, as recorded once from its release tag in
+  `test-support/cli-0.11.1-flags.json`, with `init --path` naming the file the source node shows,
+  the SDK quickstart call, the GitHub Action guide's workflow with `CHECKOUT_ACTION_REF`,
+  `VERBATRA_ACTION_REF` and `PACKAGE_VERSION` and the key variable of the provider `init` sets up
+  in place of the guide's, `check` with the exit codes of `checkExitCode`,
   `STUDIO_RUN_COMMAND`, and the Claude Code `.mcp.json` block of the MCP client guide). The
   incremental node also holds the Try it demo (`.vk-flow-demo`: the moved showcase lead, then the
   `.vk-showcase` panel), spanning the full row at every width, since its board needs the
   full width. From 64rem a node is three columns, snippet, rail and text; below that the rail sits
-  on the start edge with the text and snippet stacked beside it. One `aria-hidden` SVG
-  (`.vk-flow-rail`, `preserveAspectRatio="none"`) holds a `--border-default` track and the
-  `--accent-fill` path, and each node has an `aria-hidden` numbered `.vk-flow-mark` on the rail.
+  on the start edge with the text and snippet stacked beside it. One `aria-hidden` rail
+  (`.vk-flow-rail`, a box that an SVG with `preserveAspectRatio="none"` fills, since an
+  absolutely positioned SVG keeps its intrinsic height instead of stretching between its insets) holds a `--border-default` track and the
+  `--accent-fill` path, running from the first mark's centre to the last one's (CSS anchor
+  positioning, `--vk-flow-start` and `--vk-flow-end`; without it the rail runs the list's full
+  height), and each node has an `aria-hidden` numbered `.vk-flow-mark` on the rail.
   The server HTML is the drawn state: the path whole and every mark filled. The `FlowMotion`
   island (`flow-motion.tsx`) imports `flow-draw.tsx` once the flow comes within one viewport, after
   the first contentful paint and never under reduced motion. Its `FlowDraw` runs, inside

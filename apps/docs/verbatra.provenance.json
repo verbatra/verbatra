@@ -126,7 +126,7 @@
       "landing.faq.items.privacy.answer": {"origin":"import","valueHash":"37948c82de0ebc21"},
       "landing.faq.items.privacy.question": {"origin":"import","valueHash":"922926f38d01eaed"},
       "landing.faq.items.providers.answer": {"origin":"import","valueHash":"a5ab091267b05c25"},
-      "landing.flow.items.incremental.demo": {"origin":"import","valueHash":"8d5a282c8bfaaacf"},
+      "landing.flow.items.incremental.demo": {"origin":"import","valueHash":"bd5ac1acbcc76b34"},
       "landing.footer.cols.community.contributing": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"3dcd6b7b8574d83e"},
       "landing.footer.githubAria": {"origin":"import","valueHash":"d9f648789c8ef3b9"},
       "landing.footer.npmAria": {"origin":"import","valueHash":"173fb79f7b993f53"},

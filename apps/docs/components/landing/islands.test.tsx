@@ -28,7 +28,6 @@ const ISLAND_MODULES = [
   "@/components/landing/command-panel",
   "@/components/landing/hero-terminal",
   "@/components/landing/live-stat-value",
-  "@/components/studio-screenshot",
   "@/components/command-row",
   "@/components/ui/copy-button",
   "@/components/ui/shadcn/accordion",

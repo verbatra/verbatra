@@ -16,7 +16,7 @@ function markOffsets(rail: Element, marks: ReadonlyArray<HTMLElement>): Readonly
   return marks.map((mark) => {
     if (box.height <= 0) return 0;
     const own = mark.getBoundingClientRect();
-    return (own.top + own.height / 2 - box.top) / box.height;
+    return Math.min(1, Math.max(0, (own.top + own.height / 2 - box.top) / box.height));
   });
 }
 

@@ -4,7 +4,6 @@ import { PromptCopyButton } from "@/components/ai-setup-prompt";
 import { IntentPrefetchLink } from "@/components/ui/intent-prefetch-link";
 import { type Locale, localizedPath } from "@/lib/i18n";
 import { withInlineCode } from "@/lib/inline-code-text";
-import { LANDING_STEP_IDS } from "@/lib/landing-code";
 import { MCP_VERSION, PACKAGE_VERSION, STUDIO_VERSION } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { keepCompoundsWhole, keepLinkLabelWhole } from "@/lib/word-breaks";
@@ -16,6 +15,8 @@ const PANEL = "rounded-xl border border-(--border-default)";
 const HOME_FRAME = "mx-auto w-full max-w-[1100px] px-4 md:px-6 lg:px-10";
 
 const PANEL_HOVER = "hover:border-(--border-accent)";
+
+const DOCS_HOME_STEP_IDS = ["check", "translate", "ci"] as const;
 
 type PackageKey = "cli" | "sdk" | "studio" | "mcp";
 
@@ -247,7 +248,7 @@ export function DocsHomeSteps(): ReactNode {
   const t = useTranslations("landing.steps.items");
   return (
     <ol className="not-prose mt-8 grid list-none gap-4 md:grid-cols-3">
-      {LANDING_STEP_IDS.map((key, index) => (
+      {DOCS_HOME_STEP_IDS.map((key, index) => (
         <li key={key} className="border-t border-(--border-default) pt-[18px]">
           <h3
             className="font-semibold text-(--text-strong)"

@@ -44,16 +44,12 @@ export async function Flow(): Promise<ReactNode> {
     <Section band id="flow">
       <SectionHead id={FLOW_HEADING_ID} title={t("heading")} lead={t("lead")} />
       <FlowMotion>
-        <svg
-          className="vk-flow-rail"
-          aria-hidden="true"
-          focusable="false"
-          viewBox="0 0 2 100"
-          preserveAspectRatio="none"
-        >
-          <path className="vk-flow-track" d="M1 0V100" />
-          <path className="vk-flow-path" d="M1 0V100" />
-        </svg>
+        <div className="vk-flow-rail" aria-hidden="true">
+          <svg aria-hidden="true" focusable="false" viewBox="0 0 2 100" preserveAspectRatio="none">
+            <path className="vk-flow-track" d="M1 0V100" />
+            <path className="vk-flow-path" d="M1 0V100" />
+          </svg>
+        </div>
         <PlainList ordered className="vk-flow-list">
           {FLOW_NODES.map((node, index) => (
             <li key={node.id} className="vk-flow-node" data-flow-node={node.id}>

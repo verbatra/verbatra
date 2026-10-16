@@ -281,7 +281,7 @@
         },
         "action": {
           "title": "In GitHub Actions übersetzen",
-          "body": "Die Action installiert genau die CLI-Version, die du festlegst, und führt `translate` bei jedem Push auf main aus. Dein Provider-Key kommt aus einem Repository-Secret und wird nie als Input übergeben.",
+          "body": "Die Action installiert genau die CLI-Version, die du pinnst, und führt `translate` bei jedem Push auf main aus, mit deinem Provider-Schlüssel aus einem Repository-Secret. Sie committet nie, also füge wie in der Anleitung beschrieben einen eigenen Schritt hinzu, der die aktualisierten Locale-Dateien committet.",
           "link": "Anleitung zur GitHub Action"
         },
         "check": {

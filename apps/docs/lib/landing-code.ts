@@ -82,7 +82,3 @@ export const LANDING_SHOWCASE_CODE: Readonly<Record<LandingShowcaseTab, LandingC
   config: { language: "ts", filename: "verbatra.config.ts", code: LANDING_CONFIG_CODE },
   action: { language: "yaml", filename: ".github/workflows/i18n.yml", code: ACTION_CODE },
 };
-
-type LandingStepId = "check" | "translate" | "ci";
-
-export const LANDING_STEP_IDS: ReadonlyArray<LandingStepId> = ["check", "translate", "ci"];

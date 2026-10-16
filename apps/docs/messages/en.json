@@ -334,7 +334,7 @@
         },
         "action": {
           "title": "Translate in GitHub Actions",
-          "body": "The action installs exactly the CLI version you pin and runs `translate` on every push to main. Your provider key comes from a repository secret and never travels as an input.",
+          "body": "The action installs exactly the CLI version you pin and runs `translate` on every push to main, with your provider key from a repository secret. It never commits, so add your own step that commits the updated locale files, as the guide describes.",
           "link": "GitHub Action guide"
         },
         "check": {

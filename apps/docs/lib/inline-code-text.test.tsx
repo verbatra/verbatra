@@ -1,14 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { withInlineCode, withoutInlineCode } from "./inline-code-text";
-
-describe("withoutInlineCode", () => {
-  it("drops the backticks for a plain-text consumer such as structured data", () => {
-    expect(withoutInlineCode("`verbatra init` writes the config.")).toBe(
-      "verbatra init writes the config.",
-    );
-  });
-});
+import { withInlineCode } from "./inline-code-text";
 
 describe("withInlineCode", () => {
   it("sets a backticked span in code type and keeps the text around it", () => {

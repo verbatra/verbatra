@@ -138,6 +138,38 @@ test.describe("feature flow at 320px", () => {
   });
 });
 
+test.describe("feature flow rail", () => {
+  for (const width of [375, 1440]) {
+    test(`runs from the first mark to the last one and no further at ${width}px`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/");
+      await page.locator(FLOW).scrollIntoViewIfNeeded();
+      const geometry = await page.evaluate((flow) => {
+        const rail = document.querySelector(`${flow} .vk-flow-rail`)?.getBoundingClientRect();
+        const marks = [...document.querySelectorAll(`${flow} .vk-flow-mark`)].map((mark) =>
+          mark.getBoundingClientRect(),
+        );
+        const first = marks[0];
+        const last = marks.at(-1);
+        if (!rail || !first || !last) throw new Error("no rail or marks");
+        return {
+          top: rail.top,
+          bottom: rail.bottom,
+          x: rail.left + rail.width / 2,
+          firstCenter: first.top + first.height / 2,
+          lastCenter: last.top + last.height / 2,
+          lastX: last.left + last.width / 2,
+        };
+      }, FLOW);
+      expect(Math.abs(geometry.top - geometry.firstCenter)).toBeLessThanOrEqual(1);
+      expect(Math.abs(geometry.bottom - geometry.lastCenter)).toBeLessThanOrEqual(1);
+      expect(Math.abs(geometry.x - geometry.lastX)).toBeLessThanOrEqual(1);
+    });
+  }
+});
+
 test.describe("the Try it playground inside the flow", () => {
   for (const width of [375, 1024, 1440]) {
     test(`keeps every scenario control inside its panel at ${width}px`, async ({ page }) => {

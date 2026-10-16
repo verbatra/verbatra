@@ -2,7 +2,7 @@
 
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
-import { loadConfig, translate } from "@verbatra/sdk";
+import { loadConfig, scaffoldingMetadata, translate } from "@verbatra/sdk";
 import { act, type ReactNode, useLayoutEffect } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -147,6 +147,26 @@ function fenceAfter(markdown: string, heading: string, lang: string): string {
   return markdown.slice(start, markdown.indexOf("```", start));
 }
 
+const PUBLISHED_CLI: {
+  readonly version: string;
+  readonly commands: Readonly<Record<string, ReadonlyArray<string>>>;
+} = JSON.parse(read(join(DOCS, "test-support/cli-0.11.1-flags.json")));
+
+const GEMINI_KEY = scaffoldingMetadata.providerEnv.gemini;
+
+function publishedFlags(command: string): ReadonlyMap<string, boolean> {
+  return new Map(
+    (PUBLISHED_CLI.commands[command] ?? []).map((spec) => {
+      const [flag = "", value] = spec.split(" ");
+      return [flag, value !== undefined];
+    }),
+  );
+}
+
+function cliWords(line: string): string[] {
+  return [...line.matchAll(/"([^"]*)"|(\S+)/g)].map((match) => match[1] ?? match[2] ?? "");
+}
+
 function docsRoutes(): ReadonlySet<string> {
   const root = join(DOCS, "content/docs");
   const routes = new Set<string>();
@@ -222,8 +242,9 @@ describe("the feature flow section", () => {
 
   it("draws the rail as decoration that assistive technology never reaches", async () => {
     const root = await renderServer();
-    const svg = root.querySelector("svg.vk-flow-rail");
-    expect(svg?.getAttribute("aria-hidden")).toBe("true");
+    const rail = root.querySelector(".vk-flow-rail");
+    expect(rail?.getAttribute("aria-hidden")).toBe("true");
+    const svg = rail?.querySelector(":scope > svg");
     expect(svg?.getAttribute("focusable")).toBe("false");
     expect(svg?.querySelectorAll("path")).toHaveLength(2);
     for (const mark of root.querySelectorAll(".vk-flow-mark")) {
@@ -292,22 +313,40 @@ describe("the flow snippets equal their sources", () => {
     expect(node?.snippet.filename).toBe("messages/en.json");
   });
 
-  it("runs only commands and flags @verbatra/cli 0.11.1 registers, and still registers", () => {
-    const flags: Readonly<Record<string, ReadonlyArray<string>>> = {
-      init: ["--cwd", "--provider", "--source", "--targets", "--path", "--yes", "--force"],
-      translate: ["--dry-run"],
-    };
+  it("runs only commands and flags the published @verbatra/cli registers, each value flag with its value", () => {
+    expect(PUBLISHED_CLI.version).toBe("0.11.1");
     const run = read(join(REPO, "packages/cli/src/run.ts"));
-    for (const line of FLOW_CLI_CODE.trimEnd().split("\n")) {
-      const [runner, pkg, command = "", ...args] = line.split(" ");
+    const lines = [FLOW_CLI_CODE, FLOW_CHECK_CODE].flatMap((code) => code.trimEnd().split("\n"));
+    expect(lines.length).toBeGreaterThan(0);
+    for (const line of lines) {
+      const [runner, pkg, command = "", ...args] = cliWords(line);
       expect(`${runner} ${pkg}`).toBe("npx @verbatra/cli");
+      const published = publishedFlags(command);
+      expect(published.size, command).toBeGreaterThan(0);
       expect(run).toContain(`.command("${command}")`);
-      for (const arg of args.filter((part) => part.startsWith("--"))) {
-        expect(flags[command], `${command} ${arg}`).toContain(arg);
+      args.forEach((arg, index) => {
+        if (!arg.startsWith("--")) {
+          expect(published.get(args[index - 1] ?? ""), `${command} ${arg}`).toBe(true);
+          return;
+        }
+        expect(published.has(arg), `${command} ${arg}`).toBe(true);
+        const takesValue = published.get(arg) === true;
+        const next = args[index + 1];
+        expect(next !== undefined && !next.startsWith("--"), `${command} ${arg}`).toBe(takesValue);
         expect(run).toMatch(new RegExp(`"${arg}( <[a-z]+>)?"`));
-      }
+      });
     }
-    expect(FLOW_CLI_CODE).not.toContain("--format");
+  });
+
+  it("points init at the file node 1 shows, so the two nodes work together", () => {
+    const init = FLOW_CLI_CODE.split("\n")
+      .map(cliWords)
+      .find((words) => words[2] === "init");
+    const pattern = init?.[(init?.indexOf("--path") ?? -2) + 1];
+    expect(pattern).toContain("{locale}");
+    const source = FLOW_NODES.find((entry) => entry.id === "source");
+    expect(pattern?.replace("{locale}", "en")).toBe(source?.snippet.filename);
+    expect(init).not.toContain("--source");
   });
 
   it("calls the SDK the way the SDK quickstart does", () => {
@@ -325,13 +364,16 @@ describe("the flow snippets equal their sources", () => {
     expect(typeof translate).toBe("function");
   });
 
-  it("copies the GitHub Action workflow from its guide, pinned to SHAs and the published version", () => {
+  it("copies the GitHub Action workflow from its guide, pinned to SHAs and the published version, with the key of the provider node 2 sets up", () => {
     const guide = fenceAfter(
       read(join(DOCS, "content/docs/(guides)/github-action.mdx")),
       "## Add the action to a workflow",
       "yaml",
     );
+    const guideKey = "ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}";
+    expect(guide).toContain(guideKey);
     const expected = guide
+      .replace(guideKey, `${GEMINI_KEY}: \${{ secrets.${GEMINI_KEY} }}`)
       .replace("actions/checkout@<commit-sha>", CHECKOUT_ACTION_REF)
       .replace("verbatra/action@<commit-sha> # a commit on the v1 line", VERBATRA_ACTION_REF)
       .replace(/version: \S+ # .*\n/, `version: ${PACKAGE_VERSION}\n`);
