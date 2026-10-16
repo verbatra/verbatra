@@ -1,11 +1,10 @@
 import type { ReactNode } from "react";
 import { type AvailableFromCopy, AvailableFromPill } from "@/components/available-from";
 import { LICENSE_URL } from "@/components/landing/links";
+import { IntentPrefetchLink } from "@/components/ui/intent-prefetch-link";
 import { type Locale, localizedPath } from "@/lib/i18n";
 import { NPM_INSTALL_COMMAND } from "@/lib/install-commands";
-import { MACHINE_PROVIDER_IDS } from "@/lib/landing-facts";
-import { providerShortLabel } from "@/lib/landing-providers";
-import { providerReleaseBadge } from "@/lib/release-badge";
+import { landingProviders } from "@/lib/landing-providers";
 import { LANDING_LAST_UPDATED } from "@/lib/site";
 
 const LINK = "vk-prose-link";
@@ -63,23 +62,21 @@ export function HeroFacts({
         </Fact>
         <Fact id="providers" term={labels.providers}>
           <ul className="vk-fact-list">
-            {MACHINE_PROVIDER_IDS.map((id) => (
-              <li key={id} className="vk-fact-item" data-provider={id}>
-                {providerShortLabel(id)}
-                {providerReleaseBadge(id) === null ? null : (
-                  <AvailableFromPill {...labels.releaseBadge} />
-                )}
+            {landingProviders().map((provider) => (
+              <li key={provider.id} className="vk-fact-item" data-provider={provider.id}>
+                {provider.label}
+                {provider.isNew ? <AvailableFromPill {...labels.releaseBadge} /> : null}
               </li>
             ))}
           </ul>
-          <a href={localizedPath(locale, "/docs/providers")} className={LINK}>
+          <IntentPrefetchLink href={localizedPath(locale, "/docs/providers")} className={LINK}>
             {labels.providersLink}
-          </a>
+          </IntentPrefetchLink>
         </Fact>
         <Fact id="formats" term={labels.formats}>
-          <a href={localizedPath(locale, "/docs/formats")} className={LINK}>
+          <IntentPrefetchLink href={localizedPath(locale, "/docs/formats")} className={LINK}>
             {labels.formatsValue}
-          </a>
+          </IntentPrefetchLink>
         </Fact>
         <Fact id="requirements" term={labels.requirements}>
           {labels.requirement}

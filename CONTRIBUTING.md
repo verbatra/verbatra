@@ -391,12 +391,12 @@ Work outward from `packages/core`, then `packages/format-adapters`. Replace
    full policy is in `.claude/rules/git-conventions.md`.
 
 7. **Docs.** Add the format to `apps/docs/content/docs/(configure)/formats.mdx`
-   and its `.de.mdx`, `.es.mdx` and `.fr.mdx` siblings. Also update
-   `apps/docs/lib/landing-facts.ts`, where `FORMAT_DISPLAY` is
-   a total `Record<SupportedFormat, FormatDisplay>` and will not compile until the new
-   format has a display label and an icon (the landing format switcher, the
-   bento tile and the structured data all read it). That one is easy to miss, and the error surfaces
-   in the docs app rather than where you were working.
+   and its `.de.mdx`, `.es.mdx` and `.fr.mdx` siblings. Also update two total
+   `Record<SupportedFormat, ...>` tables that will not compile until the new format has an
+   entry: `FORMAT_DISPLAY` in `apps/docs/lib/landing-facts.ts` (its display `label`, which the
+   landing marquee, the bento tile and the structured data read) and `FORMAT_ICONS` in
+   `apps/docs/components/landing/marquee.tsx` (the file glyph the marquee draws beside it). Those
+   are easy to miss, and the error surfaces in the docs app rather than where you were working.
 
    `apps/docs/lib/ai-setup-prompt.ts` names the format set in several places: the
    detection list, the mapping from file shape to format id, the two warnings

@@ -1,28 +1,44 @@
 // @vitest-environment jsdom
 
-import { act } from "react";
-import { createRoot } from "react-dom/client";
+import { act, type ReactNode } from "react";
+import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type { Locale } from "@/lib/i18n";
 import { FORMAT_DISPLAY, MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { providerShortLabel } from "@/lib/landing-providers";
 import { RELEASE_BADGE } from "@/lib/release-badge";
 import { docsStylesheetRules } from "@/lib/stylesheet-rules";
+import german from "@/messages/de.json";
 import messages from "@/messages/en.json";
+import { contrast, themeTokens } from "@/test-support/contrast";
 import { preloadRegisteredIslands } from "@/test-support/islands";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const page = vi.hoisted(() => ({ locale: "en" }));
 
+vi.mock("next/link", () => ({
+  default: ({ href, children, ...rest }: { href: string; children: ReactNode }) => (
+    <a href={href} {...rest}>
+      {children}
+    </a>
+  ),
+}));
+
 vi.mock("next-intl/server", async () => {
   const { createTranslator } = await import("next-intl");
-  const { default: catalog } = await import("@/messages/en.json");
+  const catalogs = {
+    en: (await import("@/messages/en.json")).default,
+    de: (await import("@/messages/de.json")).default,
+    es: (await import("@/messages/es.json")).default,
+    fr: (await import("@/messages/fr.json")).default,
+  };
   return {
     getTranslations: async (scope: string | { namespace: string }) =>
       createTranslator({
-        locale: "en",
-        messages: catalog,
+        locale: page.locale,
+        messages: catalogs[page.locale as keyof typeof catalogs],
         namespace: (typeof scope === "string" ? scope : scope.namespace) as never,
       }),
     getLocale: async () => page.locale,
@@ -55,17 +71,59 @@ function visibleItems(rowElement: Element): ReadonlyArray<string> {
   );
 }
 
+const mounted: Array<{ root: Root; host: HTMLElement }> = [];
+
+afterEach(() => {
+  for (const { root, host } of mounted.splice(0)) {
+    act(() => root.unmount());
+    host.remove();
+  }
+});
+
 function mountToggle(): HTMLElement {
   const host = document.createElement("div");
   document.body.append(host);
+  const root = createRoot(host);
+  mounted.push({ root, host });
   act(() =>
-    createRoot(host).render(
+    root.render(
       <MarqueeMotion pauseLabel={copy.pause}>
         <p>rows</p>
       </MarqueeMotion>,
     ),
   );
   return host;
+}
+
+const SPELLED_COUNTS: Readonly<Record<Locale, { numbers: string; nouns: string }>> = {
+  en: {
+    numbers:
+      "one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty",
+    nouns: "providers?|formats?",
+  },
+  de: {
+    numbers:
+      "ein|eine|einen|zwei|drei|vier|fünf|sechs|sieben|acht|neun|zehn|elf|zwölf|dreizehn|vierzehn|fünfzehn|sechzehn|siebzehn|achtzehn|neunzehn|zwanzig",
+    nouns: "providern?|anbietern?|formaten?|dateiformaten?",
+  },
+  es: {
+    numbers:
+      "un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciséis|diecisiete|dieciocho|diecinueve|veinte",
+    nouns: "proveedor(?:es)?|formatos?",
+  },
+  fr: {
+    numbers:
+      "un|une|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|onze|douze|treize|quatorze|quinze|seize|dix-sept|dix-huit|dix-neuf|vingt",
+    nouns: "fournisseurs?|formats?",
+  },
+};
+
+function spelledCount(locale: Locale): RegExp {
+  const { numbers, nouns } = SPELLED_COUNTS[locale];
+  return new RegExp(
+    `(?<![\\p{L}-])(?:\\d+|${numbers})\\s+(?:[\\p{L}-]+\\s+)?(?:${nouns})(?![\\p{L}-])`,
+    "iu",
+  );
 }
 
 describe("Marquee", () => {
@@ -109,10 +167,27 @@ describe("Marquee", () => {
     );
   });
 
-  it("types no count and draws no third-party logo, only the shared outline glyphs", async () => {
+  it.each([
+    ["en", "verbatra speaks seven providers and reads 14 file formats."],
+    ["de", "Sieben Provider und vierzehn Dateiformate."],
+    ["es", "Siete proveedores y catorce formatos de archivo."],
+    ["fr", "Sept fournisseurs et quatorze formats de fichier."],
+  ] as const)("flags a spelled-out or numeric count in %s", (locale, sentence) => {
+    expect(sentence).toMatch(spelledCount(locale));
+  });
+
+  it.each(["en", "de", "es", "fr"] as const)(
+    "types no provider or format count, in digits or words, in %s",
+    async (locale) => {
+      const section = (await render(locale)).querySelector("section#marquee");
+      expect(section?.textContent?.length).toBeGreaterThan(0);
+      expect(section?.textContent).not.toMatch(spelledCount(locale));
+    },
+  );
+
+  it("draws no third-party logo, only the shared outline glyphs", async () => {
     const doc = await render();
     const section = doc.querySelector("section#marquee");
-    expect(section?.textContent).not.toMatch(/\d+ (providers|formats)/i);
     const uses = Array.from(section?.querySelectorAll("use") ?? [], (use) =>
       use.getAttribute("href"),
     );
@@ -144,9 +219,9 @@ describe("Marquee", () => {
     const providersLink = providers.querySelector(":scope > a");
     const formatsLink = formats.querySelector(":scope > a");
     expect(providersLink?.getAttribute("href")).toBe("/de/docs/providers");
-    expect(providersLink?.textContent).toBe(copy.allProviders);
+    expect(providersLink?.textContent).toBe(german.landing.marquee.allProviders);
     expect(formatsLink?.getAttribute("href")).toBe("/de/docs/formats");
-    expect(formatsLink?.textContent).toBe(copy.allFormats);
+    expect(formatsLink?.textContent).toBe(german.landing.marquee.allFormats);
     expect(providers.lastElementChild).toBe(providersLink);
     expect(providers.querySelector(".vk-marquee-track a")).toBeNull();
   });
@@ -180,17 +255,24 @@ describe("MarqueeMotion", () => {
     expect(button?.getAttribute("aria-pressed")).toBe("false");
   });
 
-  it("gives the pause button a 3:1 boundary instead of the default border alone", () => {
-    const button = mountToggle().querySelector("button");
-    expect(button?.className).toContain("border-(--text-faint)");
-    expect(button?.className).not.toContain("border-(--border-default)");
-  });
+  it.each(["dark", "light"] as const)(
+    "draws the pause button's boundary at 3:1 or more against the band in the %s theme",
+    (theme) => {
+      const button = mountToggle().querySelector("button");
+      const border = /(?:^|\s)border-\((--[\w-]+)\)/.exec(button?.className ?? "")?.[1];
+      if (border === undefined) throw new Error("the pause button has no border token");
+      const tokens = themeTokens()[theme];
+      expect(contrast(tokens, border, "--surface-band")).toBeGreaterThanOrEqual(3);
+    },
+  );
 });
 
 describe("the marquee stylesheet", () => {
   const rules = docsStylesheetRules();
 
-  it("keeps the copies and the button out of the static state", () => {
+  const MOTION_ALLOWED = "@media (prefers-reduced-motion: no-preference) and (scripting: enabled)";
+
+  it("keeps the copies and the button out of the static state, and wraps without motion or script", () => {
     const copyRule = rules.find((rule) => rule.selector === ".vk-marquee-copy" && !rule.media);
     expect(copyRule?.declarations.display).toBe("none");
     const toggle = rules.find((rule) => rule.selector === ".vk-marquee-toggle" && !rule.media);
@@ -200,13 +282,45 @@ describe("the marquee stylesheet", () => {
     expect(list?.declarations.animation).toBeUndefined();
   });
 
+  it("holds the moving state's box before takeover where motion may start: a reserved toggle and one scrolling line", () => {
+    const at = (selector: string) =>
+      rules.find((rule) => rule.selector === selector && rule.media === MOTION_ALLOWED)
+        ?.declarations;
+    expect(at(".vk-marquee-toggle")).toEqual({ display: "inline-flex", visibility: "hidden" });
+    expect(at(".vk-marquee-list")).toEqual({ flex: "none", "flex-wrap": "nowrap" });
+    expect(at(".vk-marquee-viewport")?.["scrollbar-width"]).toBe("none");
+    expect(
+      at("html[data-motion-ready] .vk-marquee[data-marquee] .vk-marquee-toggle")?.visibility,
+    ).toBe("visible");
+    const moving = rules.filter(
+      (rule) =>
+        rule.media === MOTION_ALLOWED && rule.selector.startsWith("html[data-motion-ready]"),
+    );
+    for (const rule of moving) {
+      expect(rule.declarations).not.toHaveProperty("display", "none");
+      expect(rule.declarations).not.toHaveProperty("flex-wrap");
+      expect(rule.declarations).not.toHaveProperty("height");
+      expect(rule.declarations).not.toHaveProperty("padding");
+    }
+  });
+
+  it("names the scrolling row by its title and makes it a keyboard stop", async () => {
+    const doc = await render();
+    for (const id of ["providers", "formats"]) {
+      const viewport = row(doc, id).querySelector(".vk-marquee-viewport");
+      expect(viewport?.getAttribute("role")).toBe("group");
+      expect(viewport?.getAttribute("tabindex")).toBe("0");
+      expect(viewport?.getAttribute("aria-labelledby")).toBe(`marquee-${id}`);
+    }
+  });
+
   it("moves only under no-preference, after the motion root and the island are both ready", () => {
     const moving = rules.filter(
       (rule) => rule.selector.includes("vk-marquee") && "animation" in rule.declarations,
     );
     expect(moving.length).toBeGreaterThan(0);
     for (const rule of moving) {
-      expect(rule.media).toContain("prefers-reduced-motion: no-preference");
+      expect(rule.media).toBe(MOTION_ALLOWED);
       expect(rule.selector).toContain("html[data-motion-ready] .vk-marquee[data-marquee]");
     }
   });

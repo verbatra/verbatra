@@ -1,4 +1,5 @@
-import type { MachineProviderId } from "./landing-facts";
+import { MACHINE_PROVIDER_IDS, type MachineProviderId } from "./landing-facts";
+import { providerReleaseBadge } from "./release-badge";
 
 export type ProviderKind = "llm" | "machine" | "local";
 
@@ -6,6 +7,13 @@ type ProviderDisplay = {
   readonly label: string;
   readonly kind: ProviderKind;
   readonly shortLabel?: string;
+};
+
+export type LandingProvider = {
+  readonly id: MachineProviderId;
+  readonly label: string;
+  readonly kind: ProviderKind;
+  readonly isNew: boolean;
 };
 
 export const PROVIDER_DISPLAY: Readonly<Record<MachineProviderId, ProviderDisplay>> = {
@@ -25,4 +33,13 @@ export const PROVIDER_DISPLAY: Readonly<Record<MachineProviderId, ProviderDispla
 export function providerShortLabel(id: MachineProviderId): string {
   const display = PROVIDER_DISPLAY[id];
   return display.shortLabel ?? display.label;
+}
+
+export function landingProviders(): ReadonlyArray<LandingProvider> {
+  return MACHINE_PROVIDER_IDS.map((id) => ({
+    id,
+    label: providerShortLabel(id),
+    kind: PROVIDER_DISPLAY[id].kind,
+    isNew: providerReleaseBadge(id) !== null,
+  }));
 }

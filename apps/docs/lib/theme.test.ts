@@ -6,6 +6,14 @@ import { describe, expect, it } from "vitest";
 import { DefaultThemeMeta } from "@/components/default-theme-meta";
 import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
 import {
+  contrast,
+  luminance,
+  resolve,
+  rgb,
+  rootDeclarations,
+  themeTokens,
+} from "@/test-support/contrast";
+import {
   DEFAULT_THEME,
   nextTheme,
   THEME_COLORS,
@@ -29,56 +37,10 @@ function sourceFiles(directories: ReadonlyArray<string>): string[] {
 }
 
 function declarationsOf(selector: string): Record<string, string> {
-  return Object.assign(
-    {},
-    ...rulesFor(rules, selector)
-      .filter((rule) => rule.media === "")
-      .map((rule) => rule.declarations),
-  );
+  return rootDeclarations(rules, selector);
 }
 
-const DARK = declarationsOf(":root");
-const LIGHT = { ...DARK, ...declarationsOf("html.light") };
-
-function resolve(tokens: Record<string, string>, value: string, depth = 0): string {
-  const reference = /^var\((--[\w-]+)\)$/.exec(value.trim());
-  if (!reference?.[1]) return value.trim();
-  const next = tokens[reference[1]];
-  if (next === undefined || depth > 8) throw new Error(`unresolved ${value}`);
-  return resolve(tokens, next, depth + 1);
-}
-
-function rgb(value: string): [number, number, number] {
-  const hex = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(value);
-  if (hex)
-    return [hex[1], hex[2], hex[3]].map((pair) => Number.parseInt(pair ?? "", 16) / 255) as [
-      number,
-      number,
-      number,
-    ];
-  const match = /^hsl\((\d+(?:\.\d+)?) (\d+(?:\.\d+)?)% (\d+(?:\.\d+)?)%\)$/.exec(value);
-  if (!match) throw new Error(`not an hsl() color: ${value}`);
-  const [h, s, l] = [Number(match[1]), Number(match[2]) / 100, Number(match[3]) / 100];
-  const chroma = s * Math.min(l, 1 - l);
-  const channel = (n: number) => {
-    const k = (n + h / 30) % 12;
-    return l - chroma * Math.max(-1, Math.min(k - 3, 9 - k, 1));
-  };
-  return [channel(0), channel(8), channel(4)];
-}
-
-function luminance(value: string): number {
-  const [r, g, b] = rgb(value).map((c) =>
-    c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4,
-  );
-  return 0.2126 * (r ?? 0) + 0.7152 * (g ?? 0) + 0.0722 * (b ?? 0);
-}
-
-function contrast(tokens: Record<string, string>, foreground: string, background: string): number {
-  const fg = luminance(resolve(tokens, `var(${foreground})`));
-  const bg = luminance(resolve(tokens, `var(${background})`));
-  return (Math.max(fg, bg) + 0.05) / (Math.min(fg, bg) + 0.05);
-}
+const { dark: DARK, light: LIGHT } = themeTokens(rules);
 
 const TEXT_PAIRS = [
   ["--text-strong", "--surface-bg"],

@@ -7,10 +7,11 @@ import {
   availableFromCopy,
 } from "@/components/available-from";
 import { StackIcon, type StackIconKey, StackIconSprite } from "@/components/stack-icons";
+import { IntentPrefetchLink } from "@/components/ui/intent-prefetch-link";
 import { localizedPath, toLocale } from "@/lib/i18n";
-import { FORMAT_DISPLAY, MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
-import { PROVIDER_DISPLAY, type ProviderKind, providerShortLabel } from "@/lib/landing-providers";
-import { providerReleaseBadge, RELEASE_BADGE } from "@/lib/release-badge";
+import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
+import { landingProviders, type ProviderKind } from "@/lib/landing-providers";
+import { RELEASE_BADGE } from "@/lib/release-badge";
 import { MarqueeMotion } from "./islands";
 import { PlainList } from "./plain-list";
 import { Section } from "./section";
@@ -59,11 +60,11 @@ type MarqueeRowProps = {
 };
 
 export function providerItems(releaseBadge: AvailableFromCopy): ReadonlyArray<MarqueeItem> {
-  return MACHINE_PROVIDER_IDS.map((id) => ({
-    id,
-    label: providerShortLabel(id),
-    icon: PROVIDER_KIND_ICONS[PROVIDER_DISPLAY[id].kind],
-    badge: providerReleaseBadge(id) === null ? null : releaseBadge,
+  return landingProviders().map((provider) => ({
+    id: provider.id,
+    label: provider.label,
+    icon: PROVIDER_KIND_ICONS[provider.kind],
+    badge: provider.isNew ? releaseBadge : null,
   }));
 }
 
@@ -99,7 +100,14 @@ function MarqueeRow({ id, title, items, moreHref, moreLabel }: MarqueeRowProps):
       <h3 id={titleId} className="vk-marquee-title">
         {title}
       </h3>
-      <div className="vk-marquee-viewport">
+      {/* biome-ignore lint/a11y/useSemanticElements: a fieldset groups form controls; this names a row that scrolls sideways without adding a landmark */}
+      <div
+        role="group"
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: the static row scrolls sideways, so the keyboard needs a stop to scroll it
+        tabIndex={0}
+        aria-labelledby={titleId}
+        className="vk-edge-fade vk-marquee-viewport"
+      >
         <div className="vk-marquee-track" style={speed}>
           <PlainList aria-labelledby={titleId} className="vk-marquee-list">
             <Items items={items} />
@@ -116,9 +124,9 @@ function MarqueeRow({ id, title, items, moreHref, moreLabel }: MarqueeRowProps):
           ))}
         </div>
       </div>
-      <a href={moreHref} className="vk-prose-link vk-marquee-more">
+      <IntentPrefetchLink href={moreHref} className="vk-prose-link vk-marquee-more">
         {moreLabel}
-      </a>
+      </IntentPrefetchLink>
     </div>
   );
 }

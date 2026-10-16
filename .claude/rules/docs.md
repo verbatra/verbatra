@@ -63,7 +63,8 @@ When documenting a command, format, or provider, check the matching file first. 
 or removes a command/format/provider, the docs update belongs in the same change as the code
 change (see `CONTRIBUTING.md` "Adding a provider or a format adapter" for the exact docs files each
 extension touches: `providers.mdx`, `config-file.mdx`, `formats.mdx`, plus
-`apps/docs/lib/landing-facts.ts`'s `FORMAT_DISPLAY` for a new format).
+`apps/docs/lib/landing-facts.ts`'s `FORMAT_DISPLAY` and
+`apps/docs/components/landing/marquee.tsx`'s `FORMAT_ICONS` for a new format).
 
 ## Every user-facing change updates all four locale files
 

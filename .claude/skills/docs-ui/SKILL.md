@@ -284,7 +284,7 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   `landing.banner.diffLabel` in `--text-xs` `--text-muted`), `hero-facts.tsx`
   (`.vk-banner-facts`: a visually hidden `h2` over a `dl.vk-facts` with no `aria-labelledby`, which
   a role-less `dl` may not take, every fact in text: license,
-  install command, the providers from `MACHINE_PROVIDER_IDS`, the format count
+  install command, the providers from `landingProviders()` (`lib/landing-providers.ts`), the format count
   `SUPPORTED_FORMAT_IDS.length` linking `/docs/formats`, the Node.js range, the version line
   `landing.facts.versionParts` naming each package ("CLI and SDK v{cli}, Studio v{studio}, MCP
   server v{mcp}"), and `LANDING_LAST_UPDATED` as a `time`; a provider dated by `RELEASE_BADGE` in
@@ -330,27 +330,34 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   label, which the structured data's format list reads too, so a new format fails to
   compile until it has one. The marquee (`marquee.tsx`, `#marquee`, a band right under the
   hero) shows two rows inside the `MarqueeMotion` island (`marquee-motion.tsx`): the providers,
-  `MACHINE_PROVIDER_IDS` by `providerShortLabel` with their kind glyph (`PROVIDER_KIND_ICONS`), and
-  the formats, `SUPPORTED_FORMAT_IDS` by their `FORMAT_DISPLAY` label with a file glyph
+  `landingProviders()`, the same list the facts block reads, with their kind glyph
+  (`PROVIDER_KIND_ICONS`), and the formats, `SUPPORTED_FORMAT_IDS` by their `FORMAT_DISPLAY` label with a file glyph
   (`FORMAT_ICONS`, a `Record<SupportedFormat, StackIconKey>`, so a new format fails to compile
   until it has one), every glyph a `<use>` of one `StackIconSprite` (prefix `marquee`). A provider
   that `RELEASE_BADGE` dates carries the same `AvailableFromPill` as the facts block. No count is
   typed and no third-party logo is drawn. Each row is a muted `h3` that names its visible list,
   the list, `MARQUEE_COPIES` copies of it (`aria-hidden`, `inert`, holding no link or button), and
   an "All providers" or "All formats" link after the moving track, so nothing focusable moves. The
-  server HTML is the static state: the copies and the pause button are `display: none` and the
-  list wraps, which is also what a visitor without JavaScript, under reduced motion, or with a
-  failed island chunk sees. Only when `MotionRoot` has set `html[data-motion-ready]`, the island
-  has hydrated (`data-marquee="running"` or `"paused"` on `.vk-marquee`) and
-  `prefers-reduced-motion` is `no-preference` do the rows turn into one masked line that runs
+  list sits in `.vk-marquee-viewport`, a `.vk-edge-fade` `role="group"` keyboard stop named by the
+  row's `h3`. The server HTML is the static state, and the copies are `display: none` in it. Under
+  reduced motion or without JavaScript (`scripting: none`) the pause button is `display: none` and
+  the list wraps, which never changes. Where motion may start (`prefers-reduced-motion:
+  no-preference` and `scripting: enabled`) the static state already has the moving state's box:
+  the pause button holds its row at `visibility: hidden` (so it is neither focusable nor announced)
+  and each list is one line that scrolls sideways with no scrollbar, so every item stays reachable
+  by keyboard, touch or trackpad, also after a failed island chunk, and the takeover shifts
+  nothing (`e2e/marquee.spec.ts` measures the section's height before and after hydration at 375
+  and 1440 and sums the layout shift). Only when `MotionRoot` has set `html[data-motion-ready]`,
+  the island has hydrated (`data-marquee="running"` or `"paused"` on `.vk-marquee`) and that media
+  query matches do the rows turn into one masked line that runs
   `vk-marquee` (a `transform` keyframe, `--marquee-items` times `--marquee-item-time` per loop,
   the formats row reversed through `--marquee-direction`), and the pause button shows before the
   rows: an `outline` `Button` with one constant name (`landing.marquee.pause`), `aria-pressed` while
   paused, and only its `aria-hidden` glyph swapping between pause and play. Hover and focus inside
   a row pause that row. `marquee.test.tsx` pins the registry rows, the badge, the copies, the static
   state and the pause toggle, and `e2e/marquee.spec.ts` the motion in a browser. The format
-  samples in `lib/format-samples.generated.json`, which the hero diff and the bento format tile
-  read, are written by `scripts/sync-format-samples.mjs` before dev,
+  samples in `lib/format-samples.generated.json`, which only the bento format tile reads (through
+  `lib/landing-bento.ts`), are written by `scripts/sync-format-samples.mjs` before dev,
   build, typecheck and test (git-ignored like `lib/version.generated.json`) from
   `createDefaultRegistry` in `@verbatra/sdk` over the in-memory `AdapterFs` in
   `lib/format-samples-seed.mjs`. Nothing in the page graph imports the sdk at runtime, and the docs
@@ -570,7 +577,9 @@ stack").
   `e2e/hero.spec.ts` drives the fill at 375 by 667, 320 by 256 and 568 by 320.
 - **Marquee.** The one looping motion on the page, a CSS keyframe with no JavaScript animation:
   it runs only in the state described under "Marquee" above, pauses through its button, hover
-  and focus inside a row, and is static wrapped rows otherwise, so 2.2.2 holds without JavaScript.
+  and focus inside a row, and is static otherwise (one sideways-scrolling line where motion may
+  start, wrapped rows under reduced motion or without JavaScript), so 2.2.2 holds without
+  JavaScript.
 - **No section eyebrows.** A landing section opens with its `h2`; nothing sits above it, no
   index and no label word. `reveal-marks.test.tsx` fails on a `.vk-eyebrow` style.
 - **Version pill.** On the landing only (the `landingLocale` gate in `lib/i18n.ts`), `HomeSiteHeader` passes

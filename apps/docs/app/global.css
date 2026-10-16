@@ -2774,9 +2774,34 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   color: var(--text-muted);
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  html[data-motion-ready] .vk-marquee[data-marquee] .vk-marquee-toggle {
+@supports (animation-timeline: scroll()) {
+  .vk-marquee-viewport:focus-visible {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) and (scripting: enabled) {
+  .vk-marquee-toggle {
     display: inline-flex;
+    visibility: hidden;
+  }
+
+  .vk-marquee-viewport {
+    scrollbar-width: none;
+  }
+
+  .vk-marquee-viewport::-webkit-scrollbar {
+    display: none;
+  }
+
+  .vk-marquee-list {
+    flex: none;
+    flex-wrap: nowrap;
+  }
+
+  html[data-motion-ready] .vk-marquee[data-marquee] .vk-marquee-toggle {
+    visibility: visible;
   }
 
   html[data-motion-ready] .vk-marquee[data-marquee] .vk-marquee-viewport {
@@ -2801,9 +2826,12 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
     width: max-content;
   }
 
+  html[data-motion-ready] .vk-marquee[data-marquee] .vk-marquee-viewport:focus-visible {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
   html[data-motion-ready] .vk-marquee[data-marquee] .vk-marquee-list {
-    flex: none;
-    flex-wrap: nowrap;
     animation: vk-marquee calc(var(--marquee-items) * var(--marquee-item-time)) linear infinite
       var(--marquee-direction);
   }
