@@ -132,10 +132,7 @@ describe("theme tokens", () => {
       (name) =>
         /^--color-fd-(background|card|popover|muted|border|foreground|muted-foreground|accent|accent-foreground|primary-foreground)$/.test(
           name,
-        ) ||
-        /^--v-(purple|glow|glow-soft|violet|void|danger|status-changed|status-unchanged)$/.test(
-          name,
-        ),
+        ) || /^--v-(purple|glow|violet|void|danger|status-changed|status-unchanged)$/.test(name),
     );
     expect(themed.length).toBeGreaterThan(15);
     for (const name of themed) expect(light, name).toHaveProperty(name);
@@ -222,7 +219,7 @@ describe("theme tokens", () => {
 
   it("styles components through the semantic layer, never the Fumadocs or brand primitives", () => {
     const primitive =
-      /(?<![\w-])(?:text|bg|border|divide|decoration|ring|outline|fill|stroke)-fd-[\w-]+|var\(--color-fd-[\w-]+\)|\(--v-(?!void\)|status-|glow-soft\))[\w-]+\)/g;
+      /(?<![\w-])(?:text|bg|border|divide|decoration|ring|outline|fill|stroke)-fd-[\w-]+|var\(--color-fd-[\w-]+\)|\(--v-(?!void\)|status-)[\w-]+\)/g;
     const offenders = sourceFiles(["components", "app"]).flatMap((file) =>
       Array.from(readFileSync(file, "utf8").matchAll(primitive), (match) => [
         relative(process.cwd(), file),

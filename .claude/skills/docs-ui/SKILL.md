@@ -111,7 +111,7 @@ Three layers exist. Write against the third.
    `hsl(258 60% 74%)`, light `hsl(258 55% 44%)`) and `--v-purple` its fill and bar shade (dark
    `hsl(258 52% 56%)`, light `hsl(258 55% 44%)`); the old magenta purple and pink are gone. Do not
    introduce a second brand hue. Beside them sit a few tints with one job each, never a general
-   palette: `--v-glow-soft` (a flag-token tint with no landing consumer since the terminal retired), and `--v-status-new` (the accent) /
+   palette: `--v-status-new` (the accent) /
    `--v-status-changed` (amber, dark `hsl(38 85% 62%)`, light `hsl(30 90% 30%)`, also Fumadocs'
    warning callout color) / `--v-status-unchanged` (the `tone` colors of
    `components/ui/badge.tsx`). There is no pink and no headline gradient token any more
@@ -144,9 +144,9 @@ never the arbitrary-value spelling `text-[color:var(--text-muted)]` (`lib/theme.
 `var(--accent)` / `var(--accent-fill)` rather than `var(--v-glow)` / `var(--v-purple)`.
 `--border-accent` (the accent mixed 45 percent into `--border-default`) is the glow-tinted border
 of a flat panel, an evidence chip or a copy button on hover; it is the one token for that mix. In
-`components/` and `app/`, only three brand primitives may still be named directly, each in its one
+`components/` and `app/`, only two brand primitives may still be named directly, each in its one
 documented role: `--v-void` (void code surfaces), `--v-status-*` (badge tones and the Try it
-marks) and `--v-glow-soft` (flag tokens). `lib/theme.test.ts` fails on any
+marks). `lib/theme.test.ts` fails on any
 other `fd-*` class, `var(--color-fd-*)` or `--v-*` reference there.
 
 Scales are fixed and narrow, deliberately:
@@ -207,10 +207,9 @@ Scales are fixed and narrow, deliberately:
   and draws each as a chip; every Try it file pane goes through it, and
   the showcase passes the tokens a refused reply added (the `+` details of its refusal) as the
   broken set.
-- Motion: see "Landing motion" below for the system. Its tokens: `--ease-out` (entrances and
-  state changes), `--duration-fast` (140ms, hover and press),
-  `--duration-base` (240ms, state change), `--duration-reveal` (560ms, read through its alias
-  `--duration-slow` by every entrance), `--reveal-distance` (`--motion-distance-lg`, 16px;
+- Motion: see "Landing motion" below for the system. Its tokens: `--ease-standard` (entrances,
+  hovers and state changes), `--duration-fast` (140ms, hover and press),
+  `--duration-base` (240ms, state change), `--duration-slow` (560ms, every entrance), `--reveal-distance` (`--motion-distance-lg`, 16px;
   `--motion-distance-md`, 8px, under 40rem), `--reveal-stagger` (70ms) and
   `--reveal-delay-max` (350ms, the stagger cap), and `--marquee-item-time` (5s: one marquee loop
   lasts that times the row's item count). Only `opacity` and `transform` / `translate`
@@ -762,7 +761,7 @@ reserved for client islands (see "The stack").
   scrolls in: once `HERO_DIFF_FILL_RATIO` of it shows, or its visible part covers
   `HERO_DIFF_FILL_VIEWPORT_SHARE` of the viewport (a short screen, where the whole diff never fits),
   or `HERO_DIFF_FILL_TIMEOUT_MS` after any part of it entered view. The values fade back in
-  (`opacity`, `--duration-reveal`, one `--reveal-stagger` apart) and the `aria-hidden` "missing"
+  (`opacity`, `--duration-slow`, one `--reveal-stagger` apart) and the `aria-hidden` "missing"
   mark swaps for "new". Focus inside the diff shows the values at once (`:focus-within`), so a
   keyboard user never meets a hidden value. A diff already in view at hydration never moves.
   `e2e/hero.spec.ts` drives the fill at 375 by 480, 320 by 256 and 568 by 320.
@@ -890,10 +889,9 @@ reserved for client islands (see "The stack").
   client-only `data-active`, so a page without JavaScript keeps no room),
   `scroll-padding-bottom` and the footer's end padding are `--fab-clearance`, so the button never
   covers a focused element (2.4.11); `e2e/scroll-top.spec.ts` tabs from the FAQ to the end at 375
-  to prove it. The motion aliases `--duration-slow` (entrances), `--ease-standard` (entrances and
-  hovers), `--ease-emphasized` (the button's entrance) and `--motion-distance-sm` / `-md` / `-lg`
+  to prove it. The motion tokens `--ease-emphasized` (the button's entrance) and `--motion-distance-sm` / `-md` / `-lg`
   (4px for the prompt preview's lift, 8px for the button and the phone reveal, 16px for the
-  reveal) live beside the older motion tokens; every one of them has a consumer
+  reveal) sit beside them, one name per value; every one of them has a consumer
   (`motion-root.test.tsx` fails on a declared `--duration-*`, `--ease-*` or `--motion-distance-*`
   token that nothing reads), so there is no instant duration and no exit easing until something
   uses one.

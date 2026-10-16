@@ -70,7 +70,7 @@
   text-decoration-line: underline;
   text-decoration-color: color-mix(in srgb, var(--v-glow) 40%, transparent);
   text-underline-offset: 4px;
-  transition: text-decoration-color var(--duration-base) var(--ease-out);
+  transition: text-decoration-color var(--duration-base) var(--ease-standard);
 }
 
 .prose :where(a):not(:where(.not-prose, .not-prose *)):hover,
@@ -189,15 +189,13 @@ samp {
   --grid-columns: 12;
   --grid-gap: 1.5rem;
 
-  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
   --duration-fast: 140ms;
   --duration-base: 240ms;
-  --duration-reveal: 560ms;
+  --duration-slow: 560ms;
   --reveal-distance: var(--motion-distance-lg);
   --reveal-stagger: 70ms;
   --reveal-delay-max: 350ms;
-  --duration-slow: var(--duration-reveal);
-  --ease-standard: var(--ease-out);
   --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
   --motion-distance-sm: 4px;
   --motion-distance-md: 8px;
@@ -205,8 +203,6 @@ samp {
   --fab-size: 2.75rem;
   --fab-offset: 1rem;
   --fab-clearance: calc(var(--fab-size) + 2 * var(--fab-offset) + env(safe-area-inset-bottom));
-
-  --v-glow-soft: hsl(258 70% 87%);
 
   --v-void: hsl(240 24% 4%);
 
@@ -249,7 +245,6 @@ html.light {
 
   --v-purple: hsl(258 55% 44%);
   --v-glow: hsl(258 55% 44%);
-  --v-glow-soft: hsl(258 45% 36%);
   --v-void: hsl(0 0% 100%);
   --v-status-changed: hsl(30 90% 30%);
   --v-status-unchanged: hsl(240 6% 42%);
@@ -1093,7 +1088,7 @@ html.light .vk-theme-icon-light {
   height: 1px;
   background: color-mix(in srgb, var(--v-glow) 55%, transparent);
   opacity: 0;
-  transition: opacity var(--duration-base) var(--ease-out);
+  transition: opacity var(--duration-base) var(--ease-standard);
 }
 
 .vk-header-link:hover::after,
@@ -1123,7 +1118,7 @@ html.light .vk-theme-icon-light {
 #nd-sidebar .vk-label,
 #nd-sidebar-mobile .vk-label {
   font-weight: 500;
-  transition: color var(--duration-base) var(--ease-out);
+  transition: color var(--duration-base) var(--ease-standard);
 }
 
 #nd-sidebar :is(a, button):hover .vk-label,
@@ -1170,7 +1165,7 @@ html.light .vk-theme-icon-light {
   border-color: var(--border-default);
   border-radius: var(--radius-lg);
   background: var(--surface-bg);
-  transition: border-color var(--duration-base) var(--ease-out);
+  transition: border-color var(--duration-base) var(--ease-standard);
 }
 
 .vk-link-card:hover {
@@ -1279,7 +1274,7 @@ html.light .vk-theme-icon-light {
   flex: none;
   color: var(--text-faint);
   opacity: 0;
-  transition: opacity var(--duration-fast) var(--ease-out);
+  transition: opacity var(--duration-fast) var(--ease-standard);
 }
 
 .vk-stack-card:hover .vk-stack-card-chevron,
@@ -1360,8 +1355,8 @@ html.light .vk-theme-icon-light {
   color: var(--text-muted);
   text-decoration-line: none;
   transition:
-    color var(--duration-fast) var(--ease-out),
-    border-color var(--duration-fast) var(--ease-out);
+    color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
 }
 
 .vk-home-tab:hover {
@@ -1545,7 +1540,7 @@ html.light .vk-theme-icon-light {
   position: relative;
   padding-block: 0.5rem 0.625rem;
   font-weight: 500;
-  transition: color var(--duration-base) var(--ease-out);
+  transition: color var(--duration-base) var(--ease-standard);
 }
 
 .vk-sidebar-tab::after {
@@ -1557,7 +1552,7 @@ html.light .vk-theme-icon-light {
   border-radius: 2px;
   background: var(--accent);
   opacity: 0;
-  transition: opacity var(--duration-base) var(--ease-out);
+  transition: opacity var(--duration-base) var(--ease-standard);
 }
 
 .vk-sidebar-tab:hover {
@@ -1837,8 +1832,8 @@ html.light .vk-theme-icon-light {
   border-radius: var(--radius-lg);
   background: var(--surface-bg);
   transition:
-    border-color var(--duration-base) var(--ease-out),
-    background-color var(--duration-base) var(--ease-out);
+    border-color var(--duration-base) var(--ease-standard),
+    background-color var(--duration-base) var(--ease-standard);
 }
 
 .vk-docs-footer > a:hover {
@@ -1960,8 +1955,8 @@ figure.shiki.vk-code-output figcaption {
 
 .vk-evidence-link {
   transition:
-    border-color var(--duration-base) var(--ease-out),
-    color var(--duration-base) var(--ease-out);
+    border-color var(--duration-base) var(--ease-standard),
+    color var(--duration-base) var(--ease-standard);
 }
 
 .vk-evidence-link:hover,
@@ -2109,8 +2104,8 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 @media (prefers-reduced-motion: no-preference) {
   .vk-version-pill {
     transition:
-      color var(--duration-fast) var(--ease-out),
-      border-color var(--duration-fast) var(--ease-out);
+      color var(--duration-fast) var(--ease-standard),
+      border-color var(--duration-fast) var(--ease-standard);
   }
 }
 
@@ -2323,7 +2318,7 @@ html:has(.vk-home) {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   color: var(--text-faint);
-  transition: color var(--duration-fast) var(--ease-out);
+  transition: color var(--duration-fast) var(--ease-standard);
 }
 
 .vk-showcase-file-tab:hover {
@@ -2469,7 +2464,7 @@ html:has(.vk-home) {
 
 @media (prefers-reduced-motion: no-preference) {
   .vk-showcase-output-code[data-printing] .vk-showcase-output-line {
-    animation: vk-print-in var(--duration-fast) var(--ease-out) both;
+    animation: vk-print-in var(--duration-fast) var(--ease-standard) both;
     animation-delay: calc(var(--line-index) * var(--print-stagger));
   }
 }
@@ -2764,7 +2759,7 @@ html:has(.vk-home) {
 
 @media (prefers-reduced-motion: no-preference) {
   .vk-flow-mark::before {
-    transition: opacity var(--duration-base) var(--ease-out);
+    transition: opacity var(--duration-base) var(--ease-standard);
   }
 }
 
@@ -2832,8 +2827,8 @@ html:has(.vk-home) {
   opacity: 0;
   transform: translateY(calc(-1 * var(--motion-distance-sm)));
   transition:
-    opacity var(--duration-fast) var(--ease-out),
-    transform var(--duration-fast) var(--ease-out),
+    opacity var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard),
     visibility 0s linear var(--duration-fast);
 }
 
@@ -3768,7 +3763,7 @@ html:has(.vk-home) {
 @media (prefers-reduced-motion: no-preference) {
   .vk-playground-source,
   .vk-playground-results {
-    transition: opacity var(--duration-base) var(--ease-out);
+    transition: opacity var(--duration-base) var(--ease-standard);
   }
 }
 

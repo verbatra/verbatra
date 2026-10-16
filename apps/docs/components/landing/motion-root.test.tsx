@@ -146,8 +146,8 @@ describe("the motion stylesheet", () => {
 
   it("caps the stagger at the maximum delay and declares the motion tokens on :root", () => {
     for (const token of [
-      "--duration-reveal: 560ms",
-      "--duration-slow: var(--duration-reveal)",
+      "--duration-slow: 560ms",
+      "--ease-standard: cubic-bezier(0.22, 1, 0.36, 1)",
       "--reveal-distance: var(--motion-distance-lg)",
       "--motion-distance-lg: 16px",
       "--reveal-stagger: 70ms",
@@ -156,6 +156,7 @@ describe("the motion stylesheet", () => {
       expect(css).toContain(token);
     }
     expect(css).toContain("--reveal-distance: var(--motion-distance-md)");
+    expect(css).not.toMatch(/--duration-reveal|--ease-out\b/);
     for (const token of css.matchAll(/^\s+(--(?:duration|ease|motion-distance)-[a-z-]+):/gm)) {
       const uses = css.split(`var(${token[1]})`).length - 1;
       expect(uses, token[1]).toBeGreaterThan(0);
