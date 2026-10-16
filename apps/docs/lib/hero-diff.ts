@@ -1,4 +1,5 @@
 import generated from "./hero-diff.generated.json";
+import { HERO_DIFF_SOURCE_LOCALE, HERO_DIFF_TARGET_LOCALE } from "./hero-diff-seed.mjs";
 
 export type HeroDiffFill = {
   readonly key: string;
@@ -13,6 +14,7 @@ export type HeroDiffLine = {
 
 export type HeroDiffPane = {
   readonly file: string;
+  readonly lang: string;
   readonly lines: ReadonlyArray<HeroDiffLine>;
 };
 
@@ -36,13 +38,18 @@ export function splitFilledLine(key: string, text: string): HeroDiffFill {
 }
 
 function sourcePane(pane: GeneratedPane): HeroDiffPane {
-  return { file: pane.file, lines: textLines(pane.text).map((text) => ({ text })) };
+  return {
+    file: pane.file,
+    lang: HERO_DIFF_SOURCE_LOCALE,
+    lines: textLines(pane.text).map((text) => ({ text })),
+  };
 }
 
 function targetPane(pane: GeneratedTarget): HeroDiffPane {
   const filled = new Map(pane.filled.map(({ key, line }) => [line, key]));
   return {
     file: pane.file,
+    lang: HERO_DIFF_TARGET_LOCALE,
     lines: textLines(pane.text).map((text, index) => {
       const key = filled.get(index);
       return key === undefined ? { text } : { text, fill: splitFilledLine(key, text) };

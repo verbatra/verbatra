@@ -7,7 +7,21 @@ export type HeroDiffState = "filled" | "missing";
 
 export const HERO_DIFF_FILL_RATIO = 0.6;
 
-const THRESHOLDS = [0, HERO_DIFF_FILL_RATIO];
+export const HERO_DIFF_FILL_VIEWPORT_SHARE = 0.4;
+
+export const HERO_DIFF_FILL_TIMEOUT_MS = 2000;
+
+const THRESHOLDS = Array.from({ length: 21 }, (_, step) => step / 20);
+
+function viewportHeight(entry: IntersectionObserverEntry): number {
+  return entry.rootBounds?.height ?? window.innerHeight;
+}
+
+function isMeaningfullyVisible(entry: IntersectionObserverEntry): boolean {
+  if (!entry.isIntersecting) return false;
+  if (entry.intersectionRatio >= HERO_DIFF_FILL_RATIO) return true;
+  return entry.intersectionRect.height >= viewportHeight(entry) * HERO_DIFF_FILL_VIEWPORT_SHARE;
+}
 
 export function HeroDiffMotion({ children }: { children: ReactNode }): ReactNode {
   const ref = useRef<HTMLDivElement | null>(null);
@@ -17,9 +31,9 @@ export function HeroDiffMotion({ children }: { children: ReactNode }): ReactNode
     const node = ref.current;
     if (!node || prefersReducedMotion()) return;
     let first = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     const observer = new IntersectionObserver(
       (entries) => {
-        const ratio = Math.max(...entries.map((entry) => entry.intersectionRatio));
         const visible = entries.some((entry) => entry.isIntersecting);
         if (first) {
           first = false;
@@ -27,15 +41,24 @@ export function HeroDiffMotion({ children }: { children: ReactNode }): ReactNode
           else setState("missing");
           return;
         }
-        if (visible && ratio >= HERO_DIFF_FILL_RATIO) {
-          observer.disconnect();
-          setState("filled");
+        if (entries.some(isMeaningfullyVisible)) {
+          fill();
+          return;
         }
+        if (visible && timer === undefined) timer = setTimeout(fill, HERO_DIFF_FILL_TIMEOUT_MS);
       },
       { threshold: THRESHOLDS },
     );
+    function fill(): void {
+      clearTimeout(timer);
+      observer.disconnect();
+      setState("filled");
+    }
     observer.observe(node);
-    return () => observer.disconnect();
+    return () => {
+      clearTimeout(timer);
+      observer.disconnect();
+    };
   }, []);
 
   return (

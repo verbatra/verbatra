@@ -3,9 +3,9 @@
     "meta": {
       "title": "Verbatra: die i18n-CLI, die nur geänderte Keys übersetzt",
       "ogTitle": "Verbatra: übersetze nur, was sich geändert hat",
-      "description": "Verbatra ist eine Open-Source-CLI mit SDK für i18n. Sie findet fehlende und geänderte Keys in deinen Locale-Dateien und übersetzt nur diese mit deinem Key.",
+      "description": "Verbatra, eine Open-Source-CLI mit SDK für i18n, findet fehlende und geänderte Keys in deinen Locale-Dateien und übersetzt nur diese mit deinem Provider-Key.",
       "ogDescription": "Übersetze nur die i18n-Keys, die sich geändert haben, und lass die CI scheitern, solange einer fehlt.",
-      "ogImageAlt": "verbatra: Übersetze nur, was sich geändert hat, über einem check-Lauf, der zwei fehlende Keys pro Locale findet, und einem translate-Lauf, der nur diese schickt.",
+      "ogImageAlt": "Verbatra: Übersetze nur, was sich geändert hat, über einem check-Lauf, der zwei fehlende Keys pro Locale findet, und einem translate-Lauf, der nur diese schickt.",
       "definition": "Verbatra ist eine Open-Source-CLI mit SDK für i18n-Locale-Dateien. Sie schickt nur neue und geänderte Keys an den Provider deiner Wahl (KI oder maschinelle Übersetzung) und lässt die CI scheitern, solange ein Key fehlt."
     },
     "hero": {
@@ -34,19 +34,19 @@
       "heading": "Häufig gestellte Fragen.",
       "items": {
         "incremental": {
-          "question": "Wie vermeidet verbatra, bei jedem Lauf alles neu zu übersetzen?",
+          "question": "Wie vermeidet Verbatra, bei jedem Lauf alles neu zu übersetzen?",
           "answer": "Es führt eine committete Lock-Datei, die festhält, was bereits übersetzt wurde. Jeder Lauf vergleicht deine Quell-Locale mit dieser Lock-Datei und schickt nur die neuen oder geänderten Keys an deinen Provider. Unveränderte Keys werden nie angefasst, sodass ein typischer Lauf eine Handvoll Strings kostet, nicht deinen ganzen Katalog."
         },
         "providers": {
           "question": "Welche Übersetzungs-Provider kann ich verwenden?",
-          "answer": "Jeder davon, hinter einer Schnittstelle: Anthropic, OpenAI und Gemini (LLMs), DeepL und Google Cloud Translation (maschinelle Übersetzung), openai-compatible, das verbatra auf einen lokalen oder selbst gehosteten Server wie Ollama, LM Studio oder vLLM richtet, sowie libretranslate, ein selbst gehosteter LibreTranslate-Server für maschinelle Übersetzung ganz ohne Sprachmodell. Du wählst einen über seine ID im Provider-Block deiner Konfiguration und wechselst später, indem du diesen Block neu schreibst, denn jeder Provider hat eigene Optionen. Gemini hat ein echtes kostenloses Kontingent, und ein lokales Modell kostet pro Aufruf nichts. Oder setz den Provider auf none, um maschinelle Übersetzung ganz abzuschalten."
+          "answer": "Jeder davon, hinter einer Schnittstelle: Anthropic, OpenAI und Gemini (LLMs), DeepL und Google Cloud Translation (maschinelle Übersetzung), openai-compatible, das Verbatra auf einen lokalen oder selbst gehosteten Server wie Ollama, LM Studio oder vLLM richtet, sowie libretranslate, ein selbst gehosteter LibreTranslate-Server für maschinelle Übersetzung ganz ohne Sprachmodell. Du wählst einen über seine ID im Provider-Block deiner Konfiguration und wechselst später, indem du diesen Block neu schreibst, denn jeder Provider hat eigene Optionen. Gemini hat ein echtes kostenloses Kontingent, und ein lokales Modell kostet pro Aufruf nichts. Oder setz den Provider auf none, um maschinelle Übersetzung ganz abzuschalten."
         },
         "formats": {
-          "question": "Welche Formate und Frameworks unterstützt verbatra?",
-          "answer": "JSON für i18next, vue-i18n, next-intl und ngx-translate, dazu XLIFF, YAML, Flutter ARB, Java/Spring .properties, Apple .strings und Xcode String Catalogs, Android strings.xml, gettext .po/.pot-Dateien, INI und .NET .resx. Das deckt React, Next.js, Vue, Nuxt, Angular, SvelteKit, Astro, Node.js, Spring, Flutter, iOS, macOS, Android und jeden gettext-basierten Stack ab. verbatra liest die Dateien, die du schon hast; es gibt kein verbatra-eigenes Format, zu dem du migrieren müsstest."
+          "question": "Welche Formate und Frameworks unterstützt Verbatra?",
+          "answer": "JSON für i18next, vue-i18n, next-intl und ngx-translate, dazu XLIFF, YAML, Flutter ARB, Java/Spring .properties, Apple .strings und Xcode String Catalogs, Android strings.xml, gettext .po/.pot-Dateien, INI und .NET .resx. Das deckt React, Next.js, Vue, Nuxt, Angular, SvelteKit, Astro, Node.js, Spring, Flutter, iOS, macOS, Android und jeden gettext-basierten Stack ab. Verbatra liest die Dateien, die du schon hast; es gibt kein Verbatra-eigenes Format, zu dem du migrieren müsstest."
         },
         "ci": {
-          "question": "Kann ich verbatra in der CI ausführen?",
+          "question": "Kann ich Verbatra in der CI ausführen?",
           "answer": "Ja. verbatra check ruft keinen Provider auf und endet mit Exit-Code 1, solange einer Locale Keys fehlen oder Keys veraltet sind. So sichert es einen Pull Request ohne API-Key ab. Die GitHub Action führt check, diff oder translate aus und meldet das Ergebnis als Annotationen und Job-Zusammenfassung."
         },
         "keys": {
@@ -54,12 +54,12 @@
           "answer": "In Umgebungsvariablen, nie in der Konfiguration. Die Konfiguration lehnt unbekannte Schlüssel ab, also kann ein Geheimnis dort nicht aus Versehen landen. Die CLI lädt .env.local und .env für dich, und eine Fehlermeldung nennt die fehlende Variable, gibt aber nie einen Key aus."
         },
         "privacy": {
-          "question": "Schickt verbatra meine Strings irgendwohin?",
-          "answer": "Nur an den Übersetzungs-Provider, den du konfigurierst, und nur, wenn ein Befehl übersetzt. verbatra hat keine Telemetrie, keine Analytics und keinen Update-Check. Du kannst die maschinelle Übersetzung ganz abschalten oder ein Modell auf deiner eigenen Hardware betreiben, sodass nichts dein Netz verlässt. Die <dataHandling>Seite zur Datenverarbeitung</dataHandling> listet, was jeder Provider bekommt, und verlinkt die Aufbewahrungsbedingungen jedes Anbieters."
+          "question": "Schickt Verbatra meine Strings irgendwohin?",
+          "answer": "Nur an den Übersetzungs-Provider, den du konfigurierst, und nur, wenn ein Befehl übersetzt. Verbatra hat keine Telemetrie, keine Analytics und keinen Update-Check. Du kannst die maschinelle Übersetzung ganz abschalten oder ein Modell auf deiner eigenen Hardware betreiben, sodass nichts dein Netz verlässt. Die <dataHandling>Seite zur Datenverarbeitung</dataHandling> listet, was jeder Provider bekommt, und verlinkt die Aufbewahrungsbedingungen jedes Anbieters."
         },
         "cost": {
-          "question": "Was kostet verbatra?",
-          "answer": "verbatra selbst ist kostenlos und Open Source unter der <license>MIT-Lizenz</license>. Der einzige Kostenfaktor ist die Nutzung deines Providers, und die steuerst du: Es übersetzt nur, was sich geändert hat, und du kannst es kostenlos mit Geminis kostenlosem Kontingent oder einem lokalen OpenAI-kompatiblen Modell betreiben. Google darf laut seinen Bedingungen in manchen Regionen Anfragen im kostenlosen Kontingent zur Verbesserung seiner Produkte nutzen, halte vertrauliche Strings also bei einem bezahlten Kontingent oder einem lokalen Modell; die <dataHandling>Seite zur Datenverarbeitung</dataHandling> verlinkt die aktuellen Bedingungen."
+          "question": "Was kostet Verbatra?",
+          "answer": "Verbatra selbst ist kostenlos und Open Source unter der <license>MIT-Lizenz</license>. Der einzige Kostenfaktor ist die Nutzung deines Providers, und die steuerst du: Es übersetzt nur, was sich geändert hat, und du kannst es kostenlos mit Geminis kostenlosem Kontingent oder einem lokalen OpenAI-kompatiblen Modell betreiben. Google darf laut seinen Bedingungen in manchen Regionen Anfragen im kostenlosen Kontingent zur Verbesserung seiner Produkte nutzen, halte vertrauliche Strings also bei einem bezahlten Kontingent oder einem lokalen Modell; die <dataHandling>Seite zur Datenverarbeitung</dataHandling> verlinkt die aktuellen Bedingungen."
         },
         "studio": {
           "question": "Ist Verbatra Studio ein gehosteter Dienst?",
@@ -111,8 +111,8 @@
       },
       "legalLicense": "Open Source unter der MIT-Lizenz",
       "legalCopyright": "© 2026 Mario Kreitz",
-      "githubAria": "verbatra auf GitHub",
-      "npmAria": "verbatra auf npm"
+      "githubAria": "Verbatra auf GitHub",
+      "npmAria": "Verbatra auf npm"
     },
     "brand": {
       "vmarkAlt": "verbatra"
@@ -133,7 +133,7 @@
     },
     "showcase": {
       "heading": "Sieh es in Aktion.",
-      "lead": "Wähle unten eine Änderung an einer Locale-Datei. verbatras eigener Diff- und Hash-Code zeigt in deinem Browser, welche Keys ein Lauf senden würde, und übersetzt nichts.",
+      "lead": "Wähle unten eine Änderung an einer Locale-Datei. Verbatras eigener Diff- und Hash-Code zeigt in deinem Browser, welche Keys ein Lauf senden würde, und übersetzt nichts.",
       "tryIt": {
         "scenariosLabel": "Ändere die englische Datei",
         "scenarios": {
@@ -163,7 +163,7 @@
           "refused": "abgelehnt"
         },
         "result": {
-          "seed": "Alles ist synchron: verbatra würde 0 Keys übersetzen.",
+          "seed": "Alles ist synchron: Verbatra würde 0 Keys übersetzen.",
           "summary": "{written, plural, =0 {Ein echter Lauf würde nichts schreiben} one {Ein echter Lauf würde # Übersetzung schreiben und ihren Lock-Hash aktualisieren} other {Ein echter Lauf würde # Übersetzungen schreiben und ihre Lock-Hashes aktualisieren}}{withheld, select, yes { und die Antwort zurückhalten, die einen Platzhalter beschädigt} other {}}{orphaned, select, yes { und den entfernten Key bis `--prune` in de.json lassen} other {}}.",
           "savings": "{sent, plural, one {# String gesendet} other {# Strings gesendet}}, wo ein komplettes Neuübersetzen {total} senden würde.",
           "outputLabel": "Was verbatra translate ausgibt",
@@ -214,9 +214,8 @@
       "formatsValue": "{count} Dateiformate",
       "requirements": "Voraussetzungen",
       "version": "Aktuelle Version",
-      "versionParts": "Studio {studio}, MCP-Server {mcp}",
-      "lastUpdated": "Zuletzt aktualisiert",
-      "availableFrom": "ab {version}"
+      "versionParts": "CLI und SDK v{cli}, Studio v{studio}, MCP-Server v{mcp}",
+      "lastUpdated": "Zuletzt aktualisiert"
     },
     "marquee": {
       "heading": "Dein Provider. Dein Dateiformat.",
@@ -228,11 +227,11 @@
       "allFormats": "Alle Formate"
     },
     "stats": {
-      "label": "verbatra in Zahlen",
+      "label": "Verbatra in Zahlen",
       "stars": "GitHub-Sterne",
       "downloads": "npm-Downloads letzte Woche",
-      "starsFallback": "verbatra auf GitHub",
-      "downloadsFallback": "verbatra auf npm",
+      "starsFallback": "Verbatra auf GitHub",
+      "downloadsFallback": "Verbatra auf npm",
       "providers": "Übersetzungs-Provider",
       "formats": "Dateiformate"
     },
@@ -285,7 +284,7 @@
         },
         "formats": {
           "title": "Passt zu deinem Framework",
-          "body": "Derselbe Key, so geschrieben, wie jeder Stack ihn erwartet. verbatra liest und schreibt die Dateien, die du schon hast, also musst du nichts migrieren."
+          "body": "Derselbe Key, so geschrieben, wie jeder Stack ihn erwartet. Verbatra liest und schreibt die Dateien, die du schon hast, also musst du nichts migrieren."
         },
         "keys": {
           "title": "Deine Keys bleiben deine",
@@ -297,7 +296,7 @@
         },
         "adapters": {
           "title": "Bring dein eigenes Format mit",
-          "body": "Ein Format, das verbatra nicht mitbringt? Baue einen Adapter auf den Adapter-Factories des SDK und reiche ihn hinein."
+          "body": "Ein Format, das Verbatra nicht mitbringt? Baue einen Adapter auf den Adapter-Factories des SDK und reiche ihn hinein."
         },
         "integrity": {
           "title": "Platzhalter bleiben intakt",
@@ -308,7 +307,7 @@
     "code": {
       "heading": "Nutze es im Terminal oder aus deinem eigenen Code.",
       "lead": "Die CLI baut auf dem SDK auf, und die GitHub Action führt die CLI aus. Alle lesen dieselbe Konfigurationsdatei.",
-      "tablist": "Wege, verbatra auszuführen",
+      "tablist": "Wege, Verbatra auszuführen",
       "tabs": {
         "cli": "CLI",
         "sdk": "SDK",
@@ -341,11 +340,11 @@
       "alt": "Die Review-Seite in Verbatra Studio mit fünf markierten Einträgen über die Locales de, es und fr; jede Zeile zeigt den Key, seine Review-Gründe und die Aktionen Edit, Approve und Reject."
     },
     "compare": {
-      "heading": "So schneidet verbatra im Vergleich ab.",
-      "caption": "verbatra im Vergleich mit einem manuellen Ablauf und einem gehosteten Translation-Management-System",
+      "heading": "So schneidet Verbatra im Vergleich ab.",
+      "caption": "Verbatra im Vergleich mit einem manuellen Ablauf und einem gehosteten Translation-Management-System",
       "columns": {
         "aspect": "Aspekt",
-        "verbatra": "verbatra",
+        "verbatra": "Verbatra",
         "manual": "Manueller Ablauf",
         "tms": "Gehostetes TMS"
       },

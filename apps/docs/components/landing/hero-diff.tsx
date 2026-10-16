@@ -9,7 +9,11 @@ import {
   type HeroDiffPane,
 } from "@/lib/hero-diff";
 
-export type HeroDiffMarks = { readonly missing: string; readonly filled: string };
+export type HeroDiffMarks = {
+  readonly missing: string;
+  readonly filled: string;
+  readonly lang: string;
+};
 
 function DiffLine({
   line,
@@ -42,7 +46,7 @@ function DiffLine({
           <PlaceholderText text={line.fill.value} />
         </span>
       </code>
-      <span className="vk-showcase-mark vk-hero-diff-mark">
+      <span className="vk-showcase-mark vk-hero-diff-mark" lang={marks.lang}>
         <span className="vk-hero-diff-mark-missing" aria-hidden="true">
           {marks.missing}
         </span>
@@ -69,7 +73,7 @@ function DiffPane({
       <figcaption id={id} className="vk-hero-diff-file">
         {pane.file}
       </figcaption>
-      <ScrollBlock labelledBy={id} lang="en" className="vk-hero-diff-scroll">
+      <ScrollBlock labelledBy={id} lang={pane.lang}>
         <pre className="vk-hero-diff-code">
           {pane.lines.map((line, index) => (
             <DiffLine
@@ -87,13 +91,14 @@ function DiffPane({
 
 export function HeroDiff({ label, marks }: { label: string; marks: HeroDiffMarks }): ReactNode {
   return (
-    <figure className="vk-hero-diff" aria-label={label}>
+    <figure className="vk-hero-diff">
       <HeroDiffMotion>
         <div className="vk-hero-diff-panes">
           <DiffPane pane={HERO_DIFF_SOURCE_PANE} id="hero-diff-source" marks={marks} />
           <DiffPane pane={HERO_DIFF_TARGET_PANE} id="hero-diff-target" marks={marks} />
         </div>
       </HeroDiffMotion>
+      <figcaption className="vk-hero-diff-caption">{label}</figcaption>
     </figure>
   );
 }

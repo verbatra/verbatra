@@ -48,7 +48,7 @@ describe("landing message parity", () => {
       "landing.banner.quotes.what",
       "landing.banner.diffLabel",
       "landing.facts.label",
-      "landing.facts.availableFrom",
+      "landing.facts.versionParts",
       "landing.hero.command.installHint",
       "landing.stats.stars",
       "landing.problem.heading",

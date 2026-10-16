@@ -3,6 +3,7 @@ import { defineConfig, devices } from "playwright/test";
 const PORT = process.env.E2E_PORT ?? "3107";
 const BASE_URL = `http://localhost:${PORT}`;
 const IN_CI = process.env.CI !== undefined;
+const REUSE_SERVER = process.env.PW_REUSE_SERVER === "1";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -21,7 +22,7 @@ export default defineConfig({
     command: "node scripts/serve-standalone.mjs",
     url: BASE_URL,
     env: { PORT },
-    reuseExistingServer: !IN_CI,
+    reuseExistingServer: REUSE_SERVER,
     timeout: 60_000,
   },
 });

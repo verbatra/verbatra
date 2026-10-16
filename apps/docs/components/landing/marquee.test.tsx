@@ -19,8 +19,12 @@ vi.mock("next-intl/server", async () => {
   const { createTranslator } = await import("next-intl");
   const { default: catalog } = await import("@/messages/en.json");
   return {
-    getTranslations: async (namespace: string) =>
-      createTranslator({ locale: "en", messages: catalog, namespace: namespace as never }),
+    getTranslations: async (scope: string | { namespace: string }) =>
+      createTranslator({
+        locale: "en",
+        messages: catalog,
+        namespace: (typeof scope === "string" ? scope : scope.namespace) as never,
+      }),
     getLocale: async () => page.locale,
   };
 });
@@ -101,7 +105,7 @@ describe("Marquee", () => {
     );
     expect(badged).toEqual([...RELEASE_BADGE.providers]);
     expect(providers.querySelector(".vk-pill")?.textContent).toBe(
-      messages.landing.facts.availableFrom.replace("{version}", RELEASE_BADGE.version),
+      messages.docs.availableFrom.title.replace("{version}", RELEASE_BADGE.version),
     );
   });
 

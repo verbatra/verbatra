@@ -55,7 +55,9 @@ HTML response without exactly one hashed policy header. It needs
 
 `pnpm test:e2e` runs the Playwright and axe suite in `e2e/` against the same standalone build: it
 copies the static assets and `public` into `.next/standalone` and starts the server on port 3107
-(`scripts/serve-standalone.mjs`), or reuses a server already listening there. Build first.
+(`scripts/serve-standalone.mjs`). It fails while anything else holds that port, so it never tests a
+`next dev` server by accident; set `PW_REUSE_SERVER=1` to run against a standalone server you
+started there yourself. Build first.
 
 No API key is needed to run, build, or test the site. A provider key is needed only to re-translate
 the interface strings with `pnpm i18n` (see below).

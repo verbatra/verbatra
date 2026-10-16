@@ -39,8 +39,12 @@ vi.mock("next-intl/server", async () => {
   const { createTranslator } = await import("next-intl");
   const { default: catalog } = await import("@/messages/en.json");
   return {
-    getTranslations: async (namespace: string) =>
-      createTranslator({ locale: "en", messages: catalog, namespace: namespace as never }),
+    getTranslations: async (scope: string | { namespace: string }) =>
+      createTranslator({
+        locale: "en",
+        messages: catalog,
+        namespace: (typeof scope === "string" ? scope : scope.namespace) as never,
+      }),
     getLocale: async () => page.locale,
   };
 });
@@ -197,10 +201,12 @@ describe("Hero", () => {
     ]);
   });
 
-  it("names the facts list by a visually hidden heading and keeps every fact in text", async () => {
+  it("heads the facts list with a visually hidden h2 and keeps every fact in text", async () => {
     const doc = await render();
     const list = doc.querySelector("dl.vk-facts");
-    const title = doc.getElementById(list?.getAttribute("aria-labelledby") ?? "");
+    expect(list?.hasAttribute("aria-labelledby")).toBe(false);
+    expect(list?.hasAttribute("aria-label")).toBe(false);
+    const title = list?.previousElementSibling;
     expect(title?.tagName).toBe("H2");
     expect(title?.className).toBe("sr-only");
     expect(title?.textContent).toBe(facts.label);
@@ -238,7 +244,7 @@ describe("Hero", () => {
     ]);
     for (const item of badged) {
       expect(item.querySelector(".vk-pill")?.textContent).toBe(
-        facts.availableFrom.replace("{version}", RELEASE_BADGE.version),
+        messages.docs.availableFrom.title.replace("{version}", RELEASE_BADGE.version),
       );
     }
   });
@@ -260,9 +266,13 @@ describe("Hero", () => {
   it("shows the published versions and the landing date", async () => {
     const doc = await render();
     const version = fact(doc, "version")?.querySelector("dd")?.textContent ?? "";
-    expect(version).toContain(`v${PACKAGE_VERSION}`);
-    expect(version).toContain(STUDIO_VERSION);
-    expect(version).toContain(MCP_VERSION);
+    expect(version).toBe(
+      facts.versionParts
+        .replace("{cli}", PACKAGE_VERSION)
+        .replace("{studio}", STUDIO_VERSION)
+        .replace("{mcp}", MCP_VERSION),
+    );
+    expect(version).toContain(`CLI and SDK v${PACKAGE_VERSION}`);
     const time = fact(doc, "updated")?.querySelector("time");
     expect(time?.getAttribute("datetime")).toBe(LANDING_LAST_UPDATED);
     expect(time?.textContent).toBe("October 16, 2026");
@@ -283,7 +293,20 @@ describe("Hero", () => {
     expect(code(0)).toEqual(HERO_DIFF_SOURCE_PANE.lines.map((line) => line.text));
     expect(code(1)).toEqual(HERO_DIFF_TARGET_PANE.lines.map((line) => line.text));
     expect(doc.querySelector("[data-diff-state]")?.getAttribute("data-diff-state")).toBe("filled");
-    expect(doc.querySelector(".vk-hero-diff")?.getAttribute("aria-label")).toBe(banner.diffLabel);
+    const figure = doc.querySelector(".vk-hero-diff");
+    expect(figure?.hasAttribute("aria-label")).toBe(false);
+    const caption = figure?.querySelector(":scope > figcaption");
+    expect(caption?.className).toBe("vk-hero-diff-caption");
+    expect(caption?.textContent).toBe(banner.diffLabel);
+  });
+
+  it("marks each pane's code with its file's language and the mark words with the page's", async () => {
+    const doc = await render("de");
+    const blocks = Array.from(doc.querySelectorAll(".vk-hero-diff-pane [role='group']"));
+    expect(blocks.map((block) => block.getAttribute("lang"))).toEqual(["en", "de"]);
+    expect(blocks.every((block) => !block.classList.contains("vk-hero-diff-scroll"))).toBe(true);
+    for (const mark of doc.querySelectorAll(".vk-hero-diff-mark"))
+      expect(mark.getAttribute("lang")).toBe("de");
   });
 
   it("marks the filled keys of the German file, keeping the missing mark from assistive technology", async () => {

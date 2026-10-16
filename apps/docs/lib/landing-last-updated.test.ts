@@ -5,10 +5,11 @@ import { describe, expect, it } from "vitest";
 import { i18n } from "./i18n";
 import { LANDING_LAST_UPDATED } from "./site";
 
-const PINNED = {
-  date: "2026-10-16",
-  hash: "eb9514b7f3c812316aad604b45195ecf24012c9899c459b3f3938996f2a9c243",
-};
+type CopyRevision = { readonly date: string; readonly hash: string };
+
+const COPY_REVISIONS: ReadonlyArray<CopyRevision> = [
+  { date: "2026-10-16", hash: "791ad0cc239de84ad1a1fe9293be9b46095cd2fcf826acd56f013c4516c680f3" },
+];
 
 function landingCopyHash(): string {
   const hash = createHash("sha256");
@@ -28,7 +29,15 @@ describe("LANDING_LAST_UPDATED", () => {
     );
   });
 
-  it("is bumped whenever the landing copy changes: update the date and this hash together", () => {
-    expect({ date: LANDING_LAST_UPDATED, hash: landingCopyHash() }).toEqual(PINNED);
+  it("pins the current landing copy to LANDING_LAST_UPDATED as the newest revision", () => {
+    expect(COPY_REVISIONS.at(-1)).toEqual({ date: LANDING_LAST_UPDATED, hash: landingCopyHash() });
+  });
+
+  it("gives every copy revision its own, later date, so a new hash needs a new LANDING_LAST_UPDATED", () => {
+    const dates = COPY_REVISIONS.map((revision) => revision.date);
+    expect(dates).toEqual(dates.toSorted());
+    expect(new Set(dates).size).toBe(dates.length);
+    const hashes = COPY_REVISIONS.map((revision) => revision.hash);
+    expect(new Set(hashes).size).toBe(hashes.length);
   });
 });

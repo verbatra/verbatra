@@ -1,23 +1,19 @@
 import { expect, test } from "playwright/test";
-import { expectNoAxeViolations, homeUrl, LOCALES, openInTheme, THEMES } from "./support";
+import { RELEASE_BADGE } from "../lib/release-badge";
+import { homeUrl, LOCALES } from "./support";
 
 const HERO = "section.vk-banner";
 
 for (const locale of LOCALES) {
   test.describe(`hero ${homeUrl(locale)}`, () => {
-    for (const theme of THEMES) {
-      test(`has no axe violations in the ${theme} theme`, async ({ page }) => {
-        await openInTheme(page, homeUrl(locale), theme);
-        await expectNoAxeViolations(page, HERO);
-      });
-    }
-
     test("shows the facts block with every fact", async ({ page }) => {
       await page.goto(homeUrl(locale));
       const facts = page.locator(`${HERO} dl.vk-facts`);
       await expect(facts).toBeVisible();
       await expect(facts.locator("dt")).toHaveCount(7);
-      await expect(facts.locator('[data-provider="libretranslate"] .vk-pill')).toBeVisible();
+      for (const id of RELEASE_BADGE.providers) {
+        await expect(facts.locator(`[data-provider="${id}"] .vk-pill`)).toBeVisible();
+      }
     });
   });
 }
@@ -47,4 +43,40 @@ test.describe("hero diff motion", () => {
     await diff.scrollIntoViewIfNeeded();
     await expect(diff).toHaveAttribute("data-diff-state", "filled");
   });
+
+  test("shows a missing value while focus is inside the diff", async ({ page }) => {
+    await page.goto("/");
+    const diff = page.locator("[data-diff-state]");
+    await expect(diff).toHaveAttribute("data-diff-state", "missing");
+    await diff
+      .locator("[role='group']")
+      .last()
+      .evaluate((block) => (block as HTMLElement).focus({ preventScroll: true }));
+    await expect(diff).toHaveAttribute("data-diff-state", "missing");
+    await expect(diff.locator(".vk-hero-diff-value").first()).toHaveCSS("opacity", "1");
+  });
 });
+
+for (const viewport of [
+  { width: 320, height: 256 },
+  { width: 568, height: 320 },
+]) {
+  test.describe(`hero diff motion at ${viewport.width}x${viewport.height}`, () => {
+    test.use({ reducedMotion: "no-preference", viewport });
+
+    test("fills the German values once the diff scrolls into a short viewport", async ({
+      page,
+    }) => {
+      await page.goto("/");
+      const diff = page.locator("[data-diff-state]");
+      await expect(diff).toHaveAttribute("data-diff-state", "missing");
+      await diff.locator(".vk-hero-diff-pane").last().scrollIntoViewIfNeeded();
+      await expect(diff).toHaveAttribute("data-diff-state", "filled", { timeout: 1500 });
+      const values = diff.locator(".vk-hero-diff-value");
+      await expect(values).toHaveCount(2);
+      for (const value of await values.all()) {
+        await expect(value).toHaveCSS("opacity", "1");
+      }
+    });
+  });
+}

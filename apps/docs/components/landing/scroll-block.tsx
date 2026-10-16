@@ -5,7 +5,7 @@ type ScrollBlockProps = {
   labelledBy: string;
   children: ReactNode;
   className?: string;
-  lang?: "en";
+  lang?: string;
   "data-artifact"?: string;
   "data-check-output"?: boolean;
 };

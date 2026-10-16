@@ -1,11 +1,16 @@
 import type { SupportedFormat } from "@verbatra/sdk";
 import { getLocale, getTranslations } from "next-intl/server";
 import type { CSSProperties, ReactNode } from "react";
+import {
+  type AvailableFromCopy,
+  AvailableFromPill,
+  availableFromCopy,
+} from "@/components/available-from";
 import { StackIcon, type StackIconKey, StackIconSprite } from "@/components/stack-icons";
 import { localizedPath, toLocale } from "@/lib/i18n";
 import { FORMAT_DISPLAY, MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { PROVIDER_DISPLAY, type ProviderKind, providerShortLabel } from "@/lib/landing-providers";
-import { providerReleaseBadge } from "@/lib/release-badge";
+import { providerReleaseBadge, RELEASE_BADGE } from "@/lib/release-badge";
 import { MarqueeMotion } from "./islands";
 import { PlainList } from "./plain-list";
 import { Section } from "./section";
@@ -42,7 +47,7 @@ type MarqueeItem = {
   readonly id: string;
   readonly label: string;
   readonly icon: StackIconKey;
-  readonly badge: string | null;
+  readonly badge: AvailableFromCopy | null;
 };
 
 type MarqueeRowProps = {
@@ -53,18 +58,13 @@ type MarqueeRowProps = {
   readonly moreLabel: string;
 };
 
-export function providerItems(
-  availableFrom: (version: string) => string,
-): ReadonlyArray<MarqueeItem> {
-  return MACHINE_PROVIDER_IDS.map((id) => {
-    const badge = providerReleaseBadge(id);
-    return {
-      id,
-      label: providerShortLabel(id),
-      icon: PROVIDER_KIND_ICONS[PROVIDER_DISPLAY[id].kind],
-      badge: badge === null ? null : availableFrom(badge),
-    };
-  });
+export function providerItems(releaseBadge: AvailableFromCopy): ReadonlyArray<MarqueeItem> {
+  return MACHINE_PROVIDER_IDS.map((id) => ({
+    id,
+    label: providerShortLabel(id),
+    icon: PROVIDER_KIND_ICONS[PROVIDER_DISPLAY[id].kind],
+    badge: providerReleaseBadge(id) === null ? null : releaseBadge,
+  }));
 }
 
 export function formatItems(): ReadonlyArray<MarqueeItem> {
@@ -86,7 +86,7 @@ function Items({ items }: { items: ReadonlyArray<MarqueeItem> }): ReactNode {
         className="vk-marquee-glyph"
       />
       <span>{item.label}</span>
-      {item.badge === null ? null : <span className="vk-pill">{item.badge}</span>}
+      {item.badge === null ? null : <AvailableFromPill {...item.badge} />}
     </li>
   ));
 }
@@ -125,9 +125,10 @@ function MarqueeRow({ id, title, items, moreHref, moreLabel }: MarqueeRowProps):
 
 export async function Marquee(): Promise<ReactNode> {
   const t = await getTranslations("landing.marquee");
-  const tFacts = await getTranslations("landing.facts");
   const locale = toLocale(await getLocale());
-  const providers = providerItems((version) => tFacts("availableFrom", { version }));
+  const providers = providerItems(
+    await availableFromCopy(RELEASE_BADGE.version, undefined, locale),
+  );
   const formats = formatItems();
 
   return (

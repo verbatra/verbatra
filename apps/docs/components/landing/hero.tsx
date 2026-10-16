@@ -1,5 +1,6 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
+import { availableFromCopy } from "@/components/available-from";
 import { HeroDiff } from "@/components/landing/hero-diff";
 import { HeroFacts } from "@/components/landing/hero-facts";
 import { CommandPanel, HeroTerminal } from "@/components/landing/islands";
@@ -8,7 +9,8 @@ import Button, { buttonClasses } from "@/components/ui/button";
 import { localizedPath, toLocale } from "@/lib/i18n";
 import { SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { nodeVersionsLabel } from "@/lib/node-requirement";
-import { MCP_VERSION, NODE_RANGE, STUDIO_VERSION } from "@/lib/site";
+import { RELEASE_BADGE } from "@/lib/release-badge";
+import { MCP_VERSION, NODE_RANGE, PACKAGE_VERSION, STUDIO_VERSION } from "@/lib/site";
 
 export const HERO_TITLE_ID = "hero-title";
 
@@ -62,7 +64,7 @@ export async function Hero(): Promise<ReactNode> {
           <div aria-hidden="true" className="vk-banner-glow" />
           <HeroDiff
             label={t("diffLabel")}
-            marks={{ missing: tMarks("missing"), filled: tMarks("new") }}
+            marks={{ missing: tMarks("missing"), filled: tMarks("new"), lang: locale }}
           />
           <HeroTerminal
             session={t("terminalLabel")}
@@ -87,10 +89,14 @@ export async function Hero(): Promise<ReactNode> {
               ),
             }),
             version: tFacts("version"),
-            versionParts: tFacts("versionParts", { studio: STUDIO_VERSION, mcp: MCP_VERSION }),
+            versionParts: tFacts("versionParts", {
+              cli: PACKAGE_VERSION,
+              studio: STUDIO_VERSION,
+              mcp: MCP_VERSION,
+            }),
             lastUpdated: tFacts("lastUpdated"),
             newTab: tOpen("newTab"),
-            availableFrom: (version) => tFacts("availableFrom", { version }),
+            releaseBadge: await availableFromCopy(RELEASE_BADGE.version, undefined, locale),
           }}
         />
       </div>

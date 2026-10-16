@@ -2536,13 +2536,16 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   gap: 0.375rem;
 }
 
-.vk-fact-badge {
-  font-size: 0.6875rem;
-}
-
 .vk-hero-diff {
   margin: 0;
   min-width: 0;
+}
+
+.vk-hero-diff-caption {
+  margin-top: 0.75rem;
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
+  color: var(--text-muted);
 }
 
 .vk-hero-diff-panes {
@@ -2591,12 +2594,12 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   opacity: 0;
 }
 
-[data-diff-state="missing"] .vk-hero-diff-value,
-[data-diff-state="missing"] .vk-hero-diff-mark-filled {
+[data-diff-state="missing"]:not(:focus-within) .vk-hero-diff-value,
+[data-diff-state="missing"]:not(:focus-within) .vk-hero-diff-mark-filled {
   opacity: 0;
 }
 
-[data-diff-state="missing"] .vk-hero-diff-mark-missing {
+[data-diff-state="missing"]:not(:focus-within) .vk-hero-diff-mark-missing {
   opacity: 1;
 }
 
@@ -2604,7 +2607,7 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   .vk-hero-diff-value,
   .vk-hero-diff-mark > * {
     transition: opacity var(--duration-reveal) var(--ease-out);
-    transition-delay: calc(var(--fill-index, 0) * 300ms);
+    transition-delay: calc(var(--fill-index, 0) * var(--reveal-stagger));
   }
 }
 

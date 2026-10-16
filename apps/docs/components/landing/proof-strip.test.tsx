@@ -117,8 +117,8 @@ describe("ProofStrip", () => {
     expect(stars && shownText(stars)).toBe(`${labels.starsFallback} ${newTab}`);
     expect(downloads?.getAttribute("href")).toBe(NPM_CLI);
     expect(downloads && shownText(downloads)).toBe(`${labels.downloadsFallback} ${newTab}`);
-    expect(labels.starsFallback).toContain("verbatra");
-    expect(labels.downloadsFallback).toContain("verbatra");
+    expect(labels.starsFallback).toContain("Verbatra");
+    expect(labels.downloadsFallback).toContain("Verbatra");
     for (const value of doc.querySelectorAll("[data-live-stat]")) {
       expect(value.textContent).toBe("");
       expect(value.closest('[data-shown="false"]')).not.toBeNull();

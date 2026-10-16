@@ -16,7 +16,7 @@ export default defineConfig({
   },
   maxBatchSize: 50,
   glossary: {
-    verbatra: "verbatra",
+    Verbatra: "Verbatra",
     "next-intl": "next-intl",
     i18next: "i18next",
     "vue-i18n": "vue-i18n",

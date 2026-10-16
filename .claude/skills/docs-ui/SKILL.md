@@ -278,17 +278,21 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   `messages/de.json` from `lib/hero-diff.ts`, both written by the sdk's real next-intl adapter into
   `lib/hero-diff.generated.json` by `scripts/sync-format-samples.mjs` from `lib/hero-diff-seed.mjs`,
   git-ignored like the format samples; the two keys the hero terminal reports missing are
-  `.vk-hero-diff-line` rows marked `new`, each value in `.vk-hero-diff-value`), `hero-facts.tsx`
-  (`.vk-banner-facts`: a `dl.vk-facts` named by a visually hidden `h2`, every fact in text: license,
+  `.vk-hero-diff-line` rows marked `new`, each value in `.vk-hero-diff-value`; each pane's code
+  carries its file's `lang`, `en` and `de`, and the mark words the page's; the outer `figure` has
+  no `aria-label`, its visible `.vk-hero-diff-caption` figcaption under the panes reads
+  `landing.banner.diffLabel` in `--text-xs` `--text-muted`), `hero-facts.tsx`
+  (`.vk-banner-facts`: a visually hidden `h2` over a `dl.vk-facts` with no `aria-labelledby`, which
+  a role-less `dl` may not take, every fact in text: license,
   install command, the providers from `MACHINE_PROVIDER_IDS`, the format count
-  `SUPPORTED_FORMAT_IDS.length` linking `/docs/formats`, the Node.js range, `v{PACKAGE_VERSION}`
-  with the Studio and MCP versions, and `LANDING_LAST_UPDATED` as a `time`; a provider dated by
-  `RELEASE_BADGE` in `lib/release-badge.ts`, the one constant every "from 0.12.0" badge reads,
-  carries a `.vk-pill`), `proof-strip.tsx` (stars, npm weekly downloads, the providers and the format count, the stars
+  `SUPPORTED_FORMAT_IDS.length` linking `/docs/formats`, the Node.js range, the version line
+  `landing.facts.versionParts` naming each package ("CLI and SDK v{cli}, Studio v{studio}, MCP
+  server v{mcp}"), and `LANDING_LAST_UPDATED` as a `time`; a provider dated by `RELEASE_BADGE` in
+  `lib/release-badge.ts` carries the shared `AvailableFromPill`), `proof-strip.tsx` (stars, npm weekly downloads, the providers and the format count, the stars
 and downloads from `lib/project-stats.ts`, read at build time so the page stays static, then
 refreshed in place by `LiveStatValue` from `/api/stats`; every figure shows as fetched, with no
 display threshold, and a figure the build could not fetch leaves its cell as a named link
-(`landing.stats.starsFallback`, `downloadsFallback`: "verbatra on GitHub", "verbatra on npm"), never
+(`landing.stats.starsFallback`, `downloadsFallback`: "Verbatra on GitHub", "Verbatra on npm"), never
 an empty value, which `LiveStatFallback` still turns into the live figure once `/api/stats` answers;
 both figure links open a new tab and say so in an `sr-only` `landing.openSource.newTab`; the format count is
 `SUPPORTED_FORMAT_IDS.length`, never a typed number), `problem.tsx` (`#problem`, a real drift
@@ -330,7 +334,7 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   the formats, `SUPPORTED_FORMAT_IDS` by their `FORMAT_DISPLAY` label with a file glyph
   (`FORMAT_ICONS`, a `Record<SupportedFormat, StackIconKey>`, so a new format fails to compile
   until it has one), every glyph a `<use>` of one `StackIconSprite` (prefix `marquee`). A provider
-  that `RELEASE_BADGE` dates carries a `.vk-pill` from `landing.facts.availableFrom`. No count is
+  that `RELEASE_BADGE` dates carries the same `AvailableFromPill` as the facts block. No count is
   typed and no third-party logo is drawn. Each row is a muted `h3` that names its visible list,
   the list, `MARQUEE_COPIES` copies of it (`aria-hidden`, `inert`, holding no link or button), and
   an "All providers" or "All formats" link after the moving track, so nothing focusable moves. The
@@ -528,7 +532,8 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
 ## Landing motion
 
 The landing moves little, on purpose: the demos rise into place once as the visitor reaches them,
-the provider and format marquee loops until it is paused, and nothing else on the page fades in.
+the hero diff fills its two missing values once, the provider and format marquee loops until it is
+paused, and nothing else on the page fades in.
 There is no pinning, no parallax, no scroll-scrubbing and no
 scroll listener; `motion` is reserved for client islands (see "The
 stack").
@@ -547,7 +552,8 @@ stack").
   carry a mark: the problem (its artifact, then its list), how it works, the bento grid, the code
   showcase and the playground panel. No section heading reveals (`SectionHead` takes no reveal
   prop), and the hero, marquee, proof strip, Studio, comparison, open source, FAQ and closing
-  panel never fade in. Elements keep their box while hidden, so a reveal never moves layout.
+  panel never take a reveal; the hero diff's fill and the marquee loop below are their own
+  motions, not reveals. Elements keep their box while hidden, so a reveal never moves layout.
   `reveal-marks.test.tsx` pins which files carry marks and `motion-root.test.tsx` the observer and
   the stylesheet guards.
 - **Hero.** The hero is never revealed and the `h1` never moves (it is the largest paint); no
@@ -555,8 +561,13 @@ stack").
   without JavaScript on the finished check run. The locale diff is server-rendered filled
   (`data-diff-state="filled"`); the `HeroDiffMotion` island sets `missing` only after hydration,
   only while the diff is out of view and never under reduced motion, then fills it once when it
-  scrolls in: the values fade back in (`opacity`, `--duration-reveal`, 300ms apart) and the
-  `aria-hidden` "missing" mark swaps for "new". A diff already in view at hydration never moves.
+  scrolls in: once `HERO_DIFF_FILL_RATIO` of it shows, or its visible part covers
+  `HERO_DIFF_FILL_VIEWPORT_SHARE` of the viewport (a short screen, where the whole diff never fits),
+  or `HERO_DIFF_FILL_TIMEOUT_MS` after any part of it entered view. The values fade back in
+  (`opacity`, `--duration-reveal`, one `--reveal-stagger` apart) and the `aria-hidden` "missing"
+  mark swaps for "new". Focus inside the diff shows the values at once (`:focus-within`), so a
+  keyboard user never meets a hidden value. A diff already in view at hydration never moves.
+  `e2e/hero.spec.ts` drives the fill at 375 by 667, 320 by 256 and 568 by 320.
 - **Marquee.** The one looping motion on the page, a CSS keyframe with no JavaScript animation:
   it runs only in the state described under "Marquee" above, pauses through its button, hover
   and focus inside a row, and is static wrapped rows otherwise, so 2.2.2 holds without JavaScript.
@@ -573,8 +584,8 @@ stack").
   name is `landing.nav.version.label`, which contains the visible text. `.vk-version-pill` is
   `display: none` under 768px. `lib/layout.shared.test.tsx` pins it.
 - **Budget.** Layout shift 0 over a full scroll at 390, 1440 and a 844 by 390 landscape phone; no
-  scroll listener; at most one reveal chain per section, and only in the five demo sections; no
-  entrance over 16px or 600ms.
+  scroll listener; at most one reveal chain per section, and only in the five demo sections (the
+  hero diff fill and the marquee loop are not reveals); no entrance over 16px or 600ms.
 
 ## Keep the client payload small
 
@@ -824,7 +835,13 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   (`components/new-badge.tsx`; the landing footer carries none, `footer.test.tsx` pins it) adds `.vk-pill-status` (smaller, uppercase) and is hidden in the
   breadcrumb (`.vk-breadcrumb`, set on `DocsPage`), which shares the sidebar's tree; the
   `<AvailableFrom>` badge adds `.vk-available-from`, which sits after the heading text when it is
-  inside a heading. A badge placed directly under a heading is moved into it. Where a badge may
+  inside a heading. Its markup is `AvailableFromPill` (`components/available-from.tsx`), which the
+  landing's hero facts and marquee render with the `docs.availableFrom` copy for
+  `RELEASE_BADGE.version`. `RELEASE_BADGE` (`lib/release-badge.ts`) is the landing's list of
+  providers new in that release; the MDX badges stay literal (`<AvailableFrom version="0.12.0" />`),
+  and `lib/release-badge.test.ts` holds the two together: a machine provider carries a badge of
+  that version directly under its `providers*.mdx` heading, in all four locales, exactly when
+  `RELEASE_BADGE` lists it. A badge placed directly under a heading is moved into it. Where a badge may
   sit in the MDX at all is set by "Badge placement" in the "Docs budget" section of
   `.claude/rules/docs.md`, and `lib/docs-badge-placement.test.ts` enforces it. A heading whose
   key a table's "Since" column already dates (the key table on `config-file`) carries no badge.

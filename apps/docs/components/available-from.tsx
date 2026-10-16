@@ -10,9 +10,9 @@ export type AvailableFromProps = {
   pkg?: string;
 };
 
-type AvailableFromCopy = { label: string; detail: string };
+export type AvailableFromCopy = { readonly label: string; readonly detail: string };
 
-async function availableFromCopy(
+export async function availableFromCopy(
   version: string,
   pkg: string | undefined,
   locale: Locale,
@@ -36,7 +36,10 @@ export async function AvailableFrom({
   pkg,
   locale,
 }: AvailableFromProps & { locale: Locale }): Promise<ReactNode> {
-  const { label, detail } = await availableFromCopy(version, pkg, locale);
+  return <AvailableFromPill {...(await availableFromCopy(version, pkg, locale))} />;
+}
+
+export function AvailableFromPill({ label, detail }: AvailableFromCopy): ReactNode {
   return (
     <span className={`${PILL_CLASS} ${AVAILABLE_FROM_CLASS}`} title={detail}>
       {label}
