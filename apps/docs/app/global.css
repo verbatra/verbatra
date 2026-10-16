@@ -385,6 +385,14 @@ html.light {
   row-gap: 1rem;
 }
 
+.vk-section-aside {
+  row-gap: 2.5rem;
+}
+
+.vk-section-aside-content {
+  min-width: 0;
+}
+
 @media (min-width: 64rem) {
   .vk-section-head.vk-grid-12 {
     align-items: end;
@@ -396,6 +404,18 @@ html.light {
 
   .vk-section-head-lead {
     --grid-span: 4;
+  }
+
+  .vk-section-aside {
+    align-items: start;
+  }
+
+  .vk-section-head-aside {
+    --grid-span: 4;
+  }
+
+  .vk-section-aside-content {
+    --grid-span: 8;
   }
 }
 
@@ -2881,7 +2901,6 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 
   display: grid;
   gap: 2rem;
-  margin-block-start: 2.5rem;
 }
 
 .vk-marquee-toggle {
@@ -2970,7 +2989,6 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 @media (width < 40rem) {
   .vk-marquee {
     gap: 1.5rem;
-    margin-block-start: 2rem;
   }
 
   .vk-marquee-row {

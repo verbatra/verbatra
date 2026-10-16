@@ -88,6 +88,23 @@ describe("the section head on the 12-column grid", () => {
     expect(head?.querySelector(".vk-section-head-lead")?.textContent).toBe("Lead");
   });
 
+  it("sets an aside head in span 4 beside its content in span 8, on one 12-column grid", () => {
+    const aside = render(
+      <SectionHead id="h" title="Title" lead="Lead" layout="aside">
+        <p id="content">content</p>
+      </SectionHead>,
+    ).querySelector(".vk-section-aside");
+    expect(aside?.classList.contains("vk-grid-12")).toBe(true);
+    const [head, content] = Array.from(aside?.children ?? []);
+    expect(head?.getAttribute("data-layout")).toBe("aside");
+    expect(head?.querySelector("h2#h")?.textContent).toBe("Title");
+    expect(head?.querySelector(".vk-section-head-lead")?.textContent).toBe("Lead");
+    expect(content?.className).toBe("vk-section-aside-content");
+    expect(content?.querySelector("#content")).not.toBeNull();
+    expect(css).toMatch(/\.vk-section-head-aside \{\s+--grid-span: 4;/);
+    expect(css).toMatch(/\.vk-section-aside-content \{\s+--grid-span: 8;/);
+  });
+
   it("lets a grid child start on a set column from 64rem, and only there", () => {
     expect(css).toContain(
       "grid-column: var(--grid-start, auto) / span var(--grid-span, var(--grid-columns));",
@@ -107,13 +124,13 @@ describe("the section head on the 12-column grid", () => {
         "open-source.tsx",
         "faq.tsx",
       ].map((file) => {
-        const head = /<SectionHead\b[^>]*\/>/s.exec(
+        const head = /<SectionHead\b[^>]*>/s.exec(
           readFileSync(join(import.meta.dirname, file), "utf8"),
         )?.[0];
         if (!head) throw new Error(`no SectionHead in ${file}`);
         const layout = !/\blead=/.test(head)
           ? "heading"
-          : (/layout="(stacked|inline)"/.exec(head)?.[1] ?? "split");
+          : (/layout="(stacked|inline|aside)"/.exec(head)?.[1] ?? "split");
         return [file, layout];
       }),
     );
@@ -122,7 +139,7 @@ describe("the section head on the 12-column grid", () => {
       "flow.tsx": "stacked",
       "bento.tsx": "heading",
       "code-showcase.tsx": "stacked",
-      "marquee.tsx": "split",
+      "marquee.tsx": "aside",
       "playground.tsx": "inline",
       "compare.tsx": "heading",
       "open-source.tsx": "split",

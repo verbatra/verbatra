@@ -253,3 +253,22 @@ test("the static marquee reflows at 320px without horizontal scroll", async ({ p
   await expectStatic(page);
   await expectNoHorizontalScroll(page);
 });
+
+test.describe("marquee layout at 1440px", () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test("sets the heading at the start of the band and the rows beside it at the end", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const head = page.locator(`${MARQUEE} .vk-section-head`);
+    await expect(head).toHaveAttribute("data-layout", "aside");
+    const headBox = await head.boundingBox();
+    const rows = await page.locator(`${MARQUEE} .vk-section-aside-content`).boundingBox();
+    if (headBox === null || rows === null) throw new Error("no box");
+    expect(rows.x).toBeGreaterThan(headBox.x + headBox.width);
+    expect(rows.width).toBeGreaterThan(headBox.width * 1.5);
+    expect(Math.abs(rows.y - headBox.y)).toBeLessThanOrEqual(2);
+    await expectNoAxeViolations(page, MARQUEE);
+  });
+});

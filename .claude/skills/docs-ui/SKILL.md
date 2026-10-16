@@ -174,10 +174,14 @@ Scales are fixed and narrow, deliberately:
   `.vk-grid-12`: the heading block spans 8, the lead 4, bottom-aligned, so the lead starts on
   column 9, the column where the problem list and the contributors start), `stacked` (the lead
   under the heading on the first column, for a section whose content runs the full row: the code
-  showcase, and the feature flow, whose head keeps to the snippet column) or `inline` (the same stacked block at a narrower measure, `.vk-section-head-inline`,
-  set inside the column beside an artifact rather than over it: the SDK playground passes it to
-  its island as the `head` prop, so it opens the control column next to the sticky snippet). A
-  head without a lead is always stacked (features, comparison, FAQ).
+  showcase, and the feature flow, whose head keeps to the snippet column), `inline` (the same
+  stacked block at a narrower measure, `.vk-section-head-inline`, set inside the column beside an
+  artifact rather than over it: the SDK playground passes it to its island as the `head` prop, so
+  it opens the control column next to the sticky snippet) or `aside` (the only layout that takes
+  `children`: a `.vk-section-aside` `.vk-grid-12` with the stacked heading and lead in span 4 at
+  the start and the children in `.vk-section-aside-content`, span 8, top-aligned; one column, head
+  first, under 64rem: the marquee). A head without a lead is always stacked (features,
+  comparison, FAQ).
   `section-bands.test.tsx` pins which section uses which, so the page never goes back to one head
   shape everywhere.
 - Landing surfaces: `--surface-band` (mixed from `--surface-card` and
@@ -351,7 +355,8 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   and `license` tags only. `FORMAT_DISPLAY` in `lib/landing-facts.ts` is every format's display
   label, which the structured data's format list reads too, so a new format fails to
   compile until it has one. The marquee (`marquee.tsx`, `#marquee`, a band right under the
-  hero) shows two rows inside the `MarqueeMotion` island (`marquee-motion.tsx`): the providers,
+  hero, its `aside` head at the start of the band and the rows beside it at the end from 64rem)
+  shows two rows inside the `MarqueeMotion` island (`marquee-motion.tsx`): the providers,
   `landingProviders()`, whose count the facts block states, with their kind glyph
   (`PROVIDER_KIND_ICONS`), and the formats, `SUPPORTED_FORMAT_IDS` by their `FORMAT_DISPLAY` label with a file glyph
   (`FORMAT_ICONS`, a `Record<SupportedFormat, StackIconKey>`, so a new format fails to compile

@@ -141,27 +141,28 @@ export async function Marquee(): Promise<ReactNode> {
 
   return (
     <Section band id="marquee">
-      <SectionHead id="marquee-heading" title={t("heading")} lead={t("lead")} />
-      <StackIconSprite
-        prefix={MARQUEE_ICON_PREFIX}
-        icons={[...providers, ...formats].map((item) => item.icon)}
-      />
-      <MarqueeMotion pauseLabel={t("pause")}>
-        <MarqueeRow
-          id="providers"
-          title={t("providers")}
-          items={providers}
-          moreHref={localizedPath(locale, "/docs/providers")}
-          moreLabel={t("allProviders")}
+      <SectionHead id="marquee-heading" layout="aside" title={t("heading")} lead={t("lead")}>
+        <StackIconSprite
+          prefix={MARQUEE_ICON_PREFIX}
+          icons={[...providers, ...formats].map((item) => item.icon)}
         />
-        <MarqueeRow
-          id="formats"
-          title={t("formats")}
-          items={formats}
-          moreHref={localizedPath(locale, "/docs/formats")}
-          moreLabel={t("allFormats")}
-        />
-      </MarqueeMotion>
+        <MarqueeMotion pauseLabel={t("pause")}>
+          <MarqueeRow
+            id="providers"
+            title={t("providers")}
+            items={providers}
+            moreHref={localizedPath(locale, "/docs/providers")}
+            moreLabel={t("allProviders")}
+          />
+          <MarqueeRow
+            id="formats"
+            title={t("formats")}
+            items={formats}
+            moreHref={localizedPath(locale, "/docs/formats")}
+            moreLabel={t("allFormats")}
+          />
+        </MarqueeMotion>
+      </SectionHead>
     </Section>
   );
 }
