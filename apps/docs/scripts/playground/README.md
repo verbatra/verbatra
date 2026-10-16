@@ -24,7 +24,7 @@ key). It sends nothing and writes nothing.
 result, and only then replaces the JSON. Review the change with
 `git diff -- apps/docs/lib/playground/translations.json` before committing it.
 
-Runs are incremental. The script reads the committed JSON (the only file it reads) and requests
+Runs are incremental. The script reads the committed JSON (see [Disk access](#disk-access)) and requests
 only pairs that are missing, or whose source text or `sameAllowed` flag changed. Everything else
 is kept as committed.
 
@@ -62,6 +62,42 @@ Run the dry run, check the plan, then run `--write`.
 The unit tests next to each module cover these guards; `pnpm --filter @verbatra/docs test` runs
 them, and `pnpm --filter @verbatra/docs typecheck` type-checks this folder through its own
 `tsconfig.json`. Neither runs the script.
+
+## Abort and backoff
+
+On a retryable failure the Gemini provider reports the retry before it waits:
+`packages/ai-providers/src/gemini/retry.ts:69` calls `onRetry`, which the SDK forwards
+synchronously as a `provider-retry` progress event, and only then does line 70 start the pause
+(250 ms on the first retry, `DEFAULT_GEMINI_RETRY` at line 10). On the first 429 the script
+aborts inside that progress callback, so the signal is already aborted when `delay` (lines 37-48)
+registers its abort listener at line 47. That listener never fires, the 250 ms pause runs to the
+end, and the check at lines 71-72 throws an abort, so no further request is sent. An abort that
+arrives while a later pause is running fires the listener and cuts the pause short.
+`packages/ai-providers/src/gemini/retry.test.ts:177-222` pins both cases.
+
+## Disk access
+
+The SDK runs on the script's in-memory `SdkFs` and `AdapterFs` ports. The only reads outside
+them are the SDK's read-only holder-liveness reads in `readKernelIdentity`
+(`packages/sdk/src/fs.ts:396-404`): `/proc/sys/kernel/random/boot_id` (line 398) and
+`/proc/self/ns/pid` (line 400). Both are absent on macOS and come back empty there.
+`apps/docs/scripts/playground/no-real-disk.test.ts:13-14` allows exactly these two reads and
+fails on any other disk or child-process access.
+
+The script's own reads:
+
+- `lib/playground/translations.json`, the committed output (`output.ts:95`).
+- An existence probe for `/.dockerenv` and `/run/.containerenv` (`environment.ts:4`, checked with
+  `existsSync` at line 14).
+- `@verbatra/sdk/package.json`, loaded as a JSON module import for the SDK version
+  (`generate.ts:2`).
+
+## Key file location
+
+The key lives in `apps/docs/scripts/playground/.env.local`, which `apps/docs/.gitignore` ignores.
+It does not go in `apps/docs/.env.local`: Next.js loads that file into every `next dev` and
+`next build` process, so the key would reach the app. This folder is never read by Next and is
+excluded from the Docker context.
 
 ## Manual setup
 
