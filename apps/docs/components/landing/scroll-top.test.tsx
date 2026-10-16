@@ -11,7 +11,9 @@ import en from "@/messages/en.json";
 import es from "@/messages/es.json";
 import fr from "@/messages/fr.json";
 import {
+  AWAY_FRAMES,
   MAX_SCROLL_RETRIES,
+  MAX_WATCH_FRAMES,
   passedFirstViewport,
   ScrollTop,
   STALL_FRAMES,
@@ -109,7 +111,14 @@ describe("scrollToTop", () => {
   it("leaves the page to the reader as soon as they scroll, touch or type", () => {
     const { win, tick, listeners, frames } = fakeWindow(false);
     scrollToTop("main-content", win);
-    expect([...listeners.keys()].sort()).toEqual(["keydown", "pointerdown", "touchstart", "wheel"]);
+    expect([...listeners.keys()].sort()).toEqual([
+      "keydown",
+      "pagehide",
+      "pointerdown",
+      "popstate",
+      "touchstart",
+      "wheel",
+    ]);
     listeners.get("wheel")?.();
     expect(listeners.size).toBe(0);
     expect(win.cancelAnimationFrame).toHaveBeenCalled();
@@ -118,11 +127,58 @@ describe("scrollToTop", () => {
     expect(win.scrollTo).toHaveBeenCalledTimes(1);
   });
 
+  it.each(["pagehide", "popstate"])("stops watching on %s", (type) => {
+    const { win, listeners } = fakeWindow(false);
+    scrollToTop("main-content", win);
+    listeners.get(type)?.();
+    expect(listeners.size).toBe(0);
+    expect(win.cancelAnimationFrame).toHaveBeenCalled();
+  });
+
+  it("stops once the page keeps moving away from the top, as a scrollbar drag does", () => {
+    const { win, state, tick, frames, listeners } = fakeWindow(false);
+    scrollToTop("main-content", win);
+    state.scrollY = 2500;
+    tick(1);
+    state.scrollY = 2600;
+    tick(1);
+    expect(frames).toHaveLength(1);
+    for (let frame = 1; frame < AWAY_FRAMES; frame += 1) {
+      state.scrollY += 100;
+      tick(1);
+    }
+    expect(frames).toHaveLength(0);
+    expect(listeners.size).toBe(0);
+    expect(win.scrollTo).toHaveBeenCalledTimes(1);
+  });
+
+  it("gives up after a bounded number of frames even while the page keeps creeping up", () => {
+    const { win, state, tick, frames } = fakeWindow(false);
+    scrollToTop("main-content", win);
+    for (let frame = 0; frame < MAX_WATCH_FRAMES + 10; frame += 1) {
+      state.scrollY -= 1;
+      tick(1);
+    }
+    expect(frames).toHaveLength(0);
+    expect(state.scrollY).toBeGreaterThan(0);
+  });
+
+  it("returns a stop that ends the watch at once", () => {
+    const { win, listeners } = fakeWindow(false);
+    const stop = scrollToTop("main-content", win);
+    stop();
+    expect(listeners.size).toBe(0);
+    expect(win.cancelAnimationFrame).toHaveBeenCalled();
+    stop();
+    expect(win.cancelAnimationFrame).toHaveBeenCalledTimes(1);
+  });
+
   it("watches nothing after an instant jump", () => {
     const { win, frames, listeners } = fakeWindow(true);
     scrollToTop("main-content", win);
     expect(frames).toHaveLength(0);
     expect(listeners.size).toBe(0);
+    expect(() => scrollToTop("main-content", win)()).not.toThrow();
   });
 
   it("scrolls smoothly when motion is welcome and moves focus to main without a second jump", () => {
@@ -201,6 +257,33 @@ describe("ScrollTop", () => {
     await at(500, true);
     expect(document.activeElement).toBe(main);
     await act(async () => root.unmount());
+  });
+});
+
+describe("ScrollTop on unmount", () => {
+  it("stops a running scroll to the top when it unmounts", async () => {
+    vi.stubGlobal("IntersectionObserver", FakeObserver);
+    vi.stubGlobal("matchMedia", () => ({ matches: true }));
+    vi.stubGlobal("scrollTo", vi.fn());
+    const cancel = vi.fn();
+    vi.stubGlobal("requestAnimationFrame", () => 7);
+    vi.stubGlobal("cancelAnimationFrame", cancel);
+    const host = document.createElement("div");
+    document.body.append(host);
+    const root = createRoot(host);
+    await act(async () => root.render(<ScrollTop label="Back to top" targetId="main-content" />));
+    const observer = observers.at(-1);
+    if (!observer) throw new Error("no observer");
+    await act(async () =>
+      observer.callback([
+        { isIntersecting: false, boundingClientRect: { bottom: -10 } as DOMRectReadOnly },
+      ]),
+    );
+    await act(async () => host.querySelector("button")?.click());
+    expect(cancel).not.toHaveBeenCalled();
+    await act(async () => root.unmount());
+    expect(cancel).toHaveBeenCalledWith(7);
+    vi.unstubAllGlobals();
   });
 });
 

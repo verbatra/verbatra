@@ -873,8 +873,11 @@ reserved for client islands (see "The stack").
   `preventScroll`, which hides the button again. A smooth scroll is watched frame by frame
   (`requestAnimationFrame`, still no scroll listener): when it stops short of the top for
   `STALL_FRAMES` frames, as when the flow's ScrollTrigger island loads on the way up and resets
-  the scroll position, it is issued again, at most `MAX_SCROLL_RETRIES` times, and a wheel, touch,
-  key or pointer press hands the page back to the reader at once. When the sentinel comes back
+  the scroll position, it is issued again, at most `MAX_SCROLL_RETRIES` times. The watch ends
+  after `MAX_WATCH_FRAMES` frames in any case, after `AWAY_FRAMES` frames in a row that move away
+  from the top (a scrollbar drag), on `pagehide` or `popstate`, when the button unmounts (the
+  press returns its stop), and a wheel, touch, key or pointer press hands the page back to the
+  reader at once. When the sentinel comes back
   into view while the button holds focus, focus moves to `main` first, so it never drops to the
   body. It enters with `@starting-style` (opacity and an
   `--motion-distance-md` translate, `--duration-base`, `--ease-emphasized`) only when motion is

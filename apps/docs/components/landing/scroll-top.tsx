@@ -14,20 +14,42 @@ export const STALL_FRAMES = 8;
 
 export const MAX_SCROLL_RETRIES = 3;
 
-const USER_INPUT = ["wheel", "touchstart", "keydown", "pointerdown"] as const;
+export const MAX_WATCH_FRAMES = 360;
 
-function keepScrollingToTop(win: Window): void {
+export const AWAY_FRAMES = 3;
+
+const STOP_EVENTS = [
+  "wheel",
+  "touchstart",
+  "keydown",
+  "pointerdown",
+  "pagehide",
+  "popstate",
+] as const;
+
+type StopScroll = () => void;
+
+const NOTHING_TO_STOP: StopScroll = () => {};
+
+function keepScrollingToTop(win: Window): StopScroll {
   let retries = 0;
   let still = 0;
+  let frames = 0;
+  let away = 0;
   let last = win.scrollY;
   let frame = 0;
+  let stopped = false;
   const stop = () => {
+    if (stopped) return;
+    stopped = true;
     win.cancelAnimationFrame(frame);
-    for (const type of USER_INPUT) win.removeEventListener(type, stop);
+    for (const type of STOP_EVENTS) win.removeEventListener(type, stop);
   };
   const check = () => {
     const y = win.scrollY;
-    if (y <= 0) return stop();
+    frames += 1;
+    away = y > last ? away + 1 : 0;
+    if (y <= 0 || away >= AWAY_FRAMES || frames >= MAX_WATCH_FRAMES) return stop();
     still = y === last ? still + 1 : 0;
     last = y;
     if (still >= STALL_FRAMES) {
@@ -38,21 +60,25 @@ function keepScrollingToTop(win: Window): void {
     }
     frame = win.requestAnimationFrame(check);
   };
-  for (const type of USER_INPUT) win.addEventListener(type, stop, { passive: true });
+  for (const type of STOP_EVENTS) win.addEventListener(type, stop, { passive: true });
   frame = win.requestAnimationFrame(check);
+  return stop;
 }
 
-export function scrollToTop(targetId: string, win: Window = window): void {
+export function scrollToTop(targetId: string, win: Window = window): StopScroll {
   const smooth = win.matchMedia(SMOOTH_SCROLL_QUERY).matches;
   win.scrollTo({ top: 0, behavior: smooth ? "smooth" : "instant" });
   win.document.getElementById(targetId)?.focus({ preventScroll: true });
-  if (smooth) keepScrollingToTop(win);
+  return smooth ? keepScrollingToTop(win) : NOTHING_TO_STOP;
 }
 
 export function ScrollTop({ label, targetId }: { label: string; targetId: string }): ReactNode {
   const sentinel = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const [visible, setVisible] = useState(false);
+  const stopScroll = useRef<StopScroll>(NOTHING_TO_STOP);
+
+  useEffect(() => () => stopScroll.current(), []);
 
   useEffect(() => {
     const node = sentinel.current;
@@ -82,7 +108,10 @@ export function ScrollTop({ label, targetId }: { label: string; targetId: string
           type="button"
           className="vk-scroll-top"
           aria-label={label}
-          onClick={() => scrollToTop(targetId)}
+          onClick={() => {
+            stopScroll.current();
+            stopScroll.current = scrollToTop(targetId);
+          }}
         >
           <svg
             aria-hidden="true"
