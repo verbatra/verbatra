@@ -2,6 +2,7 @@
 
 import {
   type ComponentType,
+  type CSSProperties,
   type ReactNode,
   type Ref,
   type RefObject,
@@ -11,9 +12,17 @@ import {
   useState,
 } from "react";
 import Button from "@/components/ui/button";
+import { CopyControl, type CopyControlStatusLabels } from "@/components/ui/copy-control";
 import type { PlaygroundItem, PlaygroundTranslations } from "@/lib/landing-playground";
+import {
+  type PlaygroundSnippetConfig,
+  playgroundSnippet,
+  snippetLocaleVar,
+} from "@/lib/playground-snippet";
 import { prefersReducedMotion } from "@/lib/reduced-motion";
+import { useHydrated } from "@/lib/use-hydrated";
 import { within } from "@/lib/within";
+import { CodeFrameShell } from "./code-frame-shell";
 import type { ScrambleController, ScrambleRow } from "./playground-scramble";
 
 export type PlaygroundLanguage = { readonly code: string; readonly name: string };
@@ -25,6 +34,10 @@ export type PlaygroundLabels = {
   readonly results: string;
   readonly source: string;
   readonly noLanguages: string;
+  readonly notSelected: string;
+  readonly stale: string;
+  readonly copy: string;
+  readonly copyStatus: CopyControlStatusLabels;
 };
 
 export type PlaygroundDemoProps = {
@@ -35,6 +48,8 @@ export type PlaygroundDemoProps = {
   readonly defaultItem: string;
   readonly labels: PlaygroundLabels;
   readonly snippet: ReactNode;
+  readonly snippetFile: string;
+  readonly snippetConfig: PlaygroundSnippetConfig;
   readonly details: ReactNode;
 };
 
@@ -146,22 +161,26 @@ function resultRows(
     }));
 }
 
-function resultCandidates(
-  items: ReadonlyArray<PlaygroundItem>,
-  sourceLocale: string,
+function languageCandidates(
+  lang: string,
   translations: PlaygroundTranslations,
 ): ReadonlyArray<Candidate> {
-  const sources = items.map((item) => ({ lang: sourceLocale, text: item.text }));
-  const targets = Object.entries(translations).flatMap(([lang, values]) =>
-    Object.values(values).map((text) => ({ lang, text })),
+  return [...new Set(Object.values(translations[lang] ?? {}))].map((text) => ({ lang, text }));
+}
+
+function sameLanguages(a: ReadonlyArray<string>, b: ReadonlyArray<string>): boolean {
+  return a.length === b.length && a.every((code) => b.includes(code));
+}
+
+function snippetStyle(
+  languages: ReadonlyArray<PlaygroundLanguage>,
+  shown: ReadonlyArray<string>,
+): CSSProperties {
+  return Object.fromEntries(
+    languages
+      .filter((language) => !shown.includes(language.code))
+      .map((language) => [snippetLocaleVar(language.code), "none"]),
   );
-  const seen = new Set<string>();
-  return [...sources, ...targets].filter((candidate) => {
-    const key = `${candidate.lang}\n${candidate.text}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
 }
 
 function Sizer({ candidates }: { candidates: ReadonlyArray<Candidate> }): ReactNode {
@@ -193,26 +212,34 @@ function Spoken({ announcement }: { announcement: Announcement | null }): ReactN
 }
 
 function ResultSlot({
+  language,
   row,
   candidates,
+  notSelected,
 }: {
+  language: PlaygroundLanguage;
   row: ResultRow | undefined;
   candidates: ReadonlyArray<Candidate>;
+  notSelected: string;
 }): ReactNode {
   return (
     <li
       className="vk-playground-result"
-      data-lang={row?.lang}
+      data-lang={language.code}
       data-empty={row === undefined ? "" : undefined}
       aria-hidden={row === undefined ? "true" : undefined}
     >
-      <span className="vk-playground-result-lang">{row?.name}</span>
+      <span className="vk-playground-result-lang">{language.name}</span>
       <span className="vk-playground-result-value">
         <Sizer candidates={candidates} />
-        <span lang={row?.lang} className="vk-playground-result-text">
-          {row?.to}
-        </span>
-        <span aria-hidden="true" className="vk-playground-scramble" data-scramble={row?.lang} />
+        {row === undefined ? (
+          <span className="vk-playground-result-empty">{notSelected}</span>
+        ) : (
+          <span lang={row.lang} className="vk-playground-result-text">
+            {row.to}
+          </span>
+        )}
+        <span aria-hidden="true" className="vk-playground-scramble" data-scramble={language.code} />
       </span>
     </li>
   );
@@ -226,6 +253,8 @@ export function PlaygroundDemo({
   defaultItem,
   labels,
   snippet,
+  snippetFile,
+  snippetConfig,
   details,
 }: PlaygroundDemoProps): ReactNode {
   const id = useId();
@@ -246,7 +275,16 @@ export function PlaygroundDemo({
   const controller = useRef<ScrambleController>(null);
   const played = useRef<number | null>(null);
   const rows = resultRows(shown, items, languages, translations);
-  const [candidates] = useState(() => resultCandidates(items, sourceLocale, translations));
+  const [candidates] = useState(
+    () =>
+      new Map(
+        languages.map((language) => [
+          language.code,
+          languageCandidates(language.code, translations),
+        ]),
+      ),
+  );
+  const hydrated = useHydrated();
   const [sources] = useState(() =>
     items.map((entry) => ({ lang: sourceLocale, text: entry.text })),
   );
@@ -319,6 +357,9 @@ export function PlaygroundDemo({
 
   const source = items.find((entry) => entry.id === shown.item)?.text ?? "";
   const busy = waiting || pending !== null;
+  const stale = hydrated && (item !== shown.item || !sameLanguages(checked, shown.langs));
+  const snippetLanguages = hydrated && checked.length > 0 ? checked : allLanguages;
+  const orderedSnippetLanguages = allLanguages.filter((code) => snippetLanguages.includes(code));
 
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: warming the animation module on pointer or focus inside the demo is not an interaction of its own
@@ -392,10 +433,17 @@ export function PlaygroundDemo({
             {labels.translate}
           </Button>
         </div>
-        <div className="vk-playground-result-block" aria-busy={busy ? "true" : undefined}>
-          <h3 id={`${id}-results`} className="vk-playground-results-title">
-            {labels.results}
-          </h3>
+        <div
+          className="vk-playground-result-block"
+          aria-busy={busy ? "true" : undefined}
+          data-stale={stale ? "" : undefined}
+        >
+          <div className="vk-playground-results-head">
+            <h3 id={`${id}-results`} className="vk-playground-results-title">
+              {labels.results}
+            </h3>
+            <p className="vk-playground-stale">{labels.stale}</p>
+          </div>
           <p className="vk-playground-source">
             <span className="vk-playground-result-lang">{labels.source}</span>
             <span className="vk-playground-source-value">
@@ -411,8 +459,14 @@ export function PlaygroundDemo({
             className="vk-playground-results"
             data-scrambling={pending === null ? undefined : ""}
           >
-            {languages.map((language, slot) => (
-              <ResultSlot key={language.code} row={rows[slot]} candidates={candidates} />
+            {languages.map((language) => (
+              <ResultSlot
+                key={language.code}
+                language={language}
+                row={rows.find((row) => row.lang === language.code)}
+                candidates={candidates.get(language.code) ?? []}
+                notSelected={labels.notSelected}
+              />
             ))}
           </ol>
           <div aria-live="polite" aria-atomic="true" className="sr-only" data-playground-live="">
@@ -421,7 +475,22 @@ export function PlaygroundDemo({
         </div>
         {details}
       </div>
-      <div className="vk-playground-code">{snippet}</div>
+      <div className="vk-playground-code" style={snippetStyle(languages, orderedSnippetLanguages)}>
+        <CodeFrameShell
+          lang="ts"
+          filename={snippetFile}
+          action={
+            <CopyControl
+              text={playgroundSnippet(snippetConfig, orderedSnippetLanguages)}
+              label={labels.copy}
+              status={labels.copyStatus}
+              size="sm"
+            />
+          }
+        >
+          {snippet}
+        </CodeFrameShell>
+      </div>
       {Scrambler === null ? null : <Scrambler scope={list} controller={controller} />}
     </div>
   );

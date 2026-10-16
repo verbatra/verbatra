@@ -1,5 +1,6 @@
 import { type PlaygroundOutput, playgroundOutputSchema } from "./playground/schema";
 import committed from "./playground/translations.json" with { type: "json" };
+import { type PlaygroundSnippetConfig, playgroundSnippet } from "./playground-snippet";
 
 export type PlaygroundItem = { readonly id: string; readonly text: string };
 
@@ -32,25 +33,16 @@ export const PLAYGROUND_FILES_PATTERN = "messages/{locale}.json";
 
 export const PLAYGROUND_SNIPPET_FILE = "translate.ts";
 
-function quoted(values: ReadonlyArray<string>): string {
-  return values.map((value) => `"${value}"`).join(", ");
-}
+export const PLAYGROUND_SNIPPET_CONFIG: PlaygroundSnippetConfig = {
+  sourceLocale: PLAYGROUND_SOURCE_LOCALE,
+  format: PLAYGROUND_FORMAT,
+  filesPattern: PLAYGROUND_FILES_PATTERN,
+  provider: PLAYGROUND_METADATA.provider,
+  model: PLAYGROUND_METADATA.model,
+  maxOutputTokens: PLAYGROUND_MAX_OUTPUT_TOKENS,
+};
 
-export const PLAYGROUND_SNIPPET = [
-  `import { defineConfig, loadConfig, translate } from "@verbatra/sdk";`,
-  "",
-  "const config = await loadConfig({",
-  "  configOverride: defineConfig({",
-  `    sourceLocale: "${PLAYGROUND_SOURCE_LOCALE}",`,
-  `    targetLocales: [${quoted(PLAYGROUND_LANGUAGES)}],`,
-  `    format: "${PLAYGROUND_FORMAT}",`,
-  `    files: { pattern: "${PLAYGROUND_FILES_PATTERN}" },`,
-  "    provider: {",
-  `      id: "${PLAYGROUND_METADATA.provider}",`,
-  `      options: { model: "${PLAYGROUND_METADATA.model}", maxOutputTokens: ${PLAYGROUND_MAX_OUTPUT_TOKENS} },`,
-  "    },",
-  "  }),",
-  "});",
-  "",
-  "const summary = await translate({ config });",
-].join("\n");
+export const PLAYGROUND_SNIPPET = playgroundSnippet(
+  PLAYGROUND_SNIPPET_CONFIG,
+  PLAYGROUND_LANGUAGES,
+);

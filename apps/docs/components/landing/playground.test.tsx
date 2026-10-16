@@ -589,7 +589,7 @@ describe("the playground on a cold press", () => {
     expect(block?.hasAttribute("aria-busy")).toBe(false);
   });
 
-  it("keeps one result slot per language and every candidate text in each slot's sizer", async () => {
+  it("keeps one slot per language in a fixed order, sized by that language's translations, and labels the unselected one", async () => {
     reduced = true;
     const root = await mount();
     const french = checkboxes(root).find((input) => input.value === "fr");
@@ -597,23 +597,73 @@ describe("the playground on a cold press", () => {
     await click(french);
     await click(translateButton(root));
     const slots = [...root.querySelectorAll<HTMLElement>(".vk-playground-result")];
-    expect(slots).toHaveLength(PLAYGROUND_LANGUAGES.length);
-    expect(slots.filter((slot) => slot.hasAttribute("data-empty"))).toHaveLength(1);
-    expect(slots.at(-1)?.getAttribute("aria-hidden")).toBe("true");
-    const everyText = [
-      ...PLAYGROUND_ITEMS.map((item) => item.text),
-      ...PLAYGROUND_LANGUAGES.flatMap((code) => Object.values(PLAYGROUND_TRANSLATIONS[code] ?? {})),
-    ];
+    expect(slots.map((slot) => slot.dataset.lang)).toEqual([...PLAYGROUND_LANGUAGES]);
+    const empty = slots.filter((slot) => slot.hasAttribute("data-empty"));
+    expect(empty.map((slot) => slot.dataset.lang)).toEqual(["fr"]);
+    expect(empty[0]?.getAttribute("aria-hidden")).toBe("true");
+    expect(empty[0]?.querySelector(".vk-playground-result-empty")?.textContent).toBe(
+      messages.landing.playground.notSelected,
+    );
+    expect(empty[0]?.querySelector(".vk-playground-result-text")).toBeNull();
     for (const slot of slots) {
       const sized = [...slot.querySelectorAll(".vk-playground-sizer")].map(
         (node) => node.textContent,
       );
-      expect(new Set(sized)).toEqual(new Set(everyText));
+      const own = Object.values(PLAYGROUND_TRANSLATIONS[slot.dataset.lang ?? ""] ?? {});
+      expect(new Set(sized)).toEqual(new Set(own));
     }
     const sources = [...root.querySelectorAll(".vk-playground-source .vk-playground-sizer")].map(
       (node) => node.textContent,
     );
     expect(sources).toEqual(PLAYGROUND_ITEMS.map((item) => item.text));
+  });
+
+  it("dims the results with a visible hint once the selection differs from what they show, until Translate", async () => {
+    reduced = true;
+    const root = await mount();
+    const block = root.querySelector<HTMLElement>(".vk-playground-result-block");
+    const hint = block?.querySelector(".vk-playground-stale");
+    expect(hint?.textContent).toBe(messages.landing.playground.stale);
+    expect(hint?.closest("[aria-live]")).toBeNull();
+    expect(block?.hasAttribute("data-stale")).toBe(false);
+    const french = checkboxes(root).find((input) => input.value === "fr");
+    if (french === undefined) throw new Error("no fr checkbox");
+    await click(french);
+    expect(block?.hasAttribute("data-stale")).toBe(true);
+    expect(root.querySelector("[data-playground-live]")?.textContent).toBe("");
+    await click(translateButton(root));
+    expect(block?.hasAttribute("data-stale")).toBe(false);
+  });
+
+  it("writes the snippet's target locales from the checked languages and copies what it shows", async () => {
+    reduced = true;
+    const root = await mount();
+    const code = root.querySelector<HTMLElement>(".vk-playground-code");
+    const hidden = () =>
+      [...root.querySelectorAll<HTMLElement>(".vk-playground-code [data-snippet-locale]")]
+        .filter(
+          (line) =>
+            code?.style.getPropertyValue(`--vk-snippet-${line.dataset.snippetLocale}`) === "none",
+        )
+        .map((line) => line.dataset.snippetLocale);
+    expect(hidden()).toEqual([]);
+    const french = checkboxes(root).find((input) => input.value === "fr");
+    if (french === undefined) throw new Error("no fr checkbox");
+    await click(french);
+    expect(hidden()).toEqual(["fr"]);
+    const writes: string[] = [];
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: async (text: string) => void writes.push(text) },
+    });
+    const copy = root.querySelector<HTMLButtonElement>(".vk-playground-code figure button");
+    if (copy === null) throw new Error("no copy button");
+    await click(copy);
+    expect(writes).toHaveLength(1);
+    expect(writes[0]).toContain('"de",');
+    expect(writes[0]).not.toContain('"fr",');
+    for (const box of checkboxes(root).filter((input) => input.checked)) await click(box);
+    expect(hidden()).toEqual([]);
   });
 });
 

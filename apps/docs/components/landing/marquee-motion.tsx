@@ -28,7 +28,7 @@ export function MarqueeMotion({
     <div className="vk-marquee" data-marquee={hydrated ? state : undefined}>
       <Button
         variant="outline"
-        size="sm"
+        size="md"
         className="vk-marquee-toggle"
         aria-pressed={paused}
         onClick={() => setPaused((current) => !current)}

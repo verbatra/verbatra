@@ -18,6 +18,7 @@ function imports(path: string): string[] {
 const ISLAND_MODULES = [
   "./command-panel",
   "./hero-terminal",
+  "./hero-diff-motion",
   "./code-showcase-tabs",
   "./marquee-motion",
   "./playground-demo",

@@ -1,15 +1,13 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
-import { availableFromCopy } from "@/components/available-from";
 import { HeroDiff } from "@/components/landing/hero-diff";
 import { HeroFacts } from "@/components/landing/hero-facts";
 import { CommandPanel, HeroTerminal } from "@/components/landing/islands";
 import { GITHUB_URL } from "@/components/landing/links";
 import Button, { buttonClasses } from "@/components/ui/button";
 import { localizedPath, toLocale } from "@/lib/i18n";
-import { SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
+import { MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { nodeVersionsLabel } from "@/lib/node-requirement";
-import { RELEASE_BADGE } from "@/lib/release-badge";
 import { MCP_VERSION, NODE_RANGE, PACKAGE_VERSION, STUDIO_VERSION } from "@/lib/site";
 
 export const HERO_TITLE_ID = "hero-title";
@@ -27,7 +25,6 @@ export async function Hero(): Promise<ReactNode> {
       <div aria-hidden="true" className="vk-banner-backdrop" />
       <div className="vk-banner-grid">
         <div className="vk-banner-copy">
-          <p className="vk-banner-eyebrow">{t("eyebrow")}</p>
           <h1 id={HERO_TITLE_ID} className="vk-banner-title">
             {t("headline")}
           </h1>
@@ -77,8 +74,8 @@ export async function Hero(): Promise<ReactNode> {
           labels={{
             title: tFacts("label"),
             license: tFacts("license"),
-            install: tFacts("install"),
             providers: tFacts("providers"),
+            providersValue: tFacts("providersValue", { count: MACHINE_PROVIDER_IDS.length }),
             providersLink: tFacts("providersLink"),
             formats: tFacts("formats"),
             formatsValue: tFacts("formatsValue", { count: SUPPORTED_FORMAT_IDS.length }),
@@ -96,7 +93,6 @@ export async function Hero(): Promise<ReactNode> {
             }),
             lastUpdated: tFacts("lastUpdated"),
             newTab: tOpen("newTab"),
-            releaseBadge: await availableFromCopy(RELEASE_BADGE.version, undefined, locale),
           }}
         />
       </div>

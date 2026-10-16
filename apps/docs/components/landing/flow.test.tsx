@@ -370,7 +370,7 @@ describe("the flow snippets equal their sources", () => {
       "## Add the action to a workflow",
       "yaml",
     );
-    const guideKey = "ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}";
+    const guideKey = `ANTHROPIC_API_KEY: \${{ secrets.ANTHROPIC_API_KEY }}`;
     expect(guide).toContain(guideKey);
     const expected = guide
       .replace(guideKey, `${GEMINI_KEY}: \${{ secrets.${GEMINI_KEY} }}`)
@@ -511,10 +511,10 @@ describe("the flow drawing", () => {
     }
   });
 
-  it("scrubs the path with the scroll, from 80 percent down to 60 percent, only without reduced motion, and leaves the drawn state when it unmounts", async () => {
+  it("scrubs the path with the scroll, from the first mark crossing the viewport centre to the last one, only without reduced motion, and leaves the drawn state when it unmounts", async () => {
     const host = document.createElement("div");
     host.innerHTML =
-      '<div class="vk-flow"><svg class="vk-flow-rail"><path class="vk-flow-path"></path></svg><ol class="vk-flow-list"><li><span class="vk-flow-mark"></span></li></ol></div>';
+      '<div class="vk-flow"><svg class="vk-flow-rail"><path class="vk-flow-path"></path></svg><ol class="vk-flow-list"><li><span class="vk-flow-mark"></span></li><li><span class="vk-flow-mark"></span></li></ol></div>';
     document.body.append(host);
     const scope = { current: host.querySelector<HTMLElement>(".vk-flow") };
     const root = createRoot(document.createElement("div"));
@@ -531,13 +531,14 @@ describe("the flow drawing", () => {
       drawSVG: "100%",
       ease: "none",
       scrollTrigger: {
-        trigger: host.querySelector(".vk-flow-list"),
+        trigger: host.querySelectorAll(".vk-flow-mark")[0],
         start: FLOW_DRAW_START,
+        endTrigger: host.querySelectorAll(".vk-flow-mark")[1],
         end: FLOW_DRAW_END,
         scrub: true,
       },
     });
-    expect([FLOW_DRAW_START, FLOW_DRAW_END]).toEqual(["top 80%", "bottom 60%"]);
+    expect([FLOW_DRAW_START, FLOW_DRAW_END]).toEqual(["center center", "center center"]);
     expect(JSON.stringify(tween?.to)).not.toContain("pin");
 
     act(() => root.unmount());

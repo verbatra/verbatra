@@ -258,6 +258,32 @@ test.describe("feature flow drawing", () => {
     expect(errors).toEqual([]);
   });
 
+  for (const width of [375, 1440]) {
+    test(`reaches the last mark while it sits in the middle of the viewport at ${width}px`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/");
+      await waitForHydration(page);
+      await scrollToFraction(page, 0);
+      await expect(page.locator(`${FLOW} .vk-flow`)).toHaveAttribute("data-flow", "drawing");
+      const last = page.locator(MARKS).last();
+      const placeLast = (share: number) =>
+        last.evaluate((mark, at) => {
+          const box = mark.getBoundingClientRect();
+          window.scrollTo(0, window.scrollY + box.top + box.height / 2 - window.innerHeight * at);
+        }, share);
+      await placeLast(0.75);
+      await expect
+        .poll(() => last.evaluate((mark) => mark.hasAttribute("data-revealed")))
+        .toBe(false);
+      await placeLast(0.48);
+      await expect(page.locator(`${MARKS}[data-revealed]`)).toHaveCount(
+        await page.locator(MARKS).count(),
+      );
+    });
+  }
+
   test("returns to the drawn state when reduced motion turns on", async ({ page }) => {
     await page.goto("/");
     await waitForHydration(page);

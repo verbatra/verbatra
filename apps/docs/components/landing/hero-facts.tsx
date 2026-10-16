@@ -1,10 +1,7 @@
 import type { ReactNode } from "react";
-import { type AvailableFromCopy, AvailableFromPill } from "@/components/available-from";
 import { LICENSE_URL } from "@/components/landing/links";
 import { IntentPrefetchLink } from "@/components/ui/intent-prefetch-link";
 import { type Locale, localizedPath } from "@/lib/i18n";
-import { NPM_INSTALL_COMMAND } from "@/lib/install-commands";
-import { landingProviders } from "@/lib/landing-providers";
 import { LANDING_LAST_UPDATED } from "@/lib/site";
 
 const LINK = "vk-prose-link";
@@ -12,8 +9,8 @@ const LINK = "vk-prose-link";
 export type HeroFactsLabels = {
   readonly title: string;
   readonly license: string;
-  readonly install: string;
   readonly providers: string;
+  readonly providersValue: string;
   readonly providersLink: string;
   readonly formats: string;
   readonly formatsValue: string;
@@ -23,7 +20,6 @@ export type HeroFactsLabels = {
   readonly versionParts: string;
   readonly lastUpdated: string;
   readonly newTab: string;
-  readonly releaseBadge: AvailableFromCopy;
 };
 
 export function formatLandingDate(date: string, locale: string): string {
@@ -57,18 +53,8 @@ export function HeroFacts({
             MIT<span className="sr-only"> {labels.newTab}</span>
           </a>
         </Fact>
-        <Fact id="install" term={labels.install}>
-          <code className="vk-fact-code">{NPM_INSTALL_COMMAND}</code>
-        </Fact>
         <Fact id="providers" term={labels.providers}>
-          <ul className="vk-fact-list">
-            {landingProviders().map((provider) => (
-              <li key={provider.id} className="vk-fact-item" data-provider={provider.id}>
-                {provider.label}
-                {provider.isNew ? <AvailableFromPill {...labels.releaseBadge} /> : null}
-              </li>
-            ))}
-          </ul>
+          <span>{labels.providersValue}</span>
           <IntentPrefetchLink href={localizedPath(locale, "/docs/providers")} className={LINK}>
             {labels.providersLink}
           </IntentPrefetchLink>

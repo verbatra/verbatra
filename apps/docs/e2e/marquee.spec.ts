@@ -139,7 +139,7 @@ test.describe("marquee before the island takes over", () => {
     const toggle = marquee.locator(".vk-marquee-toggle");
     await expect(toggle).toHaveCSS("visibility", "hidden");
     await expect(toggle).not.toHaveCSS("display", "none");
-    expect((await toggle.boundingBox())?.height ?? 0).toBeGreaterThan(0);
+    expect((await toggle.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
     await expect(page.locator(FIRST_LIST)).toHaveCSS("flex-wrap", "nowrap");
     const formats = page.locator(`${MARQUEE} [data-row="formats"] .vk-marquee-viewport`);
     await expect(formats).toHaveAttribute("tabindex", "0");

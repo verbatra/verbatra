@@ -249,12 +249,15 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
 ## Reuse before you build
 
 - **Primitives:** `components/ui/` holds `badge`, `button`, `command-line`, `copy-announcement`,
-  `copy-button`, `tabs`. Every copy control runs on `useCopyToClipboard` (`lib/`: `idle`, `copied`,
+  `copy-button`, `copy-control`, `tabs`. Every copy control runs on `useCopyToClipboard` (`lib/`: `idle`, `copied`,
   `failed`, an `attempts` count, `reset`, and `holdFailure` to keep a failure until the next copy)
   and announces through `CopyAnnouncement`, a polite live region whose text node is keyed on
   `attempts`, so a repeated copy is announced again. `CopyButton` shows "Copied" or, in
   `--text-danger`, "Copy failed", and drops its `aria-label` while it does, so the visible status
   is its accessible name; `CommandLine` renders `CopyButton` rather than its own button.
+  `CopyButton` is `CopyControl` (`copy-control.tsx`) fed the `landing.install` copy strings; a plain
+  `island()` that may not call `useTranslations` (the SDK playground) renders `CopyControl` with
+  those strings passed in as props, never a copy of the button.
   `TabList` takes an `idPrefix` to wire `id` / `aria-controls` to `tabPanelId` panels and moves
   selection and focus with the arrow keys (wrapping), Home and End; `tabPanelProps(prefix, id,
   active)` gives a panel its `id`, `role`, `aria-labelledby`, `data-active` and `inert`. Its
@@ -289,17 +292,24 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   `messages/de.json` from `lib/hero-diff.ts`, both written by the sdk's real next-intl adapter into
   `lib/hero-diff.generated.json` by `scripts/sync-format-samples.mjs` from `lib/hero-diff-seed.mjs`,
   git-ignored like the format samples; the two keys the hero terminal reports missing are
-  `.vk-hero-diff-line` rows marked `new`, each value in `.vk-hero-diff-value`; each pane's code
+  `.vk-hero-diff-line` rows marked `new`, each value in `.vk-hero-diff-value`, whose mark never
+  wraps (the line scrolls sideways instead, and `.vk-hero-diff-code` is `max-content` wide so the
+  tint runs under the whole line); `.vk-hero-diff` is an inline-size container and its two panes
+  sit side by side only from a 40rem container, so they stack in the narrow two-column hero
+  column at 1024 to 1440 and no value is clipped there; each pane's code
   carries its file's `lang`, `en` and `de`, and the mark words the page's; the outer `figure` has
   no `aria-label`, its visible `.vk-hero-diff-caption` figcaption under the panes reads
   `landing.banner.diffLabel` in `--text-xs` `--text-muted`), `hero-facts.tsx`
   (`.vk-banner-facts`: a visually hidden `h2` over a `dl.vk-facts` with no `aria-labelledby`, which
-  a role-less `dl` may not take, every fact in text: license,
-  install command, the providers from `landingProviders()` (`lib/landing-providers.ts`), the format count
+  a role-less `dl` may not take, every fact in text: license, the provider count
+  `MACHINE_PROVIDER_IDS.length` in digits (`landing.facts.providersValue`) over the
+  `landing.facts.providersLink` link to `/docs/providers`, the format count
   `SUPPORTED_FORMAT_IDS.length` linking `/docs/formats`, the Node.js range, the version line
   `landing.facts.versionParts` naming each package ("CLI and SDK v{cli}, Studio v{studio}, MCP
-  server v{mcp}"), and `LANDING_LAST_UPDATED` as a `time`; a provider dated by `RELEASE_BADGE` in
-  `lib/release-badge.ts` carries the shared `AvailableFromPill`), `proof-strip.tsx` (stars, npm weekly downloads, the providers and the format count, the stars
+  server v{mcp}"), and `LANDING_LAST_UPDATED` as a `time`; no provider list, no pill and no
+  install row, since the command panel right above shows the command; each `.vk-fact` is
+  `align-content: start`, so a label stays on the first line of its value in a two-column row;
+  the copy column opens with the `h1`, with no eyebrow line above it), `proof-strip.tsx` (stars, npm weekly downloads, the providers and the format count, the stars
 and downloads from `lib/project-stats.ts`, read at build time so the page stays static, then
 refreshed in place by `LiveStatValue` from `/api/stats`; every figure shows as fetched, with no
 display threshold, and a figure the build could not fetch leaves its cell as a named link
@@ -339,11 +349,12 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   label, which the structured data's format list reads too, so a new format fails to
   compile until it has one. The marquee (`marquee.tsx`, `#marquee`, a band right under the
   hero) shows two rows inside the `MarqueeMotion` island (`marquee-motion.tsx`): the providers,
-  `landingProviders()`, the same list the facts block reads, with their kind glyph
+  `landingProviders()`, whose count the facts block states, with their kind glyph
   (`PROVIDER_KIND_ICONS`), and the formats, `SUPPORTED_FORMAT_IDS` by their `FORMAT_DISPLAY` label with a file glyph
   (`FORMAT_ICONS`, a `Record<SupportedFormat, StackIconKey>`, so a new format fails to compile
   until it has one), every glyph a `<use>` of one `StackIconSprite` (prefix `marquee`). A provider
-  that `RELEASE_BADGE` dates carries the same `AvailableFromPill` as the facts block. No count is
+  that `RELEASE_BADGE` dates carries the shared `AvailableFromPill`, the only place on the
+  landing that badges a provider. No count is
   typed and no third-party logo is drawn. Each row is a muted `h3` that names its visible list,
   the list, `MARQUEE_COPIES` copies of it (`aria-hidden`, `inert`, holding no link or button), and
   an "All providers" or "All formats" link after the moving track, so nothing focusable moves. The
@@ -361,7 +372,7 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   query matches do the rows turn into one masked line that runs
   `vk-marquee` (a `transform` keyframe, `--marquee-items` times `--marquee-item-time` per loop,
   the formats row reversed through `--marquee-direction`), and the pause button shows before the
-  rows: an `outline` `Button` with one constant name (`landing.marquee.pause`), `aria-pressed` while
+  rows: an `outline` `Button` at `size="md"` (44px tall, like the other landing controls) with one constant name (`landing.marquee.pause`), `aria-pressed` while
   paused, and only its `aria-hidden` glyph swapping between pause and play. Hover and focus inside
   a row pause that row. `marquee.test.tsx` pins the registry rows, the badge, the copies, the static
   state and the pause toggle, and `e2e/marquee.spec.ts` the motion in a browser. The format
@@ -551,7 +562,8 @@ The landing moves little, on purpose: the demos rise into place once as the visi
 the hero diff fills its two missing values once, the provider and format marquee loops until it is
 paused, the SDK playground scrambles its results once per Translate press, the feature flow's
 path draws with the scroll, and nothing else on the page fades in.
-There is no pinning and no parallax. The flow's path is the only scroll-scrubbed motion and its
+There is no scroll-driven pinning and no parallax (the SDK playground's snippet column is only
+`position: sticky` from 64rem, which moves nothing on its own). The flow's path is the only scroll-scrubbed motion and its
 `ScrollTrigger` the only scroll listener, both inside the lazily loaded drawing module; `motion` is
 reserved for client islands (see "The stack").
 
@@ -595,25 +607,41 @@ reserved for client islands (see "The stack").
   `lib/landing-playground.ts`, which parses it with `lib/playground/schema.ts` on the server, so zod
   never reaches the client, and builds `PLAYGROUND_SNIPPET` (`loadConfig({ configOverride:
   defineConfig(...) })` for `gemini` and `next-intl-json`, the model from the JSON metadata, then
-  `translate({ config })`), shown in a `CodeFrame` and parsed by the public `verbatraConfigSchema`
-  in `playground.test.tsx`. The `PlaygroundDemo` island (`playground-demo.tsx`, a plain `island()`
+  `translate({ config })`, one `targetLocales` entry per line) from `playgroundSnippet` in
+  `lib/playground-snippet.ts`, a zod-free builder the island shares. The server highlights it
+  through `highlightPlaygroundSnippet` (`lib/playground-snippet-highlight.ts`), whose Shiki
+  transformer marks each locale line `data-snippet-locale` with `display: var(--vk-snippet-<code>,
+  inline)` and moves the line's newline inside it; the island frames it in `CodeFrameShell`
+  (`components/landing/code-frame-shell.tsx`, the markup `CodeFrame` also renders) with a
+  `CopyControl`, sets `--vk-snippet-<code>: none` on `.vk-playground-code` for each unchecked
+  language once hydrated (all four while none is checked, and in the server HTML), and copies
+  exactly the lines it shows. `playground.test.tsx` parses the full snippet with the public
+  `verbatraConfigSchema`. The `PlaygroundDemo` island (`playground-demo.tsx`, a plain `island()`
   fed every string as a prop, so it adds no client namespace) holds a native radio fieldset of the
   source strings (each label `lang="en"`) and a checkbox fieldset of the languages, both
   `appearance: none` with a `--text-faint` boundary and an `--accent-fill` checked fill, 2.5rem
-  tall, then a `type="button"` Translate (no `form`, so nothing submits before hydration). In the
+  tall (the source strings flow in CSS `columns: 14rem`, so the arrow keys move down a column in
+  the order they read), then a `type="button"` Translate (no `form`, so nothing submits before hydration). In the
   DOM the controls come first, then the results and the label with the metadata, then the snippet
-  (`.vk-playground-main` and `.vk-playground-code`, two columns from 64rem), so on a phone the
+  (`.vk-playground-main` and `.vk-playground-code`, two columns from 64rem, where the snippet
+  column is sticky below the header), so on a phone the
   result sits right under Translate and the focus order is the visual order at every width. The
   island takes its first item, languages and focus from the server-rendered form it replaces
   (`[data-playground-demo]`, each control marked `data-control`), so a choice made before it loads
-  is kept. The results are one `li` slot per language, filled in order with the checked ones and
-  the rest `data-empty` (`visibility: hidden`, `aria-hidden`); every slot and the source line stack
-  a hidden sizer of every source string and translation, so no press moves anything. Each filled
+  is kept. The results are one `li` slot per language, in the languages' order: a language the
+  last press left out is `data-empty` and `aria-hidden` and shows its name with a muted
+  `landing.playground.notSelected` label; each slot stacks a hidden sizer of that language's
+  translations, and the source line one of every source string, so no press moves anything. Once
+  the selection differs from what the results show, the result block carries `data-stale`: the
+  source line and the results dim by `opacity` and `.vk-playground-stale`
+  (`landing.playground.stale`, always rendered, `visibility` only, in no live region) shows beside
+  the results heading until Translate is pressed. Each filled
   slot holds the value with its own `lang` and an `aria-hidden` `.vk-playground-scramble` layer laid
   over it. A press loads the scramble module (waiting at most `SCRAMBLER_WAIT_MS`); while it waits,
   the results carry `aria-busy` and Translate `aria-disabled` (still focusable, presses ignored),
   and the results stay busy until the run settles. GSAP `scrambleText` then runs from the source to
-  each translation, `SCRAMBLE_STAGGER_S` apart, tweening a Text node in each layer so the plugin
+  each translation, `SCRAMBLE_STAGGER_S` apart (a Latin target with lowercase letters, a CJK one
+  with the distinct characters of its own text, `scrambleChars`), tweening a Text node in each layer so the plugin
   writes `textContent`, never `innerHTML`. `Scrambler` creates one `gsap.matchMedia` on
   `(prefers-reduced-motion: no-preference)` inside `useGSAP` for its whole lifetime; each play kills
   the previous timeline, a finished, stopped (a press with no language checked) or superseded run
@@ -651,8 +679,9 @@ reserved for client islands (see "The stack").
   island (`flow-motion.tsx`) imports `flow-draw.tsx` once the flow comes within one viewport, after
   the first contentful paint and never under reduced motion. Its `FlowDraw` runs, inside
   `useGSAP({ scope })` and a `gsap.matchMedia` on `(prefers-reduced-motion: no-preference)`, one
-  DrawSVG tween from `0%` to `100%` scrubbed by a `ScrollTrigger` on the list (start `top 80%`, end
-  `bottom 60%`, no pin), sets `data-flow="drawing"` on `.vk-flow` and gives each mark
+  DrawSVG tween from `0%` to `100%` scrubbed by a `ScrollTrigger` from the first mark to the last
+  (`trigger` the first mark, `endTrigger` the last, both `center center`, no pin), so the drawn
+  tip sits at the middle of the viewport and the last mark fills while it is there, sets `data-flow="drawing"` on `.vk-flow` and gives each mark
   `data-revealed` once the drawn length reaches it; only then is an unreached mark hollow, its fill
   fading by `opacity`. Reverting (unmount or reduced motion turning on) restores the drawn state.
   No release badge is needed in the flow: every node works with the published packages, and any
@@ -927,7 +956,7 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   breadcrumb (`.vk-breadcrumb`, set on `DocsPage`), which shares the sidebar's tree; the
   `<AvailableFrom>` badge adds `.vk-available-from`, which sits after the heading text when it is
   inside a heading. Its markup is `AvailableFromPill` (`components/available-from.tsx`), which the
-  landing's hero facts and marquee render with the `docs.availableFrom` copy for
+  landing's marquee renders with the `docs.availableFrom` copy for
   `RELEASE_BADGE.version`. `RELEASE_BADGE` (`lib/release-badge.ts`) is the landing's list of
   providers new in that release; the MDX badges stay literal (`<AvailableFrom version="0.12.0" />`),
   and `lib/release-badge.test.ts` holds the two together: a machine provider carries a badge of

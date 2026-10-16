@@ -5,12 +5,14 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { gsap } from "@/lib/gsap-scramble";
 import {
+  LATIN_SCRAMBLE_CHARS,
   SCRAMBLE_MOTION_QUERY,
   SCRAMBLE_ROW_DURATION_S,
   SCRAMBLE_STAGGER_S,
   type ScrambleController,
   type ScrambleRow,
   Scrambler,
+  scrambleChars,
 } from "./playground-scramble";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -205,5 +207,20 @@ describe("the playground scramble", () => {
     } finally {
       if (innerHTML !== undefined) Object.defineProperty(Element.prototype, "innerHTML", innerHTML);
     }
+  });
+});
+
+describe("the scramble characters", () => {
+  it("scrambles a Latin translation with Latin letters", () => {
+    expect(scrambleChars("Einstellungen")).toBe(LATIN_SCRAMBLE_CHARS);
+    expect(scrambleChars("Verbatra")).toBe(LATIN_SCRAMBLE_CHARS);
+  });
+
+  it("scrambles a Japanese translation with its own characters, never a placeholder or a space", () => {
+    expect(scrambleChars("設定")).toBe("設定");
+    const chars = scrambleChars("おかえりなさい、{name}さん！");
+    expect(chars).not.toMatch(/[a-z{}\s]/);
+    expect([...chars]).toEqual([...new Set(chars)]);
+    expect(chars).toContain("お");
   });
 });

@@ -185,7 +185,6 @@
       }
     },
     "banner": {
-      "eyebrow": "CLI et SDK i18n open source (MIT) pour les développeurs",
       "headline": "Ne traduis que ce qui a changé.",
       "lead": "Pour les développeurs qui gèrent leurs traductions dans des fichiers de locale JSON, YAML, XLIFF, ARB et autres.",
       "ctaPrimary": "Démarrer",
@@ -205,8 +204,8 @@
     "facts": {
       "label": "Verbatra en bref",
       "license": "Licence",
-      "install": "Installation",
       "providers": "Fournisseurs",
+      "providersValue": "{count} fournisseurs",
       "providersLink": "Configurer un fournisseur",
       "formats": "Formats",
       "formatsValue": "{count} formats de fichier",
@@ -233,6 +232,8 @@
       "results": "Résultat",
       "source": "Source",
       "noLanguages": "Choisis au moins une langue cible.",
+      "notSelected": "Non sélectionnée",
+      "stale": "Appuie sur Traduire pour mettre à jour",
       "copy": "Copier le code",
       "label": "Généré à l’avance avec le SDK Verbatra et Gemini, pas en direct.",
       "metadata": {

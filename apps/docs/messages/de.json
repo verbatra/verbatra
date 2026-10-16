@@ -185,7 +185,6 @@
       }
     },
     "banner": {
-      "eyebrow": "i18n-CLI und SDK für Entwickler, Open Source (MIT)",
       "headline": "Übersetze nur, was sich geändert hat.",
       "lead": "Für Entwickler, die ihre Übersetzungen in JSON, YAML, XLIFF, ARB und anderen Locale-Dateien pflegen.",
       "ctaPrimary": "Loslegen",
@@ -205,8 +204,8 @@
     "facts": {
       "label": "Verbatra auf einen Blick",
       "license": "Lizenz",
-      "install": "Installation",
       "providers": "Provider",
+      "providersValue": "{count} Provider",
       "providersLink": "Provider einrichten",
       "formats": "Formate",
       "formatsValue": "{count} Dateiformate",
@@ -233,6 +232,8 @@
       "results": "Ergebnis",
       "source": "Quelle",
       "noLanguages": "Wähle mindestens eine Zielsprache.",
+      "notSelected": "Nicht ausgewählt",
+      "stale": "Drück auf Übersetzen, um zu aktualisieren",
       "copy": "Code kopieren",
       "label": "Vorab mit dem Verbatra SDK und Gemini erzeugt, nicht live.",
       "metadata": {

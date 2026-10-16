@@ -10,9 +10,14 @@ for (const locale of LOCALES) {
       await page.goto(homeUrl(locale));
       const facts = page.locator(`${HERO} dl.vk-facts`);
       await expect(facts).toBeVisible();
-      await expect(facts.locator("dt")).toHaveCount(7);
+      await expect(facts.locator("dt")).toHaveCount(6);
+      await expect(facts.locator(".vk-pill")).toHaveCount(0);
       for (const id of RELEASE_BADGE.providers) {
-        await expect(facts.locator(`[data-provider="${id}"] .vk-pill`)).toBeVisible();
+        await expect(
+          page.locator(
+            `section#marquee .vk-marquee-list:not(.vk-marquee-copy) [data-item="${id}"] .vk-pill`,
+          ),
+        ).toHaveCount(1);
       }
     });
   });
@@ -78,5 +83,34 @@ for (const viewport of [
         await expect(value).toHaveCSS("opacity", "1");
       }
     });
+  });
+}
+
+for (const width of [768, 1024, 1280, 1440]) {
+  test.describe(`hero diff at ${width}px`, () => {
+    test.use({ viewport: { width, height: 900 } });
+
+    for (const locale of LOCALES) {
+      test(`shows every value and mark without clipping on ${homeUrl(locale)}`, async ({
+        page,
+      }) => {
+        await page.goto(homeUrl(locale));
+        await page.evaluate(() => document.fonts.ready);
+        const panes = page.locator(".vk-hero-diff-pane [role='group']");
+        await expect(panes).toHaveCount(2);
+        for (const pane of await panes.all()) {
+          expect(await pane.evaluate((node) => node.scrollWidth - node.clientWidth)).toBe(0);
+        }
+        const rows = page.locator(".vk-hero-diff-line");
+        for (const row of await rows.all()) {
+          const lines = await row.evaluate((node) => {
+            const text = node.querySelector(".vk-showcase-line-text")?.getBoundingClientRect();
+            const mark = node.querySelector(".vk-hero-diff-mark")?.getBoundingClientRect();
+            return text && mark ? Math.abs(text.top - mark.top) : Number.POSITIVE_INFINITY;
+          });
+          expect(lines).toBeLessThanOrEqual(1);
+        }
+      });
+    }
   });
 }

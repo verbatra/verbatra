@@ -122,9 +122,8 @@ describe("landing message parity", () => {
     }
   });
 
-  it("names the MIT license in the hero eyebrow and keeps the version slot in the Node.js note", () => {
+  it("keeps the version slot in the Node.js note", () => {
     for (const locale of i18n.languages) {
-      expect(landingText(locale, "banner.eyebrow"), locale).toContain("(MIT)");
       expect(landingText(locale, "banner.nodeRequirement"), locale).toContain("Node.js {versions}");
       expect(landingText(locale, "banner.nodeMajorFrom"), locale).toMatch(
         /^\{major\} \(.*\{minimum\}.*\)$/,

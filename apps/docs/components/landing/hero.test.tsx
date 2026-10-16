@@ -13,7 +13,6 @@ import {
 import { NPM_INSTALL_COMMAND } from "@/lib/install-commands";
 import { MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { nodeVersionsLabel } from "@/lib/node-requirement";
-import { RELEASE_BADGE } from "@/lib/release-badge";
 import {
   LANDING_LAST_UPDATED,
   MCP_VERSION,
@@ -97,13 +96,9 @@ describe("Hero", () => {
     expect(doc.querySelector(".vk-banner-lead")?.textContent).toBe(banner.lead);
   });
 
-  it("opens with an eyebrow that names the category, the license and the audience", async () => {
+  it("opens the copy with the h1, with no eyebrow line above it", async () => {
     const copy = (await render()).querySelector(".vk-banner-copy");
-    const eyebrow = copy?.firstElementChild;
-    expect(eyebrow?.tagName).toBe("P");
-    expect(eyebrow?.className).toBe("vk-banner-eyebrow");
-    expect(eyebrow?.textContent).toBe(banner.eyebrow);
-    expect(eyebrow?.nextElementSibling?.tagName).toBe("H1");
+    expect(copy?.firstElementChild?.tagName).toBe("H1");
   });
 
   it("states the Node.js requirement in the facts block, read from the engines range", async () => {
@@ -212,7 +207,6 @@ describe("Hero", () => {
     expect(title?.textContent).toBe(facts.label);
     expect(Array.from(list?.querySelectorAll("dt") ?? [], (term) => term.textContent)).toEqual([
       facts.license,
-      facts.install,
       facts.providers,
       facts.formats,
       facts.requirements,
@@ -222,7 +216,7 @@ describe("Hero", () => {
     expect(list?.querySelector("img, svg, canvas")).toBeNull();
   });
 
-  it("states the MIT license and the install command", async () => {
+  it("states the MIT license and leaves the install command to the command panel", async () => {
     const doc = await render();
     const license = fact(doc, "license")?.querySelector("a");
     expect(license?.textContent).toContain("MIT");
@@ -230,23 +224,17 @@ describe("Hero", () => {
       "https://github.com/verbatra/verbatra/blob/main/LICENSE",
     );
     expect(license?.getAttribute("target")).toBe("_blank");
-    expect(fact(doc, "install")?.querySelector("code")?.textContent).toBe(NPM_INSTALL_COMMAND);
+    expect(fact(doc, "install")).toBeNull();
+    expect(doc.querySelector(".vk-facts")?.textContent).not.toContain(NPM_INSTALL_COMMAND);
   });
 
-  it("lists every machine provider, badging only the ones the release badge names", async () => {
-    const items = Array.from(fact(await render(), "providers")?.querySelectorAll("li") ?? []);
-    expect(items.map((item) => item.getAttribute("data-provider"))).toEqual([
-      ...MACHINE_PROVIDER_IDS,
-    ]);
-    const badged = items.filter((item) => item.querySelector(".vk-pill") !== null);
-    expect(badged.map((item) => item.getAttribute("data-provider"))).toEqual([
-      ...RELEASE_BADGE.providers,
-    ]);
-    for (const item of badged) {
-      expect(item.querySelector(".vk-pill")?.textContent).toBe(
-        messages.docs.availableFrom.title.replace("{version}", RELEASE_BADGE.version),
-      );
-    }
+  it("counts the machine providers in digits and links the providers page, with no list or badge", async () => {
+    const providers = fact(await render(), "providers");
+    expect(providers?.querySelector("dd")?.textContent).toBe(
+      `${facts.providersValue.replace("{count}", String(MACHINE_PROVIDER_IDS.length))}${facts.providersLink}`,
+    );
+    expect(providers?.textContent).toMatch(/\d/);
+    expect(providers?.querySelector("ul, li, .vk-pill")).toBeNull();
   });
 
   it("counts the formats from the registry and links the providers and formats pages", async () => {

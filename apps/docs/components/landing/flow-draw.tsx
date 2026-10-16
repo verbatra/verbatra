@@ -5,9 +5,9 @@ import { gsap, ScrollTrigger, useGSAP } from "@/lib/gsap-draw";
 
 export const FLOW_MOTION_QUERY = "(prefers-reduced-motion: no-preference)";
 
-export const FLOW_DRAW_START = "top 80%";
+export const FLOW_DRAW_START = "center center";
 
-export const FLOW_DRAW_END = "bottom 60%";
+export const FLOW_DRAW_END = "center center";
 
 export const FLOW_DRAWING = "drawing";
 
@@ -26,9 +26,10 @@ export function FlowDraw({ scope }: { scope: RefObject<HTMLElement | null> }): R
       const root = scope.current;
       const rail = root?.querySelector(".vk-flow-rail");
       const path = root?.querySelector<SVGPathElement>(".vk-flow-path");
-      const list = root?.querySelector<HTMLElement>(".vk-flow-list");
-      if (!root || !rail || !path || !list) return;
-      const marks = [...root.querySelectorAll<HTMLElement>(".vk-flow-mark")];
+      const marks = root ? [...root.querySelectorAll<HTMLElement>(".vk-flow-mark")] : [];
+      const first = marks[0];
+      const last = marks.at(-1);
+      if (!root || !rail || !path || !first || !last) return;
       const mm = gsap.matchMedia();
       mm.add(FLOW_MOTION_QUERY, () => {
         let offsets: ReadonlyArray<number> = [];
@@ -45,8 +46,9 @@ export function FlowDraw({ scope }: { scope: RefObject<HTMLElement | null> }): R
             drawSVG: "100%",
             ease: "none",
             scrollTrigger: {
-              trigger: list,
+              trigger: first,
               start: FLOW_DRAW_START,
+              endTrigger: last,
               end: FLOW_DRAW_END,
               scrub: true,
               invalidateOnRefresh: true,

@@ -18,7 +18,14 @@ export const SCRAMBLE_MOTION_QUERY = "(prefers-reduced-motion: no-preference)";
 
 export const SCRAMBLE_SELECTOR = "[data-scramble]";
 
-const SCRAMBLE_CHARS = "lowerCase";
+export const LATIN_SCRAMBLE_CHARS = "lowerCase";
+
+const NON_LATIN_SCRIPT = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
+
+export function scrambleChars(text: string): string {
+  if (!NON_LATIN_SCRIPT.test(text)) return LATIN_SCRAMBLE_CHARS;
+  return [...new Set(text.replace(/\{[^}]*\}|\s/gu, ""))].join("");
+}
 
 type Run = {
   readonly targets: ReadonlyArray<HTMLElement>;
@@ -50,7 +57,7 @@ function scrambleTimeline(
       {
         duration: SCRAMBLE_ROW_DURATION_S,
         ease: "none",
-        scrambleText: { text: row.to, chars: SCRAMBLE_CHARS },
+        scrambleText: { text: row.to, chars: scrambleChars(row.to) },
       },
       index * SCRAMBLE_STAGGER_S,
     );

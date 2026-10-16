@@ -7,13 +7,14 @@ import {
   PLAYGROUND_ITEMS,
   PLAYGROUND_LANGUAGES,
   PLAYGROUND_METADATA,
-  PLAYGROUND_SNIPPET,
+  PLAYGROUND_SNIPPET_CONFIG,
   PLAYGROUND_SNIPPET_FILE,
   PLAYGROUND_SOURCE_LOCALE,
   PLAYGROUND_TRANSLATIONS,
 } from "@/lib/landing-playground";
 import { PROVIDER_DISPLAY } from "@/lib/landing-providers";
-import { CodeFrame } from "./code-frame";
+import { playgroundSnippetLines } from "@/lib/playground-snippet";
+import { highlightPlaygroundSnippet } from "@/lib/playground-snippet-highlight";
 import { PlaygroundDemo } from "./islands";
 import { PlainList } from "./plain-list";
 import type { PlaygroundLanguage } from "./playground-demo";
@@ -85,18 +86,16 @@ function StaticTable({
 
 export async function Playground(): Promise<ReactNode> {
   const t = await getTranslations("landing.playground");
+  const tInstall = await getTranslations("landing.install");
   const locale = toLocale(await getLocale());
   const languages: ReadonlyArray<PlaygroundLanguage> = PLAYGROUND_LANGUAGES.map((code) => ({
     code,
     name: t(`languageNames.${code}`),
   }));
   const generated = generatedOn(locale);
-  const snippet = await CodeFrame({
-    code: PLAYGROUND_SNIPPET,
-    lang: "ts",
-    filename: PLAYGROUND_SNIPPET_FILE,
-    copy: { label: t("copy") },
-  });
+  const snippet = await highlightPlaygroundSnippet(
+    playgroundSnippetLines(PLAYGROUND_SNIPPET_CONFIG, PLAYGROUND_LANGUAGES),
+  );
   const provider = PROVIDER_DISPLAY[PLAYGROUND_METADATA.provider].label;
 
   const details = (
@@ -140,8 +139,18 @@ export async function Playground(): Promise<ReactNode> {
           results: t("results"),
           source: t("source"),
           noLanguages: t("noLanguages"),
+          notSelected: t("notSelected"),
+          stale: t("stale"),
+          copy: t("copy"),
+          copyStatus: {
+            copy: tInstall("copy"),
+            copied: tInstall("copied"),
+            copyFailed: tInstall("copyFailed"),
+          },
         }}
         snippet={snippet}
+        snippetFile={PLAYGROUND_SNIPPET_FILE}
+        snippetConfig={PLAYGROUND_SNIPPET_CONFIG}
         details={details}
       />
       <StaticTable
