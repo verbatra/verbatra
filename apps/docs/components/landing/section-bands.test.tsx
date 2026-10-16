@@ -31,21 +31,21 @@ describe("landing surface bands", () => {
     expect(section?.firstElementChild?.className).toContain("vk-gutter");
   });
 
-  it("alternates void and band from the problem down to the FAQ", () => {
+  it("pins which sections from the marquee down to the FAQ sit in a band, in page order", () => {
     expect(
       [
+        "marquee.tsx",
         "problem.tsx",
         "steps.tsx",
         "bento.tsx",
         "code-showcase.tsx",
         "showcase.tsx",
-        "ecosystem.tsx",
         "studio.tsx",
         "compare.tsx",
         "open-source.tsx",
         "faq.tsx",
       ].map(banded),
-    ).toEqual([false, true, false, true, false, true, false, true, false, true]);
+    ).toEqual([true, false, true, false, true, false, false, true, false, true]);
   });
 
   it("paints the band from the semantic band token between two hairlines", () => {
@@ -92,7 +92,7 @@ describe("the section head on the 12-column grid", () => {
         "bento.tsx",
         "code-showcase.tsx",
         "showcase.tsx",
-        "ecosystem.tsx",
+        "marquee.tsx",
         "compare.tsx",
         "open-source.tsx",
         "faq.tsx",
@@ -115,7 +115,7 @@ describe("the section head on the 12-column grid", () => {
       "bento.tsx": "heading",
       "code-showcase.tsx": "stacked",
       "showcase.tsx": "stacked",
-      "ecosystem.tsx": "stacked",
+      "marquee.tsx": "split",
       "compare.tsx": "heading",
       "open-source.tsx": "split",
       "faq.tsx": "heading",

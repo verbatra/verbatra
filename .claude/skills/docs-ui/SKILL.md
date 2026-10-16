@@ -164,17 +164,17 @@ Scales are fixed and narrow, deliberately:
   `.vk-grid-12`: the heading block spans 8, the lead 4, bottom-aligned, so the lead starts on
   column 9, the column where the problem list, the third step and the contributors start) or
   `stacked` (the lead under the heading on the first column, for a section whose content runs the
-  full row: the code showcase, the playground and the ecosystem). A head without a lead is always
+  full row: the code showcase and the playground). A head without a lead is always
   stacked (features, comparison, FAQ), and Studio sets its heading beside the screenshot itself.
   `section-bands.test.tsx` pins which section uses which, so the page never goes back to one head
   shape everywhere.
 - Landing surfaces: `--surface-band` (mixed from `--surface-card` and
   `--surface-bg`, never a raw value), the fill of `.vk-band`: `Section` with `band` renders a
   full-width `section.vk-band` (between two `--border-default` hairlines, `--section-sm` above it
-  and `--section-md` padding inside) around the usual `.vk-gutter` column, so the page alternates
-  void and band from the problem down to the FAQ: how it works, the code showcase, the ecosystem,
-  the comparison and the FAQ are banded, the problem, features, playground, Studio and open source
-  sections sit on the void (`section-bands.test.tsx` pins the order). The hero draws its own
+  and `--section-md` padding inside) around the usual `.vk-gutter` column: the marquee under the
+  hero, how it works, the code showcase, the comparison and the FAQ are banded, the problem,
+  features, playground, Studio and open source sections sit on the void, the playground and
+  Studio next to each other (`section-bands.test.tsx` pins the order). The hero draws its own
   decorative dot backdrop and single glow (`.vk-banner-backdrop`, `.vk-banner-glow`, from the
   `--banner-*` tokens, lighter under `html.light`); there is no wash token.
 - Placeholder chip: `PlaceholderChip` (`components/landing/placeholder-chip.tsx`, the
@@ -194,7 +194,8 @@ Scales are fixed and narrow, deliberately:
   state changes), `--duration-fast` (140ms, hover and press),
   `--duration-base` (240ms, state change), `--duration-reveal` (560ms, entrances),
   `--reveal-distance` (16px, 12px under 40rem), `--reveal-stagger` (70ms) and
-  `--reveal-delay-max` (350ms, the stagger cap). Only `opacity` and `transform` / `translate`
+  `--reveal-delay-max` (350ms, the stagger cap), and `--marquee-item-time` (5s: one marquee loop
+  lasts that times the row's item count). Only `opacity` and `transform` / `translate`
   ever animate.
 - Showcase: `--showcase-line` (1.125rem, 1.25rem from 40rem) is the line height of a file pane in
   the showcase playground, which reserves its longest scenario's row count with it (on a phone,
@@ -249,7 +250,8 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   `variant: "segmented"` is the `.vk-segmented` switch (tabs rounded by `--radius-segment`, 7px)
   that the hero command panel uses, never a hand-made copy. The code showcase tabs (`code-showcase-tabs.tsx`) use the default `underline` variant;
   there is no second tab primitive.
-  `Button` takes `variant: "primary" | "secondary" | "ghost"` and `size: "sm" | "md" | "lg"`.
+  `Button` takes `variant: "primary" | "secondary" | "outline" | "ghost"` (`outline` is the
+  `--text-faint` border that holds 3:1 on its own, pressed `--accent` through `aria-pressed`) and `size: "sm" | "md" | "lg"`.
   Extend the variant union rather than passing ad hoc `className` overrides.
 - **shadcn/ui primitives:** `components.json` (style `new-york`, Tailwind 4 with an empty
   `tailwind.config`, `cssVariables`) points the `ui` alias at `@/components/ui/shadcn`, so the
@@ -267,8 +269,8 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   button, inside a shadcn composition or not, is the site button in `components/ui/button.tsx`; add a
   registry primitive only together with the code that uses it.
 - **Landing:** `components/landing/` holds one component per section. Their order on the page is
-  `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, proofStrip, problem, howItWorks, features,
-  code, showcase, ecosystem, studio, compare, openSource, faq, finalCta), which the home page maps
+  `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, marquee, proofStrip, problem, howItWorks,
+  features, code, showcase, studio, compare, openSource, faq, finalCta), which the home page maps
   over and `lib/landing-sections.test.ts` pins; add or move a section there, not by hand in
   `page.tsx`. The files: `hero.tsx` (the `h1`, the lead, the two quotable `landing.banner.quotes`
   sentences in `.vk-banner-summary`, two buttons, the `CommandPanel` install box, the locale diff
@@ -298,11 +300,10 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   tile is a `verbatra.config.ts` diff from one provider block to another (`BENTO_PROVIDER_DIFF`,
   both blocks pinned to the sdk's `loadConfig`), and the framework tile writes one key into several
   stacks' files, each line taken from the real adapter output in `lib/format-samples.generated.json`
-  (`BENTO_FORMAT_LINES`), so neither repeats the ecosystem lists), `code-showcase.tsx` (`#code`, CLI, SDK, config and Action tabs from
+  (`BENTO_FORMAT_LINES`), so neither repeats the marquee lists), `code-showcase.tsx` (`#code`, CLI, SDK, config and Action tabs from
   `lib/landing-code.ts`, highlighted on the server by `lib/landing-highlight.ts` with dual themes
-  and framed by `code-frame.tsx`), `showcase.tsx` (the Try it playground, below), `ecosystem.tsx`
-  (`#ecosystem`: providers grouped by kind from `lib/landing-providers.ts`, the human-only `none`,
-  and the format switcher), `studio.tsx` (`#studio`, the real `StudioScreenshot` and the run
+  and framed by `code-frame.tsx`), `showcase.tsx` (the Try it playground, below), `marquee.tsx`
+  (`#marquee`, see "Marquee" below), `studio.tsx` (`#studio`, the real `StudioScreenshot` and the run
   command; the screenshot follows the site theme after hydration until one of its tabs picks a
   theme), `compare.tsx` (`#compare`, rows from `lib/landing-compare.ts`; a cell states the fact,
   the mark carries yes, partial or no; the table scrolls sideways inside a focusable `section` named
@@ -323,33 +324,29 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   closed item hides it (`[data-state=closed]` on the item). Answers link with the `dataHandling`
   and `license` tags only. `FORMAT_DISPLAY` in `lib/landing-facts.ts` is every format's display
   label, which the structured data's format list reads too, so a new format fails to
-  compile until it has one. The format switcher is `FormatsDemo` (`formats.tsx`), rendered inside
-  `ecosystem.tsx` in a `.vk-formats` box: a row of framework chips (`STACK_FRAMEWORKS`, each with the
-  `format` its quickstart uses, pinned to `STACKS` by `lib/format-samples.test.ts`; `aria-pressed`
-  buttons that carry the framework name in text alone, with no logo or icon), then a segmented `TabList` over `SUPPORTED_FORMAT_IDS`
-  labelled from `FORMAT_DISPLAY`, then one pane per format: a void `figure` captioned with the file
-  path, holding the showcase's four English strings exactly as the sdk's real adapter writes them,
-  with the format's own placeholder drawn as a `PlaceholderChip`. The client island is
-  `format-switch.tsx`, which takes every label and pane as props, so it adds no client message
-  namespace; a chip selects its format, a tab clears the chip, and both count `select-tab` with
-  `location: formats` (a chip adds `framework`). Only the open pane is server-rendered (`FormatPane`
-  in `format-pane.tsx`); the others come from `loadFormatPanes()` on the first pointer, focus, tab
-  or chip (one shared request through `retrying` in `lib/retry.ts`; until it lands the chosen pane
-  shows its file caption from `FormatPaneFrame` (`format-pane-frame.tsx`), busy, and a failed load
-  keeps the caption and asks again on the next intent), and every pane is stacked in one grid cell with `.vk-formats-sizer`, an `aria-hidden`,
-  `inert`, `visibility: hidden` stand-in built from the pane that shows the most rows
-  (`tallestFormat()`) under the longest file caption (`longestCaptionFormat()`; captions wrap
-  anywhere, so a longer one never takes fewer lines), with its sideways scrollbar always on, so
-  the box is always the tallest pane and a switch moves nothing; a closed pane is `inert` and
-  `visibility: hidden`, and `.vk-formats-code` caps a long output at
-  `--format-pane-rows` lines of `--format-line` (11, the row count of the pane that opens first, so
-  the box holds no empty rows under it) and scrolls inside it (the row count is
-  `FORMAT_PANE_ROWS` in `format-pane.tsx`, set inline on `.vk-formats` through
-  `FORMAT_PANE_ROWS_STYLE`, never declared in the stylesheet): it is a `section` named
-  by the pane's file caption with `tabIndex={0}`, so the keyboard reaches and scrolls the open pane,
-  with the `--focus-ring` outline inset. Chips and tabs scroll sideways inside `.vk-edge-fade`
-  under 64rem and wrap from it, each at least 44px tall. The panes come from
-  `lib/format-samples.generated.json`, which `scripts/sync-format-samples.mjs` writes before dev,
+  compile until it has one. The marquee (`marquee.tsx`, `#marquee`, a band right under the
+  hero) shows two rows inside the `MarqueeMotion` island (`marquee-motion.tsx`): the providers,
+  `MACHINE_PROVIDER_IDS` by `providerShortLabel` with their kind glyph (`PROVIDER_KIND_ICONS`), and
+  the formats, `SUPPORTED_FORMAT_IDS` by their `FORMAT_DISPLAY` label with a file glyph
+  (`FORMAT_ICONS`, a `Record<SupportedFormat, StackIconKey>`, so a new format fails to compile
+  until it has one), every glyph a `<use>` of one `StackIconSprite` (prefix `marquee`). A provider
+  that `RELEASE_BADGE` dates carries a `.vk-pill` from `landing.facts.availableFrom`. No count is
+  typed and no third-party logo is drawn. Each row is a muted `h3` that names its visible list,
+  the list, `MARQUEE_COPIES` copies of it (`aria-hidden`, `inert`, holding no link or button), and
+  an "All providers" or "All formats" link after the moving track, so nothing focusable moves. The
+  server HTML is the static state: the copies and the pause button are `display: none` and the
+  list wraps, which is also what a visitor without JavaScript, under reduced motion, or with a
+  failed island chunk sees. Only when `MotionRoot` has set `html[data-motion-ready]`, the island
+  has hydrated (`data-marquee="running"` or `"paused"` on `.vk-marquee`) and
+  `prefers-reduced-motion` is `no-preference` do the rows turn into one masked line that runs
+  `vk-marquee` (a `transform` keyframe, `--marquee-items` times `--marquee-item-time` per loop,
+  the formats row reversed through `--marquee-direction`), and the pause button shows before the
+  rows: an `outline` `Button` with one constant name (`landing.marquee.pause`), `aria-pressed` while
+  paused, and only its `aria-hidden` glyph swapping between pause and play. Hover and focus inside
+  a row pause that row. `marquee.test.tsx` pins the registry rows, the badge, the copies, the static
+  state and the pause toggle, and `e2e/marquee.spec.ts` the motion in a browser. The format
+  samples in `lib/format-samples.generated.json`, which the hero diff and the bento format tile
+  read, are written by `scripts/sync-format-samples.mjs` before dev,
   build, typecheck and test (git-ignored like `lib/version.generated.json`) from
   `createDefaultRegistry` in `@verbatra/sdk` over the in-memory `AdapterFs` in
   `lib/format-samples-seed.mjs`. Nothing in the page graph imports the sdk at runtime, and the docs
@@ -507,7 +504,8 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   (`FORMAT_ID_CLASS`): a list breaks at its comma, and only under a 23.5rem container (the longest
   rendered id plus 15 percent, pinned by its test) does an id wrap, then only after a hyphen. The
   glyphs live in `components/stack-icons.tsx` (`STACK_ICON_PATHS`: `web`, `mobile`, `server` for a
-  framework's kind, a file outline per file format, `custom`), stroked in `currentColor`. No
+  framework's kind, a file outline per file format (`json` among them), `custom`, and `llm` and
+  `machine` for the marquee's provider kinds), stroked in `currentColor`. No
   third-party logo is drawn anywhere on the site except the GitHub mark
   (`components/landing/github-icon.tsx`); a stack is recognised by its name. The grid is a `nav` named by `labelledBy`, the id of the heading above it
   (the docs home section's `id`, or `page-title` on the docs `<h1>`), and that id also prefixes its
@@ -530,7 +528,8 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
 ## Landing motion
 
 The landing moves little, on purpose: the demos rise into place once as the visitor reaches them,
-and nothing else on the page fades in. There is no pinning, no parallax, no scroll-scrubbing and no
+the provider and format marquee loops until it is paused, and nothing else on the page fades in.
+There is no pinning, no parallax, no scroll-scrubbing and no
 scroll listener; `motion` is reserved for client islands (see "The
 stack").
 
@@ -547,7 +546,7 @@ stack").
   `n * --reveal-stagger`, capped at `--reveal-delay-max`. Only the demo artifacts of five sections
   carry a mark: the problem (its artifact, then its list), how it works, the bento grid, the code
   showcase and the playground panel. No section heading reveals (`SectionHead` takes no reveal
-  prop), and the hero, proof strip, ecosystem, Studio, comparison, open source, FAQ and closing
+  prop), and the hero, marquee, proof strip, Studio, comparison, open source, FAQ and closing
   panel never fade in. Elements keep their box while hidden, so a reveal never moves layout.
   `reveal-marks.test.tsx` pins which files carry marks and `motion-root.test.tsx` the observer and
   the stylesheet guards.
@@ -558,6 +557,9 @@ stack").
   only while the diff is out of view and never under reduced motion, then fills it once when it
   scrolls in: the values fade back in (`opacity`, `--duration-reveal`, 300ms apart) and the
   `aria-hidden` "missing" mark swaps for "new". A diff already in view at hydration never moves.
+- **Marquee.** The one looping motion on the page, a CSS keyframe with no JavaScript animation:
+  it runs only in the state described under "Marquee" above, pauses through its button, hover
+  and focus inside a row, and is static wrapped rows otherwise, so 2.2.2 holds without JavaScript.
 - **No section eyebrows.** A landing section opens with its `h2`; nothing sits above it, no
   index and no label word. `reveal-marks.test.tsx` fails on a `.vk-eyebrow` style.
 - **Version pill.** On the landing only (the `landingLocale` gate in `lib/i18n.ts`), `HomeSiteHeader` passes

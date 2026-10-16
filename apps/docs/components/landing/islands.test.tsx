@@ -19,7 +19,7 @@ const ISLAND_MODULES = [
   "./command-panel",
   "./hero-terminal",
   "./code-showcase-tabs",
-  "./format-switch",
+  "./marquee-motion",
   "./try-it",
   "./live-stat-value",
   "./faq-accordion",

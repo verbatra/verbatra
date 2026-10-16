@@ -12,8 +12,6 @@ import {
 } from "./format-samples-seed.mjs";
 import { SUPPORTED_FORMAT_IDS } from "./landing-facts";
 import { SHOWCASE_SOURCE } from "./showcase-seed";
-import { STACK_FRAMEWORKS } from "./stack-formats";
-import { STACKS } from "./stacks";
 
 function sourceOf(relative: string): string {
   return readFileSync(fileURLToPath(new URL(relative, import.meta.url)), "utf8");
@@ -88,13 +86,7 @@ describe("format samples", () => {
     const script = sourceOf("../scripts/sync-format-samples.mjs");
     expect(script).toContain('import { createDefaultRegistry } from "@verbatra/sdk";');
     expect(script).not.toContain("@verbatra/format-adapters");
-    for (const file of [
-      "./format-samples.ts",
-      "./format-samples-seed.mjs",
-      "./stack-formats.ts",
-      "../components/landing/formats.tsx",
-      "../components/landing/format-switch.tsx",
-    ]) {
+    for (const file of ["./format-samples.ts", "./format-samples-seed.mjs"]) {
       const source = sourceOf(file);
       expect(source, file).not.toMatch(
         /^import (?!type )[^;]*from "@verbatra\/(sdk|format-adapters)"/m,
@@ -107,24 +99,5 @@ describe("format samples", () => {
     expect({ ...docsPackage.dependencies, ...docsPackage.devDependencies }).not.toHaveProperty(
       "@verbatra/format-adapters",
     );
-  });
-});
-
-describe("stack frameworks", () => {
-  it("selects the format each documented stack quickstart uses", () => {
-    const byName = new Map<string, SupportedFormat>(
-      STACK_FRAMEWORKS.map((framework) => [framework.key, framework.format]),
-    );
-    const aliases: Record<string, string> = { nextjs: "next" };
-    for (const stack of Object.values(STACKS)) {
-      const key = aliases[stack.id] ?? stack.id;
-      expect(byName.get(key), stack.id).toBe(stack.format);
-    }
-  });
-
-  it("names only supported formats", () => {
-    for (const framework of STACK_FRAMEWORKS) {
-      expect(SUPPORTED_FORMAT_IDS).toContain(framework.format);
-    }
   });
 });

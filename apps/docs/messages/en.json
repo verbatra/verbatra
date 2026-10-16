@@ -271,6 +271,15 @@
       "lastUpdated": "Last updated",
       "availableFrom": "from {version}"
     },
+    "marquee": {
+      "heading": "Your provider. Your file format.",
+      "lead": "Switching providers means editing one block of the config file. Your locale files stay where they are, in the format they already use.",
+      "pause": "Pause animation",
+      "providers": "Providers",
+      "formats": "File formats",
+      "allProviders": "All providers",
+      "allFormats": "All formats"
+    },
     "stats": {
       "label": "verbatra in numbers",
       "stars": "GitHub stars",
@@ -372,22 +381,6 @@
         "action": "GitHub Action guide"
       },
       "copy": "Copy code"
-    },
-    "ecosystem": {
-      "heading": "Your provider. Your file format.",
-      "lead": "Switching providers means editing one block of the config file. Your locale files stay where they are, in the format they already use.",
-      "providersLabel": "Providers",
-      "formatsLabel": "File formats",
-      "frameworksLabel": "Frameworks",
-      "kinds": {
-        "llm": "LLM",
-        "machine": "Machine translation",
-        "local": "Local or self-hosted",
-        "human": "Human only"
-      },
-      "customFormat": "Plus adapters you write yourself",
-      "providersLink": "Compare the providers",
-      "formatsLink": "See every format"
     },
     "studio": {
       "heading": "Review every locale in Verbatra Studio.",

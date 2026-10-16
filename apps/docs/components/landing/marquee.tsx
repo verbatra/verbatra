@@ -1,0 +1,158 @@
+import type { SupportedFormat } from "@verbatra/sdk";
+import { getLocale, getTranslations } from "next-intl/server";
+import type { CSSProperties, ReactNode } from "react";
+import { StackIcon, type StackIconKey, StackIconSprite } from "@/components/stack-icons";
+import { localizedPath, toLocale } from "@/lib/i18n";
+import { FORMAT_DISPLAY, MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
+import { PROVIDER_DISPLAY, type ProviderKind, providerShortLabel } from "@/lib/landing-providers";
+import { providerReleaseBadge } from "@/lib/release-badge";
+import { MarqueeMotion } from "./islands";
+import { PlainList } from "./plain-list";
+import { Section } from "./section";
+import { SectionHead } from "./section-head";
+
+export const MARQUEE_ICON_PREFIX = "marquee";
+
+export const MARQUEE_COPIES = 2;
+
+export const PROVIDER_KIND_ICONS: Readonly<Record<ProviderKind, StackIconKey>> = {
+  llm: "llm",
+  machine: "machine",
+  local: "server",
+};
+
+export const FORMAT_ICONS: Readonly<Record<SupportedFormat, StackIconKey>> = {
+  "i18next-json": "json",
+  "vue-i18n-json": "json",
+  "next-intl-json": "json",
+  "ngx-translate-json": "json",
+  xliff: "xliff",
+  yaml: "yaml",
+  arb: "json",
+  properties: "ini",
+  "apple-strings": "ini",
+  "apple-xcstrings": "json",
+  "android-xml": "xliff",
+  "gettext-po": "po",
+  ini: "ini",
+  resx: "xliff",
+};
+
+type MarqueeItem = {
+  readonly id: string;
+  readonly label: string;
+  readonly icon: StackIconKey;
+  readonly badge: string | null;
+};
+
+type MarqueeRowProps = {
+  readonly id: "providers" | "formats";
+  readonly title: string;
+  readonly items: ReadonlyArray<MarqueeItem>;
+  readonly moreHref: string;
+  readonly moreLabel: string;
+};
+
+export function providerItems(
+  availableFrom: (version: string) => string,
+): ReadonlyArray<MarqueeItem> {
+  return MACHINE_PROVIDER_IDS.map((id) => {
+    const badge = providerReleaseBadge(id);
+    return {
+      id,
+      label: providerShortLabel(id),
+      icon: PROVIDER_KIND_ICONS[PROVIDER_DISPLAY[id].kind],
+      badge: badge === null ? null : availableFrom(badge),
+    };
+  });
+}
+
+export function formatItems(): ReadonlyArray<MarqueeItem> {
+  return SUPPORTED_FORMAT_IDS.map((id) => ({
+    id,
+    label: FORMAT_DISPLAY[id].label,
+    icon: FORMAT_ICONS[id],
+    badge: null,
+  }));
+}
+
+function Items({ items }: { items: ReadonlyArray<MarqueeItem> }): ReactNode {
+  return items.map((item) => (
+    <li key={item.id} className="vk-marquee-item" data-item={item.id}>
+      <StackIcon
+        prefix={MARQUEE_ICON_PREFIX}
+        icon={item.icon}
+        size={18}
+        className="vk-marquee-glyph"
+      />
+      <span>{item.label}</span>
+      {item.badge === null ? null : <span className="vk-pill">{item.badge}</span>}
+    </li>
+  ));
+}
+
+function MarqueeRow({ id, title, items, moreHref, moreLabel }: MarqueeRowProps): ReactNode {
+  const titleId = `marquee-${id}`;
+  const speed = { "--marquee-items": items.length } as CSSProperties;
+  return (
+    <div className="vk-marquee-row" data-row={id}>
+      <h3 id={titleId} className="vk-marquee-title">
+        {title}
+      </h3>
+      <div className="vk-marquee-viewport">
+        <div className="vk-marquee-track" style={speed}>
+          <PlainList aria-labelledby={titleId} className="vk-marquee-list">
+            <Items items={items} />
+          </PlainList>
+          {Array.from({ length: MARQUEE_COPIES }, (_, copy) => (
+            <PlainList
+              key={copy}
+              aria-hidden="true"
+              inert
+              className="vk-marquee-list vk-marquee-copy"
+            >
+              <Items items={items} />
+            </PlainList>
+          ))}
+        </div>
+      </div>
+      <a href={moreHref} className="vk-prose-link vk-marquee-more">
+        {moreLabel}
+      </a>
+    </div>
+  );
+}
+
+export async function Marquee(): Promise<ReactNode> {
+  const t = await getTranslations("landing.marquee");
+  const tFacts = await getTranslations("landing.facts");
+  const locale = toLocale(await getLocale());
+  const providers = providerItems((version) => tFacts("availableFrom", { version }));
+  const formats = formatItems();
+
+  return (
+    <Section band id="marquee">
+      <SectionHead id="marquee-heading" title={t("heading")} lead={t("lead")} />
+      <StackIconSprite
+        prefix={MARQUEE_ICON_PREFIX}
+        icons={[...providers, ...formats].map((item) => item.icon)}
+      />
+      <MarqueeMotion pauseLabel={t("pause")}>
+        <MarqueeRow
+          id="providers"
+          title={t("providers")}
+          items={providers}
+          moreHref={localizedPath(locale, "/docs/providers")}
+          moreLabel={t("allProviders")}
+        />
+        <MarqueeRow
+          id="formats"
+          title={t("formats")}
+          items={formats}
+          moreHref={localizedPath(locale, "/docs/formats")}
+          moreLabel={t("allFormats")}
+        />
+      </MarqueeMotion>
+    </Section>
+  );
+}

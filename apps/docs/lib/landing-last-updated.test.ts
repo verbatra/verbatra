@@ -7,7 +7,7 @@ import { LANDING_LAST_UPDATED } from "./site";
 
 const PINNED = {
   date: "2026-10-16",
-  hash: "638a01537914ef654495a9cb0529952bcae604297eae0815aed831a389491b82",
+  hash: "eb9514b7f3c812316aad604b45195ecf24012c9899c459b3f3938996f2a9c243",
 };
 
 function landingCopyHash(): string {

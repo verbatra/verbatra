@@ -2,7 +2,7 @@ import type { ComponentPropsWithoutRef, CSSProperties, ReactNode } from "react";
 import { IntentPrefetchLink } from "@/components/ui/intent-prefetch-link";
 
 type ButtonLook = {
-  variant?: "primary" | "secondary" | "ghost";
+  variant?: "primary" | "secondary" | "outline" | "ghost";
   size?: "sm" | "md" | "lg";
   trailingArrow?: boolean;
   className?: string;
@@ -26,6 +26,8 @@ const BASE =
 const VARIANT: Record<NonNullable<ButtonProps["variant"]>, string> = {
   primary: "text-(--accent-fill-fg) hover:brightness-[1.08]",
   secondary: "border border-(--border-default) text-(--text-strong) hover:bg-(--surface-hover)",
+  outline:
+    "border border-(--text-faint) text-(--text-strong) hover:bg-(--surface-hover) aria-pressed:border-(--accent) aria-pressed:bg-(--surface-hover)",
   ghost: "text-(--text-muted) hover:text-(--text-strong)",
 };
 

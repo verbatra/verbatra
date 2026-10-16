@@ -5,13 +5,13 @@ import { LANDING_SECTIONS, type LandingSectionId } from "@/lib/landing-sections"
 
 const SECTION_FILES: Readonly<Record<LandingSectionId, string>> = {
   hero: "hero.tsx",
+  marquee: "marquee.tsx",
   proofStrip: "proof-strip.tsx",
   problem: "problem.tsx",
   howItWorks: "steps.tsx",
   features: "bento.tsx",
   code: "code-showcase.tsx",
   showcase: "showcase.tsx",
-  ecosystem: "ecosystem.tsx",
   studio: "studio.tsx",
   compare: "compare.tsx",
   openSource: "open-source.tsx",

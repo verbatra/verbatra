@@ -5,10 +5,10 @@ import { JsonLd } from "@/components/json-ld";
 import { Bento } from "@/components/landing/bento";
 import { CodeShowcase } from "@/components/landing/code-showcase";
 import { Compare } from "@/components/landing/compare";
-import { Ecosystem } from "@/components/landing/ecosystem";
 import { Faq, type FaqEntry } from "@/components/landing/faq";
 import { FinalCta } from "@/components/landing/final-cta";
 import { Hero } from "@/components/landing/hero";
+import { Marquee } from "@/components/landing/marquee";
 import { MotionRoot } from "@/components/landing/motion-root";
 import { OpenSource } from "@/components/landing/open-source";
 import { Problem } from "@/components/landing/problem";
@@ -57,13 +57,13 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
 
   const sections: Readonly<Record<LandingSectionId, ReactNode>> = {
     hero: <Hero />,
+    marquee: <Marquee />,
     proofStrip: <ProofStrip />,
     problem: <Problem />,
     howItWorks: <Steps />,
     features: <Bento />,
     code: <CodeShowcase />,
     showcase: <Showcase />,
-    ecosystem: <Ecosystem />,
     studio: <Studio />,
     compare: <Compare />,
     openSource: <OpenSource />,

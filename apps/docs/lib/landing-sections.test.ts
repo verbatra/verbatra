@@ -8,16 +8,16 @@ function docsPath(relative: string): string {
 }
 
 describe("landing section order", () => {
-  it("opens on the hero and proof strip, explains the problem and the loop, then closes on the FAQ and the call to action", () => {
+  it("opens on the hero, the provider and format marquee and the proof strip, explains the problem and the loop, then closes on the FAQ and the call to action", () => {
     expect(LANDING_SECTIONS).toEqual([
       "hero",
+      "marquee",
       "proofStrip",
       "problem",
       "howItWorks",
       "features",
       "code",
       "showcase",
-      "ecosystem",
       "studio",
       "compare",
       "openSource",
@@ -37,10 +37,19 @@ describe("landing section order", () => {
     expect(page).not.toMatch(/components\/landing-hero"|components\/landing\/formats"/);
   });
 
-  it.each(["gains", "providers", "reveal", "hero-demo", "showcase-tabs", "openai-icon"])(
-    "no longer ships the %s component",
-    (name) => {
-      expect(existsSync(docsPath(`components/landing/${name}.tsx`))).toBe(false);
-    },
-  );
+  it.each([
+    "gains",
+    "providers",
+    "reveal",
+    "hero-demo",
+    "showcase-tabs",
+    "openai-icon",
+    "ecosystem",
+    "formats",
+    "format-switch",
+    "format-pane",
+    "format-pane-frame",
+  ])("no longer ships the %s component", (name) => {
+    expect(existsSync(docsPath(`components/landing/${name}.tsx`))).toBe(false);
+  });
 });

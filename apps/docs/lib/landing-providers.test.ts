@@ -1,23 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { MACHINE_PROVIDER_IDS } from "./landing-facts";
-import { PROVIDER_DISPLAY, PROVIDER_KINDS, providerGroups } from "./landing-providers";
+import { PROVIDER_DISPLAY, providerShortLabel } from "./landing-providers";
 
 describe("landing providers", () => {
   it("names every machine provider the config accepts, and no other", () => {
     expect(Object.keys(PROVIDER_DISPLAY).sort()).toEqual([...MACHINE_PROVIDER_IDS].sort());
   });
 
-  it("groups every provider exactly once, in kind order", () => {
-    const groups = providerGroups();
-    expect(groups.map((group) => group.kind)).toEqual([...PROVIDER_KINDS]);
-    expect(groups.flatMap((group) => group.providers.map((p) => p.id)).sort()).toEqual(
-      [...MACHINE_PROVIDER_IDS].sort(),
-    );
-    expect(groups.every((group) => group.providers.length > 0)).toBe(true);
+  it("files the local model route and the self-hosted engine under local", () => {
+    const local = MACHINE_PROVIDER_IDS.filter((id) => PROVIDER_DISPLAY[id].kind === "local");
+    expect(local).toEqual(["openai-compatible", "libretranslate"]);
   });
 
-  it("files the local model route and the self-hosted engine under local", () => {
-    const local = providerGroups().find((group) => group.kind === "local");
-    expect(local?.providers.map((p) => p.id)).toEqual(["openai-compatible", "libretranslate"]);
+  it("shortens only the local model route to its protocol name", () => {
+    expect(providerShortLabel("openai-compatible")).toBe("OpenAI-compatible");
+    expect(providerShortLabel("deepl")).toBe(PROVIDER_DISPLAY.deepl.label);
   });
 });

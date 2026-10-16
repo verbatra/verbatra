@@ -1,6 +1,7 @@
 import { getLocale, getTranslations } from "next-intl/server";
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import { PanelCaption } from "@/components/ui/panel-caption";
+import { splitOnPlaceholder } from "@/lib/format-samples";
 import { GATE_RUN_LINES } from "@/lib/gate-demo";
 import { HERO_TERMINAL_TITLE } from "@/lib/hero-terminal";
 import { toLocale } from "@/lib/i18n";
@@ -23,12 +24,19 @@ import {
 import { FORMAT_DISPLAY } from "@/lib/landing-facts";
 import { CodeFrame } from "./code-frame";
 import { Evidence } from "./evidence";
-import { SampleLine } from "./format-pane";
-import { PlaceholderText } from "./placeholder-chip";
+import { PlaceholderChip, PlaceholderText } from "./placeholder-chip";
 import { PlainList } from "./plain-list";
 import { ScrollBlock } from "./scroll-block";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
+
+function SampleLine({ line, placeholder }: { line: string; placeholder: string }): ReactNode {
+  return splitOnPlaceholder(line, placeholder).map((part, index) => (
+    <Fragment key={`${index}:${part}`}>
+      {part === placeholder ? <PlaceholderChip token={part} /> : part}
+    </Fragment>
+  ));
+}
 
 const SPAN_CLASS: Readonly<Record<BentoTile["span"], string>> = {
   4: "lg:col-span-4",

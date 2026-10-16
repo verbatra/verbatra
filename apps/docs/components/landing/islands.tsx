@@ -20,8 +20,8 @@ export const CodeShowcaseTabs = island(
   () => import("./code-showcase-tabs").then((m) => m.CodeShowcaseTabs),
   BLOCK,
 );
-export const FormatSwitch = island(
-  () => import("./format-switch").then((m) => m.FormatSwitch),
+export const MarqueeMotion = island(
+  () => import("./marquee-motion").then((m) => m.MarqueeMotion),
   BLOCK,
 );
 export const TryIt = intlIsland(() => import("./try-it").then((m) => m.TryIt), BLOCK);
@@ -50,7 +50,7 @@ await preloadIslands([
   HeroTerminal,
   HeroDiffMotion,
   CodeShowcaseTabs,
-  FormatSwitch,
+  MarqueeMotion,
   TryIt,
   LiveStatValue,
   LiveStatFallback,

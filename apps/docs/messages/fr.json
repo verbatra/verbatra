@@ -218,6 +218,15 @@
       "lastUpdated": "Dernière mise à jour",
       "availableFrom": "à partir de {version}"
     },
+    "marquee": {
+      "heading": "Ton fournisseur. Ton format de fichier.",
+      "lead": "Changer de fournisseur, c’est modifier un bloc du fichier de configuration. Tes fichiers de locale restent où ils sont, dans le format qu’ils utilisent déjà.",
+      "pause": "Mettre l’animation en pause",
+      "providers": "Fournisseurs",
+      "formats": "Formats de fichier",
+      "allProviders": "Tous les fournisseurs",
+      "allFormats": "Tous les formats"
+    },
     "stats": {
       "label": "verbatra en chiffres",
       "stars": "étoiles sur GitHub",
@@ -319,22 +328,6 @@
         "action": "Guide de la GitHub Action"
       },
       "copy": "Copier le code"
-    },
-    "ecosystem": {
-      "heading": "Ton fournisseur. Ton format de fichier.",
-      "lead": "Changer de fournisseur, c’est modifier un bloc du fichier de configuration. Tes fichiers de locale restent où ils sont, dans le format qu’ils utilisent déjà.",
-      "providersLabel": "Fournisseurs",
-      "formatsLabel": "Formats de fichier",
-      "frameworksLabel": "Frameworks",
-      "kinds": {
-        "llm": "LLM",
-        "machine": "Traduction automatique",
-        "local": "Local ou auto-hébergé",
-        "human": "Humains uniquement"
-      },
-      "customFormat": "Et les adaptateurs que tu écris toi-même",
-      "providersLink": "Comparer les fournisseurs",
-      "formatsLink": "Voir tous les formats"
     },
     "studio": {
       "heading": "Relis chaque locale dans Verbatra Studio.",

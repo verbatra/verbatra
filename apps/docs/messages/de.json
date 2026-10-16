@@ -218,6 +218,15 @@
       "lastUpdated": "Zuletzt aktualisiert",
       "availableFrom": "ab {version}"
     },
+    "marquee": {
+      "heading": "Dein Provider. Dein Dateiformat.",
+      "lead": "Für einen Providerwechsel änderst du einen Block in der Konfigurationsdatei. Deine Locale-Dateien bleiben, wo sie sind, im Format, das sie schon haben.",
+      "pause": "Animation anhalten",
+      "providers": "Provider",
+      "formats": "Dateiformate",
+      "allProviders": "Alle Provider",
+      "allFormats": "Alle Formate"
+    },
     "stats": {
       "label": "verbatra in Zahlen",
       "stars": "GitHub-Sterne",
@@ -319,22 +328,6 @@
         "action": "Anleitung zur GitHub Action"
       },
       "copy": "Code kopieren"
-    },
-    "ecosystem": {
-      "heading": "Dein Provider. Dein Dateiformat.",
-      "lead": "Für einen Providerwechsel änderst du einen Block in der Konfigurationsdatei. Deine Locale-Dateien bleiben, wo sie sind, im Format, das sie schon haben.",
-      "providersLabel": "Provider",
-      "formatsLabel": "Dateiformate",
-      "frameworksLabel": "Frameworks",
-      "kinds": {
-        "llm": "LLM",
-        "machine": "Maschinelle Übersetzung",
-        "local": "Lokal oder selbst gehostet",
-        "human": "Nur Menschen"
-      },
-      "customFormat": "Dazu Adapter, die du selbst schreibst",
-      "providersLink": "Provider vergleichen",
-      "formatsLink": "Alle Formate ansehen"
     },
     "studio": {
       "heading": "Prüfe jede Locale in Verbatra Studio.",

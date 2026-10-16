@@ -1,12 +1,12 @@
 export const LANDING_SECTIONS = [
   "hero",
+  "marquee",
   "proofStrip",
   "problem",
   "howItWorks",
   "features",
   "code",
   "showcase",
-  "ecosystem",
   "studio",
   "compare",
   "openSource",
