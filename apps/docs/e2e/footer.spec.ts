@@ -77,3 +77,64 @@ test.describe("footer surface", () => {
     await expect(page.locator(FOOTER)).toHaveCount(1);
   });
 });
+
+const ORIGIN = "https://verbatra.kreitz-webdev.de";
+
+const SWITCH_PAGES = [
+  "/",
+  "/de",
+  "/compare",
+  "/fr/compare",
+  "/es/imprint",
+  "/privacy",
+  "/de/contact",
+  "/fr/licenses",
+  "/de/docs/providers",
+] as const;
+
+test.describe("footer locale switch", () => {
+  for (const path of SWITCH_PAGES) {
+    test(`links ${path} in every locale, matching its hreflang alternates, without script`, async ({
+      browser,
+    }) => {
+      const context = await browser.newContext({ javaScriptEnabled: false });
+      const page = await context.newPage();
+      await page.goto(path);
+      const lang = await page.locator("html").getAttribute("lang");
+      const links = page.locator("footer .vk-locale-links a");
+      await expect(links).toHaveCount(LOCALES.length);
+      const found = await links.evaluateAll((anchors) =>
+        anchors.map((anchor) => ({
+          href: anchor.getAttribute("href") ?? "",
+          hreflang: anchor.getAttribute("hreflang"),
+          lang: anchor.getAttribute("lang"),
+          current: anchor.getAttribute("aria-current"),
+        })),
+      );
+      expect(found.map((link) => link.hreflang)).toEqual([...LOCALES]);
+      expect(found.map((link) => link.lang)).toEqual([...LOCALES]);
+      expect(found.filter((link) => link.current === "page").map((link) => link.hreflang)).toEqual([
+        lang,
+      ]);
+      for (const link of found) {
+        const alternate = await page
+          .locator(`link[rel="alternate"][hreflang="${link.hreflang}"]`)
+          .getAttribute("href");
+        expect(new URL(alternate ?? "", ORIGIN).pathname, link.href).toBe(link.href);
+        const response = await page.request.get(link.href, { maxRedirects: 0 });
+        expect(response.status(), link.href).toBe(200);
+      }
+      await context.close();
+    });
+  }
+
+  test("is named and passes axe on the landing and a legal page", async ({ page }) => {
+    for (const path of ["/de", "/es/privacy"]) {
+      await page.goto(path);
+      await expect(page.locator("footer nav.vk-locale-links")).toHaveAccessibleName(
+        /Sprache|Idioma/,
+      );
+      await expectNoAxeViolations(page, "footer");
+    }
+  });
+});

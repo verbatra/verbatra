@@ -60,7 +60,7 @@ export default async function GlobalNotFound(): Promise<ReactNode> {
               </div>
             </section>
           </main>
-          <LegalFooter locale={locale} />
+          <LegalFooter locale={locale} localeLinks={false} />
         </HomeContainer>
       </body>
     </html>

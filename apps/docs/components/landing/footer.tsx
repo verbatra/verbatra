@@ -1,8 +1,10 @@
 import { PackageIcon } from "lucide-react";
 import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
+import { LocaleLinks } from "@/components/locale-links";
 import { VMark } from "@/components/vmark";
 import { type Locale, localizedPath, toLocale } from "@/lib/i18n";
+import { MCP_VERSION, PACKAGE_VERSION, STUDIO_VERSION } from "@/lib/site";
 import { GithubIcon } from "./github-icon";
 import {
   CODE_OF_CONDUCT_URL,
@@ -26,11 +28,16 @@ type FooterLink = {
   external?: boolean;
   localized?: boolean;
 };
-type FooterCol = { col: string; titleKey: string; links: ReadonlyArray<FooterLink> };
 
-const FOOTER_COLS: ReadonlyArray<FooterCol> = [
+type FooterGroup = {
+  group: "product" | "packages" | "community" | "legal";
+  titleKey: string;
+  links: ReadonlyArray<FooterLink>;
+};
+
+export const FOOTER_GROUPS: ReadonlyArray<FooterGroup> = [
   {
-    col: "product",
+    group: "product",
     titleKey: "cols.product.title",
     links: [
       { labelKey: "cols.product.documentation", href: "/docs", localized: true },
@@ -39,76 +46,42 @@ const FOOTER_COLS: ReadonlyArray<FooterCol> = [
       { labelKey: "cols.product.studio", href: "/docs/cli/studio", localized: true },
       { labelKey: "cols.product.mcpServer", href: "/docs/cli/mcp", localized: true },
       { labelKey: "cols.product.githubAction", href: "/docs/github-action", localized: true },
-    ],
-  },
-  {
-    col: "agents",
-    titleKey: "cols.agents.title",
-    links: [
-      { labelKey: "cols.agents.llmsIndex", href: "/llms.txt" },
-      { labelKey: "cols.agents.llmsFull", href: "/llms-full.txt" },
-      { labelKey: "cols.agents.aiTxt", href: "/.well-known/ai.txt" },
-    ],
-  },
-  {
-    col: "learn",
-    titleKey: "cols.learn.title",
-    links: [
       { labelKey: "cols.learn.howItWorks", href: "/docs/how-it-works", localized: true },
       { labelKey: "cols.learn.providers", href: "/docs/providers", localized: true },
       { labelKey: "cols.learn.formats", href: "/docs/formats", localized: true },
       { labelKey: "cols.learn.lockFile", href: "/docs/the-lock-file", localized: true },
       { labelKey: "cols.learn.configFile", href: "/docs/config-file", localized: true },
       { labelKey: "cols.learn.compare", href: "/compare", localized: true },
+      { labelKey: "cols.agents.llmsIndex", href: "/llms.txt" },
+      { labelKey: "cols.agents.llmsFull", href: "/llms-full.txt" },
+      { labelKey: "cols.agents.aiTxt", href: "/.well-known/ai.txt" },
     ],
   },
   {
-    col: "community",
-    titleKey: "cols.community.title",
+    group: "packages",
+    titleKey: "cols.packages.title",
     links: [
-      {
-        labelKey: "cols.community.contributing",
-        href: CONTRIBUTING_URL,
-        external: true,
-      },
-      {
-        labelKey: "cols.community.codeOfConduct",
-        href: CODE_OF_CONDUCT_URL,
-        external: true,
-      },
-      {
-        labelKey: "cols.community.security",
-        href: SECURITY_URL,
-        external: true,
-      },
-      {
-        labelKey: "cols.community.releases",
-        href: RELEASES_URL,
-        external: true,
-      },
       { literal: "@verbatra/cli", href: NPM_CLI, external: true },
       { literal: "@verbatra/sdk", href: NPM_SDK, external: true },
-      {
-        literal: "@verbatra/studio",
-        href: NPM_STUDIO,
-        external: true,
-      },
-      {
-        literal: "@verbatra/mcp",
-        href: NPM_MCP,
-        external: true,
-      },
+      { literal: "@verbatra/studio", href: NPM_STUDIO, external: true },
+      { literal: "@verbatra/mcp", href: NPM_MCP, external: true },
+      { labelKey: "cols.community.releases", href: RELEASES_URL, external: true },
     ],
   },
   {
-    col: "legal",
+    group: "community",
+    titleKey: "cols.community.title",
+    links: [
+      { labelKey: "cols.community.contributing", href: CONTRIBUTING_URL, external: true },
+      { labelKey: "cols.community.codeOfConduct", href: CODE_OF_CONDUCT_URL, external: true },
+      { labelKey: "cols.community.security", href: SECURITY_URL, external: true },
+    ],
+  },
+  {
+    group: "legal",
     titleKey: "cols.legal.title",
     links: [
-      {
-        labelKey: "cols.legal.license",
-        href: LICENSE_URL,
-        external: true,
-      },
+      { labelKey: "cols.legal.license", href: LICENSE_URL, external: true },
       ...LEGAL_PAGE_LINKS.map(({ key, path }) => ({
         labelKey: `cols.legal.${key}`,
         href: path,
@@ -117,9 +90,6 @@ const FOOTER_COLS: ReadonlyArray<FooterCol> = [
     ],
   },
 ];
-
-const LINK_CLASS =
-  "vk-tap inline-flex min-h-6 items-center underline decoration-transparent underline-offset-4 transition-colors hover:text-(--text-strong) hover:decoration-[color:color-mix(in_srgb,var(--accent)_45%,transparent)]";
 
 function FooterLinkItem({
   link,
@@ -132,69 +102,77 @@ function FooterLinkItem({
 }): ReactNode {
   if (link.external) {
     return (
-      <a href={link.href} className={LINK_CLASS} target="_blank" rel="noreferrer noopener">
+      <a
+        href={link.href}
+        className="vk-tap vk-footer-link"
+        target="_blank"
+        rel="noreferrer noopener"
+      >
         {label}
       </a>
     );
   }
   const href = link.localized ? localizedPath(locale, link.href) : link.href;
   return (
-    <a href={href} className={LINK_CLASS}>
+    <a href={href} className="vk-tap vk-footer-link">
       {label}
     </a>
   );
 }
 
+const PROFILE_LINK = "vk-tap vk-footer-profile";
+
 export async function FullFooter(): Promise<ReactNode> {
   const t = await getTranslations("landing.footer");
+  const tFacts = await getTranslations("landing.facts");
   const locale = toLocale(await getLocale());
   return (
     <footer className="vk-footer">
-      <div className="vk-gutter vk-w-wide mx-auto py-12 md:py-16">
-        <div className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-3 md:gap-x-8 md:gap-y-12 lg:grid-cols-[1.4fr_repeat(5,1fr)]">
-          <div className="col-span-2 md:col-span-3 lg:col-span-1">
+      <div className="vk-gutter vk-w-wide mx-auto">
+        <div className="vk-footer-top">
+          <div className="vk-footer-brand">
             <span className="inline-flex items-center gap-2.5">
-              <VMark size={30} />
-              <span
-                className="text-xl font-semibold tracking-tight text-(--text-strong)"
-                style={{ fontFamily: "var(--font-display)" }}
-              >
-                verbatra
-              </span>
+              <VMark size={26} />
+              <span className="vk-footer-wordmark">verbatra</span>
             </span>
-            <p className="mt-4 max-w-[34ch] text-sm leading-relaxed text-(--text-muted)">
-              {t("tagline")}
-            </p>
-            <div className="mt-5 flex items-center gap-5">
-              <a
-                href={GITHUB_URL}
-                target="_blank"
-                rel="noreferrer noopener"
-                aria-label={t("githubAria")}
-                className="vk-tap inline-flex min-h-6 items-center gap-2 text-sm text-(--text-muted) transition-colors hover:text-(--text-strong)"
-              >
-                <GithubIcon size={16} />
-                <span>GitHub</span>
-              </a>
-              <a
-                href={NPM_ORG}
-                target="_blank"
-                rel="noreferrer noopener"
-                aria-label={t("npmAria")}
-                className="vk-tap inline-flex min-h-6 items-center gap-2 text-sm text-(--text-muted) transition-colors hover:text-(--text-strong)"
-              >
-                <PackageIcon size={16} aria-hidden="true" className="shrink-0" />
-                <span>npm</span>
-              </a>
-            </div>
+            <p className="vk-footer-tagline">{t("tagline")}</p>
           </div>
-          {FOOTER_COLS.map((col) => {
-            const title = t(col.titleKey);
+          <div className="vk-footer-profiles">
+            <a
+              href={GITHUB_URL}
+              target="_blank"
+              rel="noreferrer noopener"
+              aria-label={t("githubAria")}
+              className={PROFILE_LINK}
+            >
+              <GithubIcon size={16} />
+              <span>GitHub</span>
+            </a>
+            <a
+              href={NPM_ORG}
+              target="_blank"
+              rel="noreferrer noopener"
+              aria-label={t("npmAria")}
+              className={PROFILE_LINK}
+            >
+              <PackageIcon size={16} aria-hidden="true" className="shrink-0" />
+              <span>npm</span>
+            </a>
+          </div>
+        </div>
+        <div className="vk-footer-groups vk-grid-12">
+          {FOOTER_GROUPS.map((group) => {
+            const title = t(group.titleKey);
             return (
-              <nav key={col.col} aria-label={title}>
-                <p className="mb-3 text-sm font-medium text-(--text-strong) md:mb-4">{title}</p>
-                <ul className="flex flex-col gap-0 text-sm text-(--text-muted) md:gap-2.5">
-                  {col.links.map((link) => (
+              <nav
+                key={group.group}
+                aria-label={title}
+                data-group={group.group}
+                className="vk-footer-group"
+              >
+                <p className="vk-footer-group-title">{title}</p>
+                <ul>
+                  {group.links.map((link) => (
                     <li key={link.literal ?? link.labelKey}>
                       <FooterLinkItem
                         link={link}
@@ -208,14 +186,19 @@ export async function FullFooter(): Promise<ReactNode> {
             );
           })}
         </div>
-        <div
-          className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 pt-6 text-sm text-(--text-muted) md:mt-14"
-          style={{
-            borderTop: "1px solid color-mix(in srgb, var(--border-default) 80%, transparent)",
-          }}
-        >
-          <span>{t("legalLicense")}</span>
-          <span>{t("legalCopyright")}</span>
+        <div className="vk-footer-bottom">
+          <LocaleLinks label={t("language")} current={locale} />
+          <p className="vk-footer-meta">
+            <span>
+              {tFacts("versionParts", {
+                cli: PACKAGE_VERSION,
+                studio: STUDIO_VERSION,
+                mcp: MCP_VERSION,
+              })}
+            </span>
+            <span>{t("legalLicense")}</span>
+            <span>{t("legalCopyright")}</span>
+          </p>
         </div>
       </div>
     </footer>

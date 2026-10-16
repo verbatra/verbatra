@@ -97,7 +97,6 @@
           "githubAction": "GitHub Action"
         },
         "learn": {
-          "title": "Aprender",
           "howItWorks": "Cómo funciona",
           "providers": "Proveedores",
           "formats": "Formatos",
@@ -123,14 +122,17 @@
         "agents": {
           "llmsIndex": "llms.txt (índice)",
           "llmsFull": "llms-full.txt (texto completo)",
-          "title": "Para agentes de IA",
           "aiTxt": "ai.txt (política de uso)"
+        },
+        "packages": {
+          "title": "Paquetes"
         }
       },
       "legalLicense": "Código abierto con licencia MIT",
       "legalCopyright": "© 2026 Mario Kreitz",
       "githubAria": "Verbatra en GitHub",
-      "npmAria": "Verbatra en npm"
+      "npmAria": "Verbatra en npm",
+      "language": "Idioma"
     },
     "brand": {
       "vmarkAlt": "verbatra"

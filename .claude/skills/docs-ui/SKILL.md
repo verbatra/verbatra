@@ -466,12 +466,28 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   new tab with the `sr-only` `landing.openSource.newTab`; no card, wash or glow). The footer is not a section; `app/[lang]/(home)/layout.tsx` passes
   it to the home layout (the landing and `/compare`). `FullFooter` (`footer.tsx`, `footer.vk-footer`) is one flat
   `--surface-band` under a `--border-default` top hairline, with no gradient wash and no gradient
-  rule: the wordmark, tagline, GitHub and the npm org (`NPM_ORG`), then grouped link columns
-  (product docs; files for AI agents; learn, ending in the localized `/compare`; community with the
-  contributor guide, code of conduct, security policy, release notes as the changelog and every
-  package on npm; legal with the license, Impressum, privacy, contact and `/licenses`). It has no
-  locale switch: the header's language select is the one switch. `e2e/footer.spec.ts` checks the
-  surface and every same-site link in all four locales. Section ids are unique; never render two sections that claim the same one.
+  rule, in three rows, no longer the brand column beside five link columns: a top row with the
+  wordmark and the one-line tagline at the start and GitHub and the npm org (`NPM_ORG`) at the end
+  (`.vk-footer-top`, a hairline under it); then `FOOTER_GROUPS`, four named `nav`s on
+  `.vk-footer-groups` (two columns, three from 48rem, the 12-column grid from 64rem): product
+  (span 6, its links in three columns: the docs pages, the localized `/compare` and the files for
+  AI agents), packages (every package on npm and the release notes), community (contributor
+  guide, code of conduct, security policy) and legal (license, Impressum, privacy, contact,
+  `/licenses`), each span 2; then `.vk-footer-bottom` (a hairline above it): the locale switch, and
+  the version line (`landing.facts.versionParts` with the `lib/site.ts` versions), the license and
+  the copyright as plain spans. Links are `.vk-footer-link` (24px tall, muted, an `--accent`
+  underline at 45% on hover). The locale switch is `LocaleLinks` (`components/locale-links.tsx`,
+  a small client component, so it renders into the HTML and works without JavaScript):
+  `nav.vk-locale-links` named by its visible `landing.footer.language` label, one plain link per
+  locale to the current page (`localeSwitchHref` in `lib/locale-switch.ts`, from `usePathname`:
+  the bare locale root for a home page, no trailing slash), each with `hrefLang`, `lang` and its
+  endonym from `LOCALE_DISPLAY_NAMES`, the reader's own marked `aria-current="page"` (strong text,
+  `--accent` underline). `LegalFooter` (`components/legal-footer.tsx`, legal pages and every docs
+  page) shows it beside its legal links; the global not-found page passes
+  `localeLinks={false}`, since the switch there would link to more missing pages.
+  `e2e/footer.spec.ts` checks the surface and every same-site link in all four locales, and on the
+  landing, `/compare`, legal and docs pages, with JavaScript off, that the switch's links equal the
+  page's `hreflang` alternates and answer 200 without a redirect. Section ids are unique; never render two sections that claim the same one.
   The FAQ (`faq.tsx`, on the page surface `--v-void`, `SectionAside` with `.vk-faq-aside`: the
   heading and lead in the head column, the questions beside it, then a `nav` of docs links that
   follows the list in the DOM, so a phone reads the questions first, and that sits under the head

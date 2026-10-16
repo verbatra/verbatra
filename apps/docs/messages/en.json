@@ -190,13 +190,11 @@
           "githubAction": "GitHub Action"
         },
         "agents": {
-          "title": "For AI agents",
           "llmsIndex": "llms.txt (index)",
           "llmsFull": "llms-full.txt (full text)",
           "aiTxt": "ai.txt (usage policy)"
         },
         "learn": {
-          "title": "Learn",
           "howItWorks": "How it works",
           "providers": "Providers",
           "formats": "Formats",
@@ -218,12 +216,16 @@
           "imprint": "Legal notice (Impressum)",
           "contact": "Contact",
           "licenses": "Licenses"
+        },
+        "packages": {
+          "title": "Packages"
         }
       },
       "legalLicense": "Open source under the MIT license",
       "legalCopyright": "© 2026 Mario Kreitz",
       "githubAria": "Verbatra on GitHub",
-      "npmAria": "Verbatra on npm"
+      "npmAria": "Verbatra on npm",
+      "language": "Language"
     },
     "brand": {
       "vmarkAlt": "verbatra"

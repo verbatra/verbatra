@@ -14,7 +14,9 @@ vi.mock("next-intl/server", () => ({
   getLocale: async () => localeState.current,
 }));
 
-const { FullFooter } = await import("./footer");
+vi.mock("next/navigation", () => ({ usePathname: () => "/compare" }));
+
+const { FOOTER_GROUPS, FullFooter } = await import("./footer");
 
 async function renderFooter(): Promise<Document> {
   const markup = renderToStaticMarkup(await FullFooter());
@@ -184,17 +186,53 @@ describe("FullFooter", () => {
     }
   });
 
-  it("sets the license and the copyright apart without a separator glyph", async () => {
+  it("closes with the version line, the license and the copyright, without a separator glyph", async () => {
     const doc = await renderFooter();
-    const license = Array.from(doc.querySelectorAll("span")).find(
-      (span) => span.textContent === "legalLicense",
-    );
-    const line = license?.parentElement;
+    const line = doc.querySelector(".vk-footer-bottom .vk-footer-meta");
 
     expect(Array.from(line?.children ?? []).map((span) => span.textContent)).toEqual([
+      "versionParts",
       "legalLicense",
       "legalCopyright",
     ]);
     expect(line?.textContent).not.toContain("\u00b7");
+  });
+
+  it("merges the links into four groups, the docs group first and widest", async () => {
+    const doc = await renderFooter();
+    const groups = Array.from(doc.querySelectorAll<HTMLElement>(".vk-footer-groups > nav"));
+    expect(groups.map((group) => group.dataset.group)).toEqual([
+      "product",
+      "packages",
+      "community",
+      "legal",
+    ]);
+    expect(groups.map((group) => group.querySelectorAll("a").length)).toEqual(
+      FOOTER_GROUPS.map((group) => group.links.length),
+    );
+    expect(doc.querySelector(".vk-footer-top")?.textContent).toContain("tagline");
+  });
+
+  it("ends in a no-JS locale switch to the current page", async () => {
+    localeState.current = "de";
+    try {
+      const doc = await renderFooter();
+      const links = Array.from(doc.querySelectorAll(".vk-footer-bottom .vk-locale-links a"));
+      expect(links.map((link) => link.getAttribute("href"))).toEqual([
+        "/compare",
+        "/de/compare",
+        "/es/compare",
+        "/fr/compare",
+      ]);
+      expect(links.map((link) => link.getAttribute("aria-current"))).toEqual([
+        null,
+        "page",
+        null,
+        null,
+      ]);
+      expect(doc.querySelector(".vk-locale-links-label")?.textContent).toBe("language");
+    } finally {
+      localeState.current = "en";
+    }
   });
 });

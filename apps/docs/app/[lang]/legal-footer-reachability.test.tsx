@@ -29,6 +29,10 @@ vi.mock("next-intl/server", () => ({
       : translatorFor(options.locale, options.namespace),
   getLocale: async () => localeState.current,
 }));
+vi.mock("next/navigation", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("next/navigation")>()),
+  usePathname: () => "/docs/providers",
+}));
 vi.mock("@/components/site-providers", () => ({
   SiteProviders: ({ children }: { children: ReactNode }) => children,
 }));
@@ -109,10 +113,10 @@ describe("the compact legal footer", () => {
     "gives the %s layout imprint, privacy, contact and licenses links in the reader's locale",
     async (_name, layout) => {
       const doc = await renderLayout(layout, "de");
-      const links = Array.from(doc.querySelectorAll("footer nav a"), (link) => [
-        link.getAttribute("href"),
-        link.textContent,
-      ]);
+      const links = Array.from(
+        doc.querySelectorAll("footer nav:not(.vk-locale-links) a"),
+        (link) => [link.getAttribute("href"), link.textContent],
+      );
 
       expect(links).toEqual([
         ["/de/imprint", "Impressum"],
@@ -121,6 +125,16 @@ describe("the compact legal footer", () => {
         ["/de/licenses", "Lizenzen"],
       ]);
       expect(doc.querySelector("footer nav")?.getAttribute("aria-label")).toBe("Rechtliches");
+      expect(
+        Array.from(doc.querySelectorAll("footer nav.vk-locale-links a"), (link) =>
+          link.getAttribute("href"),
+        ),
+      ).toEqual([
+        "/docs/providers",
+        "/de/docs/providers",
+        "/es/docs/providers",
+        "/fr/docs/providers",
+      ]);
     },
   );
 });
