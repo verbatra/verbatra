@@ -206,12 +206,17 @@ function primaryLanguage(headers: Headers): string | undefined {
   return tag && tag !== "*" && tag.length <= MAX_LANGUAGE_LENGTH ? tag : undefined;
 }
 
+function capUtmValue(value: string): string {
+  const capped = value.slice(0, MAX_UTM_LENGTH);
+  return /[\uD800-\uDBFF]$/.test(capped) ? capped.slice(0, -1) : capped;
+}
+
 export function pageviewUrl(requestUrl: string): string {
   const { pathname, searchParams } = new URL(requestUrl);
   const forwarded = new URLSearchParams();
   for (const name of FORWARDED_UTM_PARAMETERS) {
-    const value = searchParams.get(name);
-    if (value) forwarded.set(name, value.slice(0, MAX_UTM_LENGTH));
+    const value = searchParams.getAll(name).find((candidate) => candidate !== "");
+    if (value !== undefined) forwarded.set(name, capUtmValue(value));
   }
   const query = forwarded.toString();
   return query === "" ? pathname : `${pathname}?${query}`;

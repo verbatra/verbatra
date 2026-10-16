@@ -44,12 +44,12 @@ cookie or route, or the privacy wording that describes them.
   userAgent } }`: the path plus only `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`
   and `utm_content` (`pageviewUrl`: that fixed order, each value capped at 255 characters, empty
   ones dropped, every other query parameter such as `gclid` or `fbclid` and the fragment
-  stripped), the Referer without query, the first
-  Accept-Language tag (dropped above 35 characters; a referrer is dropped above 500), and the
-  right-most public address in `X-Forwarded-For` (nginx is the only hop; private, loopback,
-  CGNAT, link-local, multicast, documentation, benchmark and NAT64 ranges skipped, hex-form
-  IPv4-mapped IPv6 normalised), else a public `X-Real-IP`, else no `ip`. Umami 3.3.1 accepts
-  `payload.ip` and `payload.userAgent`, so no Umami setting is needed.
+  stripped), the Referer without query, the first Accept-Language tag (dropped above 35
+  characters; a referrer is dropped above 500), and the right-most public address in
+  `X-Forwarded-For` (nginx is the only hop; private, loopback, CGNAT, link-local, multicast,
+  documentation, benchmark and NAT64 ranges skipped, hex-form IPv4-mapped IPv6 normalised),
+  else a public `X-Real-IP`, else no `ip`. Umami 3.3.1 accepts `payload.ip` and
+  `payload.userAgent`, so no Umami setting is needed.
 - **Sending** - `sendPageview` POSTs `${UMAMI_ORIGIN}/api/send` with the visitor's user agent
   as `User-Agent` and `AbortSignal.timeout(1500)`. It never rejects and never logs.
 - **Opt-out** - apps/docs/app/api/analytics/route.ts takes a form POST

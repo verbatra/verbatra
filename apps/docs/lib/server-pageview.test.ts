@@ -329,6 +329,23 @@ describe("pageviewUrl", () => {
     expect(pageviewUrl(`${page}#install`)).toBe("/de/docs");
   });
 
+  it("caps a value without splitting a surrogate pair at the boundary", () => {
+    const value = `${"a".repeat(254)}\u{1F600}x`;
+    const forwarded = new URL(
+      pageviewUrl(`${page}?utm_campaign=${encodeURIComponent(value)}`),
+      PRODUCTION,
+    ).searchParams.get("utm_campaign");
+    expect(forwarded).toBe("a".repeat(254));
+    expect(forwarded).not.toContain("\uFFFD");
+    expect(forwarded?.length).toBeLessThanOrEqual(MAX_UTM_LENGTH);
+  });
+
+  it("keeps the first non-empty value when a utm parameter repeats", () => {
+    expect(pageviewUrl(`${page}?utm_source=&utm_source=newsletter`)).toBe(
+      "/de/docs?utm_source=newsletter",
+    );
+  });
+
   it("orders the utm parameters the same way whatever order the request uses", () => {
     const expected = "/de/docs?utm_source=s&utm_medium=m&utm_campaign=c&utm_term=t&utm_content=x";
     expect(
