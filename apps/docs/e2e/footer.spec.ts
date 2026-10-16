@@ -1,4 +1,5 @@
 import { expect, test } from "playwright/test";
+import { SITE_URL } from "@/lib/site-url";
 import {
   expectNoAxeViolations,
   expectNoHorizontalScroll,
@@ -78,8 +79,6 @@ test.describe("footer surface", () => {
   });
 });
 
-const ORIGIN = "https://verbatra.kreitz-webdev.de";
-
 const SWITCH_PAGES = [
   "/",
   "/de",
@@ -120,7 +119,7 @@ test.describe("footer locale switch", () => {
         const alternate = await page
           .locator(`link[rel="alternate"][hreflang="${link.hreflang}"]`)
           .getAttribute("href");
-        expect(new URL(alternate ?? "", ORIGIN).pathname, link.href).toBe(link.href);
+        expect(new URL(alternate ?? "", SITE_URL).pathname, link.href).toBe(link.href);
         const response = await page.request.get(link.href, { maxRedirects: 0 });
         expect(response.status(), link.href).toBe(200);
       }

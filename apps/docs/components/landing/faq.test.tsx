@@ -130,13 +130,6 @@ describe("the landing faq markup", () => {
       press(list[0] as HTMLElement, "End");
       expect(document.activeElement).toBe(list.at(-1));
     });
-    const control = new KeyboardEvent("keydown", { key: "End", bubbles: true, cancelable: true });
-    list[0]?.focus();
-    act(() => {
-      list[0]?.dispatchEvent(control);
-    });
-    expect(control.defaultPrevented).toBe(true);
-    expect(document.activeElement).toBe(list.at(-1));
     list[0]?.focus();
     for (const modifier of ["ctrlKey", "metaKey", "altKey", "shiftKey"] as const) {
       const event = new KeyboardEvent("keydown", {

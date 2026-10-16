@@ -51,7 +51,7 @@ function compareIdentifier(left: string, right: string): number {
 function comparePrerelease(left: ReadonlyArray<string>, right: ReadonlyArray<string>): number {
   if (left.length === 0 || right.length === 0) return right.length - left.length;
   for (let index = 0; index < Math.min(left.length, right.length); index += 1) {
-    const difference = compareIdentifier(left[index] as string, right[index] as string);
+    const difference = compareIdentifier(left[index] ?? "", right[index] ?? "");
     if (difference !== 0) return difference;
   }
   return left.length - right.length;

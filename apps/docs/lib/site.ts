@@ -1,7 +1,8 @@
 import { i18n, type Locale, localizedPath } from "./i18n";
+import { SITE_URL } from "./site-url";
 import versionData from "./version.generated.json";
 
-export const SITE_URL = "https://verbatra.kreitz-webdev.de";
+export { SITE_URL };
 
 export const SITE_HOST = new URL(SITE_URL).host;
 

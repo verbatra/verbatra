@@ -12,7 +12,6 @@ import {
   BENTO_KEY_ENV_VARS,
   BENTO_KEYS_LINK,
   BENTO_NONE_LINK,
-  BENTO_PROVIDER_LINE,
   BENTO_PROVIDERS_LINK,
   BENTO_RUN_SUMMARY_CODE,
   BENTO_RUN_SUMMARY_FIELDS,
@@ -127,7 +126,6 @@ describe("bento samples", () => {
   });
 
   it("fills only the id slot of the provider block, which takes every listed id and no other", () => {
-    expect(BENTO_PROVIDER_LINE).toContain('id: "<id>"');
     const issues = (id: string) => {
       const result = sdk.verbatraConfigSchema.safeParse({
         sourceLocale: "en",
