@@ -24,7 +24,7 @@ vi.mock("@/lib/source", () => ({
 }));
 
 const { default: sitemap } = await import("./sitemap");
-const { LEGAL_LAST_UPDATED } = await import("@/lib/site");
+const { LANDING_LAST_UPDATED, LEGAL_LAST_UPDATED } = await import("@/lib/site");
 const { COMPARE_LAST_CHECKED } = await import("@/lib/landing-compare");
 
 const ORIGIN = "https://verbatra.kreitz-webdev.de";
@@ -95,10 +95,16 @@ describe("sitemap", () => {
     ]);
   });
 
-  it("stamps the home and docs pages with one build-time lastModified value", () => {
-    const entries = sitemap().filter(
-      (entry) => !LEGAL_URLS.includes(entry.url ?? "") && !COMPARE_URLS.includes(entry.url ?? ""),
+  it("stamps the landing page in every locale with the date its copy last changed", () => {
+    const home = sitemap().filter((entry) =>
+      Object.values(HOME_LANGUAGES).includes(entry.url ?? ""),
     );
+    expect(home).toHaveLength(4);
+    for (const entry of home) expect(entry.lastModified).toBe(LANDING_LAST_UPDATED);
+  });
+
+  it("stamps the docs pages with one build-time lastModified value", () => {
+    const entries = sitemap().filter((entry) => entry.url?.includes("/docs/"));
     const first = entries[0]?.lastModified;
     expect(first).toBeInstanceOf(Date);
     for (const entry of entries) {

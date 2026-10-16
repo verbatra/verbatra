@@ -1,9 +1,13 @@
-import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
+import { NPM_ORG } from "@/components/landing/links";
+import { FORMAT_DISPLAY, MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
+import { providerShortLabel } from "@/lib/landing-providers";
 import { plainAnswer } from "@/lib/plain-answer";
 import { NODE_RANGE, SITE_URL } from "@/lib/site";
 
 const GITHUB_URL = "https://github.com/verbatra/verbatra";
 const GITHUB_ORG_URL = "https://github.com/verbatra";
+const AUTHOR_GITHUB_URL = "https://github.com/mariokreitz";
+const AUTHOR_NPM_URL = "https://www.npmjs.com/~mariokreitz";
 const NPM_CLI_URL = "https://www.npmjs.com/package/@verbatra/cli";
 const NPM_SDK_URL = "https://www.npmjs.com/package/@verbatra/sdk";
 const NPM_STUDIO_URL = "https://www.npmjs.com/package/@verbatra/studio";
@@ -25,15 +29,6 @@ export const SUPPORTED_FRAMEWORKS = [
   "Android",
   ".NET",
 ];
-const SUPPORTED_PROVIDERS = [
-  "Anthropic",
-  "OpenAI",
-  "Gemini",
-  "DeepL",
-  "Google Cloud Translation",
-  "openai-compatible",
-  "LibreTranslate",
-];
 export const SUPPORTED_AGENT_CLIENTS = [
   "Claude Code",
   "Codex",
@@ -46,6 +41,7 @@ export const SUPPORTED_AGENT_CLIENTS = [
   "JetBrains AI Assistant",
   "Claude Desktop",
 ] as const;
+const SUPPORTED_PROVIDERS = MACHINE_PROVIDER_IDS.map(providerShortLabel);
 const NODE_OPERATING_SYSTEM = `Node.js ${NODE_RANGE}`;
 
 export const ORGANIZATION_LOGO = { path: "/icon-512.png", width: 512, height: 512 } as const;
@@ -62,7 +58,8 @@ const AUTHOR = {
   "@type": "Person",
   "@id": AUTHOR_ID,
   name: AUTHOR_NAME,
-  url: "https://github.com/mariokreitz",
+  url: AUTHOR_GITHUB_URL,
+  sameAs: [AUTHOR_GITHUB_URL, AUTHOR_NPM_URL],
 } as const;
 
 const AUTHOR_REF = { "@id": AUTHOR_ID } as const;
@@ -187,7 +184,7 @@ export function organizationLd(): Record<string, unknown> {
   return {
     "@context": "https://schema.org",
     ...ORGANIZATION,
-    sameAs: [GITHUB_ORG_URL],
+    sameAs: [GITHUB_ORG_URL, GITHUB_URL, NPM_ORG],
   };
 }
 
