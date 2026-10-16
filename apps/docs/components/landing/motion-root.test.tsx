@@ -131,7 +131,7 @@ describe("the motion stylesheet", () => {
     expect(moving.map((rule) => [rule.selector, rule.declarations.transition])).toEqual([
       [
         "html[data-motion-ready] [data-reveal][data-revealed]",
-        "opacity var(--duration-reveal) var(--ease-out) var(--reveal-delay), translate var(--duration-reveal) var(--ease-out) var(--reveal-delay)",
+        "opacity var(--duration-slow) var(--ease-standard) var(--reveal-delay), translate var(--duration-slow) var(--ease-standard) var(--reveal-delay)",
       ],
       ["html[data-motion-ready] [data-reveal]:focus-within", "none"],
     ]);
@@ -147,13 +147,19 @@ describe("the motion stylesheet", () => {
   it("caps the stagger at the maximum delay and declares the motion tokens on :root", () => {
     for (const token of [
       "--duration-reveal: 560ms",
-      "--reveal-distance: 16px",
+      "--duration-slow: var(--duration-reveal)",
+      "--reveal-distance: var(--motion-distance-lg)",
+      "--motion-distance-lg: 16px",
       "--reveal-stagger: 70ms",
       "--reveal-delay-max: 350ms",
     ]) {
       expect(css).toContain(token);
     }
-    expect(css).toContain("--reveal-distance: 12px");
+    expect(css).toContain("--reveal-distance: var(--motion-distance-md)");
+    for (const token of css.matchAll(/^\s+(--(?:duration|ease|motion-distance)-[a-z-]+):/gm)) {
+      const uses = css.split(`var(${token[1]})`).length - 1;
+      expect(uses, token[1]).toBeGreaterThan(0);
+    }
     expect(rulesFor(all, "[data-reveal]")[0]?.declarations["--reveal-delay"]).toBe(
       "min( calc(var(--reveal-index, 0) * var(--reveal-stagger)), var(--reveal-delay-max) )",
     );

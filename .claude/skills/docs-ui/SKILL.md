@@ -209,8 +209,9 @@ Scales are fixed and narrow, deliberately:
   broken set.
 - Motion: see "Landing motion" below for the system. Its tokens: `--ease-out` (entrances and
   state changes), `--duration-fast` (140ms, hover and press),
-  `--duration-base` (240ms, state change), `--duration-reveal` (560ms, entrances),
-  `--reveal-distance` (16px, 12px under 40rem), `--reveal-stagger` (70ms) and
+  `--duration-base` (240ms, state change), `--duration-reveal` (560ms, read through its alias
+  `--duration-slow` by every entrance), `--reveal-distance` (`--motion-distance-lg`, 16px;
+  `--motion-distance-md`, 8px, under 40rem), `--reveal-stagger` (70ms) and
   `--reveal-delay-max` (350ms, the stagger cap), and `--marquee-item-time` (5s: one marquee loop
   lasts that times the row's item count). Only `opacity` and `transform` / `translate`
   ever animate.
@@ -874,9 +875,13 @@ reserved for client islands (see "The stack").
   client-only `data-active`, so a page without JavaScript keeps no room),
   `scroll-padding-bottom` and the footer's end padding are `--fab-clearance`, so the button never
   covers a focused element (2.4.11); `e2e/scroll-top.spec.ts` tabs from the FAQ to the end at 375
-  to prove it. The motion aliases `--duration-instant`, `--duration-slow`, `--ease-standard`,
-  `--ease-emphasized`, `--ease-exit` and `--motion-distance-sm` / `-md` / `-lg` (4, 8, 16px) live
-  beside the older motion tokens.
+  to prove it. The motion aliases `--duration-slow` (entrances), `--ease-standard` (entrances and
+  hovers), `--ease-emphasized` (the button's entrance) and `--motion-distance-sm` / `-md` / `-lg`
+  (4px for the prompt preview's lift, 8px for the button and the phone reveal, 16px for the
+  reveal) live beside the older motion tokens; every one of them has a consumer
+  (`motion-root.test.tsx` fails on a declared `--duration-*`, `--ease-*` or `--motion-distance-*`
+  token that nothing reads), so there is no instant duration and no exit easing until something
+  uses one.
 - **No section eyebrows.** A landing section opens with its `h2`; nothing sits above it, no
   index and no label word. `reveal-marks.test.tsx` fails on a `.vk-eyebrow` style.
 - **Version pill.** On the landing only (the `landingLocale` gate in `lib/i18n.ts`), `HomeSiteHeader` passes

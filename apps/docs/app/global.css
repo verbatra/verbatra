@@ -192,14 +192,12 @@ samp {
   --duration-fast: 140ms;
   --duration-base: 240ms;
   --duration-reveal: 560ms;
-  --reveal-distance: 16px;
+  --reveal-distance: var(--motion-distance-lg);
   --reveal-stagger: 70ms;
   --reveal-delay-max: 350ms;
-  --duration-instant: 0ms;
   --duration-slow: var(--duration-reveal);
   --ease-standard: var(--ease-out);
   --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
-  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
   --motion-distance-sm: 4px;
   --motion-distance-md: 8px;
   --motion-distance-lg: 16px;
@@ -278,7 +276,7 @@ html.light {
 
 @media (width < 40rem) {
   :root {
-    --reveal-distance: 12px;
+    --reveal-distance: var(--motion-distance-md);
   }
 }
 
@@ -2053,8 +2051,8 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 @media (prefers-reduced-motion: no-preference) {
   html[data-motion-ready] [data-reveal][data-revealed] {
     transition:
-      opacity var(--duration-reveal) var(--ease-out) var(--reveal-delay),
-      translate var(--duration-reveal) var(--ease-out) var(--reveal-delay);
+      opacity var(--duration-slow) var(--ease-standard) var(--reveal-delay),
+      translate var(--duration-slow) var(--ease-standard) var(--reveal-delay);
   }
 
   html[data-motion-ready] [data-reveal]:not([data-revealed]) {
@@ -2821,7 +2819,7 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   box-shadow: var(--shadow-panel);
   visibility: hidden;
   opacity: 0;
-  transform: translateY(-4px);
+  transform: translateY(calc(-1 * var(--motion-distance-sm)));
   transition:
     opacity var(--duration-fast) var(--ease-out),
     transform var(--duration-fast) var(--ease-out),
@@ -3410,7 +3408,7 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 @media (prefers-reduced-motion: no-preference) {
   .vk-hero-diff-value,
   .vk-hero-diff-mark > * {
-    transition: opacity var(--duration-reveal) var(--ease-out);
+    transition: opacity var(--duration-slow) var(--ease-standard);
     transition-delay: calc(var(--fill-index, 0) * var(--reveal-stagger));
   }
 }
