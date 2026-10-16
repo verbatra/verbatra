@@ -3080,10 +3080,14 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   }
 }
 
-.vk-playground {
+.vk-playground-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 2.5rem;
+}
+
+.vk-playground {
+  display: contents;
 }
 
 .vk-playground-main,
@@ -3446,23 +3450,32 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 }
 
 @media (min-width: 64rem) {
-  .vk-playground {
+  .vk-playground-layout {
     grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-    gap: var(--grid-gap);
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "head code"
+      "main code";
+    column-gap: var(--grid-gap);
     align-items: start;
   }
 
+  .vk-playground-layout > .vk-section-head {
+    grid-area: head;
+  }
+
+  .vk-playground-main {
+    grid-area: main;
+  }
+
   .vk-playground-code {
+    grid-area: code;
     position: sticky;
     top: calc(var(--vk-landing-offset) + 1.5rem);
   }
 }
 
 @media (scripting: none) {
-  .vk-playground {
-    display: block;
-  }
-
   .vk-playground-controls,
   .vk-playground-result-block {
     display: none;

@@ -50,7 +50,6 @@ export type PlaygroundDemoProps = {
   readonly snippet: ReactNode;
   readonly snippetFile: string;
   readonly snippetConfig: PlaygroundSnippetConfig;
-  readonly head: ReactNode;
   readonly details: ReactNode;
 };
 
@@ -256,7 +255,6 @@ export function PlaygroundDemo({
   snippet,
   snippetFile,
   snippetConfig,
-  head,
   details,
 }: PlaygroundDemoProps): ReactNode {
   const id = useId();
@@ -374,7 +372,6 @@ export function PlaygroundDemo({
       data-playground-demo=""
     >
       <div className="vk-playground-main">
-        {head}
         <div className="vk-playground-controls">
           <fieldset className="vk-playground-fieldset">
             <legend className="vk-playground-legend">{labels.items}</legend>

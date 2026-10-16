@@ -185,17 +185,17 @@ function expected(item: string, languages: ReadonlyArray<string>): Array<[string
 }
 
 describe("the playground on the server", () => {
-  it("opens the control column with an inline h2, never a second h1", async () => {
+  it("renders the inline h2 on the server before the island, never inside it or as a second h1", async () => {
     const root = await renderServer();
     expect(root.querySelector("section#playground h2#playground-heading")?.textContent).toBe(
       copy.heading,
     );
-    const main = root.querySelector(".vk-playground-main");
-    const head = main?.firstElementChild;
+    const layout = root.querySelector("section#playground > .vk-playground-layout");
+    const head = layout?.firstElementChild;
     expect(head?.getAttribute("data-layout")).toBe("inline");
     expect(head?.querySelector("h2#playground-heading")).not.toBeNull();
-    expect(head?.nextElementSibling?.className).toBe("vk-playground-controls");
-    expect(root.querySelector("section#playground > .vk-section-head")).toBeNull();
+    expect(head?.nextElementSibling?.querySelector("[data-playground-demo]")).not.toBeNull();
+    expect(root.querySelector("[data-playground-demo] h2")).toBeNull();
     expect(root.querySelector("h1")).toBeNull();
   });
 

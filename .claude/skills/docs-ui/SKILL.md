@@ -176,8 +176,8 @@ Scales are fixed and narrow, deliberately:
   under the heading on the first column, for a section whose content runs the full row: the code
   showcase, and the feature flow, whose head keeps to the snippet column), `inline` (the same
   stacked block at a narrower measure, `.vk-section-head-inline`, set inside the column beside an
-  artifact rather than over it: the SDK playground passes it to its island as the `head` prop, so
-  it opens the control column next to the sticky snippet) or `aside` (the only layout that takes
+  artifact rather than over it: the SDK playground renders it on the server as a sibling before
+  its island, and its grid puts it at the top of the control column next to the sticky snippet) or `aside` (the only layout that takes
   `children`: a `.vk-section-aside` `.vk-grid-12` with the stacked heading and lead in span 4 at
   the start and the children in `.vk-section-aside-content`, span 8, top-aligned; one column, head
   first, under 64rem: the marquee). A head without a lead is always stacked (features,
@@ -611,9 +611,10 @@ reserved for client islands (see "The stack").
   start, wrapped rows under reduced motion or without JavaScript), so 2.2.2 holds without
   JavaScript.
 - **SDK playground.** `playground.tsx` (`#playground`, on the void, an `inline` head whose `h2` is
-  `landing.playground.heading`, rendered on the server and passed to `PlaygroundDemo` as `head`,
-  the first child of `.vk-playground-main`, so it heads the control column and stays visible
-  without JavaScript) reads `lib/playground/translations.json` once through
+  `landing.playground.heading`, rendered on the server as the first child of
+  `.vk-playground-layout`, before the `PlaygroundDemo` island and never inside it, so it stays
+  visible without JavaScript and after a failed island chunk on a client navigation, which
+  `e2e/playground.spec.ts` drives by aborting that chunk) reads `lib/playground/translations.json` once through
   `lib/landing-playground.ts`, which parses it with `lib/playground/schema.ts` on the server, so zod
   never reaches the client, and builds `PLAYGROUND_SNIPPET` (`loadConfig({ configOverride:
   defineConfig(...) })` for `gemini` and `next-intl-json`, the model from the JSON metadata, then
@@ -633,8 +634,9 @@ reserved for client islands (see "The stack").
   tall (the source strings flow in CSS `columns: 14rem`, so the arrow keys move down a column in
   the order they read), then a `type="button"` Translate (no `form`, so nothing submits before hydration). In the
   DOM the head and the controls come first, then the results and the label with the metadata, then the snippet
-  (`.vk-playground-main` and `.vk-playground-code`, two columns from 64rem, where the snippet
-  column is sticky below the header), so on a phone the
+  (`.vk-playground-main` and `.vk-playground-code`; `.vk-playground` is `display: contents`, so
+  both join `.vk-playground-layout` beside the head: one column, then from 64rem the areas
+  `"head code" / "main code"`, the snippet spanning both rows and sticky below the header), so on a phone the
   result sits right under Translate and the focus order is the visual order at every width. The
   island takes its first item, languages and focus from the server-rendered form it replaces
   (`[data-playground-demo]`, each control marked `data-control`), so a choice made before it loads

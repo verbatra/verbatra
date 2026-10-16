@@ -125,41 +125,41 @@ export async function Playground(): Promise<ReactNode> {
 
   return (
     <Section id="playground" className="vk-playground-section">
-      <PlaygroundDemo
-        items={PLAYGROUND_ITEMS}
-        languages={languages}
-        translations={PLAYGROUND_TRANSLATIONS}
-        sourceLocale={PLAYGROUND_SOURCE_LOCALE}
-        defaultItem={PLAYGROUND_DEFAULT_ITEM}
-        labels={{
-          items: t("items"),
-          languages: t("languages"),
-          translate: t("translate"),
-          results: t("results"),
-          source: t("source"),
-          noLanguages: t("noLanguages"),
-          notSelected: t("notSelected"),
-          stale: t("stale"),
-          copy: t("copy"),
-          copyStatus: {
-            copy: tInstall("copy"),
-            copied: tInstall("copied"),
-            copyFailed: tInstall("copyFailed"),
-          },
-        }}
-        snippet={snippet}
-        snippetFile={PLAYGROUND_SNIPPET_FILE}
-        snippetConfig={PLAYGROUND_SNIPPET_CONFIG}
-        head={
-          <SectionHead
-            id="playground-heading"
-            layout="inline"
-            title={t("heading")}
-            lead={t("lead")}
-          />
-        }
-        details={details}
-      />
+      <div className="vk-playground-layout">
+        <SectionHead
+          id="playground-heading"
+          layout="inline"
+          title={t("heading")}
+          lead={t("lead")}
+        />
+        <PlaygroundDemo
+          items={PLAYGROUND_ITEMS}
+          languages={languages}
+          translations={PLAYGROUND_TRANSLATIONS}
+          sourceLocale={PLAYGROUND_SOURCE_LOCALE}
+          defaultItem={PLAYGROUND_DEFAULT_ITEM}
+          labels={{
+            items: t("items"),
+            languages: t("languages"),
+            translate: t("translate"),
+            results: t("results"),
+            source: t("source"),
+            noLanguages: t("noLanguages"),
+            notSelected: t("notSelected"),
+            stale: t("stale"),
+            copy: t("copy"),
+            copyStatus: {
+              copy: tInstall("copy"),
+              copied: tInstall("copied"),
+              copyFailed: tInstall("copyFailed"),
+            },
+          }}
+          snippet={snippet}
+          snippetFile={PLAYGROUND_SNIPPET_FILE}
+          snippetConfig={PLAYGROUND_SNIPPET_CONFIG}
+          details={details}
+        />
+      </div>
       <StaticTable
         languages={languages}
         caption={t("table.caption")}

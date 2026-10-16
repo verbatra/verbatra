@@ -18,6 +18,7 @@ const PLAYGROUND = "section#playground";
 const RESULTS = `${PLAYGROUND} .vk-playground-results`;
 const LIVE = `${PLAYGROUND} [data-playground-live]`;
 const SCRAMBLE_MARKER = "scrambleText";
+const ISLAND_MARKER = "data-playground-demo";
 
 function translateButton(page: Page) {
   return page.locator(PLAYGROUND).getByRole("button", { name: "Translate", exact: true });
@@ -368,7 +369,7 @@ test.describe("playground layout at 1440px", () => {
 
   test("heads the control column with the h2 and sets the snippet beside it", async ({ page }) => {
     await page.goto("/");
-    const head = page.locator(`${PLAYGROUND} .vk-playground-main > .vk-section-head`);
+    const head = page.locator(`${PLAYGROUND} .vk-playground-layout > .vk-section-head`);
     await expect(head).toHaveAttribute("data-layout", "inline");
     const headBox = await head.boundingBox();
     const controls = await page.locator(`${PLAYGROUND} .vk-playground-controls`).boundingBox();
@@ -378,6 +379,39 @@ test.describe("playground layout at 1440px", () => {
     expect(code.x).toBeGreaterThanOrEqual(headBox.x + headBox.width);
     expect(code.y).toBeLessThan(headBox.y + headBox.height);
     await expectNoAxeViolations(page, PLAYGROUND);
+  });
+});
+
+test.describe("playground whose island chunk fails", () => {
+  test.setTimeout(60_000);
+
+  test("keeps its heading after a client navigation to the home page", async ({ page }) => {
+    const aborted: string[] = [];
+    await page.route("**/_next/static/chunks/**/*.js", async (route) => {
+      const response = await route.fetch();
+      const body = await response.text();
+      if (body.includes(ISLAND_MARKER)) {
+        aborted.push(route.request().url());
+        await route.abort();
+        return;
+      }
+      await route.fulfill({ response, body });
+    });
+    await page.goto("/docs/quickstart");
+    await page.evaluate(() => {
+      (window as unknown as { __softNavigation?: boolean }).__softNavigation = true;
+    });
+    await page.locator("header").getByRole("link", { name: "verbatra" }).first().click();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.locator(`${PLAYGROUND} h2#playground-heading`)).toBeVisible({
+      timeout: 30_000,
+    });
+    expect(aborted.length).toBeGreaterThan(0);
+    expect(
+      await page.evaluate(
+        () => (window as unknown as { __softNavigation?: boolean }).__softNavigation,
+      ),
+    ).toBe(true);
   });
 });
 
