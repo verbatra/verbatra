@@ -2545,7 +2545,7 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   pointer-events: none;
 }
 
-@container (max-width: 46rem) {
+@container (max-width: 56rem) {
   .vk-compare-hint {
     display: block;
   }
@@ -2582,7 +2582,7 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
     display: none;
   }
 
-  @container (max-width: 46rem) {
+  @container (max-width: 56rem) {
     .vk-compare-scroll {
       background:
         linear-gradient(to left, var(--surface-bg) 50%, transparent) 100% 0 / 2rem 100% no-repeat

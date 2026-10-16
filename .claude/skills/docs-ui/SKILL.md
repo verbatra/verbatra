@@ -359,10 +359,20 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   `lib/landing-code.ts`, highlighted on the server by `lib/landing-highlight.ts` with dual themes
   and framed by `code-frame.tsx`), `playground.tsx` (`#playground`, the SDK playground, see
   "SDK playground" below), `marquee.tsx`
-  (`#marquee`, see "Marquee" below), `compare.tsx` (`#compare`, rows from `lib/landing-compare.ts`; a cell states the fact,
-  the mark carries yes, partial or no; the table scrolls sideways inside a focusable `section` named
-  by its caption (`aria-labelledby`), with the row headers pinned, and while the column is narrower
-  than the table a `landing.compare.scrollHint` line before it says so (not wired as a description,
+  (`#marquee`, see "Marquee" below), `compare.tsx` (`#compare`, a band: the short table, five rows (`SHORT_ROWS`) by Verbatra,
+  Lingo.dev, Tolgee, one hosted TMS column summing up Crowdin, Lokalise and Phrase, and the manual
+  workflow (`SHORT_COLUMNS`). `lib/landing-compare.ts` holds the full table's rows and tools too,
+  and one numbered source list, `compareSource(n)`, so a footnote number names the same source on
+  the landing and on `/compare`; `cellFootnote` derives each cell's number from its row and tool,
+  and the manual column cites the note `M`. A cell states the fact in text only, never a mark or a
+  rating, followed by its footnote links (`[data-footnotes]`, each at least 24px, named "Source n,
+  tool"), which jump to the `ol` of cited sources under the table (`li` with `value={n}` and
+  `id="compare-source-n"`); this site's own pages are linked localized. Under the table: "Last
+  checked" with `COMPARE_LAST_CHECKED` as a `time`, the framing sentence, the concession (what the
+  hosted platforms offer that Verbatra does not, with its sources), the link to `/compare` and the
+  source list. The table scrolls sideways inside a focusable `section` named by its caption
+  (`aria-labelledby`), with the row headers pinned, and while the column is narrower than the table
+  (56rem) a `landing.compare.scrollHint` line before it says so (not wired as a description,
   since it is `display: none` on a wide column) and `.vk-compare-fade` fades the end edge on the
   region's scroll timeline; without scroll timelines the fade is dropped and the region shades its
   end edge with a `local` cover over a `scroll` shade, which clears at the scroll end), `open-source.tsx` (`#open-source`: license, contributing,

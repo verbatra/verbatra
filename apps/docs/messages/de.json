@@ -405,76 +405,66 @@
     },
     "compare": {
       "heading": "So schneidet Verbatra im Vergleich ab.",
-      "caption": "Verbatra im Vergleich mit einem manuellen Ablauf und einem gehosteten Translation-Management-System",
+      "caption": "Wege, Locale-Dateien übersetzt zu halten: Verbatra, Lingo.dev, Tolgee, gehostete Übersetzungsmanagementsysteme und ein manueller Ablauf",
       "columns": {
-        "aspect": "Aspekt",
+        "criterion": "Kriterium",
         "verbatra": "Verbatra",
-        "manual": "Manueller Ablauf",
-        "tms": "Gehostetes TMS"
+        "lingo": "Lingo.dev",
+        "tolgee": "Tolgee",
+        "hostedTms": "Gehostetes TMS (Crowdin, Lokalise, Phrase)",
+        "manual": "Manueller Ablauf"
       },
       "rows": {
-        "changedOnly": {
-          "label": "Übersetzt nur, was sich geändert hat",
-          "verbatra": "Entschieden durch die Lock-Datei",
-          "manual": "Nur, wenn jemand den Überblick behält",
-          "tms": "Über das Translation Memory"
+        "license": {
+          "label": "Open Source, Lizenz",
+          "verbatra": "Ja, MIT",
+          "lingo": "Repository Apache-2.0; die aktuelle CLI hat kein Lizenzfeld; die Plattform wird nicht als Open Source beschrieben",
+          "tolgee": "Kern Apache-2.0, Enterprise-Teile unter einer nicht kommerziellen Lizenz; CLI MIT",
+          "hostedTms": "CLIs Open Source (MIT, BSD-3-Clause, MIT); für keine der drei Plattformen öffentlicher Quellcode gefunden",
+          "manual": "Entfällt, kein Produkt"
         },
-        "ciGate": {
-          "label": "Lässt die CI bei fehlenden Keys scheitern",
-          "verbatra": "`verbatra check` endet mit Exit-Code 1",
-          "manual": "Nur mit einem eigenen Skript",
-          "tms": "Oft, über eine CLI oder Integration"
+        "ownKeys": {
+          "label": "Eigene API-Keys",
+          "verbatra": "Ja, nur aus Umgebungsvariablen",
+          "lingo": "Laut Preisseite eine Enterprise-Funktion; die ältere Open-Source-CLI nutzt deine eigenen Keys",
+          "tolgee": "LLM-Keys ja; eigene Keys für maschinelle Übersetzung für Self-Hosting angegeben",
+          "hostedTms": "Crowdin ja; Lokalise unbekannt; Phrase für Ecosystem-Engines mit eigenem Vertrag, innerhalb von Strings nicht bestätigt",
+          "manual": "Deine eigenen Konten, kein Produkt"
         },
-        "placeholders": {
-          "label": "Prüft Platzhalter vor dem Schreiben",
-          "verbatra": "Ein kaputtes Ergebnis wird zurückgehalten",
-          "manual": "Nur im Review",
-          "tms": "Platzhalter-QA-Prüfungen sind verbreitet"
+        "incremental": {
+          "label": "Inkrementelle Übersetzung",
+          "verbatra": "Ja, ein Hash pro Key in einer Lock-Datei",
+          "lingo": "Ja, ein Lockfile-Diff in der CLI",
+          "tolgee": "Übersetzt unübersetzte Ziele automatisch (Doku 2.x)",
+          "hostedTms": "Alle drei füllen unübersetzte oder leere Werte",
+          "manual": "Von Hand, kein Produkt"
         },
-        "files": {
-          "label": "Wo die Dateien liegen",
-          "verbatra": "In deinem Repository, direkt bearbeitet",
-          "manual": "In deinem Repository",
-          "tms": "Auf der Plattform, mit deinem Repository synchronisiert"
+        "ci": {
+          "label": "CI und GitHub Action",
+          "verbatra": "Offizielle Action; `check` endet mit 1 bei fehlenden oder veralteten Keys",
+          "lingo": "GitHub App; das Repository enthält auch eine action.yml",
+          "tolgee": "Keine offizielle Action gefunden",
+          "hostedTms": "Offizielle GitHub Actions von allen drei (Phrase: setup-cli)",
+          "manual": "Entfällt, kein Produkt"
         },
-        "data": {
-          "label": "Wohin Texte geschickt werden",
-          "verbatra": "Nur an den Provider, den du konfigurierst",
-          "manual": "Wohin du sie kopierst",
-          "tms": "Auf die Plattform des Anbieters"
-        },
-        "collaboration": {
-          "label": "Zusammenarbeit mit Übersetzern",
-          "verbatra": "Übergabe per Excel und TMX, lokales Studio",
-          "manual": "Tabellen und E-Mail",
-          "tms": "Web-Editor mit Rollen und Kommentaren"
-        },
-        "workflow": {
-          "label": "Workflow-Verwaltung",
-          "verbatra": "Nichts eingebaut: dein Git-Workflow",
-          "manual": "Keine",
-          "tms": "Zuweisungen, Review-Stufen und Fristen"
-        },
-        "cost": {
-          "label": "Kosten",
-          "verbatra": "Kostenlos und MIT-lizenziert, dazu die Nutzung deines Providers",
-          "manual": "Die Zeit deines Teams",
-          "tms": "Oft ein Abo pro Platz oder pro Wort; manche haben kostenlose Pläne, zum Beispiel für Open Source"
-        },
-        "setup": {
-          "label": "Einrichtung",
-          "verbatra": "Eine Konfigurationsdatei und ein API-Key",
-          "manual": "Nichts einzurichten",
-          "tms": "Ein Konto, ein Projekt und eine Sync-Integration"
+        "mcp": {
+          "label": "MCP-Server",
+          "verbatra": "Ja, lokal über stdio",
+          "lingo": "Ja",
+          "tolgee": "Ja",
+          "hostedTms": "Gehostete MCP-Server von allen drei; Lokalise in der Beta",
+          "manual": "Entfällt, kein Produkt"
         }
       },
-      "marks": {
-        "yes": "Ja",
-        "partial": "Teilweise",
-        "no": "Nein"
-      },
-      "note": "Stand: Oktober 2026. Gehostete TMS-Produkte unterscheiden sich: Diese Tabelle beschreibt die Kategorie, nicht ein einzelnes Produkt, und lässt selbst gehostete TMS außen vor.",
-      "scrollHint": "Scrolle die Tabelle seitwärts, um alle Spalten zu sehen."
+      "sourceRef": "Quelle {number}, {tool}",
+      "noteRef": "Hinweis M, manueller Ablauf",
+      "sources": "Quellen",
+      "manualNote": "Der manuelle Ablauf ist kein Produkt und hat daher keine Quelle: Die Spalte beschreibt, wie Texte von Hand in einen Übersetzungsdienst und zurück kopiert werden.",
+      "lastChecked": "Zuletzt geprüft",
+      "fairness": "Verbatra ist eine CLI und ein SDK; die anderen Spalten sind Übersetzungsplattformen und ein manueller Ablauf, verglichen als Wege, Locale-Dateien übersetzt zu halten. Jede Zelle gibt wieder, was die eigenen Seiten des Anbieters an diesem Datum sagten, und „keine offizielle ... gefunden“ heißt, dass unsere Suche nichts gefunden hat, nicht, dass es dem Produkt fehlt.",
+      "concession": "Crowdin, Lokalise und Phrase bieten außerdem In-Context-Bearbeitung, die Verbatra nicht hat. Für das Review hat Verbatra das lokale Studio-Dashboard, keinen gehosteten Editor für Übersetzer.",
+      "fullLink": "Vollständiger Vergleich mit Quellen",
+      "scrollHint": "Scrolle die Tabelle seitlich, um jede Spalte zu sehen."
     },
     "openSource": {
       "heading": "Open Source unter der MIT-Lizenz.",

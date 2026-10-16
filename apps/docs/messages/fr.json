@@ -405,75 +405,65 @@
     },
     "compare": {
       "heading": "Verbatra face aux autres approches.",
-      "caption": "Verbatra comparé à un processus manuel et à un système de gestion des traductions hébergé",
+      "caption": "Façons de garder les fichiers de locale traduits : Verbatra, Lingo.dev, Tolgee, systèmes de gestion de traduction hébergés et un processus manuel",
       "columns": {
-        "aspect": "Critère",
+        "criterion": "Critère",
         "verbatra": "Verbatra",
-        "manual": "Processus manuel",
-        "tms": "TMS hébergé"
+        "lingo": "Lingo.dev",
+        "tolgee": "Tolgee",
+        "hostedTms": "TMS hébergé (Crowdin, Lokalise, Phrase)",
+        "manual": "Processus manuel"
       },
       "rows": {
-        "changedOnly": {
-          "label": "Ne traduit que ce qui a changé",
-          "verbatra": "D’après le fichier de verrouillage",
-          "manual": "Seulement si quelqu’un le suit",
-          "tms": "Grâce à la mémoire de traduction"
+        "license": {
+          "label": "Open source, licence",
+          "verbatra": "Oui, MIT",
+          "lingo": "Dépôt Apache-2.0 ; la CLI actuelle n’a pas de champ de licence ; la plateforme n’est pas décrite comme open source",
+          "tolgee": "Cœur Apache-2.0, parties entreprise sous une licence non commerciale ; CLI MIT",
+          "hostedTms": "CLI open source (MIT, BSD-3-Clause, MIT) ; aucun code public de la plateforme trouvé pour aucune des trois",
+          "manual": "Sans objet, pas de produit"
         },
-        "ciGate": {
-          "label": "Fait échouer la CI si des clés manquent",
-          "verbatra": "`verbatra check` se termine avec le code 1",
-          "manual": "Seulement avec ton propre script",
-          "tms": "Souvent, via une CLI ou une intégration"
+        "ownKeys": {
+          "label": "Tes propres clés d’API",
+          "verbatra": "Oui, uniquement depuis les variables d’environnement",
+          "lingo": "Une fonction Enterprise selon la page des tarifs ; l’ancienne CLI open source utilise tes propres clés",
+          "tolgee": "Clés de LLM oui ; clés de traduction automatique propres indiquées pour l’auto-hébergement",
+          "hostedTms": "Crowdin oui ; Lokalise inconnu ; Phrase pour les moteurs de l’écosystème sous ton propre contrat, non confirmé dans Strings",
+          "manual": "Tes propres comptes, pas de produit"
         },
-        "placeholders": {
-          "label": "Vérifie les placeholders avant d’écrire",
-          "verbatra": "Un résultat cassé est retenu",
-          "manual": "Seulement à la relecture",
-          "tms": "Les contrôles qualité des placeholders sont courants"
+        "incremental": {
+          "label": "Traduction incrémentale",
+          "verbatra": "Oui, un hash par clé dans un fichier de verrouillage",
+          "lingo": "Oui, un diff du lockfile dans la CLI",
+          "tolgee": "Traduit automatiquement les cibles non traduites (docs 2.x)",
+          "hostedTms": "Les trois remplissent les valeurs non traduites ou vides",
+          "manual": "À la main, pas de produit"
         },
-        "files": {
-          "label": "Où vivent les fichiers",
-          "verbatra": "Dans ton dépôt, modifiés sur place",
-          "manual": "Dans ton dépôt",
-          "tms": "Sur la plateforme, synchronisés avec ton dépôt"
+        "ci": {
+          "label": "CI et GitHub Action",
+          "verbatra": "Action officielle ; `check` sort avec 1 si des clés manquent ou sont périmées",
+          "lingo": "GitHub App ; le dépôt contient aussi un action.yml",
+          "tolgee": "Aucune Action officielle trouvée",
+          "hostedTms": "GitHub Actions officielles des trois (Phrase : setup-cli)",
+          "manual": "Sans objet, pas de produit"
         },
-        "data": {
-          "label": "Où partent les textes",
-          "verbatra": "Uniquement au fournisseur que tu configures",
-          "manual": "Là où tu les colles",
-          "tms": "Sur la plateforme de l’éditeur"
-        },
-        "collaboration": {
-          "label": "Collaboration avec les traducteurs",
-          "verbatra": "Échange via Excel et TMX, Studio en local",
-          "manual": "Tableurs et e-mails",
-          "tms": "Éditeur web avec rôles et commentaires"
-        },
-        "workflow": {
-          "label": "Gestion du workflow",
-          "verbatra": "Rien d’intégré : ton workflow Git",
-          "manual": "Aucune",
-          "tms": "Attributions, étapes de relecture et échéances"
-        },
-        "cost": {
-          "label": "Coût",
-          "verbatra": "Gratuit et sous licence MIT, plus l’usage de ton fournisseur",
-          "manual": "Le temps de ton équipe",
-          "tms": "Souvent un abonnement par utilisateur ou par mot ; certains ont des offres gratuites, par exemple pour l’open source"
-        },
-        "setup": {
-          "label": "Mise en place",
-          "verbatra": "Un fichier de configuration et une clé d’API",
-          "manual": "Rien à mettre en place",
-          "tms": "Un compte, un projet et une intégration de synchronisation"
+        "mcp": {
+          "label": "Serveur MCP",
+          "verbatra": "Oui, en local via stdio",
+          "lingo": "Oui",
+          "tolgee": "Oui",
+          "hostedTms": "Serveurs MCP hébergés des trois ; Lokalise en bêta",
+          "manual": "Sans objet, pas de produit"
         }
       },
-      "marks": {
-        "yes": "Oui",
-        "partial": "En partie",
-        "no": "Non"
-      },
-      "note": "En octobre 2026. Les TMS hébergés diffèrent entre eux : ce tableau décrit la catégorie, pas un produit en particulier, et laisse de côté les TMS auto-hébergés.",
+      "sourceRef": "Source {number}, {tool}",
+      "noteRef": "Note M, processus manuel",
+      "sources": "Sources",
+      "manualNote": "Le processus manuel n’est pas un produit, il n’a donc pas de source : la colonne décrit la copie des textes à la main vers un service de traduction et retour.",
+      "lastChecked": "Dernière vérification",
+      "fairness": "Verbatra est une CLI et un SDK ; les autres colonnes sont des plateformes de traduction et un processus manuel, comparés comme façons de garder les fichiers de locale traduits. Chaque cellule reprend ce que disaient les propres pages de l’éditeur à cette date, et « aucun ... officiel trouvé » signifie que notre recherche n’a rien trouvé, pas que le produit en est dépourvu.",
+      "concession": "Crowdin, Lokalise et Phrase proposent aussi l’édition en contexte, que Verbatra n’a pas. Pour la relecture, Verbatra a le tableau de bord local Studio, pas d’éditeur hébergé pour les traducteurs.",
+      "fullLink": "Comparaison complète avec les sources",
       "scrollHint": "Fais défiler le tableau sur le côté pour voir toutes les colonnes."
     },
     "openSource": {

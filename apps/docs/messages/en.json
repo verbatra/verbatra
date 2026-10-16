@@ -458,75 +458,65 @@
     },
     "compare": {
       "heading": "How Verbatra compares.",
-      "caption": "Verbatra compared with a manual workflow and a hosted translation management system",
+      "caption": "Ways to keep locale files translated: Verbatra, Lingo.dev, Tolgee, hosted translation management systems and a manual workflow",
       "columns": {
-        "aspect": "Aspect",
+        "criterion": "Criterion",
         "verbatra": "Verbatra",
-        "manual": "Manual workflow",
-        "tms": "Hosted TMS"
+        "lingo": "Lingo.dev",
+        "tolgee": "Tolgee",
+        "hostedTms": "Hosted TMS (Crowdin, Lokalise, Phrase)",
+        "manual": "Manual workflow"
       },
       "rows": {
-        "changedOnly": {
-          "label": "Translates only what changed",
-          "verbatra": "Decided by the lock file",
-          "manual": "Only if someone tracks it",
-          "tms": "Through translation memory"
+        "license": {
+          "label": "Open source, license",
+          "verbatra": "Yes, MIT",
+          "lingo": "Repository Apache-2.0; the current CLI has no license field; the platform is not described as open source",
+          "tolgee": "Apache-2.0 core, enterprise parts under a non-commercial license; CLI MIT",
+          "hostedTms": "CLIs open source (MIT, BSD-3-Clause, MIT); no public platform source found for any of the three",
+          "manual": "Not applicable, no product"
         },
-        "ciGate": {
-          "label": "Fails CI on missing keys",
-          "verbatra": "`verbatra check` exits 1",
-          "manual": "Only with a script you write",
-          "tms": "Often, through a CLI or integration"
+        "ownKeys": {
+          "label": "Bring your own API keys",
+          "verbatra": "Yes, from environment variables only",
+          "lingo": "An Enterprise feature per the pricing page; the older open source CLI uses your own keys",
+          "tolgee": "LLM keys yes; own machine translation keys stated for self-hosted",
+          "hostedTms": "Crowdin yes; Lokalise unknown; Phrase for ecosystem engines under your own contract, within Strings not confirmed",
+          "manual": "Your own accounts, no product"
         },
-        "placeholders": {
-          "label": "Checks placeholders before writing",
-          "verbatra": "A broken result is withheld",
-          "manual": "Only in review",
-          "tms": "Placeholder QA checks are common"
+        "incremental": {
+          "label": "Incremental translation",
+          "verbatra": "Yes, a per-key hash in a lock file",
+          "lingo": "Yes, a lockfile diff in the CLI",
+          "tolgee": "Auto-translates untranslated targets (2.x docs)",
+          "hostedTms": "All three fill untranslated or empty values",
+          "manual": "By hand, no product"
         },
-        "files": {
-          "label": "Where the files live",
-          "verbatra": "In your repository, edited in place",
-          "manual": "In your repository",
-          "tms": "On the platform, synced to your repository"
+        "ci": {
+          "label": "CI and GitHub Action",
+          "verbatra": "Official Action; `check` exits 1 on missing or stale keys",
+          "lingo": "GitHub App; the repository also ships an action.yml",
+          "tolgee": "No official Action found",
+          "hostedTms": "Official GitHub Actions from all three (Phrase: setup-cli)",
+          "manual": "Not applicable, no product"
         },
-        "data": {
-          "label": "Where strings are sent",
-          "verbatra": "Only to the provider you configure",
-          "manual": "Wherever you paste them",
-          "tms": "To the vendor's platform"
-        },
-        "collaboration": {
-          "label": "Translator collaboration",
-          "verbatra": "Excel and TMX handoff, local Studio",
-          "manual": "Spreadsheets and email",
-          "tms": "Web editor with roles and comments"
-        },
-        "workflow": {
-          "label": "Workflow management",
-          "verbatra": "None built in: your Git workflow",
-          "manual": "None",
-          "tms": "Assignments, review stages and deadlines"
-        },
-        "cost": {
-          "label": "Cost",
-          "verbatra": "Free and MIT licensed, plus your provider's usage",
-          "manual": "Your team's time",
-          "tms": "Often a subscription per seat or per word; some have free plans, for example for open source"
-        },
-        "setup": {
-          "label": "Setup",
-          "verbatra": "One config file and an API key",
-          "manual": "Nothing to set up",
-          "tms": "An account, a project and a sync integration"
+        "mcp": {
+          "label": "MCP server",
+          "verbatra": "Yes, local over stdio",
+          "lingo": "Yes",
+          "tolgee": "Yes",
+          "hostedTms": "Hosted MCP servers from all three; Lokalise in beta",
+          "manual": "Not applicable, no product"
         }
       },
-      "marks": {
-        "yes": "Yes",
-        "partial": "Partly",
-        "no": "No"
-      },
-      "note": "As of October 2026. Hosted TMS products differ: this table describes the category, not one product, and leaves out self-hosted TMS.",
+      "sourceRef": "Source {number}, {tool}",
+      "noteRef": "Note M, manual workflow",
+      "sources": "Sources",
+      "manualNote": "The manual workflow is not a product, so it has no source: the column describes copying strings into a translation service and back by hand.",
+      "lastChecked": "Last checked",
+      "fairness": "Verbatra is a CLI and SDK; the other columns are translation platforms and a manual workflow, compared as ways to keep locale files translated. Each cell states what the vendor's own pages said on that date, and \"no official ... found\" means our search found none, not that the product lacks it.",
+      "concession": "Crowdin, Lokalise and Phrase also offer in-context editing, which Verbatra does not. For review, Verbatra has the local Studio dashboard, not a hosted editor for translators.",
+      "fullLink": "Full comparison with sources",
       "scrollHint": "Scroll the table sideways to see every column."
     },
     "openSource": {

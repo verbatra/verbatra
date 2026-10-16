@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { i18n } from "@/lib/i18n";
 import { LANDING_SHOWCASE_TABS } from "@/lib/landing-code";
-import { COMPARE_COLUMNS, COMPARE_ROWS } from "@/lib/landing-compare";
+import { SHORT_COLUMNS, SHORT_ROWS } from "@/lib/landing-compare";
 import { FLOW_NODES } from "@/lib/landing-flow";
 
 const NAMESPACES = [
@@ -94,21 +94,31 @@ describe("the redesigned landing copy", () => {
     );
   });
 
-  it("labels every comparison row and cell the table holds", () => {
+  it("labels every comparison row and cell the short table holds", () => {
     const rows = branch(landing("en"), "compare.rows");
-    expect(Object.keys(rows)).toEqual(COMPARE_ROWS.map((row) => row.id));
-    for (const row of COMPARE_ROWS) {
-      expect(Object.keys(branch(rows, row.id))).toEqual(["label", ...COMPARE_COLUMNS]);
+    expect(Object.keys(rows)).toEqual([...SHORT_ROWS]);
+    for (const row of SHORT_ROWS) {
+      expect(Object.keys(branch(rows, row))).toEqual(["label", ...SHORT_COLUMNS]);
     }
-    const marks = new Set(COMPARE_ROWS.flatMap((row) => Object.values(row.marks ?? {})));
-    expect([...marks].every((mark) => mark in branch(landing("en"), "compare.marks"))).toBe(true);
+    expect(Object.keys(branch(landing("en"), "compare.columns"))).toEqual([
+      "criterion",
+      ...SHORT_COLUMNS,
+    ]);
   });
 
-  it("admits where a hosted TMS does more", () => {
-    const tmsWins = COMPARE_ROWS.filter(
-      (row) => row.marks?.tms === "yes" && row.marks.verbatra !== "yes",
-    ).map((row) => row.id);
-    expect(tmsWins).toEqual(["collaboration", "workflow"]);
+  it("states where hosted platforms do more, in every locale", () => {
+    for (const locale of i18n.languages) {
+      const concession = branch(landing(locale), "compare").concession;
+      expect(typeof concession).toBe("string");
+      for (const name of ["Crowdin", "Lokalise", "Phrase", "Verbatra", "Studio"])
+        expect(concession, `${locale} ${name}`).toContain(name);
+    }
+  });
+
+  it("never rates a competitor in a comparison cell", () => {
+    const rows = branch(landing("en"), "compare.rows");
+    for (const [key, text] of leaves(rows))
+      expect(text, key).not.toMatch(/\b(better|worse|best|only tool|lacks)\b/i);
   });
 
   it("names no sync command, which verbatra does not have", () => {

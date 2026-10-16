@@ -61,7 +61,7 @@ describe("landing message parity", () => {
       "landing.marquee.pause",
       "landing.playground.label",
       "landing.playground.languageNames.ja",
-      "landing.compare.rows.changedOnly.verbatra",
+      "landing.compare.rows.license.verbatra",
       "landing.openSource.license",
       "landing.closing.heading",
     ]) {
@@ -191,16 +191,11 @@ describe("landing message parity", () => {
     }
   });
 
-  it("states the comparison cells plainly, never opening on a yes the mark already shows", () => {
+  it("words an absence in the comparison as a search that found nothing, never as a missing feature", () => {
     for (const locale of i18n.languages) {
-      for (const path of [
-        "compare.rows.changedOnly.verbatra",
-        "compare.rows.changedOnly.tms",
-        "compare.rows.ciGate.verbatra",
-        "compare.rows.placeholders.verbatra",
-      ]) {
-        expect(landingText(locale, path), `${locale} ${path}`).not.toMatch(/^(Yes|Ja|Sí|Oui),/);
-      }
+      expect(landingText(locale, "compare.rows.ci.tolgee"), locale).toMatch(
+        /found|gefunden|encontr|trouvée/,
+      );
     }
   });
 });
