@@ -53,6 +53,16 @@ export const MAX_LANGUAGE_LENGTH = 35;
 
 export const MAX_REFERRER_LENGTH = 500;
 
+export const MAX_UTM_LENGTH = 255;
+
+export const FORWARDED_UTM_PARAMETERS = [
+  "utm_source",
+  "utm_medium",
+  "utm_campaign",
+  "utm_term",
+  "utm_content",
+] as const;
+
 interface PageviewPayload {
   readonly website: string;
   readonly hostname: string;
@@ -196,6 +206,17 @@ function primaryLanguage(headers: Headers): string | undefined {
   return tag && tag !== "*" && tag.length <= MAX_LANGUAGE_LENGTH ? tag : undefined;
 }
 
+export function pageviewUrl(requestUrl: string): string {
+  const { pathname, searchParams } = new URL(requestUrl);
+  const forwarded = new URLSearchParams();
+  for (const name of FORWARDED_UTM_PARAMETERS) {
+    const value = searchParams.get(name);
+    if (value) forwarded.set(name, value.slice(0, MAX_UTM_LENGTH));
+  }
+  const query = forwarded.toString();
+  return query === "" ? pathname : `${pathname}?${query}`;
+}
+
 export function pageviewFor(request: Request): Pageview | undefined {
   const { headers } = request;
   const userAgent = headers.get("user-agent")?.trim() ?? "";
@@ -208,7 +229,7 @@ export function pageviewFor(request: Request): Pageview | undefined {
     payload: {
       website: UMAMI_WEBSITE_ID,
       hostname: SITE_HOST,
-      url: new URL(request.url).pathname,
+      url: pageviewUrl(request.url),
       userAgent,
       ...(referrer === undefined ? {} : { referrer }),
       ...(language === undefined ? {} : { language }),

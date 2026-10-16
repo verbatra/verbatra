@@ -9,9 +9,11 @@ import {
   isTrackingRefused,
   MAX_LANGUAGE_LENGTH,
   MAX_REFERRER_LENGTH,
+  MAX_UTM_LENGTH,
   PAGEVIEW_TIMEOUT_MS,
   type Pageview,
   pageviewFor,
+  pageviewUrl,
   sendPageview,
   UMAMI_ORIGIN,
   UMAMI_WEBSITE_ID,
@@ -236,8 +238,8 @@ describe("clientIp", () => {
 });
 
 describe("pageviewFor", () => {
-  it("builds the Umami event with the visitor's details and no query or fragment", () => {
-    const request = navigation("/de/docs?utm_source=x#install", {
+  it("builds the Umami event with the visitor's details, the utm parameters and no fragment", () => {
+    const request = navigation("/de/docs?utm_source=x&id=7#install", {
       referer: "https://news.example.com/item?id=42",
       "accept-language": "de-DE,de;q=0.9,en;q=0.8",
       "x-forwarded-for": "84.132.10.7, 172.17.0.1",
@@ -248,7 +250,7 @@ describe("pageviewFor", () => {
       payload: {
         website: UMAMI_WEBSITE_ID,
         hostname: "verbatra.kreitz-webdev.de",
-        url: "/de/docs",
+        url: "/de/docs?utm_source=x",
         referrer: "https://news.example.com/item",
         language: "de-DE",
         ip: "84.132.10.7",
@@ -287,6 +289,69 @@ describe("pageviewFor", () => {
       "userAgent",
       "website",
     ]);
+  });
+});
+
+describe("pageviewUrl", () => {
+  const page = `${PRODUCTION}/de/docs`;
+
+  it.each(["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"])(
+    "keeps %s",
+    (name) => {
+      expect(pageviewUrl(`${page}?${name}=launch`)).toBe(`/de/docs?${name}=launch`);
+    },
+  );
+
+  it.each([
+    "gclid",
+    "fbclid",
+    "msclkid",
+    "ttclid",
+    "li_fat_id",
+    "twclid",
+    "ref",
+    "q",
+    "utm_id",
+    "UTM_SOURCE",
+  ])("drops %s", (name) => {
+    expect(pageviewUrl(`${page}?${name}=abc123`)).toBe("/de/docs");
+  });
+
+  it("drops click identifiers next to kept utm parameters", () => {
+    const url = `${page}?gclid=g&utm_source=news&fbclid=f&msclkid=m&ttclid=t&li_fat_id=l&twclid=w`;
+    expect(pageviewUrl(url)).toBe("/de/docs?utm_source=news");
+  });
+
+  it("drops empty utm parameters and leaves no question mark when none remain", () => {
+    expect(pageviewUrl(`${page}?utm_source=&utm_medium=&utm_term`)).toBe("/de/docs");
+    expect(pageviewUrl(`${page}?utm_source=&utm_medium=mail`)).toBe("/de/docs?utm_medium=mail");
+    expect(pageviewUrl(`${page}?`)).toBe("/de/docs");
+    expect(pageviewUrl(`${page}#install`)).toBe("/de/docs");
+  });
+
+  it("orders the utm parameters the same way whatever order the request uses", () => {
+    const expected = "/de/docs?utm_source=s&utm_medium=m&utm_campaign=c&utm_term=t&utm_content=x";
+    expect(
+      pageviewUrl(`${page}?utm_content=x&utm_term=t&utm_campaign=c&utm_medium=m&utm_source=s`),
+    ).toBe(expected);
+    expect(
+      pageviewUrl(`${page}?utm_medium=m&utm_source=s&utm_content=x&utm_campaign=c&utm_term=t`),
+    ).toBe(expected);
+  });
+
+  it("caps an over-long value at the limit and keeps one at the limit", () => {
+    const atCap = "a".repeat(MAX_UTM_LENGTH);
+
+    expect(MAX_UTM_LENGTH).toBe(255);
+    expect(pageviewUrl(`${page}?utm_campaign=${atCap}`)).toBe(`/de/docs?utm_campaign=${atCap}`);
+    expect(pageviewUrl(`${page}?utm_campaign=${atCap}bbb`)).toBe(`/de/docs?utm_campaign=${atCap}`);
+  });
+
+  it("encodes the forwarded values", () => {
+    const url = `${page}?utm_campaign=${encodeURIComponent("spring sale & more=50%")}&utm_term=${encodeURIComponent("über")}`;
+    expect(pageviewUrl(url)).toBe(
+      "/de/docs?utm_campaign=spring+sale+%26+more%3D50%25&utm_term=%C3%BCber",
+    );
   });
 });
 

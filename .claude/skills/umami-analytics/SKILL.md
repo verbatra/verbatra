@@ -41,7 +41,10 @@ cookie or route, or the privacy wording that describes them.
 - **Refusals** - `Sec-GPC: 1`, `DNT: 1` or the cookie `verbatra_analytics_optout=1` stop the
   pageview before anything is built.
 - **Payload** - `{ type: "event", payload: { website, hostname, url, referrer, language, ip,
-  userAgent } }`: the path without query or fragment, the Referer without query, the first
+  userAgent } }`: the path plus only `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`
+  and `utm_content` (`pageviewUrl`: that fixed order, each value capped at 255 characters, empty
+  ones dropped, every other query parameter such as `gclid` or `fbclid` and the fragment
+  stripped), the Referer without query, the first
   Accept-Language tag (dropped above 35 characters; a referrer is dropped above 500), and the
   right-most public address in `X-Forwarded-For` (nginx is the only hop; private, loopback,
   CGNAT, link-local, multicast, documentation, benchmark and NAT64 ranges skipped, hex-form
