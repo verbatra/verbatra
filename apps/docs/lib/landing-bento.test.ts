@@ -4,52 +4,42 @@ import { fileURLToPath } from "node:url";
 import * as sdk from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import { FORMAT_SAMPLES } from "@/lib/format-samples";
-import { GATE_LOCK_HASHES, GATE_WITHHELD_LABEL } from "@/lib/gate-demo";
 import { headingSlugs } from "@/lib/heading-slugs";
 import { i18n, type Locale } from "@/lib/i18n";
 import {
-  BENTO_ADAPTER_CODE,
-  BENTO_ADAPTER_IMPORTS,
   BENTO_FORMAT_KEY,
   BENTO_FORMAT_LINES,
-  BENTO_KEY_ENV_VAR,
-  BENTO_LOCK_CODE,
-  BENTO_LOCK_LOCALE,
+  BENTO_KEY_ENV_VARS,
+  BENTO_KEYS_LINK,
+  BENTO_NONE_PROVIDER,
   BENTO_PROVIDER_DIFF,
   BENTO_PROVIDER_FROM,
   BENTO_PROVIDER_TO,
+  BENTO_RUN_SUMMARY_CODE,
+  BENTO_RUN_SUMMARY_FIELDS,
+  BENTO_SAFETY_LINK,
   BENTO_TILES,
   bentoHref,
 } from "@/lib/landing-bento";
-import { LANDING_CONFIG_CODE } from "@/lib/landing-code";
+import { MACHINE_PROVIDER_IDS } from "@/lib/landing-facts";
+import { providerReleaseBadge } from "@/lib/release-badge";
+import { STACK_IDS } from "@/lib/stacks";
 import en from "@/messages/en.json";
 
 const CONTENT = fileURLToPath(new URL("../content/docs", import.meta.url));
-const SITE_LOCK = JSON.parse(
-  readFileSync(fileURLToPath(new URL("../verbatra.lock.json", import.meta.url)), "utf8"),
-) as { version: number; locales: Record<string, Record<string, string>> };
-
-function findPage(dir: string, name: string): string | undefined {
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    const path = join(dir, entry.name);
-    if (entry.isDirectory()) {
-      const found = findPage(path, name);
-      if (found) return found;
-    } else if (entry.name === name) {
-      return path;
-    }
-  }
-  return undefined;
-}
+const REPO = fileURLToPath(new URL("../../../", import.meta.url));
 
 function pageSource(page: string, locale: Locale): string {
-  const segments = page.replace(/^\/docs\//, "").split("/");
-  const slug = segments.at(-1) ?? "";
-  const dir = segments.length > 1 ? join(CONTENT, ...segments.slice(0, -1)) : CONTENT;
-  const name = locale === i18n.defaultLanguage ? `${slug}.mdx` : `${slug}.${locale}.mdx`;
-  const path = findPage(dir, name);
-  if (!path) throw new Error(`no ${name} under ${dir}`);
-  return readFileSync(path, "utf8");
+  const suffix = locale === i18n.defaultLanguage ? "" : `.${locale}`;
+  const wanted = [
+    `${page.replace(/^\/docs\//, "")}${suffix}.mdx`,
+    `${page.replace(/^\/docs\//, "")}/index${suffix}.mdx`,
+  ];
+  const file = readdirSync(CONTENT, { recursive: true, encoding: "utf8" }).find((entry) =>
+    wanted.includes(entry.replace(/\([^)]+\)\//g, "")),
+  );
+  if (!file) throw new Error(`no ${wanted.join(" or ")} under ${CONTENT}`);
+  return readFileSync(join(CONTENT, file), "utf8");
 }
 
 describe("bento tiles", () => {
@@ -75,52 +65,80 @@ describe("bento tiles", () => {
   });
 
   for (const locale of i18n.languages) {
-    it(`points every ${locale} evidence link at a page and heading that exist`, () => {
-      for (const tile of BENTO_TILES) {
-        for (const item of tile.evidence) {
-          const slugs = headingSlugs(pageSource(item.page, locale));
-          const anchor = item.anchors?.[locale];
-          if (anchor !== undefined) expect(slugs, `${item.text} in ${locale}`).toContain(anchor);
-        }
+    it(`points every ${locale} docs link at a page and heading that exist`, () => {
+      const links = [
+        ...BENTO_TILES.flatMap((tile) => tile.evidence),
+        BENTO_NONE_PROVIDER,
+        BENTO_KEYS_LINK,
+        BENTO_SAFETY_LINK,
+        ...STACK_IDS.map((id) => ({ page: `/docs/quickstart/${id}` })),
+      ];
+      for (const item of links) {
+        const slugs = headingSlugs(pageSource(item.page, locale));
+        const anchor = "anchors" in item ? item.anchors?.[locale] : undefined;
+        if (anchor !== undefined) expect(slugs, `${item.page} in ${locale}`).toContain(anchor);
       }
     });
   }
 
   it("prefixes the locale and appends the localized anchor", () => {
-    const qa = BENTO_TILES.flatMap((tile) => tile.evidence).find((item) => item.anchors);
-    if (!qa) throw new Error("anchored evidence missing");
-    expect(bentoHref("en", qa)).toBe("/docs/cli/check#quality-check");
-    expect(bentoHref("de", qa)).toBe("/de/docs/cli/check#qualitätsprüfung");
+    expect(bentoHref("en", BENTO_KEYS_LINK)).toBe("/docs/providers#keys-come-from-the-environment");
+    expect(bentoHref("de", BENTO_KEYS_LINK)).toBe(
+      "/de/docs/providers#keys-kommen-aus-der-umgebung",
+    );
   });
 
-  it("names the withheld label the integrity gate really prints", () => {
-    const integrity = BENTO_TILES.find((tile) => tile.key === "integrity");
-    expect(integrity?.evidence.map((item) => item.text)).toContain(GATE_WITHHELD_LABEL);
+  it("lays the tiles out as one wide and one tall tile, two halves and a full-width strip", () => {
+    expect(BENTO_TILES.map((tile) => [tile.key, tile.span])).toEqual([
+      ["providers", 8],
+      ["keys", 4],
+      ["formats", 6],
+      ["sdk", 6],
+      ["frameworks", 12],
+    ]);
   });
 });
 
 describe("bento samples", () => {
-  it("shows a lock file in the shape this site commits", () => {
-    const lock = JSON.parse(BENTO_LOCK_CODE) as typeof SITE_LOCK;
-    expect(lock.version).toBe(SITE_LOCK.version);
-    expect(Object.keys(lock)).toEqual(Object.keys(SITE_LOCK));
-    expect(lock.locales[BENTO_LOCK_LOCALE]).toEqual(GATE_LOCK_HASHES);
-    for (const hash of Object.values(lock.locales[BENTO_LOCK_LOCALE] ?? {})) {
-      expect(hash).toMatch(/^[0-9a-f]{16}$/);
+  it("names one key variable per machine provider, exactly as the providers package reads them", () => {
+    const source = readFileSync(join(REPO, "packages/ai-providers/src/key-env-vars.ts"), "utf8");
+    const declared = [...source.matchAll(/"([A-Z_]+_API_KEY)"/g)].map(([, name]) => name);
+    expect(Object.keys(BENTO_KEY_ENV_VARS)).toEqual([...MACHINE_PROVIDER_IDS]);
+    expect(
+      Object.values(BENTO_KEY_ENV_VARS)
+        .map((variable) => variable.name)
+        .sort(),
+    ).toEqual([...declared].sort());
+    for (const id of ["anthropic", "openai", "gemini", "deepl", "google-translate"] as const) {
+      expect(source).toMatch(new RegExp(`"?${id}"?: "${BENTO_KEY_ENV_VARS[id].name}"`));
     }
   });
 
-  it("imports only what the sdk exports", () => {
-    for (const name of BENTO_ADAPTER_IMPORTS) {
-      expect(typeof (sdk as Record<string, unknown>)[name], name).toBe("function");
-    }
-    expect(BENTO_ADAPTER_CODE).toContain(".register(");
-    expect(BENTO_ADAPTER_CODE).toContain("{ adapterRegistry }");
+  it("marks as optional exactly the keys the providers page says usually are not needed", () => {
+    const optional = MACHINE_PROVIDER_IDS.filter((id) => BENTO_KEY_ENV_VARS[id].optional);
+    expect(optional).toEqual(["openai-compatible", "libretranslate"]);
+    expect(pageSource("/docs/providers", "en")).toContain(
+      "`openai-compatible` and `libretranslate` usually need no key.",
+    );
   });
 
-  it("reads the key variable of the provider the config sample names", () => {
-    expect(LANDING_CONFIG_CODE).toContain('id: "gemini"');
-    expect(BENTO_KEY_ENV_VAR).toBe("GEMINI_API_KEY");
+  it("dates only the key variables of providers the release badge dates", () => {
+    expect(MACHINE_PROVIDER_IDS.filter((id) => providerReleaseBadge(id) !== null)).toEqual([
+      "libretranslate",
+    ]);
+  });
+
+  it("prints the RunSummary fields of the published sdk, leaving out only what is newer", () => {
+    const declarations = readFileSync(join(REPO, "packages/sdk/dist/index.d.ts"), "utf8");
+    const body = /^interface RunSummary \{\n([\s\S]*?)^\}/m.exec(declarations)?.[1] ?? "";
+    const fields = [...body.matchAll(/^ {4}(readonly .+;)$/gm)].map(([, field]) => field);
+    expect(fields.filter((field) => !field.startsWith("readonly cancelled?"))).toEqual([
+      ...BENTO_RUN_SUMMARY_FIELDS,
+    ]);
+    for (const field of BENTO_RUN_SUMMARY_FIELDS)
+      expect(BENTO_RUN_SUMMARY_CODE).toContain(`  ${field}`);
+    expect(BENTO_RUN_SUMMARY_CODE).toContain("await translate({ config })");
+    expect(typeof sdk.translate).toBe("function");
   });
 
   it("switches between two provider blocks the sdk accepts", async () => {

@@ -397,34 +397,38 @@
     },
     "bento": {
       "heading": "Fits the project you already have.",
+      "lead": "Change the provider in one block, keep your keys in the environment and call the same engine from TypeScript.",
       "items": {
-        "incremental": {
-          "title": "Incremental by default",
-          "body": "The committed lock file holds a hash of each source string. Unchanged keys are not sent again."
-        },
         "providers": {
           "title": "Switch providers in one block",
-          "body": "An LLM, a machine translation service, or a model on your own hardware. Change the provider block and keep the rest."
-        },
-        "formats": {
-          "title": "Works with your framework",
-          "body": "The same key, written the way each stack expects it. Verbatra reads and writes the files you already have, so there is nothing to migrate."
+          "body": "An LLM, a machine translation service, or a model on your own hardware. Change the provider block and keep the rest.",
+          "none": "Or turn machine translation off by policy, so every translation comes from a person."
         },
         "keys": {
           "title": "Your keys stay yours",
-          "body": "API keys come from environment variables only. Strings go to the provider you configure and nowhere else. No telemetry."
+          "body": "API keys come from environment variables only, never from the config file. Strings go to the provider you configure and nowhere else. No telemetry.",
+          "variables": "Key variables",
+          "optional": "optional",
+          "claims": {
+            "data": "An LLM receives your strings as data, never as instructions.",
+            "integrity": "A reply that breaks a placeholder or an ICU message is withheld, not written.",
+            "errors": "A missing key fails with an error that names the variable, never a value."
+          },
+          "keysLink": "How providers read keys",
+          "safetyLink": "Translation safety"
         },
-        "action": {
-          "title": "A GitHub Action",
-          "body": "Gate pull requests with `check` or translate on push. Annotations and a job summary show what drifted."
+        "formats": {
+          "title": "Works with your files",
+          "body": "The same key, written the way each stack expects it. Verbatra reads and writes the files you already have, and a format it does not ship takes an adapter you build on the SDK."
         },
-        "adapters": {
-          "title": "Bring your own format",
-          "body": "A format Verbatra does not ship? Build an adapter on the SDK's adapter factories and pass it in."
+        "sdk": {
+          "title": "A typed SDK",
+          "body": "`translate` resolves to a typed `RunSummary`: which locales succeeded, which partly failed or failed, and the tokens the run used."
         },
-        "integrity": {
-          "title": "Placeholders stay intact",
-          "body": "Every result is checked for placeholder and ICU integrity. A reply that drops or invents one is withheld, not written."
+        "frameworks": {
+          "title": "A quickstart for your framework",
+          "body": "Each one goes from install to a translated file in your framework's own format.",
+          "all": "All quickstarts"
         }
       }
     },

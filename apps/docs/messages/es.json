@@ -344,34 +344,38 @@
     },
     "bento": {
       "heading": "Encaja en el proyecto que ya tienes.",
+      "lead": "Cambia de proveedor en un bloque, deja tus claves en el entorno y llama al mismo motor desde TypeScript.",
       "items": {
-        "incremental": {
-          "title": "Incremental de serie",
-          "body": "El archivo de bloqueo versionado guarda un hash de cada texto fuente. Las claves sin cambios no se vuelven a enviar."
-        },
         "providers": {
           "title": "Cambia de proveedor en un bloque",
-          "body": "Un LLM, un servicio de traducción automática o un modelo en tu propio hardware. Cambia el bloque del proveedor y conserva el resto."
-        },
-        "formats": {
-          "title": "Funciona con tu framework",
-          "body": "La misma clave, escrita como la espera cada stack. Verbatra lee y escribe los archivos que ya tienes, así que no hay nada que migrar."
+          "body": "Un LLM, un servicio de traducción automática o un modelo en tu propio hardware. Cambia el bloque del proveedor y conserva el resto.",
+          "none": "O desactiva la traducción automática por política, y cada traducción la hace una persona."
         },
         "keys": {
           "title": "Tus claves siguen siendo tuyas",
-          "body": "Las claves de API vienen solo de variables de entorno. Los textos van al proveedor que configuras y a ningún otro sitio. Sin telemetría."
+          "body": "Las claves de API vienen solo de variables de entorno, nunca del archivo de configuración. Los textos van al proveedor que configuras y a ningún otro sitio. Sin telemetría.",
+          "variables": "Variables de claves",
+          "optional": "opcional",
+          "claims": {
+            "data": "Un LLM recibe tus textos como datos, nunca como instrucciones.",
+            "integrity": "Una respuesta que rompe un placeholder o un mensaje ICU se retiene en lugar de escribirse.",
+            "errors": "Una clave que falta produce un error que nombra la variable, nunca un valor."
+          },
+          "keysLink": "Cómo leen los proveedores sus claves",
+          "safetyLink": "Seguridad de las traducciones"
         },
-        "action": {
-          "title": "Una GitHub Action",
-          "body": "Protege los pull requests con `check` o traduce en cada push. Las anotaciones y un resumen del job muestran lo que se desvió."
+        "formats": {
+          "title": "Funciona con tus archivos",
+          "body": "La misma clave, escrita como la espera cada stack. Verbatra lee y escribe los archivos que ya tienes, y un formato que no incluye se cubre con un adaptador que creas sobre el SDK."
         },
-        "adapters": {
-          "title": "Trae tu propio formato",
-          "body": "¿Un formato que Verbatra no incluye? Crea un adaptador con las fábricas de adaptadores del SDK y pásalo."
+        "sdk": {
+          "title": "Un SDK tipado",
+          "body": "`translate` devuelve un `RunSummary` tipado: qué locales se completaron, cuáles fallaron en parte o del todo y cuántos tokens usó la ejecución."
         },
-        "integrity": {
-          "title": "Los placeholders quedan intactos",
-          "body": "Cada resultado pasa una comprobación de integridad de placeholders e ICU. Una respuesta que pierde o inventa uno se retiene en lugar de escribirse."
+        "frameworks": {
+          "title": "Un inicio rápido para tu framework",
+          "body": "Cada uno va de la instalación a un archivo traducido en el formato propio de tu framework.",
+          "all": "Todos los inicios rápidos"
         }
       }
     },

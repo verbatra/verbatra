@@ -1,128 +1,101 @@
 import type { SupportedFormat } from "@verbatra/sdk";
 import { FORMAT_SAMPLES, type FormatSample, sampleLines } from "./format-samples";
-import { GATE_LOCK_HASHES } from "./gate-demo";
 import { type Locale, type LocalizedAnchors, localizedAnchorPath } from "./i18n";
+import type { MachineProviderId } from "./landing-facts";
 
-export type BentoKey =
-  | "incremental"
-  | "integrity"
-  | "providers"
-  | "keys"
-  | "action"
-  | "formats"
-  | "adapters";
+export type BentoKey = "providers" | "keys" | "formats" | "sdk" | "frameworks";
 
-type BentoEvidence = {
-  readonly text: string;
+type BentoDocsLink = {
   readonly page: string;
   readonly anchors?: LocalizedAnchors;
 };
 
+type BentoEvidence = BentoDocsLink & { readonly text: string };
+
 export type BentoTile = {
   readonly key: BentoKey;
-  readonly span: 4 | 5 | 7;
+  readonly span: 4 | 6 | 8 | 12;
   readonly evidence: ReadonlyArray<BentoEvidence>;
 };
 
 export const BENTO_TILES: ReadonlyArray<BentoTile> = [
   {
-    key: "incremental",
-    span: 7,
-    evidence: [
-      { text: "verbatra.lock.json", page: "/docs/the-lock-file" },
-      { text: "verbatra translate --dry-run", page: "/docs/cli/translate" },
-      { text: 'humanEdits: "protect"', page: "/docs/protecting-human-translations" },
-    ],
-  },
-  {
-    key: "integrity",
-    span: 5,
-    evidence: [
-      { text: "integrity-withheld", page: "/docs/translation-safety" },
-      {
-        text: "verbatra check --qa",
-        page: "/docs/cli/check",
-        anchors: {
-          en: "quality-check",
-          de: "qualitätsprüfung",
-          es: "control-de-calidad",
-          fr: "contrôle-qualité",
-        },
-      },
-    ],
-  },
-  {
     key: "providers",
-    span: 5,
+    span: 8,
     evidence: [
-      { text: 'provider: { id: "none" }', page: "/docs/human-only-workflow" },
       {
         text: 'provider: { id: "gemini", options: { model: "gemini-2.5-flash", maxOutputTokens: 4096 } }',
         page: "/docs/providers",
       },
     ],
   },
+  { key: "keys", span: 4, evidence: [] },
   {
     key: "formats",
-    span: 7,
-    evidence: [{ text: 'format: "next-intl-json"', page: "/docs/formats" }],
-  },
-  {
-    key: "keys",
-    span: 4,
+    span: 6,
     evidence: [
-      { text: 'network: { policy: "local-only" }', page: "/docs/network-policy" },
-      { text: "openai-compatible", page: "/docs/data-handling" },
+      { text: 'format: "next-intl-json"', page: "/docs/formats" },
+      { text: 'format: "custom:toml"', page: "/docs/custom-format-adapters" },
     ],
   },
-  {
-    key: "action",
-    span: 4,
-    evidence: [{ text: "verbatra/action@v1", page: "/docs/github-action" }],
-  },
-  {
-    key: "adapters",
-    span: 4,
-    evidence: [{ text: 'format: "custom:toml"', page: "/docs/custom-format-adapters" }],
-  },
+  { key: "sdk", span: 6, evidence: [{ text: "RunSummary", page: "/docs/sdk/run-summary" }] },
+  { key: "frameworks", span: 12, evidence: [] },
 ];
 
-export function bentoHref(locale: Locale, evidence: BentoEvidence): string {
-  return localizedAnchorPath(locale, evidence.page, evidence.anchors);
+export function bentoHref(locale: Locale, link: BentoDocsLink): string {
+  return localizedAnchorPath(locale, link.page, link.anchors);
 }
 
-export const BENTO_LOCK_LOCALE = "de";
+export const BENTO_NONE_PROVIDER: BentoEvidence = {
+  text: 'provider: { id: "none" }',
+  page: "/docs/human-only-workflow",
+};
 
-export const BENTO_LOCK_CODE = `${JSON.stringify(
-  { version: 1, locales: { [BENTO_LOCK_LOCALE]: GATE_LOCK_HASHES } },
-  null,
-  2,
-)}\n`;
+export const BENTO_KEYS_LINK: BentoDocsLink = {
+  page: "/docs/providers",
+  anchors: {
+    en: "keys-come-from-the-environment",
+    de: "keys-kommen-aus-der-umgebung",
+    es: "las-claves-vienen-del-entorno",
+    fr: "les-clés-viennent-de-lenvironnement",
+  },
+};
 
-export const BENTO_KEY_ENV_VAR = "GEMINI_API_KEY";
+export const BENTO_SAFETY_LINK: BentoDocsLink = {
+  page: "/docs/translation-safety",
+};
 
-export const BENTO_KEYS_CODE = `export ${BENTO_KEY_ENV_VAR}=your-key
-npx @verbatra/cli translate
+type KeyEnvVar = { readonly name: string; readonly optional: boolean };
+
+export const BENTO_KEY_ENV_VARS: Readonly<Record<MachineProviderId, KeyEnvVar>> = {
+  anthropic: { name: "ANTHROPIC_API_KEY", optional: false },
+  openai: { name: "OPENAI_API_KEY", optional: false },
+  gemini: { name: "GEMINI_API_KEY", optional: false },
+  deepl: { name: "DEEPL_API_KEY", optional: false },
+  "google-translate": { name: "GOOGLE_TRANSLATE_API_KEY", optional: false },
+  "openai-compatible": { name: "OPENAI_COMPATIBLE_API_KEY", optional: true },
+  libretranslate: { name: "LIBRETRANSLATE_API_KEY", optional: true },
+};
+
+export const BENTO_RUN_SUMMARY_FIELDS = [
+  "readonly dryRun: boolean;",
+  "readonly locales: readonly LocaleSummary[];",
+  "readonly succeeded: readonly string[];",
+  "readonly partial: readonly string[];",
+  "readonly failed: readonly string[];",
+  "readonly usage?: UsageSummary;",
+  "readonly budget?: RunBudget;",
+  "readonly estimate?: RunEstimate;",
+] as const;
+
+export const BENTO_RUN_SUMMARY_CODE = `const summary = await translate({ config });
+
+interface RunSummary {
+${BENTO_RUN_SUMMARY_FIELDS.map((field) => `  ${field}`).join("\n")}
+}
 `;
 
-export const BENTO_ADAPTER_IMPORTS = ["createDefaultRegistry", "translate"] as const;
-
-export const BENTO_ADAPTER_CODE = `import { ${BENTO_ADAPTER_IMPORTS.join(", ")} } from "@verbatra/sdk";
-
-const adapterRegistry = createDefaultRegistry().register(tomlAdapter);
-await translate({ config }, { adapterRegistry });
-`;
-
-type BentoActionTrigger = { readonly event: string; readonly command: string };
-
-export const BENTO_ACTION_TRIGGERS: ReadonlyArray<BentoActionTrigger> = [
-  { event: "pull_request", command: "check" },
-  { event: "push", command: "translate" },
-];
-
-export const BENTO_ACTION_ANNOTATION = "verbatra check: de";
-
-export const BENTO_ACTION_FILE = ".github/workflows/i18n.yml";
+export const BENTO_QUICKSTART_PAGE = "/docs/quickstart";
 
 export type BentoDiffLine = { readonly sign: " " | "-" | "+"; readonly text: string };
 

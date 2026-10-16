@@ -209,7 +209,7 @@ describe("the section head on the 12-column grid", () => {
     expect(layouts).toEqual({
       problem: "split",
       flow: "stacked",
-      features: "heading",
+      features: "split",
       code: "stacked",
       marquee: "aside",
       playground: "inline",

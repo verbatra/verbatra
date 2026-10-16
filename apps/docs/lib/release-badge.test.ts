@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { i18n } from "./i18n";
 import { MACHINE_PROVIDER_IDS } from "./landing-facts";
-import { providerReleaseBadge, RELEASE_BADGE } from "./release-badge";
+import { featureReleaseBadge, providerReleaseBadge, RELEASE_BADGE } from "./release-badge";
 
 describe("release badge", () => {
   it("dates exactly the providers it names, all with the one release version", () => {
@@ -54,4 +54,22 @@ describe("release badge against the providers page", () => {
     const page = '## DeepL\n\n```ts\nid: "deepl"\n```\n\n<AvailableFrom version="0.12.0" />\n';
     expect(headingBadges(page).get("deepl")).toBeNull();
   });
+});
+
+function humanOnlyPage(locale: string): string {
+  const suffix = locale === i18n.defaultLanguage ? "" : `.${locale}`;
+  const url = new URL(`../content/docs/(guides)/human-only-workflow${suffix}.mdx`, import.meta.url);
+  return readFileSync(fileURLToPath(url), "utf8");
+}
+
+describe("release badge against the human-only workflow page", () => {
+  it.each(i18n.languages)(
+    "dates the none provider with the page badge of human-only-workflow (%s)",
+    (locale) => {
+      const body = humanOnlyPage(locale).split(/^---$/m)[2] ?? "";
+      const firstLine = body.split("\n").find((line) => line.trim() !== "");
+      const badge = /^<AvailableFrom version="([^"]+)" \/>$/.exec(firstLine?.trim() ?? "")?.[1];
+      expect(featureReleaseBadge("provider-none")).toBe(badge ?? null);
+    },
+  );
 });

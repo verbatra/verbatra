@@ -344,34 +344,38 @@
     },
     "bento": {
       "heading": "Passt zu dem Projekt, das du schon hast.",
+      "lead": "Wechsle den Provider in einem Block, lass deine Keys in der Umgebung und ruf dieselbe Engine aus TypeScript auf.",
       "items": {
-        "incremental": {
-          "title": "Standardmäßig inkrementell",
-          "body": "Die committete Lock-Datei speichert einen Hash jedes Quelltexts. Unveränderte Keys werden nicht erneut geschickt."
-        },
         "providers": {
           "title": "Provider in einem Block wechseln",
-          "body": "Ein LLM, ein maschineller Übersetzungsdienst oder ein Modell auf deiner eigenen Hardware. Tausch den Provider-Block aus und behalte den Rest."
-        },
-        "formats": {
-          "title": "Passt zu deinem Framework",
-          "body": "Derselbe Key, so geschrieben, wie jeder Stack ihn erwartet. Verbatra liest und schreibt die Dateien, die du schon hast, also musst du nichts migrieren."
+          "body": "Ein LLM, ein maschineller Übersetzungsdienst oder ein Modell auf deiner eigenen Hardware. Tausch den Provider-Block aus und behalte den Rest.",
+          "none": "Oder schalte maschinelle Übersetzung per Richtlinie ab, dann stammt jede Übersetzung von einem Menschen."
         },
         "keys": {
           "title": "Deine Keys bleiben deine",
-          "body": "API-Keys kommen nur aus Umgebungsvariablen. Texte gehen an den Provider, den du konfigurierst, und sonst nirgendwohin. Keine Telemetrie."
+          "body": "API-Keys kommen nur aus Umgebungsvariablen, nie aus der Konfigurationsdatei. Texte gehen an den Provider, den du konfigurierst, und sonst nirgendwohin. Keine Telemetrie.",
+          "variables": "Key-Variablen",
+          "optional": "optional",
+          "claims": {
+            "data": "Ein LLM bekommt deine Texte als Daten, nie als Anweisungen.",
+            "integrity": "Eine Antwort, die einen Platzhalter oder eine ICU-Nachricht beschädigt, wird zurückgehalten statt geschrieben.",
+            "errors": "Ein fehlender Key führt zu einem Fehler, der die Variable nennt, nie einen Wert."
+          },
+          "keysLink": "So lesen Provider ihre Keys",
+          "safetyLink": "Übersetzungssicherheit"
         },
-        "action": {
-          "title": "Eine GitHub Action",
-          "body": "Sichere Pull Requests mit `check` ab oder übersetze bei jedem Push. Annotationen und eine Job-Zusammenfassung zeigen, was abweicht."
+        "formats": {
+          "title": "Passt zu deinen Dateien",
+          "body": "Derselbe Key, so geschrieben, wie jeder Stack ihn erwartet. Verbatra liest und schreibt die Dateien, die du schon hast, und für ein Format, das es nicht mitbringt, baust du einen Adapter auf dem SDK."
         },
-        "adapters": {
-          "title": "Bring dein eigenes Format mit",
-          "body": "Ein Format, das Verbatra nicht mitbringt? Baue einen Adapter auf den Adapter-Factories des SDK und übergib ihn."
+        "sdk": {
+          "title": "Ein typisiertes SDK",
+          "body": "`translate` liefert eine typisierte `RunSummary`: welche Locales erfolgreich waren, welche teilweise oder ganz fehlgeschlagen sind und wie viele Tokens der Lauf verbraucht hat."
         },
-        "integrity": {
-          "title": "Platzhalter bleiben intakt",
-          "body": "Jedes Ergebnis wird auf Platzhalter- und ICU-Integrität geprüft. Eine Antwort, die einen verliert oder erfindet, wird zurückgehalten statt geschrieben."
+        "frameworks": {
+          "title": "Ein Schnellstart für dein Framework",
+          "body": "Jeder führt von der Installation bis zur übersetzten Datei im eigenen Format deines Frameworks.",
+          "all": "Alle Schnellstarts"
         }
       }
     },

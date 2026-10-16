@@ -161,6 +161,17 @@ describe("theme tokens", () => {
     },
   );
 
+  it("raises the light theme's orange property tokens to WCAG AA on every code surface", () => {
+    const color = rulesFor(rules, '.light .shiki span[style*="#E36209" i]')[0]?.declarations.color;
+    if (!color) throw new Error("no light property-token override");
+    const token = luminance(color.replace(/\s*!important$/, ""));
+    for (const surface of ["--surface-bg", "--surface-card", "--color-fd-muted", "--v-void"]) {
+      const background = luminance(resolve(LIGHT, `var(${surface})`));
+      const ratio = (Math.max(token, background) + 0.05) / (Math.min(token, background) + 0.05);
+      expect(ratio, `property token on ${surface}`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
   it("derives the accent border from the accent and the default border, in one token", () => {
     expect(DARK["--border-accent"]).toBe(
       "color-mix(in srgb, var(--accent) 45%, var(--border-default))",

@@ -181,7 +181,7 @@ Scales are fixed and narrow, deliberately:
   stacked block at a narrower measure, `.vk-section-head-inline`, set inside the column beside an
   artifact rather than over it: the SDK playground renders it on the server as a sibling before
   its island, and its grid puts it at the top of the control column next to the sticky snippet).
-  A split head without a lead renders stacked (features, comparison, FAQ); `stacked` and `inline`
+  A split head without a lead renders stacked (comparison, FAQ); `stacked` and `inline`
   keep their shape either way. `SectionHead` is the head only and takes no children.
   `SectionAside` (same file) is the head beside its content: a `.vk-section-aside` `.vk-grid-12`
   with the stacked heading and lead (`data-layout="aside"`) in span 4 at the start and its
@@ -339,12 +339,23 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
 `SUPPORTED_FORMAT_IDS.length`, never a typed number), `problem.tsx` (`#problem`, a real drift
   artifact from `lib/landing-problem.ts`), `flow.tsx` (`#flow`, the feature flow, see "Feature
   flow" below),
-  `bento.tsx` (`#features`, tiles from `lib/landing-bento.ts`, each with a real artifact and
-  `Evidence` chips; the artifact stretches to the tile, so a row's panels end level. The provider
-  tile is a `verbatra.config.ts` diff from one provider block to another (`BENTO_PROVIDER_DIFF`,
-  both blocks pinned to the sdk's `loadConfig`), and the framework tile writes one key into several
-  stacks' files, each line taken from the real adapter output in `lib/format-samples.generated.json`
-  (`BENTO_FORMAT_LINES`), so neither repeats the marquee lists), `code-showcase.tsx` (`#code`, CLI, SDK, config and Action tabs from
+  `bento.tsx` (`#features`, a split head with a lead, then the tiles of `BENTO_TILES` in
+  `lib/landing-bento.ts`, in reading order on the 12-column grid: the provider switch (span 8, a
+  `verbatra.config.ts` diff from one provider block to another, `BENTO_PROVIDER_DIFF`, both blocks
+  pinned to the sdk's `loadConfig`, then the `none` provider chip dated by `RELEASE_BADGE`'s
+  `provider-none` feature through `AvailableFromPill`), the keys tile (span 4, as tall as its row:
+  one `BENTO_KEY_ENV_VARS` name per machine provider, pinned to
+  `packages/ai-providers/src/key-env-vars.ts`, the optional ones marked and a provider that
+  `RELEASE_BADGE` dates carrying the pill, then the safety claims and links to
+  `/docs/providers#keys-come-from-the-environment` (localized anchors) and
+  `/docs/translation-safety`), the format tile (span 6, one key written into several stacks'
+  files, each line taken from the real adapter output in `lib/format-samples.generated.json`,
+  `BENTO_FORMAT_LINES`, plus the custom adapter chip), the SDK tile (span 6, the `RunSummary`
+  fields of the published sdk, `BENTO_RUN_SUMMARY_FIELDS`, pinned to
+  `packages/sdk/dist/index.d.ts`) and the framework strip (span 12, no card: a top hairline, the
+  `STACKS` names each linking its quickstart, then all quickstarts). Card tiles are flat panels
+  whose artifacts stretch to the tile, so a row's panels end level; tile titles are `.vk-h4`
+  `h3`s), `code-showcase.tsx` (`#code`, CLI, SDK, config and Action tabs from
   `lib/landing-code.ts`, highlighted on the server by `lib/landing-highlight.ts` with dual themes
   and framed by `code-frame.tsx`), `playground.tsx` (`#playground`, the SDK playground, see
   "SDK playground" below), `marquee.tsx`
@@ -408,7 +419,7 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   sample through the real adapter. The shared building blocks: `section.tsx` and
   `section-head.tsx` for structure,
   `terminal.tsx` (with a `bare` variant; by default lines never wrap, they scroll sideways inside
-  `.vk-terminal-scroll`, which fades the end edge while there is more to see: a mask on the element's own inline scroll timeline (one `@supports` rule for every scroll fade, `.vk-edge-fade` included, dropped while the element shows a focus ring or holds a focused child, so no ring is faded), and without scroll timelines a `--scroll-shade` (neutral, never violet) over a `local` void cover; `.vk-scroll-fade` is the same rule for any other sideways-scrolling mono block, the problem panes and check output and the bento runs, diff and format lines, each a `ScrollBlock` (`components/landing/scroll-block.tsx`: a `div` with `role="group"`, never a landmark, and `tabIndex={0}`, like the code frames' `pre`) named by its caption through `aria-labelledby`; with `wrap` every line
+  `.vk-terminal-scroll`, which fades the end edge while there is more to see: a mask on the element's own inline scroll timeline (one `@supports` rule for every scroll fade, `.vk-edge-fade` included, dropped while the element shows a focus ring or holds a focused child, so no ring is faded), and without scroll timelines a `--scroll-shade` (neutral, never violet) over a `local` void cover; `.vk-scroll-fade` is the same rule for any other sideways-scrolling mono block, the problem panes and check output and the bento diff and format lines, each a `ScrollBlock` (`components/landing/scroll-block.tsx`: a `div` with `role="group"`, never a landmark, and `tabIndex={0}`, like the code frames' `pre`) named by its caption through `aria-labelledby`; with `wrap` every line
   wraps through `.vk-wrap-line`, whose hanging indent is the line's own leading whitespace
   (`--wrap-lead`, set by `wrapLineStyle` in `wrap-text.tsx`) plus 2ch, and whose placeholder tokens
   (`{count}`, `(-{count})`) and hyphenated words (`up-to-date`) never break, through `WrapTokens`.
@@ -689,8 +700,8 @@ reserved for client islands (see "The stack").
   capped to the snippet column's width, from `--flow-rail`, declared on the section's
   `.vk-flow-section` so the head and the nodes share it) is one `ol.vk-flow-list`, one `li.vk-flow-node` per entry of
   `FLOW_NODES` in `lib/landing-flow.ts`: an `h3`, two sentences, one docs link and one `CodeFrame`
-  snippet, each titled (its file name, or `HERO_TERMINAL_TITLE`, `~/app`, for a command, like
-  the bento's shell frame) so its copy button sits in the title bar and never over the code, each
+  snippet, each titled (its file name, or `HERO_TERMINAL_TITLE`, `~/app`, for a
+  command) so its copy button sits in the title bar and never over the code, each
   snippet taken from its source and pinned to it by `flow.test.tsx` (the next-intl
   sample from the real adapter, the `init`, `translate` and `check` commands and flags of the
   published `@verbatra/cli`, as recorded once from its release tag in
@@ -972,8 +983,8 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   runs under it. A `// [!code highlight]` line gets the landing's
   highlight treatment: 22 percent `--v-purple` tint plus a 3px `--v-purple` bar on the start
   edge. `DocsHomeFeatures` cards carry the same 3px `--v-purple` start bar. Code blocks use
-  Fumadocs' dual Shiki themes, which follow the `dark` / `light` class; the raised comment color
-  (`#8b949e`) applies only under `.dark`.
+  Fumadocs' dual Shiki themes, which follow the `dark` / `light` class; comment tokens are raised to
+  AA in both themes, and the light theme's orange property token (`#E36209`) to `#953800`.
 - **Callouts**: one 3px bar plus the icon, both in `--callout-color`, which Fumadocs derives
   from `--color-fd-<type>`. The override block in `global.css` pins `--color-fd-info` and
   `--color-fd-success` to the glow and `--color-fd-warning` to `--v-status-changed` (amber), so

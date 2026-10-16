@@ -1,23 +1,50 @@
 // @vitest-environment jsdom
 
+import type { ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import { GATE_RUN_LINES } from "@/lib/gate-demo";
-import { BENTO_FORMAT_LINES, BENTO_PROVIDER_DIFF, BENTO_TILES } from "@/lib/landing-bento";
+import {
+  BENTO_FORMAT_LINES,
+  BENTO_KEY_ENV_VARS,
+  BENTO_PROVIDER_DIFF,
+  BENTO_RUN_SUMMARY_FIELDS,
+  BENTO_TILES,
+} from "@/lib/landing-bento";
 import { FORMAT_DISPLAY, MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
+import { RELEASE_BADGE } from "@/lib/release-badge";
+import { STACK_IDS, STACKS } from "@/lib/stacks";
 import en from "@/messages/en.json";
+
+vi.mock("next/link", () => ({
+  default: ({
+    href,
+    children,
+    prefetch: _prefetch,
+    ...rest
+  }: ComponentProps<"a"> & { href: string; prefetch?: unknown }) => (
+    <a href={href} {...rest}>
+      {children}
+    </a>
+  ),
+}));
 
 vi.mock("next-intl/server", async () => {
   const { createTranslator } = await import("next-intl");
   const { default: messages } = await import("@/messages/en.json");
   return {
-    getTranslations: async (namespace: string) =>
-      createTranslator({ locale: "en", messages, namespace: namespace as never }),
+    getTranslations: async (scope: string | { namespace: string }) =>
+      createTranslator({
+        locale: "en",
+        messages,
+        namespace: (typeof scope === "string" ? scope : scope.namespace) as never,
+      }),
     getLocale: async () => "de",
   };
 });
 
 const { Bento } = await import("./bento");
+
+const copy = en.landing.bento;
 
 let root: HTMLElement;
 
@@ -32,56 +59,94 @@ function tile(key: string): HTMLElement {
   return node;
 }
 
+function span(key: string): string | undefined {
+  return tile(key).className.match(/lg:col-span-(\d+)/)?.[1];
+}
+
 describe("Bento", () => {
-  it("lets the keyboard reach and scroll every sideways-scrolling block, each a named group, never a landmark, and end-faded", () => {
+  it("opens with a heading and a lead, then lists the tiles in reading order", () => {
+    expect(root.querySelector("h2#features-heading")?.textContent).toBe(copy.heading);
+    expect(root.querySelector(".vk-section-head-lead")?.textContent).toBe(copy.lead);
+    const tiles = [...root.querySelectorAll<HTMLElement>("[data-tile]")];
+    expect(tiles.map((node) => node.dataset.tile)).toEqual(BENTO_TILES.map((t) => t.key));
+    expect(root.innerHTML).not.toContain("dense");
+  });
+
+  it("titles every tile with a .vk-h4 h3 from en.json", () => {
+    for (const { key } of BENTO_TILES) {
+      const title = tile(key).querySelector("h3");
+      expect(title?.textContent).toBe(copy.items[key].title);
+      expect(title?.className).toContain("vk-h4");
+    }
+  });
+
+  it("varies tile sizes and never ends in a row of equal small cards", () => {
+    expect(BENTO_TILES.map((t) => span(t.key))).toEqual(["8", "4", "6", "6", "12"]);
+    const last = tile("frameworks");
+    expect(last.className).not.toContain("rounded-xl");
+    expect(last.className).toContain("border-t");
+    expect(tile("providers").className).toContain("rounded-xl");
+  });
+
+  it("lets the keyboard reach and scroll every sideways-scrolling block, each a named group", () => {
     const blocks = [...root.querySelectorAll<HTMLElement>(".vk-scroll-fade")];
     expect(blocks.length).toBeGreaterThan(0);
-    expect(root.querySelectorAll("section").length).toBeLessThanOrEqual(1);
     for (const block of blocks) {
-      expect(block.tagName).toBe("DIV");
       expect(block.getAttribute("role")).toBe("group");
       expect(block.getAttribute("tabindex")).toBe("0");
       const name = root.querySelector(`#${block.getAttribute("aria-labelledby")}`)?.textContent;
       expect(name?.trim()).not.toBe("");
     }
-    expect(root.querySelector(".overflow-x-auto")).toBeNull();
+    expect(root.querySelectorAll("section").length).toBeLessThanOrEqual(1);
   });
 
-  it("renders every tile with its en.json title and body", () => {
-    expect(root.querySelector("h2#features-heading")?.textContent).toBe(en.landing.bento.heading);
-    for (const { key } of BENTO_TILES) {
-      const copy = en.landing.bento.items[key];
-      expect(tile(key).querySelector("h3")?.textContent).toBe(copy.title);
-      expect(tile(key).querySelector("p")?.textContent).toBe(copy.body.replaceAll("`", ""));
-    }
-  });
-
-  it("varies tile widths instead of one repeated card", () => {
-    const spans = new Set(
-      BENTO_TILES.map((t) => tile(t.key).className.match(/lg:col-span-(\d+)/)?.[1]),
-    );
-    expect(spans.size).toBeGreaterThanOrEqual(3);
-    expect(root.querySelector("svg")).toBeNull();
-  });
-
-  it("shows a provider switch as a config diff instead of repeating the provider list", () => {
+  it("shows a provider switch as a config diff and dates the none provider with the release badge", () => {
     const diff = tile("providers").querySelector('[data-artifact="providers"]');
     expect(diff?.querySelector("figcaption")?.textContent).toBe("verbatra.config.ts");
     const rows = [...(diff?.querySelectorAll<HTMLElement>("[data-diff]") ?? [])];
-    expect(rows.map((row) => row.dataset.diff)).toEqual(
-      BENTO_PROVIDER_DIFF.map((line) =>
-        line.sign === " " ? "context" : line.sign === "-" ? "removed" : "added",
-      ),
-    );
     expect(rows.map((row) => row.textContent)).toEqual(
       BENTO_PROVIDER_DIFF.map((line) => `${line.sign}${line.text}`),
     );
-    for (const id of MACHINE_PROVIDER_IDS.filter((id) => id !== "gemini" && id !== "deepl")) {
-      expect(diff?.textContent).not.toContain(`"${id}"`);
-    }
+    const none = tile("providers").querySelector("[data-none-provider]");
+    expect(none?.textContent).toContain(copy.items.providers.none);
+    expect(none?.querySelector("a")?.getAttribute("href")).toBe("/de/docs/human-only-workflow");
+    expect(none?.querySelector(".vk-available-from")?.textContent).toBe(
+      en.docs.availableFrom.title.replace("{version}", RELEASE_BADGE.version),
+    );
   });
 
-  it("writes one key into several framework files instead of listing every format", () => {
+  it("lists one key variable per provider, badging only the release's new ones", () => {
+    const items = [...tile("keys").querySelectorAll<HTMLElement>("li[data-provider]")];
+    expect(items.map((item) => item.dataset.provider)).toEqual([...MACHINE_PROVIDER_IDS]);
+    for (const item of items) {
+      const id = item.dataset.provider as (typeof MACHINE_PROVIDER_IDS)[number];
+      expect(item.querySelector("code")?.textContent).toBe(BENTO_KEY_ENV_VARS[id].name);
+      expect(item.querySelector(".vk-available-from") !== null).toBe(
+        RELEASE_BADGE.providers.includes(id),
+      );
+      expect(item.textContent?.includes(copy.items.keys.optional)).toBe(
+        BENTO_KEY_ENV_VARS[id].optional,
+      );
+    }
+    const list = tile("keys").querySelector("ul[aria-labelledby]");
+    expect(root.querySelector(`#${list?.getAttribute("aria-labelledby")}`)?.textContent).toBe(
+      copy.items.keys.variables,
+    );
+  });
+
+  it("links the key and safety claims to the docs that state them", () => {
+    const keys = tile("keys");
+    expect([...keys.querySelectorAll("[data-claim]")].map((c) => c.textContent)).toEqual(
+      Object.values(copy.items.keys.claims),
+    );
+    const hrefs = [...keys.querySelectorAll("a")].map((a) => a.getAttribute("href"));
+    expect(hrefs).toEqual([
+      "/de/docs/providers#keys-kommen-aus-der-umgebung",
+      "/de/docs/translation-safety",
+    ]);
+  });
+
+  it("writes one key into several framework files and links the custom adapter guide", () => {
     const list = tile("formats").querySelector('[data-artifact="formats"]');
     const rows = [...(list?.querySelectorAll<HTMLElement>("li[data-format]") ?? [])];
     expect(rows.map((row) => row.dataset.format)).toEqual(BENTO_FORMAT_LINES.map((l) => l.format));
@@ -89,44 +154,35 @@ describe("Bento", () => {
     BENTO_FORMAT_LINES.forEach((entry, index) => {
       const row = rows[index];
       expect(row?.textContent).toContain(FORMAT_DISPLAY[entry.format].label);
-      expect(row?.textContent).toContain(entry.file);
-      expect(row?.querySelector(".truncate")?.getAttribute("title")).toBe(entry.file);
       expect(row?.querySelector("code")?.textContent).toBe(entry.line);
       expect(row?.querySelector(".vk-placeholder")?.textContent).toBe(entry.placeholder);
     });
+    const hrefs = [...tile("formats").querySelectorAll("a")].map((a) => a.getAttribute("href"));
+    expect(hrefs).toContain("/de/docs/custom-format-adapters");
   });
 
-  it("stretches every artifact to the tile height and captions each panel, so a row ends level", () => {
-    for (const { key } of BENTO_TILES) {
-      const holder =
-        tile(key).querySelector("[data-tile] > div:nth-child(2)") ?? tile(key).children[1];
-      expect(holder?.className).toContain("flex-1");
-      expect(holder?.className).toContain("[&>*]:flex-1");
-      expect(tile(key).querySelector("figcaption, li[data-format]")).not.toBeNull();
+  it("highlights the RunSummary excerpt in both themes and links its reference page", () => {
+    const pre = tile("sdk").querySelector("pre.shiki");
+    expect(pre?.className).toContain("github-light github-dark");
+    for (const field of BENTO_RUN_SUMMARY_FIELDS) {
+      expect(pre?.textContent?.replace(/\s+/g, " ")).toContain(field.replace(/\s+/g, " "));
     }
+    expect(tile("sdk").querySelector("a")?.getAttribute("href")).toBe("/de/docs/sdk/run-summary");
   });
 
-  it("prints the real integrity gate run with the dropped placeholder as a chip", () => {
-    const run = tile("integrity").querySelector('[data-artifact="integrity"]');
-    expect(run?.getAttribute("lang")).toBe("en");
-    expect(run?.textContent).toBe(`$ ${GATE_RUN_LINES.join("")}`);
-    expect(run?.querySelector(".vk-placeholder")?.textContent).toBe("{count}");
+  it("names every quickstart stack in the strip and links each to its quickstart", () => {
+    const links = [...tile("frameworks").querySelectorAll<HTMLAnchorElement>("li[data-stack] a")];
+    expect(links.map((a) => a.textContent)).toEqual(STACK_IDS.map((id) => STACKS[id].name));
+    expect(links.map((a) => a.getAttribute("href"))).toEqual(
+      STACK_IDS.map((id) => `/de/docs/quickstart/${id}`),
+    );
+    const all = [...tile("frameworks").querySelectorAll("a")].at(-1);
+    expect(all?.textContent).toBe(copy.items.frameworks.all);
+    expect(all?.getAttribute("href")).toBe("/de/docs/quickstart");
   });
 
-  it("highlights the lock file, key and adapter samples with both themes", () => {
-    for (const key of ["incremental", "keys", "adapters"]) {
-      const pre = tile(key).querySelector("pre.shiki");
-      expect(pre?.className).toContain("github-light github-dark");
-      expect(pre?.innerHTML).toContain("--shiki-light:");
-    }
-    expect(tile("incremental").querySelector("figcaption")?.textContent).toBe("verbatra.lock.json");
-  });
-
-  it("shows the action triggers and links evidence to localized docs pages", () => {
-    expect(tile("action").querySelector("dl")?.textContent).toContain("on: pull_request");
+  it("links only to localized docs pages", () => {
     const hrefs = [...root.querySelectorAll("a")].map((a) => a.getAttribute("href"));
-    expect(hrefs).toContain("/de/docs/cli/check#qualitätsprüfung");
-    expect(hrefs).toContain("/de/docs/github-action");
     expect(hrefs.every((href) => href?.startsWith("/de/docs/"))).toBe(true);
   });
 });
