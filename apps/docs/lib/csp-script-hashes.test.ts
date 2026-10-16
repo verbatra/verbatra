@@ -2,7 +2,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { readScriptHashes, scriptHashesFor } from "./csp-script-hashes";
+import { isBuiltDocsPage, readScriptHashes, scriptHashesFor } from "./csp-script-hashes";
 import { NOT_FOUND_ROUTE, SCRIPT_HASHES_FILE } from "./script-hashes-manifest.mjs";
 
 const ROUTES = {
@@ -86,5 +86,16 @@ describe("readScriptHashes", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
     readScriptHashes(join(tmpdir(), "csp-manifest-absent"));
     expect(error).not.toHaveBeenCalled();
+  });
+});
+
+describe("isBuiltDocsPage", () => {
+  it("knows a docs page by its built route and trusts every page when no build manifest exists", () => {
+    const routes = { "/en/docs/formats": ["sha256-a"], "/de/docs": ["sha256-b"] };
+    expect(isBuiltDocsPage("en", "/formats", routes)).toBe(true);
+    expect(isBuiltDocsPage("de", "", routes)).toBe(true);
+    expect(isBuiltDocsPage("en", "/no-such-page", routes)).toBe(false);
+    expect(isBuiltDocsPage("fr", "/formats", routes)).toBe(false);
+    expect(isBuiltDocsPage("en", "/anything", {})).toBe(true);
   });
 });

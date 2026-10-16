@@ -89,7 +89,9 @@ for (const [from, to] of [
 }
 
 test("ends an .mdx url without a page behind it in a 404", async ({ request }) => {
-  expect((await request.get("/docs/no-such-page.mdx")).status()).toBe(404);
+  expect((await request.get("/docs/no-such-page.mdx", { maxRedirects: 0 })).status()).toBe(404);
+  expect((await request.get("/docs.mdx/no-such-page", { maxRedirects: 0 })).status()).toBe(404);
+  expect((await request.get("/docs/a.mdx/b", { maxRedirects: 0 })).status()).toBe(404);
   expect((await request.get("/no-such-page.mdx", { maxRedirects: 0 })).status()).toBe(404);
   expect((await request.get("/xx/site.mdx/index", { maxRedirects: 0 })).status()).toBe(404);
 });

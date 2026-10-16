@@ -1,7 +1,7 @@
 import { createI18nMiddleware } from "fumadocs-core/i18n/middleware";
 import type { NextFetchEvent, NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { scriptHashesFor } from "@/lib/csp-script-hashes";
+import { isBuiltDocsPage, scriptHashesFor } from "@/lib/csp-script-hashes";
 import { i18n } from "@/lib/i18n";
 import {
   hasMarkdownVariant,
@@ -58,7 +58,7 @@ async function route(request: NextRequest, event: NextFetchEvent) {
   }
   const { pathname } = request.nextUrl;
   if (isMdxPath(pathname)) {
-    const target = mdxRedirectPath(pathname);
+    const target = mdxRedirectPath(pathname, isBuiltDocsPage);
     if (target !== null) return NextResponse.redirect(new URL(target, request.url), 308);
   }
   if (!hasMarkdownVariant(pathname)) return i18nProxyWithoutCookies(request, event);

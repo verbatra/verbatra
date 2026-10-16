@@ -33,6 +33,14 @@ export function loadBuiltScriptHashes(): ScriptHashesByRoute {
   return builtScriptHashes;
 }
 
+export function isBuiltDocsPage(
+  locale: string,
+  slug: string,
+  routes: ScriptHashesByRoute = loadBuiltScriptHashes(),
+): boolean {
+  return Object.keys(routes).length === 0 || `/${locale}/docs${slug}` in routes;
+}
+
 export function scriptHashesFor(
   pathname: string,
   routes: ScriptHashesByRoute = loadBuiltScriptHashes(),

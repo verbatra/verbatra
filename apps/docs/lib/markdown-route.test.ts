@@ -183,6 +183,30 @@ describe(".mdx urls", () => {
   });
 
   it.each([
+    "//evil.example/compare.mdx",
+    "/docs.mdx/%2e%2e%2fx",
+    "/docs/a.mdx/b",
+    "/en//compare.mdx",
+  ])("never sends the hostile .mdx url %s anywhere but a page of this site", (pathname) => {
+    const target = mdxRedirectPath(pathname, (locale, slug) => slug === "" && locale === "en");
+    expect(target).toBeNull();
+  });
+
+  it("strips the default locale from a page url, like a docs url", () => {
+    expect(mdxRedirectPath("/en/compare.mdx")).toBe("/compare.md");
+    expect(mdxRedirectPath("/en/index.mdx")).toBe("/index.md");
+  });
+
+  it("sends a docs .mdx url only to a docs page that exists", () => {
+    const exists = (locale: string, slug: string) => locale === "en" && slug === "/formats";
+    expect(mdxRedirectPath("/docs.mdx/formats", exists)).toBe("/docs/formats.md");
+    expect(mdxRedirectPath("/docs/formats.mdx", exists)).toBe("/docs/formats.md");
+    expect(mdxRedirectPath("/docs/no-such-page.mdx", exists)).toBeNull();
+    expect(mdxRedirectPath("/de/docs.mdx/formats", exists)).toBeNull();
+    expect(mdxRedirectPath("/compare.mdx", exists)).toBe("/compare.md");
+  });
+
+  it.each([
     "/nothing.mdx",
     "/xx/docs.mdx/formats",
     "/xx/site.mdx/index",

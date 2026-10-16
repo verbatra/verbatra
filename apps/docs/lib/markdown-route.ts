@@ -10,6 +10,7 @@ const SITE_MARKDOWN_SEGMENT = "site.mdx";
 const INTERNAL_DOCS_PATH = /^(?:\/([a-z]{2}))?\/docs\.mdx((?:\/[^/]+)*)$/;
 const INTERNAL_SITE_PATH = /^(?:\/([a-z]{2}))?\/site\.mdx\/([a-z-]+)$/;
 const MDX_PATH = /\.mdx(?:\/|$)/;
+const PUBLIC_MDX_PATH = /^(?:\/([a-z]{2})(?=\/))?(\/[^/].*)\.mdx$/;
 const MDX_SUFFIX = ".mdx";
 
 export const HOME_PATH = "/";
@@ -140,12 +141,26 @@ function publicCandidate(pathname: string): string | null {
     const prefix = localePrefix(site[1]);
     return prefix === null ? null : `${prefix}/${site[2] ?? ""}${MARKDOWN_SUFFIX}`;
   }
-  return pathname.endsWith(MDX_SUFFIX)
-    ? `${pathname.slice(0, -MDX_SUFFIX.length)}${MARKDOWN_SUFFIX}`
-    : null;
+  const page = PUBLIC_MDX_PATH.exec(pathname);
+  if (page === null) return null;
+  const prefix = localePrefix(page[1]);
+  return prefix === null ? null : `${prefix}${page[2] ?? ""}${MARKDOWN_SUFFIX}`;
 }
 
-export function mdxRedirectPath(pathname: string): string | null {
+export type DocsPageExists = (locale: string, slug: string) => boolean;
+
+function docsPageListed(candidate: string, exists: DocsPageExists): boolean {
+  const docs = DOCS_PATH.exec(withoutMarkdownSuffix(candidate));
+  if (docs === null) return true;
+  const [, lang = i18n.defaultLanguage, slug = ""] = docs;
+  return exists(lang, slug);
+}
+
+export function mdxRedirectPath(
+  pathname: string,
+  docsPageExists: DocsPageExists = () => true,
+): string | null {
   const candidate = publicCandidate(pathname);
-  return candidate !== null && hasMarkdownVariant(candidate) ? candidate : null;
+  if (candidate === null || !hasMarkdownVariant(candidate)) return null;
+  return docsPageListed(candidate, docsPageExists) ? candidate : null;
 }
