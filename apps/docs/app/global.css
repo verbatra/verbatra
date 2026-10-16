@@ -444,8 +444,12 @@ html.light {
   text-decoration: none;
 }
 
-.vk-placeholder[data-after-sign] {
+.vk-placeholder[data-keep-start] {
   margin-inline-start: 0;
+}
+
+.vk-placeholder[data-keep-end] {
+  margin-inline-end: 0;
 }
 
 .vk-placeholder[data-broken] {
@@ -1772,6 +1776,7 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 .vk-showcase-file-switch {
   grid-area: switch;
   display: flex;
+  flex-wrap: wrap;
   gap: 0.25rem;
   min-width: 0;
   margin: 0;
@@ -1781,7 +1786,9 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 }
 
 .vk-showcase-file-tab {
+  flex: none;
   padding: 0.25rem 0.5rem;
+  white-space: nowrap;
   border-radius: var(--radius-sm);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
@@ -2980,7 +2987,6 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   gap: 0.5rem;
   min-height: 2.5rem;
   padding-inline: 0.875rem;
-  border: 1px solid var(--border-default);
   border-radius: var(--radius-full);
   background: var(--surface-bg);
   font-size: var(--text-sm);

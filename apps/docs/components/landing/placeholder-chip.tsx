@@ -6,23 +6,28 @@ const WHOLE_PLACEHOLDER_TOKEN = new RegExp(`^(?:${PLACEHOLDER_TOKEN.source})$`);
 
 const NO_BROKEN_TOKENS: ReadonlySet<string> = new Set();
 
-const ENDS_IN_SIGN = /[+-]$/;
+const ENDS_IN_SIGN_OR_QUOTE = /[+\-"']$/;
+
+const STARTS_WITH_QUOTE = /^["']/;
 
 export function PlaceholderChip({
   token,
   broken = false,
-  afterSign = false,
+  keepStart = false,
+  keepEnd = false,
 }: {
   token: string;
   broken?: boolean;
-  afterSign?: boolean;
+  keepStart?: boolean;
+  keepEnd?: boolean;
 }): ReactNode {
   return (
     <span
       className="vk-placeholder"
       data-placeholder=""
       data-broken={broken ? "" : undefined}
-      data-after-sign={afterSign ? "" : undefined}
+      data-keep-start={keepStart ? "" : undefined}
+      data-keep-end={keepEnd ? "" : undefined}
     >
       {token}
     </span>
@@ -59,7 +64,8 @@ export function PlaceholderText({
         <PlaceholderChip
           token={part}
           broken={broken.has(part)}
-          afterSign={ENDS_IN_SIGN.test(parts[index - 1] ?? "")}
+          keepStart={ENDS_IN_SIGN_OR_QUOTE.test(parts[index - 1] ?? "")}
+          keepEnd={STARTS_WITH_QUOTE.test(parts[index + 1] ?? "")}
         />
       ) : (
         part

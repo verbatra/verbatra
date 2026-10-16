@@ -8,7 +8,7 @@ import type { Locale } from "@/lib/i18n";
 import { FORMAT_DISPLAY, MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { providerShortLabel } from "@/lib/landing-providers";
 import { RELEASE_BADGE } from "@/lib/release-badge";
-import { docsStylesheetRules } from "@/lib/stylesheet-rules";
+import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
 import german from "@/messages/de.json";
 import messages from "@/messages/en.json";
 import { contrast, themeTokens } from "@/test-support/contrast";
@@ -269,6 +269,13 @@ describe("MarqueeMotion", () => {
 
 describe("the marquee stylesheet", () => {
   const rules = docsStylesheetRules();
+
+  it("draws each list item as a fill with no ring, so it does not read as a button", () => {
+    const item = rulesFor(rules, ".vk-marquee-item").find((rule) => rule.media === "");
+    expect(item?.declarations.background).toBe("var(--surface-bg)");
+    expect(item?.declarations.border).toBeUndefined();
+    expect(item?.declarations["box-shadow"]).toBeUndefined();
+  });
 
   const MOTION_ALLOWED = "@media (prefers-reduced-motion: no-preference) and (scripting: enabled)";
 

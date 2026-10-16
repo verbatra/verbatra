@@ -59,16 +59,28 @@ describe("PlaceholderText", () => {
     );
   });
 
-  it("marks a chip that follows a plus or minus sign, so its ring does not touch the sign", () => {
-    const added = renderToStaticMarkup(<PlaceholderText text="(+{{tax}})" />);
-    const dropped = renderToStaticMarkup(<PlaceholderText text="(-{count})" />);
-    expect(added).toContain('data-after-sign=""');
-    expect(dropped).toContain('data-after-sign=""');
+  it("keeps the start margin after a sign or a quote, so its ring does not touch the mark", () => {
+    for (const text of ["(+{{tax}})", "(-{count})", '"{amount} bezahlen"', "'{name}'"]) {
+      expect(renderToStaticMarkup(<PlaceholderText text={text} />), text).toContain(
+        'data-keep-start=""',
+      );
+    }
     expect(renderToStaticMarkup(<PlaceholderText text="Total: {{amount}}" />)).not.toContain(
-      "data-after-sign",
+      "data-keep-start",
     );
-    const [afterSign] = rulesFor(rules, ".vk-placeholder[data-after-sign]");
-    expect(afterSign?.declarations["margin-inline-start"]).toBe("0");
+    const [keepStart] = rulesFor(rules, ".vk-placeholder[data-keep-start]");
+    expect(keepStart?.declarations["margin-inline-start"]).toBe("0");
+  });
+
+  it("keeps the end margin before a quote, so its ring does not touch the closing quote", () => {
+    expect(renderToStaticMarkup(<PlaceholderText text='"Total: {amount}",' />)).toContain(
+      'data-keep-end=""',
+    );
+    expect(renderToStaticMarkup(<PlaceholderText text="{amount} bezahlen" />)).not.toContain(
+      "data-keep-end",
+    );
+    const [keepEnd] = rulesFor(rules, ".vk-placeholder[data-keep-end]");
+    expect(keepEnd?.declarations["margin-inline-end"]).toBe("0");
   });
 
   it("keeps the text of a line without placeholders as it is", () => {

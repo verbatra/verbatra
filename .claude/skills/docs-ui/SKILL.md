@@ -205,8 +205,8 @@ Scales are fixed and narrow, deliberately:
   `--placeholder-fill` inside an inset `--placeholder-ring` box shadow, never a border. It pads the
   token by `--placeholder-inset` and pulls the same amount back with a negative margin, so a chip
   moves no character of a monospace line, and it never wraps; after a `+` or `-` sign
-  (`data-after-sign`, set by `PlaceholderText`) it keeps its start margin, so the ring clears the
-  sign. `data-broken` strikes it in
+  or a quote (`data-keep-start`, set by `PlaceholderText`) it keeps its start margin and before a
+  quote (`data-keep-end`) its end margin, so the ring never touches the mark beside it. `data-broken` strikes it in
   `--text-danger`, only for a token a reply broke. `PlaceholderText` in the same file cuts the
   tokens out of a line (`splitPlaceholders`: `{{name}}` and `{name}` only, so JSON braces stay text)
   and draws each as a chip; every showcase file pane and every `Terminal` line goes through it, and
@@ -368,15 +368,17 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   and `license` tags only. `FORMAT_DISPLAY` in `lib/landing-facts.ts` is every format's display
   label, which the structured data's format list reads too, so a new format fails to
   compile until it has one. The marquee (`marquee.tsx`, `#marquee`, a band right under the
-  hero, its `aside` head at the start of the band and the rows beside it at the end from 64rem)
+  hero, its `SectionAside` head at the start of the band and the rows beside it at the end from
+  64rem)
   shows two rows inside the `MarqueeMotion` island (`marquee-motion.tsx`): the providers,
   `landingProviders()`, whose count the facts block states, with their kind glyph
   (`PROVIDER_KIND_ICONS`), and the formats, `SUPPORTED_FORMAT_IDS` by their `FORMAT_DISPLAY` label with a file glyph
   (`FORMAT_ICONS`, a `Record<SupportedFormat, StackIconKey>`, so a new format fails to compile
   until it has one), every glyph a `<use>` of one `StackIconSprite` (prefix `marquee`). A provider
   that `RELEASE_BADGE` dates carries the shared `AvailableFromPill`, the only place on the
-  landing that badges a provider. No count is
-  typed and no third-party logo is drawn. Each row is a muted `h3` that names its visible list,
+  landing that badges a provider. Each item (`.vk-marquee-item`) is a `--surface-bg` fill with no
+  border or ring, since it is a fact, not a control. No count is typed and no third-party logo is
+  drawn. Each row is a muted `h3` that names its visible list,
   the list, `MARQUEE_COPIES` copies of it (`aria-hidden`, `inert`, holding no link or button), and
   an "All providers" or "All formats" link after the moving track, so nothing focusable moves. The
   list sits in `.vk-marquee-viewport`, a `.vk-edge-fade` `role="group"` keyboard stop named by the
@@ -433,7 +435,8 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   the break scenario with it (counted as `run-scenario` with a `break` property), the break button
   and Try again replay the last chosen reply, the refusal detail comes from `checkPlaceholders`, and
   Reset returns it to the default. The file panes (`.vk-showcase-file`: on a phone one at a time,
-  picked by the `aria-pressed` file names of `.vk-showcase-file-switch`; each named by `data-pane`,
+  picked by the `aria-pressed` file names of `.vk-showcase-file-switch`, which wraps rather than
+  clip a name, each name kept on one line; each named by `data-pane`,
   which the stylesheet maps to its grid area); a marked line is `.vk-showcase-line[data-mark]`,
   tinted like a highlighted code line, its mark word in `--v-status-new` (added, missing, new) or
   `--v-status-changed` (edited, stale, changes); a refused reply shows as a struck

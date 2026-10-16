@@ -135,6 +135,16 @@ test.describe("feature flow at 320px", () => {
           .map((node) => node.getAttribute("data-flow-node")),
       );
     expect(overflowing).toEqual([]);
+    const clipped = await page.locator(`${FLOW} .vk-showcase-file-switch`).evaluate((group) => {
+      const box = group.getBoundingClientRect();
+      return [...group.querySelectorAll(".vk-showcase-file-tab")]
+        .filter((tab) => {
+          const rect = tab.getBoundingClientRect();
+          return rect.right > box.right + 1 || tab.scrollWidth > tab.clientWidth + 1;
+        })
+        .map((tab) => tab.textContent);
+    });
+    expect(clipped).toEqual([]);
   });
 });
 
