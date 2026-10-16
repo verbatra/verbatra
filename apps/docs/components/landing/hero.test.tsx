@@ -167,24 +167,38 @@ describe("Hero", () => {
     for (const line of HERO_TRANSLATE_OUTPUT) expect(hidden?.textContent).toContain(line);
   });
 
-  it("draws one dot backdrop and one glow, both decorative", async () => {
+  it("draws no backdrop pattern and one decorative glow behind the diff", async () => {
     const doc = await render();
-    expect(doc.querySelectorAll(".vk-banner-backdrop")).toHaveLength(1);
-    expect(doc.querySelectorAll(".vk-banner-glow")).toHaveLength(1);
-    for (const layer of doc.querySelectorAll(".vk-banner-backdrop, .vk-banner-glow"))
-      expect(layer.getAttribute("aria-hidden")).toBe("true");
+    expect(doc.querySelectorAll(".vk-banner-backdrop")).toHaveLength(0);
+    const glows = doc.querySelectorAll(".vk-banner-glow");
+    expect(glows).toHaveLength(1);
+    expect(glows[0]?.getAttribute("aria-hidden")).toBe("true");
+    expect(glows[0]?.parentElement?.className).toBe("vk-banner-demo");
   });
 
-  it("takes the dots and the glow from tokens, overridden for the light theme", () => {
+  it("takes the glow from a token, overridden for the light theme, and draws no dots", () => {
     const rules = docsStylesheetRules();
-    const backdrop = rules.find((rule) => rule.selector === ".vk-banner-backdrop");
     const glow = rules.find((rule) => rule.selector === ".vk-banner-glow");
-    expect(backdrop?.declarations["background-image"]).toContain("var(--banner-dot)");
     expect(glow?.declarations.background).toContain("var(--banner-glow)");
     const light = rules.find(
       (rule) => rule.selector === "html.light" && "--banner-glow" in rule.declarations,
     );
-    expect(light?.declarations["--banner-dot"]).toBeDefined();
+    expect(light).toBeDefined();
+    expect(
+      rules.some((rule) =>
+        Object.keys(rule.declarations).some((key) => key.startsWith("--banner-dot")),
+      ),
+    ).toBe(false);
+  });
+
+  it("gives the diff the wider column and runs the facts across both from 64rem", () => {
+    const rule = docsStylesheetRules().find(
+      (entry) =>
+        entry.selector === ".vk-banner-grid" &&
+        "grid-template-areas" in entry.declarations &&
+        entry.declarations["grid-template-areas"]?.includes("facts facts"),
+    );
+    expect(rule?.declarations["grid-template-columns"]).toBe("minmax(0, 5fr) minmax(0, 7fr)");
   });
 
   it("places the facts block after the visual, so a phone reads it right after the hero", async () => {

@@ -229,9 +229,6 @@ samp {
   --placeholder-fill: color-mix(in srgb, var(--v-glow) 12%, transparent);
   --placeholder-ring: color-mix(in srgb, var(--v-glow) 45%, transparent);
   --placeholder-inset: 0.25ch;
-  --banner-dot: color-mix(in srgb, var(--text-faint) 38%, transparent);
-  --banner-dot-gap: 22px;
-  --banner-dot-mask: radial-gradient(ellipse 75% 70% at 60% 35%, #000 25%, transparent 80%);
   --banner-glow: color-mix(in srgb, var(--v-purple) 30%, transparent);
   --banner-title: min(var(--text-hero), 13.5cqi);
 }
@@ -264,7 +261,6 @@ html.light {
   --text-faint: hsl(240 8% 40%);
   --shadow-panel: 0 24px 48px -28px rgba(20, 20, 40, 0.18);
   --shadow-sm: 0 2px 8px -2px rgba(20, 20, 40, 0.12);
-  --banner-dot: color-mix(in srgb, var(--text-faint) 30%, transparent);
   --banner-glow: color-mix(in srgb, var(--v-purple) 16%, transparent);
 }
 
@@ -2571,17 +2567,6 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   padding: 3rem var(--gutter) 3.5rem;
 }
 
-.vk-banner-backdrop {
-  position: absolute;
-  inset: 0 calc(-1 * var(--gutter));
-  z-index: -2;
-  pointer-events: none;
-  background-image: radial-gradient(circle, var(--banner-dot) 1px, transparent 1.5px);
-  background-size: var(--banner-dot-gap) var(--banner-dot-gap);
-  -webkit-mask-image: var(--banner-dot-mask);
-  mask-image: var(--banner-dot-mask);
-}
-
 .vk-banner-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -2841,20 +2826,27 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 
 @media (min-width: 64rem) {
   .vk-banner-grid {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
     grid-template-areas:
       "copy demo"
-      "facts demo";
-    column-gap: 3.5rem;
-    row-gap: 2.5rem;
+      "facts facts";
+    column-gap: 4rem;
+    row-gap: 3.5rem;
+    align-items: start;
   }
 
-  .vk-banner-copy {
-    align-self: end;
+  .vk-facts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .vk-banner-install {
     max-width: var(--width-hero-panel);
+  }
+}
+
+@media (min-width: 80rem) {
+  .vk-facts {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 }
 

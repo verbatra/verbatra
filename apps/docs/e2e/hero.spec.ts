@@ -1,6 +1,6 @@
 import { expect, test } from "playwright/test";
 import { RELEASE_BADGE } from "../lib/release-badge";
-import { homeUrl, LOCALES } from "./support";
+import { expectNoAxeViolations, homeUrl, LOCALES } from "./support";
 
 const HERO = "section.vk-banner";
 
@@ -114,3 +114,33 @@ for (const width of [768, 1024, 1280, 1440]) {
     }
   });
 }
+
+test.describe("hero layout at 1440px", () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test("gives the diff the wider column and runs the facts under both columns", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const box = async (selector: string) => {
+      const rect = await page.locator(`${HERO} ${selector}`).first().boundingBox();
+      if (rect === null) throw new Error(`${selector} has no box`);
+      return rect;
+    };
+    const copy = await box(".vk-banner-copy");
+    const demo = await box(".vk-banner-demo");
+    const facts = await box(".vk-banner-facts");
+    const diff = await box(".vk-hero-diff");
+    expect(demo.width).toBeGreaterThan(copy.width * 1.25);
+    expect(demo.x).toBeGreaterThan(copy.x + copy.width);
+    expect(facts.y).toBeGreaterThanOrEqual(Math.max(copy.y + copy.height, demo.y + demo.height));
+    expect(facts.width).toBeGreaterThanOrEqual(demo.x + demo.width - copy.x - 1);
+    const panes = page.locator(`${HERO} .vk-hero-diff-pane`);
+    const first = await panes.first().boundingBox();
+    const second = await panes.last().boundingBox();
+    expect(Math.abs((first?.y ?? 0) - (second?.y ?? 1))).toBeLessThanOrEqual(1);
+    expect(diff.y).toBeLessThan(900);
+    await expect(page.locator(`${HERO} .vk-banner-backdrop`)).toHaveCount(0);
+    await expectNoAxeViolations(page, HERO);
+  });
+});

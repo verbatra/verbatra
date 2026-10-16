@@ -22,7 +22,6 @@ export async function Hero(): Promise<ReactNode> {
 
   return (
     <section aria-labelledby={HERO_TITLE_ID} className="vk-banner vk-w-wide mx-auto w-full">
-      <div aria-hidden="true" className="vk-banner-backdrop" />
       <div className="vk-banner-grid">
         <div className="vk-banner-copy">
           <h1 id={HERO_TITLE_ID} className="vk-banner-title">

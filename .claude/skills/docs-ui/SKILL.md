@@ -185,9 +185,9 @@ Scales are fixed and narrow, deliberately:
   hero, the feature flow, the code showcase, the comparison and the FAQ are banded, the SDK
   playground between the marquee and the flow, the problem, features and open source sections sit
   on the void, and the code showcase and the comparison sit next to each other until the code
-  showcase retires (`section-bands.test.tsx` pins the order). The hero draws its own
-  decorative dot backdrop and single glow (`.vk-banner-backdrop`, `.vk-banner-glow`, from the
-  `--banner-*` tokens, lighter under `html.light`); there is no wash token.
+  showcase retires (`section-bands.test.tsx` pins the order). The hero draws no
+  pattern, only its single decorative glow (`.vk-banner-glow` behind the diff, from the
+  `--banner-glow` token, lighter under `html.light`); there is no wash token and no dot backdrop.
 - Placeholder chip: `PlaceholderChip` (`components/landing/placeholder-chip.tsx`, the
   `.vk-placeholder` class) is the page's one signature motif, a locked placeholder token
   (`{{amount}}`, `{count}`) drawn the same way in every pane: `--placeholder-fg` (`--accent`) on
@@ -295,8 +295,8 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   `.vk-hero-diff-line` rows marked `new`, each value in `.vk-hero-diff-value`, whose mark never
   wraps (the line scrolls sideways instead, and `.vk-hero-diff-code` is `max-content` wide so the
   tint runs under the whole line); `.vk-hero-diff` is an inline-size container and its two panes
-  sit side by side only from a 40rem container, so they stack in the narrow two-column hero
-  column at 1024 to 1440 and no value is clipped there; each pane's code
+  sit side by side only from a 40rem container, so they stack in the 7/12 demo column at 1024
+  and sit side by side from about 1280, with no value clipped at either; each pane's code
   carries its file's `lang`, `en` and `de`, and the mark words the page's; the outer `figure` has
   no `aria-label`, its visible `.vk-hero-diff-caption` figcaption under the panes reads
   `landing.banner.diffLabel` in `--text-xs` `--text-muted`), `hero-facts.tsx`
@@ -308,7 +308,8 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   `landing.facts.versionParts` naming each package ("CLI and SDK v{cli}, Studio v{studio}, MCP
   server v{mcp}"), and `LANDING_LAST_UPDATED` as a `time`; no provider list, no pill and no
   install row, since the command panel right above shows the command; each `.vk-fact` is
-  `align-content: start`, so a label stays on the first line of its value in a two-column row;
+  `align-content: start`, so a label stays on the first line of its value in a multi-column row (two from 40rem, three
+  from 64rem, where the facts run across the whole hero under both columns, six from 80rem);
   the copy column opens with the `h1`, with no eyebrow line above it), `proof-strip.tsx` (stars, npm weekly downloads, the providers and the format count, the stars
 and downloads from `lib/project-stats.ts`, read at build time so the page stays static, then
 refreshed in place by `LiveStatValue` from `/api/stats`; every figure shows as fetched, with no
@@ -459,8 +460,8 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   `npx` run and each long flag with its value on one line (`keepPackageRunsWhole`); the closed pane
   is `inert` and hidden at every width, so the install pane carries no empty height under its
   command and the panel resizes on a switch, and a switch counts `select-tab` with
-  `location: hero`). The footer draws no pattern and no watermark; the hero backdrop is the page's only
-  pattern. A new section composes `Section` plus
+  `location: hero`). The footer draws no pattern and no watermark, and neither does the hero: the landing
+  has no background pattern. A new section composes `Section` plus
   `SectionHead`; it does not re-derive page padding or heading rhythm. Check
   `ls apps/docs/components/landing` before quoting a file name from this list. The CLI transcripts
   on the landing (`lib/hero-terminal.ts`, `lib/gate-demo.ts`, `lib/check-demo.ts`,
@@ -870,13 +871,15 @@ separate `aside` outside `#nd-sidebar`. It exists so a reader coming from the la
 recognizes the same product. The shared vocabulary, and where each piece comes from:
 
 - **Solid white display headlines.** The landing hero (`hero.tsx`) and the docs home header both
-  set a solid `--text-strong` headline. The hero sits straight on the void page, left-aligned, over
-  its decorative dot backdrop, with one soft glow behind the terminal: `.vk-banner-grid` is one
-  column (copy, demo, facts), and from 64rem two, the copy (`.vk-banner-copy`: the `h1`
+  set a solid `--text-strong` headline. The hero sits straight on the void page, left-aligned, with no
+  backdrop pattern and one soft glow behind the diff: `.vk-banner-grid` is one column (copy, demo,
+  facts), and from 64rem an asymmetric 5fr / 7fr split, the copy (`.vk-banner-copy`: the `h1`
   `.vk-banner-title`, the `.vk-banner-lead`, the `.vk-banner-summary`, `.vk-banner-ctas` with Get
   started (`/docs/quickstart`) and Star on GitHub, then `.vk-banner-install` holding
-  `CommandPanel`) over the facts block (`.vk-banner-facts`), beside the diff and the terminal
-  (`.vk-banner-demo`). The home social image (`HomeOgFrame` in `lib/og-image.tsx`, served
+  `CommandPanel`) in the narrower column beside the wider demo (`.vk-banner-demo`: the locale
+  diff, the dominant visual, its panes side by side once the column reaches 40rem, over the
+  terminal), and the facts block (`.vk-banner-facts`) as a full-width row under both.
+  `hero.test.tsx` pins the split and the absent backdrop. The home social image (`HomeOgFrame` in `lib/og-image.tsx`, served
   by `app/[lang]/(home)/home-og/route.tsx`) is a monochrome and violet card on `OG_PALETTE.void`:
   the wordmark and host, the localized `landing.banner.headline`, then a few real terminal lines
   (`HERO_OG_LINES` in `lib/hero-terminal.ts`, every line taken from the hero transcript, the prompt
