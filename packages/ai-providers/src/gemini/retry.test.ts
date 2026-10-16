@@ -174,6 +174,53 @@ describe("withGeminiRetry: cancellation", () => {
   });
 });
 
+describe("withGeminiRetry: abort raised from the onRetry listener", () => {
+  it("waits out the backoff it was about to start, then throws an abort and makes no further attempt", async () => {
+    vi.useFakeTimers();
+    try {
+      const controller = new AbortController();
+      const call = vi.fn<() => Promise<string>>().mockRejectedValue(new ApiError(429));
+      const settled = vi.fn();
+      const promise = withGeminiRetry(
+        call,
+        controller.signal,
+        { attempts: 3, baseDelayMs: 250 },
+        () => controller.abort(),
+      );
+      promise.then(settled, settled);
+      await vi.advanceTimersByTimeAsync(249);
+      expect(settled).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(1);
+      const rejection = await promise.catch((error: unknown) => error);
+      expect((rejection as DOMException).name).toBe("AbortError");
+      expect(call).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("cuts a backoff short when the abort arrives after the wait has started", async () => {
+    vi.useFakeTimers();
+    try {
+      const controller = new AbortController();
+      const call = vi.fn<() => Promise<string>>().mockRejectedValue(new ApiError(429));
+      const outcome = withGeminiRetry(call, controller.signal, {
+        attempts: 3,
+        baseDelayMs: 60_000,
+      }).catch((error: unknown) => error);
+      await vi.advanceTimersByTimeAsync(10);
+      controller.abort();
+      await vi.advanceTimersByTimeAsync(0);
+      const rejection = await outcome;
+      expect((rejection as DOMException).name).toBe("AbortError");
+      expect(call).toHaveBeenCalledTimes(1);
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
 describe("withGeminiRetry: composed with guardProviderCall (regression, mirrors production wiring)", () => {
   it("classifies a genuine abort during Gemini's backoff as an abort, not RATE_LIMITED, once composed with the shared guard", async () => {
     const controller = new AbortController();
