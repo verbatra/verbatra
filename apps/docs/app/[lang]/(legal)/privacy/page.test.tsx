@@ -115,10 +115,10 @@ const UMAMI_SAME_SERVER: Record<Locale, RegExp> = {
 };
 
 const UMAMI_SERVER_FORWARD: Record<Locale, RegExp> = {
-  en: /No analytics script runs in your browser, and nothing is written to your device for counting page views\..*our web server forwards .*: your IP address, your browser's user-agent string, your browser language, the referring page \(without its query string\) and the path of the page you loaded/,
-  de: /In deinem Browser läuft kein Analyseskript, und zum Zählen der Seitenaufrufe wird nichts auf deinem Gerät gespeichert\..*leitet unser Webserver.*deine IP-Adresse, die User-Agent-Zeichenkette deines Browsers, deine Browsersprache, die verweisende Seite \(ohne ihre Query-Parameter\) und den Pfad der geladenen Seite/,
-  es: /En tu navegador no se ejecuta ningún script de analítica, y para contar las visitas no se escribe nada en tu dispositivo\..*nuestro servidor web reenvía .*: tu dirección IP, la cadena de user-agent de tu navegador, el idioma de tu navegador, la página de referencia \(sin sus parámetros de consulta\) y la ruta de la página que cargaste/,
-  fr: /Aucun script de statistiques ne s'exécute dans ton navigateur, et rien n'est écrit sur ton appareil pour compter les pages vues\..*notre serveur web transmet .*: ton adresse IP, la chaîne user-agent de ton navigateur, la langue de ton navigateur, la page référente \(sans ses paramètres de requête\) et le chemin de la page chargée/,
+  en: /No analytics script runs in your browser, and nothing is written to your device for counting page views\..*our web server forwards .*: your IP address, your browser's user-agent string, the first language tag of your browser's Accept-Language header .*, the referring page \(without its query string\) and the path of the page you loaded/,
+  de: /In deinem Browser läuft kein Analyseskript, und zum Zählen der Seitenaufrufe wird nichts auf deinem Gerät gespeichert\..*leitet unser Webserver.*deine IP-Adresse, die User-Agent-Zeichenkette deines Browsers, das erste Sprachkürzel aus dem Accept-Language-Header deines Browsers .*, die verweisende Seite \(ohne ihre Query-Parameter\) und den Pfad der geladenen Seite/,
+  es: /En tu navegador no se ejecuta ningún script de analítica, y para contar las visitas no se escribe nada en tu dispositivo\..*nuestro servidor web reenvía .*: tu dirección IP, la cadena de user-agent de tu navegador, la primera etiqueta de idioma de la cabecera Accept-Language de tu navegador .*, la página de referencia \(sin sus parámetros de consulta\) y la ruta de la página que cargaste/,
+  fr: /Aucun script de statistiques ne s'exécute dans ton navigateur, et rien n'est écrit sur ton appareil pour compter les pages vues\..*notre serveur web transmet .*: ton adresse IP, la chaîne user-agent de ton navigateur, la première balise de langue de l'en-tête Accept-Language de ton navigateur .*, la page référente \(sans ses paramètres de requête\) et le chemin de la page chargée/,
 };
 
 const UMAMI_SESSION_HASH: Record<Locale, RegExp> = {
@@ -140,6 +140,20 @@ const UMAMI_LEGAL_BASIS: Record<Locale, RegExp> = {
   de: /keine Einwilligung nach § 25 TDDDG .* erforderlich\. Rechtsgrundlage der Verarbeitung ist Art\. 6 Abs\. 1 lit\. f DSGVO/,
   es: /no se necesita ningún consentimiento según el § 25 de la TDDDG .* La base jurídica del tratamiento es el art\. 6\.1\.f\) del RGPD/,
   fr: /aucun consentement au titre du § 25 TDDDG .* n'est nécessaire\. La base légale du traitement est l'art\. 6, § 1, point f\) du RGPD/,
+};
+
+const UMAMI_LANGUAGE_TAG_PER_PAGEVIEW: Record<Locale, RegExp> = {
+  en: /first language tag of your browser's Accept-Language header \(for example en-US\), which is forwarded with each page view/,
+  de: /erste Sprachkürzel aus dem Accept-Language-Header deines Browsers \(zum Beispiel de-DE\), das bei jedem Seitenaufruf weitergeleitet wird/,
+  es: /primera etiqueta de idioma de la cabecera Accept-Language de tu navegador \(por ejemplo, es-ES\), que se reenvía con cada visita a una página/,
+  fr: /première balise de langue de l'en-tête Accept-Language de ton navigateur \(par exemple fr-FR\), transmise à chaque page vue/,
+};
+
+const UMAMI_UTM_ONLY: Record<Locale, RegExp> = {
+  en: /together with the five UTM parameters of the page address \(utm_source, utm_medium, utm_campaign, utm_term and utm_content, each shortened to 255 characters\); all other query parameters, such as advertising click identifiers, and the fragment are discarded and not forwarded\./,
+  de: /zusammen mit den fünf UTM-Parametern der Seitenadresse \(utm_source, utm_medium, utm_campaign, utm_term und utm_content, jeweils auf 255 Zeichen gekürzt\); alle anderen Query-Parameter, etwa Klick-Kennungen von Werbenetzwerken, und das Fragment werden verworfen und nicht weitergeleitet\./,
+  es: /junto con los cinco parámetros UTM de la dirección de la página \(utm_source, utm_medium, utm_campaign, utm_term y utm_content, cada uno acortado a 255 caracteres\); todos los demás parámetros de consulta, como los identificadores de clic publicitarios, y el fragmento se descartan y no se reenvían\./,
+  fr: /avec les cinq paramètres UTM de l'adresse de la page \(utm_source, utm_medium, utm_campaign, utm_term et utm_content, chacun raccourci à 255 caractères\) ; tous les autres paramètres de requête, comme les identifiants de clic publicitaires, ainsi que le fragment sont écartés et ne sont pas transmis\./,
 };
 
 const UMAMI_NO_INTERACTIONS: Record<Locale, RegExp> = {
@@ -369,6 +383,13 @@ describe.each(i18n.languages)("privacy page (%s)", (locale) => {
       /Global Privacy Control \(GPC\)|Global-Privacy-Control-Signal \(GPC\)/,
     );
     expect(analytics).toMatch(/Do[ -]Not[ -]Track/);
+  });
+
+  it("forwards only the five utm parameters and the first Accept-Language tag", async () => {
+    const analytics = sectionText(await renderPrivacy(locale), /^4\. /);
+
+    expect(analytics).toMatch(UMAMI_UTM_ONLY[locale]);
+    expect(analytics).toMatch(UMAMI_LANGUAGE_TAG_PER_PAGEVIEW[locale]);
   });
 
   it("records no interactions and no longer reads the old local storage opt-out", async () => {

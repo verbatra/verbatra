@@ -13,7 +13,7 @@ export const MCP_VERSION = versionData.mcpVersion;
 
 export const NODE_RANGE = versionData.nodeRange;
 
-export const LEGAL_LAST_UPDATED = "2026-10-13";
+export const LEGAL_LAST_UPDATED = "2026-10-16";
 
 export const PRIVACY_CONTACT_FORM_ANCHOR = "contact-form";
 
