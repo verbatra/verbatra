@@ -69,7 +69,8 @@ export function Contributors({
 }): ReactNode {
   if (contributors.length === 0) return null;
   return (
-    <section aria-labelledby="open-source-contributors" className="vk-contribute-people">
+    // biome-ignore lint/a11y/useSemanticElements: a fieldset groups form controls; this names a list of profile links without adding a landmark
+    <div role="group" aria-labelledby="open-source-contributors" className="vk-contribute-people">
       <h3 id="open-source-contributors" className="vk-contribute-label">
         {title}
       </h3>
@@ -96,7 +97,7 @@ export function Contributors({
           </li>
         ))}
       </PlainList>
-    </section>
+    </div>
   );
 }
 

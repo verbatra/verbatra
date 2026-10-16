@@ -547,12 +547,12 @@
       "scrollHint": "Fais défiler le tableau sur le côté pour voir toutes les colonnes."
     },
     "openSource": {
-      "heading": "Les contributions sont les bienvenues.",
+      "heading": "Les contributions sont les bienvenues.",
       "lead": "Verbatra est sous licence MIT et développé en public sur GitHub. Chaque pull request suit le même chemin, et le guide de contribution détaille chaque étape.",
       "steps": {
         "setup": {
           "title": "Prépare le dépôt",
-          "body": "Clone-le et installe depuis la racine. L’installation met aussi en place les hooks Git qui vérifient chaque commit."
+          "body": "Clone-le et installe depuis la racine, ce qui met aussi en place les hooks Git qui vérifient chaque commit."
         },
         "change": {
           "title": "Fais un changement ciblé",
@@ -560,7 +560,7 @@
         },
         "pullRequest": {
           "title": "Ouvre une pull request",
-          "body": "Remplis le modèle et explique comment tu as testé. Ajoute un changeset quand un paquet publié change d’une façon visible pour les utilisateurs."
+          "body": "Remplis le modèle, explique comment tu as testé et ajoute un changeset quand un paquet publié change d’une façon visible pour les utilisateurs."
         }
       },
       "linksHeading": "Projet",

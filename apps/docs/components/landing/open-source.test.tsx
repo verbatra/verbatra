@@ -67,6 +67,13 @@ describe("OpenSource", () => {
       const inline = contributingGuide.includes(`\`${command}\``);
       expect(fenced || inline, command).toBe(true);
     }
+    expect(contributingGuide).toMatch(
+      /Clone the repository and install dependencies from the root:\n\n```\npnpm install\n```/,
+    );
+    expect(contributingGuide).toMatch(
+      /sets up the Git hooks \(lefthook\s+installs them during install\)/,
+    );
+    expect(copy.steps.setup.body).toMatch(/^Clone it and install from the root, .*Git hooks/);
     expect(contributingGuide).toMatch(/1\. Branch from `main`\./);
     expect(contributingGuide).toMatch(/Run `pnpm verify` locally/);
     expect(contributingGuide).toMatch(/Add a changeset if a publishable package changed/);
@@ -123,6 +130,30 @@ describe("OpenSource", () => {
     for (const image of root.querySelectorAll("img")) {
       const src = image.getAttribute("src") ?? "";
       expect(new URL(src, "https://verbatra.test").host).toBe("verbatra.test");
+    }
+  });
+
+  it("names the contributors as a group, not a nested landmark", () => {
+    const people = root.querySelector(".vk-contribute-people");
+    expect(people?.tagName).toBe("DIV");
+    expect(people?.getAttribute("role")).toBe("group");
+    expect(root.querySelector(`#${people?.getAttribute("aria-labelledby")}`)?.textContent).toBe(
+      copy.contributorsHeading,
+    );
+    expect(root.querySelectorAll("section section")).toHaveLength(0);
+  });
+
+  it.each([
+    ["en", en],
+    ["de", de],
+    ["es", es],
+    ["fr", fr],
+  ])("keeps every step body to one sentence in %s", (_locale, catalog) => {
+    for (const [id, step] of Object.entries(catalog.landing.openSource.steps)) {
+      expect(
+        step.body.split(/[.!?](?:\s|$)/).filter((part) => part.trim() !== ""),
+        id,
+      ).toHaveLength(1);
     }
   });
 

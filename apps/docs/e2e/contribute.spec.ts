@@ -21,6 +21,22 @@ for (const locale of LOCALES) {
       });
     }
 
+    for (const width of [1024, 1440]) {
+      test(`lines the step titles, bodies and commands up across the row at ${width}px`, async ({
+        page,
+      }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await page.goto(homeUrl(locale));
+        for (const part of ["h3", "p", "code"]) {
+          const tops = await page
+            .locator(`${STEPS} > ${part}`)
+            .evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().top));
+          expect(tops, part).toHaveLength(3);
+          expect(Math.max(...tops) - Math.min(...tops), part).toBeLessThanOrEqual(1);
+        }
+      });
+    }
+
     test("reflows at 320px with every step and link inside the column", async ({ page }) => {
       await page.setViewportSize({ width: 320, height: 800 });
       await page.goto(homeUrl(locale));

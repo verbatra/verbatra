@@ -20,6 +20,18 @@ for (const locale of LOCALES) {
       });
     }
 
+    test("stretches both actions to the command's width at 320px", async ({ page }) => {
+      await page.setViewportSize({ width: 320, height: 800 });
+      await page.goto(homeUrl(locale));
+      const install = await page.locator(`${CLOSER} .vk-final-install`).boundingBox();
+      const actions = await page
+        .locator(`${CLOSER} .vk-closer-actions a`)
+        .evaluateAll((links) => links.map((link) => link.getBoundingClientRect().width));
+      expect(actions).toHaveLength(2);
+      for (const width of actions)
+        expect(Math.abs(width - (install?.width ?? 0))).toBeLessThanOrEqual(1);
+    });
+
     test("reflows at 320px with the command and both actions inside the column", async ({
       page,
     }) => {

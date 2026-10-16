@@ -552,7 +552,7 @@
       "steps": {
         "setup": {
           "title": "Repository einrichten",
-          "body": "Klone es und installiere vom Root-Verzeichnis aus. Die Installation richtet auch die Git-Hooks ein, die jeden Commit prüfen."
+          "body": "Klone es und installiere vom Root-Verzeichnis aus, was auch die Git-Hooks einrichtet, die jeden Commit prüfen."
         },
         "change": {
           "title": "Eine gezielte Änderung machen",
@@ -560,7 +560,7 @@
         },
         "pullRequest": {
           "title": "Einen Pull Request öffnen",
-          "body": "Füll die Vorlage aus und beschreib, wie du getestet hast. Füg ein Changeset hinzu, wenn sich ein veröffentlichtes Paket für Nutzer spürbar ändert."
+          "body": "Füll die Vorlage aus, beschreib, wie du getestet hast, und füg ein Changeset hinzu, wenn sich ein veröffentlichtes Paket für Nutzer spürbar ändert."
         }
       },
       "linksHeading": "Projekt",

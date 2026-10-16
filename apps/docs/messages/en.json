@@ -605,7 +605,7 @@
       "steps": {
         "setup": {
           "title": "Set up the repository",
-          "body": "Clone it and install from the root. The install also sets up the Git hooks that check each commit."
+          "body": "Clone it and install from the root, which also sets up the Git hooks that check each commit."
         },
         "change": {
           "title": "Make a focused change",
@@ -613,7 +613,7 @@
         },
         "pullRequest": {
           "title": "Open a pull request",
-          "body": "Fill in the template and say how you tested it. Add a changeset when a published package changes in a way users notice."
+          "body": "Fill in the template, say how you tested it and add a changeset when a published package changes in a way users notice."
         }
       },
       "linksHeading": "Project",

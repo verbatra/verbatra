@@ -552,7 +552,7 @@
       "steps": {
         "setup": {
           "title": "Prepara el repositorio",
-          "body": "Clónalo e instala desde la raíz. La instalación también configura los hooks de Git que revisan cada commit."
+          "body": "Clónalo e instala desde la raíz, lo que también configura los hooks de Git que revisan cada commit."
         },
         "change": {
           "title": "Haz un cambio acotado",
@@ -560,7 +560,7 @@
         },
         "pullRequest": {
           "title": "Abre un pull request",
-          "body": "Rellena la plantilla y explica cómo lo probaste. Añade un changeset cuando un paquete publicado cambie de una forma que los usuarios noten."
+          "body": "Rellena la plantilla, explica cómo lo probaste y añade un changeset cuando un paquete publicado cambie de una forma que los usuarios noten."
         }
       },
       "linksHeading": "Proyecto",

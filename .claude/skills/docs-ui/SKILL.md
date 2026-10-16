@@ -435,11 +435,15 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   `CONTRIBUTION_STEPS` of `CONTRIBUTING.md` (set up with `pnpm install`, a focused change checked
   with `pnpm verify`, a pull request with a `pnpm changeset` where needed; `open-source.test.tsx`
   reads the guide and fails when a command or step leaves it) across one row from 64rem, each step
-  a top hairline, an `aria-hidden` `--accent-fill` numeral, a `.vk-h4` title, one sentence and its
-  command in mono on `--v-void`; under the steps a `nav` of project links (repository, contributor
+  a top hairline, an `aria-hidden` `--accent-fill` numeral, a `.vk-h4` title, one sentence (the
+  test counts it in all four locales) and its command in mono on `--v-void`; from 64rem each step
+  spans four rows of the list's grid with `grid-template-rows: subgrid`, so titles, bodies and
+  commands line up across the row however the copy wraps (`e2e/contribute.spec.ts` checks it at
+  1024 and 1440 in every locale); under the steps a `nav` of project links (repository, contributor
   guide, code of conduct, license, security policy, issues; plain `.vk-prose-link`s, 44px tall,
   no icon and no arrow, `landing.openSource.newTab` in an `sr-only` span) beside the contributors
-  from `lib/contributors.json`, each a self-hosted 32px avatar from `public/contributors/` with the
+  from `lib/contributors.json` (a `div` with `role="group"` named by its heading, never a nested
+  `section` landmark), each a self-hosted 32px avatar from `public/contributors/` with the
   login beside it, refreshed by hand with `pnpm contributors`; no AGENTS.md link until the root
   file exists, and no good-first-issue label link until one is in use), `faq.tsx` (`#faq`) and `final-cta.tsx` (the closing
   section on `landing.closing`, the page's only centered section: `.vk-final-cta` opens
@@ -447,7 +451,8 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   band on the page surface, and `.vk-closer` centers one `h2`, one lead sentence, the install
   `CommandRow` in `.vk-final-install` (36rem, its command start-aligned) and `.vk-closer-actions`:
   Get started (`/docs/quickstart`) and the repository on GitHub as a plain `secondary` anchor in a
-  new tab with the `sr-only` `landing.openSource.newTab`; no card, wash or glow). The footer is not a section; `app/[lang]/(home)/layout.tsx` passes
+  new tab with the `sr-only` `landing.openSource.newTab`, stacked to the command's full width under
+  24rem; no card, wash or glow). The footer is not a section; `app/[lang]/(home)/layout.tsx` passes
   it to the home layout (the landing and `/compare`). `FullFooter` (`footer.tsx`, `footer.vk-footer`) is one flat
   `--surface-band` under a `--border-default` top hairline, with no gradient wash and no gradient
   rule, in three rows, no longer the brand column beside five link columns: a top row with the

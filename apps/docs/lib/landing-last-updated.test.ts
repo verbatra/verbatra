@@ -9,7 +9,7 @@ import { LANDING_LAST_UPDATED } from "./site";
 type CopyRevision = { readonly date: string; readonly hash: string };
 
 const COPY_REVISIONS: ReadonlyArray<CopyRevision> = [
-  { date: "2026-10-16", hash: "2d18c95d672f801208e3bd4de19fa962a316fc5a0c542482bf768bf097af797c" },
+  { date: "2026-10-16", hash: "6bb83ddda7b226379077181a8da4728ff6c0cf2229d6ca81115f37e0743273a9" },
 ];
 
 const COMPARE_CELL_REVISIONS: ReadonlyArray<CopyRevision> = [
