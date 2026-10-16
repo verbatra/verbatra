@@ -3,7 +3,12 @@ import type { NextFetchEvent, NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { scriptHashesFor } from "@/lib/csp-script-hashes";
 import { i18n } from "@/lib/i18n";
-import { hasMarkdownVariant, markdownRewritePath } from "@/lib/markdown-route";
+import {
+  hasMarkdownVariant,
+  isMdxPath,
+  markdownRewritePath,
+  mdxRedirectPath,
+} from "@/lib/markdown-route";
 import { requestHost } from "@/lib/request-host";
 import {
   CSP_ENFORCED,
@@ -52,6 +57,10 @@ async function route(request: NextRequest, event: NextFetchEvent) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
   const { pathname } = request.nextUrl;
+  if (isMdxPath(pathname)) {
+    const target = mdxRedirectPath(pathname);
+    if (target !== null) return NextResponse.redirect(new URL(target, request.url), 308);
+  }
   if (!hasMarkdownVariant(pathname)) return i18nProxyWithoutCookies(request, event);
   const markdownPath = markdownRewritePath(pathname, request.headers.get("accept"));
   if (markdownPath !== null) {

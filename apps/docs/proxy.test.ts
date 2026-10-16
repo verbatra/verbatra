@@ -62,7 +62,9 @@ describe("proxy", () => {
   it("serves the comparison page ending in .md from its markdown route", async () => {
     i18nProxyMock.mockClear();
     const response = (await proxy(request({}, "/es/compare.md"), event)) as Response;
-    expect(response.headers.get("x-middleware-rewrite")).toBe("http://localhost/es/compare.mdx");
+    expect(response.headers.get("x-middleware-rewrite")).toBe(
+      "http://localhost/es/site.mdx/compare",
+    );
     expect(response.headers.get("vary")).toContain("Accept");
     expect(i18nProxyMock).not.toHaveBeenCalled();
   });
@@ -72,7 +74,9 @@ describe("proxy", () => {
       request({ accept: "text/markdown" }, "/compare"),
       event,
     )) as Response;
-    expect(response.headers.get("x-middleware-rewrite")).toBe("http://localhost/en/compare.mdx");
+    expect(response.headers.get("x-middleware-rewrite")).toBe(
+      "http://localhost/en/site.mdx/compare",
+    );
   });
 
   it("marks the html comparison page as varying on Accept", async () => {
@@ -83,11 +87,65 @@ describe("proxy", () => {
     expect(response.headers.get("vary")).toContain("Accept");
   });
 
-  it("leaves a non-docs response without a Vary on Accept", async () => {
+  it("leaves a page without a markdown variant without a Vary on Accept", async () => {
     const response = (await proxy(
-      request({ accept: "text/markdown" }, "/contact"),
+      request({ accept: "text/markdown" }, "/does-not-exist"),
       event,
     )) as Response;
     expect(response.headers.get("vary")).toBeNull();
   });
+
+  it.each([
+    ["/", "http://localhost/en/site.mdx/index"],
+    ["/de", "http://localhost/de/site.mdx/index"],
+    ["/imprint", "http://localhost/en/site.mdx/imprint"],
+    ["/fr/privacy", "http://localhost/fr/site.mdx/privacy"],
+  ])("serves markdown for %s when the Accept header prefers it", async (path, target) => {
+    const response = (await proxy(request({ accept: "text/markdown" }, path), event)) as Response;
+    expect(response.headers.get("x-middleware-rewrite")).toBe(target);
+    expect(response.headers.get("vary")).toContain("Accept");
+  });
+
+  it.each([
+    ["/index.md", "http://localhost/en/site.mdx/index"],
+    ["/es/index.md", "http://localhost/es/site.mdx/index"],
+    ["/licenses.md", "http://localhost/en/site.mdx/licenses"],
+    ["/de/contact.md", "http://localhost/de/site.mdx/contact"],
+  ])("serves %s from the site markdown route", async (path, target) => {
+    const response = (await proxy(request({}, path), event)) as Response;
+    expect(response.headers.get("x-middleware-rewrite")).toBe(target);
+  });
+
+  it("marks the html landing page as varying on Accept", async () => {
+    const response = (await proxy(request({ accept: "text/html" }, "/"), event)) as Response;
+    expect(response.headers.get("vary")).toContain("Accept");
+  });
+
+  it.each([
+    ["/docs/quickstart.mdx", "/docs/quickstart.md"],
+    ["/de/docs.mdx", "/de/docs.md"],
+    ["/compare.mdx", "/compare.md"],
+    ["/fr/compare.mdx", "/fr/compare.md"],
+    ["/index.mdx", "/index.md"],
+    ["/docs.mdx/cli/translate", "/docs/cli/translate.md"],
+    ["/de/docs.mdx/formats", "/de/docs/formats.md"],
+    ["/site.mdx/imprint", "/imprint.md"],
+    ["/de/site.mdx/index", "/de/index.md"],
+  ])("redirects the .mdx url %s to its markdown url %s", async (path, target) => {
+    i18nProxyMock.mockClear();
+    const response = (await proxy(request({}, path), event)) as Response;
+    expect(response.status).toBe(308);
+    expect(response.headers.get("location")).toBe(`http://localhost${target}`);
+    expect(i18nProxyMock).not.toHaveBeenCalled();
+  });
+
+  it.each(["/nothing-here.mdx", "/xx/docs.mdx/formats", "/site.mdx/unknown"])(
+    "hands the .mdx url %s without a markdown variant to the i18n proxy",
+    async (path) => {
+      i18nProxyMock.mockClear();
+      const response = (await proxy(request({}, path), event)) as Response;
+      expect(response.status).toBe(200);
+      expect(i18nProxyMock).toHaveBeenCalled();
+    },
+  );
 });

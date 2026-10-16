@@ -15,8 +15,9 @@ import {
 import { MACHINE_PROVIDER_IDS } from "@/lib/landing-facts";
 import { providerShortLabel } from "@/lib/landing-providers";
 import { absoluteMarkdownHref } from "@/lib/markdown-links";
+import { SITE_MARKDOWN_PAGES, siteMarkdownSlug } from "@/lib/markdown-route";
 
-const MESSAGES_DIR = join(dirname(fileURLToPath(import.meta.url)), "../../../messages");
+const MESSAGES_DIR = join(dirname(fileURLToPath(import.meta.url)), "../../../../messages");
 
 vi.mock("next-intl/server", () => ({
   getTranslations: async ({ locale, namespace }: { locale: string; namespace: string }) =>
@@ -29,20 +30,56 @@ vi.mock("next-intl/server", () => ({
 
 const { GET, generateStaticParams } = await import("./route");
 
-async function markdown(lang: string): Promise<Response> {
-  return GET(new Request(`http://localhost/${lang}/compare.mdx`), {
-    params: Promise.resolve({ lang }),
+async function markdown(lang: string, page = "compare"): Promise<Response> {
+  return GET(new Request(`http://localhost/${lang}/site.mdx/${page}`), {
+    params: Promise.resolve({ lang, page }),
   });
 }
 
-describe("GET /[lang]/compare.mdx", () => {
-  it("is generated for every locale", () => {
-    expect(generateStaticParams()).toEqual(i18n.languages.map((lang) => ({ lang })));
+function messagesOf(lang: string) {
+  return JSON.parse(readFileSync(join(MESSAGES_DIR, `${lang}.json`), "utf8"));
+}
+
+describe("GET /[lang]/site.mdx/[page]", () => {
+  it("is generated for every page in every locale", () => {
+    expect(generateStaticParams()).toEqual(
+      i18n.languages.flatMap((lang) =>
+        SITE_MARKDOWN_PAGES.map((page) => ({ lang, page: siteMarkdownSlug(page) })),
+      ),
+    );
   });
 
-  it("answers an unknown locale with 404", async () => {
+  it("answers an unknown locale or page with 404", async () => {
     expect((await markdown("xx")).status).toBe(404);
+    expect((await markdown("en", "terms")).status).toBe(404);
   });
+
+  it.each(
+    i18n.languages.flatMap((lang) => SITE_MARKDOWN_PAGES.map((page) => [lang, page] as const)),
+  )(
+    "serves the %s page %s as markdown with its canonical page and frontmatter",
+    async (lang, page) => {
+      const response = await markdown(lang, siteMarkdownSlug(page));
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toBe("text/markdown; charset=utf-8");
+      const path =
+        page === "/"
+          ? lang === "en"
+            ? "/"
+            : `/${lang}`
+          : lang === "en"
+            ? page
+            : `/${lang}${page}`;
+      expect(response.headers.get("link")).toBe(
+        `<https://verbatra.kreitz-webdev.de${path}>; rel="canonical"`,
+      );
+      const body = await response.text();
+      expect(body).toMatch(/^---\ntitle: ".+"\n(description: ".+"\n)?---\n\n# .+\n/);
+      expect(body).not.toMatch(/\]\(\//);
+      expect(body).not.toContain("\u2014");
+      expect(body.endsWith("\n")).toBe(true);
+    },
+  );
 
   it.each(i18n.languages)(
     "serves the %s comparison as markdown with its canonical page",
@@ -53,7 +90,7 @@ describe("GET /[lang]/compare.mdx", () => {
       expect(response.headers.get("link")).toBe(
         `<https://verbatra.kreitz-webdev.de${path}>; rel="canonical"`,
       );
-      const messages = JSON.parse(readFileSync(join(MESSAGES_DIR, `${lang}.json`), "utf8"));
+      const messages = messagesOf(lang);
       const body = await response.text();
       expect(body.startsWith(`---\ntitle: ${JSON.stringify(messages.compare.meta.title)}`)).toBe(
         true,

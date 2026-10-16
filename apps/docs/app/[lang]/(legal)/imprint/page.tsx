@@ -1,8 +1,17 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import type { ReactNode } from "react";
-import { LICENSE_URL } from "@/components/landing/links";
+import { Fragment, type ReactNode } from "react";
 import { type Locale, localizedPath, toLocale } from "@/lib/i18n";
+import {
+  IMPRINT_EMAIL,
+  IMPRINT_EMAIL_LABEL,
+  IMPRINT_LICENSE_HEADING,
+  IMPRINT_PROVIDER_HEADING,
+  IMPRINT_PROVIDER_LINES,
+  IMPRINT_TITLE,
+  imprintLicenseRuns,
+} from "@/lib/legal-imprint";
+import { markdownUrl } from "@/lib/markdown-route";
 import { LEGAL_LAST_UPDATED, localeAlternates } from "@/lib/site";
 import { homeOgImagePath, socialMetadata } from "@/lib/social-metadata";
 
@@ -22,7 +31,7 @@ export async function generateMetadata(props: {
     title: t("title"),
     description: t("description"),
     robots: { index: true },
-    alternates,
+    alternates: { ...alternates, types: { "text/markdown": markdownUrl(alternates.canonical) } },
     ...socialMetadata({
       locale,
       path: alternates.canonical,
@@ -43,7 +52,7 @@ export default async function ImprintPage(props: { params: Promise<{ lang: strin
 
   return (
     <article className="container mx-auto max-w-3xl px-6 py-16 prose">
-      <h1>Impressum</h1>
+      <h1>{IMPRINT_TITLE}</h1>
       <p>{t("intro")}</p>
       <p>
         <em>
@@ -51,29 +60,33 @@ export default async function ImprintPage(props: { params: Promise<{ lang: strin
         </em>
       </p>
 
-      <h2>Angaben zum Anbieter</h2>
+      <h2>{IMPRINT_PROVIDER_HEADING}</h2>
       <p>
-        Mario Kreitz
-        <br />
-        M&ouml;nchfeldstra&szlig;e 7
-        <br />
-        70378 Stuttgart
-        <br />
-        Deutschland
-        <br />
-        E-Mail: <a href="mailto:info@kreitz-webdev.de">info@kreitz-webdev.de</a>
+        {IMPRINT_PROVIDER_LINES.map((line) => (
+          <Fragment key={line}>
+            {line}
+            <br />
+          </Fragment>
+        ))}
+        {IMPRINT_EMAIL_LABEL}: <a href={`mailto:${IMPRINT_EMAIL}`}>{IMPRINT_EMAIL}</a>
       </p>
       <p>{t.rich("contactLinkNote", linkTags)}</p>
 
-      <h2>Lizenz</h2>
+      <h2>{IMPRINT_LICENSE_HEADING}</h2>
       <p>
-        verbatra (Quellcode, Dokumentation und Screenshots) steht unter der{" "}
-        <a href={LICENSE_URL} target="_blank" rel="noreferrer noopener">
-          MIT-Lizenz
-        </a>
-        . Schriftarten, Icons und Bibliotheken Dritter behalten ihre eigenen Lizenzen; die{" "}
-        <a href={localizedPath(locale, "/licenses")}>Lizenzhinweise</a> nennen sie mit vollem
-        Lizenztext.
+        {imprintLicenseRuns(locale).map((run) =>
+          typeof run === "string" ? (
+            run
+          ) : (
+            <a
+              key={run.href}
+              href={run.href}
+              {...(run.external ? { target: "_blank", rel: "noreferrer noopener" } : {})}
+            >
+              {run.text}
+            </a>
+          ),
+        )}
       </p>
     </article>
   );

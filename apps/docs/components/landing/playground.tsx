@@ -4,6 +4,7 @@ import { IntentPrefetchLink } from "@/components/ui/intent-prefetch-link";
 import { localizedPath, toLocale } from "@/lib/i18n";
 import {
   PLAYGROUND_DEFAULT_ITEM,
+  PLAYGROUND_DOCS_LINKS,
   PLAYGROUND_ITEMS,
   PLAYGROUND_LANGUAGES,
   PLAYGROUND_METADATA,
@@ -21,12 +22,6 @@ import type { PlaygroundLanguage } from "./playground-demo";
 import { ScrollBlock } from "./scroll-block";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
-
-export const PLAYGROUND_DOCS_LINKS = [
-  ["quickstart", "/docs/sdk-quickstart"],
-  ["reference", "/docs/sdk"],
-  ["providers", "/docs/providers"],
-] as const;
 
 const TABLE_CAPTION_ID = "playground-table-caption";
 

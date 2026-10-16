@@ -429,8 +429,10 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   and all sources under an `h2`. Its 100rem-wide table sits in `.vk-compare.vk-compare-full`, whose
   container query at 100rem shows the hint and fade on a desktop column too. `/compare.md` (and
   `Accept: text/markdown` on `/compare`) is `lib/compare-markdown.ts` served by
-  `app/[lang]/compare.mdx/route.ts`; `MARKDOWN_PAGES` in `lib/markdown-route.ts` is the list of
-  non-docs pages with a Markdown variant), `open-source.tsx` (`#open-source`, the contribution section on the
+  `app/[lang]/site.mdx/[page]/route.ts`; `MARKDOWN_PAGES` in `lib/markdown-route.ts` lists the
+  non-docs pages with a Markdown variant beside the landing's `/index.md`, and `SITE_MARKDOWN` in
+  `lib/site-markdown.ts` maps each to its generator; a direct `.mdx` url is redirected to its `.md`
+  url once in `proxy.ts`), `open-source.tsx` (`#open-source`, the contribution section on the
   `openSource` messages, a band after the FAQ with a `stacked` head: `ol.vk-contribute-steps`, the
   `CONTRIBUTION_STEPS` of `CONTRIBUTING.md` (set up with `pnpm install`, a focused change checked
   with `pnpm verify`, a pull request with a `pnpm changeset` where needed; `open-source.test.tsx`

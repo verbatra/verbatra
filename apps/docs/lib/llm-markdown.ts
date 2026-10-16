@@ -43,3 +43,7 @@ export function inlineCodeMarkdown(value: string): string {
   const padding = needsPadding(value) ? " " : "";
   return `${ticks}${padding}${value}${padding}${ticks}`;
 }
+
+export function markupChunks(chunks: string | ReadonlyArray<string>): string {
+  return typeof chunks === "string" ? chunks : chunks.join("");
+}

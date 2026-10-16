@@ -7,13 +7,13 @@ import { createTranslator } from "next-intl";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { i18n, type Locale } from "@/lib/i18n";
+import { IMPRINT_PROVIDER_LINES } from "@/lib/legal-imprint";
 import { PACKAGE_MANAGER_GROUP } from "@/lib/package-manager-tabs";
 import { ANALYTICS_OPT_OUT_COOKIE } from "@/lib/server-pageview";
 import { THEME_STORAGE_KEY } from "@/lib/theme";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const MESSAGES_DIR = join(HERE, "../../../../messages");
-const IMPRINT_PAGE = join(HERE, "../imprint/page.tsx");
 
 function loadMessages(locale: string): Record<string, unknown> {
   return JSON.parse(readFileSync(join(MESSAGES_DIR, `${locale}.json`), "utf8"));
@@ -248,11 +248,8 @@ const AI_TRANSLATION_BEST_EFFORT: Record<Locale, RegExp> = {
 };
 
 function imprintFacts(): string[] {
-  const source = readFileSync(IMPRINT_PAGE, "utf8")
-    .replaceAll("&ouml;", "ö")
-    .replaceAll("&szlig;", "ß");
-  const street = source.match(/Mönchfeldstraße \d+/)?.[0];
-  const city = source.match(/\d{5} Stuttgart/)?.[0];
+  const street = IMPRINT_PROVIDER_LINES.find((line) => /Mönchfeldstraße \d+/.test(line));
+  const city = IMPRINT_PROVIDER_LINES.find((line) => /\d{5} Stuttgart/.test(line));
   return [street ?? "missing street", city ?? "missing city"];
 }
 

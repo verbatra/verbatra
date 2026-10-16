@@ -3,6 +3,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 import { ContactForm } from "@/components/contact-form";
 import { localizedPath, toLocale } from "@/lib/i18n";
+import { markdownUrl } from "@/lib/markdown-route";
 import { localeAlternates, PRIVACY_CONTACT_FORM_ANCHOR } from "@/lib/site";
 import { homeOgImagePath, socialMetadata } from "@/lib/social-metadata";
 
@@ -18,7 +19,7 @@ export async function generateMetadata(props: {
     title: t("title"),
     description: t("description"),
     robots: { index: true },
-    alternates,
+    alternates: { ...alternates, types: { "text/markdown": markdownUrl(alternates.canonical) } },
     ...socialMetadata({
       locale,
       path: alternates.canonical,

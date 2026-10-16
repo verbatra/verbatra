@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 import { toLocale } from "@/lib/i18n";
-import manifest from "@/lib/licenses.generated.json";
+import { fallbackTexts, LICENSES, textsUsedBy, usageCount } from "@/lib/licenses-manifest";
+import { markdownUrl } from "@/lib/markdown-route";
 import { localeAlternates } from "@/lib/site";
 import { homeOgImagePath, socialMetadata } from "@/lib/social-metadata";
 import {
@@ -11,22 +12,7 @@ import {
   type LicenseGroup,
   type LicenseText,
   licenseTermsUrl,
-  type ThirdPartyLicenses,
 } from "@/lib/third-party-licenses";
-
-const LICENSES: ThirdPartyLicenses = manifest;
-const TEXTS = new Map(LICENSES.texts.map((text) => [text.id, text]));
-const OWN_TEXT_IDS = new Set(
-  [...LICENSES.assets, ...LICENSES.groups.flatMap((group) => group.packages)].map(
-    (entry) => entry.textId,
-  ),
-);
-const FALLBACK_HOME = new Map<string, string>();
-for (const group of LICENSES.groups) {
-  for (const id of group.fallbackTextIds) {
-    if (!OWN_TEXT_IDS.has(id) && !FALLBACK_HOME.has(id)) FALLBACK_HOME.set(id, group.license);
-  }
-}
 
 export async function generateMetadata(props: {
   params: Promise<{ lang: string }>;
@@ -40,7 +26,7 @@ export async function generateMetadata(props: {
     title: t("title"),
     description: t("description"),
     robots: { index: true },
-    alternates,
+    alternates: { ...alternates, types: { "text/markdown": markdownUrl(alternates.canonical) } },
     ...socialMetadata({
       locale,
       path: alternates.canonical,
@@ -50,25 +36,6 @@ export async function generateMetadata(props: {
       image: { path: homeOgImagePath(locale), alt: tMeta("ogImageAlt") },
     }),
   };
-}
-
-function textsUsedBy(entries: ReadonlyArray<{ textId: string | null }>): LicenseText[] {
-  const ids = [...new Set(entries.map((entry) => entry.textId))];
-  return ids.flatMap((id) => {
-    const text = id === null ? undefined : TEXTS.get(id);
-    return text === undefined ? [] : [text];
-  });
-}
-
-function fallbackTexts(group: LicenseGroup): LicenseText[] {
-  return group.fallbackTextIds.flatMap((id) => {
-    const text = FALLBACK_HOME.get(id) === group.license ? TEXTS.get(id) : undefined;
-    return text === undefined ? [] : [text];
-  });
-}
-
-function usageCount(entries: ReadonlyArray<{ textId: string | null }>, id: string | null): number {
-  return entries.filter((entry) => entry.textId === id).length;
 }
 
 function TextBlock({ text, users }: { text: LicenseText; users: number }): ReactNode {

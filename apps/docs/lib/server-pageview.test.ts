@@ -110,6 +110,12 @@ describe("countedPageview", () => {
     expect(counted(navigation("/de/docs"), "/de/docs.mdx")).toBeUndefined();
   });
 
+  it("skips the markdown variant of the landing, comparison and legal pages", () => {
+    expect(counted(navigation("/index.md"), "/en/site.mdx/index")).toBeUndefined();
+    expect(counted(navigation("/"), "/en/site.mdx/index")).toBeUndefined();
+    expect(counted(navigation("/fr/privacy"), "/fr/site.mdx/privacy")).toBeUndefined();
+  });
+
   it("counts the production Host even when a client sends X-Forwarded-Host", () => {
     const request = navigation("/", { "x-forwarded-host": "localhost, preview.example.com" });
     expect(counted(request)).toBeDefined();

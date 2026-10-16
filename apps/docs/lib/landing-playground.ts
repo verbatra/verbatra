@@ -46,3 +46,9 @@ export const PLAYGROUND_SNIPPET = playgroundSnippet(
   PLAYGROUND_SNIPPET_CONFIG,
   PLAYGROUND_LANGUAGES,
 );
+
+export const PLAYGROUND_DOCS_LINKS = [
+  ["quickstart", "/docs/sdk-quickstart"],
+  ["reference", "/docs/sdk"],
+  ["providers", "/docs/providers"],
+] as const;

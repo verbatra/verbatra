@@ -16,6 +16,7 @@ import { Playground } from "@/components/landing/playground";
 import { toLocale } from "@/lib/i18n";
 import { LANDING_SECTIONS, type LandingSectionId } from "@/lib/landing-sections";
 import { MAIN_CONTENT_ID } from "@/lib/locale-home-layout";
+import { markdownUrl } from "@/lib/markdown-route";
 import {
   homeAlternates,
   LANDING_LAST_UPDATED,
@@ -85,16 +86,19 @@ export async function generateMetadata(props: {
   const description = t("description");
   const ogDescription = t("ogDescription");
   const ogImageAlt = t("ogImageAlt");
-  const { canonical } = homeAlternates(locale);
+  const { canonical, languages } = homeAlternates(locale);
 
-  return socialMetadata({
-    locale,
-    path: canonical,
-    type: "website",
-    title: ogTitle,
-    description: ogDescription,
-    image: { path: homeOgImagePath(locale), alt: ogImageAlt },
-    twitterTitle: title,
-    twitterDescription: description,
-  });
+  return {
+    alternates: { canonical, languages, types: { "text/markdown": markdownUrl(canonical) } },
+    ...socialMetadata({
+      locale,
+      path: canonical,
+      type: "website",
+      title: ogTitle,
+      description: ogDescription,
+      image: { path: homeOgImagePath(locale), alt: ogImageAlt },
+      twitterTitle: title,
+      twitterDescription: description,
+    }),
+  };
 }

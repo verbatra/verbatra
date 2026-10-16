@@ -6,6 +6,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { GITHUB_URL } from "@/components/landing/links";
 import { CONTRIBUTORS } from "@/lib/contributors";
+import { CONTRIBUTION_STEPS, OPEN_SOURCE_LINKS } from "@/lib/landing-open-source";
 import de from "@/messages/de.json";
 import en from "@/messages/en.json";
 import es from "@/messages/es.json";
@@ -20,9 +21,7 @@ vi.mock("next-intl/server", async () => {
   };
 });
 
-const { Contributors, CONTRIBUTION_STEPS, OpenSource, OPEN_SOURCE_LINKS } = await import(
-  "./open-source"
-);
+const { Contributors, OpenSource } = await import("./open-source");
 
 const copy = en.landing.openSource;
 
