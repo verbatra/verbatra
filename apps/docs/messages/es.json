@@ -623,9 +623,9 @@
     },
     "closing": {
       "heading": "Empieza con una ejecución de prueba.",
-      "lead": "Una ejecución de prueba no necesita clave de API y no escribe nada. Lista exactamente las claves que enviaría una ejecución real.",
+      "lead": "Una ejecución de prueba no necesita clave de API, no escribe nada y lista exactamente las claves que enviaría una ejecución real.",
       "primary": "Empezar",
-      "secondary": "Leer la documentación"
+      "secondary": "Ver en GitHub"
     }
   },
   "compare": {

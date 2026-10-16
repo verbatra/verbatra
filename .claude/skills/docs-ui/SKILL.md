@@ -452,8 +452,12 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   from `lib/contributors.json`, each a self-hosted 32px avatar from `public/contributors/` with the
   login beside it, refreshed by hand with `pnpm contributors`; no AGENTS.md link until the root
   file exists, and no good-first-issue label link until one is in use), `faq.tsx` (`#faq`) and `final-cta.tsx` (the closing
-  section on `landing.closing`, set on the page gutter with no card border or inset, a `section` whose `vk-final-cta` class is a hook with no stylesheet rule, the install `CommandRow` counted with `location: final-cta`, then Get
-  started and Read the docs). The footer is not a section; `app/[lang]/(home)/layout.tsx` passes
+  section on `landing.closing`, the page's only centered section: `.vk-final-cta` opens
+  `--section-closer` (`--section-lg`, the only large step besides the hero) under the contribution
+  band on the page surface, and `.vk-closer` centers one `h2`, one lead sentence, the install
+  `CommandRow` in `.vk-final-install` (36rem, its command start-aligned) and `.vk-closer-actions`:
+  Get started (`/docs/quickstart`) and the repository on GitHub as a plain `secondary` anchor in a
+  new tab with the `sr-only` `landing.openSource.newTab`; no card, wash or glow). The footer is not a section; `app/[lang]/(home)/layout.tsx` passes
   it to the home layout. Section ids are unique; never render two sections that claim the same one.
   The FAQ (`faq.tsx`, on the page surface `--v-void`, `SectionAside` with `.vk-faq-aside`: the
   heading and lead in the head column, the questions beside it, then a `nav` of docs links that

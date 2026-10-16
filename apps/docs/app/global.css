@@ -162,6 +162,7 @@ samp {
   --section-md: 80px;
   --section-sm: 56px;
   --head-gap: 2.5rem;
+  --section-closer: var(--section-lg);
 
   --gutter: 24px;
 
@@ -695,8 +696,28 @@ html.light {
   }
 }
 
+.vk-final-cta {
+  padding-block: var(--section-closer) var(--section-md);
+}
+
+.vk-closer {
+  display: grid;
+  justify-items: center;
+  gap: 1.5rem;
+  text-align: center;
+}
+
+.vk-closer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
 .vk-final-install {
+  width: 100%;
   max-width: 36rem;
+  text-align: start;
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   background: var(--v-void);

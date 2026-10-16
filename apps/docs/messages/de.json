@@ -623,9 +623,9 @@
     },
     "closing": {
       "heading": "Fang mit einem Probelauf an.",
-      "lead": "Ein Probelauf braucht keinen API-Key und schreibt nichts. Er listet genau die Keys, die ein echter Lauf schicken würde.",
+      "lead": "Ein Probelauf braucht keinen API-Key, schreibt nichts und listet genau die Keys, die ein echter Lauf schicken würde.",
       "primary": "Loslegen",
-      "secondary": "Docs lesen"
+      "secondary": "Auf GitHub ansehen"
     }
   },
   "compare": {
