@@ -111,6 +111,4 @@ export const playgroundOutputSchema = z
     }
   });
 
-export type PlaygroundItem = z.infer<typeof playgroundItemSchema>;
-export type PlaygroundMetadata = z.infer<typeof playgroundMetadataSchema>;
 export type PlaygroundOutput = z.infer<typeof playgroundOutputSchema>;
