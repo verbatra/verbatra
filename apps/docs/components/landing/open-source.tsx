@@ -112,7 +112,7 @@ export async function OpenSource(): Promise<ReactNode> {
   const t = await getTranslations("landing.openSource");
 
   return (
-    <Section width="wide" rhythm="md" id="open-source">
+    <Section width="wide" rhythm="md" id="open-source" labelledBy="open-source-heading">
       <SectionHead id="open-source-heading" title={t("heading")} lead={t("lead")} />
       <div className="vk-grid-12 not-prose mt-10 gap-y-12">
         <PlainList

@@ -88,7 +88,7 @@ export async function Compare(): Promise<ReactNode> {
   const t = await getTranslations("landing.compare");
 
   return (
-    <Section band id="compare">
+    <Section band id="compare" labelledBy="compare-heading">
       <SectionHead id="compare-heading" title={t("heading")} />
       <div className="vk-compare not-prose mt-10 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4">
         <p className="vk-compare-hint text-sm text-(--text-muted)">{t("scrollHint")}</p>

@@ -88,7 +88,7 @@ export async function Problem(): Promise<ReactNode> {
   const marks = await getTranslations("landing.showcase.tryIt.marks");
   const missingLabel = marks("missing");
   return (
-    <Section id="problem">
+    <Section id="problem" labelledBy="problem-heading">
       <SectionHead id="problem-heading" title={t("heading")} lead={t("lead")} />
       <div className="mt-10 grid gap-10 lg:mt-14 lg:grid-cols-12 lg:gap-6">
         <div

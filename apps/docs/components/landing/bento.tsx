@@ -212,7 +212,7 @@ export async function Bento(): Promise<ReactNode> {
   const locale = toLocale(await getLocale());
   const artifacts = await Promise.all(BENTO_TILES.map((tile) => tileArtifact(tile.key)));
   return (
-    <Section id="features">
+    <Section id="features" labelledBy="features-heading">
       <SectionHead id="features-heading" title={t("heading")} />
       <PlainList
         data-reveal="2"

@@ -47,6 +47,17 @@ describe("landing surface bands", () => {
     ).toEqual([true, false, true, false, false, true, true, false, true]);
   });
 
+  it("names a section by its heading through aria-labelledby, banded or not", () => {
+    for (const band of [true, false]) {
+      const doc = render(
+        <Section id="x" band={band} labelledBy="x-heading">
+          <h2 id="x-heading">Title</h2>
+        </Section>,
+      );
+      expect(doc.querySelector("section#x")?.getAttribute("aria-labelledby")).toBe("x-heading");
+    }
+  });
+
   it("paints the band from the semantic band token between two hairlines", () => {
     const rule = css.slice(css.indexOf(".vk-band {"), css.indexOf("}", css.indexOf(".vk-band {")));
     expect(rule).toContain("background: var(--surface-band);");

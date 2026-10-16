@@ -33,7 +33,7 @@ export async function Faq({ items }: { items: ReadonlyArray<FaqEntry> }): Promis
   const tags = answerTags(await getLocale());
 
   return (
-    <Section band id="faq">
+    <Section band id="faq" labelledBy="faq-heading">
       <SectionHead id="faq-heading" title={t("heading")} />
       <FaqAccordion
         className="mt-11 max-w-[880px] border-t border-(--border-default)"

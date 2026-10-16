@@ -140,7 +140,7 @@ export async function Marquee(): Promise<ReactNode> {
   const formats = formatItems();
 
   return (
-    <Section band id="marquee">
+    <Section band id="marquee" labelledBy="marquee-heading">
       <SectionHead id="marquee-heading" layout="aside" title={t("heading")} lead={t("lead")}>
         <StackIconSprite
           prefix={MARQUEE_ICON_PREFIX}

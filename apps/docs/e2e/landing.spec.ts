@@ -22,6 +22,23 @@ for (const locale of LOCALES) {
       });
     }
 
+    test("names every landing section by its heading or label", async ({ page }) => {
+      await page.goto(homeUrl(locale));
+      const sections = await page.locator(".vk-home > section").evaluateAll((nodes) =>
+        nodes.map((node) => {
+          const ids = node.getAttribute("aria-labelledby")?.split(/\s+/) ?? [];
+          const labelled = ids
+            .map((id) => node.ownerDocument.getElementById(id))
+            .filter((label) => label !== null && node.contains(label))
+            .map((label) => label?.textContent?.trim() ?? "")
+            .join(" ");
+          return { id: node.id, name: labelled || node.getAttribute("aria-label") || "" };
+        }),
+      );
+      expect(sections.length).toBeGreaterThanOrEqual(12);
+      expect(sections.filter((section) => section.name === "")).toEqual([]);
+    });
+
     test("reflows at 320px without horizontal scroll", async ({ page }) => {
       await page.setViewportSize({ width: 320, height: 800 });
       await page.goto(homeUrl(locale));

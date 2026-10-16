@@ -469,7 +469,10 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   command and the panel resizes on a switch, and a switch counts `select-tab` with
   `location: hero`). The footer draws no pattern and no watermark, and neither does the hero: the landing
   has no background pattern. A new section composes `Section` plus
-  `SectionHead`; it does not re-derive page padding or heading rhythm. Check
+  `SectionHead`; it does not re-derive page padding or heading rhythm. `Section` takes
+  `labelledBy`, the id of its `h2`, and renders it as `aria-labelledby`, so every landing section
+  is a named region; the hero and the closing section set it themselves and the proof strip, which
+  has no heading, carries an `aria-label` (`e2e/landing.spec.ts` fails on a nameless section). Check
   `ls apps/docs/components/landing` before quoting a file name from this list. The CLI transcripts
   on the landing (`lib/hero-terminal.ts`, `lib/gate-demo.ts`, `lib/check-demo.ts`,
   `lib/showcase-cli.ts`) are real CLI

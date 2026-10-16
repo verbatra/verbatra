@@ -41,7 +41,7 @@ export async function Flow(): Promise<ReactNode> {
   );
 
   return (
-    <Section band id="flow" className="vk-flow-section">
+    <Section band id="flow" labelledBy={FLOW_HEADING_ID} className="vk-flow-section">
       <div className="vk-flow-head">
         <SectionHead id={FLOW_HEADING_ID} layout="stacked" title={t("heading")} lead={t("lead")} />
       </div>
