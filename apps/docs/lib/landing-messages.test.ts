@@ -45,6 +45,10 @@ describe("landing message parity", () => {
       "landing.nav.skipToContent",
       "landing.topNav.getStarted",
       "landing.banner.headline",
+      "landing.banner.quotes.what",
+      "landing.banner.diffLabel",
+      "landing.facts.label",
+      "landing.facts.availableFrom",
       "landing.hero.command.installHint",
       "landing.stats.stars",
       "landing.problem.heading",
@@ -117,6 +121,21 @@ describe("landing message parity", () => {
       expect(landingText(locale, "banner.nodeMajorFrom"), locale).toMatch(
         /^\{major\} \(.*\{minimum\}.*\)$/,
       );
+    }
+  });
+
+  it("keeps the home title between 50 and 60 characters in every locale", () => {
+    for (const locale of i18n.languages) {
+      const length = landingText(locale, "meta.title").length;
+      expect(length, locale).toBeGreaterThanOrEqual(50);
+      expect(length, locale).toBeLessThanOrEqual(60);
+    }
+  });
+
+  it("names the entity Verbatra at the start of the home title and definition in every locale", () => {
+    for (const locale of i18n.languages) {
+      expect(landingText(locale, "meta.title"), locale).toMatch(/^Verbatra\b/);
+      expect(landingText(locale, "meta.definition"), locale).toMatch(/^Verbatra\b/);
     }
   });
 

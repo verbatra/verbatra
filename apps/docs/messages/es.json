@@ -1,12 +1,12 @@
 {
   "landing": {
     "meta": {
-      "title": "verbatra: traduce solo las claves i18n que cambiaron",
-      "ogTitle": "verbatra: traduce solo lo que cambió",
-      "description": "verbatra es una CLI y un SDK de i18n de código abierto. Compara tus archivos de locale con la fuente y envía solo las claves nuevas o cambiadas a tu proveedor.",
+      "title": "Verbatra: CLI de i18n que traduce solo las claves cambiadas",
+      "ogTitle": "Verbatra: traduce solo lo que cambió",
+      "description": "Verbatra es una CLI y un SDK de i18n de código abierto. Encuentra las claves que faltan o cambiaron en tus archivos de locale y traduce solo esas con tu clave.",
       "ogDescription": "Traduce solo las claves de i18n que cambiaron y haz fallar la CI mientras falte alguna.",
       "ogImageAlt": "verbatra: Traduce solo lo que cambió, sobre una ejecución de check que encuentra dos claves faltantes por locale y una de translate que envía solo esas.",
-      "definition": "verbatra es una CLI y un SDK de código abierto para archivos de locale de i18n. Envía solo las claves nuevas y cambiadas al proveedor de IA o de traducción automática que elijas y hace fallar la CI mientras falte una clave."
+      "definition": "Verbatra es una CLI y un SDK de código abierto para archivos de locale de i18n. Envía solo las claves nuevas y cambiadas al proveedor de IA o de traducción automática que elijas y hace fallar la CI mientras falte una clave."
     },
     "hero": {
       "command": {
@@ -189,15 +189,34 @@
     "banner": {
       "eyebrow": "CLI y SDK de i18n de código abierto (MIT) para desarrolladores",
       "headline": "Traduce solo lo que cambió.",
-      "lead": "verbatra compara tus archivos de locale con la fuente y envía solo las claves nuevas o cambiadas al proveedor que elijas. En la CI, el build falla mientras falte una clave.",
+      "lead": "Para desarrolladores que guardan sus traducciones en JSON, YAML, XLIFF, ARB y otros archivos de locale.",
       "ctaPrimary": "Empezar",
-      "ctaSecondary": "Ver en GitHub",
+      "ctaSecondary": "Danos una estrella en GitHub",
       "installLabel": "Instala la CLI",
       "nodeRequirement": "Requiere Node.js {versions}",
       "nodeMajorFrom": "{major} ({minimum} o posterior)",
       "terminalLabel": "Una ejecución de verbatra check encuentra dos claves que faltan en cada locale. Después, una ejecución de translate envía solo esas claves.",
       "terminalExample": "Salida de ejemplo",
-      "replay": "Repetir"
+      "replay": "Repetir",
+      "quotes": {
+        "what": "Verbatra es una CLI y un SDK de código abierto que mantiene sincronizados los archivos de locale de i18n.",
+        "how": "Verbatra encuentra las claves que faltan o cambiaron en tus locales de destino y envía solo esas al proveedor de IA o de traducción automática que elijas."
+      },
+      "diffLabel": "Al archivo alemán le faltan las claves de checkout de la fuente en inglés hasta que verbatra translate las completa."
+    },
+    "facts": {
+      "label": "Verbatra de un vistazo",
+      "license": "Licencia",
+      "install": "Instalación",
+      "providers": "Proveedores",
+      "providersLink": "Configura un proveedor",
+      "formats": "Formatos",
+      "formatsValue": "{count} formatos de archivo",
+      "requirements": "Requisitos",
+      "version": "Versión actual",
+      "versionParts": "Studio {studio}, servidor MCP {mcp}",
+      "lastUpdated": "Última actualización",
+      "availableFrom": "desde {version}"
     },
     "stats": {
       "label": "verbatra en cifras",

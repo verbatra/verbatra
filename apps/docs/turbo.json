@@ -9,7 +9,8 @@
         "!.next/dev/**",
         "lib/version.generated.json",
         "lib/translation-freshness.generated.json",
-        "lib/format-samples.generated.json"
+        "lib/format-samples.generated.json",
+        "lib/hero-diff.generated.json"
       ]
     },
     "test": {

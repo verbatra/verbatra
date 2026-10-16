@@ -12,6 +12,10 @@ export const HeroTerminal = island(
   () => import("./hero-terminal").then((m) => m.HeroTerminal),
   BLOCK,
 );
+export const HeroDiffMotion = island(
+  () => import("./hero-diff-motion").then((m) => m.HeroDiffMotion),
+  BLOCK,
+);
 export const CodeShowcaseTabs = island(
   () => import("./code-showcase-tabs").then((m) => m.CodeShowcaseTabs),
   BLOCK,
@@ -44,6 +48,7 @@ export const CopyButton = intlIsland(() =>
 await preloadIslands([
   CommandPanel,
   HeroTerminal,
+  HeroDiffMotion,
   CodeShowcaseTabs,
   FormatSwitch,
   TryIt,

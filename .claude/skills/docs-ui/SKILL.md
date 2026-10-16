@@ -270,8 +270,19 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, proofStrip, problem, howItWorks, features,
   code, showcase, ecosystem, studio, compare, openSource, faq, finalCta), which the home page maps
   over and `lib/landing-sections.test.ts` pins; add or move a section there, not by hand in
-  `page.tsx`. The files: `hero.tsx` (the `h1`, two buttons, the `CommandPanel` install box and the
-  `HeroTerminal` island), `proof-strip.tsx` (stars, npm weekly downloads, the providers and the format count, the stars
+  `page.tsx`. The files: `hero.tsx` (the `h1`, the lead, the two quotable `landing.banner.quotes`
+  sentences in `.vk-banner-summary`, two buttons, the `CommandPanel` install box, the locale diff
+  and the `HeroTerminal` island, and the facts block), `hero-diff.tsx` (`messages/en.json` beside
+  `messages/de.json` from `lib/hero-diff.ts`, both written by the sdk's real next-intl adapter into
+  `lib/hero-diff.generated.json` by `scripts/sync-format-samples.mjs` from `lib/hero-diff-seed.mjs`,
+  git-ignored like the format samples; the two keys the hero terminal reports missing are
+  `.vk-hero-diff-line` rows marked `new`, each value in `.vk-hero-diff-value`), `hero-facts.tsx`
+  (`.vk-banner-facts`: a `dl.vk-facts` named by a visually hidden `h2`, every fact in text: license,
+  install command, the providers from `MACHINE_PROVIDER_IDS`, the format count
+  `SUPPORTED_FORMAT_IDS.length` linking `/docs/formats`, the Node.js range, `v{PACKAGE_VERSION}`
+  with the Studio and MCP versions, and `LANDING_LAST_UPDATED` as a `time`; a provider dated by
+  `RELEASE_BADGE` in `lib/release-badge.ts`, the one constant every "from 0.12.0" badge reads,
+  carries a `.vk-pill`), `proof-strip.tsx` (stars, npm weekly downloads, the providers and the format count, the stars
 and downloads from `lib/project-stats.ts`, read at build time so the page stays static, then
 refreshed in place by `LiveStatValue` from `/api/stats`; every figure shows as fetched, with no
 display threshold, and a figure the build could not fetch leaves its cell as a named link
@@ -542,7 +553,11 @@ stack").
   the stylesheet guards.
 - **Hero.** The hero is never revealed and the `h1` never moves (it is the largest paint); no
   load animation runs in it. The terminal types its translate run once it is in view and settles
-  without JavaScript on the finished check run.
+  without JavaScript on the finished check run. The locale diff is server-rendered filled
+  (`data-diff-state="filled"`); the `HeroDiffMotion` island sets `missing` only after hydration,
+  only while the diff is out of view and never under reduced motion, then fills it once when it
+  scrolls in: the values fade back in (`opacity`, `--duration-reveal`, 300ms apart) and the
+  `aria-hidden` "missing" mark swaps for "new". A diff already in view at hydration never moves.
 - **No section eyebrows.** A landing section opens with its `h2`; nothing sits above it, no
   index and no label word. `reveal-marks.test.tsx` fails on a `.vk-eyebrow` style.
 - **Version pill.** On the landing only (the `landingLocale` gate in `lib/i18n.ts`), `HomeSiteHeader` passes
@@ -724,10 +739,11 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
 - **Solid white display headlines.** The landing hero (`hero.tsx`) and the docs home header both
   set a solid `--text-strong` headline. The hero sits straight on the void page, left-aligned, over
   its decorative dot backdrop, with one soft glow behind the terminal: `.vk-banner-grid` is one
-  column, and from 64rem two, the copy (`.vk-banner-copy`: the `h1` `.vk-banner-title`, the
-  `.vk-banner-lead`, `.vk-banner-ctas` with Get started (`/docs/quickstart`, `click-cta`) and View
-  on GitHub (`outbound-link`), then `.vk-banner-install` holding `CommandPanel`) beside the
-  terminal (`.vk-banner-demo`). The home social image (`HomeOgFrame` in `lib/og-image.tsx`, served
+  column (copy, demo, facts), and from 64rem two, the copy (`.vk-banner-copy`: the `h1`
+  `.vk-banner-title`, the `.vk-banner-lead`, the `.vk-banner-summary`, `.vk-banner-ctas` with Get
+  started (`/docs/quickstart`) and Star on GitHub, then `.vk-banner-install` holding
+  `CommandPanel`) over the facts block (`.vk-banner-facts`), beside the diff and the terminal
+  (`.vk-banner-demo`). The home social image (`HomeOgFrame` in `lib/og-image.tsx`, served
   by `app/[lang]/(home)/home-og/route.tsx`) is a monochrome and violet card on `OG_PALETTE.void`:
   the wordmark and host, the localized `landing.banner.headline`, then a few real terminal lines
   (`HERO_OG_LINES` in `lib/hero-terminal.ts`, every line taken from the hero transcript, the prompt

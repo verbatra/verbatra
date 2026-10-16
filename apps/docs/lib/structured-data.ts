@@ -54,6 +54,8 @@ const SUPPORTED_FORMAT_LABELS = SUPPORTED_FORMAT_IDS.map((id) => FORMAT_DISPLAY[
 
 export const AUTHOR_NAME = "Mario Kreitz";
 
+export const ENTITY_NAME = "Verbatra";
+
 const AUTHOR_ID = `${SITE_URL}/#author`;
 
 const AUTHOR = {
@@ -70,7 +72,7 @@ const ORGANIZATION_ID = `${SITE_URL}/#organization`;
 const ORGANIZATION = {
   "@type": "Organization",
   "@id": ORGANIZATION_ID,
-  name: "verbatra",
+  name: ENTITY_NAME,
   url: SITE_URL,
   logo: {
     "@type": "ImageObject",
@@ -105,12 +107,14 @@ export function softwareApplicationLd(args: {
   version: string;
   studioVersion: string;
   mcpVersion: string;
+  dateModified: string;
 }): Record<string, unknown> {
   return {
     "@context": "https://schema.org",
     "@type": ["SoftwareApplication", "SoftwareSourceCode"],
-    name: "verbatra",
+    name: ENTITY_NAME,
     softwareVersion: args.version,
+    dateModified: args.dateModified,
     description: args.description,
     inLanguage: args.lang,
     url: SITE_URL,
@@ -171,7 +175,7 @@ export function websiteLd(args: { lang: string }): Record<string, unknown> {
     "@context": "https://schema.org",
     "@type": "WebSite",
     "@id": WEBSITE_ID,
-    name: "verbatra",
+    name: ENTITY_NAME,
     url: SITE_URL,
     inLanguage: args.lang,
     author: AUTHOR,

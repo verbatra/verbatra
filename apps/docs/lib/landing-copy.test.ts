@@ -8,6 +8,7 @@ import { COMPARE_COLUMNS, COMPARE_ROWS } from "@/lib/landing-compare";
 const NAMESPACES = [
   "topNav",
   "banner",
+  "facts",
   "stats",
   "problem",
   "steps",

@@ -20,7 +20,13 @@ import { toLocale } from "@/lib/i18n";
 import { withoutInlineCode } from "@/lib/inline-code-text";
 import { LANDING_STEP_IDS } from "@/lib/landing-code";
 import { LANDING_SECTIONS, type LandingSectionId } from "@/lib/landing-sections";
-import { homeAlternates, MCP_VERSION, PACKAGE_VERSION, STUDIO_VERSION } from "@/lib/site";
+import {
+  homeAlternates,
+  LANDING_LAST_UPDATED,
+  MCP_VERSION,
+  PACKAGE_VERSION,
+  STUDIO_VERSION,
+} from "@/lib/site";
 import { homeOgImagePath, socialMetadata } from "@/lib/social-metadata";
 import {
   type FaqItem,
@@ -74,6 +80,7 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
           version: PACKAGE_VERSION,
           studioVersion: STUDIO_VERSION,
           mcpVersion: MCP_VERSION,
+          dateModified: LANDING_LAST_UPDATED,
         })}
       />
       <JsonLd data={faqPageLd({ items: faqItems, lang: locale })} />

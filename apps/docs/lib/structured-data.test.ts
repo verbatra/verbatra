@@ -4,7 +4,7 @@ import { withoutInlineCode } from "@/lib/inline-code-text";
 import { LANDING_STEP_IDS } from "@/lib/landing-code";
 import { SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import en from "../messages/en.json";
-import { NODE_RANGE } from "./site";
+import { LANDING_LAST_UPDATED, NODE_RANGE } from "./site";
 import {
   breadcrumbListLd,
   howToLd,
@@ -23,7 +23,7 @@ const WEBSITE_ID = "https://verbatra.kreitz-webdev.de/#website";
 const ORGANIZATION_NODE = {
   "@type": "Organization",
   "@id": ORGANIZATION_ID,
-  name: "verbatra",
+  name: "Verbatra",
   url: "https://verbatra.kreitz-webdev.de",
   logo: {
     "@type": "ImageObject",
@@ -38,7 +38,7 @@ const AUTHOR_REF = { "@id": AUTHOR_ID };
 const WEBSITE_REF = { "@id": WEBSITE_ID };
 
 describe("organizationLd", () => {
-  it("names verbatra, carries a stable @id, and links its GitHub org through sameAs", () => {
+  it("names Verbatra, carries a stable @id, and links its GitHub org through sameAs", () => {
     expect(organizationLd()).toEqual({
       "@context": "https://schema.org",
       ...ORGANIZATION_NODE,
@@ -103,6 +103,7 @@ describe("softwareApplicationLd", () => {
       version: "1.0.0",
       studioVersion: "1.0.0",
       mcpVersion: "1.0.0",
+      dateModified: "2026-10-16",
     });
     expect(result.author).toEqual(AUTHOR_REF);
     const hasPart = result.hasPart as ReadonlyArray<{ author: unknown }>;
@@ -119,6 +120,7 @@ describe("softwareApplicationLd", () => {
       version: "1.0.0",
       studioVersion: "1.0.0",
       mcpVersion: "1.0.0",
+      dateModified: "2026-10-16",
     });
     const names = (result.hasPart as ReadonlyArray<{ name: string }>).map((part) => part.name);
     expect(names).toEqual(["Verbatra Studio", "Verbatra MCP server"]);
@@ -132,11 +134,41 @@ describe("softwareApplicationLd", () => {
       version: "1.0.0",
       studioVersion: "1.0.0",
       mcpVersion: "1.0.0",
+      dateModified: "2026-10-16",
     });
     const parts = result.hasPart as ReadonlyArray<{ operatingSystem: string }>;
     for (const value of [result.operatingSystem, ...parts.map((part) => part.operatingSystem)]) {
       expect(value).toBe(`Node.js ${NODE_RANGE}`);
     }
+  });
+});
+
+describe("softwareApplicationLd entity", () => {
+  it("names the entity Verbatra in every top-level node", () => {
+    const app = softwareApplicationLd({
+      description: "test",
+      lang: "en",
+      version: "1.0.0",
+      studioVersion: "1.0.0",
+      mcpVersion: "1.0.0",
+      dateModified: "2026-10-16",
+    });
+    expect(app.name).toBe("Verbatra");
+    expect(websiteLd({ lang: "en" }).name).toBe("Verbatra");
+    expect(organizationLd().name).toBe("Verbatra");
+  });
+
+  it("carries the landing date as an ISO dateModified", () => {
+    const app = softwareApplicationLd({
+      description: "test",
+      lang: "en",
+      version: "1.0.0",
+      studioVersion: "1.0.0",
+      mcpVersion: "1.0.0",
+      dateModified: LANDING_LAST_UPDATED,
+    });
+    expect(app.dateModified).toBe(LANDING_LAST_UPDATED);
+    expect(String(app.dateModified)).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 });
 
@@ -148,6 +180,7 @@ describe("softwareApplicationLd formats", () => {
       version: "1.0.0",
       studioVersion: "1.0.0",
       mcpVersion: "1.0.0",
+      dateModified: "2026-10-16",
     });
     const features = result.featureList as ReadonlyArray<string>;
     const formats = features.find((feature) => feature.startsWith("i18n formats: "));

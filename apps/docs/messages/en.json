@@ -54,12 +54,12 @@
   },
   "landing": {
     "meta": {
-      "title": "verbatra: translate only the i18n keys that changed",
-      "ogTitle": "verbatra: translate only what changed",
-      "description": "verbatra is an open source i18n CLI and SDK. It checks your locale files against the source and sends only new or changed keys to your translation provider.",
+      "title": "Verbatra: i18n CLI that translates only the changed keys",
+      "ogTitle": "Verbatra: translate only what changed",
+      "description": "Verbatra is an open source i18n CLI and SDK. It finds missing and changed keys in your locale files and translates only those with your own provider key.",
       "ogDescription": "Translate only the i18n keys that changed, and fail CI while one is missing.",
       "ogImageAlt": "verbatra: Translate only what changed, above a check run that finds two missing keys per locale and a translate run that sends only those.",
-      "definition": "verbatra is an open source CLI and SDK for i18n locale files. It sends only new and changed keys to the AI or machine-translation provider you pick and fails CI while a key is missing."
+      "definition": "Verbatra is an open source CLI and SDK for i18n locale files. It sends only new and changed keys to the AI or machine-translation provider you pick and fails CI while a key is missing."
     },
     "hero": {
       "command": {
@@ -242,15 +242,34 @@
     "banner": {
       "eyebrow": "Open source (MIT) i18n CLI and SDK for developers",
       "headline": "Translate only what changed.",
-      "lead": "verbatra compares your locale files with the source and sends only new or changed keys to the provider you pick. In CI, it fails the build while a key is missing.",
+      "lead": "For developers who keep translations in JSON, YAML, XLIFF, ARB and other locale files.",
       "ctaPrimary": "Get started",
-      "ctaSecondary": "View on GitHub",
+      "ctaSecondary": "Star on GitHub",
       "installLabel": "Install the CLI",
       "nodeRequirement": "Requires Node.js {versions}",
       "nodeMajorFrom": "{major} ({minimum} or later)",
       "terminalLabel": "A verbatra check run finds two missing keys in each locale. A translate run then sends only those keys.",
       "terminalExample": "Example output",
-      "replay": "Replay"
+      "replay": "Replay",
+      "quotes": {
+        "what": "Verbatra is an open source CLI and SDK that keeps i18n locale files in sync.",
+        "how": "Verbatra finds keys that are missing or changed in your target locales and sends only those to the AI or machine-translation provider you choose."
+      },
+      "diffLabel": "The German file lacks the checkout keys of the English source until verbatra translate fills them in."
+    },
+    "facts": {
+      "label": "Verbatra at a glance",
+      "license": "License",
+      "install": "Install",
+      "providers": "Providers",
+      "providersLink": "Set up a provider",
+      "formats": "Formats",
+      "formatsValue": "{count} file formats",
+      "requirements": "Requirements",
+      "version": "Current version",
+      "versionParts": "Studio {studio}, MCP server {mcp}",
+      "lastUpdated": "Last updated",
+      "availableFrom": "from {version}"
     },
     "stats": {
       "label": "verbatra in numbers",

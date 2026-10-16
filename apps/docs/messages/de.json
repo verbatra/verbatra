@@ -1,12 +1,12 @@
 {
   "landing": {
     "meta": {
-      "title": "verbatra: übersetze nur neue und geänderte i18n-Keys",
-      "ogTitle": "verbatra: übersetze nur, was sich geändert hat",
-      "description": "verbatra ist eine Open-Source-CLI mit SDK für i18n. Sie prüft deine Locale-Dateien gegen die Quelle und schickt nur neue oder geänderte Keys an deinen Provider.",
+      "title": "Verbatra: die i18n-CLI, die nur geänderte Keys übersetzt",
+      "ogTitle": "Verbatra: übersetze nur, was sich geändert hat",
+      "description": "Verbatra ist eine Open-Source-CLI mit SDK für i18n. Sie findet fehlende und geänderte Keys in deinen Locale-Dateien und übersetzt nur diese mit deinem Key.",
       "ogDescription": "Übersetze nur die i18n-Keys, die sich geändert haben, und lass die CI scheitern, solange einer fehlt.",
       "ogImageAlt": "verbatra: Übersetze nur, was sich geändert hat, über einem check-Lauf, der zwei fehlende Keys pro Locale findet, und einem translate-Lauf, der nur diese schickt.",
-      "definition": "verbatra ist eine Open-Source-CLI mit SDK für i18n-Locale-Dateien. Sie schickt nur neue und geänderte Keys an den Provider deiner Wahl (KI oder maschinelle Übersetzung) und lässt die CI scheitern, solange ein Key fehlt."
+      "definition": "Verbatra ist eine Open-Source-CLI mit SDK für i18n-Locale-Dateien. Sie schickt nur neue und geänderte Keys an den Provider deiner Wahl (KI oder maschinelle Übersetzung) und lässt die CI scheitern, solange ein Key fehlt."
     },
     "hero": {
       "command": {
@@ -189,15 +189,34 @@
     "banner": {
       "eyebrow": "i18n-CLI und SDK für Entwickler, Open Source (MIT)",
       "headline": "Übersetze nur, was sich geändert hat.",
-      "lead": "verbatra vergleicht deine Locale-Dateien mit der Quelle und schickt nur neue oder geänderte Keys an den Provider deiner Wahl. In der CI schlägt der Build fehl, solange ein Key fehlt.",
+      "lead": "Für Entwickler, die ihre Übersetzungen in JSON, YAML, XLIFF, ARB und anderen Locale-Dateien pflegen.",
       "ctaPrimary": "Loslegen",
-      "ctaSecondary": "Auf GitHub ansehen",
+      "ctaSecondary": "Gib uns einen Stern auf GitHub",
       "installLabel": "Die CLI installieren",
       "nodeRequirement": "Benötigt Node.js {versions}",
       "nodeMajorFrom": "{major} (ab {minimum})",
       "terminalLabel": "Ein verbatra-check-Lauf findet in jeder Locale zwei fehlende Keys. Ein translate-Lauf schickt danach nur diese Keys.",
       "terminalExample": "Beispielausgabe",
-      "replay": "Erneut abspielen"
+      "replay": "Erneut abspielen",
+      "quotes": {
+        "what": "Verbatra ist eine Open-Source-CLI mit SDK, die i18n-Locale-Dateien synchron hält.",
+        "how": "Verbatra findet Keys, die in deinen Ziel-Locales fehlen oder sich geändert haben, und schickt nur diese an den Provider deiner Wahl (KI oder maschinelle Übersetzung)."
+      },
+      "diffLabel": "Der deutschen Datei fehlen die checkout-Keys der englischen Quelle, bis verbatra translate sie ergänzt."
+    },
+    "facts": {
+      "label": "Verbatra auf einen Blick",
+      "license": "Lizenz",
+      "install": "Installation",
+      "providers": "Provider",
+      "providersLink": "Provider einrichten",
+      "formats": "Formate",
+      "formatsValue": "{count} Dateiformate",
+      "requirements": "Voraussetzungen",
+      "version": "Aktuelle Version",
+      "versionParts": "Studio {studio}, MCP-Server {mcp}",
+      "lastUpdated": "Zuletzt aktualisiert",
+      "availableFrom": "ab {version}"
     },
     "stats": {
       "label": "verbatra in Zahlen",
