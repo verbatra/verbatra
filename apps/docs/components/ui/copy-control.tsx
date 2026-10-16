@@ -11,9 +11,9 @@ const SIZE = {
 } as const;
 
 const STATUS_CLASS: Record<CopyStatus, string> = {
-  idle: "text-(--text-muted) hover:bg-(--surface-hover) hover:text-(--text-strong)",
-  copied: "border-(--border-accent) text-(--accent)",
-  failed: "border-(--border-danger) text-(--text-danger)",
+  idle: "border-(--text-faint) text-(--text-muted) hover:bg-(--surface-hover) hover:text-(--text-strong)",
+  copied: "border-(--accent) text-(--accent)",
+  failed: "border-(--text-danger) text-(--text-danger)",
 };
 
 export type CopyControlStatusLabels = {
@@ -53,7 +53,7 @@ export function CopyControl({
         aria-label={status === "idle" ? label : undefined}
         data-status={status}
         className={cn(
-          "vk-tap inline-flex shrink-0 items-center justify-center rounded-md border border-(--border-default) font-sans transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-ring)",
+          "vk-tap inline-flex shrink-0 items-center justify-center rounded-md border font-sans transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-ring)",
           SIZE[size],
           STATUS_CLASS[status],
           className,

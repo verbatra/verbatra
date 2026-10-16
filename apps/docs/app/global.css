@@ -1615,7 +1615,7 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   display: inline-flex;
   gap: 0.125rem;
   padding: 0.1875rem;
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--text-faint);
   border-radius: var(--radius-md);
 }
 

@@ -270,9 +270,16 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   `variant: "segmented"` is the `.vk-segmented` switch (tabs rounded by `--radius-segment`, 7px)
   that the hero command panel uses, never a hand-made copy. The code showcase tabs (`code-showcase-tabs.tsx`) use the default `underline` variant;
   there is no second tab primitive.
-  `Button` takes `variant: "primary" | "secondary" | "outline" | "ghost"` (`outline` is the
-  `--text-faint` border that holds 3:1 on its own, pressed `--accent` through `aria-pressed`) and `size: "sm" | "md" | "lg"`.
+  `Button` takes `variant: "primary" | "secondary" | "outline" | "ghost"` (`secondary` and
+  `outline` both draw a `--text-faint` border that holds 3:1 on its own; `outline` also shows a
+  pressed `--accent` border through `aria-pressed`) and `size: "sm" | "md" | "lg"`.
   Extend the variant union rather than passing ad hoc `className` overrides.
+  A control's boundary never relies on `--border-default` alone (about 1.3 to 1.5:1): a bordered
+  button, the `.vk-segmented` switch and `CopyControl` draw it in `--text-faint`, and the copy
+  button's copied and failed states in `--accent` and `--text-danger`, every one at 3:1 or more on
+  `--surface-bg`, `--surface-band`, `--surface-card` and `--v-void` in both themes
+  (`components/ui/control-boundaries.test.tsx`). `--border-default` stays the hairline of panels
+  and frames, which are not controls.
 - **shadcn/ui primitives:** `components.json` (style `new-york`, Tailwind 4 with an empty
   `tailwind.config`, `cssVariables`) points the `ui` alias at `@/components/ui/shadcn`, so the
   CLI never overwrites the hand-written `components/ui/button.tsx` and `tabs.tsx`. That folder
