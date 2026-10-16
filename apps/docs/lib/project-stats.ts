@@ -4,9 +4,6 @@ import { z } from "zod";
 
 export const GITHUB_REPO_API_URL = "https://api.github.com/repos/verbatra/verbatra";
 
-export const NPM_WEEKLY_DOWNLOADS_URL =
-  "https://api.npmjs.org/downloads/point/last-week/@verbatra/cli";
-
 export const STATS_REVALIDATE_SECONDS = 3600;
 
 const STATS_TIMEOUT_MS = 3000;
@@ -16,11 +13,8 @@ export const STATS_CACHE_CONTROL =
 
 const githubRepoSchema = z.object({ stargazers_count: z.number().int().nonnegative() });
 
-const npmDownloadsSchema = z.object({ downloads: z.number().int().nonnegative() });
-
 export type ProjectStats = {
   readonly stars: number | null;
-  readonly weeklyDownloads: number | null;
 };
 
 type StatsCaching = "build" | "hourly";
@@ -73,20 +67,8 @@ export async function fetchGitHubStars(options: ProjectStatsOptions = {}): Promi
   return parsed.success ? parsed.data.stargazers_count : null;
 }
 
-export async function fetchWeeklyDownloads(
-  options: ProjectStatsOptions = {},
-): Promise<number | null> {
-  const body = await fetchJson(NPM_WEEKLY_DOWNLOADS_URL, { Accept: "application/json" }, options);
-  const parsed = npmDownloadsSchema.safeParse(body);
-  return parsed.success ? parsed.data.downloads : null;
-}
-
 export async function fetchProjectStats(options: ProjectStatsOptions = {}): Promise<ProjectStats> {
-  const [stars, weeklyDownloads] = await Promise.all([
-    fetchGitHubStars(options),
-    fetchWeeklyDownloads(options),
-  ]);
-  return { stars, weeklyDownloads };
+  return { stars: await fetchGitHubStars(options) };
 }
 
 export const loadProjectStats = cache(

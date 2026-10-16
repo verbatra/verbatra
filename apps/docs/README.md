@@ -96,24 +96,20 @@ copy; a component keeps only its own link targets and layout.
   `es.json` and `fr.json` in the same change, with `pnpm i18n` or by hand. After a hand
   translation, run `npx @verbatra/cli check` from this directory: it must report every locale in sync.
 - **Add or reorder a section**: build it in `components/landing/` on `Section`, with `SectionHead`
-  for a heading and lead (the hero, the proof strip and the closing panel draw their own frames,
-  and Studio sets its heading inside its text column), add its id to `LANDING_SECTIONS` at the position it takes, map the id to the component in
+  for a heading and lead (`SectionAside` for a head beside its content, as the marquee and the FAQ
+  use; the hero and the closing section draw their own heads), add its id to `LANDING_SECTIONS` at the position it takes, map the id to the component in
   `page.tsx`, and update the order in `lib/landing-sections.test.ts`. Give it a section `id` that
   no other section uses.
-- **Live stats**: the GitHub star count (header and proof strip) and the npm weekly downloads of
-  `@verbatra/cli` come from `lib/project-stats.ts`, cut off after a short timeout. The page reads
-  them once at build time (`loadProjectStats`, `cache: "force-cache"`, no revalidation), so every
-  landing and legal page stays fully static and its inline scripts match the CSP hashes written at
-  build. After hydration, one shared client request to the same-origin `/api/stats` route (a static
-  route regenerated hourly) swaps in the current numbers in place, in a width reserved by the
-  build-time number. `GITHUB_TOKEN`, when set, raises the GitHub rate limit. When a request fails
-  or returns something unexpected, the build-time number stays, or the number is left out if the
-  build had none; the page never shows a made-up figure.
-  Every figure shows as fetched, however small; there is no display threshold. When the build
-  could not fetch a figure, its proof strip cell links GitHub or npm by name instead of a number,
-  and the header's GitHub link shows no count. The strip's other two cells are the providers and
-  the format count, which is read from the format registry, never typed in.
-  `lib/project-stats.static-pages.test.ts` fails if page code asks the stats fetch to revalidate.
+- **Live star count**: the header's GitHub star count comes from `lib/project-stats.ts`, cut off
+  after a short timeout. The page reads it once at build time (`loadProjectStats`,
+  `cache: "force-cache"`, no revalidation), so every landing and legal page stays fully static and
+  its inline scripts match the CSP hashes written at build. After hydration, one client request to
+  the same-origin `/api/stats` route (a static route regenerated hourly) swaps in the current count
+  in place, in a width reserved by the build-time number. `GITHUB_TOKEN`, when set, raises the
+  GitHub rate limit. When a request fails or returns something unexpected, the build-time number
+  stays; when the build had none, the header's GitHub link shows no count. The page never shows a
+  made-up figure, and there is no display threshold. `lib/project-stats.static-pages.test.ts`
+  fails if page code asks the fetch to revalidate.
 
 ## Translating the interface strings
 

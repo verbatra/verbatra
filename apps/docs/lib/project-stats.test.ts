@@ -2,10 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 import {
   fetchGitHubStars,
   fetchProjectStats,
-  fetchWeeklyDownloads,
   GITHUB_REPO_API_URL,
   loadProjectStats,
-  NPM_WEEKLY_DOWNLOADS_URL,
   STATS_REVALIDATE_SECONDS,
 } from "@/lib/project-stats";
 
@@ -26,25 +24,21 @@ function fetcherFor(routes: Record<string, () => Response>) {
 
 const ok = {
   [GITHUB_REPO_API_URL]: () => jsonResponse({ stargazers_count: 1234, name: "verbatra" }),
-  [NPM_WEEKLY_DOWNLOADS_URL]: () =>
-    jsonResponse({ downloads: 5678, package: "@verbatra/cli", start: "a", end: "b" }),
 };
 
 describe("fetchProjectStats", () => {
-  it("returns the star count and the weekly downloads", async () => {
+  it("returns the star count and asks nothing else", async () => {
     const fetcher = fetcherFor(ok);
 
-    await expect(fetchProjectStats({ fetcher, env: {} })).resolves.toEqual({
-      stars: 1234,
-      weeklyDownloads: 5678,
-    });
+    await expect(fetchProjectStats({ fetcher, env: {} })).resolves.toEqual({ stars: 1234 });
+    expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
   it("caches at build time by default, so a prerendered page never regenerates", async () => {
     const fetcher = fetcherFor(ok);
     await fetchProjectStats({ fetcher, env: {} });
 
-    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(fetcher).toHaveBeenCalledTimes(1);
     for (const [, init] of fetcher.mock.calls) {
       expect(init?.cache).toBe("force-cache");
       expect(init?.next).toBeUndefined();
@@ -88,13 +82,9 @@ describe("fetchProjectStats", () => {
   it("hides a stat whose endpoint answers with a non-200 status", async () => {
     const fetcher = fetcherFor({
       [GITHUB_REPO_API_URL]: () => jsonResponse({ message: "rate limited" }, 403),
-      [NPM_WEEKLY_DOWNLOADS_URL]: ok[NPM_WEEKLY_DOWNLOADS_URL],
     });
 
-    await expect(fetchProjectStats({ fetcher, env: {} })).resolves.toEqual({
-      stars: null,
-      weeklyDownloads: 5678,
-    });
+    await expect(fetchProjectStats({ fetcher, env: {} })).resolves.toEqual({ stars: null });
   });
 
   it("hides a stat whose request times out", async () => {
@@ -105,34 +95,29 @@ describe("fetchProjectStats", () => {
         }),
     );
 
-    await expect(fetchWeeklyDownloads({ fetcher, timeoutMs: 5 })).resolves.toBeNull();
+    await expect(fetchGitHubStars({ fetcher, timeoutMs: 5, env: {} })).resolves.toBeNull();
   });
 
   it("hides a stat whose body is not JSON", async () => {
     const fetcher = fetcherFor({
       [GITHUB_REPO_API_URL]: () => new Response("<html>oops</html>", { status: 200 }),
-      [NPM_WEEKLY_DOWNLOADS_URL]: ok[NPM_WEEKLY_DOWNLOADS_URL],
     });
 
     await expect(fetchGitHubStars({ fetcher, env: {} })).resolves.toBeNull();
   });
 
   it.each([
-    ["a missing field", { name: "verbatra" }, { error: "package not found" }],
-    ["a string count", { stargazers_count: "12" }, { downloads: "34" }],
-    ["a negative count", { stargazers_count: -1 }, { downloads: -1 }],
-    ["a fractional count", { stargazers_count: 1.5 }, { downloads: 2.5 }],
-    ["a null body", null, null],
-  ])("hides both stats on %s", async (_label, github, npm) => {
+    ["a missing field", { name: "verbatra" }],
+    ["a string count", { stargazers_count: "12" }],
+    ["a negative count", { stargazers_count: -1 }],
+    ["a fractional count", { stargazers_count: 1.5 }],
+    ["a null body", null],
+  ])("hides the star count on %s", async (_label, github) => {
     const fetcher = fetcherFor({
       [GITHUB_REPO_API_URL]: () => jsonResponse(github),
-      [NPM_WEEKLY_DOWNLOADS_URL]: () => jsonResponse(npm),
     });
 
-    await expect(fetchProjectStats({ fetcher, env: {} })).resolves.toEqual({
-      stars: null,
-      weeklyDownloads: null,
-    });
+    await expect(fetchProjectStats({ fetcher, env: {} })).resolves.toEqual({ stars: null });
   });
 
   it("uses the global fetch when no fetcher is passed", async () => {
@@ -141,7 +126,7 @@ describe("fetchProjectStats", () => {
     const stats = await fetchProjectStats({ env: {} });
     vi.unstubAllGlobals();
 
-    expect(stats).toEqual({ stars: 1234, weeklyDownloads: 5678 });
+    expect(stats).toEqual({ stars: 1234 });
   });
 });
 
@@ -152,7 +137,7 @@ describe("loadProjectStats", () => {
     const stats = await loadProjectStats();
     vi.unstubAllGlobals();
 
-    expect(stats).toEqual({ stars: 1234, weeklyDownloads: 5678 });
+    expect(stats).toEqual({ stars: 1234 });
     for (const [, init] of fetcher.mock.calls) expect(init?.cache).toBe("force-cache");
   });
 
@@ -161,13 +146,12 @@ describe("loadProjectStats", () => {
       "fetch",
       fetcherFor({
         [GITHUB_REPO_API_URL]: () => jsonResponse({ stargazers_count: 2 }),
-        [NPM_WEEKLY_DOWNLOADS_URL]: () => jsonResponse({ downloads: 62 }),
       }),
     );
     const stats = await loadProjectStats();
     vi.unstubAllGlobals();
 
-    expect(stats).toEqual({ stars: 2, weeklyDownloads: 62 });
+    expect(stats).toEqual({ stars: 2 });
   });
 });
 

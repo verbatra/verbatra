@@ -25,8 +25,8 @@ function stubFetch(answer: () => Promise<Response>) {
   return fetcher;
 }
 
-function Count({ stat, initial }: { stat: "stars" | "downloads"; initial: string }) {
-  return <span data-live-stat={stat}>{live.useLiveCount(stat, initial, "en")}</span>;
+function Count({ initial }: { initial: string }) {
+  return <span data-live-stat="stars">{live.useLiveCount("stars", initial, "en")}</span>;
 }
 
 async function renderValues(initial: string): Promise<HTMLElement> {
@@ -35,8 +35,8 @@ async function renderValues(initial: string): Promise<HTMLElement> {
   await act(async () => {
     createRoot(container).render(
       <>
-        <Count stat="stars" initial={initial} />
-        <Count stat="downloads" initial={initial} />
+        <Count initial={initial} />
+        <Count initial={initial} />
       </>,
     );
   });
@@ -52,11 +52,11 @@ function values(container: HTMLElement): (string | null)[] {
 
 describe("useLiveCount with a build-time number", () => {
   it("swaps the build-time number for the live one, fetched once for every island", async () => {
-    const fetcher = stubFetch(async () => Response.json({ stars: 2500, downloads: 15_600 }));
+    const fetcher = stubFetch(async () => Response.json({ stars: 2500 }));
 
     const container = await renderValues("1.2K");
 
-    expect(values(container)).toEqual(["2.5K", "15.6K"]);
+    expect(values(container)).toEqual(["2.5K", "2.5K"]);
     expect(fetcher).toHaveBeenCalledTimes(1);
     expect(fetcher.mock.calls[0]?.[0]).toBe(live.LIVE_STATS_URL);
   });
@@ -65,8 +65,8 @@ describe("useLiveCount with a build-time number", () => {
     ["a failed request", async () => Promise.reject(new Error("offline"))],
     ["an error status", async () => new Response("down", { status: 503 })],
     ["a body that is not JSON", async () => new Response("<html>", { status: 200 })],
-    ["null counts", async () => Response.json({ stars: null, downloads: null })],
-    ["malformed counts", async () => Response.json({ stars: "12", downloads: -1 })],
+    ["null counts", async () => Response.json({ stars: null })],
+    ["malformed counts", async () => Response.json({ stars: "12" })],
     ["a null body", async () => Response.json(null)],
   ])("keeps the build-time number on %s", async (_label, answer) => {
     stubFetch(answer);
@@ -85,7 +85,7 @@ describe("useLiveStats", () => {
     });
     vi.resetModules();
     vi.doMock("@/lib/first-paint", () => ({ afterFirstContentfulPaint: () => painted }));
-    const fetcher = stubFetch(async () => Response.json({ stars: 2500, downloads: 1 }));
+    const fetcher = stubFetch(async () => Response.json({ stars: 2500 }));
     const fresh = await import("@/lib/live-stats");
     function Fresh() {
       return <span>{fresh.useLiveCount("stars", "1.2K", "en")}</span>;
@@ -111,7 +111,7 @@ describe("loadLiveStats", () => {
   it("does not keep a failed request, so a later mount asks again", async () => {
     let fail = true;
     const fetcher = stubFetch(async () =>
-      fail ? new Response("down", { status: 503 }) : Response.json({ stars: 2500, downloads: 1 }),
+      fail ? new Response("down", { status: 503 }) : Response.json({ stars: 2500 }),
     );
 
     const first = await renderValues("1.2K");
@@ -119,12 +119,12 @@ describe("loadLiveStats", () => {
 
     fail = false;
     const second = await renderValues("1.2K");
-    expect(values(second)).toEqual(["2.5K", "1"]);
+    expect(values(second)).toEqual(["2.5K", "2.5K"]);
     expect(fetcher.mock.calls.length).toBeGreaterThan(1);
   });
 
   it("keeps a successful answer for every later caller", async () => {
-    const fetcher = stubFetch(async () => Response.json({ stars: 1, downloads: 2 }));
+    const fetcher = stubFetch(async () => Response.json({ stars: 1 }));
     await live.loadLiveStats();
     await live.loadLiveStats();
     expect(fetcher).toHaveBeenCalledTimes(1);
@@ -133,7 +133,7 @@ describe("loadLiveStats", () => {
 
 describe("the header star count", () => {
   it("updates the visible count and the link's name together", async () => {
-    stubFetch(async () => Response.json({ stars: 2500, downloads: 1 }));
+    stubFetch(async () => Response.json({ stars: 2500 }));
     const { HomeNavProvider, GitHubNavLink } = await import("@/components/home-nav");
     const container = document.createElement("div");
     await act(async () => {
@@ -174,7 +174,7 @@ describe("the header star count", () => {
 
 describe("useLiveCount", () => {
   it("never shows a number the build-time render hid", async () => {
-    stubFetch(async () => Response.json({ stars: 2500, downloads: 1 }));
+    stubFetch(async () => Response.json({ stars: 2500 }));
     const seen: (string | null)[] = [];
     function Probe() {
       seen.push(live.useLiveCount("stars", null, "en"));

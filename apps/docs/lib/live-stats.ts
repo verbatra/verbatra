@@ -6,7 +6,6 @@ export const LIVE_STATS_URL = "/api/stats";
 
 type LiveStats = {
   readonly stars: number | null;
-  readonly downloads: number | null;
 };
 
 type LiveStat = keyof LiveStats;
@@ -24,7 +23,7 @@ async function requestLiveStats(fetcher: typeof fetch): Promise<LiveStats | null
     const body: unknown = await response.json();
     if (typeof body !== "object" || body === null) return null;
     const record = body as Record<string, unknown>;
-    return { stars: countOrNull(record.stars), downloads: countOrNull(record.downloads) };
+    return { stars: countOrNull(record.stars) };
   } catch {
     return null;
   }

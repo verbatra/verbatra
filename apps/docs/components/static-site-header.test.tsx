@@ -13,7 +13,7 @@ vi.mock("next-intl/server", () => ({
 }));
 
 vi.mock("@/lib/project-stats", () => ({
-  loadProjectStats: async () => ({ stars: stats.stars, weeklyDownloads: null }),
+  loadProjectStats: async () => ({ stars: stats.stars }),
 }));
 
 const { StaticSiteHeader } = await import("./static-site-header");

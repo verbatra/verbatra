@@ -2,7 +2,6 @@ import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   GITHUB_REPO_API_URL,
-  NPM_WEEKLY_DOWNLOADS_URL,
   STATS_CACHE_CONTROL,
   STATS_REVALIDATE_SECONDS,
 } from "@/lib/project-stats";
@@ -24,43 +23,39 @@ afterEach(() => {
 });
 
 describe("GET /api/stats", () => {
-  it("answers with the star count and the weekly downloads", async () => {
+  it("answers with the star count only", async () => {
     const fetcher = stubFetch({
       [GITHUB_REPO_API_URL]: () => Response.json({ stargazers_count: 321 }),
-      [NPM_WEEKLY_DOWNLOADS_URL]: () => Response.json({ downloads: 654 }),
     });
 
     const response = await route.GET();
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ stars: 321, downloads: 654 });
+    expect(await response.json()).toEqual({ stars: 321 });
+    expect(fetcher).toHaveBeenCalledTimes(1);
     expect(response.headers.get("cache-control")).toBe(STATS_CACHE_CONTROL);
     for (const [, init] of fetcher.mock.calls) {
       expect(init?.next?.revalidate).toBe(STATS_REVALIDATE_SECONDS);
     }
   });
 
-  it("answers with nulls when the upstream services fail", async () => {
+  it("answers with null when GitHub fails", async () => {
     stubFetch({
       [GITHUB_REPO_API_URL]: () => new Response("rate limited", { status: 403 }),
-      [NPM_WEEKLY_DOWNLOADS_URL]: () => {
-        throw new Error("offline");
-      },
     });
 
     const response = await route.GET();
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ stars: null, downloads: null });
+    expect(await response.json()).toEqual({ stars: null });
   });
 
-  it("answers with the real figures however small they are", async () => {
+  it("answers with the real figure however small it is", async () => {
     stubFetch({
-      [GITHUB_REPO_API_URL]: () => Response.json({ stargazers_count: 2 }),
-      [NPM_WEEKLY_DOWNLOADS_URL]: () => Response.json({ downloads: 0 }),
+      [GITHUB_REPO_API_URL]: () => Response.json({ stargazers_count: 0 }),
     });
 
-    expect(await (await route.GET()).json()).toEqual({ stars: 2, downloads: 0 });
+    expect(await (await route.GET()).json()).toEqual({ stars: 0 });
   });
 
   it("is a static route that regenerates hourly", () => {

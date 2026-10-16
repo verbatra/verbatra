@@ -11,7 +11,7 @@ vi.mock("@/lib/project-stats", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/project-stats")>();
   return {
     ...actual,
-    loadProjectStats: async () => ({ stars: fetched.stars, weeklyDownloads: null }),
+    loadProjectStats: async () => ({ stars: fetched.stars }),
   };
 });
 vi.mock("@/components/site-header", async () => {
