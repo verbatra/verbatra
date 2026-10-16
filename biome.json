@@ -16,6 +16,39 @@
       "!.claude/skills"
     ]
   },
+  "overrides": [
+    {
+      "includes": [
+        "apps/docs/app/**",
+        "apps/docs/components/**",
+        "apps/docs/lib/**",
+        "apps/docs/i18n/**",
+        "apps/docs/*.ts",
+        "apps/docs/*.tsx",
+        "apps/docs/*.mts",
+        "apps/docs/*.js",
+        "apps/docs/*.mjs",
+        "apps/docs/*.cjs"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["**/scripts", "**/scripts/**", "@/scripts", "@/scripts/**"],
+                    "message": "App code must never import from scripts/. Shared shapes live in lib/."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
   "css": {
     "parser": {
       "tailwindDirectives": true

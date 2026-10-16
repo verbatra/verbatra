@@ -11,7 +11,8 @@
     "dev": "node scripts/sync-version.mjs && node scripts/sync-translation-freshness.mjs && node scripts/sync-format-samples.mjs && next dev",
     "build": "node scripts/sync-version.mjs && node scripts/sync-translation-freshness.mjs && node scripts/sync-format-samples.mjs && next build && node scripts/write-csp-hashes.mjs",
     "start": "next start",
-    "typecheck": "node scripts/sync-version.mjs && node scripts/sync-translation-freshness.mjs && node scripts/sync-format-samples.mjs && next typegen && tsc --noEmit",
+    "typecheck": "node scripts/sync-version.mjs && node scripts/sync-translation-freshness.mjs && node scripts/sync-format-samples.mjs && next typegen && tsc --noEmit && pnpm run typecheck:playground",
+    "typecheck:playground": "tsc --noEmit -p scripts/playground/tsconfig.json",
     "test": "node scripts/sync-version.mjs && node scripts/sync-translation-freshness.mjs && node scripts/sync-format-samples.mjs && vitest run",
     "docs:budget": "node scripts/docs-budget.mjs",
     "postinstall": "fumadocs-mdx",
@@ -20,7 +21,8 @@
     "screenshots": "node scripts/capture-studio.mjs",
     "csp:smoke": "node scripts/csp-smoke.mjs",
     "contributors": "node scripts/refresh-contributors.mjs",
-    "licenses:sync": "node scripts/sync-licenses.mjs"
+    "licenses:sync": "node scripts/sync-licenses.mjs",
+    "playground:generate": "node --env-file-if-exists=scripts/playground/.env.local scripts/playground/generate.ts"
   },
   "dependencies": {
     "@arcjet/next": "1.14.1",

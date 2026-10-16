@@ -17,3 +17,5 @@
 
 # Local-only planning material (root-anchored; does not match apps/docs).
 /docs
+
+/apps/docs/scripts/playground

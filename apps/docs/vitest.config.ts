@@ -11,7 +11,7 @@ export default defineConfig({
   test: {
     server: {
       deps: {
-        inline: ["fumadocs-core", "fumadocs-mdx"],
+        inline: ["fumadocs-core", "fumadocs-mdx", "@verbatra/sdk"],
       },
     },
     include: [
@@ -26,6 +26,7 @@ export default defineConfig({
       "proxy.csp.test.ts",
       "proxy.pageview.test.ts",
       "next.config.test.ts",
+      "scripts/playground/**/*.test.ts",
     ],
   },
 });
