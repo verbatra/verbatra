@@ -673,8 +673,10 @@ html.light {
 
   .vk-faq-aside > .vk-section-head-aside {
     position: sticky;
-    top: calc(var(--vk-landing-offset) + var(--head-gap));
+    top: var(--vk-landing-offset);
     z-index: 1;
+    margin-block-start: calc(-1 * var(--head-gap));
+    padding-block-start: var(--head-gap);
     grid-row: 1;
     align-self: start;
     background: var(--v-void);

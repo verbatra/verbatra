@@ -182,6 +182,27 @@ test.describe("faq layout", () => {
     expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(900);
   });
 
+  test("pins the aside head right under the site header, so nothing scrolls through a gap above it", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+    await openAll(page);
+    await page.locator(ITEMS).last().scrollIntoViewIfNeeded();
+    const header = await page.locator("header").first().boundingBox();
+    const head = page.locator(`${FAQ} .vk-section-aside > .vk-section-head-aside`);
+    const box = await head.boundingBox();
+    expect(
+      Math.abs((box?.y ?? 0) - ((header?.y ?? 0) + (header?.height ?? 0))),
+    ).toBeLessThanOrEqual(1);
+    await expect(head).not.toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    const hit = await page.evaluate(
+      ([x, y]) => document.elementFromPoint(x, y)?.closest("nav a") === null,
+      [(box?.x ?? 0) + 4, (box?.y ?? 0) + 4] as const,
+    );
+    expect(hit).toBe(true);
+  });
+
   test("never hides a docs link under the sticky head when the keyboard reaches it", async ({
     page,
   }) => {

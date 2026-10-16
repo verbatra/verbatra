@@ -498,8 +498,9 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   `details`/`summary`, rendered closed on the server with its question in an `h3` inside the
   summary (`text-wrap: pretty`) and its answer in the HTML (at most 33rem wide), so it opens and
   reads without JavaScript. From 64rem the head is `position: sticky` at
-  `--vk-landing-offset` plus `--head-gap` on the `--v-void` page surface, so it stays beside a long
-  open list and the docs links scroll under it. The open state swaps the `.vk-faq-mark` plus (a
+  `--vk-landing-offset`, right under the site header, with `--head-gap` of its own `--v-void`
+  padding on top (pulled back by a negative margin, so it starts where it did), so it stays beside a
+  long open list and the docs links scroll under it, never through a gap above it. The open state swaps the `.vk-faq-mark` plus (a
   `--text-faint` boundary, `--accent` bars) for a filled minus (`--accent-fill`, its bar
   `--accent-fill-fg`) with no transition; under `forced-colors` the bars are `CanvasText` and the
   open mark `Highlight` with a `HighlightText` bar. `faq-keys.tsx` is a null-rendering client helper,
