@@ -209,7 +209,7 @@ Scales are fixed and narrow, deliberately:
   lasts that times the row's item count). Only `opacity` and `transform` / `translate`
   ever animate.
 - Showcase: `--showcase-line` (1.125rem, 1.25rem from 40rem) is the line height of a file pane in
-  the showcase playground, which reserves its longest scenario's row count with it (on a phone,
+  the Try it demo, which reserves its longest scenario's row count with it (on a phone,
   where one file shows at a time, the tallest file's, `--showcase-rows-max`, so a file switch
   moves nothing), `--showcase-output-rows` (set inline from `showcaseRows().output`) reserves the
   output pane for its longest run, `--showcase-scroll-reserve` (0.75rem) is added to every pane's
@@ -384,7 +384,7 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   (`HERO_EXIT_LINES`, English on every locale, like all CLI output on the page);
   `lib/hero-terminal.run.test.ts` pins the lines to the CLI's renderer),
   `try-it.tsx`
-  (the Try it playground, one `.vk-showcase-try` grid: from 40rem a scenario bar
+  (the Try it demo, one `.vk-showcase-try` grid: from 40rem a scenario bar
   (`.vk-showcase-bar`) over a two-by-two board, `en.json` | `de.json` above `verbatra.lock.json` |
   output, cells split by 1px hairlines; on a phone the bar is one column, the scenarios wrapping on
   top with the actions under them, then the file switch picks one file pane and the output sits
@@ -428,7 +428,7 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   flattener to the real i18next adapter and `lib/showcase-scenarios.sdk.test.ts` pins every
   scenario's (and each other break variant's) sent, unchanged, orphaned and refused keys and lock
   hashes to a real sdk `translate` with a stub provider. Only the `.vk-showcase` panel carries a
-  reveal; nothing inside the playground does. The copy says what verbatra would translate; it never
+  reveal; nothing inside the demo does. The copy says what verbatra would translate; it never
   claims the page translates), `evidence.tsx` (the mono evidence chip, which wraps inside a narrow
   column rather than growing past it; a linked chip takes the flat-panel glow border on hover and
   focus through `.vk-evidence-link`; an external one counts as `outbound-link` from `features`),
@@ -600,18 +600,30 @@ reserved for client islands (see "The stack").
   fed every string as a prop, so it adds no client namespace) holds a native radio fieldset of the
   source strings (each label `lang="en"`) and a checkbox fieldset of the languages, both
   `appearance: none` with a `--text-faint` boundary and an `--accent-fill` checked fill, 2.5rem
-  tall, then a `type="button"` Translate (no `form`, so nothing submits before hydration). The
-  results are one `li` per checked language: a hidden source-text sizer, the value with its own
-  `lang`, and an `aria-hidden` `.vk-playground-scramble` layer laid over it, so the scramble moves
-  nothing. A press loads the scramble module (waiting at most `SCRAMBLER_WAIT_MS`), then GSAP
-  `scrambleText` runs from the source to each translation, `SCRAMBLE_STAGGER_S` apart, inside
-  `useGSAP({ scope })`, a `contextSafe` play and a `gsap.matchMedia` on
-  `(prefers-reduced-motion: no-preference)`; a newer press or an unmount reverts it. Under reduced
-  motion, or when the module fails or is late, the texts swap at once. One polite, `sr-only` live
-  region, empty until then, announces the result (each value with its `lang`) only after the
-  animation. The label `landing.playground.label` and the provider, model and generation date
-  (`dl.vk-playground-meta`, from the JSON metadata) follow, and the demo content is the same in
-  every locale. Without JavaScript (`scripting: none`) the controls and results are `display:
+  tall, then a `type="button"` Translate (no `form`, so nothing submits before hydration). In the
+  DOM the controls come first, then the results and the label with the metadata, then the snippet
+  (`.vk-playground-main` and `.vk-playground-code`, two columns from 64rem), so on a phone the
+  result sits right under Translate and the focus order is the visual order at every width. The
+  island takes its first item, languages and focus from the server-rendered form it replaces
+  (`[data-playground-demo]`, each control marked `data-control`), so a choice made before it loads
+  is kept. The results are one `li` slot per language, filled in order with the checked ones and
+  the rest `data-empty` (`visibility: hidden`, `aria-hidden`); every slot and the source line stack
+  a hidden sizer of every source string and translation, so no press moves anything. Each filled
+  slot holds the value with its own `lang` and an `aria-hidden` `.vk-playground-scramble` layer laid
+  over it. A press loads the scramble module (waiting at most `SCRAMBLER_WAIT_MS`); while it waits,
+  the results carry `aria-busy` and Translate `aria-disabled` (still focusable, presses ignored),
+  and the results stay busy until the run settles. GSAP `scrambleText` then runs from the source to
+  each translation, `SCRAMBLE_STAGGER_S` apart, tweening a Text node in each layer so the plugin
+  writes `textContent`, never `innerHTML`. `Scrambler` creates one `gsap.matchMedia` on
+  `(prefers-reduced-motion: no-preference)` inside `useGSAP` for its whole lifetime; each play kills
+  the previous timeline, a finished, stopped (a press with no language checked) or superseded run
+  kills its timeline and empties the layers, and an unmount reverts the matchMedia. Under reduced
+  motion, or when the module fails or is late, the texts swap at once; a failed load is dropped, so
+  the next press imports again. One polite, `sr-only` live region, empty until then, announces the
+  result (each value with its `lang`) only after the animation. The label
+  `landing.playground.label` and the provider, model and generation date (`dl.vk-playground-meta`,
+  from the JSON metadata) follow the results, and the demo content is the same in every locale.
+  Without JavaScript (`scripting: none`) the controls and results are `display:
   none` and `.vk-playground-static`, a captioned table of every string and language in a
   `ScrollBlock`, shows instead. Links to `/docs/sdk-quickstart`, `/docs/sdk` and
   `/docs/providers` close the section. `e2e/playground.spec.ts` pins the browser behaviour.
@@ -623,8 +635,8 @@ reserved for client islands (see "The stack").
   SDK quickstart call, the GitHub Action guide's workflow with `CHECKOUT_ACTION_REF`,
   `VERBATRA_ACTION_REF` and `PACKAGE_VERSION`, `check` with the exit codes of `checkExitCode`,
   `STUDIO_RUN_COMMAND`, and the Claude Code `.mcp.json` block of the MCP client guide). The
-  incremental node also holds the Try it playground (`.vk-flow-demo`: the moved showcase lead,
-  then the `.vk-showcase` panel), spanning the full row at every width, since its board needs the
+  incremental node also holds the Try it demo (`.vk-flow-demo`: the moved showcase lead, then the
+  `.vk-showcase` panel), spanning the full row at every width, since its board needs the
   full width. From 64rem a node is three columns, snippet, rail and text; below that the rail sits
   on the start edge with the text and snippet stacked beside it. One `aria-hidden` SVG
   (`.vk-flow-rail`, `preserveAspectRatio="none"`) holds a `--border-default` track and the

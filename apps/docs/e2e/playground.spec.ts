@@ -27,13 +27,15 @@ function texts(item: string, languages: ReadonlyArray<string>): string[] {
   return languages.map((code) => PLAYGROUND_TRANSLATIONS[code]?.[item] ?? "");
 }
 
+const FILLED = `${RESULTS} .vk-playground-result:not([data-empty]) .vk-playground-result-text`;
+
 async function resultTexts(page: Page): Promise<string[]> {
-  return page.locator(`${RESULTS} .vk-playground-result-text`).allTextContents();
+  return page.locator(FILLED).allTextContents();
 }
 
 async function resultLangs(page: Page): Promise<Array<string | null>> {
   return page
-    .locator(`${RESULTS} .vk-playground-result-text`)
+    .locator(FILLED)
     .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("lang")));
 }
 
@@ -69,6 +71,16 @@ function trackHosts(page: Page): () => string[] {
     if (url.protocol === "http:" || url.protocol === "https:") hosts.add(url.hostname);
   });
   return () => [...hosts];
+}
+
+async function shiftEntriesSince(page: Page, since: number): Promise<number> {
+  const shifts = await page.evaluate(
+    () =>
+      (window as unknown as { __playgroundShifts?: Array<{ startTime: number; value: number }> })
+        .__playgroundShifts,
+  );
+  if (shifts === undefined) throw new Error("the layout-shift observer never started");
+  return shifts.filter((shift) => shift.startTime >= since).length;
 }
 
 async function observeLayoutShift(page: Page): Promise<void> {
@@ -255,6 +267,73 @@ test.describe("playground before the island takes over", () => {
       expect(await shiftSince(page, releasedAt)).toBe(0);
     });
   }
+});
+
+test.describe("playground on a cold touch", () => {
+  test.use({ reducedMotion: "no-preference", hasTouch: true, isMobile: true });
+
+  test("shows a busy state at once, shifts nothing and lands the right result without a warm-up", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    const scripts = trackScripts(page);
+    await observeLayoutShift(page);
+    await page.goto("/");
+    await waitForIsland(page);
+    await page.waitForLoadState("networkidle");
+    await page.locator(PLAYGROUND).scrollIntoViewIfNeeded();
+    await page.locator(`${PLAYGROUND} input[value="onlyChanged"]`).evaluate((input) => {
+      (input as HTMLInputElement).click();
+    });
+    await page.locator(`${PLAYGROUND} input[value="es"]`).evaluate((input) => {
+      (input as HTMLInputElement).click();
+    });
+    expect(scripts.scramble()).toEqual([]);
+
+    const busy = page.locator(`${PLAYGROUND} .vk-playground-result-block`);
+    const before = await page.evaluate(() => performance.now());
+    await translateButton(page).tap();
+    await expect(busy).toHaveAttribute("aria-busy", "true");
+    await expect(busy).not.toHaveAttribute("aria-busy", /.*/, { timeout: 5000 });
+
+    const languages = PLAYGROUND_LANGUAGES.filter((code) => code !== "es");
+    expect(await resultTexts(page)).toEqual(texts("onlyChanged", languages));
+    await expect(page.locator(`${LIVE} [lang="ja"]`)).toHaveText(
+      PLAYGROUND_TRANSLATIONS.ja?.onlyChanged ?? "",
+    );
+    await expect(translateButton(page)).not.toHaveAttribute("aria-disabled", /.*/);
+    expect(await shiftEntriesSince(page, before)).toBe(0);
+  });
+});
+
+test.describe("playground taking over a form the visitor already used", () => {
+  test.use({ reducedMotion: "no-preference" });
+
+  test("keeps the selection and the focus made before the island loaded", async ({ page }) => {
+    const release = await holdScripts(page);
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await page.locator(`${PLAYGROUND} input[value="deleteFile"]`).check();
+    await page.locator(`${PLAYGROUND} input[value="fr"]`).uncheck();
+    const japanese = page.locator(`${PLAYGROUND} input[value="ja"]`);
+    await japanese.focus();
+    await expect(japanese).toBeFocused();
+
+    await release();
+    await waitForIsland(page);
+    await expect(page.locator(`${PLAYGROUND} input[value="deleteFile"]`)).toBeChecked();
+    await expect(page.locator(`${PLAYGROUND} input[value="fr"]`)).not.toBeChecked();
+    await expect(japanese).toBeFocused();
+
+    await translateButton(page).click();
+    const languages = PLAYGROUND_LANGUAGES.filter((code) => code !== "fr");
+    await expect
+      .poll(() => resultTexts(page), { timeout: 5000 })
+      .toEqual(texts("deleteFile", languages));
+    await expect(page.locator(RESULTS)).not.toHaveAttribute("data-scrambling", /.*/, {
+      timeout: 4000,
+    });
+    expect(await resultTexts(page)).toEqual(texts("deleteFile", languages));
+  });
 });
 
 test.describe("playground without JavaScript", () => {

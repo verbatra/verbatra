@@ -3,6 +3,7 @@ import { afterFirstContentfulPaint } from "@/lib/first-paint";
 import { RETRY_DELAYS_MS, retrying } from "@/lib/retry";
 import { sameValue } from "@/lib/same-value";
 import { useHydrated } from "@/lib/use-hydrated";
+import { within } from "@/lib/within";
 
 type Island<P extends object> = ((props: P) => ReactNode) & {
   preload: () => Promise<unknown>;
@@ -41,17 +42,6 @@ function settle<T>(promise: Promise<T>): Promise<T> {
     return value;
   });
   return settled;
-}
-
-function within<T, F>(promise: Promise<T>, ms: number, fallback: F): Promise<T | F> {
-  return new Promise((resolve) => {
-    const timer = setTimeout(() => resolve(fallback), ms);
-    const finish = (value: T | F) => {
-      clearTimeout(timer);
-      resolve(value);
-    };
-    promise.then(finish, () => finish(fallback));
-  });
 }
 
 function rendersOnServer(): boolean {

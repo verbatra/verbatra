@@ -26,6 +26,10 @@ export const PLAYGROUND_DEFAULT_ITEM = "welcome";
 
 export const PLAYGROUND_MAX_OUTPUT_TOKENS = 2048;
 
+export const PLAYGROUND_FORMAT = "next-intl-json";
+
+export const PLAYGROUND_FILES_PATTERN = "messages/{locale}.json";
+
 export const PLAYGROUND_SNIPPET_FILE = "translate.ts";
 
 function quoted(values: ReadonlyArray<string>): string {
@@ -39,8 +43,8 @@ export const PLAYGROUND_SNIPPET = [
   "  configOverride: defineConfig({",
   `    sourceLocale: "${PLAYGROUND_SOURCE_LOCALE}",`,
   `    targetLocales: [${quoted(PLAYGROUND_LANGUAGES)}],`,
-  `    format: "next-intl-json",`,
-  `    files: { pattern: "messages/{locale}.json" },`,
+  `    format: "${PLAYGROUND_FORMAT}",`,
+  `    files: { pattern: "${PLAYGROUND_FILES_PATTERN}" },`,
   "    provider: {",
   `      id: "${PLAYGROUND_METADATA.provider}",`,
   `      options: { model: "${PLAYGROUND_METADATA.model}", maxOutputTokens: ${PLAYGROUND_MAX_OUTPUT_TOKENS} },`,

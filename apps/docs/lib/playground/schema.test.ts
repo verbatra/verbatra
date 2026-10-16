@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { placeholdersOf, playgroundOutputSchema, translationProblems } from "./schema";
+import {
+  itemProblems,
+  placeholdersOf,
+  playgroundOutputSchema,
+  translationProblems,
+} from "./schema";
+import committed from "./translations.json" with { type: "json" };
 
 function output(value: string, source = "Welcome back, {name}!", sameAllowed = false) {
   return {
@@ -91,6 +97,29 @@ describe("playgroundOutputSchema", () => {
         metadata: { ...valid.metadata, requestId: "r" },
       }).success,
     ).toBe(false);
+  });
+
+  it.each([
+    ["an HTML tag", "Save <b>changes</b>", "contains HTML"],
+    ["a named entity", "Save &amp; close", "contains HTML"],
+    ["a numeric entity", "Save &#60;now", "contains HTML"],
+    ["a line break", "Save\nchanges", "is not a single line"],
+    ["a bidi control", "Save\u202echanges", "contains a bidi or zero-width format character"],
+    ["markdown", "Save **changes**", "contains markdown or a code fence"],
+    ["a URL", "Visit https://example.com", "contains a URL"],
+  ])("rejects a source item with %s, as it rejects a translation", (_, text, problem) => {
+    expect(itemProblems(text)).toContain(problem);
+    expect(translationProblems("Save changes", text, false)).toContain(problem);
+    const result = playgroundOutputSchema.safeParse(output("Enregistrer", text));
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.map((issue) => issue.message)).toContain(
+      `items.welcome ${problem}`,
+    );
+  });
+
+  it("accepts every committed source item", () => {
+    for (const item of committed.items) expect(itemProblems(item.text)).toEqual([]);
+    expect(playgroundOutputSchema.safeParse(committed).success).toBe(true);
   });
 
   it("records the temperature as the provider default", () => {

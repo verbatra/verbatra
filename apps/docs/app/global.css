@@ -3017,20 +3017,24 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   margin-top: 2.5rem;
 }
 
+.vk-playground-main,
 .vk-playground-controls,
-.vk-playground-output,
 .vk-playground-result-block {
   display: flex;
   flex-direction: column;
   min-width: 0;
 }
 
+.vk-playground-main {
+  gap: 2.5rem;
+}
+
 .vk-playground-controls {
   gap: 1.75rem;
 }
 
-.vk-playground-output {
-  gap: 1.75rem;
+.vk-playground-code {
+  min-width: 0;
 }
 
 .vk-playground-result-block {
@@ -3142,6 +3146,11 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   min-height: 2.75rem;
 }
 
+.vk-playground-translate[aria-disabled="true"] {
+  opacity: 0.6;
+  cursor: progress;
+}
+
 .vk-playground-source {
   display: flex;
   flex-wrap: wrap;
@@ -3171,21 +3180,30 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   border-top: 1px solid var(--border-default);
 }
 
+.vk-playground-result[data-empty] {
+  visibility: hidden;
+}
+
 .vk-playground-result-lang {
   font-size: var(--text-sm);
   color: var(--text-muted);
 }
 
-.vk-playground-result-value {
+.vk-playground-result-value,
+.vk-playground-source-value {
   position: relative;
   display: grid;
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.vk-playground-result-value {
   color: var(--text-strong);
 }
 
 .vk-playground-sizer,
-.vk-playground-result-text {
+.vk-playground-result-text,
+.vk-playground-source-text {
   grid-area: 1 / 1;
 }
 

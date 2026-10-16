@@ -239,7 +239,7 @@
         "label": "So wurden diese Ergebnisse erzeugt",
         "provider": "Provider",
         "model": "Modell",
-        "generated": "Erzeugt"
+        "generated": "Erzeugt am"
       },
       "languageNames": {
         "de": "Deutsch",

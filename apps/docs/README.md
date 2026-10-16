@@ -86,11 +86,11 @@ The home page (`app/[lang]/(home)/page.tsx`) renders its sections in the order o
 `LANDING_SECTIONS` in `lib/landing-sections.ts`; `lib/landing-sections.test.ts` pins that order.
 Each section is one component in `components/landing/` (`hero.tsx`, `marquee.tsx`,
 `playground.tsx`, `flow.tsx`, `proof-strip.tsx`, `problem.tsx`, `bento.tsx`, `code-showcase.tsx`,
-`compare.tsx`, `open-source.tsx`, `faq.tsx`, `final-cta.tsx`). The footer is not a
-section: `app/[lang]/(home)/layout.tsx` passes it to the home layout. Facts a section shows (code
-samples, providers, formats, comparison rows, bento tiles, the commands it prints) live in typed
-tables under `lib/` (`lib/landing-*.ts`, `lib/hero-terminal.ts`, `lib/install-commands.ts`), not in
-the copy; a component keeps only its own link targets and layout.
+`compare.tsx`, `open-source.tsx`, `faq.tsx`, `final-cta.tsx`). The footer is not a section:
+`app/[lang]/(home)/layout.tsx` passes it to the home layout. Facts a section shows (code samples,
+providers, formats, comparison rows, bento tiles, the commands it prints) live in typed tables
+under `lib/` (`lib/landing-*.ts`, `lib/hero-terminal.ts`, `lib/install-commands.ts`), not in the
+copy; a component keeps only its own link targets and layout.
 
 - **Edit copy**: change the `landing.*` key in `messages/en.json`, then update `de.json`,
   `es.json` and `fr.json` in the same change, with `pnpm i18n` or by hand. After a hand

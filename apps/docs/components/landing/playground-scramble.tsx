@@ -7,6 +7,7 @@ export type ScrambleRow = { readonly lang: string; readonly from: string; readon
 
 export type ScrambleController = {
   play: (rows: ReadonlyArray<ScrambleRow>, done: () => void) => void;
+  stop: () => void;
 };
 
 export const SCRAMBLE_STAGGER_S = 0.12;
@@ -19,8 +20,42 @@ export const SCRAMBLE_SELECTOR = "[data-scramble]";
 
 const SCRAMBLE_CHARS = "lowerCase";
 
+type Run = {
+  readonly targets: ReadonlyArray<HTMLElement>;
+  readonly done: () => void;
+  timeline: gsap.core.Timeline | null;
+};
+
 function scrambleTargets(scope: HTMLElement | null): HTMLElement[] {
   return scope === null ? [] : [...scope.querySelectorAll<HTMLElement>(SCRAMBLE_SELECTOR)];
+}
+
+function textNodeIn(element: HTMLElement, text: string): Text {
+  const node = element.ownerDocument.createTextNode(text);
+  element.replaceChildren(node);
+  return node;
+}
+
+function scrambleTimeline(
+  rows: ReadonlyArray<ScrambleRow>,
+  targets: ReadonlyArray<HTMLElement>,
+  onComplete: () => void,
+): gsap.core.Timeline {
+  const timeline = gsap.timeline({ onComplete });
+  for (const [index, row] of rows.entries()) {
+    const target = targets.find((element) => element.dataset.scramble === row.lang);
+    if (target === undefined) continue;
+    timeline.to(
+      textNodeIn(target, row.from),
+      {
+        duration: SCRAMBLE_ROW_DURATION_S,
+        ease: "none",
+        scrambleText: { text: row.to, chars: SCRAMBLE_CHARS },
+      },
+      index * SCRAMBLE_STAGGER_S,
+    );
+  }
+  return timeline;
 }
 
 export function Scrambler({
@@ -30,54 +65,48 @@ export function Scrambler({
   scope: RefObject<HTMLElement | null>;
   controller: Ref<ScrambleController>;
 }): ReactNode {
-  const { contextSafe } = useGSAP({ scope });
-  const media = useRef<gsap.MatchMedia | null>(null);
+  const motion = useRef(false);
+  const run = useRef<Run | null>(null);
 
-  useGSAP(() => () => media.current?.revert(), { scope });
+  const stop = () => {
+    const current = run.current;
+    if (current === null) return;
+    run.current = null;
+    current.timeline?.kill();
+    for (const target of current.targets) target.replaceChildren();
+    current.done();
+  };
 
-  useImperativeHandle(
-    controller,
-    () => ({
-      play: contextSafe((rows: ReadonlyArray<ScrambleRow>, done: () => void) => {
-        media.current?.revert();
-        const targets = scrambleTargets(scope.current);
-        const mm = gsap.matchMedia(scope.current ?? undefined);
-        media.current = mm;
-        let animated = false;
-        let settled = false;
-        const settle = () => {
-          if (settled) return;
-          settled = true;
-          for (const target of targets) target.textContent = "";
-          done();
+  const play = (rows: ReadonlyArray<ScrambleRow>, done: () => void) => {
+    stop();
+    const current: Run = { targets: scrambleTargets(scope.current), done, timeline: null };
+    run.current = current;
+    if (!motion.current) {
+      stop();
+      return;
+    }
+    current.timeline = scrambleTimeline(rows, current.targets, stop);
+  };
+
+  useGSAP(
+    () => {
+      const media = gsap.matchMedia();
+      media.add(SCRAMBLE_MOTION_QUERY, () => {
+        motion.current = true;
+        return () => {
+          motion.current = false;
+          stop();
         };
-        mm.add(SCRAMBLE_MOTION_QUERY, () => {
-          animated = true;
-          const timeline = gsap.timeline({ onComplete: settle });
-          rows.forEach((row, index) => {
-            const target = targets.find((element) => element.dataset.scramble === row.lang);
-            if (target === undefined) return;
-            target.textContent = row.from;
-            timeline.to(
-              target,
-              {
-                duration: SCRAMBLE_ROW_DURATION_S,
-                ease: "none",
-                scrambleText: { text: row.to, chars: SCRAMBLE_CHARS },
-              },
-              index * SCRAMBLE_STAGGER_S,
-            );
-          });
-          return settle;
-        });
-        if (!animated) {
-          mm.revert();
-          settle();
-        }
-      }),
-    }),
-    [contextSafe, scope],
+      });
+      return () => {
+        media.revert();
+        stop();
+      };
+    },
+    { scope },
   );
+
+  useImperativeHandle(controller, () => ({ play, stop }));
 
   return null;
 }

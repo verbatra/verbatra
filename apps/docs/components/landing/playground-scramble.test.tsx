@@ -3,6 +3,7 @@
 import { act, createRef, type RefObject } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { gsap } from "@/lib/gsap-scramble";
 import {
   SCRAMBLE_MOTION_QUERY,
   SCRAMBLE_ROW_DURATION_S,
@@ -20,28 +21,57 @@ const ROWS: ReadonlyArray<ScrambleRow> = [
 ];
 
 let motion = true;
+let listeners = 0;
 let mounted: { root: Root; host: HTMLElement } | undefined;
 
 beforeEach(() => {
   motion = true;
+  listeners = 0;
   Object.defineProperty(window, "matchMedia", {
     configurable: true,
     value: (query: string) => ({
       matches: query === SCRAMBLE_MOTION_QUERY ? motion : !motion,
       media: query,
-      addEventListener: () => {},
-      removeEventListener: () => {},
-      addListener: () => {},
-      removeListener: () => {},
+      addEventListener: () => {
+        listeners += 1;
+      },
+      removeEventListener: () => {
+        listeners -= 1;
+      },
+      addListener: () => {
+        listeners += 1;
+      },
+      removeListener: () => {
+        listeners -= 1;
+      },
     }),
   });
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   if (mounted) act(() => mounted?.root.unmount());
   mounted?.host.remove();
   mounted = undefined;
 });
+
+function unmount(): void {
+  act(() => mounted?.root.unmount());
+  mounted = undefined;
+}
+
+function trackTimelines(): Array<{ kill: ReturnType<typeof vi.fn>; timeline: gsap.core.Timeline }> {
+  const created: Array<{ kill: ReturnType<typeof vi.fn>; timeline: gsap.core.Timeline }> = [];
+  const timeline = gsap.timeline.bind(gsap);
+  vi.spyOn(gsap, "timeline").mockImplementation((vars) => {
+    const made = timeline(vars);
+    const kill = vi.fn(made.kill.bind(made));
+    made.kill = kill as unknown as typeof made.kill;
+    created.push({ kill, timeline: made });
+    return made;
+  });
+  return created;
+}
 
 function mount(): { controller: RefObject<ScrambleController | null>; targets: HTMLElement[] } {
   const host = document.createElement("ol");
@@ -96,9 +126,84 @@ describe("the playground scramble", () => {
     expect(first).toHaveBeenCalledTimes(1);
     expect(second).not.toHaveBeenCalled();
     expect(targets[0]?.textContent).toBe("Settings");
-    act(() => mounted?.root.unmount());
-    mounted = undefined;
+    unmount();
     expect(second).toHaveBeenCalledTimes(1);
     expect(targets.map((target) => target.textContent)).toEqual(["", ""]);
+  });
+
+  it("kills the running timeline and clears the rows on stop", () => {
+    const timelines = trackTimelines();
+    const { controller, targets } = mount();
+    const done = vi.fn();
+    act(() => controller.current?.play(ROWS, done));
+    expect(timelines).toHaveLength(1);
+    act(() => controller.current?.stop());
+    expect(timelines[0]?.kill).toHaveBeenCalledTimes(1);
+    expect(done).toHaveBeenCalledTimes(1);
+    expect(targets.map((target) => target.textContent)).toEqual(["", ""]);
+    act(() => controller.current?.stop());
+    expect(done).toHaveBeenCalledTimes(1);
+  });
+
+  it("kills the previous timeline on every new play and the finished one when it ends", () => {
+    const timelines = trackTimelines();
+    const { controller } = mount();
+    act(() => controller.current?.play(ROWS, () => undefined));
+    act(() => controller.current?.play(ROWS, () => undefined));
+    expect(timelines[0]?.kill).toHaveBeenCalledTimes(1);
+    act(() => {
+      timelines[1]?.timeline.progress(1);
+    });
+    expect(timelines[1]?.kill).toHaveBeenCalledTimes(1);
+  });
+
+  it("creates one matchMedia for its whole lifetime, however many presses, and reverts it on unmount", () => {
+    const created: Array<ReturnType<typeof vi.fn>> = [];
+    const matchMedia = gsap.matchMedia.bind(gsap);
+    const spy = vi.spyOn(gsap, "matchMedia").mockImplementation((scope) => {
+      const media = matchMedia(scope);
+      const revert = vi.fn(media.revert.bind(media));
+      media.revert = revert as unknown as typeof media.revert;
+      created.push(revert);
+      return media;
+    });
+    const { controller } = mount();
+    const listening = listeners;
+    for (let press = 0; press < 5; press++) {
+      act(() => controller.current?.play(ROWS, () => undefined));
+    }
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(listeners).toBe(listening);
+    expect(created[0]).not.toHaveBeenCalled();
+    unmount();
+    expect(created[0]).toHaveBeenCalled();
+  });
+
+  it("writes the scramble into a text node, so markup in a translation stays inert text", () => {
+    const innerHTML = Object.getOwnPropertyDescriptor(Element.prototype, "innerHTML");
+    const setter = vi.fn();
+    Object.defineProperty(Element.prototype, "innerHTML", {
+      configurable: true,
+      get: innerHTML?.get,
+      set(value: string) {
+        setter(value);
+        innerHTML?.set?.call(this, value);
+      },
+    });
+    try {
+      const timelines = trackTimelines();
+      const { controller, targets } = mount();
+      const markup: ScrambleRow = { lang: "de", from: "Settings", to: "<b>x</b>&amp;" };
+      act(() => controller.current?.play([markup], () => undefined));
+      act(() => {
+        timelines[0]?.timeline.progress(0.95);
+      });
+      expect(targets[0]?.childElementCount).toBe(0);
+      expect(targets[0]?.childNodes[0]?.nodeType).toBe(Node.TEXT_NODE);
+      expect(targets[0]?.textContent).toContain("b&gt;x");
+      expect(setter).not.toHaveBeenCalled();
+    } finally {
+      if (innerHTML !== undefined) Object.defineProperty(Element.prototype, "innerHTML", innerHTML);
+    }
   });
 });

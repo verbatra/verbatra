@@ -30,6 +30,8 @@ const page = vi.hoisted(() => ({ locale: "en" }));
 const scramble = vi.hoisted(() => ({
   plays: [] as Array<{ rows: ReadonlyArray<ScrambleRow>; done: () => void }>,
   loads: 0,
+  renders: 0,
+  stops: 0,
 }));
 
 vi.mock("next/link", () => ({
@@ -73,9 +75,13 @@ vi.mock("./playground-scramble", () => {
   scramble.loads += 1;
   return {
     Scrambler: ({ controller }: { controller: Ref<ScrambleController> }) => {
+      scramble.renders += 1;
       useImperativeHandle(controller, () => ({
         play: (rows, done) => {
           scramble.plays.push({ rows, done });
+        },
+        stop: () => {
+          scramble.stops += 1;
         },
       }));
       return null;
@@ -84,6 +90,9 @@ vi.mock("./playground-scramble", () => {
 });
 
 const { Playground } = await import("./playground");
+const { createScramblerLoader, loadScrambler, SCRAMBLER_WAIT_MS } = await import(
+  "./playground-demo"
+);
 
 await preloadRegisteredIslands();
 
@@ -94,6 +103,8 @@ let reduced = false;
 beforeEach(() => {
   reduced = false;
   scramble.plays.length = 0;
+  scramble.renders = 0;
+  scramble.stops = 0;
   Object.defineProperty(window, "matchMedia", {
     configurable: true,
     value: (query: string) => ({
@@ -149,9 +160,9 @@ function liveRegions(root: ParentNode): HTMLElement[] {
 }
 
 function resultValues(root: ParentNode): Array<[string | null, string]> {
-  return [...root.querySelectorAll(".vk-playground-result .vk-playground-result-text")].map(
-    (node) => [node.getAttribute("lang"), node.textContent ?? ""],
-  );
+  return [
+    ...root.querySelectorAll(".vk-playground-result:not([data-empty]) .vk-playground-result-text"),
+  ].map((node) => [node.getAttribute("lang"), node.textContent ?? ""]);
 }
 
 function translateButton(root: ParentNode): HTMLButtonElement {
@@ -476,7 +487,9 @@ describe("the playground in the browser", () => {
     const list = root.querySelector(".vk-playground-results");
     expect(list?.hasAttribute("data-scrambling")).toBe(true);
     for (const box of checkboxes(root)) await click(box);
+    expect(scramble.stops).toBe(0);
     await click(translateButton(root));
+    expect(scramble.stops).toBe(1);
     expect(list?.hasAttribute("data-scrambling")).toBe(false);
     await act(async () => scramble.plays[0]?.done());
     expect(liveRegions(root)[0]?.textContent).toBe(copy.noLanguages);
@@ -489,6 +502,159 @@ describe("the playground in the browser", () => {
     await click(translateButton(root));
     expect(liveRegions(root)[0]?.textContent).toBe(copy.noLanguages);
     expect(resultValues(root)).toEqual(expected(PLAYGROUND_DEFAULT_ITEM, PLAYGROUND_LANGUAGES));
+  });
+});
+
+describe("the scramble module loader", () => {
+  it("caches one load, drops a failed one so the next call imports again, then keeps the success", async () => {
+    const load = vi
+      .fn<() => Promise<string>>()
+      .mockRejectedValueOnce(new Error("chunk failed"))
+      .mockResolvedValue("scrambler");
+    const loader = createScramblerLoader(load);
+    const first = loader();
+    expect(loader()).toBe(first);
+    await expect(first).rejects.toThrow("chunk failed");
+    expect(load).toHaveBeenCalledTimes(1);
+    await expect(loader()).resolves.toBe("scrambler");
+    expect(load).toHaveBeenCalledTimes(2);
+    await expect(loader()).resolves.toBe("scrambler");
+    expect(load).toHaveBeenCalledTimes(2);
+  });
+
+  it("waits SCRAMBLER_WAIT_MS for the module and loads the real Scrambler", async () => {
+    expect(SCRAMBLER_WAIT_MS).toBe(800);
+    await expect(loadScrambler()).resolves.toBeTypeOf("function");
+  });
+});
+
+describe("the playground warm-up", () => {
+  function demo(root: ParentNode): HTMLElement {
+    const element = root.querySelector<HTMLElement>("[data-playground-demo]");
+    if (element === null) throw new Error("no demo root");
+    return element;
+  }
+
+  it.each([
+    [
+      "a pointer entering",
+      (root: HTMLElement) =>
+        demo(root).dispatchEvent(new MouseEvent("pointerover", { bubbles: true })),
+    ],
+    ["focus moving in", (root: HTMLElement) => radios(root)[0]?.focus()],
+    [
+      "a touch starting",
+      (root: HTMLElement) => demo(root).dispatchEvent(new Event("touchstart", { bubbles: true })),
+    ],
+  ])("loads and mounts the scrambler on %s, before any press", async (_, enter) => {
+    const root = await mount();
+    expect(scramble.renders).toBe(0);
+    await act(async () => {
+      enter(root);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(scramble.renders).toBeGreaterThan(0);
+    expect(scramble.plays).toHaveLength(0);
+  });
+
+  it("loads nothing on a pointer entering under reduced motion", async () => {
+    reduced = true;
+    const root = await mount();
+    await act(async () => {
+      demo(root).dispatchEvent(new MouseEvent("pointerover", { bubbles: true }));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(scramble.renders).toBe(0);
+  });
+});
+
+describe("the playground on a cold press", () => {
+  it("marks the results busy and the button disabled at once, ignoring a second press while it waits", async () => {
+    const root = await mount();
+    const button = translateButton(root);
+    const block = root.querySelector(".vk-playground-result-block");
+    expect(block?.hasAttribute("aria-busy")).toBe(false);
+    act(() => button.click());
+    expect(block?.getAttribute("aria-busy")).toBe("true");
+    expect(button.getAttribute("aria-disabled")).toBe("true");
+    expect(button.disabled).toBe(false);
+    act(() => button.click());
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(scramble.plays).toHaveLength(1);
+    expect(button.hasAttribute("aria-disabled")).toBe(false);
+    expect(block?.getAttribute("aria-busy")).toBe("true");
+    await act(async () => scramble.plays[0]?.done());
+    expect(block?.hasAttribute("aria-busy")).toBe(false);
+  });
+
+  it("keeps one result slot per language and every candidate text in each slot's sizer", async () => {
+    reduced = true;
+    const root = await mount();
+    const french = checkboxes(root).find((input) => input.value === "fr");
+    if (french === undefined) throw new Error("no fr checkbox");
+    await click(french);
+    await click(translateButton(root));
+    const slots = [...root.querySelectorAll<HTMLElement>(".vk-playground-result")];
+    expect(slots).toHaveLength(PLAYGROUND_LANGUAGES.length);
+    expect(slots.filter((slot) => slot.hasAttribute("data-empty"))).toHaveLength(1);
+    expect(slots.at(-1)?.getAttribute("aria-hidden")).toBe("true");
+    const everyText = [
+      ...PLAYGROUND_ITEMS.map((item) => item.text),
+      ...PLAYGROUND_LANGUAGES.flatMap((code) => Object.values(PLAYGROUND_TRANSLATIONS[code] ?? {})),
+    ];
+    for (const slot of slots) {
+      const sized = [...slot.querySelectorAll(".vk-playground-sizer")].map(
+        (node) => node.textContent,
+      );
+      expect(new Set(sized)).toEqual(new Set(everyText));
+    }
+    const sources = [...root.querySelectorAll(".vk-playground-source .vk-playground-sizer")].map(
+      (node) => node.textContent,
+    );
+    expect(sources).toEqual(PLAYGROUND_ITEMS.map((item) => item.text));
+  });
+});
+
+describe("the playground taking over server markup", () => {
+  it("keeps the selection and the focus a visitor set before the island loaded", async () => {
+    reduced = true;
+    const server = await renderServer();
+    document.body.append(server);
+    const settings = radios(server).find((input) => input.value === "settings");
+    const spanish = checkboxes(server).find((input) => input.value === "es");
+    const german = checkboxes(server).find((input) => input.value === "de");
+    if (settings === undefined || spanish === undefined || german === undefined) {
+      throw new Error("missing server controls");
+    }
+    settings.checked = true;
+    spanish.checked = false;
+    german.focus();
+    const root = await mount();
+    server.remove();
+
+    expect(radios(root).find((input) => input.checked)?.value).toBe("settings");
+    expect(
+      checkboxes(root)
+        .filter((input) => input.checked)
+        .map((input) => input.value),
+    ).toEqual(PLAYGROUND_LANGUAGES.filter((code) => code !== "es"));
+    expect(document.activeElement).toBe(checkboxes(root).find((input) => input.value === "de"));
+    await click(translateButton(root));
+    expect(resultValues(root)).toEqual(
+      expected(
+        "settings",
+        PLAYGROUND_LANGUAGES.filter((code) => code !== "es"),
+      ),
+    );
+  });
+
+  it("starts from the defaults when no server markup is on the page", async () => {
+    const root = await mount();
+    expect(radios(root).find((input) => input.checked)?.value).toBe(PLAYGROUND_DEFAULT_ITEM);
+    expect(checkboxes(root).every((input) => input.checked)).toBe(true);
+    expect(document.activeElement).toBe(document.body);
   });
 });
 

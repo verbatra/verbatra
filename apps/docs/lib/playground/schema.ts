@@ -60,6 +60,10 @@ function shapeProblems(value: string): string[] {
   return checks.filter(([failed]) => failed).map(([, message]) => message);
 }
 
+export function itemProblems(text: string): string[] {
+  return shapeProblems(text);
+}
+
 export function translationProblems(source: string, value: string, sameAllowed: boolean): string[] {
   const problems = [...shapeProblems(value), ...placeholderProblems(source, value)];
   if (!sameAllowed && value === source) {
@@ -89,6 +93,11 @@ export const playgroundOutputSchema = z
     metadata: playgroundMetadataSchema,
   })
   .superRefine((output, context) => {
+    for (const item of output.items) {
+      for (const problem of itemProblems(item.text)) {
+        context.addIssue({ code: "custom", message: `items.${item.id} ${problem}` });
+      }
+    }
     for (const [language, values] of Object.entries(output.translations)) {
       const ids = new Set(Object.keys(values));
       for (const item of output.items) {
