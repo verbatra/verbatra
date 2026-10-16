@@ -9,6 +9,7 @@ import {
   openInTheme,
   pageUrl,
   THEMES,
+  waitForCompareFocus,
 } from "./support";
 
 const REGION = "main [data-compare-scroll]";
@@ -101,6 +102,7 @@ test.describe("full comparison table", () => {
     }) => {
       await page.setViewportSize({ width, height: 900 });
       await page.goto("/compare");
+      await waitForCompareFocus(page);
       const rows = page.locator("main tbody tr[data-row]");
       for (let row = 0; row < (await rows.count()); row += 1) {
         const refs = rows.nth(row).locator("[data-footnotes] a");

@@ -4,6 +4,8 @@ import { useEffect } from "react";
 
 const QUESTION_SELECTOR = "[data-faq] > summary";
 
+export const FAQ_KEYS_ATTACHED = "data-faq-keys";
+
 function nextIndex(key: string, current: number, count: number): number | null {
   switch (key) {
     case "ArrowDown":
@@ -38,7 +40,11 @@ export function FaqKeys({ listId }: { listId: string }): null {
     if (list === null) return;
     const onKeyDown = (event: KeyboardEvent) => moveFaqFocus(list, event);
     list.addEventListener("keydown", onKeyDown);
-    return () => list.removeEventListener("keydown", onKeyDown);
+    list.setAttribute(FAQ_KEYS_ATTACHED, "");
+    return () => {
+      list.removeEventListener("keydown", onKeyDown);
+      list.removeAttribute(FAQ_KEYS_ATTACHED);
+    };
   }, [listId]);
   return null;
 }

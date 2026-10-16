@@ -76,7 +76,16 @@ export async function expectClearOfPinnedColumn(
   expect(box.x - 3, label).toBeGreaterThanOrEqual(sticky.x + sticky.width - 1);
 }
 
+export async function waitForCompareFocus(page: Page): Promise<void> {
+  await expect(page.locator("html")).toHaveAttribute("data-compare-focus", "");
+}
+
+export async function waitForFaqKeys(page: Page): Promise<void> {
+  await expect(page.locator("#faq-list")).toHaveAttribute("data-faq-keys", "");
+}
+
 export async function expectEdgeRefsReachable(page: Page, scope: string): Promise<void> {
+  await waitForCompareFocus(page);
   const region = page.locator(`${scope} [data-compare-scroll]`);
   const rows = await page.locator(`${scope} tbody tr[data-row]`).count();
   for (let row = 0; row < rows; row += 1) {

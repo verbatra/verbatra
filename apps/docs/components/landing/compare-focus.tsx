@@ -4,6 +4,8 @@ import { useEffect } from "react";
 
 const SCROLL_REGION = "[data-compare-scroll]";
 
+export const COMPARE_FOCUS_ATTACHED = "data-compare-focus";
+
 export function revealBesidePinnedColumn(event: FocusEvent): void {
   const target = event.target;
   if (!(target instanceof HTMLElement) || target.matches(SCROLL_REGION)) return;
@@ -14,7 +16,11 @@ export function revealBesidePinnedColumn(event: FocusEvent): void {
 export function CompareFocus(): null {
   useEffect(() => {
     document.addEventListener("focusin", revealBesidePinnedColumn);
-    return () => document.removeEventListener("focusin", revealBesidePinnedColumn);
+    document.documentElement.setAttribute(COMPARE_FOCUS_ATTACHED, "");
+    return () => {
+      document.removeEventListener("focusin", revealBesidePinnedColumn);
+      document.documentElement.removeAttribute(COMPARE_FOCUS_ATTACHED);
+    };
   }, []);
   return null;
 }

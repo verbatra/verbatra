@@ -9,6 +9,7 @@ import {
   openInTheme,
   pageUrl,
   THEMES,
+  waitForCompareFocus,
 } from "./support";
 
 const COMPARE = "section#compare";
@@ -103,6 +104,7 @@ test.describe("comparison footnotes", () => {
   test("keeps a focused footnote clear of the pinned first column on a phone", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 800 });
     await page.goto("/");
+    await waitForCompareFocus(page);
     const region = page.locator(REGION);
     const ref = page.locator(
       `${COMPARE} tr[data-row="ownKeys"] td[data-column="hostedTms"] [data-footnotes] a`,

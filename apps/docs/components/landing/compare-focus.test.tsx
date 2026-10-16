@@ -3,7 +3,7 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { CompareFocus } from "./compare-focus";
+import { COMPARE_FOCUS_ATTACHED, CompareFocus } from "./compare-focus";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -50,6 +50,13 @@ describe("CompareFocus", () => {
     expect(regionScroll).not.toHaveBeenCalled();
     expect(outsideScroll).not.toHaveBeenCalled();
     unmount();
+  });
+
+  it("marks the document while it listens, so a test can wait for the island", () => {
+    const { unmount } = mount();
+    expect(document.documentElement.hasAttribute(COMPARE_FOCUS_ATTACHED)).toBe(true);
+    unmount();
+    expect(document.documentElement.hasAttribute(COMPARE_FOCUS_ATTACHED)).toBe(false);
   });
 
   it("stops listening once unmounted", () => {

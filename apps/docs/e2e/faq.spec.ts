@@ -6,6 +6,7 @@ import {
   LOCALES,
   openInTheme,
   THEMES,
+  waitForFaqKeys,
 } from "./support";
 
 const FAQ = "section#faq";
@@ -139,13 +140,11 @@ test.describe("faq keyboard", () => {
 
   test("moves between the questions with the arrow keys, Home and End", async ({ page }) => {
     await page.goto("/");
-    await expect(page.locator("html")).toHaveAttribute("data-motion-ready", "");
+    await waitForFaqKeys(page);
     const summaries = page.locator(SUMMARIES);
-    await expect(async () => {
-      await summaries.first().focus();
-      await page.keyboard.press("ArrowDown");
-      await expect(summaries.nth(1)).toBeFocused({ timeout: 200 });
-    }).toPass();
+    await summaries.first().focus();
+    await page.keyboard.press("ArrowDown");
+    await expect(summaries.nth(1)).toBeFocused();
     await page.keyboard.press("End");
     await expect(summaries.last()).toBeFocused();
     await page.keyboard.press("Home");
