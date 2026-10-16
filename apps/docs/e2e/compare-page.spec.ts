@@ -108,7 +108,7 @@ test.describe("full comparison table", () => {
           await expect(refs.nth(index)).toBeFocused();
           const covered = await refs.nth(index).evaluate((ref) => {
             const box = ref.getBoundingClientRect();
-            const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+            const hit = document.elementFromPoint(box.x + 1, box.y + box.height / 2);
             return hit !== ref && !ref.contains(hit);
           });
           expect(covered, `row ${row} ref ${index}`).toBe(false);
