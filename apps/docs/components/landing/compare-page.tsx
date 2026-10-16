@@ -1,15 +1,11 @@
 import { getTranslations } from "next-intl/server";
 import { Fragment, type ReactNode } from "react";
-import {
-  type AvailableFromCopy,
-  AvailableFromPill,
-  availableFromCopy,
-} from "@/components/available-from";
+import { AvailableFromPill } from "@/components/available-from";
 import { IntentPrefetchLink } from "@/components/ui/intent-prefetch-link";
 import {
-  type CompareProviderName,
+  type BadgedProviderName,
+  badgedProviderNames,
   compareCellText,
-  compareProviderNames,
   PROVIDER_LIST_SLOT,
 } from "@/lib/compare-cells";
 import { type Locale, localizedPath } from "@/lib/i18n";
@@ -36,18 +32,7 @@ import { formatLandingDate } from "./hero-facts";
 
 const COMPARE_HEADING_ID = "compare-page-heading";
 
-type BadgedProvider = CompareProviderName & { readonly badge: AvailableFromCopy | null };
-
-async function badgedProviders(locale: Locale): Promise<ReadonlyArray<BadgedProvider>> {
-  return Promise.all(
-    compareProviderNames().map(async (provider) => ({
-      ...provider,
-      badge: provider.since ? await availableFromCopy(provider.since, undefined, locale) : null,
-    })),
-  );
-}
-
-function ProviderList({ providers }: { providers: ReadonlyArray<BadgedProvider> }): ReactNode {
+function ProviderList({ providers }: { providers: ReadonlyArray<BadgedProviderName> }): ReactNode {
   return providers.map((item, index) => (
     <Fragment key={item.id}>
       {index > 0 ? ", " : null}
@@ -63,12 +48,9 @@ function ProviderList({ providers }: { providers: ReadonlyArray<BadgedProvider> 
 }
 
 function providersCell(t: CompareTranslator, list: ReactNode): ReactNode {
-  const [before = "", after = ""] = compareCellText(
-    t,
-    "providers",
-    "verbatra",
+  const [before = "", after = ""] = compareCellText(t, "providers", "verbatra").split(
     PROVIDER_LIST_SLOT,
-  ).split(PROVIDER_LIST_SLOT);
+  );
   return (
     <>
       {before}
@@ -85,7 +67,7 @@ function columnLabel(t: CompareTranslator, tool: CompareTool): string {
 export async function ComparePage({ locale }: { locale: Locale }): Promise<ReactNode> {
   const t = await getTranslations({ locale, namespace: "landing.compare" });
   const page = await getTranslations({ locale, namespace: "compare" });
-  const providerList = <ProviderList providers={await badgedProviders(locale)} />;
+  const providerList = <ProviderList providers={await badgedProviderNames(locale)} />;
   const checked = formatLandingDate(COMPARE_LAST_CHECKED, locale);
 
   return (
@@ -110,7 +92,7 @@ export async function ComparePage({ locale }: { locale: Locale }): Promise<React
             label: t(`rows.${row}.label`),
             cells: COMPARE_TOOLS.map((tool) => ({
               column: tool,
-              text: compareCellText(t, row, tool, ""),
+              text: compareCellText(t, row, tool),
               ...(row === "providers" && tool === "verbatra"
                 ? { content: providersCell(t, providerList) }
                 : {}),

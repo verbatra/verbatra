@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { i18n } from "./i18n";
+import { COMPARE_LAST_CHECKED } from "./landing-compare";
 import { LANDING_LAST_UPDATED } from "./site";
 
 type CopyRevision = { readonly date: string; readonly hash: string };
@@ -10,6 +11,21 @@ type CopyRevision = { readonly date: string; readonly hash: string };
 const COPY_REVISIONS: ReadonlyArray<CopyRevision> = [
   { date: "2026-10-16", hash: "2b84fdeaa316c1871444429fa426e1278eea9e365269007894a8196542868a60" },
 ];
+
+const COMPARE_CELL_REVISIONS: ReadonlyArray<CopyRevision> = [
+  { date: "2026-10-15", hash: "a3c7d3df61fd3860df4707d640261fe2bc141f4b198aeb708fc20ea5e4633198" },
+];
+
+function compareCellHash(): string {
+  const path = fileURLToPath(new URL("../messages/en.json", import.meta.url));
+  const catalog = JSON.parse(readFileSync(path, "utf8")) as {
+    landing: { compare: { rows: unknown } };
+    compare: unknown;
+  };
+  return createHash("sha256")
+    .update(`${JSON.stringify(catalog.landing.compare.rows)}\n${JSON.stringify(catalog.compare)}\n`)
+    .digest("hex");
+}
 
 function landingCopyHash(): string {
   const hash = createHash("sha256");
@@ -39,5 +55,14 @@ describe("LANDING_LAST_UPDATED", () => {
     expect(new Set(dates).size).toBe(dates.length);
     const hashes = COPY_REVISIONS.map((revision) => revision.hash);
     expect(new Set(hashes).size).toBe(hashes.length);
+  });
+});
+
+describe("COMPARE_LAST_CHECKED", () => {
+  it("pins the comparison cells and page copy to the day they were last checked", () => {
+    expect(COMPARE_CELL_REVISIONS.at(-1)).toEqual({
+      date: COMPARE_LAST_CHECKED,
+      hash: compareCellHash(),
+    });
   });
 });

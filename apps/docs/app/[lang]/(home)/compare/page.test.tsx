@@ -7,9 +7,11 @@ import { createTranslator } from "next-intl";
 import type { ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+import { PROVIDER_LIST_SLOT } from "@/lib/compare-cells";
 import { i18n, type Locale } from "@/lib/i18n";
 import {
   COMPARE_LAST_CHECKED,
+  COMPARE_PUBLISHED,
   COMPARE_ROWS,
   COMPARE_SOURCE_COUNT,
   COMPARE_TOOL_NAMES,
@@ -21,6 +23,7 @@ import {
 import { MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { providerShortLabel } from "@/lib/landing-providers";
 import { RELEASE_BADGE } from "@/lib/release-badge";
+import { resolveServer } from "@/test-support/resolve-server";
 
 const MESSAGES_DIR = join(dirname(fileURLToPath(import.meta.url)), "../../../../messages");
 
@@ -66,7 +69,9 @@ const ORIGIN = "https://verbatra.kreitz-webdev.de";
 const PREFIX: Readonly<Record<Locale, string>> = { en: "", de: "/de", es: "/es", fr: "/fr" };
 
 async function render(locale: Locale): Promise<Document> {
-  const page = await CompareRoute({ params: Promise.resolve({ lang: locale }) });
+  const page = await resolveServer(
+    await CompareRoute({ params: Promise.resolve({ lang: locale }) }),
+  );
   return new DOMParser().parseFromString(renderToStaticMarkup(page), "text/html");
 }
 
@@ -135,6 +140,7 @@ describe.each(i18n.languages)("the %s comparison page", (locale) => {
       description: copy.compare.meta.description,
       url: `${ORIGIN}${path}`,
       inLanguage: locale,
+      datePublished: COMPARE_PUBLISHED,
       dateModified: COMPARE_LAST_CHECKED,
     });
   });
@@ -194,7 +200,7 @@ describe.each(i18n.languages)("the %s comparison page", (locale) => {
     expect(cell?.querySelectorAll(".vk-available-from").length).toBe(
       RELEASE_BADGE.providers.length,
     );
-    expect(cell?.textContent).not.toContain("");
+    expect(cell?.textContent).not.toContain(PROVIDER_LIST_SLOT);
   });
 
   it("counts the formats from the format table", async () => {
@@ -225,20 +231,38 @@ describe.each(i18n.languages)("the %s comparison page", (locale) => {
 describe("the comparison cells", () => {
   const en = catalog("en").landing.compare.rows;
 
-  it("never claims in-context editing for Verbatra", () => {
-    expect(en.inContext?.verbatra).toBe("No");
-  });
+  const NO: Readonly<Record<Locale, RegExp>> = {
+    en: /^No$/,
+    de: /^Nein$/,
+    es: /^No\b/,
+    fr: /^Non$/,
+  };
 
-  it("marks what no source settles as unknown rather than guessing", () => {
-    for (const [row, tool] of [
-      ["selfHosting", "crowdin"],
-      ["selfHosting", "phrase"],
-      ["inContext", "lingo"],
-      ["ownKeys", "lokalise"],
-    ] as const) {
-      expect(en[row]?.[tool], `${row}.${tool}`).toMatch(/^Unknown\b/);
-    }
-  });
+  const UNKNOWN: Readonly<Record<Locale, RegExp>> = {
+    en: /^Unknown\b/,
+    de: /^Unbekannt\b/,
+    es: /^Desconocido\b/,
+    fr: /^Inconnu\b/,
+  };
+
+  for (const locale of i18n.languages) {
+    const rows = catalog(locale).landing.compare.rows;
+
+    it(`never claims in-context editing for Verbatra in ${locale}`, () => {
+      expect(rows.inContext?.verbatra).toMatch(NO[locale]);
+    });
+
+    it(`marks what no source settles as unknown rather than guessing in ${locale}`, () => {
+      for (const [row, tool] of [
+        ["selfHosting", "crowdin"],
+        ["selfHosting", "phrase"],
+        ["inContext", "lingo"],
+        ["ownKeys", "lokalise"],
+      ] as const) {
+        expect(rows[row]?.[tool], `${row}.${tool}`).toMatch(UNKNOWN[locale]);
+      }
+    });
+  }
 
   it("writes an absence as nothing found, never as a missing feature", () => {
     for (const [row, cells] of Object.entries(en))

@@ -3,6 +3,8 @@ import { type Locale, type LocalizedAnchors, localizedAnchorPath } from "./i18n"
 
 export const COMPARE_LAST_CHECKED = "2026-10-15";
 
+export const COMPARE_PUBLISHED = "2026-10-15";
+
 export type CompareTool =
   | "verbatra"
   | "lingo"

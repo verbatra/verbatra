@@ -1,3 +1,5 @@
+import { type AvailableFromCopy, availableFromCopy } from "@/components/available-from";
+import type { Locale } from "./i18n";
 import type { CompareRowId, CompareTool } from "./landing-compare";
 import {
   MACHINE_PROVIDER_IDS,
@@ -15,9 +17,9 @@ export type CompareProviderName = {
   readonly since: string | null;
 };
 
-export const PROVIDER_LIST_SLOT = "";
+export const PROVIDER_LIST_SLOT = "\uE000";
 
-export function compareProviderNames(): ReadonlyArray<CompareProviderName> {
+function compareProviderNames(): ReadonlyArray<CompareProviderName> {
   return MACHINE_PROVIDER_IDS.map((id) => ({
     id,
     label: providerShortLabel(id),
@@ -25,11 +27,26 @@ export function compareProviderNames(): ReadonlyArray<CompareProviderName> {
   }));
 }
 
+export type BadgedProviderName = CompareProviderName & {
+  readonly badge: AvailableFromCopy | null;
+};
+
+export async function badgedProviderNames(
+  locale: Locale,
+): Promise<ReadonlyArray<BadgedProviderName>> {
+  return Promise.all(
+    compareProviderNames().map(async (provider) => ({
+      ...provider,
+      badge: provider.since ? await availableFromCopy(provider.since, undefined, locale) : null,
+    })),
+  );
+}
+
 export function compareCellText(
   t: CellTranslator,
   row: CompareRowId,
   tool: CompareTool,
-  providers: string,
+  { providers = PROVIDER_LIST_SLOT }: { providers?: string } = {},
 ): string {
   const key = `rows.${row}.${tool}`;
   if (tool !== "verbatra") return t(key);

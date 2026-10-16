@@ -233,6 +233,7 @@ export function techArticleLd(args: {
   description?: string | undefined;
   path: string;
   lang: string;
+  datePublished?: string | undefined;
   dateModified?: string | undefined;
 }): Record<string, unknown> {
   return {
@@ -242,6 +243,7 @@ export function techArticleLd(args: {
     ...(args.description ? { description: args.description } : {}),
     url: new URL(args.path, SITE_URL).href,
     inLanguage: args.lang,
+    ...(args.datePublished ? { datePublished: args.datePublished } : {}),
     ...(args.dateModified ? { dateModified: args.dateModified } : {}),
     author: AUTHOR_REF,
     publisher: ORGANIZATION_REF,

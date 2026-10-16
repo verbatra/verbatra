@@ -3,7 +3,14 @@ import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/csp-script-hashes", () => ({
-  loadBuiltScriptHashes: () => ({ "/en": [], "/de": [], "/en/docs": [], "/_not-found": [] }),
+  loadBuiltScriptHashes: () => ({
+    "/en": [],
+    "/de": [],
+    "/en/docs": [],
+    "/en/compare": [],
+    "/de/compare": [],
+    "/_not-found": [],
+  }),
   scriptHashesFor: () => [],
 }));
 
@@ -42,7 +49,7 @@ afterEach(() => {
 });
 
 describe("proxy: server-side pageview", () => {
-  it.each(["/", "/de", "/docs"])(
+  it.each(["/", "/de", "/docs", "/compare", "/de/compare"])(
     "hands exactly one pageview for a document navigation to %s to waitUntil",
     async (path) => {
       const waitUntil = await visit(path);
@@ -78,6 +85,14 @@ describe("proxy: server-side pageview", () => {
     expect(await visit("/en/docs")).not.toHaveBeenCalled();
     expect(await visit("/docs.md")).not.toHaveBeenCalled();
     expect(await visit("/does-not-exist")).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("never counts the comparison page served as markdown", async () => {
+    expect(await visit("/compare.md")).not.toHaveBeenCalled();
+    expect(
+      await visit("/compare", { ...DOCUMENT_NAVIGATION, accept: "text/markdown" }),
+    ).not.toHaveBeenCalled();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 

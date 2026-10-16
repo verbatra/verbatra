@@ -4,10 +4,11 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createTranslator } from "next-intl";
-import { cloneElement, isValidElement, type ReactElement, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { i18n, type Locale, localizedPath } from "@/lib/i18n";
+import { resolveServer } from "@/test-support/resolve-server";
 
 const MESSAGES_DIR = join(dirname(fileURLToPath(import.meta.url)), "../../messages");
 const localeState = vi.hoisted(() => ({ current: "en" }));
@@ -79,27 +80,6 @@ const IMPRINT_LABEL: Record<Locale, string> = {
   es: "Aviso legal (Impressum)",
   fr: "Mentions légales (Impressum)",
 };
-
-type AnyProps = Record<string, unknown> & { children?: ReactNode; footer?: ReactNode };
-
-function isAsyncComponent(type: unknown): type is (props: AnyProps) => Promise<ReactNode> {
-  return typeof type === "function" && type.constructor.name === "AsyncFunction";
-}
-
-async function resolveServer(node: ReactNode): Promise<ReactNode> {
-  if (Array.isArray(node)) return Promise.all(node.map(resolveServer));
-  if (!isValidElement(node)) return node;
-  const element = node as ReactElement<AnyProps>;
-  if (isAsyncComponent(element.type)) return resolveServer(await element.type(element.props));
-  const overrides: Partial<AnyProps> = {};
-  if (element.props.children !== undefined) {
-    overrides.children = await resolveServer(element.props.children);
-  }
-  if (element.props.footer !== undefined) {
-    overrides.footer = await resolveServer(element.props.footer);
-  }
-  return cloneElement(element, overrides);
-}
 
 async function renderLayout(layout: Layout, locale: Locale): Promise<Document> {
   localeState.current = locale;

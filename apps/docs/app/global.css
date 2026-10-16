@@ -2583,12 +2583,12 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   box-shadow: inset 2px 0 0 var(--accent-fill);
 }
 
-.vk-home .vk-compare-source {
-  scroll-margin-top: calc(var(--vk-landing-offset) + 1rem);
-}
-
 .vk-compare-source {
   border-radius: var(--radius-sm);
+}
+
+.vk-home .vk-compare-source {
+  scroll-margin-top: calc(var(--vk-landing-offset) + 1rem);
 }
 
 .vk-compare-source:target {

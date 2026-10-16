@@ -73,6 +73,14 @@ describe("the comparison data", () => {
     ]);
   });
 
+  it("footnotes each hosted TMS summary with exactly the three cells it sums up", () => {
+    for (const row of SHORT_ROWS) {
+      expect(shortCellFootnotes(row, "hostedTms"), row).toEqual(
+        (["crowdin", "lokalise", "phrase"] as const).map((tool) => cellFootnote(row, tool)),
+      );
+    }
+  });
+
   it("links every source over https or to a page of this site that exists in every locale", () => {
     for (let footnote = 1; footnote <= COMPARE_SOURCE_COUNT; footnote += 1) {
       const { urls } = compareSource(footnote);

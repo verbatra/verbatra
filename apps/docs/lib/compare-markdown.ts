@@ -1,7 +1,6 @@
 import { getTranslations } from "next-intl/server";
-import { availableFromCopy } from "@/components/available-from";
 import { formatLandingDate } from "@/components/landing/hero-facts";
-import { compareCellText, compareProviderNames } from "./compare-cells";
+import { badgedProviderNames, compareCellText } from "./compare-cells";
 import { type Locale, localizedPath } from "./i18n";
 import {
   COMPARE_LAST_CHECKED,
@@ -15,11 +14,12 @@ import {
   compareSourceHref,
   fullTableFootnotes,
 } from "./landing-compare";
+import { absoluteMarkdownHref } from "./markdown-links";
 import { pageFrontmatter } from "./page-frontmatter";
-import { homePath, SITE_URL } from "./site";
+import { homePath } from "./site";
 
 function absolute(href: string): string {
-  return new URL(href, SITE_URL).href;
+  return href.startsWith("/") ? absoluteMarkdownHref(href) : href;
 }
 
 function tableCell(text: string): string {
@@ -31,14 +31,12 @@ function refs(footnotes: ReadonlyArray<CompareFootnote>): string {
 }
 
 async function providerText(locale: Locale): Promise<string> {
-  const names = await Promise.all(
-    compareProviderNames().map(async (provider) =>
-      provider.since
-        ? `${provider.label} (${(await availableFromCopy(provider.since, undefined, locale)).label})`
-        : provider.label,
-    ),
-  );
-  return names.join(", ");
+  const names = await badgedProviderNames(locale);
+  return names
+    .map((provider) =>
+      provider.badge ? `${provider.label} (${provider.badge.label})` : provider.label,
+    )
+    .join(", ");
 }
 
 export async function compareMarkdown(locale: Locale): Promise<string> {
@@ -53,7 +51,8 @@ export async function compareMarkdown(locale: Locale): Promise<string> {
   const divider = `| ${["", ...columns].map(() => "---").join(" | ")} |`;
   const rows = COMPARE_ROWS.map((row) => {
     const cells = COMPARE_TOOLS.map(
-      (tool) => `${compareCellText(t, row, tool, providers)} ${refs([cellFootnote(row, tool)])}`,
+      (tool) =>
+        `${compareCellText(t, row, tool, { providers })} ${refs([cellFootnote(row, tool)])}`,
     );
     return `| ${[t(`rows.${row}.label`), ...cells].map(tableCell).join(" | ")} |`;
   });

@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { JsonLd } from "@/components/json-ld";
 import { ComparePage } from "@/components/landing/compare-page";
 import { localizedPath, toLocale } from "@/lib/i18n";
-import { COMPARE_LAST_CHECKED, COMPARE_PATH } from "@/lib/landing-compare";
+import { COMPARE_LAST_CHECKED, COMPARE_PATH, COMPARE_PUBLISHED } from "@/lib/landing-compare";
 import { markdownUrl } from "@/lib/markdown-route";
 import { homePath, localeAlternates } from "@/lib/site";
 import { socialMetadata } from "@/lib/social-metadata";
@@ -42,7 +42,6 @@ export default async function CompareRoute(props: {
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "compare" });
   const path = localizedPath(locale, COMPARE_PATH);
-  const content = await ComparePage({ locale });
 
   return (
     <div className="vk-home w-full">
@@ -60,10 +59,11 @@ export default async function CompareRoute(props: {
           description: t("meta.description"),
           path,
           lang: locale,
+          datePublished: COMPARE_PUBLISHED,
           dateModified: COMPARE_LAST_CHECKED,
         })}
       />
-      {content}
+      <ComparePage locale={locale} />
     </div>
   );
 }

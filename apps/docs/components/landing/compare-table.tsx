@@ -118,16 +118,16 @@ export function SourceList({
   );
 }
 
-export type CompareColumn = { readonly id: string; readonly label: string };
+type CompareColumn = { readonly id: string; readonly label: string };
 
-export type CompareCellContent = {
+type CompareCellContent = {
   readonly column: string;
   readonly text: string;
   readonly content?: ReactNode;
   readonly footnotes: ReadonlyArray<CompareFootnote>;
 };
 
-export type CompareTableRow = {
+type CompareTableRow = {
   readonly id: string;
   readonly label: string;
   readonly cells: ReadonlyArray<CompareCellContent>;

@@ -407,7 +407,9 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   `app/[lang]/(home)/compare/page.tsx` under the home layout renders `compare-page.tsx`, one `h1`
   (`compare.heading`, `.vk-h2` size), the full table of `COMPARE_ROWS` by `COMPARE_TOOLS` (every
   cell is `landing.compare.rows.<row>.<tool>`, the short table reading the same keys, so a cell
-  has one message; the Verbatra providers cell lists `compareProviderNames()` with the
+  has one message; the one exception is the short table's hosted TMS summary,
+  `rows.<row>.hostedTms`, its own message, footnoted with exactly the Crowdin, Lokalise and Phrase
+  cells it sums up (`lib/landing-compare.test.ts`); the Verbatra providers cell lists `badgedProviderNames(locale)` with the
   `RELEASE_BADGE` pill and the formats cell counts `SUPPORTED_FORMAT_IDS`, both through
   `lib/compare-cells.ts`), the dated notes, its own concession, links to the quickstart and home,
   and all sources under an `h2`. Its 100rem-wide table sits in `.vk-compare.vk-compare-full`, whose

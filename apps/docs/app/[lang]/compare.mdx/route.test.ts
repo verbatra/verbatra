@@ -10,9 +10,11 @@ import {
   COMPARE_TOOLS,
   cellFootnote,
   compareSource,
+  compareSourceHref,
 } from "@/lib/landing-compare";
 import { MACHINE_PROVIDER_IDS } from "@/lib/landing-facts";
 import { providerShortLabel } from "@/lib/landing-providers";
+import { absoluteMarkdownHref } from "@/lib/markdown-links";
 
 const MESSAGES_DIR = join(dirname(fileURLToPath(import.meta.url)), "../../../messages");
 
@@ -74,11 +76,15 @@ describe("GET /[lang]/compare.mdx", () => {
         const line = body.split("\n").find((entry) => entry.startsWith(`${footnote}. `));
         expect(line, `${footnote}`).toBeDefined();
         for (const link of compareSource(footnote).urls) {
-          const href = typeof link === "string" ? link : "https://verbatra.kreitz-webdev.de/";
-          expect(line).toContain(href);
+          const href = compareSourceHref(link, lang);
+          expect(line).toContain(href.startsWith("/") ? absoluteMarkdownHref(href) : href);
         }
       }
       expect(body).not.toMatch(/\]\(\//);
+      expect(body).toContain(
+        absoluteMarkdownHref(lang === "en" ? "/docs/quickstart" : `/${lang}/docs/quickstart`),
+      );
+      expect(body).toMatch(/\/docs\/[^\s;)]*\.md\b/);
       for (const id of MACHINE_PROVIDER_IDS) expect(body).toContain(providerShortLabel(id));
     },
   );
