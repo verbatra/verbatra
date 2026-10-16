@@ -3,7 +3,32 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { i18n } from "./i18n";
 import { MACHINE_PROVIDER_IDS } from "./landing-facts";
-import { featureReleaseBadge, providerReleaseBadge, RELEASE_BADGE } from "./release-badge";
+import {
+  featureReleaseBadge,
+  providerReleaseBadge,
+  RELEASE_BADGE,
+  versionAtLeast,
+} from "./release-badge";
+
+describe("versionAtLeast", () => {
+  it.each([
+    ["0.12.0", "0.12.0", true],
+    ["0.12.1", "0.12.0", true],
+    ["1.0.0", "0.12.0", true],
+    ["0.11.1", "0.12.0", false],
+    ["0.9.9", "0.10.0", false],
+    ["0.12.0-rc.1", "0.12.0", false],
+    ["0.12.0", "0.12.0-rc.1", true],
+    ["0.12.1-rc.1", "0.12.0", true],
+  ])("%s at least %s is %s", (version, minimum, expected) => {
+    expect(versionAtLeast(version, minimum)).toBe(expected);
+  });
+
+  it("refuses a version that is not semantic instead of answering false", () => {
+    expect(() => versionAtLeast("0.12", "0.12.0")).toThrow("not a semantic version");
+    expect(() => versionAtLeast("0.12.0", "next")).toThrow("not a semantic version");
+  });
+});
 
 describe("release badge", () => {
   it("dates exactly the providers it names, all with the one release version", () => {

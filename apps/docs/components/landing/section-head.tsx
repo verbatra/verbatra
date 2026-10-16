@@ -81,12 +81,20 @@ export function SectionAside({
   lead,
   id,
   aside,
+  trailing,
+  className,
   children,
-}: SectionHeadProps & { aside?: ReactNode; children: ReactNode }): ReactNode {
+}: SectionHeadProps & {
+  aside?: ReactNode;
+  trailing?: ReactNode;
+  className?: string;
+  children: ReactNode;
+}): ReactNode {
   return (
-    <div className="vk-section-aside vk-grid-12">
+    <div className={cn("vk-section-aside vk-grid-12", className)}>
       <HeadBlock title={title} lead={lead} id={id} shape="aside" extra={aside} />
       <div className="vk-section-aside-content">{children}</div>
+      {trailing}
     </div>
   );
 }

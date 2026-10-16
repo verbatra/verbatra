@@ -33,7 +33,7 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "landing" });
 
-  const faqItems = (await faqContent(locale)).map(({ question, answer }) => ({ question, answer }));
+  const faqItems = await faqContent(locale);
 
   const sections: Readonly<Record<LandingSectionId, ReactNode>> = {
     hero: <Hero />,
@@ -46,7 +46,7 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
     code: <CodeShowcase />,
     compare: <Compare />,
     openSource: <OpenSource />,
-    faq: <Faq locale={locale} />,
+    faq: <Faq locale={locale} items={faqItems} />,
     finalCta: <FinalCta />,
   };
 
@@ -62,7 +62,12 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
           dateModified: LANDING_LAST_UPDATED,
         })}
       />
-      <JsonLd data={faqPageLd({ items: faqItems, lang: locale })} />
+      <JsonLd
+        data={faqPageLd({
+          items: faqItems.map(({ question, answer }) => ({ question, answer })),
+          lang: locale,
+        })}
+      />
 
       {LANDING_SECTIONS.map((id) => (
         <Fragment key={id}>{sections[id]}</Fragment>

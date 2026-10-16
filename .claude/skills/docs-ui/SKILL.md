@@ -188,16 +188,17 @@ Scales are fixed and narrow, deliberately:
   `SectionAside` (same file) is the head beside its content: a `.vk-section-aside` `.vk-grid-12`
   with the stacked heading and lead (`data-layout="aside"`) in span 4 at the start and its
   `children` in `.vk-section-aside-content`, span 8, top-aligned; one column, head first, under
-  64rem: the marquee and the FAQ. Its optional `aside` renders under the lead in the head column
-  (the FAQ's docs link list). `section-bands.test.tsx` renders each section and pins the head shape it
+  64rem: the marquee and the FAQ. Its optional `aside` renders under the lead in the head column;
+  its optional `trailing` renders after the content as a direct grid child (the FAQ's docs link
+  list, placed in the head column's second row from 64rem by `.vk-faq-aside`). `section-bands.test.tsx` renders each section and pins the head shape it
   draws, so the page never goes back to one head shape everywhere.
 - Landing surfaces: `--surface-band` (mixed from `--surface-card` and
   `--surface-bg`, never a raw value), the fill of `.vk-band`: `Section` with `band` renders a
   full-width `section.vk-band` (between two `--border-default` hairlines, `--section-sm` above it
   and `--section-md` padding inside) around the usual `.vk-gutter` column: the marquee under the
-  hero, the feature flow, the code showcase and the comparison are banded, the FAQ sits on the page, the SDK
-  playground between the marquee and the flow, the problem, features and open source sections sit
-  on the void, and the code showcase and the comparison sit next to each other until the code
+  hero, the feature flow, the code showcase and the comparison are banded, the SDK
+  playground between the marquee and the flow, the problem, features, open source and FAQ sections
+  sit on the void, and the code showcase and the comparison sit next to each other until the code
   showcase retires (`section-bands.test.tsx` pins the order). The hero draws no
   pattern, only its single decorative glow (`.vk-banner-glow` behind the demo column, from the
   `--banner-glow` token, lighter under `html.light`); there is no wash token and no dot backdrop.
@@ -444,18 +445,26 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   section on `landing.closing`, set on the page gutter with no card border or inset, a `section` whose `vk-final-cta` class is a hook with no stylesheet rule, the install `CommandRow` counted with `location: final-cta`, then Get
   started and Read the docs). The footer is not a section; `app/[lang]/(home)/layout.tsx` passes
   it to the home layout. Section ids are unique; never render two sections that claim the same one.
-  The FAQ (`faq.tsx`, page surface, `SectionAside`: heading, lead and a `nav` of docs links in the
-  head column, the questions beside it) has no client island: each item is a native
+  The FAQ (`faq.tsx`, on the page surface `--v-void`, `SectionAside` with `.vk-faq-aside`: the
+  heading and lead in the head column, the questions beside it, then a `nav` of docs links that
+  follows the list in the DOM, so a phone reads the questions first, and that sits under the head
+  from 64rem, each link a 44px target) is a server section: each item is a native
   `details`/`summary`, rendered closed on the server with its question in an `h3` inside the
-  summary and its answer in the HTML, so it opens and reads without JavaScript. The open state
-  swaps the `.vk-faq-mark` plus (a `--text-faint` boundary, `--accent` bars) for a filled minus
-  (`--accent-fill`) with no transition. `faq-keys.tsx` is a null-rendering client helper that adds
-  arrow keys, Home and End between the summaries. `faqContent` (same file) builds each item's
-  question, rich answer and plain answer from one translator call, and the home page feeds the
-  plain ones to `faqPageLd`, so the FAQPage JSON-LD always equals the visible text. Ids, order and
-  links live in `lib/landing-faq.ts`; answers use a `link` tag (that item's docs page, localized)
-  and `license` only. Facts that change with a release come in as values, never typed: the npm
-  answer lists `publishedProviders()` (`MACHINE_PROVIDER_IDS` whose `RELEASE_BADGE` version is at
+  summary (`text-wrap: pretty`) and its answer in the HTML (at most 33rem wide), so it opens and
+  reads without JavaScript. From 64rem the head is `position: sticky` at
+  `--vk-landing-offset` plus `--head-gap` on the `--v-void` page surface, so it stays beside a long
+  open list and the docs links scroll under it. The open state swaps the `.vk-faq-mark` plus (a
+  `--text-faint` boundary, `--accent` bars) for a filled minus (`--accent-fill`, its bar
+  `--accent-fill-fg`) with no transition; under `forced-colors` the bars are `CanvasText` and the
+  open mark `Highlight` with a `HighlightText` bar. `faq-keys.tsx` is a null-rendering client helper,
+  loaded as the lazy `FaqKeys` island from `islands.tsx`, that adds arrow keys, Home and End between
+  the summaries and leaves a modified key to the browser. `faqContent` (same file) builds each item's
+  question, rich answer and plain answer from one translator call; the home page builds it once and
+  passes the items to `Faq` and the plain ones to `faqPageLd`, so the FAQPage JSON-LD always equals
+  the visible text. A hyphenated word in an answer (`ngx-translate`) is kept whole. Ids, order and
+  links live in `lib/landing-faq.ts`; answers use a `link` tag (that item's docs page, localized),
+  `license`, and `code` for a command or file name (plain in the JSON-LD)  only. Facts that change with a release come in as values, never typed: the providers and npm
+  answers list `publishedProviders()` (`MACHINE_PROVIDER_IDS` whose `RELEASE_BADGE` version is at
   most `PACKAGE_VERSION`) and names the rest with the badge version, the formats answer reads
   `FORMAT_DISPLAY`, and the playground answer names `PLAYGROUND_METADATA.provider`. `FORMAT_DISPLAY` in `lib/landing-facts.ts` is every format's display
   label, which the structured data's format list reads too, so a new format fails to

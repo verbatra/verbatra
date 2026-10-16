@@ -19,9 +19,12 @@ function nextIndex(key: string, current: number, count: number): number | null {
   }
 }
 
-export function moveFaqFocus(list: HTMLElement, event: KeyboardEvent): void {
+function moveFaqFocus(list: HTMLElement, event: KeyboardEvent): void {
+  if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey)
+    return;
+  if (!(event.target instanceof HTMLElement)) return;
   const questions = Array.from(list.querySelectorAll<HTMLElement>(QUESTION_SELECTOR));
-  const current = questions.indexOf(event.target as HTMLElement);
+  const current = questions.indexOf(event.target);
   if (current === -1) return;
   const target = nextIndex(event.key, current, questions.length);
   if (target === null) return;

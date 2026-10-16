@@ -13,19 +13,7 @@ import {
 } from "./landing-faq";
 import { PLAYGROUND_METADATA } from "./landing-playground";
 import { providerShortLabel } from "./landing-providers";
-import { RELEASE_BADGE, versionAtLeast } from "./release-badge";
-
-describe("versionAtLeast", () => {
-  it.each([
-    ["0.12.0", "0.12.0", true],
-    ["0.12.1", "0.12.0", true],
-    ["1.0.0", "0.12.0", true],
-    ["0.11.1", "0.12.0", false],
-    ["0.9.9", "0.10.0", false],
-  ])("%s at least %s is %s", (version, minimum, expected) => {
-    expect(versionAtLeast(version, minimum)).toBe(expected);
-  });
-});
+import { RELEASE_BADGE } from "./release-badge";
 
 describe("the providers on npm", () => {
   it("leaves out the providers the next release adds while an older release is published", () => {

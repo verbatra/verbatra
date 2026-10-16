@@ -48,11 +48,11 @@
         },
         "providers": {
           "question": "Welche Übersetzungs-Provider kann ich verwenden?",
-          "answer": "Gehostete LLMs, Engines für maschinelle Übersetzung oder ein Modell, das du selbst betreibst, alle hinter einer Schnittstelle. Du wählst einen über seine ID im Provider-Block deiner Konfiguration und wechselst, indem du diesen Block neu schreibst; die <link>Provider-Seite</link> listet jeden mit seinen Optionen."
+          "answer": "Gehostete LLMs, Engines für maschinelle Übersetzung oder ein Modell, das du selbst betreibst, alle hinter einer Schnittstelle: {providers}. Du wählst einen über seine ID im <code>provider</code>-Block deiner Konfiguration und wechselst, indem du diesen Block neu schreibst; die <link>Provider-Seite</link> listet jeden mit seinen Optionen."
         },
         "npm": {
           "question": "Welche Provider gibt es heute auf npm?",
-          "answer": "Verbatra {version}, das aktuelle Release auf npm, bringt {providers} mit.{pending, select, yes { Version {next} ergänzt {upcoming}.} other {}} Die <link>Provider-Seite</link> beschreibt jeden einzelnen."
+          "answer": "Verbatra {version} bringt {providers} mit.{pending, select, yes { Version {next} ergänzt {upcoming}.} other {}} Die <link>Provider-Seite</link> beschreibt jeden einzelnen."
         },
         "formats": {
           "question": "Welche Formate unterstützt Verbatra?",
@@ -60,15 +60,15 @@
         },
         "ci": {
           "question": "Kann ich Verbatra in der CI ausführen?",
-          "answer": "Ja. verbatra check ruft keinen Provider auf und endet mit Exit-Code 1, solange einer Locale Keys fehlen oder Keys veraltet sind, und sichert so einen Pull Request ohne API-Key ab. Die <link>GitHub Action</link> führt check, diff oder translate aus und meldet das Ergebnis als Annotationen und Job-Zusammenfassung."
+          "answer": "Ja. <code>verbatra check</code> ruft keinen Provider auf und endet mit Exit-Code 1, solange einer Locale Keys fehlen oder Keys veraltet sind, und sichert so einen Pull Request ohne API-Key ab. Die <link>GitHub Action</link> führt <code>check</code>, <code>diff</code> oder <code>translate</code> aus und meldet das Ergebnis als Annotationen und Job-Zusammenfassung."
         },
         "keys": {
           "question": "Wo landen meine API-Keys?",
-          "answer": "In Umgebungsvariablen, nie in der Konfigurationsdatei. Die CLI liest sie aus deiner Shell, aus .env.local oder .env, und eine Fehlermeldung nennt die fehlende Variable, ohne einen API-Key auszugeben; <link>Provider-Keys</link> listet die Variable jedes Providers."
+          "answer": "In Umgebungsvariablen, nie in der Konfigurationsdatei. Die CLI liest sie aus deiner Shell, aus <code>.env.local</code> oder <code>.env</code>, und eine Fehlermeldung nennt die fehlende Variable, ohne einen API-Key auszugeben; <link>Provider-Keys</link> listet die Variable jedes Providers."
         },
         "privacy": {
           "question": "Schickt Verbatra meine Strings irgendwohin?",
-          "answer": "Nur an den Übersetzungs-Provider, den du konfigurierst, und nur, wenn ein Befehl übersetzt. Verbatra hat keine Telemetrie, keine Analytics und keinen Update-Check, und die <link>Seite zur Datenverarbeitung</link> listet, was jeder Provider bekommt, und verlinkt seine Aufbewahrungsbedingungen."
+          "answer": "Nur an den Übersetzungs-Provider, den du konfigurierst, und nur, wenn ein Befehl übersetzt. Die CLI, das SDK, Studio und der MCP-Server haben keine Telemetrie, keinen Update-Check und keinen Verbatra-Server, den sie kontaktieren, und die <link>Seite zur Datenverarbeitung</link> listet, was jeder Provider bekommt, und verlinkt seine Aufbewahrungsbedingungen."
         },
         "cost": {
           "question": "Was kostet Verbatra?",
@@ -76,7 +76,7 @@
         },
         "studio": {
           "question": "Ist Verbatra Studio ein gehosteter Dienst?",
-          "answer": "Nein. verbatra studio stellt das Dashboard auf deinem eigenen Rechner bereit, in deinem Projekt, und ruft keinen Provider auf, außer du <link>erlaubst Ausgaben</link> beim Start."
+          "answer": "Nein. <code>verbatra studio</code> stellt das Dashboard auf deinem eigenen Rechner bereit, in deinem Projekt, und ruft keinen Provider auf, außer du <link>erlaubst Ausgaben</link> beim Start."
         },
         "playground": {
           "question": "Ist der Playground live?",

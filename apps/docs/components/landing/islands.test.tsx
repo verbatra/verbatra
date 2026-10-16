@@ -24,6 +24,7 @@ const ISLAND_MODULES = [
   "./flow-motion",
   "./try-it",
   "./live-stat-value",
+  "./faq-keys",
   "@/components/landing/command-panel",
   "@/components/landing/live-stat-value",
   "@/components/command-row",

@@ -122,12 +122,13 @@ describe("the redesigned landing copy", () => {
 
   const FRENCH_SPACING = /[\u0020\u00a0][;:?!\u00bb]|\u00ab[\u0020\u00a0]/;
 
-  it("keeps French punctuation and guillemets off a line of their own in the comparison and the bento", () => {
+  it("keeps French punctuation and guillemets off a line of their own in the comparison, bento and faq", () => {
     const path = fileURLToPath(new URL("../messages/fr.json", import.meta.url));
     const catalog = JSON.parse(readFileSync(path, "utf8")) as MessageTree;
     const trees = [
       branch(landing("fr"), "compare"),
       branch(landing("fr"), "bento"),
+      branch(landing("fr"), "faq"),
       branch(catalog, "compare"),
     ];
     for (const tree of trees)

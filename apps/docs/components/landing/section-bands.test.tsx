@@ -176,7 +176,7 @@ describe("the section head on the 12-column grid", () => {
     const { Bento } = await import("./bento");
     const { CodeShowcase } = await import("./code-showcase");
     const { Compare } = await import("./compare");
-    const { Faq } = await import("./faq");
+    const { Faq, faqContent } = await import("./faq");
     const { Flow } = await import("./flow");
     const { Marquee } = await import("./marquee");
     const { OpenSource } = await import("./open-source");
@@ -191,7 +191,7 @@ describe("the section head on the 12-column grid", () => {
       ["playground", Playground],
       ["compare", Compare],
       ["open-source", OpenSource],
-      ["faq", () => Faq({ locale: "en" })],
+      ["faq", async () => Faq({ locale: "en", items: await faqContent("en") })],
     ];
     const layouts: Record<string, string | null> = {};
     for (const [id, section] of sections) {

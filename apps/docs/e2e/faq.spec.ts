@@ -79,9 +79,7 @@ for (const locale of LOCALES) {
       expect(structured).toEqual(rendered);
     });
 
-    test("links the docs beside the heading to pages that exist in the same locale", async ({
-      page,
-    }) => {
+    test("links the docs to pages that exist in the same locale", async ({ page }) => {
       await page.goto(homeUrl(locale));
       const hrefs = await page
         .locator(`${FAQ} nav a`)
@@ -143,9 +141,11 @@ test.describe("faq keyboard", () => {
     await page.goto("/");
     await expect(page.locator("html")).toHaveAttribute("data-motion-ready", "");
     const summaries = page.locator(SUMMARIES);
-    await summaries.first().focus();
-    await page.keyboard.press("ArrowDown");
-    await expect(summaries.nth(1)).toBeFocused();
+    await expect(async () => {
+      await summaries.first().focus();
+      await page.keyboard.press("ArrowDown");
+      await expect(summaries.nth(1)).toBeFocused({ timeout: 200 });
+    }).toPass();
     await page.keyboard.press("End");
     await expect(summaries.last()).toBeFocused();
     await page.keyboard.press("Home");
@@ -165,7 +165,76 @@ test.describe("faq keyboard", () => {
   });
 });
 
+test.describe("faq layout", () => {
+  test("keeps the aside head in view beside the open list and the docs links in its column", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+    await openAll(page);
+    const head = page.locator(`${FAQ} .vk-section-head`);
+    const list = page.locator(`${FAQ} #faq-list`);
+    const nav = await page.locator(`${FAQ} nav`).boundingBox();
+    const listBox = await list.boundingBox();
+    expect((nav?.x ?? 0) + (nav?.width ?? 0)).toBeLessThan(listBox?.x ?? 0);
+    await page.locator(`${ITEMS}`).last().scrollIntoViewIfNeeded();
+    const box = await head.boundingBox();
+    expect(box?.y ?? -1).toBeGreaterThanOrEqual(0);
+    expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(900);
+  });
+
+  test("never hides a docs link under the sticky head when the keyboard reaches it", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+    await openAll(page);
+    await page.locator(SUMMARIES).last().focus();
+    const links = page.locator(`${FAQ} nav a`);
+    await expect(async () => {
+      await page.keyboard.press("Tab");
+      await expect(links.first()).toBeFocused({ timeout: 100 });
+    }).toPass();
+    for (let index = 0; index < (await links.count()); index += 1) {
+      await expect(links.nth(index)).toBeFocused();
+      const covered = await links.nth(index).evaluate((link) => {
+        const box = link.getBoundingClientRect();
+        const hit = document.elementFromPoint(box.x + 2, box.y + box.height / 2);
+        return hit !== link && !link.contains(hit);
+      });
+      expect(covered, `link ${index}`).toBe(false);
+      await page.keyboard.press("Tab");
+    }
+  });
+
+  for (const width of [375, 1440]) {
+    test(`gives every docs link a 44px target and keeps answers to a short measure at ${width}px`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/");
+      const heights = await page
+        .locator(`${FAQ} nav a`)
+        .evaluateAll((links) => links.map((link) => link.getBoundingClientRect().height));
+      for (const height of heights) expect(height).toBeGreaterThanOrEqual(44);
+      await openAll(page);
+      const widths = await page
+        .locator(`${FAQ} .vk-faq-answer`)
+        .evaluateAll((answers) => answers.map((answer) => answer.getBoundingClientRect().width));
+      for (const answerWidth of widths) expect(answerWidth).toBeLessThanOrEqual(33 * 16 + 1);
+    });
+  }
+});
+
 test.describe("faq on a phone", () => {
+  test("puts the questions first and the docs links after them", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    await page.goto("/");
+    const list = await page.locator(`${FAQ} #faq-list`).boundingBox();
+    const nav = await page.locator(`${FAQ} nav`).boundingBox();
+    expect(nav?.y ?? 0).toBeGreaterThan((list?.y ?? 0) + (list?.height ?? 0));
+  });
+
   test("reflows at 320px with every answer open", async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 800 });
     await page.goto("/");

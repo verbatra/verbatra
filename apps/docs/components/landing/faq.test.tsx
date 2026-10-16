@@ -45,7 +45,7 @@ const { Faq, faqContent } = await import("./faq");
 let mounted: { container: HTMLDivElement; root: Root } | undefined;
 
 async function render(locale: Locale): Promise<HTMLDivElement> {
-  const element = await Faq({ locale });
+  const element = await Faq({ locale, items: await faqContent(locale) });
   const container = document.createElement("div");
   document.body.append(container);
   const root = createRoot(container);
@@ -98,7 +98,7 @@ describe("the landing faq markup", () => {
   });
 
   it("puts every answer into the server HTML", async () => {
-    const markup = renderToStaticMarkup(await Faq({ locale: "en" }));
+    const markup = renderToStaticMarkup(await Faq({ locale: "en", items: await faqContent("en") }));
     for (const item of await faqContent("en")) {
       expect(markup).toContain(item.question.replace(/'/g, "&#x27;"));
     }
@@ -122,11 +122,42 @@ describe("the landing faq markup", () => {
     expect(document.activeElement).toBe(list.at(-1));
   });
 
-  it("stays a server section with no client island, only a keyboard helper", () => {
+  it("leaves a modified arrow, Home or End key to the browser", async () => {
+    const container = await render("en");
+    const list = questions(container);
+    list[0]?.focus();
+    for (const modifier of ["ctrlKey", "metaKey", "altKey", "shiftKey"] as const) {
+      const event = new KeyboardEvent("keydown", {
+        key: "End",
+        bubbles: true,
+        cancelable: true,
+        [modifier]: true,
+      });
+      act(() => {
+        list[0]?.dispatchEvent(event);
+      });
+      expect(event.defaultPrevented, modifier).toBe(false);
+      expect(document.activeElement).toBe(list[0]);
+    }
+  });
+
+  it("stays a server section that loads its keyboard helper as a lazy island", () => {
     const read = (name: string) => readFileSync(new URL(name, import.meta.url), "utf8");
     expect(read("./faq.tsx")).not.toMatch(/^"use client"/);
-    expect(read("./faq.tsx")).not.toContain("./islands");
+    expect(read("./faq.tsx")).toContain('import { FaqKeys } from "./islands";');
+    expect(read("./faq.tsx")).not.toContain("./faq-keys");
+    expect(read("./islands.tsx")).toContain('import("./faq-keys")');
     expect(read("./faq-keys.tsx")).toMatch(/^"use client"/);
+  });
+
+  it("puts the docs links after the questions, so a phone reads the answers first", async () => {
+    const container = await render("en");
+    const list = container.querySelector("#faq-list");
+    const nav = container.querySelector("nav[aria-labelledby='faq-docs-label']");
+    expect(
+      list && nav && list.compareDocumentPosition(nav) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(nav?.parentElement?.className).toContain("vk-section-aside");
   });
 });
 
@@ -138,6 +169,7 @@ describe.each(i18n.languages)("the landing faq in %s", (locale) => {
       answer: item.querySelector(".vk-faq-answer")?.textContent,
     }));
     const content = await faqContent(locale);
+    expect(rendered).toHaveLength(FAQ_ITEM_IDS.length);
     expect(rendered).toEqual(content.map(({ question, answer }) => ({ question, answer })));
     const ld = faqPageLd({ items: content, lang: locale }) as {
       mainEntity: ReadonlyArray<{ name: string; acceptedAnswer: { text: string } }>;
@@ -165,9 +197,12 @@ describe.each(i18n.languages)("the landing faq in %s", (locale) => {
     }
     const license = container.querySelector<HTMLAnchorElement>(`a[href="${LICENSE_URL}"]`);
     expect(license?.getAttribute("target")).toBe("_blank");
+    expect(license?.getAttribute("rel")?.split(" ")).toEqual(
+      expect.arrayContaining(["noopener", "noreferrer"]),
+    );
   });
 
-  it("lists the docs links beside the heading in the reader's locale, with no arrow", async () => {
+  it("lists the docs links in the reader's locale, with no arrow", async () => {
     const container = await render(locale);
     const nav = container.querySelector("nav[aria-labelledby='faq-docs-label']");
     const links = [...(nav?.querySelectorAll<HTMLAnchorElement>("a") ?? [])];
@@ -185,6 +220,29 @@ describe.each(i18n.languages)("the landing faq in %s", (locale) => {
     expect(npm?.answer).toContain(PACKAGE_VERSION);
     for (const id of publishedProviders()) expect(npm?.answer).toContain(providerShortLabel(id));
   });
+
+  it("names the same providers in the providers answer, from the single source", async () => {
+    const providers = (await faqContent(locale)).find((item) => item.id === "providers");
+    for (const id of publishedProviders())
+      expect(providers?.answer).toContain(providerShortLabel(id));
+  });
+
+  it("sets commands and file names in code, and keeps the structured data plain", async () => {
+    const container = await render(locale);
+    const code = [...container.querySelectorAll(".vk-faq-answer code")].map((c) => c.textContent);
+    expect(code).toEqual(
+      expect.arrayContaining(["verbatra check", "verbatra studio", ".env.local", "provider"]),
+    );
+    for (const { answer } of await faqContent(locale)) expect(answer).not.toContain("<code>");
+  });
+
+  it("keeps a hyphenated format id on one line", async () => {
+    const container = await render(locale);
+    const nowrap = [...container.querySelectorAll('[data-faq="formats"] .whitespace-nowrap')].map(
+      (span) => span.textContent,
+    );
+    expect(nowrap).toContain("ngx-translate");
+  });
 });
 
 const YES: Readonly<Record<Locale, string>> = { en: "Yes.", de: "Ja.", es: "Sí.", fr: "Oui." };
@@ -196,13 +254,13 @@ describe("the landing faq copy", () => {
   });
 
   it.each(i18n.languages)(
-    "gives every answer one docs link and uses no other tag than link and license in %s",
+    "gives every answer one docs link and uses no other tag than link, license and code in %s",
     (locale) => {
       for (const [id, { answer }] of Object.entries(CATALOGS[locale].landing.faq.items)) {
         expect(answer.match(/<link>/g), id).toHaveLength(1);
         const tags = new Set([...answer.matchAll(/<(\w+)>/g)].map((match) => match[1]));
         expect(
-          [...tags].every((tag) => tag === "link" || tag === "license"),
+          [...tags].every((tag) => tag === "link" || tag === "license" || tag === "code"),
           id,
         ).toBe(true);
       }
@@ -215,6 +273,18 @@ describe("the landing faq copy", () => {
     expect(faq.studio.answer.startsWith(NO[locale])).toBe(true);
     expect(faq.playground.answer.startsWith(NO[locale])).toBe(true);
   });
+
+  it.each(i18n.languages)(
+    "opens every answer with the answer itself: a short first sentence with no docs link in %s",
+    (locale) => {
+      for (const [id, { answer }] of Object.entries(CATALOGS[locale].landing.faq.items)) {
+        const first =
+          answer.replace(/\{pending,.*other \{\}\}/, " ").split(/[.!?](?:\s|$)/)[0] ?? "";
+        expect(first, id).not.toContain("<link>");
+        expect(first.split(/\s+/).length, id).toBeLessThanOrEqual(25);
+      }
+    },
+  );
 
   it.each(i18n.languages)(
     "keeps every answer to the answer and at most two more sentences in %s",

@@ -7,7 +7,7 @@ import { PROVIDER_DISPLAY, providerShortLabel } from "./landing-providers";
 import { providerReleaseBadge, RELEASE_BADGE, versionAtLeast } from "./release-badge";
 import { PACKAGE_VERSION } from "./site";
 
-export type FaqDocsLink = { readonly page: string; readonly anchors?: LocalizedAnchors };
+type FaqDocsLink = { readonly page: string; readonly anchors?: LocalizedAnchors };
 
 export const FAQ_ITEM_IDS = [
   "incremental",
@@ -68,7 +68,7 @@ function listOf(locale: Locale, labels: ReadonlyArray<string>): string {
   return new Intl.ListFormat(locale, { type: "conjunction" }).format(labels);
 }
 
-export type FaqValues = Readonly<Record<string, string>>;
+type FaqValues = Readonly<Record<string, string>>;
 
 export function faqValues(
   id: FaqItemId,
@@ -86,6 +86,8 @@ export function faqValues(
         upcoming: listOf(locale, pending.map(providerShortLabel)),
       };
     }
+    case "providers":
+      return { providers: listOf(locale, publishedProviders(version).map(providerShortLabel)) };
     case "formats":
       return {
         formats: listOf(

@@ -48,11 +48,11 @@
         },
         "providers": {
           "question": "¿Qué proveedores de traducción puedo usar?",
-          "answer": "LLM alojados, motores de traducción automática o un modelo que ejecutas tú mismo, todos detrás de una sola interfaz. Eliges uno por su id en el bloque provider de tu configuración y lo cambias reescribiendo ese bloque; la <link>página de proveedores</link> detalla cada uno con sus opciones."
+          "answer": "LLM alojados, motores de traducción automática o un modelo que ejecutas tú mismo, todos detrás de una sola interfaz: {providers}. Eliges uno por su id en el bloque <code>provider</code> de tu configuración y lo cambias reescribiendo ese bloque; la <link>página de proveedores</link> detalla cada uno con sus opciones."
         },
         "npm": {
           "question": "¿Qué proveedores hay hoy en npm?",
-          "answer": "Verbatra {version}, la versión actual en npm, incluye {providers}.{pending, select, yes { La versión {next} añade {upcoming}.} other {}} La <link>página de proveedores</link> describe cada uno."
+          "answer": "Verbatra {version} incluye {providers}.{pending, select, yes { La versión {next} añade {upcoming}.} other {}} La <link>página de proveedores</link> describe cada uno."
         },
         "formats": {
           "question": "¿Qué formatos soporta Verbatra?",
@@ -60,15 +60,15 @@
         },
         "ci": {
           "question": "¿Puedo ejecutar Verbatra en la CI?",
-          "answer": "Sí. verbatra check no llama a ningún proveedor y sale con código 1 mientras a un locale le falten claves o tenga claves desactualizadas, así que protege un pull request sin clave de API. La <link>GitHub Action</link> ejecuta check, diff o translate e informa del resultado con anotaciones y un resumen del job."
+          "answer": "Sí. <code>verbatra check</code> no llama a ningún proveedor y sale con código 1 mientras a un locale le falten claves o tenga claves desactualizadas, así que protege un pull request sin clave de API. La <link>GitHub Action</link> ejecuta <code>check</code>, <code>diff</code> o <code>translate</code> e informa del resultado con anotaciones y un resumen del job."
         },
         "keys": {
           "question": "¿Dónde van mis claves de API?",
-          "answer": "En variables de entorno, nunca en el archivo de configuración. La CLI las lee de tu shell, de .env.local o de .env, y un error nombra la variable que falta sin mostrar ninguna clave de API; <link>claves de proveedor</link> indica la variable de cada proveedor."
+          "answer": "En variables de entorno, nunca en el archivo de configuración. La CLI las lee de tu shell, de <code>.env.local</code> o de <code>.env</code>, y un error nombra la variable que falta sin mostrar ninguna clave de API; <link>claves de proveedor</link> indica la variable de cada proveedor."
         },
         "privacy": {
           "question": "¿Verbatra envía mis textos a algún sitio?",
-          "answer": "Solo al proveedor de traducción que configures, y solo cuando un comando traduce. Verbatra no tiene telemetría, ni analítica, ni comprobación de actualizaciones, y la <link>página de tratamiento de datos</link> detalla qué recibe cada proveedor y enlaza sus condiciones de retención."
+          "answer": "Solo al proveedor de traducción que configures, y solo cuando un comando traduce. La CLI, el SDK, Studio y el servidor MCP no tienen telemetría ni comprobación de actualizaciones, ni contactan con ningún servidor de Verbatra, y la <link>página de tratamiento de datos</link> detalla qué recibe cada proveedor y enlaza sus condiciones de retención."
         },
         "cost": {
           "question": "¿Cuánto cuesta Verbatra?",
@@ -76,7 +76,7 @@
         },
         "studio": {
           "question": "¿Verbatra Studio es un servicio alojado?",
-          "answer": "No. verbatra studio sirve el panel desde tu propia máquina, dentro de tu proyecto, y no llama a ningún proveedor salvo que <link>permitas el gasto</link> al arrancarlo."
+          "answer": "No. <code>verbatra studio</code> sirve el panel desde tu propia máquina, dentro de tu proyecto, y no llama a ningún proveedor salvo que <link>permitas el gasto</link> al arrancarlo."
         },
         "playground": {
           "question": "¿El playground funciona en directo?",

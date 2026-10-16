@@ -141,11 +141,11 @@
         },
         "providers": {
           "question": "Which translation providers can I use?",
-          "answer": "Hosted LLMs, machine translation engines, or a model you run yourself, all behind one interface. You pick one by its id in the provider block of your config and switch by rewriting that block; the <link>providers page</link> lists each one with its options."
+          "answer": "Hosted LLMs, machine translation engines, or a model you run yourself, all behind one interface: {providers}. You pick one by its id in the <code>provider</code> block of your config and switch by rewriting that block; the <link>providers page</link> lists each one with its options."
         },
         "npm": {
           "question": "Which providers are on npm today?",
-          "answer": "Verbatra {version}, the current release on npm, ships {providers}.{pending, select, yes { Version {next} adds {upcoming}.} other {}} The <link>providers page</link> covers each one."
+          "answer": "Verbatra {version} ships {providers}.{pending, select, yes { Version {next} adds {upcoming}.} other {}} The <link>providers page</link> covers each one."
         },
         "formats": {
           "question": "Which formats does Verbatra support?",
@@ -153,15 +153,15 @@
         },
         "ci": {
           "question": "Can I run Verbatra in CI?",
-          "answer": "Yes. verbatra check calls no provider and exits 1 while a locale has missing or stale keys, so it gates a pull request without an API key. The <link>GitHub Action</link> runs check, diff or translate and reports the result as annotations and a job summary."
+          "answer": "Yes. <code>verbatra check</code> calls no provider and exits 1 while a locale has missing or stale keys, so it gates a pull request without an API key. The <link>GitHub Action</link> runs <code>check</code>, <code>diff</code> or <code>translate</code> and reports the result as annotations and a job summary."
         },
         "keys": {
           "question": "Where do my API keys go?",
-          "answer": "Into environment variables, never into the config file. The CLI reads them from your shell, .env.local or .env, and an error names a missing variable without printing a key; <link>provider keys</link> lists the variable for each provider."
+          "answer": "Into environment variables, never into the config file. The CLI reads them from your shell, <code>.env.local</code> or <code>.env</code>, and an error names a missing variable without printing a key; <link>provider keys</link> lists the variable for each provider."
         },
         "privacy": {
           "question": "Does Verbatra send my strings anywhere?",
-          "answer": "Only to the translation provider you configure, and only when a command translates. Verbatra has no telemetry, analytics or update check, and the <link>data handling page</link> lists what each provider receives and links its retention terms."
+          "answer": "Only to the translation provider you configure, and only when a command translates. The CLI, SDK, Studio and MCP server have no telemetry, no update check and no Verbatra server to contact, and the <link>data handling page</link> lists what each provider receives and links its retention terms."
         },
         "cost": {
           "question": "What does Verbatra cost?",
@@ -169,7 +169,7 @@
         },
         "studio": {
           "question": "Is Verbatra Studio a hosted service?",
-          "answer": "No. verbatra studio serves the dashboard from your own machine, inside your project, and calls no provider unless you <link>allow spending</link> when you start it."
+          "answer": "No. <code>verbatra studio</code> serves the dashboard from your own machine, inside your project, and calls no provider unless you <link>allow spending</link> when you start it."
         },
         "playground": {
           "question": "Is the playground live?",

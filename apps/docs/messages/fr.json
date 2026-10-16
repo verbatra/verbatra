@@ -43,43 +43,43 @@
       },
       "items": {
         "incremental": {
-          "question": "Comment Verbatra évite-t-il de tout retraduire à chaque exécution ?",
+          "question": "Comment Verbatra évite-t-il de tout retraduire à chaque exécution ?",
           "answer": "Il ne traduit que ce qui a changé. Un <link>fichier de verrouillage</link> commité enregistre ce qui a déjà été traduit, donc chaque exécution n’envoie à ton fournisseur que les clés nouvelles ou modifiées et laisse le reste intact."
         },
         "providers": {
-          "question": "Quels fournisseurs de traduction puis-je utiliser ?",
-          "answer": "Des LLM hébergés, des moteurs de traduction automatique ou un modèle que tu fais tourner toi-même, tous derrière une seule interface. Tu en choisis un par son id dans le bloc provider de ta configuration et tu en changes en réécrivant ce bloc ; la <link>page des fournisseurs</link> détaille chacun avec ses options."
+          "question": "Quels fournisseurs de traduction puis-je utiliser ?",
+          "answer": "Des LLM hébergés, des moteurs de traduction automatique ou un modèle que tu fais tourner toi-même, tous derrière une seule interface : {providers}. Tu en choisis un par son id dans le bloc <code>provider</code> de ta configuration et tu en changes en réécrivant ce bloc ; la <link>page des fournisseurs</link> détaille chacun avec ses options."
         },
         "npm": {
-          "question": "Quels fournisseurs sont sur npm aujourd’hui ?",
-          "answer": "Verbatra {version}, la version actuelle sur npm, inclut {providers}.{pending, select, yes { La version {next} ajoute {upcoming}.} other {}} La <link>page des fournisseurs</link> décrit chacun."
+          "question": "Quels fournisseurs sont sur npm aujourd’hui ?",
+          "answer": "Verbatra {version} inclut {providers}.{pending, select, yes { La version {next} ajoute {upcoming}.} other {}} La <link>page des fournisseurs</link> décrit chacun."
         },
         "formats": {
-          "question": "Quels formats Verbatra prend-il en charge ?",
+          "question": "Quels formats Verbatra prend-il en charge ?",
           "answer": "Verbatra lit et écrit {formats} directement dans tes fichiers. Il n’y a aucun format propre à Verbatra vers lequel migrer, et la <link>page des formats</link> montre comment chacun est lu et écrit."
         },
         "ci": {
-          "question": "Puis-je exécuter Verbatra en CI ?",
-          "answer": "Oui. verbatra check n’appelle aucun fournisseur et se termine avec le code 1 tant qu’une locale a des clés manquantes ou obsolètes, donc il bloque une pull request sans clé d’API. La <link>GitHub Action</link> exécute check, diff ou translate et rapporte le résultat sous forme d’annotations et d’un résumé du job."
+          "question": "Puis-je exécuter Verbatra en CI ?",
+          "answer": "Oui. <code>verbatra check</code> n’appelle aucun fournisseur et se termine avec le code 1 tant qu’une locale a des clés manquantes ou obsolètes, donc il bloque une pull request sans clé d’API. La <link>GitHub Action</link> exécute <code>check</code>, <code>diff</code> ou <code>translate</code> et rapporte le résultat sous forme d’annotations et d’un résumé du job."
         },
         "keys": {
-          "question": "Où vont mes clés d’API ?",
-          "answer": "Dans des variables d’environnement, jamais dans le fichier de configuration. La CLI les lit dans ton shell, dans .env.local ou dans .env, et une erreur nomme la variable manquante sans afficher de clé d’API ; <link>clés des fournisseurs</link> indique la variable de chaque fournisseur."
+          "question": "Où vont mes clés d’API ?",
+          "answer": "Dans des variables d’environnement, jamais dans le fichier de configuration. La CLI les lit dans ton shell, dans <code>.env.local</code> ou dans <code>.env</code>, et une erreur nomme la variable manquante sans afficher de clé d’API ; <link>clés des fournisseurs</link> indique la variable de chaque fournisseur."
         },
         "privacy": {
-          "question": "Verbatra envoie-t-il mes textes quelque part ?",
-          "answer": "Seulement au fournisseur de traduction que tu configures, et seulement quand une commande traduit. Verbatra n’a ni télémétrie, ni statistiques d’usage, ni vérification de mise à jour, et la <link>page sur le traitement des données</link> détaille ce que reçoit chaque fournisseur et renvoie vers ses conditions de conservation."
+          "question": "Verbatra envoie-t-il mes textes quelque part ?",
+          "answer": "Seulement au fournisseur de traduction que tu configures, et seulement quand une commande traduit. La CLI, le SDK, Studio et le serveur MCP n’ont ni télémétrie ni vérification de mise à jour et ne contactent aucun serveur Verbatra ; la <link>page sur le traitement des données</link> détaille ce que reçoit chaque fournisseur et renvoie vers ses conditions de conservation."
         },
         "cost": {
-          "question": "Combien coûte Verbatra ?",
-          "answer": "Rien : Verbatra est gratuit et open source sous <license>licence MIT</license>. Tu ne paies que l’usage de ton fournisseur pour les clés qui ont changé, et <link>estimer le coût</link> dimensionne une exécution avant qu’elle n’envoie quoi que ce soit."
+          "question": "Combien coûte Verbatra ?",
+          "answer": "Rien : Verbatra est gratuit et open source sous <license>licence MIT</license>. Tu ne paies que l’usage de ton fournisseur pour les clés qui ont changé, et <link>estimer le coût</link> dimensionne une exécution avant qu’elle n’envoie quoi que ce soit."
         },
         "studio": {
-          "question": "Verbatra Studio est-il un service hébergé ?",
-          "answer": "Non. verbatra studio sert le tableau de bord depuis ta propre machine, dans ton projet, et n’appelle aucun fournisseur sauf si tu <link>autorises les dépenses</link> au démarrage."
+          "question": "Verbatra Studio est-il un service hébergé ?",
+          "answer": "Non. <code>verbatra studio</code> sert le tableau de bord depuis ta propre machine, dans ton projet, et n’appelle aucun fournisseur sauf si tu <link>autorises les dépenses</link> au démarrage."
         },
         "playground": {
-          "question": "Le playground est-il en direct ?",
+          "question": "Le playground est-il en direct ?",
           "answer": "Non. Il rejoue des traductions enregistrées lors de vraies exécutions du SDK Verbatra avec {provider}, que le mainteneur génère avec un script et commite avec le site, donc appuyer sur Traduire n’envoie rien à un fournisseur. Le <link>démarrage rapide du SDK</link> fait le même appel sur tes propres fichiers."
         }
       }
