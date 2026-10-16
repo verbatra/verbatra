@@ -1,7 +1,6 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createTranslator } from "next-intl";
 import { describe, expect, it, vi } from "vitest";
 import { i18n } from "@/lib/i18n";
 import {
@@ -19,14 +18,10 @@ import { SITE_MARKDOWN_PAGES, siteMarkdownSlug } from "@/lib/markdown-route";
 
 const MESSAGES_DIR = join(dirname(fileURLToPath(import.meta.url)), "../../../../messages");
 
-vi.mock("next-intl/server", () => ({
-  getTranslations: async ({ locale, namespace }: { locale: string; namespace: string }) =>
-    createTranslator({
-      locale,
-      messages: JSON.parse(readFileSync(join(MESSAGES_DIR, `${locale}.json`), "utf8")),
-      namespace: namespace as never,
-    }),
-}));
+vi.mock(
+  "next-intl/server",
+  async () => (await import("@/test-support/catalog-intl")).catalogIntlServer,
+);
 
 const { GET, generateStaticParams } = await import("./route");
 

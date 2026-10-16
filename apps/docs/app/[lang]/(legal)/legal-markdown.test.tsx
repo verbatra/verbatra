@@ -15,10 +15,13 @@ function messagesOf(locale: string) {
   return JSON.parse(readFileSync(join(MESSAGES_DIR, `${locale}.json`), "utf8"));
 }
 
-vi.mock("next-intl/server", () => ({
-  setRequestLocale: () => undefined,
-  getTranslations: async ({ locale, namespace }: { locale: string; namespace: string }) =>
-    createTranslator({ locale, messages: messagesOf(locale), namespace: namespace as never }),
+vi.mock(
+  "next-intl/server",
+  async () => (await import("@/test-support/catalog-intl")).catalogIntlServer,
+);
+
+vi.mock("@/components/contact-form", () => ({
+  ContactForm: ({ privacyNotice }: { privacyNotice: ReactNode }) => <p>{privacyNotice}</p>,
 }));
 
 const { contactMarkdown, imprintMarkdown, licensesMarkdown, privacyMarkdown } = await import(
@@ -26,6 +29,8 @@ const { contactMarkdown, imprintMarkdown, licensesMarkdown, privacyMarkdown } = 
 );
 const { default: ImprintPage } = await import("./imprint/page");
 const { default: PrivacyPage } = await import("./privacy/page");
+const { default: ContactPage } = await import("./contact/page");
+const { default: LicensesPage } = await import("./licenses/page");
 
 type Page = (props: { params: Promise<{ lang: string }> }) => Promise<ReactNode>;
 
@@ -39,6 +44,19 @@ function blockText(doc: Document, selector: string): string {
   return normalized(
     Array.from(doc.querySelectorAll(selector), (node) => node.textContent ?? "").join(" "),
   );
+}
+
+function blocks(doc: Document, selector: string): string[] {
+  for (const br of doc.querySelectorAll("br")) br.replaceWith(" ");
+  for (const element of doc.querySelectorAll("article *")) element.after(" ");
+  return Array.from(doc.querySelectorAll(selector))
+    .filter((node) => node.querySelector(selector) === null)
+    .map((node) => normalized(node.textContent ?? ""))
+    .filter((text) => text.length > 0);
+}
+
+function words(text: string): string {
+  return normalized(text.replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/[#.,;:()*`"]/g, " "));
 }
 
 function normalized(text: string): string {
@@ -73,28 +91,26 @@ describe.each(i18n.languages)("legal markdown in %s", (lang) => {
     );
   });
 
-  it("carries the contact page heading and intro and links the form", async () => {
-    const t = createTranslator({
-      locale: lang,
-      messages: messagesOf(lang),
-      namespace: "legal.contact",
-    });
-    const plainTag = (chunks: string) => chunks;
+  it("carries every heading and paragraph of the contact page and links the form", async () => {
+    const doc = await rendered(ContactPage, lang);
     const body = await contactMarkdown(lang);
-    const text = markdownText(body);
-    expect(text).toContain(`${t("title")} ${t.markup("intro", { imprint: plainTag })}`);
-    expect(text).toContain(t.markup("privacyNotice", { privacy: plainTag }));
+    const text = words(body);
+    const found = blocks(doc, "article h1, article p");
+    expect(found.length).toBeGreaterThanOrEqual(3);
+    for (const block of found) expect(text).toContain(words(block));
     const contact = lang === "en" ? "/contact" : `/${lang}/contact`;
     expect(body).toContain(`](https://verbatra.kreitz-webdev.de${contact})`);
   });
 
-  it("lists every package, asset and license text of the licenses page", async () => {
-    const body = await licensesMarkdown(lang);
-    for (const group of LICENSES.groups) {
-      expect(body).toContain(`## ${group.license} (`);
-      for (const pkg of group.packages) expect(body).toContain(`\`${pkg.name}@${pkg.version}\``);
-    }
-    for (const asset of LICENSES.assets) expect(body).toContain(`**${asset.name}**`);
-    for (const text of LICENSES.texts) expect(body).toContain(`### License text ${text.id} (`);
+  it("carries every heading, paragraph, list item and license text of the licenses page", async () => {
+    const doc = await rendered(LicensesPage, lang);
+    const text = words(await licensesMarkdown(lang));
+    const found = blocks(
+      doc,
+      "article h1, article h2, article h3, article p, article li, article pre",
+    );
+    expect(found.length).toBeGreaterThan(20);
+    const missing = found.filter((block) => !text.includes(words(block)));
+    expect(missing).toEqual([]);
   });
 });

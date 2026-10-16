@@ -1,6 +1,5 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { createTranslator } from "next-intl";
 import { describe, expect, it, vi } from "vitest";
 import { i18n } from "./i18n";
 import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "./landing-facts";
@@ -13,10 +12,10 @@ function messagesOf(locale: string) {
   return JSON.parse(readFileSync(join(MESSAGES_DIR, `${locale}.json`), "utf8"));
 }
 
-vi.mock("next-intl/server", () => ({
-  getTranslations: async ({ locale, namespace }: { locale: string; namespace: string }) =>
-    createTranslator({ locale, messages: messagesOf(locale), namespace: namespace as never }),
-}));
+vi.mock(
+  "next-intl/server",
+  async () => (await import("@/test-support/catalog-intl")).catalogIntlServer,
+);
 
 const { landingMarkdown } = await import("./landing-markdown");
 const { faqContent } = await import("@/components/landing/faq");

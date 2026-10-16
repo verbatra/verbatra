@@ -23,21 +23,10 @@ const PAGES = [
 
 vi.mock("@/lib/source", () => ({ source: { getPages: () => PAGES } }));
 
-vi.mock("next-intl/server", async () => {
-  const { readFileSync } = await import("node:fs");
-  const { join } = await import("node:path");
-  const { createTranslator } = await import("next-intl");
-  return {
-    getTranslations: async ({ locale, namespace }: { locale: string; namespace: string }) =>
-      createTranslator({
-        locale,
-        messages: JSON.parse(
-          readFileSync(join(import.meta.dirname, `../../messages/${locale}.json`), "utf8"),
-        ),
-        namespace: namespace as never,
-      }),
-  };
-});
+vi.mock(
+  "next-intl/server",
+  async () => (await import("@/test-support/catalog-intl")).catalogIntlServer,
+);
 
 const RETIRED_LANDING_SECTIONS = [
   "Verbatra in numbers",

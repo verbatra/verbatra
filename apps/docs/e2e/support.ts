@@ -1,5 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Locator, type Page } from "playwright/test";
+import { COMPARE_FOCUS_ATTACHED } from "@/components/landing/compare-focus";
+import { FAQ_KEYS_ATTACHED } from "@/components/landing/faq-keys";
 import type { Locale } from "@/lib/i18n";
 import { THEME_STORAGE_KEY, THEMES, type ThemeName } from "@/lib/theme";
 
@@ -77,7 +79,7 @@ export async function expectClearOfPinnedColumn(
 }
 
 export async function waitForCompareFocus(page: Page): Promise<void> {
-  await expect(page.locator("html")).toHaveAttribute("data-compare-focus", "");
+  await expect(page.locator("html")).toHaveAttribute(COMPARE_FOCUS_ATTACHED, "");
 }
 
 export async function expectBackwardWalkClearsHeader(page: Page, scope: string): Promise<void> {
@@ -120,7 +122,7 @@ export async function expectBackwardWalkClearsHeader(page: Page, scope: string):
 }
 
 export async function waitForFaqKeys(page: Page): Promise<void> {
-  await expect(page.locator("#faq-list")).toHaveAttribute("data-faq-keys", "");
+  await expect(page.locator("#faq-list")).toHaveAttribute(FAQ_KEYS_ATTACHED, "");
 }
 
 export async function expectEdgeRefsReachable(page: Page, scope: string): Promise<void> {
