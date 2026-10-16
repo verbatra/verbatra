@@ -41,8 +41,10 @@ export async function Flow(): Promise<ReactNode> {
   );
 
   return (
-    <Section band id="flow">
-      <SectionHead id={FLOW_HEADING_ID} title={t("heading")} lead={t("lead")} />
+    <Section band id="flow" className="vk-flow-section">
+      <div className="vk-flow-head">
+        <SectionHead id={FLOW_HEADING_ID} layout="stacked" title={t("heading")} lead={t("lead")} />
+      </div>
       <FlowMotion>
         <div className="vk-flow-rail" aria-hidden="true">
           <svg aria-hidden="true" focusable="false" viewBox="0 0 2 100" preserveAspectRatio="none">

@@ -174,7 +174,7 @@ Scales are fixed and narrow, deliberately:
   `.vk-grid-12`: the heading block spans 8, the lead 4, bottom-aligned, so the lead starts on
   column 9, the column where the problem list and the contributors start), `stacked` (the lead
   under the heading on the first column, for a section whose content runs the full row: the code
-  showcase) or `inline` (the same stacked block at a narrower measure, `.vk-section-head-inline`,
+  showcase, and the feature flow, whose head keeps to the snippet column) or `inline` (the same stacked block at a narrower measure, `.vk-section-head-inline`,
   set inside the column beside an artifact rather than over it: the SDK playground passes it to
   its island as the `head` prop, so it opens the control column next to the sticky snippet). A
   head without a lead is always stacked (features, comparison, FAQ).
@@ -660,8 +660,10 @@ reserved for client islands (see "The stack").
   none` and `.vk-playground-static`, a captioned table of every string and language in a
   `ScrollBlock`, shows instead. Links to `/docs/sdk-quickstart`, `/docs/sdk` and
   `/docs/providers` close the section. `e2e/playground.spec.ts` pins the browser behaviour.
-- **Feature flow.** `flow.tsx` (`#flow`, a band right after the SDK playground, a split head whose
-  `h2` is `landing.flow.heading`) is one `ol.vk-flow-list`, one `li.vk-flow-node` per entry of
+- **Feature flow.** `flow.tsx` (`#flow`, a band right after the SDK playground, a `stacked` head whose
+  `h2` is `landing.flow.heading`, set in `.vk-flow-head` on the snippet side: from 64rem it is
+  capped to the snippet column's width, from `--flow-rail`, declared on the section's
+  `.vk-flow-section` so the head and the nodes share it) is one `ol.vk-flow-list`, one `li.vk-flow-node` per entry of
   `FLOW_NODES` in `lib/landing-flow.ts`: an `h3`, two sentences, one docs link and one `CodeFrame`
   snippet, each snippet taken from its source and pinned to it by `flow.test.tsx` (the next-intl
   sample from the real adapter, the `init`, `translate` and `check` commands and flags of the

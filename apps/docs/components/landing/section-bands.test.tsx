@@ -119,7 +119,7 @@ describe("the section head on the 12-column grid", () => {
     );
     expect(layouts).toEqual({
       "problem.tsx": "split",
-      "flow.tsx": "split",
+      "flow.tsx": "stacked",
       "bento.tsx": "heading",
       "code-showcase.tsx": "stacked",
       "marquee.tsx": "split",

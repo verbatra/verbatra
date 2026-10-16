@@ -138,6 +138,25 @@ test.describe("feature flow at 320px", () => {
   });
 });
 
+test.describe("feature flow head at 1440px", () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test("stacks the heading over the snippet column, inside its width", async ({ page }) => {
+    await page.goto("/");
+    const head = await page.locator(`${FLOW} .vk-flow-head`).boundingBox();
+    const snippet = await page.locator(`${FLOW} .vk-flow-snippet`).first().boundingBox();
+    const text = await page.locator(`${FLOW} .vk-flow-text`).first().boundingBox();
+    if (head === null || snippet === null || text === null) throw new Error("no box");
+    expect(Math.abs(head.x - snippet.x)).toBeLessThanOrEqual(1);
+    expect(head.x + head.width).toBeLessThanOrEqual(snippet.x + snippet.width + 1);
+    expect(head.x + head.width).toBeLessThan(text.x);
+    await expect(page.locator(`${FLOW} .vk-section-head`)).toHaveAttribute(
+      "data-layout",
+      "stacked",
+    );
+  });
+});
+
 test.describe("feature flow rail", () => {
   for (const width of [375, 1440]) {
     test(`runs from the first mark to the last one and no further at ${width}px`, async ({

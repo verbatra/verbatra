@@ -2033,8 +2033,15 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   }
 }
 
-.vk-flow {
+.vk-flow-section {
   --flow-rail: 2.5rem;
+}
+
+.vk-flow-head {
+  min-width: 0;
+}
+
+.vk-flow {
   --flow-mark-size: 1.75rem;
   --flow-node-gap: 3.5rem;
   position: relative;
@@ -2205,6 +2212,10 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
       "demo demo demo";
     column-gap: var(--grid-gap);
     row-gap: 1.75rem;
+  }
+
+  .vk-flow-head {
+    max-width: calc((100% - var(--flow-rail) - 2 * var(--grid-gap)) / 2);
   }
 
   .vk-flow-rail {
