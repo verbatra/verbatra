@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { GITHUB_URL } from "@/components/landing/links";
@@ -18,9 +20,13 @@ vi.mock("next-intl/server", async () => {
   };
 });
 
-const { Contributors, OpenSource, OPEN_SOURCE_LINKS } = await import("./open-source");
+const { Contributors, CONTRIBUTION_STEPS, OpenSource, OPEN_SOURCE_LINKS } = await import(
+  "./open-source"
+);
 
 const copy = en.landing.openSource;
+
+const contributingGuide = readFileSync(join(process.cwd(), "../../CONTRIBUTING.md"), "utf8");
 
 let root: HTMLElement;
 
@@ -30,68 +36,89 @@ beforeAll(async () => {
 });
 
 describe("OpenSource", () => {
-  it("starts the contributors on column 9, under the split lead", () => {
-    const people = root
-      .querySelector("#open-source-contributors")
-      ?.closest("section")?.parentElement;
-    expect(people?.getAttribute("style")).toContain("--grid-start:9");
-    expect(people?.getAttribute("style")).toContain("--grid-span:4");
-  });
-
-  it("opens on the open source heading and lead", () => {
-    expect(root.querySelector("h2")?.textContent).toBe(copy.heading);
+  it("keeps the open-source anchor on a banded section named by its heading", () => {
+    const section = root.querySelector("section#open-source");
+    expect(section?.className).toBe("vk-band");
+    expect(section?.getAttribute("aria-labelledby")).toBe("open-source-heading");
+    expect(root.querySelector("h2#open-source-heading")?.textContent).toBe(copy.heading);
     expect(root.textContent).toContain(copy.lead);
   });
 
-  it("links the repository, license, contributor guide, code of conduct, security policy, issues, roadmap and releases", () => {
-    const hrefs = Array.from(root.querySelectorAll("a")).map((a) => a.getAttribute("href"));
-    expect(hrefs).toEqual(
-      expect.arrayContaining([
-        "https://github.com/verbatra/verbatra",
-        "https://github.com/verbatra/verbatra/blob/main/LICENSE",
-        "https://github.com/verbatra/verbatra/blob/main/CONTRIBUTING.md",
-        "https://github.com/verbatra/verbatra/blob/main/CODE_OF_CONDUCT.md",
-        "https://github.com/verbatra/verbatra/blob/main/SECURITY.md",
-        "https://github.com/verbatra/verbatra/issues",
-        "https://github.com/verbatra/verbatra/issues?q=is%3Aissue%20is%3Aopen%20label%3Aenhancement",
-        "https://github.com/verbatra/verbatra/releases",
-      ]),
+  it("numbers the contribution steps in an ordered list, each with a title, a sentence and its command", () => {
+    const steps = Array.from(root.querySelectorAll("ol.vk-contribute-steps > li"));
+    expect(steps.map((step) => step.getAttribute("data-step"))).toEqual(
+      CONTRIBUTION_STEPS.map((step) => step.id),
     );
+    steps.forEach((step, index) => {
+      const entry = CONTRIBUTION_STEPS[index];
+      if (!entry) throw new Error("step missing");
+      const text = copy.steps[entry.id];
+      expect(step.querySelector(".vk-contribute-mark")?.getAttribute("aria-hidden")).toBe("true");
+      expect(step.querySelector(".vk-contribute-mark")?.textContent).toBe(String(index + 1));
+      expect(step.querySelector("h3")?.textContent).toBe(text.title);
+      expect(step.querySelector("p")?.textContent).toBe(text.body);
+      expect(step.querySelector("code")?.textContent).toBe(entry.command);
+    });
+  });
+
+  it("takes every step's command and wording from the contributor guide", () => {
+    for (const { command } of CONTRIBUTION_STEPS) {
+      const fenced = contributingGuide.includes(`\n${command}\n`);
+      const inline = contributingGuide.includes(`\`${command}\``);
+      expect(fenced || inline, command).toBe(true);
+    }
+    expect(contributingGuide).toMatch(/1\. Branch from `main`\./);
+    expect(contributingGuide).toMatch(/Run `pnpm verify` locally/);
+    expect(contributingGuide).toMatch(/Add a changeset if a publishable package changed/);
+    expect(contributingGuide).toMatch(/Open a pull request with the template/);
+  });
+
+  it("links the repository, contributor guide, code of conduct, license, security policy and issues in a new tab", () => {
+    const nav = root.querySelector("nav[aria-labelledby='open-source-links']");
+    const hrefs = Array.from(nav?.querySelectorAll("a") ?? []).map((a) => a.getAttribute("href"));
+    expect(hrefs).toEqual([
+      GITHUB_URL,
+      "https://github.com/verbatra/verbatra/blob/main/CONTRIBUTING.md",
+      "https://github.com/verbatra/verbatra/blob/main/CODE_OF_CONDUCT.md",
+      "https://github.com/verbatra/verbatra/blob/main/LICENSE",
+      "https://github.com/verbatra/verbatra/blob/main/SECURITY.md",
+      "https://github.com/verbatra/verbatra/issues",
+    ]);
     for (const link of OPEN_SOURCE_LINKS) {
-      const anchor = root.querySelector(`a[href='${link.href}']`);
-      expect(anchor?.textContent).toBe(`${copy[link.key as keyof typeof copy]} ${copy.newTab}`);
+      const anchor = nav?.querySelector(`a[href='${link.href}']`);
+      expect(anchor?.textContent).toBe(`${copy[link.key]} ${copy.newTab}`);
+      expect(anchor?.getAttribute("target")).toBe("_blank");
       expect(anchor?.getAttribute("rel")).toBe("noreferrer noopener");
     }
   });
 
-  it("marks every project row as a link that opens a new tab, with a hidden icon and a spoken note", () => {
-    const rows = [GITHUB_URL, ...OPEN_SOURCE_LINKS.map((link) => link.href)].map((href) =>
-      root.querySelector<HTMLAnchorElement>(`a[href='${href}']`),
-    );
-    expect(rows).toHaveLength(OPEN_SOURCE_LINKS.length + 1);
-    for (const row of rows) {
-      if (!row) throw new Error("project row missing");
-      expect(row.getAttribute("target")).toBe("_blank");
-      expect(row.querySelector("svg[data-external]")?.getAttribute("aria-hidden")).toBe("true");
-      expect(row.querySelector(".sr-only")?.textContent?.trim()).toBe(copy.newTab);
-      expect(row.textContent).not.toMatch(/[\u2190-\u21FF\u2197]/);
-    }
+  it("draws no arrow or external-link icon on any link", () => {
+    expect(root.querySelectorAll("a svg")).toHaveLength(0);
+    expect(root.textContent).not.toMatch(/[←-⇿]/);
   });
 
-  it("says a row opens a new tab in every locale", () => {
+  it("links no AGENTS.md and no good first issue label, since neither exists yet", () => {
+    const hrefs = Array.from(root.querySelectorAll("a")).map((a) => a.getAttribute("href") ?? "");
+    expect(hrefs.some((href) => /AGENTS\.md|good%20first%20issue|good\+first/i.test(href))).toBe(
+      false,
+    );
+  });
+
+  it("says a link opens a new tab in every locale", () => {
     for (const catalog of [en, de, es, fr]) {
       expect(catalog.landing.openSource.newTab).toMatch(/^\(.+\)$/);
     }
   });
 
-  it("renders one fixed-size local avatar per committed contributor", () => {
+  it("renders one local avatar beside each committed contributor's name, linked to the profile", () => {
     expect(CONTRIBUTORS.length).toBeGreaterThan(0);
     for (const contributor of CONTRIBUTORS) {
-      const image = root.querySelector(`img[alt="${contributor.login} on GitHub"]`);
-      expect(image).not.toBeNull();
-      expect(image?.getAttribute("width")).toBe("40");
-      expect(image?.getAttribute("height")).toBe("40");
-      expect(image?.closest("a")?.getAttribute("href")).toBe(contributor.profileUrl);
+      const link = root.querySelector(`a[href='${contributor.profileUrl}']`);
+      expect(link?.textContent).toContain(`${contributor.login} on GitHub`);
+      const image = link?.querySelector("img");
+      expect(image?.getAttribute("alt")).toBe("");
+      expect(image?.getAttribute("width")).toBe("32");
+      expect(image?.getAttribute("height")).toBe("32");
     }
     for (const image of root.querySelectorAll("img")) {
       const src = image.getAttribute("src") ?? "";
@@ -101,25 +128,22 @@ describe("OpenSource", () => {
 
   it("drops the contributors block when there is nobody to show", () => {
     expect(
-      renderToStaticMarkup(<Contributors contributors={[]} title="t" ariaFor={(login) => login} />),
+      renderToStaticMarkup(
+        <Contributors contributors={[]} title="t" ariaFor={(login) => login} newTab="n" />,
+      ),
     ).toBe("");
   });
 });
 
-describe("license and release labels", () => {
+describe("license label", () => {
   it.each([
     ["en", en],
     ["de", de],
     ["es", es],
     ["fr", fr],
-  ] as const)(
-    "name the license and the release notes the same way here and in the footer (%s)",
-    (_locale, messages) => {
-      const { footer, openSource } = messages.landing;
-      expect(footer.cols.legal.license).toBe(openSource.license);
-      expect(footer.cols.community.releases).toBe(openSource.releases);
-    },
-  );
+  ] as const)("names the license the same way here and in the footer (%s)", (_locale, messages) => {
+    expect(messages.landing.footer.cols.legal.license).toBe(messages.landing.openSource.license);
+  });
 
   it("writes the English license label in sentence case", () => {
     expect(en.landing.openSource.license).toBe("MIT license");

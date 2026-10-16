@@ -13,8 +13,8 @@ const SECTION_FILES: Readonly<Record<LandingSectionId, string>> = {
   features: "bento.tsx",
   code: "code-showcase.tsx",
   compare: "compare.tsx",
-  openSource: "open-source.tsx",
   faq: "faq.tsx",
+  openSource: "open-source.tsx",
   finalCta: "final-cta.tsx",
 };
 

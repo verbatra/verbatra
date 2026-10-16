@@ -595,15 +595,28 @@
       "scrollHint": "Fais défiler le tableau sur le côté pour voir toutes les colonnes."
     },
     "openSource": {
-      "heading": "Open source sous licence MIT.",
-      "lead": "La CLI, le SDK, Studio et le serveur MCP sont développés en public sur GitHub, où les issues et les pull requests sont les bienvenues.",
-      "license": "Licence MIT",
-      "contributing": "Comment contribuer",
+      "heading": "Les contributions sont les bienvenues.",
+      "lead": "Verbatra est sous licence MIT et développé en public sur GitHub. Chaque pull request suit le même chemin, et le guide de contribution détaille chaque étape.",
+      "steps": {
+        "setup": {
+          "title": "Prépare le dépôt",
+          "body": "Clone-le et installe depuis la racine. L’installation met aussi en place les hooks Git qui vérifient chaque commit."
+        },
+        "change": {
+          "title": "Fais un changement ciblé",
+          "body": "Crée une branche depuis main, ajoute des tests à ton changement et lance les mêmes vérifications que le build de CI."
+        },
+        "pullRequest": {
+          "title": "Ouvre une pull request",
+          "body": "Remplis le modèle et explique comment tu as testé. Ajoute un changeset quand un paquet publié change d’une façon visible pour les utilisateurs."
+        }
+      },
+      "linksHeading": "Projet",
+      "contributing": "Guide de contribution",
       "codeOfConduct": "Code de conduite",
+      "license": "Licence MIT",
       "security": "Politique de sécurité",
       "issues": "Issues et demandes de fonctionnalités",
-      "roadmap": "Feuille de route",
-      "releases": "Notes de version",
       "newTab": "(s’ouvre dans un nouvel onglet)",
       "contributorsHeading": "Contributeurs",
       "contributorAria": "{name} sur GitHub"

@@ -64,7 +64,7 @@ describe("landing surface bands", () => {
     expect(section?.firstElementChild?.className).toContain("vk-gutter");
   });
 
-  it("pins which sections from the marquee down to the FAQ sit in a band, in page order", () => {
+  it("pins which sections from the marquee down to the contribution steps sit in a band, in page order", () => {
     expect(
       [
         "marquee.tsx",
@@ -74,10 +74,10 @@ describe("landing surface bands", () => {
         "bento.tsx",
         "code-showcase.tsx",
         "compare.tsx",
-        "open-source.tsx",
         "faq.tsx",
+        "open-source.tsx",
       ].map(banded),
-    ).toEqual([true, false, true, false, false, true, true, false, false]);
+    ).toEqual([true, false, true, false, false, true, true, false, true]);
   });
 
   it("names a section by its heading through aria-labelledby, banded or not", () => {
@@ -210,7 +210,7 @@ describe("the section head on the 12-column grid", () => {
       marquee: "aside",
       playground: "inline",
       compare: "split",
-      "open-source": "split",
+      "open-source": "stacked",
       faq: "aside",
     });
   });

@@ -8,8 +8,8 @@ export const LANDING_SECTIONS = [
   "features",
   "code",
   "compare",
-  "openSource",
   "faq",
+  "openSource",
   "finalCta",
 ] as const;
 

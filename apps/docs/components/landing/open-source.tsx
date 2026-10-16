@@ -1,69 +1,57 @@
-import { ArrowUpRightIcon } from "lucide-react";
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { CONTRIBUTORS, type Contributor } from "@/lib/contributors";
-import { GithubIcon } from "./github-icon";
 import {
   CODE_OF_CONDUCT_URL,
   CONTRIBUTING_URL,
   GITHUB_URL,
   ISSUES_URL,
   LICENSE_URL,
-  RELEASES_URL,
-  ROADMAP_URL,
   SECURITY_URL,
 } from "./links";
 import { PlainList } from "./plain-list";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
 
-const AVATAR_SIZE = 40;
+const AVATAR_SIZE = 32;
 
-const LINKS_SPAN = { "--grid-span": 7 } as CSSProperties;
-const PEOPLE_SPAN = { "--grid-start": 9, "--grid-span": 4 } as CSSProperties;
+type ContributionStep = { id: "setup" | "change" | "pullRequest"; command: string };
 
-type ProjectLink = { key: string; href: string };
-
-export const OPEN_SOURCE_LINKS: ReadonlyArray<ProjectLink> = [
-  { key: "license", href: LICENSE_URL },
-  { key: "contributing", href: CONTRIBUTING_URL },
-  { key: "codeOfConduct", href: CODE_OF_CONDUCT_URL },
-  { key: "security", href: SECURITY_URL },
-  { key: "issues", href: ISSUES_URL },
-  { key: "roadmap", href: ROADMAP_URL },
-  { key: "releases", href: RELEASES_URL },
+export const CONTRIBUTION_STEPS: ReadonlyArray<ContributionStep> = [
+  { id: "setup", command: "pnpm install" },
+  { id: "change", command: "pnpm verify" },
+  { id: "pullRequest", command: "pnpm changeset" },
 ];
 
-const ROW_CLASS =
-  "flex min-h-12 items-center justify-between gap-4 border-t py-3 text-base text-(--text-strong) underline decoration-transparent underline-offset-4 transition-colors hover:text-(--accent) hover:decoration-(--accent)";
+type ProjectLink = {
+  key: "contributing" | "codeOfConduct" | "license" | "security" | "issues";
+  href: string;
+};
 
-function OutboundRow({
+export const OPEN_SOURCE_LINKS: ReadonlyArray<ProjectLink> = [
+  { key: "contributing", href: CONTRIBUTING_URL },
+  { key: "codeOfConduct", href: CODE_OF_CONDUCT_URL },
+  { key: "license", href: LICENSE_URL },
+  { key: "security", href: SECURITY_URL },
+  { key: "issues", href: ISSUES_URL },
+];
+
+function OutboundLink({
   href,
   newTab,
+  className,
   children,
 }: {
   href: string;
   newTab: string;
+  className: string;
   children: ReactNode;
 }): ReactNode {
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noreferrer noopener"
-      className={ROW_CLASS}
-      style={{ borderColor: "var(--border-default)" }}
-    >
-      <span>
-        {children}
-        <span className="sr-only"> {newTab}</span>
-      </span>
-      <ArrowUpRightIcon
-        aria-hidden="true"
-        className="size-4 shrink-0 text-(--text-muted)"
-        data-external
-      />
+    <a href={href} target="_blank" rel="noreferrer noopener" className={className}>
+      {children}
+      <span className="sr-only"> {newTab}</span>
     </a>
   );
 }
@@ -72,35 +60,39 @@ export function Contributors({
   contributors,
   title,
   ariaFor,
+  newTab,
 }: {
   contributors: ReadonlyArray<Contributor>;
   title: string;
   ariaFor: (login: string) => string;
+  newTab: string;
 }): ReactNode {
   if (contributors.length === 0) return null;
   return (
-    <section aria-labelledby="open-source-contributors" className="grid content-start gap-4">
-      <h3 id="open-source-contributors" className="vk-h4 text-(--text-strong)">
+    <section aria-labelledby="open-source-contributors" className="vk-contribute-people">
+      <h3 id="open-source-contributors" className="vk-contribute-label">
         {title}
       </h3>
-      <PlainList className="flex flex-wrap gap-3">
+      <PlainList className="vk-contribute-avatars">
         {contributors.map((contributor) => (
           <li key={contributor.login}>
-            <a
+            <OutboundLink
               href={contributor.profileUrl}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="block rounded-full max-md:p-0.5"
+              newTab={newTab}
+              className="vk-contribute-person"
             >
               <Image
                 src={contributor.avatarPath}
-                alt={ariaFor(contributor.login)}
+                alt=""
                 width={AVATAR_SIZE}
                 height={AVATAR_SIZE}
-                className="size-10 rounded-full border"
-                style={{ borderColor: "var(--border-default)" }}
+                className="vk-contribute-avatar"
               />
-            </a>
+              <span className="sr-only">{ariaFor(contributor.login)}</span>
+              <span aria-hidden="true" className="font-mono text-sm">
+                {contributor.login}
+              </span>
+            </OutboundLink>
           </li>
         ))}
       </PlainList>
@@ -110,38 +102,56 @@ export function Contributors({
 
 export async function OpenSource(): Promise<ReactNode> {
   const t = await getTranslations("landing.openSource");
+  const newTab = t("newTab");
 
   return (
-    <Section width="wide" rhythm="md" id="open-source" labelledBy="open-source-heading">
-      <SectionHead id="open-source-heading" title={t("heading")} lead={t("lead")} />
-      <div className="vk-grid-12 not-prose mt-(--head-gap) gap-y-12">
-        <PlainList
-          className="grid border-b"
-          style={{ ...LINKS_SPAN, borderColor: "var(--border-default)" }}
-        >
-          <li>
-            <OutboundRow href={GITHUB_URL} newTab={t("newTab")}>
-              <span className="inline-flex items-center gap-3">
-                <GithubIcon size={18} />
-                <span className="font-mono text-sm">verbatra/verbatra</span>
-              </span>
-            </OutboundRow>
+    <Section band id="open-source" labelledBy="open-source-heading">
+      <SectionHead
+        id="open-source-heading"
+        title={t("heading")}
+        lead={t("lead")}
+        layout="stacked"
+      />
+      <ol className="vk-contribute-steps vk-grid-12 not-prose mt-(--head-gap)">
+        {CONTRIBUTION_STEPS.map((step, index) => (
+          <li key={step.id} className="vk-contribute-step" data-step={step.id}>
+            <span aria-hidden="true" className="vk-contribute-mark">
+              {index + 1}
+            </span>
+            <h3 className="vk-h4 text-(--text-strong)">{t(`steps.${step.id}.title`)}</h3>
+            <p className="vk-contribute-body">{t(`steps.${step.id}.body`)}</p>
+            <code lang="en" className="vk-contribute-command">
+              {step.command}
+            </code>
           </li>
-          {OPEN_SOURCE_LINKS.map((link) => (
-            <li key={link.key}>
-              <OutboundRow href={link.href} newTab={t("newTab")}>
-                {t(link.key)}
-              </OutboundRow>
+        ))}
+      </ol>
+      <div className="vk-contribute-foot vk-grid-12 not-prose">
+        <nav aria-labelledby="open-source-links" className="vk-contribute-links">
+          <h3 id="open-source-links" className="vk-contribute-label">
+            {t("linksHeading")}
+          </h3>
+          <PlainList className="vk-contribute-link-list">
+            <li>
+              <OutboundLink href={GITHUB_URL} newTab={newTab} className="vk-prose-link">
+                <span className="font-mono text-sm">verbatra/verbatra</span>
+              </OutboundLink>
             </li>
-          ))}
-        </PlainList>
-        <div style={PEOPLE_SPAN}>
-          <Contributors
-            contributors={CONTRIBUTORS}
-            title={t("contributorsHeading")}
-            ariaFor={(login) => t("contributorAria", { name: login })}
-          />
-        </div>
+            {OPEN_SOURCE_LINKS.map((link) => (
+              <li key={link.key}>
+                <OutboundLink href={link.href} newTab={newTab} className="vk-prose-link">
+                  {t(link.key)}
+                </OutboundLink>
+              </li>
+            ))}
+          </PlainList>
+        </nav>
+        <Contributors
+          contributors={CONTRIBUTORS}
+          title={t("contributorsHeading")}
+          ariaFor={(login) => t("contributorAria", { name: login })}
+          newTab={newTab}
+        />
       </div>
     </Section>
   );

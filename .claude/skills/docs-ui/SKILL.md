@@ -169,16 +169,15 @@ Scales are fixed and narrow, deliberately:
   the scrollbar) is the width of the `.vk-prompt-pop` preview. `--head-gap` (2.5rem, 3.5rem from 64rem) is the one space
   between a section head and its content: the margin over the flow list (and, under 64rem, under
   the bento head through `.vk-bento-head`), the
-  problem, code showcase, comparison and open source content (`mt-(--head-gap)`), the row gap
+  problem, code showcase, comparison and contribution content (`mt-(--head-gap)`), the row gap
   of `.vk-section-aside` (the marquee and the FAQ) and of the playground grid; `section-bands.test.tsx` fails on an ad hoc
   `mt-10` or `lg:mt-14` there. `.vk-grid-12` is the landing grid: one column under 64rem,
   then `--grid-columns` (12) columns with a `--grid-gap` (24px) gap, where each child spans
-  `--grid-span` columns (the full row when unset), starting on `--grid-start` when set (the open
-  source contributors start on column 9). `SectionHead` takes `layout`: `split` (the default, a
+  `--grid-span` columns (the full row when unset), starting on `--grid-start` when set. `SectionHead` takes `layout`: `split` (the default, a
   `.vk-grid-12`: the heading block spans 8, the lead 4, bottom-aligned, so the lead starts on
-  column 9, the column where the problem list and the contributors start), `stacked` (the lead
+  column 9, the column where the problem list starts), `stacked` (the lead
   under the heading on the first column, for a section whose content runs the full row: the code
-  showcase, and the feature flow, whose head keeps to the snippet column), `inline` (the same
+  showcase, the contribution steps, and the feature flow, whose head keeps to the snippet column), `inline` (the same
   stacked block at a narrower measure, `.vk-section-head-inline`, set inside the column beside an
   artifact rather than over it: the SDK playground renders it on the server as a sibling before
   its island, and its grid puts it at the top of the control column next to the sticky snippet;
@@ -196,8 +195,9 @@ Scales are fixed and narrow, deliberately:
   `--surface-bg`, never a raw value), the fill of `.vk-band`: `Section` with `band` renders a
   full-width `section.vk-band` (between two `--border-default` hairlines, `--section-sm` above it
   and `--section-md` padding inside) around the usual `.vk-gutter` column: the marquee under the
-  hero, the feature flow, the code showcase and the comparison are banded, the SDK
-  playground between the marquee and the flow, the problem, features, open source and FAQ sections
+  hero, the feature flow, the code showcase, the comparison and the contribution section after the
+  FAQ are banded, the SDK
+  playground between the marquee and the flow, the problem, features and FAQ sections
   sit on the void, and the code showcase and the comparison sit next to each other until the code
   showcase retires (`section-bands.test.tsx` pins the order). The hero draws no
   pattern, only its single decorative glow (`.vk-banner-glow` behind the demo column, from the
@@ -305,7 +305,7 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   registry primitive only together with the code that uses it.
 - **Landing:** `components/landing/` holds one component per section. Their order on the page is
   `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, marquee, playground, flow, proofStrip,
-  problem, features, code, compare, openSource, faq, finalCta), which the home page maps
+  problem, features, code, compare, faq, openSource, finalCta), which the home page maps
   over and `lib/landing-sections.test.ts` pins; add or move a section there, not by hand in
   `page.tsx`. The files: `hero.tsx` (the `h1`, the lead, the two quotable `landing.banner.quotes`
   sentences in `.vk-banner-summary`, two buttons, the locale diff with the `CommandPanel` install
@@ -440,8 +440,18 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   container query at 100rem shows the hint and fade on a desktop column too. `/compare.md` (and
   `Accept: text/markdown` on `/compare`) is `lib/compare-markdown.ts` served by
   `app/[lang]/compare.mdx/route.ts`; `MARKDOWN_PAGES` in `lib/markdown-route.ts` is the list of
-  non-docs pages with a Markdown variant), `open-source.tsx` (`#open-source`: license, contributing,
-  issues, releases and the contributors; every project row opens a new tab and ends in an `aria-hidden` external-link icon, with `landing.openSource.newTab` in an `sr-only` span for screen readers, never an arrow character), `faq.tsx` (`#faq`) and `final-cta.tsx` (the closing
+  non-docs pages with a Markdown variant), `open-source.tsx` (`#open-source`, the contribution section on the
+  `openSource` messages, a band after the FAQ with a `stacked` head: `ol.vk-contribute-steps`, the
+  `CONTRIBUTION_STEPS` of `CONTRIBUTING.md` (set up with `pnpm install`, a focused change checked
+  with `pnpm verify`, a pull request with a `pnpm changeset` where needed; `open-source.test.tsx`
+  reads the guide and fails when a command or step leaves it) across one row from 64rem, each step
+  a top hairline, an `aria-hidden` `--accent-fill` numeral, a `.vk-h4` title, one sentence and its
+  command in mono on `--v-void`; under the steps a `nav` of project links (repository, contributor
+  guide, code of conduct, license, security policy, issues; plain `.vk-prose-link`s, 44px tall,
+  no icon and no arrow, `landing.openSource.newTab` in an `sr-only` span) beside the contributors
+  from `lib/contributors.json`, each a self-hosted 32px avatar from `public/contributors/` with the
+  login beside it, refreshed by hand with `pnpm contributors`; no AGENTS.md link until the root
+  file exists, and no good-first-issue label link until one is in use), `faq.tsx` (`#faq`) and `final-cta.tsx` (the closing
   section on `landing.closing`, set on the page gutter with no card border or inset, a `section` whose `vk-final-cta` class is a hook with no stylesheet rule, the install `CommandRow` counted with `location: final-cta`, then Get
   started and Read the docs). The footer is not a section; `app/[lang]/(home)/layout.tsx` passes
   it to the home layout. Section ids are unique; never render two sections that claim the same one.
@@ -707,7 +717,7 @@ reserved for client islands (see "The stack").
   `n * --reveal-stagger`, capped at `--reveal-delay-max`. Only the demo artifacts of four sections
   carry a mark: the Try it panel in the feature flow, the problem (its artifact, then its list), the
   bento's first row (the keys tile alone; the head beside it and the later tiles never) and the code showcase. No section heading reveals (`SectionHead` takes no reveal
-  prop), and the hero, marquee, SDK playground, proof strip, comparison, open source, FAQ
+  prop), and the hero, marquee, SDK playground, proof strip, comparison, contribution, FAQ
   and closing panel never take a reveal; nothing else in the flow does either; the hero diff's fill and the marquee loop below are their own
   motions, not reveals. Elements keep their box while hidden, so a reveal never moves layout.
   `reveal-marks.test.tsx` pins which files carry marks and `motion-root.test.tsx` the observer and

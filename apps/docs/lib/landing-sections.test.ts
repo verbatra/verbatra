@@ -8,7 +8,7 @@ function docsPath(relative: string): string {
 }
 
 describe("landing section order", () => {
-  it("opens on the hero, the provider and format marquee, the SDK playground and the feature flow, then closes on the FAQ and the call to action", () => {
+  it("opens on the hero, the provider and format marquee, the SDK playground and the feature flow, then closes on the FAQ, the contribution steps and the call to action", () => {
     expect(LANDING_SECTIONS).toEqual([
       "hero",
       "marquee",
@@ -19,8 +19,8 @@ describe("landing section order", () => {
       "features",
       "code",
       "compare",
-      "openSource",
       "faq",
+      "openSource",
       "finalCta",
     ]);
   });
