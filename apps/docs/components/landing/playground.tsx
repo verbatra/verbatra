@@ -125,7 +125,6 @@ export async function Playground(): Promise<ReactNode> {
 
   return (
     <Section id="playground" className="vk-playground-section">
-      <SectionHead id="playground-heading" layout="stacked" title={t("heading")} lead={t("lead")} />
       <PlaygroundDemo
         items={PLAYGROUND_ITEMS}
         languages={languages}
@@ -151,6 +150,14 @@ export async function Playground(): Promise<ReactNode> {
         snippet={snippet}
         snippetFile={PLAYGROUND_SNIPPET_FILE}
         snippetConfig={PLAYGROUND_SNIPPET_CONFIG}
+        head={
+          <SectionHead
+            id="playground-heading"
+            layout="inline"
+            title={t("heading")}
+            lead={t("lead")}
+          />
+        }
         details={details}
       />
       <StaticTable

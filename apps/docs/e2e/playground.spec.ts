@@ -353,12 +353,31 @@ test.describe("playground without JavaScript", () => {
     await expect(page.locator(`${PLAYGROUND} .vk-playground-controls`)).toBeHidden();
     await expect(page.locator(RESULTS)).toBeHidden();
     await expect(page.locator(`${PLAYGROUND} figure pre`)).toBeVisible();
+    await expect(page.locator(`${PLAYGROUND} h2#playground-heading`)).toBeVisible();
   });
 
   test("reflows at 320px without horizontal scroll", async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 800 });
     await page.goto("/");
     await expectNoHorizontalScroll(page);
+  });
+});
+
+test.describe("playground layout at 1440px", () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test("heads the control column with the h2 and sets the snippet beside it", async ({ page }) => {
+    await page.goto("/");
+    const head = page.locator(`${PLAYGROUND} .vk-playground-main > .vk-section-head`);
+    await expect(head).toHaveAttribute("data-layout", "inline");
+    const headBox = await head.boundingBox();
+    const controls = await page.locator(`${PLAYGROUND} .vk-playground-controls`).boundingBox();
+    const code = await page.locator(`${PLAYGROUND} .vk-playground-code`).boundingBox();
+    if (headBox === null || controls === null || code === null) throw new Error("no box");
+    expect(controls.y).toBeGreaterThan(headBox.y + headBox.height - 1);
+    expect(code.x).toBeGreaterThanOrEqual(headBox.x + headBox.width);
+    expect(code.y).toBeLessThan(headBox.y + headBox.height);
+    await expectNoAxeViolations(page, PLAYGROUND);
   });
 });
 

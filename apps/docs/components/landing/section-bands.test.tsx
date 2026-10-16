@@ -77,6 +77,17 @@ describe("the section head on the 12-column grid", () => {
     }
   });
 
+  it("sets an inline head as a narrow stacked block for the column beside an artifact", () => {
+    const head = render(
+      <SectionHead id="h" title="Title" lead="Lead" layout="inline" />,
+    ).querySelector(".vk-section-head");
+    expect(head?.getAttribute("data-layout")).toBe("inline");
+    expect(head?.classList.contains("vk-grid-12")).toBe(false);
+    expect(head?.classList.contains("vk-section-head-inline")).toBe(true);
+    expect(head?.querySelector("h2#h")?.textContent).toBe("Title");
+    expect(head?.querySelector(".vk-section-head-lead")?.textContent).toBe("Lead");
+  });
+
   it("lets a grid child start on a set column from 64rem, and only there", () => {
     expect(css).toContain(
       "grid-column: var(--grid-start, auto) / span var(--grid-span, var(--grid-columns));",
@@ -102,9 +113,7 @@ describe("the section head on the 12-column grid", () => {
         if (!head) throw new Error(`no SectionHead in ${file}`);
         const layout = !/\blead=/.test(head)
           ? "heading"
-          : /layout="stacked"/.test(head)
-            ? "stacked"
-            : "split";
+          : (/layout="(stacked|inline)"/.exec(head)?.[1] ?? "split");
         return [file, layout];
       }),
     );
@@ -114,7 +123,7 @@ describe("the section head on the 12-column grid", () => {
       "bento.tsx": "heading",
       "code-showcase.tsx": "stacked",
       "marquee.tsx": "split",
-      "playground.tsx": "stacked",
+      "playground.tsx": "inline",
       "compare.tsx": "heading",
       "open-source.tsx": "split",
       "faq.tsx": "heading",

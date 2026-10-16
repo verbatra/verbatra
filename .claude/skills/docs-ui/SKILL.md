@@ -172,10 +172,12 @@ Scales are fixed and narrow, deliberately:
   `--grid-span` columns (the full row when unset), starting on `--grid-start` when set (the open
   source contributors start on column 9). `SectionHead` takes `layout`: `split` (the default, a
   `.vk-grid-12`: the heading block spans 8, the lead 4, bottom-aligned, so the lead starts on
-  column 9, the column where the problem list and the contributors start) or
-  `stacked` (the lead under the heading on the first column, for a section whose content runs the
-  full row: the code showcase and the SDK playground). A head without a lead is always
-  stacked (features, comparison, FAQ).
+  column 9, the column where the problem list and the contributors start), `stacked` (the lead
+  under the heading on the first column, for a section whose content runs the full row: the code
+  showcase) or `inline` (the same stacked block at a narrower measure, `.vk-section-head-inline`,
+  set inside the column beside an artifact rather than over it: the SDK playground passes it to
+  its island as the `head` prop, so it opens the control column next to the sticky snippet). A
+  head without a lead is always stacked (features, comparison, FAQ).
   `section-bands.test.tsx` pins which section uses which, so the page never goes back to one head
   shape everywhere.
 - Landing surfaces: `--surface-band` (mixed from `--surface-card` and
@@ -603,8 +605,10 @@ reserved for client islands (see "The stack").
   and focus inside a row, and is static otherwise (one sideways-scrolling line where motion may
   start, wrapped rows under reduced motion or without JavaScript), so 2.2.2 holds without
   JavaScript.
-- **SDK playground.** `playground.tsx` (`#playground`, on the void, a stacked head whose `h2` is
-  `landing.playground.heading`) reads `lib/playground/translations.json` once through
+- **SDK playground.** `playground.tsx` (`#playground`, on the void, an `inline` head whose `h2` is
+  `landing.playground.heading`, rendered on the server and passed to `PlaygroundDemo` as `head`,
+  the first child of `.vk-playground-main`, so it heads the control column and stays visible
+  without JavaScript) reads `lib/playground/translations.json` once through
   `lib/landing-playground.ts`, which parses it with `lib/playground/schema.ts` on the server, so zod
   never reaches the client, and builds `PLAYGROUND_SNIPPET` (`loadConfig({ configOverride:
   defineConfig(...) })` for `gemini` and `next-intl-json`, the model from the JSON metadata, then
@@ -623,7 +627,7 @@ reserved for client islands (see "The stack").
   `appearance: none` with a `--text-faint` boundary and an `--accent-fill` checked fill, 2.5rem
   tall (the source strings flow in CSS `columns: 14rem`, so the arrow keys move down a column in
   the order they read), then a `type="button"` Translate (no `form`, so nothing submits before hydration). In the
-  DOM the controls come first, then the results and the label with the metadata, then the snippet
+  DOM the head and the controls come first, then the results and the label with the metadata, then the snippet
   (`.vk-playground-main` and `.vk-playground-code`, two columns from 64rem, where the snippet
   column is sticky below the header), so on a phone the
   result sits right under Translate and the focus order is the visual order at every width. The
