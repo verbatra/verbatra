@@ -35,15 +35,11 @@ const AUTHOR_REF = { "@id": AUTHOR_ID };
 const WEBSITE_REF = { "@id": WEBSITE_ID };
 
 describe("organizationLd", () => {
-  it("names Verbatra, carries a stable @id, and links its GitHub org, repository and npm org through sameAs", () => {
+  it("names Verbatra, carries a stable @id, and links its GitHub org and npm org through sameAs, not the repository", () => {
     expect(organizationLd()).toEqual({
       "@context": "https://schema.org",
       ...ORGANIZATION_NODE,
-      sameAs: [
-        "https://github.com/verbatra",
-        "https://github.com/verbatra/verbatra",
-        "https://www.npmjs.com/org/verbatra",
-      ],
+      sameAs: ["https://github.com/verbatra", "https://www.npmjs.com/org/verbatra"],
     });
   });
 });

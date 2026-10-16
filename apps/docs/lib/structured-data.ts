@@ -184,7 +184,7 @@ export function organizationLd(): Record<string, unknown> {
   return {
     "@context": "https://schema.org",
     ...ORGANIZATION,
-    sameAs: [GITHUB_ORG_URL, GITHUB_URL, NPM_ORG],
+    sameAs: [GITHUB_ORG_URL, NPM_ORG],
   };
 }
 
