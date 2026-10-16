@@ -155,8 +155,10 @@ describe("the section head on the 12-column grid", () => {
     expect(css).toMatch(/\.vk-section-aside \{\s+row-gap: var\(--head-gap\);/);
     expect(css).toMatch(/\.vk-flow \{[^}]*margin-top: var\(--head-gap\);/);
     expect(css).toMatch(/\.vk-playground-layout \{[^}]*gap: var\(--head-gap\);/);
+    expect(css).toMatch(
+      /\.vk-bento-head \{\s+margin-block-end: calc\(var\(--head-gap\) - var\(--grid-gap\)\);/,
+    );
     for (const file of [
-      "bento.tsx",
       "code-showcase.tsx",
       "compare.tsx",
       "faq.tsx",
@@ -209,7 +211,7 @@ describe("the section head on the 12-column grid", () => {
     expect(layouts).toEqual({
       problem: "split",
       flow: "stacked",
-      features: "split",
+      features: "inline",
       code: "stacked",
       marquee: "aside",
       playground: "inline",

@@ -399,6 +399,10 @@ html.light {
   min-width: 0;
 }
 
+.vk-bento-head {
+  margin-block-end: calc(var(--head-gap) - var(--grid-gap));
+}
+
 @media (min-width: 64rem) {
   .vk-section-head.vk-grid-12 {
     align-items: end;
@@ -422,6 +426,19 @@ html.light {
 
   .vk-section-aside-content {
     --grid-span: 8;
+  }
+
+  .vk-bento {
+    align-items: start;
+  }
+
+  .vk-bento > [data-tile] {
+    align-self: stretch;
+  }
+
+  .vk-bento-head {
+    --grid-span: 4;
+    margin-block-end: 0;
   }
 }
 

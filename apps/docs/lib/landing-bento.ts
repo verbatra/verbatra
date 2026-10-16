@@ -1,9 +1,10 @@
 import type { SupportedFormat } from "@verbatra/sdk";
+import { PROVIDER_KEYS_ANCHORS } from "./docs-anchors";
 import { FORMAT_SAMPLES, type FormatSample, sampleLines } from "./format-samples";
 import { type Locale, type LocalizedAnchors, localizedAnchorPath } from "./i18n";
 import type { MachineProviderId } from "./landing-facts";
 
-export type BentoKey = "providers" | "keys" | "formats" | "sdk" | "frameworks";
+export type BentoKey = "keys" | "providers" | "formats" | "sdk" | "frameworks";
 
 type BentoDocsLink = {
   readonly page: string;
@@ -12,34 +13,31 @@ type BentoDocsLink = {
 
 type BentoEvidence = BentoDocsLink & { readonly text: string };
 
+export type TileSpan = 5 | 6 | 7 | 8 | 12;
+
 export type BentoTile = {
   readonly key: BentoKey;
-  readonly span: 4 | 6 | 8 | 12;
+  readonly span: { readonly lg: TileSpan; readonly xl?: TileSpan };
   readonly evidence: ReadonlyArray<BentoEvidence>;
 };
 
 export const BENTO_TILES: ReadonlyArray<BentoTile> = [
-  {
-    key: "providers",
-    span: 8,
-    evidence: [
-      {
-        text: 'provider: { id: "gemini", options: { model: "gemini-2.5-flash", maxOutputTokens: 4096 } }',
-        page: "/docs/providers",
-      },
-    ],
-  },
-  { key: "keys", span: 4, evidence: [] },
+  { key: "keys", span: { lg: 8 }, evidence: [] },
+  { key: "providers", span: { lg: 6, xl: 5 }, evidence: [] },
   {
     key: "formats",
-    span: 6,
+    span: { lg: 6, xl: 7 },
     evidence: [
       { text: 'format: "next-intl-json"', page: "/docs/formats" },
       { text: 'format: "custom:toml"', page: "/docs/custom-format-adapters" },
     ],
   },
-  { key: "sdk", span: 6, evidence: [{ text: "RunSummary", page: "/docs/sdk/run-summary" }] },
-  { key: "frameworks", span: 12, evidence: [] },
+  {
+    key: "sdk",
+    span: { lg: 12 },
+    evidence: [{ text: "RunSummary", page: "/docs/sdk/run-summary" }],
+  },
+  { key: "frameworks", span: { lg: 12 }, evidence: [] },
 ];
 
 export function bentoHref(locale: Locale, link: BentoDocsLink): string {
@@ -53,19 +51,20 @@ export const BENTO_NONE_PROVIDER: BentoEvidence = {
 
 export const BENTO_KEYS_LINK: BentoDocsLink = {
   page: "/docs/providers",
-  anchors: {
-    en: "keys-come-from-the-environment",
-    de: "keys-kommen-aus-der-umgebung",
-    es: "las-claves-vienen-del-entorno",
-    fr: "les-clés-viennent-de-lenvironnement",
-  },
+  anchors: PROVIDER_KEYS_ANCHORS,
 };
+
+export const BENTO_PROVIDERS_LINK: BentoDocsLink = { page: "/docs/providers" };
 
 export const BENTO_SAFETY_LINK: BentoDocsLink = {
   page: "/docs/translation-safety",
 };
 
-type KeyEnvVar = { readonly name: string; readonly optional: boolean };
+type KeyEnvVar = {
+  readonly name: string;
+  readonly optional: boolean;
+  readonly configurable?: boolean;
+};
 
 export const BENTO_KEY_ENV_VARS: Readonly<Record<MachineProviderId, KeyEnvVar>> = {
   anthropic: { name: "ANTHROPIC_API_KEY", optional: false },
@@ -73,7 +72,7 @@ export const BENTO_KEY_ENV_VARS: Readonly<Record<MachineProviderId, KeyEnvVar>> 
   gemini: { name: "GEMINI_API_KEY", optional: false },
   deepl: { name: "DEEPL_API_KEY", optional: false },
   "google-translate": { name: "GOOGLE_TRANSLATE_API_KEY", optional: false },
-  "openai-compatible": { name: "OPENAI_COMPATIBLE_API_KEY", optional: true },
+  "openai-compatible": { name: "OPENAI_COMPATIBLE_API_KEY", optional: true, configurable: true },
   libretranslate: { name: "LIBRETRANSLATE_API_KEY", optional: true },
 };
 
@@ -92,6 +91,7 @@ export const BENTO_RUN_SUMMARY_CODE = `const summary = await translate({ config 
 
 interface RunSummary {
 ${BENTO_RUN_SUMMARY_FIELDS.map((field) => `  ${field}`).join("\n")}
+  // excerpt
 }
 `;
 
@@ -128,6 +128,7 @@ const BENTO_FORMAT_IDS: ReadonlyArray<SupportedFormat> = [
   "android-xml",
   "apple-strings",
   "arb",
+  "gettext-po",
 ];
 
 type BentoFormatLine = {

@@ -167,7 +167,8 @@ Scales are fixed and narrow, deliberately:
   `--cta-height` (56px) is the minimum height of `.vk-prompt-trigger` on `PromptCopyButton`;
   `--width-prompt-pop` (30rem, capped by `100cqw` of its container, never by `100vw`, which counts
   the scrollbar) is the width of the `.vk-prompt-pop` preview. `--head-gap` (2.5rem, 3.5rem from 64rem) is the one space
-  between a section head and its content: the margin over the flow list, the bento grid, the
+  between a section head and its content: the margin over the flow list (and, under 64rem, under
+  the bento head through `.vk-bento-head`), the
   problem, code showcase, comparison, open source and FAQ content (`mt-(--head-gap)`), the row gap
   of `.vk-section-aside` and of the playground grid; `section-bands.test.tsx` fails on an ad hoc
   `mt-10` or `lg:mt-14` there. `.vk-grid-12` is the landing grid: one column under 64rem,
@@ -180,7 +181,8 @@ Scales are fixed and narrow, deliberately:
   showcase, and the feature flow, whose head keeps to the snippet column), `inline` (the same
   stacked block at a narrower measure, `.vk-section-head-inline`, set inside the column beside an
   artifact rather than over it: the SDK playground renders it on the server as a sibling before
-  its island, and its grid puts it at the top of the control column next to the sticky snippet).
+  its island, and its grid puts it at the top of the control column next to the sticky snippet;
+  the bento sets it in the first cell of its tile grid, beside the keys tile).
   A split head without a lead renders stacked (comparison, FAQ); `stacked` and `inline`
   keep their shape either way. `SectionHead` is the head only and takes no children.
   `SectionAside` (same file) is the head beside its content: a `.vk-section-aside` `.vk-grid-12`
@@ -339,22 +341,29 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
 `SUPPORTED_FORMAT_IDS.length`, never a typed number), `problem.tsx` (`#problem`, a real drift
   artifact from `lib/landing-problem.ts`), `flow.tsx` (`#flow`, the feature flow, see "Feature
   flow" below),
-  `bento.tsx` (`#features`, a split head with a lead, then the tiles of `BENTO_TILES` in
-  `lib/landing-bento.ts`, in reading order on the 12-column grid: the provider switch (span 8, a
-  `verbatra.config.ts` diff from one provider block to another, `BENTO_PROVIDER_DIFF`, both blocks
-  pinned to the sdk's `loadConfig`, then the `none` provider chip dated by `RELEASE_BADGE`'s
-  `provider-none` feature through `AvailableFromPill`), the keys tile (span 4, as tall as its row:
-  one `BENTO_KEY_ENV_VARS` name per machine provider, pinned to
-  `packages/ai-providers/src/key-env-vars.ts`, the optional ones marked and a provider that
-  `RELEASE_BADGE` dates carrying the pill, then the safety claims and links to
-  `/docs/providers#keys-come-from-the-environment` (localized anchors) and
-  `/docs/translation-safety`), the format tile (span 6, one key written into several stacks'
+  `bento.tsx` (`#features`, one `.vk-bento` `.vk-grid-12` that holds the head and the tiles of
+  `BENTO_TILES` in `lib/landing-bento.ts`, in reading order: the head is an `inline` `SectionHead`
+  in `.vk-bento-head`, span 4 from 64rem beside the keys tile, and above the tiles under 64rem,
+  where its `margin-block-end` tops the grid gap up to `--head-gap`. Each tile carries
+  `span: { lg, xl? }` (`--grid-span` per breakpoint) and the same `data-reveal` step. The keys tile
+  leads (span 8: a `figure` with a `dl` pairing each provider's short label with its
+  `BENTO_KEY_ENV_VARS` name, pinned to `packages/ai-providers/src/key-env-vars.ts`, the optional
+  ones marked, the `apiKeyEnvVar` alternative noted where `configurable`, a provider that
+  `RELEASE_BADGE` dates carrying the pill; beside it from 80rem the safety claims, each on an
+  `--accent-fill` start bar, and links to `/docs/providers#keys-come-from-the-environment`
+  (`PROVIDER_KEYS_ANCHORS` in `lib/docs-anchors.ts`, shared with the comparison sources) and
+  `/docs/translation-safety`), then the provider switch (span 6, 5 from 80rem: a
+  `verbatra.config.ts` diff, `BENTO_PROVIDER_DIFF`, both blocks pinned to the sdk's `loadConfig`,
+  the added lines tinted from `--accent-fill`, the panel growing to the tile; then the `none`
+  provider chip dated by `RELEASE_BADGE`'s `provider-none` feature and a link to
+  `/docs/providers`), the format tile (span 6, 7 from 80rem, one key written into several stacks'
   files, each line taken from the real adapter output in `lib/format-samples.generated.json`,
-  `BENTO_FORMAT_LINES`, plus the custom adapter chip), the SDK tile (span 6, the `RunSummary`
-  fields of the published sdk, `BENTO_RUN_SUMMARY_FIELDS`, pinned to
-  `packages/sdk/dist/index.d.ts`) and the framework strip (span 12, no card: a top hairline, the
-  `STACKS` names each linking its quickstart, then all quickstarts). Card tiles are flat panels
-  whose artifacts stretch to the tile, so a row's panels end level; tile titles are `.vk-h4`
+  `BENTO_FORMAT_LINES`, the chips pushed to the tile's end), the SDK tile (span 12, text beside
+  the code: the `RunSummary` fields of the published sdk, `BENTO_RUN_SUMMARY_FIELDS`, pinned to
+  `packages/sdk/dist/index.d.ts`, marked as an excerpt) and the framework strip (span 12, no
+  card: a top hairline, the `STACKS` names each linking its quickstart, then all quickstarts).
+  `e2e/bento.spec.ts` measures every card tile at 1024px and 1440px in all four locales and fails
+  on a tall unfilled band; tile titles are `.vk-h4`
   `h3`s), `code-showcase.tsx` (`#code`, CLI, SDK, config and Action tabs from
   `lib/landing-code.ts`, highlighted on the server by `lib/landing-highlight.ts` with dual themes
   and framed by `code-frame.tsx`), `playground.tsx` (`#playground`, the SDK playground, see
@@ -639,7 +648,7 @@ reserved for client islands (see "The stack").
   moving into a block that has not revealed yet shows it at once (`:focus-within`). The delay is
   `n * --reveal-stagger`, capped at `--reveal-delay-max`. Only the demo artifacts of four sections
   carry a mark: the Try it panel in the feature flow, the problem (its artifact, then its list), the
-  bento grid and the code showcase. No section heading reveals (`SectionHead` takes no reveal
+  bento tiles (each tile marked on the same step, the head beside them never) and the code showcase. No section heading reveals (`SectionHead` takes no reveal
   prop), and the hero, marquee, SDK playground, proof strip, comparison, open source, FAQ
   and closing panel never take a reveal; nothing else in the flow does either; the hero diff's fill and the marquee loop below are their own
   motions, not reveals. Elements keep their box while hidden, so a reveal never moves layout.

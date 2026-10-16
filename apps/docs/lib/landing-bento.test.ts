@@ -15,6 +15,7 @@ import {
   BENTO_PROVIDER_DIFF,
   BENTO_PROVIDER_FROM,
   BENTO_PROVIDER_TO,
+  BENTO_PROVIDERS_LINK,
   BENTO_RUN_SUMMARY_CODE,
   BENTO_RUN_SUMMARY_FIELDS,
   BENTO_SAFETY_LINK,
@@ -49,19 +50,20 @@ describe("bento tiles", () => {
     );
   });
 
-  it("fill whole twelve-column rows on desktop", () => {
-    const rows: number[] = [];
-    let current = 0;
-    for (const tile of BENTO_TILES) {
-      current += tile.span;
-      if (current === 12) {
-        rows.push(current);
-        current = 0;
+  it("fill whole twelve-column rows beside the head, at both desktop widths", () => {
+    const css = readFileSync(fileURLToPath(new URL("../app/global.css", import.meta.url)), "utf8");
+    const head = Number(/\.vk-bento-head \{\s+--grid-span: (\d+);/.exec(css)?.[1]);
+    expect(head).toBe(4);
+    for (const width of ["lg", "xl"] as const) {
+      const spans = [head, ...BENTO_TILES.map((tile) => tile.span[width] ?? tile.span.lg)];
+      let current = 0;
+      for (const span of spans) {
+        current += span;
+        expect(current, width).toBeLessThanOrEqual(12);
+        if (current === 12) current = 0;
       }
-      expect(current).toBeLessThan(12);
+      expect(current, width).toBe(0);
     }
-    expect(current).toBe(0);
-    expect(rows.length).toBeGreaterThanOrEqual(3);
   });
 
   for (const locale of i18n.languages) {
@@ -69,6 +71,7 @@ describe("bento tiles", () => {
       const links = [
         ...BENTO_TILES.flatMap((tile) => tile.evidence),
         BENTO_NONE_PROVIDER,
+        BENTO_PROVIDERS_LINK,
         BENTO_KEYS_LINK,
         BENTO_SAFETY_LINK,
         ...STACK_IDS.map((id) => ({ page: `/docs/quickstart/${id}` })),
@@ -87,16 +90,6 @@ describe("bento tiles", () => {
       "/de/docs/providers#keys-kommen-aus-der-umgebung",
     );
   });
-
-  it("lays the tiles out as one wide and one tall tile, two halves and a full-width strip", () => {
-    expect(BENTO_TILES.map((tile) => [tile.key, tile.span])).toEqual([
-      ["providers", 8],
-      ["keys", 4],
-      ["formats", 6],
-      ["sdk", 6],
-      ["frameworks", 12],
-    ]);
-  });
 });
 
 describe("bento samples", () => {
@@ -112,6 +105,18 @@ describe("bento samples", () => {
     for (const id of ["anthropic", "openai", "gemini", "deepl", "google-translate"] as const) {
       expect(source).toMatch(new RegExp(`"?${id}"?: "${BENTO_KEY_ENV_VARS[id].name}"`));
     }
+  });
+
+  it("notes the configurable key variable only where the provider config takes apiKeyEnvVar", () => {
+    const config = readFileSync(
+      join(REPO, "packages/ai-providers/src/openai-compatible/config.ts"),
+      "utf8",
+    );
+    expect(config).toContain("apiKeyEnvVar");
+    expect(MACHINE_PROVIDER_IDS.filter((id) => BENTO_KEY_ENV_VARS[id].configurable)).toEqual([
+      "openai-compatible",
+    ]);
+    expect(en.landing.bento.items.keys.configurable).toContain("`apiKeyEnvVar`");
   });
 
   it("marks as optional exactly the keys the providers page says usually are not needed", () => {
@@ -157,14 +162,8 @@ describe("bento samples", () => {
     }
   });
 
-  it("writes the gemini evidence chip with every option the sdk requires, as the diff's first block", async () => {
-    const chip = BENTO_TILES.flatMap((tile) => tile.evidence).find((item) =>
-      item.text.includes('id: "gemini"'),
-    );
+  it("removes a gemini block that carries every option the sdk requires", async () => {
     const { id, options } = BENTO_PROVIDER_FROM;
-    expect(chip?.text).toBe(
-      `provider: { id: "${id}", options: { model: "${options.model}", maxOutputTokens: ${options.maxOutputTokens} } }`,
-    );
     await expect(
       sdk.loadConfig({
         cwd: CONTENT,

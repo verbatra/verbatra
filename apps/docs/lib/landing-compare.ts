@@ -1,5 +1,5 @@
+import { PROVIDER_KEYS_ANCHORS } from "./docs-anchors";
 import { type Locale, type LocalizedAnchors, localizedAnchorPath } from "./i18n";
-import { BENTO_KEYS_LINK } from "./landing-bento";
 
 export const COMPARE_LAST_CHECKED = "2026-10-15";
 
@@ -45,8 +45,6 @@ type CompareSource = {
   readonly urls: ReadonlyArray<CompareSourceLink>;
 };
 
-const KEYS_ANCHORS: LocalizedAnchors | undefined = BENTO_KEYS_LINK.anchors;
-
 const SOURCES: ReadonlyArray<CompareSource> = [
   { tool: "verbatra", urls: ["https://github.com/verbatra/verbatra/blob/main/LICENSE"] },
   { tool: "verbatra", urls: [{ page: "/docs/data-handling" }] },
@@ -58,7 +56,7 @@ const SOURCES: ReadonlyArray<CompareSource> = [
     ],
   },
   { tool: "verbatra", urls: [{ page: "/docs/providers" }] },
-  { tool: "verbatra", urls: [{ page: "/docs/providers", anchors: KEYS_ANCHORS }] },
+  { tool: "verbatra", urls: [{ page: "/docs/providers", anchors: PROVIDER_KEYS_ANCHORS }] },
   { tool: "verbatra", urls: [{ page: "/docs/the-lock-file" }] },
   { tool: "verbatra", urls: [{ page: "/docs/cli" }] },
   {

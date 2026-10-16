@@ -16,6 +16,7 @@ import {
   BENTO_KEYS_LINK,
   BENTO_NONE_PROVIDER,
   BENTO_PROVIDER_DIFF,
+  BENTO_PROVIDERS_LINK,
   BENTO_QUICKSTART_PAGE,
   BENTO_RUN_SUMMARY_CODE,
   BENTO_SAFETY_LINK,
@@ -24,8 +25,10 @@ import {
   type BentoKey,
   type BentoTile,
   bentoHref,
+  type TileSpan,
 } from "@/lib/landing-bento";
-import { FORMAT_DISPLAY, MACHINE_PROVIDER_IDS } from "@/lib/landing-facts";
+import { FORMAT_DISPLAY, MACHINE_PROVIDER_IDS, type MachineProviderId } from "@/lib/landing-facts";
+import { providerShortLabel } from "@/lib/landing-providers";
 import { featureReleaseBadge, providerReleaseBadge } from "@/lib/release-badge";
 import { STACK_IDS, STACKS } from "@/lib/stacks";
 import { CodeFrame } from "./code-frame";
@@ -44,12 +47,25 @@ type TileContext = {
   readonly badge: (version: string | null) => Promise<AvailableFromCopy | null>;
 };
 
-const SPAN_CLASS: Readonly<Record<BentoTile["span"], string>> = {
-  4: "lg:col-span-4",
-  6: "lg:col-span-6",
-  8: "lg:col-span-8",
-  12: "lg:col-span-12",
+const LG_SPAN: Readonly<Record<TileSpan, string>> = {
+  5: "lg:[--grid-span:5]",
+  6: "lg:[--grid-span:6]",
+  7: "lg:[--grid-span:7]",
+  8: "lg:[--grid-span:8]",
+  12: "lg:[--grid-span:12]",
 };
+
+const XL_SPAN: Readonly<Record<TileSpan, string>> = {
+  5: "xl:[--grid-span:5]",
+  6: "xl:[--grid-span:6]",
+  7: "xl:[--grid-span:7]",
+  8: "xl:[--grid-span:8]",
+  12: "xl:[--grid-span:12]",
+};
+
+function spanClass({ lg, xl }: BentoTile["span"]): string {
+  return xl === undefined ? LG_SPAN[lg] : `${LG_SPAN[lg]} ${XL_SPAN[xl]}`;
+}
 
 const PANEL_FRAME =
   "min-w-0 overflow-hidden rounded-xl border border-(--border-default) bg-(--v-void)";
@@ -64,6 +80,8 @@ const TILE_CLASS =
 const STRIP_CLASS =
   "vk-grid-12 min-w-0 border-t border-(--border-default) pt-6 sm:pt-8 lg:items-baseline";
 
+const LINK_ROW = "flex flex-wrap gap-x-5 gap-y-2 text-sm";
+
 const captionId = (artifact: string) => `bento-${artifact}-caption`;
 
 function SampleLine({ line, placeholder }: { line: string; placeholder: string }): ReactNode {
@@ -77,7 +95,7 @@ function SampleLine({ line, placeholder }: { line: string; placeholder: string }
 const DIFF_SIGN_CLASS: Readonly<Record<BentoDiffLine["sign"], string>> = {
   " ": "text-(--text-muted)",
   "-": "bg-[color-mix(in_srgb,var(--text-danger)_10%,transparent)] text-(--text-body)",
-  "+": "bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-(--text-strong)",
+  "+": "bg-[color-mix(in_srgb,var(--accent-fill)_14%,transparent)] text-(--text-strong)",
 };
 
 const DIFF_MARK_CLASS: Readonly<Record<BentoDiffLine["sign"], string>> = {
@@ -88,7 +106,7 @@ const DIFF_MARK_CLASS: Readonly<Record<BentoDiffLine["sign"], string>> = {
 
 function ProviderSwitch(): ReactNode {
   return (
-    <figure data-artifact="providers" className={`${PANEL_FRAME} m-0`}>
+    <figure data-artifact="providers" className={`${PANEL_FRAME} m-0 flex-1`}>
       <PanelCaption
         as="figcaption"
         density="control"
@@ -179,11 +197,7 @@ async function ProvidersTile({ tile, t, locale, badge }: TileContext & { tile: B
     <>
       <TileHead tile={tile} t={t} />
       <ProviderSwitch />
-      <EvidenceRow tile={tile} locale={locale} />
-      <div
-        data-none-provider=""
-        className="mt-auto grid gap-2 border-t border-(--border-default) pt-4"
-      >
+      <div data-none-provider="" className="grid gap-2">
         <p className="max-w-[52ch] text-sm leading-relaxed text-(--text-muted)">
           {t("items.providers.none")}
         </p>
@@ -192,12 +206,52 @@ async function ProvidersTile({ tile, t, locale, badge }: TileContext & { tile: B
           {none ? <AvailableFromPill {...none} /> : null}
         </span>
       </div>
+      <p className={LINK_ROW}>
+        <IntentPrefetchLink
+          href={bentoHref(locale, BENTO_PROVIDERS_LINK)}
+          className="vk-prose-link"
+        >
+          {t("items.providers.link")}
+        </IntentPrefetchLink>
+      </p>
     </>
   );
 }
 
+function KeyVariable({ variable, t }: { variable: KeyVariableRow; t: BentoTranslator }): ReactNode {
+  return (
+    <>
+      <dt className="text-sm text-(--text-muted) sm:pt-px">{providerShortLabel(variable.id)}</dt>
+      <dd data-provider={variable.id} className="m-0 grid min-w-0 gap-1 max-sm:pb-2">
+        <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <code
+            lang="en"
+            className="vk-mono-sm font-mono text-(--text-strong) [overflow-wrap:anywhere]"
+          >
+            {variable.name}
+          </code>
+          {variable.optional ? (
+            <span className="text-xs text-(--text-muted)">{t("items.keys.optional")}</span>
+          ) : null}
+          {variable.badge ? <AvailableFromPill {...variable.badge} /> : null}
+        </span>
+        {variable.configurable ? (
+          <span data-configurable="" className="text-xs text-(--text-muted)">
+            {withInlineCode(t("items.keys.configurable"))}
+          </span>
+        ) : null}
+      </dd>
+    </>
+  );
+}
+
+type KeyVariableRow = (typeof BENTO_KEY_ENV_VARS)[MachineProviderId] & {
+  readonly id: MachineProviderId;
+  readonly badge: AvailableFromCopy | null;
+};
+
 async function KeysTile({ tile, t, locale, badge }: TileContext & { tile: BentoTile }) {
-  const variables = await Promise.all(
+  const variables: ReadonlyArray<KeyVariableRow> = await Promise.all(
     MACHINE_PROVIDER_IDS.map(async (id) => ({
       id,
       ...BENTO_KEY_ENV_VARS[id],
@@ -207,68 +261,70 @@ async function KeysTile({ tile, t, locale, badge }: TileContext & { tile: BentoT
   return (
     <>
       <TileHead tile={tile} t={t} />
-      <figure data-artifact="keys" className={`${PANEL_FRAME} m-0`}>
-        <PanelCaption
-          as="figcaption"
-          density="control"
-          id={captionId("keys")}
-          className={PANEL_CAPTION}
-        >
-          {t("items.keys.variables")}
-        </PanelCaption>
-        <PlainList aria-labelledby={captionId("keys")} className="grid list-none gap-1.5 px-4 py-3">
-          {variables.map((variable) => (
-            <li
-              key={variable.id}
-              data-provider={variable.id}
-              className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1"
+      <div className="grid min-w-0 gap-5 xl:flex-1 xl:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
+        <figure data-artifact="keys" className={`${PANEL_FRAME} m-0`}>
+          <PanelCaption as="figcaption" density="control" className={PANEL_CAPTION}>
+            {t("items.keys.variables")}
+          </PanelCaption>
+          <dl className="m-0 grid grid-cols-1 gap-x-4 gap-y-1 px-4 py-3 sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-y-2">
+            {variables.map((variable) => (
+              <KeyVariable key={variable.id} variable={variable} t={t} />
+            ))}
+          </dl>
+        </figure>
+        <div className="flex min-w-0 flex-col gap-4">
+          <PlainList className="grid list-none gap-4 text-base leading-relaxed text-(--text-body)">
+            {(["data", "integrity", "errors"] as const).map((claim) => (
+              <li key={claim} data-claim={claim} className="border-s-2 border-(--accent-fill) ps-3">
+                {t(`items.keys.claims.${claim}`)}
+              </li>
+            ))}
+          </PlainList>
+          <p className={`${LINK_ROW} mt-auto`}>
+            <IntentPrefetchLink href={bentoHref(locale, BENTO_KEYS_LINK)} className="vk-prose-link">
+              {t("items.keys.keysLink")}
+            </IntentPrefetchLink>
+            <IntentPrefetchLink
+              href={bentoHref(locale, BENTO_SAFETY_LINK)}
+              className="vk-prose-link"
             >
-              <code
-                lang="en"
-                className="vk-mono-sm font-mono text-(--text-strong) [overflow-wrap:anywhere]"
-              >
-                {variable.name}
-              </code>
-              {variable.optional ? (
-                <span className="text-xs text-(--text-muted)">{t("items.keys.optional")}</span>
-              ) : null}
-              {variable.badge ? <AvailableFromPill {...variable.badge} /> : null}
-            </li>
-          ))}
-        </PlainList>
-      </figure>
-      <PlainList className="grid list-none gap-2 text-sm leading-relaxed text-(--text-body)">
-        {(["data", "integrity", "errors"] as const).map((claim) => (
-          <li key={claim} data-claim={claim} className="border-s-2 border-(--border-default) ps-3">
-            {t(`items.keys.claims.${claim}`)}
-          </li>
-        ))}
-      </PlainList>
-      <p className="mt-auto flex flex-wrap gap-x-5 gap-y-2 text-sm">
-        <IntentPrefetchLink href={bentoHref(locale, BENTO_KEYS_LINK)} className="vk-prose-link">
-          {t("items.keys.keysLink")}
-        </IntentPrefetchLink>
-        <IntentPrefetchLink href={bentoHref(locale, BENTO_SAFETY_LINK)} className="vk-prose-link">
-          {t("items.keys.safetyLink")}
-        </IntentPrefetchLink>
-      </p>
+              {t("items.keys.safetyLink")}
+            </IntentPrefetchLink>
+          </p>
+        </div>
+      </div>
     </>
   );
 }
 
-async function ArtifactTile({ tile, t, locale }: TileContext & { tile: BentoTile }) {
-  const artifact =
-    tile.key === "formats" ? (
-      <FormatKeyLines />
-    ) : (
-      await CodeFrame({ code: BENTO_RUN_SUMMARY_CODE, lang: "ts", filename: "@verbatra/sdk" })
-    );
+function FormatsTile({ tile, t, locale }: TileContext & { tile: BentoTile }): ReactNode {
   return (
     <>
       <TileHead tile={tile} t={t} />
-      <div className="flex min-w-0 flex-1 flex-col [&>*]:flex-1">{artifact}</div>
-      <EvidenceRow tile={tile} locale={locale} />
+      <FormatKeyLines />
+      <div className="mt-auto">
+        <EvidenceRow tile={tile} locale={locale} />
+      </div>
     </>
+  );
+}
+
+async function SdkTile({ tile, t, locale }: TileContext & { tile: BentoTile }) {
+  const code = await CodeFrame({
+    code: BENTO_RUN_SUMMARY_CODE,
+    lang: "ts",
+    filename: "@verbatra/sdk",
+  });
+  return (
+    <div className="grid min-w-0 gap-4 sm:gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-8">
+      <div className="flex min-w-0 flex-col gap-4 sm:gap-5">
+        <TileHead tile={tile} t={t} />
+        <div className="lg:mt-auto">
+          <EvidenceRow tile={tile} locale={locale} />
+        </div>
+      </div>
+      <div className="min-w-0">{code}</div>
+    </div>
   );
 }
 
@@ -313,10 +369,10 @@ function FrameworksStrip({ t, locale }: TileContext): ReactNode {
 const TILE_BODY: Readonly<
   Record<BentoKey, (props: TileContext & { tile: BentoTile }) => ReactNode | Promise<ReactNode>>
 > = {
-  providers: ProvidersTile,
   keys: KeysTile,
-  formats: ArtifactTile,
-  sdk: ArtifactTile,
+  providers: ProvidersTile,
+  formats: FormatsTile,
+  sdk: SdkTile,
   frameworks: FrameworksStrip,
 };
 
@@ -334,21 +390,26 @@ export async function Bento(): Promise<ReactNode> {
   );
   return (
     <Section id="features" labelledBy="features-heading">
-      <SectionHead id="features-heading" title={t("heading")} lead={t("lead")} />
-      <PlainList
-        data-reveal="2"
-        className="mt-(--head-gap) grid list-none grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-12"
-      >
+      <div className="vk-bento vk-grid-12">
+        <div className="vk-bento-head">
+          <SectionHead
+            id="features-heading"
+            title={t("heading")}
+            lead={t("lead")}
+            layout="inline"
+          />
+        </div>
         {BENTO_TILES.map((tile, index) => (
-          <li
+          <div
             key={tile.key}
             data-tile={tile.key}
-            className={`${tile.span === 12 ? STRIP_CLASS : TILE_CLASS} ${SPAN_CLASS[tile.span]}`}
+            data-reveal="2"
+            className={`${tile.key === "frameworks" ? STRIP_CLASS : TILE_CLASS} ${spanClass(tile.span)}`}
           >
             {bodies[index]}
-          </li>
+          </div>
         ))}
-      </PlainList>
+      </div>
     </Section>
   );
 }

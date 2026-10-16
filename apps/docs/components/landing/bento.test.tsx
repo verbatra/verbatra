@@ -11,6 +11,7 @@ import {
   BENTO_TILES,
 } from "@/lib/landing-bento";
 import { FORMAT_DISPLAY, MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
+import { providerShortLabel } from "@/lib/landing-providers";
 import { RELEASE_BADGE } from "@/lib/release-badge";
 import { STACK_IDS, STACKS } from "@/lib/stacks";
 import en from "@/messages/en.json";
@@ -59,17 +60,30 @@ function tile(key: string): HTMLElement {
   return node;
 }
 
-function span(key: string): string | undefined {
-  return tile(key).className.match(/lg:col-span-(\d+)/)?.[1];
+function spans(key: string): string {
+  return [...tile(key).className.matchAll(/(lg|xl):\[--grid-span:(\d+)\]/g)]
+    .map(([, width, span]) => `${width}${span}`)
+    .join(" ");
 }
 
 describe("Bento", () => {
-  it("opens with a heading and a lead, then lists the tiles in reading order", () => {
-    expect(root.querySelector("h2#features-heading")?.textContent).toBe(copy.heading);
-    expect(root.querySelector(".vk-section-head-lead")?.textContent).toBe(copy.lead);
+  it("sets its head inline in the first grid cell, then the tiles in reading order", () => {
+    const grid = root.querySelector(".vk-bento.vk-grid-12");
+    const head = grid?.firstElementChild;
+    expect(head?.className).toBe("vk-bento-head");
+    expect(head?.querySelector(".vk-section-head")?.getAttribute("data-layout")).toBe("inline");
+    expect(head?.querySelector("h2#features-heading")?.textContent).toBe(copy.heading);
+    expect(head?.querySelector(".vk-section-head-lead")?.textContent).toBe(copy.lead);
     const tiles = [...root.querySelectorAll<HTMLElement>("[data-tile]")];
     expect(tiles.map((node) => node.dataset.tile)).toEqual(BENTO_TILES.map((t) => t.key));
+    expect(tiles.every((node) => node.parentElement === grid)).toBe(true);
+    expect(tiles.every((node) => node.querySelector("[data-reveal]") === null)).toBe(true);
+    expect(head?.hasAttribute("data-reveal")).toBe(false);
     expect(root.innerHTML).not.toContain("dense");
+  });
+
+  it("leads with the keys tile and gives the old first-row diff the second row", () => {
+    expect(BENTO_TILES.map((t) => t.key).slice(0, 2)).toEqual(["keys", "providers"]);
   });
 
   it("titles every tile with a .vk-h4 h3 from en.json", () => {
@@ -81,11 +95,18 @@ describe("Bento", () => {
   });
 
   it("varies tile sizes and never ends in a row of equal small cards", () => {
-    expect(BENTO_TILES.map((t) => span(t.key))).toEqual(["8", "4", "6", "6", "12"]);
+    expect(BENTO_TILES.map((t) => spans(t.key))).toEqual([
+      "lg8",
+      "lg6 xl5",
+      "lg6 xl7",
+      "lg12",
+      "lg12",
+    ]);
     const last = tile("frameworks");
     expect(last.className).not.toContain("rounded-xl");
     expect(last.className).toContain("border-t");
     expect(tile("providers").className).toContain("rounded-xl");
+    expect(tile("sdk").className).toContain("rounded-xl");
   });
 
   it("lets the keyboard reach and scroll every sideways-scrolling block, each a named group", () => {
@@ -113,10 +134,17 @@ describe("Bento", () => {
     expect(none?.querySelector(".vk-available-from")?.textContent).toBe(
       en.docs.availableFrom.title.replace("{version}", RELEASE_BADGE.version),
     );
+    const link = [...tile("providers").querySelectorAll("a")].at(-1);
+    expect(link?.textContent).toBe(copy.items.providers.link);
+    expect(link?.getAttribute("href")).toBe("/de/docs/providers");
   });
 
-  it("lists one key variable per provider, badging only the release's new ones", () => {
-    const items = [...tile("keys").querySelectorAll<HTMLElement>("li[data-provider]")];
+  it("pairs each provider with its key variable, badging only the release's new ones", () => {
+    const figure = tile("keys").querySelector('figure[data-artifact="keys"]');
+    expect(figure?.querySelector("figcaption")?.textContent).toBe(copy.items.keys.variables);
+    const terms = [...(figure?.querySelectorAll("dl > dt") ?? [])].map((dt) => dt.textContent);
+    expect(terms).toEqual(MACHINE_PROVIDER_IDS.map(providerShortLabel));
+    const items = [...tile("keys").querySelectorAll<HTMLElement>("dd[data-provider]")];
     expect(items.map((item) => item.dataset.provider)).toEqual([...MACHINE_PROVIDER_IDS]);
     for (const item of items) {
       const id = item.dataset.provider as (typeof MACHINE_PROVIDER_IDS)[number];
@@ -127,11 +155,17 @@ describe("Bento", () => {
       expect(item.textContent?.includes(copy.items.keys.optional)).toBe(
         BENTO_KEY_ENV_VARS[id].optional,
       );
+      expect(item.querySelector("[data-configurable]")?.textContent ?? null).toBe(
+        BENTO_KEY_ENV_VARS[id].configurable
+          ? copy.items.keys.configurable.replaceAll("`", "")
+          : null,
+      );
     }
-    const list = tile("keys").querySelector("ul[aria-labelledby]");
-    expect(root.querySelector(`#${list?.getAttribute("aria-labelledby")}`)?.textContent).toBe(
-      copy.items.keys.variables,
-    );
+  });
+
+  it("marks the claims with a fill bar, never violet text", () => {
+    for (const claim of tile("keys").querySelectorAll("[data-claim]"))
+      expect(claim.className).toContain("border-(--accent-fill)");
   });
 
   it("links the key and safety claims to the docs that state them", () => {

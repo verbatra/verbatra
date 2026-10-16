@@ -343,21 +343,23 @@
       }
     },
     "bento": {
-      "heading": "S’adapte au projet que tu as déjà.",
-      "lead": "Change de fournisseur en un bloc, garde tes clés dans l’environnement et appelle le même moteur depuis TypeScript.",
+      "heading": "Rien à migrer, rien à céder.",
+      "lead": "Verbatra tourne là où ton projet vit déjà : dans le dépôt, dans la CI et dans tes propres scripts. Ce dont il a besoin reste sous ton contrôle.",
       "items": {
         "providers": {
           "title": "Change de fournisseur en un bloc",
           "body": "Un LLM, un service de traduction automatique ou un modèle sur ton propre matériel. Change le bloc du fournisseur et garde le reste.",
-          "none": "Ou désactive la traduction automatique par principe, et chaque traduction vient d’une personne."
+          "none": "Ou désactive la traduction automatique par principe, et chaque traduction vient d’une personne.",
+          "link": "Tous les fournisseurs et leurs options"
         },
         "keys": {
           "title": "Tes clés restent les tiennes",
           "body": "Les clés d’API viennent uniquement des variables d’environnement, jamais du fichier de configuration. Les textes vont au fournisseur que tu configures et nulle part ailleurs. Aucune télémétrie.",
           "variables": "Variables de clés",
           "optional": "facultative",
+          "configurable": "ou la variable que nomme `apiKeyEnvVar`",
           "claims": {
-            "data": "Un LLM reçoit tes textes comme des données, jamais comme des instructions.",
+            "data": "Tes textes arrivent à un LLM comme des données, jamais par le canal des instructions.",
             "integrity": "Une réponse qui casse un placeholder ou un message ICU est retenue au lieu d’être écrite.",
             "errors": "Une clé manquante échoue avec une erreur qui nomme la variable, jamais une valeur."
           },
@@ -370,7 +372,7 @@
         },
         "sdk": {
           "title": "Un SDK typé",
-          "body": "`translate` renvoie un `RunSummary` typé : quelles locales ont réussi, lesquelles ont échoué en partie ou totalement, et combien de tokens l’exécution a utilisés."
+          "body": "`translate` renvoie un `RunSummary` typé : quelles locales ont réussi, lesquelles ont échoué en partie ou totalement, et l’usage des tokens quand le fournisseur le communique."
         },
         "frameworks": {
           "title": "Un démarrage rapide pour ton framework",

@@ -396,21 +396,23 @@
       }
     },
     "bento": {
-      "heading": "Fits the project you already have.",
-      "lead": "Change the provider in one block, keep your keys in the environment and call the same engine from TypeScript.",
+      "heading": "Nothing to migrate, nothing to hand over.",
+      "lead": "Verbatra runs where your project already lives: in the repository, in CI and in your own scripts. What it needs from you stays under your control.",
       "items": {
         "providers": {
           "title": "Switch providers in one block",
           "body": "An LLM, a machine translation service, or a model on your own hardware. Change the provider block and keep the rest.",
-          "none": "Or turn machine translation off by policy, so every translation comes from a person."
+          "none": "Or turn machine translation off by policy, so every translation comes from a person.",
+          "link": "Every provider and its options"
         },
         "keys": {
           "title": "Your keys stay yours",
           "body": "API keys come from environment variables only, never from the config file. Strings go to the provider you configure and nowhere else. No telemetry.",
           "variables": "Key variables",
           "optional": "optional",
+          "configurable": "or the variable `apiKeyEnvVar` names",
           "claims": {
-            "data": "An LLM receives your strings as data, never as instructions.",
+            "data": "Your strings go to an LLM as data, never in the instruction channel.",
             "integrity": "A reply that breaks a placeholder or an ICU message is withheld, not written.",
             "errors": "A missing key fails with an error that names the variable, never a value."
           },
@@ -423,7 +425,7 @@
         },
         "sdk": {
           "title": "A typed SDK",
-          "body": "`translate` resolves to a typed `RunSummary`: which locales succeeded, which partly failed or failed, and the tokens the run used."
+          "body": "`translate` resolves to a typed `RunSummary`: which locales succeeded, which partly failed or failed, and the token usage when the provider reports it."
         },
         "frameworks": {
           "title": "A quickstart for your framework",
