@@ -615,8 +615,8 @@ html.light {
   box-shadow: 0 0 0 1px var(--border-default);
 }
 
-.vk-bento-head {
-  margin-block-end: calc(var(--head-gap) - var(--grid-gap));
+.vk-bento {
+  row-gap: var(--head-gap);
 }
 
 @media (min-width: 64rem) {
@@ -692,6 +692,7 @@ html.light {
 
   .vk-bento {
     align-items: start;
+    gap: var(--head-gap) calc(2 * var(--grid-gap));
   }
 
   .vk-bento > [data-tile] {

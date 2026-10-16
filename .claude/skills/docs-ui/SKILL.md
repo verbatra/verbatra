@@ -168,8 +168,9 @@ Scales are fixed and narrow, deliberately:
   `mt-10` or `lg:mt-14` there. `.vk-grid-12` is the landing grid: one column under 64rem,
   then `--grid-columns` (12) columns with a `--grid-gap` (24px) gap, where each child spans
   `--grid-span` columns (the full row when unset), starting on `--grid-start` when set. `SectionHead` takes `layout`: `split` (the default, a
-  `.vk-grid-12`: the heading block spans 8, the lead 4, bottom-aligned, so the lead starts on
-  column 9: the comparison), `stacked` (the lead
+  `.vk-grid-12`: the heading block spans 8, the lead 4, bottom-aligned by default; `align="start"`
+  top-aligns them (`data-align`), which the comparison uses, its lead kept to three lines at
+  1440 in every locale by `e2e/compare.spec.ts`), `stacked` (the lead
   under the heading on the first column, for a section whose content runs the full row: the
   contribution steps, and the feature flow, whose head keeps to the snippet column), `inline` (the same
   stacked block at a narrower measure, `.vk-section-head-inline`, set inside the column beside an
@@ -332,7 +333,11 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   in `.vk-bento-head`, span 4 from 64rem beside the keys tile, and above the tiles under 64rem,
   where its `margin-block-end` tops the grid gap up to `--head-gap`. Each tile carries
   `span: { lg, xl? }` (`--grid-span` per breakpoint); only the first row's keys tile carries a
-  `data-reveal` step. The keys tile
+  `data-reveal` step. Tiles draw no frame of their own (no border, fill or padding): only the
+  artifact inside each, a `rounded-xl` panel or code frame, is framed, so the grid never reads as
+  cards in cards; `.vk-bento` sets `--head-gap` between rows and twice `--grid-gap` between
+  columns from 64rem, and the format and provider panels fill their row with their groups at the
+  top. The keys tile
   leads (span 8: a `figure` with a `dl` pairing each provider's short label with its
   `BENTO_KEY_ENV_VARS` name, pinned to `packages/ai-providers/src/key-env-vars.ts`, the optional
   ones marked, the `apiKeyEnvVar` alternative noted where `configurable`, a provider that
@@ -351,7 +356,7 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   the `kind` each strategy declares, pinned by `lib/landing-providers.test.ts`; no invented
   self-hosted group), a provider that `RELEASE_BADGE` dates
   carrying the pill, then the human-only `none` linking `/docs/human-only-workflow`, dated by the
-  `provider-none` feature; the groups spread evenly over the panel so it fills the row, and the
+  `provider-none` feature; the groups sit at the top of the panel, and the
   panel ends in `BENTO_PROVIDER_LINE` under its file name, labelled as the `id` slot of the
   `provider` block (never as the whole block: `lib/landing-bento.test.ts` checks that the config
   schema takes every listed id there and still asks a machine provider for its options); then a link to

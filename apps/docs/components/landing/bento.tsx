@@ -73,8 +73,7 @@ const PANEL_FRAME =
 
 const PANEL_CAPTION = "font-mono text-xs text-(--text-muted)";
 
-const TILE_CLASS =
-  "flex min-w-0 flex-col gap-4 rounded-xl border border-(--border-default) bg-(--surface-bg) p-4 sm:gap-5 sm:p-6";
+const TILE_CLASS = "flex min-w-0 flex-col gap-4 sm:gap-5";
 
 const STRIP_CLASS =
   "vk-grid-12 min-w-0 border-t border-(--border-default) pt-6 sm:pt-8 lg:items-baseline";
@@ -118,7 +117,7 @@ function ProviderKinds({
 }): ReactNode {
   return (
     <figure data-artifact="providers" className={`${PANEL_FRAME} m-0 flex flex-1 flex-col`}>
-      <dl className="m-0 grid flex-1 content-evenly gap-x-4 gap-y-3 px-4 py-4 sm:grid-cols-[auto_minmax(0,1fr)]">
+      <dl className="m-0 grid flex-1 content-start gap-x-4 gap-y-4 px-4 py-4 sm:grid-cols-[auto_minmax(0,1fr)]">
         {PROVIDER_KINDS.map((kind) => (
           <div key={kind} data-kind={kind} className="contents">
             <dt className={`${GROUP_LABEL} sm:pt-0.5`}>{t(`items.providers.kinds.${kind}`)}</dt>
@@ -162,8 +161,8 @@ function ProviderKinds({
 function FormatFamilies({ t }: { t: BentoTranslator }): ReactNode {
   const example = BENTO_FORMAT_EXAMPLE;
   return (
-    <div data-artifact="formats" className={`${PANEL_FRAME} grid`}>
-      <div className="grid gap-4 px-4 py-4 sm:grid-cols-2">
+    <div data-artifact="formats" className={`${PANEL_FRAME} grid flex-1 grid-rows-[1fr_auto]`}>
+      <div className="grid content-start gap-4 px-4 py-4 sm:grid-cols-2">
         {FORMAT_FAMILIES.map((family) => (
           <div key={family} data-family={family} className="grid content-start gap-2">
             <h4 id={captionId(`family-${family}`)} className={`${GROUP_LABEL} font-normal`}>

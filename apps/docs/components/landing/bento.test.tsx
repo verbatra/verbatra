@@ -106,8 +106,12 @@ describe("Bento", () => {
     const last = tile("frameworks");
     expect(last.className).not.toContain("rounded-xl");
     expect(last.className).toContain("border-t");
-    expect(tile("providers").className).toContain("rounded-xl");
-    expect(tile("sdk").className).toContain("rounded-xl");
+    for (const key of ["keys", "providers", "formats", "sdk"] as const) {
+      expect(tile(key).className).not.toMatch(/rounded|border|bg-/);
+      expect(tile(key).querySelector("[data-artifact], .vk-code-frame")?.className).toContain(
+        "rounded-xl",
+      );
+    }
   });
 
   it("lets the keyboard reach and scroll every sideways-scrolling block, each a named group", () => {
