@@ -3,12 +3,7 @@ import type { ReactNode } from "react";
 import { IntentPrefetchLink } from "@/components/ui/intent-prefetch-link";
 import { localizedPath, toLocale } from "@/lib/i18n";
 import { withInlineCode } from "@/lib/inline-code-text";
-import {
-  FLOW_CHECK_EXIT_CODES,
-  FLOW_DEMO_NODE,
-  FLOW_NODES,
-  type FlowNodeId,
-} from "@/lib/landing-flow";
+import { FLOW_BODY_VALUES, FLOW_DEMO_NODE, FLOW_NODES, type FlowNodeId } from "@/lib/landing-flow";
 import { showcaseRows, showcaseSeed } from "@/lib/showcase-scenarios";
 import { CodeFrame } from "./code-frame";
 import { FlowMotion, TryIt } from "./islands";
@@ -17,10 +12,6 @@ import { Section } from "./section";
 import { SectionHead } from "./section-head";
 
 export const FLOW_HEADING_ID = "flow-heading";
-
-const BODY_VALUES: Partial<Record<FlowNodeId, Record<string, number>>> = {
-  check: FLOW_CHECK_EXIT_CODES,
-};
 
 export function flowTitleId(id: FlowNodeId): string {
   return `flow-${id}`;
@@ -63,7 +54,7 @@ export async function Flow(): Promise<ReactNode> {
                   {t(`items.${node.id}.title`)}
                 </h3>
                 <p className="vk-flow-body">
-                  {withInlineCode(t(`items.${node.id}.body`, BODY_VALUES[node.id]))}
+                  {withInlineCode(t(`items.${node.id}.body`, FLOW_BODY_VALUES[node.id]))}
                 </p>
                 <p className="vk-flow-link">
                   <IntentPrefetchLink

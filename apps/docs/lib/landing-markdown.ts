@@ -4,6 +4,7 @@ import { formatLandingDate } from "@/components/landing/hero-facts";
 import { GITHUB_URL, LICENSE_URL } from "@/components/landing/links";
 import { AI_SETUP_PROMPT } from "./ai-setup-prompt";
 import { CONTRIBUTORS } from "./contributors";
+import { HERO_DIFF_SOURCE_PANE, HERO_DIFF_TARGET_PANE } from "./hero-diff";
 import { type Locale, localizedPath } from "./i18n";
 import { NPM_INSTALL_COMMAND } from "./install-commands";
 import {
@@ -24,14 +25,17 @@ import {
 import { COMPARE_LAST_CHECKED, COMPARE_PATH, SHORT_COLUMNS, SHORT_ROWS } from "./landing-compare";
 import { FORMAT_DISPLAY, MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "./landing-facts";
 import { FAQ_ANSWER_LINKS, FAQ_ASIDE_LINKS, FAQ_ITEM_IDS, faqHref, faqValues } from "./landing-faq";
-import { FLOW_CHECK_EXIT_CODES, FLOW_NODES, type FlowNodeId } from "./landing-flow";
+import { FLOW_BODY_VALUES, FLOW_DEMO_NODE, FLOW_NODES } from "./landing-flow";
 import { CONTRIBUTION_STEPS, OPEN_SOURCE_LINKS } from "./landing-open-source";
 import {
   PLAYGROUND_DOCS_LINKS,
   PLAYGROUND_ITEMS,
   PLAYGROUND_LANGUAGES,
   PLAYGROUND_METADATA,
+  PLAYGROUND_SNIPPET,
+  PLAYGROUND_SNIPPET_FILE,
   PLAYGROUND_TRANSLATIONS,
+  playgroundGeneratedOn,
 } from "./landing-playground";
 import {
   landingProviders,
@@ -104,6 +108,14 @@ async function hero({ locale }: Context): Promise<string> {
     t("lead"),
     `${t("quotes.what")} ${t("quotes.how")}`,
     list([link(t("ctaPrimary"), quickstart), link(t("ctaSecondary"), GITHUB_URL)]),
+    ...[HERO_DIFF_SOURCE_PANE, HERO_DIFF_TARGET_PANE].map((pane) =>
+      fencedMarkdown(
+        "json",
+        `title="${pane.file}"`,
+        pane.lines.map((line) => line.text).join("\n"),
+      ),
+    ),
+    t("diffLabel"),
     `${tCommand("install")}: ${tCommand("installHint")}`,
     fencedMarkdown("sh", null, NPM_INSTALL_COMMAND),
     `${tCommand("prompt")}: ${tCommand("promptHint")}`,
@@ -140,9 +152,7 @@ async function marquee({ locale, badge }: Context): Promise<string> {
 
 async function playground({ locale }: Context): Promise<string> {
   const t = await getTranslations({ locale, namespace: "landing.playground" });
-  const generated = new Intl.DateTimeFormat(locale, { dateStyle: "long", timeZone: "UTC" }).format(
-    new Date(PLAYGROUND_METADATA.generatedAt),
-  );
+  const generated = playgroundGeneratedOn(locale).text;
   return blocks(
     `## ${t("heading")}`,
     t("lead"),
@@ -160,6 +170,7 @@ async function playground({ locale }: Context): Promise<string> {
         ...PLAYGROUND_LANGUAGES.map((code) => PLAYGROUND_TRANSLATIONS[code]?.[item.id] ?? ""),
       ]),
     ),
+    fencedMarkdown("ts", `title="${PLAYGROUND_SNIPPET_FILE}"`, PLAYGROUND_SNIPPET),
     `${t("links.label")}:`,
     list(
       PLAYGROUND_DOCS_LINKS.map(([key, path]) =>
@@ -169,22 +180,19 @@ async function playground({ locale }: Context): Promise<string> {
   );
 }
 
-const FLOW_VALUES: Partial<Record<FlowNodeId, Record<string, number>>> = {
-  check: FLOW_CHECK_EXIT_CODES,
-};
-
 async function flow({ locale }: Context): Promise<string> {
   const t = await getTranslations({ locale, namespace: "landing.flow" });
   const nodes = FLOW_NODES.map((node, index) =>
     blocks(
       `### ${index + 1}. ${t(`items.${node.id}.title`)}`,
-      t(`items.${node.id}.body`, FLOW_VALUES[node.id]),
+      t(`items.${node.id}.body`, FLOW_BODY_VALUES[node.id]),
       fencedMarkdown(
         node.snippet.language,
         node.snippet.filename === undefined ? null : `title="${node.snippet.filename}"`,
         node.snippet.code.trimEnd(),
       ),
       link(t(`items.${node.id}.link`), localizedPath(locale, node.docsPath)),
+      node.id === FLOW_DEMO_NODE ? t("items.incremental.demo") : null,
     ),
   );
   return blocks(`## ${t("heading")}`, t("lead"), ...nodes);

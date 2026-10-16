@@ -12,6 +12,7 @@ import {
   PLAYGROUND_SNIPPET_FILE,
   PLAYGROUND_SOURCE_LOCALE,
   PLAYGROUND_TRANSLATIONS,
+  playgroundGeneratedOn,
 } from "@/lib/landing-playground";
 import { PROVIDER_DISPLAY } from "@/lib/landing-providers";
 import { playgroundSnippetLines } from "@/lib/playground-snippet";
@@ -26,14 +27,6 @@ import { SectionHead } from "./section-head";
 const TABLE_CAPTION_ID = "playground-table-caption";
 
 const LINKS_LABEL_ID = "playground-links";
-
-function generatedOn(locale: string): { iso: string; text: string } {
-  const date = new Date(PLAYGROUND_METADATA.generatedAt);
-  return {
-    iso: PLAYGROUND_METADATA.generatedAt.slice(0, 10),
-    text: new Intl.DateTimeFormat(locale, { dateStyle: "long", timeZone: "UTC" }).format(date),
-  };
-}
 
 function StaticTable({
   languages,
@@ -87,7 +80,7 @@ export async function Playground(): Promise<ReactNode> {
     code,
     name: t(`languageNames.${code}`),
   }));
-  const generated = generatedOn(locale);
+  const generated = playgroundGeneratedOn(locale);
   const snippet = await highlightPlaygroundSnippet(
     playgroundSnippetLines(PLAYGROUND_SNIPPET_CONFIG, PLAYGROUND_LANGUAGES),
   );

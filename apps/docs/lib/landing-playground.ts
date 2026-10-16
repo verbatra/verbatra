@@ -47,6 +47,15 @@ export const PLAYGROUND_SNIPPET = playgroundSnippet(
   PLAYGROUND_LANGUAGES,
 );
 
+export function playgroundGeneratedOn(locale: string): { iso: string; text: string } {
+  return {
+    iso: PLAYGROUND_METADATA.generatedAt.slice(0, 10),
+    text: new Intl.DateTimeFormat(locale, { dateStyle: "long", timeZone: "UTC" }).format(
+      new Date(PLAYGROUND_METADATA.generatedAt),
+    ),
+  };
+}
+
 export const PLAYGROUND_DOCS_LINKS = [
   ["quickstart", "/docs/sdk-quickstart"],
   ["reference", "/docs/sdk"],
