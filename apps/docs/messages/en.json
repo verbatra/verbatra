@@ -125,38 +125,55 @@
     },
     "faq": {
       "heading": "Frequently asked questions.",
+      "lead": "Short answers on cost, keys, your data and what ships today, each with the docs page that goes deeper.",
+      "docs": {
+        "label": "In the docs",
+        "quickstart": "Quickstart",
+        "keys": "Provider keys",
+        "dataHandling": "Data handling",
+        "safety": "Translation safety",
+        "compare": "Full comparison"
+      },
       "items": {
         "incremental": {
           "question": "How does Verbatra avoid re-translating everything on every run?",
-          "answer": "It keeps a committed lock file that records what was already translated. Each run diffs your source locale against that lock and sends only the new or changed keys to your provider. Unchanged keys are never touched, so a typical run costs a handful of strings, not your whole catalog."
+          "answer": "It translates only what changed. A committed <link>lock file</link> records what was already translated, so each run sends just the new and changed keys to your provider and leaves the rest alone."
         },
         "providers": {
           "question": "Which translation providers can I use?",
-          "answer": "Any of these, behind one interface: Anthropic, OpenAI, and Gemini (LLMs), DeepL and Google Cloud Translation (machine translation), openai-compatible, which points Verbatra at a local or self-hosted server like Ollama, LM Studio, or vLLM, and libretranslate, a self-hosted LibreTranslate server for machine translation with no language model. You pick one by id in the provider block of your config and switch later by rewriting that block, since each provider takes its own options. Gemini has a real free tier, and a local model costs nothing per call. Or set the provider to none to switch machine translation off entirely."
+          "answer": "Hosted LLMs, machine translation engines, or a model you run yourself, all behind one interface. You pick one by its id in the provider block of your config and switch by rewriting that block; the <link>providers page</link> lists each one with its options."
+        },
+        "npm": {
+          "question": "Which providers are on npm today?",
+          "answer": "Verbatra {version}, the current release on npm, ships {providers}.{pending, select, yes { Version {next} adds {upcoming}.} other {}} The <link>providers page</link> covers each one."
         },
         "formats": {
-          "question": "Which formats and frameworks does Verbatra support?",
-          "answer": "JSON for i18next, vue-i18n, next-intl, and ngx-translate, plus XLIFF, YAML, Flutter ARB, Java/Spring .properties, Apple .strings and Xcode String Catalogs, Android strings.xml, gettext .po/.pot files, INI, and .NET .resx. That covers React, Next.js, Vue, Nuxt, Angular, SvelteKit, Astro, Node.js, Spring, Flutter, iOS, macOS, Android, and any gettext-based stack. Verbatra reads the files you already have; there is no Verbatra-specific format to migrate to."
+          "question": "Which formats does Verbatra support?",
+          "answer": "Verbatra reads and writes {formats} in place. There is no Verbatra format to migrate to, and the <link>formats page</link> shows how each one is read and written."
         },
         "ci": {
           "question": "Can I run Verbatra in CI?",
-          "answer": "Yes. verbatra check calls no provider and exits 1 while a locale has missing or stale keys, so it gates a pull request without an API key. The GitHub Action runs check, diff or translate and reports the result as annotations and a job summary."
+          "answer": "Yes. verbatra check calls no provider and exits 1 while a locale has missing or stale keys, so it gates a pull request without an API key. The <link>GitHub Action</link> runs check, diff or translate and reports the result as annotations and a job summary."
         },
         "keys": {
           "question": "Where do my API keys go?",
-          "answer": "Into environment variables, never into the config. The config rejects keys it does not know, so a secret cannot end up there by mistake. The CLI loads .env.local and .env for you, and an error names the missing variable but never prints a key."
+          "answer": "Into environment variables, never into the config file. The CLI reads them from your shell, .env.local or .env, and an error names a missing variable without printing a key; <link>provider keys</link> lists the variable for each provider."
         },
         "privacy": {
           "question": "Does Verbatra send my strings anywhere?",
-          "answer": "Only to the translation provider you configure, and only when a command translates. Verbatra has no telemetry, analytics, or update check. You can switch machine translation off entirely, or run a model on your own hardware so nothing leaves your network. The <dataHandling>data handling page</dataHandling> lists what each provider receives and links each vendor's retention terms."
+          "answer": "Only to the translation provider you configure, and only when a command translates. Verbatra has no telemetry, analytics or update check, and the <link>data handling page</link> lists what each provider receives and links its retention terms."
         },
         "cost": {
           "question": "What does Verbatra cost?",
-          "answer": "Verbatra itself is free and open source under the <license>MIT license</license>. The only cost is your provider's usage, which you control: it translates only what changed, and you can run it for free on Gemini's free tier or a local OpenAI-compatible model. Google's terms let it use free-tier requests to improve its products in some regions, so keep confidential strings on a paid tier or a local model; the <dataHandling>data handling page</dataHandling> links the current terms."
+          "answer": "Nothing: Verbatra is free and open source under the <license>MIT license</license>. You pay only your provider's usage for the keys that changed, and <link>estimating cost</link> sizes a run before it sends anything."
         },
         "studio": {
           "question": "Is Verbatra Studio a hosted service?",
-          "answer": "No. You start it in your project with verbatra studio, and it serves a dashboard on your machine. It calls no provider unless you start it with --allow-spend."
+          "answer": "No. verbatra studio serves the dashboard from your own machine, inside your project, and calls no provider unless you <link>allow spending</link> when you start it."
+        },
+        "playground": {
+          "question": "Is the playground live?",
+          "answer": "No. It replays translations recorded in real Verbatra SDK runs with {provider}, which the maintainer generates with a script and commits with the site, so pressing Translate sends nothing to a provider. The <link>SDK quickstart</link> runs the same call against your own files."
         }
       }
     },

@@ -1,0 +1,41 @@
+"use client";
+
+import { useEffect } from "react";
+
+const QUESTION_SELECTOR = "[data-faq] > summary";
+
+function nextIndex(key: string, current: number, count: number): number | null {
+  switch (key) {
+    case "ArrowDown":
+      return (current + 1) % count;
+    case "ArrowUp":
+      return (current - 1 + count) % count;
+    case "Home":
+      return 0;
+    case "End":
+      return count - 1;
+    default:
+      return null;
+  }
+}
+
+export function moveFaqFocus(list: HTMLElement, event: KeyboardEvent): void {
+  const questions = Array.from(list.querySelectorAll<HTMLElement>(QUESTION_SELECTOR));
+  const current = questions.indexOf(event.target as HTMLElement);
+  if (current === -1) return;
+  const target = nextIndex(event.key, current, questions.length);
+  if (target === null) return;
+  event.preventDefault();
+  questions[target]?.focus();
+}
+
+export function FaqKeys({ listId }: { listId: string }): null {
+  useEffect(() => {
+    const list = document.getElementById(listId);
+    if (list === null) return;
+    const onKeyDown = (event: KeyboardEvent) => moveFaqFocus(list, event);
+    list.addEventListener("keydown", onKeyDown);
+    return () => list.removeEventListener("keydown", onKeyDown);
+  }, [listId]);
+  return null;
+}

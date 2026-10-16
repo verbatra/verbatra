@@ -32,38 +32,55 @@
     },
     "faq": {
       "heading": "Questions fréquentes.",
+      "lead": "Des réponses courtes sur le coût, les clés, tes données et ce qui est publié aujourd’hui, chacune avec la page de documentation qui va plus loin.",
+      "docs": {
+        "label": "Dans la documentation",
+        "quickstart": "Démarrage rapide",
+        "keys": "Clés des fournisseurs",
+        "dataHandling": "Traitement des données",
+        "safety": "Sûreté de la traduction",
+        "compare": "Comparaison complète"
+      },
       "items": {
         "incremental": {
           "question": "Comment Verbatra évite-t-il de tout retraduire à chaque exécution ?",
-          "answer": "Il tient un fichier de verrouillage commité qui enregistre ce qui a déjà été traduit. Chaque exécution compare ta locale source à ce fichier de verrouillage et n’envoie que les clés nouvelles ou modifiées à ton fournisseur. Les clés inchangées ne sont jamais touchées, donc une exécution typique coûte une poignée de chaînes, pas tout ton catalogue."
+          "answer": "Il ne traduit que ce qui a changé. Un <link>fichier de verrouillage</link> commité enregistre ce qui a déjà été traduit, donc chaque exécution n’envoie à ton fournisseur que les clés nouvelles ou modifiées et laisse le reste intact."
         },
         "providers": {
           "question": "Quels fournisseurs de traduction puis-je utiliser ?",
-          "answer": "N’importe lequel de ceux-ci, derrière une seule interface : Anthropic, OpenAI et Gemini (LLM), DeepL et Google Cloud Translation (traduction automatique), openai-compatible, qui pointe Verbatra vers un serveur local ou auto-hébergé comme Ollama, LM Studio ou vLLM, et libretranslate, un serveur LibreTranslate auto-hébergé pour la traduction automatique sans aucun modèle de langage. Tu en choisis un par son id dans le bloc provider de ta configuration, et tu en changes plus tard en réécrivant ce bloc, car chaque fournisseur a ses propres options. Gemini a une vraie offre gratuite, et un modèle local ne coûte rien par appel. Ou mets le fournisseur sur none pour désactiver complètement la traduction automatique."
+          "answer": "Des LLM hébergés, des moteurs de traduction automatique ou un modèle que tu fais tourner toi-même, tous derrière une seule interface. Tu en choisis un par son id dans le bloc provider de ta configuration et tu en changes en réécrivant ce bloc ; la <link>page des fournisseurs</link> détaille chacun avec ses options."
+        },
+        "npm": {
+          "question": "Quels fournisseurs sont sur npm aujourd’hui ?",
+          "answer": "Verbatra {version}, la version actuelle sur npm, inclut {providers}.{pending, select, yes { La version {next} ajoute {upcoming}.} other {}} La <link>page des fournisseurs</link> décrit chacun."
         },
         "formats": {
-          "question": "Quels formats et frameworks Verbatra prend-il en charge ?",
-          "answer": "JSON pour i18next, vue-i18n, next-intl et ngx-translate, ainsi que XLIFF, YAML, Flutter ARB, Java/Spring .properties, Apple .strings et les String Catalogs de Xcode, Android strings.xml, les fichiers gettext .po/.pot, INI et .NET .resx. Cela couvre React, Next.js, Vue, Nuxt, Angular, SvelteKit, Astro, Node.js, Spring, Flutter, iOS, macOS, Android et toute stack basée sur gettext. Verbatra lit les fichiers que tu as déjà ; il n’y a aucun format propre à Verbatra vers lequel migrer."
+          "question": "Quels formats Verbatra prend-il en charge ?",
+          "answer": "Verbatra lit et écrit {formats} directement dans tes fichiers. Il n’y a aucun format propre à Verbatra vers lequel migrer, et la <link>page des formats</link> montre comment chacun est lu et écrit."
         },
         "ci": {
           "question": "Puis-je exécuter Verbatra en CI ?",
-          "answer": "Oui. verbatra check n’appelle aucun fournisseur et se termine avec le code 1 tant qu’une locale a des clés manquantes ou obsolètes, donc il bloque une pull request sans clé d’API. La GitHub Action exécute check, diff ou translate et rapporte le résultat sous forme d’annotations et d’un résumé du job."
+          "answer": "Oui. verbatra check n’appelle aucun fournisseur et se termine avec le code 1 tant qu’une locale a des clés manquantes ou obsolètes, donc il bloque une pull request sans clé d’API. La <link>GitHub Action</link> exécute check, diff ou translate et rapporte le résultat sous forme d’annotations et d’un résumé du job."
         },
         "keys": {
           "question": "Où vont mes clés d’API ?",
-          "answer": "Dans des variables d’environnement, jamais dans la configuration. La configuration rejette les clés qu’elle ne connaît pas, donc un secret ne peut pas s’y retrouver par erreur. La CLI charge .env.local et .env pour toi, et une erreur nomme la variable manquante mais n’affiche jamais une clé d’API."
+          "answer": "Dans des variables d’environnement, jamais dans le fichier de configuration. La CLI les lit dans ton shell, dans .env.local ou dans .env, et une erreur nomme la variable manquante sans afficher de clé d’API ; <link>clés des fournisseurs</link> indique la variable de chaque fournisseur."
         },
         "privacy": {
           "question": "Verbatra envoie-t-il mes textes quelque part ?",
-          "answer": "Seulement au fournisseur de traduction que tu configures, et seulement quand une commande traduit. Verbatra n’a ni télémétrie, ni statistiques d’usage, ni vérification de mise à jour. Tu peux couper complètement la traduction automatique, ou faire tourner un modèle sur ton propre matériel pour que rien ne quitte ton réseau. La <dataHandling>page sur le traitement des données</dataHandling> détaille ce que reçoit chaque fournisseur et renvoie vers les conditions de conservation de chaque éditeur."
+          "answer": "Seulement au fournisseur de traduction que tu configures, et seulement quand une commande traduit. Verbatra n’a ni télémétrie, ni statistiques d’usage, ni vérification de mise à jour, et la <link>page sur le traitement des données</link> détaille ce que reçoit chaque fournisseur et renvoie vers ses conditions de conservation."
         },
         "cost": {
           "question": "Combien coûte Verbatra ?",
-          "answer": "Verbatra lui-même est gratuit et open source sous <license>licence MIT</license>. Le seul coût est l’usage de ton fournisseur, et c’est toi qui le contrôles : il ne traduit que ce qui a changé, et tu peux le faire tourner gratuitement sur l’offre gratuite de Gemini ou sur un modèle local compatible OpenAI. Les conditions de Google lui permettent, dans certaines régions, d’utiliser les requêtes de l’offre gratuite pour améliorer ses produits : garde donc les textes confidentiels sur une offre payante ou un modèle local ; la <dataHandling>page sur le traitement des données</dataHandling> renvoie vers les conditions actuelles."
+          "answer": "Rien : Verbatra est gratuit et open source sous <license>licence MIT</license>. Tu ne paies que l’usage de ton fournisseur pour les clés qui ont changé, et <link>estimer le coût</link> dimensionne une exécution avant qu’elle n’envoie quoi que ce soit."
         },
         "studio": {
           "question": "Verbatra Studio est-il un service hébergé ?",
-          "answer": "Non. Tu le lances dans ton projet avec verbatra studio, et il sert un tableau de bord sur ta machine. Il n’appelle aucun fournisseur sauf si tu le lances avec --allow-spend."
+          "answer": "Non. verbatra studio sert le tableau de bord depuis ta propre machine, dans ton projet, et n’appelle aucun fournisseur sauf si tu <link>autorises les dépenses</link> au démarrage."
+        },
+        "playground": {
+          "question": "Le playground est-il en direct ?",
+          "answer": "Non. Il rejoue des traductions enregistrées lors de vraies exécutions du SDK Verbatra avec {provider}, que le mainteneur génère avec un script et commite avec le site, donc appuyer sur Traduire n’envoie rien à un fournisseur. Le <link>démarrage rapide du SDK</link> fait le même appel sur tes propres fichiers."
         }
       }
     },

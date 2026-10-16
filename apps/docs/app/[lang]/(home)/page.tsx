@@ -5,7 +5,7 @@ import { JsonLd } from "@/components/json-ld";
 import { Bento } from "@/components/landing/bento";
 import { CodeShowcase } from "@/components/landing/code-showcase";
 import { Compare } from "@/components/landing/compare";
-import { Faq, type FaqEntry } from "@/components/landing/faq";
+import { Faq, faqContent } from "@/components/landing/faq";
 import { FinalCta } from "@/components/landing/final-cta";
 import { Flow } from "@/components/landing/flow";
 import { Hero } from "@/components/landing/hero";
@@ -25,7 +25,7 @@ import {
   STUDIO_VERSION,
 } from "@/lib/site";
 import { homeOgImagePath, socialMetadata } from "@/lib/social-metadata";
-import { type FaqItem, faqPageLd, softwareApplicationLd } from "@/lib/structured-data";
+import { faqPageLd, softwareApplicationLd } from "@/lib/structured-data";
 
 export default async function HomePage(props: { params: Promise<{ lang: string }> }) {
   const { lang } = await props.params;
@@ -33,13 +33,7 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "landing" });
 
-  const faqItems: ReadonlyArray<FaqItem & FaqEntry> = Object.entries(
-    t.raw("faq.items") as Record<string, FaqItem>,
-  ).map(([id, item]) => ({ ...item, id }));
-  const faqQuestions: ReadonlyArray<FaqEntry> = faqItems.map(({ id, question }) => ({
-    id,
-    question,
-  }));
+  const faqItems = (await faqContent(locale)).map(({ question, answer }) => ({ question, answer }));
 
   const sections: Readonly<Record<LandingSectionId, ReactNode>> = {
     hero: <Hero />,
@@ -52,7 +46,7 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
     code: <CodeShowcase />,
     compare: <Compare />,
     openSource: <OpenSource />,
-    faq: <Faq items={faqQuestions} />,
+    faq: <Faq locale={locale} />,
     finalCta: <FinalCta />,
   };
 

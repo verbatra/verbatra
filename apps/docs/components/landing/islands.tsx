@@ -30,10 +30,6 @@ export const LiveStatValue = island(() => import("./live-stat-value").then((m) =
 export const LiveStatFallback = island(() =>
   import("./live-stat-value").then((m) => m.LiveStatFallback),
 );
-export const FaqAccordion = island(
-  () => import("./faq-accordion").then((m) => m.FaqAccordion),
-  BLOCK,
-);
 export const CommandRow = intlIsland(
   () => import("@/components/command-row").then((m) => m.CommandRow),
   BLOCK,
@@ -52,7 +48,6 @@ await preloadIslands([
   TryIt,
   LiveStatValue,
   LiveStatFallback,
-  FaqAccordion,
   CommandRow,
   CopyButton,
 ]);

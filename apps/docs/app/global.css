@@ -399,6 +399,113 @@ html.light {
   min-width: 0;
 }
 
+.vk-faq-docs {
+  margin-top: 1.5rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.vk-faq-docs-label {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.vk-faq-docs ul {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vk-faq {
+  border-top: 1px solid var(--border-default);
+}
+
+.vk-faq-item {
+  border-bottom: 1px solid var(--border-default);
+}
+
+.vk-faq-summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding-block: 1.25rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.vk-faq-summary::-webkit-details-marker {
+  display: none;
+}
+
+.vk-faq-summary:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 4px;
+  border-radius: var(--radius-sm);
+}
+
+.vk-faq-question {
+  margin: 0;
+  font-size: var(--text-h4);
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text-strong);
+}
+
+.vk-faq-summary:hover .vk-faq-question {
+  color: var(--accent);
+}
+
+.vk-faq-mark {
+  position: relative;
+  flex: none;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 1px solid var(--text-faint);
+  border-radius: var(--radius-sm);
+}
+
+.vk-faq-mark::before,
+.vk-faq-mark::after {
+  content: "";
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 0.75rem;
+  height: 2px;
+  margin: -1px 0 0 -0.375rem;
+  background: var(--accent);
+}
+
+.vk-faq-mark::after {
+  transform: rotate(90deg);
+}
+
+.vk-faq-item[open] .vk-faq-mark {
+  border-color: var(--accent-fill);
+  background: var(--accent-fill);
+}
+
+.vk-faq-item[open] .vk-faq-mark::before {
+  background: var(--accent-fill-fg);
+}
+
+.vk-faq-item[open] .vk-faq-mark::after {
+  display: none;
+}
+
+.vk-faq-answer {
+  max-width: 64ch;
+  margin: 0;
+  padding-bottom: 1.5rem;
+  font-size: var(--text-base);
+  line-height: 1.7;
+  color: var(--text-muted);
+}
+
 .vk-bento-head {
   margin-block-end: calc(var(--head-gap) - var(--grid-gap));
 }

@@ -1,34 +1,51 @@
 // @vitest-environment jsdom
 
+import { readFileSync } from "node:fs";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { i18n, type Locale } from "@/lib/i18n";
+import {
+  FAQ_ANSWER_LINKS,
+  FAQ_ASIDE_LINKS,
+  FAQ_ITEM_IDS,
+  faqHref,
+  publishedProviders,
+} from "@/lib/landing-faq";
+import { providerShortLabel } from "@/lib/landing-providers";
+import { PACKAGE_VERSION } from "@/lib/site";
+import { faqPageLd } from "@/lib/structured-data";
+import de from "@/messages/de.json";
 import en from "@/messages/en.json";
-import { preloadRegisteredIslands } from "@/test-support/islands";
+import es from "@/messages/es.json";
+import fr from "@/messages/fr.json";
+import { LICENSE_URL } from "./links";
 
-vi.mock("next-intl/server", () => ({
-  getTranslations: async () =>
-    Object.assign((key: string) => key, { rich: (key: string) => `answer:${key}` }),
-  getLocale: async () => "en",
-}));
+const CATALOGS = { en, de, es, fr } as const;
 
-const { Faq } = await import("./faq");
+vi.mock("next-intl/server", async () => {
+  const { createTranslator } = await import("next-intl");
+  const catalogs = {
+    en: (await import("@/messages/en.json")).default,
+    de: (await import("@/messages/de.json")).default,
+    es: (await import("@/messages/es.json")).default,
+    fr: (await import("@/messages/fr.json")).default,
+  };
+  return {
+    getTranslations: async ({ locale, namespace }: { locale: Locale; namespace: string }) =>
+      createTranslator({ locale, messages: catalogs[locale], namespace: namespace as never }),
+  };
+});
+
+const { Faq, faqContent } = await import("./faq");
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-const ITEMS = [
-  { id: "formats", question: "Which formats?" },
-  { id: "incremental", question: "Why incremental?" },
-  { id: "providers", question: "Which providers?" },
-];
-
-await preloadRegisteredIslands();
-
 let mounted: { container: HTMLDivElement; root: Root } | undefined;
 
-async function render(): Promise<HTMLDivElement> {
-  const element = await Faq({ items: ITEMS });
+async function render(locale: Locale): Promise<HTMLDivElement> {
+  const element = await Faq({ locale });
   const container = document.createElement("div");
   document.body.append(container);
   const root = createRoot(container);
@@ -49,12 +66,12 @@ afterEach(() => {
   container.remove();
 });
 
-function triggers(container: HTMLElement): ReadonlyArray<HTMLButtonElement> {
-  return [...container.querySelectorAll<HTMLButtonElement>("button[aria-expanded]")];
+function items(container: HTMLElement): ReadonlyArray<HTMLDetailsElement> {
+  return [...container.querySelectorAll<HTMLDetailsElement>("details[data-faq]")];
 }
 
-function expanded(container: HTMLElement): ReadonlyArray<string | null> {
-  return triggers(container).map((button) => button.getAttribute("aria-expanded"));
+function questions(container: HTMLElement): ReadonlyArray<HTMLElement> {
+  return [...container.querySelectorAll<HTMLElement>("details[data-faq] > summary")];
 }
 
 function press(target: HTMLElement, key: string): void {
@@ -63,78 +80,152 @@ function press(target: HTMLElement, key: string): void {
   });
 }
 
-describe("the landing faq", () => {
-  it("renders one trigger per item, each a button inside an h3", async () => {
-    const buttons = triggers(await render());
-    expect(buttons).toHaveLength(ITEMS.length);
-    for (const button of buttons) expect(button.parentElement?.tagName).toBe("H3");
-    expect(buttons.map((button) => button.textContent)).toEqual(ITEMS.map((item) => item.question));
+describe("the landing faq markup", () => {
+  it("renders one native disclosure per item, its question an h3 inside the summary", async () => {
+    const container = await render("en");
+    expect(items(container).map((item) => item.dataset.faq)).toEqual([...FAQ_ITEM_IDS]);
+    for (const summary of questions(container)) {
+      expect(summary.querySelector("h3")).not.toBeNull();
+    }
+    expect(container.querySelector("button, [aria-expanded]")).toBeNull();
   });
 
-  it("starts with every item collapsed", async () => {
-    expect(expanded(await render())).toEqual(ITEMS.map(() => "false"));
+  it("starts with every item closed and opens one through its summary without a script", async () => {
+    const container = await render("en");
+    expect(items(container).every((item) => !item.open)).toBe(true);
+    act(() => questions(container)[0]?.click());
+    expect(items(container)[0]?.open).toBe(true);
   });
 
-  it("opens only the item that was clicked, names its region by the trigger, and closes it again", async () => {
-    const container = await render();
-    const [first, second] = triggers(container);
-    act(() => first?.click());
-    expect(expanded(container)).toEqual(["true", "false", "false"]);
-    const region = container.querySelector(`#${first?.getAttribute("aria-controls")}`);
-    expect(region?.getAttribute("role")).toBe("region");
-    expect(region?.getAttribute("aria-labelledby")).toBe(first?.id);
-    act(() => second?.click());
-    expect(expanded(container)).toEqual(["false", "true", "false"]);
-    act(() => second?.click());
-    expect(expanded(container)).toEqual(["false", "false", "false"]);
+  it("puts every answer into the server HTML", async () => {
+    const markup = renderToStaticMarkup(await Faq({ locale: "en" }));
+    for (const item of await faqContent("en")) {
+      expect(markup).toContain(item.question.replace(/'/g, "&#x27;"));
+    }
+    expect(markup.match(/<details/g)).toHaveLength(FAQ_ITEM_IDS.length);
+    expect(markup).not.toContain("<details open");
   });
 
   it("moves focus between the questions with the arrow keys, Home and End", async () => {
-    const container = await render();
-    const buttons = triggers(container);
-    buttons[0]?.focus();
-    press(buttons[0] as HTMLButtonElement, "ArrowDown");
-    expect(document.activeElement).toBe(buttons[1]);
-    press(buttons[1] as HTMLButtonElement, "End");
-    expect(document.activeElement).toBe(buttons[2]);
-    press(buttons[2] as HTMLButtonElement, "Home");
-    expect(document.activeElement).toBe(buttons[0]);
+    const container = await render("en");
+    const list = questions(container);
+    list[0]?.focus();
+    press(list[0] as HTMLElement, "ArrowDown");
+    expect(document.activeElement).toBe(list[1]);
+    press(list[1] as HTMLElement, "ArrowUp");
+    expect(document.activeElement).toBe(list[0]);
+    press(list[0] as HTMLElement, "ArrowUp");
+    expect(document.activeElement).toBe(list.at(-1));
+    press(list.at(-1) as HTMLElement, "Home");
+    expect(document.activeElement).toBe(list[0]);
+    press(list[0] as HTMLElement, "End");
+    expect(document.activeElement).toBe(list.at(-1));
   });
 
-  it("server-renders every answer, so the page carries the text before any script runs", async () => {
-    const markup = renderToStaticMarkup(await Faq({ items: ITEMS }));
-    for (const item of ITEMS) expect(markup).toContain(`answer:items.${item.id}.answer`);
-  });
-
-  it("hides a closed answer from layout and assistive technology through its item's state", async () => {
-    const container = await render();
-    const item = container.querySelector('[data-faq="formats"]');
-    expect(item?.getAttribute("data-state")).toBe("closed");
-    expect(item?.className).toContain(
-      "[&[data-state=closed]>[data-slot=accordion-content]]:hidden",
-    );
+  it("stays a server section with no client island, only a keyboard helper", () => {
+    const read = (name: string) => readFileSync(new URL(name, import.meta.url), "utf8");
+    expect(read("./faq.tsx")).not.toMatch(/^"use client"/);
+    expect(read("./faq.tsx")).not.toContain("./islands");
+    expect(read("./faq-keys.tsx")).toMatch(/^"use client"/);
   });
 });
 
-describe("the landing faq copy", () => {
-  it("answers the landing's audience in a focused set of questions", async () => {
-    expect(Object.keys(en.landing.faq.items)).toEqual([
-      "incremental",
-      "providers",
-      "formats",
-      "ci",
-      "keys",
-      "privacy",
-      "cost",
-      "studio",
-    ]);
+describe.each(i18n.languages)("the landing faq in %s", (locale) => {
+  it("feeds the structured data exactly the questions and answers it renders", async () => {
+    const container = await render(locale);
+    const rendered = items(container).map((item) => ({
+      question: item.querySelector("h3")?.textContent,
+      answer: item.querySelector(".vk-faq-answer")?.textContent,
+    }));
+    const content = await faqContent(locale);
+    expect(rendered).toEqual(content.map(({ question, answer }) => ({ question, answer })));
+    const ld = faqPageLd({ items: content, lang: locale }) as {
+      mainEntity: ReadonlyArray<{ name: string; acceptedAnswer: { text: string } }>;
+    };
+    expect(ld.mainEntity.map((entry) => entry.name)).toEqual(rendered.map((r) => r.question));
+    expect(ld.mainEntity.map((entry) => entry.acceptedAnswer.text)).toEqual(
+      rendered.map((r) => r.answer),
+    );
   });
 
-  it("stays a server section whose only client island is the accordion, fed questions only", async () => {
-    const { readFileSync } = await import("node:fs");
-    const read = (name: string) => readFileSync(new URL(name, import.meta.url), "utf8");
-    expect(read("./faq.tsx")).not.toMatch(/^"use client"/);
-    expect(read("./faq-accordion.tsx")).toMatch(/^"use client"/);
-    expect(read("./faq-accordion.tsx")).not.toMatch(/answer/);
+  it("prints no raw placeholder or tag", async () => {
+    for (const { answer } of await faqContent(locale)) expect(answer).not.toMatch(/[{}<>]/);
   });
+
+  it("links each answer to its docs page in the reader's locale", async () => {
+    const container = await render(locale);
+    for (const id of FAQ_ITEM_IDS) {
+      const links = [
+        ...container.querySelectorAll<HTMLAnchorElement>(`[data-faq="${id}"] .vk-faq-answer a`),
+      ].filter((link) => link.getAttribute("href") !== LICENSE_URL);
+      expect(
+        links.map((link) => link.getAttribute("href")),
+        id,
+      ).toEqual([faqHref(locale, FAQ_ANSWER_LINKS[id])]);
+    }
+    const license = container.querySelector<HTMLAnchorElement>(`a[href="${LICENSE_URL}"]`);
+    expect(license?.getAttribute("target")).toBe("_blank");
+  });
+
+  it("lists the docs links beside the heading in the reader's locale, with no arrow", async () => {
+    const container = await render(locale);
+    const nav = container.querySelector("nav[aria-labelledby='faq-docs-label']");
+    const links = [...(nav?.querySelectorAll<HTMLAnchorElement>("a") ?? [])];
+    expect(links.map((link) => link.getAttribute("href"))).toEqual(
+      FAQ_ASIDE_LINKS.map(({ link }) => faqHref(locale, link)),
+    );
+    for (const link of links) expect(link.textContent).not.toMatch(/[←-⇿]/);
+    if (locale !== i18n.defaultLanguage) {
+      for (const link of links) expect(link.getAttribute("href")).toMatch(`/${locale}/`);
+    }
+  });
+
+  it("names the providers in the published release, from the single source", async () => {
+    const npm = (await faqContent(locale)).find((item) => item.id === "npm");
+    expect(npm?.answer).toContain(PACKAGE_VERSION);
+    for (const id of publishedProviders()) expect(npm?.answer).toContain(providerShortLabel(id));
+  });
+});
+
+const YES: Readonly<Record<Locale, string>> = { en: "Yes.", de: "Ja.", es: "Sí.", fr: "Oui." };
+const NO: Readonly<Record<Locale, string>> = { en: "No.", de: "Nein.", es: "No.", fr: "Non." };
+
+describe("the landing faq copy", () => {
+  it.each(i18n.languages)("keeps the items in the rendered order in %s", (locale) => {
+    expect(Object.keys(CATALOGS[locale].landing.faq.items)).toEqual([...FAQ_ITEM_IDS]);
+  });
+
+  it.each(i18n.languages)(
+    "gives every answer one docs link and uses no other tag than link and license in %s",
+    (locale) => {
+      for (const [id, { answer }] of Object.entries(CATALOGS[locale].landing.faq.items)) {
+        expect(answer.match(/<link>/g), id).toHaveLength(1);
+        const tags = new Set([...answer.matchAll(/<(\w+)>/g)].map((match) => match[1]));
+        expect(
+          [...tags].every((tag) => tag === "link" || tag === "license"),
+          id,
+        ).toBe(true);
+      }
+    },
+  );
+
+  it.each(i18n.languages)("opens the yes and no questions with the answer in %s", (locale) => {
+    const faq = CATALOGS[locale].landing.faq.items;
+    expect(faq.ci.answer.startsWith(YES[locale])).toBe(true);
+    expect(faq.studio.answer.startsWith(NO[locale])).toBe(true);
+    expect(faq.playground.answer.startsWith(NO[locale])).toBe(true);
+  });
+
+  it.each(i18n.languages)(
+    "keeps every answer to the answer and at most two more sentences in %s",
+    (locale) => {
+      for (const [id, { answer }] of Object.entries(CATALOGS[locale].landing.faq.items)) {
+        const sentences = answer
+          .replace(/\{pending,.*other \{\}\}/, "")
+          .split(/[.!?](?:\s|$)/)
+          .filter((part) => part.trim() !== "");
+        expect(sentences.length, id).toBeLessThanOrEqual(3);
+      }
+    },
+  );
 });

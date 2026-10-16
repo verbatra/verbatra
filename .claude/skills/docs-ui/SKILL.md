@@ -69,7 +69,7 @@ dashboard in `packages/studio` (different app, different stack), or anything out
   ```
 
   `tw-animate-css` supplies the enter and exit utilities the shadcn primitives use
-  (`animate-in`, `fade-in-0`, `animate-accordion-down`); a `prefers-reduced-motion: reduce` rule
+  (`animate-in`, `fade-in-0`); a `prefers-reduced-motion: reduce` rule
   on `[data-slot][data-state]` turns them off.
 
 - `@source "../node_modules/fumadocs-ui/dist/**/*.js";` makes Tailwind scan the
@@ -169,8 +169,8 @@ Scales are fixed and narrow, deliberately:
   the scrollbar) is the width of the `.vk-prompt-pop` preview. `--head-gap` (2.5rem, 3.5rem from 64rem) is the one space
   between a section head and its content: the margin over the flow list (and, under 64rem, under
   the bento head through `.vk-bento-head`), the
-  problem, code showcase, comparison, open source and FAQ content (`mt-(--head-gap)`), the row gap
-  of `.vk-section-aside` and of the playground grid; `section-bands.test.tsx` fails on an ad hoc
+  problem, code showcase, comparison and open source content (`mt-(--head-gap)`), the row gap
+  of `.vk-section-aside` (the marquee and the FAQ) and of the playground grid; `section-bands.test.tsx` fails on an ad hoc
   `mt-10` or `lg:mt-14` there. `.vk-grid-12` is the landing grid: one column under 64rem,
   then `--grid-columns` (12) columns with a `--grid-gap` (24px) gap, where each child spans
   `--grid-span` columns (the full row when unset), starting on `--grid-start` when set (the open
@@ -183,18 +183,19 @@ Scales are fixed and narrow, deliberately:
   artifact rather than over it: the SDK playground renders it on the server as a sibling before
   its island, and its grid puts it at the top of the control column next to the sticky snippet;
   the bento sets it in the first cell of its tile grid, beside the keys tile).
-  A split head without a lead renders stacked (FAQ); `stacked` and `inline`
+  A split head without a lead renders stacked; `stacked` and `inline`
   keep their shape either way. `SectionHead` is the head only and takes no children.
   `SectionAside` (same file) is the head beside its content: a `.vk-section-aside` `.vk-grid-12`
   with the stacked heading and lead (`data-layout="aside"`) in span 4 at the start and its
   `children` in `.vk-section-aside-content`, span 8, top-aligned; one column, head first, under
-  64rem: the marquee. `section-bands.test.tsx` renders each section and pins the head shape it
+  64rem: the marquee and the FAQ. Its optional `aside` renders under the lead in the head column
+  (the FAQ's docs link list). `section-bands.test.tsx` renders each section and pins the head shape it
   draws, so the page never goes back to one head shape everywhere.
 - Landing surfaces: `--surface-band` (mixed from `--surface-card` and
   `--surface-bg`, never a raw value), the fill of `.vk-band`: `Section` with `band` renders a
   full-width `section.vk-band` (between two `--border-default` hairlines, `--section-sm` above it
   and `--section-md` padding inside) around the usual `.vk-gutter` column: the marquee under the
-  hero, the feature flow, the code showcase, the comparison and the FAQ are banded, the SDK
+  hero, the feature flow, the code showcase and the comparison are banded, the FAQ sits on the page, the SDK
   playground between the marquee and the flow, the problem, features and open source sections sit
   on the void, and the code showcase and the comparison sit next to each other until the code
   showcase retires (`section-bands.test.tsx` pins the order). The hero draws no
@@ -289,8 +290,8 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
 - **shadcn/ui primitives:** `components.json` (style `new-york`, Tailwind 4 with an empty
   `tailwind.config`, `cssVariables`) points the `ui` alias at `@/components/ui/shadcn`, so the
   CLI never overwrites the hand-written `components/ui/button.tsx` and `tabs.tsx`. That folder
-  holds `accordion` and `sheet`, taken from the new-york-v4 registry
-  with two changes: each imports its own `@radix-ui/react-*` package (the versions Fumadocs
+  holds `sheet`, taken from the new-york-v4 registry
+  with two changes: it imports its own `@radix-ui/react-dialog` package (the versions Fumadocs
   already resolves) instead of the `radix-ui` meta package, and
   `SheetContent` takes a `closeLabel` (a translated string; no close button without it) instead of
   the hard-coded English "Close". `cn` is `lib/utils.ts`. The shadcn color names are mapped in one
@@ -422,13 +423,20 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   section on `landing.closing`, set on the page gutter with no card border or inset, a `section` whose `vk-final-cta` class is a hook with no stylesheet rule, the install `CommandRow` counted with `location: final-cta`, then Get
   started and Read the docs). The footer is not a section; `app/[lang]/(home)/layout.tsx` passes
   it to the home layout. Section ids are unique; never render two sections that claim the same one.
-  The FAQ is a server section (`faq.tsx`, fed only each item's `id` and `question`; it renders the
-  answers from `landing.faq` on the server and hands each as server-rendered `content`) whose one
-  client island is `FaqAccordion` (`faq-accordion.tsx`), the shadcn `Accordion` (`type="single"`, collapsible): each question is a Radix
-  trigger inside an `h3`, arrow keys, Home and End move between them, opening one counts
-  `open-faq` with its key, and every answer is force-mounted, so the server HTML carries it while a
-  closed item hides it (`[data-state=closed]` on the item). Answers link with the `dataHandling`
-  and `license` tags only. `FORMAT_DISPLAY` in `lib/landing-facts.ts` is every format's display
+  The FAQ (`faq.tsx`, page surface, `SectionAside`: heading, lead and a `nav` of docs links in the
+  head column, the questions beside it) has no client island: each item is a native
+  `details`/`summary`, rendered closed on the server with its question in an `h3` inside the
+  summary and its answer in the HTML, so it opens and reads without JavaScript. The open state
+  swaps the `.vk-faq-mark` plus (a `--text-faint` boundary, `--accent` bars) for a filled minus
+  (`--accent-fill`) with no transition. `faq-keys.tsx` is a null-rendering client helper that adds
+  arrow keys, Home and End between the summaries. `faqContent` (same file) builds each item's
+  question, rich answer and plain answer from one translator call, and the home page feeds the
+  plain ones to `faqPageLd`, so the FAQPage JSON-LD always equals the visible text. Ids, order and
+  links live in `lib/landing-faq.ts`; answers use a `link` tag (that item's docs page, localized)
+  and `license` only. Facts that change with a release come in as values, never typed: the npm
+  answer lists `publishedProviders()` (`MACHINE_PROVIDER_IDS` whose `RELEASE_BADGE` version is at
+  most `PACKAGE_VERSION`) and names the rest with the badge version, the formats answer reads
+  `FORMAT_DISPLAY`, and the playground answer names `PLAYGROUND_METADATA.provider`. `FORMAT_DISPLAY` in `lib/landing-facts.ts` is every format's display
   label, which the structured data's format list reads too, so a new format fails to
   compile until it has one. The marquee (`marquee.tsx`, `#marquee`, a band right under the
   hero, its `SectionAside` head at the start of the band and the rows beside it at the end from

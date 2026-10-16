@@ -77,7 +77,7 @@ describe("landing surface bands", () => {
         "open-source.tsx",
         "faq.tsx",
       ].map(banded),
-    ).toEqual([true, false, true, false, false, true, true, false, true]);
+    ).toEqual([true, false, true, false, false, true, true, false, false]);
   });
 
   it("names a section by its heading through aria-labelledby, banded or not", () => {
@@ -158,13 +158,7 @@ describe("the section head on the 12-column grid", () => {
     expect(css).toMatch(
       /\.vk-bento-head \{\s+margin-block-end: calc\(var\(--head-gap\) - var\(--grid-gap\)\);/,
     );
-    for (const file of [
-      "code-showcase.tsx",
-      "compare.tsx",
-      "faq.tsx",
-      "open-source.tsx",
-      "problem.tsx",
-    ]) {
+    for (const file of ["code-showcase.tsx", "compare.tsx", "open-source.tsx", "problem.tsx"]) {
       const source = readFileSync(join(import.meta.dirname, file), "utf8");
       expect(source, file).toContain("mt-(--head-gap)");
       expect(source, file).not.toMatch(/\b(?:lg:)?mt-1[0-4]\b/);
@@ -197,7 +191,7 @@ describe("the section head on the 12-column grid", () => {
       ["playground", Playground],
       ["compare", Compare],
       ["open-source", OpenSource],
-      ["faq", () => Faq({ items: [{ id: "formats", question: "Which formats?" }] })],
+      ["faq", () => Faq({ locale: "en" })],
     ];
     const layouts: Record<string, string | null> = {};
     for (const [id, section] of sections) {
@@ -217,7 +211,7 @@ describe("the section head on the 12-column grid", () => {
       playground: "inline",
       compare: "split",
       "open-source": "split",
-      faq: "heading",
+      faq: "aside",
     });
   });
 });

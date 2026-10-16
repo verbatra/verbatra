@@ -24,12 +24,10 @@ const ISLAND_MODULES = [
   "./flow-motion",
   "./try-it",
   "./live-stat-value",
-  "./faq-accordion",
   "@/components/landing/command-panel",
   "@/components/landing/live-stat-value",
   "@/components/command-row",
   "@/components/ui/copy-button",
-  "@/components/ui/shadcn/accordion",
 ];
 
 const landingServerModules = readdirSync(join(ROOT, "components/landing"))

@@ -21,3 +21,17 @@ export function providerReleaseBadge(id: MachineProviderId): string | null {
 export function featureReleaseBadge(feature: ReleaseFeature): string | null {
   return RELEASE_BADGE.features.includes(feature) ? RELEASE_BADGE.version : null;
 }
+
+function versionParts(version: string): ReadonlyArray<number> {
+  return version.split(".").map((part) => Number.parseInt(part, 10));
+}
+
+export function versionAtLeast(version: string, minimum: string): boolean {
+  const actual = versionParts(version);
+  const wanted = versionParts(minimum);
+  for (let index = 0; index < 3; index += 1) {
+    const difference = (actual[index] ?? 0) - (wanted[index] ?? 0);
+    if (difference !== 0) return difference > 0;
+  }
+  return true;
+}
