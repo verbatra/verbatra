@@ -13,6 +13,10 @@ const config: KnipConfig = {
 
     "apps/docs": {
       entry: ["verbatra.config.ts"],
+      playwright: {
+        config: ["playwright.config.ts"],
+        entry: ["e2e/**/*.spec.ts"],
+      },
       ignoreDependencies: ["@verbatra/studio"],
       ignoreFiles: [
         "lib/format-samples-seed.d.mts",
