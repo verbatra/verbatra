@@ -91,6 +91,26 @@ test.describe("full comparison table", () => {
     await expectNoHorizontalScroll(page);
   });
 
+  for (const width of [1024, 1440]) {
+    test(`keeps every focused footnote clear of the pinned column at ${width}px`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/compare");
+      const sticky = await page.locator("main tbody tr:first-child th").boundingBox();
+      const refs = page.locator('main tr[data-row="license"] td [data-footnotes] a');
+      await refs.last().focus();
+      for (let index = (await refs.count()) - 1; index >= 0; index -= 1) {
+        await expect(refs.nth(index)).toBeFocused();
+        const box = await refs.nth(index).boundingBox();
+        expect(box?.x ?? 0, `ref ${index}`).toBeGreaterThanOrEqual(
+          (sticky?.x ?? 0) + (sticky?.width ?? 0) - 1,
+        );
+        if (index > 0) await page.keyboard.press("Shift+Tab");
+      }
+    });
+  }
+
   test("tells a wide screen that the table scrolls sideways", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/compare");
