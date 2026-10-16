@@ -12,6 +12,7 @@ import {
   LICENSE_URL,
   NPM_CLI,
   NPM_MCP,
+  NPM_ORG,
   NPM_SDK,
   NPM_STUDIO,
   RELEASES_URL,
@@ -58,6 +59,7 @@ const FOOTER_COLS: ReadonlyArray<FooterCol> = [
       { labelKey: "cols.learn.formats", href: "/docs/formats", localized: true },
       { labelKey: "cols.learn.lockFile", href: "/docs/the-lock-file", localized: true },
       { labelKey: "cols.learn.configFile", href: "/docs/config-file", localized: true },
+      { labelKey: "cols.learn.compare", href: "/compare", localized: true },
     ],
   },
   {
@@ -84,6 +86,7 @@ const FOOTER_COLS: ReadonlyArray<FooterCol> = [
         href: RELEASES_URL,
         external: true,
       },
+      { literal: "@verbatra/cli", href: NPM_CLI, external: true },
       { literal: "@verbatra/sdk", href: NPM_SDK, external: true },
       {
         literal: "@verbatra/studio",
@@ -146,21 +149,8 @@ export async function FullFooter(): Promise<ReactNode> {
   const t = await getTranslations("landing.footer");
   const locale = toLocale(await getLocale());
   return (
-    <footer
-      className="relative overflow-hidden"
-      style={{
-        background: "linear-gradient(to bottom, var(--surface-band), var(--surface-bg))",
-      }}
-    >
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-px"
-        style={{
-          background:
-            "linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 55%, transparent) 50%, transparent)",
-        }}
-      />
-      <div className="vk-gutter vk-w-wide relative z-10 mx-auto py-12 md:py-16">
+    <footer className="vk-footer">
+      <div className="vk-gutter vk-w-wide mx-auto py-12 md:py-16">
         <div className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-3 md:gap-x-8 md:gap-y-12 lg:grid-cols-[1.4fr_repeat(5,1fr)]">
           <div className="col-span-2 md:col-span-3 lg:col-span-1">
             <span className="inline-flex items-center gap-2.5">
@@ -187,7 +177,7 @@ export async function FullFooter(): Promise<ReactNode> {
                 <span>GitHub</span>
               </a>
               <a
-                href={NPM_CLI}
+                href={NPM_ORG}
                 target="_blank"
                 rel="noreferrer noopener"
                 aria-label={t("npmAria")}

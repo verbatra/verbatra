@@ -201,7 +201,8 @@
           "providers": "Providers",
           "formats": "Formats",
           "lockFile": "The lock file",
-          "configFile": "Config file"
+          "configFile": "Config file",
+          "compare": "Comparison"
         },
         "community": {
           "title": "Community",

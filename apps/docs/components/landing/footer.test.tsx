@@ -122,6 +122,50 @@ describe("FullFooter", () => {
     );
   });
 
+  it("sits on a flat band under one hairline, with no gradient wash or gradient rule", async () => {
+    const doc = await renderFooter();
+    const footer = doc.querySelector("footer");
+    expect(footer?.className).toBe("vk-footer");
+    expect(footer?.getAttribute("style")).toBeNull();
+    const source = readFileSync(join(process.cwd(), "components/landing/footer.tsx"), "utf8");
+    expect(source).not.toContain("gradient");
+    const css = readFileSync(join(process.cwd(), "app/global.css"), "utf8");
+    const start = css.indexOf(".vk-footer {");
+    const rule = css.slice(start, css.indexOf("}", start));
+    expect(rule).toContain("background: var(--surface-band);");
+    expect(rule).toContain("border-top: 1px solid var(--border-default);");
+  });
+
+  it.each([
+    ["en", ""],
+    ["de", "/de"],
+  ])(
+    "links the changelog, the npm org, every package and the %s comparison page",
+    async (locale, prefix) => {
+      localeState.current = locale;
+      try {
+        const doc = await renderFooter();
+        const hrefs = Array.from(doc.querySelectorAll("a")).map((link) =>
+          link.getAttribute("href"),
+        );
+        expect(hrefs).toEqual(
+          expect.arrayContaining([
+            "https://github.com/verbatra/verbatra",
+            "https://github.com/verbatra/verbatra/releases",
+            "https://www.npmjs.com/org/verbatra",
+            "https://www.npmjs.com/package/@verbatra/cli",
+            "https://www.npmjs.com/package/@verbatra/sdk",
+            "https://www.npmjs.com/package/@verbatra/studio",
+            "https://www.npmjs.com/package/@verbatra/mcp",
+            `${prefix}/compare`,
+          ]),
+        );
+      } finally {
+        localeState.current = "en";
+      }
+    },
+  );
+
   it("leaves the NEW status to the docs sidebar and draws no status pill in a footer link", async () => {
     const doc = await renderFooter();
 

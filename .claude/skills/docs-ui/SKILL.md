@@ -458,7 +458,14 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   `CommandRow` in `.vk-final-install` (36rem, its command start-aligned) and `.vk-closer-actions`:
   Get started (`/docs/quickstart`) and the repository on GitHub as a plain `secondary` anchor in a
   new tab with the `sr-only` `landing.openSource.newTab`; no card, wash or glow). The footer is not a section; `app/[lang]/(home)/layout.tsx` passes
-  it to the home layout. Section ids are unique; never render two sections that claim the same one.
+  it to the home layout (the landing and `/compare`). `FullFooter` (`footer.tsx`, `footer.vk-footer`) is one flat
+  `--surface-band` under a `--border-default` top hairline, with no gradient wash and no gradient
+  rule: the wordmark, tagline, GitHub and the npm org (`NPM_ORG`), then grouped link columns
+  (product docs; files for AI agents; learn, ending in the localized `/compare`; community with the
+  contributor guide, code of conduct, security policy, release notes as the changelog and every
+  package on npm; legal with the license, Impressum, privacy, contact and `/licenses`). It has no
+  locale switch: the header's language select is the one switch. `e2e/footer.spec.ts` checks the
+  surface and every same-site link in all four locales. Section ids are unique; never render two sections that claim the same one.
   The FAQ (`faq.tsx`, on the page surface `--v-void`, `SectionAside` with `.vk-faq-aside`: the
   heading and lead in the head column, the questions beside it, then a `nav` of docs links that
   follows the list in the DOM, so a phone reads the questions first, and that sits under the head

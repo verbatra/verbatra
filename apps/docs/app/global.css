@@ -696,6 +696,11 @@ html.light {
   }
 }
 
+.vk-footer {
+  border-top: 1px solid var(--border-default);
+  background: var(--surface-band);
+}
+
 .vk-final-cta {
   padding-block: var(--section-closer) var(--section-md);
 }

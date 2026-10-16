@@ -102,7 +102,8 @@
           "providers": "Proveedores",
           "formats": "Formatos",
           "lockFile": "El archivo de bloqueo",
-          "configFile": "Archivo de configuración"
+          "configFile": "Archivo de configuración",
+          "compare": "Comparación"
         },
         "legal": {
           "title": "Legal",
