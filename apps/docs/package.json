@@ -20,6 +20,7 @@
     "studio": "verbatra studio",
     "screenshots": "node scripts/capture-studio.mjs",
     "csp:smoke": "node scripts/csp-smoke.mjs",
+    "test:e2e": "playwright test",
     "contributors": "node scripts/refresh-contributors.mjs",
     "licenses:sync": "node scripts/sync-licenses.mjs",
     "playground:generate": "node --env-file-if-exists=scripts/playground/.env.local scripts/playground/generate.ts"
@@ -45,6 +46,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
     "@mdx-js/mdx": "3.1.1",
     "@tailwindcss/postcss": "4.3.3",
     "@types/mdx": "2.0.14",

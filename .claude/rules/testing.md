@@ -80,18 +80,28 @@ Split into two tiers by determinism, which doubles as the trust boundary for sec
 `packages/studio/package.json`) with unit/component tests under `packages/studio/src/` (jsdom-based)
 but **no test that drives it in a real browser**. Concretely, as of this writing:
 
-- `playwright` (`pnpm-workspace.yaml` catalog, pinned `1.64.0`) is a devDependency only of
-  `apps/docs` (`apps/docs/package.json`), used exclusively by the one-off screenshot script
-  `apps/docs/scripts/capture-studio.mjs` (see `CONTRIBUTING.md` "Refreshing the Studio
-  screenshots"). It is not wired up as a test runner anywhere.
-- There is no `playwright.config.ts` in the repo.
+- `playwright` (`pnpm-workspace.yaml` catalog, pinned `1.64.0`) and `@axe-core/playwright` are
+  devDependencies only of `apps/docs` (`apps/docs/package.json`). `playwright` drives the
+  screenshot script `apps/docs/scripts/capture-studio.mjs` (see `CONTRIBUTING.md` "Refreshing the
+  Studio screenshots"), `pnpm csp:smoke`, and the test runner below, imported from
+  `playwright/test`. `@playwright/test` is deliberately not installed: it only re-exports
+  `playwright/test`, and installing it beside `next` resolves Next's optional peer on it, which
+  `lib/third-party-licenses.ts` then counts as a shipped package.
+- The only Playwright test suite is the docs site's: `apps/docs/playwright.config.ts` runs
+  `apps/docs/e2e/*.spec.ts` (`pnpm --filter @verbatra/docs test:e2e`) against the production
+  standalone build, which `apps/docs/scripts/serve-standalone.mjs` serves on port 3107. It scans
+  the landing and the legal pages with axe (WCAG 2.0, 2.1 and 2.2 A/AA tags) in both themes and all
+  four locales, checks `html lang` and 320px reflow. Its specs end in `.spec.ts` and live outside
+  the directories `apps/docs/vitest.config.ts` includes, so Vitest never runs them. CI runs it in
+  the `docs-e2e` job of `.github/workflows/ci.yml`, which the `gate` job requires. Nothing in
+  `packages/studio` is covered by it.
 - `pnpm-workspace.yaml`'s `allowBuilds` section explicitly sets `playwright: false`, with a comment
   explaining that Playwright's postinstall would otherwise download a browser binary (hundreds of
   MB) on every `pnpm install` and every CI job. This keeps the browser download opt-in: a
   maintainer runs `pnpm --filter @verbatra/docs exec playwright install chromium` by hand before
-  using it. **Any new Playwright test suite needs this addressed** before it can run unattended in
-  CI (either scoping a build override to the new package, or accepting the same manual-install
-  convention and adding an explicit `playwright install` step to the relevant CI job).
+  using it, and the `docs-e2e` job runs `playwright install --with-deps chromium` as an explicit
+  step. A Studio suite needs the same: either scoping a build override to its package, or the same
+  manual-install convention with an explicit `playwright install` step in its CI job.
 
 When actually building Studio's browser e2e suite, use the `playwright-cli` and
 `playwright-best-practices` skills in `.claude/skills/` for the mechanics (config, fixtures,
@@ -107,7 +117,7 @@ rendered UI against the `docs-ui` and `studio-ui` token skills. That is an inter
 agent-dispatched review producing findings and screenshots; it asserts nothing, it is not a
 suite, it does not run in CI, and it gates no merge. It also uses the MCP server's own browser,
 so it sidesteps the `allowBuilds` constraint above rather than resolving it. A committed
-Playwright suite for `@verbatra/studio` is still missing, and the two constraints on building
-one (no `playwright.config.ts`, `playwright: false` in `allowBuilds`) are unchanged. Dispatch
+Playwright suite for `@verbatra/studio` is still missing; the docs suite above covers only
+`apps/docs`, and `playwright: false` in `allowBuilds` still applies to a Studio suite. Dispatch
 `design-reviewer` for a visual verdict on a UI change; dispatch `test-runner` when the job is
 building the suite that is still absent.

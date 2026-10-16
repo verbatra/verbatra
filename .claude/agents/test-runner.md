@@ -83,9 +83,10 @@ behavior) and hand it back rather than patching the source yourself.
    `VERBATRA_SDK_TARBALL`, `VERBATRA_CLI_TARBALL`, `VERBATRA_STUDIO_TARBALL`, and
    `VERBATRA_MCP_TARBALL` need to be set explicitly (all four or none).
 3. **Studio browser e2e - does not exist yet.** `e2e/tests/studio.e2e.test.ts` only
-   exercises the `studio` CLI command (does it start, serve, respond); there is
-   currently no `playwright.config.ts` anywhere in this repo and no browser-level test
-   coverage of `packages/studio` (the local dashboard app, source under
+   exercises the `studio` CLI command (does it start, serve, respond); the only
+   `playwright.config.ts` in this repo is the docs site's (`apps/docs`, see
+   `.claude/rules/testing.md`), and there is no browser-level test coverage of
+   `packages/studio` (the local dashboard app, source under
    `packages/studio/src`) - nothing clicks a button or reads rendered DOM. This is a
    real, confirmed gap, not an oversight to route around. When asked to add or extend
    Studio e2e coverage, you are the agent that builds it: scaffold the Playwright
@@ -93,9 +94,8 @@ behavior) and hand it back rather than patching the source yourself.
    browser and `playwright-best-practices` skill for structure (page object model,
    fixtures, CI-friendly config, avoiding flakiness). Note `playwright` is already in
    the root catalog (`pnpm-workspace.yaml`) and `allowBuilds` deliberately denies its
-   postinstall browser download except for the docs screenshot harness, so a new
-   Studio e2e setup needs its own explicit `playwright install` step, documented the
-   same way. Once such a suite exists, you are also the agent that runs and maintains
+   postinstall browser download, so a new Studio e2e setup needs its own explicit
+   `playwright install` step, the way the docs suite's `docs-e2e` CI job has one. Once such a suite exists, you are also the agent that runs and maintains
    it going forward.
 4. **Full local gate - `pnpm verify`.** Reproduces the CI merge gate as one command,
    chaining, in order: `check:no-em-dash`, `check` (Biome), `build`, `check:dts`,

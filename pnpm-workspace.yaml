@@ -176,9 +176,10 @@ allowBuilds:
   lefthook: true
   # Deliberately denied. Playwright's postinstall downloads a browser bundle (hundreds of MB),
   # and nothing on the install path needs one: it is used only by the docs screenshot harness
-  # (apps/docs/scripts/capture-studio.mjs), which a maintainer runs by hand after
-  # `pnpm --filter @verbatra/docs exec playwright install chromium`. Denying the build keeps
-  # `pnpm install` and every CI job free of the download. See CONTRIBUTING.md.
+  # (apps/docs/scripts/capture-studio.mjs) and the docs Playwright suite (pnpm test:e2e), which
+  # need `pnpm --filter @verbatra/docs exec playwright install chromium` first; the docs-e2e CI
+  # job runs that step itself. Denying the build keeps `pnpm install` and every other CI job free
+  # of the download. See CONTRIBUTING.md.
   playwright: false
   protobufjs: false
   sharp: true

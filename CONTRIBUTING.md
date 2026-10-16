@@ -638,8 +638,9 @@ pnpm --filter @verbatra/docs run screenshots
 Studio serves its dashboard from `packages/studio/dist/app`, and neither is
 committed. The browser binary is a separate step on purpose. `playwright` is
 listed in `allowBuilds` as `false` in `pnpm-workspace.yaml`, so a plain
-`pnpm install` never downloads a browser, and no CI job does either. Only the
-person refreshing the images pays that cost.
+`pnpm install` never downloads a browser. Only the person refreshing the images
+pays that cost locally; in CI, only the `docs-e2e` job installs Chromium, as an
+explicit step.
 
 The fixture is `apps/docs/scripts/studio-fixture/`, and it is committed so the
 screenshots are reproducible. It holds a small storefront project: a config with

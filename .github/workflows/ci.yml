@@ -239,9 +239,43 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  docs-e2e:
+    name: Docs accessibility and layout suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up workspace
+        uses: ./.github/actions/setup-workspace
+        with:
+          node-version: "22.18.0"
+
+      - name: Build the docs app
+        run: pnpm turbo run build --filter=@verbatra/docs...
+
+      - name: Install Chromium for Playwright
+        run: pnpm --filter @verbatra/docs exec playwright install --with-deps chromium
+
+      - name: Run the Playwright suite
+        run: pnpm --filter @verbatra/docs test:e2e
+
+      - name: Upload Playwright traces
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: docs-e2e-results
+          path: apps/docs/test-results
+          retention-days: 5
+
   gate:
     name: Build and test gate
-    needs: [build-and-test, e2e, dependency-disclosure, codecov-upload, docs-image]
+    needs: [build-and-test, e2e, dependency-disclosure, codecov-upload, docs-image, docs-e2e]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -254,13 +288,15 @@ jobs:
           DEPENDENCY_DISCLOSURE: ${{ needs.dependency-disclosure.result }}
           CODECOV_UPLOAD: ${{ needs.codecov-upload.result }}
           DOCS_IMAGE: ${{ needs.docs-image.result }}
+          DOCS_E2E: ${{ needs.docs-e2e.result }}
         run: |
           failed=0
           for entry in "build-and-test:$BUILD_AND_TEST" \
                        "e2e:$E2E" \
                        "dependency-disclosure:$DEPENDENCY_DISCLOSURE" \
                        "codecov-upload:$CODECOV_UPLOAD" \
-                       "docs-image:$DOCS_IMAGE"; do
+                       "docs-image:$DOCS_IMAGE" \
+                       "docs-e2e:$DOCS_E2E"; do
             job="${entry%%:*}"
             result="${entry#*:}"
             if [ "$result" != "success" ]; then
