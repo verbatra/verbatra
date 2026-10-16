@@ -371,7 +371,7 @@ html.light {
 }
 
 .vk-band {
-  margin-block-start: var(--section-sm);
+  margin-block-start: var(--section-md);
   padding-block: var(--section-md);
   border-block: 1px solid var(--border-default);
   background: var(--surface-band);
@@ -779,7 +779,7 @@ html:has(.vk-scroll-top-sentinel[data-active]) .vk-footer {
   align-items: flex-end;
   justify-content: space-between;
   gap: 1.25rem 2rem;
-  padding-block: 3rem 2rem;
+  padding-block: var(--section-md) 2rem;
   border-bottom: 1px solid var(--border-default);
 }
 
@@ -3281,7 +3281,7 @@ html:has(.vk-home) {
 .vk-banner {
   position: relative;
   isolation: isolate;
-  padding: 3rem var(--gutter) 3.5rem;
+  padding: 3rem var(--gutter) 0;
 }
 
 .vk-banner-grid {
@@ -3518,7 +3518,7 @@ html:has(.vk-home) {
 
 @media (min-width: 768px) {
   .vk-banner {
-    padding-block: 5rem 4.5rem;
+    padding-block-start: 5rem;
   }
 }
 

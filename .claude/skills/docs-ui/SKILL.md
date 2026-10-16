@@ -187,8 +187,13 @@ Scales are fixed and narrow, deliberately:
   draws, so the page never goes back to one head shape everywhere.
 - Landing surfaces: `--surface-band` (mixed from `--surface-card` and
   `--surface-bg`, never a raw value), the fill of `.vk-band`: `Section` with `band` renders a
-  full-width `section.vk-band` (between two `--border-default` hairlines, `--section-sm` above it
-  and `--section-md` padding inside) around the usual `.vk-gutter` column. Page and band strictly
+  full-width `section.vk-band` (between two `--border-default` hairlines, `--section-md` above it
+  and `--section-md` padding inside) around the usual `.vk-gutter` column. Every page/band edge is
+  therefore one `--section-md` step of content gap on each side of its hairline: a page section
+  opens with `--section-md` (its rhythm) and ends at its content, the band margin sets the space
+  above the next hairline, the hero ends at its facts (no bottom padding), and the footer opens with
+  `--section-md` under its hairline like a band. The one larger step is `--section-closer` above the
+  closing section. Page and band strictly
   alternate, so no two bands touch: hero (page), marquee (band), SDK playground (page), feature
   flow (band), features (page), comparison (band), FAQ (page), contribution (band), final call to
   action (page), then the flat footer band (`section-bands.test.tsx` pins the order and the
