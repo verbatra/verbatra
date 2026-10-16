@@ -59,6 +59,23 @@ const TEXT_PAIRS = [
   ["--color-fd-primary-foreground", "--color-fd-primary"],
 ] as const;
 
+type Tint = readonly [string, readonly [number, number, number], number];
+
+const FUMADOCS_DIFF_ADD: Tint = ["diff-add", [14, 180, 100], 0.1];
+
+const FUMADOCS_DIFF_REMOVE: Tint = ["diff-remove", [200, 10, 100], 0.12];
+
+function overlay(tint: Tint[1], alpha: number, base: string): string {
+  const under = rgb(base);
+  return `#${tint
+    .map((channel, index) =>
+      Math.round(channel * alpha + (under[index] ?? 0) * 255 * (1 - alpha))
+        .toString(16)
+        .padStart(2, "0"),
+    )
+    .join("")}`;
+}
+
 const UI_PAIRS = [
   ["--focus-ring", "--surface-bg"],
   ["--focus-ring", "--v-void"],
@@ -161,15 +178,39 @@ describe("theme tokens", () => {
     },
   );
 
-  it("raises the light theme's orange property tokens to WCAG AA on every code surface", () => {
+  it("raises the light theme's orange property tokens to WCAG AA on every code surface and line tint", () => {
     const color = rulesFor(rules, '.light .shiki span[style*="#E36209" i]')[0]?.declarations.color;
     if (!color) throw new Error("no light property-token override");
     const token = luminance(color.replace(/\s*!important$/, ""));
+    const highlight = rulesFor(rules, ".shiki:not(.not-fumadocs-codeblock *) .highlighted")[0]
+      ?.declarations.background;
+    if (!highlight) throw new Error("no highlighted-line tint");
+    const diffTints = [FUMADOCS_DIFF_ADD, FUMADOCS_DIFF_REMOVE];
     for (const surface of ["--surface-bg", "--surface-card", "--color-fd-muted", "--v-void"]) {
-      const background = luminance(resolve(LIGHT, `var(${surface})`));
-      const ratio = (Math.max(token, background) + 0.05) / (Math.min(token, background) + 0.05);
-      expect(ratio, `property token on ${surface}`).toBeGreaterThanOrEqual(4.5);
+      const base = resolve(LIGHT, `var(${surface})`);
+      const backgrounds = [
+        [surface, base],
+        [`highlighted on ${surface}`, resolve(LIGHT, highlight.replace("transparent", base))],
+        ...diffTints.map(
+          ([name, tint, alpha]) => [`${name} on ${surface}`, overlay(tint, alpha, base)] as const,
+        ),
+      ] as const;
+      for (const [label, background] of backgrounds) {
+        const surfaceLuminance = luminance(background);
+        const ratio =
+          (Math.max(token, surfaceLuminance) + 0.05) / (Math.min(token, surfaceLuminance) + 0.05);
+        expect(ratio, `property token on ${label}`).toBeGreaterThanOrEqual(4.5);
+      }
     }
+  });
+
+  it("measures the diff tints Fumadocs ships", () => {
+    const css = readFileSync(
+      join(process.cwd(), "node_modules/fumadocs-ui/dist/style.css"),
+      "utf8",
+    );
+    for (const [name, [red, green, blue], alpha] of [FUMADOCS_DIFF_ADD, FUMADOCS_DIFF_REMOVE])
+      expect(css).toContain(`--color-fd-${name}: rgba(${red}, ${green}, ${blue}, ${alpha});`);
   });
 
   it("derives the accent border from the accent and the default border, in one token", () => {

@@ -1033,7 +1033,9 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   highlight treatment: 22 percent `--v-purple` tint plus a 3px `--v-purple` bar on the start
   edge. `DocsHomeFeatures` cards carry the same 3px `--v-purple` start bar. Code blocks use
   Fumadocs' dual Shiki themes, which follow the `dark` / `light` class; comment tokens are raised to
-  AA in both themes, and the light theme's orange property token (`#E36209`) to `#953800`.
+  AA in both themes, and the light theme's orange property token (`#E36209`) to `#8f3600`, which
+  `lib/theme.test.ts` holds at 4.5:1 on every code surface, under the highlighted-line tint and
+  under Fumadocs' diff tints.
 - **Callouts**: one 3px bar plus the icon, both in `--callout-color`, which Fumadocs derives
   from `--color-fd-<type>`. The override block in `global.css` pins `--color-fd-info` and
   `--color-fd-success` to the glow and `--color-fd-warning` to `--v-status-changed` (amber), so

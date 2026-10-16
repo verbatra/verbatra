@@ -1514,7 +1514,7 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 
 .light .shiki span[style*="#E36209" i] {
   /* biome-ignore lint/complexity/noImportantStyles: shiki sets token colors through inline custom properties; only an important declaration outranks them, raising parameter and property tokens to WCAG AA. */
-  color: #953800 !important;
+  color: #8f3600 !important;
 }
 
 .vk-home {
