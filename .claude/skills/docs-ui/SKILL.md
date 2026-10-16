@@ -469,14 +469,18 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   the version line (`landing.facts.versionParts` with the `lib/site.ts` versions), the license and
   the copyright as plain spans. Links are `.vk-footer-link` (24px tall, muted, an `--accent`
   underline at 45% on hover). The locale switch is `LocaleLinks` (`components/locale-links.tsx`,
-  a small client component, so it renders into the HTML and works without JavaScript):
+  a small client component loaded as the block `LocaleLinks` island of `chrome-islands.tsx`, so it
+  is server-rendered into the HTML, works without JavaScript and adds nothing to the first load;
+  its label id comes from `useId`):
   `nav.vk-locale-links` named by its visible `landing.footer.language` label, one plain link per
   locale to the current page (`localeSwitchHref` in `lib/locale-switch.ts`, from `usePathname`:
   the bare locale root for a home page, no trailing slash), each with `hrefLang`, `lang` and its
   endonym from `LOCALE_DISPLAY_NAMES`, the reader's own marked `aria-current="page"` (strong text,
   `--accent` underline). `LegalFooter` (`components/legal-footer.tsx`, legal pages and every docs
-  page) shows it beside its legal links; the global not-found page passes
-  `localeLinks={false}`, since the switch there would link to more missing pages.
+  page) shows it beside its legal links when its layout passes `FooterLocaleLinks`
+  (`components/footer-locale-links.tsx`) as `localeSwitch`; the global not-found page (every
+  missing docs slug too) passes none, since the switch there would link to more missing pages, and
+  so loads no island.
   `e2e/footer.spec.ts` checks the surface and every same-site link in all four locales, and on the
   landing, `/compare`, legal and docs pages, with JavaScript off, that the switch's links equal the
   page's `hreflang` alternates and answer 200 without a redirect. Section ids are unique; never render two sections that claim the same one.

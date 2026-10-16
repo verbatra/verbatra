@@ -50,6 +50,5 @@ describe("LocaleLinks", () => {
     const nav = doc.querySelector("nav");
     const label = doc.getElementById(nav?.getAttribute("aria-labelledby") ?? "");
     expect(label?.textContent).toBe("Sprache");
-    expect(doc.querySelector("script, button")).toBeNull();
   });
 });

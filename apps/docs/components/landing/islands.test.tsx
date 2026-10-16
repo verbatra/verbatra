@@ -28,12 +28,16 @@ const ISLAND_MODULES = [
   "@/components/landing/command-panel",
   "@/components/command-row",
   "@/components/ui/copy-button",
+  "@/components/locale-links",
 ];
 
-const landingServerModules = readdirSync(join(ROOT, "components/landing"))
-  .filter((name) => name.endsWith(".tsx") && !name.includes(".test."))
-  .map((name) => `components/landing/${name}`)
-  .filter((path) => !source(path).startsWith('"use client"'));
+const landingServerModules = [
+  ...readdirSync(join(ROOT, "components/landing"))
+    .filter((name) => name.endsWith(".tsx") && !name.includes(".test."))
+    .map((name) => `components/landing/${name}`),
+  "components/legal-footer.tsx",
+  "components/footer-locale-links.tsx",
+].filter((path) => !source(path).startsWith('"use client"'));
 
 describe("the landing first load", () => {
   it.each(landingServerModules)(

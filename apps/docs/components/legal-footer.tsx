@@ -1,7 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { LEGAL_PAGE_LINKS } from "@/components/landing/links";
-import { LocaleLinks } from "@/components/locale-links";
 import { type Locale, localizedPath } from "@/lib/i18n";
 
 const LINK_CLASS =
@@ -9,10 +8,10 @@ const LINK_CLASS =
 
 export async function LegalFooter({
   locale,
-  localeLinks = true,
+  localeSwitch,
 }: {
   locale: Locale;
-  localeLinks?: boolean;
+  localeSwitch?: ReactNode;
 }): Promise<ReactNode> {
   const t = await getTranslations({ locale, namespace: "landing.footer" });
   return (
@@ -29,7 +28,7 @@ export async function LegalFooter({
             ))}
           </ul>
         </nav>
-        {localeLinks ? <LocaleLinks label={t("language")} current={locale} /> : null}
+        {localeSwitch}
       </div>
     </footer>
   );

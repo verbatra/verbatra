@@ -138,3 +138,25 @@ test.describe("footer locale switch", () => {
     }
   });
 });
+
+test.describe("missing docs page without script", () => {
+  test.use({ javaScriptEnabled: false });
+
+  for (const path of ["/docs/no-such-page", "/de/docs/no-such-page", "/fr/docs/cli/no-such-page"]) {
+    test(`answers ${path} with a 404 whose footer links no missing page`, async ({ page }) => {
+      const response = await page.goto(path);
+      expect(response?.status()).toBe(404);
+      const footer = page.locator("footer");
+      await expect(footer).toBeVisible();
+      const hrefs = await footer
+        .locator("a")
+        .evaluateAll((anchors) => anchors.map((anchor) => anchor.getAttribute("href") ?? ""));
+      expect(hrefs.length).toBeGreaterThan(0);
+      expect(hrefs.filter((href) => href.includes("no-such-page"))).toEqual([]);
+      for (const href of hrefs.filter((href) => href.startsWith("/"))) {
+        const linked = await page.request.get(href, { maxRedirects: 0 });
+        expect(linked.status(), href).toBe(200);
+      }
+    });
+  }
+});

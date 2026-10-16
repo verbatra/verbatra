@@ -15,4 +15,9 @@ export const VersionPill = intlIsland(() =>
   import("@/components/version-pill").then((m) => m.VersionPill),
 );
 
-await preloadIslands([LanguageSelect, ThemeToggle, HomeMobileMenu, VersionPill]);
+export const LocaleLinks = island(
+  () => import("@/components/locale-links").then((m) => m.LocaleLinks),
+  { as: "div" },
+);
+
+await preloadIslands([LanguageSelect, ThemeToggle, HomeMobileMenu, VersionPill, LocaleLinks]);

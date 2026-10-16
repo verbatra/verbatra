@@ -2,6 +2,7 @@ import { DocsLayout } from "fumadocs-ui/layouts/notebook";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 import { DocsSiteHeader } from "@/components/docs-site-header";
+import { FooterLocaleLinks } from "@/components/footer-locale-links";
 import { LegalFooter } from "@/components/legal-footer";
 import { RootTabsProvider, SidebarTabs } from "@/components/root-tabs";
 import { SiteProviders } from "@/components/site-providers";
@@ -50,7 +51,7 @@ export default async function Layout({
           tree={tree}
         >
           {children}
-          <LegalFooter locale={locale} />
+          <LegalFooter locale={locale} localeSwitch={<FooterLocaleLinks locale={locale} />} />
         </DocsLayout>
       </RootTabsProvider>
     </SiteProviders>
