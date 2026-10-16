@@ -123,6 +123,12 @@ describe("ContactForm", () => {
     expect(button.disabled).toBe(false);
   });
 
+  it("swaps the disabled colours for the enabled ones in one frame, so no frame mixes them", () => {
+    const button = render().querySelector('button[type="submit"]') as HTMLButtonElement;
+    expect(button.classList.contains("transition-none")).toBe(true);
+    expect(button.classList.contains("transition-colors")).toBe(false);
+  });
+
   it("shows the privacy notice it is given directly below the submit button", () => {
     const container = render();
     const notice = container.querySelector('button[type="submit"]')?.nextElementSibling;

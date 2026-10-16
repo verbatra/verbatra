@@ -207,7 +207,7 @@ export function ContactForm({
       <button
         type="submit"
         disabled={!hydrated || state === "loading"}
-        className={cn(buttonVariants({ variant: "primary" }), "self-start")}
+        className={cn(buttonVariants({ variant: "primary" }), "self-start transition-none")}
       >
         {state === "loading" ? t("submitting") : t("submit")}
       </button>
