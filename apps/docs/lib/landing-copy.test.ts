@@ -10,6 +10,7 @@ const NAMESPACES = [
   "banner",
   "facts",
   "marquee",
+  "playground",
   "stats",
   "problem",
   "steps",

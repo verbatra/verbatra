@@ -1,6 +1,7 @@
 export const LANDING_SECTIONS = [
   "hero",
   "marquee",
+  "playground",
   "proofStrip",
   "problem",
   "howItWorks",

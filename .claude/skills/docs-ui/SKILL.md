@@ -47,6 +47,13 @@ dashboard in `packages/studio` (different app, different stack), or anything out
   light-mode mobile run its 95. Animate `opacity` and `transform` only, and keep layout shift at 0.
   Server sections and the reveals stay CSS keyframes and transitions in `app/global.css`, each with
   a `prefers-reduced-motion` opt-out.
+  `gsap` 3.15.0 and `@gsap/react` 2.1.2 (the Standard "no charge" GSAP license, which the
+  `/licenses` page and `THIRD_PARTY_NOTICES.md` print as written and link) are direct dependencies
+  with one consumer: the SDK playground's scramble. `lib/gsap.ts` registers `useGSAP` and
+  `ScrambleTextPlugin` once and is imported only by `components/landing/playground-scramble.tsx`,
+  which the playground island reaches through a dynamic `import()` on the first pointer, focus or
+  touch inside it (and on Translate), never on load and never under reduced motion. No other plugin
+  is registered.
 - Tailwind 4 uses CSS-first configuration. There is no `tailwind.config.js`. Tokens are
   CSS custom properties in `app/global.css`, not a JS config object.
 - `app/global.css` opens with three imports in this order, and the order matters:
@@ -164,7 +171,7 @@ Scales are fixed and narrow, deliberately:
   `.vk-grid-12`: the heading block spans 8, the lead 4, bottom-aligned, so the lead starts on
   column 9, the column where the problem list, the third step and the contributors start) or
   `stacked` (the lead under the heading on the first column, for a section whose content runs the
-  full row: the code showcase and the playground). A head without a lead is always
+  full row: the code showcase, the SDK playground and the Try it showcase). A head without a lead is always
   stacked (features, comparison, FAQ), and Studio sets its heading beside the screenshot itself.
   `section-bands.test.tsx` pins which section uses which, so the page never goes back to one head
   shape everywhere.
@@ -172,9 +179,9 @@ Scales are fixed and narrow, deliberately:
   `--surface-bg`, never a raw value), the fill of `.vk-band`: `Section` with `band` renders a
   full-width `section.vk-band` (between two `--border-default` hairlines, `--section-sm` above it
   and `--section-md` padding inside) around the usual `.vk-gutter` column: the marquee under the
-  hero, how it works, the code showcase, the comparison and the FAQ are banded, the problem,
-  features, playground, Studio and open source sections sit on the void, the playground and
-  Studio next to each other (`section-bands.test.tsx` pins the order). The hero draws its own
+  hero, how it works, the code showcase, the comparison and the FAQ are banded, the SDK playground
+  right after the marquee, the problem, features, Try it showcase, Studio and open source sections
+  sit on the void, the Try it showcase and Studio next to each other (`section-bands.test.tsx` pins the order). The hero draws its own
   decorative dot backdrop and single glow (`.vk-banner-backdrop`, `.vk-banner-glow`, from the
   `--banner-*` tokens, lighter under `html.light`); there is no wash token.
 - Placeholder chip: `PlaceholderChip` (`components/landing/placeholder-chip.tsx`, the
@@ -269,8 +276,8 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   button, inside a shadcn composition or not, is the site button in `components/ui/button.tsx`; add a
   registry primitive only together with the code that uses it.
 - **Landing:** `components/landing/` holds one component per section. Their order on the page is
-  `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, marquee, proofStrip, problem, howItWorks,
-  features, code, showcase, studio, compare, openSource, faq, finalCta), which the home page maps
+  `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, marquee, playground, proofStrip, problem,
+  howItWorks, features, code, showcase, studio, compare, openSource, faq, finalCta), which the home page maps
   over and `lib/landing-sections.test.ts` pins; add or move a section there, not by hand in
   `page.tsx`. The files: `hero.tsx` (the `h1`, the lead, the two quotable `landing.banner.quotes`
   sentences in `.vk-banner-summary`, two buttons, the `CommandPanel` install box, the locale diff
@@ -306,7 +313,8 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   stacks' files, each line taken from the real adapter output in `lib/format-samples.generated.json`
   (`BENTO_FORMAT_LINES`), so neither repeats the marquee lists), `code-showcase.tsx` (`#code`, CLI, SDK, config and Action tabs from
   `lib/landing-code.ts`, highlighted on the server by `lib/landing-highlight.ts` with dual themes
-  and framed by `code-frame.tsx`), `showcase.tsx` (the Try it playground, below), `marquee.tsx`
+  and framed by `code-frame.tsx`), `playground.tsx` (`#playground`, the SDK playground, see
+  "SDK playground" below), `showcase.tsx` (the Try it playground, below), `marquee.tsx`
   (`#marquee`, see "Marquee" below), `studio.tsx` (`#studio`, the real `StudioScreenshot` and the run
   command; the screenshot follows the site theme after hydration until one of its tabs picks a
   theme), `compare.tsx` (`#compare`, rows from `lib/landing-compare.ts`; a cell states the fact,
@@ -540,7 +548,8 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
 
 The landing moves little, on purpose: the demos rise into place once as the visitor reaches them,
 the hero diff fills its two missing values once, the provider and format marquee loops until it is
-paused, and nothing else on the page fades in.
+paused, the SDK playground scrambles its results once per Translate press, and nothing else on the
+page fades in.
 There is no pinning, no parallax, no scroll-scrubbing and no
 scroll listener; `motion` is reserved for client islands (see "The
 stack").
@@ -557,9 +566,9 @@ stack").
   moving into a block that has not revealed yet shows it at once (`:focus-within`). The delay is
   `n * --reveal-stagger`, capped at `--reveal-delay-max`. Only the demo artifacts of five sections
   carry a mark: the problem (its artifact, then its list), how it works, the bento grid, the code
-  showcase and the playground panel. No section heading reveals (`SectionHead` takes no reveal
-  prop), and the hero, marquee, proof strip, Studio, comparison, open source, FAQ and closing
-  panel never take a reveal; the hero diff's fill and the marquee loop below are their own
+  showcase and the Try it showcase panel. No section heading reveals (`SectionHead` takes no reveal
+  prop), and the hero, marquee, SDK playground, proof strip, Studio, comparison, open source, FAQ
+  and closing panel never take a reveal; the hero diff's fill and the marquee loop below are their own
   motions, not reveals. Elements keep their box while hidden, so a reveal never moves layout.
   `reveal-marks.test.tsx` pins which files carry marks and `motion-root.test.tsx` the observer and
   the stylesheet guards.
@@ -580,6 +589,31 @@ stack").
   and focus inside a row, and is static otherwise (one sideways-scrolling line where motion may
   start, wrapped rows under reduced motion or without JavaScript), so 2.2.2 holds without
   JavaScript.
+- **SDK playground.** `playground.tsx` (`#playground`, on the void, a stacked head whose `h2` is
+  `landing.playground.heading`) reads `lib/playground/translations.json` once through
+  `lib/landing-playground.ts`, which parses it with `lib/playground/schema.ts` on the server, so zod
+  never reaches the client, and builds `PLAYGROUND_SNIPPET` (`loadConfig({ configOverride:
+  defineConfig(...) })` for `gemini` and `next-intl-json`, the model from the JSON metadata, then
+  `translate({ config })`), shown in a `CodeFrame` and parsed by the public `verbatraConfigSchema`
+  in `playground.test.tsx`. The `PlaygroundDemo` island (`playground-demo.tsx`, a plain `island()`
+  fed every string as a prop, so it adds no client namespace) holds a native radio fieldset of the
+  source strings (each label `lang="en"`) and a checkbox fieldset of the languages, both
+  `appearance: none` with a `--text-faint` boundary and an `--accent-fill` checked fill, 2.5rem
+  tall, then a `type="button"` Translate (no `form`, so nothing submits before hydration). The
+  results are one `li` per checked language: a hidden source-text sizer, the value with its own
+  `lang`, and an `aria-hidden` `.vk-playground-scramble` layer laid over it, so the scramble moves
+  nothing. A press loads the scramble module (waiting at most `SCRAMBLER_WAIT_MS`), then GSAP
+  `scrambleText` runs from the source to each translation, `SCRAMBLE_STAGGER_S` apart, inside
+  `useGSAP({ scope })`, a `contextSafe` play and a `gsap.matchMedia` on
+  `(prefers-reduced-motion: no-preference)`; a newer press or an unmount reverts it. Under reduced
+  motion, or when the module fails or is late, the texts swap at once. One polite, `sr-only` live
+  region, empty until then, announces the result (each value with its `lang`) only after the
+  animation. The label `landing.playground.label` and the provider, model and generation date
+  (`dl.vk-playground-meta`, from the JSON metadata) follow, and the demo content is the same in
+  every locale. Without JavaScript (`scripting: none`) the controls and results are `display:
+  none` and `.vk-playground-static`, a captioned table of every string and language in a
+  `ScrollBlock`, shows instead. Links to `/docs/sdk-quickstart`, `/docs/sdk` and
+  `/docs/providers` close the section. `e2e/playground.spec.ts` pins the browser behaviour.
 - **No section eyebrows.** A landing section opens with its `h2`; nothing sits above it, no
   index and no label word. `reveal-marks.test.tsx` fails on a `.vk-eyebrow` style.
 - **Version pill.** On the landing only (the `landingLocale` gate in `lib/i18n.ts`), `HomeSiteHeader` passes
@@ -676,6 +710,9 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
 - Keep both `next/font` families preloaded. Every one of them sets text in the first
   viewport, so it is fetched before the first paint either way; without the preload it is only
   discovered after the stylesheet, at a higher priority that delays the first contentful paint.
+- `gsap` only through the playground's dynamic `import()` of `playground-scramble.tsx` (see "The
+  stack"): the island chunk itself (`playground-demo.tsx`) imports only its types, so GSAP is in
+  neither the first load nor the island batch, and `playground.test.tsx` fails on a static import.
 - Content only needed after an interaction is loaded with a dynamic `import()` on hover, focus,
   or click. The AI setup prompt is not: it is short, and its text ships in the page, in the hero
   command panel's Prompt tab and the `PromptCopyButton` preview.

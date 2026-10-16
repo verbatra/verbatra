@@ -1,5 +1,5 @@
 {
-  "packageCount": 331,
+  "packageCount": 333,
   "groups": [
     {
       "license": "MIT",
@@ -2774,6 +2774,34 @@
           "copyright": ["Copyright (c) 2011-2023 Andris Reinman"],
           "author": "Andris Reinman",
           "textId": "text-32",
+          "notice": null
+        }
+      ],
+      "fallbackTextIds": []
+    },
+    {
+      "license": "SEE LICENSE AT https://gsap.com/standard-license",
+      "packages": [
+        {
+          "name": "@gsap/react",
+          "version": "2.1.2",
+          "copyright": [],
+          "author": "Jack Doyle",
+          "textId": null,
+          "notice": null
+        }
+      ],
+      "fallbackTextIds": []
+    },
+    {
+      "license": "Standard 'no charge' license: https://gsap.com/standard-license.",
+      "packages": [
+        {
+          "name": "gsap",
+          "version": "3.15.0",
+          "copyright": [],
+          "author": null,
+          "textId": null,
           "notice": null
         }
       ],

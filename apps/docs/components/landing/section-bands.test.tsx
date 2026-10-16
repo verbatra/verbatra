@@ -35,6 +35,7 @@ describe("landing surface bands", () => {
     expect(
       [
         "marquee.tsx",
+        "playground.tsx",
         "problem.tsx",
         "steps.tsx",
         "bento.tsx",
@@ -45,7 +46,7 @@ describe("landing surface bands", () => {
         "open-source.tsx",
         "faq.tsx",
       ].map(banded),
-    ).toEqual([true, false, true, false, true, false, false, true, false, true]);
+    ).toEqual([true, false, false, true, false, true, false, false, true, false, true]);
   });
 
   it("paints the band from the semantic band token between two hairlines", () => {
@@ -93,6 +94,7 @@ describe("the section head on the 12-column grid", () => {
         "code-showcase.tsx",
         "showcase.tsx",
         "marquee.tsx",
+        "playground.tsx",
         "compare.tsx",
         "open-source.tsx",
         "faq.tsx",
@@ -116,6 +118,7 @@ describe("the section head on the 12-column grid", () => {
       "code-showcase.tsx": "stacked",
       "showcase.tsx": "stacked",
       "marquee.tsx": "split",
+      "playground.tsx": "stacked",
       "compare.tsx": "heading",
       "open-source.tsx": "split",
       "faq.tsx": "heading",

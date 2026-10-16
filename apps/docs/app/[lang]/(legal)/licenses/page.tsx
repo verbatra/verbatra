@@ -5,12 +5,13 @@ import { toLocale } from "@/lib/i18n";
 import manifest from "@/lib/licenses.generated.json";
 import { localeAlternates } from "@/lib/site";
 import { homeOgImagePath, socialMetadata } from "@/lib/social-metadata";
-import type {
-  LicensedAsset,
-  LicensedPackage,
-  LicenseGroup,
-  LicenseText,
-  ThirdPartyLicenses,
+import {
+  type LicensedAsset,
+  type LicensedPackage,
+  type LicenseGroup,
+  type LicenseText,
+  licenseTermsUrl,
+  type ThirdPartyLicenses,
 } from "@/lib/third-party-licenses";
 
 const LICENSES: ThirdPartyLicenses = manifest;
@@ -98,12 +99,35 @@ function TextLinks({ ids }: { ids: ReadonlyArray<string> }): ReactNode {
   ));
 }
 
+function MissingText({
+  fallback,
+  terms,
+}: {
+  fallback: ReadonlyArray<string>;
+  terms: string | null;
+}): ReactNode {
+  if (fallback.length === 0 && terms !== null) {
+    return (
+      <span>
+        No license file in the package; license terms: <a href={terms}>{terms}</a>
+      </span>
+    );
+  }
+  return (
+    <span>
+      No license file in the package; license text: <TextLinks ids={fallback} />
+    </span>
+  );
+}
+
 function PackageItem({
   pkg,
   fallback,
+  terms,
 }: {
   pkg: LicensedPackage;
   fallback: ReadonlyArray<string>;
+  terms: string | null;
 }): ReactNode {
   return (
     <li>
@@ -112,9 +136,7 @@ function PackageItem({
       </code>
       <OwnerLines pkg={pkg} />
       {pkg.textId === null ? (
-        <span>
-          No license file in the package; license text: <TextLinks ids={fallback} />
-        </span>
+        <MissingText fallback={fallback} terms={terms} />
       ) : (
         <span>
           License text: <TextLinks ids={[pkg.textId]} />
@@ -143,6 +165,7 @@ function GroupSection({ group }: { group: LicenseGroup }): ReactNode {
             key={`${pkg.name}@${pkg.version}`}
             pkg={pkg}
             fallback={group.fallbackTextIds}
+            terms={licenseTermsUrl(group.license)}
           />
         ))}
       </ul>

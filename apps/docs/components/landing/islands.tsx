@@ -24,6 +24,10 @@ export const MarqueeMotion = island(
   () => import("./marquee-motion").then((m) => m.MarqueeMotion),
   BLOCK,
 );
+export const PlaygroundDemo = island(
+  () => import("./playground-demo").then((m) => m.PlaygroundDemo),
+  BLOCK,
+);
 export const TryIt = intlIsland(() => import("./try-it").then((m) => m.TryIt), BLOCK);
 export const LiveStatValue = island(() => import("./live-stat-value").then((m) => m.LiveStatValue));
 export const LiveStatFallback = island(() =>
@@ -51,6 +55,7 @@ await preloadIslands([
   HeroDiffMotion,
   CodeShowcaseTabs,
   MarqueeMotion,
+  PlaygroundDemo,
   TryIt,
   LiveStatValue,
   LiveStatFallback,

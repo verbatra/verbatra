@@ -8,6 +8,7 @@ import {
   buildThirdPartyLicenses,
   compareVersions,
   DEPLOY_TARGET,
+  licenseTermsUrl,
   listDeployedPlatformPackages,
   matchesTarget,
   parseLockfile,
@@ -58,15 +59,32 @@ describe("third-party licenses", () => {
     expect(packageNames(manifest).some((name) => name.includes("simple-icons"))).toBe(false);
   });
 
-  it("gives every package a license text, its own or the one its license group falls back to", () => {
+  it("gives every package a license text, its own or the one its license group falls back to, or names the URL of its terms", () => {
     const ids = new Set(manifest.texts.map((text) => text.id));
-    for (const group of manifest.groups) {
-      for (const pkg of group.packages) {
-        const texts = pkg.textId === null ? group.fallbackTextIds : [pkg.textId];
-        expect(texts.length, `${pkg.name} (${group.license})`).toBeGreaterThan(0);
-        for (const id of texts) expect(ids.has(id), id).toBe(true);
-      }
+    const entries = manifest.groups.flatMap((group) =>
+      group.packages.map((pkg) => ({
+        name: `${pkg.name} (${group.license})`,
+        texts: pkg.textId === null ? group.fallbackTextIds : [pkg.textId],
+        terms: licenseTermsUrl(group.license),
+      })),
+    );
+    for (const { name, texts, terms } of entries) {
+      expect(texts.length > 0 || terms !== null, name).toBe(true);
+      for (const id of texts) expect(ids.has(id), id).toBe(true);
     }
+  });
+
+  it("lists the GSAP packages under the terms their manifests name, linked without the sentence's full stop", () => {
+    const gsap = manifest.groups.find((group) => group.packages.some((pkg) => pkg.name === "gsap"));
+    expect(gsap?.license).toBe("Standard 'no charge' license: https://gsap.com/standard-license.");
+    expect(licenseTermsUrl(gsap?.license ?? "")).toBe("https://gsap.com/standard-license");
+    expect(licenseTermsUrl("SEE LICENSE AT https://gsap.com/standard-license")).toBe(
+      "https://gsap.com/standard-license",
+    );
+    expect(licenseTermsUrl("MIT")).toBeNull();
+    expect(renderThirdPartyNotices(manifest)).toContain(
+      "  - No license file in the package; license terms: https://gsap.com/standard-license\n",
+    );
   });
 
   it("ships a full Apache-2.0 text, which that license requires to travel with the code", () => {

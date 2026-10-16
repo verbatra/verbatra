@@ -58,6 +58,8 @@ describe("landing message parity", () => {
       "landing.showcase.tryIt.result.summary",
       "landing.marquee.heading",
       "landing.marquee.pause",
+      "landing.playground.label",
+      "landing.playground.languageNames.ja",
       "landing.studio.cta",
       "landing.compare.rows.changedOnly.verbatra",
       "landing.openSource.license",

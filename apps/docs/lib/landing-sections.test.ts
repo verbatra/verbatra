@@ -8,10 +8,11 @@ function docsPath(relative: string): string {
 }
 
 describe("landing section order", () => {
-  it("opens on the hero, the provider and format marquee and the proof strip, explains the problem and the loop, then closes on the FAQ and the call to action", () => {
+  it("opens on the hero, the provider and format marquee, the SDK playground and the proof strip, explains the problem and the loop, then closes on the FAQ and the call to action", () => {
     expect(LANDING_SECTIONS).toEqual([
       "hero",
       "marquee",
+      "playground",
       "proofStrip",
       "problem",
       "howItWorks",

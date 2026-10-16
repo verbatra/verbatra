@@ -279,6 +279,40 @@
       "allProviders": "All providers",
       "allFormats": "All formats"
     },
+    "playground": {
+      "heading": "Try the SDK",
+      "lead": "Pick a source string and the languages to translate it into, then press Translate. The results come from a real Verbatra SDK run that ships with this page, so your click sends nothing to a provider.",
+      "items": "Source string",
+      "languages": "Target languages",
+      "translate": "Translate",
+      "results": "Result",
+      "source": "Source",
+      "noLanguages": "Pick at least one target language.",
+      "copy": "Copy code",
+      "label": "Pre-generated with the Verbatra SDK and Gemini, not live.",
+      "metadata": {
+        "label": "How these results were generated",
+        "provider": "Provider",
+        "model": "Model",
+        "generated": "Generated"
+      },
+      "languageNames": {
+        "de": "German",
+        "es": "Spanish",
+        "fr": "French",
+        "ja": "Japanese"
+      },
+      "table": {
+        "caption": "Every pre-generated result, one row per source string",
+        "source": "Source (English)"
+      },
+      "links": {
+        "label": "Read more",
+        "quickstart": "SDK quickstart",
+        "reference": "SDK reference",
+        "providers": "Providers"
+      }
+    },
     "stats": {
       "label": "Verbatra in numbers",
       "stars": "GitHub stars",

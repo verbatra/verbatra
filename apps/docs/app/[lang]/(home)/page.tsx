@@ -11,6 +11,7 @@ import { Hero } from "@/components/landing/hero";
 import { Marquee } from "@/components/landing/marquee";
 import { MotionRoot } from "@/components/landing/motion-root";
 import { OpenSource } from "@/components/landing/open-source";
+import { Playground } from "@/components/landing/playground";
 import { Problem } from "@/components/landing/problem";
 import { ProofStrip } from "@/components/landing/proof-strip";
 import { Showcase } from "@/components/landing/showcase";
@@ -58,6 +59,7 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
   const sections: Readonly<Record<LandingSectionId, ReactNode>> = {
     hero: <Hero />,
     marquee: <Marquee />,
+    playground: <Playground />,
     proofStrip: <ProofStrip />,
     problem: <Problem />,
     howItWorks: <Steps />,

@@ -610,6 +610,20 @@ function ownerLines(copyright: ReadonlyArray<string>, author: string | null): st
   return [];
 }
 
+const TERMS_URL = /https:\/\/\S+/;
+
+export function licenseTermsUrl(license: string): string | null {
+  const match = TERMS_URL.exec(license)?.[0];
+  return match === undefined ? null : match.replace(/[.,;)]+$/, "");
+}
+
+function missingTextLine(group: LicenseGroup): string {
+  const terms = licenseTermsUrl(group.license);
+  return group.fallbackTextIds.length === 0 && terms !== null
+    ? `  - No license file in the package; license terms: ${terms}`
+    : `  - No license file in the package; license text: ${group.fallbackTextIds.join(", ")}`;
+}
+
 export function renderThirdPartyNotices(data: ThirdPartyLicenses): string {
   const lines: string[] = [
     "# Third-party notices",
@@ -633,11 +647,7 @@ export function renderThirdPartyNotices(data: ThirdPartyLicenses): string {
     for (const pkg of group.packages) {
       lines.push(`- ${pkg.name}@${pkg.version}`);
       lines.push(...ownerLines(pkg.copyright, pkg.author));
-      lines.push(
-        pkg.textId === null
-          ? `  - No license file in the package; license text: ${group.fallbackTextIds.join(", ")}`
-          : `  - License text: ${pkg.textId}`,
-      );
+      lines.push(pkg.textId === null ? missingTextLine(group) : `  - License text: ${pkg.textId}`);
       if (pkg.notice !== null) {
         lines.push("  - NOTICE:", "", "```text", pkg.notice, "```", "");
       }

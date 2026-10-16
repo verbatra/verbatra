@@ -226,6 +226,40 @@
       "allProviders": "Tous les fournisseurs",
       "allFormats": "Tous les formats"
     },
+    "playground": {
+      "heading": "Essaie le SDK",
+      "lead": "Choisis un texte source et les langues dans lesquelles le traduire, puis appuie sur Traduire. Les résultats viennent d’une vraie exécution du SDK Verbatra livrée avec cette page : ton clic n’envoie donc rien à un fournisseur.",
+      "items": "Texte source",
+      "languages": "Langues cibles",
+      "translate": "Traduire",
+      "results": "Résultat",
+      "source": "Source",
+      "noLanguages": "Choisis au moins une langue cible.",
+      "copy": "Copier le code",
+      "label": "Généré à l’avance avec le SDK Verbatra et Gemini, pas en direct.",
+      "metadata": {
+        "label": "Comment ces résultats ont été générés",
+        "provider": "Fournisseur",
+        "model": "Modèle",
+        "generated": "Généré le"
+      },
+      "languageNames": {
+        "de": "Allemand",
+        "es": "Espagnol",
+        "fr": "Français",
+        "ja": "Japonais"
+      },
+      "table": {
+        "caption": "Tous les résultats générés à l’avance, une ligne par texte source",
+        "source": "Source (anglais)"
+      },
+      "links": {
+        "label": "Pour aller plus loin",
+        "quickstart": "Démarrage rapide du SDK",
+        "reference": "Référence du SDK",
+        "providers": "Fournisseurs"
+      }
+    },
     "stats": {
       "label": "Verbatra en chiffres",
       "stars": "étoiles sur GitHub",
