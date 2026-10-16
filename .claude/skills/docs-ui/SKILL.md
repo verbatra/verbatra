@@ -841,7 +841,7 @@ reserved for client islands (see "The stack").
   fading by `opacity`. Reverting (unmount or reduced motion turning on) restores the drawn state.
   No release badge is needed in the flow: every node works with the published packages, and any
   later badge comes from `RELEASE_BADGE`. `e2e/flow.spec.ts` pins the browser behaviour.
-- **Back to top.** `scroll-top.tsx` (`ScrollTop`, a plain `island()` in `islands.tsx` that the
+- **Back to top.** `scroll-top.tsx` (`ScrollTop`, a plain block `island()` (`{ as: "div" }`) in `islands.tsx` that the
   home page mounts after `MotionRoot`, fed `landing.fab.label` and `MAIN_CONTENT_ID` as props)
   renders an `aria-hidden` `.vk-scroll-top-sentinel` (absolute, `100vh` tall from the top) and,
   only once an `IntersectionObserver` sees that sentinel scrolled out above the screen

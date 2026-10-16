@@ -3,7 +3,14 @@ import de from "../messages/de.json" with { type: "json" };
 import en from "../messages/en.json" with { type: "json" };
 import es from "../messages/es.json" with { type: "json" };
 import fr from "../messages/fr.json" with { type: "json" };
-import { expectNoAxeViolations, homeUrl, LOCALES, openInTheme, THEMES } from "./support";
+import {
+  expectNoAxeViolations,
+  expectNoHorizontalScroll,
+  homeUrl,
+  LOCALES,
+  openInTheme,
+  THEMES,
+} from "./support";
 
 const FAB = "button.vk-scroll-top";
 const LABELS = { en, de, es, fr } as const;
@@ -24,7 +31,34 @@ for (const locale of LOCALES) {
     await scrollPastFirstViewport(page);
     await expect(page.locator(FAB)).toHaveAccessibleName(LABELS[locale].landing.fab.label);
   });
+
+  for (const theme of THEMES) {
+    test(`back to top on ${homeUrl(locale)} has no axe violations while shown in the ${theme} theme`, async ({
+      page,
+    }) => {
+      await openInTheme(page, homeUrl(locale), theme);
+      await expect(page.locator("html")).toHaveAttribute("data-motion-ready", "");
+      await scrollPastFirstViewport(page);
+      await expect(page.locator(FAB)).toBeVisible();
+      await expectNoAxeViolations(page, FAB);
+    });
+  }
+
+  test(`back to top on ${homeUrl(locale)} reflows at 320px while shown`, async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 640 });
+    await ready(page, homeUrl(locale));
+    await scrollPastFirstViewport(page);
+    const box = await page.locator(FAB).boundingBox();
+    expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(320);
+    await expectNoHorizontalScroll(page);
+  });
 }
+
+test("wraps the back to top sentinel in a block island, never a span", async ({ page }) => {
+  await ready(page);
+  await expect(page.locator("span .vk-scroll-top-sentinel")).toHaveCount(0);
+  await expect(page.locator("div.vk-island > .vk-scroll-top-sentinel")).toHaveCount(1);
+});
 
 test.describe("back to top", () => {
   test("stays hidden in the first viewport and appears after it", async ({ page }) => {
@@ -97,16 +131,6 @@ test.describe("back to top", () => {
     }
     expect(checked).toBeGreaterThan(10);
   });
-
-  for (const theme of THEMES) {
-    test(`has no axe violations while shown in the ${theme} theme`, async ({ page }) => {
-      await openInTheme(page, "/", theme);
-      await expect(page.locator("html")).toHaveAttribute("data-motion-ready", "");
-      await scrollPastFirstViewport(page);
-      await expect(page.locator(FAB)).toBeVisible();
-      await expectNoAxeViolations(page, FAB);
-    });
-  }
 });
 
 test.describe("back to top with motion welcome", () => {
