@@ -396,8 +396,8 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   (`PROVIDER_KIND_ICONS`), and the formats, `SUPPORTED_FORMAT_IDS` by their `FORMAT_DISPLAY` label with a file glyph
   (`FORMAT_ICONS`, a `Record<SupportedFormat, StackIconKey>`, so a new format fails to compile
   until it has one), every glyph a `<use>` of one `StackIconSprite` (prefix `marquee`). A provider
-  that `RELEASE_BADGE` dates carries the shared `AvailableFromPill`, the only place on the
-  landing that badges a provider. Each item (`.vk-marquee-item`) is a `--surface-bg` fill with no
+  that `RELEASE_BADGE` dates carries the shared `AvailableFromPill`, like its key variable in
+  the bento keys tile. Each item (`.vk-marquee-item`) is a `--surface-bg` fill with no
   border or ring, since it is a fact, not a control. No count is typed and no third-party logo is
   drawn. Each row is a muted `h3` that names its visible list,
   the list, `MARQUEE_COPIES` copies of it (`aria-hidden`, `inert`, holding no link or button), and
@@ -1013,12 +1013,15 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   breadcrumb (`.vk-breadcrumb`, set on `DocsPage`), which shares the sidebar's tree; the
   `<AvailableFrom>` badge adds `.vk-available-from`, which sits after the heading text when it is
   inside a heading. Its markup is `AvailableFromPill` (`components/available-from.tsx`), which the
-  landing's marquee renders with the `docs.availableFrom` copy for
-  `RELEASE_BADGE.version`. `RELEASE_BADGE` (`lib/release-badge.ts`) is the landing's list of
-  providers new in that release; the MDX badges stay literal (`<AvailableFrom version="0.12.0" />`),
-  and `lib/release-badge.test.ts` holds the two together: a machine provider carries a badge of
-  that version directly under its `providers*.mdx` heading, in all four locales, exactly when
-  `RELEASE_BADGE` lists it. A badge placed directly under a heading is moved into it. Where a badge may
+  landing's marquee and bento render with the `docs.availableFrom` copy for
+  `RELEASE_BADGE.version`. `RELEASE_BADGE` (`lib/release-badge.ts`) is the landing's one list of
+  what is new in that release: `providers` (read through `providerReleaseBadge`) and `features`
+  (`provider-none`, read through `featureReleaseBadge`), so emptying it removes every landing badge
+  at once; the MDX badges stay literal (`<AvailableFrom version="0.12.0" />`), and
+  `lib/release-badge.test.ts` holds the two together: a machine provider carries a badge of that
+  version directly under its `providers*.mdx` heading, in all four locales, exactly when
+  `RELEASE_BADGE` lists it, and `provider-none` is dated exactly by the page badge of
+  `human-only-workflow*.mdx`. A badge placed directly under a heading is moved into it. Where a badge may
   sit in the MDX at all is set by "Badge placement" in the "Docs budget" section of
   `.claude/rules/docs.md`, and `lib/docs-badge-placement.test.ts` enforces it. A heading whose
   key a table's "Since" column already dates (the key table on `config-file`) carries no badge.
