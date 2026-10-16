@@ -12,6 +12,8 @@ import {
   type CompareSourceLink,
   cellFootnote,
   compareSource,
+  FULL_CONCESSION_FOOTNOTES,
+  fullTableFootnotes,
   SHORT_COLUMNS,
   SHORT_CONCESSION_FOOTNOTES,
   SHORT_ROWS,
@@ -101,6 +103,16 @@ describe("the comparison data", () => {
       expect(urls.length, `${footnote}`).toBeGreaterThan(0);
       for (const link of urls) expectResolvable(link, `${footnote}`);
     }
+  });
+
+  it("lists every source on the full table, in order", () => {
+    expect(fullTableFootnotes()).toEqual(
+      Array.from({ length: COMPARE_SOURCE_COUNT }, (_, index) => index + 1),
+    );
+  });
+
+  it("backs the full table's concession with every in-context source and Verbatra's own", () => {
+    expect(FULL_CONCESSION_FOOTNOTES).toEqual([34, 58, 70, 82, 10, 11]);
   });
 
   it("dates the check as an ISO day", () => {

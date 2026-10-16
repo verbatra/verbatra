@@ -72,6 +72,19 @@ describe("websiteLd", () => {
 });
 
 describe("techArticleLd", () => {
+  it("dates the article only when a modification date is given", () => {
+    const dated = techArticleLd({
+      title: "Compare",
+      path: "/compare",
+      lang: "en",
+      dateModified: "2026-10-15",
+    });
+    expect(dated.dateModified).toBe("2026-10-15");
+    expect(
+      techArticleLd({ title: "Providers", path: "/docs/providers", lang: "en" }),
+    ).not.toHaveProperty("dateModified");
+  });
+
   it("references the organization node by @id instead of embedding it", () => {
     const result = techArticleLd({
       title: "Providers",

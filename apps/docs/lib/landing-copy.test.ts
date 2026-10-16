@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { i18n } from "@/lib/i18n";
 import { LANDING_SHOWCASE_TABS } from "@/lib/landing-code";
-import { SHORT_COLUMNS, SHORT_ROWS } from "@/lib/landing-compare";
+import { COMPARE_ROWS, COMPARE_TOOLS, SHORT_COLUMNS, SHORT_ROWS } from "@/lib/landing-compare";
 import { FLOW_NODES } from "@/lib/landing-flow";
 
 const NAMESPACES = [
@@ -94,11 +94,16 @@ describe("the redesigned landing copy", () => {
     );
   });
 
-  it("labels every comparison row and cell the short table holds", () => {
+  it("labels every comparison row and holds one cell per tool, plus the hosted summary on short rows", () => {
     const rows = branch(landing("en"), "compare.rows");
-    expect(Object.keys(rows)).toEqual([...SHORT_ROWS]);
-    for (const row of SHORT_ROWS) {
-      expect(Object.keys(branch(rows, row))).toEqual(["label", ...SHORT_COLUMNS]);
+    expect(Object.keys(rows)).toEqual([...COMPARE_ROWS]);
+    const short: ReadonlyArray<string> = SHORT_ROWS;
+    for (const row of COMPARE_ROWS) {
+      expect(Object.keys(branch(rows, row))).toEqual([
+        "label",
+        ...COMPARE_TOOLS,
+        ...(short.includes(row) ? ["hostedTms"] : []),
+      ]);
     }
     expect(Object.keys(branch(landing("en"), "compare.columns"))).toEqual([
       "criterion",

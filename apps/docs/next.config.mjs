@@ -32,6 +32,7 @@ const config = {
   outputFileTracingIncludes: {
     "/*": ["../../node_modules/.pnpm/@swc+helpers@*/node_modules/@swc/helpers/esm/**/*"],
     "/[lang]/home-og": ["./assets/og-fonts/*.ttf"],
+    "/[lang]/compare-og": ["./assets/og-fonts/*.ttf"],
     "/[lang]/docs-og/[[...slug]]": ["./assets/og-fonts/*.ttf"],
   },
   experimental: {

@@ -2559,6 +2559,17 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   }
 }
 
+@container (max-width: 100rem) {
+  .vk-compare-full .vk-compare-hint,
+  .vk-compare-full .vk-compare-fade {
+    display: block;
+  }
+
+  .vk-compare-full .vk-compare-sticky {
+    box-shadow: inset -1px 0 0 var(--border-default);
+  }
+}
+
 @keyframes vk-compare-fade {
   from {
     opacity: 1;
@@ -2582,8 +2593,27 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
     display: none;
   }
 
+  .vk-compare-full .vk-compare-fade {
+    display: none;
+  }
+
   @container (max-width: 56rem) {
     .vk-compare-scroll {
+      background:
+        linear-gradient(to left, var(--surface-bg) 50%, transparent) 100% 0 / 2rem 100% no-repeat
+        local,
+        linear-gradient(
+          to left,
+          color-mix(in srgb, var(--text-strong) 14%, transparent),
+          transparent
+        )
+        100% 0 / 1rem 100% no-repeat scroll,
+        var(--surface-bg);
+    }
+  }
+
+  @container (max-width: 100rem) {
+    .vk-compare-full .vk-compare-scroll {
       background:
         linear-gradient(to left, var(--surface-bg) 50%, transparent) 100% 0 / 2rem 100% no-repeat
         local,

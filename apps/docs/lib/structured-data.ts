@@ -233,6 +233,7 @@ export function techArticleLd(args: {
   description?: string | undefined;
   path: string;
   lang: string;
+  dateModified?: string | undefined;
 }): Record<string, unknown> {
   return {
     "@context": "https://schema.org",
@@ -241,6 +242,7 @@ export function techArticleLd(args: {
     ...(args.description ? { description: args.description } : {}),
     url: new URL(args.path, SITE_URL).href,
     inLanguage: args.lang,
+    ...(args.dateModified ? { dateModified: args.dateModified } : {}),
     author: AUTHOR_REF,
     publisher: ORGANIZATION_REF,
     isPartOf: WEBSITE_REF,

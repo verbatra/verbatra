@@ -375,7 +375,20 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   (56rem) a `landing.compare.scrollHint` line before it says so (not wired as a description,
   since it is `display: none` on a wide column) and `.vk-compare-fade` fades the end edge on the
   region's scroll timeline; without scroll timelines the fade is dropped and the region shades its
-  end edge with a `local` cover over a `scroll` shade, which clears at the scroll end), `open-source.tsx` (`#open-source`: license, contributing,
+  end edge with a `local` cover over a `scroll` shade, which clears at the scroll end. The region,
+  its caption and sticky headers, the footnote links and the source list live in
+  `compare-table.tsx` (`CompareRegion`, `FootnoteRefs`, `SourceList`), shared with `/compare`:
+  `app/[lang]/(home)/compare/page.tsx` under the home layout renders `compare-page.tsx`, one `h1`
+  (`compare.heading`, `.vk-h2` size), the full table of `COMPARE_ROWS` by `COMPARE_TOOLS` (every
+  cell is `landing.compare.rows.<row>.<tool>`, the short table reading the same keys, so a cell
+  has one message; the Verbatra providers cell lists `compareProviderNames()` with the
+  `RELEASE_BADGE` pill and the formats cell counts `SUPPORTED_FORMAT_IDS`, both through
+  `lib/compare-cells.ts`), the dated notes, its own concession, links to the quickstart and home,
+  and all sources under an `h2`. Its 100rem-wide table sits in `.vk-compare.vk-compare-full`, whose
+  container query at 100rem shows the hint and fade on a desktop column too. `/compare.md` (and
+  `Accept: text/markdown` on `/compare`) is `lib/compare-markdown.ts` served by
+  `app/[lang]/compare.mdx/route.ts`; `MARKDOWN_PAGES` in `lib/markdown-route.ts` is the list of
+  non-docs pages with a Markdown variant), `open-source.tsx` (`#open-source`: license, contributing,
   issues, releases and the contributors; every project row opens a new tab and ends in an `aria-hidden` external-link icon, with `landing.openSource.newTab` in an `sr-only` span for screen readers, never an arrow character), `faq.tsx` (`#faq`) and `final-cta.tsx` (the closing
   section on `landing.closing`, set on the page gutter with no card border or inset, a `section` whose `vk-final-cta` class is a hook with no stylesheet rule, the install `CommandRow` counted with `location: final-cta`, then Get
   started and Read the docs). The footer is not a section; `app/[lang]/(home)/layout.tsx` passes

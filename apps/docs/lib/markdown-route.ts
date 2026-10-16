@@ -3,6 +3,9 @@ import { i18n, isLocale } from "@/lib/i18n";
 export const MARKDOWN_SUFFIX = ".md";
 const MARKDOWN_TYPE = "text/markdown";
 const DOCS_PATH = /^(?:\/([a-z]{2}))?\/docs((?:\/[^/]+)*)$/;
+const PAGE_PATH = /^(?:\/([a-z]{2}))?(\/[a-z-]+)$/;
+
+export const MARKDOWN_PAGES: ReadonlyArray<string> = ["/compare"];
 
 export function markdownUrl(pageUrl: string): string {
   return `${pageUrl}${MARKDOWN_SUFFIX}`;
@@ -24,21 +27,33 @@ export function prefersMarkdown(accept: string | null): boolean {
   return html === undefined || markdown.q > html.q;
 }
 
+function withoutMarkdownSuffix(pathname: string): string {
+  return pathname.endsWith(MARKDOWN_SUFFIX) ? pathname.slice(0, -MARKDOWN_SUFFIX.length) : pathname;
+}
+
 export function isDocsPath(pathname: string): boolean {
-  const bare = pathname.endsWith(MARKDOWN_SUFFIX)
-    ? pathname.slice(0, -MARKDOWN_SUFFIX.length)
-    : pathname;
-  const match = DOCS_PATH.exec(bare);
+  const match = DOCS_PATH.exec(withoutMarkdownSuffix(pathname));
   return match !== null && (match[1] === undefined || isLocale(match[1]));
+}
+
+function markdownTarget(bare: string): string | null {
+  const docs = DOCS_PATH.exec(bare);
+  if (docs !== null) {
+    const [, lang = i18n.defaultLanguage, slug = ""] = docs;
+    return isLocale(lang) ? `/${lang}/docs.mdx${slug}` : null;
+  }
+  const page = PAGE_PATH.exec(bare);
+  if (page === null) return null;
+  const [, lang = i18n.defaultLanguage, path = ""] = page;
+  return isLocale(lang) && MARKDOWN_PAGES.includes(path) ? `/${lang}${path}.mdx` : null;
+}
+
+export function hasMarkdownVariant(pathname: string): boolean {
+  return markdownTarget(withoutMarkdownSuffix(pathname)) !== null;
 }
 
 export function markdownRewritePath(pathname: string, accept: string | null): string | null {
   const explicit = pathname.endsWith(MARKDOWN_SUFFIX);
   if (!explicit && !prefersMarkdown(accept)) return null;
-  const bare = explicit ? pathname.slice(0, -MARKDOWN_SUFFIX.length) : pathname;
-  const match = DOCS_PATH.exec(bare);
-  if (match === null) return null;
-  const [, lang = i18n.defaultLanguage, slug = ""] = match;
-  if (!isLocale(lang)) return null;
-  return `/${lang}/docs.mdx${slug}`;
+  return markdownTarget(withoutMarkdownSuffix(pathname));
 }

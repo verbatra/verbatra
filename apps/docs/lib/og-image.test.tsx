@@ -239,6 +239,7 @@ describe("OG font coverage", () => {
   const drawn = [
     ...docsFrontmatter,
     ...i18n.languages.map((locale) => catalogs[locale].landing.banner.headline),
+    ...i18n.languages.map((locale) => catalogs[locale].compare.heading),
     ...HERO_OG_LINES.map((line) => line.text),
     OG_TERMINAL_PROMPT,
     new URL(SITE_URL).host,

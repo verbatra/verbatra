@@ -1,4 +1,4 @@
-import type { LocalizedAnchors } from "./i18n";
+import { type Locale, type LocalizedAnchors, localizedAnchorPath } from "./i18n";
 import { BENTO_KEYS_LINK } from "./landing-bento";
 
 export const COMPARE_LAST_CHECKED = "2026-10-15";
@@ -364,6 +364,10 @@ export function compareSource(footnote: number): CompareSource {
 
 export const COMPARE_SOURCE_COUNT = SOURCES.length;
 
+export function compareSourceHref(link: CompareSourceLink, locale: Locale): string {
+  return typeof link === "string" ? link : localizedAnchorPath(locale, link.page, link.anchors);
+}
+
 export type CompareRowId =
   | "license"
   | "selfHosting"
@@ -457,3 +461,15 @@ export function shortTableFootnotes(): ReadonlyArray<number> {
   for (const footnote of SHORT_CONCESSION_FOOTNOTES) if (footnote !== "M") numbers.add(footnote);
   return [...numbers].sort((a, b) => a - b);
 }
+
+export const COMPARE_PATH = "/compare";
+
+export function fullTableFootnotes(): ReadonlyArray<number> {
+  return Array.from({ length: COMPARE_SOURCE_COUNT }, (_, index) => index + 1);
+}
+
+export const FULL_CONCESSION_FOOTNOTES: ReadonlyArray<CompareFootnote> = [
+  ...["tolgee" as const, ...HOSTED_TMS_TOOLS].map((tool) => cellFootnote("inContext", tool)),
+  cellFootnote("inContext", "verbatra"),
+  cellFootnote("translatorUi", "verbatra"),
+];

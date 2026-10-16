@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { i18n, type Locale, localizedPath } from "@/lib/i18n";
+import { COMPARE_LAST_CHECKED, COMPARE_PATH } from "@/lib/landing-compare";
 import { homePath, LEGAL_LAST_UPDATED, SITE_URL } from "@/lib/site";
 import { source } from "@/lib/source";
 
@@ -15,7 +16,7 @@ function homeLanguageAlternates(): Record<string, string> {
   return languages;
 }
 
-function legalLanguageAlternates(path: string): Record<string, string> {
+function pageLanguageAlternates(path: string): Record<string, string> {
   const languages: Record<string, string> = {};
   for (const lang of i18n.languages) {
     languages[lang] = new URL(localizedPath(lang, path), SITE_URL).href;
@@ -57,9 +58,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: LEGAL_LAST_UPDATED,
       changeFrequency: "monthly",
       priority: 0.3,
-      alternates: { languages: legalLanguageAlternates(path) },
+      alternates: { languages: pageLanguageAlternates(path) },
     })),
   );
 
-  return [...home, ...docs, ...legal];
+  const compare: MetadataRoute.Sitemap = i18n.languages.map((locale) => ({
+    url: new URL(localizedPath(locale, COMPARE_PATH), SITE_URL).href,
+    lastModified: COMPARE_LAST_CHECKED,
+    changeFrequency: "monthly",
+    priority: 0.7,
+    alternates: { languages: pageLanguageAlternates(COMPARE_PATH) },
+  }));
+
+  return [...home, ...compare, ...docs, ...legal];
 }
