@@ -396,7 +396,8 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   fits unbroken in all four locales), which is
   also the region's `scroll-padding-inline-start`, so a focused link scrolls clear of the pinned
   column; Chrome leaves a link that is only partly under it unscrolled, so the lazy `CompareFocus`
-  island (`compare-focus.tsx`, one `focusin` listener) scrolls a control focused inside the region
+  island (`compare-focus.tsx`, one `focusin` listener) scrolls a control focused inside the region,
+  only when it `:focus-visible` (a pointer press is never moved out from under the pointer),
   with `scrollIntoView` at `nearest`, which honours that padding and the footnote link's 0.25rem
   `scroll-margin-inline` (room for its focus ring), and `e2e/compare-page.spec.ts` checks the
   geometry, not a hit test; the focused link (`.vk-compare-ref:focus-visible`) still sits above the

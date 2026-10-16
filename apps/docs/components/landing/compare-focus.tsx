@@ -6,10 +6,10 @@ const SCROLL_REGION = "[data-compare-scroll]";
 
 export const COMPARE_FOCUS_ATTACHED = "data-compare-focus";
 
-export function revealBesidePinnedColumn(event: FocusEvent): void {
+function revealBesidePinnedColumn(event: FocusEvent): void {
   const target = event.target;
   if (!(target instanceof HTMLElement) || target.matches(SCROLL_REGION)) return;
-  if (target.closest(SCROLL_REGION) === null) return;
+  if (!target.matches(":focus-visible") || target.closest(SCROLL_REGION) === null) return;
   target.scrollIntoView({ block: "nearest", inline: "nearest" });
 }
 

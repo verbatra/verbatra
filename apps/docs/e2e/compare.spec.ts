@@ -102,6 +102,19 @@ test.describe("comparison footnotes", () => {
     expect(box?.y ?? 0).toBeGreaterThanOrEqual((header?.y ?? 0) + (header?.height ?? 0));
   });
 
+  test("follows a footnote clicked with the pointer at once", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    await page.goto("/");
+    await waitForCompareFocus(page);
+    const ref = page.locator(
+      `${COMPARE} tr[data-row="ownKeys"] td[data-column="hostedTms"] [data-footnotes] a`,
+    );
+    await ref.last().scrollIntoViewIfNeeded();
+    const target = await ref.last().getAttribute("href");
+    await ref.last().click();
+    await expect(page).toHaveURL(new RegExp(`${(target ?? "").replace("#", "#")}$`));
+  });
+
   test("keeps a focused footnote clear of the pinned first column on a phone", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 800 });
     await page.goto("/");

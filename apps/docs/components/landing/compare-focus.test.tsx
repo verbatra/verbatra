@@ -29,13 +29,31 @@ function mount(): {
   };
 }
 
+function focusVisibly(element: HTMLElement, visible: boolean): void {
+  const matches = element.matches.bind(element);
+  Object.defineProperty(element, "matches", {
+    configurable: true,
+    value: (selector: string) => (selector === ":focus-visible" ? visible : matches(selector)),
+  });
+  element.focus();
+}
+
 describe("CompareFocus", () => {
   it("scrolls a control focused inside the table clear of the pinned column", () => {
     const { ref, unmount } = mount();
     const scroll = vi.fn();
     ref.scrollIntoView = scroll;
-    ref.focus();
+    focusVisibly(ref, true);
     expect(scroll).toHaveBeenCalledWith({ block: "nearest", inline: "nearest" });
+    unmount();
+  });
+
+  it("leaves a control focused by a pointer where it is, so a click lands on what was pressed", () => {
+    const { ref, unmount } = mount();
+    const scroll = vi.fn();
+    ref.scrollIntoView = scroll;
+    focusVisibly(ref, false);
+    expect(scroll).not.toHaveBeenCalled();
     unmount();
   });
 
@@ -45,8 +63,8 @@ describe("CompareFocus", () => {
     const outsideScroll = vi.fn();
     region.scrollIntoView = regionScroll;
     outside.scrollIntoView = outsideScroll;
-    region.focus();
-    outside.focus();
+    focusVisibly(region, true);
+    focusVisibly(outside, true);
     expect(regionScroll).not.toHaveBeenCalled();
     expect(outsideScroll).not.toHaveBeenCalled();
     unmount();
@@ -64,7 +82,7 @@ describe("CompareFocus", () => {
     const scroll = vi.fn();
     ref.scrollIntoView = scroll;
     unmount();
-    ref.focus();
+    focusVisibly(ref, true);
     expect(scroll).not.toHaveBeenCalled();
   });
 });
