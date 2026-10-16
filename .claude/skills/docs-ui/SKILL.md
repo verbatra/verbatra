@@ -852,16 +852,26 @@ reserved for client islands (see "The stack").
   later badge comes from `RELEASE_BADGE`. `e2e/flow.spec.ts` pins the browser behaviour.
 - **Back to top.** `scroll-top.tsx` (`ScrollTop`, a plain block `island()` (`{ as: "div" }`) in `islands.tsx` that the
   home page mounts after `MotionRoot`, fed `landing.fab.label` and `MAIN_CONTENT_ID` as props)
-  renders an `aria-hidden` `.vk-scroll-top-sentinel` (absolute, `100vh` tall from the top) and,
+  renders an `aria-hidden` `.vk-scroll-top-sentinel` (absolute, `100vh` tall from the top of the
+  `position: relative` `.vk-home`, so no ancestor decides where it sits) and,
   only once an `IntersectionObserver` sees that sentinel scrolled out above the screen
-  (`passedFirstViewport`), a `button.vk-scroll-top`: fixed in the end corner at `--fab-offset`
-  plus the `env(safe-area-inset-*)` insets, `--fab-size` (44px) round on `--surface-raised` with a
+  (`passedFirstViewport`), a `button.vk-scroll-top`: fixed at `right` and `bottom` (physical, like
+  the `env(safe-area-inset-right)` and `-bottom` insets they add to `--fab-offset`; the site is
+  left to right), `--fab-size` (44px) round on `--surface-raised` with a
   `--text-faint` boundary and an inline chevron. No scroll listener. The server HTML and a page
   without JavaScript carry no button. A press scrolls to the top (`smooth` only under
   `prefers-reduced-motion: no-preference`, `instant` otherwise) and focuses `main` with
-  `preventScroll`, which hides the button again. It enters with `@starting-style` (opacity and an
+  `preventScroll`, which hides the button again. A smooth scroll is watched frame by frame
+  (`requestAnimationFrame`, still no scroll listener): when it stops short of the top for
+  `STALL_FRAMES` frames, as when the flow's ScrollTrigger island loads on the way up and resets
+  the scroll position, it is issued again, at most `MAX_SCROLL_RETRIES` times, and a wheel, touch,
+  key or pointer press hands the page back to the reader at once. When the sentinel comes back
+  into view while the button holds focus, focus moves to `main` first, so it never drops to the
+  body. It enters with `@starting-style` (opacity and an
   `--motion-distance-md` translate, `--duration-base`, `--ease-emphasized`) only when motion is
-  welcome, and appears at once otherwise. While the sentinel is on the page,
+  welcome, and appears at once otherwise; its transition list is exactly opacity and translate,
+  plus color and border color for the hover state. Once the island has mounted (the sentinel's
+  client-only `data-active`, so a page without JavaScript keeps no room),
   `scroll-padding-bottom` and the footer's end padding are `--fab-clearance`, so the button never
   covers a focused element (2.4.11); `e2e/scroll-top.spec.ts` tabs from the FAQ to the end at 375
   to prove it. The motion aliases `--duration-instant`, `--duration-slow`, `--ease-standard`,

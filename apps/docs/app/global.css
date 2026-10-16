@@ -699,6 +699,10 @@ html.light {
   }
 }
 
+.vk-home {
+  position: relative;
+}
+
 .vk-scroll-top-sentinel {
   position: absolute;
   inset-block-start: 0;
@@ -709,18 +713,18 @@ html.light {
   visibility: hidden;
 }
 
-html:has(.vk-scroll-top-sentinel) {
+html:has(.vk-scroll-top-sentinel[data-active]) {
   scroll-padding-bottom: var(--fab-clearance);
 }
 
-html:has(.vk-scroll-top-sentinel) .vk-footer {
+html:has(.vk-scroll-top-sentinel[data-active]) .vk-footer {
   padding-block-end: var(--fab-clearance);
 }
 
 .vk-scroll-top {
   position: fixed;
-  inset-block-end: calc(var(--fab-offset) + env(safe-area-inset-bottom));
-  inset-inline-end: calc(var(--fab-offset) + env(safe-area-inset-right));
+  right: calc(var(--fab-offset) + env(safe-area-inset-right));
+  bottom: calc(var(--fab-offset) + env(safe-area-inset-bottom));
   z-index: 40;
   display: grid;
   place-items: center;

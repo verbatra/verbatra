@@ -10,7 +10,13 @@ import de from "@/messages/de.json";
 import en from "@/messages/en.json";
 import es from "@/messages/es.json";
 import fr from "@/messages/fr.json";
-import { passedFirstViewport, ScrollTop, scrollToTop } from "./scroll-top";
+import {
+  MAX_SCROLL_RETRIES,
+  passedFirstViewport,
+  ScrollTop,
+  STALL_FRAMES,
+  scrollToTop,
+} from "./scroll-top";
 
 type ObserverCallback = (entries: ReadonlyArray<Partial<IntersectionObserverEntry>>) => void;
 
@@ -57,13 +63,67 @@ describe("scrollToTop", () => {
     main.tabIndex = -1;
     document.body.append(main);
     const focus = vi.spyOn(main, "focus");
+    const frames: Array<() => void> = [];
+    const listeners = new Map<string, () => void>();
+    const state = { scrollY: 3000 };
     const win = {
       matchMedia: (query: string) => ({ matches: query.includes("no-preference") && !reduced }),
       scrollTo: vi.fn(),
+      get scrollY() {
+        return state.scrollY;
+      },
+      requestAnimationFrame: (callback: () => void) => frames.push(callback),
+      cancelAnimationFrame: vi.fn(),
+      addEventListener: (type: string, listener: () => void) => listeners.set(type, listener),
+      removeEventListener: (type: string) => listeners.delete(type),
       document,
     } as unknown as Window;
-    return { win, focus };
+    const tick = (count: number) => {
+      for (let index = 0; index < count; index += 1) frames.shift()?.();
+    };
+    return { win, focus, state, tick, listeners, frames };
   }
+
+  it("issues the smooth scroll again when something stops it short of the top", () => {
+    const { win, state, tick, frames } = fakeWindow(false);
+    scrollToTop("main-content", win);
+    expect(win.scrollTo).toHaveBeenCalledTimes(1);
+    state.scrollY = 2000;
+    tick(1);
+    tick(STALL_FRAMES);
+    expect(win.scrollTo).toHaveBeenCalledTimes(2);
+    expect(win.scrollTo).toHaveBeenLastCalledWith({ top: 0, behavior: "smooth" });
+    state.scrollY = 0;
+    tick(1);
+    expect(frames).toHaveLength(0);
+  });
+
+  it("gives up after a bounded number of retries", () => {
+    const { win, tick, frames } = fakeWindow(false);
+    scrollToTop("main-content", win);
+    tick((STALL_FRAMES + 1) * (MAX_SCROLL_RETRIES + 2));
+    expect(win.scrollTo).toHaveBeenCalledTimes(1 + MAX_SCROLL_RETRIES);
+    expect(frames).toHaveLength(0);
+  });
+
+  it("leaves the page to the reader as soon as they scroll, touch or type", () => {
+    const { win, tick, listeners, frames } = fakeWindow(false);
+    scrollToTop("main-content", win);
+    expect([...listeners.keys()].sort()).toEqual(["keydown", "pointerdown", "touchstart", "wheel"]);
+    listeners.get("wheel")?.();
+    expect(listeners.size).toBe(0);
+    expect(win.cancelAnimationFrame).toHaveBeenCalled();
+    frames.length = 0;
+    tick(STALL_FRAMES * 4);
+    expect(win.scrollTo).toHaveBeenCalledTimes(1);
+  });
+
+  it("watches nothing after an instant jump", () => {
+    const { win, frames, listeners } = fakeWindow(true);
+    scrollToTop("main-content", win);
+    expect(frames).toHaveLength(0);
+    expect(listeners.size).toBe(0);
+  });
 
   it("scrolls smoothly when motion is welcome and moves focus to main without a second jump", () => {
     const { win, focus } = fakeWindow(false);
@@ -115,6 +175,33 @@ describe("ScrollTop", () => {
     await act(async () => root.unmount());
     expect(observer.disconnect).toHaveBeenCalled();
   });
+
+  it("hands focus to main before it hides, so a focused button never drops focus to the body", async () => {
+    vi.stubGlobal("IntersectionObserver", FakeObserver);
+    const main = document.createElement("main");
+    main.id = "main-content";
+    main.tabIndex = -1;
+    const host = document.createElement("div");
+    document.body.append(main, host);
+    const root = createRoot(host);
+    await act(async () => root.render(<ScrollTop label="Back to top" targetId="main-content" />));
+    const observer = observers[0];
+    if (!observer) throw new Error("no observer");
+    const at = (bottom: number, isIntersecting: boolean) =>
+      act(async () =>
+        observer.callback([{ isIntersecting, boundingClientRect: { bottom } as DOMRectReadOnly }]),
+      );
+    await at(-10, false);
+    host.querySelector("button")?.focus();
+    expect(document.activeElement?.tagName).toBe("BUTTON");
+    await at(500, true);
+    expect(host.querySelector("button")).toBeNull();
+    expect(document.activeElement).toBe(main);
+    await at(-10, false);
+    await at(500, true);
+    expect(document.activeElement).toBe(main);
+    await act(async () => root.unmount());
+  });
 });
 
 describe("the back-to-top control", () => {
@@ -136,18 +223,33 @@ describe("the back-to-top control", () => {
   });
 
   it("keeps focused content clear of it and puts the sentinel one viewport down", () => {
-    expect(rule("html:has(.vk-scroll-top-sentinel)")).toContain(
+    expect(rule("html:has(.vk-scroll-top-sentinel[data-active])")).toContain(
       "scroll-padding-bottom: var(--fab-clearance);",
     );
     expect(rule(".vk-scroll-top-sentinel")).toContain("height: 100vh;");
+    expect(rule(".vk-home")).toContain("position: relative;");
   });
 
-  it("animates only opacity and translate, and only when motion is welcome", () => {
+  it("enters with opacity and translate only, and only when motion is welcome", () => {
     const motion = css.slice(css.indexOf("@starting-style"), css.indexOf("@starting-style") + 200);
     expect(motion).toMatch(/opacity: 0;\s+translate: 0 var\(--motion-distance-md\);/);
     const before = css.slice(0, css.indexOf("@starting-style"));
     expect(before.lastIndexOf("@media (prefers-reduced-motion: no-preference)")).toBeGreaterThan(
       before.lastIndexOf(".vk-scroll-top-sentinel {"),
+    );
+  });
+
+  it("transitions exactly opacity and translate, plus color and border color as the hover states", () => {
+    const start = css.indexOf(
+      "@media (prefers-reduced-motion: no-preference) {\n  .vk-scroll-top {",
+    );
+    const block = css.slice(start, css.indexOf("}", start));
+    const properties = [...block.matchAll(/^\s+([a-z-]+) var\(--duration/gm)].map(
+      ([, name]) => name,
+    );
+    expect(properties).toEqual(["opacity", "translate", "color", "border-color"]);
+    expect(rule(".vk-scroll-top:hover")).toMatch(
+      /border-color: var\(--accent\);\s+color: var\(--accent\);/,
     );
   });
 

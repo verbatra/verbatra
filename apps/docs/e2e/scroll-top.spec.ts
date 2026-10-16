@@ -138,20 +138,83 @@ test.describe("back to top with motion welcome", () => {
 
   test("scrolls smoothly to the top and then moves focus to main", async ({ page }) => {
     await ready(page);
-    await page.evaluate(() => window.scrollTo(0, window.innerHeight * 4));
+    const start = await page.evaluate(() => {
+      window.scrollTo(0, window.innerHeight * 4);
+      return window.scrollY;
+    });
+    await page.evaluate(() => {
+      const seen: number[] = [];
+      (window as unknown as { seenScroll: number[] }).seenScroll = seen;
+      const record = () => {
+        seen.push(window.scrollY);
+        if (window.scrollY > 0) requestAnimationFrame(record);
+      };
+      requestAnimationFrame(record);
+    });
     await page.locator(FAB).click();
-    expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
     await expect(page.locator("main#main-content")).toBeFocused();
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+    const seen = await page.evaluate(
+      () => (window as unknown as { seenScroll: number[] }).seenScroll,
+    );
+    expect(seen.some((y) => y > 0 && y < start)).toBe(true);
   });
+});
+
+async function interruptOnceInFlow(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    let armed = true;
+    const interrupt = () => {
+      const flow = document.querySelector(".vk-flow");
+      if (!armed || !flow || flow.getBoundingClientRect().top < -200) return;
+      armed = false;
+      removeEventListener("scroll", interrupt);
+      const scroller = document.scrollingElement;
+      if (scroller) scroller.scrollTop = window.scrollY;
+    };
+    addEventListener("scroll", interrupt, { passive: true });
+  });
+}
+
+test.describe("back to top when a scroll-linked island resets the scroll on the way up", () => {
+  test.use({ reducedMotion: "no-preference", colorScheme: "dark" });
+
+  for (const locale of ["en", "es"] as const) {
+    test(`still reaches the top from the footer of ${homeUrl(locale)} at 1440px`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await ready(page, homeUrl(locale));
+      await page.keyboard.press("End");
+      await expect
+        .poll(() =>
+          page.evaluate(
+            () => window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2,
+          ),
+        )
+        .toBe(true);
+      await interruptOnceInFlow(page);
+      await page.locator(FAB).click();
+      await expect(page.locator("main#main-content")).toBeFocused();
+      await expect.poll(() => page.evaluate(() => window.scrollY), { timeout: 8000 }).toBe(0);
+    });
+  }
 });
 
 test.describe("back to top without JavaScript", () => {
   test.use({ javaScriptEnabled: false });
 
-  test("is not rendered", async ({ page }) => {
+  test("renders no button and keeps no room clear for one", async ({ page }) => {
     await page.goto("/");
-    await page.evaluate(() => window.scrollTo(0, 3000)).catch(() => undefined);
     await expect(page.locator(FAB)).toHaveCount(0);
+    await expect(page.locator(".vk-scroll-top-sentinel")).toHaveCount(1);
+    await expect(page.locator("footer.vk-footer")).toHaveCSS("padding-bottom", "0px");
+    await expect(page.locator("html")).toHaveCSS("scroll-padding-bottom", "auto");
   });
+});
+
+test("clears room for the button under the footer once it can render", async ({ page }) => {
+  await ready(page);
+  await expect(page.locator("footer.vk-footer")).not.toHaveCSS("padding-bottom", "0px");
+  await expect(page.locator("html")).not.toHaveCSS("scroll-padding-bottom", "auto");
 });
