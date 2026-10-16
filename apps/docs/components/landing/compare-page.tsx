@@ -19,13 +19,19 @@ import {
   COMPARE_ROWS,
   COMPARE_TOOL_NAMES,
   COMPARE_TOOLS,
+  CONCESSION_FOOTNOTES,
   type CompareTool,
   cellFootnote,
-  FULL_CONCESSION_FOOTNOTES,
   fullTableFootnotes,
 } from "@/lib/landing-compare";
 import { homePath } from "@/lib/site";
-import { CompareRegion, type CompareTranslator, FootnoteRefs, SourceList } from "./compare-table";
+import {
+  CompareRegion,
+  type CompareTranslator,
+  FootnoteRefs,
+  SourceList,
+  TextWithRefs,
+} from "./compare-table";
 import { formatLandingDate } from "./hero-facts";
 
 const COMPARE_HEADING_ID = "compare-page-heading";
@@ -104,10 +110,10 @@ export async function ComparePage({ locale }: { locale: Locale }): Promise<React
             label: t(`rows.${row}.label`),
             cells: COMPARE_TOOLS.map((tool) => ({
               column: tool,
-              content:
-                row === "providers" && tool === "verbatra"
-                  ? providersCell(t, providerList)
-                  : withInlineCode(compareCellText(t, row, tool, "")),
+              text: compareCellText(t, row, tool, ""),
+              ...(row === "providers" && tool === "verbatra"
+                ? { content: providersCell(t, providerList) }
+                : {}),
               footnotes: [cellFootnote(row, tool)],
             })),
           }))}
@@ -121,8 +127,10 @@ export async function ComparePage({ locale }: { locale: Locale }): Promise<React
           <p data-note="lingo">{withInlineCode(page("lingoNote"))}</p>
           <p data-note="formats">{page("formatsNote")}</p>
           <p data-concession="">
-            {page("concession")}
-            <FootnoteRefs footnotes={FULL_CONCESSION_FOOTNOTES} t={t} />
+            <TextWithRefs
+              text={page("concession")}
+              refs={<FootnoteRefs footnotes={CONCESSION_FOOTNOTES} t={t} />}
+            />
           </p>
         </div>
       </div>
@@ -150,7 +158,6 @@ export async function ComparePage({ locale }: { locale: Locale }): Promise<React
         t={t}
         locale={locale}
         footnotes={fullTableFootnotes()}
-        heading="h2"
         intro={
           <p className="text-xs leading-relaxed text-(--text-muted)" data-sources-checked="">
             {page("sourcesChecked", { date: checked })}

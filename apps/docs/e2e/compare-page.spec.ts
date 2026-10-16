@@ -106,7 +106,14 @@ test.describe("full comparison table", () => {
     );
     await ref.focus();
     await page.keyboard.press("Enter");
-    await expect(page).toHaveURL(/#compare-source-62$/);
-    await expect(page.locator("#compare-source-62")).toBeInViewport();
+    await expect(page).toHaveURL(/#source-62$/);
+    await expect(page.locator("#source-62")).toBeInViewport();
+    await expect(page.locator("#source-62")).toHaveCSS("box-shadow", /inset/);
+  });
+
+  test("sets the sources in two columns on a wide screen", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/compare");
+    await expect(page.locator("main ol[aria-labelledby]")).toHaveCSS("column-count", "2");
   });
 });

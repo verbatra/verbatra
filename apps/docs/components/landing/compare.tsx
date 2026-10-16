@@ -2,17 +2,15 @@ import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { IntentPrefetchLink } from "@/components/ui/intent-prefetch-link";
 import { localizedPath, toLocale } from "@/lib/i18n";
-import { withInlineCode } from "@/lib/inline-code-text";
 import {
   COMPARE_LAST_CHECKED,
   COMPARE_PATH,
+  CONCESSION_FOOTNOTES,
   SHORT_COLUMNS,
-  SHORT_CONCESSION_FOOTNOTES,
   SHORT_ROWS,
   shortCellFootnotes,
-  shortTableFootnotes,
 } from "@/lib/landing-compare";
-import { CompareRegion, FootnoteRefs, SourceList } from "./compare-table";
+import { CompareRegion, FootnoteRefs, TextWithRefs } from "./compare-table";
 import { formatLandingDate } from "./hero-facts";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
@@ -20,15 +18,17 @@ import { SectionHead } from "./section-head";
 export async function Compare(): Promise<ReactNode> {
   const t = await getTranslations("landing.compare");
   const locale = toLocale(await getLocale());
+  const sourcesPage = localizedPath(locale, COMPARE_PATH);
 
   return (
     <Section band id="compare" labelledBy="compare-heading">
-      <SectionHead id="compare-heading" title={t("heading")} />
+      <SectionHead id="compare-heading" title={t("heading")} lead={t("lead")} />
       <div className="vk-compare not-prose mt-(--head-gap) grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4">
         <CompareRegion
           t={t}
           caption={t("caption")}
           tableClassName="min-w-[56rem]"
+          sourcesPage={sourcesPage}
           columns={SHORT_COLUMNS.map((column) => ({
             id: column,
             label: t(`columns.${column}`),
@@ -38,33 +38,37 @@ export async function Compare(): Promise<ReactNode> {
             label: t(`rows.${row}.label`),
             cells: SHORT_COLUMNS.map((column) => ({
               column,
-              content: withInlineCode(t(`rows.${row}.${column}`)),
+              text: t(`rows.${row}.${column}`),
               footnotes: shortCellFootnotes(row, column),
             })),
           }))}
         />
-        <div className="grid max-w-[72ch] gap-3 text-sm leading-relaxed text-(--text-muted)">
-          <p data-last-checked="">
-            {`${t("lastChecked")} `}
-            <time dateTime={COMPARE_LAST_CHECKED}>
-              {formatLandingDate(COMPARE_LAST_CHECKED, locale)}
-            </time>
-          </p>
-          <p data-fairness="">{t("fairness")}</p>
-          <p data-concession="">
-            {t("concession")}
-            <FootnoteRefs footnotes={SHORT_CONCESSION_FOOTNOTES} t={t} />
-          </p>
-          <p>
-            <IntentPrefetchLink
-              href={localizedPath(locale, COMPARE_PATH)}
-              className="vk-prose-link text-base"
-            >
-              {t("fullLink")}
-            </IntentPrefetchLink>
-          </p>
+        <div className="vk-grid-12 mt-4 text-sm leading-relaxed text-(--text-muted)">
+          <div className="grid max-w-[72ch] gap-3 lg:[--grid-span:8]">
+            <p data-fairness="">{t("fairness")}</p>
+            <p data-concession="">
+              <TextWithRefs
+                text={t("concession")}
+                refs={
+                  <FootnoteRefs footnotes={CONCESSION_FOOTNOTES} t={t} sourcesPage={sourcesPage} />
+                }
+              />
+            </p>
+          </div>
+          <div className="grid content-start gap-3 lg:[--grid-span:4]">
+            <p data-last-checked="">
+              {`${t("lastChecked")} `}
+              <time dateTime={COMPARE_LAST_CHECKED}>
+                {formatLandingDate(COMPARE_LAST_CHECKED, locale)}
+              </time>
+            </p>
+            <p>
+              <IntentPrefetchLink href={sourcesPage} className="vk-prose-link text-base">
+                {t("fullLink")}
+              </IntentPrefetchLink>
+            </p>
+          </div>
         </div>
-        <SourceList t={t} locale={locale} footnotes={shortTableFootnotes()} />
       </div>
     </Section>
   );

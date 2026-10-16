@@ -9,16 +9,14 @@ import {
   COMPARE_ROWS,
   COMPARE_SOURCE_COUNT,
   COMPARE_TOOLS,
+  CONCESSION_FOOTNOTES,
   type CompareSourceLink,
   cellFootnote,
   compareSource,
-  FULL_CONCESSION_FOOTNOTES,
   fullTableFootnotes,
   SHORT_COLUMNS,
-  SHORT_CONCESSION_FOOTNOTES,
   SHORT_ROWS,
   shortCellFootnotes,
-  shortTableFootnotes,
 } from "@/lib/landing-compare";
 
 const CONTENT = fileURLToPath(new URL("../content/docs", import.meta.url));
@@ -91,12 +89,6 @@ describe("the comparison data", () => {
     ]);
   });
 
-  it("backs the concession with the hosted in-context sources and Verbatra's own", () => {
-    expect(SHORT_CONCESSION_FOOTNOTES).toEqual([58, 70, 82, 10, 11]);
-    for (const footnote of SHORT_CONCESSION_FOOTNOTES)
-      expect(shortTableFootnotes()).toContain(footnote);
-  });
-
   it("links every source over https or to a page of this site that exists in every locale", () => {
     for (let footnote = 1; footnote <= COMPARE_SOURCE_COUNT; footnote += 1) {
       const { urls } = compareSource(footnote);
@@ -111,8 +103,8 @@ describe("the comparison data", () => {
     );
   });
 
-  it("backs the full table's concession with every in-context source and Verbatra's own", () => {
-    expect(FULL_CONCESSION_FOOTNOTES).toEqual([34, 58, 70, 82, 10, 11]);
+  it("backs the concession with every in-context source, Tolgee's included, and Verbatra's own", () => {
+    expect(CONCESSION_FOOTNOTES).toEqual([34, 58, 70, 82, 10, 11]);
   });
 
   it("dates the check as an ISO day", () => {

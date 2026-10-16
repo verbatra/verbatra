@@ -14,9 +14,9 @@ import {
   COMPARE_SOURCE_COUNT,
   COMPARE_TOOL_NAMES,
   COMPARE_TOOLS,
+  CONCESSION_FOOTNOTES,
   cellFootnote,
   compareSource,
-  FULL_CONCESSION_FOOTNOTES,
 } from "@/lib/landing-compare";
 import { MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { providerShortLabel } from "@/lib/landing-providers";
@@ -167,14 +167,14 @@ describe.each(i18n.languages)("the %s comparison page", (locale) => {
     const doc = await render(locale);
     const refs = Array.from(doc.querySelectorAll<HTMLAnchorElement>("[data-footnotes] a"));
     expect(refs.length).toBe(
-      COMPARE_ROWS.length * COMPARE_TOOLS.length + FULL_CONCESSION_FOOTNOTES.length,
+      COMPARE_ROWS.length * COMPARE_TOOLS.length + CONCESSION_FOOTNOTES.length,
     );
     for (const ref of refs) {
       const target = doc.querySelector(ref.getAttribute("href") ?? "#none");
       expect(target, ref.getAttribute("href") ?? "").not.toBeNull();
       if (ref.textContent !== "M") expect(target?.getAttribute("value")).toBe(ref.textContent);
     }
-    const items = Array.from(doc.querySelectorAll("li[id^='compare-source-']"));
+    const items = Array.from(doc.querySelectorAll("li[id^='source-']"));
     expect(items.map((item) => Number(item.getAttribute("value")))).toEqual(
       Array.from({ length: COMPARE_SOURCE_COUNT }, (_, index) => index + 1),
     );
@@ -217,7 +217,7 @@ describe.each(i18n.languages)("the %s comparison page", (locale) => {
     expect(doc.querySelector("[data-fairness]")?.textContent).not.toBe("");
     expect(doc.querySelector("caption")?.textContent).toBe(copy.compare.caption);
     expect(Array.from(doc.querySelectorAll("[data-concession] a"), (a) => a.textContent)).toEqual(
-      FULL_CONCESSION_FOOTNOTES.map(String),
+      CONCESSION_FOOTNOTES.map(String),
     );
   });
 });

@@ -444,29 +444,13 @@ export function shortCellFootnotes(
   return [cellFootnote(row, column)];
 }
 
-export const SHORT_CONCESSION_FOOTNOTES: ReadonlyArray<CompareFootnote> = [
-  ...HOSTED_TMS_TOOLS.map((tool) => cellFootnote("inContext", tool)),
-  cellFootnote("inContext", "verbatra"),
-  cellFootnote("translatorUi", "verbatra"),
-];
-
-export function shortTableFootnotes(): ReadonlyArray<number> {
-  const numbers = new Set<number>();
-  for (const row of SHORT_ROWS)
-    for (const column of SHORT_COLUMNS)
-      for (const footnote of shortCellFootnotes(row, column))
-        if (footnote !== "M") numbers.add(footnote);
-  for (const footnote of SHORT_CONCESSION_FOOTNOTES) if (footnote !== "M") numbers.add(footnote);
-  return [...numbers].sort((a, b) => a - b);
-}
-
 export const COMPARE_PATH = "/compare";
 
 export function fullTableFootnotes(): ReadonlyArray<number> {
   return Array.from({ length: COMPARE_SOURCE_COUNT }, (_, index) => index + 1);
 }
 
-export const FULL_CONCESSION_FOOTNOTES: ReadonlyArray<CompareFootnote> = [
+export const CONCESSION_FOOTNOTES: ReadonlyArray<CompareFootnote> = [
   ...["tolgee" as const, ...HOSTED_TMS_TOOLS].map((tool) => cellFootnote("inContext", tool)),
   cellFootnote("inContext", "verbatra"),
   cellFootnote("translatorUi", "verbatra"),

@@ -115,9 +115,16 @@ describe("the redesigned landing copy", () => {
     for (const locale of i18n.languages) {
       const concession = branch(landing(locale), "compare").concession;
       expect(typeof concession).toBe("string");
-      for (const name of ["Crowdin", "Lokalise", "Phrase", "Verbatra", "Studio"])
+      for (const name of ["Tolgee", "Crowdin", "Lokalise", "Phrase", "Verbatra", "Studio"])
         expect(concession, `${locale} ${name}`).toContain(name);
     }
+  });
+
+  it("keeps a French colon, semicolon, question or exclamation mark off the start of a line in the comparison", () => {
+    const path = fileURLToPath(new URL("../messages/fr.json", import.meta.url));
+    const catalog = JSON.parse(readFileSync(path, "utf8")) as MessageTree;
+    for (const tree of [branch(landing("fr"), "compare"), branch(catalog, "compare")])
+      for (const [key, text] of leaves(tree)) expect(text, key).not.toMatch(/ [;:?!]/);
   });
 
   it("never rates a competitor in a comparison cell", () => {

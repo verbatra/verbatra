@@ -407,6 +407,7 @@
     },
     "compare": {
       "heading": "Cómo se compara Verbatra.",
+      "lead": "Los criterios que deciden cómo un equipo mantiene traducidos sus archivos de locale, cada uno respondido a partir de las páginas del propio proveedor y enlazado a su fuente en la comparación completa.",
       "caption": "Formas de mantener traducidos los archivos de locale: Verbatra, Lingo.dev, Tolgee, sistemas de gestión de traducciones alojados y un flujo manual",
       "columns": {
         "criterion": "Criterio",
@@ -561,7 +562,7 @@
       "manualNote": "El flujo manual no es un producto, así que no tiene fuente: la columna describe copiar textos a mano en un servicio de traducción y de vuelta.",
       "lastChecked": "Última comprobación",
       "fairness": "Verbatra es una CLI y un SDK; las demás columnas son plataformas de traducción y un flujo manual, comparadas como formas de mantener traducidos los archivos de locale. Cada celda recoge lo que decían las propias páginas del proveedor en esa fecha, y «no se encontró ... oficial» significa que nuestra búsqueda no encontró nada, no que al producto le falte.",
-      "concession": "Crowdin, Lokalise y Phrase también ofrecen edición en contexto, que Verbatra no tiene. Para la revisión, Verbatra tiene el panel local de Studio, no un editor alojado para traductores.",
+      "concession": "Tolgee, Crowdin, Lokalise y Phrase ofrecen edición en contexto, que Verbatra no tiene. Para la revisión, Verbatra tiene el panel local de Studio, no un editor alojado para traductores.",
       "fullLink": "Comparación completa con fuentes",
       "scrollHint": "Desplaza la tabla de lado para ver todas las columnas."
     },

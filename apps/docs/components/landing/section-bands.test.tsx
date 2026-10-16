@@ -215,7 +215,7 @@ describe("the section head on the 12-column grid", () => {
       code: "stacked",
       marquee: "aside",
       playground: "inline",
-      compare: "heading",
+      compare: "split",
       "open-source": "split",
       faq: "heading",
     });

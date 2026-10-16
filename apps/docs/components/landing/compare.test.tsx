@@ -7,13 +7,13 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import {
   COMPARE_LAST_CHECKED,
+  COMPARE_SOURCE_COUNT,
   COMPARE_TOOL_NAMES,
+  CONCESSION_FOOTNOTES,
   compareSource,
   SHORT_COLUMNS,
-  SHORT_CONCESSION_FOOTNOTES,
   SHORT_ROWS,
   shortCellFootnotes,
-  shortTableFootnotes,
 } from "@/lib/landing-compare";
 import en from "@/messages/en.json";
 
@@ -50,6 +50,12 @@ beforeAll(async () => {
   root = document.createElement("div");
   root.innerHTML = renderToStaticMarkup(await Compare());
 });
+
+function cellText(cell: Element | undefined): string | undefined {
+  const text = cell?.querySelector("[data-cell-text]")?.cloneNode(true) as Element | undefined;
+  for (const refs of text?.querySelectorAll("[data-footnotes]") ?? []) refs.remove();
+  return text?.textContent?.replace(/\u00a0$/, "");
+}
 
 describe("Compare", () => {
   it("is a captioned table inside a focusable region named by its caption", () => {
@@ -119,44 +125,51 @@ describe("Compare", () => {
       const cells = root.querySelectorAll(`tr[data-row="${row}"] td`);
       SHORT_COLUMNS.forEach((column, index) => {
         const cell = cells[index];
-        expect(cell?.querySelector("[data-cell-text]")?.textContent).toBe(
-          copy.rows[row][column].replaceAll("`", ""),
-        );
+        expect(cellText(cell)).toBe(copy.rows[row][column].replaceAll("`", ""));
         const refs = [...(cell?.querySelectorAll("[data-footnotes] a") ?? [])];
         expect(refs.map((a) => a.textContent)).toEqual(shortCellFootnotes(row, column).map(String));
       });
     }
   });
 
-  it("names every footnote link with its number and tool and points it at a listed source", () => {
-    for (const ref of root.querySelectorAll<HTMLAnchorElement>("[data-footnotes] a")) {
+  it("names every footnote link with its number and tool and points it at the source on /compare", () => {
+    const refs = [...root.querySelectorAll<HTMLAnchorElement>("[data-footnotes] a")];
+    expect(refs.length).toBeGreaterThan(0);
+    for (const ref of refs) {
       const label = ref.getAttribute("aria-label") ?? "";
-      expect(label).toContain(ref.textContent ?? "");
-      const target = root.querySelector(ref.getAttribute("href") ?? "#none");
-      expect(target, ref.getAttribute("href") ?? "").not.toBeNull();
+      const href = ref.getAttribute("href") ?? "";
       if (ref.textContent === "M") {
         expect(label).toBe(copy.noteRef);
-        expect(target?.textContent).toContain(copy.manualNote);
+        expect(href).toBe("/de/compare#source-m");
       } else {
         const number = Number(ref.textContent);
+        expect(number).toBeGreaterThan(0);
+        expect(number).toBeLessThanOrEqual(COMPARE_SOURCE_COUNT);
         expect(label).toBe(`Source ${number}, ${COMPARE_TOOL_NAMES[compareSource(number).tool]}`);
-        expect(target?.getAttribute("value")).toBe(String(number));
+        expect(href).toBe(`/de/compare#source-${number}`);
       }
     }
   });
 
-  it("lists each cited source once, under its shared number, with every link", () => {
-    const items = [...root.querySelectorAll<HTMLLIElement>("ol li[id^='compare-source-']")];
-    expect(items.map((li) => Number(li.getAttribute("value")))).toEqual([...shortTableFootnotes()]);
-    for (const item of items) {
-      const source = compareSource(Number(item.getAttribute("value")));
-      expect(item.textContent).toContain(COMPARE_TOOL_NAMES[source.tool]);
-      expect(item.querySelectorAll("a").length).toBe(source.urls.length);
+  it("leaves the source list to /compare", () => {
+    expect(root.querySelector("ol")).toBeNull();
+    expect(root.querySelector("[id^='source-']")).toBeNull();
+    expect(root.textContent).not.toContain(copy.sources);
+  });
+
+  it("glues each cell's last word to its footnote links", () => {
+    for (const refs of root.querySelectorAll("td [data-footnotes]")) {
+      expect(refs.previousSibling?.textContent?.endsWith("\u00a0")).toBe(true);
+      expect(refs.className).toContain("flex-nowrap");
+      expect(refs.parentElement?.className).toContain("whitespace-nowrap");
+      expect(refs.parentElement?.textContent?.split(/\s/)[0]).not.toBe("");
     }
-    const own = items.find((li) => li.getAttribute("value") === "5");
-    expect(own?.querySelector("a")?.getAttribute("href")).toBe(
-      "/de/docs/providers#keys-kommen-aus-der-umgebung",
-    );
+  });
+
+  it("opens with a split head that carries a lead", () => {
+    const head = root.querySelector(".vk-section-head");
+    expect(head?.getAttribute("data-layout")).toBe("split");
+    expect(head?.querySelector(".vk-section-head-lead")?.textContent).toBe(copy.lead);
   });
 
   it("dates the check, frames the comparison fairly and admits what hosted platforms add", () => {
@@ -166,7 +179,7 @@ describe("Compare", () => {
     const concession = root.querySelector("[data-concession]");
     expect(concession?.textContent).toContain(copy.concession);
     expect([...(concession?.querySelectorAll("a") ?? [])].map((a) => a.textContent)).toEqual(
-      SHORT_CONCESSION_FOOTNOTES.map(String),
+      CONCESSION_FOOTNOTES.map(String),
     );
   });
 

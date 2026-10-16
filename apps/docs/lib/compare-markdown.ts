@@ -8,11 +8,11 @@ import {
   COMPARE_ROWS,
   COMPARE_TOOL_NAMES,
   COMPARE_TOOLS,
+  CONCESSION_FOOTNOTES,
   type CompareFootnote,
   cellFootnote,
   compareSource,
   compareSourceHref,
-  FULL_CONCESSION_FOOTNOTES,
   fullTableFootnotes,
 } from "./landing-compare";
 import { pageFrontmatter } from "./page-frontmatter";
@@ -73,7 +73,7 @@ export async function compareMarkdown(locale: Locale): Promise<string> {
     t("fairness"),
     page("lingoNote"),
     page("formatsNote"),
-    `${page("concession")} ${refs(FULL_CONCESSION_FOOTNOTES)}`,
+    `${page("concession")} ${refs(CONCESSION_FOOTNOTES)}`,
     `## ${page("nextHeading")}`,
     [
       `- [${page("quickstart")}](${absolute(localizedPath(locale, "/docs/quickstart"))})`,

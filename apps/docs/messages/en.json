@@ -460,6 +460,7 @@
     },
     "compare": {
       "heading": "How Verbatra compares.",
+      "lead": "The criteria that decide how a team keeps its locale files translated, each answered from the vendor's own pages and linked to the source on the full comparison.",
       "caption": "Ways to keep locale files translated: Verbatra, Lingo.dev, Tolgee, hosted translation management systems and a manual workflow",
       "columns": {
         "criterion": "Criterion",
@@ -614,7 +615,7 @@
       "manualNote": "The manual workflow is not a product, so it has no source: the column describes copying strings into a translation service and back by hand.",
       "lastChecked": "Last checked",
       "fairness": "Verbatra is a CLI and SDK; the other columns are translation platforms and a manual workflow, compared as ways to keep locale files translated. Each cell states what the vendor's own pages said on that date, and \"no official ... found\" means our search found none, not that the product lacks it.",
-      "concession": "Crowdin, Lokalise and Phrase also offer in-context editing, which Verbatra does not. For review, Verbatra has the local Studio dashboard, not a hosted editor for translators.",
+      "concession": "Tolgee, Crowdin, Lokalise and Phrase offer in-context editing, which Verbatra does not. For review, Verbatra has the local Studio dashboard, not a hosted editor for translators.",
       "fullLink": "Full comparison with sources",
       "scrollHint": "Scroll the table sideways to see every column."
     },

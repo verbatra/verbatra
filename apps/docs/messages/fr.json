@@ -407,7 +407,8 @@
     },
     "compare": {
       "heading": "Verbatra face aux autres approches.",
-      "caption": "Façons de garder les fichiers de locale traduits : Verbatra, Lingo.dev, Tolgee, systèmes de gestion de traduction hébergés et un processus manuel",
+      "lead": "Les critères qui décident comment une équipe garde ses fichiers de locale traduits, chacun tiré des pages de l’éditeur et relié à sa source dans la comparaison complète.",
+      "caption": "Façons de garder les fichiers de locale traduits : Verbatra, Lingo.dev, Tolgee, systèmes de gestion de traduction hébergés et un processus manuel",
       "columns": {
         "criterion": "Critère",
         "verbatra": "Verbatra",
@@ -420,59 +421,59 @@
         "license": {
           "label": "Open source, licence",
           "verbatra": "Oui, MIT",
-          "lingo": "Dépôt Apache-2.0 ; la CLI actuelle n’a pas de champ de licence ; la plateforme n’est pas décrite comme open source",
-          "tolgee": "Cœur Apache-2.0, parties entreprise sous une licence non commerciale ; CLI MIT",
+          "lingo": "Dépôt Apache-2.0 ; la CLI actuelle n’a pas de champ de licence ; la plateforme n’est pas décrite comme open source",
+          "tolgee": "Cœur Apache-2.0, parties entreprise sous une licence non commerciale ; CLI MIT",
           "weblate": "Oui, GPL-3.0-or-later, la CLI `wlc` aussi",
-          "crowdin": "CLI et GitHub Action MIT ; aucun code public de la plateforme trouvé",
-          "lokalise": "CLI BSD-3-Clause ; aucun code public de la plateforme trouvé",
-          "phrase": "CLI et Action setup-cli MIT ; aucun code public de la plateforme trouvé",
+          "crowdin": "CLI et GitHub Action MIT ; aucun code public de la plateforme trouvé",
+          "lokalise": "CLI BSD-3-Clause ; aucun code public de la plateforme trouvé",
+          "phrase": "CLI et Action setup-cli MIT ; aucun code public de la plateforme trouvé",
           "manual": "Sans objet, pas de produit",
-          "hostedTms": "CLI open source (MIT, BSD-3-Clause, MIT) ; aucun code public de la plateforme trouvé pour aucune des trois"
+          "hostedTms": "CLI open source (MIT, BSD-3-Clause, MIT) ; aucun code public de la plateforme trouvé pour aucune des trois"
         },
         "selfHosting": {
           "label": "Auto-hébergement",
-          "verbatra": "Tourne sur ta machine et dans ta CI ; il n’y a aucun service hébergé",
-          "lingo": "Aucune offre de plateforme auto-hébergée trouvée ; l’ancienne CLI open source peut tourner avec un modèle Ollama local",
-          "tolgee": "Oui ; les fonctions avancées demandent une licence",
+          "verbatra": "Tourne sur ta machine et dans ta CI ; il n’y a aucun service hébergé",
+          "lingo": "Aucune offre de plateforme auto-hébergée trouvée ; l’ancienne CLI open source peut tourner avec un modèle Ollama local",
+          "tolgee": "Oui ; les fonctions avancées demandent une licence",
           "weblate": "Oui, ou hébergé par Weblate",
-          "crowdin": "Inconnu : la page des tarifs ne mentionne aucune option sur site et aucune déclaration dans un sens ou dans l’autre n’a été trouvée",
-          "lokalise": "Non : les déploiements sur site et en cloud privé ne sont pas pris en charge",
-          "phrase": "Inconnu : la page des tarifs ne mentionne aucune option auto-hébergée et aucune déclaration dans un sens ou dans l’autre n’a été trouvée",
-          "manual": "Sans objet, pas de produit ; dépend du service que tu choisis"
+          "crowdin": "Inconnu : la page des tarifs ne mentionne aucune option sur site et aucune déclaration dans un sens ou dans l’autre n’a été trouvée",
+          "lokalise": "Non : les déploiements sur site et en cloud privé ne sont pas pris en charge",
+          "phrase": "Inconnu : la page des tarifs ne mentionne aucune option auto-hébergée et aucune déclaration dans un sens ou dans l’autre n’a été trouvée",
+          "manual": "Sans objet, pas de produit ; dépend du service que tu choisis"
         },
         "pricing": {
           "label": "Modèle tarifaire",
-          "verbatra": "Gratuit ; ton fournisseur te facture directement son utilisation",
+          "verbatra": "Gratuit ; ton fournisseur te facture directement son utilisation",
           "lingo": "À l’usage, avec un niveau Sandbox gratuit",
-          "tolgee": "Formule gratuite ; niveaux payants calculés selon les mots hébergés",
-          "weblate": "Hébergé : calculé selon les chaînes hébergées, formule Libre gratuite pour les projets open source publics ; auto-hébergé : gratuit",
-          "crowdin": "Formules payantes, surtout calculées selon les mots hébergés ; périodes d’essai ; licences gratuites pour les projets open source",
+          "tolgee": "Formule gratuite ; niveaux payants calculés selon les mots hébergés",
+          "weblate": "Hébergé : calculé selon les chaînes hébergées, formule Libre gratuite pour les projets open source publics ; auto-hébergé : gratuit",
+          "crowdin": "Formules payantes, surtout calculées selon les mots hébergés ; périodes d’essai ; licences gratuites pour les projets open source",
           "lokalise": "Quatre niveaux payants, essai de 14 jours",
           "phrase": "Formules payantes calculées selon les postes et les mots, essai de 14 jours",
           "manual": "Temps de développement plus le service que tu choisis, pas de produit"
         },
         "providers": {
           "label": "Fournisseurs d’IA et de traduction automatique",
-          "verbatra": "Intégrés : {providers}",
-          "lingo": "LLM de nombreux fournisseurs, dont OpenAI, Anthropic et Google ; aucun moteur classique de traduction automatique comme DeepL n’est listé",
-          "tolgee": "Traduction automatique : DeepL, Google, Amazon, Azure, Baidu (auto-hébergé uniquement) ; LLM : OpenAI, Azure OpenAI, Anthropic, Gemini, API compatibles OpenAI",
+          "verbatra": "Intégrés : {providers}",
+          "lingo": "LLM de nombreux fournisseurs, dont OpenAI, Anthropic et Google ; aucun moteur classique de traduction automatique comme DeepL n’est listé",
+          "tolgee": "Traduction automatique : DeepL, Google, Amazon, Azure, Baidu (auto-hébergé uniquement) ; LLM : OpenAI, Azure OpenAI, Anthropic, Gemini, API compatibles OpenAI",
           "weblate": "29 services intégrés, dont DeepL, OpenAI, Anthropic et LibreTranslate",
-          "crowdin": "Traduction automatique : DeepL, Google, Microsoft, Amazon et d’autres ; IA : OpenAI, Anthropic, Gemini et d’autres",
-          "lokalise": "Google Translate et DeepL ; LLM dans Pro AI",
-          "phrase": "Phrase Language AI, Google, Amazon, Microsoft ; DeepL retiré de Strings le 2026-06-30",
+          "crowdin": "Traduction automatique : DeepL, Google, Microsoft, Amazon et d’autres ; IA : OpenAI, Anthropic, Gemini et d’autres",
+          "lokalise": "Google Translate et DeepL ; LLM dans Pro AI",
+          "phrase": "Phrase Language AI, Google, Amazon, Microsoft ; DeepL retiré de Strings le 2026-06-30",
           "manual": "Tout service dans lequel tu colles les textes, pas de produit"
         },
         "ownKeys": {
           "label": "Tes propres clés d’API",
           "verbatra": "Oui, uniquement depuis les variables d’environnement",
-          "lingo": "Une fonction Enterprise selon la page des tarifs ; l’ancienne CLI open source utilise tes propres clés",
-          "tolgee": "Clés de LLM oui ; clés de traduction automatique propres indiquées pour l’auto-hébergement",
+          "lingo": "Une fonction Enterprise selon la page des tarifs ; l’ancienne CLI open source utilise tes propres clés",
+          "tolgee": "Clés de LLM oui ; clés de traduction automatique propres indiquées pour l’auto-hébergement",
           "weblate": "Oui, les administrateurs configurent chaque service avec leurs propres identifiants",
-          "crowdin": "Oui : les moteurs de traduction automatique tiers utilisent tes propres clés ; les fournisseurs d’IA utilisent ta propre clé ou sont gérés par Crowdin",
-          "lokalise": "Inconnu : non mentionné dans la documentation sur la traduction automatique et l’IA",
-          "phrase": "Moteurs de l’écosystème sous ton propre contrat ; non confirmé dans Strings",
+          "crowdin": "Oui : les moteurs de traduction automatique tiers utilisent tes propres clés ; les fournisseurs d’IA utilisent ta propre clé ou sont gérés par Crowdin",
+          "lokalise": "Inconnu : non mentionné dans la documentation sur la traduction automatique et l’IA",
+          "phrase": "Moteurs de l’écosystème sous ton propre contrat ; non confirmé dans Strings",
           "manual": "Tes propres comptes, pas de produit",
-          "hostedTms": "Crowdin oui ; Lokalise inconnu ; Phrase pour les moteurs de l’écosystème sous ton propre contrat, non confirmé dans Strings"
+          "hostedTms": "Crowdin oui ; Lokalise inconnu ; Phrase pour les moteurs de l’écosystème sous ton propre contrat, non confirmé dans Strings"
         },
         "incremental": {
           "label": "Traduction incrémentale",
@@ -489,7 +490,7 @@
         "cli": {
           "label": "Outil en ligne de commande (CLI)",
           "verbatra": "Oui, `verbatra`",
-          "lingo": "Oui, `@lingo.dev/cli` ; l’ancienne CLI open source `lingo.dev` est toujours publiée",
+          "lingo": "Oui, `@lingo.dev/cli` ; l’ancienne CLI open source `lingo.dev` est toujours publiée",
           "tolgee": "Oui, `@tolgee/cli`, MIT",
           "weblate": "Oui, `wlc`",
           "crowdin": "Oui, Crowdin CLI",
@@ -499,15 +500,15 @@
         },
         "ci": {
           "label": "CI et GitHub Action",
-          "verbatra": "Action officielle ; `check` sort avec 1 si des clés manquent ou sont périmées",
-          "lingo": "GitHub App ; le dépôt contient aussi un action.yml",
+          "verbatra": "Action officielle ; `check` sort avec 1 si des clés manquent ou sont périmées",
+          "lingo": "GitHub App ; le dépôt contient aussi un action.yml",
           "tolgee": "Aucune Action officielle trouvée",
-          "weblate": "Intégration Git qui pousse des commits et ouvre des pull requests ; aucune GitHub Action officielle trouvée",
+          "weblate": "Intégration Git qui pousse des commits et ouvre des pull requests ; aucune GitHub Action officielle trouvée",
           "crowdin": "GitHub Action officielle",
           "lokalise": "GitHub Actions officielles de push et de pull",
-          "phrase": "CLI dans la CI ; GitHub Action officielle setup-cli",
+          "phrase": "CLI dans la CI ; GitHub Action officielle setup-cli",
           "manual": "Sans objet, pas de produit",
-          "hostedTms": "GitHub Actions officielles des trois (Phrase : setup-cli)"
+          "hostedTms": "GitHub Actions officielles des trois (Phrase : setup-cli)"
         },
         "mcp": {
           "label": "Serveur MCP",
@@ -519,12 +520,12 @@
           "lokalise": "Oui, hébergé, en bêta",
           "phrase": "Oui, hébergé, connexion avec un compte Phrase",
           "manual": "Sans objet, pas de produit",
-          "hostedTms": "Serveurs MCP hébergés des trois ; Lokalise en bêta"
+          "hostedTms": "Serveurs MCP hébergés des trois ; Lokalise en bêta"
         },
         "inContext": {
           "label": "Édition en contexte",
           "verbatra": "Non",
-          "lingo": "Inconnu : non mentionné dans la documentation de la plateforme ni dans le dépôt",
+          "lingo": "Inconnu : non mentionné dans la documentation de la plateforme ni dans le dépôt",
           "tolgee": "Oui, Alt+clic ou Option+clic sur un élément ouvre l’éditeur",
           "weblate": "Aucun éditeur en contexte officiel trouvé",
           "crowdin": "Oui, Crowdin In-Context",
@@ -534,12 +535,12 @@
         },
         "translatorUi": {
           "label": "Interface web pour les traducteurs",
-          "verbatra": "Tableau de bord de relecture local (Studio) ; pas d’interface hébergée",
-          "lingo": "Plateforme web pour configurer le moteur ; aucun éditeur de chaînes officiel pour les traducteurs trouvé",
+          "verbatra": "Tableau de bord de relecture local (Studio) ; pas d’interface hébergée",
+          "lingo": "Plateforme web pour configurer le moteur ; aucun éditeur de chaînes officiel pour les traducteurs trouvé",
           "tolgee": "Oui, la plateforme web, hébergée ou auto-hébergée",
           "weblate": "Oui, une interface web de traduction",
           "crowdin": "Oui, l’éditeur en ligne dans le navigateur",
-          "lokalise": "Éditeur de clés du projet documenté ; la page ne précise pas qu’il est en ligne",
+          "lokalise": "Éditeur de clés du projet documenté ; la page ne précise pas qu’il est en ligne",
           "phrase": "Oui, le Strings Editor dans le navigateur",
           "manual": "L’interface du service choisi, pas de produit"
         },
@@ -558,10 +559,10 @@
       "sourceRef": "Source {number}, {tool}",
       "noteRef": "Note M, processus manuel",
       "sources": "Sources",
-      "manualNote": "Le processus manuel n’est pas un produit, il n’a donc pas de source : la colonne décrit la copie des textes à la main vers un service de traduction et retour.",
+      "manualNote": "Le processus manuel n’est pas un produit, il n’a donc pas de source : la colonne décrit la copie des textes à la main vers un service de traduction et retour.",
       "lastChecked": "Dernière vérification",
-      "fairness": "Verbatra est une CLI et un SDK ; les autres colonnes sont des plateformes de traduction et un processus manuel, comparés comme façons de garder les fichiers de locale traduits. Chaque cellule reprend ce que disaient les propres pages de l’éditeur à cette date, et « aucun ... officiel trouvé » signifie que notre recherche n’a rien trouvé, pas que le produit en est dépourvu.",
-      "concession": "Crowdin, Lokalise et Phrase proposent aussi l’édition en contexte, que Verbatra n’a pas. Pour la relecture, Verbatra a le tableau de bord local Studio, pas d’éditeur hébergé pour les traducteurs.",
+      "fairness": "Verbatra est une CLI et un SDK ; les autres colonnes sont des plateformes de traduction et un processus manuel, comparés comme façons de garder les fichiers de locale traduits. Chaque cellule reprend ce que disaient les propres pages de l’éditeur à cette date, et « aucun ... officiel trouvé » signifie que notre recherche n’a rien trouvé, pas que le produit en est dépourvu.",
+      "concession": "Tolgee, Crowdin, Lokalise et Phrase proposent l’édition en contexte, que Verbatra n’a pas. Pour la relecture, Verbatra a le tableau de bord local Studio, pas d’éditeur hébergé pour les traducteurs.",
       "fullLink": "Comparaison complète avec les sources",
       "scrollHint": "Fais défiler le tableau sur le côté pour voir toutes les colonnes."
     },
@@ -589,12 +590,12 @@
   "compare": {
     "meta": {
       "title": "Compare Verbatra à Lingo.dev, Tolgee, Crowdin et d’autres",
-      "description": "Verbatra face à Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise et Phrase : licence, fournisseurs, clés d’API, CI, MCP et formats, chacun avec une source datée.",
+      "description": "Verbatra face à Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise et Phrase : licence, fournisseurs, clés d’API, CI, MCP et formats, chacun avec une source datée.",
       "ogImageAlt": "Comment Verbatra se compare, avec le logo verbatra"
     },
     "heading": "Comment Verbatra se compare",
     "lead": "Verbatra à côté de Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise, Phrase et d’un processus manuel. Chaque cellule reprend ce que disaient les propres pages de l’éditeur et renvoie à sa source.",
-    "caption": "Façons de garder les fichiers de locale traduits : Verbatra, Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise, Phrase et un processus manuel",
+    "caption": "Façons de garder les fichiers de locale traduits : Verbatra, Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise, Phrase et un processus manuel",
     "lingoNote": "Les cellules Lingo.dev concernent la CLI actuelle `@lingo.dev/cli` et la plateforme hébergée, sauf si elles nomment l’ancienne CLI open source `lingo.dev`.",
     "formatsNote": "Le nombre de formats provient de la propre liste de chaque éditeur et n’est pas harmonisé entre eux.",
     "concession": "Tolgee, Crowdin, Lokalise et Phrase proposent l’édition en contexte, que Verbatra n’a pas. Pour la relecture, Verbatra a le tableau de bord local Studio, pas d’éditeur hébergé pour les traducteurs.",

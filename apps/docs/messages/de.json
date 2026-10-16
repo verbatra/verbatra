@@ -407,6 +407,7 @@
     },
     "compare": {
       "heading": "So schneidet Verbatra im Vergleich ab.",
+      "lead": "Die Kriterien, die entscheiden, wie ein Team seine Locale-Dateien übersetzt hält, jeweils aus den eigenen Seiten des Anbieters beantwortet und im vollständigen Vergleich mit der Quelle verlinkt.",
       "caption": "Wege, Locale-Dateien übersetzt zu halten: Verbatra, Lingo.dev, Tolgee, gehostete Übersetzungsmanagementsysteme und ein manueller Ablauf",
       "columns": {
         "criterion": "Kriterium",
@@ -470,9 +471,9 @@
           "weblate": "Ja, Admins richten jeden Dienst mit eigenen Zugangsdaten ein",
           "crowdin": "Ja: Engines für maschinelle Übersetzung von Drittanbietern nutzen deine eigenen Keys; KI-Provider nutzen deinen eigenen Key oder werden von Crowdin verwaltet",
           "lokalise": "Unbekannt: in der Doku zu maschineller Übersetzung und KI nicht erwähnt",
-          "phrase": "Ecosystem-Engines mit eigenem Vertrag; innerhalb von Strings nicht bestätigt",
+          "phrase": "Ökosystem-Engines mit eigenem Vertrag; innerhalb von Strings nicht bestätigt",
           "manual": "Deine eigenen Konten, kein Produkt",
-          "hostedTms": "Crowdin ja; Lokalise unbekannt; Phrase für Ecosystem-Engines mit eigenem Vertrag, innerhalb von Strings nicht bestätigt"
+          "hostedTms": "Crowdin ja; Lokalise unbekannt; Phrase für Ökosystem-Engines mit eigenem Vertrag, innerhalb von Strings nicht bestätigt"
         },
         "incremental": {
           "label": "Inkrementelle Übersetzung",
@@ -561,7 +562,7 @@
       "manualNote": "Der manuelle Ablauf ist kein Produkt und hat daher keine Quelle: Die Spalte beschreibt, wie Texte von Hand in einen Übersetzungsdienst und zurück kopiert werden.",
       "lastChecked": "Zuletzt geprüft",
       "fairness": "Verbatra ist eine CLI und ein SDK; die anderen Spalten sind Übersetzungsplattformen und ein manueller Ablauf, verglichen als Wege, Locale-Dateien übersetzt zu halten. Jede Zelle gibt wieder, was die eigenen Seiten des Anbieters an diesem Datum sagten, und „keine offizielle ... gefunden“ heißt, dass unsere Suche nichts gefunden hat, nicht, dass es dem Produkt fehlt.",
-      "concession": "Crowdin, Lokalise und Phrase bieten außerdem In-Context-Bearbeitung, die Verbatra nicht hat. Für das Review hat Verbatra das lokale Studio-Dashboard, keinen gehosteten Editor für Übersetzer.",
+      "concession": "Tolgee, Crowdin, Lokalise und Phrase bieten In-Context-Bearbeitung, die Verbatra nicht hat. Für das Review hat Verbatra das lokale Studio-Dashboard, keinen gehosteten Editor für Übersetzer.",
       "fullLink": "Vollständiger Vergleich mit Quellen",
       "scrollHint": "Scrolle die Tabelle seitlich, um jede Spalte zu sehen."
     },

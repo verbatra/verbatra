@@ -2537,13 +2537,63 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 }
 
 .vk-compare {
+  --compare-surface: var(--surface-bg);
+  --compare-head: var(--surface-band);
+  --compare-sticky: 16%;
   container-type: inline-size;
   timeline-scope: --vk-compare;
 }
 
+.vk-band .vk-compare {
+  --compare-surface: var(--surface-band);
+}
+
 .vk-compare-scroll {
   scroll-timeline: --vk-compare inline;
-  background: var(--surface-bg);
+  scroll-padding-inline-start: var(--compare-sticky);
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-default) transparent;
+  background: var(--compare-surface);
+}
+
+.vk-compare-table {
+  table-layout: fixed;
+  border-block: 1px solid var(--border-default);
+}
+
+.vk-compare-table thead tr {
+  border-block-end: 1px solid var(--text-faint);
+  background: var(--compare-head);
+}
+
+.vk-compare-table tbody tr + tr {
+  border-block-start: 1px solid var(--border-default);
+}
+
+.vk-compare-sticky {
+  width: var(--compare-sticky);
+  background: var(--compare-surface);
+}
+
+.vk-compare-table thead .vk-compare-sticky {
+  background: var(--compare-head);
+}
+
+.vk-compare-mark {
+  box-shadow: inset 2px 0 0 var(--accent-fill);
+}
+
+.vk-home .vk-compare-source {
+  scroll-margin-top: calc(var(--vk-landing-offset) + 1rem);
+}
+
+.vk-compare-source {
+  border-radius: var(--radius-sm);
+}
+
+.vk-compare-source:target {
+  background: color-mix(in srgb, var(--accent-fill) 14%, transparent);
+  box-shadow: inset 2px 0 0 var(--accent-fill);
 }
 
 .vk-compare-hint,
@@ -2554,15 +2604,17 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 .vk-compare-fade {
   position: absolute;
   inset-block: 1px;
-  inset-inline-end: 1px;
+  inset-inline-end: 0;
   width: 3rem;
-  border-start-end-radius: var(--radius-xl);
-  border-end-end-radius: var(--radius-xl);
-  background: linear-gradient(to left, var(--surface-bg), transparent);
+  background: linear-gradient(to left, var(--compare-surface), transparent);
   pointer-events: none;
 }
 
 @container (max-width: 56rem) {
+  .vk-compare-scroll {
+    --compare-sticky: min(7rem, 30cqi);
+  }
+
   .vk-compare-hint {
     display: block;
   }
@@ -2617,30 +2669,30 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   @container (max-width: 56rem) {
     .vk-compare-scroll {
       background:
-        linear-gradient(to left, var(--surface-bg) 50%, transparent) 100% 0 / 2rem 100% no-repeat
-        local,
+        linear-gradient(to left, var(--compare-surface) 50%, transparent) 100% 0 / 2rem 100%
+        no-repeat local,
         linear-gradient(
           to left,
           color-mix(in srgb, var(--text-strong) 14%, transparent),
           transparent
         )
         100% 0 / 1rem 100% no-repeat scroll,
-        var(--surface-bg);
+        var(--compare-surface);
     }
   }
 
   @container (max-width: 100rem) {
     .vk-compare-full .vk-compare-scroll {
       background:
-        linear-gradient(to left, var(--surface-bg) 50%, transparent) 100% 0 / 2rem 100% no-repeat
-        local,
+        linear-gradient(to left, var(--compare-surface) 50%, transparent) 100% 0 / 2rem 100%
+        no-repeat local,
         linear-gradient(
           to left,
           color-mix(in srgb, var(--text-strong) 14%, transparent),
           transparent
         )
         100% 0 / 1rem 100% no-repeat scroll,
-        var(--surface-bg);
+        var(--compare-surface);
     }
   }
 }

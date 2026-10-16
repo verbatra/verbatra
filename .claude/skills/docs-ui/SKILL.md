@@ -183,7 +183,7 @@ Scales are fixed and narrow, deliberately:
   artifact rather than over it: the SDK playground renders it on the server as a sibling before
   its island, and its grid puts it at the top of the control column next to the sticky snippet;
   the bento sets it in the first cell of its tile grid, beside the keys tile).
-  A split head without a lead renders stacked (comparison, FAQ); `stacked` and `inline`
+  A split head without a lead renders stacked (FAQ); `stacked` and `inline`
   keep their shape either way. `SectionHead` is the head only and takes no children.
   `SectionAside` (same file) is the head beside its content: a `.vk-section-aside` `.vk-grid-12`
   with the stacked heading and lead (`data-layout="aside"`) in span 4 at the start and its
@@ -368,25 +368,42 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   `lib/landing-code.ts`, highlighted on the server by `lib/landing-highlight.ts` with dual themes
   and framed by `code-frame.tsx`), `playground.tsx` (`#playground`, the SDK playground, see
   "SDK playground" below), `marquee.tsx`
-  (`#marquee`, see "Marquee" below), `compare.tsx` (`#compare`, a band: the short table, five rows (`SHORT_ROWS`) by Verbatra,
+  (`#marquee`, see "Marquee" below), `compare.tsx` (`#compare`, a band opened by a split head with
+  a lead (`landing.compare.lead`): the short table, five rows (`SHORT_ROWS`) by Verbatra,
   Lingo.dev, Tolgee, one hosted TMS column summing up Crowdin, Lokalise and Phrase, and the manual
   workflow (`SHORT_COLUMNS`). `lib/landing-compare.ts` holds the full table's rows and tools too,
   and one numbered source list, `compareSource(n)`, so a footnote number names the same source on
   the landing and on `/compare`; `cellFootnote` derives each cell's number from its row and tool,
   and the manual column cites the note `M`. A cell states the fact in text only, never a mark or a
   rating, followed by its footnote links (`[data-footnotes]`, each at least 24px, named "Source n,
-  tool"), which jump to the `ol` of cited sources under the table (`li` with `value={n}` and
-  `id="compare-source-n"`); this site's own pages are linked localized. Under the table: "Last
-  checked" with `COMPARE_LAST_CHECKED` as a `time`, the framing sentence, the concession (what the
-  hosted platforms offer that Verbatra does not, with its sources), the link to `/compare` and the
-  source list. The table scrolls sideways inside a focusable `section` named by its caption
-  (`aria-labelledby`), with the row headers pinned, and while the column is narrower than the table
-  (56rem) a `landing.compare.scrollHint` line before it says so (not wired as a description,
-  since it is `display: none` on a wide column) and `.vk-compare-fade` fades the end edge on the
-  region's scroll timeline; without scroll timelines the fade is dropped and the region shades its
-  end edge with a `local` cover over a `scroll` shade, which clears at the scroll end. The region,
-  its caption and sticky headers, the footnote links and the source list live in
-  `compare-table.tsx` (`CompareRegion`, `FootnoteRefs`, `SourceList`), shared with `/compare`:
+  tool"); `TextWithRefs` keeps the cell's last word and its links in one `whitespace-nowrap` run,
+  so a link never starts a line alone. The source list itself lives only on `/compare` (`li` with
+  `value={n}` and `id="source-n"`, the note `id="source-m"`): the landing passes `sourcesPage`
+  (the localized `/compare`) so its links are plain `a` elements to `/compare#source-n`, a full
+  navigation that sets `:target`. Under the table, on the same 8/4 split as the head: the framing
+  sentence and the concession (what Tolgee and the hosted platforms offer that Verbatra does not,
+  with `CONCESSION_FOOTNOTES`, shared with `/compare`) on the left, "Last checked" with
+  `COMPARE_LAST_CHECKED` as a `time` and the link to `/compare` on the right. The table is a
+  hairline table (`.vk-compare-table`, `table-layout: fixed`): a top and bottom rule, rows split by
+  `--border-default`, the header row on `--compare-head` (the band surface) over a `--text-faint`
+  rule, no filled header and no tinted column; the Verbatra column is marked by `.vk-compare-mark`,
+  an inset `--accent-fill` start bar, with medium-weight cells and its header in `--accent`. Every
+  surface of the region (its background, the opaque sticky cells, the fade, the no-timeline
+  shades) reads `--compare-surface`, the page under `.vk-compare` and the band under
+  `.vk-band .vk-compare`. The table scrolls sideways inside a focusable `section` named by its
+  caption (`aria-labelledby`), with the row headers pinned at `--compare-sticky` (16 percent, at
+  most 7rem while the column is narrower than 56rem), which is also the region's
+  `scroll-padding-inline-start`, so a focused link never hides under the pinned column. While the
+  column is narrower than the table (56rem) a `landing.compare.scrollHint` line before it says so
+  (not wired as a description, since it is `display: none` on a wide column) and
+  `.vk-compare-fade` fades the end edge on the region's scroll timeline; without scroll timelines
+  the fade is dropped and the region shades its end edge with a `local` cover over a `scroll`
+  shade, which clears at the scroll end. A followed source (`.vk-compare-source:target`) gets an
+  `--accent-fill` tint and start bar, and `scroll-margin-top` clears the sticky header. The
+  region, its caption and sticky headers, the footnote links and the source list (two CSS
+  columns from 64rem, each URL breaking at its slashes through `breakUrlsAtSlashes`) live in
+  `compare-table.tsx` (`CompareRegion`, `FootnoteRefs`, `TextWithRefs`, `SourceList`), shared
+  with `/compare`:
   `app/[lang]/(home)/compare/page.tsx` under the home layout renders `compare-page.tsx`, one `h1`
   (`compare.heading`, `.vk-h2` size), the full table of `COMPARE_ROWS` by `COMPARE_TOOLS` (every
   cell is `landing.compare.rows.<row>.<tool>`, the short table reading the same keys, so a cell
