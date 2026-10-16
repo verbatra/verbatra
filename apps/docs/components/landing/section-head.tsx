@@ -1,16 +1,18 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-type SectionHeadLayout = "split" | "stacked" | "inline" | "aside";
+type SectionHeadLayout = "split" | "stacked" | "inline";
 
-const TITLE_MEASURE: Readonly<Record<SectionHeadLayout, string>> = {
+type HeadShape = SectionHeadLayout | "aside";
+
+const TITLE_MEASURE: Readonly<Record<HeadShape, string>> = {
   split: "max-w-[15ch]",
   stacked: "max-w-[22ch]",
   inline: "max-w-[16ch]",
   aside: "max-w-[15ch]",
 };
 
-const LEAD_MEASURE: Readonly<Record<SectionHeadLayout, string>> = {
+const LEAD_MEASURE: Readonly<Record<HeadShape, string>> = {
   split: "max-w-[46ch] lg:pb-2.5",
   stacked: "max-w-[56ch]",
   inline: "max-w-[44ch]",
@@ -28,16 +30,7 @@ type SectionHeadProps = {
   id?: string;
 };
 
-type SectionHeadLayoutProps =
-  | { layout?: Exclude<SectionHeadLayout, "aside">; children?: never }
-  | { layout: "aside"; children: ReactNode };
-
-function HeadBlock({
-  title,
-  lead,
-  id,
-  shape,
-}: SectionHeadProps & { shape: SectionHeadLayout }): ReactNode {
+function HeadBlock({ title, lead, id, shape }: SectionHeadProps & { shape: HeadShape }): ReactNode {
   return (
     <div
       className={cn(
@@ -60,16 +53,32 @@ function HeadBlock({
   );
 }
 
-export function SectionHead(props: SectionHeadProps & SectionHeadLayoutProps): ReactNode {
-  const { title, lead, id } = props;
-  if (props.layout === "aside") {
-    return (
-      <div className="vk-section-aside vk-grid-12">
-        <HeadBlock title={title} lead={lead} id={id} shape="aside" />
-        <div className="vk-section-aside-content">{props.children}</div>
-      </div>
-    );
-  }
-  const shape = resolvedLayout(props.layout ?? "split", lead !== undefined);
-  return <HeadBlock title={title} lead={lead} id={id} shape={shape} />;
+export function SectionHead({
+  title,
+  lead,
+  id,
+  layout = "split",
+}: SectionHeadProps & { layout?: SectionHeadLayout }): ReactNode {
+  return (
+    <HeadBlock
+      title={title}
+      lead={lead}
+      id={id}
+      shape={resolvedLayout(layout, lead !== undefined)}
+    />
+  );
+}
+
+export function SectionAside({
+  title,
+  lead,
+  id,
+  children,
+}: SectionHeadProps & { children: ReactNode }): ReactNode {
+  return (
+    <div className="vk-section-aside vk-grid-12">
+      <HeadBlock title={title} lead={lead} id={id} shape="aside" />
+      <div className="vk-section-aside-content">{children}</div>
+    </div>
+  );
 }

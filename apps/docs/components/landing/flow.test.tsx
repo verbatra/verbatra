@@ -564,7 +564,7 @@ describe("the flow drawing", () => {
 describe("the feature flow head", () => {
   it("stacks the heading and lead in the snippet-side head, never a split head", async () => {
     const root = await renderServer("en");
-    const head = root.querySelector("section#flow > div > .vk-flow-head > .vk-section-head");
+    const head = root.querySelector("section#flow .vk-flow-head > .vk-section-head");
     expect(head?.getAttribute("data-layout")).toBe("stacked");
     expect(head?.querySelector("h2#flow-heading")).not.toBeNull();
     expect(root.querySelector("section#flow .vk-section-head.vk-grid-12")).toBeNull();

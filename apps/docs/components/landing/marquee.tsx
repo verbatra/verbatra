@@ -15,7 +15,7 @@ import { RELEASE_BADGE } from "@/lib/release-badge";
 import { MarqueeMotion } from "./islands";
 import { PlainList } from "./plain-list";
 import { Section } from "./section";
-import { SectionHead } from "./section-head";
+import { SectionAside } from "./section-head";
 
 export const MARQUEE_ICON_PREFIX = "marquee";
 
@@ -141,7 +141,7 @@ export async function Marquee(): Promise<ReactNode> {
 
   return (
     <Section band id="marquee" labelledBy="marquee-heading">
-      <SectionHead id="marquee-heading" layout="aside" title={t("heading")} lead={t("lead")}>
+      <SectionAside id="marquee-heading" title={t("heading")} lead={t("lead")}>
         <StackIconSprite
           prefix={MARQUEE_ICON_PREFIX}
           icons={[...providers, ...formats].map((item) => item.icon)}
@@ -162,7 +162,7 @@ export async function Marquee(): Promise<ReactNode> {
             moreLabel={t("allFormats")}
           />
         </MarqueeMotion>
-      </SectionHead>
+      </SectionAside>
     </Section>
   );
 }

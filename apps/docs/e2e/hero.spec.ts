@@ -136,9 +136,12 @@ test.describe("hero layout at 1440px", () => {
     expect(facts.y).toBeGreaterThanOrEqual(Math.max(copy.y + copy.height, demo.y + demo.height));
     expect(facts.width).toBeGreaterThanOrEqual(demo.x + demo.width - copy.x - 1);
     const panes = page.locator(`${HERO} .vk-hero-diff-pane`);
+    await expect(panes).toHaveCount(2);
     const first = await panes.first().boundingBox();
     const second = await panes.last().boundingBox();
-    expect(Math.abs((first?.y ?? 0) - (second?.y ?? 1))).toBeLessThanOrEqual(1);
+    if (first === null || second === null) throw new Error("a diff pane has no box");
+    expect(second.x).toBeGreaterThan(first.x + first.width - 1);
+    expect(Math.abs(first.y - second.y)).toBeLessThanOrEqual(1);
     expect(diff.y).toBeLessThan(900);
     await expect(page.locator(`${HERO} .vk-banner-backdrop`)).toHaveCount(0);
     await expectNoAxeViolations(page, HERO);

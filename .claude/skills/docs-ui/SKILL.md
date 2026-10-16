@@ -181,13 +181,14 @@ Scales are fixed and narrow, deliberately:
   showcase, and the feature flow, whose head keeps to the snippet column), `inline` (the same
   stacked block at a narrower measure, `.vk-section-head-inline`, set inside the column beside an
   artifact rather than over it: the SDK playground renders it on the server as a sibling before
-  its island, and its grid puts it at the top of the control column next to the sticky snippet) or `aside` (the only layout that takes
-  `children`: a `.vk-section-aside` `.vk-grid-12` with the stacked heading and lead in span 4 at
-  the start and the children in `.vk-section-aside-content`, span 8, top-aligned; one column, head
-  first, under 64rem: the marquee). A head without a lead is always stacked (features,
-  comparison, FAQ).
-  `section-bands.test.tsx` pins which section uses which, so the page never goes back to one head
-  shape everywhere.
+  its island, and its grid puts it at the top of the control column next to the sticky snippet).
+  A split head without a lead renders stacked (features, comparison, FAQ); `stacked` and `inline`
+  keep their shape either way. `SectionHead` is the head only and takes no children.
+  `SectionAside` (same file) is the head beside its content: a `.vk-section-aside` `.vk-grid-12`
+  with the stacked heading and lead (`data-layout="aside"`) in span 4 at the start and its
+  `children` in `.vk-section-aside-content`, span 8, top-aligned; one column, head first, under
+  64rem: the marquee. `section-bands.test.tsx` renders each section and pins the head shape it
+  draws, so the page never goes back to one head shape everywhere.
 - Landing surfaces: `--surface-band` (mixed from `--surface-card` and
   `--surface-bg`, never a raw value), the fill of `.vk-band`: `Section` with `band` renders a
   full-width `section.vk-band` (between two `--border-default` hairlines, `--section-sm` above it
@@ -196,7 +197,7 @@ Scales are fixed and narrow, deliberately:
   playground between the marquee and the flow, the problem, features and open source sections sit
   on the void, and the code showcase and the comparison sit next to each other until the code
   showcase retires (`section-bands.test.tsx` pins the order). The hero draws no
-  pattern, only its single decorative glow (`.vk-banner-glow` behind the diff, from the
+  pattern, only its single decorative glow (`.vk-banner-glow` behind the demo column, from the
   `--banner-glow` token, lighter under `html.light`); there is no wash token and no dot backdrop.
 - Placeholder chip: `PlaceholderChip` (`components/landing/placeholder-chip.tsx`, the
   `.vk-placeholder` class) is the page's one signature motif, a locked placeholder token
@@ -325,10 +326,11 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   `landing.facts.versionParts` naming each package ("CLI and SDK v{cli}, Studio v{studio}, MCP
   server v{mcp}"), and `LANDING_LAST_UPDATED` as a `time`; no provider list, no pill and no
   install row, since the command panel right above shows the command; each `.vk-fact` is
-  `align-content: start`, so a label stays on the first line of its value in a multi-column row (two from 40rem, three
-  from 64rem, where the facts run across the whole hero under both columns, six from 80rem);
-  the copy column opens with the `h1`, with no eyebrow line above it), `proof-strip.tsx` (stars, npm weekly downloads, the providers and the format count, the stars
-and downloads from `lib/project-stats.ts`, read at build time so the page stays static, then
+  `align-content: start`, so a label stays on the first line of its value in a multi-column row
+  (two from 40rem, three from 64rem, where the facts run across the whole hero under both
+  columns, six from 80rem); the copy column opens with the `h1`, with no eyebrow line above it),
+  `proof-strip.tsx` (stars, npm weekly downloads, the providers and the format count, the stars
+  and downloads from `lib/project-stats.ts`, read at build time so the page stays static, then
 refreshed in place by `LiveStatValue` from `/api/stats`; every figure shows as fetched, with no
 display threshold, and a figure the build could not fetch leaves its cell as a named link
 (`landing.stats.starsFallback`, `downloadsFallback`: "Verbatra on GitHub", "Verbatra on npm"), never
@@ -901,7 +903,7 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
 
 - **Solid white display headlines.** The landing hero (`hero.tsx`) and the docs home header both
   set a solid `--text-strong` headline. The hero sits straight on the void page, left-aligned, with no
-  backdrop pattern and one soft glow behind the diff: `.vk-banner-grid` is one column (copy, demo,
+  backdrop pattern and one soft glow behind the demo column: `.vk-banner-grid` is one column (copy, demo,
   facts), and from 64rem an asymmetric 5fr / 7fr split, the copy (`.vk-banner-copy`: the `h1`
   `.vk-banner-title`, the `.vk-banner-lead`, the `.vk-banner-summary`, `.vk-banner-ctas` with Get
   started (`/docs/quickstart`) and Star on GitHub, then `.vk-banner-install` holding

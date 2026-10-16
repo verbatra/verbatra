@@ -2,11 +2,44 @@
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { ReactNode } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import type { ComponentProps, ReactNode } from "react";
+import { renderToStaticMarkup, renderToString } from "react-dom/server";
+import { describe, expect, it, vi } from "vitest";
+import { preloadRegisteredIslands } from "@/test-support/islands";
 import { Section } from "./section";
-import { SectionHead } from "./section-head";
+import { SectionAside, SectionHead } from "./section-head";
+
+vi.mock("next/link", () => ({
+  default: ({ href, children, ...rest }: ComponentProps<"a"> & { href: string }) => (
+    <a href={href} {...rest}>
+      {children}
+    </a>
+  ),
+}));
+
+vi.mock("next-intl/server", async () => {
+  const { createTranslator } = await import("next-intl");
+  const { default: messages } = await import("@/messages/en.json");
+  return {
+    getTranslations: async (scope: string | { namespace: string }) =>
+      createTranslator({
+        locale: "en",
+        messages,
+        namespace: (typeof scope === "string" ? scope : scope.namespace) as never,
+      }),
+    getLocale: async () => "en",
+  };
+});
+
+vi.mock("next-intl", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("next-intl")>();
+  const { default: messages } = await import("@/messages/en.json");
+  return {
+    ...actual,
+    useTranslations: (namespace: string) =>
+      actual.createTranslator({ locale: "en", messages, namespace: namespace as never }),
+  };
+});
 
 function render(node: ReactNode): Document {
   return new DOMParser().parseFromString(renderToStaticMarkup(node), "text/html");
@@ -101,9 +134,9 @@ describe("the section head on the 12-column grid", () => {
 
   it("sets an aside head in span 4 beside its content in span 8, on one 12-column grid", () => {
     const aside = render(
-      <SectionHead id="h" title="Title" lead="Lead" layout="aside">
+      <SectionAside id="h" title="Title" lead="Lead">
         <p id="content">content</p>
-      </SectionHead>,
+      </SectionAside>,
     ).querySelector(".vk-section-aside");
     expect(aside?.classList.contains("vk-grid-12")).toBe(true);
     const [head, content] = Array.from(aside?.children ?? []);
@@ -142,39 +175,47 @@ describe("the section head on the 12-column grid", () => {
     );
   });
 
-  it("varies the section heads instead of splitting every one", () => {
-    const layouts = Object.fromEntries(
-      [
-        "problem.tsx",
-        "flow.tsx",
-        "bento.tsx",
-        "code-showcase.tsx",
-        "marquee.tsx",
-        "playground.tsx",
-        "compare.tsx",
-        "open-source.tsx",
-        "faq.tsx",
-      ].map((file) => {
-        const head = /<SectionHead\b[^>]*>/s.exec(
-          readFileSync(join(import.meta.dirname, file), "utf8"),
-        )?.[0];
-        if (!head) throw new Error(`no SectionHead in ${file}`);
-        const layout = !/\blead=/.test(head)
-          ? "heading"
-          : (/layout="(stacked|inline|aside)"/.exec(head)?.[1] ?? "split");
-        return [file, layout];
-      }),
-    );
+  it("varies the section heads instead of splitting every one", async () => {
+    await preloadRegisteredIslands();
+    const { Bento } = await import("./bento");
+    const { CodeShowcase } = await import("./code-showcase");
+    const { Compare } = await import("./compare");
+    const { Faq } = await import("./faq");
+    const { Flow } = await import("./flow");
+    const { Marquee } = await import("./marquee");
+    const { OpenSource } = await import("./open-source");
+    const { Playground } = await import("./playground");
+    const { Problem } = await import("./problem");
+    const sections: ReadonlyArray<readonly [string, () => Promise<ReactNode>]> = [
+      ["problem", Problem],
+      ["flow", Flow],
+      ["features", Bento],
+      ["code", CodeShowcase],
+      ["marquee", Marquee],
+      ["playground", Playground],
+      ["compare", Compare],
+      ["open-source", OpenSource],
+      ["faq", () => Faq({ items: [{ id: "formats", question: "Which formats?" }] })],
+    ];
+    const layouts: Record<string, string | null> = {};
+    for (const [id, section] of sections) {
+      const doc = new DOMParser().parseFromString(renderToString(await section()), "text/html");
+      const head = doc.querySelector(`section#${id} .vk-section-head`);
+      if (head === null) throw new Error(`no section head in #${id}`);
+      layouts[id] = head.querySelector(".vk-section-head-lead")
+        ? head.getAttribute("data-layout")
+        : "heading";
+    }
     expect(layouts).toEqual({
-      "problem.tsx": "split",
-      "flow.tsx": "stacked",
-      "bento.tsx": "heading",
-      "code-showcase.tsx": "stacked",
-      "marquee.tsx": "aside",
-      "playground.tsx": "inline",
-      "compare.tsx": "heading",
-      "open-source.tsx": "split",
-      "faq.tsx": "heading",
+      problem: "split",
+      flow: "stacked",
+      features: "heading",
+      code: "stacked",
+      marquee: "aside",
+      playground: "inline",
+      compare: "heading",
+      "open-source": "split",
+      faq: "heading",
     });
   });
 });
