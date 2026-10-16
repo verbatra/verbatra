@@ -382,7 +382,7 @@
           "body": "Verbatra lit et écrit les fichiers que tu as déjà, dans le format qu’attend chaque stack. Un format qu’il ne fournit pas passe par un adaptateur que tu construis avec le SDK.",
           "families": {
             "web": "Frameworks web",
-            "mobile": "Mobile",
+            "mobile": "Applications mobiles",
             "backend": "Backend et bureau",
             "exchange": "Échange et usage général"
           }
