@@ -1,4 +1,5 @@
 import { FORMAT_SAMPLES } from "./format-samples";
+import { HERO_TERMINAL_TITLE } from "./hero-terminal";
 import { STUDIO_RUN_COMMAND } from "./install-commands";
 import { CHECKOUT_ACTION_REF, VERBATRA_ACTION_REF } from "./landing-code";
 import type { HighlightLanguage } from "./landing-highlight";
@@ -77,7 +78,7 @@ export const FLOW_NODES: ReadonlyArray<FlowNode> = [
   {
     id: "cli",
     docsPath: "/docs/cli/translate",
-    snippet: { language: "bash", code: FLOW_CLI_CODE },
+    snippet: { language: "bash", filename: HERO_TERMINAL_TITLE, code: FLOW_CLI_CODE },
   },
   {
     id: "incremental",
@@ -96,12 +97,12 @@ export const FLOW_NODES: ReadonlyArray<FlowNode> = [
   {
     id: "check",
     docsPath: "/docs/ci-and-exit-codes",
-    snippet: { language: "bash", code: FLOW_CHECK_CODE },
+    snippet: { language: "bash", filename: HERO_TERMINAL_TITLE, code: FLOW_CHECK_CODE },
   },
   {
     id: "studio",
     docsPath: "/docs/review-in-studio",
-    snippet: { language: "bash", code: `${STUDIO_RUN_COMMAND}\n` },
+    snippet: { language: "bash", filename: HERO_TERMINAL_TITLE, code: `${STUDIO_RUN_COMMAND}\n` },
   },
   {
     id: "mcp",

@@ -686,7 +686,9 @@ reserved for client islands (see "The stack").
   capped to the snippet column's width, from `--flow-rail`, declared on the section's
   `.vk-flow-section` so the head and the nodes share it) is one `ol.vk-flow-list`, one `li.vk-flow-node` per entry of
   `FLOW_NODES` in `lib/landing-flow.ts`: an `h3`, two sentences, one docs link and one `CodeFrame`
-  snippet, each snippet taken from its source and pinned to it by `flow.test.tsx` (the next-intl
+  snippet, each titled (its file name, or `HERO_TERMINAL_TITLE`, `~/app`, for a command, like
+  the bento's shell frame) so its copy button sits in the title bar and never over the code, each
+  snippet taken from its source and pinned to it by `flow.test.tsx` (the next-intl
   sample from the real adapter, the `init`, `translate` and `check` commands and flags of the
   published `@verbatra/cli`, as recorded once from its release tag in
   `test-support/cli-0.11.1-flags.json`, with `init --path` naming the file the source node shows,

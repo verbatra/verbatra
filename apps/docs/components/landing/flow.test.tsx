@@ -231,6 +231,18 @@ describe("the feature flow section", () => {
     });
   });
 
+  it("titles every snippet, so its copy button sits in the title bar, never over the code", async () => {
+    const items = nodes(await renderServer());
+    for (const [index, node] of FLOW_NODES.entries()) {
+      expect(node.snippet.filename, node.id).toBeTruthy();
+      const caption = items[index]?.querySelector(".vk-flow-snippet figcaption");
+      const button = items[index]?.querySelector(".vk-flow-snippet button");
+      expect(button, node.id).not.toBeNull();
+      expect(caption?.parentElement?.contains(button ?? null), node.id).toBe(true);
+      expect(button?.closest(".vk-code-frame-body"), node.id).toBeNull();
+    }
+  });
+
   it("puts the offline Try it playground in the incremental node, revealed as one block", async () => {
     const items = nodes(await renderServer());
     const withDemo = items.filter((item) => item.querySelector(".vk-showcase-try") !== null);
