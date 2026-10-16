@@ -185,12 +185,13 @@ test.describe("back to top when a scroll-linked island resets the scroll on the 
     }) => {
       await page.setViewportSize({ width: 1440, height: 900 });
       await ready(page, homeUrl(locale));
-      await page.keyboard.press("End");
       await expect
         .poll(() =>
-          page.evaluate(
-            () => window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2,
-          ),
+          page.evaluate(() => {
+            const root = document.documentElement;
+            window.scrollTo({ top: root.scrollHeight, behavior: "instant" });
+            return window.scrollY + window.innerHeight >= root.scrollHeight - 2;
+          }),
         )
         .toBe(true);
       await interruptOnceInFlow(page);
