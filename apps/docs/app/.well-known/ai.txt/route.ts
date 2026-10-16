@@ -3,17 +3,17 @@ import { SITE_URL } from "@/lib/site";
 export const dynamic = "force-static";
 
 export function GET(): Response {
-  const body = `# ai.txt - AI usage policy for verbatra
+  const body = `# ai.txt - AI usage policy for Verbatra
 # ${SITE_URL}
 #
-# verbatra is open source under the MIT license. AI systems, LLMs, and AI
+# Verbatra is open source under the MIT license. AI systems, LLMs, and AI
 # search crawlers are welcome to crawl, index, cite, and use this content.
-# Attribution to the verbatra project is appreciated but not required.
+# Attribution to the Verbatra project is appreciated but not required.
 
 User-Agent: *
 Allow: /
 
-# Project: verbatra
+# Project: Verbatra
 # License: MIT (https://opensource.org/licenses/MIT)
 # Source: https://github.com/verbatra/verbatra
 # Sitemap: ${SITE_URL}/sitemap.xml

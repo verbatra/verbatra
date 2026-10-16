@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import en from "@/messages/en.json";
 
 const PAGES = [
   {
@@ -22,6 +23,32 @@ const PAGES = [
 
 vi.mock("@/lib/source", () => ({ source: { getPages: () => PAGES } }));
 
+vi.mock("next-intl/server", async () => {
+  const { readFileSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const { createTranslator } = await import("next-intl");
+  return {
+    getTranslations: async ({ locale, namespace }: { locale: string; namespace: string }) =>
+      createTranslator({
+        locale,
+        messages: JSON.parse(
+          readFileSync(join(import.meta.dirname, `../../messages/${locale}.json`), "utf8"),
+        ),
+        namespace: namespace as never,
+      }),
+  };
+});
+
+const RETIRED_LANDING_SECTIONS = [
+  "Verbatra in numbers",
+  "Locale files drift every time you ship.",
+  "Use it from the terminal or from your own code.",
+  "Review every locale in Verbatra Studio.",
+  "See it work.",
+  "Fits the project you already have.",
+  "Open source under the MIT license.",
+] as const;
+
 const { GET } = await import("./route");
 const body = await (await GET()).text();
 
@@ -42,5 +69,21 @@ describe("llms-full.txt", () => {
     expect(body).toContain(
       "Report drift, then [translate](https://verbatra.kreitz-webdev.de/docs/cli/translate.md).",
     );
+  });
+
+  it("starts with the landing markdown, then the comparison, then the docs pages", () => {
+    const landing = body.indexOf(`# ${en.landing.banner.headline}\n`);
+    const compare = body.indexOf(`# ${en.compare.heading}\n`);
+    const docs = body.indexOf("# Quickstart (");
+    expect(landing).toBeGreaterThan(0);
+    expect(compare).toBeGreaterThan(landing);
+    expect(docs).toBeGreaterThan(compare);
+    for (const heading of [en.landing.flow.heading, en.landing.faq.heading]) {
+      expect(body.indexOf(heading)).toBeLessThan(compare);
+    }
+  });
+
+  it("names no retired landing section", () => {
+    for (const heading of RETIRED_LANDING_SECTIONS) expect(body).not.toContain(heading);
   });
 });

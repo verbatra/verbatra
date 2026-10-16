@@ -93,3 +93,41 @@ test("ends an .mdx url without a page behind it in a 404", async ({ request }) =
   expect((await request.get("/no-such-page.mdx", { maxRedirects: 0 })).status()).toBe(404);
   expect((await request.get("/xx/site.mdx/index", { maxRedirects: 0 })).status()).toBe(404);
 });
+
+test("lists every site markdown url in llms.txt, and each one it links answers 200", async ({
+  request,
+}) => {
+  const llms = await (await request.get("/llms.txt")).text();
+  for (const url of MARKDOWN_URLS) expect(llms, url).toContain(`(${SITE}${url})`);
+  const linked = Array.from(
+    llms.matchAll(new RegExp(`\\(${SITE.replaceAll(".", "\\.")}(/[^)\\s]*\\.md)\\)`, "g")),
+    (match) => match[1] ?? "",
+  );
+  expect(linked.length).toBeGreaterThan(MARKDOWN_URLS.length);
+  for (const path of new Set(linked)) {
+    const response = await request.get(path);
+    expect(response.status(), path).toBe(200);
+    expect(response.headers()["content-type"], path).toContain("text/markdown");
+  }
+});
+
+test("puts the landing and the comparison before the docs in llms-full.txt", async ({
+  request,
+}) => {
+  const full = await (await request.get("/llms-full.txt")).text();
+  const landing = await (await request.get("/index.md")).text();
+  const compare = await (await request.get("/compare.md")).text();
+  const headline = landing.split("\n").find((line) => line.startsWith("# ")) ?? "missing";
+  const heading = compare.split("\n").find((line) => line.startsWith("# ")) ?? "missing";
+  expect(full.indexOf(headline)).toBeGreaterThan(0);
+  expect(full.indexOf(heading)).toBeGreaterThan(full.indexOf(headline));
+  expect(full.indexOf("/docs/quickstart)")).toBeGreaterThan(full.indexOf(heading));
+  for (const retired of [
+    "Verbatra in numbers",
+    "Locale files drift every time you ship.",
+    "Use it from the terminal or from your own code.",
+    "Review every locale in Verbatra Studio.",
+  ]) {
+    expect(full).not.toContain(retired);
+  }
+});

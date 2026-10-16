@@ -9,7 +9,7 @@ const NPM_SDK_URL = "https://www.npmjs.com/package/@verbatra/sdk";
 const NPM_STUDIO_URL = "https://www.npmjs.com/package/@verbatra/studio";
 const NPM_MCP_URL = "https://www.npmjs.com/package/@verbatra/mcp";
 
-const SUPPORTED_FRAMEWORKS = [
+export const SUPPORTED_FRAMEWORKS = [
   "React",
   "Next.js",
   "Vue",
