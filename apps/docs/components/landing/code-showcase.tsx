@@ -59,7 +59,7 @@ export async function CodeShowcase(): Promise<ReactNode> {
   return (
     <Section id="code" band labelledBy="code-heading">
       <SectionHead id="code-heading" layout="stacked" title={t("heading")} lead={t("lead")} />
-      <div data-reveal="2" className="mt-10 lg:mt-14">
+      <div data-reveal="2" className="mt-(--head-gap)">
         <CodeShowcaseTabs label={t("tablist")} tabs={tabs} />
       </div>
     </Section>

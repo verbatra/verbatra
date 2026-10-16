@@ -161,6 +161,7 @@ samp {
   --section-lg: 104px;
   --section-md: 80px;
   --section-sm: 56px;
+  --head-gap: 2.5rem;
 
   --gutter: 24px;
 
@@ -279,6 +280,12 @@ html.light {
   }
 }
 
+@media (min-width: 64rem) {
+  :root {
+    --head-gap: 3.5rem;
+  }
+}
+
 @layer components {
   .vk-display,
   .vk-h2,
@@ -386,7 +393,7 @@ html.light {
 }
 
 .vk-section-aside {
-  row-gap: 2.5rem;
+  row-gap: var(--head-gap);
 }
 
 .vk-section-aside-content {
@@ -2065,7 +2072,7 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   --flow-mark-size: 1.75rem;
   --flow-node-gap: 3.5rem;
   position: relative;
-  margin-top: 2.5rem;
+  margin-top: var(--head-gap);
 }
 
 .vk-flow-list {
@@ -3083,7 +3090,7 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 .vk-playground-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 2.5rem;
+  gap: var(--head-gap);
 }
 
 .vk-playground {

@@ -167,7 +167,11 @@ Scales are fixed and narrow, deliberately:
   `--cta-height` (56px) is the minimum height of `.vk-prompt-trigger` on `PromptCopyButton`;
   `--width-prompt-pop` (30rem, capped by `100cqw` of its container, never by `100vw`, which counts
   the scrollbar) is the width of the `.vk-prompt-pop` preview. `--width-hero-panel` (36rem) is the
-  hero command panel's maximum width. `.vk-grid-12` is the landing grid: one column under 64rem,
+  hero command panel's maximum width. `--head-gap` (2.5rem, 3.5rem from 64rem) is the one space
+  between a section head and its content: the margin over the flow list, the bento grid, the
+  problem, code showcase, comparison, open source and FAQ content (`mt-(--head-gap)`), the row gap
+  of `.vk-section-aside` and of the playground grid; `section-bands.test.tsx` fails on an ad hoc
+  `mt-10` or `lg:mt-14` there. `.vk-grid-12` is the landing grid: one column under 64rem,
   then `--grid-columns` (12) columns with a `--grid-gap` (24px) gap, where each child spans
   `--grid-span` columns (the full row when unset), starting on `--grid-start` when set (the open
   source contributors start on column 9). `SectionHead` takes `layout`: `split` (the default, a

@@ -90,7 +90,7 @@ export async function Problem(): Promise<ReactNode> {
   return (
     <Section id="problem" labelledBy="problem-heading">
       <SectionHead id="problem-heading" title={t("heading")} lead={t("lead")} />
-      <div className="mt-10 grid gap-10 lg:mt-14 lg:grid-cols-12 lg:gap-6">
+      <div className="mt-(--head-gap) grid gap-10 lg:grid-cols-12 lg:gap-6">
         <div
           data-reveal="2"
           className="min-w-0 self-start overflow-hidden rounded-xl border border-(--border-default) bg-(--v-void) lg:col-span-7"

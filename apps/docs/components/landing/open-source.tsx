@@ -114,7 +114,7 @@ export async function OpenSource(): Promise<ReactNode> {
   return (
     <Section width="wide" rhythm="md" id="open-source" labelledBy="open-source-heading">
       <SectionHead id="open-source-heading" title={t("heading")} lead={t("lead")} />
-      <div className="vk-grid-12 not-prose mt-10 gap-y-12">
+      <div className="vk-grid-12 not-prose mt-(--head-gap) gap-y-12">
         <PlainList
           className="grid border-b"
           style={{ ...LINKS_SPAN, borderColor: "var(--border-default)" }}

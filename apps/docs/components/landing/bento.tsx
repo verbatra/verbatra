@@ -216,7 +216,7 @@ export async function Bento(): Promise<ReactNode> {
       <SectionHead id="features-heading" title={t("heading")} />
       <PlainList
         data-reveal="2"
-        className="mt-10 grid list-none grid-cols-1 gap-3 sm:gap-4 lg:mt-14 lg:grid-cols-12"
+        className="mt-(--head-gap) grid list-none grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-12"
       >
         {BENTO_TILES.map((tile, index) => (
           <li

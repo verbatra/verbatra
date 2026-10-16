@@ -116,6 +116,26 @@ describe("the section head on the 12-column grid", () => {
     expect(css).toMatch(/\.vk-section-aside-content \{\s+--grid-span: 8;/);
   });
 
+  it("opens every section's content one --head-gap under its head, never an ad hoc margin", () => {
+    expect(css).toMatch(/:root \{[^}]*--head-gap: 2\.5rem;/);
+    expect(css).toMatch(/@media \(min-width: 64rem\) \{\s+:root \{\s+--head-gap: 3\.5rem;/);
+    expect(css).toMatch(/\.vk-section-aside \{\s+row-gap: var\(--head-gap\);/);
+    expect(css).toMatch(/\.vk-flow \{[^}]*margin-top: var\(--head-gap\);/);
+    expect(css).toMatch(/\.vk-playground-layout \{[^}]*gap: var\(--head-gap\);/);
+    for (const file of [
+      "bento.tsx",
+      "code-showcase.tsx",
+      "compare.tsx",
+      "faq.tsx",
+      "open-source.tsx",
+      "problem.tsx",
+    ]) {
+      const source = readFileSync(join(import.meta.dirname, file), "utf8");
+      expect(source, file).toContain("mt-(--head-gap)");
+      expect(source, file).not.toMatch(/\b(?:lg:)?mt-1[0-4]\b/);
+    }
+  });
+
   it("lets a grid child start on a set column from 64rem, and only there", () => {
     expect(css).toContain(
       "grid-column: var(--grid-start, auto) / span var(--grid-span, var(--grid-columns));",
