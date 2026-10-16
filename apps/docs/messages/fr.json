@@ -3,7 +3,7 @@
     "meta": {
       "title": "Verbatra : CLI i18n qui ne traduit que les clés modifiées",
       "ogTitle": "Verbatra : ne traduis que ce qui a changé",
-      "description": "Verbatra, CLI et SDK i18n open source, trouve les clés manquantes ou modifiées de tes fichiers de locale et ne traduit qu’elles, avec ta clé de fournisseur.",
+      "description": "Verbatra, CLI et SDK i18n open source, trouve les clés manquantes ou modifiées de tes fichiers de locale et ne traduit qu’elles, avec ta propre clé d’API.",
       "ogDescription": "Ne traduis que les clés i18n qui ont changé, et fais échouer la CI tant qu’une clé manque.",
       "ogImageAlt": "Verbatra : Ne traduis que ce qui a changé, au-dessus d’une exécution de check qui trouve deux clés manquantes par locale et d’une exécution de translate qui n’envoie que celles-ci.",
       "definition": "Verbatra est une CLI et un SDK open source pour les fichiers de locale i18n. Il n’envoie que les clés nouvelles et modifiées au fournisseur d’IA ou de traduction automatique de ton choix et fait échouer la CI tant qu’une clé manque."
@@ -34,7 +34,7 @@
       "heading": "Questions fréquentes.",
       "items": {
         "incremental": {
-          "question": "Comment Verbatra évite-t-il de tout re-traduire à chaque exécution ?",
+          "question": "Comment Verbatra évite-t-il de tout retraduire à chaque exécution ?",
           "answer": "Il tient un fichier de verrouillage commité qui enregistre ce qui a déjà été traduit. Chaque exécution compare ta locale source à ce fichier de verrouillage et n’envoie que les clés nouvelles ou modifiées à ton fournisseur. Les clés inchangées ne sont jamais touchées, donc une exécution typique coûte une poignée de chaînes, pas tout ton catalogue."
         },
         "providers": {
@@ -51,11 +51,11 @@
         },
         "keys": {
           "question": "Où vont mes clés d’API ?",
-          "answer": "Dans des variables d’environnement, jamais dans la configuration. La configuration rejette les clés qu’elle ne connaît pas, donc un secret ne peut pas s’y retrouver par erreur. La CLI charge .env.local et .env pour toi, et une erreur nomme la variable manquante mais n’affiche jamais une clé."
+          "answer": "Dans des variables d’environnement, jamais dans la configuration. La configuration rejette les clés qu’elle ne connaît pas, donc un secret ne peut pas s’y retrouver par erreur. La CLI charge .env.local et .env pour toi, et une erreur nomme la variable manquante mais n’affiche jamais une clé d’API."
         },
         "privacy": {
           "question": "Verbatra envoie-t-il mes textes quelque part ?",
-          "answer": "Seulement au fournisseur de traduction que tu configures, et seulement quand une commande traduit. Verbatra n’a ni télémétrie, ni analytics, ni vérification de mise à jour. Tu peux couper complètement la traduction automatique, ou faire tourner un modèle sur ton propre matériel pour que rien ne quitte ton réseau. La <dataHandling>page sur le traitement des données</dataHandling> détaille ce que reçoit chaque fournisseur et renvoie vers les conditions de conservation de chaque éditeur."
+          "answer": "Seulement au fournisseur de traduction que tu configures, et seulement quand une commande traduit. Verbatra n’a ni télémétrie, ni statistiques d’usage, ni vérification de mise à jour. Tu peux couper complètement la traduction automatique, ou faire tourner un modèle sur ton propre matériel pour que rien ne quitte ton réseau. La <dataHandling>page sur le traitement des données</dataHandling> détaille ce que reçoit chaque fournisseur et renvoie vers les conditions de conservation de chaque éditeur."
         },
         "cost": {
           "question": "Combien coûte Verbatra ?",
@@ -162,7 +162,7 @@
         },
         "result": {
           "seed": "Tout est synchronisé : Verbatra traduirait 0 clé.",
-          "summary": "{written, plural, =0 {Une vraie exécution n’écrirait rien} one {Une vraie exécution écrirait # traduction et mettrait à jour son hash dans le lock} many {Une vraie exécution écrirait # de traductions et mettrait à jour leurs hashs dans le lock} other {Une vraie exécution écrirait # traductions et mettrait à jour leurs hashs dans le lock}}{withheld, select, yes {, et retiendrait la réponse qui casse un placeholder} other {}}{orphaned, select, yes {, et garderait la clé supprimée dans de.json jusqu’à `--prune`} other {}}.",
+          "summary": "{written, plural, =0 {Une vraie exécution n’écrirait rien} one {Une vraie exécution écrirait # traduction et mettrait à jour son hash dans le fichier de verrouillage} many {Une vraie exécution écrirait # de traductions et mettrait à jour leurs hashs dans le fichier de verrouillage} other {Une vraie exécution écrirait # traductions et mettrait à jour leurs hashs dans le fichier de verrouillage}}{withheld, select, yes {, et retiendrait la réponse qui casse un placeholder} other {}}{orphaned, select, yes {, et garderait la clé supprimée dans de.json jusqu’à `--prune`} other {}}.",
           "savings": "{sent, plural, one {# chaîne envoyée} many {# de chaînes envoyées} other {# chaînes envoyées}}, là où tout retraduire en enverrait {total}.",
           "outputLabel": "Ce qu’affiche verbatra translate",
           "failed": "Le code de comparaison ne s’est pas chargé. Vérifie ta connexion et réessaie."
@@ -197,7 +197,7 @@
       "terminalExample": "Exemple de sortie",
       "replay": "Rejouer",
       "quotes": {
-        "what": "Verbatra est une CLI et un SDK open source qui garde les fichiers de locale i18n synchronisés.",
+        "what": "Verbatra est une CLI et un SDK open source qui gardent les fichiers de locale i18n synchronisés.",
         "how": "Verbatra trouve les clés manquantes ou modifiées dans tes locales cibles et n’envoie que celles-ci au fournisseur d’IA ou de traduction automatique de ton choix."
       },
       "diffLabel": "Il manque au fichier allemand les clés checkout de la source anglaise jusqu’à ce que verbatra translate les ajoute."
@@ -207,7 +207,7 @@
       "license": "Licence",
       "install": "Installation",
       "providers": "Fournisseurs",
-      "providersLink": "Configure un fournisseur",
+      "providersLink": "Configurer un fournisseur",
       "formats": "Formats",
       "formatsValue": "{count} formats de fichier",
       "requirements": "Prérequis",
@@ -281,7 +281,7 @@
         },
         "action": {
           "title": "Traduis dans GitHub Actions",
-          "body": "L’action installe exactement la version de la CLI que tu épingles et exécute `translate` à chaque push sur main, avec ta clé de fournisseur tirée d’un secret du dépôt. Elle ne commite jamais : ajoute ta propre étape qui commite les fichiers de locale mis à jour, comme le décrit le guide.",
+          "body": "L’action installe exactement la version de la CLI que tu épingles et exécute `translate` à chaque push sur main, avec ta clé d’API tirée d’un secret du dépôt. Elle ne commite jamais : ajoute ta propre étape qui commite les fichiers de locale mis à jour, comme le décrit le guide.",
           "link": "Guide de la GitHub Action"
         },
         "check": {
@@ -291,7 +291,7 @@
         },
         "studio": {
           "title": "Relis dans Verbatra Studio",
-          "body": "Un tableau de bord local sur ton projet. Il montre où en est chaque locale et te laisse corriger une traduction sur place.",
+          "body": "Un tableau de bord local pour ton projet. Il montre où en est chaque locale et te laisse corriger une traduction sur place.",
           "link": "Lire le guide de Studio"
         },
         "mcp": {
@@ -489,8 +489,8 @@
       "contributorAria": "{name} sur GitHub"
     },
     "closing": {
-      "heading": "Commence par une simulation.",
-      "lead": "Une simulation n’a besoin d’aucune clé d’API et n’écrit rien. Elle liste exactement les clés qu’une vraie exécution enverrait.",
+      "heading": "Commence par une exécution à blanc.",
+      "lead": "Une exécution à blanc n’a besoin d’aucune clé d’API et n’écrit rien. Elle liste exactement les clés qu’une vraie exécution enverrait.",
       "primary": "Démarrer",
       "secondary": "Lire la documentation"
     }
@@ -518,7 +518,7 @@
       },
       "s4": {
         "heading": "4. Statistiques",
-        "body": "Nous comptons les pages vues avec Umami, un outil de statistiques open source que nous hébergeons nous-mêmes sur le même serveur que ce site (voir la section 3), de sorte qu'aucune donnée statistique n'est transmise à un tiers. Aucun script de statistiques ne s'exécute dans ton navigateur, et rien n'est écrit sur ton appareil pour compter les pages vues. La seule chose lue sur ton appareil en lien avec les statistiques est le cookie d'opposition décrit à la section 5, et uniquement pour respecter ton opposition. À la place, lorsque ton navigateur charge directement une page de ce site (et non lorsqu'il la précharge en arrière-plan), notre serveur web transmet à notre serveur Umami les informations suivantes de cette requête : ton adresse IP, la chaîne user-agent de ton navigateur, la première balise de langue de l'en-tête Accept-Language de ton navigateur (par exemple fr-FR), transmise à chaque page vue, la page référente (sans ses paramètres de requête) et le chemin de la page chargée avec les cinq paramètres UTM de l'adresse de la page (utm_source, utm_medium, utm_campaign, utm_term et utm_content, chacun raccourci à 255 caractères) ; tous les autres paramètres de requête, comme les identifiants de clic publicitaires, ainsi que le fragment sont écartés et ne sont pas transmis. Les clics, les textes copiés et les autres interactions ne sont pas enregistrés. <strong>Ton adresse IP et ta chaîne user-agent elles-mêmes ne sont pas conservées.</strong> Le serveur Umami calcule un identifiant de session pseudonyme en hachant l'identifiant du site, ton adresse IP, ta chaîne user-agent, une valeur qui change chaque mois et une clé secrète du serveur. Pour chaque page vue, il enregistre cet identifiant, l'heure, le chemin de la page avec les éventuels paramètres UTM et la page référente, et pour la session cette balise de langue, ton navigateur, ton système d'exploitation et ton type d'appareil (déduits de la chaîne user-agent), ainsi que ton pays, ta région et ta ville, qu'il détermine à partir de ton adresse IP dans une base de données GeoLite2 sur le même serveur sans interroger aucun autre service. Comme l'identifiant de session est dérivé de ton adresse IP, il s'agit d'un traitement pseudonyme, et non anonyme, de données personnelles. Nous ne consultons les résultats que sous forme agrégée et ne cherchons pas à identifier des visiteurs individuels. Comme rien n'est stocké sur ton appareil pour compter les pages vues et que le cookie d'opposition n'est lu que pour respecter ton opposition, aucun consentement au titre du § 25 TDDDG (loi allemande sur la protection des données dans les télécommunications et les services numériques) n'est nécessaire. La base légale du traitement est l'art. 6, § 1, point f) du RGPD (notre intérêt légitime à comprendre comment le site est utilisé). Les données statistiques sont stockées dans la base de données Umami de ce serveur. Si ton navigateur envoie un signal Global Privacy Control (GPC) ou Do Not Track, rien n'est transmis. Tu peux aussi t'y opposer avec le bouton ci-dessous : il dépose le cookie décrit à la section 5 et, tant que ton navigateur envoie ce cookie, rien n'est transmis non plus. Une opposition enregistrée dans le stockage local de ton navigateur avec l'ancienne configuration statistique de ce site n'est plus lue ; si tu t'es opposé de cette manière, oppose-toi à nouveau ici. Tu peux en savoir plus sur Umami dans sa <umami>documentation</umami>.",
+        "body": "Nous comptons les pages vues avec Umami, un outil de statistiques open source que nous hébergeons nous-mêmes sur le même serveur que ce site (voir la section 3), de sorte qu'aucune donnée statistique n'est transmise à un tiers. Aucun script de statistiques ne s'exécute dans ton navigateur, et rien n'est écrit sur ton appareil pour compter les pages vues. La seule chose lue sur ton appareil en lien avec les statistiques est le cookie d'opposition décrit à la section 5, et uniquement pour respecter ton opposition. À la place, lorsque ton navigateur charge directement une page de ce site (et non lorsqu'il la précharge en arrière-plan), notre serveur web transmet à notre serveur Umami les informations suivantes de cette requête : ton adresse IP, la chaîne user-agent de ton navigateur, la première balise de langue de l'en-tête Accept-Language de ton navigateur (par exemple fr-FR), transmise à chaque page vue, la page référente (sans ses paramètres de requête) et le chemin de la page chargée avec les cinq paramètres UTM de l'adresse de la page (utm_source, utm_medium, utm_campaign, utm_term et utm_content, chacun raccourci à 255 caractères) ; tous les autres paramètres de requête, comme les identifiants de clic publicitaires, ainsi que le fragment sont écartés et ne sont pas transmis. Les clics, les textes copiés et les autres interactions ne sont pas enregistrés. <strong>Ton adresse IP et ta chaîne user-agent elles-mêmes ne sont pas conservées.</strong> Le serveur Umami calcule un identifiant de session pseudonyme en hachant l'identifiant du site, ton adresse IP, ta chaîne user-agent, une valeur qui change chaque mois et une clé secrète du serveur. Pour chaque page vue, il enregistre cet identifiant, l'heure, le chemin de la page avec les éventuels paramètres UTM et la page référente, et pour la session cette balise de langue, ton navigateur, ton système d'exploitation et ton type d'appareil (déduits de la chaîne user-agent), ainsi que ton pays, ta région et ta ville, qu'il détermine à partir de ton adresse IP dans une base de données GeoLite2 sur le même serveur sans interroger aucun autre service. Comme l'identifiant de session est dérivé de ton adresse IP, il s'agit d'un traitement pseudonyme, et non anonyme, de données personnelles. Nous ne consultons les résultats que sous forme agrégée et ne cherchons pas à identifier des visiteurs individuels. Comme rien n'est stocké sur ton appareil pour compter les pages vues et que le cookie d'opposition n'est lu que pour respecter ton opposition, aucun consentement au titre du § 25 TDDDG (loi allemande sur la protection des données dans les télécommunications et les services numériques) n'est nécessaire pour cela. La base légale du traitement est l'art. 6, § 1, point f) du RGPD (notre intérêt légitime à comprendre comment le site est utilisé). Les données statistiques sont stockées dans la base de données Umami de ce serveur. Si ton navigateur envoie un signal Global Privacy Control (GPC) ou Do Not Track, rien n'est transmis. Tu peux aussi t'y opposer avec le bouton ci-dessous : il dépose le cookie décrit à la section 5 et, tant que ton navigateur envoie ce cookie, rien n'est transmis non plus. Une opposition enregistrée dans le stockage local de ton navigateur avec l'ancienne configuration statistique de ce site n'est plus lue ; si tu t'es opposé de cette manière, oppose-toi à nouveau ici. Tu peux en savoir plus sur Umami dans sa <umami>documentation</umami>.",
         "optOut": {
           "optOut": "Refuser les statistiques",
           "optIn": "Autoriser à nouveau les statistiques",

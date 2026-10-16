@@ -3,10 +3,10 @@
     "meta": {
       "title": "Verbatra: die i18n-CLI, die nur geänderte Keys übersetzt",
       "ogTitle": "Verbatra: übersetze nur, was sich geändert hat",
-      "description": "Verbatra, eine Open-Source-CLI mit SDK für i18n, findet fehlende und geänderte Keys in deinen Locale-Dateien und übersetzt nur diese mit deinem Provider-Key.",
+      "description": "Verbatra, eine Open-Source-CLI mit SDK für i18n, findet fehlende und geänderte Keys in deinen Locale-Dateien und übersetzt nur diese mit deinem eigenen API-Key.",
       "ogDescription": "Übersetze nur die i18n-Keys, die sich geändert haben, und lass die CI scheitern, solange einer fehlt.",
       "ogImageAlt": "Verbatra: Übersetze nur, was sich geändert hat, über einem check-Lauf, der zwei fehlende Keys pro Locale findet, und einem translate-Lauf, der nur diese schickt.",
-      "definition": "Verbatra ist eine Open-Source-CLI mit SDK für i18n-Locale-Dateien. Sie schickt nur neue und geänderte Keys an den Provider deiner Wahl (KI oder maschinelle Übersetzung) und lässt die CI scheitern, solange ein Key fehlt."
+      "definition": "Verbatra ist eine Open-Source-CLI und ein SDK für i18n-Locale-Dateien. Es schickt nur neue und geänderte Keys an den Provider deiner Wahl (KI oder maschinelle Übersetzung) und lässt die CI scheitern, solange ein Key fehlt."
     },
     "hero": {
       "command": {
@@ -39,7 +39,7 @@
         },
         "providers": {
           "question": "Welche Übersetzungs-Provider kann ich verwenden?",
-          "answer": "Jeder davon, hinter einer Schnittstelle: Anthropic, OpenAI und Gemini (LLMs), DeepL und Google Cloud Translation (maschinelle Übersetzung), openai-compatible, das Verbatra auf einen lokalen oder selbst gehosteten Server wie Ollama, LM Studio oder vLLM richtet, sowie libretranslate, ein selbst gehosteter LibreTranslate-Server für maschinelle Übersetzung ganz ohne Sprachmodell. Du wählst einen über seine ID im Provider-Block deiner Konfiguration und wechselst später, indem du diesen Block neu schreibst, denn jeder Provider hat eigene Optionen. Gemini hat ein echtes kostenloses Kontingent, und ein lokales Modell kostet pro Aufruf nichts. Oder setz den Provider auf none, um maschinelle Übersetzung ganz abzuschalten."
+          "answer": "Jeden davon, hinter einer Schnittstelle: Anthropic, OpenAI und Gemini (LLMs), DeepL und Google Cloud Translation (maschinelle Übersetzung), openai-compatible, das Verbatra auf einen lokalen oder selbst gehosteten Server wie Ollama, LM Studio oder vLLM richtet, sowie libretranslate, ein selbst gehosteter LibreTranslate-Server für maschinelle Übersetzung ganz ohne Sprachmodell. Du wählst einen über seine ID im Provider-Block deiner Konfiguration und wechselst später, indem du diesen Block neu schreibst, denn jeder Provider hat eigene Optionen. Gemini hat ein echtes kostenloses Kontingent, und ein lokales Modell kostet pro Aufruf nichts. Oder setz den Provider auf none, um maschinelle Übersetzung ganz abzuschalten."
         },
         "formats": {
           "question": "Welche Formate und Frameworks unterstützt Verbatra?",
@@ -51,7 +51,7 @@
         },
         "keys": {
           "question": "Wo landen meine API-Keys?",
-          "answer": "In Umgebungsvariablen, nie in der Konfiguration. Die Konfiguration lehnt unbekannte Schlüssel ab, also kann ein Geheimnis dort nicht aus Versehen landen. Die CLI lädt .env.local und .env für dich, und eine Fehlermeldung nennt die fehlende Variable, gibt aber nie einen Key aus."
+          "answer": "In Umgebungsvariablen, nie in der Konfiguration. Die Konfiguration lehnt unbekannte Schlüssel ab, also kann ein Geheimnis dort nicht aus Versehen landen. Die CLI lädt .env.local und .env für dich, und eine Fehlermeldung nennt die fehlende Variable, gibt aber nie einen API-Key aus."
         },
         "privacy": {
           "question": "Schickt Verbatra meine Strings irgendwohin?",
@@ -59,7 +59,7 @@
         },
         "cost": {
           "question": "Was kostet Verbatra?",
-          "answer": "Verbatra selbst ist kostenlos und Open Source unter der <license>MIT-Lizenz</license>. Der einzige Kostenfaktor ist die Nutzung deines Providers, und die steuerst du: Es übersetzt nur, was sich geändert hat, und du kannst es kostenlos mit Geminis kostenlosem Kontingent oder einem lokalen OpenAI-kompatiblen Modell betreiben. Google darf laut seinen Bedingungen in manchen Regionen Anfragen im kostenlosen Kontingent zur Verbesserung seiner Produkte nutzen, halte vertrauliche Strings also bei einem bezahlten Kontingent oder einem lokalen Modell; die <dataHandling>Seite zur Datenverarbeitung</dataHandling> verlinkt die aktuellen Bedingungen."
+          "answer": "Verbatra selbst ist kostenlos und Open Source unter der <license>MIT-Lizenz</license>. Der einzige Kostenfaktor ist die Nutzung deines Providers, und die steuerst du: Es übersetzt nur, was sich geändert hat, und du kannst es kostenlos mit Geminis kostenlosem Kontingent oder einem lokalen OpenAI-kompatiblen Modell betreiben. Google darf laut seinen Bedingungen in manchen Regionen Anfragen im kostenlosen Kontingent zur Verbesserung seiner Produkte nutzen. Halte vertrauliche Strings also bei einem bezahlten Kontingent oder einem lokalen Modell; die <dataHandling>Seite zur Datenverarbeitung</dataHandling> verlinkt die aktuellen Bedingungen."
         },
         "studio": {
           "question": "Ist Verbatra Studio ein gehosteter Dienst?",
@@ -197,7 +197,7 @@
       "terminalExample": "Beispielausgabe",
       "replay": "Erneut abspielen",
       "quotes": {
-        "what": "Verbatra ist eine Open-Source-CLI mit SDK, die i18n-Locale-Dateien synchron hält.",
+        "what": "Verbatra ist eine Open-Source-CLI und ein SDK, die i18n-Locale-Dateien synchron halten.",
         "how": "Verbatra findet Keys, die in deinen Ziel-Locales fehlen oder sich geändert haben, und schickt nur diese an den Provider deiner Wahl (KI oder maschinelle Übersetzung)."
       },
       "diffLabel": "Der deutschen Datei fehlen die checkout-Keys der englischen Quelle, bis verbatra translate sie ergänzt."
@@ -264,7 +264,7 @@
       "copy": "Code kopieren",
       "items": {
         "source": {
-          "title": "Starte bei deiner Quell-Locale",
+          "title": "Bei deiner Quell-Locale starten",
           "body": "Verbatra liest die Locale-Dateien, die du schon in deinem Repository pflegst, im eigenen Format deines Frameworks. Die Quell-Locale bleibt die eine Datei, die du von Hand bearbeitest.",
           "link": "Unterstützte Formate"
         },
@@ -281,7 +281,7 @@
         },
         "action": {
           "title": "In GitHub Actions übersetzen",
-          "body": "Die Action installiert genau die CLI-Version, die du pinnst, und führt `translate` bei jedem Push auf main aus, mit deinem Provider-Schlüssel aus einem Repository-Secret. Sie committet nie, also füge wie in der Anleitung beschrieben einen eigenen Schritt hinzu, der die aktualisierten Locale-Dateien committet.",
+          "body": "Die Action installiert genau die CLI-Version, die du pinnst, und führt `translate` bei jedem Push auf main aus, mit deinem API-Key aus einem Repository-Secret. Sie committet nie, also füge wie in der Anleitung beschrieben einen eigenen Schritt hinzu, der die aktualisierten Locale-Dateien committet.",
           "link": "Anleitung zur GitHub Action"
         },
         "check": {
@@ -291,12 +291,12 @@
         },
         "studio": {
           "title": "In Verbatra Studio prüfen",
-          "body": "Ein lokales Dashboard über deinem Projekt. Es zeigt, wo jede Locale steht, und du korrigierst eine Übersetzung an Ort und Stelle.",
+          "body": "Ein lokales Dashboard für dein Projekt. Es zeigt, wo jede Locale steht, und du korrigierst eine Übersetzung an Ort und Stelle.",
           "link": "Anleitung zu Studio lesen"
         },
         "mcp": {
-          "title": "Übergib es deinem Coding-Agenten",
-          "body": "Füge diesen Block in `.mcp.json` ein, dann startet Claude Code den Verbatra MCP-Server über stdio. Dein Agent kann dann den Übersetzungsstatus prüfen, das Glossar nutzen und eine Übersetzung an Ort und Stelle korrigieren.",
+          "title": "An deinen Coding-Agenten übergeben",
+          "body": "Füge diesen Block in `.mcp.json` ein, dann startet Claude Code den Verbatra-MCP-Server über stdio. Dein Agent kann dann den Übersetzungsstatus prüfen, das Glossar nutzen und eine Übersetzung an Ort und Stelle korrigieren.",
           "link": "Einen MCP-Client verbinden"
         }
       }
@@ -369,7 +369,7 @@
         },
         "adapters": {
           "title": "Bring dein eigenes Format mit",
-          "body": "Ein Format, das Verbatra nicht mitbringt? Baue einen Adapter auf den Adapter-Factories des SDK und reiche ihn hinein."
+          "body": "Ein Format, das Verbatra nicht mitbringt? Baue einen Adapter auf den Adapter-Factories des SDK und übergib ihn."
         },
         "integrity": {
           "title": "Platzhalter bleiben intakt",
@@ -518,7 +518,7 @@
       },
       "s4": {
         "heading": "4. Analyse",
-        "body": "Wir zählen Seitenaufrufe mit Umami, einem Open-Source-Analysewerkzeug, das wir selbst auf demselben Server wie diese Seite hosten (siehe Abschnitt 3), sodass keine Analysedaten an Dritte weitergegeben werden. In deinem Browser läuft kein Analyseskript, und zum Zählen der Seitenaufrufe wird nichts auf deinem Gerät gespeichert. Im Zusammenhang mit der Analyse wird von deinem Gerät nur das in Abschnitt 5 beschriebene Widerspruchs-Cookie ausgelesen, und zwar ausschließlich, um deinen Widerspruch zu beachten. Stattdessen leitet unser Webserver, wenn dein Browser eine Seite dieser Website direkt lädt (nicht, wenn er sie im Hintergrund vorab lädt), folgende Angaben aus dieser Anfrage an unseren Umami-Server weiter: deine IP-Adresse, die User-Agent-Zeichenkette deines Browsers, das erste Sprachkürzel aus dem Accept-Language-Header deines Browsers (zum Beispiel de-DE), das bei jedem Seitenaufruf weitergeleitet wird, die verweisende Seite (ohne ihre Query-Parameter) und den Pfad der geladenen Seite zusammen mit den fünf UTM-Parametern der Seitenadresse (utm_source, utm_medium, utm_campaign, utm_term und utm_content, jeweils auf 255 Zeichen gekürzt); alle anderen Query-Parameter, etwa Klick-Kennungen von Werbenetzwerken, und das Fragment werden verworfen und nicht weitergeleitet. Klicks, kopierte Texte und andere Interaktionen werden nicht erfasst. <strong>Deine IP-Adresse und deine User-Agent-Zeichenkette selbst werden nicht gespeichert.</strong> Der Umami-Server berechnet eine pseudonyme Sitzungskennung, indem er die Website-ID, deine IP-Adresse, deine User-Agent-Zeichenkette, einen monatlich wechselnden Wert und einen geheimen Schlüssel des Servers hasht. Zu jedem Seitenaufruf speichert er diese Kennung, den Zeitpunkt, den Seitenpfad samt etwa vorhandener UTM-Parameter und die verweisende Seite und zur Sitzung dieses Sprachkürzel, deinen Browser, dein Betriebssystem und deinen Gerätetyp (aus der User-Agent-Zeichenkette abgeleitet) sowie Land, Region und Stadt, die er aus deiner IP-Adresse in einer GeoLite2-Datenbank auf demselben Server ermittelt, ohne einen anderen Dienst anzufragen. Da die Sitzungskennung aus deiner IP-Adresse abgeleitet wird, handelt es sich um eine pseudonyme und keine anonyme Verarbeitung personenbezogener Daten. Wir werten die Ergebnisse nur zusammengefasst aus und versuchen nicht, einzelne Besucher zu identifizieren. Weil zum Zählen der Seitenaufrufe nichts auf deinem Gerät gespeichert wird und das Widerspruchs-Cookie nur ausgelesen wird, um deinen Widerspruch zu beachten, ist dafür keine Einwilligung nach § 25 TDDDG (Telekommunikation-Digitale-Dienste-Datenschutz-Gesetz) erforderlich. Rechtsgrundlage der Verarbeitung ist Art. 6 Abs. 1 lit. f DSGVO (unser berechtigtes Interesse daran zu verstehen, wie die Seite genutzt wird). Die Analysedaten werden in der Umami-Datenbank auf diesem Server gespeichert. Wenn dein Browser ein Global-Privacy-Control-Signal (GPC) oder ein Do-Not-Track-Signal sendet, wird nichts weitergeleitet. Du kannst außerdem über die Schaltfläche unten widersprechen: Sie setzt das in Abschnitt 5 beschriebene Cookie, und solange dein Browser dieses Cookie mitsendet, wird ebenfalls nichts weitergeleitet. Ein Widerspruch, der unter der früheren Analyse-Einrichtung dieser Seite im lokalen Speicher deines Browsers abgelegt wurde, wird nicht mehr ausgelesen; wenn du so widersprochen hast, widersprich hier bitte erneut. Mehr über Umami erfährst du in seiner <umami>Dokumentation</umami>.",
+        "body": "Wir zählen Seitenaufrufe mit Umami, einem Open-Source-Analysewerkzeug, das wir selbst auf demselben Server wie diese Seite hosten (siehe Abschnitt 3), sodass keine Analysedaten an Dritte weitergegeben werden. In deinem Browser läuft kein Analyseskript, und zum Zählen der Seitenaufrufe wird nichts auf deinem Gerät gespeichert. Im Zusammenhang mit der Analyse wird von deinem Gerät nur das in Abschnitt 5 beschriebene Widerspruchs-Cookie ausgelesen, und zwar ausschließlich, um deinen Widerspruch zu beachten. Stattdessen leitet unser Webserver, wenn dein Browser eine Seite dieser Website direkt lädt (nicht, wenn er sie im Hintergrund vorab lädt), folgende Angaben aus dieser Anfrage an unseren Umami-Server weiter: deine IP-Adresse, die User-Agent-Zeichenkette deines Browsers, das erste Sprachkürzel aus dem Accept-Language-Header deines Browsers (zum Beispiel de-DE), das bei jedem Seitenaufruf weitergeleitet wird, die verweisende Seite (ohne ihre Query-Parameter) und den Pfad der geladenen Seite zusammen mit den fünf UTM-Parametern der Seitenadresse (utm_source, utm_medium, utm_campaign, utm_term und utm_content, jeweils auf 255 Zeichen gekürzt); alle anderen Query-Parameter, etwa Klick-Kennungen von Werbenetzwerken, und das Fragment werden verworfen und nicht weitergeleitet. Klicks, kopierte Texte und andere Interaktionen werden nicht erfasst. <strong>Deine IP-Adresse und deine User-Agent-Zeichenkette selbst werden nicht gespeichert.</strong> Der Umami-Server berechnet eine pseudonyme Sitzungskennung, indem er die Website-ID, deine IP-Adresse, deine User-Agent-Zeichenkette, einen monatlich wechselnden Wert und einen geheimen Schlüssel des Servers hasht. Zu jedem Seitenaufruf speichert er diese Kennung, den Zeitpunkt, den Seitenpfad samt etwa vorhandenen UTM-Parametern und die verweisende Seite sowie zur Sitzung dieses Sprachkürzel, deinen Browser, dein Betriebssystem und deinen Gerätetyp (aus der User-Agent-Zeichenkette abgeleitet) sowie Land, Region und Stadt, die er aus deiner IP-Adresse in einer GeoLite2-Datenbank auf demselben Server ermittelt, ohne einen anderen Dienst anzufragen. Da die Sitzungskennung aus deiner IP-Adresse abgeleitet wird, handelt es sich um eine pseudonyme und keine anonyme Verarbeitung personenbezogener Daten. Wir werten die Ergebnisse nur zusammengefasst aus und versuchen nicht, einzelne Besucher zu identifizieren. Weil zum Zählen der Seitenaufrufe nichts auf deinem Gerät gespeichert wird und das Widerspruchs-Cookie nur ausgelesen wird, um deinen Widerspruch zu beachten, ist dafür keine Einwilligung nach § 25 TDDDG (Telekommunikation-Digitale-Dienste-Datenschutz-Gesetz) erforderlich. Rechtsgrundlage der Verarbeitung ist Art. 6 Abs. 1 lit. f DSGVO (unser berechtigtes Interesse daran zu verstehen, wie die Seite genutzt wird). Die Analysedaten werden in der Umami-Datenbank auf diesem Server gespeichert. Wenn dein Browser ein Global-Privacy-Control-Signal (GPC) oder ein Do-Not-Track-Signal sendet, wird nichts weitergeleitet. Du kannst außerdem über die Schaltfläche unten widersprechen: Sie setzt das in Abschnitt 5 beschriebene Cookie, und solange dein Browser dieses Cookie mitsendet, wird ebenfalls nichts weitergeleitet. Ein Widerspruch, der unter der früheren Analyse-Einrichtung dieser Seite im lokalen Speicher deines Browsers abgelegt wurde, wird nicht mehr ausgelesen; wenn du so widersprochen hast, widersprich hier bitte erneut. Mehr über Umami erfährst du in seiner <umami>Dokumentation</umami>.",
         "optOut": {
           "optOut": "Analyse widersprechen",
           "optIn": "Analyse wieder erlauben",
@@ -658,7 +658,7 @@
     "startHere": {
       "title": "Starte hier",
       "lead": "Mit installiertem `@verbatra/cli` verbindet ein Befehl Claude Code, Codex, Gemini CLI, Cursor oder VS Code mit verbatra, Ausgaben aus. Jeder andere Agent: Füge den Prompt ein.",
-      "markdown": "Starte hier: Sobald `@verbatra/cli` im Projekt installiert ist, verbindet `{command}` deinen Coding-Agenten, Ausgaben aus."
+      "markdown": "Starte hier: Sobald `@verbatra/cli` im Projekt installiert ist, verbindet `{command}` deinen Coding-Agenten, ohne Ausgaben zu erlauben."
     },
     "mcpInstall": {
       "label": "Zu {client} hinzufügen"

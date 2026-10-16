@@ -3,7 +3,7 @@
     "meta": {
       "title": "Verbatra: CLI de i18n que traduce solo las claves cambiadas",
       "ogTitle": "Verbatra: traduce solo lo que cambió",
-      "description": "Verbatra, CLI y SDK de i18n de código abierto, halla las claves que faltan o cambiaron en tus archivos de locale y traduce solo esas con tu clave de proveedor.",
+      "description": "Verbatra, CLI y SDK de i18n de código abierto, halla las claves que faltan o cambiaron en tus archivos de locale y traduce solo esas con tu propia clave de API.",
       "ogDescription": "Traduce solo las claves de i18n que cambiaron y haz fallar la CI mientras falte alguna.",
       "ogImageAlt": "Verbatra: Traduce solo lo que cambió, sobre una ejecución de check que encuentra dos claves faltantes por locale y una de translate que envía solo esas.",
       "definition": "Verbatra es una CLI y un SDK de código abierto para archivos de locale de i18n. Envía solo las claves nuevas y cambiadas al proveedor de IA o de traducción automática que elijas y hace fallar la CI mientras falte una clave."
@@ -51,7 +51,7 @@
         },
         "keys": {
           "question": "¿Dónde van mis claves de API?",
-          "answer": "En variables de entorno, nunca en la configuración. La configuración rechaza las claves que no conoce, así que un secreto no puede acabar ahí por error. La CLI carga .env.local y .env por ti, y un error nombra la variable que falta pero nunca muestra una clave."
+          "answer": "En variables de entorno, nunca en la configuración. La configuración rechaza las claves que no conoce, así que un secreto no puede acabar ahí por error. La CLI carga .env.local y .env por ti, y un error nombra la variable que falta pero nunca muestra una clave de API."
         },
         "privacy": {
           "question": "¿Verbatra envía mis textos a algún sitio?",
@@ -162,7 +162,7 @@
         },
         "result": {
           "seed": "Todo está sincronizado: Verbatra traduciría 0 claves.",
-          "summary": "{written, plural, =0 {Una ejecución real no escribiría nada} one {Una ejecución real escribiría # traducción y actualizaría su hash en el lock} many {Una ejecución real escribiría # de traducciones y actualizaría sus hashes en el lock} other {Una ejecución real escribiría # traducciones y actualizaría sus hashes en el lock}}{withheld, select, yes {, y retendría la respuesta que rompe un placeholder} other {}}{orphaned, select, yes {, y dejaría la clave eliminada en de.json hasta `--prune`} other {}}.",
+          "summary": "{written, plural, =0 {Una ejecución real no escribiría nada} one {Una ejecución real escribiría # traducción y actualizaría su hash en el archivo de bloqueo} many {Una ejecución real escribiría # de traducciones y actualizaría sus hashes en el archivo de bloqueo} other {Una ejecución real escribiría # traducciones y actualizaría sus hashes en el archivo de bloqueo}}{withheld, select, yes {, y retendría la respuesta que rompe un placeholder} other {}}{orphaned, select, yes {, y dejaría la clave eliminada en de.json hasta `--prune`} other {}}.",
           "savings": "{sent, plural, one {# texto enviado} many {# de textos enviados} other {# textos enviados}}, donde retraducir todo enviaría {total}.",
           "outputLabel": "Lo que imprime verbatra translate",
           "failed": "El código de comparación no se cargó. Revisa tu conexión y vuelve a intentarlo."
@@ -197,7 +197,7 @@
       "terminalExample": "Salida de ejemplo",
       "replay": "Repetir",
       "quotes": {
-        "what": "Verbatra es una CLI y un SDK de código abierto que mantiene sincronizados los archivos de locale de i18n.",
+        "what": "Verbatra es una CLI y un SDK de código abierto que mantienen sincronizados los archivos de locale de i18n.",
         "how": "Verbatra encuentra las claves que faltan o cambiaron en tus locales de destino y envía solo esas al proveedor de IA o de traducción automática que elijas."
       },
       "diffLabel": "Al archivo alemán le faltan las claves de checkout de la fuente en inglés hasta que verbatra translate las completa."
@@ -207,7 +207,7 @@
       "license": "Licencia",
       "install": "Instalación",
       "providers": "Proveedores",
-      "providersLink": "Configura un proveedor",
+      "providersLink": "Configurar un proveedor",
       "formats": "Formatos",
       "formatsValue": "{count} formatos de archivo",
       "requirements": "Requisitos",
@@ -281,7 +281,7 @@
         },
         "action": {
           "title": "Traduce en GitHub Actions",
-          "body": "La acción instala exactamente la versión de la CLI que fijas y ejecuta `translate` en cada push a main, con la clave de tu proveedor desde un secreto del repositorio. Nunca hace commit, así que añade tu propio paso que haga commit de los archivos de locale actualizados, como describe la guía.",
+          "body": "La acción instala exactamente la versión de la CLI que fijas y ejecuta `translate` en cada push a main, con tu clave de API desde un secreto del repositorio. Nunca confirma cambios, así que añade tu propio paso que confirme los archivos de locale actualizados, como describe la guía.",
           "link": "Guía de la GitHub Action"
         },
         "check": {
@@ -291,8 +291,8 @@
         },
         "studio": {
           "title": "Revisa en Verbatra Studio",
-          "body": "Un panel local sobre tu proyecto. Muestra el estado de cada locale y te deja corregir una traducción en el sitio.",
-          "link": "Lee la guía de Studio"
+          "body": "Un panel local para tu proyecto. Muestra el estado de cada locale y te deja corregir una traducción en el sitio.",
+          "link": "Leer la guía de Studio"
         },
         "mcp": {
           "title": "Pásaselo a tu agente de programación",
@@ -369,7 +369,7 @@
         },
         "adapters": {
           "title": "Trae tu propio formato",
-          "body": "¿Un formato que Verbatra no incluye? Crea un adaptador con las factorías de adaptadores del SDK y pásalo."
+          "body": "¿Un formato que Verbatra no incluye? Crea un adaptador con las fábricas de adaptadores del SDK y pásalo."
         },
         "integrity": {
           "title": "Los placeholders quedan intactos",
@@ -518,7 +518,7 @@
       },
       "s4": {
         "heading": "4. Analítica",
-        "body": "Contamos las visitas a páginas con Umami, una herramienta de analítica de código abierto que alojamos nosotros mismos en el mismo servidor que este sitio (ver la sección 3), por lo que ningún dato de analítica se cede a terceros. En tu navegador no se ejecuta ningún script de analítica, y para contar las visitas no se escribe nada en tu dispositivo. Lo único que se lee de tu dispositivo en relación con la analítica es la cookie de oposición descrita en la sección 5, y solo para respetar tu oposición. En su lugar, cuando tu navegador carga directamente una página de este sitio (no cuando la carga por adelantado en segundo plano), nuestro servidor web reenvía a nuestro servidor de Umami los siguientes datos de esa solicitud: tu dirección IP, la cadena de user-agent de tu navegador, la primera etiqueta de idioma de la cabecera Accept-Language de tu navegador (por ejemplo, es-ES), que se reenvía con cada visita a una página, la página de referencia (sin sus parámetros de consulta) y la ruta de la página que cargaste junto con los cinco parámetros UTM de la dirección de la página (utm_source, utm_medium, utm_campaign, utm_term y utm_content, cada uno acortado a 255 caracteres); todos los demás parámetros de consulta, como los identificadores de clic publicitarios, y el fragmento se descartan y no se reenvían. No se registran clics, textos copiados ni otras interacciones. <strong>Tu dirección IP y tu cadena de user-agent en sí no se almacenan.</strong> El servidor de Umami calcula un identificador de sesión seudónimo aplicando un hash al ID del sitio web, tu dirección IP, tu cadena de user-agent, un valor que cambia cada mes y una clave secreta del servidor. Con cada visita a una página almacena ese identificador, la hora, la ruta de la página con los parámetros UTM que tenga y la página de referencia, y para la sesión esa etiqueta de idioma, tu navegador, sistema operativo y tipo de dispositivo (derivados de la cadena de user-agent), así como tu país, región y ciudad, que obtiene a partir de tu dirección IP en una base de datos GeoLite2 del mismo servidor sin consultar ningún otro servicio. Como el identificador de sesión se deriva de tu dirección IP, se trata de un tratamiento seudónimo, y no anónimo, de datos personales. Solo consultamos los resultados de forma agregada y no intentamos identificar a visitantes individuales. Como para contar las visitas no se almacena nada en tu dispositivo y la cookie de oposición solo se lee para respetar tu oposición, no se necesita ningún consentimiento según el § 25 de la TDDDG (ley alemana de protección de datos en telecomunicaciones y servicios digitales). La base jurídica del tratamiento es el art. 6.1.f) del RGPD (nuestro interés legítimo en entender cómo se usa el sitio). Los registros de analítica se almacenan en la base de datos de Umami de este servidor. Si tu navegador envía una señal Global Privacy Control (GPC) o Do Not Track, no se reenvía nada. También puedes oponerte con el botón de abajo: establece la cookie descrita en la sección 5 y, mientras tu navegador envíe esa cookie, tampoco se reenvía nada. Una exclusión guardada en el almacenamiento local de tu navegador con la configuración de analítica anterior de este sitio ya no se lee; si te excluiste así, vuelve a hacerlo aquí. Puedes leer más sobre Umami en su <umami>documentación</umami>.",
+        "body": "Contamos las visitas a páginas con Umami, una herramienta de analítica de código abierto que alojamos nosotros mismos en el mismo servidor que este sitio (ver la sección 3), por lo que ningún dato de analítica se cede a terceros. En tu navegador no se ejecuta ningún script de analítica, y para contar las visitas no se escribe nada en tu dispositivo. Lo único que se lee de tu dispositivo en relación con la analítica es la cookie de oposición descrita en la sección 5, y solo para respetar tu oposición. En su lugar, cuando tu navegador carga directamente una página de este sitio (no cuando la carga por adelantado en segundo plano), nuestro servidor web reenvía a nuestro servidor de Umami los siguientes datos de esa solicitud: tu dirección IP, la cadena de user-agent de tu navegador, la primera etiqueta de idioma de la cabecera Accept-Language de tu navegador (por ejemplo, es-ES), que se reenvía con cada visita a una página, la página de referencia (sin sus parámetros de consulta) y la ruta de la página que cargaste junto con los cinco parámetros UTM de la dirección de la página (utm_source, utm_medium, utm_campaign, utm_term y utm_content, cada uno acortado a 255 caracteres); todos los demás parámetros de consulta, como los identificadores de clic publicitarios, y el fragmento se descartan y no se reenvían. No se registran clics, textos copiados ni otras interacciones. <strong>Tu dirección IP y tu cadena de user-agent en sí no se almacenan.</strong> El servidor de Umami calcula un identificador de sesión seudónimo aplicando un hash al ID del sitio web, tu dirección IP, tu cadena de user-agent, un valor que cambia cada mes y una clave secreta del servidor. Con cada visita a una página almacena ese identificador, la hora, la ruta de la página con los parámetros UTM que tenga y la página de referencia, y para la sesión esa etiqueta de idioma, tu navegador, sistema operativo y tipo de dispositivo (derivados de la cadena de user-agent), así como tu país, región y ciudad, que obtiene a partir de tu dirección IP en una base de datos GeoLite2 del mismo servidor sin consultar ningún otro servicio. Como el identificador de sesión se deriva de tu dirección IP, se trata de un tratamiento seudónimo, y no anónimo, de datos personales. Solo consultamos los resultados de forma agregada y no intentamos identificar a visitantes individuales. Como para contar las visitas no se almacena nada en tu dispositivo y la cookie de oposición solo se lee para respetar tu oposición, no se necesita para ello ningún consentimiento según el § 25 de la TDDDG (ley alemana de protección de datos en telecomunicaciones y servicios digitales). La base jurídica del tratamiento es el art. 6.1.f) del RGPD (nuestro interés legítimo en entender cómo se usa el sitio). Los registros de analítica se almacenan en la base de datos de Umami de este servidor. Si tu navegador envía una señal Global Privacy Control (GPC) o Do Not Track, no se reenvía nada. También puedes oponerte con el botón de abajo: establece la cookie descrita en la sección 5 y, mientras tu navegador envíe esa cookie, tampoco se reenvía nada. Una exclusión guardada en el almacenamiento local de tu navegador con la configuración de analítica anterior de este sitio ya no se lee; si te excluiste así, vuelve a hacerlo aquí. Puedes leer más sobre Umami en su <umami>documentación</umami>.",
         "optOut": {
           "optOut": "Excluirme de la analítica",
           "optIn": "Volver a permitir la analítica",

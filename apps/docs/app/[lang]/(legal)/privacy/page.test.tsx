@@ -138,8 +138,8 @@ const UMAMI_GEOLITE: Record<Locale, RegExp> = {
 const UMAMI_LEGAL_BASIS: Record<Locale, RegExp> = {
   en: /no consent under § 25 TDDDG .* is required for it\. The legal basis for the processing is Art\. 6\(1\)\(f\) GDPR/,
   de: /keine Einwilligung nach § 25 TDDDG .* erforderlich\. Rechtsgrundlage der Verarbeitung ist Art\. 6 Abs\. 1 lit\. f DSGVO/,
-  es: /no se necesita ningún consentimiento según el § 25 de la TDDDG .* La base jurídica del tratamiento es el art\. 6\.1\.f\) del RGPD/,
-  fr: /aucun consentement au titre du § 25 TDDDG .* n'est nécessaire\. La base légale du traitement est l'art\. 6, § 1, point f\) du RGPD/,
+  es: /no se necesita para ello ningún consentimiento según el § 25 de la TDDDG .* La base jurídica del tratamiento es el art\. 6\.1\.f\) del RGPD/,
+  fr: /aucun consentement au titre du § 25 TDDDG .* n'est nécessaire pour cela\. La base légale du traitement est l'art\. 6, § 1, point f\) du RGPD/,
 };
 
 const UMAMI_LANGUAGE_TAG_PER_PAGEVIEW: Record<Locale, RegExp> = {
@@ -180,7 +180,7 @@ const OPT_OUT_COOKIE_BASIS: Record<Locale, RegExp> = {
 const OPT_OUT_COOKIE_READ_ONLY_TO_HONOUR: Record<Locale, RegExp> = {
   en: /The only thing read from your device in connection with analytics is the opt-out cookie described in section 5, and only to honour your objection\..*Because nothing is stored on your device for counting page views and the opt-out cookie is read only to honour your objection, no consent/,
   de: /Im Zusammenhang mit der Analyse wird von deinem Gerät nur das in Abschnitt 5 beschriebene Widerspruchs-Cookie ausgelesen, und zwar ausschließlich, um deinen Widerspruch zu beachten\..*Weil zum Zählen der Seitenaufrufe nichts auf deinem Gerät gespeichert wird und das Widerspruchs-Cookie nur ausgelesen wird, um deinen Widerspruch zu beachten, ist dafür keine Einwilligung/,
-  es: /Lo único que se lee de tu dispositivo en relación con la analítica es la cookie de oposición descrita en la sección 5, y solo para respetar tu oposición\..*Como para contar las visitas no se almacena nada en tu dispositivo y la cookie de oposición solo se lee para respetar tu oposición, no se necesita ningún consentimiento/,
+  es: /Lo único que se lee de tu dispositivo en relación con la analítica es la cookie de oposición descrita en la sección 5, y solo para respetar tu oposición\..*Como para contar las visitas no se almacena nada en tu dispositivo y la cookie de oposición solo se lee para respetar tu oposición, no se necesita para ello ningún consentimiento/,
   fr: /La seule chose lue sur ton appareil en lien avec les statistiques est le cookie d'opposition décrit à la section 5, et uniquement pour respecter ton opposition\..*Comme rien n'est stocké sur ton appareil pour compter les pages vues et que le cookie d'opposition n'est lu que pour respecter ton opposition, aucun consentement/,
 };
 
