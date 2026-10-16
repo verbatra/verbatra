@@ -24,7 +24,6 @@ export const MARQUEE_COPIES = 2;
 export const PROVIDER_KIND_ICONS: Readonly<Record<ProviderKind, StackIconKey>> = {
   llm: "llm",
   machine: "machine",
-  local: "server",
 };
 
 export const FORMAT_ICONS: Readonly<Record<SupportedFormat, StackIconKey>> = {

@@ -419,7 +419,7 @@
       "items": {
         "keys": {
           "title": "Your keys stay yours",
-          "body": "API keys come from environment variables only, never from the config file. Strings go to the provider you configure and nowhere else. No telemetry.",
+          "body": "API keys come from environment variables only, never from the config file. Strings go to the provider you configure and nowhere else. Verbatra itself sends no telemetry.",
           "variables": "Key variables",
           "optional": "optional",
           "configurable": "or the variable `apiKeyEnvVar` names",
@@ -443,14 +443,14 @@
         },
         "providers": {
           "title": "Choose who translates",
-          "body": "A hosted LLM, a machine translation service, a server you run yourself, or only your translators. The config file names it in one line, and the rest of the file stays the same.",
+          "body": "An LLM or a machine translation service, hosted or on a server you run, or only your translators. Pick one in the `provider` block of the config file; its id is one of the values below.",
           "kinds": {
             "llm": "LLM",
             "machine": "Machine translation",
-            "local": "Self-hosted",
             "none": "Human only"
           },
-          "link": "Every provider and its options"
+          "link": "Every provider and its options",
+          "idSlot": "The `id` slot of the `provider` block"
         },
         "sdk": {
           "title": "A typed SDK",

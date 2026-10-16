@@ -362,12 +362,14 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   real key line, `BENTO_FORMAT_EXAMPLE`, taken from the adapter output in
   `lib/format-samples.generated.json` with its file path, and the format chips under it), the
   provider tile (span 6, 5 from 80rem: the provider ids in mono grouped by `PROVIDER_KINDS`
-  through `providersOfKind` in `lib/landing-providers.ts` (LLM, machine translation, self-hosted;
-  `PROVIDER_DISPLAY.kind` is pinned by `lib/landing-providers.test.ts` to each strategy's `kind`
-  and, for self-hosted, to a config that takes a base URL), a provider that `RELEASE_BADGE` dates
+  through `providersOfKind` in `lib/landing-providers.ts` (LLM and machine translation, exactly
+  the `kind` each strategy declares, pinned by `lib/landing-providers.test.ts`; no invented
+  self-hosted group), a provider that `RELEASE_BADGE` dates
   carrying the pill, then the human-only `none` linking `/docs/human-only-workflow`, dated by the
   `provider-none` feature; the groups spread evenly over the panel so it fills the row, and the
-  panel ends in the one config line, `BENTO_PROVIDER_LINE`, under its file name; then a link to
+  panel ends in `BENTO_PROVIDER_LINE` under its file name, labelled as the `id` slot of the
+  `provider` block (never as the whole block: `lib/landing-bento.test.ts` checks that the config
+  schema takes every listed id there and still asks a machine provider for its options); then a link to
   `/docs/providers`), the SDK tile (span 12, text beside the code, the chip right under the lead:
   the `RunSummary` fields of the published sdk, `BENTO_RUN_SUMMARY_FIELDS`, pinned to
   `packages/sdk/dist/index.d.ts`, marked as an excerpt) and the framework strip (span 12, no

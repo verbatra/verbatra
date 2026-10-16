@@ -1,7 +1,7 @@
 import { MACHINE_PROVIDER_IDS, type MachineProviderId } from "./landing-facts";
 import { providerReleaseBadge } from "./release-badge";
 
-export const PROVIDER_KINDS = ["llm", "machine", "local"] as const;
+export const PROVIDER_KINDS = ["llm", "machine"] as const;
 
 export type ProviderKind = (typeof PROVIDER_KINDS)[number];
 
@@ -26,10 +26,10 @@ export const PROVIDER_DISPLAY: Readonly<Record<MachineProviderId, ProviderDispla
   "google-translate": { label: "Google Cloud Translation", kind: "machine" },
   "openai-compatible": {
     label: "Ollama, LM Studio, vLLM",
-    kind: "local",
+    kind: "llm",
     shortLabel: "OpenAI-compatible",
   },
-  libretranslate: { label: "LibreTranslate", kind: "local" },
+  libretranslate: { label: "LibreTranslate", kind: "machine" },
 };
 
 export function providerShortLabel(id: MachineProviderId): string {

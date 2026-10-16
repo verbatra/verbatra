@@ -122,8 +122,9 @@ describe("Bento", () => {
     expect(root.querySelectorAll("section").length).toBeLessThanOrEqual(1);
   });
 
-  it("groups the provider ids by kind, ends with the human-only none, and shows one config line", () => {
+  it("groups the provider ids by kind, ends with the human-only none, and labels the id slot", () => {
     const panel = tile("providers").querySelector('[data-artifact="providers"]');
+    const badged: string[] = [];
     for (const kind of PROVIDER_KINDS) {
       const group = panel?.querySelector(`[data-kind="${kind}"]`);
       expect(group?.querySelector("dt")?.textContent).toBe(copy.items.providers.kinds[kind]);
@@ -132,10 +133,14 @@ describe("Bento", () => {
         ...providersOfKind(kind),
       ]);
       for (const item of ids)
-        expect(item.querySelector(".vk-available-from") !== null).toBe(
-          RELEASE_BADGE.providers.includes(item.dataset.provider as never),
-        );
+        if (item.querySelector(".vk-available-from")) badged.push(item.dataset.provider ?? "");
     }
+    expect(badged.sort()).toEqual([...RELEASE_BADGE.providers].sort());
+    expect(
+      [...(panel?.querySelectorAll("[data-kind]") ?? [])].map((node) =>
+        node.getAttribute("data-kind"),
+      ),
+    ).toEqual([...PROVIDER_KINDS, "none"]);
     const none = panel?.querySelector('[data-kind="none"]');
     expect(none?.querySelector("dt")?.textContent).toBe(copy.items.providers.kinds.none);
     expect(none?.querySelector("a")?.textContent).toBe("none");
@@ -143,13 +148,14 @@ describe("Bento", () => {
     expect(none?.querySelector(".vk-available-from")?.textContent).toBe(
       en.docs.availableFrom.title.replace("{version}", RELEASE_BADGE.version),
     );
-    const code = [...tile("providers").querySelectorAll("figcaption code")];
-    expect(code.map((node) => node.textContent)).toEqual([BENTO_PROVIDER_LINE]);
-    expect(tile("providers").querySelector("figcaption")?.textContent).toContain(
-      "verbatra.config.ts",
+    const caption = tile("providers").querySelector("figcaption");
+    expect(caption?.querySelector("[data-id-slot]")?.textContent).toBe(
+      copy.items.providers.idSlot.replaceAll("`", ""),
     );
-    expect(tile("providers").querySelector("[data-diff]")).toBeNull();
-    expect(tile("providers").textContent).not.toMatch(/\d+ providers/i);
+    expect(caption?.textContent).toContain("verbatra.config.ts");
+    expect(
+      [...(caption?.querySelectorAll(":scope > code") ?? [])].map((node) => node.textContent),
+    ).toEqual([BENTO_PROVIDER_LINE]);
     const link = [...tile("providers").querySelectorAll("a")].at(-1);
     expect(link?.textContent).toBe(copy.items.providers.link);
     expect(link?.getAttribute("href")).toBe("/de/docs/providers");

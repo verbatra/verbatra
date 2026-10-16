@@ -28,7 +28,6 @@ import { STACK_IDS } from "@/lib/stacks";
 import en from "@/messages/en.json";
 import { docsPageSource } from "@/test-support/docs-page-source";
 
-const CONTENT = fileURLToPath(new URL("../content/docs", import.meta.url));
 const REPO = fileURLToPath(new URL("../../../", import.meta.url));
 
 describe("bento tiles", () => {
@@ -127,27 +126,23 @@ describe("bento samples", () => {
     expect(BENTO_RUN_SUMMARY_CODE).toContain("await translate({ config })");
   });
 
-  it("shows the provider id as the key the sdk switches the whole block on", async () => {
-    expect(BENTO_PROVIDER_LINE).toBe('provider: { id: "<id>" }');
-    const OPTIONS = {
-      deepl: {},
-      libretranslate: { baseUrl: "http://localhost:5000" },
-      none: undefined,
-    } as const;
-    for (const id of ["deepl", "libretranslate", "none"] as const) {
-      const options = OPTIONS[id];
-      const config = await sdk.loadConfig({
-        cwd: CONTENT,
-        configOverride: {
-          sourceLocale: "en",
-          targetLocales: ["de"],
-          format: "i18next-json",
-          files: { pattern: "locales/{locale}.json" },
-          provider: options === undefined ? { id } : { id, options },
-        },
+  it("fills only the id slot of the provider block, which takes every listed id and no other", () => {
+    expect(BENTO_PROVIDER_LINE).toContain('id: "<id>"');
+    const issues = (id: string) => {
+      const result = sdk.verbatraConfigSchema.safeParse({
+        sourceLocale: "en",
+        targetLocales: ["de"],
+        format: "i18next-json",
+        files: { pattern: "locales/{locale}.json" },
+        provider: { id },
       });
-      expect(config.provider.id).toBe(id);
+      return result.success ? [] : result.error.issues.map((issue) => issue.path.join("."));
+    };
+    for (const id of [...MACHINE_PROVIDER_IDS, "none"]) {
+      expect(issues(id), id).not.toContain("provider.id");
     }
+    for (const id of MACHINE_PROVIDER_IDS) expect(issues(id), id).toContain("provider.options");
+    expect(issues("bogus")).toContain("provider.id");
   });
 
   it("files every supported format under one family, each family holding at least two", () => {

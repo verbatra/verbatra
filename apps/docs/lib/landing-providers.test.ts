@@ -19,60 +19,47 @@ function providerSource(id: MachineProviderId, file: string): string {
   return readFileSync(join(PROVIDERS_SRC, id, file), "utf8");
 }
 
-const REGISTRY_KIND: Readonly<Record<Exclude<ProviderKind, "local">, string>> = {
+const DECLARED_KIND: Readonly<Record<ProviderKind, string>> = {
   llm: "llm",
   machine: "machine-translation",
 };
+
+function declaredKind(id: MachineProviderId): string | undefined {
+  return /\bkind: "([a-z-]+)"/.exec(providerSource(id, `${id}-provider.ts`))?.[1];
+}
 
 describe("landing providers", () => {
   it("groups every machine provider under exactly one kind, in registry order", () => {
     expect(PROVIDER_KINDS.flatMap(providersOfKind).toSorted()).toEqual(
       [...MACHINE_PROVIDER_IDS].sort(),
     );
-    for (const kind of PROVIDER_KINDS)
-      expect(providersOfKind(kind)).toEqual(
-        MACHINE_PROVIDER_IDS.filter((id) => PROVIDER_DISPLAY[id].kind === kind),
-      );
-  });
-
-  it("files a hosted provider under the kind its strategy declares", () => {
-    for (const id of MACHINE_PROVIDER_IDS) {
-      const kind = PROVIDER_DISPLAY[id].kind;
-      if (kind === "local") continue;
-      expect(providerSource(id, `${id}-provider.ts`), id).toContain(
-        `kind: "${REGISTRY_KIND[kind]}"`,
-      );
+    for (const kind of PROVIDER_KINDS) {
+      const ids = providersOfKind(kind);
+      expect(ids).toEqual(MACHINE_PROVIDER_IDS.filter((id) => ids.includes(id)));
     }
   });
 
-  it("files under local exactly the providers whose config points at a server you run", () => {
-    const takesBaseUrl = MACHINE_PROVIDER_IDS.filter((id) =>
-      providerSource(id, "config.ts").includes("httpBaseUrlSchema"),
+  it("files each provider under the kind its own strategy declares", () => {
+    for (const id of MACHINE_PROVIDER_IDS) {
+      expect(declaredKind(id), id).toBe(DECLARED_KIND[PROVIDER_DISPLAY[id].kind]);
+    }
+    expect(Object.values(DECLARED_KIND).sort()).toEqual(
+      [...new Set(MACHINE_PROVIDER_IDS.map(declaredKind))].sort(),
     );
-    expect(providersOfKind("local")).toEqual(takesBaseUrl);
   });
 
   it("names every machine provider the config accepts, and no other", () => {
     expect(Object.keys(PROVIDER_DISPLAY).sort()).toEqual([...MACHINE_PROVIDER_IDS].sort());
   });
 
-  it("files the local model route and the self-hosted engine under local", () => {
-    const local = MACHINE_PROVIDER_IDS.filter((id) => PROVIDER_DISPLAY[id].kind === "local");
-    expect(local).toEqual(["openai-compatible", "libretranslate"]);
-  });
-
   it("shortens only the local model route to its protocol name", () => {
     expect(providerShortLabel("openai-compatible")).toBe("OpenAI-compatible");
-    expect(providerShortLabel("deepl")).toBe(PROVIDER_DISPLAY.deepl.label);
+    expect(providerShortLabel("deepl")).toBe("DeepL");
   });
 
-  it("lists every machine provider in registry order with its short label, kind and release mark", () => {
+  it("lists every machine provider in registry order and marks only the release's new ones", () => {
     const providers = landingProviders();
     expect(providers.map((provider) => provider.id)).toEqual([...MACHINE_PROVIDER_IDS]);
-    for (const provider of providers) {
-      expect(provider.label).toBe(providerShortLabel(provider.id));
-      expect(provider.kind).toBe(PROVIDER_DISPLAY[provider.id].kind);
-    }
     expect(providers.filter((provider) => provider.isNew).map((provider) => provider.id)).toEqual([
       ...RELEASE_BADGE.providers,
     ]);

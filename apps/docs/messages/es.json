@@ -366,7 +366,7 @@
       "items": {
         "keys": {
           "title": "Tus claves siguen siendo tuyas",
-          "body": "Las claves de API vienen solo de variables de entorno, nunca del archivo de configuración. Los textos van al proveedor que configuras y a ningún otro sitio. Sin telemetría.",
+          "body": "Las claves de API vienen solo de variables de entorno, nunca del archivo de configuración. Los textos van al proveedor que configuras y a ningún otro sitio. Verbatra no envía telemetría.",
           "variables": "Variables de claves",
           "optional": "opcional",
           "configurable": "o la variable que indica `apiKeyEnvVar`",
@@ -390,14 +390,14 @@
         },
         "providers": {
           "title": "Elige quién traduce",
-          "body": "Un LLM alojado, un servicio de traducción automática, un servidor que ejecutas tú mismo o solo tus traductores. El archivo de configuración lo indica en una línea, y el resto del archivo no cambia.",
+          "body": "Un LLM o un servicio de traducción automática, alojado o en un servidor que ejecutas tú mismo, o solo tus traductores. Lo eliges en el bloque `provider` del archivo de configuración; su id es uno de los valores de abajo.",
           "kinds": {
             "llm": "LLM",
             "machine": "Traducción automática",
-            "local": "Autoalojado",
             "none": "Solo personas"
           },
-          "link": "Todos los proveedores y sus opciones"
+          "link": "Todos los proveedores y sus opciones",
+          "idSlot": "La entrada `id` del bloque `provider`"
         },
         "sdk": {
           "title": "Un SDK tipado",

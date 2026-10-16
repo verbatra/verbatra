@@ -145,7 +145,12 @@ function ProviderKinds({
         </div>
       </dl>
       <figcaption className="grid gap-1 border-t border-(--border-default) px-4 py-3">
-        <span className="font-mono text-xs text-(--text-faint)">verbatra.config.ts</span>
+        <span className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-xs">
+          <span data-id-slot="" className="text-(--text-muted)">
+            {withInlineCode(t("items.providers.idSlot"))}
+          </span>
+          <span className="font-mono text-(--text-faint)">verbatra.config.ts</span>
+        </span>
         <code lang="en" className="vk-mono-sm block whitespace-pre font-mono text-(--text-strong)">
           {BENTO_PROVIDER_LINE}
         </code>

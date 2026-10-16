@@ -366,7 +366,7 @@
       "items": {
         "keys": {
           "title": "Deine Keys bleiben deine",
-          "body": "API-Keys kommen nur aus Umgebungsvariablen, nie aus der Konfigurationsdatei. Texte gehen an den Provider, den du konfigurierst, und sonst nirgendwohin. Keine Telemetrie.",
+          "body": "API-Keys kommen nur aus Umgebungsvariablen, nie aus der Konfigurationsdatei. Texte gehen an den Provider, den du konfigurierst, und sonst nirgendwohin. Verbatra selbst sendet keine Telemetrie.",
           "variables": "Key-Variablen",
           "optional": "optional",
           "configurable": "oder die Variable, die `apiKeyEnvVar` nennt",
@@ -390,14 +390,14 @@
         },
         "providers": {
           "title": "Wähle, wer übersetzt",
-          "body": "Ein gehostetes LLM, ein maschineller Übersetzungsdienst, ein Server, den du selbst betreibst, oder nur deine Übersetzer. Die Konfigurationsdatei nennt ihn in einer Zeile, der Rest der Datei bleibt gleich.",
+          "body": "Ein LLM oder ein maschineller Übersetzungsdienst, gehostet oder auf einem Server, den du selbst betreibst, oder nur deine Übersetzer. Du wählst ihn im `provider`-Block der Konfigurationsdatei; seine ID ist einer der Werte unten.",
           "kinds": {
             "llm": "LLM",
             "machine": "Maschinelle Übersetzung",
-            "local": "Selbst gehostet",
             "none": "Nur Menschen"
           },
-          "link": "Alle Provider und ihre Optionen"
+          "link": "Alle Provider und ihre Optionen",
+          "idSlot": "Der `id`-Eintrag im `provider`-Block"
         },
         "sdk": {
           "title": "Ein typisiertes SDK",
