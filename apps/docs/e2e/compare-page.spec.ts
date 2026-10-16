@@ -1,5 +1,6 @@
 import { expect, test } from "playwright/test";
 import {
+  expectBackwardWalkClearsHeader,
   expectClearOfPinnedColumn,
   expectEdgeRefsReachable,
   expectNoAxeViolations,
@@ -179,3 +180,15 @@ test.describe("full comparison table", () => {
     await expect(page.locator("main ol[aria-labelledby]")).toHaveCSS("column-count", "2");
   });
 });
+
+for (const path of ["/compare", "/fr/compare"]) {
+  for (const width of [375, 1024]) {
+    test(`keeps every footnote of ${path} clear of the header on a backwards walk at ${width}px`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto(path);
+      await expectBackwardWalkClearsHeader(page, "main");
+    });
+  }
+}

@@ -1,5 +1,6 @@
 import { expect, test } from "playwright/test";
 import {
+  expectBackwardWalkClearsHeader,
   expectEdgeRefsReachable,
   expectNoAxeViolations,
   expectNoHorizontalScroll,
@@ -123,5 +124,15 @@ for (const width of [375, 1024]) {
     await page.setViewportSize({ width, height: 800 });
     await page.goto("/");
     await expectEdgeRefsReachable(page, COMPARE);
+  });
+}
+
+for (const width of [375, 1024]) {
+  test(`keeps every footnote clear of the header on a backwards walk at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto("/");
+    await expectBackwardWalkClearsHeader(page, COMPARE);
   });
 }

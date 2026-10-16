@@ -80,6 +80,45 @@ export async function waitForCompareFocus(page: Page): Promise<void> {
   await expect(page.locator("html")).toHaveAttribute("data-compare-focus", "");
 }
 
+export async function expectBackwardWalkClearsHeader(page: Page, scope: string): Promise<void> {
+  await waitForCompareFocus(page);
+  const refs = page.locator(`${scope} tbody [data-footnotes] a`);
+  const count = await refs.count();
+  expect(count).toBeGreaterThan(0);
+  await refs.nth(count - 1).focus();
+  let visited = 0;
+  for (let step = 0; step < count * 3 && visited < count; step += 1) {
+    const state = await page.evaluate(async (selector) => {
+      const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+      let still = 0;
+      let last = window.scrollY;
+      while (still < 3) {
+        await frame();
+        still = window.scrollY === last ? still + 1 : 0;
+        last = window.scrollY;
+      }
+      const active = document.activeElement;
+      const header = document.querySelector("header");
+      if (!(active instanceof HTMLElement) || header === null) return null;
+      return {
+        isRef: active.matches(selector),
+        top: active.getBoundingClientRect().top,
+        headerBottom: header.getBoundingClientRect().bottom,
+        label: active.getAttribute("href") ?? "",
+      };
+    }, `${scope} tbody [data-footnotes] a`);
+    if (state === null) throw new Error("no focused element or header");
+    if (state.isRef) {
+      visited += 1;
+      expect(state.top, `${state.label} after ${visited} refs`).toBeGreaterThanOrEqual(
+        state.headerBottom - 0.5,
+      );
+    }
+    await page.keyboard.press("Shift+Tab");
+  }
+  expect(visited).toBe(count);
+}
+
 export async function waitForFaqKeys(page: Page): Promise<void> {
   await expect(page.locator("#faq-list")).toHaveAttribute("data-faq-keys", "");
 }

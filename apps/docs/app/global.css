@@ -163,6 +163,7 @@ samp {
   --section-sm: 56px;
   --head-gap: 2.5rem;
   --section-closer: var(--section-lg);
+  --vk-landing-offset: 3.5rem;
 
   --gutter: 24px;
 
@@ -2027,7 +2028,6 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 }
 
 .vk-home {
-  --vk-landing-offset: 3.5rem;
   overflow-x: clip;
   background: var(--v-void);
 }
@@ -2114,14 +2114,14 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   }
 }
 
-.vk-home [id] {
-  scroll-margin-top: var(--vk-landing-offset);
+html:has(.vk-home) {
+  scroll-padding-block-start: var(--vk-landing-offset);
 }
 
 .vk-home section[id]:is(.vk-rhythm-lg, .vk-rhythm-md, .vk-rhythm-sm) {
   margin-block-start: 0;
   padding-block-start: var(--section-rhythm);
-  scroll-margin-top: calc(var(--vk-landing-offset) + var(--section-md) - var(--section-rhythm));
+  scroll-margin-top: calc(var(--section-md) - var(--section-rhythm));
 }
 
 @media (width < 40rem) {
@@ -3096,7 +3096,7 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 }
 
 .vk-home .vk-compare-source {
-  scroll-margin-top: calc(var(--vk-landing-offset) + 1rem);
+  scroll-margin-top: 1rem;
 }
 
 .vk-compare-source:target {

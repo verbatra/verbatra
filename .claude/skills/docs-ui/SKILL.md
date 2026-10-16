@@ -1040,9 +1040,11 @@ contentinfo landmarks; a page under that layout must not render another `<main>`
 `HomeLayout` and notebook headers are never rendered, so do not style `#nd-nav` or `#nd-subnav`;
 style `.vk-header` and `.vk-header-link` instead, and change the header in one place. The header
 has its own fill, `--surface-chrome` (`--surface-bg` at 94 percent, so
-content scrolling under it stays out of the way of its text). An in-page jump lands a section
-under the header through `--vk-landing-offset` (3.5rem, the header height), the
-`scroll-margin-top` of every `.vk-home [id]`.
+content scrolling under it stays out of the way of its text). Every page with a `.vk-home`
+container sets `scroll-padding-block-start: var(--vk-landing-offset)` (3.5rem, the header height)
+on `html`, so an in-page jump and every focused control (a comparison footnote reached by
+Shift+Tab, too) land below the sticky header (WCAG 2.4.11); add only the extra gap as a
+`scroll-margin-top`, never the header height again.
 
 Both surfaces share one layout width: `--width-layout` (97rem, the notebook layout's own
 default) feeds `--fd-layout-width` from `:root` and again on the home container, so the
