@@ -26,6 +26,15 @@ export type MarkdownPage = typeof HOME_PATH | (typeof MARKDOWN_PAGES)[number];
 
 export const SITE_MARKDOWN_PAGES: ReadonlyArray<MarkdownPage> = [HOME_PATH, ...MARKDOWN_PAGES];
 
+export const SITE_PAGE_META = {
+  [HOME_PATH]: "landing.meta",
+  "/compare": "compare.meta",
+  "/imprint": "legal.imprint.meta",
+  "/privacy": "legal.privacy.meta",
+  "/licenses": "legal.licenses.meta",
+  "/contact": "legal.contact.meta",
+} as const satisfies Record<MarkdownPage, string>;
+
 export function siteMarkdownSlug(page: MarkdownPage): string {
   return page === HOME_PATH ? HOME_SLUG : page.slice(1);
 }

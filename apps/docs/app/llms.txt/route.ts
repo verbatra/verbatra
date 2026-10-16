@@ -9,6 +9,7 @@ import {
   type MarkdownPage,
   markdownUrl,
   SITE_MARKDOWN_PAGES,
+  SITE_PAGE_META,
   siteMarkdownUrl,
 } from "@/lib/markdown-route";
 import { PAGE_TYPES } from "@/lib/page-type";
@@ -80,13 +81,7 @@ function renderSections(): string {
 type SitePageMeta = { title: string; description: string };
 
 async function sitePageMeta(locale: Locale, page: MarkdownPage): Promise<SitePageMeta> {
-  const namespace =
-    page === "/"
-      ? "landing.meta"
-      : page === "/compare"
-        ? "compare.meta"
-        : `legal.${page.slice(1)}.meta`;
-  const t = await getTranslations({ locale, namespace: namespace as "landing.meta" });
+  const t = await getTranslations({ locale, namespace: SITE_PAGE_META[page] });
   return { title: t("title"), description: t("description") };
 }
 
@@ -166,7 +161,7 @@ Verbatra is open source and MIT licensed. You maintain one source locale; on eac
 - Every page below links to its Markdown source. Append \`.md\` to any docs URL (\`/index.md\` for the landing page), or send \`Accept: text/markdown\`, to get Markdown instead of HTML. The full text of the landing page, the comparison and every docs page is at ${SITE_URL}/llms-full.txt. Each page there and each Markdown response opens with YAML frontmatter naming its title and description, and on docs pages its page type (one of ${PAGE_TYPES.join(", ")}), so you can tell a walkthrough from the authoritative reference.
 - MCP server: \`npx -y @verbatra/mcp\` (or \`verbatra mcp\`) serves a Verbatra project over stdio to ${SUPPORTED_AGENT_CLIENTS.join(", ")}, and any other stdio client. Tools that call a paid provider stay off the tool list until spending is granted with \`--allow-spend\` or \`VERBATRA_MCP_ALLOW_SPEND\`. Client setup: ${SITE_URL}/docs/connect-an-mcp-client.md
 - Skills and Claude Code plugin: https://github.com/verbatra/skills
-- Free and read-only: \`check\`, \`diff\`, \`doctor\`, \`translate --dry-run\`. Spends provider tokens: \`translate\`, \`watch\`. Ask the person before a spending run, and never read or print an API key value.
+- Free and read-only: \`check\`, \`diff\`, \`doctor\` (without \`--live\`), \`translate --dry-run\`. Spends provider tokens: \`translate\`, \`watch\`. Ask the person before a spending run, and never read or print an API key value.
 - Pass \`--json\` for one envelope on stdout and branch on the exit code: 0 clean, 1 ran but not clean, 2 could not run, 3 a human-only project (provider \`none\`) left keys for a person. Recipes: ${SITE_URL}/docs/agent-recipes.md. JSON Schemas for every envelope and stderr record: ${SITE_URL}${SCHEMA_PATH}
 - Setting Verbatra up for someone: ${SITE_URL}/docs/start-with-ai.md
 - Contributing to this repository with a coding agent: ${GITHUB_URL}/blob/main/AGENTS.md

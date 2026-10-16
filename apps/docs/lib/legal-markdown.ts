@@ -13,6 +13,7 @@ import { PRIVACY_OBJECTION_KEY, PRIVACY_SECTION_KEYS, privacyLinkHrefs } from ".
 import { fallbackTexts, LICENSES, textsUsedBy, usageCount } from "./licenses-manifest";
 import { fencedMarkdown, inlineCodeMarkdown, markupChunks } from "./llm-markdown";
 import { absoluteMarkdownHref } from "./markdown-links";
+import { SITE_PAGE_META } from "./markdown-route";
 import { pageFrontmatter } from "./page-frontmatter";
 import { LEGAL_LAST_UPDATED, PRIVACY_CONTACT_FORM_ANCHOR } from "./site";
 import {
@@ -47,9 +48,9 @@ function linkTags(
 
 async function frontmatter(
   locale: Locale,
-  namespace: "imprint" | "privacy" | "contact" | "licenses",
+  page: "/imprint" | "/privacy" | "/contact" | "/licenses",
 ) {
-  const t = await getTranslations({ locale, namespace: `legal.${namespace}.meta` });
+  const t = await getTranslations({ locale, namespace: SITE_PAGE_META[page] });
   return pageFrontmatter({ title: t("title"), description: t("description") }).trimEnd();
 }
 
@@ -59,7 +60,7 @@ export async function imprintMarkdown(locale: Locale): Promise<string> {
     .map((run) => (typeof run === "string" ? run : link(run.text, run.href)))
     .join("");
   return blocks(
-    await frontmatter(locale, "imprint"),
+    await frontmatter(locale, "/imprint"),
     `# ${IMPRINT_TITLE}`,
     t("intro"),
     `*${t("lastUpdatedLabel")}: ${LEGAL_LAST_UPDATED}*`,
@@ -86,7 +87,7 @@ export async function privacyMarkdown(locale: Locale): Promise<string> {
     return blocks(`## ${t(`${key}.heading`)}`, key === PRIVACY_OBJECTION_KEY ? `> ${body}` : body);
   });
   return blocks(
-    await frontmatter(locale, "privacy"),
+    await frontmatter(locale, "/privacy"),
     `# ${t("title")}`,
     lastUpdated,
     `*${t("languageVersions")}*`,
@@ -102,7 +103,7 @@ export async function contactMarkdown(locale: Locale): Promise<string> {
     privacy: `${localizedPath(locale, "/privacy")}#${PRIVACY_CONTACT_FORM_ANCHOR}`,
   });
   return blocks(
-    await frontmatter(locale, "contact"),
+    await frontmatter(locale, "/contact"),
     `# ${t("title")}`,
     t.markup("intro", imprint),
     t.markup("form.noScript", imprint),
@@ -173,7 +174,7 @@ export async function licensesMarkdown(locale: Locale): Promise<string> {
       `- ${[`**${asset.name}**`, `License: ${asset.license}`, asset.usage, ...asset.copyright].join(". ")}`,
   );
   return blocks(
-    await frontmatter(locale, "licenses"),
+    await frontmatter(locale, "/licenses"),
     `# ${t("title")}`,
     t("intro"),
     `${LICENSES.packageCount} packages in ${LICENSES.groups.length} license groups, plus ${LICENSES.assets.length} assets.`,

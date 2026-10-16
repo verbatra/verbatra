@@ -189,6 +189,10 @@ describe("llms.txt", () => {
     for (const id of SUPPORTED_FORMAT_IDS) expect(body).toContain(FORMAT_DISPLAY[id].label);
   });
 
+  it("lists doctor as read-only only without --live, which contacts the provider", () => {
+    expect(body).toContain("`doctor` (without `--live`)");
+  });
+
   it("points a coding agent at the repository's AGENTS.md", () => {
     expect(body).toContain("https://github.com/verbatra/verbatra/blob/main/AGENTS.md");
   });
