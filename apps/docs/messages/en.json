@@ -372,33 +372,6 @@
         }
       }
     },
-    "stats": {
-      "label": "Verbatra in numbers",
-      "stars": "GitHub stars",
-      "downloads": "npm downloads last week",
-      "starsFallback": "Verbatra on GitHub",
-      "downloadsFallback": "Verbatra on npm",
-      "providers": "translation providers",
-      "formats": "file formats"
-    },
-    "problem": {
-      "heading": "Locale files drift every time you ship.",
-      "lead": "Each feature adds strings, and someone has to find the keys every locale is missing. Pasting translations back by hand is where placeholders break.",
-      "items": {
-        "missing": {
-          "title": "Missing keys reach production",
-          "body": "Nothing fails when the German file lacks a key. Users see the fallback language or the raw key."
-        },
-        "wholeFile": {
-          "title": "Retranslating everything costs more",
-          "body": "Sending the whole file again pays for strings that did not change and can replace wording someone fixed by hand."
-        },
-        "placeholders": {
-          "title": "One broken placeholder breaks a screen",
-          "body": "A translation that drops a variable or garbles ICU plural syntax shows the wrong text, or none."
-        }
-      }
-    },
     "steps": {
       "items": {
         "check": {
@@ -464,30 +437,6 @@
           "all": "All quickstarts"
         }
       }
-    },
-    "code": {
-      "heading": "Use it from the terminal or from your own code.",
-      "lead": "The CLI is built on the SDK, and the GitHub Action runs the CLI. Each reads the same config file.",
-      "tablist": "Ways to run Verbatra",
-      "tabs": {
-        "cli": "CLI",
-        "sdk": "SDK",
-        "config": "Config",
-        "action": "GitHub Action"
-      },
-      "captions": {
-        "cli": "Install, set up, preview without a key, translate, check.",
-        "sdk": "Translate and gate from your own script. The SDK reads the same config file.",
-        "config": "One committed file with no secrets in it. The API key comes from the environment.",
-        "action": "Fail a pull request while a locale is out of sync. No API key needed."
-      },
-      "links": {
-        "cli": "CLI reference",
-        "sdk": "SDK quickstart",
-        "config": "Config file reference",
-        "action": "GitHub Action guide"
-      },
-      "copy": "Copy code"
     },
     "compare": {
       "heading": "How Verbatra compares.",

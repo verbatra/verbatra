@@ -342,14 +342,6 @@ html.light {
     color: var(--text-muted);
     text-wrap: pretty;
   }
-
-  .vk-wrap-line {
-    --wrap-indent: calc(var(--wrap-lead, 0ch) + 2ch);
-    padding-inline-start: var(--wrap-indent);
-    text-indent: calc(var(--wrap-indent) * -1);
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-  }
 }
 
 .vk-gutter {
@@ -2898,7 +2890,6 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   display: none;
 }
 
-.vk-terminal-scroll,
 .vk-code-frame-body pre.shiki,
 .vk-scroll-fade {
   overflow-x: auto;
@@ -2919,28 +2910,9 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 }
 
 @supports (animation-timeline: scroll()) {
-  .vk-terminal-scroll,
   .vk-code-frame-body pre.shiki,
   .vk-scroll-fade {
     background: var(--v-void);
-  }
-}
-
-.vk-terminal-caret::after {
-  content: "\258D";
-  margin-inline-start: 0.125rem;
-  color: var(--v-glow);
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .vk-terminal-caret {
-    animation: vk-caret-blink 1s steps(2, jump-none) infinite;
-  }
-}
-
-@keyframes vk-caret-blink {
-  to {
-    opacity: 0.2;
   }
 }
 
@@ -2977,7 +2949,6 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 }
 
 @supports (animation-timeline: scroll()) {
-  .vk-terminal-scroll,
   .vk-code-frame-body pre.shiki,
   .vk-scroll-fade,
   .vk-edge-fade,
@@ -3030,7 +3001,6 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
     animation-timeline: scroll(self inline), scroll(self inline);
   }
 
-  .vk-terminal-scroll:focus-visible,
   .vk-code-frame-body pre.shiki:focus-visible,
   .vk-scroll-fade:focus-visible,
   .vk-edge-fade:has(:focus-visible),
@@ -4141,109 +4111,6 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   }
 }
 
-.vk-proof-strip {
-  padding-inline: var(--gutter);
-}
-
-.vk-proof-strip-list {
-  display: flex;
-  flex-direction: column;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  border-block: 1px solid var(--border-default);
-}
-
-.vk-proof-strip-item {
-  min-width: 0;
-  padding-block: 1rem;
-}
-
-.vk-proof-strip-item + .vk-proof-strip-item {
-  border-top: 1px solid var(--border-default);
-}
-
-.vk-proof-strip-link {
-  display: inline-block;
-  min-height: 1.5rem;
-  color: inherit;
-  text-decoration: underline;
-  text-decoration-color: transparent;
-  text-underline-offset: 0.25em;
-}
-
-.vk-proof-strip-link:hover {
-  text-decoration-color: color-mix(in srgb, var(--v-glow) 40%, transparent);
-}
-
-.vk-proof-strip-value {
-  display: inline-block;
-  text-align: end;
-  font-family: var(--font-mono);
-  font-size: var(--text-base);
-  font-variant-numeric: tabular-nums;
-  color: var(--text-strong);
-}
-
-.vk-proof-strip-fact .vk-proof-strip-value:not([data-count]),
-.vk-proof-strip-value[data-fallback] {
-  display: inline;
-  text-align: start;
-  font-family: var(--font-sans);
-  font-size: var(--text-sm);
-  color: var(--text-body);
-}
-
-.vk-proof-strip-label {
-  font-size: var(--text-sm);
-  color: var(--text-muted);
-}
-
-.vk-proof-strip-stack {
-  display: inline-grid;
-}
-
-.vk-proof-strip-stack > * {
-  grid-area: 1 / 1;
-}
-
-.vk-proof-strip-stack > [data-shown="false"] {
-  visibility: hidden;
-}
-
-@media (min-width: 48rem) {
-  .vk-proof-strip-list {
-    flex-direction: row;
-    align-items: stretch;
-  }
-
-  .vk-proof-strip-item {
-    padding-inline: 1.5rem;
-  }
-
-  .vk-proof-strip-item:first-child {
-    padding-inline-start: 0;
-  }
-
-  .vk-proof-strip-item + .vk-proof-strip-item {
-    border-top: 0;
-    border-inline-start: 1px solid var(--border-default);
-  }
-
-  .vk-proof-strip-fact[data-fact="providers"] {
-    flex: 1;
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .vk-proof-strip-link {
-    transition:
-      color var(--duration-fast) var(--ease-out),
-      background-color var(--duration-fast) var(--ease-out),
-      text-decoration-color var(--duration-fast) var(--ease-out);
-  }
-}
-
 @media (width < 768px) {
   figure.shiki button {
     min-width: 44px;
@@ -4275,14 +4142,6 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 
   .vk-breadcrumb a {
     padding-block: 12px;
-  }
-
-  .vk-proof-strip-item {
-    padding-block: 0.375rem;
-  }
-
-  .vk-proof-strip-link {
-    padding-block: 10px;
   }
 
   .vk-showcase-file-switch {

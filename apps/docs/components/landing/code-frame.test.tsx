@@ -66,16 +66,18 @@ describe("CodeFrame", () => {
     expect(button?.textContent).toBe(en.landing.install.copied);
   });
 
-  it("fades the end edge of a long line like the terminal does, in a neutral shade, never a violet bar", () => {
+  it("fades the end edge of a long line like every scroll block does, in a neutral shade, never a violet bar", () => {
     const rules = docsStylesheetRules();
     const frame = rulesFor(rules, ".vk-code-frame-body pre.shiki");
-    const terminal = rulesFor(rules, ".vk-terminal-scroll");
+    const block = rulesFor(rules, ".vk-scroll-fade");
     const base = frame.find((rule) => rule.media === "")?.declarations;
     expect(base?.["overflow-x"]).toBe("auto");
     expect(base?.background).toContain("var(--scroll-shade)");
     expect(base?.background).not.toContain("--v-glow");
     expect(frame.map((rule) => rule.declarations)).toEqual(
-      terminal.map((rule) => rule.declarations),
+      block
+        .filter((rule) => rulesFor([rule], ".vk-code-frame-body pre.shiki").length)
+        .map((rule) => rule.declarations),
     );
     const timeline = frame.find((rule) => rule.declarations["animation-timeline"]);
     expect(timeline?.declarations["mask-image"]).toContain("var(--vk-edge-fade)");
@@ -84,7 +86,6 @@ describe("CodeFrame", () => {
   it("draws every scroll fade from one mask rule and drops the mask while the ring shows, so no focus ring is faded", () => {
     const rules = docsStylesheetRules();
     const faded = [
-      ".vk-terminal-scroll",
       ".vk-code-frame-body pre.shiki",
       ".vk-scroll-fade",
       ".vk-edge-fade",
@@ -101,7 +102,6 @@ describe("CodeFrame", () => {
       expect(masks.filter((rule) => rulesFor([rule], selector).length)).toHaveLength(1);
     }
     const focused = [
-      ".vk-terminal-scroll:focus-visible",
       ".vk-code-frame-body pre.shiki:focus-visible",
       ".vk-scroll-fade:focus-visible",
       ".vk-edge-fade:has(:focus-visible)",

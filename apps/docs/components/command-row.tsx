@@ -14,7 +14,7 @@ export function CommandRow({
   label: string;
   link?: CommandLineLink;
   divided?: boolean;
-  wrap?: "narrow" | "always";
+  wrap?: "narrow";
 }): ReactNode {
   return (
     <div
@@ -29,8 +29,7 @@ export function CommandRow({
       </span>
       <code
         className={cn(
-          "min-w-0 flex-1 pt-1 text-(--text-strong)",
-          wrap === "always" ? "whitespace-normal" : "vk-edge-fade whitespace-nowrap",
+          "vk-edge-fade min-w-0 flex-1 whitespace-nowrap pt-1 text-(--text-strong)",
           wrap === "narrow" && "@max-[30rem]:whitespace-normal",
         )}
       >

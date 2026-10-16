@@ -319,33 +319,6 @@
         }
       }
     },
-    "stats": {
-      "label": "Verbatra in Zahlen",
-      "stars": "GitHub-Sterne",
-      "downloads": "npm-Downloads letzte Woche",
-      "starsFallback": "Verbatra auf GitHub",
-      "downloadsFallback": "Verbatra auf npm",
-      "providers": "Übersetzungs-Provider",
-      "formats": "Dateiformate"
-    },
-    "problem": {
-      "heading": "Locale-Dateien driften bei jedem Release auseinander.",
-      "lead": "Jedes Feature bringt neue Texte, und jemand muss die Keys finden, die in jeder Locale fehlen. Beim Zurückkopieren von Hand gehen Platzhalter kaputt.",
-      "items": {
-        "missing": {
-          "title": "Fehlende Keys landen in Produktion",
-          "body": "Nichts schlägt fehl, wenn der deutschen Datei ein Key fehlt. Nutzer sehen die Fallback-Sprache oder den rohen Key."
-        },
-        "wholeFile": {
-          "title": "Alles neu zu übersetzen kostet mehr",
-          "body": "Wer die ganze Datei erneut schickt, zahlt für unveränderte Texte und kann Formulierungen ersetzen, die jemand von Hand korrigiert hat."
-        },
-        "placeholders": {
-          "title": "Ein kaputter Platzhalter zerstört einen Screen",
-          "body": "Eine Übersetzung, die eine Variable verliert oder die ICU-Pluralsyntax verstümmelt, zeigt den falschen Text oder gar keinen."
-        }
-      }
-    },
     "steps": {
       "items": {
         "check": {
@@ -411,30 +384,6 @@
           "all": "Alle Schnellstarts"
         }
       }
-    },
-    "code": {
-      "heading": "Nutze es im Terminal oder aus deinem eigenen Code.",
-      "lead": "Die CLI baut auf dem SDK auf, und die GitHub Action führt die CLI aus. Alle lesen dieselbe Konfigurationsdatei.",
-      "tablist": "Wege, Verbatra auszuführen",
-      "tabs": {
-        "cli": "CLI",
-        "sdk": "SDK",
-        "config": "Konfiguration",
-        "action": "GitHub Action"
-      },
-      "captions": {
-        "cli": "Installieren, einrichten, ohne Key vorab ansehen, übersetzen, prüfen.",
-        "sdk": "Übersetze und sichere ab aus deinem eigenen Skript. Das SDK liest dieselbe Konfigurationsdatei.",
-        "config": "Eine committete Datei ohne Geheimnisse. Der API-Key kommt aus der Umgebung.",
-        "action": "Lass einen Pull Request scheitern, solange eine Locale nicht synchron ist. Kein API-Key nötig."
-      },
-      "links": {
-        "cli": "CLI-Referenz",
-        "sdk": "SDK-Schnellstart",
-        "config": "Referenz der Konfigurationsdatei",
-        "action": "Anleitung zur GitHub Action"
-      },
-      "copy": "Code kopieren"
     },
     "compare": {
       "heading": "So schneidet Verbatra im Vergleich ab.",

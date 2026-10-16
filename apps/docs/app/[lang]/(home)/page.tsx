@@ -3,7 +3,6 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Fragment, type ReactNode } from "react";
 import { JsonLd } from "@/components/json-ld";
 import { Bento } from "@/components/landing/bento";
-import { CodeShowcase } from "@/components/landing/code-showcase";
 import { Compare } from "@/components/landing/compare";
 import { Faq, faqContent } from "@/components/landing/faq";
 import { FinalCta } from "@/components/landing/final-cta";
@@ -14,8 +13,6 @@ import { Marquee } from "@/components/landing/marquee";
 import { MotionRoot } from "@/components/landing/motion-root";
 import { OpenSource } from "@/components/landing/open-source";
 import { Playground } from "@/components/landing/playground";
-import { Problem } from "@/components/landing/problem";
-import { ProofStrip } from "@/components/landing/proof-strip";
 import { toLocale } from "@/lib/i18n";
 import { LANDING_SECTIONS, type LandingSectionId } from "@/lib/landing-sections";
 import { MAIN_CONTENT_ID } from "@/lib/locale-home-layout";
@@ -42,10 +39,7 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
     marquee: <Marquee />,
     playground: <Playground />,
     flow: <Flow />,
-    proofStrip: <ProofStrip />,
-    problem: <Problem />,
     features: <Bento />,
-    code: <CodeShowcase />,
     compare: <Compare />,
     openSource: <OpenSource />,
     faq: <Faq locale={locale} items={faqItems} />,

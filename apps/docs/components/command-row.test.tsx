@@ -14,7 +14,7 @@ const { CommandRow } = await import("./command-row");
 const writeText = vi.fn<(text: string) => Promise<void>>();
 let root: Root | undefined;
 
-function render(wrap?: "narrow" | "always"): HTMLDivElement {
+function render(wrap?: "narrow"): HTMLDivElement {
   const container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
@@ -91,12 +91,5 @@ describe("CommandRow", () => {
     expect(code?.classList.contains(narrow)).toBe(false);
     expect(code?.classList.contains("whitespace-nowrap")).toBe(true);
     expect(code?.classList.contains("vk-edge-fade")).toBe(true);
-  });
-
-  it("wraps the command at every width when asked to, so a long one is never cut off", () => {
-    const code = render("always").querySelector("code");
-    expect(code?.classList.contains("whitespace-normal")).toBe(true);
-    expect(code?.classList.contains("whitespace-nowrap")).toBe(false);
-    expect(code?.classList.contains("vk-edge-fade")).toBe(false);
   });
 });

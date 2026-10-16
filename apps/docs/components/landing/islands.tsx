@@ -12,10 +12,6 @@ export const HeroDiffMotion = island(
   () => import("./hero-diff-motion").then((m) => m.HeroDiffMotion),
   BLOCK,
 );
-export const CodeShowcaseTabs = island(
-  () => import("./code-showcase-tabs").then((m) => m.CodeShowcaseTabs),
-  BLOCK,
-);
 export const MarqueeMotion = island(
   () => import("./marquee-motion").then((m) => m.MarqueeMotion),
   BLOCK,
@@ -26,10 +22,6 @@ export const PlaygroundDemo = island(
 );
 export const FlowMotion = island(() => import("./flow-motion").then((m) => m.FlowMotion), BLOCK);
 export const TryIt = intlIsland(() => import("./try-it").then((m) => m.TryIt), BLOCK);
-export const LiveStatValue = island(() => import("./live-stat-value").then((m) => m.LiveStatValue));
-export const LiveStatFallback = island(() =>
-  import("./live-stat-value").then((m) => m.LiveStatFallback),
-);
 export const CommandRow = intlIsland(
   () => import("@/components/command-row").then((m) => m.CommandRow),
   BLOCK,
@@ -44,13 +36,10 @@ export const CopyButton = intlIsland(() =>
 await preloadIslands([
   CommandPanel,
   HeroDiffMotion,
-  CodeShowcaseTabs,
   MarqueeMotion,
   PlaygroundDemo,
   FlowMotion,
   TryIt,
-  LiveStatValue,
-  LiveStatFallback,
   CommandRow,
   FaqKeys,
   CompareFocus,

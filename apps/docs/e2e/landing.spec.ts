@@ -32,10 +32,23 @@ for (const locale of LOCALES) {
             .filter((label) => label !== null && node.contains(label))
             .map((label) => label?.textContent?.trim() ?? "")
             .join(" ");
-          return { id: node.id, name: labelled || node.getAttribute("aria-label") || "" };
+          return {
+            id: node.id || node.getAttribute("aria-labelledby") || "",
+            name: labelled || node.getAttribute("aria-label") || "",
+          };
         }),
       );
-      expect(sections.length).toBeGreaterThanOrEqual(12);
+      expect(sections.map((section) => section.id)).toEqual([
+        "hero-title",
+        "marquee",
+        "playground",
+        "flow",
+        "features",
+        "compare",
+        "faq",
+        "open-source",
+        "closing-heading",
+      ]);
       expect(sections.filter((section) => section.name === "")).toEqual([]);
     });
 

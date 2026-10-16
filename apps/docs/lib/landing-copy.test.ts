@@ -2,7 +2,6 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { i18n } from "@/lib/i18n";
-import { LANDING_SHOWCASE_TABS } from "@/lib/landing-code";
 import { COMPARE_ROWS, COMPARE_TOOLS, SHORT_COLUMNS, SHORT_ROWS } from "@/lib/landing-compare";
 import { FLOW_NODES } from "@/lib/landing-flow";
 
@@ -13,10 +12,7 @@ const NAMESPACES = [
   "marquee",
   "playground",
   "flow",
-  "stats",
-  "problem",
   "bento",
-  "code",
   "compare",
   "openSource",
   "closing",
@@ -78,14 +74,6 @@ describe("the redesigned landing copy", () => {
     for (const locale of i18n.languages) {
       for (const [key, text] of newCopy(locale))
         expect(text, `${locale} ${key}`).not.toMatch(BUZZWORDS);
-    }
-  });
-
-  it("names one tab, caption and docs link per showcase sample", () => {
-    for (const part of ["tabs", "captions", "links"]) {
-      expect(Object.keys(branch(landing("en"), `code.${part}`))).toEqual([
-        ...LANDING_SHOWCASE_TABS,
-      ]);
     }
   });
 

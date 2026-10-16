@@ -27,7 +27,7 @@ describe("the project stats keep every page static", () => {
 
   it("finds the page code that reads the stats", () => {
     expect(readers.map((path) => relative(".", path))).toEqual(
-      expect.arrayContaining(["components/landing/proof-strip.tsx", "lib/locale-home-layout.tsx"]),
+      expect.arrayContaining(["components/static-site-header.tsx", "lib/locale-home-layout.tsx"]),
     );
   });
 

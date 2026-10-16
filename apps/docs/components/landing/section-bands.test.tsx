@@ -5,6 +5,7 @@ import { join } from "node:path";
 import type { ComponentProps, ReactNode } from "react";
 import { renderToStaticMarkup, renderToString } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+import { LANDING_SECTIONS } from "@/lib/landing-sections";
 import { preloadRegisteredIslands } from "@/test-support/islands";
 import { Section } from "./section";
 import { SectionAside, SectionHead } from "./section-head";
@@ -64,20 +65,31 @@ describe("landing surface bands", () => {
     expect(section?.firstElementChild?.className).toContain("vk-gutter");
   });
 
-  it("pins which sections from the marquee down to the contribution steps sit in a band, in page order", () => {
+  it("alternates page and band from the marquee down to the closer, in page order", () => {
+    expect(LANDING_SECTIONS).toEqual([
+      "hero",
+      "marquee",
+      "playground",
+      "flow",
+      "features",
+      "compare",
+      "faq",
+      "openSource",
+      "finalCta",
+    ]);
     expect(
       [
+        "hero.tsx",
         "marquee.tsx",
         "playground.tsx",
         "flow.tsx",
-        "problem.tsx",
         "bento.tsx",
-        "code-showcase.tsx",
         "compare.tsx",
         "faq.tsx",
         "open-source.tsx",
+        "final-cta.tsx",
       ].map(banded),
-    ).toEqual([true, false, true, false, false, true, true, false, true]);
+    ).toEqual([false, true, false, true, false, true, false, true, false]);
   });
 
   it("names a section by its heading through aria-labelledby, banded or not", () => {
@@ -158,7 +170,7 @@ describe("the section head on the 12-column grid", () => {
     expect(css).toMatch(
       /\.vk-bento-head \{\s+margin-block-end: calc\(var\(--head-gap\) - var\(--grid-gap\)\);/,
     );
-    for (const file of ["code-showcase.tsx", "compare.tsx", "open-source.tsx", "problem.tsx"]) {
+    for (const file of ["compare.tsx", "open-source.tsx"]) {
       const source = readFileSync(join(import.meta.dirname, file), "utf8");
       expect(source, file).toContain("mt-(--head-gap)");
       expect(source, file).not.toMatch(/\b(?:lg:)?mt-1[0-4]\b/);
@@ -174,19 +186,15 @@ describe("the section head on the 12-column grid", () => {
   it("varies the section heads instead of splitting every one", async () => {
     await preloadRegisteredIslands();
     const { Bento } = await import("./bento");
-    const { CodeShowcase } = await import("./code-showcase");
     const { Compare } = await import("./compare");
     const { Faq, faqContent } = await import("./faq");
     const { Flow } = await import("./flow");
     const { Marquee } = await import("./marquee");
     const { OpenSource } = await import("./open-source");
     const { Playground } = await import("./playground");
-    const { Problem } = await import("./problem");
     const sections: ReadonlyArray<readonly [string, () => Promise<ReactNode>]> = [
-      ["problem", Problem],
       ["flow", Flow],
       ["features", Bento],
-      ["code", CodeShowcase],
       ["marquee", Marquee],
       ["playground", Playground],
       ["compare", Compare],
@@ -203,10 +211,8 @@ describe("the section head on the 12-column grid", () => {
         : "heading";
     }
     expect(layouts).toEqual({
-      problem: "split",
       flow: "stacked",
       features: "inline",
-      code: "stacked",
       marquee: "aside",
       playground: "inline",
       compare: "split",

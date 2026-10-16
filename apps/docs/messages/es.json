@@ -319,33 +319,6 @@
         }
       }
     },
-    "stats": {
-      "label": "Verbatra en cifras",
-      "stars": "estrellas en GitHub",
-      "downloads": "descargas en npm la semana pasada",
-      "starsFallback": "Verbatra en GitHub",
-      "downloadsFallback": "Verbatra en npm",
-      "providers": "proveedores de traducción",
-      "formats": "formatos de archivo"
-    },
-    "problem": {
-      "heading": "Los archivos de locale se desincronizan con cada entrega.",
-      "lead": "Cada funcionalidad añade textos, y alguien tiene que encontrar las claves que faltan en cada locale. Al pegar las traducciones a mano es donde se rompen los placeholders.",
-      "items": {
-        "missing": {
-          "title": "Las claves que faltan llegan a producción",
-          "body": "Nada falla cuando al archivo alemán le falta una clave. Tus usuarios ven el idioma de respaldo o la clave sin traducir."
-        },
-        "wholeFile": {
-          "title": "Retraducirlo todo cuesta más",
-          "body": "Enviar el archivo completo otra vez paga por textos que no cambiaron y puede reemplazar frases que alguien corrigió a mano."
-        },
-        "placeholders": {
-          "title": "Un placeholder roto rompe una pantalla",
-          "body": "Una traducción que pierde una variable o estropea la sintaxis de plurales ICU muestra el texto equivocado, o ninguno."
-        }
-      }
-    },
     "steps": {
       "items": {
         "check": {
@@ -411,30 +384,6 @@
           "all": "Todos los inicios rápidos"
         }
       }
-    },
-    "code": {
-      "heading": "Úsalo desde la terminal o desde tu propio código.",
-      "lead": "La CLI se basa en el SDK y la GitHub Action ejecuta la CLI. Todas leen el mismo archivo de configuración.",
-      "tablist": "Formas de ejecutar Verbatra",
-      "tabs": {
-        "cli": "CLI",
-        "sdk": "SDK",
-        "config": "Configuración",
-        "action": "GitHub Action"
-      },
-      "captions": {
-        "cli": "Instala, configura, previsualiza sin clave, traduce, comprueba.",
-        "sdk": "Traduce y protege desde tu propio script. El SDK lee el mismo archivo de configuración.",
-        "config": "Un archivo versionado sin secretos. La clave de API viene del entorno.",
-        "action": "Haz fallar un pull request mientras un locale no esté sincronizado. Sin clave de API."
-      },
-      "links": {
-        "cli": "Referencia de la CLI",
-        "sdk": "Inicio rápido del SDK",
-        "config": "Referencia del archivo de configuración",
-        "action": "Guía de la GitHub Action"
-      },
-      "copy": "Copiar código"
     },
     "compare": {
       "heading": "Cómo se compara Verbatra.",

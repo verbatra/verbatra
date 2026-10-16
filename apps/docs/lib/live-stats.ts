@@ -9,7 +9,7 @@ type LiveStats = {
   readonly downloads: number | null;
 };
 
-export type LiveStat = keyof LiveStats;
+type LiveStat = keyof LiveStats;
 
 let pending: Promise<LiveStats | null> | undefined;
 
@@ -40,7 +40,7 @@ export function loadLiveStats(fetcher: typeof fetch = fetch): Promise<LiveStats 
   return request;
 }
 
-export function useLiveStats(): LiveStats | null {
+function useLiveStats(): LiveStats | null {
   const [stats, setStats] = useState<LiveStats | null>(null);
   useEffect(() => {
     let active = true;
@@ -64,12 +64,4 @@ export function useLiveCount(
   const live = useLiveStats()?.[stat] ?? null;
   if (initial === null || live === null) return initial;
   return formatCompactNumber(live, locale);
-}
-
-const WIDEST_COUNTS: ReadonlyArray<number> = [100_900, 999_999];
-
-export function widestLiveCount(locale: string): string {
-  return WIDEST_COUNTS.map((count) => formatCompactNumber(count, locale)).reduce((widest, next) =>
-    next.length > widest.length ? next : widest,
-  );
 }

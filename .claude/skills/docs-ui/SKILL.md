@@ -36,15 +36,9 @@ dashboard in `packages/studio` (different app, different stack), or anything out
 ## The stack, and why it constrains you
 
 - `fumadocs-ui` and `fumadocs-core` 16.17.1, `next` 16.4.0, `tailwindcss` 4.3.3, `next-intl` 4.14.9.
-  `motion` (14.1.0, the version Fumadocs already depends on) is a direct dependency with one
-  consumer: the code showcase tabs. Each panel is one plain `div` for good, and the first pointer,
-  focus or tab change `import()`s `code-showcase-fade.ts`, which fades a newly opened panel in with
-  `animate` from `motion/mini` (opacity and a 4px lift), never under reduced motion (`fadeInPanel`
-  checks `prefersReducedMotion` itself, so the tabs module never reads it). There is no page-wide
-  provider and no `m.*` or `motion.*` element: swapping a plain panel for an `m.div` changes the
-  element type and remounts the panel (copy state, focus and scroll lost), and rendering `m` from
-  the start put about 30 KB gzip of motion into the first load's island batch, which cost the
-  light-mode mobile run its 95. Animate `opacity` and `transform` only, and keep layout shift at 0.
+  `motion` is no direct dependency (Fumadocs still brings its own): no landing code imports it,
+  and nothing animates through a React motion provider or an `m.*` element. Animate `opacity` and
+  `transform` only, and keep layout shift at 0.
   Server sections and the reveals stay CSS keyframes and transitions in `app/global.css`, each with
   a `prefers-reduced-motion` opt-out.
   `gsap` 3.15.0 and `@gsap/react` 2.1.2 (the Standard "no charge" GSAP license, which the
@@ -117,7 +111,7 @@ Three layers exist. Write against the third.
    `hsl(258 60% 74%)`, light `hsl(258 55% 44%)`) and `--v-purple` its fill and bar shade (dark
    `hsl(258 52% 56%)`, light `hsl(258 55% 44%)`); the old magenta purple and pink are gone. Do not
    introduce a second brand hue. Beside them sit a few tints with one job each, never a general
-   palette: `--v-glow-soft` (flag tokens in `Terminal`), and `--v-status-new` (the accent) /
+   palette: `--v-glow-soft` (a flag-token tint with no landing consumer since the terminal retired), and `--v-status-new` (the accent) /
    `--v-status-changed` (amber, dark `hsl(38 85% 62%)`, light `hsl(30 90% 30%)`, also Fumadocs'
    warning callout color) / `--v-status-unchanged` (the `tone` colors of
    `components/ui/badge.tsx`). There is no pink and no headline gradient token any more
@@ -151,8 +145,8 @@ never the arbitrary-value spelling `text-[color:var(--text-muted)]` (`lib/theme.
 `--border-accent` (the accent mixed 45 percent into `--border-default`) is the glow-tinted border
 of a flat panel, an evidence chip or a copy button on hover; it is the one token for that mix. In
 `components/` and `app/`, only three brand primitives may still be named directly, each in its one
-documented role: `--v-void` (void code surfaces), `--v-status-*` (badge tones and the showcase and
-problem marks) and `--v-glow-soft` (flag tokens in `Terminal`). `lib/theme.test.ts` fails on any
+documented role: `--v-void` (void code surfaces), `--v-status-*` (badge tones and the Try it
+marks) and `--v-glow-soft` (flag tokens). `lib/theme.test.ts` fails on any
 other `fd-*` class, `var(--color-fd-*)` or `--v-*` reference there.
 
 Scales are fixed and narrow, deliberately:
@@ -169,15 +163,15 @@ Scales are fixed and narrow, deliberately:
   the scrollbar) is the width of the `.vk-prompt-pop` preview. `--head-gap` (2.5rem, 3.5rem from 64rem) is the one space
   between a section head and its content: the margin over the flow list (and, under 64rem, under
   the bento head through `.vk-bento-head`), the
-  problem, code showcase, comparison and contribution content (`mt-(--head-gap)`), the row gap
+  comparison and contribution content (`mt-(--head-gap)`), the row gap
   of `.vk-section-aside` (the marquee and the FAQ) and of the playground grid; `section-bands.test.tsx` fails on an ad hoc
   `mt-10` or `lg:mt-14` there. `.vk-grid-12` is the landing grid: one column under 64rem,
   then `--grid-columns` (12) columns with a `--grid-gap` (24px) gap, where each child spans
   `--grid-span` columns (the full row when unset), starting on `--grid-start` when set. `SectionHead` takes `layout`: `split` (the default, a
   `.vk-grid-12`: the heading block spans 8, the lead 4, bottom-aligned, so the lead starts on
-  column 9, the column where the problem list starts), `stacked` (the lead
-  under the heading on the first column, for a section whose content runs the full row: the code
-  showcase, the contribution steps, and the feature flow, whose head keeps to the snippet column), `inline` (the same
+  column 9: the comparison), `stacked` (the lead
+  under the heading on the first column, for a section whose content runs the full row: the
+  contribution steps, and the feature flow, whose head keeps to the snippet column), `inline` (the same
   stacked block at a narrower measure, `.vk-section-head-inline`, set inside the column beside an
   artifact rather than over it: the SDK playground renders it on the server as a sibling before
   its island, and its grid puts it at the top of the control column next to the sticky snippet;
@@ -193,12 +187,11 @@ Scales are fixed and narrow, deliberately:
 - Landing surfaces: `--surface-band` (mixed from `--surface-card` and
   `--surface-bg`, never a raw value), the fill of `.vk-band`: `Section` with `band` renders a
   full-width `section.vk-band` (between two `--border-default` hairlines, `--section-sm` above it
-  and `--section-md` padding inside) around the usual `.vk-gutter` column: the marquee under the
-  hero, the feature flow, the code showcase, the comparison and the contribution section after the
-  FAQ are banded, the SDK
-  playground between the marquee and the flow, the problem, features and FAQ sections
-  sit on the void, and the code showcase and the comparison sit next to each other until the code
-  showcase retires (`section-bands.test.tsx` pins the order). The hero draws no
+  and `--section-md` padding inside) around the usual `.vk-gutter` column. Page and band strictly
+  alternate, so no two bands touch: hero (page), marquee (band), SDK playground (page), feature
+  flow (band), features (page), comparison (band), FAQ (page), contribution (band), final call to
+  action (page), then the flat footer band (`section-bands.test.tsx` pins the order and the
+  surfaces). The hero draws no
   pattern, only its single decorative glow (`.vk-banner-glow` behind the demo column, from the
   `--banner-glow` token, lighter under `html.light`); there is no wash token and no dot backdrop.
 - Placeholder chip: `PlaceholderChip` (`components/landing/placeholder-chip.tsx`, the
@@ -211,7 +204,7 @@ Scales are fixed and narrow, deliberately:
   quote (`data-keep-end`) its end margin, so the ring never touches the mark beside it. `data-broken` strikes it in
   `--text-danger`, only for a token a reply broke. `PlaceholderText` in the same file cuts the
   tokens out of a line (`splitPlaceholders`: `{{name}}` and `{name}` only, so JSON braces stay text)
-  and draws each as a chip; every showcase file pane and every `Terminal` line goes through it, and
+  and draws each as a chip; every Try it file pane goes through it, and
   the showcase passes the tokens a refused reply added (the `+` details of its refusal) as the
   broken set.
 - Motion: see "Landing motion" below for the system. Its tokens: `--ease-out` (entrances and
@@ -275,7 +268,7 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   selection and focus with the arrow keys (wrapping), Home and End; `tabPanelProps(prefix, id,
   active)` gives a panel its `id`, `role`, `aria-labelledby`, `data-active` and `inert`. Its
   `variant: "segmented"` is the `.vk-segmented` switch (tabs rounded by `--radius-segment`, 7px)
-  that the hero command panel uses, never a hand-made copy. The code showcase tabs (`code-showcase-tabs.tsx`) use the default `underline` variant;
+  that the hero command panel uses, never a hand-made copy. The default `underline` variant serves every other tab row;
   there is no second tab primitive.
   `Button` takes `variant: "primary" | "secondary" | "outline" | "ghost"` (`secondary` and
   `outline` both draw a `--text-faint` border that holds 3:1 on its own; `outline` also shows a
@@ -303,8 +296,8 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   button, inside a shadcn composition or not, is the site button in `components/ui/button.tsx`; add a
   registry primitive only together with the code that uses it.
 - **Landing:** `components/landing/` holds one component per section. Their order on the page is
-  `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, marquee, playground, flow, proofStrip,
-  problem, features, code, compare, faq, openSource, finalCta), which the home page maps
+  `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, marquee, playground, flow, features,
+  compare, faq, openSource, finalCta), which the home page maps
   over and `lib/landing-sections.test.ts` pins; add or move a section there, not by hand in
   `page.tsx`. The files: `hero.tsx` (the `h1`, the lead, the two quotable `landing.banner.quotes`
   sentences in `.vk-banner-summary`, two buttons, the locale diff with the `CommandPanel` install
@@ -332,15 +325,7 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   `align-content: start`, so a label stays on the first line of its value in a multi-column row
   (two from 40rem, three from 64rem, where the facts run across the whole hero under both
   columns, six from 80rem); the copy column opens with the `h1`, with no eyebrow line above it),
-  `proof-strip.tsx` (stars, npm weekly downloads, the providers and the format count, the stars
-  and downloads from `lib/project-stats.ts`, read at build time so the page stays static, then
-refreshed in place by `LiveStatValue` from `/api/stats`; every figure shows as fetched, with no
-display threshold, and a figure the build could not fetch leaves its cell as a named link
-(`landing.stats.starsFallback`, `downloadsFallback`: "Verbatra on GitHub", "Verbatra on npm"), never
-an empty value, which `LiveStatFallback` still turns into the live figure once `/api/stats` answers;
-both figure links open a new tab and say so in an `sr-only` `landing.openSource.newTab`; the format count is
-`SUPPORTED_FORMAT_IDS.length`, never a typed number), `problem.tsx` (`#problem`, a real drift
-  artifact from `lib/landing-problem.ts`), `flow.tsx` (`#flow`, the feature flow, see "Feature
+  `flow.tsx` (`#flow`, the feature flow, see "Feature
   flow" below),
   `bento.tsx` (`#features`, one `.vk-bento` `.vk-grid-12` that holds the head and the tiles of
   `BENTO_TILES` in `lib/landing-bento.ts`, in reading order: the head is an `inline` `SectionHead`
@@ -378,9 +363,7 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   `e2e/bento.spec.ts` measures every card tile at 1024px and 1440px in all four locales and fails
   on more than 48px unfilled inside a tile or the provider panel, or a pill cut by the panel edge;
   tile titles are `.vk-h4`
-  `h3`s), `code-showcase.tsx` (`#code`, CLI, SDK, config and Action tabs from
-  `lib/landing-code.ts`, highlighted on the server by `lib/landing-highlight.ts` with dual themes
-  and framed by `code-frame.tsx`), `playground.tsx` (`#playground`, the SDK playground, see
+  `h3`s), `playground.tsx` (`#playground`, the SDK playground, see
   "SDK playground" below), `marquee.tsx`
   (`#marquee`, see "Marquee" below), `compare.tsx` (`#compare`, a band opened by a split head with
   a lead (`landing.compare.lead`): the short table, five rows (`SHORT_ROWS`) by Verbatra,
@@ -552,11 +535,14 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   app never depends on `@verbatra/format-adapters`; `lib/format-samples.test.ts` re-reads every
   sample through the real adapter. The shared building blocks: `section.tsx` and
   `section-head.tsx` for structure,
-  `terminal.tsx` (with a `bare` variant; by default lines never wrap, they scroll sideways inside
-  `.vk-terminal-scroll`, which fades the end edge while there is more to see: a mask on the element's own inline scroll timeline (one `@supports` rule for every scroll fade, `.vk-edge-fade` included, dropped while the element shows a focus ring or holds a focused child, so no ring is faded), and without scroll timelines a `--scroll-shade` (neutral, never violet) over a `local` void cover; `.vk-scroll-fade` is the same rule for any other sideways-scrolling mono block, the problem panes and check output and the bento format key line, each a `ScrollBlock` (`components/landing/scroll-block.tsx`: a `div` with `role="group"`, never a landmark, and `tabIndex={0}`, like the code frames' `pre`) named by its caption through `aria-labelledby`; with `wrap` every line
-  wraps through `.vk-wrap-line`, whose hanging indent is the line's own leading whitespace
-  (`--wrap-lead`, set by `wrapLineStyle` in `wrap-text.tsx`) plus 2ch, and whose placeholder tokens
-  (`{count}`, `(-{count})`) and hyphenated words (`up-to-date`) never break, through `WrapTokens`.
+  the scroll fades: every sideways-scrolling mono block fades its end edge while there is more to
+  see, through a mask on the element's own inline scroll timeline (one `@supports` rule for every
+  scroll fade, `.vk-edge-fade` included, dropped while the element shows a focus ring or holds a
+  focused child, so no ring is faded), and without scroll timelines a `--scroll-shade` (neutral,
+  never violet) over a `local` void cover; `.vk-scroll-fade` is that rule for the bento format key
+  line and the playground blocks, each a `ScrollBlock` (`components/landing/scroll-block.tsx`: a
+  `div` with `role="group"`, never a landmark, and `tabIndex={0}`, like the code frames' `pre`)
+  named by its caption through `aria-labelledby`.
   `lib/hero-terminal.ts` keeps the recorded `verbatra check` and `verbatra translate` transcript
   (`HERO_TERMINAL_SCRIPT`, English on every locale, like all CLI output on the page) that the home
   social image draws from and `HERO_TERMINAL_TITLE` (`~/app`), the title of every shell frame;
@@ -631,13 +617,13 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   has no background pattern. A new section composes `Section` plus
   `SectionHead`; it does not re-derive page padding or heading rhythm. `Section` takes
   `labelledBy`, the id of its `h2`, and renders it as `aria-labelledby`, so every landing section
-  is a named region; the hero and the closing section set it themselves and the proof strip, which
-  has no heading, carries an `aria-label` (`e2e/landing.spec.ts` fails on a nameless section). Check
+  is a named region; the hero and the closing section set it themselves (`e2e/landing.spec.ts`
+  fails on a nameless section). Check
   `ls apps/docs/components/landing` before quoting a file name from this list. The CLI transcripts
-  on the landing (`lib/hero-terminal.ts`, `lib/gate-demo.ts`, `lib/check-demo.ts`,
+  on the landing (`lib/hero-terminal.ts` with the check lines of `lib/check-demo.ts`, and
   `lib/showcase-cli.ts`) are real CLI
   output, English on every locale, and their tests pin each line to `packages/cli/src/render.ts`
-  (`lib/showcase-cli.run.test.ts` imports `renderHuman` and `lib/check-demo.run.test.ts` imports
+  (`lib/showcase-cli.run.test.ts` imports `renderHuman` and `lib/hero-terminal.run.test.ts` imports
   `renderCheckHuman` from it by relative path, and the latter also drives `run` from
   `packages/cli/src/run.ts` over the real sdk `check` for the exit code, in those run tests only,
   never from `lib/`), so a change to the CLI's output fails until the demo is recaptured.
@@ -748,10 +734,10 @@ reserved for client islands (see "The stack").
   shared `IntersectionObserver` (`rootMargin: 0px 0px -10% 0px`) that adds `data-revealed` and
   unobserves, so each element reveals once. Only the reveal transitions; hiding is instant. Focus
   moving into a block that has not revealed yet shows it at once (`:focus-within`). The delay is
-  `n * --reveal-stagger`, capped at `--reveal-delay-max`. Only the demo artifacts of four sections
-  carry a mark: the Try it panel in the feature flow, the problem (its artifact, then its list), the
-  bento's first row (the keys tile alone; the head beside it and the later tiles never) and the code showcase. No section heading reveals (`SectionHead` takes no reveal
-  prop), and the hero, marquee, SDK playground, proof strip, comparison, contribution, FAQ
+  `n * --reveal-stagger`, capped at `--reveal-delay-max`. Only the demo artifacts of two sections
+  carry a mark: the Try it panel in the feature flow and the
+  bento's first row (the keys tile alone; the head beside it and the later tiles never). No section heading reveals (`SectionHead` takes no reveal
+  prop), and the hero, marquee, SDK playground, comparison, contribution, FAQ
   and closing panel never take a reveal; nothing else in the flow does either; the hero diff's fill and the marquee loop below are their own
   motions, not reveals. Elements keep their box while hidden, so a reveal never moves layout.
   `reveal-marks.test.tsx` pins which files carry marks and `motion-root.test.tsx` the observer and
@@ -902,8 +888,7 @@ reserved for client islands (see "The stack").
 
 Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
 
-- `motion` only through a dynamic `import()` of `motion/mini` inside a client island (today only
-  `code-showcase-fade.ts`), never a static import and never a page-wide provider. Section reveals
+- No `motion` in the landing graph: no static import, no page-wide provider. Section reveals
   stay CSS keyframes and transitions in `app/global.css`, each with a `prefers-reduced-motion`
   opt-out; `MotionRoot` toggles attributes from one `IntersectionObserver` and stays well under
   1 KB gzipped.
@@ -914,7 +899,7 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
   server-renders the component inline (preloaded through top-level `await preloadIslands`) inside an
   `<Activity mode="visible">` and a box-less `.vk-island` wrapper (`display: contents`; a `span`, or
   a `div` with `{ as: "div" }` for an island whose root is a block, as every landing section island
-  but `LiveStatValue` and `CopyButton` is), never a Suspense boundary, since React outlines a completed Suspense
+  but `FaqKeys`, `CompareFocus` and `CopyButton` is), never a Suspense boundary, since React outlines a completed Suspense
   boundary over 500 bytes to the end of a long stream (the fallback flash measured CLS 0.497).
   Activity boundaries are written inline (`<!--&-->`) yet hydrate on their own, so each island
   hydrates when its chunk lands and a slow one holds no other back. In the browser
@@ -955,7 +940,7 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
   the import rules.
 - Nothing a hydrated page asks for may race the first paint, since Lighthouse's simulation counts
   every request that starts before the observed largest paint: island chunks, `/api/stats`
-  (`useLiveStats`) wait for `afterFirstContentfulPaint`. Links never prefetch on their own: they go
+  (`useLiveCount`) wait for `afterFirstContentfulPaint`. Links never prefetch on their own: they go
   through `useIntentPrefetch` (`lib/use-intent-prefetch.ts`, `false` until the link is hovered,
   focused or touched, then the link's own choice) in `FrameworkLink`
   (`lib/framework-provider.tsx`, which every Fumadocs sidebar and header link reaches) and
@@ -1014,8 +999,7 @@ the language select and the theme toggle. Its labels and the star count reach th
 strings and the build-time star count from `loadProjectStats`, compacted with
 `formatCompactNumber`), so the header adds no client message namespace. After hydration the count
 and the link's `aria-label` (`landing.topNav.starsAria`, filled on the client through `fillCount`)
-follow the one shared `/api/stats` request (`useLiveCount` in `lib/live-stats.ts`, which the proof
-strip's `LiveStatValue` island shares); without a build-time count the GitHub link shows no number
+follow the one shared `/api/stats` request (`useLiveCount` in `lib/live-stats.ts`); without a build-time count the GitHub link shows no number
 and no `aria-label`, and a failed request keeps the build-time number and is not cached, so the next mount asks again. Under 768px the items move into `HomeMobileMenu`, a shadcn `Sheet`
 (focus trap, Escape, focus back to the trigger, close button named by `landing.topNav.menu.close`)
 titled `landing.topNav.menu.title`, with a full-width "Get started" (`size="md"`, the `vk-nav-cta-menu`
@@ -1129,7 +1113,7 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   `DocsHomePaths`, `DocsHomeFeatures`, and the prev/next footer cards follow it; no docs home
   card is filled.
 - **Void code surfaces**: `figure.shiki` sits on `var(--v-void)` inside a `--border-default`
-  border, like `Terminal` and `CommandBox`. On an untitled fence the copy button sits on a void
+  border, like `CommandBox`. On an untitled fence the copy button sits on a void
   backing, and a one-line fence ends its scroll area before the button, so a long command never
   runs under it. A `// [!code highlight]` line gets the landing's
   highlight treatment: 22 percent `--v-purple` tint plus a 3px `--v-purple` bar on the start
@@ -1240,7 +1224,7 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   `vk-article` size container, and every table rule keys on its width, never on the viewport. From
   45rem up the wrapper is `overflow: visible` and the header row is sticky below the header
   (`top: var(--fd-docs-row-3)`); below 45rem the wrapper scrolls sideways with the end-edge fade
-  `.vk-terminal-scroll` uses, and the header is not sticky, because a sticky cell inside a scroll
+  `.vk-scroll-fade` uses, and the header is not sticky, because a sticky cell inside a scroll
   container is offset against that container, not the page. Cells are compact (0.5rem by 0.75rem,
   top-aligned). A table of three or more columns gets `.vk-table-stack` and a `data-label` per body
   cell from `lib/stacked-tables.ts` at build time, unless every body row holds at most

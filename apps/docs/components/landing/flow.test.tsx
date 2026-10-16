@@ -7,10 +7,10 @@ import { act, type ReactNode, useLayoutEffect } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { CHECKOUT_ACTION_REF, VERBATRA_ACTION_REF } from "@/lib/action-refs";
 import { FORMAT_SAMPLES } from "@/lib/format-samples";
 import { i18n, localizedPath } from "@/lib/i18n";
 import { STUDIO_RUN_COMMAND } from "@/lib/install-commands";
-import { CHECKOUT_ACTION_REF, VERBATRA_ACTION_REF } from "@/lib/landing-code";
 import {
   FLOW_ACTION_CODE,
   FLOW_CHECK_CODE,
@@ -391,6 +391,17 @@ describe("the flow snippets equal their sources", () => {
       .replace(/version: \S+ # .*\n/, `version: ${PACKAGE_VERSION}\n`);
     expect(FLOW_ACTION_CODE).toBe(expected);
     expect(FLOW_ACTION_CODE).not.toContain("<commit-sha>");
+  });
+
+  it("pins both actions to full commit SHAs on their release line", () => {
+    const uses = [...FLOW_ACTION_CODE.matchAll(/uses: (\S+)@(\S+) # (v\d+(?:\.\d+){0,2})\n/g)];
+    expect(uses.map(([, name]) => name)).toEqual(["actions/checkout", "verbatra/action"]);
+    for (const [, , ref, tag] of uses) {
+      expect(ref).toMatch(/^[0-9a-f]{40}$/);
+      expect(tag).toMatch(/^v\d/);
+    }
+    expect(FLOW_ACTION_CODE).not.toMatch(/@v\d/);
+    expect(VERBATRA_ACTION_REF).toMatch(/ # v1\./);
   });
 
   it("pins the check exit codes to the CLI", () => {

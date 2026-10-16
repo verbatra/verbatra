@@ -8,12 +8,10 @@ import { reservedWidth } from "./reserved-width";
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 let live: typeof import("@/lib/live-stats");
-let island: typeof import("@/components/landing/live-stat-value");
 
 beforeEach(async () => {
   vi.resetModules();
   live = await import("@/lib/live-stats");
-  island = await import("@/components/landing/live-stat-value");
 });
 
 afterEach(() => {
@@ -27,15 +25,18 @@ function stubFetch(answer: () => Promise<Response>) {
   return fetcher;
 }
 
+function Count({ stat, initial }: { stat: "stars" | "downloads"; initial: string }) {
+  return <span data-live-stat={stat}>{live.useLiveCount(stat, initial, "en")}</span>;
+}
+
 async function renderValues(initial: string): Promise<HTMLElement> {
   const container = document.createElement("div");
   document.body.append(container);
-  const { LiveStatValue } = island;
   await act(async () => {
     createRoot(container).render(
       <>
-        <LiveStatValue stat="stars" initial={initial} label="stars" locale="en" />
-        <LiveStatValue stat="downloads" initial={initial} label="downloads" locale="en" />
+        <Count stat="stars" initial={initial} />
+        <Count stat="downloads" initial={initial} />
       </>,
     );
   });
@@ -49,7 +50,7 @@ function values(container: HTMLElement): (string | null)[] {
   return Array.from(container.querySelectorAll("[data-live-stat]"), (node) => node.textContent);
 }
 
-describe("LiveStatValue", () => {
+describe("useLiveCount with a build-time number", () => {
   it("swaps the build-time number for the live one, fetched once for every island", async () => {
     const fetcher = stubFetch(async () => Response.json({ stars: 2500, downloads: 15_600 }));
 
@@ -58,16 +59,6 @@ describe("LiveStatValue", () => {
     expect(values(container)).toEqual(["2.5K", "15.6K"]);
     expect(fetcher).toHaveBeenCalledTimes(1);
     expect(fetcher.mock.calls[0]?.[0]).toBe(live.LIVE_STATS_URL);
-  });
-
-  it("reserves the build-time number's width, so a new number moves nothing", async () => {
-    stubFetch(async () => Response.json({ stars: 5, downloads: 5 }));
-
-    const container = await renderValues("1.2K");
-
-    const node = container.querySelector<HTMLElement>("[data-live-stat]");
-    expect(node?.textContent).toBe("5");
-    expect(node?.style.minInlineSize).toBe("4ch");
   });
 
   it.each([
@@ -95,13 +86,14 @@ describe("useLiveStats", () => {
     vi.resetModules();
     vi.doMock("@/lib/first-paint", () => ({ afterFirstContentfulPaint: () => painted }));
     const fetcher = stubFetch(async () => Response.json({ stars: 2500, downloads: 1 }));
-    const fresh = await import("@/components/landing/live-stat-value");
+    const fresh = await import("@/lib/live-stats");
+    function Fresh() {
+      return <span>{fresh.useLiveCount("stars", "1.2K", "en")}</span>;
+    }
     const container = document.createElement("div");
     document.body.append(container);
     await act(async () => {
-      createRoot(container).render(
-        <fresh.LiveStatValue stat="stars" initial="1.2K" label="stars" locale="en" />,
-      );
+      createRoot(container).render(<Fresh />);
     });
     expect(fetcher).not.toHaveBeenCalled();
     await act(async () => {
@@ -110,7 +102,7 @@ describe("useLiveStats", () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
     expect(fetcher).toHaveBeenCalledTimes(1);
-    expect(container.textContent).toBe("2.5K stars");
+    expect(container.textContent).toBe("2.5K");
     vi.doUnmock("@/lib/first-paint");
   });
 });
@@ -177,116 +169,6 @@ describe("the header star count", () => {
     expect(link?.querySelector("[data-stars]")?.textContent).toBe("2.5K");
     expect(link?.hasAttribute("aria-label")).toBe(false);
     expect(link?.querySelector(".sr-only")?.textContent).toBe(" stars on GitHub");
-  });
-});
-
-function shownText(element: Element): string {
-  const copy = element.cloneNode(true) as Element;
-  for (const hidden of copy.querySelectorAll('[data-shown="false"]')) hidden.remove();
-  return copy.textContent ?? "";
-}
-
-describe("LiveStatFallback", () => {
-  async function renderFallback(locale: string): Promise<HTMLElement> {
-    const container = document.createElement("div");
-    document.body.append(container);
-    const { LiveStatFallback } = island;
-    await act(async () => {
-      createRoot(container).render(
-        <LiveStatFallback
-          stat="downloads"
-          fallback="verbatra on npm"
-          label="downloads"
-          locale={locale}
-        />,
-      );
-    });
-    return container;
-  }
-
-  it.each([
-    ["en", "15.6K downloads"],
-    ["de", "15.600 downloads"],
-  ])("turns a fallback link into the live figure once it arrives, in %s", async (locale, text) => {
-    let answer: (response: Response) => void = () => undefined;
-    stubFetch(() => new Promise<Response>((resolve) => (answer = resolve)));
-    const container = await renderFallback(locale);
-    expect(shownText(container)).toBe("verbatra on npm");
-    await act(async () => {
-      answer(Response.json({ stars: 2, downloads: 15_600 }));
-      await live.loadLiveStats();
-    });
-    expect(shownText(container)).toBe(text);
-  });
-
-  it.each(["en", "de", "es", "fr"])(
-    "keeps the fallback and the live figure stacked in one cell, the figure reserving the widest count, in %s",
-    async (locale) => {
-      let answer: (response: Response) => void = () => undefined;
-      stubFetch(() => new Promise<Response>((resolve) => (answer = resolve)));
-      const container = await renderFallback(locale);
-      const stack = container.querySelector(".vk-proof-strip-stack");
-      const value = () => stack?.querySelector<HTMLElement>("[data-live-stat]");
-      const reserved = `${live.widestLiveCount(locale).length}ch`;
-      expect(stack?.children).toHaveLength(2);
-      expect(value()?.style.minInlineSize).toBe(reserved);
-      expect(value()?.closest('[data-shown="false"]')).not.toBeNull();
-      await act(async () => {
-        answer(Response.json({ stars: 2, downloads: 15_600 }));
-        await live.loadLiveStats();
-      });
-      expect(stack?.children).toHaveLength(2);
-      expect(value()?.style.minInlineSize).toBe(reserved);
-      expect(value()?.closest('[data-shown="false"]')).toBeNull();
-      expect(stack?.querySelector("[data-fallback]")?.getAttribute("data-shown")).toBe("false");
-    },
-  );
-
-  it("reserves at least as many characters as any compact count below a million", () => {
-    for (const locale of ["en", "de", "es", "fr"]) {
-      const widest = live.widestLiveCount(locale).length;
-      for (let count = 0; count < 1_000_000; count = Math.ceil(count * 1.07) + 1) {
-        expect(
-          new Intl.NumberFormat(locale, { notation: "compact", maximumFractionDigits: 1 }).format(
-            count,
-          ).length,
-          `${locale} ${count}`,
-        ).toBeLessThanOrEqual(widest);
-      }
-    }
-  });
-
-  it("draws the live figure in the same markup as a build-time figure", async () => {
-    stubFetch(async () => Response.json({ stars: 2, downloads: 15_600 }));
-    const fallback = await renderFallback("en");
-    await act(async () => {
-      await live.loadLiveStats();
-    });
-    const built = document.createElement("div");
-    const { LiveStatValue } = island;
-    await act(async () => {
-      createRoot(built).render(
-        <LiveStatValue stat="downloads" initial="15.6K" label="downloads" locale="en" />,
-      );
-    });
-    const figure = fallback.querySelector('[data-shown="true"]');
-    expect(figure?.innerHTML.replace(/ style="[^"]*"/, "")).toBe(
-      built.innerHTML.replace(/ style="[^"]*"/, ""),
-    );
-  });
-
-  it("keeps the fallback when the live figure it asked for fails too", async () => {
-    let answer: (response: Response) => void = () => undefined;
-    const fetcher = stubFetch(() => new Promise<Response>((resolve) => (answer = resolve)));
-    const container = await renderFallback("en");
-    expect(fetcher).toHaveBeenCalledTimes(1);
-    expect(fetcher.mock.calls[0]?.[0]).toBe(live.LIVE_STATS_URL);
-    await act(async () => {
-      answer(new Response("down", { status: 503 }));
-      await new Promise((resolve) => setTimeout(resolve, 0));
-    });
-    expect(shownText(container)).toBe("verbatra on npm");
-    expect(container.querySelector("[data-fallback]")?.getAttribute("data-shown")).toBe("true");
   });
 });
 

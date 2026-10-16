@@ -1,7 +1,7 @@
+import { CHECKOUT_ACTION_REF, VERBATRA_ACTION_REF } from "./action-refs";
 import { FORMAT_SAMPLES } from "./format-samples";
 import { HERO_TERMINAL_TITLE } from "./hero-terminal";
 import { STUDIO_RUN_COMMAND } from "./install-commands";
-import { CHECKOUT_ACTION_REF, VERBATRA_ACTION_REF } from "./landing-code";
 import type { HighlightLanguage } from "./landing-highlight";
 import { PACKAGE_VERSION } from "./site";
 

@@ -8,17 +8,14 @@ const SECTION_FILES: Readonly<Record<LandingSectionId, string>> = {
   marquee: "marquee.tsx",
   playground: "playground.tsx",
   flow: "flow.tsx",
-  proofStrip: "proof-strip.tsx",
-  problem: "problem.tsx",
   features: "bento.tsx",
-  code: "code-showcase.tsx",
   compare: "compare.tsx",
   faq: "faq.tsx",
   openSource: "open-source.tsx",
   finalCta: "final-cta.tsx",
 };
 
-const REVEALED: ReadonlyArray<LandingSectionId> = ["flow", "problem", "features", "code"];
+const REVEALED: ReadonlyArray<LandingSectionId> = ["flow", "features"];
 
 function source(file: string): string {
   return readFileSync(join(import.meta.dirname, file), "utf8");
