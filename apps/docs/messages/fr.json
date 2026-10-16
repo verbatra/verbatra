@@ -363,12 +363,6 @@
       "heading": "Rien à migrer, rien à céder.",
       "lead": "Verbatra tourne là où ton projet vit déjà : dans le dépôt, dans la CI et dans tes propres scripts. Ce dont il a besoin reste sous ton contrôle.",
       "items": {
-        "providers": {
-          "title": "Change de fournisseur en un bloc",
-          "body": "Un LLM, un service de traduction automatique ou un modèle sur ton propre matériel. Change le bloc du fournisseur et garde le reste.",
-          "none": "Ou désactive la traduction automatique par principe, et chaque traduction vient d’une personne.",
-          "link": "Tous les fournisseurs et leurs options"
-        },
         "keys": {
           "title": "Tes clés restent les tiennes",
           "body": "Les clés d’API viennent uniquement des variables d’environnement, jamais du fichier de configuration. Les textes vont au fournisseur que tu configures et nulle part ailleurs. Aucune télémétrie.",
@@ -385,7 +379,24 @@
         },
         "formats": {
           "title": "Fonctionne avec tes fichiers",
-          "body": "La même clé, écrite comme chaque stack l’attend. Verbatra lit et écrit les fichiers que tu as déjà, et un format qu’il ne fournit pas passe par un adaptateur que tu construis avec le SDK."
+          "body": "Verbatra lit et écrit les fichiers que tu as déjà, dans le format qu’attend chaque stack. Un format qu’il ne fournit pas passe par un adaptateur que tu construis avec le SDK.",
+          "families": {
+            "web": "Frameworks web",
+            "mobile": "Mobile",
+            "backend": "Backend et bureau",
+            "exchange": "Échange et usage général"
+          }
+        },
+        "providers": {
+          "title": "Choisis qui traduit",
+          "body": "Un LLM hébergé, un service de traduction automatique, un serveur que tu fais tourner toi-même ou seulement tes traducteurs. Le fichier de configuration l’indique en une ligne, et le reste du fichier ne change pas.",
+          "kinds": {
+            "llm": "LLM",
+            "machine": "Traduction automatique",
+            "local": "Auto-hébergé",
+            "none": "Humains uniquement"
+          },
+          "link": "Tous les fournisseurs et leurs options"
         },
         "sdk": {
           "title": "Un SDK typé",

@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 const EVIDENCE_CLASS =
-  "inline-block max-w-full rounded-md border border-(--border-default) px-2.5 py-1.5 font-mono text-xs text-(--accent) [overflow-wrap:anywhere]";
+  "inline-block max-w-full rounded-md border border-(--text-faint) px-2.5 py-1.5 font-mono text-xs text-(--accent) [overflow-wrap:anywhere]";
 
 const EVIDENCE_LINK_CLASS = "vk-evidence-link";
 

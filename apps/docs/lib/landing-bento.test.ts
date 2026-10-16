@@ -7,22 +7,23 @@ import { FORMAT_SAMPLES } from "@/lib/format-samples";
 import { headingSlugs } from "@/lib/heading-slugs";
 import { i18n } from "@/lib/i18n";
 import {
+  BENTO_FORMAT_EXAMPLE,
   BENTO_FORMAT_KEY,
-  BENTO_FORMAT_LINES,
   BENTO_KEY_ENV_VARS,
   BENTO_KEYS_LINK,
-  BENTO_NONE_PROVIDER,
-  BENTO_PROVIDER_DIFF,
-  BENTO_PROVIDER_FROM,
-  BENTO_PROVIDER_TO,
+  BENTO_NONE_LINK,
+  BENTO_PROVIDER_LINE,
   BENTO_PROVIDERS_LINK,
   BENTO_RUN_SUMMARY_CODE,
   BENTO_RUN_SUMMARY_FIELDS,
   BENTO_SAFETY_LINK,
   BENTO_TILES,
   bentoHref,
+  FORMAT_FAMILIES,
+  FORMAT_FAMILY,
+  formatsInFamily,
 } from "@/lib/landing-bento";
-import { MACHINE_PROVIDER_IDS } from "@/lib/landing-facts";
+import { MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { STACK_IDS } from "@/lib/stacks";
 import en from "@/messages/en.json";
 import { docsPageSource } from "@/test-support/docs-page-source";
@@ -57,7 +58,7 @@ describe("bento tiles", () => {
     it(`points every ${locale} docs link at a page and heading that exist`, () => {
       const links = [
         ...BENTO_TILES.flatMap((tile) => tile.evidence),
-        BENTO_NONE_PROVIDER,
+        BENTO_NONE_LINK,
         BENTO_PROVIDERS_LINK,
         BENTO_KEYS_LINK,
         BENTO_SAFETY_LINK,
@@ -124,13 +125,17 @@ describe("bento samples", () => {
     for (const field of BENTO_RUN_SUMMARY_FIELDS)
       expect(BENTO_RUN_SUMMARY_CODE).toContain(`  ${field}`);
     expect(BENTO_RUN_SUMMARY_CODE).toContain("await translate({ config })");
-    const input = (config: Parameters<typeof sdk.translate>[0]["config"]) =>
-      ({ config }) satisfies Parameters<typeof sdk.translate>[0];
-    expect(typeof input).toBe("function");
   });
 
-  it("switches between two provider blocks the sdk accepts", async () => {
-    for (const provider of [BENTO_PROVIDER_FROM, BENTO_PROVIDER_TO]) {
+  it("shows the provider id as the key the sdk switches the whole block on", async () => {
+    expect(BENTO_PROVIDER_LINE).toBe('provider: { id: "<id>" }');
+    const OPTIONS = {
+      deepl: {},
+      libretranslate: { baseUrl: "http://localhost:5000" },
+      none: undefined,
+    } as const;
+    for (const id of ["deepl", "libretranslate", "none"] as const) {
+      const options = OPTIONS[id];
       const config = await sdk.loadConfig({
         cwd: CONTENT,
         configOverride: {
@@ -138,48 +143,31 @@ describe("bento samples", () => {
           targetLocales: ["de"],
           format: "i18next-json",
           files: { pattern: "locales/{locale}.json" },
-          provider,
+          provider: options === undefined ? { id } : { id, options },
         },
       });
-      expect(config.provider.id).toBe(provider.id);
+      expect(config.provider.id).toBe(id);
     }
   });
 
-  it("removes a gemini block that carries every option the sdk requires", async () => {
-    const { id, options } = BENTO_PROVIDER_FROM;
-    await expect(
-      sdk.loadConfig({
-        cwd: CONTENT,
-        configOverride: {
-          sourceLocale: "en",
-          targetLocales: ["de"],
-          format: "i18next-json",
-          files: { pattern: "locales/{locale}.json" },
-          provider: { id, options: { model: options.model } },
-        },
-      }),
-    ).rejects.toThrow();
+  it("files every supported format under one family, each family holding at least two", () => {
+    expect(Object.keys(FORMAT_FAMILY).sort()).toEqual([...SUPPORTED_FORMAT_IDS].sort());
+    expect(FORMAT_FAMILIES.flatMap(formatsInFamily).toSorted()).toEqual(
+      [...SUPPORTED_FORMAT_IDS].sort(),
+    );
+    for (const family of FORMAT_FAMILIES)
+      expect(formatsInFamily(family).length, family).toBeGreaterThanOrEqual(2);
+    expect(Object.keys(en.landing.bento.items.formats.families)).toEqual([...FORMAT_FAMILIES]);
   });
 
-  it("draws the provider diff from the two blocks, removed lines before added ones", () => {
-    const text = BENTO_PROVIDER_DIFF.map((line) => line.text).join("\n");
-    expect(text).toContain(`id: "${BENTO_PROVIDER_FROM.id}"`);
-    expect(text).toContain(`model: "${BENTO_PROVIDER_FROM.options.model}"`);
-    expect(text).toContain(`id: "${BENTO_PROVIDER_TO.id}"`);
-    const signs = BENTO_PROVIDER_DIFF.map((line) => line.sign).join("");
-    expect(signs).toMatch(/^ -+\++ $/);
-    expect(signs.indexOf("+")).toBeGreaterThan(signs.lastIndexOf("-"));
-  });
-
-  it("takes every format line verbatim from the real adapter output for the same key", () => {
-    for (const entry of BENTO_FORMAT_LINES) {
-      const sample = FORMAT_SAMPLES[entry.format];
-      expect(sample.text).toContain(entry.line);
-      expect(entry.line).toContain(entry.placeholder);
-      expect(entry.line.replace(/[^a-z]/gi, "").toLowerCase()).toContain(
-        BENTO_FORMAT_KEY.split(".").at(-1),
-      );
-    }
-    expect(new Set(BENTO_FORMAT_LINES.map((entry) => entry.placeholder)).size).toBeGreaterThan(2);
+  it("takes the example line verbatim from the real adapter output for the key", () => {
+    const entry = BENTO_FORMAT_EXAMPLE;
+    const sample = FORMAT_SAMPLES[entry.format];
+    expect(entry.file).toBe(sample.file);
+    expect(sample.text).toContain(entry.line);
+    expect(entry.line).toContain(entry.placeholder);
+    expect(entry.line.replace(/[^a-z]/gi, "").toLowerCase()).toContain(
+      BENTO_FORMAT_KEY.split(".").at(-1),
+    );
   });
 });

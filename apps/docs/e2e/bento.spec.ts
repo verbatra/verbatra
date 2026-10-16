@@ -60,7 +60,7 @@ async function unfilledHeights(page: Page): Promise<Record<string, number>> {
 }
 
 test.describe("bento layout", () => {
-  test("sets the head beside the keys tile, the provider and format tiles next, then the SDK and the strip", async ({
+  test("sets the head beside the keys tile, the format tile then the provider tile next, then the SDK and the strip", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -75,6 +75,8 @@ test.describe("bento layout", () => {
     expect(keys.width).toBeGreaterThan(head.width * 1.8);
     expect(Math.abs(providers.y - formats.y)).toBeLessThan(1);
     expect(Math.abs(providers.height - formats.height)).toBeLessThan(1);
+    expect(providers.x).toBeGreaterThan(formats.x + formats.width);
+    expect(formats.width).toBeGreaterThan(providers.width);
     expect(providers.y).toBeGreaterThan(keys.y + keys.height);
     expect(sdk.y).toBeGreaterThan(formats.y + formats.height);
     expect(sdk.width).toBeGreaterThan(providers.width + formats.width);
@@ -90,18 +92,24 @@ test.describe("bento layout", () => {
         await page.goto(homeUrl(locale));
         const unfilled = await unfilledHeights(page);
         for (const [tile, height] of Object.entries(unfilled))
-          expect(height, tile).toBeLessThan(120);
-        const diffVoid = await page
-          .locator(`${BENTO} [data-artifact="providers"]`)
-          .evaluate(
-            (figure) =>
-              figure.clientHeight -
-              [...figure.children].reduce(
-                (sum, child) => sum + child.getBoundingClientRect().height,
-                0,
-              ),
-          );
-        expect(diffVoid).toBeLessThan(120);
+          expect(height, tile).toBeLessThan(48);
+        const panel = page.locator(`${BENTO} [data-artifact="providers"]`);
+        const panelVoid = await panel.evaluate(
+          (figure) =>
+            figure.clientHeight -
+            [...figure.children].reduce(
+              (sum, child) => sum + child.getBoundingClientRect().height,
+              0,
+            ),
+        );
+        expect(panelVoid).toBeLessThan(48);
+        const clipped = await panel.evaluate((figure) => {
+          const frame = figure.getBoundingClientRect();
+          return [...figure.querySelectorAll(".vk-available-from, code, a")]
+            .map((node) => node.getBoundingClientRect())
+            .filter((box) => box.right > frame.right + 0.5 || box.left < frame.left - 0.5).length;
+        });
+        expect(clipped).toBe(0);
       });
     }
   }
@@ -114,7 +122,7 @@ test.describe("bento layout", () => {
     const order = Object.entries(await tileBoxes(page))
       .sort(([, a], [, b]) => a.y - b.y)
       .map(([key]) => key);
-    expect(order).toEqual(["keys", "providers", "formats", "sdk", "frameworks"]);
+    expect(order).toEqual(["keys", "formats", "providers", "sdk", "frameworks"]);
     const head = await page.locator(`${BENTO} .vk-bento-head`).boundingBox();
     const keys = (await tileBoxes(page)).keys;
     expect((head?.y ?? 0) + (head?.height ?? 0)).toBeLessThan(keys?.y ?? 0);

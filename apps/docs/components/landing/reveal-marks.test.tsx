@@ -25,7 +25,9 @@ function source(file: string): string {
 }
 
 function revealMarks(file: string): ReadonlyArray<number> {
-  return [...source(file).matchAll(/data-reveal="(\d)"/g)].map((match) => Number(match[1]));
+  return [...source(file).matchAll(/data-reveal=(?:"(\d)"|\{[^}]*\?\s*"(\d)")/g)].map((match) =>
+    Number(match[1] ?? match[2]),
+  );
 }
 
 describe("landing reveal marks", () => {

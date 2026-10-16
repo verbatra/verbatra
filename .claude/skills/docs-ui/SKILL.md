@@ -346,7 +346,7 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   `BENTO_TILES` in `lib/landing-bento.ts`, in reading order: the head is an `inline` `SectionHead`
   in `.vk-bento-head`, span 4 from 64rem beside the keys tile, and above the tiles under 64rem,
   where its `margin-block-end` tops the grid gap up to `--head-gap`. Each tile carries
-  `span: { lg, xl? }` (`--grid-span` per breakpoint); only the first row's two tiles carry a
+  `span: { lg, xl? }` (`--grid-span` per breakpoint); only the first row's keys tile carries a
   `data-reveal` step. The keys tile
   leads (span 8: a `figure` with a `dl` pairing each provider's short label with its
   `BENTO_KEY_ENV_VARS` name, pinned to `packages/ai-providers/src/key-env-vars.ts`, the optional
@@ -354,18 +354,27 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   `RELEASE_BADGE` dates carrying the pill; beside it from 80rem the safety claims, each on an
   `--accent-fill` start bar, and links to `/docs/providers#keys-come-from-the-environment`
   (`PROVIDER_KEYS_ANCHORS` in `lib/docs-anchors.ts`, shared with the comparison sources) and
-  `/docs/translation-safety`), then the provider switch (span 6, 5 from 80rem: a
-  `verbatra.config.ts` diff, `BENTO_PROVIDER_DIFF`, both blocks pinned to the sdk's `loadConfig`,
-  the added lines tinted from `--accent-fill`, the panel growing to the tile; then the `none`
-  provider chip dated by `RELEASE_BADGE`'s `provider-none` feature and a link to
-  `/docs/providers`), the format tile (span 6, 7 from 80rem, one key written into several stacks'
-  files, each line taken from the real adapter output in `lib/format-samples.generated.json`,
-  `BENTO_FORMAT_LINES`, the chips pushed to the tile's end), the SDK tile (span 12, text beside
-  the code: the `RunSummary` fields of the published sdk, `BENTO_RUN_SUMMARY_FIELDS`, pinned to
+  `/docs/translation-safety`, the links following the claims), then the format tile (span 6, 7
+  from 80rem: every `SUPPORTED_FORMAT_IDS` member as a `FORMAT_DISPLAY` chip, grouped by
+  `FORMAT_FAMILY` in `lib/landing-bento.ts` (a `Record<SupportedFormat, FormatFamily>`, so a new
+  format fails to compile until it has a family; each family an `h4` in `--text-muted`), then one
+  real key line, `BENTO_FORMAT_EXAMPLE`, taken from the adapter output in
+  `lib/format-samples.generated.json` with its file path, and the format chips under it), the
+  provider tile (span 6, 5 from 80rem: the provider ids in mono grouped by `PROVIDER_KINDS`
+  through `providersOfKind` in `lib/landing-providers.ts` (LLM, machine translation, self-hosted;
+  `PROVIDER_DISPLAY.kind` is pinned by `lib/landing-providers.test.ts` to each strategy's `kind`
+  and, for self-hosted, to a config that takes a base URL), a provider that `RELEASE_BADGE` dates
+  carrying the pill, then the human-only `none` linking `/docs/human-only-workflow`, dated by the
+  `provider-none` feature; the groups spread evenly over the panel so it fills the row, and the
+  panel ends in the one config line, `BENTO_PROVIDER_LINE`, under its file name; then a link to
+  `/docs/providers`), the SDK tile (span 12, text beside the code, the chip right under the lead:
+  the `RunSummary` fields of the published sdk, `BENTO_RUN_SUMMARY_FIELDS`, pinned to
   `packages/sdk/dist/index.d.ts`, marked as an excerpt) and the framework strip (span 12, no
-  card: a top hairline, the `STACKS` names each linking its quickstart, then all quickstarts).
+  card: a top hairline, the `STACKS` names each linking its quickstart, then all quickstarts at
+  the same size). Chips (`evidence.tsx`) take a `--text-faint` border.
   `e2e/bento.spec.ts` measures every card tile at 1024px and 1440px in all four locales and fails
-  on a tall unfilled band; tile titles are `.vk-h4`
+  on more than 48px unfilled inside a tile or the provider panel, or a pill cut by the panel edge;
+  tile titles are `.vk-h4`
   `h3`s), `code-showcase.tsx` (`#code`, CLI, SDK, config and Action tabs from
   `lib/landing-code.ts`, highlighted on the server by `lib/landing-highlight.ts` with dual themes
   and framed by `code-frame.tsx`), `playground.tsx` (`#playground`, the SDK playground, see
@@ -470,7 +479,7 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   paused, and only its `aria-hidden` glyph swapping between pause and play. Hover and focus inside
   a row pause that row. `marquee.test.tsx` pins the registry rows, the badge, the copies, the static
   state and the pause toggle, and `e2e/marquee.spec.ts` the motion in a browser. The format
-  samples in `lib/format-samples.generated.json`, which only the bento format tile reads (through
+  samples in `lib/format-samples.generated.json`, which only the bento format tile's key line reads (through
   `lib/landing-bento.ts`), are written by `scripts/sync-format-samples.mjs` before dev,
   build, typecheck and test (git-ignored like `lib/version.generated.json`) from
   `createDefaultRegistry` in `@verbatra/sdk` over the in-memory `AdapterFs` in
@@ -479,7 +488,7 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   sample through the real adapter. The shared building blocks: `section.tsx` and
   `section-head.tsx` for structure,
   `terminal.tsx` (with a `bare` variant; by default lines never wrap, they scroll sideways inside
-  `.vk-terminal-scroll`, which fades the end edge while there is more to see: a mask on the element's own inline scroll timeline (one `@supports` rule for every scroll fade, `.vk-edge-fade` included, dropped while the element shows a focus ring or holds a focused child, so no ring is faded), and without scroll timelines a `--scroll-shade` (neutral, never violet) over a `local` void cover; `.vk-scroll-fade` is the same rule for any other sideways-scrolling mono block, the problem panes and check output and the bento diff and format lines, each a `ScrollBlock` (`components/landing/scroll-block.tsx`: a `div` with `role="group"`, never a landmark, and `tabIndex={0}`, like the code frames' `pre`) named by its caption through `aria-labelledby`; with `wrap` every line
+  `.vk-terminal-scroll`, which fades the end edge while there is more to see: a mask on the element's own inline scroll timeline (one `@supports` rule for every scroll fade, `.vk-edge-fade` included, dropped while the element shows a focus ring or holds a focused child, so no ring is faded), and without scroll timelines a `--scroll-shade` (neutral, never violet) over a `local` void cover; `.vk-scroll-fade` is the same rule for any other sideways-scrolling mono block, the problem panes and check output and the bento format key line, each a `ScrollBlock` (`components/landing/scroll-block.tsx`: a `div` with `role="group"`, never a landmark, and `tabIndex={0}`, like the code frames' `pre`) named by its caption through `aria-labelledby`; with `wrap` every line
   wraps through `.vk-wrap-line`, whose hanging indent is the line's own leading whitespace
   (`--wrap-lead`, set by `wrapLineStyle` in `wrap-text.tsx`) plus 2ch, and whose placeholder tokens
   (`{count}`, `(-{count})`) and hyphenated words (`up-to-date`) never break, through `WrapTokens`.
@@ -676,8 +685,7 @@ reserved for client islands (see "The stack").
   moving into a block that has not revealed yet shows it at once (`:focus-within`). The delay is
   `n * --reveal-stagger`, capped at `--reveal-delay-max`. Only the demo artifacts of four sections
   carry a mark: the Try it panel in the feature flow, the problem (its artifact, then its list), the
-  bento's first row (the keys and provider tiles, on one step; the head beside them and the
-  later tiles never) and the code showcase. No section heading reveals (`SectionHead` takes no reveal
+  bento's first row (the keys tile alone; the head beside it and the later tiles never) and the code showcase. No section heading reveals (`SectionHead` takes no reveal
   prop), and the hero, marquee, SDK playground, proof strip, comparison, open source, FAQ
   and closing panel never take a reveal; nothing else in the flow does either; the hero diff's fill and the marquee loop below are their own
   motions, not reveals. Elements keep their box while hidden, so a reveal never moves layout.

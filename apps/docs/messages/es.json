@@ -363,12 +363,6 @@
       "heading": "Nada que migrar, nada que entregar.",
       "lead": "Verbatra funciona donde ya vive tu proyecto: en el repositorio, en la CI y en tus propios scripts. Lo que necesita de ti sigue bajo tu control.",
       "items": {
-        "providers": {
-          "title": "Cambia de proveedor en un bloque",
-          "body": "Un LLM, un servicio de traducción automática o un modelo en tu propio hardware. Cambia el bloque del proveedor y conserva el resto.",
-          "none": "O desactiva la traducción automática por política, y cada traducción la hace una persona.",
-          "link": "Todos los proveedores y sus opciones"
-        },
         "keys": {
           "title": "Tus claves siguen siendo tuyas",
           "body": "Las claves de API vienen solo de variables de entorno, nunca del archivo de configuración. Los textos van al proveedor que configuras y a ningún otro sitio. Sin telemetría.",
@@ -385,7 +379,24 @@
         },
         "formats": {
           "title": "Funciona con tus archivos",
-          "body": "La misma clave, escrita como la espera cada stack. Verbatra lee y escribe los archivos que ya tienes, y un formato que no incluye se cubre con un adaptador que creas sobre el SDK."
+          "body": "Verbatra lee y escribe los archivos que ya tienes, en el formato que espera cada stack. Un formato que no incluye se cubre con un adaptador que creas sobre el SDK.",
+          "families": {
+            "web": "Frameworks web",
+            "mobile": "Móvil",
+            "backend": "Backend y escritorio",
+            "exchange": "Intercambio y uso general"
+          }
+        },
+        "providers": {
+          "title": "Elige quién traduce",
+          "body": "Un LLM alojado, un servicio de traducción automática, un servidor que ejecutas tú mismo o solo tus traductores. El archivo de configuración lo indica en una línea, y el resto del archivo no cambia.",
+          "kinds": {
+            "llm": "LLM",
+            "machine": "Traducción automática",
+            "local": "Autoalojado",
+            "none": "Solo personas"
+          },
+          "link": "Todos los proveedores y sus opciones"
         },
         "sdk": {
           "title": "Un SDK tipado",

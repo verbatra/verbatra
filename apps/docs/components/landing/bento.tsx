@@ -11,24 +11,25 @@ import { splitOnPlaceholder } from "@/lib/format-samples";
 import { type Locale, localizedPath, toLocale } from "@/lib/i18n";
 import { withInlineCode } from "@/lib/inline-code-text";
 import {
-  BENTO_FORMAT_LINES,
+  BENTO_FORMAT_EXAMPLE,
   BENTO_KEY_ENV_VARS,
   BENTO_KEYS_LINK,
-  BENTO_NONE_PROVIDER,
-  BENTO_PROVIDER_DIFF,
+  BENTO_NONE_LINK,
+  BENTO_PROVIDER_LINE,
   BENTO_PROVIDERS_LINK,
   BENTO_QUICKSTART_PAGE,
   BENTO_RUN_SUMMARY_CODE,
   BENTO_SAFETY_LINK,
   BENTO_TILES,
-  type BentoDiffLine,
   type BentoKey,
   type BentoTile,
   bentoHref,
+  FORMAT_FAMILIES,
+  formatsInFamily,
   type TileSpan,
 } from "@/lib/landing-bento";
 import { FORMAT_DISPLAY, MACHINE_PROVIDER_IDS, type MachineProviderId } from "@/lib/landing-facts";
-import { providerShortLabel } from "@/lib/landing-providers";
+import { PROVIDER_KINDS, providerShortLabel, providersOfKind } from "@/lib/landing-providers";
 import { featureReleaseBadge, providerReleaseBadge } from "@/lib/release-badge";
 import { STACK_IDS, STACKS } from "@/lib/stacks";
 import { CodeFrame } from "./code-frame";
@@ -72,17 +73,16 @@ const PANEL_FRAME =
 
 const PANEL_CAPTION = "font-mono text-xs text-(--text-muted)";
 
-const MONO_BODY = "vk-mono-sm py-3 font-mono leading-6";
-
 const TILE_CLASS =
   "flex min-w-0 flex-col gap-4 rounded-xl border border-(--border-default) bg-(--surface-bg) p-4 sm:gap-5 sm:p-6";
 
 const STRIP_CLASS =
   "vk-grid-12 min-w-0 border-t border-(--border-default) pt-6 sm:pt-8 lg:items-baseline";
 
-const BENTO_REVEALED_TILES = 2;
+const BENTO_REVEALED_TILES = 1;
 
-const LINK_ROW = "flex flex-wrap gap-x-5 gap-y-2 text-sm";
+const LINK_ROW =
+  "flex flex-wrap gap-x-5 gap-y-1 text-sm [&>a]:inline-flex [&>a]:min-h-6 [&>a]:items-center";
 
 const captionId = (artifact: string) => `bento-${artifact}-caption`;
 
@@ -94,78 +94,115 @@ function SampleLine({ line, placeholder }: { line: string; placeholder: string }
   ));
 }
 
-const DIFF_SIGN_CLASS: Readonly<Record<BentoDiffLine["sign"], string>> = {
-  " ": "text-(--text-muted)",
-  "-": "bg-[color-mix(in_srgb,var(--text-danger)_10%,transparent)] text-(--text-body)",
-  "+": "bg-[color-mix(in_srgb,var(--accent-fill)_14%,transparent)] text-(--text-strong)",
-};
+const GROUP_LABEL = "text-xs text-(--text-muted)";
 
-const DIFF_MARK_CLASS: Readonly<Record<BentoDiffLine["sign"], string>> = {
-  " ": "text-transparent",
-  "-": "text-(--text-danger)",
-  "+": "text-(--accent)",
-};
-
-function ProviderSwitch(): ReactNode {
+function ProviderId({ id, badge }: { id: string; badge: AvailableFromCopy | null }): ReactNode {
   return (
-    <figure data-artifact="providers" className={`${PANEL_FRAME} m-0 flex-1`}>
-      <PanelCaption
-        as="figcaption"
-        density="control"
-        id={captionId("providers")}
-        className={PANEL_CAPTION}
-      >
-        verbatra.config.ts
-      </PanelCaption>
-      <ScrollBlock lang="en" labelledBy={captionId("providers")} className={MONO_BODY}>
-        {BENTO_PROVIDER_DIFF.map((line) => (
-          <div
-            key={`${line.sign}${line.text}`}
-            data-diff={line.sign === " " ? "context" : line.sign === "-" ? "removed" : "added"}
-            className={`flex whitespace-pre px-4 ${DIFF_SIGN_CLASS[line.sign]}`}
-          >
-            <span
-              aria-hidden="true"
-              className={`w-4 shrink-0 select-none ${DIFF_MARK_CLASS[line.sign]}`}
-            >
-              {line.sign}
-            </span>
-            {line.text}
+    <li data-provider={id} className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+      <code lang="en" className="vk-mono-sm font-mono text-(--text-strong)">
+        {id}
+      </code>
+      {badge ? <AvailableFromPill {...badge} /> : null}
+    </li>
+  );
+}
+
+function ProviderKinds({
+  t,
+  locale,
+  badge,
+  none,
+}: Omit<TileContext, "badge"> & {
+  badge: (id: MachineProviderId) => AvailableFromCopy | null;
+  none: AvailableFromCopy | null;
+}): ReactNode {
+  return (
+    <figure data-artifact="providers" className={`${PANEL_FRAME} m-0 flex flex-1 flex-col`}>
+      <dl className="m-0 grid flex-1 content-evenly gap-x-4 gap-y-3 px-4 py-4 sm:grid-cols-[auto_minmax(0,1fr)]">
+        {PROVIDER_KINDS.map((kind) => (
+          <div key={kind} data-kind={kind} className="contents">
+            <dt className={`${GROUP_LABEL} sm:pt-0.5`}>{t(`items.providers.kinds.${kind}`)}</dt>
+            <dd className="m-0 min-w-0 max-sm:pb-1">
+              <PlainList className="flex list-none flex-wrap gap-x-4 gap-y-1.5">
+                {providersOfKind(kind).map((id) => (
+                  <ProviderId key={id} id={id} badge={badge(id)} />
+                ))}
+              </PlainList>
+            </dd>
           </div>
         ))}
-      </ScrollBlock>
+        <div data-kind="none" className="contents">
+          <dt className={`${GROUP_LABEL} sm:pt-0.5`}>{t("items.providers.kinds.none")}</dt>
+          <dd className="m-0 flex min-w-0 flex-wrap items-center gap-2">
+            <IntentPrefetchLink
+              href={bentoHref(locale, BENTO_NONE_LINK)}
+              className="vk-prose-link vk-mono-sm font-mono"
+            >
+              none
+            </IntentPrefetchLink>
+            {none ? <AvailableFromPill {...none} /> : null}
+          </dd>
+        </div>
+      </dl>
+      <figcaption className="grid gap-1 border-t border-(--border-default) px-4 py-3">
+        <span className="font-mono text-xs text-(--text-faint)">verbatra.config.ts</span>
+        <code lang="en" className="vk-mono-sm block whitespace-pre font-mono text-(--text-strong)">
+          {BENTO_PROVIDER_LINE}
+        </code>
+      </figcaption>
     </figure>
   );
 }
 
-function FormatKeyLines(): ReactNode {
+function FormatFamilies({ t }: { t: BentoTranslator }): ReactNode {
+  const example = BENTO_FORMAT_EXAMPLE;
   return (
-    <PlainList
-      lang="en"
-      data-artifact="formats"
-      className={`${PANEL_FRAME} list-none divide-y divide-(--border-default)`}
-    >
-      {BENTO_FORMAT_LINES.map((entry) => (
-        <li key={entry.format} data-format={entry.format} className="grid min-w-0 gap-1 px-4 py-3">
-          <span
-            id={captionId(`format-${entry.format}`)}
-            className="flex min-w-0 items-baseline justify-between gap-3 text-xs"
-          >
-            <span className="shrink-0 text-(--text-strong)">
-              {FORMAT_DISPLAY[entry.format].label}
-            </span>
-            <span title={entry.file} className="min-w-0 truncate font-mono text-(--text-faint)">
-              {entry.file}
-            </span>
+    <div data-artifact="formats" className={`${PANEL_FRAME} grid`}>
+      <div className="grid gap-4 px-4 py-4 sm:grid-cols-2">
+        {FORMAT_FAMILIES.map((family) => (
+          <div key={family} data-family={family} className="grid content-start gap-2">
+            <h4 id={captionId(`family-${family}`)} className={`${GROUP_LABEL} font-normal`}>
+              {t(`items.formats.families.${family}`)}
+            </h4>
+            <PlainList
+              aria-labelledby={captionId(`family-${family}`)}
+              className="flex list-none flex-wrap gap-1.5"
+            >
+              {formatsInFamily(family).map((format) => (
+                <li
+                  key={format}
+                  data-format={format}
+                  className="rounded-md bg-(--surface-bg) px-2 py-1 text-xs text-(--text-strong)"
+                >
+                  {FORMAT_DISPLAY[format].label}
+                </li>
+              ))}
+            </PlainList>
+          </div>
+        ))}
+      </div>
+      <div
+        data-example={example.format}
+        className="grid gap-1 border-t border-(--border-default) px-4 py-3"
+      >
+        <span
+          id={captionId("format-example")}
+          className="flex min-w-0 items-baseline justify-between gap-3 text-xs"
+        >
+          <span className="shrink-0 text-(--text-strong)">
+            {FORMAT_DISPLAY[example.format].label}
           </span>
-          <ScrollBlock labelledBy={captionId(`format-${entry.format}`)}>
-            <code className="vk-mono-sm block whitespace-pre font-mono text-(--text-body)">
-              <SampleLine line={entry.line} placeholder={entry.placeholder} />
-            </code>
-          </ScrollBlock>
-        </li>
-      ))}
-    </PlainList>
+          <span title={example.file} className="min-w-0 truncate font-mono text-(--text-faint)">
+            {example.file}
+          </span>
+        </span>
+        <ScrollBlock lang="en" labelledBy={captionId("format-example")}>
+          <code className="vk-mono-sm block whitespace-pre font-mono text-(--text-body)">
+            <SampleLine line={example.line} placeholder={example.placeholder} />
+          </code>
+        </ScrollBlock>
+      </div>
+    </div>
   );
 }
 
@@ -195,19 +232,15 @@ function TileHead({ tile, t }: { tile: BentoTile; t: BentoTranslator }): ReactNo
 
 async function ProvidersTile({ tile, t, locale, badge }: TileContext & { tile: BentoTile }) {
   const none = await badge(featureReleaseBadge("provider-none"));
+  const badges = new Map(
+    await Promise.all(
+      MACHINE_PROVIDER_IDS.map(async (id) => [id, await badge(providerReleaseBadge(id))] as const),
+    ),
+  );
   return (
     <>
       <TileHead tile={tile} t={t} />
-      <ProviderSwitch />
-      <div data-none-provider="" className="grid gap-2">
-        <p className="max-w-[52ch] text-sm leading-relaxed text-(--text-muted)">
-          {t("items.providers.none")}
-        </p>
-        <span className="flex flex-wrap items-center gap-2">
-          <Evidence text={BENTO_NONE_PROVIDER.text} href={bentoHref(locale, BENTO_NONE_PROVIDER)} />
-          {none ? <AvailableFromPill {...none} /> : null}
-        </span>
-      </div>
+      <ProviderKinds t={t} locale={locale} none={none} badge={(id) => badges.get(id) ?? null} />
       <p className={LINK_ROW}>
         <IntentPrefetchLink
           href={bentoHref(locale, BENTO_PROVIDERS_LINK)}
@@ -282,7 +315,7 @@ async function KeysTile({ tile, t, locale, badge }: TileContext & { tile: BentoT
               </li>
             ))}
           </PlainList>
-          <p className={`${LINK_ROW} mt-auto`}>
+          <p className={LINK_ROW}>
             <IntentPrefetchLink href={bentoHref(locale, BENTO_KEYS_LINK)} className="vk-prose-link">
               {t("items.keys.keysLink")}
             </IntentPrefetchLink>
@@ -303,10 +336,8 @@ function FormatsTile({ tile, t, locale }: TileContext & { tile: BentoTile }): Re
   return (
     <>
       <TileHead tile={tile} t={t} />
-      <FormatKeyLines />
-      <div className="mt-auto">
-        <EvidenceRow tile={tile} locale={locale} />
-      </div>
+      <FormatFamilies t={t} />
+      <EvidenceRow tile={tile} locale={locale} />
     </>
   );
 }
@@ -321,9 +352,7 @@ async function SdkTile({ tile, t, locale }: TileContext & { tile: BentoTile }) {
     <div className="grid min-w-0 gap-4 sm:gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-8">
       <div className="flex min-w-0 flex-col gap-4 sm:gap-5">
         <TileHead tile={tile} t={t} />
-        <div className="lg:mt-auto">
-          <EvidenceRow tile={tile} locale={locale} />
-        </div>
+        <EvidenceRow tile={tile} locale={locale} />
       </div>
       <div className="min-w-0">{code}</div>
     </div>
@@ -359,7 +388,7 @@ function FrameworksStrip({ t, locale }: TileContext): ReactNode {
         </PlainList>
         <IntentPrefetchLink
           href={localizedPath(locale, BENTO_QUICKSTART_PAGE)}
-          className="vk-prose-link text-sm"
+          className="vk-prose-link"
         >
           {t("items.frameworks.all")}
         </IntentPrefetchLink>
@@ -387,13 +416,12 @@ function TileCell({
   revealed: boolean;
   children: ReactNode;
 }): ReactNode {
-  const className = `${tile.key === "frameworks" ? STRIP_CLASS : TILE_CLASS} ${spanClass(tile.span)}`;
-  return revealed ? (
-    <div data-tile={tile.key} data-reveal="2" className={className}>
-      {children}
-    </div>
-  ) : (
-    <div data-tile={tile.key} className={className}>
+  return (
+    <div
+      data-tile={tile.key}
+      data-reveal={revealed ? "2" : undefined}
+      className={`${tile.key === "frameworks" ? STRIP_CLASS : TILE_CLASS} ${spanClass(tile.span)}`}
+    >
       {children}
     </div>
   );

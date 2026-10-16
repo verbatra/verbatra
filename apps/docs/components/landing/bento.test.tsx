@@ -4,14 +4,16 @@ import type { ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import {
-  BENTO_FORMAT_LINES,
+  BENTO_FORMAT_EXAMPLE,
   BENTO_KEY_ENV_VARS,
-  BENTO_PROVIDER_DIFF,
+  BENTO_PROVIDER_LINE,
   BENTO_RUN_SUMMARY_FIELDS,
   BENTO_TILES,
+  FORMAT_FAMILIES,
+  formatsInFamily,
 } from "@/lib/landing-bento";
 import { FORMAT_DISPLAY, MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
-import { providerShortLabel } from "@/lib/landing-providers";
+import { PROVIDER_KINDS, providerShortLabel, providersOfKind } from "@/lib/landing-providers";
 import { RELEASE_BADGE } from "@/lib/release-badge";
 import { STACK_IDS, STACKS } from "@/lib/stacks";
 import en from "@/messages/en.json";
@@ -80,13 +82,9 @@ describe("Bento", () => {
     expect(tiles.every((node) => node.querySelector("[data-reveal]") === null)).toBe(true);
     expect(
       tiles.filter((node) => node.hasAttribute("data-reveal")).map((n) => n.dataset.tile),
-    ).toEqual(["keys", "providers"]);
+    ).toEqual(["keys"]);
     expect(head?.hasAttribute("data-reveal")).toBe(false);
     expect(root.innerHTML).not.toContain("dense");
-  });
-
-  it("leads with the keys tile and gives the old first-row diff the second row", () => {
-    expect(BENTO_TILES.map((t) => t.key).slice(0, 2)).toEqual(["keys", "providers"]);
   });
 
   it("titles every tile with a .vk-h4 h3 from en.json", () => {
@@ -100,8 +98,8 @@ describe("Bento", () => {
   it("varies tile sizes and never ends in a row of equal small cards", () => {
     expect(BENTO_TILES.map((t) => spans(t.key))).toEqual([
       "lg8",
-      "lg6 xl5",
       "lg6 xl7",
+      "lg6 xl5",
       "lg12",
       "lg12",
     ]);
@@ -124,19 +122,34 @@ describe("Bento", () => {
     expect(root.querySelectorAll("section").length).toBeLessThanOrEqual(1);
   });
 
-  it("shows a provider switch as a config diff and dates the none provider with the release badge", () => {
-    const diff = tile("providers").querySelector('[data-artifact="providers"]');
-    expect(diff?.querySelector("figcaption")?.textContent).toBe("verbatra.config.ts");
-    const rows = [...(diff?.querySelectorAll<HTMLElement>("[data-diff]") ?? [])];
-    expect(rows.map((row) => row.textContent)).toEqual(
-      BENTO_PROVIDER_DIFF.map((line) => `${line.sign}${line.text}`),
-    );
-    const none = tile("providers").querySelector("[data-none-provider]");
-    expect(none?.textContent).toContain(copy.items.providers.none);
+  it("groups the provider ids by kind, ends with the human-only none, and shows one config line", () => {
+    const panel = tile("providers").querySelector('[data-artifact="providers"]');
+    for (const kind of PROVIDER_KINDS) {
+      const group = panel?.querySelector(`[data-kind="${kind}"]`);
+      expect(group?.querySelector("dt")?.textContent).toBe(copy.items.providers.kinds[kind]);
+      const ids = [...(group?.querySelectorAll<HTMLElement>("li[data-provider]") ?? [])];
+      expect(ids.map((item) => item.querySelector("code")?.textContent)).toEqual([
+        ...providersOfKind(kind),
+      ]);
+      for (const item of ids)
+        expect(item.querySelector(".vk-available-from") !== null).toBe(
+          RELEASE_BADGE.providers.includes(item.dataset.provider as never),
+        );
+    }
+    const none = panel?.querySelector('[data-kind="none"]');
+    expect(none?.querySelector("dt")?.textContent).toBe(copy.items.providers.kinds.none);
+    expect(none?.querySelector("a")?.textContent).toBe("none");
     expect(none?.querySelector("a")?.getAttribute("href")).toBe("/de/docs/human-only-workflow");
     expect(none?.querySelector(".vk-available-from")?.textContent).toBe(
       en.docs.availableFrom.title.replace("{version}", RELEASE_BADGE.version),
     );
+    const code = [...tile("providers").querySelectorAll("figcaption code")];
+    expect(code.map((node) => node.textContent)).toEqual([BENTO_PROVIDER_LINE]);
+    expect(tile("providers").querySelector("figcaption")?.textContent).toContain(
+      "verbatra.config.ts",
+    );
+    expect(tile("providers").querySelector("[data-diff]")).toBeNull();
+    expect(tile("providers").textContent).not.toMatch(/\d+ providers/i);
     const link = [...tile("providers").querySelectorAll("a")].at(-1);
     expect(link?.textContent).toBe(copy.items.providers.link);
     expect(link?.getAttribute("href")).toBe("/de/docs/providers");
@@ -167,8 +180,10 @@ describe("Bento", () => {
   });
 
   it("marks the claims with a fill bar, never violet text", () => {
-    for (const claim of tile("keys").querySelectorAll("[data-claim]"))
+    for (const claim of tile("keys").querySelectorAll("[data-claim]")) {
       expect(claim.className).toContain("border-(--accent-fill)");
+      expect(claim.className).not.toContain("text-(--accent)");
+    }
   });
 
   it("links the key and safety claims to the docs that state them", () => {
@@ -183,17 +198,24 @@ describe("Bento", () => {
     ]);
   });
 
-  it("writes one key into several framework files and links the custom adapter guide", () => {
-    const list = tile("formats").querySelector('[data-artifact="formats"]');
-    const rows = [...(list?.querySelectorAll<HTMLElement>("li[data-format]") ?? [])];
-    expect(rows.map((row) => row.dataset.format)).toEqual(BENTO_FORMAT_LINES.map((l) => l.format));
-    expect(rows.length).toBeLessThan(SUPPORTED_FORMAT_IDS.length);
-    BENTO_FORMAT_LINES.forEach((entry, index) => {
-      const row = rows[index];
-      expect(row?.textContent).toContain(FORMAT_DISPLAY[entry.format].label);
-      expect(row?.querySelector("code")?.textContent).toBe(entry.line);
-      expect(row?.querySelector(".vk-placeholder")?.textContent).toBe(entry.placeholder);
-    });
+  it("groups every supported format by family, with one real key line and the custom adapter guide", () => {
+    const panel = tile("formats").querySelector('[data-artifact="formats"]');
+    const families = [...(panel?.querySelectorAll<HTMLElement>("[data-family]") ?? [])];
+    expect(families.map((node) => node.dataset.family)).toEqual([...FORMAT_FAMILIES]);
+    for (const node of families) {
+      const family = node.dataset.family as (typeof FORMAT_FAMILIES)[number];
+      expect(node.querySelector("h4")?.textContent).toBe(copy.items.formats.families[family]);
+      expect(
+        [...node.querySelectorAll<HTMLElement>("li[data-format]")].map((li) => li.textContent),
+      ).toEqual(formatsInFamily(family).map((format) => FORMAT_DISPLAY[format].label));
+    }
+    expect(panel?.querySelectorAll("li[data-format]").length).toBe(SUPPORTED_FORMAT_IDS.length);
+    const example = panel?.querySelector(`[data-example="${BENTO_FORMAT_EXAMPLE.format}"]`);
+    expect(example?.textContent).toContain(BENTO_FORMAT_EXAMPLE.file);
+    expect(example?.querySelector("code")?.textContent).toBe(BENTO_FORMAT_EXAMPLE.line);
+    expect(example?.querySelector(".vk-placeholder")?.textContent).toBe(
+      BENTO_FORMAT_EXAMPLE.placeholder,
+    );
     const hrefs = [...tile("formats").querySelectorAll("a")].map((a) => a.getAttribute("href"));
     expect(hrefs).toContain("/de/docs/custom-format-adapters");
   });

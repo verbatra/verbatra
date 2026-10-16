@@ -416,12 +416,6 @@
       "heading": "Nothing to migrate, nothing to hand over.",
       "lead": "Verbatra runs where your project already lives: in the repository, in CI and in your own scripts. What it needs from you stays under your control.",
       "items": {
-        "providers": {
-          "title": "Switch providers in one block",
-          "body": "An LLM, a machine translation service, or a model on your own hardware. Change the provider block and keep the rest.",
-          "none": "Or turn machine translation off by policy, so every translation comes from a person.",
-          "link": "Every provider and its options"
-        },
         "keys": {
           "title": "Your keys stay yours",
           "body": "API keys come from environment variables only, never from the config file. Strings go to the provider you configure and nowhere else. No telemetry.",
@@ -438,7 +432,24 @@
         },
         "formats": {
           "title": "Works with your files",
-          "body": "The same key, written the way each stack expects it. Verbatra reads and writes the files you already have, and a format it does not ship takes an adapter you build on the SDK."
+          "body": "Verbatra reads and writes the files you already have, in the format each stack expects. A format it does not ship takes an adapter you build on the SDK.",
+          "families": {
+            "web": "Web frameworks",
+            "mobile": "Mobile",
+            "backend": "Backend and desktop",
+            "exchange": "Exchange and general"
+          }
+        },
+        "providers": {
+          "title": "Choose who translates",
+          "body": "A hosted LLM, a machine translation service, a server you run yourself, or only your translators. The config file names it in one line, and the rest of the file stays the same.",
+          "kinds": {
+            "llm": "LLM",
+            "machine": "Machine translation",
+            "local": "Self-hosted",
+            "none": "Human only"
+          },
+          "link": "Every provider and its options"
         },
         "sdk": {
           "title": "A typed SDK",

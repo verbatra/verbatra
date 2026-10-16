@@ -2,7 +2,7 @@ import type { SupportedFormat } from "@verbatra/sdk";
 import { PROVIDER_KEYS_ANCHORS } from "./docs-anchors";
 import { FORMAT_SAMPLES, type FormatSample, sampleLines } from "./format-samples";
 import { type Locale, type LocalizedAnchors, localizedAnchorPath } from "./i18n";
-import type { MachineProviderId } from "./landing-facts";
+import { type MachineProviderId, SUPPORTED_FORMAT_IDS } from "./landing-facts";
 
 export type BentoKey = "keys" | "providers" | "formats" | "sdk" | "frameworks";
 
@@ -23,7 +23,6 @@ export type BentoTile = {
 
 export const BENTO_TILES: ReadonlyArray<BentoTile> = [
   { key: "keys", span: { lg: 8 }, evidence: [] },
-  { key: "providers", span: { lg: 6, xl: 5 }, evidence: [] },
   {
     key: "formats",
     span: { lg: 6, xl: 7 },
@@ -32,6 +31,7 @@ export const BENTO_TILES: ReadonlyArray<BentoTile> = [
       { text: 'format: "custom:toml"', page: "/docs/custom-format-adapters" },
     ],
   },
+  { key: "providers", span: { lg: 6, xl: 5 }, evidence: [] },
   {
     key: "sdk",
     span: { lg: 12 },
@@ -44,10 +44,9 @@ export function bentoHref(locale: Locale, link: BentoDocsLink): string {
   return localizedAnchorPath(locale, link.page, link.anchors);
 }
 
-export const BENTO_NONE_PROVIDER: BentoEvidence = {
-  text: 'provider: { id: "none" }',
-  page: "/docs/human-only-workflow",
-};
+export const BENTO_NONE_LINK: BentoDocsLink = { page: "/docs/human-only-workflow" };
+
+export const BENTO_PROVIDER_LINE = 'provider: { id: "<id>" }';
 
 export const BENTO_KEYS_LINK: BentoDocsLink = {
   page: "/docs/providers",
@@ -97,39 +96,32 @@ ${BENTO_RUN_SUMMARY_FIELDS.map((field) => `  ${field}`).join("\n")}
 
 export const BENTO_QUICKSTART_PAGE = "/docs/quickstart";
 
-export type BentoDiffLine = { readonly sign: " " | "-" | "+"; readonly text: string };
-
-export const BENTO_PROVIDER_FROM = {
-  id: "gemini",
-  options: { model: "gemini-2.5-flash", maxOutputTokens: 4096 },
-} as const;
-
-export const BENTO_PROVIDER_TO = { id: "deepl", options: {} } as const;
-
-function providerLines(provider: { readonly id: string; readonly options: object }): string[] {
-  const options = Object.entries(provider.options).map(
-    ([key, value]) => `    ${key}: ${JSON.stringify(value)},`,
-  );
-  const block = options.length === 0 ? ["  options: {},"] : ["  options: {", ...options, "  },"];
-  return [`  id: "${provider.id}",`, ...block];
-}
-
-export const BENTO_PROVIDER_DIFF: ReadonlyArray<BentoDiffLine> = [
-  { sign: " ", text: "provider: {" },
-  ...providerLines(BENTO_PROVIDER_FROM).map((text) => ({ sign: "-" as const, text })),
-  ...providerLines(BENTO_PROVIDER_TO).map((text) => ({ sign: "+" as const, text })),
-  { sign: " ", text: "}," },
-];
-
 export const BENTO_FORMAT_KEY = "cart.total";
 
-const BENTO_FORMAT_IDS: ReadonlyArray<SupportedFormat> = [
-  "next-intl-json",
-  "android-xml",
-  "apple-strings",
-  "arb",
-  "gettext-po",
-];
+export const FORMAT_FAMILIES = ["web", "mobile", "backend", "exchange"] as const;
+
+export type FormatFamily = (typeof FORMAT_FAMILIES)[number];
+
+export const FORMAT_FAMILY: Readonly<Record<SupportedFormat, FormatFamily>> = {
+  "i18next-json": "web",
+  "vue-i18n-json": "web",
+  "next-intl-json": "web",
+  "ngx-translate-json": "web",
+  arb: "mobile",
+  "apple-strings": "mobile",
+  "apple-xcstrings": "mobile",
+  "android-xml": "mobile",
+  properties: "backend",
+  resx: "backend",
+  "gettext-po": "backend",
+  ini: "backend",
+  xliff: "exchange",
+  yaml: "exchange",
+};
+
+export function formatsInFamily(family: FormatFamily): ReadonlyArray<SupportedFormat> {
+  return SUPPORTED_FORMAT_IDS.filter((format) => FORMAT_FAMILY[format] === family);
+}
 
 type BentoFormatLine = {
   readonly format: SupportedFormat;
@@ -144,7 +136,9 @@ function keyLine(sample: FormatSample): string {
   return line.trim().replace(/,$/, "");
 }
 
-export const BENTO_FORMAT_LINES: ReadonlyArray<BentoFormatLine> = BENTO_FORMAT_IDS.map((format) => {
+function formatLine(format: SupportedFormat): BentoFormatLine {
   const sample = FORMAT_SAMPLES[format];
   return { format, file: sample.file, placeholder: sample.placeholder, line: keyLine(sample) };
-});
+}
+
+export const BENTO_FORMAT_EXAMPLE = formatLine("next-intl-json");

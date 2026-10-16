@@ -1,7 +1,9 @@
 import { MACHINE_PROVIDER_IDS, type MachineProviderId } from "./landing-facts";
 import { providerReleaseBadge } from "./release-badge";
 
-export type ProviderKind = "llm" | "machine" | "local";
+export const PROVIDER_KINDS = ["llm", "machine", "local"] as const;
+
+export type ProviderKind = (typeof PROVIDER_KINDS)[number];
 
 type ProviderDisplay = {
   readonly label: string;
@@ -42,4 +44,8 @@ export function landingProviders(): ReadonlyArray<LandingProvider> {
     kind: PROVIDER_DISPLAY[id].kind,
     isNew: providerReleaseBadge(id) !== null,
   }));
+}
+
+export function providersOfKind(kind: ProviderKind): ReadonlyArray<MachineProviderId> {
+  return MACHINE_PROVIDER_IDS.filter((id) => PROVIDER_DISPLAY[id].kind === kind);
 }
