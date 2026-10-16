@@ -569,6 +569,7 @@
       "license": "Licence MIT",
       "security": "Politique de sécurité",
       "issues": "Issues et demandes de fonctionnalités",
+      "agents": "Guide pour les agents de code",
       "newTab": "(s’ouvre dans un nouvel onglet)",
       "contributorsHeading": "Contributeurs",
       "contributorAria": "{name} sur GitHub"

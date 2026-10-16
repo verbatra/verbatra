@@ -569,6 +569,7 @@
       "license": "MIT-Lizenz",
       "security": "Sicherheitsrichtlinie",
       "issues": "Issues und Feature-Wünsche",
+      "agents": "Leitfaden für Coding-Agenten",
       "newTab": "(öffnet in einem neuen Tab)",
       "contributorsHeading": "Mitwirkende",
       "contributorAria": "{name} auf GitHub"

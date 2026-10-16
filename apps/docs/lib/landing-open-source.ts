@@ -1,4 +1,5 @@
 import {
+  AGENTS_URL,
   CODE_OF_CONDUCT_URL,
   CONTRIBUTING_URL,
   ISSUES_URL,
@@ -15,12 +16,13 @@ export const CONTRIBUTION_STEPS: ReadonlyArray<ContributionStep> = [
 ];
 
 type ProjectLink = {
-  key: "contributing" | "codeOfConduct" | "license" | "security" | "issues";
+  key: "contributing" | "agents" | "codeOfConduct" | "license" | "security" | "issues";
   href: string;
 };
 
 export const OPEN_SOURCE_LINKS: ReadonlyArray<ProjectLink> = [
   { key: "contributing", href: CONTRIBUTING_URL },
+  { key: "agents", href: AGENTS_URL },
   { key: "codeOfConduct", href: CODE_OF_CONDUCT_URL },
   { key: "license", href: LICENSE_URL },
   { key: "security", href: SECURITY_URL },

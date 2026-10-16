@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it, vi } from "vitest";
@@ -85,6 +85,7 @@ describe("OpenSource", () => {
     expect(hrefs).toEqual([
       GITHUB_URL,
       "https://github.com/verbatra/verbatra/blob/main/CONTRIBUTING.md",
+      "https://github.com/verbatra/verbatra/blob/main/AGENTS.md",
       "https://github.com/verbatra/verbatra/blob/main/CODE_OF_CONDUCT.md",
       "https://github.com/verbatra/verbatra/blob/main/LICENSE",
       "https://github.com/verbatra/verbatra/blob/main/SECURITY.md",
@@ -103,11 +104,12 @@ describe("OpenSource", () => {
     expect(root.textContent).not.toMatch(/[←-⇿]/);
   });
 
-  it("links no AGENTS.md and no good first issue label, since neither exists yet", () => {
+  it("links the root AGENTS.md that exists in the repository, and no good first issue label", () => {
     const hrefs = Array.from(root.querySelectorAll("a")).map((a) => a.getAttribute("href") ?? "");
-    expect(hrefs.some((href) => /AGENTS\.md|good%20first%20issue|good\+first/i.test(href))).toBe(
-      false,
-    );
+    const agents = hrefs.filter((href) => href.endsWith("/AGENTS.md"));
+    expect(agents).toEqual(["https://github.com/verbatra/verbatra/blob/main/AGENTS.md"]);
+    expect(existsSync(join(process.cwd(), "../../AGENTS.md"))).toBe(true);
+    expect(hrefs.some((href) => /good%20first%20issue|good\+first/i.test(href))).toBe(false);
   });
 
   it("says a link opens a new tab in every locale", () => {

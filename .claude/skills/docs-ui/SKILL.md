@@ -442,7 +442,7 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   spans four rows of the list's grid with `grid-template-rows: subgrid`, so titles, bodies and
   commands line up across the row however the copy wraps (`e2e/contribute.spec.ts` checks it at
   1024 and 1440 in every locale); under the steps a `nav` of project links (repository, contributor
-  guide, code of conduct, license, security policy, issues; plain `.vk-prose-link`s, 44px tall,
+  guide, the root `AGENTS.md` guide for coding agents, code of conduct, license, security policy, issues; plain `.vk-prose-link`s, 44px tall,
   no icon and no arrow, `landing.openSource.newTab` in an `sr-only` span) beside the contributors
   from `lib/contributors.json` (a `div` with `role="group"` named by its heading, never a nested
   `section` landmark), each a self-hosted 32px avatar from `public/contributors/` with the

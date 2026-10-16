@@ -622,6 +622,7 @@
       "license": "MIT license",
       "security": "Security policy",
       "issues": "Issues and feature requests",
+      "agents": "Guide for coding agents",
       "newTab": "(opens in a new tab)",
       "contributorsHeading": "Contributors",
       "contributorAria": "{name} on GitHub"
