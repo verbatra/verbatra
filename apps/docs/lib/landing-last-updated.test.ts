@@ -13,18 +13,22 @@ const COPY_REVISIONS: ReadonlyArray<CopyRevision> = [
 ];
 
 const COMPARE_CELL_REVISIONS: ReadonlyArray<CopyRevision> = [
-  { date: "2026-10-15", hash: "a3c7d3df61fd3860df4707d640261fe2bc141f4b198aeb708fc20ea5e4633198" },
+  { date: "2026-10-15", hash: "686e5f24bef2e1a799485d1c64776df183a5e6f0cbb1925f1266a07742992a67" },
 ];
 
 function compareCellHash(): string {
-  const path = fileURLToPath(new URL("../messages/en.json", import.meta.url));
-  const catalog = JSON.parse(readFileSync(path, "utf8")) as {
-    landing: { compare: { rows: unknown } };
-    compare: unknown;
-  };
-  return createHash("sha256")
-    .update(`${JSON.stringify(catalog.landing.compare.rows)}\n${JSON.stringify(catalog.compare)}\n`)
-    .digest("hex");
+  const hash = createHash("sha256");
+  for (const locale of i18n.languages) {
+    const path = fileURLToPath(new URL(`../messages/${locale}.json`, import.meta.url));
+    const catalog = JSON.parse(readFileSync(path, "utf8")) as {
+      landing: { compare: { rows: unknown } };
+      compare: unknown;
+    };
+    hash.update(
+      `${locale}\n${JSON.stringify(catalog.landing.compare.rows)}\n${JSON.stringify(catalog.compare)}\n`,
+    );
+  }
+  return hash.digest("hex");
 }
 
 function landingCopyHash(): string {
@@ -64,5 +68,13 @@ describe("COMPARE_LAST_CHECKED", () => {
       date: COMPARE_LAST_CHECKED,
       hash: compareCellHash(),
     });
+  });
+
+  it("gives every cell revision its own, later date and its own hash", () => {
+    const dates = COMPARE_CELL_REVISIONS.map((revision) => revision.date);
+    expect(dates).toEqual(dates.toSorted());
+    expect(new Set(dates).size).toBe(dates.length);
+    const hashes = COMPARE_CELL_REVISIONS.map((revision) => revision.hash);
+    expect(new Set(hashes).size).toBe(hashes.length);
   });
 });

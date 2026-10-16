@@ -120,19 +120,47 @@ describe("the redesigned landing copy", () => {
     }
   });
 
-  it("keeps a French colon, semicolon, question or exclamation mark off the start of a line in the comparison", () => {
+  const FRENCH_SPACING = /[\u0020\u00a0][;:?!\u00bb]|\u00ab[\u0020\u00a0]/;
+
+  it("keeps French punctuation and guillemets off a line of their own in the comparison and the bento", () => {
     const path = fileURLToPath(new URL("../messages/fr.json", import.meta.url));
     const catalog = JSON.parse(readFileSync(path, "utf8")) as MessageTree;
-    for (const tree of [branch(landing("fr"), "compare"), branch(catalog, "compare")])
-      for (const [key, text] of leaves(tree)) expect(text, key).not.toMatch(/ [;:?!]/);
+    const trees = [
+      branch(landing("fr"), "compare"),
+      branch(landing("fr"), "bento"),
+      branch(catalog, "compare"),
+    ];
+    for (const tree of trees)
+      for (const [key, text] of leaves(tree)) expect(text, key).not.toMatch(FRENCH_SPACING);
+    for (const loose of ["a :", "a\u00a0;", "b ?", "\u00ab x", "x \u00bb"])
+      expect(loose).toMatch(FRENCH_SPACING);
+    expect("a\u202f: \u00ab\u202fx\u202f\u00bb").not.toMatch(FRENCH_SPACING);
   });
 
+  function ratingPattern(words: string): RegExp {
+    return new RegExp(`(?<!\\p{L})(${words})(?!\\p{L})`, "iu");
+  }
+
   const RATINGS: Readonly<Record<string, RegExp>> = {
-    en: /\b(better|worse|best|only tool|lacks)\b/i,
-    de: /\b(besser|schlechter|beste[nrs]?|einzige[ns]? Tool|fehlt)\b/i,
-    es: /\b(mejor|peor|única herramienta|carece)\b/i,
-    fr: /\b(meilleur|pire|seul outil|manque)\b/i,
+    en: ratingPattern("better|worse|best|only tool|lacks"),
+    de: ratingPattern("besser|schlechter|beste[nrs]?|einzige[ns]? Tool|fehlt"),
+    es: ratingPattern("mejor|peor|única herramienta|carece"),
+    fr: ratingPattern("meilleur|pire|seul outil|manque"),
   };
+
+  const RATED: Readonly<Record<string, string>> = {
+    en: "the only tool here",
+    de: "das einzige Tool dafür",
+    es: "la única herramienta",
+    fr: "le seul outil",
+  };
+
+  it("catches a rating phrase in every locale, accented ones included", () => {
+    for (const locale of i18n.languages) {
+      expect(RATED[locale], locale).toMatch(RATINGS[locale] ?? /$^/);
+    }
+    expect("inmejorable").not.toMatch(RATINGS.es ?? /$^/);
+  });
 
   for (const locale of i18n.languages) {
     it(`never rates a competitor in a ${locale} comparison cell`, () => {
