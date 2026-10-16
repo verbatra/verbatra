@@ -86,8 +86,6 @@ export function faqValues(
         upcoming: listOf(locale, pending.map(providerShortLabel)),
       };
     }
-    case "providers":
-      return { providers: listOf(locale, publishedProviders(version).map(providerShortLabel)) };
     case "formats":
       return {
         formats: listOf(

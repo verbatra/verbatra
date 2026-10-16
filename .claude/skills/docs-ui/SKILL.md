@@ -359,7 +359,8 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   `FORMAT_FAMILY` in `lib/landing-bento.ts` (a `Record<SupportedFormat, FormatFamily>`, so a new
   format fails to compile until it has a family; each family an `h4` in `--text-muted`), then one
   real key line, `BENTO_FORMAT_EXAMPLE`, taken from the adapter output in
-  `lib/format-samples.generated.json` with its file path, and the format chips under it), the
+  `lib/format-samples.generated.json` with its file path, then the two evidence chips under the panel (`format:` lines linking the
+  formats page and the custom adapter guide)), the
   provider tile (span 6, 5 from 80rem: the provider ids in mono grouped by `PROVIDER_KINDS`
   through `providersOfKind` in `lib/landing-providers.ts` (LLM and machine translation, exactly
   the `kind` each strategy declares, pinned by `lib/landing-providers.test.ts`; no invented
@@ -489,9 +490,10 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   passes the items to `Faq` and the plain ones to `faqPageLd`, so the FAQPage JSON-LD always equals
   the visible text. A hyphenated word in an answer (`ngx-translate`) is kept whole. Ids, order and
   links live in `lib/landing-faq.ts`; answers use a `link` tag (that item's docs page, localized),
-  `license`, and `code` for a command or file name (plain in the JSON-LD)  only. Facts that change with a release come in as values, never typed: the providers and npm
-  answers list `publishedProviders()` (`MACHINE_PROVIDER_IDS` whose `RELEASE_BADGE` version is at
-  most `PACKAGE_VERSION`) and names the rest with the badge version, the formats answer reads
+  `license`, and `code` for a command or file name (plain in the JSON-LD) only. Facts that change with a release come in as values, never typed: the npm
+  answer lists `publishedProviders()` (`MACHINE_PROVIDER_IDS` whose `RELEASE_BADGE` version is at
+  most `PACKAGE_VERSION`) and names the rest with the badge version, while the providers answer
+  explains how to choose (the kinds, `none`, the `provider` block) and names no provider, the formats answer reads
   `FORMAT_DISPLAY`, and the playground answer names `PLAYGROUND_METADATA.provider`. `FORMAT_DISPLAY` in `lib/landing-facts.ts` is every format's display
   label, which the structured data's format list reads too, so a new format fails to
   compile until it has one. The marquee (`marquee.tsx`, `#marquee`, a band right under the

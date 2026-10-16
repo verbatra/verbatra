@@ -48,7 +48,7 @@
         },
         "providers": {
           "question": "¿Qué proveedores de traducción puedo usar?",
-          "answer": "LLM alojados, motores de traducción automática o un modelo que ejecutas tú mismo, todos detrás de una sola interfaz: {providers}. Eliges uno por su id en el bloque <code>provider</code> de tu configuración y lo cambias reescribiendo ese bloque; la <link>página de proveedores</link> detalla cada uno con sus opciones."
+          "answer": "Un LLM o un motor de traducción automática, alojado o en tu propio servidor, o <code>none</code> si solo traducen personas. Eliges uno por su id en el bloque <code>provider</code> de tu configuración y lo cambias reescribiendo ese bloque; la <link>página de proveedores</link> detalla cada uno con sus opciones."
         },
         "npm": {
           "question": "¿Qué proveedores hay hoy en npm?",
@@ -56,7 +56,7 @@
         },
         "formats": {
           "question": "¿Qué formatos soporta Verbatra?",
-          "answer": "Verbatra lee y escribe {formats} directamente en tus archivos. No hay ningún formato propio de Verbatra al que migrar, y la <link>página de formatos</link> muestra cómo se lee y se escribe cada uno."
+          "answer": "Los formatos de archivo que tu stack ya usa, leídos y escritos directamente en tus archivos. Son {formats}, sin ningún formato propio de Verbatra al que migrar; la <link>página de formatos</link> muestra cómo se lee y se escribe cada uno."
         },
         "ci": {
           "question": "¿Puedo ejecutar Verbatra en la CI?",

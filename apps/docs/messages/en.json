@@ -141,7 +141,7 @@
         },
         "providers": {
           "question": "Which translation providers can I use?",
-          "answer": "Hosted LLMs, machine translation engines, or a model you run yourself, all behind one interface: {providers}. You pick one by its id in the <code>provider</code> block of your config and switch by rewriting that block; the <link>providers page</link> lists each one with its options."
+          "answer": "An LLM or a machine translation engine, hosted or on your own server, or <code>none</code> when only people translate. You pick one by its id in the <code>provider</code> block of your config and switch by rewriting that block; the <link>providers page</link> lists each one with its options."
         },
         "npm": {
           "question": "Which providers are on npm today?",
@@ -149,7 +149,7 @@
         },
         "formats": {
           "question": "Which formats does Verbatra support?",
-          "answer": "Verbatra reads and writes {formats} in place. There is no Verbatra format to migrate to, and the <link>formats page</link> shows how each one is read and written."
+          "answer": "The file formats your stack already uses, read and written in place. That covers {formats}, with no Verbatra format to migrate to; the <link>formats page</link> shows how each one is read and written."
         },
         "ci": {
           "question": "Can I run Verbatra in CI?",

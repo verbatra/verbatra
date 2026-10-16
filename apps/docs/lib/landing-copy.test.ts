@@ -123,14 +123,21 @@ describe("the redesigned landing copy", () => {
 
   const FRENCH_SPACING = /[\u0020\u00a0][;:?!\u00bb]|\u00ab[\u0020\u00a0]/;
 
-  it("keeps French punctuation and guillemets off a line of their own in the comparison, bento and faq", () => {
+  it("keeps French punctuation and guillemets off a line of their own in every non-legal namespace", () => {
     const path = fileURLToPath(new URL("../messages/fr.json", import.meta.url));
     const catalog = JSON.parse(readFileSync(path, "utf8")) as MessageTree;
+    expect(Object.keys(catalog).sort()).toEqual([
+      "compare",
+      "docs",
+      "landing",
+      "legal",
+      "notFound",
+    ]);
     const trees = [
-      branch(landing("fr"), "compare"),
-      branch(landing("fr"), "bento"),
-      branch(landing("fr"), "faq"),
+      landing("fr"),
       branch(catalog, "compare"),
+      branch(catalog, "docs"),
+      branch(catalog, "notFound"),
     ];
     for (const tree of trees)
       for (const [key, text] of leaves(tree)) expect(text, key).not.toMatch(FRENCH_SPACING);

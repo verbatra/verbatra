@@ -243,10 +243,11 @@ describe.each(i18n.languages)("the landing faq in %s", (locale) => {
     for (const id of publishedProviders()) expect(npm?.answer).toContain(providerShortLabel(id));
   });
 
-  it("names the same providers in the providers answer, from the single source", async () => {
+  it("explains how to choose in the providers answer and leaves the release list to npm", async () => {
     const providers = (await faqContent(locale)).find((item) => item.id === "providers");
     for (const id of publishedProviders())
-      expect(providers?.answer).toContain(providerShortLabel(id));
+      expect(providers?.answer).not.toContain(providerShortLabel(id));
+    expect(providers?.answer).toContain("none");
   });
 
   it("sets commands and file names in code, and keeps the structured data plain", async () => {
@@ -269,6 +270,8 @@ describe.each(i18n.languages)("the landing faq in %s", (locale) => {
 
 const YES: Readonly<Record<Locale, string>> = { en: "Yes.", de: "Ja.", es: "Sí.", fr: "Oui." };
 const NO: Readonly<Record<Locale, string>> = { en: "No.", de: "Nein.", es: "No.", fr: "Non." };
+
+const SENTENCE_END = /[.!?](?:\s|$)/;
 
 describe("the landing faq copy", () => {
   it.each(i18n.languages)("keeps the items in the rendered order in %s", (locale) => {
@@ -296,26 +299,19 @@ describe("the landing faq copy", () => {
     expect(faq.playground.answer.startsWith(NO[locale])).toBe(true);
   });
 
-  it.each(i18n.languages)(
-    "opens every answer with the answer itself: a short first sentence with no docs link in %s",
-    (locale) => {
-      for (const [id, { answer }] of Object.entries(CATALOGS[locale].landing.faq.items)) {
-        const first =
-          answer.replace(/\{pending,.*other \{\}\}/, " ").split(/[.!?](?:\s|$)/)[0] ?? "";
-        expect(first, id).not.toContain("<link>");
-        expect(first.split(/\s+/).length, id).toBeLessThanOrEqual(25);
-      }
-    },
-  );
+  it.each(i18n.languages)("keeps the docs link out of the first sentence in %s", (locale) => {
+    for (const [id, { answer }] of Object.entries(CATALOGS[locale].landing.faq.items)) {
+      const first = answer.replace(/\{pending,.*other \{\}\}/, " ").split(SENTENCE_END)[0] ?? "";
+      expect(first, id).not.toContain("<link>");
+    }
+  });
 
   it.each(i18n.languages)(
-    "keeps every answer to the answer and at most two more sentences in %s",
-    (locale) => {
-      for (const [id, { answer }] of Object.entries(CATALOGS[locale].landing.faq.items)) {
-        const sentences = answer
-          .replace(/\{pending,.*other \{\}\}/, "")
-          .split(/[.!?](?:\s|$)/)
-          .filter((part) => part.trim() !== "");
+    "opens every rendered answer with a short first sentence and adds at most two more in %s",
+    async (locale) => {
+      for (const { id, answer } of await faqContent(locale)) {
+        const sentences = answer.split(SENTENCE_END).filter((part) => part.trim() !== "");
+        expect(sentences[0]?.trim().split(/\s+/).length, id).toBeLessThanOrEqual(25);
         expect(sentences.length, id).toBeLessThanOrEqual(3);
       }
     },

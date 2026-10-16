@@ -1,11 +1,11 @@
 {
   "landing": {
     "meta": {
-      "title": "Verbatra : CLI i18n qui ne traduit que les clés modifiées",
-      "ogTitle": "Verbatra : ne traduis que ce qui a changé",
+      "title": "Verbatra : CLI i18n qui ne traduit que les clés modifiées",
+      "ogTitle": "Verbatra : ne traduis que ce qui a changé",
       "description": "Verbatra, CLI et SDK i18n open source, trouve les clés manquantes ou modifiées de tes fichiers de locale et ne traduit qu’elles, avec ta propre clé d’API.",
       "ogDescription": "Ne traduis que les clés i18n qui ont changé, et fais échouer la CI tant qu’une clé manque.",
-      "ogImageAlt": "Verbatra : Ne traduis que ce qui a changé, au-dessus d’une exécution de check qui trouve deux clés manquantes par locale et d’une exécution de translate qui n’envoie que celles-ci.",
+      "ogImageAlt": "Verbatra : Ne traduis que ce qui a changé, au-dessus d’une exécution de check qui trouve deux clés manquantes par locale et d’une exécution de translate qui n’envoie que celles-ci.",
       "definition": "Verbatra est une CLI et un SDK open source pour les fichiers de locale i18n. Il n’envoie que les clés nouvelles et modifiées au fournisseur d’IA ou de traduction automatique de ton choix et fait échouer la CI tant qu’une clé manque."
     },
     "hero": {
@@ -48,7 +48,7 @@
         },
         "providers": {
           "question": "Quels fournisseurs de traduction puis-je utiliser ?",
-          "answer": "Des LLM hébergés, des moteurs de traduction automatique ou un modèle que tu fais tourner toi-même, tous derrière une seule interface : {providers}. Tu en choisis un par son id dans le bloc <code>provider</code> de ta configuration et tu en changes en réécrivant ce bloc ; la <link>page des fournisseurs</link> détaille chacun avec ses options."
+          "answer": "Un LLM ou un moteur de traduction automatique, hébergé ou sur ton propre serveur, ou <code>none</code> si seules des personnes traduisent. Tu en choisis un par son id dans le bloc <code>provider</code> de ta configuration et tu en changes en réécrivant ce bloc ; la <link>page des fournisseurs</link> détaille chacun avec ses options."
         },
         "npm": {
           "question": "Quels fournisseurs sont sur npm aujourd’hui ?",
@@ -56,7 +56,7 @@
         },
         "formats": {
           "question": "Quels formats Verbatra prend-il en charge ?",
-          "answer": "Verbatra lit et écrit {formats} directement dans tes fichiers. Il n’y a aucun format propre à Verbatra vers lequel migrer, et la <link>page des formats</link> montre comment chacun est lu et écrit."
+          "answer": "Les formats de fichier que ta stack utilise déjà, lus et écrits directement dans tes fichiers. Ce sont {formats}, sans format propre à Verbatra vers lequel migrer ; la <link>page des formats</link> montre comment chacun est lu et écrit."
         },
         "ci": {
           "question": "Puis-je exécuter Verbatra en CI ?",
@@ -179,7 +179,7 @@
           "refused": "refusée"
         },
         "result": {
-          "seed": "Tout est synchronisé : Verbatra traduirait 0 clé.",
+          "seed": "Tout est synchronisé : Verbatra traduirait 0 clé.",
           "summary": "{written, plural, =0 {Une vraie exécution n’écrirait rien} one {Une vraie exécution écrirait # traduction et mettrait à jour son hash dans le fichier de verrouillage} many {Une vraie exécution écrirait # de traductions et mettrait à jour leurs hashs dans le fichier de verrouillage} other {Une vraie exécution écrirait # traductions et mettrait à jour leurs hashs dans le fichier de verrouillage}}{withheld, select, yes {, et retiendrait la réponse qui casse un placeholder} other {}}{orphaned, select, yes {, et garderait la clé supprimée dans de.json jusqu’à `--prune`} other {}}.",
           "savings": "{sent, plural, one {# chaîne envoyée} many {# de chaînes envoyées} other {# chaînes envoyées}}, là où tout retraduire en enverrait {total}.",
           "outputLabel": "Ce qu’affiche verbatra translate",
@@ -240,7 +240,7 @@
     },
     "playground": {
       "heading": "Essaie le SDK",
-      "lead": "Choisis un texte source et les langues dans lesquelles le traduire, puis appuie sur Traduire. Les résultats viennent d’une vraie exécution du SDK Verbatra livrée avec cette page : ton clic n’envoie donc rien à un fournisseur.",
+      "lead": "Choisis un texte source et les langues dans lesquelles le traduire, puis appuie sur Traduire. Les résultats viennent d’une vraie exécution du SDK Verbatra livrée avec cette page : ton clic n’envoie donc rien à un fournisseur.",
       "items": "Texte source",
       "languages": "Langues cibles",
       "translate": "Traduire",
@@ -291,18 +291,18 @@
         },
         "incremental": {
           "title": "Ne traduis que ce qui a changé",
-          "body": "Le fichier de verrouillage stocke un hash pour chaque clé traduite : une exécution saute ce qui est fait et n’envoie que les clés nouvelles ou modifiées. Le SDK exécute la même boucle incrémentale depuis ton propre script.",
+          "body": "Le fichier de verrouillage stocke un hash pour chaque clé traduite : une exécution saute ce qui est fait et n’envoie que les clés nouvelles ou modifiées. Le SDK exécute la même boucle incrémentale depuis ton propre script.",
           "link": "Démarrage rapide du SDK",
-          "demo": "Choisis ci-dessous une modification d’un fichier de locale : le code de diff et de hash de Verbatra montre dans ton navigateur quelles clés une exécution enverrait, sans rien traduire."
+          "demo": "Choisis ci-dessous une modification d’un fichier de locale : le code de diff et de hash de Verbatra montre dans ton navigateur quelles clés une exécution enverrait, sans rien traduire."
         },
         "action": {
           "title": "Traduis dans GitHub Actions",
-          "body": "L’action installe exactement la version de la CLI que tu épingles et exécute `translate` à chaque push sur main, avec ta clé d’API tirée d’un secret du dépôt. Elle ne commite jamais : ajoute ta propre étape qui commite les fichiers de locale mis à jour, comme le décrit le guide.",
+          "body": "L’action installe exactement la version de la CLI que tu épingles et exécute `translate` à chaque push sur main, avec ta clé d’API tirée d’un secret du dépôt. Elle ne commite jamais : ajoute ta propre étape qui commite les fichiers de locale mis à jour, comme le décrit le guide.",
           "link": "Guide de la GitHub Action"
         },
         "check": {
           "title": "Fais échouer une pull request en cas de dérive",
-          "body": "`check` n’appelle aucun fournisseur et n’a besoin d’aucune clé : il peut donc bloquer chaque pull request. Il renvoie {fail} tant qu’une clé manque ou est obsolète, {ok} dès que chaque locale est synchronisée et {usage} en cas d’erreur d’utilisation ou de configuration.",
+          "body": "`check` n’appelle aucun fournisseur et n’a besoin d’aucune clé : il peut donc bloquer chaque pull request. Il renvoie {fail} tant qu’une clé manque ou est obsolète, {ok} dès que chaque locale est synchronisée et {usage} en cas d’erreur d’utilisation ou de configuration.",
           "link": "CI et codes de sortie"
         },
         "studio": {
@@ -794,9 +794,9 @@
     },
     "availableFrom": {
       "title": "Disponible à partir de {version}",
-      "text": "Il te faut verbatra {version} ou plus récent. Les versions antérieures ne l'ont pas : vérifie ta version installée avec <code>verbatra --version</code> et mets à jour si elle est plus ancienne.",
+      "text": "Il te faut verbatra {version} ou plus récent. Les versions antérieures ne l'ont pas : vérifie ta version installée avec <code>verbatra --version</code> et mets à jour si elle est plus ancienne.",
       "packageTitle": "Disponible à partir de {version}",
-      "packageText": "Il te faut {version} ou plus récent. Les versions antérieures ne l'ont pas : mets à jour ce paquet si le tien est plus ancien."
+      "packageText": "Il te faut {version} ou plus récent. Les versions antérieures ne l'ont pas : mets à jour ce paquet si le tien est plus ancien."
     },
     "screenshot": {
       "label": "Verbatra Studio",
@@ -813,8 +813,8 @@
     },
     "startHere": {
       "title": "Commence ici",
-      "lead": "Avec `@verbatra/cli` installé, une commande relie Claude Code, Codex, Gemini CLI, Cursor ou VS Code à verbatra, sans dépense. Pour tout autre agent : colle le prompt.",
-      "markdown": "Commence ici : une fois `@verbatra/cli` installé dans le projet, `{command}` relie ton agent de code, sans dépense."
+      "lead": "Avec `@verbatra/cli` installé, une commande relie Claude Code, Codex, Gemini CLI, Cursor ou VS Code à verbatra, sans dépense. Pour tout autre agent : colle le prompt.",
+      "markdown": "Commence ici : une fois `@verbatra/cli` installé dans le projet, `{command}` relie ton agent de code, sans dépense."
     },
     "mcpInstall": {
       "label": "Ajouter à {client}"

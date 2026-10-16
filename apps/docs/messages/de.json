@@ -48,7 +48,7 @@
         },
         "providers": {
           "question": "Welche Übersetzungs-Provider kann ich verwenden?",
-          "answer": "Gehostete LLMs, Engines für maschinelle Übersetzung oder ein Modell, das du selbst betreibst, alle hinter einer Schnittstelle: {providers}. Du wählst einen über seine ID im <code>provider</code>-Block deiner Konfiguration und wechselst, indem du diesen Block neu schreibst; die <link>Provider-Seite</link> listet jeden mit seinen Optionen."
+          "answer": "Ein LLM oder eine Engine für maschinelle Übersetzung, gehostet oder auf deinem eigenen Server, oder <code>none</code>, wenn nur Menschen übersetzen. Du wählst einen über seine ID im <code>provider</code>-Block deiner Konfiguration und wechselst, indem du diesen Block neu schreibst; die <link>Provider-Seite</link> listet jeden mit seinen Optionen."
         },
         "npm": {
           "question": "Welche Provider gibt es heute auf npm?",
@@ -56,7 +56,7 @@
         },
         "formats": {
           "question": "Welche Formate unterstützt Verbatra?",
-          "answer": "Verbatra liest und schreibt {formats} direkt in deinen Dateien. Es gibt kein Verbatra-eigenes Format, zu dem du migrieren müsstest, und die <link>Formate-Seite</link> zeigt, wie jedes gelesen und geschrieben wird."
+          "answer": "Die Dateiformate, die dein Stack schon nutzt, direkt in deinen Dateien gelesen und geschrieben. Das sind {formats}, ohne Verbatra-eigenes Format, zu dem du migrieren müsstest; die <link>Formate-Seite</link> zeigt, wie jedes gelesen und geschrieben wird."
         },
         "ci": {
           "question": "Kann ich Verbatra in der CI ausführen?",
