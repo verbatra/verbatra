@@ -132,8 +132,6 @@
       }
     },
     "showcase": {
-      "heading": "Vois-le à l’œuvre.",
-      "lead": "Choisis ci-dessous une modification d’un fichier de locale : le code de diff et de hachage de Verbatra montre dans ton navigateur quelles clés une exécution enverrait, sans rien traduire.",
       "tryIt": {
         "scenariosLabel": "Modifie le fichier anglais",
         "scenarios": {
@@ -260,6 +258,49 @@
         "providers": "Fournisseurs"
       }
     },
+    "flow": {
+      "heading": "Comment les pièces s’assemblent.",
+      "lead": "Un seul fichier de configuration porte une modification de ta locale source jusqu’à l’agent de code de ton éditeur, en passant par la CLI, la CI et la relecture.",
+      "copy": "Copier le code",
+      "items": {
+        "source": {
+          "title": "Pars de ta locale source",
+          "body": "Verbatra lit les fichiers de locale que tu gardes déjà dans ton dépôt, dans le format propre à ton framework. La locale source reste le seul fichier que tu modifies à la main.",
+          "link": "Formats pris en charge"
+        },
+        "cli": {
+          "title": "Synchronise avec la CLI",
+          "body": "`init` écrit la configuration, et une simulation liste les clés qu’une exécution enverrait, sans appeler de fournisseur. `translate` remplit ensuite chaque clé manquante ou modifiée dans chaque locale cible.",
+          "link": "La commande translate"
+        },
+        "incremental": {
+          "title": "Ne traduis que ce qui a changé",
+          "body": "Le fichier de verrouillage stocke un hachage pour chaque clé traduite : une exécution saute ce qui est fait et n’envoie que les clés nouvelles ou modifiées. Le SDK exécute la même boucle incrémentale depuis ton propre script.",
+          "link": "Démarrage rapide du SDK",
+          "demo": "Choisis ci-dessous une modification d’un fichier de locale : le code de diff et de hachage de Verbatra montre dans ton navigateur quelles clés une exécution enverrait, sans rien traduire."
+        },
+        "action": {
+          "title": "Traduis dans GitHub Actions",
+          "body": "L’action installe exactement la version de la CLI que tu épingles et exécute `translate` à chaque push sur main. Ta clé de fournisseur vient d’un secret du dépôt et ne passe jamais par un input.",
+          "link": "Guide de la GitHub Action"
+        },
+        "check": {
+          "title": "Fais échouer une pull request en cas d’écart",
+          "body": "`check` n’appelle aucun fournisseur et n’a besoin d’aucune clé : il peut donc bloquer chaque pull request. Il renvoie {fail} tant qu’une clé manque ou est obsolète, {ok} dès que chaque locale est synchronisée et {usage} en cas d’erreur d’utilisation ou de configuration.",
+          "link": "CI et codes de sortie"
+        },
+        "studio": {
+          "title": "Relis dans Verbatra Studio",
+          "body": "Un tableau de bord local sur ton projet. Il montre où en est chaque locale et te laisse corriger une traduction sur place.",
+          "link": "Lire le guide de Studio"
+        },
+        "mcp": {
+          "title": "Confie-le à ton agent de code",
+          "body": "Ajoute ce bloc à `.mcp.json`, et Claude Code lance le serveur MCP de Verbatra via stdio. Ton agent peut alors vérifier l’état des traductions, utiliser le glossaire et corriger une traduction sur place.",
+          "link": "Connecter un client MCP"
+        }
+      }
+    },
     "stats": {
       "label": "Verbatra en chiffres",
       "stars": "étoiles sur GitHub",
@@ -288,8 +329,6 @@
       }
     },
     "steps": {
-      "heading": "Vérifie d’abord, puis ne traduis que ce qui manque.",
-      "lead": "Un fichier de verrouillage dans ton dépôt garde la trace de ce qui est déjà traduit : chaque exécution sait ainsi quelles clés sont nouvelles ou modifiées.",
       "items": {
         "check": {
           "title": "Vérifier",
@@ -361,17 +400,6 @@
         "action": "Guide de la GitHub Action"
       },
       "copy": "Copier le code"
-    },
-    "studio": {
-      "heading": "Relis chaque locale dans Verbatra Studio.",
-      "lead": "Un tableau de bord local sur ton projet. Il montre où en est chaque locale et te laisse corriger une traduction sur place.",
-      "points": {
-        "coverage": "Vois quelles clés manquent, ont changé ou sont signalées pour relecture dans chaque locale.",
-        "edit": "Modifie une valeur sur place. Elle passe le même contrôle d’intégrité avant d’être écrite.",
-        "local": "Lance-le avec `verbatra studio`. Il n’appelle aucun fournisseur sauf si tu ajoutes `--allow-spend`."
-      },
-      "cta": "Lire le guide de Studio",
-      "alt": "La page Review de Verbatra Studio avec cinq entrées signalées dans les locales de, es et fr ; chaque ligne affiche la clé, ses motifs de relecture et les actions Edit, Approve et Reject."
     },
     "compare": {
       "heading": "Verbatra face aux autres approches.",

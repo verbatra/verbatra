@@ -155,10 +155,10 @@ describe("the showcase copy", () => {
   it.each(Object.keys(CONDITIONAL))(
     "%s says what verbatra would translate, never that the page translates",
     (locale) => {
-      const showcase = JSON.parse(docsFile(`messages/${locale}.json`)).landing.showcase;
+      const { showcase, flow } = JSON.parse(docsFile(`messages/${locale}.json`)).landing;
       expect(showcase.tryIt.result.summary).toMatch(WOULD_WRITE[locale] as RegExp);
       expect(showcase.tryIt.result.seed).toMatch(CONDITIONAL[locale] as RegExp);
-      expect(showcase.lead).toMatch(NOTHING_TRANSLATED[locale] as RegExp);
+      expect(flow.items.incremental.demo).toMatch(NOTHING_TRANSLATED[locale] as RegExp);
     },
   );
 });

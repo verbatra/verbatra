@@ -70,8 +70,6 @@
       }
     },
     "showcase": {
-      "heading": "See it work.",
-      "lead": "Pick a change to a locale file below. Verbatra's own diff and hash code shows in your browser which keys a run would send, and translates nothing.",
       "tryIt": {
         "scenariosLabel": "Change the English file",
         "scenarios": {
@@ -313,6 +311,49 @@
         "providers": "Providers"
       }
     },
+    "flow": {
+      "heading": "How the pieces connect.",
+      "lead": "One config file carries a change from your source locale through the CLI, CI and review to the coding agent in your editor.",
+      "copy": "Copy code",
+      "items": {
+        "source": {
+          "title": "Start from your source locale",
+          "body": "Verbatra reads the locale files you already keep in your repository, in your framework's own format. The source locale stays the one file you edit by hand.",
+          "link": "Supported formats"
+        },
+        "cli": {
+          "title": "Sync with the CLI",
+          "body": "`init` writes the config, and a dry run lists the keys a run would send without calling a provider. `translate` then fills every missing and changed key in each target locale.",
+          "link": "The translate command"
+        },
+        "incremental": {
+          "title": "Translate only what changed",
+          "body": "The lock file stores a hash for every translated key, so a run skips what is done and sends only new or edited keys. The SDK runs the same incremental loop from your own script.",
+          "link": "SDK quickstart",
+          "demo": "Pick a change to a locale file below. Verbatra's own diff and hash code shows in your browser which keys a run would send, and translates nothing."
+        },
+        "action": {
+          "title": "Translate in GitHub Actions",
+          "body": "The action installs exactly the CLI version you pin and runs `translate` on every push to main. Your provider key comes from a repository secret and never travels as an input.",
+          "link": "GitHub Action guide"
+        },
+        "check": {
+          "title": "Fail a pull request on drift",
+          "body": "`check` calls no provider and needs no key, so it can gate every pull request. It exits {fail} while a key is missing or stale, {ok} once every locale is in sync and {usage} on a usage or config error.",
+          "link": "CI and exit codes"
+        },
+        "studio": {
+          "title": "Review in Verbatra Studio",
+          "body": "A local dashboard over your project. It shows where each locale stands and lets you fix a translation in place.",
+          "link": "Read the Studio guide"
+        },
+        "mcp": {
+          "title": "Hand it to your coding agent",
+          "body": "Add this block to `.mcp.json`, and Claude Code starts the Verbatra MCP server over stdio. Your agent can then check translation status, use the glossary and correct a translation in place.",
+          "link": "Connect an MCP client"
+        }
+      }
+    },
     "stats": {
       "label": "Verbatra in numbers",
       "stars": "GitHub stars",
@@ -341,8 +382,6 @@
       }
     },
     "steps": {
-      "heading": "Check first, then translate only the gaps.",
-      "lead": "A lock file in your repository records what was already translated, so each run knows which keys are new or changed.",
       "items": {
         "check": {
           "title": "Check",
@@ -414,17 +453,6 @@
         "action": "GitHub Action guide"
       },
       "copy": "Copy code"
-    },
-    "studio": {
-      "heading": "Review every locale in Verbatra Studio.",
-      "lead": "A local dashboard over your project. It shows where each locale stands and lets you fix a translation in place.",
-      "points": {
-        "coverage": "See which keys are missing, changed or flagged for review in each locale.",
-        "edit": "Edit a value in place. It passes the same integrity check before it is written.",
-        "local": "Start it with `verbatra studio`. It calls no provider unless you add `--allow-spend`."
-      },
-      "cta": "Read the Studio guide",
-      "alt": "The Verbatra Studio Review page listing five flagged entries across the de, es and fr locales, each row showing the key, its review reasons, and Edit, Approve and Reject actions."
     },
     "compare": {
       "heading": "How Verbatra compares.",

@@ -1,7 +1,7 @@
 "use client";
 
 import { type ReactNode, type Ref, type RefObject, useImperativeHandle, useRef } from "react";
-import { gsap, useGSAP } from "@/lib/gsap";
+import { gsap, useGSAP } from "@/lib/gsap-scramble";
 
 export type ScrambleRow = { readonly lang: string; readonly from: string; readonly to: string };
 

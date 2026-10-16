@@ -7,6 +7,7 @@ import { CodeShowcase } from "@/components/landing/code-showcase";
 import { Compare } from "@/components/landing/compare";
 import { Faq, type FaqEntry } from "@/components/landing/faq";
 import { FinalCta } from "@/components/landing/final-cta";
+import { Flow } from "@/components/landing/flow";
 import { Hero } from "@/components/landing/hero";
 import { Marquee } from "@/components/landing/marquee";
 import { MotionRoot } from "@/components/landing/motion-root";
@@ -14,12 +15,7 @@ import { OpenSource } from "@/components/landing/open-source";
 import { Playground } from "@/components/landing/playground";
 import { Problem } from "@/components/landing/problem";
 import { ProofStrip } from "@/components/landing/proof-strip";
-import { Showcase } from "@/components/landing/showcase";
-import { Steps } from "@/components/landing/steps";
-import { Studio } from "@/components/landing/studio";
 import { toLocale } from "@/lib/i18n";
-import { withoutInlineCode } from "@/lib/inline-code-text";
-import { LANDING_STEP_IDS } from "@/lib/landing-code";
 import { LANDING_SECTIONS, type LandingSectionId } from "@/lib/landing-sections";
 import {
   homeAlternates,
@@ -29,13 +25,7 @@ import {
   STUDIO_VERSION,
 } from "@/lib/site";
 import { homeOgImagePath, socialMetadata } from "@/lib/social-metadata";
-import {
-  type FaqItem,
-  faqPageLd,
-  type HowToStepItem,
-  howToLd,
-  softwareApplicationLd,
-} from "@/lib/structured-data";
+import { type FaqItem, faqPageLd, softwareApplicationLd } from "@/lib/structured-data";
 
 export default async function HomePage(props: { params: Promise<{ lang: string }> }) {
   const { lang } = await props.params;
@@ -51,22 +41,15 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
     question,
   }));
 
-  const howSteps: ReadonlyArray<HowToStepItem> = LANDING_STEP_IDS.map((id) => ({
-    name: t(`steps.items.${id}.title`),
-    text: withoutInlineCode(t(`steps.items.${id}.body`)),
-  }));
-
   const sections: Readonly<Record<LandingSectionId, ReactNode>> = {
     hero: <Hero />,
     marquee: <Marquee />,
     playground: <Playground />,
+    flow: <Flow />,
     proofStrip: <ProofStrip />,
     problem: <Problem />,
-    howItWorks: <Steps />,
     features: <Bento />,
     code: <CodeShowcase />,
-    showcase: <Showcase />,
-    studio: <Studio />,
     compare: <Compare />,
     openSource: <OpenSource />,
     faq: <Faq items={faqQuestions} />,
@@ -86,7 +69,6 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
         })}
       />
       <JsonLd data={faqPageLd({ items: faqItems, lang: locale })} />
-      <JsonLd data={howToLd({ name: t("steps.heading"), steps: howSteps, lang: locale })} />
 
       {LANDING_SECTIONS.map((id) => (
         <Fragment key={id}>{sections[id]}</Fragment>

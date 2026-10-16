@@ -508,13 +508,13 @@ describe("the animation boundary", () => {
     expect(demo).not.toMatch(/from "(gsap|@gsap\/react|@\/lib\/gsap)/);
   });
 
-  it("registers GSAP once, in lib/gsap.ts, and only the scramble module imports it", () => {
-    expect(runtimeImports("lib/gsap.ts")).toEqual([
-      "@gsap/react",
-      "gsap",
-      "gsap/ScrambleTextPlugin",
-    ]);
-    expect(runtimeImports("components/landing/playground-scramble.tsx")).toContain("@/lib/gsap");
+  it("registers useGSAP once in lib/gsap.ts and ScrambleText only in the scramble entry", () => {
+    expect(runtimeImports("lib/gsap.ts")).toEqual(["@gsap/react", "gsap"]);
+    expect(runtimeImports("lib/gsap-scramble.ts")).toEqual(["gsap/ScrambleTextPlugin", "./gsap"]);
+    expect(runtimeImports("components/landing/playground-scramble.tsx")).toContain(
+      "@/lib/gsap-scramble",
+    );
+    expect(source("lib/gsap-draw.ts")).not.toContain("ScrambleText");
     expect(source("components/landing/islands.tsx")).not.toMatch(/gsap|playground-scramble/);
   });
 });

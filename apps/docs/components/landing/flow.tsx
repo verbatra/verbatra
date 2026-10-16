@@ -1,0 +1,94 @@
+import { getLocale, getTranslations } from "next-intl/server";
+import type { ReactNode } from "react";
+import { IntentPrefetchLink } from "@/components/ui/intent-prefetch-link";
+import { localizedPath, toLocale } from "@/lib/i18n";
+import { withInlineCode } from "@/lib/inline-code-text";
+import {
+  FLOW_CHECK_EXIT_CODES,
+  FLOW_DEMO_NODE,
+  FLOW_NODES,
+  type FlowNodeId,
+} from "@/lib/landing-flow";
+import { showcaseRows, showcaseSeed } from "@/lib/showcase-scenarios";
+import { CodeFrame } from "./code-frame";
+import { FlowMotion, TryIt } from "./islands";
+import { PlainList } from "./plain-list";
+import { Section } from "./section";
+import { SectionHead } from "./section-head";
+
+export const FLOW_HEADING_ID = "flow-heading";
+
+const BODY_VALUES: Partial<Record<FlowNodeId, Record<string, number>>> = {
+  check: FLOW_CHECK_EXIT_CODES,
+};
+
+export function flowTitleId(id: FlowNodeId): string {
+  return `flow-${id}`;
+}
+
+export async function Flow(): Promise<ReactNode> {
+  const t = await getTranslations("landing.flow");
+  const locale = toLocale(await getLocale());
+  const frames = await Promise.all(
+    FLOW_NODES.map(({ snippet }) =>
+      CodeFrame({
+        code: snippet.code,
+        lang: snippet.language,
+        filename: snippet.filename,
+        copy: { label: t("copy") },
+      }),
+    ),
+  );
+
+  return (
+    <Section band id="flow">
+      <SectionHead id={FLOW_HEADING_ID} title={t("heading")} lead={t("lead")} />
+      <FlowMotion>
+        <svg
+          className="vk-flow-rail"
+          aria-hidden="true"
+          focusable="false"
+          viewBox="0 0 2 100"
+          preserveAspectRatio="none"
+        >
+          <path className="vk-flow-track" d="M1 0V100" />
+          <path className="vk-flow-path" d="M1 0V100" />
+        </svg>
+        <PlainList ordered className="vk-flow-list">
+          {FLOW_NODES.map((node, index) => (
+            <li key={node.id} className="vk-flow-node" data-flow-node={node.id}>
+              <span className="vk-flow-mark" aria-hidden="true">
+                {index + 1}
+              </span>
+              <div className="vk-flow-text">
+                <h3 id={flowTitleId(node.id)} className="vk-h4 vk-flow-title">
+                  {t(`items.${node.id}.title`)}
+                </h3>
+                <p className="vk-flow-body">
+                  {withInlineCode(t(`items.${node.id}.body`, BODY_VALUES[node.id]))}
+                </p>
+                <p className="vk-flow-link">
+                  <IntentPrefetchLink
+                    href={localizedPath(locale, node.docsPath)}
+                    className="vk-prose-link inline-flex min-h-6 items-center"
+                  >
+                    {t(`items.${node.id}.link`)}
+                  </IntentPrefetchLink>
+                </p>
+              </div>
+              <div className="vk-flow-snippet">{frames[index]}</div>
+              {node.id === FLOW_DEMO_NODE ? (
+                <div className="vk-flow-demo">
+                  <p className="vk-flow-demo-lead">{t("items.incremental.demo")}</p>
+                  <div data-reveal="2" className="vk-showcase not-prose">
+                    <TryIt seed={showcaseSeed()} rows={showcaseRows()} />
+                  </div>
+                </div>
+              ) : null}
+            </li>
+          ))}
+        </PlainList>
+      </FlowMotion>
+    </Section>
+  );
+}

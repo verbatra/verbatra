@@ -1,13 +1,10 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { withoutInlineCode } from "@/lib/inline-code-text";
-import { LANDING_STEP_IDS } from "@/lib/landing-code";
 import { SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import en from "../messages/en.json";
 import { LANDING_LAST_UPDATED, NODE_RANGE } from "./site";
 import {
   breadcrumbListLd,
-  howToLd,
   ORGANIZATION_LOGO,
   organizationLd,
   SUPPORTED_AGENT_CLIENTS,
@@ -124,7 +121,8 @@ describe("softwareApplicationLd", () => {
     });
     const names = (result.hasPart as ReadonlyArray<{ name: string }>).map((part) => part.name);
     expect(names).toEqual(["Verbatra Studio", "Verbatra MCP server"]);
-    expect(en.landing.studio.heading).toContain("Verbatra Studio");
+    expect(en.landing.flow.items.studio.title).toContain("Verbatra Studio");
+    expect(en.landing.flow.items.mcp.body).toContain("Verbatra MCP server");
   });
 
   it("states the Node.js range of the published packages for the app and every part", () => {
@@ -213,30 +211,6 @@ describe("SUPPORTED_AGENT_CLIENTS", () => {
       }
     },
   );
-});
-
-describe("howToLd", () => {
-  it("lists the landing's check, translate and CI steps in order, with the code ticks dropped", () => {
-    const items = en.landing.steps.items;
-    const steps = LANDING_STEP_IDS.map((id) => ({
-      name: items[id].title,
-      text: withoutInlineCode(items[id].body),
-    }));
-    const data = howToLd({ name: en.landing.steps.heading, steps, lang: "en" });
-    expect(data).toMatchObject({
-      "@type": "HowTo",
-      name: en.landing.steps.heading,
-      inLanguage: "en",
-    });
-    const listed = data.step as ReadonlyArray<Record<string, unknown>>;
-    expect(listed.map((step) => [step.position, step.name])).toEqual([
-      [1, items.check.title],
-      [2, items.translate.title],
-      [3, items.ci.title],
-    ]);
-    expect(listed[0]?.text).not.toContain("`");
-    expect(listed[0]?.text).toContain("verbatra check");
-  });
 });
 
 describe("breadcrumbListLd", () => {

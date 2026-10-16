@@ -28,6 +28,7 @@ export const PlaygroundDemo = island(
   () => import("./playground-demo").then((m) => m.PlaygroundDemo),
   BLOCK,
 );
+export const FlowMotion = island(() => import("./flow-motion").then((m) => m.FlowMotion), BLOCK);
 export const TryIt = intlIsland(() => import("./try-it").then((m) => m.TryIt), BLOCK);
 export const LiveStatValue = island(() => import("./live-stat-value").then((m) => m.LiveStatValue));
 export const LiveStatFallback = island(() =>
@@ -35,10 +36,6 @@ export const LiveStatFallback = island(() =>
 );
 export const FaqAccordion = island(
   () => import("./faq-accordion").then((m) => m.FaqAccordion),
-  BLOCK,
-);
-export const StudioScreenshot = intlIsland(
-  () => import("@/components/studio-screenshot").then((m) => m.StudioScreenshot),
   BLOCK,
 );
 export const CommandRow = intlIsland(
@@ -56,11 +53,11 @@ await preloadIslands([
   CodeShowcaseTabs,
   MarqueeMotion,
   PlaygroundDemo,
+  FlowMotion,
   TryIt,
   LiveStatValue,
   LiveStatFallback,
   FaqAccordion,
-  StudioScreenshot,
   CommandRow,
   CopyButton,
 ]);

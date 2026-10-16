@@ -49,11 +49,14 @@ dashboard in `packages/studio` (different app, different stack), or anything out
   a `prefers-reduced-motion` opt-out.
   `gsap` 3.15.0 and `@gsap/react` 2.1.2 (the Standard "no charge" GSAP license, which the
   `/licenses` page and `THIRD_PARTY_NOTICES.md` print as written and link) are direct dependencies
-  with one consumer: the SDK playground's scramble. `lib/gsap.ts` registers `useGSAP` and
-  `ScrambleTextPlugin` once and is imported only by `components/landing/playground-scramble.tsx`,
+  with two consumers, each loading only its own plugins. `lib/gsap.ts` registers `useGSAP` once;
+  `lib/gsap-scramble.ts` adds `ScrambleTextPlugin` for `components/landing/playground-scramble.tsx`,
   which the playground island reaches through a dynamic `import()` on the first pointer, focus or
-  touch inside it (and on Translate), never on load and never under reduced motion. No other plugin
-  is registered.
+  touch inside it (and on Translate), and `lib/gsap-draw.ts` adds `ScrollTrigger` and
+  `DrawSVGPlugin` for `components/landing/flow-draw.tsx`, which the feature flow island reaches
+  through a dynamic `import()` once the flow comes within one viewport of the screen. Neither loads
+  on first paint or under reduced motion, and each is its own chunk, so the scramble chunk carries
+  no DrawSVG and the drawing chunk no ScrambleText. No other plugin is registered.
 - Tailwind 4 uses CSS-first configuration. There is no `tailwind.config.js`. Tokens are
   CSS custom properties in `app/global.css`, not a JS config object.
 - `app/global.css` opens with three imports in this order, and the order matters:
@@ -169,19 +172,20 @@ Scales are fixed and narrow, deliberately:
   `--grid-span` columns (the full row when unset), starting on `--grid-start` when set (the open
   source contributors start on column 9). `SectionHead` takes `layout`: `split` (the default, a
   `.vk-grid-12`: the heading block spans 8, the lead 4, bottom-aligned, so the lead starts on
-  column 9, the column where the problem list, the third step and the contributors start) or
+  column 9, the column where the problem list and the contributors start) or
   `stacked` (the lead under the heading on the first column, for a section whose content runs the
-  full row: the code showcase, the SDK playground and the Try it showcase). A head without a lead is always
-  stacked (features, comparison, FAQ), and Studio sets its heading beside the screenshot itself.
+  full row: the code showcase and the SDK playground). A head without a lead is always
+  stacked (features, comparison, FAQ).
   `section-bands.test.tsx` pins which section uses which, so the page never goes back to one head
   shape everywhere.
 - Landing surfaces: `--surface-band` (mixed from `--surface-card` and
   `--surface-bg`, never a raw value), the fill of `.vk-band`: `Section` with `band` renders a
   full-width `section.vk-band` (between two `--border-default` hairlines, `--section-sm` above it
   and `--section-md` padding inside) around the usual `.vk-gutter` column: the marquee under the
-  hero, how it works, the code showcase, the comparison and the FAQ are banded, the SDK playground
-  right after the marquee, the problem, features, Try it showcase, Studio and open source sections
-  sit on the void, the Try it showcase and Studio next to each other (`section-bands.test.tsx` pins the order). The hero draws its own
+  hero, the feature flow, the code showcase, the comparison and the FAQ are banded, the SDK
+  playground between the marquee and the flow, the problem, features and open source sections sit
+  on the void, and the code showcase and the comparison sit next to each other until the code
+  showcase retires (`section-bands.test.tsx` pins the order). The hero draws its own
   decorative dot backdrop and single glow (`.vk-banner-backdrop`, `.vk-banner-glow`, from the
   `--banner-*` tokens, lighter under `html.light`); there is no wash token.
 - Placeholder chip: `PlaceholderChip` (`components/landing/placeholder-chip.tsx`, the
@@ -276,8 +280,8 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   button, inside a shadcn composition or not, is the site button in `components/ui/button.tsx`; add a
   registry primitive only together with the code that uses it.
 - **Landing:** `components/landing/` holds one component per section. Their order on the page is
-  `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, marquee, playground, proofStrip, problem,
-  howItWorks, features, code, showcase, studio, compare, openSource, faq, finalCta), which the home page maps
+  `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, marquee, playground, flow, proofStrip,
+  problem, features, code, compare, openSource, faq, finalCta), which the home page maps
   over and `lib/landing-sections.test.ts` pins; add or move a section there, not by hand in
   `page.tsx`. The files: `hero.tsx` (the `h1`, the lead, the two quotable `landing.banner.quotes`
   sentences in `.vk-banner-summary`, two buttons, the `CommandPanel` install box, the locale diff
@@ -303,9 +307,8 @@ display threshold, and a figure the build could not fetch leaves its cell as a n
 an empty value, which `LiveStatFallback` still turns into the live figure once `/api/stats` answers;
 both figure links open a new tab and say so in an `sr-only` `landing.openSource.newTab`; the format count is
 `SUPPORTED_FORMAT_IDS.length`, never a typed number), `problem.tsx` (`#problem`, a real drift
-  artifact from `lib/landing-problem.ts`), `steps.tsx` (`#how-it-works`: check, translate and CI,
-  each with a server-highlighted snippet from `LANDING_STEP_CODE` in `lib/landing-code.ts`; the
-  HowTo structured data and the docs home `DocsHomeSteps` read the same `landing.steps.items`),
+  artifact from `lib/landing-problem.ts`), `flow.tsx` (`#flow`, the feature flow, see "Feature
+  flow" below),
   `bento.tsx` (`#features`, tiles from `lib/landing-bento.ts`, each with a real artifact and
   `Evidence` chips; the artifact stretches to the tile, so a row's panels end level. The provider
   tile is a `verbatra.config.ts` diff from one provider block to another (`BENTO_PROVIDER_DIFF`,
@@ -314,10 +317,8 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   (`BENTO_FORMAT_LINES`), so neither repeats the marquee lists), `code-showcase.tsx` (`#code`, CLI, SDK, config and Action tabs from
   `lib/landing-code.ts`, highlighted on the server by `lib/landing-highlight.ts` with dual themes
   and framed by `code-frame.tsx`), `playground.tsx` (`#playground`, the SDK playground, see
-  "SDK playground" below), `showcase.tsx` (the Try it playground, below), `marquee.tsx`
-  (`#marquee`, see "Marquee" below), `studio.tsx` (`#studio`, the real `StudioScreenshot` and the run
-  command; the screenshot follows the site theme after hydration until one of its tabs picks a
-  theme), `compare.tsx` (`#compare`, rows from `lib/landing-compare.ts`; a cell states the fact,
+  "SDK playground" below), `marquee.tsx`
+  (`#marquee`, see "Marquee" below), `compare.tsx` (`#compare`, rows from `lib/landing-compare.ts`; a cell states the fact,
   the mark carries yes, partial or no; the table scrolls sideways inside a focusable `section` named
   by its caption (`aria-labelledby`), with the row headers pinned, and while the column is narrower
   than the table a `landing.compare.scrollHint` line before it says so (not wired as a description,
@@ -382,8 +383,7 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   `verbatra translate` sends only those, each run closed by its literal `exit 1` / `exit 0`
   (`HERO_EXIT_LINES`, English on every locale, like all CLI output on the page);
   `lib/hero-terminal.run.test.ts` pins the lines to the CLI's renderer),
-  `showcase.tsx` (the playground section after the code showcase: a server `SectionHead` over a
-  `.vk-showcase` panel that holds the Try it playground alone, with no tabs), `try-it.tsx`
+  `try-it.tsx`
   (the Try it playground, one `.vk-showcase-try` grid: from 40rem a scenario bar
   (`.vk-showcase-bar`) over a two-by-two board, `en.json` | `de.json` above `verbatra.lock.json` |
   output, cells split by 1px hairlines; on a phone the bar is one column, the scenarios wrapping on
@@ -433,7 +433,7 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   column rather than growing past it; a linked chip takes the flat-panel glow border on hover and
   focus through `.vk-evidence-link`; an external one counts as `outbound-link` from `features`),
   `CommandRow` (`components/command-row.tsx`: the hero
-  panel's npm install wraps under 30rem through `wrap="narrow"`, the Studio run command wraps at every width through `wrap="always"`, since its text column is too narrow for it on a desktop; elsewhere a `CommandRow` scrolls
+  panel's npm install wraps under 30rem through `wrap="narrow"`, `wrap="always"` wraps a command at every width; elsewhere a `CommandRow` scrolls
   sideways inside `.vk-edge-fade`: a mask, not a painted background, so it stays see-through on any
   surface, and the end fade shows only while the command overflows, driven by a scroll timeline),
   `AiSetupPrompt` (`components/ai-setup-prompt.tsx`: the whole prompt, wrapped, under a `.vk-label`
@@ -502,8 +502,9 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   `grid-rows-subgrid`, so a wrapped title never shifts the body or the link out of line. A
   backticked span in a header or section lead renders in code type (`withInlineCode`,
   `lib/inline-code-text.tsx`; the landing sets a command or value in a step, a bento tile,
-  the showcase result and the closing install hint the same way, and `withoutInlineCode` drops the
-  backticks for the HowTo structured data), and a path card title keeps a hyphenated compound on
+  a flow node, the showcase result and the closing install hint the same way; the docs home
+  `DocsHomeSteps` reads `landing.steps.items`, the check, translate and CI steps, with
+  `LANDING_STEP_IDS`), and a path card title keeps a hyphenated compound on
   one line (`keepCompoundsWhole`, `lib/word-breaks.tsx`). `StackCards`
   (`components/stack-cards.tsx`) is the stack picker on the docs home and at the top of
   `pick-your-stack`: one borderless grid
@@ -548,11 +549,11 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
 
 The landing moves little, on purpose: the demos rise into place once as the visitor reaches them,
 the hero diff fills its two missing values once, the provider and format marquee loops until it is
-paused, the SDK playground scrambles its results once per Translate press, and nothing else on the
-page fades in.
-There is no pinning, no parallax, no scroll-scrubbing and no
-scroll listener; `motion` is reserved for client islands (see "The
-stack").
+paused, the SDK playground scrambles its results once per Translate press, the feature flow's
+path draws with the scroll, and nothing else on the page fades in.
+There is no pinning and no parallax. The flow's path is the only scroll-scrubbed motion and its
+`ScrollTrigger` the only scroll listener, both inside the lazily loaded drawing module; `motion` is
+reserved for client islands (see "The stack").
 
 - **Reveals.** One system: an element marked `data-reveal="<n>"` (`n` from 0 to 5) is hidden
   (opacity 0, `translate: 0 var(--reveal-distance)`) only while two things hold:
@@ -564,11 +565,11 @@ stack").
   shared `IntersectionObserver` (`rootMargin: 0px 0px -10% 0px`) that adds `data-revealed` and
   unobserves, so each element reveals once. Only the reveal transitions; hiding is instant. Focus
   moving into a block that has not revealed yet shows it at once (`:focus-within`). The delay is
-  `n * --reveal-stagger`, capped at `--reveal-delay-max`. Only the demo artifacts of five sections
-  carry a mark: the problem (its artifact, then its list), how it works, the bento grid, the code
-  showcase and the Try it showcase panel. No section heading reveals (`SectionHead` takes no reveal
-  prop), and the hero, marquee, SDK playground, proof strip, Studio, comparison, open source, FAQ
-  and closing panel never take a reveal; the hero diff's fill and the marquee loop below are their own
+  `n * --reveal-stagger`, capped at `--reveal-delay-max`. Only the demo artifacts of four sections
+  carry a mark: the Try it panel in the feature flow, the problem (its artifact, then its list), the
+  bento grid and the code showcase. No section heading reveals (`SectionHead` takes no reveal
+  prop), and the hero, marquee, SDK playground, proof strip, comparison, open source, FAQ
+  and closing panel never take a reveal; nothing else in the flow does either; the hero diff's fill and the marquee loop below are their own
   motions, not reveals. Elements keep their box while hidden, so a reveal never moves layout.
   `reveal-marks.test.tsx` pins which files carry marks and `motion-root.test.tsx` the observer and
   the stylesheet guards.
@@ -614,6 +615,30 @@ stack").
   none` and `.vk-playground-static`, a captioned table of every string and language in a
   `ScrollBlock`, shows instead. Links to `/docs/sdk-quickstart`, `/docs/sdk` and
   `/docs/providers` close the section. `e2e/playground.spec.ts` pins the browser behaviour.
+- **Feature flow.** `flow.tsx` (`#flow`, a band right after the SDK playground, a split head whose
+  `h2` is `landing.flow.heading`) is one `ol.vk-flow-list`, one `li.vk-flow-node` per entry of
+  `FLOW_NODES` in `lib/landing-flow.ts`: an `h3`, two sentences, one docs link and one `CodeFrame`
+  snippet, each snippet taken from its source and pinned to it by `flow.test.tsx` (the next-intl
+  sample from the real adapter, CLI commands and flags that `@verbatra/cli` 0.11.1 registers, the
+  SDK quickstart call, the GitHub Action guide's workflow with `CHECKOUT_ACTION_REF`,
+  `VERBATRA_ACTION_REF` and `PACKAGE_VERSION`, `check` with the exit codes of `checkExitCode`,
+  `STUDIO_RUN_COMMAND`, and the Claude Code `.mcp.json` block of the MCP client guide). The
+  incremental node also holds the Try it playground (`.vk-flow-demo`: the moved showcase lead,
+  then the `.vk-showcase` panel), spanning the full row at every width, since its board needs the
+  full width. From 64rem a node is three columns, snippet, rail and text; below that the rail sits
+  on the start edge with the text and snippet stacked beside it. One `aria-hidden` SVG
+  (`.vk-flow-rail`, `preserveAspectRatio="none"`) holds a `--border-default` track and the
+  `--accent-fill` path, and each node has an `aria-hidden` numbered `.vk-flow-mark` on the rail.
+  The server HTML is the drawn state: the path whole and every mark filled. The `FlowMotion`
+  island (`flow-motion.tsx`) imports `flow-draw.tsx` once the flow comes within one viewport, after
+  the first contentful paint and never under reduced motion. Its `FlowDraw` runs, inside
+  `useGSAP({ scope })` and a `gsap.matchMedia` on `(prefers-reduced-motion: no-preference)`, one
+  DrawSVG tween from `0%` to `100%` scrubbed by a `ScrollTrigger` on the list (start `top 80%`, end
+  `bottom 60%`, no pin), sets `data-flow="drawing"` on `.vk-flow` and gives each mark
+  `data-revealed` once the drawn length reaches it; only then is an unreached mark hollow, its fill
+  fading by `opacity`. Reverting (unmount or reduced motion turning on) restores the drawn state.
+  No release badge is needed in the flow: every node works with the published packages, and any
+  later badge comes from `RELEASE_BADGE`. `e2e/flow.spec.ts` pins the browser behaviour.
 - **No section eyebrows.** A landing section opens with its `h2`; nothing sits above it, no
   index and no label word. `reveal-marks.test.tsx` fails on a `.vk-eyebrow` style.
 - **Version pill.** On the landing only (the `landingLocale` gate in `lib/i18n.ts`), `HomeSiteHeader` passes
@@ -627,8 +652,9 @@ stack").
   name is `landing.nav.version.label`, which contains the visible text. `.vk-version-pill` is
   `display: none` under 768px. `lib/layout.shared.test.tsx` pins it.
 - **Budget.** Layout shift 0 over a full scroll at 390, 1440 and a 844 by 390 landscape phone; no
-  scroll listener; at most one reveal chain per section, and only in the five demo sections (the
-  hero diff fill and the marquee loop are not reveals); no entrance over 16px or 600ms.
+  scroll listener outside the flow's `ScrollTrigger`; at most one reveal chain per section, and only
+  in the four demo sections (the hero diff fill, the marquee loop and the flow drawing are not
+  reveals); no entrance over 16px or 600ms.
 
 ## Keep the client payload small
 
@@ -710,9 +736,10 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
 - Keep both `next/font` families preloaded. Every one of them sets text in the first
   viewport, so it is fetched before the first paint either way; without the preload it is only
   discovered after the stylesheet, at a higher priority that delays the first contentful paint.
-- `gsap` only through the playground's dynamic `import()` of `playground-scramble.tsx` (see "The
-  stack"): the island chunk itself (`playground-demo.tsx`) imports only its types, so GSAP is in
-  neither the first load nor the island batch, and `playground.test.tsx` fails on a static import.
+- `gsap` only through the playground's dynamic `import()` of `playground-scramble.tsx` and the
+  flow's dynamic `import()` of `flow-draw.tsx` (see "The stack"): the island chunks themselves
+  (`playground-demo.tsx`, `flow-motion.tsx`) import no GSAP, so it is in neither the first load nor
+  the island batch, and `playground.test.tsx` and `flow.test.tsx` fail on a static import.
 - Content only needed after an interaction is loaded with a dynamic `import()` on hover, focus,
   or click. The AI setup prompt is not: it is short, and its text ships in the page, in the hero
   command panel's Prompt tab and the `PromptCopyButton` preview.

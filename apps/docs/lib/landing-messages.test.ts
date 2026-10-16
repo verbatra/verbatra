@@ -53,6 +53,7 @@ describe("landing message parity", () => {
       "landing.stats.stars",
       "landing.problem.heading",
       "landing.steps.items.ci.title",
+      "landing.flow.items.check.body",
       "landing.bento.items.keys.title",
       "landing.code.tabs.action",
       "landing.showcase.tryIt.result.summary",
@@ -60,7 +61,6 @@ describe("landing message parity", () => {
       "landing.marquee.pause",
       "landing.playground.label",
       "landing.playground.languageNames.ja",
-      "landing.studio.cta",
       "landing.compare.rows.changedOnly.verbatra",
       "landing.openSource.license",
       "landing.closing.heading",
@@ -94,6 +94,11 @@ describe("landing message parity", () => {
     "banner.exitCode",
     "code.copied",
     "code.copyFailed",
+    "steps.heading",
+    "steps.lead",
+    "showcase.heading",
+    "showcase.lead",
+    "studio",
   ])("keeps no landing.%s message from a retired section", (path) => {
     for (const locale of i18n.languages) {
       expect(() => landingText(locale, path), locale).toThrow();
@@ -160,12 +165,10 @@ describe("landing message parity", () => {
     for (const locale of i18n.languages) {
       for (const path of [
         "problem.heading",
-        "steps.heading",
+        "flow.heading",
         "bento.heading",
         "code.heading",
-        "showcase.heading",
         "marquee.heading",
-        "studio.heading",
         "compare.heading",
         "openSource.heading",
         "faq.heading",

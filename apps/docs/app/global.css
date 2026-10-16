@@ -2018,10 +2018,6 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 }
 
 @media (min-width: 64rem) {
-  .vk-showcase-section {
-    --section-rhythm: 2.5rem;
-  }
-
   .vk-showcase-bar {
     box-sizing: border-box;
     height: var(--showcase-bar-height);
@@ -2034,6 +2030,167 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 
   .vk-showcase-savings {
     min-height: 0;
+  }
+}
+
+.vk-flow {
+  --flow-rail: 2.5rem;
+  --flow-mark-size: 1.75rem;
+  --flow-node-gap: 3.5rem;
+  position: relative;
+  margin-top: 2.5rem;
+}
+
+.vk-flow-list {
+  display: grid;
+  gap: var(--flow-node-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vk-flow-node {
+  display: grid;
+  grid-template-columns: var(--flow-rail) minmax(0, 1fr);
+  grid-template-areas:
+    "mark text"
+    ". snippet"
+    "demo demo";
+  column-gap: 0.75rem;
+  row-gap: 1.25rem;
+  align-items: start;
+}
+
+.vk-flow-rail {
+  position: absolute;
+  top: calc(var(--flow-mark-size) / 2);
+  inset-inline-start: calc(var(--flow-rail) / 2 - 1px);
+  width: 2px;
+  height: calc(100% - var(--flow-mark-size) / 2);
+  overflow: visible;
+  pointer-events: none;
+}
+
+.vk-flow-track,
+.vk-flow-path {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: butt;
+}
+
+.vk-flow-track {
+  stroke: var(--border-default);
+}
+
+.vk-flow-path {
+  stroke: var(--accent-fill);
+}
+
+.vk-flow-mark {
+  grid-area: mark;
+  position: relative;
+  z-index: 1;
+  isolation: isolate;
+  display: inline-grid;
+  place-items: center;
+  justify-self: center;
+  width: var(--flow-mark-size);
+  height: var(--flow-mark-size);
+  border: 1px solid var(--accent-fill);
+  border-radius: var(--radius-full);
+  background: var(--surface-band);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: 1;
+  color: var(--accent-fill-fg);
+}
+
+.vk-flow-mark::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--accent-fill);
+}
+
+.vk-flow[data-flow="drawing"] .vk-flow-mark:not([data-revealed]) {
+  border-color: var(--text-faint);
+  color: var(--text-muted);
+}
+
+.vk-flow[data-flow="drawing"] .vk-flow-mark:not([data-revealed])::before {
+  opacity: 0;
+}
+
+.vk-flow-text {
+  grid-area: text;
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+  padding-top: 0.125rem;
+}
+
+.vk-flow-title {
+  margin: 0;
+}
+
+.vk-flow-body {
+  margin: 0;
+  max-width: 46ch;
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  color: var(--text-muted);
+}
+
+.vk-flow-link {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.vk-flow-snippet {
+  grid-area: snippet;
+  min-width: 0;
+}
+
+.vk-flow-demo {
+  grid-area: demo;
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+
+.vk-flow-demo-lead {
+  margin: 0;
+  max-width: 56ch;
+  padding-inline-start: calc(var(--flow-rail) + 0.75rem);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  color: var(--text-muted);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .vk-flow-mark::before {
+    transition: opacity var(--duration-base) var(--ease-out);
+  }
+}
+
+@media (min-width: 64rem) {
+  .vk-flow-node {
+    grid-template-columns: minmax(0, 1fr) var(--flow-rail) minmax(0, 1fr);
+    grid-template-areas:
+      "snippet mark text"
+      "demo demo demo";
+    column-gap: var(--grid-gap);
+    row-gap: 1.75rem;
+  }
+
+  .vk-flow-rail {
+    inset-inline-start: calc(50% - 1px);
+  }
+
+  .vk-flow-demo-lead {
+    padding-inline-start: 0;
   }
 }
 

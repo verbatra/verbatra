@@ -1,7 +1,6 @@
 import { useGSAP } from "@gsap/react";
 import { gsap } from "gsap";
-import { ScrambleTextPlugin } from "gsap/ScrambleTextPlugin";
 
-gsap.registerPlugin(useGSAP, ScrambleTextPlugin);
+gsap.registerPlugin(useGSAP);
 
 export { gsap, useGSAP };

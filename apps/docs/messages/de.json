@@ -132,8 +132,6 @@
       }
     },
     "showcase": {
-      "heading": "Sieh es in Aktion.",
-      "lead": "Wähle unten eine Änderung an einer Locale-Datei. Verbatras eigener Diff- und Hash-Code zeigt in deinem Browser, welche Keys ein Lauf senden würde, und übersetzt nichts.",
       "tryIt": {
         "scenariosLabel": "Ändere die englische Datei",
         "scenarios": {
@@ -260,6 +258,49 @@
         "providers": "Provider"
       }
     },
+    "flow": {
+      "heading": "So greifen die Teile ineinander.",
+      "lead": "Eine Konfigurationsdatei trägt eine Änderung von deiner Quell-Locale über CLI, CI und Review bis zum Coding-Agenten in deinem Editor.",
+      "copy": "Code kopieren",
+      "items": {
+        "source": {
+          "title": "Starte bei deiner Quell-Locale",
+          "body": "Verbatra liest die Locale-Dateien, die du schon in deinem Repository pflegst, im eigenen Format deines Frameworks. Die Quell-Locale bleibt die eine Datei, die du von Hand bearbeitest.",
+          "link": "Unterstützte Formate"
+        },
+        "cli": {
+          "title": "Mit der CLI synchronisieren",
+          "body": "`init` schreibt die Konfiguration, und ein Probelauf listet die Keys, die ein Lauf senden würde, ohne einen Provider aufzurufen. Danach füllt `translate` jeden fehlenden und geänderten Key in jeder Ziel-Locale.",
+          "link": "Der Befehl translate"
+        },
+        "incremental": {
+          "title": "Nur übersetzen, was sich geändert hat",
+          "body": "Die Lock-Datei speichert für jeden übersetzten Key einen Hash, also überspringt ein Lauf Erledigtes und schickt nur neue oder bearbeitete Keys. Das SDK führt dieselbe inkrementelle Schleife aus deinem eigenen Skript aus.",
+          "link": "SDK-Schnellstart",
+          "demo": "Wähle unten eine Änderung an einer Locale-Datei. Verbatras eigener Diff- und Hash-Code zeigt in deinem Browser, welche Keys ein Lauf senden würde, und übersetzt nichts."
+        },
+        "action": {
+          "title": "In GitHub Actions übersetzen",
+          "body": "Die Action installiert genau die CLI-Version, die du festlegst, und führt `translate` bei jedem Push auf main aus. Dein Provider-Key kommt aus einem Repository-Secret und wird nie als Input übergeben.",
+          "link": "Anleitung zur GitHub Action"
+        },
+        "check": {
+          "title": "Pull Requests bei Drift scheitern lassen",
+          "body": "`check` ruft keinen Provider auf und braucht keinen Key, kann also jeden Pull Request absichern. Der Exit-Code ist {fail}, solange ein Key fehlt oder veraltet ist, {ok}, sobald jede Locale synchron ist, und {usage} bei einem Aufruf- oder Konfigurationsfehler.",
+          "link": "CI und Exit-Codes"
+        },
+        "studio": {
+          "title": "In Verbatra Studio prüfen",
+          "body": "Ein lokales Dashboard über deinem Projekt. Es zeigt, wo jede Locale steht, und du korrigierst eine Übersetzung an Ort und Stelle.",
+          "link": "Anleitung zu Studio lesen"
+        },
+        "mcp": {
+          "title": "Übergib es deinem Coding-Agenten",
+          "body": "Füge diesen Block in `.mcp.json` ein, dann startet Claude Code den Verbatra MCP-Server über stdio. Dein Agent kann dann den Übersetzungsstatus prüfen, das Glossar nutzen und eine Übersetzung an Ort und Stelle korrigieren.",
+          "link": "Einen MCP-Client verbinden"
+        }
+      }
+    },
     "stats": {
       "label": "Verbatra in Zahlen",
       "stars": "GitHub-Sterne",
@@ -288,8 +329,6 @@
       }
     },
     "steps": {
-      "heading": "Erst prüfen, dann nur die Lücken übersetzen.",
-      "lead": "Eine Lock-Datei in deinem Repository hält fest, was schon übersetzt ist. So weiß jeder Lauf, welche Keys neu oder geändert sind.",
       "items": {
         "check": {
           "title": "Prüfen",
@@ -361,17 +400,6 @@
         "action": "Anleitung zur GitHub Action"
       },
       "copy": "Code kopieren"
-    },
-    "studio": {
-      "heading": "Prüfe jede Locale in Verbatra Studio.",
-      "lead": "Ein lokales Dashboard über deinem Projekt. Es zeigt, wo jede Locale steht, und du korrigierst eine Übersetzung an Ort und Stelle.",
-      "points": {
-        "coverage": "Sieh, welche Keys in jeder Locale fehlen, sich geändert haben oder zur Prüfung markiert sind.",
-        "edit": "Bearbeite einen Wert an Ort und Stelle. Er durchläuft dieselbe Integritätsprüfung, bevor er geschrieben wird.",
-        "local": "Starte es mit `verbatra studio`. Es ruft keinen Provider auf, außer du ergänzt `--allow-spend`."
-      },
-      "cta": "Anleitung zu Studio lesen",
-      "alt": "Die Review-Seite in Verbatra Studio mit fünf markierten Einträgen über die Locales de, es und fr; jede Zeile zeigt den Key, seine Review-Gründe und die Aktionen Edit, Approve und Reject."
     },
     "compare": {
       "heading": "So schneidet Verbatra im Vergleich ab.",

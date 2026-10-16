@@ -12,8 +12,6 @@ import {
   LANDING_SDK_IMPORTS,
   LANDING_SHOWCASE_CODE,
   LANDING_SHOWCASE_TABS,
-  LANDING_STEP_CODE,
-  LANDING_STEP_IDS,
   VERBATRA_ACTION_REF,
 } from "@/lib/landing-code";
 import { PACKAGE_VERSION } from "@/lib/site";
@@ -35,7 +33,7 @@ function sdkImports(code: string): ReadonlyArray<string> {
   );
 }
 
-const samples = [...Object.values(LANDING_SHOWCASE_CODE), ...Object.values(LANDING_STEP_CODE)];
+const samples = Object.values(LANDING_SHOWCASE_CODE);
 
 let cwd: string | undefined;
 
@@ -45,9 +43,8 @@ afterEach(async () => {
 });
 
 describe("the landing code samples", () => {
-  it("has one sample per showcase tab and per step", () => {
+  it("has one sample per showcase tab", () => {
     expect(Object.keys(LANDING_SHOWCASE_CODE)).toEqual([...LANDING_SHOWCASE_TABS]);
-    expect(Object.keys(LANDING_STEP_CODE)).toEqual([...LANDING_STEP_IDS]);
   });
 
   it("imports only runtime exports the sdk has", () => {
@@ -95,12 +92,10 @@ describe("the landing code samples", () => {
     }
     expect(action).not.toMatch(/@v\d/);
     expect(VERBATRA_ACTION_REF).toMatch(/ # v1\./);
-    expect(LANDING_STEP_CODE.ci.code).toContain(`uses: ${VERBATRA_ACTION_REF}\n`);
+    expect(action).toContain(`uses: ${VERBATRA_ACTION_REF}\n`);
     expect(PACKAGE_VERSION).toMatch(/^\d+\.\d+\.\d+$/);
-    for (const code of [action, LANDING_STEP_CODE.ci.code]) {
-      expect(code).toContain(`version: ${PACKAGE_VERSION}\n`);
-      expect(code).toContain("command: check\n");
-    }
+    expect(action).toContain(`version: ${PACKAGE_VERSION}\n`);
+    expect(action).toContain("command: check\n");
   });
 
   it("starts the CLI tab with the install command the rest of the site uses", () => {

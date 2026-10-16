@@ -7,26 +7,18 @@ const SECTION_FILES: Readonly<Record<LandingSectionId, string>> = {
   hero: "hero.tsx",
   marquee: "marquee.tsx",
   playground: "playground.tsx",
+  flow: "flow.tsx",
   proofStrip: "proof-strip.tsx",
   problem: "problem.tsx",
-  howItWorks: "steps.tsx",
   features: "bento.tsx",
   code: "code-showcase.tsx",
-  showcase: "showcase.tsx",
-  studio: "studio.tsx",
   compare: "compare.tsx",
   openSource: "open-source.tsx",
   faq: "faq.tsx",
   finalCta: "final-cta.tsx",
 };
 
-const REVEALED: ReadonlyArray<LandingSectionId> = [
-  "problem",
-  "howItWorks",
-  "features",
-  "code",
-  "showcase",
-];
+const REVEALED: ReadonlyArray<LandingSectionId> = ["flow", "problem", "features", "code"];
 
 function source(file: string): string {
   return readFileSync(join(import.meta.dirname, file), "utf8");
@@ -59,9 +51,11 @@ describe("landing reveal marks", () => {
     expect(source("section-head.tsx")).not.toContain("data-reveal");
   });
 
-  it("reveals the showcase playground as one block and nothing inside it", () => {
-    expect(revealMarks("showcase.tsx")).toEqual([2]);
+  it("reveals the Try it playground in the flow as one block and nothing inside it", () => {
+    expect(revealMarks("flow.tsx")).toEqual([2]);
     expect(source("try-it.tsx")).not.toContain("data-reveal");
+    expect(source("flow-motion.tsx")).not.toContain("data-reveal");
+    expect(source("flow-draw.tsx")).not.toMatch(/data-reveal(?!ed)/);
   });
 
   it("ships no numbered eyebrow style or section index", () => {

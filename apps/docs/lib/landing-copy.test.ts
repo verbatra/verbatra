@@ -2,8 +2,9 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { i18n } from "@/lib/i18n";
-import { LANDING_SHOWCASE_TABS, LANDING_STEP_IDS } from "@/lib/landing-code";
+import { LANDING_SHOWCASE_TABS } from "@/lib/landing-code";
 import { COMPARE_COLUMNS, COMPARE_ROWS } from "@/lib/landing-compare";
+import { FLOW_NODES } from "@/lib/landing-flow";
 
 const NAMESPACES = [
   "topNav",
@@ -11,12 +12,11 @@ const NAMESPACES = [
   "facts",
   "marquee",
   "playground",
+  "flow",
   "stats",
   "problem",
-  "steps",
   "bento",
   "code",
-  "studio",
   "compare",
   "openSource",
   "closing",
@@ -88,8 +88,10 @@ describe("the redesigned landing copy", () => {
     }
   });
 
-  it("titles one step per step snippet", () => {
-    expect(Object.keys(branch(landing("en"), "steps.items"))).toEqual([...LANDING_STEP_IDS]);
+  it("titles one flow node per flow snippet", () => {
+    expect(Object.keys(branch(landing("en"), "flow.items"))).toEqual(
+      FLOW_NODES.map((node) => node.id),
+    );
   });
 
   it("labels every comparison row and cell the table holds", () => {

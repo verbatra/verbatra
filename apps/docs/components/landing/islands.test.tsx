@@ -21,6 +21,7 @@ const ISLAND_MODULES = [
   "./code-showcase-tabs",
   "./marquee-motion",
   "./playground-demo",
+  "./flow-motion",
   "./try-it",
   "./live-stat-value",
   "./faq-accordion",
