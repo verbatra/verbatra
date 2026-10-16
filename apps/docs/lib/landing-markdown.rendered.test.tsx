@@ -89,7 +89,6 @@ const SKIPPED = [
   "script",
   "[data-playground-demo]",
   ".vk-showcase",
-  ".vk-marquee-viewport li",
   ".vk-compare-hint",
   ".vk-hero-diff-mark",
   "[data-footnotes]",
