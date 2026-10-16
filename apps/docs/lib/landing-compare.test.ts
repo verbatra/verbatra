@@ -1,9 +1,6 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { headingSlugs } from "@/lib/heading-slugs";
-import { i18n, type Locale } from "@/lib/i18n";
+import { i18n } from "@/lib/i18n";
 import {
   COMPARE_LAST_CHECKED,
   COMPARE_ROWS,
@@ -18,20 +15,7 @@ import {
   SHORT_ROWS,
   shortCellFootnotes,
 } from "@/lib/landing-compare";
-
-const CONTENT = fileURLToPath(new URL("../content/docs", import.meta.url));
-
-function pageSource(page: string, locale: Locale): string {
-  const suffix = locale === i18n.defaultLanguage ? "" : `.${locale}`;
-  const slug = page.replace(/^\/docs\/?/, "");
-  const wanted =
-    slug === "" ? [`index${suffix}.mdx`] : [`${slug}${suffix}.mdx`, `${slug}/index${suffix}.mdx`];
-  const file = readdirSync(CONTENT, { recursive: true, encoding: "utf8" }).find((entry) =>
-    wanted.includes(entry.replace(/\([^)]+\)\//g, "")),
-  );
-  if (!file) throw new Error(`no ${wanted.join(" or ")} under ${CONTENT}`);
-  return readFileSync(join(CONTENT, file), "utf8");
-}
+import { docsPageSource } from "@/test-support/docs-page-source";
 
 function expectResolvable(link: CompareSourceLink, label: string): void {
   if (typeof link === "string") {
@@ -41,7 +25,7 @@ function expectResolvable(link: CompareSourceLink, label: string): void {
   }
   for (const locale of i18n.languages) {
     const anchor = link.anchors?.[locale];
-    const source = pageSource(link.page, locale);
+    const source = docsPageSource(link.page, locale);
     if (anchor !== undefined) expect(headingSlugs(source), `${label} ${locale}`).toContain(anchor);
   }
 }
@@ -107,7 +91,17 @@ describe("the comparison data", () => {
     expect(CONCESSION_FOOTNOTES).toEqual([34, 58, 70, 82, 10, 11]);
   });
 
-  it("dates the check as an ISO day", () => {
-    expect(COMPARE_LAST_CHECKED).toBe("2026-10-15");
+  it("dates the check as a real ISO day", () => {
+    expect(COMPARE_LAST_CHECKED).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(
+      new Date(Date.parse(`${COMPARE_LAST_CHECKED}T00:00:00Z`)).toISOString().slice(0, 10),
+    ).toBe(COMPARE_LAST_CHECKED);
+  });
+
+  it("refuses a source number outside the list", () => {
+    expect(() => compareSource(0)).toThrow("no comparison source 0");
+    expect(() => compareSource(COMPARE_SOURCE_COUNT + 1)).toThrow(
+      `no comparison source ${COMPARE_SOURCE_COUNT + 1}`,
+    );
   });
 });

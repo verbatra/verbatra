@@ -127,11 +127,21 @@ describe("the redesigned landing copy", () => {
       for (const [key, text] of leaves(tree)) expect(text, key).not.toMatch(/ [;:?!]/);
   });
 
-  it("never rates a competitor in a comparison cell", () => {
-    const rows = branch(landing("en"), "compare.rows");
-    for (const [key, text] of leaves(rows))
-      expect(text, key).not.toMatch(/\b(better|worse|best|only tool|lacks)\b/i);
-  });
+  const RATINGS: Readonly<Record<string, RegExp>> = {
+    en: /\b(better|worse|best|only tool|lacks)\b/i,
+    de: /\b(besser|schlechter|beste[nrs]?|einzige[ns]? Tool|fehlt)\b/i,
+    es: /\b(mejor|peor|única herramienta|carece)\b/i,
+    fr: /\b(meilleur|pire|seul outil|manque)\b/i,
+  };
+
+  for (const locale of i18n.languages) {
+    it(`never rates a competitor in a ${locale} comparison cell`, () => {
+      const rating = RATINGS[locale];
+      if (!rating) throw new Error(`no rating words for ${locale}`);
+      for (const [key, text] of leaves(branch(landing(locale), "compare.rows")))
+        expect(text, key).not.toMatch(rating);
+    });
+  }
 
   it("names no sync command, which verbatra does not have", () => {
     for (const [key, text] of source) expect(text, key).not.toMatch(/verbatra sync\b/);

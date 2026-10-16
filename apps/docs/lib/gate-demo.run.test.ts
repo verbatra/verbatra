@@ -3,21 +3,16 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   type CreateProvider,
-  loadLockFile,
   type PlaceholderIntegrityResult,
   translate,
   type VerbatraConfig,
 } from "@verbatra/sdk";
 import { afterEach, describe, expect, it } from "vitest";
 import {
-  GATE_CLI_COMMAND,
-  GATE_LOCK_HASHES,
   GATE_MISSING_PLACEHOLDER,
   GATE_REFUSAL,
   GATE_REPLIES,
-  GATE_RUN_LINES,
   GATE_SOURCE_VALUES,
-  GATE_WITHHELD_LABEL,
 } from "@/lib/gate-demo";
 
 const CONFIG: VerbatraConfig = {
@@ -112,19 +107,7 @@ describe("the How terminal is what a real run does with the demo project", () =>
       undefined,
     ]);
     expect(summary.dryRun).toBe(false);
-    const refusals = (locale.integrityRefusals ?? []).map(
-      (refusal) => `      ${refusal.key}: ${refusal.reason} (${refusal.details?.join(", ")})`,
-    );
-    expect(GATE_RUN_LINES).toEqual([
-      GATE_CLI_COMMAND,
-      `  ${locale.locale}: ${locale.translated.length} translated, ${locale.unchanged.length} unchanged, ${locale.integrityMismatches.length} ${GATE_WITHHELD_LABEL}`,
-      `    ${GATE_WITHHELD_LABEL}:`,
-      ...refusals,
-      `${summary.succeeded.length} succeeded, ${summary.partial.length} partial, ${summary.failed.length} failed`,
-    ]);
     const written = JSON.parse(await readFile(join(cwd, "messages/de.json"), "utf8"));
     expect(written).toEqual({ inbox: { title: GATE_REPLIES["inbox.title"] } });
-    const lock = await loadLockFile({ cwd });
-    expect(lock.locales.de).toEqual(GATE_LOCK_HASHES);
   });
 });

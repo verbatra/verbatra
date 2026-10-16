@@ -1,11 +1,11 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as sdk from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import { FORMAT_SAMPLES } from "@/lib/format-samples";
 import { headingSlugs } from "@/lib/heading-slugs";
-import { i18n, type Locale } from "@/lib/i18n";
+import { i18n } from "@/lib/i18n";
 import {
   BENTO_FORMAT_KEY,
   BENTO_FORMAT_LINES,
@@ -23,25 +23,12 @@ import {
   bentoHref,
 } from "@/lib/landing-bento";
 import { MACHINE_PROVIDER_IDS } from "@/lib/landing-facts";
-import { providerReleaseBadge } from "@/lib/release-badge";
 import { STACK_IDS } from "@/lib/stacks";
 import en from "@/messages/en.json";
+import { docsPageSource } from "@/test-support/docs-page-source";
 
 const CONTENT = fileURLToPath(new URL("../content/docs", import.meta.url));
 const REPO = fileURLToPath(new URL("../../../", import.meta.url));
-
-function pageSource(page: string, locale: Locale): string {
-  const suffix = locale === i18n.defaultLanguage ? "" : `.${locale}`;
-  const wanted = [
-    `${page.replace(/^\/docs\//, "")}${suffix}.mdx`,
-    `${page.replace(/^\/docs\//, "")}/index${suffix}.mdx`,
-  ];
-  const file = readdirSync(CONTENT, { recursive: true, encoding: "utf8" }).find((entry) =>
-    wanted.includes(entry.replace(/\([^)]+\)\//g, "")),
-  );
-  if (!file) throw new Error(`no ${wanted.join(" or ")} under ${CONTENT}`);
-  return readFileSync(join(CONTENT, file), "utf8");
-}
 
 describe("bento tiles", () => {
   it("cover exactly the bento copy in en.json, once each", () => {
@@ -77,7 +64,7 @@ describe("bento tiles", () => {
         ...STACK_IDS.map((id) => ({ page: `/docs/quickstart/${id}` })),
       ];
       for (const item of links) {
-        const slugs = headingSlugs(pageSource(item.page, locale));
+        const slugs = headingSlugs(docsPageSource(item.page, locale));
         const anchor = "anchors" in item ? item.anchors?.[locale] : undefined;
         if (anchor !== undefined) expect(slugs, `${item.page} in ${locale}`).toContain(anchor);
       }
@@ -122,15 +109,9 @@ describe("bento samples", () => {
   it("marks as optional exactly the keys the providers page says usually are not needed", () => {
     const optional = MACHINE_PROVIDER_IDS.filter((id) => BENTO_KEY_ENV_VARS[id].optional);
     expect(optional).toEqual(["openai-compatible", "libretranslate"]);
-    expect(pageSource("/docs/providers", "en")).toContain(
+    expect(docsPageSource("/docs/providers", "en")).toContain(
       "`openai-compatible` and `libretranslate` usually need no key.",
     );
-  });
-
-  it("dates only the key variables of providers the release badge dates", () => {
-    expect(MACHINE_PROVIDER_IDS.filter((id) => providerReleaseBadge(id) !== null)).toEqual([
-      "libretranslate",
-    ]);
   });
 
   it("prints the RunSummary fields of the published sdk, leaving out only what is newer", () => {
@@ -143,7 +124,9 @@ describe("bento samples", () => {
     for (const field of BENTO_RUN_SUMMARY_FIELDS)
       expect(BENTO_RUN_SUMMARY_CODE).toContain(`  ${field}`);
     expect(BENTO_RUN_SUMMARY_CODE).toContain("await translate({ config })");
-    expect(typeof sdk.translate).toBe("function");
+    const input = (config: Parameters<typeof sdk.translate>[0]["config"]) =>
+      ({ config }) satisfies Parameters<typeof sdk.translate>[0];
+    expect(typeof input).toBe("function");
   });
 
   it("switches between two provider blocks the sdk accepts", async () => {

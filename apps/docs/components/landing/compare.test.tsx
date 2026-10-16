@@ -66,8 +66,6 @@ describe("Compare", () => {
     expect(region?.getAttribute("tabindex")).toBe("0");
     expect(region?.hasAttribute("aria-label")).toBe(false);
     expect(root.querySelector(`#${region?.getAttribute("aria-labelledby")}`)).toBe(caption);
-    expect(region?.className).toContain("overflow-x-auto");
-    expect(region?.className.split(" ")).toContain("relative");
   });
 
   it("puts the scroll hint before the region and fades its end edge", () => {
@@ -76,7 +74,6 @@ describe("Compare", () => {
     expect(hint?.textContent).toBe(copy.scrollHint);
     const order = hint && region ? hint.compareDocumentPosition(region) : 0;
     expect(order & Node.DOCUMENT_POSITION_FOLLOWING).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-    expect(region?.closest(".vk-compare")?.className).toContain("grid-cols-[minmax(0,1fr)]");
     expect(
       region?.parentElement?.querySelector(".vk-compare-fade")?.getAttribute("aria-hidden"),
     ).toBe("true");

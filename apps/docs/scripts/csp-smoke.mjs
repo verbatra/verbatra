@@ -5,6 +5,8 @@ const baseUrl = process.argv[2] ?? "http://localhost:3000";
 const PAGES = [
   { path: "/", html: true },
   { path: "/de", html: true },
+  { path: "/compare", html: true },
+  { path: "/fr/compare", html: true },
   { path: "/docs", html: true, search: true },
   { path: "/docs/quickstart", html: true },
   { path: "/fr/docs/quickstart", html: true },
