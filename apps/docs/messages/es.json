@@ -627,6 +627,9 @@
       "lead": "Una ejecución de prueba no necesita clave de API, no escribe nada y lista exactamente las claves que enviaría una ejecución real.",
       "primary": "Empezar",
       "secondary": "Ver en GitHub"
+    },
+    "fab": {
+      "label": "Volver arriba"
     }
   },
   "compare": {

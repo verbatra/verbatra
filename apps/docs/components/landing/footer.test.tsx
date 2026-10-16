@@ -130,7 +130,7 @@ describe("FullFooter", () => {
     const source = readFileSync(join(process.cwd(), "components/landing/footer.tsx"), "utf8");
     expect(source).not.toContain("gradient");
     const css = readFileSync(join(process.cwd(), "app/global.css"), "utf8");
-    const start = css.indexOf(".vk-footer {");
+    const start = css.indexOf("\n.vk-footer {");
     const rule = css.slice(start, css.indexOf("}", start));
     expect(rule).toContain("background: var(--surface-band);");
     expect(rule).toContain("border-top: 1px solid var(--border-default);");

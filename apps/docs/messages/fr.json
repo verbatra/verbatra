@@ -627,6 +627,9 @@
       "lead": "Une exécution à blanc n’a besoin d’aucune clé d’API, n’écrit rien et liste exactement les clés qu’une vraie exécution enverrait.",
       "primary": "Démarrer",
       "secondary": "Voir sur GitHub"
+    },
+    "fab": {
+      "label": "Retour en haut"
     }
   },
   "compare": {

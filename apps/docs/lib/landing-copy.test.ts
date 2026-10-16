@@ -20,6 +20,7 @@ const NAMESPACES = [
   "compare",
   "openSource",
   "closing",
+  "fab",
 ] as const;
 
 const BUZZWORDS =

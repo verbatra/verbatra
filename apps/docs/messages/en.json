@@ -680,6 +680,9 @@
       "lead": "A dry run needs no API key, writes nothing and lists exactly which keys a real run would send.",
       "primary": "Get started",
       "secondary": "View on GitHub"
+    },
+    "fab": {
+      "label": "Back to top"
     }
   },
   "compare": {

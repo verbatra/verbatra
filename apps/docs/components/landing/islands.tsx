@@ -35,6 +35,7 @@ export const CommandRow = intlIsland(
   BLOCK,
 );
 export const FaqKeys = island(() => import("./faq-keys").then((m) => m.FaqKeys));
+export const ScrollTop = island(() => import("./scroll-top").then((m) => m.ScrollTop));
 export const CopyButton = intlIsland(() =>
   import("@/components/ui/copy-button").then((m) => m.CopyButton),
 );
@@ -51,5 +52,6 @@ await preloadIslands([
   LiveStatFallback,
   CommandRow,
   FaqKeys,
+  ScrollTop,
   CopyButton,
 ]);

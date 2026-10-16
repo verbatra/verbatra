@@ -25,6 +25,7 @@ const ISLAND_MODULES = [
   "./try-it",
   "./live-stat-value",
   "./faq-keys",
+  "./scroll-top",
   "@/components/landing/command-panel",
   "@/components/landing/live-stat-value",
   "@/components/command-row",

@@ -9,6 +9,7 @@ import { Faq, faqContent } from "@/components/landing/faq";
 import { FinalCta } from "@/components/landing/final-cta";
 import { Flow } from "@/components/landing/flow";
 import { Hero } from "@/components/landing/hero";
+import { ScrollTop } from "@/components/landing/islands";
 import { Marquee } from "@/components/landing/marquee";
 import { MotionRoot } from "@/components/landing/motion-root";
 import { OpenSource } from "@/components/landing/open-source";
@@ -17,6 +18,7 @@ import { Problem } from "@/components/landing/problem";
 import { ProofStrip } from "@/components/landing/proof-strip";
 import { toLocale } from "@/lib/i18n";
 import { LANDING_SECTIONS, type LandingSectionId } from "@/lib/landing-sections";
+import { MAIN_CONTENT_ID } from "@/lib/locale-home-layout";
 import {
   homeAlternates,
   LANDING_LAST_UPDATED,
@@ -73,6 +75,7 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
         <Fragment key={id}>{sections[id]}</Fragment>
       ))}
       <MotionRoot />
+      <ScrollTop label={t("fab.label")} targetId={MAIN_CONTENT_ID} />
     </div>
   );
 }

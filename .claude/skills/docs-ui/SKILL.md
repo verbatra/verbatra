@@ -841,6 +841,23 @@ reserved for client islands (see "The stack").
   fading by `opacity`. Reverting (unmount or reduced motion turning on) restores the drawn state.
   No release badge is needed in the flow: every node works with the published packages, and any
   later badge comes from `RELEASE_BADGE`. `e2e/flow.spec.ts` pins the browser behaviour.
+- **Back to top.** `scroll-top.tsx` (`ScrollTop`, a plain `island()` in `islands.tsx` that the
+  home page mounts after `MotionRoot`, fed `landing.fab.label` and `MAIN_CONTENT_ID` as props)
+  renders an `aria-hidden` `.vk-scroll-top-sentinel` (absolute, `100vh` tall from the top) and,
+  only once an `IntersectionObserver` sees that sentinel scrolled out above the screen
+  (`passedFirstViewport`), a `button.vk-scroll-top`: fixed in the end corner at `--fab-offset`
+  plus the `env(safe-area-inset-*)` insets, `--fab-size` (44px) round on `--surface-raised` with a
+  `--text-faint` boundary and an inline chevron. No scroll listener. The server HTML and a page
+  without JavaScript carry no button. A press scrolls to the top (`smooth` only under
+  `prefers-reduced-motion: no-preference`, `instant` otherwise) and focuses `main` with
+  `preventScroll`, which hides the button again. It enters with `@starting-style` (opacity and an
+  `--motion-distance-md` translate, `--duration-base`, `--ease-emphasized`) only when motion is
+  welcome, and appears at once otherwise. While the sentinel is on the page,
+  `scroll-padding-bottom` and the footer's end padding are `--fab-clearance`, so the button never
+  covers a focused element (2.4.11); `e2e/scroll-top.spec.ts` tabs from the FAQ to the end at 375
+  to prove it. The motion aliases `--duration-instant`, `--duration-slow`, `--ease-standard`,
+  `--ease-emphasized`, `--ease-exit` and `--motion-distance-sm` / `-md` / `-lg` (4, 8, 16px) live
+  beside the older motion tokens.
 - **No section eyebrows.** A landing section opens with its `h2`; nothing sits above it, no
   index and no label word. `reveal-marks.test.tsx` fails on a `.vk-eyebrow` style.
 - **Version pill.** On the landing only (the `landingLocale` gate in `lib/i18n.ts`), `HomeSiteHeader` passes

@@ -627,6 +627,9 @@
       "lead": "Ein Probelauf braucht keinen API-Key, schreibt nichts und listet genau die Keys, die ein echter Lauf schicken würde.",
       "primary": "Loslegen",
       "secondary": "Auf GitHub ansehen"
+    },
+    "fab": {
+      "label": "Zurück nach oben"
     }
   },
   "compare": {

@@ -64,6 +64,7 @@ describe("landing message parity", () => {
       "landing.compare.rows.license.verbatra",
       "landing.openSource.license",
       "landing.closing.heading",
+      "landing.fab.label",
     ]) {
       expect(source).toContain(key);
     }
