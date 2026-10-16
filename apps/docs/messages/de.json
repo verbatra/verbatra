@@ -192,14 +192,11 @@
       "installLabel": "Die CLI installieren",
       "nodeRequirement": "Benötigt Node.js {versions}",
       "nodeMajorFrom": "{major} (ab {minimum})",
-      "terminalLabel": "Ein verbatra-check-Lauf findet in jeder Locale zwei fehlende Keys. Ein translate-Lauf schickt danach nur diese Keys.",
-      "terminalExample": "Beispielausgabe",
-      "replay": "Erneut abspielen",
       "quotes": {
         "what": "Verbatra ist eine Open-Source-CLI und ein SDK, die i18n-Locale-Dateien synchron halten.",
         "how": "Verbatra findet Keys, die in deinen Ziel-Locales fehlen oder sich geändert haben, und schickt nur diese an den Provider deiner Wahl (KI oder maschinelle Übersetzung)."
       },
-      "diffLabel": "Der deutschen Datei fehlen die checkout-Keys der englischen Quelle, bis verbatra translate sie ergänzt."
+      "diffLabel": "Der deutschen Datei fehlen die zwei checkout-Keys der englischen Quelle. `verbatra translate` schickt nur diese zwei Keys an deinen Provider und ergänzt sie."
     },
     "facts": {
       "label": "Verbatra auf einen Blick",

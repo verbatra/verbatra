@@ -8,7 +8,6 @@ const rules = docsStylesheetRules();
 
 const PHONE_MIN_SIZE = [
   ".vk-tap",
-  ".vk-banner-replay",
   ".vk-showcase-file-tab",
   ".vk-showcase-scenario",
   ".vk-showcase-reset",

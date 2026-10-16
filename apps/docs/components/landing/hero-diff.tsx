@@ -89,7 +89,7 @@ function DiffPane({
   );
 }
 
-export function HeroDiff({ label, marks }: { label: string; marks: HeroDiffMarks }): ReactNode {
+export function HeroDiff({ label, marks }: { label: ReactNode; marks: HeroDiffMarks }): ReactNode {
   return (
     <figure className="vk-hero-diff">
       <HeroDiffMotion>

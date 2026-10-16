@@ -166,8 +166,7 @@ Scales are fixed and narrow, deliberately:
 - Layout: `--gutter` (40px from 768px up) via `.vk-gutter`, `--width-wide` via `.vk-w-wide`.
   `--cta-height` (56px) is the minimum height of `.vk-prompt-trigger` on `PromptCopyButton`;
   `--width-prompt-pop` (30rem, capped by `100cqw` of its container, never by `100vw`, which counts
-  the scrollbar) is the width of the `.vk-prompt-pop` preview. `--width-hero-panel` (36rem) is the
-  hero command panel's maximum width. `--head-gap` (2.5rem, 3.5rem from 64rem) is the one space
+  the scrollbar) is the width of the `.vk-prompt-pop` preview. `--head-gap` (2.5rem, 3.5rem from 64rem) is the one space
   between a section head and its content: the margin over the flow list, the bento grid, the
   problem, code showcase, comparison, open source and FAQ content (`mt-(--head-gap)`), the row gap
   of `.vk-section-aside` and of the playground grid; `section-bands.test.tsx` fails on an ad hoc
@@ -305,11 +304,11 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   problem, features, code, compare, openSource, faq, finalCta), which the home page maps
   over and `lib/landing-sections.test.ts` pins; add or move a section there, not by hand in
   `page.tsx`. The files: `hero.tsx` (the `h1`, the lead, the two quotable `landing.banner.quotes`
-  sentences in `.vk-banner-summary`, two buttons, the `CommandPanel` install box, the locale diff
-  and the `HeroTerminal` island, and the facts block), `hero-diff.tsx` (`messages/en.json` beside
+  sentences in `.vk-banner-summary`, two buttons, the locale diff with the `CommandPanel` install
+  box under it, and the facts block; no terminal), `hero-diff.tsx` (`messages/en.json` beside
   `messages/de.json` from `lib/hero-diff.ts`, both written by the sdk's real next-intl adapter into
   `lib/hero-diff.generated.json` by `scripts/sync-format-samples.mjs` from `lib/hero-diff-seed.mjs`,
-  git-ignored like the format samples; the two keys the hero terminal reports missing are
+  git-ignored like the format samples; the two keys `verbatra check` reports missing are
   `.vk-hero-diff-line` rows marked `new`, each value in `.vk-hero-diff-value`, whose mark never
   wraps (the line scrolls sideways instead, and `.vk-hero-diff-code` is `max-content` wide so the
   tint runs under the whole line); `.vk-hero-diff` is an inline-size container and its two panes
@@ -317,7 +316,8 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   and sit side by side from about 1280, with no value clipped at either; each pane's code
   carries its file's `lang`, `en` and `de`, and the mark words the page's; the outer `figure` has
   no `aria-label`, its visible `.vk-hero-diff-caption` figcaption under the panes reads
-  `landing.banner.diffLabel` in `--text-xs` `--text-muted`), `hero-facts.tsx`
+  `landing.banner.diffLabel` in `--text-xs` `--text-muted`, its backticked `verbatra translate` in
+  code type through `withInlineCode`), `hero-facts.tsx`
   (`.vk-banner-facts`: a visually hidden `h2` over a `dl.vk-facts` with no `aria-labelledby`, which
   a role-less `dl` may not take, every fact in text: license, the provider count
   `MACHINE_PROVIDER_IDS.length` in digits (`landing.facts.providersValue`) over the
@@ -325,7 +325,7 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   `SUPPORTED_FORMAT_IDS.length` linking `/docs/formats`, the Node.js range, the version line
   `landing.facts.versionParts` naming each package ("CLI and SDK v{cli}, Studio v{studio}, MCP
   server v{mcp}"), and `LANDING_LAST_UPDATED` as a `time`; no provider list, no pill and no
-  install row, since the command panel right above shows the command; each `.vk-fact` is
+  install row, since the command panel in the demo column shows the command; each `.vk-fact` is
   `align-content: start`, so a label stays on the first line of its value in a multi-column row
   (two from 40rem, three from 64rem, where the facts run across the whole hero under both
   columns, six from 80rem); the copy column opens with the `h1`, with no eyebrow line above it),
@@ -412,10 +412,9 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   wraps through `.vk-wrap-line`, whose hanging indent is the line's own leading whitespace
   (`--wrap-lead`, set by `wrapLineStyle` in `wrap-text.tsx`) plus 2ch, and whose placeholder tokens
   (`{count}`, `(-{count})`) and hyphenated words (`up-to-date`) never break, through `WrapTokens`.
-  The hero terminal (`hero-terminal.tsx`) replays `HERO_TERMINAL_SCRIPT` from
-  `lib/hero-terminal.ts`: `verbatra check` finds two missing keys per locale, then
-  `verbatra translate` sends only those, each run closed by its literal `exit 1` / `exit 0`
-  (`HERO_EXIT_LINES`, English on every locale, like all CLI output on the page);
+  `lib/hero-terminal.ts` keeps the recorded `verbatra check` and `verbatra translate` transcript
+  (`HERO_TERMINAL_SCRIPT`, English on every locale, like all CLI output on the page) that the home
+  social image draws from and `HERO_TERMINAL_TITLE` (`~/app`), the title of every shell frame;
   `lib/hero-terminal.run.test.ts` pins the lines to the CLI's renderer),
   `try-it.tsx`
   (the Try it demo, one `.vk-showcase-try` grid: from 40rem a scenario bar
@@ -475,8 +474,8 @@ both figure links open a new tab and say so in an `sr-only` `landing.openSource.
   caption that shares its row with the prompt's small Copy button; its URL breaks only after a path
   `/`, through `breakUrlsAtSlashes` in `lib/word-breaks.tsx`) and `PromptCopyButton` in the same
   file (the large "Start with a prompt" button with the `.vk-prompt-pop` preview, used only by the
-  docs home agent tip), `command-panel.tsx` (one of the hero's two client islands, beside
-  `HeroTerminal`: a `.vk-command-panel` whose segmented "Install | Prompt" `TabList` switches between the
+  docs home agent tip), `command-panel.tsx` (the hero's install island, under the locale diff:
+  a `.vk-command-panel` whose segmented "Install | Prompt" `TabList` switches between the
   `CommandRow` for `NPM_INSTALL_COMMAND` (counted as `copy-install-command`) and the whole
   `AI_SETUP_PROMPT`; both panes are one `.vk-command-panel-pane` shape, a muted hint row with its
   `CopyButton` on the right, then the content at full width, top-aligned, and the prompt keeps each
@@ -613,8 +612,7 @@ reserved for client islands (see "The stack").
   `reveal-marks.test.tsx` pins which files carry marks and `motion-root.test.tsx` the observer and
   the stylesheet guards.
 - **Hero.** The hero is never revealed and the `h1` never moves (it is the largest paint); no
-  load animation runs in it. The terminal types its translate run once it is in view and settles
-  without JavaScript on the finished check run. The locale diff is server-rendered filled
+  load animation runs in it. The locale diff is server-rendered filled
   (`data-diff-state="filled"`); the `HeroDiffMotion` island sets `missing` only after hydration,
   only while the diff is out of view and never under reduced motion, then fills it once when it
   scrolls in: once `HERO_DIFF_FILL_RATIO` of it shows, or its visible part covers
@@ -623,7 +621,7 @@ reserved for client islands (see "The stack").
   (`opacity`, `--duration-reveal`, one `--reveal-stagger` apart) and the `aria-hidden` "missing"
   mark swaps for "new". Focus inside the diff shows the values at once (`:focus-within`), so a
   keyboard user never meets a hidden value. A diff already in view at hydration never moves.
-  `e2e/hero.spec.ts` drives the fill at 375 by 667, 320 by 256 and 568 by 320.
+  `e2e/hero.spec.ts` drives the fill at 375 by 480, 320 by 256 and 568 by 320.
 - **Marquee.** The one looping motion on the page, a CSS keyframe with no JavaScript animation:
   it runs only in the state described under "Marquee" above, pauses through its button, hover
   and focus inside a row, and is static otherwise (one sideways-scrolling line where motion may
@@ -908,15 +906,16 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   set a solid `--text-strong` headline. The hero sits straight on the void page, left-aligned, with no
   backdrop pattern and one soft glow behind the demo column: `.vk-banner-grid` is one column (copy, demo,
   facts), and from 64rem an asymmetric 5fr / 7fr split, the copy (`.vk-banner-copy`: the `h1`
-  `.vk-banner-title`, the `.vk-banner-lead`, the `.vk-banner-summary`, `.vk-banner-ctas` with Get
-  started (`/docs/quickstart`) and Star on GitHub, then `.vk-banner-install` holding
-  `CommandPanel`) in the narrower column beside the wider demo (`.vk-banner-demo`: the locale
-  diff, the dominant visual, its panes side by side once the column reaches 40rem, over the
-  terminal), and the facts block (`.vk-banner-facts`) as a full-width row under both.
-  `hero.test.tsx` pins the split and the absent backdrop. The home social image (`HomeOgFrame` in `lib/og-image.tsx`, served
+  `.vk-banner-title`, the `.vk-banner-lead`, the `.vk-banner-summary` and `.vk-banner-ctas` with
+  Get started (`/docs/quickstart`) and Star on GitHub) in the narrower column beside the wider
+  demo (`.vk-banner-demo`: the locale diff, the dominant visual, its panes side by side once the
+  column reaches 40rem, its caption, then `.vk-banner-install` holding `CommandPanel` at the
+  column's full width), and the facts block (`.vk-banner-facts`) as a full-width row under both,
+  its values inside a 1440 by 900 first viewport. The hero draws no terminal. `hero.test.tsx` pins
+  the order and the absent backdrop and terminal, `e2e/hero.spec.ts` the columns and the fold. The home social image (`HomeOgFrame` in `lib/og-image.tsx`, served
   by `app/[lang]/(home)/home-og/route.tsx`) is a monochrome and violet card on `OG_PALETTE.void`:
   the wordmark and host, the localized `landing.banner.headline`, then a few real terminal lines
-  (`HERO_OG_LINES` in `lib/hero-terminal.ts`, every line taken from the hero transcript, the prompt
+  (`HERO_OG_LINES` in `lib/hero-terminal.ts`, every line taken from the recorded transcript, the prompt
   `$` in violet). `OG_PALETTE` mirrors the tokens (`lib/og-image.test.tsx` pins each one), and the
   image draws with the subset Geist and Geist Mono files in `assets/og-fonts/`
   (`lib/og-fonts.ts`), stripped of their kerning tables, since satori turns kerning into doubled

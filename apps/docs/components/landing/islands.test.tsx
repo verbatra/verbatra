@@ -17,7 +17,6 @@ function imports(path: string): string[] {
 
 const ISLAND_MODULES = [
   "./command-panel",
-  "./hero-terminal",
   "./hero-diff-motion",
   "./code-showcase-tabs",
   "./marquee-motion",
@@ -27,7 +26,6 @@ const ISLAND_MODULES = [
   "./live-stat-value",
   "./faq-accordion",
   "@/components/landing/command-panel",
-  "@/components/landing/hero-terminal",
   "@/components/landing/live-stat-value",
   "@/components/command-row",
   "@/components/ui/copy-button",

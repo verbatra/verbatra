@@ -2,10 +2,11 @@ import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { HeroDiff } from "@/components/landing/hero-diff";
 import { HeroFacts } from "@/components/landing/hero-facts";
-import { CommandPanel, HeroTerminal } from "@/components/landing/islands";
+import { CommandPanel } from "@/components/landing/islands";
 import { GITHUB_URL } from "@/components/landing/links";
 import Button, { buttonClasses } from "@/components/ui/button";
 import { localizedPath, toLocale } from "@/lib/i18n";
+import { withInlineCode } from "@/lib/inline-code-text";
 import { MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { nodeVersionsLabel } from "@/lib/node-requirement";
 import { MCP_VERSION, NODE_RANGE, PACKAGE_VERSION, STUDIO_VERSION } from "@/lib/site";
@@ -44,6 +45,13 @@ export async function Hero(): Promise<ReactNode> {
               {t("ctaSecondary")}
             </a>
           </div>
+        </div>
+        <div className="vk-banner-demo">
+          <div aria-hidden="true" className="vk-banner-glow" />
+          <HeroDiff
+            label={withInlineCode(t("diffLabel"))}
+            marks={{ missing: tMarks("missing"), filled: tMarks("new"), lang: locale }}
+          />
           <div className="vk-banner-install">
             <CommandPanel
               labels={{
@@ -55,18 +63,6 @@ export async function Hero(): Promise<ReactNode> {
               }}
             />
           </div>
-        </div>
-        <div className="vk-banner-demo">
-          <div aria-hidden="true" className="vk-banner-glow" />
-          <HeroDiff
-            label={t("diffLabel")}
-            marks={{ missing: tMarks("missing"), filled: tMarks("new"), lang: locale }}
-          />
-          <HeroTerminal
-            session={t("terminalLabel")}
-            replay={t("replay")}
-            example={t("terminalExample")}
-          />
         </div>
         <HeroFacts
           locale={locale}

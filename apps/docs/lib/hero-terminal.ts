@@ -86,10 +86,6 @@ export const HERO_TERMINAL_SCRIPT: ReadonlyArray<HeroTerminalStep> = [
   },
 ];
 
-export const HERO_EXIT_LINES: ReadonlyArray<string> = HERO_TERMINAL_SCRIPT.map(
-  (step) => `exit ${step.exitCode}`,
-);
-
 type HeroOgLine = { readonly kind: "command" | "output"; readonly text: string };
 
 export const HERO_OG_LINES: ReadonlyArray<HeroOgLine> = HERO_TERMINAL_SCRIPT.flatMap((step) => [

@@ -5,11 +5,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { GITHUB_URL } from "@/components/landing/links";
 import { HERO_DIFF_SOURCE_PANE, HERO_DIFF_TARGET_PANE } from "@/lib/hero-diff";
-import {
-  HERO_CHECK_OUTPUT,
-  HERO_TERMINAL_SCRIPT,
-  HERO_TRANSLATE_OUTPUT,
-} from "@/lib/hero-terminal";
 import { NPM_INSTALL_COMMAND } from "@/lib/install-commands";
 import { MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { nodeVersionsLabel } from "@/lib/node-requirement";
@@ -66,14 +61,6 @@ async function render(locale = "en"): Promise<Document> {
   page.locale = locale;
   const html = renderToStaticMarkup(await Hero());
   return new DOMParser().parseFromString(html, "text/html");
-}
-
-function paintedLines(doc: Document): string[] {
-  const screen = doc.querySelector('.vk-banner-terminal [aria-hidden="true"].vk-terminal-scroll');
-  const layer = Array.from(screen?.children ?? []).find(
-    (child) => !child.classList.contains("invisible"),
-  );
-  return Array.from(layer?.children ?? [], (line) => line.textContent ?? "");
 }
 
 const banner = messages.landing.banner;
@@ -134,9 +121,12 @@ describe("Hero", () => {
     expect(primary?.getAttribute("href")).toBe("/de/docs/quickstart");
   });
 
-  it("reuses the copyable install panel, labelled as installing the CLI", async () => {
+  it("reuses the copyable install panel under the diff, labelled as installing the CLI", async () => {
     const doc = await render();
-    const panel = doc.querySelector(".vk-banner-install .vk-command-panel");
+    const install = doc.querySelector(".vk-banner-demo > .vk-banner-install");
+    expect(install?.previousElementSibling?.className).toBe("vk-hero-diff");
+    expect(doc.querySelector(".vk-banner-copy .vk-banner-install")).toBeNull();
+    const panel = install?.querySelector(".vk-command-panel");
     expect(panel).not.toBeNull();
     expect(panel?.querySelector('[role="tablist"]')?.getAttribute("aria-label")).toBe(
       banner.installLabel,
@@ -144,30 +134,17 @@ describe("Hero", () => {
     expect(panel?.textContent).toContain(NPM_INSTALL_COMMAND);
   });
 
-  it("paints the finished check run, with its exit code, in the server HTML", async () => {
+  it("draws no terminal: the diff and its caption carry the translate run", async () => {
     const doc = await render();
-    expect(paintedLines(doc)).toEqual([
-      `$ ${HERO_TERMINAL_SCRIPT[0]?.command}`,
-      ...HERO_CHECK_OUTPUT,
-      "exit 1",
-    ]);
+    expect(doc.querySelector(".vk-terminal, .vk-banner-terminal")).toBeNull();
+    const code = doc.querySelector(".vk-hero-diff-caption code");
+    expect(code?.textContent).toBe("verbatra translate");
+    expect(doc.querySelector(".vk-hero-diff-caption")?.textContent).toBe(
+      banner.diffLabel.replaceAll("`", ""),
+    );
   });
 
-  it("reserves the height of the whole run, so the translate run moves nothing", async () => {
-    const reserve = (await render()).querySelector(".vk-banner-terminal .invisible");
-    const text = reserve?.textContent ?? "";
-    for (const line of [...HERO_CHECK_OUTPUT, ...HERO_TRANSLATE_OUTPUT])
-      expect(text).toContain(line.trim());
-    expect(text).toContain("exit 0");
-  });
-
-  it("gives assistive technology the session summary and every line of both runs", async () => {
-    const hidden = (await render()).querySelector(".vk-banner-terminal .sr-only");
-    expect(hidden?.textContent).toContain(banner.terminalLabel);
-    for (const line of HERO_TRANSLATE_OUTPUT) expect(hidden?.textContent).toContain(line);
-  });
-
-  it("draws no backdrop pattern and one decorative glow behind the diff", async () => {
+  it("draws no backdrop pattern and one decorative glow behind the demo column", async () => {
     const doc = await render();
     expect(doc.querySelectorAll(".vk-banner-backdrop")).toHaveLength(0);
     const glows = doc.querySelectorAll(".vk-banner-glow");
@@ -191,14 +168,13 @@ describe("Hero", () => {
     ).toBe(false);
   });
 
-  it("gives the diff the wider column and runs the facts across both from 64rem", () => {
+  it("runs the facts across both columns from 64rem", () => {
     const rule = docsStylesheetRules().find(
       (entry) =>
         entry.selector === ".vk-banner-grid" &&
-        "grid-template-areas" in entry.declarations &&
         entry.declarations["grid-template-areas"]?.includes("facts facts"),
     );
-    expect(rule?.declarations["grid-template-columns"]).toBe("minmax(0, 5fr) minmax(0, 7fr)");
+    expect(rule?.media).toContain("64rem");
   });
 
   it("places the facts block after the visual, so a phone reads it right after the hero", async () => {
@@ -299,7 +275,7 @@ describe("Hero", () => {
     expect(figure?.hasAttribute("aria-label")).toBe(false);
     const caption = figure?.querySelector(":scope > figcaption");
     expect(caption?.className).toBe("vk-hero-diff-caption");
-    expect(caption?.textContent).toBe(banner.diffLabel);
+    expect(caption?.textContent).toBe(banner.diffLabel.replaceAll("`", ""));
   });
 
   it("marks each pane's code with its file's language and the mark words with the page's", async () => {

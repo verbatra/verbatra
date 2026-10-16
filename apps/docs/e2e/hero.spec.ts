@@ -37,7 +37,7 @@ test.describe("hero without JavaScript", () => {
 });
 
 test.describe("hero diff motion", () => {
-  test.use({ reducedMotion: "no-preference", viewport: { width: 375, height: 667 } });
+  test.use({ reducedMotion: "no-preference", viewport: { width: 375, height: 480 } });
 
   test("marks the keys missing below the fold and fills them once the diff scrolls in", async ({
     page,
@@ -118,7 +118,7 @@ for (const width of [768, 1024, 1280, 1440]) {
 test.describe("hero layout at 1440px", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  test("gives the diff the wider column and runs the facts under both columns", async ({
+  test("gives the diff and the install panel the wider column and keeps the facts in the fold", async ({
     page,
   }) => {
     await page.goto("/");
@@ -143,6 +143,15 @@ test.describe("hero layout at 1440px", () => {
     expect(second.x).toBeGreaterThan(first.x + first.width - 1);
     expect(Math.abs(first.y - second.y)).toBeLessThanOrEqual(1);
     expect(diff.y).toBeLessThan(900);
+    const install = await box(".vk-banner-install");
+    expect(install.x).toBeGreaterThanOrEqual(demo.x - 1);
+    expect(install.y).toBeGreaterThanOrEqual(diff.y + diff.height - 1);
+    const values = await page
+      .locator(`${HERO} .vk-fact-value`)
+      .evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().bottom));
+    expect(values.length).toBeGreaterThan(0);
+    expect(Math.max(...values)).toBeLessThanOrEqual(900);
+    await expect(page.locator(`${HERO} .vk-terminal`)).toHaveCount(0);
     await expect(page.locator(`${HERO} .vk-banner-backdrop`)).toHaveCount(0);
     await expectNoAxeViolations(page, HERO);
   });

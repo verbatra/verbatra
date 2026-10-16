@@ -170,7 +170,6 @@ samp {
   --width-wide: 1285px;
   --width-content: 896px;
   --width-measure: 41.25rem;
-  --width-hero-panel: 36rem;
   --stack-chip-size: 3.5rem;
   --stack-grid-column-gap: 1.5rem;
   --stack-grid-row-gap: 2.5rem;
@@ -2664,7 +2663,6 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 .vk-banner-install {
   width: 100%;
   min-width: 0;
-  margin-top: 0.5rem;
 }
 
 .vk-banner-summary {
@@ -2849,24 +2847,6 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   background: radial-gradient(closest-side, var(--banner-glow), transparent);
 }
 
-.vk-banner-terminal {
-  box-shadow: var(--shadow-panel);
-}
-
-.vk-banner-replay {
-  min-height: 1.5rem;
-  padding: 0.125rem 0.5rem;
-  border-radius: var(--radius-sm);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-}
-
-.vk-banner-replay:hover {
-  color: var(--text-strong);
-  background: var(--surface-hover);
-}
-
 @media (min-width: 768px) {
   .vk-banner {
     padding-block: 5rem 4.5rem;
@@ -2886,10 +2866,6 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 
   .vk-facts {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .vk-banner-install {
-    max-width: var(--width-hero-panel);
   }
 }
 
@@ -3604,7 +3580,6 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .vk-banner-replay,
   .vk-proof-strip-link {
     transition:
       color var(--duration-fast) var(--ease-out),
@@ -3621,7 +3596,6 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   }
 
   .vk-tap,
-  .vk-banner-replay,
   .vk-showcase-file-tab,
   .vk-showcase-scenario,
   .vk-showcase-reset,

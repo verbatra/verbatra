@@ -8,10 +8,6 @@ export const CommandPanel = intlIsland(
   () => import("./command-panel").then((m) => m.CommandPanel),
   BLOCK,
 );
-export const HeroTerminal = island(
-  () => import("./hero-terminal").then((m) => m.HeroTerminal),
-  BLOCK,
-);
 export const HeroDiffMotion = island(
   () => import("./hero-diff-motion").then((m) => m.HeroDiffMotion),
   BLOCK,
@@ -48,7 +44,6 @@ export const CopyButton = intlIsland(() =>
 
 await preloadIslands([
   CommandPanel,
-  HeroTerminal,
   HeroDiffMotion,
   CodeShowcaseTabs,
   MarqueeMotion,
