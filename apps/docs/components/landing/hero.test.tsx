@@ -253,7 +253,7 @@ describe("Hero", () => {
     expect(version).toContain(`CLI and SDK v${PACKAGE_VERSION}`);
     const time = fact(doc, "updated")?.querySelector("time");
     expect(time?.getAttribute("datetime")).toBe(LANDING_LAST_UPDATED);
-    expect(time?.textContent).toBe("October 16, 2026");
+    expect(time?.textContent).toBe("October 17, 2026");
   });
 
   it("draws both locale files exactly as the adapter wrote them, filled in the server HTML", async () => {

@@ -460,11 +460,14 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   rule, in three rows, no longer the brand column beside five link columns: a top row with the
   wordmark and the one-line tagline at the start and GitHub and the npm org (`NPM_ORG`) at the end
   (`.vk-footer-top`, a hairline under it); then `FOOTER_GROUPS`, four named `nav`s on
-  `.vk-footer-groups` (two columns, three from 48rem, the 12-column grid from 64rem): product
-  (span 6, its links in three columns: the docs pages, the localized `/compare` and the files for
-  AI agents), packages (every package on npm and the release notes), community (contributor
-  guide, code of conduct, security policy) and legal (license, Impressum, privacy, contact,
-  `/licenses`), each span 2; then `.vk-footer-bottom` (a hairline above it): the locale switch, and
+  `.vk-footer-groups`, deliberately not a row of equal columns: product (`PRIMARY_GROUP`: the docs
+  pages, the localized `/compare` and the files for AI agents) leads as the wide group, its links in
+  `--text-strong` at 15px flowing down CSS columns (`columns: 2 9rem`, three from 48rem), and
+  packages (every package on npm and the release notes), community (contributor guide, code of
+  conduct, security policy) and legal (license, Impressum, privacy, contact, `/licenses`) sit in
+  `.vk-footer-secondary` as narrow content-sized muted columns, beside product from 80rem behind a
+  `--border-default` start rule and under it before that; group titles and the locale label are
+  medium `--text-strong`, links keep a 0.5rem row gap and a 2px focus offset; then `.vk-footer-bottom` (a hairline above it): the locale switch, and
   the version line (`landing.facts.versionParts` with the `lib/site.ts` versions), the license and
   the copyright as plain spans. Links are `.vk-footer-link` (24px tall, muted, an `--accent`
   underline at 45% on hover). The locale switch is `LocaleLinks` (`components/locale-links.tsx`,

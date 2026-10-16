@@ -5,12 +5,18 @@ import { join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { CONTRIBUTORS } from "@/lib/contributors";
+import { MCP_VERSION, PACKAGE_VERSION, STUDIO_VERSION } from "@/lib/site";
 
-const localeState = vi.hoisted(() => ({ current: "en" }));
+const localeState = vi.hoisted(() => ({
+  current: "en",
+  values: new Map<string, Record<string, string> | undefined>(),
+}));
 
 vi.mock("next-intl/server", () => ({
-  getTranslations: async (namespace?: string) => (key: string, values?: Record<string, string>) =>
-    namespace === "docs.statusBadges" ? `badge:${key}` : (values?.name ?? key),
+  getTranslations: async (namespace?: string) => (key: string, values?: Record<string, string>) => {
+    localeState.values.set(`${namespace}.${key}`, values);
+    return namespace === "docs.statusBadges" ? `badge:${key}` : (values?.name ?? key);
+  },
   getLocale: async () => localeState.current,
 }));
 
@@ -196,11 +202,67 @@ describe("FullFooter", () => {
       "legalCopyright",
     ]);
     expect(line?.textContent).not.toContain("\u00b7");
+    expect(localeState.values.get("landing.facts.versionParts")).toEqual({
+      cli: PACKAGE_VERSION,
+      studio: STUDIO_VERSION,
+      mcp: MCP_VERSION,
+    });
   });
 
-  it("merges the links into four groups, the docs group first and widest", async () => {
+  it("leads with the product group and sets packages, community and legal beside it", async () => {
     const doc = await renderFooter();
-    const groups = Array.from(doc.querySelectorAll<HTMLElement>(".vk-footer-groups > nav"));
+    const groups = Array.from(doc.querySelectorAll<HTMLElement>(".vk-footer-groups nav"));
+    expect(doc.querySelector<HTMLElement>(".vk-footer-groups > nav")?.dataset.group).toBe(
+      "product",
+    );
+    expect(
+      Array.from(
+        doc.querySelectorAll<HTMLElement>(".vk-footer-secondary > nav"),
+        (nav) => nav.dataset.group,
+      ),
+    ).toEqual(["packages", "community", "legal"]);
+    expect(
+      groups.map((group) =>
+        Array.from(group.querySelectorAll("a"), (link) => link.getAttribute("href")),
+      ),
+    ).toEqual([
+      [
+        "/docs",
+        "/docs/cli",
+        "/docs/sdk",
+        "/docs/cli/studio",
+        "/docs/cli/mcp",
+        "/docs/github-action",
+        "/docs/how-it-works",
+        "/docs/providers",
+        "/docs/formats",
+        "/docs/the-lock-file",
+        "/docs/config-file",
+        "/compare",
+        "/llms.txt",
+        "/llms-full.txt",
+        "/.well-known/ai.txt",
+      ],
+      [
+        "https://www.npmjs.com/package/@verbatra/cli",
+        "https://www.npmjs.com/package/@verbatra/sdk",
+        "https://www.npmjs.com/package/@verbatra/studio",
+        "https://www.npmjs.com/package/@verbatra/mcp",
+        "https://github.com/verbatra/verbatra/releases",
+      ],
+      [
+        "https://github.com/verbatra/verbatra/blob/main/CONTRIBUTING.md",
+        "https://github.com/verbatra/verbatra/blob/main/CODE_OF_CONDUCT.md",
+        "https://github.com/verbatra/verbatra/blob/main/SECURITY.md",
+      ],
+      [
+        "https://github.com/verbatra/verbatra/blob/main/LICENSE",
+        "/imprint",
+        "/privacy",
+        "/contact",
+        "/licenses",
+      ],
+    ]);
     expect(groups.map((group) => group.dataset.group)).toEqual([
       "product",
       "packages",

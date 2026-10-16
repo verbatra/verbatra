@@ -187,27 +187,26 @@
           "sdk": "SDK",
           "studio": "Studio",
           "mcpServer": "MCP server",
-          "githubAction": "GitHub Action"
-        },
-        "agents": {
-          "llmsIndex": "llms.txt (index)",
-          "llmsFull": "llms-full.txt (full text)",
-          "aiTxt": "ai.txt (usage policy)"
-        },
-        "learn": {
+          "githubAction": "GitHub Action",
           "howItWorks": "How it works",
           "providers": "Providers",
           "formats": "Formats",
           "lockFile": "The lock file",
           "configFile": "Config file",
-          "compare": "Comparison"
+          "compare": "Comparison",
+          "llmsIndex": "llms.txt (index)",
+          "llmsFull": "llms-full.txt (full text)",
+          "aiTxt": "ai.txt (usage policy)"
+        },
+        "packages": {
+          "title": "Packages",
+          "releases": "Release notes"
         },
         "community": {
           "title": "Community",
           "contributing": "Contributing",
           "codeOfConduct": "Code of conduct",
-          "security": "Security policy",
-          "releases": "Release notes"
+          "security": "Security policy"
         },
         "legal": {
           "title": "Legal",
@@ -216,9 +215,6 @@
           "imprint": "Legal notice (Impressum)",
           "contact": "Contact",
           "licenses": "Licenses"
-        },
-        "packages": {
-          "title": "Packages"
         }
       },
       "legalLicense": "Open source under the MIT license",

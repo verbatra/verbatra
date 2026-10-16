@@ -94,15 +94,26 @@
           "sdk": "SDK",
           "studio": "Studio",
           "mcpServer": "Servidor MCP",
-          "githubAction": "GitHub Action"
-        },
-        "learn": {
+          "githubAction": "GitHub Action",
           "howItWorks": "Cómo funciona",
           "providers": "Proveedores",
           "formats": "Formatos",
           "lockFile": "El archivo de bloqueo",
           "configFile": "Archivo de configuración",
-          "compare": "Comparación"
+          "compare": "Comparación",
+          "llmsIndex": "llms.txt (índice)",
+          "llmsFull": "llms-full.txt (texto completo)",
+          "aiTxt": "ai.txt (política de uso)"
+        },
+        "packages": {
+          "title": "Paquetes",
+          "releases": "Notas de versión"
+        },
+        "community": {
+          "title": "Comunidad",
+          "codeOfConduct": "Código de conducta",
+          "security": "Política de seguridad",
+          "contributing": "Contribuir"
         },
         "legal": {
           "title": "Legal",
@@ -111,21 +122,6 @@
           "imprint": "Aviso legal (Impressum)",
           "contact": "Contacto",
           "licenses": "Licencias"
-        },
-        "community": {
-          "title": "Comunidad",
-          "codeOfConduct": "Código de conducta",
-          "security": "Política de seguridad",
-          "releases": "Notas de versión",
-          "contributing": "Contribuir"
-        },
-        "agents": {
-          "llmsIndex": "llms.txt (índice)",
-          "llmsFull": "llms-full.txt (texto completo)",
-          "aiTxt": "ai.txt (política de uso)"
-        },
-        "packages": {
-          "title": "Paquetes"
         }
       },
       "legalLicense": "Código abierto con licencia MIT",
