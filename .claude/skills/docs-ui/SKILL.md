@@ -112,7 +112,7 @@ Three layers exist. Write against the third.
    `--v-status-changed` (amber, dark `hsl(38 85% 62%)`, light `hsl(30 90% 30%)`, also Fumadocs'
    warning callout color) / `--v-status-unchanged` (the `tone` colors of
    `components/ui/badge.tsx`). There is no pink and no headline gradient token any more
-   (`components/landing/landing-tokens.test.ts` fails if `--v-pink`, `--v-violet` or
+   (`lib/landing-tokens.test.ts` fails if `--v-pink`, `--v-violet` or
    `--gradient-headline` comes back). Reach for one only in the role it already has.
 2. **Fumadocs overrides.** `--color-fd-background`, `--color-fd-card`, `--color-fd-popover`,
    `--color-fd-muted`, `--color-fd-border`, `--color-fd-foreground`,
@@ -196,7 +196,7 @@ Scales are fixed and narrow, deliberately:
   pattern and no glow (`hero.test.tsx` fails on a `.vk-banner-glow` element, rule or
   `--banner-glow` token); there is no wash token and no dot backdrop.
 - No placeholder chip: the landing has no signature token motif. The SDK playground shows its
-  placeholders as plain text, and `components/landing/landing-tokens.test.ts` fails if a
+  placeholders as plain text, and `lib/landing-tokens.test.ts` fails if a
   `--placeholder-*` token comes back; draw a new motif only together with the pane that uses it.
 - Motion: see "Landing motion" below for the system. Its tokens: `--ease-standard` (entrances,
   hovers and state changes), `--duration-fast` (140ms, hover and press),
