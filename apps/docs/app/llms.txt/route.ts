@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { GITHUB_URL, RELEASES_URL } from "@/components/landing/links";
 import { i18n, type Locale } from "@/lib/i18n";
 import { readPublishedSchemas, SCHEMA_PATH, schemaUrl } from "@/lib/json-schemas";
+import { COMPARE_PATH } from "@/lib/landing-compare";
 import { FORMAT_DISPLAY, MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { PROVIDER_DISPLAY, providerShortLabel } from "@/lib/landing-providers";
 import {
@@ -89,12 +90,21 @@ function siteUrl(locale: Locale, page: MarkdownPage): string {
   return new URL(siteMarkdownUrl(locale, page), SITE_URL).href;
 }
 
+function htmlLine(page: MarkdownPage, meta: SitePageMeta): string[] {
+  if (page !== COMPARE_PATH) return [];
+  const url = new URL(COMPARE_PATH, SITE_URL).href;
+  return [`- [${meta.title} (HTML)](${url}): the same comparison as a web page, the one to cite`];
+}
+
 async function renderSitePages(): Promise<string> {
   const locale = i18n.defaultLanguage;
   const lines = await Promise.all(
     SITE_MARKDOWN_PAGES.map(async (page) => {
       const meta = await sitePageMeta(locale, page);
-      return `- [${meta.title}](${siteUrl(locale, page)}): ${meta.description}`;
+      return [
+        `- [${meta.title}](${siteUrl(locale, page)}): ${meta.description}`,
+        ...htmlLine(page, meta),
+      ].join("\n");
     }),
   );
   return `## Site\n\nThe landing page, the comparison with other tools and the legal pages, each as Markdown.\n\n${lines.join("\n")}`;

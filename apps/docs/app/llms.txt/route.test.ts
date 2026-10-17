@@ -173,6 +173,17 @@ describe("llms.txt", () => {
     );
   });
 
+  it("links the html comparison page next to its markdown, as the page to cite", () => {
+    const site = body.slice(body.indexOf("## Site"), body.indexOf("## Introduction"));
+    const markdown = site.indexOf("(https://verbatra.kreitz-webdev.de/compare.md)");
+    const html = site.indexOf("(https://verbatra.kreitz-webdev.de/compare)");
+    expect(markdown).toBeGreaterThan(-1);
+    expect(html).toBeGreaterThan(markdown);
+    expect(site).toContain(
+      `- [${en.compare.meta.title} (HTML)](https://verbatra.kreitz-webdev.de/compare): `,
+    );
+  });
+
   it("names the providers and formats from the registries the site renders", () => {
     for (const provider of landingProviders()) expect(body).toContain(provider.label);
     for (const id of SUPPORTED_FORMAT_IDS) expect(body).toContain(FORMAT_DISPLAY[id].label);
