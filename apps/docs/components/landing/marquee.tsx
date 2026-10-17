@@ -6,47 +6,60 @@ import {
   AvailableFromPill,
   availableFromCopy,
 } from "@/components/available-from";
-import { StackIcon, type StackIconKey, StackIconSprite } from "@/components/stack-icons";
+import { BrandMark, BrandMarkSprite } from "@/components/brand-marks";
 import { IntentPrefetchLink } from "@/components/ui/intent-prefetch-link";
+import type { BrandMarkId } from "@/lib/brand-marks";
 import { localizedPath, toLocale } from "@/lib/i18n";
-import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
-import { landingProviders, type ProviderKind } from "@/lib/landing-providers";
+import { FORMAT_DISPLAY, type MachineProviderId, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
+import { landingProviders } from "@/lib/landing-providers";
 import { RELEASE_BADGE } from "@/lib/release-badge";
 import { MarqueeMotion } from "./islands";
 import { PlainList } from "./plain-list";
 import { Section } from "./section";
 import { SectionAside } from "./section-head";
 
-export const MARQUEE_ICON_PREFIX = "marquee";
+export const MARQUEE_ICON_PREFIX = "marquee-mark";
 
 export const MARQUEE_COPIES = 2;
 
-export const PROVIDER_KIND_ICONS: Readonly<Record<ProviderKind, StackIconKey>> = {
-  llm: "llm",
-  machine: "machine",
+export type MarqueeMark =
+  | { readonly kind: "brand"; readonly mark: BrandMarkId }
+  | { readonly kind: "chip"; readonly text: string };
+
+const brand = (mark: BrandMarkId): MarqueeMark => ({ kind: "brand", mark });
+const chip = (text: string): MarqueeMark => ({ kind: "chip", text });
+
+export const PROVIDER_ICONS: Readonly<Record<MachineProviderId, MarqueeMark>> = {
+  anthropic: brand("anthropic"),
+  openai: brand("openai"),
+  gemini: brand("googlegemini"),
+  deepl: brand("deepl"),
+  "google-translate": brand("googletranslate"),
+  "openai-compatible": chip("/v1"),
+  libretranslate: brand("libretranslate"),
 };
 
-export const FORMAT_ICONS: Readonly<Record<SupportedFormat, StackIconKey>> = {
-  "i18next-json": "json",
-  "vue-i18n-json": "json",
-  "next-intl-json": "json",
-  "ngx-translate-json": "json",
-  xliff: "xliff",
-  yaml: "yaml",
-  arb: "json",
-  properties: "ini",
-  "apple-strings": "ini",
-  "apple-xcstrings": "json",
-  "android-xml": "xliff",
-  "gettext-po": "po",
-  ini: "ini",
-  resx: "xliff",
+export const FORMAT_ICONS: Readonly<Record<SupportedFormat, MarqueeMark>> = {
+  "i18next-json": brand("i18next"),
+  "vue-i18n-json": chip(".json"),
+  "next-intl-json": brand("nextdotjs"),
+  "ngx-translate-json": brand("angular"),
+  xliff: chip(".xlf"),
+  yaml: brand("yaml"),
+  arb: brand("flutter"),
+  properties: brand("spring"),
+  "apple-strings": brand("apple"),
+  "apple-xcstrings": brand("apple"),
+  "android-xml": brand("android"),
+  "gettext-po": chip(".po"),
+  ini: chip(".ini"),
+  resx: brand("dotnet"),
 };
 
 type MarqueeItem = {
   readonly id: string;
   readonly label: string;
-  readonly icon: StackIconKey;
+  readonly icon: MarqueeMark;
   readonly badge: AvailableFromCopy | null;
 };
 
@@ -62,7 +75,7 @@ export function providerItems(releaseBadge: AvailableFromCopy): ReadonlyArray<Ma
   return landingProviders().map((provider) => ({
     id: provider.id,
     label: provider.label,
-    icon: PROVIDER_KIND_ICONS[provider.kind],
+    icon: PROVIDER_ICONS[provider.id],
     badge: provider.isNew ? releaseBadge : null,
   }));
 }
@@ -76,16 +89,33 @@ export function formatItems(): ReadonlyArray<MarqueeItem> {
   }));
 }
 
+function ItemMark({ mark }: { mark: MarqueeMark }): ReactNode {
+  if (mark.kind === "chip") {
+    return (
+      <span aria-hidden="true" className="vk-marquee-chip">
+        {mark.text}
+      </span>
+    );
+  }
+  return (
+    <BrandMark
+      prefix={MARQUEE_ICON_PREFIX}
+      mark={mark.mark}
+      size={18}
+      className="vk-marquee-mark"
+    />
+  );
+}
+
+function brandMarks(items: ReadonlyArray<MarqueeItem>): ReadonlyArray<BrandMarkId> {
+  return items.flatMap((item) => (item.icon.kind === "brand" ? [item.icon.mark] : []));
+}
+
 function Items({ items }: { items: ReadonlyArray<MarqueeItem> }): ReactNode {
   return items.map((item) => (
     <li key={item.id} className="vk-marquee-item" data-item={item.id}>
-      <StackIcon
-        prefix={MARQUEE_ICON_PREFIX}
-        icon={item.icon}
-        size={18}
-        className="vk-marquee-glyph"
-      />
-      <span>{item.label}</span>
+      <ItemMark mark={item.icon} />
+      <span className="vk-marquee-name">{item.label}</span>
       {item.badge === null ? null : <AvailableFromPill {...item.badge} />}
     </li>
   ));
@@ -141,9 +171,9 @@ export async function Marquee(): Promise<ReactNode> {
   return (
     <Section band id="marquee" labelledBy="marquee-heading">
       <SectionAside id="marquee-heading" title={t("heading")} lead={t("lead")}>
-        <StackIconSprite
+        <BrandMarkSprite
           prefix={MARQUEE_ICON_PREFIX}
-          icons={[...providers, ...formats].map((item) => item.icon)}
+          marks={brandMarks([...providers, ...formats])}
         />
         <MarqueeMotion pauseLabel={t("pause")}>
           <MarqueeRow

@@ -1,5 +1,12 @@
 import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
+import {
+  BRAND_MARK_IDS,
+  BRAND_MARK_SOURCES,
+  BRAND_MARK_TRADEMARK_NOTE,
+  BRAND_MARKS,
+  brandMarkSourceUrl,
+} from "./brand-marks";
 import { licenseTermsUrl } from "./license-terms";
 
 export type LicensedPackage = {
@@ -114,6 +121,23 @@ const STANDARD_TEXTS: Readonly<Record<string, ReadonlyArray<{ license: string; f
   "MPL-2.0": [{ license: "MPL-2.0", file: "assets/licenses/MPL-2.0.txt" }],
 };
 
+function brandMarkAssetName(id: keyof typeof BRAND_MARKS): string {
+  const mark = BRAND_MARKS[id];
+  const source = BRAND_MARK_SOURCES[mark.source];
+  return `${mark.title} mark (${source.package}@${source.version}, ${mark.file})`;
+}
+
+const BRAND_MARK_ASSETS: ReadonlyArray<AssetSource> = BRAND_MARK_IDS.map((id) => {
+  const mark = BRAND_MARKS[id];
+  return {
+    name: brandMarkAssetName(id),
+    license: mark.license,
+    usage: `Inline monochrome SVG path in the landing marquee, copied from ${brandMarkSourceUrl(mark)}. ${BRAND_MARK_TRADEMARK_NOTE}`,
+    textFile: null,
+    copyright: mark.attribution,
+  };
+});
+
 const ASSET_SOURCES: ReadonlyArray<AssetSource> = [
   {
     name: "Geist and Geist Mono fonts",
@@ -137,6 +161,7 @@ const ASSET_SOURCES: ReadonlyArray<AssetSource> = [
     textFile: null,
     copyright: [],
   },
+  ...BRAND_MARK_ASSETS,
 ];
 
 function readManifest(dir: string): Manifest {

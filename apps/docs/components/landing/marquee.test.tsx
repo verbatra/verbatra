@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Locale } from "@/lib/i18n";
 import { FORMAT_DISPLAY, MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { providerShortLabel } from "@/lib/landing-providers";
+import notices from "@/lib/licenses.generated.json";
 import { RELEASE_BADGE } from "@/lib/release-badge";
 import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
 import german from "@/messages/de.json";
@@ -139,9 +140,7 @@ describe("Marquee", () => {
     const providers = row(await render(), "providers");
     expect(visibleItems(providers)).toEqual([...MACHINE_PROVIDER_IDS]);
     const labels = Array.from(
-      providers.querySelectorAll(
-        ".vk-marquee-list:not(.vk-marquee-copy) > li > span:not(.vk-pill)",
-      ),
+      providers.querySelectorAll(".vk-marquee-list:not(.vk-marquee-copy) > li > .vk-marquee-name"),
       (span) => span.textContent,
     );
     expect(labels).toEqual(MACHINE_PROVIDER_IDS.map(providerShortLabel));
@@ -150,9 +149,11 @@ describe("Marquee", () => {
   it("lists every supported format from the registry, in order, by its display label", async () => {
     const formats = row(await render(), "formats");
     expect(visibleItems(formats)).toEqual([...SUPPORTED_FORMAT_IDS]);
-    expect(formats.querySelector(".vk-marquee-list")?.textContent).toBe(
-      SUPPORTED_FORMAT_IDS.map((id) => FORMAT_DISPLAY[id].label).join(""),
+    const names = Array.from(
+      formats.querySelectorAll(".vk-marquee-list:not(.vk-marquee-copy) > li > .vk-marquee-name"),
+      (span) => span.textContent,
     );
+    expect(names).toEqual(SUPPORTED_FORMAT_IDS.map((id) => FORMAT_DISPLAY[id].label));
   });
 
   it("dates exactly the providers the release badge names, with the badge's version", async () => {
@@ -185,15 +186,70 @@ describe("Marquee", () => {
     },
   );
 
-  it("draws no third-party logo, only the shared outline glyphs", async () => {
-    const doc = await render();
-    const section = doc.querySelector("section#marquee");
+  it("draws every item's mark from the page's own sprite: no image, no embed, no external reference", async () => {
+    const section = (await render()).querySelector("section#marquee");
     const uses = Array.from(section?.querySelectorAll("use") ?? [], (use) =>
       use.getAttribute("href"),
     );
     expect(uses.length).toBeGreaterThan(0);
-    for (const href of uses) expect(href).toMatch(/^#marquee-/);
-    expect(section?.querySelectorAll("img")).toHaveLength(0);
+    for (const href of uses) expect(href).toMatch(/^#marquee-mark-[a-z0-9]+$/);
+    expect(section?.querySelectorAll("img, image, picture, object, embed, iframe")).toHaveLength(0);
+    for (const element of Array.from(section?.querySelectorAll("svg *") ?? [])) {
+      expect(element.hasAttribute("xlink:href"), element.tagName).toBe(false);
+    }
+    const symbols = new Set(
+      Array.from(section?.querySelectorAll("symbol") ?? [], (symbol) => `#${symbol.id}`),
+    );
+    for (const href of uses) expect(symbols.has(href ?? ""), href ?? "").toBe(true);
+  });
+
+  it("draws each mark in one fill of the text colour, never a brand colour or a gradient", async () => {
+    const section = (await render()).querySelector("section#marquee");
+    const shapes = Array.from(section?.querySelectorAll("symbol > *") ?? []);
+    expect(shapes.length).toBeGreaterThan(0);
+    for (const shape of shapes) {
+      expect(shape.tagName.toLowerCase()).toBe("path");
+      expect(shape.getAttribute("fill")).toBe("currentColor");
+      expect(shape.hasAttribute("stroke")).toBe(false);
+      expect(shape.hasAttribute("style")).toBe(false);
+    }
+    expect(section?.querySelectorAll("linearGradient, radialGradient, filter")).toHaveLength(0);
+  });
+
+  it("lists every mark in its sprite in the third-party notices with its source, version and a license that allows commercial use and adaptation", async () => {
+    const section = (await render()).querySelector("section#marquee");
+    const slugs = Array.from(section?.querySelectorAll("symbol") ?? [], (symbol) =>
+      symbol.id.replace(/^marquee-mark-/, ""),
+    );
+    expect(slugs.length).toBeGreaterThan(0);
+    for (const slug of slugs) {
+      const entry = notices.assets.find((asset) =>
+        new RegExp(`^.+ mark \\([@\\w/.-]+@\\d+\\.\\d+\\.\\d+, icons/${slug}\\.svg\\)$`).test(
+          asset.name,
+        ),
+      );
+      expect(entry, slug).toBeDefined();
+      const tokens = entry?.license.toUpperCase().split(/[^A-Z0-9.]+/) ?? [];
+      expect(tokens, slug).not.toContain("NC");
+      expect(tokens, slug).not.toContain("SA");
+      expect(entry?.usage, slug).toContain(
+        "Logos are trademarks of their owners, used to identify compatibility.",
+      );
+    }
+  });
+
+  it("names each item in text, beside an aria-hidden mark or file-extension chip", async () => {
+    const doc = await render();
+    for (const item of Array.from(doc.querySelectorAll(".vk-marquee-item"))) {
+      const marks = item.querySelectorAll(":scope > .vk-marquee-mark, :scope > .vk-marquee-chip");
+      expect(marks, item.getAttribute("data-item") ?? "").toHaveLength(1);
+      expect(marks[0]?.getAttribute("aria-hidden")).toBe("true");
+      expect(item.querySelector(":scope > .vk-marquee-name")?.textContent?.length).toBeGreaterThan(
+        0,
+      );
+    }
+    const chips = Array.from(doc.querySelectorAll(".vk-marquee-chip"), (chip) => chip.textContent);
+    for (const text of chips) expect(text).toMatch(/^[./][a-z0-9]+$/);
   });
 
   it("names each visible list by its row title and hides every copy from assistive technology and focus", async () => {

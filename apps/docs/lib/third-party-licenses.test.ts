@@ -2,6 +2,7 @@ import { mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "n
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { BRAND_MARK_IDS, BRAND_MARK_SOURCES, BRAND_MARKS } from "./brand-marks";
 import { licenseTermsUrl } from "./license-terms";
 import committed from "./licenses.generated.json";
 import committedPlatform from "./platform-licenses.json";
@@ -26,7 +27,9 @@ const fresh = buildThirdPartyLicenses(APP_DIR);
 const manifest: ThirdPartyLicenses = committed;
 const docsManifest = JSON.parse(readFileSync(join(APP_DIR, "package.json"), "utf8")) as {
   dependencies: Record<string, string>;
+  devDependencies: Record<string, string>;
 };
+const ICON_PACKAGE = /simple-icons|@icons-pack|@lobehub|lobe-icons|react-icons|iconify/;
 
 function packageNames(data: ThirdPartyLicenses): string[] {
   return data.groups.flatMap((group) => group.packages.map((pkg) => pkg.name));
@@ -55,8 +58,53 @@ describe("third-party licenses", () => {
     expect(manifest.packageCount).toBe(entries.length);
   });
 
-  it("lists no simple-icons package, since the site draws no third-party logo", () => {
-    expect(packageNames(manifest).some((name) => name.includes("simple-icons"))).toBe(false);
+  it("ships no icon package: every logo is path data copied into the source", () => {
+    const declared = [
+      ...Object.keys(docsManifest.dependencies),
+      ...Object.keys(docsManifest.devDependencies),
+    ];
+    for (const name of [...declared, ...packageNames(manifest)])
+      expect(name, name).not.toMatch(ICON_PACKAGE);
+  });
+
+  it("lists every inlined brand mark as an asset naming its source package, version and license", () => {
+    for (const id of BRAND_MARK_IDS) {
+      const mark = BRAND_MARKS[id];
+      const source = BRAND_MARK_SOURCES[mark.source];
+      const entry = manifest.assets.find(
+        (asset) =>
+          asset.name.includes(`${source.package}@${source.version}`) &&
+          asset.name.includes(mark.file),
+      );
+      expect(entry, id).toBeDefined();
+      expect(entry?.license, id).toBe(mark.license);
+      expect(entry?.usage, id).toContain(
+        `https://cdn.jsdelivr.net/npm/${source.package}@${source.version}/${mark.file}`,
+      );
+    }
+  });
+
+  it("admits no brand mark under a non-commercial or share-alike license, and credits every attribution license", () => {
+    const marks = manifest.assets.filter((asset) => / mark \(.+@.+\)$/.test(asset.name));
+    expect(marks).toHaveLength(BRAND_MARK_IDS.length);
+    for (const asset of marks) {
+      const tokens = asset.license.toUpperCase().split(/[^A-Z0-9.]+/);
+      expect(tokens, asset.name).not.toContain("NC");
+      expect(tokens, asset.name).not.toContain("SA");
+      expect(asset.usage, asset.name).toContain(
+        "Logos are trademarks of their owners, used to identify compatibility.",
+      );
+      if (tokens.includes("BY")) {
+        expect(asset.copyright.join(" "), asset.name).toMatch(
+          /creativecommons\.org\/licenses\/by\//,
+        );
+        expect(asset.copyright.join(" "), asset.name).toContain("Changed: ");
+      }
+      if (asset.license === "MIT") {
+        expect(asset.copyright[0], asset.name).toMatch(/^Copyright \(c\) \d{4} \S/);
+        expect(manifest.texts.some((text) => text.license === "MIT")).toBe(true);
+      }
+    }
   });
 
   it("gives every package a license text, its own or the one its license group falls back to, or names the URL of its terms", () => {

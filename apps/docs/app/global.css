@@ -3048,9 +3048,29 @@ html:has(.vk-home) {
   white-space: nowrap;
 }
 
-.vk-marquee-glyph {
+.vk-marquee-mark,
+.vk-marquee-chip {
   flex: none;
   color: var(--text-muted);
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.vk-marquee-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  height: 1.125rem;
+  padding-inline: 0.25rem;
+  border-radius: var(--radius-sm);
+  box-shadow: inset 0 0 0 1px var(--border-default);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: 1;
+}
+
+.vk-marquee-row:hover :is(.vk-marquee-mark, .vk-marquee-chip) {
+  color: var(--text-strong);
 }
 
 @media (width < 40rem) {

@@ -2829,6 +2829,120 @@
       "copyright": [],
       "usage": "GitHub profile images of the contributors, shown to credit them.",
       "textId": null
+    },
+    {
+      "name": "i18next mark (simple-icons@16.35.0, icons/i18next.svg)",
+      "license": "CC0-1.0",
+      "copyright": [],
+      "usage": "Inline monochrome SVG path in the landing marquee, copied from https://cdn.jsdelivr.net/npm/simple-icons@16.35.0/icons/i18next.svg. Logos are trademarks of their owners, used to identify compatibility.",
+      "textId": null
+    },
+    {
+      "name": "Next.js mark (simple-icons@16.35.0, icons/nextdotjs.svg)",
+      "license": "CC0-1.0",
+      "copyright": [],
+      "usage": "Inline monochrome SVG path in the landing marquee, copied from https://cdn.jsdelivr.net/npm/simple-icons@16.35.0/icons/nextdotjs.svg. Logos are trademarks of their owners, used to identify compatibility.",
+      "textId": null
+    },
+    {
+      "name": "Angular mark (simple-icons@16.35.0, icons/angular.svg)",
+      "license": "CC-BY-4.0",
+      "copyright": [
+        "Angular logo by Google (https://angular.dev/press-kit), licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/).",
+        "Changed: redrawn in one color by Simple Icons and filled with the page's text color."
+      ],
+      "usage": "Inline monochrome SVG path in the landing marquee, copied from https://cdn.jsdelivr.net/npm/simple-icons@16.35.0/icons/angular.svg. Logos are trademarks of their owners, used to identify compatibility.",
+      "textId": null
+    },
+    {
+      "name": "YAML mark (simple-icons@16.35.0, icons/yaml.svg)",
+      "license": "CC0-1.0",
+      "copyright": [],
+      "usage": "Inline monochrome SVG path in the landing marquee, copied from https://cdn.jsdelivr.net/npm/simple-icons@16.35.0/icons/yaml.svg. Logos are trademarks of their owners, used to identify compatibility.",
+      "textId": null
+    },
+    {
+      "name": "Flutter mark (simple-icons@16.35.0, icons/flutter.svg)",
+      "license": "CC0-1.0",
+      "copyright": [],
+      "usage": "Inline monochrome SVG path in the landing marquee, copied from https://cdn.jsdelivr.net/npm/simple-icons@16.35.0/icons/flutter.svg. Logos are trademarks of their owners, used to identify compatibility.",
+      "textId": null
+    },
+    {
+      "name": "Spring mark (simple-icons@16.35.0, icons/spring.svg)",
+      "license": "CC0-1.0",
+      "copyright": [],
+      "usage": "Inline monochrome SVG path in the landing marquee, copied from https://cdn.jsdelivr.net/npm/simple-icons@16.35.0/icons/spring.svg. Logos are trademarks of their owners, used to identify compatibility.",
+      "textId": null
+    },
+    {
+      "name": "Apple mark (simple-icons@16.35.0, icons/apple.svg)",
+      "license": "CC0-1.0",
+      "copyright": [],
+      "usage": "Inline monochrome SVG path in the landing marquee, copied from https://cdn.jsdelivr.net/npm/simple-icons@16.35.0/icons/apple.svg. Logos are trademarks of their owners, used to identify compatibility.",
+      "textId": null
+    },
+    {
+      "name": "Android mark (simple-icons@16.35.0, icons/android.svg)",
+      "license": "CC-BY-3.0",
+      "copyright": [
+        "The Android robot is reproduced or modified from work created and shared by Google and used according to terms described in the Creative Commons 3.0 Attribution License (https://creativecommons.org/licenses/by/3.0/).",
+        "Changed: redrawn in one color by Simple Icons and filled with the page's text color."
+      ],
+      "usage": "Inline monochrome SVG path in the landing marquee, copied from https://cdn.jsdelivr.net/npm/simple-icons@16.35.0/icons/android.svg. Logos are trademarks of their owners, used to identify compatibility.",
+      "textId": null
+    },
+    {
+      "name": ".NET mark (simple-icons@16.35.0, icons/dotnet.svg)",
+      "license": "CC0-1.0",
+      "copyright": [],
+      "usage": "Inline monochrome SVG path in the landing marquee, copied from https://cdn.jsdelivr.net/npm/simple-icons@16.35.0/icons/dotnet.svg. Logos are trademarks of their owners, used to identify compatibility.",
+      "textId": null
+    },
+    {
+      "name": "Anthropic mark (simple-icons@16.35.0, icons/anthropic.svg)",
+      "license": "CC0-1.0",
+      "copyright": [],
+      "usage": "Inline monochrome SVG path in the landing marquee, copied from https://cdn.jsdelivr.net/npm/simple-icons@16.35.0/icons/anthropic.svg. Logos are trademarks of their owners, used to identify compatibility.",
+      "textId": null
+    },
+    {
+      "name": "OpenAI mark (@lobehub/icons-static-svg@1.95.1, icons/openai.svg)",
+      "license": "MIT",
+      "copyright": [
+        "Copyright (c) 2023 LobeHub",
+        "MIT License: https://github.com/lobehub/lobe-icons/blob/49a2130df7bfa5eb1b088261bff20a37e2967789/LICENSE (the commit npm records for 1.95.1)."
+      ],
+      "usage": "Inline monochrome SVG path in the landing marquee, copied from https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1.95.1/icons/openai.svg. Logos are trademarks of their owners, used to identify compatibility.",
+      "textId": null
+    },
+    {
+      "name": "Google Gemini mark (simple-icons@16.35.0, icons/googlegemini.svg)",
+      "license": "CC0-1.0",
+      "copyright": [],
+      "usage": "Inline monochrome SVG path in the landing marquee, copied from https://cdn.jsdelivr.net/npm/simple-icons@16.35.0/icons/googlegemini.svg. Logos are trademarks of their owners, used to identify compatibility.",
+      "textId": null
+    },
+    {
+      "name": "DeepL mark (simple-icons@16.35.0, icons/deepl.svg)",
+      "license": "CC0-1.0",
+      "copyright": [],
+      "usage": "Inline monochrome SVG path in the landing marquee, copied from https://cdn.jsdelivr.net/npm/simple-icons@16.35.0/icons/deepl.svg. Logos are trademarks of their owners, used to identify compatibility.",
+      "textId": null
+    },
+    {
+      "name": "Google Translate mark (simple-icons@16.35.0, icons/googletranslate.svg)",
+      "license": "CC0-1.0",
+      "copyright": [],
+      "usage": "Inline monochrome SVG path in the landing marquee, copied from https://cdn.jsdelivr.net/npm/simple-icons@16.35.0/icons/googletranslate.svg. Logos are trademarks of their owners, used to identify compatibility.",
+      "textId": null
+    },
+    {
+      "name": "LibreTranslate mark (simple-icons@16.35.0, icons/libretranslate.svg)",
+      "license": "CC0-1.0",
+      "copyright": [],
+      "usage": "Inline monochrome SVG path in the landing marquee, copied from https://cdn.jsdelivr.net/npm/simple-icons@16.35.0/icons/libretranslate.svg. Logos are trademarks of their owners, used to identify compatibility.",
+      "textId": null
     }
   ],
   "texts": [
