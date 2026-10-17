@@ -299,7 +299,7 @@
       }
     },
     "compare": {
-      "heading": "Next to the alternatives.",
+      "heading": "Verbatra next to Lingo.dev and hosted TMS.",
       "lead": "Each cell links its source. Verbatra never writes a translation that breaks a placeholder or ICU message.",
       "caption": "Verbatra, Lingo.dev, hosted translation management systems and a manual workflow, compared on license, own keys, incremental runs, CI and MCP",
       "columns": {
