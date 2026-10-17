@@ -2579,6 +2579,7 @@ html:has(.vk-home) {
   --compare-surface: var(--surface-bg);
   --compare-head: var(--surface-band);
   --compare-sticky: 16%;
+  --compare-hosted: 28%;
   container-type: inline-size;
   timeline-scope: --vk-compare;
 }
@@ -2612,6 +2613,10 @@ html:has(.vk-home) {
 
 .vk-compare-table tbody tr + tr {
   border-block-start: 1px solid var(--border-default);
+}
+
+.vk-compare-table th[data-column="hostedTms"] {
+  width: var(--compare-hosted);
 }
 
 .vk-compare-sticky {
@@ -2721,7 +2726,7 @@ html:has(.vk-home) {
   }
 }
 
-@container (max-width: 40rem) {
+@container (max-width: 48rem) {
   .vk-compare-hint {
     display: block;
   }
@@ -2769,7 +2774,7 @@ html:has(.vk-home) {
     display: none;
   }
 
-  @container (max-width: 40rem) {
+  @container (max-width: 48rem) {
     .vk-compare-scroll {
       background:
         linear-gradient(to left, var(--compare-surface) 50%, transparent) 100% 0 / 2rem 100%

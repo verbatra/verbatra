@@ -90,11 +90,11 @@ describe("Compare", () => {
 
   it("shows the hint and fade only while the table is wider than its column", () => {
     const css = readFileSync(resolve(process.cwd(), "app/global.css"), "utf8");
-    const narrow = css.slice(css.indexOf("@container (max-width: 40rem)"));
+    const narrow = css.slice(css.indexOf("@container (max-width: 48rem)"));
     expect(css).toMatch(/\.vk-compare-hint,\s*\.vk-compare-fade \{\s*display: none;/);
     expect(narrow).toMatch(/\.vk-compare-hint \{\s*display: block;/);
     expect(narrow).toMatch(/\.vk-compare-fade \{\s*display: block;/);
-    expect(root.querySelector("table")?.className).toContain("min-w-[40rem]");
+    expect(root.querySelector("table")?.className).toContain("min-w-[48rem]");
   });
 
   it("drops the end fade where no scroll timeline can hide it, and shades the scroll edge instead", () => {
@@ -243,6 +243,20 @@ describe("Compare", () => {
       expect(refs.className).toContain("flex-nowrap");
       expect(refs.parentElement?.className).toContain("whitespace-nowrap");
       expect(refs.parentElement?.textContent?.split(/\s/)[0]).not.toBe("");
+    }
+  });
+
+  it("keeps each check glyph on one line with the first word after it", () => {
+    for (const mark of root.querySelectorAll("td [data-mark='yes']")) {
+      const holder = mark.parentElement;
+      const text = holder?.closest("[data-cell-text]")?.textContent?.replace(copy.marks.yes, "");
+      if (text === undefined || text.trim() === "") continue;
+      expect(holder?.className).toContain("whitespace-nowrap");
+      const firstWord = text.trim().split(/[\s\u00a0]/)[0] ?? "";
+      expect(firstWord).not.toBe("");
+      expect(holder?.textContent?.replace(copy.marks.yes, "").trim().startsWith(firstWord)).toBe(
+        true,
+      );
     }
   });
 

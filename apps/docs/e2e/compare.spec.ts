@@ -184,3 +184,42 @@ for (const locale of LOCALES) {
     expect(metrics.lines).toBeLessThanOrEqual(3);
   });
 }
+
+for (const width of [320, 375]) {
+  for (const locale of LOCALES) {
+    test(`fits every cell in its column and keeps each check on its first word's line at ${width}px in ${locale}`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto(homeUrl(locale));
+      const cells = await page.locator(`${COMPARE} td`).evaluateAll((tds) =>
+        tds.map((td) => {
+          const mark = td.querySelector("[data-mark='yes']");
+          const glyph = mark?.querySelector("svg")?.getBoundingClientRect();
+          const walker = document.createTreeWalker(td, NodeFilter.SHOW_TEXT);
+          let word: DOMRect | undefined;
+          for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
+            if (mark?.contains(node) || (node.textContent ?? "").trim() === "") continue;
+            const range = document.createRange();
+            range.selectNodeContents(node);
+            word = range.getClientRects()[0];
+            break;
+          }
+          const center = (rect: DOMRect) => rect.top + rect.height / 2;
+          return {
+            text: td.textContent ?? "",
+            overflow: td.scrollWidth - td.clientWidth,
+            glyphOffLine:
+              glyph === undefined || word === undefined
+                ? 0
+                : Math.abs(center(glyph) - center(word)),
+          };
+        }),
+      );
+      for (const cell of cells) {
+        expect(cell.overflow, cell.text).toBeLessThanOrEqual(0);
+        expect(cell.glyphOffLine, cell.text).toBeLessThan(8);
+      }
+    });
+  }
+}

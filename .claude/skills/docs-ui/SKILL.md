@@ -310,7 +310,10 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   text only. Every cell is followed by its footnote links (`[data-footnotes]`, each at least 24px,
   named "Source n, tool", set small (0.6875rem mono) and `--text-muted` with no underline until
   hover, so the sources stay reachable without outweighing the cell text); `TextWithRefs` keeps the cell's last word and its links in one `whitespace-nowrap` run,
-  so a link never starts a line alone. The source list itself lives only on `/compare` (`li` with
+  so a link never starts a line alone, and a checked cell keeps its glyph with its first word (up to
+  a hyphen, so `check-Gate` may break after it), so the glyph never stands on a line alone. The
+  landing's hosted TMS column, the only one with three footnotes per cell, takes `--compare-hosted`
+  (28%), so every cell fits its column at 320px in all four locales (`e2e/compare.spec.ts`). The source list itself lives only on `/compare` (`li` with
   `value={n}` and `id="source-n"`, the note `id="source-m"`): the landing passes `sourcesPage`
   (the localized `/compare`) so its links are plain `a` elements to `/compare#source-n`, a full
   navigation that sets `:target`. Under the table, in one wrapping `.vk-compare-foot` row: the
@@ -346,7 +349,7 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   pill in a cell wraps inside it. A thin scrollbar thumb, here and on every other sideways
   scroller of the site (prose tables, code frames, tab rows), is `--text-faint`,
   never `--border-default`. While the
-  column is narrower than the table (40rem on the landing, whose table is `min-w-[40rem]`; 100rem on
+  column is narrower than the table (48rem on the landing, whose table is `min-w-[48rem]`; 100rem on
   `/compare`) a `landing.compare.scrollHint` line before it says so
   (not wired as a description, since it is `display: none` on a wide column) and
   `.vk-compare-fade` fades the end edge on the region's scroll timeline; without scroll timelines

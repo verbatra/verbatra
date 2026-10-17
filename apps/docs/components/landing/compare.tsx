@@ -63,7 +63,7 @@ export async function Compare(): Promise<ReactNode> {
         <CompareRegion
           t={t}
           caption={t("caption")}
-          tableClassName="min-w-[40rem]"
+          tableClassName="min-w-[48rem]"
           sourcesPage={sourcesPage}
           columns={SHORT_COLUMNS.map((column) => ({
             id: column,

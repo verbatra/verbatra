@@ -151,6 +151,43 @@ function splitLastWord(text: string): readonly [string, string] {
   return [text.slice(0, index + 1), tail];
 }
 
+const FIRST_WORD = /^[^\s-]+-(?=[^\s-])|^\S+/;
+
+function splitFirstWord(text: string): readonly [string, string] {
+  const head = FIRST_WORD.exec(text)?.[0] ?? "";
+  if (head.split("`").length % 2 === 0) return ["", text];
+  return [head, text.slice(head.length)];
+}
+
+function MarkedText({
+  mark,
+  text,
+  refs,
+}: {
+  mark: ReactNode;
+  text: string;
+  refs: ReactNode;
+}): ReactNode {
+  const [first, rest] = splitFirstWord(text);
+  if (rest === "")
+    return (
+      <span className="whitespace-nowrap">
+        {mark}
+        {withInlineCode(first)}
+        {refs}
+      </span>
+    );
+  return (
+    <>
+      <span className="whitespace-nowrap">
+        {mark}
+        {withInlineCode(first)}
+      </span>
+      <TextWithRefs text={rest} refs={refs} />
+    </>
+  );
+}
+
 function CellText({ cell, refs }: { cell: CompareCellContent; refs: ReactNode }): ReactNode {
   if (cell.content !== undefined)
     return (
@@ -170,8 +207,11 @@ function CellText({ cell, refs }: { cell: CompareCellContent; refs: ReactNode })
     );
   return (
     <span data-cell-text="">
-      {cell.mark}
-      <TextWithRefs text={cell.text} refs={refs} />
+      {cell.mark === undefined ? (
+        <TextWithRefs text={cell.text} refs={refs} />
+      ) : (
+        <MarkedText mark={cell.mark} text={cell.text} refs={refs} />
+      )}
     </span>
   );
 }
