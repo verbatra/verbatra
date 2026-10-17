@@ -28,8 +28,7 @@ export function NewAnnouncement({
 }: NewAnnouncementProps): ReactNode {
   return (
     <a href={href} target="_blank" rel="noopener noreferrer" className="vk-announce">
-      <NewPill>{badge}</NewPill>
-      <span className="vk-announce-text">{children}</span>
+      <NewPill>{badge}</NewPill> <span className="vk-announce-text">{children}</span>
       <ChevronRight aria-hidden="true" className="vk-announce-chevron" />
       <span className="sr-only"> {newTab}</span>
     </a>

@@ -42,7 +42,7 @@ describe("NewPill", () => {
     expect(link?.getAttribute("href")).toBe("https://example.com/notes");
     expect(link?.getAttribute("target")).toBe("_blank");
     expect(link?.getAttribute("rel")).toBe("noopener noreferrer");
-    expect(link?.textContent).toBe("NewNotes (opens in a new tab)");
+    expect(link?.textContent).toBe("New Notes (opens in a new tab)");
     expect(link?.querySelector(".vk-announce-chevron")?.getAttribute("aria-hidden")).toBe("true");
   });
 });
