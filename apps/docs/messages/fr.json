@@ -283,7 +283,7 @@
     },
     "compare": {
       "heading": "Verbatra face à Lingo.dev et aux TMS hébergés.",
-      "lead": "Chaque cellule est liée à sa source. Verbatra n’écrit jamais une traduction qui casse un placeholder ou un message ICU.",
+      "lead": "Chaque cellule cite sa source. Verbatra n’écrit jamais une traduction qui casse un placeholder ou un message ICU.",
       "caption": "Verbatra, Lingo.dev, systèmes de gestion de traduction hébergés et un workflow manuel, comparés sur la licence, les propres clés, les exécutions incrémentielles, la CI et le MCP",
       "columns": {
         "criterion": "Critère",

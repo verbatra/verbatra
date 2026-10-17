@@ -363,7 +363,7 @@
           "hostedTms": "Alle drei füllen unübersetzte oder leere Werte"
         },
         "cli": {
-          "label": "Kommandozeilen-Tool (CLI)",
+          "label": "Kommandozeile (CLI)",
           "verbatra": "Ja, verbatra",
           "lingo": "Ja, @lingo.dev/cli; die ältere Open-Source-CLI lingo.dev wird immer noch veröffentlicht",
           "tolgee": "Ja, @tolgee/cli, MIT",
