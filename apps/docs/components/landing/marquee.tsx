@@ -53,7 +53,11 @@ export const FORMAT_ICONS: Readonly<Record<SupportedFormat, MarqueeMark>> = {
   resx: chip(".resx"),
 };
 
-type MarqueeBadge = { readonly label: string; readonly release: string };
+type MarqueeBadge = {
+  readonly label: string;
+  readonly release: string;
+  readonly version: string;
+};
 
 type MarqueeItem = {
   readonly id: string;
@@ -116,10 +120,15 @@ function Items({ items }: { items: ReadonlyArray<MarqueeItem> }): ReactNode {
       <ItemMark mark={item.icon} />
       <span className="vk-marquee-name">{item.label}</span>
       {item.badge === null ? null : (
-        <NewPill>
-          {item.badge.label}
-          <span className="sr-only"> ({item.badge.release})</span>
-        </NewPill>
+        <>
+          <NewPill>
+            {item.badge.label}
+            <span className="sr-only"> ({item.badge.release})</span>
+          </NewPill>
+          <span aria-hidden="true" className="vk-marquee-release">
+            {item.badge.version}
+          </span>
+        </>
       )}
     </li>
   ));
@@ -168,7 +177,7 @@ export async function Marquee(): Promise<ReactNode> {
   const t = await getTranslations("landing.marquee");
   const locale = toLocale(await getLocale());
   const { label: release } = await availableFromCopy(RELEASE_BADGE.version, undefined, locale);
-  const providers = providerItems({ label: t("new"), release });
+  const providers = providerItems({ label: t("new"), release, version: RELEASE_BADGE.version });
   const formats = formatItems();
 
   return (
@@ -178,7 +187,7 @@ export async function Marquee(): Promise<ReactNode> {
           prefix={MARQUEE_ICON_PREFIX}
           marks={brandMarks([...providers, ...formats])}
         />
-        <MarqueeMotion pauseLabel={t("pause")}>
+        <MarqueeMotion pauseLabel={t("pause")} playLabel={t("play")}>
           <MarqueeRow
             id="providers"
             title={t("providers")}

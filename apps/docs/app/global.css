@@ -3156,9 +3156,19 @@ html:has(.vk-home) {
   justify-self: start;
 }
 
-.vk-marquee-toggle[aria-pressed="true"] .vk-marquee-glyph-pause,
-.vk-marquee-toggle:not([aria-pressed="true"]) .vk-marquee-glyph-play {
+.vk-marquee[data-marquee="paused"] .vk-marquee-glyph-pause,
+.vk-marquee:not([data-marquee="paused"]) .vk-marquee-glyph-play {
   display: none;
+}
+
+.vk-marquee:not([data-glint]) :is(.vk-pill-new, .vk-pill-new-ring, .vk-pill-new-shimmer)::before {
+  animation-name: none;
+}
+
+.vk-marquee-release {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
 }
 
 .vk-marquee-row {

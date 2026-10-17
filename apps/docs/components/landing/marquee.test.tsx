@@ -48,7 +48,7 @@ vi.mock("next-intl/server", async () => {
 });
 
 const { Marquee, MARQUEE_COPIES } = await import("./marquee");
-const { MarqueeMotion } = await import("./marquee-motion");
+const { GLINT_THRESHOLD, MarqueeMotion } = await import("./marquee-motion");
 
 await preloadRegisteredIslands();
 
@@ -89,7 +89,7 @@ function mountToggle(): HTMLElement {
   mounted.push({ root, host });
   act(() =>
     root.render(
-      <MarqueeMotion pauseLabel={copy.pause}>
+      <MarqueeMotion pauseLabel={copy.pause} playLabel={copy.play}>
         <p>rows</p>
       </MarqueeMotion>,
     ),
@@ -169,6 +169,10 @@ describe("Marquee", () => {
       `${copy.new} (${messages.docs.availableFrom.title.replace("{version}", RELEASE_BADGE.version)})`,
     );
     expect(pill?.querySelector(".sr-only")?.textContent).toContain(RELEASE_BADGE.version);
+    const release = pill?.nextElementSibling;
+    expect(release?.className).toBe("vk-marquee-release");
+    expect(release?.textContent).toBe(RELEASE_BADGE.version);
+    expect(release?.getAttribute("aria-hidden")).toBe("true");
     expect(providers.querySelector(".vk-available-from")).toBeNull();
   });
 
@@ -304,33 +308,86 @@ describe("Marquee", () => {
     expect(providers.querySelector(".vk-marquee-track a")).toBeNull();
   });
 
-  it("server-renders the static state: no motion state, the pause button unpressed before the rows", async () => {
+  it("server-renders the static state: no motion state and no glint, the pause button before the rows", async () => {
     const doc = await render();
     const marquee = doc.querySelector(".vk-marquee");
     expect(marquee?.hasAttribute("data-marquee")).toBe(false);
+    expect(marquee?.hasAttribute("data-glint")).toBe(false);
     const button = marquee?.firstElementChild;
     expect(button?.tagName).toBe("BUTTON");
-    expect(button?.getAttribute("aria-pressed")).toBe("false");
+    expect(button?.hasAttribute("aria-pressed")).toBe(false);
     expect(button?.textContent).toBe(copy.pause);
   });
 });
 
 describe("MarqueeMotion", () => {
-  it("marks itself running once hydrated and toggles the paused state with aria-pressed", () => {
+  it("marks itself running once hydrated and names the button by the action it takes next", () => {
     const host = mountToggle();
     const marquee = host.querySelector(".vk-marquee");
     const button = host.querySelector("button");
     expect(marquee?.getAttribute("data-marquee")).toBe("running");
-    expect(button?.getAttribute("aria-pressed")).toBe("false");
+    expect(button?.textContent).toBe(copy.pause);
+    expect(button?.hasAttribute("aria-pressed")).toBe(false);
 
     act(() => button?.click());
     expect(marquee?.getAttribute("data-marquee")).toBe("paused");
-    expect(button?.getAttribute("aria-pressed")).toBe("true");
-    expect(button?.textContent).toBe(copy.pause);
+    expect(button?.textContent).toBe(copy.play);
+    expect(button?.hasAttribute("aria-pressed")).toBe(false);
 
     act(() => button?.click());
     expect(marquee?.getAttribute("data-marquee")).toBe("running");
-    expect(button?.getAttribute("aria-pressed")).toBe("false");
+    expect(button?.textContent).toBe(copy.pause);
+  });
+
+  it("lets the depth pill glint only once the marquee has come into view", () => {
+    const observers: Array<{ fire: (isIntersecting: boolean) => void; done: boolean }> = [];
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        private readonly entry = { fire: (_: boolean) => {}, done: false };
+        constructor(callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {
+          expect(options?.threshold).toBe(GLINT_THRESHOLD);
+          this.entry.fire = (isIntersecting) => {
+            if (this.entry.done) return;
+            callback(
+              [{ isIntersecting } as IntersectionObserverEntry],
+              this as unknown as IntersectionObserver,
+            );
+          };
+          observers.push(this.entry);
+        }
+        observe(): void {}
+        disconnect(): void {
+          this.entry.done = true;
+        }
+      },
+    );
+    try {
+      const host = mountToggle();
+      const marquee = host.querySelector(".vk-marquee");
+      expect(marquee?.hasAttribute("data-glint")).toBe(false);
+      act(() => {
+        for (const observer of observers) observer.fire(false);
+      });
+      expect(marquee?.hasAttribute("data-glint")).toBe(false);
+      act(() => {
+        for (const observer of observers) observer.fire(true);
+      });
+      expect(marquee?.getAttribute("data-glint")).toBe("on");
+      expect(observers.every((observer) => observer.done)).toBe(true);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("holds the marquee pill's animations until the glint flag is set", () => {
+    const held = docsStylesheetRules().find(
+      (rule) =>
+        rule.declarations["animation-name"] === "none" &&
+        rule.selector.includes(".vk-marquee:not([data-glint])"),
+    );
+    expect(held?.selector).toContain(".vk-pill-new-shimmer");
+    expect(held?.media).toBe("");
   });
 
   it.each(["dark", "light"] as const)(

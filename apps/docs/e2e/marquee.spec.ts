@@ -189,18 +189,21 @@ test.describe("marquee before the island takes over", () => {
 test.describe("marquee motion", () => {
   test.use({ reducedMotion: "no-preference" });
 
-  test("runs after hydration and stops while the pause button is pressed", async ({ page }) => {
+  test("runs after hydration and stops until the button, renamed to play, is pressed again", async ({
+    page,
+  }) => {
     await page.goto("/");
     const marquee = page.locator(".vk-marquee");
     await expect(marquee).toHaveAttribute("data-marquee", "running");
     const toggle = marquee.locator(".vk-marquee-toggle");
     await expect(toggle).toBeVisible();
-    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+    await expect(toggle).toHaveAccessibleName("Pause animation");
+    await expect(toggle).not.toHaveAttribute("aria-pressed");
     await expect.poll(() => playStates(page)).toContain("running");
 
     await toggle.click();
     await page.mouse.move(0, 0);
-    await expect(toggle).toHaveAttribute("aria-pressed", "true");
+    await expect(toggle).toHaveAccessibleName("Play animation");
     await expect(marquee).toHaveAttribute("data-marquee", "paused");
     await expect.poll(async () => new Set(await playStates(page))).toEqual(new Set(["paused"]));
     const paused = await marqueeTimesTwoFramesApart(page);
@@ -212,11 +215,29 @@ test.describe("marquee motion", () => {
 
     await toggle.click();
     await page.mouse.move(0, 0);
-    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+    await expect(toggle).toHaveAccessibleName("Pause animation");
     await expect.poll(async () => new Set(await playStates(page))).toEqual(new Set(["running"]));
     const running = await marqueeTimesTwoFramesApart(page);
     expect(running.length).toBeGreaterThan(0);
     for (const [first, second] of running) expect(second).not.toBe(first);
+  });
+
+  test("glints the release pill three times only once the marquee is in view", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 600 });
+    await page.goto("/");
+    const marquee = page.locator(".vk-marquee");
+    await expect(marquee).toHaveAttribute("data-marquee", "running");
+    const pill = marquee.locator(".vk-marquee-list:not(.vk-marquee-copy) .vk-pill-new").first();
+    const glow = () =>
+      pill.evaluate((element) => {
+        const style = getComputedStyle(element, "::before");
+        return [style.animationName, style.animationIterationCount];
+      });
+    await expect(marquee).not.toHaveAttribute("data-glint");
+    expect((await glow())[0]).toBe("none");
+    await marquee.scrollIntoViewIfNeeded();
+    await expect(marquee).toHaveAttribute("data-glint", "on");
+    expect(await glow()).toEqual(["vk-pill-new-glow", "3"]);
   });
 
   test("pauses a row while focus is on its link", async ({ page }) => {

@@ -239,6 +239,7 @@
       "heading": "Your provider. Your file format.",
       "lead": "Switching providers means editing one block of the config file. Your locale files stay where they are, in the format they already use.",
       "pause": "Pause animation",
+      "play": "Play animation",
       "providers": "Providers",
       "formats": "File formats",
       "new": "New",
