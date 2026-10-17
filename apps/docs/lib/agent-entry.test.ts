@@ -160,18 +160,12 @@ describe("the agent setup command", () => {
     },
   );
 
-  it("reaches the landing hero through its one command panel, never the separate prompt button", () => {
+  it("keeps the landing hero free of the setup prompt and the install command, which the closing section shows", () => {
     const hero = docsFile("components/landing/hero.tsx");
-    expect(hero).toMatch(/import \{ CommandPanel \} from "@\/components\/landing\/islands";/);
-    expect(hero).toContain("<CommandPanel");
     expect(hero).not.toContain("PromptCopyButton");
-    const panel = docsFile("components/landing/command-panel.tsx");
-    expect(panel).toMatch(
-      /import \{[^}]*\bNPM_INSTALL_COMMAND\b[^}]*\} from "@\/lib\/install-commands";/,
-    );
-    expect(panel).toContain("command={NPM_INSTALL_COMMAND}");
-    expect(panel).toContain('import { AI_SETUP_PROMPT } from "@/lib/ai-setup-prompt";');
-    expect(panel).toContain("text={AI_SETUP_PROMPT}");
+    expect(hero).not.toContain("CommandPanel");
+    expect(hero).not.toContain("AI_SETUP_PROMPT");
+    expect(hero).not.toContain("NPM_INSTALL_COMMAND");
   });
 });
 

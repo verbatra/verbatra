@@ -54,7 +54,6 @@ const SKIPPED = [
   "script",
   "[data-playground-demo]",
   ".vk-compare-hint",
-  ".vk-hero-diff-mark",
   "[data-footnotes]",
 ].join(", ");
 
@@ -90,7 +89,6 @@ async function renderedBlocks(locale: Locale): Promise<Block[]> {
   const doc = new DOMParser().parseFromString(html, "text/html");
   for (const skipped of doc.querySelectorAll(SKIPPED)) skipped.remove();
   for (const br of doc.querySelectorAll("br")) br.replaceWith(" ");
-  for (const line of doc.querySelectorAll(".vk-showcase-line")) line.after("\n");
   for (const inline of doc.querySelectorAll("a, .vk-available-from")) {
     inline.before(" ");
     inline.after(" ");
