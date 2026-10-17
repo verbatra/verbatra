@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   HERO_CHECK_COMMAND,
   HERO_CHECK_OUTPUT,
+  HERO_TERMINAL_SCRIPT,
   HERO_TERMINAL_TITLE,
   HERO_TRANSLATE_COMMAND,
   HERO_TRANSLATE_OUTPUT,
@@ -86,7 +87,7 @@ describe("the landing tracks", () => {
 
   it("gives every track at least one command line, each a single line with no trailing newline", () => {
     for (const id of LANDING_TRACK_IDS) {
-      const { commands } = LANDING_TRACKS[id];
+      const commands = LANDING_TRACKS[id].steps.map((step) => step.command);
       expect(commands.length, id).toBeGreaterThan(0);
       for (const line of commands) expect(line, id).toMatch(/^\S[^\n]*\S$/);
     }
@@ -96,7 +97,7 @@ describe("the landing tracks", () => {
     for (const id of LANDING_TRACK_IDS) {
       const track = LANDING_TRACKS[id];
       expect(track.terminalTitle, id).toBe(HERO_TERMINAL_TITLE);
-      if (track.result.length > 0) expect(track.files, id).toEqual([]);
+      if (track.steps.some((step) => step.output.length > 0)) expect(track.files, id).toEqual([]);
       for (const file of track.files) expect(file.filename, id).toBeTruthy();
     }
   });
@@ -109,9 +110,15 @@ describe("the landing tracks", () => {
 });
 
 describe("the translate track equals its sources", () => {
-  it("runs the recorded translate command and prints its transcript, pinned to the CLI renderer", () => {
-    expect(LANDING_TRACKS.translate.commands).toEqual([HERO_TRANSLATE_COMMAND]);
-    expect(LANDING_TRACKS.translate.result).toBe(HERO_TRANSLATE_OUTPUT);
+  it("runs the recorded check and translate commands, each followed by the transcript it printed", () => {
+    expect(LANDING_TRACKS.translate.steps).toEqual([
+      { command: HERO_CHECK_COMMAND, output: HERO_CHECK_OUTPUT },
+      { command: HERO_TRANSLATE_COMMAND, output: HERO_TRANSLATE_OUTPUT },
+    ]);
+    expect(LANDING_TRACKS.translate.steps).toEqual(
+      HERO_TERMINAL_SCRIPT.map(({ command, output }) => ({ command, output })),
+    );
+    expect(HERO_TERMINAL_SCRIPT.at(-1)?.exitCode).toBe(LANDING_TRACKS.translate.exitCode);
     expect(LANDING_TRACKS.translate.exitCode).toBe(TRACK_CHECK_EXIT_CODES.ok);
   });
 });
@@ -120,10 +127,10 @@ describe("the CLI lines run only what the published @verbatra/cli registers", ()
   it("uses only commands and flags of the recorded release, each value flag with its value", () => {
     expect(PUBLISHED_CLI.version).toBe("0.11.1");
     const run = read(join(REPO, "packages/cli/src/run.ts"));
-    const lines = LANDING_TRACK_IDS.flatMap((id) => LANDING_TRACKS[id].commands).filter((line) =>
-      line.startsWith("npx @verbatra/cli "),
-    );
-    expect(lines).toEqual([HERO_TRANSLATE_COMMAND, HERO_CHECK_COMMAND]);
+    const lines = LANDING_TRACK_IDS.flatMap((id) =>
+      LANDING_TRACKS[id].steps.map((step) => step.command),
+    ).filter((line) => line.startsWith("npx @verbatra/cli "));
+    expect(lines).toEqual([HERO_CHECK_COMMAND, HERO_TRANSLATE_COMMAND, HERO_CHECK_COMMAND]);
     for (const line of lines) {
       const [runner, pkg, command = "", ...args] = cliWords(line);
       expect(`${runner} ${pkg}`).toBe("npx @verbatra/cli");
@@ -162,8 +169,9 @@ describe("the CI track equals its sources", () => {
   });
 
   it("prints the recorded check transcript and exits as a failing gate", () => {
-    expect(LANDING_TRACKS.ci.commands).toEqual([HERO_CHECK_COMMAND]);
-    expect(LANDING_TRACKS.ci.result).toBe(HERO_CHECK_OUTPUT);
+    expect(LANDING_TRACKS.ci.steps).toEqual([
+      { command: HERO_CHECK_COMMAND, output: HERO_CHECK_OUTPUT },
+    ]);
     expect(LANDING_TRACKS.ci.exitCode).toBe(TRACK_CHECK_EXIT_CODES.fail);
   });
 });
@@ -180,11 +188,13 @@ describe("the agents track equals its sources", () => {
 
   it("copies the claude mcp add line from the MCP client guide", () => {
     expect(`${TRACK_MCP_ADD_COMMAND}\n`).toBe(fenceAfter(guide(), "#### Without the CLI", "bash"));
-    expect(LANDING_TRACKS.agents.commands).toEqual([TRACK_MCP_ADD_COMMAND]);
+    expect(LANDING_TRACKS.agents.steps.map((step) => step.command)).toEqual([
+      TRACK_MCP_ADD_COMMAND,
+    ]);
   });
 
   it("claims no recorded output, since no transcript of the MCP client is pinned", () => {
-    expect(LANDING_TRACKS.agents.result).toEqual([]);
+    expect(LANDING_TRACKS.agents.steps.flatMap((step) => step.output)).toEqual([]);
     expect(LANDING_TRACKS.agents.exitCode).toBeNull();
   });
 });

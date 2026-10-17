@@ -18,6 +18,12 @@ import {
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
+function pendingAtStart(id: (typeof LANDING_TRACK_IDS)[number]): number {
+  const { steps, files, exitCode } = LANDING_TRACKS[id];
+  const exitChip = exitCode === null ? 0 : 1;
+  return steps.length - 1 + steps.flatMap((step) => step.output).length + files.length + exitChip;
+}
+
 const VIEWS: ReadonlyArray<HeroTrackView> = LANDING_TRACK_IDS.map((id) => {
   const track = LANDING_TRACKS[id];
   return {
@@ -27,8 +33,7 @@ const VIEWS: ReadonlyArray<HeroTrackView> = LANDING_TRACK_IDS.map((id) => {
     link: `${id} docs`,
     href: track.docsPath,
     title: track.terminalTitle,
-    commands: track.commands,
-    result: track.result,
+    steps: track.steps,
     files: track.files,
     exit:
       track.exitCode === null ? null : { code: track.exitCode, label: `exit ${track.exitCode}` },
@@ -176,7 +181,7 @@ describe("HeroTracks typing", () => {
     expect(observer?.options?.threshold).toBe(LOAD_RUN_THRESHOLD);
     enterView();
     expect(host.querySelector(".vk-tracks")?.getAttribute("data-typing")).toBe("true");
-    expect(pending(host, "translate")).toBe(LANDING_TRACKS.translate.result.length + 1);
+    expect(pending(host, "translate")).toBe(pendingAtStart("translate"));
     expect(observer?.disconnected).toBe(true);
     run(10_000);
     expect(pending(host, "translate")).toBe(0);
@@ -207,14 +212,14 @@ describe("HeroTracks typing", () => {
     const host = mount();
     act(() => tabs(host)[2]?.click());
     const ci = LANDING_TRACKS.ci;
-    expect(pending(host, "ci")).toBe(ci.result.length + 1);
+    expect(pending(host, "ci")).toBe(pendingAtStart("ci"));
     run(TYPE_CHAR_MS * 10);
     const typed = panel(host, "ci")?.querySelector(".vk-track-typed");
     expect(typed?.getAttribute("aria-hidden")).toBe("true");
-    expect(ci.commands[0]?.startsWith(typed?.textContent ?? "-")).toBe(true);
+    expect(ci.steps[0]?.command.startsWith(typed?.textContent ?? "-")).toBe(true);
     expect(typed?.textContent?.length).toBeGreaterThan(0);
     expect(panel(host, "ci")?.querySelector(".vk-track-command code")?.textContent).toBe(
-      ci.commands[0],
+      ci.steps[0]?.command,
     );
     run(10_000);
     expect(pending(host, "ci")).toBe(0);
@@ -235,7 +240,7 @@ describe("HeroTracks typing", () => {
     act(() => tabs(host)[2]?.click());
     run(TYPE_CHAR_MS * 5);
     act(() => tabs(host)[1]?.click());
-    expect(pending(host, "agents")).toBe(LANDING_TRACKS.agents.files.length);
+    expect(pending(host, "agents")).toBe(pendingAtStart("agents"));
     expect(
       panel(host, "agents")?.querySelector(".vk-track-command")?.getAttribute("data-state"),
     ).toBe("typing");
@@ -247,14 +252,37 @@ describe("the typing timeline", () => {
   const translate = VIEWS[0] as HeroTrackView;
 
   it("takes one step per command character and one per result line", () => {
-    const characters = translate.commands.join("").length;
-    expect(trackStepCount(translate)).toBe(characters + translate.result.length);
+    const characters = translate.steps.map((step) => step.command).join("").length;
+    const lines = translate.steps.flatMap((step) => step.output).length;
+    expect(translate.steps.length).toBeGreaterThan(1);
+    expect(trackStepCount(translate)).toBe(characters + lines);
   });
 
-  it("pauses after each command and spaces the result lines evenly", () => {
-    const first = translate.commands[0]?.length ?? 0;
+  it("types each command, pauses, then shows that command's output before the next command", () => {
+    const [first, second] = translate.steps;
+    const firstCommand = first?.command.length ?? 0;
+    const firstOutput = first?.output.length ?? 0;
     expect(stepDelay(translate, 0)).toBe(TYPE_CHAR_MS);
-    expect(stepDelay(translate, first - 1)).toBe(TYPE_COMMAND_PAUSE_MS);
-    expect(stepDelay(translate, translate.commands.join("").length)).toBe(TYPE_LINE_MS);
+    expect(stepDelay(translate, firstCommand - 1)).toBe(TYPE_COMMAND_PAUSE_MS);
+    expect(stepDelay(translate, firstCommand)).toBe(TYPE_LINE_MS);
+    expect(stepDelay(translate, firstCommand + firstOutput - 1)).toBe(TYPE_LINE_MS);
+    expect(stepDelay(translate, firstCommand + firstOutput)).toBe(TYPE_CHAR_MS);
+    expect(
+      stepDelay(translate, firstCommand + firstOutput + (second?.command.length ?? 0) - 1),
+    ).toBe(TYPE_COMMAND_PAUSE_MS);
+  });
+
+  it("shows the first command's output while the second command is still pending", () => {
+    const host = mount();
+    enterView();
+    const [first] = translate.steps;
+    run(
+      TYPE_CHAR_MS * ((first?.command.length ?? 0) + 4) + TYPE_COMMAND_PAUSE_MS + TYPE_LINE_MS * 6,
+    );
+    const body = panel(host, "translate");
+    const commands = body?.querySelectorAll(".vk-track-command") ?? [];
+    expect(commands[0]?.getAttribute("data-state")).toBe("done");
+    expect(commands[0]?.nextElementSibling?.getAttribute("data-state")).toBe("done");
+    expect(commands[1]?.getAttribute("data-state")).not.toBe("pending");
   });
 });

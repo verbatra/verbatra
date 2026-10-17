@@ -71,17 +71,18 @@ const MARKDOWN_TAGS = {
 async function heroTrack(locale: Locale, id: LandingTrackId): Promise<string> {
   const t = await getTranslations({ locale, namespace: "landing.hero.tracks" });
   const track = LANDING_TRACKS[id];
-  const output =
-    track.result.length > 0
-      ? [fencedMarkdown("text", null, track.result.join("\n"))]
-      : track.files.map((file) =>
-          fencedMarkdown(file.language, `title="${file.filename}"`, file.code.trimEnd()),
-        );
+  const steps = track.steps.flatMap((step) => [
+    fencedMarkdown("sh", null, step.command),
+    ...(step.output.length > 0 ? [fencedMarkdown("text", null, step.output.join("\n"))] : []),
+  ]);
+  const files = track.files.map((file) =>
+    fencedMarkdown(file.language, `title="${file.filename}"`, file.code.trimEnd()),
+  );
   return blocks(
     `**${t(`${id}.tab`)}**`,
     `${t(`${id}.summary`)} ${link(t(`${id}.link`), localizedPath(locale, track.docsPath))}`,
-    fencedMarkdown("sh", null, track.commands.join("\n")),
-    ...output,
+    ...steps,
+    ...files,
   );
 }
 

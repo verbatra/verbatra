@@ -2,10 +2,9 @@ import {
   HERO_CHECK_COMMAND,
   HERO_CHECK_EXIT_CODE,
   HERO_CHECK_OUTPUT,
+  HERO_TERMINAL_SCRIPT,
   HERO_TERMINAL_TITLE,
-  HERO_TRANSLATE_COMMAND,
   HERO_TRANSLATE_EXIT_CODE,
-  HERO_TRANSLATE_OUTPUT,
 } from "./hero-terminal";
 import type { HighlightLanguage } from "./landing-highlight";
 
@@ -17,13 +16,17 @@ export type LandingTrackFile = {
   readonly code: string;
 };
 
+export type LandingTrackStep = {
+  readonly command: string;
+  readonly output: ReadonlyArray<string>;
+};
+
 export type LandingTrack = {
   readonly id: LandingTrackId;
   readonly docsPath: string;
   readonly terminalTitle: string;
-  readonly commands: ReadonlyArray<string>;
+  readonly steps: ReadonlyArray<LandingTrackStep>;
   readonly files: ReadonlyArray<LandingTrackFile>;
-  readonly result: ReadonlyArray<string>;
   readonly exitCode: number | null;
 };
 
@@ -50,27 +53,24 @@ export const LANDING_TRACKS: Readonly<Record<LandingTrackId, LandingTrack>> = {
     id: "translate",
     docsPath: "/docs/cli/translate",
     terminalTitle: HERO_TERMINAL_TITLE,
-    commands: [HERO_TRANSLATE_COMMAND],
+    steps: HERO_TERMINAL_SCRIPT.map(({ command, output }) => ({ command, output })),
     files: [],
-    result: HERO_TRANSLATE_OUTPUT,
     exitCode: HERO_TRANSLATE_EXIT_CODE,
   },
   agents: {
     id: "agents",
     docsPath: "/docs/connect-an-mcp-client",
     terminalTitle: HERO_TERMINAL_TITLE,
-    commands: [TRACK_MCP_ADD_COMMAND],
+    steps: [{ command: TRACK_MCP_ADD_COMMAND, output: [] }],
     files: [{ language: "json", filename: ".mcp.json", code: TRACK_MCP_JSON }],
-    result: [],
     exitCode: null,
   },
   ci: {
     id: "ci",
     docsPath: "/docs/ci-and-exit-codes",
     terminalTitle: HERO_TERMINAL_TITLE,
-    commands: [HERO_CHECK_COMMAND],
+    steps: [{ command: HERO_CHECK_COMMAND, output: HERO_CHECK_OUTPUT }],
     files: [],
-    result: HERO_CHECK_OUTPUT,
     exitCode: HERO_CHECK_EXIT_CODE,
   },
 };

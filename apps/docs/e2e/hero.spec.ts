@@ -49,7 +49,7 @@ test.describe("hero without JavaScript", () => {
     await expect(title).toHaveCSS("opacity", "1");
     const translate = panel(page, "translate");
     await expect(translate).toBeVisible();
-    await expect(translate.locator(".vk-track-command")).toHaveCount(1);
+    await expect(translate.locator(".vk-track-command")).toHaveCount(2);
     for (const line of await translate.locator(".vk-track-command, .vk-track-out").all()) {
       await expect(line).toHaveCSS("opacity", "1");
     }

@@ -23,8 +23,7 @@ async function trackViews(locale: Locale): Promise<ReadonlyArray<HeroTrackView>>
       link: t(`${id}.link`),
       href: localizedPath(locale, track.docsPath),
       title: track.terminalTitle,
-      commands: track.commands,
-      result: track.result,
+      steps: track.steps,
       files: track.files.map(({ filename, code }) => ({ filename, code })),
       exit:
         track.exitCode === null

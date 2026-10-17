@@ -16,6 +16,8 @@ export const LOAD_RUN_THRESHOLD = 0.2;
 
 export type HeroTrackFile = { readonly filename: string; readonly code: string };
 
+export type HeroTrackStep = { readonly command: string; readonly output: ReadonlyArray<string> };
+
 export type HeroTrackView = {
   readonly id: LandingTrackId;
   readonly tab: string;
@@ -23,8 +25,7 @@ export type HeroTrackView = {
   readonly link: string;
   readonly href: string;
   readonly title: string;
-  readonly commands: ReadonlyArray<string>;
-  readonly result: ReadonlyArray<string>;
+  readonly steps: ReadonlyArray<HeroTrackStep>;
   readonly files: ReadonlyArray<HeroTrackFile>;
   readonly exit: { readonly code: number; readonly label: string } | null;
 };
@@ -37,36 +38,46 @@ function keyedLines(prefix: string, lines: ReadonlyArray<string>): ReadonlyArray
   return lines.map((text, position) => ({ key: `${prefix}-${position}`, text }));
 }
 
-function outputs(track: HeroTrackView): ReadonlyArray<string> {
-  return track.result.length > 0 ? track.result : track.files.map((file) => file.filename);
+function stepLength(step: HeroTrackStep): number {
+  return step.command.length + step.output.length;
 }
 
-function commandStart(track: HeroTrackView, index: number): number {
-  return track.commands.slice(0, index).reduce((sum, command) => sum + command.length, 0);
+function stepStart(track: HeroTrackView, index: number): number {
+  return track.steps.slice(0, index).reduce((sum, step) => sum + stepLength(step), 0);
+}
+
+function filesStart(track: HeroTrackView): number {
+  return stepStart(track, track.steps.length);
 }
 
 export function trackStepCount(track: HeroTrackView): number {
-  return commandStart(track, track.commands.length) + outputs(track).length;
+  return filesStart(track) + track.files.length;
 }
 
 export function stepDelay(track: HeroTrackView, step: number): number {
-  const typed = commandStart(track, track.commands.length);
-  if (step >= typed) return TYPE_LINE_MS;
-  const ends = track.commands.some((_, index) => commandStart(track, index + 1) === step + 1);
-  return ends ? TYPE_COMMAND_PAUSE_MS : TYPE_CHAR_MS;
+  const index = track.steps.findIndex((_, at) => step < stepStart(track, at + 1));
+  const current = track.steps[index];
+  if (current === undefined) return TYPE_LINE_MS;
+  const typed = step - stepStart(track, index);
+  if (typed >= current.command.length) return TYPE_LINE_MS;
+  return typed === current.command.length - 1 ? TYPE_COMMAND_PAUSE_MS : TYPE_CHAR_MS;
 }
 
 function commandState(track: HeroTrackView, index: number, step: number | null): LineState {
   if (step === null) return "done";
-  const start = commandStart(track, index);
-  const length = track.commands[index]?.length ?? 0;
+  const start = stepStart(track, index);
+  const length = track.steps[index]?.command.length ?? 0;
   if (step < start) return "pending";
   return step < start + length ? "typing" : "done";
 }
 
-function outputState(track: HeroTrackView, index: number, step: number | null): LineState {
+function lineState(position: number, step: number | null): LineState {
   if (step === null) return "done";
-  return step > commandStart(track, track.commands.length) + index ? "done" : "pending";
+  return step > position ? "done" : "pending";
+}
+
+function outputPosition(track: HeroTrackView, index: number, line: number): number {
+  return stepStart(track, index) + (track.steps[index]?.command.length ?? 0) + line;
 }
 
 function CommandLine({
@@ -96,23 +107,43 @@ function CommandLine({
   );
 }
 
-function TrackOutput({ track, step }: { track: HeroTrackView; step: number | null }): ReactNode {
-  if (track.result.length > 0) {
-    return keyedLines(`${track.id}-out`, track.result).map((line, index) => (
-      <p
-        key={line.key}
-        className="vk-track-line vk-track-out"
-        data-state={outputState(track, index, step)}
-      >
-        {line.text}
-      </p>
-    ));
-  }
+function TrackStepLines({
+  track,
+  index,
+  step,
+}: {
+  track: HeroTrackView;
+  index: number;
+  step: number | null;
+}): ReactNode {
+  const current = track.steps[index];
+  if (current === undefined) return null;
+  return (
+    <>
+      <CommandLine
+        command={current.command}
+        state={commandState(track, index, step)}
+        typed={step === null ? current.command.length : step - stepStart(track, index)}
+      />
+      {keyedLines(`${track.id}-${index}-out`, current.output).map((line, position) => (
+        <p
+          key={line.key}
+          className="vk-track-line vk-track-out"
+          data-state={lineState(outputPosition(track, index, position), step)}
+        >
+          {line.text}
+        </p>
+      ))}
+    </>
+  );
+}
+
+function TrackFiles({ track, step }: { track: HeroTrackView; step: number | null }): ReactNode {
   return track.files.map((file, index) => (
     <figure
       key={file.filename}
       className="vk-track-file"
-      data-state={outputState(track, index, step)}
+      data-state={lineState(filesStart(track) + index, step)}
     >
       <figcaption className="vk-track-file-name">{file.filename}</figcaption>
       <pre className="vk-track-file-code">
@@ -141,22 +172,20 @@ function TrackPanel({
             <span
               className="vk-track-exit"
               data-exit={track.exit.code === 0 ? "ok" : "fail"}
-              data-state={outputState(track, outputs(track).length - 1, run)}
+              data-state={lineState(trackStepCount(track) - 1, run)}
             >
               {track.exit.label}
             </span>
           )}
         </div>
         <div className="vk-track-body" lang="en">
-          {keyedLines(`${track.id}-command`, track.commands).map((command, index) => (
-            <CommandLine
-              key={command.key}
-              command={command.text}
-              state={commandState(track, index, run)}
-              typed={run === null ? command.text.length : run - commandStart(track, index)}
-            />
+          {keyedLines(
+            `${track.id}-step`,
+            track.steps.map((entry) => entry.command),
+          ).map((entry, index) => (
+            <TrackStepLines key={entry.key} track={track} index={index} step={run} />
           ))}
-          <TrackOutput track={track} step={run} />
+          <TrackFiles track={track} step={run} />
         </div>
       </div>
       <p className="vk-track-summary">

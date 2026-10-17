@@ -204,15 +204,14 @@ describe("Hero tracks", () => {
       const track = LANDING_TRACKS[id];
       const body = panel(doc, id)?.querySelector(".vk-track-body");
       expect(body?.getAttribute("lang")).toBe("en");
-      expect(
-        Array.from(
-          body?.querySelectorAll(".vk-track-command code") ?? [],
-          (code) => code.textContent,
-        ),
-      ).toEqual(track.commands);
-      expect(
-        Array.from(body?.querySelectorAll(".vk-track-out") ?? [], (line) => line.textContent),
-      ).toEqual(track.result);
+      const lines = Array.from(
+        body?.querySelectorAll(".vk-track-command, .vk-track-out") ?? [],
+        (line) =>
+          line.classList.contains("vk-track-command")
+            ? `$ ${line.querySelector("code")?.textContent}`
+            : line.textContent,
+      );
+      expect(lines).toEqual(track.steps.flatMap((step) => [`$ ${step.command}`, ...step.output]));
       expect(panel(doc, id)?.querySelector(".vk-track-title")?.textContent).toBe(
         track.terminalTitle,
       );
@@ -225,7 +224,7 @@ describe("Hero tracks", () => {
 
   it("shows the agents track's .mcp.json in place of a transcript it never recorded", async () => {
     const agents = panel(await render(), "agents");
-    expect(LANDING_TRACKS.agents.result).toEqual([]);
+    expect(LANDING_TRACKS.agents.steps.flatMap((step) => step.output)).toEqual([]);
     expect(agents?.querySelectorAll(".vk-track-out")).toHaveLength(0);
     const files = Array.from(agents?.querySelectorAll(".vk-track-file") ?? []);
     expect(files.map((file) => file.querySelector("figcaption")?.textContent)).toEqual(

@@ -3011,6 +3011,10 @@ html:has(.vk-home) {
   margin-top: 0.625rem;
 }
 
+.vk-track-out + .vk-track-command {
+  margin-top: 0.875rem;
+}
+
 .vk-track-sign {
   color: var(--accent);
 }
