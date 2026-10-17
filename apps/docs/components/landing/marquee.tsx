@@ -182,7 +182,12 @@ export async function Marquee(): Promise<ReactNode> {
 
   return (
     <Section band id="marquee" labelledBy="marquee-heading">
-      <SectionAside id="marquee-heading" title={t("heading")} lead={t("lead")}>
+      <SectionAside
+        id="marquee-heading"
+        title={t("heading")}
+        lead={t("lead")}
+        className="vk-marquee-aside"
+      >
         <BrandMarkSprite
           prefix={MARQUEE_ICON_PREFIX}
           marks={brandMarks([...providers, ...formats])}

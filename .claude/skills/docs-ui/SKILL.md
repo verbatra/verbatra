@@ -220,7 +220,9 @@ differ by weight, size and tracking, not by family. You do not set a heading fon
 Adding a third family needs a reason that survives review.
 
 The type scale is a major third (1.25) held in `app/global.css`: `--text-display`, `--text-h2`
-(capped at 3rem, read only by `.vk-h2`), `--text-h3`, `--text-h4`, `--text-lead`, with `--leading-*`
+(capped at 3rem, read only by `.vk-h2`; the marquee's side-column `h2`, `.vk-marquee-aside`, is
+capped further at `--text-aside-h2`, 2rem, from 64rem, so a long locale stays within four lines,
+which `e2e/marquee.spec.ts` checks at 1024 and 1440), `--text-h3`, `--text-h4`, `--text-lead`, with `--leading-*`
 and `--tracking-*` companions. Above it sits `--text-hero` (fluid, 2.5rem to 6.25rem) with
 `--weight-hero` (700), used only by the landing headline (`.vk-banner-title`, through
 `--banner-title`, which caps it at `13.5cqi` of the copy column). Landing headings take the `.vk-h2`, `.vk-h3`, `.vk-h4` and `.vk-lead`

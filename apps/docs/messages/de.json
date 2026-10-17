@@ -219,7 +219,7 @@
       "nodeMajorFrom": "{major} (ab {minimum})"
     },
     "marquee": {
-      "heading": "Funktioniert mit den Sprachdateien und Anbietern, die du schon nutzt.",
+      "heading": "Funktioniert mit deinen Sprachdateien und Anbietern.",
       "lead": "Den Anbieter zu wechseln heißt, einen Block der Konfigurationsdatei zu bearbeiten. Deine Sprachdateien bleiben, wo sie sind, in ihrem bisherigen Format.",
       "pause": "Animation pausieren",
       "play": "Animation abspielen",

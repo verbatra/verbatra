@@ -124,6 +124,7 @@ samp {
   --text-hero: clamp(2.5rem, 0.25rem + 6.5vw, 6.25rem);
   --text-display: clamp(3.25rem, 1.4rem + 5.4vw, 5.75rem);
   --text-h2: clamp(1.9rem, 1.3rem + 2vw, 3rem);
+  --text-aside-h2: 2rem;
   --text-h3: clamp(1.4rem, 1.1rem + 1.2vw, 1.95rem);
   --text-h4: 1.25rem;
   --text-lead: clamp(1.0625rem, 1rem + 0.35vw, 1.25rem);
@@ -646,6 +647,10 @@ html.light {
 
   .vk-section-head-aside {
     --grid-span: 4;
+  }
+
+  .vk-marquee-aside .vk-h2 {
+    font-size: min(var(--text-h2), var(--text-aside-h2));
   }
 
   .vk-section-aside-content {

@@ -293,3 +293,20 @@ test.describe("marquee layout at 1440px", () => {
     await expectNoAxeViolations(page, MARQUEE);
   });
 });
+
+for (const width of [1024, 1440]) {
+  for (const locale of LOCALES) {
+    test(`caps the side-column heading at four lines at ${width}px in ${locale}`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(homeUrl(locale));
+      const lines = await page.locator("#marquee-heading").evaluate((heading) => {
+        const lineHeight = Number.parseFloat(getComputedStyle(heading).lineHeight);
+        return Math.round(heading.getBoundingClientRect().height / lineHeight);
+      });
+      expect(lines).toBeGreaterThan(0);
+      expect(lines).toBeLessThanOrEqual(4);
+    });
+  }
+}

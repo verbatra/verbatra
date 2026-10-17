@@ -227,7 +227,7 @@
       "landing.marquee.allFormats": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"e4923c09403bd659"},
       "landing.marquee.allProviders": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"34883c60cfce804d"},
       "landing.marquee.formats": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"44a96e0d637ad962"},
-      "landing.marquee.heading": {"origin":"import","valueHash":"70943bcd949875ab"},
+      "landing.marquee.heading": {"origin":"import","valueHash":"b483d6634e8ad598"},
       "landing.marquee.lead": {"origin":"import","valueHash":"5a4e073117a6952d"},
       "landing.marquee.new": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"3741f319c32ac02b"},
       "landing.marquee.pause": {"origin":"machine","provider":"gemini","model":"gemini-2.5-flash","valueHash":"ee846c75fbe4ca73"},
