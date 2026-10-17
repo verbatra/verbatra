@@ -89,7 +89,7 @@ async function renderedBlocks(locale: Locale): Promise<Block[]> {
   const doc = new DOMParser().parseFromString(html, "text/html");
   for (const skipped of doc.querySelectorAll(SKIPPED)) skipped.remove();
   for (const br of doc.querySelectorAll("br")) br.replaceWith(" ");
-  for (const inline of doc.querySelectorAll("a, .vk-available-from")) {
+  for (const inline of doc.querySelectorAll("a, .vk-available-from, .vk-pill-new")) {
     inline.before(" ");
     inline.after(" ");
   }

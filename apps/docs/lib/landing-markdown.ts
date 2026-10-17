@@ -116,7 +116,11 @@ async function marquee({ locale, badge }: Context): Promise<string> {
     `## ${t("heading")}`,
     t("lead"),
     `### ${t("providers")}`,
-    list(landingProviders().map((provider) => withBadge(provider.label, provider.isNew, badge))),
+    list(
+      landingProviders().map((provider) =>
+        withBadge(provider.label, provider.isNew, `${t("new")}, ${badge}`),
+      ),
+    ),
     link(t("allProviders"), localizedPath(locale, "/docs/providers")),
     `### ${t("formats")}`,
     list(SUPPORTED_FORMAT_IDS.map((id) => FORMAT_DISPLAY[id].label)),
