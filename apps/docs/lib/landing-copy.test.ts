@@ -3,7 +3,6 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { i18n } from "@/lib/i18n";
 import { COMPARE_ROWS, COMPARE_TOOLS, SHORT_COLUMNS, SHORT_ROWS } from "@/lib/landing-compare";
-import { FLOW_NODES } from "@/lib/landing-flow";
 
 const NAMESPACES = [
   "topNav",
@@ -11,8 +10,6 @@ const NAMESPACES = [
   "facts",
   "marquee",
   "playground",
-  "flow",
-  "bento",
   "compare",
   "openSource",
   "closing",
@@ -75,12 +72,6 @@ describe("the redesigned landing copy", () => {
       for (const [key, text] of newCopy(locale))
         expect(text, `${locale} ${key}`).not.toMatch(BUZZWORDS);
     }
-  });
-
-  it("titles one flow node per flow snippet", () => {
-    expect(Object.keys(branch(landing("en"), "flow.items"))).toEqual(
-      FLOW_NODES.map((node) => node.id),
-    );
   });
 
   it("labels every comparison row and holds one cell per tool, plus the hosted summary on short rows", () => {

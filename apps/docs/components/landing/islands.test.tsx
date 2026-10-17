@@ -20,8 +20,6 @@ const ISLAND_MODULES = [
   "./hero-diff-motion",
   "./marquee-motion",
   "./playground-demo",
-  "./flow-motion",
-  "./try-it",
   "./faq-keys",
   "./compare-focus",
   "./scroll-top",

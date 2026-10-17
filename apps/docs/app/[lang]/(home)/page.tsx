@@ -2,11 +2,9 @@ import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Fragment, type ReactNode } from "react";
 import { JsonLd } from "@/components/json-ld";
-import { Bento } from "@/components/landing/bento";
 import { Compare } from "@/components/landing/compare";
 import { Faq, faqContent } from "@/components/landing/faq";
 import { FinalCta } from "@/components/landing/final-cta";
-import { Flow } from "@/components/landing/flow";
 import { Hero } from "@/components/landing/hero";
 import { ScrollTop } from "@/components/landing/islands";
 import { Marquee } from "@/components/landing/marquee";
@@ -39,8 +37,6 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
     hero: <Hero />,
     marquee: <Marquee />,
     playground: <Playground />,
-    flow: <Flow />,
-    features: <Bento />,
     compare: <Compare />,
     openSource: <OpenSource />,
     faq: <Faq locale={locale} items={faqItems} />,

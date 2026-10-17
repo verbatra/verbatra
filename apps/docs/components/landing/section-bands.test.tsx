@@ -70,8 +70,6 @@ describe("landing surface bands", () => {
       "hero",
       "marquee",
       "playground",
-      "flow",
-      "features",
       "compare",
       "faq",
       "openSource",
@@ -82,14 +80,12 @@ describe("landing surface bands", () => {
         "hero.tsx",
         "marquee.tsx",
         "playground.tsx",
-        "flow.tsx",
-        "bento.tsx",
         "compare.tsx",
         "faq.tsx",
         "open-source.tsx",
         "final-cta.tsx",
       ].map(banded),
-    ).toEqual([false, true, false, true, false, true, false, true, false]);
+    ).toEqual([false, true, false, true, false, true, false]);
   });
 
   it("names a section by its heading through aria-labelledby, banded or not", () => {
@@ -165,9 +161,7 @@ describe("the section head on the 12-column grid", () => {
     expect(css).toMatch(/:root \{[^}]*--head-gap: 2\.5rem;/);
     expect(css).toMatch(/@media \(min-width: 64rem\) \{\s+:root \{\s+--head-gap: 3\.5rem;/);
     expect(css).toMatch(/\.vk-section-aside \{\s+row-gap: var\(--head-gap\);/);
-    expect(css).toMatch(/\.vk-flow \{[^}]*margin-top: var\(--head-gap\);/);
     expect(css).toMatch(/\.vk-playground-layout \{[^}]*gap: var\(--head-gap\);/);
-    expect(css).toMatch(/\.vk-bento \{\s+row-gap: var\(--head-gap\);/);
     for (const file of ["compare.tsx", "open-source.tsx"]) {
       const source = readFileSync(join(import.meta.dirname, file), "utf8");
       expect(source, file).toContain("mt-(--head-gap)");
@@ -183,16 +177,12 @@ describe("the section head on the 12-column grid", () => {
 
   it("varies the section heads instead of splitting every one", async () => {
     await preloadRegisteredIslands();
-    const { Bento } = await import("./bento");
     const { Compare } = await import("./compare");
     const { Faq, faqContent } = await import("./faq");
-    const { Flow } = await import("./flow");
     const { Marquee } = await import("./marquee");
     const { OpenSource } = await import("./open-source");
     const { Playground } = await import("./playground");
     const sections: ReadonlyArray<readonly [string, () => Promise<ReactNode>]> = [
-      ["flow", Flow],
-      ["features", Bento],
       ["marquee", Marquee],
       ["playground", Playground],
       ["compare", Compare],
@@ -209,8 +199,6 @@ describe("the section head on the 12-column grid", () => {
         : "heading";
     }
     expect(layouts).toEqual({
-      flow: "stacked",
-      features: "inline",
       marquee: "aside",
       playground: "inline",
       compare: "split",

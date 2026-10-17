@@ -71,22 +71,6 @@
     },
     "showcase": {
       "tryIt": {
-        "scenariosLabel": "Change the English file",
-        "scenarios": {
-          "edit": "Edit a value",
-          "add": "Add a key",
-          "remove": "Remove a key",
-          "break": "Break a placeholder"
-        },
-        "breaksLabel": "How the reply breaks it",
-        "breaks": {
-          "drop": "Drops {token}",
-          "rename": "Renames {placeholder} to {token}",
-          "add": "Adds {token}"
-        },
-        "reset": "Reset",
-        "retry": "Try again",
-        "filesLabel": "Files",
         "marks": {
           "edited": "edited",
           "added": "added",
@@ -99,13 +83,6 @@
           "kept": "kept",
           "replaced": "before",
           "refused": "refused"
-        },
-        "result": {
-          "seed": "Everything is in sync: Verbatra would translate 0 keys.",
-          "summary": "{written, plural, =0 {A real run would write nothing} one {A real run would write # translation and update its lock hash} other {A real run would write # translations and update their lock hashes}}{withheld, select, yes {, and withhold the reply that breaks a placeholder} other {}}{orphaned, select, yes {, and keep the removed key in de.json until `--prune`} other {}}.",
-          "savings": "{sent, plural, one {# string sent} other {# strings sent}}, where a full retranslate sends {total}.",
-          "outputLabel": "What verbatra translate prints",
-          "failed": "The comparison code did not load. Check your connection and try again."
         }
       }
     },
@@ -325,49 +302,6 @@
         "providers": "Providers"
       }
     },
-    "flow": {
-      "heading": "How the pieces connect.",
-      "lead": "One config file carries a change from your source locale through the CLI, CI and review to the coding agent in your editor.",
-      "copy": "Copy code",
-      "items": {
-        "source": {
-          "title": "Start from your source locale",
-          "body": "Verbatra reads the locale files you already keep in your repository, in your framework's own format. The source locale stays the one file you edit by hand.",
-          "link": "Supported formats"
-        },
-        "cli": {
-          "title": "Sync with the CLI",
-          "body": "`init` writes the config, and a dry run lists the keys a run would send without calling a provider. `translate` then fills every missing and changed key in each target locale.",
-          "link": "The translate command"
-        },
-        "incremental": {
-          "title": "Translate only what changed",
-          "body": "The lock file stores a hash for every translated key, so a run skips what is done and sends only new or edited keys. The SDK runs the same incremental loop from your own script.",
-          "link": "SDK quickstart",
-          "demo": "Pick a change to a locale file below. Verbatra's own diff and hash code shows in your browser which keys a run would send, and translates nothing."
-        },
-        "action": {
-          "title": "Translate in GitHub Actions",
-          "body": "The action installs exactly the CLI version you pin and runs `translate` on every push to main, with your provider key from a repository secret. It never commits, so add your own step that commits the updated locale files, as the guide describes.",
-          "link": "GitHub Action guide"
-        },
-        "check": {
-          "title": "Fail a pull request on drift",
-          "body": "`check` calls no provider and needs no key, so it can gate every pull request. It exits {fail} while a key is missing or stale, {ok} once every locale is in sync and {usage} on a usage or config error.",
-          "link": "CI and exit codes"
-        },
-        "studio": {
-          "title": "Review in Verbatra Studio",
-          "body": "A local dashboard over your project. It shows where each locale stands and lets you fix a translation in place.",
-          "link": "Read the Studio guide"
-        },
-        "mcp": {
-          "title": "Hand it to your coding agent",
-          "body": "Add this block to `.mcp.json`, and Claude Code starts the Verbatra MCP server over stdio. Your agent can then check translation status, use the glossary and correct a translation in place.",
-          "link": "Connect an MCP client"
-        }
-      }
-    },
     "steps": {
       "items": {
         "check": {
@@ -381,56 +315,6 @@
         "ci": {
           "title": "Gate in CI",
           "body": "The GitHub Action runs `check` on each pull request and fails it while a locale is out of sync."
-        }
-      }
-    },
-    "bento": {
-      "heading": "Nothing to migrate, nothing to hand over.",
-      "lead": "Verbatra runs where your project already lives: in the repository, in CI and in your own scripts. What it needs from you stays under your control.",
-      "items": {
-        "keys": {
-          "title": "Your keys stay yours",
-          "body": "API keys come from environment variables only, never from the config file. Strings go to the provider you configure and nowhere else. Verbatra itself sends no telemetry.",
-          "variables": "Key variables",
-          "optional": "optional",
-          "configurable": "or the variable `apiKeyEnvVar` names",
-          "claims": {
-            "data": "Your strings go to an LLM as data, never in the instruction channel.",
-            "integrity": "A reply that breaks a placeholder or an ICU message is withheld, not written.",
-            "errors": "A missing key fails with an error that names the variable, never a value."
-          },
-          "keysLink": "How providers read keys",
-          "safetyLink": "Translation safety"
-        },
-        "formats": {
-          "title": "Works with your files",
-          "body": "Verbatra reads and writes the files you already have, in the format each stack expects. A format it does not ship takes an adapter you build on the SDK.",
-          "families": {
-            "web": "Web frameworks",
-            "mobile": "Mobile",
-            "backend": "Backend and desktop",
-            "exchange": "Exchange and general"
-          }
-        },
-        "providers": {
-          "title": "Choose who translates",
-          "body": "An LLM or a machine translation service, hosted or on a server you run, or only your translators. Pick one in the `provider` block of the config file; its id is one of the values below.",
-          "kinds": {
-            "llm": "LLM",
-            "machine": "Machine translation",
-            "none": "Human only"
-          },
-          "link": "Every provider and its options",
-          "idSlot": "The `id` slot of the `provider` block"
-        },
-        "sdk": {
-          "title": "A typed SDK",
-          "body": "`translate` resolves to a typed `RunSummary`: which locales succeeded, which partly failed or failed, and the token usage when the provider reports it."
-        },
-        "frameworks": {
-          "title": "A quickstart for your framework",
-          "body": "Each one goes from install to a translated file in your framework's own format.",
-          "all": "All quickstarts"
         }
       }
     },

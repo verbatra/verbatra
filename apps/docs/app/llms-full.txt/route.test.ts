@@ -36,6 +36,7 @@ const RETIRED_LANDING_SECTIONS = [
   "See it work.",
   "Fits the project you already have.",
   "Open source under the MIT license.",
+  "How the pieces connect.",
 ] as const;
 
 const { GET } = await import("./route");
@@ -67,7 +68,7 @@ describe("llms-full.txt", () => {
     expect(landing).toBeGreaterThan(0);
     expect(compare).toBeGreaterThan(landing);
     expect(docs).toBeGreaterThan(compare);
-    for (const heading of [en.landing.flow.heading, en.landing.faq.heading]) {
+    for (const heading of [en.landing.playground.heading, en.landing.faq.heading]) {
       expect(body.indexOf(heading)).toBeLessThan(compare);
     }
   });

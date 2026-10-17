@@ -7,23 +7,8 @@ import { CONTRIBUTORS } from "./contributors";
 import { HERO_DIFF_SOURCE_PANE, HERO_DIFF_TARGET_PANE } from "./hero-diff";
 import { type Locale, localizedPath } from "./i18n";
 import { NPM_INSTALL_COMMAND } from "./install-commands";
-import {
-  BENTO_KEY_ENV_VARS,
-  BENTO_KEYS_LINK,
-  BENTO_NONE_LINK,
-  BENTO_PROVIDERS_LINK,
-  BENTO_QUICKSTART_PAGE,
-  BENTO_RUN_SUMMARY_CODE,
-  BENTO_SAFETY_LINK,
-  BENTO_TILES,
-  type BentoKey,
-  type BentoTile,
-  bentoHref,
-  FORMAT_FAMILIES,
-  formatsInFamily,
-} from "./landing-bento";
 import { COMPARE_LAST_CHECKED, COMPARE_PATH, SHORT_COLUMNS, SHORT_ROWS } from "./landing-compare";
-import { FORMAT_DISPLAY, MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "./landing-facts";
+import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "./landing-facts";
 import {
   FAQ_ANSWER_LINKS,
   FAQ_ASIDE_LINKS,
@@ -32,7 +17,6 @@ import {
   faqValues,
   publishedProviders,
 } from "./landing-faq";
-import { FLOW_BODY_VALUES, FLOW_DEMO_NODE, FLOW_NODES } from "./landing-flow";
 import { CONTRIBUTION_STEPS, OPEN_SOURCE_LINKS } from "./landing-open-source";
 import {
   PLAYGROUND_DOCS_LINKS,
@@ -44,18 +28,13 @@ import {
   PLAYGROUND_TRANSLATIONS,
   playgroundGeneratedOn,
 } from "./landing-playground";
-import {
-  landingProviders,
-  PROVIDER_DISPLAY,
-  PROVIDER_KINDS,
-  providersOfKind,
-} from "./landing-providers";
+import { landingProviders, PROVIDER_DISPLAY } from "./landing-providers";
 import { LANDING_SECTIONS, type LandingSectionId } from "./landing-sections";
 import { fencedMarkdown, inlineCodeMarkdown, markupChunks } from "./llm-markdown";
 import { absoluteMarkdownHref } from "./markdown-links";
 import { nodeVersionsLabel } from "./node-requirement";
 import { pageFrontmatter } from "./page-frontmatter";
-import { featureReleaseBadge, providerReleaseBadge, RELEASE_BADGE } from "./release-badge";
+import { RELEASE_BADGE } from "./release-badge";
 import {
   LANDING_LAST_UPDATED,
   MCP_VERSION,
@@ -63,7 +42,6 @@ import {
   PACKAGE_VERSION,
   STUDIO_VERSION,
 } from "./site";
-import { STACK_IDS, STACKS } from "./stacks";
 
 type Context = { readonly locale: Locale; readonly badge: string };
 
@@ -73,10 +51,6 @@ function href(path: string): string {
 
 function link(text: string, target: string): string {
   return `[${text}](${href(target)})`;
-}
-
-function lines(items: ReadonlyArray<string>): string {
-  return items.join("  \n");
 }
 
 function list(items: ReadonlyArray<string>): string {
@@ -187,115 +161,6 @@ async function playground({ locale }: Context): Promise<string> {
   );
 }
 
-async function flow({ locale }: Context): Promise<string> {
-  const t = await getTranslations({ locale, namespace: "landing.flow" });
-  const nodes = FLOW_NODES.map((node, index) =>
-    blocks(
-      `### ${index + 1}. ${t(`items.${node.id}.title`)}`,
-      t(`items.${node.id}.body`, FLOW_BODY_VALUES[node.id]),
-      ...[node.snippet, ...(node.alternatives ?? [])].map((snippet) =>
-        fencedMarkdown(
-          snippet.language,
-          snippet.filename === undefined ? null : `title="${snippet.filename}"`,
-          snippet.code.trimEnd(),
-        ),
-      ),
-      link(t(`items.${node.id}.link`), localizedPath(locale, node.docsPath)),
-      node.id === FLOW_DEMO_NODE ? t(`items.${FLOW_DEMO_NODE}.demo`) : null,
-    ),
-  );
-  return blocks(`## ${t("heading")}`, t("lead"), ...nodes);
-}
-
-type BentoTranslator = Awaited<ReturnType<typeof getTranslations<"landing.bento">>>;
-
-type TileMarkdown = (t: BentoTranslator, locale: Locale, badge: string) => string;
-
-function evidence(tile: BentoTile, locale: Locale): string | null {
-  if (tile.evidence.length === 0) return null;
-  return lines(
-    tile.evidence.map((item) => link(inlineCodeMarkdown(item.text), bentoHref(locale, item))),
-  );
-}
-
-const TILE_MARKDOWN: Readonly<Record<BentoKey, TileMarkdown>> = {
-  keys: (t, locale, badge) =>
-    blocks(
-      `${t("items.keys.variables")}:`,
-      list(
-        MACHINE_PROVIDER_IDS.map((id) => {
-          const variable = BENTO_KEY_ENV_VARS[id];
-          const notes = [
-            variable.optional ? t("items.keys.optional") : null,
-            variable.configurable ? t("items.keys.configurable") : null,
-            providerReleaseBadge(id) === null ? null : badge,
-          ].filter((note): note is string => note !== null);
-          const code = inlineCodeMarkdown(id);
-          const name = inlineCodeMarkdown(variable.name);
-          return notes.length === 0 ? `${code}: ${name}` : `${code}: ${name} (${notes.join(", ")})`;
-        }),
-      ),
-      list(
-        (["data", "integrity", "errors"] as const).map((claim) => t(`items.keys.claims.${claim}`)),
-      ),
-      lines([
-        link(t("items.keys.keysLink"), bentoHref(locale, BENTO_KEYS_LINK)),
-        link(t("items.keys.safetyLink"), bentoHref(locale, BENTO_SAFETY_LINK)),
-      ]),
-    ),
-  formats: (t) =>
-    list(
-      FORMAT_FAMILIES.map(
-        (family) =>
-          `${t(`items.formats.families.${family}`)}: ${formatsInFamily(family)
-            .map((format) => FORMAT_DISPLAY[format].label)
-            .join(", ")}`,
-      ),
-    ),
-  providers: (t, locale, badge) =>
-    blocks(
-      list([
-        ...PROVIDER_KINDS.map(
-          (kind) =>
-            `${t(`items.providers.kinds.${kind}`)}: ${providersOfKind(kind)
-              .map((id) =>
-                withBadge(inlineCodeMarkdown(id), providerReleaseBadge(id) !== null, badge),
-              )
-              .join(", ")}`,
-        ),
-        `${t("items.providers.kinds.none")}: ${withBadge(
-          link(inlineCodeMarkdown("none"), bentoHref(locale, BENTO_NONE_LINK)),
-          featureReleaseBadge("provider-none") !== null,
-          badge,
-        )}`,
-      ]),
-      link(t("items.providers.link"), bentoHref(locale, BENTO_PROVIDERS_LINK)),
-    ),
-  sdk: () => fencedMarkdown("ts", null, BENTO_RUN_SUMMARY_CODE.trimEnd()),
-  frameworks: (t, locale) =>
-    blocks(
-      list(
-        STACK_IDS.map((id) =>
-          link(STACKS[id].name, localizedPath(locale, `${BENTO_QUICKSTART_PAGE}/${id}`)),
-        ),
-      ),
-      link(t("items.frameworks.all"), localizedPath(locale, BENTO_QUICKSTART_PAGE)),
-    ),
-};
-
-async function features({ locale, badge }: Context): Promise<string> {
-  const t = await getTranslations({ locale, namespace: "landing.bento" });
-  const tiles = BENTO_TILES.map((tile) =>
-    blocks(
-      `### ${t(`items.${tile.key}.title`)}`,
-      t(`items.${tile.key}.body`),
-      TILE_MARKDOWN[tile.key](t, locale, badge),
-      evidence(tile, locale),
-    ),
-  );
-  return blocks(`## ${t("heading")}`, t("lead"), ...tiles);
-}
-
 async function compare({ locale }: Context): Promise<string> {
   const t = await getTranslations({ locale, namespace: "landing.compare" });
   return blocks(
@@ -384,8 +249,6 @@ const SECTION_MARKDOWN: Readonly<Record<LandingSectionId, (context: Context) => 
     hero,
     marquee,
     playground,
-    flow,
-    features,
     compare,
     faq,
     openSource,

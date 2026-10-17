@@ -51,9 +51,8 @@ config <- core <- format-adapters / ai-providers <- sdk (+ exchange, extract) <-
   arrow.
 - `@verbatra/config` (`packages/config/package.json`) has no workspace dependencies; every other
   package takes it as a `devDependency` for shared tsconfig, biome, tsup, and vitest presets.
-- `apps/docs` takes `@verbatra/core` as a `devDependency` only for the browser island
-  `apps/docs/lib/showcase-scenarios.ts`, because the sdk is not browser-safe, and for the
-  test-only root-entry import in `apps/docs/lib/translation-provenance.test.ts`.
+- `apps/docs` takes `@verbatra/core` as a `devDependency` only for the test-only root-entry import
+  in `apps/docs/lib/translation-provenance.test.ts`.
 
 Never import against the arrow. Never create a cycle. `packages/sdk/src/config/provider-config.ts`
 and `packages/format-adapters/src/default-registry.ts` are the two files where the upward
@@ -191,7 +190,8 @@ source file under `packages/core/src` and fails if one imports anything other th
 relative module, so a test-only dependency cannot leak into core's runtime.
 
 `@verbatra/core/pure` (`packages/core/src/pure.ts`) is core's only second entry: it exposes the
-zod-free diff, hash and placeholder functions for a browser consumer (the docs playground), and
+zod-free diff, hash and placeholder functions for a browser consumer (no app in this repository
+imports it today), and
 the `@verbatra/core/pure never reaches zod` block in the same script test fails if its source graph
 or its built `dist/pure.js`/`dist/pure.cjs` reaches zod; the sdk still bundles only the `.` entry.
 

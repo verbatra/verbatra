@@ -137,8 +137,8 @@ describe("softwareApplicationLd", () => {
     });
     const names = (result.hasPart as ReadonlyArray<{ name: string }>).map((part) => part.name);
     expect(names).toEqual(["Verbatra Studio", "Verbatra MCP server"]);
-    expect(en.landing.flow.items.studio.title).toContain("Verbatra Studio");
-    expect(en.landing.flow.items.mcp.body).toContain("Verbatra MCP server");
+    expect(en.landing.faq.items.studio.question).toContain("Verbatra Studio");
+    expect(en.landing.facts.versionParts).toContain("MCP server");
   });
 
   it("states the Node.js range of the published packages for the app and every part", () => {

@@ -10,7 +10,7 @@ type CopyRevision = { readonly date: string; readonly hash: string };
 
 const COPY_REVISIONS: ReadonlyArray<CopyRevision> = [
   { date: "2026-10-16", hash: "70c39bcbbb1fd32405b5c2c58a507dbe8790ec2de962d42a755753ead613b90a" },
-  { date: "2026-10-17", hash: "b10aa47f6d241b1e8938cf1a03d61fb085476d30264e5d27f996334ed4f41885" },
+  { date: "2026-10-17", hash: "48eb93bb2a92cdef02464b92329a4ec7619793e2a8dd9f4899207c739b046ad1" },
 ];
 
 const COMPARE_CELL_REVISIONS: ReadonlyArray<CopyRevision> = [

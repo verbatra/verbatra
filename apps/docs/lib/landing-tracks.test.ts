@@ -4,7 +4,7 @@ import { scaffoldingMetadata } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import { CHECKOUT_ACTION_REF, VERBATRA_ACTION_REF } from "./action-refs";
 import { FORMAT_SAMPLES } from "./format-samples";
-import { HERO_CHECK_OUTPUT, HERO_TRANSLATE_OUTPUT } from "./hero-terminal";
+import { HERO_CHECK_OUTPUT, HERO_TERMINAL_TITLE, HERO_TRANSLATE_OUTPUT } from "./hero-terminal";
 import {
   LANDING_TRACK_IDS,
   LANDING_TRACKS,
@@ -95,8 +95,9 @@ describe("the landing tracks", () => {
     }
   });
 
-  it("names every file it shows", () => {
+  it("names every file it shows, and runs its commands in the shell frame the rest of the landing titles", () => {
     for (const id of LANDING_TRACK_IDS) {
+      expect(LANDING_TRACKS[id].terminalTitle, id).toBe(HERO_TERMINAL_TITLE);
       for (const file of LANDING_TRACKS[id].files) expect(file.filename, id).toBeTruthy();
     }
   });

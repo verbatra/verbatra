@@ -24,8 +24,6 @@ const SECTION_HEADINGS = [
   "banner.headline",
   "marquee.heading",
   "playground.heading",
-  "flow.heading",
-  "bento.heading",
   "compare.heading",
   "faq.heading",
   "openSource.heading",

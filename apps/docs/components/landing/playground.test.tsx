@@ -736,7 +736,6 @@ describe("the animation boundary", () => {
     expect(runtimeImports("components/landing/playground-scramble.tsx")).toContain(
       "@/lib/gsap-scramble",
     );
-    expect(source("lib/gsap-draw.ts")).not.toContain("ScrambleText");
     expect(source("components/landing/islands.tsx")).not.toMatch(/gsap|playground-scramble/);
   });
 });

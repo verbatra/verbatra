@@ -43,14 +43,11 @@ dashboard in `packages/studio` (different app, different stack), or anything out
   a `prefers-reduced-motion` opt-out.
   `gsap` 3.15.0 and `@gsap/react` 2.1.2 (the Standard "no charge" GSAP license, which the
   `/licenses` page and `THIRD_PARTY_NOTICES.md` print as written and link) are direct dependencies
-  with two consumers, each loading only its own plugins. `lib/gsap.ts` registers `useGSAP` once;
+  with one consumer. `lib/gsap.ts` registers `useGSAP` once;
   `lib/gsap-scramble.ts` adds `ScrambleTextPlugin` for `components/landing/playground-scramble.tsx`,
   which the playground island reaches through a dynamic `import()` on the first pointer, focus or
-  touch inside it (and on Translate), and `lib/gsap-draw.ts` adds `ScrollTrigger` and
-  `DrawSVGPlugin` for `components/landing/flow-draw.tsx`, which the feature flow island reaches
-  through a dynamic `import()` once the flow comes within one viewport of the screen. Neither loads
-  on first paint or under reduced motion, and each is its own chunk, so the scramble chunk carries
-  no DrawSVG and the drawing chunk no ScrambleText. No other plugin is registered.
+  touch inside it (and on Translate). It never loads on first paint or under reduced motion, and it
+  is its own chunk. No other plugin is registered.
 - Tailwind 4 uses CSS-first configuration. There is no `tailwind.config.js`. Tokens are
   CSS custom properties in `app/global.css`, not a JS config object.
 - `app/global.css` opens with three imports in this order, and the order matters:
@@ -143,10 +140,10 @@ or `text-(--accent)`, never `border-fd-border`, `text-fd-muted-foreground` or `b
 never the arbitrary-value spelling `text-[color:var(--text-muted)]` (`lib/theme.test.ts` fails on it), and
 `var(--accent)` / `var(--accent-fill)` rather than `var(--v-glow)` / `var(--v-purple)`.
 `--border-accent` (the accent mixed 45 percent into `--border-default`) is the glow-tinted border
-of a flat panel, an evidence chip or a copy button on hover; it is the one token for that mix. In
+of a flat panel or a copy button on hover; it is the one token for that mix. In
 `components/` and `app/`, only two brand primitives may still be named directly, each in its one
-documented role: `--v-void` (void code surfaces), `--v-status-*` (badge tones and the Try it
-marks). `lib/theme.test.ts` fails on any
+documented role: `--v-void` (void code surfaces), `--v-status-*` (badge tones and the line
+marks of the hero diff). `lib/theme.test.ts` fails on any
 other `fd-*` class, `var(--color-fd-*)` or `--v-*` reference there.
 
 Scales are fixed and narrow, deliberately:
@@ -161,8 +158,7 @@ Scales are fixed and narrow, deliberately:
   `--cta-height` (56px) is the minimum height of `.vk-prompt-trigger` on `PromptCopyButton`;
   `--width-prompt-pop` (30rem, capped by `100cqw` of its container, never by `100vw`, which counts
   the scrollbar) is the width of the `.vk-prompt-pop` preview. `--head-gap` (2.5rem, 3.5rem from 64rem) is the one space
-  between a section head and its content: the margin over the flow list (and, under 64rem, under
-  the bento head through `.vk-bento-head`), the
+  between a section head and its content: the
   comparison and contribution content (`mt-(--head-gap)`), the row gap
   of `.vk-section-aside` (the marquee and the FAQ) and of the playground grid; `section-bands.test.tsx` fails on an ad hoc
   `mt-10` or `lg:mt-14` there. `.vk-grid-12` is the landing grid: one column under 64rem,
@@ -172,11 +168,10 @@ Scales are fixed and narrow, deliberately:
   top-aligns them (`data-align`), which the comparison uses, its lead kept to three lines at
   1440 in every locale by `e2e/compare.spec.ts`), `stacked` (the lead
   under the heading on the first column, for a section whose content runs the full row: the
-  contribution steps, and the feature flow, whose head keeps to the snippet column), `inline` (the same
+  contribution steps), `inline` (the same
   stacked block at a narrower measure, `.vk-section-head-inline`, set inside the column beside an
   artifact rather than over it: the SDK playground renders it on the server as a sibling before
-  its island, and its grid puts it at the top of the control column next to the sticky snippet;
-  the bento sets it in the first cell of its tile grid, beside the keys tile).
+  its island, and its grid puts it at the top of the control column next to the sticky snippet).
   A split head without a lead renders stacked; `stacked` and `inline`
   keep their shape either way. `SectionHead` is the head only and takes no children.
   `SectionAside` (same file) is the head beside its content: a `.vk-section-aside` `.vk-grid-12`
@@ -194,8 +189,8 @@ Scales are fixed and narrow, deliberately:
   above the next hairline, the hero ends at its facts (no bottom padding), and the footer opens with
   `--section-md` under its hairline like a band. The one larger step is `--section-closer` above the
   closing section. Page and band strictly
-  alternate, so no two bands touch: hero (page), marquee (band), SDK playground (page), feature
-  flow (band), features (page), comparison (band), FAQ (page), contribution (band), final call to
+  alternate, so no two bands touch: hero (page), marquee (band), SDK playground (page),
+  comparison (band), FAQ (page), contribution (band), final call to
   action (page), then the flat footer band (`section-bands.test.tsx` pins the order and the
   surfaces). The hero draws no
   pattern, only its single decorative glow (`.vk-banner-glow` behind the demo column, from the
@@ -210,9 +205,7 @@ Scales are fixed and narrow, deliberately:
   quote (`data-keep-end`) its end margin, so the ring never touches the mark beside it. `data-broken` strikes it in
   `--text-danger`, only for a token a reply broke. `PlaceholderText` in the same file cuts the
   tokens out of a line (`splitPlaceholders`: `{{name}}` and `{name}` only, so JSON braces stay text)
-  and draws each as a chip; every Try it file pane goes through it, and
-  the showcase passes the tokens a refused reply added (the `+` details of its refusal) as the
-  broken set.
+  and draws each as a chip.
 - Motion: see "Landing motion" below for the system. Its tokens: `--ease-standard` (entrances,
   hovers and state changes), `--duration-fast` (140ms, hover and press),
   `--duration-base` (240ms, state change), `--duration-slow` (560ms, every entrance), `--reveal-distance` (`--motion-distance-lg`, 16px;
@@ -220,15 +213,6 @@ Scales are fixed and narrow, deliberately:
   `--reveal-delay-max` (350ms, the stagger cap), and `--marquee-item-time` (5s: one marquee loop
   lasts that times the row's item count). Only `opacity` and `transform` / `translate`
   ever animate.
-- Showcase: `--showcase-line` (1.125rem, 1.25rem from 40rem) is the line height of a file pane in
-  the Try it demo, which reserves its longest scenario's row count with it (on a phone,
-  where one file shows at a time, the tallest file's, `--showcase-rows-max`, so a file switch
-  moves nothing), `--showcase-output-rows` (set inline from `showcaseRows().output`) reserves the
-  output pane for its longest run, `--showcase-scroll-reserve` (0.75rem) is added to every pane's
-  reserved height so a sideways scrollbar moves nothing, `--showcase-summary-lines` (3, 2 from
-  40rem) reserves the status sentence, so a scenario never moves what sits below it,
-  `--print-stagger` (90ms) paces the printed output lines, and `--showcase-bar-height` (3.125rem)
-  is the height of its scenario bar from 64rem.
 
 ## Typography
 
@@ -305,7 +289,7 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   button, inside a shadcn composition or not, is the site button in `components/ui/button.tsx`; add a
   registry primitive only together with the code that uses it.
 - **Landing:** `components/landing/` holds one component per section. Their order on the page is
-  `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, marquee, playground, flow, features,
+  `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, marquee, playground,
   compare, faq, openSource, finalCta), which the home page maps
   over and `lib/landing-sections.test.ts` pins; add or move a section there, not by hand in
   `page.tsx`. The files: `hero.tsx` (the `h1`, the lead, the two quotable `landing.banner.quotes`
@@ -334,51 +318,7 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   `align-content: start`, so a label stays on the first line of its value in a multi-column row
   (two from 40rem, three from 64rem, where the facts run across the whole hero under both
   columns, six from 80rem); the copy column opens with the `h1`, with no eyebrow line above it),
-  `flow.tsx` (`#flow`, the feature flow, see "Feature
-  flow" below),
-  `bento.tsx` (`#features`, one `.vk-bento` `.vk-grid-12` that holds the head and the tiles of
-  `BENTO_TILES` in `lib/landing-bento.ts`, in reading order: the head is an `inline` `SectionHead`
-  in `.vk-bento-head`, span 4 from 64rem beside the keys tile, and above the tiles under 64rem,
-  where its `margin-block-end` tops the grid gap up to `--head-gap`. Each tile carries
-  `span: { lg, xl? }` (`--grid-span` per breakpoint); only the first row's keys tile carries a
-  `data-reveal` step. Tiles draw no frame of their own (no border, fill or padding): only the
-  artifact inside each, a `rounded-xl` panel or code frame, is framed, so the grid never reads as
-  cards in cards; `.vk-bento` sets `--head-gap` between rows and twice `--grid-gap` between
-  columns from 64rem, and the format and provider panels fill their row with their groups at the
-  top; from 64rem those two tiles are `grid-template-rows: subgrid` over three rows (head, panel,
-  trailing row, 1.25rem apart), so both panels start and end level whatever their heads and
-  trailing rows hold. The keys tile
-  leads (span 8: a `figure` with a `dl` pairing each provider's short label with its
-  `BENTO_KEY_ENV_VARS` name, pinned to `packages/ai-providers/src/key-env-vars.ts`, the optional
-  ones marked, the `apiKeyEnvVar` alternative noted where `configurable`, a provider that
-  `RELEASE_BADGE` dates carrying the pill; beside it from 80rem the safety claims, each on an
-  `--accent-fill` start bar, and links to `/docs/providers#keys-come-from-the-environment`
-  (`PROVIDER_KEYS_ANCHORS` in `lib/docs-anchors.ts`, shared with the comparison sources) and
-  `/docs/translation-safety`, the links following the claims), then the format tile (span 6, 7
-  from 80rem: every `SUPPORTED_FORMAT_IDS` member as a `FORMAT_DISPLAY` chip, grouped by
-  `FORMAT_FAMILY` in `lib/landing-bento.ts` (a `Record<SupportedFormat, FormatFamily>`, so a new
-  format fails to compile until it has a family; each family an `h4` in `--text-muted`), then one
-  real key line, `BENTO_FORMAT_EXAMPLE`, taken from the adapter output in
-  `lib/format-samples.generated.json` with its file path, then the two evidence chips under the panel (`format:` lines linking the
-  formats page and the custom adapter guide)), the
-  provider tile (span 6, 5 from 80rem: the provider ids in mono grouped by `PROVIDER_KINDS`
-  through `providersOfKind` in `lib/landing-providers.ts` (LLM and machine translation, exactly
-  the `kind` each strategy declares, pinned by `lib/landing-providers.test.ts`; no invented
-  self-hosted group), a provider that `RELEASE_BADGE` dates
-  carrying the pill, then the human-only `none` linking `/docs/human-only-workflow`, dated by the
-  `provider-none` feature; the groups sit at the top of the panel, and the
-  panel ends in `BENTO_PROVIDER_LINE` under its file name, labelled as the `id` slot of the
-  `provider` block (never as the whole block: `lib/landing-bento.test.ts` checks that the config
-  schema takes every listed id there and still asks a machine provider for its options); then a link to
-  `/docs/providers`), the SDK tile (span 12, text beside the code, the chip right under the lead:
-  the `RunSummary` fields of the published sdk, `BENTO_RUN_SUMMARY_FIELDS`, pinned to
-  `packages/sdk/dist/index.d.ts`, marked as an excerpt) and the framework strip (span 12, no
-  card: a top hairline, the `STACKS` names each linking its quickstart, then all quickstarts at
-  the same size). Chips (`evidence.tsx`) take a `--text-faint` border.
-  `e2e/bento.spec.ts` measures every card tile at 1024px and 1440px in all four locales and fails
-  on more than 48px unfilled inside a tile or the provider panel, or a pill cut by the panel edge;
-  tile titles are `.vk-h4`
-  `h3`s), `playground.tsx` (`#playground`, the SDK playground, see
+  `playground.tsx` (`#playground`, the SDK playground, see
   "SDK playground" below), `marquee.tsx`
   (`#marquee`, see "Marquee" below), `compare.tsx` (`#compare`, a band opened by a split head with
   a lead (`landing.compare.lead`): the short table, five rows (`SHORT_ROWS`) by Verbatra,
@@ -421,7 +361,7 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   and the fade is dropped (`display: none`) while the region holds focus. A row header breaks a
   long word (`overflow-wrap: anywhere`; never `hyphens: auto`, which `lib/theme.test.ts` bans), and a
   pill in a cell wraps inside it. A thin scrollbar thumb, here and on every other sideways
-  scroller of the site (prose tables, code frames, the showcase, tab rows), is `--text-faint`,
+  scroller of the site (prose tables, code frames, tab rows), is `--text-faint`,
   never `--border-default`. While the
   column is narrower than the table (56rem) a `landing.compare.scrollHint` line before it says so
   (not wired as a description, since it is `display: none` on a wide column) and
@@ -544,8 +484,7 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   (`PROVIDER_KIND_ICONS`), and the formats, `SUPPORTED_FORMAT_IDS` by their `FORMAT_DISPLAY` label with a file glyph
   (`FORMAT_ICONS`, a `Record<SupportedFormat, StackIconKey>`, so a new format fails to compile
   until it has one), every glyph a `<use>` of one `StackIconSprite` (prefix `marquee`). A provider
-  that `RELEASE_BADGE` dates carries the shared `AvailableFromPill`, like its key variable in
-  the bento keys tile. Each item (`.vk-marquee-item`) is a `--surface-bg` fill with no
+  that `RELEASE_BADGE` dates carries the shared `AvailableFromPill`. Each item (`.vk-marquee-item`) is a `--surface-bg` fill with no
   border or ring, since it is a fact, not a control. No count is typed and no third-party logo is
   drawn. Each row is a muted `h3` that names its visible list,
   the list, `MARQUEE_COPIES` copies of it (`aria-hidden`, `inert`, holding no link or button), and
@@ -568,8 +507,8 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   paused, and only its `aria-hidden` glyph swapping between pause and play. Hover and focus inside
   a row pause that row. `marquee.test.tsx` pins the registry rows, the badge, the copies, the static
   state and the pause toggle, and `e2e/marquee.spec.ts` the motion in a browser. The format
-  samples in `lib/format-samples.generated.json`, which only the bento format tile's key line reads (through
-  `lib/landing-bento.ts`), are written by `scripts/sync-format-samples.mjs` before dev,
+  samples in `lib/format-samples.generated.json`, whose next-intl sample the translate track of
+  `lib/landing-tracks.ts` shows, are written by `scripts/sync-format-samples.mjs` before dev,
   build, typecheck and test (git-ignored like `lib/version.generated.json`) from
   `createDefaultRegistry` in `@verbatra/sdk` over the in-memory `AdapterFs` in
   `lib/format-samples-seed.mjs`. Nothing in the page graph imports the sdk at runtime, and the docs
@@ -580,8 +519,7 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   see, through a mask on the element's own inline scroll timeline (one `@supports` rule for every
   scroll fade, `.vk-edge-fade` included, dropped while the element shows a focus ring or holds a
   focused child, so no ring is faded), and without scroll timelines a `--scroll-shade` (neutral,
-  never violet) over a `local` void cover; `.vk-scroll-fade` is that rule for the bento format key
-  line and the playground blocks, each a `ScrollBlock` (`components/landing/scroll-block.tsx`: a
+  never violet) over a `local` void cover; `.vk-scroll-fade` is that rule for the playground blocks, each a `ScrollBlock` (`components/landing/scroll-block.tsx`: a
   `div` with `role="group"`, never a landmark, and `tabIndex={0}`, like the code frames' `pre`)
   named by its caption through `aria-labelledby`. Both draw their focus ring inset
   (`outline-offset: -2px`) in one unlayered rule beside the global `:focus-visible`, outside every
@@ -590,63 +528,15 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   `lib/hero-terminal.ts` keeps the recorded `verbatra check` and `verbatra translate` transcript
   (`HERO_TERMINAL_SCRIPT`, English on every locale, like all CLI output on the page) that the home
   social image draws from and `HERO_TERMINAL_TITLE` (`~/app`), the title of every shell frame;
-  `lib/hero-terminal.run.test.ts` pins the lines to the CLI's renderer),
-  `try-it.tsx`
-  (the Try it demo, one `.vk-showcase-try` grid: from 40rem a scenario bar
-  (`.vk-showcase-bar`) over a two-by-two board, `en.json` | `de.json` above `verbatra.lock.json` |
-  output, each pane its own `rounded-xl` void frame with a captioned file name over a hairline,
-  like the flow's code frames, on a `--surface-band` ground that hides the rail behind it; the
-  scenarios are one `.vk-segmented` switch (a 2-column grid under 40rem), its pressed button on
-  `--surface-card` with an inset `--accent-fill` underline, and the status sentence carries an
-  `--accent-fill` start bar (`--v-danger` after a failure); on a phone the bar is one column, the scenarios wrapping on
-  top with the actions under them, then the file switch picks one file pane and the output sits
-  under it at all times. The actions follow the scenarios in the DOM at every width, so the focus
-  order is the visual order, and on a phone they take no row while nothing in them shows. The
-  scenario group holds four `aria-pressed` buttons (edit, add, remove, break a placeholder), each
-  counted as `run-scenario`, beside the actions (Reset, and Try again after a failure). Under the
-  bar, `.vk-showcase-breaks` is a native radio group (one `name`, so the arrow keys move through it)
-  of the three ways a reply breaks the placeholder, `SHOWCASE_BREAKS` in `lib/showcase-seed.ts`: it
-  drops `{{amount}}`, renames `{{amount}}` to `{{betrag}}` (the default) or adds `{{tax}}`; each
-  label is `tryIt.breaks.<id>` with the reply token passed as `{token}` and `SHOWCASE_PLACEHOLDER`
-  as `{placeholder}`, both drawn as chips. Each radio is the playground's control
-  (`.vk-playground-input.vk-playground-radio`, no second radio style on the page), and below 40rem
-  the label sits above the replies, one per row. A radio is checked only while the break scenario is on
-  screen or its run is pending, so every radio runs it when another scenario shows; picking one runs
-  the break scenario with it (counted as `run-scenario` with a `break` property), the break button
-  and Try again replay the last chosen reply, the refusal detail comes from `checkPlaceholders`, and
-  Reset returns it to the default. The file panes (`.vk-showcase-file`: on a phone one at a time,
-  picked by the `aria-pressed` file names of `.vk-showcase-file-switch`, which wraps rather than
-  clip a name, each name kept on one line; each named by `data-pane`,
-  which the stylesheet maps to its grid area); a marked line is `.vk-showcase-line[data-mark]`,
-  tinted like a highlighted code line, its mark word in `--v-status-new` (added, missing, new) or
-  `--v-status-changed` (edited, stale, changes); a refused reply shows as a struck
-  `data-mark="refused"` line in `--text-danger` above the German value it leaves in place; the lock
-  pane prints full 16-character hashes, and a rewritten hash shows before and after: the seed hash
-  struck as `data-mark="replaced"` above the new one marked `changes`; a mark that does not fit
-  drops to the next row), then the output pane (`.vk-showcase-output`, a `figure` with no caption,
-  since its first line already reads `verbatra translate`, named by
-  `landing.showcase.tryIt.result.outputLabel` and marked `lang="en"`,
-  its fixed height adding `--showcase-scroll-reserve` so a sideways scrollbar on a phone moves
-  nothing) printing, in English on every locale, exactly the lines `renderHuman` prints for that run
-  (`showcaseRunLines` in `lib/showcase-cli.ts`, server-rendered for the seed; after a click the
-  lines fade in one `--print-stagger` apart, under 600ms in all, and at once under reduced motion),
-  a mono savings line (`result.savings`: strings sent against what a full retranslate sends,
-  `showcaseSavings`), and one polite `role="status"` sentence (`result.seed`, `result.summary` or
-  `result.failed`). Reset is hidden at the seed and returns focus to the first scenario; Try again
-  is shown with an announced failure message when the module fails to load (the cached promise is
-  dropped, so a retry loads again). Only the latest request applies: a Reset or a newer click while
-  a load is pending wins. The seed state is server-rendered from `showcaseSeed()`; the first hover,
-  focus or click `import()`s `lib/showcase-scenarios.ts`, the only client code that uses
-  `@verbatra/core` (`diffResources`, `contentHash`, `checkPlaceholders`), over the scenario data in
-  `lib/showcase-seed.ts` and the small nested-JSON flattener in `lib/showcase-flatten.ts`
-  (`@verbatra/format-adapters` is not browser-safe). `lib/showcase-flatten.test.ts` pins the
-  flattener to the real i18next adapter and `lib/showcase-scenarios.sdk.test.ts` pins every
-  scenario's (and each other break variant's) sent, unchanged, orphaned and refused keys and lock
-  hashes to a real sdk `translate` with a stub provider. Only the `.vk-showcase` panel carries a
-  reveal; nothing inside the demo does. The copy says what verbatra would translate; it never
-  claims the page translates), `evidence.tsx` (the mono evidence chip, which wraps inside a narrow
-  column rather than growing past it; a linked chip takes the flat-panel glow border on hover and
-  focus through `.vk-evidence-link`; an external one counts as `outbound-link` from `features`),
+  `lib/hero-terminal.run.test.ts` pins the lines to the CLI's renderer;
+  `lib/landing-tracks.ts` holds the three hero tracks, `translate`, `agents` and `ci`
+  (`LANDING_TRACKS`: per track a docs path, the shell frame title, its command lines, its files and
+  its recorded result lines with the exit code), every command, flag and file pinned to its source
+  by `lib/landing-tracks.test.ts`: the published cli flags in `test-support/cli-0.11.1-flags.json`,
+  `init --path` against the next-intl sample, the GitHub Action guide's workflow with
+  `CHECKOUT_ACTION_REF`, `VERBATRA_ACTION_REF` and `PACKAGE_VERSION`, the `check` exit codes of
+  `checkExitCode`, and the `.mcp.json` block and `claude mcp add` line of the MCP client guide; the
+  agents track has no recorded output, so its result is empty),
   `CommandRow` (`components/command-row.tsx`: the hero
   panel's npm install wraps under 30rem through `wrap="narrow"`, `wrap="always"` wraps a command at every width; elsewhere a `CommandRow` scrolls
   sideways inside `.vk-edge-fade`: a mask, not a painted background, so it stays see-through on any
@@ -670,11 +560,10 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   is a named region; the hero and the closing section set it themselves (`e2e/landing.spec.ts`
   fails on a nameless section). Check
   `ls apps/docs/components/landing` before quoting a file name from this list. The CLI transcripts
-  on the landing (`lib/hero-terminal.ts` with the check lines of `lib/check-demo.ts`, and
-  `lib/showcase-cli.ts`) are real CLI
+  on the landing (`lib/hero-terminal.ts` with the check lines of `lib/check-demo.ts`) are real CLI
   output, English on every locale, and their tests pin each line to `packages/cli/src/render.ts`
-  (`lib/showcase-cli.run.test.ts` imports `renderHuman` and `lib/hero-terminal.run.test.ts` imports
-  `renderCheckHuman` from it by relative path, and the latter also drives `run` from
+  (`lib/hero-terminal.run.test.ts` imports
+  `renderCheckHuman` from it by relative path, and also drives `run` from
   `packages/cli/src/run.ts` over the real sdk `check` for the exit code, in those run tests only,
   never from `lib/`), so a change to the CLI's output fails until the demo is recaptured.
 - **Docs-facing:** `<StartHere />` (`components/start-here.tsx`) opens every page in
@@ -719,8 +608,8 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   primary card, and the three cards share their title, body and page-name rows through
   `grid-rows-subgrid`, so a wrapped title never shifts the body or the link out of line. A
   backticked span in a header or section lead renders in code type (`withInlineCode`,
-  `lib/inline-code-text.tsx`; the landing sets a command or value in a step, a bento tile,
-  a flow node, the showcase result and the closing install hint the same way; the docs home
+  `lib/inline-code-text.tsx`; the landing sets a command or value in a step
+  and the closing install hint the same way; the docs home
   `DocsHomeSteps` reads `landing.steps.items`, the check, translate and CI steps, with its own
   `DOCS_HOME_STEP_IDS`), and a path card title keeps a hyphenated compound on
   one line (`keepCompoundsWhole`, `lib/word-breaks.tsx`). `StackCards`
@@ -765,14 +654,12 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
 
 ## Landing motion
 
-The landing moves little, on purpose: the demos rise into place once as the visitor reaches them,
-the hero diff fills its two missing values once, the provider and format marquee loops until it is
-paused, the SDK playground scrambles its results once per Translate press, the feature flow's
-path draws with the scroll, and nothing else on the page fades in.
-There is no scroll-driven pinning and no parallax (the SDK playground's snippet column is only
-`position: sticky` from 64rem, which moves nothing on its own). The flow's path is the only scroll-scrubbed motion and its
-`ScrollTrigger` the only scroll listener, both inside the lazily loaded drawing module; `motion` is
-reserved for client islands (see "The stack").
+The landing moves little, on purpose: the hero diff fills its two missing values once, the
+provider and format marquee loops until it is paused, the SDK playground scrambles its results
+once per Translate press, and nothing else on the page fades in.
+There is no scroll-driven motion, no pinning and no parallax (the SDK playground's snippet column
+is only `position: sticky` from 64rem, which moves nothing on its own), and no scroll listener;
+`motion` is reserved for client islands (see "The stack").
 
 - **Reveals.** One system: an element marked `data-reveal="<n>"` (`n` from 0 to 5) is hidden
   (opacity 0, `translate: 0 var(--reveal-distance)`) only while two things hold:
@@ -784,13 +671,12 @@ reserved for client islands (see "The stack").
   shared `IntersectionObserver` (`rootMargin: 0px 0px -10% 0px`) that adds `data-revealed` and
   unobserves, so each element reveals once. Only the reveal transitions; hiding is instant. Focus
   moving into a block that has not revealed yet shows it at once (`:focus-within`). The delay is
-  `n * --reveal-stagger`, capped at `--reveal-delay-max`. Only the demo artifacts of two sections
-  carry a mark: the Try it panel in the feature flow and the
-  bento's first row (the keys tile alone; the head beside it and the later tiles never). No section heading reveals (`SectionHead` takes no reveal
-  prop), and the hero, marquee, SDK playground, comparison, contribution, FAQ
-  and closing panel never take a reveal; nothing else in the flow does either; the hero diff's fill and the marquee loop below are their own
-  motions, not reveals. Elements keep their box while hidden, so a reveal never moves layout.
-  `reveal-marks.test.tsx` pins which files carry marks and `motion-root.test.tsx` the observer and
+  `n * --reveal-stagger`, capped at `--reveal-delay-max`. No landing section carries a mark
+  today: the system stays for a demo artifact that earns one. No section heading reveals
+  (`SectionHead` takes no reveal prop), and the hero, marquee, SDK playground, comparison,
+  contribution, FAQ and closing panel never take a reveal; the hero diff's fill and the marquee
+  loop below are their own motions, not reveals. Elements keep their box while hidden, so a reveal never moves layout.
+  `reveal-marks.test.tsx` pins that no section file carries a mark and `motion-root.test.tsx` the observer and
   the stylesheet guards.
 - **Hero.** The hero is never revealed and the `h1` never moves (it is the largest paint); no
   load animation runs in it. The locale diff is server-rendered filled
@@ -821,7 +707,7 @@ reserved for client islands (see "The stack").
   through `highlightPlaygroundSnippet` (`lib/playground-snippet-highlight.ts`), whose Shiki
   transformer marks each locale line `data-snippet-locale` with `display: var(--vk-snippet-<code>,
   inline)` and moves the line's newline inside it; the island frames it in `CodeFrameShell`
-  (`components/landing/code-frame-shell.tsx`, the markup `CodeFrame` also renders) with a
+  (`components/landing/code-frame-shell.tsx`) with a
   `CopyControl`, sets `--vk-snippet-<code>: none` on `.vk-playground-code` for each unchecked
   language once hydrated (all four while none is checked, and in the server HTML), and copies
   exactly the lines it shows. `playground.test.tsx` parses the full snippet with the public
@@ -865,47 +751,6 @@ reserved for client islands (see "The stack").
   none` and `.vk-playground-static`, a captioned table of every string and language in a
   `ScrollBlock`, shows instead. Links to `/docs/sdk-quickstart`, `/docs/sdk` and
   `/docs/providers` close the section. `e2e/playground.spec.ts` pins the browser behaviour.
-- **Feature flow.** `flow.tsx` (`#flow`, a band right after the SDK playground, a `stacked` head whose
-  `h2` is `landing.flow.heading`, set in `.vk-flow-head` on the snippet side: from 64rem it is
-  capped to the snippet column's width, from `--flow-rail`, declared on the section's
-  `.vk-flow-section` so the head and the nodes share it) is one `ol.vk-flow-list`, one `li.vk-flow-node` per entry of
-  `FLOW_NODES` in `lib/landing-flow.ts`: an `h3`, two sentences, one docs link and one `CodeFrame`
-  snippet, each titled (its file name, or `HERO_TERMINAL_TITLE`, `~/app`, for a
-  command) so its copy button sits in the title bar and never over the code, each
-  snippet taken from its source and pinned to it by `flow.test.tsx` (the next-intl
-  sample from the real adapter, the `init`, `translate` and `check` commands and flags of the
-  published `@verbatra/cli`, as recorded once from its release tag in
-  `test-support/cli-0.11.1-flags.json`, with `init --path` naming the file the source node shows,
-  the SDK quickstart call, the GitHub Action guide's workflow with `CHECKOUT_ACTION_REF`,
-  `VERBATRA_ACTION_REF` and `PACKAGE_VERSION` and the key variable of the provider `init` sets up
-  in place of the guide's, `check` with the exit codes of `checkExitCode`,
-  `STUDIO_RUN_COMMAND`, and the Claude Code `.mcp.json` block and `claude mcp add` line of the MCP
-  client guide). A node with `alternatives` (only the MCP node) sets its frames in `FlowTabs`
-  (`components/landing/flow-tabs.tsx`, a lazy island on the segmented `TabList`, named by the
-  node's `h3` through `aria-labelledby`, tab labels the file and command names): the server
-  renders no panel `inert`, and under `@media (scripting: none)` the tab list hides and both
-  frames show. The incremental node also holds the Try it demo (`.vk-flow-demo`: the moved showcase lead, then the
-  `.vk-showcase` panel), spanning the full row at every width, since its board needs the
-  full width. Only that node declares the demo grid row (`.vk-flow-node:has(> .vk-flow-demo)`),
-  so no node ends on an empty row and its row gap: the nodes stand an even `--flow-node-gap`
-  apart (4.75rem, 5.25rem from 64rem) and the last snippet ends on the band's own bottom padding. From 64rem a node is three columns, snippet, rail and text; below that the rail sits
-  on the start edge with the text and snippet stacked beside it. One `aria-hidden` rail
-  (`.vk-flow-rail`, a box that an SVG with `preserveAspectRatio="none"` fills, since an
-  absolutely positioned SVG keeps its intrinsic height instead of stretching between its insets) holds a `--border-default` track and the
-  `--accent-fill` path, running from the first mark's centre to the last one's (CSS anchor
-  positioning, `--vk-flow-start` and `--vk-flow-end`; without it the rail runs the list's full
-  height), and each node has an `aria-hidden` numbered `.vk-flow-mark` on the rail.
-  The server HTML is the drawn state: the path whole and every mark filled. The `FlowMotion`
-  island (`flow-motion.tsx`) imports `flow-draw.tsx` once the flow comes within one viewport, after
-  the first contentful paint and never under reduced motion. Its `FlowDraw` runs, inside
-  `useGSAP({ scope })` and a `gsap.matchMedia` on `(prefers-reduced-motion: no-preference)`, one
-  DrawSVG tween from `0%` to `100%` scrubbed by a `ScrollTrigger` from the first mark to the last
-  (`trigger` the first mark, `endTrigger` the last, both `center center`, no pin), so the drawn
-  tip sits at the middle of the viewport and the last mark fills while it is there, sets `data-flow="drawing"` on `.vk-flow` and gives each mark
-  `data-revealed` once the drawn length reaches it; only then is an unreached mark hollow, its fill
-  fading by `opacity`. Reverting (unmount or reduced motion turning on) restores the drawn state.
-  No release badge is needed in the flow: every node works with the published packages, and any
-  later badge comes from `RELEASE_BADGE`. `e2e/flow.spec.ts` pins the browser behaviour.
 - **Back to top.** `scroll-top.tsx` (`ScrollTop`, a plain block `island()` (`{ as: "div" }`) in `islands.tsx` that the
   home page mounts after `MotionRoot`, fed `landing.fab.label` and `MAIN_CONTENT_ID` as props)
   renders an `aria-hidden` `.vk-scroll-top-sentinel` (absolute, `100vh` tall from the top of the
@@ -919,8 +764,8 @@ reserved for client islands (see "The stack").
   `prefers-reduced-motion: no-preference`, `instant` otherwise) and focuses `main` with
   `preventScroll`, which hides the button again. A smooth scroll is watched frame by frame
   (`requestAnimationFrame`, still no scroll listener): when it stops short of the top for
-  `STALL_FRAMES` frames, as when the flow's ScrollTrigger island loads on the way up and resets
-  the scroll position, it is issued again, at most `MAX_SCROLL_RETRIES` times. The watch ends
+  `STALL_FRAMES` frames, as when something resets the scroll position on the way up, it is
+  issued again, at most `MAX_SCROLL_RETRIES` times. The watch ends
   after `MAX_WATCH_FRAMES` frames in any case, after `AWAY_FRAMES` frames in a row that move away
   from the top (a scrollbar drag), on `pagehide` or `popstate`, when the button unmounts (the
   press returns its stop), and a wheel, touch, key or pointer press hands the page back to the
@@ -952,9 +797,8 @@ reserved for client islands (see "The stack").
   name is `landing.nav.version.label`, which contains the visible text. `.vk-version-pill` is
   `display: none` under 768px. `lib/layout.shared.test.tsx` pins it.
 - **Budget.** Layout shift 0 over a full scroll at 390, 1440 and a 844 by 390 landscape phone; no
-  scroll listener outside the flow's `ScrollTrigger`; at most one reveal chain per section, and only
-  in the four demo sections (the hero diff fill, the marquee loop and the flow drawing are not
-  reveals); no entrance over 16px or 600ms.
+  scroll listener; at most one reveal chain per section, and only on a demo artifact (the hero
+  diff fill and the marquee loop are not reveals); no entrance over 16px or 600ms.
 
 ## Keep the client payload small
 
@@ -1035,10 +879,9 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
 - Keep both `next/font` families preloaded. Every one of them sets text in the first
   viewport, so it is fetched before the first paint either way; without the preload it is only
   discovered after the stylesheet, at a higher priority that delays the first contentful paint.
-- `gsap` only through the playground's dynamic `import()` of `playground-scramble.tsx` and the
-  flow's dynamic `import()` of `flow-draw.tsx` (see "The stack"): the island chunks themselves
-  (`playground-demo.tsx`, `flow-motion.tsx`) import no GSAP, so it is in neither the first load nor
-  the island batch, and `playground.test.tsx` and `flow.test.tsx` fail on a static import.
+- `gsap` only through the playground's dynamic `import()` of `playground-scramble.tsx` (see "The
+  stack"): the island chunk itself (`playground-demo.tsx`) imports no GSAP, so it is in neither the
+  first load nor the island batch, and `playground.test.tsx` fails on a static import.
 - Content only needed after an interaction is loaded with a dynamic `import()` on hover, focus,
   or click. The AI setup prompt is not: it is short, and its text ships in the page, in the hero
   command panel's Prompt tab and the `PromptCopyButton` preview.
@@ -1214,7 +1057,7 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   breadcrumb (`.vk-breadcrumb`, set on `DocsPage`), which shares the sidebar's tree; the
   `<AvailableFrom>` badge adds `.vk-available-from`, which sits after the heading text when it is
   inside a heading. Its markup is `AvailableFromPill` (`components/available-from.tsx`), which the
-  landing's marquee and bento render with the `docs.availableFrom` copy for
+  landing's marquee renders with the `docs.availableFrom` copy for
   `RELEASE_BADGE.version`. `RELEASE_BADGE` (`lib/release-badge.ts`) is the landing's one list of
   what is new in that release: `providers` (read through `providerReleaseBadge`) and `features`
   (`provider-none`, read through `featureReleaseBadge`), so emptying it removes every landing badge

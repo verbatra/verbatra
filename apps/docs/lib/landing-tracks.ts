@@ -3,6 +3,7 @@ import { FORMAT_SAMPLES } from "./format-samples";
 import {
   HERO_CHECK_EXIT_CODE,
   HERO_CHECK_OUTPUT,
+  HERO_TERMINAL_TITLE,
   HERO_TRANSLATE_EXIT_CODE,
   HERO_TRANSLATE_OUTPUT,
 } from "./hero-terminal";
@@ -20,6 +21,7 @@ export type LandingTrackFile = {
 export type LandingTrack = {
   readonly id: LandingTrackId;
   readonly docsPath: string;
+  readonly terminalTitle: string;
   readonly commands: ReadonlyArray<string>;
   readonly files: ReadonlyArray<LandingTrackFile>;
   readonly result: ReadonlyArray<string>;
@@ -78,6 +80,7 @@ export const LANDING_TRACKS: Readonly<Record<LandingTrackId, LandingTrack>> = {
   translate: {
     id: "translate",
     docsPath: "/docs/cli/translate",
+    terminalTitle: HERO_TERMINAL_TITLE,
     commands: TRACK_TRANSLATE_COMMANDS,
     files: [{ language: "json", filename: SOURCE_SAMPLE.file, code: SOURCE_SAMPLE.text }],
     result: HERO_TRANSLATE_OUTPUT,
@@ -86,6 +89,7 @@ export const LANDING_TRACKS: Readonly<Record<LandingTrackId, LandingTrack>> = {
   agents: {
     id: "agents",
     docsPath: "/docs/connect-an-mcp-client",
+    terminalTitle: HERO_TERMINAL_TITLE,
     commands: [TRACK_MCP_ADD_COMMAND],
     files: [{ language: "json", filename: ".mcp.json", code: TRACK_MCP_JSON }],
     result: [],
@@ -94,6 +98,7 @@ export const LANDING_TRACKS: Readonly<Record<LandingTrackId, LandingTrack>> = {
   ci: {
     id: "ci",
     docsPath: "/docs/ci-and-exit-codes",
+    terminalTitle: HERO_TERMINAL_TITLE,
     commands: [TRACK_CHECK_COMMAND],
     files: [
       {

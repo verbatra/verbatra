@@ -51,9 +51,7 @@ describe("landing message parity", () => {
       "landing.facts.versionParts",
       "landing.hero.command.installHint",
       "landing.steps.items.ci.title",
-      "landing.flow.items.check.body",
-      "landing.bento.items.keys.title",
-      "landing.showcase.tryIt.result.summary",
+      "landing.showcase.tryIt.marks.new",
       "landing.marquee.heading",
       "landing.marquee.pause",
       "landing.playground.label",
@@ -98,6 +96,10 @@ describe("landing message parity", () => {
     "showcase.heading",
     "showcase.lead",
     "studio",
+    "flow",
+    "bento",
+    "showcase.tryIt.scenarios",
+    "showcase.tryIt.result",
   ])("keeps no landing.%s message from a retired section", (path) => {
     for (const locale of i18n.languages) {
       expect(() => landingText(locale, path), locale).toThrow();

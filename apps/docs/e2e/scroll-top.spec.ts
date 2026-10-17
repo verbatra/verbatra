@@ -161,12 +161,12 @@ test.describe("back to top with motion welcome", () => {
   });
 });
 
-async function interruptOnceInFlow(page: Page): Promise<void> {
+async function interruptOnceMidPage(page: Page): Promise<void> {
   await page.evaluate(() => {
     let armed = true;
     const interrupt = () => {
-      const flow = document.querySelector(".vk-flow");
-      if (!armed || !flow || flow.getBoundingClientRect().top < -200) return;
+      const middle = document.querySelector("#compare");
+      if (!armed || !middle || middle.getBoundingClientRect().top < -200) return;
       armed = false;
       removeEventListener("scroll", interrupt);
       const scroller = document.scrollingElement;
@@ -176,7 +176,7 @@ async function interruptOnceInFlow(page: Page): Promise<void> {
   });
 }
 
-test.describe("back to top when a scroll-linked island resets the scroll on the way up", () => {
+test.describe("back to top when the scroll position is reset on the way up", () => {
   test.use({ reducedMotion: "no-preference", colorScheme: "dark" });
 
   for (const locale of ["en", "es"] as const) {
@@ -194,7 +194,7 @@ test.describe("back to top when a scroll-linked island resets the scroll on the 
           }),
         )
         .toBe(true);
-      await interruptOnceInFlow(page);
+      await interruptOnceMidPage(page);
       await page.locator(FAB).click();
       await expect(page.locator("main#main-content")).toBeFocused();
       await expect.poll(() => page.evaluate(() => window.scrollY), { timeout: 8000 }).toBe(0);

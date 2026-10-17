@@ -30,8 +30,6 @@ const { landingMarkdown } = await import("./landing-markdown");
 const { Hero } = await import("@/components/landing/hero");
 const { Marquee } = await import("@/components/landing/marquee");
 const { Playground } = await import("@/components/landing/playground");
-const { Flow } = await import("@/components/landing/flow");
-const { Bento } = await import("@/components/landing/bento");
 const { Compare } = await import("@/components/landing/compare");
 const { Faq, faqContent } = await import("@/components/landing/faq");
 const { OpenSource } = await import("@/components/landing/open-source");
@@ -42,8 +40,6 @@ const SECTIONS = {
   hero: () => Hero(),
   marquee: () => Marquee(),
   playground: () => Playground(),
-  flow: () => Flow(),
-  features: () => Bento(),
   compare: () => Compare(),
   faq: async () => Faq({ locale: state.locale, items: await faqContent(state.locale) }),
   openSource: () => OpenSource(),
@@ -57,7 +53,6 @@ const SKIPPED = [
   ".sr-only:not(caption)",
   "script",
   "[data-playground-demo]",
-  ".vk-showcase",
   ".vk-compare-hint",
   ".vk-hero-diff-mark",
   "[data-footnotes]",

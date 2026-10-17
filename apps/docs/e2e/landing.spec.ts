@@ -43,8 +43,6 @@ for (const locale of LOCALES) {
         "hero-title",
         "marquee",
         "playground",
-        "flow",
-        "features",
         "compare",
         "faq",
         "open-source",
