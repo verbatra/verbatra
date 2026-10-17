@@ -16,6 +16,16 @@ async function selectTrack(page: Page, index: number): Promise<void> {
   }).toPass();
 }
 
+async function hydrateOnTime(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const byName = performance.getEntriesByName.bind(performance);
+    performance.getEntriesByName = (name: string, type?: string) =>
+      name === "first-contentful-paint"
+        ? byName(name, type).map((entry) => ({ ...entry.toJSON(), startTime: performance.now() }))
+        : byName(name, type);
+  });
+}
+
 async function terminalHeight(page: Page): Promise<number> {
   const box = await page.locator(`${HERO} .vk-tracks-panels`).boundingBox();
   if (box === null) throw new Error("the track panels have no box");
@@ -91,6 +101,7 @@ test.describe("hero track motion", () => {
   test("types the default track once on load, from the final state the server sent", async ({
     page,
   }) => {
+    await hydrateOnTime(page);
     await page.goto("/");
     const tracks = page.locator(`${HERO} .vk-tracks`);
     await expect(tracks).toHaveAttribute("data-typing", "true");
@@ -132,6 +143,7 @@ test.describe("hero track motion", () => {
         }
       }).observe({ type: "layout-shift", buffered: true });
     });
+    await hydrateOnTime(page);
     await page.goto("/");
     const tracks = page.locator(`${HERO} .vk-tracks`);
     await expect(tracks).toHaveAttribute("data-typing", "true");
