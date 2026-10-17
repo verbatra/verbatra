@@ -1,3 +1,4 @@
+import { CHECKOUT_ACTION_REF, VERBATRA_ACTION_REF } from "./action-refs";
 import {
   HERO_CHECK_COMMAND,
   HERO_CHECK_EXIT_CODE,
@@ -7,6 +8,7 @@ import {
   HERO_TRANSLATE_EXIT_CODE,
 } from "./hero-terminal";
 import type { HighlightLanguage } from "./landing-highlight";
+import { PACKAGE_VERSION } from "./site";
 
 export type LandingTrackId = "translate" | "agents" | "ci";
 
@@ -31,6 +33,18 @@ export type LandingTrack = {
 };
 
 export const TRACK_CHECK_EXIT_CODES = { fail: 1, ok: 0, usage: 2 } as const;
+
+export const TRACK_CHECK_WORKFLOW_FILE = ".github/workflows/i18n.yml";
+
+export const TRACK_CHECK_WORKFLOW = `on: pull_request
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ${CHECKOUT_ACTION_REF}
+      - uses: ${VERBATRA_ACTION_REF}
+        with: { version: ${PACKAGE_VERSION}, command: check }
+`;
 
 export const TRACK_MCP_JSON = `{
   "mcpServers": {
@@ -70,7 +84,7 @@ export const LANDING_TRACKS: Readonly<Record<LandingTrackId, LandingTrack>> = {
     docsPath: "/docs/ci-and-exit-codes",
     terminalTitle: HERO_TERMINAL_TITLE,
     steps: [{ command: HERO_CHECK_COMMAND, output: HERO_CHECK_OUTPUT }],
-    files: [],
+    files: [{ language: "yaml", filename: TRACK_CHECK_WORKFLOW_FILE, code: TRACK_CHECK_WORKFLOW }],
     exitCode: HERO_CHECK_EXIT_CODE,
   },
 };

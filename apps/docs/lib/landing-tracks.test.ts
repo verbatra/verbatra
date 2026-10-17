@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
+import { CHECKOUT_ACTION_REF, VERBATRA_ACTION_REF } from "./action-refs";
 import {
   HERO_CHECK_COMMAND,
   HERO_CHECK_OUTPUT,
@@ -13,9 +14,12 @@ import {
   LANDING_TRACK_IDS,
   LANDING_TRACKS,
   TRACK_CHECK_EXIT_CODES,
+  TRACK_CHECK_WORKFLOW,
+  TRACK_CHECK_WORKFLOW_FILE,
   TRACK_MCP_ADD_COMMAND,
   TRACK_MCP_JSON,
 } from "./landing-tracks";
+import { PACKAGE_VERSION } from "./site";
 
 const DOCS = process.cwd();
 const REPO = join(DOCS, "../..");
@@ -93,13 +97,17 @@ describe("the landing tracks", () => {
     }
   });
 
-  it("carries a file only on a track with no recorded transcript, which shows it in its place, and runs every track in the shell frame the rest of the landing titles", () => {
+  it("runs every track in the shell frame the rest of the landing titles, each file named, and a file only where no transcript is recorded or under the check whose gate it wires", () => {
     for (const id of LANDING_TRACK_IDS) {
       const track = LANDING_TRACKS[id];
       expect(track.terminalTitle, id).toBe(HERO_TERMINAL_TITLE);
-      if (track.steps.some((step) => step.output.length > 0)) expect(track.files, id).toEqual([]);
       for (const file of track.files) expect(file.filename, id).toBeTruthy();
     }
+    expect(LANDING_TRACKS.translate.files).toEqual([]);
+    expect(LANDING_TRACKS.agents.steps.flatMap((step) => step.output)).toEqual([]);
+    expect(LANDING_TRACKS.ci.files.map((file) => file.filename)).toEqual([
+      TRACK_CHECK_WORKFLOW_FILE,
+    ]);
   });
 
   it("dates nothing itself: no literal version and no release badge in the source", () => {
@@ -166,6 +174,46 @@ describe("the CI track equals its sources", () => {
       `return ${TRACK_CHECK_EXIT_CODES.usage};`,
     );
     expect(HERO_CHECK_COMMAND).toBe("npx @verbatra/cli check");
+  });
+
+  it("shows a pull request workflow under the check, its action step copied from the GitHub Action guide's gate", () => {
+    const guide = read(join(DOCS, "content/docs/(guides)/github-action.mdx"));
+    const gate = fenceAfter(guide, "## Gate a pull request", "yaml");
+    const [usesLine = "", withLine = "", ...inputs] = gate.trimEnd().split("\n");
+    expect(usesLine).toBe("      - uses: verbatra/action@<commit-sha> # a commit on the v1 line");
+    expect(withLine).toBe("        with:");
+    const guideInputs = inputs.map((line) =>
+      line.trim().replace(/^version: \S+$/, `version: ${PACKAGE_VERSION}`),
+    );
+    expect(guideInputs).toEqual([`version: ${PACKAGE_VERSION}`, "command: check"]);
+    const checkout = fenceAfter(guide, "## Add the action to a workflow", "yaml");
+    expect(checkout).toContain("      - uses: actions/checkout@<commit-sha>\n");
+    expect(TRACK_CHECK_WORKFLOW).toBe(`on: pull_request
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ${CHECKOUT_ACTION_REF}
+      - uses: ${VERBATRA_ACTION_REF}
+        with: { ${guideInputs.join(", ")} }
+`);
+    expect(LANDING_TRACKS.ci.files).toEqual([
+      { language: "yaml", filename: TRACK_CHECK_WORKFLOW_FILE, code: TRACK_CHECK_WORKFLOW },
+    ]);
+  });
+
+  it("pins both actions to the full commit SHAs this repository's own workflows run", () => {
+    const uses = [...TRACK_CHECK_WORKFLOW.matchAll(/uses: (\S+)@(\S+) # (v\d+\.\d+\.\d+)\n/g)];
+    expect(uses.map(([, name]) => name)).toEqual(["actions/checkout", "verbatra/action"]);
+    for (const [, , ref] of uses) expect(ref).toMatch(/^[0-9a-f]{40}$/);
+    expect(TRACK_CHECK_WORKFLOW).not.toMatch(/@v\d/);
+    expect(VERBATRA_ACTION_REF).toMatch(/ # v1\./);
+    expect(read(join(REPO, ".github/workflows/docs-i18n-check.yml"))).toContain(
+      `uses: ${VERBATRA_ACTION_REF}\n`,
+    );
+    expect(read(join(REPO, ".github/workflows/docs-deploy.yml"))).toContain(
+      `uses: ${CHECKOUT_ACTION_REF}\n`,
+    );
   });
 
   it("prints the recorded check transcript and exits as a failing gate", () => {

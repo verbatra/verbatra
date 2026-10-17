@@ -545,11 +545,14 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   `lib/hero-terminal.run.test.ts` pins the lines to the CLI's renderer;
   `lib/landing-tracks.ts` holds the three hero tracks, `translate`, `agents` and `ci`
   (`LANDING_TRACKS`: per track a docs path, the shell frame title, its `steps` (each a command
-  and the recorded output it printed), the exit code, and files only where no transcript was
-  recorded), every command and file pinned to its source by `lib/landing-tracks.test.ts`: the
+  and the recorded output it printed), the exit code, and its files: the agents track's `.mcp.json` and the CI track's workflow),
+  every command and file pinned to its source by `lib/landing-tracks.test.ts`: the
   translate track runs `HERO_TERMINAL_SCRIPT` of `lib/hero-terminal.ts` (check, then translate,
-  the same script the social image draws) and the CI track `HERO_CHECK_COMMAND` alone, each
-  command with the transcript it printed, checked against the published cli flags in
+  the same script the social image draws) and the CI track `HERO_CHECK_COMMAND` with its transcript,
+  then `TRACK_CHECK_WORKFLOW` (`.github/workflows/i18n.yml`: a `pull_request` job of checkout and
+  `verbatra/action` with `command: check`, its step copied from the GitHub Action guide's gate,
+  both actions pinned through `lib/action-refs.ts` to the SHAs this repository's own workflows
+  run, and `version` set to `PACKAGE_VERSION`), each command with the transcript it printed, checked against the published cli flags in
   `test-support/cli-0.11.1-flags.json` and the `check` exit codes of `checkExitCode`; the agents
   track runs the `claude mcp add` line and shows the `.mcp.json` block, both copied from the MCP
   client guide, and has no recorded output, so its result is empty. A track never shows a command
@@ -714,8 +717,9 @@ is only `position: sticky` from 64rem, which moves nothing on its own), and no s
   `.vk-track-terminal` on `--v-void` (a bar with the track's `terminalTitle` and, when the track
   has an exit code, an `exit n` chip, `--v-status-changed` when it is not 0), its `lang="en"` body
   with every command after an `aria-hidden` `$`, each followed directly by the result lines it
-  printed, or, for the agents track, whose result is empty, its `.mcp.json` file instead of a transcript nobody
-  recorded; under the frame one `landing.hero.tracks.<id>.summary` sentence and the link to the
+  printed, then the track's files as compact blocks (`.vk-track-file`, `--text-xs`): the agents
+  track's `.mcp.json` in place of a transcript nobody recorded, and the CI track's workflow under
+  the `check` output, sized so the CI content fills the terminal the translate track sets at 1440; under the frame one `landing.hero.tracks.<id>.summary` sentence and the link to the
   track's `docsPath`. No command, flag or line is typed by hand: all of it is pinned by
   `lib/landing-tracks.test.ts`. The panels share one grid cell: `.vk-tracks-panels` has two rows
   (`minmax(0, 1fr) auto`), every panel spans both through `grid-template-rows: subgrid`, and the

@@ -233,9 +233,21 @@ describe("Hero tracks", () => {
     expect(files[0]?.querySelector("pre code")?.textContent).toBe(
       LANDING_TRACKS.agents.files[0]?.code.trimEnd(),
     );
-    for (const id of ["translate", "ci"] as const) {
-      expect(panel(await render(), id)?.querySelector(".vk-track-file")).toBeNull();
-    }
+    expect(panel(await render(), "translate")?.querySelector(".vk-track-file")).toBeNull();
+  });
+
+  it("shows the CI track's workflow file under the check output it gates", async () => {
+    const ci = panel(await render(), "ci");
+    const body = ci?.querySelector(".vk-track-body");
+    const files = Array.from(body?.querySelectorAll(".vk-track-file") ?? []);
+    expect(files.map((file) => file.querySelector("figcaption")?.textContent)).toEqual(
+      LANDING_TRACKS.ci.files.map((file) => file.filename),
+    );
+    expect(files[0]?.querySelector("pre code")?.textContent).toBe(
+      LANDING_TRACKS.ci.files[0]?.code.trimEnd(),
+    );
+    expect(body?.lastElementChild).toBe(files[0]);
+    expect(files[0]?.previousElementSibling?.classList.contains("vk-track-out")).toBe(true);
   });
 
   it("explains each track in one sentence and links its docs page", async () => {
