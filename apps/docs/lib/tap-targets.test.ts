@@ -39,11 +39,10 @@ describe("tap targets on a phone", () => {
     expect(rulesFor(rules, ".vk-tap").map((rule) => rule.media)).toEqual([PHONE]);
   });
 
-  it("makes the evidence links, heading anchors and breadcrumb 44px tall", () => {
+  it("makes the heading anchors and breadcrumb 44px tall", () => {
     const phone = rules.filter((rule) => rule.media === PHONE);
     const height = (selector: string) =>
       phone.find((rule) => rule.selector.split(/,\s*/).includes(selector))?.declarations;
-    expect(height(".vk-evidence-link")?.["min-height"]).toBe("44px");
     expect(height("#nd-page .group\\/heading > a[data-card]")?.["min-height"]).toBe("44px");
     expect(height(".vk-breadcrumb a")?.["padding-block"]).toBe("12px");
   });

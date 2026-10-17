@@ -2192,21 +2192,8 @@ figure.shiki.vk-code-output figcaption {
   inset-inline-start: calc(-1rem - 1.5px);
 }
 
-.vk-evidence-link {
-  transition:
-    border-color var(--duration-base) var(--ease-standard),
-    color var(--duration-base) var(--ease-standard);
-}
-
-.vk-evidence-link:hover,
-.vk-evidence-link:focus-visible {
-  border-color: var(--border-accent);
-  color: var(--text-strong);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .vk-link-card,
-  .vk-evidence-link,
   .vk-stack-card-chevron,
   .vk-home-tab {
     transition: none;
@@ -3829,7 +3816,6 @@ html:has(.vk-home) {
     min-height: 44px;
   }
 
-  .vk-evidence-link,
   #nd-page .group\/heading > a[data-card] {
     display: inline-flex;
     align-items: center;
