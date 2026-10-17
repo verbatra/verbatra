@@ -99,6 +99,35 @@ export async function expectNothingPastRightEdge(page: Page): Promise<void> {
   expect(clipped).toEqual([]);
 }
 
+export async function expectTargetsMeetMinimumSize(page: Page, selector: string): Promise<void> {
+  const failing = await page.locator(selector).evaluateAll((nodes) => {
+    const boxes = nodes
+      .filter((node) => node.checkVisibility())
+      .map((node) => ({ node, box: node.getBoundingClientRect() }));
+    const small = (box: DOMRect) => box.width < 24 || box.height < 24;
+    const centre = (box: DOMRect) => [box.left + box.width / 2, box.top + box.height / 2] as const;
+    return boxes
+      .filter(({ node, box }) => {
+        if (!small(box)) return false;
+        const [x, y] = centre(box);
+        return boxes.some((other) => {
+          if (other.node === node) return false;
+          const dx = Math.max(other.box.left - x, 0, x - other.box.right);
+          const dy = Math.max(other.box.top - y, 0, y - other.box.bottom);
+          if (Math.hypot(dx, dy) < 12) return true;
+          if (!small(other.box)) return false;
+          const [ox, oy] = centre(other.box);
+          return Math.hypot(ox - x, oy - y) < 24;
+        });
+      })
+      .map(
+        ({ node, box }) =>
+          `${node.textContent?.trim()} ${Math.round(box.width)}x${Math.round(box.height)}`,
+      );
+  });
+  expect(failing).toEqual([]);
+}
+
 export async function expectClearOfPinnedColumn(
   row: Locator,
   ref: Locator,

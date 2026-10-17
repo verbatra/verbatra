@@ -433,7 +433,8 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   other punctuation-only tail with the word before it, and French copy puts U+202F inside `« »`. The
   region, its caption and sticky headers, the footnote links and the source list (two CSS
   columns from 64rem, each URL breaking after its slashes through `breakUrlAfterSlashes` and,
-  with `overflow-wrap: anywhere`, inside a long slug at 320px) live in
+  with `overflow-wrap: anywhere`, inside a long slug at 320px; each link and its `;` in one
+  `inline-block` with `py-1`, which spaces the links far enough apart for the 24px target rule) live in
   `compare-table.tsx` (`CompareRegion`, `FootnoteRefs`, `TextWithRefs`, `SourceList`), shared
   with `/compare`:
   `app/[lang]/(home)/compare/page.tsx` under the home layout renders `compare-page.tsx`, one `h1`

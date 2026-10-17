@@ -1,5 +1,5 @@
 import type { getTranslations } from "next-intl/server";
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import type { Locale } from "@/lib/i18n";
 import { withInlineCode } from "@/lib/inline-code-text";
 import {
@@ -95,13 +95,17 @@ export function SourceList({
               <span className="text-(--text-body)">{COMPARE_TOOL_NAMES[source.tool]}: </span>
               {source.urls.map((link, index) => {
                 const href = compareSourceHref(link, locale);
+                const more = index < source.urls.length - 1;
                 return (
-                  <span key={href}>
-                    {index > 0 ? "; " : null}
-                    <a href={href} className="vk-prose-link [overflow-wrap:anywhere]">
-                      {breakUrlAfterSlashes(href)}
-                    </a>
-                  </span>
+                  <Fragment key={href}>
+                    <span className="inline-block max-w-full py-1 indent-0 [overflow-wrap:anywhere]">
+                      <a href={href} className="vk-prose-link">
+                        {breakUrlAfterSlashes(href)}
+                      </a>
+                      {more ? ";" : null}
+                    </span>
+                    {more ? " " : null}
+                  </Fragment>
                 );
               })}
             </li>

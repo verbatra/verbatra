@@ -7,6 +7,7 @@ import {
   expectNoHorizontalScroll,
   expectNothingPastRightEdge,
   expectStickyLabelsFit,
+  expectTargetsMeetMinimumSize,
   LOCALES,
   openInTheme,
   pageUrl,
@@ -192,6 +193,16 @@ test.describe("full comparison table", () => {
     await expect(page.locator("#source-62")).toBeInViewport();
     await expect(page.locator("#source-62")).toHaveCSS("box-shadow", /inset/);
   });
+
+  for (const width of [375, 1440]) {
+    test(`gives every source link a 24px target or enough room around it at ${width}px`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/compare");
+      await expectTargetsMeetMinimumSize(page, "main ol[aria-labelledby] a");
+    });
+  }
 
   test("sets the sources in two columns on a wide screen", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
