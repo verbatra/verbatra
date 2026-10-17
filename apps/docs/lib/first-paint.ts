@@ -6,6 +6,14 @@ function hasContentfulPaint(): boolean {
   return performance.getEntriesByName("first-contentful-paint").length > 0;
 }
 
+export function msSinceFirstContentfulPaint(): number | null {
+  if (typeof performance === "undefined" || typeof performance.getEntriesByName !== "function") {
+    return null;
+  }
+  const [entry] = performance.getEntriesByName("first-contentful-paint");
+  return entry === undefined ? null : performance.now() - entry.startTime;
+}
+
 export function afterFirstContentfulPaint(): Promise<void> {
   painted ??= new Promise<void>((resolve) => {
     if (

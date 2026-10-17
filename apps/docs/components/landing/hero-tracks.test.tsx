@@ -8,6 +8,7 @@ import {
   HERO_TRACKS_ID,
   HeroTracks,
   type HeroTrackView,
+  LOAD_RUN_LATE_MS,
   LOAD_RUN_THRESHOLD,
   stepDelay,
   TYPE_CHAR_MS,
@@ -94,6 +95,7 @@ afterEach(() => {
   mounted = undefined;
   vi.useRealTimers();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 function mount(): HTMLElement {
@@ -188,6 +190,32 @@ describe("HeroTracks typing", () => {
     expect(host.querySelector(".vk-tracks")?.hasAttribute("data-typing")).toBe(false);
     enterView();
     expect(host.querySelector(".vk-tracks")?.hasAttribute("data-typing")).toBe(false);
+  });
+
+  function paintedAgo(ms: number): void {
+    const startTime = performance.now() - ms;
+    vi.spyOn(performance, "getEntriesByName").mockImplementation((name) =>
+      name === "first-contentful-paint"
+        ? [{ name, startTime, entryType: "paint", duration: 0 } as PerformanceEntry]
+        : [],
+    );
+  }
+
+  it("plays the load run when the island hydrates soon after the first paint", () => {
+    paintedAgo(LOAD_RUN_LATE_MS / 3);
+    const host = mount();
+    enterView();
+    expect(host.querySelector(".vk-tracks")?.getAttribute("data-typing")).toBe("true");
+    expect(pending(host, "translate")).toBe(pendingAtStart("translate"));
+  });
+
+  it("keeps the server-rendered final state when the island hydrates late after the first paint", () => {
+    paintedAgo(LOAD_RUN_LATE_MS * 3);
+    const host = mount();
+    enterView();
+    run(5000);
+    expect(host.querySelector(".vk-tracks")?.hasAttribute("data-typing")).toBe(false);
+    expect(host.querySelectorAll("[data-state='pending'], .vk-track-typed")).toHaveLength(0);
   });
 
   it("plays no load run under reduced motion", () => {

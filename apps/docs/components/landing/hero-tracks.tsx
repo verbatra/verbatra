@@ -2,6 +2,7 @@
 
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { TabList, tabPanelProps } from "@/components/ui/tabs";
+import { msSinceFirstContentfulPaint } from "@/lib/first-paint";
 import { withInlineCode } from "@/lib/inline-code-text";
 import type { LandingTrackId } from "@/lib/landing-tracks";
 import { prefersReducedMotion } from "@/lib/reduced-motion";
@@ -13,6 +14,13 @@ export const TYPE_COMMAND_PAUSE_MS = 260;
 export const TYPE_LINE_MS = 110;
 
 export const LOAD_RUN_THRESHOLD = 0.2;
+
+export const LOAD_RUN_LATE_MS = 300;
+
+function hydratedLate(): boolean {
+  const since = msSinceFirstContentfulPaint();
+  return since !== null && since > LOAD_RUN_LATE_MS;
+}
 
 export type HeroTrackFile = { readonly filename: string; readonly code: string };
 
@@ -218,6 +226,10 @@ function useTypingRun(track: HeroTrackView | undefined): [number | null, () => v
 function useLoadRun(start: () => void): [(node: HTMLDivElement | null) => void, () => void] {
   const [node, setNode] = useState<HTMLDivElement | null>(null);
   const chosen = useRef(false);
+
+  useEffect(() => {
+    if (hydratedLate()) chosen.current = true;
+  }, []);
 
   useEffect(() => {
     if (node === null || typeof IntersectionObserver === "undefined") return;

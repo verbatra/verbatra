@@ -1,4 +1,24 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { msSinceFirstContentfulPaint } from "./first-paint";
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+describe("msSinceFirstContentfulPaint", () => {
+  it("is null before the first contentful paint", () => {
+    vi.spyOn(performance, "getEntriesByName").mockReturnValue([]);
+    expect(msSinceFirstContentfulPaint()).toBeNull();
+  });
+
+  it("measures the time from the first contentful paint to now", () => {
+    vi.spyOn(performance, "now").mockReturnValue(900);
+    vi.spyOn(performance, "getEntriesByName").mockReturnValue([
+      { name: "first-contentful-paint", startTime: 250 } as PerformanceEntry,
+    ]);
+    expect(msSinceFirstContentfulPaint()).toBe(650);
+  });
+});
 
 describe("afterFirstContentfulPaint", () => {
   it("opens after its fallback delay when no paint entry ever arrives", async () => {

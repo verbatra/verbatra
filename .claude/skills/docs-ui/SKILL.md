@@ -722,8 +722,10 @@ is only `position: sticky` from 64rem, which moves nothing on its own), and no s
   nothing. The server HTML (and a page without JavaScript) shows the translate track in its final
   state, and hydration keeps it. After hydration one `IntersectionObserver` on `.vk-tracks`
   (`LOAD_RUN_THRESHOLD`, a fifth of it, since the phone stack is tall) plays the default track's
-  typing once, when it first comes into view, unless the reader has already chosen a track or
-  motion is reduced, then disconnects. That run and a switch, only under `prefers-reduced-motion:
+  typing once, when it first comes into view, unless the reader has already chosen a track,
+  motion is reduced, or the island hydrated more than `LOAD_RUN_LATE_MS` (300ms) after the first
+  contentful paint (`msSinceFirstContentfulPaint` in `lib/first-paint.ts`), so a slow load keeps
+  the server-rendered final state instead of blanking it, then disconnects. That run and a switch, only under `prefers-reduced-motion:
   no-preference`, type the commands into an `aria-hidden` `.vk-track-typed` layer laid over the
   real text (which stays in the DOM at `opacity: 0`, so assistive technology always reads the full
   command), `TYPE_CHAR_MS` per character with `TYPE_COMMAND_PAUSE_MS` after each command, then
