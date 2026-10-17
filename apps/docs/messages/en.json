@@ -225,7 +225,7 @@
     "banner": {
       "announcement": {
         "badge": "New",
-        "text": "What's new in v{version}"
+        "text": "v{version} is out"
       },
       "headline": "Translate only what changed.",
       "lead": "Verbatra fills the missing keys in your locale files, gives your coding agent an MCP server, and fails CI when translations drift.",

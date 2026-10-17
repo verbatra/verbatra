@@ -99,6 +99,16 @@ describe("Hero copy", () => {
     expect(announce?.nextElementSibling?.tagName).toBe("H1");
   });
 
+  it.each(["en", "de", "es", "fr"])(
+    "names the release in the %s announcement without repeating the pill's word",
+    (locale) => {
+      const catalog = JSON.parse(source(`messages/${locale}.json`)) as typeof messages;
+      const { badge, text } = catalog.landing.banner.announcement;
+      expect(text).toContain("{version}");
+      expect(text.toLocaleLowerCase(locale)).not.toContain(badge.toLocaleLowerCase(locale));
+    },
+  );
+
   it("keeps the pill's ring, shimmer and chevron away from assistive technology", async () => {
     const announce = (await render()).querySelector(".vk-announce");
     for (const part of announce?.querySelectorAll(
