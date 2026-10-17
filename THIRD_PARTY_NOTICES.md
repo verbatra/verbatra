@@ -26,7 +26,6 @@ published at https://verbatra.kreitz-webdev.de/licenses.
 - Android mark (simple-icons@16.35.0, icons/android.svg) (CC-BY-3.0): Inline monochrome SVG path in the landing marquee, copied from https://cdn.jsdelivr.net/npm/simple-icons@16.35.0/icons/android.svg. Logos are trademarks of their owners, used to identify compatibility.
   - The Android robot is reproduced or modified from work created and shared by Google and used according to terms described in the Creative Commons 3.0 Attribution License (https://creativecommons.org/licenses/by/3.0/).
   - Changed: redrawn in one color by Simple Icons and filled with the page's text color.
-- .NET mark (simple-icons@16.35.0, icons/dotnet.svg) (CC0-1.0): Inline monochrome SVG path in the landing marquee, copied from https://cdn.jsdelivr.net/npm/simple-icons@16.35.0/icons/dotnet.svg. Logos are trademarks of their owners, used to identify compatibility.
 - Anthropic mark (simple-icons@16.35.0, icons/anthropic.svg) (CC0-1.0): Inline monochrome SVG path in the landing marquee, copied from https://cdn.jsdelivr.net/npm/simple-icons@16.35.0/icons/anthropic.svg. Logos are trademarks of their owners, used to identify compatibility.
 - OpenAI mark (@lobehub/icons-static-svg@1.95.1, icons/openai.svg) (MIT): Inline monochrome SVG path in the landing marquee, copied from https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1.95.1/icons/openai.svg. Logos are trademarks of their owners, used to identify compatibility.
   - Copyright (c) 2023 LobeHub

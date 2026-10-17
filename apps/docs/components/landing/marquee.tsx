@@ -50,7 +50,7 @@ export const FORMAT_ICONS: Readonly<Record<SupportedFormat, MarqueeMark>> = {
   "android-xml": brand("android"),
   "gettext-po": chip(".po"),
   ini: chip(".ini"),
-  resx: brand("dotnet"),
+  resx: chip(".resx"),
 };
 
 type MarqueeBadge = { readonly label: string; readonly release: string };

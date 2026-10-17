@@ -2893,13 +2893,6 @@
       "textId": null
     },
     {
-      "name": ".NET mark (simple-icons@16.35.0, icons/dotnet.svg)",
-      "license": "CC0-1.0",
-      "copyright": [],
-      "usage": "Inline monochrome SVG path in the landing marquee, copied from https://cdn.jsdelivr.net/npm/simple-icons@16.35.0/icons/dotnet.svg. Logos are trademarks of their owners, used to identify compatibility.",
-      "textId": null
-    },
-    {
       "name": "Anthropic mark (simple-icons@16.35.0, icons/anthropic.svg)",
       "license": "CC0-1.0",
       "copyright": [],
