@@ -1053,8 +1053,8 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   writes from the git history of `content/docs` before dev, build, typecheck and test. Without a
   full history (a shallow clone, or the Docker build, whose context excludes `.git`) it keeps a
   snapshot written earlier or writes an empty one, and an empty one shows no outdated notice.
-- **Pills**: `.vk-pill` is the one badge shape: an outline pill in `--accent` text with the
-  glow-tinted border, mono, `--text-xs`, no fill. The sidebar NEW badge
+- **Pills**: `.vk-pill` is the badge shape for everything except a "new" announcement: an outline
+  pill in `--accent` text with the glow-tinted border, mono, `--text-xs`, no fill. The sidebar NEW badge
   (`components/new-badge.tsx`; the landing footer carries none, `footer.test.tsx` pins it) adds `.vk-pill-status` (smaller, uppercase) and is hidden in the
   breadcrumb (`.vk-breadcrumb`, set on `DocsPage`), which shares the sidebar's tree; the
   `<AvailableFrom>` badge adds `.vk-available-from`, which sits after the heading text when it is
@@ -1071,7 +1071,26 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   sit in the MDX at all is set by "Badge placement" in the "Docs budget" section of
   `.claude/rules/docs.md`, and `lib/docs-badge-placement.test.ts` enforces it. A heading whose
   key a table's "Since" column already dates (the key table on `config-file`) carries no badge.
-  Do not bring back a filled purple pill.
+- **Depth pill**: the one filled pill, and only for a "new" announcement, because the product
+  owner asked for an announcement badge that reads as new at a glance (modelled on the
+  `app-new-badge` of docs.nestjs.com). `NewPill` (`components/new-pill.tsx`, `.vk-pill-new`) is a
+  5px-radius chip, 2px by 6px, on a 90deg gradient from `--pill-new-start` (`--accent-fill`) to
+  `--pill-new-end` (a darker violet, its own value in each theme), in `--pill-new-fg` (white)
+  10.5px, weight 700, uppercase, 0.04em tracking. `lib/theme.test.ts` holds `--pill-new-fg` at
+  4.5:1 on both stops in both themes. Its depth comes from four layers: a `::before` glow
+  (`--pill-new-glow`, the start stop at 55 percent), a static `::after` rim (a 1px masked border,
+  white at 60 percent on the 165deg diagonal ends), an `aria-hidden` `.vk-pill-new-ring` (a 1px
+  masked rim over a conic highlight on a 200 percent square that rotates) and an `aria-hidden`
+  `.vk-pill-new-shimmer` (a 40 percent skewed band that sweeps once in the first 32 percent of the
+  loop). The glow, ring and shimmer each run 4.5s three times and stop: every animation is finite.
+  Under `prefers-reduced-motion: reduce` none of them runs and the shimmer is `display: none`;
+  under `forced-colors` the layers drop and the chip gets a `CanvasText` border.
+  `NewAnnouncement` in the same file is its wide form: the depth pill inside a `.vk-announce`
+  link, a `--radius-full` outline with a `--text-faint` boundary (3:1 like every control), the
+  announcement text and a chevron that moves 2px on hover, with the `sr-only` new-tab note. The
+  hero opens with it. Anything that is not a "new" announcement (a version, a status, a dated
+  feature) stays the `.vk-pill` outline; never put the depth pill in a table, the sidebar or a
+  heading, and never use more than one on a page.
 - **Prose measure**: paragraphs, lists, block quotes and callouts in `#nd-page` stop at
   `--width-measure` (about 72 characters of body text); tables and code blocks run the full
   column, and so does a `not-prose` element and everything inside it.
