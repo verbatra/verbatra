@@ -56,7 +56,7 @@
     "meta": {
       "title": "Verbatra: i18n-CLI, die nur geänderte Schlüssel übersetzt",
       "ogTitle": "Verbatra: nur Geändertes übersetzen",
-      "description": "Verbatra, eine Open-Source-CLI mit SDK für i18n, findet fehlende und geänderte Keys in deinen Locale-Dateien und übersetzt nur diese mit deinem Provider-Key.",
+      "description": "Verbatra, eine Open-Source-CLI mit SDK für i18n, findet fehlende und geänderte Keys in deinen Sprachdateien und übersetzt nur diese mit deinem Provider-Key.",
       "ogDescription": "Übersetze nur die i18n-Keys, die sich geändert haben, und lass die CI scheitern, solange einer fehlt.",
       "ogImageAlt": "Verbatra: Übersetze nur, was sich geändert hat, über einem check-Lauf, der zwei fehlende Keys pro Locale findet, und einem translate-Lauf, der nur diese schickt.",
       "definition": "Verbatra ist ein Open-Source-CLI und SDK für i18n-Lokalisierungsdateien. Es sendet nur neue und geänderte Schlüssel an den von dir gewählten KI- oder maschinellen Übersetzungsanbieter und lässt CI fehlschlagen, wenn ein Schlüssel fehlt."
@@ -129,7 +129,7 @@
       }
     },
     "footer": {
-      "tagline": "Eine Open-Source-CLI und ein SDK, die deine i18n-Locale-Dateien über den Provider deiner Wahl synchron halten.",
+      "tagline": "Eine Open-Source-CLI und ein SDK, die deine i18n-Sprachdateien über den Provider deiner Wahl synchron halten.",
       "cols": {
         "product": {
           "title": "Produkt",
@@ -211,7 +211,7 @@
         "text": "v{version} ist da"
       },
       "headline": "Übersetze nur, was sich geändert hat.",
-      "lead": "Verbatra füllt die fehlenden Schlüssel in deinen Locale-Dateien, gibt deinem Code-Agenten einen MCP-Server und lässt die CI fehlschlagen, wenn Übersetzungen abweichen.",
+      "lead": "Verbatra füllt die fehlenden Schlüssel in deinen Sprachdateien, gibt deinem Code-Agenten einen MCP-Server und lässt die CI fehlschlagen, wenn Übersetzungen abweichen.",
       "ctaPrimary": "Loslegen",
       "ctaSecondary": "Auf GitHub einen Stern geben",
       "license": "MIT-lizenziert und Open Source.",
