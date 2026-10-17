@@ -137,7 +137,7 @@ describe("softwareApplicationLd", () => {
     });
     const names = (result.hasPart as ReadonlyArray<{ name: string }>).map((part) => part.name);
     expect(names).toEqual(["Verbatra Studio", "Verbatra MCP server"]);
-    expect(en.landing.faq.items.studio.question).toContain("Verbatra Studio");
+    expect(en.docs.screenshot.label).toBe("Verbatra Studio");
     expect(en.landing.facts.versionParts).toContain("MCP server");
   });
 

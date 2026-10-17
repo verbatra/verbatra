@@ -8,12 +8,46 @@ import {
   CONCESSION_FOOTNOTES,
   SHORT_COLUMNS,
   SHORT_ROWS,
+  type ShortColumn,
+  type ShortRowId,
   shortCellFootnotes,
+  shortCellHasText,
+  shortCellIsYes,
 } from "@/lib/landing-compare";
-import { CompareRegion, FootnoteRefs, TextWithRefs } from "./compare-table";
+import { CompareRegion, type CompareTranslator, FootnoteRefs, TextWithRefs } from "./compare-table";
 import { formatLandingDate } from "./hero-facts";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
+
+function YesMark({ label }: { label: string }): ReactNode {
+  return (
+    <span className="vk-compare-yes" data-mark="yes">
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 16 16"
+        width="16"
+        height="16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M3 8.5 6.5 12 13 4.5" />
+      </svg>
+      <span className="sr-only">{label}</span>
+    </span>
+  );
+}
+
+function shortCell(t: CompareTranslator, row: ShortRowId, column: ShortColumn) {
+  return {
+    column,
+    text: shortCellHasText(row, column) ? t(`brief.${row}.${column}`) : "",
+    ...(shortCellIsYes(row, column) ? { mark: <YesMark label={t("marks.yes")} /> } : {}),
+    footnotes: shortCellFootnotes(row, column),
+  };
+}
 
 export async function Compare(): Promise<ReactNode> {
   const t = await getTranslations("landing.compare");
@@ -27,7 +61,7 @@ export async function Compare(): Promise<ReactNode> {
         <CompareRegion
           t={t}
           caption={t("caption")}
-          tableClassName="min-w-[56rem]"
+          tableClassName="min-w-[40rem]"
           sourcesPage={sourcesPage}
           columns={SHORT_COLUMNS.map((column) => ({
             id: column,
@@ -36,38 +70,29 @@ export async function Compare(): Promise<ReactNode> {
           rows={SHORT_ROWS.map((row) => ({
             id: row,
             label: t(`rows.${row}.label`),
-            cells: SHORT_COLUMNS.map((column) => ({
-              column,
-              text: t(`rows.${row}.${column}`),
-              footnotes: shortCellFootnotes(row, column),
-            })),
+            cells: SHORT_COLUMNS.map((column) => shortCell(t, row, column)),
           }))}
         />
-        <div className="vk-grid-12 mt-4 text-sm leading-relaxed text-(--text-muted)">
-          <div className="grid max-w-[72ch] gap-3 lg:[--grid-span:8]">
-            <p data-fairness="">{t("fairness")}</p>
-            <p data-concession="">
-              <TextWithRefs
-                text={t("concession")}
-                refs={
-                  <FootnoteRefs footnotes={CONCESSION_FOOTNOTES} t={t} sourcesPage={sourcesPage} />
-                }
-              />
-            </p>
-          </div>
-          <div className="grid content-start gap-3 lg:[--grid-span:4]">
-            <p data-last-checked="">
-              {`${t("lastChecked")} `}
-              <time dateTime={COMPARE_LAST_CHECKED}>
-                {formatLandingDate(COMPARE_LAST_CHECKED, locale)}
-              </time>
-            </p>
-            <p>
-              <IntentPrefetchLink href={sourcesPage} className="vk-prose-link text-base">
-                {t("fullLink")}
-              </IntentPrefetchLink>
-            </p>
-          </div>
+        <div className="vk-compare-foot text-sm leading-relaxed text-(--text-muted)">
+          <p data-concession="" className="max-w-[60ch]">
+            <TextWithRefs
+              text={t("concession")}
+              refs={
+                <FootnoteRefs footnotes={CONCESSION_FOOTNOTES} t={t} sourcesPage={sourcesPage} />
+              }
+            />
+          </p>
+          <p data-last-checked="">
+            {`${t("lastChecked")} `}
+            <time dateTime={COMPARE_LAST_CHECKED}>
+              {formatLandingDate(COMPARE_LAST_CHECKED, locale)}
+            </time>
+          </p>
+          <p>
+            <IntentPrefetchLink href={sourcesPage} className="vk-prose-link text-base">
+              {t("fullLink")}
+            </IntentPrefetchLink>
+          </p>
         </div>
       </div>
     </Section>

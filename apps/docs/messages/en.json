@@ -114,56 +114,34 @@
       "promptPreviewLabel": "Copies this prompt for your agent"
     },
     "faq": {
-      "heading": "Frequently asked questions.",
-      "lead": "Short answers on cost, keys, your data and what ships today, each with the docs page that goes deeper.",
+      "heading": "Before you install Verbatra.",
+      "lead": "Short answers, each with the docs page that goes deeper.",
       "docs": {
         "label": "In the docs",
         "quickstart": "Quickstart",
-        "keys": "Provider keys",
-        "dataHandling": "Data handling",
         "safety": "Translation safety",
         "compare": "Full comparison"
       },
       "items": {
-        "incremental": {
-          "question": "How does Verbatra avoid re-translating everything on every run?",
-          "answer": "It translates only what changed. A committed <link>lock file</link> records what was already translated, so each run sends just the new and changed keys to your provider and leaves the rest alone."
+        "cost": {
+          "question": "Is Verbatra free?",
+          "answer": "Yes. Verbatra is free and open source under the <license>MIT license</license>, and you pay only your provider for the keys that changed; <link>estimating cost</link> sizes a run first."
         },
         "providers": {
-          "question": "Which translation providers can I use?",
-          "answer": "An LLM or a machine translation engine, hosted or on your own server, or <code>none</code> when only people translate. You pick one by its id in the <code>provider</code> block of your config and switch by rewriting that block; the <link>providers page</link> lists each one with its options."
-        },
-        "npm": {
-          "question": "Which providers are on npm today?",
-          "answer": "Verbatra {version} ships {providers}.{pending, select, yes { Version {next} adds {upcoming}.} other {}} The <link>providers page</link> covers each one."
-        },
-        "formats": {
-          "question": "Which formats does Verbatra support?",
-          "answer": "The file formats your stack already uses, read and written in place. That covers {formats}, with no Verbatra format to migrate to; the <link>formats page</link> shows how each one is read and written."
-        },
-        "ci": {
-          "question": "Can I run Verbatra in CI?",
-          "answer": "Yes. <code>verbatra check</code> calls no provider and exits 1 while a locale has missing or stale keys, so it gates a pull request without an API key. The <link>GitHub Action</link> runs <code>check</code>, <code>diff</code> or <code>translate</code> and reports the result as annotations and a job summary."
-        },
-        "keys": {
-          "question": "Where do my API keys go?",
-          "answer": "Into environment variables, never into the config file. The CLI reads them from your shell, <code>.env.local</code> or <code>.env</code>, and an error names a missing variable without printing a key; <link>provider keys</link> lists the variable for each provider."
+          "question": "Which translation providers does Verbatra support?",
+          "answer": "{providers}{pending, select, yes {, plus {upcoming} from {next}} other {}}. Set one in the <code>provider</code> block, or <code>none</code> when only people translate; the <link>providers page</link> covers each."
         },
         "privacy": {
-          "question": "Does Verbatra send my strings anywhere?",
-          "answer": "Only to the translation provider you configure, and only when a command translates. The CLI, SDK, Studio and MCP server have no telemetry, no update check and no Verbatra server to contact, and the <link>data handling page</link> lists what each provider receives and links its retention terms."
+          "question": "Does Verbatra send my strings or API keys anywhere?",
+          "answer": "Only to the provider you configure, when a command translates; there is no telemetry. Keys stay in environment variables, and <link>data handling</link> lists what each provider receives."
         },
-        "cost": {
-          "question": "What does Verbatra cost?",
-          "answer": "Nothing: Verbatra is free and open source under the <license>MIT license</license>. You pay only your provider's usage for the keys that changed, and <link>estimating cost</link> sizes a run before it sends anything."
+        "ci": {
+          "question": "Can Verbatra fail a pull request when translations are missing?",
+          "answer": "Yes. <code>verbatra check</code> exits 1 while a locale has missing or stale keys, with no API key needed; the <link>GitHub Action</link> runs it on pull requests."
         },
-        "studio": {
-          "question": "Is Verbatra Studio a hosted service?",
-          "answer": "No. <code>verbatra studio</code> serves the dashboard from your own machine, inside your project, and calls no provider unless you <link>allow spending</link> when you start it."
-        },
-        "playground": {
-          "question": "Is the playground live?",
-          "answer": "No. It replays translations recorded in real Verbatra SDK runs with {provider}, which the maintainer generates with a script and commits with the site, so pressing Translate sends nothing to a provider. The <link>SDK quickstart</link> runs the same call against your own files."
+        "incremental": {
+          "question": "Does Verbatra re-translate strings that did not change?",
+          "answer": "No. Only new and changed keys go to your provider; a committed <link>lock file</link> records what is already translated."
         }
       }
     },
@@ -325,14 +303,13 @@
       }
     },
     "compare": {
-      "heading": "How Verbatra compares.",
-      "lead": "Every cell comes from the vendor's own pages and links its source; the manual column cites note M.",
-      "caption": "Ways to keep locale files translated: Verbatra, Lingo.dev, Tolgee, hosted translation management systems and a manual workflow",
+      "heading": "Next to the alternatives.",
+      "lead": "Each cell links its source. Verbatra never writes a translation that breaks a placeholder or ICU message.",
+      "caption": "Verbatra, Lingo.dev, hosted translation management systems and a manual workflow, compared on license, own keys, incremental runs, CI and MCP",
       "columns": {
         "criterion": "Criterion",
         "verbatra": "Verbatra",
         "lingo": "Lingo.dev",
-        "tolgee": "Tolgee",
         "hostedTms": "Hosted TMS (Crowdin, Lokalise, Phrase)",
         "manual": "Manual workflow"
       },
@@ -475,43 +452,69 @@
           "manual": "Whatever you copy by hand, no product"
         }
       },
+      "marks": {
+        "yes": "Yes"
+      },
+      "brief": {
+        "license": {
+          "verbatra": "MIT",
+          "lingo": "Repository only",
+          "hostedTms": "CLIs only",
+          "manual": "Not applicable"
+        },
+        "ownKeys": {
+          "lingo": "Enterprise plan or older CLI",
+          "hostedTms": "Crowdin yes, others unclear"
+        },
+        "incremental": {
+          "hostedTms": "Fills empty values",
+          "manual": "By hand"
+        },
+        "ci": {
+          "verbatra": "`check` gate",
+          "lingo": "GitHub App",
+          "manual": "Not applicable"
+        },
+        "mcp": {
+          "verbatra": "Local",
+          "hostedTms": "Hosted",
+          "manual": "Not applicable"
+        }
+      },
       "sourceRef": "Source {number}, {tool}",
       "noteRef": "Note M, manual workflow",
       "sources": "Sources",
       "manualNote": "The manual workflow is not a product, so it has no source: the column describes copying strings into a translation service and back by hand.",
       "lastChecked": "Last checked",
       "fairness": "Verbatra is a CLI and SDK; the other columns are translation platforms and a manual workflow, compared as ways to keep locale files translated. Each cell states what the vendor's own pages said on that date, and \"no official ... found\" means our search found none, not that the product lacks it.",
-      "concession": "Tolgee, Crowdin, Lokalise and Phrase offer in-context editing, which Verbatra does not. For review, Verbatra has the local Studio dashboard, not a hosted editor for translators.",
+      "concession": "Tolgee, Crowdin, Lokalise and Phrase offer in-context editing; Verbatra reviews locally in Studio.",
       "fullLink": "Full comparison with sources",
       "scrollHint": "Scroll the table sideways to see every column."
     },
     "openSource": {
-      "heading": "Contributions are welcome.",
-      "lead": "Verbatra is MIT licensed and built in the open on GitHub. Every pull request takes the same path, and the contributor guide covers each step in full.",
+      "heading": "Send your first pull request.",
+      "lead": "Verbatra is MIT licensed, and every change takes the same three steps.",
       "steps": {
         "setup": {
-          "title": "Set up the repository",
-          "body": "Clone it and install from the root, which also sets up the Git hooks that check each commit."
+          "title": "Clone and install from the root"
         },
         "change": {
-          "title": "Make a focused change",
-          "body": "Branch from main, add tests with your change and run the same checks the CI build runs."
+          "title": "Branch from main and run the checks"
         },
         "pullRequest": {
-          "title": "Open a pull request",
-          "body": "Fill in the template, say how you tested it and add a changeset when a published package changes in a way users notice."
+          "title": "Add a changeset if needed and open a pull request"
         }
       },
       "linksHeading": "Project",
       "contributing": "Contributor guide",
       "codeOfConduct": "Code of conduct",
       "license": "MIT license",
-      "security": "Security policy",
-      "issues": "Issues and feature requests",
       "agents": "Guide for coding agents",
       "newTab": "(opens in a new tab)",
       "contributorsHeading": "Contributors",
-      "contributorAria": "{name} on GitHub"
+      "contributorAria": "{name} on GitHub",
+      "contributorSlot": "Your avatar here",
+      "contributorSlotHint": "find an issue to start with"
     },
     "closing": {
       "heading": "Start with a dry run.",

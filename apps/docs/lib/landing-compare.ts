@@ -413,12 +413,11 @@ export function cellFootnote(row: CompareRowId, tool: CompareTool): CompareFootn
   return SOURCE_BLOCK[tool] * COMPARE_ROWS.length + index + 1;
 }
 
-export type ShortColumn = "verbatra" | "lingo" | "tolgee" | "hostedTms" | "manual";
+export type ShortColumn = "verbatra" | "lingo" | "hostedTms" | "manual";
 
 export const SHORT_COLUMNS: ReadonlyArray<ShortColumn> = [
   "verbatra",
   "lingo",
-  "tolgee",
   "hostedTms",
   "manual",
 ];
@@ -437,6 +436,26 @@ export const SHORT_ROWS: ReadonlyArray<ShortRowId> = [
   "ci",
   "mcp",
 ];
+
+export type ShortCellKind = "yes" | "yesWithNote" | "words";
+
+export const SHORT_CELLS: Readonly<
+  Record<ShortRowId, Readonly<Record<ShortColumn, ShortCellKind>>>
+> = {
+  license: { verbatra: "yesWithNote", lingo: "words", hostedTms: "words", manual: "words" },
+  ownKeys: { verbatra: "yes", lingo: "words", hostedTms: "words", manual: "yes" },
+  incremental: { verbatra: "yes", lingo: "yes", hostedTms: "words", manual: "words" },
+  ci: { verbatra: "yesWithNote", lingo: "words", hostedTms: "yes", manual: "words" },
+  mcp: { verbatra: "yesWithNote", lingo: "yes", hostedTms: "yesWithNote", manual: "words" },
+};
+
+export function shortCellHasText(row: ShortRowId, column: ShortColumn): boolean {
+  return SHORT_CELLS[row][column] !== "yes";
+}
+
+export function shortCellIsYes(row: ShortRowId, column: ShortColumn): boolean {
+  return SHORT_CELLS[row][column] !== "words";
+}
 
 export function shortCellFootnotes(
   row: ShortRowId,

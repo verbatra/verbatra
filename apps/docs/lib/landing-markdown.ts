@@ -5,10 +5,17 @@ import { GITHUB_URL, LICENSE_URL, releaseUrl } from "@/components/landing/links"
 import { CONTRIBUTORS } from "./contributors";
 import { type Locale, localizedPath } from "./i18n";
 import { NPM_INSTALL_COMMAND } from "./install-commands";
-import { COMPARE_LAST_CHECKED, COMPARE_PATH, SHORT_COLUMNS, SHORT_ROWS } from "./landing-compare";
+import {
+  COMPARE_LAST_CHECKED,
+  COMPARE_PATH,
+  SHORT_COLUMNS,
+  SHORT_ROWS,
+  shortCellHasText,
+  shortCellIsYes,
+} from "./landing-compare";
 import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "./landing-facts";
 import { FAQ_ANSWER_LINKS, FAQ_ASIDE_LINKS, FAQ_ITEM_IDS, faqHref, faqValues } from "./landing-faq";
-import { CONTRIBUTION_STEPS, OPEN_SOURCE_LINKS } from "./landing-open-source";
+import { CONTRIBUTION_STEPS, CONTRIBUTOR_SLOT_URL, OPEN_SOURCE_LINKS } from "./landing-open-source";
 import {
   PLAYGROUND_DOCS_LINKS,
   PLAYGROUND_ITEMS,
@@ -157,10 +164,16 @@ async function compare({ locale }: Context): Promise<string> {
       [t("columns.criterion"), ...SHORT_COLUMNS.map((column) => t(`columns.${column}`))],
       SHORT_ROWS.map((row) => [
         t(`rows.${row}.label`),
-        ...SHORT_COLUMNS.map((column) => t(`rows.${row}.${column}`)),
+        ...SHORT_COLUMNS.map((column) =>
+          [
+            shortCellIsYes(row, column) ? t("marks.yes") : null,
+            shortCellHasText(row, column) ? t(`brief.${row}.${column}`) : null,
+          ]
+            .filter((part) => part !== null)
+            .join(", "),
+        ),
       ]),
     ),
-    t("fairness"),
     t("concession"),
     `${t("lastChecked")} ${formatLandingDate(COMPARE_LAST_CHECKED, locale)}`,
     link(t("fullLink"), localizedPath(locale, COMPARE_PATH)),
@@ -197,23 +210,26 @@ async function openSource({ locale }: Context): Promise<string> {
   const t = await getTranslations({ locale, namespace: "landing.openSource" });
   const steps = CONTRIBUTION_STEPS.map(
     (step, index) =>
-      `${index + 1}. ${t(`steps.${step.id}.title`)}: ${t(`steps.${step.id}.body`)} ${inlineCodeMarkdown(step.command)}`,
+      `${index + 1}. ${t(`steps.${step.id}.title`)}: ${inlineCodeMarkdown(step.command)}`,
   );
   return blocks(
     `## ${t("heading")}`,
     t("lead"),
     steps.join("\n"),
+    CONTRIBUTORS.length === 0
+      ? null
+      : blocks(
+          `### ${t("contributorsHeading")}`,
+          list([
+            ...CONTRIBUTORS.map((contributor) => link(contributor.login, contributor.profileUrl)),
+            `${link(t("contributorSlot"), CONTRIBUTOR_SLOT_URL)}: ${t("contributorSlotHint")}`,
+          ]),
+        ),
     `### ${t("linksHeading")}`,
     list([
       link("verbatra/verbatra", GITHUB_URL),
       ...OPEN_SOURCE_LINKS.map((item) => link(t(item.key), item.href)),
     ]),
-    CONTRIBUTORS.length === 0
-      ? null
-      : blocks(
-          `### ${t("contributorsHeading")}`,
-          list(CONTRIBUTORS.map((contributor) => link(contributor.login, contributor.profileUrl))),
-        ),
   );
 }
 

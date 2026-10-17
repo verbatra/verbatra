@@ -14,6 +14,8 @@ import {
   SHORT_COLUMNS,
   SHORT_ROWS,
   shortCellFootnotes,
+  shortCellHasText,
+  shortCellIsYes,
 } from "@/lib/landing-compare";
 import en from "@/messages/en.json";
 
@@ -82,11 +84,11 @@ describe("Compare", () => {
 
   it("shows the hint and fade only while the table is wider than its column", () => {
     const css = readFileSync(resolve(process.cwd(), "app/global.css"), "utf8");
-    const narrow = css.slice(css.indexOf("@container (max-width: 56rem)"));
+    const narrow = css.slice(css.indexOf("@container (max-width: 40rem)"));
     expect(css).toMatch(/\.vk-compare-hint,\s*\.vk-compare-fade \{\s*display: none;/);
     expect(narrow).toMatch(/\.vk-compare-hint \{\s*display: block;/);
     expect(narrow).toMatch(/\.vk-compare-fade \{\s*display: block;/);
-    expect(root.querySelector("table")?.className).toContain("min-w-[56rem]");
+    expect(root.querySelector("table")?.className).toContain("min-w-[40rem]");
   });
 
   it("drops the end fade where no scroll timeline can hide it, and shades the scroll edge instead", () => {
@@ -103,31 +105,63 @@ describe("Compare", () => {
     }
   });
 
-  it("scopes the five column headers and the five row headers", () => {
+  it("scopes at most four value columns and six row headers", () => {
+    expect(SHORT_COLUMNS.length).toBeLessThanOrEqual(4);
+    expect(SHORT_ROWS.length).toBeLessThanOrEqual(6);
+    expect(SHORT_COLUMNS[0]).toBe("verbatra");
     const columnHeads = Array.from(root.querySelectorAll("thead th"));
-    expect(columnHeads.map((th) => th.getAttribute("scope"))).toEqual(Array(6).fill("col"));
+    expect(columnHeads.map((th) => th.getAttribute("scope"))).toEqual(
+      Array(SHORT_COLUMNS.length + 1).fill("col"),
+    );
     expect(columnHeads.map((th) => th.textContent)).toEqual([
       copy.columns.criterion,
       ...SHORT_COLUMNS.map((column) => copy.columns[column]),
     ]);
     const rowHeads = Array.from(root.querySelectorAll("tbody th"));
-    expect(rowHeads.map((th) => th.getAttribute("scope"))).toEqual(Array(5).fill("row"));
+    expect(rowHeads.map((th) => th.getAttribute("scope"))).toEqual(
+      Array(SHORT_ROWS.length).fill("row"),
+    );
     expect(rowHeads.map((th) => th.textContent)).toEqual(
       SHORT_ROWS.map((row) => copy.rows[row].label),
     );
   });
 
-  it("states each cell in text, with no mark glyph, followed by its footnote links", () => {
-    expect(root.querySelector("svg")).toBeNull();
+  it("marks a plain yes with a check that reads Yes, states the rest in words and footnotes every cell", () => {
     for (const row of SHORT_ROWS) {
       const cells = root.querySelectorAll(`tr[data-row="${row}"] td`);
       SHORT_COLUMNS.forEach((column, index) => {
         const cell = cells[index];
-        expect(cellText(cell)).toBe(copy.rows[row][column].replaceAll("`", ""));
+        const mark = cell?.querySelector("[data-mark='yes']");
+        const brief = (copy.brief[row] as Partial<Record<string, string>>)[column];
+        if (shortCellIsYes(row, column)) {
+          expect(mark?.querySelector("svg")?.getAttribute("aria-hidden"), `${row} ${column}`).toBe(
+            "true",
+          );
+          expect(mark?.querySelector(".sr-only")?.textContent).toBe(copy.marks.yes);
+        } else {
+          expect(mark, `${row} ${column}`).toBeNull();
+        }
+        expect(brief !== undefined, `${row} ${column}`).toBe(shortCellHasText(row, column));
+        const text = cellText(cell)?.replace(copy.marks.yes, "");
+        expect(text, `${row} ${column}`).toBe((brief ?? "").replaceAll("`", ""));
         const refs = [...(cell?.querySelectorAll("[data-footnotes] a") ?? [])];
         expect(refs.map((a) => a.textContent)).toEqual(shortCellFootnotes(row, column).map(String));
       });
     }
+  });
+
+  it("holds a brief message for exactly the cells that show words", () => {
+    expect(Object.keys(copy.brief)).toEqual([...SHORT_ROWS]);
+    for (const row of SHORT_ROWS) {
+      expect(Object.keys(copy.brief[row]), row).toEqual(
+        SHORT_COLUMNS.filter((column) => shortCellHasText(row, column)),
+      );
+    }
+  });
+
+  it("checks every Verbatra cell and never draws a cross", () => {
+    for (const row of SHORT_ROWS) expect(shortCellIsYes(row, "verbatra"), row).toBe(true);
+    expect(root.querySelector("[data-mark]:not([data-mark='yes'])")).toBeNull();
   });
 
   it("names every footnote link with its number and tool and points it at the source on /compare", () => {
@@ -183,15 +217,27 @@ describe("Compare", () => {
     expect(head?.querySelector(".vk-section-head-lead")?.textContent).toBe(copy.lead);
   });
 
-  it("dates the check, frames the comparison fairly and admits what hosted platforms add", () => {
+  it("dates the check, admits what hosted platforms add and leaves the fairness note to /compare", () => {
     const time = root.querySelector("[data-last-checked] time");
     expect(time?.getAttribute("datetime")).toBe(COMPARE_LAST_CHECKED);
-    expect(root.querySelector("[data-fairness]")?.textContent).toBe(copy.fairness);
+    expect(root.querySelector("[data-fairness]")).toBeNull();
     const concession = root.querySelector("[data-concession]");
     expect(concession?.textContent).toContain(copy.concession);
     const refs = [...(concession?.querySelectorAll("a") ?? [])].map((a) => Number(a.textContent));
     expect(refs).toEqual(CONCESSION_FOOTNOTES.map(Number));
     expect(refs).toEqual(refs.toSorted((a, b) => a - b));
+  });
+
+  it("keeps the prose outside the heading, the table and the phone scroll hint to forty words", () => {
+    const section = root.querySelector("section#compare")?.cloneNode(true);
+    if (!(section instanceof Element)) throw new Error("no comparison section");
+    for (const skipped of section.querySelectorAll("h2, table, .vk-compare-hint, [data-footnotes]"))
+      skipped.remove();
+    const words = (section.textContent ?? "")
+      .split(/\s+/)
+      .filter((word) => /[\p{L}\p{N}]/u.test(word));
+    expect(words.length).toBeGreaterThan(0);
+    expect(words.length).toBeLessThanOrEqual(40);
   });
 
   it("links the full comparison page in the visitor's locale", () => {

@@ -151,11 +151,17 @@ describe("the redesigned landing copy", () => {
   });
 
   for (const locale of i18n.languages) {
-    it(`never rates a competitor in a ${locale} comparison cell`, () => {
+    it(`never rates a competitor in a ${locale} comparison cell or note`, () => {
       const rating = RATINGS[locale];
       if (!rating) throw new Error(`no rating words for ${locale}`);
-      for (const [key, text] of leaves(branch(landing(locale), "compare.rows")))
-        expect(text, key).not.toMatch(rating);
+      const rated = leaves(branch(landing(locale), "compare")).filter(([key]) =>
+        /^(rows\.|brief\.|concession$|lead$)/.test(key),
+      );
+      expect(
+        rated.some(([key]) => key.startsWith("brief.")),
+        locale,
+      ).toBe(true);
+      for (const [key, text] of rated) expect(text, key).not.toMatch(rating);
     });
   }
 

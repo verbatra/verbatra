@@ -14,6 +14,7 @@ import {
   SHORT_COLUMNS,
   SHORT_ROWS,
   shortCellFootnotes,
+  shortCellIsYes,
 } from "@/lib/landing-compare";
 import { docsPageSource } from "@/test-support/docs-page-source";
 
@@ -49,7 +50,7 @@ describe("the comparison data", () => {
     expect(
       COMPARE_ROWS.filter((row) => (SHORT_ROWS as ReadonlyArray<string>).includes(row)),
     ).toEqual([...SHORT_ROWS]);
-    expect(SHORT_COLUMNS).toEqual(["verbatra", "lingo", "tolgee", "hostedTms", "manual"]);
+    expect(SHORT_COLUMNS).toEqual(["verbatra", "lingo", "hostedTms", "manual"]);
     expect(SHORT_ROWS.map((row) => shortCellFootnotes(row, "hostedTms"))).toEqual([
       [49, 61, 73],
       [53, 65, 77],
@@ -70,6 +71,22 @@ describe("the comparison data", () => {
       [6],
       [8],
       [9],
+    ]);
+    expect(SHORT_ROWS.map((row) => shortCellFootnotes(row, "manual"))).toEqual(
+      SHORT_ROWS.map(() => ["M"]),
+    );
+  });
+
+  it("checks a short cell only where the full table's own text says yes", () => {
+    const marks = SHORT_ROWS.map((row) =>
+      SHORT_COLUMNS.map((column) => (shortCellIsYes(row, column) ? "yes" : "words")),
+    );
+    expect(marks).toEqual([
+      ["yes", "words", "words", "words"],
+      ["yes", "words", "words", "yes"],
+      ["yes", "yes", "words", "words"],
+      ["yes", "words", "yes", "words"],
+      ["yes", "yes", "yes", "words"],
     ]);
   });
 

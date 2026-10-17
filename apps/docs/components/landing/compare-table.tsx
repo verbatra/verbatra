@@ -129,6 +129,7 @@ type CompareCellContent = {
   readonly column: string;
   readonly text: string;
   readonly content?: ReactNode;
+  readonly mark?: ReactNode;
   readonly footnotes: ReadonlyArray<CompareFootnote>;
 };
 
@@ -158,8 +159,18 @@ function CellText({ cell, refs }: { cell: CompareCellContent; refs: ReactNode })
         {refs}
       </>
     );
+  if (cell.text === "")
+    return (
+      <span data-cell-text="">
+        <span className="whitespace-nowrap">
+          {cell.mark}
+          {refs}
+        </span>
+      </span>
+    );
   return (
     <span data-cell-text="">
+      {cell.mark}
       <TextWithRefs text={cell.text} refs={refs} />
     </span>
   );

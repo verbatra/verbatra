@@ -299,21 +299,29 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   `playground.tsx` (`#playground`, the SDK playground, see
   "SDK playground" below), `marquee.tsx`
   (`#marquee`, see "Marquee" below), `compare.tsx` (`#compare`, a band opened by a split head with
-  a lead (`landing.compare.lead`): the short table, five rows (`SHORT_ROWS`) by Verbatra,
-  Lingo.dev, Tolgee, one hosted TMS column summing up Crowdin, Lokalise and Phrase, and the manual
-  workflow (`SHORT_COLUMNS`). `lib/landing-compare.ts` holds the full table's rows and tools too,
+  a lead (`landing.compare.lead`, which also states the integrity gate: no cited source covers it
+  for the other tools, so it stays out of the table): the short table, five rows (`SHORT_ROWS`) by
+  Verbatra, Lingo.dev, one hosted TMS column summing up Crowdin, Lokalise and Phrase, and the
+  manual workflow (`SHORT_COLUMNS`, at most four, Verbatra first). `lib/landing-compare.ts` holds the full table's rows and tools too,
   and one numbered source list, `compareSource(n)`, so a footnote number names the same source on
   the landing and on `/compare`; `cellFootnote` derives each cell's number from its row and tool,
-  and the manual column cites the note `M`. A cell states the fact in text only, never a mark or a
-  rating, followed by its footnote links (`[data-footnotes]`, each at least 24px, named "Source n,
-  tool"); `TextWithRefs` keeps the cell's last word and its links in one `whitespace-nowrap` run,
+  and the manual column cites the note `M`. A short cell is a check (`.vk-compare-yes`, an
+  `aria-hidden` stroke glyph with an `sr-only` `landing.compare.marks.yes`, `--accent` in the
+  Verbatra column) only where the full table's own text plainly says yes (`SHORT_CELLS` in
+  `lib/landing-compare.ts`, pinned by `lib/landing-compare.test.ts`), with or without a few words
+  (`landing.compare.brief.<row>.<column>`), or words alone for anything partial, unknown or not
+  applicable; never a cross ("none found" is not "no") and never a rating. A `/compare` cell stays
+  text only. Every cell is followed by its footnote links (`[data-footnotes]`, each at least 24px,
+  named "Source n, tool"); `TextWithRefs` keeps the cell's last word and its links in one `whitespace-nowrap` run,
   so a link never starts a line alone. The source list itself lives only on `/compare` (`li` with
   `value={n}` and `id="source-n"`, the note `id="source-m"`): the landing passes `sourcesPage`
   (the localized `/compare`) so its links are plain `a` elements to `/compare#source-n`, a full
-  navigation that sets `:target`. Under the table, on the same 8/4 split as the head: the framing
-  sentence and the concession (what Tolgee and the hosted platforms offer that Verbatra does not,
-  with `CONCESSION_FOOTNOTES`, shared with `/compare`) on the left, "Last checked" with
-  `COMPARE_LAST_CHECKED` as a `time` and the link to `/compare` on the right. The table is a
+  navigation that sets `:target`. Under the table, in one wrapping `.vk-compare-foot` row: the
+  concession (what Tolgee and the hosted platforms offer that Verbatra does not, with
+  `CONCESSION_FOOTNOTES`, shared with `/compare`), "Last checked" with `COMPARE_LAST_CHECKED` as a
+  `time`, and the link to `/compare`; the framing sentence (`landing.compare.fairness`) shows only
+  on `/compare`. `compare.test.tsx` holds the landing's prose outside the heading, the table and
+  the scroll hint to 40 words. The table is a
   hairline table (`.vk-compare-table`, `table-layout: fixed`): a top and bottom rule, rows split by
   `--border-default`, the header row on `--compare-head` (the band surface) over a `--text-faint`
   rule, no filled header and no tinted column; the Verbatra column is marked by `.vk-compare-mark`,
@@ -341,7 +349,8 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   pill in a cell wraps inside it. A thin scrollbar thumb, here and on every other sideways
   scroller of the site (prose tables, code frames, tab rows), is `--text-faint`,
   never `--border-default`. While the
-  column is narrower than the table (56rem) a `landing.compare.scrollHint` line before it says so
+  column is narrower than the table (40rem on the landing, whose table is `min-w-[40rem]`; 100rem on
+  `/compare`) a `landing.compare.scrollHint` line before it says so
   (not wired as a description, since it is `display: none` on a wide column) and
   `.vk-compare-fade` fades the end edge on the region's scroll timeline; without scroll timelines
   the fade is dropped and the region shades its end edge with a `local` cover over a `scroll`
@@ -357,10 +366,9 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   with `/compare`:
   `app/[lang]/(home)/compare/page.tsx` under the home layout renders `compare-page.tsx`, one `h1`
   (`compare.heading`, `.vk-h2` size), the full table of `COMPARE_ROWS` by `COMPARE_TOOLS` (every
-  cell is `landing.compare.rows.<row>.<tool>`, the short table reading the same keys, so a cell
-  has one message; the one exception is the short table's hosted TMS summary,
-  `rows.<row>.hostedTms`, its own message, footnoted with exactly the Crowdin, Lokalise and Phrase
-  cells it sums up (`lib/landing-compare.test.ts`); the Verbatra providers cell lists `badgedProviderNames(locale)` with the
+  cell is `landing.compare.rows.<row>.<tool>`; the short table takes its row labels from the same
+  rows and its cells from `brief`, footnoted with the same numbers, the hosted TMS cell with
+  exactly the Crowdin, Lokalise and Phrase cells it sums up (`lib/landing-compare.test.ts`); the Verbatra providers cell lists `badgedProviderNames(locale)` with the
   `RELEASE_BADGE` pill and the formats cell counts `SUPPORTED_FORMAT_IDS`, both through
   `lib/compare-cells.ts`), the dated notes, its own concession, links to the quickstart and home,
   and all sources under an `h2`. The article's single grid track is `minmax(0,1fr)`, so no long
@@ -376,17 +384,20 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   `CONTRIBUTION_STEPS` of `CONTRIBUTING.md` (set up with `pnpm install`, a focused change checked
   with `pnpm verify`, a pull request with a `pnpm changeset` where needed; `open-source.test.tsx`
   reads the guide and fails when a command or step leaves it) across one row from 64rem, each step
-  a top hairline, an `aria-hidden` `--accent-fill` numeral, a `.vk-h4` title, one sentence (the
-  test counts it in all four locales) and its command in mono on `--v-void`; from 64rem each step
-  spans four rows of the list's grid with `grid-template-rows: subgrid`, so titles, bodies and
-  commands line up across the row however the copy wraps (`e2e/contribute.spec.ts` checks it at
-  1024 and 1440 in every locale); under the steps a `nav` of project links (repository, contributor
-  guide, the root `AGENTS.md` guide for coding agents, code of conduct, license, security policy, issues; plain `.vk-prose-link`s, 44px tall,
-  no icon and no arrow, `landing.openSource.newTab` in an `sr-only` span) beside the contributors
-  from `lib/contributors.json` (a `div` with `role="group"` named by its heading, never a nested
-  `section` landmark), each a self-hosted 32px avatar from `public/contributors/` with the
-  login beside it, refreshed by hand with `pnpm contributors`; no AGENTS.md link until the root
-  file exists, and no good-first-issue label link until one is in use), `faq.tsx` (`#faq`) and `final-cta.tsx` (the closing
+  a top hairline, an `aria-hidden` `--accent-fill` numeral, a `.vk-h4` title that carries the whole
+  step (no body sentence) and its command in mono on `--v-void`; from 64rem each step spans three
+  rows of the list's grid with `grid-template-rows: subgrid`, so titles and commands line up across
+  the row however the copy wraps (`e2e/contribute.spec.ts` checks it at 1024 and 1440 in every
+  locale); under the steps the contributors from `lib/contributors.json` (a `div` with
+  `role="group"` named by its heading, never a nested `section` landmark), each a self-hosted 32px
+  avatar from `public/contributors/` with the login beside it, refreshed by hand with
+  `pnpm contributors`, then one open slot (`landing.openSource.contributorSlot`, a dashed
+  `--text-faint` 32px ring drawn in CSS, no image, `--accent` on hover) linking the issue list
+  (`CONTRIBUTOR_SLOT_URL`), beside a `nav` of project links (repository, contributor guide, the
+  root `AGENTS.md` guide for coding agents, code of conduct, license; plain `.vk-prose-link`s, 44px
+  tall, no icon and no arrow, `landing.openSource.newTab` in an `sr-only` span). The section holds
+  its visible copy to 60 words (`open-source.test.tsx`). No AGENTS.md link until the root file
+  exists, and no good-first-issue label link while that label has no open issue), `faq.tsx` (`#faq`) and `final-cta.tsx` (the closing
   section on `landing.closing`, the page's only centered section: `.vk-final-cta` opens
   `--section-closer` (`--section-lg`, the only large step besides the hero) under the contribution
   band on the page surface, and `.vk-closer` centers one `h2`, one lead sentence, the install
@@ -426,8 +437,9 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   `e2e/footer.spec.ts` checks the surface and every same-site link in all four locales, and on the
   landing, `/compare`, legal and docs pages, with JavaScript off, that the switch's links equal the
   page's `hreflang` alternates and answer 200 without a redirect. Section ids are unique; never render two sections that claim the same one.
-  The FAQ (`faq.tsx`, on the page surface `--v-void`, `SectionAside` with `.vk-faq-aside`: the
-  heading and lead in the head column, the questions beside it, then a `nav` of docs links that
+  The FAQ (`faq.tsx`, on the page surface `--v-void`, `SectionAside` with `.vk-faq-aside`: five
+  questions phrased the way people search (cost, providers, privacy and keys, CI, repeat runs), each
+  answer at most 30 words with a first sentence of at most 25, the heading and lead in the head column, the questions beside it, then a `nav` of docs links that
   follows the list in the DOM, so a phone reads the questions first, and that sits under the head
   from 64rem, each link a 44px target) is a server section: each item is a native
   `details`/`summary`, rendered closed on the server with its question in an `h3` inside the
@@ -446,13 +458,12 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   the summaries, leaves a modified key to the browser and sets `--faq-head-size`. `faqContent` (same file) builds each item's
   question, rich answer and plain answer from one translator call; the home page builds it once and
   passes the items to `Faq` and the plain ones to `faqPageLd`, so the FAQPage JSON-LD always equals
-  the visible text. A hyphenated word in an answer (`ngx-translate`) is kept whole. Ids, order and
+  the visible text. A hyphenated word in an answer (`OpenAI-compatible`) is kept whole. Ids, order and
   links live in `lib/landing-faq.ts`; answers use a `link` tag (that item's docs page, localized),
-  `license`, and `code` for a command or file name (plain in the JSON-LD) only. Facts that change with a release come in as values, never typed: the npm
+  `license`, and `code` for a command or file name (plain in the JSON-LD) only. Facts that change with a release come in as values, never typed: the providers
   answer lists `publishedProviders()` (`MACHINE_PROVIDER_IDS` whose `RELEASE_BADGE` version is at
-  most `PACKAGE_VERSION`) and names the rest with the badge version, while the providers answer
-  explains how to choose (the kinds, `none`, the `provider` block) and names no provider, the formats answer reads
-  `FORMAT_DISPLAY`, and the playground answer names `PLAYGROUND_METADATA.provider`. `FORMAT_DISPLAY` in `lib/landing-facts.ts` is every format's display
+  most `PACKAGE_VERSION`), names the rest with the badge version, and says how to choose (the
+  `provider` block, `none`). Formats are left to the marquee. `FORMAT_DISPLAY` in `lib/landing-facts.ts` is every format's display
   label, which the structured data's format list reads too, so a new format fails to
   compile until it has one. The marquee (`marquee.tsx`, `#marquee`, a band right under the
   hero, its `SectionAside` head at the start of the band and the rows beside it at the end from
