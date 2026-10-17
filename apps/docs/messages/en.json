@@ -236,8 +236,8 @@
       "nodeMajorFrom": "{major} ({minimum} or later)"
     },
     "marquee": {
-      "heading": "Your provider. Your file format.",
-      "lead": "Switching providers means editing one block of the config file. Your locale files stay where they are, in the format they already use.",
+      "heading": "Works with the locale files and providers you already use.",
+      "lead": "Switching providers means editing one block of the config file. Your locale files stay where they are, in their current format.",
       "pause": "Pause animation",
       "play": "Play animation",
       "providers": "Providers",
