@@ -162,7 +162,6 @@ const PROFILE_LINK = "vk-tap vk-footer-profile";
 
 export async function FullFooter(): Promise<ReactNode> {
   const t = await getTranslations("landing.footer");
-  const tFacts = await getTranslations("landing.facts");
   const newTab = (await getTranslations("landing.openSource"))("newTab");
   const locale = toLocale(await getLocale());
   return (
@@ -224,7 +223,7 @@ export async function FullFooter(): Promise<ReactNode> {
           <LocaleLinks label={t("language")} current={locale} />
           <p className="vk-footer-meta">
             <span>
-              {tFacts("versionParts", {
+              {t("versionParts", {
                 cli: PACKAGE_VERSION,
                 studio: STUDIO_VERSION,
                 mcp: MCP_VERSION,

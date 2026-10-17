@@ -14,8 +14,8 @@ import {
   shortCellHasText,
   shortCellIsYes,
 } from "@/lib/landing-compare";
+import { formatLandingDate } from "@/lib/landing-date";
 import { CompareRegion, type CompareTranslator, FootnoteRefs, TextWithRefs } from "./compare-table";
-import { formatLandingDate } from "./hero-facts";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
 

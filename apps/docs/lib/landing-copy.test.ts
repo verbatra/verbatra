@@ -7,12 +7,12 @@ import { COMPARE_ROWS, COMPARE_TOOLS, SHORT_COLUMNS, SHORT_ROWS } from "@/lib/la
 const NAMESPACES = [
   "topNav",
   "banner",
-  "facts",
   "marquee",
   "playground",
   "compare",
   "openSource",
   "closing",
+  "footer",
   "fab",
 ] as const;
 

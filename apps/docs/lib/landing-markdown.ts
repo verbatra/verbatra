@@ -1,6 +1,5 @@
 import { getTranslations } from "next-intl/server";
 import { availableFromCopy } from "@/components/available-from";
-import { formatLandingDate } from "@/components/landing/hero-facts";
 import { GITHUB_URL, LICENSE_URL, releaseUrl } from "@/components/landing/links";
 import { CONTRIBUTORS } from "./contributors";
 import { type Locale, localizedPath } from "./i18n";
@@ -13,6 +12,7 @@ import {
   shortCellHasText,
   shortCellIsYes,
 } from "./landing-compare";
+import { formatLandingDate } from "./landing-date";
 import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "./landing-facts";
 import { FAQ_ANSWER_LINKS, FAQ_ASIDE_LINKS, FAQ_ITEM_IDS, faqHref, faqValues } from "./landing-faq";
 import { CONTRIBUTION_STEPS, CONTRIBUTOR_SLOT_URL, OPEN_SOURCE_LINKS } from "./landing-open-source";

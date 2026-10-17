@@ -212,7 +212,7 @@ describe("FullFooter", () => {
       "legalCopyright",
     ]);
     expect(line?.textContent).not.toContain("\u00b7");
-    expect(localeState.values.get("landing.facts.versionParts")).toEqual({
+    expect(localeState.values.get("landing.footer.versionParts")).toEqual({
       cli: PACKAGE_VERSION,
       studio: STUDIO_VERSION,
       mcp: MCP_VERSION,

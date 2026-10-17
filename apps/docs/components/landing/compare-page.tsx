@@ -20,6 +20,7 @@ import {
   cellFootnote,
   fullTableFootnotes,
 } from "@/lib/landing-compare";
+import { formatLandingDate } from "@/lib/landing-date";
 import { homePath } from "@/lib/site";
 import {
   CompareRegion,
@@ -28,7 +29,6 @@ import {
   SourceList,
   TextWithRefs,
 } from "./compare-table";
-import { formatLandingDate } from "./hero-facts";
 
 const COMPARE_HEADING_ID = "compare-page-heading";
 

@@ -185,6 +185,7 @@
           "licenses": "Licenses"
         }
       },
+      "versionParts": "CLI and SDK v{cli}, Studio v{studio}, MCP server v{mcp}",
       "legalLicense": "Open source under the MIT license",
       "legalCopyright": "© 2026 Mario Kreitz",
       "githubAria": "Verbatra on GitHub",
@@ -233,13 +234,6 @@
       "license": "MIT licensed and open source.",
       "nodeRequirement": "Requires Node.js {versions}",
       "nodeMajorFrom": "{major} ({minimum} or later)"
-    },
-    "facts": {
-      "providers": "Providers",
-      "providersValue": "{count} providers",
-      "formats": "Formats",
-      "formatsValue": "{count} file formats",
-      "versionParts": "CLI and SDK v{cli}, Studio v{studio}, MCP server v{mcp}"
     },
     "marquee": {
       "heading": "Your provider. Your file format.",

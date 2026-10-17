@@ -1,5 +1,4 @@
 import { getTranslations } from "next-intl/server";
-import { formatLandingDate } from "@/components/landing/hero-facts";
 import { badgedProviderNames, compareCellText } from "./compare-cells";
 import { type Locale, localizedPath } from "./i18n";
 import {
@@ -14,6 +13,7 @@ import {
   compareSourceHref,
   fullTableFootnotes,
 } from "./landing-compare";
+import { formatLandingDate } from "./landing-date";
 import { absoluteMarkdownHref } from "./markdown-links";
 import { pageFrontmatter } from "./page-frontmatter";
 import { homePath } from "./site";

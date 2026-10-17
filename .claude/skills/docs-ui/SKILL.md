@@ -295,8 +295,7 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   `page.tsx`. The files: `hero.tsx` (the `NewAnnouncement` depth pill linking the current cli
   release notes, the `h1`, the lead, two buttons, the trust line and the `HeroTracks` island; no
   install box, no copy button, no facts block and no diff), `hero-tracks.tsx` (see "Hero" under
-  "Landing motion"), `hero-facts.tsx` (only `formatLandingDate`, which the comparison reads),
-  `playground.tsx` (`#playground`, the SDK playground, see
+  "Landing motion"), `playground.tsx` (`#playground`, the SDK playground, see
   "SDK playground" below), `marquee.tsx`
   (`#marquee`, see "Marquee" below), `compare.tsx` (`#compare`, a band opened by a split head with
   a lead (`landing.compare.lead`, which also states the integrity gate: no cited source covers it
@@ -419,7 +418,7 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   `--border-default` start rule; under it before that, on product's three column tracks from 48rem
   (three equal columns at `--grid-gap`, so each group starts where a product column does); group titles and the locale label are
   medium `--text-strong`, links keep a 0.5rem row gap and a 2px focus offset; then `.vk-footer-bottom` (a hairline above it): the locale switch, and
-  the version line (`landing.facts.versionParts` with the `lib/site.ts` versions), the license and
+  the version line (`landing.footer.versionParts` with the `lib/site.ts` versions), the license and
   the copyright as plain spans. Links are `.vk-footer-link` (24px tall, muted, an `--accent`
   underline at 45% on hover). The locale switch is `LocaleLinks` (`components/locale-links.tsx`,
   a small client component loaded as the block `LocaleLinks` island of `chrome-islands.tsx`, so it
@@ -469,7 +468,7 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   hero, its `SectionAside` head at the start of the band and the rows beside it at the end from
   64rem)
   shows two rows inside the `MarqueeMotion` island (`marquee-motion.tsx`): the providers,
-  `landingProviders()`, whose count the facts block states, each with its mark from
+  `landingProviders()`, each with its mark from
   `PROVIDER_ICONS` (a `Record<MachineProviderId, MarqueeMark>`), and the formats,
   `SUPPORTED_FORMAT_IDS` by their `FORMAT_DISPLAY` label with their mark from `FORMAT_ICONS` (a
   `Record<SupportedFormat, MarqueeMark>`), so a new provider or format fails to compile until it

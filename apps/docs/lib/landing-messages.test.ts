@@ -47,7 +47,7 @@ describe("landing message parity", () => {
       "landing.banner.headline",
       "landing.banner.announcement.badge",
       "landing.banner.license",
-      "landing.facts.versionParts",
+      "landing.footer.versionParts",
       "landing.hero.tracks.label",
       "landing.hero.tracks.ci.summary",
       "landing.steps.items.ci.title",
@@ -98,6 +98,7 @@ describe("landing message parity", () => {
     "studio",
     "flow",
     "bento",
+    "facts",
     "showcase.tryIt.scenarios",
     "showcase.tryIt.result",
   ])("keeps no landing.%s message from a retired section", (path) => {
