@@ -10,11 +10,11 @@ type CopyRevision = { readonly date: string; readonly hash: string };
 
 const COPY_REVISIONS: ReadonlyArray<CopyRevision> = [
   { date: "2026-10-16", hash: "70c39bcbbb1fd32405b5c2c58a507dbe8790ec2de962d42a755753ead613b90a" },
-  { date: "2026-10-17", hash: "48eb93bb2a92cdef02464b92329a4ec7619793e2a8dd9f4899207c739b046ad1" },
+  { date: "2026-10-17", hash: "83012ed9d69043c3aa59370b6157ee30dc60ec37d1f1bec1979d43001a208c08" },
 ];
 
 const COMPARE_CELL_REVISIONS: ReadonlyArray<CopyRevision> = [
-  { date: "2026-10-15", hash: "2c290f5ef7bfcc02ebafc4e7a986bf40cbfd839a2e5c4e0b8ad329faaf628dc7" },
+  { date: "2026-10-15", hash: "42ffad789564cfd2b26fe0f8c819a0491cd9731cebbe9c0978219e3540d24e81" },
 ];
 
 function compareCellHash(): string {
