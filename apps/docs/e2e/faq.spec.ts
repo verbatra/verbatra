@@ -227,6 +227,46 @@ test.describe("faq layout", () => {
     }
   });
 
+  for (const locale of ["en", "de"] as const) {
+    for (const [width, height] of [
+      [1024, 800],
+      [1440, 900],
+    ] as const) {
+      test(`brings every docs link clear of the sticky head on Tab and Shift+Tab with every answer closed at ${width}px in ${locale}`, async ({
+        page,
+      }) => {
+        await page.setViewportSize({ width, height });
+        await page.goto(homeUrl(locale));
+        await waitForFaqKeys(page);
+        const links = page.locator(`${FAQ} nav a`);
+        const count = await links.count();
+        expect(count).toBeGreaterThan(0);
+        const expectClear = async (index: number, direction: string) => {
+          await expect(links.nth(index)).toBeFocused();
+          const gap = await links.nth(index).evaluate((link) => {
+            const head = link
+              .closest(".vk-faq-aside")
+              ?.querySelector(":scope > .vk-section-head-aside");
+            return (
+              link.getBoundingClientRect().top - 4 - (head?.getBoundingClientRect().bottom ?? 0)
+            );
+          });
+          expect(gap, `${direction} link ${index}`).toBeGreaterThanOrEqual(0);
+        };
+        await page.locator(SUMMARIES).last().focus();
+        for (let index = 0; index < count; index += 1) {
+          await page.keyboard.press("Tab");
+          await expectClear(index, "forward");
+        }
+        await page.keyboard.press("Tab");
+        for (let index = count - 1; index >= 0; index -= 1) {
+          await page.keyboard.press("Shift+Tab");
+          await expectClear(index, "backward");
+        }
+      });
+    }
+  }
+
   for (const width of [375, 1440]) {
     test(`gives every docs link a 44px target and keeps answers to a short measure at ${width}px`, async ({
       page,

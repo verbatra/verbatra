@@ -505,12 +505,15 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   reads without JavaScript. From 64rem the head is `position: sticky` at
   `--vk-landing-offset`, right under the site header, with `--head-gap` of its own `--v-void`
   padding on top (pulled back by a negative margin, so it starts where it did), so it stays beside a
-  long open list and the docs links scroll under it, never through a gap above it. The open state swaps the `.vk-faq-mark` plus (a
+  long open list and the docs links scroll under it, never through a gap above it. A focused docs
+  link still lands below the head: each link's `scroll-margin-top` is the head's height
+  (`--faq-head-size`, which `faq-keys.tsx` keeps current on `.vk-faq-aside` with a
+  ResizeObserver; 21rem without JavaScript) plus 0.5rem. The open state swaps the `.vk-faq-mark` plus (a
   `--text-faint` boundary, `--accent` bars) for a filled minus (`--accent-fill`, its bar
   `--accent-fill-fg`) with no transition; under `forced-colors` the bars are `CanvasText` and the
   open mark `Highlight` with a `HighlightText` bar. `faq-keys.tsx` is a null-rendering client helper,
   loaded as the lazy `FaqKeys` island from `islands.tsx`, that adds arrow keys, Home and End between
-  the summaries and leaves a modified key to the browser. `faqContent` (same file) builds each item's
+  the summaries, leaves a modified key to the browser and sets `--faq-head-size`. `faqContent` (same file) builds each item's
   question, rich answer and plain answer from one translator call; the home page builds it once and
   passes the items to `Faq` and the plain ones to `faqPageLd`, so the FAQPage JSON-LD always equals
   the visible text. A hyphenated word in an answer (`ngx-translate`) is kept whole. Ids, order and

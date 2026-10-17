@@ -692,6 +692,10 @@ html.light {
     grid-row: 2;
   }
 
+  .vk-faq-aside > .vk-faq-docs a {
+    scroll-margin-top: calc(var(--faq-head-size, 21rem) + 0.5rem);
+  }
+
   .vk-bento {
     align-items: start;
     gap: var(--head-gap) calc(2 * var(--grid-gap));

@@ -2,13 +2,14 @@
 
 import { act } from "react";
 import { createRoot } from "react-dom/client";
-import { afterEach, describe, expect, it } from "vitest";
-import { FAQ_KEYS_ATTACHED, FaqKeys } from "./faq-keys";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { FAQ_HEAD_SIZE, FAQ_KEYS_ATTACHED, FaqKeys } from "./faq-keys";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 afterEach(() => {
   document.body.innerHTML = "";
+  vi.unstubAllGlobals();
 });
 
 function mount(listId = "faq-list"): { list: HTMLElement; unmount: () => void } {
@@ -84,5 +85,68 @@ describe("FaqKeys", () => {
     const { list, unmount } = mount("missing");
     expect(list.hasAttribute(FAQ_KEYS_ATTACHED)).toBe(false);
     unmount();
+  });
+
+  describe("the head size", () => {
+    function headHeight(head: HTMLElement, height: number): void {
+      head.getBoundingClientRect = () => ({ height }) as DOMRect;
+    }
+
+    function mountInAside(height: number): {
+      aside: HTMLElement;
+      head: HTMLElement;
+      unmount: () => void;
+    } {
+      document.body.innerHTML = [
+        '<div class="vk-faq-aside"><div class="vk-section-head-aside"></div>',
+        '<div id="faq-list"><details data-faq="a"><summary>a</summary></details></div>',
+        '</div><div id="host"></div>',
+      ].join("");
+      const aside = document.querySelector<HTMLElement>(".vk-faq-aside") as HTMLElement;
+      const head = aside.querySelector<HTMLElement>(".vk-section-head-aside") as HTMLElement;
+      headHeight(head, height);
+      const root = createRoot(document.getElementById("host") as HTMLElement);
+      act(() => root.render(<FaqKeys listId="faq-list" />));
+      return { aside, head, unmount: () => act(() => root.unmount()) };
+    }
+
+    it("puts the sticky head's height on the aside, follows its resizes and clears it on unmount", () => {
+      const observed: Array<{ target: Element; callback: () => void }> = [];
+      const disconnect = vi.fn();
+      vi.stubGlobal(
+        "ResizeObserver",
+        class {
+          constructor(private readonly callback: () => void) {}
+          observe(target: Element) {
+            observed.push({ target, callback: this.callback });
+          }
+          disconnect = disconnect;
+        },
+      );
+      const { aside, head, unmount } = mountInAside(300);
+      expect(aside.style.getPropertyValue(FAQ_HEAD_SIZE)).toBe("300px");
+      expect(observed.map(({ target }) => target)).toEqual([head]);
+      headHeight(head, 336);
+      act(() => observed[0]?.callback());
+      expect(aside.style.getPropertyValue(FAQ_HEAD_SIZE)).toBe("336px");
+      unmount();
+      expect(disconnect).toHaveBeenCalledOnce();
+      expect(aside.style.getPropertyValue(FAQ_HEAD_SIZE)).toBe("");
+    });
+
+    it("measures once where ResizeObserver is missing", () => {
+      vi.stubGlobal("ResizeObserver", undefined);
+      const { aside, unmount } = mountInAside(280);
+      expect(aside.style.getPropertyValue(FAQ_HEAD_SIZE)).toBe("280px");
+      unmount();
+      expect(aside.style.getPropertyValue(FAQ_HEAD_SIZE)).toBe("");
+    });
+
+    it("leaves a list outside the aside alone", () => {
+      const { list, unmount } = mount();
+      expect(list.hasAttribute(FAQ_KEYS_ATTACHED)).toBe(true);
+      expect(document.body.innerHTML).not.toContain(FAQ_HEAD_SIZE);
+      unmount();
+    });
   });
 });
