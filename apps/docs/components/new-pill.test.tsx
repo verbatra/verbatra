@@ -3,6 +3,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { docsStylesheetRules } from "@/lib/stylesheet-rules";
+import { contrast, themeTokens } from "@/test-support/contrast";
 import { NEW_PILL_CLASS, NewAnnouncement, NewPill } from "./new-pill";
 
 function parse(html: string): Document {
@@ -48,6 +49,17 @@ describe("NewPill", () => {
 });
 
 describe("the depth pill stylesheet", () => {
+  it("separates the light theme's gradient stops clearly and rims the chip, so it never reads flat", () => {
+    const { light } = themeTokens();
+    expect(contrast(light, "--pill-new-start", "--pill-new-end")).toBeGreaterThanOrEqual(1.6);
+    expect(contrast(light, "--pill-new-fg", "--pill-new-start")).toBeGreaterThanOrEqual(4.5);
+    expect(light["--pill-new-rim"]).toMatch(/var\(--pill-new-end\)/);
+    const pill = docsStylesheetRules().find(
+      (rule) => rule.selector === ".vk-pill-new" && rule.media === "",
+    );
+    expect(pill?.declarations["box-shadow"]).toBe("0 0 0 1px var(--pill-new-rim)");
+  });
+
   it("fills the pill with the two pill tokens in white uppercase type", () => {
     const pill = rules.find((rule) => rule.selector === ".vk-pill-new" && rule.media === "");
     expect(pill?.declarations.background).toBe(

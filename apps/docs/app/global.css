@@ -227,6 +227,7 @@ samp {
   --pill-new-end: hsl(258 56% 47%);
   --pill-new-fg: hsl(0 0% 100%);
   --pill-new-glow: color-mix(in srgb, var(--pill-new-start) 55%, transparent);
+  --pill-new-rim: transparent;
   --focus-ring: var(--v-glow);
   --surface-band: color-mix(in srgb, var(--surface-card) 40%, var(--surface-bg));
   --scroll-shade: color-mix(in srgb, var(--text-muted) 24%, transparent);
@@ -247,7 +248,8 @@ html.light {
   --v-status-changed: hsl(30 90% 30%);
   --v-status-unchanged: hsl(240 6% 42%);
   --v-danger: hsl(0 70% 42%);
-  --pill-new-end: hsl(258 60% 36%);
+  --pill-new-end: hsl(254 70% 26%);
+  --pill-new-rim: color-mix(in srgb, var(--pill-new-end) 45%, transparent);
 
   --color-fd-background: hsl(240 20% 98%);
   --color-fd-card: hsl(240 18% 95%);
@@ -1555,6 +1557,7 @@ html.light .vk-theme-icon-light {
   padding: 2px 6px;
   border-radius: 5px;
   background: linear-gradient(90deg, var(--pill-new-start), var(--pill-new-end));
+  box-shadow: 0 0 0 1px var(--pill-new-rim);
   color: var(--pill-new-fg);
   font-size: 10.5px;
   font-weight: 700;
