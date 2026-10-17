@@ -2971,7 +2971,8 @@ html:has(.vk-home) {
     var(--v-void);
 }
 
-.vk-scroll-fade:focus-visible {
+.vk-scroll-fade:focus-visible,
+.vk-code-frame-body pre.shiki:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: -2px;
 }

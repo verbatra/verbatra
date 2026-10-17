@@ -571,7 +571,10 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   never violet) over a `local` void cover; `.vk-scroll-fade` is that rule for the bento format key
   line and the playground blocks, each a `ScrollBlock` (`components/landing/scroll-block.tsx`: a
   `div` with `role="group"`, never a landmark, and `tabIndex={0}`, like the code frames' `pre`)
-  named by its caption through `aria-labelledby`.
+  named by its caption through `aria-labelledby`. Both draw their focus ring inset
+  (`outline-offset: -2px`) in one unlayered rule beside the global `:focus-visible`, outside every
+  `@supports` block, because a frame clips with `overflow: hidden` and a layered utility loses to
+  the global rule.
   `lib/hero-terminal.ts` keeps the recorded `verbatra check` and `verbatra translate` transcript
   (`HERO_TERMINAL_SCRIPT`, English on every locale, like all CLI output on the page) that the home
   social image draws from and `HERO_TERMINAL_TITLE` (`~/app`), the title of every shell frame;
