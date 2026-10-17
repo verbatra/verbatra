@@ -68,7 +68,7 @@ export async function Flow(): Promise<ReactNode> {
               <div className="vk-flow-snippet">{frames[index]}</div>
               {node.id === FLOW_DEMO_NODE ? (
                 <div className="vk-flow-demo">
-                  <p className="vk-flow-demo-lead">{t("items.incremental.demo")}</p>
+                  <p className="vk-flow-demo-lead">{t(`items.${FLOW_DEMO_NODE}.demo`)}</p>
                   <div data-reveal="2" className="vk-showcase not-prose">
                     <TryIt seed={showcaseSeed()} rows={showcaseRows()} />
                   </div>

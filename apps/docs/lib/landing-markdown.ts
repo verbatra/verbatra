@@ -192,7 +192,7 @@ async function flow({ locale }: Context): Promise<string> {
         node.snippet.code.trimEnd(),
       ),
       link(t(`items.${node.id}.link`), localizedPath(locale, node.docsPath)),
-      node.id === FLOW_DEMO_NODE ? t("items.incremental.demo") : null,
+      node.id === FLOW_DEMO_NODE ? t(`items.${FLOW_DEMO_NODE}.demo`) : null,
     ),
   );
   return blocks(`## ${t("heading")}`, t("lead"), ...nodes);

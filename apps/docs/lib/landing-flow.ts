@@ -21,7 +21,7 @@ export type FlowNode = {
 
 export const FLOW_CHECK_EXIT_CODES = { fail: 1, ok: 0, usage: 2 } as const;
 
-export const FLOW_DEMO_NODE: FlowNodeId = "incremental";
+export const FLOW_DEMO_NODE = "incremental" satisfies FlowNodeId;
 
 export const FLOW_BODY_VALUES: Partial<Record<FlowNodeId, Record<string, number>>> = {
   check: FLOW_CHECK_EXIT_CODES,

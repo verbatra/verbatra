@@ -13,7 +13,7 @@ import { PRIVACY_OBJECTION_KEY, PRIVACY_SECTION_KEYS, privacyLinkHrefs } from ".
 import { fallbackTexts, LICENSES, textsUsedBy, usageCount } from "./licenses-manifest";
 import { fencedMarkdown, inlineCodeMarkdown, markupChunks } from "./llm-markdown";
 import { absoluteMarkdownHref } from "./markdown-links";
-import { SITE_PAGE_META } from "./markdown-route";
+import { type HOME_PATH, type MarkdownPage, SITE_PAGE_META } from "./markdown-route";
 import { pageFrontmatter } from "./page-frontmatter";
 import { LEGAL_LAST_UPDATED, PRIVACY_CONTACT_FORM_ANCHOR } from "./site";
 import {
@@ -48,7 +48,7 @@ function linkTags(
 
 async function frontmatter(
   locale: Locale,
-  page: "/imprint" | "/privacy" | "/contact" | "/licenses",
+  page: Exclude<MarkdownPage, typeof HOME_PATH | "/compare">,
 ) {
   const t = await getTranslations({ locale, namespace: SITE_PAGE_META[page] });
   return pageFrontmatter({ title: t("title"), description: t("description") }).trimEnd();

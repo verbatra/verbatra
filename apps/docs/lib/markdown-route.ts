@@ -11,7 +11,6 @@ const INTERNAL_DOCS_PATH = /^(?:\/([a-z]{2}))?\/docs\.mdx((?:\/[^/]+)*)$/;
 const INTERNAL_SITE_PATH = /^(?:\/([a-z]{2}))?\/site\.mdx\/([a-z-]+)$/;
 const MDX_PATH = /\.mdx(?:\/|$)/;
 const PUBLIC_MDX_PATH = /^(?:\/([a-z]{2})(?=\/))?(\/[^/].*)\.mdx$/;
-const _MDX_SUFFIX = ".mdx";
 
 export const HOME_PATH = "/";
 
