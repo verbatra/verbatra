@@ -1,21 +1,20 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
-import { scaffoldingMetadata } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
-import { CHECKOUT_ACTION_REF, VERBATRA_ACTION_REF } from "./action-refs";
-import { FORMAT_SAMPLES } from "./format-samples";
-import { HERO_CHECK_OUTPUT, HERO_TERMINAL_TITLE, HERO_TRANSLATE_OUTPUT } from "./hero-terminal";
+import {
+  HERO_CHECK_COMMAND,
+  HERO_CHECK_OUTPUT,
+  HERO_TERMINAL_TITLE,
+  HERO_TRANSLATE_COMMAND,
+  HERO_TRANSLATE_OUTPUT,
+} from "./hero-terminal";
 import {
   LANDING_TRACK_IDS,
   LANDING_TRACKS,
-  TRACK_ACTION_WORKFLOW,
-  TRACK_CHECK_COMMAND,
   TRACK_CHECK_EXIT_CODES,
   TRACK_MCP_ADD_COMMAND,
   TRACK_MCP_JSON,
-  TRACK_TRANSLATE_COMMANDS,
 } from "./landing-tracks";
-import { PACKAGE_VERSION } from "./site";
 
 const DOCS = process.cwd();
 const REPO = join(DOCS, "../..");
@@ -36,8 +35,6 @@ const PUBLISHED_CLI: {
   readonly version: string;
   readonly commands: Readonly<Record<string, ReadonlyArray<string>>>;
 } = JSON.parse(read(join(DOCS, "test-support/cli-0.11.1-flags.json")));
-
-const GEMINI_KEY = scaffoldingMetadata.providerEnv.gemini;
 
 function publishedFlags(command: string): ReadonlyMap<string, boolean> {
   return new Map(
@@ -95,10 +92,12 @@ describe("the landing tracks", () => {
     }
   });
 
-  it("names every file it shows, and runs its commands in the shell frame the rest of the landing titles", () => {
+  it("carries a file only on a track with no recorded transcript, which shows it in its place, and runs every track in the shell frame the rest of the landing titles", () => {
     for (const id of LANDING_TRACK_IDS) {
-      expect(LANDING_TRACKS[id].terminalTitle, id).toBe(HERO_TERMINAL_TITLE);
-      for (const file of LANDING_TRACKS[id].files) expect(file.filename, id).toBeTruthy();
+      const track = LANDING_TRACKS[id];
+      expect(track.terminalTitle, id).toBe(HERO_TERMINAL_TITLE);
+      if (track.result.length > 0) expect(track.files, id).toEqual([]);
+      for (const file of track.files) expect(file.filename, id).toBeTruthy();
     }
   });
 
@@ -110,21 +109,8 @@ describe("the landing tracks", () => {
 });
 
 describe("the translate track equals its sources", () => {
-  it("shows the next-intl source file the real adapter writes", () => {
-    const [file] = LANDING_TRACKS.translate.files;
-    expect(file?.code).toBe(FORMAT_SAMPLES["next-intl-json"].text);
-    expect(file?.filename).toBe("messages/en.json");
-  });
-
-  it("points init at the file it shows, so the command and the file work together", () => {
-    const init = TRACK_TRANSLATE_COMMANDS.map(cliWords).find((words) => words[2] === "init");
-    const pattern = init?.[(init?.indexOf("--path") ?? -2) + 1];
-    expect(pattern).toContain("{locale}");
-    expect(pattern?.replace("{locale}", "en")).toBe(LANDING_TRACKS.translate.files[0]?.filename);
-    expect(init).not.toContain("--source");
-  });
-
-  it("prints the recorded translate transcript, pinned to the CLI renderer", () => {
+  it("runs the recorded translate command and prints its transcript, pinned to the CLI renderer", () => {
+    expect(LANDING_TRACKS.translate.commands).toEqual([HERO_TRANSLATE_COMMAND]);
     expect(LANDING_TRACKS.translate.result).toBe(HERO_TRANSLATE_OUTPUT);
     expect(LANDING_TRACKS.translate.exitCode).toBe(TRACK_CHECK_EXIT_CODES.ok);
   });
@@ -134,7 +120,10 @@ describe("the CLI lines run only what the published @verbatra/cli registers", ()
   it("uses only commands and flags of the recorded release, each value flag with its value", () => {
     expect(PUBLISHED_CLI.version).toBe("0.11.1");
     const run = read(join(REPO, "packages/cli/src/run.ts"));
-    const lines = [...TRACK_TRANSLATE_COMMANDS, TRACK_CHECK_COMMAND];
+    const lines = LANDING_TRACK_IDS.flatMap((id) => LANDING_TRACKS[id].commands).filter((line) =>
+      line.startsWith("npx @verbatra/cli "),
+    );
+    expect(lines).toEqual([HERO_TRANSLATE_COMMAND, HERO_CHECK_COMMAND]);
     for (const line of lines) {
       const [runner, pkg, command = "", ...args] = cliWords(line);
       expect(`${runner} ${pkg}`).toBe("npx @verbatra/cli");
@@ -157,35 +146,6 @@ describe("the CLI lines run only what the published @verbatra/cli registers", ()
 });
 
 describe("the CI track equals its sources", () => {
-  it("copies the GitHub Action workflow from its guide, pinned to SHAs and the published version, with the key of the provider init sets up", () => {
-    const guide = fenceAfter(
-      read(join(DOCS, "content/docs/(guides)/github-action.mdx")),
-      "## Add the action to a workflow",
-      "yaml",
-    );
-    const guideKey = `ANTHROPIC_API_KEY: \${{ secrets.ANTHROPIC_API_KEY }}`;
-    expect(guide).toContain(guideKey);
-    const expected = guide
-      .replace(guideKey, `${GEMINI_KEY}: \${{ secrets.${GEMINI_KEY} }}`)
-      .replace("actions/checkout@<commit-sha>", CHECKOUT_ACTION_REF)
-      .replace("verbatra/action@<commit-sha> # a commit on the v1 line", VERBATRA_ACTION_REF)
-      .replace(/version: \S+ # .*\n/, `version: ${PACKAGE_VERSION}\n`);
-    expect(TRACK_ACTION_WORKFLOW).toBe(expected);
-    expect(TRACK_ACTION_WORKFLOW).not.toContain("<commit-sha>");
-    expect(LANDING_TRACKS.ci.files[0]?.code).toBe(TRACK_ACTION_WORKFLOW);
-  });
-
-  it("pins both actions to full commit SHAs on their release line", () => {
-    const uses = [...TRACK_ACTION_WORKFLOW.matchAll(/uses: (\S+)@(\S+) # (v\d+(?:\.\d+){0,2})\n/g)];
-    expect(uses.map(([, name]) => name)).toEqual(["actions/checkout", "verbatra/action"]);
-    for (const [, , ref, tag] of uses) {
-      expect(ref).toMatch(/^[0-9a-f]{40}$/);
-      expect(tag).toMatch(/^v\d/);
-    }
-    expect(TRACK_ACTION_WORKFLOW).not.toMatch(/@v\d/);
-    expect(VERBATRA_ACTION_REF).toMatch(/ # v1\./);
-  });
-
   it("pins the check exit codes to the CLI", () => {
     const run = read(join(REPO, "packages/cli/src/run.ts"));
     const body = run.slice(run.indexOf("function checkExitCode("));
@@ -198,11 +158,11 @@ describe("the CI track equals its sources", () => {
     expect(exit2.slice(0, exit2.indexOf("\n}"))).toContain(
       `return ${TRACK_CHECK_EXIT_CODES.usage};`,
     );
-    expect(TRACK_CHECK_COMMAND).toBe("npx @verbatra/cli check");
+    expect(HERO_CHECK_COMMAND).toBe("npx @verbatra/cli check");
   });
 
   it("prints the recorded check transcript and exits as a failing gate", () => {
-    expect(LANDING_TRACKS.ci.commands).toEqual([TRACK_CHECK_COMMAND]);
+    expect(LANDING_TRACKS.ci.commands).toEqual([HERO_CHECK_COMMAND]);
     expect(LANDING_TRACKS.ci.result).toBe(HERO_CHECK_OUTPUT);
     expect(LANDING_TRACKS.ci.exitCode).toBe(TRACK_CHECK_EXIT_CODES.fail);
   });

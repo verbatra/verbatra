@@ -49,7 +49,7 @@ test.describe("hero without JavaScript", () => {
     await expect(title).toHaveCSS("opacity", "1");
     const translate = panel(page, "translate");
     await expect(translate).toBeVisible();
-    await expect(translate.locator(".vk-track-command")).toHaveCount(3);
+    await expect(translate.locator(".vk-track-command")).toHaveCount(1);
     for (const line of await translate.locator(".vk-track-command, .vk-track-out").all()) {
       await expect(line).toHaveCSS("opacity", "1");
     }
@@ -88,12 +88,24 @@ test.describe("hero track keyboard", () => {
 test.describe("hero track motion", () => {
   test.use({ reducedMotion: "no-preference" });
 
+  test("types the default track once on load, from the final state the server sent", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const tracks = page.locator(`${HERO} .vk-tracks`);
+    await expect(tracks).toHaveAttribute("data-typing", "true");
+    await expect(tracks).not.toHaveAttribute("data-typing", "true", { timeout: 5000 });
+    for (const line of await panel(page, "translate").locator(".vk-track-out").all()) {
+      await expect(line).toHaveCSS("opacity", "1");
+    }
+  });
+
   test("types the command on a switch, then shows the result, without moving the layout", async ({
     page,
   }) => {
     await page.goto("/");
     const tracks = page.locator(`${HERO} .vk-tracks`);
-    await expect(tracks).not.toHaveAttribute("data-typing", "true");
+    await expect(tracks).not.toHaveAttribute("data-typing", "true", { timeout: 5000 });
     const before = await terminalHeight(page);
     await selectTrack(page, 2);
     await expect(tracks).toHaveAttribute("data-typing", "true");
@@ -165,6 +177,26 @@ test.describe("hero layout at 1440px", () => {
     await expectNoAxeViolations(page, HERO);
   });
 });
+
+for (const width of [375, 1440]) {
+  test.describe(`hero track rows at ${width}px`, () => {
+    test.use({ viewport: { width, height: 900 } });
+
+    test("keeps every track's terminal and summary on the same rows", async ({ page }) => {
+      await page.goto("/");
+      const rows: Array<readonly [number, number, number]> = [];
+      for (const index of [0, 1, 2]) {
+        await selectTrack(page, index);
+        const id = ["translate", "agents", "ci"][index] ?? "";
+        const terminal = await panel(page, id).locator(".vk-track-terminal").boundingBox();
+        const summary = await panel(page, id).locator(".vk-track-summary").boundingBox();
+        if (terminal === null || summary === null) throw new Error(`${id} has no box`);
+        rows.push([Math.round(terminal.y), Math.round(terminal.height), Math.round(summary.y)]);
+      }
+      expect(new Set(rows.map((row) => row.join(","))).size).toBe(1);
+    });
+  });
+}
 
 for (const width of [320, 375]) {
   test.describe(`hero at ${width}px`, () => {
