@@ -146,6 +146,21 @@ function TrackStepLines({
   );
 }
 
+const LEADING_SPACES = /^ */;
+
+function FileLine({ text, last }: { text: string; last: boolean }): ReactNode {
+  const indent = LEADING_SPACES.exec(text)?.[0] ?? "";
+  return (
+    <span className="vk-track-file-line">
+      <span className="vk-track-file-indent">{indent}</span>
+      <span className="vk-track-file-text">
+        {text.slice(indent.length)}
+        {last ? "" : "\n"}
+      </span>
+    </span>
+  );
+}
+
 function TrackFiles({ track, step }: { track: HeroTrackView; step: number | null }): ReactNode {
   return track.files.map((file, index) => (
     <figure
@@ -155,7 +170,13 @@ function TrackFiles({ track, step }: { track: HeroTrackView; step: number | null
     >
       <figcaption className="vk-track-file-name">{file.filename}</figcaption>
       <pre className="vk-track-file-code">
-        <code>{file.code.trimEnd()}</code>
+        <code>
+          {keyedLines(`${file.filename}-line`, file.code.trimEnd().split("\n")).map(
+            (line, position, lines) => (
+              <FileLine key={line.key} text={line.text} last={position === lines.length - 1} />
+            ),
+          )}
+        </code>
       </pre>
     </figure>
   ));

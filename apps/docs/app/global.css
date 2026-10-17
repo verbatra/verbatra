@@ -3039,6 +3039,25 @@ html:has(.vk-home) {
   margin: 0;
   font: inherit;
   color: var(--text-body);
+}
+
+.vk-track-file-code > code {
+  display: block;
+  font: inherit;
+}
+
+.vk-track-file-line {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.vk-track-file-indent {
+  white-space: pre;
+}
+
+.vk-track-file-text {
+  padding-inline-start: 2ch;
+  text-indent: -2ch;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }

@@ -704,7 +704,10 @@ is only `position: sticky` from 64rem, which moves nothing on its own), and no s
   with every command after an `aria-hidden` `$`, each followed directly by the result lines it
   printed, then the track's files as compact blocks (`.vk-track-file`, `--text-xs`): the agents
   track's `.mcp.json` in place of a transcript nobody recorded, and the CI track's workflow under
-  the `check` output, sized so the CI content fills the terminal the translate track sets at 1440; under the frame one `landing.hero.tracks.<id>.summary` sentence and the link to the
+  the `check` output, sized so the CI content fills the terminal the translate track sets at 1440.
+  Each file line is a `.vk-track-file-line` grid of its leading spaces and its text, which wraps with
+  a 2ch hanging indent under its own YAML or JSON indentation, never at the left edge and never
+  sideways (`e2e/hero.spec.ts` checks the workflow at 375); under the frame one `landing.hero.tracks.<id>.summary` sentence and the link to the
   track's `docsPath`. No command, flag or line is typed by hand: all of it is pinned by
   `lib/landing-tracks.test.ts`. The panels share one grid cell: `.vk-tracks-panels` has two rows
   (`minmax(0, 1fr) auto`), every panel spans both through `grid-template-rows: subgrid`, and the

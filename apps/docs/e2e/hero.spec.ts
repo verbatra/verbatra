@@ -243,3 +243,33 @@ for (const width of [320, 375]) {
     });
   });
 }
+
+test.describe("hero workflow file at 375px", () => {
+  test.use({ viewport: { width: 375, height: 800 } });
+
+  test("wraps each workflow line under its own indentation, never at the left edge", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await selectTrack(page, 2);
+    const code = panel(page, "ci").locator(".vk-track-file-code");
+    const metrics = await code.evaluate((block) => {
+      const left = block.getBoundingClientRect().left;
+      const lines = [...block.querySelectorAll(".vk-track-file-line")].map((line) => {
+        const text = line.querySelector(".vk-track-file-text");
+        const range = document.createRange();
+        if (text !== null) range.selectNodeContents(text);
+        const starts = [
+          ...new Set([...range.getClientRects()].map((rect) => Math.round(rect.left))),
+        ];
+        return { first: starts[0] ?? left, rest: starts.slice(1) };
+      });
+      return { left, overflow: block.scrollWidth - block.clientWidth, lines };
+    });
+    expect(metrics.overflow).toBeLessThanOrEqual(0);
+    expect(metrics.lines.some((line) => line.rest.length > 0)).toBe(true);
+    for (const line of metrics.lines) {
+      for (const start of line.rest) expect(start).toBeGreaterThan(line.first);
+    }
+  });
+});
