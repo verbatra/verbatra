@@ -21,10 +21,15 @@ function normalized(text: string | null): string {
 
 async function renderedFaq(page: Page): Promise<FaqEntry[]> {
   return page.locator(ITEMS).evaluateAll((items) =>
-    items.map((item) => ({
-      question: item.querySelector("h3")?.textContent ?? "",
-      answer: item.querySelector(".vk-faq-answer")?.textContent ?? "",
-    })),
+    items.map((item) => {
+      const answer = item.querySelector(".vk-faq-answer")?.cloneNode(true);
+      if (answer instanceof Element)
+        for (const hidden of answer.querySelectorAll(".sr-only")) hidden.remove();
+      return {
+        question: item.querySelector("h3")?.textContent ?? "",
+        answer: answer?.textContent ?? "",
+      };
+    }),
   );
 }
 

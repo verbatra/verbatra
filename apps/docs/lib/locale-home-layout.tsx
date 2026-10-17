@@ -13,6 +13,7 @@ export const MAIN_CONTENT_ID = "main-content";
 
 export async function homeNavValue(locale: Locale, stars: number | null): Promise<HomeNavValue> {
   const t = await getTranslations({ locale, namespace: "landing.topNav" });
+  const tOpen = await getTranslations({ locale, namespace: "landing.openSource" });
   const count = stars === null ? null : formatCompactNumber(stars, locale);
   return {
     docsUrl: localizedPath(locale, "/docs"),
@@ -29,6 +30,7 @@ export async function homeNavValue(locale: Locale, stars: number | null): Promis
       menuOpen: t("menu.open"),
       menuClose: t("menu.close"),
       menuTitle: t("menu.title"),
+      newTab: tOpen("newTab"),
     },
   };
 }

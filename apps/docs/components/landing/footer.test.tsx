@@ -35,7 +35,17 @@ describe("FullFooter", () => {
     const license = doc.querySelector(
       'a[href="https://github.com/verbatra/verbatra/blob/main/LICENSE"]',
     );
-    expect(license?.textContent).toBe("cols.legal.license");
+    expect(license?.firstChild?.textContent).toBe("cols.legal.license");
+  });
+
+  it("tells a screen reader that every external link opens a new tab", async () => {
+    const doc = await renderFooter();
+    const external = Array.from(doc.querySelectorAll('footer a[target="_blank"]'));
+    expect(external.length).toBeGreaterThan(0);
+    for (const link of external) {
+      const named = link.getAttribute("aria-label") ?? link.querySelector(".sr-only")?.textContent;
+      expect(named, link.getAttribute("href") ?? "").toMatch(/newTab$/);
+    }
   });
 
   it("leaves the contributors to the open source section", async () => {
@@ -177,7 +187,7 @@ describe("FullFooter", () => {
   it("leaves the NEW status to the docs sidebar and draws no status pill in a footer link", async () => {
     const doc = await renderFooter();
 
-    expect(doc.querySelectorAll("nav a > span")).toHaveLength(0);
+    expect(doc.querySelectorAll("nav a > span:not(.sr-only)")).toHaveLength(0);
     expect(doc.querySelector(".vk-pill-status")).toBeNull();
     expect(doc.body.textContent).not.toContain("badge:new");
   });

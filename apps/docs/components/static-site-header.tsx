@@ -28,7 +28,7 @@ import { cn } from "@/lib/utils";
 
 type NavLinksProps = {
   docsUrl: string;
-  labels: { docs: string; changelog: string; github: string };
+  labels: { docs: string; changelog: string; github: string; newTab: string };
   stars: string | null;
   starsSuffix: string;
   className: string;
@@ -42,6 +42,7 @@ function NavLinks({ docsUrl, labels, stars, starsSuffix, className }: NavLinksPr
       </a>
       <a href={RELEASES_URL} target="_blank" rel="noopener noreferrer" className={className}>
         {labels.changelog}
+        <span className="sr-only"> {labels.newTab}</span>
       </a>
       <a
         href={GITHUB_URL}
@@ -55,6 +56,7 @@ function NavLinks({ docsUrl, labels, stars, starsSuffix, className }: NavLinksPr
           reserved={stars}
           starsSuffix={starsSuffix}
         />
+        <span className="sr-only"> {labels.newTab}</span>
       </a>
     </>
   );

@@ -35,8 +35,14 @@ describe("StaticSiteHeader", () => {
     expect(Array.from(desktop, (a) => [a.getAttribute("href"), a.textContent])).toEqual([
       ["/", "verbatra"],
       ["/docs", messages.landing.topNav.docs],
-      ["https://github.com/verbatra/verbatra/releases", messages.landing.topNav.changelog],
-      ["https://github.com/verbatra/verbatra", "GitHub 1.2K stars"],
+      [
+        "https://github.com/verbatra/verbatra/releases",
+        `${messages.landing.topNav.changelog} ${messages.landing.openSource.newTab}`,
+      ],
+      [
+        "https://github.com/verbatra/verbatra",
+        `GitHub 1.2K stars ${messages.landing.openSource.newTab}`,
+      ],
       ["/docs/quickstart", messages.landing.topNav.getStarted],
     ]);
   });

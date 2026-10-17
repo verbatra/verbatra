@@ -66,6 +66,13 @@ afterEach(() => {
   container.remove();
 });
 
+function visibleText(node: Element | null): string | undefined {
+  const copy = node?.cloneNode(true);
+  if (!(copy instanceof Element)) return undefined;
+  for (const hidden of copy.querySelectorAll(".sr-only")) hidden.remove();
+  return copy.textContent ?? undefined;
+}
+
 function items(container: HTMLElement): ReadonlyArray<HTMLDetailsElement> {
   return [...container.querySelectorAll<HTMLDetailsElement>("details[data-faq]")];
 }
@@ -181,7 +188,7 @@ describe.each(i18n.languages)("the landing faq in %s", (locale) => {
     const container = await render(locale);
     const rendered = items(container).map((item) => ({
       question: item.querySelector("h3")?.textContent,
-      answer: item.querySelector(".vk-faq-answer")?.textContent,
+      answer: visibleText(item.querySelector(".vk-faq-answer")),
     }));
     const content = await faqContent(locale);
     expect(rendered).toHaveLength(FAQ_ITEM_IDS.length);
@@ -192,6 +199,14 @@ describe.each(i18n.languages)("the landing faq in %s", (locale) => {
     expect(ld.mainEntity.map((entry) => entry.name)).toEqual(rendered.map((r) => r.question));
     expect(ld.mainEntity.map((entry) => entry.acceptedAnswer.text)).toEqual(
       rendered.map((r) => r.answer),
+    );
+  });
+
+  it("tells a screen reader that the license link opens a new tab, outside the structured data", async () => {
+    const container = await render(locale);
+    const license = container.querySelector('.vk-faq-answer a[target="_blank"]');
+    expect(license?.querySelector(".sr-only")?.textContent).toBe(
+      ` ${CATALOGS[locale].landing.openSource.newTab}`,
     );
   });
 

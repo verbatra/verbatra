@@ -154,6 +154,7 @@ describe("the header star count", () => {
               menuOpen: "Open menu",
               menuClose: "Close menu",
               menuTitle: "Menu",
+              newTab: "(opens in a new tab)",
             },
           }}
         >

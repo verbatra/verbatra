@@ -122,7 +122,7 @@ describe("the landing nav", () => {
       GITHUB_URL,
     ]);
     expect(links[0]?.textContent).toBe(nav.docs);
-    expect(links[1]?.textContent).toBe(nav.changelog);
+    expect(links[1]?.textContent).toBe(`${nav.changelog} ${messages.landing.openSource.newTab}`);
     const cta = container.querySelector("header a.vk-nav-cta");
     expect(cta?.textContent).toBe(nav.getStarted);
     expect(cta?.getAttribute("href")).toBe("/docs/quickstart");
@@ -163,7 +163,7 @@ describe("the landing nav", () => {
     const github = primaryNav(await render(1234))?.querySelector(`a[href="${GITHUB_URL}"]`);
     expect(github?.querySelector("[data-stars]")?.textContent).toBe("1.2K");
     expect(github?.hasAttribute("aria-label")).toBe(false);
-    expect(github?.textContent).toBe("GitHub 1.2K stars");
+    expect(github?.textContent).toBe(`GitHub 1.2K stars ${messages.landing.openSource.newTab}`);
   });
 
   it("names the GitHub link from its content, visible text first, in every locale", async () => {
@@ -187,7 +187,7 @@ describe("the landing nav", () => {
     const github = primaryNav(await render(null))?.querySelector(`a[href="${GITHUB_URL}"]`);
     expect(github?.querySelector("[data-stars]")).toBeNull();
     expect(github?.hasAttribute("aria-label")).toBe(false);
-    expect(github?.textContent).toBe(nav.github);
+    expect(github?.textContent).toBe(`${nav.github} ${messages.landing.openSource.newTab}`);
   });
 
   it("keeps the wordmark link mounted when the header re-renders with a new home URL", async () => {

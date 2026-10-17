@@ -100,6 +100,7 @@ function navValue(locale: "en" | "de") {
       menuOpen: "Open menu",
       menuClose: "Close menu",
       menuTitle: "Menu",
+      newTab: "(opens in a new tab)",
     },
   };
 }
@@ -140,7 +141,9 @@ describe("the landing header version pill", () => {
     expect(pill?.getAttribute("href")).toBe(releaseUrl(PACKAGE_VERSION));
     expect(pill?.getAttribute("target")).toBe("_blank");
     expect(pill?.getAttribute("rel")).toBe("noopener noreferrer");
-    expect(pill?.getAttribute("aria-label")).toBe(`Release notes for v${PACKAGE_VERSION}`);
+    expect(pill?.getAttribute("aria-label")).toBe(
+      `Release notes for v${PACKAGE_VERSION} (opens in a new tab)`,
+    );
   });
 
   it("sits right after the wordmark, in the title group", async () => {

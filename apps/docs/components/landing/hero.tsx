@@ -44,6 +44,7 @@ export async function Hero(): Promise<ReactNode> {
               className={buttonClasses("secondary", "lg")}
             >
               {t("ctaSecondary")}
+              <span className="sr-only"> {tOpen("newTab")}</span>
             </a>
           </div>
         </div>

@@ -24,7 +24,7 @@ type FaqContent = FaqItem & { readonly id: FaqItemId; readonly content: ReactNod
 
 const FAQ_LIST_ID = "faq-list";
 
-function answerTags(locale: Locale, id: FaqItemId) {
+function answerTags(locale: Locale, id: FaqItemId, newTab: string) {
   return {
     link: (chunks: ReactNode) => (
       <a href={faqHref(locale, FAQ_ANSWER_LINKS[id])} className="vk-prose-link">
@@ -34,6 +34,7 @@ function answerTags(locale: Locale, id: FaqItemId) {
     license: (chunks: ReactNode) => (
       <a href={LICENSE_URL} target="_blank" rel="noreferrer noopener" className="vk-prose-link">
         {chunks}
+        <span className="sr-only"> {newTab}</span>
       </a>
     ),
     code: (chunks: ReactNode) => (
@@ -63,6 +64,7 @@ function keepCompounds(node: ReactNode): ReactNode {
 
 export async function faqContent(locale: Locale): Promise<ReadonlyArray<FaqContent>> {
   const t: FaqTranslator = await getTranslations({ locale, namespace: "landing.faq" });
+  const newTab = (await getTranslations({ locale, namespace: "landing.openSource" }))("newTab");
   return FAQ_ITEM_IDS.map((id) => {
     const values = faqValues(id, locale);
     return {
@@ -70,7 +72,7 @@ export async function faqContent(locale: Locale): Promise<ReadonlyArray<FaqConte
       question: t(`items.${id}.question`),
       answer: t.markup(`items.${id}.answer`, { ...values, ...PLAIN_TAGS }),
       content: keepCompounds(
-        t.rich(`items.${id}.answer`, { ...values, ...answerTags(locale, id) }),
+        t.rich(`items.${id}.answer`, { ...values, ...answerTags(locale, id, newTab) }),
       ),
     };
   });

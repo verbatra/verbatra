@@ -111,7 +111,7 @@ describe("Hero", () => {
     const links = Array.from((await render()).querySelectorAll(".vk-banner-ctas a"));
     expect(links.map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
       [banner.ctaPrimary, "/docs/quickstart"],
-      [banner.ctaSecondary, GITHUB_URL],
+      [`${banner.ctaSecondary} ${messages.landing.openSource.newTab}`, GITHUB_URL],
     ]);
     expect(links[1]?.getAttribute("target")).toBe("_blank");
     expect(links[1]?.getAttribute("rel")).toBe("noopener noreferrer");

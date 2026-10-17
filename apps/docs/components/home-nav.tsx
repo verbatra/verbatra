@@ -20,6 +20,7 @@ type HomeNavLabels = {
   readonly menuOpen: string;
   readonly menuClose: string;
   readonly menuTitle: string;
+  readonly newTab: string;
 };
 
 export type HomeNavValue = {
@@ -90,6 +91,7 @@ export function ChangelogNavLink({ className }: { className: string }): ReactNod
   return (
     <a href={RELEASES_URL} target="_blank" rel="noopener noreferrer" className={className}>
       {labels.changelog}
+      <span className="sr-only"> {labels.newTab}</span>
     </a>
   );
 }
@@ -111,6 +113,7 @@ export function GitHubNavLink({ className }: { className: string }): ReactNode {
         reserved={initialStars}
         starsSuffix={starsSuffix}
       />
+      <span className="sr-only"> {labels.newTab}</span>
     </a>
   );
 }

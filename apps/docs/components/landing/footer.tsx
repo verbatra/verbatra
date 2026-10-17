@@ -98,10 +98,12 @@ function FooterLinkItem({
   link,
   label,
   locale,
+  newTab,
 }: {
   link: FooterLink;
   label: string;
   locale: Locale;
+  newTab: string;
 }): ReactNode {
   if (link.external) {
     return (
@@ -112,6 +114,7 @@ function FooterLinkItem({
         rel="noreferrer noopener"
       >
         {label}
+        <span className="sr-only"> {newTab}</span>
       </a>
     );
   }
@@ -128,11 +131,13 @@ function FooterGroupNav({
   title,
   t,
   locale,
+  newTab,
 }: {
   group: FooterGroup;
   title: string;
   t: (key: string) => string;
   locale: Locale;
+  newTab: string;
 }): ReactNode {
   return (
     <nav aria-label={title} data-group={group.group} className="vk-footer-group">
@@ -144,6 +149,7 @@ function FooterGroupNav({
               link={link}
               label={link.literal ?? t(link.labelKey ?? "")}
               locale={locale}
+              newTab={newTab}
             />
           </li>
         ))}
@@ -157,6 +163,7 @@ const PROFILE_LINK = "vk-tap vk-footer-profile";
 export async function FullFooter(): Promise<ReactNode> {
   const t = await getTranslations("landing.footer");
   const tFacts = await getTranslations("landing.facts");
+  const newTab = (await getTranslations("landing.openSource"))("newTab");
   const locale = toLocale(await getLocale());
   return (
     <footer className="vk-footer">
@@ -174,7 +181,7 @@ export async function FullFooter(): Promise<ReactNode> {
               href={GITHUB_URL}
               target="_blank"
               rel="noreferrer noopener"
-              aria-label={t("githubAria")}
+              aria-label={`${t("githubAria")} ${newTab}`}
               className={PROFILE_LINK}
             >
               <GithubIcon size={16} />
@@ -184,7 +191,7 @@ export async function FullFooter(): Promise<ReactNode> {
               href={NPM_ORG}
               target="_blank"
               rel="noreferrer noopener"
-              aria-label={t("npmAria")}
+              aria-label={`${t("npmAria")} ${newTab}`}
               className={PROFILE_LINK}
             >
               <PackageIcon size={16} aria-hidden="true" className="shrink-0" />
@@ -198,6 +205,7 @@ export async function FullFooter(): Promise<ReactNode> {
             title={t(PRIMARY_GROUP.titleKey)}
             t={t}
             locale={locale}
+            newTab={newTab}
           />
           <div className="vk-footer-secondary">
             {SECONDARY_GROUPS.map((group) => (
@@ -207,6 +215,7 @@ export async function FullFooter(): Promise<ReactNode> {
                 title={t(group.titleKey)}
                 t={t}
                 locale={locale}
+                newTab={newTab}
               />
             ))}
           </div>

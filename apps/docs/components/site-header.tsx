@@ -270,7 +270,7 @@ export function HomeSiteHeader({ wordmark, homeUrl, ...props }: HomeSiteHeaderPr
         }
         mobileTrigger={<HomeMobileMenu footer={settings} />}
         cta={<GetStartedLink />}
-        badge={<VersionPill />}
+        badge={<VersionPill newTab={labels.newTab} />}
         rowWidth="wide"
       />
     </HomeTitleContext>

@@ -7,7 +7,7 @@ import { releaseUrl } from "@/components/landing/links";
 import { landingLocale } from "@/lib/i18n";
 import { PACKAGE_VERSION } from "@/lib/site";
 
-export function VersionPill(): ReactNode {
+export function VersionPill({ newTab }: { newTab: string }): ReactNode {
   const t = useTranslations("landing.nav.version");
   if (!landingLocale(usePathname())) return null;
   const version = `v${PACKAGE_VERSION}`;
@@ -16,7 +16,7 @@ export function VersionPill(): ReactNode {
       href={releaseUrl(PACKAGE_VERSION)}
       target="_blank"
       rel="noopener noreferrer"
-      aria-label={t("label", { version })}
+      aria-label={`${t("label", { version })} ${newTab}`}
       className="vk-version-pill"
     >
       {version}
