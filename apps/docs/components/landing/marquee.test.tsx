@@ -259,6 +259,21 @@ describe("Marquee", () => {
     for (const text of chips) expect(text).toMatch(/^[./][a-z0-9]+$/);
   });
 
+  it("draws every file-extension chip at one width, wide enough for the longest extension", async () => {
+    const doc = await render();
+    const chips = Array.from(doc.querySelectorAll(".vk-marquee-chip"), (chip) => chip.textContent);
+    const rule = docsStylesheetRules().find(
+      (entry) => entry.selector === ".vk-marquee-chip" && entry.declarations["min-inline-size"],
+    );
+    const minimum = Number.parseFloat(rule?.declarations["min-inline-size"] ?? "0");
+    expect(rule?.declarations["justify-content"]).toBe("center");
+    const longest = Math.max(...chips.map((text) => text?.length ?? 0));
+    const fontRem = 0.75;
+    const advance = 0.6;
+    const padding = 2 * Number.parseFloat(rule?.declarations["padding-inline"] ?? "0");
+    expect(longest * advance * fontRem + padding).toBeLessThanOrEqual(minimum);
+  });
+
   it("names each visible list by its row title and hides every copy from assistive technology and focus", async () => {
     const doc = await render();
     for (const id of ["providers", "formats"]) {

@@ -3239,7 +3239,7 @@ html:has(.vk-home) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 2rem;
+  min-inline-size: 2.75rem;
   height: 1.125rem;
   padding-inline: 0.25rem;
   border-radius: var(--radius-sm);
