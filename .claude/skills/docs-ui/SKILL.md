@@ -321,21 +321,29 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   `playground.tsx` (`#playground`, the SDK playground, see
   "SDK playground" below), `marquee.tsx`
   (`#marquee`, see "Marquee" below), `compare.tsx` (`#compare`, a band opened by a split head with
-  a lead (`landing.compare.lead`): the short table, five rows (`SHORT_ROWS`) by Verbatra,
-  Lingo.dev, Tolgee, one hosted TMS column summing up Crowdin, Lokalise and Phrase, and the manual
-  workflow (`SHORT_COLUMNS`). `lib/landing-compare.ts` holds the full table's rows and tools too,
+  a lead (`landing.compare.lead`, which also states the integrity gate: no cited source covers it
+  for the other tools, so it stays out of the table): the short table, five rows (`SHORT_ROWS`) by
+  Verbatra, Lingo.dev, one hosted TMS column summing up Crowdin, Lokalise and Phrase, and the
+  manual workflow (`SHORT_COLUMNS`, at most four, Verbatra first). `lib/landing-compare.ts` holds the full table's rows and tools too,
   and one numbered source list, `compareSource(n)`, so a footnote number names the same source on
   the landing and on `/compare`; `cellFootnote` derives each cell's number from its row and tool,
-  and the manual column cites the note `M`. A cell states the fact in text only, never a mark or a
-  rating, followed by its footnote links (`[data-footnotes]`, each at least 24px, named "Source n,
-  tool"); `TextWithRefs` keeps the cell's last word and its links in one `whitespace-nowrap` run,
+  and the manual column cites the note `M`. A short cell is a check (`.vk-compare-yes`, an
+  `aria-hidden` stroke glyph with an `sr-only` `landing.compare.marks.yes`, `--accent` in the
+  Verbatra column) only where the full table's own text plainly says yes (`SHORT_CELLS` in
+  `lib/landing-compare.ts`, pinned by `lib/landing-compare.test.ts`), with or without a few words
+  (`landing.compare.brief.<row>.<column>`), or words alone for anything partial, unknown or not
+  applicable; never a cross ("none found" is not "no") and never a rating. A `/compare` cell stays
+  text only. Every cell is followed by its footnote links (`[data-footnotes]`, each at least 24px,
+  named "Source n, tool"); `TextWithRefs` keeps the cell's last word and its links in one `whitespace-nowrap` run,
   so a link never starts a line alone. The source list itself lives only on `/compare` (`li` with
   `value={n}` and `id="source-n"`, the note `id="source-m"`): the landing passes `sourcesPage`
   (the localized `/compare`) so its links are plain `a` elements to `/compare#source-n`, a full
-  navigation that sets `:target`. Under the table, on the same 8/4 split as the head: the framing
-  sentence and the concession (what Tolgee and the hosted platforms offer that Verbatra does not,
-  with `CONCESSION_FOOTNOTES`, shared with `/compare`) on the left, "Last checked" with
-  `COMPARE_LAST_CHECKED` as a `time` and the link to `/compare` on the right. The table is a
+  navigation that sets `:target`. Under the table, in one wrapping `.vk-compare-foot` row: the
+  concession (what Tolgee and the hosted platforms offer that Verbatra does not, with
+  `CONCESSION_FOOTNOTES`, shared with `/compare`), "Last checked" with `COMPARE_LAST_CHECKED` as a
+  `time`, and the link to `/compare`; the framing sentence (`landing.compare.fairness`) shows only
+  on `/compare`. `compare.test.tsx` holds the landing's prose outside the heading, the table and
+  the scroll hint to 40 words. The table is a
   hairline table (`.vk-compare-table`, `table-layout: fixed`): a top and bottom rule, rows split by
   `--border-default`, the header row on `--compare-head` (the band surface) over a `--text-faint`
   rule, no filled header and no tinted column; the Verbatra column is marked by `.vk-compare-mark`,
@@ -363,7 +371,8 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   pill in a cell wraps inside it. A thin scrollbar thumb, here and on every other sideways
   scroller of the site (prose tables, code frames, tab rows), is `--text-faint`,
   never `--border-default`. While the
-  column is narrower than the table (56rem) a `landing.compare.scrollHint` line before it says so
+  column is narrower than the table (40rem on the landing, whose table is `min-w-[40rem]`; 100rem on
+  `/compare`) a `landing.compare.scrollHint` line before it says so
   (not wired as a description, since it is `display: none` on a wide column) and
   `.vk-compare-fade` fades the end edge on the region's scroll timeline; without scroll timelines
   the fade is dropped and the region shades its end edge with a `local` cover over a `scroll`
@@ -379,10 +388,9 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   with `/compare`:
   `app/[lang]/(home)/compare/page.tsx` under the home layout renders `compare-page.tsx`, one `h1`
   (`compare.heading`, `.vk-h2` size), the full table of `COMPARE_ROWS` by `COMPARE_TOOLS` (every
-  cell is `landing.compare.rows.<row>.<tool>`, the short table reading the same keys, so a cell
-  has one message; the one exception is the short table's hosted TMS summary,
-  `rows.<row>.hostedTms`, its own message, footnoted with exactly the Crowdin, Lokalise and Phrase
-  cells it sums up (`lib/landing-compare.test.ts`); the Verbatra providers cell lists `badgedProviderNames(locale)` with the
+  cell is `landing.compare.rows.<row>.<tool>`; the short table takes its row labels from the same
+  rows and its cells from `brief`, footnoted with the same numbers, the hosted TMS cell with
+  exactly the Crowdin, Lokalise and Phrase cells it sums up (`lib/landing-compare.test.ts`); the Verbatra providers cell lists `badgedProviderNames(locale)` with the
   `RELEASE_BADGE` pill and the formats cell counts `SUPPORTED_FORMAT_IDS`, both through
   `lib/compare-cells.ts`), the dated notes, its own concession, links to the quickstart and home,
   and all sources under an `h2`. The article's single grid track is `minmax(0,1fr)`, so no long

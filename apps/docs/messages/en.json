@@ -319,14 +319,13 @@
       }
     },
     "compare": {
-      "heading": "How Verbatra compares.",
-      "lead": "Every cell comes from the vendor's own pages and links its source; the manual column cites note M.",
-      "caption": "Ways to keep locale files translated: Verbatra, Lingo.dev, Tolgee, hosted translation management systems and a manual workflow",
+      "heading": "Next to the alternatives.",
+      "lead": "Each cell links its source. Verbatra never writes a translation that breaks a placeholder or ICU message.",
+      "caption": "Verbatra, Lingo.dev, hosted translation management systems and a manual workflow, compared on license, own keys, incremental runs, CI and MCP",
       "columns": {
         "criterion": "Criterion",
         "verbatra": "Verbatra",
         "lingo": "Lingo.dev",
-        "tolgee": "Tolgee",
         "hostedTms": "Hosted TMS (Crowdin, Lokalise, Phrase)",
         "manual": "Manual workflow"
       },
@@ -469,13 +468,42 @@
           "manual": "Whatever you copy by hand, no product"
         }
       },
+      "marks": {
+        "yes": "Yes"
+      },
+      "brief": {
+        "license": {
+          "verbatra": "MIT",
+          "lingo": "Repository only",
+          "hostedTms": "CLIs only",
+          "manual": "Not applicable"
+        },
+        "ownKeys": {
+          "lingo": "Enterprise plan or older CLI",
+          "hostedTms": "Crowdin yes, others unclear"
+        },
+        "incremental": {
+          "hostedTms": "Fills empty values",
+          "manual": "By hand"
+        },
+        "ci": {
+          "verbatra": "`check` exits 1",
+          "lingo": "GitHub App",
+          "manual": "Not applicable"
+        },
+        "mcp": {
+          "verbatra": "Local",
+          "hostedTms": "Hosted",
+          "manual": "Not applicable"
+        }
+      },
       "sourceRef": "Source {number}, {tool}",
       "noteRef": "Note M, manual workflow",
       "sources": "Sources",
       "manualNote": "The manual workflow is not a product, so it has no source: the column describes copying strings into a translation service and back by hand.",
       "lastChecked": "Last checked",
       "fairness": "Verbatra is a CLI and SDK; the other columns are translation platforms and a manual workflow, compared as ways to keep locale files translated. Each cell states what the vendor's own pages said on that date, and \"no official ... found\" means our search found none, not that the product lacks it.",
-      "concession": "Tolgee, Crowdin, Lokalise and Phrase offer in-context editing, which Verbatra does not. For review, Verbatra has the local Studio dashboard, not a hosted editor for translators.",
+      "concession": "Tolgee, Crowdin, Lokalise and Phrase offer in-context editing; Verbatra reviews locally in Studio.",
       "fullLink": "Full comparison with sources",
       "scrollHint": "Scroll the table sideways to see every column."
     },

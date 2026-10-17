@@ -7,7 +7,14 @@ import { CONTRIBUTORS } from "./contributors";
 import { HERO_DIFF_SOURCE_PANE, HERO_DIFF_TARGET_PANE } from "./hero-diff";
 import { type Locale, localizedPath } from "./i18n";
 import { NPM_INSTALL_COMMAND } from "./install-commands";
-import { COMPARE_LAST_CHECKED, COMPARE_PATH, SHORT_COLUMNS, SHORT_ROWS } from "./landing-compare";
+import {
+  COMPARE_LAST_CHECKED,
+  COMPARE_PATH,
+  SHORT_COLUMNS,
+  SHORT_ROWS,
+  shortCellHasText,
+  shortCellIsYes,
+} from "./landing-compare";
 import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "./landing-facts";
 import {
   FAQ_ANSWER_LINKS,
@@ -171,10 +178,16 @@ async function compare({ locale }: Context): Promise<string> {
       [t("columns.criterion"), ...SHORT_COLUMNS.map((column) => t(`columns.${column}`))],
       SHORT_ROWS.map((row) => [
         t(`rows.${row}.label`),
-        ...SHORT_COLUMNS.map((column) => t(`rows.${row}.${column}`)),
+        ...SHORT_COLUMNS.map((column) =>
+          [
+            shortCellIsYes(row, column) ? t("marks.yes") : null,
+            shortCellHasText(row, column) ? t(`brief.${row}.${column}`) : null,
+          ]
+            .filter((part) => part !== null)
+            .join(", "),
+        ),
       ]),
     ),
-    t("fairness"),
     t("concession"),
     `${t("lastChecked")} ${formatLandingDate(COMPARE_LAST_CHECKED, locale)}`,
     link(t("fullLink"), localizedPath(locale, COMPARE_PATH)),
