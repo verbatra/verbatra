@@ -1,0 +1,77 @@
+// @vitest-environment jsdom
+
+import { renderToStaticMarkup } from "react-dom/server";
+import { describe, expect, it } from "vitest";
+import { docsStylesheetRules } from "@/lib/stylesheet-rules";
+import { NEW_PILL_CLASS, NewAnnouncement, NewPill } from "./new-pill";
+
+function parse(html: string): Document {
+  return new DOMParser().parseFromString(html, "text/html");
+}
+
+const rules = docsStylesheetRules();
+
+const PILL_LAYERS = [
+  ".vk-pill-new::before",
+  ".vk-pill-new-ring::before",
+  ".vk-pill-new-shimmer::before",
+];
+
+describe("NewPill", () => {
+  it("reads as its text alone, its ring and shimmer hidden from assistive technology", () => {
+    const doc = parse(renderToStaticMarkup(<NewPill>New</NewPill>));
+    const pill = doc.querySelector(`.${NEW_PILL_CLASS}`);
+    expect(pill?.textContent).toBe("New");
+    const layers = Array.from(pill?.children ?? []);
+    expect(layers.map((layer) => layer.className)).toEqual([
+      "vk-pill-new-ring",
+      "vk-pill-new-shimmer",
+    ]);
+    for (const layer of layers) expect(layer.getAttribute("aria-hidden")).toBe("true");
+  });
+
+  it("wraps the pill, the text and a hidden chevron in one new-tab link", () => {
+    const doc = parse(
+      renderToStaticMarkup(
+        <NewAnnouncement href="https://example.com/notes" badge="New" newTab="(opens in a new tab)">
+          Notes
+        </NewAnnouncement>,
+      ),
+    );
+    const link = doc.querySelector("a.vk-announce");
+    expect(link?.getAttribute("href")).toBe("https://example.com/notes");
+    expect(link?.getAttribute("target")).toBe("_blank");
+    expect(link?.getAttribute("rel")).toBe("noopener noreferrer");
+    expect(link?.textContent).toBe("New Notes (opens in a new tab)");
+    expect(link?.querySelector(".vk-announce-chevron")?.getAttribute("aria-hidden")).toBe("true");
+  });
+});
+
+describe("the depth pill stylesheet", () => {
+  it("fills the pill with the two pill tokens in white uppercase type", () => {
+    const pill = rules.find((rule) => rule.selector === ".vk-pill-new" && rule.media === "");
+    expect(pill?.declarations.background).toBe(
+      "linear-gradient(90deg, var(--pill-new-start), var(--pill-new-end))",
+    );
+    expect(pill?.declarations.color).toBe("var(--pill-new-fg)");
+    expect(pill?.declarations["text-transform"]).toBe("uppercase");
+  });
+
+  it("runs every pill animation three times, only when motion is welcome", () => {
+    const animated = rules.filter(
+      (rule) => PILL_LAYERS.includes(rule.selector) && "animation" in rule.declarations,
+    );
+    expect(animated.map((rule) => rule.selector).toSorted()).toEqual(PILL_LAYERS.toSorted());
+    for (const rule of animated) {
+      expect(rule.media).toContain("prefers-reduced-motion: no-preference");
+      expect(rule.declarations.animation).toMatch(/ 4\.5s .*\b3$/);
+    }
+  });
+
+  it("drops the shimmer under reduced motion", () => {
+    const shimmer = rules.find(
+      (rule) => rule.selector === ".vk-pill-new-shimmer" && rule.media.includes("reduce"),
+    );
+    expect(shimmer?.declarations.display).toBe("none");
+  });
+});

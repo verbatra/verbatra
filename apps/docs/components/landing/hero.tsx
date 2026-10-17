@@ -1,38 +1,66 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
-import { HeroDiff } from "@/components/landing/hero-diff";
-import { HeroFacts } from "@/components/landing/hero-facts";
-import { CommandPanel } from "@/components/landing/islands";
-import { GITHUB_URL } from "@/components/landing/links";
+import type { HeroTrackView } from "@/components/landing/hero-tracks";
+import { HeroTracks } from "@/components/landing/islands";
+import { GITHUB_URL, LICENSE_URL, releaseUrl } from "@/components/landing/links";
+import { NewAnnouncement } from "@/components/new-pill";
 import Button, { buttonClasses } from "@/components/ui/button";
-import { localizedPath, toLocale } from "@/lib/i18n";
-import { withInlineCode } from "@/lib/inline-code-text";
-import { SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
-import { publishedProviders } from "@/lib/landing-faq";
+import { type Locale, localizedPath, toLocale } from "@/lib/i18n";
+import { LANDING_TRACK_IDS, LANDING_TRACKS } from "@/lib/landing-tracks";
 import { nodeVersionsLabel } from "@/lib/node-requirement";
-import { MCP_VERSION, NODE_RANGE, PACKAGE_VERSION, STUDIO_VERSION } from "@/lib/site";
+import { NODE_RANGE, PACKAGE_VERSION } from "@/lib/site";
 
 export const HERO_TITLE_ID = "hero-title";
 
+async function trackViews(locale: Locale): Promise<ReadonlyArray<HeroTrackView>> {
+  const t = await getTranslations("landing.hero.tracks");
+  return LANDING_TRACK_IDS.map((id) => {
+    const track = LANDING_TRACKS[id];
+    return {
+      id,
+      tab: t(`${id}.tab`),
+      summary: t(`${id}.summary`),
+      link: t(`${id}.link`),
+      href: localizedPath(locale, track.docsPath),
+      title: track.terminalTitle,
+      commands: track.commands,
+      result: track.result,
+      files: track.files.map(({ filename, code }) => ({ filename, code })),
+      exit:
+        track.exitCode === null
+          ? null
+          : { code: track.exitCode, label: t("exitCode", { code: track.exitCode }) },
+    };
+  });
+}
+
 export async function Hero(): Promise<ReactNode> {
   const t = await getTranslations("landing.banner");
-  const tCommand = await getTranslations("landing.hero.command");
-  const tMarks = await getTranslations("landing.showcase.tryIt.marks");
-  const tFacts = await getTranslations("landing.facts");
+  const tTracks = await getTranslations("landing.hero.tracks");
   const tOpen = await getTranslations("landing.openSource");
   const locale = toLocale(await getLocale());
+  const tracks = await trackViews(locale);
+  const requirement = t("nodeRequirement", {
+    versions: nodeVersionsLabel(NODE_RANGE, locale, (major, minimum) =>
+      t("nodeMajorFrom", { major, minimum }),
+    ),
+  });
 
   return (
     <section aria-labelledby={HERO_TITLE_ID} className="vk-banner vk-w-wide mx-auto w-full">
       <div className="vk-banner-grid">
         <div className="vk-banner-copy">
+          <NewAnnouncement
+            href={releaseUrl(PACKAGE_VERSION)}
+            badge={t("announcement.badge")}
+            newTab={tOpen("newTab")}
+          >
+            {t("announcement.text", { version: PACKAGE_VERSION })}
+          </NewAnnouncement>
           <h1 id={HERO_TITLE_ID} className="vk-banner-title">
             {t("headline")}
           </h1>
           <p className="vk-banner-lead">{t("lead")}</p>
-          <p className="vk-banner-summary">
-            {t("quotes.what")} {t("quotes.how")}
-          </p>
           <div className="vk-banner-ctas">
             <Button href={localizedPath(locale, "/docs/quickstart")} variant="primary" size="lg">
               {t("ctaPrimary")}
@@ -47,50 +75,22 @@ export async function Hero(): Promise<ReactNode> {
               <span className="sr-only"> {tOpen("newTab")}</span>
             </a>
           </div>
+          <p className="vk-banner-trust">
+            <a
+              href={LICENSE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="vk-prose-link"
+            >
+              {t("license")}
+              <span className="sr-only"> {tOpen("newTab")}</span>
+            </a>{" "}
+            <span>{requirement}</span>
+          </p>
         </div>
         <div className="vk-banner-demo">
-          <HeroDiff
-            label={withInlineCode(t("diffLabel"))}
-            marks={{ missing: tMarks("missing"), filled: tMarks("new"), lang: locale }}
-          />
-          <div className="vk-banner-install">
-            <CommandPanel
-              labels={{
-                tablist: t("installLabel"),
-                install: tCommand("install"),
-                prompt: tCommand("prompt"),
-                installHint: tCommand("installHint"),
-                promptHint: tCommand("promptHint"),
-              }}
-            />
-          </div>
+          <HeroTracks tracks={tracks} label={tTracks("label")} />
         </div>
-        <HeroFacts
-          locale={locale}
-          labels={{
-            title: tFacts("label"),
-            license: tFacts("license"),
-            providers: tFacts("providers"),
-            providersValue: tFacts("providersValue", { count: publishedProviders().length }),
-            providersLink: tFacts("providersLink"),
-            formats: tFacts("formats"),
-            formatsValue: tFacts("formatsValue", { count: SUPPORTED_FORMAT_IDS.length }),
-            requirements: tFacts("requirements"),
-            requirement: t("nodeRequirement", {
-              versions: nodeVersionsLabel(NODE_RANGE, locale, (major, minimum) =>
-                t("nodeMajorFrom", { major, minimum }),
-              ),
-            }),
-            version: tFacts("version"),
-            versionParts: tFacts("versionParts", {
-              cli: PACKAGE_VERSION,
-              studio: STUDIO_VERSION,
-              mcp: MCP_VERSION,
-            }),
-            lastUpdated: tFacts("lastUpdated"),
-            newTab: tOpen("newTab"),
-          }}
-        />
       </div>
     </section>
   );

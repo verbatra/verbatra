@@ -56,6 +56,8 @@ const TEXT_PAIRS = [
   ["--v-status-changed", "--v-void"],
   ["--v-status-unchanged", "--v-void"],
   ["--accent-fill-fg", "--accent-fill"],
+  ["--pill-new-fg", "--pill-new-start"],
+  ["--pill-new-fg", "--pill-new-end"],
   ["--color-fd-primary-foreground", "--color-fd-primary"],
 ] as const;
 

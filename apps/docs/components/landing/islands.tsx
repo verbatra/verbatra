@@ -4,14 +4,7 @@ import { type IslandOptions, intlIsland, island, preloadIslands } from "@/lib/is
 
 const BLOCK: IslandOptions = { as: "div" };
 
-export const CommandPanel = intlIsland(
-  () => import("./command-panel").then((m) => m.CommandPanel),
-  BLOCK,
-);
-export const HeroDiffMotion = island(
-  () => import("./hero-diff-motion").then((m) => m.HeroDiffMotion),
-  BLOCK,
-);
+export const HeroTracks = island(() => import("./hero-tracks").then((m) => m.HeroTracks), BLOCK);
 export const MarqueeMotion = island(
   () => import("./marquee-motion").then((m) => m.MarqueeMotion),
   BLOCK,
@@ -32,8 +25,7 @@ export const CopyButton = intlIsland(() =>
 );
 
 await preloadIslands([
-  CommandPanel,
-  HeroDiffMotion,
+  HeroTracks,
   MarqueeMotion,
   PlaygroundDemo,
   CommandRow,

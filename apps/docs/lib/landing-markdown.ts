@@ -1,22 +1,13 @@
 import { getTranslations } from "next-intl/server";
 import { availableFromCopy } from "@/components/available-from";
 import { formatLandingDate } from "@/components/landing/hero-facts";
-import { GITHUB_URL, LICENSE_URL } from "@/components/landing/links";
-import { AI_SETUP_PROMPT } from "./ai-setup-prompt";
+import { GITHUB_URL, LICENSE_URL, releaseUrl } from "@/components/landing/links";
 import { CONTRIBUTORS } from "./contributors";
-import { HERO_DIFF_SOURCE_PANE, HERO_DIFF_TARGET_PANE } from "./hero-diff";
 import { type Locale, localizedPath } from "./i18n";
 import { NPM_INSTALL_COMMAND } from "./install-commands";
 import { COMPARE_LAST_CHECKED, COMPARE_PATH, SHORT_COLUMNS, SHORT_ROWS } from "./landing-compare";
 import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "./landing-facts";
-import {
-  FAQ_ANSWER_LINKS,
-  FAQ_ASIDE_LINKS,
-  FAQ_ITEM_IDS,
-  faqHref,
-  faqValues,
-  publishedProviders,
-} from "./landing-faq";
+import { FAQ_ANSWER_LINKS, FAQ_ASIDE_LINKS, FAQ_ITEM_IDS, faqHref, faqValues } from "./landing-faq";
 import { CONTRIBUTION_STEPS, OPEN_SOURCE_LINKS } from "./landing-open-source";
 import {
   PLAYGROUND_DOCS_LINKS,
@@ -30,18 +21,13 @@ import {
 } from "./landing-playground";
 import { landingProviders, PROVIDER_DISPLAY } from "./landing-providers";
 import { LANDING_SECTIONS, type LandingSectionId } from "./landing-sections";
+import { LANDING_TRACK_IDS, LANDING_TRACKS, type LandingTrackId } from "./landing-tracks";
 import { fencedMarkdown, inlineCodeMarkdown, markupChunks } from "./llm-markdown";
 import { absoluteMarkdownHref } from "./markdown-links";
 import { nodeVersionsLabel } from "./node-requirement";
 import { pageFrontmatter } from "./page-frontmatter";
 import { RELEASE_BADGE } from "./release-badge";
-import {
-  LANDING_LAST_UPDATED,
-  MCP_VERSION,
-  NODE_RANGE,
-  PACKAGE_VERSION,
-  STUDIO_VERSION,
-} from "./site";
+import { NODE_RANGE, PACKAGE_VERSION } from "./site";
 
 type Context = { readonly locale: Locale; readonly badge: string };
 
@@ -74,42 +60,42 @@ const MARKDOWN_TAGS = {
   code: (chunks: string) => inlineCodeMarkdown(markupChunks(chunks)),
 };
 
+async function heroTrack(locale: Locale, id: LandingTrackId): Promise<string> {
+  const t = await getTranslations({ locale, namespace: "landing.hero.tracks" });
+  const track = LANDING_TRACKS[id];
+  const output =
+    track.result.length > 0
+      ? [fencedMarkdown("text", null, track.result.join("\n"))]
+      : track.files.map((file) =>
+          fencedMarkdown(file.language, `title="${file.filename}"`, file.code.trimEnd()),
+        );
+  return blocks(
+    `**${t(`${id}.tab`)}**`,
+    `${t(`${id}.summary`)} ${link(t(`${id}.link`), localizedPath(locale, track.docsPath))}`,
+    fencedMarkdown("sh", null, track.commands.join("\n")),
+    ...output,
+  );
+}
+
 async function hero({ locale }: Context): Promise<string> {
   const t = await getTranslations({ locale, namespace: "landing.banner" });
-  const tCommand = await getTranslations({ locale, namespace: "landing.hero.command" });
-  const tFacts = await getTranslations({ locale, namespace: "landing.facts" });
   const requirement = t("nodeRequirement", {
     versions: nodeVersionsLabel(NODE_RANGE, locale, (major, minimum) =>
       t("nodeMajorFrom", { major, minimum }),
     ),
   });
   const quickstart = localizedPath(locale, "/docs/quickstart");
+  const tracks = await Promise.all(LANDING_TRACK_IDS.map((id) => heroTrack(locale, id)));
   return blocks(
     `# ${t("headline")}`,
-    t("lead"),
-    `${t("quotes.what")} ${t("quotes.how")}`,
-    list([link(t("ctaPrimary"), quickstart), link(t("ctaSecondary"), GITHUB_URL)]),
-    ...[HERO_DIFF_SOURCE_PANE, HERO_DIFF_TARGET_PANE].map((pane) =>
-      fencedMarkdown(
-        "json",
-        `title="${pane.file}"`,
-        pane.lines.map((line) => line.text).join("\n"),
-      ),
+    link(
+      `${t("announcement.badge")}: ${t("announcement.text", { version: PACKAGE_VERSION })}`,
+      releaseUrl(PACKAGE_VERSION),
     ),
-    t("diffLabel"),
-    `${tCommand("install")}: ${tCommand("installHint")}`,
-    fencedMarkdown("sh", null, NPM_INSTALL_COMMAND),
-    `${tCommand("prompt")}: ${tCommand("promptHint")}`,
-    fencedMarkdown("text", null, AI_SETUP_PROMPT),
-    `## ${tFacts("label")}`,
-    list([
-      `${tFacts("license")}: ${link("MIT", LICENSE_URL)}`,
-      `${tFacts("providers")}: ${tFacts("providersValue", { count: publishedProviders().length })} (${link(tFacts("providersLink"), localizedPath(locale, "/docs/providers"))})`,
-      `${tFacts("formats")}: ${link(tFacts("formatsValue", { count: SUPPORTED_FORMAT_IDS.length }), localizedPath(locale, "/docs/formats"))}`,
-      `${tFacts("requirements")}: ${requirement}`,
-      `${tFacts("version")}: ${tFacts("versionParts", { cli: PACKAGE_VERSION, studio: STUDIO_VERSION, mcp: MCP_VERSION })}`,
-      `${tFacts("lastUpdated")}: ${formatLandingDate(LANDING_LAST_UPDATED, locale)}`,
-    ]),
+    t("lead"),
+    list([link(t("ctaPrimary"), quickstart), link(t("ctaSecondary"), GITHUB_URL)]),
+    `${link(t("license"), LICENSE_URL)} ${requirement}`,
+    ...tracks,
   );
 }
 

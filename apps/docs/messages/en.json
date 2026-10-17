@@ -62,11 +62,24 @@
       "definition": "Verbatra is an open source CLI and SDK for i18n locale files. It sends only new and changed keys to the AI or machine-translation provider you pick and fails CI while a key is missing."
     },
     "hero": {
-      "command": {
-        "install": "Install",
-        "prompt": "Prompt",
-        "installHint": "Run this in your project.",
-        "promptHint": "Paste this into your coding agent."
+      "tracks": {
+        "label": "Pick a workflow",
+        "exitCode": "exit {code}",
+        "translate": {
+          "tab": "Translate",
+          "summary": "Set up the project, preview the run, then translate only the keys your target locales are missing.",
+          "link": "Read the translate command"
+        },
+        "agents": {
+          "tab": "AI agents",
+          "summary": "Register the MCP server for the project, and your coding agent can read status and fix translations.",
+          "link": "Connect an MCP client"
+        },
+        "ci": {
+          "tab": "CI gates",
+          "summary": "`verbatra check` exits 1 when a locale is missing keys, so the pull request fails before the drift ships.",
+          "link": "Read about CI and exit codes"
+        }
       }
     },
     "showcase": {
@@ -231,31 +244,24 @@
       }
     },
     "banner": {
+      "announcement": {
+        "badge": "New",
+        "text": "What's new in v{version}"
+      },
       "headline": "Translate only what changed.",
-      "lead": "For developers who keep translations in JSON, YAML, XLIFF, ARB and other locale files.",
+      "lead": "Verbatra fills the missing keys in your locale files, gives your coding agent an MCP server, and fails CI when translations drift.",
       "ctaPrimary": "Get started",
       "ctaSecondary": "Star on GitHub",
-      "installLabel": "Install the CLI",
+      "license": "MIT licensed and open source.",
       "nodeRequirement": "Requires Node.js {versions}",
-      "nodeMajorFrom": "{major} ({minimum} or later)",
-      "quotes": {
-        "what": "Verbatra is an open source CLI and SDK that keeps i18n locale files in sync.",
-        "how": "Verbatra finds keys that are missing or changed in your target locales and sends only those to the AI or machine-translation provider you choose."
-      },
-      "diffLabel": "The German file lacks the two checkout keys of the English source. `verbatra translate` sends only those two keys to your provider and fills them in."
+      "nodeMajorFrom": "{major} ({minimum} or later)"
     },
     "facts": {
-      "label": "Verbatra at a glance",
-      "license": "License",
       "providers": "Providers",
       "providersValue": "{count} providers",
-      "providersLink": "Set up a provider",
       "formats": "Formats",
       "formatsValue": "{count} file formats",
-      "requirements": "Requirements",
-      "version": "Current version",
-      "versionParts": "CLI and SDK v{cli}, Studio v{studio}, MCP server v{mcp}",
-      "lastUpdated": "Last updated"
+      "versionParts": "CLI and SDK v{cli}, Studio v{studio}, MCP server v{mcp}"
     },
     "marquee": {
       "heading": "Your provider. Your file format.",

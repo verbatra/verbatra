@@ -142,8 +142,8 @@ never the arbitrary-value spelling `text-[color:var(--text-muted)]` (`lib/theme.
 `--border-accent` (the accent mixed 45 percent into `--border-default`) is the glow-tinted border
 of a flat panel or a copy button on hover; it is the one token for that mix. In
 `components/` and `app/`, only two brand primitives may still be named directly, each in its one
-documented role: `--v-void` (void code surfaces), `--v-status-*` (badge tones and the line
-marks of the hero diff). `lib/theme.test.ts` fails on any
+documented role: `--v-void` (void code surfaces), `--v-status-*` (badge tones and the
+failing exit chip of the hero tracks). `lib/theme.test.ts` fails on any
 other `fd-*` class, `var(--color-fd-*)` or `--v-*` reference there.
 
 Scales are fixed and narrow, deliberately:
@@ -186,7 +186,7 @@ Scales are fixed and narrow, deliberately:
   and `--section-md` padding inside) around the usual `.vk-gutter` column. Every page/band edge is
   therefore one `--section-md` step of content gap on each side of its hairline: a page section
   opens with `--section-md` (its rhythm) and ends at its content, the band margin sets the space
-  above the next hairline, the hero ends at its facts (no bottom padding), and the footer opens with
+  above the next hairline, the hero ends at its tracks (no bottom padding), and the footer opens with
   `--section-md` under its hairline like a band. The one larger step is `--section-closer` above the
   closing section. Page and band strictly
   alternate, so no two bands touch: hero (page), marquee (band), SDK playground (page),
@@ -258,7 +258,7 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   selection and focus with the arrow keys (wrapping), Home and End; `tabPanelProps(prefix, id,
   active)` gives a panel its `id`, `role`, `aria-labelledby`, `data-active` and `inert`. Its
   `variant: "segmented"` is the `.vk-segmented` switch (tabs rounded by `--radius-segment`, 7px)
-  that the hero command panel uses, never a hand-made copy. The default `underline` variant serves every other tab row;
+  that the hero track switcher uses, never a hand-made copy. The default `underline` variant serves every other tab row;
   there is no second tab primitive.
   `Button` takes `variant: "primary" | "secondary" | "outline" | "ghost"` (`secondary` and
   `outline` both draw a `--text-faint` border that holds 3:1 on its own; `outline` also shows a
@@ -292,32 +292,10 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, marquee, playground,
   compare, faq, openSource, finalCta), which the home page maps
   over and `lib/landing-sections.test.ts` pins; add or move a section there, not by hand in
-  `page.tsx`. The files: `hero.tsx` (the `h1`, the lead, the two quotable `landing.banner.quotes`
-  sentences in `.vk-banner-summary`, two buttons, the locale diff with the `CommandPanel` install
-  box under it, and the facts block; no terminal), `hero-diff.tsx` (`messages/en.json` beside
-  `messages/de.json` from `lib/hero-diff.ts`, both written by the sdk's real next-intl adapter into
-  `lib/hero-diff.generated.json` by `scripts/sync-format-samples.mjs` from `lib/hero-diff-seed.mjs`,
-  git-ignored like the format samples; the two keys `verbatra check` reports missing are
-  `.vk-hero-diff-line` rows marked `new`, each value in `.vk-hero-diff-value`, whose mark never
-  wraps (the line scrolls sideways instead, and `.vk-hero-diff-code` is `max-content` wide so the
-  tint runs under the whole line); `.vk-hero-diff` is an inline-size container and its two panes
-  sit side by side only from a 40rem container, so they stack in the 7/12 demo column at 1024
-  and sit side by side from about 1280, with no value clipped at either; each pane's code
-  carries its file's `lang`, `en` and `de`, and the mark words the page's; the outer `figure` has
-  no `aria-label`, its visible `.vk-hero-diff-caption` figcaption under the panes reads
-  `landing.banner.diffLabel` in `--text-xs` `--text-muted`, its backticked `verbatra translate` in
-  code type through `withInlineCode`), `hero-facts.tsx`
-  (`.vk-banner-facts`: a visually hidden `h2` over a `dl.vk-facts` with no `aria-labelledby`, which
-  a role-less `dl` may not take, every fact in text: license, the provider count
-  `MACHINE_PROVIDER_IDS.length` in digits (`landing.facts.providersValue`) over the
-  `landing.facts.providersLink` link to `/docs/providers`, the format count
-  `SUPPORTED_FORMAT_IDS.length` linking `/docs/formats`, the Node.js range, the version line
-  `landing.facts.versionParts` naming each package ("CLI and SDK v{cli}, Studio v{studio}, MCP
-  server v{mcp}"), and `LANDING_LAST_UPDATED` as a `time`; no provider list, no pill and no
-  install row, since the command panel in the demo column shows the command; each `.vk-fact` is
-  `align-content: start`, so a label stays on the first line of its value in a multi-column row
-  (two from 40rem, three from 64rem, where the facts run across the whole hero under both
-  columns, six from 80rem); the copy column opens with the `h1`, with no eyebrow line above it),
+  `page.tsx`. The files: `hero.tsx` (the `NewAnnouncement` depth pill linking the current cli
+  release notes, the `h1`, the lead, two buttons, the trust line and the `HeroTracks` island; no
+  install box, no copy button, no facts block and no diff), `hero-tracks.tsx` (see "Hero" under
+  "Landing motion"), `hero-facts.tsx` (only `formatLandingDate`, which the comparison reads),
   `playground.tsx` (`#playground`, the SDK playground, see
   "SDK playground" below), `marquee.tsx`
   (`#marquee`, see "Marquee" below), `compare.tsx` (`#compare`, a band opened by a split head with
@@ -546,23 +524,15 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   `CHECKOUT_ACTION_REF`, `VERBATRA_ACTION_REF` and `PACKAGE_VERSION`, the `check` exit codes of
   `checkExitCode`, and the `.mcp.json` block and `claude mcp add` line of the MCP client guide; the
   agents track has no recorded output, so its result is empty),
-  `CommandRow` (`components/command-row.tsx`: the hero
-  panel's npm install wraps under 30rem through `wrap="narrow"`, `wrap="always"` wraps a command at every width; elsewhere a `CommandRow` scrolls
+  `CommandRow` (`components/command-row.tsx`: the closing
+  section's npm install wraps under 30rem through `wrap="narrow"`, `wrap="always"` wraps a command at every width; elsewhere a `CommandRow` scrolls
   sideways inside `.vk-edge-fade`: a mask, not a painted background, so it stays see-through on any
   surface, and the end fade shows only while the command overflows, driven by a scroll timeline),
   `AiSetupPrompt` (`components/ai-setup-prompt.tsx`: the whole prompt, wrapped, under a `.vk-label`
   caption that shares its row with the prompt's small Copy button; its URL breaks only after a path
   `/`, through `breakUrlsAtSlashes` in `lib/word-breaks.tsx`) and `PromptCopyButton` in the same
   file (the large "Start with a prompt" button with the `.vk-prompt-pop` preview, used only by the
-  docs home agent tip), `command-panel.tsx` (the hero's install island, under the locale diff:
-  a `.vk-command-panel` whose segmented "Install | Prompt" `TabList` switches between the
-  `CommandRow` for `NPM_INSTALL_COMMAND` (counted as `copy-install-command`) and the whole
-  `AI_SETUP_PROMPT`; both panes are one `.vk-command-panel-pane` shape, a muted hint row with its
-  `CopyButton` on the right, then the content at full width, top-aligned, and the prompt keeps each
-  `npx` run and each long flag with its value on one line (`keepPackageRunsWhole`); the closed pane
-  is `inert` and hidden at every width, so the install pane carries no empty height under its
-  command and the panel resizes on a switch, and a switch counts `select-tab` with
-  `location: hero`). The footer draws no pattern and no watermark, and neither does the hero: the landing
+  docs home agent tip). The footer draws no pattern and no watermark, and neither does the hero: the landing
   has no background pattern. A new section composes `Section` plus
   `SectionHead`; it does not re-derive page padding or heading rhythm. `Section` takes
   `labelledBy`, the id of its `h2`, and renders it as `aria-labelledby`, so every landing section
@@ -675,7 +645,8 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
 
 ## Landing motion
 
-The landing moves little, on purpose: the hero diff fills its two missing values once, the
+The landing moves little, on purpose: the hero types a track's commands when the reader
+switches tracks, the depth pill glints three times, the
 provider and format marquee loops until it is paused, the SDK playground scrambles its results
 once per Translate press, and nothing else on the page fades in.
 There is no scroll-driven motion, no pinning and no parallax (the SDK playground's snippet column
@@ -695,21 +666,38 @@ is only `position: sticky` from 64rem, which moves nothing on its own), and no s
   `n * --reveal-stagger`, capped at `--reveal-delay-max`. No landing section carries a mark
   today: the system stays for a demo artifact that earns one. No section heading reveals
   (`SectionHead` takes no reveal prop), and the hero, marquee, SDK playground, comparison,
-  contribution, FAQ and closing panel never take a reveal; the hero diff's fill and the marquee
+  contribution, FAQ and closing panel never take a reveal; the hero's typing and the marquee
   loop below are their own motions, not reveals. Elements keep their box while hidden, so a reveal never moves layout.
   `reveal-marks.test.tsx` pins that no section file carries a mark and `motion-root.test.tsx` the observer and
   the stylesheet guards.
 - **Hero.** The hero is never revealed and the `h1` never moves (it is the largest paint); no
-  load animation runs in it. The locale diff is server-rendered filled
-  (`data-diff-state="filled"`); the `HeroDiffMotion` island sets `missing` only after hydration,
-  only while the diff is out of view and never under reduced motion, then fills it once when it
-  scrolls in: once `HERO_DIFF_FILL_RATIO` of it shows, or its visible part covers
-  `HERO_DIFF_FILL_VIEWPORT_SHARE` of the viewport (a short screen, where the whole diff never fits),
-  or `HERO_DIFF_FILL_TIMEOUT_MS` after any part of it entered view. The values fade back in
-  (`opacity`, `--duration-slow`, one `--reveal-stagger` apart) and the `aria-hidden` "missing"
-  mark swaps for "new". Focus inside the diff shows the values at once (`:focus-within`), so a
-  keyboard user never meets a hidden value. A diff already in view at hydration never moves.
-  `e2e/hero.spec.ts` drives the fill at 375 by 480, 320 by 256 and 568 by 320.
+  layout animation runs in it on load. The only thing that moves on load is the announcement's
+  depth pill (see "Depth pill" under "The docs surface"), whose glow, ring and shimmer run three
+  times and stop, and never under reduced motion; `motion-root.test.tsx` still fails on any
+  animated `.vk-banner` rule. The `HeroTracks` island (`components/landing/hero-tracks.tsx`, a
+  plain `island()` fed every string as a prop) renders the three `LANDING_TRACKS` of
+  `lib/landing-tracks.ts` (`LANDING_TRACK_IDS` order: translate, AI agents, CI gates) behind one
+  segmented `TabList` (`idPrefix` `hero-track`, named by `landing.hero.tracks.label`: roving
+  tabindex, arrow keys wrapping, Home and End, `aria-selected`, `aria-controls`). Each panel is a
+  `.vk-track-terminal` on `--v-void` (a bar with the track's `terminalTitle` and, when the track
+  has an exit code, an `exit n` chip, `--v-status-changed` when it is not 0), its `lang="en"` body
+  with every command after an `aria-hidden` `$` and then the recorded result lines, or, for the
+  agents track, whose result is empty, its `.mcp.json` file instead of a transcript nobody
+  recorded; under the frame one `landing.hero.tracks.<id>.summary` sentence and the link to the
+  track's `docsPath`. No command, flag or line is typed by hand: all of it is pinned by
+  `lib/landing-tracks.test.ts`. The panels share one grid cell and the closed ones are
+  `visibility: hidden` and `inert`, so the tallest track sets the height and a switch moves
+  nothing. The server HTML (and a page without JavaScript) shows the translate track in its final
+  state, and hydration types nothing. A switch, only under `prefers-reduced-motion:
+  no-preference`, types the commands into an `aria-hidden` `.vk-track-typed` layer laid over the
+  real text (which stays in the DOM at `opacity: 0`, so assistive technology always reads the full
+  command), `TYPE_CHAR_MS` per character with `TYPE_COMMAND_PAUSE_MS` after each command, then
+  fades the result lines in `TYPE_LINE_MS` apart (`opacity`, `--duration-base`); a timer chain,
+  no GSAP (`hero.test.tsx` fails on a static GSAP import in the hero or its island). Under reduced
+  motion a switch shows the final state at once. `hero-tracks.test.tsx` pins the keyboard, the
+  timeline and the reduced-motion path; `e2e/hero.spec.ts` pins them in a browser, with the
+  server HTML without JavaScript, the fixed height on a switch, the finite pill animations and
+  320px and 375px without a sideways scroll.
 - **Marquee.** The one looping motion on the page, a CSS keyframe with no JavaScript animation:
   it runs only in the state described under "Marquee" above, pauses through its button, hover
   and focus inside a row, and is static otherwise (one sideways-scrolling line where motion may
@@ -819,7 +807,7 @@ is only `position: sticky` from 64rem, which moves nothing on its own), and no s
   `display: none` under 768px. `lib/layout.shared.test.tsx` pins it.
 - **Budget.** Layout shift 0 over a full scroll at 390, 1440 and a 844 by 390 landscape phone; no
   scroll listener; at most one reveal chain per section, and only on a demo artifact (the hero
-  diff fill and the marquee loop are not reveals); no entrance over 16px or 600ms.
+  typing and the marquee loop are not reveals); no entrance over 16px or 600ms.
 
 ## Keep the client payload small
 
@@ -904,8 +892,8 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
   stack"): the island chunk itself (`playground-demo.tsx`) imports no GSAP, so it is in neither the
   first load nor the island batch, and `playground.test.tsx` fails on a static import.
 - Content only needed after an interaction is loaded with a dynamic `import()` on hover, focus,
-  or click. The AI setup prompt is not: it is short, and its text ships in the page, in the hero
-  command panel's Prompt tab and the `PromptCopyButton` preview.
+  or click. The AI setup prompt is not: it is short, and its text ships in the page, in the
+  `PromptCopyButton` preview.
 
 ## Fumadocs UI strings
 
@@ -990,15 +978,16 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
 
 - **Solid white display headlines.** The landing hero (`hero.tsx`) and the docs home header both
   set a solid `--text-strong` headline. The hero sits straight on the void page, left-aligned, with no
-  backdrop pattern and no glow: `.vk-banner-grid` is one column (copy, demo,
-  facts), and from 64rem an asymmetric 5fr / 7fr split, the copy (`.vk-banner-copy`: the `h1`
-  `.vk-banner-title`, the `.vk-banner-lead`, the `.vk-banner-summary` and `.vk-banner-ctas` with
-  Get started (`/docs/quickstart`) and Star on GitHub) in the narrower column beside the wider
-  demo (`.vk-banner-demo`: the locale diff, the dominant visual, its panes side by side once the
-  column reaches 40rem, its caption, then `.vk-banner-install` holding `CommandPanel` at the
-  column's full width), and the facts block (`.vk-banner-facts`) as a full-width row under both,
-  its values inside a 1440 by 900 first viewport. The hero draws no terminal. `hero.test.tsx` pins
-  the order and the absent backdrop and terminal, `e2e/hero.spec.ts` the columns and the fold. The home social image (`HomeOgFrame` in `lib/og-image.tsx`, served
+  backdrop pattern and no glow: `.vk-banner-grid` is one column (copy, then tracks), and from
+  64rem an asymmetric 5fr / 7fr split, top-aligned, the copy (`.vk-banner-copy`: the
+  `.vk-announce` depth pill link, the `h1` `.vk-banner-title` (at most eight words, one sentence),
+  the `.vk-banner-lead` subline (at most 25 words), `.vk-banner-ctas` with Get started
+  (`/docs/quickstart`) and Star on GitHub, then `.vk-banner-trust`, one muted line: the license
+  link `landing.banner.license` and the Node.js range) in the narrower column beside the wider
+  demo (`.vk-banner-demo`: the `HeroTracks` switcher and terminal). There is no facts block, no
+  install box and no prompt in the hero: the closing section owns the install command and the
+  marquee the counts. `hero.test.tsx` pins the order, the absent install box, facts, backdrop and
+  glow, and `e2e/hero.spec.ts` the columns and the fold. The home social image (`HomeOgFrame` in `lib/og-image.tsx`, served
   by `app/[lang]/(home)/home-og/route.tsx`) is a monochrome and violet card on `OG_PALETTE.void`:
   the wordmark and host, the localized `landing.banner.headline`, then a few real terminal lines
   (`HERO_OG_LINES` in `lib/hero-terminal.ts`, every line taken from the recorded transcript, the prompt
@@ -1074,8 +1063,8 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   writes from the git history of `content/docs` before dev, build, typecheck and test. Without a
   full history (a shallow clone, or the Docker build, whose context excludes `.git`) it keeps a
   snapshot written earlier or writes an empty one, and an empty one shows no outdated notice.
-- **Pills**: `.vk-pill` is the one badge shape: an outline pill in `--accent` text with the
-  glow-tinted border, mono, `--text-xs`, no fill. The sidebar NEW badge
+- **Pills**: `.vk-pill` is the badge shape for everything except a "new" announcement: an outline
+  pill in `--accent` text with the glow-tinted border, mono, `--text-xs`, no fill. The sidebar NEW badge
   (`components/new-badge.tsx`; the landing footer carries none, `footer.test.tsx` pins it) adds `.vk-pill-status` (smaller, uppercase) and is hidden in the
   breadcrumb (`.vk-breadcrumb`, set on `DocsPage`), which shares the sidebar's tree; the
   `<AvailableFrom>` badge adds `.vk-available-from`, which sits after the heading text when it is
@@ -1092,7 +1081,26 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   sit in the MDX at all is set by "Badge placement" in the "Docs budget" section of
   `.claude/rules/docs.md`, and `lib/docs-badge-placement.test.ts` enforces it. A heading whose
   key a table's "Since" column already dates (the key table on `config-file`) carries no badge.
-  Do not bring back a filled purple pill.
+- **Depth pill**: the one filled pill, and only for a "new" announcement, because the product
+  owner asked for an announcement badge that reads as new at a glance (modelled on the
+  `app-new-badge` of docs.nestjs.com). `NewPill` (`components/new-pill.tsx`, `.vk-pill-new`) is a
+  5px-radius chip, 2px by 6px, on a 90deg gradient from `--pill-new-start` (`--accent-fill`) to
+  `--pill-new-end` (a darker violet, its own value in each theme), in `--pill-new-fg` (white)
+  10.5px, weight 700, uppercase, 0.04em tracking. `lib/theme.test.ts` holds `--pill-new-fg` at
+  4.5:1 on both stops in both themes. Its depth comes from four layers: a `::before` glow
+  (`--pill-new-glow`, the start stop at 55 percent), a static `::after` rim (a 1px masked border,
+  white at 60 percent on the 165deg diagonal ends), an `aria-hidden` `.vk-pill-new-ring` (a 1px
+  masked rim over a conic highlight on a 200 percent square that rotates) and an `aria-hidden`
+  `.vk-pill-new-shimmer` (a 40 percent skewed band that sweeps once in the first 32 percent of the
+  loop). The glow, ring and shimmer each run 4.5s three times and stop: every animation is finite.
+  Under `prefers-reduced-motion: reduce` none of them runs and the shimmer is `display: none`;
+  under `forced-colors` the layers drop and the chip gets a `CanvasText` border.
+  `NewAnnouncement` in the same file is its wide form: the depth pill inside a `.vk-announce`
+  link, a `--radius-full` outline with a `--text-faint` boundary (3:1 like every control), the
+  announcement text and a chevron that moves 2px on hover, with the `sr-only` new-tab note. The
+  hero opens with it. Anything that is not a "new" announcement (a version, a status, a dated
+  feature) stays the `.vk-pill` outline; never put the depth pill in a table, the sidebar or a
+  heading, and never use more than one on a page.
 - **Prose measure**: paragraphs, lists, block quotes and callouts in `#nd-page` stop at
   `--width-measure` (about 72 characters of body text); tables and code blocks run the full
   column, and so does a `not-prose` element and everything inside it.
@@ -1115,7 +1123,7 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   the page. A `` ```verbatra-run `` fence (`RUN_FENCE_LANG`) holds only the arguments (`<command>`)
   and becomes the same tabs with the binary each manager runs (`npx @verbatra/cli`, `pnpm verbatra`,
   `yarn verbatra`, `bun run verbatra`), sharing the remembered choice; `cli/index` uses it. The
-  landing hero's command panel takes `NPM_INSTALL_COMMAND` from `lib/install-commands.ts` as plain
+  landing's closing section takes `NPM_INSTALL_COMMAND` from `lib/install-commands.ts` as plain
   text (no link inside the command) and shows no package-manager tabs; the docs home has no install
   box (its Quickstart tab and agent tip lead there).
 - **Output blocks**: a fence flagged `output` (`` ```text output ``) is what a command prints, not
