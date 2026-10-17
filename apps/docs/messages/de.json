@@ -1,12 +1,7 @@
 {
   "landing": {
     "meta": {
-      "title": "Verbatra: die i18n-CLI, die nur geänderte Keys übersetzt",
-      "ogTitle": "Verbatra: übersetze nur, was sich geändert hat",
-      "description": "Verbatra, eine Open-Source-CLI mit SDK für i18n, findet fehlende und geänderte Keys in deinen Locale-Dateien und übersetzt nur diese mit deinem eigenen API-Key.",
-      "ogDescription": "Übersetze nur die i18n-Keys, die sich geändert haben, und lass die CI scheitern, solange einer fehlt.",
-      "ogImageAlt": "Verbatra: Übersetze nur, was sich geändert hat, über einem check-Lauf, der zwei fehlende Keys pro Locale findet, und einem translate-Lauf, der nur diese schickt.",
-      "definition": "Verbatra ist eine Open-Source-CLI und ein SDK für i18n-Locale-Dateien. Es schickt nur neue und geänderte Keys an den Provider deiner Wahl (KI oder maschinelle Übersetzung) und lässt die CI scheitern, solange ein Key fehlt."
+      "ogDescription": "Übersetze nur die i18n-Keys, die sich geändert haben, und lass die CI scheitern, solange einer fehlt."
     },
     "hero": {
       "command": {
@@ -32,55 +27,15 @@
     },
     "faq": {
       "heading": "Häufig gestellte Fragen.",
-      "lead": "Kurze Antworten zu Kosten, Keys, deinen Daten und dem, was heute ausgeliefert wird, jeweils mit der Doku-Seite, die tiefer geht.",
-      "docs": {
-        "label": "In der Doku",
-        "quickstart": "Schnellstart",
-        "keys": "Provider-Keys",
-        "dataHandling": "Datenverarbeitung",
-        "safety": "Übersetzungssicherheit",
-        "compare": "Vollständiger Vergleich"
-      },
       "items": {
-        "incremental": {
-          "question": "Wie vermeidet Verbatra, bei jedem Lauf alles neu zu übersetzen?",
-          "answer": "Es übersetzt nur, was sich geändert hat. Eine committete <link>Lock-Datei</link> hält fest, was bereits übersetzt wurde, sodass jeder Lauf nur die neuen und geänderten Keys an deinen Provider schickt und den Rest in Ruhe lässt."
-        },
         "providers": {
-          "question": "Welche Übersetzungs-Provider kann ich verwenden?",
-          "answer": "Ein LLM oder eine Engine für maschinelle Übersetzung, gehostet oder auf deinem eigenen Server, oder <code>none</code>, wenn nur Menschen übersetzen. Du wählst einen über seine ID im <code>provider</code>-Block deiner Konfiguration und wechselst, indem du diesen Block neu schreibst; die <link>Provider-Seite</link> listet jeden mit seinen Optionen."
-        },
-        "npm": {
-          "question": "Welche Provider gibt es heute auf npm?",
-          "answer": "Verbatra {version} bringt {providers} mit.{pending, select, yes { Version {next} ergänzt {upcoming}.} other {}} Die <link>Provider-Seite</link> beschreibt jeden einzelnen."
-        },
-        "formats": {
-          "question": "Welche Formate unterstützt Verbatra?",
-          "answer": "Die Dateiformate, die dein Stack schon nutzt, direkt in deinen Dateien gelesen und geschrieben. Das sind {formats}, ohne Verbatra-eigenes Format, zu dem du migrieren müsstest; die <link>Formate-Seite</link> zeigt, wie jedes gelesen und geschrieben wird."
-        },
-        "ci": {
-          "question": "Kann ich Verbatra in der CI ausführen?",
-          "answer": "Ja. <code>verbatra check</code> ruft keinen Provider auf und endet mit Exit-Code 1, solange einer Locale Keys fehlen oder Keys veraltet sind, und sichert so einen Pull Request ohne API-Key ab. Die <link>GitHub Action</link> führt <code>check</code>, <code>diff</code> oder <code>translate</code> aus und meldet das Ergebnis als Annotationen und Job-Zusammenfassung."
+          "question": "Welche Übersetzungs-Provider kann ich verwenden?"
         },
         "keys": {
-          "question": "Wo landen meine API-Keys?",
-          "answer": "In Umgebungsvariablen, nie in der Konfigurationsdatei. Die CLI liest sie aus deiner Shell, aus <code>.env.local</code> oder <code>.env</code>, und eine Fehlermeldung nennt die fehlende Variable, ohne einen API-Key auszugeben; <link>Provider-Keys</link> listet die Variable jedes Providers."
-        },
-        "privacy": {
-          "question": "Schickt Verbatra meine Strings irgendwohin?",
-          "answer": "Nur an den Übersetzungs-Provider, den du konfigurierst, und nur, wenn ein Befehl übersetzt. Die CLI, das SDK, Studio und der MCP-Server haben keine Telemetrie, keinen Update-Check und keinen Verbatra-Server, den sie kontaktieren, und die <link>Seite zur Datenverarbeitung</link> listet, was jeder Provider bekommt, und verlinkt seine Aufbewahrungsbedingungen."
-        },
-        "cost": {
-          "question": "Was kostet Verbatra?",
-          "answer": "Nichts: Verbatra ist kostenlos und Open Source unter der <license>MIT-Lizenz</license>. Du zahlst nur die Nutzung deines Providers für die geänderten Keys, und <link>Kosten abschätzen</link> zeigt dir den Umfang eines Laufs, bevor er etwas sendet."
+          "question": "Wo landen meine API-Keys?"
         },
         "studio": {
-          "question": "Ist Verbatra Studio ein gehosteter Dienst?",
-          "answer": "Nein. <code>verbatra studio</code> stellt das Dashboard auf deinem eigenen Rechner bereit, in deinem Projekt, und ruft keinen Provider auf, außer du <link>erlaubst Ausgaben</link> beim Start."
-        },
-        "playground": {
-          "question": "Ist der Playground live?",
-          "answer": "Nein. Er spielt Übersetzungen ab, die in echten Läufen des Verbatra SDK mit {provider} aufgezeichnet wurden; der Maintainer erzeugt sie mit einem Skript und committet sie mit der Website, also schickt ein Klick auf Übersetzen nichts an einen Provider. Der <link>SDK-Schnellstart</link> führt denselben Aufruf mit deinen eigenen Dateien aus."
+          "question": "Ist Verbatra Studio ein gehosteter Dienst?"
         }
       }
     },
@@ -94,20 +49,7 @@
           "sdk": "SDK",
           "studio": "Studio",
           "mcpServer": "MCP-Server",
-          "githubAction": "GitHub Action",
-          "howItWorks": "Wie es funktioniert",
-          "providers": "Provider",
-          "formats": "Formate",
-          "lockFile": "Die Lock-Datei",
-          "configFile": "Konfigurationsdatei",
-          "compare": "Vergleich",
-          "llmsIndex": "llms.txt (Index)",
-          "llmsFull": "llms-full.txt (vollständiger Text)",
-          "aiTxt": "ai.txt (Nutzungsrichtlinie)"
-        },
-        "packages": {
-          "title": "Pakete",
-          "releases": "Release Notes"
+          "githubAction": "GitHub Action"
         },
         "community": {
           "title": "Community",
@@ -125,10 +67,7 @@
         }
       },
       "legalLicense": "Open Source unter der MIT-Lizenz",
-      "legalCopyright": "© 2026 Mario Kreitz",
-      "githubAria": "Verbatra auf GitHub",
-      "npmAria": "Verbatra auf npm",
-      "language": "Sprache"
+      "legalCopyright": "© 2026 Mario Kreitz"
     },
     "brand": {
       "vmarkAlt": "verbatra"
@@ -177,7 +116,6 @@
           "refused": "abgelehnt"
         },
         "result": {
-          "seed": "Alles ist synchron: Verbatra würde 0 Keys übersetzen.",
           "summary": "{written, plural, =0 {Ein echter Lauf würde nichts schreiben} one {Ein echter Lauf würde # Übersetzung schreiben und ihren Lock-Hash aktualisieren} other {Ein echter Lauf würde # Übersetzungen schreiben und ihre Lock-Hashes aktualisieren}}{withheld, select, yes { und die Antwort zurückhalten, die einen Platzhalter beschädigt} other {}}{orphaned, select, yes { und den entfernten Key bis `--prune` in de.json lassen} other {}}.",
           "savings": "{sent, plural, one {# String gesendet} other {# Strings gesendet}}, wo ein komplettes Neuübersetzen {total} senden würde.",
           "outputLabel": "Was verbatra translate ausgibt",
@@ -202,118 +140,10 @@
     },
     "banner": {
       "headline": "Übersetze nur, was sich geändert hat.",
-      "lead": "Für Entwickler, die ihre Übersetzungen in JSON, YAML, XLIFF, ARB und anderen Locale-Dateien pflegen.",
       "ctaPrimary": "Loslegen",
-      "ctaSecondary": "Gib uns einen Stern auf GitHub",
       "installLabel": "Die CLI installieren",
       "nodeRequirement": "Benötigt Node.js {versions}",
-      "nodeMajorFrom": "{major} (ab {minimum})",
-      "quotes": {
-        "what": "Verbatra ist eine Open-Source-CLI und ein SDK, die i18n-Locale-Dateien synchron halten.",
-        "how": "Verbatra findet Keys, die in deinen Ziel-Locales fehlen oder sich geändert haben, und schickt nur diese an den Provider deiner Wahl (KI oder maschinelle Übersetzung)."
-      },
-      "diffLabel": "Der deutschen Datei fehlen die zwei checkout-Keys der englischen Quelle. `verbatra translate` schickt nur diese zwei Keys an deinen Provider und ergänzt sie."
-    },
-    "facts": {
-      "label": "Verbatra auf einen Blick",
-      "license": "Lizenz",
-      "providers": "Provider",
-      "providersValue": "{count} Provider",
-      "providersLink": "Provider einrichten",
-      "formats": "Formate",
-      "formatsValue": "{count} Dateiformate",
-      "requirements": "Voraussetzungen",
-      "version": "Aktuelle Version",
-      "versionParts": "CLI und SDK v{cli}, Studio v{studio}, MCP-Server v{mcp}",
-      "lastUpdated": "Zuletzt aktualisiert"
-    },
-    "marquee": {
-      "heading": "Dein Provider. Dein Dateiformat.",
-      "lead": "Für einen Providerwechsel änderst du einen Block in der Konfigurationsdatei. Deine Locale-Dateien bleiben, wo sie sind, im Format, das sie schon haben.",
-      "pause": "Animation anhalten",
-      "providers": "Provider",
-      "formats": "Dateiformate",
-      "allProviders": "Alle Provider",
-      "allFormats": "Alle Formate"
-    },
-    "playground": {
-      "heading": "Probier das SDK aus",
-      "lead": "Wähle einen Quelltext und die Sprachen, in die er übersetzt werden soll, und drück dann auf Übersetzen. Die Ergebnisse stammen aus einem echten Lauf des Verbatra SDK, der mit dieser Seite ausgeliefert wird. Dein Klick schickt also nichts an einen Provider.",
-      "items": "Quelltext",
-      "languages": "Zielsprachen",
-      "translate": "Übersetzen",
-      "results": "Ergebnis",
-      "source": "Quelle",
-      "noLanguages": "Wähle mindestens eine Zielsprache.",
-      "notSelected": "Nicht ausgewählt",
-      "stale": "Drück auf Übersetzen, um zu aktualisieren",
-      "copy": "Code kopieren",
-      "label": "Vorab mit dem Verbatra SDK und Gemini erzeugt, nicht live.",
-      "metadata": {
-        "label": "So wurden diese Ergebnisse erzeugt",
-        "provider": "Provider",
-        "model": "Modell",
-        "generated": "Erzeugt am"
-      },
-      "languageNames": {
-        "de": "Deutsch",
-        "es": "Spanisch",
-        "fr": "Französisch",
-        "ja": "Japanisch"
-      },
-      "table": {
-        "caption": "Alle vorab erzeugten Ergebnisse, eine Zeile pro Quelltext",
-        "source": "Quelle (Englisch)"
-      },
-      "links": {
-        "label": "Weiterlesen",
-        "quickstart": "SDK-Schnellstart",
-        "reference": "SDK-Referenz",
-        "providers": "Provider"
-      }
-    },
-    "flow": {
-      "heading": "So greifen die Teile ineinander.",
-      "lead": "Eine Konfigurationsdatei trägt eine Änderung von deiner Quell-Locale über CLI, CI und Review bis zum Coding-Agenten in deinem Editor.",
-      "copy": "Code kopieren",
-      "items": {
-        "source": {
-          "title": "Bei deiner Quell-Locale starten",
-          "body": "Verbatra liest die Locale-Dateien, die du schon in deinem Repository pflegst, im eigenen Format deines Frameworks. Die Quell-Locale bleibt die eine Datei, die du von Hand bearbeitest.",
-          "link": "Unterstützte Formate"
-        },
-        "cli": {
-          "title": "Mit der CLI synchronisieren",
-          "body": "`init` schreibt die Konfiguration, und ein Probelauf listet die Keys, die ein Lauf senden würde, ohne einen Provider aufzurufen. Danach füllt `translate` jeden fehlenden und geänderten Key in jeder Ziel-Locale.",
-          "link": "Der Befehl translate"
-        },
-        "incremental": {
-          "title": "Nur übersetzen, was sich geändert hat",
-          "body": "Die Lock-Datei speichert für jeden übersetzten Key einen Hash, also überspringt ein Lauf Erledigtes und schickt nur neue oder bearbeitete Keys. Das SDK führt dieselbe inkrementelle Schleife aus deinem eigenen Skript aus.",
-          "link": "SDK-Schnellstart",
-          "demo": "Wähle unten eine Änderung an einer Locale-Datei. Verbatras eigener Diff- und Hash-Code zeigt in deinem Browser, welche Keys ein Lauf senden würde, und übersetzt nichts."
-        },
-        "action": {
-          "title": "In GitHub Actions übersetzen",
-          "body": "Die Action installiert genau die CLI-Version, die du pinnst, und führt `translate` bei jedem Push auf main aus, mit deinem API-Key aus einem Repository-Secret. Sie committet nie, also füge wie in der Anleitung beschrieben einen eigenen Schritt hinzu, der die aktualisierten Locale-Dateien committet.",
-          "link": "Anleitung zur GitHub Action"
-        },
-        "check": {
-          "title": "Pull Requests bei Drift scheitern lassen",
-          "body": "`check` ruft keinen Provider auf und braucht keinen Key, kann also jeden Pull Request absichern. Der Exit-Code ist {fail}, solange ein Key fehlt oder veraltet ist, {ok}, sobald jede Locale synchron ist, und {usage} bei einem Aufruf- oder Konfigurationsfehler.",
-          "link": "CI und Exit-Codes"
-        },
-        "studio": {
-          "title": "In Verbatra Studio prüfen",
-          "body": "Ein lokales Dashboard für dein Projekt. Es zeigt, wo jede Locale steht, und du korrigierst eine Übersetzung an Ort und Stelle.",
-          "link": "Anleitung zu Studio lesen"
-        },
-        "mcp": {
-          "title": "An deinen Coding-Agenten übergeben",
-          "body": "Füge diesen Block in `.mcp.json` ein, dann startet Claude Code den Verbatra-MCP-Server über stdio. Dein Agent kann dann den Übersetzungsstatus prüfen, das Glossar nutzen und eine Übersetzung an Ort und Stelle korrigieren.",
-          "link": "Einen MCP-Client verbinden"
-        }
-      }
+      "nodeMajorFrom": "{major} (ab {minimum})"
     },
     "steps": {
       "items": {
@@ -332,272 +162,31 @@
       }
     },
     "bento": {
-      "heading": "Nichts zu migrieren, nichts abzugeben.",
-      "lead": "Verbatra läuft dort, wo dein Projekt schon lebt: im Repository, in der CI und in deinen eigenen Skripten. Was es von dir braucht, bleibt unter deiner Kontrolle.",
       "items": {
         "keys": {
-          "title": "Deine Keys bleiben deine",
-          "body": "API-Keys kommen nur aus Umgebungsvariablen, nie aus der Konfigurationsdatei. Texte gehen an den Provider, den du konfigurierst, und sonst nirgendwohin. Verbatra selbst sendet keine Telemetrie.",
-          "variables": "Key-Variablen",
-          "optional": "optional",
-          "configurable": "oder die Variable, die `apiKeyEnvVar` nennt",
-          "claims": {
-            "data": "Deine Texte gehen als Daten an ein LLM, nie über den Anweisungskanal.",
-            "integrity": "Eine Antwort, die einen Platzhalter oder eine ICU-Nachricht beschädigt, wird zurückgehalten statt geschrieben.",
-            "errors": "Ein fehlender Key führt zu einem Fehler, der die Variable nennt, nie einen Wert."
-          },
-          "keysLink": "So lesen Provider ihre Keys",
-          "safetyLink": "Übersetzungssicherheit"
-        },
-        "formats": {
-          "title": "Passt zu deinen Dateien",
-          "body": "Verbatra liest und schreibt die Dateien, die du schon hast, im Format, das jeder Stack erwartet. Für ein Format, das es nicht mitbringt, baust du einen Adapter auf dem SDK.",
-          "families": {
-            "web": "Web-Frameworks",
-            "mobile": "Mobil",
-            "backend": "Backend und Desktop",
-            "exchange": "Austausch und Allgemeines"
-          }
-        },
-        "providers": {
-          "title": "Wähle, wer übersetzt",
-          "body": "Ein LLM oder ein maschineller Übersetzungsdienst, gehostet oder auf einem Server, den du selbst betreibst, oder nur deine Übersetzer. Du wählst ihn im `provider`-Block der Konfigurationsdatei; seine ID ist einer der Werte unten.",
-          "kinds": {
-            "llm": "LLM",
-            "machine": "Maschinelle Übersetzung",
-            "none": "Nur Menschen"
-          },
-          "link": "Alle Provider und ihre Optionen",
-          "idSlot": "Der `id`-Eintrag im `provider`-Block"
-        },
-        "sdk": {
-          "title": "Ein typisiertes SDK",
-          "body": "`translate` liefert eine typisierte `RunSummary`: welche Locales erfolgreich waren, welche teilweise oder ganz fehlgeschlagen sind und den Token-Verbrauch, wenn der Provider ihn meldet."
-        },
-        "frameworks": {
-          "title": "Ein Schnellstart für dein Framework",
-          "body": "Jeder führt von der Installation bis zur übersetzten Datei im eigenen Format deines Frameworks.",
-          "all": "Alle Schnellstarts"
+          "title": "Deine Keys bleiben deine"
         }
       }
     },
     "compare": {
-      "heading": "So schneidet Verbatra im Vergleich ab.",
-      "lead": "Jede Zelle stammt von den Seiten des Anbieters und verlinkt ihre Quelle; die manuelle Spalte nennt Anmerkung M.",
-      "caption": "Wege, Locale-Dateien übersetzt zu halten: Verbatra, Lingo.dev, Tolgee, gehostete Übersetzungsmanagementsysteme und ein manueller Ablauf",
       "columns": {
-        "criterion": "Kriterium",
-        "verbatra": "Verbatra",
-        "lingo": "Lingo.dev",
-        "tolgee": "Tolgee",
-        "hostedTms": "Gehostetes TMS (Crowdin, Lokalise, Phrase)",
         "manual": "Manueller Ablauf"
       },
-      "rows": {
-        "license": {
-          "label": "Open Source, Lizenz",
-          "verbatra": "Ja, MIT",
-          "lingo": "Repository Apache-2.0; die aktuelle CLI hat kein Lizenzfeld; die Plattform wird nicht als Open Source beschrieben",
-          "tolgee": "Kern Apache-2.0, Enterprise-Teile unter einer nicht kommerziellen Lizenz; CLI MIT",
-          "weblate": "Ja, GPL-3.0-or-later, auch die CLI `wlc`",
-          "crowdin": "CLI und GitHub Action MIT; kein öffentlicher Quellcode der Plattform gefunden",
-          "lokalise": "CLI BSD-3-Clause; kein öffentlicher Quellcode der Plattform gefunden",
-          "phrase": "CLI und setup-cli-Action MIT; kein öffentlicher Quellcode der Plattform gefunden",
-          "manual": "Entfällt, kein Produkt",
-          "hostedTms": "CLIs Open Source (MIT, BSD-3-Clause, MIT); für keine der drei Plattformen öffentlicher Quellcode gefunden"
-        },
-        "selfHosting": {
-          "label": "Self-Hosting",
-          "verbatra": "Läuft auf deinem Rechner und in deiner CI; es gibt keinen gehosteten Dienst",
-          "lingo": "Kein Angebot einer selbst gehosteten Plattform gefunden; die ältere Open-Source-CLI kann mit einem lokalen Ollama-Modell laufen",
-          "tolgee": "Ja; erweiterte Funktionen brauchen eine Lizenz",
-          "weblate": "Ja, oder von Weblate gehostet",
-          "crowdin": "Unbekannt: Die Preisseite nennt keine On-Premises-Option, und keine Aussage dafür oder dagegen wurde gefunden",
-          "lokalise": "Nein: On-Premises- und Private-Cloud-Installationen werden nicht unterstützt",
-          "phrase": "Unbekannt: Die Preisseite nennt keine Self-Hosting-Option, und keine Aussage dafür oder dagegen wurde gefunden",
-          "manual": "Entfällt, kein Produkt; hängt vom gewählten Dienst ab"
-        },
-        "pricing": {
-          "label": "Preismodell",
-          "verbatra": "Kostenlos; dein Provider rechnet die Nutzung direkt mit dir ab",
-          "lingo": "Nutzungsbasiert, mit einer kostenlosen Sandbox-Stufe",
-          "tolgee": "Kostenloser Plan; bezahlte Stufen nach gehosteten Wörtern berechnet",
-          "weblate": "Gehostet: nach gehosteten Strings berechnet, kostenloser Libre-Plan für öffentliche Open-Source-Projekte; selbst gehostet: kostenlos",
-          "crowdin": "Bezahlte Pläne, vor allem nach gehosteten Wörtern berechnet; Testphasen; kostenlose Lizenzen für Open-Source-Projekte",
-          "lokalise": "Vier bezahlte Stufen, 14 Tage Testphase",
-          "phrase": "Bezahlte Pläne nach Plätzen und Wörtern berechnet, 14 Tage Testphase",
-          "manual": "Entwicklerzeit plus der gewählte Dienst, kein Produkt"
-        },
-        "providers": {
-          "label": "Provider für KI und maschinelle Übersetzung",
-          "verbatra": "Eingebaut: {providers}",
-          "lingo": "LLMs vieler Anbieter, darunter OpenAI, Anthropic und Google; keine klassische Engine für maschinelle Übersetzung wie DeepL aufgeführt",
-          "tolgee": "Maschinelle Übersetzung: DeepL, Google, Amazon, Azure, Baidu (nur selbst gehostet); LLMs: OpenAI, Azure OpenAI, Anthropic, Gemini, OpenAI-kompatible APIs",
-          "weblate": "29 eingebaute Dienste, darunter DeepL, OpenAI, Anthropic und LibreTranslate",
-          "crowdin": "Maschinelle Übersetzung: DeepL, Google, Microsoft, Amazon und weitere; KI: OpenAI, Anthropic, Gemini und weitere",
-          "lokalise": "Google Translate und DeepL; LLMs in Pro AI",
-          "phrase": "Phrase Language AI, Google, Amazon, Microsoft; DeepL am 2026-06-30 aus Strings entfernt",
-          "manual": "Jeder Dienst, in den du Texte einfügst, kein Produkt"
-        },
-        "ownKeys": {
-          "label": "Eigene API-Keys",
-          "verbatra": "Ja, nur aus Umgebungsvariablen",
-          "lingo": "Laut Preisseite eine Enterprise-Funktion; die ältere Open-Source-CLI nutzt deine eigenen Keys",
-          "tolgee": "LLM-Keys ja; eigene Keys für maschinelle Übersetzung für Self-Hosting angegeben",
-          "weblate": "Ja, Admins richten jeden Dienst mit eigenen Zugangsdaten ein",
-          "crowdin": "Ja: Engines für maschinelle Übersetzung von Drittanbietern nutzen deine eigenen Keys; KI-Provider nutzen deinen eigenen Key oder werden von Crowdin verwaltet",
-          "lokalise": "Unbekannt: in der Doku zu maschineller Übersetzung und KI nicht erwähnt",
-          "phrase": "Ökosystem-Engines mit eigenem Vertrag; innerhalb von Strings nicht bestätigt",
-          "manual": "Deine eigenen Konten, kein Produkt",
-          "hostedTms": "Crowdin ja; Lokalise unbekannt; Phrase für Ökosystem-Engines mit eigenem Vertrag, innerhalb von Strings nicht bestätigt"
-        },
-        "incremental": {
-          "label": "Inkrementelle Übersetzung",
-          "verbatra": "Ja, ein Hash pro Key in einer Lock-Datei",
-          "lingo": "Ja, ein Lockfile-Diff in der CLI",
-          "tolgee": "Übersetzt unübersetzte Ziele automatisch (Doku 2.x)",
-          "weblate": "Add-on für automatische Übersetzung noch nicht übersetzter Strings",
-          "crowdin": "Die Vorübersetzung lässt sich auf „Untranslated strings“ beschränken",
-          "lokalise": "Automationen und Vorübersetzung füllen leere Werte",
-          "phrase": "Die Vorübersetzung füllt leere Übersetzungen und überspringt Keys, die schon eine haben",
-          "manual": "Von Hand, kein Produkt",
-          "hostedTms": "Alle drei füllen unübersetzte oder leere Werte"
-        },
-        "cli": {
-          "label": "Kommandozeilen-Tool (CLI)",
-          "verbatra": "Ja, `verbatra`",
-          "lingo": "Ja, `@lingo.dev/cli`; die ältere Open-Source-CLI `lingo.dev` wird weiter veröffentlicht",
-          "tolgee": "Ja, `@tolgee/cli`, MIT",
-          "weblate": "Ja, `wlc`",
-          "crowdin": "Ja, Crowdin CLI",
-          "lokalise": "Ja, Lokalise CLI v2",
-          "phrase": "Ja, Phrase Strings CLI",
-          "manual": "Entfällt, kein Produkt"
-        },
-        "ci": {
-          "label": "CI und GitHub Action",
-          "verbatra": "Offizielle Action; `check` endet mit 1 bei fehlenden oder veralteten Keys",
-          "lingo": "GitHub App; das Repository enthält auch eine action.yml",
-          "tolgee": "Keine offizielle Action gefunden",
-          "weblate": "Git-Integration, die Commits pusht und Pull Requests öffnet; keine offizielle GitHub Action gefunden",
-          "crowdin": "Offizielle GitHub Action",
-          "lokalise": "Offizielle GitHub Actions für Push und Pull",
-          "phrase": "CLI in der CI; offizielle GitHub Action setup-cli",
-          "manual": "Entfällt, kein Produkt",
-          "hostedTms": "Offizielle GitHub Actions von allen drei (Phrase: setup-cli)"
-        },
-        "mcp": {
-          "label": "MCP-Server",
-          "verbatra": "Ja, lokal über stdio",
-          "lingo": "Ja",
-          "tolgee": "Ja",
-          "weblate": "Kein offizieller MCP-Server gefunden",
-          "crowdin": "Ja, gehostet",
-          "lokalise": "Ja, gehostet, in der Beta",
-          "phrase": "Ja, gehostet, Anmeldung mit einem Phrase-Konto",
-          "manual": "Entfällt, kein Produkt",
-          "hostedTms": "Gehostete MCP-Server von allen drei; Lokalise in der Beta"
-        },
-        "inContext": {
-          "label": "In-Context-Bearbeitung",
-          "verbatra": "Nein",
-          "lingo": "Unbekannt: weder in der Plattform-Doku noch in der README des Repositorys erwähnt",
-          "tolgee": "Ja, Alt-Klick oder Wahltaste-Klick auf ein Element öffnet den Editor",
-          "weblate": "Kein offizieller In-Context-Editor gefunden",
-          "crowdin": "Ja, Crowdin In-Context",
-          "lokalise": "Ja, der Web-Editor LiveJS",
-          "phrase": "Ja, In-Context Editor mit offiziellen Framework-Adaptern",
-          "manual": "Entfällt, kein Produkt"
-        },
-        "translatorUi": {
-          "label": "Weboberfläche für Übersetzer",
-          "verbatra": "Lokales Review-Dashboard (Studio); keine gehostete Oberfläche",
-          "lingo": "Webplattform zur Engine-Konfiguration; kein offizieller String-Editor für Übersetzer gefunden",
-          "tolgee": "Ja, die Webplattform, gehostet oder selbst gehostet",
-          "weblate": "Ja, eine Weboberfläche zum Übersetzen",
-          "crowdin": "Ja, der Online-Editor im Browser",
-          "lokalise": "Key-Editor im Projekt dokumentiert; die Seite sagt nicht, dass er webbasiert ist",
-          "phrase": "Ja, der Strings Editor im Browser",
-          "manual": "Die Oberfläche des gewählten Dienstes, kein Produkt"
-        },
-        "formats": {
-          "label": "Dateiformate",
-          "verbatra": "{count} Formate, in der Doku aufgeführt",
-          "lingo": "18 aufgeführt",
-          "tolgee": "17 auf der Übersichtsseite",
-          "weblate": "50 aufgeführt",
-          "crowdin": "17 für String-basierte Projekte aufgeführt",
-          "lokalise": "30 aufgeführt",
-          "phrase": "47 Formateinträge aufgeführt",
-          "manual": "Was du von Hand kopierst, kein Produkt"
-        }
-      },
-      "sourceRef": "Quelle {number}, {tool}",
-      "noteRef": "Hinweis M, manueller Ablauf",
-      "sources": "Quellen",
-      "manualNote": "Der manuelle Ablauf ist kein Produkt und hat daher keine Quelle: Die Spalte beschreibt, wie Texte von Hand in einen Übersetzungsdienst und zurück kopiert werden.",
-      "lastChecked": "Zuletzt geprüft",
-      "fairness": "Verbatra ist eine CLI und ein SDK; die anderen Spalten sind Übersetzungsplattformen und ein manueller Ablauf, verglichen als Wege, Locale-Dateien übersetzt zu halten. Jede Zelle gibt wieder, was die eigenen Seiten des Anbieters an diesem Datum sagten, und „keine offizielle ... gefunden“ heißt, dass unsere Suche nichts gefunden hat, nicht, dass es dem Produkt fehlt.",
-      "concession": "Tolgee, Crowdin, Lokalise und Phrase bieten In-Context-Bearbeitung, die Verbatra nicht hat. Für das Review hat Verbatra das lokale Studio-Dashboard, keinen gehosteten Editor für Übersetzer.",
-      "fullLink": "Vollständiger Vergleich mit Quellen",
-      "scrollHint": "Scrolle die Tabelle seitlich, um jede Spalte zu sehen."
+      "scrollHint": "Scrolle die Tabelle seitwärts, um alle Spalten zu sehen."
     },
     "openSource": {
-      "heading": "Beiträge sind willkommen.",
-      "lead": "Verbatra steht unter der MIT-Lizenz und entsteht offen auf GitHub. Jeder Pull Request nimmt denselben Weg, und der Leitfaden für Beiträge beschreibt jeden Schritt ausführlich.",
-      "steps": {
-        "setup": {
-          "title": "Repository einrichten",
-          "body": "Klone es und installiere vom Root-Verzeichnis aus, was auch die Git-Hooks einrichtet, die jeden Commit prüfen."
-        },
-        "change": {
-          "title": "Eine gezielte Änderung machen",
-          "body": "Erstelle einen Branch von main, schreib Tests zu deiner Änderung und führ dieselben Prüfungen aus wie der CI-Build."
-        },
-        "pullRequest": {
-          "title": "Einen Pull Request öffnen",
-          "body": "Füll die Vorlage aus, beschreib, wie du getestet hast, und füg ein Changeset hinzu, wenn sich ein veröffentlichtes Paket für Nutzer spürbar ändert."
-        }
-      },
-      "linksHeading": "Projekt",
-      "contributing": "Leitfaden für Beiträge",
       "codeOfConduct": "Verhaltenskodex",
       "license": "MIT-Lizenz",
       "security": "Sicherheitsrichtlinie",
       "issues": "Issues und Feature-Wünsche",
-      "agents": "Leitfaden für Coding-Agenten",
       "newTab": "(öffnet in einem neuen Tab)",
       "contributorsHeading": "Mitwirkende",
       "contributorAria": "{name} auf GitHub"
     },
     "closing": {
       "heading": "Fang mit einem Probelauf an.",
-      "lead": "Ein Probelauf braucht keinen API-Key, schreibt nichts und listet genau die Keys, die ein echter Lauf schicken würde.",
-      "primary": "Loslegen",
-      "secondary": "Auf GitHub ansehen"
-    },
-    "fab": {
-      "label": "Zurück nach oben"
+      "primary": "Loslegen"
     }
-  },
-  "compare": {
-    "meta": {
-      "title": "Verbatra im Vergleich: Lingo.dev, Tolgee, Crowdin und mehr",
-      "description": "Verbatra, Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise und Phrase: Lizenz, Provider, eigene API-Keys, CI, MCP und Formate, jeweils mit datierter Quelle.",
-      "ogImageAlt": "Verbatra im Vergleich, mit dem verbatra-Schriftzug"
-    },
-    "heading": "Verbatra im Vergleich",
-    "lead": "Verbatra neben Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise, Phrase und einem manuellen Ablauf. Jede Zelle eines Produkts gibt wieder, was die eigenen Seiten des Anbieters sagten, und verlinkt ihre Quelle; die manuelle Spalte verweist auf die Anmerkung M.",
-    "caption": "Wege, Locale-Dateien übersetzt zu halten: Verbatra, Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise, Phrase und ein manueller Ablauf",
-    "lingoNote": "Die Lingo.dev-Zellen beziehen sich auf die aktuelle `@lingo.dev/cli` und die gehostete Plattform, sofern sie nicht die ältere Open-Source-CLI `lingo.dev` nennen.",
-    "formatsNote": "Die Anzahl der Formate stammt aus der eigenen Liste jedes Anbieters und ist nicht untereinander vereinheitlicht.",
-    "concession": "Tolgee, Crowdin, Lokalise und Phrase bieten In-Context-Bearbeitung, die Verbatra nicht hat. Für das Review hat Verbatra das lokale Studio-Dashboard, keinen gehosteten Editor für Übersetzer.",
-    "sourcesChecked": "Jede Quelle unten wurde am {date} geprüft.",
-    "nextHeading": "Probier es selbst aus",
-    "quickstart": "Mit dem Schnellstart beginnen",
-    "home": "Zurück zur Startseite von Verbatra",
-    "breadcrumbHome": "Startseite",
-    "breadcrumbCompare": "Vergleich"
   },
   "legal": {
     "privacy": {

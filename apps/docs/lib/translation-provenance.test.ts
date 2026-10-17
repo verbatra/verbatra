@@ -14,16 +14,7 @@ const TARGET_LOCALES: readonly string[] = i18n.languages.filter(
   (locale) => locale !== i18n.defaultLanguage,
 );
 
-const AWAITING_RETRANSLATION: ReadonlySet<string> = new Set([
-  "landing.faq.items.cost.answer",
-  "landing.faq.items.cost.question",
-  "landing.faq.items.formats.answer",
-  "landing.faq.items.formats.question",
-  "landing.faq.items.incremental.question",
-  "landing.faq.items.privacy.answer",
-  "landing.faq.items.privacy.question",
-  "landing.faq.items.providers.answer",
-]);
+const AWAITING_RETRANSLATION: ReadonlySet<string> = new Set();
 
 function appPath(relative: string): string {
   return fileURLToPath(new URL(`../${relative}`, import.meta.url));
