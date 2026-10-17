@@ -85,10 +85,9 @@ the interface strings with `pnpm i18n` (see below).
 The home page (`app/[lang]/(home)/page.tsx`) renders its sections in the order of
 `LANDING_SECTIONS` in `lib/landing-sections.ts`; `lib/landing-sections.test.ts` pins that order.
 Each section is one component in `components/landing/` (`hero.tsx`, `marquee.tsx`,
-`playground.tsx`, `flow.tsx`, `bento.tsx`, `compare.tsx`, `faq.tsx`, `open-source.tsx`,
-`final-cta.tsx`). The footer is not a section:
-`app/[lang]/(home)/layout.tsx` passes it to the home layout. Facts a section shows (code samples,
-providers, formats, comparison rows, bento tiles, the commands it prints) live in typed tables
+`playground.tsx`, `compare.tsx`, `faq.tsx`, `open-source.tsx`, `final-cta.tsx`). The footer is
+not a section: `app/[lang]/(home)/layout.tsx` passes it to the home layout. Facts a section shows
+(the hero tracks, providers, formats, comparison rows, the commands it prints) live in typed tables
 under `lib/` (`lib/landing-*.ts`, `lib/hero-terminal.ts`, `lib/install-commands.ts`), not in the
 copy; a component keeps only its own link targets and layout.
 

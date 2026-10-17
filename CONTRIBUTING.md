@@ -394,9 +394,14 @@ Work outward from `packages/core`, then `packages/format-adapters`. Replace
    and its `.de.mdx`, `.es.mdx` and `.fr.mdx` siblings. Also update two total
    `Record<SupportedFormat, ...>` tables that will not compile until the new format has an
    entry: `FORMAT_DISPLAY` in `apps/docs/lib/landing-facts.ts` (its display `label`, which the
-   landing marquee, the bento tile and the structured data read) and `FORMAT_ICONS` in
-   `apps/docs/components/landing/marquee.tsx` (the file glyph the marquee draws beside it). Those
-   are easy to miss, and the error surfaces in the docs app rather than where you were working.
+   landing marquee and the structured data read) and `FORMAT_ICONS` in
+   `apps/docs/components/landing/marquee.tsx`, which takes a `MarqueeMark`: a file-extension chip
+   (`chip(".ext")`) or a brand mark (`brand(id)`). A brand mark also needs a `BRAND_MARKS` entry in
+   `apps/docs/lib/brand-marks.ts` with its source, license and attribution; admit it only under a
+   license that allows commercial use and changes (no NC, no SA), carry the CC BY attribution where
+   the license asks for one, and run `pnpm --filter @verbatra/docs licenses:sync` to regenerate
+   the notices. Otherwise use a chip. Those tables are easy to miss, and the error surfaces in the
+   docs app rather than where you were working.
 
    `apps/docs/lib/ai-setup-prompt.ts` names the format set in several places: the
    detection list, the mapping from file shape to format id, the two warnings
