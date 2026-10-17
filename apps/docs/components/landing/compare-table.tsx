@@ -19,7 +19,7 @@ const CAPTION_ID = "compare-caption";
 const SOURCES_ID = "compare-sources-heading";
 
 const REF_CLASS =
-  "vk-compare-ref inline-flex min-h-6 min-w-6 items-center justify-center rounded-sm px-1 font-mono text-xs text-(--accent) underline decoration-(--accent)/40 underline-offset-2 hover:decoration-(--accent) focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--focus-ring)";
+  "vk-compare-ref inline-flex min-h-6 min-w-6 items-center justify-center rounded-sm px-0.5 font-mono text-[0.6875rem] text-(--text-muted) no-underline hover:text-(--accent) hover:underline hover:decoration-(--accent) hover:underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--focus-ring)";
 
 const NO_BREAK_SPACE = "\u00a0";
 
@@ -123,7 +123,7 @@ export function SourceList({
   );
 }
 
-type CompareColumn = { readonly id: string; readonly label: string };
+type CompareColumn = { readonly id: string; readonly label: string; readonly detail?: string };
 
 type CompareCellContent = {
   readonly column: string;
@@ -269,6 +269,9 @@ export function CompareRegion({
                     )}
                   >
                     {column.label}
+                    {column.detail === undefined ? null : (
+                      <span className="sr-only"> ({column.detail})</span>
+                    )}
                   </th>
                 ))}
               </tr>

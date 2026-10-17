@@ -7,6 +7,7 @@ import { NPM_INSTALL_COMMAND } from "./install-commands";
 import {
   COMPARE_LAST_CHECKED,
   COMPARE_PATH,
+  HOSTED_TMS_NAMES,
   SHORT_COLUMNS,
   SHORT_ROWS,
   shortCellHasText,
@@ -165,7 +166,14 @@ async function compare({ locale }: Context): Promise<string> {
     t("lead"),
     `${t("caption")}:`,
     table(
-      [t("columns.criterion"), ...SHORT_COLUMNS.map((column) => t(`columns.${column}`))],
+      [
+        t("columns.criterion"),
+        ...SHORT_COLUMNS.map((column) =>
+          column === "hostedTms"
+            ? `${t("columns.hostedTms")} (${HOSTED_TMS_NAMES})`
+            : t(`columns.${column}`),
+        ),
+      ],
       SHORT_ROWS.map((row) => [
         t(`rows.${row}.label`),
         ...SHORT_COLUMNS.map((column) =>

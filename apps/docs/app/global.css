@@ -2687,11 +2687,19 @@ html:has(.vk-home) {
   display: inline-flex;
   margin-inline-end: 0.375rem;
   vertical-align: -0.1875rem;
-  color: var(--text-strong);
+  color: var(--text-muted);
+}
+
+.vk-compare-yes svg {
+  stroke-width: 2;
 }
 
 .vk-compare-mark .vk-compare-yes {
-  color: var(--accent);
+  color: var(--text-strong);
+}
+
+.vk-compare-mark .vk-compare-yes svg {
+  stroke-width: 2.75;
 }
 
 .vk-compare-foot {

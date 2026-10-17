@@ -306,7 +306,7 @@
         "criterion": "Criterion",
         "verbatra": "Verbatra",
         "lingo": "Lingo.dev",
-        "hostedTms": "Hosted TMS (Crowdin, Lokalise, Phrase)",
+        "hostedTms": "Hosted TMS",
         "manual": "Manual workflow"
       },
       "rows": {
@@ -460,7 +460,8 @@
         },
         "ownKeys": {
           "lingo": "Enterprise plan or older CLI",
-          "hostedTms": "Crowdin yes, others unclear"
+          "hostedTms": "Crowdin yes, others unclear",
+          "manual": "Own accounts"
         },
         "incremental": {
           "hostedTms": "Fills empty values",

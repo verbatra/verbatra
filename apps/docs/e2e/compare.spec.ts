@@ -53,6 +53,18 @@ for (const width of [305, 320, 375, 768]) {
   }
 }
 
+for (const locale of LOCALES) {
+  test(`keeps the header row to two lines at 375px in ${locale}`, async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    await page.goto(homeUrl(locale));
+    const head = await page.locator(`${COMPARE} thead tr`).boundingBox();
+    const line = await page
+      .locator(`${COMPARE} thead th[data-column="verbatra"]`)
+      .evaluate((cell) => Number.parseFloat(getComputedStyle(cell).lineHeight));
+    expect(head?.height ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(2 * line + 26);
+  });
+}
+
 test.describe("comparison table on a phone", () => {
   test.use({ viewport: { width: 375, height: 800 } });
 

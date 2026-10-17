@@ -6,6 +6,7 @@ import {
   COMPARE_LAST_CHECKED,
   COMPARE_PATH,
   CONCESSION_FOOTNOTES,
+  HOSTED_TMS_NAMES,
   SHORT_COLUMNS,
   SHORT_ROWS,
   type ShortColumn,
@@ -66,6 +67,7 @@ export async function Compare(): Promise<ReactNode> {
           columns={SHORT_COLUMNS.map((column) => ({
             id: column,
             label: t(`columns.${column}`),
+            ...(column === "hostedTms" ? { detail: HOSTED_TMS_NAMES } : {}),
           }))}
           rows={SHORT_ROWS.map((row) => ({
             id: row,

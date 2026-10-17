@@ -11,12 +11,26 @@ import {
   cellFootnote,
   compareSource,
   fullTableFootnotes,
+  HOSTED_TMS_TOOLS,
+  SHORT_CELLS,
   SHORT_COLUMNS,
   SHORT_ROWS,
+  type ShortColumn,
+  type ShortRowId,
   shortCellFootnotes,
+  shortCellHasText,
   shortCellIsYes,
 } from "@/lib/landing-compare";
+import en from "@/messages/en.json";
 import { docsPageSource } from "@/test-support/docs-page-source";
+
+const PLAIN_YES = /^Yes\b/;
+
+const ROW_AFFIRMS: Partial<Record<ShortRowId, RegExp>> = {
+  ci: /^Yes\b|\bofficial\b[^;]*\bActions?\b/i,
+};
+
+const HEDGE = /^(No|Not|Unknown)\b|\bno official\b/i;
 
 function expectResolvable(link: CompareSourceLink, label: string): void {
   if (typeof link === "string") {
@@ -77,17 +91,31 @@ describe("the comparison data", () => {
     );
   });
 
-  it("checks a short cell only where the full table's own text says yes", () => {
-    const marks = SHORT_ROWS.map((row) =>
-      SHORT_COLUMNS.map((column) => (shortCellIsYes(row, column) ? "yes" : "words")),
-    );
-    expect(marks).toEqual([
-      ["yes", "words", "words", "words"],
-      ["yes", "words", "words", "yes"],
-      ["yes", "yes", "words", "words"],
-      ["yes", "words", "yes", "words"],
-      ["yes", "yes", "yes", "words"],
-    ]);
+  it("checks a short cell exactly where the full table's own English text says yes", () => {
+    const fullText = (row: ShortRowId, tool: string): string =>
+      (en.landing.compare.rows[row] as Readonly<Record<string, string>>)[tool] ?? "";
+    const says = (row: ShortRowId, tool: string): boolean => {
+      const text = fullText(row, tool);
+      if (HEDGE.test(text)) return false;
+      return (ROW_AFFIRMS[row] ?? PLAIN_YES).test(text);
+    };
+    const derived = (row: ShortRowId, column: ShortColumn): boolean =>
+      column === "hostedTms"
+        ? HOSTED_TMS_TOOLS.every((tool) => says(row, tool))
+        : says(row, column);
+    for (const row of SHORT_ROWS) {
+      for (const column of SHORT_COLUMNS) {
+        expect(shortCellIsYes(row, column), `${row}.${column}: ${fullText(row, column)}`).toBe(
+          derived(row, column),
+        );
+        expect(shortCellHasText(row, column), `${row}.${column}`).toBe(
+          SHORT_CELLS[row][column] !== "yes",
+        );
+      }
+    }
+    expect(says("ci", "tolgee")).toBe(false);
+    expect(says("ci", "weblate")).toBe(false);
+    expect(says("ownKeys", "lokalise")).toBe(false);
   });
 
   it("footnotes each hosted TMS summary with exactly the three cells it sums up", () => {

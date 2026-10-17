@@ -11,13 +11,16 @@ import {
   COMPARE_TOOL_NAMES,
   CONCESSION_FOOTNOTES,
   compareSource,
+  HOSTED_TMS_NAMES,
   SHORT_COLUMNS,
   SHORT_ROWS,
   shortCellFootnotes,
   shortCellHasText,
   shortCellIsYes,
 } from "@/lib/landing-compare";
+import { docsStylesheetRules } from "@/lib/stylesheet-rules";
 import en from "@/messages/en.json";
+import { contrast, themeTokens } from "@/test-support/contrast";
 
 vi.mock("next/link", () => ({
   default: ({
@@ -115,7 +118,11 @@ describe("Compare", () => {
     );
     expect(columnHeads.map((th) => th.textContent)).toEqual([
       copy.columns.criterion,
-      ...SHORT_COLUMNS.map((column) => copy.columns[column]),
+      ...SHORT_COLUMNS.map((column) =>
+        column === "hostedTms"
+          ? `${copy.columns.hostedTms} (${HOSTED_TMS_NAMES})`
+          : copy.columns[column],
+      ),
     ]);
     const rowHeads = Array.from(root.querySelectorAll("tbody th"));
     expect(rowHeads.map((th) => th.getAttribute("scope"))).toEqual(
@@ -157,6 +164,44 @@ describe("Compare", () => {
         SHORT_COLUMNS.filter((column) => shortCellHasText(row, column)),
       );
     }
+  });
+
+  it("shows the hosted TMS header as a short category and names its vendors to assistive technology", () => {
+    const head = root.querySelector("thead th[data-column='hostedTms']");
+    expect(head?.firstChild?.textContent).toBe(copy.columns.hostedTms);
+    expect(copy.columns.hostedTms).not.toMatch(/Crowdin|Lokalise|Phrase/);
+    expect(head?.querySelector(".sr-only")?.textContent).toBe(" (Crowdin, Lokalise, Phrase)");
+  });
+
+  it.each(["dark", "light"] as const)(
+    "draws the Verbatra checks heavier and at no less contrast than the other columns in the %s theme",
+    (theme) => {
+      const rules = docsStylesheetRules();
+      const declaration = (selector: string, property: string) =>
+        rules.find((rule) => rule.selector === selector && rule.media === "")?.declarations[
+          property
+        ] ?? "";
+      const token = (value: string) => value.replace(/^var\((--[a-z-]+)\)$/, "$1");
+      const tokens = themeTokens()[theme];
+      const lead = token(declaration(".vk-compare-mark .vk-compare-yes", "color"));
+      const rest = token(declaration(".vk-compare-yes", "color"));
+      expect(contrast(tokens, lead, "--surface-band")).toBeGreaterThanOrEqual(
+        contrast(tokens, rest, "--surface-band"),
+      );
+      expect(contrast(tokens, rest, "--surface-band")).toBeGreaterThanOrEqual(4.5);
+      expect(
+        Number.parseFloat(declaration(".vk-compare-mark .vk-compare-yes svg", "stroke-width")),
+      ).toBeGreaterThan(Number.parseFloat(declaration(".vk-compare-yes svg", "stroke-width")));
+    },
+  );
+
+  it("keeps the footnote links small and muted, still 24px targets", () => {
+    const ref = root.querySelector<HTMLAnchorElement>("[data-footnotes] a");
+    const classes = ref?.className.split(" ") ?? [];
+    expect(classes).toEqual(
+      expect.arrayContaining(["min-h-6", "min-w-6", "text-(--text-muted)", "no-underline"]),
+    );
+    expect(classes).not.toContain("text-(--accent)");
   });
 
   it("checks every Verbatra cell and never draws a cross", () => {
