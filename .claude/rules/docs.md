@@ -19,6 +19,16 @@ Markdown/MDX.
   detects drift in `messages/*.json` only. The `content/docs/**` path is a trigger, not something
   the check inspects: MDX locale parity is not enforced by CI and rests entirely on the author
   following the rule below.
+  Protected values: a value brought in through `verbatra import` (a filled `verbatra export`
+  handoff) is recorded with origin `import` in `apps/docs/verbatra.provenance.json`, like one a
+  person wrote (`human`). `verbatra.config.ts` sets no `humanEdits`, so the default `protect`
+  applies: when the English source of such a key changes, `pnpm i18n` keeps the old value, leaves
+  the key stale and lists it as protected instead of translating it. Refresh those keys with
+  `pnpm i18n --include-human` (`humanEdits: overwrite` for that run, so it retranslates every stale
+  key a person wrote or imported; read the dry run first), or export and import them again. A key
+  whose English has not changed is not stale, so `--include-human` never touches it: to correct
+  such a value, edit it through a `verbatra export --include-unchanged` handoff and `verbatra
+  import`, which keeps the lock and provenance in step, never by hand in `messages/*.json`.
 - **MDX documentation content**: `apps/docs/content/docs/**`. English source is `page.mdx`; a
   translation is a locale-suffixed sibling: `page.de.mdx`, `page.es.mdx`, `page.fr.mdx` (confirmed
   by the `(agents)`, `(concepts)`, `(configure)`, `(get-started)`, `(guides)`, `(help)`, and `(sdk)`
