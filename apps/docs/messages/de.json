@@ -299,7 +299,7 @@
     },
     "compare": {
       "heading": "Im Vergleich zu den Alternativen.",
-      "lead": "Jede Zelle verlinkt ihre Quelle. Verbatra schreibt niemals eine Übersetzung, die einen Platzhalter oder eine ICU-Nachricht beschädigt.",
+      "lead": "Jede Zelle verlinkt ihre Quelle. Verbatra schreibt nie eine Übersetzung, die Platzhalter oder ICU-Nachrichten bricht.",
       "caption": "Verbatra, Lingo.dev, gehostete Übersetzungsmanagement-Systeme und ein manueller Workflow, verglichen nach Lizenz, eigenen Schlüsseln, inkrementellen Läufen, CI und MCP",
       "columns": {
         "criterion": "Kriterium",
@@ -344,7 +344,7 @@
           "manual": "Entwicklerzeit plus der Dienst, den du wählst, kein Produkt"
         },
         "providers": {
-          "label": "KI- und Maschinenübersetzungsanbieter",
+          "label": "Anbieter für KI und maschinelle Übersetzung",
           "verbatra": "Eingebaut: {providers}",
           "lingo": "LLMs von vielen Anbietern, darunter OpenAI, Anthropic und Google; kein klassisches Maschinenübersetzungs-Engine wie DeepL aufgeführt",
           "tolgee": "Maschinelle Übersetzung: DeepL, Google, Amazon, Azure, Baidu (nur selbstgehostet); LLMs: OpenAI, Azure OpenAI, Anthropic, Gemini, OpenAI-kompatible APIs",

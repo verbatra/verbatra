@@ -299,7 +299,7 @@
     },
     "compare": {
       "heading": "Junto a las alternativas.",
-      "lead": "Cada celda enlaza su fuente. Verbatra nunca escribe una traducción que rompa un marcador de posición o un mensaje ICU.",
+      "lead": "Cada celda enlaza su fuente. Verbatra nunca escribe una traducción que rompa un marcador o un mensaje ICU.",
       "caption": "Verbatra, Lingo.dev, sistemas de gestión de traducción alojados y un flujo de trabajo manual, comparados por licencia, claves propias, ejecuciones incrementales, CI y MCP",
       "columns": {
         "criterion": "Criterio",
