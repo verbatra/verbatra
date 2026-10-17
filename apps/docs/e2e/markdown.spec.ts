@@ -1,5 +1,5 @@
 import { expect, test } from "playwright/test";
-import { homeUrl, LEGAL_PAGES, LOCALES, pageUrl } from "./support";
+import { expectVaryAccept, homeUrl, LEGAL_PAGES, LOCALES, pageUrl } from "./support";
 
 const SITE = "https://verbatra.kreitz-webdev.de";
 
@@ -26,6 +26,7 @@ for (const url of MARKDOWN_URLS) {
     const response = await request.get(url, { maxRedirects: 0 });
     expect(response.status()).toBe(200);
     expect(response.headers()["content-type"]).toContain("text/markdown");
+    expectVaryAccept(response);
     expect(response.headers().link).toMatch(new RegExp(`^<${SITE}/[^>]*>; rel="canonical"$`));
     expect(await response.text()).toMatch(/^---\ntitle: /);
   });
@@ -42,10 +43,9 @@ for (const locale of LOCALES) {
       const negotiated = await request.get(url, { headers: { accept: "text/markdown" } });
       expect(negotiated.status()).toBe(200);
       expect(negotiated.headers()["content-type"]).toContain("text/markdown");
-      expect(negotiated.headers().vary).toContain("Accept");
+      expectVaryAccept(negotiated);
       const html = await request.get(url, { headers: { accept: "text/html" } });
       expect(html.headers()["content-type"]).toContain("text/html");
-      expect(html.headers().vary).toContain("Accept");
       await page.goto(url);
       await expect(
         page.locator('head link[rel="alternate"][type="text/markdown"]'),
@@ -85,6 +85,7 @@ for (const [from, to] of [
     const followed = await request.get(from);
     expect(followed.status()).toBe(200);
     expect(followed.headers()["content-type"]).toContain("text/markdown");
+    expectVaryAccept(followed);
   });
 }
 

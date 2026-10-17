@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, type Locator, type Page } from "playwright/test";
+import { type APIResponse, expect, type Locator, type Page } from "playwright/test";
 import { COMPARE_FOCUS_ATTACHED } from "@/components/landing/compare-focus";
 import { FAQ_KEYS_ATTACHED } from "@/components/landing/faq-keys";
 import type { Locale } from "@/lib/i18n";
@@ -19,6 +19,19 @@ export const LOCALES = Object.keys(LOCALE_PREFIXES) as ReadonlyArray<Locale>;
 export { THEMES, type ThemeName };
 
 export const LEGAL_PAGES = ["/imprint", "/privacy", "/licenses", "/contact"] as const;
+
+function varyTokens(response: APIResponse): ReadonlyArray<string> {
+  return response
+    .headersArray()
+    .filter(({ name }) => name.toLowerCase() === "vary")
+    .flatMap(({ value }) => value.split(","))
+    .map((token) => token.trim().toLowerCase())
+    .filter((token) => token.length > 0);
+}
+
+export function expectVaryAccept(response: APIResponse): void {
+  expect(varyTokens(response)).toContain("accept");
+}
 
 export function homeUrl(locale: Locale): string {
   return LOCALE_PREFIXES[locale] || "/";

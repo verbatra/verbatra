@@ -8,6 +8,7 @@ import {
   expectNothingPastRightEdge,
   expectStickyLabelsFit,
   expectTargetsMeetMinimumSize,
+  expectVaryAccept,
   LOCALES,
   openInTheme,
   pageUrl,
@@ -59,13 +60,13 @@ for (const locale of LOCALES) {
       const explicit = await request.get(`${url}.md`);
       expect(explicit.status()).toBe(200);
       expect(explicit.headers()["content-type"]).toContain("text/markdown");
+      expectVaryAccept(explicit);
       expect(await explicit.text()).toContain("| --- |");
       const negotiated = await request.get(url, { headers: { accept: "text/markdown" } });
       expect(negotiated.headers()["content-type"]).toContain("text/markdown");
-      expect(negotiated.headers().vary).toContain("Accept");
+      expectVaryAccept(negotiated);
       const html = await request.get(url, { headers: { accept: "text/html" } });
       expect(html.headers()["content-type"]).toContain("text/html");
-      expect(html.headers().vary).toContain("Accept");
     });
 
     for (const width of [305, 375, 768]) {
