@@ -51,7 +51,6 @@ describe("landing message parity", () => {
       "landing.hero.tracks.label",
       "landing.hero.tracks.ci.summary",
       "landing.steps.items.ci.title",
-      "landing.showcase.tryIt.marks.new",
       "landing.marquee.heading",
       "landing.marquee.pause",
       "landing.playground.label",
@@ -101,6 +100,7 @@ describe("landing message parity", () => {
     "facts",
     "showcase.tryIt.scenarios",
     "showcase.tryIt.result",
+    "showcase",
   ])("keeps no landing.%s message from a retired section", (path) => {
     for (const locale of i18n.languages) {
       expect(() => landingText(locale, path), locale).toThrow();

@@ -82,23 +82,6 @@
         }
       }
     },
-    "showcase": {
-      "tryIt": {
-        "marks": {
-          "edited": "edited",
-          "added": "added",
-          "removed": "removed",
-          "missing": "missing",
-          "stale": "stale",
-          "orphaned": "orphaned",
-          "changes": "changes",
-          "new": "new",
-          "kept": "kept",
-          "replaced": "before",
-          "refused": "refused"
-        }
-      }
-    },
     "install": {
       "copy": "Copy",
       "copied": "Copied",
