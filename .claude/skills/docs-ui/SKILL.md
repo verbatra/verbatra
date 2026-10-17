@@ -879,8 +879,12 @@ reserved for client islands (see "The stack").
   the SDK quickstart call, the GitHub Action guide's workflow with `CHECKOUT_ACTION_REF`,
   `VERBATRA_ACTION_REF` and `PACKAGE_VERSION` and the key variable of the provider `init` sets up
   in place of the guide's, `check` with the exit codes of `checkExitCode`,
-  `STUDIO_RUN_COMMAND`, and the Claude Code `.mcp.json` block of the MCP client guide). The
-  incremental node also holds the Try it demo (`.vk-flow-demo`: the moved showcase lead, then the
+  `STUDIO_RUN_COMMAND`, and the Claude Code `.mcp.json` block and `claude mcp add` line of the MCP
+  client guide). A node with `alternatives` (only the MCP node) sets its frames in `FlowTabs`
+  (`components/landing/flow-tabs.tsx`, a lazy island on the segmented `TabList`, named by the
+  node's `h3` through `aria-labelledby`, tab labels the file and command names): the server
+  renders no panel `inert`, and under `@media (scripting: none)` the tab list hides and both
+  frames show. The incremental node also holds the Try it demo (`.vk-flow-demo`: the moved showcase lead, then the
   `.vk-showcase` panel), spanning the full row at every width, since its board needs the
   full width. Only that node declares the demo grid row (`.vk-flow-node:has(> .vk-flow-demo)`),
   so no node ends on an empty row and its row gap: the nodes stand an even `--flow-node-gap`

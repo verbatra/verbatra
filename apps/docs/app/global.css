@@ -2818,6 +2818,24 @@ html:has(.vk-home) {
   min-width: 0;
 }
 
+.vk-flow-tabs {
+  display: grid;
+  row-gap: 0.5rem;
+  min-width: 0;
+}
+
+.vk-flow-tabs-list {
+  justify-self: start;
+}
+
+.vk-flow-tabs-panel {
+  min-width: 0;
+}
+
+.vk-flow-tabs-panel[data-active="false"] {
+  display: none;
+}
+
 .vk-flow-demo {
   grid-area: demo;
   position: relative;
@@ -4169,8 +4187,13 @@ html:has(.vk-home) {
 
 @media (scripting: none) {
   .vk-playground-controls,
-  .vk-playground-result-block {
+  .vk-playground-result-block,
+  .vk-flow-tabs-list {
     display: none;
+  }
+
+  .vk-flow-tabs-panel[data-active="false"] {
+    display: block;
   }
 
   .vk-playground-static {

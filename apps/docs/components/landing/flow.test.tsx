@@ -17,6 +17,7 @@ import {
   FLOW_CHECK_EXIT_CODES,
   FLOW_CLI_CODE,
   FLOW_DEMO_NODE,
+  FLOW_MCP_ADD_CODE,
   FLOW_MCP_CODE,
   FLOW_NODES,
   FLOW_SDK_CODE,
@@ -114,7 +115,7 @@ vi.mock("@/lib/gsap-draw", () => {
   };
 });
 
-const { Flow } = await import("./flow");
+const { Flow, flowTitleId } = await import("./flow");
 const { FlowMotion } = await import("./flow-motion");
 const { FLOW_DRAW_END, FLOW_DRAW_START, FLOW_DRAWING, FLOW_MOTION_QUERY, FlowDraw } =
   await vi.importActual<typeof import("./flow-draw")>("./flow-draw");
@@ -200,7 +201,11 @@ describe("the feature flow section", () => {
       for (const item of items) {
         const where = `${locale} ${item.dataset.flowNode}`;
         expect(item.querySelectorAll("h3"), where).toHaveLength(1);
-        expect(item.querySelectorAll(".vk-flow-snippet figure[data-code-lang]")).toHaveLength(1);
+        const node = FLOW_NODES.find((entry) => entry.id === item.dataset.flowNode);
+        expect(
+          item.querySelectorAll(".vk-flow-snippet figure[data-code-lang]"),
+          where,
+        ).toHaveLength(1 + (node?.alternatives?.length ?? 0));
         expect(item.querySelectorAll("a[href]"), where).toHaveLength(1);
         const body = item.querySelector(".vk-flow-body")?.textContent ?? "";
         expect(body.split(/(?<=[.!?])\s+(?=\S)/u), where).toHaveLength(2);
@@ -236,7 +241,7 @@ describe("the feature flow section", () => {
     for (const [index, node] of FLOW_NODES.entries()) {
       expect(node.snippet.filename, node.id).toBeTruthy();
       const caption = items[index]?.querySelector(".vk-flow-snippet figcaption");
-      const button = items[index]?.querySelector(".vk-flow-snippet button");
+      const button = items[index]?.querySelector(".vk-flow-snippet figure button");
       expect(button, node.id).not.toBeNull();
       expect(caption?.parentElement?.contains(button ?? null), node.id).toBe(true);
       expect(button?.closest(".vk-code-frame-body"), node.id).toBeNull();
@@ -431,6 +436,34 @@ describe("the flow snippets equal their sources", () => {
       "json",
     );
     expect(FLOW_MCP_CODE).toBe(guide);
+  });
+
+  it("copies the claude mcp add line from the MCP client guide", () => {
+    const guide = fenceAfter(
+      read(join(DOCS, "content/docs/(agents)/connect-an-mcp-client.mdx")),
+      "#### Without the CLI",
+      "bash",
+    );
+    expect(FLOW_MCP_ADD_CODE).toBe(guide);
+  });
+
+  it("offers the MCP node as two tabs named after the file and the command, both readable without JavaScript", async () => {
+    for (const locale of i18n.languages) {
+      const mcp = nodes(await renderServer(locale)).find((item) => item.dataset.flowNode === "mcp");
+      const tablist = mcp?.querySelector('.vk-flow-snippet [role="tablist"]');
+      expect(tablist?.getAttribute("aria-labelledby"), locale).toBe(flowTitleId("mcp"));
+      const tabs = [...(tablist?.querySelectorAll('[role="tab"]') ?? [])];
+      expect(tabs.map((tab) => tab.textContent)).toEqual([".mcp.json", "claude mcp add"]);
+      const panels = [...(mcp?.querySelectorAll('.vk-flow-snippet [role="tabpanel"]') ?? [])];
+      expect(panels.map((panel) => panel.querySelector("pre")?.textContent)).toEqual([
+        FLOW_MCP_CODE.trimEnd(),
+        FLOW_MCP_ADD_CODE.trimEnd(),
+      ]);
+      expect(panels.map((panel) => panel.hasAttribute("inert"))).toEqual([false, false]);
+      expect(tabs.map((tab) => tab.getAttribute("aria-controls"))).toEqual(
+        panels.map((panel) => panel.id),
+      );
+    }
   });
 });
 

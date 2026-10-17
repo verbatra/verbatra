@@ -79,7 +79,7 @@ async function expectDrawnStatically(page: Page): Promise<void> {
   for (const item of await items.all()) {
     await item.scrollIntoViewIfNeeded();
     await expect(item.locator("h3")).toBeVisible();
-    await expect(item.locator(".vk-flow-snippet figure")).toBeVisible();
+    await expect(item.locator(".vk-flow-snippet figure").first()).toBeVisible();
   }
   for (const mark of await page.locator(MARKS).all()) {
     expect(await mark.evaluate((node) => getComputedStyle(node, "::before").opacity)).toBe("1");
@@ -118,6 +118,40 @@ test.describe("feature flow without JavaScript", () => {
   test("serves the drawn path and every node", async ({ page }) => {
     await page.goto("/");
     await expectDrawnStatically(page);
+  });
+});
+
+test.describe("the MCP node", () => {
+  test("switches its snippet between the .mcp.json block and the claude mcp add line", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const node = page.locator(`${FLOW} [data-flow-node="mcp"]`);
+    const tabs = node.getByRole("tab");
+    await expect(tabs).toHaveText([".mcp.json", "claude mcp add"]);
+    await expect(node.getByRole("tablist")).toHaveAccessibleName(
+      (await node.locator("h3").textContent()) ?? "",
+    );
+    await expect(node.getByRole("tabpanel")).toHaveCount(1);
+    await expect(node.getByRole("tabpanel")).toContainText('"mcpServers"');
+    await tabs.nth(1).click();
+    await expect(node.getByRole("tabpanel")).toContainText(
+      "claude mcp add --transport stdio --scope project verbatra -- npx -y @verbatra/mcp",
+    );
+    await page.keyboard.press("ArrowLeft");
+    await expect(tabs.first()).toBeFocused();
+    await expect(node.getByRole("tabpanel")).toContainText('"mcpServers"');
+  });
+
+  test("shows both snippets without JavaScript", async ({ browser }) => {
+    const context = await browser.newContext({ javaScriptEnabled: false });
+    const page = await context.newPage();
+    await page.goto("/");
+    const node = page.locator(`${FLOW} [data-flow-node="mcp"]`);
+    await expect(node.locator("pre")).toHaveCount(2);
+    for (const pre of await node.locator("pre").all()) await expect(pre).toBeVisible();
+    await expect(node.getByRole("tablist")).toBeHidden();
+    await context.close();
   });
 });
 

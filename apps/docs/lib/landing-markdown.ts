@@ -193,10 +193,12 @@ async function flow({ locale }: Context): Promise<string> {
     blocks(
       `### ${index + 1}. ${t(`items.${node.id}.title`)}`,
       t(`items.${node.id}.body`, FLOW_BODY_VALUES[node.id]),
-      fencedMarkdown(
-        node.snippet.language,
-        node.snippet.filename === undefined ? null : `title="${node.snippet.filename}"`,
-        node.snippet.code.trimEnd(),
+      ...[node.snippet, ...(node.alternatives ?? [])].map((snippet) =>
+        fencedMarkdown(
+          snippet.language,
+          snippet.filename === undefined ? null : `title="${snippet.filename}"`,
+          snippet.code.trimEnd(),
+        ),
       ),
       link(t(`items.${node.id}.link`), localizedPath(locale, node.docsPath)),
       node.id === FLOW_DEMO_NODE ? t(`items.${FLOW_DEMO_NODE}.demo`) : null,

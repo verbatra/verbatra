@@ -10,6 +10,7 @@ type TabListProps = {
   active: string;
   onSelect: (id: string) => void;
   ariaLabel?: string;
+  ariaLabelledBy?: string;
   className?: string;
   tabClassName?: string;
   variant?: "underline" | "pill" | "segmented";
@@ -72,6 +73,7 @@ export function TabList({
   active,
   onSelect,
   ariaLabel,
+  ariaLabelledBy,
   className,
   tabClassName,
   variant = "underline",
@@ -86,6 +88,7 @@ export function TabList({
     <div
       role="tablist"
       aria-label={ariaLabel}
+      aria-labelledby={ariaLabelledBy}
       className={cn(variant === "segmented" && "vk-segmented", className)}
       onKeyDown={onKeyDown}
     >

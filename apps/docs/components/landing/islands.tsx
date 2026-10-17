@@ -21,6 +21,7 @@ export const PlaygroundDemo = island(
   BLOCK,
 );
 export const FlowMotion = island(() => import("./flow-motion").then((m) => m.FlowMotion), BLOCK);
+export const FlowTabs = island(() => import("./flow-tabs").then((m) => m.FlowTabs), BLOCK);
 export const TryIt = intlIsland(() => import("./try-it").then((m) => m.TryIt), BLOCK);
 export const CommandRow = intlIsland(
   () => import("@/components/command-row").then((m) => m.CommandRow),
@@ -39,6 +40,7 @@ await preloadIslands([
   MarqueeMotion,
   PlaygroundDemo,
   FlowMotion,
+  FlowTabs,
   TryIt,
   CommandRow,
   FaqKeys,

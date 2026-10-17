@@ -11,12 +11,14 @@ export type FlowSnippet = {
   readonly language: HighlightLanguage;
   readonly filename?: string;
   readonly code: string;
+  readonly tab?: string;
 };
 
 export type FlowNode = {
   readonly id: FlowNodeId;
   readonly docsPath: string;
   readonly snippet: FlowSnippet;
+  readonly alternatives?: ReadonlyArray<FlowSnippet>;
 };
 
 export const FLOW_CHECK_EXIT_CODES = { fail: 1, ok: 0, usage: 2 } as const;
@@ -73,6 +75,9 @@ export const FLOW_MCP_CODE = `{
 }
 `;
 
+export const FLOW_MCP_ADD_CODE =
+  "claude mcp add --transport stdio --scope project verbatra -- npx -y @verbatra/mcp\n";
+
 export const FLOW_NODES: ReadonlyArray<FlowNode> = [
   {
     id: "source",
@@ -111,6 +116,14 @@ export const FLOW_NODES: ReadonlyArray<FlowNode> = [
   {
     id: "mcp",
     docsPath: "/docs/connect-an-mcp-client",
-    snippet: { language: "json", filename: ".mcp.json", code: FLOW_MCP_CODE },
+    snippet: { language: "json", filename: ".mcp.json", code: FLOW_MCP_CODE, tab: ".mcp.json" },
+    alternatives: [
+      {
+        language: "bash",
+        filename: HERO_TERMINAL_TITLE,
+        code: FLOW_MCP_ADD_CODE,
+        tab: "claude mcp add",
+      },
+    ],
   },
 ];

@@ -3,10 +3,17 @@ import type { ReactNode } from "react";
 import { IntentPrefetchLink } from "@/components/ui/intent-prefetch-link";
 import { localizedPath, toLocale } from "@/lib/i18n";
 import { withInlineCode } from "@/lib/inline-code-text";
-import { FLOW_BODY_VALUES, FLOW_DEMO_NODE, FLOW_NODES, type FlowNodeId } from "@/lib/landing-flow";
+import {
+  FLOW_BODY_VALUES,
+  FLOW_DEMO_NODE,
+  FLOW_NODES,
+  type FlowNode,
+  type FlowNodeId,
+  type FlowSnippet,
+} from "@/lib/landing-flow";
 import { showcaseRows, showcaseSeed } from "@/lib/showcase-scenarios";
 import { CodeFrame } from "./code-frame";
-import { FlowMotion, TryIt } from "./islands";
+import { FlowMotion, FlowTabs, TryIt } from "./islands";
 import { PlainList } from "./plain-list";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
@@ -17,19 +24,36 @@ export function flowTitleId(id: FlowNodeId): string {
   return `flow-${id}`;
 }
 
+function snippetFrame(snippet: FlowSnippet, copy: string): Promise<ReactNode> {
+  return CodeFrame({
+    code: snippet.code,
+    lang: snippet.language,
+    filename: snippet.filename,
+    copy: { label: copy },
+  });
+}
+
+async function nodeSnippet(node: FlowNode, copy: string): Promise<ReactNode> {
+  const snippets = [node.snippet, ...(node.alternatives ?? [])];
+  const panels = await Promise.all(snippets.map((snippet) => snippetFrame(snippet, copy)));
+  if (panels.length === 1) return panels[0];
+  return (
+    <FlowTabs
+      idPrefix={`${flowTitleId(node.id)}-snippet`}
+      labelledBy={flowTitleId(node.id)}
+      tabs={snippets.map((snippet, index) => ({
+        id: String(index),
+        label: snippet.tab ?? snippet.filename ?? "",
+      }))}
+      panels={panels}
+    />
+  );
+}
+
 export async function Flow(): Promise<ReactNode> {
   const t = await getTranslations("landing.flow");
   const locale = toLocale(await getLocale());
-  const frames = await Promise.all(
-    FLOW_NODES.map(({ snippet }) =>
-      CodeFrame({
-        code: snippet.code,
-        lang: snippet.language,
-        filename: snippet.filename,
-        copy: { label: t("copy") },
-      }),
-    ),
-  );
+  const frames = await Promise.all(FLOW_NODES.map((node) => nodeSnippet(node, t("copy"))));
 
   return (
     <Section band id="flow" labelledBy={FLOW_HEADING_ID} className="vk-flow-section">
