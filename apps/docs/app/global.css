@@ -4150,6 +4150,15 @@ html:has(.vk-home) {
 }
 
 @media (forced-colors: active) {
+  .vk-btn-primary:not(:focus-visible) {
+    outline: 1px solid ButtonText;
+    outline-offset: -1px;
+  }
+
+  .vk-compare-mark {
+    border-inline-start: 3px solid CanvasText;
+  }
+
   .vk-faq-mark {
     forced-color-adjust: none;
     border-color: CanvasText;

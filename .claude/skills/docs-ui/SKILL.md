@@ -278,7 +278,10 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   there is no second tab primitive.
   `Button` takes `variant: "primary" | "secondary" | "outline" | "ghost"` (`secondary` and
   `outline` both draw a `--text-faint` border that holds 3:1 on its own; `outline` also shows a
-  pressed `--accent` border through `aria-pressed`) and `size: "sm" | "md" | "lg"`.
+  pressed `--accent` border through `aria-pressed`) and `size: "sm" | "md" | "lg"`. `primary`
+  carries `.vk-btn-primary`, a fill with no border; under `forced-colors`, where the fill drops, it
+  gets a 1px inset `ButtonText` outline (not a border, so its size never changes), left to the
+  focus ring while it is `:focus-visible`.
   Extend the variant union rather than passing ad hoc `className` overrides.
   A control's boundary never relies on `--border-default` alone (about 1.3 to 1.5:1): a bordered
   button, the `.vk-segmented` switch and `CopyControl` draw it in `--text-faint`, and the copy
@@ -394,7 +397,8 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   hairline table (`.vk-compare-table`, `table-layout: fixed`): a top and bottom rule, rows split by
   `--border-default`, the header row on `--compare-head` (the band surface) over a `--text-faint`
   rule, no filled header and no tinted column; the Verbatra column is marked by `.vk-compare-mark`,
-  an inset `--accent-fill` start bar, with medium-weight cells and its header in `--accent`; every
+  an inset `--accent-fill` start bar (under `forced-colors`, where the shadow drops, a 3px
+  `CanvasText` start border), with medium-weight cells and its header in `--accent`; every
   column header is medium weight too. Every
   surface of the region (its background, the opaque sticky cells, the fade, the no-timeline
   shades) reads `--compare-surface`, the page under `.vk-compare` and the band under

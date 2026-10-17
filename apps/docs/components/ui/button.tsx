@@ -24,7 +24,7 @@ const BASE =
   "group not-prose inline-flex items-center gap-2 rounded-[10px] font-semibold transition-[filter,background-color,color] disabled:opacity-50 disabled:pointer-events-none";
 
 const VARIANT: Record<NonNullable<ButtonProps["variant"]>, string> = {
-  primary: "text-(--accent-fill-fg) hover:brightness-[1.08]",
+  primary: "vk-btn-primary text-(--accent-fill-fg) hover:brightness-[1.08]",
   secondary: "border border-(--text-faint) text-(--text-strong) hover:bg-(--surface-hover)",
   outline:
     "border border-(--text-faint) text-(--text-strong) hover:bg-(--surface-hover) aria-pressed:border-(--accent) aria-pressed:bg-(--surface-hover)",

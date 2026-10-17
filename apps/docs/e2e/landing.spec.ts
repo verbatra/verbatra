@@ -1,4 +1,4 @@
-import { expect, test } from "playwright/test";
+import { expect, type Page, test } from "playwright/test";
 import {
   expectNoAxeViolations,
   expectNoHorizontalScroll,
@@ -75,6 +75,47 @@ test.describe("code frames", () => {
       expect(await block.evaluate((node) => node.matches(":focus-visible"))).toBe(true);
       await expect(block, `code block ${index}`).toHaveCSS("outline-offset", "-2px");
       await expect(block).toHaveCSS("outline-style", "solid");
+    }
+  });
+});
+
+test.describe("forced colors", () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  const PRIMARY = ".vk-btn-primary";
+
+  async function primarySizes(page: Page) {
+    return page.locator(PRIMARY).evaluateAll((buttons) =>
+      buttons.map((button) => {
+        const box = button.getBoundingClientRect();
+        return [box.width, box.height] as const;
+      }),
+    );
+  }
+
+  test("keeps a boundary on every primary button without changing its size", async ({ page }) => {
+    await page.goto("/");
+    const buttons = page.locator(PRIMARY);
+    expect(await buttons.count()).toBeGreaterThanOrEqual(3);
+    await expect(buttons.first()).toHaveCSS("outline-style", "none");
+    await expect(buttons.first()).toHaveCSS("border-top-width", "0px");
+    const normal = await primarySizes(page);
+    await page.emulateMedia({ forcedColors: "active" });
+    for (let index = 0; index < (await buttons.count()); index += 1) {
+      await expect(buttons.nth(index)).toHaveCSS("outline-style", "solid");
+      await expect(buttons.nth(index)).toHaveCSS("outline-width", "1px");
+    }
+    expect(await primarySizes(page)).toEqual(normal);
+  });
+
+  test("marks the Verbatra comparison column with a bar", async ({ page }) => {
+    await page.goto("/");
+    await page.emulateMedia({ forcedColors: "active" });
+    const marks = page.locator("section#compare .vk-compare-mark");
+    expect(await marks.count()).toBeGreaterThan(1);
+    for (let index = 0; index < (await marks.count()); index += 1) {
+      await expect(marks.nth(index)).toHaveCSS("border-left-width", "3px");
+      await expect(marks.nth(index)).toHaveCSS("border-left-style", "solid");
     }
   });
 });

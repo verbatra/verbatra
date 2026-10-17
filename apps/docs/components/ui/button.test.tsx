@@ -17,7 +17,7 @@ vi.mock("next/link", () => ({
   ),
 }));
 
-const { default: Button } = await import("./button");
+const { default: Button, buttonClasses } = await import("./button");
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -41,5 +41,12 @@ describe("Button as a link", () => {
     });
     expect(onClick).toHaveBeenCalledTimes(1);
     expect(onAuxClick).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("buttonClasses", () => {
+  it("names the primary variant, so forced colors can give its fill a boundary", () => {
+    expect(buttonClasses("primary").split(" ")).toContain("vk-btn-primary");
+    expect(buttonClasses("secondary").split(" ")).not.toContain("vk-btn-primary");
   });
 });
