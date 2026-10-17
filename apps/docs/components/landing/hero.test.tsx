@@ -7,6 +7,7 @@ import { GITHUB_URL } from "@/components/landing/links";
 import { HERO_DIFF_SOURCE_PANE, HERO_DIFF_TARGET_PANE } from "@/lib/hero-diff";
 import { NPM_INSTALL_COMMAND } from "@/lib/install-commands";
 import { MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
+import { pendingProviders, publishedProviders } from "@/lib/landing-faq";
 import { nodeVersionsLabel } from "@/lib/node-requirement";
 import {
   LANDING_LAST_UPDATED,
@@ -221,10 +222,18 @@ describe("Hero", () => {
   it("counts the machine providers in digits and links the providers page, with no list or badge", async () => {
     const providers = fact(await render(), "providers");
     expect(providers?.querySelector("dd")?.textContent).toBe(
-      `${facts.providersValue.replace("{count}", String(MACHINE_PROVIDER_IDS.length))}${facts.providersLink}`,
+      `${facts.providersValue.replace("{count}", String(publishedProviders(PACKAGE_VERSION).length))}${facts.providersLink}`,
     );
     expect(providers?.textContent).toMatch(/\d/);
     expect(providers?.querySelector("ul, li, .vk-pill")).toBeNull();
+  });
+
+  it("counts only the providers the published version ships, since the fact carries no badge", async () => {
+    const providers = fact(await render(), "providers");
+    const shipped = MACHINE_PROVIDER_IDS.length - pendingProviders(PACKAGE_VERSION).length;
+    expect(providers?.querySelector("dd span")?.textContent).toBe(
+      facts.providersValue.replace("{count}", String(shipped)),
+    );
   });
 
   it("counts the formats from the registry and links the providers and formats pages", async () => {

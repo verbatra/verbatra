@@ -24,7 +24,14 @@ import {
 } from "./landing-bento";
 import { COMPARE_LAST_CHECKED, COMPARE_PATH, SHORT_COLUMNS, SHORT_ROWS } from "./landing-compare";
 import { FORMAT_DISPLAY, MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "./landing-facts";
-import { FAQ_ANSWER_LINKS, FAQ_ASIDE_LINKS, FAQ_ITEM_IDS, faqHref, faqValues } from "./landing-faq";
+import {
+  FAQ_ANSWER_LINKS,
+  FAQ_ASIDE_LINKS,
+  FAQ_ITEM_IDS,
+  faqHref,
+  faqValues,
+  publishedProviders,
+} from "./landing-faq";
 import { FLOW_BODY_VALUES, FLOW_DEMO_NODE, FLOW_NODES } from "./landing-flow";
 import { CONTRIBUTION_STEPS, OPEN_SOURCE_LINKS } from "./landing-open-source";
 import {
@@ -123,7 +130,7 @@ async function hero({ locale }: Context): Promise<string> {
     `## ${tFacts("label")}`,
     list([
       `${tFacts("license")}: ${link("MIT", LICENSE_URL)}`,
-      `${tFacts("providers")}: ${tFacts("providersValue", { count: MACHINE_PROVIDER_IDS.length })} (${link(tFacts("providersLink"), localizedPath(locale, "/docs/providers"))})`,
+      `${tFacts("providers")}: ${tFacts("providersValue", { count: publishedProviders().length })} (${link(tFacts("providersLink"), localizedPath(locale, "/docs/providers"))})`,
       `${tFacts("formats")}: ${link(tFacts("formatsValue", { count: SUPPORTED_FORMAT_IDS.length }), localizedPath(locale, "/docs/formats"))}`,
       `${tFacts("requirements")}: ${requirement}`,
       `${tFacts("version")}: ${tFacts("versionParts", { cli: PACKAGE_VERSION, studio: STUDIO_VERSION, mcp: MCP_VERSION })}`,

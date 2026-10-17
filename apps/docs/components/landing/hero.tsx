@@ -7,7 +7,8 @@ import { GITHUB_URL } from "@/components/landing/links";
 import Button, { buttonClasses } from "@/components/ui/button";
 import { localizedPath, toLocale } from "@/lib/i18n";
 import { withInlineCode } from "@/lib/inline-code-text";
-import { MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
+import { SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
+import { publishedProviders } from "@/lib/landing-faq";
 import { nodeVersionsLabel } from "@/lib/node-requirement";
 import { MCP_VERSION, NODE_RANGE, PACKAGE_VERSION, STUDIO_VERSION } from "@/lib/site";
 
@@ -70,7 +71,7 @@ export async function Hero(): Promise<ReactNode> {
             title: tFacts("label"),
             license: tFacts("license"),
             providers: tFacts("providers"),
-            providersValue: tFacts("providersValue", { count: MACHINE_PROVIDER_IDS.length }),
+            providersValue: tFacts("providersValue", { count: publishedProviders().length }),
             providersLink: tFacts("providersLink"),
             formats: tFacts("formats"),
             formatsValue: tFacts("formatsValue", { count: SUPPORTED_FORMAT_IDS.length }),
