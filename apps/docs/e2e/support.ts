@@ -67,6 +67,38 @@ export async function expectNoHorizontalScroll(page: Page): Promise<void> {
   expect(overflow).toBeLessThanOrEqual(0);
 }
 
+export async function expectNothingPastRightEdge(page: Page): Promise<void> {
+  const clipped = await page.evaluate(() => {
+    const viewport = document.documentElement.clientWidth;
+    const pageRoots = new Set<Element | null>([
+      document.documentElement,
+      document.body,
+      document.querySelector(".vk-home"),
+    ]);
+    const scrollsOrClips = (node: Element): boolean =>
+      ["auto", "scroll", "hidden", "clip"].includes(getComputedStyle(node).overflowX);
+    const insideOwnClip = (node: Element): boolean => {
+      for (let parent = node.parentElement; parent !== null; parent = parent.parentElement) {
+        if (!pageRoots.has(parent) && scrollsOrClips(parent)) return true;
+      }
+      return false;
+    };
+    return [...document.body.querySelectorAll("*")]
+      .filter((node) => {
+        if (node.closest('.sr-only, [aria-hidden="true"]') !== null) return false;
+        if (!node.checkVisibility()) return false;
+        const box = node.getBoundingClientRect();
+        if (box.width === 0 || box.height === 0 || box.right <= viewport + 0.5) return false;
+        return !insideOwnClip(node);
+      })
+      .map((node) => {
+        const label = node.id ? `#${node.id}` : `.${[...node.classList].slice(0, 2).join(".")}`;
+        return `${node.tagName.toLowerCase()}${label} right=${Math.round(node.getBoundingClientRect().right)}`;
+      });
+  });
+  expect(clipped).toEqual([]);
+}
+
 export async function expectClearOfPinnedColumn(
   row: Locator,
   ref: Locator,

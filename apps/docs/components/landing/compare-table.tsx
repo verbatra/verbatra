@@ -9,7 +9,7 @@ import {
   compareSourceHref,
 } from "@/lib/landing-compare";
 import { cn } from "@/lib/utils";
-import { breakUrlsAtSlashes } from "@/lib/word-breaks";
+import { breakUrlAfterSlashes } from "@/lib/word-breaks";
 import { CompareFocus } from "./islands";
 
 export type CompareTranslator = Awaited<ReturnType<typeof getTranslations<"landing.compare">>>;
@@ -98,8 +98,8 @@ export function SourceList({
                 return (
                   <span key={href}>
                     {index > 0 ? "; " : null}
-                    <a href={href} className="vk-prose-link">
-                      {breakUrlsAtSlashes(href)}
+                    <a href={href} className="vk-prose-link [overflow-wrap:anywhere]">
+                      {breakUrlAfterSlashes(href)}
                     </a>
                   </span>
                 );

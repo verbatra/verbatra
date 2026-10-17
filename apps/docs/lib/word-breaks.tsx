@@ -118,6 +118,15 @@ export function breakUrlsAtSlashes(
   );
 }
 
+export function breakUrlAfterSlashes(url: string): ReactNode {
+  return urlSegments(url).map((segment, index) => (
+    <Fragment key={`${index}-${segment}`}>
+      {index > 0 ? <wbr /> : null}
+      {segment}
+    </Fragment>
+  ));
+}
+
 export function keepCompoundsWhole(text: string): ReactNode {
   if (!/\S-\S/.test(text)) return text;
   return text.split(/(\S+-\S+)/).map((part, index) =>

@@ -2,6 +2,7 @@ import { expect, type Page, test } from "playwright/test";
 import {
   expectNoAxeViolations,
   expectNoHorizontalScroll,
+  expectNothingPastRightEdge,
   homeUrl,
   LOCALES,
   openInTheme,
@@ -52,11 +53,16 @@ for (const locale of LOCALES) {
       expect(sections.filter((section) => section.name === "")).toEqual([]);
     });
 
-    test("reflows at 320px without horizontal scroll", async ({ page }) => {
-      await page.setViewportSize({ width: 320, height: 800 });
-      await page.goto(homeUrl(locale));
-      await expectNoHorizontalScroll(page);
-    });
+    for (const width of [320, 375]) {
+      test(`reflows at ${width}px with every visible element inside the viewport`, async ({
+        page,
+      }) => {
+        await page.setViewportSize({ width, height: 800 });
+        await page.goto(homeUrl(locale));
+        await expectNoHorizontalScroll(page);
+        await expectNothingPastRightEdge(page);
+      });
+    }
   });
 }
 

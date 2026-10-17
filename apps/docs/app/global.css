@@ -3204,9 +3204,12 @@ html:has(.vk-home) {
 }
 
 @container (max-width: 56rem) {
-  .vk-compare-scroll,
-  .vk-compare-full .vk-compare-scroll {
+  .vk-compare-scroll {
     --compare-sticky: min(7.5rem, 38cqi);
+  }
+
+  .vk-compare-full .vk-compare-scroll {
+    --compare-sticky: min(7.5rem, 46cqi);
   }
 
   .vk-compare-hint {

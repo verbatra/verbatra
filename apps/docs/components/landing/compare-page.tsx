@@ -73,7 +73,7 @@ export async function ComparePage({ locale }: { locale: Locale }): Promise<React
   return (
     <article
       aria-labelledby={COMPARE_HEADING_ID}
-      className="vk-gutter vk-w-wide vk-pad-top-md mx-auto grid gap-(--head-gap) pb-(--section-md)"
+      className="vk-gutter vk-w-wide vk-pad-top-md mx-auto grid grid-cols-[minmax(0,1fr)] gap-(--head-gap) pb-(--section-md)"
     >
       <header className="grid gap-4">
         <h1 id={COMPARE_HEADING_ID} className="vk-h2 max-w-[22ch]">

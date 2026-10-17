@@ -406,7 +406,7 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   shades) reads `--compare-surface`, the page under `.vk-compare` and the band under
   `.vk-band .vk-compare`. The table scrolls sideways inside a focusable `section` named by its
   caption (`aria-labelledby`), with the row headers pinned at `--compare-sticky` (16% on the
-  landing, 11rem on `/compare`, at most 7.5rem (38cqi) while the column is narrower than 56rem,
+  landing, 11rem on `/compare`, at most 7.5rem (38cqi, 46cqi on `/compare`) while the column is narrower than 56rem,
   where the row headers drop to `--text-xs` with 0.5rem/0.375rem inline padding so every criterion
   word, a trailing hyphen included, fits unbroken in all four locales down to a 320px window with a
   classic scrollbar (305px), which `expectStickyLabelsFit` checks word by word), which is
@@ -432,7 +432,8 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   indent), and `scroll-margin-top` clears the sticky header. `TextWithRefs` keeps a closing quote or
   other punctuation-only tail with the word before it, and French copy puts U+202F inside `« »`. The
   region, its caption and sticky headers, the footnote links and the source list (two CSS
-  columns from 64rem, each URL breaking at its slashes through `breakUrlsAtSlashes`) live in
+  columns from 64rem, each URL breaking after its slashes through `breakUrlAfterSlashes` and,
+  with `overflow-wrap: anywhere`, inside a long slug at 320px) live in
   `compare-table.tsx` (`CompareRegion`, `FootnoteRefs`, `TextWithRefs`, `SourceList`), shared
   with `/compare`:
   `app/[lang]/(home)/compare/page.tsx` under the home layout renders `compare-page.tsx`, one `h1`
@@ -443,7 +444,9 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   cells it sums up (`lib/landing-compare.test.ts`); the Verbatra providers cell lists `badgedProviderNames(locale)` with the
   `RELEASE_BADGE` pill and the formats cell counts `SUPPORTED_FORMAT_IDS`, both through
   `lib/compare-cells.ts`), the dated notes, its own concession, links to the quickstart and home,
-  and all sources under an `h2`. Its 100rem-wide table sits in `.vk-compare.vk-compare-full`, whose
+  and all sources under an `h2`. The article's single grid track is `minmax(0,1fr)`, so no long
+  item widens the column past the gutter (`e2e/compare-page.spec.ts` checks every visible element
+  against the viewport edge at 320px and 375px). Its 100rem-wide table sits in `.vk-compare.vk-compare-full`, whose
   container query at 100rem shows the hint and fade on a desktop column too. `/compare.md` (and
   `Accept: text/markdown` on `/compare`) is `lib/compare-markdown.ts` served by
   `app/[lang]/site.mdx/[page]/route.ts`; `MARKDOWN_PAGES` in `lib/markdown-route.ts` lists the

@@ -5,6 +5,7 @@ import {
   expectEdgeRefsReachable,
   expectNoAxeViolations,
   expectNoHorizontalScroll,
+  expectNothingPastRightEdge,
   expectStickyLabelsFit,
   LOCALES,
   openInTheme,
@@ -86,6 +87,14 @@ for (const locale of LOCALES) {
         .evaluate((node) => node.scrollWidth - node.clientWidth);
       expect(overflow).toBeGreaterThan(0);
     });
+
+    for (const width of [320, 375]) {
+      test(`keeps every visible element inside the viewport at ${width}px`, async ({ page }) => {
+        await page.setViewportSize({ width, height: 800 });
+        await page.goto(url);
+        await expectNothingPastRightEdge(page);
+      });
+    }
   });
 }
 

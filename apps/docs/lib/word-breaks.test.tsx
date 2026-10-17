@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   breakAfterUnderscores,
   breakInlineCode,
+  breakUrlAfterSlashes,
   breakUrlsAtSlashes,
   keepCompoundsWhole,
   keepFlagsWhole,
@@ -30,6 +31,14 @@ describe("breakAfterUnderscores", () => {
 });
 
 const NOWRAP = (text: string) => `<span class="whitespace-nowrap">${text}</span>`;
+
+describe("breakUrlAfterSlashes", () => {
+  it("offers a break after each path slash and keeps no segment whole, so a long slug can still wrap", () => {
+    expect(markup(breakUrlAfterSlashes("https://a-b.de/docs/long-slug-here"))).toBe(
+      "<span>https://a-b.de/<wbr/>docs/<wbr/>long-slug-here</span>",
+    );
+  });
+});
 
 describe("breakUrlsAtSlashes", () => {
   it("offers a line break in a URL only after a path slash, never inside the scheme or between scheme and host", () => {
