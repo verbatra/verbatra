@@ -1,12 +1,9 @@
 import type { SupportedFormat } from "@verbatra/sdk";
 import { getLocale, getTranslations } from "next-intl/server";
 import type { CSSProperties, ReactNode } from "react";
-import {
-  type AvailableFromCopy,
-  AvailableFromPill,
-  availableFromCopy,
-} from "@/components/available-from";
+import { availableFromCopy } from "@/components/available-from";
 import { BrandMark, BrandMarkSprite } from "@/components/brand-marks";
+import { NewPill } from "@/components/new-pill";
 import { IntentPrefetchLink } from "@/components/ui/intent-prefetch-link";
 import type { BrandMarkId } from "@/lib/brand-marks";
 import { localizedPath, toLocale } from "@/lib/i18n";
@@ -56,11 +53,13 @@ export const FORMAT_ICONS: Readonly<Record<SupportedFormat, MarqueeMark>> = {
   resx: brand("dotnet"),
 };
 
+type MarqueeBadge = { readonly label: string; readonly release: string };
+
 type MarqueeItem = {
   readonly id: string;
   readonly label: string;
   readonly icon: MarqueeMark;
-  readonly badge: AvailableFromCopy | null;
+  readonly badge: MarqueeBadge | null;
 };
 
 type MarqueeRowProps = {
@@ -71,7 +70,7 @@ type MarqueeRowProps = {
   readonly moreLabel: string;
 };
 
-export function providerItems(releaseBadge: AvailableFromCopy): ReadonlyArray<MarqueeItem> {
+export function providerItems(releaseBadge: MarqueeBadge): ReadonlyArray<MarqueeItem> {
   return landingProviders().map((provider) => ({
     id: provider.id,
     label: provider.label,
@@ -116,7 +115,12 @@ function Items({ items }: { items: ReadonlyArray<MarqueeItem> }): ReactNode {
     <li key={item.id} className="vk-marquee-item" data-item={item.id}>
       <ItemMark mark={item.icon} />
       <span className="vk-marquee-name">{item.label}</span>
-      {item.badge === null ? null : <AvailableFromPill {...item.badge} />}
+      {item.badge === null ? null : (
+        <NewPill>
+          {item.badge.label}
+          <span className="sr-only"> ({item.badge.release})</span>
+        </NewPill>
+      )}
     </li>
   ));
 }
@@ -163,9 +167,8 @@ function MarqueeRow({ id, title, items, moreHref, moreLabel }: MarqueeRowProps):
 export async function Marquee(): Promise<ReactNode> {
   const t = await getTranslations("landing.marquee");
   const locale = toLocale(await getLocale());
-  const providers = providerItems(
-    await availableFromCopy(RELEASE_BADGE.version, undefined, locale),
-  );
+  const { label: release } = await availableFromCopy(RELEASE_BADGE.version, undefined, locale);
+  const providers = providerItems({ label: t("new"), release });
   const formats = formatItems();
 
   return (

@@ -160,13 +160,16 @@ describe("Marquee", () => {
   it("dates exactly the providers the release badge names, with the badge's version", async () => {
     const providers = row(await render(), "providers");
     const badged = Array.from(
-      providers.querySelectorAll(".vk-marquee-list:not(.vk-marquee-copy) > li:has(.vk-pill)"),
+      providers.querySelectorAll(".vk-marquee-list:not(.vk-marquee-copy) > li:has(.vk-pill-new)"),
       (item) => item.getAttribute("data-item"),
     );
     expect(badged).toEqual([...RELEASE_BADGE.providers]);
-    expect(providers.querySelector(".vk-pill")?.textContent).toBe(
-      messages.docs.availableFrom.title.replace("{version}", RELEASE_BADGE.version),
+    const pill = providers.querySelector(".vk-pill-new");
+    expect(pill?.textContent).toBe(
+      `${copy.new} (${messages.docs.availableFrom.title.replace("{version}", RELEASE_BADGE.version)})`,
     );
+    expect(pill?.querySelector(".sr-only")?.textContent).toContain(RELEASE_BADGE.version);
+    expect(providers.querySelector(".vk-available-from")).toBeNull();
   });
 
   it.each([
