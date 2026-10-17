@@ -544,11 +544,12 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   social image draws from and `HERO_TERMINAL_TITLE` (`~/app`), the title of every shell frame;
   `lib/hero-terminal.run.test.ts` pins the lines to the CLI's renderer;
   `lib/landing-tracks.ts` holds the three hero tracks, `translate`, `agents` and `ci`
-  (`LANDING_TRACKS`: per track a docs path, the shell frame title, its command lines, the recorded
-  result lines with the exit code, and files only where no transcript was recorded), every command
-  and file pinned to its source by `lib/landing-tracks.test.ts`: the translate and CI tracks run
-  exactly `HERO_TRANSLATE_COMMAND` and `HERO_CHECK_COMMAND` of `lib/hero-terminal.ts` (one source
-  for each) with the transcript that command printed, checked against the published cli flags in
+  (`LANDING_TRACKS`: per track a docs path, the shell frame title, its `steps` (each a command
+  and the recorded output it printed), the exit code, and files only where no transcript was
+  recorded), every command and file pinned to its source by `lib/landing-tracks.test.ts`: the
+  translate track runs `HERO_TERMINAL_SCRIPT` of `lib/hero-terminal.ts` (check, then translate,
+  the same script the social image draws) and the CI track `HERO_CHECK_COMMAND` alone, each
+  command with the transcript it printed, checked against the published cli flags in
   `test-support/cli-0.11.1-flags.json` and the `check` exit codes of `checkExitCode`; the agents
   track runs the `claude mcp add` line and shows the `.mcp.json` block, both copied from the MCP
   client guide, and has no recorded output, so its result is empty. A track never shows a command
@@ -712,8 +713,8 @@ is only `position: sticky` from 64rem, which moves nothing on its own), and no s
   tabindex, arrow keys wrapping, Home and End, `aria-selected`, `aria-controls`). Each panel is a
   `.vk-track-terminal` on `--v-void` (a bar with the track's `terminalTitle` and, when the track
   has an exit code, an `exit n` chip, `--v-status-changed` when it is not 0), its `lang="en"` body
-  with every command after an `aria-hidden` `$` and then the recorded result lines, or, for the
-  agents track, whose result is empty, its `.mcp.json` file instead of a transcript nobody
+  with every command after an `aria-hidden` `$`, each followed directly by the result lines it
+  printed, or, for the agents track, whose result is empty, its `.mcp.json` file instead of a transcript nobody
   recorded; under the frame one `landing.hero.tracks.<id>.summary` sentence and the link to the
   track's `docsPath`. No command, flag or line is typed by hand: all of it is pinned by
   `lib/landing-tracks.test.ts`. The panels share one grid cell: `.vk-tracks-panels` has two rows
@@ -729,7 +730,7 @@ is only `position: sticky` from 64rem, which moves nothing on its own), and no s
   no-preference`, type the commands into an `aria-hidden` `.vk-track-typed` layer laid over the
   real text (which stays in the DOM at `opacity: 0`, so assistive technology always reads the full
   command), `TYPE_CHAR_MS` per character with `TYPE_COMMAND_PAUSE_MS` after each command, then
-  fades the result lines in `TYPE_LINE_MS` apart (`opacity`, `--duration-base`); a timer chain,
+  fades that command's result lines in `TYPE_LINE_MS` apart before the next command types (`opacity`, `--duration-base`); a timer chain,
   no GSAP (`hero.test.tsx` fails on a static GSAP import in the hero or its island). Under reduced
   motion a switch shows the final state at once and nothing plays on load. `hero-tracks.test.tsx`
   pins the keyboard, the timeline, the load run and the reduced-motion path; `e2e/hero.spec.ts` pins them in a browser, with the
