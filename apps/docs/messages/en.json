@@ -465,7 +465,7 @@
           "manual": "By hand"
         },
         "ci": {
-          "verbatra": "`check` exits 1",
+          "verbatra": "`check` gate",
           "lingo": "GitHub App",
           "manual": "Not applicable"
         },
