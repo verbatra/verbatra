@@ -112,8 +112,8 @@ Three layers exist. Write against the third.
    `--v-status-changed` (amber, dark `hsl(38 85% 62%)`, light `hsl(30 90% 30%)`, also Fumadocs'
    warning callout color) / `--v-status-unchanged` (the `tone` colors of
    `components/ui/badge.tsx`). There is no pink and no headline gradient token any more
-   (`placeholder-chip.test.tsx` fails if `--v-pink`, `--v-violet` or `--gradient-headline` comes
-   back). Reach for one only in the role it already has.
+   (`components/landing/landing-tokens.test.ts` fails if `--v-pink`, `--v-violet` or
+   `--gradient-headline` comes back). Reach for one only in the role it already has.
 2. **Fumadocs overrides.** `--color-fd-background`, `--color-fd-card`, `--color-fd-popover`,
    `--color-fd-muted`, `--color-fd-border`, `--color-fd-foreground`,
    `--color-fd-muted-foreground`, `--color-fd-primary`, `--color-fd-primary-foreground`,
@@ -195,17 +195,9 @@ Scales are fixed and narrow, deliberately:
   surfaces). The hero draws no
   pattern and no glow (`hero.test.tsx` fails on a `.vk-banner-glow` element, rule or
   `--banner-glow` token); there is no wash token and no dot backdrop.
-- Placeholder chip: `PlaceholderChip` (`components/landing/placeholder-chip.tsx`, the
-  `.vk-placeholder` class) is the page's one signature motif, a locked placeholder token
-  (`{{amount}}`, `{count}`) drawn the same way in every pane: `--placeholder-fg` (`--accent`) on
-  `--placeholder-fill` inside an inset `--placeholder-ring` box shadow, never a border. It pads the
-  token by `--placeholder-inset` and pulls the same amount back with a negative margin, so a chip
-  moves no character of a monospace line, and it never wraps; after a `+` or `-` sign
-  or a quote (`data-keep-start`, set by `PlaceholderText`) it keeps its start margin and before a
-  quote (`data-keep-end`) its end margin, so the ring never touches the mark beside it. `data-broken` strikes it in
-  `--text-danger`, only for a token a reply broke. `PlaceholderText` in the same file cuts the
-  tokens out of a line (`splitPlaceholders`: `{{name}}` and `{name}` only, so JSON braces stay text)
-  and draws each as a chip.
+- No placeholder chip: the landing has no signature token motif. The SDK playground shows its
+  placeholders as plain text, and `components/landing/landing-tokens.test.ts` fails if a
+  `--placeholder-*` token comes back; draw a new motif only together with the pane that uses it.
 - Motion: see "Landing motion" below for the system. Its tokens: `--ease-standard` (entrances,
   hovers and state changes), `--duration-fast` (140ms, hover and press),
   `--duration-base` (240ms, state change), `--duration-slow` (560ms, every entrance), `--reveal-distance` (`--motion-distance-lg`, 16px;

@@ -232,10 +232,6 @@ samp {
   --surface-band: color-mix(in srgb, var(--surface-card) 40%, var(--surface-bg));
   --scroll-shade: color-mix(in srgb, var(--text-muted) 24%, transparent);
   --surface-chrome: color-mix(in srgb, var(--surface-bg) 94%, transparent);
-  --placeholder-fg: var(--accent);
-  --placeholder-fill: color-mix(in srgb, var(--v-glow) 12%, transparent);
-  --placeholder-ring: color-mix(in srgb, var(--v-glow) 45%, transparent);
-  --placeholder-inset: 0.25ch;
   --banner-title: min(var(--text-hero), 13.5cqi);
 }
 
@@ -984,32 +980,6 @@ html:has(.vk-scroll-top-sentinel[data-active]) .vk-footer {
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   background: var(--v-void);
-}
-
-.vk-placeholder {
-  margin-inline: calc(-1 * var(--placeholder-inset));
-  padding-inline: var(--placeholder-inset);
-  border-radius: var(--radius-sm);
-  background: var(--placeholder-fill);
-  box-shadow: inset 0 0 0 1px var(--placeholder-ring);
-  color: var(--placeholder-fg);
-  white-space: nowrap;
-  text-decoration: none;
-}
-
-.vk-placeholder[data-keep-start] {
-  margin-inline-start: 0;
-}
-
-.vk-placeholder[data-keep-end] {
-  margin-inline-end: 0;
-}
-
-.vk-placeholder[data-broken] {
-  background: transparent;
-  box-shadow: inset 0 0 0 1px var(--border-danger);
-  color: var(--text-danger);
-  text-decoration: line-through;
 }
 
 .vk-rhythm-lg {
