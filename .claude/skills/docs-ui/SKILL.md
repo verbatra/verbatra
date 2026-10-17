@@ -300,18 +300,24 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   (`#marquee`, see "Marquee" below), `compare.tsx` (`#compare`, a band opened by a split head with
   a lead (`landing.compare.lead`, which also states the integrity gate: no cited source covers it
   for the other tools, so it stays out of the table): the short table, five rows (`SHORT_ROWS`) by
-  Verbatra, Lingo.dev, one hosted TMS column summing up Crowdin, Lokalise and Phrase, and the
-  manual workflow (`SHORT_COLUMNS`, at most four, Verbatra first). `lib/landing-compare.ts` holds the full table's rows and tools too,
+  Verbatra, Lingo.dev, one hosted TMS column summing up Crowdin, Lokalise and Phrase (headed
+  "Hosted TMS", the three names in an `sr-only` span from `HOSTED_TMS_NAMES`, and in the Markdown
+  header), and the manual workflow (`SHORT_COLUMNS`, at most four, Verbatra first). `lib/landing-compare.ts` holds the full table's rows and tools too,
   and one numbered source list, `compareSource(n)`, so a footnote number names the same source on
   the landing and on `/compare`; `cellFootnote` derives each cell's number from its row and tool,
   and the manual column cites the note `M`. A short cell is a check (`.vk-compare-yes`, an
-  `aria-hidden` stroke glyph with an `sr-only` `landing.compare.marks.yes`, `--accent` in the
-  Verbatra column) only where the full table's own text plainly says yes (`SHORT_CELLS` in
-  `lib/landing-compare.ts`, pinned by `lib/landing-compare.test.ts`), with or without a few words
+  `aria-hidden` `.vk-compare-yes-glyph` stroke with an `sr-only` `landing.compare.marks.yes`,
+  `--text-muted` at a 2 stroke, and `--text-strong` at 2.75 in the Verbatra column, so the lead
+  column's checks never read weaker than the rest) only where the full table's own English text
+  says yes (`SHORT_CELLS` in `lib/landing-compare.ts`; `lib/landing-compare.test.ts` derives every
+  mark from `landing.compare.rows`: a cell opening with "Yes", or on the CI row naming an official
+  Action, and not hedged by "No", "Not", "Unknown" or "no official"; the hosted TMS column only
+  where all three vendor cells say yes), with or without a few words
   (`landing.compare.brief.<row>.<column>`), or words alone for anything partial, unknown or not
   applicable; never a cross ("none found" is not "no") and never a rating. A `/compare` cell stays
   text only. Every cell is followed by its footnote links (`[data-footnotes]`, each at least 24px,
-  named "Source n, tool"); `TextWithRefs` keeps the cell's last word and its links in one `whitespace-nowrap` run,
+  named "Source n, tool", set small (0.6875rem mono) and `--text-muted` with no underline until
+  hover, so the sources stay reachable without outweighing the cell text); `TextWithRefs` keeps the cell's last word and its links in one `whitespace-nowrap` run,
   so a link never starts a line alone. The source list itself lives only on `/compare` (`li` with
   `value={n}` and `id="source-n"`, the note `id="source-m"`): the landing passes `sourcesPage`
   (the localized `/compare`) so its links are plain `a` elements to `/compare#source-n`, a full
@@ -395,8 +401,8 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   (`CONTRIBUTOR_SLOT_URL`), beside a `nav` of project links (repository, contributor guide, the
   root `AGENTS.md` guide for coding agents, code of conduct, license; plain `.vk-prose-link`s, 44px
   tall, no icon and no arrow, `landing.openSource.newTab` in an `sr-only` span). The section holds
-  its visible copy to 60 words (`open-source.test.tsx`). No AGENTS.md link until the root file
-  exists, and no good-first-issue label link while that label has no open issue), `faq.tsx` (`#faq`) and `final-cta.tsx` (the closing
+  its visible copy to 60 words (`open-source.test.tsx`). No good-first-issue label link while
+  that label has no open issue), `faq.tsx` (`#faq`) and `final-cta.tsx` (the closing
   section on `landing.closing`, the page's only centered section: `.vk-final-cta` opens
   `--section-closer` (`--section-lg`, the only large step besides the hero) under the contribution
   band on the page surface, and `.vk-closer` centers one `h2`, one lead sentence, the install
@@ -478,10 +484,19 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   (`components/brand-marks.tsx`, prefix `marquee-mark`), drawn at 18px in a single
   `currentColor` fill. A chip (`.vk-marquee-chip`: mono `--text-xs` text in an inset 1px
   `--border-default` ring, `--radius-sm`, no fill) stands in for an item with no admissible
-  mark: `.json` (vue-i18n), `.xlf`, `.po`, `.ini`, and `/v1` for the OpenAI-compatible endpoint.
+  mark: `.json` (vue-i18n), `.xlf`, `.po`, `.ini`, `.resx` (the .NET wordmark is unreadable at
+  18px) and `/v1` for the OpenAI-compatible endpoint. Every chip is at least 2.75rem wide
+  (`min-inline-size`, its text centered), the width of the longest extension, so the chips read as
+  one size.
   Mark and chip are `aria-hidden` and `--text-muted`; hovering a row (which also pauses it) lifts
   them to `--text-strong`, with no glow, scale or brand color. The name (`.vk-marquee-name`) is
-  the item's text. A provider that `RELEASE_BADGE` dates carries the shared `AvailableFromPill`.
+  the item's text. A provider that `RELEASE_BADGE` dates carries the depth pill (`NewPill`, `landing.marquee.new`)
+  with the "Available from" label in an `sr-only` span and, after it, the release version as visible
+  `aria-hidden` mono text (`.vk-marquee-release`, `--text-muted`), so a reader on the current
+  release sees the provider is not in it yet. Its glint is held (`animation-name: none` under
+  `.vk-marquee:not([data-glint])`) until `MarqueeMotion`'s `IntersectionObserver` sees half the
+  marquee and sets `data-glint="on"`; it then runs its three finite loops, never under reduced
+  motion, and never without JavaScript.
   Each item (`.vk-marquee-item`) is a `--surface-bg` fill with no
   border or ring, since it is a fact, not a control. No count is typed. Each row is a muted `h3` that names its visible list,
   the list, `MARQUEE_COPIES` copies of it (`aria-hidden`, `inert`, holding no link or button), and
@@ -500,12 +515,14 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   query matches do the rows turn into one masked line that runs
   `vk-marquee` (a `transform` keyframe, `--marquee-items` times `--marquee-item-time` per loop,
   the formats row reversed through `--marquee-direction`), and the pause button shows before the
-  rows: an `outline` `Button` at `size="md"` (44px tall, like the other landing controls) with one constant name (`landing.marquee.pause`), `aria-pressed` while
-  paused, and only its `aria-hidden` glyph swapping between pause and play. Hover and focus inside
+  rows: an `outline` `Button` at `size="md"` (44px tall, like the other landing controls) whose visible text is its name and says the action it takes next:
+  `landing.marquee.pause` while running, `landing.marquee.play` while paused, with no `aria-pressed`
+  (a changing name plus a pressed state would read "Play animation, pressed"), and its
+  `aria-hidden` glyph swapping on `data-marquee`. Hover and focus inside
   a row pause that row. `marquee.test.tsx` pins the registry rows, the badge, the copies, the static
   state and the pause toggle, and `e2e/marquee.spec.ts` the motion in a browser. The format
-  samples in `lib/format-samples.generated.json`, whose next-intl sample the translate track of
-  `lib/landing-tracks.ts` shows, are written by `scripts/sync-format-samples.mjs` before dev,
+  samples in `lib/format-samples.generated.json` (no landing section shows one today; only
+  `lib/format-samples.test.ts` reads them) are written by `scripts/sync-format-samples.mjs` before dev,
   build, typecheck and test (git-ignored like `lib/version.generated.json`) from
   `createDefaultRegistry` in `@verbatra/sdk` over the in-memory `AdapterFs` in
   `lib/format-samples-seed.mjs`. Nothing in the page graph imports the sdk at runtime, and the docs
@@ -527,13 +544,15 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   social image draws from and `HERO_TERMINAL_TITLE` (`~/app`), the title of every shell frame;
   `lib/hero-terminal.run.test.ts` pins the lines to the CLI's renderer;
   `lib/landing-tracks.ts` holds the three hero tracks, `translate`, `agents` and `ci`
-  (`LANDING_TRACKS`: per track a docs path, the shell frame title, its command lines, its files and
-  its recorded result lines with the exit code), every command, flag and file pinned to its source
-  by `lib/landing-tracks.test.ts`: the published cli flags in `test-support/cli-0.11.1-flags.json`,
-  `init --path` against the next-intl sample, the GitHub Action guide's workflow with
-  `CHECKOUT_ACTION_REF`, `VERBATRA_ACTION_REF` and `PACKAGE_VERSION`, the `check` exit codes of
-  `checkExitCode`, and the `.mcp.json` block and `claude mcp add` line of the MCP client guide; the
-  agents track has no recorded output, so its result is empty),
+  (`LANDING_TRACKS`: per track a docs path, the shell frame title, its command lines, the recorded
+  result lines with the exit code, and files only where no transcript was recorded), every command
+  and file pinned to its source by `lib/landing-tracks.test.ts`: the translate and CI tracks run
+  exactly `HERO_TRANSLATE_COMMAND` and `HERO_CHECK_COMMAND` of `lib/hero-terminal.ts` (one source
+  for each) with the transcript that command printed, checked against the published cli flags in
+  `test-support/cli-0.11.1-flags.json` and the `check` exit codes of `checkExitCode`; the agents
+  track runs the `claude mcp add` line and shows the `.mcp.json` block, both copied from the MCP
+  client guide, and has no recorded output, so its result is empty. A track never shows a command
+  whose output it does not print),
   `CommandRow` (`components/command-row.tsx`: the closing
   section's npm install wraps under 30rem through `wrap="narrow"`, `wrap="always"` wraps a command at every width; elsewhere a `CommandRow` scrolls
   sideways inside `.vk-edge-fade`: a mask, not a painted background, so it stays see-through on any
@@ -655,8 +674,9 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
 
 ## Landing motion
 
-The landing moves little, on purpose: the hero types a track's commands when the reader
-switches tracks, the depth pill glints three times, the
+The landing moves little, on purpose: the hero types the default track once when it first comes
+into view and a track's commands when the reader switches tracks, the depth pills glint three
+times (the marquee's only once it is in view), the
 provider and format marquee loops until it is paused, the SDK playground scrambles its results
 once per Translate press, and nothing else on the page fades in.
 There is no scroll-driven motion, no pinning and no parallax (the SDK playground's snippet column
@@ -681,9 +701,10 @@ is only `position: sticky` from 64rem, which moves nothing on its own), and no s
   `reveal-marks.test.tsx` pins that no section file carries a mark and `motion-root.test.tsx` the observer and
   the stylesheet guards.
 - **Hero.** The hero is never revealed and the `h1` never moves (it is the largest paint); no
-  layout animation runs in it on load. The only thing that moves on load is the announcement's
-  depth pill (see "Depth pill" under "The docs surface"), whose glow, ring and shimmer run three
-  times and stop, and never under reduced motion; `motion-root.test.tsx` still fails on any
+  layout animation runs in it on load. On load only the announcement's depth pill (see "Depth
+  pill" under "The docs surface"), whose glow, ring and shimmer run three times and stop, and the
+  one typing run of the default track (below) move, both only under `prefers-reduced-motion:
+  no-preference`; `motion-root.test.tsx` still fails on any
   animated `.vk-banner` rule. The `HeroTracks` island (`components/landing/hero-tracks.tsx`, a
   plain `island()` fed every string as a prop) renders the three `LANDING_TRACKS` of
   `lib/landing-tracks.ts` (`LANDING_TRACK_IDS` order: translate, AI agents, CI gates) behind one
@@ -695,18 +716,25 @@ is only `position: sticky` from 64rem, which moves nothing on its own), and no s
   agents track, whose result is empty, its `.mcp.json` file instead of a transcript nobody
   recorded; under the frame one `landing.hero.tracks.<id>.summary` sentence and the link to the
   track's `docsPath`. No command, flag or line is typed by hand: all of it is pinned by
-  `lib/landing-tracks.test.ts`. The panels share one grid cell and the closed ones are
-  `visibility: hidden` and `inert`, so the tallest track sets the height and a switch moves
+  `lib/landing-tracks.test.ts`. The panels share one grid cell: `.vk-tracks-panels` has two rows
+  (`minmax(0, 1fr) auto`), every panel spans both through `grid-template-rows: subgrid`, and the
+  terminal is `auto 1fr` inside, so every terminal fills the tallest one's height and every summary
+  starts at the same y (`e2e/hero.spec.ts` compares the boxes at 375 and 1440). The closed panels
+  are `visibility: hidden` and `inert`, so the tallest track sets the height and a switch moves
   nothing. The server HTML (and a page without JavaScript) shows the translate track in its final
-  state, and hydration types nothing. A switch, only under `prefers-reduced-motion:
-  no-preference`, types the commands into an `aria-hidden` `.vk-track-typed` layer laid over the
+  state, and hydration keeps it. After hydration one `IntersectionObserver` on `.vk-tracks`
+  (`LOAD_RUN_THRESHOLD`, a fifth of it, since the phone stack is tall) plays the default track's
+  typing once, when it first comes into view, unless the reader has already chosen a track or
+  motion is reduced, then disconnects. That run and a switch, only under `prefers-reduced-motion:
+  no-preference`, type the commands into an `aria-hidden` `.vk-track-typed` layer laid over the
   real text (which stays in the DOM at `opacity: 0`, so assistive technology always reads the full
   command), `TYPE_CHAR_MS` per character with `TYPE_COMMAND_PAUSE_MS` after each command, then
   fades the result lines in `TYPE_LINE_MS` apart (`opacity`, `--duration-base`); a timer chain,
   no GSAP (`hero.test.tsx` fails on a static GSAP import in the hero or its island). Under reduced
-  motion a switch shows the final state at once. `hero-tracks.test.tsx` pins the keyboard, the
-  timeline and the reduced-motion path; `e2e/hero.spec.ts` pins them in a browser, with the
-  server HTML without JavaScript, the fixed height on a switch, the finite pill animations and
+  motion a switch shows the final state at once and nothing plays on load. `hero-tracks.test.tsx`
+  pins the keyboard, the timeline, the load run and the reduced-motion path; `e2e/hero.spec.ts` pins them in a browser, with the
+  server HTML without JavaScript, the load run, the fixed height and shared rows on a switch,
+  the finite pill animations and
   320px and 375px without a sideways scroll.
 - **Marquee.** The one looping motion on the page, a CSS keyframe with no JavaScript animation:
   it runs only in the state described under "Marquee" above, pauses through its button, hover
@@ -1078,9 +1106,9 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   (`components/new-badge.tsx`; the landing footer carries none, `footer.test.tsx` pins it) adds `.vk-pill-status` (smaller, uppercase) and is hidden in the
   breadcrumb (`.vk-breadcrumb`, set on `DocsPage`), which shares the sidebar's tree; the
   `<AvailableFrom>` badge adds `.vk-available-from`, which sits after the heading text when it is
-  inside a heading. Its markup is `AvailableFromPill` (`components/available-from.tsx`), which the
-  landing's marquee renders with the `docs.availableFrom` copy for
-  `RELEASE_BADGE.version`. `RELEASE_BADGE` (`lib/release-badge.ts`) is the landing's one list of
+  inside a heading. Its markup is `AvailableFromPill` (`components/available-from.tsx`); the
+  landing's marquee does not render it, but takes its `docs.availableFrom` label for
+  `RELEASE_BADGE.version` through `availableFromCopy` (see "Marquee"). `RELEASE_BADGE` (`lib/release-badge.ts`) is the landing's one list of
   what is new in that release: `providers` (read through `providerReleaseBadge`) and `features`
   (`provider-none`, read through `featureReleaseBadge`), so emptying it removes every landing badge
   at once; the MDX badges stay literal (`<AvailableFrom version="0.12.0" />`), and
@@ -1095,7 +1123,10 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   owner asked for an announcement badge that reads as new at a glance (modelled on the
   `app-new-badge` of docs.nestjs.com). `NewPill` (`components/new-pill.tsx`, `.vk-pill-new`) is a
   5px-radius chip, 2px by 6px, on a 90deg gradient from `--pill-new-start` (`--accent-fill`) to
-  `--pill-new-end` (a darker violet, its own value in each theme), in `--pill-new-fg` (white)
+  `--pill-new-end` (a darker violet, its own value in each theme; in the light theme
+  `hsl(254 70% 26%)`, at least 1.6:1 from the start stop, with a 1px `--pill-new-rim` outer
+  hairline of the end stop at 45 percent, so the light chip never reads flat;
+  `components/new-pill.test.tsx` pins both), in `--pill-new-fg` (white)
   10.5px, weight 700, uppercase, 0.04em tracking. `lib/theme.test.ts` holds `--pill-new-fg` at
   4.5:1 on both stops in both themes. Its depth comes from four layers: a `::before` glow
   (`--pill-new-glow`, the start stop at 55 percent), a static `::after` rim (a 1px masked border,
@@ -1108,9 +1139,13 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   `NewAnnouncement` in the same file is its wide form: the depth pill inside a `.vk-announce`
   link, a `--radius-full` outline with a `--text-faint` boundary (3:1 like every control), the
   announcement text and a chevron that moves 2px on hover, with the `sr-only` new-tab note. The
-  hero opens with it. Anything that is not a "new" announcement (a version, a status, a dated
-  feature) stays the `.vk-pill` outline; never put the depth pill in a table, the sidebar or a
-  heading, and never use more than one on a page.
+  hero opens with it, pointing at the release notes of the newest cli release (`PACKAGE_VERSION`)
+  with text that names the release without repeating the pill's word (`landing.banner.announcement.text`,
+  "v{version} is out"; `hero.test.tsx` checks it in every locale). The depth pill appears in
+  exactly two places: that hero announcement and the marquee's upcoming-release provider badge,
+  which always carries its visible version. At most one depth pill per section (the marquee's
+  `aria-hidden` copies repeat its one item). Anything else (a version, a status, a dated feature)
+  stays the `.vk-pill` outline; never put the depth pill in a table, the sidebar or a heading.
 - **Prose measure**: paragraphs, lists, block quotes and callouts in `#nd-page` stop at
   `--width-measure` (about 72 characters of body text); tables and code blocks run the full
   column, and so does a `not-prose` element and everything inside it.
