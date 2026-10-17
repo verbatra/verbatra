@@ -25,6 +25,7 @@ function YesMark({ label }: { label: string }): ReactNode {
     <span className="vk-compare-yes" data-mark="yes">
       <svg
         aria-hidden="true"
+        className="vk-compare-yes-glyph"
         viewBox="0 0 16 16"
         width="16"
         height="16"

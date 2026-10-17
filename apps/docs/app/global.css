@@ -2690,7 +2690,7 @@ html:has(.vk-home) {
   color: var(--text-muted);
 }
 
-.vk-compare-yes svg {
+.vk-compare-yes-glyph {
   stroke-width: 2;
 }
 
@@ -2698,7 +2698,7 @@ html:has(.vk-home) {
   color: var(--text-strong);
 }
 
-.vk-compare-mark .vk-compare-yes svg {
+.vk-compare-mark .vk-compare-yes-glyph {
   stroke-width: 2.75;
 }
 
