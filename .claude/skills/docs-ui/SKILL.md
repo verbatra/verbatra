@@ -345,7 +345,9 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   artifact inside each, a `rounded-xl` panel or code frame, is framed, so the grid never reads as
   cards in cards; `.vk-bento` sets `--head-gap` between rows and twice `--grid-gap` between
   columns from 64rem, and the format and provider panels fill their row with their groups at the
-  top. The keys tile
+  top; from 64rem those two tiles are `grid-template-rows: subgrid` over three rows (head, panel,
+  trailing row, 1.25rem apart), so both panels start and end level whatever their heads and
+  trailing rows hold. The keys tile
   leads (span 8: a `figure` with a `dl` pairing each provider's short label with its
   `BENTO_KEY_ENV_VARS` name, pinned to `packages/ai-providers/src/key-env-vars.ts`, the optional
   ones marked, the `apiKeyEnvVar` alternative noted where `configurable`, a provider that

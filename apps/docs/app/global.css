@@ -705,6 +705,13 @@ html.light {
     align-self: stretch;
   }
 
+  .vk-bento > :is([data-tile="formats"], [data-tile="providers"]) {
+    display: grid;
+    grid-row: span 3;
+    grid-template-rows: subgrid;
+    row-gap: 1.25rem;
+  }
+
   .vk-bento-head {
     --grid-span: 4;
     margin-block-end: 0;

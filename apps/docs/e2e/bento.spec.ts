@@ -129,3 +129,23 @@ test.describe("bento layout", () => {
     await expectNoHorizontalScroll(page);
   });
 });
+
+test.describe("bento panels that share a row", () => {
+  for (const locale of ["en", "de"] as const) {
+    for (const width of [1024, 1440]) {
+      test(`start and end level at ${width}px in ${locale}`, async ({ page }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await page.goto(homeUrl(locale));
+        const edges = await Promise.all(
+          ["formats", "providers"].map((artifact) =>
+            page.locator(`[data-artifact="${artifact}"]`).evaluate((panel) => {
+              const box = panel.getBoundingClientRect();
+              return [Math.round(box.top), Math.round(box.bottom)] as const;
+            }),
+          ),
+        );
+        expect(edges[1]).toEqual(edges[0]);
+      });
+    }
+  }
+});
