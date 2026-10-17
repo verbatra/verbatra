@@ -160,12 +160,17 @@ describe("the agent setup command", () => {
     },
   );
 
-  it("keeps the landing hero free of the setup prompt and the install command, which the closing section shows", () => {
+  it("keeps the landing hero free of the setup prompt and the install command, and gives the closing section the install command only", () => {
     const hero = docsFile("components/landing/hero.tsx");
     expect(hero).not.toContain("PromptCopyButton");
     expect(hero).not.toContain("CommandPanel");
     expect(hero).not.toContain("AI_SETUP_PROMPT");
     expect(hero).not.toContain("NPM_INSTALL_COMMAND");
+    const closing = docsFile("components/landing/final-cta.tsx");
+    expect(closing).toContain("<CommandRow command={NPM_INSTALL_COMMAND}");
+    expect(closing).not.toContain("AI_SETUP_PROMPT");
+    expect(closing).not.toContain("PromptCopyButton");
+    expect(closing).not.toContain("AiSetupPrompt");
   });
 });
 
