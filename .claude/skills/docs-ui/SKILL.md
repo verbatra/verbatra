@@ -406,17 +406,20 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   `CONTRIBUTION_STEPS` of `CONTRIBUTING.md` (set up with `pnpm install`, a focused change checked
   with `pnpm verify`, a pull request with a `pnpm changeset` where needed; `open-source.test.tsx`
   reads the guide and fails when a command or step leaves it) across one row from 64rem, each step
-  a top hairline, an `aria-hidden` `--accent-fill` numeral, a `.vk-h4` title, one sentence (the
-  test counts it in all four locales) and its command in mono on `--v-void`; from 64rem each step
-  spans four rows of the list's grid with `grid-template-rows: subgrid`, so titles, bodies and
-  commands line up across the row however the copy wraps (`e2e/contribute.spec.ts` checks it at
-  1024 and 1440 in every locale); under the steps a `nav` of project links (repository, contributor
-  guide, the root `AGENTS.md` guide for coding agents, code of conduct, license, security policy, issues; plain `.vk-prose-link`s, 44px tall,
-  no icon and no arrow, `landing.openSource.newTab` in an `sr-only` span) beside the contributors
-  from `lib/contributors.json` (a `div` with `role="group"` named by its heading, never a nested
-  `section` landmark), each a self-hosted 32px avatar from `public/contributors/` with the
-  login beside it, refreshed by hand with `pnpm contributors`; no AGENTS.md link until the root
-  file exists, and no good-first-issue label link until one is in use), `faq.tsx` (`#faq`) and `final-cta.tsx` (the closing
+  a top hairline, an `aria-hidden` `--accent-fill` numeral, a `.vk-h4` title that carries the whole
+  step (no body sentence) and its command in mono on `--v-void`; from 64rem each step spans three
+  rows of the list's grid with `grid-template-rows: subgrid`, so titles and commands line up across
+  the row however the copy wraps (`e2e/contribute.spec.ts` checks it at 1024 and 1440 in every
+  locale); under the steps the contributors from `lib/contributors.json` (a `div` with
+  `role="group"` named by its heading, never a nested `section` landmark), each a self-hosted 32px
+  avatar from `public/contributors/` with the login beside it, refreshed by hand with
+  `pnpm contributors`, then one open slot (`landing.openSource.contributorSlot`, a dashed
+  `--text-faint` 32px ring drawn in CSS, no image, `--accent` on hover) linking the issue list
+  (`CONTRIBUTOR_SLOT_URL`), beside a `nav` of project links (repository, contributor guide, the
+  root `AGENTS.md` guide for coding agents, code of conduct, license; plain `.vk-prose-link`s, 44px
+  tall, no icon and no arrow, `landing.openSource.newTab` in an `sr-only` span). The section holds
+  its visible copy to 60 words (`open-source.test.tsx`). No AGENTS.md link until the root file
+  exists, and no good-first-issue label link while that label has no open issue), `faq.tsx` (`#faq`) and `final-cta.tsx` (the closing
   section on `landing.closing`, the page's only centered section: `.vk-final-cta` opens
   `--section-closer` (`--section-lg`, the only large step besides the hero) under the contribution
   band on the page surface, and `.vk-closer` centers one `h2`, one lead sentence, the install

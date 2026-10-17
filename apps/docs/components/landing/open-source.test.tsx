@@ -43,7 +43,7 @@ describe("OpenSource", () => {
     expect(root.textContent).toContain(copy.lead);
   });
 
-  it("numbers the contribution steps in an ordered list, each with a title, a sentence and its command", () => {
+  it("numbers the contribution steps in an ordered list, each with a title and its command", () => {
     const steps = Array.from(root.querySelectorAll("ol.vk-contribute-steps > li"));
     expect(steps.map((step) => step.getAttribute("data-step"))).toEqual(
       CONTRIBUTION_STEPS.map((step) => step.id),
@@ -55,7 +55,7 @@ describe("OpenSource", () => {
       expect(step.querySelector(".vk-contribute-mark")?.getAttribute("aria-hidden")).toBe("true");
       expect(step.querySelector(".vk-contribute-mark")?.textContent).toBe(String(index + 1));
       expect(step.querySelector("h3")?.textContent).toBe(text.title);
-      expect(step.querySelector("p")?.textContent).toBe(text.body);
+      expect(step.querySelector("p")).toBeNull();
       expect(step.querySelector("code")?.textContent).toBe(entry.command);
     });
   });
@@ -69,17 +69,16 @@ describe("OpenSource", () => {
     expect(contributingGuide).toMatch(
       /Clone the repository and install dependencies from the root:\n\n```\npnpm install\n```/,
     );
-    expect(contributingGuide).toMatch(
-      /sets up the Git hooks \(lefthook\s+installs them during install\)/,
-    );
-    expect(copy.steps.setup.body).toMatch(/^Clone it and install from the root, .*Git hooks/);
+    expect(copy.steps.setup.title).toMatch(/^Clone and install from the root$/);
     expect(contributingGuide).toMatch(/1\. Branch from `main`\./);
     expect(contributingGuide).toMatch(/Run `pnpm verify` locally/);
+    expect(copy.steps.change.title).toMatch(/^Branch from main and run the checks$/);
     expect(contributingGuide).toMatch(/Add a changeset if a publishable package changed/);
     expect(contributingGuide).toMatch(/Open a pull request with the template/);
+    expect(copy.steps.pullRequest.title).toMatch(/changeset if needed and open a pull request$/);
   });
 
-  it("links the repository, contributor guide, code of conduct, license, security policy and issues in a new tab", () => {
+  it("links the repository, contributor guide, agents guide, code of conduct and license in a new tab", () => {
     const nav = root.querySelector("nav[aria-labelledby='open-source-links']");
     const hrefs = Array.from(nav?.querySelectorAll("a") ?? []).map((a) => a.getAttribute("href"));
     expect(hrefs).toEqual([
@@ -88,8 +87,6 @@ describe("OpenSource", () => {
       "https://github.com/verbatra/verbatra/blob/main/AGENTS.md",
       "https://github.com/verbatra/verbatra/blob/main/CODE_OF_CONDUCT.md",
       "https://github.com/verbatra/verbatra/blob/main/LICENSE",
-      "https://github.com/verbatra/verbatra/blob/main/SECURITY.md",
-      "https://github.com/verbatra/verbatra/issues",
     ]);
     for (const link of OPEN_SOURCE_LINKS) {
       const anchor = nav?.querySelector(`a[href='${link.href}']`);
@@ -128,10 +125,39 @@ describe("OpenSource", () => {
       expect(image?.getAttribute("width")).toBe("32");
       expect(image?.getAttribute("height")).toBe("32");
     }
+    expect(root.querySelectorAll("img")).toHaveLength(CONTRIBUTORS.length);
     for (const image of root.querySelectorAll("img")) {
       const src = image.getAttribute("src") ?? "";
       expect(new URL(src, "https://verbatra.test").host).toBe("verbatra.test");
     }
+  });
+
+  it("ends the contributors with an open slot that links the issue list, drawn without an image", () => {
+    const slot = root.querySelector(
+      ".vk-contribute-avatars > li:last-child[data-contributor-slot]",
+    );
+    const link = slot?.querySelector("a");
+    expect(link?.getAttribute("href")).toBe("https://github.com/verbatra/verbatra/issues");
+    expect(link?.getAttribute("target")).toBe("_blank");
+    expect(link?.textContent).toBe(
+      `${copy.contributorSlot}, ${copy.contributorSlotHint} ${copy.newTab}`,
+    );
+    expect(slot?.querySelector("img")).toBeNull();
+    expect(slot?.querySelector(".vk-contribute-slot-mark")?.getAttribute("aria-hidden")).toBe(
+      "true",
+    );
+  });
+
+  it("keeps the visible copy of the section to sixty words", () => {
+    const section = root.querySelector("section#open-source")?.cloneNode(true);
+    if (!(section instanceof Element)) throw new Error("no contribution section");
+    for (const hidden of section.querySelectorAll(".sr-only, [aria-hidden='true'], code"))
+      hidden.remove();
+    const words = (section.textContent ?? "")
+      .replace(/([a-z])([A-Z])/g, "$1 $2")
+      .split(/\s+/)
+      .filter((word) => /[\p{L}\p{N}]/u.test(word));
+    expect(words.length).toBeLessThanOrEqual(60);
   });
 
   it("names the contributors as a group, not a nested landmark", () => {
@@ -149,12 +175,9 @@ describe("OpenSource", () => {
     ["de", de],
     ["es", es],
     ["fr", fr],
-  ])("keeps every step body to one sentence in %s", (_locale, catalog) => {
+  ])("gives every step a title and no body in %s", (_locale, catalog) => {
     for (const [id, step] of Object.entries(catalog.landing.openSource.steps)) {
-      expect(
-        step.body.split(/[.!?](?:\s|$)/).filter((part) => part.trim() !== ""),
-        id,
-      ).toHaveLength(1);
+      expect(Object.keys(step), id).toEqual(["title"]);
     }
   });
 

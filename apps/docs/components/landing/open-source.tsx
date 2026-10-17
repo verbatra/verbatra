@@ -2,7 +2,11 @@ import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { CONTRIBUTORS, type Contributor } from "@/lib/contributors";
-import { CONTRIBUTION_STEPS, OPEN_SOURCE_LINKS } from "@/lib/landing-open-source";
+import {
+  CONTRIBUTION_STEPS,
+  CONTRIBUTOR_SLOT_URL,
+  OPEN_SOURCE_LINKS,
+} from "@/lib/landing-open-source";
 import { GITHUB_URL } from "./links";
 import { PlainList } from "./plain-list";
 import { Section } from "./section";
@@ -29,16 +33,20 @@ function OutboundLink({
   );
 }
 
+type ContributorSlot = { readonly label: string; readonly hint: string };
+
 export function Contributors({
   contributors,
   title,
   ariaFor,
   newTab,
+  slot,
 }: {
   contributors: ReadonlyArray<Contributor>;
   title: string;
   ariaFor: (login: string) => string;
   newTab: string;
+  slot?: ContributorSlot;
 }): ReactNode {
   if (contributors.length === 0) return null;
   return (
@@ -69,6 +77,19 @@ export function Contributors({
             </OutboundLink>
           </li>
         ))}
+        {slot ? (
+          <li data-contributor-slot="">
+            <OutboundLink
+              href={CONTRIBUTOR_SLOT_URL}
+              newTab={newTab}
+              className="vk-contribute-person vk-contribute-slot"
+            >
+              <span aria-hidden="true" className="vk-contribute-slot-mark" />
+              <span className="text-sm">{slot.label}</span>
+              <span className="sr-only">, {slot.hint}</span>
+            </OutboundLink>
+          </li>
+        ) : null}
       </PlainList>
     </div>
   );
@@ -93,7 +114,6 @@ export async function OpenSource(): Promise<ReactNode> {
               {index + 1}
             </span>
             <h3 className="vk-h4 text-(--text-strong)">{t(`steps.${step.id}.title`)}</h3>
-            <p className="vk-contribute-body">{t(`steps.${step.id}.body`)}</p>
             <code lang="en" className="vk-contribute-command">
               {step.command}
             </code>
@@ -101,6 +121,13 @@ export async function OpenSource(): Promise<ReactNode> {
         ))}
       </ol>
       <div className="vk-contribute-foot vk-grid-12 not-prose">
+        <Contributors
+          contributors={CONTRIBUTORS}
+          title={t("contributorsHeading")}
+          ariaFor={(login) => t("contributorAria", { name: login })}
+          newTab={newTab}
+          slot={{ label: t("contributorSlot"), hint: t("contributorSlotHint") }}
+        />
         <nav aria-labelledby="open-source-links" className="vk-contribute-links">
           <h3 id="open-source-links" className="vk-contribute-label">
             {t("linksHeading")}
@@ -120,12 +147,6 @@ export async function OpenSource(): Promise<ReactNode> {
             ))}
           </PlainList>
         </nav>
-        <Contributors
-          contributors={CONTRIBUTORS}
-          title={t("contributorsHeading")}
-          ariaFor={(login) => t("contributorAria", { name: login })}
-          newTab={newTab}
-        />
       </div>
     </Section>
   );

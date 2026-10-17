@@ -24,7 +24,7 @@ import {
   faqValues,
   publishedProviders,
 } from "./landing-faq";
-import { CONTRIBUTION_STEPS, OPEN_SOURCE_LINKS } from "./landing-open-source";
+import { CONTRIBUTION_STEPS, CONTRIBUTOR_SLOT_URL, OPEN_SOURCE_LINKS } from "./landing-open-source";
 import {
   PLAYGROUND_DOCS_LINKS,
   PLAYGROUND_ITEMS,
@@ -224,23 +224,26 @@ async function openSource({ locale }: Context): Promise<string> {
   const t = await getTranslations({ locale, namespace: "landing.openSource" });
   const steps = CONTRIBUTION_STEPS.map(
     (step, index) =>
-      `${index + 1}. ${t(`steps.${step.id}.title`)}: ${t(`steps.${step.id}.body`)} ${inlineCodeMarkdown(step.command)}`,
+      `${index + 1}. ${t(`steps.${step.id}.title`)}: ${inlineCodeMarkdown(step.command)}`,
   );
   return blocks(
     `## ${t("heading")}`,
     t("lead"),
     steps.join("\n"),
+    CONTRIBUTORS.length === 0
+      ? null
+      : blocks(
+          `### ${t("contributorsHeading")}`,
+          list([
+            ...CONTRIBUTORS.map((contributor) => link(contributor.login, contributor.profileUrl)),
+            `${link(t("contributorSlot"), CONTRIBUTOR_SLOT_URL)}: ${t("contributorSlotHint")}`,
+          ]),
+        ),
     `### ${t("linksHeading")}`,
     list([
       link("verbatra/verbatra", GITHUB_URL),
       ...OPEN_SOURCE_LINKS.map((item) => link(t(item.key), item.href)),
     ]),
-    CONTRIBUTORS.length === 0
-      ? null
-      : blocks(
-          `### ${t("contributorsHeading")}`,
-          list(CONTRIBUTORS.map((contributor) => link(contributor.login, contributor.profileUrl))),
-        ),
   );
 }
 

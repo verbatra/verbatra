@@ -4,7 +4,6 @@ import {
   CONTRIBUTING_URL,
   ISSUES_URL,
   LICENSE_URL,
-  SECURITY_URL,
 } from "@/components/landing/links";
 
 type ContributionStep = { id: "setup" | "change" | "pullRequest"; command: string };
@@ -16,7 +15,7 @@ export const CONTRIBUTION_STEPS: ReadonlyArray<ContributionStep> = [
 ];
 
 type ProjectLink = {
-  key: "contributing" | "agents" | "codeOfConduct" | "license" | "security" | "issues";
+  key: "contributing" | "agents" | "codeOfConduct" | "license";
   href: string;
 };
 
@@ -25,6 +24,6 @@ export const OPEN_SOURCE_LINKS: ReadonlyArray<ProjectLink> = [
   { key: "agents", href: AGENTS_URL },
   { key: "codeOfConduct", href: CODE_OF_CONDUCT_URL },
   { key: "license", href: LICENSE_URL },
-  { key: "security", href: SECURITY_URL },
-  { key: "issues", href: ISSUES_URL },
 ];
+
+export const CONTRIBUTOR_SLOT_URL = ISSUES_URL;

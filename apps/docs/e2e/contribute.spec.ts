@@ -22,12 +22,12 @@ for (const locale of LOCALES) {
     }
 
     for (const width of [1024, 1440]) {
-      test(`lines the step titles, bodies and commands up across the row at ${width}px`, async ({
+      test(`lines the step titles and commands up across the row at ${width}px`, async ({
         page,
       }) => {
         await page.setViewportSize({ width, height: 900 });
         await page.goto(homeUrl(locale));
-        for (const part of ["h3", "p", "code"]) {
+        for (const part of ["h3", "code"]) {
           const tops = await page
             .locator(`${STEPS} > ${part}`)
             .evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().top));
