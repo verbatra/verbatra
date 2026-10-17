@@ -520,14 +520,7 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   (a changing name plus a pressed state would read "Play animation, pressed"), and its
   `aria-hidden` glyph swapping on `data-marquee`. Hover and focus inside
   a row pause that row. `marquee.test.tsx` pins the registry rows, the badge, the copies, the static
-  state and the pause toggle, and `e2e/marquee.spec.ts` the motion in a browser. The format
-  samples in `lib/format-samples.generated.json` (no landing section shows one today; only
-  `lib/format-samples.test.ts` reads them) are written by `scripts/sync-format-samples.mjs` before dev,
-  build, typecheck and test (git-ignored like `lib/version.generated.json`) from
-  `createDefaultRegistry` in `@verbatra/sdk` over the in-memory `AdapterFs` in
-  `lib/format-samples-seed.mjs`. Nothing in the page graph imports the sdk at runtime, and the docs
-  app never depends on `@verbatra/format-adapters`; `lib/format-samples.test.ts` re-reads every
-  sample through the real adapter. The shared building blocks: `section.tsx` and
+  state and the pause toggle, and `e2e/marquee.spec.ts` the motion in a browser. The shared building blocks: `section.tsx` and
   `section-head.tsx` for structure,
   the scroll fades: every sideways-scrolling mono block fades its end edge while there is more to
   see, through a mask on the element's own inline scroll timeline (one `@supports` rule for every
