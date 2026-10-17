@@ -274,6 +274,18 @@ describe("the playground on the server", () => {
     );
   });
 
+  it("keeps the heading, the lead and the pre-generated label to forty words", async () => {
+    const root = await renderServer();
+    const prose = [
+      root.querySelector("h2#playground-heading")?.textContent,
+      root.querySelector("#playground .vk-section-head-lead")?.textContent,
+      root.querySelector(".vk-playground-label")?.textContent,
+    ].join(" ");
+    const words = prose.split(/\s+/).filter((word) => /[\p{L}\p{N}]/u.test(word));
+    expect(prose).toContain(copy.lead);
+    expect(words.length).toBeLessThanOrEqual(40);
+  });
+
   it("reads the provider, model and generation date from the committed JSON", async () => {
     const root = await renderServer();
     const meta = root.querySelector(".vk-playground-meta");

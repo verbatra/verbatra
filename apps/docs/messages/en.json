@@ -246,8 +246,8 @@
       "allFormats": "All formats"
     },
     "playground": {
-      "heading": "Try the SDK",
-      "lead": "Pick a source string and the languages to translate it into, then press Translate. The results come from a real Verbatra SDK run that ships with this page, so your click sends nothing to a provider.",
+      "heading": "Translate a string with the SDK",
+      "lead": "Pick a string and target languages, then press Translate. The code shows the SDK call that produced these results.",
       "items": "Source string",
       "languages": "Target languages",
       "translate": "Translate",
