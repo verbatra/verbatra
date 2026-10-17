@@ -1,5 +1,11 @@
-import { dataPayloadCharacters, resultPayloadCharacters, type Tone } from "@verbatra/ai-providers";
+import {
+  dataPayloadCharacters,
+  type LocaleGlossary,
+  resultPayloadCharacters,
+  type Tone,
+} from "@verbatra/ai-providers";
 import type { LocaleResource, TranslationEntry } from "@verbatra/core";
+import { type GlossaryInput, glossaryForLocale } from "../config/glossary.js";
 import { type BillingUnit, billingFor, modelOf, rateKeyFor } from "../config/provider-billing.js";
 import type { ProviderConfig } from "../config/provider-config.js";
 import { isTokenRate, lookupRate, type ModelRate, type RateCard } from "../config/rate-card.js";
@@ -21,7 +27,7 @@ import type {
 } from "./summary.js";
 
 export const ESTIMATED_CHARACTERS_PER_TOKEN = 4;
-export const ESTIMATED_SYSTEM_RULES_TOKENS = 250;
+export const ESTIMATED_SYSTEM_RULES_TOKENS = 550;
 export const ESTIMATED_RESPONSE_SCHEMA_TOKENS = 100;
 export const ESTIMATED_TRANSLATION_EXPANSION = 1.5;
 
@@ -38,7 +44,7 @@ export interface EstimateRunInput {
   readonly sourceLocale: string;
   readonly maxBatchSize: number;
   readonly locales: readonly LocaleEstimateInput[];
-  readonly glossary?: Readonly<Record<string, string>>;
+  readonly glossary?: GlossaryInput;
   readonly tone?: Tone;
   readonly rates?: RateCard;
 }
@@ -76,14 +82,14 @@ function addQuantities(total: EstimatedQuantity, next: EstimatedQuantity): Estim
 export interface PayloadContext {
   readonly sourceLocale: string;
   readonly targetLocale: string;
-  readonly glossary?: Readonly<Record<string, string>>;
+  readonly glossary?: LocaleGlossary;
   readonly tone?: Tone;
 }
 
 export interface PayloadContextSource {
   readonly sourceLocale: string;
   readonly targetLocale: string;
-  readonly glossary?: Readonly<Record<string, string>> | undefined;
+  readonly glossary?: LocaleGlossary | undefined;
   readonly tone?: Tone | undefined;
 }
 
@@ -239,7 +245,12 @@ function measureLocales(input: EstimateRunInput, unit: BillingUnit): readonly Me
   return input.locales.map((locale) => {
     const quantity = quantifyEverySend(
       locale,
-      payloadContextOf({ ...input, targetLocale: locale.locale }),
+      payloadContextOf({
+        sourceLocale: input.sourceLocale,
+        targetLocale: locale.locale,
+        glossary: glossaryForLocale(input.glossary, locale.locale),
+        tone: input.tone,
+      }),
       input.maxBatchSize,
     );
     return { quantity, estimate: localeQuantityOf(locale.locale, quantity, unit) };
@@ -289,11 +300,18 @@ export interface EstimateForRunInput {
   readonly maxBatchSize: number;
 }
 
+function sentKeys(summary: LocaleSummary): readonly string[] {
+  const suggested = summary.protected
+    .filter((entry) => entry.suggestionStatus === "planned")
+    .map((entry) => entry.key);
+  return [...summary.translated, ...suggested];
+}
+
 function entriesFor(source: LocaleResource, keys: readonly string[]): readonly TranslationEntry[] {
   const entries: TranslationEntry[] = [];
   for (const key of keys) {
     const entry = source.entries.get(key);
-    /* v8 ignore next 3 -- a summary's translated keys come from the source-driven diff, so every one of them resolves to a source entry; this guard is purely defensive. */
+    /* v8 ignore next 3 -- a summary's translated keys and its planned suggestions both come from the source-driven diff, never from a generated plural form, so every one of them resolves to a source entry; this guard is purely defensive. */
     if (entry === undefined) {
       continue;
     }
@@ -338,7 +356,7 @@ export function estimateForRun(input: EstimateForRunInput): RunEstimate {
     ...(config.rates !== undefined ? { rates: config.rates } : {}),
     locales: input.summaries.map((summary) => ({
       locale: summary.locale,
-      entries: entriesFor(input.source, summary.translated),
+      entries: entriesFor(input.source, sentKeys(summary)),
       generatedEntries: generatedEntriesFor(input, summary),
     })),
   });

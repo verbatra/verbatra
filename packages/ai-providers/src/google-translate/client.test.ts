@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProviderError } from "../errors.js";
-import { createDefaultClient, GOOGLE_TRANSLATE_ENDPOINT } from "./client.js";
+import { createDefaultClient } from "./client.js";
+import { GOOGLE_TRANSLATE_ENDPOINT } from "./endpoint.js";
 
 describe("createDefaultClient", () => {
   let saved: string | undefined;
@@ -35,7 +36,7 @@ describe("createDefaultClient", () => {
 
     const { client } = createDefaultClient();
     const controller = new AbortController();
-    const result = await client.translate(["Hello"], "en", "de", controller.signal);
+    const result = await client.translate(["Hello"], "en", "de", "text", controller.signal);
 
     expect(result.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -56,6 +57,21 @@ describe("createDefaultClient", () => {
     });
   });
 
+  it("sends the format it is given", async () => {
+    process.env.GOOGLE_TRANSLATE_API_KEY = `AIza${"a".repeat(35)}`;
+    const fetchMock = vi.fn(
+      async (_url: string, _init: RequestInit) =>
+        new Response(JSON.stringify({ data: { translations: [] } }), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { client } = createDefaultClient();
+    await client.translate(["Hi"], "en", "de", "html", new AbortController().signal);
+
+    const init = fetchMock.mock.calls[0]?.[1];
+    expect(JSON.parse(init?.body as string)).toMatchObject({ format: "html" });
+  });
+
   it("returns an undefined body rather than throwing when the response is not valid JSON", async () => {
     process.env.GOOGLE_TRANSLATE_API_KEY = `AIza${"a".repeat(35)}`;
     vi.stubGlobal(
@@ -64,7 +80,13 @@ describe("createDefaultClient", () => {
     );
 
     const { client } = createDefaultClient();
-    const result = await client.translate(["Hello"], "en", "de", new AbortController().signal);
+    const result = await client.translate(
+      ["Hello"],
+      "en",
+      "de",
+      "text",
+      new AbortController().signal,
+    );
     expect(result.status).toBe(500);
     expect(result.body).toBeUndefined();
   });

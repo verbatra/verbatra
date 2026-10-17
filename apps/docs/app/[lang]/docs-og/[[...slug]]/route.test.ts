@@ -1,17 +1,20 @@
 import { describe, expect, it, vi } from "vitest";
 
 interface FakePage {
+  readonly url: string;
   readonly data: { readonly title: string; readonly description: string };
 }
 
 const PAGES: Record<string, Record<string, FakePage>> = {
   en: {
     "the-lock-file": {
+      url: "/docs/the-lock-file",
       data: { title: "The lock file", description: "How verbatra.lock.json works." },
     },
   },
   de: {
     "the-lock-file": {
+      url: "/de/docs/the-lock-file",
       data: { title: "Die Lock-Datei", description: "Wie verbatra.lock.json funktioniert." },
     },
   },

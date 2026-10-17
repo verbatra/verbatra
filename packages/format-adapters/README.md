@@ -31,8 +31,8 @@ learns what a `.xcstrings` catalog or a gettext `.po` header looks like.
   `fs: AdapterFs = nodeAdapterFs` (`src/fs-port.ts`), and `fs-port.no-direct-node-fs.test.ts`
   scans every non-test source file in the package and fails if one reaches for `node:fs`.
 - Grow `SupportedFormat` for a format verbatra does not ship. That set stays closed; a third-party
-  adapter names itself with a `custom:` identifier, per
-  [`docs/decisions/0001-third-party-format-adapters.md`](../../docs/decisions/0001-third-party-format-adapters.md).
+  adapter names itself with a `custom:` identifier and is built on the construction surface that
+  `@verbatra/sdk` re-exports.
 
 ## Extending
 

@@ -1,24 +1,89 @@
 #!/usr/bin/env node
 
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
-const PUBLISHED_PACKAGES = new Set(["@verbatra/sdk", "@verbatra/studio"]);
+const PUBLISHED_PACKAGES = new Set([
+  "@verbatra/sdk",
+  "@verbatra/cli",
+  "@verbatra/studio",
+  "@verbatra/mcp",
+]);
+
+const PUBLISHED_DECLARATIONS = [
+  "packages/sdk/dist/index.d.ts",
+  "packages/sdk/dist/index.d.cts",
+  "packages/cli/dist/lib.d.ts",
+  "packages/cli/dist/lib.d.cts",
+  "packages/studio/dist/index.d.ts",
+  "packages/mcp/dist/index.d.ts",
+];
+
+const PUBLISHED_PACKAGE_DIRS = ["sdk", "cli", "studio", "mcp"];
+
+const JAVASCRIPT_TARGET = /\.[cm]?js$/;
 
 const DECLARATION_SPECIFIER = /(?:from|import)\s*\(?\s*['"](@verbatra\/[a-z-]+)['"]/g;
 
 const DYNAMIC_IMPORT_ONLY_PACKAGES = ["@verbatra/studio", "@verbatra/mcp"];
 
+const LAZY_PROVIDER_PACKAGES = [
+  "@anthropic-ai/sdk",
+  "openai",
+  "@google/genai",
+  "deepl-node",
+  "loglevel",
+];
+
+const SDK_DECLARATIONS = ["packages/sdk/dist/index.d.ts", "packages/sdk/dist/index.d.cts"];
+
+const SDK_ENTRIES = ["packages/sdk/dist/index.js", "packages/sdk/dist/index.cjs"];
+
+const STUDIO_APP_ASSETS = "packages/studio/dist/app/assets";
+
+const ZOD_JITLESS_CONFIG = /\(\{\s*jitless\s*:\s*(?:!0|true)\s*\}\)/;
+
+function hasZodJitlessConfig(text) {
+  return ZOD_JITLESS_CONFIG.test(text);
+}
+
 function dynamicImportPattern(packageName) {
   return new RegExp(`import\\(\\s*['"]${packageName}['"]\\s*\\)`);
 }
 
+function specifierPattern(packageName) {
+  return `['"]${packageName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:/[^'"]*)?['"]`;
+}
+
 function staticImportPattern(packageName) {
-  return new RegExp(`(?:^|\\s)(?:import|export)[^\\n]*?from\\s*['"]${packageName}['"]`, "m");
+  return new RegExp(
+    `(?:^|[\\s;}])(?:import|export)(?:[^'"\\n;]*?\\bfrom)?\\s*${specifierPattern(packageName)}`,
+    "m",
+  );
+}
+
+function staticRequirePattern(packageName) {
+  return new RegExp(`(?<![\\w$.])require\\(\\s*${specifierPattern(packageName)}\\s*\\)`);
+}
+
+function findEagerProviderImports(text, relativePath) {
+  const hits = [];
+  for (const packageName of LAZY_PROVIDER_PACKAGES) {
+    if (
+      staticImportPattern(packageName).test(text) ||
+      staticRequirePattern(packageName).test(text)
+    ) {
+      hits.push(`${relativePath}: loads ${packageName} at startup`);
+    }
+    if (!dynamicImportPattern(packageName).test(text)) {
+      hits.push(`${relativePath}: has no import("${packageName}")`);
+    }
+  }
+  return hits;
 }
 
 function readBuildOutput(relativePath) {
@@ -51,32 +116,249 @@ function findForbiddenSpecifiers(relativePath) {
   );
 }
 
-function checkDts() {
-  const declarations = [
-    "packages/sdk/dist/index.d.ts",
-    "packages/sdk/dist/index.d.cts",
-    "packages/cli/dist/lib.d.ts",
-    "packages/studio/dist/index.d.ts",
-  ];
-  const hits = declarations.flatMap(findForbiddenSpecifiers);
+const RENAMED_DECLARATION =
+  /\b(?:type|interface|class|function|enum|const|let|var|namespace)\s+([A-Za-z_$][\w$]*\$\d+)\b/g;
+
+function findRenamedDeclarations(text, relativePath) {
+  const lines = text.split("\n");
+  const hits = [];
+  for (let index = 0; index < lines.length; index += 1) {
+    for (const match of (lines[index] ?? "").matchAll(RENAMED_DECLARATION)) {
+      hits.push(`${relativePath}:${index + 1}: ${match[1]}`);
+    }
+  }
+  return hits;
+}
+
+const EXPORT_LIST = /^export\s*(?:type\s*)?\{([^}]*)\}/gm;
+
+const TOP_LEVEL_DECLARATION =
+  /^(?:export\s+)?(?:declare\s+)?(?:abstract\s+)?(?:type|interface|class|function|enum|const|let|var|namespace)\s+([A-Za-z_$][\w$]*)/gm;
+
+const TOP_LEVEL_DECLARATION_START =
+  /^(?:export\s+)?(?:declare\s+)?(?:abstract\s+)?(?:type|interface|class|function|enum|const|let|var|namespace)\s/;
+
+const MEMBER_DECLARATION = /^\s+(?:readonly\s+)?([A-Za-z_$][\w$]*)\??\s*[:(<]/gm;
+
+const LINK_TARGET = /\{@link(?:code|plain)?\s+([A-Za-z_$][\w$]*)/g;
+
+function exportedNames(text) {
+  const names = new Set();
+  for (const match of text.matchAll(EXPORT_LIST)) {
+    for (const specifier of (match[1] ?? "").split(",")) {
+      const [local, alias] = specifier
+        .trim()
+        .replace(/^type\s+/, "")
+        .split(/\s+as\s+/);
+      const name = (alias ?? local ?? "").trim();
+      if (name !== "") {
+        names.add(name);
+      }
+    }
+  }
+  return names;
+}
+
+function namesMatching(text, pattern) {
+  return new Set([...text.matchAll(pattern)].map((match) => match[1]));
+}
+
+function findUnexportedLinks(text, relativePath) {
+  const exported = exportedNames(text);
+  const topLevel = namesMatching(text, TOP_LEVEL_DECLARATION);
+  const members = namesMatching(text, MEMBER_DECLARATION);
+  const isUnreachable = (name) => !exported.has(name) && (topLevel.has(name) || !members.has(name));
+  const lines = text.split("\n");
+  const hits = [];
+  for (let index = 0; index < lines.length; index += 1) {
+    for (const match of (lines[index] ?? "").matchAll(LINK_TARGET)) {
+      if (isUnreachable(match[1])) {
+        hits.push(`${relativePath}:${index + 1}: ${match[1]}`);
+      }
+    }
+  }
+  return hits;
+}
+
+const VALUE_DECLARATION =
+  /^(export\s+)?declare\s+(?:abstract\s+class|class|function|const\s+enum|enum|const|let|var)\s+([A-Za-z_$][\w$]*)/;
+
+function exportedLocalNames(text) {
+  const names = new Set();
+  for (const match of text.matchAll(EXPORT_LIST)) {
+    for (const specifier of (match[1] ?? "").split(",")) {
+      const local = specifier
+        .trim()
+        .replace(/^type\s+/, "")
+        .split(/\s+as\s+/)[0]
+        ?.trim();
+      if (local !== undefined && local !== "") {
+        names.add(local);
+      }
+    }
+  }
+  return names;
+}
+
+function previousContentIndex(lines, index) {
+  let cursor = index - 1;
+  while (cursor >= 0 && (lines[cursor] ?? "").trim() === "") {
+    cursor -= 1;
+  }
+  return cursor;
+}
+
+function endsJsDocBlock(lines, index) {
+  if (!(lines[index] ?? "").trim().endsWith("*/")) {
+    return false;
+  }
+  for (let cursor = index; cursor >= 0; cursor -= 1) {
+    const line = (lines[cursor] ?? "").trim();
+    if (line.startsWith("/*")) {
+      return line.startsWith("/**") && !line.startsWith("/**/");
+    }
+  }
+  return false;
+}
+
+function findUndocumentedExports(text, relativePath) {
+  const exported = exportedLocalNames(text);
+  const lines = text.split("\n");
+  const hits = [];
+  let previousName;
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index] ?? "";
+    const declaration = VALUE_DECLARATION.exec(line);
+    const topLevel = TOP_LEVEL_DECLARATION_START.exec(line);
+    if (declaration === null) {
+      previousName = topLevel === null ? previousName : undefined;
+      continue;
+    }
+    const name = declaration[2];
+    const isExported = declaration[1] !== undefined || exported.has(name);
+    const isOverload = previousName === name;
+    if (isExported && !isOverload && !endsJsDocBlock(lines, previousContentIndex(lines, index))) {
+      hits.push(`${relativePath}:${index + 1}: ${name}`);
+    }
+    previousName = name;
+  }
+  return hits;
+}
+
+function moduleFormat(path, packageType) {
+  if (path.endsWith(".d.cts") || path.endsWith(".cjs")) {
+    return "cjs";
+  }
+  if (path.endsWith(".d.mts") || path.endsWith(".mjs")) {
+    return "esm";
+  }
+  return packageType === "module" ? "esm" : "cjs";
+}
+
+function collectExportTypeMismatches(node, inheritedTypes, packageType, trail, mismatches) {
+  if (typeof node === "string") {
+    if (JAVASCRIPT_TARGET.test(node) && inheritedTypes !== undefined) {
+      const jsFormat = moduleFormat(node, packageType);
+      const typesFormat = moduleFormat(inheritedTypes, packageType);
+      if (jsFormat !== typesFormat) {
+        mismatches.push(
+          `${trail}: ${node} (${jsFormat}) is typed by ${inheritedTypes} (${typesFormat})`,
+        );
+      }
+    }
+    return;
+  }
+  if (node === null || typeof node !== "object") {
+    return;
+  }
+  const types = typeof node.types === "string" ? node.types : inheritedTypes;
+  for (const [key, value] of Object.entries(node)) {
+    if (key !== "types") {
+      collectExportTypeMismatches(value, types, packageType, `${trail} > ${key}`, mismatches);
+    }
+  }
+}
+
+function findExportTypeMismatches(manifest) {
+  const mismatches = [];
+  collectExportTypeMismatches(manifest.exports, undefined, manifest.type, "exports", mismatches);
+  return mismatches;
+}
+
+function checkExportTypes() {
+  const hits = PUBLISHED_PACKAGE_DIRS.flatMap((dir) => {
+    const relativePath = `packages/${dir}/package.json`;
+    const manifest = JSON.parse(readFileSync(resolve(REPO_ROOT, relativePath), "utf8"));
+    return findExportTypeMismatches(manifest).map((hit) => `${relativePath} ${hit}`);
+  });
   if (hits.length > 0) {
     throw new Error(
-      `published declarations reference ${hits.length} unpublished @verbatra/* package(s); ` +
-        `check dts.resolve in the owning tsup config:\n  ${hits.join("\n  ")}`,
+      "an exports condition pairs a JavaScript file with declarations of the other module " +
+        `format; give each condition its own types:\n  ${hits.join("\n  ")}`,
     );
   }
+}
 
+function runTsc(tsconfig) {
   execFileSync(
     process.execPath,
     [
       resolve(REPO_ROOT, "node_modules/typescript/bin/tsc"),
       "--noEmit",
       "-p",
-      resolve(REPO_ROOT, "scripts/dts-fixture/tsconfig.json"),
+      resolve(REPO_ROOT, tsconfig),
     ],
     { cwd: REPO_ROOT, stdio: "inherit" },
   );
-  return "declarations reference no unpublished package, and the consumer fixture typechecks.";
+}
+
+function checkDts() {
+  const hits = PUBLISHED_DECLARATIONS.flatMap(findForbiddenSpecifiers);
+  if (hits.length > 0) {
+    throw new Error(
+      `published declarations reference ${hits.length} unpublished @verbatra/* package(s); ` +
+        `check the dts options in the owning tsup config:\n  ${hits.join("\n  ")}`,
+    );
+  }
+
+  const renamed = SDK_DECLARATIONS.flatMap((relativePath) =>
+    findRenamedDeclarations(readBuildOutput(relativePath), relativePath),
+  );
+  if (renamed.length > 0) {
+    throw new Error(
+      `the sdk declarations bundle a workspace type more than once, so the duplicate is renamed; ` +
+        `check dts.compilerOptions.paths in packages/sdk/tsup.config.ts:\n  ${renamed.join("\n  ")}`,
+    );
+  }
+
+  const unexportedLinks = findUnexportedLinks(
+    readBuildOutput(SDK_DECLARATIONS[0]),
+    SDK_DECLARATIONS[0],
+  );
+  if (unexportedLinks.length > 0) {
+    throw new Error(
+      "published JSDoc links to a name the sdk does not export; export it from " +
+        `packages/sdk/src/index.ts or write it as code:\n  ${unexportedLinks.join("\n  ")}`,
+    );
+  }
+
+  const undocumented = SDK_DECLARATIONS.flatMap((relativePath) =>
+    findUndocumentedExports(readBuildOutput(relativePath), relativePath),
+  );
+  if (undocumented.length > 0) {
+    throw new Error(
+      "an exported sdk function, class or constant ships without its JSDoc; keep the JSDoc " +
+        `directly above the declaration it documents:\n  ${undocumented.join("\n  ")}`,
+    );
+  }
+
+  checkExportTypes();
+  runTsc("scripts/dts-fixture/tsconfig.json");
+  runTsc("scripts/dts-fixture/tsconfig.cjs.json");
+  return (
+    "declarations reference no unpublished package and bundle each type once, every exported value carries its JSDoc, every JSDoc link names an export, every exports condition pairs matching " +
+    "module formats, and the ESM and CommonJS consumer fixtures typecheck."
+  );
 }
 
 function checkStudioBundle() {
@@ -95,11 +377,55 @@ function checkStudioBundle() {
       );
     }
   }
-  return "the studio and mcp commands survive bundling as runtime dynamic imports.";
+  checkStudioZodJitless();
+  return (
+    "the studio and mcp commands survive bundling as runtime dynamic imports, and the Studio " +
+    "client bundle keeps its zod jitless config."
+  );
+}
+
+function checkStudioZodJitless() {
+  const assetsDir = resolve(REPO_ROOT, STUDIO_APP_ASSETS);
+  if (!existsSync(assetsDir)) {
+    throw new Error(`expected build output ${STUDIO_APP_ASSETS} is missing. Run the build first.`);
+  }
+  const scripts = readdirSync(assetsDir).filter((name) => name.endsWith(".js"));
+  if (scripts.length === 0) {
+    throw new Error(`${STUDIO_APP_ASSETS} holds no JavaScript bundle. Run the build first.`);
+  }
+  const configured = scripts.some((name) =>
+    hasZodJitlessConfig(readBuildOutput(`${STUDIO_APP_ASSETS}/${name}`)),
+  );
+  if (!configured) {
+    throw new Error(
+      `${STUDIO_APP_ASSETS} has no z.config({ jitless: true }) call, so zod probes for eval under ` +
+        "the dashboard's script-src 'self' policy. Check that packages/studio/package.json " +
+        "sideEffects keeps src/app/zod-jitless.ts.",
+    );
+  }
+}
+
+function checkLazyProviderSdks() {
+  const hits = SDK_ENTRIES.flatMap((entry) =>
+    findEagerProviderImports(readBuildOutput(entry), entry),
+  );
+  if (hits.length > 0) {
+    throw new Error(
+      "a provider SDK is no longer loaded on first use; import it with await import() inside " +
+        `its client in packages/ai-providers/src:\n  ${hits.join("\n  ")}`,
+    );
+  }
+  return "the ESM and CommonJS sdk entries load every provider SDK through a runtime import().";
 }
 
 function getConfigSchemaFilesPattern(document) {
   return document.properties?.files?.properties?.pattern?.pattern;
+}
+
+function getConfigSchemaProviderRequired(document, providerId) {
+  const variants = document.properties?.provider?.oneOf ?? [];
+  const variant = variants.find((entry) => entry.properties?.id?.const === providerId);
+  return variant?.required;
 }
 
 function checkConfigSchema() {
@@ -108,7 +434,7 @@ function checkConfigSchema() {
   if (typeof document.$schema !== "string") {
     throw new Error(
       `${relativePath} has no $schema meta key; an editor cannot validate against it. Check ` +
-        "packages/sdk/scripts/emit-config-schema.mjs.",
+        "packages/sdk/scripts/emit-schemas.mjs.",
     );
   }
   const pattern = getConfigSchemaFilesPattern(document);
@@ -119,13 +445,141 @@ function checkConfigSchema() {
         "packages/sdk/src/config/schema.ts rather than a whole-config .refine().",
     );
   }
-  return `the shipped config schema keeps its $schema key and the files.pattern rule (${pattern}).`;
+  const noneRequired = getConfigSchemaProviderRequired(document, "none");
+  if (noneRequired === undefined || noneRequired.includes("options")) {
+    throw new Error(
+      `${relativePath} requires provider options for provider none, which loadConfig does not. ` +
+        "Check that packages/sdk/scripts/emit-schemas.mjs emits the input schema " +
+        '({ io: "input" }), so a defaulted key stays optional.',
+    );
+  }
+  return (
+    `the shipped config schema keeps its $schema key, the files.pattern rule (${pattern}), ` +
+    "and an optional options key for provider none."
+  );
+}
+
+const SCHEMA_BASE_URL = "https://verbatra.kreitz-webdev.de/schema/v1/";
+
+const SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema";
+
+const CLOSED_SCHEMAS = new Set(["config"]);
+
+const COMMAND_ENVELOPES = [
+  "translate",
+  "watch",
+  "import",
+  "export",
+  "tmx",
+  "check",
+  "diff",
+  "report",
+  "pseudo",
+  "types",
+  "doctor",
+  "extract",
+  "init",
+].map((command) => `${command}-envelope`);
+
+const EXPECTED_SCHEMAS = {
+  "packages/sdk/dist/schemas": [
+    "config",
+    "run-summary",
+    "check-summary",
+    "check-file-summary",
+    "diff-summary",
+    "doctor-result",
+    "data-flow-manifest",
+    "provenance-report",
+    "pseudolocalize-result",
+    "generate-types-result",
+    "extract-result",
+    "export-workbook-result",
+    "import-tmx-result",
+    "export-tmx-result",
+    "progress-event",
+    "lock-wait-event",
+  ],
+  "packages/cli/dist/schemas": [
+    "envelope",
+    "error-envelope",
+    "init-result",
+    "stderr-record",
+    ...COMMAND_ENVELOPES,
+  ],
+};
+
+function hasClosedObject(node) {
+  if (Array.isArray(node)) {
+    return node.some(hasClosedObject);
+  }
+  if (node === null || typeof node !== "object") {
+    return false;
+  }
+  return node.additionalProperties === false || Object.values(node).some(hasClosedObject);
+}
+
+function findSchemaDocumentProblems(name, document) {
+  const problems = [];
+  if (document.$schema !== SCHEMA_DIALECT) {
+    problems.push(`${name}.json does not declare $schema ${SCHEMA_DIALECT}`);
+  }
+  if (document.$id !== `${SCHEMA_BASE_URL}${name}.json`) {
+    problems.push(`${name}.json has $id ${document.$id}, not ${SCHEMA_BASE_URL}${name}.json`);
+  }
+  if (typeof document.title !== "string" || document.title.length === 0) {
+    problems.push(`${name}.json has no title`);
+  }
+  if (!CLOSED_SCHEMAS.has(name) && hasClosedObject(document)) {
+    problems.push(
+      `${name}.json sets additionalProperties: false, which breaks the additive --json contract`,
+    );
+  }
+  return problems;
+}
+
+function findSchemaSetProblems(present, expected) {
+  return [
+    ...expected.filter((name) => !present.includes(name)).map((name) => `${name}.json is missing`),
+    ...present
+      .filter((name) => !expected.includes(name))
+      .map((name) => `${name}.json is not in the expected list in scripts/check-build-output.mjs`),
+  ];
+}
+
+function checkSchemas() {
+  const problems = [];
+  let count = 0;
+  for (const [dir, expected] of Object.entries(EXPECTED_SCHEMAS)) {
+    const absolute = resolve(REPO_ROOT, dir);
+    if (!existsSync(absolute)) {
+      throw new Error(`expected build output ${dir} is missing. Run the build first.`);
+    }
+    const present = readdirSync(absolute)
+      .filter((file) => file.endsWith(".json"))
+      .map((file) => file.slice(0, -".json".length));
+    problems.push(...findSchemaSetProblems(present, expected).map((p) => `${dir}: ${p}`));
+    for (const name of present.filter((entry) => expected.includes(entry))) {
+      const document = JSON.parse(readBuildOutput(`${dir}/${name}.json`));
+      problems.push(...findSchemaDocumentProblems(name, document).map((p) => `${dir}: ${p}`));
+      count += 1;
+    }
+  }
+  if (problems.length > 0) {
+    throw new Error(`the emitted JSON Schemas are not publishable:\n  ${problems.join("\n  ")}`);
+  }
+  return (
+    `all ${count} JSON Schemas exist, declare draft 2020-12 with their public $id and a title, ` +
+    "and every result schema allows unknown properties."
+  );
 }
 
 const TARGETS = {
   dts: checkDts,
   "studio-bundle": checkStudioBundle,
   "config-schema": checkConfigSchema,
+  schemas: checkSchemas,
+  "lazy-provider-sdks": checkLazyProviderSdks,
 };
 
 function main() {
@@ -154,7 +608,19 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
 export {
   DECLARATION_SPECIFIER,
   dynamicImportPattern,
+  findEagerProviderImports,
+  findExportTypeMismatches,
   findForbiddenSpecifiersInText,
+  findRenamedDeclarations,
+  findSchemaDocumentProblems,
+  findSchemaSetProblems,
+  findUndocumentedExports,
+  findUnexportedLinks,
   getConfigSchemaFilesPattern,
+  getConfigSchemaProviderRequired,
+  hasZodJitlessConfig,
+  PUBLISHED_DECLARATIONS,
+  PUBLISHED_PACKAGES,
   staticImportPattern,
+  staticRequirePattern,
 };

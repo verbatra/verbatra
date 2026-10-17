@@ -15,6 +15,7 @@ const COVERED_BY: Readonly<Record<string, readonly string[]>> = {
   "flow/workbook/import-locale.ts": ["integrity-gate-agreement.test.ts"],
   "flow/plural-generation.ts": ["plural-generation.markup.test.ts"],
   "flow/pseudo.ts": ["pseudo.integrity.test.ts"],
+  "flow/qa-check.ts": ["check.qa.test.ts"],
   "flow/tmx/import-tmx.ts": ["tmx/import-tmx.test.ts"],
 };
 

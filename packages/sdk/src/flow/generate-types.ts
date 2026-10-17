@@ -1,13 +1,11 @@
 import { basename, dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import type { FormatId, TranslationEntry } from "@verbatra/core";
 import type { AdapterRegistry } from "@verbatra/format-adapters";
-import { CACHE_FILE_NAME } from "../cache/translation-memory.js";
-import { CONFIG_SEARCH_PLACES } from "../config/load-config.js";
+import { projectCwd } from "../config/project-root.js";
 import type { VerbatraConfig } from "../config/schema.js";
-import { errorMessage, SdkError } from "../errors.js";
+import { SdkError } from "../errors.js";
 import { type BoundedFileRead, defaultFs, type SdkFs } from "../fs.js";
-import { createLocalePathResolver, type LocalePathResolver } from "../locale-path/resolver.js";
-import { LOCK_FILE_NAME } from "../lock/lock-file.js";
+import { createLocalePathResolver } from "../locale-path/resolver.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import {
   describeIcuMessageArguments,
@@ -15,13 +13,23 @@ import {
   type MessageArguments,
   type UnresolvedArgumentReason,
 } from "./message-arguments.js";
+import { pluralLookupKey } from "./plural-categories.js";
+import {
+  asWrittenRefusal,
+  createOutputPathGuard,
+  namesNoFile,
+  type OutputPathRefusal,
+  outputRefusalReason,
+  type ReservedPath,
+  reservedProjectPaths,
+} from "./reserved-output.js";
 import { readSourceResource } from "./source.js";
 import {
   type DeclaredMessage,
   GENERATED_HEADER,
   renderTypesDeclaration,
 } from "./types-declaration.js";
-import { escapesWorkingDirectory } from "./write-target.js";
+import { unwritableFileMessage } from "./write-target.js";
 
 /**
  * Where {@link generateTypes} writes its declaration when the caller names no path: a `.d.ts` at
@@ -43,14 +51,16 @@ export interface UnresolvedMessage {
 export interface GenerateTypesInput {
   /** The resolved project config, normally from {@link loadConfig}. */
   readonly config: VerbatraConfig;
-  /** Directory the `files.pattern` and the output path are resolved against. Defaults to the process working directory. */
+  /** Directory the `files.pattern` and the output path are resolved against. Defaults to the project root of the config object {@link loadConfig} returned, else the process working directory; a copied or rebuilt config loses that root, so pass `cwd` from {@link resolveProjectRoot}. */
   readonly cwd?: string;
   /**
    * Where to write the declaration, relative to `cwd`. Defaults to {@link DEFAULT_TYPES_PATH}.
    * Refused with `TYPES_OUTPUT_CONFLICT`, before anything is read or written, when it names no
    * file, is absolute, climbs out of `cwd`, does not end in `.ts`, `.mts` or `.cts`, or names a
-   * configured locale file, the lock file, the translation-memory cache, a file verbatra searches
-   * for its configuration, or the {@link GenerateTypesInput.configPath} file. Names are compared
+   * configured locale file, the lock file, the provenance file, the translation-memory cache, a file verbatra searches
+   * for its configuration, the {@link GenerateTypesInput.configPath} file, or the
+   * {@link GenerateTypesInput.glossaryPath} file. When the file-system port implements `realpath`,
+   * the same checks run again after symbolic links are resolved. Names are compared
    * case-insensitively. A generating run also refuses to replace an existing file there unless
    * that file begins with the header line verbatra writes, after any leading byte order mark and
    * blank lines, and refuses one too large to verify.
@@ -61,6 +71,11 @@ export interface GenerateTypesInput {
    * as the output path even when its name is not one verbatra searches for.
    */
   readonly configPath?: string;
+  /**
+   * The glossary file the config names, absolute or relative to `cwd`, normally the `path` of a
+   * file-backed {@link LoadedConfig.glossary}. It is refused as the output path.
+   */
+  readonly glossaryPath?: string;
   /**
    * Compare instead of writing. The run reports whether the file on disk matches what a fresh
    * generation would produce and leaves every file untouched.
@@ -93,7 +108,11 @@ export interface GenerateTypesResult {
   readonly unresolved: readonly UnresolvedMessage[];
   /** Keys the adapter reported as excluded from translation, which are never declared. */
   readonly excluded: readonly string[];
-  /** Keys the adapter marked as carrying plural forms. Each sibling is declared on its own. */
+  /**
+   * Keys the adapter marked as carrying plural forms. Each sibling is declared on its own; for
+   * `i18next-json` the base key a `count` lookup names (`item` for `item_one` and `item_other`)
+   * is declared too, but is not listed here.
+   */
   readonly plural: readonly string[];
   /**
    * Whether the declaration file was written. False in `check` mode, and false when the file on
@@ -102,6 +121,11 @@ export interface GenerateTypesResult {
   readonly written: boolean;
   /** Whether the file on disk differed from the freshly generated declaration when the run started. */
   readonly stale: boolean;
+  /**
+   * Whether no declaration file existed at {@link GenerateTypesResult.path} when the run started.
+   * A missing file is always {@link GenerateTypesResult.stale} too.
+   */
+  readonly missing: boolean;
   /** Whether this was a `check` run. */
   readonly check: boolean;
 }
@@ -113,9 +137,11 @@ export const TYPES_OUTPUT_REFUSALS = [
   "not-typescript",
   "locale-file",
   "lock-file",
+  "provenance-file",
   "translation-memory-cache",
   "config-search-place",
   "loaded-config",
+  "glossary-file",
   "unverified-existing-file",
 ] as const;
 
@@ -130,9 +156,11 @@ const REFUSAL_HINTS: Readonly<Record<TypesOutputRefusal, string>> = {
   "not-typescript": RELATIVE_PATH_HINT,
   "locale-file": RELATIVE_PATH_HINT,
   "lock-file": RELATIVE_PATH_HINT,
+  "provenance-file": RELATIVE_PATH_HINT,
   "translation-memory-cache": RELATIVE_PATH_HINT,
   "config-search-place": RELATIVE_PATH_HINT,
   "loaded-config": "Choose an output path other than the config file.",
+  "glossary-file": "Choose an output path other than the glossary file.",
   "unverified-existing-file":
     "Pass a different --out path, or delete the file if it really is an old declaration.",
 };
@@ -144,48 +172,15 @@ function refuseOutput(requested: string, refusal: TypesOutputRefusal, why: strin
   );
 }
 
-interface ReservedPath {
-  readonly refusal: TypesOutputRefusal;
-  readonly what: string;
+function refuseGuardedOutput(requested: string, refusal: OutputPathRefusal): never {
+  refuseOutput(
+    requested,
+    refusal.kind === "reserved" ? refusal.reserved.kind : "outside-working-directory",
+    outputRefusalReason(refusal),
+  );
 }
 
 const TYPESCRIPT_EXTENSIONS = [".ts", ".mts", ".cts"];
-
-function reservedPaths(
-  cwd: string,
-  input: GenerateTypesInput,
-  resolver: LocalePathResolver,
-): Map<string, ReservedPath> {
-  const { config } = input;
-  const reserved = new Map<string, ReservedPath>();
-  const claim = (path: string, refusal: TypesOutputRefusal, what: string): void => {
-    reserved.set(path.toLowerCase(), { refusal, what });
-  };
-  for (const locale of [config.sourceLocale, ...config.targetLocales]) {
-    claim(resolver.pathFor(locale), "locale-file", `the locale file for "${locale}"`);
-  }
-  claim(
-    resolve(cwd, LOCK_FILE_NAME),
-    "lock-file",
-    "the lock file, which holds the translation baseline",
-  );
-  claim(resolve(cwd, CACHE_FILE_NAME), "translation-memory-cache", "the translation-memory cache");
-  for (const place of CONFIG_SEARCH_PLACES) {
-    claim(
-      resolve(cwd, place),
-      "config-search-place",
-      "a file verbatra loads its configuration from",
-    );
-  }
-  if (input.configPath !== undefined) {
-    claim(
-      resolve(cwd, input.configPath),
-      "loaded-config",
-      "the configuration file this run loaded",
-    );
-  }
-  return reserved;
-}
 
 function resolveOutputPath(
   cwd: string,
@@ -193,19 +188,16 @@ function resolveOutputPath(
   reserved: ReadonlyMap<string, ReservedPath>,
 ): string {
   const requested = out ?? DEFAULT_TYPES_PATH;
-  if (requested.trim() === "") {
+  if (namesNoFile(requested)) {
     refuseOutput(requested, "names-no-file", "names no file.");
   }
   if (isAbsolute(requested)) {
     refuseOutput(requested, "absolute", "is absolute.");
   }
   const outputPath = resolve(cwd, requested);
-  if (escapesWorkingDirectory(relative(cwd, outputPath))) {
-    refuseOutput(requested, "outside-working-directory", "is not inside the working directory.");
-  }
-  const claimed = reserved.get(outputPath.toLowerCase());
-  if (claimed !== undefined) {
-    refuseOutput(requested, claimed.refusal, `is ${claimed.what}.`);
+  const asWritten = asWrittenRefusal(cwd, outputPath, reserved);
+  if (asWritten !== undefined) {
+    refuseGuardedOutput(requested, asWritten);
   }
   const name = basename(requested).toLowerCase();
   if (!TYPESCRIPT_EXTENSIONS.some((extension) => name.endsWith(extension))) {
@@ -216,6 +208,19 @@ function resolveOutputPath(
     );
   }
   return outputPath;
+}
+
+async function refuseLinkedOutput(
+  fs: SdkFs,
+  cwd: string,
+  outputPath: string,
+  reserved: ReadonlyMap<string, ReservedPath>,
+  requested: string,
+): Promise<void> {
+  const refusal = await createOutputPathGuard(fs, cwd, reserved).refusal(outputPath);
+  if (refusal !== undefined) {
+    refuseGuardedOutput(requested, refusal);
+  }
 }
 
 const ICU_MESSAGE_FORMATS: ReadonlySet<FormatId> = new Set(["next-intl-json", "arb"]);
@@ -236,6 +241,58 @@ function declareMessage(
     ? ({ style: "unresolved", reason: "invalid-message-syntax" } as const)
     : argumentsOf(entry, format);
   return { key, arguments: argumentsTaken, isPlural: entry.isPlural };
+}
+
+const COUNT_PLACEHOLDER = "{{count}}";
+
+function typedPluralLookup(format: FormatId, key: string, isPlural: boolean): string | undefined {
+  return isPlural && format === "i18next-json" ? pluralLookupKey(key) : undefined;
+}
+
+function pluralLookupPlaceholders(
+  entries: ReadonlyMap<string, TranslationEntry>,
+  format: FormatId,
+): ReadonlyMap<string, readonly string[]> {
+  const byLookup = new Map<string, string[]>();
+  for (const [key, entry] of entries) {
+    const lookup = typedPluralLookup(format, key, entry.isPlural);
+    if (lookup !== undefined && !entries.has(lookup)) {
+      byLookup.set(lookup, [...(byLookup.get(lookup) ?? []), ...entry.placeholders]);
+    }
+  }
+  return byLookup;
+}
+
+function withPluralLookupKeys(
+  messages: readonly DeclaredMessage[],
+  entries: ReadonlyMap<string, TranslationEntry>,
+  format: FormatId,
+): readonly DeclaredMessage[] {
+  const placeholders = pluralLookupPlaceholders(entries, format);
+  const declared = new Set<string>();
+  return messages.flatMap((message) => {
+    const lookup = typedPluralLookup(format, message.key, message.isPlural);
+    const tokens = lookup === undefined ? undefined : placeholders.get(lookup);
+    if (lookup === undefined || tokens === undefined || declared.has(lookup)) {
+      return [message];
+    }
+    declared.add(lookup);
+    const base: DeclaredMessage = {
+      key: lookup,
+      arguments: describeMessageArguments([...tokens, COUNT_PLACEHOLDER]),
+      isPlural: false,
+    };
+    return [base, message];
+  });
+}
+
+function declaredMessages(
+  entries: ReadonlyMap<string, TranslationEntry>,
+  invalid: ReadonlySet<string>,
+  format: FormatId,
+): readonly DeclaredMessage[] {
+  const messages = [...entries].map(([key, entry]) => declareMessage(key, entry, invalid, format));
+  return withPluralLookupKeys(messages, entries, format);
 }
 
 function takesKnownArguments(message: DeclaredMessage): boolean {
@@ -300,14 +357,19 @@ async function refuseForeignOutput(
   );
 }
 
-async function writeDeclaration(fs: SdkFs, path: string, declaration: string): Promise<void> {
+async function writeDeclaration(
+  fs: SdkFs,
+  path: string,
+  cwd: string,
+  declaration: string,
+): Promise<void> {
   try {
     await fs.mkdir?.(dirname(path));
     await fs.writeFile(path, declaration);
   } catch (error) {
     throw new SdkError(
       "TYPES_UNWRITABLE",
-      `The declaration file at ${path} could not be written: ${errorMessage(error)}`,
+      unwritableFileMessage("the declaration file", path, cwd, error),
     );
   }
 }
@@ -318,9 +380,9 @@ async function writeDeclaration(fs: SdkFs, path: string, declaration: string): P
  * function against it turns a misspelled key and a missing interpolation argument into compile
  * errors instead of runtime lookup failures.
  *
- * It reads one file (the source locale catalog) and writes one file (the declaration). It
- * constructs no provider, reads no API key and makes no network request, so it runs on a fresh
- * checkout before any key exists.
+ * It reads the source locale catalog and any existing declaration at the output path, and writes
+ * one file (the declaration). It constructs no provider, reads no API key and makes no network
+ * request, so it runs on a fresh checkout before any key exists.
  *
  * The keys are exactly what the format adapter produced when reading the catalog, in document
  * order, so two runs over an unchanged catalog write byte-identical bytes. Arguments come from the
@@ -328,7 +390,10 @@ async function writeDeclaration(fs: SdkFs, path: string, declaration: string): P
  * and `arb`): there each message is analysed with the same ICU parser the adapter uses, so an
  * argument that only some `select` or `plural` branches use is still declared, as optional. Keys
  * are emitted as quoted string literals, so a key carrying a dot, a reserved word, a leading digit,
- * a quote, or nothing at all is declared verbatim rather than dropped or re-split.
+ * a quote, or nothing at all is declared verbatim rather than dropped or re-split. For
+ * `i18next-json`, a plural group also declares the base key that `t("item", { count })` looks up
+ * (`item` for `item_one` and `item_other`, `place` for `place_ordinal_one`), requiring `count` and
+ * every argument any of its forms takes, unless the catalog already holds that key.
  *
  * What it will not claim is as important as what it will. A message whose placeholders name their
  * arguments gets an object shape; one whose placeholders are numbered or anonymous gets a readonly
@@ -351,6 +416,9 @@ async function writeDeclaration(fs: SdkFs, path: string, declaration: string): P
  *
  * @example
  * ```ts
+ * import { generateTypes, loadConfig } from "@verbatra/sdk";
+ *
+ * const config = await loadConfig();
  * const result = await generateTypes({ config });
  * console.log(`${result.keys} keys declared in ${result.path}`);
  * ```
@@ -358,10 +426,11 @@ async function writeDeclaration(fs: SdkFs, path: string, declaration: string): P
  * @throws {@link SdkError} `TYPES_OUTPUT_CONFLICT`: the output path is refused (see
  * {@link GenerateTypesInput.out} for the full set), or a generating run found a file there that
  * does not begin with the header verbatra writes.
- * @throws {@link SdkError} `TYPES_UNWRITABLE`: the declaration file could not be written.
+ * @throws {@link SdkError} `TYPES_UNWRITABLE`: the declaration file could not be written. The
+ * message names the file relative to `cwd` and the underlying file-system code.
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
- * cannot be combined.
+ * cannot be combined, or a configured locale has no valid path spelling under that style.
  * @throws {@link SdkError} `LOCALE_PATH_COLLISION`: two configured locales resolve to the same
  * path.
  * @throws {@link SdkError} `SOURCE_UNREADABLE`: the source locale file does not exist.
@@ -372,17 +441,23 @@ export async function generateTypes(
   deps: GenerateTypesDeps = {},
 ): Promise<GenerateTypesResult> {
   const { config } = input;
-  const cwd = input.cwd ?? process.cwd();
+  const cwd = projectCwd(input);
   const fs = deps.fs ?? defaultFs;
   const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
   const resolver = createLocalePathResolver(cwd, config);
-  const outputPath = resolveOutputPath(cwd, input.out, reservedPaths(cwd, input, resolver));
+  const reserved = reservedProjectPaths({
+    cwd,
+    config,
+    resolver,
+    ...(input.configPath !== undefined ? { configPath: input.configPath } : {}),
+    ...(input.glossaryPath !== undefined ? { glossaryPath: input.glossaryPath } : {}),
+  });
+  const outputPath = resolveOutputPath(cwd, input.out, reserved);
+  await refuseLinkedOutput(fs, cwd, outputPath, reserved, input.out ?? DEFAULT_TYPES_PATH);
 
   const read = await readSourceResource(config, resolver, fs, adapter);
   const invalid = new Set(read.invalidIcuKeys);
-  const messages = [...read.resource.entries].map(([key, entry]) =>
-    declareMessage(key, entry, invalid, config.format),
-  );
+  const messages = declaredMessages(read.resource.entries, invalid, config.format);
   const sourcePath = toPosix(relative(cwd, resolver.pathFor(config.sourceLocale)));
   const declaration = renderTypesDeclaration({ sourcePath, format: config.format, messages });
 
@@ -393,7 +468,7 @@ export async function generateTypes(
   if (stale && !check) {
     const requested = input.out ?? DEFAULT_TYPES_PATH;
     await refuseForeignOutput(fs, outputPath, requested, onDisk, declarationBytes);
-    await writeDeclaration(fs, outputPath, declaration);
+    await writeDeclaration(fs, outputPath, cwd, declaration);
   }
   return {
     path: outputPath,
@@ -405,6 +480,7 @@ export async function generateTypes(
     plural: messages.filter((message) => message.isPlural).map((message) => message.key),
     written: stale && !check,
     stale,
+    missing: onDisk.kind === "missing",
     check,
   };
 }

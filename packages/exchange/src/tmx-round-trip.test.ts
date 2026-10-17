@@ -195,3 +195,24 @@ describe("a TMX document survives being written and read back", () => {
     expect(document.units[0]?.segments[0]?.text).toBe("flags 🇩🇪 and 🎉");
   });
 });
+
+describe("TMX translation properties on import", () => {
+  it("reads a tuv carrying origin properties exactly as one without them", () => {
+    const translation = { language: "de", text: "Hallo" };
+    const read = (properties: readonly { type: string; value: string }[]) =>
+      readTmx(
+        buildTmx({
+          sourceLanguage: "en",
+          units: [{ source: "Hello", translations: [{ ...translation, properties }] }],
+        }),
+      );
+
+    const marked = read([
+      { type: "x-origin", value: "machine" },
+      { type: "x-review", value: "unreviewed" },
+    ]);
+
+    expect(marked).toEqual(read([]));
+    expect(marked.units[0]?.segments.map((segment) => segment.text)).toEqual(["Hello", "Hallo"]);
+  });
+});

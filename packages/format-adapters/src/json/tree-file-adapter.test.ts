@@ -218,3 +218,14 @@ describe("createTreeFileAdapter validateMessage", () => {
     expect(adapter.validateMessage("bad")).toBe(false);
   });
 });
+
+describe("createTreeFileAdapter compareBranchArms", () => {
+  it("omits the check when the format supplies none", () => {
+    expect("compareBranchArms" in makeAdapter()).toBe(false);
+  });
+
+  it("exposes the check the format supplied", () => {
+    const adapter = makeAdapter({ compareBranchArms: () => ["wrong arm"] });
+    expect(adapter.compareBranchArms?.("a", "b", () => undefined)).toEqual(["wrong arm"]);
+  });
+});

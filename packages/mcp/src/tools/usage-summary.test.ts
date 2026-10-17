@@ -8,12 +8,14 @@ describe("usage.summary", () => {
   it("tells its reader where the counted budget figure came from", () => {
     expect(usageSummaryTool.description).toContain("budget.supported");
     expect(usageSummaryTool.description).toContain("estimate");
+    expect(usageSummaryTool.description).toContain("every machine-translation provider");
+    expect(usageSummaryTool.description).not.toMatch(/DeepL|Google/);
     expect(usageSummaryTool.description).toContain("does not cap a single-entry retranslation");
   });
 
   it("does not call a run that counted nothing an estimate", () => {
     expect(usageSummaryTool.description).toContain(
-      "false with tokensUsed 0 when the run sent no request at all, which is no estimate",
+      "true with tokensUsed 0 when the run sent no request at all, since nothing was estimated",
     );
   });
 
@@ -49,7 +51,6 @@ describe("usage.summary", () => {
     expect(outcome).toEqual({
       kind: "ok",
       result: { available: false },
-      structuredContent: { available: false },
     });
   });
 
@@ -75,19 +76,6 @@ describe("usage.summary", () => {
     expect(outcome).toEqual({
       kind: "ok",
       result: {
-        available: true,
-        generatedAt: "2026-01-01T00:00:00.000Z",
-        usage: { inputTokens: 100, outputTokens: 50 },
-        budget: {
-          maxTokens: 1000,
-          behavior: "warn",
-          supported: true,
-          tokensUsed: 150,
-          exceeded: false,
-          standing: "within",
-        },
-      },
-      structuredContent: {
         available: true,
         generatedAt: "2026-01-01T00:00:00.000Z",
         usage: { inputTokens: 100, outputTokens: 50 },
@@ -131,7 +119,6 @@ describe("usage.summary", () => {
       expect(outcome).toMatchObject({
         kind: "ok",
         result: { budget: { standing } },
-        structuredContent: { budget: { standing } },
       });
     },
   );

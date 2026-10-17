@@ -1,18 +1,26 @@
+import type { KeyProvenance } from "@verbatra/sdk";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import type { DiffLocale, KeyLocaleStatusRow } from "../client/diff-view.js";
 import { deriveKeyLocaleStatus } from "../client/diff-view.js";
-import { deriveIntegrityPillView, type KeyIntegrityLocaleEntry } from "../client/integrity-pill.js";
-import { isRtlLocale } from "../client/locale-direction.js";
+import {
+  deriveIntegrityPillView,
+  type IntegrityPillView,
+  type KeyIntegrityLocaleEntry,
+} from "../client/integrity-pill.js";
+import { provenanceDetailItems } from "../client/provenance-view.js";
 import { canRetranslate } from "../client/retranslate-eligibility.js";
 import type { StudioCapabilities } from "../shared/rpc/snapshot.js";
 import { rpcClient } from "./api.js";
 import { Badge } from "./Badge.js";
 import { Button } from "./Button.js";
 import { CommitList } from "./CommitList.js";
-import { DiffBadge } from "./DiffBadge.js";
+import { KeyLocaleStatusBadge } from "./DiffBadge.js";
+import { KeyDescription } from "./KeyDescription.js";
+import { ProvenanceBadge } from "./ProvenanceBadge.js";
 import { RetranslateButton } from "./RetranslateButton.js";
-import { DrawerShell, Section } from "./ui.js";
+import { TranslationValue } from "./TranslationValue.js";
+import { DetailList, DrawerShell, MonoValue, Section } from "./ui.js";
 import { useCapabilities } from "./use-capabilities.js";
 import { useDialogA11y } from "./use-dialog-a11y.js";
 import { useHistoryList } from "./use-history-list.js";
@@ -31,7 +39,9 @@ type KeyValuesState =
   | {
       readonly kind: "loaded";
       readonly source: string | undefined;
+      readonly description: string | undefined;
       readonly targets: ReadonlyMap<string, string | undefined>;
+      readonly provenance: ReadonlyMap<string, KeyProvenance>;
     };
 
 function useKeyValues(
@@ -52,16 +62,22 @@ function useKeyValues(
         return;
       }
       let source: string | undefined;
+      let description: string | undefined;
       const targets = new Map<string, string | undefined>();
+      const provenance = new Map<string, KeyProvenance>();
       responses.forEach((response, index) => {
         const locale = localeList[index];
         if (locale === undefined || !response.ok) {
           return;
         }
         source ??= response.result.source;
+        description ??= response.result.description;
         targets.set(locale, response.result.target);
+        if (response.result.provenance !== undefined) {
+          provenance.set(locale, response.result.provenance);
+        }
       });
-      setState({ kind: "loaded", source, targets });
+      setState({ kind: "loaded", source, description, targets, provenance });
     });
     return () => {
       cancelled = true;
@@ -86,37 +102,72 @@ function LocaleValue({
     return <p className="m-0 mt-2 text-sm text-muted-foreground">No translation yet.</p>;
   }
   return (
-    <p className="m-0 mt-2 break-words font-mono text-sm text-foreground" dir="auto">
-      {value}
-    </p>
+    <TranslationValue
+      as="p"
+      value={value}
+      locale={locale}
+      className="m-0 mt-2 break-words text-sm text-foreground"
+    />
+  );
+}
+
+function LocaleProvenance({
+  values,
+  locale,
+}: {
+  readonly values: KeyValuesState;
+  readonly locale: string;
+}): ReactNode {
+  const provenance = values.kind === "loaded" ? values.provenance.get(locale) : undefined;
+  if (provenance === undefined) {
+    return null;
+  }
+  const items: ReadonlyArray<readonly [string, ReactNode]> = [
+    ["Origin", <ProvenanceBadge key="origin" provenance={provenance} />],
+    ...provenanceDetailItems(provenance).map(
+      ({ label, value, identifier }) =>
+        [label, identifier ? <MonoValue key={label}>{value}</MonoValue> : value] as const,
+    ),
+  ];
+  return (
+    <div className="mt-2">
+      <DetailList items={items} />
+    </div>
   );
 }
 
 function IntegrityCell({
-  integrity,
+  pill,
   locale,
   keyName,
   capabilities,
 }: {
-  readonly integrity: readonly KeyIntegrityLocaleEntry[];
+  readonly pill: IntegrityPillView | null;
   readonly locale: string;
   readonly keyName: string;
   readonly capabilities: StudioCapabilities | undefined;
 }): ReactNode {
-  const pill = deriveIntegrityPillView(integrity, locale);
   if (pill === null) {
     return null;
   }
   return (
     <>
-      <Badge tone={pill.tone}>
-        {pill.label}
-        {pill.detail !== null ? `: ${pill.detail}` : ""}
-      </Badge>
+      <Badge tone={pill.tone}>{pill.label}</Badge>
       {canRetranslate(capabilities, pill) ? (
         <RetranslateButton locale={locale} keyName={keyName} />
       ) : null}
     </>
+  );
+}
+
+function IntegrityDetail({ pill }: { readonly pill: IntegrityPillView | null }): ReactNode {
+  if (pill === null || pill.detail === null) {
+    return null;
+  }
+  return (
+    <p className="m-0 mt-1 break-words text-xs text-muted-foreground" data-integrity-detail="">
+      {pill.detail}
+    </p>
   );
 }
 
@@ -136,20 +187,14 @@ function LocaleBlock({
   readonly onEditLocale?: ((locale: string) => void) | undefined;
 }): ReactNode {
   const canEdit = capabilities?.writeToDisk === true && onEditLocale !== undefined;
+  const pill = deriveIntegrityPillView(integrity, row.locale);
   return (
-    <li
-      className="border-b border-border py-3 last:border-b-0"
-      dir={isRtlLocale(row.locale) ? "rtl" : undefined}
-    >
+    <li className="border-b border-border py-3 last:border-b-0">
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-mono text-sm font-semibold text-foreground">{row.locale}</span>
-        {row.status === "in-sync" ? (
-          <Badge tone="success">In sync</Badge>
-        ) : (
-          <DiffBadge tone={row.status} />
-        )}
+        <KeyLocaleStatusBadge status={row.status} />
         <IntegrityCell
-          integrity={integrity}
+          pill={pill}
           locale={row.locale}
           keyName={keyName}
           capabilities={capabilities}
@@ -160,7 +205,9 @@ function LocaleBlock({
           </Button>
         ) : null}
       </div>
+      <IntegrityDetail pill={pill} />
       <LocaleValue values={values} locale={row.locale} />
+      <LocaleProvenance values={values} locale={row.locale} />
     </li>
   );
 }
@@ -198,15 +245,18 @@ export function KeyDetailDrawer({
     >
       <Section title="Source">
         {values.kind === "loaded" && values.source !== undefined ? (
-          <p className="m-0 break-words font-mono text-sm text-foreground" dir="auto">
-            {values.source}
-          </p>
+          <TranslationValue
+            as="p"
+            value={values.source}
+            className="m-0 break-words text-sm text-foreground"
+          />
         ) : (
           <p className="m-0 text-sm text-muted-foreground">
             {values.kind === "loading" ? "Loading value…" : "No current source value."}
           </p>
         )}
       </Section>
+      <KeyDescription description={values.kind === "loaded" ? values.description : undefined} />
       <Section title="Locales">
         <ul className="m-0 list-none p-0">
           {rows.map((row) => (

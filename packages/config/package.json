@@ -15,6 +15,10 @@
     "./vitest": {
       "types": "./vitest.base.d.mts",
       "default": "./vitest.base.mjs"
+    },
+    "./scaling": {
+      "types": "./scaling.base.d.mts",
+      "default": "./scaling.base.mjs"
     }
   },
   "files": [
@@ -24,7 +28,9 @@
     "tsup.base.mjs",
     "tsup.base.d.mts",
     "vitest.base.mjs",
-    "vitest.base.d.mts"
+    "vitest.base.d.mts",
+    "scaling.base.mjs",
+    "scaling.base.d.mts"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",

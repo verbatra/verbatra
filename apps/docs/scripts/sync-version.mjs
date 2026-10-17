@@ -14,10 +14,20 @@ function readVersion(packageDir) {
   return version;
 }
 
+function readNodeRange(packageDir) {
+  const packageJsonPath = resolve(here, `../../../packages/${packageDir}/package.json`);
+  const range = JSON.parse(readFileSync(packageJsonPath, "utf8")).engines?.node;
+  if (typeof range !== "string" || range.length === 0) {
+    throw new Error(`No usable engines.node in ${packageJsonPath}`);
+  }
+  return range;
+}
+
 const versions = {
   version: readVersion("cli"),
   studioVersion: readVersion("studio"),
   mcpVersion: readVersion("mcp"),
+  nodeRange: readNodeRange("cli"),
 };
 
 writeFileSync(outputPath, `${JSON.stringify(versions, null, 2)}\n`);

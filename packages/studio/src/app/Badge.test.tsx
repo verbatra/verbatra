@@ -56,4 +56,18 @@ describe("Badge", () => {
 
     expect(view.get("strong").textContent).toBe("7");
   });
+
+  it("stays on one line by default and wraps a long value only when asked", () => {
+    expect(render(<Badge tone="danger">x</Badge>).get("span").className).toContain(
+      "whitespace-nowrap",
+    );
+    const wrapped = render(
+      <Badge tone="danger" wrap>
+        x
+      </Badge>,
+    ).get("span").className;
+    expect(wrapped).toContain("whitespace-normal");
+    expect(wrapped).toContain("[overflow-wrap:anywhere]");
+    expect(wrapped).not.toContain("whitespace-nowrap");
+  });
 });

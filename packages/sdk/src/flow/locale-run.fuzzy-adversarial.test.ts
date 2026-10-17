@@ -78,8 +78,7 @@ function makeParams(
     sourceInvalidIcuKeys: [],
     baseline: new Map(),
     adapter,
-    provider: countingProvider().provider,
-    providerKind: "llm",
+    mode: { kind: "translate", provider: countingProvider().provider, providerKind: "llm" },
     cwd: base.cwd,
     resolver: createLocalePathResolver(base.cwd, {
       sourceLocale: "en",
@@ -119,7 +118,7 @@ async function runEdit(
     makeParams(
       { source: sourceResource, cwd: dir },
       {
-        provider: stub.provider,
+        mode: { kind: "translate", provider: stub.provider, providerKind: "llm" },
         cache: {
           snapshot: memoryFor(previousSource, CACHED_TRANSLATION),
           fingerprint: FINGERPRINT,
@@ -128,7 +127,10 @@ async function runEdit(
       },
     ),
   );
-  const written = (await readJsonFile(join(dir, "locales", "de.json"))) as Record<string, string>;
+  const targetPath = join(dir, "locales", "de.json");
+  const written = (
+    (await defaultFs.fileExists(targetPath)) ? await readJsonFile(targetPath) : {}
+  ) as Record<string, string>;
   return { result, requests: stub.requests, written };
 }
 
@@ -356,7 +358,7 @@ describe("runLocale: fuzzy reuse only ever touches keys whose source text change
       makeParams(
         { source: withDescription(sourceResource, "Archive, not delete"), cwd: dir },
         {
-          provider: stub.provider,
+          mode: { kind: "translate", provider: stub.provider, providerKind: "llm" },
           cache: {
             snapshot: memoryFor(VALUE, CACHED_TRANSLATION),
             fingerprint: FINGERPRINT,
@@ -379,7 +381,7 @@ describe("runLocale: fuzzy reuse only ever touches keys whose source text change
       makeParams(
         { source: withDescription(sourceResource, "Archive, not delete"), cwd: dir },
         {
-          provider: stub.provider,
+          mode: { kind: "translate", provider: stub.provider, providerKind: "llm" },
           cache: {
             snapshot: memoryFor(VALUE, CACHED_TRANSLATION),
             fingerprint: FINGERPRINT,
@@ -404,7 +406,7 @@ describe("runLocale: fuzzy reuse only ever touches keys whose source text change
         makeParams(
           { source: withDescription(sourceResource, "Archive, not delete"), cwd: dir },
           {
-            provider: stub.provider,
+            mode: { kind: "translate", provider: stub.provider, providerKind: "llm" },
             cache: {
               snapshot: memoryFor(VALUE, CACHED_TRANSLATION),
               fingerprint: FINGERPRINT,

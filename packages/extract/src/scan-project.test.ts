@@ -36,6 +36,26 @@ function scan(files: Readonly<Record<string, string>>, maxFileBytes?: number) {
   );
 }
 
+describe("scanProject: progress", () => {
+  it("reports each scanned file with the running count and the total", async () => {
+    const reports: [number, number][] = [];
+    await scanProject(
+      {
+        cwd,
+        roots: [root],
+        extractor: createI18nextExtractor(),
+        onFileScanned: (scanned, total) => reports.push([scanned, total]),
+      },
+      fakeFs({ [join(root, "a.ts")]: 't("a");', [join(root, "b.ts")]: 't("b");' }),
+    );
+
+    expect(reports).toEqual([
+      [1, 2],
+      [2, 2],
+    ]);
+  });
+});
+
 describe("scanProject", () => {
   it("collects keys with their default values and file-relative locations", async () => {
     const result = await scan({

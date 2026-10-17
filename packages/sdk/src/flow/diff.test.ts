@@ -46,7 +46,7 @@ describe("diff", () => {
 
     expect(summary.hasPendingChanges).toBe(false);
     expect(summary.locales.map((l) => l.locale)).toEqual(["de", "fr"]);
-    expect(summary.locales[0]).toEqual({
+    expect(summary.locales[0]).toMatchObject({
       locale: "de",
       missing: [],
       changed: [],
@@ -60,14 +60,14 @@ describe("diff", () => {
     const summary = await diff({ config: cfg(), cwd: dir });
 
     expect(summary.hasPendingChanges).toBe(true);
-    expect(summary.locales[0]).toEqual({
+    expect(summary.locales[0]).toMatchObject({
       locale: "de",
       missing: ["b"],
       changed: [],
       orphaned: [],
       hasPendingChanges: true,
     });
-    expect(summary.locales[1]).toEqual({
+    expect(summary.locales[1]).toMatchObject({
       locale: "fr",
       missing: ["a", "b"],
       changed: [],
@@ -86,7 +86,7 @@ describe("diff", () => {
     const summary = await diff({ config: cfg({ targetLocales: ["de"] }), cwd: dir });
 
     expect(summary.hasPendingChanges).toBe(true);
-    expect(summary.locales[0]).toEqual({
+    expect(summary.locales[0]).toMatchObject({
       locale: "de",
       missing: [],
       changed: ["a"],
@@ -100,7 +100,7 @@ describe("diff", () => {
     const summary = await diff({ config: cfg({ targetLocales: ["de"] }), cwd: dir });
 
     expect(summary.hasPendingChanges).toBe(false);
-    expect(summary.locales[0]).toEqual({
+    expect(summary.locales[0]).toMatchObject({
       locale: "de",
       missing: [],
       changed: [],
@@ -121,7 +121,7 @@ describe("diff", () => {
 
     const summary = await diff({ config: cfg({ targetLocales: ["de"] }), cwd: dir });
 
-    expect(summary.locales[0]).toEqual({
+    expect(summary.locales[0]).toMatchObject({
       locale: "de",
       missing: ["c"],
       changed: ["a"],

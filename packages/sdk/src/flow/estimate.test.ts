@@ -3,7 +3,7 @@ import type { LocaleResource, TranslationEntry } from "@verbatra/core";
 import { describe, expect, it } from "vitest";
 import type { ProviderConfig } from "../config/provider-config.js";
 import { type RateCard, rateCardSchema } from "../config/rate-card.js";
-import { baseConfig } from "../test-support.js";
+import { baseConfig, localeGlossaryOf } from "../test-support.js";
 import {
   ESTIMATED_CHARACTERS_PER_TOKEN,
   ESTIMATED_RESPONSE_SCHEMA_TOKENS,
@@ -89,7 +89,7 @@ describe("estimateRun: token-billed providers", () => {
     });
 
     expect(estimate.unit).toBe("tokens");
-    expect(estimate.inputTokens).toBe(373);
+    expect(estimate.inputTokens).toBe(691);
     expect(estimate.outputTokens).toBe(17);
     expect(estimate.sourceCharacters).toBeUndefined();
   });
@@ -127,8 +127,8 @@ describe("estimateRun: token-billed providers", () => {
     expect(estimate.pricing).toBe("priced");
     expect(estimate.currency).toBe("USD");
     expect(estimate.asOf).toBe("2026-01-15");
-    expect(estimate.cost).toBeCloseTo(0.001374, 9);
-    expect(estimate.locales[0]?.cost).toBeCloseTo(0.001374, 9);
+    expect(estimate.cost).toBeCloseTo(0.002328, 9);
+    expect(estimate.locales[0]?.cost).toBeCloseTo(0.002328, 9);
   });
 
   it("warns that a token count is a heuristic and that repair requests are uncounted", () => {
@@ -188,7 +188,7 @@ describe("estimateRun: what cannot be priced", () => {
     expect(estimate.pricing).toBe("not-billed");
     expect(estimate.cost).toBeUndefined();
     expect(estimate.currency).toBeUndefined();
-    expect(estimate.inputTokens).toBe(373);
+    expect(estimate.inputTokens).toBe(691);
   });
 
   it("names the missing rate key rather than reporting a cost of zero", () => {
@@ -312,7 +312,7 @@ describe("estimateRun: honesty about what the figure leaves out", () => {
 
 describe("the estimation heuristic", () => {
   it("holds the per-request overhead and character density the cost guide publishes", () => {
-    expect(ESTIMATED_SYSTEM_RULES_TOKENS).toBe(250);
+    expect(ESTIMATED_SYSTEM_RULES_TOKENS).toBe(550);
     expect(ESTIMATED_RESPONSE_SCHEMA_TOKENS).toBe(100);
     expect(ESTIMATED_CHARACTERS_PER_TOKEN).toBe(4);
     expect(ESTIMATED_TRANSLATION_EXPANSION).toBe(1.5);
@@ -326,7 +326,7 @@ describe("quantifyLocale", () => {
     expect(quantifyLocale([GREETING], CONTEXT, 50)).toEqual({
       keys: 1,
       requests: 1,
-      inputTokens: 373,
+      inputTokens: 691,
       outputTokens: 17,
       sourceCharacters: 11,
     });
@@ -403,10 +403,14 @@ describe("quantifyLocale", () => {
 describe("quantifyLocale: everything the request carries is counted", () => {
   it("counts a glossary, which travels in full in every single request", () => {
     const glossary = Object.fromEntries(
-      Array.from({ length: 200 }, (_, index) => [`sourceTerm${index}`, `targetTerm${index}`]),
+      Array.from({ length: 300 }, (_, index) => [`sourceTerm${index}`, `targetTerm${index}`]),
     );
     const without = quantifyLocale([GREETING], CONTEXT, 50);
-    const withGlossary = quantifyLocale([GREETING], { ...CONTEXT, glossary }, 50);
+    const withGlossary = quantifyLocale(
+      [GREETING],
+      { ...CONTEXT, glossary: localeGlossaryOf(glossary) },
+      50,
+    );
 
     expect(withGlossary.inputTokens).toBeGreaterThan(without.inputTokens * 4);
   });
@@ -415,7 +419,11 @@ describe("quantifyLocale: everything the request carries is counted", () => {
     const glossary = { Hello: "Hallo" };
     const entries = Array.from({ length: 60 }, (_, index) => entry(`k${index}`, "value"));
     const without = quantifyLocale(entries, CONTEXT, 50);
-    const withGlossary = quantifyLocale(entries, { ...CONTEXT, glossary }, 50);
+    const withGlossary = quantifyLocale(
+      entries,
+      { ...CONTEXT, glossary: localeGlossaryOf(glossary) },
+      50,
+    );
     const glossaryCharacters = JSON.stringify(glossary).length;
 
     expect(withGlossary.requests).toBe(2);
@@ -532,9 +540,11 @@ describe("estimateForRun", () => {
       providerFailures: [],
       generated: [],
       budgetWithheld: [],
+      sensitiveWithheld: [],
       notices: [],
       needsReview: [],
       unfilled: [],
+      protected: [],
       malformedRows: [],
       duplicateKeys: [],
     };
@@ -562,7 +572,7 @@ describe("estimateForRun", () => {
 
   it("carries the config's glossary into the figure, because every request carries it", () => {
     const glossary = Object.fromEntries(
-      Array.from({ length: 200 }, (_, index) => [`sourceTerm${index}`, `targetTerm${index}`]),
+      Array.from({ length: 300 }, (_, index) => [`sourceTerm${index}`, `targetTerm${index}`]),
     );
     const plain = estimateForRun({
       summaries: [summary("de", ["greeting"])],

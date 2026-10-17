@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProviderError } from "../errors.js";
+import { PLACEHOLDER_UNSUPPORTED_MESSAGE } from "../placeholder-protection.js";
 import type { ProviderNotice, TranslateRequest } from "../provider.js";
 import { ProviderRegistry } from "../registry.js";
 import type { DeepLCall } from "../test-support.js";
@@ -9,10 +10,11 @@ import {
   entry,
   firstCallOf,
   regexExtractor,
+  termGlossary,
 } from "../test-support.js";
+import type { DeepLConfig } from "./config.js";
 import { createDeepLProvider } from "./deepl-provider.js";
 import { DEEPL_MAX_TEXTS_PER_REQUEST } from "./limits.js";
-import { PLACEHOLDER_UNSUPPORTED_MESSAGE } from "./placeholders.js";
 import type { DeepLTranslateClient, DeepLTranslateResult } from "./types.js";
 
 function deeplEchoStubClient(): { client: DeepLTranslateClient; calls: DeepLCall[] } {
@@ -24,6 +26,14 @@ function deeplEchoStubClient(): { client: DeepLTranslateClient; calls: DeepLCall
     },
   };
   return { client, calls };
+}
+
+class ConnectionError extends Error {
+  readonly error: { readonly code: string };
+  constructor(error: { readonly code: string }) {
+    super("Connection failure");
+    this.error = error;
+  }
 }
 
 const config = {};
@@ -72,8 +82,8 @@ describe("createDeepLProvider: ordered send and positional zip", () => {
       request({ entries: [entry("a", "A?"), entry("b", "B?")] }),
     );
     expect(firstCallOf(calls).texts).toEqual(["A?", "B?"]);
-    expect(firstCallOf(calls).sourceLang).toBe("en");
-    expect(firstCallOf(calls).targetLang).toBe("de");
+    expect(firstCallOf(calls).sourceLang).toBe("EN");
+    expect(firstCallOf(calls).targetLang).toBe("DE");
     expect(result.values.get("a")).toBe("A");
     expect(result.values.get("b")).toBe("B");
     expect(result.usage).toBeUndefined();
@@ -99,24 +109,43 @@ describe("createDeepLProvider: ordered send and positional zip", () => {
 });
 
 describe("createDeepLProvider: tone -> formality", () => {
-  it("maps formal -> more, informal -> less, neutral/absent -> omitted (pro key)", async () => {
+  it("maps formal -> prefer_more, informal -> prefer_less, neutral/absent -> omitted (pro key)", async () => {
     const a = deeplStubClient(deeplResult(["x"]));
     await createDeepLProvider(config, { client: a.client }).translateBatch(
       request({ tone: "formal", entries: [entry("k", "v")] }),
     );
-    expect(firstCallOf(a.calls).options.formality).toBe("more");
+    expect(firstCallOf(a.calls).options.formality).toBe("prefer_more");
 
     const b = deeplStubClient(deeplResult(["x"]));
     await createDeepLProvider(config, { client: b.client }).translateBatch(
       request({ tone: "informal", entries: [entry("k", "v")] }),
     );
-    expect(firstCallOf(b.calls).options.formality).toBe("less");
+    expect(firstCallOf(b.calls).options.formality).toBe("prefer_less");
 
     const c = deeplStubClient(deeplResult(["x"]));
     await createDeepLProvider(config, { client: c.client }).translateBatch(
       request({ tone: "neutral", entries: [entry("k", "v")] }),
     );
     expect(firstCallOf(c.calls).options.formality).toBeUndefined();
+  });
+
+  it("asks for formality with a fallback and reports it downgraded for a target DeepL lists without formality", async () => {
+    const { client, calls } = deeplStubClient(deeplResult(["x"]));
+    const result = (await createDeepLProvider(config, { client }).translateBatch(
+      request({ targetLocale: "zh-Hans", tone: "formal", entries: [entry("k", "v")] }),
+    )) as DeepLTranslateResult;
+
+    expect(firstCallOf(calls).options.formality).toBe("prefer_more");
+    expect(noticeCodes(result)).toEqual(["FORMALITY_DOWNGRADED"]);
+  });
+
+  it("reports no downgrade for a regional target whose language DeepL lists with formality", async () => {
+    const { client } = deeplStubClient(deeplResult(["x"]));
+    const result = (await createDeepLProvider(config, { client }).translateBatch(
+      request({ targetLocale: "de-CH", tone: "informal", entries: [entry("k", "v")] }),
+    )) as DeepLTranslateResult;
+
+    expect(result.notices).toEqual([]);
   });
 });
 
@@ -159,7 +188,7 @@ describe("createDeepLProvider: glossary", () => {
   it("ignores a supplied generic term-map but signals it observably (not an error)", async () => {
     const { client, calls } = deeplStubClient(deeplResult(["x"]));
     const result = (await createDeepLProvider(config, { client }).translateBatch(
-      request({ glossary: { Hello: "Hallo" }, entries: [entry("k", "Hello")] }),
+      request({ glossary: termGlossary({ Hello: "Hallo" }), entries: [entry("k", "Hello")] }),
     )) as DeepLTranslateResult;
     expect(firstCallOf(calls).options.glossary).toBeUndefined();
     expect(noticeCodes(result)).toContain("GLOSSARY_IGNORED");
@@ -199,38 +228,118 @@ describe("createDeepLProvider: per-key integrity (load-bearing for DeepL)", () =
   });
 });
 
-describe("createDeepLProvider: placeholder-bearing entries are withheld", () => {
-  it("translates only placeholder-free entries and withholds placeholder-bearing ones", async () => {
+const ICU_PLURAL = entry("files", "{n, plural, one {# file} other {# files}}", ["{n}"]);
+const MASKED_OPTIONS = {
+  tagHandling: "xml",
+  tagHandlingVersion: "v2",
+  ignoreTags: ["x"],
+  outlineDetection: false,
+};
+
+function deeplMappingClient(translateText: (text: string) => string): {
+  client: DeepLTranslateClient;
+  calls: DeepLCall[];
+} {
+  const calls: DeepLCall[] = [];
+  const client: DeepLTranslateClient = {
+    translateText: async (texts, sourceLang, targetLang, options) => {
+      calls.push({ texts, sourceLang, targetLang, options });
+      return texts.map((text) => ({ text: translateText(text) }));
+    },
+  };
+  return { client, calls };
+}
+
+describe("createDeepLProvider: placeholder masking", () => {
+  const mixed = entry("mixed", "Hello {{name}}, you have %d items", ["{{name}}", "%d"]);
+
+  it("sends placeholders as ignored markers and restores them byte-exact", async () => {
+    const { client, calls } = deeplMappingClient((text) =>
+      text.replace("Hello", "Hallo").replace("you have", "du hast").replace("items", "Artikel"),
+    );
+    const result = (await createDeepLProvider(config, { client }).translateBatch(
+      request({ entries: [mixed] }),
+    )) as DeepLTranslateResult;
+
+    expect(calls).toHaveLength(1);
+    expect(firstCallOf(calls).texts).toEqual(["Hello <x>{0}</x>, you have <x>{1}</x> items"]);
+    expect(firstCallOf(calls).options).toEqual(MASKED_OPTIONS);
+    expect(result.values.get("mixed")).toBe("Hallo {{name}}, du hast %d Artikel");
+    expect(result.integrity.get("mixed")?.matches).toBe(true);
+    expect(noticeCodes(result)).not.toContain("PLACEHOLDER_UNSUPPORTED");
+  });
+
+  it("escapes the text around the markers and decodes it on return", async () => {
+    const { client, calls } = deeplMappingClient((text) => text);
+    const value = entry("amp", 'Tom & Jerry say "hi" to {{name}}', ["{{name}}"]);
+    const result = await createDeepLProvider(config, { client }).translateBatch(
+      request({ entries: [value] }),
+    );
+    expect(firstCallOf(calls).texts).toEqual(['Tom &amp; Jerry say "hi" to <x>{0}</x>']);
+    expect(result.values.get("amp")).toBe(value.value);
+  });
+
+  it("sends placeholder-free values in their own call with exactly the options of before", async () => {
+    const { client, calls } = deeplMappingClient((text) => text);
+    await createDeepLProvider({ glossaryId: "gl-1" }, { client }).translateBatch(
+      request({ tone: "formal", entries: [entry("free", "Free"), mixed] }),
+    );
+    expect(calls.map((call) => call.texts)).toEqual([
+      ["Free"],
+      ["Hello <x>{0}</x>, you have <x>{1}</x> items"],
+    ]);
+    expect(calls[0]?.options).toEqual({ formality: "prefer_more", glossary: "gl-1" });
+    expect(calls[1]?.options).toEqual({
+      formality: "prefer_more",
+      glossary: "gl-1",
+      ...MASKED_OPTIONS,
+    });
+  });
+
+  it.each([
+    ["drops a marker", (text: string) => text.replace("<x>{1}</x>", "")],
+    ["duplicates a marker", (text: string) => `${text} <x>{0}</x>`],
+    ["rewrites a marker", (text: string) => text.replace("<x>{1}</x>", "<x>{7}</x>")],
+    [
+      "returns a marker without its ignore tag",
+      (text: string) => text.replace("<x>{1}</x>", "{1}"),
+    ],
+    ["returns an entity verbatra does not know", (text: string) => `${text}&nbsp;`],
+  ])("withholds the key when the engine %s", async (_case, mangle) => {
+    const { client } = deeplMappingClient((text) => (text.includes("<x>") ? mangle(text) : text));
+    const result = (await createDeepLProvider(config, { client }).translateBatch(
+      request({ entries: [entry("free", "Free"), mixed] }),
+    )) as DeepLTranslateResult;
+    expect(result.values.has("mixed")).toBe(false);
+    expect(result.integrity.has("mixed")).toBe(false);
+    expect(result.values.get("free")).toBe("Free");
+    expect(noticeCodes(result)).toContain("PLACEHOLDER_UNSUPPORTED");
+  });
+
+  it.each([
+    ["an ICU plural", ICU_PLURAL],
+    ["markup", entry("rich", "Open <b>{{name}}</b>", ["{{name}}", "<b>", "</b>"])],
+    ["an angle bracket beside the placeholder", entry("cmp", "a < b for {{name}}", ["{{name}}"])],
+  ])("withholds a value with %s and never sends it", async (_case, value) => {
+    const translateText = vi.fn();
+    const result = (await createDeepLProvider(config, {
+      client: { translateText },
+    }).translateBatch(request({ entries: [value] }))) as DeepLTranslateResult;
+    expect(translateText).not.toHaveBeenCalled();
+    expect(result.values.size).toBe(0);
+    expect(noticeCodes(result)).toContain("PLACEHOLDER_UNSUPPORTED");
+  });
+
+  it("withholds an ICU plural even when the request names the target's plural categories", async () => {
     const { client, calls } = deeplStubClient(deeplResult(["Frei"]));
     const result = (await createDeepLProvider(config, { client }).translateBatch(
       request({
-        entries: [entry("free", "Free"), entry("bearing", "Hello {{name}}", ["{{name}}"])],
+        entries: [entry("free", "Free"), ICU_PLURAL],
+        pluralCategories: { cardinal: ["one", "few", "many", "other"], ordinal: ["other"] },
       }),
     )) as DeepLTranslateResult;
-
     expect(firstCallOf(calls).texts).toEqual(["Free"]);
-    expect(result.values.get("free")).toBe("Frei");
-    expect(result.integrity.get("free")?.matches).toBe(true);
-    expect(result.values.has("bearing")).toBe(false);
-    expect(result.integrity.has("bearing")).toBe(false);
-    expect(noticeCodes(result).filter((c) => c === "PLACEHOLDER_UNSUPPORTED")).toHaveLength(1);
-  });
-
-  it("never calls translateText when every entry is placeholder-bearing", async () => {
-    const translateText = vi.fn();
-    const client: DeepLTranslateClient = { translateText };
-    const result = (await createDeepLProvider(config, { client }).translateBatch(
-      request({
-        entries: [
-          entry("a", "Hello {{name}}", ["{{name}}"]),
-          entry("b", "{count, plural, one {# item} other {# items}}", ["count"]),
-        ],
-      }),
-    )) as DeepLTranslateResult;
-
-    expect(translateText).not.toHaveBeenCalled();
-    expect(result.values.size).toBe(0);
-    expect(result.integrity.size).toBe(0);
+    expect(result.values.has("files")).toBe(false);
     expect(noticeCodes(result)).toContain("PLACEHOLDER_UNSUPPORTED");
   });
 
@@ -247,8 +356,8 @@ describe("createDeepLProvider: placeholder-bearing entries are withheld", () => 
     const result = (await createDeepLProvider(config, { client, freeAccount: true }).translateBatch(
       request({
         tone: "formal",
-        glossary: { Hello: "Hallo" },
-        entries: [entry("free", "Free"), entry("bearing", "Hi {{name}}", ["{{name}}"])],
+        glossary: termGlossary({ Hello: "Hallo" }),
+        entries: [entry("free", "Free"), ICU_PLURAL],
       }),
     )) as DeepLTranslateResult;
     expect(noticeCodes(result)).toEqual(
@@ -263,14 +372,23 @@ describe("createDeepLProvider: placeholder-bearing entries are withheld", () => 
   it("emits a PLACEHOLDER_UNSUPPORTED notice whose message is static and names no key", async () => {
     const { client } = deeplStubClient(deeplResult(["Frei"]));
     const result = (await createDeepLProvider(config, { client }).translateBatch(
-      request({
-        entries: [entry("free", "Free"), entry("secret-key", "Hi {{name}}", ["{{name}}"])],
-      }),
+      request({ entries: [entry("free", "Free"), { ...ICU_PLURAL, key: "secret-key" }] }),
     )) as DeepLTranslateResult;
     const notice = result.notices.find((n) => n.code === "PLACEHOLDER_UNSUPPORTED");
     expect(notice?.message).toBe(PLACEHOLDER_UNSUPPORTED_MESSAGE);
     expect(notice?.message).not.toContain("secret-key");
-    expect(notice?.message).not.toContain("{{name}}");
+  });
+
+  it("chunks masked values by their encoded wire text, not by the source value", async () => {
+    const { client, calls } = deeplMappingClient((text) => text);
+    const dense = "%s".repeat(5000);
+    const entries = [entry("a", dense, ["%s"]), entry("b", dense, ["%s"])];
+    const result = await createDeepLProvider(config, { client }).translateBatch(
+      request({ entries }),
+    );
+    expect(calls).toHaveLength(2);
+    expect(result.values.get("a")).toBe(dense);
+    expect(result.values.get("b")).toBe(dense);
   });
 });
 
@@ -286,7 +404,7 @@ describe("createDeepLProvider: notice messages are static, never interpolated", 
   it("GLOSSARY_IGNORED message is byte-identical across unrelated glossary content and keys", async () => {
     const first = deeplStubClient(deeplResult(["x"]));
     const firstResult = (await createDeepLProvider(config, { client: first.client }).translateBatch(
-      request({ glossary: { Hello: "Hallo" }, entries: [entry("k1", "Hello")] }),
+      request({ glossary: termGlossary({ Hello: "Hallo" }), entries: [entry("k1", "Hello")] }),
     )) as DeepLTranslateResult;
 
     const second = deeplStubClient(deeplResult(["y"]));
@@ -294,7 +412,7 @@ describe("createDeepLProvider: notice messages are static, never interpolated", 
       client: second.client,
     }).translateBatch(
       request({
-        glossary: { SecretTerm: "GeheimBegriff", AnotherTerm: "NochEinBegriff" },
+        glossary: termGlossary({ SecretTerm: "GeheimBegriff", AnotherTerm: "NochEinBegriff" }),
         entries: [entry("very-different-key", "Something else entirely")],
       }),
     )) as DeepLTranslateResult;
@@ -369,7 +487,10 @@ describe("createDeepLProvider: errors and secrets", () => {
     let caught: unknown;
     try {
       await createDeepLProvider(config, { client }).translateBatch(
-        request({ glossary: { Hello: "Hallo" }, entries: [entry("a", "A?"), entry("b", "B?")] }),
+        request({
+          glossary: termGlossary({ Hello: "Hallo" }),
+          entries: [entry("a", "A?"), entry("b", "B?")],
+        }),
       );
     } catch (error) {
       caught = error;
@@ -408,44 +529,32 @@ describe("createDeepLProvider: cancellation (best-effort, preflight only)", () =
     expect(result.values.get("k")).toBe("Frei");
   });
 
-  it("bounds a hung request with a retriable TIMEOUT ProviderError even though deepl-node cannot be cancelled", async () => {
-    vi.useFakeTimers();
-    try {
-      const translateText = vi.fn(() => new Promise<never>(() => {}));
-      const client: DeepLTranslateClient = { translateText };
-      const provider = createDeepLProvider({ requestTimeoutMs: 5000 }, { client });
-      const rejection = provider
-        .translateBatch(request({ entries: [entry("k", "Free")] }))
-        .catch((error: unknown) => error);
-      await vi.advanceTimersByTimeAsync(5000);
-      const error = await rejection;
-      expect(translateText).toHaveBeenCalledTimes(1);
-      expect(error).toBeInstanceOf(ProviderError);
-      expect((error as ProviderError).code).toBe("TIMEOUT");
-      expect((error as ProviderError).message).toContain("5000");
-    } finally {
-      vi.useRealTimers();
-    }
+  it("names the configured timeout when deepl-node reports that an attempt timed out", async () => {
+    const translateText = vi.fn(() =>
+      Promise.reject(new ConnectionError({ code: "ECONNABORTED" })),
+    );
+    const client: DeepLTranslateClient = { translateText };
+    const provider = createDeepLProvider({ requestTimeoutMs: 5000 }, { client });
+    const error = await provider
+      .translateBatch(request({ entries: [entry("k", "Free")] }))
+      .catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(ProviderError);
+    expect((error as ProviderError).code).toBe("TIMEOUT");
+    expect((error as ProviderError).message).toContain("5000");
   });
 
-  it("applies the shared default timeout when the config omits requestTimeoutMs", async () => {
-    vi.useFakeTimers();
-    try {
-      const translateText = vi.fn(() => new Promise<never>(() => {}));
-      const client: DeepLTranslateClient = { translateText };
-      const provider = createDeepLProvider(config, { client });
-      const rejection = provider
-        .translateBatch(request({ entries: [entry("k", "Free")] }))
-        .catch((error: unknown) => error);
-      await vi.advanceTimersByTimeAsync(120_000);
-      const error = await rejection;
-      expect(translateText).toHaveBeenCalledTimes(1);
-      expect(error).toBeInstanceOf(ProviderError);
-      expect((error as ProviderError).code).toBe("TIMEOUT");
-      expect((error as ProviderError).message).toContain("120000");
-    } finally {
-      vi.useRealTimers();
-    }
+  it("reports a refused connection as the refusal, not as a timeout", async () => {
+    const translateText = vi.fn(() =>
+      Promise.reject(new ConnectionError({ code: "ECONNREFUSED" })),
+    );
+    const client: DeepLTranslateClient = { translateText };
+    const provider = createDeepLProvider({ requestTimeoutMs: 5000 }, { client });
+    const error = await provider
+      .translateBatch(request({ entries: [entry("k", "Free")] }))
+      .catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(ProviderError);
+    expect((error as ProviderError).code).toBe("PROVIDER_ERROR");
+    expect((error as ProviderError).message).toContain("the connection was refused");
   });
 });
 
@@ -499,63 +608,126 @@ describe("createDeepLProvider: comparePlaceholders wiring", () => {
   });
 });
 
-describe("createDeepLProvider: locale validation (pre-flight, before any network call)", () => {
-  it("rejects a regional source locale code (de-DE) as INVALID_REQUEST before calling translateText", async () => {
+describe("createDeepLProvider: locale codes sent to DeepL", () => {
+  async function sentLanguages(
+    overrides: Partial<TranslateRequest>,
+    providerConfig: DeepLConfig = config,
+  ): Promise<{ sourceLang: string | null; targetLang: string }> {
+    const { client, calls } = deeplStubClient(deeplResult(["x"]));
+    await createDeepLProvider(providerConfig, { client }).translateBatch(
+      request({ entries: [entry("k", "v")], ...overrides }),
+    );
+    const { sourceLang, targetLang } = firstCallOf(calls);
+    return { sourceLang, targetLang };
+  }
+
+  it("strips the region from a regional source locale (en-US sends EN)", async () => {
+    expect(await sentLanguages({ sourceLocale: "en-US", targetLocale: "de" })).toEqual({
+      sourceLang: "EN",
+      targetLang: "DE",
+    });
+  });
+
+  it("strips region and script from a source locale (zh-Hant-TW sends ZH)", async () => {
+    expect((await sentLanguages({ sourceLocale: "zh-Hant-TW" })).sourceLang).toBe("ZH");
+  });
+
+  it("maps a Traditional Chinese target to ZH-HANT and a Simplified one to ZH-HANS", async () => {
+    expect((await sentLanguages({ targetLocale: "zh-Hant" })).targetLang).toBe("ZH-HANT");
+    expect((await sentLanguages({ targetLocale: "zh-TW" })).targetLang).toBe("ZH-HANT");
+    expect((await sentLanguages({ targetLocale: "zh-CN" })).targetLang).toBe("ZH-HANS");
+  });
+
+  it("keeps a DeepL regional target variant (pt-BR sends PT-BR)", async () => {
+    expect((await sentLanguages({ targetLocale: "pt-BR" })).targetLang).toBe("PT-BR");
+  });
+
+  it("sends Latin American Spanish as ES-419 (es-MX sends ES-419)", async () => {
+    expect((await sentLanguages({ targetLocale: "es-MX" })).targetLang).toBe("ES-419");
+  });
+
+  it("lets an explicit localeMap entry win over the built-in normalization", async () => {
+    const mapped = await sentLanguages(
+      { sourceLocale: "en-US", targetLocale: "es-MX" },
+      { localeMap: { "en-US": "EN", "es-MX": "ES" } },
+    );
+    expect(mapped).toEqual({ sourceLang: "EN", targetLang: "ES" });
+  });
+
+  it("normalizes a locale the localeMap does not name", async () => {
+    const mapped = await sentLanguages(
+      { sourceLocale: "en-US", targetLocale: "zh-Hant" },
+      { localeMap: { fr: "FR" } },
+    );
+    expect(mapped).toEqual({ sourceLang: "EN", targetLang: "ZH-HANT" });
+  });
+
+  it("keeps the project locale codes for review flags while DeepL sees the mapped codes", async () => {
+    const { client, calls } = deeplStubClient(deeplResult(["Hallo"]));
+    const result = await createDeepLProvider(config, { client }).translateBatch(
+      request({ sourceLocale: "de", targetLocale: "de-AT", entries: [entry("k", "Hallo")] }),
+    );
+    expect(firstCallOf(calls)).toMatchObject({ sourceLang: "DE", targetLang: "DE" });
+    expect(result.reviewFlags?.get("k")?.reasons).toContain("EQUALS_SOURCE");
+  });
+
+  it("rejects a mapped regional source code as INVALID_REQUEST before calling translateText", async () => {
     const translateText = vi.fn();
     const client: DeepLTranslateClient = { translateText };
     await expect(
-      createDeepLProvider(config, { client }).translateBatch(
-        request({ sourceLocale: "de-DE", entries: [entry("k", "v")] }),
+      createDeepLProvider({ localeMap: { en: "EN-US" } }, { client }).translateBatch(
+        request({ entries: [entry("k", "v")] }),
       ),
     ).rejects.toMatchObject({
       code: "INVALID_REQUEST",
-      message: expect.stringContaining('"de-DE"'),
+      message: expect.stringContaining('"EN-US" (for the locale "en")'),
     });
     expect(translateText).not.toHaveBeenCalled();
   });
 
-  it("rejects a deprecated bare target locale code (en) as INVALID_REQUEST before calling translateText", async () => {
+  it("rejects a bare en target as INVALID_REQUEST before calling translateText", async () => {
     const translateText = vi.fn();
     const client: DeepLTranslateClient = { translateText };
     await expect(
       createDeepLProvider(config, { client }).translateBatch(
-        request({ targetLocale: "en", entries: [entry("k", "v")] }),
+        request({ sourceLocale: "de", targetLocale: "en", entries: [entry("k", "v")] }),
       ),
-    ).rejects.toMatchObject({ code: "INVALID_REQUEST", message: expect.stringContaining('"en"') });
+    ).rejects.toMatchObject({ code: "INVALID_REQUEST", message: expect.stringContaining('"EN"') });
     expect(translateText).not.toHaveBeenCalled();
   });
 
-  it("passes a title-case Chinese script subtag through unmodified (zh-Hans)", async () => {
-    const { client, calls } = deeplStubClient(deeplResult(["x"]));
-    const result = await createDeepLProvider(config, { client }).translateBatch(
-      request({ targetLocale: "zh-Hans", entries: [entry("k", "v")] }),
-    );
-    expect(firstCallOf(calls).targetLang).toBe("zh-Hans");
-    expect(result.values.get("k")).toBe("x");
-  });
-
-  it("passes a valid, in-cap request through unmodified (no rewriting of a disambiguated target)", async () => {
-    const { client, calls } = deeplStubClient(deeplResult(["Frei"]));
-    const result = await createDeepLProvider(config, { client }).translateBatch(
-      request({ targetLocale: "en-US", entries: [entry("k", "Free")] }),
-    );
-    expect(firstCallOf(calls).targetLang).toBe("en-US");
-    expect(result.values.get("k")).toBe("Frei");
-  });
-
-  it("rejects the same code as a source but accepts it as a target (en-US)", async () => {
-    const sourceRejected = deeplStubClient(deeplResult(["x"]));
+  it("rejects an English region DeepL has no variant for, pointing at localeMap", async () => {
+    const translateText = vi.fn();
+    const client: DeepLTranslateClient = { translateText };
     await expect(
-      createDeepLProvider(config, { client: sourceRejected.client }).translateBatch(
-        request({ sourceLocale: "en-US", entries: [entry("k", "v")] }),
+      createDeepLProvider(config, { client }).translateBatch(
+        request({ sourceLocale: "de", targetLocale: "en-AU", entries: [entry("k", "v")] }),
       ),
-    ).rejects.toMatchObject({ code: "INVALID_REQUEST" });
+    ).rejects.toMatchObject({
+      code: "INVALID_REQUEST",
+      message: expect.stringContaining("provider.options.localeMap"),
+    });
+    expect(translateText).not.toHaveBeenCalled();
+  });
 
-    const targetAccepted = deeplStubClient(deeplResult(["x"]));
-    const result = await createDeepLProvider(config, {
-      client: targetAccepted.client,
-    }).translateBatch(request({ targetLocale: "en-US", entries: [entry("k", "v")] }));
-    expect(result.values.get("k")).toBe("x");
+  it("surfaces a mapped code DeepL itself rejects as a structured ProviderError", async () => {
+    const translateText = vi.fn(async () => {
+      throw Object.assign(
+        new Error("Bad request, message: Value for 'target_lang' not supported."),
+        {
+          status: 400,
+        },
+      );
+    });
+    const client: DeepLTranslateClient = { translateText };
+    await expect(
+      createDeepLProvider({ localeMap: { de: "XX-YY" } }, { client }).translateBatch(
+        request({ entries: [entry("k", "v")] }),
+      ),
+    ).rejects.toSatisfy(
+      (error: unknown) => error instanceof ProviderError && error.code === "PROVIDER_ERROR",
+    );
+    expect(translateText).toHaveBeenCalledWith(["v"], "EN", "XX-YY", {});
   });
 });
 

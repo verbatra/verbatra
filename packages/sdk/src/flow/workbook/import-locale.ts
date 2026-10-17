@@ -4,12 +4,13 @@ import {
   type LocaleResource,
   type TranslationEntry,
 } from "@verbatra/core";
-import type { WorkbookRow, WorkbookSheet } from "@verbatra/exchange";
+import type { WorkbookRow, WorkbookSheet, XliffState } from "@verbatra/exchange";
 import type { FormatAdapter } from "@verbatra/format-adapters";
-import { gateCandidateValue, type IntegrityGateReason } from "../integrity-gate.js";
+import { gateCandidateValue, type IntegrityGateRejection, refusalOf } from "../integrity-gate.js";
 import { deriveLocaleStatus } from "../locale-failure.js";
 import type {
   DuplicateKeyReport,
+  IntegrityRefusal,
   LocaleSummary,
   MalformedRowReport,
   SdkNotice,
@@ -26,6 +27,7 @@ export interface ImportLocaleParams {
   readonly sourceInvalidIcuKeys: readonly string[];
   readonly malformedRows: readonly MalformedRowReport[];
   readonly duplicateKeys: readonly DuplicateKeyReport[];
+  readonly states?: ReadonlyMap<string, XliffState>;
 }
 
 export interface ImportLocaleResult {
@@ -35,6 +37,7 @@ export interface ImportLocaleResult {
     { readonly value: string; readonly source: TranslationEntry; readonly cleared: boolean }
   >;
   readonly withheld: ReadonlySet<string>;
+  readonly approved: ReadonlySet<string>;
 }
 
 export class UnknownKeyError extends Error {
@@ -50,26 +53,33 @@ function isUnknownKey(row: WorkbookRow, source: LocaleResource, target: LocaleRe
   return !source.entries.has(row.key) && !target.entries.has(row.key);
 }
 
-type Reason = "drift" | IntegrityGateReason;
+type Verdict = "accepted" | "drift" | IntegrityGateRejection;
 
 function judge(
   row: WorkbookRow,
   sourceEntry: TranslationEntry,
   adapter: FormatAdapter,
-): Reason | undefined {
+  targetLocale: string,
+): Verdict {
   if (contentHash(sourceEntry) !== row.sourceHash) {
     return "drift";
   }
-  const gate = gateCandidateValue(sourceEntry, row.translation, adapter);
-  return gate.accepted ? undefined : gate.reason;
+  const gate = gateCandidateValue(sourceEntry, row.translation, adapter, targetLocale);
+  return gate.accepted ? "accepted" : gate;
 }
 
 interface Buckets {
   readonly accepted: Map<string, { value: string; source: TranslationEntry; cleared: boolean }>;
   readonly mismatches: string[];
+  readonly refusals: IntegrityRefusal[];
   readonly withheld: Set<string>;
   readonly blankDrifted: Set<string>;
   readonly unfilled: string[];
+  readonly approved: Set<string>;
+}
+
+function isApprovedState(state: XliffState | undefined): boolean {
+  return state === "reviewed" || state === "final";
 }
 
 function trackBlankDrift(row: WorkbookRow, params: ImportLocaleParams, buckets: Buckets): void {
@@ -92,6 +102,80 @@ function classifyClear(row: WorkbookRow, sourceEntry: TranslationEntry, buckets:
   buckets.accepted.set(row.key, { value: "", source: sourceEntry, cleared: true });
 }
 
+function classifyTranslation(
+  row: WorkbookRow,
+  sourceEntry: TranslationEntry,
+  params: ImportLocaleParams,
+  buckets: Buckets,
+): void {
+  const verdict = judge(row, sourceEntry, params.adapter, params.target.locale);
+  if (verdict === "accepted") {
+    buckets.accepted.set(row.key, { value: row.translation, source: sourceEntry, cleared: false });
+    if (isApprovedState(params.states?.get(row.key))) {
+      buckets.approved.add(row.key);
+    }
+    return;
+  }
+  buckets.mismatches.push(row.key);
+  buckets.withheld.add(row.key);
+  if (verdict !== "drift") {
+    buckets.refusals.push(refusalOf(row.key, verdict));
+  }
+}
+
+type Echo = "none" | "unfilled" | "kept";
+
+function classifyEcho(
+  row: WorkbookRow,
+  sourceEntry: TranslationEntry,
+  params: ImportLocaleParams,
+  buckets: Buckets,
+  liveCandidates: ReadonlySet<string>,
+): Echo {
+  const state = params.states?.get(row.key);
+  if (state === undefined || params.target.entries.get(row.key)?.value !== row.translation) {
+    return "none";
+  }
+  if (liveCandidates.has(row.key)) {
+    return state === "initial" ? "unfilled" : "none";
+  }
+  if (isApprovedState(state) && contentHash(sourceEntry) === row.sourceHash) {
+    buckets.approved.add(row.key);
+  }
+  return "kept";
+}
+
+function classifyBlank(
+  row: WorkbookRow,
+  params: ImportLocaleParams,
+  buckets: Buckets,
+  liveCandidates: ReadonlySet<string>,
+): void {
+  if (liveCandidates.has(row.key)) {
+    buckets.unfilled.push(row.key);
+  }
+  trackBlankDrift(row, params, buckets);
+}
+
+function classifyFilled(
+  row: WorkbookRow,
+  sourceEntry: TranslationEntry,
+  params: ImportLocaleParams,
+  buckets: Buckets,
+  liveCandidates: ReadonlySet<string>,
+): void {
+  if (row.translation === CLEAR_SENTINEL) {
+    classifyClear(row, sourceEntry, buckets);
+    return;
+  }
+  const echo = classifyEcho(row, sourceEntry, params, buckets, liveCandidates);
+  if (echo === "unfilled") {
+    classifyBlank(row, params, buckets, liveCandidates);
+  } else if (echo === "none") {
+    classifyTranslation(row, sourceEntry, params, buckets);
+  }
+}
+
 function classifyRows(
   params: ImportLocaleParams,
   buckets: Buckets,
@@ -99,33 +183,15 @@ function classifyRows(
 ): void {
   for (const row of params.sheet.rows) {
     if (row.translation === "") {
-      if (liveCandidates.has(row.key)) {
-        buckets.unfilled.push(row.key);
-      }
-      trackBlankDrift(row, params, buckets);
+      classifyBlank(row, params, buckets, liveCandidates);
       continue;
     }
     if (isUnknownKey(row, params.source, params.target)) {
       throw new UnknownKeyError(row.key);
     }
     const sourceEntry = params.source.entries.get(row.key);
-    if (sourceEntry === undefined) {
-      continue;
-    }
-    if (row.translation === CLEAR_SENTINEL) {
-      classifyClear(row, sourceEntry, buckets);
-      continue;
-    }
-    const reason = judge(row, sourceEntry, params.adapter);
-    if (reason === undefined) {
-      buckets.accepted.set(row.key, {
-        value: row.translation,
-        source: sourceEntry,
-        cleared: false,
-      });
-    } else {
-      buckets.mismatches.push(row.key);
-      buckets.withheld.add(row.key);
+    if (sourceEntry !== undefined) {
+      classifyFilled(row, sourceEntry, params, buckets, liveCandidates);
     }
   }
 }
@@ -134,7 +200,7 @@ function blankRowBaselineNotice(count: number): SdkNotice {
   return {
     code: "BLANK_ROW_BASELINE_RETAINED",
     message:
-      `${count} row(s) were left blank for a key whose source changed since the row's baseline ` +
+      `${count === 1 ? "1 row was" : `${count} rows were`} left blank for a key whose source changed since the row's baseline ` +
       "was recorded; the prior baseline was kept so the drift keeps being reported.",
   };
 }
@@ -144,9 +210,11 @@ export function importLocale(params: ImportLocaleParams): ImportLocaleResult {
   const buckets: Buckets = {
     accepted: new Map(),
     mismatches: [],
+    refusals: [],
     withheld: new Set(),
     blankDrifted: new Set(),
     unfilled: [],
+    approved: new Set(),
   };
   classifyRows(params, buckets, new Set([...diff.missing, ...diff.changed]));
 
@@ -167,24 +235,35 @@ export function importLocale(params: ImportLocaleParams): ImportLocaleResult {
       integrityMismatches,
       providerFailures: [],
       budgetWithheld: [],
+      sensitiveWithheld: [],
     }),
     translated,
-    unchanged: diff.unchanged,
+    unchanged: diff.unchanged.filter(
+      (key) => !buckets.accepted.has(key) && !buckets.withheld.has(key),
+    ),
     orphaned: diff.orphaned,
     pruned: [],
     invalidIcuSource,
     cacheHits: [],
     fuzzyHits: [],
     integrityMismatches,
+    integrityRefusals: [...buckets.refusals].sort((left, right) => (left.key < right.key ? -1 : 1)),
     providerFailures: [],
     budgetWithheld: [],
+    sensitiveWithheld: [],
     generated: [],
     notices:
       buckets.blankDrifted.size > 0 ? [blankRowBaselineNotice(buckets.blankDrifted.size)] : [],
     needsReview: [],
     unfilled: [...new Set(buckets.unfilled)].sort(),
+    protected: [],
     malformedRows: params.malformedRows,
     duplicateKeys: params.duplicateKeys,
   };
-  return { summary, accepted: buckets.accepted, withheld: buckets.withheld };
+  return {
+    summary,
+    accepted: buckets.accepted,
+    withheld: buckets.withheld,
+    approved: buckets.approved,
+  };
 }

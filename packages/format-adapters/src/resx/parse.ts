@@ -2,11 +2,10 @@ import type { TranslationEntry } from "@verbatra/core";
 import { type Document, type Element, type Node, XMLSerializer } from "@xmldom/xmldom";
 import { AdapterError } from "../errors.js";
 import type { AdapterFs } from "../fs-port.js";
-import { detectLineTerminator, type LineTerminator, trailingLineBreaks } from "../shell.js";
 import {
-  applyLineTerminator,
   elementChildren,
   readXmlDestination,
+  serializeXmlInto,
   setSingleTextValue,
   singleTextValue,
   TEXT_NODE,
@@ -189,20 +188,6 @@ function appendUnmatched(
   }
 }
 
-function withTrailingNewlines(
-  original: string,
-  output: string,
-  terminator: LineTerminator,
-): string {
-  return `${output}${applyLineTerminator(trailingLineBreaks(original), terminator)}`;
-}
-
-function serializeInto(original: string, doc: Document): string {
-  const terminator = detectLineTerminator(original);
-  const body = applyLineTerminator(new XMLSerializer().serializeToString(doc), terminator);
-  return withTrailingNewlines(original, body, terminator);
-}
-
 function synthesize(entries: ReadonlyMap<string, TranslationEntry>): string {
   const { doc, root } = createResxDocument();
   appendUnmatched(doc, root, entries, new Set());
@@ -225,5 +210,5 @@ export async function serializeResxEntries(
     patchData(doc, element, entries, claimed);
   }
   appendUnmatched(doc, root, entries, claimed);
-  return serializeInto(existing, doc);
+  return serializeXmlInto(existing, doc);
 }

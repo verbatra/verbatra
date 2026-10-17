@@ -5,6 +5,7 @@ import { commitSummaryParts, renderText, type TextTarget } from "./render-text.j
 function commit(overrides: Partial<HistoryCommit> = {}): HistoryCommit {
   return {
     hash: "abcdef1234567890",
+    author: "Ada Lovelace",
     authorDate: "2026-01-01T00:00:00+00:00",
     subject: "add greeting key",
     touchedPaths: ["locales/de.json"],
@@ -21,6 +22,10 @@ describe("commitSummaryParts", () => {
     const parts = commitSummaryParts(commit());
     expect(parts.dateLabel).toBe("2026-01-01");
     expect(parts.authorDate).toBe("2026-01-01T00:00:00+00:00");
+  });
+
+  it("passes the author name through unmodified", () => {
+    expect(commitSummaryParts(commit({ author: "<b>Ada</b>" })).author).toBe("<b>Ada</b>");
   });
 
   it("passes the subject through unmodified, never interpreted", () => {

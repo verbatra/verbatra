@@ -1,3 +1,4 @@
+import { cpuScalingRatio, LINEAR_MAX_RATIO } from "@verbatra/config/scaling";
 import { describe, expect, it } from "vitest";
 import { extractVueI18nPlaceholders } from "./placeholders.js";
 
@@ -55,9 +56,9 @@ describe("extractVueI18nPlaceholders", () => {
 
   it("stays linear on adversarial input", () => {
     const hostile = "{".repeat(200_000);
-    const start = Date.now();
-    const result = extractVueI18nPlaceholders(hostile);
-    expect(result).toEqual([]);
-    expect(Date.now() - start).toBeLessThan(1000);
+    expect(extractVueI18nPlaceholders(hostile)).toEqual([]);
+    expect(cpuScalingRatio(extractVueI18nPlaceholders, "{".repeat(25_000), hostile)).toBeLessThan(
+      LINEAR_MAX_RATIO,
+    );
   });
 });

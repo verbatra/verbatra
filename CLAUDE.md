@@ -7,7 +7,7 @@ overrides general defaults.
 
 verbatra is an i18n translation automation tool: open source, MIT license, npm scope
 `@verbatra`. A pnpm workspaces monorepo (`packages/*`, `apps/*`) built with
-TypeScript, orchestrated by Turborepo, published with Changesets. Node >=22.14.0,
+TypeScript, orchestrated by Turborepo, published with Changesets. Node ^22.18.0 || >=24,
 pnpm pinned at 11.6.0.
 
 ## Commands
@@ -40,9 +40,9 @@ Hard rules a linter cannot enforce:
   regresses, not a comment.
 - JSDoc belongs only on the published API surface. The test is whether the
   declaration appears in the package's built `.d.ts`, not whether the package itself
-  is marked private: tsup's `dts.resolve` inlines types from private workspace
-  packages (e.g. `@verbatra/core`) into `packages/sdk/dist/index.d.ts`, so a
-  declaration there can be published API. Check the built output.
+  is marked private: tsup's `dts.compilerOptions.paths` inlines types from private
+  workspace packages (e.g. `@verbatra/core`) into `packages/sdk/dist/index.d.ts`,
+  so a declaration there can be published API. Check the built output.
 - A short list of comments are functional, not prose, and must survive any cleanup
   pass regardless: coverage directives, `biome-ignore` reason text, `@ts-expect-error`,
   `@vitest-environment jsdom` pragmas, shebangs, SHA-pin version comments in workflow
@@ -94,10 +94,12 @@ extending any test.
 - zod validates at boundaries only (config, CLI args, provider responses), not in
   hot paths.
 - API keys come only from environment variables (`ANTHROPIC_API_KEY`,
-  `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPL_API_KEY`, `GOOGLE_TRANSLATE_API_KEY`),
-  read through `packages/ai-providers/src/env.ts`. Never from config files, CLI args,
-  or function arguments. Never log or commit a key; error messages name the variable
-  but never include a key value.
+  `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPL_API_KEY`, `GOOGLE_TRANSLATE_API_KEY`, and
+  `OPENAI_COMPATIBLE_API_KEY` or the variable an `openai-compatible` config names in
+  `apiKeyEnvVar`, and the optional `LIBRETRANSLATE_API_KEY`), read through
+  `packages/ai-providers/src/env.ts`. Never from config files, CLI args, or function
+  arguments. Never log or commit a key; error messages name the variable but never
+  include a key value.
 - Provider errors are structured `ProviderError`s, never raw SDK errors.
 - Prompt-injection boundary: system rules are compile-time constants; untrusted input
   travels only in the user-turn JSON payload; provider output is schema-bound and
@@ -105,8 +107,9 @@ extending any test.
   translatable strings as untrusted.
 - Publishing is npm Trusted Publishing via OIDC (no `NPM_TOKEN`), with automatic
   provenance and a least-privilege `GITHUB_TOKEN`.
-- Any publishable `src` change (including `@verbatra/studio` and `@verbatra/mcp`)
-  ships a changeset with the correct bump level.
+- A user-observable change to a publishable package (including `@verbatra/studio` and
+  `@verbatra/mcp`) ships a changeset with the correct bump level, following the policy in
+  `.claude/rules/git-conventions.md`.
 
 ## Git and commits
 

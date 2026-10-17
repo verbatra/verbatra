@@ -6,76 +6,152 @@ on:
   schedule:
     - cron: "0 4 * * *"
   workflow_dispatch:
+    inputs:
+      provider:
+        description: Live provider to drive, or all of them
+        type: choice
+        default: all
+        options:
+          - all
+          - gemini
+          - deepl
+          - google-translate
+      google_batch:
+        description: Google Cloud Translation batch to send (masked through the CLI, or unmasked directly)
+        type: choice
+        default: masked
+        options:
+          - masked
+          - unmasked
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event_name == 'workflow_dispatch' && format('dispatch-{0}-{1}', inputs.provider, github.run_id) || format('auto-{0}', github.ref) }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 
 permissions:
   contents: read
 
 jobs:
   e2e-live:
-    name: Drive the CLI against a live provider
+    name: Drive the CLI against a live provider (${{ matrix.provider }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: live-e2e
+    strategy:
+      fail-fast: false
+      matrix:
+        provider: ${{ fromJSON((github.event_name != 'workflow_dispatch' && '["gemini"]') || (inputs.provider == 'all' && '["gemini","deepl","google-translate"]') || format('["{0}"]', inputs.provider)) }}
+    env:
+      E2E_PROVIDER: ${{ matrix.provider }}
+      E2E_REQUIRE_LIVE: ${{ github.event_name == 'workflow_dispatch' && '1' || '' }}
     steps:
+      - name: Check the provider key
+        id: key
+        env:
+          PROVIDER_KEY: ${{ (matrix.provider == 'gemini' && secrets.GEMINI_API_KEY) || (matrix.provider == 'deepl' && secrets.DEEPL_API_KEY) || (matrix.provider == 'google-translate' && secrets.GOOGLE_TRANSLATE_API_KEY) || '' }}
+        run: |
+          if [ -n "$PROVIDER_KEY" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          elif [ "$E2E_REQUIRE_LIVE" = "1" ]; then
+            echo "::error title=Live E2E key missing (${E2E_PROVIDER})::A manual dispatch needs the ${E2E_PROVIDER} key in the live-e2e environment."
+            exit 1
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Live E2E skipped (${E2E_PROVIDER})::The live-e2e environment holds no key for ${E2E_PROVIDER}, so this provider's live tier did not run."
+          fi
+
       - name: Checkout
+        if: steps.key.outputs.present == 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up workspace
+        if: steps.key.outputs.present == 'true'
         uses: ./.github/actions/setup-workspace
         with:
-          node-version: "22.14.0"
+          node-version: "22.18.0"
 
       - name: Build
+        if: steps.key.outputs.present == 'true'
         run: pnpm build
 
       - name: Pack the published tarballs
+        if: steps.key.outputs.present == 'true'
         run: |
           mkdir -p "$RUNNER_TEMP/packs"
           pnpm --filter @verbatra/sdk pack --pack-destination "$RUNNER_TEMP/packs"
           pnpm --filter @verbatra/cli pack --pack-destination "$RUNNER_TEMP/packs"
           pnpm --filter @verbatra/studio pack --pack-destination "$RUNNER_TEMP/packs"
-          echo "VERBATRA_SDK_TARBALL=$(ls "$RUNNER_TEMP"/packs/verbatra-sdk-*.tgz)" >> "$GITHUB_ENV"
-          echo "VERBATRA_CLI_TARBALL=$(ls "$RUNNER_TEMP"/packs/verbatra-cli-*.tgz)" >> "$GITHUB_ENV"
-          echo "VERBATRA_STUDIO_TARBALL=$(ls "$RUNNER_TEMP"/packs/verbatra-studio-*.tgz)" >> "$GITHUB_ENV"
+          pnpm --filter @verbatra/mcp pack --pack-destination "$RUNNER_TEMP/packs"
+          {
+            echo "VERBATRA_SDK_TARBALL=$(ls "$RUNNER_TEMP"/packs/verbatra-sdk-*.tgz)"
+            echo "VERBATRA_CLI_TARBALL=$(ls "$RUNNER_TEMP"/packs/verbatra-cli-*.tgz)"
+            echo "VERBATRA_STUDIO_TARBALL=$(ls "$RUNNER_TEMP"/packs/verbatra-studio-*.tgz)"
+            echo "VERBATRA_MCP_TARBALL=$(ls "$RUNNER_TEMP"/packs/verbatra-mcp-*.tgz)"
+          } >> "$GITHUB_ENV"
 
       - name: Install e2e harness dependencies
+        if: steps.key.outputs.present == 'true'
         working-directory: e2e
         run: npm ci --no-audit --no-fund
 
       - name: Typecheck e2e harness
+        if: steps.key.outputs.present == 'true'
         working-directory: e2e
         run: npm run typecheck
 
-      - name: Run full E2E suite (no-key and live)
+      - name: Run the E2E suite
         id: suite
+        if: steps.key.outputs.present == 'true'
         working-directory: e2e
-        run: npm test
+        run: |
+          if [ "$E2E_PROVIDER" = "gemini" ]; then
+            npm test
+          else
+            npm run test:masking
+          fi
         env:
-          E2E_PROVIDER: gemini
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          E2E_GOOGLE_BATCH: ${{ inputs.google_batch || 'masked' }}
+          GEMINI_API_KEY: ${{ matrix.provider == 'gemini' && secrets.GEMINI_API_KEY || '' }}
+          DEEPL_API_KEY: ${{ matrix.provider == 'deepl' && secrets.DEEPL_API_KEY || '' }}
+          GOOGLE_TRANSLATE_API_KEY: ${{ matrix.provider == 'google-translate' && secrets.GOOGLE_TRANSLATE_API_KEY || '' }}
 
       - name: Report what this tier's result means
         if: always()
         env:
           SUITE_OUTCOME: ${{ steps.suite.outcome }}
+          KEY_OUTCOME: ${{ steps.key.outcome }}
+          KEY_PRESENT: ${{ steps.key.outputs.present }}
         run: |
+          if [ "$KEY_OUTCOME" = "failure" ]; then
+            SUITE_OUTCOME="failure, no ${E2E_PROVIDER} key in the live-e2e environment"
+          elif [ "$KEY_PRESENT" = "false" ]; then
+            SUITE_OUTCOME="skipped, no ${E2E_PROVIDER} key in the live-e2e environment"
+          fi
           {
-            echo "## E2E (live)"
+            echo "## E2E (live: ${E2E_PROVIDER})"
             echo
             echo "Result: \`${SUITE_OUTCOME:-not reached, an earlier step failed}\`."
             echo
             echo "This tier is advisory and never gates a publish. The required release gate is the"
             echo "deterministic no-key tier, reported as \"Build and test gate\" on the CI workflow."
             echo
-            echo "A provider rate limit is reported as a skipped test, not a failure, so a failure"
-            echo "here means the CLI is genuinely broken against a real provider."
+            if [ "$E2E_REQUIRE_LIVE" = "1" ]; then
+              echo "This is a manual dispatch, so a missing key, rate limit, outage, or timeout fails the"
+              echo "run instead of skipping: a failure here may be the provider, not the CLI."
+            else
+              echo "A provider rate limit, outage, or timeout is reported as a skipped test, not a failure,"
+              echo "so a failure here means the CLI is genuinely broken against a real provider."
+            fi
+            if [ "$E2E_PROVIDER" = "google-translate" ]; then
+              echo
+              echo "> **Warning:** the Cloud console reports Google characters per day, so this run's"
+              echo "> figure is comparable only if it is the only Google Cloud Translation run that day."
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
-          if [ "$SUITE_OUTCOME" = "failure" ]; then
-            echo "::warning title=Live E2E failed::The CLI failed against a real provider for a reason other than throttling. Investigate before the next release."
+          if [ "$SUITE_OUTCOME" = "failure" ] && [ "$E2E_REQUIRE_LIVE" != "1" ]; then
+            echo "::warning title=Live E2E failed::The CLI failed against a real provider for a reason other than a rate limit, outage, or timeout. Investigate before the next release."
+          elif [ "$SUITE_OUTCOME" = "failure" ]; then
+            echo "::warning title=Live E2E failed::The dispatched run failed against ${E2E_PROVIDER}. Check the log for a provider rate limit, outage, or timeout before suspecting the CLI."
           fi

@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "module": "node16",
+    "moduleResolution": "node16",
+    "target": "es2022",
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": [],
+    "paths": {
+      "@verbatra/sdk": ["../../packages/sdk/dist/index.d.cts"],
+      "@verbatra/cli": ["../../packages/cli/dist/lib.d.cts"]
+    }
+  },
+  "include": ["cjs-consumer.cts", "cli-cjs-consumer.cts"]
+}

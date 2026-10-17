@@ -13,6 +13,7 @@ import {
 } from "@verbatra/format-adapters";
 import { describe, expect, it } from "vitest";
 import type { TranslationMemory } from "../cache/types.js";
+import { glossaryForLocale } from "../config/glossary.js";
 import { defaultFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
 import { makeTempDir, readJsonFile, readTextFile, writeJsonFile } from "../test-support.js";
@@ -85,8 +86,7 @@ function makeParams(
     sourceInvalidIcuKeys: [],
     baseline: new Map(),
     adapter,
-    provider: stubProvider([]),
-    providerKind: "llm",
+    mode: { kind: "translate", provider: stubProvider([]), providerKind: "llm" },
     cwd: base.cwd,
     resolver: createLocalePathResolver(base.cwd, {
       sourceLocale: "en",
@@ -116,7 +116,7 @@ describe("runLocale: review flags on cache hits", () => {
       makeParams(
         { source: sourceResource, cwd: dir },
         {
-          glossary: { Save: "Speichern" },
+          glossary: glossaryForLocale({ Save: "Speichern" }, "de"),
           cache: {
             snapshot: seededMemory(sourceResource, "intro", "Sichere deine Kontoeinstellungen"),
             fingerprint: FINGERPRINT,
@@ -137,7 +137,7 @@ describe("runLocale: review flags on cache hits", () => {
       makeParams(
         { source: sourceResource, cwd: dir },
         {
-          glossary: { Save: "Speichern" },
+          glossary: glossaryForLocale({ Save: "Speichern" }, "de"),
           cache: {
             snapshot: seededMemory(sourceResource, "intro", "Sichere deine Kontoeinstellungen"),
             fingerprint: FINGERPRINT,
@@ -159,7 +159,7 @@ describe("runLocale: review flags on cache hits", () => {
       makeParams(
         { source: sourceResource, cwd: dir },
         {
-          glossary: { Save: "Speichern" },
+          glossary: glossaryForLocale({ Save: "Speichern" }, "de"),
           cache: {
             snapshot: seededMemory(sourceResource, "intro", "Speichern deine Kontoeinstellungen"),
             fingerprint: FINGERPRINT,
@@ -231,7 +231,7 @@ describe("runLocale: review flags on cache hits", () => {
             format: "android-xml",
             files: { pattern: "locales/{locale}.xml" },
           }),
-          glossary: { Save: "Speichern" },
+          glossary: glossaryForLocale({ Save: "Speichern" }, "de"),
           cache: {
             snapshot: seededMemory(sourceResource, "intro", "Sichere deine Kontoeinstellungen"),
             fingerprint: FINGERPRINT,
@@ -300,8 +300,12 @@ describe("runLocale: review flags fanned out to content duplicates", () => {
       makeParams(
         { source: sourceResource, cwd: dir },
         {
-          glossary: { Save: "Speichern" },
-          provider: stubProvider([{ key: "a", value: "Sichere deine Kontoeinstellungen" }]),
+          glossary: glossaryForLocale({ Save: "Speichern" }, "de"),
+          mode: {
+            kind: "translate",
+            provider: stubProvider([{ key: "a", value: "Sichere deine Kontoeinstellungen" }]),
+            providerKind: "llm",
+          },
         },
       ),
     );
@@ -326,7 +330,11 @@ describe("runLocale: per-key maximum length budgets", () => {
       makeParams(
         { source: sourceResource, cwd: dir },
         {
-          provider: stubProvider([{ key: "intro", value: "Sichere deine Kontoeinstellungen" }]),
+          mode: {
+            kind: "translate",
+            provider: stubProvider([{ key: "intro", value: "Sichere deine Kontoeinstellungen" }]),
+            providerKind: "llm",
+          },
           maxLength: new Map([["intro", 10]]),
         },
       ),
@@ -343,7 +351,11 @@ describe("runLocale: per-key maximum length budgets", () => {
       makeParams(
         { source: sourceResource, cwd: dir },
         {
-          provider: stubProvider([{ key: "intro", value: "Sichere deine Kontoeinstellungen" }]),
+          mode: {
+            kind: "translate",
+            provider: stubProvider([{ key: "intro", value: "Sichere deine Kontoeinstellungen" }]),
+            providerKind: "llm",
+          },
           maxLength: new Map([["intro", 10]]),
         },
       ),
@@ -363,7 +375,11 @@ describe("runLocale: per-key maximum length budgets", () => {
       makeParams(
         { source: sourceResource, cwd: dir },
         {
-          provider: stubProvider([{ key: "intro", value: "Sichere deine Kontoeinstellungen" }]),
+          mode: {
+            kind: "translate",
+            provider: stubProvider([{ key: "intro", value: "Sichere deine Kontoeinstellungen" }]),
+            providerKind: "llm",
+          },
           maxLength: new Map([["other", 2]]),
         },
       ),
@@ -402,7 +418,11 @@ describe("runLocale: per-key maximum length budgets", () => {
       makeParams(
         { source: sourceResource, cwd: dir },
         {
-          provider: stubProvider([{ key: "a", value: "Sichere deine Kontoeinstellungen" }]),
+          mode: {
+            kind: "translate",
+            provider: stubProvider([{ key: "a", value: "Sichere deine Kontoeinstellungen" }]),
+            providerKind: "llm",
+          },
           maxLength: new Map([["b", 10]]),
         },
       ),
@@ -424,7 +444,11 @@ describe("runLocale: per-key maximum length budgets", () => {
       makeParams(
         { source: sourceResource, cwd: dir },
         {
-          provider: stubProvider([{ key: "a", value: "Sichere deine Kontoeinstellungen" }]),
+          mode: {
+            kind: "translate",
+            provider: stubProvider([{ key: "a", value: "Sichere deine Kontoeinstellungen" }]),
+            providerKind: "llm",
+          },
           maxLength: new Map([["a", 10]]),
         },
       ),
@@ -444,8 +468,12 @@ describe("runLocale: budgets on fanned-out duplicates keep every other reason", 
       makeParams(
         { source: sourceResource, cwd: dir },
         {
-          glossary: { Save: "Speichern" },
-          provider: stubProvider([{ key: "a", value: "Sichere deine Kontoeinstellungen" }]),
+          glossary: glossaryForLocale({ Save: "Speichern" }, "de"),
+          mode: {
+            kind: "translate",
+            provider: stubProvider([{ key: "a", value: "Sichere deine Kontoeinstellungen" }]),
+            providerKind: "llm",
+          },
           maxLength: new Map([["b", 10]]),
         },
       ),
@@ -466,7 +494,11 @@ describe("runLocale: budgets on fanned-out duplicates keep every other reason", 
       makeParams(
         { source: sourceResource, cwd: dir },
         {
-          provider: stubProvider([{ key: "a", value: "Ok" }]),
+          mode: {
+            kind: "translate",
+            provider: stubProvider([{ key: "a", value: "Ok" }]),
+            providerKind: "llm",
+          },
           maxLength: new Map([["b", 1]]),
         },
       ),
@@ -489,7 +521,11 @@ describe("runLocale: budgets across a wider duplicate group", () => {
       makeParams(
         { source: sourceResource, cwd: dir },
         {
-          provider: stubProvider([{ key: "a", value: "Sichere deine Kontoeinstellungen" }]),
+          mode: {
+            kind: "translate",
+            provider: stubProvider([{ key: "a", value: "Sichere deine Kontoeinstellungen" }]),
+            providerKind: "llm",
+          },
           maxLength: new Map([
             ["a", 5],
             ["b", 20],
@@ -514,7 +550,11 @@ describe("runLocale: budgets across a wider duplicate group", () => {
       makeParams(
         { source: sourceResource, cwd: dir },
         {
-          provider: stubProvider([{ key: "a", value: "Sichere deine Kontoeinstellungen" }]),
+          mode: {
+            kind: "translate",
+            provider: stubProvider([{ key: "a", value: "Sichere deine Kontoeinstellungen" }]),
+            providerKind: "llm",
+          },
           maxLength: new Map([
             ["a", 100],
             ["b", 32],
@@ -555,5 +595,118 @@ describe("runLocale: which keys a budget actually reaches", () => {
 
     expect(result.summary.unchanged).toEqual(["intro"]);
     expect(result.summary.needsReview).toEqual([]);
+  });
+});
+
+describe("runLocale: a dropped placeholder of a foreign syntax", () => {
+  it("flags a cached value that drops it", async () => {
+    const { dir, sourceResource } = await setup({ greeting: "Hello {name}, welcome back!" });
+    const result = await runLocale(
+      makeParams(
+        { source: sourceResource, cwd: dir },
+        {
+          cache: {
+            snapshot: seededMemory(sourceResource, "greeting", "Hallo, willkommen zurück!"),
+            fingerprint: FINGERPRINT,
+          },
+        },
+      ),
+    );
+
+    expect(result.summary.cacheHits).toEqual(["greeting"]);
+    expect(result.summary.needsReview).toEqual([
+      { key: "greeting", reasons: ["FOREIGN_PLACEHOLDER_CHANGED"] },
+    ]);
+  });
+
+  it("flags a provider value and every content duplicate that reuses it", async () => {
+    const { dir, sourceResource } = await setup({
+      a: "Hello {name}, welcome back!",
+      b: "Hello {name}, welcome back!",
+    });
+    const result = await runLocale(
+      makeParams(
+        { source: sourceResource, cwd: dir },
+        {
+          mode: {
+            kind: "translate",
+            provider: stubProvider([{ key: "a", value: "Hallo, willkommen zurück!" }]),
+            providerKind: "llm",
+          },
+        },
+      ),
+    );
+
+    expect(result.summary.translated).toEqual(["a", "b"]);
+    expect(result.summary.needsReview).toEqual([
+      { key: "a", reasons: ["FOREIGN_PLACEHOLDER_CHANGED"] },
+      { key: "b", reasons: ["FOREIGN_PLACEHOLDER_CHANGED"] },
+    ]);
+  });
+
+  it("keeps the provider's own reasons ahead of it", async () => {
+    const { dir, sourceResource } = await setup({ greeting: "Hello {name}, welcome back!" });
+    const result = await runLocale(
+      makeParams(
+        { source: sourceResource, cwd: dir },
+        {
+          mode: {
+            kind: "translate",
+            provider: stubProvider([{ key: "greeting", value: "Hallo" }]),
+            providerKind: "llm",
+          },
+        },
+      ),
+    );
+
+    expect(result.summary.needsReview).toEqual([
+      { key: "greeting", reasons: ["LENGTH_RATIO_OUTLIER", "FOREIGN_PLACEHOLDER_CHANGED"] },
+    ]);
+  });
+
+  it("stays quiet when the provider keeps it", async () => {
+    const { dir, sourceResource } = await setup({ greeting: "Hello {name}, welcome back!" });
+    const result = await runLocale(
+      makeParams(
+        { source: sourceResource, cwd: dir },
+        {
+          mode: {
+            kind: "translate",
+            provider: stubProvider([
+              { key: "greeting", value: "Hallo {name}, willkommen zurück!" },
+            ]),
+            providerKind: "llm",
+          },
+        },
+      ),
+    );
+
+    expect(result.summary.needsReview).toEqual([]);
+  });
+});
+
+describe("runLocale: bidi controls in a reused value", () => {
+  it("flags a cached value that adds a right-to-left override", async () => {
+    const { dir, sourceResource } = await setup({ greeting: "Hello there, welcome back!" });
+    const result = await runLocale(
+      makeParams(
+        { source: sourceResource, cwd: dir },
+        {
+          cache: {
+            snapshot: seededMemory(
+              sourceResource,
+              "greeting",
+              "\u202eHallo\u202c, willkommen zurück!",
+            ),
+            fingerprint: FINGERPRINT,
+          },
+        },
+      ),
+    );
+
+    expect(result.summary.cacheHits).toEqual(["greeting"]);
+    expect(result.summary.needsReview).toEqual([
+      { key: "greeting", reasons: ["BIDI_CONTROLS_CHANGED"] },
+    ]);
   });
 });

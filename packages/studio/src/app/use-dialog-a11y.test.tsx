@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import type { ReactNode } from "react";
+import { type ReactNode, useRef } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { pressKey, render } from "./test-support.js";
 import { useDialogA11y } from "./use-dialog-a11y.js";
@@ -8,11 +8,22 @@ interface DialogProps {
   readonly isOpen: boolean;
   readonly onClose: () => void;
   readonly attachRef?: boolean;
+  readonly shouldRestoreFocus?: () => boolean;
   readonly children?: ReactNode;
 }
 
-function Dialog({ isOpen, onClose, attachRef = true, children }: DialogProps): ReactNode {
-  const containerRef = useDialogA11y<HTMLDivElement>({ isOpen, onClose });
+function Dialog({
+  isOpen,
+  onClose,
+  attachRef = true,
+  shouldRestoreFocus,
+  children,
+}: DialogProps): ReactNode {
+  const containerRef = useDialogA11y<HTMLDivElement>({
+    isOpen,
+    onClose,
+    ...(shouldRestoreFocus !== undefined ? { shouldRestoreFocus } : {}),
+  });
   return (
     <div ref={attachRef ? containerRef : null} data-testid="dialog">
       {children}
@@ -189,6 +200,41 @@ describe("useDialogA11y", () => {
     opener.remove();
   });
 
+  it("leaves focus alone on unmount when the caller says not to restore it", () => {
+    const opener = document.createElement("button");
+    opener.type = "button";
+    document.body.appendChild(opener);
+    opener.focus();
+    const view = render(
+      <Dialog isOpen onClose={vi.fn()} shouldRestoreFocus={() => false}>
+        {CONTENT}
+      </Dialog>,
+    );
+
+    view.unmount();
+
+    expect(document.activeElement).not.toBe(opener);
+    opener.remove();
+  });
+
+  it("does not restore focus to an opener that left the document while the dialog was open", () => {
+    const opener = document.createElement("button");
+    opener.type = "button";
+    document.body.appendChild(opener);
+    opener.focus();
+    const focus = vi.spyOn(opener, "focus");
+    const view = render(
+      <Dialog isOpen onClose={vi.fn()}>
+        {CONTENT}
+      </Dialog>,
+    );
+
+    opener.remove();
+    view.unmount();
+
+    expect(focus).not.toHaveBeenCalled();
+  });
+
   it("calls the callback from the latest render, not the one the trap was built with", () => {
     const first = vi.fn();
     const second = vi.fn();
@@ -207,5 +253,45 @@ describe("useDialogA11y", () => {
 
     expect(second).toHaveBeenCalledTimes(1);
     expect(first).not.toHaveBeenCalled();
+  });
+});
+
+function LateFieldDialog({ ready }: { readonly ready: boolean }): ReactNode {
+  const fieldRef = useRef<HTMLTextAreaElement | null>(null);
+  const containerRef = useDialogA11y<HTMLDivElement>({
+    isOpen: true,
+    onClose: () => {},
+    initialFocus: fieldRef,
+  });
+  return (
+    <div ref={containerRef}>
+      <button type="button" id="close">
+        Close
+      </button>
+      {ready ? <textarea id="field" ref={fieldRef} /> : null}
+    </div>
+  );
+}
+
+describe("useDialogA11y: initial focus", () => {
+  it("focuses and scrolls to the requested element when it is there at open", () => {
+    const scrolled = vi.fn();
+    HTMLElement.prototype.scrollIntoView = scrolled;
+    const view = render(<LateFieldDialog ready />);
+
+    expect(document.activeElement).toBe(view.get("#field"));
+    expect(scrolled).toHaveBeenCalledWith({ block: "nearest" });
+  });
+
+  it("waits for an element that mounts after open, then focuses it once", () => {
+    const view = render(<LateFieldDialog ready={false} />);
+    expect(document.activeElement).toBe(view.get("#close"));
+
+    view.rerender(<LateFieldDialog ready />);
+    expect(document.activeElement).toBe(view.get("#field"));
+
+    view.get("#close").focus();
+    view.rerender(<LateFieldDialog ready />);
+    expect(document.activeElement).toBe(view.get("#close"));
   });
 });

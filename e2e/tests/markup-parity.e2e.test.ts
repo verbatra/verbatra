@@ -1,19 +1,14 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import ExcelJS from "exceljs";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
   type Consumer,
+  fillWorkbook,
   readJsonIn,
   readSharedConsumer,
   runVerbatra,
   writeJsonIn,
 } from "../src/harness.js";
-
-const HEADER_ROW = 1;
-const KEY_COLUMN = 1;
-const TRANSLATION_COLUMN = 5;
-const INSTRUCTIONS_SHEET = "Instructions";
 
 let consumer: Consumer;
 
@@ -29,24 +24,7 @@ async function fillTranslations(
   workbookPath: string,
   values: Readonly<Record<string, string>>,
 ): Promise<void> {
-  const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.readFile(workbookPath);
-  for (const sheet of workbook.worksheets) {
-    if (sheet.name === INSTRUCTIONS_SHEET) {
-      continue;
-    }
-    sheet.eachRow((row, rowNumber) => {
-      if (rowNumber === HEADER_ROW) {
-        return;
-      }
-      const key = String(row.getCell(KEY_COLUMN).value);
-      const translation = values[key];
-      if (translation !== undefined) {
-        row.getCell(TRANSLATION_COLUMN).value = translation;
-      }
-    });
-  }
-  await workbook.xlsx.writeFile(workbookPath);
+  await fillWorkbook(workbookPath, (key) => values[key]);
 }
 
 beforeAll(async () => {

@@ -307,7 +307,11 @@ describe("the glossary and the tone ride in every request and are counted in eve
     const calls = await runLive(config, dir);
     const scheduled = measureScheduled(calls);
 
-    expect(calls.every(({ request }) => request.glossary === MANY_TERMS)).toBe(true);
+    expect(
+      calls.every(
+        ({ request }) => request.glossary?.terms.length === Object.keys(MANY_TERMS).length,
+      ),
+    ).toBe(true);
     expect(estimate.inputTokens ?? 0).toBeGreaterThanOrEqual(scheduled.inputTokens);
     expect(scheduled.inputTokens).toBeGreaterThan(
       3 * Math.floor(GLOSSARY_CHARACTERS / ESTIMATED_CHARACTERS_PER_TOKEN),

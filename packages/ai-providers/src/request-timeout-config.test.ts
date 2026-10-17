@@ -46,31 +46,38 @@ describe("requestTimeoutConfigSchema: merged into every provider config", () => 
       name: "anthropic",
       schema: anthropicConfigSchema,
       validBase: { model: "m", maxTokens: 1 },
-      fieldOrder: ["model", "maxTokens", "requestTimeoutMs"],
+      fieldOrder: ["model", "maxTokens", "requestTimeoutMs", "localeMap"],
     },
     {
       name: "openai",
       schema: openAiConfigSchema,
       validBase: { model: "m", maxOutputTokens: 1 },
-      fieldOrder: ["model", "maxOutputTokens", "requestTimeoutMs"],
+      fieldOrder: ["model", "maxOutputTokens", "requestTimeoutMs", "localeMap"],
     },
     {
       name: "gemini",
       schema: geminiConfigSchema,
       validBase: { model: "m", maxOutputTokens: 1 },
-      fieldOrder: ["model", "maxOutputTokens", "requestTimeoutMs"],
+      fieldOrder: ["model", "maxOutputTokens", "requestTimeoutMs", "localeMap"],
     },
     {
       name: "deepl",
       schema: deepLConfigSchema,
       validBase: {},
-      fieldOrder: ["glossaryId", "requestTimeoutMs"],
+      fieldOrder: ["glossaryId", "requestTimeoutMs", "localeMap"],
     },
     {
       name: "openai-compatible",
       schema: openAiCompatibleConfigSchema,
       validBase: { baseUrl: "http://localhost:1234", model: "m", maxOutputTokens: 1 },
-      fieldOrder: ["baseUrl", "model", "maxOutputTokens", "apiKeyEnvVar", "requestTimeoutMs"],
+      fieldOrder: [
+        "baseUrl",
+        "model",
+        "maxOutputTokens",
+        "apiKeyEnvVar",
+        "requestTimeoutMs",
+        "localeMap",
+      ],
     },
   ];
 

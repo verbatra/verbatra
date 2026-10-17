@@ -1,0 +1,79 @@
+import { AdapterError, SdkError, type ValueMarker } from "@verbatra/sdk";
+
+type StringField<T> = {
+  [K in keyof T]-?: NonNullable<T[K]> extends string ? K : never;
+}[keyof T] &
+  string;
+
+export function markFields<T extends object>(
+  value: T,
+  fields: readonly StringField<T>[],
+  marker: ValueMarker,
+): T {
+  const marked: Record<string, unknown> = { ...(value as Record<string, unknown>) };
+  for (const field of fields) {
+    const current = marked[field];
+    if (typeof current === "string") {
+      marked[field] = marker.mark(current);
+    }
+  }
+  return marked as T;
+}
+
+export function markAll(values: readonly string[], marker: ValueMarker): string[] {
+  return values.map((value) => marker.mark(value));
+}
+
+export function markRecord<V>(
+  record: Readonly<Record<string, V>>,
+  markValue: (value: V) => V,
+): Record<string, V> {
+  return Object.fromEntries(Object.entries(record).map(([key, value]) => [key, markValue(value)]));
+}
+
+export function withoutReviewer<T extends { readonly reviewer?: string | undefined }>(
+  provenance: T,
+): T {
+  const { reviewer: _reviewer, ...rest } = provenance;
+  return rest as T;
+}
+
+export function withProvenanceRedacted<
+  T extends { readonly provenance?: { readonly reviewer?: string | undefined } | undefined },
+>(value: T): T {
+  return value.provenance === undefined
+    ? value
+    : { ...value, provenance: withoutReviewer(value.provenance) };
+}
+
+export function redactWriteResult<
+  T extends { readonly value: string; readonly details?: readonly string[] | undefined },
+>(result: T, marker: ValueMarker): T {
+  const { details: _details, ...rest } = result;
+  return { ...rest, value: marker.mark(result.value) } as T;
+}
+
+const VALUE_BEARING_SDK_CODES: ReadonlySet<string> = new Set(["CONFIG_INVALID", "SOURCE_INVALID"]);
+
+const MAX_CAUSE_DEPTH = 8;
+
+function bearsValuesItself(error: unknown): boolean {
+  return (
+    error instanceof AdapterError ||
+    (error instanceof SdkError && VALUE_BEARING_SDK_CODES.has(error.code))
+  );
+}
+
+export function carriesValues(error: unknown): error is AdapterError | SdkError {
+  if (!(error instanceof AdapterError || error instanceof SdkError)) {
+    return false;
+  }
+  let current: unknown = error;
+  for (let depth = 0; depth < MAX_CAUSE_DEPTH && current instanceof Error; depth += 1) {
+    if (bearsValuesItself(current)) {
+      return true;
+    }
+    current = current.cause;
+  }
+  return false;
+}

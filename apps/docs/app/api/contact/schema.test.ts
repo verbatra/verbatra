@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { HONEYPOT_FIELD } from "./honeypot-field";
-import { contactSchema, parseContactPayload, parseContactRequest } from "./schema";
+import { contactSchema, parseContactBody, parseContactPayload } from "./schema";
 
 function validBody(overrides: Record<string, unknown> = {}) {
   return {
@@ -71,22 +71,13 @@ describe("parseContactPayload", () => {
   });
 });
 
-describe("parseContactRequest", () => {
-  it("parses a valid JSON request body", async () => {
-    const request = new Request("http://localhost/api/contact", {
-      method: "POST",
-      body: JSON.stringify(validBody()),
-    });
-    const result = await parseContactRequest(request);
+describe("parseContactBody", () => {
+  it("parses a valid JSON body", () => {
+    const result = parseContactBody(JSON.stringify(validBody()));
     expect(result.success).toBe(true);
   });
 
-  it("treats malformed JSON as a validation failure with no field errors", async () => {
-    const request = new Request("http://localhost/api/contact", {
-      method: "POST",
-      body: "not json",
-    });
-    const result = await parseContactRequest(request);
-    expect(result).toEqual({ success: false, errors: {} });
+  it("treats malformed JSON as a validation failure with no field errors", () => {
+    expect(parseContactBody("not json")).toEqual({ success: false, errors: {} });
   });
 });

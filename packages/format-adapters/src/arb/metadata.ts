@@ -87,28 +87,62 @@ async function readDestinationPairs(
   return [...parseArbObject(content)];
 }
 
+function isGlobalMetadataKey(key: string): boolean {
+  return key.startsWith("@@");
+}
+
+function belongsToWrite(key: string, messages: ReadonlyMap<string, string>): boolean {
+  if (isGlobalMetadataKey(key)) {
+    return true;
+  }
+  const messageKey = messageKeyForMetadata(key);
+  return messageKey !== null && messages.has(messageKey);
+}
+
+const LOCALE_KEY = "@@locale";
+
+function flutterLocale(locale: string): string {
+  return locale.replaceAll("-", "_");
+}
+
+function localeFirst(
+  tree: Map<string, OrderedValue>,
+  isNewFile: boolean,
+  locale: string,
+): OrderedRecord {
+  const existing = tree.get(LOCALE_KEY);
+  if (existing === undefined && !isNewFile) {
+    return tree;
+  }
+  tree.delete(LOCALE_KEY);
+  return new Map([[LOCALE_KEY, existing ?? flutterLocale(locale)], ...tree]);
+}
+
 export async function buildArbWriteTree(
   entries: ReadonlyMap<string, TranslationEntry>,
   filePath: string,
   fs: AdapterFs,
+  locale: string,
 ): Promise<OrderedRecord> {
   const messages = messagesFromEntries(entries);
   const pairs = await readDestinationPairs(filePath, fs);
   const out = new Map<string, OrderedValue>();
-  const consumed = new Set<string>();
   for (const [key, value] of pairs ?? []) {
-    const translated = isMetadataKey(key) ? undefined : messages.get(key);
+    if (isMetadataKey(key)) {
+      if (belongsToWrite(key, messages)) {
+        out.set(key, value);
+      }
+      continue;
+    }
+    const translated = messages.get(key);
     if (translated !== undefined) {
-      consumed.add(key);
       out.set(key, translated);
-    } else if (isMetadataKey(key) || typeof value === "string") {
-      out.set(key, value);
     }
   }
   for (const [key, value] of messages) {
-    if (!consumed.has(key)) {
+    if (!out.has(key)) {
       out.set(key, value);
     }
   }
-  return out;
+  return localeFirst(out, pairs === null, locale);
 }

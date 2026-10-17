@@ -20,11 +20,31 @@ const SNAPSHOT: ProjectSnapshotResult = {
   exposeAgentTools: false,
 };
 
-const GLOSSARY: GlossaryGetResult = {
-  indicator: { source: "file", path: "glossary.json" },
-  entries: { verbatra: "Verbatra", checkout: "Kasse" },
-  redactedTerms: [],
-};
+function glossaryOf(
+  indicator: GlossaryGetResult["indicator"],
+  entries: Readonly<Record<string, string>>,
+): GlossaryGetResult {
+  return {
+    indicator,
+    version: indicator.source === "none" ? null : 1,
+    locales: ["de"],
+    terms: Object.entries(entries).map(([source, target]) => ({
+      source,
+      target,
+      targets: {},
+      forbidden: {},
+      caseSensitive: false,
+      byLocale: { de: { target, inherited: true, forbidden: [] } },
+    })),
+    doNotTranslate: [],
+    redactedTerms: [],
+  };
+}
+
+const GLOSSARY = glossaryOf(
+  { source: "file", path: "glossary.json" },
+  { verbatra: "Verbatra", checkout: "Kasse" },
+);
 
 function snapshotAnswer(result: ProjectSnapshotResult): {
   readonly ok: true;
@@ -146,6 +166,20 @@ describe("SettingsPanel", () => {
     expect(detailValue(view, "Provider actions")).toBe("Off (start with --allow-spend)");
   });
 
+  it("names the policy rather than the flag when machine translation is disabled", async () => {
+    stubSettings({
+      ...SNAPSHOT,
+      provider: { id: "none" },
+      capabilities: { spend: false, spendWithheld: "policy", writeToDisk: true },
+    });
+
+    const view = await renderAsync(<SettingsPanel />);
+
+    expect(detailValue(view, "Provider actions")).toBe(
+      "Off (machine translation disabled by policy)",
+    );
+  });
+
   it("marks provider actions enabled when the session was started with spend allowed", async () => {
     stubSettings({ ...SNAPSHOT, capabilities: { spend: true, writeToDisk: true } });
 
@@ -201,7 +235,7 @@ describe("SettingsPanel", () => {
     expect(terms).toHaveLength(2);
     expect(terms[1]?.textContent).toContain("checkout");
     expect(terms[1]?.textContent).toContain("Kasse");
-    expect(view.all('p[dir="auto"]').map((node) => node.textContent)).toEqual([
+    expect(view.all('li p > span[dir="auto"]').map((node) => node.textContent)).toEqual([
       "Verbatra",
       "Kasse",
     ]);
@@ -216,11 +250,7 @@ describe("SettingsPanel", () => {
   });
 
   it("uses the singular term label for a one-entry glossary", async () => {
-    stubSettings(SNAPSHOT, {
-      indicator: { source: "inline" },
-      entries: { verbatra: "Verbatra" },
-      redactedTerms: [],
-    });
+    stubSettings(SNAPSHOT, glossaryOf({ source: "inline" }, { verbatra: "Verbatra" }));
 
     const view = await renderAsync(<SettingsPanel />);
 
@@ -229,11 +259,11 @@ describe("SettingsPanel", () => {
   });
 
   it("shows an empty state and no count badge when no glossary is configured", async () => {
-    stubSettings(SNAPSHOT, { indicator: { source: "none" }, entries: {}, redactedTerms: [] });
+    stubSettings(SNAPSHOT, glossaryOf({ source: "none" }, {}));
 
     const view = await renderAsync(<SettingsPanel />);
 
-    expect(view.text()).toContain("No glossary configured");
+    expect(view.text()).toContain("No glossary terms");
     expect(view.query(".bg-neutral-soft")).toBeNull();
     expect(view.query("ul li")).toBeNull();
   });
@@ -247,11 +277,7 @@ describe("SettingsPanel", () => {
   });
 
   it("names an inline glossary's source without a path", async () => {
-    stubSettings(SNAPSHOT, {
-      indicator: { source: "inline" },
-      entries: { verbatra: "Verbatra" },
-      redactedTerms: [],
-    });
+    stubSettings(SNAPSHOT, glossaryOf({ source: "inline" }, { verbatra: "Verbatra" }));
 
     const view = await renderAsync(<SettingsPanel />);
 

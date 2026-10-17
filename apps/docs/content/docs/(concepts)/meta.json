@@ -1,4 +1,11 @@
 {
-  "title": "Core concepts",
-  "pages": ["how-it-works", "the-lock-file", "the-cache", "translation-safety"]
+  "title": "Concepts",
+  "pages": [
+    "how-it-works",
+    "the-lock-file",
+    "the-cache",
+    "translation-safety",
+    "language-support",
+    "data-handling"
+  ]
 }

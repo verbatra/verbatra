@@ -9,6 +9,7 @@
   "include": [
     "knip.config.ts",
     "packages/*/tsup.config.ts",
+    "packages/*/tsup.*.config.ts",
     "packages/*/vitest.config.ts",
     "packages/*/vite.config.ts"
   ]

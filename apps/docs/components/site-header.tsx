@@ -1,35 +1,46 @@
 "use client";
 
-import {
-  SidebarDrawerContent,
-  SidebarDrawerOverlay,
-  SidebarProvider,
-  SidebarTrigger,
-  SidebarViewport,
-} from "fumadocs-ui/components/sidebar/base";
+import { usePathname } from "fumadocs-core/framework";
+import Link from "fumadocs-core/link";
 import { buttonVariants } from "fumadocs-ui/components/ui/button";
-import { useHomeLayout } from "fumadocs-ui/layouts/home";
-import { useNotebookLayout } from "fumadocs-ui/layouts/notebook";
-import { type BaseSlots, LinkItem, type LinkItemType } from "fumadocs-ui/layouts/shared";
-import type { ComponentProps, ReactNode } from "react";
+import type { BaseSlots, LinkItemType } from "fumadocs-ui/layouts/shared";
+import { type ComponentProps, createContext, type ReactNode, use, useMemo } from "react";
+import {
+  HomeMobileMenu,
+  LanguageSelect as LanguageSelectIsland,
+  ThemeToggle,
+  VersionPill,
+} from "@/components/chrome-islands";
+import {
+  HEADER_CLASS,
+  HeaderEnd,
+  HeaderNav,
+  HeaderRow,
+  HeaderStart,
+  type RowWidth,
+  WORDMARK_LINK_CLASS,
+} from "@/components/header-parts";
+import {
+  ChangelogNavLink,
+  DocsNavLink,
+  GetStartedLink,
+  GitHubNavLink,
+  useHomeNav,
+} from "@/components/home-nav";
+import { NAV_TEXT_LINK } from "@/components/nav-link-classes";
+import { isLinkItemActive, LinkItem } from "@/lib/link-items";
 import { cn } from "@/lib/utils";
 
-export type HeaderSlots = Pick<BaseSlots, "navTitle" | "searchTrigger" | "languageSelect">;
+type HeaderSlots = Pick<BaseSlots, "navTitle" | "searchTrigger" | "languageSelect" | "themeSwitch">;
 
 type IconItem = Extract<LinkItemType, { type: "icon" }>;
 
-const TEXT_LINK =
-  "vk-header-link text-sm text-fd-muted-foreground transition-colors hover:text-fd-accent-foreground data-[active=true]:text-fd-primary";
-
 const ICON_BUTTON = cn(
   buttonVariants({ size: "icon-sm", variant: "ghost" }),
-  "text-fd-muted-foreground",
+  "text-(--text-muted)",
 );
 
-const DRAWER_ITEM =
-  "relative flex flex-row items-center gap-2 rounded-lg p-2 text-start text-fd-muted-foreground transition-colors hover:bg-fd-accent/50 hover:text-fd-accent-foreground/80 data-[active=true]:bg-fd-primary/10 data-[active=true]:text-fd-primary";
-
-const ICON_PROPS = {
+export const ICON_PROPS = {
   width: 24,
   height: 24,
   viewBox: "0 0 24 24",
@@ -39,24 +50,6 @@ const ICON_PROPS = {
   strokeLinecap: "round",
   strokeLinejoin: "round",
 } as const;
-
-function SidebarIcon(): ReactNode {
-  return (
-    <svg {...ICON_PROPS} aria-hidden="true">
-      <rect width="18" height="18" x="3" y="3" rx="2" />
-      <path d="M9 3v18" />
-    </svg>
-  );
-}
-
-function CloseIcon(): ReactNode {
-  return (
-    <svg {...ICON_PROPS} aria-hidden="true">
-      <path d="M18 6 6 18" />
-      <path d="m6 6 12 12" />
-    </svg>
-  );
-}
 
 function LanguagesIcon({ className }: { className?: string }): ReactNode {
   return (
@@ -79,19 +72,56 @@ function itemKey(item: LinkItemType): string {
   return "url" in item && item.url ? item.url : "custom";
 }
 
-function TextLink({ item, className }: { item: LinkItemType; className: string }): ReactNode {
+type ActiveOverride = (url: string) => boolean | undefined;
+
+function withoutTrailingSlash(path: string): string {
+  return path.length > 1 && path.endsWith("/") ? path.slice(0, -1) : path;
+}
+
+function currentMarker(
+  active: boolean,
+  url: string,
+  pathname: string,
+): "page" | "true" | undefined {
+  if (!active) return undefined;
+  return withoutTrailingSlash(url) === withoutTrailingSlash(pathname) ? "page" : "true";
+}
+
+function TextLink({
+  item,
+  className,
+  activeOverride,
+}: {
+  item: LinkItemType;
+  className: string;
+  activeOverride?: ActiveOverride | undefined;
+}): ReactNode {
+  const pathname = usePathname();
   if (item.type === "custom") return item.children;
   if (item.type === "menu" || item.type === "icon") return null;
+  const active = activeOverride?.(item.url) ?? isLinkItemActive(item, pathname);
   return (
-    <LinkItem item={item} className={className}>
+    <Link
+      href={item.url}
+      external={item.external}
+      className={className}
+      data-active={active}
+      aria-current={currentMarker(active, item.url, pathname)}
+    >
       {item.text}
-    </LinkItem>
+    </Link>
   );
 }
 
 function IconLink({ item, className }: { item: IconItem; className?: string }): ReactNode {
+  const pathname = usePathname();
   return (
-    <LinkItem item={item} className={cn(ICON_BUTTON, className)} aria-label={item.label}>
+    <LinkItem
+      item={item}
+      pathname={pathname}
+      className={cn(ICON_BUTTON, className)}
+      aria-label={item.label}
+    >
       {item.icon}
     </LinkItem>
   );
@@ -107,16 +137,22 @@ function LanguageSelect({
   if (!slots.languageSelect) return null;
   return (
     <slots.languageSelect.root>
-      <LanguagesIcon className={cn("size-4.5 text-fd-muted-foreground", className)} />
+      <LanguagesIcon className={cn("size-4.5 text-(--text-muted)", className)} />
     </slots.languageSelect.root>
   );
 }
 
-export type SiteHeaderFrameProps = ComponentProps<"header"> & {
+type SiteHeaderFrameProps = ComponentProps<"header"> & {
   slots: HeaderSlots;
   navItems: ReadonlyArray<LinkItemType>;
   mobileTrigger: ReactNode;
   trailing?: ReactNode;
+  cta?: ReactNode;
+  badge?: ReactNode;
+  navLinks?: ReactNode;
+  navLabel?: string;
+  activeOverride?: ActiveOverride;
+  rowWidth?: RowWidth;
 };
 
 export function SiteHeaderFrame({
@@ -124,125 +160,119 @@ export function SiteHeaderFrame({
   navItems,
   mobileTrigger,
   trailing,
+  cta,
+  badge,
+  navLinks,
+  navLabel,
+  activeOverride,
+  rowWidth = "layout",
   className,
   ...props
 }: SiteHeaderFrameProps): ReactNode {
   const textItems = navItems.filter((item) => !isIconItem(item));
   const iconItems = navItems.filter(isIconItem);
   return (
-    <header {...props} className={cn("vk-header sticky flex flex-col backdrop-blur-sm", className)}>
-      <div className="mx-auto flex h-14 w-full max-w-(--fd-layout-width) items-center gap-2 px-4 md:px-6">
-        <div className="flex flex-1 items-center">
-          {slots.navTitle ? (
-            <slots.navTitle className="inline-flex items-center gap-2.5 font-semibold" />
-          ) : null}
-        </div>
+    <header {...props} className={cn(HEADER_CLASS, className)}>
+      <HeaderRow width={rowWidth}>
+        <HeaderStart>
+          {slots.navTitle ? <slots.navTitle className={WORDMARK_LINK_CLASS} /> : null}
+          {badge}
+        </HeaderStart>
         {slots.searchTrigger ? (
           <slots.searchTrigger.full
             hideIfDisabled
-            className="my-auto w-full max-w-sm rounded-xl ps-2.5 max-md:hidden"
+            className="vk-header-search my-auto w-full max-w-sm rounded-xl ps-2.5 max-lg:max-w-64 max-md:hidden"
           />
         ) : null}
-        <div className="flex flex-1 items-center justify-end md:gap-2">
-          <nav className="flex items-center gap-6 empty:hidden max-lg:hidden">
+        <HeaderEnd>
+          <HeaderNav label={navLabel}>
             {textItems.map((item) => (
-              <TextLink key={itemKey(item)} item={item} className={TEXT_LINK} />
+              <TextLink
+                key={itemKey(item)}
+                item={item}
+                className={NAV_TEXT_LINK}
+                activeOverride={activeOverride}
+              />
             ))}
-          </nav>
+            {navLinks}
+          </HeaderNav>
           {iconItems.map((item) => (
-            <IconLink key={itemKey(item)} item={item} className="max-lg:hidden" />
+            <IconLink key={itemKey(item)} item={item} className="max-md:hidden" />
           ))}
+          {cta}
           <div className="flex items-center md:hidden">
-            {slots.searchTrigger ? <slots.searchTrigger.sm hideIfDisabled className="p-2" /> : null}
+            {slots.searchTrigger ? (
+              <slots.searchTrigger.sm hideIfDisabled className="vk-tap p-2" />
+            ) : null}
             {mobileTrigger}
           </div>
           <div className="flex items-center gap-2 max-md:hidden">
             <LanguageSelect slots={slots} />
-            {trailing ?? <span aria-hidden="true" className="-me-1.5 size-8" />}
+            {slots.themeSwitch ? <slots.themeSwitch /> : null}
+            {trailing}
           </div>
-        </div>
-      </div>
+        </HeaderEnd>
+      </HeaderRow>
     </header>
   );
 }
 
-const MOBILE_TRIGGER = cn(buttonVariants({ variant: "ghost", size: "icon-sm" }), "-me-1.5 p-2");
+type HomeSiteHeaderProps = ComponentProps<"header"> & {
+  wordmark: ReactNode;
+  homeUrl: string;
+};
 
-export function DocsSiteHeader(props: ComponentProps<"header">): ReactNode {
-  const { slots, navItems, isNavTransparent } = useNotebookLayout();
-  const sidebar = slots.sidebar;
-  const { open } = sidebar.useSidebar();
+const HomeTitleContext = createContext<{ homeUrl: string; wordmark: ReactNode }>({
+  homeUrl: "/",
+  wordmark: null,
+});
+
+function HomeNavTitle(titleProps: ComponentProps<"a">): ReactNode {
+  const { homeUrl, wordmark } = use(HomeTitleContext);
   return (
-    <SiteHeaderFrame
-      id="nd-subnav"
-      data-transparent={isNavTransparent && !open}
-      {...props}
-      className={cn(
-        "top-(--fd-docs-row-1) z-10 [grid-area:header] layout:[--fd-header-height:--spacing(14)]",
-        props.className,
-      )}
-      slots={slots}
-      navItems={navItems}
-      mobileTrigger={
-        <sidebar.trigger className={MOBILE_TRIGGER}>
-          <SidebarIcon />
-        </sidebar.trigger>
-      }
-      trailing={
-        <sidebar.collapseTrigger
-          className={cn(
-            buttonVariants({ variant: "secondary", size: "icon-sm" }),
-            "-me-1.5 rounded-full text-fd-muted-foreground",
-          )}
-        >
-          <SidebarIcon />
-        </sidebar.collapseTrigger>
-      }
-    />
+    <Link href={homeUrl} prefetch={false} {...titleProps}>
+      {wordmark}
+    </Link>
   );
 }
 
-export function HomeSiteHeader(props: ComponentProps<"header">): ReactNode {
-  const { slots, navItems, menuItems } = useHomeLayout();
-  const textItems = menuItems.filter((item) => !isIconItem(item));
-  const iconItems = menuItems.filter(isIconItem);
+const HOME_SLOTS: HeaderSlots = {
+  navTitle: HomeNavTitle,
+  searchTrigger: false,
+  languageSelect: { root: LanguageSelectIsland, text: () => null },
+  themeSwitch: ThemeToggle,
+};
+
+export function HomeSiteHeader({ wordmark, homeUrl, ...props }: HomeSiteHeaderProps): ReactNode {
+  const { labels } = useHomeNav();
+  const title = useMemo(() => ({ homeUrl, wordmark }), [homeUrl, wordmark]);
+  const settings = (
+    <>
+      <LanguageSelect slots={HOME_SLOTS} />
+      <ThemeToggle />
+    </>
+  );
   return (
-    <SidebarProvider>
+    <HomeTitleContext value={title}>
       <SiteHeaderFrame
         id="nd-nav"
         {...props}
         className={cn("top-0 z-40", props.className)}
-        slots={slots}
-        navItems={navItems}
-        mobileTrigger={
-          <SidebarTrigger className={MOBILE_TRIGGER}>
-            <SidebarIcon />
-          </SidebarTrigger>
+        slots={HOME_SLOTS}
+        navItems={[]}
+        navLabel={labels.label}
+        navLinks={
+          <>
+            <DocsNavLink className={NAV_TEXT_LINK} />
+            <ChangelogNavLink className={NAV_TEXT_LINK} />
+            <GitHubNavLink className={NAV_TEXT_LINK} />
+          </>
         }
+        mobileTrigger={<HomeMobileMenu footer={settings} />}
+        cta={<GetStartedLink />}
+        badge={<VersionPill newTab={labels.newTab} />}
+        rowWidth="wide"
       />
-      <SidebarDrawerOverlay className="fixed inset-0 z-40 backdrop-blur-xs data-[state=closed]:animate-fd-fade-out data-[state=open]:animate-fd-fade-in" />
-      <SidebarDrawerContent className="fixed inset-e-0 inset-y-0 z-40 flex w-[85%] max-w-[380px] flex-col border-s bg-fd-background text-[0.9375rem] shadow-lg data-[state=closed]:animate-fd-sidebar-out data-[state=open]:animate-fd-sidebar-in">
-        <div className="flex justify-end p-4 pb-2">
-          <SidebarTrigger className={cn(buttonVariants({ variant: "ghost", size: "icon-sm" }))}>
-            <CloseIcon />
-          </SidebarTrigger>
-        </div>
-        <SidebarViewport>
-          <div className="flex flex-col gap-0.5 px-4">
-            {textItems.map((item) => (
-              <TextLink key={itemKey(item)} item={item} className={DRAWER_ITEM} />
-            ))}
-          </div>
-        </SidebarViewport>
-        <div className="flex items-center gap-1 border-t p-4 pt-2 text-fd-muted-foreground">
-          {iconItems.map((item) => (
-            <IconLink key={itemKey(item)} item={item} />
-          ))}
-          <div className="ms-auto">
-            <LanguageSelect slots={slots} />
-          </div>
-        </div>
-      </SidebarDrawerContent>
-    </SidebarProvider>
+    </HomeTitleContext>
   );
 }

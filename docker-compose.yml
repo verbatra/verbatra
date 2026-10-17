@@ -13,3 +13,8 @@ services:
       - CONTACT_SMTP_USER=${CONTACT_SMTP_USER}
       - CONTACT_SMTP_PASSWORD=${CONTACT_SMTP_PASSWORD}
       - CONTACT_SMTP_FROM=${CONTACT_SMTP_FROM}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

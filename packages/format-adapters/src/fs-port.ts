@@ -118,6 +118,10 @@ export const nodeOps: AtomicWriteOps = {
  *
  * @example
  * ```ts
+ * import { createFlatFileAdapter, type FlatFileAdapterOptions, nodeAdapterFs } from "@verbatra/sdk";
+ *
+ * declare const options: FlatFileAdapterOptions;
+ *
  * const adapter = createFlatFileAdapter({ ...options, fs: nodeAdapterFs });
  * ```
  */

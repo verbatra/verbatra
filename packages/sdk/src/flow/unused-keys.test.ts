@@ -1093,6 +1093,35 @@ describe("findUnusedKeys on plural, context, and parent variants of a referenced
 
     expect(report.unused.map((entry) => entry.key)).toEqual(["items_one", "items_other"]);
   });
+
+  it("references i18next plural forms held in a YAML catalog through their base key", async () => {
+    const yamlConfig = config({ format: "yaml", files: { pattern: "locales/{locale}.yml" } });
+    const cwd = await projectFor(
+      yamlConfig,
+      "items_one: one item\nitems_other: many items\nplace_ordinal_one: first\nc: C\n",
+      { "src/a.ts": 't("items", { count });\nt("place", { count, ordinal: true });\nt("c");' },
+    );
+
+    const report = scanned(await findUnusedKeys({ config: yamlConfig, cwd }));
+
+    expect(report).toMatchObject({ status: "complete", unused: [] });
+  });
+
+  it("reports a plain string of a format that marks its plural forms when only the base is called", async () => {
+    const androidConfig = config({
+      format: "android-xml",
+      files: { pattern: "res/{locale}/strings.xml", localeStyle: "android" },
+    });
+    const cwd = await projectFor(
+      androidConfig,
+      '<?xml version="1.0" encoding="utf-8"?>\n<resources><string name="step_one">First step</string><string name="c">C</string></resources>\n',
+      { "src/a.ts": 't("step");\nt("c");' },
+    );
+
+    const report = scanned(await findUnusedKeys({ config: androidConfig, cwd }));
+
+    expect(report.unused).toEqual([{ key: "step_one", catalogKey: "step_one" }]);
+  });
 });
 
 describe("findUnusedKeys with an ignore list", () => {

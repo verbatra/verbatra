@@ -1,4 +1,9 @@
-const COMPOSITE_FORMAT_ITEM = /\{\{|\}\}|\{\s*(\d+)\s*(?:,\s*(-?\d+)\s*)?(?::([^{}]*))?\}|[{}]/g;
+import { PLACEHOLDER_ARGUMENT_IDENTIFIER } from "@verbatra/core";
+
+const COMPOSITE_FORMAT_ITEM = new RegExp(
+  `\\{\\{|\\}\\}|\\{\\s*(\\d+|${PLACEHOLDER_ARGUMENT_IDENTIFIER})\\s*(?:,\\s*(-?\\d+)\\s*)?(?::([^{}]*))?\\}|[{}]`,
+  "gu",
+);
 
 function canonicalItem(
   index: string,

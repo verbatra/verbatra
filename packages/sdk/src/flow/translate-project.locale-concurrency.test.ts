@@ -13,6 +13,8 @@ import { type BoundedFileRead, defaultFs, type SdkFs } from "../fs.js";
 import { lockFilePath } from "../lock/lock-file.js";
 import {
   baseConfig,
+  type Deferred,
+  deferred,
   makeStubProvider,
   makeTempDir,
   readTextFile,
@@ -255,6 +257,7 @@ describe("translate: bounded locale-level concurrency", () => {
     const message = (error as { message: string }).message;
     expect(message).toContain("which locale loses its remaining work");
     expect(message).not.toContain("overshoot");
+    expect(message).toContain("or use --dry-run.");
   });
 
   it("allows concurrency greater than 1 with a budget on a dry run", async () => {
@@ -294,20 +297,111 @@ describe("translate: bounded locale-level concurrency", () => {
   });
 });
 
-function fsWithOneCorruptLockRead(dir: string): SdkFs {
+function fsWithOneCorruptLockRead(dir: string): {
+  readonly fs: SdkFs;
+  readonly corruptReadServed: Promise<void>;
+} {
   const lockPath = lockFilePath(dir);
+  const served = deferred();
   let lockReads = 0;
   return {
-    ...defaultFs,
-    readFileBounded: async (path: string, maxBytes: number): Promise<BoundedFileRead> => {
-      if (path === lockPath) {
-        lockReads += 1;
-        if (lockReads === 1) {
-          return { kind: "ok", content: "{ not json" };
+    fs: {
+      ...defaultFs,
+      readFileBounded: async (path: string, maxBytes: number): Promise<BoundedFileRead> => {
+        if (path === lockPath) {
+          lockReads += 1;
+          if (lockReads === 2) {
+            served.resolve();
+            return { kind: "ok", content: "{ not json" };
+          }
+        }
+        return defaultFs.readFileBounded(path, maxBytes);
+      },
+    },
+    corruptReadServed: served.promise,
+  };
+}
+
+function activityTrackedFs(base: SdkFs): { readonly fs: SdkFs; readonly pending: () => number } {
+  let pending = 0;
+  const fs = new Proxy(base, {
+    get(target, property, receiver): unknown {
+      const value: unknown = Reflect.get(target, property, receiver);
+      if (typeof value !== "function") {
+        return value;
+      }
+      return async (...args: unknown[]): Promise<unknown> => {
+        pending += 1;
+        try {
+          return await Reflect.apply(value, target, args);
+        } finally {
+          pending -= 1;
+        }
+      };
+    },
+  });
+  return { fs, pending: () => pending };
+}
+
+async function idle(isIdle: () => boolean): Promise<void> {
+  do {
+    await new Promise<void>((resolve) => {
+      setImmediate(resolve);
+    });
+  } while (!isIdle());
+}
+
+function makeGatedProbe(): {
+  readonly provider: TranslationProvider;
+  readonly stats: () => ProbeStats;
+  readonly arrivals: (count: number) => Promise<void>;
+  readonly inFlight: () => number;
+  readonly open: () => void;
+} {
+  const gate = deferred();
+  const waiters: { readonly count: number; readonly reached: Deferred }[] = [];
+  let inFlight = 0;
+  let maxInFlight = 0;
+  let arrived = 0;
+
+  const provider: TranslationProvider = {
+    id: "gated-probe",
+    kind: "llm",
+    supportsGlossary: true,
+    translateBatch: async (request: TranslateRequest): Promise<TranslateResult> => {
+      inFlight += 1;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      arrived += 1;
+      for (const waiter of waiters) {
+        if (arrived >= waiter.count) {
+          waiter.reached.resolve();
         }
       }
-      return defaultFs.readFileBounded(path, maxBytes);
+      await gate.promise;
+      const values = new Map<string, string>();
+      const integrity = new Map<string, PlaceholderIntegrityResult>();
+      for (const entry of request.entries) {
+        values.set(entry.key, `[${request.targetLocale}] ${entry.value}`);
+        integrity.set(entry.key, PASS);
+      }
+      inFlight -= 1;
+      return { values, integrity };
     },
+  };
+
+  return {
+    provider,
+    stats: () => ({ maxInFlight, arrived }),
+    arrivals: (count) => {
+      const reached = deferred();
+      if (arrived >= count) {
+        reached.resolve();
+      }
+      waiters.push({ count, reached });
+      return reached.promise;
+    },
+    inFlight: () => inFlight,
+    open: gate.resolve,
   };
 }
 
@@ -319,34 +413,51 @@ async function heldLockFiles(dir: string): Promise<string[]> {
   }
 }
 
+interface WholeRunFailure {
+  readonly stats: ProbeStats;
+  readonly settledWhileWorkersHeld: boolean;
+  readonly locksHeldAtSettle: readonly string[];
+}
+
+async function failWholeRunWithWorkersInFlight(dir: string): Promise<WholeRunFailure> {
+  const probe = makeGatedProbe();
+  const corrupt = fsWithOneCorruptLockRead(dir);
+  const tracked = activityTrackedFs(corrupt.fs);
+
+  let hasSettled = false;
+  let locksHeldAtSettle: readonly string[] = [];
+  const run = translate(
+    { config: cfg(["de", "fr", "es", "pt", "nl"]), cwd: dir, concurrency: 3 },
+    { createProvider: () => probe.provider, fs: tracked.fs },
+  ).finally(async () => {
+    hasSettled = true;
+    locksHeldAtSettle = await heldLockFiles(dir);
+  });
+  const settled = expect(run).rejects.toMatchObject({ code: "LOCK_FILE_INVALID" });
+
+  await Promise.all([corrupt.corruptReadServed, probe.arrivals(2)]);
+  await idle(() => tracked.pending() === 0);
+  const settledWhileWorkersHeld = hasSettled;
+  probe.open();
+  await settled;
+  await idle(() => tracked.pending() === 0 && probe.inFlight() === 0);
+  return { stats: probe.stats(), settledWhileWorkersHeld, locksHeldAtSettle };
+}
+
 describe("translate: a whole-run failure under concurrency", () => {
   it("claims no further locale once one worker raises a whole-run failure", async () => {
     const dir = await project({ a: "A" });
-    const { provider, stats } = makeConcurrencyProbe({ delayMs: 120 });
 
-    await expect(
-      translate(
-        { config: cfg(["de", "fr", "es", "pt", "nl"]), cwd: dir, concurrency: 3 },
-        { createProvider: () => provider, fs: fsWithOneCorruptLockRead(dir) },
-      ),
-    ).rejects.toMatchObject({ code: "LOCK_FILE_INVALID" });
+    const { stats } = await failWholeRunWithWorkersInFlight(dir);
 
-    await sleep(300);
-
-    expect(stats().arrived).toBe(2);
+    expect(stats.arrived).toBe(2);
+    expect(stats.maxInFlight).toBe(2);
   });
 
   it("writes no target file for a locale that was never claimed", async () => {
     const dir = await project({ a: "A" });
-    const { provider } = makeConcurrencyProbe({ delayMs: 120 });
 
-    await expect(
-      translate(
-        { config: cfg(["de", "fr", "es", "pt", "nl"]), cwd: dir, concurrency: 3 },
-        { createProvider: () => provider, fs: fsWithOneCorruptLockRead(dir) },
-      ),
-    ).rejects.toMatchObject({ code: "LOCK_FILE_INVALID" });
-    await sleep(300);
+    await failWholeRunWithWorkersInFlight(dir);
 
     await expect(targetText(dir, "pt")).rejects.toThrow();
     await expect(targetText(dir, "nl")).rejects.toThrow();
@@ -354,16 +465,12 @@ describe("translate: a whole-run failure under concurrency", () => {
 
   it("releases every in-flight worker's write lock before translate() settles", async () => {
     const dir = await project({ a: "A" });
-    const { provider } = makeConcurrencyProbe({ delayMs: 120 });
 
-    await expect(
-      translate(
-        { config: cfg(["de", "fr", "es", "pt", "nl"]), cwd: dir, concurrency: 3 },
-        { createProvider: () => provider, fs: fsWithOneCorruptLockRead(dir) },
-      ),
-    ).rejects.toMatchObject({ code: "LOCK_FILE_INVALID" });
+    const { settledWhileWorkersHeld, locksHeldAtSettle } =
+      await failWholeRunWithWorkersInFlight(dir);
 
-    expect(await heldLockFiles(dir)).toEqual([]);
+    expect(settledWhileWorkersHeld).toBe(false);
+    expect(locksHeldAtSettle).toEqual([]);
   });
 
   it("leaves no orphaned lock when every locale hits the corrupt lock file", async () => {

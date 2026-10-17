@@ -1,5 +1,11 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { extractFaqItems } from "./extract-faq";
+import de from "../messages/de.json";
+import en from "../messages/en.json";
+import es from "../messages/es.json";
+import fr from "../messages/fr.json";
+import { extractFaqItems, withoutQuestions } from "./extract-faq";
+import { i18n } from "./i18n";
 
 describe("extractFaqItems", () => {
   it("returns an empty array for empty content", () => {
@@ -58,5 +64,33 @@ describe("extractFaqItems", () => {
 
   it("skips a heading with no trailing newline", () => {
     expect(extractFaqItems("## Just a heading")).toEqual([]);
+  });
+});
+
+describe("withoutQuestions", () => {
+  it("drops the items whose question is already marked up elsewhere and keeps the order", () => {
+    const items = [
+      { question: "A?", answer: "a" },
+      { question: "B?", answer: "b" },
+      { question: "C?", answer: "c" },
+    ];
+    expect(withoutQuestions(items, ["B?"])).toEqual([items[0], items[2]]);
+  });
+});
+
+describe("the docs FAQ markup next to the home FAQ", () => {
+  const catalogs = { en, de, es, fr } as const;
+
+  it.each(i18n.languages)("repeats no home question once the overlap is dropped (%s)", (locale) => {
+    const suffix = locale === i18n.defaultLanguage ? "" : `.${locale}`;
+    const page = readFileSync(
+      new URL(`../content/docs/(help)/faq${suffix}.mdx`, import.meta.url),
+      "utf8",
+    );
+    const home = Object.values(catalogs[locale].landing.faq.items).map((item) => item.question);
+    const docs = extractFaqItems(page);
+    const marked = withoutQuestions(docs, home);
+    expect(marked.length).toBeGreaterThan(0);
+    expect(marked.filter((item) => home.includes(item.question))).toEqual([]);
   });
 });

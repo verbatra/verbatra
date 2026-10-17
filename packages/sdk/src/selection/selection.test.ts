@@ -1,5 +1,5 @@
 import { AdapterRegistry, type FormatAdapter } from "@verbatra/format-adapters";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildProvider } from "../config/provider-config.js";
 import { SdkError } from "../errors.js";
 import { makeStubProvider } from "../test-support.js";
@@ -62,6 +62,29 @@ describe("selectAdapter", () => {
 });
 
 describe("selectProvider", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("refuses none as MACHINE_TRANSLATION_DISABLED without calling the factory", () => {
+    const calls: string[] = [];
+    const error = (() => {
+      try {
+        selectProvider({ id: "none", options: {} }, (config) => {
+          calls.push(config.id);
+          return makeStubProvider().provider;
+        });
+        return undefined;
+      } catch (e) {
+        return e;
+      }
+    })();
+    expect(calls).toEqual([]);
+    expect(error).toBeInstanceOf(SdkError);
+    expect((error as SdkError).code).toBe("MACHINE_TRANSLATION_DISABLED");
+    expect((error as SdkError).message).toContain("calling a translation provider");
+  });
+
   it("uses the injected createProvider", () => {
     const stub = makeStubProvider({ id: "stub" });
     const provider = selectProvider(
@@ -85,11 +108,12 @@ describe("selectProvider", () => {
     expect((error as SdkError).code).toBe("PROVIDER_CONSTRUCTION_FAILED");
   });
 
-  it("wraps a construction failure as PROVIDER_CONSTRUCTION_FAILED, secret-free", () => {
+  it("wraps a construction failure as PROVIDER_CONSTRUCTION_FAILED, keeping it as the cause", () => {
+    const thrown = new Error("missing key");
     const error = (() => {
       try {
         selectProvider({ id: "anthropic", options: { model: "m", maxTokens: 1 } }, () => {
-          throw new Error("missing key");
+          throw thrown;
         });
         return undefined;
       } catch (e) {
@@ -98,6 +122,36 @@ describe("selectProvider", () => {
     })();
     expect(error).toBeInstanceOf(SdkError);
     expect((error as SdkError).code).toBe("PROVIDER_CONSTRUCTION_FAILED");
+    expect((error as SdkError).cause).toBe(thrown);
+  });
+
+  it("redacts a key shape the construction failure's message carries", () => {
+    const error = (() => {
+      try {
+        selectProvider({ id: "anthropic", options: { model: "m", maxTokens: 1 } }, () => {
+          throw new Error("rejected sk-ant-api03-abcdEFGH12345678abcdEFGH12345678");
+        });
+        return undefined;
+      } catch (e) {
+        return e;
+      }
+    })();
+    expect((error as SdkError).message).not.toContain("abcdEFGH12345678");
+    expect((error as SdkError).message).toContain("[REDACTED]");
+  });
+
+  it("carries the real ProviderError of a missing API key as the cause", () => {
+    vi.stubEnv("DEEPL_API_KEY", undefined);
+    const error = (() => {
+      try {
+        selectProvider({ id: "deepl", options: {} });
+        return undefined;
+      } catch (e) {
+        return e;
+      }
+    })();
+    expect((error as SdkError).code).toBe("PROVIDER_CONSTRUCTION_FAILED");
+    expect((error as SdkError).cause).toMatchObject({ code: "MISSING_API_KEY" });
   });
 });
 

@@ -1,0 +1,28 @@
+{
+  "package": "@verbatra/cli",
+  "version": "0.11.1",
+  "commands": {
+    "init": [
+      "--cwd <path>",
+      "--provider <id>",
+      "--source <locale>",
+      "--targets <locales>",
+      "--path <pattern>",
+      "--yes",
+      "--force"
+    ],
+    "translate": [
+      "--cwd <path>",
+      "--config <path>",
+      "--locales <list>",
+      "--dry-run",
+      "--prune",
+      "--lock-timeout <seconds>",
+      "--concurrency <n>",
+      "--no-cache",
+      "--json",
+      "--estimate"
+    ],
+    "check": ["--cwd <path>", "--config <path>", "--locales <list>", "--consistency", "--json"]
+  }
+}

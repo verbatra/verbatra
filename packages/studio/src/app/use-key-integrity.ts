@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { KeyIntegrityLocaleEntry } from "../client/integrity-pill.js";
+import { type KeyIntegrityLocaleEntry, withFullIntegrity } from "../client/integrity-pill.js";
 import { rpcClient } from "./api.js";
 
 export type KeyIntegrityState =
@@ -13,15 +13,23 @@ export function useKeyIntegrity(key: string, refreshToken: number): KeyIntegrity
   useEffect(() => {
     let cancelled = false;
     setState({ kind: "loading" });
-    void rpcClient.call("key.integrity", { key }).then((response) => {
+    void Promise.all([
+      rpcClient.call("key.integrity", { key }),
+      rpcClient.call("locale.integrity", {}),
+    ]).then(([changed, full]) => {
       if (cancelled) {
         return;
       }
-      if (!response.ok) {
-        setState({ kind: "error", message: response.error.message });
+      if (!changed.ok) {
+        setState({ kind: "error", message: changed.error.message });
         return;
       }
-      setState({ kind: "loaded", locales: response.result.locales });
+      setState({
+        kind: "loaded",
+        locales: full.ok
+          ? withFullIntegrity(changed.result.locales, full.result.locales, key)
+          : changed.result.locales,
+      });
     });
     return () => {
       cancelled = true;

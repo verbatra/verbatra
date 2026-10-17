@@ -1,4 +1,4 @@
-import { ExchangeError } from "./errors.js";
+import { ExchangeError, type ExchangeErrorCode } from "./errors.js";
 
 export interface PrologScan {
   readonly rootStart: number;
@@ -7,8 +7,10 @@ export interface PrologScan {
 
 const DOCTYPE_OPEN = "<!DOCTYPE";
 
-function invalid(message: string): ExchangeError {
-  return new ExchangeError("TMX_INVALID", message);
+type Refusal = (message: string) => ExchangeError;
+
+function refusalFor(code: ExchangeErrorCode): Refusal {
+  return (message) => new ExchangeError(code, message);
 }
 
 function skipWhitespace(text: string, from: number): number {
@@ -19,7 +21,7 @@ function skipWhitespace(text: string, from: number): number {
   return cursor;
 }
 
-function endOfDelimited(text: string, from: number, closing: string): number {
+function endOfDelimited(text: string, from: number, closing: string, invalid: Refusal): number {
   const end = text.indexOf(closing, from);
   if (end === -1) {
     throw invalid(`The file is not valid XML: a ${closing} was never closed before the document.`);
@@ -27,7 +29,7 @@ function endOfDelimited(text: string, from: number, closing: string): number {
   return end + closing.length;
 }
 
-function endOfDoctype(text: string, from: number): number {
+function endOfDoctype(text: string, from: number, invalid: Refusal): number {
   let cursor = from + DOCTYPE_OPEN.length;
   while (cursor < text.length) {
     const char = text[cursor];
@@ -37,7 +39,7 @@ function endOfDoctype(text: string, from: number): number {
       );
     }
     if (char === '"' || char === "'") {
-      cursor = endOfDelimited(text, cursor + 1, char);
+      cursor = endOfDelimited(text, cursor + 1, char, invalid);
       continue;
     }
     if (char === ">") {
@@ -52,7 +54,8 @@ function startsDoctype(text: string, at: number): boolean {
   return text.slice(at, at + DOCTYPE_OPEN.length).toUpperCase() === DOCTYPE_OPEN;
 }
 
-export function scanProlog(text: string): PrologScan {
+export function scanProlog(text: string, code: ExchangeErrorCode = "TMX_INVALID"): PrologScan {
+  const invalid = refusalFor(code);
   const doctypeSpans: Array<readonly [number, number]> = [];
   let cursor = skipWhitespace(text, 0);
   while (cursor < text.length) {
@@ -60,11 +63,11 @@ export function scanProlog(text: string): PrologScan {
       throw invalid("The file is not valid XML: content appears before the root element.");
     }
     if (text.startsWith("<?", cursor)) {
-      cursor = skipWhitespace(text, endOfDelimited(text, cursor + 2, "?>"));
+      cursor = skipWhitespace(text, endOfDelimited(text, cursor + 2, "?>", invalid));
       continue;
     }
     if (text.startsWith("<!--", cursor)) {
-      cursor = skipWhitespace(text, endOfDelimited(text, cursor + 4, "-->"));
+      cursor = skipWhitespace(text, endOfDelimited(text, cursor + 4, "-->", invalid));
       continue;
     }
     if (text.startsWith("<!", cursor) && !startsDoctype(text, cursor)) {
@@ -73,7 +76,7 @@ export function scanProlog(text: string): PrologScan {
       );
     }
     if (startsDoctype(text, cursor)) {
-      const end = endOfDoctype(text, cursor);
+      const end = endOfDoctype(text, cursor, invalid);
       doctypeSpans.push([cursor, end]);
       cursor = skipWhitespace(text, end);
       continue;

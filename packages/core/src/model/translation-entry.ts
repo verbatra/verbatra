@@ -26,7 +26,8 @@ export const translationEntrySchema = z.object({
 });
 
 /**
- * The validated shape of one translation unit; the inferred type of {@link translationEntrySchema},
- * made deeply readonly. See that schema for what each field carries.
+ * One validated, deeply readonly translation unit: its `key` and `namespace`, the untrusted `value`,
+ * optional `description` and `meaning` context, the format's `placeholders` in document order, and
+ * whether it `isPlural`.
  */
 export type TranslationEntry = Readonly<z.infer<typeof translationEntrySchema>>;

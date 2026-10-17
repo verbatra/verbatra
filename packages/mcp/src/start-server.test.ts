@@ -1,17 +1,19 @@
-import { mkdir } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, rename, writeFile } from "node:fs/promises";
+import { join, relative } from "node:path";
 import { PassThrough } from "node:stream";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import { SdkError } from "@verbatra/sdk";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { connectMcpServer } from "./server.js";
-import { startMcpServer } from "./start-server.js";
+import { afterEach, describe, expect, it, type Mock, vi } from "vitest";
+import { serveMcpStdio } from "./server.js";
+import { closeOnInputEnd, startMcpServer } from "./start-server.js";
 import {
   baseLoadedConfig,
   defaultAdapterRegistry,
   makeProject,
   makeStubProvider,
+  makeTempDir,
   nodeFs,
+  staticProject,
   writeJsonFile,
 } from "./test-support.js";
 
@@ -36,7 +38,155 @@ describe("startMcpServer", () => {
     await handle.close();
   });
 
-  it("propagates a config-not-found error rather than swallowing it", async () => {
+  it.each([
+    ["off without allowSpend", "anthropic", false, "off"],
+    ["on with allowSpend and a translating provider", "anthropic", true, "on"],
+    ["provider-none with allowSpend under provider none", "none", true, "provider-none"],
+  ] as const)("reports the spend state %s", async (_label, provider, allowSpend, expected) => {
+    const { dir, configPath } = await makeConfiguredProject();
+    if (provider === "none") {
+      await writeJsonFile(configPath, {
+        sourceLocale: "en",
+        targetLocales: ["de"],
+        format: "i18next-json",
+        files: { pattern: "locales/{locale}.json" },
+        provider: { id: "none" },
+      });
+    }
+
+    const handle = await startMcpServer({ cwd: dir, configPath, allowSpend });
+    await handle.close();
+
+    expect(handle.spend).toBe(expected);
+  });
+
+  it.each([
+    [undefined, false],
+    [false, false],
+    [true, true],
+  ] as const)("reports valuesRedacted %s as %s", async (redactValues, expected) => {
+    const { dir, configPath } = await makeConfiguredProject();
+
+    const handle = await startMcpServer({
+      cwd: dir,
+      configPath,
+      ...(redactValues !== undefined ? { redactValues } : {}),
+    });
+    await handle.close();
+
+    expect(handle.valuesRedacted).toBe(expected);
+  });
+
+  it("replaces the message of a config error it logs when values are redacted", async () => {
+    const { dir, configPath } = await makeConfiguredProject();
+    await writeJsonFile(configPath, {
+      sourceLocale: "en",
+      targetLocales: ["de"],
+      format: "i18next-json",
+      files: { pattern: "locales/{locale}.json" },
+      provider: { id: "anthropic", options: { model: "test-model", maxTokens: 256 } },
+      glossary: { version: 2, terms: [{ source: "QZXJ" }] },
+    });
+    const lines: string[] = [];
+
+    const handle = await startMcpServer({
+      cwd: dir,
+      configPath,
+      redactValues: true,
+      onLog: (line) => lines.push(line),
+    });
+    await handle.close();
+
+    expect(handle.configured).toBe(false);
+    expect(lines.join("\n")).toMatch(/CONFIG_INVALID: \[redacted length=\d+ hash=[0-9a-f]{16}\]/);
+    expect(lines.join("\n")).not.toContain("QZXJ");
+  });
+
+  it("closes itself and settles closed when the client closes stdin", async () => {
+    const { dir, configPath } = await makeConfiguredProject();
+
+    const handle = await startMcpServer({ cwd: dir, configPath });
+    process.stdin.emit("end");
+
+    await expect(handle.closed).resolves.toBeUndefined();
+  });
+
+  it("settles closed after an explicit close()", async () => {
+    const { dir, configPath } = await makeConfiguredProject();
+
+    const handle = await startMcpServer({ cwd: dir, configPath });
+    await handle.close();
+
+    await expect(handle.closed).resolves.toBeUndefined();
+  });
+
+  it("resolves the project from CLAUDE_PROJECT_DIR when no cwd is given", async () => {
+    const { dir, configPath } = await makeConfiguredProject();
+    await rename(configPath, join(dir, ".verbatrarc.json"));
+    const previous = process.env.CLAUDE_PROJECT_DIR;
+    process.env.CLAUDE_PROJECT_DIR = dir;
+    try {
+      const handle = await startMcpServer({});
+      await handle.close();
+    } finally {
+      if (previous === undefined) {
+        delete process.env.CLAUDE_PROJECT_DIR;
+      } else {
+        process.env.CLAUDE_PROJECT_DIR = previous;
+      }
+    }
+  });
+
+  it.each([
+    [false, "off"],
+    [true, "no-config"],
+  ] as const)(
+    "starts unconfigured in a directory without a config (allowSpend %s, spend %s) and logs why",
+    async (allowSpend, expected) => {
+      const dir = await makeTempDir();
+      const lines: string[] = [];
+
+      const handle = await startMcpServer({
+        cwd: dir,
+        allowSpend,
+        onLog: (line) => lines.push(line),
+      });
+      await handle.close();
+
+      expect(handle.configured).toBe(false);
+      expect(handle.spend).toBe(expected);
+      expect(lines).toEqual([
+        expect.stringMatching(/^Running without a usable project config: CONFIG_NOT_FOUND: /),
+      ]);
+    },
+  );
+
+  it("resolves a relative cwd once, so a logged config error names the file relative to the project", async () => {
+    const dir = await makeTempDir();
+    await writeFile(join(dir, ".verbatrarc.json"), "{ not json");
+    const lines: string[] = [];
+
+    const handle = await startMcpServer({
+      cwd: relative(process.cwd(), dir),
+      onLog: (line) => lines.push(line),
+    });
+    await handle.close();
+
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).not.toContain(dir);
+    expect(lines[0]).toContain(".verbatrarc.json");
+  });
+
+  it("reports configured: true when the config loads", async () => {
+    const { dir, configPath } = await makeConfiguredProject();
+
+    const handle = await startMcpServer({ cwd: dir, configPath });
+    await handle.close();
+
+    expect(handle.configured).toBe(true);
+  });
+
+  it("propagates a config-not-found error for a missing explicit configPath rather than swallowing it", async () => {
     const dir = await makeProject({ greeting: "Hello" });
 
     await expect(
@@ -97,7 +247,10 @@ describe("stdio transport: stdout purity", () => {
     const serverToClient = new PassThrough();
 
     const transport = new StdioServerTransport(clientToServer, serverToClient);
-    const server = await connectMcpServer({ config: baseLoadedConfig(), cwd: dir }, transport);
+    const server = serveMcpStdio(
+      { project: staticProject(baseLoadedConfig()), cwd: dir },
+      transport,
+    );
 
     const chunks: Buffer[] = [];
     const expectedResponseIds = new Set([1, 2, 3, 4]);
@@ -155,5 +308,79 @@ describe("stdio transport: stdout purity", () => {
       const message = JSON.parse(line) as { jsonrpc: string };
       expect(message.jsonrpc).toBe("2.0");
     }
+  });
+});
+
+describe("closeOnInputEnd", () => {
+  interface FakeServer {
+    close: Mock<() => Promise<void>>;
+    onclose?: (() => void) | undefined;
+  }
+
+  function fakeServer(): FakeServer {
+    const server: FakeServer = {
+      close: vi.fn(async () => {
+        server.onclose?.();
+      }),
+    };
+    return server;
+  }
+
+  it.each(["end", "close"])("closes the server once when the input emits %s", async (event) => {
+    const input = new PassThrough();
+    const server = fakeServer();
+
+    const closed = closeOnInputEnd(input, server);
+    input.emit(event);
+    await closed;
+    input.emit("end");
+    input.emit("close");
+
+    expect(server.close).toHaveBeenCalledTimes(1);
+  });
+
+  it("chains an onclose handler that was already set", async () => {
+    const input = new PassThrough();
+    const server = fakeServer();
+    const previous = vi.fn();
+    server.onclose = previous;
+
+    const closed = closeOnInputEnd(input, server);
+    await server.close();
+    await closed;
+
+    expect(previous).toHaveBeenCalledTimes(1);
+    expect(input.listenerCount("end")).toBe(0);
+    expect(input.listenerCount("close")).toBe(0);
+  });
+
+  it.each([
+    [new Error("transport broke"), "transport broke"],
+    ["plain failure", "plain failure"],
+  ])(
+    "settles closed and reports through onLog when closing after stdin ended rejects (%s)",
+    async (failure, expected) => {
+      const input = new PassThrough();
+      const server: FakeServer = { close: vi.fn(async () => Promise.reject(failure)) };
+      const lines: string[] = [];
+
+      const closed = closeOnInputEnd(input, server, (line) => lines.push(line));
+      input.emit("end");
+      input.emit("close");
+
+      await expect(closed).resolves.toBeUndefined();
+      expect(server.close).toHaveBeenCalledTimes(1);
+      expect(lines).toEqual([`Closing the server after stdin ended failed: ${expected}`]);
+    },
+  );
+
+  it("settles closed without an onLog when closing after stdin ended rejects", async () => {
+    const input = new PassThrough();
+    const server: FakeServer = { close: vi.fn(async () => Promise.reject(new Error("broke"))) };
+
+    const closed = closeOnInputEnd(input, server);
+    input.emit("close");
+
+    await expect(closed).resolves.toBeUndefined();
   });
 });

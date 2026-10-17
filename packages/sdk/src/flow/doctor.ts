@@ -1,4 +1,9 @@
-import { OPENAI_COMPATIBLE_ENV_VAR, PROVIDER_ENV } from "@verbatra/ai-providers";
+import {
+  LIBRETRANSLATE_ENV_VAR,
+  OPENAI_COMPATIBLE_ENV_VAR,
+  PROVIDER_ENV,
+  processEnvironment,
+} from "@verbatra/ai-providers";
 import type { LiteralScan } from "@verbatra/extract";
 import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
 import {
@@ -6,18 +11,37 @@ import {
   type LoadConfigOptions,
   type LoadedConfig,
   loadConfigWithMeta,
+  resolveProjectRoot,
 } from "../config/load-config.js";
 import {
   hasProviderFactory,
+  isMachineProvider,
+  type MachineProviderConfig,
   PROVIDER_IDS,
   type ProviderConfig,
 } from "../config/provider-config.js";
 import type { VerbatraConfig } from "../config/schema.js";
+import { apiKeyHint, errorHint } from "../error-hints.js";
 import { errorMessage, SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver, type LocalePathResolver } from "../locale-path/resolver.js";
+import type { ScanProgressListener } from "../progress/types.js";
 import { selectAdapter } from "../selection/select-adapter.js";
+import { buildDataFlowManifest } from "./data-flow.js";
+import type { DataFlowManifest } from "./data-flow-manifest.js";
+import type { DoctorFinding } from "./doctor-finding.js";
 import { describeLiteralScan, isCleanLiteralScan, lintLiterals } from "./literal-lint.js";
+import {
+  assessProviderLocales,
+  type LocaleCapabilityReport,
+  unsupportedLocales,
+} from "./locale-capabilities.js";
+import { refreshLanguageTable } from "./locale-capabilities-live.js";
+import { describeLocaleCodes } from "./locale-codes-doctor.js";
+import { describeLocaleState } from "./locale-state-doctor.js";
+import { checkNetworkPolicy } from "./network-doctor.js";
+import { describePluralCompleteness } from "./plural-completeness-doctor.js";
+import { describePluralRules } from "./plural-rules.js";
 import { readSourceResource } from "./source.js";
 
 /**
@@ -25,28 +49,86 @@ import { readSourceResource } from "./source.js";
  *
  * - `config`: a config file was found and passes validation.
  * - `format-adapter`: the configured `format` resolves to a file adapter.
- * - `provider`: the configured `provider.id` resolves to a provider factory.
- * - `api-key`: the environment variable the configured provider reads its key from is set.
+ * - `provider`: the configured `provider.id` resolves to a provider factory. It passes for `none`,
+ *   reporting that machine translation is disabled by policy.
+ * - `api-key`: the environment variable the configured provider reads its key from is set. It
+ *   passes for `none`, which reads no API key.
+ * - `network-policy`: the effective network policy, from the config's `network` block and the
+ *   `VERBATRA_NETWORK_POLICY` environment variable, permits the configured provider's endpoint and
+ *   any proxy it would use. The detail names the effective policy, both of its sources, and the host
+ *   the provider connects to. It fails when that host is refused or when either environment
+ *   variable holds an invalid value, and passes for `none`. It resolves no host name.
  * - `source-file`: the source locale file exists at its resolved path, is a regular file, and
  *   parses under the configured format.
+ * - `plural-rules`: informational, never fails. Names the ICU and CLDR versions the runtime derives
+ *   plural categories from, and every target locale ICU has no plural rules for, where plural checks
+ *   require only `other`, the i18next translate notice assumes `one` and `other` for cardinals and
+ *   `other` for ordinals, and no plural form is generated. It is `warn` when it names such a locale.
+ * - `plural-completeness`: informational, never fails. Reads the source and every target locale
+ *   file and names each plural whose committed forms lack CLDR plural categories the target
+ *   language uses, the same finding {@link check} reports in
+ *   {@link LocaleCheckSummary.incompletePlurals}. A plural a target holds no form of yet (in a
+ *   format that stores each form under its own key) is judged by the forms a run would write: the
+ *   source's non-blank forms, plus the categories plural generation would add when it is on, the
+ *   format is `i18next-json`, the provider is an LLM, and at least one source form is non-blank.
+ *   That is deliberately stricter than the `PLURAL_CATEGORIES_INCOMPLETE` notice of
+ *   {@link translate}, which covers `i18next-json` only. It is `warn` when it names a plural or a
+ *   file it could not read, and `skipped` when the format does not store plural forms by CLDR
+ *   category or resolves to no adapter.
+ * - `locale-codes`: informational, never fails. Names every configured locale code that is valid
+ *   but not in canonical BCP 47 form, such as `zh-hant-tw` or the deprecated `iw`, with the
+ *   canonical form `Intl.getCanonicalLocales` suggests for it. It is `warn` when it names one.
+ * - `locale-state`: informational, never fails. Names every locale that has state in the lock
+ *   file, the translation memory, or the provenance file but is not configured, such as `pt_BR`
+ *   left behind after the config respelled it `pt-BR`, says whether the next {@link translate} run
+ *   carries it over to the configured spelling, and suggests removing it or respelling the
+ *   configured locale otherwise. It is `warn` when it names one or cannot read that state.
+ * - `locales`: the configured provider supports the source locale and every target locale, judged
+ *   against the language table verbatra ships for a machine-translation provider (see
+ *   {@link LocaleSupport}). It fails when a locale is `unsupported`, exactly the case
+ *   {@link translate} refuses with `LOCALE_UNSUPPORTED_BY_PROVIDER`. Otherwise it is `warn` when a
+ *   locale carries a warning or a `live` fetch of the language list failed, and `pass` when nothing
+ *   needs attention; the per-locale verdicts are in {@link DoctorResult.locales}. It is `skipped`
+ *   for the provider `none`, which calls no provider.
  * - `untranslated-literals`: the application source configured in the `extract` block holds no
  *   hardcoded user-facing string literal and no file the scan could not read. It runs only when
  *   {@link DoctorInput.literals} is set.
+ * - `data-flow`: informational, never fails. Summarizes the {@link DataFlowManifest} in
+ *   {@link DoctorResult.dataFlow}: the provider, the hosts it sends to and the network policy's
+ *   verdict on each. It is `warn` when the policy refuses a host or cannot be resolved, or when the
+ *   source locale file could not be read for the counts. It runs only when
+ *   {@link DoctorInput.dataFlow} is set.
  */
 export type DoctorCheckId =
   | "config"
   | "format-adapter"
   | "provider"
   | "api-key"
+  | "network-policy"
   | "source-file"
-  | "untranslated-literals";
+  | "plural-rules"
+  | "plural-completeness"
+  | "locale-codes"
+  | "locale-state"
+  | "locales"
+  | "untranslated-literals"
+  | "data-flow";
 
 /**
- * The verdict on one {@link DoctorCheck}. `skipped` is reported only for the checks that need a
- * loaded config when the `config` check itself failed, so a skipped check is never a problem of its
- * own.
+ * The verdict on one {@link DoctorCheck}.
+ *
+ * - `pass`: the check ran and found nothing that needs attention.
+ * - `warn`: the check ran and found something worth attention that does not fail the run, such as
+ *   a plural lacking a CLDR category, a non-canonical locale code, or a locale the provider only
+ *   possibly supports. Like `pass`, it leaves {@link DoctorResult.ok} true and the CLI exit code
+ *   at 0.
+ * - `fail`: the check found a problem; {@link DoctorResult.ok} is false.
+ * - `skipped`: the check did not run. Reported for the checks that need a loaded config when the
+ *   `config` check itself failed, for the `locales` check under the provider `none` or an unknown
+ *   provider, and for the `plural-completeness` check when the format does not store plural forms
+ *   by CLDR category or resolves to no adapter. A skipped check is never a problem of its own.
  */
-export type DoctorCheckStatus = "pass" | "fail" | "skipped";
+export type DoctorCheckStatus = "pass" | "warn" | "fail" | "skipped";
 
 /** One project-setup question and its verdict. */
 export interface DoctorCheck {
@@ -62,6 +144,13 @@ export interface DoctorCheck {
    * environment variables and paths, never an API key value.
    */
   readonly detail: string;
+  /**
+   * The next step that resolves a failed check: one short imperative sentence, such as "Set
+   * GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project
+   * directory.". Present only when {@link DoctorCheck.status} is `fail`. Like `detail`, it names
+   * environment variables and paths, never an API key value.
+   */
+  readonly fix?: string;
 }
 
 /** The result of {@link doctor}: every check that ran, and one project-wide verdict. */
@@ -69,9 +158,11 @@ export interface DoctorResult {
   /** True only when no check failed. This is the value a script should branch on. */
   readonly ok: boolean;
   /**
-   * Every check that ran, always in the same order. A setup run has one entry per setup check:
-   * `config`, `format-adapter`, `provider`, `api-key`, and `source-file`. A literal run
-   * ({@link DoctorInput.literals}) has exactly two: `config` and `untranslated-literals`.
+   * Every check that ran, always in the same order. A setup run has eleven entries, one per setup
+   * check: `config`, `format-adapter`, `provider`, `api-key`, `network-policy`, `source-file`,
+   * `plural-rules`, `plural-completeness`, `locale-codes`, `locale-state`, and `locales`. A literal
+   * run ({@link DoctorInput.literals}) has exactly two: `config` and `untranslated-literals`. A
+   * data-flow run ({@link DoctorInput.dataFlow}) has exactly two: `config` and `data-flow`.
    */
   readonly checks: readonly DoctorCheck[];
   /**
@@ -81,21 +172,62 @@ export interface DoctorResult {
    * `untranslated-literals` check instead.
    */
   readonly literals?: LiteralScan;
+  /**
+   * What the configured provider supports for each configured locale: whether it can translate it,
+   * the code it is sent as, glossary and formality support, and any warnings. Present on a setup
+   * run whose config loaded and whose provider is not `none`; the `locales` check carries the
+   * verdict.
+   */
+  readonly locales?: LocaleCapabilityReport;
+  /**
+   * Where the project's data goes, as {@link dataFlow} describes it. Present only on a data-flow
+   * run ({@link DoctorInput.dataFlow}) whose config loaded.
+   */
+  readonly dataFlow?: DataFlowManifest;
 }
 
 /** Input for {@link doctor}. */
 export interface DoctorInput {
-  /** Directory to search the config from, and the base for locale paths. Defaults to the process working directory. */
+  /**
+   * Directory to search the config from. Defaults to the process working directory. Locale paths
+   * resolve against the project root {@link resolveProjectRoot} returns: the directory of a config
+   * found by the search, otherwise this directory.
+   */
   readonly cwd?: string;
   /** An explicit config file to validate, bypassing the search. A missing file is an error rather than a failed check. */
   readonly configPath?: string;
   /**
    * Run the untranslated-literal scan instead of the setup checks: the config is loaded, then the
-   * source roots of its `extract` block are scanned for hardcoded user-facing string literals. The
-   * provider, API-key, format, and source-file checks do not run, so no API key environment
-   * variable is looked at and a run with no key set can pass.
+   * source roots of its `extract` block are scanned for hardcoded user-facing string literals. No
+   * other setup check runs (`format-adapter`, `provider`, `api-key`, `network-policy`,
+   * `source-file`, `plural-rules`, `plural-completeness`, `locale-codes`, `locale-state`,
+   * `locales`), so no API key environment variable is looked at and a run with no key set can pass.
    */
   readonly literals?: boolean;
+  /**
+   * Describe where the project's data goes instead of running the setup checks: the config is
+   * loaded and {@link DoctorResult.dataFlow} carries the {@link DataFlowManifest} {@link dataFlow}
+   * builds. Only the `config` and `data-flow` checks run, no API key is read and no network request
+   * is made. Takes precedence over {@link DoctorInput.live}; ignored when
+   * {@link DoctorInput.literals} is set.
+   */
+  readonly dataFlow?: boolean;
+  /**
+   * Fetch the configured machine-translation provider's current language list before the `locales`
+   * check, instead of judging against the table verbatra ships. It is the one doctor option that
+   * sends a network request: to the provider's language list endpoint only (DeepL's
+   * `/v3/languages`, Google Cloud Translation's `languages`), which uses no translation quota. The
+   * request is sent only when the provider's API key variable is set and the network policy
+   * permits the provider's host; otherwise, or when the request fails, the static table is used and
+   * {@link LocaleCapabilityReport.live} says why. It does nothing for an LLM provider or `none`.
+   * Ignored on a literal run. Defaults to false.
+   */
+  readonly live?: boolean;
+  /**
+   * Called once after each application source file the `literals` scan reads, with the running count and the
+   * total, for progress reporting.
+   */
+  readonly onProgress?: ScanProgressListener;
 }
 
 /** Injectable dependencies for {@link doctor}. Every field has a working default. */
@@ -117,25 +249,73 @@ const CHECK_TITLES: Record<DoctorCheckId, string> = {
   "format-adapter": "Format adapter",
   provider: "Provider",
   "api-key": "API key environment variable",
+  "network-policy": "Network policy",
   "source-file": "Source locale file",
+  "plural-rules": "Plural rules",
+  "plural-completeness": "Plural completeness",
+  "locale-codes": "Locale codes",
+  "locale-state": "Locale state",
+  locales: "Locale support",
   "untranslated-literals": "Untranslated literals",
+  "data-flow": "Data flow",
 };
 
 const CONFIG_DEPENDENT_IDS: readonly DoctorCheckId[] = [
   "format-adapter",
   "provider",
   "api-key",
+  "network-policy",
   "source-file",
+  "plural-rules",
+  "plural-completeness",
+  "locale-codes",
+  "locale-state",
+  "locales",
 ];
+
+const CHECK_FIXES: Record<DoctorCheckId, string | undefined> = {
+  config: "Fix the config the detail names, or run `verbatra init` to create one.",
+  "format-adapter": "Set `format` in the config to a supported format.",
+  provider: `Set \`provider.id\` in the config to a supported provider: ${PROVIDER_IDS.join(", ")}.`,
+  "api-key": "Set the API key environment variable the detail names.",
+  "network-policy":
+    "Point the provider at a host the network policy permits, or add its host to `network.allowedHosts` or VERBATRA_NETWORK_ALLOWED_HOSTS; correct VERBATRA_NETWORK_POLICY or VERBATRA_NETWORK_ALLOWED_HOSTS if either holds an invalid value.",
+  "source-file":
+    "Create the source locale file, or fix `files.pattern` and `sourceLocale` in the config so they point at it.",
+  "plural-rules": undefined,
+  "plural-completeness": undefined,
+  "locale-codes": undefined,
+  "locale-state": undefined,
+  locales:
+    "Remove the unsupported locale from `targetLocales`, map it to a supported code in `provider.options.localeMap`, or choose a provider that supports it.",
+  "untranslated-literals":
+    "Wrap each reported literal in a translation call, or suppress it with a `verbatra-ignore-next-line` comment or `extract.literals.ignore`.",
+  "data-flow": undefined,
+};
 
 const SKIPPED_DETAIL = "Not checked: the configuration could not be loaded.";
 
-function check(id: DoctorCheckId, status: DoctorCheckStatus, detail: string): DoctorCheck {
-  return { id, title: CHECK_TITLES[id], status, detail };
+function check(
+  id: DoctorCheckId,
+  status: DoctorCheckStatus,
+  detail: string,
+  fix?: string,
+): DoctorCheck {
+  const base = { id, title: CHECK_TITLES[id], status, detail };
+  const resolvedFix = status === "fail" ? (fix ?? CHECK_FIXES[id]) : undefined;
+  return resolvedFix === undefined ? base : { ...base, fix: resolvedFix };
 }
 
-function verdict(id: DoctorCheckId, passed: boolean, detail: string): DoctorCheck {
-  return check(id, passed ? "pass" : "fail", detail);
+function verdict(id: DoctorCheckId, passed: boolean, detail: string, fix?: string): DoctorCheck {
+  return check(id, passed ? "pass" : "fail", detail, fix);
+}
+
+function informational(id: DoctorCheckId, finding: DoctorFinding): DoctorCheck {
+  return check(id, finding.status, finding.detail);
+}
+
+function failure(id: DoctorCheckId, error: unknown): DoctorCheck {
+  return verdict(id, false, errorMessage(error), errorHint(error));
 }
 
 function toResult(checks: readonly DoctorCheck[]): DoctorResult {
@@ -152,7 +332,7 @@ function loadOptionsFor(input: DoctorInput, deps: DoctorDeps): LoadConfigOptions
 
 type LoadOutcome =
   | { readonly kind: "loaded"; readonly loaded: LoadedConfig }
-  | { readonly kind: "failed"; readonly detail: string };
+  | { readonly kind: "failed"; readonly error: unknown };
 
 function isMissingExplicitConfig(error: unknown, input: DoctorInput): boolean {
   return (
@@ -168,7 +348,7 @@ async function loadForDoctor(input: DoctorInput, deps: DoctorDeps): Promise<Load
     if (isMissingExplicitConfig(error, input)) {
       throw error;
     }
-    return { kind: "failed", detail: errorMessage(error) };
+    return { kind: "failed", error };
   }
 }
 
@@ -180,24 +360,31 @@ function configDetail(source: ConfigSource): string {
 
 type AdapterOutcome =
   | { readonly kind: "resolved"; readonly adapter: FormatAdapter }
-  | { readonly kind: "failed"; readonly detail: string };
+  | { readonly kind: "failed"; readonly error: unknown };
 
 function resolveAdapter(config: VerbatraConfig, deps: DoctorDeps): AdapterOutcome {
   try {
     const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
     return { kind: "resolved", adapter };
   } catch (error) {
-    return { kind: "failed", detail: errorMessage(error) };
+    return { kind: "failed", error };
   }
 }
 
 function checkAdapter(config: VerbatraConfig, outcome: AdapterOutcome): DoctorCheck {
   return outcome.kind === "resolved"
     ? verdict("format-adapter", true, `Format "${config.format}" resolves to an adapter.`)
-    : verdict("format-adapter", false, outcome.detail);
+    : failure("format-adapter", outcome.error);
 }
 
+const MACHINE_TRANSLATION_DISABLED_DETAIL =
+  'Machine translation disabled by policy (provider "none"): translate and watch fill only from ' +
+  "the translation memory, and no provider is ever called.";
+
 function checkProvider(provider: ProviderConfig): DoctorCheck {
+  if (!isMachineProvider(provider)) {
+    return verdict("provider", true, MACHINE_TRANSLATION_DISABLED_DETAIL);
+  }
   return hasProviderFactory(provider.id)
     ? verdict("provider", true, `Provider "${provider.id}" resolves to a factory.`)
     : verdict(
@@ -215,7 +402,7 @@ function isEnvVarSet(name: string): boolean {
 function envVarVerdict(name: string): DoctorCheck {
   return isEnvVarSet(name)
     ? verdict("api-key", true, `${name} is set.`)
-    : verdict("api-key", false, `The ${name} environment variable is not set.`);
+    : verdict("api-key", false, `The ${name} environment variable is not set.`, apiKeyHint(name));
 }
 
 function checkOpenAiCompatibleKey(apiKeyEnvVar: string | undefined): DoctorCheck {
@@ -229,10 +416,35 @@ function checkOpenAiCompatibleKey(apiKeyEnvVar: string | undefined): DoctorCheck
   return envVarVerdict(apiKeyEnvVar);
 }
 
+function checkLibreTranslateKey(): DoctorCheck {
+  return isEnvVarSet(LIBRETRANSLATE_ENV_VAR)
+    ? verdict("api-key", true, `${LIBRETRANSLATE_ENV_VAR} is set.`)
+    : verdict(
+        "api-key",
+        true,
+        `The libretranslate provider needs no API key. Set ${LIBRETRANSLATE_ENV_VAR} only if your server runs with --api-keys and requires one.`,
+      );
+}
+
 function checkApiKey(provider: ProviderConfig): DoctorCheck {
-  return provider.id === "openai-compatible"
-    ? checkOpenAiCompatibleKey(provider.options.apiKeyEnvVar)
+  if (!isMachineProvider(provider)) {
+    return verdict(
+      "api-key",
+      true,
+      "No API key is needed: machine translation is disabled by policy, so none is read.",
+    );
+  }
+  if (provider.id === "openai-compatible") {
+    return checkOpenAiCompatibleKey(provider.options.apiKeyEnvVar);
+  }
+  return provider.id === "libretranslate"
+    ? checkLibreTranslateKey()
     : envVarVerdict(PROVIDER_ENV[provider.id]);
+}
+
+function networkPolicyCheck(config: VerbatraConfig): DoctorCheck {
+  const outcome = checkNetworkPolicy(config.provider, config.network, processEnvironment());
+  return verdict("network-policy", outcome.passed, outcome.detail);
 }
 
 const NOT_PARSED_DETAIL =
@@ -273,23 +485,122 @@ async function checkSourceFile(
       ? await parseSourceVerdict(config, resolver, fs, outcome.adapter, sourcePath)
       : await existenceOnlyVerdict(sourcePath, fs);
   } catch (error) {
-    return verdict("source-file", false, errorMessage(error));
+    return failure("source-file", error);
   }
+}
+
+const LOCALES_NOT_APPLICABLE_DETAIL =
+  'Not applicable: machine translation is disabled by policy (provider "none"), so no provider ' +
+  "language support is checked.";
+
+function countOf(count: number, noun: string): string {
+  return `${count} ${noun}${count === 1 ? "" : "s"}`;
+}
+
+function describeListed(report: LocaleCapabilityReport): string {
+  const tally = (support: string): number =>
+    report.locales.filter((entry) => entry.support === support).length;
+  const unsupported = unsupportedLocales(report);
+  const verdict =
+    unsupported.length === 0
+      ? "no configured locale is unsupported"
+      : `unsupported: ${unsupported.map((locale) => `"${locale}"`).join(", ")}`;
+  return (
+    `Provider "${report.provider}", language table of ${report.tableVersion} (${report.tableOrigin}): ` +
+    `${tally("supported")} of ${report.locales.length} target locales supported, ` +
+    `${tally("unverified")} unverified; ${verdict}.`
+  );
+}
+
+function describeOpen(report: LocaleCapabilityReport): string {
+  return `Provider "${report.provider}" is an LLM and accepts any locale (well-tested list of ${report.tableVersion}).`;
+}
+
+function warningCount(report: LocaleCapabilityReport): number {
+  return (
+    report.source.warnings.length +
+    report.locales.reduce((total, entry) => total + entry.warnings.length, 0)
+  );
+}
+
+function localesStatus(report: LocaleCapabilityReport): DoctorCheckStatus {
+  if (unsupportedLocales(report).length > 0) {
+    return "fail";
+  }
+  return warningCount(report) > 0 || report.live?.status === "failed" ? "warn" : "pass";
+}
+
+function describeLocales(report: LocaleCapabilityReport): string {
+  const warnings = warningCount(report);
+  const parts = [
+    report.coverage === "open" ? describeOpen(report) : describeListed(report),
+    ...(warnings > 0 ? [`${countOf(warnings, "warning")}.`] : []),
+    ...(report.live !== undefined
+      ? [`Live language list ${report.live.status}: ${report.live.detail}`]
+      : []),
+  ];
+  return parts.join(" ");
+}
+
+interface LocalesOutcome {
+  readonly check: DoctorCheck;
+  readonly report?: LocaleCapabilityReport;
+}
+
+async function assessForDoctor(
+  config: VerbatraConfig,
+  provider: MachineProviderConfig,
+  live: boolean,
+): Promise<LocaleCapabilityReport> {
+  if (!live) {
+    return assessProviderLocales(config, provider, config.targetLocales);
+  }
+  const outcome = await refreshLanguageTable(provider, config.network, processEnvironment());
+  return {
+    ...assessProviderLocales(config, provider, config.targetLocales, outcome.table),
+    live: outcome.refresh,
+  };
+}
+
+async function checkLocales(config: VerbatraConfig, live: boolean): Promise<LocalesOutcome> {
+  const provider = config.provider;
+  if (!isMachineProvider(provider)) {
+    return { check: check("locales", "skipped", LOCALES_NOT_APPLICABLE_DETAIL) };
+  }
+  if (!hasProviderFactory(provider.id)) {
+    return {
+      check: check(
+        "locales",
+        "skipped",
+        `Not checked: provider "${provider.id}" is not a known provider.`,
+      ),
+    };
+  }
+  const report = await assessForDoctor(config, provider, live);
+  return {
+    check: check("locales", localesStatus(report), describeLocales(report)),
+    report,
+  };
 }
 
 async function literalDoctor(input: DoctorInput, deps: DoctorDeps): Promise<DoctorResult> {
   const outcome = await loadForDoctor(input, deps);
   if (outcome.kind === "failed") {
     return toResult([
-      verdict("config", false, outcome.detail),
+      failure("config", outcome.error),
       check("untranslated-literals", "skipped", SKIPPED_DETAIL),
     ]);
   }
   const { config, source } = outcome.loaded;
   const configCheck = verdict("config", true, configDetail(source));
-  const lint = await lintLiterals(config, input.cwd ?? process.cwd(), deps.fs ?? defaultFs);
+  const lint = await lintLiterals(
+    config,
+    resolveProjectRoot(source, input.cwd ?? process.cwd()),
+    deps.fs ?? defaultFs,
+    input.onProgress,
+  );
   if (lint.kind === "not-run") {
-    return toResult([configCheck, verdict("untranslated-literals", false, lint.detail)]);
+    return toResult([configCheck, verdict("untranslated-literals", false, lint.detail, lint.fix)]);
   }
   const literalCheck = verdict(
     "untranslated-literals",
@@ -299,17 +610,68 @@ async function literalDoctor(input: DoctorInput, deps: DoctorDeps): Promise<Doct
   return { ...toResult([configCheck, literalCheck]), literals: lint.scan };
 }
 
+function describeDataFlow(manifest: DataFlowManifest): string {
+  if (manifest.sent.nothing) {
+    return 'Nothing is sent: machine translation is disabled by policy (provider "none").';
+  }
+  const hosts = manifest.destinations.map(
+    (destination) => `${destination.host} (${destination.verdict})`,
+  );
+  const counts =
+    manifest.sent.counts === undefined
+      ? ` Counts unavailable: ${manifest.sent.countsUnavailable ?? "the source was not read"}`
+      : "";
+  return `Provider "${manifest.provider.id}" sends ${manifest.sent.fields.join(", ")} to ${hosts.join(", ")}.${counts}`;
+}
+
+function dataFlowStatus(manifest: DataFlowManifest): DoctorCheckStatus {
+  const blocked = manifest.destinations.some(
+    (destination) => destination.verdict === "refused" || destination.verdict === "invalid-policy",
+  );
+  return blocked || manifest.sent.counts === undefined ? "warn" : "pass";
+}
+
+async function dataFlowDoctor(input: DoctorInput, deps: DoctorDeps): Promise<DoctorResult> {
+  const outcome = await loadForDoctor(input, deps);
+  if (outcome.kind === "failed") {
+    return toResult([
+      failure("config", outcome.error),
+      check("data-flow", "skipped", SKIPPED_DETAIL),
+    ]);
+  }
+  const { config, source } = outcome.loaded;
+  const manifest = await buildDataFlowManifest(config, {
+    cwd: resolveProjectRoot(source, input.cwd ?? process.cwd()),
+    fs: deps.fs ?? defaultFs,
+    adapterRegistry: deps.adapterRegistry,
+    env: processEnvironment(),
+  });
+  return {
+    ...toResult([
+      verdict("config", true, configDetail(source)),
+      check("data-flow", dataFlowStatus(manifest), describeDataFlow(manifest)),
+    ]),
+    dataFlow: manifest,
+  };
+}
+
 /**
  * Validates a project's setup and spends nothing: no provider is constructed, no network request is
- * made, and no file is written. Run it before {@link translate} on a fresh project, or when a run
- * failed and you want the whole list of problems rather than the first one.
+ * made unless {@link DoctorInput.live} asks for a provider's language list, and no file is written.
+ * Run it before {@link translate} on a fresh project, or when a run failed and you want the whole
+ * list of problems rather than the first one.
  *
- * Five checks run: the config loads and validates, the configured format resolves to an adapter,
- * the configured provider ID resolves to a factory, the environment variable that provider reads
- * its API key from is set, and the source locale file can be read. Every check runs even when an
- * earlier one failed, so one call reports every independent problem. The API key is checked by
- * variable name only: its value is never read, never returned, and never validated against a
- * provider.
+ * A setup run reports the eleven checks {@link DoctorResult.checks} lists. Seven of them can fail:
+ * the config loads and validates, the configured format resolves to an adapter, the configured
+ * provider ID resolves to a factory, the environment variable that provider reads its API key from
+ * is set, the network policy permits the provider's host, the source locale file can be read, and
+ * the provider supports every configured locale. The other four are informational and never fail:
+ * each reports `warn` when it names something worth attention and `pass` otherwise. A `warn`
+ * never makes {@link DoctorResult.ok} false.
+ * Every check runs even when an earlier one failed, so one call reports every independent problem.
+ * The API key is checked by variable name only: its value is never returned and never validated
+ * against a provider, and it is read only when {@link DoctorInput.live} sends it to the provider's
+ * language list endpoint.
  *
  * The source-file check reads and parses the file rather than only probing for its existence, so a
  * directory standing in for it, an empty file, and malformed content are all reported here rather
@@ -317,15 +679,55 @@ async function literalDoctor(input: DoctorInput, deps: DoctorDeps): Promise<Doct
  * detail is the same message those entry points raise. When the configured format resolves to no
  * adapter there is nothing to parse with, so the check falls back to existence alone and says so.
  *
- * The `openai-compatible` provider is the one exception on the key check. It falls back to a
- * placeholder key, so a missing variable passes unless the config names its own variable through
- * `provider.options.apiKeyEnvVar`, which then has to be set.
+ * The `openai-compatible` and `libretranslate` providers are the exceptions on the key check. The
+ * first falls back to a placeholder key, so a missing variable passes unless the config names its
+ * own variable through `provider.options.apiKeyEnvVar`, which then has to be set. The second sends
+ * `LIBRETRANSLATE_API_KEY` only when it is set, so a missing variable always passes: a server that
+ * does require a key fails the run with `MISSING_API_KEY` naming that variable.
  *
- * A target locale file is not checked at all: a missing one is not a problem, because
- * {@link translate} creates it. The source locale file is checked, because every other entry point
+ * The `network-policy` check reports the effective network policy and the host the configured
+ * provider connects to, and fails when the policy refuses that host, exactly as {@link translate}
+ * would. It resolves no host name, so a name that only a DNS answer can classify passes here and
+ * is checked before each request instead.
+ *
+ * The informational `plural-rules` check names the ICU and CLDR versions the runtime derives
+ * each target language's plural categories from, and lists any target locale ICU has no plural
+ * rules for.
+ *
+ * The informational `plural-completeness` check reads the source and every target locale file
+ * and names each plural whose committed forms lack CLDR plural categories the target language
+ * uses, such as a Polish Android `<plurals>` with only `one` and `other`. A plural a target holds
+ * no form of yet is judged by the forms a run would write there, counting a blank source form as
+ * absent, which is stricter than the notice {@link translate} raises. A file it cannot read is
+ * named in its detail and makes the check `warn` rather than fail it; a format that does not
+ * store plural forms by CLDR category makes it `skipped`.
+ *
+ * The informational `locale-codes` check names every configured locale code that is
+ * valid but not in canonical BCP 47 form and suggests the canonical spelling. File names follow the
+ * configured code, so nothing is renamed.
+ *
+ * The informational `locale-state` check reads the lock file, the translation
+ * memory, and the provenance file, and names every locale they hold state for that the config does
+ * not list, with what the next {@link translate} run will do about it.
+ *
+ * The `locales` check judges the source locale and every target locale against the configured
+ * provider's language support, with the per-locale verdicts in {@link DoctorResult.locales}: the
+ * code each locale is sent as (after `provider.options.localeMap`), whether the provider supports
+ * it, and whether it can apply a glossary and a formality setting for it. A machine-translation
+ * provider is judged against the dated table verbatra ships for it, so no request is made unless
+ * {@link DoctorInput.live} asks for the provider's current list; an LLM provider accepts any
+ * locale and only warns about a language outside its well-tested list. It fails on an
+ * `unsupported` locale, the same one {@link translate} refuses, and reports a glossary or a tone
+ * the provider cannot apply as a warning, which makes the check `warn`.
+ *
+ * A config whose provider is `none` passes both the provider and the key check: its provider check
+ * reports that machine translation is disabled by policy, and no key variable is looked at.
+ *
+ * A missing target locale file is not a problem, because {@link translate} creates it; only the
+ * `plural-completeness` check reads target files at all. The source locale file is checked, because every other entry point
  * fails on it.
  *
- * When the config cannot be loaded the four config-dependent checks report `skipped` rather than a
+ * When the config cannot be loaded the ten config-dependent checks report `skipped` rather than a
  * verdict they could not reach, and {@link DoctorResult.ok} is false because the config check
  * itself failed.
  *
@@ -339,10 +741,17 @@ async function literalDoctor(input: DoctorInput, deps: DoctorDeps): Promise<Doct
  * scanned, so a partial scan is never reported as clean. No provider is constructed and no API key
  * environment variable is read.
  *
- * @param input - The working directory, an optional explicit config path, and whether to run the
- *   untranslated-literal scan instead of the setup checks.
+ * With `dataFlow: true` it describes where the project's data goes instead of running the setup
+ * checks: {@link DoctorResult.dataFlow} carries the {@link DataFlowManifest} {@link dataFlow}
+ * returns, and only the `config` and the informational `data-flow` checks run. No API key is read
+ * and no network request is made.
+ *
+ * @param input - The working directory, an optional explicit config path, whether to run the
+ *   untranslated-literal scan instead of the setup checks, and whether to fetch the provider's live
+ *   language list.
  * @param deps - Optional adapter registry, file-system, and config-loader overrides.
- * @returns Every check with its verdict, and the project-wide `ok` verdict.
+ * @returns Every check with its verdict, the project-wide `ok` verdict, and the per-locale
+ *   provider support report.
  *
  * @throws {@link SdkError} `CONFIG_NOT_FOUND`: an explicit `configPath` was given and no file
  * exists there. A config that is merely absent from the search is a failed check instead.
@@ -365,20 +774,44 @@ export async function doctor(
   if (input.literals === true) {
     return literalDoctor(input, deps);
   }
+  if (input.dataFlow === true) {
+    return dataFlowDoctor(input, deps);
+  }
   const outcome = await loadForDoctor(input, deps);
   if (outcome.kind === "failed") {
     return toResult([
-      verdict("config", false, outcome.detail),
+      failure("config", outcome.error),
       ...CONFIG_DEPENDENT_IDS.map((id) => check(id, "skipped", SKIPPED_DETAIL)),
     ]);
   }
   const { config, source } = outcome.loaded;
   const adapter = resolveAdapter(config, deps);
-  return toResult([
+  const cwd = resolveProjectRoot(source, input.cwd ?? process.cwd());
+  const fs = deps.fs ?? defaultFs;
+  const locales = await checkLocales(config, input.live === true);
+  const result = toResult([
     verdict("config", true, configDetail(source)),
     checkAdapter(config, adapter),
     checkProvider(config.provider),
     checkApiKey(config.provider),
-    await checkSourceFile(config, input.cwd ?? process.cwd(), deps.fs ?? defaultFs, adapter),
+    networkPolicyCheck(config),
+    await checkSourceFile(config, cwd, fs, adapter),
+    informational("plural-rules", describePluralRules(config.targetLocales)),
+    informational(
+      "plural-completeness",
+      await describePluralCompleteness(
+        config,
+        cwd,
+        fs,
+        adapter.kind === "resolved" ? adapter.adapter : undefined,
+      ),
+    ),
+    informational(
+      "locale-codes",
+      describeLocaleCodes([config.sourceLocale, ...config.targetLocales]),
+    ),
+    informational("locale-state", await describeLocaleState(config, cwd, fs)),
+    locales.check,
   ]);
+  return locales.report === undefined ? result : { ...result, locales: locales.report };
 }

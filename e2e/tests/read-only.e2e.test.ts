@@ -1,20 +1,19 @@
 import { mkdir, mkdtemp, readFile, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import ExcelJS from "exceljs";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
   type Consumer,
   type ErrorEnvelope,
+  fillWorkbook,
   JSON_ENVELOPE_VERSION,
   type JsonEnvelope,
   parseEnvelope,
-  readEnvelopeStream,
   readJsonIn,
   readSharedConsumer,
   runVerbatra,
-  type Subprocess,
-  spawnVerbatra,
+  seedWatchProject,
+  UNREACHABLE_PROVIDER,
   writeFileIn,
   writeJsonIn,
 } from "../src/harness.js";
@@ -49,10 +48,6 @@ function expectErrorEnvelope(envelope: JsonEnvelope<unknown>, command: string): 
   expect(envelope.command).toBe(command);
   return envelope;
 }
-
-const HEADER_ROW = 1;
-const TRANSLATION_COLUMN = 5;
-const INSTRUCTIONS_SHEET = "Instructions";
 
 let consumer: Consumer;
 
@@ -201,30 +196,23 @@ describe("export then import round-trip (no provider)", () => {
     const workbookPath = join(dir, "verbatra-translations.xlsx");
     const exported = await runVerbatra(consumer, ["export", "--out", workbookPath, "--cwd", dir]);
     expect(exported.exitCode).toBe(0);
+    expect(exported.stderr).toMatch(/^verbatra: exporting to xlsx\.\.\. done \(\d+\.\ds\)\n/);
+    expect(exported.stderr).toContain(
+      `next: verbatra import verbatra-translations.xlsx --cwd ${dir} (once your translators have filled it in)`,
+    );
 
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(workbookPath);
-    for (const sheet of workbook.worksheets) {
-      if (sheet.name === INSTRUCTIONS_SHEET) {
-        continue;
-      }
-      const headers: string[] = [];
-      sheet.getRow(HEADER_ROW).eachCell((cell) => {
-        headers.push(String(cell.value));
-      });
-      expect(headers).toContain("Review status");
-      expect(headers).toContain("Review reasons");
-      sheet.eachRow((row, rowNumber) => {
-        if (rowNumber === HEADER_ROW) {
-          return;
-        }
-        row.getCell(TRANSLATION_COLUMN).value = "Auf Wiedersehen";
-      });
-    }
-    await workbook.xlsx.writeFile(workbookPath);
+    await fillWorkbook(workbookPath, () => "Auf Wiedersehen", {
+      onDataSheetHeaders: (headers) => {
+        expect(headers).toContain("Review status");
+        expect(headers).toContain("Review reasons");
+      },
+    });
 
     const imported = await runVerbatra(consumer, ["import", workbookPath, "--cwd", dir]);
     expect(imported.exitCode).toBe(0);
+    expect(imported.stderr).toContain(
+      `next: verbatra check --cwd ${dir} (confirm every locale is in sync)`,
+    );
 
     const de = await readJsonIn<Record<string, string>>(dir, "locales/de.json");
     expect(de.farewell).toBe("Auf Wiedersehen");
@@ -247,20 +235,7 @@ describe("a locale whose directory does not exist yet", () => {
     const exported = await runVerbatra(consumer, ["export", "--out", workbookPath, "--cwd", dir]);
     expect(exported.exitCode).toBe(0);
 
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(workbookPath);
-    for (const sheet of workbook.worksheets) {
-      if (sheet.name === INSTRUCTIONS_SHEET) {
-        continue;
-      }
-      sheet.eachRow((row, rowNumber) => {
-        if (rowNumber === HEADER_ROW) {
-          return;
-        }
-        row.getCell(TRANSLATION_COLUMN).value = "Auf Wiedersehen";
-      });
-    }
-    await workbook.xlsx.writeFile(workbookPath);
+    await fillWorkbook(workbookPath, () => "Auf Wiedersehen");
 
     const imported = await runVerbatra(consumer, ["import", workbookPath, "--cwd", dir, "--json"]);
     expect(imported.exitCode).toBe(1);
@@ -407,20 +382,7 @@ describe("other formats (read-only, no provider)", () => {
     const exported = await runVerbatra(consumer, ["export", "--out", workbookPath, "--cwd", dir]);
     expect(exported.exitCode).toBe(0);
 
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(workbookPath);
-    for (const sheet of workbook.worksheets) {
-      if (sheet.name === INSTRUCTIONS_SHEET) {
-        continue;
-      }
-      sheet.eachRow((row, rowNumber) => {
-        if (rowNumber === HEADER_ROW) {
-          return;
-        }
-        row.getCell(TRANSLATION_COLUMN).value = "Auf Wiedersehen {0}";
-      });
-    }
-    await workbook.xlsx.writeFile(workbookPath);
+    await fillWorkbook(workbookPath, () => "Auf Wiedersehen {0}");
 
     const imported = await runVerbatra(consumer, ["import", workbookPath, "--cwd", dir]);
     expect(imported.exitCode).toBe(0);
@@ -475,7 +437,37 @@ describe("config errors (no provider)", () => {
 
     expect(result.stderr).toMatch(/\[CONFIG_NOT_FOUND\]/);
     expect(result.stderr).toContain("No verbatra configuration found");
+    expect(envelope.hint).toContain("verbatra init");
   });
+
+  it("prints the same next step on stderr without --json", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "verbatra-e2e-noconfig-human-"));
+    const result = await runVerbatra(consumer, ["check", "--cwd", dir]);
+
+    expect(result.exitCode).toBe(2);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toMatch(/\nnext: Run `verbatra init`/);
+  });
+});
+
+describe("usage errors under --json (no provider)", () => {
+  it.each([
+    [["check", "--json", "--nope"], "check"],
+    [["import", "--json"], "import"],
+  ])(
+    "%j exits 2 with a USAGE_ERROR envelope and the command's help hint",
+    async (argv, command) => {
+      const result = await runVerbatra(consumer, argv);
+
+      expect(result.exitCode).toBe(2);
+      expectSingleJsonDocument(result.stdout);
+      const envelope = expectErrorEnvelope(parseEnvelope(result.stdout), command);
+      expect(envelope.code).toBe("USAGE_ERROR");
+      expect(envelope.hint).toBe(
+        `Run \`verbatra ${command} --help\` to see the options and arguments it accepts.`,
+      );
+    },
+  );
 });
 
 describe("CLI boundary hardening (subprocess-level proof, no provider)", () => {
@@ -556,53 +548,36 @@ describe("CLI boundary hardening (subprocess-level proof, no provider)", () => {
   });
 });
 
-describe("watch SIGINT contract (no provider key needed)", () => {
-  it("exits 0 on a single interrupt after emitting at least one NDJSON record", async () => {
-    const dir = join(consumer.dir, "watch-sigint");
-    await mkdir(dir, { recursive: true });
-    await writeJsonIn(dir, "locales/en.json", { greeting: "Hello {{name}}" });
-    await writeJsonIn(dir, "locales/de.json", { greeting: "Hallo {{name}}" });
-    await writeFileIn(
-      dir,
-      "verbatra.config.ts",
-      `import { defineConfig } from "@verbatra/cli";\n\nexport default defineConfig({\n  sourceLocale: "en",\n  targetLocales: ["de"],\n  format: "i18next-json",\n  files: { pattern: "locales/{locale}.json" },\n  provider: { id: "anthropic", options: { model: "claude-sonnet-4-6", maxTokens: 4096 } },\n});\n`,
-    );
+const ANTHROPIC_PROVIDER =
+  '{ id: "anthropic", options: { model: "claude-sonnet-4-6", maxTokens: 4096 } }';
 
-    const watcher: Subprocess = spawnVerbatra(consumer, ["watch", "--json", "--cwd", dir], {
+describe("watch startup refusal (no provider key needed)", () => {
+  it("exits 2 with PROVIDER_CONSTRUCTION_FAILED and MISSING_API_KEY when a hosted provider has no key", async () => {
+    const dir = await seedWatchProject(join(consumer.dir, "watch-missing-key"), ANTHROPIC_PROVIDER);
+
+    const result = await runVerbatra(consumer, ["watch", "--json", "--cwd", dir], {
       env: { ANTHROPIC_API_KEY: "" },
+      timeoutMs: 30_000,
     });
-    const stream = readEnvelopeStream(watcher);
 
-    try {
-      const first = await stream.next({ timeoutMs: 30_000 });
-      const failure = expectErrorEnvelope(first, "watch");
-      expect(failure.code.length).toBeGreaterThan(0);
-      expect(failure.message.length).toBeGreaterThan(0);
-
-      watcher.kill("SIGINT");
-      const result = await watcher;
-      expect(result.signal).toBeUndefined();
-      expect(result.exitCode).toBe(0);
-    } finally {
-      watcher.kill("SIGKILL");
-    }
+    expect(result.signal).toBeNull();
+    expect(result.exitCode).toBe(2);
+    expectSingleJsonDocument(result.stdout);
+    const envelope = expectErrorEnvelope(parseEnvelope(result.stdout), "watch");
+    expect(envelope.code).toBe("PROVIDER_CONSTRUCTION_FAILED");
+    expect(envelope.causeCode).toBe("MISSING_API_KEY");
+    expect(envelope.message).toContain("ANTHROPIC_API_KEY");
   }, 45_000);
 });
 
 describe("runVerbatra signal-death (no provider key needed)", () => {
   it("reports a null exit code and the killing signal when the process is force-killed", async () => {
-    const dir = join(consumer.dir, "watch-signal-death");
-    await mkdir(dir, { recursive: true });
-    await writeJsonIn(dir, "locales/en.json", { greeting: "Hello {{name}}" });
-    await writeJsonIn(dir, "locales/de.json", { greeting: "Hallo {{name}}" });
-    await writeFileIn(
-      dir,
-      "verbatra.config.ts",
-      `import { defineConfig } from "@verbatra/cli";\n\nexport default defineConfig({\n  sourceLocale: "en",\n  targetLocales: ["de"],\n  format: "i18next-json",\n  files: { pattern: "locales/{locale}.json" },\n  provider: { id: "anthropic", options: { model: "claude-sonnet-4-6", maxTokens: 4096 } },\n});\n`,
+    const dir = await seedWatchProject(
+      join(consumer.dir, "watch-signal-death"),
+      UNREACHABLE_PROVIDER,
     );
 
     const result = await runVerbatra(consumer, ["watch", "--json", "--cwd", dir], {
-      env: { ANTHROPIC_API_KEY: "" },
       timeoutMs: 3000,
     });
 

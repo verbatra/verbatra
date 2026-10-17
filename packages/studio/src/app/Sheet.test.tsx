@@ -133,4 +133,26 @@ describe("Sheet", () => {
 
     expect(containerRef.current).toBe(view.get("[role='dialog']"));
   });
+
+  it("keeps the default width unless asked to be wide", () => {
+    const narrow = render(
+      <Sheet {...REQUIRED} onClose={() => {}} containerRef={createRef<HTMLDivElement>()}>
+        <p>Body</p>
+      </Sheet>,
+    );
+    const wide = render(
+      <Sheet
+        {...REQUIRED}
+        size="wide"
+        onClose={() => {}}
+        containerRef={createRef<HTMLDivElement>()}
+      >
+        <p>Body</p>
+      </Sheet>,
+    );
+
+    expect(narrow.get("[role='dialog']").className).toContain("w-[min(480px,100%)]");
+    expect(wide.get("[role='dialog']").className).toContain("w-[min(960px,100%)]");
+    expect(wide.get("[role='dialog']").className).not.toContain("w-[min(480px,100%)]");
+  });
 });

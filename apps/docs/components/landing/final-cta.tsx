@@ -1,58 +1,46 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
-import { type Locale, localizedPath } from "@/lib/i18n";
-import { CommandBox } from "./command-box";
-import { NPM_CLI } from "./links";
-import { Reveal } from "./reveal";
+import Button, { buttonClasses } from "@/components/ui/button";
+import { localizedPath, toLocale } from "@/lib/i18n";
+import { NPM_INSTALL_COMMAND } from "@/lib/install-commands";
+import { CommandRow } from "./islands";
+import { GITHUB_URL } from "./links";
 
-const INSTALL_COMMAND = "npm i -D @verbatra/cli";
-const CLI_TOKEN = "@verbatra/cli";
-
-const CLOSE_BACKGROUND = [
-  "radial-gradient(ellipse 62% 72% at 50% 104%, color-mix(in srgb, var(--v-purple) 58%, transparent), transparent 70%)",
-  "var(--surface-bg)",
-].join(", ");
-
-const CLOSE_BORDER = "color-mix(in srgb, var(--v-glow) 16%, var(--border-default))";
+const CLOSING_HEADING_ID = "closing-heading";
 
 export async function FinalCta(): Promise<ReactNode> {
-  const t = await getTranslations("landing.finalClose");
+  const t = await getTranslations("landing.closing");
   const tInstall = await getTranslations("landing.install");
-  const locale = (await getLocale()) as Locale;
+  const tOpen = await getTranslations("landing.openSource");
+  const locale = toLocale(await getLocale());
   return (
-    <section className="vk-pad-top-lg mx-auto w-full max-w-(--width-layout) px-2 pb-3 md:px-3">
-      <Reveal
-        className="relative grid justify-items-center overflow-hidden rounded-xl border px-6 py-[92px] text-center md:px-10"
-        style={{ background: CLOSE_BACKGROUND, borderColor: CLOSE_BORDER }}
-      >
-        <h2
-          className="max-w-[15ch] font-semibold text-fd-foreground"
-          style={{
-            fontFamily: "var(--font-display)",
-            letterSpacing: "-0.03em",
-            fontSize: "var(--text-h2)",
-            lineHeight: 1,
-            textWrap: "balance",
-          }}
-        >
+    <section
+      aria-labelledby={CLOSING_HEADING_ID}
+      className="vk-final-cta vk-gutter vk-w-wide mx-auto w-full"
+    >
+      <div className="vk-closer">
+        <h2 id={CLOSING_HEADING_ID} className="vk-h2 max-w-[20ch]">
           {t("heading")}
         </h2>
-        <div className="mt-8 flex w-full justify-center">
-          <div className="w-full max-w-[28rem]">
-            <CommandBox
-              command={INSTALL_COMMAND}
-              label={tInstall("copyAria")}
-              link={{ token: CLI_TOKEN, href: NPM_CLI }}
-            />
-          </div>
+        <p className="vk-lead max-w-[46ch]">{t("lead")}</p>
+        <div className="vk-final-install @container">
+          <CommandRow command={NPM_INSTALL_COMMAND} label={tInstall("copyAria")} wrap="narrow" />
         </div>
-        <a
-          href={localizedPath(locale, "/docs")}
-          className="mt-6 inline-flex min-h-11 items-center font-medium text-[color:var(--accent)] underline decoration-[color:color-mix(in_srgb,var(--v-glow)_40%,transparent)] underline-offset-4 transition-colors hover:decoration-[color:var(--accent)]"
-        >
-          {t("docs")}
-        </a>
-      </Reveal>
+        <div className="vk-closer-actions">
+          <Button href={localizedPath(locale, "/docs/quickstart")} variant="primary" size="lg">
+            {t("primary")}
+          </Button>
+          <a
+            href={GITHUB_URL}
+            target="_blank"
+            rel="noreferrer noopener"
+            className={buttonClasses("secondary", "lg")}
+          >
+            {t("secondary")}
+            <span className="sr-only"> {tOpen("newTab")}</span>
+          </a>
+        </div>
+      </div>
     </section>
   );
 }

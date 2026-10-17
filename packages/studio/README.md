@@ -22,45 +22,47 @@
 
 ## Requirements
 
-Node.js `>=22.14.0`.
+Node.js `^22.18.0 || >=24`.
 
 ## Installation
 
 ```bash
 npm install --save-dev @verbatra/cli @verbatra/studio
 # pnpm
-pnpm add -D @verbatra/cli @verbatra/studio
+pnpm add --save-dev @verbatra/cli @verbatra/studio
 # yarn
-yarn add -D @verbatra/cli @verbatra/studio
+yarn add --dev @verbatra/cli @verbatra/studio
+# bun
+bun add --dev @verbatra/cli @verbatra/studio
 ```
 
 ## Quick start
 
 ```bash
-npx verbatra studio
+npx @verbatra/cli studio
 # Verbatra Studio running at http://127.0.0.1:5849/?token=...
 ```
 
-Open the printed URL; the token is required.
+Open the printed URL; the token is required. Add `--verbose` to also print one stderr line per request, with the token masked.
 
 <img src="https://raw.githubusercontent.com/verbatra/verbatra/main/apps/docs/public/screenshots/studio-translations-dark.webp" alt="The Translations page of Verbatra Studio in its dark theme, listing per-locale translation status beside a per-key detail view" width="100%" />
 
 ## What it serves
 
-- **Translations**: per-locale status, the diff, and lock drift, down to a per-key detail view with the source value and every target's current translation.
-- **Review**: the needs-review queue of flagged translations, with in-place editing.
+- **Translations**: per-locale status, the diff, and lock drift, filterable by state, locale, review queue entries, and integrity problems, down to a per-key detail view with the source value, its source file description, every target's current translation, and who wrote it.
+- **Review**: every translation a provider, the translation memory, or an agent wrote that nobody has approved yet, read from the committed files so the whole team sees the same queue, filterable by locale, origin, and review state, and worked from the keyboard, in bulk, or a whole locale at once: approve, reject, or edit an entry side by side with its source, context, glossary terms, and integrity check. Approve and Reject decisions are saved to `verbatra.provenance.json`, which `verbatra check --require-reviewed` gates on.
 - **Activity**: the git commit history of the source and target locale files, plus the last run's token usage and budget.
 - **Settings**: the resolved config, the glossary, and the session's capabilities. A glossary the project keeps in a JSON file is editable here, with the new state shown as soon as the write lands.
 
-Every page refreshes live over a server-sent event stream as your locale files change; only a `verbatra.config.ts` change needs a manual restart. Studio follows its own theme preference, independently of any site you opened it from.
+Every page refreshes live over a server-sent event stream as your locale files change. The config and its glossary are loaded once at startup, so a config change needs a restart. A glossary edit, from Settings or on disk, shows at once in Settings and in a key's glossary hits, but translating pending changes, retranslating, and the cost estimate use it only after a restart; integrity checks and the edit gate never read the glossary. Studio follows its own theme preference, independently of any site you opened it from.
 
 ## Editing and provider spend
 
-Local editing is always on: an edit from the Review queue runs through the same integrity gate a translate run applies to every candidate value, then writes the locale file and the lock. Editing the glossary from Settings is local editing too, since changing a term calls no provider and spends nothing; the server derives the target file from the loaded config alone and never accepts a path for it, and a glossary written inline in the config module keeps the panel read-only.
+Local editing is always on, and none of it calls a provider. An edit runs through the same integrity gate a translate run applies to every candidate value, then writes the locale file and the lock. An approval changes no translation, so it runs no gate: it records the decision in `verbatra.provenance.json` and writes nothing else. A rejection removes the translation from the locale file and drops its lock entry, so the key reads as missing until a translate run or a person fills it again, and records the decision in `verbatra.provenance.json`. Editing the glossary from Settings is local editing too, since changing a term calls no provider and spends nothing; the server derives the target file from the loaded config alone and never accepts a path for it, and a glossary written inline in the config module keeps the panel read-only.
 
-Actions that spend provider budget, retranslating a key and translating every pending change, exist only when Studio is started with `--allow-spend` or with `VERBATRA_STUDIO_ALLOW_SPEND` set. Without that flag those methods are not registered on the server at all, so Studio never calls a provider.
+Actions that spend provider budget, retranslating one key or a selection and translating every pending change, exist only when Studio is started with `--allow-spend` or with `VERBATRA_STUDIO_ALLOW_SPEND` set. Without that flag those methods are not registered on the server at all, so Studio never calls a provider.
 
-`--expose-agent-tools` (or `VERBATRA_STUDIO_AGENT_TOOLS`) additionally registers Studio's RPC methods as WebMCP tools on the browser's `document.modelContext`, so a browser agent can drive the same surface. It is off by default, and each tool is a 1:1 wrapper over the same authenticated call the dashboard makes, travelling the same validation and the same capability gate, so it confers no authority the open, authenticated tab does not already hold.
+`--expose-agent-tools` (or `VERBATRA_STUDIO_AGENT_TOOLS`) additionally registers Studio's RPC methods as WebMCP tools on the browser's `document.modelContext`, so a browser agent can drive the same surface. It is off by default. The bulk review methods (approving or rejecting a selection, approving a whole locale, retranslating a selection) and the in-flight query stay with the person at the dashboard and never become tools. Each tool is a 1:1 wrapper over the same authenticated call the dashboard makes, travelling the same validation and the same capability gate, so it confers no authority the open, authenticated tab does not already hold: the two spend tools register only when spending is granted, and a config with `provider: { id: "none" }` withholds them even with `--allow-spend`.
 
 ## Security model
 

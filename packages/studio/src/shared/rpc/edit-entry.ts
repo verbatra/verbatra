@@ -3,11 +3,16 @@ import { z } from "zod";
 
 export const EDIT_ENTRY_METHOD = "translation.editEntry";
 
+export const MAX_EDIT_VALUE_LENGTH = 20_000;
+
 export const editEntryParamsSchema = z.strictObject({
   locale: z.string().min(1),
   key: z.string().min(1),
-  value: z.string().max(20_000),
+  value: z.string().max(MAX_EDIT_VALUE_LENGTH),
+  actor: z.enum(["human", "agent"]).optional(),
 });
+
+export const agentEditEntryParamsSchema = editEntryParamsSchema.omit({ actor: true });
 
 export type EditEntryParams = z.infer<typeof editEntryParamsSchema>;
 

@@ -3,6 +3,7 @@ import { AdapterError } from "../errors.js";
 import type { AdapterFs, BoundedReadOutcome } from "../fs-port.js";
 import { outcomeToContent, readBoundedFile } from "../json/bounded-read.js";
 import { detectLineTerminator, isEnoent, type LineTerminator } from "../shell.js";
+import { isAttachedTail } from "./attached-tail.js";
 import { extractAppleStringsPlaceholders } from "./placeholders.js";
 
 type Node =
@@ -20,8 +21,6 @@ type Node =
     };
 
 const UNICODE_ESCAPE = /^[0-9a-fA-F]{4}$/;
-const TRAILING_BLOCK_COMMENT = /\/\*([\s\S]*?)\*\//g;
-const ATTACHED_TAIL = /^[ \t]*\r?\n?[ \t]*$/;
 
 function isInlineWhitespace(char: string | undefined): boolean {
   return char === " " || char === "\t" || char === "\r" || char === "\n";
@@ -185,20 +184,71 @@ interface LeadingSplit {
   readonly description?: string;
 }
 
-function splitLeading(leading: string): LeadingSplit {
-  let lastMatch: RegExpExecArray | null = null;
-  for (const match of leading.matchAll(TRAILING_BLOCK_COMMENT)) {
-    lastMatch = match;
+interface BlockComment {
+  readonly end: number;
+  readonly inner: string;
+}
+
+const SLASH = 0x2f;
+const STAR = 0x2a;
+const LINE_FEED = 0x0a;
+
+function lineCommentEnd(text: string, from: number): number {
+  let i = from;
+  while (i < text.length && text.charCodeAt(i) !== LINE_FEED) {
+    i += 1;
   }
-  if (lastMatch === null) {
+  return i;
+}
+
+function blockCommentClose(text: string, from: number): number {
+  let previous = -1;
+  for (let i = from; i < text.length; i += 1) {
+    const code = text.charCodeAt(i);
+    if (previous === STAR && code === SLASH) {
+      return i - 1;
+    }
+    previous = code;
+  }
+  return -1;
+}
+
+function lastBlockComment(text: string): BlockComment | null {
+  let last: BlockComment | null = null;
+  let previous = -1;
+  let i = 0;
+  while (i < text.length) {
+    const code = text.charCodeAt(i);
+    if (previous !== SLASH || (code !== SLASH && code !== STAR)) {
+      previous = code;
+      i += 1;
+      continue;
+    }
+    previous = -1;
+    if (code === SLASH) {
+      i = lineCommentEnd(text, i + 1);
+      continue;
+    }
+    const close = blockCommentClose(text, i + 1);
+    if (close === -1) {
+      return last;
+    }
+    last = { end: close + 2, inner: text.slice(i + 1, close) };
+    i = close + 2;
+  }
+  return last;
+}
+
+function splitLeading(leading: string): LeadingSplit {
+  const comment = lastBlockComment(leading);
+  if (comment === null) {
     return { alwaysPreserved: "", ownedByEntry: leading };
   }
-  const commentEnd = lastMatch.index + lastMatch[0].length;
-  const tail = leading.slice(commentEnd);
-  if (!ATTACHED_TAIL.test(tail)) {
-    return { alwaysPreserved: leading.slice(0, commentEnd), ownedByEntry: tail };
+  const tail = leading.slice(comment.end);
+  if (!isAttachedTail(tail)) {
+    return { alwaysPreserved: leading.slice(0, comment.end), ownedByEntry: tail };
   }
-  const inner = (lastMatch[1] ?? "").trim();
+  const inner = comment.inner.trim();
   return {
     alwaysPreserved: "",
     ownedByEntry: leading,

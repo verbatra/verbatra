@@ -13,7 +13,7 @@ body:
     attributes:
       label: verbatra version
       description: The `@verbatra/sdk` / `@verbatra/cli` version (and the `@verbatra/studio` or `@verbatra/mcp` version if relevant). Run `verbatra --version`.
-      placeholder: "@verbatra/cli 0.11.1"
+      placeholder: "@verbatra/cli 0.12.0"
     validations:
       required: true
 
@@ -22,7 +22,7 @@ body:
     attributes:
       label: Node version
       description: Output of `node --version`.
-      placeholder: v22.14.0
+      placeholder: v22.18.0
     validations:
       required: true
 
@@ -76,6 +76,8 @@ body:
         - deepl
         - google-translate
         - openai-compatible
+        - libretranslate
+        - none
     validations:
       required: false
 

@@ -1,0 +1,179 @@
+import { resolveErrorCopy } from "./error-copy.js";
+import type { RpcCallResult } from "./rpc-client.js";
+import { settledActionStatusLabel } from "./settled-action-status.js";
+import type { StructuredError } from "./state.js";
+
+export type BatchAction = "approve" | "reject" | "retranslate";
+
+export interface BatchFailure {
+  readonly locale: string;
+  readonly key: string;
+  readonly message: string;
+}
+
+export type BatchSummary =
+  | {
+      readonly kind: "done";
+      readonly action: BatchAction;
+      readonly succeeded: number;
+      readonly failures: readonly BatchFailure[];
+    }
+  | { readonly kind: "error"; readonly action: BatchAction; readonly message: string };
+
+type ReviewBatchResponse = RpcCallResult<"review.approveMany" | "review.rejectMany">;
+
+type RetranslateBatchResponse = RpcCallResult<"translation.retranslateEntries">;
+
+type RetranslateBatchOutcome = Extract<
+  RetranslateBatchResponse,
+  { ok: true }
+>["result"]["results"][number];
+
+export const LOCALE_BUSY_SKIP_MESSAGE = "Skipped: the locale was busy.";
+
+export const BATCH_LOCK_CONTENDED_MESSAGE =
+  "A locale's write lock was held by another process. Wait a moment and try again.";
+
+function batchErrorCopy(error: StructuredError): string {
+  return error.code === "LOCK_CONTENDED" ? BATCH_LOCK_CONTENDED_MESSAGE : resolveErrorCopy(error);
+}
+
+function failureMessage(outcome: {
+  readonly code: string;
+  readonly message: string;
+  readonly skipped?: true;
+}): string {
+  if (outcome.skipped === true && outcome.code === "LOCK_CONTENDED") {
+    return LOCALE_BUSY_SKIP_MESSAGE;
+  }
+  const copy = batchErrorCopy({ code: outcome.code, message: outcome.message });
+  return outcome.skipped === true ? `Not attempted after an earlier failure: ${copy}` : copy;
+}
+
+function failureOf(outcome: {
+  readonly locale: string;
+  readonly key: string;
+  readonly code: string;
+  readonly message: string;
+  readonly skipped?: true;
+}): BatchFailure {
+  return { locale: outcome.locale, key: outcome.key, message: failureMessage(outcome) };
+}
+
+function summarize(
+  action: BatchAction,
+  results: readonly unknown[],
+  failures: readonly BatchFailure[],
+): BatchSummary {
+  return { kind: "done", action, succeeded: results.length - failures.length, failures };
+}
+
+export function summarizeReviewBatch(
+  action: "approve" | "reject",
+  response: ReviewBatchResponse,
+): BatchSummary {
+  if (!response.ok) {
+    return { kind: "error", action, message: batchErrorCopy(response.error) };
+  }
+  const failures = response.result.results.flatMap((outcome) =>
+    outcome.ok ? [] : [failureOf(outcome)],
+  );
+  return summarize(action, response.result.results, failures);
+}
+
+function retranslateFailure(outcome: RetranslateBatchOutcome): BatchFailure | undefined {
+  if (!outcome.ok) {
+    return failureOf(outcome);
+  }
+  if (outcome.result.accepted) {
+    return undefined;
+  }
+  const details = outcome.result.details;
+  return {
+    locale: outcome.locale,
+    key: outcome.key,
+    message: settledActionStatusLabel(
+      {
+        kind: "rejected",
+        reason: outcome.result.reason,
+        ...(details !== undefined ? { details } : {}),
+      },
+      "",
+    ),
+  };
+}
+
+export function summarizeRetranslateBatch(response: RetranslateBatchResponse): BatchSummary {
+  if (!response.ok) {
+    return { kind: "error", action: "retranslate", message: batchErrorCopy(response.error) };
+  }
+  const failures = response.result.results.flatMap((outcome) => {
+    const failure = retranslateFailure(outcome);
+    return failure === undefined ? [] : [failure];
+  });
+  return summarize("retranslate", response.result.results, failures);
+}
+
+const PAST_TENSE: Readonly<Record<BatchAction, string>> = {
+  approve: "Approved",
+  reject: "Rejected",
+  retranslate: "Retranslated",
+};
+
+const DONE_NOTE: Readonly<Record<BatchAction, string>> = {
+  approve: "The decisions are saved in verbatra.provenance.json.",
+  reject:
+    "Their translations were removed and the decisions are saved in verbatra.provenance.json.",
+  retranslate: "Review the new values, then approve or reject them.",
+};
+
+function entries(count: number): string {
+  return `${count} ${count === 1 ? "entry" : "entries"}`;
+}
+
+export interface BatchFailureGroup {
+  readonly message: string;
+  readonly entries: readonly { readonly locale: string; readonly key: string }[];
+}
+
+export function groupBatchFailures(
+  failures: readonly BatchFailure[],
+): readonly BatchFailureGroup[] {
+  const groups = new Map<string, { locale: string; key: string }[]>();
+  for (const failure of failures) {
+    const entries = groups.get(failure.message) ?? [];
+    entries.push({ locale: failure.locale, key: failure.key });
+    groups.set(failure.message, entries);
+  }
+  return [...groups].map(([message, entries]) => ({ message, entries }));
+}
+
+export function batchSummaryFailed(summary: BatchSummary): boolean {
+  return summary.kind === "error" || summary.failures.length > 0;
+}
+
+export function batchSummaryHeadline(summary: BatchSummary): string {
+  if (summary.kind === "error") {
+    return `Could not ${summary.action} the selected entries: ${summary.message}`;
+  }
+  const done =
+    summary.succeeded > 0
+      ? `${PAST_TENSE[summary.action]} ${entries(summary.succeeded)}. ${DONE_NOTE[summary.action]}`
+      : "";
+  if (summary.failures.length === 0) {
+    return done;
+  }
+  const failed = `Could not ${summary.action} ${entries(summary.failures.length)}; they stay selected.`;
+  return done === "" ? failed : `${done} ${failed}`;
+}
+
+export function failedBatchEntryIds(
+  summary: BatchSummary,
+  attempted: readonly string[],
+  idOf: (entry: { readonly locale: string; readonly key: string }) => string,
+): ReadonlySet<string> {
+  if (summary.kind === "error") {
+    return new Set(attempted);
+  }
+  return new Set(summary.failures.map(idOf));
+}

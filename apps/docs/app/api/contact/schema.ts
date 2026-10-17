@@ -14,11 +14,11 @@ const CONTACT_FIELDS = ["name", "email", "message"] as const;
 
 type ContactField = (typeof CONTACT_FIELDS)[number];
 
-export type ContactFieldErrorCode = "required" | "invalid_email" | "too_short" | "too_long";
+type ContactFieldErrorCode = "required" | "invalid_email" | "too_short" | "too_long";
 
 export type ContactFieldErrors = Partial<Record<ContactField, ContactFieldErrorCode>>;
 
-export type ParsedContactPayload =
+type ParsedContactPayload =
   | { success: true; data: ContactPayload }
   | { success: false; errors: ContactFieldErrors };
 
@@ -49,10 +49,10 @@ export function parseContactPayload(body: unknown): ParsedContactPayload {
   return { success: false, errors: collectFieldErrors(result.error.issues) };
 }
 
-export async function parseContactRequest(request: Request): Promise<ParsedContactPayload> {
+export function parseContactBody(text: string): ParsedContactPayload {
   let body: unknown;
   try {
-    body = await request.json();
+    body = JSON.parse(text);
   } catch {
     return { success: false, errors: {} };
   }

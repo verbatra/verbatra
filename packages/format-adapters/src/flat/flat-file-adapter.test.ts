@@ -218,3 +218,14 @@ describe("createFlatFileAdapter and whole-value placeholder comparison", () => {
     expect(seen).toEqual(["source", "target"]);
   });
 });
+
+describe("createFlatFileAdapter and the branch-arm check", () => {
+  it("omits the check when the format supplies none", () => {
+    expect("compareBranchArms" in makeAdapter()).toBe(false);
+  });
+
+  it("exposes the check the format supplied", () => {
+    const adapter = makeAdapter({ compareBranchArms: () => ["wrong arm"] });
+    expect(adapter.compareBranchArms?.("a", "b", () => undefined)).toEqual(["wrong arm"]);
+  });
+});

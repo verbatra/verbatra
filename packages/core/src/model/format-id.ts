@@ -33,6 +33,8 @@ export type CustomFormatId = `custom:${string}`;
  *
  * @example
  * ```ts
+ * import { isCustomFormatId } from "@verbatra/sdk";
+ *
  * isCustomFormatId("custom:toml"); // true
  * isCustomFormatId("i18next-json"); // false
  * ```

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ProviderError } from "../errors.js";
 import type { TranslateRequest, Usage } from "../provider.js";
-import { entry, regexExtractor } from "../test-support.js";
+import { entry, regexExtractor, termGlossary } from "../test-support.js";
 import type { LlmCompletionInput, LlmMechanism } from "./run.js";
 import { runLlmTranslation } from "./run.js";
 
@@ -109,7 +109,7 @@ describe("runLlmTranslation: untrusted-input boundary", () => {
     await runLlmTranslation(
       request({
         entries: [entry("a", hostile, [])],
-        glossary: { Hello: "Hi" },
+        glossary: termGlossary({ Hello: "Hi" }),
         tone: "formal",
       }),
       mechanism,
@@ -209,6 +209,31 @@ describe("runLlmTranslation: bounded reconcile repair", () => {
     expect(result.values.get("b")).toBe("Tschuess {{name}}");
     expect(result.integrity.get("a")?.matches).toBe(true);
     expect(result.integrity.get("b")?.matches).toBe(true);
+  });
+
+  it("tells onRepair how many keys the repair round re-requests, and only when one runs", async () => {
+    const repaired: number[] = [];
+    const { mechanism } = sequencedMechanism([
+      { raw: rawResult([{ key: "a", value: "Hallo {{name}}" }]) },
+      { raw: rawResult([{ key: "b", value: "Tschuess {{name}}" }]) },
+    ]);
+    await runLlmTranslation(
+      { ...twoEntryRequest(), onRepair: (keys) => repaired.push(keys) },
+      mechanism,
+    );
+    expect(repaired).toEqual([1]);
+
+    const complete = stubMechanism(
+      rawResult([
+        { key: "a", value: "Hallo {{name}}" },
+        { key: "b", value: "Tschuess {{name}}" },
+      ]),
+    );
+    await runLlmTranslation(
+      { ...twoEntryRequest(), onRepair: (keys) => repaired.push(keys) },
+      complete.mechanism,
+    );
+    expect(repaired).toEqual([1]);
   });
 
   it("accepts the well-formed remainder and recovers a duplicated key via one repair round", async () => {
@@ -348,7 +373,7 @@ describe("runLlmTranslation: reviewFlags", () => {
     const result = await runLlmTranslation(
       request({
         entries: [entry("a", "Click Save to continue", [])],
-        glossary: { Save: "Speichern" },
+        glossary: termGlossary({ Save: "Speichern" }),
       }),
       mechanism,
     );
@@ -359,5 +384,94 @@ describe("runLlmTranslation: reviewFlags", () => {
     const { mechanism } = stubMechanism(rawResult([{ key: "greeting", value: "Hello {{name}}" }]));
     const result = await runLlmTranslation(request(), mechanism);
     expect(result.reviewFlags?.get("greeting")?.reasons).not.toContain("PROVIDER_DEGRADED");
+  });
+});
+
+describe("runLlmTranslation: plural categories", () => {
+  it("sends the plural categories in the user-turn payload on the first call and the repair round", async () => {
+    const { mechanism, inputs } = sequencedMechanism([
+      { raw: rawResult([]) },
+      { raw: rawResult([{ key: "greeting", value: "Hallo {{name}}" }]) },
+    ]);
+    const pluralCategories = {
+      cardinal: ["one", "few", "many", "other"],
+      ordinal: ["other"],
+    } as const;
+
+    await runLlmTranslation(request({ targetLocale: "ru", pluralCategories }), mechanism, {
+      ru: "Russian",
+    });
+
+    for (const input of inputs) {
+      expect(JSON.parse(input.payloadJson)).toMatchObject({
+        targetLocale: "Russian",
+        pluralCategories,
+      });
+    }
+    expect(inputs).toHaveLength(2);
+  });
+});
+
+describe("runLlmTranslation: localeMap", () => {
+  function payloadOf(input: LlmCompletionInput | undefined): Record<string, unknown> {
+    return JSON.parse(input?.payloadJson ?? "{}") as Record<string, unknown>;
+  }
+
+  it("sends the mapped codes in the payload and leaves unmapped locales as configured", async () => {
+    const { mechanism, inputs } = stubMechanism(
+      rawResult([{ key: "greeting", value: "Olá {{name}}" }]),
+    );
+    const result = await runLlmTranslation(request({ targetLocale: "pt-BR" }), mechanism, {
+      "pt-BR": "Brazilian Portuguese (pt-BR)",
+    });
+    expect(payloadOf(inputs[0])).toMatchObject({
+      sourceLocale: "en",
+      targetLocale: "Brazilian Portuguese (pt-BR)",
+    });
+    expect(result.values.get("greeting")).toBe("Olá {{name}}");
+  });
+
+  it("names the configured locales, not the mapped codes, on every round", async () => {
+    const { mechanism, inputs } = sequencedMechanism([
+      { raw: rawResult([{ key: "a", value: "Zdravo {{name}}" }]) },
+      { raw: rawResult([{ key: "b", value: "Zbogom {{name}}" }]) },
+    ]);
+    await runLlmTranslation(twoEntryRequest({ targetLocale: "sr-Latn" }), mechanism, {
+      "sr-Latn": "sr",
+    });
+    expect(inputs).toHaveLength(2);
+    for (const input of inputs) {
+      expect(payloadOf(input)).toMatchObject({
+        targetLocale: "sr",
+        targetLanguage: { name: "Serbian (Latin)", script: "Latin" },
+      });
+    }
+  });
+
+  it("computes review flags against the configured locales, not the mapped codes", async () => {
+    const { mechanism, inputs } = stubMechanism(
+      rawResult([{ key: "greeting", value: "Hello {{name}}" }]),
+    );
+    const result = await runLlmTranslation(request({ targetLocale: "en-GB" }), mechanism, {
+      en: "English",
+      "en-GB": "English",
+    });
+    expect(payloadOf(inputs[0])).toMatchObject({
+      sourceLocale: "English",
+      targetLocale: "English",
+    });
+    expect(result.reviewFlags?.get("greeting")?.reasons).toContain("EQUALS_SOURCE");
+  });
+
+  it("keeps the mapped codes on the repair round", async () => {
+    const { mechanism, inputs } = sequencedMechanism([
+      { raw: rawResult([{ key: "a", value: "Hallo {{name}}" }]) },
+      { raw: rawResult([{ key: "b", value: "Tschüss {{name}}" }]) },
+    ]);
+    await runLlmTranslation(twoEntryRequest(), mechanism, { de: "de-DE", en: "en-US" });
+    expect(inputs).toHaveLength(2);
+    for (const input of inputs) {
+      expect(payloadOf(input)).toMatchObject({ sourceLocale: "en-US", targetLocale: "de-DE" });
+    }
   });
 });

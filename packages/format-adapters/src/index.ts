@@ -1,10 +1,10 @@
-export type { FormatAdapter, ReadResult } from "./adapter.js";
+export type { FormatAdapter, ReadResult, WriteContext } from "./adapter.js";
 export { createAndroidXmlAdapter } from "./android-xml/android-xml-adapter.js";
 export { androidPluralBaseKey, androidPluralCategoryOf } from "./android-xml/plural.js";
 export { createAppleStringsAdapter } from "./apple-strings/apple-strings-adapter.js";
 export { createArbAdapter } from "./arb/arb-adapter.js";
 export { createDefaultRegistry } from "./default-registry.js";
-export { AdapterError, type AdapterErrorCode } from "./errors.js";
+export { AdapterError, type AdapterErrorCode, type SyntaxPosition } from "./errors.js";
 export {
   createFlatFileAdapter,
   type FlatFileAdapterOptions,
@@ -45,6 +45,7 @@ export {
 } from "./json/tree-file-adapter.js";
 export { createNextIntlJsonAdapter } from "./next-intl/next-intl-adapter.js";
 export { createNgxTranslateJsonAdapter } from "./ngx-translate/ngx-translate-adapter.js";
+export { type PluralFormSet, pluralFormSets, tracksPluralCategories } from "./plural-forms.js";
 export {
   extractPrintfPlaceholders,
   type PrintfPlaceholderOptions,
@@ -53,9 +54,11 @@ export { createPropertiesAdapter } from "./properties/properties-adapter.js";
 export { AdapterRegistry, type AdapterResolution, type ResolveOptions } from "./registry.js";
 export { createResxAdapter } from "./resx/resx-adapter.js";
 export type {
+  CompareBranchArms,
   ComparePlaceholders,
   ComputeInvalidIcuKeys,
   ExtractPlaceholders,
+  PluralCategoryLookup,
   Sniff,
   ValidateMessage,
   ValidateTree,

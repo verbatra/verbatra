@@ -49,6 +49,7 @@
     "@types/node": "catalog:",
     "@verbatra/config": "workspace:*",
     "@vitest/coverage-v8": "catalog:",
+    "fast-check": "4.10.2",
     "tsup": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

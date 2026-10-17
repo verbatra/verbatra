@@ -6,7 +6,7 @@ Request protection inspects `net/http` requests – headers, IP, body – to enf
 
 ## Installation
 
-The published tag is **`github.com/arcjet/arcjet-go` v0.1.0** (June 30, 2026). The module is pre-release and unstable. `go get ...@latest` still resolves that tag. Nested `Metadata`, `WithIPSrc`, Rampart, `decision.IP.Threat`, and Protect transport-failure ERROR decisions are on the module default branch. The module declares **Go 1.25** in `go.mod`; if the project uses an older Go toolchain, warn the user and stop until it is upgraded.
+The current release is **`github.com/arcjet/arcjet-go` v1.0.0** (September 17, 2026), which `go get ...@latest` resolves. It requires Go 1.25+. Nested `Metadata`, `WithIPSrc`, Rampart, `decision.IP.Threat`, and Protect transport-failure ERROR decisions are all in it. If the project uses an older Go toolchain, warn the user and stop until it is upgraded.
 
 Install with Go tooling, not by editing `go.mod` directly:
 
@@ -82,7 +82,7 @@ For rule selection and rate-limiting strategy comparisons, see [Choose protectio
 
 ## Request context
 
-Pass the real `*http.Request` and `r.Context()` so Arcjet respects cancellation and extracts IP/header metadata correctly. If the app is behind trusted reverse proxies, set `Config.Proxies` to the trusted proxy IPs/CIDRs. If the app runs on a known platform, set `Config.Platform` when appropriate.
+Pass the real `*http.Request` and `r.Context()` so Arcjet respects cancellation and extracts IP/header metadata correctly. Outside a supported platform, the SDK first uses a public `RemoteAddr`. When the direct peer matches `Config.Proxies`, it walks `X-Forwarded-For` right-to-left. If `RemoteAddr` is missing or non-public, it may use a public address from a common forwarding header; that result has `Provenance == "unverified-header"`, `Verified == false`, and produces one warning for the lifetime of the SDK client. Set `Config.Proxies` to every trusted proxy IP/CIDR, make the app reachable only through them, and ensure they overwrite or safely append forwarding headers. Malformed entries are rejected; `0.0.0.0/0` and `::/0` emit a warning, while the exact addresses `0.0.0.0` and `::` do not. If the app runs on a known platform, set `Config.Platform` when appropriate.
 
 When the context has no deadline, `Protect` and `ProtectDetails` apply 2s (4s when an email rule is present). The prompt-injection 1s floor is already met. A caller-supplied deadline is never shortened.
 
@@ -90,11 +90,18 @@ For user-based characteristics, use identity established by trusted authenticati
 
 ## Correlation IDs
 
-Pass `arcjet.WithCorrelationId(id)` to `Protect` to correlate this decision with guard calls, workflow runs, or agent traces. It is a dedicated field, not `WithExtra` or `Metadata`, and does not affect the decision.
+Pass `arcjet.WithCorrelationID(id)` to `Protect` to correlate this decision with guard calls, workflow runs, or agent traces. It is a dedicated field, not `WithExtra` or `Metadata`, and does not affect the decision.
 
 ## Explicit client IP
 
-If the application has already determined the client IP from a trusted source, pass `arcjet.WithIPSrc(ip)`. The SDK trusts the value without validating it – do not pass a client-controlled header.
+If the application has already determined the client IP from a trusted source, pass `arcjet.WithIPSrc(ip)`. On current `main`, empty and malformed values are rejected. Syntax validation does not establish provenance – do not pass a client-controlled header.
+
+Before shipping, inspect representative staging requests with
+`client.ClientIPDetails(request)`. Check `IP`, `Provenance`, `Verified`, and
+`Header`; the same values are logged at debug level with
+`client_ip_provenance`, `client_ip_verified`, and `client_ip_header`. The
+diagnostic call does not log or consume the once-per-client warning. Never copy
+`X-Forwarded-For` into `WithIPSrc` to bypass a warning.
 
 ## Metadata
 

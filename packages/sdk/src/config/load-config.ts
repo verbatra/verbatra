@@ -1,14 +1,26 @@
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { cosmiconfig } from "cosmiconfig";
+import { cosmiconfig, type Loader } from "cosmiconfig";
 import { TypeScriptLoader } from "cosmiconfig-typescript-loader";
 import type { z } from "zod";
-import { errorMessage, SdkError } from "../errors.js";
+import { SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
+import { redact } from "../redact.js";
+import { freshConfigLoaders } from "./fresh-loaders.js";
+import {
+  describeGlossaryIssues,
+  isGlossaryDefinition,
+  rawLocaleKeyIssues,
+  version1Entries,
+} from "./glossary.js";
+import { configLoadFailure } from "./load-failure.js";
 import { resolveSelfPackageAliases } from "./module-aliases.js";
+import { rememberProjectRoot } from "./project-root.js";
+import { declareProviderKeyEnvVar } from "./provider-key-env.js";
+import { findDroppedLocaleMapKeys } from "./provider-locale-map.js";
 import { type GlossaryProvenance, resolveGlossary } from "./resolve-glossary.js";
-import { type VerbatraConfig, type VerbatraConfigInput, verbatraConfigSchema } from "./schema.js";
+import { type ParsedVerbatraConfig, type VerbatraConfig, verbatraConfigSchema } from "./schema.js";
 
 const MODULE_NAME = "verbatra";
 
@@ -28,7 +40,12 @@ export const CONFIG_SEARCH_PLACES = [
 
 /** Options for {@link loadConfig} and {@link loadConfigWithMeta}. */
 export interface LoadConfigOptions {
-  /** Directory to search from, and the base for relative paths. Defaults to the process working directory. */
+  /**
+   * Directory the search starts from, and the base a relative `configPath` resolves against.
+   * Defaults to the process working directory. A flow given the loaded config without a `cwd`
+   * resolves its paths against the project root {@link resolveProjectRoot} describes, except for a
+   * `configOverride` config, whose flows fall back to the process working directory.
+   */
   readonly cwd?: string;
   /**
    * A config object to validate directly instead of reading any file. Takes precedence over
@@ -40,6 +57,24 @@ export interface LoadConfigOptions {
   readonly configPath?: string;
   /** File-system port used to read the glossary file. Defaults to the real file system. */
   readonly fs?: SdkFs;
+  /**
+   * Re-evaluate a JavaScript or TypeScript config file instead of reusing what an earlier load in
+   * the same process evaluated. A `.ts` config is re-evaluated together with the modules it
+   * imports; a `.js` or `.cjs` config is re-evaluated alone, so a module it imports or requires
+   * keeps its first evaluation until the process restarts. Without it, a process that loads the
+   * config twice keeps the first result of a `verbatra.config.ts`, `.js`, or `.cjs` file even after
+   * the file changed. A long-running process that reloads the config after an edit sets it. JSON,
+   * YAML, and `package.json` configs are always read afresh. Defaults to `false`.
+   */
+  readonly fresh?: boolean;
+}
+
+/** Where {@link configCandidatePaths} looks: the working directory and an optional explicit config file. */
+export interface ConfigCandidateOptions {
+  /** Directory the config search starts from. Defaults to the process working directory. */
+  readonly cwd?: string;
+  /** An explicit config file, resolved against `cwd`. When set, it is the only candidate. */
+  readonly configPath?: string;
 }
 
 /**
@@ -65,12 +100,40 @@ export type ConfigSource =
 
 /** A validated config together with the provenance of the config itself and of its glossary. */
 export interface LoadedConfig {
-  /** The validated, fully resolved config, with any glossary file already read into a term map. */
+  /** The validated, fully resolved config, with any glossary file already read into memory (a version 1 term map or a version 2 definition). */
   readonly config: VerbatraConfig;
   /** Where the config itself came from. */
   readonly source: ConfigSource;
   /** Where the glossary came from, if the config declared one. */
   readonly glossary: GlossaryProvenance;
+}
+
+/**
+ * Returns the project root for a loaded config: the directory every flow resolves its relative
+ * paths against. A flow given a config that {@link loadConfig} or {@link loadConfigWithMeta} found
+ * by search or through `configPath` already defaults its `cwd` to it; pass it explicitly when the
+ * config was copied or rebuilt, or given as `configOverride`.
+ * Locale files, `verbatra.lock.json`, `verbatra.cache.json`, `verbatra.provenance.json` and
+ * `.verbatra-local/` all live under it. A config found by the upward search roots the project at the
+ * config file's own directory, so a run started in a subdirectory works on the same files as a run
+ * started next to the config. A config named through `configPath`, or given as `configOverride`,
+ * keeps `cwd` as the root.
+ *
+ * @param source - Where the config came from, as {@link LoadedConfig.source} reports it.
+ * @param cwd - The directory the config was loaded from: the `cwd` passed to {@link loadConfigWithMeta}.
+ * @returns The directory to pass as `cwd` to the flows.
+ *
+ * @example
+ * ```ts
+ * import { check, loadConfigWithMeta, resolveProjectRoot } from "@verbatra/sdk";
+ *
+ * const loaded = await loadConfigWithMeta();
+ * const cwd = resolveProjectRoot(loaded.source, process.cwd());
+ * const summary = await check({ config: loaded.config, cwd });
+ * ```
+ */
+export function resolveProjectRoot(source: ConfigSource, cwd: string): string {
+  return source.kind === "search" ? dirname(source.filepath) : cwd;
 }
 
 function isAncestorOrSelf(ancestor: string, startDir: string): boolean {
@@ -124,19 +187,44 @@ function collectSearchChain(startDir: string, stopDir: string): ReadonlySet<stri
   return chain;
 }
 
-function formatIssues(error: z.ZodError): string {
-  return error.issues
-    .map((issue) => {
-      const path = issue.path.join(".");
-      const base = path.length > 0 ? `${path}: ${issue.message}` : issue.message;
-      return issue.code === "unrecognized_keys"
-        ? `${base} (API keys are read from the environment, not the config)`
-        : base;
-    })
-    .join("; ");
+/**
+ * Lists every file {@link loadConfigWithMeta} could load a config from with the same `cwd` and
+ * `configPath`: the explicit file alone when `configPath` is set, otherwise each search place in
+ * each directory of the search chain, nearest directory first, whether or not the file exists. A
+ * long-running process can watch these paths to notice a config being created, edited, or removed
+ * without loading it again on every request. A glossary file the config points at is not included;
+ * {@link LoadedConfig.glossary} names it.
+ *
+ * @param options - The working directory and an optional explicit config file.
+ * @returns Absolute paths, in the order the search would try them.
+ */
+export function configCandidatePaths(options: ConfigCandidateOptions = {}): readonly string[] {
+  const cwd = options.cwd ?? process.cwd();
+  if (options.configPath !== undefined) {
+    return [resolve(cwd, options.configPath)];
+  }
+  return [...collectSearchChain(cwd, findSearchStopDir(cwd))].flatMap((dir) =>
+    CONFIG_SEARCH_PLACES.map((place) => join(dir, place)),
+  );
 }
 
-function parseConfig(input: unknown): VerbatraConfigInput {
+function configLoaders(fresh: boolean): Readonly<Record<string, Loader>> {
+  const alias = resolveSelfPackageAliases();
+  return fresh ? freshConfigLoaders(alias) : { ".ts": TypeScriptLoader({ alias }) };
+}
+
+function formatIssues(error: z.ZodError): string {
+  const described = error.issues.map((issue) => {
+    const path = issue.path.join(".");
+    const base = path.length > 0 ? `${path}: ${issue.message}` : issue.message;
+    return issue.code === "unrecognized_keys"
+      ? `${base} (API keys are read from the environment, not the config)`
+      : base;
+  });
+  return redact([...new Set(described)].join("; "));
+}
+
+function parseConfig(input: unknown): ParsedVerbatraConfig {
   const parsed = verbatraConfigSchema.safeParse(input);
   if (!parsed.success) {
     throw new SdkError(
@@ -144,15 +232,56 @@ function parseConfig(input: unknown): VerbatraConfigInput {
       `The verbatra configuration is invalid: ${formatIssues(parsed.error)}`,
     );
   }
-  return parsed.data;
+  const dropped = findDroppedLocaleMapKeys(parsed.data, input);
+  if (dropped.length > 0) {
+    throw new SdkError(
+      "CONFIG_INVALID",
+      `The verbatra configuration is invalid: ${redact(
+        dropped
+          .map(({ key, message }) => `provider.options.localeMap.${key}: ${message}`)
+          .join("; "),
+      )}`,
+    );
+  }
+  return withRawInlineGlossary(parsed.data, input);
+}
+
+function withRawInlineGlossary(parsed: ParsedVerbatraConfig, input: unknown): ParsedVerbatraConfig {
+  if (typeof parsed.glossary !== "object") {
+    return parsed;
+  }
+  const raw = (input as { readonly glossary?: unknown }).glossary;
+  if (isGlossaryDefinition(parsed.glossary)) {
+    const issues = rawLocaleKeyIssues(raw);
+    if (issues.length > 0) {
+      throw new SdkError(
+        "CONFIG_INVALID",
+        `The verbatra configuration is invalid: ${redact(
+          describeGlossaryIssues(
+            issues.map((issue) => ({ ...issue, path: ["glossary", ...issue.path] })),
+          ),
+        )}`,
+      );
+    }
+    return parsed;
+  }
+  const entries = version1Entries(raw);
+  if (entries === undefined) {
+    throw new SdkError(
+      "CONFIG_INVALID",
+      "The verbatra configuration is invalid: glossary: must be a flat object of string keys to string values",
+    );
+  }
+  return { ...parsed, glossary: Object.fromEntries(entries) };
 }
 
 async function finalizeConfig(
-  parsed: VerbatraConfigInput,
+  parsed: ParsedVerbatraConfig,
   baseDir: string,
   fs: SdkFs,
 ): Promise<{ config: VerbatraConfig; glossary: GlossaryProvenance }> {
   const { glossary: glossaryInput, ...rest } = parsed;
+  declareProviderKeyEnvVar(rest.provider);
   const resolved = await resolveGlossary(glossaryInput, baseDir, fs);
   const config: VerbatraConfig = {
     ...rest,
@@ -176,12 +305,12 @@ async function loadExplicitWithMeta(
   try {
     result = await explorer.load(resolved);
   } catch (error) {
-    const detail = errorMessage(error);
-    throw new SdkError("CONFIG_INVALID", `Failed to load the verbatra configuration: ${detail}`);
+    throw configLoadFailure(error);
   }
 
   const parsed = parseConfig(result?.config);
   const { config, glossary } = await finalizeConfig(parsed, dirname(resolved), fs);
+  rememberProjectRoot(config, cwd ?? process.cwd());
   return { config, source: { kind: "explicit", filepath: resolved }, glossary };
 }
 
@@ -203,7 +332,7 @@ async function loadExplicitWithMeta(
  * fallback to searching, so a typo in a path never silently loads a different project's config.
  *
  * A glossary given as a path is read and validated here, so the returned config always carries a
- * resolved term map.
+ * glossary already held in memory (a version 1 term map or a version 2 definition).
  *
  * A `verbatra.config.ts` file is transpiled and loaded through jiti. When it imports `@verbatra/sdk`
  * or `@verbatra/cli`, those bare specifiers are aliased to the package that is actually running this
@@ -218,7 +347,8 @@ async function loadExplicitWithMeta(
  * @throws {@link SdkError} `CONFIG_NOT_FOUND`: no config was found by search, or the explicit
  * `configPath` does not exist.
  * @throws {@link SdkError} `CONFIG_INVALID`: the config could not be loaded or fails validation, or
- * its glossary file is missing, oversized, not UTF-8, not valid JSON, or not a flat string map.
+ * its glossary file is missing, oversized, not UTF-8, not valid JSON, neither a flat string map nor
+ * a valid version 2 glossary, or declares an unsupported version.
  */
 export async function loadConfigWithMeta(options: LoadConfigOptions = {}): Promise<LoadedConfig> {
   const fs = options.fs ?? defaultFs;
@@ -234,7 +364,7 @@ export async function loadConfigWithMeta(options: LoadConfigOptions = {}): Promi
 
   const explorer = cosmiconfig(MODULE_NAME, {
     searchPlaces: CONFIG_SEARCH_PLACES,
-    loaders: { ".ts": TypeScriptLoader({ alias: resolveSelfPackageAliases() }) },
+    loaders: configLoaders(options.fresh ?? false),
     searchStrategy: "global",
     stopDir,
   });
@@ -247,8 +377,7 @@ export async function loadConfigWithMeta(options: LoadConfigOptions = {}): Promi
   try {
     result = await explorer.search(cwd);
   } catch (error) {
-    const detail = errorMessage(error);
-    throw new SdkError("CONFIG_INVALID", `Failed to load the verbatra configuration: ${detail}`);
+    throw configLoadFailure(error);
   }
 
   if (result !== null && result.isEmpty !== true) {
@@ -267,6 +396,7 @@ export async function loadConfigWithMeta(options: LoadConfigOptions = {}): Promi
 
   const parsed = parseConfig(result.config);
   const { config, glossary } = await finalizeConfig(parsed, dirname(result.filepath), fs);
+  rememberProjectRoot(config, dirname(result.filepath));
   return { config, source: { kind: "search", filepath: result.filepath }, glossary };
 }
 
@@ -278,9 +408,14 @@ export async function loadConfigWithMeta(options: LoadConfigOptions = {}): Promi
  * cosmiconfig search upward from `cwd`, stopping at the nearest ancestor `.git` directory, or
  * failing that, the user's home directory when it is an ancestor of `cwd`, or failing that, `cwd`
  * itself. A glossary declared as a file path is read and validated here, so the returned
- * {@link VerbatraConfig} always carries a resolved term map.
+ * {@link VerbatraConfig} always carries a glossary already held in memory (a version 1 term map or
+ * a version 2 definition).
  *
- * Reach for {@link loadConfigWithMeta} when you also need to know which file was loaded.
+ * A config found by the search roots the project at the config file's directory, and a config
+ * loaded from `configPath` at `cwd`: a flow given the returned config without a `cwd` of its own
+ * resolves its paths against that root, so a process started in a subdirectory of the project works
+ * on the project's own files. Reach for {@link loadConfigWithMeta} when you also need to know which
+ * file was loaded.
  *
  * @param options - Where and how to look for the config.
  * @returns The validated, fully resolved config.
@@ -288,7 +423,8 @@ export async function loadConfigWithMeta(options: LoadConfigOptions = {}): Promi
  * @throws {@link SdkError} `CONFIG_NOT_FOUND`: no config was found by search, or the explicit
  * `configPath` does not exist.
  * @throws {@link SdkError} `CONFIG_INVALID`: the config could not be loaded or fails validation, or
- * its glossary file is missing, oversized, not UTF-8, not valid JSON, or not a flat string map.
+ * its glossary file is missing, oversized, not UTF-8, not valid JSON, neither a flat string map nor
+ * a valid version 2 glossary, or declares an unsupported version.
  *
  * @example
  * ```ts

@@ -9,19 +9,16 @@ export function AccordionItem({
   summary,
   defaultOpen = false,
   className,
-  dir,
   children,
 }: {
   readonly summary: ReactNode;
   readonly defaultOpen?: boolean;
   readonly className?: string;
-  readonly dir?: "ltr" | "rtl" | undefined;
   readonly children: ReactNode;
 }): ReactNode {
   return (
     <details
       open={defaultOpen}
-      dir={dir}
       className={cn("rounded-lg border border-border bg-card p-4", className)}
     >
       <summary className="cursor-pointer list-none font-mono text-base marker:content-none [&::-webkit-details-marker]:hidden">

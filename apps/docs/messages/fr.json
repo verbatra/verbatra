@@ -1,115 +1,135 @@
 {
+  "docs": {
+    "machineTranslated": {
+      "title": "Page traduite automatiquement",
+      "text": "Cette page a été traduite automatiquement, elle peut donc contenir des erreurs ou se lire un peu bizarrement. La version anglaise fait foi.",
+      "viewOriginal": "Lire l'original en anglais"
+    },
+    "outdatedTranslation": {
+      "title": "La traduction n'est peut-être plus à jour",
+      "text": "La page anglaise a changé après cette traduction."
+    },
+    "notTranslated": {
+      "title": "Non disponible dans ta langue",
+      "text": "Cette page n'est pas encore traduite, elle s'affiche donc en anglais."
+    },
+    "codeBlock": {
+      "output": "Sortie"
+    },
+    "availableFrom": {
+      "title": "Disponible à partir de {version}",
+      "text": "Il te faut verbatra {version} ou plus récent. Les versions antérieures ne l'ont pas : vérifie ta version installée avec <code>verbatra --version</code> et mets à jour si elle est plus ancienne.",
+      "packageTitle": "Disponible à partir de {version}",
+      "packageText": "Il te faut {version} ou plus récent. Les versions antérieures ne l'ont pas : mets à jour ce paquet si le tien est plus ancien."
+    },
+    "llms": {
+      "heading": "Pour les agents IA",
+      "index": "llms.txt (index)",
+      "full": "llms-full.txt (texte intégral)"
+    },
+    "screenshot": {
+      "label": "Verbatra Studio",
+      "tablistLabel": "Thème de la capture",
+      "dark": "Sombre",
+      "light": "Clair"
+    },
+    "diffPanel": {
+      "label": "Un diff où seule la clé de traduction modifiée est retraduite",
+      "caption": "Seule la clé modifiée est envoyée au fournisseur. Les clés à jour restent intactes."
+    },
+    "statusBadges": {
+      "new": "nouveau"
+    },
+    "startHere": {
+      "title": "Commence ici",
+      "lead": "Avec `@verbatra/cli` installé, une commande relie Claude Code, Codex, Gemini CLI, Cursor ou VS Code à verbatra, sans dépense. Pour tout autre agent : colle le prompt.",
+      "markdown": "Commence ici : une fois `@verbatra/cli` installé dans le projet, `{command}` relie ton agent de code, sans dépense."
+    },
+    "mcpInstall": {
+      "label": "Ajouter à {client}"
+    },
+    "theme": {
+      "light": "Thème clair"
+    }
+  },
   "landing": {
     "meta": {
-      "title": "verbatra : traduction i18n incrémentale pour les fichiers de locale",
-      "ogTitle": "verbatra : synchronisation i18n incrémentale",
-      "description": "Garde tes fichiers de locale i18n synchronisés. verbatra traduit uniquement les clés qui ont changé, via le fournisseur d'IA ou de traduction automatique de ton choix. Commence maintenant.",
-      "ogDescription": "Garde tes fichiers de locale i18n synchronisés. Traduis uniquement les clés modifiées.",
-      "ogImageAlt": "verbatra garde tes fichiers de locale i18n synchronisés et traduit uniquement les clés qui ont changé.",
-      "definition": "verbatra est une CLI et un SDK qui gardent tes fichiers de locale i18n synchronisés en ne traduisant que les clés qui ont changé, via le fournisseur d'IA ou de traduction automatique de ton choix."
+      "title": "Verbatra : la CLI i18n qui ne traduit que les clés modifiées",
+      "ogTitle": "Verbatra : ne traduis que ce qui a changé",
+      "description": "Verbatra, CLI et SDK i18n open source, trouve les clés manquantes ou modifiées de tes fichiers de locale et ne traduit qu’elles, avec ta clé de fournisseur.",
+      "ogDescription": "Ne traduis que les clés i18n qui ont changé, et fais échouer la CI tant qu’une clé manque.",
+      "ogImageAlt": "Verbatra : Ne traduis que ce qui a changé, au-dessus d’une exécution de check qui trouve deux clés manquantes par locale et d’une exécution de translate qui n’envoie que celles-ci.",
+      "definition": "Verbatra est une CLI et un SDK open source pour les fichiers de locale i18n. Il n’envoie que les clés nouvelles et modifiées au fournisseur de traduction automatique ou d’IA que tu choisis, et fait échouer la CI tant qu’une clé est manquante."
     },
     "hero": {
-      "headline": "Traduis uniquement ce qui a changé.",
-      "lead": "verbatra compare ta locale source à un fichier de verrouillage commité, envoie uniquement les clés nouvelles et modifiées au fournisseur que tu choisis, et laisse toutes les autres clés intactes.",
-      "ctaGithub": "Mets une étoile sur GitHub",
-      "ctaStart": "Démarrer",
-      "facts": {
-        "release": "Dernière version",
-        "formats": "Formats de fichier",
-        "providers": "Fournisseurs",
-        "license": "Licence"
-      }
-    },
-    "terminal": {
-      "sessionLabel": "Un exemple de session verbatra en ligne de commande.",
-      "transcript": {
-        "run": {
-          "l1": "diff en.json · 2 nouvelles · 1 modifiée · 117 inchangées",
-          "l2": "de  3 traduites · 117 intactes · 0 retenue",
-          "l3": "es  3 traduites · 117 intactes · 0 retenue",
-          "l4": "fr  3 traduites · 117 intactes · 0 retenue",
-          "l5": "✓ 9 clés traduites en 1,8 s · 351 intactes · verrou mis à jour"
+      "tracks": {
+        "label": "Choisis un flux de travail",
+        "exitCode": "sortie {code}",
+        "translate": {
+          "tab": "Traduire",
+          "summary": "Repère les clés qui manquent à tes langues cibles, puis traduis uniquement celles-ci et vois combien de jetons chaque langue a utilisés.",
+          "link": "Lis la commande de traduction"
+        },
+        "agents": {
+          "tab": "Agents IA",
+          "summary": "Enregistre le serveur MCP pour le projet, et ton agent de codage pourra lire le statut et corriger les traductions.",
+          "link": "Connecte un client MCP"
+        },
+        "ci": {
+          "tab": "Passerelles CI",
+          "summary": "`verbatra check` retourne 1 quand une locale a des clés manquantes, ce qui fait échouer la demande de tirage avant que le décalage ne soit déployé.",
+          "link": "En savoir plus sur la CI et les codes de sortie"
         }
       }
     },
     "install": {
-      "tablistLabel": "Gestionnaire de paquets",
       "copy": "Copier",
       "copied": "Copié",
-      "copyAria": "Copier la commande d'installation",
-      "copyPromptAria": "Copier le prompt de configuration pour l'agent IA",
-      "pnpmNote": "pnpm installe correctement mais sort avec le code 1 et ERR_PNPM_IGNORED_BUILDS, car il bloque les scripts d'installation d'une dépendance. Lance pnpm approve-builds une fois, ou consulte la page",
-      "pnpmNoteLink": "Dépannage",
-      "aiTabLabel": "IA",
-      "aiCaption": "Ceci est un aperçu tronqué. Le prompt complet et la marche à suivre sont dans",
-      "aiCaptionLink": "le guide de configuration",
-      "copyCommand": "Copier {command}"
-    },
-    "gate": {
-      "rows": {
-        "key": "clé",
-        "candidate": "candidate",
-        "missing": "manquant",
-        "reason": "motif",
-        "kept": "conservée"
-      },
-      "annotations": {
-        "new": "nouvelle",
-        "kept": "conservée"
-      }
-    },
-    "how": {
-      "heading": "Chaque exécution est un diff, pas une réécriture.",
-      "steps": {
-        "configure": {
-          "title": "Configure",
-          "body": "Locale source, cibles, un fournisseur."
-        },
-        "diff": {
-          "title": "Compare",
-          "body": "Nouvelles, modifiées, inchangées ou orphelines, par rapport au fichier de verrouillage."
-        },
-        "translate": {
-          "title": "Traduis",
-          "body": "Seules les clés nouvelles et modifiées partent."
-        },
-        "verifyWrite": {
-          "title": "Vérifie et écris",
-          "body": "Les résultats cassés sont retenus, le reste est écrit."
-        }
-      }
+      "copyFailed": "Copie échouée",
+      "copyAria": "Copier la commande d’installation",
+      "copyAgentAria": "Copier la commande de configuration de l’agent",
+      "aiLabel": "Prompt pour agents IA",
+      "copyPromptAria": "Copier le prompt de configuration pour l’agent IA",
+      "copyCommand": "Copier {command}",
+      "promptCta": "Commence avec un prompt",
+      "promptCopied": "Prompt copié",
+      "promptCopyFailed": "Impossible de copier l’invite. Sélectionne-la dans l’aperçu et copie-la à la main.",
+      "promptPreviewLabel": "Copie ce prompt pour ton agent"
     },
     "faq": {
-      "heading": "Questions fréquentes",
+      "heading": "Avant d’installer Verbatra.",
+      "lead": "Réponses courtes, chacune avec la page de la documentation qui approfondit.",
+      "docs": {
+        "label": "Dans la documentation",
+        "quickstart": "Démarrage rapide",
+        "safety": "Sécurité de la traduction",
+        "compare": "Comparaison complète"
+      },
       "items": {
-        "incremental": {
-          "question": "Comment verbatra évite-t-il de tout re-traduire à chaque exécution ?",
-          "answer": "Il tient un fichier de verrouillage commité qui enregistre ce qui a déjà été traduit. Chaque exécution compare ta locale source à ce fichier de verrouillage et n'envoie que les clés nouvelles ou modifiées à ton fournisseur. Les clés inchangées ne sont jamais touchées, donc une exécution typique coûte une poignée de chaînes, pas tout ton catalogue."
+        "cost": {
+          "question": "Verbatra est-il gratuit ?",
+          "answer": "Oui. Verbatra est gratuit et open source sous la <license>licence MIT</license>, et tu ne paies ton fournisseur que pour les clés modifiées ; <link>l’estimation des coûts</link> dimensionne d’abord une exécution."
         },
         "providers": {
-          "question": "Quels fournisseurs de traduction puis-je utiliser ?",
-          "answer": "Six, derrière une seule interface : Anthropic, OpenAI et Gemini (LLM), DeepL et Google Cloud Translation (traduction automatique), et openai-compatible, qui pointe verbatra vers un serveur local ou auto-hébergé comme Ollama, LM Studio ou vLLM. Tu en choisis un par son id dans ta configuration, et tu en changes plus tard en modifiant cette seule ligne. Gemini a une vraie offre gratuite, et un modèle local ne coûte rien par appel."
+          "question": "Quels fournisseurs de traduction Verbatra prend-il en charge ?",
+          "answer": "{providers}{pending, select, yes {, plus {upcoming} de {next}} other {}}. Définis-en un dans le bloc <code>provider</code>, ou <code>none</code> si seuls des humains traduisent ; voir les <link>fournisseurs</link>."
         },
-        "formats": {
-          "question": "Quels formats et frameworks verbatra prend-il en charge ?",
-          "answer": "JSON pour i18next, vue-i18n, next-intl et ngx-translate, ainsi que XLIFF, YAML, Flutter ARB, Java/Spring .properties, Apple .strings et les String Catalogs de Xcode, Android strings.xml, les fichiers gettext .po/.pot, INI et .NET .resx. Cela couvre React, Next.js, Vue, Nuxt, Angular, SvelteKit, Astro, Node.js, Spring, Flutter, iOS, macOS, Android et toute stack basée sur gettext. verbatra lit les fichiers que tu as déjà ; il n'y a aucun format propre à verbatra vers lequel migrer."
+        "privacy": {
+          "question": "Verbatra envoie-t-il mes chaînes ou mes clés API n’importe où ?",
+          "answer": "Uniquement au fournisseur que tu configures, quand une commande traduit ; aucune télémétrie. Les clés restent dans l’environnement, et la <link>gestion des données</link> liste ce que reçoit chaque fournisseur."
         },
-        "safety": {
-          "question": "Qu'est-ce qui empêche une mauvaise traduction de casser mon app ?",
-          "answer": "Chaque résultat passe des contrôles d'intégrité des placeholders et de l'ICU avant d'être écrit. Une traduction qui supprime, invente ou réordonne un placeholder, ou qui produit une syntaxe de message ICU invalide, est retenue plutôt qu'enregistrée dans ton fichier de locale. La même barrière d'intégrité s'applique aux modifications et aux retraductions faites dans Verbatra Studio."
+        "ci": {
+          "question": "Verbatra peut-il faire échouer une demande de tirage si des traductions sont manquantes ?",
+          "answer": "Oui. <code>verbatra check</code> renvoie le code 1 tant qu’une langue a des clés manquantes ou obsolètes, sans clé API ; la <link>GitHub Action</link> l’exécute sur les demandes de tirage."
         },
-        "cost": {
-          "question": "Combien coûte verbatra ?",
-          "answer": "verbatra lui-même est gratuit et open source sous licence MIT. Le seul coût est l'usage de ton fournisseur, et c'est toi qui le contrôles : il ne traduit que ce qui a changé, et tu peux le faire tourner gratuitement sur l'offre gratuite de Gemini ou sur un modèle local compatible OpenAI."
+        "incremental": {
+          "question": "Verbatra retraduit-il des chaînes qui n’ont pas changé ?",
+          "answer": "Non. Seules les clés nouvelles et modifiées sont envoyées à ton fournisseur ; un <link>fichier de verrouillage</link> enregistré garde une trace de ce qui est déjà traduit."
         }
       }
     },
-    "finalClose": {
-      "heading": "Arrête de synchroniser tes fichiers de locale à la main.",
-      "docs": "Lire la documentation"
-    },
     "footer": {
-      "tagline": "Traduis uniquement ce qui a changé. Une CLI et un SDK open source qui gardent tes fichiers de locale i18n synchronisés via le fournisseur que tu choisis.",
+      "tagline": "Une CLI et un SDK open source qui gardent tes fichiers de locale i18n synchronisés via le fournisseur de ton choix.",
       "cols": {
         "product": {
           "title": "Produit",
@@ -118,182 +138,392 @@
           "sdk": "SDK",
           "studio": "Studio",
           "mcpServer": "Serveur MCP",
-          "githubAction": "GitHub Action"
-        },
-        "learn": {
-          "title": "Apprendre",
+          "githubAction": "GitHub Action",
           "howItWorks": "Comment ça marche",
           "providers": "Fournisseurs",
           "formats": "Formats",
           "lockFile": "Le fichier de verrouillage",
-          "configFile": "Fichier de configuration"
+          "configFile": "Fichier de configuration",
+          "compare": "Comparaison",
+          "llmsIndex": "llms.txt (index)",
+          "llmsFull": "llms-full.txt (texte intégral)",
+          "aiTxt": "ai.txt (politique d’utilisation)"
         },
-        "legal": {
-          "title": "Informations légales",
-          "privacy": "Politique de confidentialité",
-          "imprint": "Mentions légales",
-          "contact": "Contact"
+        "packages": {
+          "title": "Packages",
+          "releases": "Notes de version"
         },
         "community": {
           "title": "Communauté",
+          "contributing": "Contribuer",
           "codeOfConduct": "Code de conduite",
-          "security": "Politique de sécurité",
-          "releases": "Notes de version"
+          "security": "Politique de sécurité"
         },
-        "agents": {
-          "title": "Pour les agents IA",
-          "llmsIndex": "llms.txt (index)",
-          "llmsFull": "llms-full.txt (texte intégral)",
-          "aiTxt": "ai.txt (politique d'utilisation)"
+        "legal": {
+          "title": "Informations légales",
+          "license": "Licence MIT",
+          "privacy": "Politique de confidentialité",
+          "imprint": "Mentions légales (Impressum)",
+          "contact": "Contact",
+          "licenses": "Licences"
         }
       },
-      "legalLine": "Open source sous la licence MIT · © 2026 Mario Kreitz",
-      "githubAria": "verbatra sur GitHub",
-      "npmAria": "verbatra sur npm",
-      "contributorsTitle": "Contributeurs",
-      "contributorAria": "{name} sur GitHub"
+      "versionParts": "CLI et SDK v{cli}, Studio v{studio}, serveur MCP v{mcp}",
+      "legalLicense": "Open source sous licence MIT",
+      "legalCopyright": "© 2026 Mario Kreitz",
+      "githubAria": "Verbatra sur GitHub",
+      "npmAria": "Verbatra sur npm",
+      "language": "Langue"
     },
     "brand": {
       "vmarkAlt": "verbatra"
     },
     "nav": {
       "docs": "Docs",
-      "providers": "Fournisseurs",
-      "formats": "Formats",
-      "contributing": "Contribuer",
-      "startWithAi": "Commencer avec l'IA",
+      "reference": "Référence",
+      "version": {
+        "label": "Notes de version {version}"
+      },
       "languageSwitcher": {
         "chooseLanguage": "Choisis une langue",
         "triggerAriaSuffix": "choisir la langue",
         "machineTranslatedLabel": "Traduction automatique",
-        "machineTranslatedDescription": "L'interface et les pages de documentation pour cette langue sont traduites avec l'IA."
+        "machineTranslatedDescription": "L’interface et les pages de documentation pour cette langue sont traduites avec l’IA."
       },
-      "contact": "Contact",
-      "npm": "verbatra sur npm",
       "skipToContent": "Aller au contenu"
     },
-    "proof": {
-      "lock": {
-        "body": "Un hash par clé et par locale, commité à côté de tes fichiers.",
-        "title": "Le fichier de verrouillage"
-      },
-      "refused": {
-        "body": "Retenu, jamais écrit, renvoyé à la prochaine exécution.",
-        "title": "Refusé avant d'atteindre le fichier"
-      },
-      "written": {
-        "body": "de.json après l'exécution.",
-        "title": "Écrit, et rien d'autre"
+    "topNav": {
+      "label": "Principal",
+      "docs": "Docs",
+      "github": "GitHub",
+      "starsAria": "GitHub {count} étoiles",
+      "changelog": "Changelog",
+      "getStarted": "Démarrer",
+      "menu": {
+        "open": "Ouvrir le menu",
+        "close": "Fermer le menu",
+        "title": "Menu"
       }
     },
-    "gains": {
-      "heading": "Ce que tu obtiens vraiment.",
-      "items": {
-        "ci": {
-          "body": "<code>verbatra check</code> renvoie le code 1 quand une locale manque ou est obsolète, avec <code>--json</code> pour la CI.",
-          "note": "ce site le lance à chaque pull request",
-          "title": "Une locale qui dérive fait échouer la pull request."
-        },
-        "config": {
-          "body": "Un glossaire fixe la traduction des termes listés ; <code>tone</code> définit un ton formel, informel ou neutre.",
-          "note": "le verbatra.config.ts de ce site",
-          "title": "Tes termes et ton registre ne bougent pas."
-        },
-        "cost": {
-          "body": "Seules les clés nouvelles et modifiées partent chez le fournisseur, et chaque exécution affiche son nombre de tokens par locale.",
-          "note": "une exécution sur les messages de ce site",
-          "title": "Tu paies pour les clés que tu as modifiées."
-        },
-        "gate": {
-          "body": "Une traduction candidate qui perd un placeholder, casse l'ICU ou déséquilibre le balisage est retenue, jamais écrite et renvoyée à la prochaine exécution.",
-          "note": "la même barrière d'intégrité protège les modifications dans Studio et les imports",
-          "title": "Un placeholder cassé n'atteint jamais la production."
-        },
-        "git": {
-          "body": "Les fichiers de locale et le fichier de verrouillage sont du texte brut dans ton dépôt, et rien n'est supprimé sans <code>--prune</code>.",
-          "note": "un hash par clé et par locale cible",
-          "title": "Chaque traduction est un diff git."
-        },
-        "handoff": {
-          "body": "Export et import Excel pour les traducteurs, TMX pour la mémoire de traduction, types TypeScript générés pour tes clés.",
-          "note": "quatre des quatorze commandes",
-          "title": "Des personnes et d'autres outils peuvent prendre le relais."
-        }
+    "banner": {
+      "announcement": {
+        "badge": "Nouveau",
+        "text": "La v{version} est disponible"
       },
-      "lead": "L'allemand, l'espagnol et le français de cette page en proviennent."
-    },
-    "loop": {
-      "heading": "Le reste de la boucle de traduction, dans le même outil.",
-      "links": {
-        "llms": "llms.txt",
-        "llmsFull": "llms-full.txt",
-        "mcpDocs": "Documentation du serveur MCP"
-      },
-      "rows": {
-        "agent": {
-          "body": "Un serveur MCP, plus des skills installables pour la CLI, MCP et Studio.",
-          "cta": "Commencer avec l'IA",
-          "title": "Ou confie-le à ton agent."
-        },
-        "ci": {
-          "body": "<code>watch</code> traduit à chaque modification. <code>check</code> fait échouer la pull request quand une locale dérive.",
-          "cta": "Configurer la CI",
-          "title": "Lance-le à l'enregistrement, en CI ou depuis une GitHub Action."
-        },
-        "excel": {
-          "body": "Exporte, récupère-le rempli, réimporte-le via la même barrière d'intégrité.",
-          "cta": "En savoir plus sur le transfert Excel",
-          "title": "Confie un classeur aux traducteurs, puis réimporte-le."
-        },
-        "studio": {
-          "alt": "La page Révision de Verbatra Studio affichant cinq entrées signalées dans les locales de, es et fr ; chaque ligne montre la clé, ses motifs de révision et les actions Edit, Approve et Reject.",
-          "body": "Couverture, entrées signalées, modifications sur place. Aucun appel au fournisseur.",
-          "cta": "Réviser les traductions dans Studio",
-          "title": "Consulte l'état de chaque locale dans Verbatra Studio."
-        }
-      },
-      "table": {
-        "key": "clé",
-        "source": "source",
-        "target": "cible"
-      }
+      "headline": "Ne traduis que ce qui a changé.",
+      "lead": "Verbatra remplit les clés manquantes dans tes fichiers de localisation, donne à ton agent de codage un serveur MCP et fait échouer la CI lorsque les traductions dérivent.",
+      "ctaPrimary": "Démarrer",
+      "ctaSecondary": "Mets une étoile sur GitHub",
+      "license": "Sous licence MIT et open source.",
+      "nodeRequirement": "Nécessite Node.js {versions}",
+      "nodeMajorFrom": "{major} ({minimum} ou plus récente)"
     },
     "marquee": {
-      "formatTip": "format: \"{id}\"",
-      "formatsLabel": "Formats de fichier que verbatra lit et écrit",
-      "frameworks": {
-        "android": "strings.xml",
-        "angular": "ngx-translate JSON ou XLIFF",
-        "apple": ".strings et .xcstrings",
-        "astro": "i18next JSON ou YAML",
-        "dotnet": ".resx",
-        "flutter": "Flutter ARB",
-        "next": "next-intl JSON",
-        "node": "i18next JSON",
-        "nuxt": "vue-i18n JSON",
-        "react": "i18next JSON",
-        "reactNative": "i18next JSON",
-        "spring": "Java .properties",
-        "svelte": "i18next JSON ou YAML",
-        "vue": "vue-i18n JSON"
-      },
-      "frameworksLabel": "Frameworks avec lesquels verbatra fonctionne",
-      "intro": "Fonctionne avec les fichiers de locale que tu as déjà.",
-      "label": "Frameworks et formats pris en charge"
+      "heading": "Fonctionne avec les fichiers de langue et les fournisseurs que tu utilises déjà.",
+      "lead": "Changer de fournisseur revient à modifier un bloc du fichier de configuration. Tes fichiers de langue restent où ils sont, dans leur format actuel.",
+      "pause": "Mettre l’animation en pause",
+      "play": "Lancer l’animation",
+      "providers": "Fournisseurs",
+      "formats": "Formats de fichiers",
+      "new": "Nouveau",
+      "allProviders": "Tous les fournisseurs",
+      "allFormats": "Tous les formats"
     },
-    "providers": {
-      "heading": "Six fournisseurs, une interface.",
-      "hint": "Survole les cartes ou parcours-les avec Tab.",
-      "kinds": {
-        "anthropic": "modèles Claude",
-        "deepl": "traduction automatique",
-        "gemini": "offre gratuite disponible",
-        "googleTranslate": "traduction automatique",
-        "openai": "modèles GPT",
-        "openaiCompatible": "Ollama, vLLM, LM Studio"
+    "playground": {
+      "heading": "Traduis une chaîne avec le SDK.",
+      "lead": "Choisis une chaîne et des langues cibles, puis appuie sur Traduire. Le code montre l’appel au SDK qui a produit ces résultats.",
+      "items": "Chaîne source",
+      "languages": "Langues cibles",
+      "translate": "Traduire",
+      "results": "Résultat",
+      "source": "Source",
+      "noLanguages": "Choisis au moins une langue cible.",
+      "notSelected": "Non sélectionné",
+      "stale": "Appuie sur Traduire pour mettre à jour",
+      "copy": "Copier le code",
+      "label": "Pré-généré avec le SDK Verbatra et Gemini, non en direct.",
+      "metadata": {
+        "label": "Comment ces résultats ont été générés",
+        "provider": "Fournisseur",
+        "model": "Modèle",
+        "generated": "Généré"
       },
-      "lead": "Change de fournisseur en modifiant une ligne de configuration."
+      "languageNames": {
+        "de": "Allemand",
+        "es": "Espagnol",
+        "fr": "Français",
+        "ja": "Japonais"
+      },
+      "table": {
+        "caption": "Chaque résultat pré-généré, une ligne par chaîne source",
+        "source": "Source (Anglais)"
+      },
+      "links": {
+        "label": "En savoir plus",
+        "quickstart": "Démarrage rapide du SDK",
+        "reference": "Référence du SDK",
+        "providers": "Fournisseurs"
+      }
+    },
+    "steps": {
+      "items": {
+        "check": {
+          "title": "Vérifier",
+          "body": "`verbatra check` compare la source, les cibles et le fichier de verrouillage. Il n’appelle aucun fournisseur et n’a besoin d’aucune clé."
+        },
+        "translate": {
+          "title": "Traduire",
+          "body": "`verbatra translate` n’envoie que les clés manquantes ou modifiées et refuse tout résultat aux placeholders divergents, au balisage inline cassé ou à la syntaxe ICU invalide."
+        },
+        "ci": {
+          "title": "Bloquer en CI",
+          "body": "La GitHub Action exécute `check` sur chaque pull request et la fait échouer tant qu’une locale n’est pas synchronisée."
+        }
+      }
+    },
+    "compare": {
+      "heading": "Verbatra face à Lingo.dev et aux TMS hébergés.",
+      "lead": "Chaque cellule cite sa source. Verbatra n’écrit jamais une traduction qui casse un placeholder ou un message ICU.",
+      "caption": "Verbatra, Lingo.dev, systèmes de gestion de traduction hébergés et un workflow manuel, comparés sur la licence, les propres clés, les exécutions incrémentielles, la CI et le MCP",
+      "columns": {
+        "criterion": "Critère",
+        "verbatra": "Verbatra",
+        "lingo": "Lingo.dev",
+        "hostedTms": "TMS hébergé",
+        "manual": "Processus manuel"
+      },
+      "rows": {
+        "license": {
+          "label": "Open source, licence",
+          "verbatra": "Oui, MIT",
+          "lingo": "Dépôt Apache-2.0 ; le CLI actuel n’a pas de champ de licence ; la plateforme n’est pas décrite comme open source",
+          "tolgee": "Cœur Apache-2.0, parties d’entreprise sous une licence non commerciale ; CLI MIT",
+          "weblate": "Oui, GPL-3.0-or-later, le CLI `wlc` aussi",
+          "crowdin": "CLI et GitHub Action MIT ; aucune source de plateforme publique trouvée",
+          "lokalise": "CLI BSD-3-Clause ; aucune source de plateforme publique trouvée",
+          "phrase": "CLI et Action setup-cli MIT ; aucune source de plateforme publique trouvée",
+          "manual": "Non applicable, pas de produit",
+          "hostedTms": "CLIs open source (MIT, BSD-3-Clause, MIT) ; aucune source de plateforme publique trouvée pour aucun des trois"
+        },
+        "selfHosting": {
+          "label": "Auto-hébergement",
+          "verbatra": "S’exécute sur ta machine et dans ta CI ; il n’y a pas de service hébergé",
+          "lingo": "Aucune offre de plateforme auto-hébergée trouvée ; l’ancien CLI open source peut fonctionner avec un modèle Ollama local",
+          "tolgee": "Oui ; les fonctionnalités avancées nécessitent une licence",
+          "weblate": "Oui, ou hébergé par Weblate",
+          "crowdin": "Inconnu : la page tarifaire ne mentionne aucune option sur site et aucune déclaration dans un sens ou dans l’autre n’a été trouvée",
+          "lokalise": "Non : les déploiements sur site et dans le cloud privé ne sont pas pris en charge",
+          "phrase": "Inconnu : la page tarifaire ne mentionne aucune option auto-hébergée et aucune déclaration dans un sens ou dans l’autre n’a été trouvée",
+          "manual": "Non applicable, pas de produit ; dépend du service que tu choisis"
+        },
+        "pricing": {
+          "label": "Modèle de tarification",
+          "verbatra": "Gratuit ; ton fournisseur te facture directement son utilisation",
+          "lingo": "Basé sur l’utilisation, avec un niveau Sandbox gratuit",
+          "tolgee": "Plan gratuit ; niveaux payants tarifés par mots hébergés",
+          "weblate": "Hébergé : tarifé par chaînes hébergées, plan Libre gratuit pour les projets open source publics ; auto-hébergé : gratuit",
+          "crowdin": "Plans payants tarifés principalement par mots hébergés ; essais ; licences gratuites pour les projets open source",
+          "lokalise": "Quatre niveaux payants, essai de 14 jours",
+          "phrase": "Plans payants facturés par sièges et mots, essai de 14 jours",
+          "manual": "Temps de développement plus le service que tu choisis, pas de produit"
+        },
+        "providers": {
+          "label": "Fournisseurs d’IA et de traduction automatique",
+          "verbatra": "Intégré : {providers}",
+          "lingo": "LLM de nombreux fournisseurs, parmi lesquels OpenAI, Anthropic et Google ; aucun moteur de traduction automatique classique tel que DeepL n’est listé",
+          "tolgee": "Traduction automatique : DeepL, Google, Amazon, Azure, Baidu (auto-hébergé uniquement) ; LLM : OpenAI, Azure OpenAI, Anthropic, Gemini, API compatibles OpenAI",
+          "weblate": "29 services intégrés, incluant DeepL, OpenAI, Anthropic et LibreTranslate",
+          "crowdin": "Traduction automatique : DeepL, Google, Microsoft, Amazon et plus encore ; IA : OpenAI, Anthropic, Gemini et plus encore",
+          "lokalise": "Google Traduction et DeepL ; LLM en IA Pro",
+          "phrase": "Phrase Language AI, Google, Amazon, Microsoft ; DeepL supprimé de Strings le 30-06-2026",
+          "manual": "N’importe quel service dans lequel tu colles, pas de produit"
+        },
+        "ownKeys": {
+          "label": "Utilise tes propres clés API",
+          "verbatra": "Oui, uniquement via les variables d’environnement",
+          "lingo": "Une fonctionnalité Enterprise selon la page tarifaire ; l’ancien CLI open source utilise tes propres clés",
+          "tolgee": "Clés LLM oui ; propres clés de traduction automatique indiquées pour l’auto-hébergement",
+          "weblate": "Oui, les administrateurs configurent chaque service avec leurs propres identifiants",
+          "crowdin": "Oui : les moteurs de traduction automatique tiers utilisent tes propres clés ; les fournisseurs d’IA utilisent ta propre clé ou sont gérés par Crowdin",
+          "lokalise": "Inconnu : non mentionné dans la documentation sur la traduction automatique et l’IA",
+          "phrase": "Moteurs de l’écosystème sous ton propre contrat ; dans Strings non confirmé",
+          "manual": "Vos propres comptes, pas de produit",
+          "hostedTms": "Crowdin oui ; Lokalise inconnu ; Phrase pour les moteurs de l’écosystème sous ton propre contrat, dans Strings non confirmé"
+        },
+        "incremental": {
+          "label": "Traduction incrémentale",
+          "verbatra": "Oui, un hash par clé dans un fichier de verrouillage",
+          "lingo": "Oui, un diff de lockfile dans le CLI",
+          "tolgee": "Traduit automatiquement les cibles non traduites (doc 2.x)",
+          "weblate": "Module complémentaire de traduction automatique pour les chaînes pas encore traduites",
+          "crowdin": "La pré-traduction peut être limitée aux « chaînes non traduites »",
+          "lokalise": "Les automatisations et la pré-traduction remplissent les valeurs vides",
+          "phrase": "La pré-traduction remplit les traductions vides et ignore les clés qui en ont déjà une",
+          "manual": "À la main, pas de produit",
+          "hostedTms": "Tous les trois remplissent les valeurs non traduites ou vides"
+        },
+        "cli": {
+          "label": "Outil en ligne de commande (CLI)",
+          "verbatra": "Oui, `verbatra`",
+          "lingo": "Oui, `@lingo.dev/cli` ; l’ancien CLI open source `lingo.dev` est toujours publié",
+          "tolgee": "Oui, `@tolgee/cli`, MIT",
+          "weblate": "Oui, `wlc`",
+          "crowdin": "Oui, Crowdin CLI",
+          "lokalise": "Oui, Lokalise CLI v2",
+          "phrase": "Oui, Phrase Strings CLI",
+          "manual": "Non applicable, pas de produit"
+        },
+        "ci": {
+          "label": "CI et GitHub Action",
+          "verbatra": "Action officielle ; `check` renvoie 1 pour les clés manquantes ou obsolètes",
+          "lingo": "App GitHub ; le dépôt inclut aussi un action.yml",
+          "tolgee": "Aucune Action officielle trouvée",
+          "weblate": "Intégration Git qui push des commits et ouvre des pull requests ; aucune Action GitHub officielle trouvée",
+          "crowdin": "Action GitHub officielle",
+          "lokalise": "Actions GitHub officielles push et pull",
+          "phrase": "CLI en CI ; Action GitHub officielle setup-cli",
+          "manual": "Non applicable, pas de produit",
+          "hostedTms": "Actions GitHub officielles des trois (Phrase: setup-cli)"
+        },
+        "mcp": {
+          "label": "Serveur MCP",
+          "verbatra": "Oui, local via stdio",
+          "lingo": "Oui",
+          "tolgee": "Oui",
+          "weblate": "Pas de serveur MCP officiel trouvé",
+          "crowdin": "Oui, hébergé",
+          "lokalise": "Oui, hébergé, en bêta",
+          "phrase": "Oui, hébergé, connecté avec un compte Phrase",
+          "manual": "Non applicable, pas de produit",
+          "hostedTms": "Serveurs MCP hébergés par les trois ; Lokalise en bêta"
+        },
+        "inContext": {
+          "label": "Édition in-context",
+          "verbatra": "Non",
+          "lingo": "Inconnu : non mentionné dans la doc de la plateforme ou le README du dépôt",
+          "tolgee": "Oui, Alt-clic ou Option-clic sur un élément ouvre l’éditeur",
+          "weblate": "Aucun éditeur in-context officiel trouvé",
+          "crowdin": "Oui, Crowdin In-Context",
+          "lokalise": "Oui, l’éditeur web LiveJS",
+          "phrase": "Oui, Éditeur In-Context avec des adaptateurs de framework officiels",
+          "manual": "Non applicable, pas de produit"
+        },
+        "translatorUi": {
+          "label": "Interface web pour les traducteurs",
+          "verbatra": "Tableau de bord de révision local (Studio) ; pas d’interface hébergée",
+          "lingo": "Plateforme web pour la configuration du moteur ; aucun éditeur de chaînes officiel pour les traducteurs n’a été trouvé",
+          "tolgee": "Oui, la plateforme web, hébergée ou auto-hébergée",
+          "weblate": "Oui, une interface de traduction web",
+          "crowdin": "Oui, l’éditeur en ligne dans le navigateur",
+          "lokalise": "Éditeur de clés de projet documenté ; la page ne dit pas qu’il est basé sur le web",
+          "phrase": "Oui, l’éditeur de chaînes dans le navigateur",
+          "manual": "L’interface propre au service choisi, pas de produit"
+        },
+        "formats": {
+          "label": "Formats de fichiers",
+          "verbatra": "{count} formats, listés dans la doc",
+          "lingo": "18 listés",
+          "tolgee": "17 sur la page d’aperçu",
+          "weblate": "50 listés",
+          "crowdin": "17 listés pour les projets basés sur des chaînes",
+          "lokalise": "30 listés",
+          "phrase": "47 entrées de format listées",
+          "manual": "Ce que tu copies à la main, pas de produit"
+        }
+      },
+      "marks": {
+        "yes": "Oui"
+      },
+      "brief": {
+        "license": {
+          "verbatra": "MIT",
+          "lingo": "Dépôt uniquement",
+          "hostedTms": "CLIs uniquement",
+          "manual": "Non applicable"
+        },
+        "ownKeys": {
+          "lingo": "Plan Enterprise ou ancien CLI",
+          "hostedTms": "Crowdin oui, autres incertains",
+          "manual": "Comptes personnels"
+        },
+        "incremental": {
+          "hostedTms": "Remplit les valeurs vides",
+          "manual": "À la main"
+        },
+        "ci": {
+          "verbatra": "Porte `check`",
+          "lingo": "App GitHub",
+          "manual": "Non applicable"
+        },
+        "mcp": {
+          "verbatra": "Local",
+          "hostedTms": "Hébergé",
+          "manual": "Non applicable"
+        }
+      },
+      "sourceRef": "Source {number}, {tool}",
+      "noteRef": "Note M, workflow manuel",
+      "sources": "Sources",
+      "manualNote": "Le workflow manuel n’est pas un produit, il n’a donc pas de source : la colonne décrit la copie manuelle des chaînes dans un service de traduction, puis leur retour.",
+      "lastChecked": "Dernière vérification",
+      "fairness": "Verbatra est un CLI et un SDK ; les autres colonnes sont des plateformes de traduction et un workflow manuel, comparés comme des moyens de maintenir les fichiers de localisation traduits. Chaque cellule indique ce que les pages du fournisseur ont dit à cette date, et",
+      "concession": "Tolgee, Crowdin, Lokalise et Phrase proposent l’édition in-context ; Verbatra révise localement dans Studio.",
+      "fullLink": "Comparaison complète avec les sources",
+      "scrollHint": "Fais défiler le tableau sur le côté pour voir toutes les colonnes."
+    },
+    "openSource": {
+      "heading": "Envoie ta première pull request.",
+      "lead": "Verbatra est sous licence MIT, et chaque changement se fait en trois étapes.",
+      "steps": {
+        "setup": {
+          "title": "Clone et installe depuis la racine"
+        },
+        "change": {
+          "title": "Branche-toi depuis main et exécute les vérifications"
+        },
+        "pullRequest": {
+          "title": "Ajoute un changeset si nécessaire et ouvre une pull request"
+        }
+      },
+      "linksHeading": "Projet",
+      "contributing": "Guide du contributeur",
+      "codeOfConduct": "Code de conduite",
+      "license": "Licence MIT",
+      "agents": "Guide pour le codage d’agents",
+      "newTab": "(s’ouvre dans un nouvel onglet)",
+      "contributorsHeading": "Contributeurs",
+      "contributorAria": "{name} sur GitHub",
+      "contributorSlot": "Ton avatar ici",
+      "contributorSlotHint": "trouve une tâche pour commencer"
+    },
+    "closing": {
+      "heading": "Commence par une simulation.",
+      "lead": "Une simulation n’a pas besoin de clé API, n’écrit rien et liste exactement les clés qu’une exécution réelle enverrait.",
+      "primary": "Démarrer",
+      "secondary": "Voir sur GitHub"
+    },
+    "fab": {
+      "label": "Retour en haut"
     }
+  },
+  "compare": {
+    "meta": {
+      "title": "Compare Verbatra avec Lingo.dev, Tolgee, Crowdin et d'autres",
+      "description": "Verbatra vs Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise et Phrase : licence, fournisseurs, clés API propres, CI, MCP et formats, chacun avec une source datée.",
+      "ogImageAlt": "Comment Verbatra se compare, avec le logo Verbatra"
+    },
+    "heading": "Comment Verbatra se compare",
+    "lead": "Verbatra à côté de Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise, Phrase et un workflow manuel. Chaque cellule produit indique ce que les pages du fournisseur ont déclaré et lie sa source ; la colonne manuelle cite la note M.",
+    "caption": "Façons de maintenir les fichiers de localisation traduits : Verbatra, Lingo.dev, Tolgee, Weblate, Crowdin, Lokalise, Phrase et un workflow manuel",
+    "lingoNote": "Les cellules Lingo.dev font référence au `@lingo.dev/cli` actuel et à la plateforme hébergée, à moins qu'elles ne désignent l'ancien CLI open source `lingo.dev`.",
+    "formatsNote": "Le nombre de formats provient de la liste de chaque fournisseur et n'est pas normalisé entre eux.",
+    "concession": "Tolgee, Crowdin, Lokalise et Phrase proposent l'édition in-context, ce que Verbatra n'offre pas. Pour la révision, Verbatra dispose du tableau de bord Studio local, pas d'un éditeur hébergé pour les traducteurs.",
+    "sourcesChecked": "Chaque source ci-dessous a été vérifiée le {date}.",
+    "nextHeading": "Essaie toi-même",
+    "quickstart": "Commence avec le démarrage rapide",
+    "home": "Retour à la page d'accueil de Verbatra",
+    "breadcrumbHome": "Accueil",
+    "breadcrumbCompare": "Comparer"
   },
   "legal": {
     "privacy": {
@@ -303,30 +533,37 @@
       },
       "title": "Politique de confidentialité",
       "lastUpdatedLabel": "Dernière mise à jour",
-      "disclaimer": "Ceci est une traduction fournie par commodité. En cas de divergence, la version anglaise prévaut.",
+      "languageVersions": "Cette politique de confidentialité est disponible en anglais, en allemand, en espagnol et en français. Les quatre versions linguistiques ont le même contenu et font également foi.",
       "s1": {
         "heading": "1. Responsable du traitement",
-        "body": "Le responsable du traitement des données sur ce site est Mario Kreitz, Allemagne. Tu peux nous contacter par e-mail à <email>info@kreitz-webdev.de</email>."
+        "body": "Le responsable du traitement des données sur ce site est Mario Kreitz, Mönchfeldstraße 7, 70378 Stuttgart, Allemagne (les mêmes coordonnées que dans les <imprint>mentions légales (Impressum)</imprint>). Tu peux nous contacter par e-mail à <email>info@kreitz-webdev.de</email>. Aucun délégué à la protection des données n'a été désigné, car ni l'art. 37 du RGPD ni le § 38 de la BDSG (loi fédérale allemande sur la protection des données) n'en exigent un pour ce site."
       },
       "s2": {
         "heading": "2. Aperçu",
-        "body": "Ce site est conçu pour respecter ta vie privée. Il ne dépose aucun cookie, ne pratique aucun suivi intersites, et ne collecte que les données minimales nécessaires pour faire fonctionner le site et comprendre l'usage global. Les sections ci-dessous expliquent précisément ce qui est traité et pourquoi."
+        "body": "Ce site est conçu pour respecter ta vie privée. Il ne charge aucun script tiers ni script de statistiques dans ton navigateur, ne pratique aucun suivi intersites, ne dépose un cookie que si tu t'opposes aux statistiques (section 5), et ne collecte que les données minimales nécessaires pour faire fonctionner le site et comprendre l'usage global. Les sections ci-dessous expliquent précisément ce qui est traité et pourquoi."
       },
       "s3": {
         "heading": "3. Journaux serveur et hébergement",
-        "body": "Le site est auto-hébergé sur un serveur virtuel chez <contabo>Contabo</contabo>, géré avec Plesk. Lors de ta visite, le serveur traite des journaux d'accès standard qui peuvent inclure ton adresse IP, la date et l'heure de la requête, l'URL demandée, la page référente et la chaîne user-agent de ton navigateur. Ces données servent à faire fonctionner et à sécuriser le site, par exemple pour livrer les pages, diagnostiquer les erreurs et se défendre contre les abus. La base légale est l'art. 6, § 1, point f) du RGPD (notre intérêt légitime à disposer d'un service sûr et fonctionnel). Ces journaux ne sont conservés que pour une courte période."
+        "body": "Le site est auto-hébergé sur un serveur virtuel loué chez <contabo>Contabo</contabo> (Contabo GmbH, Welfenstraße 22, 81541 Munich, Allemagne), géré avec Plesk. Contabo fournit l'infrastructure du serveur et traite à ce titre, pour notre compte et en tant que sous-traitant (art. 28 du RGPD), les données décrites dans cette section et dans la section 4. Lors de ta visite, le serveur web traite des journaux d'accès standard qui peuvent inclure ton adresse IP, la date et l'heure de la requête, l'URL demandée, la page référente et la chaîne user-agent de ton navigateur. L'application qui sert le site écrit également des messages de fonctionnement et d'erreur dans son propre journal de conteneur, par exemple lorsqu'une notification du formulaire de contact ne peut pas être envoyée. Ces données servent à faire fonctionner et à sécuriser le site, par exemple pour livrer les pages, diagnostiquer les erreurs et se défendre contre les abus. La base légale est l'art. 6, § 1, point f) du RGPD (notre intérêt légitime à disposer d'un service sûr et fonctionnel). Les journaux d'accès du serveur web sont supprimés dès qu'ils ne sont plus nécessaires à ces fins. Le journal du conteneur fait l'objet d'une rotation automatique et est limité à 3 fichiers de 10 Mo chacun ; une fois cette limite atteinte, le fichier le plus ancien est supprimé."
       },
       "s4": {
         "heading": "4. Statistiques",
-        "body": "Nous utilisons Umami, un outil de statistiques respectueux de la vie privée que nous auto-hébergeons. Umami est <strong>sans cookie et ne collecte pas de données personnelles ni n'utilise d'empreinte intersites</strong>. Il n'enregistre que des métriques agrégées telles que les pages vues, les référents, le pays approximatif, ainsi que le navigateur, le système d'exploitation et le type d'appareil. La base légale est l'art. 6, § 1, point f) du RGPD (notre intérêt légitime à comprendre comment le site est utilisé). Tu peux en savoir plus sur Umami dans sa <umami>documentation</umami>."
+        "body": "Nous comptons les pages vues avec Umami, un outil de statistiques open source que nous hébergeons nous-mêmes sur le même serveur que ce site (voir la section 3), de sorte qu'aucune donnée statistique n'est transmise à un tiers. Aucun script de statistiques ne s'exécute dans ton navigateur, et rien n'est écrit sur ton appareil pour compter les pages vues. La seule chose lue sur ton appareil en lien avec les statistiques est le cookie d'opposition décrit à la section 5, et uniquement pour respecter ton opposition. À la place, lorsque ton navigateur charge directement une page de ce site (et non lorsqu'il la précharge en arrière-plan), notre serveur web transmet à notre serveur Umami les informations suivantes de cette requête : ton adresse IP, la chaîne user-agent de ton navigateur, la première balise de langue de l'en-tête Accept-Language de ton navigateur (par exemple fr-FR), transmise à chaque page vue, la page référente (sans ses paramètres de requête) et le chemin de la page chargée avec les cinq paramètres UTM de l'adresse de la page (utm_source, utm_medium, utm_campaign, utm_term et utm_content, chacun raccourci à 255 caractères) ; tous les autres paramètres de requête, comme les identifiants de clic publicitaires, ainsi que le fragment sont écartés et ne sont pas transmis. Les clics, les textes copiés et les autres interactions ne sont pas enregistrés. <strong>Ton adresse IP et ta chaîne user-agent elles-mêmes ne sont pas conservées.</strong> Le serveur Umami calcule un identifiant de session pseudonyme en hachant l'identifiant du site, ton adresse IP, ta chaîne user-agent, une valeur qui change chaque mois et une clé secrète du serveur. Pour chaque page vue, il enregistre cet identifiant, l'heure, le chemin de la page avec les éventuels paramètres UTM et la page référente, et pour la session cette balise de langue, ton navigateur, ton système d'exploitation et ton type d'appareil (déduits de la chaîne user-agent), ainsi que ton pays, ta région et ta ville, qu'il détermine à partir de ton adresse IP dans une base de données GeoLite2 sur le même serveur sans interroger aucun autre service. Comme l'identifiant de session est dérivé de ton adresse IP, il s'agit d'un traitement pseudonyme, et non anonyme, de données personnelles. Nous ne consultons les résultats que sous forme agrégée et ne cherchons pas à identifier des visiteurs individuels. Comme rien n'est stocké sur ton appareil pour compter les pages vues et que le cookie d'opposition n'est lu que pour respecter ton opposition, aucun consentement au titre du § 25 TDDDG (loi allemande sur la protection des données dans les télécommunications et les services numériques) n'est nécessaire pour cela. La base légale du traitement est l'art. 6, § 1, point f) du RGPD (notre intérêt légitime à comprendre comment le site est utilisé). Les données statistiques sont stockées dans la base de données Umami de ce serveur. Si ton navigateur envoie un signal Global Privacy Control (GPC) ou Do Not Track, rien n'est transmis. Tu peux aussi t'y opposer avec le bouton ci-dessous : il dépose le cookie décrit à la section 5 et, tant que ton navigateur envoie ce cookie, rien n'est transmis non plus. Une opposition enregistrée dans le stockage local de ton navigateur avec l'ancienne configuration statistique de ce site n'est plus lue ; si tu t'es opposé de cette manière, oppose-toi à nouveau ici. Tu peux en savoir plus sur Umami dans sa <umami>documentation</umami>.",
+        "optOut": {
+          "optOut": "Refuser les statistiques",
+          "optIn": "Autoriser à nouveau les statistiques",
+          "statusOptedOut": "Enregistré : tu t'es opposé. Tes pages vues ne sont pas comptées tant que ce navigateur conserve le cookie.",
+          "statusOptedIn": "Enregistré : les statistiques sont à nouveau autorisées. Tes pages vues sont comptées sauf si ton navigateur envoie un signal GPC ou Do Not Track.",
+          "signals": "Si ton navigateur envoie un signal Global Privacy Control (GPC) ou Do Not Track, tes pages vues ne sont pas comptées, quel que soit le bouton choisi. Les boutons fonctionnent sans JavaScript."
+        }
       },
       "s5": {
         "heading": "5. Cookies",
-        "body": "Ce site ne dépose aucun cookie. Comme rien nécessitant un consentement n'est stocké sur ton appareil, aucune bannière de consentement aux cookies n'est requise."
+        "body": "Ce site ne dépose un cookie que lorsque tu t'opposes aux statistiques avec le bouton de la section 4 : le cookie verbatra_analytics_optout avec la valeur 1, valable un an, qui enregistre uniquement ton opposition afin que notre serveur cesse de transmettre tes pages vues. Il n'est déposé qu'à ta demande et est strictement nécessaire à cette fin, il ne requiert donc aucun consentement (§ 25, al. 2, n° 2 TDDDG). Autoriser à nouveau les statistiques le supprime. Aucun autre cookie n'est déposé. Deux choix que tu fais sont enregistrés dans le stockage de ton navigateur. Lorsque tu passes du thème clair au thème sombre ou inversement, ton choix est enregistré dans le stockage local sous la clé theme. Lorsque tu choisis un gestionnaire de paquets (npm, pnpm, yarn ou bun) dans les onglets au-dessus d'une commande d'installation, ton choix est enregistré sous la clé package-manager, à la fois dans le stockage local et dans le stockage de session, afin que les autres commandes d'installation affichent le même gestionnaire de paquets. Aucune de ces deux entrées n'est écrite avant que tu fasses ce choix ; toutes deux restent dans ton navigateur, ne sont jamais envoyées à notre serveur ni à qui que ce soit, et tu peux les supprimer à tout moment en effaçant les données de ce site dans ton navigateur. Comme rien nécessitant un consentement n'est stocké sur ton appareil, aucune bannière de consentement aux cookies n'est requise."
       },
       "s6": {
         "heading": "6. Polices et ressources",
-        "body": "Les polices sont auto-hébergées : elles sont intégrées au moment de la compilation, donc aucune requête n'est faite à Google Fonts ou à toute autre tierce partie lorsque tu charges une page. La seule exception concerne les badges de statut : la page d'accueil et la page de test intègrent des images de badges en direct de GitHub, Codecov et shields.io qui affichent la compilation actuelle, la couverture, la version et la licence. Le chargement de ces images transmet ton adresse IP à ces fournisseurs, qui agissent en tant que responsables du traitement indépendants selon leurs propres politiques de confidentialité. La base légale est l'art. 6, § 1, point f) du RGPD (notre intérêt légitime à afficher un statut de projet précis). En dehors de ces badges et du script Umami auto-hébergé décrit ci-dessus, aucun script ou élément intégré de tiers ne se charge à l'exécution."
+        "body": "Les polices et les images, y compris les avatars des contributeurs sur la page d'accueil, sont auto-hébergées : elles sont servies par le propre serveur de ce site, donc le chargement d'une page n'envoie aucune requête à Google Fonts, GitHub ou à toute autre tierce partie. Le site n'intègre aucun badge de statut. Aucun script, image ou élément intégré de tiers ne se charge à l'exécution, et aucun script de statistiques ne s'exécute dans ton navigateur. Les sites externes comme GitHub ou npm ne sont contactés que lorsque tu suis un lien vers eux."
       },
       "s7": {
         "heading": "7. GitHub et npm",
@@ -334,31 +571,35 @@
       },
       "s8": {
         "heading": "8. Tes droits",
-        "body": "En vertu du RGPD, tu disposes des droits d'accès, de rectification, d'effacement, de limitation du traitement, d'opposition et de portabilité des données (art. 15 à 21 du RGPD). Tu as également le droit d'introduire une réclamation auprès d'une autorité de contrôle. Pour exercer l'un de ces droits, contacte-nous en utilisant les coordonnées ci-dessous."
+        "body": "En vertu du RGPD, tu disposes des droits d'accès, de rectification, d'effacement, de limitation du traitement, d'opposition et de portabilité des données (art. 15 à 21 du RGPD) ; le droit d'opposition est présenté séparément à la section 9. Tu as également le droit d'introduire une réclamation auprès d'une autorité de contrôle (art. 77 du RGPD). L'autorité de contrôle compétente à notre égard est « Der Landesbeauftragte für den Datenschutz und die Informationsfreiheit Baden-Württemberg » (commissaire à la protection des données et à la liberté d'information du Bade-Wurtemberg), Heilbronner Straße 35, 70191 Stuttgart, Allemagne, <lfdi>www.baden-wuerttemberg.datenschutz.de</lfdi>. Pour exercer l'un de ces droits, contacte-nous en utilisant les coordonnées ci-dessous."
+      },
+      "objection": {
+        "heading": "9. Droit d'opposition (art. 21 du RGPD)",
+        "body": "Lorsque nous traitons tes données personnelles sur la base de l'art. 6, § 1, point f) du RGPD (intérêts légitimes), comme décrit aux sections 3, 4 et 12, <strong>tu as le droit de t'opposer à tout moment à ce traitement</strong>, pour des raisons tenant à ta situation particulière. Si tu t'y opposes, nous ne traiterons plus les données personnelles concernées, à moins que nous ne démontrions des motifs légitimes et impérieux pour le traitement qui prévalent sur tes intérêts, droits et libertés, ou que le traitement serve à la constatation, à l'exercice ou à la défense de droits en justice. Pour t'opposer, un simple message informel à <email>info@kreitz-webdev.de</email> suffit."
       },
       "s9": {
-        "heading": "9. Contact",
+        "heading": "10. Contact",
         "body": "Pour toute question ou demande relative à la confidentialité, envoie un e-mail à <email>info@kreitz-webdev.de</email>."
       },
       "s10": {
-        "heading": "10. Modifications de cette politique",
+        "heading": "11. Modifications de cette politique",
         "body": "Nous pouvons mettre à jour cette politique de confidentialité à mesure que le site évolue ou que les exigences légales changent. La date ci-dessous reflète la révision la plus récente."
       },
       "s11": {
-        "heading": "11. Formulaire de contact",
-        "body": "Lorsque tu utilises le <contact>formulaire de contact</contact>, nous traitons le nom, l'adresse e-mail et le message que tu soumets afin de répondre à ta demande. L'e-mail de notification est envoyé directement via notre propre serveur de messagerie, hébergé en Allemagne ; aucun fournisseur d'e-mail tiers n'intervient dans son acheminement, et celui-ci n'implique aucun transfert de données en dehors de l'UE. Le seul sous-traitant tiers au sens de l'art. 28 du RGPD est Arcjet, qui traite l'adresse IP et les en-têtes de la requête (pas le contenu du message) via son API Cloud pour protéger le formulaire contre les robots et les abus ; ces données sont conservées pendant une durée fixée par notre offre Arcjet, actuellement jusqu'à une heure sur l'offre gratuite. La base légale est l'art. 6, § 1, point f) du RGPD (notre intérêt légitime à exploiter le formulaire en toute sécurité et à répondre aux demandes). Ta soumission et l'e-mail de notification qui en résulte ne sont conservés que le temps nécessaire au traitement de la demande et ne sont stockés nulle part au-delà de la boîte de réception de l'opérateur."
+        "heading": "12. Formulaire de contact",
+        "body": "Lorsque tu utilises le <contact>formulaire de contact</contact>, nous traitons le nom, l'adresse e-mail et le message que tu soumets afin de répondre à ta demande. L'e-mail de notification est envoyé directement via notre propre serveur de messagerie, hébergé en Allemagne ; aucun fournisseur d'e-mail tiers n'intervient dans son acheminement, et celui-ci n'implique aucun transfert de données en dehors de l'UE. Outre l'hébergeur (voir la section 3), le seul sous-traitant au sens de l'art. 28 du RGPD est Arcjet (Arcjet Labs, Inc., San Francisco, États-Unis), qui traite l'adresse IP et les en-têtes de la requête (pas le contenu du message) via son API Cloud pour protéger le formulaire contre les robots et les abus. Selon la <arcjetprivacy>documentation d'Arcjet sur la confidentialité</arcjetprivacy>, Arcjet conserve ces données de requête pendant 30 jours et conserve plus longtemps les données agrégées qui en sont issues. Arcjet est établie aux États-Unis et ne garantit pas que les requêtes soient traitées dans l'UE ; ces données peuvent donc être transférées vers les États-Unis, un pays tiers (art. 44 et suivants du RGPD). Arcjet n'est pas certifiée au titre de l'EU-U.S. Data Privacy Framework, de sorte que la décision d'adéquation de la Commission européenne relative à ce cadre ne couvre pas ce transfert ; celui-ci repose à la place sur les clauses contractuelles types de l'UE (art. 46, § 2, point c) du RGPD). Tu peux demander une copie de ces garanties en écrivant à <email>info@kreitz-webdev.de</email>. La base légale est l'art. 6, § 1, point f) du RGPD (notre intérêt légitime à exploiter le formulaire en toute sécurité et à répondre aux demandes). Ta soumission et l'e-mail de notification qui en résulte ne sont stockés nulle part au-delà de la boîte de réception de l'opérateur. Ils sont supprimés dès que ta demande a été entièrement traitée."
       },
       "s12": {
-        "heading": "12. Traduction assistée par IA",
-        "body": "Ce projet, verbatra, est un outil de traduction assistée par IA, et ce site de documentation l'utilise aussi sur lui-même : l'interface est traduite en allemand, en espagnol et en français à l'aide de modèles de langage IA. Les pages de documentation plus longues sont elles aussi traduites par IA, mais dans une étape séparée, en dehors de ce pipeline automatisé. Le contenu traduit est relu avant sa publication. Nous le mentionnons ici volontairement, par souci de transparence, et non parce qu'une obligation légale de divulgation spécifique s'appliquerait."
+        "heading": "13. Traduction assistée par IA",
+        "body": "Ce projet, verbatra, est un outil de traduction assistée par IA, et ce site de documentation l'utilise aussi sur lui-même. La langue source est l'anglais. Les textes de l'interface (navigation, boutons et textes similaires) sont traduits automatiquement en allemand, en espagnol et en français par verbatra avec le modèle de langage Gemini de Google. Les pages de documentation sont elles aussi traduites par IA, mais dans une étape séparée, en dehors de ce pipeline automatisé. Certains textes, dont des parties de ces pages juridiques, ont été rédigés ou corrigés directement au lieu d'être produits par ce pipeline. Les traductions sont vérifiées dans la mesure du possible : tous les textes traduits ne sont pas relus par une personne avant leur publication, une traduction peut donc contenir des erreurs. Si tu en remarques une, signale-la-nous via le <contact>formulaire de contact</contact>. Nous fournissons cette information volontairement, par souci de transparence."
       }
     },
     "imprint": {
       "meta": {
-        "title": "Mentions légales",
+        "title": "Mentions légales (Impressum)",
         "description": "Informations légales (Impressum) pour le site de documentation de verbatra."
       },
-      "intro": "Ces mentions légales (Impressum) sont fournies en allemand, comme l'exige la loi allemande.",
+      "intro": "Mentions légales (Impressum) de ce site. Les informations ci-dessous sont en allemand.",
       "lastUpdatedLabel": "Dernière mise à jour",
       "contactLinkNote": "Pour une réponse électronique rapide, tu peux aussi utiliser notre <link>formulaire de contact en ligne</link>."
     },
@@ -368,7 +609,8 @@
         "description": "Contacte l'opérateur du site de documentation de verbatra."
       },
       "title": "Contact",
-      "intro": "Utilise ce formulaire pour contacter directement l'opérateur du site. C'est un second canal de contact électronique direct, en plus de l'adresse e-mail indiquée dans les mentions légales.",
+      "intro": "Utilise ce formulaire pour contacter directement l'opérateur du site. C'est un second canal de contact électronique direct, en plus de l'adresse e-mail indiquée dans les <imprint>mentions légales (Impressum)</imprint>.",
+      "privacyNotice": "Nous utilisons ton nom, ton adresse e-mail et ton message uniquement pour répondre à ta demande, et nous les supprimons une fois celle-ci traitée. Tous les détails figurent dans la <privacy>politique de confidentialité</privacy>.",
       "form": {
         "nameLabel": "Nom",
         "namePlaceholder": "Ton nom",
@@ -384,6 +626,7 @@
         "errorBody": "Nous n'avons pas pu envoyer ton message. Réessaie dans un instant.",
         "rateLimitedBody": "Tu as envoyé trop de messages récemment. Réessaie plus tard.",
         "validationErrorBody": "Corrige les champs en surbrillance et réessaie.",
+        "noScript": "Le formulaire a besoin de JavaScript pour envoyer ton message. Sans JavaScript, écris plutôt à l'adresse e-mail indiquée dans les <imprint>mentions légales (Impressum)</imprint>.",
         "errors": {
           "required": "Ce champ est obligatoire.",
           "invalid_email": "Saisis une adresse e-mail valide.",
@@ -391,34 +634,24 @@
           "too_long": "Ce champ est trop long."
         }
       }
+    },
+    "licenses": {
+      "meta": {
+        "title": "Licences",
+        "description": "Licences des logiciels, polices et ressources de tiers que le site de documentation de verbatra embarque."
+      },
+      "title": "Licences",
+      "intro": "verbatra est sous licence MIT. Ce site embarque aussi des paquets, des polices et des ressources de tiers, chacun sous sa propre licence. La liste et les textes de licence ci-dessous sont en anglais, tels que leurs auteurs les ont rédigés."
     }
   },
-  "docs": {
-    "machineTranslated": {
-      "text": "Cette page a été traduite automatiquement, elle peut donc contenir des erreurs ou se lire un peu bizarrement. La version anglaise fait foi.",
-      "title": "Page traduite automatiquement",
-      "viewOriginal": "Lire l'original en anglais"
+  "notFound": {
+    "meta": {
+      "title": "Page introuvable",
+      "description": "Cette page n’existe pas sur le site de verbatra."
     },
-    "notTranslated": {
-      "text": "Cette page n'est pas encore traduite, elle s'affiche donc en anglais.",
-      "title": "Non disponible dans ta langue"
-    },
-    "llms": {
-      "full": "llms-full.txt (texte intégral)",
-      "heading": "Pour les agents IA",
-      "index": "llms.txt (index)"
-    },
-    "availableFrom": {
-      "title": "Disponible à partir de {version}",
-      "text": "Il te faut verbatra {version} ou plus récent. Les versions antérieures ne l'ont pas : vérifie ta version installée avec verbatra --version et mets à jour si elle est plus ancienne.",
-      "packageTitle": "Disponible à partir de {version}",
-      "packageText": "Il te faut {version} ou plus récent. Les versions antérieures ne l'ont pas : mets à jour ce paquet si le tien est plus ancien."
-    },
-    "screenshot": {
-      "label": "Verbatra Studio",
-      "tablistLabel": "Thème de la capture",
-      "dark": "Sombre",
-      "light": "Clair"
-    }
+    "title": "Cette page n’existe pas",
+    "lead": "L’adresse contient peut-être une faute de frappe, ou la page a été déplacée. La documentation et la page d’accueil sont un bon point de départ.",
+    "home": "Aller à la page d’accueil",
+    "docs": "Ouvrir la documentation"
   }
 }

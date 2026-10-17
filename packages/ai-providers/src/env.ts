@@ -1,17 +1,17 @@
 import { ProviderError } from "./errors.js";
+import { LIBRETRANSLATE_ENV_VAR, OPENAI_COMPATIBLE_ENV_VAR, PROVIDER_ENV } from "./key-env-vars.js";
+import type { EnvironmentSource } from "./network/environment-rule.js";
 
-export const PROVIDER_ENV = {
-  anthropic: "ANTHROPIC_API_KEY",
-  openai: "OPENAI_API_KEY",
-  gemini: "GEMINI_API_KEY",
-  deepl: "DEEPL_API_KEY",
-  "google-translate": "GOOGLE_TRANSLATE_API_KEY",
-} as const;
+export function processEnvironment(): EnvironmentSource {
+  return process.env;
+}
 
 function readRequiredEnv(name: string): string {
   const value = process.env[name];
   if (value === undefined || value.length === 0) {
-    throw new ProviderError("MISSING_API_KEY", `The ${name} environment variable is not set.`);
+    throw new ProviderError("MISSING_API_KEY", `The ${name} environment variable is not set.`, {
+      envVar: name,
+    });
   }
   return value;
 }
@@ -36,7 +36,10 @@ export function requireGoogleTranslateKey(): string {
   return readRequiredEnv(PROVIDER_ENV["google-translate"]);
 }
 
-export const OPENAI_COMPATIBLE_ENV_VAR = "OPENAI_COMPATIBLE_API_KEY";
+export function readLibreTranslateKey(): string | undefined {
+  const value = process.env[LIBRETRANSLATE_ENV_VAR];
+  return value === undefined || value.length === 0 ? undefined : value;
+}
 
 export const OPENAI_COMPATIBLE_KEY_PLACEHOLDER = "local";
 
@@ -50,6 +53,7 @@ export function resolveOpenAiCompatibleKey(customEnvVar?: string): string {
     throw new ProviderError(
       "MISSING_API_KEY",
       `The ${customEnvVar} environment variable is not set.`,
+      { envVar: customEnvVar },
     );
   }
   return OPENAI_COMPATIBLE_KEY_PLACEHOLDER;

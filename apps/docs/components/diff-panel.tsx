@@ -1,8 +1,9 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { prefersReducedMotion } from "@/lib/reduced-motion";
-import { useInViewOnce } from "@/lib/use-in-view-once";
+import { useInView } from "@/lib/use-in-view";
 
 type Row = {
   key: string;
@@ -28,12 +29,13 @@ export function DiffPanel({
   targetFile?: string;
   tag?: string;
 }) {
+  const t = useTranslations("docs.diffPanel");
   const changed = rows.find((r) => r.changed);
   const full = changed?.target ?? "";
 
   const [count, setCount] = useState(0);
   const [settled, setSettled] = useState(false);
-  const [ref, inView] = useInViewOnce<HTMLElement>(0.5);
+  const [ref, inView] = useInView<HTMLElement>(0.5, { once: true });
 
   useEffect(() => {
     if (!full || prefersReducedMotion()) {
@@ -63,28 +65,28 @@ export function DiffPanel({
   const typed = full.slice(0, count);
   const typing = count > 0 && count < full.length;
   const changedStyle = settled
-    ? { color: "var(--v-glow)" }
+    ? { color: "var(--accent)" }
     : {
-        color: "var(--v-purple)",
-        textShadow: "0 0 10px color-mix(in srgb, var(--v-purple) 55%, transparent)",
+        color: "var(--accent-fill)",
+        textShadow: "0 0 10px color-mix(in srgb, var(--accent-fill) 55%, transparent)",
       };
 
   return (
     <figure
       ref={ref}
-      aria-label="A diff showing only the changed translation key being re-translated"
-      className="not-prose relative my-8 rounded-xl border border-fd-border bg-fd-card p-5 font-mono text-sm sm:p-7"
+      aria-label={t("label")}
+      className="not-prose relative my-8 rounded-xl border border-(--border-default) bg-(--surface-card) p-5 font-mono text-sm sm:p-7"
       style={{
-        borderInlineStart: "2px solid var(--v-glow)",
-        boxShadow: "0 24px 60px -30px color-mix(in srgb, var(--v-purple) 35%, transparent)",
+        borderInlineStart: "2px solid var(--accent)",
+        boxShadow: "var(--shadow-panel)",
       }}
     >
-      <span className="absolute -top-2.5 left-5 rounded-md border border-fd-border bg-fd-background px-2 py-0.5 text-xs uppercase tracking-wider text-fd-muted-foreground">
+      <span className="absolute -top-2.5 left-5 rounded-md border border-(--border-default) bg-(--surface-bg) px-2 py-0.5 text-xs uppercase tracking-wider text-(--text-muted)">
         {tag}
       </span>
       <div className="grid grid-cols-2 gap-x-6 gap-y-3.5">
-        <div className="text-xs text-fd-muted-foreground">{sourceFile}</div>
-        <div className="text-xs text-fd-muted-foreground">{targetFile}</div>
+        <div className="text-xs text-(--text-muted)">{sourceFile}</div>
+        <div className="text-xs text-(--text-muted)">{targetFile}</div>
 
         {rows.map((row) => (
           <DiffRow
@@ -96,9 +98,7 @@ export function DiffPanel({
           />
         ))}
       </div>
-      <figcaption className="mt-4 text-xs text-fd-muted-foreground">
-        Only the changed key is sent to the provider. Current keys are left untouched.
-      </figcaption>
+      <figcaption className="mt-4 text-xs text-(--text-muted)">{t("caption")}</figcaption>
     </figure>
   );
 }
@@ -116,12 +116,12 @@ function DiffRow({
 }) {
   return (
     <>
-      <div className="text-fd-muted-foreground/70">
-        <span className="text-fd-muted-foreground">&quot;{row.key}&quot;</span>: &quot;
+      <div className="text-(--text-faint)">
+        <span className="text-(--text-muted)">&quot;{row.key}&quot;</span>: &quot;
         {row.source}&quot;
       </div>
-      <div className={row.changed ? "" : "text-fd-muted-foreground/60"}>
-        <span className="text-fd-muted-foreground">&quot;{row.key}&quot;</span>:{" "}
+      <div className={row.changed ? "" : "text-(--text-faint)"}>
+        <span className="text-(--text-muted)">&quot;{row.key}&quot;</span>:{" "}
         {row.changed ? (
           <span style={changedStyle}>
             &quot;{typed}&quot;

@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { entry } from "../test-support.js";
-import { parseGoogleTranslateHttpResult, zipResults } from "./response.js";
+import { parseGoogleTranslateHttpResult } from "./response.js";
 
 describe("parseGoogleTranslateHttpResult: success", () => {
   it("extracts translatedText in order from a 200 response", () => {
@@ -90,32 +89,5 @@ describe("parseGoogleTranslateHttpResult: error classification", () => {
       expect(message).not.toContain("AIza");
       expect(message).not.toContain("key=");
     }
-  });
-});
-
-describe("zipResults", () => {
-  it("zips positionally to keys and builds integrity inputs", () => {
-    const entries = [entry("a", "A?"), entry("b", "B?")];
-    const { values, integrityInputs } = zipResults(entries, ["A", "B"]);
-    expect(values.get("a")).toBe("A");
-    expect(values.get("b")).toBe("B");
-    expect(integrityInputs).toEqual([
-      { key: "a", sourceValue: "A?", translatedValue: "A" },
-      { key: "b", sourceValue: "B?", translatedValue: "B" },
-    ]);
-  });
-
-  it("rejects a length-mismatched result (fewer) as INVALID_RESPONSE", () => {
-    const entries = [entry("a", "A?"), entry("b", "B?")];
-    expect(() => zipResults(entries, ["only-one"])).toThrow(
-      expect.objectContaining({ code: "INVALID_RESPONSE" }),
-    );
-  });
-
-  it("rejects a length-mismatched result (more) as INVALID_RESPONSE", () => {
-    const entries = [entry("k", "v")];
-    expect(() => zipResults(entries, ["x", "y"])).toThrow(
-      expect.objectContaining({ code: "INVALID_RESPONSE" }),
-    );
   });
 });

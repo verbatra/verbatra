@@ -1,56 +1,102 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-export function SectionHead({
-  title,
-  lead,
-  align = "left",
-  maxWidth = "640px",
-  id,
-}: {
+type SectionHeadLayout = "split" | "stacked" | "inline";
+
+type HeadShape = SectionHeadLayout | "aside";
+
+const TITLE_MEASURE: Readonly<Record<HeadShape, string>> = {
+  split: "max-w-[15ch]",
+  stacked: "max-w-[22ch]",
+  inline: "max-w-[16ch]",
+  aside: "max-w-[15ch]",
+};
+
+const LEAD_MEASURE: Readonly<Record<HeadShape, string>> = {
+  split: "max-w-[46ch] lg:pb-2.5",
+  stacked: "max-w-[56ch]",
+  inline: "max-w-[44ch]",
+  aside: "max-w-[40ch]",
+};
+
+function resolvedLayout(layout: SectionHeadLayout, hasLead: boolean): SectionHeadLayout {
+  if (layout === "split" && !hasLead) return "stacked";
+  return layout;
+}
+
+type SectionHeadProps = {
   title: ReactNode;
   lead?: ReactNode;
-  align?: "left" | "center";
-  maxWidth?: string;
   id?: string;
-}): ReactNode {
-  const centered = align === "center";
+};
+
+type HeadAlign = "end" | "start";
+
+function HeadBlock({
+  title,
+  lead,
+  id,
+  shape,
+  align = "end",
+}: SectionHeadProps & { shape: HeadShape; align?: HeadAlign | undefined }): ReactNode {
   return (
     <div
       className={cn(
-        "grid gap-5",
-        centered
-          ? "mx-auto justify-items-center text-center"
-          : "lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:items-end lg:gap-x-16",
+        "vk-section-head",
+        shape === "split" ? "vk-grid-12" : "vk-section-head-stacked",
+        shape === "inline" && "vk-section-head-inline",
+        shape === "aside" && "vk-section-head-aside",
       )}
-      style={centered ? { maxWidth } : undefined}
+      data-layout={shape}
+      data-align={shape === "split" && align === "start" ? "start" : undefined}
     >
-      <h2
-        id={id}
-        className={cn(
-          "font-semibold text-fd-foreground",
-          centered ? "max-w-[18ch]" : "max-w-[15ch]",
-        )}
-        style={{
-          fontFamily: "var(--font-display)",
-          letterSpacing: "-0.03em",
-          fontSize: "var(--text-h2)",
-          lineHeight: 1,
-          textWrap: "balance",
-        }}
-      >
-        {title}
-      </h2>
+      <div className="vk-section-head-title">
+        <h2 id={id} className={cn("vk-h2", TITLE_MEASURE[shape])}>
+          {title}
+        </h2>
+      </div>
       {lead ? (
-        <p
-          className={cn(
-            "max-w-[46ch] text-[17px] leading-relaxed text-fd-muted-foreground",
-            !centered && "lg:justify-self-end lg:pb-2.5",
-          )}
-        >
-          {lead}
-        </p>
+        <p className={cn("vk-lead vk-section-head-lead", LEAD_MEASURE[shape])}>{lead}</p>
       ) : null}
+    </div>
+  );
+}
+
+export function SectionHead({
+  title,
+  lead,
+  id,
+  layout = "split",
+  align,
+}: SectionHeadProps & { layout?: SectionHeadLayout; align?: HeadAlign }): ReactNode {
+  return (
+    <HeadBlock
+      title={title}
+      lead={lead}
+      id={id}
+      shape={resolvedLayout(layout, lead !== undefined)}
+      align={align}
+    />
+  );
+}
+
+export function SectionAside({
+  title,
+  lead,
+  id,
+  trailing,
+  className,
+  children,
+}: SectionHeadProps & {
+  trailing?: ReactNode;
+  className?: string;
+  children: ReactNode;
+}): ReactNode {
+  return (
+    <div className={cn("vk-section-aside vk-grid-12", className)}>
+      <HeadBlock title={title} lead={lead} id={id} shape="aside" />
+      <div className="vk-section-aside-content">{children}</div>
+      {trailing}
     </div>
   );
 }

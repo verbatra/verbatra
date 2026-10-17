@@ -1,0 +1,176 @@
+import { describe, expect, it } from "vitest";
+import { SdkError } from "../errors.js";
+import {
+  assertEndpointPermitted,
+  assertNetworkPolicyResolves,
+  assertProviderNetworkPermitted,
+  endpointTargetOf,
+  resolveNetworkPolicy,
+} from "./network-policy.js";
+import type { MachineProviderConfig } from "./provider-config.js";
+
+const anthropic: MachineProviderConfig = {
+  id: "anthropic",
+  options: { model: "m", maxTokens: 1 },
+};
+
+const local: MachineProviderConfig = {
+  id: "openai-compatible",
+  options: { baseUrl: "http://127.0.0.1:11434/v1", model: "m", maxOutputTokens: 1 },
+};
+
+function thrown(run: () => void): SdkError {
+  try {
+    run();
+  } catch (error) {
+    expect(error).toBeInstanceOf(SdkError);
+    return error as SdkError;
+  }
+  throw new Error("expected a throw");
+}
+
+describe("resolveNetworkPolicy", () => {
+  it("has no rule when neither source sets one", () => {
+    expect(resolveNetworkPolicy(undefined, {})).toEqual({ rules: [] });
+  });
+
+  it("carries the config rule and the environment rule side by side", () => {
+    expect(
+      resolveNetworkPolicy(
+        { policy: "local-only", allowedHosts: ["api.deepl.com"] },
+        { VERBATRA_NETWORK_POLICY: "allowlist", VERBATRA_NETWORK_ALLOWED_HOSTS: "gpu.lan" },
+      ),
+    ).toEqual({
+      rules: [
+        { source: "config", policy: "local-only", allowedHosts: ["api.deepl.com"] },
+        { source: "environment", policy: "allowlist", allowedHosts: ["gpu.lan"] },
+      ],
+    });
+    expect(resolveNetworkPolicy({ policy: "any" }, {}).rules[0]?.allowedHosts).toEqual([]);
+  });
+
+  it("copies allowedHosts, so a later change to the config cannot widen the policy", () => {
+    const allowedHosts = ["gpu.lan"];
+    const policy = resolveNetworkPolicy({ policy: "local-only", allowedHosts }, {});
+    allowedHosts.push("api.anthropic.com");
+    expect(policy.rules[0]?.allowedHosts).toEqual(["gpu.lan"]);
+  });
+
+  it("fails closed as CONFIG_INVALID on an invalid environment value", () => {
+    const error = thrown(() =>
+      resolveNetworkPolicy(undefined, { VERBATRA_NETWORK_POLICY: "local_only" }),
+    );
+    expect(error.code).toBe("CONFIG_INVALID");
+    expect(error.message).toContain("VERBATRA_NETWORK_POLICY");
+  });
+});
+
+describe("assertNetworkPolicyResolves", () => {
+  it("passes a valid policy and fails CONFIG_INVALID on an invalid environment value", () => {
+    expect(() => assertNetworkPolicyResolves({ policy: "local-only" }, {})).not.toThrow();
+    expect(() =>
+      assertNetworkPolicyResolves(undefined, { VERBATRA_NETWORK_POLICY: "nowhere" }),
+    ).toThrow(expect.objectContaining({ code: "CONFIG_INVALID" }));
+  });
+});
+
+describe("assertEndpointPermitted", () => {
+  const localOnly = resolveNetworkPolicy({ policy: "local-only" }, {});
+
+  it("refuses a hosted provider with NETWORK_POLICY_VIOLATION", () => {
+    const error = thrown(() => assertEndpointPermitted(anthropic, localOnly, {}));
+    expect(error.code).toBe("NETWORK_POLICY_VIOLATION");
+    expect(error.message).toContain('Provider "anthropic" was not constructed');
+    expect(error.message).toContain("api.anthropic.com");
+    expect(error.message).toContain("No request was sent.");
+  });
+
+  it("permits a local endpoint", () => {
+    expect(() => assertEndpointPermitted(local, localOnly, {})).not.toThrow();
+  });
+
+  it("maps openai-compatible to its base URL and every other provider to its id", () => {
+    expect(endpointTargetOf(local)).toEqual({
+      id: "openai-compatible",
+      baseUrl: "http://127.0.0.1:11434/v1",
+    });
+    expect(endpointTargetOf(anthropic)).toEqual({ id: "anthropic" });
+  });
+
+  it("maps libretranslate to its base URL, so a loopback server passes local-only", () => {
+    const loopback = {
+      id: "libretranslate",
+      options: { baseUrl: "http://127.0.0.1:5000" },
+    } as const;
+    expect(endpointTargetOf(loopback)).toEqual({
+      id: "libretranslate",
+      baseUrl: "http://127.0.0.1:5000",
+    });
+    expect(() => assertEndpointPermitted(loopback, localOnly, {})).not.toThrow();
+    expect(() =>
+      assertEndpointPermitted(
+        { id: "libretranslate", options: { baseUrl: "http://203.0.113.7:5000" } },
+        localOnly,
+        {},
+      ),
+    ).toThrow(expect.objectContaining({ code: "NETWORK_POLICY_VIOLATION" }));
+  });
+});
+
+describe("assertProviderNetworkPermitted", () => {
+  it("ignores a none provider", () => {
+    expect(() =>
+      assertProviderNetworkPermitted(
+        { provider: { id: "none", options: {} }, network: { policy: "local-only" } },
+        {},
+      ),
+    ).not.toThrow();
+  });
+
+  it("applies the environment pin even when the config sets no network block", () => {
+    const error = thrown(() =>
+      assertProviderNetworkPermitted(
+        { provider: anthropic },
+        { VERBATRA_NETWORK_POLICY: "local-only" },
+      ),
+    );
+    expect(error.code).toBe("NETWORK_POLICY_VIOLATION");
+    expect(error.message).toContain("VERBATRA_NETWORK_POLICY");
+  });
+
+  it("reads the process environment by default", () => {
+    expect(() => assertProviderNetworkPermitted({ provider: local })).not.toThrow();
+  });
+});
+
+describe("assertEndpointPermitted: the allowlist the hint names", () => {
+  it("names VERBATRA_NETWORK_ALLOWED_HOSTS when the environment's rule refused", () => {
+    const env = { VERBATRA_NETWORK_POLICY: "local-only" };
+    const error = thrown(() =>
+      assertEndpointPermitted(anthropic, resolveNetworkPolicy({ policy: "any" }, env), env),
+    );
+    expect(error.message).toContain("add its host to VERBATRA_NETWORK_ALLOWED_HOSTS.");
+    expect(error.message).not.toContain("network.allowedHosts");
+  });
+
+  it("names network.allowedHosts when the config's rule refused", () => {
+    const error = thrown(() =>
+      assertEndpointPermitted(anthropic, resolveNetworkPolicy({ policy: "local-only" }, {}), {}),
+    );
+    expect(error.message).toContain("add its host to network.allowedHosts.");
+  });
+
+  it("names every allowlist in force when no single rule refused", () => {
+    const env = {
+      VERBATRA_NETWORK_POLICY: "local-only",
+      NODE_USE_ENV_PROXY: "1",
+      HTTPS_PROXY: "proxy.corp:3128",
+    };
+    const error = thrown(() =>
+      assertEndpointPermitted(local, resolveNetworkPolicy({ policy: "local-only" }, env), env),
+    );
+    expect(error.message).toContain(
+      "add its host to network.allowedHosts and VERBATRA_NETWORK_ALLOWED_HOSTS.",
+    );
+  });
+});

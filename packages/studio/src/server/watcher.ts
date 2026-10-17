@@ -6,6 +6,7 @@ import {
   LOCK_FILE_NAME,
   type LocaleFileSnapshot,
   type LocaleSnapshotDelta,
+  PROVENANCE_FILE_NAME,
   type ReadLocaleFileSnapshotDeps,
   readLocaleFileSnapshot,
   type SdkFs,
@@ -37,6 +38,7 @@ function watchedEntries(config: VerbatraConfig, projectRoot: string): readonly W
     { reason: "source", paths: [source], locale: config.sourceLocale },
     ...targets,
     { reason: "lock", paths: [lock] },
+    { reason: "lock", paths: [resolve(projectRoot, PROVENANCE_FILE_NAME)] },
   ];
 }
 

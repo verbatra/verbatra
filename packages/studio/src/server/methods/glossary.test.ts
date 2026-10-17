@@ -1,11 +1,18 @@
 import type { LoadedConfig, SdkFs } from "@verbatra/sdk";
 import { describe, expect, it, vi } from "vitest";
+import type { GlossaryGetResult } from "../../shared/rpc/glossary.js";
 import type { RpcHandlerDeps } from "../rpc.js";
 import { baseStudioConfig } from "../test-support.js";
 import { glossaryGetHandler, glossaryWriteHandler } from "./glossary.js";
 
+const SK_PROJ = ["sk", "proj", ""].join("-");
+
 function deps(loaded: LoadedConfig, projectRoot = "/project", fs?: SdkFs): RpcHandlerDeps {
   return { config: loaded, projectRoot, ...(fs !== undefined ? { fs } : {}) };
+}
+
+function termMapOf(result: GlossaryGetResult): Readonly<Record<string, string | undefined>> {
+  return Object.fromEntries(result.terms.map((term) => [term.source, term.target]));
 }
 
 function fileBacked(entries: Readonly<Record<string, string>>): LoadedConfig {
@@ -17,7 +24,6 @@ function fileBacked(entries: Readonly<Record<string, string>>): LoadedConfig {
 }
 
 function fakeGlossaryFs(store: Map<string, string>): SdkFs {
-  const locks = new Set<string>();
   return {
     fileExists: async (path: string): Promise<boolean> => store.has(path),
     readFileBounded: async (path: string) => {
@@ -31,15 +37,15 @@ function fakeGlossaryFs(store: Map<string, string>): SdkFs {
       store.set(path, data);
     },
     writeBytes: async (): Promise<void> => {},
-    createExclusive: async (path: string): Promise<boolean> => {
-      if (locks.has(path)) {
+    createExclusive: async (path: string, data: string): Promise<boolean> => {
+      if (store.has(path)) {
         return false;
       }
-      locks.add(path);
+      store.set(path, data);
       return true;
     },
     deleteFile: async (path: string): Promise<void> => {
-      locks.delete(path);
+      store.delete(path);
     },
   };
 }
@@ -54,7 +60,14 @@ describe("glossaryGetHandler", () => {
 
     const result = await glossaryGetHandler({}, deps(loaded));
 
-    expect(result).toEqual({ indicator: { source: "none" }, entries: {}, redactedTerms: [] });
+    expect(result).toEqual({
+      indicator: { source: "none" },
+      version: null,
+      locales: ["de"],
+      terms: [],
+      doNotTranslate: [],
+      redactedTerms: [],
+    });
   });
 
   it("reports source: inline with the inline entries", async () => {
@@ -66,11 +79,9 @@ describe("glossaryGetHandler", () => {
 
     const result = await glossaryGetHandler({}, deps(loaded));
 
-    expect(result).toEqual({
-      indicator: { source: "inline" },
-      entries: { hello: "hola" },
-      redactedTerms: [],
-    });
+    expect(result.indicator).toEqual({ source: "inline" });
+    expect(termMapOf(result)).toEqual({ hello: "hola" });
+    expect(result.redactedTerms).toEqual([]);
   });
 
   it("reports source: file with the path relativized against the project root", async () => {
@@ -81,7 +92,7 @@ describe("glossaryGetHandler", () => {
     );
 
     expect(result.indicator).toEqual({ source: "file", path: "glossary.json" });
-    expect(result.entries).toEqual({ hello: "hola" });
+    expect(termMapOf(result)).toEqual({ hello: "hola" });
   });
 
   it("reads a file-backed glossary fresh from disk rather than from the config loaded at startup", async () => {
@@ -92,23 +103,25 @@ describe("glossaryGetHandler", () => {
       deps(fileBacked({ hello: "stale" }), "/project", fakeGlossaryFs(store)),
     );
 
-    expect(result.entries).toEqual({ hello: "hola", cli: "CLI" });
+    expect(termMapOf(result)).toEqual({ hello: "hola", cli: "CLI" });
   });
 
   it("redacts a secret-shaped glossary value before it leaves the handler and names the term", async () => {
     const loaded: LoadedConfig = {
-      config: baseStudioConfig({ glossary: { apiTerm: "sk-abcdEFGH12345678", hello: "hola" } }),
+      config: baseStudioConfig({
+        glossary: { apiTerm: `${SK_PROJ}Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z`, hello: "hola" },
+      }),
       source: { kind: "override" },
       glossary: { source: "inline" },
     };
 
     const result = await glossaryGetHandler({}, deps(loaded));
 
-    expect(result.entries.apiTerm).toBe("[REDACTED]");
+    expect(termMapOf(result).apiTerm).toBe("[REDACTED]");
     expect(result.redactedTerms).toEqual(["apiTerm"]);
   });
 
-  it("exposes only the indicator, entries, and redacted terms, never the raw config", async () => {
+  it("exposes only the glossary view, never the raw config", async () => {
     const loaded: LoadedConfig = {
       config: baseStudioConfig({ glossary: { hello: "hola" } }),
       source: { kind: "override" },
@@ -117,7 +130,14 @@ describe("glossaryGetHandler", () => {
 
     const result = await glossaryGetHandler({}, deps(loaded));
 
-    expect(Object.keys(result)).toEqual(["indicator", "entries", "redactedTerms"]);
+    expect(Object.keys(result)).toEqual([
+      "indicator",
+      "version",
+      "locales",
+      "terms",
+      "doNotTranslate",
+      "redactedTerms",
+    ]);
     expect(JSON.stringify(result)).not.toContain("test-model");
     expect(JSON.stringify(result)).not.toContain("maxTokens");
   });
@@ -132,7 +152,7 @@ describe("glossaryWriteHandler", () => {
       deps(fileBacked({ hello: "hola" }), "/project", fakeGlossaryFs(store)),
     );
 
-    expect(result.entries).toEqual({ hello: "hola", cli: "CLI" });
+    expect(termMapOf(result)).toEqual({ hello: "hola", cli: "CLI" });
     expect(store.get("/project/glossary.json")).toBe('{\n  "hello": "hola",\n  "cli": "CLI"\n}\n');
   });
 
@@ -144,7 +164,7 @@ describe("glossaryWriteHandler", () => {
       deps(fileBacked({ hello: "hola", cli: "CLI" }), "/project", fakeGlossaryFs(store)),
     );
 
-    expect(result.entries).toEqual({ hello: "hola" });
+    expect(termMapOf(result)).toEqual({ hello: "hola" });
   });
 
   it("writes to the path the loaded config resolved, never to one a caller could name", async () => {
@@ -197,12 +217,170 @@ describe("glossaryWriteHandler", () => {
     const store = new Map([["/project/glossary.json", '{"hello":"hola"}']]);
 
     const result = await glossaryWriteHandler(
-      { term: "apiTerm", translation: "sk-abcdEFGH12345678" },
+      { term: "apiTerm", translation: `${SK_PROJ}Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z` },
       deps(fileBacked({ hello: "hola" }), "/project", fakeGlossaryFs(store)),
     );
 
-    expect(result.entries.apiTerm).toBe("[REDACTED]");
+    expect(termMapOf(result).apiTerm).toBe("[REDACTED]");
     expect(result.redactedTerms).toEqual(["apiTerm"]);
-    expect(store.get("/project/glossary.json")).toContain("sk-abcdEFGH12345678");
+    expect(store.get("/project/glossary.json")).toContain(
+      `${SK_PROJ}Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z`,
+    );
+  });
+});
+
+describe("glossary handlers on a version 2 glossary", () => {
+  const V2 = JSON.stringify({
+    version: 2,
+    terms: [
+      { source: "Dashboard", target: "Dashboard", targets: { de: "Übersicht" } },
+      { source: "Save", target: "Speichern" },
+    ],
+  });
+
+  it("lists an inline version 2 glossary", async () => {
+    const result = await glossaryGetHandler(
+      {},
+      deps({
+        config: baseStudioConfig({
+          glossary: { version: 2, terms: [{ source: "Save", target: "Speichern" }] },
+        }),
+        source: { kind: "override" },
+        glossary: { source: "inline" },
+      }),
+    );
+
+    expect(termMapOf(result)).toEqual({ Save: "Speichern" });
+  });
+
+  it("clears only the shared translation for null and keeps a term that still has others", async () => {
+    const store = new Map([["/project/glossary.json", V2]]);
+
+    const result = await glossaryWriteHandler(
+      { term: "Dashboard", translation: null },
+      deps(fileBacked({}), "/project", fakeGlossaryFs(store)),
+    );
+
+    expect(termMapOf(result)).toEqual({ Dashboard: undefined, Save: "Speichern" });
+    expect(JSON.parse(store.get("/project/glossary.json") ?? "{}").terms).toEqual([
+      { source: "Dashboard", targets: { de: "Übersicht" } },
+      { source: "Save", target: "Speichern" },
+    ]);
+  });
+});
+
+describe("glossary handlers: per-locale views", () => {
+  const PER_LOCALE = JSON.stringify({
+    version: 2,
+    terms: [
+      {
+        source: "Dashboard",
+        target: "Dashboard",
+        targets: { de: "Übersicht" },
+        forbidden: { de: ["Instrumententafel"] },
+        note: "Start page",
+        partOfSpeech: "noun",
+        caseSensitive: true,
+      },
+      { source: "Board", forbidden: { fr: ["Planche"] } },
+    ],
+    doNotTranslate: ["verbatra"],
+  });
+
+  function perLocaleDeps(store: Map<string, string>) {
+    return deps(
+      {
+        config: baseStudioConfig({ targetLocales: ["de", "fr"] }),
+        source: { kind: "override" },
+        glossary: { source: "file", path: "/project/glossary.json" },
+      },
+      "/project",
+      fakeGlossaryFs(store),
+    );
+  }
+
+  it("resolves every term for every target locale and marks what is inherited", async () => {
+    const result = await glossaryGetHandler(
+      {},
+      perLocaleDeps(new Map([["/project/glossary.json", PER_LOCALE]])),
+    );
+
+    expect(result.version).toBe(2);
+    expect(result.locales).toEqual(["de", "fr"]);
+    expect(result.doNotTranslate).toEqual([{ term: "verbatra", caseSensitive: true }]);
+    expect(result.terms[0]).toEqual({
+      source: "Dashboard",
+      target: "Dashboard",
+      targets: { de: "Übersicht" },
+      forbidden: { de: ["Instrumententafel"] },
+      caseSensitive: true,
+      note: "Start page",
+      partOfSpeech: "noun",
+      byLocale: {
+        de: { target: "Übersicht", inherited: false, forbidden: ["Instrumententafel"] },
+        fr: { target: "Dashboard", inherited: true, forbidden: [] },
+      },
+    });
+    expect(result.terms[1]?.byLocale).toEqual({
+      fr: { inherited: true, forbidden: ["Planche"] },
+    });
+  });
+
+  it("writes one locale's translation and forbidden renderings", async () => {
+    const store = new Map([["/project/glossary.json", PER_LOCALE]]);
+
+    const result = await glossaryWriteHandler(
+      { term: "Board", locale: "fr", translation: "Tableau", forbidden: null },
+      perLocaleDeps(store),
+    );
+
+    expect(result.terms[1]?.byLocale.fr).toEqual({
+      target: "Tableau",
+      inherited: false,
+      forbidden: [],
+    });
+  });
+
+  it("keeps a term untranslated", async () => {
+    const store = new Map([["/project/glossary.json", PER_LOCALE]]);
+
+    const result = await glossaryWriteHandler(
+      { term: "Acme", doNotTranslate: true, caseSensitive: false },
+      perLocaleDeps(store),
+    );
+
+    expect(result.doNotTranslate).toEqual([
+      { term: "verbatra", caseSensitive: true },
+      { term: "Acme", caseSensitive: false },
+    ]);
+  });
+
+  it("refuses a locale that is not a configured target locale and writes nothing", async () => {
+    const store = new Map([["/project/glossary.json", PER_LOCALE]]);
+
+    await expect(
+      glossaryWriteHandler({ term: "Board", locale: "it", translation: "x" }, perLocaleDeps(store)),
+    ).rejects.toMatchObject({
+      code: "UNKNOWN_LOCALE",
+      message:
+        "Requested locale not in the configured target locales: it. Configured targets: de, fr.",
+    });
+    expect(store.get("/project/glossary.json")).toBe(PER_LOCALE);
+  });
+
+  it.each(["__proto__", "constructor", "prototype"])("keeps a term named %s", async (name) => {
+    const store = new Map([["/project/glossary.json", `{"${name}":"Wert","hello":"hola"}`]]);
+
+    const result = await glossaryGetHandler({}, perLocaleDeps(store));
+
+    expect(result.terms.map((term) => [term.source, term.target])).toEqual([
+      [name, "Wert"],
+      ["hello", "hola"],
+    ]);
+    expect(result.terms[0]?.byLocale.de).toEqual({
+      target: "Wert",
+      inherited: true,
+      forbidden: [],
+    });
   });
 });

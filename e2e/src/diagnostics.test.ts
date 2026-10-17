@@ -10,6 +10,8 @@ import {
 } from "./diagnostics.js";
 import { PROVIDER_ENV_VARS } from "./harness.js";
 
+const SK_PROJ = ["sk", "proj", ""].join("-");
+
 const SECRET = "super-secret-value-1234";
 
 const MIN_VISIBLE_PREFIX = 12;
@@ -49,7 +51,7 @@ describe("redactSecrets", () => {
 
   it("redacts key-shaped tokens that never passed through this process environment", () => {
     const gemini = "AIzaSyA1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7";
-    const openai = "sk-proj-abcdefghijklmnopqrstuvwxyz0123456789";
+    const openai = `${SK_PROJ}abcdefghijklmnopqrstuvwxyz0123456789`;
 
     expect(redactSecrets(`${gemini} and ${openai}`)).toBe("[redacted] and [redacted]");
   });

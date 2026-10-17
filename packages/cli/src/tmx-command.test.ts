@@ -1,13 +1,15 @@
 import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { importTmx } from "@verbatra/sdk";
+import { importTmx, SdkError } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import { run } from "./run.js";
 import {
   captureStreams,
   makeExportTmxResult,
   makeImportTmxResult,
+  makeLoadedConfig,
+  parseEnvelope,
   recordingDeps,
 } from "./test-support.js";
 
@@ -99,6 +101,7 @@ describe("verbatra tmx import", () => {
                 empty: 0,
                 sourceBlank: 0,
               },
+              refusals: [],
             },
           ],
           unmatchedLanguages: [{ language: "ja", units: 2 }],
@@ -146,6 +149,7 @@ describe("verbatra tmx import", () => {
                 empty: 0,
                 sourceBlank: 0,
               },
+              refusals: [],
             },
           ],
         }),
@@ -213,9 +217,72 @@ describe("verbatra tmx export", () => {
     await run(["tmx", "export", "--cwd", "/proj"], deps, streams);
 
     expect(out()).toContain("verbatra tmx export -> /proj/verbatra-memory.tmx");
-    expect(out()).toContain("de: 9 units");
+    expect(out()).toContain("de: 9 segments");
+    expect(out()).toContain("fr: 4 segments");
     expect(out()).toContain("9 units across 2 locales");
     expect(out()).toContain("3 entries left out");
+  });
+});
+
+describe("verbatra tmx export guards its output path", () => {
+  it("hands the SDK the config file it loaded, so the output guard refuses it", async () => {
+    const { deps, calls } = recordingDeps({
+      loadConfigWithMeta: async () =>
+        makeLoadedConfig({ source: { kind: "explicit", filepath: "/proj/custom/settings.ts" } }),
+    });
+    const { streams } = captureStreams();
+
+    await run(["tmx", "export", "--cwd", "/proj", "--config", "custom/settings.ts"], deps, streams);
+
+    expect(calls.loadConfigWithMeta[0]).toMatchObject({
+      cwd: "/proj",
+      configPath: "custom/settings.ts",
+    });
+    expect(calls.exportTmx[0]).toMatchObject({ configPath: "/proj/custom/settings.ts" });
+  });
+
+  it("hands the SDK a file-backed glossary's path, so the output guard refuses it", async () => {
+    const { deps, calls } = recordingDeps({
+      loadConfigWithMeta: async () =>
+        makeLoadedConfig({ glossary: { source: "file", path: "/proj/glossary.json" } }),
+    });
+    const { streams } = captureStreams();
+
+    await run(["tmx", "export", "--cwd", "/proj"], deps, streams);
+
+    expect(calls.exportTmx[0]).toMatchObject({ glossaryPath: "/proj/glossary.json" });
+  });
+
+  it("names no config file when the config came from no file", async () => {
+    const { deps, calls } = recordingDeps({
+      loadConfigWithMeta: async () => makeLoadedConfig({ source: { kind: "override" } }),
+    });
+    const { streams } = captureStreams();
+
+    await run(["tmx", "export", "--cwd", "/proj"], deps, streams);
+
+    expect(calls.exportTmx[0]).not.toHaveProperty("configPath");
+  });
+
+  it.each([
+    ["TMX_OUTPUT_CONFLICT", 'The output path "../memory.tmx" is not inside the working directory.'],
+    ["TMX_UNWRITABLE", "Could not write the TMX file memory.tmx (EACCES)."],
+  ] as const)("reports %s as a structured failure envelope and exits 2", async (code, message) => {
+    const { deps } = recordingDeps({
+      exportTmx: async () => {
+        throw new SdkError(code, message);
+      },
+    });
+    const { streams, out } = captureStreams();
+
+    const exit = await run(
+      ["tmx", "export", "../memory.tmx", "--cwd", "/proj", "--json"],
+      deps,
+      streams,
+    );
+
+    expect(exit).toBe(2);
+    expect(parseEnvelope(out())).toMatchObject({ ok: false, command: "tmx", code, message });
   });
 });
 

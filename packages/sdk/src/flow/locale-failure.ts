@@ -1,4 +1,5 @@
-import { describeError } from "../errors.js";
+import { describeError, SdkError } from "../errors.js";
+import { projectRelativeMessage } from "../project-relative.js";
 import type { FuzzyCacheHit, LocaleSummary } from "./summary.js";
 
 export function failureSummary(locale: string, error: unknown): LocaleSummary {
@@ -10,18 +11,32 @@ export function failureSummary(locale: string, error: unknown): LocaleSummary {
     orphaned: [],
     pruned: [],
     invalidIcuSource: [],
+    emptySource: [],
     cacheHits: [],
     fuzzyHits: [],
     integrityMismatches: [],
     providerFailures: [],
     budgetWithheld: [],
+    sensitiveWithheld: [],
     generated: [],
     notices: [],
     needsReview: [],
     unfilled: [],
+    protected: [],
     malformedRows: [],
     duplicateKeys: [],
     error: describeError(error, "LOCALE_FAILED"),
+  };
+}
+
+export function withProjectRelativeMessages(summary: LocaleSummary, cwd: string): LocaleSummary {
+  const relative = (message: string): string => projectRelativeMessage(message, cwd);
+  return {
+    ...summary,
+    notices: summary.notices.map((notice) => ({ ...notice, message: relative(notice.message) })),
+    ...(summary.error === undefined
+      ? {}
+      : { error: { ...summary.error, message: relative(summary.error.message) } }),
   };
 }
 
@@ -33,13 +48,15 @@ export interface LocaleStatusParts {
   readonly integrityMismatches: readonly string[];
   readonly providerFailures: readonly string[];
   readonly budgetWithheld: readonly string[];
+  readonly sensitiveWithheld: readonly string[];
 }
 
 export function deriveLocaleStatus(parts: LocaleStatusParts): LocaleSummary["status"] {
   const withheld =
     parts.integrityMismatches.length > 0 ||
     parts.providerFailures.length > 0 ||
-    parts.budgetWithheld.length > 0;
+    parts.budgetWithheld.length > 0 ||
+    parts.sensitiveWithheld.length > 0;
   if (!withheld) {
     return "succeeded";
   }
@@ -63,4 +80,11 @@ export function partition(locales: readonly LocaleSummary[]): {
     partial: namesWith("partial"),
     failed: namesWith("failed"),
   };
+}
+
+export function isWholeRunError(error: unknown): boolean {
+  return (
+    error instanceof SdkError &&
+    (error.code === "LOCK_FILE_INVALID" || error.code === "PROVENANCE_FILE_INVALID")
+  );
 }

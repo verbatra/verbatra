@@ -1,9 +1,10 @@
 /**
  * Stable, machine-readable reasons the local server could not start.
  *
- * `PORT_IN_USE` means another process already holds the requested port; pick another one, or pass
- * `0` to let the operating system assign a free one. `BIND_FAILED` means the socket came up on
- * something other than `127.0.0.1`, which Studio refuses to serve on because it would expose the
+ * `PORT_IN_USE` means another process already holds the requested port; pick another one. Only a
+ * direct `startStudioServer` call accepts `port: 0`, which lets the operating system assign a free
+ * port; the CLI's `verbatra studio --port` takes 1 to 65535. `BIND_FAILED` means the socket came up
+ * on something other than `127.0.0.1`, which Studio refuses to serve on because it would expose the
  * dashboard beyond this machine.
  */
 export type StudioServerErrorCode = "PORT_IN_USE" | "BIND_FAILED";

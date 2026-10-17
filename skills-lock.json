@@ -17,19 +17,19 @@
       "source": "arcjet/skills",
       "sourceType": "github",
       "skillPath": "arcjet/SKILL.md",
-      "computedHash": "e297c2ced9dc0641b80eddef0f3618c9772c76209d12884099c799c82fcb0cc9"
+      "computedHash": "a407c60527df1fa74404a56d65631ca9a06c341e7cc49ab27dee25086e536a89"
     },
     "autofix": {
       "source": "coderabbitai/skills",
       "sourceType": "github",
       "skillPath": "skills/autofix/SKILL.md",
-      "computedHash": "421f9102c20fb1c91d87a10ca9bee2e91c7e632e644dfdd3dc013e53865df6c1"
+      "computedHash": "1c665af094b2a307a8ab149a4b6ee73097dac24a4fa533821d7cc2e7ede7b9cf"
     },
     "biome-code-review": {
       "source": "biomejs/biome",
       "sourceType": "github",
-      "skillPath": ".claude/skills/biome-code-review/SKILL.md",
-      "computedHash": "2ec40d4a8424fcedf8b5eddfc62eb1608890c4803dc7dc16c6ff2fc13994e05a"
+      "skillPath": ".agents/skills/biome-code-review/SKILL.md",
+      "computedHash": "9b5281892b9a5dd3b681a0dba0fbc1b67cfa35a422b14416b60b6096fb1ebbc0"
     },
     "changesets": {
       "source": "oakoss/agent-skills",
@@ -41,19 +41,19 @@
       "source": "sickn33/agentic-awesome-skills",
       "sourceType": "github",
       "skillPath": "skills/clean-code/SKILL.md",
-      "computedHash": "74bf6ded4f61ddcb593e7a29beb96c284f888cbe0639ad6e23710447c36ff19a"
+      "computedHash": "5dc34cc80c81f909fa69923bfdaa90b6579f3b9842e059be9c2378483605a00f"
     },
     "cli-developer": {
       "source": "jeffallan/claude-skills",
       "sourceType": "github",
       "skillPath": "skills/cli-developer/SKILL.md",
-      "computedHash": "8ac5b5dc1cc784f255f4ebde0c65d0185da4a7d6b02d8d38838be178b62cfd7a"
+      "computedHash": "8794aca717595adaeae56d2b5edb97dffb041db875a3ed7b399879b6aa96a970"
     },
     "code-review": {
       "source": "coderabbitai/skills",
       "sourceType": "github",
       "skillPath": "skills/code-review/SKILL.md",
-      "computedHash": "6d117c3f8797e0c770c6b00a646a07028f3440b5d8042e8f841e88ed1116788f"
+      "computedHash": "8693dd3d57986d051ea8faa504742c4f4cb707c9e48aea740d29f0dbb7bf04e0"
     },
     "frontend-design": {
       "source": "anthropics/skills",
@@ -71,7 +71,7 @@
       "source": "mattpocock/skills",
       "sourceType": "github",
       "skillPath": "skills/engineering/improve-codebase-architecture/SKILL.md",
-      "computedHash": "2449db6ab1ded9581f69fcc56c1f64818112d05e271fd4c5da23c6523f9d3d9d"
+      "computedHash": "ac2c94885f34ff8492dc12aa4543182f661f32ea1722b8d6b6c2c7045af33ae3"
     },
     "mcp-builder": {
       "source": "anthropics/skills",
@@ -83,25 +83,25 @@
       "source": "vercel/next.js",
       "sourceType": "github",
       "skillPath": "skills/next-cache-components-adoption/SKILL.md",
-      "computedHash": "41bc0b6a4cccf16ce53e59124ff9e0cbbfcc73c21cab663128405f3029dd298f"
+      "computedHash": "38eb3cb9e625b46b54493459a106ac410bc0fe59b124903d55f5090c959d292f"
     },
     "next-cache-components-optimizer": {
       "source": "vercel/next.js",
       "sourceType": "github",
       "skillPath": "skills/next-cache-components-optimizer/SKILL.md",
-      "computedHash": "4b3ec1ad99551a98d2fefdaefdb398f88e1621e06fb250f7c06858d5371cb5aa"
+      "computedHash": "45a4f4ad46ce791d42f310c4734795c9ff4e26fbf27ed0285a43a903ef469000"
     },
     "next-dev-loop": {
       "source": "vercel/next.js",
       "sourceType": "github",
       "skillPath": "skills/next-dev-loop/SKILL.md",
-      "computedHash": "d2a697a0a0429cad0bb7264644115457f588d4ed1007eeb0bb7f965b1185fa6e"
+      "computedHash": "c305c83b726212e0284930c65cded2c4a4ab85f9bfccfa83b62274247fe3580e"
     },
     "next-partial-prefetching-adoption": {
       "source": "vercel/next.js",
       "sourceType": "github",
       "skillPath": "skills/next-partial-prefetching-adoption/SKILL.md",
-      "computedHash": "0e8e6cfdc21684b7a359ffc5bbe1ba3b7ae7f26a068b9e7dc6b1d0f170c9e98d"
+      "computedHash": "e523f1aec1789b3a1f4ca881898d99416427f9d853b3b1841f0e13657bc38f77"
     },
     "playwright-best-practices": {
       "source": "currents-dev/playwright-best-practices-skill",
@@ -113,55 +113,58 @@
       "source": "microsoft/playwright-cli",
       "sourceType": "github",
       "skillPath": "skills/playwright-cli/SKILL.md",
-      "computedHash": "9fb3a1b16a431aa5e27ef05dda32e39215c8a8553b7093cdc737367d4a0c61f0"
+      "computedHash": "ffbd59a973d4e2c19c6ecc31254a14497069c362f1d1820b6a6cfbe62de34a73"
     },
     "translation": {
       "source": "kostja94/marketing-skills",
       "sourceType": "github",
       "skillPath": "skills/content/translation/SKILL.md",
-      "computedHash": "8416425bae614dd3bbf72713f9a60dc3c2a6d90a47952aa698166744a13458ea"
+      "computedHash": "0e0157eb7538df9b41411736ffda5a8a387a6c038df84472363a6fa55bdf7273"
     },
     "turborepo": {
       "source": "vercel/turborepo",
       "sourceType": "github",
       "skillPath": "skills/turborepo/SKILL.md",
-      "computedHash": "4289866858fc5314e10ca21584d00c48ddb7e6bc353e262283958f8e4b9bec87"
+      "computedHash": "9681d8dfeb5e6cdff767f1bcaba5d7ac55732a9d6c02ee120f44229f8ec25e7e"
     },
     "typescript-expert": {
       "source": "sickn33/agentic-awesome-skills",
       "sourceType": "github",
       "skillPath": "skills/typescript-expert/SKILL.md",
-      "computedHash": "525e74a7220ed67832001ca89b46deae8f2bab1abc9d25c56c8716d6550c795f"
+      "computedHash": "13d996860ec89780cfc6fae411cd6526dc13d6a476ab318d73a51fea9d45667a"
     },
     "verbatra-cli": {
       "source": "verbatra/skills",
+      "ref": "updates/new",
       "sourceType": "github",
       "skillPath": "skills/verbatra-cli/SKILL.md",
-      "computedHash": "af47ee0f969bbd552305614e5909a985553e8d3946870e2ed8cafa5d1766e281"
+      "computedHash": "8abf5f03bb5a2d8eea10b30ecfe5eae0e82a6943d78c296464822016e214e814"
     },
     "verbatra-mcp-tools": {
       "source": "verbatra/skills",
+      "ref": "updates/new",
       "sourceType": "github",
       "skillPath": "skills/verbatra-mcp-tools/SKILL.md",
-      "computedHash": "787952684480fb512afc92cf6b5ae498eb3454d8b5c638764dcf28114be41b88"
+      "computedHash": "7b865dafc5ea55b8753433257766fb0b5b29193592f38e004ff10f54c517d7c8"
     },
     "verbatra-studio-agent-tools": {
       "source": "verbatra/skills",
+      "ref": "updates/new",
       "sourceType": "github",
       "skillPath": "skills/verbatra-studio-agent-tools/SKILL.md",
-      "computedHash": "b0856deb6ecee6944cad21b40671a2231be54b30468f4948b759b2fb987b1136"
+      "computedHash": "81ac07e0d3f5797e19c01cf2ede622e9b624462a28063b5371a0fc8ed634a8f6"
     },
     "vercel-react-best-practices": {
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",
       "skillPath": "skills/react-best-practices/SKILL.md",
-      "computedHash": "ca7b0c0c6e5f2750043f7f0cd72d16ac4e2abc48f9b5500d047a4b77a2506212"
+      "computedHash": "3219a1944e404ffc14d1d9d6aef6dd2e3855b81387ee0a044ccbfe14d34c2357"
     },
     "vitest": {
       "source": "antfu/skills",
       "sourceType": "github",
       "skillPath": "skills/vitest/SKILL.md",
-      "computedHash": "943d436114c677802426741980146c07560bf375297666b03062444f4b98a785"
+      "computedHash": "21af2b13d47d31f3094b61c0f41abc8d6a7eed0df3c9a4029ea671f6978b7209"
     },
     "zod-validation-expert": {
       "source": "sickn33/agentic-awesome-skills",

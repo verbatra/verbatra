@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   authenticatedCookie,
@@ -39,11 +40,49 @@ describe("startStudioServer: cwd option", () => {
           expect(body.ok).toBe(true);
           expect(body.result).toEqual({
             inSync: false,
-            locales: [{ locale: "de", missing: 1, stale: 0, upToDate: 0, inSync: false }],
+            locales: [
+              {
+                locale: "de",
+                missing: 1,
+                stale: 0,
+                upToDate: 0,
+                emptySource: 0,
+                inSync: false,
+                provenance: expect.any(Object),
+                protected: 0,
+                incompletePlurals: [],
+              },
+            ],
           });
         },
         { token: TOKEN, loader: fixtureLoader(project), cwd: project.root },
       );
+    } finally {
+      await project.cleanup();
+    }
+  });
+
+  it("roots a config the search found at the config file's directory, whatever the cwd", async () => {
+    const project = await makeFixtureProject({ targetLocales: ["de"] }, { greeting: "hello" });
+    try {
+      const body = await withServer(
+        async (server) => {
+          const cookie = await authenticatedCookie(server.url, TOKEN);
+          const response = await postRpc(server.url, cookie, "status.check");
+          return (await response.json()) as RpcEnvelope;
+        },
+        {
+          token: TOKEN,
+          loader: async () => ({
+            config: project.config,
+            source: { kind: "search", filepath: join(project.root, ".verbatrarc.json") },
+            glossary: { source: "none" },
+          }),
+          cwd: join(project.root, "src"),
+        },
+      );
+
+      expect(body.ok).toBe(true);
     } finally {
       await project.cleanup();
     }

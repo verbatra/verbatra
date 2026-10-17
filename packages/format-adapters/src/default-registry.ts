@@ -26,6 +26,16 @@ import { createYamlAdapter } from "./yaml/yaml-adapter.js";
  *
  * @example
  * ```ts
+ * import {
+ *   createDefaultRegistry,
+ *   type FormatAdapter,
+ *   loadConfig,
+ *   translate,
+ * } from "@verbatra/sdk";
+ *
+ * declare function createTomlAdapter(): FormatAdapter;
+ *
+ * const config = await loadConfig();
  * const registry = createDefaultRegistry().register(createTomlAdapter());
  * await translate({ config }, { adapterRegistry: registry });
  * ```

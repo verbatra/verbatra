@@ -1,14 +1,26 @@
 import { checkArcjet } from "./arcjet";
 import { sendContactEmail } from "./email";
 import { isHoneypotFilled } from "./honeypot";
-import { serverErrorResponse, successResponse, validationErrorResponse } from "./respond";
-import { parseContactRequest } from "./schema";
+import { readBodyWithinLimit, rejectUnacceptableRequest } from "./request-guard";
+import {
+  payloadTooLargeResponse,
+  serverErrorResponse,
+  successResponse,
+  validationErrorResponse,
+} from "./respond";
+import { parseContactBody } from "./schema";
 
 export async function POST(request: Request): Promise<Response> {
+  const rejected = rejectUnacceptableRequest(request);
+  if (rejected) return rejected;
+
   const blocked = await checkArcjet(request);
   if (blocked) return blocked;
 
-  const parsed = await parseContactRequest(request);
+  const text = await readBodyWithinLimit(request);
+  if (text === undefined) return payloadTooLargeResponse();
+
+  const parsed = parseContactBody(text);
   if (!parsed.success) return validationErrorResponse(parsed.errors);
 
   if (isHoneypotFilled(parsed.data)) return successResponse();

@@ -1,7 +1,8 @@
+import type { CliErrorCode } from "./cli-error-codes.js";
 import { CliUsageError } from "./cli-usage-error.js";
 
 export interface PositiveIntegerOptionSpec {
-  readonly code: string;
+  readonly code: CliErrorCode;
   readonly describe: string;
   readonly min: number;
   readonly max?: number;

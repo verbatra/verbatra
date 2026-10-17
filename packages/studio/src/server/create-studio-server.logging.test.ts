@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { startStudioServer } from "./create-studio-server.js";
-import { stubLoader } from "./test-support.js";
+import { authenticatedCookie, stubLoader } from "./test-support.js";
 import type { StudioServer } from "./types.js";
 
 describe("token-once banner and request logging", () => {
@@ -58,5 +58,34 @@ describe("token-once banner and request logging", () => {
 
     const requestLine = lines.find((line) => line.startsWith("GET /some/path"));
     expect(requestLine).toBe("GET /some/path 401");
+  });
+
+  it("names a recognized RPC method in the request line, and never an unrecognized one", async () => {
+    const lines: string[] = [];
+    const token = "logging-test-token-0123456789abcdef0123";
+    server = await startStudioServer({
+      port: 0,
+      token,
+      output: (line) => lines.push(line),
+      loader: stubLoader(),
+    });
+    const cookie = await authenticatedCookie(server.url, token);
+    const post = (method: string, params: object): Promise<Response> =>
+      fetch(new URL("/rpc", server?.url), {
+        method: "POST",
+        headers: {
+          Cookie: cookie,
+          "Content-Type": "application/json",
+          Origin: server?.url.replace(/\/$/, "") ?? "",
+        },
+        body: JSON.stringify({ method, params }),
+      });
+
+    await post("status.check", {});
+    await post("attacker.chosen-name", { secret: "value-canary" });
+
+    const rpcLines = lines.filter((line) => line.startsWith("POST /rpc"));
+    expect(rpcLines).toEqual(["POST /rpc status.check 200", "POST /rpc 400"]);
+    expect(lines.join("\n")).not.toContain("value-canary");
   });
 });

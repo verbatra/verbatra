@@ -1,3 +1,4 @@
+import type { KeyProvenance } from "@verbatra/sdk";
 export const MAX_RENDERED_KEYS = 500;
 
 export interface CappedKeyList {
@@ -9,6 +10,7 @@ export interface CappedKeyList {
 export interface KeyValuePair {
   readonly source?: string;
   readonly target?: string;
+  readonly provenance?: KeyProvenance;
 }
 
 function valueMatches(
@@ -26,18 +28,22 @@ function valueMatches(
   );
 }
 
+export function keyMatchesQuery(
+  key: string,
+  query: string,
+  values?: ReadonlyMap<string, KeyValuePair>,
+): boolean {
+  const needle = query.trim().toLowerCase();
+  return needle === "" || key.toLowerCase().includes(needle) || valueMatches(key, needle, values);
+}
+
 export function filterAndCapKeys(
   keys: readonly string[],
   query: string,
   values?: ReadonlyMap<string, KeyValuePair>,
 ): CappedKeyList {
-  const needle = query.trim().toLowerCase();
   const matches =
-    needle === ""
-      ? keys
-      : keys.filter(
-          (key) => key.toLowerCase().includes(needle) || valueMatches(key, needle, values),
-        );
+    query.trim() === "" ? keys : keys.filter((key) => keyMatchesQuery(key, query, values));
   return {
     items: matches.slice(0, MAX_RENDERED_KEYS),
     totalMatches: matches.length,

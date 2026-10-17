@@ -5,8 +5,11 @@ import { contentHash, type TranslationEntry } from "@verbatra/core";
 import { describe, expect, it } from "vitest";
 import type { VerbatraConfig } from "../config/schema.js";
 import { SdkError } from "../errors.js";
+import { ProviderError as ExportedProviderError } from "../index.js";
 import {
   baseConfig,
+  localeGlossaryOf,
+  makeIntegrityProvider,
   makeStubProvider,
   makeTempDir,
   readJsonFile,
@@ -147,6 +150,30 @@ describe("retranslateEntry: acceptance", () => {
     expect(result).toMatchObject({ accepted: true, reviewReasons: ["EQUALS_SOURCE"] });
   });
 
+  it("adds FOREIGN_PLACEHOLDER_CHANGED after the provider's reasons when the value drops one", async () => {
+    const dir = await project({ greeting: "Hello {name}, welcome back!" });
+    const provider = makeIntegrityProvider(() => "Hallo, willkommen zurück!");
+    const reviewingProvider = {
+      ...provider,
+      translateBatch: async (request: Parameters<typeof provider.translateBatch>[0]) => ({
+        ...(await provider.translateBatch(request)),
+        reviewFlags: new Map([
+          ["greeting", { status: "review" as const, reasons: ["EQUALS_SOURCE" as const] }],
+        ]),
+      }),
+    };
+
+    const result = await retranslateEntry(
+      { config: cfg(), cwd: dir, locale: "de", key: "greeting" },
+      { createProvider: () => reviewingProvider },
+    );
+
+    expect(result).toMatchObject({
+      accepted: true,
+      reviewReasons: ["EQUALS_SOURCE", "FOREIGN_PLACEHOLDER_CHANGED"],
+    });
+  });
+
   it("passes the key's configured length budget to the provider", async () => {
     const dir = await project({ greeting: "Hello" });
     const provider = makeStubProvider().provider;
@@ -277,6 +304,40 @@ describe("retranslateEntry: provider errors", () => {
     expect(error).toBeInstanceOf(ProviderError);
     expect((error as ProviderError).code).toBe("INVALID_RESPONSE");
   });
+
+  it("names the PLACEHOLDER_UNSUPPORTED reason when a machine-translation provider withheld the key", async () => {
+    const dir = await project({ greeting: "Hello" });
+    const stub = makeStubProvider({
+      missingValues: new Set(["greeting"]),
+      notices: [
+        { code: "PLACEHOLDER_UNSUPPORTED", message: "Some entries were left untranslated." },
+      ],
+    });
+
+    const error = await retranslateEntry(
+      { config: cfg(), cwd: dir, locale: "de", key: "greeting" },
+      { createProvider: () => stub.provider },
+    ).catch((e: unknown) => e);
+
+    expect(error).toMatchObject({
+      code: "INVALID_RESPONSE",
+      message:
+        'The provider left key "greeting" untranslated. Some entries were left untranslated.',
+    });
+  });
+
+  it("throws the ProviderError class the SDK exports, so a caller can test for it", async () => {
+    const dir = await project({ greeting: "Hello" });
+    const stub = makeStubProvider({ missingValues: new Set(["greeting"]) });
+
+    const error = await retranslateEntry(
+      { config: cfg(), cwd: dir, locale: "de", key: "greeting" },
+      { createProvider: () => stub.provider },
+    ).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ExportedProviderError);
+    expect(error).toMatchObject({ name: "ProviderError", code: "INVALID_RESPONSE" });
+  });
 });
 
 describe("retranslateEntry: provider request shape", () => {
@@ -308,7 +369,7 @@ describe("retranslateEntry: provider request shape", () => {
       { createProvider: () => stub.provider },
     );
 
-    expect(stub.calls[0]?.request.glossary).toEqual({ hello: "salut" });
+    expect(stub.calls[0]?.request.glossary).toEqual(localeGlossaryOf({ hello: "salut" }));
     expect(stub.calls[0]?.request.tone).toBe("formal");
   });
 
@@ -376,5 +437,32 @@ describe("retranslateEntry: the token budget does not reach this path", () => {
 
     expect(result).not.toHaveProperty("budget");
     expect(stub.calls).toHaveLength(1);
+  });
+});
+
+describe("retranslateEntry: human-only mode", () => {
+  it("refuses with MACHINE_TRANSLATION_DISABLED before constructing a provider or writing", async () => {
+    const dir = await project({ greeting: "Hello" }, { de: { greeting: "Hallo" } });
+    const factoryCalls: string[] = [];
+
+    const error = await retranslateEntry(
+      {
+        config: cfg({ provider: { id: "none", options: {} } }),
+        cwd: dir,
+        locale: "de",
+        key: "greeting",
+      },
+      {
+        createProvider: (config) => {
+          factoryCalls.push(config.id);
+          return makeStubProvider().provider;
+        },
+      },
+    ).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(SdkError);
+    expect((error as SdkError).code).toBe("MACHINE_TRANSLATION_DISABLED");
+    expect(factoryCalls).toEqual([]);
+    expect(await readJsonFile(join(dir, "locales", "de.json"))).toEqual({ greeting: "Hallo" });
   });
 });

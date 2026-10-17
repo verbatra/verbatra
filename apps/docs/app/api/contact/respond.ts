@@ -20,3 +20,11 @@ export function forbiddenResponse(): Response {
 export function serverErrorResponse(): Response {
   return NextResponse.json({ status: "error" }, { status: 500 });
 }
+
+export function payloadTooLargeResponse(): Response {
+  return NextResponse.json({ status: "too_large" }, { status: 413 });
+}
+
+export function unsupportedMediaTypeResponse(): Response {
+  return NextResponse.json({ status: "unsupported_media_type" }, { status: 415 });
+}

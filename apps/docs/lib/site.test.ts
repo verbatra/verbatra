@@ -5,6 +5,7 @@ import {
   homeAlternates,
   homePath,
   localeAlternates,
+  NODE_RANGE,
   ogAlternateLocales,
   ogLocale,
   PACKAGE_VERSION,
@@ -25,6 +26,24 @@ describe("PACKAGE_VERSION", () => {
     expect(PACKAGE_VERSION).toBe(packageVersion("cli"));
     expect(PACKAGE_VERSION).toBe(packageVersion("sdk"));
   });
+});
+
+function engineRange(name: string): string {
+  const path = fileURLToPath(new URL(`../../../packages/${name}/package.json`, import.meta.url));
+  return JSON.parse(readFileSync(path, "utf8")).engines.node;
+}
+
+describe("NODE_RANGE", () => {
+  it("is the cli package's engines.node range, read at build time", () => {
+    expect(NODE_RANGE).toBe(engineRange("cli"));
+  });
+
+  it.each(["sdk", "studio", "mcp"])(
+    "matches the %s package, so one range can stand for every published package",
+    (name) => {
+      expect(engineRange(name)).toBe(NODE_RANGE);
+    },
+  );
 });
 
 describe("STUDIO_VERSION", () => {

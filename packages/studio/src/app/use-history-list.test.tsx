@@ -9,6 +9,7 @@ vi.mock("./api.js", () => import("./test-support.js").then((module) => module.ap
 
 const FIRST_COMMIT: HistoryCommit = {
   hash: "9f1c2ab",
+  author: "Ada Lovelace",
   authorDate: "2026-05-01T09:12:00Z",
   subject: "Translate the onboarding strings",
   touchedPaths: ["locales/de.json"],
@@ -16,6 +17,7 @@ const FIRST_COMMIT: HistoryCommit = {
 
 const SECOND_COMMIT: HistoryCommit = {
   hash: "3d4e5f6",
+  author: "Ada Lovelace",
   authorDate: "2026-05-02T11:40:00Z",
   subject: "Add the French locale",
   touchedPaths: ["locales/fr.json", "locales/en.json"],
@@ -61,12 +63,12 @@ describe("useHistoryList", () => {
   });
 
   it("reports the unavailable state when the project is not a git repository", async () => {
-    stubRpc({ "history.list": historyAnswer({ available: false }) });
+    stubRpc({ "history.list": historyAnswer({ available: false, reason: "not-a-repository" }) });
 
     const view = await renderAsync(<Probe />);
 
     expect(view.text()).toBe("unavailable");
-    expect(seen).toEqual({ kind: "unavailable" });
+    expect(seen).toEqual({ kind: "unavailable", reason: "not-a-repository" });
   });
 
   it("carries the server's structured error through when the read fails", async () => {

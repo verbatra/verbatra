@@ -3,20 +3,61 @@
 > Private package. Not published, not bundled. This is the source of the documentation site at
 > [verbatra.kreitz-webdev.de](https://verbatra.kreitz-webdev.de), a Fumadocs site on Next.js.
 
-The docs site dogfoods verbatra for its own interface strings and hand-maintains its MDX content
-translations, because verbatra translates structured formats (JSON, XLIFF, YAML, ARB, properties),
-not Markdown or MDX.
+The docs site dogfoods verbatra for its own interface strings, while an AI agent translates its MDX
+content in the same change as the English page, because verbatra translates structured locale
+formats (such as JSON, XLIFF, YAML, ARB, and properties), not Markdown or MDX.
 
 ## Running it
 
-From this directory:
+Start the dev server from the repository root:
 
 ```bash
-pnpm dev        # next dev, after syncing the version banner
+pnpm dev:docs
+```
+
+It goes through Turborepo, which first builds the workspace packages the site imports
+(`@verbatra/cli`, `@verbatra/sdk`, `@verbatra/studio`), so the server never loads a stale `dist`.
+Set `PORT` to serve on another port than 3000.
+
+The other tasks run from this directory:
+
+```bash
 pnpm build      # production build
 pnpm test       # the site's own Vitest suite
 pnpm typecheck
 ```
+
+The site enforces a Content-Security-Policy that allows no inline script except the ones it
+prerendered: `pnpm build` ends by hashing every inline script of every prerendered page into
+`.next/csp-script-hashes.json` (and fails if a page has none), and `proxy.ts` sends each page the
+hashes of its own scripts. `proxy.ts` is the only source of the policy; `next.config.mjs` sends the
+other security headers. A page rendered at request time would have no hashes, so every HTML route
+is prerendered (`dynamicParams = false`). If the server cannot read the hash file, it logs one
+error naming the file and keeps serving pages, but they no longer hydrate. The policy was enforced
+directly, without a report-only period: the site has no report endpoint, so a report-only policy
+would have produced no signal.
+
+To check a build the way it is deployed, run the standalone server with the static assets and
+`public` copied next to it, as the `Dockerfile` does, then point the smoke test at it:
+
+```bash
+cp -R .next/static .next/standalone/apps/docs/.next/static
+cp -R public .next/standalone/apps/docs/public
+NODE_ENV=production HOSTNAME=0.0.0.0 PORT=3000 node .next/standalone/apps/docs/server.js
+pnpm csp:smoke http://localhost:3000
+```
+
+`csp:smoke` loads the key pages in Chromium and fails on any CSP violation, any failed
+`/_next/static` asset, a page that did not hydrate, any request to another origin (the Umami
+server included, since pageviews are sent from the server), a search that did not answer, or an
+HTML response without exactly one hashed policy header. It needs
+`pnpm exec playwright install chromium` once.
+
+`pnpm test:e2e` runs the Playwright and axe suite in `e2e/` against the same standalone build: it
+copies the static assets and `public` into `.next/standalone` and starts the server on port 3107
+(`scripts/serve-standalone.mjs`). It fails while anything else holds that port, so it never tests a
+`next dev` server by accident; set `PW_REUSE_SERVER=1` to run against a standalone server you
+started there yourself. Build first.
 
 No API key is needed to run, build, or test the site. A provider key is needed only to re-translate
 the interface strings with `pnpm i18n` (see below).
@@ -24,12 +65,50 @@ the interface strings with `pnpm i18n` (see below).
 ## Where content lives
 
 - `content/docs/**` is the documentation itself. English source is `page.mdx`; a translation is a
-  locale-suffixed sibling, `page.de.mdx`, `page.es.mdx`, `page.fr.mdx`. Route groups carry a
-  `meta.json` plus `meta.de.json`, `meta.es.json`, and `meta.fr.json`. These are hand-translated.
+  locale-suffixed sibling, `page.de.mdx`, `page.es.mdx`, `page.fr.mdx`. The sidebar's Docs and
+  Reference tabs are the `(docs)` and `(reference)` folders, which hold only meta files that list
+  the route groups; each meta file has `meta.de.json`, `meta.es.json`, and `meta.fr.json`
+  siblings. An AI agent translates these in the same change as the English page;
+  `lib/docs-locale-parity.test.ts` keeps the four locales structurally in sync.
 - `messages/en.json` is the source of the site's own interface strings, with `de.json`, `es.json`,
   and `fr.json` alongside it. These are machine-translated by verbatra.
 - `app/`, `components/`, and `lib/` are the Next.js application; `public/` holds the images,
   including the Studio screenshots the root README links.
+- `lib/licenses.generated.json` (the `/licenses` page) and the root `THIRD_PARTY_NOTICES.md` are
+  written by `pnpm licenses:sync` from the installed production dependencies; run it after a
+  dependency change, or `lib/third-party-licenses.test.ts` fails.
+- A production dependency change (a Dependabot pull request included) needs
+  `pnpm --filter @verbatra/docs licenses:sync` run and its output committed.
+
+## The landing page
+
+The home page (`app/[lang]/(home)/page.tsx`) renders its sections in the order of
+`LANDING_SECTIONS` in `lib/landing-sections.ts`; `lib/landing-sections.test.ts` pins that order.
+Each section is one component in `components/landing/` (`hero.tsx`, `marquee.tsx`,
+`playground.tsx`, `compare.tsx`, `faq.tsx`, `open-source.tsx`, `final-cta.tsx`). The footer is
+not a section: `app/[lang]/(home)/layout.tsx` passes it to the home layout. Facts a section shows
+(the hero tracks, providers, formats, comparison rows, the commands it prints) live in typed tables
+under `lib/` (`lib/landing-*.ts`, `lib/hero-terminal.ts`, `lib/install-commands.ts`), not in the
+copy; a component keeps only its own link targets and layout.
+
+- **Edit copy**: change the `landing.*` key in `messages/en.json`, then update `de.json`,
+  `es.json` and `fr.json` in the same change, with `pnpm i18n` or by hand. After a hand
+  translation, run `npx @verbatra/cli check` from this directory: it must report every locale in sync.
+- **Add or reorder a section**: build it in `components/landing/` on `Section`, with `SectionHead`
+  for a heading and lead (`SectionAside` for a head beside its content, as the marquee and the FAQ
+  use; the hero and the closing section draw their own heads), add its id to `LANDING_SECTIONS` at the position it takes, map the id to the component in
+  `page.tsx`, and update the order in `lib/landing-sections.test.ts`. Give it a section `id` that
+  no other section uses.
+- **Live star count**: the header's GitHub star count comes from `lib/project-stats.ts`, cut off
+  after a short timeout. The page reads it once at build time (`loadProjectStats`,
+  `cache: "force-cache"`, no revalidation), so every landing and legal page stays fully static and
+  its inline scripts match the CSP hashes written at build. After hydration, one client request to
+  the same-origin `/api/stats` route (a static route regenerated hourly) swaps in the current count
+  in place, in a width reserved by the build-time number. `GITHUB_TOKEN`, when set, raises the
+  GitHub rate limit. When a request fails or returns something unexpected, the build-time number
+  stays; when the build had none, the header's GitHub link shows no count. The page never shows a
+  made-up figure, and there is no display threshold. `lib/project-stats.static-pages.test.ts`
+  fails if page code asks the fetch to revalidate.
 
 ## Translating the interface strings
 

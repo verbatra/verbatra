@@ -41,5 +41,5 @@ export const SUPPORTED_FORMATS = [
  */
 export const supportedFormatSchema = z.enum(SUPPORTED_FORMATS);
 
-/** One of the fourteen supported source formats; the inferred type of {@link supportedFormatSchema}. */
+/** One of the fourteen supported source formats, such as `i18next-json` or `xliff`. */
 export type SupportedFormat = z.infer<typeof supportedFormatSchema>;

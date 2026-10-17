@@ -1,5 +1,6 @@
 import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { errorHint } from "../error-hints.js";
 import { SdkError } from "../errors.js";
 import type { RunSummary } from "../flow/summary.js";
 import type { TranslateInput } from "../flow/translate-project.js";
@@ -10,6 +11,14 @@ const CWD = "/proj";
 const SOURCE = resolve(CWD, "locales/en.json");
 
 const okFs = makeFakeFs({ fileExists: async () => true });
+
+beforeEach(() => {
+  vi.stubEnv("ANTHROPIC_API_KEY", "watch-test-key");
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 async function settle(): Promise<void> {
   for (let i = 0; i < 25; i += 1) {
@@ -170,6 +179,107 @@ describe("watch: startup and wiring", () => {
     expect(w.paths).toEqual([]);
   });
 
+  it("a provider that cannot be constructed at startup is a hard PROVIDER_CONSTRUCTION_FAILED error, no watcher or run", async () => {
+    vi.stubEnv("ANTHROPIC_API_KEY", "");
+    const w = watcherHarness();
+    const r = runHarness();
+    const ready = vi.fn();
+    const failure = watch(
+      { config: baseConfig(), cwd: CWD, onRun: () => {}, onReady: ready },
+      { fs: okFs, createWatcher: w.createWatcher, runTranslate: r.run },
+    );
+    await expect(failure).rejects.toBeInstanceOf(SdkError);
+    await expect(failure).rejects.toMatchObject({
+      code: "PROVIDER_CONSTRUCTION_FAILED",
+      cause: { code: "MISSING_API_KEY" },
+    });
+    expect(r.calls).toBe(0);
+    expect(w.paths).toEqual([]);
+    expect(ready).not.toHaveBeenCalled();
+  });
+
+  it("constructs the provider at startup through the injected factory", async () => {
+    vi.stubEnv("ANTHROPIC_API_KEY", "");
+    const w = watcherHarness();
+    const r = runHarness();
+    const createProvider = vi.fn(() => {
+      throw new Error("factory refused");
+    });
+    await expect(
+      watch(
+        { config: baseConfig(), cwd: CWD, onRun: () => {} },
+        { fs: okFs, createWatcher: w.createWatcher, runTranslate: r.run, createProvider },
+      ),
+    ).rejects.toMatchObject({ code: "PROVIDER_CONSTRUCTION_FAILED" });
+    expect(createProvider).toHaveBeenCalledTimes(1);
+    expect(r.calls).toBe(0);
+  });
+
+  it("constructs no provider under provider none, so a missing key never stops the session", async () => {
+    vi.stubEnv("ANTHROPIC_API_KEY", "");
+    const w = watcherHarness();
+    const r = runHarness();
+    const createProvider = vi.fn();
+    const controller = await watch(
+      { config: baseConfig({ provider: { id: "none", options: {} } }), cwd: CWD, onRun: () => {} },
+      { fs: okFs, createWatcher: w.createWatcher, runTranslate: r.run, createProvider },
+    );
+    await settle();
+    expect(createProvider).not.toHaveBeenCalled();
+    expect(r.calls).toBe(1);
+    await controller.stop();
+  });
+
+  it("calls onReady once, after the watcher is attached and before the initial run starts", async () => {
+    const w = watcherHarness();
+    const r = runHarness();
+    const seen: string[] = [];
+    await watch(
+      {
+        config: baseConfig(),
+        cwd: CWD,
+        onRun: () => seen.push("run"),
+        onReady: () => seen.push(`ready:${w.paths.length}:${r.calls}`),
+      },
+      { fs: okFs, createWatcher: w.createWatcher, runTranslate: r.run },
+    );
+    await settle();
+    expect(seen).toEqual(["ready:1:0", "run"]);
+  });
+
+  it("does not call onReady when a startup check refuses the session", async () => {
+    const onReady = vi.fn();
+    await expect(
+      watch(
+        { config: baseConfig(), cwd: CWD, onRun: () => {}, onReady },
+        { fs: makeFakeFs({ fileExists: async () => false }), runTranslate: runHarness().run },
+      ),
+    ).rejects.toMatchObject({ code: "SOURCE_UNREADABLE" });
+    expect(onReady).not.toHaveBeenCalled();
+  });
+
+  it("closes the watcher and starts no run when onReady throws, rethrowing its error", async () => {
+    const w = watcherHarness();
+    const r = runHarness();
+    const boom = new Error("announce failed");
+    await expect(
+      watch(
+        {
+          config: baseConfig(),
+          cwd: CWD,
+          onRun: () => {},
+          onReady: () => {
+            throw boom;
+          },
+        },
+        { fs: okFs, createWatcher: w.createWatcher, runTranslate: r.run },
+      ),
+    ).rejects.toBe(boom);
+    await settle();
+    expect(w.closed).toBe(true);
+    expect(r.calls).toBe(0);
+  });
+
   it("lets a watcher-factory failure escape unwrapped at startup, with no run started", async () => {
     const r = runHarness();
     const failing: CreateWatcher = () => {
@@ -201,6 +311,15 @@ describe("watch: startup and wiring", () => {
     expect(w.paths).toEqual([]);
   });
 
+  it("offers no dry run as a way out of the budget conflict, since watch has none", async () => {
+    const rejection = await watch(
+      { config: baseConfig({ maxTokens: 1_000 }), cwd: CWD, concurrency: 2, onRun: () => {} },
+      { fs: okFs, createWatcher: watcherHarness().createWatcher, runTranslate: runHarness().run },
+    ).catch((error: unknown) => error);
+    expect((rejection as SdkError).message).toContain("Set concurrency to 1 or remove maxTokens.");
+    expect((rejection as SdkError).message).not.toContain("--dry-run");
+  });
+
   it("refuses a concurrency that is not an integer of at least 1 at startup", async () => {
     const w = watcherHarness();
     const r = runHarness();
@@ -213,6 +332,22 @@ describe("watch: startup and wiring", () => {
     expect(r.calls).toBe(0);
     expect(w.paths).toEqual([]);
   });
+
+  it.each([[-1], [0.5], [Number.NaN]])(
+    "refuses a lockAcquireTimeoutMs of %s at startup",
+    async (lockAcquireTimeoutMs) => {
+      const w = watcherHarness();
+      const r = runHarness();
+      await expect(
+        watch(
+          { config: baseConfig(), cwd: CWD, lockAcquireTimeoutMs, onRun: () => {} },
+          { fs: okFs, createWatcher: w.createWatcher, runTranslate: r.run },
+        ),
+      ).rejects.toMatchObject({ code: "LOCK_TIMEOUT_INVALID" });
+      expect(r.calls).toBe(0);
+      expect(w.paths).toEqual([]);
+    },
+  );
 
   it("passes a locale subset through to every run", async () => {
     const w = watcherHarness();
@@ -450,13 +585,40 @@ describe("watch: failure handling and shutdown", () => {
     await settle();
     expect(results[0]).toEqual({
       status: "failed",
-      error: { code: "SOURCE_INVALID", message: "bad source" },
+      error: {
+        code: "SOURCE_INVALID",
+        message: "bad source",
+        hint: errorHint(new SdkError("SOURCE_INVALID", "bad source")),
+      },
     });
     w.emit();
     await vi.advanceTimersByTimeAsync(300);
     await settle();
     expect(r.calls).toBe(2);
     expect(results[1]?.status).toBe("succeeded");
+  });
+
+  it("a failing run that wraps a coded error carries the cause code and the wrapping hint", async () => {
+    const w = watcherHarness();
+    const r = runHarness();
+    const results: WatchRunResult[] = [];
+    const cause = Object.assign(new Error("no key"), { code: "MISSING_API_KEY" });
+    const failure = new SdkError("PROVIDER_CONSTRUCTION_FAILED", "no provider", { cause });
+    r.throwNext(failure);
+    await watch(
+      { config: baseConfig(), cwd: CWD, onRun: (x) => results.push(x) },
+      { fs: okFs, createWatcher: w.createWatcher, runTranslate: r.run },
+    );
+    await settle();
+    expect(results[0]).toEqual({
+      status: "failed",
+      error: {
+        code: "PROVIDER_CONSTRUCTION_FAILED",
+        message: "no provider",
+        causeCode: "MISSING_API_KEY",
+        hint: errorHint(failure),
+      },
+    });
   });
 
   it("a non-coded Error and a non-Error throw both surface a fallback code", async () => {

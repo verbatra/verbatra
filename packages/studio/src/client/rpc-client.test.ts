@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { FetchLike, FetchResponseLike } from "./rpc-client.js";
-import { createRpcClient } from "./rpc-client.js";
+import { createRpcClient, NETWORK_FAILURE_ERROR } from "./rpc-client.js";
 import { createSessionStore } from "./state.js";
 
 function jsonResponse(status: number, body: unknown): FetchResponseLike {
@@ -89,5 +89,28 @@ describe("createRpcClient", () => {
     await client.call("project.snapshot", {});
 
     expect(fetchImpl.mock.calls[0]?.[0]).toBe("/custom-rpc");
+  });
+
+  it("returns a network failure as an ordinary error result instead of throwing", async () => {
+    const fetchImpl: FetchLike = () => Promise.reject(new TypeError("Failed to fetch"));
+    const client = createRpcClient({ fetchImpl, session: createSessionStore() });
+
+    const result = await client.call("review.reject", {
+      locale: "de",
+      key: "greeting",
+      expectedValue: "Hallo",
+    });
+
+    expect(result).toEqual({ ok: false, error: NETWORK_FAILURE_ERROR });
+  });
+
+  it("returns an unreadable reply as the same network failure", async () => {
+    const fetchImpl: FetchLike = () =>
+      Promise.resolve({ status: 502, json: () => Promise.reject(new SyntaxError("Bad JSON")) });
+    const client = createRpcClient({ fetchImpl, session: createSessionStore() });
+
+    const result = await client.call("project.snapshot", {});
+
+    expect(result).toMatchObject({ ok: false, error: { code: "NETWORK_ERROR" } });
   });
 });

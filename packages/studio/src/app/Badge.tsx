@@ -13,13 +13,21 @@ const BADGE_TONE_CLASSES: Readonly<Record<BadgeTone, string>> = {
 
 export function Badge({
   tone,
+  wrap = false,
   children,
 }: {
   readonly tone: BadgeTone;
+  readonly wrap?: boolean;
   readonly children: ReactNode;
 }): ReactNode {
   return (
-    <span className={cn(pillClassName, BADGE_TONE_CLASSES[tone])}>
+    <span
+      className={cn(
+        pillClassName,
+        BADGE_TONE_CLASSES[tone],
+        wrap && "min-w-0 max-w-full whitespace-normal [overflow-wrap:anywhere]",
+      )}
+    >
       <span className={pillDotClassName} aria-hidden="true" />
       {children}
     </span>

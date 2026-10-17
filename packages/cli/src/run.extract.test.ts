@@ -31,7 +31,7 @@ describe("run extract", () => {
 
     await run(["extract", "--config", "/proj/verbatra.config.ts"], deps, streams);
 
-    expect(calls.loadConfig[0]?.configPath).toBe("/proj/verbatra.config.ts");
+    expect(calls.loadConfigWithMeta[0]?.configPath).toBe("/proj/verbatra.config.ts");
   });
 
   it("renders a human summary naming the file and the counts", async () => {

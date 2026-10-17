@@ -81,8 +81,7 @@ function makeParams(
     sourceInvalidIcuKeys: [],
     baseline: new Map(),
     adapter,
-    provider: countingProvider().provider,
-    providerKind: "llm",
+    mode: { kind: "translate", provider: countingProvider().provider, providerKind: "llm" },
     cwd: base.cwd,
     resolver: createLocalePathResolver(base.cwd, {
       sourceLocale: "en",
@@ -118,7 +117,7 @@ describe("runLocale: fuzzy cache reuse", () => {
       makeParams(
         { source: sourceResource, cwd: dir },
         {
-          provider: stub.provider,
+          mode: { kind: "translate", provider: stub.provider, providerKind: "llm" },
           cache: {
             snapshot: memoryFor(OLD_SENTENCE, GERMAN),
             fingerprint: FINGERPRINT,
@@ -184,7 +183,7 @@ describe("runLocale: fuzzy cache reuse", () => {
       makeParams(
         { source: sourceResource, cwd: dir },
         {
-          provider: stub.provider,
+          mode: { kind: "translate", provider: stub.provider, providerKind: "llm" },
           cache: {
             snapshot: memoryFor(OLD_SENTENCE, GERMAN),
             fingerprint: FINGERPRINT,
@@ -207,7 +206,7 @@ describe("runLocale: fuzzy cache reuse", () => {
       makeParams(
         { source: sourceResource, cwd: dir },
         {
-          provider: stub.provider,
+          mode: { kind: "translate", provider: stub.provider, providerKind: "llm" },
           cache: { snapshot: memoryFor(OLD_SENTENCE, GERMAN), fingerprint: FINGERPRINT },
         },
       ),
@@ -227,7 +226,7 @@ describe("runLocale: fuzzy cache reuse", () => {
       makeParams(
         { source: sourceResource, cwd: dir },
         {
-          provider: stub.provider,
+          mode: { kind: "translate", provider: stub.provider, providerKind: "llm" },
           cache: {
             snapshot: memoryFor(previous, "Hallo {{name}}, deine Rechnung steht bereit"),
             fingerprint: FINGERPRINT,

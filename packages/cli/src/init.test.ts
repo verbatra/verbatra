@@ -53,6 +53,30 @@ describe("runInit", () => {
     expect(gitignore).toContain("verbatra.cache.json");
   });
 
+  it("scaffolds a human-only config with no env example for provider none", async () => {
+    const cap = captureStreams();
+    const code = await runInit(
+      { cwd: dir, yes: true, provider: "none" },
+      cap.streams,
+      nonInteractive,
+    );
+
+    expect(code).toBe(0);
+    const config = readFileSync(join(dir, "verbatra.config.ts"), "utf8");
+    expect(config).toContain('id: "none"');
+    expect(config).toContain("Machine translation disabled by policy");
+    expect(config).not.toContain("options");
+    expect(existsSync(join(dir, ".env.example"))).toBe(false);
+    expect(cap.out()).not.toContain(".env.example");
+    expect(readFileSync(join(dir, ".gitignore"), "utf8")).toContain(".verbatra-local/");
+  });
+
+  it("lists none among the providers it offers", async () => {
+    const cap = captureStreams();
+    expect(await runInit({ cwd: dir, yes: true }, cap.streams, nonInteractive)).toBe(2);
+    expect(cap.err()).toContain("google-translate|openai-compatible|libretranslate|none");
+  });
+
   it("scaffolds a google-translate config, env example, and gitignore non-interactively", async () => {
     const cap = captureStreams();
     const code = await runInit(
@@ -143,14 +167,14 @@ describe("runInit", () => {
   it("requires --provider non-interactively and rejects unknown providers", async () => {
     const cap1 = captureStreams();
     expect(await runInit({ cwd: dir, yes: true }, cap1.streams, nonInteractive)).toBe(2);
-    expect(cap1.err()).toContain("--provider is required");
+    expect(cap1.err()).toContain("[MISSING_OPTIONS] Missing --provider");
     expect(existsSync(join(dir, "verbatra.config.ts"))).toBe(false);
 
     const cap2 = captureStreams();
     expect(
       await runInit({ cwd: dir, yes: true, provider: "bogus" }, cap2.streams, nonInteractive),
     ).toBe(2);
-    expect(cap2.err()).toContain("unknown provider");
+    expect(cap2.err()).toContain('[INVALID_PROVIDER] Unknown provider "bogus"');
   });
 
   it("returns 2 when the inputs would produce an invalid config", async () => {
@@ -162,7 +186,20 @@ describe("runInit", () => {
     );
 
     expect(code).toBe(2);
-    expect(cap.err()).toContain("could not scaffold a valid config");
+    expect(cap.err()).toContain("[CONFIG_INVALID] Could not scaffold a valid config");
+    expect(existsSync(join(dir, "verbatra.config.ts"))).toBe(false);
+  });
+
+  it("returns 2 for a target locale that is not a BCP 47 code, suggesting the hyphenated form", async () => {
+    const cap = captureStreams();
+    const code = await runInit(
+      { cwd: dir, yes: true, provider: "deepl", source: "en", targets: "de,pt_BR" },
+      cap.streams,
+      nonInteractive,
+    );
+
+    expect(code).toBe(2);
+    expect(cap.err()).toContain('"pt_BR" is not a valid BCP 47 locale code; write "pt-BR"');
     expect(existsSync(join(dir, "verbatra.config.ts"))).toBe(false);
   });
 
@@ -176,20 +213,25 @@ describe("runInit", () => {
 
     const config = readFileSync(join(dir, "verbatra.config.ts"), "utf8");
     expect(config).toContain('format: "vue-i18n-json"');
-    expect(config).toContain("detected from your dependencies");
+    expect(config).toContain("// The format of your locale files.");
   });
 
-  it("falls back to i18next-json with a set-this comment when several deps match", async () => {
+  it("refuses with the candidates when several deps match, even with --yes", async () => {
     writeFileSync(
       join(dir, "package.json"),
       JSON.stringify({ dependencies: { i18next: "^23", "vue-i18n": "^9" } }),
     );
     const cap = captureStreams();
-    await runInit({ cwd: dir, yes: true, provider: "deepl" }, cap.streams, nonInteractive);
+    const code = await runInit(
+      { cwd: dir, yes: true, provider: "deepl" },
+      cap.streams,
+      nonInteractive,
+    );
 
-    const config = readFileSync(join(dir, "verbatra.config.ts"), "utf8");
-    expect(config).toContain('format: "i18next-json"');
-    expect(config).toContain("TODO: set your locale file format");
+    expect(code).toBe(2);
+    expect(cap.err()).toContain("[FORMAT_AMBIGUOUS]");
+    expect(cap.err()).toContain("i18next-json, vue-i18n-json");
+    expect(existsSync(join(dir, "verbatra.config.ts"))).toBe(false);
   });
 
   it("falls back when package.json is missing or malformed", async () => {
@@ -238,19 +280,19 @@ describe("runInit", () => {
     expect(gitignore).toContain(".verbatra-local/");
   });
 
-  it("skips existing files without --force and overwrites with it", async () => {
+  it("refuses a differing config without --force and overwrites with it", async () => {
     const cap1 = captureStreams();
     await runInit({ cwd: dir, yes: true, provider: "deepl" }, cap1.streams, nonInteractive);
     const original = readFileSync(join(dir, "verbatra.config.ts"), "utf8");
 
     const cap2 = captureStreams();
-    const skipCode = await runInit(
+    const refusedCode = await runInit(
       { cwd: dir, yes: true, provider: "anthropic" },
       cap2.streams,
       nonInteractive,
     );
-    expect(skipCode).toBe(0);
-    expect(cap2.out()).toContain("skipped verbatra.config.ts");
+    expect(refusedCode).toBe(2);
+    expect(cap2.err()).toContain("[CONFIG_EXISTS]");
     expect(readFileSync(join(dir, "verbatra.config.ts"), "utf8")).toBe(original);
 
     const cap3 = captureStreams();
@@ -279,13 +321,13 @@ describe("runInit", () => {
     const code = await runInit(
       { cwd: dir },
       cap.streams,
-      queuedAsk(["anthropic", "fr", "es, it", "i18n/{locale}.json"]),
+      queuedAsk(["anthropic", "", "fr", "es, it", "i18n/{locale}.json"]),
     );
 
     expect(code).toBe(0);
     const config = readFileSync(join(dir, "verbatra.config.ts"), "utf8");
     expect(config).toContain('sourceLocale: "fr"');
-    expect(config).toContain('targetLocales: ["es","it"]');
+    expect(config).toContain('targetLocales: ["es", "it"]');
     expect(config).toContain('pattern: "i18n/{locale}.json"');
     expect(config).toContain('id: "anthropic"');
   });

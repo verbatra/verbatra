@@ -35,12 +35,6 @@ describe("translation.editEntry: an inline-markup refusal reaches the agent with
         value: "Lies die Doku",
         details: ["-</a>", "-<a href>"],
       },
-      structuredContent: {
-        accepted: false,
-        reason: "markup",
-        value: "Lies die Doku",
-        details: ["-</a>", "-<a href>"],
-      },
     });
   });
 
@@ -55,11 +49,6 @@ describe("translation.editEntry: an inline-markup refusal reaches the agent with
     expect(outcome).toEqual({
       kind: "ok",
       result: {
-        accepted: false,
-        reason: "markup",
-        value: "<b>Speichern<i>Schliessen</b></i>",
-      },
-      structuredContent: {
         accepted: false,
         reason: "markup",
         value: "<b>Speichern<i>Schliessen</b></i>",
@@ -88,6 +77,8 @@ describe("key.integrity: markup drift already on disk reaches the agent", () => 
               {
                 matches: true,
                 icuValid: true,
+                icuArmsMatch: true,
+                icuArmDetails: [],
                 markupMatches: false,
                 markupDetails: ["-</b>", "-<b>"],
               },

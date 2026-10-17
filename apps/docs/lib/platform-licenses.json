@@ -1,0 +1,42 @@
+{
+  "@esbuild/linux-x64@0.28.2": {
+    "license": "MIT",
+    "author": null
+  },
+  "@img/sharp-libvips-linux-x64@1.3.4": {
+    "license": "LGPL-3.0-or-later",
+    "author": "Lovell Fuller"
+  },
+  "@img/sharp-linux-x64@0.35.5": {
+    "license": "Apache-2.0",
+    "author": "Lovell Fuller"
+  },
+  "@next/swc-linux-x64-gnu@16.4.0": {
+    "license": "MIT",
+    "author": null
+  },
+  "@parcel/watcher-linux-x64-glibc@2.6.0": {
+    "license": "MIT",
+    "author": null
+  },
+  "@rolldown/binding-linux-x64-gnu@1.2.14": {
+    "license": "MIT",
+    "author": null
+  },
+  "@swc/core-linux-x64-gnu@1.16.2": {
+    "license": "Apache-2.0 AND MIT",
+    "author": "강동윤"
+  },
+  "@typescript/typescript-linux-x64@7.0.2": {
+    "license": "Apache-2.0",
+    "author": "Microsoft Corp."
+  },
+  "@yuku-core/binding-linux-x64-gnu@0.17.0": {
+    "license": "MIT",
+    "author": null
+  },
+  "lightningcss-linux-x64-gnu@1.33.0": {
+    "license": "MPL-2.0",
+    "author": null
+  }
+}

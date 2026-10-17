@@ -28,14 +28,19 @@
 ## The `e2e/` directory: what already exists
 
 `e2e/` (`e2e/README.md`, `e2e/package.json`) is a Vitest-driven suite, not Playwright, and it is
-the CLI's end-to-end coverage. It sits outside the pnpm workspace on purpose (its own
-`e2e/package-lock.json`, consumed by `npm ci`/`npm install`), so the consumer install resolves the
-real published tarballs instead of workspace symlinks.
+the end-to-end coverage of the four published packages as a consumer installs them. It sits
+outside the pnpm workspace on purpose (its own `e2e/package-lock.json`, consumed by
+`npm ci`/`npm install`), so the consumer install resolves the real published tarballs instead of
+workspace symlinks.
 
-How it works: `e2e/src/global-setup.ts` packs `@verbatra/sdk` and `@verbatra/cli` (or reuses
-`VERBATRA_SDK_TARBALL` / `VERBATRA_CLI_TARBALL` if both are set), each test builds a temp project,
-`npm install`s both tarballs, and drives the real `verbatra` binary through `e2e/src/harness.ts`.
-This catches packaging, bundling, and bin regressions unit tests cannot see.
+How it works: `e2e/src/global-setup.ts` packs `@verbatra/sdk`, `@verbatra/cli`, `@verbatra/studio`,
+and `@verbatra/mcp` (or reuses `VERBATRA_SDK_TARBALL`, `VERBATRA_CLI_TARBALL`,
+`VERBATRA_STUDIO_TARBALL`, and `VERBATRA_MCP_TARBALL`, which must be all set or all unset). Each
+test builds a temp project, `npm install`s the sdk and cli tarballs plus the studio or mcp one when
+it asks for it (`makeConsumer({ withStudio, withMcp })` in `e2e/src/harness.ts`), and drives the
+real `verbatra` binary. `e2e/tests/studio.e2e.test.ts` exercises the Studio server over HTTP and
+`e2e/tests/mcp.e2e.test.ts` the stdio MCP server; neither opens a browser. This catches packaging,
+bundling, and bin regressions unit tests cannot see.
 
 Split into two tiers by determinism, which doubles as the trust boundary for secrets:
 
@@ -44,15 +49,27 @@ Split into two tiers by determinism, which doubles as the trust boundary for sec
   across formats, `translate --dry-run`, export-then-import round-trips, the keyless flag surface,
   structured exit-2 boundary errors, and the full `watch` lifecycle including SIGINT handling
   (`e2e/tests/watch-lifecycle.e2e.test.ts` keeps this keyless by giving the run nothing to
-  translate). Makes no provider call, no network request. **This is the required release gate**:
-  it runs as the `e2e` job in `.github/workflows/ci.yml`, and `release.yml` only publishes when the
-  CI workflow's conclusion is success.
+  translate). Calls no hosted provider and makes no network request outside 127.0.0.1: that is
+  the rule for every no-key test, not a property of a few. A test that needs a provider endpoint
+  serves one itself on loopback (a never-answering endpoint, or a stub such as
+  `e2e/src/libretranslate-endpoint.ts`) or names one it never reaches; a test that would reach
+  anything else belongs in the live tier. `e2e/tests/human-only.e2e.test.ts` goes further and
+  preloads a module that throws on any socket, proving a `provider: none` run makes no network
+  call at all. **This is the required release
+  gate**: it runs as the `e2e` job in `.github/workflows/ci.yml`, and `release.yml` only publishes
+  when the CI workflow's conclusion is success.
 - **Live tier**: `tests/translate.live.e2e.test.ts` and `tests/watch.live.e2e.test.ts`, run with
-  `npm test` (which runs both tiers). Drives real `translate`/`watch` against a live provider
-  (default `gemini`, controlled by `E2E_PROVIDER` and the matching API key env var). Runs nightly,
-  on push to `main`, and on manual dispatch via `.github/workflows/e2e-live.yml`, never on a pull
-  request, and is advisory: it never gates a publish, since its outcome depends on a third party's
-  rate limiter.
+  `npm test` (which runs both tiers), plus `tests/libretranslate.live.e2e.test.ts`, which skips
+  unless `LIBRETRANSLATE_URL` points at a LibreTranslate server you started yourself (no workflow
+  starts one; see `e2e/README.md`). Drives real `translate`/`watch` against a live provider
+  (default `gemini`, controlled by `E2E_PROVIDER` and the matching API key env var). Runs
+  nightly and on push to `main` against `gemini` only (a missing key skips with a notice), and on
+  manual dispatch via `.github/workflows/e2e-live.yml` against a chosen provider, never on a pull
+  request. A dispatch of `deepl` or `google-translate` runs only the placeholder-masking case
+  (`npm run test:masking`) and its billing observation (`e2e/src/wire-billing.ts`). Every
+  dispatch, `gemini` included, sets `E2E_REQUIRE_LIVE=1`, so a missing key or a throttled
+  `translate` or `watch` run fails instead of skipping. The tier is advisory: it never gates a
+  publish, since its outcome depends on a third party's rate limiter.
 
 **CLI e2e is not a gap.** It exists, is deterministic-gated in CI, and is documented in
 `e2e/README.md`, which is the primary source if extending it.
@@ -63,18 +80,28 @@ Split into two tiers by determinism, which doubles as the trust boundary for sec
 `packages/studio/package.json`) with unit/component tests under `packages/studio/src/` (jsdom-based)
 but **no test that drives it in a real browser**. Concretely, as of this writing:
 
-- `playwright` (`pnpm-workspace.yaml` catalog, pinned `1.62.1`) is a devDependency only of
-  `apps/docs` (`apps/docs/package.json`), used exclusively by the one-off screenshot script
-  `apps/docs/scripts/capture-studio.mjs` (see `CONTRIBUTING.md` "Refreshing the Studio
-  screenshots"). It is not wired up as a test runner anywhere.
-- There is no `playwright.config.ts` in the repo.
+- `playwright` (`pnpm-workspace.yaml` catalog, pinned `1.64.0`) and `@axe-core/playwright` are
+  devDependencies only of `apps/docs` (`apps/docs/package.json`). `playwright` drives the
+  screenshot script `apps/docs/scripts/capture-studio.mjs` (see `CONTRIBUTING.md` "Refreshing the
+  Studio screenshots"), `pnpm csp:smoke`, and the test runner below, imported from
+  `playwright/test`. `@playwright/test` is deliberately not installed: it only re-exports
+  `playwright/test`, and installing it beside `next` resolves Next's optional peer on it, which
+  `lib/third-party-licenses.ts` then counts as a shipped package.
+- The only Playwright test suite is the docs site's: `apps/docs/playwright.config.ts` runs
+  `apps/docs/e2e/*.spec.ts` (`pnpm --filter @verbatra/docs test:e2e`) against the production
+  standalone build, which `apps/docs/scripts/serve-standalone.mjs` serves on port 3107. It scans
+  the landing and the legal pages with axe (WCAG 2.0, 2.1 and 2.2 A/AA tags) in both themes and all
+  four locales, checks `html lang` and 320px reflow. Its specs end in `.spec.ts` and live outside
+  the directories `apps/docs/vitest.config.ts` includes, so Vitest never runs them. CI runs it in
+  the `docs-e2e` job of `.github/workflows/ci.yml`, which the `gate` job requires. Nothing in
+  `packages/studio` is covered by it.
 - `pnpm-workspace.yaml`'s `allowBuilds` section explicitly sets `playwright: false`, with a comment
   explaining that Playwright's postinstall would otherwise download a browser binary (hundreds of
   MB) on every `pnpm install` and every CI job. This keeps the browser download opt-in: a
   maintainer runs `pnpm --filter @verbatra/docs exec playwright install chromium` by hand before
-  using it. **Any new Playwright test suite needs this addressed** before it can run unattended in
-  CI (either scoping a build override to the new package, or accepting the same manual-install
-  convention and adding an explicit `playwright install` step to the relevant CI job).
+  using it, and the `docs-e2e` job runs `playwright install --with-deps chromium` as an explicit
+  step. A Studio suite needs the same: either scoping a build override to its package, or the same
+  manual-install convention with an explicit `playwright install` step in its CI job.
 
 When actually building Studio's browser e2e suite, use the `playwright-cli` and
 `playwright-best-practices` skills in `.claude/skills/` for the mechanics (config, fixtures,
@@ -90,7 +117,7 @@ rendered UI against the `docs-ui` and `studio-ui` token skills. That is an inter
 agent-dispatched review producing findings and screenshots; it asserts nothing, it is not a
 suite, it does not run in CI, and it gates no merge. It also uses the MCP server's own browser,
 so it sidesteps the `allowBuilds` constraint above rather than resolving it. A committed
-Playwright suite for `@verbatra/studio` is still missing, and the two constraints on building
-one (no `playwright.config.ts`, `playwright: false` in `allowBuilds`) are unchanged. Dispatch
+Playwright suite for `@verbatra/studio` is still missing; the docs suite above covers only
+`apps/docs`, and `playwright: false` in `allowBuilds` still applies to a Studio suite. Dispatch
 `design-reviewer` for a visual verdict on a UI change; dispatch `test-runner` when the job is
 building the suite that is still absent.

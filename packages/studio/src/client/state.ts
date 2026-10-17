@@ -40,6 +40,7 @@ export function createSessionStore(): SessionStore {
 export interface StructuredError {
   readonly code: string;
   readonly message: string;
+  readonly retryAfterSeconds?: number;
 }
 
 export type FetchOutcome<T> =

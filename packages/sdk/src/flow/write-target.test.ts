@@ -166,6 +166,7 @@ describe("writeTargetResource", () => {
       RESOURCE,
       TARGET,
       CWD,
+      {},
     ).catch((caught: unknown) => caught);
 
     expect(error).toBeInstanceOf(SdkError);
@@ -175,23 +176,23 @@ describe("writeTargetResource", () => {
   it("lets an AdapterError through untouched, so its own code survives", async () => {
     const original = new AdapterError("INVALID_STRUCTURE", "cannot represent this");
 
-    await expect(writeTargetResource(adapterWriting(original), RESOURCE, TARGET, CWD)).rejects.toBe(
-      original,
-    );
+    await expect(
+      writeTargetResource(adapterWriting(original), RESOURCE, TARGET, CWD, {}),
+    ).rejects.toBe(original);
   });
 
   it("lets an SdkError through untouched", async () => {
     const original = new SdkError("LOCK_FILE_INVALID", "corrupt");
 
-    await expect(writeTargetResource(adapterWriting(original), RESOURCE, TARGET, CWD)).rejects.toBe(
-      original,
-    );
+    await expect(
+      writeTargetResource(adapterWriting(original), RESOURCE, TARGET, CWD, {}),
+    ).rejects.toBe(original);
   });
 
   it("resolves quietly when the adapter write succeeds", async () => {
     const adapter = { ...adapterWriting(new Error("x")), write: async () => {} };
 
-    await expect(writeTargetResource(adapter, RESOURCE, TARGET, CWD)).resolves.toBeUndefined();
+    await expect(writeTargetResource(adapter, RESOURCE, TARGET, CWD, {})).resolves.toBeUndefined();
   });
 });
 
