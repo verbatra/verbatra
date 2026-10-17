@@ -8,6 +8,7 @@ import {
   HERO_TRACKS_ID,
   HeroTracks,
   type HeroTrackView,
+  LOAD_RUN_THRESHOLD,
   stepDelay,
   TYPE_CHAR_MS,
   TYPE_COMMAND_PAUSE_MS,
@@ -37,8 +38,41 @@ const VIEWS: ReadonlyArray<HeroTrackView> = LANDING_TRACK_IDS.map((id) => {
 let reduced = false;
 let mounted: { root: Root; host: HTMLElement } | undefined;
 
+class FakeObserver {
+  static instances: FakeObserver[] = [];
+  readonly targets: Element[] = [];
+  disconnected = false;
+  constructor(
+    private readonly callback: IntersectionObserverCallback,
+    readonly options?: IntersectionObserverInit,
+  ) {
+    FakeObserver.instances.push(this);
+  }
+  observe(target: Element): void {
+    this.targets.push(target);
+  }
+  disconnect(): void {
+    this.disconnected = true;
+  }
+  fire(isIntersecting: boolean): void {
+    if (this.disconnected) return;
+    const entries = this.targets.map(
+      (target) => ({ target, isIntersecting }) as IntersectionObserverEntry,
+    );
+    this.callback(entries, this as unknown as IntersectionObserver);
+  }
+}
+
+function enterView(isIntersecting = true): void {
+  act(() => {
+    for (const observer of FakeObserver.instances) observer.fire(isIntersecting);
+  });
+}
+
 beforeEach(() => {
   reduced = false;
+  FakeObserver.instances = [];
+  vi.stubGlobal("IntersectionObserver", FakeObserver);
   vi.useFakeTimers();
   Object.defineProperty(window, "matchMedia", {
     configurable: true,
@@ -54,6 +88,7 @@ afterEach(() => {
   mounted?.host.remove();
   mounted = undefined;
   vi.useRealTimers();
+  vi.unstubAllGlobals();
 });
 
 function mount(): HTMLElement {
@@ -126,11 +161,46 @@ describe("HeroTracks keyboard", () => {
 });
 
 describe("HeroTracks typing", () => {
-  it("hydrates the default track in its final state and types nothing on load", () => {
+  it("hydrates the default track in its final state and types nothing while it is out of view", () => {
     const host = mount();
     expect(host.querySelectorAll("[data-state='pending'], .vk-track-typed")).toHaveLength(0);
+    enterView(false);
     run(5000);
     expect(host.querySelectorAll("[data-state='pending'], .vk-track-typed")).toHaveLength(0);
+  });
+
+  it("types the default track once when the tracks come into view, then stops observing", () => {
+    const host = mount();
+    const [observer] = FakeObserver.instances;
+    expect(observer?.targets).toEqual([host.querySelector(".vk-tracks")]);
+    expect(observer?.options?.threshold).toBe(LOAD_RUN_THRESHOLD);
+    enterView();
+    expect(host.querySelector(".vk-tracks")?.getAttribute("data-typing")).toBe("true");
+    expect(pending(host, "translate")).toBe(LANDING_TRACKS.translate.result.length + 1);
+    expect(observer?.disconnected).toBe(true);
+    run(10_000);
+    expect(pending(host, "translate")).toBe(0);
+    expect(host.querySelector(".vk-tracks")?.hasAttribute("data-typing")).toBe(false);
+    enterView();
+    expect(host.querySelector(".vk-tracks")?.hasAttribute("data-typing")).toBe(false);
+  });
+
+  it("plays no load run under reduced motion", () => {
+    reduced = true;
+    const host = mount();
+    enterView();
+    expect(host.querySelectorAll("[data-state='pending'], .vk-track-typed")).toHaveLength(0);
+    expect(host.querySelector(".vk-tracks")?.hasAttribute("data-typing")).toBe(false);
+  });
+
+  it("plays no load run once the reader has chosen a track", () => {
+    const host = mount();
+    act(() => tabs(host)[2]?.click());
+    run(10_000);
+    enterView();
+    expect(host.querySelector(".vk-tracks")?.hasAttribute("data-typing")).toBe(false);
+    expect(pending(host, "ci")).toBe(0);
+    expect(pending(host, "translate")).toBe(0);
   });
 
   it("types the command on a switch, then shows the result lines, then settles", () => {

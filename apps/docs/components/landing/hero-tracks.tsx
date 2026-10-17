@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { TabList, tabPanelProps } from "@/components/ui/tabs";
 import { withInlineCode } from "@/lib/inline-code-text";
 import type { LandingTrackId } from "@/lib/landing-tracks";
@@ -11,6 +11,8 @@ export const HERO_TRACKS_ID = "hero-track";
 export const TYPE_CHAR_MS = 14;
 export const TYPE_COMMAND_PAUSE_MS = 260;
 export const TYPE_LINE_MS = 110;
+
+export const LOAD_RUN_THRESHOLD = 0.2;
 
 export type HeroTrackFile = { readonly filename: string; readonly code: string };
 
@@ -28,6 +30,12 @@ export type HeroTrackView = {
 };
 
 type LineState = "pending" | "typing" | "done";
+
+type KeyedLine = { readonly key: string; readonly text: string };
+
+function keyedLines(prefix: string, lines: ReadonlyArray<string>): ReadonlyArray<KeyedLine> {
+  return lines.map((text, position) => ({ key: `${prefix}-${position}`, text }));
+}
 
 function outputs(track: HeroTrackView): ReadonlyArray<string> {
   return track.result.length > 0 ? track.result : track.files.map((file) => file.filename);
@@ -90,13 +98,13 @@ function CommandLine({
 
 function TrackOutput({ track, step }: { track: HeroTrackView; step: number | null }): ReactNode {
   if (track.result.length > 0) {
-    return track.result.map((line, index) => (
+    return keyedLines(`${track.id}-out`, track.result).map((line, index) => (
       <p
-        key={`${track.id}-${line}`}
+        key={line.key}
         className="vk-track-line vk-track-out"
         data-state={outputState(track, index, step)}
       >
-        {line}
+        {line.text}
       </p>
     ));
   }
@@ -140,12 +148,12 @@ function TrackPanel({
           )}
         </div>
         <div className="vk-track-body" lang="en">
-          {track.commands.map((command, index) => (
+          {keyedLines(`${track.id}-command`, track.commands).map((command, index) => (
             <CommandLine
-              key={command}
-              command={command}
+              key={command.key}
+              command={command.text}
               state={commandState(track, index, run)}
-              typed={run === null ? command.length : run - commandStart(track, index)}
+              typed={run === null ? command.text.length : run - commandStart(track, index)}
             />
           ))}
           <TrackOutput track={track} step={run} />
@@ -174,7 +182,34 @@ function useTypingRun(track: HeroTrackView | undefined): [number | null, () => v
     return () => window.clearTimeout(timer);
   }, [step, track]);
 
-  return [step, () => setStep(prefersReducedMotion() ? null : 0)];
+  const start = useCallback(() => setStep(prefersReducedMotion() ? null : 0), []);
+  return [step, start];
+}
+
+function useLoadRun(start: () => void): [(node: HTMLDivElement | null) => void, () => void] {
+  const [node, setNode] = useState<HTMLDivElement | null>(null);
+  const chosen = useRef(false);
+
+  useEffect(() => {
+    if (node === null || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        observer.disconnect();
+        if (!chosen.current) start();
+      },
+      { threshold: LOAD_RUN_THRESHOLD },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [node, start]);
+
+  return [
+    setNode,
+    () => {
+      chosen.current = true;
+    },
+  ];
 }
 
 export function HeroTracks({
@@ -187,16 +222,18 @@ export function HeroTracks({
   const [active, setActive] = useState<LandingTrackId>(tracks[0]?.id ?? "translate");
   const current = tracks.find((track) => track.id === active);
   const [step, start] = useTypingRun(current);
+  const [observe, markChosen] = useLoadRun(start);
 
   function select(id: string) {
     const next = tracks.find((track) => track.id === id);
     if (next === undefined || next.id === active) return;
+    markChosen();
     setActive(next.id);
     start();
   }
 
   return (
-    <div className="vk-tracks" data-typing={step === null ? undefined : "true"}>
+    <div ref={observe} className="vk-tracks" data-typing={step === null ? undefined : "true"}>
       <TabList
         tabs={tracks.map((track) => ({ id: track.id, label: track.tab }))}
         active={active}
