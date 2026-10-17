@@ -77,7 +77,7 @@
         },
         "ci": {
           "tab": "CI-Gates",
-          "summary": "`verbatra check` beendet sich mit dem Exit-Code 1, wenn einem Gebietsschema Schlüssel fehlen, sodass der Pull Request fehlschlägt, bevor die Abweichung ausgeliefert wird.",
+          "summary": "`verbatra check` beendet sich mit dem Exit-Code 1, wenn einer Sprachdatei Schlüssel fehlen, sodass der Pull Request fehlschlägt, bevor die Abweichung ausgeliefert wird.",
           "link": "Lies über CI und Exit-Codes"
         }
       }
@@ -120,7 +120,7 @@
         },
         "ci": {
           "question": "Kann Verbatra einen Pull Request fehlschlagen lassen, wenn Übersetzungen fehlen?",
-          "answer": "Ja. <code>verbatra check</code> beendet sich mit Exit-Code 1, solange ein Gebietsschema fehlende oder veraltete Schlüssel enthält, und braucht keinen API-Schlüssel; die <link>GitHub Action</link> führt dies bei Pull Requests aus."
+          "answer": "Ja. <code>verbatra check</code> beendet sich mit Exit-Code 1, solange eine Sprachdatei fehlende oder veraltete Schlüssel enthält, und braucht keinen API-Schlüssel; die <link>GitHub Action</link> führt dies bei Pull Requests aus."
         },
         "incremental": {
           "question": "Übersetzt Verbatra Zeichenketten neu, die sich nicht geändert haben?",
