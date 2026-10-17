@@ -152,6 +152,7 @@ test.describe("missing docs page without script", () => {
         .evaluateAll((anchors) => anchors.map((anchor) => anchor.getAttribute("href") ?? ""));
       expect(hrefs.length).toBeGreaterThan(0);
       expect(hrefs.filter((href) => href.includes("no-such-page"))).toEqual([]);
+      await expect(page.locator(".vk-locale-links")).toHaveCount(0);
       for (const href of hrefs.filter((href) => href.startsWith("/"))) {
         const linked = await page.request.get(href, { maxRedirects: 0 });
         expect(linked.status(), href).toBe(200);

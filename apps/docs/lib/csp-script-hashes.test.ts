@@ -90,7 +90,7 @@ describe("readScriptHashes", () => {
 });
 
 describe("isBuiltDocsPage", () => {
-  it("knows a docs page by its built route and trusts every page when no build manifest exists", () => {
+  it("knows a docs page by its route in the built CSP inline-script manifest, which the .mdx redirect relies on as its page index, and trusts every page when no manifest exists", () => {
     const routes = { "/en/docs/formats": ["sha256-a"], "/de/docs": ["sha256-b"] };
     expect(isBuiltDocsPage("en", "/formats", routes)).toBe(true);
     expect(isBuiltDocsPage("de", "", routes)).toBe(true);

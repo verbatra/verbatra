@@ -77,6 +77,18 @@ describe("translation provenance", () => {
     }
   });
 
+  it("exempts only keys whose recorded hash still differs from the catalog in some locale", () => {
+    const stale = new Set(
+      records
+        .filter(({ locale, key, record }) => {
+          const value = catalogValue(locale, key);
+          return value !== undefined && record.valueHash !== valueHash(value);
+        })
+        .map(({ key }) => key),
+    );
+    expect([...AWAITING_RETRANSLATION].filter((key) => !stale.has(key))).toEqual([]);
+  });
+
   it("never holds the hash of another locale's value", () => {
     for (const { locale, key, record } of records) {
       for (const other of TARGET_LOCALES.filter((candidate) => candidate !== locale)) {

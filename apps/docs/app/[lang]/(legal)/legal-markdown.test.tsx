@@ -1,19 +1,10 @@
 // @vitest-environment jsdom
 
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { createTranslator } from "next-intl";
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { i18n } from "@/lib/i18n";
-import { LICENSES } from "@/lib/licenses-manifest";
-
-const MESSAGES_DIR = join(import.meta.dirname, "../../../messages");
-
-function messagesOf(locale: string) {
-  return JSON.parse(readFileSync(join(MESSAGES_DIR, `${locale}.json`), "utf8"));
-}
+import { SITE_URL } from "@/lib/site-url";
 
 vi.mock(
   "next-intl/server",
@@ -99,7 +90,7 @@ describe.each(i18n.languages)("legal markdown in %s", (lang) => {
     expect(found.length).toBeGreaterThanOrEqual(3);
     for (const block of found) expect(text).toContain(words(block));
     const contact = lang === "en" ? "/contact" : `/${lang}/contact`;
-    expect(body).toContain(`](https://verbatra.kreitz-webdev.de${contact})`);
+    expect(body).toContain(`](${SITE_URL}${contact})`);
   });
 
   it("carries every heading, paragraph, list item and license text of the licenses page", async () => {

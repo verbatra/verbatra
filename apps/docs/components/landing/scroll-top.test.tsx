@@ -283,7 +283,6 @@ describe("ScrollTop on unmount", () => {
     expect(cancel).not.toHaveBeenCalled();
     await act(async () => root.unmount());
     expect(cancel).toHaveBeenCalledWith(7);
-    vi.unstubAllGlobals();
   });
 });
 
