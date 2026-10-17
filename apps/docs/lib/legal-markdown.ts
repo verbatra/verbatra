@@ -10,18 +10,14 @@ import {
   imprintLicenseRuns,
 } from "./legal-imprint";
 import { PRIVACY_OBJECTION_KEY, PRIVACY_SECTION_KEYS, privacyLinkHrefs } from "./legal-privacy";
+import { licenseTermsUrl } from "./license-terms";
 import { fallbackTexts, LICENSES, textsUsedBy, usageCount } from "./licenses-manifest";
 import { fencedMarkdown, inlineCodeMarkdown, markupChunks } from "./llm-markdown";
 import { absoluteMarkdownHref } from "./markdown-links";
 import { type HOME_PATH, type MarkdownPage, SITE_PAGE_META } from "./markdown-route";
 import { pageFrontmatter } from "./page-frontmatter";
 import { LEGAL_LAST_UPDATED, PRIVACY_CONTACT_FORM_ANCHOR } from "./site";
-import {
-  type LicensedPackage,
-  type LicenseGroup,
-  type LicenseText,
-  licenseTermsUrl,
-} from "./third-party-licenses";
+import type { LicensedPackage, LicenseGroup, LicenseText } from "./third-party-licenses";
 
 function href(target: string): string {
   return target.startsWith("/") ? absoluteMarkdownHref(target) : target;

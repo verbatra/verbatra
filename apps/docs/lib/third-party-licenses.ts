@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
+import { licenseTermsUrl } from "./license-terms";
 
 export type LicensedPackage = {
   readonly name: string;
@@ -608,13 +609,6 @@ function ownerLines(copyright: ReadonlyArray<string>, author: string | null): st
   if (copyright.length > 0) return copyright.map((line) => `  - ${line}`);
   if (author !== null) return [`  - Author: ${author}`];
   return [];
-}
-
-const TERMS_URL = /https:\/\/\S+/;
-
-export function licenseTermsUrl(license: string): string | null {
-  const match = TERMS_URL.exec(license)?.[0];
-  return match === undefined ? null : match.replace(/[.,;)]+$/, "");
 }
 
 function missingTextLine(group: LicenseGroup): string {

@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "node scripts/sync-version.mjs && node scripts/sync-translation-freshness.mjs && node scripts/sync-format-samples.mjs && next dev",
-    "build": "node scripts/sync-version.mjs && node scripts/sync-translation-freshness.mjs && node scripts/sync-format-samples.mjs && next build && node scripts/write-csp-hashes.mjs",
+    "build": "node scripts/sync-version.mjs && node scripts/sync-translation-freshness.mjs && node scripts/sync-format-samples.mjs && next build && node scripts/write-csp-hashes.mjs && node scripts/check-standalone-output.mjs",
     "start": "next start",
     "typecheck": "node scripts/sync-version.mjs && node scripts/sync-translation-freshness.mjs && node scripts/sync-format-samples.mjs && next typegen && tsc --noEmit && pnpm run typecheck:playground",
     "typecheck:playground": "tsc --noEmit -p scripts/playground/tsconfig.json",

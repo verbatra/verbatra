@@ -2,16 +2,16 @@ import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 import { toLocale } from "@/lib/i18n";
+import { licenseTermsUrl } from "@/lib/license-terms";
 import { fallbackTexts, LICENSES, textsUsedBy, usageCount } from "@/lib/licenses-manifest";
 import { markdownUrl } from "@/lib/markdown-route";
 import { localeAlternates } from "@/lib/site";
 import { homeOgImagePath, socialMetadata } from "@/lib/social-metadata";
-import {
-  type LicensedAsset,
-  type LicensedPackage,
-  type LicenseGroup,
-  type LicenseText,
-  licenseTermsUrl,
+import type {
+  LicensedAsset,
+  LicensedPackage,
+  LicenseGroup,
+  LicenseText,
 } from "@/lib/third-party-licenses";
 
 export async function generateMetadata(props: {

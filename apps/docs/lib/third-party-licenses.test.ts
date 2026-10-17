@@ -2,13 +2,13 @@ import { mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "n
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { licenseTermsUrl } from "./license-terms";
 import committed from "./licenses.generated.json";
 import committedPlatform from "./platform-licenses.json";
 import {
   buildThirdPartyLicenses,
   compareVersions,
   DEPLOY_TARGET,
-  licenseTermsUrl,
   listDeployedPlatformPackages,
   matchesTarget,
   parseLockfile,

@@ -24,6 +24,7 @@ const config: KnipConfig = {
         "lib/inline-script-hashes.d.mts",
         "lib/script-hashes-manifest.d.mts",
         "lib/security-headers.d.mts",
+        "lib/standalone-output.d.mts",
       ],
     },
 
