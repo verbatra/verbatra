@@ -873,7 +873,9 @@ reserved for client islands (see "The stack").
   `STUDIO_RUN_COMMAND`, and the Claude Code `.mcp.json` block of the MCP client guide). The
   incremental node also holds the Try it demo (`.vk-flow-demo`: the moved showcase lead, then the
   `.vk-showcase` panel), spanning the full row at every width, since its board needs the
-  full width. From 64rem a node is three columns, snippet, rail and text; below that the rail sits
+  full width. Only that node declares the demo grid row (`.vk-flow-node:has(> .vk-flow-demo)`),
+  so no node ends on an empty row and its row gap: the nodes stand an even `--flow-node-gap`
+  apart (4.75rem, 5.25rem from 64rem) and the last snippet ends on the band's own bottom padding. From 64rem a node is three columns, snippet, rail and text; below that the rail sits
   on the start edge with the text and snippet stacked beside it. One `aria-hidden` rail
   (`.vk-flow-rail`, a box that an SVG with `preserveAspectRatio="none"` fills, since an
   absolutely positioned SVG keeps its intrinsic height instead of stretching between its insets) holds a `--border-default` track and the

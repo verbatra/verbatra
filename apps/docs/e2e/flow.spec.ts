@@ -345,3 +345,35 @@ test.describe("feature flow focus", () => {
     expect(hit).toBe(true);
   });
 });
+
+test.describe("feature flow spacing", () => {
+  for (const width of [375, 1440]) {
+    test(`spaces the nodes evenly and ends the band on its own padding at ${width}px`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/");
+      const { gaps, tail, padding } = await page.locator(FLOW).evaluate((section) => {
+        const nodes = Array.from(section.querySelectorAll(".vk-flow-node"));
+        const contentBottom = (node: Element) =>
+          Math.max(
+            ...Array.from(node.children).map((child) => child.getBoundingClientRect().bottom),
+          );
+        const last = nodes.at(-1);
+        return {
+          gaps: nodes
+            .slice(1)
+            .map((node, index) =>
+              Math.round(node.getBoundingClientRect().top - contentBottom(nodes[index] as Element)),
+            ),
+          tail: last ? section.getBoundingClientRect().bottom - contentBottom(last) : 0,
+          padding: Number.parseFloat(getComputedStyle(section).paddingBlockEnd),
+        };
+      });
+      expect(gaps.length).toBeGreaterThan(1);
+      expect(new Set(gaps).size, `gaps ${gaps.join(", ")}`).toBe(1);
+      expect(tail - padding).toBeGreaterThanOrEqual(0);
+      expect(tail - padding).toBeLessThanOrEqual(2);
+    });
+  }
+});

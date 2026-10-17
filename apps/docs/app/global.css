@@ -2661,7 +2661,7 @@ html:has(.vk-home) {
 
 .vk-flow {
   --flow-mark-size: 1.75rem;
-  --flow-node-gap: 3.5rem;
+  --flow-node-gap: 4.75rem;
   position: relative;
   margin-top: var(--head-gap);
 }
@@ -2679,11 +2679,17 @@ html:has(.vk-home) {
   grid-template-columns: var(--flow-rail) minmax(0, 1fr);
   grid-template-areas:
     "mark text"
-    ". snippet"
-    "demo demo";
+    ". snippet";
   column-gap: 0.75rem;
   row-gap: 1.25rem;
   align-items: start;
+}
+
+.vk-flow-node:has(> .vk-flow-demo) {
+  grid-template-areas:
+    "mark text"
+    ". snippet"
+    "demo demo";
 }
 
 .vk-flow-rail {
@@ -2823,13 +2829,21 @@ html:has(.vk-home) {
 }
 
 @media (min-width: 64rem) {
+  .vk-flow {
+    --flow-node-gap: 5.25rem;
+  }
+
   .vk-flow-node {
     grid-template-columns: minmax(0, 1fr) var(--flow-rail) minmax(0, 1fr);
+    grid-template-areas: "snippet mark text";
+    column-gap: var(--grid-gap);
+    row-gap: 1.75rem;
+  }
+
+  .vk-flow-node:has(> .vk-flow-demo) {
     grid-template-areas:
       "snippet mark text"
       "demo demo demo";
-    column-gap: var(--grid-gap);
-    row-gap: 1.75rem;
   }
 
   .vk-flow-head {
