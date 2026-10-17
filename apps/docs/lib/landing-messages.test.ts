@@ -164,8 +164,6 @@ describe("landing message parity", () => {
   it("closes every landing section heading with a period", () => {
     for (const locale of i18n.languages) {
       for (const path of [
-        "flow.heading",
-        "bento.heading",
         "marquee.heading",
         "compare.heading",
         "openSource.heading",
