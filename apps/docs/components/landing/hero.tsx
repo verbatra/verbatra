@@ -49,7 +49,6 @@ export async function Hero(): Promise<ReactNode> {
           </div>
         </div>
         <div className="vk-banner-demo">
-          <div aria-hidden="true" className="vk-banner-glow" />
           <HeroDiff
             label={withInlineCode(t("diffLabel"))}
             marks={{ missing: tMarks("missing"), filled: tMarks("new"), lang: locale }}

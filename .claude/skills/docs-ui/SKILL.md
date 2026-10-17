@@ -152,7 +152,7 @@ Scales are fixed and narrow, deliberately:
   `--radius-2xl` all 12px. The large sizes collapsing to one value is intentional. Do not
   reintroduce a spread. There is no larger radius: the landing hero sits on the page, in no card.
 - Shadows: `--shadow-panel` (a neutral lift) and `--shadow-sm`. Two, not a ramp, each
-  lighter in the light theme, and neither tinted: the hero glow is the page's only violet haze
+  lighter in the light theme, and neither tinted: the page carries no violet haze anywhere
   (`lib/theme.test.ts` fails on a hue in either shadow).
 - Layout: `--gutter` (40px from 768px up) via `.vk-gutter`, `--width-wide` via `.vk-w-wide`.
   `--cta-height` (56px) is the minimum height of `.vk-prompt-trigger` on `PromptCopyButton`;
@@ -193,8 +193,8 @@ Scales are fixed and narrow, deliberately:
   comparison (band), FAQ (page), contribution (band), final call to
   action (page), then the flat footer band (`section-bands.test.tsx` pins the order and the
   surfaces). The hero draws no
-  pattern, only its single decorative glow (`.vk-banner-glow` behind the demo column, from the
-  `--banner-glow` token, lighter under `html.light`); there is no wash token and no dot backdrop.
+  pattern and no glow (`hero.test.tsx` fails on a `.vk-banner-glow` element, rule or
+  `--banner-glow` token); there is no wash token and no dot backdrop.
 - Placeholder chip: `PlaceholderChip` (`components/landing/placeholder-chip.tsx`, the
   `.vk-placeholder` class) is the page's one signature motif, a locked placeholder token
   (`{{amount}}`, `{count}`) drawn the same way in every pane: `--placeholder-fg` (`--accent`) on
@@ -933,7 +933,9 @@ contentinfo landmarks; a page under that layout must not render another `<main>`
 `HomeLayout` and notebook headers are never rendered, so do not style `#nd-nav` or `#nd-subnav`;
 style `.vk-header` and `.vk-header-link` instead, and change the header in one place. The header
 has its own fill, `--surface-chrome` (`--surface-bg` at 94 percent, so
-content scrolling under it stays out of the way of its text). Every page with a `.vk-home`
+content scrolling under it stays out of the way of its text), over one plain 1px
+`--border-default` hairline (`.vk-header::after`, absolutely placed so it adds no height), never a
+gradient. Every page with a `.vk-home`
 container sets `scroll-padding-block-start: var(--vk-landing-offset)` (3.5rem, the header height)
 on `html`, so an in-page jump and every focused control (a comparison footnote reached by
 Shift+Tab, too) land below the sticky header (WCAG 2.4.11); add only the extra gap as a
@@ -967,7 +969,7 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
 
 - **Solid white display headlines.** The landing hero (`hero.tsx`) and the docs home header both
   set a solid `--text-strong` headline. The hero sits straight on the void page, left-aligned, with no
-  backdrop pattern and one soft glow behind the demo column: `.vk-banner-grid` is one column (copy, demo,
+  backdrop pattern and no glow: `.vk-banner-grid` is one column (copy, demo,
   facts), and from 64rem an asymmetric 5fr / 7fr split, the copy (`.vk-banner-copy`: the `h1`
   `.vk-banner-title`, the `.vk-banner-lead`, the `.vk-banner-summary` and `.vk-banner-ctas` with
   Get started (`/docs/quickstart`) and Star on GitHub) in the narrower column beside the wider

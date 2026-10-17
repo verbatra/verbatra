@@ -288,7 +288,7 @@ describe("theme tokens", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("keeps both shadows neutral in both themes, leaving the hero glow the only violet haze", () => {
+  it("keeps both shadows neutral in both themes, so the page carries no violet haze", () => {
     for (const tokens of [DARK, LIGHT]) {
       for (const shadow of ["--shadow-panel", "--shadow-sm"]) {
         const value = tokens[shadow] ?? "";

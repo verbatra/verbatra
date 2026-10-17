@@ -145,28 +145,31 @@ describe("Hero", () => {
     );
   });
 
-  it("draws no backdrop pattern and one decorative glow behind the demo column", async () => {
+  it("draws no backdrop pattern and no decorative glow behind the demo column", async () => {
     const doc = await render();
     expect(doc.querySelectorAll(".vk-banner-backdrop")).toHaveLength(0);
-    const glows = doc.querySelectorAll(".vk-banner-glow");
-    expect(glows).toHaveLength(1);
-    expect(glows[0]?.getAttribute("aria-hidden")).toBe("true");
-    expect(glows[0]?.parentElement?.className).toBe("vk-banner-demo");
+    expect(doc.querySelectorAll(".vk-banner-glow")).toHaveLength(0);
   });
 
-  it("takes the glow from a token, overridden for the light theme, and draws no dots", () => {
+  it("declares no glow token or rule and draws no dots", () => {
     const rules = docsStylesheetRules();
-    const glow = rules.find((rule) => rule.selector === ".vk-banner-glow");
-    expect(glow?.declarations.background).toContain("var(--banner-glow)");
-    const light = rules.find(
-      (rule) => rule.selector === "html.light" && "--banner-glow" in rule.declarations,
-    );
-    expect(light).toBeDefined();
+    expect(rules.some((rule) => rule.selector.includes(".vk-banner-glow"))).toBe(false);
     expect(
       rules.some((rule) =>
-        Object.keys(rule.declarations).some((key) => key.startsWith("--banner-dot")),
+        Object.keys(rule.declarations).some(
+          (key) => key.startsWith("--banner-dot") || key === "--banner-glow",
+        ),
       ),
     ).toBe(false);
+  });
+
+  it("draws the header hairline as one plain border-token line, never a gradient", () => {
+    const rules = docsStylesheetRules().filter((rule) => rule.selector === ".vk-header::after");
+    expect(rules.length).toBeGreaterThan(0);
+    for (const rule of rules) {
+      expect(rule.declarations.background).toBe("var(--border-default)");
+      expect(rule.declarations.height).toBe("1px");
+    }
   });
 
   it("runs the facts across both columns from 64rem", () => {
