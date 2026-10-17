@@ -480,8 +480,9 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   `--text-strong` at 15px flowing down CSS columns (`columns: 2 9rem`, three from 48rem), and
   packages (every package on npm and the release notes), community (contributor guide, code of
   conduct, security policy) and legal (license, Impressum, privacy, contact, `/licenses`) sit in
-  `.vk-footer-secondary` as narrow content-sized muted columns, beside product from 80rem behind a
-  `--border-default` start rule and under it before that; group titles and the locale label are
+  `.vk-footer-secondary` as muted columns: beside product from 80rem, narrow and content-sized behind a
+  `--border-default` start rule; under it before that, on product's three column tracks from 48rem
+  (three equal columns at `--grid-gap`, so each group starts where a product column does); group titles and the locale label are
   medium `--text-strong`, links keep a 0.5rem row gap and a 2px focus offset; then `.vk-footer-bottom` (a hairline above it): the locale switch, and
   the version line (`landing.facts.versionParts` with the `lib/site.ts` versions), the license and
   the copyright as plain spans. Links are `.vk-footer-link` (24px tall, muted, an `--accent`

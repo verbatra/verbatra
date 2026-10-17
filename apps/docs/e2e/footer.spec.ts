@@ -159,3 +159,25 @@ test.describe("missing docs page without script", () => {
     });
   }
 });
+
+test.describe("footer grid", () => {
+  for (const width of [768, 1024, 1279]) {
+    test(`starts each secondary group on a product column at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/");
+      const starts = (selector: string) =>
+        page
+          .locator(selector)
+          .evaluateAll((nodes) => [
+            ...new Set(nodes.map((node) => Math.round(node.getBoundingClientRect().left))),
+          ]);
+      const product = await starts('.vk-footer-group[data-group="product"] li');
+      const secondary = await starts(".vk-footer-secondary > .vk-footer-group");
+      expect(product).toHaveLength(3);
+      expect(secondary).toHaveLength(3);
+      for (const [index, start] of secondary.entries()) {
+        expect(Math.abs(start - (product[index] ?? 0)), `group ${index}`).toBeLessThanOrEqual(1);
+      }
+    });
+  }
+});

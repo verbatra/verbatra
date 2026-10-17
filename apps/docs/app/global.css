@@ -903,9 +903,8 @@ html:has(.vk-scroll-top-sentinel[data-active]) .vk-footer {
   }
 
   .vk-footer-secondary {
-    grid-template-columns: repeat(3, max-content);
-    justify-content: start;
-    column-gap: 4rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: var(--grid-gap);
   }
 }
 
@@ -916,6 +915,8 @@ html:has(.vk-scroll-top-sentinel[data-active]) .vk-footer {
   }
 
   .vk-footer-secondary {
+    grid-template-columns: repeat(3, max-content);
+    justify-content: start;
     padding-inline-start: 4rem;
     border-inline-start: 1px solid var(--border-default);
     column-gap: 3rem;
