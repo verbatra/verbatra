@@ -377,3 +377,45 @@ test.describe("feature flow spacing", () => {
     });
   }
 });
+
+test.describe("the Try it break replies", () => {
+  const BREAKS = `${FLOW} fieldset.vk-showcase-breaks`;
+  const STYLE = ["appearance", "width", "height", "border-top-color", "border-top-width"] as const;
+
+  for (const theme of THEMES) {
+    test(`draw the same radio as the playground in the ${theme} theme`, async ({ page }) => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await openInTheme(page, "/", theme);
+      const look = (selector: string) =>
+        page
+          .locator(selector)
+          .first()
+          .evaluate(
+            (radio, properties) =>
+              properties.map((property) => getComputedStyle(radio).getPropertyValue(property)),
+            [...STYLE],
+          );
+      const playground = await look('section#playground input[type="radio"]');
+      expect(playground[0]).toBe("none");
+      expect(await look(`${BREAKS} input[type="radio"]`)).toEqual(playground);
+    });
+  }
+
+  test("stack the label above one reply per row on a phone", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    await page.goto("/");
+    const legend = await page.locator(`${BREAKS} legend`).boundingBox();
+    const options = await page.locator(`${BREAKS} .vk-showcase-break`).evaluateAll((labels) =>
+      labels.map((label) => {
+        const box = label.getBoundingClientRect();
+        return { left: Math.round(box.left), top: box.top, bottom: box.bottom };
+      }),
+    );
+    expect(options.length).toBeGreaterThan(1);
+    expect(options[0]?.top ?? 0).toBeGreaterThanOrEqual((legend?.y ?? 0) + (legend?.height ?? 0));
+    expect(new Set(options.map(({ left }) => left)).size).toBe(1);
+    for (const [index, option] of options.slice(1).entries()) {
+      expect(option.top).toBeGreaterThanOrEqual(options[index]?.bottom ?? 0);
+    }
+  });
+});

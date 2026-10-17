@@ -257,7 +257,7 @@ export function TryIt({ seed, rows }: { seed: ShowcaseOutcome; rows: ShowcaseRow
               name={breakGroup}
               value={id}
               checked={(outcome.scenario === "break" || pending === "break") && reply === id}
-              className="vk-showcase-break-input"
+              className="vk-playground-input vk-playground-radio"
               onChange={() => chooseBreak(id)}
             />
             <span>

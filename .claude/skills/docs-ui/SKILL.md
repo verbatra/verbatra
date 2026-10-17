@@ -602,7 +602,9 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   of the three ways a reply breaks the placeholder, `SHOWCASE_BREAKS` in `lib/showcase-seed.ts`: it
   drops `{{amount}}`, renames `{{amount}}` to `{{betrag}}` (the default) or adds `{{tax}}`; each
   label is `tryIt.breaks.<id>` with the reply token passed as `{token}` and `SHOWCASE_PLACEHOLDER`
-  as `{placeholder}`, both drawn as chips. A radio is checked only while the break scenario is on
+  as `{placeholder}`, both drawn as chips. Each radio is the playground's control
+  (`.vk-playground-input.vk-playground-radio`, no second radio style on the page), and below 40rem
+  the label sits above the replies, one per row. A radio is checked only while the break scenario is on
   screen or its run is pending, so every radio runs it when another scenario shows; picking one runs
   the break scenario with it (counted as `run-scenario` with a `break` property), the break button
   and Try again replay the last chosen reply, the refusal detail comes from `checkPlaceholders`, and

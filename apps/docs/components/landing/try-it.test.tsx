@@ -357,7 +357,7 @@ describe("TryIt: scenarios", () => {
   it("checks a reply only while the break scenario is on screen", async () => {
     const container = render();
     const checked = () =>
-      [...container.querySelectorAll<HTMLInputElement>(".vk-showcase-break-input")]
+      [...container.querySelectorAll<HTMLInputElement>(".vk-showcase-break input")]
         .filter((radio) => radio.checked)
         .map((radio) => radio.value);
     await click(button(container, "landing.showcase.tryIt.scenarios.edit"));
