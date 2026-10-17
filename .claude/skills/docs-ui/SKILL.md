@@ -480,13 +480,22 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   hero, its `SectionAside` head at the start of the band and the rows beside it at the end from
   64rem)
   shows two rows inside the `MarqueeMotion` island (`marquee-motion.tsx`): the providers,
-  `landingProviders()`, whose count the facts block states, with their kind glyph
-  (`PROVIDER_KIND_ICONS`), and the formats, `SUPPORTED_FORMAT_IDS` by their `FORMAT_DISPLAY` label with a file glyph
-  (`FORMAT_ICONS`, a `Record<SupportedFormat, StackIconKey>`, so a new format fails to compile
-  until it has one), every glyph a `<use>` of one `StackIconSprite` (prefix `marquee`). A provider
-  that `RELEASE_BADGE` dates carries the shared `AvailableFromPill`. Each item (`.vk-marquee-item`) is a `--surface-bg` fill with no
-  border or ring, since it is a fact, not a control. No count is typed and no third-party logo is
-  drawn. Each row is a muted `h3` that names its visible list,
+  `landingProviders()`, whose count the facts block states, each with its mark from
+  `PROVIDER_ICONS` (a `Record<MachineProviderId, MarqueeMark>`), and the formats,
+  `SUPPORTED_FORMAT_IDS` by their `FORMAT_DISPLAY` label with their mark from `FORMAT_ICONS` (a
+  `Record<SupportedFormat, MarqueeMark>`), so a new provider or format fails to compile until it
+  has one. A `MarqueeMark` is either a brand mark (`kind: "brand"`) or a file-extension chip
+  (`kind: "chip"`). Brand marks follow the logo rule under "Reuse before you build" (the stack
+  cards paragraph); every one is a `<use>` of the one `BrandMarkSprite`
+  (`components/brand-marks.tsx`, prefix `marquee-mark`), drawn at 18px in a single
+  `currentColor` fill. A chip (`.vk-marquee-chip`: mono `--text-xs` text in an inset 1px
+  `--border-default` ring, `--radius-sm`, no fill) stands in for an item with no admissible
+  mark: `.json` (vue-i18n), `.xlf`, `.po`, `.ini`, and `/v1` for the OpenAI-compatible endpoint.
+  Mark and chip are `aria-hidden` and `--text-muted`; hovering a row (which also pauses it) lifts
+  them to `--text-strong`, with no glow, scale or brand color. The name (`.vk-marquee-name`) is
+  the item's text. A provider that `RELEASE_BADGE` dates carries the shared `AvailableFromPill`.
+  Each item (`.vk-marquee-item`) is a `--surface-bg` fill with no
+  border or ring, since it is a fact, not a control. No count is typed. Each row is a muted `h3` that names its visible list,
   the list, `MARQUEE_COPIES` copies of it (`aria-hidden`, `inert`, holding no link or button), and
   an "All providers" or "All formats" link after the moving track, so nothing focusable moves. The
   list sits in `.vk-marquee-viewport`, a `.vk-edge-fade` `role="group"` keyboard stop named by the
@@ -631,10 +640,22 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   (`FORMAT_ID_CLASS`): a list breaks at its comma, and only under a 23.5rem container (the longest
   rendered id plus 15 percent, pinned by its test) does an id wrap, then only after a hyphen. The
   glyphs live in `components/stack-icons.tsx` (`STACK_ICON_PATHS`: `web`, `mobile`, `server` for a
-  framework's kind, a file outline per file format (`json` among them), `custom`, and `llm` and
-  `machine` for the marquee's provider kinds), stroked in `currentColor`. No
-  third-party logo is drawn anywhere on the site except the GitHub mark
-  (`components/landing/github-icon.tsx`); a stack is recognised by its name. The grid is a `nav` named by `labelledBy`, the id of the heading above it
+  framework's kind, a file outline per file format (`json` among them) and `custom`), stroked in
+  `currentColor`; a stack card never draws a brand mark, and a stack is recognised by its name.
+  Third-party logos appear in exactly two places: the GitHub mark
+  (`components/landing/github-icon.tsx`) and the marquee's brand marks. The logo rule for those:
+  a mark is inline SVG path data in `lib/brand-marks.ts` (`BRAND_MARKS`, each with its source
+  package and version, file, license and attribution), never an `<img>`, a network request or an
+  icon package in `package.json`; it is drawn in one `currentColor` fill, never in brand colors,
+  with a gradient or a glow; and it is admitted only under a license that allows commercial use
+  and changes (no NC, no SA: Vue's mark is CC BY-NC-SA, so vue-i18n gets a chip). Every mark is
+  listed as an asset in `THIRD_PARTY_NOTICES.md` and on `/licenses` through `ASSET_SOURCES` in
+  `lib/third-party-licenses.ts` (run `licenses:sync` after a change), with the source URL, the
+  CC BY attribution and change note where the license asks for one, and the sentence "Logos are
+  trademarks of their owners, used to identify compatibility." `marquee.test.tsx` fails on a
+  sprite symbol without a notice entry, a non-sprite reference or an embedded image, and
+  `lib/third-party-licenses.test.ts` on an icon package, a missing entry or an NC or SA license.
+  Anything with no admissible mark gets a file-extension chip, never a lookalike drawn by hand. The grid is a `nav` named by `labelledBy`, the id of the heading above it
   (the docs home section's `id`, or `page-title` on the docs `<h1>`), and that id also prefixes its
   sprite's symbol ids, so two grids on one page never collide. On the docs home, a stack with its
   own quickstart (`STACKS` in `lib/stacks.ts`) links its card to `/docs/quickstart/<id>` and carries
