@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { act, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -7,7 +9,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Locale } from "@/lib/i18n";
 import { FORMAT_DISPLAY, MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { providerShortLabel } from "@/lib/landing-providers";
-import notices from "@/lib/licenses.generated.json";
 import { RELEASE_BADGE } from "@/lib/release-badge";
 import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
 import german from "@/messages/de.json";
@@ -222,6 +223,9 @@ describe("Marquee", () => {
       symbol.id.replace(/^marquee-mark-/, ""),
     );
     expect(slugs.length).toBeGreaterThan(0);
+    const notices = JSON.parse(
+      readFileSync(join(process.cwd(), "lib/licenses.generated.json"), "utf8"),
+    ) as { assets: ReadonlyArray<{ name: string; license: string; usage: string }> };
     for (const slug of slugs) {
       const entry = notices.assets.find((asset) =>
         new RegExp(`^.+ mark \\([@\\w/.-]+@\\d+\\.\\d+\\.\\d+, icons/${slug}\\.svg\\)$`).test(
