@@ -21,6 +21,7 @@ import de from "@/messages/de.json";
 import en from "@/messages/en.json";
 import es from "@/messages/es.json";
 import fr from "@/messages/fr.json";
+import { preloadRegisteredIslands } from "@/test-support/islands";
 import { LICENSE_URL } from "./links";
 
 const CATALOGS = { en, de, es, fr } as const;
@@ -40,6 +41,8 @@ vi.mock("next-intl/server", async () => {
 });
 
 const { Faq, faqContent } = await import("./faq");
+
+await preloadRegisteredIslands();
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
