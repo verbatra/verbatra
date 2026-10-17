@@ -67,7 +67,7 @@
         "exitCode": "exit {code}",
         "translate": {
           "tab": "Übersetzen",
-          "summary": "Richte das Projekt ein, sieh dir den Durchlauf an und übersetze dann nur die Schlüssel, die deinen Ziel-Gebietsschemas fehlen.",
+          "summary": "Übersetze nur die Schlüssel, die deinen Zielsprachen fehlen, und sieh, wie viele Tokens jede Sprache verbraucht hat.",
           "link": "Lies den Übersetzungsbefehl"
         },
         "agents": {
@@ -79,23 +79,6 @@
           "tab": "CI-Gates",
           "summary": "`verbatra check` beendet sich mit dem Exit-Code 1, wenn einem Gebietsschema Schlüssel fehlen, sodass der Pull Request fehlschlägt, bevor die Abweichung ausgeliefert wird.",
           "link": "Lies über CI und Exit-Codes"
-        }
-      }
-    },
-    "showcase": {
-      "tryIt": {
-        "marks": {
-          "edited": "geändert",
-          "added": "hinzugefügt",
-          "removed": "entfernt",
-          "missing": "fehlt",
-          "stale": "veraltet",
-          "orphaned": "verwaist",
-          "changes": "ändert sich",
-          "new": "neu",
-          "kept": "bleibt",
-          "replaced": "vorher",
-          "refused": "abgelehnt"
         }
       }
     },
@@ -225,20 +208,21 @@
     "banner": {
       "announcement": {
         "badge": "Neu",
-        "text": "Was ist neu in v{version}"
+        "text": "v{version} ist da"
       },
       "headline": "Übersetze nur, was sich geändert hat.",
       "lead": "Verbatra füllt die fehlenden Schlüssel in deinen Locale-Dateien, gibt deinem Code-Agenten einen MCP-Server und lässt die CI fehlschlagen, wenn Übersetzungen abweichen.",
       "ctaPrimary": "Loslegen",
-      "ctaSecondary": "Auf GitHub ★ geben",
+      "ctaSecondary": "Auf GitHub einen Stern geben",
       "license": "MIT-lizenziert und Open Source.",
       "nodeRequirement": "Benötigt Node.js {versions}",
       "nodeMajorFrom": "{major} (ab {minimum})"
     },
     "marquee": {
-      "heading": "Dein Anbieter. Dein Dateiformat.",
-      "lead": "Den Anbieter zu wechseln bedeutet, einen Block der Konfigurationsdatei zu bearbeiten. Deine Gebietsschema-Dateien bleiben dort, wo sie sind, in dem Format, das sie bereits verwenden.",
+      "heading": "Funktioniert mit den Sprachdateien und Anbietern, die du schon nutzt.",
+      "lead": "Den Anbieter zu wechseln heißt, einen Block der Konfigurationsdatei zu bearbeiten. Deine Sprachdateien bleiben, wo sie sind, in ihrem bisherigen Format.",
       "pause": "Animation pausieren",
+      "play": "Animation abspielen",
       "providers": "Anbieter",
       "formats": "Dateiformate",
       "new": "Neu",
@@ -246,7 +230,7 @@
       "allFormats": "Alle Formate"
     },
     "playground": {
-      "heading": "Eine Zeichenkette mit dem SDK übersetzen",
+      "heading": "Eine Zeichenkette mit dem SDK übersetzen.",
       "lead": "Wähle eine Zeichenkette und Zielsprachen aus, dann drücke auf Übersetzen. Der Code zeigt den SDK-Aufruf, der diese Ergebnisse erzeugt hat.",
       "items": "Quellzeichenkette",
       "languages": "Zielsprachen",
@@ -298,14 +282,14 @@
       }
     },
     "compare": {
-      "heading": "Im Vergleich zu den Alternativen.",
+      "heading": "Verbatra neben Lingo.dev und gehosteten TMS.",
       "lead": "Jede Zelle verlinkt ihre Quelle. Verbatra schreibt nie eine Übersetzung, die Platzhalter oder ICU-Nachrichten bricht.",
       "caption": "Verbatra, Lingo.dev, gehostete Übersetzungsmanagement-Systeme und ein manueller Workflow, verglichen nach Lizenz, eigenen Schlüsseln, inkrementellen Läufen, CI und MCP",
       "columns": {
         "criterion": "Kriterium",
         "verbatra": "Verbatra",
         "lingo": "Lingo.dev",
-        "hostedTms": "Gehostetes TMS (Crowdin, Lokalise, Phrase)",
+        "hostedTms": "Gehostetes TMS",
         "manual": "Manueller Ablauf"
       },
       "rows": {
@@ -459,7 +443,8 @@
         },
         "ownKeys": {
           "lingo": "Enterprise-Plan oder ältere CLI",
-          "hostedTms": "Crowdin ja, andere unklar"
+          "hostedTms": "Crowdin ja, andere unklar",
+          "manual": "Eigene Konten"
         },
         "incremental": {
           "hostedTms": "Füllt leere Werte",

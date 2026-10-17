@@ -67,7 +67,7 @@
         "exitCode": "salida {code}",
         "translate": {
           "tab": "Traducir",
-          "summary": "Configura el proyecto, previsualiza la ejecución y luego traduce solo las claves que le faltan a tus configuraciones regionales de destino.",
+          "summary": "Traduce solo las claves que les faltan a tus idiomas de destino y mira cuántos tokens usó cada idioma.",
           "link": "Lee el comando de traducción"
         },
         "agents": {
@@ -79,23 +79,6 @@
           "tab": "Puertas CI",
           "summary": "`verbatra check` sale con código 1 cuando a una configuración regional le faltan claves, por lo que la solicitud de extracción falla antes de que se envíe la desviación.",
           "link": "Lee sobre CI y códigos de salida"
-        }
-      }
-    },
-    "showcase": {
-      "tryIt": {
-        "marks": {
-          "edited": "editada",
-          "added": "añadida",
-          "removed": "quitada",
-          "missing": "falta",
-          "stale": "obsoleta",
-          "orphaned": "huérfana",
-          "changes": "cambia",
-          "new": "nueva",
-          "kept": "se mantiene",
-          "replaced": "antes",
-          "refused": "rechazada"
         }
       }
     },
@@ -225,7 +208,7 @@
     "banner": {
       "announcement": {
         "badge": "Nuevo",
-        "text": "Novedades en la v{version}"
+        "text": "Ya está disponible v{version}"
       },
       "headline": "Traduce solo lo que cambió.",
       "lead": "Verbatra rellena las claves que faltan en tus archivos de idioma, le da a tu agente de codificación un servidor MCP y falla la CI cuando las traducciones se desvían.",
@@ -236,9 +219,10 @@
       "nodeMajorFrom": "{major} ({minimum} o posterior)"
     },
     "marquee": {
-      "heading": "Tu proveedor. Tu formato de archivo.",
-      "lead": "Cambiar de proveedor significa editar un bloque del archivo de configuración. Tus archivos de configuración regional se quedan donde están, en el formato que ya usan.",
+      "heading": "Funciona con los archivos de idioma y los proveedores que ya usas.",
+      "lead": "Cambiar de proveedor significa editar un bloque del archivo de configuración. Tus archivos de idioma se quedan donde están, en su formato actual.",
       "pause": "Pausar animación",
+      "play": "Reproducir animación",
       "providers": "Proveedores",
       "formats": "Formatos de archivo",
       "new": "Nuevo",
@@ -246,7 +230,7 @@
       "allFormats": "Todos los formatos"
     },
     "playground": {
-      "heading": "Traduce una cadena con el SDK",
+      "heading": "Traduce una cadena con el SDK.",
       "lead": "Elige una cadena e idiomas de destino, luego presiona Traducir. El código muestra la llamada al SDK que produjo estos resultados.",
       "items": "Cadena de origen",
       "languages": "Idiomas de destino",
@@ -298,14 +282,14 @@
       }
     },
     "compare": {
-      "heading": "Junto a las alternativas.",
+      "heading": "Verbatra frente a Lingo.dev y los TMS alojados.",
       "lead": "Cada celda enlaza su fuente. Verbatra nunca escribe una traducción que rompa un marcador o un mensaje ICU.",
       "caption": "Verbatra, Lingo.dev, sistemas de gestión de traducción alojados y un flujo de trabajo manual, comparados por licencia, claves propias, ejecuciones incrementales, CI y MCP",
       "columns": {
         "criterion": "Criterio",
         "verbatra": "Verbatra",
         "lingo": "Lingo.dev",
-        "hostedTms": "TMS alojado (Crowdin, Lokalise, Phrase)",
+        "hostedTms": "TMS alojado",
         "manual": "Flujo manual"
       },
       "rows": {
@@ -459,7 +443,8 @@
         },
         "ownKeys": {
           "lingo": "Plan Enterprise o CLI anterior",
-          "hostedTms": "Crowdin sí, otros no claros"
+          "hostedTms": "Crowdin sí, otros no claros",
+          "manual": "Cuentas propias"
         },
         "incremental": {
           "hostedTms": "Rellena valores vacíos",
