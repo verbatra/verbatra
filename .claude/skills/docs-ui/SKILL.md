@@ -723,7 +723,9 @@ is only `position: sticky` from 64rem, which moves nothing on its own), and no s
   the server-rendered final state instead of blanking it, then disconnects. That run and a switch, only under `prefers-reduced-motion:
   no-preference`, type the commands into an `aria-hidden` `.vk-track-typed` layer laid over the
   real text (which stays in the DOM at `opacity: 0`, so assistive technology always reads the full
-  command), `TYPE_CHAR_MS` per character with `TYPE_COMMAND_PAUSE_MS` after each command, then
+  command), its `.vk-track-caret` keyed on the typed length so each character mounts a new caret
+  rather than moving one (a moved box is a layout shift; `e2e/hero.spec.ts` fails on any shift
+  inside `.vk-tracks` during a run), `TYPE_CHAR_MS` per character with `TYPE_COMMAND_PAUSE_MS` after each command, then
   fades that command's result lines in `TYPE_LINE_MS` apart before the next command types (`opacity`, `--duration-base`); a timer chain,
   no GSAP (`hero.test.tsx` fails on a static GSAP import in the hero or its island). Under reduced
   motion a switch shows the final state at once and nothing plays on load. `hero-tracks.test.tsx`

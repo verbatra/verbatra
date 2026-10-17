@@ -107,7 +107,7 @@ function CommandLine({
         {state === "typing" ? (
           <span aria-hidden="true" className="vk-track-typed">
             {command.slice(0, typed)}
-            <span className="vk-track-caret" />
+            <span key={typed} className="vk-track-caret" />
           </span>
         ) : null}
       </span>

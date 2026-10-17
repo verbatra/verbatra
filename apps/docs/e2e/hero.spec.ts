@@ -117,6 +117,32 @@ test.describe("hero track motion", () => {
     expect(await terminalHeight(page)).toBe(before);
   });
 
+  test("shifts nothing inside the tracks while a run types", async ({ page }) => {
+    await page.addInitScript(() => {
+      const shifts: string[] = [];
+      Object.assign(window, { trackShifts: shifts });
+      const elementOf = (node: Node | undefined) =>
+        node instanceof Element ? node : (node?.parentElement ?? null);
+      new PerformanceObserver((list) => {
+        const sources = (
+          list.getEntries() as Array<PerformanceEntry & { sources?: Array<{ node?: Node }> }>
+        ).flatMap((entry) => entry.sources ?? []);
+        for (const element of sources.map((source) => elementOf(source.node))) {
+          if (element?.closest(".vk-tracks")) shifts.push(element.className);
+        }
+      }).observe({ type: "layout-shift", buffered: true });
+    });
+    await page.goto("/");
+    const tracks = page.locator(`${HERO} .vk-tracks`);
+    await expect(tracks).toHaveAttribute("data-typing", "true");
+    await expect(tracks).not.toHaveAttribute("data-typing", "true", { timeout: 5000 });
+    await selectTrack(page, 2);
+    await expect(tracks).not.toHaveAttribute("data-typing", "true", { timeout: 5000 });
+    expect(
+      await page.evaluate(() => (window as unknown as { trackShifts: string[] }).trackShifts),
+    ).toEqual([]);
+  });
+
   test("keeps the server-rendered final state when the island hydrates late", async ({ page }) => {
     await page.addInitScript(() => {
       const seen = { typing: false };
