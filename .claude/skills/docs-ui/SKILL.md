@@ -456,8 +456,9 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   `e2e/footer.spec.ts` checks the surface and every same-site link in all four locales, and on the
   landing, `/compare`, legal and docs pages, with JavaScript off, that the switch's links equal the
   page's `hreflang` alternates and answer 200 without a redirect. Section ids are unique; never render two sections that claim the same one.
-  The FAQ (`faq.tsx`, on the page surface `--v-void`, `SectionAside` with `.vk-faq-aside`: the
-  heading and lead in the head column, the questions beside it, then a `nav` of docs links that
+  The FAQ (`faq.tsx`, on the page surface `--v-void`, `SectionAside` with `.vk-faq-aside`: five
+  questions phrased the way people search (cost, providers, privacy and keys, CI, repeat runs), each
+  answer at most 30 words with a first sentence of at most 25, the heading and lead in the head column, the questions beside it, then a `nav` of docs links that
   follows the list in the DOM, so a phone reads the questions first, and that sits under the head
   from 64rem, each link a 44px target) is a server section: each item is a native
   `details`/`summary`, rendered closed on the server with its question in an `h3` inside the
@@ -476,13 +477,12 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   the summaries, leaves a modified key to the browser and sets `--faq-head-size`. `faqContent` (same file) builds each item's
   question, rich answer and plain answer from one translator call; the home page builds it once and
   passes the items to `Faq` and the plain ones to `faqPageLd`, so the FAQPage JSON-LD always equals
-  the visible text. A hyphenated word in an answer (`ngx-translate`) is kept whole. Ids, order and
+  the visible text. A hyphenated word in an answer (`OpenAI-compatible`) is kept whole. Ids, order and
   links live in `lib/landing-faq.ts`; answers use a `link` tag (that item's docs page, localized),
-  `license`, and `code` for a command or file name (plain in the JSON-LD) only. Facts that change with a release come in as values, never typed: the npm
+  `license`, and `code` for a command or file name (plain in the JSON-LD) only. Facts that change with a release come in as values, never typed: the providers
   answer lists `publishedProviders()` (`MACHINE_PROVIDER_IDS` whose `RELEASE_BADGE` version is at
-  most `PACKAGE_VERSION`) and names the rest with the badge version, while the providers answer
-  explains how to choose (the kinds, `none`, the `provider` block) and names no provider, the formats answer reads
-  `FORMAT_DISPLAY`, and the playground answer names `PLAYGROUND_METADATA.provider`. `FORMAT_DISPLAY` in `lib/landing-facts.ts` is every format's display
+  most `PACKAGE_VERSION`), names the rest with the badge version, and says how to choose (the
+  `provider` block, `none`). Formats are left to the marquee. `FORMAT_DISPLAY` in `lib/landing-facts.ts` is every format's display
   label, which the structured data's format list reads too, so a new format fails to
   compile until it has one. The marquee (`marquee.tsx`, `#marquee`, a band right under the
   hero, its `SectionAside` head at the start of the band and the rows beside it at the end from

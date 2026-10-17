@@ -11,10 +11,11 @@ import {
   FAQ_ASIDE_LINKS,
   FAQ_ITEM_IDS,
   faqHref,
+  pendingProviders,
   publishedProviders,
 } from "@/lib/landing-faq";
 import { providerShortLabel } from "@/lib/landing-providers";
-import { PACKAGE_VERSION } from "@/lib/site";
+import { RELEASE_BADGE } from "@/lib/release-badge";
 import { faqPageLd } from "@/lib/structured-data";
 import de from "@/messages/de.json";
 import en from "@/messages/en.json";
@@ -245,34 +246,30 @@ describe.each(i18n.languages)("the landing faq in %s", (locale) => {
     }
   });
 
-  it("names the providers in the published release, from the single source", async () => {
-    const npm = (await faqContent(locale)).find((item) => item.id === "npm");
-    expect(npm?.answer).toContain(PACKAGE_VERSION);
-    for (const id of publishedProviders()) expect(npm?.answer).toContain(providerShortLabel(id));
-  });
-
-  it("explains how to choose in the providers answer and leaves the release list to npm", async () => {
+  it("names the providers of the published release from the single source, and how to pick one", async () => {
     const providers = (await faqContent(locale)).find((item) => item.id === "providers");
     for (const id of publishedProviders())
-      expect(providers?.answer).not.toContain(providerShortLabel(id));
+      expect(providers?.answer).toContain(providerShortLabel(id));
+    for (const id of pendingProviders()) {
+      expect(providers?.answer).toContain(providerShortLabel(id));
+      expect(providers?.answer).toContain(RELEASE_BADGE.version);
+    }
     expect(providers?.answer).toContain("none");
   });
 
   it("sets commands and file names in code, and keeps the structured data plain", async () => {
     const container = await render(locale);
     const code = [...container.querySelectorAll(".vk-faq-answer code")].map((c) => c.textContent);
-    expect(code).toEqual(
-      expect.arrayContaining(["verbatra check", "verbatra studio", ".env.local", "provider"]),
-    );
+    expect(code).toEqual(expect.arrayContaining(["verbatra check", "provider", "none"]));
     for (const { answer } of await faqContent(locale)) expect(answer).not.toContain("<code>");
   });
 
-  it("keeps a hyphenated format id on one line", async () => {
+  it("keeps a hyphenated provider name on one line", async () => {
     const container = await render(locale);
-    const nowrap = [...container.querySelectorAll('[data-faq="formats"] .whitespace-nowrap')].map(
+    const nowrap = [...container.querySelectorAll('[data-faq="providers"] .whitespace-nowrap')].map(
       (span) => span.textContent,
     );
-    expect(nowrap).toContain("ngx-translate");
+    expect(nowrap).toContainEqual(expect.stringMatching(/^OpenAI-compatible\b/));
   });
 });
 
@@ -302,9 +299,9 @@ describe("the landing faq copy", () => {
 
   it.each(i18n.languages)("opens the yes and no questions with the answer in %s", (locale) => {
     const faq = CATALOGS[locale].landing.faq.items;
+    expect(faq.cost.answer.startsWith(YES[locale])).toBe(true);
     expect(faq.ci.answer.startsWith(YES[locale])).toBe(true);
-    expect(faq.studio.answer.startsWith(NO[locale])).toBe(true);
-    expect(faq.playground.answer.startsWith(NO[locale])).toBe(true);
+    expect(faq.incremental.answer.startsWith(NO[locale])).toBe(true);
   });
 
   it.each(i18n.languages)("keeps the docs link out of the first sentence in %s", (locale) => {
@@ -321,7 +318,12 @@ describe("the landing faq copy", () => {
         const sentences = answer.split(SENTENCE_END).filter((part) => part.trim() !== "");
         expect(sentences[0]?.trim().split(/\s+/).length, id).toBeLessThanOrEqual(25);
         expect(sentences.length, id).toBeLessThanOrEqual(3);
+        expect(answer.trim().split(/\s+/).length, id).toBeLessThanOrEqual(30);
       }
     },
   );
+
+  it("keeps the landing to five questions", () => {
+    expect(FAQ_ITEM_IDS).toHaveLength(5);
+  });
 });

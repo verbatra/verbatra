@@ -6,23 +6,23 @@ import { MACHINE_PROVIDER_IDS } from "./landing-facts";
 import {
   FAQ_ANSWER_LINKS,
   FAQ_ASIDE_LINKS,
+  FAQ_ITEM_IDS,
   faqHref,
   faqValues,
   pendingProviders,
   publishedProviders,
 } from "./landing-faq";
-import { PLAYGROUND_METADATA } from "./landing-playground";
 import { providerShortLabel } from "./landing-providers";
 import { RELEASE_BADGE } from "./release-badge";
 
-describe("the providers on npm", () => {
+describe("the providers answer", () => {
   it("leaves out the providers the next release adds while an older release is published", () => {
     const before = "0.11.1";
     expect(publishedProviders(before)).toEqual(
       MACHINE_PROVIDER_IDS.filter((id) => !RELEASE_BADGE.providers.includes(id)),
     );
     expect(pendingProviders(before)).toEqual([...RELEASE_BADGE.providers]);
-    const values = faqValues("npm", "en", before);
+    const values = faqValues("providers", "en", before);
     expect(values.pending).toBe("yes");
     expect(values.next).toBe(RELEASE_BADGE.version);
     for (const id of RELEASE_BADGE.providers) {
@@ -34,18 +34,17 @@ describe("the providers on npm", () => {
   it("names every provider once the badged release is published", () => {
     expect(publishedProviders(RELEASE_BADGE.version)).toEqual([...MACHINE_PROVIDER_IDS]);
     expect(pendingProviders(RELEASE_BADGE.version)).toEqual([]);
-    expect(faqValues("npm", "en", RELEASE_BADGE.version).pending).toBe("no");
+    expect(faqValues("providers", "en", RELEASE_BADGE.version).pending).toBe("no");
   });
 
   it("joins the names with the reader's list conjunction", () => {
-    expect(faqValues("npm", "de", "0.11.1").providers).toContain(" und ");
-    expect(faqValues("npm", "fr", "0.11.1").providers).toContain(" et ");
+    expect(faqValues("providers", "de", "0.11.1").providers).toContain(" und ");
+    expect(faqValues("providers", "fr", "0.11.1").providers).toContain(" et ");
   });
-});
 
-describe("the playground answer", () => {
-  it("names the provider the committed results record", () => {
-    expect(faqValues("playground", "en").provider.toLowerCase()).toBe(PLAYGROUND_METADATA.provider);
+  it("gives every other answer no values", () => {
+    for (const id of FAQ_ITEM_IDS.filter((item) => item !== "providers"))
+      expect(faqValues(id, "en"), id).toEqual({});
   });
 });
 
