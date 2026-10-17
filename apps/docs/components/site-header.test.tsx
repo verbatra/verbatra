@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { act, type ComponentProps, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { preloadRegisteredIslands } from "@/test-support/islands";
 
 const location = vi.hoisted(() => ({ pathname: "/" }));
 
@@ -44,6 +45,8 @@ vi.mock("fumadocs-ui/components/sidebar/base", () => ({
 }));
 
 const { SiteHeaderFrame } = await import("./site-header");
+
+await preloadRegisteredIslands();
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 

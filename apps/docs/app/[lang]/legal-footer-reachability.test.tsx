@@ -8,6 +8,7 @@ import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { i18n, type Locale, localizedPath } from "@/lib/i18n";
+import { preloadRegisteredIslands } from "@/test-support/islands";
 import { resolveServer } from "@/test-support/resolve-server";
 
 const MESSAGES_DIR = join(dirname(fileURLToPath(import.meta.url)), "../../messages");
@@ -77,6 +78,8 @@ const LAYOUTS: ReadonlyArray<readonly [string, Layout]> = [
   ["docs", (await import("./docs/layout")).default],
   ["legal", (await import("./(legal)/layout")).default],
 ];
+
+await preloadRegisteredIslands();
 
 const IMPRINT_LABEL: Record<Locale, string> = {
   en: "Legal notice (Impressum)",

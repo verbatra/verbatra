@@ -21,6 +21,7 @@ import {
 import { docsStylesheetRules } from "@/lib/stylesheet-rules";
 import en from "@/messages/en.json";
 import { contrast, themeTokens } from "@/test-support/contrast";
+import { preloadRegisteredIslands } from "@/test-support/islands";
 
 vi.mock("next/link", () => ({
   default: ({
@@ -47,6 +48,8 @@ vi.mock("next-intl/server", async () => {
 
 const { Compare } = await import("./compare");
 const { TextWithRefs } = await import("./compare-table");
+
+await preloadRegisteredIslands();
 
 const copy = en.landing.compare;
 
@@ -190,8 +193,8 @@ describe("Compare", () => {
       );
       expect(contrast(tokens, rest, "--surface-band")).toBeGreaterThanOrEqual(4.5);
       expect(
-        Number.parseFloat(declaration(".vk-compare-mark .vk-compare-yes svg", "stroke-width")),
-      ).toBeGreaterThan(Number.parseFloat(declaration(".vk-compare-yes svg", "stroke-width")));
+        Number.parseFloat(declaration(".vk-compare-mark .vk-compare-yes-glyph", "stroke-width")),
+      ).toBeGreaterThan(Number.parseFloat(declaration(".vk-compare-yes-glyph", "stroke-width")));
     },
   );
 

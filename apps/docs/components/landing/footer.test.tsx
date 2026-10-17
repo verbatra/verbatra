@@ -6,6 +6,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { CONTRIBUTORS } from "@/lib/contributors";
 import { MCP_VERSION, PACKAGE_VERSION, STUDIO_VERSION } from "@/lib/site";
+import { preloadRegisteredIslands } from "@/test-support/islands";
 
 const localeState = vi.hoisted(() => ({
   current: "en",
@@ -23,6 +24,8 @@ vi.mock("next-intl/server", () => ({
 vi.mock("next/navigation", () => ({ usePathname: () => "/compare" }));
 
 const { FOOTER_GROUPS, FullFooter } = await import("./footer");
+
+await preloadRegisteredIslands();
 
 async function renderFooter(): Promise<Document> {
   const markup = renderToStaticMarkup(await FullFooter());
