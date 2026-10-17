@@ -272,6 +272,7 @@ export function PlaygroundDemo({
   const runs = useRef(0);
   const root = useRef<HTMLDivElement>(null);
   const list = useRef<HTMLOListElement>(null);
+  const resultBlock = useRef<HTMLDivElement>(null);
   const controller = useRef<ScrambleController>(null);
   const played = useRef<number | null>(null);
   const rows = resultRows(shown, items, languages, translations);
@@ -337,6 +338,10 @@ export function PlaygroundDemo({
       setAnnouncement({ run, message: labels.noLanguages });
       return;
     }
+    resultBlock.current?.scrollIntoView({
+      block: "nearest",
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+    });
     const next: Shown = { item, langs: checked };
     const animate = await scrambler();
     if (run !== runs.current) return;
@@ -434,6 +439,7 @@ export function PlaygroundDemo({
           </Button>
         </div>
         <div
+          ref={resultBlock}
           className="vk-playground-result-block"
           aria-busy={busy ? "true" : undefined}
           data-stale={stale ? "" : undefined}

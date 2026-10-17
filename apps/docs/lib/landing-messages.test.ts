@@ -166,6 +166,7 @@ describe("landing message parity", () => {
     for (const locale of i18n.languages) {
       for (const path of [
         "marquee.heading",
+        "playground.heading",
         "compare.heading",
         "openSource.heading",
         "faq.heading",

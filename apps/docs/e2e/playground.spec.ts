@@ -436,3 +436,22 @@ test.describe("playground network", () => {
     expect(hosts()).toEqual(["localhost"]);
   });
 });
+
+test.describe("playground result at 1440 by 900", () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test("brings the result block fully into view after Translate", async ({ page }) => {
+    await page.goto("/");
+    await waitForIsland(page);
+    const button = translateButton(page);
+    await button.scrollIntoViewIfNeeded();
+    await button.click();
+    const block = page.locator(`${PLAYGROUND} .vk-playground-result-block`);
+    await expect
+      .poll(async () => {
+        const box = await block.boundingBox();
+        return box !== null && box.y >= 0 && box.y + box.height <= 900;
+      })
+      .toBe(true);
+  });
+});

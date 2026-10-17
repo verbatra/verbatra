@@ -247,7 +247,7 @@
       "allFormats": "All formats"
     },
     "playground": {
-      "heading": "Translate a string with the SDK",
+      "heading": "Translate a string with the SDK.",
       "lead": "Pick a string and target languages, then press Translate. The code shows the SDK call that produced these results.",
       "items": "Source string",
       "languages": "Target languages",

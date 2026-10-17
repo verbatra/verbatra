@@ -100,8 +100,17 @@ const copy = messages.landing.playground;
 
 let reduced = false;
 
+const scrolls: Array<{ target: Element; options: ScrollIntoViewOptions | undefined }> = [];
+
 beforeEach(() => {
   reduced = false;
+  scrolls.length = 0;
+  Element.prototype.scrollIntoView = function scrollIntoView(
+    this: Element,
+    options?: boolean | ScrollIntoViewOptions,
+  ) {
+    scrolls.push({ target: this, options: typeof options === "object" ? options : undefined });
+  };
   scramble.plays.length = 0;
   scramble.renders = 0;
   scramble.stops = 0;
@@ -583,6 +592,33 @@ describe("the playground warm-up", () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
     expect(scramble.renders).toBe(0);
+  });
+});
+
+describe("the playground result after a press", () => {
+  it.each([
+    [false, "smooth"],
+    [true, "auto"],
+  ] as const)(
+    "scrolls the result block into view at the nearest edge (reduced motion %s: %s)",
+    async (reduce, behavior) => {
+      reduced = reduce;
+      const host = await mount();
+      await click(translateButton(host));
+      expect(scrolls).toEqual([
+        {
+          target: host.querySelector(".vk-playground-result-block"),
+          options: { block: "nearest", behavior },
+        },
+      ]);
+    },
+  );
+
+  it("scrolls nothing when no language is checked", async () => {
+    const host = await mount();
+    for (const box of checkboxes(host)) if (box.checked) await click(box);
+    await click(translateButton(host));
+    expect(scrolls).toEqual([]);
   });
 });
 
