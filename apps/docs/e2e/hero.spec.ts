@@ -117,6 +117,35 @@ test.describe("hero track motion", () => {
     expect(await terminalHeight(page)).toBe(before);
   });
 
+  test("keeps the server-rendered final state when the island hydrates late", async ({ page }) => {
+    await page.addInitScript(() => {
+      const seen = { typing: false };
+      Object.assign(window, { trackTyping: seen });
+      new MutationObserver(() => {
+        if (document.querySelector(".vk-tracks[data-typing]") !== null) seen.typing = true;
+      }).observe(document, { attributes: true, subtree: true, attributeFilter: ["data-typing"] });
+    });
+    await page.route("**/_next/static/chunks/**", async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await route.continue();
+    });
+    await page.goto("/", { waitUntil: "commit" });
+    await expect(page.locator("html")).toHaveAttribute("data-motion-ready", /.*/, {
+      timeout: 15_000,
+    });
+    await page.waitForTimeout(1000);
+    expect(
+      await page.evaluate(
+        () => (window as unknown as { trackTyping: { typing: boolean } }).trackTyping.typing,
+      ),
+    ).toBe(false);
+    for (const line of await panel(page, "translate")
+      .locator(".vk-track-command, .vk-track-out")
+      .all()) {
+      await expect(line).toHaveCSS("opacity", "1");
+    }
+  });
+
   test("runs the pill's glow, ring and shimmer three times, never forever", async ({ page }) => {
     await page.goto("/");
     const counts = await page
