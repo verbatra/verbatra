@@ -22,8 +22,9 @@ their real path.
 
 The one exception is `@verbatra/core`'s second entry, `packages/core/src/pure.ts` (subpath
 `@verbatra/core/pure`, built by `packages/core/tsup.pure.config.ts`): a package-root entry, not a
-subfolder barrel, that re-exports only the zod-free diff, hash and placeholder functions so a browser consumer can
-load them without zod (no app in this repository imports it today); do not add others.
+subfolder barrel, that re-exports only the zod-free diff, hash and placeholder functions so a
+browser consumer can load them without zod (no app in this repository imports it today); do not
+add others.
 
 ## No path aliases; cross-package imports use real workspace package names
 
