@@ -67,7 +67,7 @@
         "exitCode": "salida {code}",
         "translate": {
           "tab": "Traducir",
-          "summary": "Traduce solo las claves que les faltan a tus idiomas de destino y mira cuántos tokens usó cada idioma.",
+          "summary": "Encuentra las claves que les faltan a tus idiomas de destino, traduce solo esas y mira cuántos tokens usó cada idioma.",
           "link": "Lee el comando de traducción"
         },
         "agents": {

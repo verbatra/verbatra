@@ -67,7 +67,7 @@
         "exitCode": "exit {code}",
         "translate": {
           "tab": "Translate",
-          "summary": "Translate only the keys your target locales are missing, and see the tokens each locale used.",
+          "summary": "Find the keys your target locales are missing, then translate only those and see the tokens each locale used.",
           "link": "Read the translate command"
         },
         "agents": {

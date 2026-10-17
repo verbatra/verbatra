@@ -67,7 +67,7 @@
         "exitCode": "sortie {code}",
         "translate": {
           "tab": "Traduire",
-          "summary": "Traduis uniquement les clés qui manquent à tes langues cibles, et vois combien de jetons chaque langue a utilisés.",
+          "summary": "Repère les clés qui manquent à tes langues cibles, puis traduis uniquement celles-ci et vois combien de jetons chaque langue a utilisés.",
           "link": "Lis la commande de traduction"
         },
         "agents": {

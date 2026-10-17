@@ -67,7 +67,7 @@
         "exitCode": "exit {code}",
         "translate": {
           "tab": "Übersetzen",
-          "summary": "Übersetze nur die Schlüssel, die deinen Zielsprachen fehlen, und sieh, wie viele Tokens jede Sprache verbraucht hat.",
+          "summary": "Finde die Schlüssel, die deinen Zielsprachen fehlen, übersetze dann nur diese und sieh, wie viele Tokens jede Sprache verbraucht hat.",
           "link": "Lies den Übersetzungsbefehl"
         },
         "agents": {
