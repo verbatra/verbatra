@@ -6,8 +6,8 @@ import {
   BRAND_MARK_TRADEMARK_NOTE,
   BRAND_MARKS,
   brandMarkSourceUrl,
-} from "./brand-marks";
-import { licenseTermsUrl } from "./license-terms";
+} from "./brand-marks.ts";
+import { licenseTermsUrl } from "./license-terms.ts";
 
 export type LicensedPackage = {
   readonly name: string;
