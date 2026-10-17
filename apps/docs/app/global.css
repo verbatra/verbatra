@@ -2925,14 +2925,16 @@ html:has(.vk-home) {
 
 .vk-tracks-panels {
   display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  row-gap: 0.875rem;
   min-width: 0;
 }
 
 .vk-tracks-panels > [role="tabpanel"] {
-  grid-area: 1 / 1;
+  grid-row: 1 / -1;
+  grid-column: 1;
   display: grid;
-  align-content: start;
-  row-gap: 0.875rem;
+  grid-template-rows: subgrid;
   min-width: 0;
 }
 
@@ -2941,6 +2943,8 @@ html:has(.vk-home) {
 }
 
 .vk-track-terminal {
+  display: grid;
+  grid-template-rows: auto 1fr;
   min-width: 0;
   overflow: hidden;
   border: 1px solid var(--border-default);

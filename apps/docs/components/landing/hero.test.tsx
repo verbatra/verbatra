@@ -284,13 +284,17 @@ describe("Hero stylesheet", () => {
     expect(rule?.media).toContain("64rem");
   });
 
-  it("stacks the track panels in one cell, so a switch never changes the hero's height", () => {
+  it("stacks the track panels in one cell on shared rows, so a switch never moves the terminal or the summary", () => {
     const rules = docsStylesheetRules();
-    expect(
-      rules.find((rule) => rule.selector === '.vk-tracks-panels > [role="tabpanel"]')?.declarations[
-        "grid-area"
-      ],
-    ).toBe("1 / 1");
+    const declarations = (selector: string) =>
+      rules.find((rule) => rule.selector === selector)?.declarations;
+    expect(declarations(".vk-tracks-panels")?.["grid-template-rows"]).toBe("minmax(0, 1fr) auto");
+    expect(declarations('.vk-tracks-panels > [role="tabpanel"]')).toMatchObject({
+      "grid-row": "1 / -1",
+      "grid-column": "1",
+      "grid-template-rows": "subgrid",
+    });
+    expect(declarations(".vk-track-terminal")?.["grid-template-rows"]).toBe("auto 1fr");
     expect(
       rules.find((rule) => rule.selector === '.vk-tracks-panels > [data-active="false"]')
         ?.declarations.visibility,
