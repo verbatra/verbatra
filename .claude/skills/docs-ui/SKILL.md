@@ -400,9 +400,10 @@ Headlines are solid `--text-strong` on both surfaces. No heading carries a gradi
   shades) reads `--compare-surface`, the page under `.vk-compare` and the band under
   `.vk-band .vk-compare`. The table scrolls sideways inside a focusable `section` named by its
   caption (`aria-labelledby`), with the row headers pinned at `--compare-sticky` (16% on the
-  landing, 11rem on `/compare`, at most 7.5rem (36cqi) while the column is narrower than 56rem,
-  where the row headers drop to `--text-xs` with tighter inline padding so every criterion word
-  fits unbroken in all four locales), which is
+  landing, 11rem on `/compare`, at most 7.5rem (38cqi) while the column is narrower than 56rem,
+  where the row headers drop to `--text-xs` with 0.5rem/0.375rem inline padding so every criterion
+  word, a trailing hyphen included, fits unbroken in all four locales down to a 320px window with a
+  classic scrollbar (305px), which `expectStickyLabelsFit` checks word by word), which is
   also the region's `scroll-padding-inline-start`, so a focused link scrolls clear of the pinned
   column; Chrome leaves a link that is only partly under it unscrolled, so the lazy `CompareFocus`
   island (`compare-focus.tsx`, one `focusin` listener) scrolls a control focused inside the region,

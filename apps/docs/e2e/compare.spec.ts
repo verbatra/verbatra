@@ -41,9 +41,9 @@ for (const locale of LOCALES) {
   });
 }
 
-for (const width of [320, 375]) {
+for (const width of [305, 320, 375, 768]) {
   for (const locale of LOCALES) {
-    test(`keeps every criterion inside its pinned column at ${width}px in ${locale}`, async ({
+    test(`keeps every criterion word whole in its pinned column at ${width}px in ${locale}`, async ({
       page,
     }) => {
       await page.setViewportSize({ width, height: 800 });

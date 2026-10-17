@@ -66,6 +66,16 @@ for (const locale of LOCALES) {
       expect(html.headers().vary).toContain("Accept");
     });
 
+    for (const width of [305, 375, 768]) {
+      test(`keeps every criterion word whole in its pinned column at ${width}px`, async ({
+        page,
+      }) => {
+        await page.setViewportSize({ width, height: 800 });
+        await page.goto(url);
+        await expectStickyLabelsFit(page, "main");
+      });
+    }
+
     test("reflows at 320px with the table scrolling inside its region", async ({ page }) => {
       await page.setViewportSize({ width: 320, height: 800 });
       await page.goto(url);

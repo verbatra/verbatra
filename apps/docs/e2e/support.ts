@@ -156,16 +156,25 @@ export async function expectEdgeRefsReachable(page: Page, scope: string): Promis
 }
 
 export async function expectStickyLabelsFit(page: Page, scope: string): Promise<void> {
-  const overflowing = await page.locator(`${scope} .vk-compare-sticky`).evaluateAll((cells) =>
-    cells
-      .filter((cell) => {
-        const node = cell as HTMLElement;
-        node.style.overflowWrap = "normal";
-        const overflows = node.scrollWidth > node.clientWidth + 0.5;
-        node.style.overflowWrap = "";
-        return overflows;
-      })
-      .map((cell) => cell.textContent),
+  const broken = await page.locator(`${scope} .vk-compare-sticky`).evaluateAll((cells) =>
+    cells.flatMap((cell) => {
+      const words: string[] = [];
+      const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
+      for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
+        for (const match of (node.textContent ?? "").matchAll(/[^\s-]+-?/g)) {
+          const range = document.createRange();
+          range.setStart(node, match.index);
+          range.setEnd(node, match.index + match[0].length);
+          const lines = new Set(
+            Array.from(range.getClientRects())
+              .filter((rect) => rect.width > 0)
+              .map((rect) => Math.round(rect.top)),
+          );
+          if (lines.size > 1) words.push(match[0]);
+        }
+      }
+      return words;
+    }),
   );
-  expect(overflowing).toEqual([]);
+  expect(broken).toEqual([]);
 }
