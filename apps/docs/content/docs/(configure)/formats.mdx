@@ -78,7 +78,7 @@ All configs in one directory share `verbatra.lock.json`, and each run replaces t
 
 XLIFF 1.2 (`file/body/trans-unit`) and 2.0 (`file/unit/segment`), a flat list of units.
 
-- **Keys.** The unit `id`, then `resname`, then a position that shifts when units move, so give every unit an `id`. A duplicate key fails with `INVALID_STRUCTURE`.
+- **Keys.** The unit `id`, then `resname`, then a position that shifts when units move, so give every unit an `id`. A 2.0 unit with several segments gets `<id>#<n>` keys. A duplicate key fails with `INVALID_STRUCTURE`.
 - **Source or translation.** A document is the source when the locale matches its `source-language` (`srcLang` in 2.0; a bare language matches its regional forms) and it does not declare that locale as its target; anything else, even a plain copy, is a translation. A target sharing the source's language (`en` to `en-GB`) must declare `target-language` (`trgLang`).
 - **Missing values.** A `<target>` that is absent, empty, or in 1.2 marked `state="new"` or `"needs-translation"` is missing, and so is a 2.0 target equal to its source in a segment marked `state="initial"`. The `<source>` text is never copied in.
 - **Writes in place.** Each value goes into its `<target>`, created after `<source>` if absent, and a 1.2 `new` or `needs-translation` or 2.0 `initial` state (with its `subState`) becomes `translated`. `<source>`, attributes and `<note>` stay untouched.
@@ -86,6 +86,7 @@ XLIFF 1.2 (`file/body/trans-unit`) and 2.0 (`file/unit/segment`), a flat list of
 - **Inline markup.** 1.2's `g`, `x`, `bx`, `ex`, `bpt`, `ept`, `ph`, `it`, `mrk`, 2.0's `ph`, `pc`, `sc`, `ec`, `mrk`, `sm`, `em`, `cp`, and `{name}` are guarded placeholders in either version. On write only these (plus 1.2 `<sub>` inside `bpt`, `ept`, `ph`, `it`) stay markup; anything else, such as `<b>`, becomes text.
 - **Escaping.** Text is read as text (`A &amp; B` is `A & B`) and escaped once on write; text exactly matching an allowed element, such as `&lt;x id="1"/&gt;`, is written as that element, and `<!DOCTYPE` and `<!ENTITY` as text.
 - **Notes** (the unit's `<notes>` in 2.0) are read-only [context](/docs/manual-translation).
+- **Rejected input.** A document with a DTD or entity declaration fails with `INVALID_XML`.
 
 ## YAML
 
@@ -133,7 +134,7 @@ One JSON catalogue holding every locale, Xcode 15's replacement for `.strings`.
 - **Plurals** under `variations.plural` become `<key>_<category>`, only for the categories present.
 - **Placeholders are printf**, as in `.strings`; `%lld` equals `%d`.
 - **`shouldTranslate: false`** keys are never sent or changed.
-- **Writes patch the document.** Only touched localizations change, a new value gets `state: "translated"`, and the rest stays byte-identical. Create the catalogue in Xcode first.
+- **Writes patch the document.** Only touched localizations change, a new value gets `state: "translated"`, and the rest stays semantically identical, though the file is re-serialized as 2-space JSON. Create the catalogue in Xcode first.
 - **Errors** name the file and, inside an entry, the key and locale.
 
 ## Android strings.xml
@@ -194,11 +195,11 @@ The JSON formats, YAML and ARB keep document order: integer-like keys such as `"
 
 ## Dotted keys and collisions
 
-In `i18next-json`, `vue-i18n-json` and `next-intl-json`, a literal dotted leaf such as `"foo.bar"` round-trips as written; `ngx-translate-json` reads it as a nested path. In all four, one path written both ways (`"foo.bar"` beside `"foo": { "bar": ... }`) fails with `INVALID_STRUCTURE`.
+In `i18next-json`, `vue-i18n-json` and `next-intl-json`, a literal dotted leaf such as `"foo.bar"` round-trips as written; `ngx-translate-json` reads it as a nested path. In all four, one path written both ways (`"foo.bar"` beside `"foo": { "bar": ... }`) fails with `INVALID_STRUCTURE`; `ngx-translate-json` reports a top-level flat dotted key beside nested objects as `MIXED_STRUCTURE`.
 
 ## How files are read and written
 
-- **Limits.** Input size and nesting depth are capped (`INPUT_TOO_LARGE`, `MAX_DEPTH_EXCEEDED`), and a file changing during a read is detected.
+- **Limits.** Input size and nesting depth are capped (`INPUT_TOO_LARGE`, `MAX_DEPTH_EXCEEDED`).
 - **Atomic writes.** A temporary file is renamed into place, so an interrupt never leaves half a file.
 - **Layout.** The XML formats keep the line terminator and final newline and indent new elements like their neighbors. A new gettext entry follows a blank line; a created `.po` names its locale in `Language` (`pt_BR`).
 - **Non-string leaves.** In the JSON formats, YAML and ARB, a number, boolean or null leaf is accepted but never translated, and a rewrite of that file does not keep it; an array fails with `INVALID_STRUCTURE`.

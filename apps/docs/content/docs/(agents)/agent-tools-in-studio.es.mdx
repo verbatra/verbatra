@@ -94,6 +94,7 @@ Cada herramienta devuelve el envoltorio del panel, así que un fallo se lee `{ "
 | `PARAMS_INVALID` | un parámetro no pasó la validación; `issues` nombra cada campo |
 | `METHOD_RATE_LIMITED` | se superó el límite; `retryAfterSeconds` indica cuándo cabe la llamada |
 | `SESSION_EXPIRED` | Studio se reinició con un token nuevo; abre la URL que imprimió |
+| `INTERNAL` | un handler falló con un error inesperado (HTTP 500); el mensaje es genérico y no incluye detalles |
 
 ## Arregla las herramientas degradadas
 

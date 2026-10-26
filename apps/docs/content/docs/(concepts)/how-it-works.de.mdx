@@ -22,7 +22,7 @@ lässt den Lauf scheitern; siehe [`SOURCE_UNREADABLE`](/de/docs/error-codes#sour
 ## Mit der Lock-Baseline vergleichen
 
 Der Vergleich macht einen Lauf inkrementell. verbatra liest die vorhandene Zieldatei (eine fehlende
-Datei zählt als leer) und vergleicht jeden Quell-Key mit [der Lock-Datei](/de/docs/the-lock-file), dem
+Datei zählt als leer, auch wenn die Writer von `xliff` und `apple-xcstrings` ein fehlendes Ziel ablehnen) und vergleicht jeden Quell-Key mit [der Lock-Datei](/de/docs/the-lock-file), dem
 Protokoll dessen, was schon übersetzt wurde:
 
 | Kategorie | Bedeutung | Was der Lauf tut |

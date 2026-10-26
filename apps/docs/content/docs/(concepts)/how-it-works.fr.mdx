@@ -24,7 +24,7 @@ analyser fait échouer l'exécution ; voir
 ## Comparer avec la référence du fichier de verrouillage
 
 La comparaison est ce qui rend une exécution incrémentale. verbatra lit le fichier cible existant
-(un fichier absent compte comme vide) et compare chaque clé source avec
+(un fichier absent compte comme vide, même si les écrivains de `xliff` et `apple-xcstrings` refusent une cible absente) et compare chaque clé source avec
 [le fichier de verrouillage](/fr/docs/the-lock-file), la trace de ce qui a été traduit auparavant :
 
 | Catégorie | Signification | Ce que fait l'exécution |

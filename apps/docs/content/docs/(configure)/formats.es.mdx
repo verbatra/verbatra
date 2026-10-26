@@ -78,7 +78,7 @@ Todas las configuraciones de un mismo directorio comparten `verbatra.lock.json`,
 
 XLIFF 1.2 (`file/body/trans-unit`) y 2.0 (`file/unit/segment`), una lista plana de unidades.
 
-- **Claves.** El `id` de la unidad, luego `resname`, luego una posición que se desplaza cuando las unidades se mueven, así que dale a cada unidad un `id`. Una clave duplicada falla con `INVALID_STRUCTURE`.
+- **Claves.** El `id` de la unidad, luego `resname`, luego una posición que se desplaza cuando las unidades se mueven, así que dale a cada unidad un `id`. Una unidad 2.0 con varios segmentos recibe claves `<id>#<n>`. Una clave duplicada falla con `INVALID_STRUCTURE`.
 - **Origen o traducción.** Un documento es el origen cuando el locale coincide con su `source-language` (`srcLang` en 2.0; un idioma sin región coincide con sus formas regionales) y no declara ese locale como su destino; lo demás, incluso una simple copia, es una traducción. Un destino que comparte idioma con el origen (`en` a `en-GB`) debe declarar `target-language` (`trgLang`).
 - **Valores que faltan.** Un `<target>` ausente, vacío o, en 1.2, marcado con `state="new"` o `"needs-translation"` falta, y también un target de 2.0 igual a su origen en un segmento marcado con `state="initial"`. El texto de `<source>` nunca se copia en su lugar.
 - **Escrituras en su sitio.** Cada valor va a su `<target>`, que se crea tras `<source>` si no existe, y un estado `new` o `needs-translation` de 1.2 o `initial` de 2.0 (con su `subState`) pasa a `translated`. `<source>`, los atributos y `<note>` quedan intactos.
@@ -86,6 +86,7 @@ XLIFF 1.2 (`file/body/trans-unit`) y 2.0 (`file/unit/segment`), una lista plana 
 - **Marcado en línea.** `g`, `x`, `bx`, `ex`, `bpt`, `ept`, `ph`, `it`, `mrk` de 1.2, `ph`, `pc`, `sc`, `ec`, `mrk`, `sm`, `em`, `cp` de 2.0, y `{name}` son todos placeholders protegidos en cualquiera de las dos versiones. Al escribir, solo estos (más un `<sub>` de 1.2 dentro de `bpt`, `ept`, `ph`, `it`) siguen siendo marcado; cualquier otra cosa, como `<b>`, se convierte en texto.
 - **Escapado.** El texto se lee como texto (`A &amp; B` es `A & B`) y se escapa una vez al escribir; el texto que coincide exactamente con un elemento permitido, como `&lt;x id="1"/&gt;`, se escribe como ese elemento, y `<!DOCTYPE` y `<!ENTITY` como texto.
 - **Las notas** (las `<notes>` de la unidad en 2.0) son [contexto](/es/docs/manual-translation) de solo lectura.
+- **Entrada rechazada.** Un documento con una declaración DTD o de entidad falla con `INVALID_XML`.
 
 ## YAML
 
@@ -133,7 +134,7 @@ Un único catálogo JSON con todos los locales, el sustituto de `.strings` desde
 - **Los plurales** bajo `variations.plural` pasan a ser `<key>_<category>`, solo para las categorías presentes.
 - **Los placeholders son printf**, como en `.strings`; `%lld` equivale a `%d`.
 - **Las claves con `shouldTranslate: false`** nunca se envían ni se modifican.
-- **Las escrituras parchean el documento.** Solo cambian las localizations tocadas, un valor nuevo recibe `state: "translated"` y el resto queda idéntico byte a byte. Crea el catálogo primero en Xcode.
+- **Las escrituras parchean el documento.** Solo cambian las localizations tocadas, un valor nuevo recibe `state: "translated"` y el resto queda idéntico en lo semántico, aunque el archivo se vuelve a serializar como JSON con 2 espacios. Crea el catálogo primero en Xcode.
 - **Los errores** nombran el archivo y, dentro de una entrada, la clave y el locale.
 
 ## Android strings.xml
@@ -194,11 +195,11 @@ Los formatos JSON, YAML y ARB conservan el orden del documento: las claves con f
 
 ## Claves con puntos y colisiones
 
-En `i18next-json`, `vue-i18n-json` y `next-intl-json`, una hoja literal con puntos como `"foo.bar"` hace el viaje de ida y vuelta tal como está escrita; `ngx-translate-json` la lee como una ruta anidada. En los cuatro, una misma ruta escrita de las dos formas (`"foo.bar"` junto a `"foo": { "bar": ... }`) falla con `INVALID_STRUCTURE`.
+En `i18next-json`, `vue-i18n-json` y `next-intl-json`, una hoja literal con puntos como `"foo.bar"` hace el viaje de ida y vuelta tal como está escrita; `ngx-translate-json` la lee como una ruta anidada. En los cuatro, una misma ruta escrita de las dos formas (`"foo.bar"` junto a `"foo": { "bar": ... }`) falla con `INVALID_STRUCTURE`; `ngx-translate-json` informa de una clave plana con puntos de nivel superior junto a objetos anidados como `MIXED_STRUCTURE`.
 
 ## Cómo se leen y escriben los archivos
 
-- **Límites.** El tamaño de entrada y la profundidad de anidamiento están acotados (`INPUT_TOO_LARGE`, `MAX_DEPTH_EXCEEDED`), y se detecta que un archivo cambie durante una lectura.
+- **Límites.** El tamaño de entrada y la profundidad de anidamiento están acotados (`INPUT_TOO_LARGE`, `MAX_DEPTH_EXCEEDED`).
 - **Escrituras atómicas.** Un archivo temporal se renombra a su sitio, así que una interrupción nunca deja medio archivo.
 - **Formato.** Los formatos XML conservan el fin de línea y el salto de línea final y sangran los elementos nuevos como sus vecinos. Una entrada nueva de gettext va tras una línea en blanco; un `.po` creado nombra su locale en `Language` (`pt_BR`).
 - **Hojas que no son cadenas.** En los formatos JSON, YAML y ARB, una hoja numérica, booleana o null se acepta pero nunca se traduce, y una reescritura de ese archivo no la conserva; un array falla con `INVALID_STRUCTURE`.

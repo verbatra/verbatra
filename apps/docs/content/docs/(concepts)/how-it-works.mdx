@@ -22,7 +22,7 @@ A source file that is missing or cannot be parsed fails the run; see
 ## Diff against the lock baseline
 
 The diff is what makes a run incremental. verbatra reads the existing target file (an absent file
-counts as empty) and compares each source key against [the lock file](/docs/the-lock-file), the
+counts as empty, though `xliff` and `apple-xcstrings` writers refuse a missing target) and compares each source key against [the lock file](/docs/the-lock-file), the
 record of what was translated before:
 
 | Bucket | Meaning | What the run does |

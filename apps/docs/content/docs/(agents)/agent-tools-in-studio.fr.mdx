@@ -94,6 +94,7 @@ Chaque outil renvoie l'enveloppe du tableau de bord, donc un échec se lit `{ "o
 | `PARAMS_INVALID` | un paramètre a échoué à la validation ; `issues` nomme chaque champ |
 | `METHOD_RATE_LIMITED` | limite de débit dépassée ; `retryAfterSeconds` dit quand l'appel passera |
 | `SESSION_EXPIRED` | Studio a redémarré avec un nouveau token ; ouvre l'URL qu'il a affichée |
+| `INTERNAL` | un handler a échoué avec une erreur inattendue (HTTP 500) ; le message est générique et ne donne aucun détail |
 
 ## Réparer les outils dégradés
 

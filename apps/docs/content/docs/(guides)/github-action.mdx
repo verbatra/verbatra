@@ -11,6 +11,7 @@ Before you start, you need:
 - A verbatra config directly inside the directory the action runs in (see [Config discovery](#config-discovery)).
 - An exact `@verbatra/cli` version to pin, `0.9.3` or newer.
 - For `translate` only: your provider's API key as a repository secret.
+- Actions Runner v2.327.1 or newer, and `verbatra/action` `v1.3.0` or newer for `qa`, `require-reviewed` and the `needs-human` output.
 
 ## Add the action to a workflow
 
@@ -37,7 +38,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
-The action installs `@verbatra/cli` and `@verbatra/sdk` at exactly that version into a scratch directory, so the job needs no install step of its own. Bump the pin deliberately; [npm](https://www.npmjs.com/package/@verbatra/cli) shows the current release.
+The action installs `@verbatra/cli` and `@verbatra/sdk` at exactly that version into a scratch directory, so the job needs no install step of its own.
 
 ### Pass the provider key
 
@@ -69,7 +70,7 @@ Add `qa: "true"` to `command: check` to run [`verbatra check --qa`](/docs/cli/ch
 ```
 
 - Each finding becomes one annotation titled `verbatra qa: <locale>`: an error for a value the integrity gate would refuse, a warning for a review reason.
-- The step fails on any error finding. Add `qa-strict: "true"` to fail on warnings and incomplete plurals too, or `qa-severity: error` to report errors only.
+- The step fails on any error finding. Add `qa-strict: "true"` to fail on warnings and incomplete plurals too, or `qa-severity: error` to report errors only. The CLI rejects both together.
 - A `version` below `0.12.0`, or a prerelease such as `0.12.0-next.0`, fails the step before anything is installed.
 
 ## Require reviewed translations
@@ -138,7 +139,7 @@ If no config is found, the step fails before installing the CLI and names the di
 | `require-reviewed` | `"false"` | `"true"` also fails on unapproved machine-written translations (`--require-reviewed`); `check` only |
 | `node-version` | `"24"` | Node.js version the action sets up to run the CLI |
 
-The boolean inputs accept only `"true"` or `"false"`. An invalid value or combination fails the step with exit `1` before anything is installed.
+The boolean inputs accept only `"true"` or `"false"`. A bad boolean, or an input without the command or `qa` it needs, fails the step with exit `1` before the install. The CLI rejects an unknown `qa-severity`, and `qa-severity: error` with `qa-strict`, with exit `2` after it.
 
 ## Outputs
 
@@ -148,7 +149,7 @@ The boolean inputs accept only `"true"` or `"false"`. An invalid value or combin
 
 ## What a run shows you
 
-- **Annotations.** Under `translate`, each failed or partial locale becomes one error annotation titled `verbatra: <locale>`. Under `check` or `diff`, each drifted locale gets one titled `verbatra check: <locale>` or `verbatra diff: <locale>`. A partial locale's `LOCALE_PARTIAL` annotation names the withheld keys, grouped by cause. Every `check` adds one `PLURAL_CATEGORIES_INCOMPLETE` warning per locale whose plurals lack a CLDR category the language uses. A run that fails as a whole gets one `verbatra` annotation with the error code, its cause as `(cause: X)` and a `Next step:` hint when the CLI gives them. GitHub shows at most 10 annotations per severity, so the action orders them drift, review, quality errors, warnings, and adds one notice counting the rest.
+- **Annotations.** Under `translate`, each failed or partial locale becomes one error annotation titled `verbatra: <locale>`, attached to that locale's file when the action can find it. Under `check` or `diff`, each drifted locale gets one titled `verbatra check: <locale>` or `verbatra diff: <locale>`. A partial locale's `LOCALE_PARTIAL` annotation names the withheld keys, grouped by cause. Every `check` adds one `PLURAL_CATEGORIES_INCOMPLETE` warning per locale whose plurals lack a CLDR category the language uses. A run that fails as a whole gets one `verbatra` annotation with the error code, its cause as `(cause: X)` and a `Next step:` hint when the CLI gives them. GitHub shows at most 10 annotations per severity, so the action orders them drift, review, quality errors, warnings, and adds one notice counting the rest.
 - **Job summary.** One row per locale with the counts for the command that ran, an aggregate line, and the partial and failed locales. With `qa` it adds a findings table of up to 1000 findings; incomplete plurals get their own section.
 - **Exit status.** The action emits the annotations and the summary first, then exits with the CLI's own [exit code](/docs/cli/output#exit-codes), so the step fails only after showing why.
 

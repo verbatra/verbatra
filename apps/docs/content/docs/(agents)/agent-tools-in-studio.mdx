@@ -95,6 +95,7 @@ Every tool returns the dashboard's envelope, so a failure reads `{ "ok": false, 
 | `PARAMS_INVALID` | a parameter failed validation; `issues` names each field |
 | `METHOD_RATE_LIMITED` | over the rate limit; `retryAfterSeconds` says when the call fits |
 | `SESSION_EXPIRED` | Studio restarted with a new token; open the URL it printed |
+| `INTERNAL` | a handler failed with an unexpected error (HTTP 500); the message is generic and carries no detail |
 
 ## Fix degraded tools
 

@@ -78,7 +78,7 @@ Toutes les configurations d'un même répertoire partagent `verbatra.lock.json`,
 
 XLIFF 1.2 (`file/body/trans-unit`) et 2.0 (`file/unit/segment`), une liste plate d'unités.
 
-- **Clés.** L'`id` de l'unité, puis `resname`, puis une position qui se décale quand les unités bougent : donne donc un `id` à chaque unité. Une clé en double échoue avec `INVALID_STRUCTURE`.
+- **Clés.** L'`id` de l'unité, puis `resname`, puis une position qui se décale quand les unités bougent : donne donc un `id` à chaque unité. Une unité 2.0 à plusieurs segments reçoit des clés `<id>#<n>`. Une clé en double échoue avec `INVALID_STRUCTURE`.
 - **Source ou traduction.** Un document est la source quand la locale correspond à son `source-language` (`srcLang` en 2.0 ; une langue sans région correspond à ses formes régionales) et qu'il ne déclare pas cette locale comme sa cible ; le reste, même une simple copie, est une traduction. Une cible qui partage la langue de la source (`en` vers `en-GB`) doit déclarer `target-language` (`trgLang`).
 - **Valeurs manquantes.** Un `<target>` absent, vide ou, en 1.2, marqué `state="new"` ou `"needs-translation"` est manquant, tout comme une cible 2.0 égale à sa source dans un segment marqué `state="initial"`. Le texte de `<source>` n'est jamais copié à sa place.
 - **Écritures en place.** Chaque valeur va dans son `<target>`, créé après `<source>` s'il est absent, et un état 1.2 `new` ou `needs-translation` ou 2.0 `initial` (avec son `subState`) devient `translated`. `<source>`, les attributs et `<note>` restent intacts.
@@ -86,6 +86,7 @@ XLIFF 1.2 (`file/body/trans-unit`) et 2.0 (`file/unit/segment`), une liste plate
 - **Balisage en ligne.** Les `g`, `x`, `bx`, `ex`, `bpt`, `ept`, `ph`, `it`, `mrk` de 1.2, les `ph`, `pc`, `sc`, `ec`, `mrk`, `sm`, `em`, `cp` de 2.0 et `{name}` sont tous des placeholders protégés dans les deux versions. À l'écriture, seuls ceux-ci (plus un `<sub>` 1.2 à l'intérieur de `bpt`, `ept`, `ph`, `it`) restent du balisage ; tout le reste, comme `<b>`, devient du texte.
 - **Échappement.** Le texte est lu comme du texte (`A &amp; B` est `A & B`) et échappé une fois à l'écriture ; un texte qui correspond exactement à un élément autorisé, comme `&lt;x id="1"/&gt;`, est écrit comme cet élément, et `<!DOCTYPE` et `<!ENTITY` comme du texte.
 - **Les notes** (les `<notes>` de l'unité en 2.0) sont du [contexte](/fr/docs/manual-translation) en lecture seule.
+- **Entrée rejetée.** Un document avec une déclaration DTD ou d'entité échoue avec `INVALID_XML`.
 
 ## YAML
 
@@ -133,7 +134,7 @@ Un seul catalogue JSON contenant toutes les locales, le remplaçant de `.strings
 - **Les pluriels** sous `variations.plural` deviennent `<key>_<category>`, uniquement pour les catégories présentes.
 - **Les placeholders sont de style printf**, comme dans `.strings` ; `%lld` équivaut à `%d`.
 - **Les clés `shouldTranslate: false`** ne sont jamais envoyées ni modifiées.
-- **Les écritures retouchent le document.** Seules les localizations touchées changent, une nouvelle valeur reçoit `state: "translated"`, et le reste reste identique octet pour octet. Crée d'abord le catalogue dans Xcode.
+- **Les écritures retouchent le document.** Seules les localizations touchées changent, une nouvelle valeur reçoit `state: "translated"`, et le reste reste identique sur le plan sémantique, même si le fichier est re-sérialisé en JSON indenté de 2 espaces. Crée d'abord le catalogue dans Xcode.
 - **Les erreurs** nomment le fichier et, à l'intérieur d'une entrée, la clé et la locale.
 
 ## Android strings.xml
@@ -194,11 +195,11 @@ Les formats JSON, YAML et ARB conservent l'ordre du document : les clés de type
 
 ## Clés à points et collisions
 
-Dans `i18next-json`, `vue-i18n-json` et `next-intl-json`, une feuille littérale à points comme `"foo.bar"` fait l'aller-retour telle qu'elle est écrite ; `ngx-translate-json` la lit comme un chemin imbriqué. Dans les quatre, un même chemin écrit des deux façons (`"foo.bar"` à côté de `"foo": { "bar": ... }`) échoue avec `INVALID_STRUCTURE`.
+Dans `i18next-json`, `vue-i18n-json` et `next-intl-json`, une feuille littérale à points comme `"foo.bar"` fait l'aller-retour telle qu'elle est écrite ; `ngx-translate-json` la lit comme un chemin imbriqué. Dans les quatre, un même chemin écrit des deux façons (`"foo.bar"` à côté de `"foo": { "bar": ... }`) échoue avec `INVALID_STRUCTURE` ; `ngx-translate-json` signale une clé plate à points de premier niveau à côté d'objets imbriqués comme `MIXED_STRUCTURE`.
 
 ## Comment les fichiers sont lus et écrits
 
-- **Limites.** La taille d'entrée et la profondeur d'imbrication sont plafonnées (`INPUT_TOO_LARGE`, `MAX_DEPTH_EXCEEDED`), et un fichier qui change pendant une lecture est détecté.
+- **Limites.** La taille d'entrée et la profondeur d'imbrication sont plafonnées (`INPUT_TOO_LARGE`, `MAX_DEPTH_EXCEEDED`).
 - **Écritures atomiques.** Un fichier temporaire est renommé en place, donc une interruption ne laisse jamais un fichier à moitié écrit.
 - **Mise en forme.** Les formats XML conservent la fin de ligne et le saut de ligne final, et indentent les nouveaux éléments comme leurs voisins. Une nouvelle entrée gettext suit une ligne vide ; un `.po` créé nomme sa locale dans `Language` (`pt_BR`).
 - **Feuilles qui ne sont pas des chaînes.** Dans les formats JSON, YAML et ARB, une feuille nombre, booléen ou null est acceptée mais jamais traduite, et une réécriture de ce fichier ne la conserve pas ; un tableau échoue avec `INVALID_STRUCTURE`.
