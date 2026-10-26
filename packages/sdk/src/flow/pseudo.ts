@@ -24,7 +24,7 @@ import {
 import { readSourceResource } from "./source.js";
 import {
   displayPath,
-  escapesWorkingDirectory,
+  escapesProjectRoot,
   targetUnwritableMessage,
   writeTargetResource,
 } from "./write-target.js";
@@ -154,7 +154,7 @@ function requestedOutputDirectory(out: string | undefined): string {
 function resolveOutputRoot(cwd: string, out: string | undefined): string {
   const requested = requestedOutputDirectory(out);
   const root = isAbsolute(requested) ? requested : resolve(cwd, requested);
-  if (isAbsolute(requested) || escapesWorkingDirectory(relative(cwd, root))) {
+  if (isAbsolute(requested) || escapesProjectRoot(relative(cwd, root))) {
     throw new SdkError(
       "PSEUDO_OUTPUT_CONFLICT",
       `The output directory "${requested}" ${OUTPUT_DIRECTORY_RULE}`,
@@ -412,8 +412,8 @@ function sameValues(
  * The output is deliberately kept out of the project's real locale files: it is written under
  * `.verbatra-local/pseudo` by default, which `verbatra init` already adds to `.gitignore`, and the
  * pseudolocale is refused when it names a configured locale, when its file would land in the same
- * directory as a configured locale file, and when it is directed at the project root or outside the
- * working directory. Because it lives outside `files.pattern`, {@link translate} never spends on it and
+ * directory as a configured locale file, and when it is directed at the project root itself or
+ * outside it. Because it lives outside `files.pattern`, {@link translate} never spends on it and
  * {@link check} and {@link diff} never report it as drifted.
  *
  * The transform is deterministic, so a second run over unchanged source rewrites nothing and

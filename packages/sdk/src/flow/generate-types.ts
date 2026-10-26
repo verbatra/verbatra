@@ -33,7 +33,7 @@ import { unwritableFileMessage } from "./write-target.js";
 
 /**
  * Where {@link generateTypes} writes its declaration when the caller names no path: a `.d.ts` at
- * the root of the working directory. The file is a checked-in artifact, not a local scratch file:
+ * the root of the project. The file is a checked-in artifact, not a local scratch file:
  * it belongs in version control so a consumer type-checks against it without running verbatra
  * first, and so `check` mode has a committed file to compare against.
  */
