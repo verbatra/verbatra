@@ -47,7 +47,7 @@ describe("pseudolocalize: an output directory that reaches through a symbolic li
     ).rejects.toMatchObject({
       code: "PSEUDO_OUTPUT_CONFLICT",
       message: expect.stringContaining(
-        'The output directory "out-link" resolves outside the working directory through a symbolic link.',
+        'The output directory "out-link" resolves outside the project root through a symbolic link.',
       ),
     });
     expect(counting.reads()).toBe(0);
@@ -63,7 +63,7 @@ describe("pseudolocalize: an output directory that reaches through a symbolic li
     await expect(pseudolocalize({ config: cfg(), cwd: dir, out: "pseudo" })).rejects.toMatchObject({
       code: "PSEUDO_OUTPUT_CONFLICT",
       message: expect.stringContaining(
-        "resolves outside the working directory through a symbolic link.",
+        "resolves outside the project root through a symbolic link.",
       ),
     });
     expect(await readdir(outside)).toEqual([]);
@@ -75,7 +75,7 @@ describe("pseudolocalize: an output directory that reaches through a symbolic li
 
     await expect(pseudolocalize({ config: cfg(), cwd: dir, out: "here" })).rejects.toMatchObject({
       code: "PSEUDO_OUTPUT_CONFLICT",
-      message: expect.stringContaining('"here" names the working directory itself.'),
+      message: expect.stringContaining('"here" names the project root itself.'),
     });
     expect(await readdir(join(dir, "locales"))).toEqual(["de.json", "en.json"]);
   });

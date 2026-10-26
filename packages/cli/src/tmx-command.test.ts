@@ -265,7 +265,7 @@ describe("verbatra tmx export guards its output path", () => {
   });
 
   it.each([
-    ["TMX_OUTPUT_CONFLICT", 'The output path "../memory.tmx" is not inside the working directory.'],
+    ["TMX_OUTPUT_CONFLICT", 'The output path "../memory.tmx" is not inside the project root.'],
     ["TMX_UNWRITABLE", "Could not write the TMX file memory.tmx (EACCES)."],
   ] as const)("reports %s as a structured failure envelope and exits 2", async (code, message) => {
     const { deps } = recordingDeps({

@@ -19,7 +19,7 @@ const REFUSAL_SCENARIOS: Readonly<Record<TypesOutputRefusal, RefusalScenario>> =
   absolute: { input: { out: "/tmp/verbatra-types.d.ts" }, why: "is absolute." },
   "outside-working-directory": {
     input: { out: "../verbatra-types.d.ts" },
-    why: "is not inside the working directory.",
+    why: "is not inside the project root.",
   },
   "not-typescript": { input: { out: "types.txt" }, why: "is not a TypeScript file" },
   "locale-file": { input: { out: "locales/en.json" }, why: 'is the locale file for "en".' },

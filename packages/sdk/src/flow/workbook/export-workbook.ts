@@ -229,8 +229,8 @@ function buildRows(
 
 function outputHint(delimited: boolean): string {
   return delimited
-    ? `Pass a directory inside the working directory, or omit it to use ${DEFAULT_DELIMITED_PATH}.`
-    : `Pass a path naming a file inside the working directory, or omit it to use ${DEFAULT_WORKBOOK_PATH}.`;
+    ? `Pass a directory inside the project root, or omit it to use ${DEFAULT_DELIMITED_PATH}.`
+    : `Pass a path naming a file inside the project root, or omit it to use ${DEFAULT_WORKBOOK_PATH}.`;
 }
 
 function refuseOutput(requested: string, why: string, delimited: boolean): never {

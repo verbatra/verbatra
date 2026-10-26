@@ -179,7 +179,7 @@
  *   locale's {@link LocaleSummary} and carry on with the other locales.
  * - `PSEUDO_OUTPUT_CONFLICT`: {@link pseudolocalize} was asked to generate a pseudolocale that
  *   names a configured locale, or to write one onto a configured locale file or outside the
- *   working directory, checked again after symbolic links are resolved through a file-system port
+ *   project root, checked again after symbolic links are resolved through a file-system port
  *   that implements `realpath`. Refused before anything is read or written, so a generated
  *   pseudolocale can never overwrite a real translation, stand in for one, or leave the project.
  * - `SOURCE_UNWRITABLE`: the source locale file could not be written. Thrown by {@link extract}
@@ -205,8 +205,8 @@
  *   because its directory is not writable, does not exist, or the disk is out of space. The
  *   message names the file relative to `cwd` and the underlying file-system code.
  * - `TMX_OUTPUT_CONFLICT`: {@link exportTmx} refused its output path. Before the memory is read
- *   or anything is written, it refuses a path that names no file or resolves outside the working
- *   directory or to the working directory itself, and one naming a configured locale file, the
+ *   or anything is written, it refuses a path that names no file or resolves outside the project
+ *   root or to the project root itself, and one naming a configured locale file, the
  *   lock file, the provenance file, the translation-memory cache, a file verbatra searches for its
  *   configuration, the configuration file the run loaded, or the glossary file the config names,
  *   compared case-insensitively and, through a file-system port that implements `realpath`, again
@@ -215,13 +215,13 @@
  *   directory is not writable, a directory already sits at that path, or the disk is out of space.
  *   The message names the file relative to `cwd` and the underlying file-system code.
  * - `EXPORT_OUTPUT_CONFLICT`: {@link exportWorkbook} refused its output path. Before anything is
- *   read or written, it refuses a path that resolves outside the working directory, and one that,
+ *   read or written, it refuses a path that resolves outside the project root, and one that,
  *   or a file the export would write into it, names a configured locale file, the lock file, the
  *   provenance file, the translation-memory cache, a file verbatra searches for its configuration,
  *   the configuration file the run loaded, or the glossary file the config names, compared
  *   case-insensitively and, through a file-system port that implements `realpath`, again after
  *   symbolic links are resolved. An `xlsx` path is also refused when it names no file or names the
- *   working directory itself.
+ *   project root itself.
  * - `EXPORT_UNWRITABLE`: the handoff {@link exportWorkbook} produces could not be written, because
  *   its directory is not writable, a directory or file already sits in the way, or the disk is out
  *   of space. The message names the file relative to `cwd` and the underlying file-system code, and

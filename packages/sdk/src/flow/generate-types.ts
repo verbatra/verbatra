@@ -147,7 +147,7 @@ export const TYPES_OUTPUT_REFUSALS = [
 
 export type TypesOutputRefusal = (typeof TYPES_OUTPUT_REFUSALS)[number];
 
-const RELATIVE_PATH_HINT = `Pass a relative path naming a file inside the working directory, or omit it to use ${DEFAULT_TYPES_PATH}.`;
+const RELATIVE_PATH_HINT = `Pass a relative path naming a file inside the project root, or omit it to use ${DEFAULT_TYPES_PATH}.`;
 
 const REFUSAL_HINTS: Readonly<Record<TypesOutputRefusal, string>> = {
   "names-no-file": RELATIVE_PATH_HINT,

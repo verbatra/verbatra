@@ -23,3 +23,5 @@ Stale lock reclaim, bounded lock waits, context-aware redaction, and output path
 - `export` and `tmx export` refuse a path outside the project or onto a project file, and a
   failed write is a structured error that exits 2. `pseudo --out` also checks its path after
   resolving symbolic links.
+- The refusal for an output path outside the project now names the project root, not the working
+  directory, in `export`, `tmx export`, `types` and `pseudo`, matching what is checked.

@@ -72,7 +72,7 @@ const RESERVED_NAMES: readonly string[] = [
   ...CONFIG_SEARCH_PLACES,
 ];
 
-describe("exportWorkbook: an xlsx output path outside the working directory", () => {
+describe("exportWorkbook: an xlsx output path outside the project root", () => {
   it.each(["../escaped.xlsx", "sub/../../escaped.xlsx", ".", "sub/..", "", "   "])(
     "refuses %j with EXPORT_OUTPUT_CONFLICT before anything is read",
     async (out) => {
@@ -100,7 +100,7 @@ describe("exportWorkbook: an xlsx output path outside the working directory", ()
     },
   );
 
-  it("refuses an absolute path outside the working directory and writes nothing there", async () => {
+  it("refuses an absolute path outside the project root and writes nothing there", async () => {
     const dir = await seed();
     const outside = await makeTempDir();
 
@@ -116,11 +116,11 @@ describe("exportWorkbook: an xlsx output path outside the working directory", ()
     await expect(
       exportWorkbook({ config: cfg(), cwd: dir, out: "../escaped.xlsx" }),
     ).rejects.toThrow(
-      /"\.\.\/escaped\.xlsx" is not inside the working directory\. Pass a path naming a file inside the working directory, or omit it to use verbatra-translations\.xlsx\./,
+      /"\.\.\/escaped\.xlsx" is not inside the project root\. Pass a path naming a file inside the project root, or omit it to use verbatra-translations\.xlsx\./,
     );
   });
 
-  it("accepts an absolute path that stays inside the working directory", async () => {
+  it("accepts an absolute path that stays inside the project root", async () => {
     const dir = await seed();
 
     const result = await exportWorkbook({
@@ -197,7 +197,7 @@ describe("exportWorkbook: a delimited output directory", () => {
         exportWorkbook({ config: cfg(), cwd: dir, out, format: "csv" }, { fs: counting.fs }),
       ).rejects.toMatchObject({
         code: "EXPORT_OUTPUT_CONFLICT",
-        message: expect.stringContaining("Pass a directory inside the working directory"),
+        message: expect.stringContaining("Pass a directory inside the project root"),
       });
       expect(counting.reads()).toBe(0);
     },
@@ -254,7 +254,7 @@ describe("exportWorkbook: a delimited output directory", () => {
     expect(await readFile(join(dir, "terms", "de.csv"), "utf8")).toBe(PROTECTED_MARKER);
   });
 
-  it("refuses a directory linked outside the working directory and writes nothing there", async () => {
+  it("refuses a directory linked outside the project root and writes nothing there", async () => {
     const dir = await seed();
     const outside = await makeTempDir();
     await symlink(outside, join(dir, "away"), "dir");
@@ -262,7 +262,7 @@ describe("exportWorkbook: a delimited output directory", () => {
     expect(await refusal(dir, { out: "away", format: "csv" })).toMatchObject({
       code: "EXPORT_OUTPUT_CONFLICT",
       message: expect.stringContaining(
-        "resolves outside the working directory through a symbolic link.",
+        "resolves outside the project root through a symbolic link.",
       ),
     });
     expect(await readdir(outside)).toEqual([]);
@@ -297,7 +297,7 @@ describe("exportWorkbook: an xlsx output path that reaches through a symbolic li
     expect(await readFile(join(dir, "locales", "de.json"), "utf8")).toBe(TARGET_CONTENT);
   });
 
-  it("refuses a linked directory pointing outside the working directory", async () => {
+  it("refuses a linked directory pointing outside the project root", async () => {
     const dir = await seed();
     const outside = await makeTempDir();
     await symlink(outside, join(dir, "away"), "dir");
@@ -308,7 +308,7 @@ describe("exportWorkbook: an xlsx output path that reaches through a symbolic li
     expect(await readdir(outside)).toEqual([]);
   });
 
-  it("writes through a linked directory that stays inside the working directory", async () => {
+  it("writes through a linked directory that stays inside the project root", async () => {
     const dir = await seed();
     await mkdir(join(dir, "exports"));
     await symlink(join(dir, "exports"), join(dir, "latest"), "dir");

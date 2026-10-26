@@ -170,7 +170,7 @@ function collect(
   return { units, counts, withoutSource };
 }
 
-const OUTPUT_HINT = `Pass a path naming a file inside the working directory, or omit it to use ${DEFAULT_TMX_PATH}.`;
+const OUTPUT_HINT = `Pass a path naming a file inside the project root, or omit it to use ${DEFAULT_TMX_PATH}.`;
 
 function refuseOutput(requested: string, why: string): never {
   throw new SdkError("TMX_OUTPUT_CONFLICT", `The output path "${requested}" ${why} ${OUTPUT_HINT}`);

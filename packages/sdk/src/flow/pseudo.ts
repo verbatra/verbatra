@@ -145,7 +145,7 @@ export interface PseudolocalizeResult {
 }
 
 const OUTPUT_DIRECTORY_RULE =
-  "must be a relative path naming a directory inside the working directory, so a pseudolocale is never written outside the project it was generated from, and never into the project root itself.";
+  "must be a relative path naming a directory inside the project root, so a pseudolocale is never written outside the project it was generated from, and never into the project root itself.";
 
 function requestedOutputDirectory(out: string | undefined): string {
   return out ?? DEFAULT_PSEUDO_DIRECTORY;
@@ -188,7 +188,7 @@ async function assertOutputStaysInsideThroughLinks(check: LinkedOutputCheck): Pr
   if (fileRefusal !== undefined) {
     throw new SdkError(
       "PSEUDO_OUTPUT_CONFLICT",
-      `The pseudolocale would be written to ${displayPath(check.outputPath, cwd)}, which ${outputRefusalReason(fileRefusal)} Choose an output directory inside the working directory that holds no project file.`,
+      `The pseudolocale would be written to ${displayPath(check.outputPath, cwd)}, which ${outputRefusalReason(fileRefusal)} Choose an output directory inside the project root that holds no project file.`,
     );
   }
   await assertOutputIsAwayFromTheLocaleFilesThroughLinks(check, guard);

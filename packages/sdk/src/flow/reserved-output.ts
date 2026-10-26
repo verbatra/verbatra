@@ -104,7 +104,7 @@ async function canonicalPath(
 
 type WorkingDirectoryConflict = "working-directory" | "outside-working-directory";
 
-const WORKING_DIRECTORY_REASON = "names the working directory itself.";
+const WORKING_DIRECTORY_REASON = "names the project root itself.";
 
 function workingDirectoryConflict(
   root: string,
@@ -197,6 +197,6 @@ export function outputRefusalReason(refusal: OutputPathRefusal): string {
     return WORKING_DIRECTORY_REASON;
   }
   return refusal.linked
-    ? "resolves outside the working directory through a symbolic link."
-    : "is not inside the working directory.";
+    ? "resolves outside the project root through a symbolic link."
+    : "is not inside the project root.";
 }

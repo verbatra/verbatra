@@ -67,7 +67,7 @@ function readCountingFs(): { readonly fs: SdkFs; readonly reads: () => number } 
   };
 }
 
-describe("exportTmx: an output path outside the working directory", () => {
+describe("exportTmx: an output path outside the project root", () => {
   it.each(["../escaped.tmx", "sub/../../escaped.tmx", ".", "sub/..", "", "   "])(
     "refuses %j with TMX_OUTPUT_CONFLICT before the memory is read",
     async (out) => {
@@ -96,7 +96,7 @@ describe("exportTmx: an output path outside the working directory", () => {
     },
   );
 
-  it("refuses an absolute path outside the working directory", async () => {
+  it("refuses an absolute path outside the project root", async () => {
     const dir = await seed();
     const outside = await makeTempDir();
 
@@ -108,11 +108,11 @@ describe("exportTmx: an output path outside the working directory", () => {
     const dir = await seed();
 
     await expect(exportTmx({ config: cfg(), cwd: dir, out: "../escaped.tmx" })).rejects.toThrow(
-      /"\.\.\/escaped\.tmx" is not inside the working directory\. Pass a path naming a file inside/,
+      /"\.\.\/escaped\.tmx" is not inside the project root\. Pass a path naming a file inside/,
     );
   });
 
-  it("accepts an absolute path that stays inside the working directory", async () => {
+  it("accepts an absolute path that stays inside the project root", async () => {
     const dir = await seed();
 
     const result = await exportTmx({ config: cfg(), cwd: dir, out: join(dir, "out", "m.tmx") });
@@ -218,7 +218,7 @@ describe("exportTmx: an output path that reaches through a symbolic link", () =>
     expect(await readFile(join(dir, "locales", "de.json"), "utf8")).toBe(PROTECTED_MARKER);
   });
 
-  it("refuses a linked directory pointing outside the working directory and writes nothing there", async () => {
+  it("refuses a linked directory pointing outside the project root and writes nothing there", async () => {
     const dir = await seed();
     const outside = await makeTempDir();
     await symlink(outside, join(dir, "away"), "dir");
@@ -228,7 +228,7 @@ describe("exportTmx: an output path that reaches through a symbolic link", () =>
     ).rejects.toMatchObject({
       code: "TMX_OUTPUT_CONFLICT",
       message: expect.stringContaining(
-        "resolves outside the working directory through a symbolic link.",
+        "resolves outside the project root through a symbolic link.",
       ),
     });
     expect(await readdir(outside)).toEqual([]);
@@ -249,12 +249,12 @@ describe("exportTmx: an output path that reaches through a symbolic link", () =>
     for (const out of ["here", "."]) {
       await expect(exportTmx({ config: cfg(), cwd: dir, out })).rejects.toMatchObject({
         code: "TMX_OUTPUT_CONFLICT",
-        message: expect.stringContaining("names the working directory itself."),
+        message: expect.stringContaining("names the project root itself."),
       });
     }
   });
 
-  it("writes through a linked directory that stays inside the working directory", async () => {
+  it("writes through a linked directory that stays inside the project root", async () => {
     const dir = await seed();
     await mkdir(join(dir, "exports"));
     await symlink(join(dir, "exports"), join(dir, "latest"), "dir");

@@ -195,7 +195,7 @@ describe("an output path that reaches through a symbolic link", () => {
     expect(await readTextFile(join(dir, "locales", "de.json"))).toBe(PROTECTED_MARKER);
   });
 
-  it("refuses a linked directory pointing outside the working directory and writes nothing there", async () => {
+  it("refuses a linked directory pointing outside the project root and writes nothing there", async () => {
     const dir = await seed();
     const outside = await makeTempDir();
     await symlink(outside, join(dir, "away"), "dir");
@@ -205,7 +205,7 @@ describe("an output path that reaches through a symbolic link", () => {
     ).rejects.toMatchObject({
       code: "TYPES_OUTPUT_CONFLICT",
       message: expect.stringContaining(
-        "resolves outside the working directory through a symbolic link.",
+        "resolves outside the project root through a symbolic link.",
       ),
     });
     expect(await readdir(outside)).toEqual([]);
@@ -219,7 +219,7 @@ describe("an output path naming the working directory itself", () => {
     await expect(generateTypes({ config: baseConfig(), cwd: dir, out: "." })).rejects.toMatchObject(
       {
         code: "TYPES_OUTPUT_CONFLICT",
-        message: expect.stringContaining("names the working directory itself."),
+        message: expect.stringContaining("names the project root itself."),
       },
     );
   });
@@ -232,7 +232,7 @@ describe("an output path naming the working directory itself", () => {
       generateTypes({ config: baseConfig(), cwd: dir, out: "here.d.ts" }),
     ).rejects.toMatchObject({
       code: "TYPES_OUTPUT_CONFLICT",
-      message: expect.stringContaining("names the working directory itself."),
+      message: expect.stringContaining("names the project root itself."),
     });
   });
 });
