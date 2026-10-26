@@ -62,7 +62,7 @@ An API key sent to a self-hosted server over plain `http://` (not loopback) cros
 
 ### Dry run
 
-`--dry-run` constructs no provider, so it needs no API key and cannot spend anything. It reads the source and target files, diffs them against the lock file, and reports exactly what a real run would change. It writes nothing (no locale file, no lock update, no run-status snapshot), neither reads nor writes the cache, and takes no write lock, so it never waits on a run in progress.
+`--dry-run` constructs no provider, so it needs no API key and cannot spend anything. It reads the source and target files, diffs them against the lock file, and reports exactly what a real run would change. It writes nothing (no locale file, no lock update, no run-status snapshot), with a machine provider neither reads nor writes the cache (under provider `none` it reads the translation memory, see below), and takes no write lock, so it never waits on a run in progress.
 
 <Callout>
 By default a run deletes nothing: orphaned keys are reported and left in place. `--prune`, or `prune: true` in the config, deletes exactly those keys from the target files and the lock; `--prune --dry-run` previews them.
@@ -72,11 +72,11 @@ By default a run deletes nothing: orphaned keys are reported and left in place. 
 
 <AvailableFrom version="0.11.0" />
 
-`--estimate` adds a pre-run estimate to the dry run: how many keys would be sent, how many provider requests they would take, and the quantity the provider bills for (tokens for an LLM, source characters for DeepL or Google Cloud Translation, nothing for a self-hosted `openai-compatible` endpoint). A currency figure appears only when the config has a `rates` block covering the provider and model; otherwise the missing rate key is named instead of inventing `0.00`. See [Estimating cost](/docs/estimating-cost).
+`--estimate` adds a pre-run estimate to the dry run: how many keys would be sent, how many provider requests they would take, and the quantity the provider bills for (tokens for an LLM or an `openai-compatible` endpoint, source characters for DeepL, Google Cloud Translation or LibreTranslate; a self-hosted endpoint or server is not billed, so the estimate reports no API cost). A currency figure appears only when the config has a `rates` block covering the provider and model; otherwise the missing rate key is named instead of inventing `0.00`. See [Estimating cost](/docs/estimating-cost).
 
 ### A subset of locales
 
-<AvailableFrom version="0.11.0" />
+<AvailableFrom version="0.9.0" />
 
 `--locales de,fr` narrows the run to part of the configured targets. The other locales keep their files, lock entries, and cache entries as they were. Use it on a rate-limited free tier to translate one locale at a time, or to re-run a single locale that came out partial. The run-status snapshot then describes that subset only.
 

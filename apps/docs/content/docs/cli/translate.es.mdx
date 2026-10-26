@@ -62,7 +62,7 @@ Una clave de API enviada a un servidor autoalojado por `http://` simple (no loop
 
 ### Ejecución de prueba
 
-`--dry-run` no construye ningún proveedor, así que no necesita clave de API y no puede gastar nada. Lee los archivos de origen y de destino, los compara con el archivo de bloqueo e informa exactamente de lo que cambiaría una ejecución real. No escribe nada (ni archivo de locale, ni actualización del bloqueo, ni instantánea del estado de ejecución), no lee ni escribe la caché y no toma ningún bloqueo de escritura, así que nunca espera a una ejecución en curso.
+`--dry-run` no construye ningún proveedor, así que no necesita clave de API y no puede gastar nada. Lee los archivos de origen y de destino, los compara con el archivo de bloqueo e informa exactamente de lo que cambiaría una ejecución real. No escribe nada (ni archivo de locale, ni actualización del bloqueo, ni instantánea del estado de ejecución), con un proveedor automático no lee ni escribe la caché (con el proveedor `none` lee la memoria de traducción, ver abajo) y no toma ningún bloqueo de escritura, así que nunca espera a una ejecución en curso.
 
 <Callout>
 Por defecto una ejecución no borra nada: las claves huérfanas se informan y se quedan donde están. `--prune`, o `prune: true` en la configuración, borra exactamente esas claves de los archivos de destino y del bloqueo; `--prune --dry-run` te las muestra antes.
@@ -72,11 +72,11 @@ Por defecto una ejecución no borra nada: las claves huérfanas se informan y se
 
 <AvailableFrom version="0.11.0" />
 
-`--estimate` añade a la ejecución de prueba una estimación previa: cuántas claves se enviarían, cuántas peticiones al proveedor serían y la cantidad que factura el proveedor (tokens en un LLM, caracteres de origen en DeepL o Google Cloud Translation, nada en un endpoint `openai-compatible` autoalojado). Una cifra en moneda solo aparece cuando la configuración tiene un bloque `rates` que cubre el proveedor y el modelo; si no, se nombra la clave de tarifa que falta en lugar de inventar `0.00`. Consulta [Estimar el coste](/es/docs/estimating-cost).
+`--estimate` añade a la ejecución de prueba una estimación previa: cuántas claves se enviarían, cuántas peticiones al proveedor serían y la cantidad que factura el proveedor (tokens en un LLM o en un endpoint `openai-compatible`, caracteres de origen en DeepL, Google Cloud Translation o LibreTranslate; un endpoint o servidor autoalojado no se factura, así que la estimación no indica coste de API). Una cifra en moneda solo aparece cuando la configuración tiene un bloque `rates` que cubre el proveedor y el modelo; si no, se nombra la clave de tarifa que falta en lugar de inventar `0.00`. Consulta [Estimar el coste](/es/docs/estimating-cost).
 
 ### Un subconjunto de locales
 
-<AvailableFrom version="0.11.0" />
+<AvailableFrom version="0.9.0" />
 
 `--locales de,fr` limita la ejecución a una parte de los destinos configurados. Los demás locales conservan sus archivos, sus entradas de bloqueo y sus entradas de caché. Úsalo en un plan gratuito con límite de peticiones para traducir un locale cada vez, o para repetir un único locale que salió parcial. La instantánea del estado de ejecución describe entonces solo ese subconjunto.
 

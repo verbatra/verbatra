@@ -106,8 +106,9 @@ Ja, über vier Oberflächen: einen Einrichtungs-Prompt für Coding-Agenten
 ([Mit einem KI-Agenten einrichten](/de/docs/start-with-ai)), die `--json`-Ausgabe für deine eigenen
 Schleifen ([Rezepte für Agenten und Skripte](/de/docs/agent-recipes)), WebMCP-Tools in einem offenen
 Studio-Tab ([Studio mit einem Browser-Agenten steuern](/de/docs/agent-tools-in-studio)) und einen
-stdio-MCP-Server ([`verbatra mcp`](/de/docs/cli/mcp)). Keine davon gibt beim Provider Geld aus ohne
-die Bestätigung eines Menschen oder ein `--allow-spend`-Flag.
+stdio-MCP-Server ([`verbatra mcp`](/de/docs/cli/mcp)). Studio und der MCP-Server geben beim Provider nur
+hinter einem `--allow-spend`-Flag Geld aus; in der `--json`-Schleife gibt ein echtes `translate`
+sofort Geld aus, also muss dein Skript oder Agent vorher das Okay eines Menschen einholen.
 
 ## Veröffentlicht diese Seite etwas für KI-Agenten und Crawler?
 

@@ -85,7 +85,7 @@ L'estimation fait le calcul que tu ferais sinon à la main :
 
 Une vraie exécution coûte en général moins, pour les deux raisons qui font du chiffre du dry run une borne haute. Elle peut aussi coûter plus, et la ligne `estimate excludes` nomme chaque cause. Deux comptent le plus :
 
-- **Nouvelles tentatives.** Le SDK de chaque fournisseur relance lui-même une requête échouée : deux tentatives de plus pour Anthropic, OpenAI, `openai-compatible` et Gemini, et cinq pour DeepL. Une tentative qui a atteint le modèle est facturée.
+- **Nouvelles tentatives.** Le SDK de chaque fournisseur relance lui-même une requête échouée : deux tentatives de plus pour Anthropic, OpenAI, `openai-compatible` et Gemini, et quatre pour DeepL (jusqu'à cinq tentatives au total). Une tentative qui a atteint le modèle est facturée.
 - **Réparations.** Quand des clés reviennent manquantes, verbatra envoie une requête de réparation, qui reporte en entier les règles système, le glossaire et le ton.
 
 Planifie avec ce chiffre, mais ne le promets pas comme plafond. L'estimation ne couvre d'ailleurs que `translate` : retraduire une entrée depuis [Studio](/fr/docs/review-in-studio) ou un outil d'agent dépense par son propre chemin.
@@ -121,7 +121,7 @@ Multiplie par le nombre de locales restantes. Avec `--json`, les chiffres sont `
 
 ## Fournisseurs de traduction automatique
 
-DeepL, Google Cloud Translation et LibreTranslate facturent des caractères source, pas des tokens. verbatra leur envoie le texte source avec les placeholders en courts marqueurs numérotés, sans règles système, noms de clés ni JSON autour. L'estimation ne compte que les caractères source. DeepL ne facture pas les balises autour de ses marqueurs ; que Google facture le balisage `span` qui les entoure n'est pas documenté. Une valeur que ces fournisseurs retiennent ([`PLACEHOLDER_UNSUPPORTED`](/fr/docs/error-codes#placeholder_unsupported)) n'est pas envoyée, si bien que les caractères envoyés peuvent être moins nombreux que le total brut.
+DeepL et Google Cloud Translation facturent des caractères source, pas des tokens, et LibreTranslate compte des caractères source sans rien facturer. verbatra leur envoie le texte source avec les placeholders en courts marqueurs numérotés, sans règles système, noms de clés ni JSON autour. L'estimation ne compte que les caractères source. DeepL ne facture pas les balises autour de ses marqueurs ; que Google facture le balisage `span` qui les entoure n'est pas documenté. Une valeur que ces fournisseurs retiennent ([`PLACEHOLDER_UNSUPPORTED`](/fr/docs/error-codes#placeholder_unsupported)) n'est pas envoyée, si bien que les caractères envoyés peuvent être moins nombreux que le total brut.
 
 ### Google Cloud Translation
 

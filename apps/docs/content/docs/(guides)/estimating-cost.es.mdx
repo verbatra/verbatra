@@ -85,7 +85,7 @@ La estimación hace las cuentas que, si no, harías a mano:
 
 Una ejecución real suele costar menos, por las dos razones por las que la cifra del dry run es un límite superior. También puede costar más, y la línea `estimate excludes` nombra cada motivo. Dos pesan más que el resto:
 
-- **Reintentos.** El SDK de cada proveedor reintenta por su cuenta una petición fallida: dos intentos extra en Anthropic, OpenAI, `openai-compatible` y Gemini, y cinco en DeepL. Un intento que llegó al modelo se factura.
+- **Reintentos.** El SDK de cada proveedor reintenta por su cuenta una petición fallida: dos intentos extra en Anthropic, OpenAI, `openai-compatible` y Gemini, y cuatro en DeepL (hasta cinco intentos en total). Un intento que llegó al modelo se factura.
 - **Reparaciones.** Cuando vuelven claves que faltan, verbatra envía una petición de reparación, que lleva de nuevo completos las reglas de sistema, el glosario y el tono.
 
 Planifica con la cifra, pero no la prometas como techo. Además, la estimación solo cubre `translate`: volver a traducir una entrada desde [Studio](/es/docs/review-in-studio) o con una herramienta de agente gasta por su propio camino.
@@ -121,7 +121,7 @@ Multiplica por el número de locales que quedan. Con `--json`, las cifras son `u
 
 ## Proveedores de traducción automática
 
-DeepL, Google Cloud Translation y LibreTranslate facturan caracteres de origen, no tokens. verbatra les envía el texto de origen con los placeholders como marcadores numerados cortos, sin reglas de sistema, nombres de clave ni JSON alrededor. La estimación solo cuenta caracteres de origen. DeepL no factura las etiquetas alrededor de sus marcadores; si Google factura el marcado `span` que los rodea no está documentado. Un valor que estos proveedores retienen ([`PLACEHOLDER_UNSUPPORTED`](/es/docs/error-codes#placeholder_unsupported)) no se envía, así que los caracteres enviados pueden ser menos que el total bruto.
+DeepL y Google Cloud Translation facturan caracteres de origen, no tokens, y LibreTranslate cuenta caracteres de origen sin facturar nada. verbatra les envía el texto de origen con los placeholders como marcadores numerados cortos, sin reglas de sistema, nombres de clave ni JSON alrededor. La estimación solo cuenta caracteres de origen. DeepL no factura las etiquetas alrededor de sus marcadores; si Google factura el marcado `span` que los rodea no está documentado. Un valor que estos proveedores retienen ([`PLACEHOLDER_UNSUPPORTED`](/es/docs/error-codes#placeholder_unsupported)) no se envía, así que los caracteres enviados pueden ser menos que el total bruto.
 
 ### Google Cloud Translation
 

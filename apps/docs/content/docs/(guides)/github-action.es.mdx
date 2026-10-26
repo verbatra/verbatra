@@ -106,7 +106,7 @@ Con `provider: { id: "none" }` (consulta [Flujo solo humano](/es/docs/human-only
         run: echo "Some keys need a human translation; see the job summary."
 ```
 
-Solo `translate` recibe este trato. Un `3` de `check` o `diff` sigue haciendo fallar el paso.
+Solo `translate` recibe este trato. `check` y `diff` nunca terminan con `3`, así que un fallo de ellos sigue haciendo fallar el paso.
 
 ## Descubrimiento de la configuración
 

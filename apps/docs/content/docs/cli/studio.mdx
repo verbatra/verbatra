@@ -6,7 +6,7 @@ type: reference
 ---
 Start Verbatra Studio, a local web dashboard over your project: translation status, the needs-review queue, run activity and your resolved settings, live over the files on disk. Editing locale files and a file-backed glossary works out of the box; only provider spend is opt-in, behind `--allow-spend`.
 
-<AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
+<AvailableFrom version="0.1.0" pkg="@verbatra/studio" />
 
 ## Synopsis
 
@@ -67,7 +67,7 @@ With `--allow-spend` under provider `none`, the first line reads `verbatra: spen
 
 ### Spend and agent tools
 
-<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+<AvailableFrom version="0.2.0" pkg="@verbatra/studio" />
 
 Without `--allow-spend`, Studio reads `VERBATRA_STUDIO_ALLOW_SPEND`; `--expose-agent-tools` falls back to `VERBATRA_STUDIO_AGENT_TOOLS` the same way. For both, `1`, `true`, `yes` or `on` (any case, surrounding spaces ignored) counts as on, and the flag always wins over the variable. Without either, Studio never contacts a provider. Studio loads the [environment files](/docs/cli#environment-files) first, so both variables can live in `.env.local` or `.env`.
 

@@ -85,7 +85,7 @@ The estimate performs the arithmetic you would otherwise do by hand:
 
 A real run usually costs less, for the two reasons the dry-run count is an upper bound. It can also cost more, and the `estimate excludes` line names each way. Two matter most:
 
-- **Retries.** Each provider SDK retries a failed request on its own: two extra attempts for Anthropic, OpenAI, `openai-compatible` and Gemini, and five for DeepL. An attempt that reached the model is billed.
+- **Retries.** Each provider SDK retries a failed request on its own: two extra attempts for Anthropic, OpenAI, `openai-compatible` and Gemini, and four for DeepL (up to five attempts in all). An attempt that reached the model is billed.
 - **Repairs.** When keys come back missing, verbatra sends one repair request, which carries the system rules, glossary and tone again in full.
 
 Plan with the figure; do not promise it as a ceiling. The estimate also covers `translate` only: retranslating one entry from [Studio](/docs/review-in-studio) or an agent tool spends on its own path.
@@ -121,7 +121,7 @@ Multiply by the number of remaining locales. With `--json`, the figures are `usa
 
 ## Machine-translation providers
 
-DeepL, Google Cloud Translation and LibreTranslate bill source characters, not tokens. verbatra sends them the source text with placeholders as short numbered markers, and no system rules, key names or JSON around it. The estimate counts source characters only. DeepL does not bill the tags around its markers; whether Google bills the span markup around them is not documented. A value these providers withhold ([`PLACEHOLDER_UNSUPPORTED`](/docs/error-codes#placeholder_unsupported)) is not sent, so the characters sent can be fewer than the raw total.
+DeepL and Google Cloud Translation bill source characters, not tokens, and LibreTranslate counts source characters without billing anything. verbatra sends them the source text with placeholders as short numbered markers, and no system rules, key names or JSON around it. The estimate counts source characters only. DeepL does not bill the tags around its markers; whether Google bills the span markup around them is not documented. A value these providers withhold ([`PLACEHOLDER_UNSUPPORTED`](/docs/error-codes#placeholder_unsupported)) is not sent, so the characters sent can be fewer than the raw total.
 
 ### Google Cloud Translation
 

@@ -85,7 +85,7 @@ Die Schätzung erledigt die Rechnung, die du sonst von Hand machen würdest:
 
 Ein echter Lauf kostet meist weniger, aus denselben zwei Gründen, aus denen die Dry-Run-Zahl eine Obergrenze ist. Er kann auch mehr kosten, und die Zeile `estimate excludes` nennt jeden Weg dorthin. Zwei zählen am meisten:
 
-- **Wiederholungen.** Das SDK jedes Providers wiederholt eine gescheiterte Anfrage selbst: zwei zusätzliche Versuche bei Anthropic, OpenAI, `openai-compatible` und Gemini, fünf bei DeepL. Ein Versuch, der das Modell erreicht hat, wird abgerechnet.
+- **Wiederholungen.** Das SDK jedes Providers wiederholt eine gescheiterte Anfrage selbst: zwei zusätzliche Versuche bei Anthropic, OpenAI, `openai-compatible` und Gemini, vier bei DeepL (insgesamt bis zu fünf Versuche). Ein Versuch, der das Modell erreicht hat, wird abgerechnet.
 - **Reparaturen.** Wenn Keys fehlend zurückkommen, sendet verbatra eine Reparaturanfrage, die Systemregeln, Glossar und Ton noch einmal vollständig enthält.
 
 Plane mit der Zahl, versprich sie aber nicht als Obergrenze. Die Schätzung deckt außerdem nur `translate` ab: Ein einzelner Eintrag, den du aus [Studio](/de/docs/review-in-studio) oder mit einem Agent-Tool neu übersetzt, verursacht Kosten auf eigenem Weg.
@@ -121,7 +121,7 @@ Multipliziere mit der Zahl der übrigen Locales. Mit `--json` heißen die Werte 
 
 ## Maschinelle Übersetzungsdienste
 
-DeepL, Google Cloud Translation und LibreTranslate rechnen Quellzeichen ab, keine Tokens. verbatra schickt ihnen den Quelltext mit Platzhaltern als kurzen nummerierten Markierungen, ohne Systemregeln, Key-Namen oder JSON drumherum. Die Schätzung zählt nur Quellzeichen. DeepL rechnet die Tags um seine Markierungen nicht ab; ob Google das Span-Markup um sie abrechnet, ist nicht dokumentiert. Ein Wert, den diese Provider zurückhalten ([`PLACEHOLDER_UNSUPPORTED`](/de/docs/error-codes#placeholder_unsupported)), wird nicht gesendet, sodass weniger Zeichen gesendet werden können als die Rohsumme.
+DeepL und Google Cloud Translation rechnen Quellzeichen ab, keine Tokens, und LibreTranslate zählt Quellzeichen, ohne etwas abzurechnen. verbatra schickt ihnen den Quelltext mit Platzhaltern als kurzen nummerierten Markierungen, ohne Systemregeln, Key-Namen oder JSON drumherum. Die Schätzung zählt nur Quellzeichen. DeepL rechnet die Tags um seine Markierungen nicht ab; ob Google das Span-Markup um sie abrechnet, ist nicht dokumentiert. Ein Wert, den diese Provider zurückhalten ([`PLACEHOLDER_UNSUPPORTED`](/de/docs/error-codes#placeholder_unsupported)), wird nicht gesendet, sodass weniger Zeichen gesendet werden können als die Rohsumme.
 
 ### Google Cloud Translation
 

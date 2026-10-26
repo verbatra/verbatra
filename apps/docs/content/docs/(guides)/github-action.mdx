@@ -106,7 +106,7 @@ With `provider: { id: "none" }` (see [Human-only workflow](/docs/human-only-work
         run: echo "Some keys need a human translation; see the job summary."
 ```
 
-Only `translate` gets this; an exit `3` from `check` or `diff` still fails the step.
+Only `translate` gets this; `check` and `diff` never exit `3`, so a failure from them still fails the step.
 
 ## Config discovery
 

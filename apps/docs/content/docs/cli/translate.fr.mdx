@@ -62,7 +62,7 @@ Une clé d'API envoyée à un serveur auto-hébergé en `http://` simple (hors l
 
 ### Exécution à blanc
 
-`--dry-run` ne construit aucun fournisseur : il n'a besoin d'aucune clé d'API et ne peut rien dépenser. Il lit les fichiers source et cibles, les compare au fichier de verrouillage et indique exactement ce qu'une vraie exécution changerait. Il n'écrit rien (ni fichier de locale, ni mise à jour du verrou, ni instantané d'état d'exécution), ne lit ni n'écrit le cache et ne prend aucun verrou d'écriture, donc n'attend jamais une exécution en cours.
+`--dry-run` ne construit aucun fournisseur : il n'a besoin d'aucune clé d'API et ne peut rien dépenser. Il lit les fichiers source et cibles, les compare au fichier de verrouillage et indique exactement ce qu'une vraie exécution changerait. Il n'écrit rien (ni fichier de locale, ni mise à jour du verrou, ni instantané d'état d'exécution), avec un fournisseur automatique ne lit ni n'écrit le cache (avec le fournisseur `none`, il lit la mémoire de traduction, voir plus bas) et ne prend aucun verrou d'écriture, donc n'attend jamais une exécution en cours.
 
 <Callout>
 Par défaut, une exécution ne supprime rien : les clés orphelines sont signalées et restent en place. `--prune`, ou `prune: true` dans la config, supprime exactement ces clés des fichiers cibles et du verrou ; `--prune --dry-run` te les montre avant.
@@ -72,11 +72,11 @@ Par défaut, une exécution ne supprime rien : les clés orphelines sont signal�
 
 <AvailableFrom version="0.11.0" />
 
-`--estimate` ajoute à l'exécution à blanc une estimation préalable : combien de clés seraient envoyées, combien de requêtes au fournisseur cela ferait et la quantité que le fournisseur facture (des tokens pour un LLM, des caractères source pour DeepL ou Google Cloud Translation, rien pour un point d'accès `openai-compatible` auto-hébergé). Un montant n'apparaît que si la configuration contient un bloc `rates` couvrant le fournisseur et le modèle ; sinon, la clé de tarif manquante est nommée au lieu d'inventer `0.00`. Voir [Estimer le coût](/fr/docs/estimating-cost).
+`--estimate` ajoute à l'exécution à blanc une estimation préalable : combien de clés seraient envoyées, combien de requêtes au fournisseur cela ferait et la quantité que le fournisseur facture (des tokens pour un LLM ou un point d'accès `openai-compatible`, des caractères source pour DeepL, Google Cloud Translation ou LibreTranslate ; un point d'accès ou un serveur auto-hébergé n'est pas facturé, donc l'estimation n'indique aucun coût d'API). Un montant n'apparaît que si la configuration contient un bloc `rates` couvrant le fournisseur et le modèle ; sinon, la clé de tarif manquante est nommée au lieu d'inventer `0.00`. Voir [Estimer le coût](/fr/docs/estimating-cost).
 
 ### Un sous-ensemble de locales
 
-<AvailableFrom version="0.11.0" />
+<AvailableFrom version="0.9.0" />
 
 `--locales de,fr` limite l'exécution à une partie des cibles configurées. Les autres locales gardent leurs fichiers, leurs entrées de verrou et leurs entrées de cache. Utilise-le sur une offre gratuite limitée en débit pour traduire une locale à la fois, ou pour relancer une seule locale restée partielle. L'instantané d'état d'exécution ne décrit alors que ce sous-ensemble.
 

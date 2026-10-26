@@ -62,7 +62,7 @@ Ein API-Key, der über einfaches `http://` (nicht Loopback) an einen selbst geho
 
 ### Dry Run
 
-`--dry-run` konstruiert keinen Provider, braucht also keinen API-Key und kann nichts kosten. Es liest Quell- und Zieldateien, vergleicht sie mit der Lock-Datei und meldet genau, was ein echter Lauf ändern würde. Es schreibt nichts (keine Locale-Datei, keine Lock-Aktualisierung, keinen Run-Status-Schnappschuss), liest und schreibt den Cache nicht und nimmt keine Schreibsperre, wartet also nie auf einen laufenden Lauf.
+`--dry-run` konstruiert keinen Provider, braucht also keinen API-Key und kann nichts kosten. Es liest Quell- und Zieldateien, vergleicht sie mit der Lock-Datei und meldet genau, was ein echter Lauf ändern würde. Es schreibt nichts (keine Locale-Datei, keine Lock-Aktualisierung, keinen Run-Status-Schnappschuss), liest und schreibt mit einem Maschinen-Provider den Cache nicht (unter Provider `none` liest es das Übersetzungsgedächtnis, siehe unten) und nimmt keine Schreibsperre, wartet also nie auf einen laufenden Lauf.
 
 <Callout>
 Standardmäßig löscht ein Lauf nichts: Verwaiste Keys werden gemeldet und bleiben stehen. `--prune` oder `prune: true` in der Config löscht genau diese Keys aus den Zieldateien und dem Lock; `--prune --dry-run` zeigt sie dir vorher.
@@ -72,11 +72,11 @@ Standardmäßig löscht ein Lauf nichts: Verwaiste Keys werden gemeldet und blei
 
 <AvailableFrom version="0.11.0" />
 
-`--estimate` ergänzt den Dry Run um eine Schätzung vor dem Lauf: wie viele Keys gesendet würden, wie viele Provider-Requests das wären und welche Menge der Provider abrechnet (Tokens bei einem LLM, Quellzeichen bei DeepL oder Google Cloud Translation, nichts bei einem selbst gehosteten `openai-compatible`-Endpunkt). Ein Geldbetrag erscheint nur, wenn die Konfiguration einen `rates`-Block für Provider und Modell hat; sonst wird der fehlende Raten-Key benannt, statt `0.00` zu erfinden. Siehe [Kosten abschätzen](/de/docs/estimating-cost).
+`--estimate` ergänzt den Dry Run um eine Schätzung vor dem Lauf: wie viele Keys gesendet würden, wie viele Provider-Requests das wären und welche Menge der Provider abrechnet (Tokens bei einem LLM oder einem `openai-compatible`-Endpunkt, Quellzeichen bei DeepL, Google Cloud Translation oder LibreTranslate; ein selbst gehosteter Endpunkt oder Server wird nicht abgerechnet, die Schätzung meldet also keine API-Kosten). Ein Geldbetrag erscheint nur, wenn die Konfiguration einen `rates`-Block für Provider und Modell hat; sonst wird der fehlende Raten-Key benannt, statt `0.00` zu erfinden. Siehe [Kosten abschätzen](/de/docs/estimating-cost).
 
 ### Eine Teilmenge der Locales
 
-<AvailableFrom version="0.11.0" />
+<AvailableFrom version="0.9.0" />
 
 `--locales de,fr` beschränkt den Lauf auf einen Teil der konfigurierten Ziele. Die übrigen Locales behalten ihre Dateien, Lock-Einträge und Cache-Einträge. Nutze es bei einem Free Tier mit Rate-Limit, um eine Locale nach der anderen zu übersetzen, oder um eine einzelne partielle Locale neu laufen zu lassen. Der Run-Status-Schnappschuss beschreibt dann nur diese Teilmenge.
 

@@ -6,7 +6,7 @@ type: reference
 ---
 Starte Verbatra Studio, ein lokales Web-Dashboard über deinem Projekt: Übersetzungsstatus, die Review-Warteschlange, Lauf-Aktivität und deine aufgelösten Einstellungen, live über den Dateien auf der Platte. Locale-Dateien und ein dateibasiertes Glossar bearbeitest du ohne weiteres Flag; nur kostenpflichtige Provider-Aufrufe sind Opt-in, hinter `--allow-spend`.
 
-<AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
+<AvailableFrom version="0.1.0" pkg="@verbatra/studio" />
 
 ## Synopsis
 
@@ -67,7 +67,7 @@ Mit `--allow-spend` unter dem Provider `none` lautet die erste Zeile `verbatra: 
 
 ### Ausgaben und Agent-Tools
 
-<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+<AvailableFrom version="0.2.0" pkg="@verbatra/studio" />
 
 Ohne `--allow-spend` liest Studio `VERBATRA_STUDIO_ALLOW_SPEND`; `--expose-agent-tools` greift auf dieselbe Weise auf `VERBATRA_STUDIO_AGENT_TOOLS` zurück. Bei beiden zählt `1`, `true`, `yes` oder `on` (Groß- und Kleinschreibung und umgebende Leerzeichen egal) als an, und das Flag gewinnt immer gegen die Variable. Ohne beides kontaktiert Studio nie einen Provider. Studio lädt vorher die [Umgebungsdateien](/de/docs/cli#umgebungsdateien), also können beide Variablen in `.env.local` oder `.env` stehen.
 

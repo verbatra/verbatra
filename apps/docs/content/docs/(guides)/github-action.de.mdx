@@ -106,7 +106,7 @@ Mit `provider: { id: "none" }` (siehe [Rein menschlicher Workflow](/de/docs/huma
         run: echo "Some keys need a human translation; see the job summary."
 ```
 
-Nur `translate` wird so behandelt. Ein Exit `3` von `check` oder `diff` lässt den Schritt weiterhin fehlschlagen.
+Nur `translate` wird so behandelt. `check` und `diff` enden nie mit `3`, ein Fehlschlag von ihnen lässt den Schritt also weiterhin fehlschlagen.
 
 ## Konfigurationssuche
 

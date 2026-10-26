@@ -105,8 +105,9 @@ Sí, a través de cuatro superficies: un prompt de configuración para agentes d
 ([Configurar con un agente de IA](/es/docs/start-with-ai)), la salida `--json` para tus propios bucles
 ([Recetas para agentes y scripts](/es/docs/agent-recipes)), herramientas WebMCP en una pestaña abierta
 de Studio ([Maneja Studio con un agente del navegador](/es/docs/agent-tools-in-studio)) y un servidor
-MCP por stdio ([`verbatra mcp`](/es/docs/cli/mcp)). Ninguna gasta en un proveedor sin la confirmación
-de una persona o un flag `--allow-spend`.
+MCP por stdio ([`verbatra mcp`](/es/docs/cli/mcp)). Studio y el servidor MCP solo gastan en un proveedor
+tras un flag `--allow-spend`; en el bucle `--json`, un `translate` real gasta al instante, así que tu
+script o agente debe pedir antes el visto bueno de una persona.
 
 ## ¿Este sitio publica algo para agentes de IA y rastreadores?
 

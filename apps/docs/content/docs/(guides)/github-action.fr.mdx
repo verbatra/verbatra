@@ -106,7 +106,7 @@ Avec `provider: { id: "none" }` (consulte [Flux 100 % humain](/fr/docs/human-onl
         run: echo "Some keys need a human translation; see the job summary."
 ```
 
-Seul `translate` reçoit ce traitement. Un `3` venant de `check` ou `diff` fait toujours échouer l'étape.
+Seul `translate` reçoit ce traitement. `check` et `diff` ne se terminent jamais par `3`, donc un échec de leur part fait toujours échouer l'étape.
 
 ## Découverte de la configuration
 

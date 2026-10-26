@@ -6,7 +6,7 @@ type: reference
 ---
 Lance Verbatra Studio, un tableau de bord web local sur ton projet : l'état des traductions, la file de relecture, l'activité des exécutions et ta configuration résolue, en direct sur les fichiers du disque. Modifier les fichiers de locale et un glossaire stocké dans un fichier marche d'emblée ; seules les dépenses chez le fournisseur sont optionnelles, derrière `--allow-spend`.
 
-<AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
+<AvailableFrom version="0.1.0" pkg="@verbatra/studio" />
 
 ## Synopsis
 
@@ -67,7 +67,7 @@ Avec `--allow-spend` et le fournisseur `none`, la première ligne devient `verba
 
 ### Dépenses et outils d'agent
 
-<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+<AvailableFrom version="0.2.0" pkg="@verbatra/studio" />
 
 Sans `--allow-spend`, Studio lit `VERBATRA_STUDIO_ALLOW_SPEND` ; `--expose-agent-tools` se rabat de la même façon sur `VERBATRA_STUDIO_AGENT_TOOLS`. Pour les deux, `1`, `true`, `yes` ou `on` (sans tenir compte de la casse ni des espaces autour) vaut activé, et l'option l'emporte toujours sur la variable. Sans l'un ni l'autre, Studio ne contacte jamais de fournisseur. Studio charge d'abord les [fichiers d'environnement](/fr/docs/cli#fichiers-denvironnement), donc les deux variables peuvent se trouver dans `.env.local` ou `.env`.
 

@@ -106,8 +106,9 @@ Oui, par quatre surfaces : un prompt d'installation pour les agents de code
 ([Installer avec un agent IA](/fr/docs/start-with-ai)), la sortie `--json` pour tes propres boucles
 ([Recettes pour agents et scripts](/fr/docs/agent-recipes)), des outils WebMCP dans un onglet Studio
 ouvert ([Piloter Studio avec un agent de navigateur](/fr/docs/agent-tools-in-studio)) et un serveur MCP
-en stdio ([`verbatra mcp`](/fr/docs/cli/mcp)). Aucune ne dépense chez un fournisseur sans la
-confirmation d'une personne ou une option `--allow-spend`.
+en stdio ([`verbatra mcp`](/fr/docs/cli/mcp)). Studio et le serveur MCP ne dépensent chez un
+fournisseur que derrière l'option `--allow-spend` ; dans la boucle `--json`, un vrai `translate`
+dépense aussitôt, donc ton script ou ton agent doit d'abord obtenir l'accord d'une personne.
 
 ## Ce site publie-t-il quelque chose pour les agents IA et les robots d'indexation ?
 
