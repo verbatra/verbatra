@@ -661,7 +661,8 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   either, since the data license does not clear the brand's own terms. A brand with no admissible
   drawing in any verified set gets its generic stroke glyph, never a hand-drawn lookalike and no text
   chip (the text chip mechanism is gone). The combined "Vue and Nuxt" card shows the Vue logo. YAML takes its `yaml` file glyph, not a mark. The
-  marquee follows its own rule and is unaffected. gettext, XLIFF, INI, YAML and the custom card keep their glyph. A format glyph is the one file
+  marquee draws Apple, Flutter, Next.js, Spring and YAML from the same Font Awesome and Devicon marks, so no
+  mark of a restricted brand rests on a Simple Icons CC0 entry. gettext, XLIFF, INI, YAML and the custom card keep their glyph. A format glyph is the one file
   outline carrying the format's own extension label (`FILE_GLYPH_LABELS` in `stack-icons.tsx`: `.po`, `XLF`,
   `INI`, `YAML`, `JSON`), an SVG `<text>` in `--font-mono`, bold, `currentColor` fill, its width fixed by
   `textLength` so no label leaves the outline; the glyph is drawn at 40px (`FILE_GLYPH_SIZE`) against 28px for the

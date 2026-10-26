@@ -6,6 +6,7 @@ import { act, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { BRAND_MARKS, type BrandMarkId } from "@/lib/brand-marks";
 import type { Locale } from "@/lib/i18n";
 import { FORMAT_DISPLAY, MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { providerShortLabel } from "@/lib/landing-providers";
@@ -235,7 +236,7 @@ describe("Marquee", () => {
       use.getAttribute("href"),
     );
     expect(uses.length).toBeGreaterThan(0);
-    for (const href of uses) expect(href).toMatch(/^#marquee-mark-[a-z0-9]+$/);
+    for (const href of uses) expect(href).toMatch(/^#marquee-mark-[A-Za-z0-9]+$/);
     expect(section?.querySelectorAll("img, image, picture, object, embed, iframe")).toHaveLength(0);
     for (const element of Array.from(section?.querySelectorAll("svg *") ?? [])) {
       expect(element.hasAttribute("xlink:href"), element.tagName).toBe(false);
@@ -269,10 +270,11 @@ describe("Marquee", () => {
       readFileSync(join(process.cwd(), "lib/licenses.generated.json"), "utf8"),
     ) as { assets: ReadonlyArray<{ name: string; license: string; usage: string }> };
     for (const slug of slugs) {
+      const mark = BRAND_MARKS[slug as BrandMarkId];
       const entry = notices.assets.find((asset) =>
-        new RegExp(`^.+ mark \\([@\\w/.-]+@\\d+\\.\\d+\\.\\d+, icons/${slug}\\.svg\\)$`).test(
-          asset.name,
-        ),
+        new RegExp(
+          `^.+ mark \\([@\\w/.-]+@\\d+\\.\\d+\\.\\d+, ${mark.file.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\)$`,
+        ).test(asset.name),
       );
       expect(entry, slug).toBeDefined();
       const tokens = entry?.license.toUpperCase().split(/[^A-Z0-9.]+/) ?? [];

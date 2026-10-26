@@ -129,15 +129,19 @@ function brandMarkAssetName(id: keyof typeof BRAND_MARKS): string {
 
 const CARD_ONLY_MARK_IDS: ReadonlyArray<string> = [
   "react",
-  "fontawesomeApple",
-  "fontawesomeFlutter",
   "fontawesomeVuejs",
-  "deviconSpring",
-  "deviconNextjs",
   "deviconNuxt",
   "deviconDotnet",
 ];
-const STACK_CARD_MARK_IDS: ReadonlyArray<string> = ["angular", "android", ...CARD_ONLY_MARK_IDS];
+const STACK_CARD_MARK_IDS: ReadonlyArray<string> = [
+  "angular",
+  "android",
+  "fontawesomeApple",
+  "fontawesomeFlutter",
+  "deviconSpring",
+  "deviconNextjs",
+  ...CARD_ONLY_MARK_IDS,
+];
 
 function brandMarkSurfaces(id: string): string {
   const onCards = STACK_CARD_MARK_IDS.includes(id);
