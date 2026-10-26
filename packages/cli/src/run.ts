@@ -2000,7 +2000,7 @@ function registerTmxCommand(program: Command, ctx: ProgramContext): void {
     .argument("<direction>", 'either "import" or "export"')
     .argument(
       "[file]",
-      `the TMX file to read or write (default ${DEFAULT_TMX_PATH} in the working directory)`,
+      `the TMX file to read or write (default ${DEFAULT_TMX_PATH} in the project root)`,
     )
     .description(
       "Import a TMX translation memory from another tool, or export this project's memory as TMX",
@@ -2157,7 +2157,7 @@ function registerPseudoCommand(program: Command, ctx: ProgramContext): void {
     )
     .option(
       "--out <path>",
-      "directory to write the pseudolocale under, relative to the working directory and inside it (default .verbatra-local/pseudo)",
+      "directory to write the pseudolocale under, relative to the working directory and inside the project root (default .verbatra-local/pseudo)",
     )
     .option("--json", "print the pseudolocale result as JSON")
     .action(async (opts: unknown) => {
@@ -2187,7 +2187,7 @@ function registerTypesCommand(program: Command, ctx: ProgramContext): void {
     .option("--config <path>", "load this config file instead of searching for one")
     .option(
       "--out <path>",
-      `write the declaration here, relative to the working directory and inside it (default ${DEFAULT_TYPES_PATH})`,
+      `write the declaration here, relative to the working directory and inside the project root (default ${DEFAULT_TYPES_PATH})`,
     )
     .option("--check", "report whether the committed declaration is current, writing nothing")
     .option("--json", "print the generation result as JSON")
