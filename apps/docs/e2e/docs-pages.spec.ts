@@ -153,6 +153,19 @@ test.describe("docs shell on a phone", () => {
     expect(style.width).toBeLessThanOrEqual(660.5);
   });
 
+  for (const width of [1280, 375]) {
+    test(`starts the translation notice at the left edge of the page header at ${width}px`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 800 });
+      await openDocsPage(page, "/de/docs/cli/translate");
+      const notice = await page.locator("#nd-page > .vk-callout").boundingBox();
+      const head = await page.locator("#nd-page > .vk-page-head").boundingBox();
+      if (notice === null || head === null) throw new Error("notice or page header missing");
+      expect(Math.abs(notice.x - head.x)).toBeLessThanOrEqual(1);
+    });
+  }
+
   test("shows the search input above the header when search opens", async ({ page }) => {
     await openDocsPage(page, "/docs/cli/translate");
     await page.locator("#nd-subnav [data-search]").click();

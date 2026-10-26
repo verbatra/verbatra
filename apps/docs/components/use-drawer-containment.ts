@@ -5,7 +5,7 @@ export const DRAWER_ID = "nd-sidebar-mobile";
 export const PAGE_ID = "nd-page";
 
 const FOCUS_ATTEMPTS = 30;
-const ATTACH_ATTEMPTS = 30;
+export const ATTACH_ATTEMPTS = 30;
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';

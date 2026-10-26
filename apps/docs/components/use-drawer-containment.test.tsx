@@ -3,7 +3,7 @@
 import { act, createElement, type ReactNode, useRef, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
-import { inertOutside, useDrawerContainment } from "./use-drawer-containment";
+import { ATTACH_ATTEMPTS, inertOutside, useDrawerContainment } from "./use-drawer-containment";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -74,6 +74,7 @@ function press(key: string, shiftKey = false): KeyboardEvent {
 }
 
 afterEach(() => {
+  window.history.pushState({}, "", "/");
   act(() => mounted?.root.unmount());
   mounted?.container.remove();
   mounted = undefined;
@@ -138,13 +139,16 @@ describe("useDrawerContainment", () => {
     act(() => trigger?.click());
     expect(document.activeElement).toBe(container.querySelector("#nd-page"));
     expect(container.querySelectorAll("[inert]")).toHaveLength(0);
-    window.history.pushState({}, "", "/");
   });
 
   it("stops looking for a drawer that never mounts", () => {
     const frames: FrameRequestCallback[] = [];
+    let scheduled = 0;
     const original = window.requestAnimationFrame;
-    window.requestAnimationFrame = (callback) => frames.push(callback);
+    window.requestAnimationFrame = (callback) => {
+      scheduled += 1;
+      return frames.push(callback);
+    };
     try {
       const container = document.createElement("div");
       document.body.appendChild(container);
@@ -155,7 +159,7 @@ describe("useDrawerContainment", () => {
         frames.shift()?.(0);
         guard += 1;
       }
-      expect(guard).toBeLessThan(200);
+      expect(scheduled).toBe(ATTACH_ATTEMPTS - 1);
       act(() => root.unmount());
       container.remove();
     } finally {

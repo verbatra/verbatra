@@ -2054,6 +2054,7 @@ body > [data-radix-popper-content-wrapper] > * {
 
 #nd-page:not([data-full="true"]) > .vk-callout {
   max-width: var(--width-measure);
+  margin-inline: 0;
 }
 
 .vk-callout > :is(div[role="none"], svg) {
@@ -3007,7 +3008,10 @@ html:has(.vk-home) {
   color: inherit;
 }
 
-[role="dialog"]:has([role="combobox"]) [role="listbox"] [role="option"][aria-selected="true"] code {
+[role="dialog"]:has([role="combobox"])
+  [role="listbox"]
+  [role="option"][aria-selected="true"]
+  code:not([data-highlight-ignore]) {
   border-color: color-mix(in srgb, var(--accent-fill-fg) 45%, transparent);
   background: transparent;
   color: var(--accent-fill-fg);
