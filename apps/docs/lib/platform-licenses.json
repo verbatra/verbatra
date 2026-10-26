@@ -11,7 +11,7 @@
     "license": "Apache-2.0",
     "author": "Lovell Fuller"
   },
-  "@next/swc-linux-x64-gnu@16.4.0": {
+  "@next/swc-linux-x64-gnu@16.4.3": {
     "license": "MIT",
     "author": null
   },

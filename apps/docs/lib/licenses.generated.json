@@ -172,7 +172,7 @@
         },
         {
           "name": "@next/env",
-          "version": "16.4.0",
+          "version": "16.4.3",
           "copyright": [],
           "author": "Next.js Team",
           "textId": null,
@@ -180,7 +180,7 @@
         },
         {
           "name": "@next/swc-linux-x64-gnu",
-          "version": "16.4.0",
+          "version": "16.4.3",
           "copyright": [],
           "author": null,
           "textId": null,
@@ -1710,7 +1710,7 @@
         },
         {
           "name": "next",
-          "version": "16.4.0",
+          "version": "16.4.3",
           "copyright": ["Copyright (c) 2025 Vercel, Inc."],
           "author": null,
           "textId": "text-5",

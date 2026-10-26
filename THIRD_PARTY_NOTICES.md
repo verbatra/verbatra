@@ -101,10 +101,10 @@ published at https://verbatra.kreitz-webdev.de/licenses.
 - @mdx-js/mdx@3.1.1
   - Copyright (c) 2017 Compositor, Inc. and Vercel, Inc.
   - License text: text-5
-- @next/env@16.4.0
+- @next/env@16.4.3
   - Author: Next.js Team
   - No license file in the package; license text: text-1
-- @next/swc-linux-x64-gnu@16.4.0
+- @next/swc-linux-x64-gnu@16.4.3
   - No license file in the package; license text: text-1
 - @oxc-project/types@0.154.0
   - Copyright (c) 2024-present VoidZero Inc. & Contributors
@@ -668,7 +668,7 @@ published at https://verbatra.kreitz-webdev.de/licenses.
   - Copyright (c) 2012-2014 Isaac Z. Schlueter
   - Copyright (c) 2014-2015 Douglas Christopher Wilson
   - License text: text-7
-- next@16.4.0
+- next@16.4.3
   - Copyright (c) 2025 Vercel, Inc.
   - License text: text-5
 - next-intl@4.14.9
