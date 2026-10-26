@@ -82,6 +82,7 @@ Every error code with its family and the exit codes it can end a CLI run with; i
 | [`TYPES_UNWRITABLE`](#types_unwritable) | SDK | `2` |
 | [`TMX_OUTPUT_CONFLICT`](#tmx_output_conflict) | SDK | `2` |
 | [`TMX_UNWRITABLE`](#tmx_unwritable) | SDK | `2` |
+| [`MEMORY_UNWRITABLE`](#memory_unwritable) | SDK | `2` |
 | [`EXPORT_OUTPUT_CONFLICT`](#export_output_conflict) | SDK | `2` |
 | [`EXPORT_UNWRITABLE`](#export_unwritable) | SDK | `2` |
 | [`LOCALE_STATE_NOT_CARRIED_OVER`](#locale_state_not_carried_over) | SDK | `1` |
@@ -571,6 +572,13 @@ The TMX file `exportTmx` produces could not be written (its directory is not wri
 
 - **Raised by**: `tmx export`
 - **Next step**: Make the output file and its directory writable, then try again.
+
+### MEMORY_UNWRITABLE
+
+The translation-memory cache `verbatra.cache.json` could not be written by `importTmx` (its directory is not writable, a directory already sits at that path, or the disk is out of space); the message names the file and the file-system code.
+
+- **Raised by**: `tmx import`
+- **Next step**: Make verbatra.cache.json and its directory writable, then try again.
 
 ### EXPORT_OUTPUT_CONFLICT
 

@@ -215,6 +215,11 @@
  * - `TMX_UNWRITABLE`: the TMX file {@link exportTmx} produces could not be written, because its
  *   directory is not writable, a directory already sits at that path, or the disk is out of space.
  *   The message names the file relative to `cwd` and the underlying file-system code.
+ * - `MEMORY_UNWRITABLE`: the translation-memory cache file ({@link CACHE_FILE_NAME}) could not be
+ *   written, because its directory is not writable, a directory already sits at that path, or the
+ *   disk is out of space. Thrown by {@link importTmx} on a live run, after the TMX file has been
+ *   read and checked. The message names the file relative to `cwd` and the underlying file-system
+ *   code.
  * - `EXPORT_OUTPUT_CONFLICT`: {@link exportWorkbook} refused its output path. Before anything is
  *   read or written, it refuses a path that resolves outside the project root, and one that,
  *   or a file the export would write into it, names a configured locale file, the lock file, the
@@ -304,6 +309,7 @@ export type SdkErrorCode =
   | "TYPES_UNWRITABLE"
   | "TMX_OUTPUT_CONFLICT"
   | "TMX_UNWRITABLE"
+  | "MEMORY_UNWRITABLE"
   | "EXPORT_OUTPUT_CONFLICT"
   | "EXPORT_UNWRITABLE"
   | "LOCALE_STATE_NOT_CARRIED_OVER"

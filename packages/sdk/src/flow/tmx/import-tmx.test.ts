@@ -1309,3 +1309,50 @@ describe("tmxErrorLocation reads where a refused TMX file went wrong", () => {
     expect(tmxErrorLocation(error)).toBeUndefined();
   });
 });
+
+describe("importTmx reports a memory file it cannot write", () => {
+  async function deniedProject(): Promise<{ dir: string; denied: ReturnType<typeof makeFakeFs> }> {
+    const dir = await project([
+      tu([
+        ["en", "Hello"],
+        ["de", "Hallo"],
+      ]),
+    ]);
+    const denied = makeFakeFs({
+      readFileBounded: (path: string, maxBytes: number) =>
+        defaultFs.readFileBounded(path, maxBytes),
+      writeFile: async (): Promise<void> => {
+        throw Object.assign(new Error("denied"), { code: "EACCES" });
+      },
+    });
+    return { dir, denied };
+  }
+
+  it("throws MEMORY_UNWRITABLE naming the file and the file-system code", async () => {
+    const { dir, denied } = await deniedProject();
+
+    const error = await importTmx(
+      { config: cfg(), file: "memory.tmx", cwd: dir },
+      { fs: denied },
+    ).catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(SdkError);
+    expect((error as SdkError).code).toBe("MEMORY_UNWRITABLE");
+    expect((error as SdkError).message).toContain(CACHE_FILE_NAME);
+    expect((error as SdkError).message).toContain("EACCES");
+    expect(errorHint(error)).toBe(
+      "Make verbatra.cache.json and its directory writable, then try again.",
+    );
+  });
+
+  it("does not write the memory file on a dry run", async () => {
+    const { dir, denied } = await deniedProject();
+
+    const result = await importTmx(
+      { config: cfg(), file: "memory.tmx", cwd: dir, dryRun: true },
+      { fs: denied },
+    );
+
+    expect(result.dryRun).toBe(true);
+  });
+});

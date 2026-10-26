@@ -143,7 +143,7 @@ next: verbatra translate (reuses the imported memory before calling a provider)
 | Code | Bedeutung |
 | --- | --- |
 | `0` | die Datei wurde gelesen oder geschrieben; übersprungene oder abgelehnte Einheiten werden gemeldet, sind aber kein Fehler |
-| `2` | konnte nicht laufen: ein Config-Fehler, eine fehlende oder unlesbare TMX-Datei (`SOURCE_UNREADABLE`), eine zu große oder nicht parsbare oder eine Quell-Locale-Datei, die sich nicht parsen lässt (`SOURCE_INVALID`), ein abgelehnter Exportpfad (`TMX_OUTPUT_CONFLICT`), ein gescheiterter Schreibvorgang (`TMX_UNWRITABLE`) oder ein Bedienfehler |
+| `2` | konnte nicht laufen: ein Config-Fehler, eine fehlende oder unlesbare TMX-Datei (`SOURCE_UNREADABLE`), eine zu große oder nicht parsbare oder eine Quell-Locale-Datei, die sich nicht parsen lässt (`SOURCE_INVALID`), ein abgelehnter Exportpfad (`TMX_OUTPUT_CONFLICT`), ein gescheiterter Schreibvorgang (`TMX_UNWRITABLE`, `MEMORY_UNWRITABLE`) oder ein Bedienfehler |
 
 Bei einer ungültigen Datei nennt die Meldung Zeile, Spalte und Einheit, an der sie scheiterte; Entity-Deklarationen und interne DTD-Subsets werden sofort abgelehnt, ein externer Doctype wird verworfen und nie abgerufen. Siehe [den Exit-Code-Vertrag](/de/docs/cli/output#exit-codes).
 

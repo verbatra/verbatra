@@ -23,3 +23,5 @@ Stale lock reclaim, bounded lock waits, context-aware redaction, and output path
 - `export` and `tmx export` refuse a path outside the project or onto a project file, and a
   failed write is a structured error that exits 2. `pseudo --out` also checks its path after
   resolving symbolic links.
+- `tmx import` and `importTmx` report a translation-memory file they cannot write as
+  `MEMORY_UNWRITABLE`.

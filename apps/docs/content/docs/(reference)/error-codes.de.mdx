@@ -82,6 +82,7 @@ Jeder Fehlercode mit seiner Familie und den Exit-Codes, mit denen er einen CLI-L
 | [`TYPES_UNWRITABLE`](#types_unwritable) | SDK | `2` |
 | [`TMX_OUTPUT_CONFLICT`](#tmx_output_conflict) | SDK | `2` |
 | [`TMX_UNWRITABLE`](#tmx_unwritable) | SDK | `2` |
+| [`MEMORY_UNWRITABLE`](#memory_unwritable) | SDK | `2` |
 | [`EXPORT_OUTPUT_CONFLICT`](#export_output_conflict) | SDK | `2` |
 | [`EXPORT_UNWRITABLE`](#export_unwritable) | SDK | `2` |
 | [`LOCALE_STATE_NOT_CARRIED_OVER`](#locale_state_not_carried_over) | SDK | `1` |
@@ -571,6 +572,13 @@ Die von `exportTmx` erzeugte TMX-Datei konnte nicht geschrieben werden (ihr Verz
 
 - **Ausgelöst von**: `tmx export`
 - **Nächster Schritt**: Make the output file and its directory writable, then try again.
+
+### MEMORY_UNWRITABLE
+
+Die Translation-Memory-Cache-Datei `verbatra.cache.json` konnte von `importTmx` nicht geschrieben werden (ihr Verzeichnis ist nicht beschreibbar, an ihrem Pfad liegt bereits ein Verzeichnis, oder der Speicherplatz ist erschöpft); die Meldung nennt die Datei und den Dateisystem-Code.
+
+- **Ausgelöst von**: `tmx import`
+- **Nächster Schritt**: Make verbatra.cache.json and its directory writable, then try again.
 
 ### EXPORT_OUTPUT_CONFLICT
 

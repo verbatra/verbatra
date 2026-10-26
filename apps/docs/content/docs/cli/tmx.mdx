@@ -143,7 +143,7 @@ next: verbatra translate (reuses the imported memory before calling a provider)
 | Code | Meaning |
 | --- | --- |
 | `0` | the file was read or written; skipped or refused units are reported, not a failure |
-| `2` | could not run: a config error, a missing or unreadable TMX file (`SOURCE_UNREADABLE`), an oversized or unparseable one, or a source locale file that cannot be parsed (`SOURCE_INVALID`), a refused export path (`TMX_OUTPUT_CONFLICT`), a failed write (`TMX_UNWRITABLE`), or a usage error |
+| `2` | could not run: a config error, a missing or unreadable TMX file (`SOURCE_UNREADABLE`), an oversized or unparseable one, or a source locale file that cannot be parsed (`SOURCE_INVALID`), a refused export path (`TMX_OUTPUT_CONFLICT`), a failed write (`TMX_UNWRITABLE`, `MEMORY_UNWRITABLE`), or a usage error |
 
 An invalid file's message names the line, column and unit where it failed; entity declarations and internal DTD subsets are refused outright, and an external doctype is discarded, never fetched. See [the exit-code contract](/docs/cli/output#exit-codes).
 

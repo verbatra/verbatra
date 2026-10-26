@@ -143,7 +143,7 @@ next: verbatra translate (reuses the imported memory before calling a provider)
 | Code | Signification |
 | --- | --- |
 | `0` | le fichier a été lu ou écrit ; les unités ignorées ou refusées sont rapportées, ce n'est pas un échec |
-| `2` | exécution impossible : une erreur de config, un fichier TMX absent ou illisible (`SOURCE_UNREADABLE`), un fichier trop volumineux ou impossible à analyser, ou un fichier de la locale source qui ne peut pas être analysé (`SOURCE_INVALID`), un chemin d'export refusé (`TMX_OUTPUT_CONFLICT`), une écriture échouée (`TMX_UNWRITABLE`) ou une erreur d'utilisation |
+| `2` | exécution impossible : une erreur de config, un fichier TMX absent ou illisible (`SOURCE_UNREADABLE`), un fichier trop volumineux ou impossible à analyser, ou un fichier de la locale source qui ne peut pas être analysé (`SOURCE_INVALID`), un chemin d'export refusé (`TMX_OUTPUT_CONFLICT`), une écriture échouée (`TMX_UNWRITABLE`, `MEMORY_UNWRITABLE`) ou une erreur d'utilisation |
 
 Pour un fichier invalide, le message nomme la ligne, la colonne et l'unité où il a échoué ; les déclarations d'entités et les sous-ensembles DTD internes sont refusés d'emblée, et un doctype externe est ignoré, jamais téléchargé. Voir [le contrat des codes de sortie](/fr/docs/cli/output#codes-de-sortie).
 

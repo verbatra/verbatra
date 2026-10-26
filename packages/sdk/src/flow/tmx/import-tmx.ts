@@ -28,6 +28,7 @@ import {
 import { readCarriedOverMemory } from "../locale-carry-over.js";
 import { selectLocales } from "../select-locales.js";
 import { readSource } from "../source.js";
+import { unwritableFileMessage } from "../write-target.js";
 import { assertDistinctLocales, matchLanguageTag } from "./locale-match.js";
 
 /**
@@ -617,6 +618,18 @@ function additionsByLocale(
   return byLocale;
 }
 
+async function persistMemory(cwd: string, fs: SdkFs, memory: TranslationMemory): Promise<void> {
+  const path = cacheFilePath(cwd);
+  try {
+    await writeTranslationMemory(path, memory, fs);
+  } catch (error) {
+    throw new SdkError(
+      "MEMORY_UNWRITABLE",
+      unwritableFileMessage("the translation memory", path, cwd, error),
+    );
+  }
+}
+
 /**
  * Reads a TMX translation memory into the project's own memory, so a team arriving with years of
  * accumulated translations does not start cold. It calls no provider and needs no API key: every
@@ -681,6 +694,9 @@ function additionsByLocale(
  * cannot be combined, or a configured locale has no valid path spelling under that style, so the
  * source locale file cannot be located.
  * @throws {@link SdkError} `LOCALE_PATH_COLLISION`: two configured locales resolve to the same path.
+ * @throws {@link SdkError} `MEMORY_UNWRITABLE`: on a live run, the translation-memory cache file
+ * could not be written. The message names the file relative to `cwd` and the underlying
+ * file-system code.
  *
  * @example
  * ```ts
@@ -729,11 +745,7 @@ export async function importTmx(
   const dryRun = input.dryRun ?? false;
   const byLocale = additionsByLocale(tallies);
   if (!dryRun && writable && byLocale.size > 0) {
-    await writeTranslationMemory(
-      cacheFilePath(cwd),
-      applyAdditions(memory, fingerprintFor, byLocale),
-      fs,
-    );
+    await persistMemory(cwd, fs, applyAdditions(memory, fingerprintFor, byLocale));
   }
 
   return {

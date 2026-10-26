@@ -128,6 +128,9 @@ Upgrading from 0.11: rejected config, rewritten files, new exit codes and SDK ty
   `pseudo --out` checks its path again after resolving symbolic links. Failed writes are
   structured. All exit 2: `EXPORT_OUTPUT_CONFLICT`, `EXPORT_UNWRITABLE`, `TMX_OUTPUT_CONFLICT`,
   `TMX_UNWRITABLE`, `PSEUDO_OUTPUT_CONFLICT`.
+- `tmx import` and `importTmx` surfaced the raw file-system error (for example `EACCES`) when
+  `verbatra.cache.json` could not be written. They now throw `MEMORY_UNWRITABLE`, still exit 2. Match
+  that code instead of the file-system one.
 - A failed `watch` run's error line moves from stdout to stderr, human output prints paths
   relative to the working directory, and dry runs read `would translate`.
 - `watch` whose provider cannot be built, such as one with an unset API key, exits 2 with

@@ -82,6 +82,7 @@ Chaque code d'erreur avec sa famille et les codes de sortie avec lesquels il peu
 | [`TYPES_UNWRITABLE`](#types_unwritable) | SDK | `2` |
 | [`TMX_OUTPUT_CONFLICT`](#tmx_output_conflict) | SDK | `2` |
 | [`TMX_UNWRITABLE`](#tmx_unwritable) | SDK | `2` |
+| [`MEMORY_UNWRITABLE`](#memory_unwritable) | SDK | `2` |
 | [`EXPORT_OUTPUT_CONFLICT`](#export_output_conflict) | SDK | `2` |
 | [`EXPORT_UNWRITABLE`](#export_unwritable) | SDK | `2` |
 | [`LOCALE_STATE_NOT_CARRIED_OVER`](#locale_state_not_carried_over) | SDK | `1` |
@@ -571,6 +572,13 @@ Le fichier TMX que produit `exportTmx` n'a pas pu être écrit (son répertoire 
 
 - **Levé par** : `tmx export`
 - **Étape suivante** : Make the output file and its directory writable, then try again.
+
+### MEMORY_UNWRITABLE
+
+`importTmx` n'a pas pu écrire le cache de mémoire de traduction `verbatra.cache.json` (son répertoire n'est pas accessible en écriture, un répertoire occupe déjà ce chemin, ou le disque est plein) ; le message nomme le fichier et le code du système de fichiers.
+
+- **Levé par** : `tmx import`
+- **Étape suivante** : Make verbatra.cache.json and its directory writable, then try again.
 
 ### EXPORT_OUTPUT_CONFLICT
 
