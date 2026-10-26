@@ -11,11 +11,11 @@ Antes de empezar, necesitas:
 - Una configuración de verbatra directamente dentro del directorio en el que se ejecuta la acción (consulta [Descubrimiento de la configuración](#descubrimiento-de-la-configuración)).
 - Una versión exacta de `@verbatra/cli` que fijar, `0.9.3` o posterior.
 - Solo para `translate`: la clave de API de tu proveedor como secreto del repositorio.
-- Actions Runner v2.327.1 o posterior, y `verbatra/action` `v1.3.0` o posterior; esta página describe esa versión.
+- Actions Runner v2.327.1 o posterior, y `verbatra/action` `v1.3.0` o posterior, que esta página describe y que `qa`, `require-reviewed` y `needs-human` necesitan.
 
 ## Añade la acción a un workflow
 
-La acción vive en [verbatra/action](https://github.com/verbatra/action) y en el [GitHub Marketplace](https://github.com/marketplace/actions/verbatra); no hay paquete npm. Fíjala a un SHA de commit, como abajo, o usa la etiqueta móvil `verbatra/action@v1`. La antigua forma por ruta dentro del monorepo de verbatra ya no se resuelve.
+La acción vive en [verbatra/action](https://github.com/verbatra/action) y en el [GitHub Marketplace](https://github.com/marketplace/actions/verbatra); no hay paquete npm. Fíjala a un SHA de commit, como abajo, o usa la etiqueta móvil `verbatra/action@v1`.
 
 ```yaml title=".github/workflows/translate.yml"
 name: translate
@@ -59,7 +59,7 @@ Pon `command: check` para que falle un pull request cuyos archivos de locale se 
 
 <AvailableFrom version="0.12.0" />
 
-Añade `qa: "true"` a `command: check` para ejecutar [`verbatra check --qa`](/es/docs/cli/check#control-de-calidad) sobre cada traducción confirmada, incluidos los valores escritos a mano. Sigue siendo de solo lectura y sin clave.
+Añade `qa: "true"` a `command: check` para ejecutar [`verbatra check --qa`](/es/docs/cli/check#control-de-calidad) sobre cada traducción confirmada, incluidos los valores escritos a mano.
 
 ```yaml
       - uses: verbatra/action@<commit-sha> # a commit on the v1 line
@@ -151,7 +151,7 @@ Las entradas booleanas solo aceptan `"true"` o `"false"`. Un booleano no válido
 
 - **Anotaciones.** Con `translate` y salida `1`, cada locale fallido o parcial se convierte en una anotación de error titulada `verbatra: <locale>`. Con `check` o `diff`, cada locale desviado recibe una titulada `verbatra check: <locale>` o `verbatra diff: <locale>`. Todas se asocian al archivo de su locale cuando la acción lo encuentra. La anotación `LOCALE_PARTIAL` de un locale parcial nombra las claves retenidas, agrupadas por causa. Cada `check` añade un aviso `PLURAL_CATEGORIES_INCOMPLETE` por locale cuyos plurales carecen de una categoría CLDR que usa el idioma. Una ejecución que falla por completo recibe una sola anotación `verbatra` con el código de error, su causa como `(cause: X)` y una pista `Next step:` cuando la CLI las da. GitHub muestra como mucho 10 anotaciones por severidad, así que la acción las ordena por desviación, revisión, errores de calidad y avisos, y añade un aviso que cuenta el resto.
 - **Resumen del job.** Una fila por locale con los recuentos del comando ejecutado, una línea agregada y los locales parciales y fallidos. Con `qa` añade una tabla de hallazgos de hasta 1000 hallazgos; los plurales incompletos tienen su propia sección.
-- **Estado de salida.** La acción emite primero las anotaciones y el resumen y luego sale con el [código de salida](/es/docs/cli/output#códigos-de-salida) de la propia CLI, salvo que un `3` de `translate` pasa y una entrada rechazada antes de la instalación falla con un único `::error::` y sin resumen.
+- **Estado de salida.** La acción emite primero las anotaciones y el resumen y luego sale con el [código de salida](/es/docs/cli/output#códigos-de-salida) de la propia CLI, salvo que un `3` de `translate` pasa y un fallo antes de arrancar la CLI (sin directorio de trabajo, sin config, una instalación fallida) sale con `1`; una entrada rechazada recibe un único `::error::`, sin resumen.
 
 ## Seguridad
 

@@ -11,11 +11,11 @@ Bevor du anfängst, brauchst du:
 - Eine verbatra-Konfiguration direkt in dem Verzeichnis, in dem die Action läuft (siehe [Konfigurationssuche](#konfigurationssuche)).
 - Eine exakte `@verbatra/cli`-Version zum Pinnen, `0.9.3` oder neuer.
 - Nur für `translate`: den API-Schlüssel deines Providers als Repository-Secret.
-- Actions Runner v2.327.1 oder neuer und `verbatra/action` `v1.3.0` oder neuer; diese Seite beschreibt dieses Release.
+- Actions Runner v2.327.1 oder neuer und `verbatra/action` `v1.3.0` oder neuer, was diese Seite beschreibt und `qa`, `require-reviewed` und `needs-human` brauchen.
 
 ## Die Action in einen Workflow einbauen
 
-Die Action liegt in [verbatra/action](https://github.com/verbatra/action) und im [GitHub Marketplace](https://github.com/marketplace/actions/verbatra); ein npm-Paket gibt es nicht. Pinne sie wie unten auf einen Commit-SHA oder nutze den mitwandernden Tag `verbatra/action@v1`. Die alte Pfad-Form aus dem verbatra-Monorepo wird nicht mehr aufgelöst.
+Die Action liegt in [verbatra/action](https://github.com/verbatra/action) und im [GitHub Marketplace](https://github.com/marketplace/actions/verbatra); ein npm-Paket gibt es nicht. Pinne sie wie unten auf einen Commit-SHA oder nutze den mitwandernden Tag `verbatra/action@v1`.
 
 ```yaml title=".github/workflows/translate.yml"
 name: translate
@@ -59,7 +59,7 @@ Setze `command: check`, damit ein Pull Request mit abweichenden Locale-Dateien f
 
 <AvailableFrom version="0.12.0" />
 
-Ergänze `command: check` um `qa: "true"`, um [`verbatra check --qa`](/de/docs/cli/check#qualitätsprüfung) über jede eingecheckte Übersetzung laufen zu lassen, auch über von Hand getippte Werte. Es bleibt nur lesend und ohne Schlüssel.
+Ergänze `command: check` um `qa: "true"`, um [`verbatra check --qa`](/de/docs/cli/check#qualitätsprüfung) über jede eingecheckte Übersetzung laufen zu lassen, auch über von Hand getippte Werte.
 
 ```yaml
       - uses: verbatra/action@<commit-sha> # a commit on the v1 line
@@ -151,7 +151,7 @@ Die booleschen Eingaben akzeptieren nur `"true"` oder `"false"`. Ein ungültiger
 
 - **Annotationen.** Unter `translate` mit Exit `1` wird jede fehlgeschlagene oder teilweise Locale zu einer Fehler-Annotation mit dem Titel `verbatra: <locale>`. Unter `check` oder `diff` bekommt jede abweichende Locale eine mit dem Titel `verbatra check: <locale>` oder `verbatra diff: <locale>`. Alle hängen an der Datei ihrer Locale, wenn die Action sie findet. Die `LOCALE_PARTIAL`-Annotation einer teilweisen Locale nennt die zurückgehaltenen Keys, nach Ursache gruppiert. Jeder `check` ergänzt pro Locale eine `PLURAL_CATEGORIES_INCOMPLETE`-Warnung, wenn ihren Pluralen eine CLDR-Kategorie fehlt, die die Sprache nutzt. Ein Lauf, der als Ganzes fehlschlägt, bekommt eine einzige `verbatra`-Annotation mit dem Fehlercode, der Ursache als `(cause: X)` und einem `Next step:`-Hinweis, sofern die CLI sie liefert. GitHub zeigt höchstens 10 Annotationen pro Schweregrad, daher sortiert die Action sie nach Drift, Review, Qualitätsfehlern und Warnungen und ergänzt einen Hinweis, der den Rest zählt.
 - **Job-Zusammenfassung.** Eine Zeile pro Locale mit den Zahlen des ausgeführten Befehls, eine Gesamtzeile und die teilweisen und fehlgeschlagenen Locales. Mit `qa` kommt eine Befundtabelle mit bis zu 1000 Befunden hinzu; unvollständige Plurale bekommen einen eigenen Abschnitt.
-- **Exit-Status.** Die Action gibt zuerst die Annotationen und die Zusammenfassung aus und endet dann mit dem [Exit-Code](/de/docs/cli/output#exit-codes) der CLI, außer dass ein `translate`-Exit `3` besteht und eine Eingabe, die vor der Installation abgelehnt wird, mit einer einzigen `::error::` und ohne Zusammenfassung fehlschlägt.
+- **Exit-Status.** Die Action gibt zuerst die Annotationen und die Zusammenfassung aus und endet dann mit dem [Exit-Code](/de/docs/cli/output#exit-codes) der CLI, außer dass ein `translate`-Exit `3` besteht und ein Fehler vor dem Start der CLI (kein Arbeitsverzeichnis, keine Config, eine gescheiterte Installation) mit `1` endet; eine abgelehnte Eingabe bekommt ein einziges `::error::`, keine Zusammenfassung.
 
 ## Sicherheit
 

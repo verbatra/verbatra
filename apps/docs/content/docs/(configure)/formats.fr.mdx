@@ -195,14 +195,14 @@ Les formats JSON, YAML et ARB conservent l'ordre du document : les clés de type
 
 ## Clés à points et collisions
 
-Dans `i18next-json`, `vue-i18n-json` et `next-intl-json`, une feuille littérale à points comme `"foo.bar"` fait l'aller-retour telle qu'elle est écrite ; `ngx-translate-json` la lit comme un chemin imbriqué. Ailleurs, un même chemin écrit des deux façons (`"foo.bar"` à côté de `"foo": { "bar": ... }`) échoue avec `INVALID_STRUCTURE` ; `ngx-translate-json` refuse les clés plates à points à côté d'objets imbriqués et les clés d'objet à points avec `MIXED_STRUCTURE`.
+Dans `i18next-json`, `vue-i18n-json` et `next-intl-json`, une feuille littérale à points comme `"foo.bar"` fait l'aller-retour telle qu'elle est écrite ; `ngx-translate-json` la lit comme un chemin imbriqué. Dans les autres formats, un même chemin écrit des deux façons (`"foo.bar"` à côté de `"foo": { "bar": ... }`) échoue avec `INVALID_STRUCTURE` ; `ngx-translate-json` refuse les clés plates à points à côté d'objets imbriqués et les clés à points dans des objets imbriqués avec `MIXED_STRUCTURE`.
 
 ## Comment les fichiers sont lus et écrits
 
 - **Limites.** La taille d'entrée et la profondeur d'imbrication sont plafonnées (`INPUT_TOO_LARGE`, `MAX_DEPTH_EXCEEDED`).
-- **Écritures atomiques.** Un fichier temporaire est renommé en place, donc une interruption ne laisse jamais un fichier à moitié écrit.
+- **Écritures atomiques.** Un fichier temporaire est renommé en place, sans jamais laisser un fichier à moitié écrit.
 - **Mise en forme.** Les formats XML conservent la fin de ligne et le saut de ligne final, et indentent les nouveaux éléments comme leurs voisins. Une nouvelle entrée gettext suit une ligne vide ; un `.po` créé nomme sa locale dans `Language` (`pt_BR`).
-- **Feuilles qui ne sont pas des chaînes.** Dans les formats JSON, YAML et ARB, une feuille nombre, booléen ou null est acceptée mais jamais traduite, et une réécriture de ce fichier ne la conserve pas ; un tableau échoue avec `INVALID_STRUCTURE`.
+- **Feuilles qui ne sont pas des chaînes.** Dans les formats JSON, YAML et ARB, une feuille nombre, booléen ou null est acceptée mais jamais traduite, et une réécriture l'abandonne ; un tableau échoue avec `INVALID_STRUCTURE`.
 - **Les erreurs** sont structurées et sans secret ; voir les [codes d'erreur des adaptateurs](/fr/docs/error-codes#adapter-error-codes).
 
 ## Formats extérieurs à verbatra

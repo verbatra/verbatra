@@ -195,14 +195,14 @@ Die JSON-Formate, YAML und ARB erhalten die Dokumentreihenfolge: Ganzzahlartige 
 
 ## Gepunktete Keys und Kollisionen
 
-In `i18next-json`, `vue-i18n-json` und `next-intl-json` übersteht ein wörtliches gepunktetes Blatt wie `"foo.bar"` den Roundtrip so, wie es geschrieben ist; `ngx-translate-json` liest es als verschachtelten Pfad. Sonst scheitert ein Pfad, der auf beide Arten geschrieben ist (`"foo.bar"` neben `"foo": { "bar": ... }`), mit `INVALID_STRUCTURE`; `ngx-translate-json` lehnt flache gepunktete Keys neben verschachtelten Objekten und gepunktete Objekt-Keys mit `MIXED_STRUCTURE` ab.
+In `i18next-json`, `vue-i18n-json` und `next-intl-json` übersteht ein wörtliches gepunktetes Blatt wie `"foo.bar"` den Roundtrip so, wie es geschrieben ist; `ngx-translate-json` liest es als verschachtelten Pfad. In den anderen Formaten scheitert ein Pfad, der auf beide Arten geschrieben ist (`"foo.bar"` neben `"foo": { "bar": ... }`), mit `INVALID_STRUCTURE`; `ngx-translate-json` lehnt flache gepunktete Keys neben verschachtelten Objekten und gepunktete Keys in verschachtelten Objekten mit `MIXED_STRUCTURE` ab.
 
 ## Wie Dateien gelesen und geschrieben werden
 
 - **Grenzen.** Eingabegröße und Verschachtelungstiefe sind begrenzt (`INPUT_TOO_LARGE`, `MAX_DEPTH_EXCEEDED`).
-- **Atomares Schreiben.** Eine temporäre Datei wird an ihren Platz umbenannt, ein Abbruch hinterlässt also nie eine halbe Datei.
+- **Atomares Schreiben.** Eine temporäre Datei wird an ihren Platz umbenannt, sodass nie eine halbe Datei bleibt.
 - **Layout.** Die XML-Formate behalten Zeilenende und abschließenden Zeilenumbruch und rücken neue Elemente wie ihre Nachbarn ein. Ein neuer gettext-Eintrag folgt nach einer Leerzeile; eine neu angelegte `.po` nennt ihre Locale in `Language` (`pt_BR`).
-- **Nicht-String-Blätter.** In den JSON-Formaten, YAML und ARB wird ein Blatt vom Typ Zahl, Boolean oder null akzeptiert, aber nie übersetzt, und ein Neuschrieb dieser Datei behält es nicht; ein Array scheitert mit `INVALID_STRUCTURE`.
+- **Nicht-String-Blätter.** In den JSON-Formaten, YAML und ARB wird ein Blatt vom Typ Zahl, Boolean oder null akzeptiert, aber nie übersetzt, und ein Neuschrieb verwirft es; ein Array scheitert mit `INVALID_STRUCTURE`.
 - **Fehler** sind strukturiert und geheimnisfrei; siehe [Fehlercodes der Format-Adapter](/de/docs/error-codes#adapter-error-codes).
 
 ## Formate von außerhalb verbatra

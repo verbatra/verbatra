@@ -195,14 +195,14 @@ Los formatos JSON, YAML y ARB conservan el orden del documento: las claves con f
 
 ## Claves con puntos y colisiones
 
-En `i18next-json`, `vue-i18n-json` y `next-intl-json`, una hoja literal con puntos como `"foo.bar"` hace el viaje de ida y vuelta tal como está escrita; `ngx-translate-json` la lee como una ruta anidada. En el resto, una misma ruta escrita de las dos formas (`"foo.bar"` junto a `"foo": { "bar": ... }`) falla con `INVALID_STRUCTURE`; `ngx-translate-json` rechaza claves planas con puntos junto a objetos anidados y claves de objeto con puntos con `MIXED_STRUCTURE`.
+En `i18next-json`, `vue-i18n-json` y `next-intl-json`, una hoja literal con puntos como `"foo.bar"` hace el viaje de ida y vuelta tal como está escrita; `ngx-translate-json` la lee como una ruta anidada. En los demás formatos, una misma ruta escrita de las dos formas (`"foo.bar"` junto a `"foo": { "bar": ... }`) falla con `INVALID_STRUCTURE`; `ngx-translate-json` rechaza claves planas con puntos junto a objetos anidados y claves con puntos dentro de objetos anidados con `MIXED_STRUCTURE`.
 
 ## Cómo se leen y escriben los archivos
 
 - **Límites.** El tamaño de entrada y la profundidad de anidamiento están acotados (`INPUT_TOO_LARGE`, `MAX_DEPTH_EXCEEDED`).
-- **Escrituras atómicas.** Un archivo temporal se renombra a su sitio, así que una interrupción nunca deja medio archivo.
+- **Escrituras atómicas.** Un archivo temporal se renombra a su sitio, sin dejar nunca medio archivo.
 - **Formato.** Los formatos XML conservan el fin de línea y el salto de línea final y sangran los elementos nuevos como sus vecinos. Una entrada nueva de gettext va tras una línea en blanco; un `.po` creado nombra su locale en `Language` (`pt_BR`).
-- **Hojas que no son cadenas.** En los formatos JSON, YAML y ARB, una hoja numérica, booleana o null se acepta pero nunca se traduce, y una reescritura de ese archivo no la conserva; un array falla con `INVALID_STRUCTURE`.
+- **Hojas que no son cadenas.** En los formatos JSON, YAML y ARB, una hoja numérica, booleana o null se acepta pero nunca se traduce, y una reescritura la descarta; un array falla con `INVALID_STRUCTURE`.
 - **Los errores** son estructurados y sin secretos; consulta los [códigos de error de adaptador](/es/docs/error-codes#adapter-error-codes).
 
 ## Formatos externos a verbatra
