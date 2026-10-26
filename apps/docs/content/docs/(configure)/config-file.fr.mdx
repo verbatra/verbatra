@@ -41,13 +41,13 @@ export default defineConfig({
 });
 ```
 
-Chaque groupe a sa propre section : [locales et fichiers](#locales-et-fichiers), [provider](#provider), [glossary](#glossary), [network](#network), [contenu sensible](/fr/docs/data-handling#protection-des-contenus-sensibles), [budget](#maxtokens-et-budgetbehavior), [rates](#rates) et [extract](#extract).
+Voir [locales et fichiers](#locales-et-fichiers), [provider](#provider), [glossary](#glossary), [network](#network), [contenu sensible](/fr/docs/data-handling#protection-des-contenus-sensibles), [budget](#maxtokens-et-budgetbehavior), [rates](#rates) et [extract](#extract).
 
 `defineConfig` ne fait que typer son argument : `options.model` propose les identifiants de modèle du fournisseur, mais à l'exécution toute chaîne non vide est acceptée.
 
 ## Chaque clé
 
-Les clés inconnues sont rejetées à chaque niveau sauf `$schema` et les entrées que tu nommes toi-même dans `maxLength` et `rates.table`, donc une clé d'API ne peut pas se trouver dans la configuration.
+Les clés inconnues sont rejetées à chaque niveau sauf `$schema` et les maps dont tu nommes les clés, comme `maxLength`, `rates.table`, `localeMap` et un `glossary` en ligne, donc une clé d'API ne peut pas se trouver dans la configuration.
 
 | Clé | Type | Défaut | Depuis | Rôle |
 | --- | --- | --- | --- | --- |

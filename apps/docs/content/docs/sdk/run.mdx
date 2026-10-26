@@ -46,8 +46,6 @@ A whole-run problem throws an `SdkError`; a single locale failing never throws a
 
 `onProgress` receives a `ProgressEvent`, a union discriminated on `type`. A minor version may add types, so ignore one you do not recognize.
 
-<SdkTypeTable name="ProgressEvent" />
-
 | `type` | When | Fields |
 | --- | --- | --- |
 | `locale-started` | a locale's work begins | `locale`, `localeIndex`, `totalLocales` |

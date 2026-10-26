@@ -41,13 +41,13 @@ export default defineConfig({
 });
 ```
 
-Jede Gruppe hat einen eigenen Abschnitt: [Locales und Dateien](#locales-und-dateien), [provider](#provider), [glossary](#glossary), [network](#network), [sensible Inhalte](/de/docs/data-handling#schutz-für-sensible-inhalte), [Budget](#maxtokens-und-budgetbehavior), [rates](#rates) und [extract](#extract).
+Siehe [Locales und Dateien](#locales-und-dateien), [provider](#provider), [glossary](#glossary), [network](#network), [sensible Inhalte](/de/docs/data-handling#schutz-für-sensible-inhalte), [Budget](#maxtokens-und-budgetbehavior), [rates](#rates) und [extract](#extract).
 
 `defineConfig` typisiert sein Argument nur: `options.model` vervollständigt die Modell-IDs des Providers, zur Laufzeit gilt aber jeder nicht-leere String.
 
 ## Jeder Key
 
-Unbekannte Keys werden auf jeder Ebene außer `$schema` und den Einträgen, die du in `maxLength` und `rates.table` selbst benennst, abgelehnt, also kann kein API-Schlüssel in der Konfiguration leben.
+Unbekannte Keys werden auf jeder Ebene außer `$schema` und Maps, deren Keys du selbst benennst, etwa `maxLength`, `rates.table`, `localeMap` und ein Inline-`glossary`, abgelehnt, also kann kein API-Schlüssel in der Konfiguration leben.
 
 | Key | Typ | Default | Seit | Wirkung |
 | --- | --- | --- | --- | --- |
