@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { FORMAT_ID_CLASS, type StackCard, StackCards } from "./stack-cards";
+import { FILE_GLYPH_LABELS } from "./stack-icons";
 
 const CARDS: ReadonlyArray<StackCard> = [
   {
@@ -342,7 +343,39 @@ describe("StackCards", () => {
     const sizes = [...doc.querySelectorAll(".vk-stack-card-chip > svg")].map((svg) =>
       svg.getAttribute("width"),
     );
-    expect(sizes).toEqual(["32", "28", "28"]);
+    expect(sizes).toEqual(["40", "28", "28"]);
+  });
+
+  it("labels each file glyph with its format extension, drawn as page-font text in the text colour", () => {
+    const doc = render(
+      renderToStaticMarkup(
+        <StackCards
+          labelledBy="stacks"
+          locale="en"
+          cards={(["po", "xliff", "ini", "yaml", "json"] as const).map((icon) => ({
+            label: icon,
+            icon,
+            formats: [],
+            href: `#${icon}`,
+          }))}
+        />,
+      ),
+    );
+    const labels = [...doc.querySelectorAll("symbol text")].map((text) => text.textContent);
+    expect(labels).toEqual([".po", "XLF", "INI", "YAML", "JSON"]);
+    for (const text of doc.querySelectorAll("symbol text")) {
+      expect(text.getAttribute("fill")).toBe("currentColor");
+      expect(text.getAttribute("font-family")).toContain("var(--font-mono)");
+      expect(text.getAttribute("textLength")).not.toBeNull();
+    }
+    expect(Object.keys(FILE_GLYPH_LABELS).toSorted()).toEqual([
+      "ini",
+      "json",
+      "po",
+      "xliff",
+      "yaml",
+    ]);
+    expect(doc.querySelectorAll("li > span > svg[aria-hidden='true']")).toHaveLength(5);
   });
 
   it("keeps every sprite id unique when two card grids share a page", () => {

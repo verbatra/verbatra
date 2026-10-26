@@ -660,8 +660,11 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   chip holds the name as text (`.vk-stack-card-chip-text`, `--text-sm`, weight 600, `currentColor`),
   "Next.js", "Vue", "Nuxt", "Flutter", "Apple", "Spring" and ".NET", and "Vue" on the combined "Vue and
   Nuxt" card of `pick-your-stack`, the same brand-only English word in every locale; the chip stays `aria-hidden`, since the card title
-  names the stack. gettext, XLIFF, INI and the custom card keep their glyph, a file outline drawn at 32px
-  (`FILE_GLYPH_SIZE`) against 28px for the rest, so its thin ink balances the marks. `stack-cards.test.tsx` pins the mark set in all four locales.
+  names the stack. gettext, XLIFF, INI, YAML and the custom card keep their glyph. A format glyph is the one file
+  outline carrying the format's own extension label (`FILE_GLYPH_LABELS` in `stack-icons.tsx`: `.po`, `XLF`,
+  `INI`, `YAML`, `JSON`), an SVG `<text>` in `--font-mono`, bold, `currentColor` fill, its width fixed by
+  `textLength` so no label leaves the outline; the glyph is drawn at 40px (`FILE_GLYPH_SIZE`) against 28px for the
+  rest, so the label stays legible and its thin ink balances the marks. The `custom` card has no label. `stack-cards.test.tsx` pins the mark set in all four locales.
   Third-party logos appear in exactly three places: the GitHub mark
   (`components/landing/github-icon.tsx`), the marquee's brand marks and the stack cards' marks. The
   logo rule for those:
