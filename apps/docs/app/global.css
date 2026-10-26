@@ -2054,6 +2054,11 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   color: #8f3600 !important;
 }
 
+.light .shiki span[style*="#D73A49" i] {
+  /* biome-ignore lint/complexity/noImportantStyles: shiki sets token colors through inline custom properties; only an important declaration outranks them, raising keyword tokens to WCAG AA on every light code surface. */
+  color: #a1161f !important;
+}
+
 .vk-home {
   overflow-x: clip;
   background: var(--surface-page);

@@ -90,8 +90,10 @@ but **no test that drives it in a real browser**. Concretely, as of this writing
 - The only Playwright test suite is the docs site's: `apps/docs/playwright.config.ts` runs
   `apps/docs/e2e/*.spec.ts` (`pnpm --filter @verbatra/docs test:e2e`) against the production
   standalone build, which `apps/docs/scripts/serve-standalone.mjs` serves on port 3107. It scans
-  the landing and the legal pages with axe (WCAG 2.0, 2.1 and 2.2 A/AA tags) in both themes and all
-  four locales, checks `html lang` and 320px reflow. Its specs end in `.spec.ts` and live outside
+  the landing, the legal pages and the docs pages listed in `DOCS_PAGES` (`apps/docs/e2e/support.ts`)
+  with axe (WCAG 2.0, 2.1 and 2.2 A/AA tags) in both themes and all four locales, checks `html lang`,
+  320px reflow on the landing and legal pages, 320px and 375px reflow on the docs pages, and that the
+  phone navigation sheet opens without overflow. Its specs end in `.spec.ts` and live outside
   the directories `apps/docs/vitest.config.ts` includes, so Vitest never runs them. CI runs it in
   the `docs-e2e` job of `.github/workflows/ci.yml`, which the `gate` job requires. Nothing in
   `packages/studio` is covered by it.

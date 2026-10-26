@@ -33,10 +33,6 @@ for (const locale of LOCALES) {
 
       for (const theme of THEMES) {
         test(`has no axe violations in the ${theme} theme`, async ({ page }) => {
-          test.fixme(
-            path === "/docs/sdk" && theme === "light",
-            "color-contrast 4.35:1 (#d73a49 on #f9f9fb, needs 4.5:1) on the shiki keyword spans in the fumadocs TypeTable signature cells #sdk-SdkFs-* > .py-2.px-3.group > .@max-xl:hidden > .shiki > code > span",
-          );
           await openInTheme(page, url, theme);
           expect(new URL(page.url()).pathname).toBe(url);
           await expectNoAxeViolations(page);
@@ -70,7 +66,9 @@ for (const locale of LOCALES) {
               return box === null ? null : [box.x >= 0, box.x + box.width <= width + 0.5];
             })
             .toEqual([true, true]);
-          expect(await drawer.evaluate((node) => node.scrollWidth - node.clientWidth)).toBe(0);
+          await expect
+            .poll(() => drawer.evaluate((node) => node.scrollWidth - node.clientWidth))
+            .toBe(0);
           await expectNoHorizontalScroll(page);
           await expectNothingPastRightEdge(page);
         });

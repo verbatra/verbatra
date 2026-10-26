@@ -26,6 +26,8 @@ export const DOCS_PAGES = [
   "/docs/config-file",
   "/docs/ci-and-exit-codes",
   "/docs/sdk",
+  "/docs/sdk/run",
+  "/docs/sdk/extend",
   "/docs/error-codes",
 ] as const;
 

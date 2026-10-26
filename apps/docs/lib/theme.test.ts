@@ -175,31 +175,38 @@ describe("theme tokens", () => {
     },
   );
 
-  it("raises the light theme's orange property tokens to WCAG AA on every code surface and line tint", () => {
-    const color = rulesFor(rules, '.light .shiki span[style*="#E36209" i]')[0]?.declarations.color;
-    if (!color) throw new Error("no light property-token override");
-    const token = luminance(color.replace(/\s*!important$/, ""));
-    const highlight = rulesFor(rules, ".shiki:not(.not-fumadocs-codeblock *) .highlighted")[0]
-      ?.declarations.background;
-    if (!highlight) throw new Error("no highlighted-line tint");
-    const diffTints = [FUMADOCS_DIFF_ADD, FUMADOCS_DIFF_REMOVE];
-    for (const surface of ["--surface-bg", "--surface-card", "--color-fd-muted", "--v-void"]) {
-      const base = resolve(LIGHT, `var(${surface})`);
-      const backgrounds = [
-        [surface, base],
-        [`highlighted on ${surface}`, resolve(LIGHT, highlight.replace("transparent", base))],
-        ...diffTints.map(
-          ([name, tint, alpha]) => [`${name} on ${surface}`, overlay(tint, alpha, base)] as const,
-        ),
-      ] as const;
-      for (const [label, background] of backgrounds) {
-        const surfaceLuminance = luminance(background);
-        const ratio =
-          (Math.max(token, surfaceLuminance) + 0.05) / (Math.min(token, surfaceLuminance) + 0.05);
-        expect(ratio, `property token on ${label}`).toBeGreaterThanOrEqual(4.5);
+  it.each([
+    ["orange property", "#E36209"],
+    ["red keyword", "#D73A49"],
+  ])(
+    "raises the light theme's %s tokens to WCAG AA on every code surface and line tint",
+    (_name, original) => {
+      const color = rulesFor(rules, `.light .shiki span[style*="${original}" i]`)[0]?.declarations
+        .color;
+      if (!color) throw new Error("no light token override");
+      const token = luminance(color.replace(/\s*!important$/, ""));
+      const highlight = rulesFor(rules, ".shiki:not(.not-fumadocs-codeblock *) .highlighted")[0]
+        ?.declarations.background;
+      if (!highlight) throw new Error("no highlighted-line tint");
+      const diffTints = [FUMADOCS_DIFF_ADD, FUMADOCS_DIFF_REMOVE];
+      for (const surface of ["--surface-bg", "--surface-card", "--color-fd-muted", "--v-void"]) {
+        const base = resolve(LIGHT, `var(${surface})`);
+        const backgrounds = [
+          [surface, base],
+          [`highlighted on ${surface}`, resolve(LIGHT, highlight.replace("transparent", base))],
+          ...diffTints.map(
+            ([name, tint, alpha]) => [`${name} on ${surface}`, overlay(tint, alpha, base)] as const,
+          ),
+        ] as const;
+        for (const [label, background] of backgrounds) {
+          const surfaceLuminance = luminance(background);
+          const ratio =
+            (Math.max(token, surfaceLuminance) + 0.05) / (Math.min(token, surfaceLuminance) + 0.05);
+          expect(ratio, `property token on ${label}`).toBeGreaterThanOrEqual(4.5);
+        }
       }
-    }
-  });
+    },
+  );
 
   it("measures the diff tints Fumadocs ships", () => {
     const css = readFileSync(
