@@ -302,7 +302,7 @@ describe("StackCards", () => {
             {
               label: ".NET",
               icon: "server",
-              mark: "deviconDotnet",
+              mark: "dotnet",
               formats: ["resx"],
               href: "#net",
             },
@@ -313,7 +313,7 @@ describe("StackCards", () => {
     const viewBoxes = [...doc.querySelectorAll("symbol")].map((symbol) =>
       symbol.getAttribute("viewBox"),
     );
-    expect(viewBoxes).toEqual(["0 0 448 512", "0 0 128 128"]);
+    expect(viewBoxes).toEqual(["0 0 448 512", "0 0 456 456"]);
     const chips = [...doc.querySelectorAll(".vk-stack-card-chip")];
     for (const chip of chips) {
       expect(chip.getAttribute("aria-hidden")).toBe("true");
@@ -343,7 +343,7 @@ describe("StackCards", () => {
             "android",
             "fontawesomeApple",
             "deviconSpring",
-            "deviconDotnet",
+            "dotnet",
           ]
         : [
             "react",
@@ -355,7 +355,7 @@ describe("StackCards", () => {
             "fontawesomeApple",
             "android",
             "deviconSpring",
-            "deviconDotnet",
+            "dotnet",
           ];
       expect(marks(file).toSorted(), file).toEqual(expected.toSorted());
       expect(source).not.toMatch(/\btext: "/);

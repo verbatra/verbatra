@@ -14,21 +14,15 @@ published at https://verbatra.kreitz-webdev.de/licenses.
 - Screenshots (public/screenshots) (MIT): Own work of the verbatra project, under the project's MIT license.
   - Copyright (c) Mario Kreitz
 - Contributor avatars (public/contributors) (Owned by each contributor): GitHub profile images of the contributors, shown to credit them.
-- i18next mark (simple-icons@16.35.0, icons/i18next.svg) (CC0-1.0): Inline monochrome SVG path in the landing marquee, copied from https://cdn.jsdelivr.net/npm/simple-icons@16.35.0/icons/i18next.svg. Logos are trademarks of their owners, used to identify compatibility.
 - Angular mark (simple-icons@16.35.0, icons/angular.svg) (CC-BY-4.0): Inline monochrome SVG path in the landing marquee and the stack cards, copied from https://cdn.jsdelivr.net/npm/simple-icons@16.35.0/icons/angular.svg. Logos are trademarks of their owners, used to identify compatibility.
   - Angular logo by Google (https://angular.dev/press-kit), licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/).
   - Changed: redrawn in one color by Simple Icons and filled with the page's text color.
 - Android mark (simple-icons@16.35.0, icons/android.svg) (CC-BY-3.0): Inline monochrome SVG path in the landing marquee and the stack cards, copied from https://cdn.jsdelivr.net/npm/simple-icons@16.35.0/icons/android.svg. Logos are trademarks of their owners, used to identify compatibility.
   - The Android robot is reproduced or modified from work created and shared by Google and used according to terms described in the Creative Commons 3.0 Attribution License (https://creativecommons.org/licenses/by/3.0/).
   - Changed: redrawn in one color by Simple Icons and filled with the page's text color.
-- Anthropic mark (simple-icons@16.35.0, icons/anthropic.svg) (CC0-1.0): Inline monochrome SVG path in the landing marquee, copied from https://cdn.jsdelivr.net/npm/simple-icons@16.35.0/icons/anthropic.svg. Logos are trademarks of their owners, used to identify compatibility.
 - OpenAI mark (@lobehub/icons-static-svg@1.95.1, icons/openai.svg) (MIT): Inline monochrome SVG path in the landing marquee, copied from https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1.95.1/icons/openai.svg. Logos are trademarks of their owners, used to identify compatibility.
   - Copyright (c) 2023 LobeHub
   - MIT License: https://github.com/lobehub/lobe-icons/blob/49a2130df7bfa5eb1b088261bff20a37e2967789/LICENSE (the commit npm records for 1.95.1).
-- Google Gemini mark (simple-icons@16.35.0, icons/googlegemini.svg) (CC0-1.0): Inline monochrome SVG path in the landing marquee, copied from https://cdn.jsdelivr.net/npm/simple-icons@16.35.0/icons/googlegemini.svg. Logos are trademarks of their owners, used to identify compatibility.
-- DeepL mark (simple-icons@16.35.0, icons/deepl.svg) (CC0-1.0): Inline monochrome SVG path in the landing marquee, copied from https://cdn.jsdelivr.net/npm/simple-icons@16.35.0/icons/deepl.svg. Logos are trademarks of their owners, used to identify compatibility.
-- Google Translate mark (simple-icons@16.35.0, icons/googletranslate.svg) (CC0-1.0): Inline monochrome SVG path in the landing marquee, copied from https://cdn.jsdelivr.net/npm/simple-icons@16.35.0/icons/googletranslate.svg. Logos are trademarks of their owners, used to identify compatibility.
-- LibreTranslate mark (simple-icons@16.35.0, icons/libretranslate.svg) (CC0-1.0): Inline monochrome SVG path in the landing marquee, copied from https://cdn.jsdelivr.net/npm/simple-icons@16.35.0/icons/libretranslate.svg. Logos are trademarks of their owners, used to identify compatibility.
 - React mark (simple-icons@16.35.0, icons/react.svg) (MIT): Inline monochrome SVG path in the stack cards, copied from https://cdn.jsdelivr.net/npm/simple-icons@16.35.0/icons/react.svg. Logos are trademarks of their owners, used to identify compatibility.
   - Copyright (c) 2013-present, Facebook, Inc.
   - MIT License: https://github.com/facebook/create-react-app/blob/282c03f9525fdf8061ffa1ec50dce89296d916bd/LICENSE (the repository holding the logo.svg that Simple Icons records as this icon's source).
@@ -50,9 +44,9 @@ published at https://verbatra.kreitz-webdev.de/licenses.
 - Nuxt mark (devicon@2.18.0, icons/nuxt/nuxt-original.svg) (MIT): Inline monochrome SVG path in the stack cards, copied from https://cdn.jsdelivr.net/gh/devicons/devicon@v2.18.0/icons/nuxt/nuxt-original.svg. Logos are trademarks of their owners, used to identify compatibility.
   - Copyright (c) 2015 konpa
   - MIT License: https://github.com/devicons/devicon/blob/v2.18.0/LICENSE (Devicon 2.18.0, icons/nuxt/nuxt-original.svg). Drawn in one color and filled with the page's text color.
-- .NET mark (devicon@2.18.0, icons/dotnetcore/dotnetcore-plain.svg) (MIT): Inline monochrome SVG path in the stack cards, copied from https://cdn.jsdelivr.net/gh/devicons/devicon@v2.18.0/icons/dotnetcore/dotnetcore-plain.svg. Logos are trademarks of their owners, used to identify compatibility.
-  - Copyright (c) 2015 konpa
-  - MIT License: https://github.com/devicons/devicon/blob/v2.18.0/LICENSE (Devicon 2.18.0, icons/dotnetcore/dotnetcore-plain.svg). Drawn in one color and filled with the page's text color.
+- .NET mark (dotnet/brand@91845f6ddf2123b3bb1bfd1b6a386d9ce02b43aa, logo/dotnet-logo.svg) (Brand permission (dotnet/brand README)): Inline monochrome SVG path in the stack cards, copied from https://cdn.jsdelivr.net/gh/dotnet/brand@91845f6ddf2123b3bb1bfd1b6a386d9ce02b43aa/logo/dotnet-logo.svg. Logos are trademarks of their owners, used to identify compatibility.
+  - The .NET logo is copyright of the .NET authors. dotnet/brand README, License section: "use the illustrations and logo to represent .NET in related content, per the .NET Brand Guidelines. The .NET brand guidelines and .NET logo are copyright of the .NET authors." (https://github.com/dotnet/brand/blob/91845f6ddf2123b3bb1bfd1b6a386d9ce02b43aa/README.md).
+  - Changed: the square drawn in one color with the lettering knocked out, filled with the page's text color.
 - YAML mark (devicon@2.18.0, icons/yaml/yaml-plain.svg) (MIT): Inline monochrome SVG path in the landing marquee, copied from https://cdn.jsdelivr.net/gh/devicons/devicon@v2.18.0/icons/yaml/yaml-plain.svg. Logos are trademarks of their owners, used to identify compatibility.
   - Copyright (c) 2015 konpa
   - MIT License: https://github.com/devicons/devicon/blob/v2.18.0/LICENSE (Devicon 2.18.0, icons/yaml/yaml-plain.svg). Drawn in one color and filled with the page's text color.

@@ -498,7 +498,14 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   (`components/brand-marks.tsx`, prefix `marquee-mark`), drawn at 18px in a single `currentColor`
   fill. A glyph (`.vk-marquee-glyph`: an 18px unfilled `currentColor` stroke, 1.8 wide, round caps)
   stands in for an item with no admissible mark: braces (vue-i18n), swap (XLIFF), a speech bubble
-  (gettext), sliders (INI), a cube (.NET resx) and a plug (the OpenAI-compatible endpoint). Mark and
+  (gettext), sliders (INI), a cube (.NET resx), a plug (the OpenAI-compatible endpoint), a globe
+  (i18next), a chip (Anthropic, Gemini), two speech bubbles (DeepL, Google Translate) and a server
+  (LibreTranslate). Those six brands have no drawing in Font Awesome Free, Devicon or another
+  admitted set that their terms clear: Anthropic permits its marks only "as specifically permitted
+  by us and only in materials we approve beforehand" and bars alteration, Google asks for approval
+  of its product icons through the Partner Marketing Hub and bars changing its marks, LibreTranslate
+  allows a logo only for unmodified programs and compatibility "in words (not logos or images)",
+  DeepL's press page offers its logos for editorial use, and i18next publishes no logo terms. Mark and
   glyph are `aria-hidden`; an item (`.vk-marquee-item`) is a bare `--text-muted` mark and label in
   `--text-base`, with no box, border or fill, and hovering it lifts it to `--text-strong`, with no
   glow, scale or brand color. The name (`.vk-marquee-name`) is the item's text. A provider that
@@ -650,15 +657,21 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   A stack card shows the brand's logo as a mark drawn from a free-licensed icon set, or from a
   license the brand itself grants: React (MIT), Angular (CC-BY-4.0) and Android (CC-BY-3.0) come from
   the brand-granted licenses recorded in Simple Icons, Apple, Flutter and Vue from Font Awesome Free
-  7.3.1 (brands, CC BY 4.0), and Spring, Next.js, Nuxt and .NET from Devicon 2.18.0 (MIT; the
-  monochrome "plain" drawing, or the single-color "original" where no plain one exists). Each mark
+  7.3.1 (brands, CC BY 4.0), Spring, Next.js and Nuxt from Devicon 2.18.0 (MIT; the
+  monochrome "plain" drawing, or the single-color "original" where no plain one exists), and .NET
+  from the `dotnet/brand` repository at a pinned commit (`logo/dotnet-logo.svg`; recorded as "Brand
+  permission", never as CC0: the README grants the CC0 license to the illustrations and lets
+  you "use the illustrations and logo to represent .NET in related content, per the .NET Brand
+  Guidelines", while the logo stays copyright of the .NET authors; drawn as the square with the
+  lettering knocked out, `fillRule: "evenodd"`). Each mark
   records its set, file, version, license and attribution in `BRAND_MARKS`, plus an optional
   `viewBox` for a drawing that is not on the 24 unit grid, and carries the notice "Logos are
   trademarks of their owners, used to identify compatibility." (Font Awesome adds: use brand logos
   only to represent the company, product or service they refer to). A mark is never under a
   non-commercial, share-alike or no-derivatives license, so an NC, SA or ND set is not admissible
   however recognizable the logo; a Simple Icons CC0 entry for a restricted logo is not admissible
-  either, since the data license does not clear the brand's own terms. A brand with no admissible
+  either, since the data license does not clear the brand's own terms. Simple Icons is the source
+  only of marks whose brand grants its own license (Angular, Android, React). A brand with no admissible
   drawing in any verified set gets its generic stroke glyph, never a hand-drawn lookalike and no text
   chip (the text chip mechanism is gone). The combined "Vue and Nuxt" card shows the Vue logo. YAML takes its `yaml` file glyph, not a mark. The
   marquee draws Apple, Flutter, Next.js, Spring and YAML from the same Font Awesome and Devicon marks, so no

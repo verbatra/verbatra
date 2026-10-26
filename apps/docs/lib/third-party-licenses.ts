@@ -131,7 +131,7 @@ const CARD_ONLY_MARK_IDS: ReadonlyArray<string> = [
   "react",
   "fontawesomeVuejs",
   "deviconNuxt",
-  "deviconDotnet",
+  "dotnet",
 ];
 const STACK_CARD_MARK_IDS: ReadonlyArray<string> = [
   "angular",

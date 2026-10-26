@@ -25,6 +25,10 @@ export const MARQUEE_GLYPHS = {
   sliders: "M4 7h9M17 7h3M4 17h3M11 17h9M15 4v6M9 14v6",
   cube: "M12 3l8 4.5v9L12 21l-8-4.5v-9zM4 7.5l8 4.5 8-4.5M12 12v9",
   plug: "M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0zM12 17v4",
+  globe: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18",
+  chip: "M7 7h10v10H7zM10 10h4v4h-4zM9 3v4M15 3v4M9 17v4M15 17v4M3 9h4M3 15h4M17 9h4M17 15h4",
+  languages: "M3 4h11v8H9l-3 3v-3H3zM10 15v1h5l3 3v-3h3v-8h-4",
+  server: "M4 4h16v6H4zM4 14h16v6H4zM8 7h.01M8 17h.01",
 } as const;
 
 export type MarqueeGlyphId = keyof typeof MARQUEE_GLYPHS;
@@ -37,17 +41,17 @@ const brand = (mark: BrandMarkId): MarqueeMark => ({ kind: "brand", mark });
 const glyph = (id: MarqueeGlyphId): MarqueeMark => ({ kind: "glyph", glyph: id });
 
 export const PROVIDER_ICONS: Readonly<Record<MachineProviderId, MarqueeMark>> = {
-  anthropic: brand("anthropic"),
+  anthropic: glyph("chip"),
   openai: brand("openai"),
-  gemini: brand("googlegemini"),
-  deepl: brand("deepl"),
-  "google-translate": brand("googletranslate"),
+  gemini: glyph("chip"),
+  deepl: glyph("languages"),
+  "google-translate": glyph("languages"),
   "openai-compatible": glyph("plug"),
-  libretranslate: brand("libretranslate"),
+  libretranslate: glyph("server"),
 };
 
 export const FORMAT_ICONS: Readonly<Record<SupportedFormat, MarqueeMark>> = {
-  "i18next-json": brand("i18next"),
+  "i18next-json": glyph("globe"),
   "vue-i18n-json": glyph("braces"),
   "next-intl-json": brand("deviconNextjs"),
   "ngx-translate-json": brand("angular"),

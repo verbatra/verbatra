@@ -273,7 +273,7 @@ describe("Marquee", () => {
       const mark = BRAND_MARKS[slug as BrandMarkId];
       const entry = notices.assets.find((asset) =>
         new RegExp(
-          `^.+ mark \\([@\\w/.-]+@\\d+\\.\\d+\\.\\d+, ${mark.file.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\)$`,
+          `^.+ mark \\([@\\w/.-]+@(?:\\d+\\.\\d+\\.\\d+|[0-9a-f]{40}), ${mark.file.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\)$`,
         ).test(asset.name),
       );
       expect(entry, slug).toBeDefined();
