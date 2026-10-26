@@ -4,8 +4,14 @@ import type { BreadcrumbLdItem } from "@/lib/structured-data";
 
 export const VISIBLE_BREADCRUMB_OPTIONS = { includePage: true } as const;
 
+type TrailOptions = Parameters<typeof getBreadcrumbItemsFromPath>[2];
+
 function isFolder(node: Node): node is Folder {
   return node.type === "folder";
+}
+
+function isRootFolder(node: Node): node is Folder {
+  return isFolder(node) && node.root !== undefined && node.root !== false;
 }
 
 function folderUrl(folder: Folder): string | undefined {
@@ -21,10 +27,28 @@ function folderUrlByName(folders: ReadonlyArray<Folder>, name: unknown): string 
   return folder === undefined ? undefined : folderUrl(folder);
 }
 
+export function breadcrumbItems(tree: Root, path: ReadonlyArray<Node>, options: TrailOptions) {
+  return getBreadcrumbItemsFromPath(path.findLast(isRootFolder) ?? tree, [...path], options);
+}
+
+export function pagePath(tree: Root, pageUrl: string): Node[] {
+  return searchPath(tree.children, pageUrl) ?? [];
+}
+
+export function visibleTrail(tree: Root, path: ReadonlyArray<Node>) {
+  return breadcrumbItems(tree, path, { includeRoot: true, includePage: true });
+}
+
+export function eyebrowTrail(tree: Root, path: ReadonlyArray<Node>): string[] {
+  return breadcrumbItems(tree, path, { includeRoot: true }).flatMap((item) =>
+    typeof item.name === "string" ? [item.name] : [],
+  );
+}
+
 export function docsBreadcrumbTrail(tree: Root, pageUrl: string): BreadcrumbLdItem[] {
-  const path = searchPath(tree.children, pageUrl) ?? [];
+  const path = pagePath(tree, pageUrl);
   const folders = path.filter(isFolder);
-  const crumbs = getBreadcrumbItemsFromPath(tree, path, VISIBLE_BREADCRUMB_OPTIONS).map((item) => ({
+  const crumbs = breadcrumbItems(tree, path, VISIBLE_BREADCRUMB_OPTIONS).map((item) => ({
     name: item.name,
     url: item.url ?? folderUrlByName(folders, item.name),
   }));

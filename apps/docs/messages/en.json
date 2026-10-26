@@ -21,9 +21,10 @@
       "warning": "Warning"
     },
     "pagination": {
-      "label": "Page navigation",
-      "previous": "Previous",
-      "next": "Next"
+      "label": "Page navigation"
+    },
+    "breadcrumb": {
+      "label": "Breadcrumb"
     },
     "availableFrom": {
       "title": "Available from {version}",

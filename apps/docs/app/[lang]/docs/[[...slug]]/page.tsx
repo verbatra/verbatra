@@ -1,4 +1,4 @@
-import { Callout } from "fumadocs-ui/components/callout";
+import { findNeighbour } from "fumadocs-core/page-tree";
 import {
   DocsBody,
   DocsDescription,
@@ -10,14 +10,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { DocsCallout } from "@/components/docs-callout";
 import { DocsPageActions } from "@/components/docs-page-actions";
 import { JsonLd } from "@/components/json-ld";
-import { CALLOUT_CLASS, getMDXComponents } from "@/components/mdx";
+import { getMDXComponents } from "@/components/mdx";
 import { PageEyebrow } from "@/components/page-eyebrow";
 import { PageNeighbours } from "@/components/page-neighbours";
 import { sdkReferenceComponents } from "@/components/sdk-reference";
 import { docsBreadcrumbTrail } from "@/lib/docs-breadcrumb";
 import { footerNeighbourUrls } from "@/lib/docs-neighbours";
+import { withShortCommandLabels } from "@/lib/docs-page-tree";
 import { extractFaqItems, withoutQuestions } from "@/lib/extract-faq";
 import { i18n, type Locale, localizedPath, toLocale } from "@/lib/i18n";
 import { markdownUrl } from "@/lib/markdown-route";
@@ -78,9 +80,9 @@ async function LocaleNotice({
   if (sourcePath === page.path) {
     const notTranslated = await getTranslations({ locale: lang, namespace: "docs.notTranslated" });
     return (
-      <Callout type="info" className={CALLOUT_CLASS} title={notTranslated("title")}>
+      <DocsCallout locale={lang} type="info" title={notTranslated("title")}>
         {notTranslated("text")}
-      </Callout>
+      </DocsCallout>
     );
   }
 
@@ -94,14 +96,14 @@ async function LocaleNotice({
     ? await getTranslations({ locale: lang, namespace: "docs.outdatedTranslation" })
     : undefined;
   return (
-    <Callout
+    <DocsCallout
+      locale={lang}
       type={outdatedCopy ? "warn" : "info"}
-      className={CALLOUT_CLASS}
       title={outdatedCopy ? outdatedCopy("title") : machineTranslated("title")}
     >
       {machineTranslated("text")} {outdatedCopy ? `${outdatedCopy("text")} ` : null}
       <Link href={`/docs/${slug.join("/")}`}>{machineTranslated("viewOriginal")}</Link>.
-    </Callout>
+    </DocsCallout>
   );
 }
 
@@ -124,16 +126,22 @@ export default async function Page(props: { params: Promise<{ slug?: string[]; l
 
   const jsonLd = await pageJsonLd(page, params.slug, lang);
 
+  const tree = source.getPageTree(lang);
+  const neighbours = findNeighbour(withShortCommandLabels(tree), page.url);
+
   return (
     <DocsPage
       toc={isHome ? [] : pageToc(page.data.toc, page.data.tocDepth)}
       tableOfContentPopover={{ trigger: { "aria-label": onThisPageLabel(lang) } }}
       full={isHome}
-      slots={{ breadcrumb: PageEyebrow }}
-      breadcrumb={{ enabled: !isHome }}
+      tableOfContent={{ single: true }}
+      breadcrumb={{
+        enabled: !isHome,
+        component: <PageEyebrow tree={tree} url={page.url} />,
+      }}
       footer={{
         enabled: !isHome,
-        component: <PageNeighbours locale={lang} url={page.url} />,
+        component: <PageNeighbours locale={lang} {...neighbours} />,
       }}
       className={isHome ? "max-w-none p-0 md:p-0 xl:p-0" : undefined}
       tabIndex={-1}
@@ -141,6 +149,7 @@ export default async function Page(props: { params: Promise<{ slug?: string[]; l
       {jsonLd.map((data) => (
         <JsonLd key={String(data["@type"])} data={data} />
       ))}
+      <LocaleNotice page={page} slug={params.slug} lang={lang} />
       {isHome ? null : (
         <header className="vk-page-head">
           <div className="vk-page-head-row">
@@ -151,12 +160,11 @@ export default async function Page(props: { params: Promise<{ slug?: string[]; l
         </header>
       )}
       <DocsBody className={page.data.codeHeadings ? CODE_HEADINGS_CLASS : undefined}>
-        <LocaleNotice page={page} slug={params.slug} lang={lang} />
         <MDX
           components={getMDXComponents(
             lang,
             sdkReferenceComponents(lang),
-            isHome ? undefined : footerNeighbourUrls(source.getPageTree(lang), page.url),
+            isHome ? undefined : footerNeighbourUrls(neighbours),
           )}
         />
         {editHref ? <EditOnGitHub href={editHref} className="vk-tap" /> : null}

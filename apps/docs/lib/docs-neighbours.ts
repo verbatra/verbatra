@@ -1,8 +1,11 @@
-import { findNeighbour, type Root } from "fumadocs-core/page-tree";
+import type { Item } from "fumadocs-core/page-tree";
 
-export function footerNeighbourUrls(tree: Root, url: string): ReadonlySet<string> {
-  const { previous, next } = findNeighbour(tree, url);
-  return new Set([previous?.url, next?.url].filter((neighbour) => neighbour !== undefined));
+export function footerNeighbourUrls(neighbours: {
+  previous?: Item | undefined;
+  next?: Item | undefined;
+}): ReadonlySet<string> {
+  const { previous, next } = neighbours;
+  return new Set([previous?.url, next?.url].filter((url) => url !== undefined));
 }
 
 export function duplicatesFooter(

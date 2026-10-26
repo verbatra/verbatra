@@ -1,32 +1,33 @@
 import Link from "fumadocs-core/link";
-import { findNeighbour } from "fumadocs-core/page-tree";
+import type { Item } from "fumadocs-core/page-tree";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
-import { withShortCommandLabels } from "@/lib/docs-page-tree";
+import { paginationLabels } from "@/lib/docs-pagination";
 import type { Locale } from "@/lib/i18n";
-import { source } from "@/lib/source";
 
 export async function PageNeighbours({
   locale,
-  url,
+  previous,
+  next,
 }: {
   locale: Locale;
-  url: string;
+  previous?: Item | undefined;
+  next?: Item | undefined;
 }): Promise<ReactNode> {
-  const { previous, next } = findNeighbour(withShortCommandLabels(source.getPageTree(locale)), url);
   if (!previous && !next) return null;
   const t = await getTranslations({ locale, namespace: "docs.pagination" });
+  const labels = paginationLabels(locale);
   return (
     <nav aria-label={t("label")} className="vk-docs-footer">
       {previous ? (
         <Link href={previous.url} rel="prev">
-          <span className="vk-docs-footer-direction">{t("previous")}</span>
+          <span className="vk-docs-footer-direction vk-label">{labels.previous}</span>
           <span className="vk-docs-footer-title">{previous.name}</span>
         </Link>
       ) : null}
       {next ? (
         <Link href={next.url} rel="next" data-direction="next">
-          <span className="vk-docs-footer-direction">{t("next")}</span>
+          <span className="vk-docs-footer-direction vk-label">{labels.next}</span>
           <span className="vk-docs-footer-title">{next.name}</span>
         </Link>
       ) : null}

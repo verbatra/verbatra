@@ -56,9 +56,10 @@
       "warning": "Avertissement"
     },
     "pagination": {
-      "label": "Navigation de la page",
-      "previous": "Précédent",
-      "next": "Suivant"
+      "label": "Navigation de la page"
+    },
+    "breadcrumb": {
+      "label": "Fil d'Ariane"
     }
   },
   "landing": {

@@ -1,9 +1,15 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { getBreadcrumbItemsFromPath, searchPath } from "fumadocs-core/breadcrumb";
 import { loader, type MetaData, type VirtualFile } from "fumadocs-core/source";
 import { describe, expect, it } from "vitest";
-import { docsBreadcrumbTrail, VISIBLE_BREADCRUMB_OPTIONS } from "@/lib/docs-breadcrumb";
+import {
+  breadcrumbItems,
+  docsBreadcrumbTrail,
+  eyebrowTrail,
+  pagePath,
+  VISIBLE_BREADCRUMB_OPTIONS,
+  visibleTrail,
+} from "@/lib/docs-breadcrumb";
 import { i18n, localizedPath } from "@/lib/i18n";
 import { breadcrumbListLd } from "@/lib/structured-data";
 
@@ -37,12 +43,8 @@ function listFor(lang: "en" | "de", path: string): unknown {
 
 function visibleNames(lang: "en" | "de", path: string): unknown[] {
   const tree = docs.getPageTree(lang);
-  const url = localizedPath(lang, path);
-  return getBreadcrumbItemsFromPath(
-    tree,
-    searchPath(tree.children, url) ?? [],
-    VISIBLE_BREADCRUMB_OPTIONS,
-  ).map((item) => item.name);
+  const trailPath = pagePath(tree, localizedPath(lang, path));
+  return breadcrumbItems(tree, trailPath, VISIBLE_BREADCRUMB_OPTIONS).map((item) => item.name);
 }
 
 describe("docsBreadcrumbTrail", () => {
@@ -76,21 +78,34 @@ describe("docsBreadcrumbTrail", () => {
     ]);
   });
 
-  it("names no crumb the visible breadcrumb does not show, on every page", () => {
+  it("names no crumb the visible trail does not show, on every page", () => {
     for (const lang of ["en", "de"] as const) {
+      const tree = docs.getPageTree(lang);
       for (const page of docs.getPages(lang)) {
-        const tree = docs.getPageTree(lang);
-        const visible = new Set(
-          getBreadcrumbItemsFromPath(
-            tree,
-            searchPath(tree.children, page.url) ?? [],
-            VISIBLE_BREADCRUMB_OPTIONS,
-          ).map((item) => item.name),
-        );
+        const visible = new Set(visibleTrail(tree, pagePath(tree, page.url)).map((i) => i.name));
         for (const crumb of docsBreadcrumbTrail(tree, page.url)) {
           expect(visible.has(crumb.name), `${page.url}: ${crumb.name}`).toBe(true);
         }
       }
     }
+  });
+});
+
+describe("the visible trail", () => {
+  it("starts at the tab and ends at the page, in order", () => {
+    const tree = docs.getPageTree("en");
+    const names = visibleTrail(tree, pagePath(tree, "/docs/cli/check")).map((item) => item.name);
+    expect(names).toEqual(["Reference", "CLI", "verbatra check"]);
+  });
+
+  it("prefixes the eyebrow with the tab, and shows only the tab for a page directly under it", () => {
+    const tree = docs.getPageTree("en");
+    expect(eyebrowTrail(tree, pagePath(tree, "/docs/cli/check"))).toEqual(["Reference", "CLI"]);
+    expect(eyebrowTrail(tree, pagePath(tree, "/docs/error-codes"))).toEqual(["Reference"]);
+  });
+
+  it("names nothing for a url that is not a page", () => {
+    const tree = docs.getPageTree("en");
+    expect(eyebrowTrail(tree, pagePath(tree, "/docs/does-not-exist"))).toEqual([]);
   });
 });

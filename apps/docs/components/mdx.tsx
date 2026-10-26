@@ -9,7 +9,7 @@ import type { MDXComponents } from "mdx/types";
 import type { ComponentProps } from "react";
 import { AvailableFrom, type AvailableFromProps } from "@/components/available-from";
 import { DiffPanel } from "@/components/diff-panel";
-import { CALLOUT_CLASS, DocsCallout } from "@/components/docs-callout";
+import { DocsCallout } from "@/components/docs-callout";
 import { DocsCodeBlock } from "@/components/docs-code-block";
 import {
   DocsHomeAgentTip,
@@ -39,7 +39,6 @@ import { isShortInlineCode, SHORT_CODE_CLASS } from "@/lib/inline-code";
 import { cn } from "@/lib/utils";
 import { breakInlineCode } from "@/lib/word-breaks";
 
-export { CALLOUT_CLASS };
 export const LINK_CARD_CLASS = "vk-link-card";
 
 const NO_NEIGHBOURS: ReadonlySet<string> = new Set();

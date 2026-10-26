@@ -56,9 +56,10 @@
       "warning": "Warnung"
     },
     "pagination": {
-      "label": "Seitennavigation",
-      "previous": "Zurück",
-      "next": "Weiter"
+      "label": "Seitennavigation"
+    },
+    "breadcrumb": {
+      "label": "Brotkrumen"
     }
   },
   "landing": {

@@ -2,28 +2,37 @@
 
 import { useTreeContext, useTreePath } from "fumadocs-ui/contexts/tree";
 import { ChevronRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Fragment, type ReactNode } from "react";
-import { crumbTrail } from "@/lib/docs-crumbs";
+import { visibleTrail } from "@/lib/docs-breadcrumb";
 
 export function DocsCrumbBar({ children }: { children: ReactNode }): ReactNode {
-  const { root } = useTreeContext();
-  const trail = crumbTrail(root, useTreePath());
+  const t = useTranslations("docs.breadcrumb");
+  const { full } = useTreeContext();
+  const trail = visibleTrail(full, useTreePath());
+  const last = trail.length - 1;
   return (
-    <div className="vk-crumb-bar md:hidden">
+    <div className="vk-crumb-bar">
       {children}
-      <p className="vk-crumbs">
-        {trail.map((crumb, index) => (
-          <Fragment key={`${index}-${crumb.url ?? ""}`}>
-            {index > 0 ? <ChevronRight aria-hidden="true" className="vk-crumbs-separator" /> : null}
-            <span
-              className="vk-crumbs-item"
-              {...(index === trail.length - 1 ? { "aria-current": "page" as const } : {})}
-            >
-              {crumb.name}
-            </span>
-          </Fragment>
-        ))}
-      </p>
+      <nav aria-label={t("label")} className="vk-crumbs">
+        <ol>
+          {trail.map((crumb, index) => (
+            <Fragment key={`${crumb.url ?? "crumb"}:${trail.length - index}`}>
+              {index > 0 ? (
+                <li aria-hidden="true" className="vk-crumbs-separator">
+                  <ChevronRight />
+                </li>
+              ) : null}
+              <li
+                className="vk-crumbs-item"
+                {...(index === last ? { "aria-current": "page" as const } : {})}
+              >
+                {crumb.name}
+              </li>
+            </Fragment>
+          ))}
+        </ol>
+      </nav>
     </div>
   );
 }

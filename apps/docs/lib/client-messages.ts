@@ -1,6 +1,7 @@
 import type { AbstractIntlMessages } from "next-intl";
 
 export const CLIENT_MESSAGE_NAMESPACES = [
+  "docs.breadcrumb",
   "docs.diffPanel",
   "docs.screenshot",
   "docs.theme",

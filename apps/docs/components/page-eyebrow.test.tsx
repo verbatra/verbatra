@@ -1,52 +1,35 @@
-// @vitest-environment jsdom
-
 import type * as PageTree from "fumadocs-core/page-tree";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
+import { PageEyebrow } from "./page-eyebrow";
 
 const translate: PageTree.Item = { type: "page", name: "translate", url: "/docs/cli/translate" };
-const cli: PageTree.Folder = { type: "folder", name: "CLI", children: [translate] };
-const reference: PageTree.Folder = {
-  type: "folder",
-  name: "Reference",
-  root: true,
-  children: [cli],
+const errorCodes: PageTree.Item = { type: "page", name: "Error codes", url: "/docs/error-codes" };
+const tree: PageTree.Root = {
+  name: "Docs",
+  children: [
+    {
+      type: "folder",
+      name: "Reference",
+      root: true,
+      children: [{ type: "folder", name: "CLI", children: [translate] }, errorCodes],
+    },
+  ],
 };
-const state = vi.hoisted(() => ({ path: [] as ReadonlyArray<unknown> }));
-
-vi.mock("fumadocs-ui/contexts/tree", () => ({
-  useTreeContext: () => ({ root: { name: "Reference", children: [reference] } }),
-  useTreePath: () => state.path,
-}));
-
-const { PageEyebrow } = await import("./page-eyebrow");
-const { DocsCrumbBar } = await import("./docs-crumb-bar");
 
 describe("PageEyebrow", () => {
-  it("prints the sidebar group of the page as a label", () => {
-    state.path = [reference, cli, translate];
-    const markup = renderToStaticMarkup(<PageEyebrow />);
-    expect(markup).toContain('class="vk-page-eyebrow vk-label"');
-    expect(markup).toContain(">CLI<");
+  it("prints the tab and the sidebar group of the page as one label", () => {
+    const markup = renderToStaticMarkup(<PageEyebrow tree={tree} url={translate.url} />);
+    expect(markup).toBe('<p class="vk-page-eyebrow vk-label">Reference / CLI</p>');
   });
 
-  it("prints nothing when the page has no tree path", () => {
-    state.path = [];
-    expect(renderToStaticMarkup(<PageEyebrow />)).toBe("");
-  });
-});
-
-describe("DocsCrumbBar", () => {
-  it("shows the trail, marks the page and keeps the trigger first", () => {
-    state.path = [reference, cli, translate];
-    const markup = renderToStaticMarkup(
-      <DocsCrumbBar>
-        <button type="button">menu</button>
-      </DocsCrumbBar>,
+  it("falls back to the tab for a page directly under it", () => {
+    expect(renderToStaticMarkup(<PageEyebrow tree={tree} url={errorCodes.url} />)).toContain(
+      ">Reference<",
     );
-    expect(markup.indexOf("<button")).toBeLessThan(markup.indexOf("vk-crumbs"));
-    expect(markup).toContain("Reference");
-    expect(markup).toContain("CLI");
-    expect(markup).toMatch(/aria-current="page"[^>]*>translate</);
+  });
+
+  it("prints nothing for a url outside the tree", () => {
+    expect(renderToStaticMarkup(<PageEyebrow tree={tree} url="/docs/missing" />)).toBe("");
   });
 });

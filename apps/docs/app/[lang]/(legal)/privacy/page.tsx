@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 import { AnalyticsOptOut, type AnalyticsOptOutLabels } from "@/components/analytics-opt-out";
-import { CALLOUT_CLASS } from "@/components/mdx";
+import { CALLOUT_CLASS } from "@/components/docs-callout";
 import { type Locale, toLocale } from "@/lib/i18n";
 import {
   PRIVACY_ANALYTICS_KEY,

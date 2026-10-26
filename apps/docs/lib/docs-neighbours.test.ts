@@ -1,4 +1,4 @@
-import type { Root } from "fumadocs-core/page-tree";
+import { findNeighbour, type Root } from "fumadocs-core/page-tree";
 import { describe, expect, it } from "vitest";
 import { duplicatesFooter, footerNeighbourUrls } from "@/lib/docs-neighbours";
 
@@ -13,14 +13,13 @@ const TREE: Root = {
 
 describe("footer neighbours", () => {
   it("lists the previous and next page the footer links to", () => {
-    expect([...footerNeighbourUrls(TREE, "/fr/docs/connect-an-mcp-client")].sort()).toEqual([
-      "/fr/docs/agent-recipes",
-      "/fr/docs/start-with-ai",
-    ]);
+    expect(
+      [...footerNeighbourUrls(findNeighbour(TREE, "/fr/docs/connect-an-mcp-client"))].sort(),
+    ).toEqual(["/fr/docs/agent-recipes", "/fr/docs/start-with-ai"]);
   });
 
   it("drops a card that repeats a footer link and keeps a deep link into the same page", () => {
-    const neighbours = footerNeighbourUrls(TREE, "/fr/docs/connect-an-mcp-client");
+    const neighbours = footerNeighbourUrls(findNeighbour(TREE, "/fr/docs/connect-an-mcp-client"));
     expect(duplicatesFooter("/fr/docs/agent-recipes", neighbours)).toBe(true);
     expect(duplicatesFooter("/fr/docs/agent-recipes#the-skills-pack", neighbours)).toBe(false);
     expect(duplicatesFooter("/fr/docs/providers", neighbours)).toBe(false);

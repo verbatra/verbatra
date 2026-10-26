@@ -56,9 +56,10 @@
       "warning": "Advertencia"
     },
     "pagination": {
-      "label": "Navegación de la página",
-      "previous": "Anterior",
-      "next": "Siguiente"
+      "label": "Navegación de la página"
+    },
+    "breadcrumb": {
+      "label": "Ruta de navegación"
     }
   },
   "landing": {
