@@ -36,7 +36,7 @@ Chaque entrée est rattachée au contexte dans lequel elle a été produite : un
 fournisseur, le modèle, le ton, les termes du glossaire de cette locale, et le
 [`localeMap`](/fr/docs/providers#codes-de-locale-envoyés-au-fournisseur) du fournisseur quand il a
 des entrées. Change l'un d'eux et les entrées précédentes ne correspondent plus, donc un nouveau ton
-ou un glossaire modifié retraduit au lieu de servir un résultat périmé. Chaque locale a sa propre
+ou un glossaire modifié retraduit au lieu de servir un résultat périmé. La partie glossaire est ce qu'une exécution envoie : un réglage `sensitiveData` qui retient ou masque un terme la modifie, alors que le drapeau `caseSensitive` d'un terme n'en fait pas partie. Chaque locale a sa propre
 empreinte, donc modifier seulement la traduction allemande d'un terme laisse les entrées françaises
 correspondre.
 

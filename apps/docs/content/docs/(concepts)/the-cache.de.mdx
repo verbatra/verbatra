@@ -36,7 +36,7 @@ Jeder Eintrag ist auf den Kontext beschränkt, in dem er entstanden ist: einen F
 Provider, das Modell, den Tonfall, die Glossarbegriffe dieser Locale und die
 [`localeMap`](/de/docs/providers#an-den-provider-gesendete-locale-codes) des Providers, wenn sie
 Einträge hat. Ändert sich einer davon, passen frühere Einträge nicht mehr, sodass ein neuer Tonfall
-oder ein bearbeitetes Glossar neu übersetzt statt ein veraltetes Ergebnis zu liefern. Jede Locale
+oder ein bearbeitetes Glossar neu übersetzt statt ein veraltetes Ergebnis zu liefern. Der Glossaranteil ist das, was ein Lauf sendet: Eine `sensitiveData`-Einstellung, die einen Begriff zurückhält oder schwärzt, ändert ihn, das `caseSensitive`-Flag eines Begriffs gehört nicht dazu. Jede Locale
 hat ihren eigenen Fingerprint, das Bearbeiten nur der deutschen Übersetzung eines Glossarbegriffs
 lässt die französischen Einträge also passend.
 

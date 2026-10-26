@@ -34,7 +34,7 @@ Every entry is scoped to the context it was produced in: a fingerprint over the 
 model, the tone, the glossary terms of that locale, and the provider's
 [`localeMap`](/docs/providers#locale-codes-sent-to-the-provider) when it has entries. Change any of
 them and earlier entries stop matching, so a new tone or an edited glossary retranslates instead of
-serving a stale result. Each locale has its own fingerprint, so editing only the German translation
+serving a stale result. The glossary part is what a run sends, so a `sensitiveData` setting that withholds or redacts a term changes it, while a term's `caseSensitive` flag is not part of it. Each locale has its own fingerprint, so editing only the German translation
 of a glossary term leaves the French entries matching.
 
 The format is not part of the fingerprint; the integrity gate on every hit catches a value that no

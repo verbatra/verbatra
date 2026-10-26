@@ -72,6 +72,10 @@ function createFlatFileAdapter(
 
 **Exemple :** [Construire l'adaptateur](/fr/docs/custom-format-adapters#construire-ladaptateur)
 
+Un `FormatAdapter` lit un fichier en un `LocaleResource`, la forme neutre que partagent tous les adaptateurs et flux :
+
+<SdkTypeTable name="LocaleResource" />
+
 ### createTreeFileAdapter
 
 Construit un `FormatAdapter` pour un format arborescent, dont les entrées vivent sur des chemins à travers des objets imbriqués. Il prend `parse` et `serialize` sur un arbre plus un `deriveEntry` qui indique les placeholders de chaque feuille et si elle est une forme plurielle, ainsi que `extractPlaceholders` pour une valeur, et gère lui-même l'aplatissement et la reconstruction. Comme la fabrique plate, il prend `format`, `extensions` et un `sniff` optionnel. Il porte aussi les hooks optionnels dont un format structuré a besoin : `validateTree`, `validateMessage`, `computeInvalidIcuKeys`, `comparePlaceholders`, `compareBranchArms` (à partir de 0.12.0), `deriveDescriptions`, `buildWriteTree` et `keyMode`, et `fs` remplace le port de système de fichiers, `nodeAdapterFs` par défaut.
@@ -217,8 +221,9 @@ const summary = await translate({ config }, { createProvider });
   et `translateBatch(request)`. Traite chaque valeur d'une requête comme une donnée non fiable, lis
   toute clé d'API depuis l'environnement plutôt que depuis la requête, et lève un `ProviderError`
   sans secret quand un appel échoue.
-- `ProviderKind` vaut `"llm"` ou `"machine-translation"`. Il est purement descriptif : rien dans le
-  SDK ne se base dessus.
+- `ProviderKind` vaut `"llm"` ou `"machine-translation"`. Le `kind` de ton objet fournisseur est
+  purement descriptif : le SDK décide de la génération des pluriels et de ce que scanne la garde de
+  données sensibles d'après le type de l'`id` de fournisseur configuré, pas d'après ce champ.
 - `TranslateRequest` porte `sourceLocale`, `targetLocale`, les `entries` à traduire et, en option,
   `glossary` (le résultat de [`glossaryForLocale`](/fr/docs/sdk/config#glossaryforlocale) pour la locale cible),
   `tone`, `maxLength` et `pluralCategories`. Il porte aussi `extractPlaceholders` et, pour certains

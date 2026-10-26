@@ -82,6 +82,10 @@ function createFlatFileAdapter(
 
 **Example:** [Build the adapter](/docs/custom-format-adapters#build-the-adapter)
 
+A `FormatAdapter` reads a file into a `LocaleResource`, the neutral form every adapter and flow shares:
+
+<SdkTypeTable name="LocaleResource" />
+
 ### createTreeFileAdapter
 
 Builds a `FormatAdapter` for a nested-tree format, one whose entries live at paths through nested objects. It takes `parse` and `serialize` over a tree plus a `deriveEntry` that reports each leaf's placeholders and whether it is a plural form, and `extractPlaceholders` for one value, and handles flattening and unflattening itself. Like the flat factory it takes `format`, `extensions` and an optional `sniff`. It also carries the optional hooks a structured format needs: `validateTree`, `validateMessage`, `computeInvalidIcuKeys`, `comparePlaceholders`, `compareBranchArms` (from 0.12.0), `deriveDescriptions`, `buildWriteTree` and `keyMode`, and `fs` replaces the file-system port, `nodeAdapterFs` by default.
@@ -223,8 +227,9 @@ const summary = await translate({ config }, { createProvider });
   and `translateBatch(request)`. Treat every value in a request as untrusted data, read any API key
   from the environment rather than from the request, and throw a `ProviderError` without secrets in
   it when a call fails.
-- `ProviderKind` is `"llm"` or `"machine-translation"`. It is descriptive only: nothing in the SDK
-  branches on it.
+- `ProviderKind` is `"llm"` or `"machine-translation"`. The `kind` on your provider object is
+  descriptive only: the SDK decides plural generation and what the sensitive-data guard scans from
+  the kind of the configured provider `id`, not from this field.
 - `TranslateRequest` carries `sourceLocale`, `targetLocale`, the `entries` to translate, and the
   optional `glossary` (the result of [`glossaryForLocale`](/docs/sdk/config#glossaryforlocale) for the target
   locale), `tone`, `maxLength`, and `pluralCategories`. It also carries `extractPlaceholders` and,

@@ -174,7 +174,7 @@ provider: {
 | `baseUrl` | URL `http` o `https` | obligatoria | La raíz de la API, que suele terminar en `/v1`. Una URL que termina en `/chat/completions` o `/completions` se rechaza; una sin `/v1` pasa la validación y falla al hacer la petición. |
 | `model` | string | obligatoria | El modelo que exponga tu servidor. |
 | `maxOutputTokens` | entero positivo | obligatoria | Limita los tokens de salida de una respuesta. |
-| `apiKeyEnvVar` | nombre de variable | ninguno | La variable que contiene una clave para este servidor. |
+| `apiKeyEnvVar` | nombre de variable | ninguno | La variable que contiene la clave de este servidor. |
 | `requestTimeoutMs` | entero positivo | `120000` | Acota cada intento de petición. |
 | `localeMap` | mapa de locale a código | ninguno | Sustituye el código enviado por locale. |
 
@@ -276,7 +276,7 @@ El trabajo de un locale se envía en sublotes secuenciales de como mucho [`maxBa
 
 ### Reintentos
 
-Los límites de tasa y los errores de servidor se reintentan con espera, por el cliente en OpenAI, Anthropic y DeepL y por verbatra en Gemini. Google Cloud Translation y LibreTranslate no reintentan: el error aflora de inmediato como `RATE_LIMITED` o `PROVIDER_UNAVAILABLE`.
+Los límites de tasa y los errores de servidor se reintentan con espera, por el cliente en OpenAI, openai-compatible, Anthropic y DeepL y por verbatra en Gemini. Google Cloud Translation y LibreTranslate no reintentan: el error aflora de inmediato como `RATE_LIMITED` o `PROVIDER_UNAVAILABLE`.
 
 ### Tiempo de espera de petición
 

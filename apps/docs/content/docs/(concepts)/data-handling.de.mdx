@@ -72,7 +72,7 @@ geht nur an den konfigurierten Endpunkt (`google-translate` sendet ihn im Query-
 | --- | --- |
 | `warn` | Sendet wie gewohnt; ein Hinweis nennt die Keys. |
 | `block` | Hält den Key zurück, die Locale endet also `partial`. |
-| `redact` | Sendet für jeden Treffer im Wert ein Token und setzt den Treffer wieder ein; ein Treffer in einer Beschreibung oder Bedeutung geht als `[redacted]` hinaus. Ein Treffer im Key-Namen oder ein Token, das nicht genau einmal zurückkommt, hält den Key zurück. Bei DeepL und Google zählt ein Token als Platzhalter, ein Wert, den sie nicht schützen können, wird also als `PLACEHOLDER_UNSUPPORTED` zurückgehalten. |
+| `redact` | Sendet für jeden Treffer im Wert ein Token und setzt den Treffer wieder ein; ein Treffer in einer Beschreibung oder Bedeutung geht als `[redacted]` hinaus. Ein Treffer im Key-Namen oder ein Token, das nicht genau einmal zurückkommt, hält den Key zurück. Bei DeepL, Google und LibreTranslate zählt ein Token als Platzhalter, ein Wert, den sie nicht schützen können, wird also als `PLACEHOLDER_UNSUPPORTED` zurückgehalten. |
 
 `block` und `redact` lassen außerdem einen passenden Glossarbegriff weg. `verbatra init` schreibt bei einem maschinellen Provider `warn`. Bei einem Fehlalarm trägst du den Text in `allow` ein oder entfernst seinen Detektor. [`verbatra check --sensitive`](/de/docs/cli/check#sensible-inhalte) prüft ohne Key. Namen in freiem Text werden nicht gefunden.
 

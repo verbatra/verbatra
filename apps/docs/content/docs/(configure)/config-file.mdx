@@ -47,7 +47,7 @@ Each group has its own section: [locales and files](#locales-and-files), [provid
 
 ## Every key
 
-Unknown keys are rejected at every level except `$schema`, so an API key cannot live in the config.
+Unknown keys are rejected at every level except `$schema` and the entries you name yourself in `maxLength` and `rates.table`, so an API key cannot live in the config.
 
 | Key | Type | Default | Since | Effect |
 | --- | --- | --- | --- | --- |
@@ -72,7 +72,7 @@ Unknown keys are rejected at every level except `$schema`, so an API key cannot 
 | `sensitiveData.mode` | `"off"`, `"warn"`, `"block"`, `"redact"` | required in the block; `"off"` without the block | 0.12.0 | What a run does with [sensitive content](/docs/data-handling#sensitive-content-guard) before sending. |
 | `sensitiveData.detectors` | detector id array | `secret`, `email`, `iban`, `credit-card` | 0.12.0 | Detectors to run; `phone`, `ip`, `private-host` are opt-in. |
 | `sensitiveData.patterns` | string array | none | 0.12.0 | Regular expressions for your own terms, such as codenames. |
-| `sensitiveData.allow` | string array | none | 0.12.0 | Matches never reported; `*` is a wildcard. |
+| `sensitiveData.allow` | string array | none | 0.12.0 | Matches never reported; `*` is a wildcard, and case is ignored. |
 | `maxBatchSize` | positive integer | `50` | 0.3.0 | The most entries per provider request. |
 | `maxLength` | map of key to positive integer | none | 0.11.0 | Per-key length budgets in grapheme clusters. |
 | `maxTokens` | positive integer | none | 0.5.0 | A whole-run token budget. |
@@ -175,7 +175,7 @@ Version 2 adds per-locale translations, forbidden renderings and terms to keep a
 | `terms[].note`, `terms[].partOfSpeech` | Free-text context, sent to an LLM provider as data. |
 | `doNotTranslate` | Terms copied untranslated. A bare string keeps its case; `{ "term", "caseSensitive": false }` may change it. |
 
-Each term needs a `target`, a `targets` entry or a `forbidden` list; it may not forbid its own translation, name a locale twice, or appear in `doNotTranslate`. A locale's [cache](/docs/the-cache) fingerprint covers only its own terms. A version 1 file keeps its fingerprint; [`updateGlossaryTerm`](/docs/sdk/config#updateglossaryterm) rewrites it as version 2 only for an edit version 1 cannot express.
+Each term needs a `target`, a `targets` entry or a `forbidden` list; it may not forbid its own translation, name a locale twice, or appear in `doNotTranslate`. No text may be blank; a term is at most 200 characters, a translation or forbidden rendering 2000, a `note` 500 and a `partOfSpeech` 50. A locale's [cache](/docs/the-cache) fingerprint covers only its own terms. A version 1 file keeps its fingerprint; [`updateGlossaryTerm`](/docs/sdk/config#updateglossaryterm) rewrites it as version 2 only for an edit version 1 cannot express.
 
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" /> [Studio](/docs/review-in-studio) edits only the file form, one term at a time. [Providers](/docs/providers#tone-and-glossary-across-providers) says which providers apply it; every output is [checked afterwards](/docs/translation-safety).
 
@@ -189,7 +189,7 @@ When true, verbatra synthesizes the CLDR plural forms a target needs but the sou
 
 ### humanEdits and pinnedKeys
 
-`humanEdits` covers a stale key whose value a person wrote (`human`, `import` or `external` [provenance](/docs/the-lock-file#provenance-who-wrote-each-value)); a key matching `pinnedKeys` (such as `["legal.*", "brand.name"]`) is never machine-written, whatever `humanEdits` says. What each mode does is under [Keep human translations](/docs/protecting-human-translations).
+`humanEdits` covers a stale key whose value a person wrote (`human`, `import` or `external` [provenance](/docs/the-lock-file#provenance-who-wrote-each-value)); a key matching `pinnedKeys` (such as `["legal.*", "brand.name"]`) is never machine-written, whatever `humanEdits` says. `*` matches any run of characters, dots included, and the match is case-sensitive. What each mode does is under [Keep human translations](/docs/protecting-human-translations).
 
 ### network
 
@@ -221,7 +221,7 @@ maxLength: {
 
 ### maxTokens and budgetBehavior
 
-`maxTokens` is a whole-run budget: input plus output tokens over every provider call (translation and plural generation) and every target locale. [`translate --max-tokens`](/docs/cli/translate#token-ceiling) can tighten it for one run, never loosen it.
+`maxTokens` is a whole-run budget: input plus output tokens over every provider call (translation and plural generation) and every target locale. [`translate --max-tokens`](/docs/cli/translate#token-ceiling) can tighten it for one run, never loosen it, and always as a hard `"stop"`.
 
 `budgetBehavior` decides what happens then:
 
@@ -235,7 +235,7 @@ Under `"stop"`:
 - The projection adds a fixed LLM prompt allowance, for machine-translation providers too, and covers a whole batch, so a `maxTokens` below one batch's projection refuses it every run; the notice says to lower `maxBatchSize` or raise `maxTokens`.
 - A locale with withheld keys is `partial`, or `failed` if no key landed, and both exit `1`. Under `"warn"` the exit code never changes.
 
-The budget bounds one `translate` run, never a single-entry retranslation; `watch` starts a fresh one per run. A budget rules out [`--concurrency`](/docs/cli/translate#parallel-locales) above `1`. `budgetBehavior` without `maxTokens` has no effect.
+The budget bounds one `translate` run, never a single-entry retranslation; `watch` starts a fresh one per run. A budget rules out [`--concurrency`](/docs/cli/translate#parallel-locales) above `1` on a live run; a dry run is exempt. `budgetBehavior` without `maxTokens` has no effect.
 
 <Callout type="warn" title="Two different maxTokens">
 The top-level `maxTokens` is this whole-run budget; Anthropic's unrelated `provider.options.maxTokens` caps one response ([Providers](/docs/providers#anthropic)).

@@ -63,7 +63,7 @@ Resuelve la correspondencia entre locales y rutas del proyecto en ambos sentidos
 `files.pattern`, los locales configurados y `files.localeStyle`. `createLocalePathResolver(cwd,
 config)` devuelve `{ pathFor, localeFor }`: `pathFor(locale)` es la ruta absoluta del archivo de un
 locale, y `localeFor(path)` es el locale al que pertenece una ruta, o `undefined` para una ruta que
-este proyecto no posee. Todos los puntos de entrada del SDK resuelven rutas a través de él, así que
+este proyecto no posee, y siempre `undefined` para un formato de catálogo compartido como `apple-xcstrings`. Todos los puntos de entrada del SDK resuelven rutas a través de él, así que
 un watcher o un panel construido sobre el SDK ve exactamente las rutas que escribe una ejecución.
 
 ```ts title="Firma"

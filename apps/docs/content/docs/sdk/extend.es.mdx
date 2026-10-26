@@ -82,6 +82,10 @@ function createFlatFileAdapter(
 
 **Ejemplo:** [Construir el adaptador](/es/docs/custom-format-adapters#construir-el-adaptador)
 
+Un `FormatAdapter` lee un archivo como un `LocaleResource`, la forma neutra que comparten todos los adaptadores y flujos:
+
+<SdkTypeTable name="LocaleResource" />
+
 ### createTreeFileAdapter
 
 Construye un `FormatAdapter` para un formato de árbol, cuyas entradas viven en rutas a través de objetos anidados. Toma `parse` y `serialize` sobre un árbol más un `deriveEntry` que informa de los placeholders de cada hoja y de si es una forma plural, además de `extractPlaceholders` para un solo valor, y se encarga por su cuenta de aplanar y volver a anidar. Igual que la fábrica plana, toma `format`, `extensions` y un `sniff` opcional. También lleva los hooks opcionales que necesita un formato estructurado: `validateTree`, `validateMessage`, `computeInvalidIcuKeys`, `comparePlaceholders`, `compareBranchArms` (desde 0.12.0), `deriveDescriptions`, `buildWriteTree` y `keyMode`, y `fs` sustituye el puerto del sistema de archivos, `nodeAdapterFs` por defecto.
@@ -227,8 +231,9 @@ const summary = await translate({ config }, { createProvider });
   y `translateBatch(request)`. Trata cada valor de una solicitud como datos no confiables, lee
   cualquier clave de API del entorno y no de la solicitud, y lanza un `ProviderError` sin secretos
   cuando una llamada falla.
-- `ProviderKind` es `"llm"` o `"machine-translation"`. Es solo descriptivo: nada en el SDK se
-  ramifica según su valor.
+- `ProviderKind` es `"llm"` o `"machine-translation"`. El `kind` de tu objeto proveedor es solo
+  descriptivo: el SDK decide la generación de plurales y qué analiza el guardián de datos sensibles
+  según el tipo del `id` de proveedor configurado, no según este campo.
 - `TranslateRequest` lleva `sourceLocale`, `targetLocale`, las `entries` que traducir y, de forma
   opcional, `glossary` (el resultado de [`glossaryForLocale`](/es/docs/sdk/config#glossaryforlocale) para el locale de
   destino), `tone`, `maxLength` y `pluralCategories`. También lleva `extractPlaceholders` y, en

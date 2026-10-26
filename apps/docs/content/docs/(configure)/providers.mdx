@@ -276,7 +276,7 @@ A locale's work goes out in sequential sub-batches of at most [`maxBatchSize`](/
 
 ### Retries
 
-Rate limits and server errors are retried with backoff, by the client for OpenAI, Anthropic and DeepL and by verbatra for Gemini. Google Cloud Translation and LibreTranslate do not retry: the error surfaces at once as `RATE_LIMITED` or `PROVIDER_UNAVAILABLE`.
+Rate limits and server errors are retried with backoff, by the client for OpenAI, openai-compatible, Anthropic and DeepL and by verbatra for Gemini. Google Cloud Translation and LibreTranslate do not retry: the error surfaces at once as `RATE_LIMITED` or `PROVIDER_UNAVAILABLE`.
 
 ### Request timeout
 

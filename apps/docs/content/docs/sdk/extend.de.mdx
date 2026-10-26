@@ -84,6 +84,10 @@ function createFlatFileAdapter(
 
 **Beispiel:** [Den Adapter bauen](/de/docs/custom-format-adapters#den-adapter-bauen)
 
+Ein `FormatAdapter` liest eine Datei in eine `LocaleResource`, die neutrale Form, die jeder Adapter und jeder Ablauf teilt:
+
+<SdkTypeTable name="LocaleResource" />
+
 ### createTreeFileAdapter
 
 Baut einen `FormatAdapter` für ein Baumformat, dessen Einträge auf Pfaden durch verschachtelte Objekte liegen. Sie nimmt `parse` und `serialize` über einen Baum plus ein `deriveEntry`, das für jedes Blatt die Platzhalter meldet und ob es eine Pluralform ist, sowie `extractPlaceholders` für einen einzelnen Wert, und übernimmt das Flachklopfen und Wiederaufbauen selbst. Wie die flache Factory nimmt sie `format`, `extensions` und ein optionales `sniff`. Sie trägt außerdem die optionalen Hooks, die ein strukturiertes Format braucht: `validateTree`, `validateMessage`, `computeInvalidIcuKeys`, `comparePlaceholders`, `compareBranchArms` (ab 0.12.0), `deriveDescriptions`, `buildWriteTree` und `keyMode`, und `fs` ersetzt den Dateisystem-Port, standardmäßig `nodeAdapterFs`.
@@ -230,8 +234,9 @@ const summary = await translate({ config }, { createProvider });
   und `translateBatch(request)`. Behandle jeden Wert in einer Anfrage als nicht vertrauenswürdige
   Daten, lies einen API-Key aus der Umgebung statt aus der Anfrage und wirf bei einem Fehlschlag
   einen `ProviderError` ohne Secrets darin.
-- `ProviderKind` ist `"llm"` oder `"machine-translation"`. Der Wert ist rein beschreibend: Nichts im
-  SDK verzweigt danach.
+- `ProviderKind` ist `"llm"` oder `"machine-translation"`. Das `kind` an deinem Provider-Objekt ist
+  rein beschreibend: Pluralgenerierung und was der Sensitive-Data-Guard prüft, bestimmt das SDK aus
+  der Art der konfigurierten Provider-`id`, nicht aus diesem Feld.
 - `TranslateRequest` enthält `sourceLocale`, `targetLocale`, die zu übersetzenden `entries` und
   optional `glossary` (das Ergebnis von [`glossaryForLocale`](/de/docs/sdk/config#glossaryforlocale) für die
   Ziel-Locale), `tone`, `maxLength` und `pluralCategories`. Dazu kommen `extractPlaceholders` und

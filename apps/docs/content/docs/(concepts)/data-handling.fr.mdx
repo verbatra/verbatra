@@ -1,5 +1,6 @@
 ---
 title: Traitement des données et confidentialité
+seoTitle: "Données et confidentialité dans verbatra"
 description: Ce que l'outil verbatra envoie hors de ta machine, à qui, et ce qu'il garde en local, pour qu'une revue sécurité ou juridique puisse le valider.
 type: concept
 ---
@@ -71,7 +72,7 @@ qu'au point de terminaison configuré (`google-translate` l'envoie dans la chaî
 | --- | --- |
 | `warn` | Envoie comme d'habitude ; un avis nomme les clés. |
 | `block` | Retient la clé, donc la locale se termine `partial`. |
-| `redact` | Envoie un jeton à la place de chaque correspondance dans la valeur et la restaure ; une correspondance dans une description ou un sens part en `[redacted]`. Une correspondance dans le nom de la clé, ou un jeton qui ne revient pas exactement une fois, retient la clé. Sur DeepL et Google, un jeton compte comme un placeholder, donc une valeur qu'ils ne peuvent pas protéger est retenue comme `PLACEHOLDER_UNSUPPORTED`. |
+| `redact` | Envoie un jeton à la place de chaque correspondance dans la valeur et la restaure ; une correspondance dans une description ou un sens part en `[redacted]`. Une correspondance dans le nom de la clé, ou un jeton qui ne revient pas exactement une fois, retient la clé. Sur DeepL, Google et LibreTranslate, un jeton compte comme un placeholder, donc une valeur qu'ils ne peuvent pas protéger est retenue comme `PLACEHOLDER_UNSUPPORTED`. |
 
 `block` et `redact` laissent aussi de côté un terme du glossaire qui correspond. `verbatra init` écrit `warn` pour un fournisseur automatique. Pour un faux positif, ajoute le texte à `allow` ou retire son détecteur. [`verbatra check --sensitive`](/fr/docs/cli/check#contenu-sensible) analyse sans clé. Les noms dans du texte libre ne sont pas détectés.
 

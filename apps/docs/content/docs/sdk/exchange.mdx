@@ -62,7 +62,7 @@ Resolves the project's locale-to-path mapping in both directions, from `files.pa
 configured locales, and `files.localeStyle`. `createLocalePathResolver(cwd, config)` returns
 `{ pathFor, localeFor }`: `pathFor(locale)` is the absolute path of one locale's file, and
 `localeFor(path)` is the locale that owns a path, or `undefined` for a path this project does not
-own. Every SDK entry point resolves paths through it, so a watcher or dashboard built on the SDK
+own, and always `undefined` for a shared-catalogue format such as `apple-xcstrings`. Every SDK entry point resolves paths through it, so a watcher or dashboard built on the SDK
 sees exactly the paths a run writes.
 
 ```ts title="Signature"

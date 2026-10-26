@@ -58,7 +58,7 @@ Résout la correspondance entre locales et chemins du projet dans les deux sens,
 `files.pattern`, des locales configurées et de `files.localeStyle`. `createLocalePathResolver(cwd,
 config)` renvoie `{ pathFor, localeFor }` : `pathFor(locale)` est le chemin absolu du fichier d'une
 locale, et `localeFor(path)` est la locale à laquelle appartient un chemin, ou `undefined` pour un
-chemin qui n'appartient pas à ce projet. Tous les points d'entrée du SDK résolvent les chemins par
+chemin qui n'appartient pas à ce projet, et toujours `undefined` pour un format à catalogue partagé comme `apple-xcstrings`. Tous les points d'entrée du SDK résolvent les chemins par
 lui, donc un observateur ou un tableau de bord bâti sur le SDK voit exactement les chemins qu'une
 exécution écrit.
 

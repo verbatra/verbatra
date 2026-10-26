@@ -370,6 +370,10 @@ YAML config point an editor at the package's `@verbatra/sdk/config-schema.json`.
 const verbatraConfigSchema: z.ZodObject<{ ... }, z.core.$strict>;
 ```
 
+Its `rates` block is a `RateCard`, the price list that turns an [estimate](/docs/estimating-cost) into money:
+
+<SdkTypeTable name="RateCard" />
+
 ### scaffoldingMetadata
 
 <AvailableFrom version="0.4.0" />

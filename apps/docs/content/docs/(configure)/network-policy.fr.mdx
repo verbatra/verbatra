@@ -73,7 +73,7 @@ Une requête refusée ici fait échouer son sous-lot avec l'erreur de fournisseu
 
 - **DNS rebinding.** Le nom est résolu une fois pour la vérification et de nouveau pour la connexion, donc un serveur DNS qui répond autrement peut passer. Écris une adresse IP, ou liste le nom dans `allowedHosts`, auquel on fait confiance sans le résoudre.
 - **DeepL est vérifié une seule fois**, avant la construction du fournisseur, pas à chaque requête ni redirection.
-- **Proxys.** Sous une politique restrictive, chaque proxy que le fournisseur utiliserait doit lui-même être autorisé, comme adresse IP ou nom listé. DeepL utilise `HTTPS_PROXY`, `HTTP_PROXY` et `ALL_PROXY` ; les autres fournisseurs ne les utilisent que sous Node 24 avec `NODE_USE_ENV_PROXY=1` ou `--use-env-proxy`. `NO_PROXY` est ignoré.
+- **Proxys.** Sous une politique restrictive, chaque proxy que le fournisseur utiliserait doit lui-même être autorisé, comme adresse IP ou nom listé. DeepL utilise `HTTPS_PROXY`, `HTTP_PROXY` et `ALL_PROXY`, ou leur forme en minuscules ; les autres fournisseurs ne les utilisent que sous Node 24 avec `NODE_USE_ENV_PROXY=1` ou `--use-env-proxy`. `NO_PROXY` est ignoré.
 - **Fournisseurs personnalisés.** Un fournisseur passé via `createProvider` du SDK est vérifié avant sa construction et reçoit la politique effective ; l'appliquer à ses propres requêtes revient à ce code.
 
 ## Traduction automatique sans modèle de langage

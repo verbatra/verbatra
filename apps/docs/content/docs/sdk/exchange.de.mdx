@@ -64,7 +64,7 @@ Löst die Locale-zu-Pfad-Zuordnung des Projekts in beide Richtungen auf, aus `fi
 konfigurierten Locales und `files.localeStyle`. `createLocalePathResolver(cwd, config)` liefert
 `{ pathFor, localeFor }`: `pathFor(locale)` ist der absolute Pfad der Datei einer Locale, und
 `localeFor(path)` ist die Locale, zu der ein Pfad gehört, oder `undefined` für einen Pfad, der
-nicht zu diesem Projekt gehört. Jeder SDK-Einstiegspunkt löst Pfade darüber auf, sodass ein
+nicht zu diesem Projekt gehört, und bei einem Format mit gemeinsamem Katalog wie `apple-xcstrings` immer `undefined`. Jeder SDK-Einstiegspunkt löst Pfade darüber auf, sodass ein
 Watcher oder ein Dashboard auf Basis des SDK genau die Pfade sieht, die ein Lauf schreibt.
 
 ```ts title="Signatur"

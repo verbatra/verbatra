@@ -72,7 +72,7 @@ solo va al endpoint configurado (`google-translate` la envía en la cadena de co
 | --- | --- |
 | `warn` | Envía como siempre; un aviso nombra las claves. |
 | `block` | Retiene la clave, así que el locale termina `partial`. |
-| `redact` | Envía un token por cada coincidencia en el valor y restaura la coincidencia; una coincidencia en una descripción o un significado se envía como `[redacted]`. Una coincidencia en el nombre de la clave, o un token que no vuelve exactamente una vez, retiene la clave. En DeepL y Google un token cuenta como placeholder, así que un valor que no pueden proteger se retiene como `PLACEHOLDER_UNSUPPORTED`. |
+| `redact` | Envía un token por cada coincidencia en el valor y restaura la coincidencia; una coincidencia en una descripción o un significado se envía como `[redacted]`. Una coincidencia en el nombre de la clave, o un token que no vuelve exactamente una vez, retiene la clave. En DeepL, Google y LibreTranslate un token cuenta como placeholder, así que un valor que no pueden proteger se retiene como `PLACEHOLDER_UNSUPPORTED`. |
 
 `block` y `redact` además dejan fuera un término del glosario que coincide. `verbatra init` escribe `warn` para un proveedor automático. Ante un falso positivo, añade el texto a `allow` o quita su detector. [`verbatra check --sensitive`](/es/docs/cli/check#contenido-sensible) revisa sin clave. Los nombres en texto libre no se detectan.
 

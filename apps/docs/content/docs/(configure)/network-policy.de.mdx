@@ -73,7 +73,7 @@ Eine hier abgelehnte Anfrage lässt ihren Teil-Batch mit dem Provider-Fehler [`N
 
 - **DNS-Rebinding.** Der Name wird einmal zur Prüfung und erneut zum Verbinden aufgelöst, sodass ein DNS-Server, der anders antwortet, durchrutschen kann. Schreib eine IP-Adresse oder trag den Namen in `allowedHosts` ein, dem ohne Auflösung vertraut wird.
 - **DeepL wird einmal geprüft**, bevor der Provider gebaut wird, nicht pro Anfrage oder Weiterleitung.
-- **Proxys.** Unter einer einschränkenden Richtlinie muss jeder Proxy, den der Provider nutzen würde, selbst erlaubt sein, als IP-Adresse oder als aufgelisteter Name. DeepL nutzt `HTTPS_PROXY`, `HTTP_PROXY` und `ALL_PROXY`; die anderen Provider nutzen sie nur unter Node 24 mit `NODE_USE_ENV_PROXY=1` oder `--use-env-proxy`. `NO_PROXY` wird ignoriert.
+- **Proxys.** Unter einer einschränkenden Richtlinie muss jeder Proxy, den der Provider nutzen würde, selbst erlaubt sein, als IP-Adresse oder als aufgelisteter Name. DeepL nutzt `HTTPS_PROXY`, `HTTP_PROXY` und `ALL_PROXY` oder deren Kleinschreibung; die anderen Provider nutzen sie nur unter Node 24 mit `NODE_USE_ENV_PROXY=1` oder `--use-env-proxy`. `NO_PROXY` wird ignoriert.
 - **Eigene Provider.** Ein Provider, den du über `createProvider` im SDK übergibst, wird vor dem Bau geprüft und erhält die wirksame Richtlinie; sie auf seine eigenen Anfragen anzuwenden, liegt bei diesem Code.
 
 ## Maschinelle Übersetzung ohne Sprachmodell

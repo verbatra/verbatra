@@ -45,6 +45,8 @@ retrouve en `status: "failed"` sur l'entrée de cette locale pendant que l'exéc
 
 `onProgress` reçoit un `ProgressEvent`, une union discriminée par `type`. Une version mineure peut ajouter des types, donc ignore un `type` que tu ne reconnais pas.
 
+<SdkTypeTable name="ProgressEvent" />
+
 | `type` | Quand | Champs |
 | --- | --- | --- |
 | `locale-started` | le travail sur une locale commence | `locale`, `localeIndex`, `totalLocales` |
@@ -63,6 +65,8 @@ retrouve en `status: "failed"` sur l'entrée de cette locale pendant que l'exéc
 `provider-retry` ne nomme aucune locale, car un seul fournisseur sert toute l'exécution. Gemini indique le délai et le statut, Anthropic, OpenAI et openai-compatible indiquent la tentative quand leur client la lance, et DeepL, Google Cloud Translation et LibreTranslate n'indiquent rien. Un dry run et une estimation n'émettent que `locale-started`, `locale-finished` et `run-finished`. Les enregistrements de progression `--json` de la CLI s'en tiennent aux quatre types d'origine : `locale-started`, `sub-batch`, `locale-finished` et `run-finished`.
 
 `extract`, `diff` avec `unused` et `doctor` avec `literals` acceptent leur propre `onProgress`. Il reçoit un `ScanProgressEvent`, `{ type: "files-scanned", scanned, total }`, une fois après chaque fichier source de l'application que l'analyse lit.
+
+<SdkTypeTable name="ScanProgressEvent" />
 
 Un `CreateProvider` personnalisé reçoit un troisième argument, `CreateProviderHooks`, dès qu'une exécution signale sa progression. Appelle son `onRetry` avec `{ attempt, delayMs?, status? }` et les nouvelles tentatives de ton fournisseur apparaissent comme événements `provider-retry`.
 

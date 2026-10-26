@@ -36,7 +36,7 @@ Cada entrada queda acotada al contexto en el que se produjo: una huella sobre el
 modelo, el tono, los términos del glosario de ese locale y el
 [`localeMap`](/es/docs/providers#códigos-de-locale-enviados-al-proveedor) del proveedor cuando tiene
 entradas. Cambia cualquiera de ellos y las entradas anteriores dejan de coincidir, así que un tono
-nuevo o un glosario editado vuelve a traducir en lugar de servir un resultado obsoleto. Cada locale
+nuevo o un glosario editado vuelve a traducir en lugar de servir un resultado obsoleto. La parte del glosario es lo que envía una ejecución, así que un ajuste de `sensitiveData` que retiene o redacta un término la cambia, mientras que la marca `caseSensitive` de un término no forma parte de ella. Cada locale
 tiene su propia huella, así que editar solo la traducción alemana de un término del glosario deja
 coincidiendo las entradas francesas.
 
