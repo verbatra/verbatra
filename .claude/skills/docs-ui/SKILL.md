@@ -655,7 +655,8 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   chip holds the name as text (`.vk-stack-card-chip-text`, `--text-sm`, weight 600, `currentColor`),
   "Vue", "Nuxt" and ".NET", and "Vue" on the combined "Vue and Nuxt" card of `pick-your-stack`, the
   same brand-only English word in every locale; the chip stays `aria-hidden`, since the card title
-  names the stack. gettext, XLIFF, INI and the custom card keep their glyph. `stack-cards.test.tsx` pins the mark set in all four locales.
+  names the stack. gettext, XLIFF, INI and the custom card keep their glyph, a file outline drawn at 32px
+  (`FILE_GLYPH_SIZE`) against 28px for the rest, so its thin ink balances the marks. `stack-cards.test.tsx` pins the mark set in all four locales.
   Third-party logos appear in exactly three places: the GitHub mark
   (`components/landing/github-icon.tsx`), the marquee's brand marks and the stack cards' marks. The
   logo rule for those:
@@ -1146,7 +1147,7 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   `ms-1.5`, hidden in `.vk-crumbs`. `NewAnnouncement` in the same file is the wide form: the depth
   pill inside a `.vk-announce` link, a `--radius-full` outline with a `--text-faint` boundary (3:1
   like every control), the announcement text and a chevron that moves 2px on hover, with the
-  `sr-only` new-tab note (a `LinkText` outline under `forced-colors`). The hero opens with it,
+  `sr-only` new-tab note. The hero opens with it,
   pointing at the release notes of the newest cli release (`PACKAGE_VERSION`) with text that names
   the release without repeating the pill's word (`landing.banner.announcement.text`, "v{version} is
   out"; `hero.test.tsx` checks it in every locale). The pill appears in the hero announcement, the
@@ -1275,9 +1276,13 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   has an intro, `.vk-page-lead`). The h1, lead, `h2` to `h4` rhythm and prose measure rules that docs pages
   key on `#nd-page` carry a `.vk-legal-page` twin in the same selector lists, so the two surfaces cannot
   drift (`app/[lang]/(legal)/legal-layout.test.ts`); the license list (`.vk-license-list`) runs the full
-  column. `/licenses` adds `nav.vk-legal-jump`, named by the docs "On this page" label
+  column. `/licenses` adds, under a summary line, `nav.vk-legal-jump`, named by the docs "On this page" label
   (`onThisPageLabel`), with one pill link per `h2` (the assets, then each license group through
-  `licenseGroupId`); the eyebrow and the jump navigation are chrome, so the Markdown twin carries
+  `licenseGroupId`; each link is `.vk-legal-jump-link`, the pill form of the outline button: a
+  `--text-faint` boundary and `--radius-full`, where `buttonClasses` would give the 10px radius and
+  semibold weight; the count is `aria-hidden` and an `sr-only` ", N packages" names it); the
+  header is `not-prose`, so Typography adds no margin or line height to the title, eyebrow and lead,
+  and a page with only a date (privacy) passes it as the lead; the eyebrow and the jump navigation are chrome, so the Markdown twin carries
   neither. The contact page keeps the plain `prose` article.
 - **Page actions**: every non-home docs page renders Fumadocs' `MarkdownCopyButton` and
   `ViewOptionsPopover` beside the title (`.vk-page-actions`: `--text-faint` bordered buttons, 32px

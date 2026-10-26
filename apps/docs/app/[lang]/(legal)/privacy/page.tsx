@@ -67,18 +67,16 @@ export default async function PrivacyPage(props: { params: Promise<{ lang: strin
     signals: t(`${PRIVACY_ANALYTICS_KEY}.optOut.signals`),
   };
 
-  const lastUpdated = (
-    <p>
-      <em>
-        {t("lastUpdatedLabel")}: {LEGAL_LAST_UPDATED}
-      </em>
-    </p>
+  const lastUpdatedText = (
+    <em>
+      {t("lastUpdatedLabel")}: {LEGAL_LAST_UPDATED}
+    </em>
   );
+  const lastUpdated = <p>{lastUpdatedText}</p>;
 
   return (
     <LegalPage>
-      <LegalPageHead eyebrow={tLegal("title")} title={t("title")} />
-      {lastUpdated}
+      <LegalPageHead eyebrow={tLegal("title")} title={t("title")} lead={lastUpdatedText} />
 
       <p>
         <em>{t("languageVersions")}</em>

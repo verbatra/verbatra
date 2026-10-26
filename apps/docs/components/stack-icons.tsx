@@ -20,6 +20,12 @@ const STACK_ICON_PATHS = {
 
 export type StackIconKey = keyof typeof STACK_ICON_PATHS;
 
+export const FILE_GLYPH_SIZE = 32;
+
+export function isFileGlyph(icon: StackIconKey): boolean {
+  return STACK_ICON_PATHS[icon].startsWith(FILE_OUTLINE);
+}
+
 function stackIconId(prefix: string, icon: StackIconKey): string {
   return `${prefix}-${icon}`;
 }

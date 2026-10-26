@@ -1,7 +1,13 @@
 import type { SupportedFormat } from "@verbatra/sdk";
 import { Fragment, type ReactNode } from "react";
 import { BrandMark, BrandMarkSprite } from "@/components/brand-marks";
-import { StackIcon, type StackIconKey, StackIconSprite } from "@/components/stack-icons";
+import {
+  FILE_GLYPH_SIZE,
+  isFileGlyph,
+  StackIcon,
+  type StackIconKey,
+  StackIconSprite,
+} from "@/components/stack-icons";
 import { IntentPrefetchLink } from "@/components/ui/intent-prefetch-link";
 import type { BrandMarkId } from "@/lib/brand-marks";
 import { type Locale, localizeHref } from "@/lib/i18n";
@@ -99,7 +105,11 @@ function Card({
         {card.text !== undefined ? (
           <span className="vk-stack-card-chip-text">{card.text}</span>
         ) : card.mark === undefined ? (
-          <StackIcon prefix={prefix} icon={card.icon} size={ICON_SIZE} />
+          <StackIcon
+            prefix={prefix}
+            icon={card.icon}
+            size={isFileGlyph(card.icon) ? FILE_GLYPH_SIZE : ICON_SIZE}
+          />
         ) : (
           <BrandMark prefix={markPrefix} mark={card.mark} size={ICON_SIZE} />
         )}

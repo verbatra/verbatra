@@ -78,7 +78,10 @@ describe.each(i18n.languages)("legal markdown in %s", (lang) => {
     const doc = await rendered(PrivacyPage, lang);
     doc.querySelector("section form")?.closest(".not-prose")?.remove();
     expect(markdownText(await privacyMarkdown(lang))).toBe(
-      blockText(doc, "article h1, article > p, article section h2, article section p"),
+      blockText(
+        doc,
+        "article h1, article > header > .vk-page-lead, article > p, article section h2, article section p",
+      ),
     );
   });
 

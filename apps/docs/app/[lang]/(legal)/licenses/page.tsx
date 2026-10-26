@@ -136,7 +136,13 @@ function JumpNav({ locale }: { locale: Locale }): ReactNode {
         {LICENSES.groups.map((group) => (
           <li key={group.license} className="vk-legal-jump-item">
             <a className="vk-legal-jump-link" href={`#${licenseGroupId(group.license)}`}>
-              {group.license} <span className="vk-legal-jump-count">{group.packages.length}</span>
+              {group.license}{" "}
+              <span aria-hidden="true" className="vk-legal-jump-count">
+                {group.packages.length}
+              </span>
+              <span className="sr-only">
+                , {group.packages.length} {group.packages.length === 1 ? "package" : "packages"}
+              </span>
             </a>
           </li>
         ))}
@@ -195,12 +201,12 @@ export default async function LicensesPage(props: { params: Promise<{ lang: stri
   return (
     <LegalPage>
       <LegalPageHead eyebrow={tLegal("title")} title={t("title")} lead={t("intro")} />
+      <p lang="en">
+        {LICENSES.packageCount} packages in {LICENSES.groups.length} license groups, plus{" "}
+        {LICENSES.assets.length} assets.
+      </p>
       <JumpNav locale={locale} />
       <div lang="en">
-        <p>
-          {LICENSES.packageCount} packages in {LICENSES.groups.length} license groups, plus{" "}
-          {LICENSES.assets.length} assets.
-        </p>
         <section>
           <h2 id={ASSETS_SECTION_ID}>Fonts and other assets</h2>
           <ul className="vk-license-list">

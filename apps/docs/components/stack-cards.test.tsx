@@ -323,6 +323,26 @@ describe("StackCards", () => {
     }
   });
 
+  it("draws a file glyph larger than a brand mark, so its thinner ink balances the logos", () => {
+    const doc = render(
+      renderToStaticMarkup(
+        <StackCards
+          labelledBy="stacks"
+          locale="en"
+          cards={[
+            { label: "INI", icon: "ini", formats: ["ini"], href: "#ini" },
+            { label: "Custom", icon: "custom", formats: [], href: "#custom" },
+            CARDS[0] as StackCard,
+          ]}
+        />,
+      ),
+    );
+    const sizes = [...doc.querySelectorAll(".vk-stack-card-chip > svg")].map((svg) =>
+      svg.getAttribute("width"),
+    );
+    expect(sizes).toEqual(["32", "28", "28"]);
+  });
+
   it("keeps every sprite id unique when two card grids share a page", () => {
     const doc = render(
       renderToStaticMarkup(

@@ -11,10 +11,10 @@ export function LegalPageHead({
 }: {
   eyebrow: string;
   title: string;
-  lead?: string;
+  lead?: ReactNode;
 }): ReactNode {
   return (
-    <header className="vk-page-head">
+    <header className="vk-page-head not-prose">
       <p className="vk-page-eyebrow vk-label">{eyebrow}</p>
       <div className="vk-page-head-row">
         <h1>{title}</h1>

@@ -101,7 +101,9 @@ describe("imprint page: legal basis", () => {
       const details = doc.querySelector("h2")?.nextElementSibling;
       const basis = details?.nextElementSibling;
 
-      expect(basis?.textContent).toBe("Anbieterkennzeichnung nach § 18 Abs. 1 MStV");
+      expect(basis?.textContent).toBe(
+        "Anbieterkennzeichnung nach §\u00a018\u00a0Abs.\u00a01\u00a0MStV",
+      );
       expect(doc.body.textContent?.match(/§\s*18\s*Abs\.\s*1\s*MStV/g)).toHaveLength(1);
     },
   );
