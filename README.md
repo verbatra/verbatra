@@ -58,7 +58,7 @@ Gemini is the cheapest way to try verbatra, because its API has a real free tier
 - **Incremental by default.** The lock file makes every run diff-driven, so a run over an unchanged project calls no provider at all, and `verbatra watch` re-translates as your source changes.
 - **Many formats, one engine.** i18next, vue-i18n, next-intl, ngx-translate, XLIFF, YAML, Flutter ARB, gettext, Android, Apple, .NET and more, each round-tripped in its own key order. See [Formats](https://verbatra.kreitz-webdev.de/docs/formats).
 - **Many providers, one interface.** LLMs, DeepL, Google Cloud Translation, a self-hosted LibreTranslate or openai-compatible server, or `none` for a human-only project. See [Providers](https://verbatra.kreitz-webdev.de/docs/providers).
-- **Read-only CI gates.** `verbatra check`, `diff`, `report`, and `doctor` call no provider, need no API key, and write no file; `check`, `diff`, and `doctor` exit non-zero on drift or problems; `check --require-reviewed` also fails while a machine-written translation is not approved.
+- **Read-only CI gates.** `verbatra check`, `diff`, `report`, and `doctor` call no provider, need no API key, and write no file (`doctor --live` is the exception: it fetches a machine-translation provider's language list, and DeepL and Google need their key for it); `check`, `diff`, and `doctor` exit non-zero on drift or problems; `check --require-reviewed` also fails while a machine-written translation is not approved.
 - **Manual translation handoff.** Export the strings that need a human into an Excel workbook, CSV, TSV, or XLIFF, import the filled file back through the same integrity gate, and move the whole memory in or out as TMX.
 - **Machine-translation evidence.** Every value records the write path that produced it and whether a person reviewed it; `verbatra report provenance --json` turns that into a per-key audit file. Supporting evidence, not legal advice.
 - **Source-code extraction and types.** `verbatra extract` adds the keys your code uses to the source locale, `diff --unused` names the ones nothing references, and `verbatra types` generates typed catalog keys.
@@ -79,7 +79,7 @@ Gemini is the cheapest way to try verbatra, because its API has a real free tier
 
 The GitHub Action runs `translate`, `check`, or `diff` in CI, turns each failed or partial locale into an error annotation, writes a job summary, and exits with the CLI's own exit code. The one exception is a human-only `translate` that exits `3` with keys left for a person: the step passes with a warning. `check` and `diff` need no API key, so they are safe on a fork pull request.
 
-The workspace packages below are private: they are bundled into `@verbatra/sdk` (except `config`) and not published on their own.
+None of the packages below is published on its own. `core`, `format-adapters`, `ai-providers`, `exchange` and `extract` are bundled into `@verbatra/sdk`; `config`, the docs site and `e2e` are not bundled, and `e2e` sits outside the pnpm workspace.
 
 | Package | Role |
 | --- | --- |

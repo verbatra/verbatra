@@ -48,7 +48,7 @@ console.log(
 );
 ```
 
-`loadConfig` finds and validates `verbatra.config.ts` (or `.verbatrarc.json`, or a `package.json` `"verbatra"` key). The provider reads its API key from the environment, for example `GEMINI_API_KEY`; no key is ever passed to the SDK. The [SDK quickstart](https://verbatra.kreitz-webdev.de/docs/sdk-quickstart) walks through the first run step by step, from a keyless dry run to a CI gate, and [SDK recipes](https://verbatra.kreitz-webdev.de/docs/programmatic-api) has complete examples for the other entry points.
+`loadConfig` finds and validates `verbatra.config.ts` (or `.js` or `.cjs`), a `.verbatrarc` file with no extension or a `.json`, `.yaml`, `.yml`, `.js`, `.cjs` or `.ts` one, or a `package.json` `"verbatra"` key. The provider reads its API key from the environment, for example `GEMINI_API_KEY`; no key is ever passed to the SDK. The [SDK quickstart](https://verbatra.kreitz-webdev.de/docs/sdk-quickstart) walks through the first run step by step, from a keyless dry run to a CI gate, and [SDK recipes](https://verbatra.kreitz-webdev.de/docs/programmatic-api) has complete examples for the other entry points.
 
 ## Configuration
 
@@ -89,7 +89,7 @@ Every flow takes an `input` object and an optional `deps` object for injecting t
 | Config and glossary | `defineConfig`, `loadConfig`, `loadConfigWithMeta`, `detectProject`, `verbatraConfigSchema`, `readGlossaryFile`, `updateGlossaryTerm`, `glossaryHits`, `glossaryDraftCheck`, `isMachineTranslationEnabled`, `assertMachineTranslationEnabled` | [Config](https://verbatra.kreitz-webdev.de/docs/sdk/config) |
 | Extension points | `createDefaultRegistry`, `createTreeFileAdapter`, `createFlatFileAdapter`, `AdapterRegistry`, `nodeAdapterFs`, `redact`, `declareProviderKeyEnvVar`, `releaseHeldLocks` | [Extend](https://verbatra.kreitz-webdev.de/docs/sdk/extend) |
 | JSON schemas | `SDK_JSON_SCHEMAS`, `renderJsonSchemas`, `renderOutputJsonSchema`, `jsonSchemaUrl`, and one zod schema per result, such as `runSummarySchema` and `checkSummarySchema` | [JSON schemas](https://verbatra.kreitz-webdev.de/docs/sdk/json-schemas) |
-| Constants | `LOCK_FILE_NAME`, `CACHE_FILE_NAME`, `PROVENANCE_FILE_NAME`, `EXCHANGE_FORMATS`, `INTEGRITY_GATE_REASONS`, `REVIEW_REASON_CODES`, `QA_SEVERITIES` | [Run summary](https://verbatra.kreitz-webdev.de/docs/sdk/run-summary) |
+| Constants | `LOCK_FILE_NAME`, `CACHE_FILE_NAME`, `PROVENANCE_FILE_NAME`, `EXCHANGE_FORMATS`, `INTEGRITY_GATE_REASONS`, `REVIEW_REASON_CODES`, `QA_SEVERITIES` | [Inspect](https://verbatra.kreitz-webdev.de/docs/sdk/inspect), [Run](https://verbatra.kreitz-webdev.de/docs/sdk/run), [Exchange](https://verbatra.kreitz-webdev.de/docs/sdk/exchange), [Review](https://verbatra.kreitz-webdev.de/docs/sdk/review) |
 
 The package also publishes the config JSON Schema as `@verbatra/sdk/config-schema.json` and the result schemas under `@verbatra/sdk/schemas/*`, for editor validation and for consumers outside TypeScript.
 
