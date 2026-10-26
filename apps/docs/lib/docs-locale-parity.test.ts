@@ -115,6 +115,14 @@ describe("docs locale parity", () => {
       expect(pageShape(readContent(localized(page, locale)))).toEqual(pageShape(readContent(page)));
     });
 
+    it.each(PAGES)("%s carries a seoTitle exactly when the English page does", (page) => {
+      const hasSeoTitle = (file: string) =>
+        /^---\n[\s\S]*?^seoTitle: /m.test(
+          readFileSync(join(CONTENT_DIR, file), "utf8").split("\n---\n")[0] ?? "",
+        );
+      expect(hasSeoTitle(localized(page, locale))).toBe(hasSeoTitle(page));
+    });
+
     it.each(METAS)("%s lists the same pages as the English meta file", (meta) => {
       expect(metaPages(localized(meta, locale))).toEqual(metaPages(meta));
     });
