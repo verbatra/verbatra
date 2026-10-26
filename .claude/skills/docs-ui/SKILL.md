@@ -243,8 +243,10 @@ and `--tracking-*` companions. Above it sits `--text-hero` (fluid, 2.5rem to 6.2
 used only by the landing headline (`.vk-banner-title`, through
 `--banner-title`, `min(clamp(2.875rem, 6.6vw, 5.75rem), 15.5cqi)`, at weight 600 and `-0.05em` tracking). Landing headings take the `.vk-h2`, `.vk-h3`, `.vk-h4` and `.vk-lead`
 classes (declared in `@layer components`, so a Tailwind utility still overrides them)
-rather than inline `fontSize` / `letterSpacing` styles. The docs page title, description and prose
-`h2` to `h4` sit on the same scale through the `#nd-page` rules. Headings never hyphenate on their
+rather than inline `fontSize` / `letterSpacing` styles. The docs page title sits on `--text-h3`; the lead and prose
+`h2` to `h4` use the docs steps `--text-doc-lead`, `--text-doc-h2`, `--text-doc-h3` and `--text-doc-h4`
+(1.0625, 1.3125, 1.0625 and 0.9375rem), tokens of their own because the landing's fluid scale is
+too large for a reading column, through the `#nd-page` rules. Headings never hyphenate on their
 own (`hyphens: manual`, `overflow-wrap: anywhere`, which also lets a long word shrink the heading's
 flex or grid track instead of overflowing it), so a German compound breaks only where the copy
 puts a hyphen. The wordmark is lowercase `verbatra` everywhere: the header, the footer and both
@@ -906,9 +908,15 @@ Below 48rem the docs header carries a second row, the breadcrumb bar (`DocsCrumb
 `.vk-crumb-bar`, `--crumb-height`, passed to `SiteHeaderFrame` as `subBar`): the Fumadocs sidebar
 trigger at its start and the trail (tab, group, page) beside it. The trigger opens
 `#nd-sidebar-mobile` as a sheet, full width under the header and the bar (`--header-height` plus
-`--crumb-height`), fading in over `--duration-base` unless motion is reduced; the header sits above
-the scrim so the trigger closes it. The header's own menu button is gone on docs pages: the tabs,
-language and theme live in the sheet.
+`--crumb-height`), fading in over `--duration-base` unless motion is reduced. While it is open the
+header takes `z-index: 50` (`data-sheet-open`) so the trigger closes it, and otherwise stays below
+the search dialog. `useDrawerContainment` (`components/use-drawer-containment.ts`) makes everything
+outside the header trigger and the sheet `inert`, moves focus into the sheet, wraps Tab and
+Shift+Tab between the trigger and the sheet, and returns focus to the trigger on close
+(`useDrawerEscape` closes it on Escape). The header's own menu button is gone on docs pages: the
+tabs, language and theme live in the sheet. The sidebar collapse button is a borderless ghost icon
+at the end of the header; the landing header reserves a slot of the same width, so the links sit
+at one position on both surfaces.
 
 `components/site-header.tsx` owns the navbar. `SiteHeaderFrame` renders the markup (wordmark,
 centred search, text links, icon links, call to action, language select, phone-width search and
@@ -1028,9 +1036,10 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   `.vk-agent-tip-action` wraps under the text, with the preview spanning it, while the tip is under
   36rem. Neither uses a gradient headline.
   Every docs page carries an eyebrow (`.vk-page-eyebrow`, a `.vk-label` over the title row): the
-  sidebar group the page sits in, or its tab when it sits directly under it (`PageEyebrow` in
-  `components/page-eyebrow.tsx`, `pageGroup` in `lib/docs-crumbs.ts`, passed as the `DocsPage`
-  breadcrumb slot); the docs home header keeps its own. No landing
+  tab and the sidebar group, as `Reference / CLI` (just the tab for a page directly under it):
+  `PageEyebrow` (`components/page-eyebrow.tsx`, a server component passed as the `DocsPage`
+  `breadcrumb.component`) over `eyebrowTrail` in `lib/docs-breadcrumb.ts`, the one helper the
+  breadcrumb bar and the JSON-LD trail share; the docs home header keeps its own. No landing
   section does. No card or button on the docs home appends an arrow to its label: the hover border,
   or on a stack card the chevron, is the affordance.
 - **`.vk-label`**: the small mono, uppercase, `0.14em`-tracked, `--text-faint` label of the docs
@@ -1052,8 +1061,8 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   those classes, not Fumadocs' utility classes.
 - **Flat panels**: `rounded-xl border border-(--border-default)` on `var(--surface-bg)`, with
   `--border-accent` as the border on hover.
-  `DocsHomePaths`, `DocsHomeFeatures`, and the prev/next footer cards follow it; no docs home
-  card is filled.
+  `DocsHomePaths` and `DocsHomeFeatures` follow it; no docs home card is filled. The prev/next
+  footer is not a card: see "Page header and footer".
 - **Void code surfaces**: `figure.shiki` sits on `var(--v-void)` inside a `--border-default`
   border, like `CommandBox`. On an untitled fence the copy button sits on a void
   backing, and a one-line fence ends its scroll area before the button, so a long command never
@@ -1073,8 +1082,11 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   `warn` callout, `docs.callout.note` or `docs.callout.warning` (`DocsCallout`,
   `components/docs-callout.tsx`). The override block in `global.css` pins `--color-fd-info` and
   `--color-fd-success` to the glow and `--color-fd-warning` to `--v-status-changed` (amber), so
-  an info and a warn callout stay distinguishable now that the brand has one hue. A callout is capped at the prose measure like the text around it.
-- **Locale notice**: every translated page opens with the machine-translated info callout. When
+  an info and a warn callout stay distinguishable now that the brand has one hue. The lead word is
+  `.vk-callout-title` and its body `.vk-callout-body`; style only those, never `.vk-callout > p`, since a
+  bare `CalloutContainer` (the privacy objection) holds a heading and plain paragraphs. A callout is capped at the prose measure like the text around it.
+- **Locale notice**: every translated page opens with the machine-translated info callout, above
+  the page header, rendered through `DocsCallout`. When
   the English page was committed after its translation, the same callout turns into a warn
   callout titled from `docs.outdatedTranslation`, with the English link kept. The comparison reads
   `lib/translation-freshness.generated.json`, which `scripts/sync-translation-freshness.mjs`
@@ -1168,7 +1180,7 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   hide Fumadocs' curved SVG track and its thumb and draw one straight 1px `--border-default` rail
   on the list, with the heading level indent kept from Fumadocs' inline padding, a mono
   `.vk-label` "On this page" title, and the active entry in `--text-strong` at weight 500 with a
-  1px `--accent` marker over the rail. TOC entries never break inside a word (`overflow-wrap: normal` on `#nd-toc`
+  1px `--accent` marker over the rail; `tableOfContent={{ single: true }}` keeps one entry active. TOC entries never break inside a word (`overflow-wrap: normal` on `#nd-toc`
   and the phone popover); `pageToc` (`lib/page-toc.tsx`) offers a break after each underscore with
   `<wbr>` (`breakAfterUnderscores`), so `AGENT_FILE_INVALID` wraps as `AGENT_ / FILE_ / INVALID`. A
   page whose TOC would be taller than the viewport sets `tocDepth: 2` in its frontmatter (all four
@@ -1185,8 +1197,7 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   border, radius or fill of its own beyond the sideways-scroll fade, the header row is plain
   `--text-strong` 13px semibold over one `--text-faint` rule, every body row ends in a
   `--border-default` hairline, and the first cell's inline code is mono `--accent` at weight 500
-  (the flag, key or code the row is about). The generated `.vk-type-table` keeps its framed panel
-  and its filled `.vk-label` header row. `#nd-page .prose` is the
+  (the flag, key or code the row is about). The generated `.vk-type-table` uses the same hairline treatment, with no frame or fill. `#nd-page .prose` is the
   `vk-article` size container, and every table rule keys on its width, never on the viewport. The wrapper scrolls sideways with
   the end-edge fade `.vk-scroll-fade` uses, and the header is not sticky. Cells are compact (0.625rem
   block, 0.75rem inline end, top-aligned). A table of three or more columns gets `.vk-table-stack` and a `data-label` per body
@@ -1211,8 +1222,8 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
 - **SDK type tables**: `<SdkTypeTable name="..." />` in `content/docs/sdk/*.mdx` becomes Fumadocs'
   `TypeTable`, generated at MDX compile time by `fumadocs-typescript`'s `remarkAutoTypeTable` from
   the built `packages/sdk/dist/index.d.ts` (`lib/sdk-type-table.ts`, wired in `source.config.ts`).
-  The shim adds `.vk-type-table` (a flat panel on `--surface-bg`, the header row as a filled
-  `.vk-label` like a Markdown table's)
+  The shim adds `.vk-type-table` (no frame or fill, the header row plain strong text over one
+  `--text-faint` rule, like a Markdown table's)
   and a unique `id` per table, and gives the `.md` output a plain Markdown table. Descriptions are
   the published English JSDoc in every locale; the framing prose around them stays translated.
 - **Links**: `--accent` text with a 40 percent glow underline that turns solid on hover, the
@@ -1225,11 +1236,13 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   phone), then the lead (`.vk-page-lead`, 17px `--text-muted`). The reading column is
   `--width-page` (46rem), centered; prose stays at `--width-measure`. The prev/next footer
   (`PageNeighbours`, `components/page-neighbours.tsx`, `.vk-docs-footer`) is a `nav` named by
-  `docs.pagination.label`: a top hairline, then a mono direction label (`docs.pagination.previous`,
-  `.next`) over the page name, with no cards and no description; the small print under it is the
+  `docs.pagination.label`: a top hairline, then a `.vk-label` direction label (Fumadocs' own
+  "Previous Page" and "Next Page", already localized in `lib/ui-translations.ts`, through
+  `lib/docs-pagination.ts`) over the page name, with no cards and no description; the small print under it is the
   legal footer.
 - **Page actions**: every non-home docs page renders Fumadocs' `MarkdownCopyButton` and
-  `ViewOptionsPopover` beside the title (`.vk-page-actions`, bordered 32px buttons), fed by `app/[lang]/docs.mdx/[[...slug]]/route.ts`,
+  `ViewOptionsPopover` beside the title (`.vk-page-actions`: `--text-faint` bordered buttons, 32px
+  tall from 48rem and 44px below), fed by `app/[lang]/docs.mdx/[[...slug]]/route.ts`,
   which serves the processed Markdown of the page in its own locale. Readers and agents reach it
   as the page URL plus `.md` (`markdownUrl` in `lib/markdown-route.ts`), or by sending
   `Accept: text/markdown` to the page URL; `proxy.ts` rewrites both to that route, and every page

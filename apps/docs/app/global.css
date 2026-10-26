@@ -56,6 +56,7 @@
   --color-fd-info: var(--v-glow);
   --color-fd-warning: var(--v-status-changed);
   --color-fd-error: var(--v-danger);
+  --color-fd-popover-foreground: var(--color-fd-foreground);
   --color-fd-success: var(--v-glow);
 }
 
@@ -120,12 +121,20 @@ samp {
     "liga" 0;
 }
 
+.vk-header-start {
+  padding-inline-end: 1rem;
+}
+
+#nd-subnav[data-sheet-open="true"] {
+  z-index: 50;
+}
+
 .vk-header-search {
   height: 2.25rem;
-  max-width: 20rem;
+  max-width: 16rem;
   margin-inline: auto;
   padding: 0 0.5rem 0 0.75rem;
-  border-color: var(--border-default);
+  border-color: var(--text-faint);
   border-radius: var(--radius-full);
   background: var(--surface-card);
   color: var(--text-muted);
@@ -133,6 +142,12 @@ samp {
   transition:
     border-color var(--duration-fast) var(--ease-standard),
     color var(--duration-fast) var(--ease-standard);
+}
+
+@media (min-width: 64rem) {
+  .vk-header-search {
+    max-width: 20rem;
+  }
 }
 
 .vk-header-search:hover {
@@ -167,6 +182,10 @@ samp {
   --text-h2: clamp(1.9rem, 1.3rem + 2vw, 3rem);
   --text-h3: clamp(1.4rem, 1.1rem + 1.2vw, 1.95rem);
   --text-h4: 1.25rem;
+  --text-doc-h2: 1.3125rem;
+  --text-doc-h3: 1.0625rem;
+  --text-doc-h4: 0.9375rem;
+  --text-doc-lead: 1.0625rem;
   --text-lead: clamp(1.0625rem, 1rem + 0.35vw, 1.25rem);
   --text-base: 1rem;
   --text-sm: 0.875rem;
@@ -202,7 +221,7 @@ samp {
   --section-sm: 56px;
   --head-gap: 2.5rem;
   --section-closer: var(--section-lg);
-  --vk-landing-offset: 3.5rem;
+  --vk-landing-offset: var(--header-height);
 
   --gutter: 24px;
 
@@ -1106,6 +1125,13 @@ html.light .vk-theme-icon-light {
   color: var(--text-faint);
 }
 
+.vk-crumbs .vk-label {
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+}
+
 :is(#nd-sidebar, #nd-sidebar-mobile) {
   --vk-rail: var(--border-default);
 }
@@ -1114,11 +1140,17 @@ html.light .vk-theme-icon-light {
   border-inline-end: 1px solid var(--border-default);
 }
 
-:is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] {
+:is(#nd-sidebar, #nd-sidebar-mobile) div:has(> div > div[data-state] > :is(button, a) > .vk-label) {
   padding: 1.25rem 1rem 3rem 1.5rem;
 }
 
+:is(#nd-sidebar, #nd-sidebar-mobile) :has(> .vk-sidebar-tabs) {
+  padding-inline: 1.5rem 1rem;
+}
+
 :is(#nd-sidebar, #nd-sidebar-mobile) a[data-active] {
+  /* biome-ignore lint/complexity/noImportantStyles: Fumadocs sets the per-depth start padding as an inline style, which only an important declaration outranks, so a top-level link starts at the one left edge. */
+  padding-inline-start: 0 !important;
   padding-block: 0.3125rem;
   padding-inline-end: 0.5rem;
   border-radius: 0;
@@ -1129,7 +1161,10 @@ html.light .vk-theme-icon-light {
   transition: color var(--duration-fast) var(--ease-standard);
 }
 
-:is(#nd-sidebar, #nd-sidebar-mobile) div[id^="radix-"] a[data-active] {
+:is(#nd-sidebar, #nd-sidebar-mobile)
+  div[data-state]:has(> :is(button, a) > .vk-label)
+  > div[data-state]
+  a[data-active] {
   /* biome-ignore lint/complexity/noImportantStyles: Fumadocs sets the per-depth start padding as an inline style, which only an important declaration outranks, so every rail item starts at one offset. */
   padding-inline-start: 1rem !important;
 }
@@ -1150,16 +1185,30 @@ html.light .vk-theme-icon-light {
   content: "";
   position: absolute;
   inset-block: 0;
-  inset-inline-start: 0;
+  inset-inline-start: -0.625rem;
   width: 1px;
   border-radius: 0;
   background: var(--accent);
 }
 
-:is(#nd-sidebar, #nd-sidebar-mobile) div[id^="radix-"][data-state]::before {
+:is(#nd-sidebar, #nd-sidebar-mobile)
+  div[data-state]:has(> :is(button, a) > .vk-label)
+  > div[data-state]::before {
   inset-block: 0;
   inset-inline-start: 0;
   background: var(--vk-rail);
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile)
+  div[data-state]:has(> :is(button, a) > .vk-label)
+  > div[data-state]
+  a[data-active="true"]::before {
+  inset-inline-start: 0;
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) p:has(> .vk-label) {
+  /* biome-ignore lint/complexity/noImportantStyles: Fumadocs sets the per-depth start padding as an inline style, which only an important declaration outranks, so a top-level separator starts at the one left edge. */
+  padding-inline-start: 0 !important;
 }
 
 :is(#nd-sidebar, #nd-sidebar-mobile) :is(button, a):has(> .vk-label) {
@@ -1172,13 +1221,14 @@ html.light .vk-theme-icon-light {
   padding-inline-start: 0 !important;
 }
 
-:is(#nd-sidebar, #nd-sidebar-mobile) :is(button, a):has(> .vk-label) > svg {
-  margin-inline-start: auto;
-  color: var(--text-faint);
-}
-
 :is(#nd-sidebar, #nd-sidebar-mobile) div[data-state]:has(> :is(button, a) > .vk-label) {
   margin-bottom: 1.5rem;
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile)
+  a[data-active]
+  + div[data-state]:has(> :is(button, a) > .vk-label) {
+  margin-top: 1rem;
 }
 
 :is(#nd-sidebar, #nd-sidebar-mobile) .vk-label {
@@ -1190,8 +1240,9 @@ html.light .vk-theme-icon-light {
   color: var(--text-strong);
 }
 
-:is(#nd-sidebar, #nd-sidebar-mobile) button:focus-visible {
-  outline-color: var(--focus-ring);
+:is(#nd-sidebar, #nd-sidebar-mobile, #nd-toc, [data-toc-popover-content])
+  :is(a, button):focus-visible {
+  outline-offset: -2px;
 }
 
 :is(#nd-sidebar, #nd-sidebar-mobile) p:has(> .vk-sidebar-group) {
@@ -1507,17 +1558,6 @@ html.light .vk-theme-icon-light {
   font-weight: 500;
 }
 
-.vk-page-eyebrow .vk-label {
-  font: inherit;
-  letter-spacing: inherit;
-  text-transform: inherit;
-  color: inherit;
-}
-
-.vk-page-eyebrow .vk-pill-status {
-  display: none;
-}
-
 .vk-page-head-row {
   display: flex;
   flex-wrap: wrap;
@@ -1538,16 +1578,21 @@ html.light .vk-theme-icon-light {
 #nd-page .vk-page-lead {
   max-width: var(--width-measure);
   margin: 1rem 0 0;
-  font-size: 1.0625rem;
+  font-size: var(--text-doc-lead);
   line-height: 1.65;
   color: var(--text-muted);
   text-wrap: pretty;
 }
 
+@media (min-width: 48rem) {
+  .vk-page-actions button {
+    min-height: 2rem;
+  }
+}
+
 .vk-page-actions button {
-  min-height: 2rem;
   padding-inline: 0.75rem;
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--text-faint);
   border-radius: var(--radius-md);
   background: transparent;
   color: var(--text-muted);
@@ -1565,7 +1610,7 @@ html.light .vk-theme-icon-light {
 
 #nd-page .prose :where(h2):not(:where(.not-prose, .not-prose *)) {
   margin-top: 3rem;
-  font-size: 1.3125rem;
+  font-size: var(--text-doc-h2);
   font-weight: 600;
   line-height: 1.25;
   letter-spacing: var(--tracking-tight);
@@ -1573,7 +1618,7 @@ html.light .vk-theme-icon-light {
 
 #nd-page .prose :where(h3):not(:where(.not-prose, .not-prose *)) {
   margin-top: 2.25rem;
-  font-size: 1.0625rem;
+  font-size: var(--text-doc-h3);
   font-weight: 600;
   line-height: 1.35;
   letter-spacing: var(--tracking-snug);
@@ -1587,7 +1632,7 @@ html.light .vk-theme-icon-light {
 }
 
 #nd-page .prose :where(h4):not(:where(.not-prose, .not-prose *)) {
-  font-size: 0.9375rem;
+  font-size: var(--text-doc-h4);
   font-weight: 600;
   line-height: var(--leading-snug);
 }
@@ -1619,6 +1664,10 @@ html.light .vk-theme-icon-light {
   font-size: 0.625rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+}
+
+.vk-crumbs .vk-pill-status {
+  display: none;
 }
 
 .vk-pill-new {
@@ -1809,24 +1858,21 @@ html.light .vk-theme-icon-light {
 }
 
 .vk-type-table {
-  border-color: var(--border-default);
-  border-radius: var(--radius-md);
-  background: var(--surface-bg);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .vk-type-table > div:first-child {
-  margin: -0.25rem -0.25rem 0.25rem;
-  padding: 0.5rem 1rem;
-  border-block-end: 1px solid var(--border-default);
-  border-start-start-radius: calc(var(--radius-md) - 1px);
-  border-start-end-radius: calc(var(--radius-md) - 1px);
-  background: var(--surface-card);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  font-weight: 400;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--text-faint);
+  margin: 0;
+  padding: 0.625rem 0.75rem 0.625rem 0;
+  border-block-end: 1px solid var(--text-faint);
+  border-radius: 0;
+  background: transparent;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-strong);
 }
 
 #nd-page .prose :where(table):not(:where(.not-prose, .not-prose *)) {
@@ -2000,18 +2046,14 @@ html.light .vk-theme-icon-light {
   display: none;
 }
 
-.vk-callout > div:last-child {
-  gap: 0.25rem;
-}
-
-.vk-callout > div:last-child > p {
+.vk-callout-title {
   margin: 0;
   color: var(--callout-color);
   font-size: var(--text-sm);
   font-weight: 600;
 }
 
-.vk-callout > div:last-child > div {
+.vk-callout-body {
   color: var(--text-body);
 }
 
@@ -2032,12 +2074,8 @@ html.light .vk-theme-icon-light {
   text-decoration: none;
 }
 
-.vk-docs-footer-direction {
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text-faint);
+.vk-docs-footer > a:focus-visible {
+  border-radius: var(--radius-sm);
 }
 
 .vk-docs-footer-title {
@@ -2048,10 +2086,6 @@ html.light .vk-theme-icon-light {
 
 .vk-docs-footer > a:hover .vk-docs-footer-title {
   color: var(--accent);
-}
-
-.vk-docs-footer .vk-pill-status {
-  display: none;
 }
 
 @media (min-width: 40rem) {
@@ -2249,14 +2283,51 @@ figure.shiki:not(:has(figcaption)):has(code > .line:only-of-type) > [role="regio
   color: #8b949e !important;
 }
 
-.light .shiki span[style*="#6A737D" i] {
-  /* biome-ignore lint/complexity/noImportantStyles: shiki sets token colors through inline custom properties; only an important declaration outranks them, raising comment tokens to WCAG AA. */
-  color: #5c636b !important;
+[role="dialog"]:has([role="combobox"])
+  [role="listbox"]
+  [role="option"][aria-selected="true"]
+  ::highlight(fd-search) {
+  color: var(--accent-fill-fg);
 }
 
-.light .shiki span[style*="#E36209" i] {
+.light .shiki span[style*="#6A737D" i] {
+  /* biome-ignore lint/complexity/noImportantStyles: shiki sets token colors through inline custom properties; only an important declaration outranks them, raising comment tokens to WCAG AA. */
+  color: #454b53 !important;
+}
+
+.light .shiki span[style*="--shiki-light:#E36209" i] {
   /* biome-ignore lint/complexity/noImportantStyles: shiki sets token colors through inline custom properties; only an important declaration outranks them, raising parameter and property tokens to WCAG AA. */
   color: #8f3600 !important;
+}
+
+.light .shiki span[style*="--shiki-light:#22863A" i] {
+  /* biome-ignore lint/complexity/noImportantStyles: shiki sets token colors through inline custom properties; only an important declaration outranks them, raising string and constant tokens to WCAG AA under the highlighted-line tint. */
+  color: #0f5c1e !important;
+}
+
+.light .shiki span[style*="--shiki-light:#005CC5" i] {
+  /* biome-ignore lint/complexity/noImportantStyles: shiki sets token colors through inline custom properties; only an important declaration outranks them, raising constant and entity tokens to WCAG AA under the highlighted-line tint. */
+  color: #003f8a !important;
+}
+
+.light .shiki span[style*="--shiki-light:#6F42C1" i] {
+  /* biome-ignore lint/complexity/noImportantStyles: shiki sets token colors through inline custom properties; only an important declaration outranks them, raising function and class tokens to WCAG AA under the highlighted-line tint. */
+  color: #4d2b94 !important;
+}
+
+.light .shiki span[style*="--shiki-light:#B31D28" i] {
+  /* biome-ignore lint/complexity/noImportantStyles: shiki sets token colors through inline custom properties; only an important declaration outranks them, raising invalid tokens to WCAG AA under the highlighted-line tint. */
+  color: #9a141d !important;
+}
+
+.light .shiki span[style*="--shiki-light:#586069" i] {
+  /* biome-ignore lint/complexity/noImportantStyles: shiki sets token colors through inline custom properties; only an important declaration outranks them, raising secondary tokens to WCAG AA under the highlighted-line tint. */
+  color: #434a53 !important;
+}
+
+.light .shiki span[style*="--shiki-light:#D73A49" i] {
+  /* biome-ignore lint/complexity/noImportantStyles: shiki sets token colors through inline custom properties; only an important declaration outranks them, raising keyword tokens to WCAG AA on every light code surface. */
+  color: #a1161f !important;
 }
 
 .vk-home {
@@ -2795,6 +2866,20 @@ html:has(.vk-home) {
   white-space: nowrap;
 }
 
+.vk-crumbs ol {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vk-crumbs-separator {
+  display: flex;
+}
+
 .vk-crumbs-item {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2811,19 +2896,18 @@ html:has(.vk-home) {
   height: 0.75rem;
 }
 
-.vk-crumbs .vk-label {
-  font: inherit;
-  letter-spacing: inherit;
-  text-transform: inherit;
-  color: inherit;
-}
-
-.vk-crumbs .vk-pill-status {
-  display: none;
+.vk-crumbs-separator svg {
+  width: 100%;
+  height: 100%;
 }
 
 #nd-page .prose :where(h2, h3, h4):not(:where(.not-prose, .not-prose *)) {
   scroll-margin-top: calc(var(--header-height) + 1rem);
+}
+
+#nd-page .prose :where(h2, h3, h4):has(.vk-available-from) {
+  flex-wrap: wrap;
+  row-gap: 0.25rem;
 }
 
 @media (width < 48rem) {
@@ -2849,6 +2933,12 @@ html:has(.vk-home) {
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  [class*="animate-fd-"] {
+    animation: none;
+  }
+}
+
 @keyframes vk-sheet-in {
   from {
     opacity: 0;
@@ -2862,51 +2952,6 @@ html:has(.vk-home) {
   }
 }
 
-#nd-toc h3 {
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: var(--text-faint);
-}
-
-#nd-toc h3 svg {
-  display: none;
-}
-
-:is(#nd-toc, [data-toc-popover-content]) div:has(> a[href^="#"]) {
-  margin-block-start: 0.75rem;
-  border-inline-start: 1px solid var(--border-default);
-}
-
-:is(#nd-toc, [data-toc-popover-content]) div:has(> a[href^="#"]) > div,
-:is(#nd-toc, [data-toc-popover-content]) a > svg {
-  display: none;
-}
-
-:is(#nd-toc, [data-toc-popover-content]) a[href^="#"] {
-  margin-inline-start: -1px;
-  padding-block: 0.25rem;
-  padding-inline-end: 0.5rem;
-  border-inline-start: 1px solid transparent;
-  color: var(--text-muted);
-  font-size: 0.8125rem;
-  line-height: 1.4;
-  transition: color var(--duration-fast) var(--ease-standard);
-}
-
-:is(#nd-toc, [data-toc-popover-content]) a[href^="#"]:hover {
-  color: var(--text-strong);
-}
-
-:is(#nd-toc, [data-toc-popover-content]) a[href^="#"][data-active="true"] {
-  border-inline-start-color: var(--accent);
-  color: var(--text-strong);
-  font-weight: 500;
-}
-
 [role="dialog"]:has([role="combobox"]) {
   border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
@@ -2914,37 +2959,32 @@ html:has(.vk-home) {
   box-shadow: var(--shadow-panel);
 }
 
-[role="dialog"] [role="combobox"] {
+[role="dialog"]:has([role="combobox"]) [role="combobox"] {
   font-size: var(--text-base);
 }
 
-[role="listbox"] [role="option"] {
+[role="dialog"]:has([role="combobox"]) [role="combobox"]:focus-visible {
+  outline: none;
+}
+
+[role="dialog"]:has([role="combobox"]) div:has(> [role="combobox"]):focus-within {
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+
+[role="dialog"]:has([role="combobox"]) [role="listbox"] [role="option"] {
   border-radius: var(--radius-md);
 }
 
-[role="listbox"] [role="option"][aria-selected="true"] {
+[role="dialog"]:has([role="combobox"]) [role="listbox"] [role="option"][aria-selected="true"] {
   background: var(--accent-fill);
   color: var(--accent-fill-fg);
 }
 
-[role="listbox"] [role="option"][aria-selected="true"] * {
+[role="dialog"]:has([role="combobox"])
+  [role="listbox"]
+  [role="option"][aria-selected="true"]
+  :is(div, p, span) {
   color: inherit;
-}
-
-[role="listbox"] [role="option"] .underline {
-  color: inherit;
-  text-decoration-color: var(--accent);
-  text-decoration-thickness: 2px;
-  text-underline-offset: 3px;
-}
-
-[role="listbox"] [role="option"][aria-selected="true"] .underline {
-  text-decoration-color: var(--accent-fill-fg);
-}
-
-.light .shiki span[style*="#D73A49" i] {
-  /* biome-ignore lint/complexity/noImportantStyles: shiki sets token colors through inline custom properties; only an important declaration outranks them, raising keyword tokens to WCAG AA on every light code surface. */
-  color: #a1161f !important;
 }
 
 [data-toc-popover-content] a {
@@ -4044,6 +4084,11 @@ html:has(.vk-home) {
 }
 
 @media (width < 768px) {
+  .vk-page-actions button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
   figure.shiki button {
     min-width: 44px;
     min-height: 44px;
@@ -4389,4 +4434,54 @@ html:has(.vk-home) {
   .vk-statement-lit {
     text-decoration: underline;
   }
+}
+
+#nd-toc h3 {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-faint);
+}
+
+#nd-toc h3 svg {
+  display: none;
+}
+
+:is(#nd-toc, [data-toc-popover-content]) div:has(> a[href^="#"]) {
+  margin-block-start: 0.75rem;
+  border-inline-start: 1px solid var(--border-default);
+}
+
+:is(#nd-toc, [data-toc-popover-content]) div:has(> a[href^="#"]) > div,
+:is(#nd-toc, [data-toc-popover-content]) a > svg {
+  display: none;
+}
+
+:is(#nd-toc, [data-toc-popover-content]) a[href^="#"] {
+  margin-inline-start: -1px;
+  padding-block: 0.25rem;
+  padding-inline-end: 0.5rem;
+  border-inline-start: 1px solid transparent;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+
+:is(#nd-toc, [data-toc-popover-content]) a[href^="#"]:hover {
+  color: var(--text-strong);
+}
+
+:is(#nd-toc, [data-toc-popover-content]) a[href^="#"][data-active="true"] {
+  border-inline-start-color: var(--accent);
+  color: var(--text-strong);
+  font-weight: 500;
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) :is(button, a):has(> .vk-label) > svg {
+  margin-inline-start: auto;
+  color: var(--text-faint);
 }

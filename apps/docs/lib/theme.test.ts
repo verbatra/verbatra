@@ -1,5 +1,6 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join, relative } from "node:path";
+import { readdirSync, readFileSync, realpathSync } from "node:fs";
+import { dirname, join, relative } from "node:path";
+import { pathToFileURL } from "node:url";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -41,6 +42,36 @@ function declarationsOf(selector: string): Record<string, string> {
 }
 
 const { dark: DARK, light: LIGHT } = themeTokens(rules);
+
+async function githubLightPalette(): Promise<string[]> {
+  const core = realpathSync(join(process.cwd(), "node_modules/fumadocs-core"));
+  const shiki = realpathSync(join(dirname(core), "shiki"));
+  const themes = realpathSync(join(dirname(shiki), "@shikijs/themes"));
+  const module = await import(pathToFileURL(join(themes, "dist/github-light.mjs")).href);
+  const theme = module.default as {
+    colors: Record<string, string>;
+    tokenColors?: Array<{ settings?: { foreground?: string; background?: string } }>;
+    settings?: Array<{ settings?: { foreground?: string; background?: string } }>;
+  };
+  const found = new Set<string>();
+  for (const entry of theme.tokenColors ?? theme.settings ?? []) {
+    const color = entry.settings?.background ? undefined : entry.settings?.foreground;
+    if (color && /^#[0-9a-f]{6}$/i.test(color)) found.add(color.toUpperCase());
+  }
+  return [...found];
+}
+
+const LIGHT_PALETTE = await githubLightPalette();
+
+function effectiveLightColor(original: string): string {
+  const override = rules.find(
+    (rule) =>
+      rule.selector.startsWith(".light .shiki span[style*=") &&
+      rule.selector.toUpperCase().includes(original) &&
+      rule.declarations.color,
+  );
+  return (override?.declarations.color ?? original).replace(/\s*!important$/, "");
+}
 
 const TEXT_PAIRS = [
   ["--text-strong", "--surface-bg"],
@@ -175,20 +206,14 @@ describe("theme tokens", () => {
     },
   );
 
-  it.each([
-    ["orange property", "#E36209"],
-    ["red keyword", "#D73A49"],
-  ])(
-    "raises the light theme's %s tokens to WCAG AA on every code surface and line tint",
-    (_name, original) => {
-      const color = rulesFor(rules, `.light .shiki span[style*="${original}" i]`)[0]?.declarations
-        .color;
-      if (!color) throw new Error("no light token override");
-      const token = luminance(color.replace(/\s*!important$/, ""));
-      const highlight = rulesFor(rules, ".shiki:not(.not-fumadocs-codeblock *) .highlighted")[0]
-        ?.declarations.background;
-      if (!highlight) throw new Error("no highlighted-line tint");
-      const diffTints = [FUMADOCS_DIFF_ADD, FUMADOCS_DIFF_REMOVE];
+  it("keeps every github-light token color at WCAG AA on every code surface and line tint", () => {
+    const highlight = rulesFor(rules, ".shiki:not(.not-fumadocs-codeblock *) .highlighted")[0]
+      ?.declarations.background;
+    if (!highlight) throw new Error("no highlighted-line tint");
+    const diffTints = [FUMADOCS_DIFF_ADD, FUMADOCS_DIFF_REMOVE];
+    expect(LIGHT_PALETTE.length).toBeGreaterThan(8);
+    for (const original of LIGHT_PALETTE) {
+      const token = luminance(effectiveLightColor(original));
       for (const surface of ["--surface-bg", "--surface-card", "--color-fd-muted", "--v-void"]) {
         const base = resolve(LIGHT, `var(${surface})`);
         const backgrounds = [
@@ -202,11 +227,44 @@ describe("theme tokens", () => {
           const surfaceLuminance = luminance(background);
           const ratio =
             (Math.max(token, surfaceLuminance) + 0.05) / (Math.min(token, surfaceLuminance) + 0.05);
-          expect(ratio, `property token on ${label}`).toBeGreaterThanOrEqual(4.5);
+          expect(ratio, `${original} on ${label}`).toBeGreaterThanOrEqual(4.5);
         }
       }
-    },
-  );
+    }
+  });
+
+  it("overrides a light token only through a selector that names its --shiki-light value", () => {
+    const overrides = rules.filter((rule) =>
+      rule.selector.startsWith(".light .shiki span[style*="),
+    );
+    expect(overrides.length).toBeGreaterThan(2);
+    for (const rule of overrides) {
+      expect(rule.selector, rule.selector).toMatch(/--shiki-light:#[0-9A-F]{6}|#6A737D/i);
+    }
+  });
+
+  it("draws the matched text of the active search result in the fill's foreground, at AA in both themes", () => {
+    const selector =
+      '[role="dialog"]:has([role="combobox"]) [role="listbox"] [role="option"][aria-selected="true"] ::highlight(fd-search)';
+    expect(rulesFor(rules, selector)[0]?.declarations.color).toBe("var(--accent-fill-fg)");
+    for (const tokens of [DARK, LIGHT]) {
+      expect(contrast(tokens, "--accent-fill-fg", "--accent-fill")).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it("keeps a callout lead word at AA on its own tint, for both callout colors in both themes", () => {
+    for (const tokens of [DARK, LIGHT]) {
+      for (const color of ["--color-fd-info", "--color-fd-warning"]) {
+        const lead = luminance(resolve(tokens, `var(${color})`));
+        const [red = 0, green = 0, blue = 0] = rgb(resolve(tokens, `var(${color})`));
+        const tint = luminance(
+          overlay([red * 255, green * 255, blue * 255], 0.09, resolve(tokens, "var(--surface-bg)")),
+        );
+        const ratio = (Math.max(lead, tint) + 0.05) / (Math.min(lead, tint) + 0.05);
+        expect(ratio, `${color} lead word on its tint`).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
 
   it("measures the diff tints Fumadocs ships", () => {
     const css = readFileSync(

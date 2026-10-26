@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "playwright/test";
 import {
+  brokenWordsIn,
   DOCS_PAGES,
   expectNoAxeViolations,
   expectNoHorizontalScroll,
@@ -76,3 +77,84 @@ for (const locale of LOCALES) {
     });
   }
 }
+
+test.describe("docs shell on a phone", () => {
+  test.use({ viewport: { width: 375, height: 800 } });
+
+  test("keeps focus inside the open navigation sheet and returns it to the trigger on Escape", async ({
+    page,
+  }) => {
+    await openDocsPage(page, "/docs/cli/translate");
+    const trigger = page.locator('#nd-subnav button[aria-controls="nd-sidebar-mobile"]');
+    await trigger.click();
+    const drawer = page.locator("#nd-sidebar-mobile");
+    await expect(drawer).toBeVisible();
+    await expect
+      .poll(() => drawer.evaluate((node) => node.contains(document.activeElement)))
+      .toBe(true);
+    for (let press = 0; press < 40; press += 1) {
+      await page.keyboard.press("Tab");
+      const inside = await page.evaluate(() => {
+        const active = document.activeElement;
+        return (
+          active !== null &&
+          (document.getElementById("nd-sidebar-mobile")?.contains(active) === true ||
+            active.matches('#nd-subnav button[aria-controls="nd-sidebar-mobile"]'))
+        );
+      });
+      expect(inside, `focus after Tab ${press + 1}`).toBe(true);
+    }
+    await page.keyboard.press("Escape");
+    await expect(drawer).toBeHidden();
+    await expect(trigger).toBeFocused();
+  });
+
+  test("shows the search input above the header when search opens", async ({ page }) => {
+    await openDocsPage(page, "/docs/cli/translate");
+    await page.locator("#nd-subnav [data-search]").click();
+    const input = page.getByRole("combobox");
+    await expect(input).toBeVisible();
+    const covered = await input.evaluate((node) => {
+      const box = node.getBoundingClientRect();
+      const top = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+      return top === null || !(top === node || node.contains(top));
+    });
+    expect(covered).toBe(false);
+  });
+
+  test("never breaks a word of a heading that carries a version badge", async ({ page }) => {
+    await openDocsPage(page, "/de/docs/cli/translate");
+    const split = await page.evaluate(
+      brokenWordsIn,
+      "#nd-page :is(h2, h3, h4):has(.vk-available-from) > a[data-card]",
+    );
+    expect(split.checked).toBeGreaterThan(0);
+    expect(split.found).toEqual([]);
+  });
+});
+
+test("keeps the header links at the same position on the landing and on a docs page", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  const linkX = async (url: string): Promise<number> => {
+    await page.goto(url);
+    const box = await page.locator('.vk-header a.vk-header-link[href="/docs"]').boundingBox();
+    if (box === null) throw new Error(`no Docs link on ${url}`);
+    return box.x;
+  };
+  const landing = await linkX("/");
+  const docs = await linkX("/docs/cli/translate");
+  expect(Math.abs(landing - docs)).toBeLessThanOrEqual(1);
+});
+
+test("keeps a 24px gap between the search pill and the first header link at 768px", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 768, height: 800 });
+  await page.goto("/docs/cli/translate");
+  const search = await page.locator(".vk-header-search").boundingBox();
+  const link = await page.locator(".vk-header a.vk-header-link").first().boundingBox();
+  if (search === null || link === null) throw new Error("header controls missing");
+  expect(link.x - (search.x + search.width)).toBeGreaterThanOrEqual(24);
+});

@@ -263,3 +263,24 @@ export async function expectStickyLabelsFit(page: Page, scope: string): Promise<
   );
   expect(broken).toEqual([]);
 }
+
+export function brokenWordsIn(selector: string): { found: string[]; checked: number } {
+  const lineCount = (node: Text, start: number, end: number): number => {
+    const range = document.createRange();
+    range.setStart(node, start);
+    range.setEnd(node, end);
+    return new Set(Array.from(range.getClientRects(), (rect) => Math.round(rect.top))).size;
+  };
+  const wordsBroken = (node: Text): string[] =>
+    Array.from(node.data.matchAll(/\S+/g))
+      .filter((match) => lineCount(node, match.index, match.index + match[0].length) > 1)
+      .map((match) => match[0]);
+  const textNodes = (root: Element): Text[] => {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    const nodes: Text[] = [];
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) nodes.push(node as Text);
+    return nodes;
+  };
+  const anchors = Array.from(document.querySelectorAll(selector));
+  return { found: anchors.flatMap(textNodes).flatMap(wordsBroken), checked: anchors.length };
+}

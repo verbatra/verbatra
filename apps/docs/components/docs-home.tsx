@@ -211,7 +211,7 @@ export function DocsHomePaths({
   locale: Locale;
 }): ReactNode {
   return (
-    <div className="not-prose grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="not-prose grid grid-cols-1 gap-3 min-[70rem]:grid-cols-3">
       {cards.map((card) => (
         <IntentPrefetchLink
           key={card.href}

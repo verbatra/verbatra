@@ -28,7 +28,9 @@ type HeaderSlots = Pick<BaseSlots, "navTitle" | "searchTrigger" | "languageSelec
 
 type IconItem = Extract<LinkItemType, { type: "icon" }>;
 
-const ICON_BUTTON = cn(
+export const HEADER_TRAILING = "-me-1.5 size-[1.875rem]";
+
+export const ICON_BUTTON = cn(
   buttonVariants({ size: "icon-sm", variant: "ghost" }),
   "text-(--text-muted)",
 );
@@ -178,7 +180,7 @@ export function SiteHeaderFrame({
         {slots.searchTrigger ? (
           <slots.searchTrigger.full
             hideIfDisabled
-            className="vk-header-search my-auto w-full max-w-sm rounded-xl ps-2.5 max-lg:max-w-64 max-md:hidden"
+            className="vk-header-search my-auto w-full max-md:hidden"
           />
         ) : null}
         <HeaderEnd>
@@ -264,6 +266,7 @@ export function HomeSiteHeader({ wordmark, homeUrl, ...props }: HomeSiteHeaderPr
         navLabel={labels.label}
         externalHint={labels.newTab}
         mobileTrigger={<HomeMobileMenu footer={settings} />}
+        trailing={<span aria-hidden="true" className={cn(HEADER_TRAILING, "shrink-0")} />}
       />
     </HomeTitleContext>
   );

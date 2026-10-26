@@ -3,6 +3,7 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { describe, expect, it, vi } from "vitest";
+import { docsStylesheetRules } from "@/lib/stylesheet-rules";
 import { contrast, themeTokens } from "@/test-support/contrast";
 import { buttonClasses } from "./button";
 import { CopyControl } from "./copy-control";
@@ -78,4 +79,21 @@ describe("control boundaries", () => {
     expect(new Set(states.map(borderToken)).size).toBe(3);
     for (const className of states) expectBoundary(borderToken(className));
   });
+
+  it.each([
+    [".vk-page-actions button", "border"],
+    [".vk-header-search", "border-color"],
+  ] as const)(
+    "draws the border of %s at 3:1 or more on every landing surface",
+    (selector, property) => {
+      const value = docsStylesheetRules()
+        .filter((rule) => rule.selector === selector)
+        .map((rule) => rule.declarations[property])
+        .find((declared) => declared !== undefined);
+      const token = /var\((--[\w-]+)\)/.exec(value ?? "")?.[1];
+      if (token === undefined) throw new Error(`no border token on ${selector}`);
+      expect(token).not.toBe("--border-default");
+      expectBoundary(token);
+    },
+  );
 });

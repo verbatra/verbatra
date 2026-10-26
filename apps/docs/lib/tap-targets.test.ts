@@ -13,6 +13,7 @@ const PHONE_MIN_SIZE = [
   "[data-toc-popover-trigger]",
   "#nd-sidebar-mobile a[href]",
   "#nd-sidebar-mobile button",
+  ".vk-page-actions button",
   '#nd-page [role="tab"]',
   "#nd-page .group\\/heading > button",
   "figure.shiki button",
