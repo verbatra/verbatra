@@ -1,23 +1,23 @@
 import { getTranslations } from "next-intl/server";
 import { availableFromCopy } from "@/components/available-from";
-import { GITHUB_URL, LICENSE_URL, releaseUrl } from "@/components/landing/links";
-import { CONTRIBUTORS } from "./contributors";
-import { type Locale, localizedPath } from "./i18n";
-import { NPM_INSTALL_COMMAND } from "./install-commands";
+import { LICENSE_URL, releaseUrl } from "@/components/landing/links";
 import {
-  COMPARE_LAST_CHECKED,
-  COMPARE_PATH,
-  HOSTED_TMS_NAMES,
-  SHORT_COLUMNS,
-  SHORT_ROWS,
-  shortCellHasText,
-  shortCellIsYes,
-} from "./landing-compare";
-import { formatLandingDate } from "./landing-date";
+  HERO_CHECK_EXIT_CODE,
+  HERO_SENT_STRINGS,
+  HERO_TERMINAL_NEW_KEYS,
+  HERO_TERMINAL_SYNCED_KEYS,
+  HERO_TOTAL_STRINGS,
+  HERO_TRANSLATE_COMMAND,
+  HERO_TRANSLATE_LOCALE_LINES,
+  HERO_TRANSLATE_OUTPUT,
+} from "./hero-terminal";
+import { type Locale, localizedPath } from "./i18n";
+import { DRY_RUN_COMMAND, HERO_INSTALL_COMMAND, MCP_ADD_COMMAND } from "./install-commands";
 import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "./landing-facts";
 import { FAQ_ANSWER_LINKS, FAQ_ASIDE_LINKS, FAQ_ITEM_IDS, faqHref, faqValues } from "./landing-faq";
-import { CONTRIBUTION_STEPS, CONTRIBUTOR_SLOT_URL, OPEN_SOURCE_LINKS } from "./landing-open-source";
+import { LANDING_FEATURES } from "./landing-features";
 import {
+  PLAYGROUND_DEFAULT_ITEM,
   PLAYGROUND_DOCS_LINKS,
   PLAYGROUND_ITEMS,
   PLAYGROUND_LANGUAGES,
@@ -29,13 +29,11 @@ import {
 } from "./landing-playground";
 import { landingProviders, PROVIDER_DISPLAY } from "./landing-providers";
 import { LANDING_SECTIONS, type LandingSectionId } from "./landing-sections";
-import { LANDING_TRACK_IDS, LANDING_TRACKS, type LandingTrackId } from "./landing-tracks";
 import { fencedMarkdown, inlineCodeMarkdown, markupChunks } from "./llm-markdown";
 import { absoluteMarkdownHref } from "./markdown-links";
-import { nodeVersionsLabel } from "./node-requirement";
 import { pageFrontmatter } from "./page-frontmatter";
 import { RELEASE_BADGE } from "./release-badge";
-import { NODE_RANGE, PACKAGE_VERSION } from "./site";
+import { PACKAGE_VERSION } from "./site";
 
 type Context = { readonly locale: Locale; readonly badge: string };
 
@@ -68,43 +66,18 @@ const MARKDOWN_TAGS = {
   code: (chunks: string) => inlineCodeMarkdown(markupChunks(chunks)),
 };
 
-async function heroTrack(locale: Locale, id: LandingTrackId): Promise<string> {
-  const t = await getTranslations({ locale, namespace: "landing.hero.tracks" });
-  const track = LANDING_TRACKS[id];
-  const steps = track.steps.flatMap((step) => [
-    fencedMarkdown("sh", null, step.command),
-    ...(step.output.length > 0 ? [fencedMarkdown("text", null, step.output.join("\n"))] : []),
-  ]);
-  const files = track.files.map((file) =>
-    fencedMarkdown(file.language, `title="${file.filename}"`, file.code.trimEnd()),
-  );
-  return blocks(
-    `**${t(`${id}.tab`)}**`,
-    `${t(`${id}.summary`)} ${link(t(`${id}.link`), localizedPath(locale, track.docsPath))}`,
-    ...steps,
-    ...files,
-  );
-}
-
 async function hero({ locale }: Context): Promise<string> {
   const t = await getTranslations({ locale, namespace: "landing.banner" });
-  const requirement = t("nodeRequirement", {
-    versions: nodeVersionsLabel(NODE_RANGE, locale, (major, minimum) =>
-      t("nodeMajorFrom", { major, minimum }),
-    ),
-  });
   const quickstart = localizedPath(locale, "/docs/quickstart");
-  const tracks = await Promise.all(LANDING_TRACK_IDS.map((id) => heroTrack(locale, id)));
   return blocks(
-    `# ${t("headline")}`,
+    `# ${t.markup("headline", { accent: (chunks: string) => markupChunks(chunks) })}`,
     link(
       `${t("announcement.badge")}: ${t("announcement.text", { version: PACKAGE_VERSION })}`,
       releaseUrl(PACKAGE_VERSION),
     ),
     t("lead"),
-    list([link(t("ctaPrimary"), quickstart), link(t("ctaSecondary"), GITHUB_URL)]),
-    `${link(t("license"), LICENSE_URL)} ${requirement}`,
-    ...tracks,
+    list([link(t("ctaPrimary"), quickstart)]),
+    fencedMarkdown("sh", null, HERO_INSTALL_COMMAND),
   );
 }
 
@@ -116,7 +89,9 @@ async function marquee({ locale, badge }: Context): Promise<string> {
   const t = await getTranslations({ locale, namespace: "landing.marquee" });
   return blocks(
     `## ${t("heading")}`,
-    t("lead"),
+    `### ${t("formats")}`,
+    list(SUPPORTED_FORMAT_IDS.map((id) => FORMAT_DISPLAY[id].label)),
+    link(t("allFormats"), localizedPath(locale, "/docs/formats")),
     `### ${t("providers")}`,
     list(
       landingProviders().map((provider) =>
@@ -124,9 +99,6 @@ async function marquee({ locale, badge }: Context): Promise<string> {
       ),
     ),
     link(t("allProviders"), localizedPath(locale, "/docs/providers")),
-    `### ${t("formats")}`,
-    list(SUPPORTED_FORMAT_IDS.map((id) => FORMAT_DISPLAY[id].label)),
-    link(t("allFormats"), localizedPath(locale, "/docs/formats")),
   );
 }
 
@@ -160,39 +132,6 @@ async function playground({ locale }: Context): Promise<string> {
   );
 }
 
-async function compare({ locale }: Context): Promise<string> {
-  const t = await getTranslations({ locale, namespace: "landing.compare" });
-  return blocks(
-    `## ${t("heading")}`,
-    t("lead"),
-    `${t("caption")}:`,
-    table(
-      [
-        t("columns.criterion"),
-        ...SHORT_COLUMNS.map((column) =>
-          column === "hostedTms"
-            ? `${t("columns.hostedTms")} (${HOSTED_TMS_NAMES})`
-            : t(`columns.${column}`),
-        ),
-      ],
-      SHORT_ROWS.map((row) => [
-        t(`rows.${row}.label`),
-        ...SHORT_COLUMNS.map((column) =>
-          [
-            shortCellIsYes(row, column) ? t("marks.yes") : null,
-            shortCellHasText(row, column) ? t(`brief.${row}.${column}`) : null,
-          ]
-            .filter((part) => part !== null)
-            .join(", "),
-        ),
-      ]),
-    ),
-    t("concession"),
-    `${t("lastChecked")} ${formatLandingDate(COMPARE_LAST_CHECKED, locale)}`,
-    link(t("fullLink"), localizedPath(locale, COMPARE_PATH)),
-  );
-}
-
 async function faq({ locale }: Context): Promise<string> {
   const t = await getTranslations({ locale, namespace: "landing.faq" });
   const items = FAQ_ITEM_IDS.map((id) =>
@@ -219,30 +158,56 @@ async function faq({ locale }: Context): Promise<string> {
   );
 }
 
-async function openSource({ locale }: Context): Promise<string> {
-  const t = await getTranslations({ locale, namespace: "landing.openSource" });
-  const steps = CONTRIBUTION_STEPS.map(
-    (step, index) =>
-      `${index + 1}. ${t(`steps.${step.id}.title`)}: ${inlineCodeMarkdown(step.command)}`,
+async function statement({ locale }: Context): Promise<string> {
+  const t = await getTranslations({ locale, namespace: "landing.statement" });
+  return blocks(
+    `## ${t("label")}`,
+    t.markup("heading", {
+      sent: HERO_TERMINAL_NEW_KEYS.length,
+      kept: HERO_TERMINAL_SYNCED_KEYS.length,
+      em: (chunks: string) => markupChunks(chunks),
+    }),
+    fencedMarkdown("text", null, HERO_TRANSLATE_LOCALE_LINES[0] ?? ""),
   );
+}
+
+async function highlights({ locale }: Context): Promise<string> {
+  const t = await getTranslations({ locale, namespace: "landing.highlights" });
   return blocks(
     `## ${t("heading")}`,
     t("lead"),
-    steps.join("\n"),
-    CONTRIBUTORS.length === 0
-      ? null
-      : blocks(
-          `### ${t("contributorsHeading")}`,
-          list([
-            ...CONTRIBUTORS.map((contributor) => link(contributor.login, contributor.profileUrl)),
-            `${link(t("contributorSlot"), CONTRIBUTOR_SLOT_URL)}: ${t("contributorSlotHint")}`,
-          ]),
-        ),
-    `### ${t("linksHeading")}`,
-    list([
-      link("verbatra/verbatra", GITHUB_URL),
-      ...OPEN_SOURCE_LINKS.map((item) => link(t(item.key), item.href)),
-    ]),
+    `### ${t("translate.label")}: ${t("translate.title", { sent: HERO_SENT_STRINGS, total: HERO_TOTAL_STRINGS })}`,
+    fencedMarkdown(
+      "text",
+      null,
+      [`$ ${HERO_TRANSLATE_COMMAND}`, ...HERO_TRANSLATE_OUTPUT.slice(1)].join("\n"),
+    ),
+    `### ${t("ci.label")}: ${t("ci.title")}`,
+    inlineCodeMarkdown(`exit ${HERO_CHECK_EXIT_CODE}`),
+    t("ci.body", { code: HERO_CHECK_EXIT_CODE }),
+    `### ${t("integrity.label")}: ${t("integrity.title")}`,
+    list(
+      PLAYGROUND_LANGUAGES.map(
+        (code) => `${code}: ${PLAYGROUND_TRANSLATIONS[code]?.[PLAYGROUND_DEFAULT_ITEM] ?? ""}`,
+      ),
+    ),
+    `### ${t("agents.label")}: ${t("agents.title")}`,
+    t("agents.body"),
+    fencedMarkdown("sh", null, MCP_ADD_COMMAND),
+  );
+}
+
+async function features({ locale }: Context): Promise<string> {
+  const t = await getTranslations({ locale, namespace: "landing.features" });
+  return blocks(
+    `## ${t("label")}: ${t("heading")}`,
+    t("lead"),
+    list(
+      LANDING_FEATURES.map(
+        ({ id, docsPath }) =>
+          `${link(t(`items.${id}.title`), localizedPath(locale, docsPath))}: ${t(`items.${id}.body`)}`,
+      ),
+    ),
   );
 }
 
@@ -250,12 +215,9 @@ async function finalCta({ locale }: Context): Promise<string> {
   const t = await getTranslations({ locale, namespace: "landing.closing" });
   return blocks(
     `## ${t("heading")}`,
+    t("label"),
     t("lead"),
-    fencedMarkdown("sh", null, NPM_INSTALL_COMMAND),
-    list([
-      link(t("primary"), localizedPath(locale, "/docs/quickstart")),
-      link(t("secondary"), GITHUB_URL),
-    ]),
+    fencedMarkdown("sh", null, DRY_RUN_COMMAND),
   );
 }
 
@@ -263,10 +225,11 @@ const SECTION_MARKDOWN: Readonly<Record<LandingSectionId, (context: Context) => 
   {
     hero,
     marquee,
+    statement,
+    highlights,
     playground,
-    compare,
+    features,
     faq,
-    openSource,
     finalCta,
   };
 

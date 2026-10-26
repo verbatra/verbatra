@@ -5,6 +5,7 @@ import { MenuIcon } from "@/components/header-parts";
 import {
   ChangelogNavLink,
   DocsNavLink,
+  FeaturesNavLink,
   GetStartedLink,
   GitHubNavLink,
   useHomeNav,
@@ -47,6 +48,7 @@ export function HomeMobileMenu({ footer }: { footer: ReactNode }): ReactNode {
           </SheetTitle>
         </SheetHeader>
         <nav ref={navRef} aria-label={labels.label} className="flex flex-col gap-0.5 px-2">
+          <FeaturesNavLink className={SHEET_ITEM} onNavigate={close} />
           <DocsNavLink className={SHEET_ITEM} onNavigate={close} />
           <ChangelogNavLink className={SHEET_ITEM} />
           <GitHubNavLink className={SHEET_ITEM} />

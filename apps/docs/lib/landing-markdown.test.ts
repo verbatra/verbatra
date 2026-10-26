@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
+import { stripAccentTags } from "@/test-support/accent-tags";
 import { i18n } from "./i18n";
 import { FORMAT_DISPLAY, SUPPORTED_FORMAT_IDS } from "./landing-facts";
 import { FAQ_ITEM_IDS } from "./landing-faq";
@@ -23,17 +24,19 @@ const { faqContent } = await import("@/components/landing/faq");
 const SECTION_HEADINGS = [
   "banner.headline",
   "marquee.heading",
+  "statement.label",
+  "highlights.heading",
   "playground.heading",
-  "compare.heading",
+  "features.heading",
   "faq.heading",
-  "openSource.heading",
   "closing.heading",
 ] as const;
 
 function message(messages: Record<string, unknown>, path: string): string {
-  return path
+  const text = path
     .split(".")
     .reduce<unknown>((node, key) => (node as Record<string, unknown>)[key], messages) as string;
+  return stripAccentTags(text);
 }
 
 function plain(markdown: string): string {

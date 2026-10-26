@@ -5,6 +5,7 @@ import { LocaleLinks } from "@/components/chrome-islands";
 import { VMark } from "@/components/vmark";
 import { type Locale, localizedPath, toLocale } from "@/lib/i18n";
 import { MCP_VERSION, PACKAGE_VERSION, STUDIO_VERSION } from "@/lib/site";
+import { FooterContributors } from "./contributors";
 import { GithubIcon } from "./github-icon";
 import {
   CODE_OF_CONDUCT_URL,
@@ -164,6 +165,7 @@ export async function FullFooter(): Promise<ReactNode> {
   const t = await getTranslations("landing.footer");
   const newTab = (await getTranslations("landing.openSource"))("newTab");
   const locale = toLocale(await getLocale());
+  const contributors = await FooterContributors();
   return (
     <footer className="vk-footer">
       <div className="vk-gutter vk-w-wide mx-auto">
@@ -198,6 +200,7 @@ export async function FullFooter(): Promise<ReactNode> {
             </a>
           </div>
         </div>
+        {contributors ? <div className="vk-footer-people">{contributors}</div> : null}
         <div className="vk-footer-groups">
           <FooterGroupNav
             group={PRIMARY_GROUP}

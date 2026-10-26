@@ -142,10 +142,12 @@ describe("the header star count", () => {
           value={{
             docsUrl: "/docs",
             quickstartUrl: "/docs/quickstart",
+            featuresUrl: "/#features",
             locale: "en",
             stars: "1.2K",
             labels: {
               label: "Main",
+              features: "Features",
               docs: "Docs",
               github: "GitHub",
               starsAria: "{count} stars on GitHub",

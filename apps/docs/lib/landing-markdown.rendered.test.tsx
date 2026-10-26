@@ -29,20 +29,22 @@ vi.mock("next-intl", async (importOriginal) => ({
 const { landingMarkdown } = await import("./landing-markdown");
 const { Hero } = await import("@/components/landing/hero");
 const { Marquee } = await import("@/components/landing/marquee");
+const { Statement } = await import("@/components/landing/statement");
+const { Highlights } = await import("@/components/landing/highlights");
 const { Playground } = await import("@/components/landing/playground");
-const { Compare } = await import("@/components/landing/compare");
+const { Features } = await import("@/components/landing/features");
 const { Faq, faqContent } = await import("@/components/landing/faq");
-const { OpenSource } = await import("@/components/landing/open-source");
 const { FinalCta } = await import("@/components/landing/final-cta");
 const { LANDING_SECTIONS } = await import("./landing-sections");
 
 const SECTIONS = {
   hero: () => Hero(),
   marquee: () => Marquee(),
+  statement: () => Statement(),
+  highlights: () => Highlights(),
   playground: () => Playground(),
-  compare: () => Compare(),
+  features: () => Features(),
   faq: async () => Faq({ locale: state.locale, items: await faqContent(state.locale) }),
-  openSource: () => OpenSource(),
   finalCta: () => FinalCta(),
 } as const;
 

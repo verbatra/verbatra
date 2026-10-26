@@ -382,6 +382,27 @@ test.describe("playground layout at 1440px", () => {
   });
 });
 
+test.describe("playground tiles at 1440px", () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test("sets the controls, the result block and the code frame as 20px bordered panels", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    for (const selector of [
+      ".vk-playground-controls",
+      ".vk-playground-result-block",
+      ".vk-playground-code > figure",
+    ]) {
+      const style = await page.locator(`${PLAYGROUND} ${selector}`).evaluate((node) => {
+        const computed = getComputedStyle(node);
+        return { radius: computed.borderTopLeftRadius, width: computed.borderTopWidth };
+      });
+      expect(style, selector).toEqual({ radius: "20px", width: "1px" });
+    }
+  });
+});
+
 test.describe("playground whose island chunk fails", () => {
   test.setTimeout(60_000);
 

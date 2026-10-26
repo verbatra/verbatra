@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { stripAccentTags } from "@/test-support/accent-tags";
 import de from "../messages/de.json";
 import en from "../messages/en.json";
 import es from "../messages/es.json";
@@ -51,17 +52,15 @@ describe("titleFontSize", () => {
   });
 });
 
+const HEADLINE = stripAccentTags(en.landing.banner.headline);
+
 describe("HomeOgFrame", () => {
   const markup = renderToStaticMarkup(
-    <HomeOgFrame
-      headline={en.landing.banner.headline}
-      lines={HERO_OG_LINES}
-      footer="verbatra.kreitz-webdev.de"
-    />,
+    <HomeOgFrame headline={HEADLINE} lines={HERO_OG_LINES} footer="verbatra.kreitz-webdev.de" />,
   );
 
   it("draws the landing headline above the real check and translate lines", () => {
-    const headline = markup.indexOf(en.landing.banner.headline);
+    const headline = markup.indexOf(HEADLINE);
     const check = markup.indexOf(HERO_CHECK_COMMAND);
     const translate = markup.indexOf(HERO_TRANSLATE_COMMAND);
     expect(headline).toBeGreaterThan(-1);

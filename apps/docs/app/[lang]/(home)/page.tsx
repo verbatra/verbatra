@@ -2,15 +2,16 @@ import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Fragment, type ReactNode } from "react";
 import { JsonLd } from "@/components/json-ld";
-import { Compare } from "@/components/landing/compare";
 import { Faq, faqContent } from "@/components/landing/faq";
+import { Features } from "@/components/landing/features";
 import { FinalCta } from "@/components/landing/final-cta";
 import { Hero } from "@/components/landing/hero";
+import { Highlights } from "@/components/landing/highlights";
 import { ScrollTop } from "@/components/landing/islands";
 import { Marquee } from "@/components/landing/marquee";
 import { MotionRoot } from "@/components/landing/motion-root";
-import { OpenSource } from "@/components/landing/open-source";
 import { Playground } from "@/components/landing/playground";
+import { Statement } from "@/components/landing/statement";
 import { toLocale } from "@/lib/i18n";
 import { LANDING_SECTIONS, type LandingSectionId } from "@/lib/landing-sections";
 import { MAIN_CONTENT_ID } from "@/lib/locale-home-layout";
@@ -36,9 +37,10 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
   const sections: Readonly<Record<LandingSectionId, ReactNode>> = {
     hero: <Hero />,
     marquee: <Marquee />,
+    statement: <Statement />,
+    highlights: <Highlights />,
     playground: <Playground />,
-    compare: <Compare />,
-    openSource: <OpenSource />,
+    features: <Features />,
     faq: <Faq locale={locale} items={faqItems} />,
     finalCta: <FinalCta />,
   };

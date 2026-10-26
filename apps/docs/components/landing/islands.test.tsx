@@ -16,13 +16,11 @@ function imports(path: string): string[] {
 }
 
 const ISLAND_MODULES = [
-  "./hero-tracks",
   "./marquee-motion",
   "./playground-demo",
   "./faq-keys",
   "./compare-focus",
   "./scroll-top",
-  "@/components/landing/hero-tracks",
   "@/components/command-row",
   "@/components/ui/copy-button",
   "@/components/locale-links",
@@ -110,7 +108,7 @@ const registered = REGISTRIES.flatMap((registry) =>
 
 describe("islands that translate", () => {
   it("finds every registered island and its module", () => {
-    expect(registered.length).toBeGreaterThanOrEqual(13);
+    expect(registered.length).toBeGreaterThanOrEqual(12);
     for (const entry of registered) expect(entry.module).not.toBe("");
   });
 

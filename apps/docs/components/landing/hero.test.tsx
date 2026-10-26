@@ -1,20 +1,20 @@
 // @vitest-environment jsdom
 
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { NextIntlClientProvider } from "next-intl";
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { GITHUB_URL, LICENSE_URL, releaseUrl } from "@/components/landing/links";
-import { AI_SETUP_PROMPT } from "@/lib/ai-setup-prompt";
-import { NPM_INSTALL_COMMAND } from "@/lib/install-commands";
-import { LANDING_TRACK_IDS, LANDING_TRACKS } from "@/lib/landing-tracks";
-import { nodeVersionsLabel } from "@/lib/node-requirement";
-import { NODE_RANGE, PACKAGE_VERSION } from "@/lib/site";
-import { docsStylesheetRules } from "@/lib/stylesheet-rules";
+import { releaseUrl } from "@/components/landing/links";
+import { HERO_INSTALL_COMMAND } from "@/lib/install-commands";
+import { HERO_FILE_ADDED_COUNT } from "@/lib/landing-hero-files";
+import { PLAYGROUND_FILES_PATTERN, PLAYGROUND_TRANSLATIONS } from "@/lib/landing-playground";
+import { PACKAGE_VERSION } from "@/lib/site";
+import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
 import messages from "@/messages/en.json";
+import { stripAccentTags } from "@/test-support/accent-tags";
 import { preloadRegisteredIslands } from "@/test-support/islands";
-import { HERO_TRACKS_ID } from "./hero-tracks";
 
 const page = vi.hoisted(() => ({ locale: "en" }));
 
@@ -28,12 +28,13 @@ vi.mock("next/link", () => ({
 
 vi.mock("next-intl/server", async () => {
   const { createTranslator } = await import("next-intl");
-  const { default: catalog } = await import("@/messages/en.json");
+  const { readFileSync: read } = await import("node:fs");
+  const { join: joinPath } = await import("node:path");
   return {
     getTranslations: async (scope: string | { namespace: string }) =>
       createTranslator({
-        locale: "en",
-        messages: catalog,
+        locale: page.locale,
+        messages: JSON.parse(read(joinPath(process.cwd(), `messages/${page.locale}.json`), "utf8")),
         namespace: (typeof scope === "string" ? scope : scope.namespace) as never,
       }),
     getLocale: async () => page.locale,
@@ -44,14 +45,24 @@ const { Hero, HERO_TITLE_ID } = await import("./hero");
 
 await preloadRegisteredIslands();
 
+function catalogFor(locale: string): typeof messages {
+  return JSON.parse(readFileSync(join(process.cwd(), `messages/${locale}.json`), "utf8"));
+}
+
 async function render(locale = "en"): Promise<Document> {
   page.locale = locale;
-  const html = renderToStaticMarkup(await Hero());
+  const html = renderToStaticMarkup(
+    <NextIntlClientProvider locale={locale} messages={catalogFor(locale)}>
+      {await Hero()}
+    </NextIntlClientProvider>,
+  );
   return new DOMParser().parseFromString(html, "text/html");
 }
 
 const banner = messages.landing.banner;
-const tracks = messages.landing.hero.tracks;
+const headlinePlain = stripAccentTags(banner.headline);
+const headlineLit = /<accent>(.*)<\/accent>/.exec(banner.headline)?.[1];
+const install = messages.landing.install;
 const newTab = messages.landing.openSource.newTab;
 
 function source(path: string): string {
@@ -62,25 +73,30 @@ function words(text: string): number {
   return text.trim().split(/\s+/).length;
 }
 
-function panel(doc: Document, id: string): Element | null {
-  return doc.getElementById(`${HERO_TRACKS_ID}-panel-${id}`);
-}
-
 describe("Hero copy", () => {
   it("names its section by the one h1, the headline, under the subline", async () => {
     const doc = await render();
     const h1s = doc.querySelectorAll("h1");
     expect(h1s).toHaveLength(1);
-    expect(h1s[0]?.textContent).toBe(banner.headline);
+    expect(h1s[0]?.textContent).toBe(headlinePlain);
     expect(h1s[0]?.id).toBe(HERO_TITLE_ID);
     expect(doc.querySelector("section")?.getAttribute("aria-labelledby")).toBe(HERO_TITLE_ID);
     expect(h1s[0]?.nextElementSibling?.textContent).toBe(banner.lead);
   });
 
   it("keeps the headline to eight words and the subline to twenty-five, with no two-beat slogan", () => {
-    expect(words(banner.headline)).toBeLessThanOrEqual(8);
+    expect(words(headlinePlain)).toBeLessThanOrEqual(8);
     expect(words(banner.lead)).toBeLessThanOrEqual(25);
-    expect(banner.headline.split(/[.!?]\s/)).toHaveLength(1);
+    expect(headlinePlain.split(/[.!?]\s/)).toHaveLength(1);
+  });
+
+  it("sets the gradient on the second line of the headline only, the first staying solid", async () => {
+    const h1 = (await render()).querySelector("h1");
+    const lit = h1?.querySelectorAll(".vk-banner-title-lit");
+    expect(lit).toHaveLength(1);
+    expect(lit?.[0]?.textContent).toBe(headlineLit);
+    expect(lit?.[0]?.tagName).toBe("SPAN");
+    expect(h1?.firstChild?.textContent).toBe(headlinePlain.replace(headlineLit ?? "", ""));
   });
 
   it("opens the copy with the new-release announcement, linking the current release notes in a new tab", async () => {
@@ -119,172 +135,138 @@ describe("Hero copy", () => {
     expect(announce?.querySelectorAll("[aria-hidden='true']")).toHaveLength(3);
   });
 
-  it("offers Get started to the quickstart and Star on GitHub in a new tab", async () => {
-    const links = Array.from((await render()).querySelectorAll(".vk-banner-ctas a"));
+  it("offers Get started to the quickstart beside an install command chip, and no GitHub button or trust line", async () => {
+    const doc = await render();
+    const ctas = doc.querySelector(".vk-banner-ctas");
+    const links = Array.from(ctas?.querySelectorAll("a") ?? []);
     expect(links.map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
       [banner.ctaPrimary, "/docs/quickstart"],
-      [`${banner.ctaSecondary} ${newTab}`, GITHUB_URL],
     ]);
-    expect(links[1]?.getAttribute("target")).toBe("_blank");
-    expect(links[1]?.getAttribute("rel")).toBe("noopener noreferrer");
+    expect(ctas?.firstElementChild).toBe(links[0]);
+    expect(ctas?.lastElementChild?.className).toBe("vk-banner-install");
+    expect(doc.querySelector(".vk-banner-trust, dl, .vk-facts")).toBeNull();
+    expect(doc.querySelector(".vk-banner a[target='_blank']:not(.vk-announce)")).toBeNull();
   });
 
-  it("prefixes the quickstart and every track link with a non-default locale", async () => {
-    const doc = await render("de");
-    expect(doc.querySelector(".vk-banner-ctas a")?.getAttribute("href")).toBe(
+  it("prefixes the quickstart link with a non-default locale and renders its own catalog", async () => {
+    const german = await render("de");
+    expect(german.querySelector(".vk-banner-ctas a")?.getAttribute("href")).toBe(
       "/de/docs/quickstart",
     );
+    const de = catalogFor("de").landing.banner;
+    expect(german.querySelector(".vk-banner-ctas a")?.textContent).toBe(de.ctaPrimary);
+    expect(german.querySelector(".vk-banner-lead")?.textContent).toBe(de.lead);
+  });
+});
+
+describe("Hero install chip", () => {
+  it("shows the short install command with one copy button that carries the localized label", async () => {
+    const chip = (await render()).querySelector(".vk-banner-install");
+    expect(HERO_INSTALL_COMMAND).toBe("npm i -D @verbatra/cli");
+    expect(chip?.querySelector("code")?.textContent).toBe(HERO_INSTALL_COMMAND);
+    const buttons = chip?.querySelectorAll("button") ?? [];
+    expect(buttons).toHaveLength(1);
+    expect(buttons[0]?.getAttribute("aria-label")).toBe(install.copyAria);
+  });
+});
+
+describe("Hero locale files", () => {
+  async function files(): Promise<Element> {
+    const element = (await render()).querySelector(".vk-banner-demo > .vk-banner-files");
+    if (element === null) throw new Error("no locale files");
+    return element;
+  }
+
+  it("is decorative: hidden from assistive technology, with no island, tab or timer", async () => {
+    const doc = await render();
+    expect((await files()).getAttribute("aria-hidden")).toBe("true");
     expect(
-      Array.from(doc.querySelectorAll(".vk-track-summary a"), (link) => link.getAttribute("href")),
-    ).toEqual(LANDING_TRACK_IDS.map((id) => `/de${LANDING_TRACKS[id].docsPath}`));
+      doc.querySelector(".vk-banner [role='tablist'], .vk-tracks, .vk-track-terminal"),
+    ).toBeNull();
+    expect(doc.querySelector(".vk-banner-demo")?.children).toHaveLength(1);
   });
 
-  it("ends the copy with one honest trust line: the license and the Node.js range, not a fact grid", async () => {
-    const doc = await render();
-    const trust = doc.querySelector(".vk-banner-copy > .vk-banner-trust");
-    expect(trust?.tagName).toBe("P");
-    const license = trust?.querySelector("a");
-    expect(license?.getAttribute("href")).toBe(LICENSE_URL);
-    expect(license?.textContent).toBe(`${banner.license} ${newTab}`);
-    const majorFrom = (major: string, minimum: string) =>
-      banner.nodeMajorFrom.replace("{major}", major).replace("{minimum}", minimum);
-    expect(trust?.querySelector("span:not(.sr-only)")?.textContent).toBe(
-      banner.nodeRequirement.replace("{versions}", nodeVersionsLabel(NODE_RANGE, "en", majorFrom)),
+  it("stacks fr, es and de, the front card last", async () => {
+    const cards = Array.from((await files()).querySelectorAll(".vk-banner-file"));
+    expect(cards.map((card) => card.getAttribute("data-locale"))).toEqual(["fr", "es", "de"]);
+    expect(cards.map((card) => card.getAttribute("data-front"))).toEqual([null, null, "true"]);
+  });
+
+  it("names every card after the playground file pattern and fills it from the committed translations", async () => {
+    const cards = Array.from((await files()).querySelectorAll(".vk-banner-file"));
+    for (const card of cards) {
+      const locale = card.getAttribute("data-locale") ?? "";
+      expect(card.querySelector(".vk-banner-file-name")?.textContent).toContain(
+        PLAYGROUND_FILES_PATTERN.replace("{locale}", locale),
+      );
+      for (const line of card.querySelectorAll(".vk-banner-file-line")) {
+        const [, id = "", value = ""] =
+          /^(?:\+ )?"([^"]+)": (".*"),?$/.exec(line.textContent ?? "") ?? [];
+        expect(JSON.parse(value), `${locale} ${id}`).toBe(PLAYGROUND_TRANSLATIONS[locale]?.[id]);
+      }
+    }
+    expect(cards[0]?.querySelectorAll(".vk-banner-file-line")).toHaveLength(1);
+  });
+
+  it("gives the de card five lines whose last new ones are marked with a plus, counted by the badge from the added lines", async () => {
+    const front = (await files()).querySelector("[data-front='true']");
+    const lines = Array.from(front?.querySelectorAll(".vk-banner-file-line") ?? []);
+    expect(lines).toHaveLength(5);
+    const added = lines.filter((line) => line.getAttribute("data-added") === "true");
+    expect(added).toHaveLength(HERO_FILE_ADDED_COUNT);
+    expect(added.every((line) => line.textContent?.startsWith("+ "))).toBe(true);
+    expect(
+      lines
+        .filter((line) => !added.includes(line))
+        .some((line) => line.textContent?.startsWith("+")),
+    ).toBe(false);
+    expect(front?.querySelector(".vk-banner-file-badge")?.textContent).toBe(
+      banner.keysAdded.replace(
+        /\{count, plural, one \{# key\} other \{# keys\}\}/,
+        `${HERO_FILE_ADDED_COUNT} keys`,
+      ),
     );
-    expect(doc.querySelector("dl, .vk-facts, .vk-banner-facts")).toBeNull();
+    expect(lines.at(-1)?.textContent?.endsWith(",")).toBe(false);
+  });
+
+  it("carries each card's language on its lines", async () => {
+    const cards = Array.from((await files()).querySelectorAll(".vk-banner-file"));
+    for (const card of cards) {
+      const locale = card.getAttribute("data-locale");
+      expect(card.querySelector(`[lang='${locale}']`)).not.toBeNull();
+    }
   });
 });
 
-describe("Hero tracks", () => {
-  it("draws no install box, no copy button and no prompt: the closing section owns the install", async () => {
-    const doc = await render();
-    expect(doc.querySelector(".vk-command-panel, .vk-banner-install, .vk-copy")).toBeNull();
-    expect(doc.querySelector("button[aria-label]")).toBeNull();
-    expect(doc.body.textContent).not.toContain(NPM_INSTALL_COMMAND);
-    expect(doc.body.textContent).not.toContain(AI_SETUP_PROMPT.slice(0, 40));
-  });
-
-  it("switches the three tracks through one labelled tablist with a roving tab stop", async () => {
-    const doc = await render();
-    const lists = doc.querySelectorAll(".vk-banner-demo [role='tablist']");
-    expect(lists).toHaveLength(1);
-    expect(lists[0]?.getAttribute("aria-label")).toBe(tracks.label);
-    const tabs = Array.from(lists[0]?.querySelectorAll("[role='tab']") ?? []);
-    expect(tabs.map((tab) => tab.textContent)).toEqual(
-      LANDING_TRACK_IDS.map((id) => tracks[id].tab),
+describe("Hero without an island", () => {
+  it("keeps GSAP and any island but the install chip out of the hero", () => {
+    expect(source("components/landing/hero.tsx")).not.toMatch(
+      /from "(gsap|@gsap\/react|@\/lib\/gsap[^"]*)"|HeroTracks|landing-tracks/,
     );
-    expect(tabs.map((tab) => tab.getAttribute("aria-selected"))).toEqual([
-      "true",
-      "false",
-      "false",
-    ]);
-    expect(tabs.map((tab) => tab.getAttribute("tabindex"))).toEqual(["0", "-1", "-1"]);
-    for (const [index, id] of LANDING_TRACK_IDS.entries()) {
-      const target = tabs[index]?.getAttribute("aria-controls") ?? "";
-      expect(panel(doc, id)?.id).toBe(target);
-      expect(panel(doc, id)?.getAttribute("role")).toBe("tabpanel");
-      expect(panel(doc, id)?.getAttribute("aria-labelledby")).toBe(tabs[index]?.id);
-    }
-  });
-
-  it("server-renders every track in its final state, the default one open and the others inert", async () => {
-    const doc = await render();
-    expect(doc.querySelectorAll("[data-state]:not([data-state='done'])")).toHaveLength(0);
-    expect(doc.querySelectorAll(".vk-track-typed, .vk-track-caret")).toHaveLength(0);
-    for (const id of LANDING_TRACK_IDS) {
-      const open = id === LANDING_TRACK_IDS[0];
-      expect(panel(doc, id)?.getAttribute("data-active")).toBe(String(open));
-      expect(panel(doc, id)?.hasAttribute("inert")).toBe(!open);
-    }
-  });
-
-  it("prints each track's pinned commands, recorded result and exit code, English on every locale", async () => {
-    const doc = await render("de");
-    for (const id of LANDING_TRACK_IDS) {
-      const track = LANDING_TRACKS[id];
-      const body = panel(doc, id)?.querySelector(".vk-track-body");
-      expect(body?.getAttribute("lang")).toBe("en");
-      const lines = Array.from(
-        body?.querySelectorAll(".vk-track-command, .vk-track-out") ?? [],
-        (line) =>
-          line.classList.contains("vk-track-command")
-            ? `$ ${line.querySelector("code")?.textContent}`
-            : line.textContent,
-      );
-      expect(lines).toEqual(track.steps.flatMap((step) => [`$ ${step.command}`, ...step.output]));
-      expect(panel(doc, id)?.querySelector(".vk-track-title")?.textContent).toBe(
-        track.terminalTitle,
-      );
-      const exit = panel(doc, id)?.querySelector(".vk-track-exit");
-      expect(exit?.textContent ?? null).toBe(
-        track.exitCode === null ? null : tracks.exitCode.replace("{code}", String(track.exitCode)),
-      );
-    }
-  });
-
-  it("shows the agents track's .mcp.json in place of a transcript it never recorded", async () => {
-    const agents = panel(await render(), "agents");
-    expect(LANDING_TRACKS.agents.steps.flatMap((step) => step.output)).toEqual([]);
-    expect(agents?.querySelectorAll(".vk-track-out")).toHaveLength(0);
-    const files = Array.from(agents?.querySelectorAll(".vk-track-file") ?? []);
-    expect(files.map((file) => file.querySelector("figcaption")?.textContent)).toEqual(
-      LANDING_TRACKS.agents.files.map((file) => file.filename),
-    );
-    expect(files[0]?.querySelector("pre code")?.textContent).toBe(
-      LANDING_TRACKS.agents.files[0]?.code.trimEnd(),
-    );
-    expect(panel(await render(), "translate")?.querySelector(".vk-track-file")).toBeNull();
-  });
-
-  it("shows the CI track's workflow file under the check output it gates", async () => {
-    const ci = panel(await render(), "ci");
-    const body = ci?.querySelector(".vk-track-body");
-    const files = Array.from(body?.querySelectorAll(".vk-track-file") ?? []);
-    expect(files.map((file) => file.querySelector("figcaption")?.textContent)).toEqual(
-      LANDING_TRACKS.ci.files.map((file) => file.filename),
-    );
-    expect(files[0]?.querySelector("pre code")?.textContent).toBe(
-      LANDING_TRACKS.ci.files[0]?.code.trimEnd(),
-    );
-    expect(body?.lastElementChild).toBe(files[0]);
-    expect(files[0]?.previousElementSibling?.classList.contains("vk-track-out")).toBe(true);
-  });
-
-  it("explains each track in one sentence and links its docs page", async () => {
-    const doc = await render();
-    for (const id of LANDING_TRACK_IDS) {
-      const summary = panel(doc, id)?.querySelector(".vk-track-summary");
-      expect(summary?.textContent).toBe(
-        `${tracks[id].summary.replaceAll("`", "")} ${tracks[id].link}`,
-      );
-      expect(summary?.querySelector("a")?.getAttribute("href")).toBe(LANDING_TRACKS[id].docsPath);
-    }
-  });
-
-  it("keeps GSAP out of the hero: no static import in the hero or its island", () => {
-    for (const file of ["components/landing/hero.tsx", "components/landing/hero-tracks.tsx"]) {
-      expect(source(file)).not.toMatch(/from "(gsap|@gsap\/react|@\/lib\/gsap[^"]*)"/);
-    }
+    expect(existsSync(join(process.cwd(), "components/landing/hero-tracks.tsx"))).toBe(false);
   });
 });
+
+const BACK_CARDS_MEDIA = "@media (min-width: 64rem) @container (min-width: 28rem)";
 
 describe("Hero stylesheet", () => {
-  it("draws no backdrop pattern and no decorative glow behind the demo column", async () => {
-    const doc = await render();
-    expect(doc.querySelectorAll(".vk-banner-backdrop")).toHaveLength(0);
-    expect(doc.querySelectorAll(".vk-banner-glow")).toHaveLength(0);
+  it("draws one decorative halo behind the whole hero, first in the section", async () => {
+    const halo = (await render()).querySelector("section.vk-banner")?.firstElementChild;
+    expect(halo?.className).toBe("vk-banner-halo");
+    expect(halo?.getAttribute("aria-hidden")).toBe("true");
+    expect(halo?.textContent).toBe("");
   });
 
-  it("declares no glow token or rule and draws no dots", () => {
-    const rules = docsStylesheetRules();
-    expect(rules.some((rule) => rule.selector.includes(".vk-banner-glow"))).toBe(false);
+  it("paints the halo from the halo tokens", () => {
+    const halo = rulesFor(docsStylesheetRules(), ".vk-banner-halo");
+    const base = halo.find((rule) => rule.media === "");
+    expect(base?.declarations.background).toMatch(
+      /^radial-gradient\(28rem 22rem at 50% 100%, var\(--halo-soft\)/,
+    );
+    expect(base?.declarations["pointer-events"]).toBe("none");
     expect(
-      rules.some((rule) =>
-        Object.keys(rule.declarations).some(
-          (key) => key.startsWith("--banner-dot") || key === "--banner-glow",
-        ),
-      ),
-    ).toBe(false);
+      halo.find((rule) => rule.media === "@media (min-width: 64rem)")?.declarations.background,
+    ).toMatch(/var\(--halo-strong\)[\s\S]*var\(--halo-soft\)/);
   });
 
   it("draws the header hairline as one plain border-token line, never a gradient", () => {
@@ -296,29 +278,60 @@ describe("Hero stylesheet", () => {
     }
   });
 
-  it("puts the copy beside the wider tracks column from 64rem", () => {
+  it("puts the copy beside the narrower files column from 64rem, wide enough for the headline", () => {
     const rule = docsStylesheetRules().find(
       (entry) =>
         entry.selector === ".vk-banner-grid" &&
-        entry.declarations["grid-template-columns"] === "minmax(0, 5fr) minmax(0, 7fr)",
+        entry.declarations["grid-template-columns"] === "minmax(0, 6fr) minmax(0, 5fr)",
     );
     expect(rule?.media).toContain("64rem");
   });
 
-  it("stacks the track panels in one cell on shared rows, so a switch never moves the terminal or the summary", () => {
+  it("shows only the front card below 64rem and rotates the back cards from 64rem, never fading text with opacity", () => {
     const rules = docsStylesheetRules();
-    const declarations = (selector: string) =>
-      rules.find((rule) => rule.selector === selector)?.declarations;
-    expect(declarations(".vk-tracks-panels")?.["grid-template-rows"]).toBe("minmax(0, 1fr) auto");
-    expect(declarations('.vk-tracks-panels > [role="tabpanel"]')).toMatchObject({
-      "grid-row": "1 / -1",
-      "grid-column": "1",
-      "grid-template-rows": "subgrid",
-    });
-    expect(declarations(".vk-track-terminal")?.["grid-template-rows"]).toBe("auto 1fr");
+    const wide = (locale: string) =>
+      rulesFor(rules, `.vk-banner-file[data-locale="${locale}"]`).find(
+        (rule) => rule.media === BACK_CARDS_MEDIA && "transform" in rule.declarations,
+      )?.declarations.transform;
+    expect(wide("fr")).toBe("rotate(-4deg)");
+    expect(wide("es")).toBe("rotate(-1.5deg)");
+    const hidden = rules.find(
+      (rule) =>
+        rule.media === "" &&
+        rule.selector.includes('.vk-banner-file[data-locale="fr"]') &&
+        rule.declarations.display === "none",
+    );
+    expect(hidden).toBeDefined();
+    const own = rules.filter((rule) => rule.selector.startsWith(".vk-banner-file"));
+    expect(own.some((rule) => "opacity" in rule.declarations)).toBe(false);
+  });
+
+  it("wraps every value line instead of truncating it, and shows the back cards only where their line fits", () => {
+    const rules = docsStylesheetRules();
+    const line = rulesFor(rules, ".vk-banner-file-line").find((rule) => rule.media === "");
+    expect(line?.declarations["text-overflow"]).toBeUndefined();
+    expect(line?.declarations["white-space"]).toBeUndefined();
+    expect(line?.declarations["overflow-wrap"]).toBe("break-word");
+    const backCards = rules.find(
+      (rule) =>
+        rule.media === BACK_CARDS_MEDIA &&
+        rule.selector.includes('.vk-banner-file[data-locale="fr"]') &&
+        rule.declarations.display === "block",
+    );
+    expect(backCards).toBeDefined();
     expect(
-      rules.find((rule) => rule.selector === '.vk-tracks-panels > [data-active="false"]')
-        ?.declarations.visibility,
-    ).toBe("hidden");
+      rulesFor(rules, ".vk-banner-demo").find((rule) => rule.media === "")?.declarations[
+        "container-type"
+      ],
+    ).toBe("inline-size");
+  });
+
+  it("keeps the old stack, sheet and track rules out of the stylesheet", () => {
+    const selectors = docsStylesheetRules().map((rule) => rule.selector);
+    expect(
+      selectors.filter((selector) =>
+        /vk-banner-(stack|sheet|trust)|vk-tracks?\b|vk-track-/.test(selector),
+      ),
+    ).toEqual([]);
   });
 });

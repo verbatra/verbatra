@@ -23,6 +23,7 @@ import {
 import {
   ChangelogNavLink,
   DocsNavLink,
+  FeaturesNavLink,
   GetStartedLink,
   GitHubNavLink,
   useHomeNav,
@@ -263,6 +264,7 @@ export function HomeSiteHeader({ wordmark, homeUrl, ...props }: HomeSiteHeaderPr
         navLabel={labels.label}
         navLinks={
           <>
+            <FeaturesNavLink className={NAV_TEXT_LINK} />
             <DocsNavLink className={NAV_TEXT_LINK} />
             <ChangelogNavLink className={NAV_TEXT_LINK} />
             <GitHubNavLink className={NAV_TEXT_LINK} />

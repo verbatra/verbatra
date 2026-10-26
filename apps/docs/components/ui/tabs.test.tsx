@@ -3,7 +3,7 @@
 import { act, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import Tabs, { TabList, tabId, tabPanelId } from "./tabs";
+import Tabs, { TabList } from "./tabs";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -60,17 +60,7 @@ describe("TabList", () => {
     ]);
   });
 
-  it("wires each tab to its panel when an id prefix is given", () => {
-    const container = render(
-      <TabList tabs={TABS} active="npm" onSelect={() => {}} idPrefix="install" />,
-    );
-
-    expect(tabs(container).map((tab) => [tab.id, tab.getAttribute("aria-controls")])).toEqual(
-      TABS.map(({ id }) => [tabId("install", id), tabPanelId("install", id)]),
-    );
-  });
-
-  it("sets no ids or aria-controls without an id prefix", () => {
+  it("sets no ids or aria-controls on a tab", () => {
     const container = render(<TabList tabs={TABS} active="npm" onSelect={() => {}} />);
 
     for (const tab of tabs(container)) {

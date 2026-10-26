@@ -61,27 +61,6 @@
       "ogImageAlt": "Verbatra: Übersetze nur, was sich geändert hat, über einem check-Lauf, der zwei fehlende Keys pro Locale findet, und einem translate-Lauf, der nur diese schickt.",
       "definition": "Verbatra ist ein Open-Source-CLI und SDK für i18n-Lokalisierungsdateien. Es sendet nur neue und geänderte Schlüssel an den von dir gewählten KI- oder maschinellen Übersetzungsanbieter und lässt CI fehlschlagen, wenn ein Schlüssel fehlt."
     },
-    "hero": {
-      "tracks": {
-        "label": "Wähle einen Workflow",
-        "exitCode": "exit {code}",
-        "translate": {
-          "tab": "Übersetzen",
-          "summary": "Finde die Schlüssel, die deinen Zielsprachen fehlen, übersetze dann nur diese und sieh, wie viele Tokens jede Sprache verbraucht hat.",
-          "link": "Lies den Übersetzungsbefehl"
-        },
-        "agents": {
-          "tab": "KI-Agenten",
-          "summary": "Registriere den MCP-Server für das Projekt, und dein Coding-Agent kann den Status lesen und Übersetzungen korrigieren.",
-          "link": "Einen MCP-Client verbinden"
-        },
-        "ci": {
-          "tab": "CI-Gates",
-          "summary": "`verbatra check` beendet sich mit dem Exit-Code 1, wenn einer Sprachdatei Schlüssel fehlen, sodass der Pull Request fehlschlägt, bevor die Abweichung ausgeliefert wird.",
-          "link": "Lies über CI und Exit-Codes"
-        }
-      }
-    },
     "install": {
       "copy": "Kopieren",
       "copied": "Kopiert",
@@ -97,7 +76,7 @@
       "promptPreviewLabel": "Kopiert diesen Prompt für deinen Agenten"
     },
     "faq": {
-      "heading": "Bevor du Verbatra installierst.",
+      "heading": "Bevor du Verbatra installierst",
       "lead": "Kurze Antworten, jede mit der Docs-Seite, die tiefer geht.",
       "docs": {
         "label": "In den Docs",
@@ -111,7 +90,7 @@
           "answer": "Ja. Verbatra ist kostenlos und Open Source unter der <license>MIT-Lizenz</license>, und du bezahlst deinen Anbieter nur für die geänderten Schlüssel; <link>Kostenschätzung</link> berechnet zuerst einen Durchlauf."
         },
         "providers": {
-          "question": "Welche Übersetzungsanbieter unterstützt Verbatra?",
+          "question": "Welche Übersetzungs-Anbieter unterstützt Verbatra?",
           "answer": "{providers}{pending, select, yes {, plus {upcoming} from {next}} other {}}. Setze einen im <code>provider</code>-Block, oder <code>none</code>, wenn nur Menschen übersetzen; die <link>Anbieterseite</link> deckt jeden ab."
         },
         "privacy": {
@@ -194,6 +173,7 @@
     },
     "topNav": {
       "label": "Hauptmenü",
+      "features": "Funktionen",
       "docs": "Docs",
       "github": "GitHub",
       "starsAria": "GitHub {count} Sterne",
@@ -210,17 +190,13 @@
         "badge": "Neu",
         "text": "v{version} ist da"
       },
-      "headline": "Übersetze nur, was sich geändert hat.",
+      "headline": "Übersetze nur <accent>was sich geändert hat</accent>",
       "lead": "Verbatra füllt die fehlenden Schlüssel in deinen Sprachdateien, gibt deinem Code-Agenten einen MCP-Server und lässt die CI fehlschlagen, wenn Übersetzungen abweichen.",
       "ctaPrimary": "Loslegen",
-      "ctaSecondary": "Auf GitHub einen Stern geben",
-      "license": "MIT-lizenziert und Open Source.",
-      "nodeRequirement": "Benötigt Node.js {versions}",
-      "nodeMajorFrom": "{major} (ab {minimum})"
+      "keysAdded": "+{count, plural, one {# Schlüssel} other {# Schlüssel}}"
     },
     "marquee": {
-      "heading": "Funktioniert mit deinen Sprachdateien und Anbietern.",
-      "lead": "Den Anbieter zu wechseln heißt, einen Block der Konfigurationsdatei zu bearbeiten. Deine Sprachdateien bleiben, wo sie sind, in ihrem bisherigen Format.",
+      "heading": "Funktioniert mit deinen Sprachdateien und Anbietern",
       "pause": "Animation pausieren",
       "play": "Animation abspielen",
       "providers": "Anbieter",
@@ -229,8 +205,34 @@
       "allProviders": "Alle Anbieter",
       "allFormats": "Alle Formate"
     },
+    "statement": {
+      "label": "Ein Durchlauf, ein Locale",
+      "heading": "<em>{sent} Schlüssel</em> verlassen deinen Computer, {kept} bleiben erhalten"
+    },
+    "highlights": {
+      "heading": "Alles rund um den Diff",
+      "lead": "Eine CLI, ein SDK, ein lokales Studio und ein MCP-Server, die alle dieselbe Lock-Datei lesen.",
+      "translate": {
+        "label": "Übersetzen",
+        "title": "Zahle für {sent} Strings, nicht für {total}"
+      },
+      "ci": {
+        "label": "Prüfung",
+        "title": "Drift lässt den Pull Request fehlschlagen",
+        "body": "Der Check endet mit {code}, solange einer Locale Schlüssel fehlen. Er braucht keinen API-Schlüssel und läuft deshalb bei jedem Pull Request."
+      },
+      "integrity": {
+        "label": "Integrität",
+        "title": "Platzhalter bleiben intakt"
+      },
+      "agents": {
+        "label": "Agenten",
+        "title": "Dein Coding-Agent korrigiert Übersetzungen",
+        "body": "Registriere den MCP-Server für das Projekt, und der Agent kann den Status lesen und Übersetzungen korrigieren. Tools, die Provider-Tokens verbrauchen, bleiben deaktiviert, bis du sie zulässt."
+      }
+    },
     "playground": {
-      "heading": "Eine Zeichenkette mit dem SDK übersetzen.",
+      "heading": "Eine Zeichenkette mit dem SDK übersetzen",
       "lead": "Wähle eine Zeichenkette und Zielsprachen aus, dann drücke auf Übersetzen. Der Code zeigt den SDK-Aufruf, der diese Ergebnisse erzeugt hat.",
       "items": "Quellzeichenkette",
       "languages": "Zielsprachen",
@@ -265,6 +267,37 @@
         "providers": "Anbieter"
       }
     },
+    "features": {
+      "label": "Funktionen",
+      "heading": "Für den gesamten Übersetzungs-Workflow entwickelt",
+      "lead": "Vom ersten String in deinem Quellcode bis zur überprüften Übersetzung in der Produktion.",
+      "items": {
+        "studio": {
+          "title": "Im Studio überprüfen",
+          "body": "Ein lokales Dashboard für dein Projekt: durchsuche jedes Locale, arbeite die Überprüfungswarteschlange ab und bearbeite Werte direkt."
+        },
+        "handoff": {
+          "title": "An Leute übergeben",
+          "body": "Exportiere eine Excel-Arbeitsmappe für einen Übersetzer und importiere sie zurück. Importierte Werte bleiben vor späteren Maschinenläufen geschützt."
+        },
+        "extract": {
+          "title": "Aus der Quelle extrahieren",
+          "body": "Scanne deinen Code nach Übersetzungsaufrufen und füge die neuen Schlüssel zum Quell-Locale hinzu, bevor sie jemand übersetzt."
+        },
+        "watch": {
+          "title": "Beobachten, während du baust",
+          "body": "Lass einen Watcher während der Entwicklung laufen, und jede Änderung am Quell-Locale wird übersetzt, sobald du speicherst."
+        },
+        "types": {
+          "title": "Typisierte Schlüssel",
+          "body": "Generiere TypeScript-Deklarationen für deine Schlüssel und Nachrichtenargumente, sodass ein Tippfehler in einem Schlüssel den Build fehlschlagen lässt."
+        },
+        "doctor": {
+          "title": "Wissen, bevor du zahlst",
+          "body": "Doctor prüft dein Setup ohne API-Schlüssel, und eine Schätzung beziffert einen Durchlauf, bevor er dich etwas kostet."
+        }
+      }
+    },
     "steps": {
       "items": {
         "check": {
@@ -282,14 +315,8 @@
       }
     },
     "compare": {
-      "heading": "Verbatra neben Lingo.dev und gehosteten TMS.",
-      "lead": "Jede Zelle verlinkt ihre Quelle. Verbatra schreibt nie eine Übersetzung, die Platzhalter oder ICU-Nachrichten bricht.",
-      "caption": "Verbatra, Lingo.dev, gehostete Übersetzungsmanagement-Systeme und ein manueller Workflow, verglichen nach Lizenz, eigenen Schlüsseln, inkrementellen Läufen, CI und MCP",
       "columns": {
         "criterion": "Kriterium",
-        "verbatra": "Verbatra",
-        "lingo": "Lingo.dev",
-        "hostedTms": "Gehostetes TMS",
         "manual": "Manueller Ablauf"
       },
       "rows": {
@@ -302,8 +329,7 @@
           "crowdin": "CLI und GitHub Action MIT; keine öffentliche Plattform-Quelle gefunden",
           "lokalise": "CLI BSD-3-Clause; keine öffentliche Plattform-Quelle gefunden",
           "phrase": "CLI und setup-cli Action MIT; keine öffentliche Plattform-Quelle gefunden",
-          "manual": "Nicht zutreffend, kein Produkt",
-          "hostedTms": "CLIs Open Source (MIT, BSD-3-Clause, MIT); für keine der drei wurde eine öffentliche Plattform-Quelle gefunden"
+          "manual": "Nicht zutreffend, kein Produkt"
         },
         "selfHosting": {
           "label": "Selbst-Hosting",
@@ -347,8 +373,7 @@
           "crowdin": "Ja: Drittanbieter-Maschinenübersetzungs-Engines verwenden deine eigenen Schlüssel; KI-Anbieter nutzen deinen eigenen Schlüssel oder werden von Crowdin verwaltet",
           "lokalise": "Unbekannt: nicht in den Dokumenten zur maschinellen Übersetzung und KI erwähnt",
           "phrase": "Ökosystem-Engines unter deinem eigenen Vertrag; innerhalb von Strings nicht bestätigt",
-          "manual": "Deine eigenen Konten, kein Produkt",
-          "hostedTms": "Crowdin ja; Lokalise unbekannt; Phrase für Ökosystem-Engines unter deinem eigenen Vertrag, innerhalb von Strings nicht bestätigt"
+          "manual": "Deine eigenen Konten, kein Produkt"
         },
         "incremental": {
           "label": "Inkrementelle Übersetzung",
@@ -359,8 +384,7 @@
           "crowdin": "Vorübersetzung kann auf „Unübersetzte Strings“ beschränkt werden",
           "lokalise": "Automatisierungen und Vorübersetzung füllen leere Werte",
           "phrase": "Vorübersetzung füllt leere Übersetzungen und überspringt Schlüssel, die bereits eine haben",
-          "manual": "Manuell, kein Produkt",
-          "hostedTms": "Alle drei füllen unübersetzte oder leere Werte"
+          "manual": "Manuell, kein Produkt"
         },
         "cli": {
           "label": "Kommandozeile (CLI)",
@@ -382,8 +406,7 @@
           "crowdin": "Offizielle GitHub Action",
           "lokalise": "Offizielle Push- und Pull-GitHub Actions",
           "phrase": "CLI in CI; offizielle setup-cli GitHub Action",
-          "manual": "Nicht zutreffend, kein Produkt",
-          "hostedTms": "Offizielle GitHub Actions von allen dreien (Phrase: setup-cli)"
+          "manual": "Nicht zutreffend, kein Produkt"
         },
         "mcp": {
           "label": "MCP-Server",
@@ -394,8 +417,7 @@
           "crowdin": "Ja, gehostet",
           "lokalise": "Ja, gehostet, in Beta",
           "phrase": "Ja, gehostet, angemeldet mit einem Phrase-Konto",
-          "manual": "Nicht zutreffend, kein Produkt",
-          "hostedTms": "Gehostete MCP-Server von allen dreien; Lokalise in Beta"
+          "manual": "Nicht zutreffend, kein Produkt"
         },
         "inContext": {
           "label": "In-Context-Bearbeitung",
@@ -431,65 +453,15 @@
           "manual": "Was immer du manuell kopierst, kein Produkt"
         }
       },
-      "marks": {
-        "yes": "Ja"
-      },
-      "brief": {
-        "license": {
-          "verbatra": "MIT",
-          "lingo": "Nur Repository",
-          "hostedTms": "Nur CLIs",
-          "manual": "Nicht zutreffend"
-        },
-        "ownKeys": {
-          "lingo": "Enterprise-Plan oder ältere CLI",
-          "hostedTms": "Crowdin ja, andere unklar",
-          "manual": "Eigene Konten"
-        },
-        "incremental": {
-          "hostedTms": "Füllt leere Werte",
-          "manual": "Manuell"
-        },
-        "ci": {
-          "verbatra": "`check`-Gate",
-          "lingo": "GitHub App",
-          "manual": "Nicht zutreffend"
-        },
-        "mcp": {
-          "verbatra": "Lokal",
-          "hostedTms": "Gehostet",
-          "manual": "Nicht zutreffend"
-        }
-      },
       "sourceRef": "Quelle {number}, {tool}",
       "noteRef": "Anmerkung M, manueller Workflow",
       "sources": "Quellen",
       "manualNote": "Der manuelle Workflow ist kein Produkt und hat daher keine Quelle: Die Spalte beschreibt das manuelle Kopieren von Zeichenketten in einen Übersetzungsdienst und zurück.",
       "lastChecked": "Zuletzt geprüft",
       "fairness": "Verbatra ist eine CLI und ein SDK; die anderen Spalten sind Übersetzungsplattformen und ein manueller Workflow, verglichen als Möglichkeiten, Übersetzungsdateien auf dem neuesten Stand zu halten. Jede Zelle gibt an, was auf den eigenen Seiten des Anbieters an diesem Datum stand, und „keine offizielle ... gefunden“ bedeutet, dass unsere Suche keine gefunden hat, nicht dass das Produkt es nicht besitzt.",
-      "concession": "Tolgee, Crowdin, Lokalise und Phrase bieten In-Context-Bearbeitung an; Verbatra prüft lokal im Studio.",
-      "fullLink": "Vollständiger Vergleich mit Quellen",
       "scrollHint": "Scrolle die Tabelle seitwärts, um alle Spalten zu sehen."
     },
     "openSource": {
-      "heading": "Sende deinen ersten Pull Request.",
-      "lead": "Verbatra ist unter der MIT-Lizenz lizenziert, und jede Änderung erfordert die gleichen drei Schritte.",
-      "steps": {
-        "setup": {
-          "title": "Vom Stammverzeichnis aus klonen und installieren"
-        },
-        "change": {
-          "title": "Von main abzweigen und die Prüfungen ausführen"
-        },
-        "pullRequest": {
-          "title": "Füge bei Bedarf ein Changeset hinzu und öffne einen Pull Request"
-        }
-      },
-      "linksHeading": "Projekt",
-      "contributing": "Leitfaden für Mitwirkende",
-      "codeOfConduct": "Verhaltenskodex",
-      "license": "MIT-Lizenz",
-      "agents": "Leitfaden für die Programmierung von Agenten",
       "newTab": "(öffnet in einem neuen Tab)",
       "contributorsHeading": "Mitwirkende",
       "contributorAria": "{name} auf GitHub",
@@ -497,10 +469,9 @@
       "contributorSlotHint": "finde eine Aufgabe, mit der du beginnen kannst"
     },
     "closing": {
-      "heading": "Fang mit einem Probelauf an.",
-      "lead": "Ein Probelauf benötigt keinen API-Schlüssel, schreibt nichts und listet genau auf, welche Schlüssel ein echter Lauf senden würde.",
-      "primary": "Loslegen",
-      "secondary": "Auf GitHub ansehen"
+      "heading": "Beginne mit einem Probelauf",
+      "lead": "Nach der Initialisierung benötigt ein Probelauf keinen API-Schlüssel, schreibt nichts und listet genau auf, welche Schlüssel ein echter Lauf senden würde.",
+      "label": "Bevor du einen Token ausgibst"
     },
     "fab": {
       "label": "Nach oben"

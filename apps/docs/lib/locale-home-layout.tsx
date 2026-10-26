@@ -18,10 +18,12 @@ export async function homeNavValue(locale: Locale, stars: number | null): Promis
   return {
     docsUrl: localizedPath(locale, "/docs"),
     quickstartUrl: localizedPath(locale, "/docs/quickstart"),
+    featuresUrl: `${localizedPath(locale, "/")}#features`,
     locale,
     stars: count,
     labels: {
       label: t("label"),
+      features: t("features"),
       docs: t("docs"),
       github: t("github"),
       starsAria: t("starsAria", { count: LIVE_COUNT_SLOT }),

@@ -61,27 +61,6 @@
       "ogImageAlt": "Verbatra : Ne traduis que ce qui a changé, au-dessus d’une exécution de check qui trouve deux clés manquantes par locale et d’une exécution de translate qui n’envoie que celles-ci.",
       "definition": "Verbatra est une CLI et un SDK open source pour les fichiers de locale i18n. Il n’envoie que les clés nouvelles et modifiées au fournisseur de traduction automatique ou d’IA que tu choisis, et fait échouer la CI tant qu’une clé est manquante."
     },
-    "hero": {
-      "tracks": {
-        "label": "Choisis un flux de travail",
-        "exitCode": "sortie {code}",
-        "translate": {
-          "tab": "Traduire",
-          "summary": "Repère les clés qui manquent à tes langues cibles, puis traduis uniquement celles-ci et vois combien de jetons chaque langue a utilisés.",
-          "link": "Lis la commande de traduction"
-        },
-        "agents": {
-          "tab": "Agents IA",
-          "summary": "Enregistre le serveur MCP pour le projet, et ton agent de codage pourra lire le statut et corriger les traductions.",
-          "link": "Connecte un client MCP"
-        },
-        "ci": {
-          "tab": "Passerelles CI",
-          "summary": "`verbatra check` retourne 1 quand une locale a des clés manquantes, ce qui fait échouer la demande de tirage avant que le décalage ne soit déployé.",
-          "link": "En savoir plus sur la CI et les codes de sortie"
-        }
-      }
-    },
     "install": {
       "copy": "Copier",
       "copied": "Copié",
@@ -97,7 +76,7 @@
       "promptPreviewLabel": "Copie ce prompt pour ton agent"
     },
     "faq": {
-      "heading": "Avant d’installer Verbatra.",
+      "heading": "Avant d’installer Verbatra",
       "lead": "Réponses courtes, chacune avec la page de la documentation qui approfondit.",
       "docs": {
         "label": "Dans la documentation",
@@ -194,6 +173,7 @@
     },
     "topNav": {
       "label": "Principal",
+      "features": "Fonctionnalités",
       "docs": "Docs",
       "github": "GitHub",
       "starsAria": "GitHub {count} étoiles",
@@ -210,17 +190,13 @@
         "badge": "Nouveau",
         "text": "La v{version} est disponible"
       },
-      "headline": "Ne traduis que ce qui a changé.",
+      "headline": "Ne traduis que <accent>ce qui a changé</accent>",
       "lead": "Verbatra remplit les clés manquantes dans tes fichiers de localisation, donne à ton agent de codage un serveur MCP et fait échouer la CI lorsque les traductions dérivent.",
       "ctaPrimary": "Démarrer",
-      "ctaSecondary": "Mets une étoile sur GitHub",
-      "license": "Sous licence MIT et open source.",
-      "nodeRequirement": "Nécessite Node.js {versions}",
-      "nodeMajorFrom": "{major} ({minimum} ou plus récente)"
+      "keysAdded": "+{count, plural, one {# clé} many {# clés} other {# clés}}"
     },
     "marquee": {
-      "heading": "Fonctionne avec les fichiers de langue et les fournisseurs que tu utilises déjà.",
-      "lead": "Changer de fournisseur revient à modifier un bloc du fichier de configuration. Tes fichiers de langue restent où ils sont, dans leur format actuel.",
+      "heading": "Fonctionne avec les fichiers de langue et les fournisseurs que tu utilises déjà",
       "pause": "Mettre l’animation en pause",
       "play": "Lancer l’animation",
       "providers": "Fournisseurs",
@@ -229,8 +205,34 @@
       "allProviders": "Tous les fournisseurs",
       "allFormats": "Tous les formats"
     },
+    "statement": {
+      "label": "Une exécution, une locale",
+      "heading": "<em>{sent} clés</em> quittent ta machine, {kept} restent sur place"
+    },
+    "highlights": {
+      "heading": "Tout autour du diff",
+      "lead": "Un CLI, un SDK, un Studio local et un serveur MCP, tous lisant le même fichier de verrouillage.",
+      "translate": {
+        "label": "Traduire",
+        "title": "Paie pour {sent} chaînes, pas {total}"
+      },
+      "ci": {
+        "label": "Vérification",
+        "title": "La dérive fait échouer la pull request",
+        "body": "La vérification se termine avec {code} tant qu’il manque des clés à une locale. Elle ne nécessite aucune clé API, elle s’exécute donc sur chaque pull request."
+      },
+      "integrity": {
+        "label": "Intégrité",
+        "title": "Les placeholders arrivent intacts"
+      },
+      "agents": {
+        "label": "Agents",
+        "title": "Ton agent de codage corrige les traductions",
+        "body": "Enregistre le serveur MCP pour le projet, et l’agent peut lire le statut et corriger les traductions. Les outils qui dépensent des jetons de fournisseur restent inactifs jusqu’à ce que tu les autorises."
+      }
+    },
     "playground": {
-      "heading": "Traduis une chaîne avec le SDK.",
+      "heading": "Traduis une chaîne avec le SDK",
       "lead": "Choisis une chaîne et des langues cibles, puis appuie sur Traduire. Le code montre l’appel au SDK qui a produit ces résultats.",
       "items": "Chaîne source",
       "languages": "Langues cibles",
@@ -265,6 +267,37 @@
         "providers": "Fournisseurs"
       }
     },
+    "features": {
+      "label": "Fonctionnalités",
+      "heading": "Conçu pour l’ensemble du flux de travail de traduction",
+      "lead": "De la première chaîne de caractères dans ton code source à la traduction révisée en production.",
+      "items": {
+        "studio": {
+          "title": "Révise dans le Studio",
+          "body": "Un tableau de bord local pour ton projet : parcours chaque locale, gère la file d’attente de révision et modifie les valeurs directement."
+        },
+        "handoff": {
+          "title": "Confie à des personnes",
+          "body": "Exporte un classeur Excel pour un traducteur et réimporte-le. Les valeurs importées restent protégées des exécutions machine ultérieures."
+        },
+        "extract": {
+          "title": "Extraire de la source",
+          "body": "Scanne ton code pour les appels de traduction et ajoute les nouvelles clés à la locale source avant que quiconque ne les traduise."
+        },
+        "watch": {
+          "title": "Surveille pendant que tu développes",
+          "body": "Maintiens un « watcher » en cours d’exécution en développement, et chaque modification de la locale source est traduite dès que tu enregistres."
+        },
+        "types": {
+          "title": "Clés typées",
+          "body": "Génère des déclarations TypeScript pour tes clés et tes arguments de message, afin qu’une faute de frappe dans une clé fasse échouer la compilation."
+        },
+        "doctor": {
+          "title": "Sache avant de dépenser",
+          "body": "Doctor vérifie la configuration sans clé API, et une estimation permet de dimensionner une exécution avant qu’elle ne coûte quoi que ce soit."
+        }
+      }
+    },
     "steps": {
       "items": {
         "check": {
@@ -282,14 +315,8 @@
       }
     },
     "compare": {
-      "heading": "Verbatra face à Lingo.dev et aux TMS hébergés.",
-      "lead": "Chaque cellule cite sa source. Verbatra n’écrit jamais une traduction qui casse un placeholder ou un message ICU.",
-      "caption": "Verbatra, Lingo.dev, systèmes de gestion de traduction hébergés et un workflow manuel, comparés sur la licence, les propres clés, les exécutions incrémentielles, la CI et le MCP",
       "columns": {
         "criterion": "Critère",
-        "verbatra": "Verbatra",
-        "lingo": "Lingo.dev",
-        "hostedTms": "TMS hébergé",
         "manual": "Processus manuel"
       },
       "rows": {
@@ -302,8 +329,7 @@
           "crowdin": "CLI et GitHub Action MIT ; aucune source de plateforme publique trouvée",
           "lokalise": "CLI BSD-3-Clause ; aucune source de plateforme publique trouvée",
           "phrase": "CLI et Action setup-cli MIT ; aucune source de plateforme publique trouvée",
-          "manual": "Non applicable, pas de produit",
-          "hostedTms": "CLIs open source (MIT, BSD-3-Clause, MIT) ; aucune source de plateforme publique trouvée pour aucun des trois"
+          "manual": "Non applicable, pas de produit"
         },
         "selfHosting": {
           "label": "Auto-hébergement",
@@ -347,8 +373,7 @@
           "crowdin": "Oui : les moteurs de traduction automatique tiers utilisent tes propres clés ; les fournisseurs d’IA utilisent ta propre clé ou sont gérés par Crowdin",
           "lokalise": "Inconnu : non mentionné dans la documentation sur la traduction automatique et l’IA",
           "phrase": "Moteurs de l’écosystème sous ton propre contrat ; dans Strings non confirmé",
-          "manual": "Vos propres comptes, pas de produit",
-          "hostedTms": "Crowdin oui ; Lokalise inconnu ; Phrase pour les moteurs de l’écosystème sous ton propre contrat, dans Strings non confirmé"
+          "manual": "Vos propres comptes, pas de produit"
         },
         "incremental": {
           "label": "Traduction incrémentale",
@@ -359,8 +384,7 @@
           "crowdin": "La pré-traduction peut être limitée aux « chaînes non traduites »",
           "lokalise": "Les automatisations et la pré-traduction remplissent les valeurs vides",
           "phrase": "La pré-traduction remplit les traductions vides et ignore les clés qui en ont déjà une",
-          "manual": "À la main, pas de produit",
-          "hostedTms": "Tous les trois remplissent les valeurs non traduites ou vides"
+          "manual": "À la main, pas de produit"
         },
         "cli": {
           "label": "Outil en ligne de commande (CLI)",
@@ -382,8 +406,7 @@
           "crowdin": "Action GitHub officielle",
           "lokalise": "Actions GitHub officielles push et pull",
           "phrase": "CLI en CI ; Action GitHub officielle setup-cli",
-          "manual": "Non applicable, pas de produit",
-          "hostedTms": "Actions GitHub officielles des trois (Phrase: setup-cli)"
+          "manual": "Non applicable, pas de produit"
         },
         "mcp": {
           "label": "Serveur MCP",
@@ -394,8 +417,7 @@
           "crowdin": "Oui, hébergé",
           "lokalise": "Oui, hébergé, en bêta",
           "phrase": "Oui, hébergé, connecté avec un compte Phrase",
-          "manual": "Non applicable, pas de produit",
-          "hostedTms": "Serveurs MCP hébergés par les trois ; Lokalise en bêta"
+          "manual": "Non applicable, pas de produit"
         },
         "inContext": {
           "label": "Édition in-context",
@@ -431,65 +453,15 @@
           "manual": "Ce que tu copies à la main, pas de produit"
         }
       },
-      "marks": {
-        "yes": "Oui"
-      },
-      "brief": {
-        "license": {
-          "verbatra": "MIT",
-          "lingo": "Dépôt uniquement",
-          "hostedTms": "CLIs uniquement",
-          "manual": "Non applicable"
-        },
-        "ownKeys": {
-          "lingo": "Plan Enterprise ou ancien CLI",
-          "hostedTms": "Crowdin oui, autres incertains",
-          "manual": "Comptes personnels"
-        },
-        "incremental": {
-          "hostedTms": "Remplit les valeurs vides",
-          "manual": "À la main"
-        },
-        "ci": {
-          "verbatra": "Porte `check`",
-          "lingo": "App GitHub",
-          "manual": "Non applicable"
-        },
-        "mcp": {
-          "verbatra": "Local",
-          "hostedTms": "Hébergé",
-          "manual": "Non applicable"
-        }
-      },
       "sourceRef": "Source {number}, {tool}",
       "noteRef": "Note M, workflow manuel",
       "sources": "Sources",
       "manualNote": "Le workflow manuel n’est pas un produit, il n’a donc pas de source : la colonne décrit la copie manuelle des chaînes dans un service de traduction, puis leur retour.",
       "lastChecked": "Dernière vérification",
       "fairness": "Verbatra est un CLI et un SDK ; les autres colonnes sont des plateformes de traduction et un workflow manuel, comparés comme des moyens de maintenir les fichiers de localisation traduits. Chaque cellule indique ce que les pages du fournisseur ont dit à cette date, et",
-      "concession": "Tolgee, Crowdin, Lokalise et Phrase proposent l’édition in-context ; Verbatra révise localement dans Studio.",
-      "fullLink": "Comparaison complète avec les sources",
       "scrollHint": "Fais défiler le tableau sur le côté pour voir toutes les colonnes."
     },
     "openSource": {
-      "heading": "Envoie ta première pull request.",
-      "lead": "Verbatra est sous licence MIT, et chaque changement se fait en trois étapes.",
-      "steps": {
-        "setup": {
-          "title": "Clone et installe depuis la racine"
-        },
-        "change": {
-          "title": "Branche-toi depuis main et exécute les vérifications"
-        },
-        "pullRequest": {
-          "title": "Ajoute un changeset si nécessaire et ouvre une pull request"
-        }
-      },
-      "linksHeading": "Projet",
-      "contributing": "Guide du contributeur",
-      "codeOfConduct": "Code de conduite",
-      "license": "Licence MIT",
-      "agents": "Guide pour le codage d’agents",
       "newTab": "(s’ouvre dans un nouvel onglet)",
       "contributorsHeading": "Contributeurs",
       "contributorAria": "{name} sur GitHub",
@@ -497,10 +469,9 @@
       "contributorSlotHint": "trouve une tâche pour commencer"
     },
     "closing": {
-      "heading": "Commence par une simulation.",
-      "lead": "Une simulation n’a pas besoin de clé API, n’écrit rien et liste exactement les clés qu’une exécution réelle enverrait.",
-      "primary": "Démarrer",
-      "secondary": "Voir sur GitHub"
+      "heading": "Commence par un test à blanc",
+      "lead": "Après l’init, une simulation n’a pas besoin de clé API, n’écrit rien et liste exactement les clés qu’une exécution réelle enverrait.",
+      "label": "Avant de dépenser un jeton"
     },
     "fab": {
       "label": "Retour en haut"

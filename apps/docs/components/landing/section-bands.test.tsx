@@ -65,27 +65,29 @@ describe("landing surface bands", () => {
     expect(section?.firstElementChild?.className).toContain("vk-gutter");
   });
 
-  it("alternates page and band from the marquee down to the closer, in page order", () => {
+  it("bands only the playground, in page order", () => {
     expect(LANDING_SECTIONS).toEqual([
       "hero",
       "marquee",
+      "statement",
+      "highlights",
       "playground",
-      "compare",
+      "features",
       "faq",
-      "openSource",
       "finalCta",
     ]);
     expect(
       [
         "hero.tsx",
         "marquee.tsx",
+        "statement.tsx",
+        "highlights.tsx",
         "playground.tsx",
-        "compare.tsx",
+        "features.tsx",
         "faq.tsx",
-        "open-source.tsx",
         "final-cta.tsx",
       ].map(banded),
-    ).toEqual([false, true, false, true, false, true, false]);
+    ).toEqual([false, false, false, false, true, false, false, false]);
   });
 
   it("names a section by its heading through aria-labelledby, banded or not", () => {
@@ -162,10 +164,12 @@ describe("the section head on the 12-column grid", () => {
     expect(css).toMatch(/@media \(min-width: 64rem\) \{\s+:root \{\s+--head-gap: 3\.5rem;/);
     expect(css).toMatch(/\.vk-section-aside \{\s+row-gap: var\(--head-gap\);/);
     expect(css).toMatch(/\.vk-playground-layout \{[^}]*gap: var\(--head-gap\);/);
-    for (const file of ["compare.tsx", "open-source.tsx"]) {
+    for (const selector of [".vk-bento", ".vk-feature-grid"]) {
+      expect(css).toMatch(new RegExp(`\\${selector} \\{[^}]*margin-top: var\\(--head-gap\\);`));
+    }
+    for (const file of ["highlights.tsx", "features.tsx"]) {
       const source = readFileSync(join(import.meta.dirname, file), "utf8");
-      expect(source, file).toContain("mt-(--head-gap)");
-      expect(source, file).not.toMatch(/\b(?:lg:)?mt-1[0-4]\b/);
+      expect(source, file).not.toMatch(/\b(?:lg:)?mt-\d+\b/);
     }
   });
 
@@ -177,32 +181,37 @@ describe("the section head on the 12-column grid", () => {
 
   it("varies the section heads instead of splitting every one", async () => {
     await preloadRegisteredIslands();
-    const { Compare } = await import("./compare");
     const { Faq, faqContent } = await import("./faq");
+    const { Features } = await import("./features");
+    const { Highlights } = await import("./highlights");
     const { Marquee } = await import("./marquee");
-    const { OpenSource } = await import("./open-source");
     const { Playground } = await import("./playground");
     const sections: ReadonlyArray<readonly [string, () => Promise<ReactNode>]> = [
       ["marquee", Marquee],
+      ["highlights", Highlights],
       ["playground", Playground],
-      ["compare", Compare],
-      ["open-source", OpenSource],
+      ["features", Features],
       ["faq", async () => Faq({ locale: "en", items: await faqContent("en") })],
     ];
     const layouts: Record<string, string | null> = {};
     for (const [id, section] of sections) {
       const doc = new DOMParser().parseFromString(renderToString(await section()), "text/html");
       const head = doc.querySelector(`section#${id} .vk-section-head`);
-      if (head === null) throw new Error(`no section head in #${id}`);
+      if (head === null) {
+        if (doc.querySelector(`section#${id} > h2.vk-marquee-heading`) === null)
+          throw new Error(`no section head in #${id}`);
+        layouts[id] = "heading";
+        continue;
+      }
       layouts[id] = head.querySelector(".vk-section-head-lead")
         ? head.getAttribute("data-layout")
         : "heading";
     }
     expect(layouts).toEqual({
-      marquee: "aside",
+      marquee: "heading",
+      highlights: "split",
       playground: "inline",
-      compare: "split",
-      "open-source": "stacked",
+      features: "split",
       faq: "aside",
     });
   });

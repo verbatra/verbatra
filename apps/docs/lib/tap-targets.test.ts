@@ -22,7 +22,6 @@ const TAP_CLASS_SOURCES = [
   "components/theme-toggle.tsx",
   "components/language-select.tsx",
   "components/ui/copy-control.tsx",
-  "components/ui/tabs.tsx",
   "components/studio-screenshot.tsx",
   "components/landing/footer.tsx",
   "components/legal-footer.tsx",

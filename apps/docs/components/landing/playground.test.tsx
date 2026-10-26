@@ -199,7 +199,7 @@ describe("the playground on the server", () => {
     expect(root.querySelector("section#playground h2#playground-heading")?.textContent).toBe(
       copy.heading,
     );
-    const layout = root.querySelector("section#playground > .vk-playground-layout");
+    const layout = root.querySelector("section#playground.vk-band .vk-playground-layout");
     const head = layout?.firstElementChild;
     expect(head?.getAttribute("data-layout")).toBe("inline");
     expect(head?.querySelector("h2#playground-heading")).not.toBeNull();
@@ -785,5 +785,70 @@ describe("the animation boundary", () => {
       "@/lib/gsap-scramble",
     );
     expect(source("components/landing/islands.tsx")).not.toMatch(/gsap|playground-scramble/);
+  });
+});
+
+describe("the F tile styling", () => {
+  const rules = docsStylesheetRules();
+  const inMedia = (selector: string, media: string) =>
+    Object.assign(
+      {},
+      ...rulesFor(rules, selector)
+        .filter((rule) => rule.media === media)
+        .map((rule) => rule.declarations),
+    ) as Record<string, string>;
+  const base = (selector: string) => inMedia(selector, "");
+
+  it("sets the controls and the result block as bordered card-radius tile panels", () => {
+    const panel = base(".vk-playground-controls");
+    expect(panel.border).toBe("1px solid var(--border-tile)");
+    expect(panel["border-radius"]).toBe("var(--radius-card)");
+    expect(panel.background).toBe("var(--surface-tile)");
+    expect(base(".vk-playground-result-block")).toMatchObject({
+      border: "1px solid var(--border-tile)",
+      background: "var(--surface-tile)",
+    });
+  });
+
+  it("rounds the code frame with the card radius and lays the options out as chips", () => {
+    expect(base(".vk-playground-code > .vk-code-frame")["border-radius"]).toBe(
+      "var(--radius-card)",
+    );
+    const chip = base(".vk-playground-option");
+    expect(chip.border).toBe("1px solid var(--border-default)");
+    expect(chip["min-height"]).toBe("2.5rem");
+  });
+
+  it("sizes the language chips from their content with end padding at least the start padding", () => {
+    const row = base('.vk-playground-options[data-kind="languages"]');
+    expect(row.display).toBe("flex");
+    expect(row["flex-wrap"]).toBe("wrap");
+    const chip = base(".vk-playground-option");
+    const [start, end] = (chip["padding-inline"] ?? "").split(" ").map(Number.parseFloat);
+    expect(end ?? 0).toBeGreaterThanOrEqual(start ?? 1);
+  });
+
+  it("lays the source strings in two columns from 64rem", () => {
+    expect(
+      inMedia('.vk-playground-options[data-kind="items"]', "@media (min-width: 64rem)")[
+        "grid-template-columns"
+      ],
+    ).toBe("repeat(2, minmax(0, 1fr))");
+  });
+
+  it("guards the :has based focus handoff and checked look behind @supports", () => {
+    const supports = "@supports selector(:has(*))";
+    expect(inMedia(".vk-playground-option:has(:focus-visible)", supports).outline).toBe(
+      "2px solid var(--focus-ring)",
+    );
+    expect(inMedia(".vk-playground-input:focus-visible", supports).outline).toBe("none");
+    expect(rulesFor(rules, ".vk-playground-input:focus-visible")).toHaveLength(1);
+  });
+
+  it("puts no halo gradient behind the playground text", () => {
+    const halo = rules.filter(
+      (rule) => rule.selector.includes(".vk-playground") && JSON.stringify(rule).includes("halo"),
+    );
+    expect(halo).toEqual([]);
   });
 });

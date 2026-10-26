@@ -413,59 +413,7 @@ export function cellFootnote(row: CompareRowId, tool: CompareTool): CompareFootn
   return SOURCE_BLOCK[tool] * COMPARE_ROWS.length + index + 1;
 }
 
-export type ShortColumn = "verbatra" | "lingo" | "hostedTms" | "manual";
-
-export const SHORT_COLUMNS: ReadonlyArray<ShortColumn> = [
-  "verbatra",
-  "lingo",
-  "hostedTms",
-  "manual",
-];
-
-export const HOSTED_TMS_TOOLS: ReadonlyArray<SourcedTool> = ["crowdin", "lokalise", "phrase"];
-
-export const HOSTED_TMS_NAMES = HOSTED_TMS_TOOLS.map((tool) => COMPARE_TOOL_NAMES[tool]).join(", ");
-
-export type ShortRowId = Extract<
-  CompareRowId,
-  "license" | "ownKeys" | "incremental" | "ci" | "mcp"
->;
-
-export const SHORT_ROWS: ReadonlyArray<ShortRowId> = [
-  "license",
-  "ownKeys",
-  "incremental",
-  "ci",
-  "mcp",
-];
-
-export type ShortCellKind = "yes" | "yesWithNote" | "words";
-
-export const SHORT_CELLS: Readonly<
-  Record<ShortRowId, Readonly<Record<ShortColumn, ShortCellKind>>>
-> = {
-  license: { verbatra: "yesWithNote", lingo: "words", hostedTms: "words", manual: "words" },
-  ownKeys: { verbatra: "yes", lingo: "words", hostedTms: "words", manual: "words" },
-  incremental: { verbatra: "yes", lingo: "yes", hostedTms: "words", manual: "words" },
-  ci: { verbatra: "yesWithNote", lingo: "words", hostedTms: "yes", manual: "words" },
-  mcp: { verbatra: "yesWithNote", lingo: "yes", hostedTms: "yesWithNote", manual: "words" },
-};
-
-export function shortCellHasText(row: ShortRowId, column: ShortColumn): boolean {
-  return SHORT_CELLS[row][column] !== "yes";
-}
-
-export function shortCellIsYes(row: ShortRowId, column: ShortColumn): boolean {
-  return SHORT_CELLS[row][column] !== "words";
-}
-
-export function shortCellFootnotes(
-  row: ShortRowId,
-  column: ShortColumn,
-): ReadonlyArray<CompareFootnote> {
-  if (column === "hostedTms") return HOSTED_TMS_TOOLS.map((tool) => cellFootnote(row, tool));
-  return [cellFootnote(row, column)];
-}
+const HOSTED_TMS_TOOLS: ReadonlyArray<SourcedTool> = ["crowdin", "lokalise", "phrase"];
 
 export const COMPARE_PATH = "/compare";
 

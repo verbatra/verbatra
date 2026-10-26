@@ -1,53 +1,65 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
-import type { HeroTrackView } from "@/components/landing/hero-tracks";
-import { HeroTracks } from "@/components/landing/islands";
-import { GITHUB_URL, LICENSE_URL, releaseUrl } from "@/components/landing/links";
+import { CommandRow } from "@/components/landing/islands";
+import { releaseUrl } from "@/components/landing/links";
 import { NewAnnouncement } from "@/components/new-pill";
-import Button, { buttonClasses } from "@/components/ui/button";
-import { type Locale, localizedPath, toLocale } from "@/lib/i18n";
-import { LANDING_TRACK_IDS, LANDING_TRACKS } from "@/lib/landing-tracks";
-import { nodeVersionsLabel } from "@/lib/node-requirement";
-import { NODE_RANGE, PACKAGE_VERSION } from "@/lib/site";
+import Button from "@/components/ui/button";
+import { localizedPath, toLocale } from "@/lib/i18n";
+import { HERO_INSTALL_COMMAND } from "@/lib/install-commands";
+import {
+  HERO_BACK_LOCALES,
+  HERO_FILE_ADDED_COUNT,
+  HERO_FRONT_LOCALE,
+  heroFileLines,
+  heroFileName,
+  heroFilePreview,
+} from "@/lib/landing-hero-files";
+import { PACKAGE_VERSION } from "@/lib/site";
 
 export const HERO_TITLE_ID = "hero-title";
 
-async function trackViews(locale: Locale): Promise<ReadonlyArray<HeroTrackView>> {
-  const t = await getTranslations("landing.hero.tracks");
-  return LANDING_TRACK_IDS.map((id) => {
-    const track = LANDING_TRACKS[id];
-    return {
-      id,
-      tab: t(`${id}.tab`),
-      summary: t(`${id}.summary`),
-      link: t(`${id}.link`),
-      href: localizedPath(locale, track.docsPath),
-      title: track.terminalTitle,
-      steps: track.steps,
-      files: track.files.map(({ filename, code }) => ({ filename, code })),
-      exit:
-        track.exitCode === null
-          ? null
-          : { code: track.exitCode, label: t("exitCode", { code: track.exitCode }) },
-    };
-  });
+function LocaleFiles({ keysAdded }: { keysAdded: string }): ReactNode {
+  return (
+    <div aria-hidden="true" className="vk-banner-files">
+      {HERO_BACK_LOCALES.map((code) => (
+        <div key={code} className="vk-banner-file" data-locale={code}>
+          <p className="vk-banner-file-name">{heroFileName(code)}</p>
+          <p className="vk-banner-file-line" lang={code}>
+            {heroFilePreview(code)}
+          </p>
+        </div>
+      ))}
+      <div className="vk-banner-file" data-locale={HERO_FRONT_LOCALE} data-front="true">
+        <p className="vk-banner-file-name">
+          <span>{heroFileName(HERO_FRONT_LOCALE)}</span>
+          <span className="vk-banner-file-badge">{keysAdded}</span>
+        </p>
+        <div className="vk-banner-file-body" lang={HERO_FRONT_LOCALE}>
+          {heroFileLines(HERO_FRONT_LOCALE).map((line) => (
+            <p
+              key={line.id}
+              className="vk-banner-file-line"
+              data-added={line.added ? "true" : undefined}
+            >
+              {line.added ? `+ ${line.text}` : line.text}
+            </p>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export async function Hero(): Promise<ReactNode> {
   const t = await getTranslations("landing.banner");
-  const tTracks = await getTranslations("landing.hero.tracks");
+  const tInstall = await getTranslations("landing.install");
   const tOpen = await getTranslations("landing.openSource");
   const locale = toLocale(await getLocale());
-  const tracks = await trackViews(locale);
-  const requirement = t("nodeRequirement", {
-    versions: nodeVersionsLabel(NODE_RANGE, locale, (major, minimum) =>
-      t("nodeMajorFrom", { major, minimum }),
-    ),
-  });
 
   return (
-    <section aria-labelledby={HERO_TITLE_ID} className="vk-banner vk-w-wide mx-auto w-full">
-      <div className="vk-banner-grid">
+    <section aria-labelledby={HERO_TITLE_ID} className="vk-banner">
+      <div aria-hidden="true" className="vk-banner-halo" />
+      <div className="vk-banner-grid vk-gutter vk-w-wide mx-auto w-full">
         <div className="vk-banner-copy">
           <NewAnnouncement
             href={releaseUrl(PACKAGE_VERSION)}
@@ -57,38 +69,26 @@ export async function Hero(): Promise<ReactNode> {
             {t("announcement.text", { version: PACKAGE_VERSION })}
           </NewAnnouncement>
           <h1 id={HERO_TITLE_ID} className="vk-banner-title">
-            {t("headline")}
+            {t.rich("headline", {
+              accent: (chunks) => <span className="vk-banner-title-lit">{chunks}</span>,
+            })}
           </h1>
           <p className="vk-banner-lead">{t("lead")}</p>
           <div className="vk-banner-ctas">
             <Button href={localizedPath(locale, "/docs/quickstart")} variant="primary" size="lg">
               {t("ctaPrimary")}
             </Button>
-            <a
-              href={GITHUB_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={buttonClasses("secondary", "lg")}
-            >
-              {t("ctaSecondary")}
-              <span className="sr-only"> {tOpen("newTab")}</span>
-            </a>
+            <div className="vk-banner-install">
+              <CommandRow
+                command={HERO_INSTALL_COMMAND}
+                label={tInstall("copyAria")}
+                wrap="narrow"
+              />
+            </div>
           </div>
-          <p className="vk-banner-trust">
-            <a
-              href={LICENSE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="vk-prose-link"
-            >
-              {t("license")}
-              <span className="sr-only"> {tOpen("newTab")}</span>
-            </a>{" "}
-            <span>{requirement}</span>
-          </p>
         </div>
         <div className="vk-banner-demo">
-          <HeroTracks tracks={tracks} label={tTracks("label")} />
+          <LocaleFiles keysAdded={t("keysAdded", { count: HERO_FILE_ADDED_COUNT })} />
         </div>
       </div>
     </section>

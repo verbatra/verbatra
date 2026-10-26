@@ -6,6 +6,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { CONTRIBUTORS } from "@/lib/contributors";
 import { MCP_VERSION, PACKAGE_VERSION, STUDIO_VERSION } from "@/lib/site";
+import en from "@/messages/en.json";
 import { preloadRegisteredIslands } from "@/test-support/islands";
 
 const localeState = vi.hoisted(() => ({
@@ -46,17 +47,22 @@ describe("FullFooter", () => {
     const external = Array.from(doc.querySelectorAll('footer a[target="_blank"]'));
     expect(external.length).toBeGreaterThan(0);
     for (const link of external) {
-      const named = link.getAttribute("aria-label") ?? link.querySelector(".sr-only")?.textContent;
+      const named =
+        link.getAttribute("aria-label") ??
+        Array.from(link.querySelectorAll(".sr-only")).at(-1)?.textContent;
       expect(named, link.getAttribute("href") ?? "").toMatch(/newTab$/);
     }
   });
 
-  it("leaves the contributors to the open source section", async () => {
+  it("credits every contributor with a profile link between the brand row and the link groups", async () => {
     const doc = await renderFooter();
-
-    expect(doc.querySelectorAll("img")).toHaveLength(0);
+    const people = doc.querySelector(
+      ".vk-footer-top + .vk-footer-people + .vk-footer-groups",
+    )?.previousElementSibling;
+    expect(people?.className).toBe("vk-footer-people");
+    expect(people?.querySelectorAll("img")).toHaveLength(CONTRIBUTORS.length);
     for (const contributor of CONTRIBUTORS) {
-      expect(doc.querySelector(`a[href="${contributor.profileUrl}"]`)).toBeNull();
+      expect(people?.querySelector(`a[href="${contributor.profileUrl}"]`)).not.toBeNull();
     }
   });
 
@@ -143,7 +149,7 @@ describe("FullFooter", () => {
     );
   });
 
-  it("sits on a flat band under one hairline, with no gradient wash or gradient rule", async () => {
+  it("sits on the page under one hairline, with no gradient wash, gradient rule or inner rule", async () => {
     const doc = await renderFooter();
     const footer = doc.querySelector("footer");
     expect(footer?.className).toBe("vk-footer");
@@ -153,8 +159,12 @@ describe("FullFooter", () => {
     const css = readFileSync(join(process.cwd(), "app/global.css"), "utf8");
     const start = css.indexOf("\n.vk-footer {");
     const rule = css.slice(start, css.indexOf("}", start));
-    expect(rule).toContain("background: var(--surface-band);");
+    expect(rule).toContain("background: var(--surface-page);");
     expect(rule).toContain("border-top: 1px solid var(--border-default);");
+    for (const inner of [".vk-footer-top", ".vk-footer-bottom"]) {
+      const from = css.indexOf(`\n${inner} {`);
+      expect(css.slice(from, css.indexOf("}", from)), inner).not.toContain("border");
+    }
   });
 
   it.each([
@@ -309,5 +319,12 @@ describe("FullFooter", () => {
     } finally {
       localeState.current = "en";
     }
+  });
+});
+
+describe("license label", () => {
+  it("writes the English license label in sentence case, in the legal column and the bottom line", () => {
+    expect(en.landing.footer.cols.legal.license).toBe("MIT license");
+    expect(en.landing.footer.legalLicense).toContain("MIT license");
   });
 });

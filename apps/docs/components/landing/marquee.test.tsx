@@ -129,12 +129,48 @@ function spelledCount(locale: Locale): RegExp {
 }
 
 describe("Marquee", () => {
-  it("opens on its own heading and sits in the band with the marquee id", async () => {
+  it("opens on its own heading and sits in an unfilled section with the marquee id", async () => {
     const doc = await render();
     const section = doc.querySelector("section#marquee");
-    expect(section?.className).toBe("vk-band");
+    expect(section?.className).toBe("vk-marquee-section");
     expect(section?.querySelector("h2")?.textContent).toBe(copy.heading);
+    expect(section?.querySelector("h2")?.className).toBe("vk-marquee-heading vk-gutter");
+    expect(section?.getAttribute("aria-labelledby")).toBe(section?.querySelector("h2")?.id);
     expect(section?.querySelectorAll("h3")).toHaveLength(2);
+    expect(section?.querySelector(".vk-section-head, .vk-section-aside, .vk-lead")).toBeNull();
+  });
+
+  it("centres the heading as a small mono uppercase label", () => {
+    const rule = docsStylesheetRules().find(
+      (entry) => entry.selector === ".vk-marquee-heading" && !entry.media,
+    );
+    expect(rule?.declarations["text-align"]).toBe("center");
+    expect(rule?.declarations["text-transform"]).toBe("uppercase");
+    expect(rule?.declarations["font-family"]).toBe("var(--font-mono)");
+  });
+
+  it("puts the formats row first and the providers row second, scrolling opposite ways", async () => {
+    const doc = await render();
+    const rows = Array.from(doc.querySelectorAll(".vk-marquee-row"), (r) =>
+      r.getAttribute("data-row"),
+    );
+    expect(rows).toEqual(["formats", "providers"]);
+    const reversed = docsStylesheetRules().find(
+      (entry) => entry.selector === '.vk-marquee-row[data-row="providers"]',
+    );
+    expect(reversed?.declarations["--marquee-direction"]).toBe("reverse");
+    expect(
+      docsStylesheetRules().some(
+        (entry) => entry.selector === '.vk-marquee-row[data-row="formats"]',
+      ),
+    ).toBe(false);
+  });
+
+  it("fades both edges of the moving rows by a share of their width", () => {
+    const fade = docsStylesheetRules().find(
+      (entry) => entry.selector === ".vk-marquee" && entry.declarations["--marquee-fade"],
+    );
+    expect(fade?.declarations["--marquee-fade"]).toBe("12%");
   });
 
   it("lists every machine provider from the registry, in order, by its short label", async () => {
@@ -278,6 +314,15 @@ describe("Marquee", () => {
     expect(longest * advance * fontRem + padding).toBeLessThanOrEqual(minimum);
   });
 
+  it("keeps each row title for assistive technology only", async () => {
+    const doc = await render();
+    for (const id of ["providers", "formats"]) {
+      const title = row(doc, id).querySelector("h3");
+      expect(title?.className).toBe("sr-only");
+      expect(title?.textContent).toBe(id === "providers" ? copy.providers : copy.formats);
+    }
+  });
+
   it("names each visible list by its row title and hides every copy from assistive technology and focus", async () => {
     const doc = await render();
     for (const id of ["providers", "formats"]) {
@@ -294,18 +339,25 @@ describe("Marquee", () => {
     }
   });
 
-  it("ends each row with a link to its docs page, outside the moving track", async () => {
+  it("ends the section with a centred pair of docs links, outside every row and track", async () => {
     const doc = await render("de");
-    const providers = row(doc, "providers");
-    const formats = row(doc, "formats");
-    const providersLink = providers.querySelector(":scope > a");
-    const formatsLink = formats.querySelector(":scope > a");
-    expect(providersLink?.getAttribute("href")).toBe("/de/docs/providers");
-    expect(providersLink?.textContent).toBe(german.landing.marquee.allProviders);
-    expect(formatsLink?.getAttribute("href")).toBe("/de/docs/formats");
-    expect(formatsLink?.textContent).toBe(german.landing.marquee.allFormats);
-    expect(providers.lastElementChild).toBe(providersLink);
-    expect(providers.querySelector(".vk-marquee-track a")).toBeNull();
+    const links = doc.querySelector(".vk-marquee-links");
+    const anchors = Array.from(links?.querySelectorAll("a") ?? []);
+    expect(anchors.map((a) => a.getAttribute("href"))).toEqual([
+      "/de/docs/formats",
+      "/de/docs/providers",
+    ]);
+    expect(anchors.map((a) => a.textContent)).toEqual([
+      german.landing.marquee.allFormats,
+      german.landing.marquee.allProviders,
+    ]);
+    expect(links?.parentElement?.className).toBe("vk-marquee");
+    expect(links?.nextElementSibling).toBeNull();
+    expect(doc.querySelector(".vk-marquee-row a")).toBeNull();
+    const rule = docsStylesheetRules().find(
+      (entry) => entry.selector === ".vk-marquee-links" && !entry.media,
+    );
+    expect(rule?.declarations["justify-content"]).toBe("center");
   });
 
   it("server-renders the static state: no motion state and no glint, the pause button before the rows", async () => {
@@ -391,13 +443,13 @@ describe("MarqueeMotion", () => {
   });
 
   it.each(["dark", "light"] as const)(
-    "draws the pause button's boundary at 3:1 or more against the band in the %s theme",
+    "draws the pause button's boundary at 3:1 or more against the page background in the %s theme",
     (theme) => {
       const button = mountToggle().querySelector("button");
       const border = /(?:^|\s)border-\((--[\w-]+)\)/.exec(button?.className ?? "")?.[1];
       if (border === undefined) throw new Error("the pause button has no border token");
       const tokens = themeTokens()[theme];
-      expect(contrast(tokens, border, "--surface-band")).toBeGreaterThanOrEqual(3);
+      expect(contrast(tokens, border, "--surface-bg")).toBeGreaterThanOrEqual(3);
     },
   );
 });
@@ -405,11 +457,28 @@ describe("MarqueeMotion", () => {
 describe("the marquee stylesheet", () => {
   const rules = docsStylesheetRules();
 
-  it("draws each list item as a fill with no ring, so it does not read as a button", () => {
+  it("is not a filled band: page background between two hairlines, clipped sideways", () => {
+    const section = rulesFor(rules, ".vk-marquee-section").find((rule) => rule.media === "");
+    expect(section?.declarations["overflow-x"]).toBe("clip");
+    expect(section?.declarations["border-block"]).toBe("1px solid var(--border-default)");
+    expect(section?.declarations["padding-block"]).toBe("2.75rem 3rem");
+    expect(section?.declarations.background).toBeUndefined();
+  });
+
+  it("runs the rows edge to edge, with the gutter only on the static row", () => {
+    const base = rulesFor(rules, ".vk-marquee-viewport").find((rule) => rule.media === "");
+    expect(base?.declarations["padding-inline"]).toBe("var(--gutter)");
+    const moving = rulesFor(rules, ".vk-marquee-viewport").find(
+      (rule) => rule.media !== "" && "padding-inline" in rule.declarations,
+    );
+    expect(moving?.declarations["padding-inline"]).toBe("0");
+  });
+
+  it("draws each list item as a rounded bordered chip on the tile surface", () => {
     const item = rulesFor(rules, ".vk-marquee-item").find((rule) => rule.media === "");
-    expect(item?.declarations.background).toBe("var(--surface-bg)");
-    expect(item?.declarations.border).toBeUndefined();
-    expect(item?.declarations["box-shadow"]).toBeUndefined();
+    expect(item?.declarations.background).toBe("var(--surface-tile)");
+    expect(item?.declarations.border).toBe("1px solid var(--border-tile)");
+    expect(item?.declarations["border-radius"]).toBe("var(--radius-lg)");
   });
 
   const MOTION_ALLOWED = "@media (prefers-reduced-motion: no-preference) and (scripting: enabled)";

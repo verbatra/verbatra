@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -328,5 +329,25 @@ describe("the landing faq copy", () => {
 
   it("keeps the landing to five questions", () => {
     expect(FAQ_ITEM_IDS).toHaveLength(5);
+  });
+});
+
+describe("the F panel styling", () => {
+  const css = readFileSync(join(process.cwd(), "app/global.css"), "utf8");
+  const rule = (selector: string) => {
+    const start = css.indexOf(`${selector} {`);
+    return start === -1 ? "" : css.slice(start, css.indexOf("}", start));
+  };
+
+  it("sets each question as its own bordered card-radius panel", () => {
+    const item = rule(".vk-faq-item");
+    expect(item).toContain("border: 1px solid var(--border-tile)");
+    expect(item).toContain("border-radius: var(--radius-card)");
+    expect(item).toContain("background: var(--surface-tile)");
+    expect(rule(".vk-faq")).toContain("gap:");
+  });
+
+  it("paints no halo gradient behind the questions", () => {
+    expect(css.match(/\.vk-faq[^{]*\{[^}]*halo/g)).toBeNull();
   });
 });

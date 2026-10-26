@@ -1,40 +1,19 @@
-import { expect, type Page, test } from "playwright/test";
-import { expectNoAxeViolations, homeUrl, LOCALES } from "./support";
+import { expect, test } from "playwright/test";
+import {
+  expectNoAxeViolations,
+  expectNoHorizontalScroll,
+  homeUrl,
+  LOCALES,
+  openInTheme,
+  THEMES,
+} from "./support";
 
 const HERO = "section.vk-banner";
-const TABS = `${HERO} [role='tablist'] [role='tab']`;
-
-function panel(page: Page, id: string) {
-  return page.locator(`#hero-track-panel-${id}`);
-}
-
-async function selectTrack(page: Page, index: number): Promise<void> {
-  const tab = page.locator(TABS).nth(index);
-  await expect(async () => {
-    await tab.click();
-    await expect(tab).toHaveAttribute("aria-selected", "true", { timeout: 250 });
-  }).toPass();
-}
-
-async function hydrateOnTime(page: Page): Promise<void> {
-  await page.addInitScript(() => {
-    const byName = performance.getEntriesByName.bind(performance);
-    performance.getEntriesByName = (name: string, type?: string) =>
-      name === "first-contentful-paint"
-        ? byName(name, type).map((entry) => ({ ...entry.toJSON(), startTime: performance.now() }))
-        : byName(name, type);
-  });
-}
-
-async function terminalHeight(page: Page): Promise<number> {
-  const box = await page.locator(`${HERO} .vk-tracks-panels`).boundingBox();
-  if (box === null) throw new Error("the track panels have no box");
-  return box.height;
-}
+const FILES = `${HERO} .vk-banner-files`;
 
 for (const locale of LOCALES) {
   test.describe(`hero ${homeUrl(locale)}`, () => {
-    test("opens with the release announcement and offers three tracks, with no install box or facts", async ({
+    test("opens with the release announcement, one install chip with a copy button, and the locale files", async ({
       page,
     }) => {
       await page.goto(homeUrl(locale));
@@ -42,147 +21,70 @@ for (const locale of LOCALES) {
       await expect(announce).toBeVisible();
       await expect(announce).toHaveAttribute("href", /\/releases\/tag\//);
       await expect(announce.locator(".vk-pill-new")).toBeVisible();
-      await expect(page.locator(TABS)).toHaveCount(3);
-      await expect(page.locator(`${HERO} .vk-command-panel, ${HERO} dl.vk-facts`)).toHaveCount(0);
-      await expect(page.locator(`${HERO} .vk-copy, ${HERO} button[aria-label]`)).toHaveCount(0);
+      await expect(page.locator(`${HERO} .vk-banner-install code`)).toHaveText(
+        "npm i -D @verbatra/cli",
+      );
+      await expect(page.locator(`${HERO} .vk-banner-install button`)).toHaveCount(1);
+      await expect(page.locator(`${HERO} .vk-banner-trust`)).toHaveCount(0);
+      await expect(page.locator(`${HERO} [role='tablist'], ${HERO} .vk-tracks`)).toHaveCount(0);
+      await expect(page.locator(FILES)).toHaveAttribute("aria-hidden", "true");
     });
   });
 }
 
+test.describe("hero install chip", () => {
+  test.use({ permissions: ["clipboard-read", "clipboard-write"] });
+
+  test("copies the install command", async ({ page }) => {
+    await page.goto("/");
+    const copy = page.locator(`${HERO} .vk-banner-install button`);
+    await expect(async () => {
+      await copy.click();
+      await expect(copy).toHaveAttribute("data-status", "copied", { timeout: 500 });
+    }).toPass();
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
+      "npm i -D @verbatra/cli",
+    );
+  });
+});
+
 test.describe("hero without JavaScript", () => {
   test.use({ javaScriptEnabled: false });
 
-  test("paints the h1 and the default track's full run from the server HTML", async ({ page }) => {
+  test("paints the h1, the chip and the de card from the server HTML", async ({ page }) => {
     await page.goto("/");
-    const title = page.locator(`${HERO} h1`);
-    await expect(title).toBeVisible();
-    await expect(title).toHaveCSS("opacity", "1");
-    const translate = panel(page, "translate");
-    await expect(translate).toBeVisible();
-    await expect(translate.locator(".vk-track-command")).toHaveCount(2);
-    for (const line of await translate.locator(".vk-track-command, .vk-track-out").all()) {
-      await expect(line).toHaveCSS("opacity", "1");
-    }
-    await expect(panel(page, "ci")).toHaveCSS("visibility", "hidden");
-    await expect(panel(page, "agents")).toHaveCSS("visibility", "hidden");
+    await expect(page.locator(`${HERO} h1`)).toBeVisible();
+    await expect(page.locator(`${HERO} .vk-banner-install code`)).toBeVisible();
+    await expect(page.locator(`${FILES} [data-front='true']`)).toBeVisible();
   });
 });
 
-test.describe("hero track keyboard", () => {
-  test("moves between the tracks with the arrow keys, Home and End, keeping one tab stop", async ({
-    page,
-  }) => {
+for (const theme of THEMES) {
+  test.describe(`hero locale files in the ${theme} theme`, () => {
+    test.use({ viewport: { width: 1440, height: 900 } });
+
+    test("pass axe, decorative text included", async ({ page }) => {
+      await openInTheme(page, "/", theme);
+      await expectNoAxeViolations(page, HERO);
+    });
+  });
+}
+
+test.describe("hero under reduced motion", () => {
+  test.use({ reducedMotion: "reduce" });
+
+  test("keeps the pill still", async ({ page }) => {
     await page.goto("/");
-    const tabs = page.locator(TABS);
-    await expect(async () => {
-      await tabs.first().focus();
-      await page.keyboard.press("ArrowRight");
-      await expect(tabs.nth(1)).toBeFocused({ timeout: 250 });
-    }).toPass();
-    await expect(tabs.nth(1)).toHaveAttribute("aria-selected", "true");
-    await expect(panel(page, "agents")).toHaveCSS("visibility", "visible");
-    await page.keyboard.press("End");
-    await expect(tabs.nth(2)).toBeFocused();
-    await expect(tabs.nth(2)).toHaveAttribute("aria-selected", "true");
-    await page.keyboard.press("ArrowRight");
-    await expect(tabs.first()).toBeFocused();
-    await page.keyboard.press("ArrowLeft");
-    await expect(tabs.nth(2)).toBeFocused();
-    await page.keyboard.press("Home");
-    await expect(tabs.first()).toHaveAttribute("aria-selected", "true");
-    await expect(tabs.nth(1)).toHaveAttribute("tabindex", "-1");
-    await expect(tabs.nth(2)).toHaveAttribute("tabindex", "-1");
+    await expect(page.locator(`${HERO} .vk-pill-new-shimmer`)).toHaveCSS("display", "none");
+    const animation = await page
+      .locator(`${HERO} .vk-pill-new-ring`)
+      .evaluate((ring) => getComputedStyle(ring, "::before").animationName);
+    expect(animation).toBe("none");
   });
 });
 
-test.describe("hero track motion", () => {
+test.describe("hero pill motion", () => {
   test.use({ reducedMotion: "no-preference" });
-
-  test("types the default track once on load, from the final state the server sent", async ({
-    page,
-  }) => {
-    await hydrateOnTime(page);
-    await page.goto("/");
-    const tracks = page.locator(`${HERO} .vk-tracks`);
-    await expect(tracks).toHaveAttribute("data-typing", "true");
-    await expect(tracks).not.toHaveAttribute("data-typing", "true", { timeout: 5000 });
-    for (const line of await panel(page, "translate").locator(".vk-track-out").all()) {
-      await expect(line).toHaveCSS("opacity", "1");
-    }
-  });
-
-  test("types the command on a switch, then shows the result, without moving the layout", async ({
-    page,
-  }) => {
-    await page.goto("/");
-    const tracks = page.locator(`${HERO} .vk-tracks`);
-    await expect(tracks).not.toHaveAttribute("data-typing", "true", { timeout: 5000 });
-    const before = await terminalHeight(page);
-    await selectTrack(page, 2);
-    await expect(tracks).toHaveAttribute("data-typing", "true");
-    await expect(panel(page, "ci").locator(".vk-track-out").first()).toHaveCSS("opacity", "0");
-    await expect(tracks).not.toHaveAttribute("data-typing", "true", { timeout: 5000 });
-    for (const line of await panel(page, "ci").locator(".vk-track-out").all()) {
-      await expect(line).toHaveCSS("opacity", "1");
-    }
-    expect(await terminalHeight(page)).toBe(before);
-  });
-
-  test("shifts nothing inside the tracks while a run types", async ({ page }) => {
-    await page.addInitScript(() => {
-      const shifts: string[] = [];
-      Object.assign(window, { trackShifts: shifts });
-      const elementOf = (node: Node | undefined) =>
-        node instanceof Element ? node : (node?.parentElement ?? null);
-      new PerformanceObserver((list) => {
-        const sources = (
-          list.getEntries() as Array<PerformanceEntry & { sources?: Array<{ node?: Node }> }>
-        ).flatMap((entry) => entry.sources ?? []);
-        for (const element of sources.map((source) => elementOf(source.node))) {
-          if (element?.closest(".vk-tracks")) shifts.push(element.className);
-        }
-      }).observe({ type: "layout-shift", buffered: true });
-    });
-    await hydrateOnTime(page);
-    await page.goto("/");
-    const tracks = page.locator(`${HERO} .vk-tracks`);
-    await expect(tracks).toHaveAttribute("data-typing", "true");
-    await expect(tracks).not.toHaveAttribute("data-typing", "true", { timeout: 5000 });
-    await selectTrack(page, 2);
-    await expect(tracks).not.toHaveAttribute("data-typing", "true", { timeout: 5000 });
-    expect(
-      await page.evaluate(() => (window as unknown as { trackShifts: string[] }).trackShifts),
-    ).toEqual([]);
-  });
-
-  test("keeps the server-rendered final state when the island hydrates late", async ({ page }) => {
-    await page.addInitScript(() => {
-      const seen = { typing: false };
-      Object.assign(window, { trackTyping: seen });
-      new MutationObserver(() => {
-        if (document.querySelector(".vk-tracks[data-typing]") !== null) seen.typing = true;
-      }).observe(document, { attributes: true, subtree: true, attributeFilter: ["data-typing"] });
-    });
-    await page.route("**/_next/static/chunks/**", async (route) => {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      await route.continue();
-    });
-    await page.goto("/", { waitUntil: "commit" });
-    await expect(page.locator("html")).toHaveAttribute("data-motion-ready", /.*/, {
-      timeout: 15_000,
-    });
-    await page.waitForTimeout(1000);
-    expect(
-      await page.evaluate(
-        () => (window as unknown as { trackTyping: { typing: boolean } }).trackTyping.typing,
-      ),
-    ).toBe(false);
-    for (const line of await panel(page, "translate")
-      .locator(".vk-track-command, .vk-track-out")
-      .all()) {
-      await expect(line).toHaveCSS("opacity", "1");
-    }
-  });
 
   test("runs the pill's glow, ring and shimmer three times, never forever", async ({ page }) => {
     await page.goto("/");
@@ -199,29 +101,10 @@ test.describe("hero track motion", () => {
   });
 });
 
-test.describe("hero under reduced motion", () => {
-  test.use({ reducedMotion: "reduce" });
-
-  test("shows a chosen track's final state at once and keeps the pill still", async ({ page }) => {
-    await page.goto("/");
-    await selectTrack(page, 2);
-    await expect(page.locator(`${HERO} .vk-tracks`)).not.toHaveAttribute("data-typing", "true");
-    await expect(panel(page, "ci").locator(".vk-track-typed")).toHaveCount(0);
-    for (const line of await panel(page, "ci").locator(".vk-track-out").all()) {
-      await expect(line).toHaveCSS("opacity", "1");
-    }
-    await expect(page.locator(`${HERO} .vk-pill-new-shimmer`)).toHaveCSS("display", "none");
-    const animation = await page
-      .locator(`${HERO} .vk-pill-new-ring`)
-      .evaluate((ring) => getComputedStyle(ring, "::before").animationName);
-    expect(animation).toBe("none");
-  });
-});
-
 test.describe("hero layout at 1440px", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  test("sets the tracks in the wider column beside the copy, inside the first viewport", async ({
+  test("sets three stacked cards in the narrower column beside the copy, inside the first viewport", async ({
     page,
   }) => {
     await page.goto("/");
@@ -232,82 +115,155 @@ test.describe("hero layout at 1440px", () => {
     };
     const copy = await box(".vk-banner-copy");
     const demo = await box(".vk-banner-demo");
-    expect(demo.width).toBeGreaterThan(copy.width * 1.25);
+    expect(copy.width).toBeGreaterThan(demo.width);
     expect(demo.x).toBeGreaterThan(copy.x + copy.width);
-    const terminal = await box(".vk-track-terminal");
-    expect(terminal.y + terminal.height).toBeLessThanOrEqual(900);
+    await expect(page.locator(`${FILES} .vk-banner-file`)).toHaveCount(3);
+    for (const card of await page.locator(`${FILES} .vk-banner-file`).all()) {
+      await expect(card).toBeVisible();
+      const rect = await card.boundingBox();
+      if (rect === null) throw new Error("a card has no box");
+      expect(rect.x).toBeGreaterThanOrEqual(demo.x - 1);
+      expect(rect.x + rect.width).toBeLessThanOrEqual(demo.x + demo.width + 1);
+      expect(rect.y + rect.height).toBeLessThanOrEqual(900);
+    }
     const ctas = await box(".vk-banner-ctas");
     expect(ctas.y + ctas.height).toBeLessThanOrEqual(900);
-    await expect(page.locator(`${HERO} .vk-banner-backdrop, ${HERO} .vk-banner-glow`)).toHaveCount(
-      0,
+    await expect(page.locator(`${HERO} > .vk-banner-halo`)).toHaveAttribute("aria-hidden", "true");
+    await expect(page.locator(`${FILES} .vk-banner-file-line[data-added='true']`)).toHaveCount(2);
+  });
+
+  test("shows each back card's name and value line fully above the card in front", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const covered = await page.locator(`${FILES} .vk-banner-file`).evaluateAll((cards) =>
+      cards.slice(0, 2).flatMap((card) =>
+        [".vk-banner-file-name", ".vk-banner-file-line"].map((part) => {
+          const box = card.querySelector(part)?.getBoundingClientRect();
+          if (box === undefined) return false;
+          const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+          return hit?.closest(".vk-banner-file") !== card;
+        }),
+      ),
     );
-    await expectNoAxeViolations(page, HERO);
+    expect(covered).toEqual([false, false, false, false]);
+  });
+
+  test("sets the headline at the mockup size with a gradient on its second line only, and the statement never larger", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const title = page.locator(`${HERO} h1`);
+    await expect(title).toHaveCSS("font-size", "92px");
+    await expect(title).toHaveCSS("font-weight", "600");
+    await expect(page.locator(`${HERO} h1 .vk-banner-title-lit`)).toHaveCSS(
+      "background-image",
+      /linear-gradient/,
+    );
+    await expect(title).toHaveCSS("background-image", "none");
+    const statement = await page.locator(".vk-statement-title").evaluate((node) => {
+      return Number.parseFloat(getComputedStyle(node).fontSize);
+    });
+    expect(statement).toBeLessThanOrEqual(92);
+    const padding = await page
+      .locator("section#statement")
+      .evaluate((node) => Number.parseFloat(getComputedStyle(node).paddingTop));
+    expect(padding).toBeCloseTo(180, 0);
   });
 });
-
-for (const width of [375, 1440]) {
-  test.describe(`hero track rows at ${width}px`, () => {
-    test.use({ viewport: { width, height: 900 } });
-
-    test("keeps every track's terminal and summary on the same rows", async ({ page }) => {
-      await page.goto("/");
-      const rows: Array<readonly [number, number, number]> = [];
-      for (const index of [0, 1, 2]) {
-        await selectTrack(page, index);
-        const id = ["translate", "agents", "ci"][index] ?? "";
-        const terminal = await panel(page, id).locator(".vk-track-terminal").boundingBox();
-        const summary = await panel(page, id).locator(".vk-track-summary").boundingBox();
-        if (terminal === null || summary === null) throw new Error(`${id} has no box`);
-        rows.push([Math.round(terminal.y), Math.round(terminal.height), Math.round(summary.y)]);
-      }
-      expect(new Set(rows.map((row) => row.join(","))).size).toBe(1);
-    });
-  });
-}
 
 for (const width of [320, 375]) {
   test.describe(`hero at ${width}px`, () => {
     test.use({ viewport: { width, height: 800 } });
 
-    test("fits every track without a sideways scroll", async ({ page }) => {
+    test("shows only the front card, inside the column, without a sideways scroll", async ({
+      page,
+    }) => {
       await page.goto("/");
-      for (const index of [0, 1, 2]) {
-        await selectTrack(page, index);
-        const overflow = await page.evaluate(
-          () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-        );
-        expect(overflow).toBe(0);
-      }
+      await expectNoHorizontalScroll(page);
+      await expect(page.locator(`${FILES} .vk-banner-file:visible`)).toHaveCount(1);
+      await expect(page.locator(`${FILES} [data-front='true']`)).toBeVisible();
+      const card = await page.locator(`${FILES} [data-front='true']`).boundingBox();
+      if (card === null) throw new Error("the front card has no box");
+      expect(card.x).toBeGreaterThanOrEqual(0);
+      expect(card.x + card.width).toBeLessThanOrEqual(width);
+      const chip = await page.locator(`${HERO} .vk-banner-install`).boundingBox();
+      if (chip === null) throw new Error("the install chip has no box");
+      expect(chip.x + chip.width).toBeLessThanOrEqual(width);
     });
   });
 }
 
-test.describe("hero workflow file at 375px", () => {
-  test.use({ viewport: { width: 375, height: 800 } });
+for (const locale of ["en", "de"] as const) {
+  for (const width of [1440, 1024, 375, 320]) {
+    test.describe(`hero value lines at ${width}px ${homeUrl(locale)}`, () => {
+      test.use({ viewport: { width, height: 900 } });
 
-  test("wraps each workflow line under its own indentation, never at the left edge", async ({
-    page,
-  }) => {
-    await page.goto("/");
-    await selectTrack(page, 2);
-    const code = panel(page, "ci").locator(".vk-track-file-code");
-    const metrics = await code.evaluate((block) => {
-      const left = block.getBoundingClientRect().left;
-      const lines = [...block.querySelectorAll(".vk-track-file-line")].map((line) => {
-        const text = line.querySelector(".vk-track-file-text");
-        const range = document.createRange();
-        if (text !== null) range.selectNodeContents(text);
-        const starts = [
-          ...new Set([...range.getClientRects()].map((rect) => Math.round(rect.left))),
-        ];
-        return { first: starts[0] ?? left, rest: starts.slice(1) };
+      test("wrap inside their card and are never cut off", async ({ page }) => {
+        await page.goto(homeUrl(locale));
+        await expectNoHorizontalScroll(page);
+        const cut = await page
+          .locator(`${FILES} .vk-banner-file:visible`)
+          .evaluateAll((cards) =>
+            cards.flatMap((card) =>
+              [...card.querySelectorAll<HTMLElement>(".vk-banner-file-line")]
+                .filter((line) => line.scrollWidth > line.clientWidth + 1)
+                .map((line) => line.textContent),
+            ),
+          );
+        expect(cut).toEqual([]);
+        const ellipsis = await page
+          .locator(`${FILES} .vk-banner-file-line`)
+          .evaluateAll(
+            (lines) =>
+              lines.filter((line) => getComputedStyle(line).textOverflow !== "clip").length,
+          );
+        expect(ellipsis).toBe(0);
       });
-      return { left, overflow: block.scrollWidth - block.clientWidth, lines };
     });
-    expect(metrics.overflow).toBeLessThanOrEqual(0);
-    expect(metrics.lines.some((line) => line.rest.length > 0)).toBe(true);
-    for (const line of metrics.lines) {
-      for (const start of line.rest) expect(start).toBeGreaterThan(line.first);
-    }
+  }
+}
+
+test.describe("hero install command at 320px in German", () => {
+  test.use({ viewport: { width: 320, height: 800 } });
+
+  test("shows the whole command inside the chip", async ({ page }) => {
+    await page.goto(homeUrl("de"));
+    const fits = await page.locator(`${HERO} .vk-banner-install`).evaluate((chip) => {
+      const code = chip.querySelector("code");
+      const box = chip.getBoundingClientRect();
+      const inner = code?.getBoundingClientRect();
+      if (code === null || inner === undefined) return false;
+      return (
+        code.scrollWidth <= code.clientWidth + 1 &&
+        inner.left >= box.left &&
+        inner.right <= box.right &&
+        inner.bottom <= box.bottom &&
+        box.right <= window.innerWidth
+      );
+    });
+    expect(fits).toBe(true);
+    await expect(page.locator(`${HERO} .vk-banner-install code`)).toHaveText(
+      "npm i -D @verbatra/cli",
+    );
+  });
+});
+
+test.describe("statement to highlights gap at 1440px", () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test("totals about 180px of padding like mockup F", async ({ page }) => {
+    await page.goto("/");
+    const gap = await page.evaluate(() => {
+      const below = Number.parseFloat(
+        getComputedStyle(document.querySelector("section#statement") as Element).paddingBottom,
+      );
+      const above = Number.parseFloat(
+        getComputedStyle(document.querySelector("section#highlights") as Element).paddingTop,
+      );
+      return below + above;
+    });
+    expect(gap).toBeGreaterThanOrEqual(170);
+    expect(gap).toBeLessThanOrEqual(190);
   });
 });

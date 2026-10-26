@@ -6,10 +6,9 @@ import { NextIntlClientProvider } from "next-intl";
 import type { ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import { NPM_INSTALL_COMMAND } from "@/lib/install-commands";
+import { DRY_RUN_COMMAND } from "@/lib/install-commands";
 import en from "@/messages/en.json";
 import { preloadRegisteredIslands } from "@/test-support/islands";
-import { GITHUB_URL } from "./links";
 
 vi.mock("next-intl/server", async () => {
   const { createTranslator } = await import("next-intl");
@@ -49,40 +48,63 @@ beforeAll(async () => {
 const css = readFileSync(join(process.cwd(), "app/global.css"), "utf8");
 
 describe("FinalCta", () => {
-  it("closes on one heading and one sentence", () => {
+  it("closes on a bracketed label, one heading and one sentence", () => {
+    expect(root.querySelector("p.vk-eyebrow")?.textContent).toBe(copy.label);
     expect(root.querySelectorAll("h2")).toHaveLength(1);
     expect(root.querySelector("h2")?.textContent).toBe(copy.heading);
-    const lead = root.querySelector("p")?.textContent ?? "";
+    const lead = root.querySelector("h2 + p")?.textContent ?? "";
     expect(lead).toBe(copy.lead);
     expect(lead.match(/[.!?](\s|$)/g)).toHaveLength(1);
   });
 
-  it("keeps the install command, the quickstart in the reader's locale and the repository in a new tab", () => {
-    expect(root.querySelector("code")?.textContent).toBe(NPM_INSTALL_COMMAND);
-    expect(root.querySelector("a[href='/de/docs/quickstart']")?.textContent).toBe(copy.primary);
-    const github = root.querySelector(`a[href='${GITHUB_URL}']`);
-    expect(github?.textContent).toBe(`${copy.secondary} ${en.landing.openSource.newTab}`);
-    expect(github?.getAttribute("target")).toBe("_blank");
-    expect(github?.getAttribute("rel")).toBe("noreferrer noopener");
+  it("offers the dry-run command as its one action, with no button or link", () => {
+    expect(root.querySelector("code")?.textContent).toBe(DRY_RUN_COMMAND);
+    expect(root.querySelectorAll("code")).toHaveLength(1);
+    expect(root.querySelector("a")).toBeNull();
+    expect(root.querySelector(".vk-closer-actions")).toBeNull();
   });
 
-  it("sets the closing copy on the page gutter, with no card border, inset, wash or glow", () => {
+  it("sizes the heading from 36px to 72px", () => {
+    expect(root.querySelector("h2")?.className).toBe("vk-closer-title");
+    expect(css).toMatch(/\.vk-closer-title \{[^}]*font-size: clamp\(2\.25rem, 5vw, 4\.5rem\);/);
+  });
+
+  it("keeps the closing brace of the label on the last word's line", () => {
+    expect(css).toContain('.vk-eyebrow::after {\n  content: "\\00a0}" / "";');
+  });
+
+  it("keeps the halo under the padding that clears the text, never behind it", () => {
+    const closer = css.slice(
+      css.indexOf(".vk-closer {"),
+      css.indexOf("\n}", css.indexOf(".vk-closer {")),
+    );
+    expect(closer).toContain("--closer-halo-height");
+    expect(closer).toMatch(/padding-block-end: calc\(.*\+ var\(--closer-halo-height\)\)/);
+    expect(closer).toMatch(/at 78% 100%/);
+  });
+
+  it("sets the closing copy in a glow panel whose grid layer is decoration only", () => {
     const inner = root.querySelector("section > div");
     expect(inner?.className).toBe("vk-closer");
     expect(inner?.getAttribute("style")).toBeNull();
     expect(root.querySelector("section")?.getAttribute("style")).toBeNull();
+    const grid = inner?.firstElementChild;
+    expect(grid?.className).toBe("vk-closer-grid");
+    expect(grid?.getAttribute("aria-hidden")).toBe("true");
+    expect(grid?.textContent).toBe("");
     const closer = css.slice(
       css.indexOf(".vk-closer {"),
-      css.indexOf("}", css.indexOf(".vk-closer {")),
+      css.indexOf("\n}", css.indexOf(".vk-closer {")),
     );
     expect(closer).toContain("text-align: center;");
-    expect(closer).not.toMatch(/gradient|shadow|border/);
+    expect(closer).toContain("border-radius: var(--radius-panel);");
+    expect(closer).toMatch(/radial-gradient\([^;]*var\(--halo-strong\)/);
   });
 
   it("opens one closer step under the section before it", () => {
     expect(css).toMatch(/--section-closer: var\(--section-lg\);/);
     expect(css).toMatch(
-      /\.vk-final-cta \{\s+padding-block: var\(--section-closer\) var\(--section-md\);/,
+      /\.vk-final-cta \{\s+padding-block: var\(--section-closer\) var\(--section-sm\);/,
     );
   });
 });

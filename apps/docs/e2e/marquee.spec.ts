@@ -240,10 +240,10 @@ test.describe("marquee motion", () => {
     expect(await glow()).toEqual(["vk-pill-new-glow", "3"]);
   });
 
-  test("pauses a row while focus is on its link", async ({ page }) => {
+  test("pauses a row while focus is inside it", async ({ page }) => {
     await page.goto("/");
     await expect(page.locator(".vk-marquee")).toHaveAttribute("data-marquee", "running");
-    await page.locator(`${MARQUEE} [data-row="formats"] .vk-marquee-more`).focus();
+    await page.locator(`${MARQUEE} [data-row="formats"] .vk-marquee-viewport`).focus();
     const states = () =>
       page
         .locator(`${MARQUEE} [data-row="formats"] .vk-marquee-list`)
@@ -278,25 +278,48 @@ test("the static marquee reflows at 320px without horizontal scroll", async ({ p
 test.describe("marquee layout at 1440px", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  test("sets the heading at the start of the band and the rows beside it at the end", async ({
+  test("centres the heading over two full-width rows, formats above providers", async ({
     page,
   }) => {
     await page.goto("/");
-    const head = page.locator(`${MARQUEE} .vk-section-head`);
-    await expect(head).toHaveAttribute("data-layout", "aside");
-    const headBox = await head.boundingBox();
-    const rows = await page.locator(`${MARQUEE} .vk-section-aside-content`).boundingBox();
-    if (headBox === null || rows === null) throw new Error("no box");
-    expect(rows.x).toBeGreaterThan(headBox.x + headBox.width);
-    expect(rows.width).toBeGreaterThan(headBox.width * 1.5);
-    expect(Math.abs(rows.y - headBox.y)).toBeLessThanOrEqual(2);
+    const heading = await page.locator("#marquee-heading").boundingBox();
+    const formats = await page.locator(`${MARQUEE} [data-row="formats"]`).boundingBox();
+    const providers = await page.locator(`${MARQUEE} [data-row="providers"]`).boundingBox();
+    const links = await page.locator(`${MARQUEE} .vk-marquee-links`).boundingBox();
+    if (heading === null || formats === null || providers === null || links === null)
+      throw new Error("no box");
+    const center = (box: { x: number; width: number }) => box.x + box.width / 2;
+    expect(Math.abs(center(heading) - center(formats))).toBeLessThanOrEqual(2);
+    expect(Math.abs(center(links) - center(formats))).toBeLessThanOrEqual(2);
+    expect(formats.width).toBeGreaterThan(900);
+    const section = await page.locator(MARQUEE).boundingBox();
+    if (section === null) throw new Error("no section box");
+    expect(formats.x).toBeLessThanOrEqual(1);
+    expect(formats.width).toBeGreaterThanOrEqual(section.width - 2);
+    await expect(page.locator(MARQUEE)).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    await expect(page.locator(MARQUEE)).toHaveCSS("border-top-width", "1px");
+    await expect(page.locator(MARQUEE)).toHaveCSS("border-bottom-width", "1px");
+    expect(providers.width).toBeCloseTo(formats.width, 0);
+    expect(heading.y + heading.height).toBeLessThanOrEqual(formats.y);
+    expect(formats.y + formats.height).toBeLessThanOrEqual(providers.y);
+    expect(providers.y + providers.height).toBeLessThanOrEqual(links.y);
     await expectNoAxeViolations(page, MARQUEE);
+  });
+
+  test("scrolls the formats and providers rows in opposite directions", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.goto("/");
+    await expect(page.locator(".vk-marquee")).toHaveAttribute("data-marquee", "running");
+    const directions = await page
+      .locator(`${MARQUEE} .vk-marquee-list:not(.vk-marquee-copy)`)
+      .evaluateAll((lists) => lists.map((list) => getComputedStyle(list).animationDirection));
+    expect(directions).toEqual(["normal", "reverse"]);
   });
 });
 
 for (const width of [1024, 1440]) {
   for (const locale of LOCALES) {
-    test(`caps the side-column heading at four lines at ${width}px in ${locale}`, async ({
+    test(`keeps the centred heading on a single line at ${width}px in ${locale}`, async ({
       page,
     }) => {
       await page.setViewportSize({ width, height: 900 });
@@ -306,7 +329,7 @@ for (const width of [1024, 1440]) {
         return Math.round(heading.getBoundingClientRect().height / lineHeight);
       });
       expect(lines).toBeGreaterThan(0);
-      expect(lines).toBeLessThanOrEqual(4);
+      expect(lines).toBe(1);
     });
   }
 }

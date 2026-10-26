@@ -3,7 +3,6 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { describe, expect, it, vi } from "vitest";
-import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
 import { contrast, themeTokens } from "@/test-support/contrast";
 import { buttonClasses } from "./button";
 import { CopyControl } from "./copy-control";
@@ -69,15 +68,6 @@ describe("control boundaries", () => {
       expectBoundary(borderToken(buttonClasses(variant)));
     },
   );
-
-  it("draws the segmented switch's border at 3:1 or more on every landing surface", () => {
-    const rule = rulesFor(docsStylesheetRules(), ".vk-segmented").find(
-      (candidate) => candidate.media === "" && candidate.declarations.border !== undefined,
-    );
-    const token = /var\((--[\w-]+)\)/.exec(rule?.declarations.border ?? "")?.[1];
-    if (token === undefined) throw new Error("the segmented switch has no border token");
-    expectBoundary(token);
-  });
 
   it("draws the copy button's border at 3:1 or more when idle, copied and failed", async () => {
     const copied = await copyControlClasses(async () => undefined);

@@ -21,6 +21,7 @@ export function CommandRow({
       className={cn(
         "flex items-start gap-3 px-3.5 py-3 font-mono text-sm leading-6",
         divided && "border-t",
+        wrap === "narrow" && "@max-[18rem]:flex-wrap",
       )}
       style={divided ? { borderColor: "var(--border-default)" } : undefined}
     >
@@ -30,12 +31,17 @@ export function CommandRow({
       <code
         className={cn(
           "vk-edge-fade min-w-0 flex-1 whitespace-nowrap pt-1 text-(--text-strong)",
-          wrap === "narrow" && "@max-[30rem]:whitespace-normal",
+          wrap === "narrow" &&
+            "@max-[30rem]:whitespace-normal @max-[18rem]:basis-[calc(100%-1.75rem)]",
         )}
       >
         <HighlightedCommand command={command} link={link} />
       </code>
-      <CopyButton text={command} label={label} />
+      <CopyButton
+        text={command}
+        label={label}
+        {...(wrap === "narrow" ? { className: "@max-[18rem]:ms-auto" } : {})}
+      />
     </div>
   );
 }

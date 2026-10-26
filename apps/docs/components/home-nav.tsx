@@ -12,6 +12,7 @@ import { useLiveCount } from "@/lib/live-stats";
 
 type HomeNavLabels = {
   readonly label: string;
+  readonly features: string;
   readonly docs: string;
   readonly github: string;
   readonly starsAria: string;
@@ -26,6 +27,7 @@ type HomeNavLabels = {
 export type HomeNavValue = {
   readonly docsUrl: string;
   readonly quickstartUrl: string;
+  readonly featuresUrl: string;
   readonly locale: string;
   readonly stars: string | null;
   readonly labels: HomeNavLabels;
@@ -62,6 +64,21 @@ export function docsLinkState(
   if (path === docs) return { active: true, current: "page" };
   if (path.startsWith(`${docs}/`)) return { active: true, current: "true" };
   return { active: false, current: undefined };
+}
+
+export function FeaturesNavLink({
+  className,
+  onNavigate,
+}: {
+  className: string;
+  onNavigate?: () => void;
+}): ReactNode {
+  const { featuresUrl, labels } = useHomeNav();
+  return (
+    <Link href={featuresUrl} className={className} onClick={onNavigate}>
+      {labels.features}
+    </Link>
+  );
 }
 
 export function DocsNavLink({

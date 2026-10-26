@@ -88,10 +88,12 @@ function navValue(locale: "en" | "de") {
   return {
     docsUrl: localizedPath(locale, "/docs"),
     quickstartUrl: localizedPath(locale, "/docs/quickstart"),
+    featuresUrl: `${localizedPath(locale, "/")}#features`,
     locale,
     stars: null,
     labels: {
       label: "Main",
+      features: "nav.features",
       docs: "nav.docs",
       github: "GitHub",
       starsAria: "GitHub {count} stars",
@@ -222,9 +224,10 @@ describe("primary navigation", () => {
     }
   });
 
-  it("gives the landing bar Docs, Changelog and GitHub, and none of the forbidden targets", async () => {
+  it("gives the landing bar Features, Docs, Changelog and GitHub, and none of the forbidden targets", async () => {
     const container = await renderHomeHeader();
     expect(hrefs(container.querySelector("header"), "nav a")).toEqual([
+      "/#features",
       "/docs",
       "https://github.com/verbatra/verbatra/releases",
       "https://github.com/verbatra/verbatra",
@@ -236,7 +239,10 @@ describe("primary navigation", () => {
 
   it("prefixes the landing bar's internal links with a non-default locale", async () => {
     const container = await renderHomeHeader("de");
-    expect(hrefs(container.querySelector("header"), "nav a")[0]).toBe("/de/docs");
+    expect(hrefs(container.querySelector("header"), "nav a").slice(0, 2)).toEqual([
+      "/de/#features",
+      "/de/docs",
+    ]);
     expect(hrefs(container.querySelector("header"), "a.vk-nav-cta")).toEqual([
       "/de/docs/quickstart",
     ]);

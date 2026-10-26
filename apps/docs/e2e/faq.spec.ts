@@ -292,6 +292,18 @@ test.describe("faq layout", () => {
 });
 
 test.describe("faq on a phone", () => {
+  test("sets each question as its own rounded bordered panel", async ({ page }) => {
+    await page.goto("/");
+    const panels = await page.locator(ITEMS).evaluateAll((items) =>
+      items.map((item) => {
+        const style = getComputedStyle(item);
+        return { radius: style.borderTopLeftRadius, width: style.borderTopWidth };
+      }),
+    );
+    expect(panels.length).toBeGreaterThan(0);
+    for (const panel of panels) expect(panel).toEqual({ radius: "20px", width: "1px" });
+  });
+
   test("puts the questions first and the docs links after them", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 800 });
     await page.goto("/");

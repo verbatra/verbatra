@@ -46,18 +46,20 @@ describe("landing message parity", () => {
       "landing.topNav.getStarted",
       "landing.banner.headline",
       "landing.banner.announcement.badge",
-      "landing.banner.license",
+      "landing.banner.keysAdded",
       "landing.footer.versionParts",
-      "landing.hero.tracks.label",
-      "landing.hero.tracks.ci.summary",
       "landing.steps.items.ci.title",
       "landing.marquee.heading",
       "landing.marquee.pause",
       "landing.playground.label",
       "landing.playground.languageNames.ja",
       "landing.compare.rows.license.verbatra",
-      "landing.openSource.license",
+      "landing.statement.heading",
+      "landing.highlights.agents.body",
+      "landing.features.items.doctor.title",
+      "landing.openSource.contributorsHeading",
       "landing.closing.heading",
+      "landing.closing.label",
       "landing.fab.label",
     ]) {
       expect(source).toContain(key);
@@ -124,15 +126,6 @@ describe("landing message parity", () => {
     }
   });
 
-  it("keeps the version slot in the Node.js note", () => {
-    for (const locale of i18n.languages) {
-      expect(landingText(locale, "banner.nodeRequirement"), locale).toContain("Node.js {versions}");
-      expect(landingText(locale, "banner.nodeMajorFrom"), locale).toMatch(
-        /^\{major\} \(.*\{minimum\}.*\)$/,
-      );
-    }
-  });
-
   it("keeps the home title between 50 and 60 characters in every locale", () => {
     for (const locale of i18n.languages) {
       const length = landingText(locale, "meta.title").length;
@@ -162,17 +155,19 @@ describe("landing message parity", () => {
     }
   });
 
-  it("closes every landing section heading with a period", () => {
+  it("ends no landing headline with a period", () => {
     for (const locale of i18n.languages) {
       for (const path of [
+        "banner.headline",
         "marquee.heading",
+        "statement.heading",
+        "highlights.heading",
         "playground.heading",
-        "compare.heading",
-        "openSource.heading",
+        "features.heading",
         "faq.heading",
         "closing.heading",
       ]) {
-        expect(landingText(locale, path), `${locale} ${path}`).toMatch(/\.$/);
+        expect(landingText(locale, path), `${locale} ${path}`).not.toMatch(/\.$/);
       }
     }
   });

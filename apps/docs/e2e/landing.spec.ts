@@ -42,10 +42,11 @@ for (const locale of LOCALES) {
       expect(sections.map((section) => section.id)).toEqual([
         "hero-title",
         "marquee",
+        "statement",
+        "highlights",
         "playground",
-        "compare",
+        "features",
         "faq",
-        "open-source",
         "closing-heading",
       ]);
       expect(sections.filter((section) => section.name === "")).toEqual([]);
@@ -97,6 +98,14 @@ test.describe("forced colors", () => {
     );
   }
 
+  test("paints the hero title in solid text instead of the gradient", async ({ page }) => {
+    await page.goto("/");
+    await page.emulateMedia({ forcedColors: "active" });
+    const title = page.locator("section.vk-banner h1 .vk-banner-title-lit");
+    await expect(title).toHaveCSS("background-image", "none");
+    await expect(title).not.toHaveCSS("-webkit-text-fill-color", "rgba(0, 0, 0, 0)");
+  });
+
   test("keeps a boundary on every primary button without changing its size", async ({ page }) => {
     await page.goto("/");
     const buttons = page.locator(PRIMARY);
@@ -113,9 +122,9 @@ test.describe("forced colors", () => {
   });
 
   test("marks the Verbatra comparison column with a bar", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/compare");
     await page.emulateMedia({ forcedColors: "active" });
-    const marks = page.locator("section#compare .vk-compare-mark");
+    const marks = page.locator(".vk-compare-mark");
     expect(await marks.count()).toBeGreaterThan(1);
     for (let index = 0; index < (await marks.count()); index += 1) {
       await expect(marks.nth(index)).toHaveCSS("border-left-width", "3px");

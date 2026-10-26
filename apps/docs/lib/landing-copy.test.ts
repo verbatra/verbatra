@@ -2,13 +2,16 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { i18n } from "@/lib/i18n";
-import { COMPARE_ROWS, COMPARE_TOOLS, SHORT_COLUMNS, SHORT_ROWS } from "@/lib/landing-compare";
+import { COMPARE_ROWS, COMPARE_TOOLS } from "@/lib/landing-compare";
 
 const NAMESPACES = [
   "topNav",
   "banner",
   "marquee",
+  "statement",
+  "highlights",
   "playground",
+  "features",
   "compare",
   "openSource",
   "closing",
@@ -74,30 +77,13 @@ describe("the redesigned landing copy", () => {
     }
   });
 
-  it("labels every comparison row and holds one cell per tool, plus the hosted summary on short rows", () => {
+  it("labels every comparison row and holds one cell per tool", () => {
     const rows = branch(landing("en"), "compare.rows");
     expect(Object.keys(rows)).toEqual([...COMPARE_ROWS]);
-    const short: ReadonlyArray<string> = SHORT_ROWS;
     for (const row of COMPARE_ROWS) {
-      expect(Object.keys(branch(rows, row))).toEqual([
-        "label",
-        ...COMPARE_TOOLS,
-        ...(short.includes(row) ? ["hostedTms"] : []),
-      ]);
+      expect(Object.keys(branch(rows, row))).toEqual(["label", ...COMPARE_TOOLS]);
     }
-    expect(Object.keys(branch(landing("en"), "compare.columns"))).toEqual([
-      "criterion",
-      ...SHORT_COLUMNS,
-    ]);
-  });
-
-  it("states where hosted platforms do more, in every locale", () => {
-    for (const locale of i18n.languages) {
-      const concession = branch(landing(locale), "compare").concession;
-      expect(typeof concession).toBe("string");
-      for (const name of ["Tolgee", "Crowdin", "Lokalise", "Phrase", "Verbatra", "Studio"])
-        expect(concession, `${locale} ${name}`).toContain(name);
-    }
+    expect(Object.keys(branch(landing("en"), "compare.columns"))).toEqual(["criterion", "manual"]);
   });
 
   const FRENCH_SPACING = /[\u0020\u00a0][;:?!\u00bb]|\u00ab[\u0020\u00a0]/;
@@ -155,12 +141,9 @@ describe("the redesigned landing copy", () => {
       const rating = RATINGS[locale];
       if (!rating) throw new Error(`no rating words for ${locale}`);
       const rated = leaves(branch(landing(locale), "compare")).filter(([key]) =>
-        /^(rows\.|brief\.|concession$|lead$)/.test(key),
+        /^rows\./.test(key),
       );
-      expect(
-        rated.some(([key]) => key.startsWith("brief.")),
-        locale,
-      ).toBe(true);
+      expect(rated.length, locale).toBeGreaterThan(0);
       for (const [key, text] of rated) expect(text, key).not.toMatch(rating);
     });
   }

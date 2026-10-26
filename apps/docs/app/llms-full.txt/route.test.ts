@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import en from "@/messages/en.json";
+import { stripAccentTags } from "@/test-support/accent-tags";
 
 const PAGES = [
   {
@@ -62,7 +63,7 @@ describe("llms-full.txt", () => {
   });
 
   it("starts with the landing markdown, then the comparison, then the docs pages", () => {
-    const landing = body.indexOf(`# ${en.landing.banner.headline}\n`);
+    const landing = body.indexOf(`# ${stripAccentTags(en.landing.banner.headline)}\n`);
     const compare = body.indexOf(`# ${en.compare.heading}\n`);
     const docs = body.indexOf("# Quickstart (");
     expect(landing).toBeGreaterThan(0);

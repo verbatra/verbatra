@@ -12,7 +12,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ lan
   const t = await getTranslations({ locale, namespace: "landing.banner" });
 
   return new ImageResponse(
-    <HomeOgFrame headline={t("headline")} lines={HERO_OG_LINES} footer={new URL(SITE_URL).host} />,
+    <HomeOgFrame
+      headline={t.markup("headline", { accent: (chunks: string) => chunks })}
+      lines={HERO_OG_LINES}
+      footer={new URL(SITE_URL).host}
+    />,
     { ...OG_IMAGE_SIZE, fonts: await loadOgFonts() },
   );
 }

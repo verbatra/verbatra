@@ -113,16 +113,18 @@ function pressEscape(): void {
 }
 
 describe("the landing nav", () => {
-  it("holds Docs, Changelog and GitHub in a nav named Main, then Get started", async () => {
+  it("holds Features, Docs, Changelog and GitHub in a nav named Main, then Get started", async () => {
     const container = await render(1234);
     const links = Array.from(primaryNav(container)?.querySelectorAll("a") ?? []);
     expect(links.map((link) => link.getAttribute("href"))).toEqual([
+      "/#features",
       "/docs",
       RELEASES_URL,
       GITHUB_URL,
     ]);
-    expect(links[0]?.textContent).toBe(nav.docs);
-    expect(links[1]?.textContent).toBe(`${nav.changelog} ${messages.landing.openSource.newTab}`);
+    expect(links[0]?.textContent).toBe(nav.features);
+    expect(links[1]?.textContent).toBe(nav.docs);
+    expect(links[2]?.textContent).toBe(`${nav.changelog} ${messages.landing.openSource.newTab}`);
     const cta = container.querySelector("header a.vk-nav-cta");
     expect(cta?.textContent).toBe(nav.getStarted);
     expect(cta?.getAttribute("href")).toBe("/docs/quickstart");
@@ -137,11 +139,11 @@ describe("the landing nav", () => {
       container.querySelector("header a.vk-nav-cta"),
       trigger(container),
     ];
-    expect(controls).toHaveLength(6);
+    expect(controls).toHaveLength(7);
     for (const control of controls) expect(control?.classList.contains("vk-tap")).toBe(true);
     act(() => trigger(container)?.click());
     const items = Array.from(sheet()?.querySelectorAll(`nav[aria-label="${nav.label}"] a`) ?? []);
-    expect(items).toHaveLength(3);
+    expect(items).toHaveLength(4);
     for (const item of items) expect(item.classList.contains("min-h-11")).toBe(true);
     expect(sheet()?.querySelector("a.vk-nav-cta-menu")?.classList.contains("vk-tap")).toBe(true);
   });
@@ -152,7 +154,7 @@ describe("the landing nav", () => {
 
   it("opens Changelog and GitHub in a new tab", async () => {
     const container = await render(null);
-    const [, changelog, github] = Array.from(primaryNav(container)?.querySelectorAll("a") ?? []);
+    const [, , changelog, github] = Array.from(primaryNav(container)?.querySelectorAll("a") ?? []);
     for (const link of [changelog, github]) {
       expect(link?.getAttribute("target")).toBe("_blank");
       expect(link?.getAttribute("rel")).toBe("noopener noreferrer");
@@ -226,7 +228,7 @@ describe("the landing nav", () => {
     expect(docsLinkState("/docs", "/docs/cli/")).toEqual({ active: true, current: "true" });
     expect(docsLinkState("/docs", "/docsearch")).toEqual({ active: false, current: undefined });
     location.pathname = "/de/docs/formats";
-    const docs = primaryNav(await render(null, "de"))?.querySelector("a");
+    const docs = primaryNav(await render(null, "de"))?.querySelector('a[href="/de/docs"]');
     expect(docs?.getAttribute("href")).toBe("/de/docs");
     expect(docs?.getAttribute("data-active")).toBe("true");
     expect(docs?.getAttribute("aria-current")).toBe("true");
@@ -266,6 +268,7 @@ describe("the landing phone menu", () => {
     expect(document.getElementById(titleId)?.textContent).toBe(nav.menu.title);
     const links = Array.from(dialog?.querySelectorAll(`nav[aria-label="${nav.label}"] a`) ?? []);
     expect(links.map((link) => link.getAttribute("href"))).toEqual([
+      "/#features",
       "/docs",
       RELEASES_URL,
       GITHUB_URL,
@@ -290,7 +293,7 @@ describe("the landing phone menu", () => {
     const container = await render(null);
     act(() => trigger(container)?.click());
     const dialog = sheet();
-    expect(document.activeElement?.getAttribute("href")).toBe("/docs");
+    expect(document.activeElement?.getAttribute("href")).toBe("/#features");
     const order = Array.from(dialog?.querySelectorAll<HTMLElement>("a[href], button") ?? []).map(
       (node) =>
         node.getAttribute("href") ??
@@ -301,6 +304,7 @@ describe("the landing phone menu", () => {
             : node.textContent),
     );
     expect(order).toEqual([
+      "/#features",
       "/docs",
       RELEASES_URL,
       GITHUB_URL,
@@ -357,6 +361,18 @@ describe("the landing phone menu", () => {
     expect(container.querySelector("header a.vk-nav-cta")?.className).toContain("py-[7px]");
     act(() => cta?.click());
     expect(sheet()).toBeNull();
+  });
+
+  it("closes when Features is followed", async () => {
+    const container = await render(null);
+    act(() => trigger(container)?.click());
+    act(() => sheet()?.querySelector<HTMLAnchorElement>('a[href="/#features"]')?.click());
+    expect(sheet()).toBeNull();
+  });
+
+  it("points Features at the current locale home in German", async () => {
+    const value = await homeNavValue("de", null);
+    expect(value.featuresUrl).toBe("/de/#features");
   });
 
   it("closes when Docs is followed", async () => {

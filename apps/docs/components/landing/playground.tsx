@@ -112,7 +112,7 @@ export async function Playground(): Promise<ReactNode> {
   );
 
   return (
-    <Section id="playground" labelledBy="playground-heading" className="vk-playground-section">
+    <Section band id="playground" labelledBy="playground-heading" className="vk-playground-section">
       <div className="vk-playground-layout">
         <SectionHead
           id="playground-heading"

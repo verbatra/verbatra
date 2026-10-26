@@ -61,27 +61,6 @@
       "ogImageAlt": "Verbatra: Translate only what changed, above a check run that finds two missing keys per locale and a translate run that sends only those.",
       "definition": "Verbatra is an open source CLI and SDK for i18n locale files. It sends only new and changed keys to the AI or machine-translation provider you pick and fails CI while a key is missing."
     },
-    "hero": {
-      "tracks": {
-        "label": "Pick a workflow",
-        "exitCode": "exit {code}",
-        "translate": {
-          "tab": "Translate",
-          "summary": "Find the keys your target locales are missing, then translate only those and see the tokens each locale used.",
-          "link": "Read the translate command"
-        },
-        "agents": {
-          "tab": "AI agents",
-          "summary": "Register the MCP server for the project, and your coding agent can read status and fix translations.",
-          "link": "Connect an MCP client"
-        },
-        "ci": {
-          "tab": "CI gates",
-          "summary": "`verbatra check` exits 1 when a locale is missing keys, so the pull request fails before the drift ships.",
-          "link": "Read about CI and exit codes"
-        }
-      }
-    },
     "install": {
       "copy": "Copy",
       "copied": "Copied",
@@ -97,7 +76,7 @@
       "promptPreviewLabel": "Copies this prompt for your agent"
     },
     "faq": {
-      "heading": "Before you install Verbatra.",
+      "heading": "Before you install Verbatra",
       "lead": "Short answers, each with the docs page that goes deeper.",
       "docs": {
         "label": "In the docs",
@@ -194,6 +173,7 @@
     },
     "topNav": {
       "label": "Main",
+      "features": "Features",
       "docs": "Docs",
       "github": "GitHub",
       "starsAria": "GitHub {count} stars",
@@ -210,17 +190,13 @@
         "badge": "New",
         "text": "v{version} is out"
       },
-      "headline": "Translate only what changed.",
+      "headline": "Translate only <accent>what changed</accent>",
       "lead": "Verbatra fills the missing keys in your locale files, gives your coding agent an MCP server, and fails CI when translations drift.",
       "ctaPrimary": "Get started",
-      "ctaSecondary": "Star on GitHub",
-      "license": "MIT licensed and open source.",
-      "nodeRequirement": "Requires Node.js {versions}",
-      "nodeMajorFrom": "{major} ({minimum} or later)"
+      "keysAdded": "+{count, plural, one {# key} other {# keys}}"
     },
     "marquee": {
-      "heading": "Works with the locale files and providers you already use.",
-      "lead": "Switching providers means editing one block of the config file. Your locale files stay where they are, in their current format.",
+      "heading": "Works with the locale files and providers you already use",
       "pause": "Pause animation",
       "play": "Play animation",
       "providers": "Providers",
@@ -229,8 +205,34 @@
       "allProviders": "All providers",
       "allFormats": "All formats"
     },
+    "statement": {
+      "label": "One run, one locale",
+      "heading": "<em>{sent} keys</em> leave your machine, {kept} stay put"
+    },
+    "highlights": {
+      "heading": "Everything around the diff",
+      "lead": "A CLI, an SDK, a local Studio and an MCP server, all reading the same lock file.",
+      "translate": {
+        "label": "Translate",
+        "title": "Pay for {sent} strings, not {total}"
+      },
+      "ci": {
+        "label": "Check",
+        "title": "Drift fails the pull request",
+        "body": "The check exits {code} while a locale is missing keys. It needs no API key, so it runs on every pull request."
+      },
+      "integrity": {
+        "label": "Integrity",
+        "title": "Placeholders arrive intact"
+      },
+      "agents": {
+        "label": "Agents",
+        "title": "Your coding agent fixes translations",
+        "body": "Register the MCP server for the project, and the agent can read status and fix translations. Tools that spend provider tokens stay off until you allow them."
+      }
+    },
     "playground": {
-      "heading": "Translate a string with the SDK.",
+      "heading": "Translate a string with the SDK",
       "lead": "Pick a string and target languages, then press Translate. The code shows the SDK call that produced these results.",
       "items": "Source string",
       "languages": "Target languages",
@@ -265,6 +267,37 @@
         "providers": "Providers"
       }
     },
+    "features": {
+      "label": "Features",
+      "heading": "Built for the whole translation workflow",
+      "lead": "From the first string in your source code to the reviewed translation in production.",
+      "items": {
+        "studio": {
+          "title": "Review in Studio",
+          "body": "A local dashboard over your project: browse every locale, work through the review queue and edit values in place."
+        },
+        "handoff": {
+          "title": "Hand off to people",
+          "body": "Export an Excel workbook for a translator and import it back. Imported values stay protected from later machine runs."
+        },
+        "extract": {
+          "title": "Extract from source",
+          "body": "Scan your code for translation calls and add the new keys to the source locale before anyone translates them."
+        },
+        "watch": {
+          "title": "Watch while you build",
+          "body": "Keep a watcher running in development, and every change to the source locale is translated as you save."
+        },
+        "types": {
+          "title": "Typed keys",
+          "body": "Generate TypeScript declarations for your keys and message arguments, so a typo in a key fails the build."
+        },
+        "doctor": {
+          "title": "Know before you spend",
+          "body": "Doctor checks the setup without an API key, and an estimate sizes a run before it costs anything."
+        }
+      }
+    },
     "steps": {
       "items": {
         "check": {
@@ -282,14 +315,8 @@
       }
     },
     "compare": {
-      "heading": "Verbatra next to Lingo.dev and hosted TMS.",
-      "lead": "Each cell links its source. Verbatra never writes a translation that breaks a placeholder or ICU message.",
-      "caption": "Verbatra, Lingo.dev, hosted translation management systems and a manual workflow, compared on license, own keys, incremental runs, CI and MCP",
       "columns": {
         "criterion": "Criterion",
-        "verbatra": "Verbatra",
-        "lingo": "Lingo.dev",
-        "hostedTms": "Hosted TMS",
         "manual": "Manual workflow"
       },
       "rows": {
@@ -302,8 +329,7 @@
           "crowdin": "CLI and GitHub Action MIT; no public platform source found",
           "lokalise": "CLI BSD-3-Clause; no public platform source found",
           "phrase": "CLI and setup-cli Action MIT; no public platform source found",
-          "manual": "Not applicable, no product",
-          "hostedTms": "CLIs open source (MIT, BSD-3-Clause, MIT); no public platform source found for any of the three"
+          "manual": "Not applicable, no product"
         },
         "selfHosting": {
           "label": "Self-hosting",
@@ -347,8 +373,7 @@
           "crowdin": "Yes: third-party machine translation engines take your own keys; AI providers use your own key or are managed by Crowdin",
           "lokalise": "Unknown: not mentioned in the machine translation and AI docs",
           "phrase": "Ecosystem engines under your own contract; within Strings not confirmed",
-          "manual": "Your own accounts, no product",
-          "hostedTms": "Crowdin yes; Lokalise unknown; Phrase for ecosystem engines under your own contract, within Strings not confirmed"
+          "manual": "Your own accounts, no product"
         },
         "incremental": {
           "label": "Incremental translation",
@@ -359,8 +384,7 @@
           "crowdin": "Pre-translation can be limited to \"Untranslated strings\"",
           "lokalise": "Automations and pre-translation fill empty values",
           "phrase": "Pre-translation fills empty translations and skips keys that already have one",
-          "manual": "By hand, no product",
-          "hostedTms": "All three fill untranslated or empty values"
+          "manual": "By hand, no product"
         },
         "cli": {
           "label": "Command-line tool (CLI)",
@@ -382,8 +406,7 @@
           "crowdin": "Official GitHub Action",
           "lokalise": "Official push and pull GitHub Actions",
           "phrase": "CLI in CI; official setup-cli GitHub Action",
-          "manual": "Not applicable, no product",
-          "hostedTms": "Official GitHub Actions from all three (Phrase: setup-cli)"
+          "manual": "Not applicable, no product"
         },
         "mcp": {
           "label": "MCP server",
@@ -394,8 +417,7 @@
           "crowdin": "Yes, hosted",
           "lokalise": "Yes, hosted, in beta",
           "phrase": "Yes, hosted, signed in with a Phrase account",
-          "manual": "Not applicable, no product",
-          "hostedTms": "Hosted MCP servers from all three; Lokalise in beta"
+          "manual": "Not applicable, no product"
         },
         "inContext": {
           "label": "In-context editing",
@@ -431,65 +453,15 @@
           "manual": "Whatever you copy by hand, no product"
         }
       },
-      "marks": {
-        "yes": "Yes"
-      },
-      "brief": {
-        "license": {
-          "verbatra": "MIT",
-          "lingo": "Repository only",
-          "hostedTms": "CLIs only",
-          "manual": "Not applicable"
-        },
-        "ownKeys": {
-          "lingo": "Enterprise plan or older CLI",
-          "hostedTms": "Crowdin yes, others unclear",
-          "manual": "Own accounts"
-        },
-        "incremental": {
-          "hostedTms": "Fills empty values",
-          "manual": "By hand"
-        },
-        "ci": {
-          "verbatra": "`check` gate",
-          "lingo": "GitHub App",
-          "manual": "Not applicable"
-        },
-        "mcp": {
-          "verbatra": "Local",
-          "hostedTms": "Hosted",
-          "manual": "Not applicable"
-        }
-      },
       "sourceRef": "Source {number}, {tool}",
       "noteRef": "Note M, manual workflow",
       "sources": "Sources",
       "manualNote": "The manual workflow is not a product, so it has no source: the column describes copying strings into a translation service and back by hand.",
       "lastChecked": "Last checked",
       "fairness": "Verbatra is a CLI and SDK; the other columns are translation platforms and a manual workflow, compared as ways to keep locale files translated. Each cell states what the vendor's own pages said on that date, and \"no official ... found\" means our search found none, not that the product lacks it.",
-      "concession": "Tolgee, Crowdin, Lokalise and Phrase offer in-context editing; Verbatra reviews locally in Studio.",
-      "fullLink": "Full comparison with sources",
       "scrollHint": "Scroll the table sideways to see every column."
     },
     "openSource": {
-      "heading": "Send your first pull request.",
-      "lead": "Verbatra is MIT licensed, and every change takes the same three steps.",
-      "steps": {
-        "setup": {
-          "title": "Clone and install from the root"
-        },
-        "change": {
-          "title": "Branch from main and run the checks"
-        },
-        "pullRequest": {
-          "title": "Add a changeset if needed and open a pull request"
-        }
-      },
-      "linksHeading": "Project",
-      "contributing": "Contributor guide",
-      "codeOfConduct": "Code of conduct",
-      "license": "MIT license",
-      "agents": "Guide for coding agents",
       "newTab": "(opens in a new tab)",
       "contributorsHeading": "Contributors",
       "contributorAria": "{name} on GitHub",
@@ -497,10 +469,9 @@
       "contributorSlotHint": "find an issue to start with"
     },
     "closing": {
-      "heading": "Start with a dry run.",
-      "lead": "A dry run needs no API key, writes nothing and lists exactly which keys a real run would send.",
-      "primary": "Get started",
-      "secondary": "View on GitHub"
+      "heading": "Start with a dry run",
+      "lead": "After init, a dry run needs no API key, writes nothing and lists exactly which keys a real run would send.",
+      "label": "Before you spend a token"
     },
     "fab": {
       "label": "Back to top"

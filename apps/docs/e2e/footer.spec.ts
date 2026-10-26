@@ -49,25 +49,25 @@ for (const locale of LOCALES) {
 
 test.describe("footer surface", () => {
   for (const theme of THEMES) {
-    test(`is one flat band under a hairline in the ${theme} theme`, async ({ page }) => {
+    test(`sits on the page under one hairline in the ${theme} theme`, async ({ page }) => {
       await openInTheme(page, "/", theme);
       const style = await page.locator(FOOTER).evaluate((footer) => {
         const computed = getComputedStyle(footer);
         const probe = document.createElement("div");
-        probe.style.background = "var(--surface-band)";
+        probe.style.background = "var(--surface-page)";
         document.body.append(probe);
-        const band = getComputedStyle(probe).backgroundColor;
+        const surface = getComputedStyle(probe).backgroundColor;
         probe.remove();
         return {
           image: computed.backgroundImage,
           color: computed.backgroundColor,
-          band,
+          surface,
           border: computed.borderTopWidth,
           decorations: footer.querySelectorAll(":scope > [aria-hidden='true']").length,
         };
       });
       expect(style.image).toBe("none");
-      expect(style.color).toBe(style.band);
+      expect(style.color).toBe(style.surface);
       expect(style.border).toBe("1px");
       expect(style.decorations).toBe(0);
     });
@@ -76,6 +76,45 @@ test.describe("footer surface", () => {
   test("closes the comparison page too", async ({ page }) => {
     await page.goto("/compare");
     await expect(page.locator(FOOTER)).toHaveCount(1);
+  });
+});
+
+const PEOPLE = `${FOOTER} .vk-contribute-people`;
+
+test.describe("footer contributors", () => {
+  for (const theme of THEMES) {
+    test(`has no axe violations in the ${theme} theme`, async ({ page }) => {
+      await openInTheme(page, "/", theme);
+      await page.locator(PEOPLE).scrollIntoViewIfNeeded();
+      await expectNoAxeViolations(page, PEOPLE);
+    });
+  }
+
+  for (const width of [375, 1440]) {
+    test(`gives every contributor link a 44px target at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/");
+      const heights = await page
+        .locator(`${PEOPLE} a`)
+        .evaluateAll((links) => links.map((link) => link.getBoundingClientRect().height));
+      expect(heights.length).toBeGreaterThan(0);
+      for (const height of heights) expect(height).toBeGreaterThanOrEqual(44);
+    });
+  }
+
+  test("loads every contributor avatar from this site", async ({ page }) => {
+    const origins = new Set<string>();
+    page.on("request", (request) => origins.add(new URL(request.url()).origin));
+    await page.goto("/");
+    const images = page.locator(`${PEOPLE} img`);
+    await images.first().scrollIntoViewIfNeeded();
+    await expect(images.first()).toHaveJSProperty("complete", true);
+    const natural = await images
+      .first()
+      .evaluate((image) => (image as HTMLImageElement).naturalWidth);
+    expect(natural).toBeGreaterThan(0);
+    const self = new URL(page.url()).origin;
+    expect([...origins]).toEqual([self]);
   });
 });
 

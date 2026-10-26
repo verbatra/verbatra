@@ -85,20 +85,29 @@ the interface strings with `pnpm i18n` (see below).
 The home page (`app/[lang]/(home)/page.tsx`) renders its sections in the order of
 `LANDING_SECTIONS` in `lib/landing-sections.ts`; `lib/landing-sections.test.ts` pins that order.
 Each section is one component in `components/landing/` (`hero.tsx`, `marquee.tsx`,
-`playground.tsx`, `compare.tsx`, `faq.tsx`, `open-source.tsx`, `final-cta.tsx`). The footer is
-not a section: `app/[lang]/(home)/layout.tsx` passes it to the home layout. Facts a section shows
-(the hero tracks, providers, formats, comparison rows, the commands it prints) live in typed tables
-under `lib/` (`lib/landing-*.ts`, `lib/hero-terminal.ts`, `lib/install-commands.ts`), not in the
-copy; a component keeps only its own link targets and layout.
+`statement.tsx`, `highlights.tsx`, `playground.tsx`, `features.tsx`, `faq.tsx`, `final-cta.tsx`).
+The footer is not a section: `app/[lang]/(home)/layout.tsx` passes it to the home layout, and it
+carries the contributors (`contributors.tsx`). Facts a section shows (the hero locale files,
+providers, formats, the features, the commands it prints) live in typed tables under `lib/`
+(`lib/landing-*.ts`, `lib/landing-hero-files.ts`, `lib/hero-terminal.ts`,
+`lib/install-commands.ts`), not in the copy; a component keeps only its own link targets and layout.
 
+- **Surfaces**: the marquee is a plain page section between two hairlines (only the SDK playground
+  is a band), landing tiles (bento, features, FAQ items, closer, marquee items, hero file
+  cards, playground panels) take the landing-scoped `--surface-tile` and `--border-tile` from
+  `app/global.css`, and the page and footer sit on `--surface-page`.
+  The statement title uses `--statement-title` and the hero headline `--banner-title`, whose
+  gradient sits only on the `.vk-banner-title-lit` span.
 - **Edit copy**: change the `landing.*` key in `messages/en.json`, then update `de.json`,
-  `es.json` and `fr.json` in the same change, with `pnpm i18n` or by hand. After a hand
-  translation, run `npx @verbatra/cli check` from this directory: it must report every locale in sync.
+  `es.json` and `fr.json` in the same change, with `pnpm i18n`; a protected value goes through
+  `verbatra export` and `verbatra import`, never a hand edit. Afterwards run
+  `npx @verbatra/cli check` from this directory: it must report every locale in sync.
 - **Add or reorder a section**: build it in `components/landing/` on `Section`, with `SectionHead`
-  for a heading and lead (`SectionAside` for a head beside its content, as the marquee and the FAQ
-  use; the hero and the closing section draw their own heads), add its id to `LANDING_SECTIONS` at the position it takes, map the id to the component in
-  `page.tsx`, and update the order in `lib/landing-sections.test.ts`. Give it a section `id` that
-  no other section uses.
+  for a heading and lead (`SectionAside` for a head beside its content, as the FAQ uses; the
+  hero, the marquee, the statement and the closing section draw their own heads), add its id to
+  `LANDING_SECTIONS` at the position it takes, map the id to the component in `page.tsx`, and
+  update the order in `lib/landing-sections.test.ts`. Give it a section `id` that no other section
+  uses.
 - **Live star count**: the header's GitHub star count comes from `lib/project-stats.ts`, cut off
   after a short timeout. The page reads it once at build time (`loadProjectStats`,
   `cache: "force-cache"`, no revalidation), so every landing and legal page stays fully static and

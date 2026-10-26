@@ -63,7 +63,18 @@ describe("StartHere", () => {
     ).querySelector("code");
     const agent = render(<StartHere />).querySelector("code");
     expect(npm?.className).toContain("@max-[30rem]:whitespace-normal");
-    expect(agent?.className).toBe(npm?.className.replace(" @max-[30rem]:whitespace-normal", ""));
+    expect(npm?.className).toContain("@max-[18rem]:basis-[calc(100%-1.75rem)]");
+    expect(agent?.className).toBe(
+      npm?.className.replace(
+        " @max-[30rem]:whitespace-normal @max-[18rem]:basis-[calc(100%-1.75rem)]",
+        "",
+      ),
+    );
+    expect(npm?.parentElement?.className).toContain("@max-[18rem]:flex-wrap");
+    expect(npm?.parentElement?.querySelector("button")?.className).toContain(
+      "@max-[18rem]:ms-auto",
+    );
+    expect(agent?.parentElement?.className).not.toContain("flex-wrap");
   });
 
   it("stays at the prose measure, outside the prose styles, with no script of its own", () => {

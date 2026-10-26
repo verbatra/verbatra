@@ -12,8 +12,6 @@ import { landingProviders } from "@/lib/landing-providers";
 import { RELEASE_BADGE } from "@/lib/release-badge";
 import { MarqueeMotion } from "./islands";
 import { PlainList } from "./plain-list";
-import { Section } from "./section";
-import { SectionAside } from "./section-head";
 
 export const MARQUEE_ICON_PREFIX = "marquee-mark";
 
@@ -70,8 +68,6 @@ type MarqueeRowProps = {
   readonly id: "providers" | "formats";
   readonly title: string;
   readonly items: ReadonlyArray<MarqueeItem>;
-  readonly moreHref: string;
-  readonly moreLabel: string;
 };
 
 export function providerItems(releaseBadge: MarqueeBadge): ReadonlyArray<MarqueeItem> {
@@ -134,12 +130,12 @@ function Items({ items }: { items: ReadonlyArray<MarqueeItem> }): ReactNode {
   ));
 }
 
-function MarqueeRow({ id, title, items, moreHref, moreLabel }: MarqueeRowProps): ReactNode {
+function MarqueeRow({ id, title, items }: MarqueeRowProps): ReactNode {
   const titleId = `marquee-${id}`;
   const speed = { "--marquee-items": items.length } as CSSProperties;
   return (
     <div className="vk-marquee-row" data-row={id}>
-      <h3 id={titleId} className="vk-marquee-title">
+      <h3 id={titleId} className="sr-only">
         {title}
       </h3>
       {/* biome-ignore lint/a11y/useSemanticElements: a fieldset groups form controls; this names a row that scrolls sideways without adding a landmark */}
@@ -166,9 +162,6 @@ function MarqueeRow({ id, title, items, moreHref, moreLabel }: MarqueeRowProps):
           ))}
         </div>
       </div>
-      <IntentPrefetchLink href={moreHref} className="vk-prose-link vk-marquee-more">
-        {moreLabel}
-      </IntentPrefetchLink>
     </div>
   );
 }
@@ -181,34 +174,32 @@ export async function Marquee(): Promise<ReactNode> {
   const formats = formatItems();
 
   return (
-    <Section band id="marquee" labelledBy="marquee-heading">
-      <SectionAside
-        id="marquee-heading"
-        title={t("heading")}
-        lead={t("lead")}
-        className="vk-marquee-aside"
-      >
-        <BrandMarkSprite
-          prefix={MARQUEE_ICON_PREFIX}
-          marks={brandMarks([...providers, ...formats])}
-        />
-        <MarqueeMotion pauseLabel={t("pause")} playLabel={t("play")}>
-          <MarqueeRow
-            id="providers"
-            title={t("providers")}
-            items={providers}
-            moreHref={localizedPath(locale, "/docs/providers")}
-            moreLabel={t("allProviders")}
-          />
-          <MarqueeRow
-            id="formats"
-            title={t("formats")}
-            items={formats}
-            moreHref={localizedPath(locale, "/docs/formats")}
-            moreLabel={t("allFormats")}
-          />
-        </MarqueeMotion>
-      </SectionAside>
-    </Section>
+    <section id="marquee" aria-labelledby="marquee-heading" className="vk-marquee-section">
+      <h2 id="marquee-heading" className="vk-marquee-heading vk-gutter">
+        {t("heading")}
+      </h2>
+      <BrandMarkSprite
+        prefix={MARQUEE_ICON_PREFIX}
+        marks={brandMarks([...formats, ...providers])}
+      />
+      <MarqueeMotion pauseLabel={t("pause")} playLabel={t("play")}>
+        <MarqueeRow id="formats" title={t("formats")} items={formats} />
+        <MarqueeRow id="providers" title={t("providers")} items={providers} />
+        <div className="vk-marquee-links vk-gutter">
+          <IntentPrefetchLink
+            href={localizedPath(locale, "/docs/formats")}
+            className="vk-prose-link vk-marquee-more"
+          >
+            {t("allFormats")}
+          </IntentPrefetchLink>
+          <IntentPrefetchLink
+            href={localizedPath(locale, "/docs/providers")}
+            className="vk-prose-link vk-marquee-more"
+          >
+            {t("allProviders")}
+          </IntentPrefetchLink>
+        </div>
+      </MarqueeMotion>
+    </section>
   );
 }

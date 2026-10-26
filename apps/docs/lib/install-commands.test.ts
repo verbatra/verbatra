@@ -3,7 +3,12 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { readIncludedSource } from "@/lib/docs-pages";
-import { isNpmInstall, NPM_FENCE_LANG, NPM_INSTALL_COMMAND } from "@/lib/install-commands";
+import {
+  isNpmInstall,
+  MCP_ADD_COMMAND,
+  NPM_FENCE_LANG,
+  NPM_INSTALL_COMMAND,
+} from "@/lib/install-commands";
 
 const DOCS_DIR = fileURLToPath(new URL("../", import.meta.url));
 const CONTENT_DIR = join(DOCS_DIR, "content/docs");
@@ -39,5 +44,20 @@ describe("the install command", () => {
     );
     expect(fences.length).toBeGreaterThan(0);
     expect(fences.filter(({ command }) => !isNpmInstall(command))).toEqual([]);
+  });
+});
+
+function fenceAfter(markdown: string, heading: string, lang: string): string {
+  const from = markdown.indexOf(heading);
+  if (from === -1) throw new Error(`no ${heading}`);
+  const open = markdown.indexOf(`\`\`\`${lang}`, from);
+  const start = markdown.indexOf("\n", open) + 1;
+  return markdown.slice(start, markdown.indexOf("```", start));
+}
+
+describe("the MCP add command", () => {
+  it("copies the claude mcp add line from the MCP client guide", () => {
+    const guide = docsFile("content/docs/(agents)/connect-an-mcp-client.mdx");
+    expect(`${MCP_ADD_COMMAND}\n`).toBe(fenceAfter(guide, "#### Without the CLI", "bash"));
   });
 });

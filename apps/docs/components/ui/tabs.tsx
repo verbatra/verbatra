@@ -13,33 +13,9 @@ type TabListProps = {
   ariaLabelledBy?: string;
   className?: string;
   tabClassName?: string;
-  variant?: "underline" | "pill" | "segmented";
-  idPrefix?: string;
 };
 
 const STEP_BY_KEY: Readonly<Record<string, number>> = { ArrowRight: 1, ArrowLeft: -1 };
-
-export function tabId(prefix: string, id: string): string {
-  return `${prefix}-tab-${id}`;
-}
-
-export function tabPanelId(prefix: string, id: string): string {
-  return `${prefix}-panel-${id}`;
-}
-
-export function tabPanelProps(prefix: string, id: string, active: string) {
-  const open = id === active;
-  return {
-    id: tabPanelId(prefix, id),
-    role: "tabpanel",
-    "aria-labelledby": tabId(prefix, id),
-    "data-active": open,
-    inert: !open,
-  } as const;
-}
-
-const SEGMENTED_TAB_CLASS =
-  "vk-tap rounded-(--radius-segment) px-3 py-1 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-ring)";
 
 function targetIndex(key: string, current: number, count: number): number | undefined {
   if (key === "Home") return 0;
@@ -76,8 +52,6 @@ export function TabList({
   ariaLabelledBy,
   className,
   tabClassName,
-  variant = "underline",
-  idPrefix,
 }: TabListProps): ReactNode {
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     const next = focusSibling(event, tabs, active);
@@ -89,7 +63,7 @@ export function TabList({
       role="tablist"
       aria-label={ariaLabel}
       aria-labelledby={ariaLabelledBy}
-      className={cn(variant === "segmented" && "vk-segmented", className)}
+      className={className}
       onKeyDown={onKeyDown}
     >
       {tabs.map((tab) => {
@@ -101,21 +75,12 @@ export function TabList({
             role="tab"
             aria-selected={selected}
             tabIndex={selected ? 0 : -1}
-            {...(idPrefix
-              ? { id: tabId(idPrefix, tab.id), "aria-controls": tabPanelId(idPrefix, tab.id) }
-              : {})}
             onClick={() => onSelect(tab.id)}
             className={cn(
-              variant === "segmented" && SEGMENTED_TAB_CLASS,
               tabClassName,
               selected ? "text-(--text-strong)" : "text-(--text-muted) hover:text-(--text-strong)",
-              selected && variant !== "underline" && "bg-(--surface-card)",
             )}
-            style={
-              selected && variant === "underline"
-                ? { boxShadow: "inset 0 -2px 0 var(--accent)" }
-                : undefined
-            }
+            style={selected ? { boxShadow: "inset 0 -2px 0 var(--accent)" } : undefined}
           >
             {tab.label}
           </button>

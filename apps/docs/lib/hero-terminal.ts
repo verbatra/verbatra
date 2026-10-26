@@ -61,13 +61,24 @@ export const HERO_CHECK_OUTPUT: ReadonlyArray<string> = [
   CHECK_OVERALL_LINE,
 ];
 
+export const HERO_SENT_STRINGS = missing * localeCount;
+
+export const HERO_TOTAL_STRINGS = (missing + synced) * localeCount;
+
+export const HERO_TRANSLATE_LOCALE_LINES: ReadonlyArray<string> = HERO_TERMINAL_LOCALES.map(
+  ({ locale, usage }) => `${locale}: ${missing} translated, ${synced} unchanged, ${tokens(usage)}`,
+);
+
+export const HERO_TRANSLATE_TOTAL_LINE = `total: ${tokens(totalUsage())}`;
+
+function indented(line: string): string {
+  return `  ${line}`;
+}
+
 export const HERO_TRANSLATE_OUTPUT: ReadonlyArray<string> = [
   "verbatra translate",
-  ...HERO_TERMINAL_LOCALES.map(
-    ({ locale, usage }) =>
-      `  ${locale}: ${missing} translated, ${synced} unchanged, ${tokens(usage)}`,
-  ),
-  `  total: ${tokens(totalUsage())}`,
+  ...HERO_TRANSLATE_LOCALE_LINES.map(indented),
+  indented(HERO_TRANSLATE_TOTAL_LINE),
   `${localeCount} succeeded, 0 partial, 0 failed`,
 ];
 
@@ -94,5 +105,3 @@ export const HERO_OG_LINES: ReadonlyArray<HeroOgLine> = HERO_TERMINAL_SCRIPT.fla
     text === undefined ? [] : [{ kind: "output" as const, text }],
   ),
 ]);
-
-export const HERO_TERMINAL_TITLE = "~/app";

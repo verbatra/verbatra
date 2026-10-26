@@ -1,10 +1,11 @@
 export const LANDING_SECTIONS = [
   "hero",
   "marquee",
+  "statement",
+  "highlights",
   "playground",
-  "compare",
+  "features",
   "faq",
-  "openSource",
   "finalCta",
 ] as const;
 
