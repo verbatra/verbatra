@@ -72,7 +72,7 @@ einer lokalen Platte ablegen.
 Zwei Vertragspunkte muss eine Implementierung einhalten. Lesevorgänge sind größenbeschränkt:
 `readFileBounded` und `readBytesBounded` nehmen ein Byte-Limit entgegen und melden `missing` oder
 `too-large` als Zustand, statt zu werfen. Das hält eine bösartige oder versehentlich riesige Datei
-davon ab, den Speicher zu erschöpfen. Schreibvorgänge müssen atomar sein, damit ein Absturz
+davon ab, den Speicher zu erschöpfen. Schreibvorgänge sollten atomar sein, damit ein Absturz
 mitten im Schreiben nie eine halb geschriebene Datei hinterlässt, und `createExclusive` muss atomar
 gegenüber anderen Prozessen sein, weil es das Primitiv hinter der Schreibsperre pro Locale ist. Das
 SDK ruft vor dem Schreiben einer Locale-Datei, der Laufstatus-Datei oder einer Ausgabedatei wie

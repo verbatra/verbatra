@@ -72,7 +72,7 @@ respaldar parte de un proyecto con algo que no sea un disco local.
 Una implementación tiene que respetar dos puntos del contrato. Las lecturas están acotadas por
 tamaño: `readFileBounded` y `readBytesBounded` reciben un límite de bytes e informan de `missing` o
 `too-large` como estado en lugar de lanzar, que es lo que impide que un archivo hostil o
-accidentalmente enorme agote la memoria. Las escrituras deben ser atómicas, de modo que una caída a
+accidentalmente enorme agote la memoria. Se espera que las escrituras sean atómicas, de modo que una caída a
 mitad de escritura nunca deje un archivo a medio escribir, y `createExclusive` debe ser atómica
 frente a otros procesos porque es la primitiva detrás del bloqueo de escritura por locale. Antes de
 escribir un archivo de locale, el archivo de estado de la ejecución o un archivo de salida como un

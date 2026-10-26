@@ -670,7 +670,7 @@ La petición o la respuesta fue bloqueada o filtrada por seguridad.
 
 ### RATE_LIMITED
 
-HTTP 429 o un error de límite de tasa del SDK. En Google Cloud Translation, esto también cubre un HTTP 403 cuyo cuerpo nombra un motivo de cuota (un límite diario o por minuto). Google reutiliza el 403 tanto para fallos de cuota como de credenciales, así que aumenta la cuota de Cloud Translation de tu proyecto.
+HTTP 429 o un error de límite de tasa del SDK. En Google Cloud Translation, esto también cubre un HTTP 403 cuyo cuerpo nombra un motivo de cuota (un límite diario o por minuto). Google reutiliza el 403 tanto para fallos de cuota como de credenciales, así que aumenta la cuota de Cloud Translation de tu proyecto. LibreTranslate también informa con este código de un HTTP 403 cuyo texto de error dice "too many", porque su servidor responde con 403 a un cliente bloqueado.
 
 - **Siguiente paso**: Wait a moment and try again, or lower the concurrency.
 
@@ -682,13 +682,13 @@ Un tiempo de espera de red o de petición; [`requestTimeoutMs`](/es/docs/provide
 
 ### AUTH_FAILED
 
-HTTP 401 o 403: la clave es inválida, está revocada o carece de permisos. Con los proveedores Anthropic, OpenAI, Gemini y `openai-compatible`, el mensaje nombra el estado y, con un 403, añade que el servidor rechazó la petición por su política o por los permisos de la clave. En Google Cloud Translation, comprueba que `GOOGLE_TRANSLATE_API_KEY` sea una clave válida y sin restricciones para un proyecto con la Cloud Translation API activada. Reintentar no ayudará.
+HTTP 401 o 403: la clave es inválida, está revocada o carece de permisos. Con los proveedores Anthropic, OpenAI, Gemini y `openai-compatible`, el mensaje nombra el estado y, con un 403, añade que el servidor rechazó la petición por su política o por los permisos de la clave. En Google Cloud Translation, comprueba que `GOOGLE_TRANSLATE_API_KEY` sea una clave válida y sin restricciones para un proyecto con la Cloud Translation API activada. LibreTranslate también informa con este código de un HTTP 400 cuyo texto de error menciona una clave de API cuando hay una clave configurada. Reintentar no ayudará.
 
 - **Siguiente paso**: Check that the provider's API key is valid and allowed to use the configured model.
 
 ### PROVIDER_UNAVAILABLE
 
-HTTP 5xx: el proveedor falló en su propio lado, y la petición en sí nunca tuvo la culpa. Los [reintentos](/es/docs/providers#reintentos) de cada capa ya absorben un 5xx transitorio, así que uno que llega a este código es una caída sostenida.
+HTTP 5xx: el proveedor falló en su propio lado, y la petición en sí nunca tuvo la culpa. Donde un proveedor [reintenta](/es/docs/providers#reintentos), un 5xx transitorio se absorbe, así que uno que llega a este código es una caída sostenida. Google Cloud Translation y LibreTranslate no reintentan, por lo que un solo 5xx llega aquí de inmediato.
 
 - **Siguiente paso**: Try again later, or check the configured endpoint.
 

@@ -670,7 +670,7 @@ Anfrage oder Antwort wurde aus Sicherheitsgründen blockiert oder gefiltert.
 
 ### RATE_LIMITED
 
-HTTP 429 oder ein SDK-Rate-Limit-Fehler. Bei Google Cloud Translation gehört hierzu auch ein HTTP 403, dessen Rumpf einen Kontingentgrund nennt (ein Tages- oder Minutenlimit). Google nutzt 403 sowohl für Kontingent- als auch für Zugangsdaten-Fehler, erhöhe also das Cloud-Translation-Kontingent deines Projekts.
+HTTP 429 oder ein SDK-Rate-Limit-Fehler. Bei Google Cloud Translation gehört hierzu auch ein HTTP 403, dessen Rumpf einen Kontingentgrund nennt (ein Tages- oder Minutenlimit). Google nutzt 403 sowohl für Kontingent- als auch für Zugangsdaten-Fehler, erhöhe also das Cloud-Translation-Kontingent deines Projekts. LibreTranslate meldet ein HTTP 403, dessen Fehlertext "too many" enthält, ebenfalls mit diesem Code, weil sein Server einen gesperrten Client mit 403 beantwortet.
 
 - **Nächster Schritt**: Wait a moment and try again, or lower the concurrency.
 
@@ -682,13 +682,13 @@ Ein Netzwerk- oder Anfrage-Timeout; [`requestTimeoutMs`](/de/docs/providers#anfr
 
 ### AUTH_FAILED
 
-HTTP 401 oder 403: Der Key ist ungültig, widerrufen oder ohne Berechtigung. Bei den Providern Anthropic, OpenAI, Gemini und `openai-compatible` nennt die Meldung den Status und ergänzt bei 403, dass der Server die Anfrage wegen seiner Richtlinie oder der Rechte des Keys abgelehnt hat. Prüfe bei Google Cloud Translation, dass `GOOGLE_TRANSLATE_API_KEY` ein gültiger, uneingeschränkter Key für ein Projekt mit aktivierter Cloud Translation API ist. Wiederholen hilft nicht.
+HTTP 401 oder 403: Der Key ist ungültig, widerrufen oder ohne Berechtigung. Bei den Providern Anthropic, OpenAI, Gemini und `openai-compatible` nennt die Meldung den Status und ergänzt bei 403, dass der Server die Anfrage wegen seiner Richtlinie oder der Rechte des Keys abgelehnt hat. Prüfe bei Google Cloud Translation, dass `GOOGLE_TRANSLATE_API_KEY` ein gültiger, uneingeschränkter Key für ein Projekt mit aktivierter Cloud Translation API ist. LibreTranslate meldet außerdem ein HTTP 400, dessen Fehlertext einen API-Key erwähnt, mit diesem Code, wenn ein Key konfiguriert ist. Wiederholen hilft nicht.
 
 - **Nächster Schritt**: Check that the provider's API key is valid and allowed to use the configured model.
 
 ### PROVIDER_UNAVAILABLE
 
-HTTP 5xx: Der Provider ist auf seiner eigenen Seite gescheitert, die Anfrage selbst war nie schuld. Die [Wiederholungsebenen](/de/docs/providers#wiederholungen) fangen ein vorübergehendes 5xx bereits ab; ein 5xx, das diesen Code erreicht, ist also eine anhaltende Störung.
+HTTP 5xx: Der Provider ist auf seiner eigenen Seite gescheitert, die Anfrage selbst war nie schuld. Wo ein Provider [wiederholt](/de/docs/providers#wiederholungen), wird ein vorübergehendes 5xx abgefangen; ein 5xx, das diesen Code erreicht, ist dann eine anhaltende Störung. Google Cloud Translation und LibreTranslate wiederholen nicht, ein einzelnes 5xx landet hier also sofort.
 
 - **Nächster Schritt**: Try again later, or check the configured endpoint.
 

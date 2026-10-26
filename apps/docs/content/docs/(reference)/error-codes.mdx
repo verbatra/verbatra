@@ -670,7 +670,7 @@ The request or response was safety-blocked or filtered.
 
 ### RATE_LIMITED
 
-HTTP 429 or an SDK rate-limit error. For Google Cloud Translation, this also covers an HTTP 403 whose body names a quota reason (a daily or per-minute limit). Google reuses 403 for both quota and credential failures, so raise your project's Cloud Translation quota.
+HTTP 429 or an SDK rate-limit error. For Google Cloud Translation, this also covers an HTTP 403 whose body names a quota reason (a daily or per-minute limit). Google reuses 403 for both quota and credential failures, so raise your project's Cloud Translation quota. LibreTranslate reports an HTTP 403 whose error text says "too many" as this code too, because its server answers a banned client with 403.
 
 - **Next step**: Wait a moment and try again, or lower the concurrency.
 
@@ -682,13 +682,13 @@ A network or request timeout; [`requestTimeoutMs`](/docs/providers#request-timeo
 
 ### AUTH_FAILED
 
-HTTP 401 or 403: the key is invalid, revoked, or lacks permission. From the Anthropic, OpenAI, Gemini and `openai-compatible` providers the message names the status, and on a 403 adds that the server refused the request under its policy or the key's permissions. For Google Cloud Translation, check that `GOOGLE_TRANSLATE_API_KEY` is a valid, unrestricted key for a project with the Cloud Translation API enabled. Retrying will not help.
+HTTP 401 or 403: the key is invalid, revoked, or lacks permission. From the Anthropic, OpenAI, Gemini and `openai-compatible` providers the message names the status, and on a 403 adds that the server refused the request under its policy or the key's permissions. For Google Cloud Translation, check that `GOOGLE_TRANSLATE_API_KEY` is a valid, unrestricted key for a project with the Cloud Translation API enabled. LibreTranslate also reports an HTTP 400 whose error text mentions an API key as this code when a key is configured. Retrying will not help.
 
 - **Next step**: Check that the provider's API key is valid and allowed to use the configured model.
 
 ### PROVIDER_UNAVAILABLE
 
-HTTP 5xx: the provider failed on its own side, and the request itself was never at fault. The [retry layers](/docs/providers#retries) already absorb a transient 5xx, so one that reaches this code is a sustained outage.
+HTTP 5xx: the provider failed on its own side, and the request itself was never at fault. Where a provider [retries](/docs/providers#retries), a transient 5xx is absorbed, so one that reaches this code is a sustained outage. Google Cloud Translation and LibreTranslate do not retry, so a single 5xx surfaces here at once.
 
 - **Next step**: Try again later, or check the configured endpoint.
 

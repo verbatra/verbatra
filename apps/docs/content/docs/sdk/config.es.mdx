@@ -56,9 +56,7 @@ function loadConfigWithMeta(
 Ambas aceptan `fresh: true` para volver a evaluar un archivo de configuración en JavaScript o
 TypeScript en lugar de reutilizar lo que evaluó una carga anterior en el mismo proceso; un proceso de
 larga duración que recarga la configuración tras una edición lo activa. Las configuraciones JSON, YAML
-y de `package.json` siempre se leen de nuevo.
-
-<AvailableFrom version="0.12.0" />
+y de `package.json` siempre se leen de nuevo. <AvailableFrom version="0.12.0" />
 
 ### configCandidatePaths
 
@@ -366,9 +364,12 @@ recibe `AuthoringConfigFor<"<id>">`, como `AuthoringConfigFor<"anthropic">`, que
 abajo.
 
 ```ts title="Firma"
-function defineConfig(
-  config: AuthoringConfig,
-): VerbatraConfigInput;
+function defineConfig(config: AuthoringConfigFor<"anthropic">): VerbatraConfigInput;
+function defineConfig(config: AuthoringConfigFor<"openai">): VerbatraConfigInput;
+function defineConfig(config: AuthoringConfigFor<"gemini">): VerbatraConfigInput;
+function defineConfig(config: AuthoringConfigFor<"deepl">): VerbatraConfigInput;
+function defineConfig(config: AuthoringConfigFor<"google-translate">): VerbatraConfigInput;
+function defineConfig(config: AuthoringConfig): VerbatraConfigInput;
 ```
 
 **Devuelve:** `VerbatraConfigInput`

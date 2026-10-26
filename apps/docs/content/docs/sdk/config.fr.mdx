@@ -44,9 +44,7 @@ function loadConfigWithMeta(
 
 **Lève :** [`CONFIG_NOT_FOUND`](/fr/docs/error-codes#config_not_found), [`CONFIG_INVALID`](/fr/docs/error-codes#config_invalid)
 
-Les deux acceptent `fresh: true` pour réévaluer un fichier de config JavaScript ou TypeScript au lieu de réutiliser ce qu'un chargement précédent dans le même processus a évalué ; un processus de longue durée qui recharge la config après une modification l'active. Les configs JSON, YAML et `package.json` sont toujours relues.
-
-<AvailableFrom version="0.12.0" />
+Les deux acceptent `fresh: true` pour réévaluer un fichier de config JavaScript ou TypeScript au lieu de réutiliser ce qu'un chargement précédent dans le même processus a évalué ; un processus de longue durée qui recharge la config après une modification l'active. Les configs JSON, YAML et `package.json` sont toujours relues. <AvailableFrom version="0.12.0" />
 
 ### configCandidatePaths
 
@@ -277,9 +275,12 @@ function editConfiguredGlossaryTerm(
 Une fonction identité pour un `verbatra.config.ts` typé : elle renvoie son argument inchangé, pour l'inférence de types et l'autocomplétion de l'éditeur, y compris les IDs de modèles connus du fournisseur sélectionné (à l'écriture seulement ; à l'exécution, toute chaîne non vide passe). Chaque fournisseur sauf `openai-compatible`, `libretranslate` et `none` a aussi une surcharge qui prend `AuthoringConfigFor<"<id>">`, comme `AuthoringConfigFor<"anthropic">`, et restreint le bloc `provider` aux options de ce fournisseur ; ces trois-là utilisent le repli avec `AuthoringConfig` ci-dessous.
 
 ```ts title="Signature"
-function defineConfig(
-  config: AuthoringConfig,
-): VerbatraConfigInput;
+function defineConfig(config: AuthoringConfigFor<"anthropic">): VerbatraConfigInput;
+function defineConfig(config: AuthoringConfigFor<"openai">): VerbatraConfigInput;
+function defineConfig(config: AuthoringConfigFor<"gemini">): VerbatraConfigInput;
+function defineConfig(config: AuthoringConfigFor<"deepl">): VerbatraConfigInput;
+function defineConfig(config: AuthoringConfigFor<"google-translate">): VerbatraConfigInput;
+function defineConfig(config: AuthoringConfig): VerbatraConfigInput;
 ```
 
 **Renvoie :** `VerbatraConfigInput`

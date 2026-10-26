@@ -54,9 +54,7 @@ function loadConfigWithMeta(
 
 Both take `fresh: true` to evaluate a JavaScript or TypeScript config file again instead of reusing
 what an earlier load in the same process evaluated; a long-running process that reloads the config
-after an edit sets it. JSON, YAML, and `package.json` configs are always read afresh.
-
-<AvailableFrom version="0.12.0" />
+after an edit sets it. JSON, YAML, and `package.json` configs are always read afresh. <AvailableFrom version="0.12.0" />
 
 ### configCandidatePaths
 
@@ -350,9 +348,12 @@ at runtime any non-empty string passes). Every provider except `openai-compatibl
 three use the `AuthoringConfig` fallback below.
 
 ```ts title="Signature"
-function defineConfig(
-  config: AuthoringConfig,
-): VerbatraConfigInput;
+function defineConfig(config: AuthoringConfigFor<"anthropic">): VerbatraConfigInput;
+function defineConfig(config: AuthoringConfigFor<"openai">): VerbatraConfigInput;
+function defineConfig(config: AuthoringConfigFor<"gemini">): VerbatraConfigInput;
+function defineConfig(config: AuthoringConfigFor<"deepl">): VerbatraConfigInput;
+function defineConfig(config: AuthoringConfigFor<"google-translate">): VerbatraConfigInput;
+function defineConfig(config: AuthoringConfig): VerbatraConfigInput;
 ```
 
 **Returns:** `VerbatraConfigInput`
