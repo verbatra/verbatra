@@ -8,7 +8,7 @@ import { SdkError } from "../errors.js";
 import { baseConfig, makeStubProvider, makeTempDir, writeJsonFile } from "../test-support.js";
 import { translate } from "./translate-project.js";
 import {
-  escapesWorkingDirectory,
+  escapesProjectRoot,
   targetUnwritableMessage,
   writeTargetResource,
 } from "./write-target.js";
@@ -196,14 +196,14 @@ describe("writeTargetResource", () => {
   });
 });
 
-describe("escapesWorkingDirectory", () => {
+describe("escapesProjectRoot", () => {
   it.each([
     ["the working directory itself", ""],
     ["its parent", ".."],
     ["a path through its parent", `..${sep}elsewhere`],
     ["an absolute path, as relative returns across drives", resolve("/elsewhere")],
   ])("refuses %s", (_label, inside) => {
-    expect(escapesWorkingDirectory(inside)).toBe(true);
+    expect(escapesProjectRoot(inside)).toBe(true);
   });
 
   it.each([
@@ -211,6 +211,6 @@ describe("escapesWorkingDirectory", () => {
     ["a directory whose name merely begins with two dots", join("..pseudo", "de.json")],
     ["a file whose name merely begins with two dots", "..d.ts"],
   ])("accepts %s", (_label, inside) => {
-    expect(escapesWorkingDirectory(inside)).toBe(false);
+    expect(escapesProjectRoot(inside)).toBe(false);
   });
 });

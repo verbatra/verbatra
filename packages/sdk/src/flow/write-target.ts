@@ -16,13 +16,13 @@ const REMEDY_BY_CODE: Readonly<Record<string, string>> = {
 const DEFAULT_REMEDY =
   "Check that the containing directory exists and is writable, then run again.";
 
-export function escapesWorkingDirectory(inside: string): boolean {
+export function escapesProjectRoot(inside: string): boolean {
   return inside === "" || inside === ".." || inside.startsWith(`..${sep}`) || isAbsolute(inside);
 }
 
 export function displayPath(targetPath: string, cwd: string): string {
   const relativePath = relative(cwd, targetPath);
-  if (escapesWorkingDirectory(relativePath)) {
+  if (escapesProjectRoot(relativePath)) {
     return targetPath;
   }
   return relativePath.split(sep).join("/");

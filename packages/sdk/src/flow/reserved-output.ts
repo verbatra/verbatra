@@ -6,7 +6,7 @@ import type { SdkFs } from "../fs.js";
 import type { LocalePathResolver } from "../locale-path/resolver.js";
 import { LOCK_FILE_NAME } from "../lock/lock-file.js";
 import { PROVENANCE_FILE_NAME } from "../lock/provenance-file.js";
-import { escapesWorkingDirectory } from "./write-target.js";
+import { escapesProjectRoot } from "./write-target.js";
 
 export type ReservedPathKind =
   | "locale-file"
@@ -102,23 +102,20 @@ async function canonicalPath(
   }
 }
 
-type WorkingDirectoryConflict = "working-directory" | "outside-working-directory";
+type ProjectRootConflict = "working-directory" | "outside-working-directory";
 
-const WORKING_DIRECTORY_REASON = "names the project root itself.";
+const PROJECT_ROOT_REASON = "names the project root itself.";
 
-function workingDirectoryConflict(
-  root: string,
-  target: string,
-): WorkingDirectoryConflict | undefined {
+function projectRootConflict(root: string, target: string): ProjectRootConflict | undefined {
   const inside = relative(root, target);
   if (inside === "") {
     return "working-directory";
   }
-  return escapesWorkingDirectory(inside) ? "outside-working-directory" : undefined;
+  return escapesProjectRoot(inside) ? "outside-working-directory" : undefined;
 }
 
 export type OutputPathRefusal =
-  | { readonly kind: WorkingDirectoryConflict; readonly linked: boolean }
+  | { readonly kind: ProjectRootConflict; readonly linked: boolean }
   | { readonly kind: "reserved"; readonly reserved: ReservedPath; readonly linked: boolean };
 
 export interface OutputPathGuard {
@@ -136,7 +133,7 @@ export function asWrittenRefusal(
   outputPath: string,
   reserved: ReadonlyMap<string, ReservedPath>,
 ): OutputPathRefusal | undefined {
-  const place = workingDirectoryConflict(cwd, outputPath);
+  const place = projectRootConflict(cwd, outputPath);
   if (place !== undefined) {
     return { kind: place, linked: false };
   }
@@ -171,7 +168,7 @@ export function createOutputPathGuard(
     project ??= canonicalProject();
     const { root, reserved: canonicalReserved } = await project;
     const target = await canonical(outputPath);
-    const place = workingDirectoryConflict(root, target);
+    const place = projectRootConflict(root, target);
     if (place !== undefined) {
       return { kind: place, linked: true };
     }
@@ -194,7 +191,7 @@ export function outputRefusalReason(refusal: OutputPathRefusal): string {
       : `is ${refusal.reserved.what}.`;
   }
   if (refusal.kind === "working-directory") {
-    return WORKING_DIRECTORY_REASON;
+    return PROJECT_ROOT_REASON;
   }
   return refusal.linked
     ? "resolves outside the project root through a symbolic link."
