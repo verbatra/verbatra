@@ -14,9 +14,22 @@ import {
   heroFileName,
   heroFilePreview,
 } from "@/lib/landing-hero-files";
+import { splitPlaceholders } from "@/lib/playground-cycle";
 import { PACKAGE_VERSION } from "@/lib/site";
 
 export const HERO_TITLE_ID = "hero-title";
+
+function Placeheld({ text }: { text: string }): ReactNode {
+  return splitPlaceholders(text).map((segment, index) =>
+    segment.placeholder ? (
+      <span key={index} className="vk-ph">
+        {segment.text}
+      </span>
+    ) : (
+      segment.text
+    ),
+  );
+}
 
 function LocaleFiles({ keysAdded }: { keysAdded: string }): ReactNode {
   return (
@@ -25,7 +38,7 @@ function LocaleFiles({ keysAdded }: { keysAdded: string }): ReactNode {
         <div key={code} className="vk-banner-file" data-locale={code}>
           <p className="vk-banner-file-name">{heroFileName(code)}</p>
           <p className="vk-banner-file-line" lang={code}>
-            {heroFilePreview(code)}
+            <Placeheld text={heroFilePreview(code)} />
           </p>
         </div>
       ))}
@@ -41,7 +54,7 @@ function LocaleFiles({ keysAdded }: { keysAdded: string }): ReactNode {
               className="vk-banner-file-line"
               data-added={line.added ? "true" : undefined}
             >
-              {line.added ? `+ ${line.text}` : line.text}
+              <Placeheld text={line.added ? `+ ${line.text}` : line.text} />
             </p>
           ))}
         </div>

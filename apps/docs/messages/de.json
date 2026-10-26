@@ -160,9 +160,6 @@
     "nav": {
       "docs": "Docs",
       "reference": "Referenz",
-      "version": {
-        "label": "Release Notes zu {version}"
-      },
       "languageSwitcher": {
         "chooseLanguage": "Wähle eine Sprache",
         "triggerAriaSuffix": "Sprache wählen",
@@ -173,12 +170,6 @@
     },
     "topNav": {
       "label": "Hauptmenü",
-      "features": "Funktionen",
-      "docs": "Docs",
-      "github": "GitHub",
-      "starsAria": "GitHub {count} Sterne",
-      "changelog": "Changelog",
-      "getStarted": "Loslegen",
       "menu": {
         "open": "Menü öffnen",
         "close": "Menü schließen",
@@ -233,15 +224,10 @@
     },
     "playground": {
       "heading": "Eine Zeichenkette mit dem SDK übersetzen",
-      "lead": "Wähle eine Zeichenkette und Zielsprachen aus, dann drücke auf Übersetzen. Der Code zeigt den SDK-Aufruf, der diese Ergebnisse erzeugt hat.",
+      "lead": "Wähle einen String aus und schau zu, wie der SDK-Aufruf ihn in jede Sprache unten übersetzt. Platzhalter bleiben genau an ihrem Platz.",
       "items": "Quellzeichenkette",
       "languages": "Zielsprachen",
-      "translate": "Übersetzen",
-      "results": "Ergebnis",
-      "source": "Quelle",
-      "noLanguages": "Wähle mindestens eine Zielsprache aus.",
-      "notSelected": "Nicht ausgewählt",
-      "stale": "Zum Aktualisieren auf Übersetzen drücken",
+      "source": "Quelle ({locale})",
       "copy": "Code kopieren",
       "label": "Vorgeneriert mit dem Verbatra SDK und Gemini, nicht live.",
       "metadata": {
@@ -265,6 +251,31 @@
         "quickstart": "SDK-Schnellstart",
         "reference": "SDK-Referenz",
         "providers": "Anbieter"
+      },
+      "animation": {
+        "pause": "Animation pausieren",
+        "play": "Animation abspielen"
+      },
+      "status": {
+        "running": "Übersetze {strings, plural, one {# Zeichenkette} other {# Zeichenketten}} in {languages, plural, one {# Sprache} other {# Sprachen}}",
+        "passed": "Integritätsprüfung bestanden: {intact} von {total} Platzhaltern intakt",
+        "passedNone": "Integritätsprüfung bestanden: keine Platzhalter zum Schutz"
+      },
+      "counters": {
+        "sent": "Gesendet",
+        "kept": "Behalten",
+        "placeholders": "Platzhalter",
+        "checking": "Prüft"
+      },
+      "clock": {
+        "typing": "Schreibt",
+        "running": "Läuft",
+        "done": "Fertig"
+      },
+      "run": {
+        "queued": "In der Warteschlange",
+        "awaiting": "Wartet",
+        "resolved": "Abgeschlossen"
       }
     },
     "features": {

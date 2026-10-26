@@ -4,12 +4,12 @@ import { usePathname } from "fumadocs-core/framework";
 import Link from "fumadocs-core/link";
 import { buttonVariants } from "fumadocs-ui/components/ui/button";
 import type { BaseSlots, LinkItemType } from "fumadocs-ui/layouts/shared";
+import { FullSearchTrigger, SearchTrigger } from "fumadocs-ui/layouts/shared/slots/search-trigger";
 import { type ComponentProps, createContext, type ReactNode, use, useMemo } from "react";
 import {
   HomeMobileMenu,
   LanguageSelect as LanguageSelectIsland,
   ThemeToggle,
-  VersionPill,
 } from "@/components/chrome-islands";
 import {
   HEADER_CLASS,
@@ -17,17 +17,9 @@ import {
   HeaderNav,
   HeaderRow,
   HeaderStart,
-  type RowWidth,
   WORDMARK_LINK_CLASS,
 } from "@/components/header-parts";
-import {
-  ChangelogNavLink,
-  DocsNavLink,
-  FeaturesNavLink,
-  GetStartedLink,
-  GitHubNavLink,
-  useHomeNav,
-} from "@/components/home-nav";
+import { useHomeNav } from "@/components/home-nav";
 import { NAV_TEXT_LINK } from "@/components/nav-link-classes";
 import { isLinkItemActive, LinkItem } from "@/lib/link-items";
 import { cn } from "@/lib/utils";
@@ -114,14 +106,23 @@ function TextLink({
   );
 }
 
-function IconLink({ item, className }: { item: IconItem; className?: string }): ReactNode {
+function IconLink({
+  item,
+  className,
+  externalHint,
+}: {
+  item: IconItem;
+  className?: string;
+  externalHint?: string | undefined;
+}): ReactNode {
   const pathname = usePathname();
+  const label = item.external && externalHint ? `${item.label} ${externalHint}` : item.label;
   return (
     <LinkItem
       item={item}
       pathname={pathname}
       className={cn(ICON_BUTTON, className)}
-      aria-label={item.label}
+      aria-label={label}
     >
       {item.icon}
     </LinkItem>
@@ -148,12 +149,9 @@ type SiteHeaderFrameProps = ComponentProps<"header"> & {
   navItems: ReadonlyArray<LinkItemType>;
   mobileTrigger: ReactNode;
   trailing?: ReactNode;
-  cta?: ReactNode;
-  badge?: ReactNode;
-  navLinks?: ReactNode;
   navLabel?: string;
+  externalHint?: string | undefined;
   activeOverride?: ActiveOverride;
-  rowWidth?: RowWidth;
 };
 
 export function SiteHeaderFrame({
@@ -161,12 +159,9 @@ export function SiteHeaderFrame({
   navItems,
   mobileTrigger,
   trailing,
-  cta,
-  badge,
-  navLinks,
   navLabel,
+  externalHint,
   activeOverride,
-  rowWidth = "layout",
   className,
   ...props
 }: SiteHeaderFrameProps): ReactNode {
@@ -174,10 +169,9 @@ export function SiteHeaderFrame({
   const iconItems = navItems.filter(isIconItem);
   return (
     <header {...props} className={cn(HEADER_CLASS, className)}>
-      <HeaderRow width={rowWidth}>
+      <HeaderRow>
         <HeaderStart>
           {slots.navTitle ? <slots.navTitle className={WORDMARK_LINK_CLASS} /> : null}
-          {badge}
         </HeaderStart>
         {slots.searchTrigger ? (
           <slots.searchTrigger.full
@@ -195,12 +189,15 @@ export function SiteHeaderFrame({
                 activeOverride={activeOverride}
               />
             ))}
-            {navLinks}
           </HeaderNav>
           {iconItems.map((item) => (
-            <IconLink key={itemKey(item)} item={item} className="max-md:hidden" />
+            <IconLink
+              key={itemKey(item)}
+              item={item}
+              className="max-md:hidden"
+              externalHint={externalHint}
+            />
           ))}
-          {cta}
           <div className="flex items-center md:hidden">
             {slots.searchTrigger ? (
               <slots.searchTrigger.sm hideIfDisabled className="vk-tap p-2" />
@@ -239,13 +236,13 @@ function HomeNavTitle(titleProps: ComponentProps<"a">): ReactNode {
 
 const HOME_SLOTS: HeaderSlots = {
   navTitle: HomeNavTitle,
-  searchTrigger: false,
+  searchTrigger: { sm: SearchTrigger, full: FullSearchTrigger },
   languageSelect: { root: LanguageSelectIsland, text: () => null },
   themeSwitch: ThemeToggle,
 };
 
 export function HomeSiteHeader({ wordmark, homeUrl, ...props }: HomeSiteHeaderProps): ReactNode {
-  const { labels } = useHomeNav();
+  const { links, labels } = useHomeNav();
   const title = useMemo(() => ({ homeUrl, wordmark }), [homeUrl, wordmark]);
   const settings = (
     <>
@@ -260,20 +257,10 @@ export function HomeSiteHeader({ wordmark, homeUrl, ...props }: HomeSiteHeaderPr
         {...props}
         className={cn("top-0 z-40", props.className)}
         slots={HOME_SLOTS}
-        navItems={[]}
+        navItems={links}
         navLabel={labels.label}
-        navLinks={
-          <>
-            <FeaturesNavLink className={NAV_TEXT_LINK} />
-            <DocsNavLink className={NAV_TEXT_LINK} />
-            <ChangelogNavLink className={NAV_TEXT_LINK} />
-            <GitHubNavLink className={NAV_TEXT_LINK} />
-          </>
-        }
+        externalHint={labels.newTab}
         mobileTrigger={<HomeMobileMenu footer={settings} />}
-        cta={<GetStartedLink />}
-        badge={<VersionPill newTab={labels.newTab} />}
-        rowWidth="wide"
       />
     </HomeTitleContext>
   );

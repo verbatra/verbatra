@@ -6,23 +6,12 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("next-intl/server", () => ({
   getTranslations: async () => (key: string) => key,
 }));
-const fetched = vi.hoisted(() => ({ stars: 4321 as number | null }));
-vi.mock("@/lib/project-stats", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/project-stats")>();
-  return {
-    ...actual,
-    loadProjectStats: async () => ({ stars: fetched.stars }),
-  };
-});
 vi.mock("@/components/site-header", async () => {
   const { useHomeNav } = await import("@/components/home-nav");
   return {
-    HomeSiteHeader: () => <header data-stars={useHomeNav().stars}>site header</header>,
+    HomeSiteHeader: () => <header data-links={useHomeNav().links.length}>site header</header>,
   };
 });
-vi.mock("@/lib/layout.shared", () => ({
-  baseOptions: async () => ({}),
-}));
 
 const { LocaleHomeLayout, MAIN_CONTENT_ID } = await import("@/lib/locale-home-layout");
 
@@ -59,19 +48,8 @@ describe("LocaleHomeLayout: landmarks", () => {
 });
 
 describe("LocaleHomeLayout: the landing nav", () => {
-  it("fetches the star count on the server and hands it to the header, compacted", async () => {
+  it("hands the header Docs, Reference and GitHub from the shared header links", async () => {
     const doc = await renderLayout();
-    expect(doc.querySelector("header")?.getAttribute("data-stars")).toBe("4.3K");
-  });
-
-  it.each([
-    [2, "2"],
-    [0, "0"],
-    [null, null],
-  ])("with %s stars hands the header %s", async (stars, shown) => {
-    fetched.stars = stars;
-    const doc = await renderLayout();
-    fetched.stars = 4321;
-    expect(doc.querySelector("header")?.getAttribute("data-stars")).toBe(shown);
+    expect(doc.querySelector("header")?.getAttribute("data-links")).toBe("3");
   });
 });

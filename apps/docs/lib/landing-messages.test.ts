@@ -43,7 +43,7 @@ describe("landing message parity", () => {
   it("covers every namespace the redesigned landing reads", () => {
     for (const key of [
       "landing.nav.skipToContent",
-      "landing.topNav.getStarted",
+      "landing.topNav.label",
       "landing.banner.headline",
       "landing.banner.announcement.badge",
       "landing.banner.keysAdded",

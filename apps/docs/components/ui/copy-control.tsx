@@ -30,7 +30,28 @@ type CopyControlProps = {
   status: CopyControlStatusLabels;
   size?: CopyControlSize;
   className?: string;
+  compact?: boolean;
 };
+
+function CopyGlyph(): ReactNode {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 16 16"
+      width="14"
+      height="14"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="hidden @max-[18rem]:block"
+    >
+      <rect x="5.5" y="5.5" width="8" height="8" rx="1.5" />
+      <path d="M10.5 5.5v-2a1.5 1.5 0 0 0-1.5-1.5h-5a1.5 1.5 0 0 0-1.5 1.5v5A1.5 1.5 0 0 0 4 10h1.5" />
+    </svg>
+  );
+}
 
 export function CopyControl({
   text,
@@ -38,6 +59,7 @@ export function CopyControl({
   status: labels,
   size = "md",
   className,
+  compact = false,
 }: CopyControlProps): ReactNode {
   const { status, attempts, copy } = useCopyToClipboard();
   const visible: Record<CopyStatus, string> = {
@@ -56,10 +78,18 @@ export function CopyControl({
           "vk-tap inline-flex shrink-0 items-center justify-center rounded-md border font-sans transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-ring)",
           SIZE[size],
           STATUS_CLASS[status],
+          compact && "@max-[18rem]:min-w-11 @max-[18rem]:px-0",
           className,
         )}
       >
-        {visible[status]}
+        {compact ? (
+          <>
+            <CopyGlyph />
+            <span className="@max-[18rem]:sr-only">{visible[status]}</span>
+          </>
+        ) : (
+          visible[status]
+        )}
       </button>
       <CopyAnnouncement
         status={status}

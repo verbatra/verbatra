@@ -1,12 +1,10 @@
 "use client";
 
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useState } from "react";
 import Button from "@/components/ui/button";
 import { useHydrated } from "@/lib/use-hydrated";
 
 export type MarqueeState = "running" | "paused";
-
-export const GLINT_THRESHOLD = 0.5;
 
 const GLYPH = {
   width: 14,
@@ -14,27 +12,6 @@ const GLYPH = {
   viewBox: "0 0 24 24",
   fill: "currentColor",
 } as const;
-
-function useSeen(): [(node: HTMLDivElement | null) => void, boolean] {
-  const [node, setNode] = useState<HTMLDivElement | null>(null);
-  const [seen, setSeen] = useState(false);
-
-  useEffect(() => {
-    if (node === null || seen || typeof IntersectionObserver === "undefined") return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (!entries.some((entry) => entry.isIntersecting)) return;
-        observer.disconnect();
-        setSeen(true);
-      },
-      { threshold: GLINT_THRESHOLD },
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [node, seen]);
-
-  return [setNode, seen];
-}
 
 export function MarqueeMotion({
   pauseLabel,
@@ -47,18 +24,12 @@ export function MarqueeMotion({
 }): ReactNode {
   const hydrated = useHydrated();
   const [paused, setPaused] = useState(false);
-  const [observe, seen] = useSeen();
   const state: MarqueeState = paused ? "paused" : "running";
 
   return (
-    <div
-      ref={observe}
-      className="vk-marquee"
-      data-marquee={hydrated ? state : undefined}
-      data-glint={seen ? "on" : undefined}
-    >
+    <div className="vk-marquee" data-marquee={hydrated ? state : undefined}>
       <Button
-        variant="outline"
+        variant="ghost"
         size="md"
         className="vk-marquee-toggle"
         onClick={() => setPaused((current) => !current)}

@@ -160,9 +160,6 @@
     "nav": {
       "docs": "Docs",
       "reference": "Référence",
-      "version": {
-        "label": "Notes de version {version}"
-      },
       "languageSwitcher": {
         "chooseLanguage": "Choisis une langue",
         "triggerAriaSuffix": "choisir la langue",
@@ -173,12 +170,6 @@
     },
     "topNav": {
       "label": "Principal",
-      "features": "Fonctionnalités",
-      "docs": "Docs",
-      "github": "GitHub",
-      "starsAria": "GitHub {count} étoiles",
-      "changelog": "Changelog",
-      "getStarted": "Démarrer",
       "menu": {
         "open": "Ouvrir le menu",
         "close": "Fermer le menu",
@@ -233,15 +224,10 @@
     },
     "playground": {
       "heading": "Traduis une chaîne avec le SDK",
-      "lead": "Choisis une chaîne et des langues cibles, puis appuie sur Traduire. Le code montre l’appel au SDK qui a produit ces résultats.",
+      "lead": "Choisis une chaîne et regarde l’appel SDK la traduire dans toutes les langues ci-dessous. Les espaces réservés restent exactement en place.",
       "items": "Chaîne source",
       "languages": "Langues cibles",
-      "translate": "Traduire",
-      "results": "Résultat",
-      "source": "Source",
-      "noLanguages": "Choisis au moins une langue cible.",
-      "notSelected": "Non sélectionné",
-      "stale": "Appuie sur Traduire pour mettre à jour",
+      "source": "Source ({locale})",
       "copy": "Copier le code",
       "label": "Pré-généré avec le SDK Verbatra et Gemini, non en direct.",
       "metadata": {
@@ -265,6 +251,31 @@
         "quickstart": "Démarrage rapide du SDK",
         "reference": "Référence du SDK",
         "providers": "Fournisseurs"
+      },
+      "animation": {
+        "pause": "Mettre l’animation en pause",
+        "play": "Lancer l’animation"
+      },
+      "status": {
+        "running": "Traduction de {strings, plural, one {# chaîne} many {# chaînes} other {# chaînes}} en {languages, plural, one {# langue} many {# langues} other {# langues}}",
+        "passed": "Contrôle d’intégrité réussi : {intact} sur {total} placeholders intacts",
+        "passedNone": "Contrôle d’intégrité réussi : aucun placeholder à protéger"
+      },
+      "counters": {
+        "sent": "envoyés",
+        "kept": "conservés",
+        "placeholders": "placeholders",
+        "checking": "vérification"
+      },
+      "clock": {
+        "typing": "saisie en cours",
+        "running": "en cours d’exécution",
+        "done": "terminé"
+      },
+      "run": {
+        "queued": "en file d’attente",
+        "awaiting": "en attente",
+        "resolved": "résolu"
       }
     },
     "features": {

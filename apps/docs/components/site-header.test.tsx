@@ -95,7 +95,6 @@ let mounted: { container: HTMLDivElement; root: Root } | undefined;
 function render(
   activeOverride?: ComponentProps<typeof SiteHeaderFrame>["activeOverride"],
   trailing: ReactNode = <span data-trailing />,
-  badge?: ReactNode,
 ): HTMLDivElement {
   const container = document.createElement("div");
   document.body.appendChild(container);
@@ -108,7 +107,6 @@ function render(
         navItems={ITEMS}
         mobileTrigger={<button type="button" data-mobile />}
         trailing={trailing}
-        badge={badge}
         {...(activeOverride ? { activeOverride } : {})}
       />,
     );
@@ -135,13 +133,6 @@ describe("SiteHeaderFrame", () => {
     expect(container.querySelector("[data-language]")).not.toBeNull();
     expect(container.querySelector("[data-mobile]")).not.toBeNull();
     expect(container.querySelector("[data-trailing]")).not.toBeNull();
-  });
-
-  it("renders a badge right after the title, outside the nav", () => {
-    const container = render(undefined, undefined, <span data-badge />);
-    const badge = container.querySelector("[data-badge]");
-    expect(badge?.previousElementSibling?.textContent).toBe("VERBATRA");
-    expect(badge?.closest("nav")).toBeNull();
   });
 
   it("renders text links inside the nav and icon links as labelled buttons", () => {

@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 
+import { SearchProvider } from "fumadocs-ui/contexts/search";
 import { act, type ComponentProps, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { GITHUB_URL, RELEASES_URL } from "@/components/landing/links";
-import { i18n, type Locale } from "@/lib/i18n";
+import { GITHUB_URL } from "@/components/landing/links";
+import type { Locale } from "@/lib/i18n";
 import messages from "@/messages/en.json";
 
 const location = vi.hoisted(() => ({ pathname: "/" }));
@@ -38,12 +39,11 @@ vi.mock("@/components/chrome-islands", async () => ({
   ),
   ThemeToggle: () => <button type="button" data-theme-toggle />,
   HomeMobileMenu: (await import("./home-mobile-menu")).HomeMobileMenu,
-  VersionPill: (await import("./version-pill")).VersionPill,
 }));
 vi.mock("fumadocs-ui/layouts/notebook", () => ({ useNotebookLayout: () => ({}) }));
 vi.mock("@/components/root-tabs", () => ({ useRootTabs: () => ({ tabs: [] }) }));
 
-const { HomeNavProvider, docsLinkState } = await import("./home-nav");
+const { HomeNavProvider } = await import("./home-nav");
 const { HomeSiteHeader } = await import("./site-header");
 const { homeNavValue } = await import("@/lib/locale-home-layout");
 
@@ -53,16 +53,22 @@ const nav = messages.landing.topNav;
 
 let mounted: { container: HTMLDivElement; root: Root } | undefined;
 
-async function render(stars: number | null, locale: Locale = "en"): Promise<HTMLDivElement> {
-  const value = await homeNavValue(locale, stars);
+function SearchDialogStub({ open }: { open: boolean }): ReactNode {
+  return open ? <div role="dialog" data-search-dialog /> : null;
+}
+
+async function render(locale: Locale = "en"): Promise<HTMLDivElement> {
+  const value = await homeNavValue(locale);
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
   act(() =>
     root.render(
-      <HomeNavProvider value={value}>
-        <HomeSiteHeader wordmark="verbatra" homeUrl="/" />
-      </HomeNavProvider>,
+      <SearchProvider SearchDialog={SearchDialogStub} preload={false}>
+        <HomeNavProvider value={value}>
+          <HomeSiteHeader wordmark="verbatra" homeUrl="/" />
+        </HomeNavProvider>
+      </SearchProvider>,
     ),
   );
   mounted = { container, root };
@@ -82,8 +88,6 @@ vi.mock("next-intl/server", async () => {
       }),
   };
 });
-
-vi.mock("@/lib/layout.shared", () => ({ baseOptions: async () => ({}) }));
 
 afterEach(() => {
   location.pathname = "/";
@@ -113,97 +117,81 @@ function pressEscape(): void {
 }
 
 describe("the landing nav", () => {
-  it("holds Features, Docs, Changelog and GitHub in a nav named Main, then Get started", async () => {
-    const container = await render(1234);
+  it("holds Docs and Reference in a nav named Main, with GitHub as an icon button", async () => {
+    const container = await render();
     const links = Array.from(primaryNav(container)?.querySelectorAll("a") ?? []);
-    expect(links.map((link) => link.getAttribute("href"))).toEqual([
-      "/#features",
-      "/docs",
-      RELEASES_URL,
-      GITHUB_URL,
+    expect(links.map((link) => link.getAttribute("href"))).toEqual(["/docs", "/docs/cli"]);
+    expect(links.map((link) => link.textContent)).toEqual([
+      messages.landing.nav.docs,
+      messages.landing.nav.reference,
     ]);
-    expect(links[0]?.textContent).toBe(nav.features);
-    expect(links[1]?.textContent).toBe(nav.docs);
-    expect(links[2]?.textContent).toBe(`${nav.changelog} ${messages.landing.openSource.newTab}`);
-    const cta = container.querySelector("header a.vk-nav-cta");
-    expect(cta?.textContent).toBe(nav.getStarted);
-    expect(cta?.getAttribute("href")).toBe("/docs/quickstart");
-    expect(cta?.closest("nav")).toBeNull();
+    const github = container.querySelector(`header a[href="${GITHUB_URL}"]`);
+    expect(github?.getAttribute("aria-label")).toBe(`GitHub ${messages.landing.openSource.newTab}`);
+    expect(github?.textContent).toBe("");
+    expect(container.querySelector("header a.vk-nav-cta")).toBeNull();
   });
 
   it("marks every header control with the phone tap class on the rendered elements", async () => {
-    const container = await render(1234);
+    const container = await render();
     const controls = [
       container.querySelector('header a[href="/"]'),
       ...Array.from(primaryNav(container)?.querySelectorAll("a") ?? []),
-      container.querySelector("header a.vk-nav-cta"),
+      container.querySelector("header button[data-search]"),
       trigger(container),
     ];
-    expect(controls).toHaveLength(7);
+    expect(controls).toHaveLength(5);
     for (const control of controls) expect(control?.classList.contains("vk-tap")).toBe(true);
     act(() => trigger(container)?.click());
     const items = Array.from(sheet()?.querySelectorAll(`nav[aria-label="${nav.label}"] a`) ?? []);
-    expect(items).toHaveLength(4);
+    expect(items).toHaveLength(3);
     for (const item of items) expect(item.classList.contains("min-h-11")).toBe(true);
-    expect(sheet()?.querySelector("a.vk-nav-cta-menu")?.classList.contains("vk-tap")).toBe(true);
   });
 
-  it("drops the search box from the landing bar", async () => {
-    expect((await render(null)).querySelector("[data-search]")).toBeNull();
+  it("carries the docs search trigger, wide from md and as an icon button below", async () => {
+    const container = await render();
+    const full = container.querySelector("header button[data-search-full]");
+    expect(full?.className).toContain("max-md:hidden");
+    expect(full?.textContent).toContain("Search");
+    expect(container.querySelector("header button[data-search]")).not.toBeNull();
   });
 
-  it("opens Changelog and GitHub in a new tab", async () => {
-    const container = await render(null);
-    const [, , changelog, github] = Array.from(primaryNav(container)?.querySelectorAll("a") ?? []);
-    for (const link of [changelog, github]) {
-      expect(link?.getAttribute("target")).toBe("_blank");
-      expect(link?.getAttribute("rel")).toBe("noopener noreferrer");
-    }
-  });
-
-  it("shows the server-fetched star count inside the GitHub link and names it", async () => {
-    const github = primaryNav(await render(1234))?.querySelector(`a[href="${GITHUB_URL}"]`);
-    expect(github?.querySelector("[data-stars]")?.textContent).toBe("1.2K");
-    expect(github?.hasAttribute("aria-label")).toBe(false);
-    expect(github?.textContent).toBe(`GitHub 1.2K stars ${messages.landing.openSource.newTab}`);
-  });
-
-  it("names the GitHub link from its content, visible text first, in every locale", async () => {
-    for (const locale of i18n.languages) {
-      const github = primaryNav(await render(1234, locale))?.querySelector(
-        `a[href="${GITHUB_URL}"]`,
-      );
-      const visible = Array.from(github?.querySelectorAll("span:not(.sr-only)") ?? [])
-        .map((span) => span.textContent)
-        .join(" ");
-      expect(github?.hasAttribute("aria-label")).toBe(false);
-      expect(github?.textContent?.startsWith(visible)).toBe(true);
-      expect(github?.querySelector(".sr-only")?.textContent?.trim()).not.toBe("");
-      act(() => mounted?.root.unmount());
-      mounted = undefined;
-      document.body.innerHTML = "";
-    }
-  });
-
-  it("renders a plain GitHub link with no number and no empty slot without a count", async () => {
-    const github = primaryNav(await render(null))?.querySelector(`a[href="${GITHUB_URL}"]`);
-    expect(github?.querySelector("[data-stars]")).toBeNull();
-    expect(github?.hasAttribute("aria-label")).toBe(false);
-    expect(github?.textContent).toBe(`${nav.github} ${messages.landing.openSource.newTab}`);
+  it("opens the search dialog from the wide trigger, the phone button and the hotkey", async () => {
+    const container = await render();
+    const dialog = () => document.querySelector("[data-search-dialog]");
+    act(() => container.querySelector<HTMLButtonElement>("button[data-search-full]")?.click());
+    expect(dialog()).not.toBeNull();
+    act(() => mounted?.root.unmount());
+    document.body.innerHTML = "";
+    const phone = await render();
+    act(() => phone.querySelector<HTMLButtonElement>("button[data-search]")?.click());
+    expect(dialog()).not.toBeNull();
+    act(() => mounted?.root.unmount());
+    document.body.innerHTML = "";
+    await render();
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true }));
+    });
+    expect(dialog()).not.toBeNull();
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }));
+    });
+    expect(dialog()).toBeNull();
   });
 
   it("keeps the wordmark link mounted when the header re-renders with a new home URL", async () => {
-    const container = await render(null);
-    const value = await homeNavValue("en", null);
+    const container = await render();
+    const value = await homeNavValue("en");
     const title = () =>
       container.querySelector<HTMLAnchorElement>("header a[href='/'], header a[href='/de']");
     const before = title();
     expect(before?.textContent).toBe("verbatra");
     act(() =>
       mounted?.root.render(
-        <HomeNavProvider value={value}>
-          <HomeSiteHeader wordmark="verbatra" homeUrl="/de" />
-        </HomeNavProvider>,
+        <SearchProvider SearchDialog={SearchDialogStub} preload={false}>
+          <HomeNavProvider value={value}>
+            <HomeSiteHeader wordmark="verbatra" homeUrl="/de" />
+          </HomeNavProvider>
+        </SearchProvider>,
       ),
     );
     expect(title()).toBe(before);
@@ -211,32 +199,29 @@ describe("the landing nav", () => {
   });
 
   it("does not prefetch the home page from its own wordmark", async () => {
-    const container = await render(null);
+    const container = await render();
     const title = container.querySelector<HTMLAnchorElement>("header a[href='/']");
     expect(title?.getAttribute("data-prefetch")).toBe("false");
   });
 
-  it("lines its row up with the landing sections: the wide width and the section gutter", async () => {
-    const row = (await render(null)).querySelector(".vk-header-row");
-    expect(row?.className).toContain("max-w-(--width-wide)");
-    expect(row?.className).toContain("px-(--gutter)");
-    expect(row?.className).not.toContain("--fd-layout-width");
+  it("lines its row up with the docs header: the layout width and its padding", async () => {
+    const row = (await render()).querySelector(".vk-header-row");
+    expect(row?.className).toContain("max-w-(--fd-layout-width)");
+    expect(row?.className).toContain("px-4");
+    expect(row?.className).toContain("md:px-6");
+    expect(row?.className).not.toContain("--width-wide");
   });
 
-  it("marks Docs active and current on the docs pages only", async () => {
-    expect(docsLinkState("/docs", "/docs")).toEqual({ active: true, current: "page" });
-    expect(docsLinkState("/docs", "/docs/cli/")).toEqual({ active: true, current: "true" });
-    expect(docsLinkState("/docs", "/docsearch")).toEqual({ active: false, current: undefined });
-    location.pathname = "/de/docs/formats";
-    const docs = primaryNav(await render(null, "de"))?.querySelector('a[href="/de/docs"]');
-    expect(docs?.getAttribute("href")).toBe("/de/docs");
+  it("marks Docs active on the docs home only", async () => {
+    location.pathname = "/de/docs";
+    const docs = primaryNav(await render("de"))?.querySelector('a[href="/de/docs"]');
     expect(docs?.getAttribute("data-active")).toBe("true");
-    expect(docs?.getAttribute("aria-current")).toBe("true");
+    expect(docs?.getAttribute("aria-current")).toBe("page");
   });
 
-  it("keeps the version pill and the language and theme controls in the bar", async () => {
-    const container = await render(null);
-    expect(container.querySelector("header .vk-version-pill")).not.toBeNull();
+  it("keeps the language and theme controls in the bar and drops the version pill", async () => {
+    const container = await render();
+    expect(container.querySelector("header .vk-version-pill")).toBeNull();
     expect(container.querySelector("header [data-language]")).not.toBeNull();
     expect(container.querySelector("header [data-theme-toggle]")).not.toBeNull();
   });
@@ -254,7 +239,7 @@ describe("the landing nav", () => {
 
 describe("the landing phone menu", () => {
   it("opens a dialog titled Menu that holds the nav, the language select and the theme toggle", async () => {
-    const container = await render(1234);
+    const container = await render();
     const open = trigger(container);
     expect(open?.getAttribute("aria-expanded")).toBe("false");
     act(() => {
@@ -268,18 +253,16 @@ describe("the landing phone menu", () => {
     expect(document.getElementById(titleId)?.textContent).toBe(nav.menu.title);
     const links = Array.from(dialog?.querySelectorAll(`nav[aria-label="${nav.label}"] a`) ?? []);
     expect(links.map((link) => link.getAttribute("href"))).toEqual([
-      "/#features",
       "/docs",
-      RELEASES_URL,
+      "/docs/cli",
       GITHUB_URL,
     ]);
-    expect(dialog?.querySelector("[data-stars]")?.textContent).toBe("1.2K");
     expect(dialog?.querySelector("[data-language]")).not.toBeNull();
     expect(dialog?.querySelector("[data-theme-toggle]")).not.toBeNull();
   });
 
   it("moves focus into the dialog and labels its close button", async () => {
-    const container = await render(null);
+    const container = await render();
     act(() => trigger(container)?.click());
     const dialog = sheet();
     expect(dialog?.contains(document.activeElement)).toBe(true);
@@ -289,11 +272,11 @@ describe("the landing phone menu", () => {
     expect(close).toBeDefined();
   });
 
-  it("puts focus on the first nav link when it opens, then the call to action, the footer controls and the close button", async () => {
-    const container = await render(null);
+  it("puts focus on the first nav link when it opens, then the footer controls and the close button", async () => {
+    const container = await render();
     act(() => trigger(container)?.click());
     const dialog = sheet();
-    expect(document.activeElement?.getAttribute("href")).toBe("/#features");
+    expect(document.activeElement?.getAttribute("href")).toBe("/docs");
     const order = Array.from(dialog?.querySelectorAll<HTMLElement>("a[href], button") ?? []).map(
       (node) =>
         node.getAttribute("href") ??
@@ -303,20 +286,18 @@ describe("the landing phone menu", () => {
             ? "theme"
             : node.textContent),
     );
-    expect(order).toEqual([
-      "/#features",
-      "/docs",
-      RELEASES_URL,
-      GITHUB_URL,
-      "/docs/quickstart",
-      "language",
-      "theme",
-      nav.menu.close,
-    ]);
+    expect(order).toEqual(["/docs", "/docs/cli", GITHUB_URL, "language", "theme", nav.menu.close]);
+  });
+
+  it("names the GitHub item with a new-tab hint", async () => {
+    const container = await render();
+    act(() => trigger(container)?.click());
+    const github = sheet()?.querySelector<HTMLAnchorElement>(`a[href="${GITHUB_URL}"]`);
+    expect(github?.textContent).toBe(`GitHub ${messages.landing.openSource.newTab}`);
   });
 
   it("draws the close button focus with the shared outline, not a second ring, on a 44px target", async () => {
-    const container = await render(null);
+    const container = await render();
     act(() => trigger(container)?.click());
     const close = Array.from(sheet()?.querySelectorAll("button") ?? []).find(
       (button) => button.textContent === nav.menu.close,
@@ -326,7 +307,7 @@ describe("the landing phone menu", () => {
   });
 
   it("closes on Escape and hands focus back to the menu button", async () => {
-    const container = await render(null);
+    const container = await render();
     const open = trigger(container);
     act(() => {
       open?.focus();
@@ -341,7 +322,7 @@ describe("the landing phone menu", () => {
   });
 
   it("closes from its close button", async () => {
-    const container = await render(null);
+    const container = await render();
     act(() => trigger(container)?.click());
     const close = Array.from(sheet()?.querySelectorAll("button") ?? []).find(
       (button) => button.textContent === nav.menu.close,
@@ -350,35 +331,16 @@ describe("the landing phone menu", () => {
     expect(sheet()).toBeNull();
   });
 
-  it("offers Get started below the nav and closes when followed", async () => {
-    const container = await render(null);
-    act(() => trigger(container)?.click());
-    const cta = sheet()?.querySelector<HTMLAnchorElement>("a.vk-nav-cta-menu");
-    expect(cta?.getAttribute("href")).toBe("/docs/quickstart");
-    expect(cta?.textContent).toBe(nav.getStarted);
-    expect(cta?.closest("nav")).toBeNull();
-    expect(cta?.className).toContain("py-[11px]");
-    expect(container.querySelector("header a.vk-nav-cta")?.className).toContain("py-[7px]");
-    act(() => cta?.click());
-    expect(sheet()).toBeNull();
-  });
-
-  it("closes when Features is followed", async () => {
-    const container = await render(null);
-    act(() => trigger(container)?.click());
-    act(() => sheet()?.querySelector<HTMLAnchorElement>('a[href="/#features"]')?.click());
-    expect(sheet()).toBeNull();
-  });
-
-  it("points Features at the current locale home in German", async () => {
-    const value = await homeNavValue("de", null);
-    expect(value.featuresUrl).toBe("/de/#features");
-  });
-
   it("closes when Docs is followed", async () => {
-    const container = await render(null);
+    const container = await render();
     act(() => trigger(container)?.click());
     act(() => sheet()?.querySelector<HTMLAnchorElement>('a[href="/docs"]')?.click());
     expect(sheet()).toBeNull();
+  });
+
+  it("localizes the menu links in German", async () => {
+    const value = await homeNavValue("de");
+    const urls = value.links.map((item) => ("url" in item ? item.url : undefined));
+    expect(urls.slice(0, 2)).toEqual(["/de/docs", "/de/docs/cli"]);
   });
 });

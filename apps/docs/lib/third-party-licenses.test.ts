@@ -122,17 +122,20 @@ describe("third-party licenses", () => {
     }
   });
 
-  it("lists the GSAP packages under the terms their manifests name, linked without the sentence's full stop", () => {
-    const gsap = manifest.groups.find((group) => group.packages.some((pkg) => pkg.name === "gsap"));
-    expect(gsap?.license).toBe("Standard 'no charge' license: https://gsap.com/standard-license.");
-    expect(licenseTermsUrl(gsap?.license ?? "")).toBe("https://gsap.com/standard-license");
-    expect(licenseTermsUrl("SEE LICENSE AT https://gsap.com/standard-license")).toBe(
-      "https://gsap.com/standard-license",
+  it("ships no GSAP package", () => {
+    expect(manifest.groups.some((group) => group.packages.some((pkg) => pkg.name === "gsap"))).toBe(
+      false,
+    );
+  });
+
+  it("links the terms a license sentence names, without the sentence's full stop", () => {
+    expect(licenseTermsUrl("Standard 'no charge' license: https://example.com/terms.")).toBe(
+      "https://example.com/terms",
+    );
+    expect(licenseTermsUrl("SEE LICENSE AT https://example.com/terms")).toBe(
+      "https://example.com/terms",
     );
     expect(licenseTermsUrl("MIT")).toBeNull();
-    expect(renderThirdPartyNotices(manifest)).toContain(
-      "  - No license file in the package; license terms: https://gsap.com/standard-license\n",
-    );
   });
 
   it("ships a full Apache-2.0 text, which that license requires to travel with the code", () => {

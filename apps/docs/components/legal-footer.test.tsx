@@ -1,14 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { ROW_WIDTH } from "@/components/header-parts";
 import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
 
 describe("LegalFooter", () => {
-  it("lines its links up with the home header row and the page column, not the wider docs layout", () => {
-    const nav = rulesFor(docsStylesheetRules(), ".vk-legal-footer-nav").find(
-      (rule) => rule.media === "",
-    )?.declarations;
-    expect(nav?.["max-width"]).toBe("var(--width-wide)");
-    expect(nav?.["padding-inline"]).toBe("var(--gutter)");
-    expect(ROW_WIDTH.wide).toBe("max-w-(--width-wide) px-(--gutter)");
+  it("lines its links up with the header row: the layout width and its padding", () => {
+    const rules = rulesFor(docsStylesheetRules(), ".vk-legal-footer-nav");
+    const base = rules.find((rule) => rule.media === "")?.declarations;
+    const wide = rules.find((rule) => rule.media === "@media (min-width: 768px)")?.declarations;
+    expect(base?.["max-width"]).toBe("var(--width-layout)");
+    expect(base?.["padding-inline"]).toBe("1rem");
+    expect(wide?.["padding-inline"]).toBe("1.5rem");
   });
 });

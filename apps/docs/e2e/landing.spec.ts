@@ -109,7 +109,7 @@ test.describe("forced colors", () => {
   test("keeps a boundary on every primary button without changing its size", async ({ page }) => {
     await page.goto("/");
     const buttons = page.locator(PRIMARY);
-    expect(await buttons.count()).toBeGreaterThanOrEqual(3);
+    expect(await buttons.count()).toBeGreaterThanOrEqual(1);
     await expect(buttons.first()).toHaveCSS("outline-style", "none");
     await expect(buttons.first()).toHaveCSS("border-top-width", "0px");
     const normal = await primarySizes(page);
@@ -131,4 +131,27 @@ test.describe("forced colors", () => {
       await expect(marks.nth(index)).toHaveCSS("border-left-style", "solid");
     }
   });
+});
+
+test.describe("landing search", () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  for (const locale of LOCALES) {
+    test(`opens the search dialog from the header trigger on ${homeUrl(locale)}`, async ({
+      page,
+    }) => {
+      await page.goto(homeUrl(locale));
+      await page.locator(".vk-header-search").click();
+      await expect(page.getByRole("dialog")).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+    });
+
+    test(`opens the search dialog from the keyboard on ${homeUrl(locale)}`, async ({ page }) => {
+      await page.goto(homeUrl(locale));
+      await expect(page.locator(".vk-header-search")).toBeVisible();
+      await page.keyboard.press("ControlOrMeta+k");
+      await expect(page.getByRole("dialog")).toBeVisible();
+    });
+  }
 });

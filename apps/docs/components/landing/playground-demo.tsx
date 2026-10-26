@@ -1,503 +1,609 @@
 "use client";
 
-import {
-  type ComponentType,
-  type CSSProperties,
-  type ReactNode,
-  type Ref,
-  type RefObject,
-  useId,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
-import Button from "@/components/ui/button";
+import { type CSSProperties, type ReactNode, useEffect, useReducer, useRef, useState } from "react";
 import { CopyControl, type CopyControlStatusLabels } from "@/components/ui/copy-control";
 import type { PlaygroundItem, PlaygroundTranslations } from "@/lib/landing-playground";
 import {
+  type CycleAction,
+  type CycleState,
+  cycleReducer,
+  cycleRunning,
+  decodeSegments,
+  type Frame,
+  frameAt,
+  initialCycle,
+  intactPlaceholders,
+  type PlaygroundPhase,
+  SCRAMBLE_TICK_MS,
+  type Segment,
+  sceneEnd,
+  scramblePool,
+  splitPlaceholders,
+  TICK_MS,
+} from "@/lib/playground-cycle";
+import {
   type PlaygroundSnippetConfig,
   playgroundSnippet,
-  snippetLocaleVar,
+  snippetHotVar,
 } from "@/lib/playground-snippet";
-import { prefersReducedMotion } from "@/lib/reduced-motion";
-import { useHydrated } from "@/lib/use-hydrated";
-import { within } from "@/lib/within";
+import { prefersReducedMotion, subscribeReducedMotion } from "@/lib/reduced-motion";
 import { CodeFrameShell } from "./code-frame-shell";
-import type { ScrambleController, ScrambleRow } from "./playground-scramble";
 
 export type PlaygroundLanguage = { readonly code: string; readonly name: string };
 
 export type PlaygroundLabels = {
   readonly items: string;
   readonly languages: string;
-  readonly translate: string;
-  readonly results: string;
   readonly source: string;
-  readonly noLanguages: string;
-  readonly notSelected: string;
-  readonly stale: string;
   readonly copy: string;
   readonly copyStatus: CopyControlStatusLabels;
+  readonly pause: string;
+  readonly play: string;
+  readonly running: string;
+  readonly passed: Readonly<Record<string, string>>;
+  readonly counters: {
+    readonly sent: string;
+    readonly kept: string;
+    readonly placeholders: string;
+    readonly checking: string;
+  };
+  readonly clock: { readonly typing: string; readonly running: string; readonly done: string };
+  readonly run: { readonly queued: string; readonly awaiting: string; readonly resolved: string };
 };
 
 export type PlaygroundDemoProps = {
-  readonly items: ReadonlyArray<PlaygroundItem>;
+  readonly picks: ReadonlyArray<PlaygroundItem>;
   readonly languages: ReadonlyArray<PlaygroundLanguage>;
   readonly translations: PlaygroundTranslations;
   readonly sourceLocale: string;
   readonly defaultItem: string;
+  readonly sent: number;
+  readonly kept: number;
   readonly labels: PlaygroundLabels;
   readonly snippet: ReactNode;
   readonly snippetFile: string;
   readonly snippetConfig: PlaygroundSnippetConfig;
+  readonly sdkName: string;
   readonly details: ReactNode;
 };
 
-type ResultRow = ScrambleRow & { readonly name: string };
+type Announcement = { readonly run: number; readonly lines: ReadonlyArray<ReactNode> };
 
-type Shown = { readonly item: string; readonly langs: ReadonlyArray<string> };
-
-type Announcement =
-  | { readonly run: number; readonly rows: ReadonlyArray<ResultRow> }
-  | { readonly run: number; readonly message: string };
-
-type ScramblerComponent = ComponentType<{
-  scope: RefObject<HTMLElement | null>;
-  controller: Ref<ScrambleController>;
-}>;
-
-type Control = "item" | "language" | "translate";
-
-type FocusedControl = { readonly control: Control; readonly value: string };
-
-type FormState = {
-  readonly item: string;
-  readonly checked: ReadonlyArray<string>;
-  readonly focused: FocusedControl | null;
-};
-
-type Candidate = { readonly lang: string; readonly text: string };
-
-export const SCRAMBLER_WAIT_MS = 800;
-
-const SENTENCE_END = /[.!?。！？]$/u;
-
-export function createScramblerLoader<T>(load: () => Promise<T>): () => Promise<T> {
-  let cached: Promise<T> | undefined;
-  return () => {
-    cached ??= load().catch((error: unknown) => {
-      cached = undefined;
-      throw error;
-    });
-    return cached;
-  };
+function textOf(translations: PlaygroundTranslations, code: string, id: string): string {
+  return translations[code]?.[id] ?? "";
 }
 
-export const loadScrambler = createScramblerLoader<ScramblerComponent>(() =>
-  import("./playground-scramble").then((module) => module.Scrambler),
-);
-
-function controlsIn(root: ParentNode): HTMLElement[] {
-  return [...root.querySelectorAll<HTMLElement>("[data-control]")];
-}
-
-function controlValue(element: HTMLElement): string {
-  return element instanceof HTMLInputElement ? element.value : "";
-}
-
-function focusedControl(root: HTMLElement): FocusedControl | null {
-  const active = root.ownerDocument.activeElement;
-  if (!(active instanceof HTMLElement) || !root.contains(active)) return null;
-  const control = active.dataset.control as Control | undefined;
-  return control === undefined ? null : { control, value: controlValue(active) };
-}
-
-function serverForm(
-  defaults: FormState,
-  items: ReadonlyArray<PlaygroundItem>,
-  languages: ReadonlyArray<string>,
-): FormState {
-  if (typeof document === "undefined") return defaults;
-  const root = document.querySelector<HTMLElement>("[data-playground-demo]");
-  if (root === null) return defaults;
-  const inputs = controlsIn(root).filter(
-    (element): element is HTMLInputElement => element instanceof HTMLInputElement,
-  );
-  const boxes = inputs.filter((input) => input.dataset.control === "language");
-  if (boxes.length === 0) return defaults;
-  const picked = inputs.find((input) => input.dataset.control === "item" && input.checked)?.value;
-  return {
-    item: items.some((entry) => entry.id === picked) ? (picked ?? defaults.item) : defaults.item,
-    checked: languages.filter((code) => boxes.some((box) => box.value === code && box.checked)),
-    focused: focusedControl(root),
-  };
-}
-
-function restoreFocus(root: HTMLElement | null, focused: FocusedControl | null): void {
-  if (root === null || focused === null) return;
-  const target = controlsIn(root).find(
-    (element) =>
-      element.dataset.control === focused.control && controlValue(element) === focused.value,
-  );
-  if (target !== undefined && target !== root.ownerDocument.activeElement) {
-    target.focus({ preventScroll: true });
-  }
-}
-
-function resultRows(
-  shown: Shown,
-  items: ReadonlyArray<PlaygroundItem>,
-  languages: ReadonlyArray<PlaygroundLanguage>,
-  translations: PlaygroundTranslations,
-): ReadonlyArray<ResultRow> {
-  const from = items.find((item) => item.id === shown.item)?.text ?? "";
-  return languages
-    .filter((language) => shown.langs.includes(language.code))
-    .map((language) => ({
-      lang: language.code,
-      name: language.name,
-      from,
-      to: translations[language.code]?.[shown.item] ?? "",
-    }));
-}
-
-function languageCandidates(
-  lang: string,
-  translations: PlaygroundTranslations,
-): ReadonlyArray<Candidate> {
-  return [...new Set(Object.values(translations[lang] ?? {}))].map((text) => ({ lang, text }));
-}
-
-function sameLanguages(a: ReadonlyArray<string>, b: ReadonlyArray<string>): boolean {
-  return a.length === b.length && a.every((code) => b.includes(code));
-}
-
-function snippetStyle(
-  languages: ReadonlyArray<PlaygroundLanguage>,
-  shown: ReadonlyArray<string>,
-): CSSProperties {
-  return Object.fromEntries(
-    languages
-      .filter((language) => !shown.includes(language.code))
-      .map((language) => [snippetLocaleVar(language.code), "none"]),
+function Segments({ segments }: { segments: ReadonlyArray<Segment> }): ReactNode {
+  return segments.map((segment, index) =>
+    segment.placeholder ? (
+      <span key={index} className="vk-ph">
+        {segment.text}
+      </span>
+    ) : (
+      <span key={index}>{segment.text}</span>
+    ),
   );
 }
 
-function Sizer({ candidates }: { candidates: ReadonlyArray<Candidate> }): ReactNode {
-  return candidates.map((candidate) => (
-    <span
-      key={`${candidate.lang}\n${candidate.text}`}
-      aria-hidden="true"
-      lang={candidate.lang}
-      className="vk-playground-sizer"
-    >
-      {candidate.text}
-    </span>
-  ));
-}
-
-function Spoken({ announcement }: { announcement: Announcement | null }): ReactNode {
-  if (announcement === null) return null;
-  if ("message" in announcement) return <span key={announcement.run}>{announcement.message}</span>;
-  return (
-    <span key={announcement.run}>
-      {announcement.rows.map((row) => (
-        <span key={row.lang}>
-          {row.name}: <span lang={row.lang}>{row.to}</span>
-          {SENTENCE_END.test(row.to) ? " " : ". "}
-        </span>
-      ))}
-    </span>
-  );
-}
-
-function ResultSlot({
-  language,
-  row,
-  candidates,
-  notSelected,
+function Reserve({
+  values,
+  className,
+  children,
 }: {
-  language: PlaygroundLanguage;
-  row: ResultRow | undefined;
-  candidates: ReadonlyArray<Candidate>;
-  notSelected: string;
+  values: ReadonlyArray<string>;
+  className?: string;
+  children: ReactNode;
 }): ReactNode {
   return (
-    <li
-      className="vk-playground-result"
-      data-lang={language.code}
-      data-empty={row === undefined ? "" : undefined}
-      aria-hidden={row === undefined ? "true" : undefined}
+    <span
+      className={
+        className === undefined ? "vk-playground-reserve" : `vk-playground-reserve ${className}`
+      }
     >
-      <span className="vk-playground-result-lang">{language.name}</span>
-      <span className="vk-playground-result-value">
-        <Sizer candidates={candidates} />
-        {row === undefined ? (
-          <span className="vk-playground-result-empty">{notSelected}</span>
-        ) : (
-          <span lang={row.lang} className="vk-playground-result-text">
-            {row.to}
-          </span>
-        )}
-        <span aria-hidden="true" className="vk-playground-scramble" data-scramble={language.code} />
-      </span>
-    </li>
+      {[...new Set(values)].map((value) => (
+        <span key={value} aria-hidden="true" className="vk-playground-ghost">
+          {value}
+        </span>
+      ))}
+      <span className="vk-playground-live">{children}</span>
+    </span>
   );
 }
 
-export function PlaygroundDemo({
-  items,
-  languages,
-  translations,
+function PauseIcon({ playing }: { playing: boolean }): ReactNode {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 16 16"
+      width="14"
+      height="14"
+      className="vk-playground-glyph"
+    >
+      {playing ? <path d="M5 3v10M11 3v10" /> : <path d="M5 3l8 5-8 5z" />}
+    </svg>
+  );
+}
+
+function usePlaygroundMotion(
+  running: boolean,
+  dispatch: (action: { type: "tick"; dt: number } | { type: "start" } | { type: "settle" }) => void,
+) {
+  const root = useRef<HTMLDivElement>(null);
+  const [motion, setMotion] = useState(false);
+  const [inView, setInView] = useState(false);
+  const [tabShown, setTabShown] = useState(true);
+
+  useEffect(() => {
+    setMotion(!prefersReducedMotion());
+    return subscribeReducedMotion((reduced) => setMotion(!reduced));
+  }, []);
+
+  useEffect(() => {
+    if (!motion) dispatch({ type: "settle" });
+  }, [motion, dispatch]);
+
+  useEffect(() => {
+    if (!motion) return;
+    const element = root.current;
+    const observer =
+      typeof IntersectionObserver === "undefined" || element === null
+        ? null
+        : new IntersectionObserver((entries) => {
+            const last = entries.at(-1);
+            if (last !== undefined) setInView(last.isIntersecting);
+          });
+    if (observer === null) setInView(true);
+    else if (element !== null) observer.observe(element);
+    const onVisibility = () => setTabShown(document.visibilityState !== "hidden");
+    onVisibility();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      observer?.disconnect();
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [motion]);
+
+  const watching = motion && inView && tabShown;
+
+  useEffect(() => {
+    if (watching) dispatch({ type: "start" });
+  }, [watching, dispatch]);
+
+  useEffect(() => {
+    if (!watching || !running) return;
+    let last = performance.now();
+    const timer = setInterval(() => {
+      const now = performance.now();
+      dispatch({ type: "tick", dt: now - last });
+      last = now;
+    }, TICK_MS);
+    return () => clearInterval(timer);
+  }, [watching, running, dispatch]);
+
+  return { root, motion };
+}
+
+type Scene = {
+  readonly frame: Frame;
+  readonly tick: number;
+  readonly itemId: string;
+  readonly source: string;
+  readonly hot: string | null;
+};
+
+function PaneHead({
+  labels,
+  codes,
   sourceLocale,
-  defaultItem,
+  phase,
+  playing,
+  onToggle,
+}: {
+  labels: PlaygroundLabels;
+  codes: ReadonlyArray<string>;
+  sourceLocale: string;
+  phase: PlaygroundPhase;
+  playing: boolean;
+  onToggle: () => void;
+}): ReactNode {
+  return (
+    <div className="vk-playground-pane-head">
+      <span aria-hidden="true" className="vk-playground-dots">
+        <i />
+        <i />
+        <i />
+      </span>
+      <span className="vk-playground-mono vk-playground-grow">
+        {sourceLocale} <span className="vk-playground-arrow">{"\u2192"}</span> {codes.join(", ")}
+      </span>
+      <Reserve
+        className="vk-playground-mono"
+        values={[labels.clock.typing, labels.clock.running, labels.clock.done]}
+      >
+        {labels.clock[phase]}
+      </Reserve>
+      <button
+        type="button"
+        className="vk-playground-pause"
+        aria-label={playing ? labels.pause : labels.play}
+        onClick={onToggle}
+      >
+        <PauseIcon playing={playing} />
+      </button>
+    </div>
+  );
+}
+
+function SourceBlock({
+  label,
+  sourceLocale,
+  picks,
+  scene,
+}: {
+  label: string;
+  sourceLocale: string;
+  picks: ReadonlyArray<PlaygroundItem>;
+  scene: Scene;
+}): ReactNode {
+  return (
+    <div className="vk-playground-source">
+      <small>{label}</small>
+      <p aria-hidden="true" className="vk-playground-source-text" lang={sourceLocale}>
+        <span className="vk-playground-sizers">
+          {picks.map((entry) => (
+            <span key={entry.id} className="vk-playground-ghost">
+              {entry.text}
+            </span>
+          ))}
+          <span className="vk-playground-live">
+            <Segments
+              segments={typedSegments(splitPlaceholders(scene.source), scene.frame.typed)}
+            />
+          </span>
+        </span>
+      </p>
+      <span className="sr-only" lang={sourceLocale}>
+        {scene.source}
+      </span>
+    </div>
+  );
+}
+
+function LanguageRow({
+  language,
+  index,
+  picks,
+  translations,
+  scene,
+  selected,
+  onChoose,
+}: {
+  language: PlaygroundLanguage;
+  index: number;
+  picks: ReadonlyArray<PlaygroundItem>;
+  translations: PlaygroundTranslations;
+  scene: Scene;
+  selected: string | null;
+  onChoose: () => void;
+}): ReactNode {
+  const final = textOf(translations, language.code, scene.itemId);
+  const progress = scene.frame.progress[index] ?? 0;
+  const highlighted = scene.hot === language.code && (selected !== null || progress < 1);
+  const variants = [
+    ...new Set(picks.map((entry) => textOf(translations, language.code, entry.id))),
+  ];
+  return (
+    <button
+      type="button"
+      className="vk-playground-row"
+      data-lang={language.code}
+      data-selected={highlighted ? "" : undefined}
+      aria-pressed={selected === language.code}
+      onClick={onChoose}
+    >
+      <span aria-hidden="true" className="vk-playground-code-tag">
+        {language.code}
+      </span>
+      <span className="vk-playground-text">
+        <span className="vk-playground-language">{language.name}</span>
+        <span className="sr-only" lang={language.code}>
+          {final}
+        </span>
+        <span aria-hidden="true" lang={language.code} className="vk-playground-sizers">
+          {variants.map((text) => (
+            <span key={text} className="vk-playground-ghost">
+              {text}
+            </span>
+          ))}
+          <span className="vk-playground-live">
+            {progress <= 0 ? (
+              <span className="vk-playground-skeleton" />
+            ) : (
+              <Segments
+                segments={decodeSegments(final, progress, scene.tick, scramblePool(final))}
+              />
+            )}
+          </span>
+        </span>
+      </span>
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        className="vk-playground-done"
+        data-done={progress >= 1 ? "" : undefined}
+      >
+        <path d="M5 12.5l4.5 4.5L19 7.5" />
+      </svg>
+    </button>
+  );
+}
+
+function StatusBar({
+  labels,
+  scene,
+  intact,
+  sent,
+  kept,
+}: {
+  labels: PlaygroundLabels;
+  scene: Scene;
+  intact: { readonly intact: number; readonly total: number };
+  sent: number;
+  kept: number;
+}): ReactNode {
+  const finished = scene.frame.phase === "done";
+  const checking = scene.frame.phase === "running";
+  const placeholders = finished ? `${intact.intact}/${intact.total}` : "-";
+  return (
+    <div className="vk-playground-status">
+      <span className="vk-playground-reserve vk-playground-status-text">
+        {[...new Set([labels.running, ...Object.values(labels.passed)])].map((value) => (
+          <span key={value} aria-hidden="true" className="vk-playground-ghost">
+            {value}
+          </span>
+        ))}
+        <span className="vk-playground-live">
+          {finished ? (
+            <svg aria-hidden="true" viewBox="0 0 24 24" className="vk-playground-shield">
+              <path d="M12 3l8 3v6c0 4.5-3.2 7.8-8 9-4.8-1.2-8-4.5-8-9V6z" />
+              <path d="M8.5 12l2.5 2.5 4.5-5" />
+            </svg>
+          ) : (
+            <span aria-hidden="true" className="vk-playground-pulse" />
+          )}
+          {finished ? (labels.passed[scene.itemId] ?? "") : labels.running}
+        </span>
+      </span>
+      <span className="vk-playground-counters vk-playground-mono">
+        <span>
+          {labels.counters.sent} <b>{sent}</b>
+        </span>
+        <span>
+          {labels.counters.kept} <b>{kept}</b>
+        </span>
+        <span>
+          {labels.counters.placeholders}{" "}
+          <b>
+            <Reserve values={["-", `${intact.total}/${intact.total}`]}>{placeholders}</Reserve>
+            {checking ? <span className="sr-only">{labels.counters.checking}</span> : null}
+          </b>
+        </span>
+      </span>
+    </div>
+  );
+}
+
+function CodePane({
   labels,
   snippet,
   snippetFile,
   snippetConfig,
-  details,
-}: PlaygroundDemoProps): ReactNode {
-  const id = useId();
-  const allLanguages = languages.map((language) => language.code);
-  const [initial] = useState(() =>
-    serverForm({ item: defaultItem, checked: allLanguages, focused: null }, items, allLanguages),
-  );
-  const [item, setItem] = useState(initial.item);
-  const [checked, setChecked] = useState<ReadonlyArray<string>>(initial.checked);
-  const [shown, setShown] = useState<Shown>({ item: defaultItem, langs: allLanguages });
-  const [pending, setPending] = useState<number | null>(null);
-  const [waiting, setWaiting] = useState(false);
-  const [announcement, setAnnouncement] = useState<Announcement | null>(null);
-  const [Scrambler, setScrambler] = useState<ScramblerComponent | null>(null);
-  const runs = useRef(0);
-  const root = useRef<HTMLDivElement>(null);
-  const list = useRef<HTMLOListElement>(null);
-  const resultBlock = useRef<HTMLDivElement>(null);
-  const controller = useRef<ScrambleController>(null);
-  const played = useRef<number | null>(null);
-  const rows = resultRows(shown, items, languages, translations);
-  const [candidates] = useState(
-    () =>
-      new Map(
-        languages.map((language) => [
-          language.code,
-          languageCandidates(language.code, translations),
-        ]),
-      ),
-  );
-  const hydrated = useHydrated();
-  const [sources] = useState(() =>
-    items.map((entry) => ({ lang: sourceLocale, text: entry.text })),
-  );
-
-  useLayoutEffect(() => restoreFocus(root.current, initial.focused), [initial]);
-
-  const warm = () => {
-    if (Scrambler !== null || prefersReducedMotion()) return;
-    loadScrambler().then(
-      (component) => setScrambler(() => component),
-      () => undefined,
-    );
+  sdkName,
+  codes,
+  phase,
+  run,
+}: {
+  labels: PlaygroundLabels;
+  snippet: ReactNode;
+  snippetFile: string;
+  snippetConfig: PlaygroundSnippetConfig;
+  sdkName: string;
+  codes: ReadonlyArray<string>;
+  phase: PlaygroundPhase;
+  run: number;
+}): ReactNode {
+  const runLabel = {
+    typing: labels.run.queued,
+    running: labels.run.awaiting,
+    done: labels.run.resolved,
   };
-
-  const settle = (run: number, settled: ReadonlyArray<ResultRow>) => {
-    if (run !== runs.current) return;
-    setPending(null);
-    setAnnouncement({ run, rows: settled });
-  };
-
-  useLayoutEffect(() => {
-    if (pending === null || played.current === pending) return;
-    played.current = pending;
-    const play = controller.current;
-    const run = pending;
-    const playing = rows;
-    if (play === null) {
-      settle(run, playing);
-      return;
-    }
-    play.play(playing, () => settle(run, playing));
-  });
-
-  const scrambler = async (): Promise<ScramblerComponent | null> => {
-    if (prefersReducedMotion()) return null;
-    if (Scrambler === null) setWaiting(true);
-    const loaded = await within(loadScrambler(), SCRAMBLER_WAIT_MS, null);
-    setWaiting(false);
-    return loaded;
-  };
-
-  const translate = async () => {
-    if (waiting) return;
-    runs.current += 1;
-    const run = runs.current;
-    setAnnouncement(null);
-    if (checked.length === 0) {
-      controller.current?.stop();
-      setPending(null);
-      setAnnouncement({ run, message: labels.noLanguages });
-      return;
-    }
-    resultBlock.current?.scrollIntoView({
-      block: "nearest",
-      behavior: prefersReducedMotion() ? "auto" : "smooth",
-    });
-    const next: Shown = { item, langs: checked };
-    const animate = await scrambler();
-    if (run !== runs.current) return;
-    setShown(next);
-    if (animate === null) {
-      setPending(null);
-      setAnnouncement({ run, rows: resultRows(next, items, languages, translations) });
-      return;
-    }
-    setScrambler(() => animate);
-    setPending(run);
-  };
-
-  const toggle = (code: string) =>
-    setChecked((current) =>
-      current.includes(code) ? current.filter((value) => value !== code) : [...current, code],
-    );
-
-  const source = items.find((entry) => entry.id === shown.item)?.text ?? "";
-  const busy = waiting || pending !== null;
-  const stale = hydrated && (item !== shown.item || !sameLanguages(checked, shown.langs));
-  const snippetLanguages = hydrated && checked.length > 0 ? checked : allLanguages;
-  const orderedSnippetLanguages = allLanguages.filter((code) => snippetLanguages.includes(code));
-
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: warming the animation module on pointer or focus inside the demo is not an interaction of its own
-    <div
-      ref={root}
-      className="vk-playground"
-      onPointerEnter={warm}
-      onFocus={warm}
-      onTouchStart={warm}
-      data-playground-demo=""
-    >
-      <div className="vk-playground-main">
-        <div className="vk-playground-controls">
-          <fieldset className="vk-playground-fieldset">
-            <legend className="vk-playground-legend">{labels.items}</legend>
-            <div className="vk-playground-options" data-kind="items">
-              {items.map((entry) => (
-                <label key={entry.id} className="vk-playground-option">
-                  <input
-                    type="radio"
-                    name={`${id}-item`}
-                    value={entry.id}
-                    checked={item === entry.id}
-                    onChange={() => setItem(entry.id)}
-                    data-control="item"
-                    className="vk-playground-input vk-playground-radio"
-                  />
-                  <span lang={sourceLocale}>{entry.text}</span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
-          <fieldset className="vk-playground-fieldset">
-            <legend className="vk-playground-legend">{labels.languages}</legend>
-            <div className="vk-playground-options" data-kind="languages">
-              {languages.map((language) => (
-                <label key={language.code} className="vk-playground-option">
-                  <span className="vk-playground-box">
-                    <input
-                      type="checkbox"
-                      name={`${id}-language`}
-                      value={language.code}
-                      checked={checked.includes(language.code)}
-                      onChange={() => toggle(language.code)}
-                      data-control="language"
-                      className="vk-playground-input vk-playground-checkbox"
-                    />
-                    <svg
-                      aria-hidden="true"
-                      viewBox="0 0 16 16"
-                      width="12"
-                      height="12"
-                      className="vk-playground-check"
-                    >
-                      <path d="M3 8.5l3.2 3.2L13 4.8" />
-                    </svg>
-                  </span>
-                  <span>{language.name}</span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
-          <Button
-            type="button"
-            size="md"
-            className="vk-playground-translate"
-            onClick={translate}
-            data-control="translate"
-            aria-disabled={waiting ? "true" : undefined}
-          >
-            {labels.translate}
-          </Button>
-        </div>
-        <div
-          ref={resultBlock}
-          className="vk-playground-result-block"
-          aria-busy={busy ? "true" : undefined}
-          data-stale={stale ? "" : undefined}
-        >
-          <div className="vk-playground-results-head">
-            <h3 id={`${id}-results`} className="vk-playground-results-title">
-              {labels.results}
-            </h3>
-            <p className="vk-playground-stale">{labels.stale}</p>
-          </div>
-          <p className="vk-playground-source">
-            <span className="vk-playground-result-lang">{labels.source}</span>
-            <span className="vk-playground-source-value">
-              <Sizer candidates={sources} />
-              <span lang={sourceLocale} className="vk-playground-source-text">
-                {source}
-              </span>
-            </span>
-          </p>
-          <ol
-            ref={list}
-            aria-labelledby={`${id}-results`}
-            className="vk-playground-results"
-            data-scrambling={pending === null ? undefined : ""}
-          >
-            {languages.map((language) => (
-              <ResultSlot
-                key={language.code}
-                language={language}
-                row={rows.find((row) => row.lang === language.code)}
-                candidates={candidates.get(language.code) ?? []}
-                notSelected={labels.notSelected}
-              />
-            ))}
-          </ol>
-          <div aria-live="polite" aria-atomic="true" className="sr-only" data-playground-live="">
-            <Spoken announcement={announcement} />
-          </div>
-        </div>
-        {details}
-      </div>
-      <div className="vk-playground-code" style={snippetStyle(languages, orderedSnippetLanguages)}>
-        <CodeFrameShell
-          lang="ts"
-          filename={snippetFile}
-          action={
+    <div className="vk-playground-pane" data-pane="code">
+      <CodeFrameShell
+        lang="ts"
+        filename={snippetFile}
+        className="vk-playground-frame"
+        action={
+          <span className="vk-playground-frame-actions">
+            <span className="vk-playground-mono vk-playground-sdk">{sdkName}</span>
             <CopyControl
-              text={playgroundSnippet(snippetConfig, orderedSnippetLanguages)}
+              text={playgroundSnippet(snippetConfig, codes)}
               label={labels.copy}
               status={labels.copyStatus}
               size="sm"
             />
-          }
-        >
-          {snippet}
-        </CodeFrameShell>
+          </span>
+        }
+      >
+        {snippet}
+      </CodeFrameShell>
+      <div className="vk-playground-run vk-playground-mono">
+        <span>translate()</span>
+        <span aria-hidden="true" className="vk-playground-bar">
+          <span style={{ width: `${Math.round(run * 100)}%` }} />
+        </span>
+        <Reserve values={Object.values(labels.run)}>{runLabel[phase]}</Reserve>
       </div>
-      {Scrambler === null ? null : <Scrambler scope={list} controller={controller} />}
     </div>
   );
+}
+
+function spokenRow(language: PlaygroundLanguage, text: string): ReactNode {
+  return (
+    <span key={language.code}>
+      {language.name}: <span lang={language.code}>{text}</span>
+      {". "}
+    </span>
+  );
+}
+
+export function PlaygroundDemo({
+  picks,
+  languages,
+  translations,
+  sourceLocale,
+  defaultItem,
+  sent,
+  kept,
+  labels,
+  snippet,
+  snippetFile,
+  snippetConfig,
+  sdkName,
+  details,
+}: PlaygroundDemoProps): ReactNode {
+  const codes = languages.map((language) => language.code);
+  const durations = picks.map((pick) => sceneEnd(pick.text.length, codes.length));
+  const [state, send] = useReducer(
+    (current: CycleState, action: CycleAction) => cycleReducer(current, action, durations),
+    Math.max(
+      0,
+      picks.findIndex((pick) => pick.id === defaultItem),
+    ),
+    initialCycle,
+  );
+  const [announcement, setAnnouncement] = useState<Announcement | null>(null);
+  const { root, motion } = usePlaygroundMotion(cycleRunning(state, durations), send);
+
+  const pick = picks[state.item];
+  const source = pick?.text ?? "";
+  const itemId = pick?.id ?? defaultItem;
+  const frame = frameAt(state.elapsed, source.length, codes.length);
+  const scene: Scene = {
+    frame,
+    itemId,
+    source,
+    tick: Number.isFinite(state.elapsed) ? Math.floor(state.elapsed / SCRAMBLE_TICK_MS) : 0,
+    hot: state.selected ?? codes[frame.active] ?? null,
+  };
+  const intact = intactPlaceholders(
+    source,
+    codes.map((code) => textOf(translations, code, itemId)),
+  );
+  const rootStyle: CSSProperties =
+    scene.hot === null ? {} : { [snippetHotVar(scene.hot)]: "var(--vk-hot-fill)" };
+
+  const announce = (lines: ReadonlyArray<ReactNode>) =>
+    setAnnouncement((current) => ({ run: (current?.run ?? 0) + 1, lines }));
+
+  const choose = (index: number) => {
+    const next = picks[index];
+    if (next === undefined) return;
+    send({ type: "pick-item", index, instant: !motion });
+    announce(
+      languages.map((language) =>
+        spokenRow(language, textOf(translations, language.code, next.id)),
+      ),
+    );
+  };
+
+  const chooseLanguage = (language: PlaygroundLanguage) => {
+    send({ type: "pick-language", code: language.code });
+    announce([spokenRow(language, textOf(translations, language.code, itemId))]);
+  };
+
+  return (
+    <div
+      ref={root}
+      className="vk-playground"
+      data-playground-demo=""
+      data-item={itemId}
+      data-phase={frame.phase}
+      data-playing={state.playing ? "" : undefined}
+      style={rootStyle}
+    >
+      <div className="vk-playground-pane" data-pane="result">
+        <PaneHead
+          labels={labels}
+          codes={codes}
+          sourceLocale={sourceLocale}
+          phase={frame.phase}
+          playing={state.playing}
+          onToggle={() => send({ type: "toggle-play" })}
+        />
+        <SourceBlock
+          label={labels.source}
+          sourceLocale={sourceLocale}
+          picks={picks}
+          scene={scene}
+        />
+        <fieldset className="vk-playground-picks">
+          <legend className="sr-only">{labels.items}</legend>
+          {picks.map((entry, index) => (
+            <button
+              key={entry.id}
+              type="button"
+              lang={sourceLocale}
+              className="vk-playground-pick"
+              aria-pressed={entry.id === itemId}
+              onClick={() => choose(index)}
+            >
+              {entry.text}
+            </button>
+          ))}
+        </fieldset>
+        <fieldset className="vk-playground-rows">
+          <legend className="sr-only">{labels.languages}</legend>
+          {languages.map((language, index) => (
+            <LanguageRow
+              key={language.code}
+              language={language}
+              index={index}
+              picks={picks}
+              translations={translations}
+              scene={scene}
+              selected={state.selected}
+              onChoose={() => chooseLanguage(language)}
+            />
+          ))}
+        </fieldset>
+        <StatusBar labels={labels} scene={scene} intact={intact} sent={sent} kept={kept} />
+        <div aria-live="polite" aria-atomic="true" className="sr-only" data-playground-live="">
+          {announcement === null ? null : <span key={announcement.run}>{announcement.lines}</span>}
+        </div>
+      </div>
+      <CodePane
+        labels={labels}
+        snippet={snippet}
+        snippetFile={snippetFile}
+        snippetConfig={snippetConfig}
+        sdkName={sdkName}
+        codes={codes}
+        phase={frame.phase}
+        run={frame.run}
+      />
+      <div className="vk-playground-foot">{details}</div>
+    </div>
+  );
+}
+
+function typedSegments(segments: ReadonlyArray<Segment>, count: number): ReadonlyArray<Segment> {
+  const out: Segment[] = [];
+  let left = count;
+  for (const segment of segments) {
+    if (left <= 0) break;
+    out.push({ text: segment.text.slice(0, left), placeholder: segment.placeholder });
+    left -= segment.text.length;
+  }
+  return out;
 }

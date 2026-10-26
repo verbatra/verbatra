@@ -71,13 +71,22 @@ describe("Features", () => {
     }
   });
 
-  it("draws every visual as hidden line art, never as a picture with text", () => {
+  it("gives every card one hidden canvas and no text in the visual", () => {
     for (const card of cards()) {
-      const art = card.querySelector(".vk-feature-visual > svg.vk-feature-art");
-      expect(art?.getAttribute("aria-hidden")).toBe("true");
-      expect(art?.querySelectorAll(".vk-feature-lit").length).toBeGreaterThan(0);
-      expect(art?.querySelector("text, image")).toBeNull();
+      const visual = card.querySelector(".vk-feature-visual");
+      const canvases = visual?.querySelectorAll("canvas") ?? [];
+      expect(canvases).toHaveLength(1);
+      expect(canvases[0]?.getAttribute("aria-hidden")).toBe("true");
+      expect(visual?.textContent).toBe("");
+      expect(visual?.querySelector("svg, img, text")).toBeNull();
     }
+    expect(root.querySelectorAll("canvas")).toHaveLength(LANDING_FEATURES.length);
+  });
+
+  it("names each canvas after its feature, in order", () => {
+    expect(
+      Array.from(root.querySelectorAll("canvas"), (canvas) => canvas.getAttribute("data-feature")),
+    ).toEqual(LANDING_FEATURES.map(({ id }) => id));
   });
 
   it("carries a title and a body for every feature in every locale", () => {

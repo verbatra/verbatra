@@ -6,8 +6,11 @@ import {
   PLAYGROUND_DEFAULT_ITEM,
   PLAYGROUND_DOCS_LINKS,
   PLAYGROUND_ITEMS,
+  PLAYGROUND_KEPT_STRINGS,
   PLAYGROUND_LANGUAGES,
   PLAYGROUND_METADATA,
+  PLAYGROUND_PICKS,
+  PLAYGROUND_SENT_STRINGS,
   PLAYGROUND_SNIPPET_CONFIG,
   PLAYGROUND_SNIPPET_FILE,
   PLAYGROUND_SOURCE_LOCALE,
@@ -15,6 +18,7 @@ import {
   playgroundGeneratedOn,
 } from "@/lib/landing-playground";
 import { PROVIDER_DISPLAY } from "@/lib/landing-providers";
+import { intactPlaceholders } from "@/lib/playground-cycle";
 import { playgroundSnippetLines } from "@/lib/playground-snippet";
 import { highlightPlaygroundSnippet } from "@/lib/playground-snippet-highlight";
 import { PlaygroundDemo } from "./islands";
@@ -72,6 +76,23 @@ function StaticTable({
   );
 }
 
+function passedLabels(
+  t: Awaited<ReturnType<typeof getTranslations<"landing.playground">>>,
+): Record<string, string> {
+  return Object.fromEntries(
+    PLAYGROUND_PICKS.map((pick) => {
+      const { intact, total } = intactPlaceholders(
+        pick.text,
+        PLAYGROUND_LANGUAGES.map((code) => PLAYGROUND_TRANSLATIONS[code]?.[pick.id] ?? ""),
+      );
+      return [
+        pick.id,
+        total === 0 ? t("status.passedNone") : t("status.passed", { intact, total }),
+      ];
+    }),
+  );
+}
+
 export async function Playground(): Promise<ReactNode> {
   const t = await getTranslations("landing.playground");
   const tInstall = await getTranslations("landing.install");
@@ -85,6 +106,7 @@ export async function Playground(): Promise<ReactNode> {
     playgroundSnippetLines(PLAYGROUND_SNIPPET_CONFIG, PLAYGROUND_LANGUAGES),
   );
   const provider = PROVIDER_DISPLAY[PLAYGROUND_METADATA.provider].label;
+  const languageCount = PLAYGROUND_LANGUAGES.length;
 
   const details = (
     <div className="vk-playground-details">
@@ -114,37 +136,53 @@ export async function Playground(): Promise<ReactNode> {
   return (
     <Section band id="playground" labelledBy="playground-heading" className="vk-playground-section">
       <div className="vk-playground-layout">
-        <SectionHead
-          id="playground-heading"
-          layout="inline"
-          title={t("heading")}
-          lead={t("lead")}
-        />
+        <SectionHead id="playground-heading" title={t("heading")} lead={t("lead")} />
         <PlaygroundDemo
-          items={PLAYGROUND_ITEMS}
+          picks={PLAYGROUND_PICKS}
           languages={languages}
           translations={PLAYGROUND_TRANSLATIONS}
           sourceLocale={PLAYGROUND_SOURCE_LOCALE}
           defaultItem={PLAYGROUND_DEFAULT_ITEM}
+          sent={PLAYGROUND_SENT_STRINGS}
+          kept={PLAYGROUND_KEPT_STRINGS}
           labels={{
             items: t("items"),
             languages: t("languages"),
-            translate: t("translate"),
-            results: t("results"),
-            source: t("source"),
-            noLanguages: t("noLanguages"),
-            notSelected: t("notSelected"),
-            stale: t("stale"),
+            source: t("source", { locale: PLAYGROUND_SOURCE_LOCALE }),
             copy: t("copy"),
             copyStatus: {
               copy: tInstall("copy"),
               copied: tInstall("copied"),
               copyFailed: tInstall("copyFailed"),
             },
+            pause: t("animation.pause"),
+            play: t("animation.play"),
+            running: t("status.running", {
+              strings: PLAYGROUND_SENT_STRINGS,
+              languages: languageCount,
+            }),
+            passed: passedLabels(t),
+            counters: {
+              sent: t("counters.sent"),
+              kept: t("counters.kept"),
+              placeholders: t("counters.placeholders"),
+              checking: t("counters.checking"),
+            },
+            clock: {
+              typing: t("clock.typing"),
+              running: t("clock.running"),
+              done: t("clock.done"),
+            },
+            run: {
+              queued: t("run.queued"),
+              awaiting: t("run.awaiting"),
+              resolved: t("run.resolved"),
+            },
           }}
           snippet={snippet}
           snippetFile={PLAYGROUND_SNIPPET_FILE}
           snippetConfig={PLAYGROUND_SNIPPET_CONFIG}
+          sdkName="@verbatra/sdk"
           details={details}
         />
       </div>

@@ -67,16 +67,9 @@ describe("licenses page", () => {
     expect(doc.body.textContent).toContain("SIL OPEN FONT LICENSE Version 1.1");
   });
 
-  it("renders the GSAP license strings as written and links the terms they name", async () => {
+  it("lists no GSAP package, which the playground no longer loads", async () => {
     const doc = await render("en");
-    const headings = [...doc.querySelectorAll("h2")].map((node) => node.textContent);
-    expect(headings).toContain(
-      "Standard 'no charge' license: https://gsap.com/standard-license. (1 package)",
-    );
-    expect(headings).toContain("SEE LICENSE AT https://gsap.com/standard-license (1 package)");
-    const terms = [...doc.querySelectorAll('a[href="https://gsap.com/standard-license"]')];
-    expect(terms).toHaveLength(2);
-    expect(terms[0]?.closest("li")?.querySelector("code")?.textContent).toMatch(/gsap/);
+    expect(doc.body.textContent).not.toContain("gsap.com/standard-license");
   });
 
   it("prints the LGPL text the deployed libvips binary falls back to, inside its license group", async () => {

@@ -48,19 +48,15 @@ describe("the landing tile surface", () => {
     expect(light?.declarations["--border-tile"]).toBe("var(--border-default)");
   });
 
-  it.each([
-    ".vk-tile",
-    ".vk-feature",
-    ".vk-faq-item",
-    ".vk-marquee-item",
-    ".vk-banner-file",
-    ".vk-closer",
-  ])("paints %s from the tile tokens", (selector) => {
-    const rule = rulesFor(rules, selector).find((entry) => entry.media === "");
-    expect(rule?.declarations.border).toBe("1px solid var(--border-tile)");
-    if (selector !== ".vk-closer")
-      expect(rule?.declarations.background).toBe("var(--surface-tile)");
-  });
+  it.each([".vk-tile", ".vk-feature", ".vk-faq-item", ".vk-banner-file", ".vk-closer"])(
+    "paints %s from the tile tokens",
+    (selector) => {
+      const rule = rulesFor(rules, selector).find((entry) => entry.media === "");
+      expect(rule?.declarations.border).toBe("1px solid var(--border-tile)");
+      if (selector !== ".vk-closer")
+        expect(rule?.declarations.background).toBe("var(--surface-tile)");
+    },
+  );
 });
 
 describe("the landing page surface", () => {

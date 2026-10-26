@@ -47,7 +47,6 @@ describe("the landing first load", () => {
     for (const eager of [
       "@/components/language-select",
       "@/components/theme-toggle",
-      "@/components/version-pill",
       "@/components/home-mobile-menu",
       "fumadocs-ui/layouts/home",
       "fumadocs-ui/layouts/shared",
@@ -108,7 +107,7 @@ const registered = REGISTRIES.flatMap((registry) =>
 
 describe("islands that translate", () => {
   it("finds every registered island and its module", () => {
-    expect(registered.length).toBeGreaterThanOrEqual(12);
+    expect(registered.length).toBeGreaterThanOrEqual(11);
     for (const entry of registered) expect(entry.module).not.toBe("");
   });
 

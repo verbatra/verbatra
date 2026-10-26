@@ -5,15 +5,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import messages from "@/messages/en.json";
 
-const stats = vi.hoisted(() => ({ stars: 1234 as number | null }));
-
 vi.mock("next-intl/server", () => ({
   getTranslations: async ({ namespace }: { locale: string; namespace: string }) =>
     createTranslator({ locale: "en", messages, namespace: namespace as never }),
-}));
-
-vi.mock("@/lib/project-stats", () => ({
-  loadProjectStats: async () => ({ stars: stats.stars }),
 }));
 
 const { StaticSiteHeader } = await import("./static-site-header");
@@ -34,20 +28,13 @@ describe("StaticSiteHeader", () => {
     const desktop = header.querySelectorAll("a:not(details a)");
     expect(Array.from(desktop, (a) => [a.getAttribute("href"), a.textContent])).toEqual([
       ["/", "verbatra"],
-      ["/docs", messages.landing.topNav.docs],
-      [
-        "https://github.com/verbatra/verbatra/releases",
-        `${messages.landing.topNav.changelog} ${messages.landing.openSource.newTab}`,
-      ],
-      [
-        "https://github.com/verbatra/verbatra",
-        `GitHub 1.2K stars ${messages.landing.openSource.newTab}`,
-      ],
-      ["/docs/quickstart", messages.landing.topNav.getStarted],
+      ["/docs", messages.landing.nav.docs],
+      ["/docs/cli", messages.landing.nav.reference],
+      ["https://github.com/verbatra/verbatra", `GitHub ${messages.landing.openSource.newTab}`],
     ]);
   });
 
-  it("reaches Docs, Changelog and GitHub on a phone through a details menu that needs no script", async () => {
+  it("reaches Docs, Reference and GitHub on a phone through a details menu that needs no script", async () => {
     const menu = (await render()).querySelector("details");
     expect(menu?.classList.contains("md:hidden")).toBe(true);
     const summary = menu?.querySelector("summary");
@@ -56,7 +43,7 @@ describe("StaticSiteHeader", () => {
     const links = Array.from(menu?.querySelectorAll("nav a") ?? []);
     expect(links.map((a) => a.getAttribute("href"))).toEqual([
       "/docs",
-      "https://github.com/verbatra/verbatra/releases",
+      "/docs/cli",
       "https://github.com/verbatra/verbatra",
     ]);
     for (const link of links) {
@@ -67,17 +54,18 @@ describe("StaticSiteHeader", () => {
 
   it("gives every link the shared phone tap class", async () => {
     const links = Array.from((await render()).querySelectorAll("a"));
-    expect(links).toHaveLength(8);
+    expect(links).toHaveLength(7);
     for (const link of links) expect(link.classList.contains("vk-tap")).toBe(true);
   });
 
-  it("prints the build-time star count with its reserved width and never asks for live stats", async () => {
-    const stars = (await render()).querySelector<HTMLElement>(".vk-nav-stars");
-    expect(stars?.textContent).toBe("1.2K");
-    expect(stars?.style.minInlineSize).toBe("4ch");
-    stats.stars = null;
-    expect((await render()).querySelector(".vk-nav-stars")).toBeNull();
-    stats.stars = 1234;
+  it("opens GitHub in a new tab and no other link", async () => {
+    const targets = Array.from((await render()).querySelectorAll("a"), (a) => [
+      a.getAttribute("href"),
+      a.getAttribute("target"),
+    ]).filter(([, target]) => target !== null);
+    expect(new Set(targets.map(([href]) => href))).toEqual(
+      new Set(["https://github.com/verbatra/verbatra"]),
+    );
   });
 
   it("localizes every link for a non-default locale", async () => {
@@ -86,6 +74,6 @@ describe("StaticSiteHeader", () => {
     );
     expect(hrefs).toContain("/de/");
     expect(hrefs).toContain("/de/docs");
-    expect(hrefs).toContain("/de/docs/quickstart");
+    expect(hrefs).toContain("/de/docs/cli");
   });
 });

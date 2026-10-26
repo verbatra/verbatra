@@ -13,7 +13,6 @@ import { RELEASE_BADGE } from "@/lib/release-badge";
 import { docsStylesheetRules, rulesFor } from "@/lib/stylesheet-rules";
 import german from "@/messages/de.json";
 import messages from "@/messages/en.json";
-import { contrast, themeTokens } from "@/test-support/contrast";
 import { preloadRegisteredIslands } from "@/test-support/islands";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -48,7 +47,7 @@ vi.mock("next-intl/server", async () => {
 });
 
 const { Marquee, MARQUEE_COPIES } = await import("./marquee");
-const { GLINT_THRESHOLD, MarqueeMotion } = await import("./marquee-motion");
+const { MarqueeMotion } = await import("./marquee-motion");
 
 await preloadRegisteredIslands();
 
@@ -285,33 +284,29 @@ describe("Marquee", () => {
     }
   });
 
-  it("names each item in text, beside an aria-hidden mark or file-extension chip", async () => {
+  it("names each item in text, beside an aria-hidden brand mark or stroke glyph", async () => {
     const doc = await render();
     for (const item of Array.from(doc.querySelectorAll(".vk-marquee-item"))) {
-      const marks = item.querySelectorAll(":scope > .vk-marquee-mark, :scope > .vk-marquee-chip");
+      const marks = item.querySelectorAll(":scope > .vk-marquee-mark, :scope > .vk-marquee-glyph");
       expect(marks, item.getAttribute("data-item") ?? "").toHaveLength(1);
       expect(marks[0]?.getAttribute("aria-hidden")).toBe("true");
       expect(item.querySelector(":scope > .vk-marquee-name")?.textContent?.length).toBeGreaterThan(
         0,
       );
     }
-    const chips = Array.from(doc.querySelectorAll(".vk-marquee-chip"), (chip) => chip.textContent);
-    for (const text of chips) expect(text).toMatch(/^[./][a-z0-9]+$/);
+    expect(doc.querySelector(".vk-marquee-chip")).toBeNull();
   });
 
-  it("draws every file-extension chip at one width, wide enough for the longest extension", async () => {
+  it("draws every glyph as an unfilled 18px stroke in the current color", async () => {
     const doc = await render();
-    const chips = Array.from(doc.querySelectorAll(".vk-marquee-chip"), (chip) => chip.textContent);
-    const rule = docsStylesheetRules().find(
-      (entry) => entry.selector === ".vk-marquee-chip" && entry.declarations["min-inline-size"],
+    const glyphs = Array.from(doc.querySelectorAll(".vk-marquee-glyph"));
+    expect(glyphs.length).toBeGreaterThan(0);
+    for (const glyph of glyphs) expect(glyph.getAttribute("width")).toBe("18");
+    const rule = rulesFor(docsStylesheetRules(), ".vk-marquee-glyph").find(
+      (entry) => entry.media === "",
     );
-    const minimum = Number.parseFloat(rule?.declarations["min-inline-size"] ?? "0");
-    expect(rule?.declarations["justify-content"]).toBe("center");
-    const longest = Math.max(...chips.map((text) => text?.length ?? 0));
-    const fontRem = 0.75;
-    const advance = 0.6;
-    const padding = 2 * Number.parseFloat(rule?.declarations["padding-inline"] ?? "0");
-    expect(longest * advance * fontRem + padding).toBeLessThanOrEqual(minimum);
+    expect(rule?.declarations.fill).toBe("none");
+    expect(rule?.declarations.stroke).toBe("currentColor");
   });
 
   it("keeps each row title for assistive technology only", async () => {
@@ -360,11 +355,10 @@ describe("Marquee", () => {
     expect(rule?.declarations["justify-content"]).toBe("center");
   });
 
-  it("server-renders the static state: no motion state and no glint, the pause button before the rows", async () => {
+  it("server-renders the static state: no motion state, the pause button before the rows", async () => {
     const doc = await render();
     const marquee = doc.querySelector(".vk-marquee");
     expect(marquee?.hasAttribute("data-marquee")).toBe(false);
-    expect(marquee?.hasAttribute("data-glint")).toBe(false);
     const button = marquee?.firstElementChild;
     expect(button?.tagName).toBe("BUTTON");
     expect(button?.hasAttribute("aria-pressed")).toBe(false);
@@ -391,67 +385,15 @@ describe("MarqueeMotion", () => {
     expect(button?.textContent).toBe(copy.pause);
   });
 
-  it("lets the depth pill glint only once the marquee has come into view", () => {
-    const observers: Array<{ fire: (isIntersecting: boolean) => void; done: boolean }> = [];
-    vi.stubGlobal(
-      "IntersectionObserver",
-      class {
-        private readonly entry = { fire: (_: boolean) => {}, done: false };
-        constructor(callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {
-          expect(options?.threshold).toBe(GLINT_THRESHOLD);
-          this.entry.fire = (isIntersecting) => {
-            if (this.entry.done) return;
-            callback(
-              [{ isIntersecting } as IntersectionObserverEntry],
-              this as unknown as IntersectionObserver,
-            );
-          };
-          observers.push(this.entry);
-        }
-        observe(): void {}
-        disconnect(): void {
-          this.entry.done = true;
-        }
-      },
+  it("draws the pause button as a soft accent tint with no border", () => {
+    const button = mountToggle().querySelector("button");
+    expect(button?.className).not.toMatch(/(?:^|\s)border/);
+    const rule = rulesFor(docsStylesheetRules(), ".vk-marquee-toggle").find(
+      (entry) => entry.media === "" && "background" in entry.declarations,
     );
-    try {
-      const host = mountToggle();
-      const marquee = host.querySelector(".vk-marquee");
-      expect(marquee?.hasAttribute("data-glint")).toBe(false);
-      act(() => {
-        for (const observer of observers) observer.fire(false);
-      });
-      expect(marquee?.hasAttribute("data-glint")).toBe(false);
-      act(() => {
-        for (const observer of observers) observer.fire(true);
-      });
-      expect(marquee?.getAttribute("data-glint")).toBe("on");
-      expect(observers.every((observer) => observer.done)).toBe(true);
-    } finally {
-      vi.unstubAllGlobals();
-    }
+    expect(rule?.declarations.background).toContain("var(--accent)");
+    expect(rule?.declarations.border).toBeUndefined();
   });
-
-  it("holds the marquee pill's animations until the glint flag is set", () => {
-    const held = docsStylesheetRules().find(
-      (rule) =>
-        rule.declarations["animation-name"] === "none" &&
-        rule.selector.includes(".vk-marquee:not([data-glint])"),
-    );
-    expect(held?.selector).toContain(".vk-pill-new-shimmer");
-    expect(held?.media).toBe("");
-  });
-
-  it.each(["dark", "light"] as const)(
-    "draws the pause button's boundary at 3:1 or more against the page background in the %s theme",
-    (theme) => {
-      const button = mountToggle().querySelector("button");
-      const border = /(?:^|\s)border-\((--[\w-]+)\)/.exec(button?.className ?? "")?.[1];
-      if (border === undefined) throw new Error("the pause button has no border token");
-      const tokens = themeTokens()[theme];
-      expect(contrast(tokens, border, "--surface-bg")).toBeGreaterThanOrEqual(3);
-    },
-  );
 });
 
 describe("the marquee stylesheet", () => {
@@ -474,11 +416,12 @@ describe("the marquee stylesheet", () => {
     expect(moving?.declarations["padding-inline"]).toBe("0");
   });
 
-  it("draws each list item as a rounded bordered chip on the tile surface", () => {
+  it("draws each list item as a bare muted mark and label, with no box", () => {
     const item = rulesFor(rules, ".vk-marquee-item").find((rule) => rule.media === "");
-    expect(item?.declarations.background).toBe("var(--surface-tile)");
-    expect(item?.declarations.border).toBe("1px solid var(--border-tile)");
-    expect(item?.declarations["border-radius"]).toBe("var(--radius-lg)");
+    expect(item?.declarations.color).toBe("var(--text-muted)");
+    expect(item?.declarations.background).toBeUndefined();
+    expect(item?.declarations.border).toBeUndefined();
+    expect(item?.declarations["border-radius"]).toBeUndefined();
   });
 
   const MOTION_ALLOWED = "@media (prefers-reduced-motion: no-preference) and (scripting: enabled)";

@@ -63,16 +63,14 @@ describe("StartHere", () => {
     ).querySelector("code");
     const agent = render(<StartHere />).querySelector("code");
     expect(npm?.className).toContain("@max-[30rem]:whitespace-normal");
-    expect(npm?.className).toContain("@max-[18rem]:basis-[calc(100%-1.75rem)]");
-    expect(agent?.className).toBe(
-      npm?.className.replace(
-        " @max-[30rem]:whitespace-normal @max-[18rem]:basis-[calc(100%-1.75rem)]",
-        "",
-      ),
-    );
-    expect(npm?.parentElement?.className).toContain("@max-[18rem]:flex-wrap");
+    expect(agent?.className).toBe(npm?.className.replace(" @max-[30rem]:whitespace-normal", ""));
+    expect(npm?.parentElement?.className).not.toContain("flex-wrap");
     expect(npm?.parentElement?.querySelector("button")?.className).toContain(
-      "@max-[18rem]:ms-auto",
+      "@max-[18rem]:min-w-11",
+    );
+    expect(npm?.parentElement?.querySelector("button [class*='sr-only']")).not.toBeNull();
+    expect(agent?.parentElement?.querySelector("button")?.className).not.toContain(
+      "@max-[18rem]:min-w-11",
     );
     expect(agent?.parentElement?.className).not.toContain("flex-wrap");
   });

@@ -17,12 +17,24 @@ export const MARQUEE_ICON_PREFIX = "marquee-mark";
 
 export const MARQUEE_COPIES = 2;
 
+export const MARQUEE_GLYPHS = {
+  braces:
+    "M8 4c-2 0-3 1-3 3v2c0 1.5-1 3-2.5 3 1.5 0 2.5 1.5 2.5 3v2c0 2 1 3 3 3M16 4c2 0 3 1 3 3v2c0 1.5 1 3 2.5 3-1.5 0-2.5 1.5-2.5 3v2c0 2-1 3-3 3",
+  swap: "M4 8h14l-4-4M20 16H6l4 4",
+  bubble: "M4 5h16v11H11l-4 4v-4H4z",
+  sliders: "M4 7h9M17 7h3M4 17h3M11 17h9M15 4v6M9 14v6",
+  cube: "M12 3l8 4.5v9L12 21l-8-4.5v-9zM4 7.5l8 4.5 8-4.5M12 12v9",
+  plug: "M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0zM12 17v4",
+} as const;
+
+export type MarqueeGlyphId = keyof typeof MARQUEE_GLYPHS;
+
 export type MarqueeMark =
   | { readonly kind: "brand"; readonly mark: BrandMarkId }
-  | { readonly kind: "chip"; readonly text: string };
+  | { readonly kind: "glyph"; readonly glyph: MarqueeGlyphId };
 
 const brand = (mark: BrandMarkId): MarqueeMark => ({ kind: "brand", mark });
-const chip = (text: string): MarqueeMark => ({ kind: "chip", text });
+const glyph = (id: MarqueeGlyphId): MarqueeMark => ({ kind: "glyph", glyph: id });
 
 export const PROVIDER_ICONS: Readonly<Record<MachineProviderId, MarqueeMark>> = {
   anthropic: brand("anthropic"),
@@ -30,25 +42,25 @@ export const PROVIDER_ICONS: Readonly<Record<MachineProviderId, MarqueeMark>> = 
   gemini: brand("googlegemini"),
   deepl: brand("deepl"),
   "google-translate": brand("googletranslate"),
-  "openai-compatible": chip("/v1"),
+  "openai-compatible": glyph("plug"),
   libretranslate: brand("libretranslate"),
 };
 
 export const FORMAT_ICONS: Readonly<Record<SupportedFormat, MarqueeMark>> = {
   "i18next-json": brand("i18next"),
-  "vue-i18n-json": chip(".json"),
+  "vue-i18n-json": glyph("braces"),
   "next-intl-json": brand("nextdotjs"),
   "ngx-translate-json": brand("angular"),
-  xliff: chip(".xlf"),
+  xliff: glyph("swap"),
   yaml: brand("yaml"),
   arb: brand("flutter"),
   properties: brand("spring"),
   "apple-strings": brand("apple"),
   "apple-xcstrings": brand("apple"),
   "android-xml": brand("android"),
-  "gettext-po": chip(".po"),
-  ini: chip(".ini"),
-  resx: chip(".resx"),
+  "gettext-po": glyph("bubble"),
+  ini: glyph("sliders"),
+  resx: glyph("cube"),
 };
 
 type MarqueeBadge = {
@@ -89,11 +101,18 @@ export function formatItems(): ReadonlyArray<MarqueeItem> {
 }
 
 function ItemMark({ mark }: { mark: MarqueeMark }): ReactNode {
-  if (mark.kind === "chip") {
+  if (mark.kind === "glyph") {
     return (
-      <span aria-hidden="true" className="vk-marquee-chip">
-        {mark.text}
-      </span>
+      <svg
+        aria-hidden="true"
+        focusable="false"
+        viewBox="0 0 24 24"
+        width={18}
+        height={18}
+        className="vk-marquee-glyph"
+      >
+        <path d={MARQUEE_GLYPHS[mark.glyph]} />
+      </svg>
     );
   }
   return (

@@ -210,7 +210,7 @@ describe("the section head on the 12-column grid", () => {
     expect(layouts).toEqual({
       marquee: "heading",
       highlights: "split",
-      playground: "inline",
+      playground: "split",
       features: "split",
       faq: "aside",
     });

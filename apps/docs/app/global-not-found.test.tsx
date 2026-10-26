@@ -60,7 +60,7 @@ describe("the global not-found page", () => {
     expect(doc.querySelector("#nd-home-layout > footer[data-legal-footer]")).not.toBeNull();
   });
 
-  it("serves the 404 without the client chrome: no providers, no islands, no live stats", async () => {
+  it("serves the 404 without the client chrome: no providers, no islands", async () => {
     const source = readFileSync(join(import.meta.dirname, "global-not-found.tsx"), "utf8");
     for (const banned of [
       "SiteProviders",
@@ -76,7 +76,7 @@ describe("the global not-found page", () => {
       "utf8",
     );
     expect(header).not.toMatch(/^"use client"/);
-    expect(header).not.toMatch(/live-stats|chrome-islands|home-nav"/);
+    expect(header).not.toMatch(/chrome-islands|home-nav"/);
   });
 
   it("opens with a skip link to the main content", async () => {

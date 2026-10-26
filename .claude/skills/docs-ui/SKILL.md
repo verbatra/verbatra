@@ -41,13 +41,8 @@ dashboard in `packages/studio` (different app, different stack), or anything out
   `transform` only, and keep layout shift at 0.
   Server sections and the reveals stay CSS keyframes and transitions in `app/global.css`, each with
   a `prefers-reduced-motion` opt-out.
-  `gsap` 3.15.0 and `@gsap/react` 2.1.2 (the Standard "no charge" GSAP license, which the
-  `/licenses` page and `THIRD_PARTY_NOTICES.md` print as written and link) are direct dependencies
-  with one consumer. `lib/gsap.ts` registers `useGSAP` once;
-  `lib/gsap-scramble.ts` adds `ScrambleTextPlugin` for `components/landing/playground-scramble.tsx`,
-  which the playground island reaches through a dynamic `import()` on the first pointer, focus or
-  touch inside it (and on Translate). It never loads on first paint or under reduced motion, and it
-  is its own chunk. No other plugin is registered.
+  No animation library is a dependency: the playground's typing and decoding are timer-driven state
+  (`lib/playground-cycle.ts`).
 - Tailwind 4 uses CSS-first configuration. There is no `tailwind.config.js`. Tokens are
   CSS custom properties in `app/global.css`, not a JS config object.
 - `app/global.css` opens with three imports in this order, and the order matters:
@@ -116,8 +111,8 @@ Three layers exist. Write against the third.
    or `--v-violet` comes back). The landing's light effects are tokens too, defined for both
    themes in `:root` and `html.light`: `--gradient-headline` (strong text into the accent, painted
    only on the hero `h1`), `--halo-strong` and `--halo-soft` (the accent fill and accent mixed into
-   transparency, weaker in the light theme) for every glow, `--glow-art` for the drop shadow of
-   the feature line art, `--grid-line` for the faded grid behind the hero and the closer, and
+   transparency, weaker in the light theme) for every glow, `--art-dim` (the resting strokes and
+   dot grid of the feature canvases, read at runtime by `lib/landing-canvas.ts`), `--grid-line` for the faded grid behind the hero and the closer, and
    `--star` for the statement's starfield. Reach for one only in the role it already has.
 2. **Fumadocs overrides.** `--color-fd-background`, `--color-fd-card`, `--color-fd-popover`,
    `--color-fd-muted`, `--color-fd-border`, `--color-fd-foreground`,
@@ -177,9 +172,7 @@ Scales are fixed and narrow, deliberately:
   top-aligns them (`data-align`); the highlights and the features use the split head),
   `stacked` (the lead under the heading on the first column, for a section whose content runs the
   full row; no landing section uses it today), `inline` (the same
-  stacked block at a narrower measure, `.vk-section-head-inline`, set inside the column beside an
-  artifact rather than over it: the SDK playground renders it on the server as a sibling before
-  its island, and its grid puts it at the top of the control column next to the sticky snippet).
+  stacked block at a narrower measure, `.vk-section-head-inline`; no landing section uses it today).
   A split head without a lead renders stacked; `stacked` and `inline`
   keep their shape either way. `SectionHead` is the head only and takes no children.
   `SectionAside` (same file) is the head beside its content: a `.vk-section-aside` `.vk-grid-12`
@@ -208,17 +201,20 @@ Scales are fixed and narrow, deliberately:
   Landing tiles use two landing-scoped tokens, outside the semantic layer above:
   `--surface-tile` (dark `hsl(240 26% 8%)`, light white) and `--border-tile` (dark
   `hsl(240 22% 16%)`, light `--border-default`). They fill and border `.vk-tile`, `.vk-feature`,
-  `.vk-faq-item`, `.vk-closer`, `.vk-marquee-item`, `.vk-banner-file`,
-  `.vk-playground-controls` and `.vk-playground-result-block`. The playground's static table (`.vk-playground-table-scroll`,
+  `.vk-faq-item`, `.vk-closer`, `.vk-banner-file`,
+  `.vk-playground-pane`. The playground's static table (`.vk-playground-table-scroll`,
   the no-JavaScript fallback) stays on `--surface-card` with `--border-default`: it is a data
   table sharing the docs table treatment (header row on `--surface-card`), not a tile. The hero draws one `aria-hidden` `.vk-banner-halo` as its
   first child: two radial halos and a 64px `--grid-line` grid faded by a radial mask, behind the
   copy and the demo alike (`hero.test.tsx` pins it); there is no dot backdrop.
-- No placeholder chip: the landing has no chip or token motif. The SDK playground shows its
-  placeholders as plain text; the integrity tile only colors each placeholder `--accent` inside a
-  plain `mark` (`.vk-highlight-placeholder`, no fill, no border), and `lib/landing-tokens.test.ts`
-  fails if a `--placeholder-*` token comes back; draw a new motif only together with the pane that
-  uses it.
+- Placeholder chip: the SDK playground and the hero's locale-file cards draw one. `.vk-ph` sets a
+  `{name}` or
+  `{count}` in `--accent` on a 14 percent `--accent` tint (`color-mix`, radius 5px, 1px 4px padding,
+  no border and no token of its own), in the source line and in every language, so the placeholder
+  is visibly the same in each. Under `forced-colors` it is `CanvasText` on `Canvas` with a
+  `Highlight` outline. The integrity tile still colors each placeholder `--accent` inside a plain
+  `mark` (`.vk-highlight-placeholder`, no fill, no border), and `lib/landing-tokens.test.ts`
+  fails if a `--placeholder-*` token comes back.
 - Motion: see "Landing motion" below for the system. Its tokens: `--ease-standard` (entrances,
   hovers and state changes), `--duration-fast` (140ms, hover and press),
   `--duration-base` (240ms, state change), `--duration-slow` (560ms, every entrance), `--reveal-distance` (`--motion-distance-lg`, 16px;
@@ -311,7 +307,7 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   `LANDING_SECTIONS` in `lib/landing-sections.ts` (hero, marquee, statement, highlights,
   playground, features, faq, finalCta), which the home page maps
   over and `lib/landing-sections.test.ts` pins; add or move a section there, not by hand in
-  `page.tsx`. The files: `hero.tsx` (the `NewAnnouncement` depth pill linking the current cli
+  `page.tsx`. The files: `hero.tsx` (the `NewAnnouncement` tinted pill linking the current cli
   release notes, the `h1` with a gradient second line, the lead, the Get started button beside the install chip, a
   `CommandRow` of `HERO_INSTALL_COMMAND` in `.vk-banner-install`; on the right an `aria-hidden`
   `.vk-banner-files` stack of three locale-file cards from `lib/landing-hero-files.ts`: `fr` and
@@ -331,9 +327,14 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   in a `mark` (span 3), and the MCP setup command wrapped, not scrolled, breaking only between whole flags and arguments through `keepPackageRunsWhole` (span 3); every count
   derives from the hero terminal data, never typed; the CLI text (run, exit code, command) carries
   `lang="en"` on every locale, like the statement's proof line), `features.tsx` (`#features`, a bracketed label, a split
-  head aligned to the start and `.vk-feature-grid` of `LANDING_FEATURES` from `lib/landing-features.ts`: each card an
-  `aria-hidden` line-art `svg` on a halo, drawn in `.vk-feature-dim` and `.vk-feature-lit`
-  strokes with the `--glow-art` drop shadow, and an `h3` whose link to the command's docs page
+  head aligned to the start and `.vk-feature-grid` of `LANDING_FEATURES` from `lib/landing-features.ts`: each card a
+  fixed-height `.vk-feature-visual` (halo and dot grid) holding one `aria-hidden` `canvas.vk-feature-canvas`
+  (`feature-canvas.tsx`, a client island: motifs are the pure frame functions of `lib/landing-canvas.ts`,
+  colors read from the `--accent`, `--art-dim`, `--text-muted`, `--border-default`, `--surface-card`,
+  `--text-strong`, `--v-status-changed`, `--v-danger` and `--surface-bg` tokens and re-read when `html.light`
+  toggles, drawn at devicePixelRatio, paused offscreen and while the tab is hidden, a bounded run of `RUN_SECONDS` (about three
+  loops, never forever) that then holds its `STILL_TIME` frame, one static frame under
+  `prefers-reduced-motion`, no text ever drawn), and an `h3` whose link to the command's docs page
   stretches over the whole card), `playground.tsx` (`#playground`, the SDK playground, see
   "SDK playground" below), `marquee.tsx`
   (`#marquee`, see "Marquee" below), and the comparison, which lives only on `/compare` (the landing reaches it from the FAQ's docs
@@ -423,7 +424,7 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   `lib/contributors.json` (`contributors.tsx`: a `div` with `role="group"` named by a
   `.vk-footer-group-title`, never a landmark or heading, each a self-hosted 32px avatar from
   `public/contributors/` with the login beside it, refreshed by hand with `pnpm contributors`,
-  then one open slot, a dashed `--text-faint` ring linking the issue list); then `FOOTER_GROUPS`, four named `nav`s on
+  then one open slot, a borderless `--accent` 14 percent tint circle linking the issue list; the avatars carry no ring); then `FOOTER_GROUPS`, four named `nav`s on
   `.vk-footer-groups`, deliberately not a row of equal columns: product (`PRIMARY_GROUP`: the docs
   pages, the localized `/compare` and the files for AI agents) leads as the wide group, its links in
   `--text-strong` at 15px flowing down CSS columns (`columns: 2 9rem`, three from 48rem), and
@@ -479,57 +480,57 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   most `PACKAGE_VERSION`), names the rest with the badge version, and says how to choose (the
   `provider` block, `none`). Formats are left to the marquee. `FORMAT_DISPLAY` in `lib/landing-facts.ts` is every format's display
   label, which the structured data's format list reads too, so a new format fails to
-  compile until it has one. The marquee (`marquee.tsx`, `#marquee`, a plain page section
-  right under the hero, between two hairlines, with a centered `h2` `.vk-marquee-heading` in small mono uppercase over full-width rows, with
-  the "All formats" and "All providers" links centered under them)
-  shows two rows inside the `MarqueeMotion` island (`marquee-motion.tsx`), the formats first and the providers second: the providers,
-  `landingProviders()`, each with its mark from
-  `PROVIDER_ICONS` (a `Record<MachineProviderId, MarqueeMark>`), and the formats,
-  `SUPPORTED_FORMAT_IDS` by their `FORMAT_DISPLAY` label with their mark from `FORMAT_ICONS` (a
-  `Record<SupportedFormat, MarqueeMark>`), so a new provider or format fails to compile until it
-  has one. A `MarqueeMark` is either a brand mark (`kind: "brand"`) or a file-extension chip
-  (`kind: "chip"`). Brand marks follow the logo rule under "Reuse before you build" (the stack
+  compile until it has one.
+
+- **Marquee markup.** The marquee (`marquee.tsx`, `#marquee`, a plain page section right under the
+  hero, between two hairlines, with a centered `h2` `.vk-marquee-heading` in small mono uppercase
+  over full-width rows, with the "All formats" and "All providers" links centered under them) shows
+  two rows inside the `MarqueeMotion` island (`marquee-motion.tsx`), the formats first and the
+  providers second: the providers, `landingProviders()`, each with its mark from `PROVIDER_ICONS` (a
+  `Record<MachineProviderId, MarqueeMark>`), and the formats, `SUPPORTED_FORMAT_IDS` by their
+  `FORMAT_DISPLAY` label with their mark from `FORMAT_ICONS` (a `Record<SupportedFormat,
+  MarqueeMark>`), so a new provider or format fails to compile until it has one. A `MarqueeMark` is
+  either a brand mark (`kind: "brand"`) or a stroke glyph (`kind: "glyph"`, one of
+  `MARQUEE_GLYPHS`). Brand marks follow the logo rule under "Reuse before you build" (the stack
   cards paragraph); every one is a `<use>` of the one `BrandMarkSprite`
-  (`components/brand-marks.tsx`, prefix `marquee-mark`), drawn at 18px in a single
-  `currentColor` fill. A chip (`.vk-marquee-chip`: mono `--text-xs` text in `--accent` on an `--accent-fill`
-  18 percent tint, `--radius-sm`) stands in for an item with no admissible
-  mark: `.json` (vue-i18n), `.xlf`, `.po`, `.ini`, `.resx` (the .NET wordmark is unreadable at
-  18px) and `/v1` for the OpenAI-compatible endpoint. Every chip is at least 2.75rem wide
-  (`min-inline-size`, its text centered), the width of the longest extension, so the chips read as
-  one size.
-  Mark and chip are `aria-hidden`; the mark is `--text-muted` and hovering a row (which also pauses it) lifts
-  it to `--text-strong`, with no glow, scale or brand color. The name (`.vk-marquee-name`) is
-  the item's text. A provider that `RELEASE_BADGE` dates carries the depth pill (`NewPill`, `landing.marquee.new`)
-  with the "Available from" label in an `sr-only` span and, after it, the release version as visible
-  `aria-hidden` mono text (`.vk-marquee-release`, `--text-muted`), so a reader on the current
-  release sees the provider is not in it yet. Its glint is held (`animation-name: none` under
-  `.vk-marquee:not([data-glint])`) until `MarqueeMotion`'s `IntersectionObserver` sees half the
-  marquee and sets `data-glint="on"`; it then runs its three finite loops, never under reduced
-  motion, and never without JavaScript.
-  Each item (`.vk-marquee-item`) is a `--surface-tile` fill with a
-  `--border-tile` border, since it is a fact, not a control. No count is typed. Each row is a muted `h3` that names its visible list,
-  the list, `MARQUEE_COPIES` copies of it (`aria-hidden`, `inert`, holding no link or button), and
-  an "All providers" or "All formats" link after the moving track, so nothing focusable moves. The
-  list sits in `.vk-marquee-viewport`, a `.vk-edge-fade` `role="group"` keyboard stop named by the
-  row's `h3`. The server HTML is the static state, and the copies are `display: none` in it. Under
-  reduced motion or without JavaScript (`scripting: none`) the pause button is `display: none` and
-  the list wraps, which never changes. Where motion may start (`prefers-reduced-motion:
-  no-preference` and `scripting: enabled`) the static state already has the moving state's box:
-  the pause button holds its row at `visibility: hidden` (so it is neither focusable nor announced)
-  and each list is one line that scrolls sideways with no scrollbar, so every item stays reachable
-  by keyboard, touch or trackpad, also after a failed island chunk, and the takeover shifts
-  nothing (`e2e/marquee.spec.ts` measures the section's height before and after hydration at 375
-  and 1440 and sums the layout shift). Only when `MotionRoot` has set `html[data-motion-ready]`,
-  the island has hydrated (`data-marquee="running"` or `"paused"` on `.vk-marquee`) and that media
-  query matches do the rows turn into one masked line that runs
-  `vk-marquee` (a `transform` keyframe, `--marquee-items` times `--marquee-item-time` per loop,
-  the providers row reversed through `--marquee-direction`, so the two rows run in opposite directions), and the pause button shows before the
-  rows: an `outline` `Button` at `size="md"` (44px tall, like the other landing controls) whose visible text is its name and says the action it takes next:
-  `landing.marquee.pause` while running, `landing.marquee.play` while paused, with no `aria-pressed`
-  (a changing name plus a pressed state would read "Play animation, pressed"), and its
-  `aria-hidden` glyph swapping on `data-marquee`. Hover and focus inside
-  a row pause that row. `marquee.test.tsx` pins the registry rows, the badge, the copies, the static
-  state and the pause toggle, and `e2e/marquee.spec.ts` the motion in a browser. The shared building blocks: `section.tsx` and
+  (`components/brand-marks.tsx`, prefix `marquee-mark`), drawn at 18px in a single `currentColor`
+  fill. A glyph (`.vk-marquee-glyph`: an 18px unfilled `currentColor` stroke, 1.8 wide, round caps)
+  stands in for an item with no admissible mark: braces (vue-i18n), swap (XLIFF), a speech bubble
+  (gettext), sliders (INI), a cube (.NET resx) and a plug (the OpenAI-compatible endpoint). Mark and
+  glyph are `aria-hidden`; an item (`.vk-marquee-item`) is a bare `--text-muted` mark and label in
+  `--text-base`, with no box, border or fill, and hovering it lifts it to `--text-strong`, with no
+  glow, scale or brand color. The name (`.vk-marquee-name`) is the item's text. A provider that
+  `RELEASE_BADGE` dates carries the new mark (`NewPill`, `landing.marquee.new`) with the "Available
+  from" label in an `sr-only` span and, after it, the release version as visible `aria-hidden` mono
+  text (`.vk-marquee-release`, `--text-muted`), so a reader on the current release sees the provider
+  is not in it yet. It does not animate. The pause button is `variant="ghost"` with a
+  `--radius-full` `--accent` 10 percent tint (18 percent on hover) and no border (a `ButtonText`
+  outline under `forced-colors`). No count is typed. Each row is a muted `h3` that names its visible
+  list, the list, `MARQUEE_COPIES` copies of it (`aria-hidden`, `inert`, holding no link or button),
+  and an "All providers" or "All formats" link after the moving track, so nothing focusable moves.
+  The list sits in `.vk-marquee-viewport`, a `.vk-edge-fade` `role="group"` keyboard stop named by
+  the row's `h3`. The server HTML is the static state, and the copies are `display: none` in it.
+  Under reduced motion or without JavaScript (`scripting: none`) the pause button is `display: none`
+  and the list wraps, which never changes. Where motion may start (`prefers-reduced-motion:
+  no-preference` and `scripting: enabled`) the static state already has the moving state's box: the
+  pause button holds its row at `visibility: hidden` (so it is neither focusable nor announced) and
+  each list is one line that scrolls sideways with no scrollbar, so every item stays reachable by
+  keyboard, touch or trackpad, also after a failed island chunk, and the takeover shifts nothing
+  (`e2e/marquee.spec.ts` measures the section's height before and after hydration at 375 and 1440
+  and sums the layout shift). Only when `MotionRoot` has set `html[data-motion-ready]`, the island
+  has hydrated (`data-marquee="running"` or `"paused"` on `.vk-marquee`) and that media query
+  matches do the rows turn into one masked line that runs `vk-marquee` (a `transform` keyframe,
+  `--marquee-items` times `--marquee-item-time` per loop, the providers row reversed through
+  `--marquee-direction`, so the two rows run in opposite directions), and the pause button shows
+  before the rows: an `outline` `Button` at `size="md"` (44px tall, like the other landing controls)
+  whose visible text is its name and says the action it takes next: `landing.marquee.pause` while
+  running, `landing.marquee.play` while paused, with no `aria-pressed` (a changing name plus a
+  pressed state would read "Play animation, pressed"), and its `aria-hidden` glyph swapping on
+  `data-marquee`. Hover and focus inside a row pause that row. `marquee.test.tsx` pins the registry
+  rows, the badge, the copies, the static state and the pause toggle, and `e2e/marquee.spec.ts` the
+  motion in a browser.
+
+- The shared building blocks: `section.tsx` and
   `section-head.tsx` for structure,
   the scroll fades: every sideways-scrolling mono block fades its end edge while there is more to
   see, through a mask on the element's own inline scroll timeline (one `@supports` rule for every
@@ -654,7 +655,7 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   trademarks of their owners, used to identify compatibility." `marquee.test.tsx` fails on a
   sprite symbol without a notice entry, a non-sprite reference or an embedded image, and
   `lib/third-party-licenses.test.ts` on an icon package, a missing entry or an NC or SA license.
-  Anything with no admissible mark gets a file-extension chip, never a lookalike drawn by hand. The grid is a `nav` named by `labelledBy`, the id of the heading above it
+  Anything with no admissible mark gets a file-extension chip, never a lookalike drawn by hand (the landing marquee instead uses generic stroke glyphs, which imitate no logo). The grid is a `nav` named by `labelledBy`, the id of the heading above it
   (the docs home section's `id`, or `page-title` on the docs `<h1>`), and that id also prefixes its
   sprite's symbol ids, so two grids on one page never collide. On the docs home, a stack with its
   own quickstart (`STACKS` in `lib/stacks.ts`) links its card to `/docs/quickstart/<id>` and carries
@@ -674,12 +675,10 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
 
 ## Landing motion
 
-The landing moves little, on purpose: the depth pills glint three
-times (the marquee's only once it is in view), the
-format and provider marquee rows loop until paused, the SDK playground scrambles its results
-once per Translate press, and nothing else on the page fades in.
-There is no scroll-driven motion, no pinning and no parallax (the SDK playground's snippet column
-is only `position: sticky` from 64rem, which moves nothing on its own), and no scroll listener;
+The landing moves little, on purpose: the format and provider marquee rows loop until paused, the SDK playground types a source string and decodes its translations in a timer-driven loop
+(stopped by any interaction, offscreen, in a hidden tab and under reduced motion), and nothing else
+on the page fades in.
+There is no scroll-driven motion, no pinning and no parallax and no scroll listener;
 `motion` is reserved for client islands (see "The stack").
 
 - **Reveals.** One system: an element marked `data-reveal="<n>"` (`n` from 0 to 5) is hidden
@@ -700,75 +699,71 @@ is only `position: sticky` from 64rem, which moves nothing on its own), and no s
   `reveal-marks.test.tsx` pins that no section file carries a mark and `motion-root.test.tsx` the observer and
   the stylesheet guards.
 - **Hero.** The hero is never revealed and the `h1` never moves (it is the largest paint); no
-  layout animation runs in it on load. On load only the announcement's depth pill (see "Depth
-  pill" under "The docs surface"), whose glow, ring and shimmer run three times and stop, moves,
-  only under `prefers-reduced-motion: no-preference`; `motion-root.test.tsx` still fails on any
+  layout animation runs in it on load. Nothing in it animates (the announcement is a static tinted pill, see "New mark"
+  under "The docs surface"); `motion-root.test.tsx` fails on any
   animated `.vk-banner` rule. The locale-file cards are static, server-rendered and `aria-hidden`;
   the install chip's `CommandRow` is the hero's only island, with no timer and no GSAP (`hero.test.tsx` fails on a static GSAP import
   and on any `HeroTracks` or `landing-tracks` reference there). `e2e/hero.spec.ts` pins the cards,
-  the install chip, the finite pill animations and 320px and 375px without a sideways scroll.
+  the install chip, the borderless pill and 320px and 375px without a sideways scroll.
 - **Marquee.** The one looping motion on the page, a CSS keyframe with no JavaScript animation:
   it runs only in the state described under "Marquee" above, pauses through its button, hover
   and focus inside a row, and is static otherwise (one sideways-scrolling line where motion may
   start, wrapped rows under reduced motion or without JavaScript), so 2.2.2 holds without
   JavaScript.
-- **SDK playground.** `playground.tsx` (`#playground`, on the void, its controls and result blocks as bordered `--radius-card` panels, an `inline` head whose `h2` is
+- **SDK playground.** `playground.tsx` (`#playground`, on the void, a `split` head (heading left,
+  lead right) whose `h2` is
   `landing.playground.heading`, rendered on the server as the first child of
   `.vk-playground-layout`, before the `PlaygroundDemo` island and never inside it, so it stays
   visible without JavaScript and after a failed island chunk on a client navigation, which
-  `e2e/playground.spec.ts` drives by aborting that chunk; the source strings sit in two columns from 64rem, the language chips are content-sized (a wrapping flex row, end padding at least the start padding, so no label touches its border in any locale), and the checked, focus ring and focus handoff styles of an option chip sit in an `@supports selector(:has(*))` block, so a browser without `:has` keeps the input's own outline) reads `lib/playground/translations.json` once through
-  `lib/landing-playground.ts`, which parses it with `lib/playground/schema.ts` on the server, so zod
-  never reaches the client, and builds `PLAYGROUND_SNIPPET` (`loadConfig({ configOverride:
-  defineConfig(...) })` for `gemini` and `next-intl-json`, the model from the JSON metadata, then
-  `translate({ config })`, one `targetLocales` entry per line) from `playgroundSnippet` in
-  `lib/playground-snippet.ts`, a zod-free builder the island shares. The server highlights it
-  through `highlightPlaygroundSnippet` (`lib/playground-snippet-highlight.ts`), whose Shiki
-  transformer marks each locale line `data-snippet-locale` with `display: var(--vk-snippet-<code>,
-  inline)` and moves the line's newline inside it; the island frames it in `CodeFrameShell`
-  (`components/landing/code-frame-shell.tsx`) with a
-  `CopyControl`, sets `--vk-snippet-<code>: none` on `.vk-playground-code` for each unchecked
-  language once hydrated (all four while none is checked, and in the server HTML), and copies
-  exactly the lines it shows. `playground.test.tsx` parses the full snippet with the public
-  `verbatraConfigSchema`. The `PlaygroundDemo` island (`playground-demo.tsx`, a plain `island()`
-  fed every string as a prop, so it adds no client namespace) holds a native radio fieldset of the
-  source strings (each label `lang="en"`) and a checkbox fieldset of the languages, both
-  `appearance: none` with a `--text-faint` boundary and an `--accent-fill` checked fill, 2.5rem
-  tall (the source strings flow in CSS `columns: 14rem`, so the arrow keys move down a column in
-  the order they read), then a `type="button"` Translate (no `form`, so nothing submits before hydration). In the
-  DOM the head and the controls come first, then the results and the label with the metadata, then the snippet
-  (`.vk-playground-main` and `.vk-playground-code`; `.vk-playground` is `display: contents`, so
-  both join `.vk-playground-layout` beside the head: one column, then from 64rem the areas
-  `"head code" / "main code"`, the snippet spanning both rows and sticky below the header), so on a phone the
-  result sits right under Translate and the focus order is the visual order at every width. The
-  island takes its first item, languages and focus from the server-rendered form it replaces
-  (`[data-playground-demo]`, each control marked `data-control`), so a choice made before it loads
-  is kept. The results are one `li` slot per language, in the languages' order: a language the
-  last press left out is `data-empty` and `aria-hidden` and shows its name with a muted
-  `landing.playground.notSelected` label; each slot stacks a hidden sizer of that language's
-  translations, and the source line one of every source string, so no press moves anything. Once
-  the selection differs from what the results show, the result block carries `data-stale`: the
-  source line and the results dim by `opacity` and `.vk-playground-stale`
-  (`landing.playground.stale`, always rendered, `visibility` only, in no live region) shows beside
-  the results heading until Translate is pressed. Each filled
-  slot holds the value with its own `lang` and an `aria-hidden` `.vk-playground-scramble` layer laid
-  over it. A press loads the scramble module (waiting at most `SCRAMBLER_WAIT_MS`); while it waits,
-  the results carry `aria-busy` and Translate `aria-disabled` (still focusable, presses ignored),
-  and the results stay busy until the run settles. GSAP `scrambleText` then runs from the source to
-  each translation, `SCRAMBLE_STAGGER_S` apart (a Latin target with lowercase letters, a CJK one
-  with the distinct characters of its own text, `scrambleChars`), tweening a Text node in each layer so the plugin
-  writes `textContent`, never `innerHTML`. `Scrambler` creates one `gsap.matchMedia` on
-  `(prefers-reduced-motion: no-preference)` inside `useGSAP` for its whole lifetime; each play kills
-  the previous timeline, a finished, stopped (a press with no language checked) or superseded run
-  kills its timeline and empties the layers, and an unmount reverts the matchMedia. Under reduced
-  motion, or when the module fails or is late, the texts swap at once; a failed load is dropped, so
-  the next press imports again. One polite, `sr-only` live region, empty until then, announces the
-  result (each value with its `lang`) only after the animation. The label
+  `e2e/playground.spec.ts` drives by aborting that chunk) reads `lib/playground/translations.json`
+  once through `lib/landing-playground.ts`, which parses it with `lib/playground/schema.ts` on the
+  server, so zod never reaches the client. `PLAYGROUND_PICKS` (the ids in `PLAYGROUND_PICK_IDS`)
+  are the strings the demo shows and cycles; `sent` is `PLAYGROUND_SENT_STRINGS` (1) and `kept` is
+  the rest of the committed strings, never typed. `PLAYGROUND_SNIPPET` (`loadConfig({
+  configOverride: defineConfig(...) })` for `gemini` and `next-intl-json`, the model from the JSON
+  metadata, then `translate({ config })`, one `targetLocales` entry per line) comes from
+  `playgroundSnippet` in `lib/playground-snippet.ts`, a zod-free builder the island shares. The
+  server highlights it through `highlightPlaygroundSnippet` (`lib/playground-snippet-highlight.ts`),
+  whose Shiki transformer marks each locale line `data-snippet-locale` with `background-color:
+  var(--vk-snippet-hot-<code>, transparent)` and moves the line's newline inside it; those lines are
+  `display: block` in `.vk-playground-frame`, and every language is always shown. A span transformer
+  recolors tokens onto the design tokens (`recolorToken`: keywords `--accent`, strings
+  `--v-status-changed`, identifiers and constants `--text-strong`, comments untouched), and
+  `.vk-playground-frame` draws a CSS-counter line-number gutter in `--text-muted`.
+  The `PlaygroundDemo` island (`playground-demo.tsx`, a plain `island()` fed every string, already
+  formatted, as a prop, so it adds no client namespace) is two `.vk-playground-pane` panels
+  (`--surface-tile`, `--border-tile`, `--radius-card`, 1.05fr / 0.95fr from 64rem, stacked below).
+  The result pane: a head (`en -> de, es, fr, ja`, the phase word `typing`, `running` or `done`,
+  and `.vk-playground-pause`), the source line (`SOURCE (EN)`, 22px, a blinking caret drawn as the `::after` of `.vk-playground-live`, so it is no element that moves),
+  the picks as `aria-pressed` pill buttons, one `.vk-playground-row` button per language (code,
+  name, text, a check once its decode is done) and a status line: a pulse and
+  `landing.playground.status.running`, then a shield and the integrity sentence with the counters
+  `sent`, `kept` and `placeholders` (`intact/total`, counted from the data by
+  `intactPlaceholders`). The code pane is the `CodeFrameShell` (with `CopyControl`) over a
+  `translate()` bar with `queued`, `awaiting` and `resolved`. The server renders the default item
+  fully settled and `useReducer` starts from that constant, so the first client render equals the
+  server HTML. Only effects read `matchMedia`, `IntersectionObserver` and `visibilitychange`: once
+  the section is in view, motion is allowed and the tab is shown, `start` holds the settled item
+  for `HOLD_MS`, then each pick types (`TYPE_MS` per character), sends, and decodes the four languages
+  `STAGGER_MS` apart over `DECODE_MS`, a Latin target scrambled with lowercase letters and a CJK one
+  with its own characters (`scramblePool`), the placeholders never scrambled. The cycle advances
+  through `PLAYGROUND_PICKS` and wraps. Any pick, language row or the pause control stops it for
+  good (`touched`); a picked string plays once and settles; a row marks itself, tints its code
+  line (the island sets `--vk-snippet-hot-<code>: var(--vk-hot-fill)` on its root) and is announced.
+  The ticker is a 70ms interval that runs only while the scene is animating, in view and visible. Under
+  `prefers-reduced-motion: reduce` it never starts (final state, no caret, no pause control, hidden
+  with CSS), and a pick shows its translations at once. Every changing text sits in a
+  `.vk-playground-reserve` grid with an invisible `.vk-playground-ghost` of every possible value
+  (every pick, every translation, every status sentence, counters, phase and run words), so the
+  height and width never move. The animated text is `aria-hidden`; each row holds the real
+  translation in an `sr-only` span with its own `lang`, and one polite `sr-only` live region is empty
+  until a visitor picks a string (all four languages) or a row (that language). The label
   `landing.playground.label` and the provider, model and generation date (`dl.vk-playground-meta`,
-  from the JSON metadata) follow the results, and the demo content is the same in every locale.
-  Without JavaScript (`scripting: none`) the controls and results are `display:
-  none` and `.vk-playground-static`, a captioned table of every string and language in a
-  `ScrollBlock`, shows instead. Links to `/docs/sdk-quickstart`, `/docs/sdk` and
-  `/docs/providers` close the section. `e2e/playground.spec.ts` pins the browser behaviour.
+  from the JSON metadata) follow the panes. Without JavaScript (`scripting: none`) the result pane
+  is `display: none` and `.vk-playground-static`, a captioned table of every string and language in
+  a `ScrollBlock`, shows instead. Links to `/docs/sdk-quickstart`, `/docs/sdk` and
+  `/docs/providers` close the section. `playground-cycle.test.ts` pins the state machine and
+  `e2e/playground.spec.ts` the browser behaviour.
 - **Back to top.** `scroll-top.tsx` (`ScrollTop`, a plain block `island()` (`{ as: "div" }`) in `islands.tsx` that the
   home page mounts after `MotionRoot`, fed `landing.fab.label` and `MAIN_CONTENT_ID` as props)
   renders an `aria-hidden` `.vk-scroll-top-sentinel` (absolute, `100vh` tall from the top of the
@@ -806,16 +801,6 @@ is only `position: sticky` from 64rem, which moves nothing on its own), and no s
   statement, the features and the closing panel set a `.vk-eyebrow` label above it (`{ LABEL }`,
   the braces drawn in CSS with empty alt text); no section carries an index or a counter, and
   `reveal-marks.test.tsx` fails on a CSS counter or a numbered section list.
-- **Version pill.** On the landing only (the `landingLocale` gate in `lib/i18n.ts`), `HomeSiteHeader` passes
-  `VersionPill` (`components/version-pill.tsx`) as the frame's `badge`, rendered right after the
-  wordmark and outside the primary nav, which stays Docs, Reference and GitHub. It reads
-  `v{PACKAGE_VERSION}` (`lib/site.ts`, from the cli version that `scripts/sync-version.mjs` writes
-  to `lib/version.generated.json`) in `--font-mono` at `--text-xs` inside a `--radius-full`
-  `--border-default` outline, and links the cli's GitHub release (`releaseUrl` in
-  `components/landing/links.ts`, the `@verbatra/cli@<version>` tag) in a new tab, counted
-  declaratively as `outbound-link` with `target: version` and `location: header`. Its accessible
-  name is `landing.nav.version.label`, which contains the visible text. `.vk-version-pill` is
-  `display: none` under 768px. `lib/layout.shared.test.tsx` pins it.
 - **Budget.** Layout shift 0 over a full scroll at 390, 1440 and a 844 by 390 landscape phone; no
   scroll listener; at most one reveal chain per section, and only on a demo artifact (the hero
   the marquee loop is not a reveal); no entrance over 16px or 600ms.
@@ -875,8 +860,8 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
   parallel (`app/[lang]/request-locale.test.ts`). `components/landing/islands.test.tsx` pins
   the import rules.
 - Nothing a hydrated page asks for may race the first paint, since Lighthouse's simulation counts
-  every request that starts before the observed largest paint: island chunks, `/api/stats`
-  (`useLiveCount`) wait for `afterFirstContentfulPaint`. Links never prefetch on their own: they go
+  every request that starts before the observed largest paint: island chunks wait for
+  `afterFirstContentfulPaint`. Links never prefetch on their own: they go
   through `useIntentPrefetch` (`lib/use-intent-prefetch.ts`, `false` until the link is hovered,
   focused or touched, then the link's own choice) in `FrameworkLink`
   (`lib/framework-provider.tsx`, which every Fumadocs sidebar and header link reaches) and
@@ -899,9 +884,6 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
 - Keep both `next/font` families preloaded. Every one of them sets text in the first
   viewport, so it is fetched before the first paint either way; without the preload it is only
   discovered after the stylesheet, at a higher priority that delays the first contentful paint.
-- `gsap` only through the playground's dynamic `import()` of `playground-scramble.tsx` (see "The
-  stack"): the island chunk itself (`playground-demo.tsx`) imports no GSAP, so it is in neither the
-  first load nor the island batch, and `playground.test.tsx` fails on a static import.
 - Content only needed after an interaction is loaded with a dynamic `import()` on hover, focus,
   or click. The AI setup prompt is not: it is short, and its text ships in the page, in the
   `PromptCopyButton` preview.
@@ -925,22 +907,20 @@ items go through `lib/link-items.tsx`, never `fumadocs-ui/layouts/shared` at run
 module carries the default popover language select.
 On the docs surface `lib/layout.shared.tsx` supplies the primary navigation, exactly Docs,
 Reference and the GitHub icon (`lib/layout.shared.test.tsx` pins it). The home header (landing and
-legal pages) has no search box and its own items, from `components/home-nav.tsx`: a nav named by
-`landing.topNav.label` holding Features (`FeaturesNavLink`, to `#features` of the localized landing through `featuresUrl`), Docs, Changelog (GitHub Releases, new tab) and GitHub with the star
-count, then a primary "Get started" (`GetStartedLink` at `size="sm"`, carrying the `vk-nav-cta` hook
-class, which has no rule in `app/global.css`, to `/docs/quickstart`, visible at every width),
-the language select and the theme toggle. Its labels and the star count reach the client through
-`HomeNavProvider`, which `LocaleHomeLayout` fills on the server (`homeNavValue`: `landing.topNav`
-strings and the build-time star count from `loadProjectStats`, compacted with
-`formatCompactNumber`), so the header adds no client message namespace. After hydration the count
-and the link's `aria-label` (`landing.topNav.starsAria`, filled on the client through `fillCount`)
-follow the one shared `/api/stats` request (`useLiveCount` in `lib/live-stats.ts`); without a build-time count the GitHub link shows no number
-and no `aria-label`, and a failed request keeps the build-time number and is not cached, so the next mount asks again. Under 768px the items move into `HomeMobileMenu`, a shadcn `Sheet`
-(focus trap, Escape, focus back to the trigger, close button named by `landing.topNav.menu.close`)
-titled `landing.topNav.menu.title`, with a full-width "Get started" (`size="md"`, the `vk-nav-cta-menu`
-hook class, again without a stylesheet rule, counted as
-`click-cta` with `location: menu`) under its nav and the language select and theme toggle in its
-footer.
+legal pages) is the same frame fed the same links: `lib/header-links.tsx` (`headerLinks`) builds
+Docs, Reference and the GitHub icon for `lib/layout.shared.tsx` and for `homeNavValue`
+(`lib/locale-home-layout.tsx`), so the two headers cannot drift. `HomeSiteHeader` passes them as
+`navItems` and gives the frame the Fumadocs `FullSearchTrigger` and `SearchTrigger` as
+`slots.searchTrigger`; the search context comes from the `RootProvider` that `LandingProviders`
+mounts, so the trigger and Cmd/Ctrl+K open the same dialog as on the docs. There is no call to
+action, no version pill, no star count and no Features or Changelog link. Its labels reach the
+client through `HomeNavProvider` (`landing.topNav.label`, `menu.*`, `landing.openSource.newTab`),
+so the header adds no client message namespace. Under 768px the search shows as the 44px icon
+button and the links move into `HomeMobileMenu`, a shadcn `Sheet` (focus trap, Escape, focus back
+to the trigger, close button named by `landing.topNav.menu.close`) titled
+`landing.topNav.menu.title`, whose `MenuLinks` list the same items (GitHub with a new-tab hint)
+and whose footer holds the language select and theme toggle. `StaticSiteHeader` (the global 404)
+renders the same links as plain anchors with a `details` menu.
 The AI setup guide, the contributor guide, npm and the contact page are reached from the docs
 sidebar and the landing footer, never from the header. The text links and the icon show from 768px
 (`md`), exactly where the phone search and menu trigger hide. At least 24px separate the search box
@@ -964,9 +944,8 @@ Shift+Tab, too) land below the sticky header (WCAG 2.4.11); add only the extra g
 Both surfaces share one layout width: `--width-layout` (97rem, the notebook layout's own
 default) feeds `--fd-layout-width` from `:root` and again on the home container, so the
 docs header row and the docs grid sit in the same centred column on a wide monitor. The home
-header (landing and legal pages) passes `rowWidth="wide"` to `SiteHeaderFrame`, so its
-`.vk-header-row` takes `--width-wide` and the `--gutter` padding instead, and the wordmark and the
-call to action line up with the landing sections. The landing's
+header (landing and legal pages) uses that same row (`HeaderRow`: `--fd-layout-width`, 1rem then
+1.5rem padding from 768px), as does `.vk-legal-footer-nav`. The landing's
 content (the hero, every section and the closing section) shares one narrower column instead,
 `.vk-gutter` plus `.vk-w-wide`, so the hero `h1`, every section heading and the closing heading
 (no card border or inset of its own) start at one left edge; the footer bleeds on purpose.
@@ -994,9 +973,9 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   64rem, all sized in rem so a tall narrow column never stretches them into a strip behind the
   text): `.vk-banner-grid` is one column (copy, then cards), and from
   64rem an asymmetric 6fr / 5fr split, vertically centered, the copy (`.vk-banner-copy`: the
-  `.vk-announce` depth pill link, the `h1` `.vk-banner-title` (at most eight words, one sentence),
+  `.vk-announce` tinted pill link, the `h1` `.vk-banner-title` (at most eight words, one sentence),
   the `.vk-banner-lead` subline (at most 25 words), `.vk-banner-ctas` with Get started
-  (`/docs/quickstart`) beside the `.vk-banner-install` chip, a bordered `--surface-card` `CommandRow` (`wrap="narrow"`)
+  (`/docs/quickstart`) beside the `.vk-banner-install` chip, a borderless `--surface-card` `CommandRow` (`wrap="narrow"`)
   of `HERO_INSTALL_COMMAND`) in the wider column beside the demo (`.vk-banner-demo`: the
   `.vk-banner-files` stack, three `.vk-banner-file` cards of `--radius-lg` on `--surface-tile`; the
   front `de` card takes `--border-accent`, `--surface-raised` and a `--halo-strong` shadow, the `fr`
@@ -1099,33 +1078,20 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   sit in the MDX at all is set by "Badge placement" in the "Docs budget" section of
   `.claude/rules/docs.md`, and `lib/docs-badge-placement.test.ts` enforces it. A heading whose
   key a table's "Since" column already dates (the key table on `config-file`) carries no badge.
-- **Depth pill**: the one filled pill, and only for a "new" announcement, because the product
-  owner asked for an announcement badge that reads as new at a glance (modelled on the
-  `app-new-badge` of docs.nestjs.com). `NewPill` (`components/new-pill.tsx`, `.vk-pill-new`) is a
-  5px-radius chip, 2px by 6px, on a 90deg gradient from `--pill-new-start` (`--accent-fill`) to
-  `--pill-new-end` (a darker violet, its own value in each theme; in the light theme
-  `hsl(254 70% 26%)`, at least 1.6:1 from the start stop, with a 1px `--pill-new-rim` outer
-  hairline of the end stop at 45 percent, so the light chip never reads flat;
-  `components/new-pill.test.tsx` pins both), in `--pill-new-fg` (white)
-  10.5px, weight 700, uppercase, 0.04em tracking. `lib/theme.test.ts` holds `--pill-new-fg` at
-  4.5:1 on both stops in both themes. Its depth comes from four layers: a `::before` glow
-  (`--pill-new-glow`, the start stop at 55 percent), a static `::after` rim (a 1px masked border,
-  white at 60 percent on the 165deg diagonal ends), an `aria-hidden` `.vk-pill-new-ring` (a 1px
-  masked rim over a conic highlight on a 200 percent square that rotates) and an `aria-hidden`
-  `.vk-pill-new-shimmer` (a 40 percent skewed band that sweeps once in the first 32 percent of the
-  loop). The glow, ring and shimmer each run 4.5s three times and stop: every animation is finite.
-  Under `prefers-reduced-motion: reduce` none of them runs and the shimmer is `display: none`;
-  under `forced-colors` the layers drop and the chip gets a `CanvasText` border.
-  `NewAnnouncement` in the same file is its wide form: the depth pill inside a `.vk-announce`
-  link, a `--radius-full` outline with a `--text-faint` boundary (3:1 like every control), the
-  announcement text and a chevron that moves 2px on hover, with the `sr-only` new-tab note. The
+- **New mark**: the one "new" announcement motif, and only for a "new" announcement. `NewPill`
+  (`components/new-pill.tsx`, `.vk-pill-new`) is borderless and unfilled: an `aria-hidden` Sparkles icon
+  (`.vk-pill-new-icon`, 0.875rem) and the label in `--accent` at weight 600, with no gradient, rim, glow or
+  animation (`--accent` holds 4.5:1 on the page in both themes, pinned by `lib/theme.test.ts`).
+  `NewAnnouncement` in the same file is its wide form: the mark inside a `.vk-announce`
+  link, a `--radius-full` pill tinted with `--accent` at 11 percent (18 percent on hover) and no border, the
+  announcement text in `--text-body` and a chevron that moves 2px on hover, with the `sr-only` new-tab note
+  (a `LinkText` outline under `forced-colors`; the focus ring is the usual `--focus-ring` outline). The
   hero opens with it, pointing at the release notes of the newest cli release (`PACKAGE_VERSION`)
   with text that names the release without repeating the pill's word (`landing.banner.announcement.text`,
-  "v{version} is out"; `hero.test.tsx` checks it in every locale). The depth pill appears in
+  "v{version} is out"; `hero.test.tsx` checks it in every locale). The mark appears in
   exactly two places: that hero announcement and the marquee's upcoming-release provider badge,
-  which always carries its visible version. At most one depth pill per section (the marquee's
-  `aria-hidden` copies repeat its one item). Anything else (a version, a status, a dated feature)
-  stays the `.vk-pill` outline; never put the depth pill in a table, the sidebar or a heading.
+  which always carries its visible version. Anything else (a version, a status, a dated feature)
+  stays the `.vk-pill` outline; never put the mark in a table, the sidebar or a heading.
 - **Prose measure**: paragraphs, lists, block quotes and callouts in `#nd-page` stop at
   `--width-measure` (about 72 characters of body text); tables and code blocks run the full
   column, and so does a `not-prose` element and everything inside it.

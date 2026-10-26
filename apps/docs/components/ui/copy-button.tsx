@@ -9,9 +9,16 @@ type CopyButtonProps = {
   label: string;
   size?: CopyControlSize;
   className?: string;
+  compact?: boolean;
 };
 
-export function CopyButton({ text, label, size = "md", className }: CopyButtonProps): ReactNode {
+export function CopyButton({
+  text,
+  label,
+  size = "md",
+  className,
+  compact = false,
+}: CopyButtonProps): ReactNode {
   const t = useTranslations("landing.install");
   return (
     <CopyControl
@@ -19,6 +26,7 @@ export function CopyButton({ text, label, size = "md", className }: CopyButtonPr
       label={label}
       status={{ copy: t("copy"), copied: t("copied"), copyFailed: t("copyFailed") }}
       size={size}
+      compact={compact}
       {...(className === undefined ? {} : { className })}
     />
   );

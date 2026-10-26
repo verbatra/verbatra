@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import { SearchProvider } from "fumadocs-ui/contexts/search";
 import type { LinkItemType } from "fumadocs-ui/layouts/shared";
 import { act, type ComponentProps, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -39,7 +40,6 @@ vi.mock("@/components/chrome-islands", async () => ({
   LanguageSelect: () => null,
   ThemeToggle: () => null,
   HomeMobileMenu: (await import("@/components/home-mobile-menu")).HomeMobileMenu,
-  VersionPill: (await import("@/components/version-pill")).VersionPill,
 }));
 vi.mock("fumadocs-ui/layouts/notebook", () => ({ useNotebookLayout: () => ({}) }));
 vi.mock("@/components/root-tabs", () => ({ useRootTabs: () => ({ tabs: [] }) }));
@@ -62,12 +62,10 @@ vi.mock("fumadocs-ui/components/sidebar/base", () => {
 });
 
 const { baseOptions } = await import("./layout.shared");
+const { headerLinks: sharedHeaderLinks } = await import("./header-links");
 const { releaseUrl } = await import("@/components/landing/links");
-const { PACKAGE_VERSION } = await import("@/lib/site");
-const { docsStylesheetRules } = await import("@/lib/stylesheet-rules");
 const { HomeSiteHeader } = await import("@/components/site-header");
 const { HomeNavProvider } = await import("@/components/home-nav");
-const { localizedPath } = await import("@/lib/i18n");
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -86,19 +84,9 @@ let mounted: { container: HTMLDivElement; root: Root } | undefined;
 
 function navValue(locale: "en" | "de") {
   return {
-    docsUrl: localizedPath(locale, "/docs"),
-    quickstartUrl: localizedPath(locale, "/docs/quickstart"),
-    featuresUrl: `${localizedPath(locale, "/")}#features`,
-    locale,
-    stars: null,
+    links: sharedHeaderLinks(locale, { docs: "nav.docs", reference: "nav.reference" }),
     labels: {
       label: "Main",
-      features: "nav.features",
-      docs: "nav.docs",
-      github: "GitHub",
-      starsAria: "GitHub {count} stars",
-      changelog: "Changelog",
-      getStarted: "Get started",
       menuOpen: "Open menu",
       menuClose: "Close menu",
       menuTitle: "Menu",
@@ -113,9 +101,11 @@ async function renderHomeHeader(locale: "en" | "de" = "en"): Promise<HTMLDivElem
   const root = createRoot(container);
   act(() =>
     root.render(
-      <HomeNavProvider value={navValue(locale)}>
-        <HomeSiteHeader wordmark="verbatra" homeUrl="/" />
-      </HomeNavProvider>,
+      <SearchProvider SearchDialog={() => null} preload={false}>
+        <HomeNavProvider value={navValue(locale)}>
+          <HomeSiteHeader wordmark="verbatra" homeUrl="/" />
+        </HomeNavProvider>
+      </SearchProvider>,
     ),
   );
   mounted = { container, root };
@@ -134,50 +124,11 @@ afterEach(() => {
   mounted = undefined;
 });
 
-describe("the landing header version pill", () => {
-  it("names the released cli version and links its GitHub release in a new tab", async () => {
-    const pill = (await renderHomeHeader()).querySelector<HTMLAnchorElement>(
-      "header a.vk-version-pill",
-    );
-    expect(pill?.textContent).toBe(`v${PACKAGE_VERSION}`);
-    expect(pill?.getAttribute("href")).toBe(releaseUrl(PACKAGE_VERSION));
-    expect(pill?.getAttribute("target")).toBe("_blank");
-    expect(pill?.getAttribute("rel")).toBe("noopener noreferrer");
-    expect(pill?.getAttribute("aria-label")).toBe(
-      `Release notes for v${PACKAGE_VERSION} (opens in a new tab)`,
-    );
-  });
-
-  it("sits right after the wordmark, in the title group", async () => {
-    const pill = (await renderHomeHeader()).querySelector("a.vk-version-pill");
-    expect(pill?.parentElement?.classList.contains("flex-1")).toBe(true);
-    expect(pill?.parentElement?.lastElementChild).toBe(pill);
-  });
-
-  it("shows on the landing in every locale and nowhere else", async () => {
-    location.pathname = "/de";
-    expect((await renderHomeHeader("de")).querySelector(".vk-version-pill")).not.toBeNull();
-    act(() => mounted?.root.unmount());
-    mounted?.container.remove();
-    mounted = undefined;
-    location.pathname = "/de/contact";
-    expect((await renderHomeHeader("de")).querySelector(".vk-version-pill")).toBeNull();
-  });
-
+describe("release links", () => {
   it("links the tag the release workflow creates for the cli", () => {
     expect(releaseUrl("0.11.1")).toBe(
       "https://github.com/verbatra/verbatra/releases/tag/%40verbatra%2Fcli%400.11.1",
     );
-  });
-
-  it("shows only from 768px", () => {
-    const rules = docsStylesheetRules().filter(
-      (rule) => rule.selector === ".vk-version-pill" && "display" in rule.declarations,
-    );
-    expect(rules.map((rule) => [rule.media, rule.declarations.display])).toEqual([
-      ["", "none"],
-      ["@media (width >= 768px)", "inline-flex"],
-    ]);
   });
 });
 
@@ -224,14 +175,12 @@ describe("primary navigation", () => {
     }
   });
 
-  it("gives the landing bar Features, Docs, Changelog and GitHub, and none of the forbidden targets", async () => {
+  it("gives the landing bar the docs header's links and none of the forbidden targets", async () => {
     const container = await renderHomeHeader();
-    expect(hrefs(container.querySelector("header"), "nav a")).toEqual([
-      "/#features",
-      "/docs",
-      "https://github.com/verbatra/verbatra/releases",
-      "https://github.com/verbatra/verbatra",
-    ]);
+    expect(hrefs(container.querySelector("header"), "nav a")).toEqual(["/docs", "/docs/cli"]);
+    expect(
+      hrefs(container.querySelector("header"), "a[aria-label='GitHub (opens in a new tab)']"),
+    ).toEqual(["https://github.com/verbatra/verbatra"]);
     for (const href of hrefs(container, "a")) {
       for (const target of FORBIDDEN_TARGETS) expect(href ?? "").not.toMatch(target);
     }
@@ -239,19 +188,13 @@ describe("primary navigation", () => {
 
   it("prefixes the landing bar's internal links with a non-default locale", async () => {
     const container = await renderHomeHeader("de");
-    expect(hrefs(container.querySelector("header"), "nav a").slice(0, 2)).toEqual([
-      "/de/#features",
-      "/de/docs",
-    ]);
-    expect(hrefs(container.querySelector("header"), "a.vk-nav-cta")).toEqual([
-      "/de/docs/quickstart",
-    ]);
+    expect(hrefs(container.querySelector("header"), "nav a")).toEqual(["/de/docs", "/de/docs/cli"]);
   });
 
-  it("keeps the version pill out of the primary nav", async () => {
-    const container = await renderHomeHeader();
-    const pill = container.querySelector(".vk-version-pill");
-    expect(pill).not.toBeNull();
-    expect(pill?.closest("nav")).toBeNull();
+  it("gives the landing bar the docs search trigger and no call to action or version pill", async () => {
+    const header = (await renderHomeHeader()).querySelector("header");
+    expect(header?.querySelector("button[data-search-full]")).not.toBeNull();
+    expect(header?.querySelector("button[data-search]")).not.toBeNull();
+    expect(header?.querySelector(".vk-version-pill, .vk-nav-cta")).toBeNull();
   });
 });

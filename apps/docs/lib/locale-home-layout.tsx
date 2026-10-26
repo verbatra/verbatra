@@ -4,31 +4,19 @@ import { HomeContainer } from "@/components/home-container";
 import { HomeNavProvider, type HomeNavValue } from "@/components/home-nav";
 import { HomeSiteHeader } from "@/components/site-header";
 import { SiteWordmark } from "@/components/site-wordmark";
-import { formatCompactNumber } from "@/lib/compact-number";
+import { headerLinks } from "@/lib/header-links";
 import { type Locale, localizedPath, toLocale } from "@/lib/i18n";
-import { LIVE_COUNT_SLOT } from "@/lib/live-count";
-import { loadProjectStats } from "@/lib/project-stats";
 
 export const MAIN_CONTENT_ID = "main-content";
 
-export async function homeNavValue(locale: Locale, stars: number | null): Promise<HomeNavValue> {
+export async function homeNavValue(locale: Locale): Promise<HomeNavValue> {
   const t = await getTranslations({ locale, namespace: "landing.topNav" });
+  const tNav = await getTranslations({ locale, namespace: "landing.nav" });
   const tOpen = await getTranslations({ locale, namespace: "landing.openSource" });
-  const count = stars === null ? null : formatCompactNumber(stars, locale);
   return {
-    docsUrl: localizedPath(locale, "/docs"),
-    quickstartUrl: localizedPath(locale, "/docs/quickstart"),
-    featuresUrl: `${localizedPath(locale, "/")}#features`,
-    locale,
-    stars: count,
+    links: headerLinks(locale, { docs: tNav("docs"), reference: tNav("reference") }),
     labels: {
       label: t("label"),
-      features: t("features"),
-      docs: t("docs"),
-      github: t("github"),
-      starsAria: t("starsAria", { count: LIVE_COUNT_SLOT }),
-      changelog: t("changelog"),
-      getStarted: t("getStarted"),
       menuOpen: t("menu.open"),
       menuClose: t("menu.close"),
       menuTitle: t("menu.title"),
@@ -49,7 +37,7 @@ export async function LocaleHomeLayout({
   const { lang } = await params;
   const locale = toLocale(lang);
   const t = await getTranslations({ locale, namespace: "landing.nav" });
-  const nav = await loadProjectStats().then(({ stars }) => homeNavValue(locale, stars));
+  const nav = await homeNavValue(locale);
   return (
     <HomeNavProvider value={nav}>
       <a className="vk-skip-link" href={`#${MAIN_CONTENT_ID}`}>

@@ -46,6 +46,6 @@ export function playgroundSnippet(
     .join("\n");
 }
 
-export function snippetLocaleVar(locale: string): `--${string}` {
-  return `--vk-snippet-${locale}`;
+export function snippetHotVar(locale: string): `--${string}` {
+  return `--vk-snippet-hot-${locale}`;
 }

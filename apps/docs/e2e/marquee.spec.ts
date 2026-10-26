@@ -222,22 +222,15 @@ test.describe("marquee motion", () => {
     for (const [first, second] of running) expect(second).not.toBe(first);
   });
 
-  test("glints the release pill three times only once the marquee is in view", async ({ page }) => {
-    await page.setViewportSize({ width: 1440, height: 600 });
+  test("draws each item as a bare mark and label with no border or fill", async ({ page }) => {
     await page.goto("/");
-    const marquee = page.locator(".vk-marquee");
-    await expect(marquee).toHaveAttribute("data-marquee", "running");
-    const pill = marquee.locator(".vk-marquee-list:not(.vk-marquee-copy) .vk-pill-new").first();
-    const glow = () =>
-      pill.evaluate((element) => {
-        const style = getComputedStyle(element, "::before");
-        return [style.animationName, style.animationIterationCount];
-      });
-    await expect(marquee).not.toHaveAttribute("data-glint");
-    expect((await glow())[0]).toBe("none");
-    await marquee.scrollIntoViewIfNeeded();
-    await expect(marquee).toHaveAttribute("data-glint", "on");
-    expect(await glow()).toEqual(["vk-pill-new-glow", "3"]);
+    const item = page.locator(`${MARQUEE} .vk-marquee-item`).first();
+    await expect(item).toHaveCSS("border-top-width", "0px");
+    await expect(item).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    await expect(page.locator(`${MARQUEE} .vk-marquee-toggle`)).toHaveCSS(
+      "border-top-width",
+      "0px",
+    );
   });
 
   test("pauses a row while focus is inside it", async ({ page }) => {

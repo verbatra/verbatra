@@ -1,4 +1,4 @@
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Sparkles } from "lucide-react";
 import type { ReactNode } from "react";
 
 export const NEW_PILL_CLASS = "vk-pill-new";
@@ -6,8 +6,7 @@ export const NEW_PILL_CLASS = "vk-pill-new";
 export function NewPill({ children }: { children: ReactNode }): ReactNode {
   return (
     <span className={NEW_PILL_CLASS}>
-      <span aria-hidden="true" className="vk-pill-new-ring" />
-      <span aria-hidden="true" className="vk-pill-new-shimmer" />
+      <Sparkles aria-hidden="true" className="vk-pill-new-icon" />
       {children}
     </span>
   );

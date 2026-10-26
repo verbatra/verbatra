@@ -1,22 +1,10 @@
 import type { ReactNode } from "react";
-import { GithubIcon } from "@/components/landing/github-icon";
-import { reservedWidth } from "@/lib/reserved-width";
-import { cn } from "@/lib/utils";
 
 export const HEADER_CLASS = "vk-header sticky flex flex-col backdrop-blur-sm";
 
-export const ROW_WIDTH = {
-  layout: "max-w-(--fd-layout-width) px-4 md:px-6",
-  wide: "max-w-(--width-wide) px-(--gutter)",
-} as const;
-
-export type RowWidth = keyof typeof ROW_WIDTH;
-
-export function HeaderRow({ width, children }: { width: RowWidth; children: ReactNode }) {
+export function HeaderRow({ children }: { children: ReactNode }): ReactNode {
   return (
-    <div
-      className={cn("vk-header-row mx-auto flex h-14 w-full items-center gap-2", ROW_WIDTH[width])}
-    >
+    <div className="vk-header-row mx-auto flex h-14 w-full max-w-(--fd-layout-width) items-center gap-2 px-4 md:px-6">
       {children}
     </div>
   );
@@ -45,38 +33,6 @@ export function HeaderNav({
 }
 
 export const WORDMARK_LINK_CLASS = "vk-tap inline-flex items-center gap-2.5 font-semibold";
-
-export function githubLinkClass(className: string): string {
-  return cn("inline-flex items-center gap-1.5", className);
-}
-
-export function GitHubLinkBody({
-  label,
-  stars,
-  reserved,
-  starsSuffix,
-}: {
-  label: string;
-  stars: string | null;
-  reserved: string | null;
-  starsSuffix: string;
-}): ReactNode {
-  return (
-    <>
-      <GithubIcon size={16} />
-      <span>{label}</span>
-      {stars === null ? null : (
-        <>
-          {" "}
-          <span className="vk-nav-stars" data-stars="" style={reservedWidth(reserved)}>
-            {stars}
-          </span>
-          <span className="sr-only">{starsSuffix}</span>
-        </>
-      )}
-    </>
-  );
-}
 
 export function MenuIcon(): ReactNode {
   return (

@@ -11,7 +11,3 @@ export const MENU_TRIGGER = cn(
   buttonVariants({ variant: "ghost", size: "icon-sm" }),
   "vk-tap -me-1.5 p-2",
 );
-
-export const GET_STARTED_CLASS = "vk-tap vk-nav-cta whitespace-nowrap";
-
-export const GET_STARTED_STYLE = { background: "var(--accent-fill)" } as const;

@@ -160,9 +160,6 @@
     "nav": {
       "docs": "Docs",
       "reference": "Reference",
-      "version": {
-        "label": "Release notes for {version}"
-      },
       "languageSwitcher": {
         "chooseLanguage": "Choose a language",
         "triggerAriaSuffix": "choose a language",
@@ -173,12 +170,6 @@
     },
     "topNav": {
       "label": "Main",
-      "features": "Features",
-      "docs": "Docs",
-      "github": "GitHub",
-      "starsAria": "GitHub {count} stars",
-      "changelog": "Changelog",
-      "getStarted": "Get started",
       "menu": {
         "open": "Open menu",
         "close": "Close menu",
@@ -233,15 +224,10 @@
     },
     "playground": {
       "heading": "Translate a string with the SDK",
-      "lead": "Pick a string and target languages, then press Translate. The code shows the SDK call that produced these results.",
+      "lead": "Pick a string and watch the SDK call translate it into every language below. Placeholders stay exactly in place.",
       "items": "Source string",
       "languages": "Target languages",
-      "translate": "Translate",
-      "results": "Result",
-      "source": "Source",
-      "noLanguages": "Pick at least one target language.",
-      "notSelected": "Not selected",
-      "stale": "Press Translate to update",
+      "source": "Source ({locale})",
       "copy": "Copy code",
       "label": "Pre-generated with the Verbatra SDK and Gemini, not live.",
       "metadata": {
@@ -265,6 +251,31 @@
         "quickstart": "SDK quickstart",
         "reference": "SDK reference",
         "providers": "Providers"
+      },
+      "animation": {
+        "pause": "Pause animation",
+        "play": "Play animation"
+      },
+      "status": {
+        "running": "Translating {strings, plural, one {# string} other {# strings}} into {languages, plural, one {# language} other {# languages}}",
+        "passed": "Integrity check passed: {intact} of {total} placeholders intact",
+        "passedNone": "Integrity check passed: no placeholders to protect"
+      },
+      "counters": {
+        "sent": "sent",
+        "kept": "kept",
+        "placeholders": "placeholders",
+        "checking": "checking"
+      },
+      "clock": {
+        "typing": "typing",
+        "running": "running",
+        "done": "done"
+      },
+      "run": {
+        "queued": "queued",
+        "awaiting": "awaiting",
+        "resolved": "resolved"
       }
     },
     "features": {

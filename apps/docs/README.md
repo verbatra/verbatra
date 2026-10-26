@@ -108,16 +108,6 @@ providers, formats, the features, the commands it prints) live in typed tables u
   `LANDING_SECTIONS` at the position it takes, map the id to the component in `page.tsx`, and
   update the order in `lib/landing-sections.test.ts`. Give it a section `id` that no other section
   uses.
-- **Live star count**: the header's GitHub star count comes from `lib/project-stats.ts`, cut off
-  after a short timeout. The page reads it once at build time (`loadProjectStats`,
-  `cache: "force-cache"`, no revalidation), so every landing and legal page stays fully static and
-  its inline scripts match the CSP hashes written at build. After hydration, one client request to
-  the same-origin `/api/stats` route (a static route regenerated hourly) swaps in the current count
-  in place, in a width reserved by the build-time number. `GITHUB_TOKEN`, when set, raises the
-  GitHub rate limit. When a request fails or returns something unexpected, the build-time number
-  stays; when the build had none, the header's GitHub link shows no count. The page never shows a
-  made-up figure, and there is no display threshold. `lib/project-stats.static-pages.test.ts`
-  fails if page code asks the fetch to revalidate.
 
 ## Translating the interface strings
 

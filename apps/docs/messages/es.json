@@ -160,9 +160,6 @@
     "nav": {
       "docs": "Docs",
       "reference": "Referencia",
-      "version": {
-        "label": "Notas de la versión {version}"
-      },
       "languageSwitcher": {
         "chooseLanguage": "Elige un idioma",
         "triggerAriaSuffix": "elegir idioma",
@@ -173,12 +170,6 @@
     },
     "topNav": {
       "label": "Principal",
-      "features": "Características",
-      "docs": "Docs",
-      "github": "GitHub",
-      "starsAria": "GitHub {count} estrellas",
-      "changelog": "Changelog",
-      "getStarted": "Empezar",
       "menu": {
         "open": "Abrir menú",
         "close": "Cerrar menú",
@@ -233,15 +224,10 @@
     },
     "playground": {
       "heading": "Traduce una cadena con el SDK",
-      "lead": "Elige una cadena e idiomas de destino, luego presiona Traducir. El código muestra la llamada al SDK que produjo estos resultados.",
+      "lead": "Elige una cadena y mira cómo la llamada al SDK la traduce a todos los idiomas a continuación. Los marcadores de posición se quedan exactamente en su sitio.",
       "items": "Cadena de origen",
       "languages": "Idiomas de destino",
-      "translate": "Traducir",
-      "results": "Resultado",
-      "source": "Origen",
-      "noLanguages": "Elige al menos un idioma de destino.",
-      "notSelected": "No seleccionado",
-      "stale": "Presiona Traducir para actualizar",
+      "source": "Origen ({locale})",
       "copy": "Copiar código",
       "label": "Pre-generado con el SDK de Verbatra y Gemini, no en vivo.",
       "metadata": {
@@ -265,6 +251,31 @@
         "quickstart": "Inicio rápido del SDK",
         "reference": "Referencia del SDK",
         "providers": "Proveedores"
+      },
+      "animation": {
+        "pause": "Pausar animación",
+        "play": "Reproducir animación"
+      },
+      "status": {
+        "running": "Traduciendo {strings, plural, one {# cadena} many {# cadenas} other {# cadenas}} a {languages, plural, one {# idioma} many {# idiomas} other {# idiomas}}",
+        "passed": "Comprobación de integridad superada: {intact} de {total} marcadores de posición intactos",
+        "passedNone": "Comprobación de integridad superada: no hay marcadores de posición que proteger"
+      },
+      "counters": {
+        "sent": "enviados",
+        "kept": "conservados",
+        "placeholders": "marcadores de posición",
+        "checking": "comprobando"
+      },
+      "clock": {
+        "typing": "escribiendo",
+        "running": "corriendo",
+        "done": "listo"
+      },
+      "run": {
+        "queued": "en cola",
+        "awaiting": "esperando",
+        "resolved": "resuelto"
       }
     },
     "features": {

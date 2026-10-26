@@ -2,14 +2,7 @@
 
 import { type ReactNode, useRef, useState } from "react";
 import { MenuIcon } from "@/components/header-parts";
-import {
-  ChangelogNavLink,
-  DocsNavLink,
-  FeaturesNavLink,
-  GetStartedLink,
-  GitHubNavLink,
-  useHomeNav,
-} from "@/components/home-nav";
+import { MenuLinks, useHomeNav } from "@/components/home-nav";
 import { MENU_TRIGGER, SHEET_ITEM } from "@/components/nav-link-classes";
 import {
   Sheet,
@@ -48,18 +41,8 @@ export function HomeMobileMenu({ footer }: { footer: ReactNode }): ReactNode {
           </SheetTitle>
         </SheetHeader>
         <nav ref={navRef} aria-label={labels.label} className="flex flex-col gap-0.5 px-2">
-          <FeaturesNavLink className={SHEET_ITEM} onNavigate={close} />
-          <DocsNavLink className={SHEET_ITEM} onNavigate={close} />
-          <ChangelogNavLink className={SHEET_ITEM} />
-          <GitHubNavLink className={SHEET_ITEM} />
+          <MenuLinks className={SHEET_ITEM} onNavigate={close} />
         </nav>
-        <div className="px-4 pt-3 pb-4">
-          <GetStartedLink
-            size="md"
-            className="vk-tap vk-nav-cta-menu w-full justify-center"
-            onNavigate={close}
-          />
-        </div>
         <SheetFooter className="flex-row items-center justify-end gap-1 border-t border-(--border-default) px-2.5 pt-2 pb-4">
           {footer}
         </SheetFooter>

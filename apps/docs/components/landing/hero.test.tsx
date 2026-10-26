@@ -125,14 +125,13 @@ describe("Hero copy", () => {
     },
   );
 
-  it("keeps the pill's ring, shimmer and chevron away from assistive technology", async () => {
+  it("keeps the pill's sparkle and chevron away from assistive technology", async () => {
     const announce = (await render()).querySelector(".vk-announce");
-    for (const part of announce?.querySelectorAll(
-      ".vk-pill-new-ring, .vk-pill-new-shimmer, .vk-announce-chevron",
-    ) ?? []) {
+    for (const part of announce?.querySelectorAll(".vk-pill-new-icon, .vk-announce-chevron") ??
+      []) {
       expect(part.getAttribute("aria-hidden")).toBe("true");
     }
-    expect(announce?.querySelectorAll("[aria-hidden='true']")).toHaveLength(3);
+    expect(announce?.querySelectorAll("[aria-hidden='true']")).toHaveLength(2);
   });
 
   it("offers Get started to the quickstart beside an install command chip, and no GitHub button or trust line", async () => {
@@ -184,6 +183,15 @@ describe("Hero locale files", () => {
       doc.querySelector(".vk-banner [role='tablist'], .vk-tracks, .vk-track-terminal"),
     ).toBeNull();
     expect(doc.querySelector(".vk-banner-demo")?.children).toHaveLength(1);
+  });
+
+  it("tints every placeholder in the locale files with the shared chip", async () => {
+    const tinted = Array.from((await files()).querySelectorAll(".vk-banner-file .vk-ph")).map(
+      (chip) => chip.textContent,
+    );
+    expect(tinted).toContain("{name}");
+    expect(tinted).toContain("{count}");
+    expect(tinted.every((text) => /^\{[^{}]+\}$/.test(text ?? ""))).toBe(true);
   });
 
   it("stacks fr, es and de, the front card last", async () => {

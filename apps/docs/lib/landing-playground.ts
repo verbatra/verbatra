@@ -23,7 +23,23 @@ export const PLAYGROUND_METADATA: PlaygroundMetadata = OUTPUT.metadata;
 
 export const PLAYGROUND_SOURCE_LOCALE = "en";
 
-export const PLAYGROUND_DEFAULT_ITEM = "welcome";
+export const PLAYGROUND_DEFAULT_ITEM = "welcome" satisfies (typeof PICK_IDS)[number];
+
+const PICK_IDS = ["welcome", "messages", "cartEmpty", "onlyChanged"] as const;
+
+export type PlaygroundPickId = (typeof PICK_IDS)[number];
+
+export const PLAYGROUND_PICK_IDS: ReadonlyArray<PlaygroundPickId> = PICK_IDS;
+
+export const PLAYGROUND_PICKS: ReadonlyArray<PlaygroundItem> = PICK_IDS.flatMap((id) =>
+  PLAYGROUND_ITEMS.filter((item) => item.id === id),
+);
+
+export const PLAYGROUND_CHANGED_IDS: ReadonlyArray<PlaygroundPickId> = [PLAYGROUND_DEFAULT_ITEM];
+
+export const PLAYGROUND_SENT_STRINGS = PLAYGROUND_CHANGED_IDS.length;
+
+export const PLAYGROUND_KEPT_STRINGS = PLAYGROUND_ITEMS.length - PLAYGROUND_SENT_STRINGS;
 
 export const PLAYGROUND_MAX_OUTPUT_TOKENS = 2048;
 
