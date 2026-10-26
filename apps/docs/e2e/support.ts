@@ -20,6 +20,15 @@ export { THEMES, type ThemeName };
 
 export const LEGAL_PAGES = ["/imprint", "/privacy", "/licenses", "/contact"] as const;
 
+export const DOCS_PAGES = [
+  "/docs",
+  "/docs/cli/translate",
+  "/docs/config-file",
+  "/docs/ci-and-exit-codes",
+  "/docs/sdk",
+  "/docs/error-codes",
+] as const;
+
 function varyTokens(response: APIResponse): ReadonlyArray<string> {
   return response
     .headersArray()
