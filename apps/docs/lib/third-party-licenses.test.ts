@@ -101,7 +101,9 @@ describe("third-party licenses", () => {
         expect(asset.copyright.join(" "), asset.name).toContain("Changed: ");
       }
       if (asset.license === "MIT") {
-        expect(asset.copyright[0], asset.name).toMatch(/^Copyright \(c\) \d{4} \S/);
+        expect(asset.copyright[0], asset.name).toMatch(
+          /^Copyright \(c\) \d{4}(?:-present)? ?,? ?\S/,
+        );
         expect(manifest.texts.some((text) => text.license === "MIT")).toBe(true);
       }
     }

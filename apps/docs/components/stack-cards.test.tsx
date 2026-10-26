@@ -7,10 +7,17 @@ import { describe, expect, it } from "vitest";
 import { FORMAT_ID_CLASS, type StackCard, StackCards } from "./stack-cards";
 
 const CARDS: ReadonlyArray<StackCard> = [
-  { label: "React", icon: "web", formats: ["i18next-json"], href: "/docs/pick-your-stack#react" },
+  {
+    label: "React",
+    icon: "web",
+    mark: "react",
+    formats: ["i18next-json"],
+    href: "/docs/pick-your-stack#react",
+  },
   {
     label: "iOS and macOS",
     icon: "mobile",
+    mark: "apple",
     formats: ["apple-strings", "apple-xcstrings"],
     href: "#ios-and-macos",
   },
@@ -242,16 +249,39 @@ describe("StackCards", () => {
     expect(cardTextWidth((three?.minRem ?? 0) * 16, 3)).toBeGreaterThanOrEqual(needed);
   });
 
-  it("draws each generic glyph once in a sprite and references it from the card", () => {
+  it("draws a generic glyph only for a card with no brand mark, once, in a sprite", () => {
     const doc = renderCards("en");
-    const symbols = [...doc.querySelectorAll("symbol")].map((symbol) => symbol.id);
-    expect(symbols).toEqual([
-      "vk-stack-icon-stacks-web",
-      "vk-stack-icon-stacks-mobile",
-      "vk-stack-icon-stacks-custom",
+    const glyphs = [...doc.querySelectorAll("symbol")]
+      .map((symbol) => symbol.id)
+      .filter((id) => id.startsWith("vk-stack-icon-"));
+    expect(glyphs).toEqual(["vk-stack-icon-stacks-custom"]);
+    const items = [...doc.querySelectorAll("li")];
+    const hrefs = items.map((item) =>
+      item.querySelector(".vk-stack-card-chip use")?.getAttribute("href"),
+    );
+    expect(hrefs).toEqual([
+      "#vk-stack-mark-stacks-react",
+      "#vk-stack-mark-stacks-apple",
+      "#vk-stack-icon-stacks-custom",
     ]);
-    const uses = [...doc.querySelectorAll("li use")].map((use) => use.getAttribute("href"));
-    expect(uses).toEqual(symbols.map((id) => `#${id}`));
+  });
+
+  it("draws a brand mark as a currentColor fill from the shared sprite, never an image", () => {
+    const doc = renderCards("en");
+    const marks = [...doc.querySelectorAll("symbol")].filter((symbol) =>
+      symbol.id.startsWith("vk-stack-mark-"),
+    );
+    expect(marks.map((symbol) => symbol.id)).toEqual([
+      "vk-stack-mark-stacks-react",
+      "vk-stack-mark-stacks-apple",
+    ]);
+    for (const symbol of marks) {
+      const path = symbol.querySelector("path");
+      expect(path?.getAttribute("fill")).toBe("currentColor");
+      expect(path?.getAttribute("stroke")).toBeNull();
+    }
+    expect(doc.querySelector("img, image")).toBeNull();
+    expect(doc.body.innerHTML).not.toMatch(/#[0-9a-f]{6}|rgb\(|hsl\(/i);
   });
 
   it("keeps every sprite id unique when two card grids share a page", () => {
@@ -266,9 +296,13 @@ describe("StackCards", () => {
     const ids = [...doc.querySelectorAll("[id]")].map((element) => element.id);
     expect(new Set(ids).size).toBe(ids.length);
     for (const nav of doc.querySelectorAll("nav")) {
-      const prefix = `#vk-stack-icon-${nav.getAttribute("aria-labelledby")}-`;
+      const label = nav.getAttribute("aria-labelledby");
       for (const use of nav.querySelectorAll("li use")) {
-        expect(use.getAttribute("href")?.startsWith(prefix)).toBe(true);
+        const href = use.getAttribute("href") ?? "";
+        expect(
+          href.startsWith(`#vk-stack-icon-${label}-`) ||
+            href.startsWith(`#vk-stack-mark-${label}-`),
+        ).toBe(true);
       }
     }
   });
@@ -278,16 +312,44 @@ describe("StackCards", () => {
     expect(hrefs).toEqual(["/de/docs/pick-your-stack#react", "#ios-and-macos", "#something-else"]);
   });
 
-  it("draws outline glyphs in the text colour, never a brand logo or a filled mark", () => {
+  it("draws outline glyphs in the text colour and never a hand-drawn lookalike of a logo", () => {
     const doc = renderCards("en");
-    const paths = [...doc.querySelectorAll("symbol > *")];
-    expect(paths.length).toBe(3);
-    for (const element of paths) {
-      expect(element.tagName.toLowerCase()).toBe("path");
-      expect(element.getAttribute("fill")).toBe("none");
-      expect(element.getAttribute("stroke")).toBe("currentColor");
+    const glyphs = [...doc.querySelectorAll("symbol")].filter((symbol) =>
+      symbol.id.startsWith("vk-stack-icon-"),
+    );
+    expect(glyphs.length).toBe(1);
+    for (const symbol of glyphs) {
+      const path = symbol.querySelector("path");
+      expect(path?.getAttribute("fill")).toBe("none");
+      expect(path?.getAttribute("stroke")).toBe("currentColor");
     }
     expect(doc.body.innerHTML).not.toMatch(/dark:/);
+  });
+
+  it("gives a mark only to a stack whose logo licence is admitted, the same set in every locale", () => {
+    const content = join(process.cwd(), "content/docs");
+    const files = readdirSync(content, { recursive: true, encoding: "utf8" }).filter(
+      (file) =>
+        file.endsWith(".mdx") && readFileSync(join(content, file), "utf8").includes("<StackCards"),
+    );
+    expect(files).toHaveLength(8);
+    for (const file of files) {
+      const marks = [...readFileSync(join(content, file), "utf8").matchAll(/mark: "([^"]+)"/g)].map(
+        (match) => match[1],
+      );
+      expect(marks.toSorted(), file).toEqual(
+        [
+          "android",
+          "angular",
+          "apple",
+          "flutter",
+          "nextdotjs",
+          "react",
+          "spring",
+          "yaml",
+        ].toSorted(),
+      );
+    }
   });
 
   it("lays the cards out in one, two, then three columns, leaving a short last row ragged", () => {

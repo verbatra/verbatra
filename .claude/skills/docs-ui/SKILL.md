@@ -643,21 +643,32 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   rendered id plus 15 percent, pinned by its test) does an id wrap, then only after a hyphen. The
   glyphs live in `components/stack-icons.tsx` (`STACK_ICON_PATHS`: `web`, `mobile`, `server` for a
   framework's kind, a file outline per file format (`json` among them) and `custom`), stroked in
-  `currentColor`; a stack card never draws a brand mark, and a stack is recognised by its name.
-  Third-party logos appear in exactly two places: the GitHub mark
-  (`components/landing/github-icon.tsx`) and the marquee's brand marks. The logo rule for those:
+  `currentColor`; a card may carry a brand mark instead (its optional `mark` prop, an id of
+  `BRAND_MARKS`), drawn at 28px in the chip as a `<use>` of a `BrandMarkSprite` whose prefix
+  (`vk-stack-mark-<labelledBy>`) differs from the glyph sprite's, since `yaml` is both a glyph and a
+  mark; the glyph sprite then holds only the glyphs of cards without a mark. A mark is the stack's
+  framework or format logo, never a brand color: React, Next.js, Angular, Flutter, Android, iOS and
+  macOS (Apple), Java and Spring and YAML have one; Vue, Nuxt, gettext, .NET, XLIFF and INI keep their
+  glyph, because their logos are not admissible (Vue: CC BY-NC-SA 4.0 in `vuejs/art`; Nuxt: its
+  design kit states no license for the logo; .NET: the `dotnet/brand` README licenses its
+  illustrations CC0 but calls the logo copyright of the .NET authors, to be used per the brand
+  guidelines). `stack-cards.test.tsx` pins the mark set in all four locales.
+  Third-party logos appear in exactly three places: the GitHub mark
+  (`components/landing/github-icon.tsx`), the marquee's brand marks and the stack cards' marks. The
+  logo rule for those:
   a mark is inline SVG path data in `lib/brand-marks.ts` (`BRAND_MARKS`, each with its source
   package and version, file, license and attribution), never an `<img>`, a network request or an
   icon package in `package.json`; it is drawn in one `currentColor` fill, never in brand colors,
   with a gradient or a glow; and it is admitted only under a license that allows commercial use
-  and changes (no NC, no SA: Vue's mark is CC BY-NC-SA, so vue-i18n gets a chip). Every mark is
+  and changes (no NC, no SA: Vue's mark is CC BY-NC-SA, so vue-i18n gets a chip). A Simple Icons
+  entry being CC0 data does not clear its logo: check the brand's own repository or guidelines first. Every mark is
   listed as an asset in `THIRD_PARTY_NOTICES.md` and on `/licenses` through `ASSET_SOURCES` in
   `lib/third-party-licenses.ts` (run `licenses:sync` after a change), with the source URL, the
   CC BY attribution and change note where the license asks for one, and the sentence "Logos are
   trademarks of their owners, used to identify compatibility." `marquee.test.tsx` fails on a
   sprite symbol without a notice entry, a non-sprite reference or an embedded image, and
   `lib/third-party-licenses.test.ts` on an icon package, a missing entry or an NC or SA license.
-  Anything with no admissible mark gets a file-extension chip, never a lookalike drawn by hand (the landing marquee instead uses generic stroke glyphs, which imitate no logo). The grid is a `nav` named by `labelledBy`, the id of the heading above it
+  Anything with no admissible mark gets a generic stroke glyph, never a lookalike drawn by hand. The grid is a `nav` named by `labelledBy`, the id of the heading above it
   (the docs home section's `id`, or `page-title` on the docs `<h1>`), and that id also prefixes its
   sprite's symbol ids, so two grids on one page never collide. On the docs home, a stack with its
   own quickstart (`STACKS` in `lib/stacks.ts`) links its card to `/docs/quickstart/<id>` and carries

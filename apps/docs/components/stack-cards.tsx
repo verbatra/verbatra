@@ -1,7 +1,9 @@
 import type { SupportedFormat } from "@verbatra/sdk";
 import { Fragment, type ReactNode } from "react";
+import { BrandMark, BrandMarkSprite } from "@/components/brand-marks";
 import { StackIcon, type StackIconKey, StackIconSprite } from "@/components/stack-icons";
 import { IntentPrefetchLink } from "@/components/ui/intent-prefetch-link";
+import type { BrandMarkId } from "@/lib/brand-marks";
 import { type Locale, localizeHref } from "@/lib/i18n";
 
 const ICON_SIZE = 28;
@@ -12,6 +14,7 @@ export type StackCard = {
   label: string;
   href: string;
   icon: StackIconKey;
+  mark?: BrandMarkId;
   formats: ReadonlyArray<SupportedFormat>;
   badge?: string;
   description?: string;
@@ -19,6 +22,10 @@ export type StackCard = {
 
 function stackIconPrefix(labelledBy: string): string {
   return `vk-stack-icon-${labelledBy}`;
+}
+
+function stackMarkPrefix(labelledBy: string): string {
+  return `vk-stack-mark-${labelledBy}`;
 }
 
 function FormatIds({ formats }: { formats: ReadonlyArray<SupportedFormat> }): ReactNode {
@@ -56,10 +63,12 @@ function Chevron(): ReactNode {
 function Card({
   card,
   prefix,
+  markPrefix,
   locale,
 }: {
   card: StackCard;
   prefix: string;
+  markPrefix: string;
   locale: Locale;
 }): ReactNode {
   return (
@@ -86,7 +95,11 @@ function Card({
         {card.formats.length > 0 ? <FormatIds formats={card.formats} /> : null}
       </div>
       <span aria-hidden="true" className="vk-stack-card-chip">
-        <StackIcon prefix={prefix} icon={card.icon} size={ICON_SIZE} />
+        {card.mark === undefined ? (
+          <StackIcon prefix={prefix} icon={card.icon} size={ICON_SIZE} />
+        ) : (
+          <BrandMark prefix={markPrefix} mark={card.mark} size={ICON_SIZE} />
+        )}
       </span>
     </li>
   );
@@ -102,12 +115,22 @@ export function StackCards({
   locale: Locale;
 }): ReactNode {
   const prefix = stackIconPrefix(labelledBy);
+  const markPrefix = stackMarkPrefix(labelledBy);
+  const glyphs = cards.filter((card) => card.mark === undefined).map((card) => card.icon);
+  const marks = cards.flatMap((card) => (card.mark === undefined ? [] : [card.mark]));
   return (
     <nav aria-labelledby={labelledBy} className="not-prose @container my-6">
-      <StackIconSprite prefix={prefix} icons={cards.map((card) => card.icon)} />
+      <StackIconSprite prefix={prefix} icons={glyphs} />
+      <BrandMarkSprite prefix={markPrefix} marks={marks} />
       <ul className="vk-stack-grid">
         {cards.map((card) => (
-          <Card key={card.href} card={card} prefix={prefix} locale={locale} />
+          <Card
+            key={card.href}
+            card={card}
+            prefix={prefix}
+            markPrefix={markPrefix}
+            locale={locale}
+          />
         ))}
       </ul>
     </nav>

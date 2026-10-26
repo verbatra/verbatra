@@ -132,7 +132,7 @@ const BRAND_MARK_ASSETS: ReadonlyArray<AssetSource> = BRAND_MARK_IDS.map((id) =>
   return {
     name: brandMarkAssetName(id),
     license: mark.license,
-    usage: `Inline monochrome SVG path in the landing marquee, copied from ${brandMarkSourceUrl(mark)}. ${BRAND_MARK_TRADEMARK_NOTE}`,
+    usage: `Inline monochrome SVG path in the landing marquee and the stack cards, copied from ${brandMarkSourceUrl(mark)}. ${BRAND_MARK_TRADEMARK_NOTE}`,
     textFile: null,
     copyright: mark.attribution,
   };
