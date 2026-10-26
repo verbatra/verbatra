@@ -107,7 +107,7 @@ Das schreibt denselben Eintrag. Ergänze hier nie `--env KEY=value`: Damit steht
 Statt `.mcp.json` bündelt das Plugin die [verbatra-Skills](/de/docs/agent-recipes#das-skills-paket), diesen Server und einen Hook, der eine Locale-Datei prüft, nachdem Claude sie bearbeitet hat.
 
 <Callout type="warn">
-Kombinier das verbatra-Plugin nie mit einem `verbatra`-Eintrag in `.mcp.json`, den `init --agent` dann überspringt: Das Plugin bringt einen zweiten Server mit.
+Kombinier das verbatra-Plugin nie mit einem `verbatra`-Eintrag in `.mcp.json`: Das Plugin bringt einen zweiten Server mit. `init --agent` überspringt den Eintrag nur, wenn das Plugin in `.claude/settings.json` oder `.claude/settings.local.json` aktiviert ist.
 </Callout>
 
 ```bash
@@ -128,7 +128,7 @@ Siehe die [Plugin-Referenz von Claude Code](https://code.claude.com/docs/en/plug
 
 ## Codex
 
-Empfohlen: `npx @verbatra/cli init --agent --client codex` hängt diese Tabelle an `.codex/config.toml` an, Ausgaben aus:
+Empfohlen: `npx @verbatra/cli init --agent --client codex` (oder einfach `init --agent`, wenn `.codex/` existiert) hängt diese Tabelle an `.codex/config.toml` an, Ausgaben aus:
 
 ```toml title=".codex/config.toml"
 [mcp_servers.verbatra]
@@ -157,7 +157,7 @@ env_vars = ["ANTHROPIC_API_KEY"]
 
 ## Gemini CLI
 
-Empfohlen: `npx @verbatra/cli init --agent --client gemini` ergänzt diesen Eintrag in `.gemini/settings.json`, Ausgaben aus:
+Empfohlen: `npx @verbatra/cli init --agent --client gemini` (oder einfach `init --agent`, wenn `.gemini/` oder `GEMINI.md` existiert) ergänzt diesen Eintrag in `.gemini/settings.json`, Ausgaben aus:
 
 ```json title=".gemini/settings.json"
 {

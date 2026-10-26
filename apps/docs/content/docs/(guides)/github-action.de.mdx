@@ -122,7 +122,7 @@ Wird keine Konfiguration gefunden, schlägt der Schritt vor der Installation der
 
 ## Übersetzungen behalten
 
-`translate` schreibt die aktualisierten Locale-Dateien in den Checkout des Runners und hört dort auf: Die Action committet nie. Füge einen eigenen Schritt hinzu, der committet und pusht oder einen Pull Request öffnet, und gib nur diesem Job `contents: write` oder `pull-requests: write`. Um nur zu berichten, ohne zu schreiben, setze `dry-run: "true"` oder nutze `command: check`.
+`translate` schreibt die aktualisierten Locale-Dateien in den Checkout des Runners und hört dort auf: Die Action committet nie. Füge einen eigenen Schritt hinzu, der committet und pusht oder einen Pull Request öffnet, und gib nur diesem Job `contents: write` oder `pull-requests: write`.
 
 ## Eingaben
 
@@ -139,7 +139,7 @@ Wird keine Konfiguration gefunden, schlägt der Schritt vor der Installation der
 | `require-reviewed` | `"false"` | `"true"` lässt auch nicht freigegebene maschinelle Übersetzungen fehlschlagen (`--require-reviewed`); nur `check` |
 | `node-version` | `"24"` | Node.js-Version, die die Action zum Ausführen der CLI einrichtet |
 
-Die booleschen Eingaben akzeptieren nur `"true"` oder `"false"`. Ein ungültiger boolescher Wert oder eine Eingabe ohne den Befehl oder `qa`, den sie braucht, lässt den Schritt mit Exit `1` vor der Installation fehlschlagen. Die CLI lehnt ein unbekanntes `qa-severity` und `qa-severity: error` mit `qa-strict` mit Exit `2` danach ab.
+Die booleschen Eingaben akzeptieren nur `"true"` oder `"false"`. Ein ungültiger boolescher Wert oder eine Eingabe ohne den Befehl oder `qa`, den sie braucht, lässt den Schritt mit Exit `1` vor der CLI-Installation fehlschlagen. Die CLI lehnt ein unbekanntes `qa-severity` und `qa-severity: error` mit `qa-strict` mit Exit `2` danach ab.
 
 ## Outputs
 
@@ -149,9 +149,9 @@ Die booleschen Eingaben akzeptieren nur `"true"` oder `"false"`. Ein ungültiger
 
 ## Was ein Lauf dir zeigt
 
-- **Annotationen.** Unter `translate` wird jede fehlgeschlagene oder teilweise Locale zu einer Fehler-Annotation mit dem Titel `verbatra: <locale>`, an die Datei dieser Locale gehängt, wenn die Action sie findet. Unter `check` oder `diff` bekommt jede abweichende Locale eine mit dem Titel `verbatra check: <locale>` oder `verbatra diff: <locale>`. Die `LOCALE_PARTIAL`-Annotation einer teilweisen Locale nennt die zurückgehaltenen Keys, nach Ursache gruppiert. Jeder `check` ergänzt pro Locale eine `PLURAL_CATEGORIES_INCOMPLETE`-Warnung, wenn ihren Pluralen eine CLDR-Kategorie fehlt, die die Sprache nutzt. Ein Lauf, der als Ganzes fehlschlägt, bekommt eine einzige `verbatra`-Annotation mit dem Fehlercode, der Ursache als `(cause: X)` und einem `Next step:`-Hinweis, sofern die CLI sie liefert. GitHub zeigt höchstens 10 Annotationen pro Schweregrad, daher sortiert die Action sie nach Drift, Review, Qualitätsfehlern und Warnungen und ergänzt einen Hinweis, der den Rest zählt.
+- **Annotationen.** Unter `translate` mit Exit `1` wird jede fehlgeschlagene oder teilweise Locale zu einer Fehler-Annotation mit dem Titel `verbatra: <locale>`, an die Datei dieser Locale gehängt, wenn die Action sie findet. Unter `check` oder `diff` bekommt jede abweichende Locale eine mit dem Titel `verbatra check: <locale>` oder `verbatra diff: <locale>`. Die `LOCALE_PARTIAL`-Annotation einer teilweisen Locale nennt die zurückgehaltenen Keys, nach Ursache gruppiert. Jeder `check` ergänzt pro Locale eine `PLURAL_CATEGORIES_INCOMPLETE`-Warnung, wenn ihren Pluralen eine CLDR-Kategorie fehlt, die die Sprache nutzt. Ein Lauf, der als Ganzes fehlschlägt, bekommt eine einzige `verbatra`-Annotation mit dem Fehlercode, der Ursache als `(cause: X)` und einem `Next step:`-Hinweis, sofern die CLI sie liefert. GitHub zeigt höchstens 10 Annotationen pro Schweregrad, daher sortiert die Action sie nach Drift, Review, Qualitätsfehlern und Warnungen und ergänzt einen Hinweis, der den Rest zählt.
 - **Job-Zusammenfassung.** Eine Zeile pro Locale mit den Zahlen des ausgeführten Befehls, eine Gesamtzeile und die teilweisen und fehlgeschlagenen Locales. Mit `qa` kommt eine Befundtabelle mit bis zu 1000 Befunden hinzu; unvollständige Plurale bekommen einen eigenen Abschnitt.
-- **Exit-Status.** Die Action gibt zuerst die Annotationen und die Zusammenfassung aus und endet dann mit dem [Exit-Code](/de/docs/cli/output#exit-codes) der CLI, sodass der Schritt erst fehlschlägt, nachdem er gezeigt hat, warum.
+- **Exit-Status.** Die Action gibt zuerst die Annotationen und die Zusammenfassung aus und endet dann mit dem [Exit-Code](/de/docs/cli/output#exit-codes) der CLI, außer dass ein `translate`-Exit `3` besteht und ein Fehler vor dem Start der CLI mit `1` endet.
 
 ## Sicherheit
 

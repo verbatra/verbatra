@@ -12,7 +12,7 @@ A format adapter reads a locale file into one neutral shape and writes it back i
 | `vue-i18n-json` | vue-i18n JSON (`.json`) | `{name}`, `{0}` | pipe in the value | created | `{name}`, `%{name}`, `${name}` |
 | `next-intl-json` | next-intl JSON (`.json`) | ICU arguments and tags | ICU `plural`, `selectordinal` | created | `{name}`, `%{name}`, `${name}` |
 | `ngx-translate-json` | ngx-translate JSON (`.json`) | `{{name}}` | none | created | `{{name}}` |
-| `xliff` | XLIFF 1.2 and 2.0 (`.xlf`, `.xliff`) | inline elements, `{name}` | none | refused | `{{name}}`, `{name}`, `%{name}`, `${name}` |
+| `xliff` | XLIFF 1.2 and 2.0 (`.xlf`, `.xliff`) | inline elements, `{...}` | none | refused | `{{name}}`, `{name}`, `%{name}`, `${name}` |
 | `yaml` | YAML (`.yml`, `.yaml`) | `{{name}}` | none | created | `{{name}}` |
 | `arb` | Flutter ARB (`.arb`) | ICU arguments and tags | ICU `plural`, `selectordinal` | created | `{name}`, `%{name}`, `${name}` |
 | `properties` | Java/Spring properties (`.properties`) | MessageFormat `{0}`, `{count}` | none | created | `{name}`, `%{name}`, `${name}` |
@@ -79,11 +79,11 @@ All configs in one directory share `verbatra.lock.json`, and each run replaces t
 XLIFF 1.2 (`file/body/trans-unit`) and 2.0 (`file/unit/segment`), a flat list of units.
 
 - **Keys.** The unit `id`, then `resname`, then a position that shifts when units move, so give every unit an `id`. A 2.0 unit with several segments gets `<id>#<n>` keys. A duplicate key fails with `INVALID_STRUCTURE`.
-- **Source or translation.** A document is the source when the locale matches its `source-language` (`srcLang` in 2.0; a bare language matches its regional forms) and it does not declare that locale as its target; anything else, even a plain copy, is a translation. A target sharing the source's language (`en` to `en-GB`) must declare `target-language` (`trgLang`).
+- **Source or translation.** A document is the source when the locale matches its `source-language` (`srcLang` in 2.0; a bare language matches its regional forms) and it does not declare that locale as its target; anything else is a translation, except that a document declaring neither language is the source when it holds no `<target>`. A target sharing the source's language (`en` to `en-GB`) must declare `target-language` (`trgLang`).
 - **Missing values.** A `<target>` that is absent, empty, or in 1.2 marked `state="new"` or `"needs-translation"` is missing, and so is a 2.0 target equal to its source in a segment marked `state="initial"`. The `<source>` text is never copied in.
 - **Writes in place.** Each value goes into its `<target>`, created after `<source>` if absent, and a 1.2 `new` or `needs-translation` or 2.0 `initial` state (with its `subState`) becomes `translated`. `<source>`, attributes and `<note>` stay untouched.
-- **Missing units are added** as a copy of the source unit (without its targets or 1.2 `<alt-trans>`) in the matching `<file>`. A value with no unit to go to, or an unreadable source, fails the write with `INVALID_STRUCTURE` naming the key. `verbatra extract` appends source units with only a `<source>`; in 2.0 the key must be a valid NMTOKEN (`u1#0` is refused).
-- **Inline markup.** 1.2's `g`, `x`, `bx`, `ex`, `bpt`, `ept`, `ph`, `it`, `mrk`, 2.0's `ph`, `pc`, `sc`, `ec`, `mrk`, `sm`, `em`, `cp`, and `{name}` are guarded placeholders in either version. On write only these (plus 1.2 `<sub>` inside `bpt`, `ept`, `ph`, `it`) stay markup; anything else, such as `<b>`, becomes text.
+- **Missing units are added** as a copy of the source unit (without its targets or 1.2 `<alt-trans>`) in the matching `<file>`. A value with no unit to go to fails the write with `INVALID_STRUCTURE` naming the key; an unreadable source fails it without one. `verbatra extract` appends source units with only a `<source>`; in 2.0 the key must be a valid NMTOKEN (`u1#0` is refused).
+- **Inline markup.** 1.2's `g`, `x`, `bx`, `ex`, `bpt`, `ept`, `ph`, `it`, `mrk`, 2.0's `ph`, `pc`, `sc`, `ec`, `mrk`, `sm`, `em`, `cp`, and any `{...}` run are guarded placeholders in either version. On write only these (plus 1.2 `<sub>` inside `bpt`, `ept`, `ph`, `it`) stay markup; anything else, such as `<b>`, becomes text.
 - **Escaping.** Text is read as text (`A &amp; B` is `A & B`) and escaped once on write; text exactly matching an allowed element, such as `&lt;x id="1"/&gt;`, is written as that element, and `<!DOCTYPE` and `<!ENTITY` as text.
 - **Notes** (the unit's `<notes>` in 2.0) are read-only [context](/docs/manual-translation).
 - **Rejected input.** A document with a DTD or entity declaration fails with `INVALID_XML`.
@@ -129,7 +129,7 @@ Java and Spring `.properties`: flat key/value lines, keys kept verbatim.
 
 One JSON catalogue holding every locale, Xcode 15's replacement for `.strings`.
 
-- **One file for all locales.** `files.pattern` still needs `{locale}`, but every locale resolves to the same file (`{locale}Localizable.xcstrings`). Every writer is serialized on it, so locales run one at a time even with `--concurrency`.
+- **One file for all locales.** `files.pattern` still needs `{locale}`, but `{locale}` expands to an empty string, so every locale resolves to the same file (`{locale}Localizable.xcstrings` is `Localizable.xcstrings`). Every writer is serialized on it, so locales run one at a time even with `--concurrency`.
 - **Keys.** A key with no `sourceLanguage` localization uses the key text as source; a missing target localization counts as untranslated.
 - **Plurals** under `variations.plural` become `<key>_<category>`, only for the categories present.
 - **Placeholders are printf**, as in `.strings`; `%lld` equals `%d`.
@@ -182,7 +182,7 @@ One level of `[section]` headers over `key=value` lines.
 
 `<data name><value>` elements under `<root>`, claimed by `.resx` only.
 
-- **Writes patch values only**: everything else comes back unchanged, on the file's line terminator; a byte-order mark is dropped.
+- **Writes patch values only**: everything else comes back unchanged, on the file's line terminator; a byte-order mark is dropped, and a new `<data>` element, or one whose value has surrounding whitespace, gets `xml:space="preserve"`.
 - **Not translated.** `<data>` with `type` or `mimetype`, and names starting with `>>` or `$`, are kept as they are. A `<comment>` is read-only context.
 - **Placeholders** are composite format items and named holes taken whole (`{0}`, `{1,-10}`, `{2:C}`, `{when:d}`), so a renamed hole is refused; `{{`, `}}` and stray braces are guarded too. No ICU check, no plurals.
 - **Missing target** is created with the standard headers.

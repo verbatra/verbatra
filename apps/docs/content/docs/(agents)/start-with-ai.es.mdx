@@ -34,7 +34,7 @@ pnpm, yarn y bun también funcionan. No apruebes ningún script de instalación,
 npx @verbatra/cli init --provider <provider> --yes --json --agent
 ```
 
-Pregunta a la persona qué proveedor usar, salvo que el proyecto lo deje claro. Nunca elijas uno que gaste en un servicio que la persona no haya aceptado, y nunca pases un valor de clave a `init`. [Proveedores](/es/docs/providers) lista los ids; `none` desactiva la traducción automática. `init` detecta el formato, el patrón de ruta y los locales, imprime un envoltorio JSON y nunca pregunta. `--agent` además escribe una sección de verbatra en `AGENTS.md` (o en `CLAUDE.md` cuando es el único archivo de instrucciones) y el servidor MCP de verbatra, con el gasto desactivado, en la config de cada cliente que detecta, el `.mcp.json` de Claude Code cuando encuentra Claude Code o ningún cliente; `result.agent.clients` lista los archivos.
+Pregunta a la persona qué proveedor usar, salvo que el proyecto lo deje claro. Nunca elijas uno que gaste en un servicio que la persona no haya aceptado, y nunca pases un valor de clave a `init`. [Proveedores](/es/docs/providers) lista los ids; `none` desactiva la traducción automática. `init` detecta el formato, el patrón de ruta y los locales, imprime un envoltorio JSON y nunca pregunta. `--agent` además escribe una sección de verbatra en `AGENTS.md` (o en `CLAUDE.md` cuando es el único archivo de instrucciones o ya contiene la sección de verbatra) y el servidor MCP de verbatra, con el gasto desactivado, en la config de cada cliente que detecta, el `.mcp.json` de Claude Code cuando encuentra Claude Code o ningún cliente; `result.agent.clients` lista los archivos.
 
 | Código de salida y código de error | Haz esto |
 | --- | --- |

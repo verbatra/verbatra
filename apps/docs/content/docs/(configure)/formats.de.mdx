@@ -12,7 +12,7 @@ Ein Format-Adapter liest eine Locale-Datei in eine neutrale Form und schreibt si
 | `vue-i18n-json` | vue-i18n-JSON (`.json`) | `{name}`, `{0}` | Pipe im Wert | angelegt | `{name}`, `%{name}`, `${name}` |
 | `next-intl-json` | next-intl-JSON (`.json`) | ICU-Argumente und -Tags | ICU `plural`, `selectordinal` | angelegt | `{name}`, `%{name}`, `${name}` |
 | `ngx-translate-json` | ngx-translate-JSON (`.json`) | `{{name}}` | keine | angelegt | `{{name}}` |
-| `xliff` | XLIFF 1.2 und 2.0 (`.xlf`, `.xliff`) | Inline-Elemente, `{name}` | keine | abgelehnt | `{{name}}`, `{name}`, `%{name}`, `${name}` |
+| `xliff` | XLIFF 1.2 und 2.0 (`.xlf`, `.xliff`) | Inline-Elemente, `{...}` | keine | abgelehnt | `{{name}}`, `{name}`, `%{name}`, `${name}` |
 | `yaml` | YAML (`.yml`, `.yaml`) | `{{name}}` | keine | angelegt | `{{name}}` |
 | `arb` | Flutter-ARB (`.arb`) | ICU-Argumente und -Tags | ICU `plural`, `selectordinal` | angelegt | `{name}`, `%{name}`, `${name}` |
 | `properties` | Java/Spring-Properties (`.properties`) | MessageFormat `{0}`, `{count}` | keine | angelegt | `{name}`, `%{name}`, `${name}` |
@@ -79,11 +79,11 @@ Alle Konfigurationen in einem Verzeichnis teilen sich `verbatra.lock.json`, und 
 XLIFF 1.2 (`file/body/trans-unit`) und 2.0 (`file/unit/segment`), eine flache Liste von Units.
 
 - **Keys.** Die `id` der Unit, dann `resname`, dann eine Position, die sich verschiebt, wenn Units wandern; gib also jeder Unit eine `id`. Eine 2.0-Unit mit mehreren Segmenten bekommt Keys der Form `<id>#<n>`. Ein doppelter Key scheitert mit `INVALID_STRUCTURE`.
-- **Quelle oder Übersetzung.** Ein Dokument ist die Quelle, wenn die Locale zu seiner `source-language` passt (`srcLang` in 2.0; eine reine Sprache passt zu ihren regionalen Formen) und es diese Locale nicht als Ziel deklariert; alles andere, auch eine reine Kopie, ist eine Übersetzung. Ein Ziel mit derselben Sprache wie die Quelle (`en` zu `en-GB`) muss `target-language` (`trgLang`) deklarieren.
+- **Quelle oder Übersetzung.** Ein Dokument ist die Quelle, wenn die Locale zu seiner `source-language` passt (`srcLang` in 2.0; eine reine Sprache passt zu ihren regionalen Formen) und es diese Locale nicht als Ziel deklariert; alles andere ist eine Übersetzung, außer ein Dokument, das keine der beiden Sprachen deklariert: Es ist die Quelle, wenn es kein `<target>` enthält. Ein Ziel mit derselben Sprache wie die Quelle (`en` zu `en-GB`) muss `target-language` (`trgLang`) deklarieren.
 - **Fehlende Werte.** Ein `<target>`, das fehlt, leer ist oder in 1.2 mit `state="new"` oder `"needs-translation"` markiert ist, gilt als fehlend, ebenso ein 2.0-Target, das seiner Quelle gleicht, in einem Segment mit `state="initial"`. Der `<source>`-Text wird nie hineinkopiert.
 - **Schreiben an Ort und Stelle.** Jeder Wert geht in sein `<target>`, das nach `<source>` angelegt wird, wenn es fehlt, und ein 1.2-State `new` oder `needs-translation` oder ein 2.0-State `initial` (samt `subState`) wird zu `translated`. `<source>`, Attribute und `<note>` bleiben unangetastet.
-- **Fehlende Units werden ergänzt** als Kopie der Quell-Unit (ohne ihre Targets und das 1.2-`<alt-trans>`) im passenden `<file>`. Ein Wert ohne Unit, in die er gehen kann, oder eine unlesbare Quelle lässt das Schreiben mit `INVALID_STRUCTURE` scheitern und nennt den Key. `verbatra extract` hängt Quell-Units nur mit `<source>` an; in 2.0 muss der Key ein gültiges NMTOKEN sein (`u1#0` wird abgelehnt).
-- **Inline-Markup.** Die 1.2-Elemente `g`, `x`, `bx`, `ex`, `bpt`, `ept`, `ph`, `it`, `mrk`, die 2.0-Elemente `ph`, `pc`, `sc`, `ec`, `mrk`, `sm`, `em`, `cp` und `{name}` sind in beiden Versionen geschützte Platzhalter. Beim Schreiben bleiben nur diese (plus das 1.2-`<sub>` innerhalb von `bpt`, `ept`, `ph`, `it`) Markup; alles andere, etwa `<b>`, wird zu Text.
+- **Fehlende Units werden ergänzt** als Kopie der Quell-Unit (ohne ihre Targets und das 1.2-`<alt-trans>`) im passenden `<file>`. Ein Wert ohne Unit, in die er gehen kann, lässt das Schreiben mit `INVALID_STRUCTURE` scheitern und nennt den Key; eine unlesbare Quelle lässt es ohne Key scheitern. `verbatra extract` hängt Quell-Units nur mit `<source>` an; in 2.0 muss der Key ein gültiges NMTOKEN sein (`u1#0` wird abgelehnt).
+- **Inline-Markup.** Die 1.2-Elemente `g`, `x`, `bx`, `ex`, `bpt`, `ept`, `ph`, `it`, `mrk`, die 2.0-Elemente `ph`, `pc`, `sc`, `ec`, `mrk`, `sm`, `em`, `cp` und jede `{...}`-Folge sind in beiden Versionen geschützte Platzhalter. Beim Schreiben bleiben nur diese (plus das 1.2-`<sub>` innerhalb von `bpt`, `ept`, `ph`, `it`) Markup; alles andere, etwa `<b>`, wird zu Text.
 - **Escaping.** Text wird als Text gelesen (`A &amp; B` ist `A & B`) und beim Schreiben einmal escaped; Text, der genau einem erlaubten Element entspricht, etwa `&lt;x id="1"/&gt;`, wird als dieses Element geschrieben, `<!DOCTYPE` und `<!ENTITY` als Text.
 - **Notes** (in 2.0 die `<notes>` der Unit) sind nur lesbarer [Kontext](/de/docs/manual-translation).
 - **Abgelehnte Eingabe.** Ein Dokument mit einer DTD- oder Entity-Deklaration scheitert mit `INVALID_XML`.
@@ -129,7 +129,7 @@ Javas und Springs `.properties`: flache Key/Wert-Zeilen, Keys wortgetreu erhalte
 
 Ein JSON-Katalog, der jede Locale enthält, der Ersatz für `.strings` seit Xcode 15.
 
-- **Eine Datei für alle Locales.** `files.pattern` braucht weiterhin `{locale}`, aber jede Locale löst sich zur selben Datei auf (`{locale}Localizable.xcstrings`). Jeder Schreiber wird darauf serialisiert, Locales laufen also auch mit `--concurrency` nacheinander.
+- **Eine Datei für alle Locales.** `files.pattern` braucht weiterhin `{locale}`, aber `{locale}` wird zu einem leeren String, sodass sich jede Locale zur selben Datei auflöst (`{locale}Localizable.xcstrings` ergibt `Localizable.xcstrings`). Jeder Schreiber wird darauf serialisiert, Locales laufen also auch mit `--concurrency` nacheinander.
 - **Keys.** Ein Key ohne `sourceLanguage`-Localization verwendet den Key-Text als Quelle; eine fehlende Ziel-Localization zählt als nicht übersetzt.
 - **Plurale** unter `variations.plural` werden zu `<key>_<category>`, nur für die vorhandenen Kategorien.
 - **Platzhalter sind printf**, wie bei `.strings`; `%lld` ist gleich `%d`.
@@ -182,7 +182,7 @@ Eine Ebene von `[section]`-Headern über `key=value`-Zeilen.
 
 `<data name><value>`-Elemente unter `<root>`, nur für `.resx` beansprucht.
 
-- **Schreibvorgänge patchen nur Werte**: Alles andere kommt unverändert zurück, auf dem Zeilenende der Datei; ein Byte-Order-Mark fällt weg.
+- **Schreibvorgänge patchen nur Werte**: Alles andere kommt unverändert zurück, auf dem Zeilenende der Datei; ein Byte-Order-Mark fällt weg, und ein neues `<data>`-Element oder eines, dessen Wert Leerraum am Rand hat, bekommt `xml:space="preserve"`.
 - **Nicht übersetzt.** `<data>` mit `type` oder `mimetype` und Namen, die mit `>>` oder `$` beginnen, bleiben, wie sie sind. Ein `<comment>` ist nur lesbarer Kontext.
 - **Platzhalter** sind Composite-Format-Items und benannte Platzhalter, vollständig erfasst (`{0}`, `{1,-10}`, `{2:C}`, `{when:d}`), ein umbenannter wird also abgelehnt; `{{`, `}}` und einzelne Klammern werden ebenfalls geschützt. Keine ICU-Prüfung, keine Plurale.
 - **Ein fehlendes Ziel** wird mit den Standard-Headern angelegt.

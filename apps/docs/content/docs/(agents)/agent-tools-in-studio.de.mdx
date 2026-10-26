@@ -25,7 +25,7 @@ verbatra studio --expose-agent-tools
 
 Damit der Agent deinen Provider aufrufen darf, startest du Studio zusätzlich mit `--allow-spend` ([Ausgaben und Agent-Tools](/de/docs/cli/studio#ausgaben-und-agent-tools)).
 
-Der Agent liest jeden Wert ungeschwärzt, so wie die Seite ihn zeigt: Studio schwärzt nichts, weil ein Agent im Tab die Seite ohnehin lesen kann. Willst du Werte vor einem Agenten verbergen, nutze stattdessen den MCP-Server mit [`--redact-values`](/de/docs/cli/mcp#redacted-values); für ein NDA-Projekt siehe [Studio und MCP](/de/docs/data-handling#studio-und-mcp).
+Der Agent liest jeden Wert ungeschwärzt, so wie die Seite ihn zeigt: Studio schwärzt nichts, weil ein Agent im Tab die Seite ohnehin lesen kann. Ausnahme sind die Glossar-Tools: Ihre Werte durchlaufen eine Geheimnis-Schwärzung, ein Wert in der Form eines API-Schlüssels kommt daher als Platzhalter zurück. Willst du Werte vor einem Agenten verbergen, nutze stattdessen den MCP-Server mit [`--redact-values`](/de/docs/cli/mcp#redacted-values); für ein NDA-Projekt siehe [Studio und MCP](/de/docs/data-handling#studio-und-mcp).
 
 ## Wissen, was der Agent aufrufen kann
 

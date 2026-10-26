@@ -122,7 +122,7 @@ Si no encuentra configuración, el paso falla antes de instalar la CLI y nombra 
 
 ## Conserva las traducciones
 
-`translate` escribe los archivos de locale actualizados en el checkout del runner y se detiene ahí: la acción nunca hace commit. Añade tu propio paso que haga commit y push, o que abra un pull request, y concede `contents: write` o `pull-requests: write` solo a ese job. Para informar sin escribir, pon `dry-run: "true"` o usa `command: check`.
+`translate` escribe los archivos de locale actualizados en el checkout del runner y se detiene ahí: la acción nunca hace commit. Añade tu propio paso que haga commit y push, o que abra un pull request, y concede `contents: write` o `pull-requests: write` solo a ese job.
 
 ## Entradas
 
@@ -139,7 +139,7 @@ Si no encuentra configuración, el paso falla antes de instalar la CLI y nombra 
 | `require-reviewed` | `"false"` | `"true"` falla también con traducciones de máquina sin aprobar (`--require-reviewed`); solo `check` |
 | `node-version` | `"24"` | versión de Node.js que la acción prepara para ejecutar la CLI |
 
-Las entradas booleanas solo aceptan `"true"` o `"false"`. Un booleano no válido, o una entrada sin el comando o `qa` que necesita, hace fallar el paso con salida `1` antes de la instalación. La CLI rechaza un `qa-severity` desconocido, y `qa-severity: error` con `qa-strict`, con salida `2` después.
+Las entradas booleanas solo aceptan `"true"` o `"false"`. Un booleano no válido, o una entrada sin el comando o `qa` que necesita, hace fallar el paso con salida `1` antes de instalar la CLI. La CLI rechaza un `qa-severity` desconocido, y `qa-severity: error` con `qa-strict`, con salida `2` después.
 
 ## Salidas
 
@@ -149,9 +149,9 @@ Las entradas booleanas solo aceptan `"true"` o `"false"`. Un booleano no válido
 
 ## Qué te muestra una ejecución
 
-- **Anotaciones.** Con `translate`, cada locale fallido o parcial se convierte en una anotación de error titulada `verbatra: <locale>`, asociada al archivo de ese locale cuando la acción lo encuentra. Con `check` o `diff`, cada locale desviado recibe una titulada `verbatra check: <locale>` o `verbatra diff: <locale>`. La anotación `LOCALE_PARTIAL` de un locale parcial nombra las claves retenidas, agrupadas por causa. Cada `check` añade un aviso `PLURAL_CATEGORIES_INCOMPLETE` por locale cuyos plurales carecen de una categoría CLDR que usa el idioma. Una ejecución que falla por completo recibe una sola anotación `verbatra` con el código de error, su causa como `(cause: X)` y una pista `Next step:` cuando la CLI las da. GitHub muestra como mucho 10 anotaciones por severidad, así que la acción las ordena por desviación, revisión, errores de calidad y avisos, y añade un aviso que cuenta el resto.
+- **Anotaciones.** Con `translate` y salida `1`, cada locale fallido o parcial se convierte en una anotación de error titulada `verbatra: <locale>`, asociada al archivo de ese locale cuando la acción lo encuentra. Con `check` o `diff`, cada locale desviado recibe una titulada `verbatra check: <locale>` o `verbatra diff: <locale>`. La anotación `LOCALE_PARTIAL` de un locale parcial nombra las claves retenidas, agrupadas por causa. Cada `check` añade un aviso `PLURAL_CATEGORIES_INCOMPLETE` por locale cuyos plurales carecen de una categoría CLDR que usa el idioma. Una ejecución que falla por completo recibe una sola anotación `verbatra` con el código de error, su causa como `(cause: X)` y una pista `Next step:` cuando la CLI las da. GitHub muestra como mucho 10 anotaciones por severidad, así que la acción las ordena por desviación, revisión, errores de calidad y avisos, y añade un aviso que cuenta el resto.
 - **Resumen del job.** Una fila por locale con los recuentos del comando ejecutado, una línea agregada y los locales parciales y fallidos. Con `qa` añade una tabla de hallazgos de hasta 1000 hallazgos; los plurales incompletos tienen su propia sección.
-- **Estado de salida.** La acción emite primero las anotaciones y el resumen y luego sale con el [código de salida](/es/docs/cli/output#códigos-de-salida) de la propia CLI, así que el paso falla solo después de mostrar por qué.
+- **Estado de salida.** La acción emite primero las anotaciones y el resumen y luego sale con el [código de salida](/es/docs/cli/output#códigos-de-salida) de la propia CLI, salvo que un `3` de `translate` pasa y un fallo antes de arrancar la CLI sale con `1`.
 
 ## Seguridad
 

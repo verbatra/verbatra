@@ -34,7 +34,7 @@ pnpm, yarn, and bun work too. Approve no install scripts, neither in `pnpm appro
 npx @verbatra/cli init --provider <provider> --yes --json --agent
 ```
 
-Ask the human which provider to use unless the project makes it obvious. Never pick one that spends against a service the human did not agree to, and never pass a key value to `init`. [Providers](/docs/providers) lists the ids; `none` turns machine translation off. `init` detects the format, path pattern, and locales, prints one JSON envelope, and never prompts. `--agent` also writes a verbatra section to `AGENTS.md` (or to `CLAUDE.md` when that is the only instruction file) and the verbatra MCP server, spending off, to the config of each client it detects, Claude Code's `.mcp.json` when it finds Claude Code or no client at all; `result.agent.clients` lists the files.
+Ask the human which provider to use unless the project makes it obvious. Never pick one that spends against a service the human did not agree to, and never pass a key value to `init`. [Providers](/docs/providers) lists the ids; `none` turns machine translation off. `init` detects the format, path pattern, and locales, prints one JSON envelope, and never prompts. `--agent` also writes a verbatra section to `AGENTS.md` (or to `CLAUDE.md` when that is the only instruction file or already holds the verbatra section) and the verbatra MCP server, spending off, to the config of each client it detects, Claude Code's `.mcp.json` when it finds Claude Code or no client at all; `result.agent.clients` lists the files.
 
 | Exit code and error code | Do this |
 | --- | --- |

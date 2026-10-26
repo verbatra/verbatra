@@ -107,7 +107,7 @@ Cette commande écrit la même entrée. N'ajoute jamais `--env KEY=value` ici : 
 À la place de `.mcp.json`, le plugin regroupe les [skills verbatra](/fr/docs/agent-recipes#le-pack-de-skills), ce serveur et un hook qui vérifie un fichier de locale après que Claude l'a modifié.
 
 <Callout type="warn">
-Ne combine jamais le plugin verbatra avec une entrée `verbatra` dans `.mcp.json`, que `init --agent` saute alors : le plugin apporte un second serveur.
+Ne combine jamais le plugin verbatra avec une entrée `verbatra` dans `.mcp.json` : le plugin apporte un second serveur. `init --agent` saute l'entrée seulement quand le plugin est activé dans `.claude/settings.json` ou `.claude/settings.local.json`.
 </Callout>
 
 ```bash
@@ -128,7 +128,7 @@ Voir la [référence des plugins de Claude Code](https://code.claude.com/docs/en
 
 ## Codex
 
-La voie recommandée : `npx @verbatra/cli init --agent --client codex` ajoute cette table à la fin de `.codex/config.toml`, dépenses désactivées :
+La voie recommandée : `npx @verbatra/cli init --agent --client codex` (ou simplement `init --agent` quand `.codex/` existe) ajoute cette table à la fin de `.codex/config.toml`, dépenses désactivées :
 
 ```toml title=".codex/config.toml"
 [mcp_servers.verbatra]
@@ -157,7 +157,7 @@ env_vars = ["ANTHROPIC_API_KEY"]
 
 ## Gemini CLI
 
-La voie recommandée : `npx @verbatra/cli init --agent --client gemini` ajoute cette entrée à `.gemini/settings.json`, dépenses désactivées :
+La voie recommandée : `npx @verbatra/cli init --agent --client gemini` (ou simplement `init --agent` quand `.gemini/` ou `GEMINI.md` existe) ajoute cette entrée à `.gemini/settings.json`, dépenses désactivées :
 
 ```json title=".gemini/settings.json"
 {

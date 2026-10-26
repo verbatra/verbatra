@@ -122,7 +122,7 @@ If no config is found, the step fails before installing the CLI and names the di
 
 ## Persist translations
 
-`translate` writes the updated locale files into the runner's checkout and stops there: the action never commits. Add your own step that commits and pushes, or opens a pull request, and grant `contents: write` or `pull-requests: write` to that job only. To report without writing, set `dry-run: "true"` or use `command: check`.
+`translate` writes the updated locale files into the runner's checkout and stops there: the action never commits. Add your own step that commits and pushes, or opens a pull request, and grant `contents: write` or `pull-requests: write` to that job only.
 
 ## Inputs
 
@@ -139,7 +139,7 @@ If no config is found, the step fails before installing the CLI and names the di
 | `require-reviewed` | `"false"` | `"true"` also fails on unapproved machine-written translations (`--require-reviewed`); `check` only |
 | `node-version` | `"24"` | Node.js version the action sets up to run the CLI |
 
-The boolean inputs accept only `"true"` or `"false"`. A bad boolean, or an input without the command or `qa` it needs, fails the step with exit `1` before the install. The CLI rejects an unknown `qa-severity`, and `qa-severity: error` with `qa-strict`, with exit `2` after it.
+The boolean inputs accept only `"true"` or `"false"`. A bad boolean, or an input without the command or `qa` it needs, fails the step with exit `1` before the CLI install. The CLI rejects an unknown `qa-severity`, and `qa-severity: error` with `qa-strict`, with exit `2` after it.
 
 ## Outputs
 
@@ -149,9 +149,9 @@ The boolean inputs accept only `"true"` or `"false"`. A bad boolean, or an input
 
 ## What a run shows you
 
-- **Annotations.** Under `translate`, each failed or partial locale becomes one error annotation titled `verbatra: <locale>`, attached to that locale's file when the action can find it. Under `check` or `diff`, each drifted locale gets one titled `verbatra check: <locale>` or `verbatra diff: <locale>`. A partial locale's `LOCALE_PARTIAL` annotation names the withheld keys, grouped by cause. Every `check` adds one `PLURAL_CATEGORIES_INCOMPLETE` warning per locale whose plurals lack a CLDR category the language uses. A run that fails as a whole gets one `verbatra` annotation with the error code, its cause as `(cause: X)` and a `Next step:` hint when the CLI gives them. GitHub shows at most 10 annotations per severity, so the action orders them drift, review, quality errors, warnings, and adds one notice counting the rest.
+- **Annotations.** Under `translate` with exit `1`, each failed or partial locale becomes one error annotation titled `verbatra: <locale>`, attached to that locale's file when the action can find it. Under `check` or `diff`, each drifted locale gets one titled `verbatra check: <locale>` or `verbatra diff: <locale>`. A partial locale's `LOCALE_PARTIAL` annotation names the withheld keys, grouped by cause. Every `check` adds one `PLURAL_CATEGORIES_INCOMPLETE` warning per locale whose plurals lack a CLDR category the language uses. A run that fails as a whole gets one `verbatra` annotation with the error code, its cause as `(cause: X)` and a `Next step:` hint when the CLI gives them. GitHub shows at most 10 annotations per severity, so the action orders them drift, review, quality errors, warnings, and adds one notice counting the rest.
 - **Job summary.** One row per locale with the counts for the command that ran, an aggregate line, and the partial and failed locales. With `qa` it adds a findings table of up to 1000 findings; incomplete plurals get their own section.
-- **Exit status.** The action emits the annotations and the summary first, then exits with the CLI's own [exit code](/docs/cli/output#exit-codes), so the step fails only after showing why.
+- **Exit status.** The action emits the annotations and summary first, then exits with the CLI's own [exit code](/docs/cli/output#exit-codes), except that a `translate` exit `3` passes and a failure before the CLI runs exits `1`.
 
 ## Security
 

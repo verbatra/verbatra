@@ -12,7 +12,7 @@ Un adaptador de formato lee un archivo de locale en una forma neutral y lo escri
 | `vue-i18n-json` | JSON de vue-i18n (`.json`) | `{name}`, `{0}` | pipe en el valor | se crea | `{name}`, `%{name}`, `${name}` |
 | `next-intl-json` | JSON de next-intl (`.json`) | argumentos y etiquetas ICU | `plural`, `selectordinal` de ICU | se crea | `{name}`, `%{name}`, `${name}` |
 | `ngx-translate-json` | JSON de ngx-translate (`.json`) | `{{name}}` | ninguno | se crea | `{{name}}` |
-| `xliff` | XLIFF 1.2 y 2.0 (`.xlf`, `.xliff`) | elementos en línea, `{name}` | ninguno | se rechaza | `{{name}}`, `{name}`, `%{name}`, `${name}` |
+| `xliff` | XLIFF 1.2 y 2.0 (`.xlf`, `.xliff`) | elementos en línea, `{...}` | ninguno | se rechaza | `{{name}}`, `{name}`, `%{name}`, `${name}` |
 | `yaml` | YAML (`.yml`, `.yaml`) | `{{name}}` | ninguno | se crea | `{{name}}` |
 | `arb` | ARB de Flutter (`.arb`) | argumentos y etiquetas ICU | `plural`, `selectordinal` de ICU | se crea | `{name}`, `%{name}`, `${name}` |
 | `properties` | properties de Java/Spring (`.properties`) | MessageFormat `{0}`, `{count}` | ninguno | se crea | `{name}`, `%{name}`, `${name}` |
@@ -79,11 +79,11 @@ Todas las configuraciones de un mismo directorio comparten `verbatra.lock.json`,
 XLIFF 1.2 (`file/body/trans-unit`) y 2.0 (`file/unit/segment`), una lista plana de unidades.
 
 - **Claves.** El `id` de la unidad, luego `resname`, luego una posición que se desplaza cuando las unidades se mueven, así que dale a cada unidad un `id`. Una unidad 2.0 con varios segmentos recibe claves `<id>#<n>`. Una clave duplicada falla con `INVALID_STRUCTURE`.
-- **Origen o traducción.** Un documento es el origen cuando el locale coincide con su `source-language` (`srcLang` en 2.0; un idioma sin región coincide con sus formas regionales) y no declara ese locale como su destino; lo demás, incluso una simple copia, es una traducción. Un destino que comparte idioma con el origen (`en` a `en-GB`) debe declarar `target-language` (`trgLang`).
+- **Origen o traducción.** Un documento es el origen cuando el locale coincide con su `source-language` (`srcLang` en 2.0; un idioma sin región coincide con sus formas regionales) y no declara ese locale como su destino; lo demás es una traducción, salvo un documento que no declara ninguno de los dos idiomas: es el origen si no contiene ningún `<target>`. Un destino que comparte idioma con el origen (`en` a `en-GB`) debe declarar `target-language` (`trgLang`).
 - **Valores que faltan.** Un `<target>` ausente, vacío o, en 1.2, marcado con `state="new"` o `"needs-translation"` falta, y también un target de 2.0 igual a su origen en un segmento marcado con `state="initial"`. El texto de `<source>` nunca se copia en su lugar.
 - **Escrituras en su sitio.** Cada valor va a su `<target>`, que se crea tras `<source>` si no existe, y un estado `new` o `needs-translation` de 1.2 o `initial` de 2.0 (con su `subState`) pasa a `translated`. `<source>`, los atributos y `<note>` quedan intactos.
-- **Las unidades que faltan se añaden** como copia de la unidad de origen (sin sus targets ni el `<alt-trans>` de 1.2) en el `<file>` correspondiente. Un valor sin unidad a la que ir, o un origen ilegible, hace fallar la escritura con `INVALID_STRUCTURE` nombrando la clave. `verbatra extract` añade unidades de origen con solo un `<source>`; en 2.0 la clave debe ser un NMTOKEN válido (`u1#0` se rechaza).
-- **Marcado en línea.** `g`, `x`, `bx`, `ex`, `bpt`, `ept`, `ph`, `it`, `mrk` de 1.2, `ph`, `pc`, `sc`, `ec`, `mrk`, `sm`, `em`, `cp` de 2.0, y `{name}` son todos placeholders protegidos en cualquiera de las dos versiones. Al escribir, solo estos (más un `<sub>` de 1.2 dentro de `bpt`, `ept`, `ph`, `it`) siguen siendo marcado; cualquier otra cosa, como `<b>`, se convierte en texto.
+- **Las unidades que faltan se añaden** como copia de la unidad de origen (sin sus targets ni el `<alt-trans>` de 1.2) en el `<file>` correspondiente. Un valor sin unidad a la que ir hace fallar la escritura con `INVALID_STRUCTURE` nombrando la clave; un origen ilegible la hace fallar sin nombrar ninguna. `verbatra extract` añade unidades de origen con solo un `<source>`; en 2.0 la clave debe ser un NMTOKEN válido (`u1#0` se rechaza).
+- **Marcado en línea.** `g`, `x`, `bx`, `ex`, `bpt`, `ept`, `ph`, `it`, `mrk` de 1.2, `ph`, `pc`, `sc`, `ec`, `mrk`, `sm`, `em`, `cp` de 2.0, y cualquier secuencia `{...}` son todos placeholders protegidos en cualquiera de las dos versiones. Al escribir, solo estos (más un `<sub>` de 1.2 dentro de `bpt`, `ept`, `ph`, `it`) siguen siendo marcado; cualquier otra cosa, como `<b>`, se convierte en texto.
 - **Escapado.** El texto se lee como texto (`A &amp; B` es `A & B`) y se escapa una vez al escribir; el texto que coincide exactamente con un elemento permitido, como `&lt;x id="1"/&gt;`, se escribe como ese elemento, y `<!DOCTYPE` y `<!ENTITY` como texto.
 - **Las notas** (las `<notes>` de la unidad en 2.0) son [contexto](/es/docs/manual-translation) de solo lectura.
 - **Entrada rechazada.** Un documento con una declaración DTD o de entidad falla con `INVALID_XML`.
@@ -129,7 +129,7 @@ Sentencias `"key" = "value";`, con los plurales en el `.stringsdict` hermano (mi
 
 Un único catálogo JSON con todos los locales, el sustituto de `.strings` desde Xcode 15.
 
-- **Un archivo para todos los locales.** `files.pattern` sigue necesitando `{locale}`, pero todos los locales se resuelven al mismo archivo (`{locale}Localizable.xcstrings`). Toda escritura se serializa sobre él, así que los locales se ejecutan de uno en uno incluso con `--concurrency`.
+- **Un archivo para todos los locales.** `files.pattern` sigue necesitando `{locale}`, pero `{locale}` se expande a una cadena vacía, así que todos los locales se resuelven al mismo archivo (`{locale}Localizable.xcstrings` da `Localizable.xcstrings`). Toda escritura se serializa sobre él, así que los locales se ejecutan de uno en uno incluso con `--concurrency`.
 - **Claves.** Una clave sin localization de `sourceLanguage` usa el texto de la clave como origen; una localization de destino ausente cuenta como sin traducir.
 - **Los plurales** bajo `variations.plural` pasan a ser `<key>_<category>`, solo para las categorías presentes.
 - **Los placeholders son printf**, como en `.strings`; `%lld` equivale a `%d`.
@@ -182,7 +182,7 @@ Un nivel de cabeceras `[section]` sobre líneas `key=value`.
 
 Elementos `<data name><value>` bajo `<root>`, reclamados solo por `.resx`.
 
-- **Las escrituras solo parchean valores**: todo lo demás vuelve sin cambios, con el salto de línea del archivo; una marca de orden de bytes se descarta.
+- **Las escrituras solo parchean valores**: todo lo demás vuelve sin cambios, con el salto de línea del archivo; una marca de orden de bytes se descarta, y un elemento `<data>` nuevo, o uno cuyo valor tiene espacios en los extremos, recibe `xml:space="preserve"`.
 - **No se traducen.** Los `<data>` con `type` o `mimetype`, y los nombres que empiezan por `>>` o `$`, se conservan tal cual. Un `<comment>` es contexto de solo lectura.
 - **Los placeholders** son elementos de formato compuesto y huecos con nombre tomados enteros (`{0}`, `{1,-10}`, `{2:C}`, `{when:d}`), así que se rechaza uno renombrado; `{{`, `}}` y las llaves sueltas también se protegen. Sin comprobación ICU ni plurales.
 - **Un destino ausente** se crea con las cabeceras estándar.

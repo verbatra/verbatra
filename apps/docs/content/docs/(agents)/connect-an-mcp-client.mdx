@@ -107,7 +107,7 @@ This writes the same entry. Never add `--env KEY=value` here: it writes the valu
 Instead of `.mcp.json`, the plugin bundles the [verbatra skills](/docs/agent-recipes#the-skills-pack), this server, and a hook that checks a locale file after Claude edits it.
 
 <Callout type="warn">
-Never combine the verbatra plugin with a `verbatra` entry in `.mcp.json`, which `init --agent` then skips: the plugin brings a second server.
+Never combine the verbatra plugin with a `verbatra` entry in `.mcp.json`: the plugin brings a second server. `init --agent` skips the entry only when the plugin is enabled in `.claude/settings.json` or `.claude/settings.local.json`.
 </Callout>
 
 ```bash
@@ -128,7 +128,7 @@ See the [Claude Code plugins reference](https://code.claude.com/docs/en/plugins-
 
 ## Codex
 
-Recommended: `npx @verbatra/cli init --agent --client codex` appends this table to `.codex/config.toml`, spending off:
+Recommended: `npx @verbatra/cli init --agent --client codex` (or plain `init --agent` when `.codex/` exists) appends this table to `.codex/config.toml`, spending off:
 
 ```toml title=".codex/config.toml"
 [mcp_servers.verbatra]
@@ -157,7 +157,7 @@ env_vars = ["ANTHROPIC_API_KEY"]
 
 ## Gemini CLI
 
-Recommended: `npx @verbatra/cli init --agent --client gemini` adds this entry to `.gemini/settings.json`, spending off:
+Recommended: `npx @verbatra/cli init --agent --client gemini` (or plain `init --agent` when `.gemini/` or `GEMINI.md` exists) adds this entry to `.gemini/settings.json`, spending off:
 
 ```json title=".gemini/settings.json"
 {
