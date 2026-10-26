@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { lookupRate, type RateCard, rateCardSchema } from "./rate-card.js";
 
-type Equivalent<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
+type Identical<A, B> =
+  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
 
 type SchemaCard = z.infer<typeof rateCardSchema>;
 
@@ -277,8 +278,8 @@ describe("rateCardSchema: the currency label a figure is printed under", () => {
 
 describe("the RateCard interface", () => {
   it("describes exactly what rateCardSchema parses", () => {
-    const sameValues: Equivalent<RateCard, SchemaCard> = true;
-    const sameKeys: Equivalent<keyof RateCard, keyof SchemaCard> = true;
+    const sameValues: Identical<RateCard, SchemaCard> = true;
+    const sameKeys: Identical<keyof RateCard, keyof SchemaCard> = true;
     expect([sameValues, sameKeys]).toEqual([true, true]);
   });
 });

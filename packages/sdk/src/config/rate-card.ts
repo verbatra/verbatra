@@ -75,11 +75,11 @@ export type ModelRate = z.infer<typeof modelRateSchema>;
  */
 export interface RateCard {
   /** The date the rates were read, written as `YYYY-MM-DD`; printed beside every priced estimate. */
-  readonly asOf: string;
+  asOf: string;
   /** The three-letter uppercase currency code the rates are written in, such as `USD` or `EUR`. */
-  readonly currency: string;
+  currency: string;
   /** The rate entries by rate key: a token rate or a character rate, never both. */
-  readonly table: Readonly<Record<string, ModelRate>>;
+  table: Record<string, ModelRate>;
 }
 
 export function lookupRate(card: RateCard | undefined, rateKey: string): ModelRate | undefined {
