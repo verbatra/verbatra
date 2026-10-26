@@ -69,7 +69,7 @@ Un comando o flag desconocido sale con `2`, igual que un `verbatra` sin comando:
 
 ## Entradas de .gitignore
 
-Una ejecución real de `translate`, `watch`, `import`, `tmx import` o `pseudo` también añade a un `.gitignore` existente en la raíz del proyecto las entradas que le falten de `.env`, `.env.local`, `.verbatra-local/` y `verbatra.cache.json`, y las nombra en stderr. Un dry run no toca el archivo, y ninguno de estos comandos crea uno; eso lo hace [`verbatra init`](/es/docs/cli/init).
+Una ejecución real de `translate`, `watch`, `import`, `tmx import` o `pseudo` también añade a un `.gitignore` existente en la raíz del proyecto las entradas que le falten de `.env`, `.env.local`, `.verbatra-local/` y `verbatra.cache.json`, y las nombra en stderr (`--json` y `--quiet` omiten esa línea). Ocurre en cuanto se carga la configuración, así que una ejecución que falla después ya lo ha hecho. Un dry run no toca el archivo, y ninguno de estos comandos crea uno; eso lo hace [`verbatra init`](/es/docs/cli/init). Un `.gitignore` que es un enlace simbólico que sale del proyecto se deja sin cambios, con un aviso que `--json` y `--quiet` conservan.
 
 ## Salida en el terminal
 

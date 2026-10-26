@@ -37,7 +37,7 @@ verbatra pseudo --json
 | --- | --- | --- | --- |
 | `--mode` | `<mode>` | `accented` | <AvailableFrom version="0.12.0" /> la transformation : `accented` ou `bidi`, qui affiche chaque mot de droite à gauche (sinon `INVALID_OPTION`) |
 | `--locale` | `<code>` | `en-XA` (`ar-XB` avec `--mode bidi`) | la pseudo-locale à générer ; lettres, chiffres et tirets uniquement (sinon `INVALID_LOCALE`) |
-| `--out` | `<path>` | `.verbatra-local/pseudo` | répertoire où écrire la pseudo-locale, relatif au répertoire de travail et à l'intérieur de la racine du projet |
+| `--out` | `<path>` | `.verbatra-local/pseudo` | répertoire où écrire la pseudo-locale, relatif au répertoire de travail et à l'intérieur de la racine du projet ; une valeur vide est `INVALID_OUT` |
 
 La commande accepte aussi les [options globales](/fr/docs/cli#options-globales) `--cwd`, `--config` et `--json`.
 
@@ -85,7 +85,7 @@ La pseudo-locale est écrite hors de tes vrais fichiers de locale, par défaut s
 
 - une pseudo-locale qui nomme ta locale source ou une locale cible,
 - un `--out` qui place le fichier dans le même répertoire qu'un fichier de locale configuré,
-- un `--out` absolu, qui sort du répertoire de travail ou qui, une fois les liens symboliques résolus, aboutit hors du projet, à sa racine ou sur un fichier dont dépend le projet.
+- un `--out` absolu, qui sort de la racine du projet ou qui, une fois les liens symboliques résolus, aboutit hors du projet, à sa racine ou sur un fichier dont dépend le projet.
 
 Comme le fichier est hors de `files.pattern`, [`translate`](/fr/docs/cli/translate) ne dépense jamais rien pour lui, et [`check`](/fr/docs/cli/check) et [`diff`](/fr/docs/cli/diff) ne le signalent jamais.
 

@@ -43,7 +43,7 @@ Außerdem nimmt der Befehl die [globalen Flags](/de/docs/cli#globale-flags) `--c
 `extract` wird vom [`extract`-Block](/de/docs/config-file#extract) in deiner Konfiguration gesteuert. Ein Lauf ohne diesen Block scheitert mit `EXTRACT_NOT_CONFIGURED` und Exit `2`.
 
 ```ts title="verbatra.config.ts"
-import { defineConfig } from "@verbatra/sdk";
+import { defineConfig } from "@verbatra/cli";
 
 export default defineConfig({
   sourceLocale: "en",

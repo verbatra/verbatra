@@ -50,9 +50,9 @@ También acepta los [flags globales](/es/docs/cli#flags-globales) `--cwd` y `--c
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Si falta `--cwd` y `CLAUDE_PROJECT_DIR` nombra un directorio existente, el servidor lo usa como directorio del proyecto. `verbatra mcp` carga entonces los [archivos de entorno](/es/docs/cli#archivos-de-entorno) desde ese directorio; un `CLAUDE_PROJECT_DIR` definido solo en esos archivos se ignora, porque el directorio del proyecto se resuelve antes.
+Si falta `--cwd` y `CLAUDE_PROJECT_DIR` nombra un directorio existente, el servidor lo usa como directorio del proyecto. `verbatra mcp` carga entonces los [archivos de entorno](/es/docs/cli#archivos-de-entorno) desde ese directorio; un `CLAUDE_PROJECT_DIR` definido solo en esos archivos se ignora.
 
-La búsqueda de configuración empieza ahí, y el directorio de la configuración encontrada es la [raíz del proyecto](/es/docs/config-file#el-directorio-de-trabajo-y-env) contra la que se resuelve cada ruta de las herramientas, así que un servidor iniciado en un subdirectorio sigue trabajando con los archivos del proyecto.
+La búsqueda de configuración empieza ahí, y el directorio de la configuración encontrada es la [raíz del proyecto](/es/docs/config-file#el-directorio-de-trabajo-y-env) contra la que se resuelve cada ruta de las herramientas.
 
 ### Herramientas de gasto
 
@@ -156,7 +156,7 @@ No usable verbatra config: project.snapshot and project.doctor work, every other
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Antes de cada llamada, el servidor vuelve a cargar la configuración si cambió el archivo de configuración, un archivo que la búsqueda probaría o el archivo del glosario; un módulo que importa la configuración no se vigila. `--allow-spend` se lee una sola vez, así que un cambio puede ocultar las herramientas de gasto pero nunca listarlas sin él. Cuando cambia la lista de herramientas, el servidor envía `notifications/tools/list_changed`.
+Antes de cada llamada, el servidor vuelve a cargar la configuración si cambió el archivo de configuración, un archivo que la búsqueda probaría o el archivo del glosario; un módulo que importa la configuración no se vigila. `--allow-spend` se lee una sola vez, así que un cambio puede ocultar las herramientas de gasto pero nunca listarlas sin él. Cuando cambia la lista de herramientas, el servidor envía `notifications/tools/list_changed`. Si una recarga mueve la raíz del proyecto, `verbatra mcp` carga los archivos de entorno de esa raíz e imprime `verbatra: project root is now <root>`, que `--quiet` quita.
 
 ### Redacción de secretos
 
@@ -179,7 +179,7 @@ verbatra MCP server running on stdio (project ., spend tools off)
 verbatra MCP server stopped (client closed stdin)
 ```
 
-Si lo arrancas a mano en un terminal, dice que debería lanzarlo un cliente. `verbatra mcp --quiet` quita estas líneas, pero no el motivo de una configuración ausente.
+`verbatra mcp --quiet` quita estas líneas, pero no el motivo de una configuración ausente.
 
 ### Instalación
 

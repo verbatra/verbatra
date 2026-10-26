@@ -160,9 +160,9 @@ Por defecto acaba en `verbatra-types.d.ts` en la raíz de tu proyecto. **Haz com
 
 Una ruta de salida se rechaza con `TYPES_OUTPUT_CONFLICT` cuando:
 
-- no nombra ningún archivo, también cuando termina en un separador de ruta como `generated/`,
+- no nombra ningún archivo, también cuando termina en un separador de ruta como `generated/` (un `--out` vacío falla antes, con `INVALID_OUT`),
 - es absoluta,
-- se sale del directorio de trabajo con `..`,
+- se sale de la raíz del proyecto con `..`,
 - no es un archivo TypeScript, es decir, su nombre no termina en `.ts`, `.mts` o `.cts`,
 - nombra un archivo de locale configurado, de origen o de destino, para que la generación nunca sobrescriba un catálogo,
 - es el archivo de bloqueo, `verbatra.lock.json`,

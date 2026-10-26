@@ -43,7 +43,7 @@ verbatra translate --include-human
 | `--prune` | aucun | l'option `prune` de la configuration, sinon désactivé | retire les clés orphelines (dans un fichier cible, absentes de la source) du fichier écrit et du verrou |
 | `--lock-timeout` | `<seconds>` | `600` | attend ce délai un verrou d'écriture occupé d'une locale ; un entier de `1` à `3600` |
 | `--concurrency` | `<n>` | `1` | traduit jusqu'à `n` locales cibles à la fois ; un entier de `1` à `100`, refusé avec un budget de tokens |
-| `--max-tokens` | `<n>` | le `maxTokens` de la configuration | plafond strict de tokens pour cette exécution ; la plus basse valeur entre celle-ci et `maxTokens` s'applique |
+| `--max-tokens` | `<n>` | le `maxTokens` de la configuration | plafond strict de tokens pour cette exécution, un entier positif (sinon `INVALID_MAX_TOKENS`) ; la plus basse valeur entre celle-ci et `maxTokens` s'applique |
 | `--no-cache` | aucun | désactivé (cache actif) | contourne le [cache de mémoire de traduction](/fr/docs/the-cache) (`verbatra.cache.json`) pour cette exécution |
 | `--include-human` | aucun | désactivé | retraduit aussi, pour cette exécution seulement, les clés obsolètes écrites ou importées par une personne ; les [clés épinglées](/fr/docs/protecting-human-translations#épingler-des-clés) restent intactes |
 | `--estimate` | aucun | désactivé | estime ce que l'exécution enverrait et coûterait, puis termine ; implique `--dry-run` |
@@ -82,7 +82,7 @@ Par défaut, une exécution ne supprime rien : les clés orphelines sont signal�
 
 ### Verrous d'écriture et interruptions
 
-Une locale attend jusqu'à `--lock-timeout` un [verrou d'écriture](/fr/docs/the-lock-file#le-verrou-décriture) occupé, puis échoue avec `LOCK_CONTENDED` pendant que les autres locales continuent. Un verrou laissé par un processus verbatra qui ne tourne plus sur cette machine est récupéré aussitôt. Le délai ne borne que cette attente, avant tout appel au fournisseur : l'inscription d'un fichier écrit dans le fichier de verrouillage attend toujours jusqu'au défaut de dix minutes, pour qu'aucun fichier écrit ne reste non enregistré. Ctrl-C ou SIGTERM libère les verrous de l'exécution avant que la commande ne se termine.
+Une locale attend jusqu'à `--lock-timeout` un [verrou d'écriture](/fr/docs/the-lock-file#le-verrou-décriture) occupé, puis échoue avec `LOCK_CONTENDED` pendant que les autres locales continuent. Un verrou laissé par un processus verbatra qui ne tourne plus sur cette machine est récupéré aussitôt. Le délai ne borne que cette attente, avant tout appel au fournisseur : l'inscription d'un fichier écrit dans le fichier de verrouillage attend toujours jusqu'au défaut de dix minutes, pour qu'aucun fichier écrit ne reste non enregistré. Une attente de plus d'une seconde affiche sur stderr une ligne qui nomme le verrou et son détenteur (avec `--json`, un enregistrement `lock-wait`), et `--quiet` ne la supprime pas. Ctrl-C ou SIGTERM libère les verrous de l'exécution avant que la commande ne se termine.
 
 ### Plafond de tokens
 
@@ -98,13 +98,13 @@ Une locale attend jusqu'à `--lock-timeout` un [verrou d'écriture](/fr/docs/the
 
 <AvailableFrom version="0.12.0" />
 
-Une clé obsolète dont la valeur a été écrite, importée ou modifiée par une personne hors de verbatra est conservée par défaut : elle figure sous `protected`, n'est pas envoyée au fournisseur et reste obsolète pour `verbatra check`. Une ligne sur stderr indique combien ont été conservées et renvoie à `--include-human`, qui les retraduit pour une exécution (`humanEdits: "overwrite"`). Les clés protégées ne changent pas le code de sortie, sauf dans un projet entièrement humain. Voir [Protéger les traductions humaines](/fr/docs/protecting-human-translations).
+Une clé obsolète dont la valeur a été écrite, importée ou modifiée par une personne hors de verbatra est conservée par défaut : elle figure sous `protected`, n'est pas envoyée au fournisseur et reste obsolète pour `verbatra check`. Un avertissement sur stderr indique combien ont été conservées (les clés épinglées ne comptent pas) et renvoie à `--include-human`, qui les retraduit pour une exécution (`humanEdits: "overwrite"`) et n'affiche donc pas l'avertissement. Les clés protégées ne changent pas le code de sortie, sauf dans un projet entièrement humain. Voir [Protéger les traductions humaines](/fr/docs/protecting-human-translations).
 
 ### Projets entièrement humains
 
 <AvailableFrom version="0.12.0" />
 
-Dans un projet [entièrement humain](/fr/docs/human-only-workflow) (`provider: { id: "none" }`), aucun fournisseur n'est appelé. Les clés couvertes par la mémoire de traduction sont écrites, et toute autre clé manquante ou modifiée figure sous `unfilled` et donne la sortie `3` ; une locale en échec ou partielle l'emporte toujours avec `1`. Ici, une exécution à blanc lit la mémoire, donc son plan montre les mêmes clés `cacheHits` et `unfilled`, et `--estimate` n'indique rien de facturé ; les deux sortent avec `3` de la même façon. Transmets les clés `unfilled` avec [`verbatra export`](/fr/docs/cli/export).
+Dans un projet [entièrement humain](/fr/docs/human-only-workflow) (`provider: { id: "none" }`), aucun fournisseur n'est appelé. Les clés couvertes par la mémoire de traduction sont écrites, et toute autre clé manquante ou modifiée figure sous `unfilled` et donne la sortie `3` ; une locale en échec ou partielle l'emporte toujours avec `1`. Ici, une exécution à blanc lit la mémoire, donc son plan montre les mêmes clés `cacheHits` et `unfilled`, et `--estimate` n'indique rien de facturé ; les deux sortent avec `3` de la même façon. Sans `--json`, un avertissement sur stderr indique combien de clés ont besoin d'une personne, et une indication `next:` renvoie à [`verbatra export`](/fr/docs/cli/export), avec lequel tu transmets les clés `unfilled`.
 
 ### Locales en échec et partielles
 
@@ -145,7 +145,7 @@ verbatra: run finished, 2 locales processed
 next: verbatra check (confirm every locale is in sync)
 ```
 
-Une exécution à blanc ou une estimation termine chaque locale par `would translate`. Une locale qui n'a gardé qu'une partie des clés se termine par `partly done`, une locale en échec par `failed`, et la ligne finale indique combien ont échoué. Ces lignes vont sur stderr, et `--quiet` les supprime. Voir [Sortie dans le terminal](/fr/docs/cli/output#sortie-dans-le-terminal).
+Une exécution à blanc commence par `dry run over 2 locales, no provider call`, une estimation par `estimating 2 locales, no provider call` et un projet entièrement humain par `filling 2 locales from the translation memory (provider none)`. Une exécution à blanc ou une estimation termine chaque locale par `would translate`. Une locale qui n'a gardé qu'une partie des clés se termine par `partly done`, une locale en échec par `failed`, et la ligne finale indique combien ont échoué. Ces lignes vont sur stderr, et `--quiet` les supprime. Voir [Sortie dans le terminal](/fr/docs/cli/output#sortie-dans-le-terminal).
 
 ## Codes de sortie
 

@@ -50,9 +50,9 @@ Nimmt außerdem die [globalen Flags](/de/docs/cli#globale-flags) `--cwd` und `--
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Fehlt `--cwd` und nennt `CLAUDE_PROJECT_DIR` ein vorhandenes Verzeichnis, nimmt der Server es als Projektverzeichnis. `verbatra mcp` lädt dann die [Umgebungsdateien](/de/docs/cli#umgebungsdateien) aus diesem Verzeichnis; ein `CLAUDE_PROJECT_DIR`, das nur in diesen Dateien steht, wird ignoriert, weil das Projektverzeichnis vorher feststeht.
+Fehlt `--cwd` und nennt `CLAUDE_PROJECT_DIR` ein vorhandenes Verzeichnis, nimmt der Server es als Projektverzeichnis. `verbatra mcp` lädt dann die [Umgebungsdateien](/de/docs/cli#umgebungsdateien) aus diesem Verzeichnis; ein `CLAUDE_PROJECT_DIR`, das nur in diesen Dateien steht, wird ignoriert.
 
-Die Konfigurationssuche beginnt dort, und das Verzeichnis der gefundenen Konfiguration ist die [Projektwurzel](/de/docs/config-file#das-arbeitsverzeichnis-und-env), gegen die jeder Tool-Pfad aufgelöst wird, sodass ein Server aus einem Unterverzeichnis trotzdem mit den Dateien des Projekts arbeitet.
+Die Konfigurationssuche beginnt dort, und das Verzeichnis der gefundenen Konfiguration ist die [Projektwurzel](/de/docs/config-file#das-arbeitsverzeichnis-und-env), gegen die jeder Tool-Pfad aufgelöst wird.
 
 ### Kostenpflichtige Tools
 
@@ -156,7 +156,7 @@ No usable verbatra config: project.snapshot and project.doctor work, every other
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Vor jedem Aufruf lädt der Server die Konfiguration neu, wenn sich die Konfigurationsdatei, eine Datei, die die Suche prüfen würde, oder die Glossardatei geändert hat; ein Modul, das die Konfiguration importiert, wird nicht beobachtet. `--allow-spend` wird nur einmal gelesen, eine Änderung kann die kostenpflichtigen Tools also verbergen, sie ohne den Schalter aber nie listen. Ändert sich die Tool-Liste, sendet der Server `notifications/tools/list_changed`.
+Vor jedem Aufruf lädt der Server die Konfiguration neu, wenn sich die Konfigurationsdatei, eine Datei, die die Suche prüfen würde, oder die Glossardatei geändert hat; ein Modul, das die Konfiguration importiert, wird nicht beobachtet. `--allow-spend` wird nur einmal gelesen, eine Änderung kann die kostenpflichtigen Tools also verbergen, sie ohne den Schalter aber nie listen. Ändert sich die Tool-Liste, sendet der Server `notifications/tools/list_changed`. Verschiebt ein Neuladen die Projektwurzel, lädt `verbatra mcp` die Umgebungsdateien dieser Wurzel und gibt `verbatra: project root is now <root>` aus, was `--quiet` weglässt.
 
 ### Secrets werden geschwärzt
 
@@ -179,7 +179,7 @@ verbatra MCP server running on stdio (project ., spend tools off)
 verbatra MCP server stopped (client closed stdin)
 ```
 
-Startest du ihn von Hand im Terminal, sagt er, dass ein Client ihn starten soll. `verbatra mcp --quiet` lässt diese Zeilen weg, aber nicht den Grund für eine fehlende Konfiguration.
+`verbatra mcp --quiet` lässt diese Zeilen weg, aber nicht den Grund für eine fehlende Konfiguration.
 
 ### Installation
 

@@ -4,7 +4,7 @@ seoTitle: "verbatra watch: re-translate on every change"
 description: "Re-translate on every source change until interrupted, so locale files stay in sync while you edit the source; each run sends only new and changed keys."
 type: reference
 ---
-Watch the source locale file and re-run a translation after each debounced change, until you interrupt it. `watch` runs an initial translation at startup, then keeps your target locales current as you save. Each run works exactly like [`verbatra translate`](/docs/cli/translate). At startup it also adds missing entries to an existing `.gitignore`, see [.gitignore entries](/docs/cli#gitignore-entries).
+Watch the source locale file and re-run a translation after each debounced change, until you interrupt it. `watch` runs an initial translation at startup, then keeps your target locales current as you save. Each run works like [`verbatra translate`](/docs/cli/translate), except that `watch` has no `--dry-run`, `--prune`, `--include-human` or `--max-tokens` and never exits `3`. At startup it also adds missing entries to an existing `.gitignore`, see [.gitignore entries](/docs/cli#gitignore-entries).
 
 ## Synopsis
 
@@ -41,7 +41,7 @@ Also takes the [global flags](/docs/cli#global-flags) `--cwd`, `--config` and `-
 
 ### Each run
 
-Every run translates the `--locales` subset, or every target, with a fresh token budget. A locale whose [write lock](/docs/the-lock-file) stays contended past `--lock-timeout` fails with `LOCK_CONTENDED` in that run's summary while the other locales still run; a lock left by a verbatra process that is no longer running is reclaimed at once. A failed run never stops the watcher.
+Every run translates the `--locales` subset, or every target, with a fresh token budget. A locale whose [write lock](/docs/the-lock-file) stays contended past `--lock-timeout` fails with `LOCK_CONTENDED` in that run's summary while the other locales still run; a lock left by a verbatra process that is no longer running is reclaimed at once. A failed run never stops the watcher. A wait for a lock prints the lock-wait line described under [`translate`](/docs/cli/translate#write-locks-and-interrupts).
 
 A `--concurrency` above `1` together with a configured `maxTokens` budget is refused at startup with exit `2`, before the initial run, because which locale loses its remaining work would depend on how the locales interleave.
 
@@ -51,7 +51,7 @@ A provider that cannot be built, most often because its API key variable is unse
 
 <AvailableFrom version="0.12.0" />
 
-The first interrupt (Ctrl-C or SIGTERM) lets the current run finish, stops the watcher, and exits `0`. A second interrupt while that shutdown is still in flight force-stops with exit `130`, after releasing the session's write locks. Without `--json`, stderr says `verbatra: waiting for changes...` after every run, `verbatra: press Ctrl-C to stop` after the startup line on an interactive terminal, and `verbatra: stopped` once the shutdown has finished.
+The first interrupt (Ctrl-C or SIGTERM) lets the current run finish, stops the watcher, and exits `0`. A second interrupt while that shutdown is still in flight force-stops with exit `130`, after releasing the session's write locks. Without `--json`, stderr says `verbatra: waiting for changes...` after every run, `verbatra: press Ctrl-C to stop` after the startup line on an interactive terminal, and `verbatra: stopped` once the shutdown has finished. `--quiet` drops these lines, but not the startup line or `verbatra: stopping, finishing current run...` on the first interrupt: those are written in every mode, `--json` included.
 
 ### JSON output
 

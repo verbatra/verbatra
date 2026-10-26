@@ -4,7 +4,7 @@ seoTitle: "verbatra watch : retraduire à chaque changement"
 description: "Retraduit à chaque changement de la source jusqu'à interruption pour garder les locales à jour ; chaque exécution n'envoie que les clés nouvelles ou modifiées."
 type: reference
 ---
-Surveille le fichier de la locale source et relance une traduction après chaque changement temporisé, jusqu'à ce que tu l'interrompes. `watch` lance une traduction initiale au démarrage, puis garde tes locales cibles à jour au fil de tes sauvegardes. Chaque exécution fonctionne exactement comme [`verbatra translate`](/fr/docs/cli/translate). Au démarrage, il ajoute aussi les entrées manquantes à un `.gitignore` existant, voir [Entrées du .gitignore](/fr/docs/cli#entrées-du-gitignore).
+Surveille le fichier de la locale source et relance une traduction après chaque changement temporisé, jusqu'à ce que tu l'interrompes. `watch` lance une traduction initiale au démarrage, puis garde tes locales cibles à jour au fil de tes sauvegardes. Chaque exécution fonctionne comme [`verbatra translate`](/fr/docs/cli/translate), sauf que `watch` n'a pas de `--dry-run`, `--prune`, `--include-human` ni `--max-tokens` et ne sort jamais avec `3`. Au démarrage, il ajoute aussi les entrées manquantes à un `.gitignore` existant, voir [Entrées du .gitignore](/fr/docs/cli#entrées-du-gitignore).
 
 ## Synopsis
 
@@ -41,7 +41,7 @@ Accepte aussi les [options globales](/fr/docs/cli#options-globales) `--cwd`, `--
 
 ### Chaque exécution
 
-Chaque exécution traduit le sous-ensemble `--locales`, ou toutes les cibles, avec un budget de tokens neuf. Une locale dont le [verrou d'écriture](/fr/docs/the-lock-file) reste occupé au-delà de `--lock-timeout` échoue avec `LOCK_CONTENDED` dans le résumé de cette exécution, pendant que les autres continuent ; un verrou laissé par un processus verbatra qui ne tourne plus est récupéré aussitôt. Une exécution en échec n'arrête jamais la surveillance.
+Chaque exécution traduit le sous-ensemble `--locales`, ou toutes les cibles, avec un budget de tokens neuf. Une locale dont le [verrou d'écriture](/fr/docs/the-lock-file) reste occupé au-delà de `--lock-timeout` échoue avec `LOCK_CONTENDED` dans le résumé de cette exécution, pendant que les autres continuent ; un verrou laissé par un processus verbatra qui ne tourne plus est récupéré aussitôt. Une exécution en échec n'arrête jamais la surveillance. L'attente d'un verrou affiche la même ligne d'attente que celle décrite sous [`translate`](/fr/docs/cli/translate#verrous-décriture-et-interruptions).
 
 Un `--concurrency` supérieur à `1` avec un budget `maxTokens` configuré est refusé au démarrage avec la sortie `2`, avant la première exécution, car l'ordre dans lequel les locales s'entrelacent déciderait laquelle perd son travail restant.
 
@@ -51,7 +51,7 @@ Un fournisseur impossible à construire, le plus souvent parce que sa variable d
 
 <AvailableFrom version="0.12.0" />
 
-La première interruption (Ctrl-C ou SIGTERM) laisse l'exécution en cours se terminer, arrête la surveillance et sort avec `0`. Une seconde interruption pendant que l'arrêt est encore en cours force l'arrêt avec la sortie `130`, après avoir libéré les verrous d'écriture de la session. Sans `--json`, stderr affiche `verbatra: waiting for changes...` après chaque exécution, `verbatra: press Ctrl-C to stop` après la ligne de démarrage dans un terminal interactif, et `verbatra: stopped` une fois l'arrêt terminé.
+La première interruption (Ctrl-C ou SIGTERM) laisse l'exécution en cours se terminer, arrête la surveillance et sort avec `0`. Une seconde interruption pendant que l'arrêt est encore en cours force l'arrêt avec la sortie `130`, après avoir libéré les verrous d'écriture de la session. Sans `--json`, stderr affiche `verbatra: waiting for changes...` après chaque exécution, `verbatra: press Ctrl-C to stop` après la ligne de démarrage dans un terminal interactif, et `verbatra: stopped` une fois l'arrêt terminé. `--quiet` supprime ces lignes, mais pas la ligne de démarrage ni `verbatra: stopping, finishing current run...` à la première interruption : elles sont écrites dans tous les modes, `--json` compris.
 
 ### Sortie JSON
 

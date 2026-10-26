@@ -103,7 +103,7 @@ Ein `tu` pro eindeutigem Quellstring, mit dem Quellsegment und einem Zielsegment
 
 Jedes Zielsegment trägt `<prop type="x-origin">` (`machine`, `human`, `import` oder `unknown`) aus `verbatra.provenance.json`, ein `machine`-Segment außerdem `<prop type="x-review">` (`approved`, `unreviewed` oder `rejected`). Lässt sich die Provenance- oder Lock-Datei nicht lesen, wird keine Eigenschaft geschrieben, und das Ergebnis meldet `provenanceMarkers: "unavailable"`. Siehe [Nachweise zur maschinellen Übersetzung](/de/docs/provenance-evidence#tmx).
 
-Die Datei wird nur innerhalb des Arbeitsverzeichnisses geschrieben. Ein Pfad, der keine Datei benennt, aus dem Arbeitsverzeichnis herausführt oder eine Datei trifft, von der das Projekt abhängt (eine Locale-Datei, die Lock-, Provenance- oder Cache-Datei, eine Config-Datei, die Glossardatei), wird mit `TMX_OUTPUT_CONFLICT` abgelehnt, bevor der Speicher gelesen wird, auch nach dem Auflösen symbolischer Links. Scheitert das Schreiben auf der Platte, stoppt der Lauf mit `TMX_UNWRITABLE` und nennt die Datei und den Dateisystem-Code.
+Die Datei wird nur innerhalb der Projektwurzel geschrieben. Ein Pfad, der keine Datei benennt, aus der Projektwurzel herausführt oder eine Datei trifft, von der das Projekt abhängt (eine Locale-Datei, die Lock-, Provenance- oder Cache-Datei, eine Config-Datei, die Glossardatei), wird mit `TMX_OUTPUT_CONFLICT` abgelehnt, bevor der Speicher gelesen wird, auch nach dem Auflösen symbolischer Links. Scheitert das Schreiben auf der Platte, stoppt der Lauf mit `TMX_UNWRITABLE` und nennt die Datei und den Dateisystem-Code.
 
 ### JSON-Ausgabe
 
@@ -143,7 +143,7 @@ next: verbatra translate (reuses the imported memory before calling a provider)
 | Code | Bedeutung |
 | --- | --- |
 | `0` | die Datei wurde gelesen oder geschrieben; übersprungene oder abgelehnte Einheiten werden gemeldet, sind aber kein Fehler |
-| `2` | konnte nicht laufen: ein Config-Fehler, eine fehlende oder unlesbare TMX-Datei (`SOURCE_UNREADABLE`), eine zu große oder nicht parsbare (`SOURCE_INVALID`), ein abgelehnter Exportpfad (`TMX_OUTPUT_CONFLICT`), ein gescheiterter Schreibvorgang (`TMX_UNWRITABLE`) oder ein Bedienfehler |
+| `2` | konnte nicht laufen: ein Config-Fehler, eine fehlende oder unlesbare TMX-Datei (`SOURCE_UNREADABLE`), eine zu große oder nicht parsbare oder eine Quell-Locale-Datei, die sich nicht parsen lässt (`SOURCE_INVALID`), ein abgelehnter Exportpfad (`TMX_OUTPUT_CONFLICT`), ein gescheiterter Schreibvorgang (`TMX_UNWRITABLE`) oder ein Bedienfehler |
 
 Bei einer ungültigen Datei nennt die Meldung Zeile, Spalte und Einheit, an der sie scheiterte; Entity-Deklarationen und interne DTD-Subsets werden sofort abgelehnt, ein externer Doctype wird verworfen und nie abgerufen. Siehe [den Exit-Code-Vertrag](/de/docs/cli/output#exit-codes).
 

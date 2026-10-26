@@ -43,7 +43,7 @@ verbatra translate --include-human
 | `--prune` | none | the config's `prune` option, otherwise off | remove orphaned keys (in a target file, absent from source) from the written file and the lock |
 | `--lock-timeout` | `<seconds>` | `600` | wait this long for a held per-locale write lock; a whole number from `1` to `3600` |
 | `--concurrency` | `<n>` | `1` | translate up to `n` target locales at once; a whole number from `1` to `100`, refused under a token budget |
-| `--max-tokens` | `<n>` | the config's `maxTokens` | hard token ceiling for this run; the lower of this and the config's `maxTokens` applies |
+| `--max-tokens` | `<n>` | the config's `maxTokens` | hard token ceiling for this run, a positive whole number (`INVALID_MAX_TOKENS` otherwise); the lower of this and the config's `maxTokens` applies |
 | `--no-cache` | none | off (cache on) | bypass the [translation-memory cache](/docs/the-cache) (`verbatra.cache.json`) for this run |
 | `--include-human` | none | off | also retranslate stale keys a person wrote or imported, for this run only; [pinned keys](/docs/protecting-human-translations#pinning-keys) stay untouched |
 | `--estimate` | none | off | estimate what the run would send and cost, then exit; implies `--dry-run` |
@@ -82,7 +82,7 @@ By default a run deletes nothing: orphaned keys are reported and left in place. 
 
 ### Write locks and interrupts
 
-A locale waits up to `--lock-timeout` for a contended [write lock](/docs/the-lock-file#the-write-lock), then fails with `LOCK_CONTENDED` while the other locales still run. A lock left by a verbatra process that is no longer running on this machine is reclaimed at once. The timeout bounds only that wait before any provider call: recording a written file in the lock file always waits up to the ten-minute default, so a written file is never left unrecorded. Ctrl-C or SIGTERM releases the run's locks before the command exits.
+A locale waits up to `--lock-timeout` for a contended [write lock](/docs/the-lock-file#the-write-lock), then fails with `LOCK_CONTENDED` while the other locales still run. A lock left by a verbatra process that is no longer running on this machine is reclaimed at once. The timeout bounds only that wait before any provider call: recording a written file in the lock file always waits up to the ten-minute default, so a written file is never left unrecorded. A wait longer than a second prints a line on stderr naming the lock and its holder (a `lock-wait` record under `--json`), which `--quiet` does not drop. Ctrl-C or SIGTERM releases the run's locks before the command exits.
 
 ### Token ceiling
 
@@ -98,13 +98,13 @@ A locale waits up to `--lock-timeout` for a contended [write lock](/docs/the-loc
 
 <AvailableFrom version="0.12.0" />
 
-A stale key whose value a person wrote, imported, or changed outside verbatra is kept by default: it is listed as `protected`, not sent to the provider, and stays stale for `verbatra check`. A stderr line says how many were kept and points to `--include-human`, which retranslates them for one run (`humanEdits: "overwrite"`). Protected keys do not change the exit code, except in a human-only project. See [Protecting human translations](/docs/protecting-human-translations).
+A stale key whose value a person wrote, imported, or changed outside verbatra is kept by default: it is listed as `protected`, not sent to the provider, and stays stale for `verbatra check`. A stderr warning says how many were kept (pinned keys are not counted) and points to `--include-human`, which retranslates them for one run (`humanEdits: "overwrite"`) and so prints no warning. Protected keys do not change the exit code, except in a human-only project. See [Protecting human translations](/docs/protecting-human-translations).
 
 ### Human-only projects
 
 <AvailableFrom version="0.12.0" />
 
-In a [human-only](/docs/human-only-workflow) project (`provider: { id: "none" }`) no provider is called. Keys the translation memory covers are written, and every other missing or changed key is listed as `unfilled` and exits `3`; a failed or partial locale still wins with `1`. A dry run reads the memory here, so its plan shows the same `cacheHits` and `unfilled` keys, and `--estimate` reports nothing billed; both exit `3` the same way. Hand the `unfilled` keys off with [`verbatra export`](/docs/cli/export).
+In a [human-only](/docs/human-only-workflow) project (`provider: { id: "none" }`) no provider is called. Keys the translation memory covers are written, and every other missing or changed key is listed as `unfilled` and exits `3`; a failed or partial locale still wins with `1`. A dry run reads the memory here, so its plan shows the same `cacheHits` and `unfilled` keys, and `--estimate` reports nothing billed; both exit `3` the same way. Without `--json`, a stderr warning says how many keys need a person, and a `next:` hint points to [`verbatra export`](/docs/cli/export), where you hand the `unfilled` keys off.
 
 ### Failed and partial locales
 
@@ -145,7 +145,7 @@ verbatra: run finished, 2 locales processed
 next: verbatra check (confirm every locale is in sync)
 ```
 
-A dry run or an estimate ends each locale with `would translate` instead. A locale that kept only some keys ends with `partly done`, one that failed with `failed`, and the closing line adds how many failed. These lines go to stderr, and `--quiet` drops them. See [Terminal output](/docs/cli/output#terminal-output).
+A dry run opens with `dry run over 2 locales, no provider call`, an estimate with `estimating 2 locales, no provider call`, and a human-only project with `filling 2 locales from the translation memory (provider none)`. A dry run or an estimate ends each locale with `would translate` instead. A locale that kept only some keys ends with `partly done`, one that failed with `failed`, and the closing line adds how many failed. These lines go to stderr, and `--quiet` drops them. See [Terminal output](/docs/cli/output#terminal-output).
 
 ## Exit codes
 

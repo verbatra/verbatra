@@ -197,7 +197,7 @@ das in `SOURCE_INVALID` eingepackt an. Code:
 Keys unter `budgetWithheld`.
 
 **Ursache**: Der Lauf hat `maxTokens` aus der Konfiguration oder `--max-tokens` für den Lauf
-erreicht. `"warn"` meldet das nur; `"stop"` hält jeden noch nicht versuchten Key zurück, und das
+erreicht. `"warn"` meldet nur ein Budget aus der Konfiguration; `"stop"` und `--max-tokens`, egal was die Konfiguration sagt, halten jeden noch nicht versuchten Key zurück, und das
 Locale endet `partial` oder `failed`.
 
 **Lösung**: Das ist die Leitplanke bei der Arbeit: Was angekommen ist, ist geschrieben, und

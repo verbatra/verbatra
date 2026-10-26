@@ -37,7 +37,7 @@ verbatra pseudo --json
 | --- | --- | --- | --- |
 | `--mode` | `<mode>` | `accented` | <AvailableFrom version="0.12.0" /> la transformación: `accented` o `bidi`, que muestra cada palabra de derecha a izquierda (si no, `INVALID_OPTION`) |
 | `--locale` | `<code>` | `en-XA` (`ar-XB` con `--mode bidi`) | el pseudolocale que se genera; solo letras, dígitos y guiones (si no, `INVALID_LOCALE`) |
-| `--out` | `<path>` | `.verbatra-local/pseudo` | directorio donde se escribe el pseudolocale, relativo al directorio de trabajo y dentro de la raíz del proyecto |
+| `--out` | `<path>` | `.verbatra-local/pseudo` | directorio donde se escribe el pseudolocale, relativo al directorio de trabajo y dentro de la raíz del proyecto; un valor vacío es `INVALID_OUT` |
 
 También acepta los [flags globales](/es/docs/cli#flags-globales) `--cwd`, `--config` y `--json`.
 
@@ -85,7 +85,7 @@ El pseudolocale se escribe fuera de tus archivos de locale reales, por defecto e
 
 - un pseudolocale que nombra tu locale de origen o un locale de destino,
 - un `--out` que deja el archivo en el mismo directorio que un archivo de locale configurado,
-- un `--out` absoluto, que sale del directorio de trabajo o que, tras resolver los enlaces simbólicos, acaba fuera del proyecto, en su raíz o sobre un archivo del que depende el proyecto.
+- un `--out` absoluto, que sale de la raíz del proyecto o que, tras resolver los enlaces simbólicos, acaba fuera del proyecto, en su raíz o sobre un archivo del que depende el proyecto.
 
 Como el archivo queda fuera de `files.pattern`, [`translate`](/es/docs/cli/translate) nunca gasta en él y [`check`](/es/docs/cli/check) y [`diff`](/es/docs/cli/diff) nunca lo informan.
 

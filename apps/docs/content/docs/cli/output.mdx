@@ -49,7 +49,7 @@ Some edge cases worth knowing:
 - `export` has no per-locale failure mode: it exits `0` or `2`, never `1`.
 - `doctor` reads a broken config differently from every other command: a config the search does not find, or one that fails validation, is a failed check and exit `1`, because reporting exactly that is the command's job. It exits `2` only when it cannot run at all, such as an explicit `--config` path that does not exist.
 - One failure mode sits outside the contract: a parse failure that is not a usage error is re-thrown, and the binary does not catch it, so Node's default handling of an unhandled rejection applies instead of any of the six codes.
-- A [protected](/docs/protecting-human-translations) key (a stale value a person wrote, imported, or changed outside verbatra, or a pinned key) does not change the exit code of `translate` in a project with a provider: it exits `0` and says on stderr how many keys it left. `check` still exits `1` for it, because the key stays stale until a person resolves it. In a human-only project it counts toward exit `3`.
+- A [protected](/docs/protecting-human-translations) key (a stale value a person wrote, imported, or changed outside verbatra, or a pinned key) does not change the exit code of `translate` in a project with a provider: it exits `0` and says on stderr how many keys it left (pinned keys are not counted). `check` still exits `1` for it, because the key stays stale until a person resolves it. In a human-only project it counts toward exit `3`.
 
 ## JSON output
 
@@ -83,7 +83,7 @@ A run that fails as a whole writes exactly one `ok: false` record to stdout and 
 
 <AvailableFrom version="0.12.0" />
 
-`hint` appears when the error has a next step: one short imperative sentence that resolves it, such as `"Set GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project directory."` for a missing key or `` "Run `verbatra check --help` to see the options and arguments it accepts." `` for a `USAGE_ERROR`. Act on it instead of parsing `message`. It names variables, flags, and paths, never a key value. Every SDK, provider, and format adapter code has one (the SDK exports the same text as [`errorHint`](/docs/sdk/errors#errorhint)), and so does every [CLI error code](/docs/error-codes#cli-error-codes) except `CLI_ERROR`. Without `--json`, the same text follows the error line on stderr as `next: ...`, unless `--quiet` is set. `mcp --json` is the exception: it is refused with one `USAGE_ERROR` line on stderr, with no envelope and no `next:`.
+`hint` appears when the error has a next step: one short imperative sentence that resolves it, such as `"Set GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project directory."` for a missing key or `` "Run `verbatra check --help` to see the options and arguments it accepts." `` for a `USAGE_ERROR`. Act on it instead of parsing `message`. It names variables, flags, and paths, never a key value. Every SDK, provider, and format adapter code has one (the SDK exports the same text as [`errorHint`](/docs/sdk/errors#errorhint)), and so does every [CLI error code](/docs/error-codes#cli-error-codes) except `CLI_ERROR`. Without `--json`, the same text follows the error line on stderr as `next: ...`, unless `--quiet` is set. `mcp --json` is the exception: it is refused with one `USAGE_ERROR` line on stderr, with no envelope and no `next:`. Startup errors of `studio` and `mcp` get no `next:` line either.
 
 The `result` of a successful envelope is different for each command and is described under JSON output on its page: [`extract`](/docs/cli/extract), [`translate`](/docs/cli/translate), [`watch`](/docs/cli/watch), [`check`](/docs/cli/check), [`diff`](/docs/cli/diff), [`report`](/docs/cli/report), [`doctor`](/docs/cli/doctor), [`pseudo`](/docs/cli/pseudo), [`types`](/docs/cli/types), [`export`](/docs/cli/export), [`import`](/docs/cli/import), [`tmx`](/docs/cli/tmx), [`init`](/docs/cli/init).
 
@@ -98,6 +98,7 @@ Every record `--json` prints has a JSON Schema (draft 2020-12). The schemas ship
 | Any envelope, success or error | [`envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/envelope.json) | `@verbatra/cli/schemas/envelope.json` |
 | One command's envelope, with its `result` | `https://verbatra.kreitz-webdev.de/schema/v1/<command>-envelope.json` | `@verbatra/cli/schemas/<command>-envelope.json` |
 | The error envelope | [`error-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/error-envelope.json) | `@verbatra/cli/schemas/error-envelope.json` |
+| The `init` result alone, without the envelope | [`init-result.json`](https://verbatra.kreitz-webdev.de/schema/v1/init-result.json) | `@verbatra/cli/schemas/init-result.json` |
 | A JSON line on stderr: progress, lock wait, interrupt | [`stderr-record.json`](https://verbatra.kreitz-webdev.de/schema/v1/stderr-record.json) | `@verbatra/cli/schemas/stderr-record.json` |
 | The config file | [`config.json`](https://verbatra.kreitz-webdev.de/schema/v1/config.json) | `@verbatra/sdk/schemas/config.json`, or `@verbatra/sdk/config-schema.json`: the same schema without `$id` and `title` |
 
@@ -113,7 +114,7 @@ The CLI raises these codes itself. The same list ships as `CLI_ERROR_CODES` (wit
 
 ## Errors on stderr
 
-Every error goes to stderr as one structured line (`verbatra: error [CODE] message`) in both modes. Since 0.12.0 that includes an argument-parsing error (an unknown option or command, a missing argument): it prints `verbatra: error [USAGE_ERROR] unknown option '--nope'` and exits `2`, where it printed commander's own `error: unknown option '--nope'` with no code before. `init` follows the same grammar since 0.12.0; before that, a missing provider printed `verbatra: --provider is required (...)` with no code. Since 0.12.0, a hint follows the line as `next: ...` without `--json`, and under `--json` a parsing error writes the `USAGE_ERROR` envelope with its `hint` to stdout; `mcp` keeps stdout for the protocol, so it refuses `--json` on stderr only. Without `--json`, a failing run still writes nothing at all to stdout. Progress and lock-wait records always go to stderr, so stdout carries nothing but envelopes.
+Every error goes to stderr as one structured line (`verbatra: error [CODE] message`) in both modes. Since 0.12.0 that includes an argument-parsing error (an unknown option or command, a missing argument): it prints `verbatra: error [USAGE_ERROR] unknown option '--nope'` and exits `2`, where it printed commander's own `error: unknown option '--nope'` with no code before. `init` follows the same grammar since 0.12.0; before that, a missing provider printed `verbatra: --provider is required (...)` with no code. Since 0.12.0, a hint follows the line as `next: ...` without `--json`, and under `--json` a parsing error writes the `USAGE_ERROR` envelope with its `hint` to stdout; `mcp` keeps stdout for the protocol, so it refuses `--json` on stderr only. The startup of `studio` and `mcp` is the exception to the structured line: when `@verbatra/studio` or `@verbatra/mcp` is not installed, stderr carries the install instruction alone, with no `verbatra:` prefix. Under `--json`, the `message` of a parsing error is commander's own text, `error: ` prefix included. Without `--json`, a failing run still writes nothing at all to stdout. Progress and lock-wait records always go to stderr, so stdout carries nothing but envelopes.
 
 ## Terminal output
 
@@ -122,9 +123,9 @@ Every error goes to stderr as one structured line (`verbatra: error [CODE] messa
 Results go to stdout. Progress, notices, hints, warnings and errors go to stderr, and verbatra adapts them to where stderr is going:
 
 - On an interactive terminal, fixed labels such as `error`, `[ok]` and `next:` are colored, and a step that takes longer than 300 ms shows an ASCII spinner (`| / - \`).
-- When stderr is piped or redirected, `CI` is set to anything but `0` or `false`, or `TERM` is `dumb`, the output is plain, append-only lines with no color and no animation.
+- When stderr is piped or redirected, `CI` is set to anything but empty, `0` or `false`, or `TERM` is `dumb`, the output is plain, append-only lines with no color and no animation.
 - The status labels of the [`doctor`](/docs/cli/doctor) report on stdout (`[ok  ]`, `[warn]`, `[fail]`, `[skip]`) are colored when stdout itself is an interactive terminal, so a redirected report stays plain unless `FORCE_COLOR` turns color on.
-- `--json` never adds color, animation or new lines: stdout and stderr stay exactly as described in [JSON output](/docs/cli/output#json-output).
+- `--json` never adds color or animation, and stdout carries nothing but envelopes. Plain `verbatra:` warning lines can still reach stderr, so a consumer parses only the stderr lines that start with `{`. See [JSON output](/docs/cli/output#json-output).
 
 | Flag or variable | Effect |
 | --- | --- |
@@ -133,5 +134,7 @@ Results go to stdout. Progress, notices, hints, warnings and errors go to stderr
 | `NO_COLOR`, `NODE_DISABLE_COLORS`, `VERBATRA_NO_COLOR` | any non-empty value turns color off; `VERBATRA_NO_COLOR` also overrides `FORCE_COLOR` |
 | `FORCE_COLOR` | `1`, `2`, `3`, `true` or an empty value turns color on even when stderr or stdout is not a terminal, and any other value, `0` included, turns it off. Once set, it wins over `NO_COLOR`, `NODE_DISABLE_COLORS`, `CI` and `TERM=dumb`; `--no-color` and `VERBATRA_NO_COLOR` still win |
 | `VERBATRA_NO_SPINNER` | any non-empty value replaces the spinner with static `label... done (1.2s)` lines, for screen readers and terminal recordings |
+
+The `output` samples on the command pages show the plain form. An interactive terminal shows a running step as a spinner line that ends in `[ok]` and the elapsed time.
 
 Status words are plain ASCII (`[ok]`, `[warn]`, `[fail]`, `[skip]`), so the output reads the same in every terminal and log. Every line passes through the same key redaction as the rest of the output, and only the fixed labels are ever colored, never a key, path or message.

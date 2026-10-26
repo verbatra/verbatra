@@ -40,7 +40,7 @@ jobs:
 
 Cambia `check` por [`verbatra diff`](/es/docs/cli/diff) cuando quieras los nombres de las claves detrás de la deriva, por ejemplo para publicarlos en un comentario del pull request. Sale con `1` en la misma condición; las claves huérfanas aparecen en su salida, pero nunca lo hacen fallar por sí solas.
 
-Para comprobar solo algunos locales, pasa `--locales de,fr`. Un valor de `--locales` sin ningún locale válido sale con `2`, así que una errata nunca pone la puerta en verde.
+Para comprobar solo algunos locales, pasa `--locales de,fr`. Un valor de `--locales` que nombre un locale no configurado sale con `2`, aunque haya locales válidos a su lado, así que una errata nunca pone la puerta en verde.
 
 ### Frenar por la calidad de la traducción
 

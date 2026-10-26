@@ -75,7 +75,7 @@ A single unreadable row is reported as a malformed row, and the rest of the loca
 
 <AvailableFrom version="0.12.0" />
 
-`import` shows one line while it reads and applies the file. After a clean import it suggests `verbatra check`, and after `--dry-run` the same import without the flag:
+`import` shows one line while it reads and applies the file. After a clean import it suggests `verbatra check`, and after `--dry-run` the same import without the flag. After a locale fails or comes out partial, it suggests the same import once you correct the refused rows or, when a locale failed with an error that has a next step, that step:
 
 ```text output
 verbatra: importing verbatra-translations.xlsx... done (0.4s)

@@ -103,7 +103,7 @@ One `tu` per distinct source string, with the source segment and one target segm
 
 Every target segment carries `<prop type="x-origin">` (`machine`, `human`, `import` or `unknown`) from `verbatra.provenance.json`, and a `machine` segment also `<prop type="x-review">` (`approved`, `unreviewed` or `rejected`). When the provenance or lock file cannot be read, no property is written and the result says `provenanceMarkers: "unavailable"`. See [Machine-translation evidence](/docs/provenance-evidence#tmx).
 
-The file is written only inside the working directory. A path that names no file, climbs out of the working directory, or names a file the project depends on (a locale file, the lock, provenance or cache file, a config file, the glossary file) is refused with `TMX_OUTPUT_CONFLICT` before the memory is read, also after resolving symbolic links. A write that fails on disk stops with `TMX_UNWRITABLE`, naming the file and the file-system code.
+The file is written only inside the project root. A path that names no file, climbs out of the project root, or names a file the project depends on (a locale file, the lock, provenance or cache file, a config file, the glossary file) is refused with `TMX_OUTPUT_CONFLICT` before the memory is read, also after resolving symbolic links. A write that fails on disk stops with `TMX_UNWRITABLE`, naming the file and the file-system code.
 
 ### JSON output
 
@@ -143,7 +143,7 @@ next: verbatra translate (reuses the imported memory before calling a provider)
 | Code | Meaning |
 | --- | --- |
 | `0` | the file was read or written; skipped or refused units are reported, not a failure |
-| `2` | could not run: a config error, a missing or unreadable TMX file (`SOURCE_UNREADABLE`), an oversized or unparseable one (`SOURCE_INVALID`), a refused export path (`TMX_OUTPUT_CONFLICT`), a failed write (`TMX_UNWRITABLE`), or a usage error |
+| `2` | could not run: a config error, a missing or unreadable TMX file (`SOURCE_UNREADABLE`), an oversized or unparseable one, or a source locale file that cannot be parsed (`SOURCE_INVALID`), a refused export path (`TMX_OUTPUT_CONFLICT`), a failed write (`TMX_UNWRITABLE`), or a usage error |
 
 An invalid file's message names the line, column and unit where it failed; entity declarations and internal DTD subsets are refused outright, and an external doctype is discarded, never fetched. See [the exit-code contract](/docs/cli/output#exit-codes).
 

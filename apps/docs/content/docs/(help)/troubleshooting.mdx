@@ -185,7 +185,7 @@ anywhere. `--lock-timeout <seconds>` on [`translate`](/docs/cli/translate),
 under `budgetWithheld`.
 
 **Cause**: the run reached `maxTokens` in the config or `--max-tokens` for the run. `"warn"` only
-reports it; `"stop"` withholds every key not yet attempted, and the locale ends `partial` or
+reports a budget set in the config; `"stop"`, and `--max-tokens` whatever the config says, withhold every key not yet attempted, and the locale ends `partial` or
 `failed`.
 
 **Fix**: this is the guardrail working: what landed is written, and withheld keys are translated

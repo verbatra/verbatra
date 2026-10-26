@@ -192,7 +192,7 @@ envuelto en `SOURCE_INVALID`. Código: [`INVALID_STRUCTURE`](/es/docs/error-code
 en `budgetWithheld`.
 
 **Causa**: la ejecución alcanzó `maxTokens` de la config o `--max-tokens` de la ejecución. `"warn"`
-solo lo informa; `"stop"` retiene cada clave aún no intentada, y el locale termina `partial` o
+solo informa de un presupuesto de la config; `"stop"`, y `--max-tokens` diga lo que diga la config, retienen cada clave aún no intentada, y el locale termina `partial` o
 `failed`.
 
 **Solución**: es la barrera de seguridad funcionando: lo que llegó está escrito, y las claves

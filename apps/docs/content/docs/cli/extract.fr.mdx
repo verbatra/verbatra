@@ -43,7 +43,7 @@ Accepte aussi les [options globales](/fr/docs/cli#options-globales) `--cwd`, `--
 `extract` est piloté par le [bloc `extract`](/fr/docs/config-file#extract) de ta configuration. Une exécution sans lui échoue avec `EXTRACT_NOT_CONFIGURED` et la sortie `2`.
 
 ```ts title="verbatra.config.ts"
-import { defineConfig } from "@verbatra/sdk";
+import { defineConfig } from "@verbatra/cli";
 
 export default defineConfig({
   sourceLocale: "en",

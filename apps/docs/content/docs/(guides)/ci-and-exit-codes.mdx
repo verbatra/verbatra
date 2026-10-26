@@ -40,7 +40,7 @@ jobs:
 
 Swap `check` for [`verbatra diff`](/docs/cli/diff) when you want the key names behind the drift, for example to post them in a pull request comment. It exits `1` on the same condition; orphaned keys show up in its output but never fail it on their own.
 
-To gate only some locales, pass `--locales de,fr`. A `--locales` value with no valid locale exits `2`, so a typo never turns the gate green.
+To gate only some locales, pass `--locales de,fr`. A `--locales` value naming a locale you have not configured exits `2`, even next to valid ones, so a typo never turns the gate green.
 
 ### Gate on translation quality
 

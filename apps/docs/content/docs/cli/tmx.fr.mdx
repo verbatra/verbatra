@@ -103,7 +103,7 @@ Un `tu` par chaîne source distincte, avec le segment source et un segment cible
 
 Chaque segment cible porte `<prop type="x-origin">` (`machine`, `human`, `import` ou `unknown`) tiré de `verbatra.provenance.json`, et un segment `machine` porte aussi `<prop type="x-review">` (`approved`, `unreviewed` ou `rejected`). Si le fichier de provenance ou le fichier de lock est illisible, aucune propriété n'est écrite et le résultat indique `provenanceMarkers: "unavailable"`. Voir [Preuves de traduction automatique](/fr/docs/provenance-evidence#tmx).
 
-Le fichier n'est écrit que dans le répertoire de travail. Un chemin qui ne nomme aucun fichier, sort du répertoire de travail ou vise un fichier dont dépend le projet (un fichier de locale, le fichier de lock, de provenance ou de cache, un fichier de config, le fichier de glossaire) est refusé avec `TMX_OUTPUT_CONFLICT` avant la lecture de la mémoire, y compris après résolution des liens symboliques. Si l'écriture échoue sur le disque, l'exécution s'arrête avec `TMX_UNWRITABLE`, en nommant le fichier et le code du système de fichiers.
+Le fichier n'est écrit que dans la racine du projet. Un chemin qui ne nomme aucun fichier, sort de la racine du projet ou vise un fichier dont dépend le projet (un fichier de locale, le fichier de lock, de provenance ou de cache, un fichier de config, le fichier de glossaire) est refusé avec `TMX_OUTPUT_CONFLICT` avant la lecture de la mémoire, y compris après résolution des liens symboliques. Si l'écriture échoue sur le disque, l'exécution s'arrête avec `TMX_UNWRITABLE`, en nommant le fichier et le code du système de fichiers.
 
 ### Sortie JSON
 
@@ -143,7 +143,7 @@ next: verbatra translate (reuses the imported memory before calling a provider)
 | Code | Signification |
 | --- | --- |
 | `0` | le fichier a été lu ou écrit ; les unités ignorées ou refusées sont rapportées, ce n'est pas un échec |
-| `2` | exécution impossible : une erreur de config, un fichier TMX absent ou illisible (`SOURCE_UNREADABLE`), un fichier trop volumineux ou impossible à analyser (`SOURCE_INVALID`), un chemin d'export refusé (`TMX_OUTPUT_CONFLICT`), une écriture échouée (`TMX_UNWRITABLE`) ou une erreur d'utilisation |
+| `2` | exécution impossible : une erreur de config, un fichier TMX absent ou illisible (`SOURCE_UNREADABLE`), un fichier trop volumineux ou impossible à analyser, ou un fichier de la locale source qui ne peut pas être analysé (`SOURCE_INVALID`), un chemin d'export refusé (`TMX_OUTPUT_CONFLICT`), une écriture échouée (`TMX_UNWRITABLE`) ou une erreur d'utilisation |
 
 Pour un fichier invalide, le message nomme la ligne, la colonne et l'unité où il a échoué ; les déclarations d'entités et les sous-ensembles DTD internes sont refusés d'emblée, et un doctype externe est ignoré, jamais téléchargé. Voir [le contrat des codes de sortie](/fr/docs/cli/output#codes-de-sortie).
 

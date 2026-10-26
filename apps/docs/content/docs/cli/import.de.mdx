@@ -75,7 +75,7 @@ Eine einzelne unlesbare Zeile wird als fehlerhafte Zeile gemeldet, und der Rest 
 
 <AvailableFrom version="0.12.0" />
 
-`import` zeigt eine Zeile, während es die Datei liest und anwendet. Nach einem sauberen Import schlägt es `verbatra check` vor, nach `--dry-run` denselben Import ohne das Flag:
+`import` zeigt eine Zeile, während es die Datei liest und anwendet. Nach einem sauberen Import schlägt es `verbatra check` vor, nach `--dry-run` denselben Import ohne das Flag. Scheitert eine Locale oder bleibt sie partiell, schlägt es denselben Import vor, sobald du die abgelehnten Zeilen korrigiert hast, oder, wenn eine Locale mit einem Fehler scheiterte, der einen nächsten Schritt hat, genau diesen Schritt:
 
 ```text output
 verbatra: importing verbatra-translations.xlsx... done (0.4s)

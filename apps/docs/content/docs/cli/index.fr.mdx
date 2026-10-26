@@ -69,7 +69,7 @@ Une commande ou une option inconnue sort avec `2`, tout comme un `verbatra` sans
 
 ## Entrées du .gitignore
 
-Une vraie exécution de `translate`, `watch`, `import`, `tmx import` ou `pseudo` ajoute aussi à un `.gitignore` existant à la racine du projet les entrées qui lui manquent parmi `.env`, `.env.local`, `.verbatra-local/` et `verbatra.cache.json`, et les nomme sur stderr. Un dry run ne touche pas au fichier, et aucune de ces commandes n'en crée ; c'est le rôle de [`verbatra init`](/fr/docs/cli/init).
+Une vraie exécution de `translate`, `watch`, `import`, `tmx import` ou `pseudo` ajoute aussi à un `.gitignore` existant à la racine du projet les entrées qui lui manquent parmi `.env`, `.env.local`, `.verbatra-local/` et `verbatra.cache.json`, et les nomme sur stderr (`--json` et `--quiet` suppriment cette ligne). Cela se fait dès que la config est chargée, donc une exécution qui échoue ensuite l'a déjà fait. Un dry run ne touche pas au fichier, et aucune de ces commandes n'en crée ; c'est le rôle de [`verbatra init`](/fr/docs/cli/init). Un `.gitignore` qui est un lien symbolique sortant du projet reste inchangé, avec un avertissement que `--json` et `--quiet` conservent.
 
 ## Sortie dans le terminal
 

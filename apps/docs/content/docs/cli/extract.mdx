@@ -43,7 +43,7 @@ Also takes the [global flags](/docs/cli#global-flags) `--cwd`, `--config` and `-
 `extract` is driven by the [`extract` block](/docs/config-file#extract) in your config. A run without one fails with `EXTRACT_NOT_CONFIGURED` and exit `2`.
 
 ```ts title="verbatra.config.ts"
-import { defineConfig } from "@verbatra/sdk";
+import { defineConfig } from "@verbatra/cli";
 
 export default defineConfig({
   sourceLocale: "en",

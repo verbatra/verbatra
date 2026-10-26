@@ -40,7 +40,7 @@ jobs:
 
 Remplace `check` par [`verbatra diff`](/fr/docs/cli/diff) quand tu veux les noms des clés derrière la dérive, par exemple pour les publier dans un commentaire de pull request. Il sort avec `1` dans la même condition ; les clés orphelines apparaissent dans sa sortie, mais ne le font jamais échouer à elles seules.
 
-Pour ne contrôler que certaines locales, passe `--locales de,fr`. Une valeur de `--locales` sans aucune locale valide sort avec `2`, donc une faute de frappe ne rend jamais le contrôle vert.
+Pour ne contrôler que certaines locales, passe `--locales de,fr`. Une valeur de `--locales` qui nomme une locale non configurée sort avec `2`, même à côté de locales valides, donc une faute de frappe ne rend jamais le contrôle vert.
 
 ### Bloquer sur la qualité des traductions
 

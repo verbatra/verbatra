@@ -193,7 +193,7 @@ cela arrive enveloppé dans `SOURCE_INVALID`. Code :
 aussi sous `budgetWithheld`.
 
 **Cause** : l'exécution a atteint `maxTokens` dans la config ou `--max-tokens` pour l'exécution.
-`"warn"` le signale seulement ; `"stop"` retient chaque clé pas encore tentée, et la locale se
+`"warn"` ne signale qu'un budget venu de la config ; `"stop"`, et `--max-tokens` quoi que dise la config, retiennent chaque clé pas encore tentée, et la locale se
 termine en `partial` ou `failed`.
 
 **Solution** : c'est le garde-fou qui fonctionne : ce qui est arrivé est écrit, et les clés retenues

@@ -43,7 +43,7 @@ verbatra translate --include-human
 | `--prune` | keins | die `prune`-Option der Konfiguration, sonst aus | verwaiste Keys (in einer Zieldatei, nicht in der Quelle) aus der geschriebenen Datei und dem Lock entfernen |
 | `--lock-timeout` | `<seconds>` | `600` | so lange auf eine gehaltene Schreibsperre einer Locale warten; eine Ganzzahl von `1` bis `3600` |
 | `--concurrency` | `<n>` | `1` | bis zu `n` Ziel-Locales gleichzeitig übersetzen; eine Ganzzahl von `1` bis `100`, abgelehnt bei einem Token-Budget |
-| `--max-tokens` | `<n>` | das `maxTokens` der Konfiguration | harte Token-Obergrenze für diesen Lauf; es gilt der niedrigere Wert von diesem Flag und `maxTokens` |
+| `--max-tokens` | `<n>` | das `maxTokens` der Konfiguration | harte Token-Obergrenze für diesen Lauf, eine positive ganze Zahl (sonst `INVALID_MAX_TOKENS`); es gilt der niedrigere Wert von diesem Flag und `maxTokens` |
 | `--no-cache` | keins | aus (Cache an) | den [Übersetzungsspeicher-Cache](/de/docs/the-cache) (`verbatra.cache.json`) für diesen Lauf umgehen |
 | `--include-human` | keins | aus | nur für diesen Lauf auch veraltete Keys neu übersetzen, die ein Mensch geschrieben oder importiert hat; [gepinnte Keys](/de/docs/protecting-human-translations#keys-pinnen) bleiben unangetastet |
 | `--estimate` | keins | aus | schätzen, was der Lauf senden und kosten würde, und dann beenden; impliziert `--dry-run` |
@@ -82,7 +82,7 @@ Standardmäßig löscht ein Lauf nichts: Verwaiste Keys werden gemeldet und blei
 
 ### Schreibsperren und Unterbrechungen
 
-Eine Locale wartet bis zu `--lock-timeout` auf eine belegte [Schreibsperre](/de/docs/the-lock-file#die-schreibsperre) und scheitert dann mit `LOCK_CONTENDED`, während die übrigen Locales weiterlaufen. Eine Sperre, die ein nicht mehr laufender verbatra-Prozess auf diesem Rechner hinterlassen hat, wird sofort übernommen. Der Timeout begrenzt nur dieses Warten vor jedem Provider-Aufruf: Das Eintragen einer geschriebenen Datei in die Lock-Datei wartet immer bis zum Standard von zehn Minuten, damit keine geschriebene Datei unvermerkt bleibt. Strg-C oder SIGTERM gibt die Sperren des Laufs frei, bevor der Befehl endet.
+Eine Locale wartet bis zu `--lock-timeout` auf eine belegte [Schreibsperre](/de/docs/the-lock-file#die-schreibsperre) und scheitert dann mit `LOCK_CONTENDED`, während die übrigen Locales weiterlaufen. Eine Sperre, die ein nicht mehr laufender verbatra-Prozess auf diesem Rechner hinterlassen hat, wird sofort übernommen. Der Timeout begrenzt nur dieses Warten vor jedem Provider-Aufruf: Das Eintragen einer geschriebenen Datei in die Lock-Datei wartet immer bis zum Standard von zehn Minuten, damit keine geschriebene Datei unvermerkt bleibt. Ein Warten von mehr als einer Sekunde gibt auf stderr eine Zeile aus, die die Sperre und ihren Halter nennt (unter `--json` ein `lock-wait`-Datensatz), und `--quiet` lässt sie nicht weg. Strg-C oder SIGTERM gibt die Sperren des Laufs frei, bevor der Befehl endet.
 
 ### Token-Obergrenze
 
@@ -98,13 +98,13 @@ Eine Locale wartet bis zu `--lock-timeout` auf eine belegte [Schreibsperre](/de/
 
 <AvailableFrom version="0.12.0" />
 
-Ein veralteter Key, dessen Wert ein Mensch geschrieben, importiert oder außerhalb von verbatra geändert hat, bleibt standardmäßig erhalten: Er steht unter `protected`, geht nicht an den Provider und bleibt für `verbatra check` veraltet. Eine Zeile auf stderr sagt, wie viele erhalten blieben, und verweist auf `--include-human`, das sie für einen Lauf neu übersetzt (`humanEdits: "overwrite"`). Geschützte Keys ändern den Exit-Code nicht, außer in einem rein menschlichen Projekt. Siehe [Menschliche Übersetzungen schützen](/de/docs/protecting-human-translations).
+Ein veralteter Key, dessen Wert ein Mensch geschrieben, importiert oder außerhalb von verbatra geändert hat, bleibt standardmäßig erhalten: Er steht unter `protected`, geht nicht an den Provider und bleibt für `verbatra check` veraltet. Eine Warnung auf stderr sagt, wie viele erhalten blieben (gepinnte Keys zählen nicht mit), und verweist auf `--include-human`, das sie für einen Lauf neu übersetzt (`humanEdits: "overwrite"`) und deshalb keine Warnung ausgibt. Geschützte Keys ändern den Exit-Code nicht, außer in einem rein menschlichen Projekt. Siehe [Menschliche Übersetzungen schützen](/de/docs/protecting-human-translations).
 
 ### Rein menschliche Projekte
 
 <AvailableFrom version="0.12.0" />
 
-In einem [rein menschlichen](/de/docs/human-only-workflow) Projekt (`provider: { id: "none" }`) wird kein Provider aufgerufen. Keys, die das Translation Memory abdeckt, werden geschrieben; jeder andere fehlende oder geänderte Key steht unter `unfilled` und führt zu Exit `3`; eine fehlgeschlagene oder partielle Locale gewinnt weiterhin mit `1`. Ein Dry Run liest hier das Memory, sodass sein Plan dieselben `cacheHits`- und `unfilled`-Keys zeigt, und `--estimate` meldet nichts Abgerechnetes; beide enden genauso mit Exit `3`. Übergib die `unfilled`-Keys mit [`verbatra export`](/de/docs/cli/export).
+In einem [rein menschlichen](/de/docs/human-only-workflow) Projekt (`provider: { id: "none" }`) wird kein Provider aufgerufen. Keys, die das Translation Memory abdeckt, werden geschrieben; jeder andere fehlende oder geänderte Key steht unter `unfilled` und führt zu Exit `3`; eine fehlgeschlagene oder partielle Locale gewinnt weiterhin mit `1`. Ein Dry Run liest hier das Memory, sodass sein Plan dieselben `cacheHits`- und `unfilled`-Keys zeigt, und `--estimate` meldet nichts Abgerechnetes; beide enden genauso mit Exit `3`. Ohne `--json` sagt eine Warnung auf stderr, wie viele Keys einen Menschen brauchen, und ein `next:`-Tipp verweist auf [`verbatra export`](/de/docs/cli/export), womit du die `unfilled`-Keys übergibst.
 
 ### Fehlgeschlagene und partielle Locales
 
@@ -145,7 +145,7 @@ verbatra: run finished, 2 locales processed
 next: verbatra check (confirm every locale is in sync)
 ```
 
-Ein Dry Run oder eine Schätzung beendet jede Locale stattdessen mit `would translate`. Eine Locale, die nur einen Teil der Keys behalten hat, endet mit `partly done`, eine fehlgeschlagene mit `failed`, und die Schlusszeile nennt, wie viele fehlgeschlagen sind. Diese Zeilen gehen auf stderr, und `--quiet` lässt sie weg. Siehe [Terminalausgabe](/de/docs/cli/output#terminalausgabe).
+Ein Dry Run beginnt mit `dry run over 2 locales, no provider call`, eine Schätzung mit `estimating 2 locales, no provider call` und ein rein menschliches Projekt mit `filling 2 locales from the translation memory (provider none)`. Ein Dry Run oder eine Schätzung beendet jede Locale stattdessen mit `would translate`. Eine Locale, die nur einen Teil der Keys behalten hat, endet mit `partly done`, eine fehlgeschlagene mit `failed`, und die Schlusszeile nennt, wie viele fehlgeschlagen sind. Diese Zeilen gehen auf stderr, und `--quiet` lässt sie weg. Siehe [Terminalausgabe](/de/docs/cli/output#terminalausgabe).
 
 ## Exit-Codes
 

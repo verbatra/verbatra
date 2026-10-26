@@ -40,7 +40,7 @@ jobs:
 
 Tausche `check` gegen [`verbatra diff`](/de/docs/cli/diff), wenn du die Key-Namen hinter der Drift willst, etwa um sie in einem Pull-Request-Kommentar zu posten. Es endet unter derselben Bedingung mit `1`; verwaiste Keys erscheinen in seiner Ausgabe, lassen es aber allein nie fehlschlagen.
 
-Um nur einige Locales zu prüfen, übergib `--locales de,fr`. Ein `--locales`-Wert ohne gültige Locale endet mit `2`, sodass ein Tippfehler das Gate nie grün macht.
+Um nur einige Locales zu prüfen, übergib `--locales de,fr`. Ein `--locales`-Wert, der eine nicht konfigurierte Locale nennt, endet mit `2`, auch neben gültigen, sodass ein Tippfehler das Gate nie grün macht.
 
 ### Auf Übersetzungsqualität prüfen
 

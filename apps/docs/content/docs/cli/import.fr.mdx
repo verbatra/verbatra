@@ -75,7 +75,7 @@ Une seule ligne illisible est signalée comme ligne malformée, et le reste de l
 
 <AvailableFrom version="0.12.0" />
 
-`import` affiche une ligne pendant qu'il lit et applique le fichier. Après un import propre, il suggère `verbatra check`, et après `--dry-run` le même import sans l'option :
+`import` affiche une ligne pendant qu'il lit et applique le fichier. Après un import propre, il suggère `verbatra check`, et après `--dry-run` le même import sans l'option. Si une locale échoue ou reste partielle, il suggère le même import une fois les lignes refusées corrigées ou, quand une locale a échoué avec une erreur qui a une prochaine étape, cette étape :
 
 ```text output
 verbatra: importing verbatra-translations.xlsx... done (0.4s)

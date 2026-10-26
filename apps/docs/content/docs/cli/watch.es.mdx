@@ -4,7 +4,7 @@ seoTitle: "verbatra watch: retraduce con cada cambio"
 description: "Retraduce en cada cambio del origen hasta que lo interrumpas, para que los locales sigan al día; cada ejecución solo envía claves nuevas o cambiadas."
 type: reference
 ---
-Vigila el archivo del locale de origen y vuelve a traducir tras cada cambio, con anti-rebote, hasta que lo interrumpas. `watch` ejecuta una traducción inicial al arrancar y luego mantiene al día tus locales de destino mientras guardas. Cada ejecución funciona igual que [`verbatra translate`](/es/docs/cli/translate). Al arrancar también añade las entradas que falten a un `.gitignore` existente, consulta [Entradas de .gitignore](/es/docs/cli#entradas-de-gitignore).
+Vigila el archivo del locale de origen y vuelve a traducir tras cada cambio, con anti-rebote, hasta que lo interrumpas. `watch` ejecuta una traducción inicial al arrancar y luego mantiene al día tus locales de destino mientras guardas. Cada ejecución funciona como [`verbatra translate`](/es/docs/cli/translate), salvo que `watch` no tiene `--dry-run`, `--prune`, `--include-human` ni `--max-tokens` y nunca sale con `3`. Al arrancar también añade las entradas que falten a un `.gitignore` existente, consulta [Entradas de .gitignore](/es/docs/cli#entradas-de-gitignore).
 
 ## Sinopsis
 
@@ -41,7 +41,7 @@ También acepta los [flags globales](/es/docs/cli#flags-globales) `--cwd`, `--co
 
 ### Cada ejecución
 
-Cada ejecución traduce el subconjunto de `--locales`, o todos los destinos, con un presupuesto de tokens nuevo. Un locale cuyo [bloqueo de escritura](/es/docs/the-lock-file) siga ocupado más allá de `--lock-timeout` falla con `LOCK_CONTENDED` en el resumen de esa ejecución, mientras los demás siguen; un bloqueo de un proceso de verbatra que ya no corre se recupera al momento. Una ejecución fallida nunca detiene el vigilante.
+Cada ejecución traduce el subconjunto de `--locales`, o todos los destinos, con un presupuesto de tokens nuevo. Un locale cuyo [bloqueo de escritura](/es/docs/the-lock-file) siga ocupado más allá de `--lock-timeout` falla con `LOCK_CONTENDED` en el resumen de esa ejecución, mientras los demás siguen; un bloqueo de un proceso de verbatra que ya no corre se recupera al momento. Una ejecución fallida nunca detiene el vigilante. La espera de un bloqueo imprime la misma línea de espera que se describe en [`translate`](/es/docs/cli/translate#bloqueos-de-escritura-e-interrupciones).
 
 Un `--concurrency` mayor que `1` junto con un presupuesto `maxTokens` configurado se rechaza al arrancar con salida `2`, antes de la primera ejecución, porque el orden en que se intercalan los locales decidiría cuál pierde el trabajo restante.
 
@@ -51,7 +51,7 @@ Un proveedor que no se puede construir, casi siempre porque falta su variable de
 
 <AvailableFrom version="0.12.0" />
 
-La primera interrupción (Ctrl-C o SIGTERM) deja terminar la ejecución en curso, detiene el vigilante y sale con `0`. Una segunda interrupción mientras el apagado sigue en marcha fuerza la parada con salida `130`, tras liberar los bloqueos de escritura de la sesión. Sin `--json`, stderr dice `verbatra: waiting for changes...` tras cada ejecución, `verbatra: press Ctrl-C to stop` tras la línea de arranque en un terminal interactivo y `verbatra: stopped` cuando termina el apagado.
+La primera interrupción (Ctrl-C o SIGTERM) deja terminar la ejecución en curso, detiene el vigilante y sale con `0`. Una segunda interrupción mientras el apagado sigue en marcha fuerza la parada con salida `130`, tras liberar los bloqueos de escritura de la sesión. Sin `--json`, stderr dice `verbatra: waiting for changes...` tras cada ejecución, `verbatra: press Ctrl-C to stop` tras la línea de arranque en un terminal interactivo y `verbatra: stopped` cuando termina el apagado. `--quiet` quita estas líneas, pero no la línea de arranque ni `verbatra: stopping, finishing current run...` en la primera interrupción: se escriben en todos los modos, `--json` incluido.
 
 ### Salida JSON
 

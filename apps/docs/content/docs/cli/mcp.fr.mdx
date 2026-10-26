@@ -50,9 +50,9 @@ Prend aussi les [options globales](/fr/docs/cli#options-globales) `--cwd` et `--
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Si `--cwd` est absent et que `CLAUDE_PROJECT_DIR` désigne un répertoire existant, le serveur l'utilise comme répertoire du projet. `verbatra mcp` charge alors les [fichiers d'environnement](/fr/docs/cli#fichiers-denvironnement) depuis ce répertoire ; un `CLAUDE_PROJECT_DIR` défini seulement dans ces fichiers est ignoré, car le répertoire du projet est résolu avant.
+Si `--cwd` est absent et que `CLAUDE_PROJECT_DIR` désigne un répertoire existant, le serveur l'utilise comme répertoire du projet. `verbatra mcp` charge alors les [fichiers d'environnement](/fr/docs/cli#fichiers-denvironnement) depuis ce répertoire ; un `CLAUDE_PROJECT_DIR` défini seulement dans ces fichiers est ignoré.
 
-La recherche de configuration commence là, et le répertoire de la config trouvée est la [racine du projet](/fr/docs/config-file#le-répertoire-de-travail-et-env) par rapport à laquelle chaque chemin d'outil est résolu, donc un serveur lancé dans un sous-répertoire travaille quand même sur les fichiers du projet.
+La recherche de configuration commence là, et le répertoire de la config trouvée est la [racine du projet](/fr/docs/config-file#le-répertoire-de-travail-et-env) par rapport à laquelle chaque chemin d'outil est résolu.
 
 ### Outils payants
 
@@ -156,7 +156,7 @@ No usable verbatra config: project.snapshot and project.doctor work, every other
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Avant chaque appel, le serveur recharge la config si le fichier de config, un fichier que la recherche essaierait ou le fichier de glossaire a changé ; un module importé par la config n'est pas surveillé. `--allow-spend` n'est lu qu'une fois : un changement peut masquer les outils payants, jamais les lister sans lui. Quand la liste d'outils change, le serveur envoie `notifications/tools/list_changed`.
+Avant chaque appel, le serveur recharge la config si le fichier de config, un fichier que la recherche essaierait ou le fichier de glossaire a changé ; un module importé par la config n'est pas surveillé. `--allow-spend` n'est lu qu'une fois : un changement peut masquer les outils payants, jamais les lister sans lui. Quand la liste d'outils change, le serveur envoie `notifications/tools/list_changed`. Si un rechargement déplace la racine du projet, `verbatra mcp` charge les fichiers d'environnement de cette racine et affiche `verbatra: project root is now <root>`, que `--quiet` supprime.
 
 ### Expurgation des secrets
 
@@ -179,7 +179,7 @@ verbatra MCP server running on stdio (project ., spend tools off)
 verbatra MCP server stopped (client closed stdin)
 ```
 
-Lancé à la main dans un terminal, il indique qu'un client doit le démarrer. `verbatra mcp --quiet` supprime ces lignes, mais pas la raison d'une config absente.
+`verbatra mcp --quiet` supprime ces lignes, mais pas la raison d'une config absente.
 
 ### Installation
 

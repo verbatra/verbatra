@@ -69,7 +69,7 @@ An unknown command or flag exits `2`, and so does a bare `verbatra` with no comm
 
 ## .gitignore entries
 
-A real run of `translate`, `watch`, `import`, `tmx import` or `pseudo` also appends whichever of `.env`, `.env.local`, `.verbatra-local/` and `verbatra.cache.json` an existing `.gitignore` in the project root is missing, and names them on stderr. A dry run leaves the file alone, and none of these commands creates one; [`verbatra init`](/docs/cli/init) does.
+A real run of `translate`, `watch`, `import`, `tmx import` or `pseudo` also appends whichever of `.env`, `.env.local`, `.verbatra-local/` and `verbatra.cache.json` an existing `.gitignore` in the project root is missing, and names them on stderr (`--json` and `--quiet` drop that line). This happens as soon as the config has loaded, so a run that then fails has already done it. A dry run leaves the file alone, and none of these commands creates one; [`verbatra init`](/docs/cli/init) does. A `.gitignore` that is a symbolic link leaving the project is left unchanged, with a warning that `--json` and `--quiet` keep.
 
 ## Terminal output
 

@@ -75,7 +75,7 @@ Una sola fila ilegible se informa como fila mal formada, y el resto del locale s
 
 <AvailableFrom version="0.12.0" />
 
-`import` muestra una línea mientras lee y aplica el archivo. Tras un import limpio sugiere `verbatra check`, y tras `--dry-run` el mismo import sin el flag:
+`import` muestra una línea mientras lee y aplica el archivo. Tras un import limpio sugiere `verbatra check`, y tras `--dry-run` el mismo import sin el flag. Si un locale falla o queda parcial, sugiere el mismo import una vez corregidas las filas rechazadas o, cuando un locale falló con un error que tiene un siguiente paso, ese paso:
 
 ```text output
 verbatra: importing verbatra-translations.xlsx... done (0.4s)

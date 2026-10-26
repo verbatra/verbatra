@@ -37,7 +37,7 @@ verbatra pseudo --json
 | --- | --- | --- | --- |
 | `--mode` | `<mode>` | `accented` | <AvailableFrom version="0.12.0" /> the transform: `accented` or `bidi`, which renders every word right to left (`INVALID_OPTION` otherwise) |
 | `--locale` | `<code>` | `en-XA` (`ar-XB` with `--mode bidi`) | the pseudolocale to generate; letters, digits and hyphens only (`INVALID_LOCALE` otherwise) |
-| `--out` | `<path>` | `.verbatra-local/pseudo` | directory to write the pseudolocale under, relative to the working directory and inside the project root |
+| `--out` | `<path>` | `.verbatra-local/pseudo` | directory to write the pseudolocale under, relative to the working directory and inside the project root; an empty value is `INVALID_OUT` |
 
 Also takes the [global flags](/docs/cli#global-flags) `--cwd`, `--config` and `--json`.
 
@@ -85,7 +85,7 @@ The pseudolocale is written outside your real locale files, under `.verbatra-loc
 
 - a pseudolocale that names your source locale or a target locale,
 - an `--out` that puts the file in the same directory as a configured locale file,
-- an `--out` that is absolute, climbs out of the working directory, or, once symbolic links are resolved, lands outside the project, at its root, or on a file the project depends on.
+- an `--out` that is absolute, climbs out of the project root, or, once symbolic links are resolved, lands outside the project, at its root, or on a file the project depends on.
 
 Because the file sits outside `files.pattern`, [`translate`](/docs/cli/translate) never spends on it and [`check`](/docs/cli/check) and [`diff`](/docs/cli/diff) never report it.
 

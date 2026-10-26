@@ -4,7 +4,7 @@ seoTitle: "verbatra watch: bei jeder Änderung neu übersetzen"
 description: "Übersetze bei jeder Quelländerung neu, bis du abbrichst, damit die Locale-Dateien synchron bleiben; jeder Lauf schickt nur neue und geänderte Keys."
 type: reference
 ---
-Beobachte die Quell-Locale-Datei und führe nach jeder entprellten Änderung eine neue Übersetzung aus, bis du unterbrichst. `watch` startet mit einer initialen Übersetzung und hält deine Ziel-Locales dann aktuell, während du speicherst. Jeder Lauf arbeitet genau wie [`verbatra translate`](/de/docs/cli/translate). Beim Start ergänzt es außerdem fehlende Einträge in einer vorhandenen `.gitignore`, siehe [.gitignore-Einträge](/de/docs/cli#gitignore-einträge).
+Beobachte die Quell-Locale-Datei und führe nach jeder entprellten Änderung eine neue Übersetzung aus, bis du unterbrichst. `watch` startet mit einer initialen Übersetzung und hält deine Ziel-Locales dann aktuell, während du speicherst. Jeder Lauf arbeitet wie [`verbatra translate`](/de/docs/cli/translate), nur dass `watch` kein `--dry-run`, `--prune`, `--include-human` und `--max-tokens` hat und nie mit `3` endet. Beim Start ergänzt es außerdem fehlende Einträge in einer vorhandenen `.gitignore`, siehe [.gitignore-Einträge](/de/docs/cli#gitignore-einträge).
 
 ## Synopsis
 
@@ -41,7 +41,7 @@ Nimmt außerdem die [globalen Flags](/de/docs/cli#globale-flags) `--cwd`, `--con
 
 ### Jeder Lauf
 
-Jeder Lauf übersetzt die `--locales`-Teilmenge oder jedes Ziel, mit einem frischen Token-Budget. Eine Locale, deren [Schreibsperre](/de/docs/the-lock-file) länger als `--lock-timeout` belegt bleibt, scheitert in der Zusammenfassung dieses Laufs mit `LOCK_CONTENDED`, während die übrigen Locales weiterlaufen; eine Sperre eines nicht mehr laufenden verbatra-Prozesses wird sofort übernommen. Ein fehlgeschlagener Lauf stoppt den Watcher nie.
+Jeder Lauf übersetzt die `--locales`-Teilmenge oder jedes Ziel, mit einem frischen Token-Budget. Eine Locale, deren [Schreibsperre](/de/docs/the-lock-file) länger als `--lock-timeout` belegt bleibt, scheitert in der Zusammenfassung dieses Laufs mit `LOCK_CONTENDED`, während die übrigen Locales weiterlaufen; eine Sperre eines nicht mehr laufenden verbatra-Prozesses wird sofort übernommen. Ein fehlgeschlagener Lauf stoppt den Watcher nie. Das Warten auf eine Sperre gibt dieselbe Wartezeile aus, die unter [`translate`](/de/docs/cli/translate#schreibsperren-und-unterbrechungen) beschrieben ist.
 
 Eine `--concurrency` über `1` zusammen mit einem konfigurierten `maxTokens`-Budget wird beim Start mit Exit `2` abgelehnt, noch vor dem ersten Lauf, weil sonst die Reihenfolge der Locales entscheiden würde, welche ihre restliche Arbeit verliert.
 
@@ -51,7 +51,7 @@ Ein Provider, der sich nicht erzeugen lässt, meist weil seine API-Key-Variable 
 
 <AvailableFrom version="0.12.0" />
 
-Die erste Unterbrechung (Strg-C oder SIGTERM) lässt den aktuellen Lauf fertig werden, stoppt den Watcher und endet mit `0`. Eine zweite Unterbrechung, während das Herunterfahren noch läuft, erzwingt den Stopp mit Exit `130`, nachdem die Schreibsperren der Sitzung freigegeben wurden. Ohne `--json` schreibt stderr nach jedem Lauf `verbatra: waiting for changes...`, in einem interaktiven Terminal nach der Startzeile `verbatra: press Ctrl-C to stop` und nach dem Herunterfahren `verbatra: stopped`.
+Die erste Unterbrechung (Strg-C oder SIGTERM) lässt den aktuellen Lauf fertig werden, stoppt den Watcher und endet mit `0`. Eine zweite Unterbrechung, während das Herunterfahren noch läuft, erzwingt den Stopp mit Exit `130`, nachdem die Schreibsperren der Sitzung freigegeben wurden. Ohne `--json` schreibt stderr nach jedem Lauf `verbatra: waiting for changes...`, in einem interaktiven Terminal nach der Startzeile `verbatra: press Ctrl-C to stop` und nach dem Herunterfahren `verbatra: stopped`. `--quiet` lässt diese Zeilen weg, nicht aber die Startzeile und `verbatra: stopping, finishing current run...` bei der ersten Unterbrechung: Sie werden in jedem Modus geschrieben, `--json` eingeschlossen.
 
 ### JSON-Ausgabe
 

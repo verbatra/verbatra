@@ -160,9 +160,9 @@ Par défaut elle atterrit dans `verbatra-types.d.ts` à la racine de ton projet.
 
 Un chemin de sortie est refusé avec `TYPES_OUTPUT_CONFLICT` quand il :
 
-- ne nomme aucun fichier, y compris quand il se termine par un séparateur de chemin comme `generated/`,
+- ne nomme aucun fichier, y compris quand il se termine par un séparateur de chemin comme `generated/` (un `--out` vide échoue plus tôt, avec `INVALID_OUT`),
 - est absolu,
-- sort du répertoire de travail avec `..`,
+- sort de la racine du projet avec `..`,
 - n'est pas un fichier TypeScript, c'est-à-dire que son nom ne se termine pas par `.ts`, `.mts` ou `.cts`,
 - nomme un fichier de locale configuré, source ou cible, pour que la génération n'écrase jamais un catalogue,
 - est le fichier de verrouillage, `verbatra.lock.json`,

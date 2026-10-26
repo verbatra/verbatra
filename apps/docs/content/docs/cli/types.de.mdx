@@ -160,9 +160,9 @@ Standardmäßig landet sie als `verbatra-types.d.ts` im Wurzelverzeichnis deines
 
 Ein Ausgabepfad wird mit `TYPES_OUTPUT_CONFLICT` zurückgewiesen, wenn er:
 
-- keine Datei benennt, auch wenn er auf ein Pfadtrennzeichen endet wie `generated/`,
+- keine Datei benennt, auch wenn er auf ein Pfadtrennzeichen endet wie `generated/` (ein leeres `--out` scheitert früher, mit `INVALID_OUT`),
 - absolut ist,
-- mit `..` aus dem Arbeitsverzeichnis herausklettert,
+- mit `..` aus der Projektwurzel herausklettert,
 - keine TypeScript-Datei ist, sein Name also nicht auf `.ts`, `.mts` oder `.cts` endet,
 - eine konfigurierte Locale-Datei benennt, Quelle oder Ziel, damit die Generierung nie einen Katalog überschreibt,
 - die Lock-Datei `verbatra.lock.json` ist,

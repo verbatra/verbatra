@@ -69,7 +69,7 @@ Ein unbekannter Befehl oder ein unbekanntes Flag endet mit `2`, ebenso ein nackt
 
 ## .gitignore-Einträge
 
-Ein echter Lauf von `translate`, `watch`, `import`, `tmx import` oder `pseudo` ergänzt außerdem eine vorhandene `.gitignore` in der Projektwurzel um die fehlenden Einträge aus `.env`, `.env.local`, `.verbatra-local/` und `verbatra.cache.json` und nennt sie auf stderr. Ein Dry Run lässt die Datei in Ruhe, und keiner dieser Befehle legt eine an; das macht [`verbatra init`](/de/docs/cli/init).
+Ein echter Lauf von `translate`, `watch`, `import`, `tmx import` oder `pseudo` ergänzt außerdem eine vorhandene `.gitignore` in der Projektwurzel um die fehlenden Einträge aus `.env`, `.env.local`, `.verbatra-local/` und `verbatra.cache.json` und nennt sie auf stderr (`--json` und `--quiet` lassen diese Zeile weg). Das geschieht, sobald die Konfiguration geladen ist, ein Lauf, der danach scheitert, hat es also schon getan. Ein Dry Run lässt die Datei in Ruhe, und keiner dieser Befehle legt eine an; das macht [`verbatra init`](/de/docs/cli/init). Eine `.gitignore`, die ein symbolischer Link aus dem Projekt hinaus ist, bleibt unverändert, mit einer Warnung, die `--json` und `--quiet` beibehalten.
 
 ## Terminalausgabe
 

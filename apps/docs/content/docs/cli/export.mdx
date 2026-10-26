@@ -59,7 +59,7 @@ Each target also says where it came from. In XLIFF 1.2, a target a provider, the
 
 ### Where the handoff is written
 
-The handoff is only written inside the working directory. Before anything is read, `export` refuses with `EXPORT_OUTPUT_CONFLICT` an `--out` that climbs out of the working directory, or that (itself or through a file it would write) names a file the project depends on: a configured locale file, the lock file, the provenance file, the translation-memory cache, a config file verbatra searches for, the config the run loaded, or the configured `glossary` file. For `xlsx`, a path that names no file (such as `out/`) or the working directory itself is refused too. Names compare case-insensitively, and the checks run again after symbolic links are resolved.
+The handoff is only written inside the project root. Before anything is read, `export` refuses with `EXPORT_OUTPUT_CONFLICT` an `--out` that climbs out of the project root, or that (itself or through a file it would write) names a file the project depends on: a configured locale file, the lock file, the provenance file, the translation-memory cache, a config file verbatra searches for, the config the run loaded, or the configured `glossary` file. For `xlsx`, a path that names no file (such as `out/`) or the project root itself is refused too. Names compare case-insensitively, and the checks run again after symbolic links are resolved.
 
 A path that passes can still fail while writing (not writable, something in the way, disk full): the run stops with `EXPORT_UNWRITABLE`, naming the file and the file-system code.
 

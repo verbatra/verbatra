@@ -160,9 +160,9 @@ By default it lands at `verbatra-types.d.ts` in your project root. **Commit it**
 
 An output path is refused with `TYPES_OUTPUT_CONFLICT` when it:
 
-- names no file, including one that ends in a path separator such as `generated/`,
+- names no file, including one that ends in a path separator such as `generated/` (an empty `--out` fails earlier, with `INVALID_OUT`),
 - is absolute,
-- climbs out of the working directory with `..`,
+- climbs out of the project root with `..`,
 - is not a TypeScript file, meaning its name does not end in `.ts`, `.mts` or `.cts`,
 - names a configured locale file, source or target, so generation can never overwrite a catalog,
 - is the lock file, `verbatra.lock.json`,

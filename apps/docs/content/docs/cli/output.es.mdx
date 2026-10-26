@@ -49,7 +49,7 @@ Algunos casos límite que conviene conocer:
 - `export` no tiene modo de fallo por locale: sale con `0` o `2`, nunca con `1`.
 - `doctor` lee una configuración rota de forma distinta al resto de comandos: una configuración que la búsqueda no encuentra, o una que no supera la validación, es una comprobación fallida y da `1`, porque informar precisamente de eso es el trabajo del comando. Sale con `2` solo cuando no puede ejecutarse en absoluto, por ejemplo con una ruta `--config` explícita que no existe.
 - Hay un modo de fallo que queda fuera del contrato: un fallo de análisis que no es un error de uso se vuelve a lanzar, y el binario no lo captura, así que se aplica el comportamiento por defecto de Node ante un rechazo no gestionado en lugar de cualquiera de los seis códigos.
-- Una clave [protegida](/es/docs/protecting-human-translations) (un valor obsoleto que escribió, importó o cambió una persona fuera de verbatra, o una clave fijada) no cambia el código de salida de `translate` en un proyecto con proveedor: sale con `0` e indica en stderr cuántas claves dejó. `check` sigue saliendo con `1` por ella, porque la clave sigue obsoleta hasta que una persona la resuelva. En un proyecto solo humano cuenta para la salida `3`.
+- Una clave [protegida](/es/docs/protecting-human-translations) (un valor obsoleto que escribió, importó o cambió una persona fuera de verbatra, o una clave fijada) no cambia el código de salida de `translate` en un proyecto con proveedor: sale con `0` e indica en stderr cuántas claves dejó (las claves fijadas no cuentan). `check` sigue saliendo con `1` por ella, porque la clave sigue obsoleta hasta que una persona la resuelva. En un proyecto solo humano cuenta para la salida `3`.
 
 ## Salida JSON
 
@@ -83,7 +83,7 @@ Una ejecución que falla por completo escribe exactamente un registro `ok: false
 
 <AvailableFrom version="0.12.0" />
 
-`hint` aparece cuando el error tiene un siguiente paso: una frase breve en imperativo que lo resuelve, como `"Set GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project directory."` para una clave ausente o `` "Run `verbatra check --help` to see the options and arguments it accepts." `` para un `USAGE_ERROR`. Actúa según él en lugar de analizar `message`. Nombra variables, flags y rutas, nunca el valor de una clave. Cada código del SDK, de un proveedor y de un adaptador de formato tiene uno (el SDK exporta el mismo texto como [`errorHint`](/es/docs/sdk/errors#errorhint)), y también cada [código de error de la CLI](/es/docs/error-codes#cli-error-codes) excepto `CLI_ERROR`. Sin `--json`, el mismo texto sigue a la línea de error en stderr como `next: ...`, salvo que uses `--quiet`. `mcp --json` es la excepción: se rechaza con una sola línea `USAGE_ERROR` en stderr, sin envoltorio y sin `next:`.
+`hint` aparece cuando el error tiene un siguiente paso: una frase breve en imperativo que lo resuelve, como `"Set GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project directory."` para una clave ausente o `` "Run `verbatra check --help` to see the options and arguments it accepts." `` para un `USAGE_ERROR`. Actúa según él en lugar de analizar `message`. Nombra variables, flags y rutas, nunca el valor de una clave. Cada código del SDK, de un proveedor y de un adaptador de formato tiene uno (el SDK exporta el mismo texto como [`errorHint`](/es/docs/sdk/errors#errorhint)), y también cada [código de error de la CLI](/es/docs/error-codes#cli-error-codes) excepto `CLI_ERROR`. Sin `--json`, el mismo texto sigue a la línea de error en stderr como `next: ...`, salvo que uses `--quiet`. `mcp --json` es la excepción: se rechaza con una sola línea `USAGE_ERROR` en stderr, sin envoltorio y sin `next:`. Los errores de arranque de `studio` y `mcp` tampoco llevan una línea `next:`.
 
 El `result` de un envoltorio correcto es distinto en cada comando y se describe en su página, bajo Salida JSON: [`extract`](/es/docs/cli/extract), [`translate`](/es/docs/cli/translate), [`watch`](/es/docs/cli/watch), [`check`](/es/docs/cli/check), [`diff`](/es/docs/cli/diff), [`report`](/es/docs/cli/report), [`doctor`](/es/docs/cli/doctor), [`pseudo`](/es/docs/cli/pseudo), [`types`](/es/docs/cli/types), [`export`](/es/docs/cli/export), [`import`](/es/docs/cli/import), [`tmx`](/es/docs/cli/tmx), [`init`](/es/docs/cli/init).
 
@@ -98,6 +98,7 @@ Cada registro que imprime `--json` tiene un JSON Schema (draft 2020-12). Los esq
 | Cualquier envoltorio, de éxito o de error | [`envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/envelope.json) | `@verbatra/cli/schemas/envelope.json` |
 | El envoltorio de un comando, con su `result` | `https://verbatra.kreitz-webdev.de/schema/v1/<command>-envelope.json` | `@verbatra/cli/schemas/<command>-envelope.json` |
 | El envoltorio de error | [`error-envelope.json`](https://verbatra.kreitz-webdev.de/schema/v1/error-envelope.json) | `@verbatra/cli/schemas/error-envelope.json` |
+| El resultado de `init` por sí solo, sin envoltorio | [`init-result.json`](https://verbatra.kreitz-webdev.de/schema/v1/init-result.json) | `@verbatra/cli/schemas/init-result.json` |
 | Una línea JSON en stderr: progreso, espera de un bloqueo, interrupción | [`stderr-record.json`](https://verbatra.kreitz-webdev.de/schema/v1/stderr-record.json) | `@verbatra/cli/schemas/stderr-record.json` |
 | El archivo de configuración | [`config.json`](https://verbatra.kreitz-webdev.de/schema/v1/config.json) | `@verbatra/sdk/schemas/config.json` o `@verbatra/sdk/config-schema.json`: el mismo esquema sin `$id` ni `title` |
 
@@ -113,7 +114,7 @@ La CLI lanza estos códigos por sí misma. La misma lista se publica como `CLI_E
 
 ## Errores en stderr
 
-Todo error va a stderr como una línea estructurada (`verbatra: error [CODE] message`) en ambos modos. Desde 0.12.0 eso incluye un error al analizar los argumentos (una opción o un comando desconocidos, un argumento ausente): imprime `verbatra: error [USAGE_ERROR] unknown option '--nope'` y sale con `2`, donde antes imprimía el propio `error: unknown option '--nope'` de commander, sin código. `init` sigue la misma gramática desde 0.12.0; antes, un proveedor ausente imprimía `verbatra: --provider is required (...)` sin código. Desde 0.12.0, sin `--json` una pista sigue a la línea como `next: ...`, y con `--json` un error de análisis escribe en stdout el envoltorio `USAGE_ERROR` con su `hint`; `mcp` reserva stdout para el protocolo, así que rechaza `--json` solo en stderr. Sin `--json`, una ejecución fallida sigue sin escribir absolutamente nada en stdout. Los registros de progreso y de espera de bloqueo van siempre a stderr, así que stdout no lleva más que envoltorios.
+Todo error va a stderr como una línea estructurada (`verbatra: error [CODE] message`) en ambos modos. Desde 0.12.0 eso incluye un error al analizar los argumentos (una opción o un comando desconocidos, un argumento ausente): imprime `verbatra: error [USAGE_ERROR] unknown option '--nope'` y sale con `2`, donde antes imprimía el propio `error: unknown option '--nope'` de commander, sin código. `init` sigue la misma gramática desde 0.12.0; antes, un proveedor ausente imprimía `verbatra: --provider is required (...)` sin código. Desde 0.12.0, sin `--json` una pista sigue a la línea como `next: ...`, y con `--json` un error de análisis escribe en stdout el envoltorio `USAGE_ERROR` con su `hint`; `mcp` reserva stdout para el protocolo, así que rechaza `--json` solo en stderr. El arranque de `studio` y `mcp` es la excepción a la línea estructurada: si `@verbatra/studio` o `@verbatra/mcp` no está instalado, stderr lleva solo la instrucción de instalación, sin el prefijo `verbatra:`. Con `--json`, el `message` de un error de análisis es el texto propio de commander, con el prefijo `error: `. Sin `--json`, una ejecución fallida sigue sin escribir absolutamente nada en stdout. Los registros de progreso y de espera de bloqueo van siempre a stderr, así que stdout no lleva más que envoltorios.
 
 ## Salida en el terminal
 
@@ -122,9 +123,9 @@ Todo error va a stderr como una línea estructurada (`verbatra: error [CODE] mes
 Los resultados van a stdout. El progreso, los avisos, las sugerencias, las advertencias y los errores van a stderr, y verbatra los adapta según a dónde vaya stderr:
 
 - En un terminal interactivo, las etiquetas fijas como `error`, `[ok]` y `next:` llevan color, y un paso que tarda más de 300 ms muestra un spinner ASCII (`| / - \`).
-- Cuando stderr se redirige o va a una tubería, `CI` tiene un valor distinto de `0` o `false`, o `TERM` vale `dumb`, la salida son líneas simples que solo se añaden, sin color ni animación.
+- Cuando stderr se redirige o va a una tubería, `CI` tiene un valor distinto de vacío, `0` o `false`, o `TERM` vale `dumb`, la salida son líneas simples que solo se añaden, sin color ni animación.
 - Las etiquetas de estado del informe de [`doctor`](/es/docs/cli/doctor) en stdout (`[ok  ]`, `[warn]`, `[fail]`, `[skip]`) tienen color cuando stdout es un terminal interactivo; un informe redirigido queda sin formato salvo que `FORCE_COLOR` active el color.
-- `--json` nunca añade color, animación ni líneas nuevas: stdout y stderr quedan exactamente como se describe en [Salida JSON](/es/docs/cli/output#salida-json).
+- `--json` nunca añade color ni animación, y stdout no lleva más que envoltorios. Las líneas simples de aviso `verbatra:` aún pueden llegar a stderr, así que quien consume la salida analiza solo las líneas de stderr que empiezan por `{`. Consulta [Salida JSON](/es/docs/cli/output#salida-json).
 
 | Flag o variable | Efecto |
 | --- | --- |
@@ -133,5 +134,7 @@ Los resultados van a stdout. El progreso, los avisos, las sugerencias, las adver
 | `NO_COLOR`, `NODE_DISABLE_COLORS`, `VERBATRA_NO_COLOR` | cualquier valor no vacío desactiva el color; `VERBATRA_NO_COLOR` también se impone a `FORCE_COLOR` |
 | `FORCE_COLOR` | `1`, `2`, `3`, `true` o un valor vacío activa el color aunque stderr o stdout no sea un terminal, y cualquier otro valor, `0` incluido, lo desactiva. Si está definido, se impone a `NO_COLOR`, `NODE_DISABLE_COLORS`, `CI` y `TERM=dumb`; `--no-color` y `VERBATRA_NO_COLOR` siguen teniendo prioridad |
 | `VERBATRA_NO_SPINNER` | cualquier valor no vacío sustituye el spinner por líneas estáticas `label... done (1.2s)`, para lectores de pantalla y grabaciones del terminal |
+
+Los ejemplos `output` de las páginas de comando muestran la forma simple. Un terminal interactivo muestra un paso en curso como una línea con spinner que termina en `[ok]` y el tiempo transcurrido.
 
 Las palabras de estado son ASCII simple (`[ok]`, `[warn]`, `[fail]`, `[skip]`), así que la salida se lee igual en cualquier terminal y registro. Cada línea pasa por la misma ocultación de claves que el resto de la salida, y solo se colorean las etiquetas fijas, nunca una clave, una ruta ni un mensaje.

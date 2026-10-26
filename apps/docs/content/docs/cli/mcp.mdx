@@ -50,9 +50,9 @@ Also takes the [global flags](/docs/cli#global-flags) `--cwd` and `--config`. It
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-When `--cwd` is absent and `CLAUDE_PROJECT_DIR` names an existing directory, the server uses it as the project directory. `verbatra mcp` then loads the [environment files](/docs/cli#environment-files) from that directory; a `CLAUDE_PROJECT_DIR` set only in those files is ignored, because the project directory is resolved first.
+When `--cwd` is absent and `CLAUDE_PROJECT_DIR` names an existing directory, the server uses it as the project directory. `verbatra mcp` then loads the [environment files](/docs/cli#environment-files) from that directory; a `CLAUDE_PROJECT_DIR` set only in those files is ignored.
 
-The config search starts there, and the directory of the config it finds is the [project root](/docs/config-file#the-working-directory-and-env) tool paths resolve against, so a server started in a subdirectory works on the project's files.
+The config search starts there, and the directory of the config it finds is the [project root](/docs/config-file#the-working-directory-and-env) tool paths resolve against.
 
 ### Spend tools
 
@@ -156,7 +156,7 @@ No usable verbatra config: project.snapshot and project.doctor work, every other
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Before each call the server reloads the config when the config file, a file the search would try, or the glossary file changed; a module the config imports is not watched. `--allow-spend` is read once, so a change can hide the spend tools but never list them without it. When the tool list changes, the server sends `notifications/tools/list_changed`.
+Before each call the server reloads the config when the config file, a file the search would try, or the glossary file changed; a module the config imports is not watched. `--allow-spend` is read once, so a change can hide the spend tools but never list them without it. When the tool list changes, the server sends `notifications/tools/list_changed`. A reload that moves the project root makes `verbatra mcp` load that root's environment files and print `verbatra: project root is now <root>`, which `--quiet` drops.
 
 ### Secret redaction
 
@@ -179,7 +179,7 @@ verbatra MCP server running on stdio (project ., spend tools off)
 verbatra MCP server stopped (client closed stdin)
 ```
 
-Started by hand in a terminal, it says a client should launch it. `verbatra mcp --quiet` drops these lines, but not the reason for a missing config.
+`verbatra mcp --quiet` drops these lines, but not the reason for a missing config.
 
 ### Installation
 

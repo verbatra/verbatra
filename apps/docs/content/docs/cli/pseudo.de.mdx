@@ -37,7 +37,7 @@ verbatra pseudo --json
 | --- | --- | --- | --- |
 | `--mode` | `<mode>` | `accented` | <AvailableFrom version="0.12.0" /> die Transformation: `accented` oder `bidi`, das jedes Wort von rechts nach links darstellt (sonst `INVALID_OPTION`) |
 | `--locale` | `<code>` | `en-XA` (`ar-XB` mit `--mode bidi`) | die zu erzeugende Pseudo-Locale; nur Buchstaben, Ziffern und Bindestriche (sonst `INVALID_LOCALE`) |
-| `--out` | `<path>` | `.verbatra-local/pseudo` | Verzeichnis, unter das die Pseudo-Locale geschrieben wird, relativ zum Arbeitsverzeichnis und innerhalb der Projektwurzel |
+| `--out` | `<path>` | `.verbatra-local/pseudo` | Verzeichnis, unter das die Pseudo-Locale geschrieben wird, relativ zum Arbeitsverzeichnis und innerhalb der Projektwurzel; ein leerer Wert ist `INVALID_OUT` |
 
 Außerdem nimmt der Befehl die [globalen Flags](/de/docs/cli#globale-flags) `--cwd`, `--config` und `--json`.
 
@@ -85,7 +85,7 @@ Die Pseudo-Locale landet außerhalb deiner echten Locale-Dateien, standardmäßi
 
 - eine Pseudo-Locale, die deine Quell-Locale oder eine Ziel-Locale benennt,
 - ein `--out`, das die Datei in dasselbe Verzeichnis wie eine konfigurierte Locale-Datei legt,
-- ein `--out`, das absolut ist, aus dem Arbeitsverzeichnis herausführt oder nach dem Auflösen symbolischer Links außerhalb des Projekts, in seiner Wurzel oder auf einer Datei landet, von der das Projekt abhängt.
+- ein `--out`, das absolut ist, aus der Projektwurzel herausführt oder nach dem Auflösen symbolischer Links außerhalb des Projekts, in seiner Wurzel oder auf einer Datei landet, von der das Projekt abhängt.
 
 Weil die Datei außerhalb von `files.pattern` liegt, gibt [`translate`](/de/docs/cli/translate) nie Geld für sie aus, und [`check`](/de/docs/cli/check) und [`diff`](/de/docs/cli/diff) melden sie nie.
 
