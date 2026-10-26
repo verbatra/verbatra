@@ -73,7 +73,14 @@ export type ModelRate = z.infer<typeof modelRateSchema>;
  * example `gemini/gemini-2.5-flash`), and the bare provider id for one without (`deepl`,
  * `google-translate`).
  */
-export type RateCard = z.infer<typeof rateCardSchema>;
+export interface RateCard {
+  /** The date the rates were read, written as `YYYY-MM-DD`; printed beside every priced estimate. */
+  readonly asOf: string;
+  /** The three-letter uppercase currency code the rates are written in, such as `USD` or `EUR`. */
+  readonly currency: string;
+  /** The rate entries by rate key: a token rate or a character rate, never both. */
+  readonly table: Readonly<Record<string, ModelRate>>;
+}
 
 export function lookupRate(card: RateCard | undefined, rateKey: string): ModelRate | undefined {
   if (card === undefined) {
