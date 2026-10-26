@@ -81,7 +81,7 @@ Jeder Aufruf läuft über den eigenen, angemeldeten Loopback-RPC des Dashboards,
 - **Review-Entscheidungen**: Freigeben und Ablehnen dienen nur dazu, deine Entscheidung weiterzugeben. Beide brauchen `reviewer`, den Namen der Person, und `expectedValue`, den geprüften Text; ein geänderter Wert wird mit `REVIEW_VALUE_CHANGED` abgelehnt.
 - **Keine Sammel-Tools**: **Approve selected**, **Reject selected**, **Retranslate selected** und **Approve all in** bleiben bei einem Menschen.
 - **Erst schätzen**: Eine unbekannte Locale wird mit `UNKNOWN_LOCALE` abgelehnt, bevor etwas ausgegeben wird, und es gilt das niedrigere `maxTokens` von Aufruf und Konfiguration ([Kosten vor einem Lauf schätzen](/de/docs/estimating-cost)).
-- **Rate-Limits**: pro gleitender Minute 20 Neuübersetzungen, 20 Bearbeitungen, 20 Glossar-Schreibvorgänge, 60 Review-Entscheidungen und 5 Translate-Pending-Aufrufe, einer zur Zeit. Ein zweiter Aufruf für einen Eintrag, der noch läuft, wird mit `ALREADY_IN_PROGRESS` abgelehnt.
+- **Rate-Limits**: pro gleitender Minute 20 Neuübersetzungen, 20 Bearbeitungen, 20 Glossar-Schreibvorgänge, 60 Review-Entscheidungen und 5 Translate-Pending-Aufrufe, einer zur Zeit.
 
 ## Einen fehlgeschlagenen Aufruf lesen
 
@@ -95,6 +95,7 @@ Jedes Tool liefert den Umschlag des Dashboards, ein Fehler sieht also so aus: `{
 | `PARAMS_INVALID` | ein Parameter hat die Prüfung nicht bestanden; `issues` nennt jedes Feld |
 | `METHOD_RATE_LIMITED` | über dem Rate-Limit; `retryAfterSeconds` sagt, wann der Aufruf passt |
 | `BATCH_TOO_LARGE` | ein Batch übersteigt ein ganzes Rate-Limit-Fenster; sende weniger Einträge |
+| `ALREADY_IN_PROGRESS` | ein zweiter Aufruf für einen Eintrag, der noch läuft (HTTP 409) |
 | `SESSION_EXPIRED` | Studio wurde mit neuem Token neu gestartet; öffne die URL, die es ausgegeben hat |
 | `INTERNAL` | ein Handler ist mit einem unerwarteten Fehler gescheitert (HTTP 500); die Meldung ist generisch und enthält keine Details |
 

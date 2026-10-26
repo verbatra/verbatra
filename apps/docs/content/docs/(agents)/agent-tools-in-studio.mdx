@@ -81,7 +81,7 @@ Every call goes through the dashboard's own authenticated loopback RPC, with the
 - **Review decisions**: approve and reject are for relaying your decision only. Both need `reviewer`, the person's name, and `expectedValue`, the text reviewed; a changed value is refused with `REVIEW_VALUE_CHANGED`.
 - **No bulk tools**: **Approve selected**, **Reject selected**, **Retranslate selected** and **Approve all in** stay with a person.
 - **Estimate first**: an unknown locale is refused with `UNKNOWN_LOCALE` before anything is spent, and the lower of the call's and the config's `maxTokens` applies ([Estimate cost before a run](/docs/estimating-cost)).
-- **Rate limits**: per rolling minute, 20 retranslations, 20 edits, 20 glossary writes, 60 review decisions and 5 translate-pending calls, one at a time. A second call for an entry that is still in flight is refused with `ALREADY_IN_PROGRESS`.
+- **Rate limits**: per rolling minute, 20 retranslations, 20 edits, 20 glossary writes, 60 review decisions and 5 translate-pending calls, one at a time.
 
 ## Read a failed call
 
@@ -95,6 +95,7 @@ Every tool returns the dashboard's envelope, so a failure reads `{ "ok": false, 
 | `PARAMS_INVALID` | a parameter failed validation; `issues` names each field |
 | `METHOD_RATE_LIMITED` | over the rate limit; `retryAfterSeconds` says when the call fits |
 | `BATCH_TOO_LARGE` | a batch exceeds a whole rate-limit window; send fewer entries |
+| `ALREADY_IN_PROGRESS` | a second call for an entry still in flight (HTTP 409) |
 | `SESSION_EXPIRED` | Studio restarted with a new token; open the URL it printed |
 | `INTERNAL` | a handler failed with an unexpected error (HTTP 500); the message is generic and carries no detail |
 

@@ -8,12 +8,24 @@ const RPC_GATE = resolve(REPO_ROOT, "packages/studio/src/server/rpc-gate.ts");
 const CLIENT_API = resolve(REPO_ROOT, "packages/studio/src/app/api.ts");
 const PAGE = "apps/docs/content/docs/(agents)/agent-tools-in-studio";
 const LOCALE_SUFFIXES = ["", ".de", ".es", ".fr"];
-const TABLE_ROWS = /^\| --- \| --- \|\n((?:\| `[A-Z_]+` \|[^\n]*\n)+)/gm;
+const TABLE_ROWS = /^\| --- \| --- \|\n((?:\| `[A-Z][A-Z0-9_]*` \|[^\n]*\n)+)/gm;
 const CLIENT_SYNTHESIZED = ["SESSION_EXPIRED"];
+
+const CODE = "[A-Z][A-Z0-9_]*";
 
 function gateCodes() {
   const source = readFileSync(RPC_GATE, "utf8");
-  return [...new Set([...source.matchAll(/"([A-Z]+(?:_[A-Z]+)+|INTERNAL)"/g)].map((m) => m[1]))];
+  const viaEnvelope = [
+    ...source.matchAll(new RegExp(`errorEnvelope\\(\\s*\\d+,\\s*"(${CODE})"`, "g")),
+  ];
+  const viaCodeField = [...source.matchAll(new RegExp(`\\bcode:\\s*"(${CODE})"`, "g"))];
+  const calls = [...source.matchAll(/(?<!function )errorEnvelope\(/g)];
+  if (viaEnvelope.length !== calls.length) {
+    throw new Error(
+      "an errorEnvelope call in rpc-gate.ts takes a code that is not a string literal",
+    );
+  }
+  return [...new Set([...viaEnvelope, ...viaCodeField].map((m) => m[1]))];
 }
 
 function pageText(suffix) {
@@ -25,7 +37,7 @@ function tableCodes(text) {
     .map((m) => m[1])
     .find((block) => block.includes("`REQUEST_INVALID`"));
   if (rows === undefined) throw new Error("the RPC error code table could not be located");
-  return [...rows.matchAll(/^\| `([A-Z_]+)` \|/gm)].map((m) => m[1]);
+  return [...rows.matchAll(/^\| `([A-Z][A-Z0-9_]*)` \|/gm)].map((m) => m[1]);
 }
 
 describe("the Studio RPC error code table", () => {
@@ -45,8 +57,9 @@ describe("the Studio RPC error code table", () => {
   describe.each(LOCALE_SUFFIXES)("page%s", (suffix) => {
     const text = pageText(suffix);
 
-    it("documents every code the gate returns", () => {
-      for (const code of codes) expect(text, code).toContain(`\`${code}\``);
+    it("tabulates every code the gate returns", () => {
+      const listed = tableCodes(text);
+      for (const code of codes) expect(listed, code).toContain(code);
     });
 
     it("tabulates only codes the gate or the client produces", () => {

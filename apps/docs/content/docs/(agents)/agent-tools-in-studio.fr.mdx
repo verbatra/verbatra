@@ -80,7 +80,7 @@ Chaque appel passe par le RPC loopback authentifié du tableau de bord, avec la 
 - **Décisions de relecture** : approuver et rejeter servent seulement à transmettre ta décision. Les deux exigent `reviewer`, le nom de la personne, et `expectedValue`, le texte relu ; une valeur modifiée est refusée avec `REVIEW_VALUE_CHANGED`.
 - **Pas d'outils groupés** : **Approve selected**, **Reject selected**, **Retranslate selected** et **Approve all in** restent entre les mains d'une personne.
 - **Estimer d'abord** : une locale inconnue est refusée avec `UNKNOWN_LOCALE` avant toute dépense, et c'est le plus bas des `maxTokens` de l'appel et de la config qui s'applique ([Estimer le coût avant une exécution](/fr/docs/estimating-cost)).
-- **Limites de débit** : par minute glissante, 20 retraductions, 20 modifications, 20 écritures de glossaire, 60 décisions de relecture et 5 appels translate-pending, un à la fois. Un second appel pour une entrée encore en cours est refusé avec `ALREADY_IN_PROGRESS`.
+- **Limites de débit** : par minute glissante, 20 retraductions, 20 modifications, 20 écritures de glossaire, 60 décisions de relecture et 5 appels translate-pending, un à la fois.
 
 ## Lire un appel échoué
 
@@ -94,6 +94,7 @@ Chaque outil renvoie l'enveloppe du tableau de bord, donc un échec se lit `{ "o
 | `PARAMS_INVALID` | un paramètre a échoué à la validation ; `issues` nomme chaque champ |
 | `METHOD_RATE_LIMITED` | limite de débit dépassée ; `retryAfterSeconds` dit quand l'appel passera |
 | `BATCH_TOO_LARGE` | un lot dépasse toute une fenêtre de limite ; envoie moins d'entrées |
+| `ALREADY_IN_PROGRESS` | un second appel pour une entrée encore en cours (HTTP 409) |
 | `SESSION_EXPIRED` | Studio a redémarré avec un nouveau token ; ouvre l'URL qu'il a affichée |
 | `INTERNAL` | un handler a échoué avec une erreur inattendue (HTTP 500) ; le message est générique et ne donne aucun détail |
 

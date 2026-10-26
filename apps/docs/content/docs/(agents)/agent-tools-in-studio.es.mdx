@@ -80,7 +80,7 @@ Cada llamada pasa por el RPC de loopback autenticado del propio panel, con la mi
 - **Decisiones de revisión**: aprobar y rechazar sirven solo para transmitir tu decisión. Ambas necesitan `reviewer`, el nombre de la persona, y `expectedValue`, el texto revisado; un valor cambiado se rechaza con `REVIEW_VALUE_CHANGED`.
 - **Sin herramientas en lote**: **Approve selected**, **Reject selected**, **Retranslate selected** y **Approve all in** quedan en manos de una persona.
 - **Estima primero**: un locale desconocido se rechaza con `UNKNOWN_LOCALE` antes de gastar nada, y se aplica el `maxTokens` más bajo entre la llamada y la configuración ([Estima el coste antes de una ejecución](/es/docs/estimating-cost)).
-- **Límites de frecuencia**: por minuto móvil, 20 retraducciones, 20 ediciones, 20 escrituras del glosario, 60 decisiones de revisión y 5 llamadas translate-pending, de una en una. Una segunda llamada para una entrada que aún está en curso se rechaza con `ALREADY_IN_PROGRESS`.
+- **Límites de frecuencia**: por minuto móvil, 20 retraducciones, 20 ediciones, 20 escrituras del glosario, 60 decisiones de revisión y 5 llamadas translate-pending, de una en una.
 
 ## Lee una llamada fallida
 
@@ -94,6 +94,7 @@ Cada herramienta devuelve el envoltorio del panel, así que un fallo se lee `{ "
 | `PARAMS_INVALID` | un parámetro no pasó la validación; `issues` nombra cada campo |
 | `METHOD_RATE_LIMITED` | se superó el límite; `retryAfterSeconds` indica cuándo cabe la llamada |
 | `BATCH_TOO_LARGE` | un lote supera una ventana entera del límite; envía menos entradas |
+| `ALREADY_IN_PROGRESS` | una segunda llamada para una entrada que aún está en curso (HTTP 409) |
 | `SESSION_EXPIRED` | Studio se reinició con un token nuevo; abre la URL que imprimió |
 | `INTERNAL` | un handler falló con un error inesperado (HTTP 500); el mensaje es genérico y no incluye detalles |
 
