@@ -5,6 +5,7 @@ import { useSidebar } from "fumadocs-ui/components/sidebar/base";
 import { buttonVariants } from "fumadocs-ui/components/ui/button";
 import { useNotebookLayout } from "fumadocs-ui/layouts/notebook";
 import { type ComponentProps, type ReactNode, useRef } from "react";
+import { DocsCrumbBar } from "@/components/docs-crumb-bar";
 import { MENU_TRIGGER } from "@/components/nav-link-classes";
 import { useRootTabs } from "@/components/root-tabs";
 import { ICON_PROPS, SiteHeaderFrame } from "@/components/site-header";
@@ -40,16 +41,18 @@ export function DocsSiteHeader(props: ComponentProps<"header">): ReactNode {
       data-transparent={isNavTransparent && !open}
       {...props}
       className={cn(
-        "top-(--fd-docs-row-1) z-10 [grid-area:header] layout:[--fd-header-height:--spacing(14)]",
+        "top-(--fd-docs-row-1) z-50 [grid-area:header] layout:[--fd-header-height:--spacing(14)] max-md:layout:[--fd-header-height:--spacing(25)]",
         props.className,
       )}
       slots={slots}
       navItems={navItems}
       activeOverride={(url) => isRootTabLinkActive(url, tabs, activeTab)}
-      mobileTrigger={
-        <sidebar.trigger ref={triggerRef} className={MENU_TRIGGER}>
-          <SidebarIcon />
-        </sidebar.trigger>
+      subBar={
+        <DocsCrumbBar>
+          <sidebar.trigger ref={triggerRef} className={MENU_TRIGGER}>
+            <SidebarIcon />
+          </sidebar.trigger>
+        </DocsCrumbBar>
       }
       trailing={
         <sidebar.collapseTrigger

@@ -1,5 +1,4 @@
 import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
-import { Callout } from "fumadocs-ui/components/callout";
 import { Card } from "fumadocs-ui/components/card";
 import { type CodeBlock, Pre } from "fumadocs-ui/components/codeblock";
 import { Step, Steps } from "fumadocs-ui/components/steps";
@@ -10,6 +9,7 @@ import type { MDXComponents } from "mdx/types";
 import type { ComponentProps } from "react";
 import { AvailableFrom, type AvailableFromProps } from "@/components/available-from";
 import { DiffPanel } from "@/components/diff-panel";
+import { CALLOUT_CLASS, DocsCallout } from "@/components/docs-callout";
 import { DocsCodeBlock } from "@/components/docs-code-block";
 import {
   DocsHomeAgentTip,
@@ -39,7 +39,7 @@ import { isShortInlineCode, SHORT_CODE_CLASS } from "@/lib/inline-code";
 import { cn } from "@/lib/utils";
 import { breakInlineCode } from "@/lib/word-breaks";
 
-export const CALLOUT_CLASS = "vk-callout";
+export { CALLOUT_CLASS };
 export const LINK_CARD_CLASS = "vk-link-card";
 
 const NO_NEIGHBOURS: ReadonlySet<string> = new Set();
@@ -74,8 +74,8 @@ export function getMDXComponents(
           <Pre>{children}</Pre>
         </DocsCodeBlock>
       ),
-    Callout: ({ className, ...rest }: ComponentProps<typeof Callout>) => (
-      <Callout className={cn(CALLOUT_CLASS, className)} {...rest} />
+    Callout: (props: Omit<ComponentProps<typeof DocsCallout>, "locale">) => (
+      <DocsCallout {...props} locale={locale} />
     ),
     Card: ({ className, href, ...rest }: ComponentProps<typeof Card>) => {
       const localized = localizeHref(locale, href);

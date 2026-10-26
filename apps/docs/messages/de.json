@@ -50,6 +50,15 @@
     },
     "theme": {
       "light": "Helles Design"
+    },
+    "callout": {
+      "note": "Hinweis",
+      "warning": "Warnung"
+    },
+    "pagination": {
+      "label": "Seitennavigation",
+      "previous": "Zurück",
+      "next": "Weiter"
     }
   },
   "landing": {

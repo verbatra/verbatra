@@ -16,6 +16,15 @@
     "codeBlock": {
       "output": "Output"
     },
+    "callout": {
+      "note": "Note",
+      "warning": "Warning"
+    },
+    "pagination": {
+      "label": "Page navigation",
+      "previous": "Previous",
+      "next": "Next"
+    },
     "availableFrom": {
       "title": "Available from {version}",
       "text": "This needs verbatra {version} or newer. Earlier releases do not have it, so check your installed version with <code>verbatra --version</code> and upgrade if it is older.",

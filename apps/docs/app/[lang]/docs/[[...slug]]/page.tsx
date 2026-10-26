@@ -13,8 +13,10 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { DocsPageActions } from "@/components/docs-page-actions";
 import { JsonLd } from "@/components/json-ld";
 import { CALLOUT_CLASS, getMDXComponents } from "@/components/mdx";
+import { PageEyebrow } from "@/components/page-eyebrow";
+import { PageNeighbours } from "@/components/page-neighbours";
 import { sdkReferenceComponents } from "@/components/sdk-reference";
-import { docsBreadcrumbTrail, VISIBLE_BREADCRUMB_OPTIONS } from "@/lib/docs-breadcrumb";
+import { docsBreadcrumbTrail } from "@/lib/docs-breadcrumb";
 import { footerNeighbourUrls } from "@/lib/docs-neighbours";
 import { extractFaqItems, withoutQuestions } from "@/lib/extract-faq";
 import { i18n, type Locale, localizedPath, toLocale } from "@/lib/i18n";
@@ -26,7 +28,6 @@ import { breadcrumbListLd, type FaqItem, faqPageLd, techArticleLd } from "@/lib/
 import { contentCommitTimes, isTranslationOutdated } from "@/lib/translation-freshness";
 
 const CODE_HEADINGS_CLASS = "vk-code-headings";
-const BREADCRUMB_CLASS = "vk-breadcrumb";
 
 type DocsPageData = NonNullable<ReturnType<typeof source.getPage>>;
 
@@ -128,8 +129,12 @@ export default async function Page(props: { params: Promise<{ slug?: string[]; l
       toc={isHome ? [] : pageToc(page.data.toc, page.data.tocDepth)}
       tableOfContentPopover={{ trigger: { "aria-label": onThisPageLabel(lang) } }}
       full={isHome}
-      breadcrumb={{ enabled: !isHome, ...VISIBLE_BREADCRUMB_OPTIONS, className: BREADCRUMB_CLASS }}
-      footer={{ enabled: !isHome, className: "vk-docs-footer" }}
+      slots={{ breadcrumb: PageEyebrow }}
+      breadcrumb={{ enabled: !isHome }}
+      footer={{
+        enabled: !isHome,
+        component: <PageNeighbours locale={lang} url={page.url} />,
+      }}
       className={isHome ? "max-w-none p-0 md:p-0 xl:p-0" : undefined}
       tabIndex={-1}
     >
@@ -137,11 +142,13 @@ export default async function Page(props: { params: Promise<{ slug?: string[]; l
         <JsonLd key={String(data["@type"])} data={data} />
       ))}
       {isHome ? null : (
-        <>
-          <DocsTitle id="page-title">{page.data.title}</DocsTitle>
-          <DocsDescription>{page.data.description}</DocsDescription>
-          <DocsPageActions markdownUrl={markdownHref} githubUrl={editHref} />
-        </>
+        <header className="vk-page-head">
+          <div className="vk-page-head-row">
+            <DocsTitle id="page-title">{page.data.title}</DocsTitle>
+            <DocsPageActions markdownUrl={markdownHref} githubUrl={editHref} />
+          </div>
+          <DocsDescription className="vk-page-lead">{page.data.description}</DocsDescription>
+        </header>
       )}
       <DocsBody className={page.data.codeHeadings ? CODE_HEADINGS_CLASS : undefined}>
         <LocaleNotice page={page} slug={params.slug} lang={lang} />

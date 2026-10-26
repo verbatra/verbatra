@@ -147,7 +147,8 @@ function LanguageSelect({
 type SiteHeaderFrameProps = ComponentProps<"header"> & {
   slots: HeaderSlots;
   navItems: ReadonlyArray<LinkItemType>;
-  mobileTrigger: ReactNode;
+  mobileTrigger?: ReactNode;
+  subBar?: ReactNode;
   trailing?: ReactNode;
   navLabel?: string;
   externalHint?: string | undefined;
@@ -158,6 +159,7 @@ export function SiteHeaderFrame({
   slots,
   navItems,
   mobileTrigger,
+  subBar,
   trailing,
   navLabel,
   externalHint,
@@ -211,6 +213,7 @@ export function SiteHeaderFrame({
           </div>
         </HeaderEnd>
       </HeaderRow>
+      {subBar}
     </header>
   );
 }

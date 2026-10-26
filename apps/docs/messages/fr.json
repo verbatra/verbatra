@@ -50,6 +50,15 @@
     },
     "theme": {
       "light": "Thème clair"
+    },
+    "callout": {
+      "note": "Remarque",
+      "warning": "Avertissement"
+    },
+    "pagination": {
+      "label": "Navigation de la page",
+      "previous": "Précédent",
+      "next": "Suivant"
     }
   },
   "landing": {
