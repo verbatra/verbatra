@@ -4,7 +4,7 @@ seoTitle: "Translate and gate i18n with the GitHub Action"
 description: "Run verbatra in GitHub Actions with the composite action: translate on a push or gate a pull request, with annotations and a job summary."
 type: how-to
 ---
-Use the action when a GitHub Actions job should run verbatra and show you what happened. It runs `translate`, `check` or `diff` with `--json`; for any other command or flag, such as `--prune`, run the [CLI directly](/docs/ci-and-exit-codes).
+Use the action to run verbatra in a GitHub Actions job and see what happened. It runs `translate`, `check` or `diff` with `--json`; for any other command or flag, such as `--prune`, run the [CLI directly](/docs/ci-and-exit-codes).
 
 Before you start, you need:
 
@@ -15,7 +15,7 @@ Before you start, you need:
 
 ## Add the action to a workflow
 
-The action lives in [verbatra/action](https://github.com/verbatra/action) and on the [GitHub Marketplace](https://github.com/marketplace/actions/verbatra); there is no npm package. Pin it to a commit SHA, as below, or use the moving `verbatra/action@v1` tag.
+The action lives in [verbatra/action](https://github.com/verbatra/action) and on the [GitHub Marketplace](https://github.com/marketplace/actions/verbatra); there is no npm package. Pin it to a commit SHA, as below, or use the moving `verbatra/action@v1` tag. The old `mariokreitz/verbatra/packages/github-action` path no longer resolves.
 
 ```yaml title=".github/workflows/translate.yml"
 name: translate
@@ -38,7 +38,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
-The action installs `@verbatra/cli` and `@verbatra/sdk` at exactly that version, so the job needs no install step of its own.
+The action installs `@verbatra/cli` and `@verbatra/sdk` at exactly that version into a scratch directory, leaving your dependencies untouched, so the job needs no install step.
 
 ### Pass the provider key
 
@@ -46,7 +46,7 @@ Map the key from your repository secrets under the variable your provider reads;
 
 ## Gate a pull request
 
-Set `command: check` to fail a pull request whose locale files drifted, or `command: diff` to list the pending keys as well. Both are read-only and call no provider, so they need no key and run on pull requests from forks:
+Set `command: check` to fail a pull request whose locale files drifted, or `command: diff` to list the pending keys as well. Both are read-only and call no provider, so they need no key and run on fork pull requests:
 
 ```yaml
       - uses: verbatra/action@<commit-sha> # a commit on the v1 line
@@ -106,7 +106,7 @@ With `provider: { id: "none" }` (see [Human-only workflow](/docs/human-only-work
         run: echo "Some keys need a human translation; see the job summary."
 ```
 
-Only `translate` gets this treatment. An exit `3` from `check` or `diff` still fails the step.
+Only `translate` gets this; an exit `3` from `check` or `diff` still fails the step.
 
 ## Config discovery
 
@@ -122,7 +122,7 @@ If no config is found, the step fails before installing the CLI and names the di
 
 ## Persist translations
 
-`translate` writes the updated locale files into the runner's checkout and stops there: the action never commits. Add your own step that commits and pushes, or opens a pull request, and grant `contents: write` or `pull-requests: write` to that job only.
+`translate` writes the updated locale files into the runner's checkout; the action never commits. Add your own step that commits and pushes, or opens a pull request, and grant `contents: write` or `pull-requests: write` to that job only.
 
 ## Inputs
 
@@ -160,5 +160,4 @@ Pin both references: `uses:` to a commit SHA and `version` to an exact release (
 ## Related
 
 - [Run verbatra in CI](/docs/ci-and-exit-codes): the same gates in any CI system.
-- [`verbatra check`](/docs/cli/check) and [`verbatra translate`](/docs/cli/translate).
 - [verbatra/action](https://github.com/verbatra/action): the release notes and the input reference generated from `action.yml`.

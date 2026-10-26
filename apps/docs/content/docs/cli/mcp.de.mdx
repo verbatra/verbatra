@@ -5,7 +5,7 @@ description: "Starte den stdio-MCP-Server, der die Tools von verbatra jedem MCP-
 status: new
 type: reference
 ---
-Startet einen [Model-Context-Protocol](https://modelcontextprotocol.io)-Server über stdio, den Transport, mit dem Clients wie Claude Code oder Cursor einen Tool-Server starten. Er bedient Protokollrevision 2026-07-28 und frühere Revisionen bis zurück zu 2024-10-07. Einen HTTP-Transport gibt es nicht: Er würde die schreibenden und kostenpflichtigen Tools an einem Port anbieten.
+Startet einen [Model-Context-Protocol](https://modelcontextprotocol.io)-Server über stdio, den Transport, mit dem Clients wie Claude Code oder Cursor einen Tool-Server starten. Er bedient die Protokollrevisionen 2024-10-07 bis 2026-07-28. Einen HTTP-Transport gibt es nicht: Er würde die schreibenden und kostenpflichtigen Tools an einem Port anbieten.
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
 
@@ -207,5 +207,5 @@ Beim Stoppen gibt der Server jede Locale-Sperre frei. `verbatra-mcp` endet bei e
 ## Siehe auch
 
 - [MCP-Client verbinden](/de/docs/connect-an-mcp-client) richtet alle gängigen stdio-Clients ein.
-- [Agent-Tools in Studio](/de/docs/agent-tools-in-studio) deckt die Agent-Oberfläche im Browser ab.
+- [Agent-Tools in Studio](/de/docs/agent-tools-in-studio) ist das Browser-Gegenstück zu den Tools dieses Servers für Terminal- und Headless-Agenten.
 - [`verbatra check`](/de/docs/cli/check) und [`verbatra diff`](/de/docs/cli/diff) sind die Berechnungen hinter `status.check` und `status.diff`.

@@ -5,7 +5,7 @@ description: "Start the stdio MCP server that exposes verbatra's tools to any MC
 status: new
 type: reference
 ---
-Start a [Model Context Protocol](https://modelcontextprotocol.io) server over stdio, the transport clients such as Claude Code or Cursor use to launch a tool server. It serves protocol revision 2026-07-28 and earlier revisions back to 2024-10-07. There is no HTTP transport, which would put the write and spend tools on a port.
+Start a [Model Context Protocol](https://modelcontextprotocol.io) server over stdio, the transport clients such as Claude Code or Cursor use to launch a tool server. It serves protocol revisions 2024-10-07 to 2026-07-28. There is no HTTP transport, which would put the write and spend tools on a port.
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
 
@@ -179,7 +179,7 @@ verbatra MCP server running on stdio (project ., spend tools off)
 verbatra MCP server stopped (client closed stdin)
 ```
 
-By hand in a terminal, it also says a client should launch it. `verbatra mcp --quiet` drops these lines, but not the reason for a missing config.
+In a terminal, it also says a client should launch it. `verbatra mcp --quiet` drops these lines, but not the reason for a missing config.
 
 ### Installation
 
@@ -206,6 +206,6 @@ A stop releases any locale lock. `verbatra-mcp` exits `1` on a startup error and
 
 ## Related
 
-- [Connect an MCP client](/docs/connect-an-mcp-client) sets up every common stdio client.
-- [Agent tools in Studio](/docs/agent-tools-in-studio) covers the browser agent surface.
+- [Connect an MCP client](/docs/connect-an-mcp-client) sets up common stdio clients.
+- [Agent tools in Studio](/docs/agent-tools-in-studio): the browser counterpart of this server's tools for terminal and headless agents.
 - [`verbatra check`](/docs/cli/check) and [`verbatra diff`](/docs/cli/diff) are the computations behind `status.check` and `status.diff`.

@@ -5,7 +5,7 @@ description: "Arranca el servidor MCP por stdio que expone las herramientas de v
 status: new
 type: reference
 ---
-Arranca un servidor [Model Context Protocol](https://modelcontextprotocol.io) por stdio, el transporte que usan clientes como Claude Code o Cursor para lanzar un servidor de herramientas. Atiende la revisión de protocolo 2026-07-28 y las anteriores hasta 2024-10-07. No hay transporte HTTP, que expondría las herramientas de escritura y de gasto en un puerto.
+Arranca un servidor [Model Context Protocol](https://modelcontextprotocol.io) por stdio, el transporte que usan clientes como Claude Code o Cursor para lanzar un servidor de herramientas. Atiende las revisiones de protocolo 2024-10-07 a 2026-07-28. No hay transporte HTTP, que expondría las herramientas de escritura y de gasto en un puerto.
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
 
@@ -207,5 +207,5 @@ Al detenerse, el servidor libera cualquier bloqueo de locale. `verbatra-mcp` sal
 ## Relacionado
 
 - [Conectar un cliente MCP](/es/docs/connect-an-mcp-client) configura los clientes stdio habituales.
-- [Herramientas de agente en Studio](/es/docs/agent-tools-in-studio) cubre la superficie de agente en el navegador.
+- [Herramientas de agente en Studio](/es/docs/agent-tools-in-studio) es la contrapartida en el navegador de las herramientas de este servidor para agentes de terminal y sin interfaz.
 - [`verbatra check`](/es/docs/cli/check) y [`verbatra diff`](/es/docs/cli/diff) son los cálculos detrás de `status.check` y `status.diff`.

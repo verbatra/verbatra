@@ -15,7 +15,7 @@ Bevor du anfängst, brauchst du:
 
 ## Die Action in einen Workflow einbauen
 
-Die Action liegt in [verbatra/action](https://github.com/verbatra/action) und im [GitHub Marketplace](https://github.com/marketplace/actions/verbatra); ein npm-Paket gibt es nicht. Pinne sie wie unten auf einen Commit-SHA oder nutze den mitwandernden Tag `verbatra/action@v1`.
+Die Action liegt in [verbatra/action](https://github.com/verbatra/action) und im [GitHub Marketplace](https://github.com/marketplace/actions/verbatra); ein npm-Paket gibt es nicht. Pinne sie wie unten auf einen Commit-SHA oder nutze den mitwandernden Tag `verbatra/action@v1`. Der alte Pfad `mariokreitz/verbatra/packages/github-action` wird nicht mehr aufgelöst.
 
 ```yaml title=".github/workflows/translate.yml"
 name: translate
@@ -38,7 +38,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
-Die Action installiert `@verbatra/cli` und `@verbatra/sdk` in genau dieser Version, daher braucht der Job keinen eigenen Installationsschritt.
+Die Action installiert `@verbatra/cli` und `@verbatra/sdk` in genau dieser Version in ein temporäres Verzeichnis und lässt deine eigenen Abhängigkeiten unberührt, daher braucht der Job keinen Installationsschritt.
 
 ### Den Provider-Schlüssel übergeben
 
@@ -122,7 +122,7 @@ Wird keine Konfiguration gefunden, schlägt der Schritt vor der Installation der
 
 ## Übersetzungen behalten
 
-`translate` schreibt die aktualisierten Locale-Dateien in den Checkout des Runners und hört dort auf: Die Action committet nie. Füge einen eigenen Schritt hinzu, der committet und pusht oder einen Pull Request öffnet, und gib nur diesem Job `contents: write` oder `pull-requests: write`.
+`translate` schreibt die aktualisierten Locale-Dateien in den Checkout des Runners; die Action committet nie. Füge einen eigenen Schritt hinzu, der committet und pusht oder einen Pull Request öffnet, und gib nur diesem Job `contents: write` oder `pull-requests: write`.
 
 ## Eingaben
 
@@ -160,5 +160,4 @@ Pinne beide Referenzen: `uses:` auf einen Commit-SHA und `version` auf ein exakt
 ## Siehe auch
 
 - [verbatra in CI ausführen](/de/docs/ci-and-exit-codes): dieselben Gates in jedem CI-System.
-- [`verbatra check`](/de/docs/cli/check) und [`verbatra translate`](/de/docs/cli/translate).
 - [verbatra/action](https://github.com/verbatra/action): die Release Notes und die aus `action.yml` erzeugte Eingaben-Referenz.
