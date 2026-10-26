@@ -115,7 +115,10 @@ export async function keyValue(
     return context;
   }
   const records = (await readCarriedOverProvenance(cwd, fs, [locale]))?.(locale);
-  const baseline = (await readCarriedOverBaselines(cwd, fs, [locale]))?.(locale);
+  const baseline =
+    records === undefined
+      ? undefined
+      : (await readCarriedOverBaselines(cwd, fs, [locale]))?.(locale);
   return {
     ...context,
     target: targetEntry.value,

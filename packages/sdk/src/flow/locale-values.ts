@@ -159,7 +159,8 @@ export async function localeValues(
   const source = await readSourceResource(config, resolver, fs, adapter);
   const locales = selectLocales(config, input.locales);
   const provenanceFor = await readCarriedOverProvenance(cwd, fs, locales);
-  const baselineFor = await readCarriedOverBaselines(cwd, fs, locales);
+  const baselineFor =
+    provenanceFor === undefined ? undefined : await readCarriedOverBaselines(cwd, fs, locales);
 
   return Promise.all(
     locales.map(async (locale) => {
