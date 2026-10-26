@@ -4,6 +4,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 import { AnalyticsOptOut, type AnalyticsOptOutLabels } from "@/components/analytics-opt-out";
 import { CALLOUT_CLASS } from "@/components/docs-callout";
+import { LegalPage, LegalPageHead } from "@/components/legal-page";
 import { type Locale, toLocale } from "@/lib/i18n";
 import {
   PRIVACY_ANALYTICS_KEY,
@@ -56,6 +57,7 @@ export default async function PrivacyPage(props: { params: Promise<{ lang: strin
   const locale = toLocale(lang);
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "legal.privacy" });
+  const tLegal = await getTranslations({ locale, namespace: "landing.footer.cols.legal" });
   const linkTags = linkTagsFor(locale);
   const optOutLabels: AnalyticsOptOutLabels = {
     optOut: t(`${PRIVACY_ANALYTICS_KEY}.optOut.optOut`),
@@ -74,8 +76,8 @@ export default async function PrivacyPage(props: { params: Promise<{ lang: strin
   );
 
   return (
-    <article className="container mx-auto max-w-3xl px-6 py-16 prose">
-      <h1>{t("title")}</h1>
+    <LegalPage>
+      <LegalPageHead eyebrow={tLegal("title")} title={t("title")} />
       {lastUpdated}
 
       <p>
@@ -106,6 +108,6 @@ export default async function PrivacyPage(props: { params: Promise<{ lang: strin
       )}
 
       {lastUpdated}
-    </article>
+    </LegalPage>
   );
 }

@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
-import { toLocale } from "@/lib/i18n";
+import { LegalPage, LegalPageHead } from "@/components/legal-page";
+import { type Locale, toLocale } from "@/lib/i18n";
+import { licenseGroupId } from "@/lib/license-group-id";
 import { licenseTermsUrl } from "@/lib/license-terms";
 import { fallbackTexts, LICENSES, textsUsedBy, usageCount } from "@/lib/licenses-manifest";
 import { markdownUrl } from "@/lib/markdown-route";
+import { onThisPageLabel } from "@/lib/page-toc";
 import { localeAlternates } from "@/lib/site";
 import { homeOgImagePath, socialMetadata } from "@/lib/social-metadata";
 import type {
@@ -119,11 +122,34 @@ function PackageItem({
   );
 }
 
+const ASSETS_SECTION_ID = "assets";
+
+function JumpNav({ locale }: { locale: Locale }): ReactNode {
+  return (
+    <nav aria-label={onThisPageLabel(locale)} className="vk-legal-jump">
+      <ul lang="en" className="vk-legal-jump-list">
+        <li className="vk-legal-jump-item">
+          <a className="vk-legal-jump-link" href={`#${ASSETS_SECTION_ID}`}>
+            Fonts and other assets
+          </a>
+        </li>
+        {LICENSES.groups.map((group) => (
+          <li key={group.license} className="vk-legal-jump-item">
+            <a className="vk-legal-jump-link" href={`#${licenseGroupId(group.license)}`}>
+              {group.license} <span className="vk-legal-jump-count">{group.packages.length}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
+
 function GroupSection({ group }: { group: LicenseGroup }): ReactNode {
   const count = group.packages.length;
   return (
     <section>
-      <h2>
+      <h2 id={licenseGroupId(group.license)}>
         {group.license} ({count} {count === 1 ? "package" : "packages"})
       </h2>
       <ul className="vk-license-list">
@@ -164,18 +190,19 @@ export default async function LicensesPage(props: { params: Promise<{ lang: stri
   const locale = toLocale(lang);
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "legal.licenses" });
+  const tLegal = await getTranslations({ locale, namespace: "landing.footer.cols.legal" });
 
   return (
-    <article className="container mx-auto max-w-3xl px-6 py-16 prose">
-      <h1>{t("title")}</h1>
-      <p>{t("intro")}</p>
+    <LegalPage>
+      <LegalPageHead eyebrow={tLegal("title")} title={t("title")} lead={t("intro")} />
+      <JumpNav locale={locale} />
       <div lang="en">
         <p>
           {LICENSES.packageCount} packages in {LICENSES.groups.length} license groups, plus{" "}
           {LICENSES.assets.length} assets.
         </p>
         <section>
-          <h2>Fonts and other assets</h2>
+          <h2 id={ASSETS_SECTION_ID}>Fonts and other assets</h2>
           <ul className="vk-license-list">
             {LICENSES.assets.map((asset) => (
               <AssetItem key={asset.name} asset={asset} />
@@ -189,6 +216,6 @@ export default async function LicensesPage(props: { params: Promise<{ lang: stri
           <GroupSection key={group.license} group={group} />
         ))}
       </div>
-    </article>
+    </LegalPage>
   );
 }

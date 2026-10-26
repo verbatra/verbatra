@@ -70,7 +70,7 @@ describe.each(i18n.languages)("legal markdown in %s", (lang) => {
   it("carries exactly the text of the imprint page", async () => {
     const doc = await rendered(ImprintPage, lang);
     expect(markdownText(await imprintMarkdown(lang))).toBe(
-      blockText(doc, "article > h1, article > h2, article > p"),
+      blockText(doc, "article h1, article > header > .vk-page-lead, article > h2, article > p"),
     );
   });
 
@@ -78,7 +78,7 @@ describe.each(i18n.languages)("legal markdown in %s", (lang) => {
     const doc = await rendered(PrivacyPage, lang);
     doc.querySelector("section form")?.closest(".not-prose")?.remove();
     expect(markdownText(await privacyMarkdown(lang))).toBe(
-      blockText(doc, "article > h1, article > p, article section h2, article section p"),
+      blockText(doc, "article h1, article > p, article section h2, article section p"),
     );
   });
 
@@ -95,6 +95,8 @@ describe.each(i18n.languages)("legal markdown in %s", (lang) => {
 
   it("carries every heading, paragraph, list item and license text of the licenses page", async () => {
     const doc = await rendered(LicensesPage, lang);
+    doc.querySelector(".vk-page-eyebrow")?.remove();
+    doc.querySelector(".vk-legal-jump")?.remove();
     const text = words(await licensesMarkdown(lang));
     const found = blocks(
       doc,

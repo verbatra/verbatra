@@ -37,10 +37,12 @@ describe("licenses page", () => {
     const doc = await render(lang);
     expect(doc.querySelector("h1")?.textContent).toBe(title);
     expect((await generateMetadata({ params: Promise.resolve({ lang }) })).title).toBe(title);
-    const english = doc.querySelector('[lang="en"]');
+    const english = doc.querySelector('div[lang="en"]');
     expect(english).not.toBeNull();
     expect(english?.querySelector("h2")?.textContent).toBe("Fonts and other assets");
-    expect(doc.querySelector("article > p")?.textContent?.length).toBeGreaterThan(40);
+    expect(
+      doc.querySelector("article > header > .vk-page-lead")?.textContent?.length,
+    ).toBeGreaterThan(40);
   });
 
   it("opens one section per license group, then every package with its version", async () => {
@@ -83,5 +85,38 @@ describe("licenses page", () => {
     expect(codes.some((code) => code?.startsWith("@img/sharp-libvips-linux-x64@"))).toBe(true);
     expect(section?.textContent).toContain("GNU LESSER GENERAL PUBLIC LICENSE");
     expect(section?.textContent).toContain("GNU GENERAL PUBLIC LICENSE");
+  });
+});
+
+describe("licenses page jump navigation", () => {
+  it.each([
+    ["en", "On this page"],
+    ["de", "Auf dieser Seite"],
+    ["es", "En esta página"],
+    ["fr", "Sur cette page"],
+  ])("names the %s navigation with the docs table of contents label", async (lang, label) => {
+    const doc = await render(lang);
+    expect(doc.querySelector("nav.vk-legal-jump")?.getAttribute("aria-label")).toBe(label);
+  });
+
+  it("links the assets and every license group to a unique heading id", async () => {
+    const doc = await render("en");
+    const hrefs = [...doc.querySelectorAll(".vk-legal-jump a")].map((a) => a.getAttribute("href"));
+    expect(hrefs).toHaveLength(manifest.groups.length + 1);
+    expect(new Set(hrefs).size).toBe(hrefs.length);
+    for (const href of hrefs) {
+      const target = doc.getElementById((href ?? "").slice(1));
+      expect(target?.tagName, href ?? "").toBe("H2");
+    }
+  });
+});
+
+describe("licenses page head", () => {
+  it("opens with the legal eyebrow, the title and the intro as the page lead", async () => {
+    const doc = await render("en");
+    const head = doc.querySelector("article.vk-legal-page > header.vk-page-head");
+    expect(head?.querySelector(".vk-page-eyebrow")?.textContent).toBe("Legal");
+    expect(head?.querySelector("h1")?.textContent).toBe("Licenses");
+    expect(head?.querySelector(".vk-page-lead")?.textContent).toContain("verbatra itself is MIT");
   });
 });

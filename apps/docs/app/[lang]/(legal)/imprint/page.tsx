@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Fragment, type ReactNode } from "react";
+import { LegalPage, LegalPageHead } from "@/components/legal-page";
 import { type Locale, localizedPath, toLocale } from "@/lib/i18n";
 import {
   IMPRINT_EMAIL,
@@ -48,12 +49,12 @@ export default async function ImprintPage(props: { params: Promise<{ lang: strin
   const locale = toLocale(lang);
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "legal.imprint" });
+  const tLegal = await getTranslations({ locale, namespace: "landing.footer.cols.legal" });
   const linkTags = linkTagsFor(locale);
 
   return (
-    <article className="container mx-auto max-w-3xl px-6 py-16 prose">
-      <h1>{IMPRINT_TITLE}</h1>
-      <p>{t("intro")}</p>
+    <LegalPage>
+      <LegalPageHead eyebrow={tLegal("title")} title={IMPRINT_TITLE} lead={t("intro")} />
       <p>
         <em>
           {t("lastUpdatedLabel")}: {LEGAL_LAST_UPDATED}
@@ -88,6 +89,6 @@ export default async function ImprintPage(props: { params: Promise<{ lang: strin
           ),
         )}
       </p>
-    </article>
+    </LegalPage>
   );
 }

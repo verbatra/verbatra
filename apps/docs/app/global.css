@@ -1566,7 +1566,7 @@ body > [data-radix-popper-content-wrapper] > * {
   gap: 0;
 }
 
-#nd-page > .vk-page-head {
+:is(#nd-page, .vk-legal-page) > .vk-page-head {
   margin-bottom: 2rem;
 }
 
@@ -1583,7 +1583,7 @@ body > [data-radix-popper-content-wrapper] > * {
   gap: 0.75rem 1rem;
 }
 
-#nd-page h1 {
+:is(#nd-page, .vk-legal-page) h1 {
   min-width: 0;
   font-size: var(--text-h3);
   font-weight: 500;
@@ -1592,7 +1592,7 @@ body > [data-radix-popper-content-wrapper] > * {
   text-wrap: balance;
 }
 
-#nd-page .vk-page-lead {
+:is(#nd-page, .vk-legal-page) .vk-page-lead {
   max-width: var(--width-measure);
   margin: 1rem 0 0;
   font-size: var(--text-doc-lead);
@@ -1625,7 +1625,7 @@ body > [data-radix-popper-content-wrapper] > * {
   color: var(--text-strong);
 }
 
-#nd-page .prose :where(h2):not(:where(.not-prose, .not-prose *)) {
+:is(#nd-page .prose, .vk-legal-page) :where(h2):not(:where(.not-prose, .not-prose *)) {
   margin-top: 3rem;
   font-size: var(--text-doc-h2);
   font-weight: 600;
@@ -1633,7 +1633,7 @@ body > [data-radix-popper-content-wrapper] > * {
   letter-spacing: var(--tracking-tight);
 }
 
-#nd-page .prose :where(h3):not(:where(.not-prose, .not-prose *)) {
+:is(#nd-page .prose, .vk-legal-page) :where(h3):not(:where(.not-prose, .not-prose *)) {
   margin-top: 2.25rem;
   font-size: var(--text-doc-h3);
   font-weight: 600;
@@ -1648,7 +1648,7 @@ body > [data-radix-popper-content-wrapper] > * {
   overflow-wrap: anywhere;
 }
 
-#nd-page .prose :where(h4):not(:where(.not-prose, .not-prose *)) {
+:is(#nd-page .prose, .vk-legal-page) :where(h4):not(:where(.not-prose, .not-prose *)) {
   font-size: var(--text-doc-h4);
   font-weight: 600;
   line-height: var(--leading-snug);
@@ -1658,6 +1658,70 @@ body > [data-radix-popper-content-wrapper] > * {
   .prose
   :where(p, ul, ol, blockquote, .vk-callout):not(:where(td *, th *, .not-prose, .not-prose *)) {
   max-width: var(--width-measure);
+}
+
+.vk-legal-page {
+  width: 100%;
+  max-width: var(--width-page);
+  margin-inline: auto;
+  padding: 3rem var(--vk-legal-gutter) 5rem;
+  --vk-legal-gutter: 1.5rem;
+}
+
+.vk-legal-page
+  :where(p, ul, ol, blockquote, .vk-callout):not(
+    :where(.not-prose, .not-prose *, .vk-license-list, .vk-legal-jump, .vk-legal-jump *)
+  ) {
+  max-width: var(--width-measure);
+}
+
+.vk-legal-page :where(h2, h3, h4):not(:where(.not-prose, .not-prose *)) {
+  scroll-margin-top: calc(var(--header-height) + 1rem);
+}
+
+.vk-legal-jump {
+  margin-top: 2rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border-default);
+}
+
+.vk-legal-jump-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vk-legal-jump-item {
+  margin: 0;
+  padding: 0;
+}
+
+.vk-legal-jump-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2rem;
+  padding: 0.25rem 0.75rem;
+  border: 1px solid var(--text-faint);
+  border-radius: var(--radius-full);
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  text-decoration-line: none;
+}
+
+.vk-legal-jump-link:hover {
+  border-color: var(--border-accent);
+  color: var(--text-strong);
+}
+
+.vk-legal-jump-count {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
 }
 
 .vk-pill {
@@ -1675,10 +1739,6 @@ body > [data-radix-popper-content-wrapper] > * {
   line-height: 1.5;
   letter-spacing: normal;
   white-space: nowrap;
-}
-
-.vk-crumbs .vk-pill-new {
-  display: none;
 }
 
 .vk-pill-new {
@@ -1843,6 +1903,10 @@ body > [data-radix-popper-content-wrapper] > * {
   .vk-pill-new::after {
     display: none;
   }
+}
+
+.vk-crumbs .vk-pill-new {
+  display: none;
 }
 
 .vk-announce {

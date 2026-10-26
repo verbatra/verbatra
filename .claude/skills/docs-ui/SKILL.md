@@ -1265,6 +1265,17 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
   "Previous Page" and "Next Page", already localized in `lib/ui-translations.ts`, through
   `lib/docs-pagination.ts`) over the page name, with no cards and no description; the small print under it is the
   legal footer.
+- **Legal pages**: `/imprint`, `/privacy` and `/licenses` (the `(legal)` route group, under the home
+  header and `LegalFooter`) use `LegalPage` and `LegalPageHead` (`components/legal-page.tsx`): an
+  `article.vk-legal-page.prose` at `--width-page`, opened by the docs page header (`.vk-page-head`: a
+  `.vk-page-eyebrow` reading the footer's `landing.footer.cols.legal.title`, the `h1` and, where the page
+  has an intro, `.vk-page-lead`). The h1, lead, `h2` to `h4` rhythm and prose measure rules that docs pages
+  key on `#nd-page` carry a `.vk-legal-page` twin in the same selector lists, so the two surfaces cannot
+  drift (`app/[lang]/(legal)/legal-layout.test.ts`); the license list (`.vk-license-list`) runs the full
+  column. `/licenses` adds `nav.vk-legal-jump`, named by the docs "On this page" label
+  (`onThisPageLabel`), with one pill link per `h2` (the assets, then each license group through
+  `licenseGroupId`); the eyebrow and the jump navigation are chrome, so the Markdown twin carries
+  neither. The contact page keeps the plain `prose` article.
 - **Page actions**: every non-home docs page renders Fumadocs' `MarkdownCopyButton` and
   `ViewOptionsPopover` beside the title (`.vk-page-actions`: `--text-faint` bordered buttons, 32px
   tall from 48rem and 44px below), fed by `app/[lang]/docs.mdx/[[...slug]]/route.ts`,
