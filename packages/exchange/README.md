@@ -5,10 +5,13 @@
 > published bytes and needs a changeset naming `@verbatra/sdk`. Do not install this directly;
 > install [`@verbatra/sdk`](https://www.npmjs.com/package/@verbatra/sdk).
 
+## Purpose
+
 Translator interchange for verbatra: build and read styled Excel workbooks over a neutral,
 format-agnostic row model, read and write TMX translation memory, and build and read XLIFF 1.2 and
-2.0 handoff files for CAT tools. This is the handoff layer
-between verbatra and a human translator, or between verbatra and another translation tool.
+2.0 handoff files for CAT tools. This is the handoff layer between verbatra and a human translator,
+or between verbatra and another translation tool. It has no runtime workspace dependency and joins
+the graph at the sdk.
 
 ## Responsibilities
 
@@ -28,7 +31,9 @@ between verbatra and a human translator, or between verbatra and another transla
   prolog and character handling for the TMX and XLIFF side: an entity declaration or internal DTD
   subset is refused before the parser runs.
 
-## What it must not do
+## Boundaries
+
+It must not:
 
 - Depend on `@verbatra/core`. It does not, and it should not start: exchange sits parallel to the
   `core <- format-adapters / ai-providers` line and joins the graph at the sdk. Its only workspace
@@ -38,7 +43,16 @@ between verbatra and a human translator, or between verbatra and another transla
 - Call a provider, read a config file, or know anything about locale-file formats. It handles rows
   and translation units; the sdk maps those to and from locale resources.
 
-## Tests
+## Layout
+
+- `src/build-workbook.ts`, `src/read-workbook.ts`: Excel workbooks.
+- `src/build-delimited.ts`, `src/read-delimited.ts`: CSV and TSV.
+- `src/build-tmx.ts`, `src/read-tmx.ts`: TMX.
+- `src/build-xliff*.ts`, `src/read-xliff*.ts`: XLIFF 1.2 and 2.0.
+- `src/*-limits.ts`, `src/formula-guard.ts`, `src/zip-guard.ts`, `src/xml-*.ts`: bounds and guards.
+- `src/index.ts`: the package barrel.
+
+## Development
 
 ```bash
 pnpm turbo run test --filter=@verbatra/exchange
@@ -46,3 +60,11 @@ pnpm turbo run test --filter=@verbatra/exchange
 
 Coverage gate: 90 percent on lines, functions, statements, and branches. The suite includes
 round-trip tests in both directions and an interop test over TMX files other tools produced.
+
+## Related
+
+- [`CONTRIBUTING.md`](../../CONTRIBUTING.md) for setup, commit and changeset rules.
+- [Manual translation](https://verbatra.kreitz-webdev.de/docs/manual-translation), the user-facing
+  guide to the handoff this package builds.
+
+Licensed under the [MIT License](../../LICENSE).

@@ -11,34 +11,30 @@
 <p align="center">
   <a href="https://www.npmjs.com/package/@verbatra/mcp"><img src="https://img.shields.io/npm/v/%40verbatra%2Fmcp?label=%40verbatra%2Fmcp&amp;color=7b1fa2&amp;labelColor=0b0b12" alt="@verbatra/mcp npm version" /></a>
   <a href="https://github.com/verbatra/verbatra/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/verbatra/verbatra/ci.yml?branch=main&amp;label=CI&amp;labelColor=0b0b12" alt="CI status on main" /></a>
-  <a href="https://scorecard.dev/viewer/?uri=github.com/verbatra/verbatra"><img src="https://img.shields.io/ossf-scorecard/github.com/verbatra/verbatra?label=openssf%20scorecard&amp;labelColor=0b0b12" alt="OpenSSF Scorecard" /></a>
   <a href="https://www.npmjs.com/package/@verbatra/mcp#provenance"><img src="https://img.shields.io/badge/npm%20provenance-SLSA%20v1-7b1fa2?labelColor=0b0b12" alt="npm provenance: SLSA v1 build attestation" /></a>
   <a href="https://github.com/verbatra/verbatra/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?color=7b1fa2&amp;labelColor=0b0b12" alt="License: MIT" /></a>
+</p>
+
+<p align="center">
+  <a href="https://verbatra.kreitz-webdev.de/docs/cli/mcp">Documentation</a> |
+  <a href="https://verbatra.kreitz-webdev.de/docs/connect-an-mcp-client">Connect a client</a> |
+  <a href="https://github.com/verbatra/verbatra/blob/main/packages/mcp/CHANGELOG.md">Changelog</a> |
+  <a href="https://github.com/verbatra/verbatra/issues">Issues</a>
 </p>
 
 ## Description
 
 `@verbatra/mcp` starts a [Model Context Protocol](https://modelcontextprotocol.io) server over stdio, the standard local-process transport an MCP client uses to launch and talk to a tool server. It gives a terminal-hosted or headless agent the same translation-status, glossary, and editing capabilities Verbatra Studio exposes in the browser, without a browser, a port, or a served single-page app. It is a thin, SDK-backed surface over [`@verbatra/sdk`](https://www.npmjs.com/package/@verbatra/sdk), the same way [`@verbatra/cli`](https://www.npmjs.com/package/@verbatra/cli) is.
 
-Because the transport is stdio, nothing but a valid MCP protocol message is ever written to stdout. Every log and diagnostic line goes to stderr instead, including anything a failed startup reports before a client has sent its first message.
-
-## Requirements
-
-Node.js `^22.18.0 || >=24`.
-
 ## Installation
+
+Most MCP clients spawn the server for you and need no local install at all: point the client at `npx -y @verbatra/mcp` and npx fetches it on demand. To pin it in your project instead:
 
 ```bash
 npm install --save-dev @verbatra/mcp
-# pnpm
-pnpm add --save-dev @verbatra/mcp
-# yarn
-yarn add --dev @verbatra/mcp
-# bun
-bun add --dev @verbatra/mcp
 ```
 
-Most MCP clients spawn the server for you and need no local install at all: point the client at `npx -y @verbatra/mcp` and npx fetches it on demand. The server is also reachable through `verbatra mcp` once both `@verbatra/cli` and `@verbatra/mcp` are installed.
+Needs Node.js `^22.18.0 || >=24`. The server is also reachable through `verbatra mcp` once both `@verbatra/cli` and `@verbatra/mcp` are installed.
 
 ## Configuring an MCP client
 
@@ -62,7 +58,7 @@ That configuration is read-only plus local editing: no provider is called and no
 
 ## Tools
 
-Every tool, listed here in the order the server advertises them.
+Every tool, listed in the order the server advertises them.
 
 | Tool | What it does |
 | --- | --- |
@@ -89,21 +85,31 @@ Every tool, listed here in the order the server advertises them.
 | `review.reject` | Record, on the user's instruction, that a named person rejects one key's current translation, removing it so it gets replaced |
 | `usage.summary` | Token usage and budget status left behind by the last run |
 
-`translation.retranslateEntry` and `translation.translatePending` are the two that call a provider and spend budget. They are advertised only when the server is started with `--allow-spend` or `VERBATRA_MCP_ALLOW_SPEND`. Without either, a client listing tools never sees them and calling one by name fails as an unknown tool: the gate is per process, so a spend tool is structurally uncallable rather than refused at call time. A config with `provider: { id: "none" }` never lists them, even with `--allow-spend`.
+## Security and spend
 
-Every tool's input, and every closed-shape tool output, is a JSON Schema derived from the same zod schema the server validates the call against. Every result and log line passes through a secret-redaction pass first, so a value shaped like a provider API key, or the exact current value of a configured provider environment variable, is replaced with `[REDACTED]` before it reaches the client or stderr.
+- **Spend is opt-in.** `translation.retranslateEntry` and `translation.translatePending` are the two tools that call a provider. They are advertised only when the server is started with `--allow-spend` or `VERBATRA_MCP_ALLOW_SPEND`; without either, a client never sees them and calling one by name fails as an unknown tool. A config with `provider: { id: "none" }` never lists them, even with `--allow-spend`.
+- **Values can stay home.** `--redact-values` (or `VERBATRA_MCP_REDACT_VALUES`) replaces every source text, translation, description, and glossary term in a result with a marker such as `[redacted length=12 hash=3f9a0c1d2e4b5a6c]`, and leaves out reviewer and author names. Key names, counts, statuses, and integrity verdicts stay. `review.approve` and `review.reject` then take only the marker's hash as `expectedHash`, `locale.values` refuses `query`, and `key.context` refuses `draft`. This keeps values out of results; it does not stop an agent that probes on purpose, and what a provider receives does not change.
+- **Secrets are scrubbed.** Every result and log line passes through a redaction pass first, so a value shaped like a provider API key, or the exact value of a configured provider variable, becomes `[REDACTED]` before it reaches the client or stderr.
+- **Stdout is protocol only.** Nothing but MCP messages is written to stdout; every log and diagnostic line goes to stderr.
+- **Config changes need no restart.** The server starts without a usable config (`project.snapshot` reports `configured: false`, `project.doctor` says what to fix) and reloads the config and its glossary file before each call. `--allow-spend` is fixed at startup, and a config change never widens it.
 
-Start the server with `--redact-values` (or `VERBATRA_MCP_REDACT_VALUES`) to keep translation values away from the client: every source text, translation, description, and glossary term in a result becomes a marker such as `[redacted length=12 hash=3f9a0c1d2e4b5a6c]`, and reviewer and author names are left out. Key names, counts, statuses, integrity verdicts, commit subjects and paths stay. Equal values share a hash for the life of the server. The message of an error that can carry values, in a result or a log line, is replaced by a marker; the error code and the next step stay. `review.approve` and `review.reject` then take only the marker's hash as `expectedHash`, `glossary.write` answers with counts, `locale.values` refuses `query`, and `key.context` refuses `draft`. This keeps values out of results; it does not stop an agent that probes on purpose, for example through glossary writes. What a provider receives does not change, and a CLI that loads an `@verbatra/mcp` too old to confirm redaction exits 2 with `REDACTION_UNSUPPORTED`.
-
-The server starts even without a usable config: `project.snapshot` then reports `configured: false`, `project.doctor` says what to fix, and every other tool refuses with the config error. Before each call it checks the config file and its glossary file for changes and loads them again, so creating or editing the config needs no restart. `--allow-spend` is fixed at startup, and a config change never widens it.
-
-See the [`verbatra mcp` docs](https://verbatra.kreitz-webdev.de/docs/cli/mcp) for the full tool reference, the exit-code contract, and worked examples.
+Every tool's input, and every closed-shape tool output, is a JSON Schema derived from the same zod schema the server validates the call against. See the [`verbatra mcp` docs](https://verbatra.kreitz-webdev.de/docs/cli/mcp) for the full tool reference, the exit-code contract, and worked examples.
 
 ## Documentation
 
-- [Documentation site](https://verbatra.kreitz-webdev.de)
 - [`verbatra mcp` reference](https://verbatra.kreitz-webdev.de/docs/cli/mcp)
-- [`@verbatra/sdk`](https://www.npmjs.com/package/@verbatra/sdk) for the programmatic API
+- [Connect an MCP client](https://verbatra.kreitz-webdev.de/docs/connect-an-mcp-client)
+- [Agent recipes](https://verbatra.kreitz-webdev.de/docs/agent-recipes)
+
+## Related packages
+
+- [`@verbatra/sdk`](https://www.npmjs.com/package/@verbatra/sdk): the engine this server is a thin surface over.
+- [`@verbatra/cli`](https://www.npmjs.com/package/@verbatra/cli): the `verbatra` command, including `verbatra mcp`.
+- [`@verbatra/studio`](https://www.npmjs.com/package/@verbatra/studio): the same capabilities in a browser dashboard.
+
+## Contributing
+
+See [CONTRIBUTING.md](https://github.com/verbatra/verbatra/blob/main/CONTRIBUTING.md).
 
 ## License
 

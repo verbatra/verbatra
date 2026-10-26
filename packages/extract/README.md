@@ -5,10 +5,12 @@
 > published bytes and needs a changeset naming `@verbatra/sdk`. Do not install this directly;
 > install [`@verbatra/sdk`](https://www.npmjs.com/package/@verbatra/sdk).
 
+## Purpose
+
 Source-code extraction for verbatra: find translation call sites in application source and report
 them as keys, values, and locations. It is a distinct capability class from `format-adapters`, code
 to intermediate representation rather than file to intermediate representation, with its own
-Strategy family and its own file-system port.
+Strategy family and its own file-system port. It joins the graph at the sdk.
 
 ## Responsibilities
 
@@ -28,7 +30,9 @@ Strategy family and its own file-system port.
 These feed `verbatra extract`, `verbatra diff --unused`, and `verbatra doctor --literals` through
 the sdk flows in `packages/sdk/src/flow/`.
 
-## What it must not do
+## Boundaries
+
+It must not:
 
 - Depend on `@verbatra/core`. It does not: `zod` is its only runtime dependency, and its one
   workspace dependency is `@verbatra/config` as a devDependency. Like `exchange`, it joins the
@@ -40,10 +44,26 @@ the sdk flows in `packages/sdk/src/flow/`.
   `node:fs`.
 - Write anything. Extraction reports; the sdk decides what to add to the source locale file.
 
-## Tests
+## Layout
+
+- `src/extractor.ts`, `src/framework.ts`: the strategy interface and the framework names.
+- `src/i18next/`: the shipped extractor.
+- `src/scan/`, `src/scan-project.ts`, `src/discovery.ts`: tokenizing, scanning and file discovery.
+- `src/literals/`: hardcoded-literal detection.
+- `src/source-fs-port.ts`: the file-system port.
+
+## Development
 
 ```bash
 pnpm turbo run test --filter=@verbatra/extract
 ```
 
 Coverage gate: 90 percent on lines, functions, statements, and branches.
+
+## Related
+
+- [`CONTRIBUTING.md`](../../CONTRIBUTING.md) for setup, commit and changeset rules.
+- [Extract keys](https://verbatra.kreitz-webdev.de/docs/extract-keys), the user-facing guide to
+  `verbatra extract`.
+
+Licensed under the [MIT License](../../LICENSE).

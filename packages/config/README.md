@@ -4,6 +4,8 @@
 > the verbatra monorepo, consumed as a devDependency. Nothing here reaches a published tarball, and
 > a change to it needs no changeset naming `@verbatra/sdk` the way the bundled private packages do.
 
+## Purpose
+
 Every other package in the workspace takes this one as a devDependency and extends its presets, so
 strictness, formatting, build shape, and the coverage gate are defined once.
 
@@ -23,10 +25,13 @@ strictness, formatting, build shape, and the coverage gate are defined once.
 - **Scaling tests.** `scaling.base.mjs`, exported as `@verbatra/config/scaling`, holds
   `cpuScalingRatio` with the `LINEAR_SCALE` and `LINEAR_MAX_RATIO` bounds, which the linear-time
   tests in other packages use to fail on super-linear input handling.
-- **Task graph.** `turbo.json` is the base Turborepo configuration packages extend with
-  `"extends": ["//"]`.
 
-## What it must not do
+The base Turborepo task graph is the root `turbo.json`. This package's own `turbo.json` is a
+package-level override that extends it with `"extends": ["//"]`, like every other package's.
+
+## Boundaries
+
+It must not:
 
 - Take a workspace dependency. It sits at the bottom of the graph with nothing below it, and
   nothing in it may import another `@verbatra/*` package. See
@@ -35,12 +40,26 @@ strictness, formatting, build shape, and the coverage gate are defined once.
   Turborepo; no shipped code path loads it.
 - Hold product logic. A rule that belongs to one package belongs in that package's own config file.
 
-## Tests
+## Layout
+
+- `tsconfig.base.json`, `tsconfig.package.json`, `tsconfig.json`: TypeScript presets.
+- `biome.json`: lint and format rules.
+- `tsup.base.mjs`, `vitest.base.mjs`, `scaling.base.mjs` (each with a `.d.mts` and a test): the
+  build, test and scaling presets.
+- `turbo.json`: this package's task overrides.
+
+## Development
 
 ```bash
 pnpm turbo run test --filter=@verbatra/config
 ```
 
 The suite covers the two config factories and the scaling preset (`tsup.base.test.mjs`,
-`vitest.base.test.mjs`, `scaling.base.test.mjs`), so a change to a shared preset cannot silently alter every package's
-build or coverage settings.
+`vitest.base.test.mjs`, `scaling.base.test.mjs`), so a change to a shared preset cannot silently
+alter every package's build or coverage settings.
+
+## Related
+
+- [`CONTRIBUTING.md`](../../CONTRIBUTING.md) for setup, commit and changeset rules.
+
+Licensed under the [MIT License](../../LICENSE).

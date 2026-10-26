@@ -7,6 +7,11 @@ The docs site dogfoods verbatra for its own interface strings, while an AI agent
 content in the same change as the English page, because verbatra translates structured locale
 formats (such as JSON, XLIFF, YAML, ARB, and properties), not Markdown or MDX.
 
+## Prerequisites
+
+Run `pnpm install` once from the repository root; the Node and pnpm versions are pinned by the root
+`package.json` (`engines`, `packageManager`).
+
 ## Running it
 
 Start the dev server from the repository root:
@@ -16,7 +21,7 @@ pnpm dev:docs
 ```
 
 It goes through Turborepo, which first builds the workspace packages the site imports
-(`@verbatra/cli`, `@verbatra/sdk`, `@verbatra/studio`), so the server never loads a stale `dist`.
+(`@verbatra/cli`, `@verbatra/core`, `@verbatra/sdk`, `@verbatra/studio`), so the server never loads a stale `dist`.
 Set `PORT` to serve on another port than 3000.
 
 The other tasks run from this directory:
@@ -66,9 +71,9 @@ the interface strings with `pnpm i18n` (see below).
 
 - `content/docs/**` is the documentation itself. English source is `page.mdx`; a translation is a
   locale-suffixed sibling, `page.de.mdx`, `page.es.mdx`, `page.fr.mdx`. The sidebar's Docs and
-  Reference tabs are the `(docs)` and `(reference)` folders, which hold only meta files that list
-  the route groups; each meta file has `meta.de.json`, `meta.es.json`, and `meta.fr.json`
-  siblings. An AI agent translates these in the same change as the English page;
+  Reference tabs are the `(docs)` and `(reference)` route groups. `(docs)` holds only meta files
+  that list the other route groups; `(reference)` holds the `error-codes` page beside its meta
+  file. Each meta file has `meta.de.json`, `meta.es.json`, and `meta.fr.json` siblings. An AI agent translates these in the same change as the English page;
   `lib/docs-locale-parity.test.ts` keeps the four locales structurally in sync.
 - `messages/en.json` is the source of the site's own interface strings, with `de.json`, `es.json`,
   and `fr.json` alongside it. These are machine-translated by verbatra.
@@ -79,6 +84,31 @@ the interface strings with `pnpm i18n` (see below).
   dependency change, or `lib/third-party-licenses.test.ts` fails.
 - A production dependency change (a Dependabot pull request included) needs
   `pnpm --filter @verbatra/docs licenses:sync` run and its output committed.
+
+## Translating the interface strings
+
+```bash
+GEMINI_API_KEY=... pnpm i18n
+```
+
+That runs `verbatra translate` against `verbatra.config.ts` in this directory:
+`format: "next-intl-json"`, `files.pattern: "messages/{locale}.json"`, targets `de`, `es`, `fr`,
+provider `gemini`, `tone: "informal"`. Only new or changed keys are sent, so a run over unchanged
+messages calls no provider and needs no key. The key is read from the environment, never from the
+config.
+
+`.github/workflows/docs-i18n-check.yml` runs the action in `check` mode on every pull request that
+touches this app's messages, content, config, or lock file. That check validates only what
+`verbatra.config.ts` covers, so it catches drift in `messages/*.json` and nothing else.
+
+## Every user-facing change updates all four locales
+
+A change to `messages/en.json` or to an English `page.mdx` is not complete until the matching `de`,
+`es`, and `fr` files are updated in the *same* change, by hand for MDX content or by re-running
+`pnpm i18n` for interface strings. CI backstops only the `messages/*.json` half of this; a stale
+`.de.mdx`, `.es.mdx`, or `.fr.mdx` is not caught, so treat it as authoring discipline.
+
+Register is informal throughout: German `du`, Spanish `tú`, French `tu`. No em dash in any locale.
 
 ## The landing page
 
@@ -109,32 +139,12 @@ providers, formats, the features, the commands it prints) live in typed tables u
   update the order in `lib/landing-sections.test.ts`. Give it a section `id` that no other section
   uses.
 
-## Translating the interface strings
-
-```bash
-GEMINI_API_KEY=... pnpm i18n
-```
-
-That runs `verbatra translate` against `verbatra.config.ts` in this directory:
-`format: "next-intl-json"`, `files.pattern: "messages/{locale}.json"`, targets `de`, `es`, `fr`,
-provider `gemini`, `tone: "informal"`. Only new or changed keys are sent, so a run over unchanged
-messages calls no provider and needs no key. The key is read from the environment, never from the
-config.
-
-`.github/workflows/docs-i18n-check.yml` runs the action in `check` mode on every pull request that
-touches this app's messages, content, config, or lock file. That check validates only what
-`verbatra.config.ts` covers, so it catches drift in `messages/*.json` and nothing else.
-
-## Every user-facing change updates all four locales
-
-A change to `messages/en.json` or to an English `page.mdx` is not complete until the matching `de`,
-`es`, and `fr` files are updated in the *same* change, by hand for MDX content or by re-running
-`pnpm i18n` for interface strings. CI backstops only the `messages/*.json` half of this; a stale
-`.de.mdx`, `.es.mdx`, or `.fr.mdx` is not caught, so treat it as authoring discipline.
-
-Register is informal throughout: German `du`, Spanish `tú`, French `tu`. No em dash in any locale.
-
 ## Conventions
 
 The full set, including the `<AvailableFrom />` callout and which source files define what verbatra
 actually ships, is in [`.claude/rules/docs.md`](../../.claude/rules/docs.md).
+
+## Related
+
+- [`CONTRIBUTING.md`](../../CONTRIBUTING.md) for setup, commit and changeset rules.
+- [`e2e/README.md`](../../e2e/README.md) for the consumer-install end-to-end suite of the published packages.

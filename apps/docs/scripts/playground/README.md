@@ -8,7 +8,7 @@ trigger a request: the site only reads the committed JSON.
 It is a showcase tool and nothing else. It cannot translate project files, take arbitrary input,
 or run in CI.
 
-## Dry run and `--write`
+## Usage: dry run and `--write`
 
 ```sh
 pnpm --filter @verbatra/docs playground:generate          # dry run (default)
