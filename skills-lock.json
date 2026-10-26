@@ -138,7 +138,7 @@
       "ref": "updates/new",
       "sourceType": "github",
       "skillPath": "skills/verbatra-cli/SKILL.md",
-      "computedHash": "8abf5f03bb5a2d8eea10b30ecfe5eae0e82a6943d78c296464822016e214e814"
+      "computedHash": "c26d389e7d87bf48a6924e2aeb5831db6b3dd3d821976248fca6f5a14c39b4a9"
     },
     "verbatra-mcp-tools": {
       "source": "verbatra/skills",

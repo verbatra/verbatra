@@ -508,7 +508,7 @@ exits `1`.
 | `GLOSSARY_NOT_FILE_BACKED`, `GLOSSARY_UNWRITABLE` | The glossary is inline or absent, or its file or lock could not be written. |
 | `CONCURRENCY_INVALID`, `CONCURRENCY_BUDGET_CONFLICT`, `MAX_TOKENS_INVALID` | Bad `--concurrency` or `--max-tokens`, or a concurrency above `1` together with a token budget. |
 | `LOCALE_LAYOUT_INVALID`, `LOCALE_PATH_COLLISION` | `files.pattern` and `files.localeStyle` do not fit, a `gettext-po` locale has a script with no gettext modifier, or two locales map to one file. |
-| `TARGET_UNWRITABLE`, `TYPES_UNWRITABLE`, `TMX_UNWRITABLE`, `EXPORT_UNWRITABLE` | The file the command writes could not be written. |
+| `TARGET_UNWRITABLE`, `TYPES_UNWRITABLE`, `TMX_UNWRITABLE`, `EXPORT_UNWRITABLE`, `MEMORY_UNWRITABLE` | The file the command writes could not be written; `MEMORY_UNWRITABLE` is `verbatra.cache.json` during `tmx import`. |
 | `PSEUDO_OUTPUT_CONFLICT`, `TYPES_OUTPUT_CONFLICT`, `TMX_OUTPUT_CONFLICT`, `EXPORT_OUTPUT_CONFLICT` | The output path would overwrite a locale, lock, provenance, cache, config or glossary file, or leaves the working directory. Pick another path. |
 | `EXTRACT_NOT_CONFIGURED`, `EXTRACT_FS_UNSUPPORTED` | `extract` needs an `extract` block in the config. |
 | `REVIEW_VALUE_CHANGED`, `REVIEW_SOURCE_CHANGED`, `REVIEW_REJECT_UNSUPPORTED`, `REVIEW_RESTORE_FAILED`, `REVIEWER_INVALID` | Review decisions, which only a person makes. `xliff` cannot reject a value, since a unit without a target reads as its source; every other format, `arb` included, can. |
