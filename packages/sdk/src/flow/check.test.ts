@@ -4,6 +4,7 @@ import { PROVIDER_ENV } from "@verbatra/ai-providers";
 import { contentHash, type TranslationEntry } from "@verbatra/core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { VerbatraConfig } from "../config/schema.js";
+import { valueHash } from "../lock/provenance-file.js";
 import {
   baseConfig,
   makeFakeFs,
@@ -348,5 +349,51 @@ describe("check with consistency", () => {
       { fs },
     );
     expect(summary.locales[0]?.inconsistencies).toHaveLength(1);
+  });
+});
+
+describe("check: review state against the lock-file source baseline", () => {
+  async function approvedProject(lockedSource: string): Promise<string> {
+    const dir = await project({ greeting: "Hello" }, { de: { greeting: "Hallo" } });
+    await writeJsonFile(join(dir, "verbatra.provenance.json"), {
+      version: 1,
+      locales: {
+        de: {
+          greeting: {
+            origin: "machine",
+            valueHash: valueHash("Hallo"),
+            reviewState: "approved",
+            reviewedSourceHash: "reviewed",
+          },
+        },
+      },
+    });
+    await writeJsonFile(join(dir, "verbatra.lock.json"), {
+      version: 1,
+      locales: { de: { greeting: lockedSource } },
+    });
+    return dir;
+  }
+
+  it("counts an approval unreviewed once the lock-file records another source", async () => {
+    const dir = await approvedProject("other");
+
+    const summary = await check({ config: cfg({ targetLocales: ["de"] }), cwd: dir });
+
+    expect(summary.locales[0]?.provenance?.byReviewState).toMatchObject({
+      approved: 0,
+      unreviewed: 1,
+    });
+  });
+
+  it("counts an approval approved while the lock-file records the reviewed source", async () => {
+    const dir = await approvedProject("reviewed");
+
+    const summary = await check({ config: cfg({ targetLocales: ["de"] }), cwd: dir });
+
+    expect(summary.locales[0]?.provenance?.byReviewState).toMatchObject({
+      approved: 1,
+      unreviewed: 0,
+    });
   });
 });

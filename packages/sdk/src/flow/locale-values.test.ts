@@ -244,6 +244,21 @@ describe("localeValues: review state against the lock-file", () => {
     expect(german?.values.greeting?.provenance?.reviewState).toBe("unreviewed");
   });
 
+  it("keeps the approval while the lock-file records the reviewed source", async () => {
+    const dir = await approvedProject();
+    await writeJsonFile(join(dir, "verbatra.lock.json"), {
+      version: 1,
+      locales: { de: { greeting: "reviewed" } },
+    });
+
+    const [german] = await localeValues({
+      config: cfg({ targetLocales: ["de"] }),
+      cwd: dir,
+    });
+
+    expect(german?.values.greeting?.provenance?.reviewState).toBe("approved");
+  });
+
   it("still answers when the lock-file is corrupt", async () => {
     const dir = await approvedProject();
     await writeFile(join(dir, "verbatra.lock.json"), "{ not json", "utf8");

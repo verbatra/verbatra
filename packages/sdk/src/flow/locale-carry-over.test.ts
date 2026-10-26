@@ -10,6 +10,7 @@ import {
   carryOverRespelledLocales,
   movedFrom,
   planLocaleMoves,
+  readCarriedOverBaselines,
   respellingsOf,
   withCarryOverNotices,
 } from "./locale-carry-over.js";
@@ -507,5 +508,27 @@ describe("carryOverRespelledLocales: a locale whose lock-file state stays behind
 
     expect(plan.skipped).toEqual([]);
     expect(plan.lock).toEqual(new Map([["pt_BR", "pt-BR"]]));
+  });
+});
+
+describe("readCarriedOverBaselines: which lock-file failures it absorbs", () => {
+  it("answers undefined for a corrupt lock-file", async () => {
+    const dir = await makeTempDir();
+    await writeFile(join(dir, "verbatra.lock.json"), "{ not json", "utf8");
+
+    expect(await readCarriedOverBaselines(dir, defaultFs, ["de"])).toBeUndefined();
+  });
+
+  it("rethrows a failure that is not an invalid lock-file", async () => {
+    const dir = await makeTempDir();
+    const failure = new Error("disk gone");
+    const fs: SdkFs = {
+      ...defaultFs,
+      readFileBounded: async () => {
+        throw failure;
+      },
+    };
+
+    await expect(readCarriedOverBaselines(dir, fs, ["de"])).rejects.toBe(failure);
   });
 });

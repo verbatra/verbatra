@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { contentHash, type TranslationEntry } from "@verbatra/core";
 import { describe, expect, it } from "vitest";
 import type { VerbatraConfig } from "../config/schema.js";
+import { valueHash } from "../lock/provenance-file.js";
 import {
   baseConfig,
   makeFakeFs,
@@ -191,5 +192,51 @@ describe("lockState", () => {
     await expect(
       lockState({ config: cfg({ targetLocales: ["de"] }), cwd: dir }),
     ).rejects.toMatchObject({ code: "LOCK_FILE_INVALID" });
+  });
+});
+
+describe("lockState: review state against the lock-file source baseline", () => {
+  async function approvedProject(lockedSource: string): Promise<string> {
+    const dir = await project({ greeting: "Hello" }, { de: { greeting: "Hallo" } });
+    await writeJsonFile(join(dir, "verbatra.provenance.json"), {
+      version: 1,
+      locales: {
+        de: {
+          greeting: {
+            origin: "machine",
+            valueHash: valueHash("Hallo"),
+            reviewState: "approved",
+            reviewedSourceHash: "reviewed",
+          },
+        },
+      },
+    });
+    await writeJsonFile(join(dir, "verbatra.lock.json"), {
+      version: 1,
+      locales: { de: { greeting: lockedSource } },
+    });
+    return dir;
+  }
+
+  it("counts an approval unreviewed once the lock-file records another source", async () => {
+    const dir = await approvedProject("other");
+
+    const result = await lockState({ config: cfg({ targetLocales: ["de"] }), cwd: dir });
+
+    expect(result.exists && result.locales[0]?.provenance?.byReviewState).toMatchObject({
+      approved: 0,
+      unreviewed: 1,
+    });
+  });
+
+  it("counts an approval approved while the lock-file records the reviewed source", async () => {
+    const dir = await approvedProject("reviewed");
+
+    const result = await lockState({ config: cfg({ targetLocales: ["de"] }), cwd: dir });
+
+    expect(result.exists && result.locales[0]?.provenance?.byReviewState).toMatchObject({
+      approved: 1,
+      unreviewed: 0,
+    });
   });
 });
