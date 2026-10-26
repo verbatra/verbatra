@@ -109,6 +109,27 @@ describe("licenses page jump navigation", () => {
       expect(target?.tagName, href ?? "").toBe("H2");
     }
   });
+
+  it("names every jump link as its label, a comma and the count, with no stray space", async () => {
+    const doc = await render("en");
+    const names = [...doc.querySelectorAll(".vk-legal-jump a")].map((a) =>
+      a.getAttribute("aria-label"),
+    );
+    expect(names).toEqual([
+      `Fonts and other assets, ${manifest.assets.length} assets`,
+      ...manifest.groups.map(
+        (group) =>
+          `${group.license}, ${group.packages.length} ${group.packages.length === 1 ? "package" : "packages"}`,
+      ),
+    ]);
+    for (const name of names) {
+      expect(name).not.toMatch(/ ,/);
+    }
+    expect(doc.querySelector(".vk-legal-jump .sr-only")).toBeNull();
+    expect(
+      doc.querySelectorAll(".vk-legal-jump .vk-legal-jump-count[aria-hidden='true']"),
+    ).toHaveLength(manifest.groups.length + 1);
+  });
 });
 
 describe("licenses page head", () => {

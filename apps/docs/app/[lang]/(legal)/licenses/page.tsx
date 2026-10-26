@@ -125,32 +125,45 @@ function PackageItem({
 const ASSETS_SECTION_ID = "assets";
 const ASSETS_SECTION_TITLE = "Fonts and other assets";
 
+function JumpLink({ href, label, count, noun }: JumpLinkProps): ReactNode {
+  return (
+    <a className="vk-legal-jump-link" href={href} aria-label={`${label}, ${count} ${noun}`}>
+      {label}
+      <span aria-hidden="true" className="vk-legal-jump-count">
+        {" "}
+        {count}
+      </span>
+    </a>
+  );
+}
+
+interface JumpLinkProps {
+  href: string;
+  label: string;
+  count: number;
+  noun: string;
+}
+
 function JumpNav({ locale }: { locale: Locale }): ReactNode {
   return (
     <nav aria-label={onThisPageLabel(locale)} className="vk-legal-jump">
       <ul lang="en" className="vk-legal-jump-list">
         <li className="vk-legal-jump-item">
-          <a className="vk-legal-jump-link" href={`#${ASSETS_SECTION_ID}`}>
-            {ASSETS_SECTION_TITLE}
-            <span aria-hidden="true" className="vk-legal-jump-count">
-              {" "}
-              {LICENSES.assets.length}
-            </span>
-            <span className="sr-only">, {LICENSES.assets.length} assets</span>
-          </a>
+          <JumpLink
+            href={`#${ASSETS_SECTION_ID}`}
+            label={ASSETS_SECTION_TITLE}
+            count={LICENSES.assets.length}
+            noun="assets"
+          />
         </li>
         {LICENSES.groups.map((group) => (
           <li key={group.license} className="vk-legal-jump-item">
-            <a className="vk-legal-jump-link" href={`#${licenseGroupId(group.license)}`}>
-              {group.license}
-              <span aria-hidden="true" className="vk-legal-jump-count">
-                {" "}
-                {group.packages.length}
-              </span>
-              <span className="sr-only">
-                , {group.packages.length} {group.packages.length === 1 ? "package" : "packages"}
-              </span>
-            </a>
+            <JumpLink
+              href={`#${licenseGroupId(group.license)}`}
+              label={group.license}
+              count={group.packages.length}
+              noun={group.packages.length === 1 ? "package" : "packages"}
+            />
           </li>
         ))}
       </ul>
