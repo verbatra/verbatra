@@ -16,6 +16,8 @@ export const IMPRINT_PROVIDER_LINES = [
   "Deutschland",
 ] as const;
 
+export const IMPRINT_BASIS_LINE = "Anbieterkennzeichnung nach § 18 Abs. 1 MStV";
+
 export const IMPRINT_EMAIL = "info@kreitz-webdev.de";
 
 export const IMPRINT_EMAIL_LABEL = "E-Mail";

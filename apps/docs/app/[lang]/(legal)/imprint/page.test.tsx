@@ -91,3 +91,27 @@ describe("imprint page: license", () => {
     },
   );
 });
+
+describe("imprint page: legal basis", () => {
+  it.each(["en", "de", "es", "fr"])(
+    "cites section 18 paragraph 1 MStV once, right after the provider details, for %s readers",
+    async (lang) => {
+      const page = await ImprintPage({ params: Promise.resolve({ lang }) });
+      const doc = new DOMParser().parseFromString(renderToStaticMarkup(page), "text/html");
+      const details = doc.querySelector("h2")?.nextElementSibling;
+      const basis = details?.nextElementSibling;
+
+      expect(basis?.textContent).toBe("Anbieterkennzeichnung nach § 18 Abs. 1 MStV");
+      expect(doc.body.textContent?.match(/§\s*18\s*Abs\.\s*1\s*MStV/g)).toHaveLength(1);
+    },
+  );
+
+  it("keeps the heading neutral and names neither section 5 DDG nor section 18 paragraph 2 MStV", async () => {
+    const page = await ImprintPage({ params: Promise.resolve({ lang: "de" }) });
+    const text = new DOMParser().parseFromString(renderToStaticMarkup(page), "text/html").body
+      .textContent;
+
+    expect(text).not.toMatch(/§\s*5\s*DDG|§\s*18\s*Abs\.\s*2|Verantwortlich für den Inhalt/);
+    expect(text).not.toContain("Angaben gemäß");
+  });
+});

@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { type Locale, localizedPath } from "./i18n";
 import {
+  IMPRINT_BASIS_LINE,
   IMPRINT_EMAIL,
   IMPRINT_EMAIL_LABEL,
   IMPRINT_LICENSE_HEADING,
@@ -65,6 +66,7 @@ export async function imprintMarkdown(locale: Locale): Promise<string> {
       ...IMPRINT_PROVIDER_LINES,
       `${IMPRINT_EMAIL_LABEL}: ${link(IMPRINT_EMAIL, `mailto:${IMPRINT_EMAIL}`)}`,
     ].join("  \n"),
+    IMPRINT_BASIS_LINE,
     t.markup("contactLinkNote", linkTags({ link: localizedPath(locale, "/contact") })),
     `## ${IMPRINT_LICENSE_HEADING}`,
     license,

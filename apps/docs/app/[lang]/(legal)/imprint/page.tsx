@@ -4,6 +4,7 @@ import { Fragment, type ReactNode } from "react";
 import { LegalPage, LegalPageHead } from "@/components/legal-page";
 import { type Locale, localizedPath, toLocale } from "@/lib/i18n";
 import {
+  IMPRINT_BASIS_LINE,
   IMPRINT_EMAIL,
   IMPRINT_EMAIL_LABEL,
   IMPRINT_LICENSE_HEADING,
@@ -71,6 +72,7 @@ export default async function ImprintPage(props: { params: Promise<{ lang: strin
         ))}
         {IMPRINT_EMAIL_LABEL}: <a href={`mailto:${IMPRINT_EMAIL}`}>{IMPRINT_EMAIL}</a>
       </p>
+      <p>{IMPRINT_BASIS_LINE}</p>
       <p>{t.rich("contactLinkNote", linkTags)}</p>
 
       <h2>{IMPRINT_LICENSE_HEADING}</h2>
