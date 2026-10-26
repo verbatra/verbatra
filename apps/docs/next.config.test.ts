@@ -9,6 +9,10 @@ describe("next.config", () => {
     expect(i18n.hideLocale).toBe("default-locale");
   });
 
+  it("limits agent-driven Next.js upgrade nudges to security releases", () => {
+    expect(nextConfig.experimental?.agentUpgrade).toBe("security");
+  });
+
   it("turns off optimistic routing, which would predict /docs as the [lang] home route after a switch from /de and prefetch segments that 404", () => {
     expect(nextConfig.experimental?.optimisticRouting).toBe(false);
   });

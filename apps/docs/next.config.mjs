@@ -36,6 +36,7 @@ const config = {
     "/[lang]/docs-og/[[...slug]]": ["./assets/og-fonts/*.ttf"],
   },
   experimental: {
+    agentUpgrade: "security",
     optimisticRouting: false,
     globalNotFound: true,
     turbopackChunking: { minChunkSize: 200000, requestCost: 1000000 },
