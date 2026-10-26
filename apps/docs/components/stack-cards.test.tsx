@@ -284,6 +284,45 @@ describe("StackCards", () => {
     expect(doc.body.innerHTML).not.toMatch(/#[0-9a-f]{6}|rgb\(|hsl\(/i);
   });
 
+  it("names a stack with no admissible logo as text in the chip, hidden from assistive technology, and draws no sprite for it", () => {
+    const doc = render(
+      renderToStaticMarkup(
+        <StackCards
+          labelledBy="stacks"
+          locale="de"
+          cards={[
+            { label: "Vue", icon: "web", text: "Vue", formats: ["vue-i18n-json"], href: "#vue" },
+            { label: ".NET", icon: "server", text: ".NET", formats: ["resx"], href: "#net" },
+          ]}
+        />,
+      ),
+    );
+    const chips = [...doc.querySelectorAll(".vk-stack-card-chip")];
+    expect(chips.map((chip) => chip.textContent)).toEqual(["Vue", ".NET"]);
+    for (const chip of chips) {
+      expect(chip.getAttribute("aria-hidden")).toBe("true");
+      expect(chip.querySelector("svg, use, img")).toBeNull();
+      expect(chip.firstElementChild?.className).toBe("vk-stack-card-chip-text");
+    }
+    expect(doc.querySelectorAll("symbol")).toHaveLength(0);
+    expect([...doc.querySelectorAll("a")].map(accessibleText)).toEqual(["Vue", ".NET"]);
+    expect(cssRule(".vk-stack-card-chip-text")).toContain("white-space: nowrap;");
+  });
+
+  it("gives Vue, Nuxt and .NET a text chip in every locale, the combined card included", () => {
+    const content = join(process.cwd(), "content/docs");
+    const files = readdirSync(content, { recursive: true, encoding: "utf8" }).filter(
+      (file) =>
+        file.endsWith(".mdx") && readFileSync(join(content, file), "utf8").includes("<StackCards"),
+    );
+    const texts = (file: string) =>
+      [...readFileSync(join(content, file), "utf8").matchAll(/text: "([^"]+)"/g)].map((m) => m[1]);
+    for (const file of files) {
+      const expected = file.includes("pick-your-stack") ? ["Vue", ".NET"] : ["Vue", "Nuxt", ".NET"];
+      expect(texts(file), file).toEqual(expected);
+    }
+  });
+
   it("keeps every sprite id unique when two card grids share a page", () => {
     const doc = render(
       renderToStaticMarkup(

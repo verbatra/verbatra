@@ -1340,6 +1340,14 @@ html.light .vk-theme-icon-light {
   color: var(--text-strong);
 }
 
+.vk-stack-card-chip-text {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
 .vk-stack-card-name {
   display: flex;
   align-items: center;

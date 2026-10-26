@@ -646,13 +646,16 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   `currentColor`; a card may carry a brand mark instead (its optional `mark` prop, an id of
   `BRAND_MARKS`), drawn at 28px in the chip as a `<use>` of a `BrandMarkSprite` whose prefix
   (`vk-stack-mark-<labelledBy>`) differs from the glyph sprite's, since `yaml` is both a glyph and a
-  mark; the glyph sprite then holds only the glyphs of cards without a mark. A mark is the stack's
+  mark; the glyph sprite then holds only the glyphs of cards without a mark or text. A mark is the stack's
   framework or format logo, never a brand color: React, Next.js, Angular, Flutter, Android, iOS and
-  macOS (Apple), Java and Spring and YAML have one; Vue, Nuxt, gettext, .NET, XLIFF and INI keep their
-  glyph, because their logos are not admissible (Vue: CC BY-NC-SA 4.0 in `vuejs/art`; Nuxt: its
-  design kit states no license for the logo; .NET: the `dotnet/brand` README licenses its
-  illustrations CC0 but calls the logo copyright of the .NET authors, to be used per the brand
-  guidelines). `stack-cards.test.tsx` pins the mark set in all four locales.
+  macOS (Apple), Java and Spring and YAML have one. Vue, Nuxt and .NET have no admissible logo (Vue:
+  CC BY-NC-SA 4.0 in `vuejs/art`; Nuxt: its design kit states no license for the logo; .NET: the
+  `dotnet/brand` README licenses its illustrations CC0 but calls the logo copyright of the .NET
+  authors, to be used per the brand guidelines), so their cards take the optional `text` prop: the
+  chip holds the name as text (`.vk-stack-card-chip-text`, `--text-sm`, weight 600, `currentColor`),
+  "Vue", "Nuxt" and ".NET", and "Vue" on the combined "Vue and Nuxt" card of `pick-your-stack`, the
+  same brand-only English word in every locale; the chip stays `aria-hidden`, since the card title
+  names the stack. gettext, XLIFF, INI and the custom card keep their glyph. `stack-cards.test.tsx` pins the mark set in all four locales.
   Third-party logos appear in exactly three places: the GitHub mark
   (`components/landing/github-icon.tsx`), the marquee's brand marks and the stack cards' marks. The
   logo rule for those:
