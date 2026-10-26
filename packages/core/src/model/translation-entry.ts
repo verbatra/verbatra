@@ -10,10 +10,11 @@ import { z } from "zod";
  * (every built-in adapter sets the locale file's base name without its extension, and an adapter
  * you write may choose another value); `value`, the translatable string itself, which is untrusted
  * input and may be empty; `description` and `meaning`, both optional free-form context that a
- * provider is told to use only for disambiguation and never to translate or echo back; `placeholders`, the format's
- * placeholder tokens in document order, used for the output integrity check and to decide which entries
- * a placeholder-blind provider must withhold; and `isPlural`, whether the entry carries plural forms
- * (an i18next plural key suffix, a vue-i18n pipe-separated value, or an ICU plural), which the adapter
+ * provider is told to use only for disambiguation and never to translate or echo back;
+ * `placeholders`, the format's placeholder tokens in document order, used for the output
+ * integrity check and to decide which entries a placeholder-blind provider must withhold; and
+ * `isPlural`, whether the entry carries plural forms (an i18next plural key suffix, a vue-i18n
+ * pipe-separated value, or an ICU plural), which the adapter
  * decides and which feeds the content hash.
  */
 export const translationEntrySchema = z.object({
