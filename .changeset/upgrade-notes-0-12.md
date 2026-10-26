@@ -144,10 +144,10 @@ Upgrading from 0.11: rejected config, rewritten files, new exit codes and SDK ty
   also load its `.env.local` and `.env` after the working directory's. One shared config run from
   each package for per-package locale files now needs a config per package, or `--config` with
   `--cwd`. Paths you pass, such as `--out`, still resolve against the working directory.
-  `types --out` and `pseudo --out` must now stay inside the project root, where 0.11 required the
-  working directory: a path reaching up into the root from a subdirectory is accepted, and one
-  inside the working directory but outside the root (a `--config` in another directory) is refused.
-  Pass a path inside the project root.
+- `types --out` and `pseudo --out` must stay inside the project root, where 0.11 required the
+  working directory. A path reaching up into the root from a subdirectory is now accepted, and one
+  inside the working directory but outside the root (a `--config` in another directory) is
+  refused. Pass a path inside the project root.
 - Without a `.git` directory, the search reaches up to your home directory, so a stray config there
   now becomes the project root of a run started below it, and files are written next to it. Delete
   that config, run `git init` in the project, or pass `--config`.
