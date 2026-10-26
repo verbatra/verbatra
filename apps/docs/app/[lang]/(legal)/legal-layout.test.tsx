@@ -57,5 +57,6 @@ describe("legal page head", () => {
     expect(doc.querySelector("p.vk-page-eyebrow.vk-label")?.textContent).toBe("Legal");
     expect(CSS).toMatch(/\.vk-page-lead \{[^}]*margin: 1rem 0 0;/);
     expect(CSS).toMatch(/\.vk-page-eyebrow \{[^}]*margin: 0 0 0\.75rem;/);
+    expect(CSS).toMatch(/\.vk-page-eyebrow \{[^}]*line-height: 1\.125rem;/);
   });
 });

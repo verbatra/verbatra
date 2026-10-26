@@ -132,13 +132,19 @@ function JumpNav({ locale }: { locale: Locale }): ReactNode {
         <li className="vk-legal-jump-item">
           <a className="vk-legal-jump-link" href={`#${ASSETS_SECTION_ID}`}>
             {ASSETS_SECTION_TITLE}
+            <span aria-hidden="true" className="vk-legal-jump-count">
+              {" "}
+              {LICENSES.assets.length}
+            </span>
+            <span className="sr-only">, {LICENSES.assets.length} assets</span>
           </a>
         </li>
         {LICENSES.groups.map((group) => (
           <li key={group.license} className="vk-legal-jump-item">
             <a className="vk-legal-jump-link" href={`#${licenseGroupId(group.license)}`}>
-              {group.license}{" "}
+              {group.license}
               <span aria-hidden="true" className="vk-legal-jump-count">
+                {" "}
                 {group.packages.length}
               </span>
               <span className="sr-only">

@@ -103,7 +103,12 @@ function Card({
       </div>
       <span aria-hidden="true" className="vk-stack-card-chip">
         {card.text !== undefined ? (
-          <span className="vk-stack-card-chip-text">{card.text}</span>
+          <span
+            className="vk-stack-card-chip-text"
+            data-long={card.text.length > 5 ? "true" : undefined}
+          >
+            {card.text}
+          </span>
         ) : card.mark === undefined ? (
           <StackIcon
             prefix={prefix}
