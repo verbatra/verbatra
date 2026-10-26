@@ -646,15 +646,20 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   `currentColor`; a card may carry a brand mark instead (its optional `mark` prop, an id of
   `BRAND_MARKS`), drawn at 28px in the chip as a `<use>` of a `BrandMarkSprite` whose prefix
   (`vk-stack-mark-<labelledBy>`) differs from the glyph sprite's, since `yaml` is both a glyph and a
-  mark; the glyph sprite then holds only the glyphs of cards without a mark or text. A mark is the stack's
-  framework or format logo, never a brand color: React, Next.js, Angular, Flutter, Android, iOS and
-  macOS (Apple), Java and Spring and YAML have one. Vue, Nuxt and .NET have no admissible logo (Vue:
+  mark; the glyph sprite then holds only the glyphs of cards without a mark or text (YAML among them).
+  A stack card shows a mark only where the brand itself grants an
+  admissible license: React (MIT), Angular (CC-BY-4.0) and Android (CC-BY-3.0). A brand whose terms
+  restrict the logo gets the text chip instead, whatever license a third-party icon set offers:
+  Spring (reserved solely for Broadcom in its unaltered form, spring.io/trademarks), Flutter ("do
+  not alter", flutter.dev/brand), Next.js (vercel.com/design/brands, "do not modify") and Apple. Vue,
+  Nuxt and .NET have no admissible logo either (Vue:
   CC BY-NC-SA 4.0 in `vuejs/art`; Nuxt: its design kit states no license for the logo; .NET: the
   `dotnet/brand` README licenses its illustrations CC0 but calls the logo copyright of the .NET
-  authors, to be used per the brand guidelines), so their cards take the optional `text` prop: the
+  authors, to be used per the brand guidelines). YAML takes its `yaml` file glyph, not a mark. The
+  marquee follows its own rule and is unaffected. A card on the text path takes the optional `text` prop: the
   chip holds the name as text (`.vk-stack-card-chip-text`, `--text-sm`, weight 600, `currentColor`),
-  "Vue", "Nuxt" and ".NET", and "Vue" on the combined "Vue and Nuxt" card of `pick-your-stack`, the
-  same brand-only English word in every locale; the chip stays `aria-hidden`, since the card title
+  "Next.js", "Vue", "Nuxt", "Flutter", "Apple", "Spring" and ".NET", and "Vue" on the combined "Vue and
+  Nuxt" card of `pick-your-stack`, the same brand-only English word in every locale; the chip stays `aria-hidden`, since the card title
   names the stack. gettext, XLIFF, INI and the custom card keep their glyph, a file outline drawn at 32px
   (`FILE_GLYPH_SIZE`) against 28px for the rest, so its thin ink balances the marks. `stack-cards.test.tsx` pins the mark set in all four locales.
   Third-party logos appear in exactly three places: the GitHub mark

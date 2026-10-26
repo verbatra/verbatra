@@ -309,7 +309,7 @@ describe("StackCards", () => {
     expect(cssRule(".vk-stack-card-chip-text")).toContain("white-space: nowrap;");
   });
 
-  it("gives Vue, Nuxt and .NET a text chip in every locale, the combined card included", () => {
+  it("gives each stack whose brand grants no logo licence a text chip, the same brand word in every locale", () => {
     const content = join(process.cwd(), "content/docs");
     const files = readdirSync(content, { recursive: true, encoding: "utf8" }).filter(
       (file) =>
@@ -318,7 +318,9 @@ describe("StackCards", () => {
     const texts = (file: string) =>
       [...readFileSync(join(content, file), "utf8").matchAll(/text: "([^"]+)"/g)].map((m) => m[1]);
     for (const file of files) {
-      const expected = file.includes("pick-your-stack") ? ["Vue", ".NET"] : ["Vue", "Nuxt", ".NET"];
+      const expected = file.includes("pick-your-stack")
+        ? ["Next.js", "Vue", "Flutter", "Apple", "Spring", ".NET"]
+        : ["Next.js", "Vue", "Nuxt", "Flutter", "Apple", "Spring", ".NET"];
       expect(texts(file), file).toEqual(expected);
     }
   });
@@ -385,7 +387,7 @@ describe("StackCards", () => {
     expect(doc.body.innerHTML).not.toMatch(/dark:/);
   });
 
-  it("gives a mark only to a stack whose logo licence is admitted, the same set in every locale", () => {
+  it("gives a mark only to a stack whose brand itself grants the logo licence, the same set in every locale", () => {
     const content = join(process.cwd(), "content/docs");
     const files = readdirSync(content, { recursive: true, encoding: "utf8" }).filter(
       (file) =>
@@ -393,21 +395,11 @@ describe("StackCards", () => {
     );
     expect(files).toHaveLength(8);
     for (const file of files) {
-      const marks = [...readFileSync(join(content, file), "utf8").matchAll(/mark: "([^"]+)"/g)].map(
-        (match) => match[1],
-      );
-      expect(marks.toSorted(), file).toEqual(
-        [
-          "android",
-          "angular",
-          "apple",
-          "flutter",
-          "nextdotjs",
-          "react",
-          "spring",
-          "yaml",
-        ].toSorted(),
-      );
+      const source = readFileSync(join(content, file), "utf8");
+      const marks = [...source.matchAll(/mark: "([^"]+)"/g)].map((match) => match[1]);
+      expect(marks.toSorted(), file).toEqual(["android", "angular", "react"]);
+      expect(source).not.toMatch(/mark: "(?:spring|flutter|nextdotjs|apple|yaml)"/);
+      expect(source).toMatch(/label: "YAML", icon: "yaml", formats/);
     }
   });
 

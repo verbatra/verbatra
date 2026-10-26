@@ -127,12 +127,22 @@ function brandMarkAssetName(id: keyof typeof BRAND_MARKS): string {
   return `${mark.title} mark (${source.package}@${source.version}, ${mark.file})`;
 }
 
+const STACK_CARD_MARK_IDS: ReadonlyArray<string> = ["react", "angular", "android"];
+const CARD_ONLY_MARK_IDS: ReadonlyArray<string> = ["react"];
+
+function brandMarkSurfaces(id: string): string {
+  const onCards = STACK_CARD_MARK_IDS.includes(id);
+  const onMarquee = !CARD_ONLY_MARK_IDS.includes(id);
+  if (onCards && onMarquee) return "the landing marquee and the stack cards";
+  return onCards ? "the stack cards" : "the landing marquee";
+}
+
 const BRAND_MARK_ASSETS: ReadonlyArray<AssetSource> = BRAND_MARK_IDS.map((id) => {
   const mark = BRAND_MARKS[id];
   return {
     name: brandMarkAssetName(id),
     license: mark.license,
-    usage: `Inline monochrome SVG path in the landing marquee and the stack cards, copied from ${brandMarkSourceUrl(mark)}. ${BRAND_MARK_TRADEMARK_NOTE}`,
+    usage: `Inline monochrome SVG path in ${brandMarkSurfaces(id)}, copied from ${brandMarkSourceUrl(mark)}. ${BRAND_MARK_TRADEMARK_NOTE}`,
     textFile: null,
     copyright: mark.attribution,
   };
