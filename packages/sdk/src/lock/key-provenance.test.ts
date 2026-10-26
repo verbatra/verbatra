@@ -127,7 +127,7 @@ describe("summarizeProvenance and originsOf", () => {
   const target = resource({ a: "A", b: "B", c: "C", d: "D", orphan: "O" });
 
   it("counts every translated key by origin and review state, skipping orphans", () => {
-    expect(summarizeProvenance(records, source, target)).toEqual({
+    expect(summarizeProvenance(records, source, target, new Map())).toEqual({
       byOrigin: {
         machine: 1,
         memory: 0,
@@ -141,6 +141,26 @@ describe("summarizeProvenance and originsOf", () => {
       },
       byReviewState: { unreviewed: 3, approved: 1, rejected: 0 },
     });
+  });
+
+  it("counts an approval whose source changed as unreviewed", () => {
+    const reviewed = new Map<string, ProvenanceRecord>([
+      [
+        "c",
+        {
+          origin: "import",
+          valueHash: valueHash("C"),
+          reviewState: "approved",
+          reviewedSourceHash: "s1",
+        },
+      ],
+    ]);
+
+    const current = summarizeProvenance(reviewed, source, target, new Map([["c", "s1"]]));
+    const changed = summarizeProvenance(reviewed, source, target, new Map([["c", "s2"]]));
+
+    expect(current.byReviewState.approved).toBe(1);
+    expect(changed.byReviewState).toEqual({ unreviewed: 4, approved: 0, rejected: 0 });
   });
 
   it("names the origin of each requested key the target holds", () => {

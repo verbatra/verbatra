@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { VerbatraConfig } from "../config/schema.js";
+import { valueHash } from "../lock/provenance-file.js";
 import {
   baseConfig,
   makeFakeFs,
@@ -206,5 +207,52 @@ describe("localeValues: prototype-named keys", () => {
     expect(values.constructor).toBeUndefined();
     expect(values.toString).toBeUndefined();
     expect(values.hasOwnProperty).toBeUndefined();
+  });
+});
+
+describe("localeValues: review state against the lock-file", () => {
+  async function approvedProject(): Promise<string> {
+    const dir = await project({ greeting: "Hello" }, { de: { greeting: "Hallo" } });
+    await writeJsonFile(join(dir, "verbatra.provenance.json"), {
+      version: 1,
+      locales: {
+        de: {
+          greeting: {
+            origin: "machine",
+            valueHash: valueHash("Hallo"),
+            reviewState: "approved",
+            reviewedSourceHash: "reviewed",
+          },
+        },
+      },
+    });
+    return dir;
+  }
+
+  it("reads an approval as unreviewed once the lock-file records another source", async () => {
+    const dir = await approvedProject();
+    await writeJsonFile(join(dir, "verbatra.lock.json"), {
+      version: 1,
+      locales: { de: { greeting: "other" } },
+    });
+
+    const [german] = await localeValues({
+      config: cfg({ targetLocales: ["de"] }),
+      cwd: dir,
+    });
+
+    expect(german?.values.greeting?.provenance?.reviewState).toBe("unreviewed");
+  });
+
+  it("still answers when the lock-file is corrupt", async () => {
+    const dir = await approvedProject();
+    await writeFile(join(dir, "verbatra.lock.json"), "{ not json", "utf8");
+
+    const [german] = await localeValues({
+      config: cfg({ targetLocales: ["de"] }),
+      cwd: dir,
+    });
+
+    expect(german?.values.greeting?.provenance?.reviewState).toBe("approved");
   });
 });

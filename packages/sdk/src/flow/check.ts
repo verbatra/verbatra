@@ -246,7 +246,7 @@ function toCheckSummary(
     emptySource: diff.emptySource.length,
     inSync: diff.missing.length === 0 && diff.changed.length === 0,
     ...(provenance !== undefined
-      ? { provenance: summarizeProvenance(provenance, source, target) }
+      ? { provenance: summarizeProvenance(provenance, source, target, result.baseline) }
       : {}),
     protected: presentProtectedKeys(config, result).length,
     incompletePlurals: findIncompletePlurals(config.format, source, target, locale),

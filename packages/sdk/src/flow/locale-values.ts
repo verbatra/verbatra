@@ -7,7 +7,7 @@ import { createLocalePathResolver } from "../locale-path/resolver.js";
 import { type KeyProvenance, keyProvenance } from "../lock/key-provenance.js";
 import type { ProvenanceRecord } from "../lock/provenance-file.js";
 import { selectAdapter } from "../selection/select-adapter.js";
-import { readCarriedOverProvenance } from "./locale-carry-over.js";
+import { readCarriedOverBaselines, readCarriedOverProvenance } from "./locale-carry-over.js";
 import { readTargetResource } from "./read-target.js";
 import { selectLocales } from "./select-locales.js";
 import { readSourceResource } from "./source.js";
@@ -20,7 +20,9 @@ export interface KeyValuePair {
   readonly target?: string;
   /**
    * The provenance of the current translation, read from the provenance file. Absent when
-   * `target` is, and when that file is corrupt or was written by a newer verbatra.
+   * `target` is, and when that file is corrupt or was written by a newer verbatra. An approval reads as
+   * `unreviewed` once the lock-file records a different source text than the one it was given for;
+   * a lock-file that cannot be read leaves the approval as recorded.
    */
   readonly provenance?: KeyProvenance;
 }
@@ -63,16 +65,20 @@ export interface LocaleValuesDeps {
 
 function provenanceOf(
   records: ReadonlyMap<string, ProvenanceRecord> | undefined,
+  baseline: ReadonlyMap<string, string> | undefined,
   key: string,
   value: string,
 ): { provenance?: KeyProvenance } {
-  return records === undefined ? {} : { provenance: keyProvenance(records.get(key), value) };
+  return records === undefined
+    ? {}
+    : { provenance: keyProvenance(records.get(key), value, baseline?.get(key)) };
 }
 
 function mergeValues(
   source: LocaleResource,
   target: LocaleResource,
   records: ReadonlyMap<string, ProvenanceRecord> | undefined,
+  baseline: ReadonlyMap<string, string> | undefined,
 ): Record<string, KeyValuePair> {
   const keys = new Set([...source.entries.keys(), ...target.entries.keys()]);
   const values: Record<string, KeyValuePair> = Object.create(null);
@@ -82,7 +88,7 @@ function mergeValues(
     values[key] = {
       ...(sourceEntry !== undefined ? { source: sourceEntry.value } : {}),
       ...(targetEntry !== undefined
-        ? { target: targetEntry.value, ...provenanceOf(records, key, targetEntry.value) }
+        ? { target: targetEntry.value, ...provenanceOf(records, baseline, key, targetEntry.value) }
         : {}),
     };
   }
@@ -153,6 +159,7 @@ export async function localeValues(
   const source = await readSourceResource(config, resolver, fs, adapter);
   const locales = selectLocales(config, input.locales);
   const provenanceFor = await readCarriedOverProvenance(cwd, fs, locales);
+  const baselineFor = await readCarriedOverBaselines(cwd, fs, locales);
 
   return Promise.all(
     locales.map(async (locale) => {
@@ -167,7 +174,12 @@ export async function localeValues(
       return {
         locale,
         keys,
-        values: mergeValues(source.resource, target, provenanceFor?.(locale)),
+        values: mergeValues(
+          source.resource,
+          target,
+          provenanceFor?.(locale),
+          baselineFor?.(locale),
+        ),
       };
     }),
   );

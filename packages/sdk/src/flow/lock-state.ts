@@ -162,7 +162,7 @@ export async function lockState(
       return {
         ...toLockLocaleState(locale, baseline.size, diff),
         ...(records !== undefined
-          ? { provenance: summarizeProvenance(records, source.resource, target) }
+          ? { provenance: summarizeProvenance(records, source.resource, target, baseline) }
           : {}),
       };
     }),

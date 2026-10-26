@@ -1,8 +1,9 @@
-import { mkdir } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { VerbatraConfig } from "../config/schema.js";
 import { SdkError } from "../errors.js";
+import { valueHash } from "../lock/provenance-file.js";
 import { baseConfig, makeTempDir, writeJsonFile } from "../test-support.js";
 import { keyValue } from "./key-value.js";
 
@@ -157,5 +158,56 @@ describe("keyValue: source context", () => {
     const result = await keyValue({ config: arbConfig, cwd: dir, locale: "de", key: "farewell" });
 
     expect(result).toEqual({ source: "Bye" });
+  });
+});
+
+describe("keyValue: review state against the lock-file", () => {
+  async function approvedProject(lockHash: string | undefined): Promise<string> {
+    const dir = await project({ greeting: "Hello" }, { de: { greeting: "Hallo" } });
+    await writeJsonFile(join(dir, "verbatra.provenance.json"), {
+      version: 1,
+      locales: {
+        de: {
+          greeting: {
+            origin: "machine",
+            valueHash: valueHash("Hallo"),
+            reviewState: "approved",
+            reviewedSourceHash: "reviewed",
+          },
+        },
+      },
+    });
+    if (lockHash !== undefined) {
+      await writeJsonFile(join(dir, "verbatra.lock.json"), {
+        version: 1,
+        locales: { de: { greeting: lockHash } },
+      });
+    }
+    return dir;
+  }
+
+  it("reads an approval as unreviewed once the lock-file records another source", async () => {
+    const dir = await approvedProject("other");
+
+    const result = await keyValue({ config: cfg(), cwd: dir, locale: "de", key: "greeting" });
+
+    expect(result.provenance?.reviewState).toBe("unreviewed");
+  });
+
+  it("keeps the approval while the lock-file records the reviewed source", async () => {
+    const dir = await approvedProject("reviewed");
+
+    const result = await keyValue({ config: cfg(), cwd: dir, locale: "de", key: "greeting" });
+
+    expect(result.provenance?.reviewState).toBe("approved");
+  });
+
+  it("still answers when the lock-file is corrupt", async () => {
+    const dir = await approvedProject(undefined);
+    await writeFile(join(dir, "verbatra.lock.json"), "{ not json", "utf8");
+
+    const result = await keyValue({ config: cfg(), cwd: dir, locale: "de", key: "greeting" });
+
+    expect(result.provenance?.reviewState).toBe("approved");
   });
 });

@@ -6,7 +6,7 @@ import { defaultFs, type SdkFs } from "../fs.js";
 import { type KeyProvenance, keyProvenance } from "../lock/key-provenance.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { readTarget } from "./diff-locales.js";
-import { readCarriedOverProvenance } from "./locale-carry-over.js";
+import { readCarriedOverBaselines, readCarriedOverProvenance } from "./locale-carry-over.js";
 import { selectLocales } from "./select-locales.js";
 import { readSource } from "./source.js";
 
@@ -44,7 +44,9 @@ export interface KeyValueResult {
   readonly target?: string;
   /**
    * The provenance of the current translation, read from the provenance file. Absent when
-   * `target` is, and when that file is corrupt or was written by a newer verbatra.
+   * `target` is, and when that file is corrupt or was written by a newer verbatra. An approval reads as
+   * `unreviewed` once the lock-file records a different source text than the one it was given for;
+   * a lock-file that cannot be read leaves the approval as recorded.
    */
   readonly provenance?: KeyProvenance;
 }
@@ -113,11 +115,18 @@ export async function keyValue(
     return context;
   }
   const records = (await readCarriedOverProvenance(cwd, fs, [locale]))?.(locale);
+  const baseline = (await readCarriedOverBaselines(cwd, fs, [locale]))?.(locale);
   return {
     ...context,
     target: targetEntry.value,
     ...(records !== undefined
-      ? { provenance: keyProvenance(records.get(input.key), targetEntry.value) }
+      ? {
+          provenance: keyProvenance(
+            records.get(input.key),
+            targetEntry.value,
+            baseline?.get(input.key),
+          ),
+        }
       : {}),
   };
 }

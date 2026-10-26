@@ -24,6 +24,7 @@ import {
   withLockFileGuard,
 } from "../lock/locale-write-lock.js";
 import {
+  baselineFor,
   LOCK_FILE_NAME,
   lockFilePath,
   lockLocalesWithState,
@@ -297,6 +298,22 @@ export async function readCarriedOverLock(
 ): Promise<LockFile> {
   const read = await readLockFile(lockFilePath(cwd), fs);
   return withLockLocalesMoved(read, planLocaleMoves(targetLocales, lockLocalesWithState(read)));
+}
+
+export async function readCarriedOverBaselines(
+  cwd: string,
+  fs: SdkFs,
+  targetLocales: readonly string[],
+): Promise<((locale: string) => ReadonlyMap<string, string>) | undefined> {
+  try {
+    const lock = await readCarriedOverLock(cwd, fs, targetLocales);
+    return (locale) => baselineFor(lock, locale);
+  } catch (error) {
+    if (error instanceof SdkError && error.code === "LOCK_FILE_INVALID") {
+      return undefined;
+    }
+    throw error;
+  }
 }
 
 export async function readCarriedOverProvenance(

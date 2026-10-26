@@ -69,9 +69,9 @@ export interface KeyProvenance {
 
 /**
  * Per-locale counts of {@link KeyProvenance}, over the keys that have a value in both the source and
- * the target locale. Keys only the target holds are not counted. The review state of a key is read
- * from the decision recorded for its current value; this count does not compare that decision with
- * the current source text.
+ * the target locale. Keys only the target holds are not counted. An approval counts as `approved`
+ * only while the source text it was given for is the one the lock-file records for the key, the same
+ * test the review queue applies; otherwise the key counts as `unreviewed`.
  */
 export interface ProvenanceSummary {
   /** How many keys have each origin. Every {@link KeyOrigin} is present, zero included. */
@@ -221,10 +221,11 @@ export function summarizeProvenance(
   records: ReadonlyMap<string, ProvenanceRecord>,
   source: LocaleResource,
   target: LocaleResource,
+  baseline: ReadonlyMap<string, string>,
 ): ProvenanceSummary {
   const summary = emptyProvenanceSummary();
   for (const [key, value] of translatedValues(source, target)) {
-    const provenance = keyProvenance(records.get(key), value);
+    const provenance = keyProvenance(records.get(key), value, baseline.get(key));
     summary.byOrigin[provenance.origin] += 1;
     summary.byReviewState[provenance.reviewState] += 1;
   }
