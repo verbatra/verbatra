@@ -125,13 +125,14 @@ describe("Hero copy", () => {
     },
   );
 
-  it("keeps the pill's sparkle and chevron away from assistive technology", async () => {
+  it("keeps the pill's ring, shimmer and chevron away from assistive technology", async () => {
     const announce = (await render()).querySelector(".vk-announce");
-    for (const part of announce?.querySelectorAll(".vk-pill-new-icon, .vk-announce-chevron") ??
-      []) {
+    for (const part of announce?.querySelectorAll(
+      ".vk-pill-new-ring, .vk-pill-new-shimmer, .vk-announce-chevron",
+    ) ?? []) {
       expect(part.getAttribute("aria-hidden")).toBe("true");
     }
-    expect(announce?.querySelectorAll("[aria-hidden='true']")).toHaveLength(2);
+    expect(announce?.querySelectorAll("[aria-hidden='true']")).toHaveLength(3);
   });
 
   it("offers Get started to the quickstart beside an install command chip, and no GitHub button or trust line", async () => {

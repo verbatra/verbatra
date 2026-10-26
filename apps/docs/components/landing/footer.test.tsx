@@ -201,7 +201,7 @@ describe("FullFooter", () => {
     const doc = await renderFooter();
 
     expect(doc.querySelectorAll("nav a > span:not(.sr-only)")).toHaveLength(0);
-    expect(doc.querySelector(".vk-pill-status")).toBeNull();
+    expect(doc.querySelector(".vk-pill-new")).toBeNull();
     expect(doc.body.textContent).not.toContain("badge:new");
   });
 

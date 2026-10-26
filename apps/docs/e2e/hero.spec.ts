@@ -70,18 +70,38 @@ for (const theme of THEMES) {
   });
 }
 
-test.describe("hero announcement", () => {
-  test("is a borderless tinted pill with no animation", async ({ page }) => {
-    await page.goto("/");
-    const announce = page.locator(`${HERO} a.vk-announce`);
-    await expect(announce).toHaveCSS("border-top-width", "0px");
-    await expect(announce).not.toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
-    const pill = announce.locator(".vk-pill-new");
-    await expect(pill).toHaveCSS("border-top-width", "0px");
-    await expect(pill).toHaveCSS("animation-name", "none");
-    await expect(pill.locator(".vk-pill-new-icon")).toHaveCount(1);
-  });
+test.describe("hero under reduced motion", () => {
+  test.use({ reducedMotion: "reduce" });
 
+  test("keeps the pill still", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator(`${HERO} .vk-pill-new-shimmer`)).toHaveCSS("display", "none");
+    const animation = await page
+      .locator(`${HERO} .vk-pill-new-ring`)
+      .evaluate((ring) => getComputedStyle(ring, "::before").animationName);
+    expect(animation).toBe("none");
+  });
+});
+
+test.describe("hero pill motion", () => {
+  test.use({ reducedMotion: "no-preference" });
+
+  test("runs the pill's glow, ring and shimmer three times, never forever", async ({ page }) => {
+    await page.goto("/");
+    const counts = await page
+      .locator(`${HERO} .vk-pill-new`)
+      .evaluate((pill) =>
+        [
+          getComputedStyle(pill, "::before"),
+          getComputedStyle(pill.querySelector(".vk-pill-new-ring") as Element, "::before"),
+          getComputedStyle(pill.querySelector(".vk-pill-new-shimmer") as Element, "::before"),
+        ].map((style) => style.animationIterationCount),
+      );
+    expect(counts).toEqual(["3", "3", "3"]);
+  });
+});
+
+test.describe("hero install chip border", () => {
   test("draws the install command without a border", async ({ page }) => {
     await page.goto("/");
     await expect(page.locator(`${HERO} .vk-banner-install`)).toHaveCSS("border-top-width", "0px");

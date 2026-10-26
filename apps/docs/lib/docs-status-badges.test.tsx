@@ -44,18 +44,22 @@ function markup(node: PageTree.Node | undefined): string {
 describe("withStatusBadges", () => {
   it("renders the badge in the reader's language", async () => {
     const german = await withStatusBadges(tree, "de");
-    expect(markup(german.children[0])).toMatch(/^TMX<span [^>]*>neu<\/span>$/);
+    expect(markup(german.children[0])).toMatch(
+      /^TMX<span class="vk-pill-new ms-1\.5">.*neu<\/span>$/,
+    );
     const english = await withStatusBadges(tree, "en");
-    expect(markup(english.children[0])).toMatch(/^TMX<span [^>]*>new<\/span>$/);
+    expect(markup(english.children[0])).toMatch(
+      /^TMX<span class="vk-pill-new ms-1\.5">.*new<\/span>$/,
+    );
   });
 
   it("badges nested pages and folder index pages", async () => {
     const folder = (await withStatusBadges(tree, "de")).children[2] as StatusNode;
     if (folder.type !== "folder") throw new Error("expected a folder");
-    expect(renderToStaticMarkup(folder.index?.name)).toContain(">neu</span>");
+    expect(renderToStaticMarkup(folder.index?.name)).toContain("neu</span>");
     const nested = folder.children[2];
     if (nested?.type !== "folder") throw new Error("expected a nested folder");
-    expect(markup(nested.children[0])).toContain(">neu</span>");
+    expect(markup(nested.children[0])).toContain("neu</span>");
   });
 
   it("leaves pages without a known status and separators untouched", async () => {
