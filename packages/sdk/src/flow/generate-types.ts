@@ -405,7 +405,8 @@ async function writeDeclaration(
  * numeric annotation, printf conversion or ICU `plural`, `string` for a text conversion or ICU
  * `select`, `Date | number` for a date or time argument, and a `string | number` alias everywhere
  * else, never a permissive `any`. A name used with several types is declared as the union of what
- * each use accepts.
+ * each use accepts, widened to the narrowest of those declarations that covers every use, so a name
+ * used as both a date and a string is declared `Date | number | string`.
  *
  * With `check` set, nothing is written: the run reports whether the committed file still matches
  * what a fresh generation would produce, which is the shape a CI gate wants.

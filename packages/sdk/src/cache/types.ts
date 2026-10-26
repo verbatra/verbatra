@@ -4,11 +4,15 @@
  * already translated under the same configuration is reused instead of paid for again.
  *
  * Entries are keyed by configuration fingerprint, then locale, then source-content hash. The
- * fingerprint layer means that changing the provider, model, tone, glossary, or a non-empty provider
- * `localeMap` does not silently reuse translations produced under the old settings; those entries
- * simply stop matching. The glossary counts per locale: each locale's fingerprint covers only the
- * glossary terms that apply to it, so editing the German translation of a term leaves the French
- * entries in place.
+ * fingerprint layer means that changing the provider, model, tone, a non-empty provider
+ * `localeMap`, or what the glossary tells the provider (each term's target, forbidden renderings,
+ * note and part of speech, and the do-not-translate terms) does not silently reuse translations
+ * produced under the old settings; those entries simply stop matching. A glossary setting that is
+ * not sent to the provider, such as `caseSensitive`, is not part of the fingerprint; the glossary
+ * review checks run again on a value reused from the memory. The glossary counts per locale: each
+ * locale's fingerprint covers only the glossary terms that apply to it, so editing the German
+ * translation of a term leaves the French entries in place. The fingerprint is a fixed value under
+ * provider `none`.
  *
  * `sources` sits beside them as a flat hash-to-text index. A hash cannot be compared for
  * similarity, so the source text itself has to be on file for a fuzzy match to have anything to

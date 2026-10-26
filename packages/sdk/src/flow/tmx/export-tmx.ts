@@ -46,7 +46,7 @@ export interface ExportTmxLocaleCount {
 export interface ExportTmxResult {
   /** The resolved path the file was written to. */
   readonly path: string;
-  /** How many `tu` elements the file holds, one per distinct source string. */
+  /** How many `tu` elements the file holds, one per distinct content hash of a source string. */
   readonly units: number;
   /** Per-locale target segment counts, not a breakdown of `units`. */
   readonly locales: readonly ExportTmxLocaleCount[];
@@ -211,7 +211,8 @@ async function writeTmxFile(fs: SdkFs, path: string, cwd: string, content: strin
  * Only entries stored under the project's current configuration fingerprint are written, which is
  * the same set a run would reuse, so the file describes the memory as it is actually being used
  * rather than every translation the project has ever produced. One `tu` element is written per
- * distinct source string, carrying the source segment and one target segment per exported locale.
+ * distinct content hash of a source string (so the same text under a different description,
+ * meaning or plural flag is written as its own unit), carrying the source segment and one target segment per exported locale.
  * An empty memory, including a missing, unparsable or newer-version cache file, produces a valid,
  * empty TMX file rather than an error. An existing file at the output path is replaced.
  *

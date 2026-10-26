@@ -687,10 +687,12 @@ function estimateFields(
  * locale is a locale whose file was written with some keys missing, so treating it as clean would
  * ship an incomplete translation; the CLI exits `1` for it exactly as it does for a failed one.
  *
- * A corrupt lock-file is the one exception. On a live run each locale reads the lock-file inside
- * its own write lock, so `LOCK_FILE_INVALID` escapes as a thrown error even after earlier locales
- * have already translated and written. No further locale is started, and the locales in flight
- * finish and release their write locks before the call rejects.
+ * A corrupt lock-file is the one exception. The run reads the lock-file once before any locale
+ * starts, so a lock-file that is already corrupt throws `LOCK_FILE_INVALID` before any locale runs.
+ * On a live run each locale also reads it inside its own write lock, so a lock-file that turns
+ * corrupt during the run escapes as a thrown error even after earlier locales have already
+ * translated and written. No further locale is started, and the locales in flight finish and
+ * release their write locks before the call rejects.
  *
  * Each locale takes its own write lock for the read-modify-write, so concurrent runs and
  * single-key edits cannot interleave on one file. Translations that fail the integrity gate are
@@ -775,8 +777,9 @@ function estimateFields(
  * `VERBATRA_NETWORK_ALLOWED_HOSTS` holds a value that is not valid, on a dry run too, so a dry run
  * or estimate fails where the live run would. Not checked under the provider `none`.
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
- * unsupported version. A dry run reads it once before any locale runs; a live run reads it per
- * locale, so this can abort the run after other locales have already been written.
+ * unsupported version. Both a dry run and a live run read it once before any locale runs; a live run
+ * also reads it per locale, so a lock-file that turns corrupt mid-run can abort the run after other
+ * locales have already been written.
  * @throws {@link SdkError} `PROVENANCE_FILE_INVALID`: the provenance file is corrupt, oversized, or
  * structurally wrong. A live run reads it before any locale runs and again as each locale records
  * its result, so, like a corrupt lock-file, it can abort the run after other locales have been

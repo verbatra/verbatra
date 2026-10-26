@@ -137,11 +137,12 @@ export interface Usage {
  * successful result, NOT thrown:
  *
  * - `FORMALITY_DOWNGRADED`: a requested `formal` or `informal` tone was not applied (DeepL's free
- *   tier does not support formality, and Google Cloud Translation Basic has no formality control).
+ *   tier does not support formality, a paid DeepL account raises it for a target language with no
+ *   formality control, and Google Cloud Translation Basic and LibreTranslate have none).
  * - `GLOSSARY_IGNORED`: a supplied glossary with a required translation or a term to keep
  *   untranslated was not applied (DeepL only applies a native glossary id, never verbatra's glossary,
- *   and Google Cloud Translation Basic supports no glossary). A glossary that only lists forbidden
- *   renderings does not raise it, since those are checked after translation rather than applied.
+ *   and Google Cloud Translation Basic and LibreTranslate support no glossary). A glossary that only
+ *   lists forbidden renderings does not raise it, since those are checked after translation rather than applied.
  * - `PLACEHOLDER_UNSUPPORTED`: at least one entry was left untranslated (absent from the result
  *   maps) rather than written with damaged placeholders. DeepL, Google Cloud Translation and
  *   LibreTranslate send a value's placeholders as numbered markers (DeepL inside an ignored `<x>`

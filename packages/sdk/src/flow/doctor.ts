@@ -216,8 +216,10 @@ export interface DoctorInput {
    * Fetch the configured machine-translation provider's current language list before the `locales`
    * check, instead of judging against the table verbatra ships. It is the one doctor option that
    * sends a network request: to the provider's language list endpoint only (DeepL's
-   * `/v3/languages`, Google Cloud Translation's `languages`), which uses no translation quota. The
-   * request is sent only when the provider's API key variable is set and the network policy
+   * `/v3/languages`, Google Cloud Translation's `languages`, or the `languages` endpoint of the
+   * configured LibreTranslate server), which uses no translation quota. For DeepL and Google Cloud
+   * Translation the request is sent only when the provider's API key variable is set, while
+   * LibreTranslate needs no key variable; in every case it is sent only when the network policy
    * permits the provider's host; otherwise, or when the request fails, the static table is used and
    * {@link LocaleCapabilityReport.live} says why. It does nothing for an LLM provider or `none`.
    * Ignored on a literal run. Defaults to false.

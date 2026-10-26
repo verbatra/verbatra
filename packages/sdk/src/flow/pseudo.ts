@@ -453,6 +453,8 @@ function sameValues(
  * format whose writer only patches an existing document (`xliff` and `apple-xcstrings`), the
  * source file could not be copied to seed the output.
  * @throws {@link SdkError} `TARGET_UNWRITABLE`: the pseudolocale file could not be written.
+ * @throws `AdapterError`: the adapter itself refused to write the pseudolocale file. Its own code
+ * is preserved rather than remapped onto an {@link SdkErrorCode}.
  */
 export async function pseudolocalize(
   input: PseudolocalizeInput,

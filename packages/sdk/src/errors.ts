@@ -95,9 +95,10 @@
  *   key has no translation in the target locale or its translation differs from the expected
  *   value. Thrown by {@link approveEntry} and {@link rejectEntry}; reload the value and review it
  *   again.
- * - `REVIEW_SOURCE_CHANGED`: the source text changed since the key's translation was written, so
- *   the value cannot be approved as it stands. Thrown by {@link approveEntry}; edit or retranslate
- *   the key first.
+ * - `REVIEW_SOURCE_CHANGED`: the source text changed since the key's translation was written, or
+ *   the lock-file has no entry for the key in that locale, so there is no recorded source text to
+ *   compare and the value cannot be approved as it stands. Thrown by {@link approveEntry}; edit or
+ *   retranslate the key first.
  * - `REVIEW_REJECT_UNSUPPORTED`: the configured format keeps a key's translation in the file when
  *   verbatra writes the file without it, so {@link rejectEntry} cannot remove the value. XLIFF,
  *   where a unit without a target reads as its source text, is such a format. It is also thrown

@@ -148,7 +148,7 @@ export interface ImportTmxResult {
   readonly file: string;
   /** The `srclang` the file's header declared, or undefined if it declared none. */
   readonly sourceLanguage: string | undefined;
-  /** How many translation units the file held. */
+  /** How many usable translation units the file held, not counting the units the reader skipped. */
   readonly units: number;
   /** Per-target-locale account of what was stored. */
   readonly locales: readonly ImportTmxLocaleResult[];

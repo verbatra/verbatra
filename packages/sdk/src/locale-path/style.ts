@@ -18,7 +18,10 @@ export const LOCALE_STYLES = ["literal", "posix", "android"] as const;
  *   script has no spelling. A locale with a variant has no spelling in either case. Common for
  *   gettext-influenced and Java-influenced layouts.
  * - `android`: the Android resource-qualifier spelling, so `pt-BR` yields `values-pt-rBR` and the
- *   source locale yields the unqualified `values`. This style expands to a whole path segment, so
+ *   source locale yields the unqualified `values`. A locale with a script, a variant, a numeric
+ *   region, the language `car`, or three or more subtags yields the BCP 47 form instead
+ *   (`zh-Hant-TW` yields `values-b+zh+Hant+TW`, `es-419` yields `values-b+es+419`), and one with
+ *   more than four subtags has no spelling. This style expands to a whole path segment, so
  *   the `{locale}` token must stand alone between separators in the pattern.
  *
  * A locale that has no valid spelling under the declared style, or that would expand to something
