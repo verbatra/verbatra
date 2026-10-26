@@ -123,6 +123,7 @@ function PackageItem({
 }
 
 const ASSETS_SECTION_ID = "assets";
+const ASSETS_SECTION_TITLE = "Fonts and other assets";
 
 function JumpNav({ locale }: { locale: Locale }): ReactNode {
   return (
@@ -130,7 +131,7 @@ function JumpNav({ locale }: { locale: Locale }): ReactNode {
       <ul lang="en" className="vk-legal-jump-list">
         <li className="vk-legal-jump-item">
           <a className="vk-legal-jump-link" href={`#${ASSETS_SECTION_ID}`}>
-            Fonts and other assets
+            {ASSETS_SECTION_TITLE}
           </a>
         </li>
         {LICENSES.groups.map((group) => (
@@ -208,7 +209,7 @@ export default async function LicensesPage(props: { params: Promise<{ lang: stri
       <JumpNav locale={locale} />
       <div lang="en">
         <section>
-          <h2 id={ASSETS_SECTION_ID}>Fonts and other assets</h2>
+          <h2 id={ASSETS_SECTION_ID}>{ASSETS_SECTION_TITLE}</h2>
           <ul className="vk-license-list">
             {LICENSES.assets.map((asset) => (
               <AssetItem key={asset.name} asset={asset} />
