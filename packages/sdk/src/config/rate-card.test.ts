@@ -4,6 +4,8 @@ import { lookupRate, type RateCard, rateCardSchema } from "./rate-card.js";
 
 type Equivalent<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
 
+type SchemaCard = z.infer<typeof rateCardSchema>;
+
 const validCard = {
   asOf: "2026-01-15",
   currency: "USD",
@@ -275,7 +277,8 @@ describe("rateCardSchema: the currency label a figure is printed under", () => {
 
 describe("the RateCard interface", () => {
   it("describes exactly what rateCardSchema parses", () => {
-    const equivalent: Equivalent<RateCard, z.infer<typeof rateCardSchema>> = true;
-    expect(equivalent).toBe(true);
+    const sameValues: Equivalent<RateCard, SchemaCard> = true;
+    const sameKeys: Equivalent<keyof RateCard, keyof SchemaCard> = true;
+    expect([sameValues, sameKeys]).toEqual([true, true]);
   });
 });
