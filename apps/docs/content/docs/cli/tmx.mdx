@@ -89,7 +89,7 @@ The project's memory wins: an imported translation that differs from one already
 `--overwrite` replaces translations the memory already holds, and later runs reuse the replacements. Run it with `--dry-run` first to see the `overwritten` count.
 </Callout>
 
-Imported units are stored under the project's current configuration fingerprint, so they are reused exactly while the provider, model, tone, glossary and `localeMap` stay the same. Re-import the file after changing them. A memory file written by a newer verbatra is left untouched; the counts are still reported, as on a dry run.
+Imported units are stored under the project's current configuration fingerprint, so they are reused exactly while the provider, model, tone, the glossary terms sent to the provider and `localeMap` stay the same. Re-import the file after changing them. A memory file written by a newer verbatra is left untouched; the counts are still reported, as on a dry run.
 
 ### Imported units and fuzzy reuse
 

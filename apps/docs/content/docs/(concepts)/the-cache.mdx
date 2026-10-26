@@ -103,7 +103,7 @@ source string beside its translations, so it grows roughly to the size of your s
 
 [`verbatra tmx`](/docs/cli/tmx) imports a TMX file from another translation tool into the cache and
 exports the cache as TMX. Imported units are stored under the current fingerprint, so they stop
-matching when the provider, model, tone, glossary or `localeMap` changes, like everything else. One
+matching when the provider, model, tone, the glossary terms sent to the provider or `localeMap` changes, like everything else. One
 caveat to "delete it and it rebuilds": an imported memory is only as recoverable as the TMX file it
 came from, so keep that file.
 
