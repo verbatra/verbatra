@@ -3,7 +3,7 @@ title: Piloter Studio avec un agent de navigateur
 description: "Enregistre les actions de relecture de Verbatra Studio comme outils WebMCP pour qu'un agent IA de navigateur travaille dans ton tableau de bord ouvert."
 type: how-to
 ---
-Sers-t'en pour qu'un agent IA de navigateur, comme Gemini ou Claude dans Chrome, vérifie la dérive, traite la file de relecture et corrige des entrées dans l'onglet Studio que tu as ouvert. L'agent appelle des outils nommés au lieu de deviner la page. Ce n'est pas fait pour configurer un projet ni pour l'accès à distance.
+Sers-t'en pour qu'un agent IA de navigateur, comme Gemini ou Claude dans Chrome, vérifie la dérive, traite la file de relecture et corrige des entrées dans l'onglet Studio que tu as ouvert. Ce n'est pas fait pour configurer un projet ni pour l'accès à distance.
 
 Il te faut :
 
@@ -93,6 +93,7 @@ Chaque outil renvoie l'enveloppe du tableau de bord, donc un échec se lit `{ "o
 | `SPEND_DISABLED` | une méthode payante alors que la dépense est coupée : Studio tourne sans `--allow-spend`, ou le fournisseur est `none` ; le message dit lequel |
 | `PARAMS_INVALID` | un paramètre a échoué à la validation ; `issues` nomme chaque champ |
 | `METHOD_RATE_LIMITED` | limite de débit dépassée ; `retryAfterSeconds` dit quand l'appel passera |
+| `BATCH_TOO_LARGE` | un lot dépasse toute une fenêtre de limite ; envoie moins d'entrées |
 | `SESSION_EXPIRED` | Studio a redémarré avec un nouveau token ; ouvre l'URL qu'il a affichée |
 | `INTERNAL` | un handler a échoué avec une erreur inattendue (HTTP 500) ; le message est générique et ne donne aucun détail |
 

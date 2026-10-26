@@ -11,7 +11,7 @@ Bevor du anfängst, brauchst du:
 - Eine verbatra-Konfiguration direkt in dem Verzeichnis, in dem die Action läuft (siehe [Konfigurationssuche](#konfigurationssuche)).
 - Eine exakte `@verbatra/cli`-Version zum Pinnen, `0.9.3` oder neuer.
 - Nur für `translate`: den API-Schlüssel deines Providers als Repository-Secret.
-- Actions Runner v2.327.1 oder neuer und `verbatra/action` `v1.3.0` oder neuer für `qa`, `require-reviewed` und den Output `needs-human`.
+- Actions Runner v2.327.1 oder neuer und `verbatra/action` `v1.3.0` oder neuer; diese Seite beschreibt dieses Release.
 
 ## Die Action in einen Workflow einbauen
 
@@ -38,7 +38,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
-Die Action installiert `@verbatra/cli` und `@verbatra/sdk` in genau dieser Version in ein temporäres Verzeichnis, daher braucht der Job keinen eigenen Installationsschritt.
+Die Action installiert `@verbatra/cli` und `@verbatra/sdk` in genau dieser Version, daher braucht der Job keinen eigenen Installationsschritt.
 
 ### Den Provider-Schlüssel übergeben
 
@@ -149,13 +149,13 @@ Die booleschen Eingaben akzeptieren nur `"true"` oder `"false"`. Ein ungültiger
 
 ## Was ein Lauf dir zeigt
 
-- **Annotationen.** Unter `translate` mit Exit `1` wird jede fehlgeschlagene oder teilweise Locale zu einer Fehler-Annotation mit dem Titel `verbatra: <locale>`, an die Datei dieser Locale gehängt, wenn die Action sie findet. Unter `check` oder `diff` bekommt jede abweichende Locale eine mit dem Titel `verbatra check: <locale>` oder `verbatra diff: <locale>`. Die `LOCALE_PARTIAL`-Annotation einer teilweisen Locale nennt die zurückgehaltenen Keys, nach Ursache gruppiert. Jeder `check` ergänzt pro Locale eine `PLURAL_CATEGORIES_INCOMPLETE`-Warnung, wenn ihren Pluralen eine CLDR-Kategorie fehlt, die die Sprache nutzt. Ein Lauf, der als Ganzes fehlschlägt, bekommt eine einzige `verbatra`-Annotation mit dem Fehlercode, der Ursache als `(cause: X)` und einem `Next step:`-Hinweis, sofern die CLI sie liefert. GitHub zeigt höchstens 10 Annotationen pro Schweregrad, daher sortiert die Action sie nach Drift, Review, Qualitätsfehlern und Warnungen und ergänzt einen Hinweis, der den Rest zählt.
+- **Annotationen.** Unter `translate` mit Exit `1` wird jede fehlgeschlagene oder teilweise Locale zu einer Fehler-Annotation mit dem Titel `verbatra: <locale>`. Unter `check` oder `diff` bekommt jede abweichende Locale eine mit dem Titel `verbatra check: <locale>` oder `verbatra diff: <locale>`. Alle hängen an der Datei ihrer Locale, wenn die Action sie findet. Die `LOCALE_PARTIAL`-Annotation einer teilweisen Locale nennt die zurückgehaltenen Keys, nach Ursache gruppiert. Jeder `check` ergänzt pro Locale eine `PLURAL_CATEGORIES_INCOMPLETE`-Warnung, wenn ihren Pluralen eine CLDR-Kategorie fehlt, die die Sprache nutzt. Ein Lauf, der als Ganzes fehlschlägt, bekommt eine einzige `verbatra`-Annotation mit dem Fehlercode, der Ursache als `(cause: X)` und einem `Next step:`-Hinweis, sofern die CLI sie liefert. GitHub zeigt höchstens 10 Annotationen pro Schweregrad, daher sortiert die Action sie nach Drift, Review, Qualitätsfehlern und Warnungen und ergänzt einen Hinweis, der den Rest zählt.
 - **Job-Zusammenfassung.** Eine Zeile pro Locale mit den Zahlen des ausgeführten Befehls, eine Gesamtzeile und die teilweisen und fehlgeschlagenen Locales. Mit `qa` kommt eine Befundtabelle mit bis zu 1000 Befunden hinzu; unvollständige Plurale bekommen einen eigenen Abschnitt.
-- **Exit-Status.** Die Action gibt zuerst die Annotationen und die Zusammenfassung aus und endet dann mit dem [Exit-Code](/de/docs/cli/output#exit-codes) der CLI, außer dass ein `translate`-Exit `3` besteht und ein Fehler vor dem Start der CLI mit `1` endet.
+- **Exit-Status.** Die Action gibt zuerst die Annotationen und die Zusammenfassung aus und endet dann mit dem [Exit-Code](/de/docs/cli/output#exit-codes) der CLI, außer dass ein `translate`-Exit `3` besteht und eine Eingabe, die vor der Installation abgelehnt wird, mit einer einzigen `::error::` und ohne Zusammenfassung fehlschlägt.
 
 ## Sicherheit
 
-Pinne beide Referenzen: `uses:` auf einen Commit-SHA und `version` auf ein exaktes Release; die Action lehnt alles ab, was sich zu `latest` auflösen könnte. Eingaben erreichen die CLI als Argument-Array in Anführungszeichen und werden nie in Shell-Text eingefügt, ein präparierter Eingabewert bleibt also ein Argument.
+Pinne beide Referenzen: `uses:` auf einen Commit-SHA und `version` auf ein exaktes Release ([aktuelles auf npm](https://www.npmjs.com/package/@verbatra/cli)); die Action lehnt alles ab, was sich zu `latest` auflösen könnte. Eingaben erreichen die CLI als Argument-Array in Anführungszeichen und werden nie in Shell-Text eingefügt.
 
 ## Siehe auch
 

@@ -195,7 +195,7 @@ The JSON formats, YAML and ARB keep document order: integer-like keys such as `"
 
 ## Dotted keys and collisions
 
-In `i18next-json`, `vue-i18n-json` and `next-intl-json`, a literal dotted leaf such as `"foo.bar"` round-trips as written; `ngx-translate-json` reads it as a nested path. In all four, one path written both ways (`"foo.bar"` beside `"foo": { "bar": ... }`) fails with `INVALID_STRUCTURE`; `ngx-translate-json` reports a top-level flat dotted key beside nested objects as `MIXED_STRUCTURE`.
+In `i18next-json`, `vue-i18n-json` and `next-intl-json`, a literal dotted leaf such as `"foo.bar"` round-trips as written; `ngx-translate-json` reads it as a nested path. Elsewhere, one path written both ways (`"foo.bar"` beside `"foo": { "bar": ... }`) fails with `INVALID_STRUCTURE`; `ngx-translate-json` refuses flat dotted keys beside nested objects, and dotted object keys, with `MIXED_STRUCTURE`.
 
 ## How files are read and written
 

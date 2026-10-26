@@ -195,7 +195,7 @@ Die JSON-Formate, YAML und ARB erhalten die Dokumentreihenfolge: Ganzzahlartige 
 
 ## Gepunktete Keys und Kollisionen
 
-In `i18next-json`, `vue-i18n-json` und `next-intl-json` übersteht ein wörtliches gepunktetes Blatt wie `"foo.bar"` den Roundtrip so, wie es geschrieben ist; `ngx-translate-json` liest es als verschachtelten Pfad. In allen vier scheitert ein Pfad, der auf beide Arten geschrieben ist (`"foo.bar"` neben `"foo": { "bar": ... }`), mit `INVALID_STRUCTURE`; `ngx-translate-json` meldet einen flachen gepunkteten Key auf oberster Ebene neben verschachtelten Objekten als `MIXED_STRUCTURE`.
+In `i18next-json`, `vue-i18n-json` und `next-intl-json` übersteht ein wörtliches gepunktetes Blatt wie `"foo.bar"` den Roundtrip so, wie es geschrieben ist; `ngx-translate-json` liest es als verschachtelten Pfad. Sonst scheitert ein Pfad, der auf beide Arten geschrieben ist (`"foo.bar"` neben `"foo": { "bar": ... }`), mit `INVALID_STRUCTURE`; `ngx-translate-json` lehnt flache gepunktete Keys neben verschachtelten Objekten und gepunktete Objekt-Keys mit `MIXED_STRUCTURE` ab.
 
 ## Wie Dateien gelesen und geschrieben werden
 

@@ -3,7 +3,7 @@ title: Maneja Studio con un agente del navegador
 description: "Registra las acciones de revisión de Verbatra Studio como herramientas WebMCP para que un agente de IA del navegador trabaje en tu panel abierto."
 type: how-to
 ---
-Úsalo para que un agente de IA del navegador, como Gemini o Claude en Chrome, revise el desfase, trabaje la cola de revisión y corrija entradas en la pestaña de Studio que tienes abierta. El agente llama a herramientas con nombre en lugar de adivinar la página. No sirve para configurar el proyecto ni para el acceso remoto.
+Úsalo para que un agente de IA del navegador, como Gemini o Claude en Chrome, revise el desfase, trabaje la cola de revisión y corrija entradas en la pestaña de Studio que tienes abierta. No sirve para configurar el proyecto ni para el acceso remoto.
 
 Necesitas:
 
@@ -93,6 +93,7 @@ Cada herramienta devuelve el envoltorio del panel, así que un fallo se lee `{ "
 | `SPEND_DISABLED` | un método de gasto con el gasto desactivado: Studio corre sin `--allow-spend`, o el proveedor es `none`; el mensaje dice cuál |
 | `PARAMS_INVALID` | un parámetro no pasó la validación; `issues` nombra cada campo |
 | `METHOD_RATE_LIMITED` | se superó el límite; `retryAfterSeconds` indica cuándo cabe la llamada |
+| `BATCH_TOO_LARGE` | un lote supera una ventana entera del límite; envía menos entradas |
 | `SESSION_EXPIRED` | Studio se reinició con un token nuevo; abre la URL que imprimió |
 | `INTERNAL` | un handler falló con un error inesperado (HTTP 500); el mensaje es genérico y no incluye detalles |
 

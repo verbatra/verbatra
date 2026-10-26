@@ -4,7 +4,7 @@ seoTitle: "Drive Verbatra Studio with a browser AI agent"
 description: Register Verbatra Studio's review actions as WebMCP tools so a browser AI agent can work your open, authenticated dashboard tab.
 type: how-to
 ---
-Use this to let a browser AI agent, such as Gemini or Claude in Chrome, check drift, work the review queue and fix entries in the Studio tab you have open. The agent calls named tools instead of guessing at the page. It is not for project setup or remote access.
+Use this to let a browser AI agent, such as Gemini or Claude in Chrome, check drift, work the review queue and fix entries in the Studio tab you have open. It is not for project setup or remote access.
 
 You need:
 
@@ -94,6 +94,7 @@ Every tool returns the dashboard's envelope, so a failure reads `{ "ok": false, 
 | `SPEND_DISABLED` | a spend method while spending is off: Studio runs without `--allow-spend`, or the provider is `none`; the message names which |
 | `PARAMS_INVALID` | a parameter failed validation; `issues` names each field |
 | `METHOD_RATE_LIMITED` | over the rate limit; `retryAfterSeconds` says when the call fits |
+| `BATCH_TOO_LARGE` | a batch exceeds a whole rate-limit window; send fewer entries |
 | `SESSION_EXPIRED` | Studio restarted with a new token; open the URL it printed |
 | `INTERNAL` | a handler failed with an unexpected error (HTTP 500); the message is generic and carries no detail |
 

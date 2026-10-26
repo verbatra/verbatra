@@ -11,7 +11,7 @@ Before you start, you need:
 - A verbatra config directly inside the directory the action runs in (see [Config discovery](#config-discovery)).
 - An exact `@verbatra/cli` version to pin, `0.9.3` or newer.
 - For `translate` only: your provider's API key as a repository secret.
-- Actions Runner v2.327.1 or newer, and `verbatra/action` `v1.3.0` or newer for `qa`, `require-reviewed` and the `needs-human` output.
+- Actions Runner v2.327.1 or newer, and `verbatra/action` `v1.3.0` or newer; this page describes that release.
 
 ## Add the action to a workflow
 
@@ -38,7 +38,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
-The action installs `@verbatra/cli` and `@verbatra/sdk` at exactly that version into a scratch directory, so the job needs no install step of its own.
+The action installs `@verbatra/cli` and `@verbatra/sdk` at exactly that version, so the job needs no install step of its own.
 
 ### Pass the provider key
 
@@ -149,13 +149,13 @@ The boolean inputs accept only `"true"` or `"false"`. A bad boolean, or an input
 
 ## What a run shows you
 
-- **Annotations.** Under `translate` with exit `1`, each failed or partial locale becomes one error annotation titled `verbatra: <locale>`, attached to that locale's file when the action can find it. Under `check` or `diff`, each drifted locale gets one titled `verbatra check: <locale>` or `verbatra diff: <locale>`. A partial locale's `LOCALE_PARTIAL` annotation names the withheld keys, grouped by cause. Every `check` adds one `PLURAL_CATEGORIES_INCOMPLETE` warning per locale whose plurals lack a CLDR category the language uses. A run that fails as a whole gets one `verbatra` annotation with the error code, its cause as `(cause: X)` and a `Next step:` hint when the CLI gives them. GitHub shows at most 10 annotations per severity, so the action orders them drift, review, quality errors, warnings, and adds one notice counting the rest.
+- **Annotations.** Under `translate` with exit `1`, each failed or partial locale becomes one error annotation titled `verbatra: <locale>`. Under `check` or `diff`, each drifted locale gets one titled `verbatra check: <locale>` or `verbatra diff: <locale>`. All of these attach to that locale's file when the action can find it. A partial locale's `LOCALE_PARTIAL` annotation names the withheld keys, grouped by cause. Every `check` adds one `PLURAL_CATEGORIES_INCOMPLETE` warning per locale whose plurals lack a CLDR category the language uses. A run that fails as a whole gets one `verbatra` annotation with the error code, its cause as `(cause: X)` and a `Next step:` hint when the CLI gives them. GitHub shows at most 10 annotations per severity, so the action orders them drift, review, quality errors, warnings, and adds one notice counting the rest.
 - **Job summary.** One row per locale with the counts for the command that ran, an aggregate line, and the partial and failed locales. With `qa` it adds a findings table of up to 1000 findings; incomplete plurals get their own section.
-- **Exit status.** The action emits the annotations and summary first, then exits with the CLI's own [exit code](/docs/cli/output#exit-codes), except that a `translate` exit `3` passes and a failure before the CLI runs exits `1`.
+- **Exit status.** The action emits the annotations and summary first, then exits with the CLI's own [exit code](/docs/cli/output#exit-codes), except that a `translate` exit `3` passes and an input refused before the install fails with one `::error::` and no summary.
 
 ## Security
 
-Pin both references: `uses:` to a commit SHA and `version` to an exact release; the action rejects anything that could resolve `latest`. Inputs reach the CLI as a quoted argument array, never spliced into shell text, so a crafted input stays an argument.
+Pin both references: `uses:` to a commit SHA and `version` to an exact release ([current one on npm](https://www.npmjs.com/package/@verbatra/cli)); the action rejects anything that could resolve `latest`. Inputs reach the CLI as a quoted argument array, never spliced into shell text.
 
 ## Related
 

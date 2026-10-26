@@ -195,7 +195,7 @@ Los formatos JSON, YAML y ARB conservan el orden del documento: las claves con f
 
 ## Claves con puntos y colisiones
 
-En `i18next-json`, `vue-i18n-json` y `next-intl-json`, una hoja literal con puntos como `"foo.bar"` hace el viaje de ida y vuelta tal como está escrita; `ngx-translate-json` la lee como una ruta anidada. En los cuatro, una misma ruta escrita de las dos formas (`"foo.bar"` junto a `"foo": { "bar": ... }`) falla con `INVALID_STRUCTURE`; `ngx-translate-json` informa de una clave plana con puntos de nivel superior junto a objetos anidados como `MIXED_STRUCTURE`.
+En `i18next-json`, `vue-i18n-json` y `next-intl-json`, una hoja literal con puntos como `"foo.bar"` hace el viaje de ida y vuelta tal como está escrita; `ngx-translate-json` la lee como una ruta anidada. En el resto, una misma ruta escrita de las dos formas (`"foo.bar"` junto a `"foo": { "bar": ... }`) falla con `INVALID_STRUCTURE`; `ngx-translate-json` rechaza claves planas con puntos junto a objetos anidados y claves de objeto con puntos con `MIXED_STRUCTURE`.
 
 ## Cómo se leen y escriben los archivos
 

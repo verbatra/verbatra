@@ -11,7 +11,7 @@ Avant de commencer, il te faut :
 - Une configuration verbatra directement dans le répertoire où l'action s'exécute (consulte [Découverte de la configuration](#découverte-de-la-configuration)).
 - Une version exacte de `@verbatra/cli` à épingler, `0.9.3` ou plus récente.
 - Pour `translate` uniquement : la clé d'API de ton fournisseur en secret du dépôt.
-- Actions Runner v2.327.1 ou plus récent, et `verbatra/action` `v1.3.0` ou plus récent pour `qa`, `require-reviewed` et la sortie `needs-human`.
+- Actions Runner v2.327.1 ou plus récent, et `verbatra/action` `v1.3.0` ou plus récent ; cette page décrit cette version.
 
 ## Ajouter l'action à un workflow
 
@@ -38,7 +38,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
-L'action installe `@verbatra/cli` et `@verbatra/sdk` exactement dans cette version dans un répertoire temporaire, donc le job n'a pas besoin d'étape d'installation à lui.
+L'action installe `@verbatra/cli` et `@verbatra/sdk` exactement dans cette version, donc le job n'a pas besoin d'étape d'installation à lui.
 
 ### Passer la clé du fournisseur
 
@@ -149,13 +149,13 @@ Les entrées booléennes n'acceptent que `"true"` ou `"false"`. Un booléen inva
 
 ## Ce qu'une exécution te montre
 
-- **Annotations.** Avec `translate` et la sortie `1`, chaque locale en échec ou partielle devient une annotation d'erreur intitulée `verbatra: <locale>`, rattachée au fichier de cette locale quand l'action le trouve. Avec `check` ou `diff`, chaque locale qui a dérivé en reçoit une intitulée `verbatra check: <locale>` ou `verbatra diff: <locale>`. L'annotation `LOCALE_PARTIAL` d'une locale partielle nomme les clés retenues, regroupées par cause. Chaque `check` ajoute un avertissement `PLURAL_CATEGORIES_INCOMPLETE` par locale dont les pluriels n'ont pas une catégorie CLDR que la langue utilise. Une exécution qui échoue dans son ensemble reçoit une seule annotation `verbatra` avec le code d'erreur, sa cause sous la forme `(cause: X)` et une piste `Next step:` quand la CLI les fournit. GitHub affiche au plus 10 annotations par gravité, donc l'action les ordonne par dérive, relecture, erreurs de qualité puis avertissements, et ajoute une notice qui compte le reste.
+- **Annotations.** Avec `translate` et la sortie `1`, chaque locale en échec ou partielle devient une annotation d'erreur intitulée `verbatra: <locale>`. Avec `check` ou `diff`, chaque locale qui a dérivé en reçoit une intitulée `verbatra check: <locale>` ou `verbatra diff: <locale>`. Toutes se rattachent au fichier de leur locale quand l'action le trouve. L'annotation `LOCALE_PARTIAL` d'une locale partielle nomme les clés retenues, regroupées par cause. Chaque `check` ajoute un avertissement `PLURAL_CATEGORIES_INCOMPLETE` par locale dont les pluriels n'ont pas une catégorie CLDR que la langue utilise. Une exécution qui échoue dans son ensemble reçoit une seule annotation `verbatra` avec le code d'erreur, sa cause sous la forme `(cause: X)` et une piste `Next step:` quand la CLI les fournit. GitHub affiche au plus 10 annotations par gravité, donc l'action les ordonne par dérive, relecture, erreurs de qualité puis avertissements, et ajoute une notice qui compte le reste.
 - **Résumé de job.** Une ligne par locale avec les compteurs de la commande exécutée, une ligne agrégée et les locales partielles et en échec. Avec `qa`, il ajoute un tableau de constats jusqu'à 1000 constats ; les pluriels incomplets ont leur propre section.
-- **Statut de sortie.** L'action émet d'abord les annotations et le résumé, puis sort avec le [code de sortie](/fr/docs/cli/output#codes-de-sortie) de la CLI elle-même, sauf qu'un `3` de `translate` passe et qu'un échec avant le lancement de la CLI sort avec `1`.
+- **Statut de sortie.** L'action émet d'abord les annotations et le résumé, puis sort avec le [code de sortie](/fr/docs/cli/output#codes-de-sortie) de la CLI elle-même, sauf qu'un `3` de `translate` passe et qu'une entrée refusée avant l'installation échoue avec un seul `::error::` et sans résumé.
 
 ## Sécurité
 
-Épingle les deux références : `uses:` sur un SHA de commit et `version` sur une version exacte ; l'action refuse tout ce qui pourrait se résoudre en `latest`. Les entrées atteignent la CLI sous forme de tableau d'arguments entre guillemets, jamais insérées dans du texte shell, donc une valeur d'entrée forgée reste un argument.
+Épingle les deux références : `uses:` sur un SHA de commit et `version` sur une version exacte ([la dernière sur npm](https://www.npmjs.com/package/@verbatra/cli)) ; l'action refuse tout ce qui pourrait se résoudre en `latest`. Les entrées atteignent la CLI sous forme de tableau d'arguments entre guillemets, jamais insérées dans du texte shell.
 
 ## Voir aussi
 

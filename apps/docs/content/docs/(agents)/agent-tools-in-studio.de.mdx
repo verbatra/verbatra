@@ -4,7 +4,7 @@ seoTitle: "Studio mit einem Browser-KI-Agenten steuern"
 description: Registriere die Review-Aktionen von Verbatra Studio als WebMCP-Tools, damit ein KI-Agent im Browser deinen offenen, angemeldeten Dashboard-Tab bedienen kann.
 type: how-to
 ---
-Damit lässt du einen KI-Agenten im Browser, etwa Gemini oder Claude in Chrome, im offenen Studio-Tab Drift prüfen, die Review-Warteschlange abarbeiten und Einträge korrigieren. Der Agent ruft benannte Tools auf, statt die Seite zu erraten. Für die Projekteinrichtung oder den Fernzugriff ist das nicht gedacht.
+Damit lässt du einen KI-Agenten im Browser, etwa Gemini oder Claude in Chrome, im offenen Studio-Tab Drift prüfen, die Review-Warteschlange abarbeiten und Einträge korrigieren. Für die Projekteinrichtung oder den Fernzugriff ist das nicht gedacht.
 
 Du brauchst:
 
@@ -94,6 +94,7 @@ Jedes Tool liefert den Umschlag des Dashboards, ein Fehler sieht also so aus: `{
 | `SPEND_DISABLED` | eine kostenpflichtige Methode, während Ausgaben aus sind: Studio läuft ohne `--allow-spend`, oder der Provider ist `none`; die Meldung nennt den Grund |
 | `PARAMS_INVALID` | ein Parameter hat die Prüfung nicht bestanden; `issues` nennt jedes Feld |
 | `METHOD_RATE_LIMITED` | über dem Rate-Limit; `retryAfterSeconds` sagt, wann der Aufruf passt |
+| `BATCH_TOO_LARGE` | ein Batch übersteigt ein ganzes Rate-Limit-Fenster; sende weniger Einträge |
 | `SESSION_EXPIRED` | Studio wurde mit neuem Token neu gestartet; öffne die URL, die es ausgegeben hat |
 | `INTERNAL` | ein Handler ist mit einem unerwarteten Fehler gescheitert (HTTP 500); die Meldung ist generisch und enthält keine Details |
 
