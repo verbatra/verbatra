@@ -36,7 +36,7 @@ Cada entrada queda acotada al contexto en el que se produjo: una huella sobre el
 modelo, el tono, los términos del glosario de ese locale y el
 [`localeMap`](/es/docs/providers#códigos-de-locale-enviados-al-proveedor) del proveedor cuando tiene
 entradas. Cambia cualquiera de ellos y las entradas anteriores dejan de coincidir, así que un tono
-nuevo o un glosario editado vuelve a traducir en lugar de servir un resultado obsoleto. La parte del glosario es lo que envía una ejecución, así que un ajuste de `sensitiveData` que retiene o redacta un término la cambia, mientras que la marca `caseSensitive` de un término no forma parte de ella. Cada locale
+nuevo o un glosario editado vuelve a traducir en lugar de servir un resultado obsoleto. La parte del glosario son los términos que verbatra enviaría al proveedor, tras aplicar un ajuste de `sensitiveData` que retiene o redacta un término, y da igual que el proveedor configurado use los términos del glosario (DeepL, Google Cloud Translation y LibreTranslate los ignoran), así que un término editado sigue retraduciéndose. La marca `caseSensitive` de un término no forma parte de ella. Cada locale
 tiene su propia huella, así que editar solo la traducción alemana de un término del glosario deja
 coincidiendo las entradas francesas.
 
@@ -110,7 +110,7 @@ traducciones, así que crece más o menos hasta el tamaño de tu texto de origen
 
 [`verbatra tmx`](/es/docs/cli/tmx) importa en la caché un archivo TMX de otra herramienta de traducción
 y exporta la caché como TMX. Las unidades importadas se guardan bajo la huella actual, así que dejan
-de coincidir cuando cambian el proveedor, el modelo, el tono, los términos del glosario enviados al proveedor o el `localeMap`, como todo
+de coincidir cuando cambian el proveedor, el modelo, el tono, los términos del glosario que verbatra enviaría o el `localeMap`, como todo
 lo demás. Un matiz a "bórrala y se reconstruye": una memoria importada solo es tan recuperable como
 el archivo TMX del que vino, así que conserva ese archivo.
 

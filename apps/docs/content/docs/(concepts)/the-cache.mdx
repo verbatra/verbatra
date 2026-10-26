@@ -34,7 +34,7 @@ Every entry is scoped to the context it was produced in: a fingerprint over the 
 model, the tone, the glossary terms of that locale, and the provider's
 [`localeMap`](/docs/providers#locale-codes-sent-to-the-provider) when it has entries. Change any of
 them and earlier entries stop matching, so a new tone or an edited glossary retranslates instead of
-serving a stale result. The glossary part is what a run sends, so a `sensitiveData` setting that withholds or redacts a term changes it, while a term's `caseSensitive` flag is not part of it. Each locale has its own fingerprint, so editing only the German translation
+serving a stale result. The glossary part is the terms verbatra would send to the provider, after any `sensitiveData` setting that withholds or redacts a term, whether or not the configured provider uses glossary terms (DeepL, Google Cloud Translation and LibreTranslate ignore them), so an edited term still retranslates. A term's `caseSensitive` flag is not part of it. Each locale has its own fingerprint, so editing only the German translation
 of a glossary term leaves the French entries matching.
 
 The format is not part of the fingerprint; the integrity gate on every hit catches a value that no
@@ -103,7 +103,7 @@ source string beside its translations, so it grows roughly to the size of your s
 
 [`verbatra tmx`](/docs/cli/tmx) imports a TMX file from another translation tool into the cache and
 exports the cache as TMX. Imported units are stored under the current fingerprint, so they stop
-matching when the provider, model, tone, the glossary terms sent to the provider or `localeMap` changes, like everything else. One
+matching when the provider, model, tone, the glossary terms verbatra would send or `localeMap` changes, like everything else. One
 caveat to "delete it and it rebuilds": an imported memory is only as recoverable as the TMX file it
 came from, so keep that file.
 

@@ -60,7 +60,7 @@ Die Lock-Datei hält einen Hash des **Quell**werts hinter jeder Übersetzung fes
 
 ## Nach einem Rollback neu laufen lassen
 
-Zurückrollen und `verbatra translate` erneut ausführen ist eine Wiederholung, keine zweite Meinung. Mit gleichem Provider, Modell, Ton, den an den Provider gesendeten Glossarbegriffen und Provider-`localeMap` bleibt der [Cache](/de/docs/the-cache#der-fingerprint)-Fingerprint gleich, also liefert der Lauf dieselben Übersetzungen aus `verbatra.cache.json`, ohne den Provider aufzurufen.
+Zurückrollen und `verbatra translate` erneut ausführen ist eine Wiederholung, keine zweite Meinung. Mit gleichem Provider, Modell, Ton, den Glossarbegriffen, die verbatra senden würde, und Provider-`localeMap` bleibt der [Cache](/de/docs/the-cache#der-fingerprint)-Fingerprint gleich, also liefert der Lauf dieselben Übersetzungen aus `verbatra.cache.json`, ohne den Provider aufzurufen.
 
 Für ein anderes Ergebnis änderst du, was das erste falsch gemacht hat: Ein neuer Ton, ein neues Glossar oder ein anderes Modell ändert den Fingerprint und übersetzt von selbst neu. Um dieselbe Konfiguration erneut an den Provider zu schicken, nimm `--no-cache` dazu:
 

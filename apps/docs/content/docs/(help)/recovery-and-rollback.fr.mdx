@@ -60,7 +60,7 @@ Le fichier de verrouillage enregistre un hash de la valeur **source** derrière 
 
 ## Relancer après un retour arrière
 
-Revenir en arrière puis relancer `verbatra translate` refait la même chose, ce n'est pas un second avis. Avec le même fournisseur, le même modèle, le même ton, les termes du glossaire envoyés au fournisseur et la même `localeMap` du fournisseur, l'empreinte du [cache](/fr/docs/the-cache#lempreinte) ne change pas, donc l'exécution ressert les mêmes traductions depuis `verbatra.cache.json` sans appeler le fournisseur.
+Revenir en arrière puis relancer `verbatra translate` refait la même chose, ce n'est pas un second avis. Avec le même fournisseur, le même modèle, le même ton, les termes du glossaire que verbatra enverrait et la même `localeMap` du fournisseur, l'empreinte du [cache](/fr/docs/the-cache#lempreinte) ne change pas, donc l'exécution ressert les mêmes traductions depuis `verbatra.cache.json` sans appeler le fournisseur.
 
 Pour obtenir un autre résultat, change ce qui a rendu le premier mauvais : un nouveau ton, un nouveau glossaire ou un autre modèle change l'empreinte et retraduit tout seul. Pour renvoyer la même configuration au fournisseur, ajoute `--no-cache` :
 

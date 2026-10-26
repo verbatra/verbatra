@@ -5,11 +5,13 @@
  *
  * Entries are keyed by configuration fingerprint, then locale, then source-content hash. The
  * fingerprint layer means that changing the provider, model, tone, a non-empty provider
- * `localeMap`, or what the glossary tells the provider (each term's target, forbidden renderings,
- * note and part of speech, and the do-not-translate terms) does not silently reuse translations
- * produced under the old settings; those entries simply stop matching. A glossary setting that is
- * not sent to the provider, such as `caseSensitive`, is not part of the fingerprint; the glossary
- * review checks run again on a value reused from the memory. The glossary counts per locale: each
+ * `localeMap`, or the glossary terms verbatra would send (each term's target, forbidden renderings,
+ * note and part of speech, and the do-not-translate terms, after the sensitive-data guard) does not
+ * silently reuse translations produced under the old settings; those entries simply stop matching.
+ * That holds whether or not the configured provider uses the terms, so an edited term also
+ * invalidates the entries of DeepL, Google Cloud Translation and LibreTranslate. A glossary setting
+ * that is not sent, such as `caseSensitive`, is not part of the fingerprint; the glossary review
+ * checks run again on a value reused from the memory. The glossary counts per locale: each
  * locale's fingerprint covers only the glossary terms that apply to it, so editing the German
  * translation of a term leaves the French entries in place. The fingerprint is a fixed value under
  * provider `none`.

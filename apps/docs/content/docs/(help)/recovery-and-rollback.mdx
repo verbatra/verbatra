@@ -60,7 +60,7 @@ The lock file records a hash of the **source** value behind each translation, an
 
 ## Re-run after a rollback
 
-Rolling back and running `verbatra translate` again is a redo, not a second opinion. With the same provider, model, tone, the glossary terms sent to the provider and provider `localeMap`, the [cache](/docs/the-cache#the-fingerprint) fingerprint is unchanged, so the run serves the same translations from `verbatra.cache.json` without calling the provider.
+Rolling back and running `verbatra translate` again is a redo, not a second opinion. With the same provider, model, tone, the glossary terms verbatra would send and provider `localeMap`, the [cache](/docs/the-cache#the-fingerprint) fingerprint is unchanged, so the run serves the same translations from `verbatra.cache.json` without calling the provider.
 
 To get a different result, change what made the first one wrong: a new tone, glossary or model changes the fingerprint and retranslates on its own. To re-send the same configuration to the provider, add `--no-cache`:
 

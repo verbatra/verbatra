@@ -60,7 +60,7 @@ El archivo de bloqueo registra un hash del valor de **origen** detrás de cada t
 
 ## Vuelve a ejecutar tras una reversión
 
-Revertir y volver a ejecutar `verbatra translate` es repetir, no pedir una segunda opinión. Con el mismo proveedor, modelo, tono, los términos del glosario enviados al proveedor y `localeMap` del proveedor, la huella de la [caché](/es/docs/the-cache#la-huella) no cambia, así que la ejecución sirve las mismas traducciones desde `verbatra.cache.json` sin llamar al proveedor.
+Revertir y volver a ejecutar `verbatra translate` es repetir, no pedir una segunda opinión. Con el mismo proveedor, modelo, tono, los términos del glosario que verbatra enviaría y `localeMap` del proveedor, la huella de la [caché](/es/docs/the-cache#la-huella) no cambia, así que la ejecución sirve las mismas traducciones desde `verbatra.cache.json` sin llamar al proveedor.
 
 Para obtener otro resultado, cambia lo que hizo mal el primero: un tono, un glosario o un modelo nuevos cambian la huella y vuelven a traducir por sí solos. Para reenviar la misma configuración al proveedor, añade `--no-cache`:
 
