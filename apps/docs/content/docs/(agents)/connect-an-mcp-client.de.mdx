@@ -107,7 +107,7 @@ Das schreibt denselben Eintrag. Ergänze hier nie `--env KEY=value`: Damit steht
 Statt `.mcp.json` bündelt das Plugin die [verbatra-Skills](/de/docs/agent-recipes#das-skills-paket), diesen Server und einen Hook, der eine Locale-Datei prüft, nachdem Claude sie bearbeitet hat.
 
 <Callout type="warn">
-Kombinier das verbatra-Plugin nie mit einem `verbatra`-Eintrag in `.mcp.json`: Das Plugin bringt einen zweiten Server mit. `init --agent` überspringt den Eintrag nur, wenn das Plugin in `.claude/settings.json` oder `.claude/settings.local.json` aktiviert ist.
+Kombinier das verbatra-Plugin nie mit einem `verbatra`-Eintrag in `.mcp.json`: Das Plugin bringt einen zweiten Server mit. `init --agent` überspringt den Eintrag, wenn das Plugin in `.claude/settings.json` oder `.claude/settings.local.json` aktiviert ist.
 </Callout>
 
 ```bash

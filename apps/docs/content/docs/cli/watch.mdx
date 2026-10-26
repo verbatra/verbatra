@@ -4,7 +4,7 @@ seoTitle: "verbatra watch: re-translate on every change"
 description: "Re-translate on every source change until interrupted, so locale files stay in sync while you edit the source; each run sends only new and changed keys."
 type: reference
 ---
-Watch the source locale file and re-run a translation after each debounced change, until you interrupt it. `watch` runs an initial translation at startup, then keeps your target locales current as you save. Each run works like [`verbatra translate`](/docs/cli/translate), except that `watch` has no `--dry-run`, `--prune`, `--include-human` or `--max-tokens` and never exits `3`. At startup it also adds missing entries to an existing `.gitignore`, see [.gitignore entries](/docs/cli#gitignore-entries).
+Watch the source locale file and re-run a translation after each debounced change, until you interrupt it. `watch` runs an initial translation at startup, then keeps your target locales current as you save. Each run works like [`verbatra translate`](/docs/cli/translate), except that `watch` has no `--dry-run`, `--prune`, `--include-human`, `--estimate` or `--max-tokens` and never exits `3`. At startup it also adds missing entries to an existing `.gitignore`, see [.gitignore entries](/docs/cli#gitignore-entries).
 
 ## Synopsis
 

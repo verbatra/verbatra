@@ -5,7 +5,7 @@ description: "Starte den stdio-MCP-Server, der die Tools von verbatra jedem MCP-
 status: new
 type: reference
 ---
-Startet einen [Model-Context-Protocol](https://modelcontextprotocol.io)-Server über stdio, den Transport, mit dem Clients wie Claude Code oder Cursor einen Tool-Server starten. Er bedient Protokollrevision 2026-07-28 und frühere Revisionen bis zurück zu 2024-10-07. Ein Agent im Terminal oder ohne Oberfläche bekommt damit Studios Agent-Tools. Einen HTTP-Transport gibt es nicht: Er würde die schreibenden und kostenpflichtigen Tools an einem Port anbieten.
+Startet einen [Model-Context-Protocol](https://modelcontextprotocol.io)-Server über stdio, den Transport, mit dem Clients wie Claude Code oder Cursor einen Tool-Server starten. Er bedient Protokollrevision 2026-07-28 und frühere Revisionen bis zurück zu 2024-10-07. Einen HTTP-Transport gibt es nicht: Er würde die schreibenden und kostenpflichtigen Tools an einem Port anbieten.
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
 
@@ -172,14 +172,14 @@ Mit `--redact-values`, oder mit `VERBATRA_MCP_REDACT_VALUES` auf einem Wert, den
 
 <AvailableFrom version="0.12.0" />
 
-stdout trägt nur MCP-Protokollnachrichten; jede Log-Zeile und jede Diagnose geht auf stderr. Sobald er verbunden ist, schreibt `verbatra mcp` eine Bereitschaftszeile und eine weitere beim Stoppen:
+stdout trägt nur MCP-Protokollnachrichten; alle Logs gehen auf stderr. Sobald er verbunden ist, schreibt `verbatra mcp` eine Bereitschaftszeile und eine weitere beim Stoppen:
 
 ```text output
 verbatra MCP server running on stdio (project ., spend tools off)
 verbatra MCP server stopped (client closed stdin)
 ```
 
-`verbatra mcp --quiet` lässt diese Zeilen weg, aber nicht den Grund für eine fehlende Konfiguration.
+Von Hand im Terminal gestartet, sagt er außerdem, dass ein Client ihn starten soll. `verbatra mcp --quiet` lässt diese Zeilen weg, aber nicht den Grund für eine fehlende Konfiguration.
 
 ### Installation
 

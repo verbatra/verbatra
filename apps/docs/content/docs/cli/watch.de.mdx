@@ -4,7 +4,7 @@ seoTitle: "verbatra watch: bei jeder Änderung neu übersetzen"
 description: "Übersetze bei jeder Quelländerung neu, bis du abbrichst, damit die Locale-Dateien synchron bleiben; jeder Lauf schickt nur neue und geänderte Keys."
 type: reference
 ---
-Beobachte die Quell-Locale-Datei und führe nach jeder entprellten Änderung eine neue Übersetzung aus, bis du unterbrichst. `watch` startet mit einer initialen Übersetzung und hält deine Ziel-Locales dann aktuell, während du speicherst. Jeder Lauf arbeitet wie [`verbatra translate`](/de/docs/cli/translate), nur dass `watch` kein `--dry-run`, `--prune`, `--include-human` und `--max-tokens` hat und nie mit `3` endet. Beim Start ergänzt es außerdem fehlende Einträge in einer vorhandenen `.gitignore`, siehe [.gitignore-Einträge](/de/docs/cli#gitignore-einträge).
+Beobachte die Quell-Locale-Datei und führe nach jeder entprellten Änderung eine neue Übersetzung aus, bis du unterbrichst. `watch` startet mit einer initialen Übersetzung und hält deine Ziel-Locales dann aktuell, während du speicherst. Jeder Lauf arbeitet wie [`verbatra translate`](/de/docs/cli/translate), nur dass `watch` kein `--dry-run`, `--prune`, `--include-human`, `--estimate` oder `--max-tokens` hat und nie mit `3` endet. Beim Start ergänzt es außerdem fehlende Einträge in einer vorhandenen `.gitignore`, siehe [.gitignore-Einträge](/de/docs/cli#gitignore-einträge).
 
 ## Synopsis
 

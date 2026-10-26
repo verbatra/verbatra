@@ -107,7 +107,7 @@ This writes the same entry. Never add `--env KEY=value` here: it writes the valu
 Instead of `.mcp.json`, the plugin bundles the [verbatra skills](/docs/agent-recipes#the-skills-pack), this server, and a hook that checks a locale file after Claude edits it.
 
 <Callout type="warn">
-Never combine the verbatra plugin with a `verbatra` entry in `.mcp.json`: the plugin brings a second server. `init --agent` skips the entry only when the plugin is enabled in `.claude/settings.json` or `.claude/settings.local.json`.
+Never combine the verbatra plugin with a `verbatra` entry in `.mcp.json`: the plugin brings a second server. `init --agent` skips the entry when the plugin is enabled in `.claude/settings.json` or `.claude/settings.local.json`.
 </Callout>
 
 ```bash

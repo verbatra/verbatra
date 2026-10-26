@@ -4,7 +4,7 @@ seoTitle: "verbatra watch: retraduce con cada cambio"
 description: "Retraduce en cada cambio del origen hasta que lo interrumpas, para que los locales sigan al día; cada ejecución solo envía claves nuevas o cambiadas."
 type: reference
 ---
-Vigila el archivo del locale de origen y vuelve a traducir tras cada cambio, con anti-rebote, hasta que lo interrumpas. `watch` ejecuta una traducción inicial al arrancar y luego mantiene al día tus locales de destino mientras guardas. Cada ejecución funciona como [`verbatra translate`](/es/docs/cli/translate), salvo que `watch` no tiene `--dry-run`, `--prune`, `--include-human` ni `--max-tokens` y nunca sale con `3`. Al arrancar también añade las entradas que falten a un `.gitignore` existente, consulta [Entradas de .gitignore](/es/docs/cli#entradas-de-gitignore).
+Vigila el archivo del locale de origen y vuelve a traducir tras cada cambio, con anti-rebote, hasta que lo interrumpas. `watch` ejecuta una traducción inicial al arrancar y luego mantiene al día tus locales de destino mientras guardas. Cada ejecución funciona como [`verbatra translate`](/es/docs/cli/translate), salvo que `watch` no tiene `--dry-run`, `--prune`, `--include-human`, `--estimate` ni `--max-tokens` y nunca sale con `3`. Al arrancar también añade las entradas que falten a un `.gitignore` existente, consulta [Entradas de .gitignore](/es/docs/cli#entradas-de-gitignore).
 
 ## Sinopsis
 

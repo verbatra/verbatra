@@ -5,7 +5,7 @@ description: "Démarre le serveur MCP en stdio qui expose les outils de verbatra
 status: new
 type: reference
 ---
-Démarre un serveur [Model Context Protocol](https://modelcontextprotocol.io) en stdio, le transport qu'utilisent des clients comme Claude Code ou Cursor pour lancer un serveur d'outils. Il sert le protocole 2026-07-28 et ses révisions antérieures jusqu'à 2024-10-07. Un agent dans le terminal ou sans interface obtient ainsi les outils d'agent de Studio. Il n'y a pas de transport HTTP, qui exposerait les outils d'écriture et les outils payants sur un port.
+Démarre un serveur [Model Context Protocol](https://modelcontextprotocol.io) en stdio, le transport qu'utilisent des clients comme Claude Code ou Cursor pour lancer un serveur d'outils. Il sert le protocole 2026-07-28 et ses révisions antérieures jusqu'à 2024-10-07. Il n'y a pas de transport HTTP, qui exposerait les outils d'écriture et les outils payants sur un port.
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
 
@@ -172,14 +172,14 @@ Avec `--redact-values`, ou `VERBATRA_MCP_REDACT_VALUES` sur une valeur qu'accept
 
 <AvailableFrom version="0.12.0" />
 
-stdout ne transporte que des messages du protocole MCP ; chaque ligne de log et chaque diagnostic partent sur stderr. Une fois connecté, `verbatra mcp` affiche une ligne « prêt », puis une autre à l'arrêt :
+stdout ne transporte que des messages du protocole MCP ; tous les logs partent sur stderr. Une fois connecté, `verbatra mcp` affiche une ligne « prêt », puis une autre à l'arrêt :
 
 ```text output
 verbatra MCP server running on stdio (project ., spend tools off)
 verbatra MCP server stopped (client closed stdin)
 ```
 
-`verbatra mcp --quiet` supprime ces lignes, mais pas la raison d'une config absente.
+Lancé à la main dans un terminal, il indique aussi qu'un client doit le lancer. `verbatra mcp --quiet` supprime ces lignes, mais pas la raison d'une config absente.
 
 ### Installation
 
