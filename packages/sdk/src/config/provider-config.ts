@@ -90,7 +90,10 @@ export type ProviderConfigInput = z.input<typeof providerConfigSchema>;
  */
 export type ProviderId = ProviderConfig["id"];
 
-/** A {@link ProviderConfig} variant that names a provider verbatra can construct, every one except `none`. */
+/**
+ * A {@link ProviderConfig} variant that names a provider verbatra can construct, every one except
+ * `none`.
+ */
 export type MachineProviderConfig = Exclude<ProviderConfig, { readonly id: "none" }>;
 
 /** The identifier of a provider verbatra can construct: every {@link ProviderId} except `none`. */
