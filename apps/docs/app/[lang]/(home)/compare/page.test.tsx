@@ -23,6 +23,7 @@ import {
 import { MACHINE_PROVIDER_IDS, SUPPORTED_FORMAT_IDS } from "@/lib/landing-facts";
 import { providerShortLabel } from "@/lib/landing-providers";
 import { RELEASE_BADGE } from "@/lib/release-badge";
+import { preloadRegisteredIslands } from "@/test-support/islands";
 import { resolveServer } from "@/test-support/resolve-server";
 
 const MESSAGES_DIR = join(dirname(fileURLToPath(import.meta.url)), "../../../../messages");
@@ -63,6 +64,8 @@ vi.mock("next-intl/server", () => ({
 }));
 
 const { default: CompareRoute, generateMetadata } = await import("./page");
+
+await preloadRegisteredIslands();
 
 const ORIGIN = "https://verbatra.kreitz-webdev.de";
 

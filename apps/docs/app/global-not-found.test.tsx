@@ -6,6 +6,7 @@ import { createTranslator } from "next-intl";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import messages from "@/messages/en.json";
+import { preloadRegisteredIslands } from "@/test-support/islands";
 
 vi.mock("./global.css", () => ({}));
 
@@ -29,6 +30,8 @@ vi.mock("@/components/legal-footer", () => ({
 }));
 
 const { default: GlobalNotFound, generateMetadata } = await import("./global-not-found");
+
+await preloadRegisteredIslands();
 
 async function render(): Promise<Document> {
   const markup = renderToStaticMarkup(await GlobalNotFound());

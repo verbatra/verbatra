@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { GITHUB_URL } from "@/components/landing/links";
 import type { Locale } from "@/lib/i18n";
 import messages from "@/messages/en.json";
+import { preloadRegisteredIslands } from "@/test-support/islands";
 
 const location = vi.hoisted(() => ({ pathname: "/" }));
 vi.mock("fumadocs-core/framework", () => ({ usePathname: () => location.pathname }));
@@ -46,6 +47,8 @@ vi.mock("@/components/root-tabs", () => ({ useRootTabs: () => ({ tabs: [] }) }))
 const { HomeNavProvider } = await import("./home-nav");
 const { HomeSiteHeader } = await import("./site-header");
 const { homeNavValue } = await import("@/lib/locale-home-layout");
+
+await preloadRegisteredIslands();
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 

@@ -2,6 +2,7 @@
 
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+import { preloadRegisteredIslands } from "@/test-support/islands";
 
 vi.mock("next-intl/server", () => ({
   getTranslations: async () => (key: string) => key,
@@ -14,6 +15,8 @@ vi.mock("@/components/site-header", async () => {
 });
 
 const { LocaleHomeLayout, MAIN_CONTENT_ID } = await import("@/lib/locale-home-layout");
+
+await preloadRegisteredIslands();
 
 async function renderLayout(): Promise<Document> {
   const element = await LocaleHomeLayout({

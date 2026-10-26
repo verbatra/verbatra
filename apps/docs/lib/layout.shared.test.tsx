@@ -6,6 +6,7 @@ import { act, type ComponentProps, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { preloadRegisteredIslands } from "@/test-support/islands";
 
 vi.mock("next-intl/server", () => ({
   getTranslations: async () => (key: string) => `nav.${key}`,
@@ -66,6 +67,8 @@ const { headerLinks: sharedHeaderLinks } = await import("./header-links");
 const { releaseUrl } = await import("@/components/landing/links");
 const { HomeSiteHeader } = await import("@/components/site-header");
 const { HomeNavProvider } = await import("@/components/home-nav");
+
+await preloadRegisteredIslands();
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
