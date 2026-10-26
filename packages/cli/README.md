@@ -77,7 +77,7 @@ Keys are read only from the environment, never from the config, a CLI argument, 
 
 ## Use as a library
 
-The package root also exports `defineConfig` and the `VerbatraConfig` type from `@verbatra/sdk`, so a config file can import them from the CLI package that is already installed:
+The package root also exports, among others, `defineConfig` and the `VerbatraConfig` type from `@verbatra/sdk` (plus the agent-client helpers `AGENT_CLIENT_IDS` and `AGENT_CLIENT_CONFIGS` and `CLI_ERROR_CODES`), so a config file can import them from the CLI package that is already installed:
 
 ```ts
 import { defineConfig } from "@verbatra/cli";

@@ -38,7 +38,7 @@ Needs Node.js `^22.18.0 || >=24`. The server is also reachable through `verbatra
 
 ## Configuring an MCP client
 
-Point your client at the `verbatra-mcp` binary. The shape below is the one most clients use; for an editor or desktop client, put it in that client's MCP server configuration file.
+Point your client at the `verbatra-mcp` binary, which the `@verbatra/mcp` package provides (the example runs it through `npx`). The shape below is the one most clients use; for an editor or desktop client, put it in that client's MCP server configuration file.
 
 ```json
 {
