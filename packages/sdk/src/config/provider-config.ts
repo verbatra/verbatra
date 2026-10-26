@@ -55,9 +55,9 @@ export const providerConfigSchema = z.discriminatedUnion("id", [
  * `GOOGLE_TRANSLATE_API_KEY`), which is what keeps them out of config files and out of version
  * control. The `openai-compatible` variant reads `OPENAI_COMPATIBLE_API_KEY` when it is set and
  * sends no real key otherwise, since a local server usually needs none; naming a different variable
- * through `apiKeyEnvVar` makes that variable required. The `libretranslate` variant reads an optional
- * `LIBRETRANSLATE_API_KEY` and sends no key when it is unset or empty. It still never holds the key
- * itself.
+ * through `apiKeyEnvVar` makes that variable required. The `libretranslate` variant reads an
+ * optional `LIBRETRANSLATE_API_KEY` and sends no key when it is unset or empty. It still never
+ * holds the key itself.
  *
  * Every variant except `none` accepts an optional `options.localeMap`, from a configured locale
  * code to the code that provider should receive instead, such as `{ "zh-Hant": "zh-HK" }`. Only the

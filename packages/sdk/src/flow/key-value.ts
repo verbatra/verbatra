@@ -44,9 +44,9 @@ export interface KeyValueResult {
   readonly target?: string;
   /**
    * The provenance of the current translation, read from the provenance file. Absent when
-   * `target` is, and when that file is corrupt or was written by a newer verbatra. An approval reads as
-   * `unreviewed` once the lock-file records a different source text than the one it was given for;
-   * a lock-file that cannot be read leaves the approval as recorded.
+   * `target` is, and when that file is corrupt or was written by a newer verbatra. An approval
+   * reads as `unreviewed` once the lock-file records a different source text than the one it was
+   * given for; a lock-file that cannot be read leaves the approval as recorded.
    */
   readonly provenance?: KeyProvenance;
 }

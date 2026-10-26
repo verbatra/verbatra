@@ -467,8 +467,8 @@ export interface RedactedGlossary {
   /** The glossary with each secret-shaped string, source terms and terms kept untranslated included, replaced by `[REDACTED]`. */
   readonly glossary: Glossary;
   /**
-   * The source term, itself redacted, of every entry in the glossary's `terms` that had at least one
-   * value redacted, in glossary order. A redacted term kept untranslated (`doNotTranslate`) is
+   * The source term, itself redacted, of every entry in the glossary's `terms` that had at least
+   * one value redacted, in glossary order. A redacted term kept untranslated (`doNotTranslate`) is
    * scrubbed in `glossary` but is not listed here.
    */
   readonly redactedTerms: readonly string[];
@@ -504,8 +504,8 @@ function redactTerm(term: GlossaryTerm): RedactedTerm {
  * Passes every string of a glossary through {@link redact}, so a source term, translation,
  * forbidden rendering, note, part of speech, or term kept untranslated shaped like a provider API
  * key never leaves a tool that shows the glossary. A redacted source term is listed in
- * `redactedTerms` in its redacted form, so the list never repeats the secret. Terms kept untranslated
- * are scrubbed too, but are not reported in `redactedTerms`.
+ * `redactedTerms` in its redacted form, so the list never repeats the secret. Terms kept
+ * untranslated are scrubbed too, but are not reported in `redactedTerms`.
  *
  * @param glossary - A normalized glossary, as {@link readGlossaryFile} or {@link normalizeGlossary}
  * returns it.

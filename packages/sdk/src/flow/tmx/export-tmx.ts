@@ -212,7 +212,8 @@ async function writeTmxFile(fs: SdkFs, path: string, cwd: string, content: strin
  * the same set a run would reuse, so the file describes the memory as it is actually being used
  * rather than every translation the project has ever produced. One `tu` element is written per
  * distinct content hash of a source string (so the same text under a different description,
- * meaning or plural flag is written as its own unit), carrying the source segment and one target segment per exported locale.
+ * meaning or plural flag is written as its own unit), carrying the source segment and one target
+ * segment per exported locale.
  * An empty memory, including a missing, unparsable or newer-version cache file, produces a valid,
  * empty TMX file rather than an error. An existing file at the output path is replaced.
  *

@@ -777,9 +777,9 @@ function estimateFields(
  * `VERBATRA_NETWORK_ALLOWED_HOSTS` holds a value that is not valid, on a dry run too, so a dry run
  * or estimate fails where the live run would. Not checked under the provider `none`.
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
- * unsupported version. Both a dry run and a live run read it once before any locale runs; a live run
- * also reads it per locale, so a lock-file that turns corrupt mid-run can abort the run after other
- * locales have already been written.
+ * unsupported version. Both a dry run and a live run read it once before any locale runs; a live
+ * run also reads it per locale, so a lock-file that turns corrupt mid-run can abort the run after
+ * other locales have already been written.
  * @throws {@link SdkError} `PROVENANCE_FILE_INVALID`: the provenance file is corrupt, oversized, or
  * structurally wrong. A live run reads it before any locale runs and again as each locale records
  * its result, so, like a corrupt lock-file, it can abort the run after other locales have been

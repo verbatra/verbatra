@@ -130,11 +130,12 @@ export interface UsageSummary {
 }
 
 /**
- * What a run does about its token budget. `warn`, the default of the config's `budgetBehavior`, counts the spend and
- * reports the overrun without withholding anything. A run given its own `maxTokens` always uses
- * `stop`, as does a run whose lower config ceiling applies. `stop` turns the figure into a ceiling: before each
- * provider request the run projects what that request will cost, and withholds it, and everything
- * after it, rather than send a request that would take the run past `maxTokens`.
+ * What a run does about its token budget. `warn`, the default of the config's `budgetBehavior`,
+ * counts the spend and reports the overrun without withholding anything. A run given its own
+ * `maxTokens` always uses `stop`, also when the lower config ceiling wins over it. `stop` turns
+ * the figure into a ceiling: before each provider request the run projects what that request will
+ * cost, and withholds it, and everything after it, rather than send a request that would take the
+ * run past `maxTokens`.
  */
 export type BudgetBehavior = "warn" | "stop";
 

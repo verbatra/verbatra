@@ -120,8 +120,8 @@ function toLockLocaleState(locale: string, keyCount: number, diff: DiffResult): 
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: a requested locale is not a configured target locale.
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: a lock-file exists and is corrupt, oversized, or at
  * an unsupported version.
- * @throws {@link SdkError} `UNKNOWN_FORMAT`: a lock-file exists and no adapter is registered for the
- * configured format.
+ * @throws {@link SdkError} `UNKNOWN_FORMAT`: a lock-file exists and no adapter is registered for
+ * the configured format.
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: a lock-file exists and the `files.pattern` and
  * `files.localeStyle` cannot be combined, or a configured locale has no valid path spelling under
  * that style.
@@ -129,10 +129,10 @@ function toLockLocaleState(locale: string, keyCount: number, diff: DiffResult): 
  * resolve to the same path.
  * @throws {@link SdkError} `SOURCE_UNREADABLE`: a lock-file exists and the source locale file does
  * not exist.
- * @throws {@link SdkError} `SOURCE_INVALID`: a lock-file exists and the source locale file could not
- * be parsed.
- * @throws `AdapterError`: a lock-file exists and the adapter refused a target locale file because it
- * is malformed. Its own code is preserved rather than remapped onto an {@link SdkErrorCode}.
+ * @throws {@link SdkError} `SOURCE_INVALID`: a lock-file exists and the source locale file could
+ * not be parsed.
+ * @throws `AdapterError`: a lock-file exists and the adapter refused a target locale file because
+ * it is malformed. Its own code is preserved rather than remapped onto an {@link SdkErrorCode}.
  */
 export async function lockState(
   input: LockStateInput,

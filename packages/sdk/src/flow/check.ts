@@ -61,8 +61,9 @@ export interface LocaleCheckSummary {
   readonly emptySource?: number;
   /**
    * Counts by origin and review state over the keys that have a value in both the source and this
-   * locale, read from the provenance file. See {@link KeyProvenance} for what each origin means. Absent when that file is
-   * corrupt or was written by a newer verbatra, since a report never fails over it.
+   * locale, read from the provenance file. See {@link KeyProvenance} for what each origin means.
+   * Absent when that file is corrupt or was written by a newer verbatra, since a report never
+   * fails over it.
    */
   readonly provenance?: ProvenanceSummary;
   /**

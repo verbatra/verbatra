@@ -149,7 +149,11 @@ export interface ImportTmxResult {
   readonly file: string;
   /** The `srclang` the file's header declared, or undefined if it declared none. */
   readonly sourceLanguage: string | undefined;
-  /** How many usable translation units the file held, not counting the units the reader skipped. */
+  /**
+   * How many translation units the reader accepted, not counting
+   * {@link ImportTmxResult.skippedUnits}. Units refused later, per locale, are counted here too;
+   * see {@link ImportTmxLocaleResult.rejected}.
+   */
   readonly units: number;
   /** Per-target-locale account of what was stored. */
   readonly locales: readonly ImportTmxLocaleResult[];

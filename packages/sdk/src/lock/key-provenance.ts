@@ -69,9 +69,10 @@ export interface KeyProvenance {
 
 /**
  * Per-locale counts of {@link KeyProvenance}, over the keys that have a value in both the source and
- * the target locale. Keys only the target holds are not counted. An approval counts as `approved`
- * only while the source text it was given for is the one the lock-file records for the key, the same
- * test the review queue applies; otherwise the key counts as `unreviewed`.
+ * the target locale. Keys only the target holds are not counted. An approval counts as `unreviewed`
+ * once the lock-file records a different source text than the one it was approved for, the same
+ * test the review queue applies. It stays `approved` when the lock-file has no entry for the key or
+ * the record carries no `reviewedSourceHash`.
  */
 export interface ProvenanceSummary {
   /** How many keys have each origin. Every {@link KeyOrigin} is present, zero included. */
