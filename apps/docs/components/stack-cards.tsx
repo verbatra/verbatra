@@ -21,7 +21,6 @@ export type StackCard = {
   href: string;
   icon: StackIconKey;
   mark?: BrandMarkId;
-  text?: string;
   formats: ReadonlyArray<SupportedFormat>;
   badge?: string;
   description?: string;
@@ -102,14 +101,7 @@ function Card({
         {card.formats.length > 0 ? <FormatIds formats={card.formats} /> : null}
       </div>
       <span aria-hidden="true" className="vk-stack-card-chip">
-        {card.text !== undefined ? (
-          <span
-            className="vk-stack-card-chip-text"
-            data-long={card.text.length > 5 ? "true" : undefined}
-          >
-            {card.text}
-          </span>
-        ) : card.mark === undefined ? (
+        {card.mark === undefined ? (
           <StackIcon
             prefix={prefix}
             icon={card.icon}
@@ -134,9 +126,7 @@ export function StackCards({
 }): ReactNode {
   const prefix = stackIconPrefix(labelledBy);
   const markPrefix = stackMarkPrefix(labelledBy);
-  const glyphs = cards
-    .filter((card) => card.mark === undefined && card.text === undefined)
-    .map((card) => card.icon);
+  const glyphs = cards.filter((card) => card.mark === undefined).map((card) => card.icon);
   const marks = cards.flatMap((card) => (card.mark === undefined ? [] : [card.mark]));
   return (
     <nav aria-labelledby={labelledBy} className="not-prose @container my-6">

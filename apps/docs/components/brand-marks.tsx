@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
-import { BRAND_MARKS, type BrandMarkId } from "@/lib/brand-marks";
+import { BRAND_MARKS, type BrandMark as BrandMarkData, type BrandMarkId } from "@/lib/brand-marks";
 
-const VIEWBOX = 24;
+const DEFAULT_VIEWBOX = "0 0 24 24";
 
 export function brandMarkSymbolId(prefix: string, mark: BrandMarkId): string {
   return `${prefix}-${mark}`;
@@ -21,7 +21,7 @@ export function BrandMarkSprite({
           <symbol
             key={mark}
             id={brandMarkSymbolId(prefix, mark)}
-            viewBox={`0 0 ${VIEWBOX} ${VIEWBOX}`}
+            viewBox={(BRAND_MARKS[mark] as BrandMarkData).viewBox ?? DEFAULT_VIEWBOX}
           >
             <path
               d={BRAND_MARKS[mark].path}

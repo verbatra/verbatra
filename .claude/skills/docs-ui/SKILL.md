@@ -647,20 +647,21 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   `BRAND_MARKS`), drawn at 28px in the chip as a `<use>` of a `BrandMarkSprite` whose prefix
   (`vk-stack-mark-<labelledBy>`) differs from the glyph sprite's, since `yaml` is both a glyph and a
   mark; the glyph sprite then holds only the glyphs of cards without a mark or text (YAML among them).
-  A stack card shows a mark only where the brand itself grants an
-  admissible license: React (MIT), Angular (CC-BY-4.0) and Android (CC-BY-3.0). A brand whose terms
-  restrict the logo gets the text chip instead, whatever license a third-party icon set offers:
-  Spring (reserved solely for Broadcom in its unaltered form, spring.io/trademarks), Flutter ("do
-  not alter", flutter.dev/brand), Next.js (vercel.com/design/brands, "do not modify") and Apple. Vue,
-  Nuxt and .NET have no admissible logo either (Vue:
-  CC BY-NC-SA 4.0 in `vuejs/art`; Nuxt: its design kit states no license for the logo; .NET: the
-  `dotnet/brand` README licenses its illustrations CC0 but calls the logo copyright of the .NET
-  authors, to be used per the brand guidelines). YAML takes its `yaml` file glyph, not a mark. The
-  marquee follows its own rule and is unaffected. A card on the text path takes the optional `text` prop: the
-  chip holds the name as text (`.vk-stack-card-chip-text`, `--text-sm`, weight 600, `currentColor`),
-  "Next.js", "Vue", "Nuxt", "Flutter", "Apple", "Spring" and ".NET", and "Vue" on the combined "Vue and
-  Nuxt" card of `pick-your-stack`, the same brand-only English word in every locale; the chip stays `aria-hidden`, since the card title
-  names the stack. gettext, XLIFF, INI, YAML and the custom card keep their glyph. A format glyph is the one file
+  A stack card shows the brand's logo as a mark drawn from a free-licensed icon set, or from a
+  license the brand itself grants: React (MIT), Angular (CC-BY-4.0) and Android (CC-BY-3.0) come from
+  the brand-granted licenses recorded in Simple Icons, Apple, Flutter and Vue from Font Awesome Free
+  7.3.1 (brands, CC BY 4.0), and Spring, Next.js, Nuxt and .NET from Devicon 2.18.0 (MIT; the
+  monochrome "plain" drawing, or the single-color "original" where no plain one exists). Each mark
+  records its set, file, version, license and attribution in `BRAND_MARKS`, plus an optional
+  `viewBox` for a drawing that is not on the 24 unit grid, and carries the notice "Logos are
+  trademarks of their owners, used to identify compatibility." (Font Awesome adds: use brand logos
+  only to represent the company, product or service they refer to). A mark is never under a
+  non-commercial, share-alike or no-derivatives license, so an NC, SA or ND set is not admissible
+  however recognizable the logo; a Simple Icons CC0 entry for a restricted logo is not admissible
+  either, since the data license does not clear the brand's own terms. A brand with no admissible
+  drawing in any verified set gets its generic stroke glyph, never a hand-drawn lookalike and no text
+  chip (the text chip mechanism is gone). The combined "Vue and Nuxt" card shows the Vue logo. YAML takes its `yaml` file glyph, not a mark. The
+  marquee follows its own rule and is unaffected. gettext, XLIFF, INI, YAML and the custom card keep their glyph. A format glyph is the one file
   outline carrying the format's own extension label (`FILE_GLYPH_LABELS` in `stack-icons.tsx`: `.po`, `XLF`,
   `INI`, `YAML`, `JSON`), an SVG `<text>` in `--font-mono`, bold, `currentColor` fill, its width fixed by
   `textLength` so no label leaves the outline; the glyph is drawn at 40px (`FILE_GLYPH_SIZE`) against 28px for the
@@ -672,7 +673,7 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   package and version, file, license and attribution), never an `<img>`, a network request or an
   icon package in `package.json`; it is drawn in one `currentColor` fill, never in brand colors,
   with a gradient or a glow; and it is admitted only under a license that allows commercial use
-  and changes (no NC, no SA: Vue's mark is CC BY-NC-SA, so vue-i18n gets a chip). A Simple Icons
+  and changes (no NC, no SA, no ND: the Vue logo in `vuejs/art` is CC BY-NC-SA, so the marquee's vue-i18n item keeps its glyph; the stack cards use the Font Awesome drawing, which is CC BY 4.0). A Simple Icons
   entry being CC0 data does not clear its logo: check the brand's own repository or guidelines first. Every mark is
   listed as an asset in `THIRD_PARTY_NOTICES.md` and on `/licenses` through `ASSET_SOURCES` in
   `lib/third-party-licenses.ts` (run `licenses:sync` after a change), with the source URL, the

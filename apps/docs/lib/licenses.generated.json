@@ -2918,6 +2918,76 @@
       ],
       "usage": "Inline monochrome SVG path in the stack cards, copied from https://cdn.jsdelivr.net/npm/simple-icons@16.35.0/icons/react.svg. Logos are trademarks of their owners, used to identify compatibility.",
       "textId": null
+    },
+    {
+      "name": "Apple mark (@fortawesome/fontawesome-free@7.3.1, svgs/brands/apple.svg)",
+      "license": "CC-BY-4.0",
+      "copyright": [
+        "Font Awesome Free 7.3.1 by @fontawesome (https://fontawesome.com), Apple icon, licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Copyright 2026 Fonticons, Inc.",
+        "Changed: filled with the page's text color (currentColor) and scaled to fit the stack card chip."
+      ],
+      "usage": "Inline monochrome SVG path in the stack cards, copied from https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.3.1/svgs/brands/apple.svg. Logos are trademarks of their owners, used to identify compatibility.",
+      "textId": null
+    },
+    {
+      "name": "Flutter mark (@fortawesome/fontawesome-free@7.3.1, svgs/brands/flutter.svg)",
+      "license": "CC-BY-4.0",
+      "copyright": [
+        "Font Awesome Free 7.3.1 by @fontawesome (https://fontawesome.com), Flutter icon, licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Copyright 2026 Fonticons, Inc.",
+        "Changed: filled with the page's text color (currentColor) and scaled to fit the stack card chip."
+      ],
+      "usage": "Inline monochrome SVG path in the stack cards, copied from https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.3.1/svgs/brands/flutter.svg. Logos are trademarks of their owners, used to identify compatibility.",
+      "textId": null
+    },
+    {
+      "name": "Vue mark (@fortawesome/fontawesome-free@7.3.1, svgs/brands/vuejs.svg)",
+      "license": "CC-BY-4.0",
+      "copyright": [
+        "Font Awesome Free 7.3.1 by @fontawesome (https://fontawesome.com), Vue.js icon, licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Copyright 2026 Fonticons, Inc.",
+        "Changed: filled with the page's text color (currentColor) and scaled to fit the stack card chip."
+      ],
+      "usage": "Inline monochrome SVG path in the stack cards, copied from https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.3.1/svgs/brands/vuejs.svg. Logos are trademarks of their owners, used to identify compatibility.",
+      "textId": null
+    },
+    {
+      "name": "Spring mark (devicon@2.18.0, icons/spring/spring-original.svg)",
+      "license": "MIT",
+      "copyright": [
+        "Copyright (c) 2015 konpa",
+        "MIT License: https://github.com/devicons/devicon/blob/v2.18.0/LICENSE (Devicon 2.18.0, icons/spring/spring-original.svg). Drawn in one color and filled with the page's text color."
+      ],
+      "usage": "Inline monochrome SVG path in the stack cards, copied from https://cdn.jsdelivr.net/gh/devicons/devicon@v2.18.0/icons/spring/spring-original.svg. Logos are trademarks of their owners, used to identify compatibility.",
+      "textId": null
+    },
+    {
+      "name": "Next.js mark (devicon@2.18.0, icons/nextjs/nextjs-plain.svg)",
+      "license": "MIT",
+      "copyright": [
+        "Copyright (c) 2015 konpa",
+        "MIT License: https://github.com/devicons/devicon/blob/v2.18.0/LICENSE (Devicon 2.18.0, icons/nextjs/nextjs-plain.svg). Drawn in one color and filled with the page's text color."
+      ],
+      "usage": "Inline monochrome SVG path in the stack cards, copied from https://cdn.jsdelivr.net/gh/devicons/devicon@v2.18.0/icons/nextjs/nextjs-plain.svg. Logos are trademarks of their owners, used to identify compatibility.",
+      "textId": null
+    },
+    {
+      "name": "Nuxt mark (devicon@2.18.0, icons/nuxt/nuxt-original.svg)",
+      "license": "MIT",
+      "copyright": [
+        "Copyright (c) 2015 konpa",
+        "MIT License: https://github.com/devicons/devicon/blob/v2.18.0/LICENSE (Devicon 2.18.0, icons/nuxt/nuxt-original.svg). Drawn in one color and filled with the page's text color."
+      ],
+      "usage": "Inline monochrome SVG path in the stack cards, copied from https://cdn.jsdelivr.net/gh/devicons/devicon@v2.18.0/icons/nuxt/nuxt-original.svg. Logos are trademarks of their owners, used to identify compatibility.",
+      "textId": null
+    },
+    {
+      "name": ".NET mark (devicon@2.18.0, icons/dotnetcore/dotnetcore-plain.svg)",
+      "license": "MIT",
+      "copyright": [
+        "Copyright (c) 2015 konpa",
+        "MIT License: https://github.com/devicons/devicon/blob/v2.18.0/LICENSE (Devicon 2.18.0, icons/dotnetcore/dotnetcore-plain.svg). Drawn in one color and filled with the page's text color."
+      ],
+      "usage": "Inline monochrome SVG path in the stack cards, copied from https://cdn.jsdelivr.net/gh/devicons/devicon@v2.18.0/icons/dotnetcore/dotnetcore-plain.svg. Logos are trademarks of their owners, used to identify compatibility.",
+      "textId": null
     }
   ],
   "texts": [

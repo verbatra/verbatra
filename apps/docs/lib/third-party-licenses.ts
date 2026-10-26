@@ -127,8 +127,17 @@ function brandMarkAssetName(id: keyof typeof BRAND_MARKS): string {
   return `${mark.title} mark (${source.package}@${source.version}, ${mark.file})`;
 }
 
-const STACK_CARD_MARK_IDS: ReadonlyArray<string> = ["react", "angular", "android"];
-const CARD_ONLY_MARK_IDS: ReadonlyArray<string> = ["react"];
+const CARD_ONLY_MARK_IDS: ReadonlyArray<string> = [
+  "react",
+  "fontawesomeApple",
+  "fontawesomeFlutter",
+  "fontawesomeVuejs",
+  "deviconSpring",
+  "deviconNextjs",
+  "deviconNuxt",
+  "deviconDotnet",
+];
+const STACK_CARD_MARK_IDS: ReadonlyArray<string> = ["angular", "android", ...CARD_ONLY_MARK_IDS];
 
 function brandMarkSurfaces(id: string): string {
   const onCards = STACK_CARD_MARK_IDS.includes(id);

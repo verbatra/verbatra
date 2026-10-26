@@ -18,7 +18,7 @@ const CARDS: ReadonlyArray<StackCard> = [
   {
     label: "iOS and macOS",
     icon: "mobile",
-    mark: "apple",
+    mark: "fontawesomeApple",
     formats: ["apple-strings", "apple-xcstrings"],
     href: "#ios-and-macos",
   },
@@ -262,7 +262,7 @@ describe("StackCards", () => {
     );
     expect(hrefs).toEqual([
       "#vk-stack-mark-stacks-react",
-      "#vk-stack-mark-stacks-apple",
+      "#vk-stack-mark-stacks-fontawesomeApple",
       "#vk-stack-icon-stacks-custom",
     ]);
   });
@@ -274,7 +274,7 @@ describe("StackCards", () => {
     );
     expect(marks.map((symbol) => symbol.id)).toEqual([
       "vk-stack-mark-stacks-react",
-      "vk-stack-mark-stacks-apple",
+      "vk-stack-mark-stacks-fontawesomeApple",
     ]);
     for (const symbol of marks) {
       const path = symbol.querySelector("path");
@@ -285,44 +285,80 @@ describe("StackCards", () => {
     expect(doc.body.innerHTML).not.toMatch(/#[0-9a-f]{6}|rgb\(|hsl\(/i);
   });
 
-  it("names a stack with no admissible logo as text in the chip, hidden from assistive technology, and draws no sprite for it", () => {
+  it("scales a mark with its own viewBox to fit the square chip, so a tall or wide drawing keeps its proportions", () => {
     const doc = render(
       renderToStaticMarkup(
         <StackCards
           labelledBy="stacks"
           locale="de"
           cards={[
-            { label: "Vue", icon: "web", text: "Vue", formats: ["vue-i18n-json"], href: "#vue" },
-            { label: ".NET", icon: "server", text: ".NET", formats: ["resx"], href: "#net" },
+            {
+              label: "Vue",
+              icon: "web",
+              mark: "fontawesomeVuejs",
+              formats: ["vue-i18n-json"],
+              href: "#vue",
+            },
+            {
+              label: ".NET",
+              icon: "server",
+              mark: "deviconDotnet",
+              formats: ["resx"],
+              href: "#net",
+            },
           ]}
         />,
       ),
     );
+    const viewBoxes = [...doc.querySelectorAll("symbol")].map((symbol) =>
+      symbol.getAttribute("viewBox"),
+    );
+    expect(viewBoxes).toEqual(["0 0 448 512", "0 0 128 128"]);
     const chips = [...doc.querySelectorAll(".vk-stack-card-chip")];
-    expect(chips.map((chip) => chip.textContent)).toEqual(["Vue", ".NET"]);
     for (const chip of chips) {
       expect(chip.getAttribute("aria-hidden")).toBe("true");
-      expect(chip.querySelector("svg, use, img")).toBeNull();
-      expect(chip.firstElementChild?.className).toBe("vk-stack-card-chip-text");
+      expect(chip.textContent).toBe("");
+      expect(chip.querySelector("img")).toBeNull();
     }
-    expect(doc.querySelectorAll("symbol")).toHaveLength(0);
     expect([...doc.querySelectorAll("a")].map(accessibleText)).toEqual(["Vue", ".NET"]);
-    expect(cssRule(".vk-stack-card-chip-text")).toContain("white-space: nowrap;");
   });
 
-  it("gives each stack whose brand grants no logo licence a text chip, the same brand word in every locale", () => {
+  it("gives every stack with a brand logo a mark from a free-licensed icon set, the same marks in every locale", () => {
     const content = join(process.cwd(), "content/docs");
     const files = readdirSync(content, { recursive: true, encoding: "utf8" }).filter(
       (file) =>
         file.endsWith(".mdx") && readFileSync(join(content, file), "utf8").includes("<StackCards"),
     );
-    const texts = (file: string) =>
-      [...readFileSync(join(content, file), "utf8").matchAll(/text: "([^"]+)"/g)].map((m) => m[1]);
+    const marks = (file: string) =>
+      [...readFileSync(join(content, file), "utf8").matchAll(/mark: "([^"]+)"/g)].map((m) => m[1]);
     for (const file of files) {
+      const source = readFileSync(join(content, file), "utf8");
       const expected = file.includes("pick-your-stack")
-        ? ["Next.js", "Vue", "Flutter", "Apple", "Spring", ".NET"]
-        : ["Next.js", "Vue", "Nuxt", "Flutter", "Apple", "Spring", ".NET"];
-      expect(texts(file), file).toEqual(expected);
+        ? [
+            "react",
+            "deviconNextjs",
+            "fontawesomeVuejs",
+            "angular",
+            "fontawesomeFlutter",
+            "android",
+            "fontawesomeApple",
+            "deviconSpring",
+            "deviconDotnet",
+          ]
+        : [
+            "react",
+            "deviconNextjs",
+            "fontawesomeVuejs",
+            "deviconNuxt",
+            "angular",
+            "fontawesomeFlutter",
+            "fontawesomeApple",
+            "android",
+            "deviconSpring",
+            "deviconDotnet",
+          ];
+      expect(marks(file).toSorted(), file).toEqual(expected.toSorted());
+      expect(source).not.toMatch(/\btext: "/);
     }
   });
 
@@ -420,7 +456,7 @@ describe("StackCards", () => {
     expect(doc.body.innerHTML).not.toMatch(/dark:/);
   });
 
-  it("gives a mark only to a stack whose brand itself grants the logo licence, the same set in every locale", () => {
+  it("draws no stack mark from Simple Icons, whose CC0 data does not clear a brand's own logo terms", () => {
     const content = join(process.cwd(), "content/docs");
     const files = readdirSync(content, { recursive: true, encoding: "utf8" }).filter(
       (file) =>
@@ -429,9 +465,7 @@ describe("StackCards", () => {
     expect(files).toHaveLength(8);
     for (const file of files) {
       const source = readFileSync(join(content, file), "utf8");
-      const marks = [...source.matchAll(/mark: "([^"]+)"/g)].map((match) => match[1]);
-      expect(marks.toSorted(), file).toEqual(["android", "angular", "react"]);
-      expect(source).not.toMatch(/mark: "(?:spring|flutter|nextdotjs|apple|yaml)"/);
+      expect(source).not.toMatch(/mark: "(?:spring|flutter|nextdotjs|apple|yaml|vue|nuxt)"/);
       expect(source).toMatch(/label: "YAML", icon: "yaml", formats/);
     }
   });

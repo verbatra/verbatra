@@ -1340,20 +1340,6 @@ html.light .vk-theme-icon-light {
   color: var(--text-strong);
 }
 
-.vk-stack-card-chip-text {
-  max-width: 2.5rem;
-  font-size: var(--text-sm);
-  font-weight: 600;
-  line-height: 1;
-  letter-spacing: -0.01em;
-  white-space: nowrap;
-}
-
-.vk-stack-card-chip-text[data-long="true"] {
-  font-size: var(--text-xs);
-  letter-spacing: -0.02em;
-}
-
 @media (forced-colors: active) {
   .vk-stack-card-chip {
     border: 1px solid CanvasText;

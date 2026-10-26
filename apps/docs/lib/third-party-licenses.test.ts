@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "n
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { BRAND_MARK_IDS, BRAND_MARK_SOURCES, BRAND_MARKS } from "./brand-marks";
+import { BRAND_MARK_IDS, BRAND_MARK_SOURCES, BRAND_MARKS, brandMarkSourceUrl } from "./brand-marks";
 import { licenseTermsUrl } from "./license-terms";
 import committed from "./licenses.generated.json";
 import committedPlatform from "./platform-licenses.json";
@@ -78,9 +78,7 @@ describe("third-party licenses", () => {
       );
       expect(entry, id).toBeDefined();
       expect(entry?.license, id).toBe(mark.license);
-      expect(entry?.usage, id).toContain(
-        `https://cdn.jsdelivr.net/npm/${source.package}@${source.version}/${mark.file}`,
-      );
+      expect(entry?.usage, id).toContain(brandMarkSourceUrl(mark));
     }
   });
 
