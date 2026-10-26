@@ -10,7 +10,12 @@ import { encodePathSegment, encodeSegment, joinEncodedSegments } from "./key-enc
 export type DeriveEntry = (
   key: string,
   value: string,
-) => { readonly placeholders: readonly string[]; readonly isPlural: boolean };
+) => {
+  /** The placeholder tokens the value carries. */
+  readonly placeholders: readonly string[];
+  /** Whether the key is one plural form of a set. */
+  readonly isPlural: boolean;
+};
 
 /**
  * How a dotted key in the source document is addressed. `literal-leaf` keeps `"a.b"` as one key

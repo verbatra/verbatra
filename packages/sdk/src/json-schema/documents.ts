@@ -130,6 +130,9 @@ export const SDK_JSON_SCHEMAS: readonly JsonSchemaDocument[] = [
 /**
  * The public URL, and the `$id`, of verbatra's published document named `name`, under
  * {@link JSON_SCHEMA_BASE_URL}. It does not check that such a document exists.
+ *
+ * @param name - The document's file name without `.json`, for example `run-summary`.
+ * @returns `JSON_SCHEMA_BASE_URL` followed by `name` and `.json`.
  */
 export function jsonSchemaUrl(name: string): string {
   return `${JSON_SCHEMA_BASE_URL}${name}.json`;
@@ -204,6 +207,9 @@ function stripNeverPresent(node: unknown): unknown {
  * documents: every object allows properties it does not list, a field that can be `undefined` is
  * not required, and a field a variant never carries is left out. It sets no `$id`, so it suits a
  * schema embedded in another document, such as an MCP tool's `outputSchema`.
+ *
+ * @param schema - The zod schema to describe.
+ * @returns The JSON Schema document of `schema`, without `$id`.
  */
 export function renderOutputJsonSchema(schema: z.ZodType): JsonSchemaObject {
   return stripNeverPresent(
@@ -256,6 +262,11 @@ function renderGroup(
  * document allows properties it does not list, since verbatra's JSON output only ever grows; an
  * `input` document keeps the closed objects its zod schema declares. A document that embeds
  * another one from `documents` or `references` points at it by its `$id`.
+ *
+ * @param documents - The documents to generate.
+ * @param references - Documents that `documents` embed but that are not generated themselves.
+ * Defaults to none.
+ * @returns The generated documents keyed by `JsonSchemaDocument.name`, `input` documents first.
  */
 export function renderJsonSchemas(
   documents: readonly JsonSchemaDocument[],

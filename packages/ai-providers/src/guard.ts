@@ -18,13 +18,7 @@ import { describeNetworkCause, findNetworkCause } from "./network-cause.js";
 export const PROVIDER_CALL_FAILED_MESSAGE = `${LEAD_BY_CODE.PROVIDER_ERROR}.`;
 export const TIMEOUT_MESSAGE = `${LEAD_BY_CODE.TIMEOUT}.`;
 
-/**
- * What a caller knows about the endpoint it is about to call, used only to make a transport failure
- * legible. The host is the `host` of a configured base URL, so it carries no path, query, or
- * user-info component and can never hold a credential.
- */
 export interface ProviderCallContext {
-  /** Host and port of the configured endpoint, for example `localhost:11434`. */
   readonly endpointHost?: string;
   readonly remedies?: EndpointRemedies;
 }

@@ -117,12 +117,6 @@ function pluralVariationsOf(loc: XcstringsRecord): unknown {
   return variations.plural;
 }
 
-/**
- * Reads one locale's content out of an already-fetched `localizations[locale]` entry: a plain
- * `stringUnit` value, or a `variations.plural` category map. Throws on any shape that is neither, so
- * a malformed or unsupported (device-class or width variant only) localization is reported rather
- * than silently mishandled.
- */
 export function localizationValueOf(
   loc: unknown,
   filePath: string,

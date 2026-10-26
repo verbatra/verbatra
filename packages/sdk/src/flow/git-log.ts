@@ -70,8 +70,18 @@ export const LOCALE_HISTORY_UNAVAILABLE_REASONS = Object.freeze([
  * be read, otherwise the commits, newest first.
  */
 export type LocaleHistoryResult =
-  | { readonly available: false; readonly reason: LocaleHistoryUnavailableReason }
-  | { readonly available: true; readonly commits: readonly LocaleHistoryCommit[] };
+  | {
+      /** `false`: the history could not be read. */
+      readonly available: false;
+      /** Why the history could not be read. */
+      readonly reason: LocaleHistoryUnavailableReason;
+    }
+  | {
+      /** `true`: the history was read. */
+      readonly available: true;
+      /** The commits that touched the locale files, newest first. */
+      readonly commits: readonly LocaleHistoryCommit[];
+    };
 
 const execFileAsync = promisify(execFileCb);
 
