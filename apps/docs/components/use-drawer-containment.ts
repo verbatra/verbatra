@@ -2,11 +2,15 @@ import { type RefObject, useEffect } from "react";
 import type { DrawerState } from "@/components/use-drawer-escape";
 
 export const DRAWER_ID = "nd-sidebar-mobile";
+export const PAGE_ID = "nd-page";
 
 const FOCUS_ATTEMPTS = 30;
+const ATTACH_ATTEMPTS = 30;
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+const LIVE_HOST = "next-route-announcer, [aria-live], [role='status'], [role='alert']";
 
 function ancestorsOf(elements: ReadonlyArray<Element>): Set<Element> {
   const chain = new Set<Element>();
@@ -16,13 +20,18 @@ function ancestorsOf(elements: ReadonlyArray<Element>): Set<Element> {
   return chain;
 }
 
+function shouldInert(sibling: Element, chain: ReadonlySet<Element>): boolean {
+  if (chain.has(sibling) || sibling.hasAttribute("inert")) return false;
+  return !sibling.matches(LIVE_HOST);
+}
+
 export function inertOutside(keep: ReadonlyArray<Element>): () => void {
   const chain = ancestorsOf(keep);
   const changed: Element[] = [];
   for (const node of chain) {
-    if (keep.includes(node)) continue;
+    if (keep.includes(node) || node === document.documentElement) continue;
     for (const sibling of Array.from(node.children)) {
-      if (chain.has(sibling) || sibling.hasAttribute("inert")) continue;
+      if (!shouldInert(sibling, chain)) continue;
       sibling.setAttribute("inert", "");
       changed.push(sibling);
     }
@@ -52,17 +61,24 @@ function wrapTab(event: KeyboardEvent, trigger: HTMLElement, drawer: HTMLElement
   }
 }
 
+function returnFocus(trigger: HTMLElement, drawer: HTMLElement, openedAt: string): void {
+  const active = document.activeElement;
+  if (active !== document.body && !drawer.contains(active)) return;
+  const page = window.location.pathname === openedAt ? null : document.getElementById(PAGE_ID);
+  (page ?? trigger).focus({ preventScroll: page !== null });
+}
+
 function engage(trigger: HTMLElement, drawer: HTMLElement): () => void {
   const overlay = drawer.previousElementSibling;
   const keepOverlay = overlay && overlay.childElementCount === 0 ? [overlay] : [];
   const restore = inertOutside([trigger, drawer, ...keepOverlay]);
+  const openedAt = window.location.pathname;
   const onKeyDown = (event: KeyboardEvent): void => wrapTab(event, trigger, drawer);
   window.addEventListener("keydown", onKeyDown);
   return () => {
     window.removeEventListener("keydown", onKeyDown);
     restore();
-    const active = document.activeElement;
-    if (active === document.body || drawer.contains(active)) trigger.focus();
+    returnFocus(trigger, drawer, openedAt);
   };
 }
 
@@ -75,19 +91,21 @@ export function useDrawerContainment(
     if (!open || mode !== "drawer" || !trigger) return;
     let release: (() => void) | undefined;
     let frame = 0;
-    let attempts = 0;
+    let focusAttempts = 0;
+    let attachAttempts = 0;
     const focusInto = (drawer: HTMLElement): void => {
       const first = drawer.querySelector<HTMLElement>(FOCUSABLE);
       first?.focus();
-      attempts += 1;
-      if (first && document.activeElement !== first && attempts < FOCUS_ATTEMPTS) {
+      focusAttempts += 1;
+      if (first && document.activeElement !== first && focusAttempts < FOCUS_ATTEMPTS) {
         frame = requestAnimationFrame(() => focusInto(drawer));
       }
     };
     const attach = (): void => {
       const drawer = document.getElementById(DRAWER_ID);
       if (!drawer) {
-        frame = requestAnimationFrame(attach);
+        attachAttempts += 1;
+        if (attachAttempts < ATTACH_ATTEMPTS) frame = requestAnimationFrame(attach);
         return;
       }
       release = engage(trigger, drawer);

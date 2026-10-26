@@ -92,8 +92,10 @@ test.describe("docs shell on a phone", () => {
     await expect
       .poll(() => drawer.evaluate((node) => node.contains(document.activeElement)))
       .toBe(true);
+    let triggerFocused = 0;
     for (let press = 0; press < 40; press += 1) {
       await page.keyboard.press("Tab");
+      if (await trigger.evaluate((node) => node === document.activeElement)) triggerFocused += 1;
       const inside = await page.evaluate(() => {
         const active = document.activeElement;
         return (
@@ -104,9 +106,51 @@ test.describe("docs shell on a phone", () => {
       });
       expect(inside, `focus after Tab ${press + 1}`).toBe(true);
     }
+    expect(triggerFocused).toBeGreaterThan(0);
     await page.keyboard.press("Escape");
     await expect(drawer).toBeHidden();
     await expect(trigger).toBeFocused();
+  });
+
+  test("moves focus to the new page and leaves nothing inert after a link in the sheet", async ({
+    page,
+  }) => {
+    await openDocsPage(page, "/docs/cli/translate");
+    await page.locator('#nd-subnav button[aria-controls="nd-sidebar-mobile"]').click();
+    await page.locator('#nd-sidebar-mobile a[href="/docs/cli/watch"]').click();
+    await page.waitForURL(/\/docs\/cli\/watch$/);
+    await expect(page.locator("#nd-sidebar-mobile")).toBeHidden();
+    await expect
+      .poll(() =>
+        page.evaluate(() => document.activeElement === document.getElementById("nd-page")),
+      )
+      .toBe(true);
+    await expect(page.locator("[inert]")).toHaveCount(0);
+  });
+
+  test("underlines the original-language link of the translation notice in the accent color", async ({
+    page,
+  }) => {
+    await openDocsPage(page, "/de/docs/cli/translate");
+    const link = page.locator(".vk-callout a").first();
+    await expect(link).toBeVisible();
+    const style = await link.evaluate((node) => {
+      const probe = document.createElement("span");
+      probe.style.color = "var(--accent)";
+      document.body.append(probe);
+      const accent = getComputedStyle(probe).color;
+      probe.remove();
+      const computed = getComputedStyle(node);
+      return {
+        color: computed.color,
+        accent,
+        underline: computed.textDecorationLine,
+        width: node.closest(".vk-callout")?.getBoundingClientRect().width ?? 0,
+      };
+    });
+    expect(style.color).toBe(style.accent);
+    expect(style.underline).toContain("underline");
+    expect(style.width).toBeLessThanOrEqual(660.5);
   });
 
   test("shows the search input above the header when search opens", async ({ page }) => {

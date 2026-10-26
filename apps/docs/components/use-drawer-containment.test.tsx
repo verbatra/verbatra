@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { act, type ReactNode, useRef, useState } from "react";
+import { act, createElement, type ReactNode, useRef, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
 import { inertOutside, useDrawerContainment } from "./use-drawer-containment";
@@ -26,11 +26,13 @@ function Harness(): ReactNode {
           Menu
         </button>
       </header>
-      <main data-main>
+      <main data-main id="nd-page" tabIndex={-1}>
         <a href="/page" data-page-link>
           Page
         </a>
       </main>
+      {createElement("next-route-announcer", { "data-announcer": "" })}
+      <div data-live aria-live="polite" />
       {open ? <div data-overlay /> : null}
       {open ? (
         <aside id="nd-sidebar-mobile">
@@ -44,6 +46,12 @@ function Harness(): ReactNode {
       ) : null}
     </>
   );
+}
+
+function Orphan(): ReactNode {
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  useDrawerContainment({ open: true, mode: "drawer" }, triggerRef);
+  return <button ref={triggerRef} type="button" />;
 }
 
 let mounted: { container: HTMLDivElement; root: Root } | undefined;
@@ -111,6 +119,48 @@ describe("useDrawerContainment", () => {
     expect(container.querySelector("[data-main]")?.hasAttribute("inert")).toBe(false);
     expect(container.querySelector("[data-search]")?.hasAttribute("inert")).toBe(false);
     expect(document.activeElement).toBe(trigger);
+  });
+
+  it("leaves the route announcer and live regions reachable by assistive technology", () => {
+    const container = render();
+    act(() => container.querySelector<HTMLElement>("[data-trigger]")?.click());
+    expect(container.querySelector("[data-announcer]")?.hasAttribute("inert")).toBe(false);
+    expect(container.querySelector("[data-live]")?.hasAttribute("inert")).toBe(false);
+    expect(document.documentElement.hasAttribute("inert")).toBe(false);
+    expect(document.head.hasAttribute("inert")).toBe(false);
+  });
+
+  it("moves focus to the page, not the trigger, when the drawer closes after a navigation", () => {
+    const container = render();
+    const trigger = container.querySelector<HTMLElement>("[data-trigger]");
+    act(() => trigger?.click());
+    window.history.pushState({}, "", "/docs/elsewhere");
+    act(() => trigger?.click());
+    expect(document.activeElement).toBe(container.querySelector("#nd-page"));
+    expect(container.querySelectorAll("[inert]")).toHaveLength(0);
+    window.history.pushState({}, "", "/");
+  });
+
+  it("stops looking for a drawer that never mounts", () => {
+    const frames: FrameRequestCallback[] = [];
+    const original = window.requestAnimationFrame;
+    window.requestAnimationFrame = (callback) => frames.push(callback);
+    try {
+      const container = document.createElement("div");
+      document.body.appendChild(container);
+      const root = createRoot(container);
+      act(() => root.render(<Orphan />));
+      let guard = 0;
+      while (frames.length > 0 && guard < 200) {
+        frames.shift()?.(0);
+        guard += 1;
+      }
+      expect(guard).toBeLessThan(200);
+      act(() => root.unmount());
+      container.remove();
+    } finally {
+      window.requestAnimationFrame = original;
+    }
   });
 
   it("does nothing while closed", () => {

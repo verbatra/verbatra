@@ -1096,7 +1096,8 @@ recognizes the same product. The shared vocabulary, and where each piece comes f
 - **Pills**: `.vk-pill` is the badge shape for everything except a "new" announcement: an outline
   pill in `--accent` text with the glow-tinted border, mono, `--text-xs`, no fill. The sidebar NEW badge
   (`components/new-badge.tsx`; the landing footer carries none, `footer.test.tsx` pins it) adds `.vk-pill-status` (smaller, uppercase) and is hidden in the
-  eyebrow, the phone breadcrumb bar and the prev/next footer, which share the sidebar's tree; the
+  phone breadcrumb bar, which reads the sidebar's tree (the eyebrow and the prev/next footer take plain
+  names and never show it); the
   `<AvailableFrom>` badge adds `.vk-available-from`, which sits after the heading text when it is
   inside a heading. Its markup is `AvailableFromPill` (`components/available-from.tsx`); the
   landing's marquee does not render it, but takes its `docs.availableFrom` label for

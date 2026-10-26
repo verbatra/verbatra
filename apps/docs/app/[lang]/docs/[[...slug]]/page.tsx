@@ -102,7 +102,10 @@ async function LocaleNotice({
       title={outdatedCopy ? outdatedCopy("title") : machineTranslated("title")}
     >
       {machineTranslated("text")} {outdatedCopy ? `${outdatedCopy("text")} ` : null}
-      <Link href={`/docs/${slug.join("/")}`}>{machineTranslated("viewOriginal")}</Link>.
+      <Link className="vk-prose-link" href={`/docs/${slug.join("/")}`}>
+        {machineTranslated("viewOriginal")}
+      </Link>
+      .
     </DocsCallout>
   );
 }

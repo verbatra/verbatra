@@ -1539,6 +1539,16 @@ html.light .vk-theme-icon-light {
   }
 }
 
+body > [data-radix-popper-content-wrapper] > * {
+  background: var(--surface-raised);
+  backdrop-filter: none;
+}
+
+[data-toc-popover] {
+  background: var(--surface-raised);
+  backdrop-filter: none;
+}
+
 #nd-page:not([data-full="true"]) > * {
   width: 100%;
   max-width: var(--width-page);
@@ -2040,6 +2050,10 @@ html.light .vk-theme-icon-light {
   background: color-mix(in srgb, var(--callout-color) 9%, var(--surface-bg));
   box-shadow: none;
   font-size: 0.9375rem;
+}
+
+#nd-page:not([data-full="true"]) > .vk-callout {
+  max-width: var(--width-measure);
 }
 
 .vk-callout > :is(div[role="none"], svg) {
@@ -2971,6 +2985,12 @@ html:has(.vk-home) {
   box-shadow: inset 0 -2px 0 var(--accent);
 }
 
+@media (forced-colors: active) {
+  [role="dialog"]:has([role="combobox"]) div:has(> [role="combobox"]):focus-within {
+    outline: 2px solid Highlight;
+  }
+}
+
 [role="dialog"]:has([role="combobox"]) [role="listbox"] [role="option"] {
   border-radius: var(--radius-md);
 }
@@ -2985,6 +3005,12 @@ html:has(.vk-home) {
   [role="option"][aria-selected="true"]
   :is(div, p, span) {
   color: inherit;
+}
+
+[role="dialog"]:has([role="combobox"]) [role="listbox"] [role="option"][aria-selected="true"] code {
+  border-color: color-mix(in srgb, var(--accent-fill-fg) 45%, transparent);
+  background: transparent;
+  color: var(--accent-fill-fg);
 }
 
 [data-toc-popover-content] a {

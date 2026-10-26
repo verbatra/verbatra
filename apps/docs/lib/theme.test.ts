@@ -252,6 +252,19 @@ describe("theme tokens", () => {
     }
   });
 
+  it("clears the code chip of the active search result so a match inside it stays at AA", () => {
+    const chip = rules.find(
+      (rule) =>
+        rule.selector.includes('[aria-selected="true"] code') &&
+        rule.selector.includes('[role="dialog"]:has([role="combobox"])'),
+    );
+    expect(chip?.declarations.background).toBe("transparent");
+    expect(chip?.declarations.color).toBe("var(--accent-fill-fg)");
+    for (const tokens of [DARK, LIGHT]) {
+      expect(contrast(tokens, "--accent-fill-fg", "--accent-fill")).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
   it("keeps a callout lead word at AA on its own tint, for both callout colors in both themes", () => {
     for (const tokens of [DARK, LIGHT]) {
       for (const color of ["--color-fd-info", "--color-fd-warning"]) {

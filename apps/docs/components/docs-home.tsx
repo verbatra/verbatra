@@ -247,7 +247,7 @@ export function DocsHomePaths({
 export function DocsHomeSteps(): ReactNode {
   const t = useTranslations("landing.steps.items");
   return (
-    <ol className="not-prose mt-8 grid list-none gap-4 md:grid-cols-3">
+    <ol className="not-prose mt-8 grid list-none gap-4 min-[70rem]:grid-cols-3">
       {DOCS_HOME_STEP_IDS.map((key, index) => (
         <li key={key} className="border-t border-(--border-default) pt-[18px]">
           <h3
