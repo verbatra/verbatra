@@ -79,6 +79,30 @@ describe("verbatra tmx import", () => {
     expect(calls.exportTmx).toEqual([]);
   });
 
+  it("reports MEMORY_UNWRITABLE as a structured failure envelope and exits 2", async () => {
+    const message = "Could not write verbatra.cache.json (EACCES).";
+    const { deps } = recordingDeps({
+      importTmx: async () => {
+        throw new SdkError("MEMORY_UNWRITABLE", message);
+      },
+    });
+    const { streams, out } = captureStreams();
+
+    const exit = await run(
+      ["tmx", "import", "memory.tmx", "--cwd", "/proj", "--json"],
+      deps,
+      streams,
+    );
+
+    expect(exit).toBe(2);
+    expect(parseEnvelope(out())).toMatchObject({
+      ok: false,
+      command: "tmx",
+      code: "MEMORY_UNWRITABLE",
+      message,
+    });
+  });
+
   it("prints a human summary of what landed", async () => {
     const { deps } = recordingDeps({
       importTmx: async () =>
