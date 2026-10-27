@@ -1,5 +1,5 @@
 {
-  "packageCount": 349,
+  "packageCount": 348,
   "groups": [
     {
       "license": "MIT",
@@ -2393,14 +2393,6 @@
           "copyright": [],
           "author": null,
           "textId": null,
-          "notice": null
-        },
-        {
-          "name": "zod",
-          "version": "4.6.5",
-          "copyright": ["Copyright (c) 2025 Colin McDonnell"],
-          "author": "Colin McDonnell",
-          "textId": "text-1",
           "notice": null
         },
         {
