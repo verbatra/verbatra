@@ -14,7 +14,7 @@
   "devDependencies": {
     "@types/node": "26.6.5",
     "exceljs": "4.4.0",
-    "execa": "10.1.1",
+    "execa": "10.2.0",
     "typescript": "6.0.3",
     "vitest": "5.0.5"
   },
