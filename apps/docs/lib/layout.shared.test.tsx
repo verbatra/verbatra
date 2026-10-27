@@ -144,7 +144,7 @@ describe("search options", () => {
 describe("wordmark", () => {
   it("writes the header wordmark in lowercase with tight tracking, like the footer", async () => {
     const container = document.createElement("div");
-    container.innerHTML = renderToStaticMarkup(<>{(await baseOptions("en")).nav?.title}</>);
+    container.innerHTML = renderToStaticMarkup((await baseOptions("en")).nav?.title as ReactNode);
     const word = Array.from(container.querySelectorAll("span")).find(
       (span) => span.children.length === 0,
     );
