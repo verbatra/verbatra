@@ -3,7 +3,7 @@ import { PROVIDER_ENV } from "../key-env-vars.js";
 import { type EnvironmentSource, readTrimmed } from "./environment-rule.js";
 
 export type EndpointTarget =
-  | { readonly id: "anthropic" | "openai" | "gemini" | "deepl" | "google-translate" }
+  | { readonly id: "anthropic" | "openai" | "gemini" | "deepl" | "google-translate" | "opencode" }
   | { readonly id: "openai-compatible" | "libretranslate"; readonly baseUrl: string };
 
 export type EndpointTransport = "fetch" | "axios";
@@ -19,6 +19,7 @@ export interface ProviderEndpoint {
 export const ANTHROPIC_DEFAULT_BASE_URL = "https://api.anthropic.com";
 export const OPENAI_DEFAULT_BASE_URL = "https://api.openai.com/v1";
 export const GEMINI_DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com/";
+export const OPENCODE_BASE_URL = "https://opencode.ai/inference/openai/v1";
 export const DEEPL_BASE_URL = "https://api.deepl.com";
 export const DEEPL_FREE_BASE_URL = "https://api-free.deepl.com";
 
@@ -95,6 +96,8 @@ export function resolveProviderEndpoint(
       return deepLEndpoint(env);
     case "google-translate":
       return { url: GOOGLE_TRANSLATE_ENDPOINT, knownPublic: true, transport: "fetch" };
+    case "opencode":
+      return { url: OPENCODE_BASE_URL, knownPublic: true, transport: "fetch" };
     case "openai-compatible":
     case "libretranslate":
       return { url: target.baseUrl, knownPublic: false, transport: "fetch" };

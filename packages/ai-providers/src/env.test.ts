@@ -5,6 +5,7 @@ import {
   readLibreTranslateKey,
   requireAnthropicKey,
   requireGoogleTranslateKey,
+  requireOpenCodeKey,
   resolveOpenAiCompatibleKey,
 } from "./env.js";
 import { ProviderError } from "./errors.js";
@@ -18,16 +19,18 @@ describe("PROVIDER_ENV", () => {
       gemini: "GEMINI_API_KEY",
       deepl: "DEEPL_API_KEY",
       "google-translate": "GOOGLE_TRANSLATE_API_KEY",
+      opencode: "OPENCODE_API_KEY",
     });
   });
 
-  it("covers exactly the five v1 providers", () => {
+  it("covers exactly the providers that require a key", () => {
     expect(Object.keys(PROVIDER_ENV).sort()).toEqual([
       "anthropic",
       "deepl",
       "gemini",
       "google-translate",
       "openai",
+      "opencode",
     ]);
   });
 });
@@ -69,6 +72,45 @@ describe("requireGoogleTranslateKey", () => {
   it("treats an empty key as missing", () => {
     process.env.GOOGLE_TRANSLATE_API_KEY = "";
     expect(() => requireGoogleTranslateKey()).toThrow(ProviderError);
+  });
+});
+
+describe("requireOpenCodeKey", () => {
+  let saved: string | undefined;
+
+  beforeEach(() => {
+    saved = process.env.OPENCODE_API_KEY;
+  });
+
+  afterEach(() => {
+    if (saved === undefined) {
+      delete process.env.OPENCODE_API_KEY;
+    } else {
+      process.env.OPENCODE_API_KEY = saved;
+    }
+  });
+
+  it("returns the key when the environment variable is set", () => {
+    process.env.OPENCODE_API_KEY = "oc_sk_test_key";
+    expect(requireOpenCodeKey()).toBe("oc_sk_test_key");
+  });
+
+  it("names the variable and never a value when it is missing", () => {
+    delete process.env.OPENCODE_API_KEY;
+    try {
+      requireOpenCodeKey();
+      expect.unreachable("should have thrown");
+    } catch (error) {
+      expect(error).toBeInstanceOf(ProviderError);
+      expect((error as ProviderError).code).toBe("MISSING_API_KEY");
+      expect((error as ProviderError).message).toContain("OPENCODE_API_KEY");
+      expect((error as ProviderError).envVar).toBe("OPENCODE_API_KEY");
+    }
+  });
+
+  it("treats an empty key as missing", () => {
+    process.env.OPENCODE_API_KEY = "";
+    expect(() => requireOpenCodeKey()).toThrow(ProviderError);
   });
 });
 

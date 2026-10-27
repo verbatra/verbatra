@@ -36,6 +36,10 @@ export function requireGoogleTranslateKey(): string {
   return readRequiredEnv(PROVIDER_ENV["google-translate"]);
 }
 
+export function requireOpenCodeKey(): string {
+  return readRequiredEnv(PROVIDER_ENV.opencode);
+}
+
 export function readLibreTranslateKey(): string | undefined {
   const value = process.env[LIBRETRANSLATE_ENV_VAR];
   return value === undefined || value.length === 0 ? undefined : value;

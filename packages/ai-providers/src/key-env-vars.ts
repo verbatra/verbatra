@@ -4,6 +4,7 @@ export const PROVIDER_ENV = {
   gemini: "GEMINI_API_KEY",
   deepl: "DEEPL_API_KEY",
   "google-translate": "GOOGLE_TRANSLATE_API_KEY",
+  opencode: "OPENCODE_API_KEY",
 } as const;
 
 export const OPENAI_COMPATIBLE_ENV_VAR = "OPENAI_COMPATIBLE_API_KEY";

@@ -7,11 +7,17 @@ describe("SCAFFOLD_MODELS", () => {
       anthropic: "claude-sonnet-4-6",
       openai: "gpt-5.4-mini",
       gemini: "gemini-2.5-flash",
+      opencode: "glm-5.3",
     });
   });
 
   it("omits DeepL, which has no model", () => {
-    expect(Object.keys(SCAFFOLD_MODELS).sort()).toEqual(["anthropic", "gemini", "openai"]);
+    expect(Object.keys(SCAFFOLD_MODELS).sort()).toEqual([
+      "anthropic",
+      "gemini",
+      "openai",
+      "opencode",
+    ]);
     expect(SCAFFOLD_MODELS).not.toHaveProperty("deepl");
   });
 });
