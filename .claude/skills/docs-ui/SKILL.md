@@ -349,9 +349,10 @@ hero title's `--banner-title` cap). No landing headline ends with a period (`lib
   fixed-height `.vk-feature-visual` (halo and dot grid) holding one `aria-hidden` `canvas.vk-feature-canvas`
   (`feature-canvas.tsx`, a client island: motifs are the pure frame functions of `lib/landing-canvas.ts`,
   colors read from the `--accent`, `--art-dim`, `--text-muted`, `--border-default`, `--surface-card`,
-  `--text-strong`, `--v-status-changed`, `--v-danger` and `--surface-bg` tokens and re-read when `html.light`
-  toggles, drawn at devicePixelRatio, paused offscreen and while the tab is hidden, a bounded run of `RUN_SECONDS` (about three
-  loops, never forever) that then holds its `STILL_TIME` frame, one static frame under
+  `--text-strong`, `--v-status-changed` and `--v-danger` tokens and re-read when `html.light`
+  toggles, drawn at devicePixelRatio, paused offscreen and while the tab is hidden, a bounded run that lasts until `runEndSeconds`
+  (at least `RUN_SECONDS` and less than `RUN_SECONDS + LOOP_SECONDS`, ending on a frame congruent to
+  `STILL_TIME`, never forever) and then holds its `STILL_TIME` frame, one static frame under
   `prefers-reduced-motion`, no text ever drawn), and an `h3` whose link to the command's docs page
   stretches over the whole card), `playground.tsx` (`#playground`, the SDK playground, see
   "SDK playground" below), `marquee.tsx`

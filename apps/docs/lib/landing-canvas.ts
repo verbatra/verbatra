@@ -10,7 +10,6 @@ export type Palette = {
   readonly fg: string;
   readonly warn: string;
   readonly bad: string;
-  readonly bg: string;
 };
 
 export type DrawContext = Pick<
@@ -44,7 +43,6 @@ const PALETTE_TOKENS: Readonly<Record<keyof Palette, string>> = {
   fg: "--text-strong",
   warn: "--v-status-changed",
   bad: "--v-danger",
-  bg: "--surface-bg",
 };
 
 export function readPalette(read: (token: string) => string): Palette {
@@ -58,9 +56,12 @@ export function readPalette(read: (token: string) => string): Palette {
     fg: value("fg"),
     warn: value("warn"),
     bad: value("bad"),
-    bg: value("bg"),
   };
 }
+
+type Point = { readonly x: number; readonly y: number };
+
+type Box = { readonly x: number; readonly y: number; readonly w: number; readonly h: number };
 
 const TAU = Math.PI * 2;
 
@@ -110,6 +111,7 @@ function fillRound(
   color: string,
   alpha: number,
 ): void {
+  if (alpha <= 0 || w <= 0) return;
   c.globalAlpha = alpha;
   c.fillStyle = color;
   roundRect(c, x, y, w, h, r);
@@ -127,6 +129,7 @@ function strokeRound(
   width: number,
   alpha: number,
 ): void {
+  if (alpha <= 0) return;
   c.globalAlpha = alpha;
   c.strokeStyle = color;
   c.lineWidth = width;
@@ -147,6 +150,7 @@ function circle(c: DrawContext, x: number, y: number, r: number): void {
 }
 
 function lock(c: DrawContext, x: number, y: number, s: number, color: string, alpha: number): void {
+  if (alpha <= 0) return;
   c.save();
   c.globalAlpha = alpha;
   c.strokeStyle = color;
@@ -160,487 +164,1262 @@ function lock(c: DrawContext, x: number, y: number, s: number, color: string, al
   c.restore();
 }
 
-type CellState = "done" | "review" | "pending";
-
-function cellState(v: number, index: number, cursor: number): CellState {
-  if (v < 0.2) return cursor === -1 || index < cursor ? "done" : "review";
-  return v < 0.27 ? "pending" : "done";
+function ramp(t: number, start: number, length: number): number {
+  return clamp((t - start) / length, 0, 1);
 }
 
-function cellPop(v: number, index: number, cursor: number): number {
-  const behind = cursor - index;
-  return cursor !== -1 && v < 0.2 && behind > 0 && behind < 4 ? (4 - behind) / 4 : 0;
+function loopFade(t: number, end: number, length: number): number {
+  return 1 - ramp(t, end - length, length);
 }
 
-function studioCell(
+function tailFade(t: number, loop: number, length = 0.5): number {
+  return loopFade(t, loop - FADE_MARGIN, length);
+}
+
+const DASH_SLOT: ReadonlyArray<number> = [3, 3];
+const DASH_LINE: ReadonlyArray<number> = [3, 4];
+const DASH_KEY: ReadonlyArray<number> = [2.5, 3];
+const KEY_INSET = 10;
+const VALUE_INSET = 40;
+const FADE_MARGIN = 0.1;
+const KEY_PILL_W = 24;
+const STATUS_DOT_R = 4;
+const PILL_H = 7;
+const VALUE_H = 5;
+const MARKER_R = 3;
+
+function localeMarker(
   c: DrawContext,
   p: Palette,
   x: number,
   y: number,
-  size: number,
-  state: CellState,
-  pop: number,
+  r: number,
+  source: boolean,
+  alpha: number,
 ): void {
-  if (state === "done") {
-    fillRound(
-      c,
-      x - pop * 1.5,
-      y - pop * 1.5,
-      size + pop * 3,
-      size + pop * 3,
-      4,
-      p.accent,
-      0.5 + pop * 0.4,
-    );
+  if (source) {
+    statusDot(c, x, y, r, p.accent, alpha);
     return;
   }
-  if (state === "review") {
-    fillRound(c, x, y, size, size, 4, p.warn, 0.95);
-    return;
-  }
-  strokeRound(c, x + 0.6, y + 0.6, size - 1.2, size - 1.2, 4, p.dim, 1.2, 0.55);
+  c.globalAlpha = alpha;
+  c.strokeStyle = p.dim;
+  c.lineWidth = 1.2;
+  circle(c, x, y, r);
+  c.stroke();
 }
 
-type StudioCursor = {
-  readonly x: number;
-  readonly y: number;
-  readonly index: number;
-  review: boolean;
+function localeFile(c: DrawContext, p: Palette, box: Box, source: boolean, alpha: number): void {
+  fillRound(c, box.x, box.y, box.w, box.h, 7, p.card, alpha);
+  strokeRound(c, box.x, box.y, box.w, box.h, 7, p.dim, 1.2, alpha);
+  fillRound(c, box.x + 18, box.y + 8, box.w * 0.3, 3, 1.5, p.muted, alpha * 0.7);
+  localeMarker(c, p, box.x + 11, box.y + 9.5, MARKER_R, source, alpha);
+}
+
+function fillSegment(
+  c: DrawContext,
+  b: Box,
+  radii: { readonly left: number; readonly right: number },
+  color: string,
+  alpha: number,
+): void {
+  if (alpha <= 0 || b.w <= 0) return;
+  c.globalAlpha = alpha;
+  c.fillStyle = color;
+  c.beginPath();
+  c.moveTo(b.x + radii.left, b.y);
+  c.arcTo(b.x + b.w, b.y, b.x + b.w, b.y + b.h, radii.right);
+  c.arcTo(b.x + b.w, b.y + b.h, b.x, b.y + b.h, radii.right);
+  c.arcTo(b.x, b.y + b.h, b.x, b.y, radii.left);
+  c.arcTo(b.x, b.y, b.x + b.w, b.y, radii.left);
+  c.closePath();
+  c.fill();
+}
+
+function keyPill(c: DrawContext, x: number, cy: number, color: string, alpha: number): void {
+  fillRound(c, x, cy - PILL_H / 2, KEY_PILL_W, PILL_H, PILL_H / 2, color, alpha);
+}
+
+function valueBar(
+  c: DrawContext,
+  x: number,
+  cy: number,
+  w: number,
+  color: string,
+  alpha: number,
+): void {
+  fillRound(c, x, cy - VALUE_H / 2, w, VALUE_H, VALUE_H / 2, color, alpha);
+}
+
+function statusDot(
+  c: DrawContext,
+  x: number,
+  y: number,
+  r: number,
+  color: string,
+  alpha: number,
+): void {
+  if (alpha <= 0) return;
+  c.globalAlpha = alpha;
+  c.fillStyle = color;
+  circle(c, x, y, r);
+  c.fill();
+}
+
+function checkMark(
+  c: DrawContext,
+  x: number,
+  y: number,
+  size: number,
+  color: string,
+  alpha: number,
+  progress: number,
+): void {
+  const q = clamp(progress, 0, 1);
+  if (q <= 0 || alpha <= 0) return;
+  c.globalAlpha = alpha;
+  c.strokeStyle = color;
+  c.lineWidth = 1.8;
+  c.beginPath();
+  c.moveTo(x - size * 0.5, y);
+  c.lineTo(x - size * 0.15, y + size * 0.35 * Math.min(1, q * 2));
+  if (q > 0.5) {
+    const k = (q - 0.5) * 2;
+    c.lineTo(x - size * 0.15 + size * 0.65 * k, y + size * 0.35 - size * 0.8 * k);
+  }
+  c.stroke();
+}
+
+export const PHASE_STEP = 1.3;
+
+export const LOOP_SECONDS: Readonly<Record<LandingFeatureId, number>> = {
+  studio: 21,
+  handoff: 7.5,
+  extract: 6,
+  watch: 9,
+  types: 7,
+  doctor: 7,
 };
 
-function studioPopover(
+type Span = { readonly avail: number; readonly left: number };
+
+function span(w: number): Span {
+  const avail = Math.min(Math.max(w - 24, 0), 440);
+  return { avail, left: (w - avail) / 2 };
+}
+
+function bump(t: number, start: number, length: number): number {
+  return Math.sin(ramp(t, start, length) * Math.PI);
+}
+
+function dashedRound(c: DrawContext, box: Box, radius: number, color: string, alpha: number): void {
+  c.setLineDash(DASH_SLOT);
+  strokeRound(c, box.x, box.y, box.w, box.h, radius, color, 1.2, alpha);
+  c.setLineDash([]);
+}
+
+function dashedLine(c: DrawContext, from: Point, to: Point, color: string, alpha: number): void {
+  c.globalAlpha = alpha;
+  c.strokeStyle = color;
+  c.lineWidth = 1;
+  c.setLineDash(DASH_LINE);
+  line(c, from.x, from.y, to.x, to.y);
+  c.setLineDash([]);
+}
+
+function bracket(
+  c: DrawContext,
+  x: number,
+  cy: number,
+  side: 1 | -1,
+  color: string,
+  alpha: number,
+): void {
+  if (alpha <= 0) return;
+  c.globalAlpha = alpha;
+  c.strokeStyle = color;
+  c.lineWidth = 1.4;
+  c.beginPath();
+  if (side === 1) c.arc(x + 4, cy, 7, Math.PI * 0.65, Math.PI * 1.35);
+  else c.arc(x - 4, cy, 7, -Math.PI * 0.35, Math.PI * 0.35);
+  c.stroke();
+}
+
+const CALL_PILL_OFFSET = 32;
+
+function callShape(
   c: DrawContext,
   p: Palette,
-  w: number,
-  h: number,
-  t: number,
-  cursor: StudioCursor,
-  size: number,
+  x: number,
+  cy: number,
+  tint: string,
+  lit: number,
+  alpha: number,
 ): void {
-  strokeRound(c, cursor.x - 3, cursor.y - 3, size + 6, size + 6, 6, p.fg, 1.6, 1);
-  const pw = 92;
-  const ph = 34;
-  const px = Math.min(cursor.x + 16, w - pw - 10);
-  const py = cursor.y + size + 10 > h - ph - 8 ? cursor.y - ph - 8 : cursor.y + size + 10;
-  fillRound(c, px, py, pw, ph, 8, p.card, 0.98);
-  strokeRound(c, px + 0.5, py + 0.5, pw - 1, ph - 1, 8, p.border, 1, 1);
-  fillRound(c, px + 10, py + 9, 46 + hash(cursor.index, 2) * 20, 4, 2, p.muted, 0.8);
-  fillRound(c, px + 10, py + 19, 30, 4, 2, cursor.review ? p.warn : p.accent, 0.9);
-  if (Math.floor(t * 2) % 2 === 0) {
-    c.fillStyle = p.fg;
-    c.globalAlpha = 1;
-    c.fillRect(px + 44, py + 17, 1.5, 9);
+  valueBar(c, x, cy, 22, p.muted, 0.6 * alpha);
+  bracket(c, x + 27, cy, 1, tint, (0.3 + 0.7 * lit) * alpha);
+  bracket(c, x + 61, cy, -1, tint, (0.3 + 0.7 * lit) * alpha);
+}
+
+function argChip(c: DrawContext, p: Palette, x: number, cy: number, alpha: number): void {
+  bracket(c, x, cy, 1, p.accent, alpha);
+  bracket(c, x + 12, cy, -1, p.accent, alpha);
+  statusDot(c, x + 6, cy, 2, p.accent, alpha * 0.8);
+}
+
+function xMark(
+  c: DrawContext,
+  x: number,
+  cy: number,
+  size: number,
+  color: string,
+  alpha: number,
+): void {
+  if (alpha <= 0) return;
+  c.globalAlpha = alpha;
+  c.strokeStyle = color;
+  c.lineWidth = 1.8;
+  line(c, x - size, cy - size, x + size, cy + size);
+  line(c, x - size, cy + size, x + size, cy - size);
+}
+
+const STUDIO_TAB_SECONDS = 7;
+const STUDIO_TABS = 3;
+const STUDIO_ROWS = 3;
+const STUDIO_ROW_HEIGHT = 20;
+const STUDIO_ROW_GAP = 16;
+const STUDIO_GROW = 16;
+const STUDIO_TAB_WIDTH = 28;
+const STUDIO_TAB_HEIGHT = 12;
+const STUDIO_TAB_GAP = 8;
+
+type EditBeat = { readonly grow: number; readonly typed: number; readonly flip: number };
+
+function editBeat(T: number, start: number): EditBeat {
+  return {
+    grow: easeOut(ramp(T, start, 0.4)) - easeOut(ramp(T, start + 1.8, 0.4)),
+    typed: easeOut(ramp(T, start + 0.4, 1.2)),
+    flip: ramp(T, start + 1.6, 0.25),
+  };
+}
+
+function studioView(w: number, h: number): Box {
+  const { avail, left } = span(w);
+  return { x: left, y: 14, w: avail, h: h - 28 };
+}
+
+function studioChrome(c: DrawContext, p: Palette, v: Box): void {
+  fillRound(c, v.x, v.y, v.w, v.h, 10, p.card, 0.85);
+  strokeRound(c, v.x, v.y, v.w, v.h, 10, p.dim, 1.2, 0.9);
+  c.globalAlpha = 0.6;
+  c.strokeStyle = p.border;
+  c.lineWidth = 1;
+  line(c, v.x, v.y + 30, v.x + v.w, v.y + 30);
+}
+
+function studioTabX(v: Box, index: number): number {
+  return v.x + 12 + index * (STUDIO_TAB_WIDTH + STUDIO_TAB_GAP);
+}
+
+function studioPrevious(lap: number, tab: number): number {
+  return lap === 0 ? tab : (tab + STUDIO_TABS - 1) % STUDIO_TABS;
+}
+
+function studioTabs(
+  c: DrawContext,
+  p: Palette,
+  v: Box,
+  tab: number,
+  previous: number,
+  T: number,
+): void {
+  const y = v.y + 12;
+  for (let i = 0; i < STUDIO_TABS; i += 1) {
+    const x = studioTabX(v, i);
+    strokeRound(c, x, y, STUDIO_TAB_WIDTH, STUDIO_TAB_HEIGHT, 6, p.dim, 1, 0.7);
+    localeMarker(c, p, x + STUDIO_TAB_WIDTH / 2, y + STUDIO_TAB_HEIGHT / 2, MARKER_R, i === 0, 0.9);
   }
+  const x = lerp(studioTabX(v, previous), studioTabX(v, tab), easeInOut(ramp(T, 0, 0.6)));
+  fillRound(c, x, y, STUDIO_TAB_WIDTH, STUDIO_TAB_HEIGHT, 6, p.accent, 0.25);
+  strokeRound(c, x, y, STUDIO_TAB_WIDTH, STUDIO_TAB_HEIGHT, 6, p.accent, 1.2, 1);
+}
+
+type StudioRow = {
+  readonly index: number;
+  readonly tab: number;
+  readonly previous: number;
+  readonly y: number;
+  readonly height: number;
+  readonly edit: EditBeat | null;
+};
+
+function studioTargetAt(v: Box, tab: number, index: number): number {
+  const room = Math.max(v.w - 94, 0);
+  return (0.55 + hash(tab * STUDIO_ROWS + index, 5) * 0.45) * room;
+}
+
+function studioTarget(v: Box, row: StudioRow): number {
+  return studioTargetAt(v, row.tab, row.index);
+}
+
+function studioInput(
+  c: DrawContext,
+  p: Palette,
+  v: Box,
+  row: StudioRow,
+  alpha: number,
+  T: number,
+): void {
+  const edit = row.edit;
+  if (!edit || edit.grow <= 0) return;
+  const ix = v.x + 22;
+  const iy = row.y + 21;
+  const iw = Math.max(v.w - 44, 0);
+  const ih = Math.max(0, row.height - 25);
+  strokeRound(c, ix, iy, iw, ih, 4, p.accent, 1.2, alpha * edit.grow);
+  const barWidth = edit.typed * Math.min(studioTarget(v, row), Math.max(iw - 16, 0));
+  valueBar(c, ix + 6, iy + ih / 2, barWidth, p.dim, alpha * edit.grow);
+  if (edit.grow > 0.5 && Math.floor(T * 2) % 2 === 0) {
+    c.globalAlpha = alpha;
+    c.fillStyle = p.fg;
+    c.fillRect(ix + 8 + barWidth, iy + (ih - 7) / 2, 1.5, 7);
+  }
+}
+
+function studioRow(
+  c: DrawContext,
+  p: Palette,
+  v: Box,
+  row: StudioRow,
+  alpha: number,
+  T: number,
+): void {
+  const x = v.x + 12;
+  const rw = v.w - 24;
+  const edit = row.edit;
+  const cy = row.y + STUDIO_ROW_HEIGHT / 2;
+  strokeRound(c, x, row.y, rw, row.height, 5, p.dim, 1, alpha * 0.7);
+  keyPill(c, x + KEY_INSET, cy, p.muted, alpha * 0.9);
+  const target = studioTarget(v, row);
+  const settled = edit ? lerp(target * 0.55, target, edit.typed) : target;
+  const width = lerp(
+    studioTargetAt(v, row.previous, row.index),
+    settled,
+    easeInOut(ramp(T, 0, 0.6)),
+  );
+  valueBar(c, x + 44, cy, width, p.dim, alpha * 0.9 * (1 - (edit ? edit.grow : 0)));
+  const warn = edit ? 1 - edit.flip : 0;
+  const dots = alpha * ramp(T, 0, 0.5) * tailFade(T, STUDIO_TAB_SECONDS);
+  statusDot(c, x + rw - 12, cy, STATUS_DOT_R, p.warn, dots * warn);
+  statusDot(c, x + rw - 12, cy, STATUS_DOT_R, p.accent, dots * (1 - warn));
+  studioInput(c, p, v, row, alpha, T);
+}
+
+function studioEdits(tab: number, T: number): ReadonlyArray<EditBeat | null> {
+  const done = Math.min(STUDIO_ROWS - 1, Math.floor(hash(tab, 1) * STUDIO_ROWS));
+  const beats = [editBeat(T, 1.2), editBeat(T, 3.8)];
+  let next = 0;
+  return Array.from({ length: STUDIO_ROWS }, (_, index) => {
+    if (index === done) return null;
+    const beat = beats[next] ?? null;
+    next += 1;
+    return beat;
+  });
+}
+
+function studioRows(v: Box, tab: number, previous: number, T: number): StudioRow[] {
+  const edits = studioEdits(tab, T);
+  const rows: StudioRow[] = [];
+  let y = v.y + 38;
+  for (let index = 0; index < STUDIO_ROWS; index += 1) {
+    const edit = edits[index] ?? null;
+    const height = STUDIO_ROW_HEIGHT + (edit ? edit.grow * STUDIO_GROW : 0);
+    rows.push({ index, tab, previous, y, height, edit });
+    y += height + STUDIO_ROW_GAP;
+  }
+  return rows;
+}
+
+function studioQueue(
+  c: DrawContext,
+  p: Palette,
+  v: Box,
+  tabs: { readonly tab: number; readonly previous: number },
+  T: number,
+): void {
+  const alpha = 0.4 + 0.6 * ramp(T, 0, 0.6) * tailFade(T, STUDIO_TAB_SECONDS);
+  const rows = studioRows(v, tabs.tab, tabs.previous, T);
+  for (const row of rows) studioRow(c, p, v, row, alpha, T);
+  const focus = rows.filter((row) => row.edit !== null);
+  const first = focus[0];
+  const second = focus[1];
+  if (first && second) studioRing(c, p, v, first, second, T);
+}
+
+function studioRing(
+  c: DrawContext,
+  p: Palette,
+  v: Box,
+  first: StudioRow,
+  second: StudioRow,
+  T: number,
+): void {
+  const settle = easeOut(ramp(T, 0.8, 0.4));
+  const alpha = settle * loopFade(T, STUDIO_TAB_SECONDS - 0.6, 0.4);
+  if (alpha <= 0) return;
+  const move = easeInOut(ramp(T, 3.4, 0.4));
+  const outset = 3 + (1 - settle) * 4;
+  strokeRound(
+    c,
+    v.x + 12 - outset,
+    lerp(first.y, second.y, move) - outset,
+    v.w - 24 + outset * 2,
+    lerp(first.height, second.height, move) + outset * 2,
+    7,
+    p.fg,
+    1.6,
+    alpha,
+  );
 }
 
 const studio: FrameFunction = (c, w, h, t, p) => {
-  const pad = 22;
-  const gap = 7;
-  const size = 13;
-  const head = 54;
-  const cols = Math.max(6, Math.floor((w - pad * 2 - head) / (size + gap)));
-  const rows = Math.min(6, Math.max(3, Math.floor((h - pad * 2) / (size + gap))));
-  const gridW = cols * (size + gap) - gap;
-  const gridH = rows * (size + gap) - gap;
-  const x0 = (w - gridW - head) / 2 + head;
-  const y0 = (h - gridH) / 2;
-  const total = cols * rows;
-  const step = Math.floor(t * 6) % (total + 12);
-  const current = step < total ? step : -1;
-  let cursor: StudioCursor | null = null;
-  for (let r = 0; r < rows; r += 1) {
-    const rowY = y0 + r * (size + gap);
-    fillRound(c, x0 - head + 6, rowY + size / 2 - 1.5, 10 + hash(r, 3) * 24, 3, 1.5, p.dim, 0.55);
-    for (let k = 0; k < cols; k += 1) {
-      const index = r * cols + k;
-      const v = hash(r + 1, k + 7);
-      const x = x0 + k * (size + gap);
-      studioCell(c, p, x, rowY, size, cellState(v, index, current), cellPop(v, index, current));
-      if (index === current) cursor = { x, y: rowY, index, review: v < 0.2 };
-    }
-  }
-  if (cursor) studioPopover(c, p, w, h, t, cursor, size);
+  const lap = Math.floor(t / STUDIO_TAB_SECONDS);
+  const tab = lap % STUDIO_TABS;
+  const T = t % STUDIO_TAB_SECONDS;
+  const view = studioView(w, h);
+  studioChrome(c, p, view);
+  const previous = studioPrevious(lap, tab);
+  studioTabs(c, p, view, tab, previous, T);
+  studioQueue(c, p, view, { tab, previous }, T);
   c.globalAlpha = 1;
 };
 
-function handoffSheet(
+const HANDOFF_ROWS = 3;
+const HANDOFF_SWEEP_START = 4.8;
+const HANDOFF_SWEEP_SPAN = 1.6;
+const SHEET_W = 34;
+const SHEET_H = 26;
+const HANDOFF_LOCK_SIZE = 8;
+const PERSON_W = 28;
+
+type HandoffGeometry = {
+  readonly file: Box;
+  readonly person: Box;
+  readonly sheetFrom: number;
+  readonly sheetTo: number;
+  readonly sheetY: number;
+  readonly barMax: number;
+};
+
+function handoffGeometry(w: number, h: number): HandoffGeometry {
+  const { avail, left } = span(w);
+  const fileW = clamp(avail * 0.42, 96, 170);
+  const file = { x: left, y: (h - 120) / 2, w: fileW, h: 120 };
+  const person = { x: left + avail - PERSON_W, y: h / 2 - 22, w: PERSON_W, h: 44 };
+  const sheetFrom = left + fileW + 12;
+  const sheetTo = Math.max(sheetFrom, person.x - 12 - SHEET_W);
+  return {
+    file,
+    person,
+    sheetFrom,
+    sheetTo,
+    sheetY: h / 2 - SHEET_H / 2,
+    barMax: Math.min(Math.max(fileW - 68, 28), 90),
+  };
+}
+
+function handoffRowY(g: HandoffGeometry, index: number): number {
+  return g.file.y + 38 + index * 30;
+}
+
+function handoffPass(g: HandoffGeometry, index: number): number {
+  const top = g.file.y + 22;
+  const bottom = g.file.y + g.file.h - 6;
+  const along = (handoffRowY(g, index) - top) / Math.max(bottom - top, 1);
+  return HANDOFF_SWEEP_START + HANDOFF_SWEEP_SPAN * clamp(along, 0, 1);
+}
+
+function handoffImported(
   c: DrawContext,
   p: Palette,
-  x: number,
-  y: number,
-  w: number,
-  rowHeight: number,
-  litRows: number,
+  g: HandoffGeometry,
+  index: number,
+  T: number,
+  a: number,
 ): void {
-  const height = rowHeight * 4;
-  strokeRound(c, x, y, w, height, 6, p.accent, 1.4, 1);
-  for (let row = 1; row < 4; row += 1) {
-    c.globalAlpha = 0.45;
-    line(c, x, y + row * rowHeight, x + w, y + row * rowHeight);
+  const f = g.file;
+  const cy = handoffRowY(g, index);
+  const grow = easeOut(ramp(T, 4.2 + 0.25 * index, 0.5));
+  const slot = (0.6 + 0.4 * bump(T, 0.3, 0.7)) * (1 - grow) * a;
+  if (slot > 0) {
+    dashedRound(
+      c,
+      { x: f.x + VALUE_INSET, y: cy - VALUE_H / 2, w: g.barMax * 0.9, h: VALUE_H },
+      2.5,
+      p.muted,
+      slot,
+    );
   }
-  for (let col = 1; col < 3; col += 1) {
-    c.globalAlpha = 0.45;
-    line(c, x + (col * w) / 3, y, x + (col * w) / 3, y + height);
-  }
-  c.globalAlpha = 0.28;
-  c.fillStyle = p.accent;
-  for (let q = 0; q <= litRows; q += 1) {
-    c.fillRect(x + 1, y + q * rowHeight + 1, w - 2, rowHeight - 2);
+  valueBar(
+    c,
+    f.x + VALUE_INSET,
+    cy,
+    g.barMax * (0.75 + 0.25 * hash(index, 6)) * grow,
+    p.accent,
+    0.85 * a,
+  );
+  const glint = 1 + 0.3 * bump(T, handoffPass(g, index) - 0.1, 0.4);
+  lock(
+    c,
+    f.x + f.w - 10,
+    cy + 1,
+    HANDOFF_LOCK_SIZE * glint,
+    p.accent,
+    ramp(T, 4.7 + 0.2 * index, 0.4) * a,
+  );
+}
+
+function handoffMachine(
+  c: DrawContext,
+  p: Palette,
+  g: HandoffGeometry,
+  index: number,
+  T: number,
+  a: number,
+): void {
+  const f = g.file;
+  const cy = handoffRowY(g, index);
+  const pass = handoffPass(g, index);
+  const refresh = easeOut(ramp(T, pass, 0.5));
+  valueBar(c, f.x + VALUE_INSET, cy, g.barMax * (0.55 + 0.45 * refresh), p.dim, 0.9 * a);
+  statusDot(c, f.x + f.w - 10, cy, STATUS_DOT_R, p.warn, a * (1 - refresh));
+  statusDot(c, f.x + f.w - 10, cy, STATUS_DOT_R, p.accent, a * refresh);
+  strokeRound(c, f.x + 5, cy - 11, f.w - 10, 22, 6, p.accent, 1.2, 0.8 * bump(T, pass, 0.6) * a);
+}
+
+function handoffRows(c: DrawContext, p: Palette, g: HandoffGeometry, T: number): void {
+  const a = ramp(T, 0, 0.4) * tailFade(T, LOOP_SECONDS.handoff);
+  for (let index = 0; index < HANDOFF_ROWS; index += 1) {
+    keyPill(c, g.file.x + KEY_INSET, handoffRowY(g, index), p.muted, 0.9 * a);
+    if (index < HANDOFF_ROWS - 1) handoffImported(c, p, g, index, T, a);
+    else handoffMachine(c, p, g, index, T, a);
   }
 }
 
-function handoffOutbound(c: DrawContext, p: Palette, xo: number, y: number, a: number): void {
-  c.globalAlpha = a;
-  c.fillStyle = p.card;
-  roundRect(c, xo - 9, y - 6, 18, 12, 3);
-  c.fill();
-  strokeRound(c, xo - 9, y - 6, 18, 12, 3, p.accent, 1.4, a);
-  c.fillStyle = p.accent;
-  c.globalAlpha = a * 0.8;
-  c.fillRect(xo - 5, y - 1, 10, 2);
+function handoffSweep(c: DrawContext, p: Palette, g: HandoffGeometry, T: number): void {
+  const progress = ramp(T, HANDOFF_SWEEP_START, HANDOFF_SWEEP_SPAN);
+  const alpha =
+    Math.min(1, progress * 6) * (1 - ramp(T, HANDOFF_SWEEP_START + HANDOFF_SWEEP_SPAN, 0.3));
+  if (progress <= 0 || alpha <= 0) return;
+  const f = g.file;
+  const y = lerp(f.y + 22, f.y + f.h - 6, progress);
+  c.globalAlpha = 0.07 * alpha;
+  c.fillStyle = p.fg;
+  c.fillRect(f.x + 3, y - 14, f.w - 6, 14);
+  c.globalAlpha = 0.5 * alpha;
+  c.strokeStyle = p.fg;
+  c.lineWidth = 1.2;
+  line(c, f.x + 4, y, f.x + f.w - 4, y);
 }
 
-function edge(progress: number): number {
-  return Math.min(1, progress * 8) * Math.min(1, (1 - progress) * 8);
+function handoffSheet(c: DrawContext, p: Palette, g: HandoffGeometry, T: number): void {
+  const away = easeInOut(ramp(T, 0.8, 1)) - easeInOut(ramp(T, 3.2, 1));
+  const alpha = ramp(T, 0.8, 0.3) * tailFade(T, LOOP_SECONDS.handoff);
+  if (alpha <= 0) return;
+  const x = lerp(g.sheetFrom, g.sheetTo, away);
+  const y = g.sheetY;
+  fillRound(c, x, y, SHEET_W, SHEET_H, 4, p.card, alpha);
+  fillRound(c, x + 1, y + 1, SHEET_W - 2, 8, 3, p.accent, 0.3 * alpha);
+  strokeRound(c, x, y, SHEET_W, SHEET_H, 4, p.accent, 1.4, alpha);
+  c.globalAlpha = 0.5 * alpha;
+  c.strokeStyle = p.border;
+  c.lineWidth = 1;
+  line(c, x, y + 10, x + SHEET_W, y + 10);
+  const cy = y + 18;
+  valueBar(c, x + 4, cy, 10, p.muted, 0.8 * alpha);
+  valueBar(c, x + 19, cy, 12, p.dim, 0.5 * alpha);
+  valueBar(c, x + 19, cy, 12 * ramp(T, 2, 0.45), p.accent, 0.85 * alpha);
+}
+
+function handoffPerson(c: DrawContext, p: Palette, person: Box): void {
+  const cx = person.x + person.w / 2;
+  fillRound(c, cx - 5, person.y, 10, 10, 5, p.muted, 0.85);
+  c.globalAlpha = 0.85;
+  c.strokeStyle = p.muted;
+  c.lineWidth = 2;
+  c.beginPath();
+  c.arc(cx, person.y + 30, 12, Math.PI * 1.1, Math.PI * 1.9);
+  c.stroke();
 }
 
 const handoff: FrameFunction = (c, w, h, t, p) => {
-  const fx = w * 0.17;
-  const sx = w * 0.83;
-  const y1 = h * 0.36;
-  const y2 = h * 0.66;
-  const dh = h * 0.6;
-  const top = h / 2 - dh / 2;
-  strokeRound(c, fx - 20, top, 40, dh, 7, p.dim, 1.4, 1);
-  for (let j = 0; j < 4; j += 1) {
-    fillRound(c, fx - 12, top + 12 + j * 14, 24 - (j % 2) * 8, 3, 1.5, p.dim, 0.7);
-  }
-  const cycle = t / 3.4;
-  handoffSheet(c, p, sx - 34, top, 68, dh / 4, Math.floor((cycle % 1) * 4));
-  c.globalAlpha = 0.5;
-  c.strokeStyle = p.dim;
-  c.setLineDash([3, 6]);
-  line(c, fx + 30, y1, sx - 44, y1);
-  line(c, fx + 30, y2, sx - 44, y2);
-  c.setLineDash([]);
-  for (let k = 0; k < 3; k += 1) {
-    const out = (cycle + k / 3) % 1;
-    handoffOutbound(c, p, lerp(fx + 34, sx - 48, out), y1, edge(out));
-    const back = (cycle + k / 3 + 0.5) % 1;
-    const xb = lerp(sx - 48, fx + 34, back);
-    const a = edge(back);
-    fillRound(c, xb - 9, y2 - 6, 18, 12, 3, p.accent, a);
-    lock(c, xb, y2 + 1, 6, p.bg, a);
-    if (back > 0.9) lock(c, fx + 20, top + 14 + (k % 4) * 14, 7, p.accent, (back - 0.9) * 10);
-  }
+  const g = handoffGeometry(w, h);
+  const T = t % LOOP_SECONDS.handoff;
+  localeFile(c, p, g.file, false, 1);
+  handoffRows(c, p, g, T);
+  handoffSweep(c, p, g, T);
+  handoffPerson(c, p, g.person);
+  handoffSheet(c, p, g, T);
   c.globalAlpha = 1;
 };
 
+const EXTRACT_LINES = 8;
+const SCAN_START = 0.3;
+const SCAN_SPAN = 3;
+const FLIGHT_DELAY = 0.15;
+const FLIGHT_SPAN = 0.9;
+const EXTRACT_PEEK = 14;
+const EXTRACT_FILE_ROWS = 3;
+const FLIGHT_LIFT = 9;
+const SCAN_PARK_PITCHES = 0.6;
+
+type ExtractCall = { readonly line: number; readonly row: number; readonly isNew: boolean };
+
+const EXTRACT_CALLS: ReadonlyArray<ExtractCall> = [
+  { line: 1, row: 3, isNew: true },
+  { line: 4, row: 1, isNew: false },
+  { line: 6, row: 4, isNew: true },
+];
+
 type ExtractGeometry = {
-  readonly lx: number;
-  readonly lw: number;
-  readonly top: number;
-  readonly span: number;
-  readonly lineHeight: number;
-  readonly rx: number;
-  readonly rw: number;
+  readonly code: Box;
+  readonly file: Box;
+  readonly target: Box;
+  readonly pitch: number;
 };
 
-function extractCall(
+function extractGeometry(w: number, h: number): ExtractGeometry {
+  const { avail, left } = span(w);
+  const fileWidth = avail * 0.5;
+  const codeWidth = Math.max(avail - fileWidth - EXTRACT_PEEK - 12, 0);
+  const top = 20;
+  const height = h - 40;
+  const fileX = left + codeWidth + 12;
+  return {
+    code: { x: left, y: top, w: codeWidth, h: height },
+    file: { x: fileX, y: top, w: fileWidth, h: height },
+    target: { x: fileX + EXTRACT_PEEK, y: top - EXTRACT_PEEK, w: fileWidth, h: height },
+    pitch: (height - 16) / EXTRACT_LINES,
+  };
+}
+
+function lineCenter(g: ExtractGeometry, index: number): number {
+  return g.code.y + 8 + (index + 0.5) * g.pitch;
+}
+
+function scanTop(g: ExtractGeometry): number {
+  return g.code.y + 4;
+}
+
+function scanPark(g: ExtractGeometry): number {
+  const last = Math.max(...EXTRACT_CALLS.map((call) => call.line));
+  return lineCenter(g, last) + g.pitch * SCAN_PARK_PITCHES;
+}
+
+function callTime(g: ExtractGeometry, call: ExtractCall): number {
+  const top = scanTop(g);
+  const along = (lineCenter(g, call.line) - top) / Math.max(scanPark(g) - top, 1);
+  return SCAN_START + SCAN_SPAN * clamp(along, 0, 1);
+}
+
+function rowCenter(g: ExtractGeometry, row: number): number {
+  return g.file.y + 28 + row * 24;
+}
+
+function callPillX(g: ExtractGeometry): number {
+  return g.code.x + 8 + CALL_PILL_OFFSET;
+}
+
+function extractCodeLine(
   c: DrawContext,
   p: Palette,
   g: ExtractGeometry,
-  i: number,
-  y: number,
-  barEnd: number,
-  scan: number,
+  index: number,
+  lit: number,
 ): void {
-  const tx = barEnd + 8;
-  const pass = ((y - g.top) / g.span) * 4;
-  const progress = clamp((scan - pass) / 1.1, 0, 1);
-  const slot = Math.floor(i / 3);
-  const ey = g.top + 16 + slot * ((g.span - 30) / 3) + 6;
-  const ex = g.rx + 14;
-  if (scan < pass) {
-    fillRound(c, tx, y - 4, 22, 8, 4, p.warn, 0.9);
+  const cy = lineCenter(g, index);
+  const x = g.code.x + 8;
+  if (EXTRACT_CALLS.some((call) => call.line === index)) {
+    callShape(c, p, x, cy, p.accent, lit, 1);
+    keyPill(c, callPillX(g), cy, p.muted, 0.9);
     return;
   }
-  if (progress < 1) {
-    const e = easeInOut(progress);
-    const py = lerp(y, ey, e) - Math.sin(e * Math.PI) * 14;
-    fillRound(c, lerp(tx, ex, e), py - 4, 22, 8, 4, p.warn, 1);
-    return;
+  const indent = hash(index, 1) < 0.5 ? 0 : 12;
+  valueBar(c, x + indent, cy, 20 + hash(index, 9) * Math.max(g.code.w - 56, 0), p.dim, 0.6);
+}
+
+function extractCode(
+  c: DrawContext,
+  p: Palette,
+  g: ExtractGeometry,
+  T: number,
+  settle: number,
+): void {
+  strokeRound(c, g.code.x, g.code.y, g.code.w, g.code.h, 7, p.dim, 1.2, 0.6);
+  for (let index = 0; index < EXTRACT_LINES; index += 1) {
+    const call = EXTRACT_CALLS.find((entry) => entry.line === index);
+    const lit = call ? easeOut(ramp(T, callTime(g, call), 0.25)) * settle : 0;
+    extractCodeLine(c, p, g, index, lit);
   }
-  fillRound(c, ex, ey - 4, 22, 8, 4, p.accent, 0.95);
-  fillRound(c, ex + 28, ey - 2, g.rw - 50, 4, 2, p.muted, 0.6);
+}
+
+function extractScan(
+  c: DrawContext,
+  p: Palette,
+  g: ExtractGeometry,
+  T: number,
+  settle: number,
+): void {
+  const progress = ramp(T, SCAN_START, SCAN_SPAN);
+  const held = ramp(T, SCAN_START + SCAN_SPAN, 0.3);
+  const alpha = Math.min(1, progress * 10) * settle;
+  if (progress <= 0 || alpha <= 0) return;
+  const y = lerp(scanTop(g), scanPark(g), progress);
+  c.globalAlpha = 0.14 * alpha * (1 - held);
+  c.fillStyle = p.accent;
+  c.fillRect(g.code.x + 3, y - 8, g.code.w - 6, 8);
+  c.globalAlpha = alpha;
+  c.strokeStyle = p.accent;
+  c.lineWidth = 1.4;
+  line(c, g.code.x + 3, y, g.code.x + g.code.w - 3, y);
+}
+
+function fileRow(c: DrawContext, p: Palette, g: ExtractGeometry, row: number): void {
+  const cy = rowCenter(g, row);
+  const width = Math.max(28, (g.file.w - 64) * (0.5 + 0.5 * hash(row, 3)));
+  keyPill(c, g.file.x + KEY_INSET, cy, p.muted, 0.9);
+  valueBar(c, g.file.x + VALUE_INSET, cy, width, p.dim, 0.9);
+}
+
+function newRow(
+  c: DrawContext,
+  p: Palette,
+  g: ExtractGeometry,
+  call: ExtractCall,
+  T: number,
+  settle: number,
+): void {
+  const landed = callTime(g, call) + FLIGHT_DELAY + FLIGHT_SPAN;
+  const since = T - landed;
+  if (since < 0) return;
+  const cy = rowCenter(g, call.row);
+  keyPill(c, g.file.x + KEY_INSET, cy, p.muted, 0.9 * settle);
+  dashedRound(
+    c,
+    { x: g.file.x + VALUE_INSET, y: cy - 3, w: Math.max(g.file.w - 64, 0), h: 6 },
+    3,
+    p.muted,
+    0.9 * settle,
+  );
+  const dotX = g.file.x + g.file.w - 10;
+  statusDot(c, dotX, cy, STATUS_DOT_R * easeOut(ramp(since, 0, 0.25)), p.warn, settle);
+  const pulse = ramp(since, 0, 0.6);
+  if (pulse > 0 && pulse < 1) {
+    c.globalAlpha = (1 - pulse) * 0.8 * settle;
+    c.strokeStyle = p.warn;
+    c.lineWidth = 1.2;
+    circle(c, dotX, cy, STATUS_DOT_R + pulse * 6);
+    c.stroke();
+  }
+}
+
+function knownCheck(
+  c: DrawContext,
+  p: Palette,
+  g: ExtractGeometry,
+  call: ExtractCall,
+  T: number,
+  settle: number,
+): void {
+  const start = callTime(g, call) + 0.2;
+  const flash = ramp(T, start, 0.25);
+  if (flash <= 0) return;
+  const hold = 1 - ramp(T, start + 0.5, 0.4);
+  const cy = rowCenter(g, call.row);
+  strokeRound(c, g.file.x + 5, cy - 10, g.file.w - 10, 20, 5, p.accent, 1.2, flash * hold * settle);
+  checkMark(c, g.file.x + g.file.w - 10, cy, 8, p.accent, (0.8 + 0.2 * hold) * settle, flash);
+}
+
+function extractFlight(
+  c: DrawContext,
+  p: Palette,
+  g: ExtractGeometry,
+  call: ExtractCall,
+  T: number,
+): void {
+  const progress = ramp(T, callTime(g, call) + FLIGHT_DELAY, FLIGHT_SPAN);
+  if (progress <= 0 || progress >= 1) return;
+  const e = easeInOut(progress);
+  const x = lerp(callPillX(g), g.file.x + KEY_INSET, e);
+  const lift = Math.sin(e * Math.PI) * 14 + FLIGHT_LIFT * (1 - e);
+  const cy = lerp(lineCenter(g, call.line), rowCenter(g, call.row), e) - lift;
+  keyPill(c, x, cy, p.muted, 1);
+  strokeRound(c, x - 2, cy - 5.5, KEY_PILL_W + 4, 11, 5.5, p.accent, 1.2, 1);
+}
+
+function extractFile(
+  c: DrawContext,
+  p: Palette,
+  g: ExtractGeometry,
+  T: number,
+  settle: number,
+): void {
+  localeFile(c, p, g.target, false, 0.7);
+  localeFile(c, p, g.file, true, 1);
+  for (let row = 0; row < EXTRACT_FILE_ROWS; row += 1) fileRow(c, p, g, row);
+  for (const call of EXTRACT_CALLS) {
+    if (call.isNew) newRow(c, p, g, call, T, settle);
+    else knownCheck(c, p, g, call, T, settle);
+  }
 }
 
 const extract: FrameFunction = (c, w, h, t, p) => {
-  const lw = Math.min(150, w * 0.38);
-  const top = 18;
-  const count = 10;
-  const span = h - top * 2;
-  const g: ExtractGeometry = {
-    lx: w * 0.09,
-    lw,
-    top,
-    span,
-    lineHeight: span / count,
-    rx: w * 0.66,
-    rw: Math.min(w * 0.26, 100),
-  };
-  const scan = t % 5.2;
-  const scanY = clamp(scan / 4, 0, 1) * span + top;
-  strokeRound(c, g.rx, top, g.rw, span, 8, p.dim, 1.2, 0.6);
-  for (let i = 0; i < count; i += 1) {
-    const y = top + i * g.lineHeight + g.lineHeight / 2;
-    const indent = hash(i, 1) < 0.5 ? 0 : 14;
-    const barWidth = 24 + hash(i, 9) * (lw - 50);
-    fillRound(c, g.lx + indent, y - 2, barWidth, 4, 2, p.dim, 0.6);
-    if (i % 3 === 1) extractCall(c, p, g, i, y, g.lx + indent + barWidth, scan);
-  }
-  if (scan < 4.2) {
-    c.globalAlpha = 0.18;
-    c.fillStyle = p.accent;
-    c.fillRect(g.lx - 6, scanY - 10, lw + 40, 10);
-    c.globalAlpha = 1;
-    c.strokeStyle = p.accent;
-    c.lineWidth = 1.4;
-    line(c, g.lx - 6, scanY, g.lx + lw + 34, scanY);
-  }
+  const g = extractGeometry(w, h);
+  const T = t % LOOP_SECONDS.extract;
+  const settle = tailFade(T, LOOP_SECONDS.extract, 0.6);
+  extractCode(c, p, g, T, settle);
+  extractFile(c, p, g, T, settle);
+  extractScan(c, p, g, T, settle);
+  for (const call of EXTRACT_CALLS) if (call.isNew) extractFlight(c, p, g, call, T);
   c.globalAlpha = 1;
 };
 
-function spikeAt(tt: number, spikes: ReadonlyArray<number>): number {
-  let value = 0;
-  for (const spike of spikes) {
-    const dt = tt - spike;
-    if (dt > -0.5 && dt < 0.9) value += Math.exp(-dt * dt * 28) * (dt < 0 ? 1 : Math.cos(dt * 14));
+const WATCH_CYCLE = 4.5;
+const WATCH_ROWS = 2;
+const WATCH_TARGETS = 3;
+const WATCH_TARGET_H = 32;
+const WATCH_ROW_OFFSET = 21;
+const WATCH_EDIT_START = 0.35;
+const WATCH_RING_R = 10;
+const WATCH_ORBIT = 1.5;
+
+type WatchGeometry = {
+  readonly source: Box;
+  readonly targets: ReadonlyArray<Box>;
+  readonly ring: Point;
+  readonly barMax: number;
+};
+
+function watchGeometry(w: number, h: number): WatchGeometry {
+  const { avail, left } = span(w);
+  const fileW = clamp(avail * 0.34, 84, 130);
+  const stack = WATCH_TARGETS * WATCH_TARGET_H + (WATCH_TARGETS - 1) * 10;
+  const top = (h - stack) / 2;
+  const targets = Array.from({ length: WATCH_TARGETS }, (_, index) => ({
+    x: left + avail - fileW,
+    y: top + index * (WATCH_TARGET_H + 10),
+    w: fileW,
+    h: WATCH_TARGET_H,
+  }));
+  return {
+    source: { x: left, y: (h - 92) / 2, w: fileW, h: 92 },
+    targets,
+    ring: { x: left + avail / 2, y: h / 2 },
+    barMax: fileW - 50,
+  };
+}
+
+function watchSourceRow(g: WatchGeometry, row: number): number {
+  return g.source.y + 38 + row * 28;
+}
+
+function watchBase(g: WatchGeometry, row: number): number {
+  return g.barMax * (0.55 + 0.2 * hash(row, 2));
+}
+
+function watchCaret(c: DrawContext, p: Palette, at: Point, C: number): void {
+  const alpha = ramp(C, 0.3, 0.1) * (1 - ramp(C, 1.3, 0.2));
+  if (alpha <= 0) return;
+  c.globalAlpha = alpha;
+  c.fillStyle = p.fg;
+  c.fillRect(at.x, at.y - 4.5, 1.5, 9);
+}
+
+function watchSource(
+  c: DrawContext,
+  p: Palette,
+  g: WatchGeometry,
+  edited: number,
+  C: number,
+): void {
+  localeFile(c, p, g.source, true, 1);
+  const typed = easeOut(ramp(C, 0.4, 0.9));
+  const edge = ramp(C, 0, 0.35) * loopFade(C, WATCH_CYCLE, 0.35);
+  for (let row = 0; row < WATCH_ROWS; row += 1) {
+    const cy = watchSourceRow(g, row);
+    const width =
+      row === edited ? lerp(g.barMax * WATCH_EDIT_START, g.barMax, typed) : watchBase(g, row);
+    keyPill(c, g.source.x + KEY_INSET, cy, p.muted, 0.9);
+    valueBar(c, g.source.x + VALUE_INSET, cy, width, p.dim, 0.9 * (row === edited ? edge : 1));
+    if (row === edited) watchCaret(c, p, { x: g.source.x + VALUE_INSET + 3 + width, y: cy }, C);
   }
-  return value;
+  strokeRound(
+    c,
+    g.source.x,
+    g.source.y,
+    g.source.w,
+    g.source.h,
+    7,
+    p.accent,
+    1.6,
+    0.9 * bump(C, 1.5, 0.5),
+  );
+}
+
+function watchTarget(c: DrawContext, p: Palette, g: WatchGeometry, index: number, C: number): void {
+  const box = g.targets[index];
+  if (!box) return;
+  localeFile(c, p, box, false, 1);
+  const fill = ramp(C, 2.9 + 0.2 * index, 0.9);
+  const fade = loopFade(C, WATCH_CYCLE, 0.4);
+  const cy = box.y + WATCH_ROW_OFFSET;
+  keyPill(c, box.x + KEY_INSET, cy, p.muted, 0.9);
+  valueBar(c, box.x + VALUE_INSET, cy, g.barMax * (0.5 + 0.3 * hash(index, 4)), p.dim, 0.9);
+  valueBar(c, box.x + VALUE_INSET, cy, g.barMax * fill, p.accent, 0.85 * fade);
+}
+
+function watchPulse(c: DrawContext, p: Palette, at: Point, progress: number): void {
+  if (progress <= 0 || progress >= 1) return;
+  const alpha = Math.min(1, progress * 6) * Math.min(1, (1 - progress) * 6);
+  fillRound(c, at.x - 5, at.y - 2.5, 10, 5, 2.5, p.accent, alpha);
+}
+
+function watchWires(c: DrawContext, p: Palette, g: WatchGeometry, C: number): void {
+  const ring = g.ring;
+  const inbound = { x: g.source.x + g.source.w, y: ring.y };
+  const gate = { x: ring.x - WATCH_RING_R, y: ring.y };
+  const out = { x: ring.x + WATCH_RING_R, y: ring.y };
+  const legs = g.targets.map((box) => ({ x: box.x, y: box.y + WATCH_ROW_OFFSET }));
+  dashedLine(c, inbound, gate, p.dim, 0.9);
+  for (const to of legs) dashedLine(c, out, to, p.dim, 0.9);
+  const arrive = ramp(C, 1.8, 0.5);
+  watchPulse(c, p, { x: lerp(inbound.x, gate.x, arrive), y: ring.y }, arrive);
+  const fan = ramp(C, 2.3, 0.6);
+  for (const to of legs) {
+    watchPulse(c, p, { x: lerp(out.x, to.x, fan), y: lerp(out.y, to.y, fan) }, fan);
+  }
+}
+
+function watchRing(c: DrawContext, p: Palette, g: WatchGeometry, t: number, C: number): void {
+  const { x, y } = g.ring;
+  fillRound(
+    c,
+    x - WATCH_RING_R,
+    y - WATCH_RING_R,
+    WATCH_RING_R * 2,
+    WATCH_RING_R * 2,
+    WATCH_RING_R,
+    p.card,
+    1,
+  );
+  c.globalAlpha = 0.9;
+  c.strokeStyle = p.dim;
+  c.lineWidth = 1.4;
+  circle(c, x, y, WATCH_RING_R);
+  c.stroke();
+  c.globalAlpha = 0.9 * bump(C, 2.2, 0.4);
+  c.strokeStyle = p.accent;
+  circle(c, x, y, WATCH_RING_R);
+  c.stroke();
+  const angle = (t * TAU) / WATCH_ORBIT;
+  statusDot(
+    c,
+    x + Math.cos(angle) * WATCH_RING_R,
+    y + Math.sin(angle) * WATCH_RING_R,
+    STATUS_DOT_R,
+    p.accent,
+    1,
+  );
 }
 
 const watch: FrameFunction = (c, w, h, t, p) => {
-  const names = 4;
-  const top = 34;
-  const gap = (h - top * 2) / (names - 1);
-  const speed = 46;
-  const x0 = 18;
-  const xr = w - 26;
-  const spikes: number[] = [];
-  for (let k = -2; k < 14; k += 1) spikes.push(k * 2.6 + hash(k, 5) * 1.3);
-  for (let i = 0; i < names; i += 1) {
-    const yb = top + i * gap;
-    const amp = i === 0 ? 20 : 14 - i * 1.5;
-    const delay = i * 0.55;
-    const color = i === 0 ? p.fg : p.accent;
-    c.lineWidth = 1.4;
-    c.globalAlpha = i === 0 ? 1 : 0.85 - i * 0.1;
-    c.strokeStyle = color;
-    c.beginPath();
-    for (let x = x0; x <= xr; x += 2) {
-      const y = yb - spikeAt(t - (xr - x) / speed - delay, spikes) * amp;
-      if (x === x0) c.moveTo(x, y);
-      else c.lineTo(x, y);
-    }
-    c.stroke();
-    c.globalAlpha = 0.9;
-    c.fillStyle = color;
-    circle(c, xr, yb, 2.6);
-    c.fill();
-    c.globalAlpha = 0.35;
-    c.strokeStyle = p.dim;
-    c.lineWidth = 1;
-    c.setLineDash([2, 5]);
-    line(c, x0, yb + 6, xr, yb + 6);
-    c.setLineDash([]);
-  }
-  c.globalAlpha = 0.5;
-  c.strokeStyle = p.accent;
-  c.lineWidth = 1;
-  line(c, xr, top - 14, xr, h - top + 12);
+  const g = watchGeometry(w, h);
+  const cycle = Math.floor(t / WATCH_CYCLE);
+  const C = t % WATCH_CYCLE;
+  const edited = cycle % WATCH_ROWS;
+  watchWires(c, p, g, C);
+  watchSource(c, p, g, edited, C);
+  for (let index = 0; index < WATCH_TARGETS; index += 1) watchTarget(c, p, g, index, C);
+  watchRing(c, p, g, t, C);
   c.globalAlpha = 1;
 };
 
-const TOKEN_W = 56;
-const TOKEN_H = 28;
-const TOKEN_GAP = 22;
+const TYPES_ROWS = 2;
+const TYPES_BOX_H = 64;
+const TYPES_ROW_TOP = 24;
+const TYPES_ROW_PITCH = 18;
+const TYPES_USAGE_TOP = 88;
+const TYPES_USAGE_PITCH = 22;
+const TYPES_HEIGHT = TYPES_USAGE_TOP + TYPES_USAGE_PITCH + PILL_H;
+const TYPO_SEGMENTS: ReadonlyArray<number> = [15, 7];
+const TYPO_GAP = 2;
+const TYPO_DROP = 2;
 
-function typeToken(
-  c: DrawContext,
-  p: Palette,
-  x: number,
-  y: number,
-  color: string,
-  alpha: number,
-  bars: number,
-): void {
-  fillRound(c, x, y - TOKEN_H / 2, TOKEN_W, TOKEN_H, 8, p.card, alpha);
-  strokeRound(c, x, y - TOKEN_H / 2, TOKEN_W, TOKEN_H, 8, color, 1.6, alpha);
-  fillRound(c, x + 9, y - 6, 22 + bars * 6, 4, 2, color, alpha);
-  fillRound(c, x + 9, y + 3, 18, 4, 2, color, alpha * 0.6);
+type TypesGeometry = {
+  readonly file: Box;
+  readonly block: Box;
+  readonly left: number;
+  readonly rowA: number;
+  readonly rowB: number;
+  readonly bar: Box;
+};
+
+function typesGeometry(w: number, h: number): TypesGeometry {
+  const { avail, left } = span(w);
+  const top = (h - TYPES_HEIGHT) / 2;
+  const blockW = clamp(avail * 0.42, 96, 170);
+  const barX = left + avail * 0.52;
+  const rowA = top + TYPES_USAGE_TOP;
+  return {
+    file: { x: left, y: top, w: clamp(avail * 0.38, 84, 150), h: TYPES_BOX_H },
+    block: { x: left + avail - blockW, y: top, w: blockW, h: TYPES_BOX_H },
+    left,
+    rowA,
+    rowB: rowA + TYPES_USAGE_PITCH,
+    bar: { x: barX, y: rowA + TYPES_USAGE_PITCH / 2 - 4, w: left + avail - barX, h: 8 },
+  };
 }
 
-function typeBrackets(c: DrawContext, p: Palette, left: number, width: number, cy: number): void {
-  c.globalAlpha = 0.55;
+function typesRowY(box: Box, row: number): number {
+  return box.y + TYPES_ROW_TOP + row * TYPES_ROW_PITCH;
+}
+
+function typesFile(c: DrawContext, p: Palette, g: TypesGeometry): void {
+  localeFile(c, p, g.file, true, 1);
+  const barMax = g.file.w - 50;
+  const widths = [0.75, 0.5];
+  for (let row = 0; row < TYPES_ROWS; row += 1) {
+    const cy = typesRowY(g.file, row);
+    const width = barMax * (widths[row] ?? 0.5);
+    keyPill(c, g.file.x + KEY_INSET, cy, p.muted, 0.9);
+    valueBar(c, g.file.x + VALUE_INSET, cy, width, p.dim, 0.9);
+    if (row === 1) argChip(c, p, g.file.x + VALUE_INSET + width + 8, cy, 0.9);
+  }
+}
+
+function typesBrackets(c: DrawContext, p: Palette, box: Box): void {
+  c.globalAlpha = 0.7;
   c.strokeStyle = p.accent;
   c.lineWidth = 1.6;
   c.beginPath();
-  c.moveTo(left + 8, cy - 30);
-  c.lineTo(left, cy - 30);
-  c.lineTo(left, cy + 30);
-  c.lineTo(left + 8, cy + 30);
+  c.moveTo(box.x + 9, box.y);
+  c.lineTo(box.x, box.y);
+  c.lineTo(box.x, box.y + box.h);
+  c.lineTo(box.x + 9, box.y + box.h);
   c.stroke();
   c.beginPath();
-  c.moveTo(left + width - 8, cy - 30);
-  c.lineTo(left + width, cy - 30);
-  c.lineTo(left + width, cy + 30);
-  c.lineTo(left + width - 8, cy + 30);
+  c.moveTo(box.x + box.w - 9, box.y);
+  c.lineTo(box.x + box.w, box.y);
+  c.lineTo(box.x + box.w, box.y + box.h);
+  c.lineTo(box.x + box.w - 9, box.y + box.h);
   c.stroke();
 }
 
-function typeAccepted(
-  c: DrawContext,
-  p: Palette,
-  w: number,
-  cy: number,
-  slotX: number,
-  k: number,
-  cycle: number,
-): void {
-  const start = 0.4 + k * 0.8;
-  const progress = clamp((cycle - start) / 0.9, 0, 1);
-  if (progress <= 0) return;
-  const eased = 1 - (1 - progress) ** 4;
-  const over =
-    progress > 0.8 && progress < 1 ? Math.sin(((progress - 0.8) / 0.2) * Math.PI) * 2 : 0;
-  typeToken(c, p, lerp(w + 20, slotX, eased), cy - over, p.accent, Math.min(1, progress * 3), k);
-  const ripple = (cycle - start - 0.9) / 0.5;
-  if (progress >= 1 && ripple < 1) {
-    strokeRound(
-      c,
-      slotX - ripple * 8,
-      cy - TOKEN_H / 2 - ripple * 8,
-      TOKEN_W + ripple * 16,
-      TOKEN_H + ripple * 16,
-      8 + ripple * 6,
-      p.accent,
-      1.3,
-      1 - ripple,
-    );
+function typesBlock(c: DrawContext, p: Palette, g: TypesGeometry, T: number, fade: number): void {
+  const b = g.block;
+  fillRound(c, b.x, b.y, b.w, b.h, 4, p.card, 0.6);
+  typesBrackets(c, p, b);
+  for (let row = 0; row < TYPES_ROWS; row += 1) {
+    const shown = ramp(T, 0.4 + 0.5 * row, 0.4);
+    const alpha = shown * fade;
+    const cy = typesRowY(b, row);
+    const slide = (1 - shown) * 6;
+    keyPill(c, b.x + 14 - slide, cy, p.muted, 0.9 * alpha);
+    if (row === 1) argChip(c, p, b.x + 50 - slide, cy, alpha);
+    else valueBar(c, b.x + 46 - slide, cy, 20, p.dim, 0.7 * alpha);
   }
+  const match = ramp(T, 2.4, 0.3) * fade;
+  strokeRound(c, b.x + 8, typesRowY(b, 0) - 7, b.w - 16, 14, 4, p.accent, 1.2, match);
 }
 
-function typeRejected(
+function typesUsage(c: DrawContext, p: Palette, g: TypesGeometry, T: number, fade: number): void {
+  const x = g.left + 2;
+  const valid = ramp(T, 1.9, 0.5) * fade;
+  callShape(c, p, x, g.rowA, p.accent, valid, valid);
+  keyPill(c, x + CALL_PILL_OFFSET, g.rowA, p.muted, 0.9 * valid);
+  checkMark(c, x + 80, g.rowA, 8, p.accent, fade, ramp(T, 2.6, 0.4));
+  const typo = ramp(T, 3.4, 0.5) * fade;
+  callShape(c, p, x, g.rowB, p.bad, 0, typo);
+  let offset = 0;
+  TYPO_SEGMENTS.forEach((width, index) => {
+    const last = index === TYPO_SEGMENTS.length - 1;
+    const box = {
+      x: x + CALL_PILL_OFFSET + offset,
+      y: g.rowB - PILL_H / 2 + (index === 0 ? 0 : TYPO_DROP),
+      w: width,
+      h: PILL_H,
+    };
+    fillSegment(
+      c,
+      box,
+      { left: last ? 0 : PILL_H / 2, right: last ? PILL_H / 2 : 0 },
+      p.bad,
+      0.9 * typo,
+    );
+    offset += width + TYPO_GAP;
+  });
+  typesSquiggle(c, p, { x: x + CALL_PILL_OFFSET - 2, y: g.rowB + 8 }, ramp(T, 3.9, 0.4), fade);
+}
+
+function typesSquiggle(
   c: DrawContext,
   p: Palette,
-  w: number,
-  cy: number,
-  slotX: number,
-  cycle: number,
+  from: Point,
+  progress: number,
+  fade: number,
 ): void {
-  const progress = clamp((cycle - 3.7) / 1.1, 0, 1);
-  if (progress <= 0 || progress >= 1) return;
-  const alpha = 1 - Math.max(0, (progress - 0.7) / 0.3);
-  const x =
-    progress < 0.5
-      ? lerp(w + 20, slotX + 14, easeOut(progress / 0.5))
-      : lerp(slotX + 14, slotX + 80, easeOut((progress - 0.5) / 0.5));
-  const shake = progress > 0.45 && progress < 0.6 ? Math.sin(progress * 160) * 3 : 0;
-  typeToken(c, p, x, cy + shake, p.bad, alpha, 2);
-  if (progress > 0.45) {
-    strokeRound(c, slotX, cy - TOKEN_H / 2, TOKEN_W, TOKEN_H, 8, p.bad, 1.6, 0.9 * alpha);
+  if (progress <= 0 || fade <= 0) return;
+  c.globalAlpha = fade;
+  c.strokeStyle = p.bad;
+  c.lineWidth = 1.4;
+  c.beginPath();
+  c.moveTo(from.x, from.y);
+  const steps = Math.ceil(7 * progress);
+  for (let step = 1; step <= steps; step += 1) {
+    c.lineTo(from.x + step * 4, from.y + (step % 2 === 1 ? -2 : 2));
   }
+  c.stroke();
+}
+
+function typesBuild(c: DrawContext, p: Palette, g: TypesGeometry, T: number, fade: number): void {
+  const bar = g.bar;
+  strokeRound(c, bar.x, bar.y, bar.w, bar.h, 4, p.dim, 1.2, 0.8);
+  const fraction = 0.45 * easeInOut(ramp(T, 2.4, 0.8)) + 0.27 * easeOut(ramp(T, 3.8, 0.6));
+  const failed = ramp(T, 4.3, 0.3);
+  const width = bar.w * fraction;
+  fillRound(c, bar.x, bar.y, width, bar.h, 4, p.accent, (1 - failed) * fade);
+  fillRound(c, bar.x, bar.y, width, bar.h, 4, p.bad, failed * fade);
+  xMark(c, bar.x + width + 10, bar.y + bar.h / 2, 4, p.bad, ramp(T, 4.4, 0.3) * fade);
 }
 
 const types: FrameFunction = (c, w, h, t, p) => {
-  const cycle = t % 6.4;
-  const count = 3;
-  const step = TOKEN_W + TOKEN_GAP;
-  const gx = (w - (count + 1) * TOKEN_W - count * TOKEN_GAP) / 2;
-  const cy = h * 0.5;
-  c.lineWidth = 1.3;
-  c.strokeStyle = p.dim;
-  c.globalAlpha = 0.7;
-  c.setLineDash([3, 4]);
-  for (let i = 0; i < count + 1; i += 1) {
-    roundRect(c, gx + i * step, cy - TOKEN_H / 2, TOKEN_W, TOKEN_H, 8);
-    c.stroke();
-  }
-  c.setLineDash([]);
-  typeBrackets(c, p, gx - 14, (count + 1) * TOKEN_W + count * TOKEN_GAP + 28, cy);
-  for (let k = 0; k < count; k += 1) typeAccepted(c, p, w, cy, gx + k * step, k, cycle);
-  typeRejected(c, p, w, cy, gx + count * step, cycle);
+  const g = typesGeometry(w, h);
+  const T = t % LOOP_SECONDS.types;
+  const fade = tailFade(T, LOOP_SECONDS.types);
+  typesFile(c, p, g);
+  typesBlock(c, p, g, T, fade);
+  typesUsage(c, p, g, T, fade);
+  typesBuild(c, p, g, T, fade);
   c.globalAlpha = 1;
 };
 
-function doctorRow(c: DrawContext, p: Palette, cx: number, y: number, i: number, T: number): void {
-  const progress = clamp((T - 0.4 - i * 0.7) / 0.6, 0, 1);
+const DOCTOR_ROWS = 4;
+const DOCTOR_KEY_BAR_X = 48;
+const DOCTOR_KEY_CHECK_X = 88;
+
+type DoctorGeometry = {
+  readonly left: number;
+  readonly listWidth: number;
+  readonly rowTop: number;
+  readonly right: Box;
+  readonly keyY: number;
+  readonly estimateY: number;
+};
+
+function doctorGeometry(w: number, h: number): DoctorGeometry {
+  const { avail, left } = span(w);
+  const rightX = left + avail * 0.56;
+  return {
+    left,
+    listWidth: clamp(avail * 0.44, 96, 190),
+    rowTop: h / 2 - 42,
+    right: { x: rightX, y: 0, w: left + avail - rightX, h },
+    keyY: h / 2 - 32,
+    estimateY: h / 2 + 26,
+  };
+}
+
+function doctorRow(
+  c: DrawContext,
+  p: Palette,
+  g: DoctorGeometry,
+  index: number,
+  T: number,
+  fade: number,
+): void {
+  const cy = g.rowTop + index * 28;
+  const cx = g.left + 8;
+  const start = 0.4 + index * 0.7;
+  const progress = ramp(T, start, 0.6);
+  const settled = ramp(T, start + 0.6, 0.2) * fade;
   c.globalAlpha = 0.6;
   c.strokeStyle = p.dim;
   c.lineWidth = 1.4;
-  circle(c, cx, y, 9);
+  circle(c, cx, cy, 7);
   c.stroke();
-  c.globalAlpha = 1;
-  c.strokeStyle = p.accent;
-  c.lineWidth = 2;
-  if (progress > 0) {
+  if (progress > 0 && fade > 0) {
+    c.globalAlpha = fade;
+    c.strokeStyle = p.accent;
+    c.lineWidth = 2;
     c.beginPath();
-    c.arc(cx, y, 9, -Math.PI / 2, -Math.PI / 2 + Math.min(1, progress * 1.6) * TAU);
+    c.arc(cx, cy, 7, -Math.PI / 2, -Math.PI / 2 + Math.min(1, progress * 1.6) * TAU);
     c.stroke();
   }
-  if (progress > 0.6) {
-    const q = (progress - 0.6) / 0.4;
-    c.beginPath();
-    c.moveTo(cx - 4, y + 0.5);
-    c.lineTo(cx - 1, y + 3.5 * Math.min(1, q * 2));
-    if (q > 0.5) c.lineTo(cx - 1 + 6 * ((q - 0.5) * 2), y + 3.5 - 8 * ((q - 0.5) * 2));
-    c.stroke();
-  }
-  fillRound(c, cx + 22, y - 2, 40 + hash(i, 4) * 40, 4, 2, progress >= 1 ? p.muted : p.dim, 0.55);
+  checkMark(c, cx, cy - 0.5, 8, p.accent, fade, (progress - 0.6) / 0.4);
+  const labelMax = Math.max(g.listWidth - 26 - 10 - 28, 0);
+  const labelWidth = 28 + hash(index, 4) * labelMax;
+  valueBar(c, g.left + 26, cy, labelWidth, p.dim, 0.55 * (1 - settled));
+  valueBar(c, g.left + 26, cy, labelWidth, p.muted, 0.55 * settled);
 }
 
-function doctorBars(c: DrawContext, p: Palette, w: number, h: number, T: number): void {
-  const bx = w * 0.55;
-  const bw = w * 0.36;
-  const by = h - 30;
-  const bh = h - 62;
-  const cols = 9;
-  const barWidth = bw / cols - 5;
-  const grown = easeOut(clamp((T - 3.2) / 1.4, 0, 1));
-  c.globalAlpha = 0.5;
-  c.strokeStyle = p.dim;
-  c.lineWidth = 1;
-  line(c, bx - 4, by, bx + bw, by);
-  for (let k = 0; k < cols; k += 1) {
-    const height = (0.25 + hash(k, 11) * 0.55) * bh * grown;
-    const selected = k === 6;
-    fillRound(
-      c,
-      bx + k * (barWidth + 5),
-      by - height,
-      barWidth,
-      Math.max(height, 0),
-      3,
-      selected ? p.accent : p.dim,
-      selected ? 1 : 0.55,
-    );
-  }
-  c.globalAlpha = 0.8;
-  c.strokeStyle = p.warn;
-  c.lineWidth = 1.2;
-  c.setLineDash([4, 4]);
-  line(c, bx - 8, by - bh * 0.62, bx + bw + 4, by - bh * 0.62);
+function keyGlyph(c: DrawContext, p: Palette, x: number, cy: number): void {
+  c.globalAlpha = 0.85;
+  c.strokeStyle = p.muted;
+  c.lineWidth = 1.6;
+  c.setLineDash(DASH_KEY);
+  circle(c, x + 7.15, cy, 7.15);
+  c.stroke();
+  line(c, x + 14.3, cy, x + 39, cy);
+  line(c, x + 31.2, cy, x + 31.2, cy + 6.5);
+  line(c, x + 39, cy, x + 39, cy + 6.5);
   c.setLineDash([]);
 }
 
+function doctorKey(c: DrawContext, p: Palette, g: DoctorGeometry, T: number, fade: number): void {
+  const x = g.right.x;
+  keyGlyph(c, p, x, g.keyY);
+  valueBar(c, x + DOCTOR_KEY_BAR_X, g.keyY, 24, p.muted, 0.7);
+  checkMark(c, x + DOCTOR_KEY_CHECK_X, g.keyY, 8, p.accent, fade, ramp(T, 1, 0.4));
+}
+
+const DOCTOR_SEGMENTS: ReadonlyArray<number> = [0.22, 0.18, 0.16];
+const DOCTOR_SEGMENT_ALPHA: ReadonlyArray<number> = [0.95, 0.7, 0.5];
+
+function doctorEstimate(
+  c: DrawContext,
+  p: Palette,
+  g: DoctorGeometry,
+  T: number,
+  fade: number,
+): void {
+  const { x, w } = g.right;
+  const cy = g.estimateY;
+  strokeRound(c, x, cy - 7, w, 14, 7, p.dim, 1.2, 0.8);
+  let offset = 0;
+  DOCTOR_SEGMENTS.forEach((fraction, index) => {
+    const grown = easeOut(ramp(T, 3.2 + 0.5 * index, 0.5));
+    const width = Math.max(0, w * fraction * grown - 2);
+    const alpha = (DOCTOR_SEGMENT_ALPHA[index] ?? 0.5) * fade;
+    fillRound(c, x + 3 + offset, cy - 4, width, 8, 3, p.accent, alpha);
+    offset += w * fraction;
+  });
+  const ceilingX = x + w * 0.86;
+  dashedLine(
+    c,
+    { x: ceilingX, y: cy - 16 },
+    { x: ceilingX, y: cy + 16 },
+    p.warn,
+    0.9 * ramp(T, 2.8, 0.4) * fade,
+  );
+  checkMark(c, x + w * 0.56 + 12, cy, 8, p.accent, fade, ramp(T, 5, 0.4));
+}
+
 const doctor: FrameFunction = (c, w, h, t, p) => {
-  const T = t % 6.2;
-  const rows = 4;
-  const top = 28;
-  const gap = (h - top * 2) / (rows - 1);
-  for (let i = 0; i < rows; i += 1) doctorRow(c, p, w * 0.1 + 10, top + i * gap, i, T);
-  doctorBars(c, p, w, h, T);
+  const g = doctorGeometry(w, h);
+  const T = t % LOOP_SECONDS.doctor;
+  const fade = tailFade(T, LOOP_SECONDS.doctor);
+  for (let index = 0; index < DOCTOR_ROWS; index += 1) doctorRow(c, p, g, index, T, fade);
+  doctorKey(c, p, g, T, fade);
+  doctorEstimate(c, p, g, T, fade);
   c.globalAlpha = 1;
 };
 
@@ -654,29 +1433,41 @@ const FRAME_FUNCTIONS: Readonly<Record<LandingFeatureId, FrameFunction>> = {
 };
 
 export const STILL_TIME: Readonly<Record<LandingFeatureId, number>> = {
-  studio: 9,
-  handoff: 2.2,
-  extract: 3.1,
-  watch: 6,
-  types: 3.9,
-  doctor: 4.2,
+  studio: 2.1,
+  handoff: 5.85,
+  extract: 4.4,
+  watch: 3.5,
+  types: 5,
+  doctor: 5.8,
 };
 
 export const RUN_SECONDS: Readonly<Record<LandingFeatureId, number>> = {
-  studio: 24,
-  handoff: 3 * 3.4,
-  extract: 3 * 5.2,
-  watch: 18,
-  types: 3 * 6.4,
-  doctor: 3 * 6.2,
+  studio: LOOP_SECONDS.studio,
+  handoff: 3 * LOOP_SECONDS.handoff,
+  extract: 3 * LOOP_SECONDS.extract,
+  watch: 3 * LOOP_SECONDS.watch,
+  types: 3 * LOOP_SECONDS.types,
+  doctor: 3 * LOOP_SECONDS.doctor,
 };
+
+function toMs(seconds: number): number {
+  return Math.round(seconds * 1000);
+}
+
+export function runEndSeconds(id: LandingFeatureId, phase: number): number {
+  const loop = toMs(LOOP_SECONDS[id]);
+  const still = toMs(STILL_TIME[id]);
+  const offset = toMs(phase);
+  const laps = Math.ceil((toMs(RUN_SECONDS[id]) + offset - still) / loop);
+  return (laps * loop + still - offset) / 1000;
+}
 
 export function canvasClock(
   id: LandingFeatureId,
   played: number,
   phase: number,
 ): { readonly time: number; readonly done: boolean } {
-  if (played >= RUN_SECONDS[id]) return { time: STILL_TIME[id], done: true };
+  if (played >= runEndSeconds(id, phase)) return { time: STILL_TIME[id], done: true };
   return { time: played + phase, done: false };
 }
 
