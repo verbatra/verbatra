@@ -11,7 +11,7 @@ Antes de empezar, necesitas:
 - Una configuración de verbatra directamente dentro del directorio en el que se ejecuta la acción (consulta [Descubrimiento de la configuración](#descubrimiento-de-la-configuración)).
 - Una versión exacta de `@verbatra/cli` que fijar, `0.9.3` o posterior.
 - Solo para `translate`: la clave de API de tu proveedor como secreto del repositorio.
-- Actions Runner v2.327.1 o posterior, y `verbatra/action` `v1.3.0` o posterior, que esta página describe y que `qa`, `require-reviewed` y `needs-human` necesitan.
+- Actions Runner v2.327.1 o posterior, y `verbatra/action` `v1.3.0` o posterior, que esta página describe y que `qa`, `require-reviewed`, `sensitive`, `locales` y `needs-human` necesitan.
 
 ## Añade la acción a un workflow
 
@@ -42,7 +42,7 @@ La acción instala `@verbatra/cli` y `@verbatra/sdk` exactamente en esa versión
 
 ### Pasa la clave del proveedor
 
-Pasa la clave desde los secretos del repositorio con la variable que lee tu proveedor; [Proveedores](/es/docs/providers#las-claves-vienen-del-entorno) las enumera. La acción no tiene una entrada para la clave, así que una clave nunca viaja como entrada ni como argumento de la CLI.
+Pasa la clave desde los secretos del repositorio con la variable que lee tu proveedor; [Proveedores](/es/docs/providers#las-claves-vienen-del-entorno) las enumera.
 
 ## Protege un pull request
 
@@ -71,7 +71,6 @@ Añade `qa: "true"` a `command: check` para ejecutar [`verbatra check --qa`](/es
 
 - Cada hallazgo se convierte en una anotación titulada `verbatra qa: <locale>`: un error para un valor que la puerta de integridad rechazaría, un aviso para un motivo de revisión.
 - El paso falla con cualquier hallazgo de error. Añade `qa-strict: "true"` para fallar también con avisos y plurales incompletos, o `qa-severity: error` para informar solo de errores. La CLI rechaza ambos a la vez.
-- Una `version` menor que `0.12.0`, o una prerelease como `0.12.0-next.0`, hace fallar el paso antes de instalar nada.
 
 ## Exigir traducciones revisadas
 
@@ -89,7 +88,23 @@ Añade `require-reviewed: "true"` a `command: check` para ejecutar [`verbatra ch
 
 - Cada locale con claves sin aprobar recibe una anotación de error [`REVIEW_REQUIRED`](/es/docs/error-codes#review_required) que las nombra, y el resumen del job añade una columna `unreviewed`.
 - Un `verbatra.provenance.json` dañado o escrito por un verbatra más reciente hace fallar la puerta con una sola anotación `REVIEW_STATE_UNREADABLE`.
-- Como `qa`, necesita una `version` `0.12.0` o posterior, y una prerelease hace fallar el paso.
+
+## Analizar las fuentes y elegir locales
+
+<AvailableFrom version="0.12.0" />
+
+Añade `sensitive: "true"` a `command: check` para ejecutar `verbatra check --sensitive`, que hace fallar el paso cuando el archivo fuente o el glosario contienen contenido que parece sensible, como emails, claves o números de tarjeta. Pon en `locales` una lista separada por comas, como `de,fr`, para limitar cualquier comando a esos locales de destino.
+
+```yaml
+      - uses: verbatra/action@<commit-sha> # a commit on the v1 line
+        with:
+          version: 0.12.0
+          command: check
+          sensitive: "true"
+          locales: "de,fr"
+```
+
+- Ambas necesitan una `version` `0.12.0` o posterior; una versión anterior o una prerelease hace fallar el paso antes de instalar nada, como con `qa`.
 
 ## Modo solo humano
 
@@ -137,9 +152,11 @@ Si no encuentra configuración, el paso falla antes de instalar la CLI y nombra 
 | `qa-severity` | `""` | severidad mínima que informar, `error` o `warning` (`--severity`); requiere `qa` |
 | `qa-strict` | `"false"` | `"true"` falla también con avisos (`--strict`); requiere `qa` |
 | `require-reviewed` | `"false"` | `"true"` falla también con traducciones de máquina sin aprobar (`--require-reviewed`); solo `check` |
-| `node-version` | `"24"` | versión de Node.js que la acción prepara para ejecutar la CLI |
+| `sensitive` | `"false"` | `"true"` añade el análisis de contenido sensible (`--sensitive`); solo `check` |
+| `locales` | `""` | locales de destino separados por comas que se ejecutan (`--locales`) |
+| `node-version` | `"24"` | versión de Node.js que la acción prepara para ejecutar la CLI; debe resolverse a 22.18.0 o posterior en la 22, o a 24 o posterior |
 
-Las entradas booleanas solo aceptan `"true"` o `"false"`. Un booleano no válido, o una entrada sin el comando o `qa` que necesita, hace fallar el paso con salida `1` antes de instalar la CLI. La CLI rechaza un `qa-severity` desconocido, y `qa-severity: error` con `qa-strict`, con salida `2` después.
+Las entradas booleanas solo aceptan `"true"` o `"false"`. Un booleano no válido, o una entrada sin el comando o `qa` que necesita, hace fallar el paso con salida `1` antes de instalar la CLI.
 
 ## Salidas
 
@@ -149,9 +166,9 @@ Las entradas booleanas solo aceptan `"true"` o `"false"`. Un booleano no válido
 
 ## Qué te muestra una ejecución
 
-- **Anotaciones.** Con `translate` y salida `1`, cada locale fallido o parcial se convierte en una anotación de error titulada `verbatra: <locale>`. Con `check` o `diff`, cada locale desviado recibe una titulada `verbatra check: <locale>` o `verbatra diff: <locale>`. Todas se asocian al archivo de su locale cuando la acción lo encuentra. La anotación `LOCALE_PARTIAL` de un locale parcial nombra las claves retenidas, agrupadas por causa. Cada `check` añade un aviso `PLURAL_CATEGORIES_INCOMPLETE` por locale cuyos plurales carecen de una categoría CLDR que usa el idioma. Una ejecución que falla por completo recibe una sola anotación `verbatra` con el código de error, su causa como `(cause: X)` y una pista `Next step:` cuando la CLI las da. GitHub muestra como mucho 10 anotaciones por severidad, así que la acción las ordena por desviación, revisión, errores de calidad y avisos, y añade un aviso que cuenta el resto.
+- **Anotaciones.** Con `translate` y salida `1`, cada locale fallido o parcial se convierte en una anotación de error titulada `verbatra: <locale>`. Con `check` o `diff`, cada locale desviado recibe una titulada `verbatra check: <locale>` o `verbatra diff: <locale>`. Todas se asocian al archivo de su locale cuando la acción lo encuentra. Cada `check` añade un aviso `PLURAL_CATEGORIES_INCOMPLETE` por locale cuyos plurales carecen de una categoría CLDR que usa el idioma. Una ejecución que falla por completo recibe una sola anotación `verbatra` con el código de error, su causa como `(cause: X)` y una pista `Next step:` cuando la CLI las da.
 - **Resumen del job.** Una fila por locale con los recuentos del comando ejecutado, una línea agregada y los locales parciales y fallidos. Con `qa` añade una tabla de hallazgos de hasta 1000 hallazgos; los plurales incompletos tienen su propia sección.
-- **Estado de salida.** La acción emite primero las anotaciones y el resumen y luego sale con el [código de salida](/es/docs/cli/output#códigos-de-salida) de la propia CLI, salvo que un `3` de `translate` pasa y un fallo antes de arrancar la CLI (sin directorio de trabajo, sin config, una instalación fallida) sale con `1`; una entrada rechazada recibe un único `::error::`, sin resumen.
+- **Estado de salida.** La acción emite primero las anotaciones y el resumen y luego sale con el [código de salida](/es/docs/cli/output#códigos-de-salida) de la propia CLI, salvo que un `3` de `translate` pasa y un fallo antes de arrancar la CLI (sin directorio de trabajo, sin config, una instalación fallida) sale con `1`.
 
 ## Seguridad
 
