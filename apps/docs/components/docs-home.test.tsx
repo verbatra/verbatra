@@ -180,7 +180,8 @@ describe("DocsHomeAgentTip", () => {
 
   it("sets the callout title and body at the snug and normal leading", () => {
     const rule = (selector: string) =>
-      new RegExp(`${selector.replace(/[.>]/g, "\\$&")} \\{([^}]*)\\}`).exec(GLOBAL_CSS)?.[1] ?? "";
+      new RegExp(`${selector.replace(/[\\.>]/g, "\\$&")} \\{([^}]*)\\}`).exec(GLOBAL_CSS)?.[1] ??
+      "";
     expect(rule(".vk-home-callout-body")).toContain("line-height: var(--leading-normal);");
     expect(rule(".vk-home-callout-body > .vk-home-callout-title")).toContain(
       "line-height: var(--leading-snug);",
