@@ -91,6 +91,9 @@ overrides:
   # GHSA-vh66-26gq-q6x8 all extend the vulnerable range to <1.20.0. deepl-node declares axios ^1.7.4,
   # so the <2 ceiling keeps it inside 1.x.
   axios@<1.20.0: ">=1.20.0 <2"
+  # GHSA-mrhx-c7xc-m3w5 (high): zod vulnerable <4.6.6. Lifts the 4.6.5 copy @modelcontextprotocol/server
+  # pulls through fumadocs-core (apps/docs, private). The <5 ceiling keeps it on the v4 line.
+  zod@<4.6.6: ">=4.6.7 <5"
   # GHSA-j3f2-48v5-ccww: protobufjs DoS via an infinite loop parsing a crafted descriptor.
   # Vulnerable >=7.5.0 <=7.6.4; lifts the 7.6.4 copy @google/genai pulls on the published sdk path.
   # The <8 ceiling is required: @google/genai declares protobufjs ^7.5.4, so an unbounded ">=7.6.5"

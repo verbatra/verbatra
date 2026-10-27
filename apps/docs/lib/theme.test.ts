@@ -16,6 +16,7 @@ import {
 } from "@/test-support/contrast";
 import {
   DEFAULT_THEME,
+  embed,
   nextTheme,
   THEME_COLORS,
   THEME_STORAGE_KEY,
@@ -386,5 +387,13 @@ describe("theme tokens", () => {
     expect(heading?.declarations.hyphens).toBe("manual");
     expect(heading?.declarations["overflow-wrap"]).toBe("anywhere");
     expect(rules.some((rule) => rule.declarations.hyphens === "auto")).toBe(false);
+  });
+});
+
+describe("embed", () => {
+  it("escapes the characters that could end or break an inline script", () => {
+    const embedded = embed("</script>\u2028\u2029");
+    expect(embedded).toBe('"\\u003c/script>\\u2028\\u2029"');
+    expect(JSON.parse(embedded)).toBe("</script>\u2028\u2029");
   });
 });
