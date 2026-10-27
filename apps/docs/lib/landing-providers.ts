@@ -29,6 +29,7 @@ export const PROVIDER_DISPLAY: Readonly<Record<MachineProviderId, ProviderDispla
     kind: "llm",
     shortLabel: "OpenAI-compatible",
   },
+  opencode: { label: "OpenCode", kind: "llm" },
   libretranslate: { label: "LibreTranslate", kind: "machine" },
 };
 

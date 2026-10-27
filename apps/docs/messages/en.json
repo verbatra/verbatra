@@ -101,7 +101,7 @@
         },
         "providers": {
           "question": "Which translation providers does Verbatra support?",
-          "answer": "{providers}{pending, select, yes {, plus {upcoming} from {next}} other {}}. Set one in the <code>provider</code> block, or <code>none</code> when only people translate; the <link>providers page</link> covers each."
+          "answer": "{providers}{pending, select, yes {, plus {upcoming} from {next}} other {}}. Set one in <code>provider</code>, or <code>none</code> when only people translate; the <link>providers page</link> covers each."
         },
         "privacy": {
           "question": "Does Verbatra send my strings or API keys anywhere?",

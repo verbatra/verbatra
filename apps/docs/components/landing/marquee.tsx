@@ -47,6 +47,7 @@ export const PROVIDER_ICONS: Readonly<Record<MachineProviderId, MarqueeMark>> = 
   deepl: glyph("languages"),
   "google-translate": glyph("languages"),
   "openai-compatible": glyph("plug"),
+  opencode: glyph("plug"),
   libretranslate: glyph("server"),
 };
 

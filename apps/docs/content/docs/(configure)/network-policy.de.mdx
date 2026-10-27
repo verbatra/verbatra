@@ -30,7 +30,7 @@ Jeder Eintrag in `allowedHosts` ist ein Hostname (`llm.internal`, ohne Rücksich
 
 ## Gehostete Provider
 
-Unter `local-only` werden `anthropic`, `openai`, `gemini`, `deepl` und `google-translate` abgelehnt, weil ihre Endpunkte öffentlich sind. Um einen davon zu erlauben, listest du seinen Host auf:
+Unter `local-only` werden `anthropic`, `openai`, `gemini`, `deepl`, `google-translate` und `opencode` abgelehnt, weil ihre Endpunkte öffentlich sind. Um einen davon zu erlauben, listest du seinen Host auf:
 
 ```ts title="verbatra.config.ts"
 network: {
@@ -39,7 +39,7 @@ network: {
 }
 ```
 
-Die Hosts sind `api.anthropic.com`, `api.openai.com`, `generativelanguage.googleapis.com`, `api.deepl.com` (`api-free.deepl.com` für einen Key, der auf `:fx` endet) und `translation.googleapis.com`. Ist `ANTHROPIC_BASE_URL`, `OPENAI_BASE_URL` oder `GOOGLE_GEMINI_BASE_URL` gesetzt, prüft verbatra stattdessen diesen Endpunkt. Gemini im Vertex-AI-Modus (`GOOGLE_GENAI_USE_VERTEXAI` oder `GOOGLE_GENAI_USE_ENTERPRISE` auf `true`) wird unter einer einschränkenden Richtlinie immer abgelehnt.
+Die Hosts sind `api.anthropic.com`, `api.openai.com`, `generativelanguage.googleapis.com`, `api.deepl.com` (`api-free.deepl.com` für einen Key, der auf `:fx` endet), `translation.googleapis.com` und `opencode.ai`. Ist `ANTHROPIC_BASE_URL`, `OPENAI_BASE_URL` oder `GOOGLE_GEMINI_BASE_URL` gesetzt, prüft verbatra stattdessen diesen Endpunkt. Gemini im Vertex-AI-Modus (`GOOGLE_GENAI_USE_VERTEXAI` oder `GOOGLE_GENAI_USE_ENTERPRISE` auf `true`) wird unter einer einschränkenden Richtlinie immer abgelehnt.
 
 ## Eine Richtlinie aus der Umgebung festlegen
 
@@ -62,7 +62,7 @@ Ein abgelehnter Host stoppt `translate`, `watch` beim Start, das Neuübersetzen 
 
 ## Wissen, wann Anfragen geprüft werden
 
-Die erste Prüfung löst keine Namen auf, also kommt ein Hostname, den sie allein nicht einordnen kann, etwa `llm.internal`, durch. Jede Anfrage von `anthropic`, `openai`, `gemini`, `google-translate`, `openai-compatible` und `libretranslate` wird direkt vor dem Senden erneut geprüft:
+Die erste Prüfung löst keine Namen auf, also kommt ein Hostname, den sie allein nicht einordnen kann, etwa `llm.internal`, durch. Jede Anfrage von `anthropic`, `openai`, `gemini`, `google-translate`, `opencode`, `openai-compatible` und `libretranslate` wird direkt vor dem Senden erneut geprüft:
 
 - ein Hostname wird aufgelöst, und jede Adresse, zu der er auflöst, muss erlaubt sein;
 - nur ein `307` oder `308` zum selben Origin wird verfolgt, bis zu fünf hintereinander; eine Weiterleitung zu einem anderen Origin, auch von `https` zu `http`, lässt die Anfrage scheitern.

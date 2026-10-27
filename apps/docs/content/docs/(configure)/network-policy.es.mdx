@@ -30,7 +30,7 @@ Cada entrada de `allowedHosts` es un nombre de host (`llm.internal`, sin disting
 
 ## Proveedores alojados
 
-Con `local-only`, `anthropic`, `openai`, `gemini`, `deepl` y `google-translate` se rechazan, porque sus endpoints son públicos. Para permitir uno, añade su host:
+Con `local-only`, `anthropic`, `openai`, `gemini`, `deepl`, `google-translate` y `opencode` se rechazan, porque sus endpoints son públicos. Para permitir uno, añade su host:
 
 ```ts title="verbatra.config.ts"
 network: {
@@ -39,7 +39,7 @@ network: {
 }
 ```
 
-Los hosts son `api.anthropic.com`, `api.openai.com`, `generativelanguage.googleapis.com`, `api.deepl.com` (`api-free.deepl.com` para una clave que termina en `:fx`) y `translation.googleapis.com`. Si `ANTHROPIC_BASE_URL`, `OPENAI_BASE_URL` o `GOOGLE_GEMINI_BASE_URL` está definida, verbatra comprueba ese endpoint en su lugar. Gemini en modo Vertex AI (`GOOGLE_GENAI_USE_VERTEXAI` o `GOOGLE_GENAI_USE_ENTERPRISE` a `true`) siempre se rechaza con una política restrictiva.
+Los hosts son `api.anthropic.com`, `api.openai.com`, `generativelanguage.googleapis.com`, `api.deepl.com` (`api-free.deepl.com` para una clave que termina en `:fx`), `translation.googleapis.com` y `opencode.ai`. Si `ANTHROPIC_BASE_URL`, `OPENAI_BASE_URL` o `GOOGLE_GEMINI_BASE_URL` está definida, verbatra comprueba ese endpoint en su lugar. Gemini en modo Vertex AI (`GOOGLE_GENAI_USE_VERTEXAI` o `GOOGLE_GENAI_USE_ENTERPRISE` a `true`) siempre se rechaza con una política restrictiva.
 
 ## Fija una política desde el entorno
 
@@ -62,7 +62,7 @@ Un host rechazado detiene `translate`, `watch` al arrancar, la retraducción en 
 
 ## Cuándo se comprueban las peticiones
 
-La primera comprobación no resuelve nombres, así que un nombre de host que no sabe clasificar por sí sola, como `llm.internal`, la supera. Cada petición de `anthropic`, `openai`, `gemini`, `google-translate`, `openai-compatible` y `libretranslate` se vuelve a comprobar justo antes de enviarse:
+La primera comprobación no resuelve nombres, así que un nombre de host que no sabe clasificar por sí sola, como `llm.internal`, la supera. Cada petición de `anthropic`, `openai`, `gemini`, `google-translate`, `opencode`, `openai-compatible` y `libretranslate` se vuelve a comprobar justo antes de enviarse:
 
 - un nombre de host se resuelve, y todas las direcciones a las que resuelve deben estar permitidas;
 - solo se sigue un `307` o `308` al mismo origen, hasta cinco seguidos; una redirección a otro origen, incluido pasar de `https` a `http`, hace fallar la petición.

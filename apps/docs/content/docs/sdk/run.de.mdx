@@ -64,7 +64,7 @@ Siehe [die Anatomie der `RunSummary`](/de/docs/sdk/run-summary#die-anatomie-der-
 | `change-detected` | nur `watch`: eine Änderung an der Quelldatei hat sich gesetzt | `paths` |
 | `idle` | nur `watch`: ein Lauf ist fertig und keiner steht an | keine |
 
-`provider-retry` nennt keine Locale, weil ein Provider den ganzen Lauf bedient. Gemini meldet die Wartezeit und den Status, Anthropic, OpenAI und openai-compatible melden den Versuch, sobald ihr Client ihn startet, und DeepL, Google Cloud Translation und LibreTranslate melden nichts. Ein Dry Run und eine Schätzung senden nur `locale-started`, `locale-finished` und `run-finished`. Die `--json`-Fortschrittsdatensätze der CLI bleiben bei den vier ursprünglichen Typen: `locale-started`, `sub-batch`, `locale-finished` und `run-finished`.
+`provider-retry` nennt keine Locale, weil ein Provider den ganzen Lauf bedient. Gemini meldet die Wartezeit und den Status, Anthropic, OpenAI, OpenCode und openai-compatible melden den Versuch, sobald ihr Client ihn startet, und DeepL, Google Cloud Translation und LibreTranslate melden nichts. Ein Dry Run und eine Schätzung senden nur `locale-started`, `locale-finished` und `run-finished`. Die `--json`-Fortschrittsdatensätze der CLI bleiben bei den vier ursprünglichen Typen: `locale-started`, `sub-batch`, `locale-finished` und `run-finished`.
 
 `extract`, `diff` mit `unused` und `doctor` mit `literals` nehmen ein eigenes `onProgress`. Es erhält ein `ScanProgressEvent`, `{ type: "files-scanned", scanned, total }`, einmal nach jeder Quelldatei der Anwendung, die der Scan liest.
 

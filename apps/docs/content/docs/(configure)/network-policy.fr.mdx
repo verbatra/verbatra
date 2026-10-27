@@ -30,7 +30,7 @@ Chaque entrée de `allowedHosts` est un nom d'hôte (`llm.internal`, sans tenir 
 
 ## Fournisseurs hébergés
 
-Sous `local-only`, `anthropic`, `openai`, `gemini`, `deepl` et `google-translate` sont refusés, car leurs points de terminaison sont publics. Pour en autoriser un, liste son hôte :
+Sous `local-only`, `anthropic`, `openai`, `gemini`, `deepl`, `google-translate` et `opencode` sont refusés, car leurs points de terminaison sont publics. Pour en autoriser un, liste son hôte :
 
 ```ts title="verbatra.config.ts"
 network: {
@@ -39,7 +39,7 @@ network: {
 }
 ```
 
-Les hôtes sont `api.anthropic.com`, `api.openai.com`, `generativelanguage.googleapis.com`, `api.deepl.com` (`api-free.deepl.com` pour une clé qui finit par `:fx`) et `translation.googleapis.com`. Si `ANTHROPIC_BASE_URL`, `OPENAI_BASE_URL` ou `GOOGLE_GEMINI_BASE_URL` est définie, verbatra vérifie ce point de terminaison à la place. Gemini en mode Vertex AI (`GOOGLE_GENAI_USE_VERTEXAI` ou `GOOGLE_GENAI_USE_ENTERPRISE` à `true`) est toujours refusé sous une politique restrictive.
+Les hôtes sont `api.anthropic.com`, `api.openai.com`, `generativelanguage.googleapis.com`, `api.deepl.com` (`api-free.deepl.com` pour une clé qui finit par `:fx`), `translation.googleapis.com` et `opencode.ai`. Si `ANTHROPIC_BASE_URL`, `OPENAI_BASE_URL` ou `GOOGLE_GEMINI_BASE_URL` est définie, verbatra vérifie ce point de terminaison à la place. Gemini en mode Vertex AI (`GOOGLE_GENAI_USE_VERTEXAI` ou `GOOGLE_GENAI_USE_ENTERPRISE` à `true`) est toujours refusé sous une politique restrictive.
 
 ## Imposer une politique depuis l'environnement
 
@@ -62,7 +62,7 @@ Un hôte refusé arrête `translate`, `watch` au démarrage, la retraduction dan
 
 ## Savoir quand les requêtes sont vérifiées
 
-La première vérification ne résout aucun nom, donc un nom d'hôte qu'elle ne sait pas classer seule, comme `llm.internal`, la passe. Chaque requête de `anthropic`, `openai`, `gemini`, `google-translate`, `openai-compatible` et `libretranslate` est vérifiée de nouveau juste avant l'envoi :
+La première vérification ne résout aucun nom, donc un nom d'hôte qu'elle ne sait pas classer seule, comme `llm.internal`, la passe. Chaque requête de `anthropic`, `openai`, `gemini`, `google-translate`, `opencode`, `openai-compatible` et `libretranslate` est vérifiée de nouveau juste avant l'envoi :
 
 - un nom d'hôte est résolu, et chaque adresse vers laquelle il résout doit être autorisée ;
 - seul un `307` ou `308` vers la même origine est suivi, jusqu'à cinq d'affilée ; une redirection vers une autre origine, y compris de `https` vers `http`, fait échouer la requête.

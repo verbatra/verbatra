@@ -10,7 +10,7 @@ type ReleaseBadge = {
 
 export const RELEASE_BADGE: ReleaseBadge = {
   version: "0.12.0",
-  providers: ["libretranslate"],
+  providers: ["opencode", "libretranslate"],
   features: ["provider-none"],
 };
 

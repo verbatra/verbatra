@@ -62,7 +62,7 @@ queda como `status: "failed"` en la entrada de ese locale mientras la ejecución
 | `change-detected` | solo `watch`: un cambio en el archivo de origen se ha asentado | `paths` |
 | `idle` | solo `watch`: una ejecución terminó y no hay otra en cola | ninguno |
 
-`provider-retry` no nombra ningún locale, porque un solo proveedor atiende toda la ejecución. Gemini informa de la espera y del estado, Anthropic, OpenAI y openai-compatible informan del intento cuando su cliente lo inicia, y DeepL, Google Cloud Translation y LibreTranslate no informan de nada. Un dry run y una estimación solo emiten `locale-started`, `locale-finished` y `run-finished`. Los registros de progreso `--json` de la CLI se limitan a los cuatro tipos originales: `locale-started`, `sub-batch`, `locale-finished` y `run-finished`.
+`provider-retry` no nombra ningún locale, porque un solo proveedor atiende toda la ejecución. Gemini informa de la espera y del estado, Anthropic, OpenAI, OpenCode y openai-compatible informan del intento cuando su cliente lo inicia, y DeepL, Google Cloud Translation y LibreTranslate no informan de nada. Un dry run y una estimación solo emiten `locale-started`, `locale-finished` y `run-finished`. Los registros de progreso `--json` de la CLI se limitan a los cuatro tipos originales: `locale-started`, `sub-batch`, `locale-finished` y `run-finished`.
 
 `extract`, `diff` con `unused` y `doctor` con `literals` aceptan su propio `onProgress`. Recibe un `ScanProgressEvent`, `{ type: "files-scanned", scanned, total }`, una vez tras cada archivo de código de la aplicación que lee el escaneo.
 
