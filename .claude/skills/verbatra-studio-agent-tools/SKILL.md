@@ -1,6 +1,6 @@
 ---
 name: verbatra-studio-agent-tools
-description: Operate a verbatra i18n project from an open Verbatra Studio dashboard tab through its WebMCP browser tools. Use when a browser agent drives the Studio tab and translation status must be read, a key is missing or stale, or a translation corrected in place. Also use when the Studio tools are absent from the tab or a provider-spending tool is missing.
+description: Operate a verbatra i18n project from an open Verbatra Studio dashboard tab through its WebMCP browser tools. Use when a browser agent drives the Studio tab and translation status must be read, a key is missing or stale, translation values must be scanned in bulk, who last changed a locale file must be found, or a translation corrected in place. Also use when the Studio tools are absent from the tab or a provider-spending tool is missing.
 license: MIT
 metadata:
   source: 'https://github.com/verbatra/skills'
@@ -62,15 +62,12 @@ translation content verbatim, and several are marked as returning untrusted
 content for exactly that reason. `verbatra_locale_values` in particular hands you
 the values of up to a thousand keys per page.
 
-## Gates at a glance
+## Gates
 
-Studio decides twice what an agent may do. With no `--expose-agent-tools` (or
-`VERBATRA_STUDIO_AGENT_TOOLS`) the page registers no tools at all. With agent tools on,
-the provider-spending tools stay unregistered unless Studio was also started with
-`--allow-spend` (or `VERBATRA_STUDIO_ALLOW_SPEND`) and the config names a provider.
-`verbatra_project_snapshot` reports which gate applies. Neither gate can be flipped
-from the browser, and a missing tool is the operator's decision, never a fault to
-route around. Details, review decisions and rate limits are in [GATES.md](GATES.md).
+Two independent gates decide which tools register: agent tools at all, and spend.
+Neither can be flipped from the browser, and a missing tool is the operator's decision,
+never a fault to route around. `verbatra_project_snapshot` reports which gate applies.
+See [GATES.md](GATES.md).
 
 ## How to work
 

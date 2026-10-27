@@ -109,9 +109,10 @@ that are pending right now translated.
 
 - `translate --no-cache` and `watch --no-cache` bypass the local translation-memory
   cache (`verbatra.cache.json`) for the run, so keys the memory could have filled go to
-  the provider and are billed. Never pass it to save time.
+  the provider and are billed again. It costs money: pass it only when the human asks
+  for a fresh translation.
 - `watch --debounce <ms>` waits that many milliseconds after a change before
-  translating (default `300`, a whole number up to `60000`; anything else exits `2`
+  translating (default `300`, a whole number from `1` to `60000`; anything else exits `2`
   with `INVALID_DEBOUNCE`).
 - `export --include-unchanged` also writes already up-to-date strings into the
   handoff; without it only what is missing or stale is exported.

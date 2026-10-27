@@ -1,6 +1,6 @@
 ---
 name: verbatra-mcp-tools
-description: Operate a verbatra i18n project through its stdio MCP server. Use when an MCP client is connected to verbatra and translation status must be read, a key is missing or stale, a translation corrected, a glossary term added, or the cost of a pending run estimated before any spend. Also use when a provider-spending tool is missing from the tool list or values are redacted.
+description: Operate a verbatra i18n project through its stdio MCP server. Use when an MCP client is connected to verbatra and status must be read, a key is missing or stale, a translation corrected or re-run, a glossary term added, values searched in bulk, every broken translation found, who wrote or last committed a value reported, the last run's review queue and token usage reported, or a pending run's cost estimated. Also use when a spending tool is missing from the tool list or values are redacted.
 license: MIT
 metadata:
   source: 'https://github.com/verbatra/skills'
@@ -19,7 +19,6 @@ dashboard exposes the same tools as browser tools with underscored names, except
 `verbatra-studio-agent-tools` covers those. If the tool names you hold start with
 `verbatra_`, you are on the Studio surface, not this one. For driving the binary
 from a shell instead, see `verbatra-cli`.
-
 
 ## Non-negotiable rules
 
@@ -48,16 +47,12 @@ from a shell instead, see `verbatra-cli`.
    is, and never pass `--prune` or turn the field on unless the human asked for
    orphaned keys to be deleted.
 
-## Spend at a glance
+## Spend
 
-Some tools call a translation provider and bill it. They are not on the default tool
-list: they appear only when the operator started the server with the spend capability
-granted and the config names a provider. If you cannot see them, nothing is broken;
-the operator decided this session does not spend money. You may say that
-re-launching with `--allow-spend` would expose them, but say in the same breath that
-those tools bill the configured provider per run, and never present it as a fix.
-Calling an unlisted spend tool fails as `Unknown tool: <name>`. The full boundary,
-including provider `none` and the glossary caveat, is in
+Tools that call a translation provider and bill it are absent from the default tool
+list unless the operator granted spend at startup. A missing spend tool is the
+operator's decision, not a fault: say what would expose it, say in the same breath that
+it bills the provider, and never present it as a fix. See
 [SPEND-BOUNDARY.md](SPEND-BOUNDARY.md).
 
 ## How to work

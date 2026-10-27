@@ -84,8 +84,6 @@ provider or `none`. `translate` refuses an `unsupported` locale up front with
 drop it with `--locales` or ask the human; never map it in `localeMap` on your own
 to get past the refusal.
 
-Never run `verbatra translate` to find out whether there is anything to do.
-
 ## Review reasons worth knowing
 
 A review reason is a per-key signal that a person should look at a value. It is never

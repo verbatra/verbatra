@@ -2,8 +2,6 @@
 
 ## Setting a project up
 
-Requires Node `^22.18.0 || >=24`.
-
 `verbatra init` detects the format and the file layout from the locale files it
 finds and falls back to the `package.json` dependencies only when no locale file
 decides it. Unattended, run it with `--json` (which never prompts) and every

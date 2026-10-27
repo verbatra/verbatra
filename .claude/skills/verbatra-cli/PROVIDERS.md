@@ -54,13 +54,17 @@ sent. `doctor` reports the effective policy in its `network-policy` check.
 ## Provider options that are easy to get wrong
 
 - `requestTimeoutMs` (default `120000`) bounds each request attempt, not the whole
-  retried call. When retries run out, the failure reports the last attempt's code:
-  `RATE_LIMITED`, `PROVIDER_UNAVAILABLE`, `PROVIDER_ERROR` or `TIMEOUT`. Gemini
-  retries a timed-out attempt. Raise it for a slow local model rather than retrying
-  by hand.
+  retried call. Where a provider retries, a failure after the retries reports the
+  last attempt's code: `RATE_LIMITED`, `PROVIDER_UNAVAILABLE`, `PROVIDER_ERROR` or
+  `TIMEOUT`; Gemini also retries a timed-out attempt. Retry wiring differs by
+  provider: DeepL is built with no retry dependencies, and Google Translate and
+  LibreTranslate with network dependencies only, while the LLM providers get retry
+  reporting too (`providerFactories` in `packages/sdk/src/config/provider-config.ts`).
+  Raise the timeout for a slow local model rather than retrying by hand.
 - `opencode` is configured as
-  `provider: { id: "opencode", options: { model, maxOutputTokens } }`. It reads
-  `OPENCODE_API_KEY` itself and takes no `baseUrl`.
+  `provider: { id: "opencode", options: { model, maxOutputTokens } }`, plus the
+  optional `requestTimeoutMs` and `localeMap`. It reads `OPENCODE_API_KEY` itself and
+  takes no `baseUrl`.
 - An `openai-compatible` `apiKeyEnvVar` that names a hosted provider's key variable,
   `OPENCODE_API_KEY` included, fails the config with `CONFIG_INVALID`, so a hosted key
   never reaches an arbitrary `baseUrl`. Use the hosted provider's own `id`, or name a

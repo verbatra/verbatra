@@ -1,6 +1,6 @@
 ---
 name: verbatra-cli
-description: Drive the verbatra i18n CLI from a shell or CI. Use when locale files are out of sync, a key is missing in de/es/fr or stale after the source changed, drift must gate a pull request, strings go to a human translator and back, or verbatra needs setting up. Also use to learn whether a command costs money before running it, or to branch on an exit code.
+description: Drive the verbatra i18n CLI from a shell or CI. Use when locale files are out of sync, a key is missing in de/es/fr or stale after the source changed, drift must gate a pull request, strings go to a human translator and back, verbatra needs setting up, or verbatra.lock.json has to be read. Also use to learn whether a command costs money before running it, or to branch on an exit code.
 license: MIT
 metadata:
   source: 'https://github.com/verbatra/skills'
@@ -50,37 +50,44 @@ Reach for those when you are holding tools rather than a shell.
    is, and never pass `--prune` or turn the field on unless the human asked for
    orphaned keys to be deleted.
 
+Fix a translation that fails the placeholder, markup or ICU integrity gate by
+correcting the translation. Never edit the source text to make the gate pass.
+
 ## Decision flow
 
 Ask what is pending before you translate. A run bills per key sent, so the cheap
 read-only question comes first. Never run `verbatra translate` to find out whether
 there is anything to do.
 
-1. Is verbatra set up and healthy? `verbatra doctor --json`. See [DOCTOR.md](DOCTOR.md).
-   No config yet: [INIT.md](INIT.md).
-2. What is pending? `verbatra diff --json` (exit `1` means work). Counts only:
-   `verbatra check --json`. Details and every `check` option: [DECIDING.md](DECIDING.md).
-3. What would it cost? `verbatra translate --estimate --json`, which constructs no
-   provider and reads no key. Show the figure and stop for an explicit yes.
-4. Only after the yes: `verbatra translate --json`, with `--max-tokens <n>` when a
-   ceiling was agreed.
-5. Read the result by exit code first, then `result.succeeded`, `result.partial` and
-   `result.failed`. A `--json` envelope with `ok: true` does not mean every locale
-   succeeded.
+1. `verbatra doctor --json` first. It is the cheapest preflight: config, format,
+   provider id, key variable name, network policy, source file and the provider's
+   locale support, with no network call and no key read. A failed check carries
+   `fix`. See [DOCTOR.md](DOCTOR.md); with no config yet, [INIT.md](INIT.md).
+2. `verbatra diff --json` for the exact pending keys. Exit `0` means stop: there is
+   nothing to do and nothing to spend. Counts only: `verbatra check --json`. Every
+   `check` option is in [DECIDING.md](DECIDING.md).
+3. `verbatra translate --estimate --json` for what the run would send and cost. It
+   constructs no provider and reads no key.
+4. Report the count per locale and the estimate in plain language, then stop and
+   ask.
+5. Only after an explicit yes: `verbatra translate --json`, with `--max-tokens <n>`
+   when the human agreed to a ceiling.
+6. Branch on the exit code first, then report from `result.succeeded`,
+   `result.partial` and `result.failed`, and name what `protected`, `unfilled`,
+   `budgetWithheld`, `sensitiveWithheld` and `integrityRefusals` left behind. A
+   `--json` envelope with `ok: true` does not mean every locale succeeded. Report
+   what landed, not what you asked for.
 
-Exit codes at a glance (full table, lock handling and the envelope in
-[EXIT-CODES.md](EXIT-CODES.md)):
+Exit codes in one line: `0` clean, `1` it ran but the result is not clean, `2` it
+could not run, `3` a human-only project left keys for a person, `130` or `143`
+interrupted. The full table, lock handling and the JSON envelope are in
+[EXIT-CODES.md](EXIT-CODES.md). Do not run a verbatra gate under `set -e`: a
+non-zero exit is the answer you asked for, not a crash.
 
-| Code | Meaning |
-| --- | --- |
-| `0` | Nothing outstanding, or everything requested completed. |
-| `1` | It ran and the result is not clean: drift, a failed or partial locale, a failed gate. |
-| `2` | It could not run: bad config, unreadable source, refused provider or usage error. |
-| `3` | Human-only project (provider `none`) finished with keys waiting for a person. |
-| `130`, `143` | Interrupted by SIGINT, SIGTERM or a second interrupt. |
-
-Do not run a verbatra gate under `set -e`: a non-zero exit is the answer you asked
-for, not a crash. Requires Node `^22.18.0 || >=24`.
+Commit `verbatra.config.ts`, `.env.example`, `verbatra.lock.json`,
+`verbatra.provenance.json` and the translated locale files. Never commit `.env`,
+`.env.local`, `.verbatra-local/` or `verbatra.cache.json`. Requires Node
+`^22.18.0 || >=24`.
 
 ## Where the depth lives
 
@@ -100,28 +107,6 @@ Read the file for the task in front of you; each one is self-contained.
 | Sensitive content scanning | [SENSITIVE-CONTENT.md](SENSITIVE-CONTENT.md) |
 | Progress lines, colour and what a person sees on stderr | [OUTPUT.md](OUTPUT.md) |
 | A respelled locale code such as `pt_BR` to `pt-BR` | [LOCALE-CODES.md](LOCALE-CODES.md) |
-
-## A safe unattended shape
-
-1. `verbatra doctor` first. It is the cheapest preflight: it validates the config,
-   the format, the provider id, the key variable name, the network policy, the
-   source file and the provider's locale support, with no network call and no key
-   read. A failed check carries `fix`, the step to take.
-2. `verbatra diff --json` to learn the exact pending keys. Exit `0` means stop
-   here, there is nothing to do and nothing to spend.
-3. `verbatra translate --estimate --json` for what the run would send and cost.
-4. Report the count per locale and the estimate in plain language, then stop and
-   ask.
-5. Only after an explicit yes: `verbatra translate --json`, with
-   `--max-tokens <n>` when the human agreed to a ceiling.
-6. Report from `result.succeeded`, `result.partial` and `result.failed`, and name
-   what `protected`, `unfilled`, `budgetWithheld`, `sensitiveWithheld` and
-   `integrityRefusals` left behind. Report what
-   landed, not what you asked for.
-
-Commit `verbatra.config.ts`, `.env.example`, `verbatra.lock.json`,
-`verbatra.provenance.json` and the translated locale files. Never commit `.env`, `.env.local`, `.verbatra-local/` or
-`verbatra.cache.json`.
 
 ## Reference
 
