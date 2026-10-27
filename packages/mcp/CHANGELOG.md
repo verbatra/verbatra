@@ -1,5 +1,65 @@
 # @verbatra/mcp
 
+## 0.3.0
+
+### Minor Changes
+
+- [`08abfe3`](https://github.com/verbatra/verbatra/commit/08abfe3c8e7294f3739c9533d5b9126afb16a018) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Config-less start, review, glossary and read tools, values-redacted mode, progress and cancellation.
+  
+  **Upgrading from 0.2**
+  - Node.js `^22.18.0 || >=24` is required (0.2 accepted `>=22.14.0`); Node 23 is not supported.
+  - `glossary.get` returns `version`, `terms` and `doNotTranslate` instead of `entries`, and `translation: null` in `glossary.write` clears only the shared translation.
+  - `review.queue` lists every unapproved machine-written value from the committed files. `available: false` means the provenance file cannot be read, locales lose `status` and `usage`, and the run's time is `lastRunAt`.
+  - Unknown `verbatra-mcp` flags exit 2, and `--help` and `--version` no longer start the server.
+  - Tools resolve paths against the directory of the config the search found, so a server started in a subdirectory works on the project's files.
+  - A failed tool's text leads with its error code, `key.integrity` fails with `UNKNOWN_KEY` for an unknown key, and write tools wait 30 seconds for a lock instead of ten minutes.
+  - Values written by `translation.editEntry` are recorded as `agent`.
+  
+  **Server**
+  - The server starts without a config (`project.snapshot` reports the problem, `project.doctor` runs the setup checks) and reloads config changes with `notifications/tools/list_changed`.
+  - It prints ready and stopped lines on stderr, stops when the client closes stdin, and releases its locks on an interrupt. Every tool returns `structuredContent`.
+  
+  **Tools**
+  - `review.approve` and `review.reject` record a person's decision (a `reviewer` is required) and write local files only.
+  - `glossary.get` and `glossary.write` read and edit glossary v2 terms.
+  - New read tools: `history.list`, `locale.values` and `report.provenance` (paged by `cursor`, at most 1,000 entries), `locale.integrity` and `key.context`.
+  - `translation.estimate` prices a run without calling a provider. `translation.translatePending` takes `locales` and `maxTokens`, sends progress notifications, lists keys the `sensitiveData` guard withheld, and stops on `notifications/cancelled` while keeping finished batches.
+  
+  **Values redacted**
+  - `--redact-values` (or `VERBATRA_MCP_REDACT_VALUES`) replaces every source text, translation, description and glossary term in a result with a marker holding its length and a per-session hash. Key names, counts, statuses and paths stay, and `project.snapshot` reports `valuesRedacted`.
+  - In that mode `review.approve` and `review.reject` take the marker's hash as `expectedHash`, `locale.values` refuses `query`, `key.context` refuses `draft`, and spend tools still need `--allow-spend`.
+
+### Patch Changes
+
+- [`08abfe3`](https://github.com/verbatra/verbatra/commit/08abfe3c8e7294f3739c9533d5b9126afb16a018) Thanks [@mariokreitz](https://github.com/mariokreitz)! - Runtime dependency updates that reach consumers of the published packages.
+  
+  **`@verbatra/sdk`**
+  - `@anthropic-ai/sdk` 0.127.0 -> 0.137.0
+  - `@formatjs/icu-messageformat-parser` 3.5.19 -> 3.5.22
+  - `@google/genai` 2.23.0 -> 2.31.0
+  - `cosmiconfig` 9.0.2 -> 10.0.1
+  - `deepl-node` 1.28.0 -> 1.28.1
+  - `openai` 7.19.0 -> 7.43.0
+  - `zod` 4.6.5 -> 4.6.7 (also a dependency of `@verbatra/cli`, `@verbatra/mcp` and `@verbatra/studio`)
+  
+  **Transitive security fixes in your own lockfile**
+  - verbatra's repository pins patched `axios` 1.20.0 (through `deepl-node`) and `brace-expansion`
+    1.1.21 and 2.1.7 (through `exceljs`) with lockfile overrides, which are not part of the published
+    packages. Your install resolves these from its own lockfile, so update them there to pick up the
+    fixes.
+  - `follow-redirects` 1.16.1 is reached through `deepl-node` -> `axios`. The repository pins the
+    patched release with a lockfile override that is not part of the published packages, so update it
+    in your lockfile to pick up the fix.
+  - `proxy-addr` 2.0.8 (GHSA-jqcg-44mw-7w3h) is reached only through `@modelcontextprotocol/sdk`,
+    an optional peer of `@google/genai` that npm does not install for you. If your project installs
+    `@modelcontextprotocol/sdk` itself, update `proxy-addr` to 2.0.8 or newer in your lockfile.
+  
+  **`@verbatra/mcp`**
+  - `@modelcontextprotocol/sdk` 1.30.0 -> `@modelcontextprotocol/server` 2.3.1, which no longer
+    pulls in `hono`, `ip-address` or `express`; its license changes from MIT to Apache-2.0
+- Updated dependencies [[`2d8bab9`](https://github.com/verbatra/verbatra/commit/2d8bab9dde713d7973be2560f134779baa6b4be1), [`08abfe3`](https://github.com/verbatra/verbatra/commit/08abfe3c8e7294f3739c9533d5b9126afb16a018)]:
+  - @verbatra/sdk@0.12.0
+
 ## 0.2.2
 
 ### Patch Changes
