@@ -33,12 +33,19 @@ export function nextTheme(resolved: string | undefined): ThemeName {
   return resolved === "light" ? "dark" : "light";
 }
 
-const DEFAULT = JSON.stringify(DEFAULT_THEME);
+const UNSAFE_IN_SCRIPT = /[<\u2028\u2029]/g;
 
-export const THEME_INIT_SCRIPT = `(function(){var c=${JSON.stringify(THEME_COLORS)},t=${DEFAULT};try{var s=localStorage.getItem(${JSON.stringify(
-  THEME_STORAGE_KEY,
-)});if(s&&s!==${DEFAULT}&&Object.prototype.hasOwnProperty.call(c,s)){t=s;var d=document.documentElement;d.classList.remove(${THEMES.map(
-  (theme) => JSON.stringify(theme),
+export function embed(value: unknown): string {
+  return JSON.stringify(value).replace(
+    UNSAFE_IN_SCRIPT,
+    (char) => `\\u${char.charCodeAt(0).toString(16).padStart(4, "0")}`,
+  );
+}
+
+const DEFAULT = embed(DEFAULT_THEME);
+
+export const THEME_INIT_SCRIPT = `(function(){var c=${embed(THEME_COLORS)},t=${DEFAULT};try{var s=localStorage.getItem(${embed(THEME_STORAGE_KEY)});if(s&&s!==${DEFAULT}&&Object.prototype.hasOwnProperty.call(c,s)){t=s;var d=document.documentElement;d.classList.remove(${THEMES.map(
+  (theme) => embed(theme),
 ).join(
   ",",
 )});d.classList.add(t);d.style.colorScheme=t}}catch(e){}[["theme-color",c[t]],["color-scheme",t]].forEach(function(p){var m=document.head.querySelector('meta[name="'+p[0]+'"]');if(!m){m=document.createElement("meta");m.name=p[0];document.head.appendChild(m)}m.content=p[1]})})()`;
