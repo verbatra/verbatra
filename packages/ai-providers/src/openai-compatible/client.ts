@@ -1,6 +1,7 @@
 import { resolveOpenAiCompatibleKey } from "../env.js";
 import { loadSdkModule, memoizeAsync } from "../lazy-sdk.js";
 import { toMutableRequest } from "../llm/mutable.js";
+import type { EndpointTarget } from "../network/endpoints.js";
 import { openAiStyleTransport, type ProviderNetwork } from "../network/transport.js";
 import type { OpenAiRequest } from "../openai/request.js";
 import type { OpenAiCallOptions, OpenAiClient, OpenAiCompletion } from "../openai/types.js";
@@ -10,7 +11,7 @@ import type { OpenAiCompatibleConfig } from "./config.js";
 export const OPENAI_COMPATIBLE_USER_AGENT = "verbatra";
 
 export interface HostedClientIdentity {
-  readonly id: "opencode";
+  readonly id: Exclude<EndpointTarget, { readonly baseUrl: string }>["id"];
   readonly apiKey: string;
 }
 
