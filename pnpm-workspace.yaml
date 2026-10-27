@@ -29,30 +29,30 @@ catalog:
   "@types/node": 26.6.5
   "@types/react": 19.3.0
   "@types/react-dom": 19.3.0
-  "@vitest/coverage-v8": 5.0.3
+  "@vitest/coverage-v8": 5.0.5
   ajv: 8.20.0
   chokidar: 5.0.0
-  knip: 6.41.0
+  knip: 6.42.1
   parse5: 8.0.1
-  playwright: 1.64.0
-  react: 19.3.0
-  react-dom: 19.3.0
-  tsup: 8.5.1
+  playwright: 1.64.1
+  react: 19.3.1
+  react-dom: 19.3.1
+  tsup: 9.0.0
   typescript: 6.0.3
-  vitest: 5.0.3
-  zod: 4.6.5
+  vitest: 5.0.5
+  zod: 4.6.7
 
 catalogs:
   bundled:
-    "@anthropic-ai/sdk": 0.133.0
-    "@formatjs/icu-messageformat-parser": 3.5.21
-    "@google/genai": 2.28.0
+    "@anthropic-ai/sdk": 0.137.0
+    "@formatjs/icu-messageformat-parser": 3.5.22
+    "@google/genai": 2.31.0
     "@xmldom/xmldom": 0.9.12
     deepl-node: 1.28.1
     exceljs: 4.4.0
     jszip: 3.10.2
     loglevel: 1.9.2
-    openai: 7.32.0
+    openai: 7.43.0
     yaml: 2.9.1
 
 overrides:
@@ -166,6 +166,15 @@ overrides:
   # token after a { comment } token. Vulnerable >=1.8.4 <1.11.0; lifts the 1.10.0 copy launch-editor
   # pulls through @changesets/cli (dev-only), bounded to the v1 line launch-editor declares.
   shell-quote@<1.11.0: ">=1.11.0 <2"
+  # follow-redirects high-severity advisories (Dependabot alerts 65 and 66), vulnerable >=1.16.0 <1.16.1.
+  # Lifts the 1.16.0 copy axios pulls through deepl-node on the published ai-providers/sdk path, bounded
+  # to the v1 line axios declares.
+  follow-redirects@<1.16.1: ">=1.16.1 <2"
+  # @modelcontextprotocol/sdk advisories fixed in 1.32.0 (Dependabot alerts 59 to 64 and 67 to 68),
+  # vulnerable <1.32.0. The copy is the optional peer of @google/genai (^1.25.2) that pnpm installs
+  # automatically, so the parent cannot be bumped; this lifts it to the patched release, bounded to the
+  # v1 line genai declares.
+  "@modelcontextprotocol/sdk@<1.32.0": ">=1.32.0 <2"
 
 allowBuilds:
   '@google/genai': false
