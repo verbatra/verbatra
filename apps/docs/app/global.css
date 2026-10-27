@@ -105,6 +105,27 @@ h6 {
     outline-color: var(--focus-ring);
   }
 
+  :where(
+    button,
+    summary,
+    select,
+    [role="button"],
+    [role="tab"],
+    [role="option"],
+    [role="menuitem"],
+    input[type="button"],
+    input[type="submit"],
+    input[type="reset"],
+    input[type="checkbox"],
+    input[type="radio"]
+  ) {
+    cursor: pointer;
+  }
+
+  :where(:disabled, [aria-disabled="true"]) {
+    cursor: not-allowed;
+  }
+
   :where(h1, h2, h3, h4, h5, h6, .vk-display, .vk-h2, .vk-h3, .vk-h4) {
     hyphens: manual;
     overflow-wrap: anywhere;
@@ -523,7 +544,6 @@ html.light {
   gap: 1.5rem;
   padding: 1.25rem 1.5rem;
   border-radius: var(--radius-card);
-  cursor: pointer;
   list-style: none;
 }
 
@@ -738,7 +758,6 @@ html:has(.vk-scroll-top-sentinel[data-active]) .vk-footer {
   background: var(--surface-raised);
   box-shadow: var(--shadow-sm);
   color: var(--text-strong);
-  cursor: pointer;
 }
 
 .vk-scroll-top:hover {
@@ -2358,7 +2377,6 @@ body > [data-radix-popper-content-wrapper] > * {
   padding: 0.625rem 1rem;
   font-size: var(--text-sm);
   color: var(--text-body);
-  cursor: pointer;
 }
 
 .vk-license-text > summary:focus-visible {
@@ -3208,6 +3226,7 @@ html:has(.vk-home) {
 
 [role="dialog"]:has([role="combobox"]) [role="listbox"] [role="option"] {
   border-radius: var(--radius-md);
+  cursor: pointer;
 }
 
 [role="dialog"]:has([role="combobox"]) [role="listbox"] [role="option"][aria-selected="true"] {
@@ -3813,7 +3832,6 @@ html:has(.vk-home) {
   border-radius: 999px;
   background: transparent;
   color: var(--text-muted);
-  cursor: pointer;
 }
 
 .vk-playground-pause:hover {
@@ -3901,7 +3919,6 @@ html:has(.vk-home) {
   color: var(--text-body);
   font-size: 0.9375rem;
   text-align: start;
-  cursor: pointer;
 }
 
 .vk-playground-pick:hover {
@@ -3935,7 +3952,6 @@ html:has(.vk-home) {
   background: transparent;
   color: var(--text-strong);
   text-align: start;
-  cursor: pointer;
 }
 
 .vk-playground-row:hover {
