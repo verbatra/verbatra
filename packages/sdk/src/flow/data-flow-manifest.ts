@@ -254,6 +254,7 @@ export const MANIFEST_PROVIDER_IDS = [
   "deepl",
   "google-translate",
   "openai-compatible",
+  "opencode",
   "libretranslate",
   "none",
 ] as const satisfies readonly ProviderId[];

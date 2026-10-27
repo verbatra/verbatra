@@ -7,12 +7,14 @@ import {
   createLibreTranslateProvider,
   createOpenAiCompatibleProvider,
   createOpenAiProvider,
+  createOpenCodeProvider,
   deepLConfigSchema,
   geminiConfigSchema,
   googleTranslateConfigSchema,
   libreTranslateConfigSchema,
   openAiCompatibleConfigSchema,
   openAiConfigSchema,
+  openCodeConfigSchema,
   type ProviderNetwork,
   type ProviderRetryListener,
   type TranslationProvider,
@@ -39,6 +41,7 @@ export const providerConfigSchema = z.discriminatedUnion("id", [
     id: z.literal("openai-compatible"),
     options: openAiCompatibleConfigSchema.strict(),
   }),
+  z.strictObject({ id: z.literal("opencode"), options: openCodeConfigSchema.strict() }),
   z.strictObject({
     id: z.literal("libretranslate"),
     options: libreTranslateConfigSchema.strict(),
@@ -51,9 +54,9 @@ export const providerConfigSchema = z.discriminatedUnion("id", [
  * carries exactly the options it supports and nothing else.
  *
  * No variant has a field for an API key. Keys are read from the environment by the provider itself
- * (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPL_API_KEY`, or
- * `GOOGLE_TRANSLATE_API_KEY`), which is what keeps them out of config files and out of version
- * control. The `openai-compatible` variant reads `OPENAI_COMPATIBLE_API_KEY` when it is set and
+ * (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPL_API_KEY`,
+ * `GOOGLE_TRANSLATE_API_KEY`, or `OPENCODE_API_KEY`), which is what keeps them out of config files
+ * and out of version control. The `openai-compatible` variant reads `OPENAI_COMPATIBLE_API_KEY` when it is set and
  * sends no real key otherwise, since a local server usually needs none; naming a different variable
  * through `apiKeyEnvVar` makes that variable required. The `libretranslate` variant reads an
  * optional `LIBRETRANSLATE_API_KEY` and sends no key when it is unset or empty. It still never
@@ -85,8 +88,9 @@ export type ProviderConfigInput = z.input<typeof providerConfigSchema>;
 
 /**
  * The identifier of a supported translation provider: `anthropic`, `openai`, `gemini`, `deepl`,
- * `google-translate`, `openai-compatible`, `libretranslate`, or `none`. `openai-compatible` targets a
- * local or self-hosted server that speaks the OpenAI chat-completions API; `libretranslate` targets
+ * `google-translate`, `openai-compatible`, `opencode`, `libretranslate`, or `none`.
+ * `openai-compatible` targets a local or self-hosted server that speaks the OpenAI chat-completions
+ * API; `opencode` targets OpenCode Zen's paid models at its fixed endpoint; `libretranslate` targets
  * a self-hosted LibreTranslate server, a machine-translation API with no language model behind it;
  * `none` disables machine translation altogether.
  */
@@ -136,6 +140,7 @@ const providerFactories: ProviderFactories = {
     createGoogleTranslateProvider(options, networkDeps(context)),
   "openai-compatible": (options, context) =>
     createOpenAiCompatibleProvider(options, retryingDeps(context)),
+  opencode: (options, context) => createOpenCodeProvider(options, retryingDeps(context)),
   libretranslate: (options, context) => createLibreTranslateProvider(options, networkDeps(context)),
 };
 

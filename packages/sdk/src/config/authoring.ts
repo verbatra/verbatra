@@ -46,6 +46,8 @@ type AuthoringProviderVariant = {
   "google-translate": Extract<ProviderConfigInput, { id: "google-translate" }>;
   /** A local or self-hosted OpenAI-compatible endpoint, whose model stays a free-form string. */
   "openai-compatible": Extract<ProviderConfigInput, { id: "openai-compatible" }>;
+  /** OpenCode Zen's paid models, whose model stays a free-form string because Zen's catalog changes. */
+  opencode: Extract<ProviderConfigInput, { id: "opencode" }>;
   /**
    * A self-hosted LibreTranslate server, which takes no model because it is a machine-translation
    * API rather than a language model.

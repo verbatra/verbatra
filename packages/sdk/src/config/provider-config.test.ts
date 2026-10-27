@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { SdkError } from "../errors.js";
 import {
   buildProvider,
@@ -102,6 +102,57 @@ describe("buildProvider: openai-compatible", () => {
       options: { ...validOpenAiCompatible.options, localeMap: { de: "de-DE" } },
     });
     expect(provider.id).toBe("openai-compatible");
+  });
+});
+
+describe("providerConfigSchema: opencode", () => {
+  const options = { model: "glm-5.3", maxOutputTokens: 4096 };
+
+  it("accepts a model and an output token limit", () => {
+    expect(providerConfigSchema.safeParse({ id: "opencode", options }).success).toBe(true);
+  });
+
+  it("rejects a baseUrl: the endpoint is fixed", () => {
+    const result = providerConfigSchema.safeParse({
+      id: "opencode",
+      options: { ...options, baseUrl: "https://example.com/v1" },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an apiKeyEnvVar: the key variable is fixed", () => {
+    const result = providerConfigSchema.safeParse({
+      id: "opencode",
+      options: { ...options, apiKeyEnvVar: "MY_KEY" },
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("buildProvider: opencode", () => {
+  it("reads OPENCODE_API_KEY and builds an llm provider", () => {
+    vi.stubEnv("OPENCODE_API_KEY", "oc_sk_test");
+    try {
+      const provider = buildProvider({
+        id: "opencode",
+        options: { model: "glm-5.3", maxOutputTokens: 4096 },
+      });
+      expect(provider.id).toBe("opencode");
+      expect(provider.kind).toBe("llm");
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("fails naming OPENCODE_API_KEY when it is not set", () => {
+    vi.stubEnv("OPENCODE_API_KEY", "");
+    try {
+      expect(() =>
+        buildProvider({ id: "opencode", options: { model: "glm-5.3", maxOutputTokens: 4096 } }),
+      ).toThrow(/OPENCODE_API_KEY/);
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });
 

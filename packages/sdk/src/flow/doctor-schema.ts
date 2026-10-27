@@ -28,6 +28,7 @@ const MACHINE_PROVIDER_IDS = [
   "deepl",
   "google-translate",
   "openai-compatible",
+  "opencode",
   "libretranslate",
 ] as const satisfies readonly MachineProviderId[];
 

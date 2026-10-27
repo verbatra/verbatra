@@ -88,6 +88,7 @@ export const PROVIDER_DATA_FLOW: ProviderDataFlowTable = {
     languageList: "with-key",
   },
   "openai-compatible": { fields: LLM_FIELDS, apiKey: "optional", languageList: "none" },
+  opencode: HOSTED_LLM,
   libretranslate: {
     fields: ["source-text", "placeholder-markers", "language-codes"],
     apiKey: "optional",
