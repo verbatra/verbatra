@@ -19,6 +19,11 @@ const local: MachineProviderConfig = {
   options: { baseUrl: "http://127.0.0.1:11434/v1", model: "m", maxOutputTokens: 1 },
 };
 
+const opencode: MachineProviderConfig = {
+  id: "opencode",
+  options: { model: "m", maxOutputTokens: 1 },
+};
+
 function thrown(run: () => void): SdkError {
   try {
     run();
@@ -83,6 +88,25 @@ describe("assertEndpointPermitted", () => {
     expect(error.message).toContain('Provider "anthropic" was not constructed');
     expect(error.message).toContain("api.anthropic.com");
     expect(error.message).toContain("No request was sent.");
+  });
+
+  it("refuses opencode under local-only and names its host", () => {
+    const error = thrown(() => assertEndpointPermitted(opencode, localOnly, {}));
+    expect(error.code).toBe("NETWORK_POLICY_VIOLATION");
+    expect(error.message).toContain('Provider "opencode" was not constructed');
+    expect(error.message).toContain("opencode.ai");
+  });
+
+  it("permits opencode when allowedHosts names opencode.ai", () => {
+    const allowed = resolveNetworkPolicy(
+      { policy: "local-only", allowedHosts: ["opencode.ai"] },
+      {},
+    );
+    expect(() => assertEndpointPermitted(opencode, allowed, {})).not.toThrow();
+  });
+
+  it("maps opencode to its id, since its endpoint is fixed", () => {
+    expect(endpointTargetOf(opencode)).toEqual({ id: "opencode" });
   });
 
   it("permits a local endpoint", () => {
