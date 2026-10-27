@@ -21,6 +21,9 @@ Runtime dependency updates that reach consumers of the published packages.
   1.1.21 and 2.1.7 (through `exceljs`) with lockfile overrides, which are not part of the published
   packages. Your install resolves these from its own lockfile, so update them there to pick up the
   fixes.
+- `follow-redirects` 1.16.1 is reached through `deepl-node` -> `axios`. The repository pins the
+  patched release with a lockfile override that is not part of the published packages, so update it
+  in your lockfile to pick up the fix.
 - `proxy-addr` 2.0.8 (GHSA-jqcg-44mw-7w3h) is reached only through `@modelcontextprotocol/sdk`,
   an optional peer of `@google/genai` that npm does not install for you. If your project installs
   `@modelcontextprotocol/sdk` itself, update `proxy-addr` to 2.0.8 or newer in your lockfile.
